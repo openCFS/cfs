@@ -20,6 +20,7 @@ from cfs_utils import *
 from subprocess import PIPE
 import subprocess
 import time
+from io import StringIO 
 
 tensors = numpy.zeros((11,9))
 volumes = numpy.zeros((11,1))
@@ -33,11 +34,12 @@ lower = 1
 name = "V7" 
 upper = 5
 lower = 0 
+
 for i in range(1,10):
   infoxml = name +"_" + str(i*10) + "%.info.xml"
   if os.path.isfile(infoxml) and i > lower and i < upper:      
     doc = lxml.etree.parse(infoxml, lxml.etree.XMLParser(remove_comments=True))
-    matrix = xpath(doc, "//homogenizedTensor/tensor/real/text()")    
+    matrix = xpath(docgg, "//homogenizedTensor/tensor/real/text()")    
     res = list(map(float, matrix.split())) # convert list with string elements to list with float elements    
     ts = np.asarray(res)
     print(infoxml + ' -> '+ str(ts))

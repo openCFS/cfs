@@ -4286,6 +4286,8 @@ int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point
   int idx = -1;
   if (interval[0][0] <= point && point < interval[nRows - 1][0]) {
     idx = (int) ( (point - interval[0][0]) / h);
+    //dirty fix for segmentation fault, remove as soon as possible
+    idx = (idx > nRows - 2) ? nRows - 2 : idx;
   } else if (point == interval[nRows - 1][0]) {
     idx = nRows - 2;
   } else if (point > interval[nRows - 1][0]) {
@@ -4306,6 +4308,7 @@ int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point
     }
   }
   assert(idx != -1);
+  assert(idx <= nRows - 2);
   return idx;
 }
 

@@ -174,7 +174,7 @@ def plot_angle_data(file, angle, data):
 # @param force_scale overwrites args.scale
 # @param min_bb/max_bb: min/max coordinates of bounding box
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
-def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes_coords = None, min_bb = None, max_bb = None):
+def perform(args, h5_read,matlab_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes_coords = None, min_bb = None, max_bb = None):
   
   volume = None  # might ne set
   
@@ -183,7 +183,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   coords = (centers, min_bb, max_bb, elem_dim)
   
   # perform 2D and 3D from file
-  if h5_read or dim_2D:
+  if h5_read or matlab_read or dim_2D:
     # either Image or polydata  
     viz = None
     if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp","hom_ortho_3d"):
@@ -215,7 +215,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         if h5_read:
           angle = microparams['angle']
         else:
-          angle,s1,s2,coords = read_stiff_angle_matlab(args.input)
+          if matlab_read:
+              angle,s1,s2,coords,s3,dim_2D = read_stiff_angle_matlab(args.input)
       else:
         if args.show == "simp":
           args.parametrization = 'simp'
@@ -231,10 +232,11 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         angle = microparams['angle']
         sh1 = microparams['sh1']
       
-      # add angle bias, e.g. by 90 deg to correct thomas
-      angle += args.angle_bias * numpy.pi / 180
-      # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
-      angle *= -1.0
+      if angle is not None:
+        # add angle bias, e.g. by 90 deg to correct thomas
+        angle += args.angle_bias * numpy.pi / 180
+        # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
+        angle *= -1.0
       if args.angle_factor != 1.0:
         print('scale angle by ' + str(args.angle_factor))
         angle *= args.angle_factor  
@@ -543,6 +545,7 @@ tensor = []  # becomes a single tensor or a tensor array
 centers = []
 dim_2D = None
 h5_read = None
+matlab_read = None
 infoXml_read = None
 elem_dim = None
 min_bb = None
@@ -578,7 +581,7 @@ if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.
   else:
     #data from matlab file
     assert(args.input.endswith(".mat"))
-    dim_2D = '2D'
+    matlab_read = True
     input = args.input
     args.tensor = 'matlab'
   if not args.tensor == 'matlab' and args.tensor == 'mechTensor':  
@@ -633,9 +636,9 @@ else:
 if not args.target_volume:
   if args.mesh and args.h5_nondes != "None":
     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min_bb,max_bb=min_bb)
+    perform(args, h5_read, matlab_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min_bb,max_bb=min_bb)
   else:
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb)
+    perform(args, h5_read, matlab_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb)
 else:
   if args.scale > 0:
     print("Error: don't give --scale and --target_volume concurrently!")
@@ -652,7 +655,7 @@ else:
   best_s = -1
   while upper - lower > 0.000001 and abs(best_err) > 0.0001:
     for s in numpy.arange(lower, upper, (upper - lower) / 5.):
-      vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, s)
+      vol = perform(args, h5_read,matlab_read, dim_2D, tensor, centers, aux_code, s)
       err = abs(vol - args.target_volume)
       if vol == None:
         sys.exit(1)
@@ -682,7 +685,7 @@ else:
 
   # the last result does not mean to be the best result
   if err != best_err:
-    vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, best_s)
+    vol = perform(args, h5_read,matlab_read, dim_2D, tensor, centers, aux_code, best_s)
     print("!!!!! best_target_volume: best_scale=" + str(best_s) + " -> " + str(vol) + " err=" + str(abs(vol - args.target_volume)))
     tv = xml.etree.ElementTree.SubElement(info, "best_target_volume")
     tv.set("target", str(args.target_volume))
