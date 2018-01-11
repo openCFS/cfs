@@ -703,8 +703,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     int o = hom_rect_c_.GetNumRows();
     double da = hom_rect_a_[1][0] - hom_rect_a_[0][0];
     double db = hom_rect_b_[1][0] - hom_rect_b_[0][0];
-    double dc = 0.0;
-    dc = hom_rect_c_[1][0] - hom_rect_c_[0][0];
+    double dc = hom_rect_c_[1][0] - hom_rect_c_[0][0];
+
     int j, k, l(-1);
     j = GetInterpolationIndex(hom_rect_a_,p[0]);
     k = GetInterpolationIndex(hom_rect_b_,p[1]);
@@ -4316,6 +4316,10 @@ double DesignMaterial::EvaluateC1Interpolation_3D(Vector<double>& p,
     const Matrix<double> & coeff, double & da, double & db, double & dc,
     int & j, int & k, int & l, int & m, int & n, int &o) const {
   // HOM_RECT_C1 case
+  // dirty fix: does nothing if program works correctly
+  j = (j > m - 2) ? m - 2 : j;
+  k = (j > n - 2) ? n - 2 : k;
+  l = (j > o - 2) ? o - 2 : l;
   LOG_DBG(dm)<<"p=["<<p[0]<<","<<p[1]<<", "<<p[2]<<"]";
   double t=(p[0]-hom_rect_a_[j][0])/da;
   double u =(p[1]-hom_rect_b_[k][0])/db;
