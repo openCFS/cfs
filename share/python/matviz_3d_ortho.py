@@ -168,37 +168,42 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #   sys.exit()
   
   local_id = 0
-  for id in range(start*samples[1]*samples[2],end*samples[1]*samples[2]):
-    #global i,j,k
-    i, j, k = get_3d_grid_coords(id,samples[0],samples[1],samples[2])   
-    this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
-    east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
-    top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
-    front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+#   for id in range(start*samples[1]*samples[2],end*samples[1]*samples[2]):
+#     #global i,j,k
+#     i, j, k = get_3d_grid_coords(id,samples[0],samples[1],samples[2]) 
+#     print("global i,j,k",i,j,k)
+  for i in range(start,end):
+    for j in range(samples[1]):
+      for k in range(samples[2]):
+        this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
+        east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
+        top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
+        front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+        
+        assert(this is not None and east is not None and top is not None and front is not None)
+        
+        # if one of the values is < min_thresh, set it to min_thresh        
+        # if one of the values is > max_thresh, set it to max_thresh
+        x1 = min(max(this[0],min_thresh),max_thresh)
+        x2 = min(max(east[0],min_thresh),max_thresh)
+        y1 = min(max(this[1],min_thresh),max_thresh)
+        y2 = min(max(top[1],min_thresh),max_thresh)
+        z1 = min(max(this[2],min_thresh),max_thresh)
+        z2 = min(max(front[2],min_thresh),max_thresh)
+        
+        flags = None
+        bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
+        bc_input.eta = 0.7
+        bc_input.stiffness_as_diameter = True
+        cell_obj = basecell.Basecell(bc_input,id)
+        # local i,j,k
+        li,lj,lk = get_3d_grid_coords(local_id, chunks[rank], samples[1], samples[2])
+        print("\nrank:",rank," local i,j,k:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+        print("global i,j,k:",i,j,k)
+        sys.stdout.flush()
+        voxel_grid[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
     
-    assert(this is not None and east is not None and top is not None and front is not None)
-    
-    # if one of the values is < min_thresh, set it to min_thresh        
-    # if one of the values is > max_thresh, set it to max_thresh
-    x1 = min(max(this[0],min_thresh),max_thresh)
-    x2 = min(max(east[0],min_thresh),max_thresh)
-    y1 = min(max(this[1],min_thresh),max_thresh)
-    y2 = min(max(top[1],min_thresh),max_thresh)
-    z1 = min(max(this[2],min_thresh),max_thresh)
-    z2 = min(max(front[2],min_thresh),max_thresh)
-    
-    flags = None
-    bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
-    bc_input.eta = 0.7
-    bc_input.stiffness_as_diameter = True
-    cell_obj = basecell.Basecell(bc_input,id)
-    # local i,j,k
-    i,j,k = get_3d_grid_coords(local_id, chunks[rank], samples[1], samples[2])
-#     print("rank:",rank," local i,j,k:",i,j,k)
-#     sys.stdout.flush()
-    voxel_grid[i*args.bc_res:(i+1)*args.bc_res,j*args.bc_res:(j+1)*args.bc_res,k*args.bc_res:(k+1)*args.bc_res] = cell_obj.voxels
-
-    local_id += 1
+        local_id += 1
     
   eps = 1e-6
 
@@ -274,7 +279,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   verts = basecell.taubin_smoothing(verts,connectivity,30)
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
   translation = vtk.vtkTransform()
-  translation.Translate(bounds[0],bounds[1],bounds[2])
+  translation.Translate(local_bounds[0],local_bounds[1],local_bounds[2])
   transformFilter = vtk.vtkTransformPolyDataFilter()
   transformFilter.SetInputData(pd)
   transformFilter.SetTransform(translation)
@@ -288,7 +293,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   
   pd = normals.GetOutput()
   
-  matviz_vtk.show_write_vtk(pd, 10, "smooothed_marching"+str(rank)+".vtp")
+  matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(rank)+".vtp")
 
   
 #   return pd
@@ -372,27 +377,32 @@ def draw_tetrahedron(A,B,C,D,grid,value=0):
   eps = 1e-6
   
   for t in triangles:
-    v0 = t[0]
-    v1 = t[1]
-    v2 = t[2]
-    
-    # directional vectors
-    v1v0 = v1 - v0
-    v2v0 = v2 - v0
-    
-    # number of samples
-    samples10 = abs(max(v1v0))
-    samples20 = abs(max(v2v0))
-    
-    for u in np.linspace(0,1,num=samples10+10):
-      for v in np.linspace(0,1,num=samples20+10):
-        if u + v > 1.0:
-          continue
-        
-        p0 = v0 + u * v1v0 + v * v2v0 + eps
-        p = [int(v) for v in p0]
-        
+    draw_triangle(t[0], t[1], t[2], grid, value)
+
+# @param v0, v1, v2: triangle vertices        
+# @param value: value to draw with        
+def draw_triangle(v0,v1,v2,grid,value):
+  # directional vectors
+  v1v0 = v1 - v0
+  v2v0 = v2 - v0
+  
+  # number of samples
+  samples10 = abs(max(v1v0))
+  samples20 = abs(max(v2v0))
+  
+  eps = 1e-6
+  
+  for u in np.linspace(0,1,num=samples10+10):
+    for v in np.linspace(0,1,num=samples20+10):
+      if u + v > 1.0:
+        continue
+      
+      p0 = v0 + u * v1v0 + v * v2v0 + eps
+      p = [int(v) for v in p0]
+      
+      if not idx_out_of_bounds(p, grid.shape):
         grid[tuple(p)] = value
+          
         
 # @param elem: list of lists, each entry contains 4 vertices (cartesian) of a tet
 # @param bounds: list of bounds of cartesian world
@@ -411,65 +421,72 @@ def draw_non_design(tets,grid,bounds,h,value):
     C = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[2],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
     D = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[3],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
     
-    # check if whole tet lies outside local grid
-    if not (0 <= A[0] < grid.shape[0] and 0 <= B[0] < grid.shape[0] and 0 <= C[0] < grid.shape[0] and 0 <= D[0] < grid.shape[0] and \
-            0 <= A[1] < grid.shape[1] and 0 <= B[1] < grid.shape[1] and 0 <= C[1] < grid.shape[1] and 0 <= D[1] < grid.shape[1] and \
-            0 <= A[2] < grid.shape[2] and 0 <= B[2] < grid.shape[2] and 0 <= C[2] < grid.shape[1] and 0 <= D[2] < grid.shape[1]):
+    #     print("A:",A)
+    #     print("B:",B)
+    #     print("C:",C)
+    #     print("D:",D)
+    #       sys.exit()
+    
+    # find out which vertex is inside and which partial triangle to draw
+    vertices = [A,B,C,D]
+    vertex_outside = [idx_out_of_bounds(v, grid.shape) for v in vertices]
+    
+    # whole tet lies outside local grid
+    if np.all(vertex_outside):
+      continue  
+      # at least one vertex is inside domain
+    elif np.any(np.invert(vertex_outside)):
+      # list of vertices inside domain
+      valid_verts_idx = np.where(np.invert(vertex_outside))[0]
+      for idx in valid_verts_idx:
+        grid[tuple(vertices[idx])] = value
       
-      # check parts of tet
+      draw_tetrahedron(A, B, C, D, grid, value)
       
-      continue
-    
-#     print("A:",A)
-#     print("B:",B)
-#     print("C:",C)
-#     print("D:",D)
-#       sys.exit()
-    
-    assert(0 <= A[0] and A[0] < grid.shape[0] and 0 <= A[1] and A[1] < grid.shape[1] and 0 <= A[2] and A[2] < grid.shape[2])
-    
-    # works only if A is a tuple
-    grid[tuple(A)] = value 
-    grid[tuple(B)] = value
-    grid[tuple(C)] = value
-    grid[tuple(D)] = value
-    
-    draw_tetrahedron(A,B,C,D,grid,value)
-    
-    # get bounding box of this tet and fill holes inside 4 drawn triangles
-    mindim = [min(A[i],B[i],C[i],D[i]) for i in range(3)]
-    maxdim = [max(A[i],B[i],C[i],D[i]) for i in range(3)] 
-    
-    subgrid = grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1]
-    helper = np.ones(subgrid.shape) * 999
-    # convert to binary 3dimage, 0 is hole and 1 structure
-    for i in range(subgrid.shape[0]):
-      for j in range(subgrid.shape[1]):
-        for k in range(subgrid.shape[2]):
-          # solid
-          if subgrid[i,j,k] == value:
-            helper[i,j,k] = 1
-          else:
-            #void
-            assert(subgrid[i,j,k] != value)
-            helper[i,j,k] = 0
-     
-    helper = binary_fill_holes(helper).astype(int)
-     
-    for i in range(helper.shape[0]):
-      for j in range(helper.shape[1]):
-        for k in range(helper.shape[2]):
-          if helper[i,j,k] == 1:
-            subgrid[i,j,k] = value
-            
-    grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] = subgrid           
+    else: # draw complete tet
+      assert(not (idx_out_of_bounds(A, grid.shape) or idx_out_of_bounds(B, grid.shape) or idx_out_of_bounds(C, grid.shape)))
+      
+      # works only if A is a tuple
+      grid[tuple(A)] = value 
+      grid[tuple(B)] = value
+      grid[tuple(C)] = value
+      grid[tuple(D)] = value
+      
+      draw_tetrahedron(A,B,C,D,grid,value)
+      
+      # get bounding box of this tet and fill holes inside 4 drawn triangles
+      mindim = [min(A[i],B[i],C[i],D[i]) for i in range(3)]
+      maxdim = [max(A[i],B[i],C[i],D[i]) for i in range(3)] 
+      
+      subgrid = grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1]
+      helper = np.ones(subgrid.shape) * 999
+      # convert to binary 3dimage, 0 is hole and 1 structure
+      for i in range(subgrid.shape[0]):
+        for j in range(subgrid.shape[1]):
+          for k in range(subgrid.shape[2]):
+            # solid
+            if subgrid[i,j,k] == value:
+              helper[i,j,k] = 1
+            else:
+              #void
+              assert(subgrid[i,j,k] != value)
+              helper[i,j,k] = 0
+       
+      helper = binary_fill_holes(helper).astype(int)
+       
+      for i in range(helper.shape[0]):
+        for j in range(helper.shape[1]):
+          for k in range(helper.shape[2]):
+            if helper[i,j,k] == 1:
+              subgrid[i,j,k] = value
+              
+      grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] = subgrid           
 
-# check if given point lies within given bounds
-# @param point (x,y,z)
-# @param bounds: list of 6 doubles (xmin,ymin,zmin,xmax,ymax,zmax)    
-def out_of_bounds(point,bounds):
-  eps = 1e-6
-  if bounds[0]-eps < point[0] < bounds[3] + eps and bounds[1]-eps < point[1] < bounds[4] + eps and bounds[2]-eps < point[2] < bounds[5] + eps:
+# check if given tuple of indices lies within given array bounds
+# @param point (i,j,k)
+# @param bounds: list of 3 ints    
+def idx_out_of_bounds(point,bounds):
+  if 0 <= point[0] < bounds[0] and 0 < point[1] < bounds[1] and 0 < point[2] < bounds[2]:
     return False
   else:
     return True
