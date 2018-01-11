@@ -37,18 +37,32 @@ def getConnectivity(points,cells):
   
   return connectivity
 
-def taubin_smoothing(points,connectivity,niter,bounds=None):
-  assert(niter > 0)
+def taubin_smoothing(points,connectivity,bounds=None):
   # smoothing parameter: p_i = p_i + lambda*L(p_{i,j})
   lamb = 0.8
   new_points = points
-  for i in range(niter):
+  old_points = None
+  i = 0
+  while True:
+    old_points = new_points
     new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb),connectivity,-lamb-0.04,bounds)
-    
-#   print("Taubin smoothing with ", niter, " iterations")
+    res = residual(old_points, new_points)
+    if res < 1e-2:
+      print("Taubin smoothing with ", i, " iterations")
+      break
+    i += 1
     
   return new_points
 
+# for 2 list of points, calculate norm of difference
+def residual(old,new):
+  assert(len(old) == len(new))
+  diff = 0
+  for i in range(len(old)):
+    diff += np.linalg.norm(np.asarray(old[i]) - np.asarray(new[i]))
+  
+  return diff/len(old)  
+  
 # laplacian smoothing: p_i = p_i + \lambda * L(p_i)
 # using weighted average: L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i, assuming neighbors are p_j,p_k
 # bounds: tuple/list with 6 entries - points on these boundaries are not smoothed   
@@ -303,7 +317,7 @@ if __name__ == "__main__":
   
   if args.target == "surface_mesh":
     connectivity = getConnectivity(points,cells)
-    points = taubin_smoothing(points,connectivity,20) 
+    points = taubin_smoothing(points,connectivity) 
   
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)
@@ -410,7 +424,7 @@ class Basecell():
       self.update()
     if data.target == "surface_mesh":
       connectivity = getConnectivity(self.points,self.cells)
-      self.points = taubin_smoothing(self.points,connectivity,20)  
+      self.points = taubin_smoothing(self.points,connectivity)  
       
     self.center = np.asarray([0.5,0.5,0.5])
     
@@ -426,11 +440,11 @@ class Basecell():
   # recalculate bounds after rescaling and translating
   def update(self):
     self.bounds[0] = np.min(np.asarray(self.points)[:,0])
-    self.bounds[0] = np.min(np.asarray(self.points)[:,1])
-    self.bounds[0] = np.min(np.asarray(self.points)[:,2])
-    self.bounds[0] = np.max(np.asarray(self.points)[:,0])
-    self.bounds[0] = np.max(np.asarray(self.points)[:,1])
-    self.bounds[0] = np.max(np.asarray(self.points)[:,2])
+    self.bounds[1] = np.min(np.asarray(self.points)[:,1])
+    self.bounds[2] = np.min(np.asarray(self.points)[:,2])
+    self.bounds[3] = np.max(np.asarray(self.points)[:,0])
+    self.bounds[4] = np.max(np.asarray(self.points)[:,1])
+    self.bounds[5] = np.max(np.asarray(self.points)[:,2])
   
 ############## info xml scheme #####################
 # <basecell>

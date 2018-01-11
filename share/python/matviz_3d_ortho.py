@@ -198,8 +198,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         cell_obj = basecell.Basecell(bc_input,id)
         # local i,j,k
         li,lj,lk = get_3d_grid_coords(local_id, chunks[rank], samples[1], samples[2])
-        print("\nrank:",rank," local i,j,k:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
-        print("global i,j,k:",i,j,k)
+        print("rank:",rank," global i,j,k:",i,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
         sys.stdout.flush()
         voxel_grid[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
     
@@ -241,12 +240,12 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         if voxel_grid[i,j,k] != -1: # valid voxel
           helper[i+1,j+1,k+1] = 1
   
-  helper[0,:,:] = -1        
-  helper[:,0,:] = -1
-  helper[:,:,0] = -1
-  helper[helper.shape[0]-1,:,:] = -1        
-  helper[:,helper.shape[1]-1,:] = -1
-  helper[:,:,helper.shape[2]-1] = -1
+#   helper[0,:,:] = -1        
+#   helper[:,0,:] = -1
+#   helper[:,:,0] = -1
+#   helper[helper.shape[0]-1,:,:] = -1        
+#   helper[:,helper.shape[1]-1,:] = -1
+#   helper[:,:,helper.shape[2]-1] = -1
           
   hx_help = width[0] / float(shape[0])
   hy_help = width[1] / float(shape[1])
@@ -276,7 +275,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "marching"+str(rank)+".vtp")
   
   connectivity = basecell.getConnectivity(verts,faces)
-  verts = basecell.taubin_smoothing(verts,connectivity,30)
+  verts = basecell.taubin_smoothing(verts,connectivity)
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
   translation = vtk.vtkTransform()
   translation.Translate(local_bounds[0],local_bounds[1],local_bounds[2])
@@ -486,7 +485,7 @@ def draw_non_design(tets,grid,bounds,h,value):
 # @param point (i,j,k)
 # @param bounds: list of 3 ints    
 def idx_out_of_bounds(point,bounds):
-  if 0 <= point[0] < bounds[0] and 0 < point[1] < bounds[1] and 0 < point[2] < bounds[2]:
+  if 0 <= point[0] < bounds[0] and 0 <= point[1] < bounds[1] and 0 <= point[2] < bounds[2]:
     return False
   else:
     return True
