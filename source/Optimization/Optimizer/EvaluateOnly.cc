@@ -57,6 +57,7 @@ void EvaluateOnly::SolveProblem()
 
   // in the harmonic case we sweep over multiple frequencies if we have not "multipleExcitation"
   HarmonicDriver* hd = Optimization::context->GetHarmonicDriver();
+  // end is > 1 for "multiple_excitations" set to false in order to evaluate the functions separately for each frequency
   int end = optimization->context->IsHarmonic() && !optimization->GetMultipleExcitation()->IsEnabled() ? hd->freqs.GetSize() : 1;
 
   // space to store the gradient values, we need it to evaluate density filtering.
@@ -69,30 +70,33 @@ void EvaluateOnly::SolveProblem()
   StdVector<double> x;
   optimization->GetDesign()->WriteDesignToExtern(x);
 
+  // if we really loop here in evaluate we want to show the function values separately for each frequency
   for(int i = 0; i < end; i++)
   {
+    Excitation* excite = NULL;
     // we do multiple excitations only when end > 1. Otherwise it is unused
+    // end = 1 means that the functions are evaluated as weighted sums ("multiple_excitation=true")
     if(end > 1)
     {
-      Excitation& excite = optimization->GetMultipleExcitation()->excitations[0];
-      excite.index = 0; // we solve always at the same position
-      excite.f_link = &hd->freqs[i];
-      excite.frequency = excite.f_link->freq;
+      excite = &(optimization->GetMultipleExcitation()->excitations[0]);
+      excite->index = 0; // we solve always at the same position
+      excite->f_link = &hd->freqs[i];
+      excite->frequency = excite->f_link->freq;
     }
 
     // special case only in harmonic case with more frequencies but not multiple_loads optimization
-    optimization->SolveStateProblem();
+    optimization->SolveStateProblem(excite);
 
     eval_obj_timer_->Start();
-    double v = optimization->CalcObjective();
+    double v = optimization->CalcObjective(excite);
     eval_obj_timer_->Stop();
     LOG_DBG(eval) << "SP: obj=" << v;
     // calc gradients, they might be stored in store results!
     // gradients might need adjoints
     if(eval_grad){
-      optimization->SolveAdjointProblems();
+      optimization->SolveAdjointProblems(excite);
       eval_grad_obj_timer_->Start();
-      optimization->CalcObjectiveGradient(&grad);
+      optimization->CalcObjectiveGradient(&grad, excite);
       eval_grad_obj_timer_->Stop();
       for(unsigned int i = 0; i < grad.GetSize(); i++) {
         BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(i);
@@ -104,7 +108,7 @@ void EvaluateOnly::SolveProblem()
     {
       Condition* g = optimization->constraints.view->Get(c);
       optimizer_timer_->Start(); // only for the assert
-      v = EvalConstraint(g, false, false); // sets the timer itself
+      v = EvalConstraint(g, false, false, excite); // sets the timer itself
       optimizer_timer_->Stop();
 
       double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
@@ -116,7 +120,7 @@ void EvaluateOnly::SolveProblem()
         StdVector<unsigned int>& pattern = g->GetSparsityPattern();
         grad.window.Set(0, pattern.GetSize()); // necessary for a local condition assert
         eval_grad_const_timer_->Start();
-        optimization->CalcConstraintGradient(g, &grad);
+        optimization->CalcConstraintGradient(g, &grad, excite);
         eval_grad_const_timer_->Stop();
         for(unsigned int i = 0; i < pattern.GetSize(); i++) {
           BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(pattern[i]);
