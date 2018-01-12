@@ -38,8 +38,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # MPI_Init() or MPI_Init_thread() is actually called when you import the MPI
   # use the standard communicator
   comm = MPI.COMM_WORLD
-  rank = comm.Get_rank()
-  commSize = comm.Get_size()
   
   # point coordinates from h5 file
   centers, _, _ = coords[0:3]
@@ -84,18 +82,14 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   bounds = [None] * 6
   bounds[0:3] = np.minimum(np.asarray(min_bb),np.asarray(nondes_min))
   bounds[3:6] = np.maximum(np.asarray(max_bb),np.asarray(nondes_max))
+  width = [bounds[3]-bounds[0],bounds[4]-bounds[1],bounds[5]-bounds[2]]
   print("\nmin_bb design:",min_bb)
   print("max_bb design:",max_bb)
   print("min:",bounds[0:3])
   print("max:",bounds[3:6])
-  resolution = (int(samples[0]*args.bc_res),int(samples[1]*args.bc_res),int(samples[2]*args.bc_res))
-  print("voxel grid res:",resolution)
   
-  width = [bounds[3]-bounds[0],bounds[4]-bounds[1],bounds[5]-bounds[2]]
-  
-  hx = width[0] /  float(samples[0]*args.bc_res)
-  hy = width[1] / float(samples[1]*args.bc_res)
-  hz = width[2] / float(samples[2]*args.bc_res)
+  my_grid = DistributedGrid(comm,samples,args.bc_res,bounds)
+  my_grid.to_info()
   
 #   nCells = nx*ny*nz
 #   # distribute loop evenly over number of processes and take care
@@ -104,30 +98,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #   # number of loop runs per process:
 #   nRuns = [int(nCells/commSize) + (1 if p < nCells%commSize else 0) for p in range(0,commSize)]
 #   start = int(np.sum(nRuns[0:rank]))
-#   end = int(start + nRuns[rank])
+#   end = int(start + nRuns[my_grid.rank])
   
-  # 1D Slab Decomposition of global voxel grid: http://www.2decomp.org/decomp.html 
-  # distribute number of cells along x-axis evenly over number of processes and take care
-  # of remainder -> difference between work chunks can be 1
-  chunks = [int(samples[0]/commSize) + (1 if p < samples[0]%commSize else 0) for p in range(0,commSize)]
-  local_resolution = (int(chunks[rank]*args.bc_res),int(samples[1]*args.bc_res),int(samples[2]*args.bc_res))
-  start = int(np.sum(chunks[0:rank]))
-  end = int(start + chunks[rank])
-  
-  local_bounds = bounds[:]
-  # divide x-axis among workers
-  local_bounds[0] = start*(bounds[3]-bounds[0]) / np.sum(chunks) + bounds[0]
-  local_bounds[3] = end*(bounds[3]-bounds[0]) / np.sum(chunks) + bounds[0]
-  
-  print("chunks:",chunks)
-  print("local res:", local_resolution)
-  print("local bounds:",local_bounds)
-  print("rank:",rank," start:",start," end:",end)
-  print("hx,hy,hz:",hx,hy,hz)
-  sys.stdout.flush()
-  
-  voxel_grid  = np.full(local_resolution,999,dtype=int)
-#   if rank == 0: 
+#   if my_grid.rank == 0: 
 #     eps = 1e-6
 #     x = np.arange(0,resolution[0]+1,1)
 #     y = np.arange(0,resolution[1]+1,1)
@@ -168,11 +141,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #   sys.exit()
   
   local_id = 0
-#   for id in range(start*samples[1]*samples[2],end*samples[1]*samples[2]):
-#     #global i,j,k
-#     i, j, k = get_3d_grid_coords(id,samples[0],samples[1],samples[2]) 
-#     print("global i,j,k",i,j,k)
-  for i in range(start,end):
+  for i in range(my_grid.start_x,my_grid.end_x):
     for j in range(samples[1]):
       for k in range(samples[2]):
         this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
@@ -197,10 +166,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         bc_input.stiffness_as_diameter = True
         cell_obj = basecell.Basecell(bc_input,id)
         # local i,j,k
-        li,lj,lk = get_3d_grid_coords(local_id, chunks[rank], samples[1], samples[2])
-        print("rank:",rank," global i,j,k:",i,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
-        sys.stdout.flush()
-        voxel_grid[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
+        li,lj,lk = get_3d_grid_coords(local_id, my_grid.chunks, samples[1], samples[2])
+        print("rank:",my_grid.rank," global i,j,k:",i,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+        my_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
     
         local_id += 1
     
@@ -218,17 +186,17 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #     
 #     assert(len(void_elems) > 0)
     
-  x = np.arange(local_bounds[0],local_bounds[3]+hx-eps,hx)
-  y = np.arange(local_bounds[1],local_bounds[4]+hy-eps,hy)
-  z = np.arange(local_bounds[2],local_bounds[5]+hz-eps,hz)
+  x = np.arange(my_grid.bounds[0],my_grid.bounds[3]+my_grid.grid.hx-eps,my_grid.grid.hx)
+  y = np.arange(my_grid.bounds[1],my_grid.bounds[4]+my_grid.grid.hy-eps,my_grid.grid.hy)
+  z = np.arange(my_grid.bounds[2],my_grid.bounds[5]+my_grid.grid.hz-eps,my_grid.grid.hz)
   
-  draw_non_design(nondes_coords, voxel_grid, local_bounds[0:3], (hx,hy,hz), 0)
-#   draw_non_design(void_elems, voxel_grid, local_bounds[0:3], (hx,hy,hz), -1)    
+  draw_non_design(nondes_coords, my_grid.grid.data, my_grid.bounds[0:3], (my_grid.grid.hx,my_grid.grid.hy,my_grid.grid.hz), 0)
+#   draw_non_design(void_elems, my_grid.grid.data, my_grid.bounds[0:3], (my_grid.grid.hx,my_grid.grid.hy,my_grid.grid.hz), -1)    
   from pyevtk.hl import gridToVTK  
-  gridToVTK("voxels"+str(rank),x,y,z,cellData={"voxels":voxel_grid})
+  gridToVTK("voxels"+str(my_grid.rank),x,y,z,cellData={"voxels":my_grid.grid.data})
   
   # binary helper array
-  shape = np.asarray(voxel_grid.shape[0:3]) + np.array((2,2,2))
+  shape = np.asarray(my_grid.grid.data.shape[0:3]) + np.array((2,2,2))
   helper = np.zeros(shape,dtype=int)
   # use voxel info for Marching cubes algorithm
   # set voxels on boundary wit value 0
@@ -237,48 +205,41 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   for i in range(shape[0]-2):
     for j in range(shape[1]-2):
       for k in range(shape[2]-2):
-        if voxel_grid[i,j,k] != -1: # valid voxel
+        if my_grid.grid.data[i,j,k] != -1: # valid voxel
           helper[i+1,j+1,k+1] = 1
   
-#   helper[0,:,:] = -1        
-#   helper[:,0,:] = -1
-#   helper[:,:,0] = -1
-#   helper[helper.shape[0]-1,:,:] = -1        
-#   helper[:,helper.shape[1]-1,:] = -1
-#   helper[:,:,helper.shape[2]-1] = -1
-          
   hx_help = width[0] / float(shape[0])
   hy_help = width[1] / float(shape[1])
   hz_help = width[2] / float(shape[2])
   
   print("hx_help,hy_help,hz_help:",hx_help,hy_help,hz_help)
-  print("hx,hy,hz:",hx,hy,hz)
+  print("hx,hy,hz:",my_grid.grid.hx,my_grid.grid.hy,my_grid.grid.hz)
   
   # vtk rectgrid is node based
-  x = np.arange(local_bounds[0],local_bounds[3]+1*hx_help,hx_help)
-  y = np.arange(local_bounds[1],local_bounds[4]+1*hy_help,hy_help)
-  z = np.arange(local_bounds[2],local_bounds[5]+1*hz_help,hz_help)
+  x = np.arange(my_grid.bounds[0],my_grid.bounds[3]+1*hx_help,hx_help)
+  y = np.arange(my_grid.bounds[1],my_grid.bounds[4]+1*hy_help,hy_help)
+  z = np.arange(my_grid.bounds[2],my_grid.bounds[5]+1*hz_help,hz_help)
   from pyevtk.hl import gridToVTK  
-  gridToVTK("helper"+str(rank),x,y,z,cellData={"helper":helper}) 
+  gridToVTK("helper"+str(my_grid.rank),x,y,z,cellData={"helper":helper}) 
  
   from skimage import measure
   # coords of vertices lie in [0,1-h]
-  verts, faces, normals, values = measure.marching_cubes(helper,spacing=(np.float32(hx),np.float32(hy),np.float32(hz)),allow_degenerate=False)
-  verts = np.asarray(verts) + (hx/2.0,hy/2.0,hz/2.0)
+  verts, faces, normals, values = measure.marching_cubes(helper,spacing=(np.float32(my_grid.grid.hx),np.float32(my_grid.grid.hy),np.float32(my_grid.grid.hz)),allow_degenerate=False)
+  verts = np.asarray(verts) + (my_grid.grid.hx/2.0,my_grid.grid.hx/2.0,my_grid.grid.hx/2.0)
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
   translation = vtk.vtkTransform()
-  translation.Translate(local_bounds[0],local_bounds[1],local_bounds[2])
+  translation.Translate(my_grid.bounds[0],my_grid.bounds[1],my_grid.bounds[2])
   transformFilter = vtk.vtkTransformPolyDataFilter()
   transformFilter.SetInputData(pd)
   transformFilter.SetTransform(translation)
   transformFilter.Update()
-  matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "marching"+str(rank)+".vtp")
+  matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "marching"+str(my_grid.rank)+".vtp")
   
   connectivity = basecell.getConnectivity(verts,faces)
   verts = basecell.taubin_smoothing(verts,connectivity)
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
   translation = vtk.vtkTransform()
-  translation.Translate(local_bounds[0],local_bounds[1],local_bounds[2])
+  translation.Translate(my_grid.bounds[0],my_grid.bounds[1],my_grid.bounds[2])
   transformFilter = vtk.vtkTransformPolyDataFilter()
   transformFilter.SetInputData(pd)
   transformFilter.SetTransform(translation)
@@ -292,7 +253,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   
   pd = normals.GetOutput()
   
-  matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(rank)+".vtp")
+  matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(my_grid.rank)+".vtp")
 
   
 #   return pd
@@ -489,3 +450,68 @@ def idx_out_of_bounds(point,bounds):
     return False
   else:
     return True
+  
+#  Setup 2D distributed grid with shared ghost boundaries
+#  using mpi4py and the MPI Cartesian Communicator. 
+
+class DistributedGrid():
+  # total_samples: list with number of total samples in 3 directions
+  # bc_res: resolution of one base cell (usually 40)
+  # bounds: global (xmin,ymin,zmin,xmax,ymax,zmax)
+  def __init__(self, comm, total_samples,bc_res,bounds):
+    assert(len(total_samples) == 3)
+    assert(len(bounds) == 6)
+    
+    self.rank, self.size = comm.Get_rank(), comm.Get_size()
+    cart = comm.Create_cart(dims=(1,self.size))
+    
+    self.coords = cart.Get_coords(self.rank)
+    
+    # distribute along x-axis    
+    # number of chunks for this rank
+    # start_x,end_x: first and last x-slice for this rank
+    self.chunks, self.start_x, self.end_x = self.calc_num_cell_slices(total_samples[0])
+    self.bounds = bounds[:]
+    # only in x-direction different from global ones
+    self.bounds[0] = self.start_x * (bounds[3]-bounds[0]) / total_samples[0] + bounds[0]
+    self.bounds[3] = self.end_x * (bounds[3]-bounds[0]) / total_samples[0] + bounds[0]
+    self.grid = RectGrid(int(self.chunks*bc_res),int(total_samples[1]*bc_res),int(total_samples[2]*bc_res), self.bounds)
+       
+  # calculate number of slices, start and end idx along x-axis for this rank
+  # @param total_slices: number of total slices
+  def calc_num_cell_slices(self,total_slices):
+    # 1D Slab Decomposition of global voxel grid: http://www.2decomp.org/decomp.html 
+    # distribute number of cells along x-axis evenly over number of processes and take care
+    # of remainder -> difference between work chunks can be 1
+    chunks = [int(total_slices/self.size) + (1 if p < total_slices%self.size else 0) for p in range(0,self.size)]
+    start_slice = int(np.sum(chunks[0:self.rank]))
+    end_slice = int(start_slice + chunks[self.rank])
+    
+    return chunks[self.rank], start_slice, end_slice
+  
+  def to_info(self):
+    print("---- mpi distr grid ----")  
+    print("rank:",self.rank)
+    print("bounds:",self.bounds)
+    self.grid.to_info()
+    sys.stdout.flush()
+    
+class RectGrid():
+  def __init__(self,nx,ny,nz,bounds):
+    self.data = np.full((nx,ny,nz),999,dtype=int)
+
+    self.nx = nx
+    self.ny = ny
+    self.nz = nz
+
+    width = [bounds[3]-bounds[0],bounds[4]-bounds[1],bounds[5]-bounds[2]]    
+    self.hx = width[0] / nx
+    self.hy = width[1] / ny
+    self.hz = width[2] / nz
+  
+  def to_info(self):  
+    print("res:",self.nx,self.ny,self.nz)
+    print("spacing:",self.hx,self.hy,self.hz)
+    sys.stdout.flush()
+    
+    
