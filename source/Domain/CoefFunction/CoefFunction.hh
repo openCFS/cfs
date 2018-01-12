@@ -443,7 +443,8 @@ public:
 
   //! set all parameters for inverse scheme
   virtual void SetInverseParam( Double& alpha, Double& beta, Double& rho, Double& qExp,
-		                        Double& freq, std::string fileNameMeasdata ) {
+		                        Double& freq, std::string fileNameMeasdata,
+								std::string logLevel) {
  	  EXCEPTION("CoefFuncion::SetInverseParam not implemented");
    }
 
@@ -458,8 +459,7 @@ public:
   }
 
   //! computes the L2 norm of error
-  virtual void ComputeTikh(Double& funcVal, Double& resSquared,
-                           bool adjustAlpha, bool adjustBeta, bool adjustRho) {
+  virtual void ComputeTikh(Double& funcVal, Double& resSquared) {
 	  EXCEPTION("CoefFuncion::ComputeTikh not implemented");
   }
 

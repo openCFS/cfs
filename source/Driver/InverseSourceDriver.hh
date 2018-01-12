@@ -145,20 +145,11 @@ protected:
   //! regularization parameter 1
   Double alpha_;
 
-  //! automatically adjust alpha penalization
-  bool adjustAlpha_;
-
   //! regularization parameter 2
   Double beta_;
 
-  //! automatically adjust beta penalization
-  bool adjustBeta_;
-
   //! regularization parameter 3
   Double rho_;
-
-  //! automatically adjust beta penalization
-  bool adjustRho_;
 
   //! regularization parameter 4
   Double qExp_;
@@ -166,18 +157,23 @@ protected:
   //! relative stopping criterion for outer iteration
   Double resStopCritRel_;
 
-  //! maximal number of outer iterations
-  UInt maxOuterIter_;
+  //! maximal number of iterations reducing alpha, beta, rho (outer loop)
+  UInt maxReduceParSteps_;
 
-  //! maximal number of inner iterations (gradient steps)
-  UInt maxInnerIter_;
+  //! maximal number of gradient steps (inner loop)
+  UInt maxGradSteps_;
 
   //! maximal number of iterations
   UInt maxNumLineSearch_;
 
-  //square of L2-norm of measured pressure at mic-positions
+  //!square of L2-norm of measured pressure at mic-positions
   Double measL2squared_;
 
+  //! minimal allowed distance of two micophones
+  Double minMicDistant_;
+
+  //! level of log writing
+  std::string logLevel_;
 };
 
 }

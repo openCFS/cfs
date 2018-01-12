@@ -106,9 +106,7 @@ public:
   virtual void UpdateSource(Double& stepLength, bool lineSearch);
 
   //! computes the L2 norm of error
-  virtual void ComputeTikh(Double& funcVal, Double& resSquared,
-                           bool adjustAlpha, bool adjustBeta,
-						   bool adjustRho);
+  virtual void ComputeTikh(Double& funcVal, Double& resSquared);
 
   //! computes the L2 norm of error
   virtual void ComputeDiff2Meas( Double& error );
@@ -118,7 +116,8 @@ public:
 
   //! computes the L2 norm of error
   virtual void SetInverseParam( Double& alpha, Double& beta, Double& rho, Double& qExp,
-		                        Double& freq, std::string fileNameMeasdata);
+		                        Double& freq, std::string fileNameMeasdata,
+								std::string logLevel);
 
   //! set all parameters for inverse scheme
   virtual void ChangeInverseParam( Double& alpha, Double& beta, Double& rho) {
@@ -192,6 +191,9 @@ private:
 
   //! defines, if measured data is read at micro-positions!
   bool isDataReadFromFile_;
+
+  //! defines the log level
+  std::string logLevel_;
 
   //! measurement data read from file
   Vector<DATA_TYPE> readMeasVec_;
