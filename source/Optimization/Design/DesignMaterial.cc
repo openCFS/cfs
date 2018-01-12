@@ -4318,8 +4318,8 @@ double DesignMaterial::EvaluateC1Interpolation_3D(Vector<double>& p,
   // HOM_RECT_C1 case
   // dirty fix: does nothing if program works correctly
   j = (j > m - 2) ? m - 2 : j;
-  k = (j > n - 2) ? n - 2 : k;
-  l = (j > o - 2) ? o - 2 : l;
+  k = (k > n - 2) ? n - 2 : k;
+  l = (l > o - 2) ? o - 2 : l;
   LOG_DBG(dm)<<"p=["<<p[0]<<","<<p[1]<<", "<<p[2]<<"]";
   double t=(p[0]-hom_rect_a_[j][0])/da;
   double u =(p[1]-hom_rect_b_[k][0])/db;
