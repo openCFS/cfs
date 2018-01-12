@@ -103,13 +103,12 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                                        shared_ptr<RegionList> regions){
   shared_ptr<CoefFunctionGrid> ret;
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
-  std::cout << "In Generate" << std::endl;
+
   if(configNode->Has("defaultGrid")) {
-	  std::cout << "Is defaultGrid" << std::endl;
 	  std::string dependString;
 	  PtrParamNode tmpNodeType  =  configNode->Get("defaultGrid");
 	  tmpNodeType->GetValue("dependtype",dependString);
-	  std::cout << "STEP 1 " << std::endl;
+
 	  if ( dependString == "INVSOURCE" || dependString == "INVMEASURE") {
 		  if(format == Global::COMPLEX){
 			  ret.reset(new CoefFunctionGridNodalSource<Complex>(ptDomain,

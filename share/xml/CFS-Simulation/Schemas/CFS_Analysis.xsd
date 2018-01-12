@@ -220,17 +220,15 @@
           <xsd:element name="measDataFilename" type="xsd:string" minOccurs="1" maxOccurs="1"/>          
           <xsd:element name="freq" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="alphaPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
-          <xsd:element name="adjustAlpha" type="DT_CFSBool" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="betaPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
-          <xsd:element name="adjustBeta" type="DT_CFSBool" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="rhoPar" type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="adjustRho" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="expPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="resStopCritRel" type="xsd:token" minOccurs="1" maxOccurs="1"/>
-          <xsd:element name="maxIterOuter" type="xsd:token" minOccurs="1" maxOccurs="1"/>
-          <xsd:element name="maxIterInner" type="xsd:token" minOccurs="1" maxOccurs="1"/>         
+          <xsd:element name="maxReduceParSteps" type="xsd:token" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="maxGradSteps" type="xsd:token" minOccurs="1" maxOccurs="1"/>         
           <xsd:element name="maxNumLineSearch" type="xsd:token" minOccurs="1" maxOccurs="1"/>
-          <xsd:element name="approxDelta" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="minMicDistant" type="xsd:token" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="logLevel" type="xsd:string" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
