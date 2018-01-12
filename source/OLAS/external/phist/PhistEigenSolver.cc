@@ -17,12 +17,14 @@
 #include "OLAS/solver/BaseSolver.hh"
 
 #include "PhistEigenSolver.hh"
+#include "ghost/sparsemat.h"
+#include "phist_config.h"
+#include "phist_types.hpp"
+#include "phist_kernels.hpp"
+#include "phist_core.hpp"
+#include "phist_jada.hpp"
 
-#include <phist_kernels.h>
-#include "phist_subspacejada.h"
-#include "phist_schur_decomp.h"
-#include <phist_gen_d.h>
-#include "phist_driver_utils.h"
+//#include "phist_subspacejada.h"
 
 
 DECLARE_LOG(pes)
@@ -40,38 +42,41 @@ namespace CoupledField {
     A_   = NULL;
     B_   = NULL;
     xml_ = xml;
+
+    comm_ = NULL;
+
+    which.SetName("phist_EeigSort:which");
+    which.Add(phist_LM, "lm");
+    which.Add(phist_SM, "sm");
+    which.Add(phist_LR, "lr");
+    which.Add(phist_SR, "sr");
+
+    linSolv.SetName("phist_ElinSolv:linSolv");
+    linSolv.Add(phist_GMRES, "gmres");
+    linSolv.Add(phist_MINRES, "minres");
+    linSolv.Add(phist_QMR, "qmr");
+    linSolv.Add(phist_BICGSTAB, "bicgstab");
+    linSolv.Add(phist_CARP_CG, "carp_cg");
   }
 
   PhistEigenSolver::~PhistEigenSolver()
   {
-    // TODO destroy A_ and B_!!
-    // ghost_sparsemat_destroy(A_);
+    int err = 0;
+    phist::kernels<double>::sparseMat_delete(A_, &err);
+    assert(err = 0);
     A_ = NULL;
+
+    phist::kernels<double>::sparseMat_delete(B_, &err);
+    assert(err = 0);
     B_ = NULL;
+
     //ghost_densemat_destroy(x_);
     //ghost_densemat_destroy(y_);
 
-
     ghost_finalize();
-
-
-  }
-  void PhistEigenSolver::Setup(const BaseMatrix & mat, UInt numFreq, Double freqShift, bool sort)
-  {
-    LOG_DBG(pes) << "PES:S(stiff)";
-    // Set flag for indicating a non-quadratic problem
-    isQuadratic_ = false;
-    isBloch_ = false;
-    sort_ = false;
-
-    // Save frequency parameters
-    numFreq_ = numFreq;
-    freqShift_ = freqShift;
-
-    ToInfo();
   }
 
-  
+
   /** implementation of phist_sparseMat_rowFunc which is called for every row to copy the sparse matrix data
    * @param row global row index (int64 by default)
    * @param nnz of row (output, int)
@@ -105,57 +110,36 @@ namespace CoupledField {
     return 0; // all ok
   }
 
+
+
+  void PhistEigenSolver::Setup(const BaseMatrix & mat, UInt numFreq, Double freqShift, bool sort)
+  {
+    LOG_DBG(pes) << "PES:S(stiff)";
+
+    // Set flag for indicating a non-quadratic problem
+    isQuadratic_ = false;
+
+    SetupCommon(numFreq, freqShift, sort, false); // no bloch
+
+    ToInfo();
+  }
+
+
   void PhistEigenSolver::Setup(const BaseMatrix& stiffMat, const BaseMatrix& massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
   {
     LOG_DBG(pes) << "PES:S(stiff, mass)";
+
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
-    isBloch_ = bloch;
-    sort_ = sort;
 
-    // Save frequency parameters
-    numFreq_ = numFreq;
-    freqShift_ = freqShift;
+    SetupCommon(numFreq, freqShift, sort, bloch);
 
-    // MPI handle which is by default MPI_COMM_WORLD
-    phist_comm_ptr comm = NULL;
-    int err;
-    phist_comm_create(&comm, &err);
-    assert(err == 0);
-    LOG_DBG(pes) << "phist_comm_create -> " << comm;
-    //MPI_Init(NULL, NULL);
-    int argc = 0;
-    char* v = NULL;
-    char** argv = &v;
-    phist_kernels_init(&argc, &argv, &err);
-    assert(err == 0);
-    LOG_DBG(pes) << "phist_kernels_init -> " << err;
-
-    // phist parameters usually read from opts-standard.txt
-
-    // fill the jadaOpts struct to pass settings to the solver
-    phist_jadaOpts opts;
-    phist_jadaOpts_setDefaults(&opts);
-
-    opts.symmetry = phist_GENERAL; // phist_HERMITIAN also for real symmetric
-    opts.numEigs = numFreq;
-    opts.which = phist_SR; // smalles real part
-    opts.convTol = 1e-8;
-    opts.blockSize = 4; // usually 1,2 or 4.;
-    opts.maxIters = 150;
-    opts.minBas = 28; //numFreq + 2 * opts.blockSize;
-    opts.maxBas = 60; //opts.minBas + 10 * opts.blockSize;
-    // parameters for the linear system stuff
-
-    opts.innerSolvBlockSize = opts.blockSize;
-    opts.innerSolvType = phist_MINRES;
-    opts.innerSolvMaxBas = 10;
-    opts.innerSolvMaxIters = 10;
-    opts.innerSolvRobust = 1;
 
     // for include stuff issues, A_ and B_ attributes are not of full type
-    phist_DsparseMat* A = (phist_DsparseMat*) A_;
-    phist_DsparseMat* B = (phist_DsparseMat*) B_;
+    phist::types<double>::sparseMat_ptr A = (phist::types<double>::sparseMat_ptr) A_;
+    phist::types<double>::sparseMat_ptr B = (phist::types<double>::sparseMat_ptr) B_;
+
+    int err = 0;
 
     // create stiffness and mass matrix for phist - which will be ghost matrices
     const CRS_Matrix<double>* stiff =  dynamic_cast<const CRS_Matrix<double>*>(&stiffMat);
@@ -166,101 +150,102 @@ namespace CoupledField {
     LOG_DBG2(pes) << " col=" << ToString<unsigned int>(stiff->GetColPointer(), stiff->GetNnz());
     LOG_DBG2(pes) << " val=" << ToString<double>(stiff->GetDataPointer(), stiff->GetNnz());
     assert(stiff->GetNumRows() == stiff->GetNumCols());
-    phist_DsparseMat_create_fromRowFunc(&A, comm, stiff->GetNumRows(), stiff->GetNumCols(), max_nne, SparseMatRowFunc, (void*) stiff, &err);
+    phist::kernels<double>::sparseMat_create_fromRowFunc(&A, comm_, stiff->GetNumRows(), stiff->GetNumCols(), max_nne, SparseMatRowFunc, (void*) stiff, &err);
+
     assert(err == 0);
     LOG_DBG(pes) << "create A -> " << err;
 
     const CRS_Matrix<double>* mass =  dynamic_cast<const CRS_Matrix<double>*>(&massMat);
     assert(mass != NULL);
-    phist_DsparseMat_create_fromRowFunc(&B, comm, mass->GetNumRows(), mass->GetNumCols(), mass->GetMaxRowSize(), SparseMatRowFunc, (void*) mass, &err);
+    phist::kernels<double>::sparseMat_create_fromRowFunc(&B, comm_, mass->GetNumRows(), mass->GetNumCols(), mass->GetMaxRowSize(), SparseMatRowFunc, (void*) mass, &err);
     assert(err == 0);
     LOG_DBG(pes) << "create B -> " << err;
 
     // setup eigenvalue problem - taken from subspacejada (jacobi davidson)
     // create an operator from A
-    phist_DlinearOp_ptr opA = new phist_DlinearOp();
+    phist::types<double>::linearOp_ptr opA = new phist::types<double>::linearOp(); // TODO needs to be specialized
 
     // we need the domain map of the matrix
     phist_const_map_ptr map = NULL;
-    phist_DsparseMat_get_domain_map(A,&map,&err);
-    LOG_DBG(pes) << "phist_DsparseMat_get_domain_map -> " << err;
+    phist::kernels<double>::sparseMat_get_domain_map(A,&map,&err);
+    LOG_DBG(pes) << "sparseMat_get_domain_map -> " << err;
     assert(err == 0);
 
-    phist_DlinearOp_ptr opB = new phist_DlinearOp();
-    phist_DlinearOp_wrap_sparseMat(opB,B,&err);
-    LOG_DBG(pes) << "phist_DlinearOp_wrap_sparseMat -> " << err;
+    phist::types<double>::linearOp_ptr opB = new phist::types<double>::linearOp();
+    phist::core<double>::linearOp_wrap_sparseMat(opB,B,&err);
+    LOG_DBG(pes) << "linearOp_wrap_sparseMat -> " << err;
     assert(err == 0);
 
-    phist_DlinearOp_wrap_sparseMat_pair(opA,A,B,&err);
-    LOG_DBG(pes) << "phist_DlinearOp_wrap_sparseMat_pair -> " << err;
+    phist::core<double>::linearOp_wrap_sparseMat_pair(opA,A,B,&err);
+    LOG_DBG(pes) << "linearOp_wrap_sparseMat_pair -> " << err;
     assert(err == 0);
 
-    int prob_size = numFreq+opts.blockSize-1;
+    int prob_size = numFreq+opts_.blockSize-1;
     LOG_DBG(pes) << "prob_size -> " << prob_size;
 
     // setup necessary vectors and matrices for the schur form
-    mvec_ptr Q = NULL;
-    phist_Dmvec_create(&Q,map,prob_size,&err);
-    LOG_DBG(pes) << "phist_Dmvec_create -> " << err;
+    phist::types<double>::mvec_ptr Q = NULL;
+    phist::kernels<double>::mvec_create(&Q,map,prob_size,&err);
+    LOG_DBG(pes) << "mvec_create -> " << err;
     assert(err == 0);
 
-    sdMat_ptr R = NULL;
-    phist_DsdMat_create(&R,prob_size,prob_size,comm,&err);
-    LOG_DBG(pes) << "phist_DsdMat_create -> " << err;
+    phist::types<double>::sdMat_ptr R = NULL;
+    phist::kernels<double>::sdMat_create(&R,prob_size,prob_size,comm_,&err);
+    LOG_DBG(pes) << "sdMat_create -> " << err;
     assert(err == 0);
 
     resNorm_.Resize(prob_size);
     ev_.Resize(prob_size);
 
     // setup start vector (currently to (1 0 1 0 .. ) )
-    mvec_ptr v0 = NULL;
-    phist_Dmvec_create(&v0,map,1,&err);
-    LOG_DBG(pes) << "phist_Dmvec_create -> " << err;
+    phist::types<double>::mvec_ptr v0 = NULL;
+    phist::kernels<double>::mvec_create(&v0,map,1,&err);
+    LOG_DBG(pes) << "mvec_create -> " << err;
     assert(err == 0);
 
-    phist_Dmvec_put_value(v0,1.0,&err);
+    phist::kernels<double>::mvec_put_value(v0,1.0,&err);
     assert(err == 0);
 
     // skip residual calculation from subspacejada, not necessary for us
-    opts.v0=v0;
+    opts_.v0=v0;
 
     // assume phist_NO_PRECON
 
-    int nIter=opts.maxIters;
+    int nIter=opts_.maxIters;
     int nEig = (int) numFreq;
 
     // The actual calculation !!! - standard Ritz values for exterior eigenvalues.
     // QR-factorization, Q=orthogonal ev basis , R=upper triangular matrix, ev are on the diagonal,
     // A*Q = B*Q*R holds
-    assert(opts.how != phist_HARMONIC);
+    assert(opts_.how != phist_HARMONIC);
 
-    phist_Dsubspacejada(opA, opB, opts, Q, R, ev_.GetPointer(), resNorm_.GetPointer(), &nEig, &nIter, &err);
-    LOG_DBG(pes) << "phist_Dsubspacejada -> nEig=" << nEig << " nIter=" << nIter << " ev=" << ev_.ToString() << " -> " << err;
+    phist::jada<double>::subspacejada(opA, opB, opts_, Q, R, ev_.GetPointer(), resNorm_.GetPointer(), &nEig, &nIter, &err);
+    LOG_DBG(pes) << "subspacejada -> nEig=" << nEig << " nIter=" << nIter << " ev=" << ev_.ToString() << " -> " << err;
     assert(err >= 0);
 
     // skip calculation of real residual, res = AQ - BQR
 
     // compute eigenvectors X: A*X=X*D and diagonal matrix D with eigenvalues
     // (for checking the sorting only).
-    mvec_ptr X=NULL;
-    phist_Dmvec_create(&X,map,nEig,&err);
+    phist::types<double>::mvec_ptr X=NULL;
+    phist::kernels<double>::mvec_create(&X,map,nEig,&err);
     assert(err >= 0);
 
-    phist_DComputeEigenvectors(Q,R,X,&err);
+    phist::jada<double>::ComputeEigenvectors(Q,R,X,&err);
     assert(err >= 0);
 
     // skip calculation of eigenvector residuals
     
     // download X from GPU if applicable
-    phist_Dmvec_from_device(X,&err);
+    phist::kernels<double>::mvec_from_device(X,&err);
     assert(err == 0);
 
     // get pointer to row/col major block of vectors
     double* xval = NULL; // will be set to memory owned by phist
     phist_lidx lda, nloc;
-    phist_Dmvec_my_length(X,&nloc,&err);
+    phist::kernels<double>::mvec_my_length(X,&nloc,&err);
     assert(err == 0);
-    phist_Dmvec_extract_view(X,&xval,&lda,&err);
+    phist::kernels<double>::mvec_extract_view(X,&xval,&lda,&err);
     assert(err == 0);
     
     // this is how one can extract the eigenvectors.
@@ -288,8 +273,63 @@ namespace CoupledField {
 
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = true;
-    isBloch_ = false;
-    sort_ = false;
+
+    SetupCommon(numFreq, freqShift, sort, false); // no bloch
+
+    assert(false);
+  }
+
+
+  void PhistEigenSolver::SetupCommon(unsigned int numFreq, Double freqShift, bool sort, bool bloch)
+  {
+    LOG_DBG(pes) << "PES:SC";
+
+    // Save frequency parameters
+    numFreq_ = numFreq;
+    freqShift_ = freqShift;
+
+    isBloch_ = bloch;
+    sort_ = sort;
+
+    // MPI handle which is by default MPI_COMM_WORLD
+    int err;
+    phist_comm_create(&comm_, &err);
+    assert(err == 0);
+    LOG_DBG(pes) << "phist_comm_create -> " << comm_;
+
+    // dummy mpi arguments
+    int argc = 0;
+    char* v = NULL;
+    char** argv = &v;
+    phist_kernels_init(&argc, &argv, &err);
+
+    assert(err == 0);
+    LOG_DBG(pes) << "phist_kernels_init -> " << err;
+
+    // phist parameters usually read from opts-standard.txt
+
+    // fill the jadaOpts struct to pass settings to the solver
+    phist_jadaOpts_setDefaults(&opts_);
+
+    xml_->Dump();
+    opts_.symmetry = phist_GENERAL; // phist_HERMITIAN also for real symmetric
+    opts_.numEigs   = numFreq;
+    opts_.which     = which.Parse(xml_->Get("which")->As<string>());
+    opts_.convTol   = xml_->Get("convTol")->As<double>();
+    opts_.blockSize = xml_->Get("blockSize")->As<int>();
+    opts_.maxIters  = xml_->Get("maxIter")->As<int>();
+    opts_.minBas    = numFreq + 2 * opts_.blockSize; // 28
+    opts_.maxBas    = 60; //opts.minBas + 10 * opts.blockSize; // 60
+
+    // parameters for the linear system stuff. The element is optional
+    bool is = xml_->Has("innerSolv");
+
+    opts_.innerSolvBlockSize = is ? xml_->Get("innerSolv/blockSize")->As<int>() : -1;
+    opts_.innerSolvType      = is ? linSolv.Parse(xml_->Get("innerSolv/type")->As<string>()) : phist_MINRES;
+    opts_.innerSolvMaxBas    = is ? xml_->Get("innerSolv/maxBas")->As<int>() : -1;
+    opts_.innerSolvMaxIters  = is ? xml_->Get("innerSolv/maxIter")->As<int>() : 10;
+    opts_.innerSolvRobust    = is ? xml_->Get("innerSolv/robust")->As<int>() : 1;
+    opts_.innerSolvBaseTol   = is ? xml_->Get("innerSolv/baseTol")->As<float>() : 0.1;
   }
 
   void PhistEigenSolver::ToInfo()
@@ -297,6 +337,24 @@ namespace CoupledField {
     PtrParamNode setup = info_->Get(ParamNode::HEADER);
     setup->Get("quadratic")->SetValue(isQuadratic_);
     setup->Get("bloch")->SetValue(isBloch_);
+    setup->Get("numFreq")->SetValue(numFreq_);
+
+    PtrParamNode phist = setup->Get("phist");
+    phist->Get("convTol")->SetValue(opts_.convTol);
+    phist->Get("blockSize")->SetValue(opts_.blockSize);
+    phist->Get("maxIters")->SetValue(opts_.maxIters);
+    phist->Get("minBas")->SetValue(opts_.minBas);
+    phist->Get("maxBas")->SetValue(opts_.maxBas);
+    phist->Get("which")->SetValue(which.ToString(opts_.which));
+
+    PtrParamNode is = phist->Get("innerSolv");
+    is->Get("type")->SetValue(linSolv.ToString(opts_.innerSolvType));
+    is->Get("baseTol")->SetValue(opts_.innerSolvBaseTol);
+    is->Get("blockSize")->SetValue(opts_.innerSolvBlockSize);
+    is->Get("maxBas")->SetValue(opts_.innerSolvMaxBas);
+    is->Get("maxIter")->SetValue(opts_.innerSolvMaxIters);
+    is->Get("robust")->SetValue(opts_.innerSolvRobust);
+    is->Get("blockSize")->SetValue(opts_.innerSolvBlockSize);
   }
 
 
