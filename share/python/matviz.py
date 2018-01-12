@@ -364,9 +364,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   if not args.save:
                     viz = None # avoid showing or writing vtp file
                 elif args.mesh:
-                  me = create_volume_mesh_from_stl(name)
-                  assert(me is not None)  
-                  write_gid_mesh(me, "validation_mesh.mesh", scale)      
+                  a = 1
+#                   me = create_volume_mesh_from_stl(name)
+#                   assert(me is not None)  
+#                   write_gid_mesh(me, "validation_mesh.mesh", scale)      
               else:
                 viz = create_3d_frame_ip(coords, s1, s2, s3, angle, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample

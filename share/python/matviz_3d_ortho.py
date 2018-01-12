@@ -173,6 +173,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         local_id += 1
     
   eps = 1e-6
+  
+  borders = my_grid.communicate_edges()
+  print("len(borders)",len(borders))
 
 #   void_elems = []
 #   # read void non-design manually  
@@ -207,6 +210,18 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
       for k in range(shape[2]-2):
         if my_grid.grid.data[i,j,k] != -1: # valid voxel
           helper[i+1,j+1,k+1] = 1
+  
+  for b in borders:
+    # b[0] stores direction oft cartesian comm
+    if b[0] > my_grid.rank:
+      if b[1] is not None:
+        sys.stdout.flush()
+        helper[shape[0]-1,1:helper.shape[1]-1,1:helper.shape[1]-1] = b[1] 
+    else:
+      assert(b[0] < my_grid.rank)
+      if b[1] is not None:
+        helper[0,1:helper.shape[1]-1,1:helper.shape[1]-1] = b[1]
+        sys.stdout.flush()
   
   hx_help = width[0] / float(shape[0])
   hy_help = width[1] / float(shape[1])
@@ -255,8 +270,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   
   matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(my_grid.rank)+".vtp")
 
-  
-#   return pd
+  return pd
 
 # @param idx: tuple of three ints storing array indices(i,j,k)
 # @param array: return element of array at position idx if exist
@@ -463,9 +477,9 @@ class DistributedGrid():
     assert(len(bounds) == 6)
     
     self.rank, self.size = comm.Get_rank(), comm.Get_size()
-    cart = comm.Create_cart(dims=(1,self.size))
+    self.cart = comm.Create_cart(dims=(1,self.size))
     
-    self.coords = cart.Get_coords(self.rank)
+    self.coords = self.cart.Get_coords(self.rank)
     
     # distribute along x-axis    
     # number of chunks for this rank
@@ -495,7 +509,45 @@ class DistributedGrid():
     print("bounds:",self.bounds)
     self.grid.to_info()
     sys.stdout.flush()
+  
+  # communicate ghost layers in both directions  
+  def communicate_edges(self):
+    recv = []
+    for direction in [-1,1]:
+      # coordinate dimension of shift is always 1, because we only have one dimension
+      # coordinate dimension 1-based
+      source, dest = self.cart.Shift(1,direction)
+      print("rank ", self.rank, " sending slice ",self.grid.nx-1," to rank ",dest)
+#       print("rank ", self.rank," direction:",direction," left:",source," right:",dest)
+      sys.stdout.flush()
+
+      sendbuf = None
+      if direction == -1:
+        sendbuf = np.copy(self.grid.data[0,:,:])
+      else:            
+        sendbuf = np.copy(self.grid.data[self.grid.nx-1,:,:])
+      
+      assert(sendbuf is not None)
+      recvbuf = np.full_like(sendbuf,999)
+      
+      helper = np.zeros_like(sendbuf, dtype=int)
+      for i in range(helper.shape[0]):
+        for j in range(helper.shape[1]):
+            if sendbuf[i,j] != -1:
+              helper[i,j] = 1
+              
+      sendbuf = helper        
+      
+      self.cart.Sendrecv(sendbuf,dest=dest,source=source,recvbuf=recvbuf)
+      
+      if source == MPI.PROC_NULL:
+        # got no data, cause neighbor does not exist
+        recv.append((source,None))
+      else:
+        recv.append((source,recvbuf))
     
+    return recv
+      
 class RectGrid():
   def __init__(self,nx,ny,nz,bounds):
     self.data = np.full((nx,ny,nz),999,dtype=int)
