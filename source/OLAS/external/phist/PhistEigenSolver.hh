@@ -4,14 +4,15 @@
 #include "OLAS/solver/BaseEigenSolver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "MatVec/Matrix.hh"
-
-
+#include "phist_enums.h"
+#include "phist_jadaOpts.h"
+#include "phist_void_aliases.h"
 
 namespace CoupledField {
   
   class StdMatrix;
-  //class phist_DsparseMat;
-  class sparseMat_t;
+  class sparseMat_t; // phist matrix type
+
   class PhistEigenSolver : public BaseEigenSolver
   {
   public:
@@ -93,6 +94,15 @@ namespace CoupledField {
   private:
     /** print setup information */
     void ToInfo();
+
+    void SetupCommon(unsigned int numFreq, double freqShift, bool sort, bool bloch);
+
+    phist_jadaOpts opts_;
+
+    phist_comm_ptr comm_ = NULL;
+
+    Enum<phist_EeigSort> which;
+    Enum<phist_ElinSolv> linSolv;
 
     //static int Diag(ghost_gidx row, ghost_lidx *rowlen, ghost_gidx *col, void *val, __attribute__((unused)) void *arg);
 

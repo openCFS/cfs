@@ -1280,7 +1280,7 @@
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                    PHIST EIGENVALUE SOLVER                    == -->
-  <!-- ==                                                               == -->
+  <!-- ==               https://bitbucket.org/essex/phist               == -->
   <!-- =================================================================== -->
   
   <xsd:element name="phist" type="DT_EigenSolverPHIST" substitutionGroup="EigenSolverBasic"/>
@@ -1289,11 +1289,64 @@
     <xsd:complexContent>
       <xsd:extension base="DT_EigenSolverBasic">
         <xsd:sequence>
-          <xsd:element name="tolerance" type="xsd:float" minOccurs="0"/>
-          <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
-          <xsd:element name="numVec" type="xsd:nonNegativeInteger" minOccurs="0"/>
-          <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
+          <!-- more options are found in phist_jadaOpts.h ->  -->
+          <xsd:element name="innerSolv" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="type" use="optional" default="minres">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <!-- GMRES for general matrices (with left and/or right preconditioning) -->
+                    <xsd:enumeration value="gmres"/>
+                    <!-- MINRES for symmetric and indefinite matrices -->
+                    <xsd:enumeration value="minres"/>
+                    <!-- QMR for general matrices -->
+                    <xsd:enumeration value="qmr"/>
+                    <!-- BiCGStab for general matrices -->
+                    <xsd:enumeration value="bicgstab"/>
+                    <!-- CG on the normal equations, preconditioned by CARP (parallel SSOR) -->
+                    <xsd:enumeration value="carp_cg"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <!-- Jonas gave this low value as default?! -->
+              <xsd:attribute name="maxIter" type="xsd:positiveInteger" use="optional" default="10"/>
+              <!--  if set to -1, innerSolvMaxBas=innerSolvMaxIters is used (no restarting of e.g. GMRES) -->
+              <xsd:attribute name="maxBas" type="xsd:int" use="optional" default="-1"/>
+              <!-- if set to -1, the outer block size (blockSize) is used. -->
+              <xsd:attribute name="blockSize" type="xsd:int" use="optional" default="-1"/>
+              <!-- extra effort to get good jada updates (in practice this may mean a more accurate orthogonalization etc.) -->
+              <xsd:attribute name="robust" type="xsd:int" use="optional" default="1"/>
+              <xsd:attribute name="baseTol" type="xsd:float" use="optional" default=".1"/>
+            </xsd:complexType>
+          </xsd:element>
         </xsd:sequence>
+      
+        <xsd:attribute name="convTol" type="xsd:float" use="optional" default="1e-8"/>
+        <xsd:attribute name="maxIter" type="xsd:nonNegativeInteger" use="optional" default="150"/>
+        <xsd:attribute name="blockSize" use="optional" default="4">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:int">
+              <xsd:enumeration value="1"/>
+              <xsd:enumeration value="2"/>
+              <xsd:enumeration value="4"/>
+              <xsd:enumeration value="6"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="which" use="optional" default="sr">
+         <xsd:simpleType>
+           <xsd:restriction base="xsd:token">
+             <!-- largest magnitude --> 
+             <xsd:enumeration value="lm"/>
+             <!-- smallest magnitude --> 
+             <xsd:enumeration value="sm"/>
+             <!-- largest real part --> 
+             <xsd:enumeration value="lr"/>
+             <!-- smallest real part --> 
+             <xsd:enumeration value="sr"/>
+           </xsd:restriction>
+         </xsd:simpleType>
+       </xsd:attribute>        
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
