@@ -530,6 +530,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
 /** Shall/must we evaluate this objective at this excitation?
  * Stress constraints in homogenization are triggered for a single constraint only. */
 bool Function::DoEvaluate(const Excitation* excite) const {
+  assert(excite != NULL);
   if(DoEvaluateAlways(excite->sequence))
     return true;
 
