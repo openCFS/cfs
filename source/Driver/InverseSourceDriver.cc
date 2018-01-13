@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <math.h>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -61,16 +62,25 @@ namespace CoupledField
 
     //regularization parameters
     alpha_ = param_->Get( "alphaPar")->MathParse<Double>();
-    adjustAlpha_ = param_->Get( "adjustAlpha")->As<bool>();
     beta_ = param_->Get( "betaPar")->MathParse<Double>();
-    adjustBeta_ = param_->Get( "adjustBeta")->As<bool>();
+    rho_ = param_->Get( "rhoPar")->MathParse<Double>();
     qExp_  = param_->Get( "expPar")->MathParse<Double>();
-    resStopCritRel_ = param_->Get( "resStopCritRel")->MathParse<UInt>();
-    maxOuterIter_   = param_->Get( "maxIterOuter")->MathParse<UInt>();
-    maxInnerIter_   = param_->Get( "maxIterInner")->MathParse<UInt>();
+    resStopCritRel_ = param_->Get( "resStopCritRel")->MathParse<Double>();
+    maxReduceParSteps_   = param_->Get( "maxReduceParSteps")->MathParse<UInt>();
+    maxGradSteps_   = param_->Get( "maxGradSteps")->MathParse<UInt>();
     maxNumLineSearch_  = param_->Get( "maxNumLineSearch")->MathParse<UInt>();
-    param_->GetValue( "approxDelta", approxSourceWithDeltaFnc_, ParamNode::PASS );
+    minMicDistant_ = param_->Get( "minMicDistant")->MathParse<Double>();
+    logLevel_ =  param_->Get("logLevel")->As<std::string>();
 
+
+    //check for correct logLevel
+    if ( logLevel_ != "1" && logLevel_ != "2" &&logLevel_ != "3" ) {
+    	std::cerr << "Log level has to be 1, 2 or 3; set it now to 1";
+    	logLevel_ = "1";
+    }
+
+    //! we fix to use delta functions for the source identification
+    approxSourceWithDeltaFnc_ = true;
 
     numFreq_ = 1;
     actFreqStep_ = 0;
@@ -207,12 +217,9 @@ namespace CoupledField
 	assert(actFreqStep <= numFreq_+restartStep_);
 
 	actFreqStep_ = actFreqStep;
-	std::cout << "Freq: " <<  actFreq_  << std::endl;
 
 	this->analysis_id_.step = actFreqStep;
 	this->analysis_id_.time = actFreq_;
-
-	std::cout << "Freq and Step set " << std::endl;
 
 	//get pointers to CoefFncs
     bool isRHSsource = false;
@@ -251,14 +258,19 @@ namespace CoupledField
     }
 
     //set the regularization parameters
-    rhsMeas_->SetInverseParam(alpha_, beta_, qExp_, actFreq_,fileNameMeasdata_);
-    rhsSource_->SetInverseParam(alpha_, beta_, qExp_, actFreq_,fileNameMeasdata_);
+    rhsMeas_->SetInverseParam(alpha_, beta_, rho_, qExp_, actFreq_,fileNameMeasdata_, logLevel_);
+    rhsSource_->SetInverseParam(alpha_, beta_, rho_, qExp_, actFreq_,fileNameMeasdata_, logLevel_);
 
     // Set current frequency value in the mathParser
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
 
     bool gradMethod = true;
+
+    if ( logLevel_ == "2" || logLevel_ == "3" )
+    	std::cout << "\nInverse Source Localization: Start\n"
+		          << "=================================================="
+                  << "==========================\n";
 
     if ( gradMethod ) {
     	Double res2, funcVal, sigma;
@@ -268,7 +280,6 @@ namespace CoupledField
     	//solve adj: just for initiallization
     	rhsSource_->SetActive(false);
     	rhsMeas_->SetActive(true);
-    	std::cout << "Compute first time MEAS" << std::endl;
 
     	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
     	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
@@ -279,7 +290,6 @@ namespace CoupledField
     	//compute with RHS as the current identified sources
     	rhsMeas_->SetActive(false);
     	rhsSource_->SetActive(true);
-    	std::cout << "Compute first time SRC" << std::endl;
 
     	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
     	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
@@ -290,22 +300,26 @@ namespace CoupledField
     	//save source data
     	rhsSource_->UpdateSource( stepLength, false );
 
-    	//compute residual
+    	//compute residual squared
     	rhsMeas_->ComputeDiff2Meas( res2 );
-    	std::cout << "DIFF: " << res2   << std::endl;
 
     	//compute square of L2-norm of measured pressure at mic-positions
     	rhsMeas_->ComputeMeasL2squared( measL2squared_ );
 
     	//compute Tikhonov functional
-    	rhsSource_->ComputeTikh(funcVal,res2,false,false);
-    	std::cout << "TikhonovVal start: " << funcVal << std::endl;
+    	rhsSource_->ComputeTikh(funcVal,res2);
+
+    	if ( logLevel_ == "3" )
+    		std::cout << "\n Starting absolute L2 error: " << sqrt(res2) << std::endl;
 
     	Double kappa = 0.5;
     	UInt outerIter = 0;
-    	std::cout << "\n Start outer Iter, Starting Res: " << res2 << std::endl;
-    	while ( (res2 / measL2squared_) > resStopCritRel_  &&  outerIter < maxOuterIter_ ) {
+    	while ( std::sqrt( res2/measL2squared_ ) > resStopCritRel_  &&  outerIter < maxReduceParSteps_ ) {
     		//solve adj
+    		if ( logLevel_ == "2" || logLevel_ == "3" )
+    			std::cout << "\n Outer step " << outerIter+1 << " using alpha: " << alpha_
+				          << ";  beta: " << beta_ << ";  rho: " << rho_ << "\n\n";
+
     		rhsSource_->SetActive(false);
     		rhsMeas_->SetActive(true);
     		if ( !approxSourceWithDeltaFnc_ )
@@ -321,14 +335,16 @@ namespace CoupledField
     		rhsSource_->ComputeOptCondition(optAmp, optPhase);
 
     		UInt innerIter=0;
-    		Double normGrad2 = optAmp + optPhase;
-    		std::cout << "OuterIter: " << outerIter << "  normGrad2:" << normGrad2 << std::endl;
-
     		Double funcValNew;
-    		Double redNormGrad2 = normGrad2*1.0E-04;
+    		Double normGrad2 = optAmp + optPhase;
+    		Double redNormGrad2 = normGrad2*1.0E-05;
 
-			std::cout << "\n Start inner Iter " << std::endl;
-    		while ( normGrad2 >  redNormGrad2 && innerIter < maxInnerIter_ ) {
+    		if ( logLevel_ == "3" )
+    			std::cout << " Outer Step: " << outerIter+1 << ";  normGrad2:"
+				          << normGrad2 << std::endl;
+
+    		//do the gradient steps
+    		while ( normGrad2 >  redNormGrad2 && innerIter < maxGradSteps_ ) {
     			stepLength = 1.0;
         		sigma      = 1.0e-4;
 
@@ -345,21 +361,21 @@ namespace CoupledField
     			ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     			rhsMeas_->ComputeDiff2Meas( res2 );
-    			std::cout << "InnerIter: " << innerIter << " Res: " << res2 << std::endl;
-    			if ( innerIter == 0  && outerIter == 0)
-    				rhsSource_->ComputeTikh( funcValNew, res2, adjustAlpha_, adjustBeta_ );
-    			else
-    				rhsSource_->ComputeTikh( funcValNew, res2, false, false);
+    			rhsSource_->ComputeTikh( funcValNew, res2 );
 
-    			std::cout << "InnerIter: " << innerIter << " TikhonovVal: " << funcValNew << std::endl;
+    			if ( logLevel_ == "3" )
+    				std::cout << " Gradien step: " << innerIter+1 << "; Tikhonov value: "
+					          << funcValNew << std::endl;
 
     			UInt iterLineSearch = 0;
-    			std::cout << "\n Start line search Iter " << std::endl;
+    			if ( logLevel_ == "3" )
+    				std::cout << "\n Start line search " << std::endl;
+
     			stepLength = 1.0;
-    			kappa = 0.5;
+    			kappa = 0.25;
     			while ( funcValNew > funcVal - sigma*stepLength*normGrad2
     					&& iterLineSearch < maxNumLineSearch_ ) {
-    				//update source data
+
     				stepLength *= kappa;
     				rhsSource_->UpdateSource( stepLength, true );
 
@@ -373,15 +389,23 @@ namespace CoupledField
     				ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     				rhsMeas_->ComputeDiff2Meas( res2 );
-    				std::cout << "LineSearch: " <<  iterLineSearch << "  StepLenghth: " << stepLength
-    						  << " Res: " << res2 << std::endl;
-    				rhsSource_->ComputeTikh(funcValNew,res2,false,false);
-    				//std::cout << "LineSearch: " << innerIter << " TikhonovVal: " << funcValNew << std::endl;
+    				if ( logLevel_ == "3" )
+    					std::cout << " LineSearch: " <<  iterLineSearch+1 << ";  StepLenghth: " << stepLength
+						          << "; Relative L2 error: " << std::sqrt(res2 / measL2squared_)*100.0
+								  << "%\n"<< std::endl;
+
+    				rhsSource_->ComputeTikh(funcValNew,res2);
+    				if ( logLevel_ == "3" )
+    					std::cout << std::endl;
+
     				iterLineSearch++;
-    				std::cout << std::endl;
     			}
 
-    			std::cout << "MaxLineSearch: " << iterLineSearch << std::endl;
+    			if ( logLevel_ == "2" || logLevel_ == "3" )
+    				std::cout << " Gradient steps " << innerIter+1
+					          << ";  L2 error: " << std::sqrt(res2 / measL2squared_) *100.0
+    						  << "%;  Used line search steps: " << iterLineSearch
+    						  << std::endl;
 
     			//save source data
     			rhsSource_->UpdateSource( stepLength, false );
@@ -402,18 +426,19 @@ namespace CoupledField
 
     			//compute optimality condition and delta values of amplitude and phase
     			rhsSource_->ComputeOptCondition(optAmp, optPhase);
-    			std::cout << "InnerIter: " << innerIter << "  OptCondAmp: "
-    					   << optAmp << "  OptCondPhase: " << optPhase << std::endl;
+    			if ( logLevel_ == "3" )
+    				std::cout << " Gradient step: " << innerIter+1 << ";  OptCondAmp: "
+    				          << optAmp << "  OptCondPhase: " << optPhase << std::endl;
 
     			normGrad2 = optAmp + optPhase;
     			innerIter++;
     		}
 
-    		std::cout << "MaxInnerIter: " << innerIter << std::endl;
-
     		alpha_ *= 0.5;
     		beta_  *= 0.5;
-    		std::cout << "Try new alpha: " << alpha_ << "  beta: " << beta_ << std::endl;
+    		rho_   *= 0.5;
+    		rhsSource_->ChangeInverseParam(alpha_, beta_, rho_);
+    		rhsMeas_->ChangeInverseParam(alpha_, beta_, rho_);
     		outerIter++;
     	}
 
@@ -426,13 +451,21 @@ namespace CoupledField
     	ptPDE_->GetSolveStep()->SolveStepHarmonic();
     	ptPDE_->GetSolveStep()->PostStepHarmonic();
 
+    	std::cout << "\nInverse Source Localization: Final Result\n" << "=================================================="
+    			  << "==========================\n\n"
+    			  << "Relative L2 error: " << std::sqrt(res2 / measL2squared_)*100.0 << "%\n"
+				  << "Number of reducing parameter steps: " << outerIter << "\n"
+				  << "Final regularization parameters: alpha: " << alpha_*2.0
+				  << ";  beta: " << beta_*2.0 << ";  rho: " << rho_*2.0 << "\n"
+				  << "\n=================================================="
+				  << "==========================\n\n";
     }
     else {
     	Double optAmp, optPhase;
     	UInt iter = 0;
     	bool notConverged = true;
 
-    	while ( notConverged && iter < maxOuterIter_ ) {
+    	while ( notConverged && iter < maxReduceParSteps_ ) {
     		//compute with RHS being the conjugate difference of computed acoustic pressure
     		//and measured pressure in the microphone points
     		rhsSource_->SetActive(false);

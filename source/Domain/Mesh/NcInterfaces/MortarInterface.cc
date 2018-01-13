@@ -1447,6 +1447,39 @@ bool MortarInterface::IntersectRects( SurfElem *ifaceElem1,
   return true;
 }
 
+void MortarInterface::GetInterfaceElemCoordinates(SurfElem *ifElem, StdVector< Vector<Double> >& coordinates) {
+  UInt pSize = 0;
+  switch(ifElem->type) {
+    case Elem::ET_TRIA3:
+    case Elem::ET_TRIA6:
+      pSize = 3;
+      break;
+
+    case Elem::ET_QUAD4:
+    case Elem::ET_QUAD8:
+    case Elem::ET_QUAD9:
+      pSize = 4;	 
+      break;	 	 
+
+    default:
+      EXCEPTION("First argument to PolygonOnPolygon may not be of type '"
+              << Elem::feType.ToString(ifElem->type) << "!");
+      break;
+  }
+  coordinates.Resize(pSize);
+
+#ifdef USE_OPENMP
+  omp_set_lock(&gridLock_);
+#endif
+  for (UInt i = 0; i < pSize; i++) {
+    ptGrid_->GetNodeCoordinate(coordinates[i], ifElem->connect[i], isMoving_);
+  }
+#ifdef USE_OPENMP
+  omp_unset_lock(&gridLock_);
+#endif
+
+}
+
 bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2, StdVector<UInt> &newNodes,
     StdVector< Vector<Double> >& p1, StdVector< Vector<Double> >& p2, StdVector< Vector<Double> >& r,
     Vector<Double>& temp1, Vector<Double>& temp2,
@@ -1456,30 +1489,10 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2, S
     StdVector< Vector<Double> >& p1Rot, StdVector< Vector<Double> >& p2Rot)
 {
   UInt i, j, n;
-
-  UInt p1Size = ifElem1->connect.GetSize();
-  p1.Resize(p1Size);
-#ifdef USE_OPENMP
-  omp_set_lock(&gridLock_);
-#endif
-  for (UInt i = 0; i < p1Size; i++) {
-    ptGrid_->GetNodeCoordinate(p1[i], ifElem1->connect[i], isMoving_);
-  }
-#ifdef USE_OPENMP
-  omp_unset_lock(&gridLock_);
-#endif
-
-  UInt p2Size = ifElem2->connect.GetSize();
-  p2.Resize(p2Size);
-#ifdef USE_OPENMP
-  omp_set_lock(&gridLock_);
-#endif
-  for (UInt i = 0; i < p2Size; i++) {
-    ptGrid_->GetNodeCoordinate(p2[i], ifElem2->connect[i], isMoving_);
-  }
-#ifdef USE_OPENMP
-  omp_unset_lock(&gridLock_);
-#endif
+ 
+  GetInterfaceElemCoordinates(ifElem1, p1);
+  UInt p1Size = p1.GetSize();
+  GetInterfaceElemCoordinates(ifElem2, p2);
   r.Clear(true);
 
   bool b;

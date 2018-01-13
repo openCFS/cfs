@@ -35,6 +35,7 @@ namespace CoupledField{
  *  NOTE: Extensions needed for Results stored by elements
  */
 
+
 template<typename DATA_TYPE>
 class CoefFunctionGridNodalSource : public CoefFunctionGridNodal<DATA_TYPE>{
 public:
@@ -105,8 +106,7 @@ public:
   virtual void UpdateSource(Double& stepLength, bool lineSearch);
 
   //! computes the L2 norm of error
-  virtual void ComputeTikh(Double& funcVal, Double& resSquared,
-                           bool adjustAlpha, bool adjustBeta);
+  virtual void ComputeTikh(Double& funcVal, Double& resSquared);
 
   //! computes the L2 norm of error
   virtual void ComputeDiff2Meas( Double& error );
@@ -115,9 +115,16 @@ public:
   virtual void ComputeMeasL2squared( Double& vaL2 );
 
   //! computes the L2 norm of error
-  virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp,
-		                        Double& freq, std::string fileNameMeasdata);
+  virtual void SetInverseParam( Double& alpha, Double& beta, Double& rho, Double& qExp,
+		                        Double& freq, std::string fileNameMeasdata,
+								std::string logLevel);
 
+  //! set all parameters for inverse scheme
+  virtual void ChangeInverseParam( Double& alpha, Double& beta, Double& rho) {
+	  alpha_ = alpha;
+	  beta_  = beta;
+	  rho_   = rho;
+  }
 
 protected:
 
@@ -177,10 +184,16 @@ private:
   Double beta_;
 
   //! regularization parameter 3
+  Double rho_;
+
+  //! regularization parameter 4
   Double qExp_;
 
   //! defines, if measured data is read at micro-positions!
   bool isDataReadFromFile_;
+
+  //! defines the log level
+  std::string logLevel_;
 
   //! measurement data read from file
   Vector<DATA_TYPE> readMeasVec_;

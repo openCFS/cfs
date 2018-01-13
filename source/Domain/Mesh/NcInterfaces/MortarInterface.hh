@@ -98,6 +98,9 @@ class MortarInterface : public BaseNcInterface {
     bool IntersectRects( SurfElem *ifaceElem1, SurfElem *ifaceElem2,
                          StdVector<UInt> &newNodes );
 
+    //! get interface element coordinates for polygon intersection
+    void GetInterfaceElemCoordinates(SurfElem *ifElem, StdVector< Vector<Double> >& coordinates);
+
     //! intersect two elements of arbitrary type
     bool IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
                             StdVector<UInt> &newNodes, 

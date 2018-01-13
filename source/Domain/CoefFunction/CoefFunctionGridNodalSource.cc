@@ -16,6 +16,7 @@
 #include <complex>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 #include "CoefFunctionGridNodalSource.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
@@ -24,6 +25,9 @@
 
 namespace CoupledField{
 
+struct mySort {
+  bool operator() (int i,int j) { return (i<j);}
+} mySortObject;
 
 template<typename DATA_TYPE>
 CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDomain,
@@ -55,7 +59,8 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
 
   //resize the source, source-incremental and source-save vectors
   UInt numNodes = nodeListSource_->GetSize();
-  std::cout<< "NumNodes: " << numNodes << std::endl;
+  //std::cout<< "NumNodes: " << numNodes << std::endl;
+
   sourceAmp_.Resize( numNodes );
   sourceAmp_.Init();
   sourcePhi_.Resize( numNodes );
@@ -86,14 +91,14 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
 
   if ( inverseString == "INVSOURCE") {
 	  this->inverseType_ = CoefFunction::INVSOURCE;
-	  std::cout << "Generate SOURCE " << std::endl;
-	  std::cout << "Do Source" << "  numNodes: " << numNodes << std::endl;
+	  //std::cout << "Generate SOURCE " << std::endl;
+	  //std::cout << "Do Source" << "  numNodes: " << numNodes << std::endl;
   }
   else {
-	  std::cout << "Generate MEASURE " << std::endl;
+	  //std::cout << "Generate MEASURE " << std::endl;
 	  this->inverseType_ = CoefFunction::INVMEASURE;
 	  configNode->GetValue("measureNodes",inverseString);
-	  std::cout << "Name: " << inverseString << std::endl;
+	  //std::cout << "Name: " << inverseString << std::endl;
   }
 
   //Gid CoefFunctions are always general!
@@ -110,15 +115,17 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalSource<DATA_TYPE>::SetInverseParam( Double& alpha, Double& beta,
-		Double& qExp, Double& freq, std::string fileName) {
+		Double& rho, Double& qExp, Double& freq, std::string fileName, std::string logLevel) {
 
-	alpha_ = alpha;
-	beta_  = beta;
-	qExp_  = qExp;
-	freq_ = freq;
+	alpha_    = alpha;
+	beta_     = beta;
+	rho_      = rho;
+	qExp_     = qExp;
+	freq_     = freq;
+	logLevel_ = logLevel;
 
 	if ( this->inverseType_ == CoefFunction::INVMEASURE ) {
-		std::cout << "Read measured data from FILE" << std::endl;
+		//std::cout << "Read measured data from FILE" << std::endl;
 		std::string line;
 		std::ifstream myfile ( fileName.c_str() );
 
@@ -140,16 +147,17 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::SetInverseParam( Double& alpha, Dou
 		//resize
 		measNodes_.Resize(numMeas);
 		readMeasVec_.Resize(numMeas);
+		StdVector<UInt> measNodesUnsoreted(numMeas);
+		Vector<DATA_TYPE> readMeasVecUnsorted(numMeas);
 
 		//reopen and read measurement data
 		std::ifstream myfile1 ( fileName.c_str() );
 		UInt idx=0;
 		if ( myfile1.is_open() ) {
 			while ( getline (myfile1,line) ) {
-				//std::cout << line << '\n';
 				std::sscanf(line.c_str(), "%d%lf%lf", &nodeNr, &realPart, &imagPart);
-				measNodes_[idx] = nodeNr;
-				readMeasVec_[idx] = Complex(realPart,imagPart);
+				measNodesUnsoreted[idx]   = nodeNr;
+				readMeasVecUnsorted[idx] = Complex(realPart,imagPart);
 				idx++;
 			}
 			myfile1.close();
@@ -157,9 +165,25 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::SetInverseParam( Double& alpha, Dou
 		else
 			EXCEPTION("Could not open file including measurement data");
 
-		for ( UInt i=0; i<measNodes_.GetSize(); i++)
-			std::cout << "Node: " << measNodes_[i] << "  Value: " <<  readMeasVec_[i] << std::endl;
+		//now sort the data according to ascending node number
+		measNodes_ = measNodesUnsoreted;
+		std::sort (measNodes_.begin(), measNodes_.end(), mySortObject);
 
+		for ( UInt i=0; i<measNodes_.GetSize(); i++) {
+			UInt node = measNodes_[i];
+			for ( UInt j=0; j<measNodes_.GetSize(); j++) {
+				if ( node == measNodesUnsoreted[j] )
+					readMeasVec_[i] = readMeasVecUnsorted[j];
+			}
+		}
+
+		if ( logLevel_ == "2" || logLevel_ == "3" ) {
+			std::cout << std::endl;
+			for ( UInt i=0; i<measNodes_.GetSize(); i++) {
+				std::cout << " Node: " << measNodes_[i] << "  Value: "
+						  <<  readMeasVec_[i] << std::endl;
+			}
+		}
 	}
 
 	scalingHesse_ = 1.0;
@@ -180,7 +204,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::SetInverseParam( Double& alpha, Dou
 		}
 	}
 
-	std::cout << "SCALING: " << scalingHesse_  << std::endl;
+	//std::cout << "SCALING: " << scalingHesse_  << std::endl;
 }
 
 
@@ -197,7 +221,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
     }
 
     this->srcRegions_.insert(ent->GetName());
-    std::cout << "SRC Region: " << ent->GetName() << std::endl;
+    //std::cout << "SRC Region: " << ent->GetName() << std::endl;
 
     //compute mean element volume
     if ( this->inverseType_ == CoefFunction::INVSOURCE ) {
@@ -217,7 +241,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
     	    }
     	}
     	meanElemVol_ /= (Double)numEl;
-    	std::cout << "Mean element volume: " <<  meanElemVol_  << std::endl;
+    	//std::cout << "Mean element volume: " <<  meanElemVol_  << std::endl;
     }
 
     //====================================================
@@ -265,6 +289,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
 			  this->UpdateSolution();
 			  measVec_ = this->solVec_;
+			  measVec_.Init();
 			  //std::cout << "Meas vec set!!" << std::endl;
 			  isDataReadFromFile_ = true;
 
@@ -273,9 +298,8 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 			  UInt idx = 0;
 			  for(UInt i=0;i<this->fctSolAssoc_.GetSize();++i) {
 				  const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
-				  if ( curP.second > 0 ) {
+				  if ( curP.second >= 0 ) {
 					  if ( isMeasuredNode_[i] ) {
-						  //std::cout << "Pos: " << i << "  Value: " << measVec_[i] << std::endl;
 						  measVec_[i] = readMeasVec_[idx];
 						  idx++;
 					  }
@@ -309,11 +333,10 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		  UInt idx=0;
 		  for(UInt i=0;i<this->fctSolAssoc_.GetSize();++i) {
 		      const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
-		      if ( curP.second > 0 ) {
+		      if ( curP.second >= 0 ) {
 		    	  if ( isMeasuredNode_[i] ) {
 		    		  Complex val = actPDEsol[idx] - measVec_[i];
-		    	  	  this->solVec_[i] = 1.0*std::conj( val );
-		    	  	  //std::cout << "RHS-ADJ: " <<  this->solVec_[i] << std::endl;
+		    		  this->solVec_[i] = 1.0*std::conj( val );
 		    	  	  idx++;
 		    	  }
 		      }
@@ -362,6 +385,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalSource<DATA_TYPE>::BuildNodeIdxAssoc(shared_ptr<FeSpace> targetSpace){
 
+	//std::cout << "IN BuildNodeIdxAssoc" << std::endl;
 	//loop over the entitylist and obtain for each element the equation numbers
 	std::set<std::string>::iterator regIter = this->srcRegions_.begin();
 	for( ; regIter != this->srcRegions_.end(); ++regIter) {
@@ -370,6 +394,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::BuildNodeIdxAssoc(shared_ptr<FeSpac
 		actSDList->SetNodesOfRegion( curId );
 		EntityIterator ents = actSDList->GetIterator();
 		this->fctSolAssoc_.Reserve(this->fctSolAssoc_.GetSize()+actSDList->GetSize());
+
 		while(!ents.IsEnd()){
 			//obtain eqn and node number
 			std::pair<UInt,UInt> curP;
@@ -395,17 +420,17 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::BuildNodeIdxAssoc(shared_ptr<FeSpac
 				}
 				if(eqns[i] > 0){
 					curP.first = eqns[i]-1;
+					curP.second = this->eqnNumbers_[solIdx][i];
 					if ( this->inverseType_ == CoefFunction::INVMEASURE ) {
 						if ( nodeFound ) {
 							isMeasuredNode_.Push_back(true);
-							//std::cout << "Node is MeasureNode" << std::endl;
 						}
 						else {
 							isMeasuredNode_.Push_back(false);
 							//std::cout << "Node does not belong to measured node" << std::endl;
 						}
 					}
-					curP.second = this->eqnNumbers_[solIdx][i];
+					//curP.second = this->eqnNumbers_[solIdx][i];
 					//std::cout << "EqGlobal: " << curP.first << "  EqLocal: " << curP.second << std::endl;
 					this->fctSolAssoc_.Push_back(curP);
 				}
@@ -500,7 +525,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeOptCondition(Double& valAmp,
 		//phase
 		Double deltaPsi;
 		deltaPsi = 2*beta_*psi - sourceAmp_[i]*valC.imag()
-						+ 2*psi / ( (M_PI/2 + psi) * (M_PI/2-psi) );
+				   + rho_*2*psi / ( (M_PI/2 + psi) * (M_PI/2-psi) );
 
 		sourcePhiDelta_[i] = deltaPsi;
 		valPhi +=  deltaPsi * deltaPsi;
@@ -529,25 +554,27 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeDiff2Meas(Double& error) {
 		k++;
 	}
 
+	if (logLevel_ == "3" )
+		std::cout << "\n";
+
 	error = 0.0;
-	Double meanMeasP = 0.0;
 	UInt idx=0;
 	for(UInt i=0;i<this->fctSolAssoc_.GetSize();++i) {
 		const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
 		if ( curP.second > 0 ) {
 			if ( isMeasuredNode_[i] ) {
-				meanMeasP += std::abs( measVec_[i]) * std::abs( measVec_[i]) ;
 				Complex val = actPDEsol[idx] - measVec_[i];
-				std::cout << "Nr: " << idx << "  PDE: " << actPDEsol[idx] << " Meas:" << measVec_[i]
-						<< "  Diff: " << val << std::endl;
-				error += std::abs( val ) * std::abs( val ) ;
+				if (logLevel_ == "3" )
+					std::cout << " Nr: " << idx << "  PDE: " << actPDEsol[idx] << " Meas:"
+					          << measVec_[i] << "  Diff: " << val << std::endl;
+				error += std::abs( val * std::conj(val) ) ;
 				idx++;
 			}
 		}
 	}
 
-    std::cout << "\n Relative L2 in %: " << 100*std::sqrt( error ) / std::sqrt( meanMeasP ) << std::endl;
-//	error = std::sqrt( error ); // (Double) idx );
+	if (logLevel_ == "3" )
+			std::cout << "\n";
 }
 
 
@@ -558,7 +585,11 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::UpdateSource( Double& stepLength, b
 	if ( lineSearch ) {
 		for ( UInt i=0; i<sourceAmp_.GetSize(); i++ ) {
 			sourceAmp_[i] = sourceAmpSave_[i] - stepLength * sourceAmpDelta_[i];
-			sourcePhi_[i] = sourcePhiSave_[i] - stepLength * sourcePhiDelta_[i];
+			Double Phi;
+			Phi = sourcePhiSave_[i] - stepLength * sourcePhiDelta_[i];
+			//project Phi to be between -pi/2 and pi/2
+			Phi = std::min(M_PI/2.0, std::max(-M_PI/2.0,Phi));
+			sourcePhi_[i] = Phi;
 		}
 	}
 	else {
@@ -570,51 +601,53 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::UpdateSource( Double& stepLength, b
 
 //! compute Tikhonov function
 template<typename DATA_TYPE>
-void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeTikh( Double& funcVal, Double& resSquared,
-		                                                  bool adjustAlpha, bool adjustBeta ) {
+void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeTikh( Double& funcVal, Double& resSquared) {
 
 	Double valAmp = 0;
 	Double valPhi = 0;
 
-	if ( adjustAlpha )
-		alpha_ = 1.0;
-	if ( adjustBeta )
-		beta_ = 1.0;
-
+	Double phi, arg;
 	for ( UInt i=0; i<sourceAmp_.GetSize(); i++ ) {
 		valAmp += alpha_*std::pow( std::abs(sourceAmp_[i]), qExp_ );
-		valPhi += beta_*std::pow(std::abs(sourcePhi_[i]), 2);
-		//funcVal += alpha_*std::pow( std::abs(sourceAmp_[i]), qExp_ ) +	beta_*std::pow(std::abs(sourcePhi_[i]), 2);
+		phi     =  beta_*std::pow(std::abs(sourcePhi_[i]), 2);
+		arg     =  ( M_PI/2.0 -phi )*(M_PI/2.0 + phi);
+		if ( arg < 1e-3 )
+			arg = 1e-3;
+		valPhi += phi - rho_*std::log2l( arg );
 	}
 
-	if ( adjustAlpha ) {
-		alpha_ = resSquared / valAmp *0.1;
-		valAmp *= alpha_;
-		std::cout << "Adjusted alpha: " << alpha_ << std::endl;
-	}
+//	if ( adjustAlpha ) {
+//		alpha_ = resSquared / valAmp *0.1;
+//		valAmp *= alpha_;
+//		std::cout << "Adjusted alpha: " << alpha_ << std::endl;
+//	}
 
-	if ( adjustBeta) {
-		if ( valPhi > 1e-4 )
-			beta_ = resSquared / valPhi *0.1;
-		valPhi *= beta_;
-		std::cout << "Adjusted beta: " << beta_ << std::endl;
-	}
-	std::cout << "valL2: " << resSquared << "  valAmP: " <<  valAmp << "  valPhi: " << valPhi << std::endl;
+//	if ( adjustBeta) {
+//		if ( valPhi > 1e-4 )
+//			beta_ = resSquared / valPhi *0.1;
+//		valPhi *= beta_;
+//		std::cout << "Adjusted beta: " << beta_ << std::endl;
+//	}
+
+//	if ( logLevel_ == "3" )
+//		std::cout << "valL2: " << resSquared << "  valAmP: " <<  valAmp << "  valPhi: "
+//		          << valPhi << std::endl;
+
 	funcVal = resSquared + valAmp + valPhi;
 }
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeMeasL2squared(Double& valL2 ) {
 
-	Complex val(0,0);
+	Double val = 0.0;
 	for(UInt i=0;i<this->fctSolAssoc_.GetSize();++i) {
 		const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
 		if ( curP.second > 0 ) {
 			if ( isMeasuredNode_[i] )
-				val += measVec_[i] * measVec_[i] ;
+				val += std::abs( measVec_[i] * std::conj(measVec_[i]) );
 		}
 	}
-	valL2 = std::abs( val );
+	valL2 = val;
 }
 
 
