@@ -109,7 +109,7 @@ class IDBC_Graph;
     //! \param useDistinctGraphs if true, every matrixType (MASS, STIFFNESS)
     //!                          can have a different sparsity and subBlock
     //!                          pattern. 
-    void SetupInit( UInt numBlocks, bool useDistinctGraphs );
+    void SetupInit( UInt numBlocks, bool useDistinctGraphs, bool isMultHarm = false);
 
     //! Finalises setup of the graph manager
 
@@ -118,6 +118,19 @@ class IDBC_Graph;
     //! connectivity information to the graph manager.
     //! \param reorder  re-ordering type for each block
     void SetupDone(const StdVector<BaseOrdering::ReorderingType>& reorder);
+
+    //! Finalises setup of the graph manager in the multiharmonic case
+
+    //! This method must be called after the assembly of all sub-graphs was
+    //! done, i.e. once all blocks have conveyed their
+    //! connectivity information to the graph manager.
+    //! \param reorder  re-ordering type for each block
+    //! \param N        Number of harmonics for solution
+    //! \param M        Number of harmonics for nonlinearity
+    void SetupDoneMH(const StdVector<BaseOrdering::ReorderingType>& reorder,
+                     const UInt N,
+                     const UInt M);
+
 
     //! Register block with graph manager
     
@@ -137,6 +150,32 @@ class IDBC_Graph;
     //!       one block.
     void RegisterBlock( const UInt blockNum,
                         SBMBlockInfo* blockInfo );
+
+
+    //! Register block with graph manager for multiharmonic analysis
+
+    //! Before a matrix block can set its sparsity pattern, the matrix
+    //! block has to be registered and the number of unknowns and
+    //! non free equations has to be set.
+    //! \param row            row number of the sbm block to be defined
+    //! \param col            column number of the sbm block to be defined
+    //! \param blockInfo      pointer to structure containing the information
+    //!                       how the SBMBlock is defined, i.e. a mapping
+    //!                       of all equations defining this block and their
+    //!                       col/row index, an (optional) definition of
+    //!                       sub-blocks, as well as a flag, if the block
+    //!                       can be reordered.
+    //!
+    //! \note A SBMBlock can only be reordered, if it has no subblocks defined,
+    //!       as otherwise we can not guarantee for continuous indices within
+    //!       one block.
+    void RegisterBlockMultHarm( const UInt row,
+                                const UInt col,
+                                SBMBlockInfo* blockInfo );
+
+
+
+
     //@}
 
     // =======================================================================
@@ -172,7 +211,10 @@ class IDBC_Graph;
                                 const StdVector<UInt>& colBlock,
                                 const StdVector<UInt>& colIndices,
                                 FEMatrixType matrixType,
-                                bool setCounterPart );
+                                bool setCounterPart,
+                                bool isMultHarm = false);
+
+
     //@}
 
     // =======================================================================
@@ -245,8 +287,6 @@ class IDBC_Graph;
     //@}
 
 
-  private:
-
     //! Computes the index into the graph pointer matrix
 
     //! The class stores the pointers to the graphs associated with the 
@@ -258,6 +298,7 @@ class IDBC_Graph;
       return numBlocks_*rowNum + colNum;
     }
 
+  private:
     //! Auxiliary method for generation of IDBC graph objects
 
     //! This method will check for a SBMBlock defined by rowNum and colNum
@@ -265,7 +306,16 @@ class IDBC_Graph;
     //! This will be the case, if the second column block contains degrees of 
     //! freedom that are fixed by inhomogeneous Dirichlet boundary
     //! conditions.
-    void GenerateIDBCGraph( UInt rowNum, UInt colNum );
+    void GenerateIDBCGraph( UInt rowNum, UInt colNum);
+
+    //! Auxiliary method for generation of IDBC graph objects in the multiharmonic case
+
+    //! This method will check for a SBMBlock defined by rowNum and colNum
+    //! whether it is necessary to generate an associated IDBC graph.
+    //! This will be the case, if the second column block contains degrees of
+    //! freedom that are fixed by inhomogeneous Dirichlet boundary
+    //! conditions.
+    void GenerateIDBCGraphMultHarm( UInt rowNum, UInt colNum );
 
     //! Auxiliary method for generation of graphs for coupled SBMBlocks
 
@@ -316,11 +366,17 @@ class IDBC_Graph;
     //! to AssembleDone().
     bool reorderingDone_;
 
+    UInt N_;
+    UInt M_;
+
     //! Flag indicating whether registration of all SBMBlocks is done
 
     //! This attribute is used as flag which indicates whether the
     //! registration of all SBMBlocks is finished.
     bool registrationDone_;
+
+    //! Flag if multiharmonic analyis is performed
+    bool isMultHarm_;
 
     //@{
     //! Auxiliary vector for passing connectivities to the graph objects

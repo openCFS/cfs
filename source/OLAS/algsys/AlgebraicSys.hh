@@ -272,6 +272,15 @@ namespace CoupledField {
     //! connectivity information to the graph manager.
     void GraphSetupDone();
 
+    //! Finalises setup of the graph manager
+
+    //! Special graph setup for multiharmonic case!
+    //! This method must be called after the assembly of all sub-graphs was
+    //! done, i.e. once all functions or coupling objects have conveyed their
+    //! connectivity information to the graph manager.
+    void GraphSetupDoneMH();
+
+
     //! Obtain a unique FeFunction identifier
 
     //! Return a unique FeFunction identifier for each FeFunction, which will be used
@@ -372,7 +381,7 @@ namespace CoupledField {
                         const StdVector<Integer>& eqnNrs2,
                         FEMatrixType matrixType,
                         bool setCounterPart );
-    
+
     //! Helper method for mapping (fctId, eqnNr) to (blockNum,index)
     
     //! This method maps the CFS-oriented/physical oriented tuple (fctId,eqnNr)

@@ -171,9 +171,7 @@ namespace CoupledField {
     // ---------------------------------------
     LOG_DBG(stdPde) << pdename_ << ": Defining SBM-blocks";
 
-    // for multiharmonic analysis we need 2M+1 independent blocks but they all
-    // have the same equations inside
-    UInt numBlocks = (solStrat_->IsMultHarm())? 2*solStrat_->GetNumHarmM() + 1 : sbmBlocks.GetSize();
+    UInt numBlocks = sbmBlocks.GetSize();
 
     if( solStrat_->IsMultHarm() && sbmBlocks.GetSize() > 1 )EXCEPTION("No submatrices allowed for multiharmonic analysis");
 
@@ -190,8 +188,9 @@ namespace CoupledField {
       // and static condensation is activated
       bool isInnerBlock = solStrat_->UseStaticCondensation() && (i == numBlocks-1);
 
-      UInt ind = ( solStrat_->IsMultHarm() )? 0 : i;
-      sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[ind], isInnerBlock );
+      if( solStrat_->IsMultHarm() && i != 0 ) EXCEPTION("Only one block allowed in multiharmonic algsys!");
+
+      sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[i], isInnerBlock );
       if( minorBlocks.size() != 0 && sbmIndex != -1) {
         StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
 
@@ -245,16 +244,18 @@ namespace CoupledField {
       for( it2 = feFunctions_.begin(); it2 != feFunctions_.end(); ++it2 ) {
         FeFctIdType fctId1 = it1->second->GetFctId();
         FeFctIdType fctId2 = it2->second->GetFctId();
-
         // assemble upper diagonal blocks including diagonal
-        LOG_DBG(stdPde) << pdename_ << ":\tset graph for fctIds #"
-            << fctId1 << " and # " << fctId2 << std::endl;
+        LOG_DBG(stdPde)<<pdename_<<":\tset graph for fctIds #"<< fctId1<<"and #"<<fctId2<<std::endl;
         assemble_->SetupMatrixGraph(fctId1, fctId2);
       } // it2
     } // it1
 
     // finish the assembly of the matrix graph
-    algsys_->GraphSetupDone();
+    if( solStrat_->IsMultHarm() ){
+      algsys_->GraphSetupDoneMH();
+    }else{
+      algsys_->GraphSetupDone();
+    }
 
     // create matrices and solver object, if PDE is not direct coupled
     CreateMatrices_Solver();

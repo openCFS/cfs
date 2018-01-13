@@ -356,6 +356,10 @@ namespace CoupledField
 
 
             if (ncContext && full) {
+              if( analysisType_ == BasePDE::MULTIHARMONIC ){
+                EXCEPTION("Assemble::AddLinearForm nonconforming case in multiharmonic analysis not yet implemented!");
+              }
+
               // Just get all equations, so we out a dense block in the graph
               ncContext->GetEqns(eqnVec1, eqnVec2, id1, id2);
 
@@ -391,9 +395,9 @@ namespace CoupledField
                 // Pass entity eqn-connectivity to algebraic system
                 if( !doTranspose ) {
                   algsys_-> SetElementPos( id1, eqnVec1,
-                      id2, eqnVec2,
-                      destMap,
-                      setCounterPart );
+                                        id2, eqnVec2,
+                                        destMap,
+                                        setCounterPart );
                 } else {
                   algsys_-> SetElementPos( id2, eqnVec2,
                                            id1, eqnVec1,

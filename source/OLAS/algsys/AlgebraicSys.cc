@@ -339,68 +339,68 @@ namespace CoupledField {
     // Generate empty SBM vectors
     rhs_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
 
-      sol_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
-      
-      if ( rhs_ == NULL || sol_ == NULL ) {
-        EXCEPTION( WRONG_CAST_MSG );
+    sol_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
+
+    if ( rhs_ == NULL || sol_ == NULL ) {
+      EXCEPTION( WRONG_CAST_MSG );
+    }
+
+    // For the moment we insert a sub-vector for each position.
+    // In the case of the right-hand side we might actually be
+    // more economic. How do we get the information which sub-vectors
+    // are really needed, however?
+    StdMatrix *stdMat = NULL;
+    BaseVector *bVec = NULL;
+    SingleVector *sVec = NULL;
+    UInt nB = (isMultHarm_)? 2*solStrat_->GetNumHarmN()+1 : numBlocks_;
+    for ( UInt k =0; k < nB; k++ ) {
+
+      // Get diag matrix for vector generation
+      stdMat = sysMat_[SYSTEM]->GetPointer( k, k );
+
+      if(stdMat == NULL){
+        EXCEPTION("SBM-Block was not initialized");
       }
       
-      // For the moment we insert a sub-vector for each position.
-      // In the case of the right-hand side we might actually be
-      // more economic. How do we get the information which sub-vectors
-      // are really needed, however?
-      StdMatrix *stdMat = NULL;
-      BaseVector *bVec = NULL;
-      SingleVector *sVec = NULL;
-      for ( UInt k =0; k < numBlocks_; k++ ) {
+      // Insert sub-vector into solution
+      bVec = GenerateVectorObject( *stdMat, solEntryType );
+      sVec = dynamic_cast<SingleVector*>( bVec );
+      sol_->SetSubVector( sVec, k );
 
-        // Get diag matrix for vector generation
-        stdMat = sysMat_[SYSTEM]->GetPointer( k, k );
+      // Insert sub-vector into right-hand side
+      bVec = GenerateVectorObject( *stdMat, solEntryType );
+      sVec = dynamic_cast<SingleVector*>( bVec );
+      rhs_->SetSubVector( sVec, k );
+    }
 
-        if(stdMat == NULL){
-          EXCEPTION("SBM-Block was not initialized");
-        }
-        
-        // Insert sub-vector into solution
-        bVec = GenerateVectorObject( *stdMat, solEntryType );
-        sVec = dynamic_cast<SingleVector*>( bVec );
-        sol_->SetSubVector( sVec, k );
+    // ---------------------------------------
+    //   Generate effective matrices vectors
+    // ---------------------------------------
 
-        // Insert sub-vector into right-hand side
-        bVec = GenerateVectorObject( *stdMat, solEntryType );
-        sVec = dynamic_cast<SingleVector*>( bVec );
-        rhs_->SetSubVector( sVec, k );
-      }
+    // This depends on the status of static condensation
+    if (statCond_) {
+      effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1,
+                                numBlocks_-1 );
+      effRhs_ = new SBM_Vector( *rhs_, numBlocks_-1 );
+      effSol_ = new SBM_Vector( *sol_, numBlocks_-1 );
+    } else {
+      effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], nB, nB );
+      effRhs_ = new SBM_Vector( *rhs_, nB );
+      effSol_ = new SBM_Vector( *sol_, nB );
+    }
 
-      // ---------------------------------------
-      //   Generate effective matrices vectors
-      // ---------------------------------------
+    // -----------------
+    //  Memory clean-up
+    // -----------------
 
-      // This depends on the status of static condensation
-      if (statCond_) {
-        effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1, 
-                                  numBlocks_-1 );
-        effRhs_ = new SBM_Vector( *rhs_, numBlocks_-1 );
-        effSol_ = new SBM_Vector( *sol_, numBlocks_-1 );
-      } else {
-        effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_, 
-                                  numBlocks_ ); 
-        effRhs_ = new SBM_Vector( *rhs_, numBlocks_ );
-        effSol_ = new SBM_Vector( *sol_, numBlocks_ );
-      }
-      
-      // -----------------
-      //  Memory clean-up
-      // -----------------
+    // At this point, hopefully, the graph object is no longer
+    // required by anyone, so release pointer and delete manager
+    // to free memory
+    delete graphManager_;
+    graphManager_ = NULL;
 
-      // At this point, hopefully, the graph object is no longer
-      // required by anyone, so release pointer and delete manager
-      // to free memory
-      delete graphManager_;
-      graphManager_ = NULL;
-      
-      // set flag
-      systemCreated_ = true;
+    // set flag
+    systemCreated_ = true;
   }
 
   void AlgebraicSys::CreatePrecond() {
@@ -1555,6 +1555,289 @@ namespace CoupledField {
   }
 
 
+
+
+  // ******************
+  //   GraphSetupDoneMH
+  // ******************
+  void AlgebraicSys::GraphSetupDoneMH() {
+
+    LOG_TRACE(algSys) << "Finished setup of graph";
+
+    std::set<FEMatrixType>::iterator fIt;
+    std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
+
+    // -----------------------------------------------------------
+    // Up to now, the feSubMatrices are defined on a fctId level.
+    // However we need the mapping on the block level, so we have to map
+    // for each matrixType (SYSTEM, STIFFNESS etc.), how the fctIds are
+    // spread to sbmBlocks and initialize the structure
+    // feSubMatricesByBlocks_.
+    // -----------------------------------------------------------
+
+    // number of harmonics
+    UInt N = solStrat_->GetNumHarmN();
+    UInt M = solStrat_->GetNumHarmM();
+
+
+    // loop over all matrix Types in feSubMatricesByFctId
+    std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct = feSubMatricesByFctId_.begin();
+    for( auto & itMatByFct : feSubMatricesByFctId_ ) {
+      const FEMatrixType & matrixType = itMatByFct.first;
+      //const SubMatrixSet & sbmSet = itMatByFct.second;
+
+      // loop over all blocks
+      //for( auto & sbmIt : sbmSet ) {
+        // Fetch all SBM blocks, in which the current (rowFctId, colFctId) occurs.
+        // In the multiharmonic case, give it all the non-zero (sbmRow, sbmCol) combinations
+        for( UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
+          // diagonal block
+          SubMatrixID sID;
+          sID.rowInd = sbmRow;
+          sID.colInd = sbmRow;
+          // Insert sub-matrix identifier into corresponding FE-Matrix set
+          feSubMatricesByBlocks_[matrixType].insert( sID );
+          for( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M ; ++sbmCol ) {
+            if( sbmCol < 2 * N + 1){
+              // off-diagonal block
+              SubMatrixID sID;
+              sID.rowInd = sbmRow;
+              sID.colInd = sbmCol;
+              // Insert sub-matrix identifier into corresponding FE-Matrix set
+              feSubMatricesByBlocks_[matrixType].insert( sID );
+
+              //also set the transposed
+              sID.rowInd = sbmCol;
+              sID.colInd = sbmRow;
+              // Insert sub-matrix identifier into corresponding FE-Matrix set
+              feSubMatricesByBlocks_[matrixType].insert( sID );
+            }
+          }
+        }
+
+      //} // loop over sbmBlocks (byFctId)
+    } // loop over matrixType
+
+    // --------------------------------------------------------------------
+    // Determine the set of sub-matrices that we need for the SYSTEM matrix.
+    // There are two different cases:
+    //
+    // 1) We have other FE matrices: NOT IMPLEMENTED IN MULTIHARMONIC CASE
+    //
+    // 2) There are no other sets, so we generate a sub-matrix for each
+    //    sub-graph that the graph manager stores
+    // --------------------------------------------------------------------
+    UInt nnzBlocks = 0; //number of nonzero blocks
+    if ( matrixTypes_.size() > 1 ) {
+      EXCEPTION("AlgebraicSys::GraphSetupDoneMH() more than one matrix type...not implemented yet \n"
+                "for the multiharmonic case!" );
+    }
+    else {
+      SubMatrixID sID;
+      for (  UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
+        // Diagonal block
+        ++nnzBlocks;
+        if ( graphManager_->SubGraphExists( sbmRow, sbmRow ) == true ) {
+                    sID.rowInd = sbmRow;
+                    sID.colInd = sbmRow;
+                    feSubMatricesByBlocks_[SYSTEM].insert( sID );
+                  }
+        for ( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M ; ++sbmCol ) {
+          // Off-diagonal block
+          if( sbmCol < 2 * N + 1){
+            ++nnzBlocks;
+            if ( graphManager_->SubGraphExists( sbmRow, sbmCol ) == true ) {
+              sID.rowInd = sbmRow;
+              sID.colInd = sbmCol;
+              feSubMatricesByBlocks_[SYSTEM].insert( sID );
+            }
+          }
+        }
+      }
+    }
+
+    // determine overall number of entries (including fixed equations)
+    size_ = 0;
+    for( UInt i = 0; i < nnzBlocks; i++ ) {
+      size_ += blockInfo_[0]->size;
+    }
+    StdVector< StdVector<UInt> > toBeCopied(nnzBlocks);
+    rowIndList1_.Set(toBeCopied);
+    rowList1_.Set(toBeCopied);
+    rowIndList2_.Set(toBeCopied);
+    rowList2_.Set(toBeCopied);
+    colIndList1_.Set(toBeCopied);
+    colList1_.Set(toBeCopied);
+    colIndList2_.Set(toBeCopied);
+    colList2_.Set(toBeCopied);
+
+
+    // Determine symmetry type of diagonal SBM-blocks.
+    // Up to now, we know only the symmetry of the matrices w.r.t. the
+    // FeFunctions (see matIsSymm_).
+    for( auto & fctIt : matIsSymm_  ){
+
+      FeFctIdType fctId = fctIt.first;
+      bool isFctSymm = fctIt.second;
+
+      // loop over all diagonal SBMBlocks, where this fctId occurs
+      // and perform logical AND operation regarding symmetry (i.e.
+      // if at least one function in this block is non-symmetric, so
+      // will be the complete block)
+      std::set<UInt>& affectedBlocks = fctIdsInBlocks_[fctId];
+      for( auto & blockIt : affectedBlocks) {
+        isDiagBlockSymm_[blockIt] &= isFctSymm;
+      }
+    }
+
+    // --------------------------------------------------------
+    //  Perform Consistency Check Before Finalizing The System
+    // --------------------------------------------------------
+    // Check for:
+    // - symmetry of system
+    // - compatible solver type
+    // - compatible preconditioner type
+    // - compatible reordering type
+    CheckConsistency();
+
+    // Print information about registered functions
+    PrintRegistrationInfo( );
+
+    // Collect reordering of different matrices and assemble vector
+    StdVector<BaseOrdering::ReorderingType> reorder(numBlocks_);
+    for( UInt i = 0; i < numBlocks_; ++i ) {
+      std::string orderString = solStrat_->GetMatrixNode(i)->
+          Get("reordering")->As<std::string>();
+      reorder[i] = BaseOrdering::reorderingType.Parse(orderString);
+    }
+
+    // Finalize graph manager setup
+    if( isMultHarm_ ){
+      graphManager_->SetupDoneMH(reorder, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM() );
+    }else{
+      graphManager_->SetupDone(reorder);
+    }
+
+    // Now we have all graphs and IDBC in their re-ordered state,
+    // so we have to fetch the reordering array from the GraphManager and
+    // update information in the blockInfo array for all SBM-Blocks
+    if( isMultHarm_ ){
+      GraphManager::SBMBlockInfo &bi = *blockInfo_[0];
+      UInt numFcts = bi.eqnToIndex.GetSize();
+      StdVector<UInt> newOrder;
+      for (  UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
+        // ----------------------------------
+        //   D I A G O N A L    B L O C K S
+        // ----------------------------------
+        // Obtain reordering vector
+        UInt idx = graphManager_->ComputeIndex(sbmRow, sbmRow);
+        graphManager_->GetReordering(idx, newOrder);
+
+        // Loop over all functions
+        for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
+          boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
+          boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
+
+          // Here we have to distinguish two cases:
+          // a) PENALTY: We have to reorder all equations, as also the IDBC
+          //             eqns are within the normal matrix. So we do not
+          //             have to maintain the splitting w.r.t. lastFreeEqn
+          // b) Elimination: We are just allowed to reorder equations <
+          //                 numLastFreeEqnPerFct, as this is the size of
+          //                 the underlying matrix. All fixed equations
+          //                 are handled by the IDBC graph.
+          if( usingPenalty_) {
+            for( ; it != eqnToIndex.end(); ++it ){
+              it->second = newOrder[it->second-1];
+            }
+          } else {
+            for( ; it != eqnToIndex.end(); ++it ){
+              // Loop over all (eqn)->(index) entries
+              if( it->first <= lastFreeEqnPerFct_[iFct])
+                it->second = newOrder[it->second-1];
+            } // loop eqns
+          } // if clause
+        } // loop functions
+
+//        for ( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M ; ++sbmCol ) {
+//                if( sbmCol < 2 * N + 1){
+//                  // ----------------------------------
+//                  //   O F F - D I A G O N A L    B L O C K S
+//                  // ----------------------------------
+//                  // Obtain reordering vector
+//                  UInt idx = graphManager_->ComputeIndex(sbmRow, sbmCol);
+//
+//                  // Loop over all functions
+//                  for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
+//                    boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
+//                    boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
+
+                    // Here we have to distinguish two cases:
+                    // a) PENALTY: We have to reorder all equations, as also the IDBC
+                    //             eqns are within the normal matrix. So we do not
+                    //             have to maintain the splitting w.r.t. lastFreeEqn
+                    // b) Elimination: We are just allowed to reorder equations <
+                    //                 numLastFreeEqnPerFct, as this is the size of
+                    //                 the underlying matrix. All fixed equations
+                    //                 are handled by the IDBC graph.
+//                    if( usingPenalty_) {
+//                      for( ; it != eqnToIndex.end(); ++it ){
+//                        it->second = newOrder[it->second-1];
+//                      }
+//                    } else {
+//                      for( ; it != eqnToIndex.end(); ++it ){
+//                        // Loop over all (eqn)->(index) entries
+//                        if( it->first <= lastFreeEqnPerFct_[iFct])
+//                          it->second = newOrder[it->second-1];
+//                      } // loop eqns
+//                    } // if clause
+//                  } // loop functions
+//                }
+//        }
+      }
+
+    }else{
+
+      // Loop over all blocks
+      for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
+        GraphManager::SBMBlockInfo &bi = *blockInfo_[iBlock];
+        UInt numFcts = bi.eqnToIndex.GetSize();
+
+        // Obtain reordering vector
+        StdVector<UInt> newOrder;
+        graphManager_->GetReordering(iBlock, newOrder);
+
+        // Loop over all functions
+        for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
+          boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
+          boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
+
+          // Here we have to distinguish two cases:
+          // a) PENALTY: We have to reorder all equations, as also the IDBC
+          //             eqns are within the normal matrix. So we do not
+          //             have to maintain the splitting w.r.t. lastFreeEqn
+          // b) Elimination: We are just allowed to reorder equations <
+          //                 numLastFreeEqnPerFct, as this is the size of
+          //                 the underlying matrix. All fixed equations
+          //                 are handled by the IDBC graph.
+          if( usingPenalty_) {
+            for( ; it != eqnToIndex.end(); ++it ){
+              it->second = newOrder[it->second-1];
+            }
+          } else {
+            for( ; it != eqnToIndex.end(); ++it ){
+              // Loop over all (eqn)->(index) entries
+              if( it->first <= lastFreeEqnPerFct_[iFct])
+                it->second = newOrder[it->second-1];
+            } // loop eqns
+          } // if clause
+        } // loop functions
+      } // loop blocks
+    }
+
+  }
+
+
   // **********************
   //   FinishRegistration
   // **********************
@@ -1565,19 +1848,40 @@ namespace CoupledField {
     // create new graph manager object and initialize it
     graphManager_ = new GraphManager();
 
-    graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
+    // Different setup for multiharmonic analysis
+    if( isMultHarm_ ){
+      UInt nBlocks = (isMultHarm_)? 2*solStrat_->GetNumHarmN()+1 : numBlocks_;
+      graphManager_->SetupInit( nBlocks, distinctMatGraphs_, true );
 
-    // loop over all blocks and register them with the graph manager
-    for( UInt sbmIndex = 0; sbmIndex < numBlocks_; ++sbmIndex ) {
-      graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
+      // In the multiharmonic case, we have only one set of equations
+      // but they are multiply present in the final system matrix
+      // (for the different frequencies). Therefore we feed the
+      // graph manager with the same sbm-block several times
+      UInt N = solStrat_->GetNumHarmN();
+      UInt M = solStrat_->GetNumHarmM();
+
+      for( UInt iRow = 0; iRow < 2*N+1; ++iRow ) {
+        graphManager_->RegisterBlockMultHarm( iRow, iRow, blockInfo_[0]);
+        for( UInt iCol = iRow + 1; iCol < iRow + M ; ++iCol ) {
+          if( iCol < 2 * N + 1){
+            graphManager_->RegisterBlockMultHarm( iRow, iCol, blockInfo_[0]);
+            // also register the transposed block
+            graphManager_->RegisterBlockMultHarm( iCol, iRow, blockInfo_[0]);
+          }
+        }
+      }
+
+    }else{
+      graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
+
+      // loop over all blocks and register them with the graph manager
+      for( UInt sbmIndex = 0; sbmIndex < numBlocks_; ++sbmIndex ) {
+        graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
+      }
     }
 
-    // determine, if we have a "real" SBM-system with more than 1
-    // block in the sbm-matrix
-    if( numBlocks_ == 1  || 
-        ( numBlocks_ == 2 && solStrat_->UseStaticCondensation() ) ) {
-      onlyOneMatrixBlock_ = true;
-    }
+    // "real" SBM case
+    onlyOneMatrixBlock_ = false;
     
     // set flag for registration
     registrationFinished_ = true;
@@ -1612,7 +1916,7 @@ namespace CoupledField {
     StdVector<UInt>& colBlocks    = colBlocks_.Mine();
     StdVector<UInt>& rowNums      = rowNums_.Mine();
     StdVector<UInt>& colNums      = colNums_.Mine();
-      
+
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
     MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
@@ -1628,9 +1932,12 @@ namespace CoupledField {
     graphManager_->SetElementPos( rowBlocks, rowNums,
                                   colBlocks, colNums,
                                   matrixType,
-                                  setCounterPart );
+                                  setCounterPart,
+                                  solStrat_->IsMultHarm());
 
   }
+
+
 
   void AlgebraicSys::MapFctIdEqnToIndex( const FeFctIdType fctId,
                                          const StdVector<Integer>& eqns,
@@ -1643,7 +1950,7 @@ namespace CoupledField {
     
     // get hold of fct-specific map
     StdVector<UInt>& eqnToBlock = eqnToSBMBlock_[fctId];
-    
+
     UInt numEqns = eqns.GetSize();
     for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
       const UInt & eqnNr = std::abs(eqns[iEqn]);
@@ -2873,9 +3180,13 @@ namespace CoupledField {
             LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
                 << ", " << sbmRow+1 << ") is "
                 << BaseMatrix::storageType.ToString(sT);
-            retMat->SetSubMatrix ( sbmRow, sbmRow, entryType,
+            retMat->SetSubMatrix ( sbmRow, sbmCol, entryType,
                                    sT,
                                    nrows, ncols, graph->GetNNE() );
+            // also set the transposed
+            retMat->SetSubMatrix ( sbmCol, sbmRow, entryType,
+                                               sT,
+                                               nrows, ncols, graph->GetNNE() );
           }
         }
       }
@@ -2966,8 +3277,7 @@ namespace CoupledField {
     
     // First check, if we have a true SBM system.
     // consisting of more than one SBM-Block
-    if( numBlocks_ == 1 ||
-        (numBlocks_ == 2 && statCond_) ) {
+    if( (numBlocks_ == 1 || (numBlocks_ == 2 && statCond_) ) && !isMultHarm_ ) {
       
       // ========================
       //  Only one block present 
@@ -3252,6 +3562,8 @@ namespace CoupledField {
         }
       }
 
+      bool canChangeMatFormat = false;
+
       matNode->GetValue("storage",storageString, ParamNode::INSERT);
       storType = BaseMatrix::storageType.Parse(storageString);
 
@@ -3332,9 +3644,57 @@ namespace CoupledField {
         precondList->Get("Id",ParamNode::INSERT)->
             Get("id",ParamNode::INSERT)->SetValue(precondId);
       }else{
-        EXCEPTION("Preconditioning for true SBM case not yet implemented!");
+        // ---------------------------------------------------
+        //  precond set -> check for compatibility with matrix
+        // ---------------------------------------------------
+
+        // convert precond string to enum
+        pt = BaseSolver::precondType.Parse(precondNode->GetName());
+
+        // obtain list of allowed matrix format
+        std::set<BaseMatrix::StorageType> mf =
+            GetPrecondCompatMatrixFormats(pt);
+
+        // check, if current matrix format is in allowed list
+        if( mf.find(storType) == mf.end() &&
+            mf.size() != 0 ) {
+          //  matrix format is not allowed
+
+          //  a) we can change matrix AND (!!!) the requested
+          //     matrix layout is compatible with the solver -> change it
+
+          storType = *mf.begin();
+          bool isCompatibleWithSolver = (solverStorTypes.size() == 0 || solverStorTypes.find(storType) != solverStorTypes.end() );
+
+          if( canChangeMatFormat && isCompatibleWithSolver) {
+            storageString = BaseMatrix::storageType.ToString(storType);
+            matNode->Get("storage")->SetValue(storageString);
+          } else {
+            EXCEPTION("Precond '" << precondNode->GetName()
+                      << "' can not operate on matrix with storage type '"
+                      << storageString << "'. \nChange format to '"
+                      << BaseMatrix::storageType.ToString(storType)
+                      << "'.");
+            // b) we can not change matrix -> EXCEPTION
+          } // canChangeFormat
+        } // find storageType
+        //EXCEPTION("Preconditioning for true SBM case not yet implemented!");
       }
 
+      // ---------------------------------------------------
+      //  sensibility test for preconditioner
+      // ---------------------------------------------------
+      // a) all direct solver do not need any preconditioner
+      if(( st == BaseSolver::LDL_SOLVER ||
+          st == BaseSolver::LU_SOLVER  ||
+          st == BaseSolver::LAPACK_LU  ||
+          st == BaseSolver::LAPACK_LL  ||
+          st == BaseSolver::PARDISO_SOLVER )
+          && !(pt == BasePrecond::ID ||
+              pt == BasePrecond::NOPRECOND) ) {
+        EXCEPTION( "A direct solver only works with the Identity (ID) "
+                   "preconditioner." );
+      }
 
       // --------------------------------------------------------
       //  Check for shared pattern
@@ -3503,7 +3863,7 @@ namespace CoupledField {
         BaseGraph * graph = graphManager_->GetGraph(smId.rowInd,smId.colInd); 
         
         // bandwidth and reordering gets just written for diagonal blocks 
-        if( smId.rowInd == smId.colInd ) {
+        if( smId.rowInd == smId.colInd && !isMultHarm_) {
           UInt bwLow = 0, bwUp = 0, bwAvg = 0;
           graph->GetBandwidth(bwLow, bwUp, bwAvg);
           mNode->Get("upperBandWidth")->SetValue(bwUp);

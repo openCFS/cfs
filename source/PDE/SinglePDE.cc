@@ -100,7 +100,8 @@ namespace CoupledField {
     isInitialized_(false),
     iterCplPde_(NULL),
     updatedGeo_(false),
-	isMaterialComplex_( false )
+    isMaterialComplex_( false ),
+    isMultHarm_(false)
   {
     
     // get id for linear system
