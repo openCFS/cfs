@@ -114,6 +114,11 @@ namespace CoupledField
       actFreq_ = actFreq;
     }
 
+    //! Set multiharmonic frequency vector
+    virtual void SetMultHarmonicFreq( const StdVector<Double> freqVec ) {
+      multHarmFreqVec_ = freqVec;
+    }
+
     //! Set actual time / frequency step
     virtual void SetActStep( const UInt actStep ) {
       actStep_ = actStep;
@@ -177,6 +182,9 @@ namespace CoupledField
 
     //! Actual frequency 
     Double actFreq_;
+
+    //! Vector of considered frequencies (harmonics) for multiharmonic analysis
+    StdVector<Double> multHarmFreqVec_;
 
     //! number of time steps
     UInt numTimeStep_;

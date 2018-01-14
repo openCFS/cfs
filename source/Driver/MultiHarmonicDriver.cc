@@ -76,7 +76,19 @@ namespace CoupledField
     // read flag if all results should get written to database file section
     // to allow e.g. for general postprocessing or result extraction
     param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
-    
+
+    actHarm_ = 0;
+
+    harmFreq_.Resize(2 * numHarmonics_N_ + 1);
+    // static harmonic (zero frequency) at position numHarmonics_N_
+    harmFreq_[numHarmonics_N_] = 0.0;
+    Double dummy = -1;
+    for(UInt i = 0; i < numHarmonics_N_; ++i  ){
+      // negative frequencies at the beginning
+      harmFreq_[numHarmonics_N_ - 1 - i] = dummy * (i+1) * baseFreq_;
+      // positive frequencies starting at numHarmonics_N_ + 1
+      harmFreq_[numHarmonics_N_ + 1 + i] = (i + 1) * baseFreq_;
+    }
   }
 
   MultiHarmonicDriver::~MultiHarmonicDriver()
@@ -105,82 +117,96 @@ namespace CoupledField
   // ****************
   void MultiHarmonicDriver::SolveProblem()
   {
-/*
-
-	  // in harmonics one cannot extraxt the result writing to StoreResults() as
-    // we have multiple frequencies. (exceptions is optimization)
 
     ptPDE_->WriteGeneralPDEdefines();
-    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
     
-    if(writeRestart_ || writeAllSteps_ )
+    UInt numFreq = 2 * numHarmonics_N_ + 1;
+    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq );
+
+    if( writeAllSteps_ )
       simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
     
-    // Read restart information
-    ReadRestart();
-    numFreq_ = numFreq_ - restartStep_;
-    stopFreqStep_ = numFreq_ + restartStep_;
-    
-    //only used if AMG is set
-    ptPDE_->GetSolveStep()->SetAuxMat(false);
-    // Perform one simulation for each desired frequency
-    for ( actFreqStep_ = restartStep_+1; actFreqStep_ <= numFreq_+restartStep_; actFreqStep_++ )
-    {
-      // register signal handler only, if it is a child driver
-      if( actFreqStep_ > restartStep_+1 && !simState_->HasInput() ) {
-        if( signal( SIGINT, MultiHarmonicDriver::SignalHandler) == SIG_ERR ) {
-          EXCEPTION( "Could not register Signal Handler");
-        }
 
-        // store pointer to global instance variable, if not yet set
-        if( !instance ) {
-          instance = this;
-        }
-      }
-      
-      // Determine next frequency value
-      ComputeFrequencyStep(actFreqStep_);
+    // In multiharmonic analysis we speak in terms of multiples of base-harmonics.
+    // The system matrices of the single harmonics get inserted into the global matrix
+    // and then the system is solved.
 
-      // Log info for this frequency - suppress in Optimization due to search steps
-      if(progOpts->IsQuiet())
-        cout << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " frequency " << actFreq_ << endl; 
-      else
-        cout << endl << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ <<" ======================= " << endl;
+    // Therefore we don't consider one frequency isolated from the others
+    // because they are coupled
 
-      analysis_id_.step = actFreqStep_;
-      analysis_id_.freq = actFreq_;
-      // analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
 
-      handler_->BeginStep( actFreqStep_, actFreq_ );
-      ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
-      handler_->FinishStep( );
 
-      // write out re-start in case of aborted simulation or if all steps should be written
-      if(  actFreqStep_ == stopFreqStep_ || abortSimulation_  || writeAllSteps_ ) {
-        if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
-         simState_->WriteStep( actFreqStep_, actFreq_);
-      }
+    //===========================================================================================
+    //        WHAT ARE WE DOING WITH THE MATHPARSER EXPRESSIONS???
+    //===========================================================================================
+    // Set current frequency value in the mathParser
+    //mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
+    //mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
 
-      // leave loop, if simulation should be aborted
-      if ( abortSimulation_ ) {
-        break;
-      }
-        
-      // perform runtime estimation
-      Double totalTime = timer_->GetWallTime();
-      timePerStep_ = totalTime / (Double) actFreqStep_;
-      Double remainingTime = (numFreq_ - actFreqStep_) * timePerStep_;
-      pt::ptime now = pt::second_clock::local_time();
-      now += pt::seconds(static_cast<long int>(remainingTime));
+    // Perform steps for the solution
+    ptPDE_->GetSolveStep()->SetMultHarmonicFreq( harmFreq_ );
 
-      PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::HEADER)->Get("environment");
-      envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
-      envNode->Get("remainingTime")->SetValue(remainingTime);
-      envNode->Get("timePerStep")->SetValue(timePerStep_);
-    } // loop: frequencies
+    //===========================================================================================
+    //        CONTINUE HERE
+    //===========================================================================================
+    // next step is to set a frequency loop, probably pass harmFreq_to
+    // SolveStepHarmonic(), since it also has a poiter to mathparser
+
+    ptPDE_->GetSolveStep()->PreStepHarmonic();
+
+    ptPDE_->GetSolveStep()->SolveStepHarmonic();
+    ptPDE_->GetSolveStep()->PostStepHarmonic();
+
+
+
+
+
+
+/*
+
+    // Log info for this harmonic
+    if(progOpts->IsQuiet())
+      cout << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " frequency " << actFreq_ << endl;
+    else
+      cout << endl << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ <<" ======================= " << endl;
+
+    analysis_id_.step = actFreqStep_;
+    analysis_id_.freq = actFreq_;
+    // analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
+
+    handler_->BeginStep( actFreqStep_, actFreq_ );
+    ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
+    handler_->FinishStep( );
+
+    // write out re-start in case of aborted simulation or if all steps should be written
+    if(  actFreqStep_ == stopFreqStep_ || abortSimulation_  || writeAllSteps_ ) {
+      if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
+       simState_->WriteStep( actFreqStep_, actFreq_);
+    }
+
+    // leave loop, if simulation should be aborted
+    if ( abortSimulation_ ) {
+      break;
+    }
+
+    // perform runtime estimation
+    Double totalTime = timer_->GetWallTime();
+    timePerStep_ = totalTime / (Double) actFreqStep_;
+    Double remainingTime = (numFreq_ - actFreqStep_) * timePerStep_;
+    pt::ptime now = pt::second_clock::local_time();
+    now += pt::seconds(static_cast<long int>(remainingTime));
+
+    PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::HEADER)->Get("environment");
+    envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
+    envNode->Get("remainingTime")->SetValue(remainingTime);
+    envNode->Get("timePerStep")->SetValue(timePerStep_);
+
+
+
+
 
     handler_->FinishMultiSequenceStep();
-    if(writeRestart_ || writeAllSteps_ )
+    if( writeAllSteps_ )
       simState_->FinishMultiSequenceStep( !abortSimulation_ );
 
     // Perform finalization only if not part of sequence
@@ -188,44 +214,10 @@ namespace CoupledField
       handler_->Finalize();
 */
   }
-/*
-
-  Double MultiHarmonicDriver::ComputeFrequencyStep(UInt actFreqStep)
-  {
-
-	  assert(actFreqStep >= 1);
-    assert(actFreqStep <= numFreq_+restartStep_);
-
-    actFreqStep_ = actFreqStep;
-
-    // Determine next frequency value from precalculated list
-    actFreq_ = freqs[actFreqStep-1].freq; // 1 based!
-    assert(freqs[actFreqStep-1].step == actFreqStep);
-
-    this->analysis_id_.step = actFreqStep;
-    this->analysis_id_.time = actFreq_;
-
-    // analysis_id_ = info_->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
-    // analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
-    // analysis_id_->Get("step")->SetValue(actFreqStep_);
-    // analysis_id_->Get("value")->SetValue(actFreq_);
-
-    // Set current frequency value in the mathParser
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
-
-    // Perform steps for the solution
-    ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
-    ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
-    ptPDE_->GetSolveStep()->PreStepHarmonic();
-    ptPDE_->GetSolveStep()->SolveStepHarmonic();
-    ptPDE_->GetSolveStep()->PostStepHarmonic();
-
-    return actFreq_;
-  }
 
 
 
+  /*
   void MultiHarmonicDriver::StoreResults(UInt stepNum, double step_val)
   {
     assert(analysis_ == BasePDE::HARMONIC);

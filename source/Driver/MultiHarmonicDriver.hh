@@ -64,6 +64,12 @@ public:
   //! Number of considered harmonics for the nonlinearity, e.g. nonlinear BH-curve in electromagnetics
   UInt numHarmonics_M_;
 
+  //! Harmonic, we are currently considering
+  UInt actHarm_;
+
+  //! Vector containing the harmonic-frequencies (negative, 0, positive)
+  StdVector<Double> harmFreq_;
+
 protected:
 
   //! Timer for estimating remaining runtime

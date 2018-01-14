@@ -5446,7 +5446,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
 
   void StdSolveStep::SolveStepHarmonic() {
-    if ( nonLin_ ) {
+    if ( nonLin_ || solStrat_->IsMultHarm() ) {
       StepHarmonicNonLin();
     }
     else {
@@ -5456,17 +5456,6 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
 
   void StdSolveStep::StepHarmonicLin() {
-
-    //JUST A HACK!!!!
-    //matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
-    //matrix_factor_Complex_[NO_FCT_ID][DAMPING] = CompSetLinRHSlex(0.0,actFreq_*2*M_PI);
-    //matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(-1.0 * actFreq_*actFreq_*4*M_PI*M_PI,0);
-
-    //matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
-    //matrix_factor_Complex_[NO_FCT_ID][DAMPING] = Complex(1.0,0.0);
-    //matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(1.0,0.0);
-
-
     //Set special RHS Values
     //std::cout << "Do Apply Loads" << std::endl;
     PDE_.SetRhsValues();
@@ -5523,6 +5512,75 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     	adjointSource_ = false;
     }
   }
+
+
+
+
+
+  void StdSolveStep::StepHarmonicNonLin() {
+    //Set special RHS Values
+    PDE_.SetRhsValues();
+
+
+
+    assemble_->AssembleNonLinRHS();
+
+
+
+    assemble_->AssembleMatrices( );
+
+
+
+
+    PDE_.SetBCs();
+
+    // store rhs vector back to PDE
+    algsys_->GetRHSVal( rhsVec_ );
+
+    // Where should we get the matrix factors from in a harmonic case?
+    // In my opinion this method
+    //if( assemble_->IsMatrixUpdated() ) {
+    std::map<FEMatrixType,Double> empty;
+    algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
+
+    // Check if the AMG-framework is used (if so, we have
+    // to gather some geometry information at this point)
+    // needs only be built once, doesn't change over frequency
+    if( ((algsys_->UseAMG()) && (auxSet_ == false)) ||
+        ((algsys_->UseAMG()) && (algsys_->GetAMGType() != AMGType::EDGE)) ){
+      // only works for elimination
+      if( solStrat_->UseDirichletPenalty() ) EXCEPTION("AMG only works for Dirichlet elimination!");
+      PDE_.SetGeomInfo();
+      algsys_->BuildAMGAuxMatrix();
+      auxSet_ = true;
+    }
+
+    // Incorporate Boundary conditions and
+    // recalc the preconditioner eventually
+    algsys_->BuildInDirichlet();
+
+    if( assemble_->IsMatrixUpdated() ) {
+      algsys_->SetupPrecond();
+      algsys_->SetupSolver();
+    }
+
+    algsys_->Solve();
+    algsys_->GetSolutionVal(solVec_);
+
+    if ( adjointSource_ ) {
+      //check if adjoint PDE has been solved in case of source localization
+      //if yes, we have to multiply the solution with a standard mass matrix
+      std::cout << "DO multiply with MASS-matrix" << std::endl;
+      //solVec_.Export("sol1.dat",BaseMatrix::MATRIX_MARKET);
+      algsys_->InitRHS();
+      algsys_->UpdateRHS(AUXILIARY,solVec_,true);
+      algsys_->GetRHSVal( solVec_ );
+      //solVec_.Export("sol2.dat",BaseMatrix::MATRIX_MARKET);
+      //std::cout << "SOL after: \n " << solVec_ << std::endl;
+      adjointSource_ = false;
+    }
+  }
+
 
 
   // ======================================================
