@@ -3,6 +3,7 @@
 
 #include "MatVec/StdMatrix.hh"
 #include "MatVec/CRS_Matrix.hh"
+#include "MatVec/SCRS_Matrix.hh"
 #include "MatVec/generatematvec.hh"
 #include "Utils/Timer.hh"
 #include "Domain/Domain.hh"
@@ -83,8 +84,12 @@ namespace CoupledField {
    * @param col - column indices of row (output)
    * @param values values of row (output)
    * @param service - cfs internal use: pointer to cfs matrix */
-  int SparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service)
+  int NonSymSparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service)
   {
+    const StdMatrix* sm = (const StdMatrix*) service;
+    assert(sm != NULL);
+    assert(sm->GetStorageType() == BaseMatrix::SPARSE_NONSYM);
+
     const CRS_Matrix<double>* mat = (const CRS_Matrix<double>*) service;
     assert(mat != NULL);
 
@@ -105,11 +110,44 @@ namespace CoupledField {
     for(int i = 0; i < *row_nnz; i++)
       data[i] = mat->GetDataPointer()[base + i];
 
-    LOG_DBG2(pes) << "SMRF row=" << row << " row_nnz=" << *row_nnz << " row_col=" << cols.ToString() << " values=" << ToString<double>((double*) values, *row_nnz);
+    LOG_DBG2(pes) << "NSSMRF row=" << row << " row_nnz=" << *row_nnz << " row_col=" << cols.ToString() << " values=" << ToString<double>((double*) values, *row_nnz);
 
     return 0; // all ok
   }
 
+
+  /** Most used methods from SCRS_Matrix and CRS_Matrix have no common base :(. As templated methods cannot be
+   * virtual, this would also be possible for some. Anyway, we do ugly copy&paste here :( */
+  int SymSparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service)
+  {
+    const StdMatrix* sm = (const StdMatrix*) service;
+    assert(sm != NULL);
+    assert(sm->GetStorageType() == BaseMatrix::SPARSE_SYM);
+
+    const SCRS_Matrix<double>* mat = (const SCRS_Matrix<double>*) service;
+    assert(mat != NULL);
+
+    assert(row >= 0);
+    assert(row < mat->GetNumRows());
+
+    *row_nnz = mat->GetRowSize(row);
+
+    double* data = (double*) values;
+
+    StdVector<int> cols(*row_nnz); // KILLME only for debug output
+    unsigned int base = mat->GetRowPointer()[row];
+    for(int i = 0; i < *row_nnz; i++) {
+      row_col[i] = mat->GetColPointer()[base + i];
+      cols[i] = row_col[i];
+    }
+
+    for(int i = 0; i < *row_nnz; i++)
+      data[i] = mat->GetDataPointer()[base + i];
+
+    LOG_DBG2(pes) << "SSMRF row=" << row << " row_nnz=" << *row_nnz << " row_col=" << cols.ToString() << " values=" << ToString<double>((double*) values, *row_nnz);
+
+    return 0; // all ok
+  }
 
 
   void PhistEigenSolver::Setup(const BaseMatrix & mat, UInt numFreq, Double freqShift, bool sort)
@@ -134,30 +172,34 @@ namespace CoupledField {
 
     SetupCommon(numFreq, freqShift, sort, bloch);
 
-
     // for include stuff issues, A_ and B_ attributes are not of full type
     phist::types<double>::sparseMat_ptr A = (phist::types<double>::sparseMat_ptr) A_;
+    //InitMatrix(stiffMat, A_);
+
     phist::types<double>::sparseMat_ptr B = (phist::types<double>::sparseMat_ptr) B_;
+    //InitMatrix(massMat, B_);
 
     int err = 0;
 
     // create stiffness and mass matrix for phist - which will be ghost matrices
     const CRS_Matrix<double>* stiff =  dynamic_cast<const CRS_Matrix<double>*>(&stiffMat);
+    //const SCRS_Matrix<double>* stiff =  dynamic_cast<const SCRS_Matrix<double>*>(&stiffMat);
     assert(stiff != NULL);
     phist_lidx max_nne = stiff->GetMaxRowSize();
     LOG_DBG(pes) << " max row nnz=" << max_nne;
-    LOG_DBG2(pes) << " row=" << ToString<unsigned int>(stiff->GetRowPointer(), stiff->GetNumRows()+1);
-    LOG_DBG2(pes) << " col=" << ToString<unsigned int>(stiff->GetColPointer(), stiff->GetNnz());
-    LOG_DBG2(pes) << " val=" << ToString<double>(stiff->GetDataPointer(), stiff->GetNnz());
+    LOG_DBG2(pes) << " row=" << stiff->Dump();
     assert(stiff->GetNumRows() == stiff->GetNumCols());
-    phist::kernels<double>::sparseMat_create_fromRowFunc(&A, comm_, stiff->GetNumRows(), stiff->GetNumCols(), max_nne, SparseMatRowFunc, (void*) stiff, &err);
+    phist::kernels<double>::sparseMat_create_fromRowFunc(&A, comm_, stiff->GetNumRows(), stiff->GetNumCols(), max_nne, NonSymSparseMatRowFunc, (void*) stiff, &err);
+    //phist::kernels<double>::sparseMat_create_fromRowFunc(&A, comm_, stiff->GetNumRows(), stiff->GetNumCols(), max_nne, SymSparseMatRowFunc, (void*) stiff, &err);
 
     assert(err == 0);
     LOG_DBG(pes) << "create A -> " << err;
 
+    // const CRS_Matrix<double>* mass =  dynamic_cast<const CRS_Matrix<double>*>(&massMat);
     const CRS_Matrix<double>* mass =  dynamic_cast<const CRS_Matrix<double>*>(&massMat);
     assert(mass != NULL);
-    phist::kernels<double>::sparseMat_create_fromRowFunc(&B, comm_, mass->GetNumRows(), mass->GetNumCols(), mass->GetMaxRowSize(), SparseMatRowFunc, (void*) mass, &err);
+    phist::kernels<double>::sparseMat_create_fromRowFunc(&B, comm_, mass->GetNumRows(), mass->GetNumCols(), mass->GetMaxRowSize(), NonSymSparseMatRowFunc, (void*) mass, &err);
+    //phist::kernels<double>::sparseMat_create_fromRowFunc(&B, comm_, mass->GetNumRows(), mass->GetNumCols(), mass->GetMaxRowSize(), SymSparseMatRowFunc, (void*) mass, &err);
     assert(err == 0);
     LOG_DBG(pes) << "create B -> " << err;
 
@@ -311,6 +353,7 @@ namespace CoupledField {
     // fill the jadaOpts struct to pass settings to the solver
     phist_jadaOpts_setDefaults(&opts_);
 
+
     xml_->Dump();
     opts_.symmetry = phist_GENERAL; // phist_HERMITIAN also for real symmetric
     opts_.numEigs   = numFreq;
@@ -329,8 +372,36 @@ namespace CoupledField {
     opts_.innerSolvMaxBas    = is ? xml_->Get("innerSolv/maxBas")->As<int>() : -1;
     opts_.innerSolvMaxIters  = is ? xml_->Get("innerSolv/maxIter")->As<int>() : 10;
     opts_.innerSolvRobust    = is ? xml_->Get("innerSolv/robust")->As<int>() : 1;
-    opts_.innerSolvBaseTol   = is ? xml_->Get("innerSolv/baseTol")->As<float>() : 0.1;
+    opts_.innerSolvBaseTol   = is ? xml_->Get("innerSolv/baseTol")->As<double>() : 0.1;
   }
+
+  void PhistEigenSolver::InitMatrix(const BaseMatrix& cfs, sparseMat_t* phist)
+  {
+    // create stiffness or mass matrix for phist - which will be ghost matrices
+    const StdMatrix* mat = dynamic_cast<const StdMatrix*>(&cfs);
+    assert(mat != NULL);
+    assert(mat->GetStorageType() == StdMatrix::SPARSE_SYM || mat->GetStorageType() == StdMatrix::SPARSE_NONSYM);
+    bool sym = mat->GetStorageType() == StdMatrix::SPARSE_SYM;
+    LOG_DBG(pes) << "IM: sym=" << sym;
+
+    // const CRS_Matrix<double>* stiff =  dynamic_cast<const CRS_Matrix<double>*>(&stiffMat);
+    const SparseOLASMatrix<double>* stiff =  dynamic_cast<const SparseOLASMatrix<double>*>(&cfs);
+
+    assert(stiff != NULL);
+    phist_lidx max_nne = stiff->GetMaxRowSize();
+    LOG_DBG(pes) << " max row nnz=" << max_nne;
+    LOG_DBG2(pes) << " row=" << stiff->Dump();
+    assert(stiff->GetNumRows() == stiff->GetNumCols());
+    //phist::kernels<double>::sparseMat_create_fromRowFunc(&A, comm_, stiff->GetNumRows(), stiff->GetNumCols(), max_nne, NonSymSparseMatRowFunc, (void*) stiff, &err);
+
+    phist::types<double>::sparseMat_ptr smp = (phist::types<double>::sparseMat_ptr) phist;
+
+    int err = 0;
+    phist::kernels<double>::sparseMat_create_fromRowFunc(&smp, comm_, stiff->GetNumRows(), stiff->GetNumCols(), max_nne, SymSparseMatRowFunc, (void*) stiff, &err);
+    assert(err == 0);
+    LOG_DBG(pes) << "create smp -> " << err;
+  }
+
 
   void PhistEigenSolver::ToInfo()
   {

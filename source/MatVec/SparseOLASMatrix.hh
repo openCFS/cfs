@@ -150,13 +150,25 @@ namespace CoupledField {
     //! the latter are counted and the number of entries on the scalar level
     //! will actually be higher depending on the block size.
     //! Also for symmetric storage - GetNumEntries() give the right number of elements!
-    UInt GetNnz() const {
+    virtual UInt GetNnz() const {
       return nnz_;
     }
+
+    /** only implemented for CRS_Matrix and SCRS_Matrix */
+    virtual unsigned int GetMaxRowSize() const {
+      assert(false);
+      return 0;
+    }
+
 
     //! Trasforms SCRS matrix into vector containing all upper
     //! triangle elements further usage in CFS++
     virtual void CopySCRSMatrix2Vec(Complex* &A){;};
+
+    /** Dump the matrix for debug purpose */
+    virtual std::string Dump() const {
+      return "Dump() not implemented";
+    }
 
     //@}
 

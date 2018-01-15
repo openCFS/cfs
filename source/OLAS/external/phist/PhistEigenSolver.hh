@@ -97,6 +97,8 @@ namespace CoupledField {
 
     void SetupCommon(unsigned int numFreq, double freqShift, bool sort, bool bloch);
 
+    void InitMatrix(const BaseMatrix& cfs, sparseMat_t* phist);
+
     phist_jadaOpts opts_;
 
     phist_comm_ptr comm_ = NULL;

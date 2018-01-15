@@ -234,18 +234,6 @@ LOG_DBG(genMatVec) << " Generated matrix of type: "<< MACRO2STRING(matrix_obj_ty
       MATRIX_OBJ( BaseMatrix::COMPLEX, BaseMatrix::VAR_BLOCK_ROW, VBRComplexDof1 );
       break;
 
-      // NSK Matrices
-    case BaseMatrix::SKYLINE_NONSYM:
-      EXCEPTION( "GenerateStdMatrixObject: SKYLINE_NOSYM not supported, yet!" );
-      break;
-
-      // SSK Matrices
-    case BaseMatrix::SKYLINE_SYM:
-      EXCEPTION( "GenerateStdMatrixObject: SSK Matrix not yet supported" );
-      // MATRIX_OBJ( DOUBLE,  SKYLINE_SYM, 1, SSKRealDof1    );
-      // MATRIX_OBJ( COMPLEX, SKYLINE_SYM, 1, SSKComplexDof1 );
-      break;
-
       // Diag Matrices
     case BaseMatrix::DIAG:
       MATRIX_OBJ( BaseMatrix::DOUBLE,  BaseMatrix::DIAG, DiagRealDof1    );
