@@ -174,9 +174,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     
   eps = 1e-6
   
-  borders = my_grid.communicate_edges()
-  print("len(borders)",len(borders))
-
 #   void_elems = []
 #   # read void non-design manually  
 #   import csv
@@ -194,12 +191,15 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   z = np.arange(my_grid.bounds[2],my_grid.bounds[5]+my_grid.grid.hz-eps,my_grid.grid.hz)
   
   draw_non_design(nondes_coords, my_grid.grid.data, my_grid.bounds[0:3], (my_grid.grid.hx,my_grid.grid.hy,my_grid.grid.hz), 0)
-#   draw_non_design(void_elems, my_grid.grid.data, my_grid.bounds[0:3], (my_grid.grid.hx,my_grid.grid.hy,my_grid.grid.hz), -1)    
+#   draw_non_design(void_elems, my_grid.grid.data, my_grid.bounds[0:3], (my_grid.grid.hx,my_grid.grid.hy,my_grid.grid.hz), -1)
   from pyevtk.hl import gridToVTK  
   gridToVTK("voxels"+str(my_grid.rank),x,y,z,cellData={"voxels":my_grid.grid.data})
-  
+
+  borders = my_grid.communicate_edges()
+    
   # binary helper array
   shape = np.asarray(my_grid.grid.data.shape[0:3]) + np.array((2,2,2))
+  print("helper shape:",shape)
   helper = np.zeros(shape,dtype=int)
   # use voxel info for Marching cubes algorithm
   # set voxels on boundary wit value 0
@@ -215,25 +215,22 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     # b[0] stores direction oft cartesian comm
     if b[0] > my_grid.rank:
       if b[1] is not None:
-        sys.stdout.flush()
-        helper[shape[0]-1,1:helper.shape[1]-1,1:helper.shape[1]-1] = b[1] 
+        print("b[1][0][0]:",b[1][0][0])
+        helper[shape[0]-1,1:shape[1]-1,1:shape[2]-1] = b[1] 
     else:
       assert(b[0] < my_grid.rank)
       if b[1] is not None:
-        helper[0,1:helper.shape[1]-1,1:helper.shape[1]-1] = b[1]
-        sys.stdout.flush()
-  
-  hx_help = width[0] / float(shape[0])
-  hy_help = width[1] / float(shape[1])
-  hz_help = width[2] / float(shape[2])
-  
-  print("hx_help,hy_help,hz_help:",hx_help,hy_help,hz_help)
+        print("b[1][0][0]:",b[1][0][0])
+        helper[0,1:shape[1]-1,1:shape[2]-1] = b[1]
+
   print("hx,hy,hz:",my_grid.grid.hx,my_grid.grid.hy,my_grid.grid.hz)
-  
+  hx = my_grid.grid.hx
+  hy = my_grid.grid.hy
+  hz = my_grid.grid.hz
   # vtk rectgrid is node based
-  x = np.arange(my_grid.bounds[0],my_grid.bounds[3]+1*hx_help,hx_help)
-  y = np.arange(my_grid.bounds[1],my_grid.bounds[4]+1*hy_help,hy_help)
-  z = np.arange(my_grid.bounds[2],my_grid.bounds[5]+1*hz_help,hz_help)
+  x = np.arange(my_grid.bounds[0]-hx,my_grid.bounds[3]+2*hx,hx)
+  y = np.arange(my_grid.bounds[1]-hy,my_grid.bounds[4]+2*hy,hy)
+  z = np.arange(my_grid.bounds[2]-hz,my_grid.bounds[5]+2*hz,hz)
   from pyevtk.hl import gridToVTK  
   gridToVTK("helper"+str(my_grid.rank),x,y,z,cellData={"helper":helper}) 
  
@@ -241,34 +238,34 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # coords of vertices lie in [0,1-h]
   verts, faces, normals, values = measure.marching_cubes(helper,spacing=(np.float32(my_grid.grid.hx),np.float32(my_grid.grid.hy),np.float32(my_grid.grid.hz)),allow_degenerate=False)
   verts = np.asarray(verts) + (my_grid.grid.hx/2.0,my_grid.grid.hx/2.0,my_grid.grid.hx/2.0)
+  # translate from (0,0,0) to correct position
+  shift = np.asarray(my_grid.bounds[0:3])
+  verts = [p+shift for p in verts]
+  
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
-  translation = vtk.vtkTransform()
-  translation.Translate(my_grid.bounds[0],my_grid.bounds[1],my_grid.bounds[2])
-  transformFilter = vtk.vtkTransformPolyDataFilter()
-  transformFilter.SetInputData(pd)
-  transformFilter.SetTransform(translation)
-  transformFilter.Update()
-  matviz_vtk.show_write_vtk(transformFilter.GetOutput(), 10, "marching"+str(my_grid.rank)+".vtp")
+  matviz_vtk.show_write_vtk(pd, 10, "marching"+str(my_grid.rank)+".vtp")
   
-  connectivity = basecell.getConnectivity(verts,faces)
-  verts = basecell.taubin_smoothing(verts,connectivity)
-  pd = matviz_vtk.fill_vtk_polydata(verts, faces)
-  translation = vtk.vtkTransform()
-  translation.Translate(my_grid.bounds[0],my_grid.bounds[1],my_grid.bounds[2])
-  transformFilter = vtk.vtkTransformPolyDataFilter()
-  transformFilter.SetInputData(pd)
-  transformFilter.SetTransform(translation)
-  transformFilter.Update()
+  ##### gather all vertices and cells
+  verts, faces = my_grid.gather_data(list(verts),list(faces))
   
-  normals = vtk.vtkPolyDataNormals()
-  normals.SetInputData(transformFilter.GetOutput())
-  normals.SetConsistency(1)
-  normals.SetAutoOrientNormals(1)
-  normals.Update()
+  if my_grid.rank == 0:
+    pd = matviz_vtk.fill_vtk_polydata(verts, faces)
+    clean = vtk.vtkCleanPolyData()
+    clean.SetInputData(pd)
+    clean.Update()
+    matviz_vtk.show_write_vtk(clean.GetOutput(), 10, "marching_all.vtp")
   
-  pd = normals.GetOutput()
-  
-  matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(my_grid.rank)+".vtp")
+#   connectivity = basecell.getConnectivity(verts,faces)
+#   verts = basecell.taubin_smoothing(verts,connectivity)
+#   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
+#   
+#   normals = vtk.vtkPolyDataNormals()
+#   normals.SetInputData(pd)
+#   normals.SetConsistency(1)
+#   normals.SetAutoOrientNormals(1)
+#   normals.Update()
+#   
+#   matviz_vtk.show_write_vtk(normals.GetOutput(), 10, "smoothed_marching"+str(my_grid.rank)+".vtp")
 
   return pd
 
@@ -475,7 +472,8 @@ class DistributedGrid():
   def __init__(self, comm, total_samples,bc_res,bounds):
     assert(len(total_samples) == 3)
     assert(len(bounds) == 6)
-    
+
+    self.comm = comm    
     self.rank, self.size = comm.Get_rank(), comm.Get_size()
     self.cart = comm.Create_cart(dims=(1,self.size))
     
@@ -535,7 +533,10 @@ class DistributedGrid():
         for j in range(helper.shape[1]):
             if sendbuf[i,j] != -1:
               helper[i,j] = 1
-              
+      
+      print("self.grid.data[0,0,0]:",self.grid.data[0,0,0])
+      print("sendbuf[0,0]:",sendbuf[0,0])
+      print("helper[0,0]:",helper[0,0])   
       sendbuf = helper        
       
       self.cart.Sendrecv(sendbuf,dest=dest,source=source,recvbuf=recvbuf)
@@ -547,7 +548,19 @@ class DistributedGrid():
         recv.append((source,recvbuf))
     
     return recv
-      
+  
+  # collect all points and cells on a single rank (0)
+  def gather_data(self,verts,faces,root=0):
+    data = self.comm.gather((verts,faces),root=root)
+    offset = len(verts)
+    if self.rank == root:
+      for d in data:
+        offset = len(verts)
+        verts.extend(d[0])
+        faces.extend(list(np.asarray(d[1])+offset))
+        
+    return verts, faces    
+  
 class RectGrid():
   def __init__(self,nx,ny,nz,bounds):
     self.data = np.full((nx,ny,nz),999,dtype=int)
@@ -565,5 +578,5 @@ class RectGrid():
     print("res:",self.nx,self.ny,self.nz)
     print("spacing:",self.hx,self.hy,self.hz)
     sys.stdout.flush()
-    
+
     
