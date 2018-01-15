@@ -1238,6 +1238,9 @@ namespace CoupledField {
         << ": WriteResultsInFile() kstep: " <<  kstep
         << " actTimeFreq: " << actTimeFreq;
     
+    shared_ptr<Timer> timer = infoNode_->Get(ParamNode::SUMMARY)->Get("writeResults/timer")->AsTimer();
+    timer->Start();
+
     // ===================================================
     //  Trigger calculation of interpolated field results 
     // ===================================================
@@ -1415,8 +1418,8 @@ namespace CoupledField {
       }
 
       out.close();
-      
     }
+    timer->Stop();
   }
   
   
