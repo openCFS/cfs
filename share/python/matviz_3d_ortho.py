@@ -141,9 +141,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #   sys.exit()
   
   local_id = 0
-  for i in range(my_grid.start_x,my_grid.end_x):
-    for j in range(samples[1]):
-      for k in range(samples[2]):
+  for j in range(samples[1]):
+    for k in range(samples[2]):
+      for i in range(my_grid.start_x,my_grid.end_x):
         this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
         east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
         top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
@@ -167,7 +167,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         cell_obj = basecell.Basecell(bc_input,id)
         # local i,j,k
         li,lj,lk = get_3d_grid_coords(local_id, my_grid.chunks, samples[1], samples[2])
-        print("rank:",my_grid.rank," global i,j,k:",i,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+        print("rank:",my_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
         my_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
     
         local_id += 1
@@ -215,12 +215,10 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     # b[0] stores direction oft cartesian comm
     if b[0] > my_grid.rank:
       if b[1] is not None:
-        print("b[1][0][0]:",b[1][0][0])
         helper[shape[0]-1,1:shape[1]-1,1:shape[2]-1] = b[1] 
     else:
       assert(b[0] < my_grid.rank)
       if b[1] is not None:
-        print("b[1][0][0]:",b[1][0][0])
         helper[0,1:shape[1]-1,1:shape[2]-1] = b[1]
 
   print("hx,hy,hz:",my_grid.grid.hx,my_grid.grid.hy,my_grid.grid.hz)
@@ -245,6 +243,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
   matviz_vtk.show_write_vtk(pd, 10, "marching"+str(my_grid.rank)+".vtp")
   
+  connectivity = basecell.getConnectivity(verts,faces)
+  verts = basecell.taubin_smoothing(verts,connectivity,my_grid.bounds)
+  
   ##### gather all vertices and cells
   verts, faces = my_grid.gather_data(list(verts),list(faces))
   
@@ -253,19 +254,31 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     clean = vtk.vtkCleanPolyData()
     clean.SetInputData(pd)
     clean.Update()
-    matviz_vtk.show_write_vtk(clean.GetOutput(), 10, "marching_all.vtp")
+    normals = vtk.vtkPolyDataNormals()
+    normals.SetInputData(pd)
+    normals.SetConsistency(1)
+    normals.SetAutoOrientNormals(1)
+    normals.Update()
+    matviz_vtk.show_write_vtk(normals.GetOutput(), 10, "marching_all.vtp")
+    
+#     for i,v1 in enumerate(verts):
+#       for j,v2 in enumerate(verts):
+#         if i == j:
+#           continue
+#         print("v1,v2:",v1,v2)
+#         print("distance between ",v1, " and ", v2, ":", np.linalg.norm(np.asarray(v1),np.asarray(v2)))
   
-#   connectivity = basecell.getConnectivity(verts,faces)
-#   verts = basecell.taubin_smoothing(verts,connectivity)
-#   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
-#   
-#   normals = vtk.vtkPolyDataNormals()
-#   normals.SetInputData(pd)
-#   normals.SetConsistency(1)
-#   normals.SetAutoOrientNormals(1)
-#   normals.Update()
-#   
-#   matviz_vtk.show_write_vtk(normals.GetOutput(), 10, "smoothed_marching"+str(my_grid.rank)+".vtp")
+#     connectivity = basecell.getConnectivity(verts,faces)
+#     verts = basecell.taubin_smoothing(verts,connectivity)
+#     pd = matviz_vtk.fill_vtk_polydata(verts, faces)
+#      
+#     normals = vtk.vtkPolyDataNormals()
+#     normals.SetInputData(pd)
+#     normals.SetConsistency(1)
+#     normals.SetAutoOrientNormals(1)
+#     normals.Update()
+#      
+#     matviz_vtk.show_write_vtk(normals.GetOutput(), 10, "smoothed_marching"+str(my_grid.rank)+".vtp")
 
   return pd
 
@@ -534,9 +547,6 @@ class DistributedGrid():
             if sendbuf[i,j] != -1:
               helper[i,j] = 1
       
-      print("self.grid.data[0,0,0]:",self.grid.data[0,0,0])
-      print("sendbuf[0,0]:",sendbuf[0,0])
-      print("helper[0,0]:",helper[0,0])   
       sendbuf = helper        
       
       self.cart.Sendrecv(sendbuf,dest=dest,source=source,recvbuf=recvbuf)

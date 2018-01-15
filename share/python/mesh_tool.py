@@ -1825,20 +1825,20 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
         ymax = nodes[i][0]  
   
 #  symmetric = []
-  for i in range(len(nodes)):
+#   for i in range(len(nodes)):
     # all nodes on top face are loads
-    if numpy.isclose(nodes[i][2],1.0,1e-12):
-      load.append(i)
+#     if numpy.isclose(nodes[i][2],1.0,1e-12):
+#       load.append(i)
     # all nodes on left face are supports
 #     if numpy.isclose(nodes[i][0],0.0,1e-12):
 #       support.append(i)
     # all edges of bb with z = 0 are supports
-    if numpy.isclose(nodes[i][2],0.0,1e-12):
-      if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
-        support.append(i)
+#     if numpy.isclose(nodes[i][2],0.0,1e-12):
+#       if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
+#         support.append(i)
       # y is y_min or y_max
-      elif numpy.isclose(nodes[i][1],ymin,1e-12) or numpy.isclose(nodes[i][1],ymax,1e-12):
-        support.append(i)
+#       elif numpy.isclose(nodes[i][1],ymin,1e-12) or numpy.isclose(nodes[i][1],ymax,1e-12):
+#         support.append(i)
       # x is x_min or x_max  
          
 #    if nodes[i][1] < -2.9999999:
@@ -1850,8 +1850,8 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 #  print(len(load))
 #   print(len(support))
 # 
-  mesh.bc.append(("load", load))
-  mesh.bc.append(("support", support))
+#   mesh.bc.append(("load", load))
+#   mesh.bc.append(("support", support))
 #  mesh.bc.append(("symmetric", symmetric))
 
   mesh = add_nodes_for_periodic_bc(mesh)
