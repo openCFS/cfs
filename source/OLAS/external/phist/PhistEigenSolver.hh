@@ -95,9 +95,14 @@ namespace CoupledField {
     /** print setup information */
     void ToInfo();
 
-    void SetupCommon(unsigned int numFreq, double freqShift, bool sort, bool bloch);
+    void SetupCommon(bool sym, unsigned int numFreq, double freqShift, bool sort, bool bloch);
 
-    void InitMatrix(const BaseMatrix& cfs, sparseMat_t* phist);
+    /** provide A_ or B_ not as pointer value but as pointer itself as the pointer value is NULL prior init
+     @return the value we set phist to (redundant to phist** */
+    sparseMat_t* InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist);
+
+    /** little helper */
+    bool IsSymmetric(const BaseMatrix& cfs) const;
 
     phist_jadaOpts opts_;
 
