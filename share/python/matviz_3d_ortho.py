@@ -243,13 +243,24 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
   matviz_vtk.show_write_vtk(pd, 10, "marching"+str(my_grid.rank)+".vtp")
   
-  connectivity = basecell.getConnectivity(verts,faces)
-  verts = basecell.taubin_smoothing(verts,connectivity,my_grid.bounds)
-  
-  ##### gather all vertices and cells
+#   ##### gather all vertices and cells
   verts, faces = my_grid.gather_data(list(verts),list(faces))
   
+  out = open("vertices.txt","w")
+  for v in verts:
+    out.write(str(v[0]) + "," + str(v[1]) + "," + str(v[2]) + "\n")
+  out.close()
+  
+  out = open("faces.txt","w")
+  for f in faces:
+    out.write(str(f[0]) + "," + str(f[1]) + "," + str(f[2]) + "\n")
+  out.close()  
+  
+  sys.exit()
+  
   if my_grid.rank == 0:
+    verts, faces = merge_duplicates(verts,faces)
+    
     pd = matviz_vtk.fill_vtk_polydata(verts, faces)
     clean = vtk.vtkCleanPolyData()
     clean.SetInputData(pd)
@@ -260,6 +271,30 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     normals.SetAutoOrientNormals(1)
     normals.Update()
     matviz_vtk.show_write_vtk(normals.GetOutput(), 10, "marching_all.vtp")
+    
+    
+    
+    
+    connectivity = basecell.getConnectivity(verts,faces)
+    verts = basecell.taubin_smoothing(verts,connectivity)
+  
+    pd = matviz_vtk.fill_vtk_polydata(verts, faces)
+    matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(my_grid.rank)+".vtp")
+  
+  ##### gather all vertices and cells
+#   verts, faces = my_grid.gather_data(list(verts),list(faces))
+#   
+#   if my_grid.rank == 0:
+#     pd = matviz_vtk.fill_vtk_polydata(verts, faces)
+#     clean = vtk.vtkCleanPolyData()
+#     clean.SetInputData(pd)
+#     clean.Update()
+#     normals = vtk.vtkPolyDataNormals()
+#     normals.SetInputData(pd)
+#     normals.SetConsistency(1)
+#     normals.SetAutoOrientNormals(1)
+#     normals.Update()
+#     matviz_vtk.show_write_vtk(normals.GetOutput(), 10, "marching_all.vtp")  
     
 #     for i,v1 in enumerate(verts):
 #       for j,v2 in enumerate(verts):
@@ -589,4 +624,69 @@ class RectGrid():
     print("spacing:",self.hx,self.hy,self.hz)
     sys.stdout.flush()
 
+def merge_duplicates(points,cells):
+  x = [v[0] for v in points]
+  y = [v[1] for v in points]
+  z = [v[2] for v in points]
+  
+  import pandas
+  # use pandas to create data frame/table to identify duplicates
+  df = pandas.DataFrame({'x':x, 'y':y, 'z':z})
+  # list with duplicated pairs
+  pairs = list(df.groupby(list(df.columns)).groups.values())
+  map = list(range(len(points)))
+  
+  for p in pairs:
+    if len(p) == 2:
+      map[p[0]] = p[1]
+    if len(p) == 3:
+      map[p[0]] = p[2]
+      map[p[1]] = p[2]
+    assert(len(p) < 4)  
+      
+  for i in range(len(cells)):
+    assert(len(cells[i]) == 3)
+    cells[i] = [map[cells[i][0]],map[cells[i][1]],map[cells[i][2]]]
+      
+  ###### remove duplicated faces ##########
+  v0 = [f[0] for f in cells]
+  v1 = [f[1] for f in cells]
+  v2 = [f[2] for f in cells]
+  df = pandas.DataFrame({'v0':v0,'v1':v1,'v2':v2})
+  print("number of cells before cleaning:",len(cells))
+  cells =[list(c) for c in list(df.drop_duplicates().itertuples(index=False,name=None))]
+  print("number of cells after cleaning:",len(cells))
+  
+  # get number of points that are still valid
+  v0 = [f[0] for f in cells]
+  v1 = [f[1] for f in cells]
+  v2 = [f[2] for f in cells]
+  v0.extend(v1)
+  v0.extend(v2)
+  df = pandas.DataFrame({'v':v0})
+  # list with unique point ids
+  unique = df.v.unique()
+  # now map this ids to consecutive range from 0,...,#points
+  map = [-1] * (max(unique)+1)
+  print(len(unique))
+  count = 0
+  for u in unique:
+    map[u] = count
+    count +=1
     
+  for i in range(len(cells)):
+    assert(len(cells[i]) == 3)
+    assert(map[cells[i][0]] != -1)
+    assert(map[cells[i][1]] != -1)
+    assert(map[cells[i][2]] != -1)
+    cells[i] = [map[cells[i][0]],map[cells[i][1]],map[cells[i][2]]]
+  
+  new_points = [None] * len(unique)  
+  for u in unique:
+    new_points[map[u]]= points[u]
+  
+  assert(len(new_points) == len(unique))
+#   print("len(new_points):",len(new_points))
+#   print("len(points)",len(points)," len(pairs):",len(pairs)," diff=",len(points)-len(pairs))
+  
+  return new_points,cells

@@ -74,23 +74,23 @@ def laplacian_smoothing(points,connectivity,lamb,bounds=None):
   for i,vertex in enumerate(points):
     p = vertex
     # don't smooth at the boundary
-    if np.isclose(p[0], bounds[0]) or np.isclose(p[1], bounds[1]) or np.isclose(p[2], bounds[2]) or np.isclose(p[0], bounds[3]) or np.isclose(p[1], bounds[4]) or np.isclose(p[2], bounds[5]):
-      new_points[i] = p
-    else:
-      # calculate L(p_i)
-      # w_ij*p_j + w_ik*p_k
-      num = np.asarray([0,0,0])
-      denom = 0
-      L = 0
-      # nid is id of a neighbor node
-      neighborhood = connectivity[i] 
-      for nid in neighborhood:
-        # n are coords of neighbor with id nid
-        n = points[nid]
-        # distance between neighbor and this node
-        w = 1.0 / np.linalg.norm(len(neighborhood))
-        L = L + w * (n-p)
-      new_points[i] = p + lamb * L   
+#     if np.isclose(p[0], bounds[0]) or np.isclose(p[1], bounds[1]) or np.isclose(p[2], bounds[2]) or np.isclose(p[0], bounds[3]) or np.isclose(p[1], bounds[4]) or np.isclose(p[2], bounds[5]):
+#       new_points[i] = p
+#     else:
+    # calculate L(p_i)
+    # w_ij*p_j + w_ik*p_k
+    num = np.asarray([0,0,0])
+    denom = 0
+    L = 0
+    # nid is id of a neighbor node
+    neighborhood = connectivity[i] 
+    for nid in neighborhood:
+      # n are coords of neighbor with id nid
+      n = points[nid]
+      # distance between neighbor and this node
+      w = 1.0 / np.linalg.norm(len(neighborhood))
+      L = L + w * (n-p)
+    new_points[i] = p + lamb * L   
   
   return new_points  
 
