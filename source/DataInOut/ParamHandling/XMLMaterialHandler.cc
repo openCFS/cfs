@@ -147,7 +147,7 @@ namespace CoupledField {
 
   void XMLMaterialHandler::ReadPiezo(BaseMaterial *material, PtrParamNode pn) 
   {
-
+//    std::cout << "ReadPiezo" << std::endl;
     //read real piezo coupling tensor
     if(pn->Has("piezoCouplingTensor"))
     {
@@ -167,7 +167,7 @@ namespace CoupledField {
                                       realVals, imagVals );
       material->SetCoefFct( PIEZO_TENSOR, pctCoef);
     } 
-
+	
     //read nonlinearity of a coupling coefficient
     if(pn->HasByVal("piezoCouplingCoefficient", "nonlinear", "function"))
     {
@@ -258,6 +258,8 @@ namespace CoupledField {
 //**********************************************************************
   void XMLMaterialHandler::ReadMechanic(BaseMaterial *material, PtrParamNode mech) 
   {
+//    std::cout << "ReadMechanics" << std::endl;
+    
     bool     flagEModulReal=false;
     bool     flagPoissonReal=false;
     // bool     flagEModulImag=false;
@@ -812,6 +814,8 @@ namespace CoupledField {
 //**********************************************************************
   void XMLMaterialHandler::ReadElectrostatic(BaseMaterial *material, PtrParamNode elec)
   {
+//    std::cout << "ReadElectrostatic" << std::endl;
+    
     // check for permittivity
     if(elec->Has("permittivity"))
     {

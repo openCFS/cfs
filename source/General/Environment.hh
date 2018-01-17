@@ -17,8 +17,6 @@
 #include "General/defs.hh"
 #include "Enum.hh"
 
-
-
 // KILLME #define REFACTOR WARN("Commented out due to refactoring");
 #define REFACTOR
 

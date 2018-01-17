@@ -163,7 +163,7 @@ namespace CoupledField{
   }
 
   void TimeSchemeGLM::ComputeStageRHS(UInt actStage, Integer derivId,
-                                      SingleVector* rhsVec, Integer subIdx){
+                                      SingleVector* rhsVec, Integer subIdx,bool forceIncremental){
 
     //if the derivative id is equal to solution we do not need to do anything
     //as the corresponding line in the GLM is equal to zero, but not! always
@@ -177,6 +177,16 @@ namespace CoupledField{
     //Calculate coefficient matrix row index
     UInt cRow = actStage * (curScheme_->maxDerivOrder_+1) + dId;
 
+		/*
+		 * NOTE: the predictors that are computed here, do not coincide with
+		 *			 \tilde{u} and \tilde{\dot{u}} from the text book
+		 *			instead, they are obtained by setting in \tilde{u} and \tilde{\dot{u}}
+		 *			into the RHS formulation and then rearrange the corresponding terms
+		 *			by matrices; 
+		 *			> those predictors correspond to a matrix each (stiffness, damping,
+		 *				mass, etc)
+		 */
+			
     if(curScheme_->usePredictors_ && predictorCalculated_[dId]){
       rhsVec->Add((*predictors_[dId]));
     }else{
@@ -203,7 +213,8 @@ namespace CoupledField{
     // of alternative ways to accomplish the non-linear solution scheme
     // furthermore, we assume, that the stageVector always holds the solution at the current non-linear iteration
     // NOT the increment. Here it becomes apparent why solveStep and Timescheme are no longer separated as initially intended
-    if(nLinType_ == INCREMENTAL){
+    if((nLinType_ == INCREMENTAL)||forceIncremental){
+
       UInt col = curScheme_->numStages_;
       Double coef = curScheme_->schemeCoefs_[cRow][col];
       if(coef !=0){
@@ -211,7 +222,7 @@ namespace CoupledField{
         //if ( curType_ == GLMScheme::BDF2 && col > 0 )
         //  coef = curScheme_->schemeCoefs_[cRow][col-1];
 
-        //std::cout << "NL:  cRow: " << cRow << "  col: " << col << "  Value: " << coef << std::endl;
+     //   std::cout << "NL:  cRow: " << cRow << "  col: " << col << "  Value: " << coef << std::endl;
         SingleVector * curVec = stageVector_[actStage];
         rhsVec->Add(coef * -1.0,(*curVec));
       }

@@ -2367,8 +2367,8 @@ namespace CoupledField {
     LOG_TRACE(algSys) << "Updating RHS of matrix " 
                       << feMatrixType.ToString(matrixType);
 
-    //std::cout << "Updating RHS with matrix "
-    //    << feMatrixType.ToString(matrixType) << std::endl;
+//    std::cout << "Updating RHS with matrix "
+//        << feMatrixType.ToString(matrixType) << std::endl;
 
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
@@ -2396,6 +2396,10 @@ namespace CoupledField {
 
       // security check: ensure that sub-vector has the same size
       // as the block indices
+			
+//			std::cout << "fup(i).GetSize() = " << fup(i).GetSize() << std::endl;
+//			std::cout << "indices.GetSize() = " << indices.GetSize() << std::endl; 
+			
       if( fup(i).GetSize() != indices.GetSize() ) {
         EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
                    "of indices do not match!");

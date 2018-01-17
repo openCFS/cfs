@@ -51,6 +51,7 @@ namespace CoupledField {
     
     
     infoNode_ = infoNode;
+		considerCounterpart_ = false;
   }
 
 
@@ -657,7 +658,7 @@ namespace CoupledField {
         // NOTE: If no rotation is specified and the dimension is
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree, 
-        // so that we pick by default the yz-plane      
+        // so that we pick by default the yz-plane
         if( !rotNode->HasChildren() ) {
           if( dim_ == 2) {
             rotVec[0] = -90.0;

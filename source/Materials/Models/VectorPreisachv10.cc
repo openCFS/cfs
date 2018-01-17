@@ -20,10 +20,10 @@ namespace CoupledField
      * Global quantities, i.e. the same for all FE elements of the same material
      */
     if (xSat > 0 ) {
-      Xsaturated_  = xSat;
+      XSaturated_  = xSat;
     }
     else {
-      Xsaturated_  = 1.0;
+      XSaturated_  = 1.0;
     }
 
     YSaturated_  = ySat;
@@ -93,6 +93,16 @@ namespace CoupledField
       preisachSumTmp_[k] = Vector<Double>(dim_);
       preisachSumTmp_[k].Init();
     }
+    
+    actXval_ = new Vector<Double>[numElem_];
+    actYval_ = new Vector<Double>[numElem_];
+    for(UInt k = 0; k < numElem_; k++){
+      actXval_[k] = Vector<Double>(dim_);
+      actXval_[k].Init();
+      actYval_[k] = Vector<Double>(dim_);
+      actYval_[k].Init();
+    }
+    
   }
 
   VectorPreisachv10::~VectorPreisachv10(){
@@ -143,7 +153,7 @@ namespace CoupledField
         e_clipped[0] = -1.0;
         e_clipped[1] = 0.0;
       } else {
-        currentPhiClipped = floor( currentPhi/angularClipping_+0.5 )*angularClipping_;
+        currentPhiClipped = std::floor( currentPhi/angularClipping_+0.5 )*angularClipping_;
         e_clipped[0] = std::cos(currentPhiClipped);
         e_clipped[1] = std::sin(currentPhiClipped);
       }
@@ -212,8 +222,9 @@ namespace CoupledField
        *
        * angularDistance_ in deg
        */
-      xVal /= Xsaturated_;
+      xVal /= XSaturated_;
       delta_phi = angularDistance_ * (1 - abs(xVal));
+//      std::cout << "delta_phi: " << delta_phi << std::endl;
 
       /*
        * 2. get angle between e_u_new and e_u_old
@@ -221,6 +232,9 @@ namespace CoupledField
        * Note2: delta_phi is in degree, so alpha has to be in degree, too
        */
       Double tmp = e_u_old.Inner(e_u_new);
+//      std::cout << "e_u_old: " << e_u_old.ToString() << std::endl;
+//      std::cout << "e_u_new: " << e_u_new.ToString() << std::endl;
+//      std::cout << "e_u_old.Inner(e_u_new): " << tmp << std::endl;
       /*
        * due to rounding errors, the scalar product of two vectors of lenght 1
        * can be larger than 1 -> cut down to avoid NaN
@@ -232,6 +246,7 @@ namespace CoupledField
       }
       alpha = std::acos(tmp)*180/M_PI;
 
+//      std::cout << "alpha: " << alpha << std::endl;
       /*
        * NEW: 15.2.2017
        * If alpha (the angle between new and old state is  close to zero,
@@ -250,11 +265,13 @@ namespace CoupledField
        * 3. calculate new rotation direction depending on delta_phi and alpha
        */
       if(delta_phi < angleTol){
+//        std::cout << "delta_phi < angleTol > return e_u_new" << std::endl;
         /*
          * no resistance to rotation
          */
         return e_u_new;
       } else if(delta_phi >= alpha) {
+//        std::cout << "delta_phi >= angleTol > return e_u_old" << std::endl;
         /*
          * e_u_old is already closer than the resistance angle delta_phi that should remain
          */
@@ -281,11 +298,19 @@ namespace CoupledField
            */
           Double n3;
           n3 = e_u_old[0]*e_u_new[1] - e_u_old[1]*e_u_new[0];
-          n3 = n3/abs(n3);
-
+          
+          if(n3 != 0){
+            n3 = n3/abs(n3);
+          }
+          
+          //std::cout << "n3: " << n3 << std::endl;
+          
           c = std::cos(-delta_phi/180*M_PI);
           s = std::sin(-delta_phi/180*M_PI);
 
+//          std::cout << "c: " << c << std::endl;
+//          std::cout << "s: " << s << std::endl;
+          
           rotMat[0][0] = c;
           rotMat[0][1] = -n3*s;
           rotMat[1][0] = n3*s;
@@ -301,8 +326,11 @@ namespace CoupledField
            */
           Vector<Double> normal = Vector<Double>(dim_);
           e_u_old.CrossProduct(e_u_new,normal);
-          normal = normal/normal.NormL2();
-
+          
+          if(normal.NormL2() != 0){
+            normal = normal/normal.NormL2();
+          }
+          
           c = std::cos(-delta_phi/180*M_PI);
           s = std::sin(-delta_phi/180*M_PI);
 
@@ -471,7 +499,7 @@ namespace CoupledField
         */
        xPar = u_in.Inner(curState);
 
-       xPar /= Xsaturated_;
+       xPar /= XSaturated_;
 
        /*
         * check if update is needed
@@ -599,10 +627,10 @@ namespace CoupledField
      */
     Double X_thres;
     Double uNormTmp = u_in.NormL2();
-    if(uNormTmp >= Xsaturated_){
+    if(uNormTmp >= XSaturated_){
       uNormTmp = 1.0;
     } else {
-      uNormTmp = uNormTmp/Xsaturated_;
+      uNormTmp = uNormTmp/XSaturated_;
     }
     if(classical_){
       X_thres = std::pow(uNormTmp,rotationalResistance_);
@@ -746,7 +774,7 @@ namespace CoupledField
     /*
      * Calculate upscaling factor
      */
-    UInt upscaling = (UInt) floor(numPixel/numRows_);
+    UInt upscaling = (UInt) std::floor(numPixel/numRows_);
 
     /*
      * now call output function of matrix
@@ -961,10 +989,10 @@ namespace CoupledField
        */
       if(initSwitchValue <= 0){
         initSwitchValue = 0.0;
-      } else if(initSwitchValue >= Xsaturated_){
+      } else if(initSwitchValue >= XSaturated_){
         initSwitchValue = 1.0;
       } else {
-        initSwitchValue = initSwitchValue/Xsaturated_;
+        initSwitchValue = initSwitchValue/XSaturated_;
       }
 
       /*
@@ -1063,13 +1091,13 @@ namespace CoupledField
       needsInsert = false;
     }
 
-  //  std::cout << "XThres: " << xThres << std::endl;
-  //  std::cout << "e_u: " << e_u.ToString() << std::endl;
-
+//    std::cout << "XThres: " << xThres << std::endl;
+//    std::cout << "e_u: " << e_u.ToString() << std::endl;
+//
 //    std::cout << "##########################" << std::endl;
 //    std::cout << "GlobalRotationList pre insert" << std::endl;
 //
-//    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
+//    for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
 //    std::cout << listIt->ToString() << std::endl;
 //    }
 
@@ -1303,7 +1331,7 @@ namespace CoupledField
       /*
        * Normalize to Xsaturated
        */
-      xPar /= Xsaturated_;
+      xPar /= XSaturated_;
 
       if( abs(xPar) < 1e-15 ){
         xPar = 0.0;
@@ -1366,10 +1394,10 @@ namespace CoupledField
        */
     }
 
-    //std::cout << "##########################" << std::endl;
+//    std::cout << "##########################" << std::endl;
 //    std::cout << "GlobalRotationList pre merge and simplify" << std::endl;
 //
-//    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
+//    for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
 //    std::cout << listIt->ToString() << std::endl;
 //    }
 
@@ -1906,10 +1934,10 @@ namespace CoupledField
      */
     Double X_thres;
     Double uNormTmp = u_in.NormL2();
-    if(uNormTmp >= Xsaturated_){
+    if(uNormTmp >= XSaturated_){
       uNormTmp = 1.0;
     } else {
-      uNormTmp = uNormTmp/Xsaturated_;
+      uNormTmp = uNormTmp/XSaturated_;
     }
     if(classical_){
       X_thres = std::pow(uNormTmp,rotationalResistance_);
@@ -1923,7 +1951,7 @@ namespace CoupledField
     Vector<Double> e_u = Vector<Double>(u_in.GetSize());
     Double xVal = u_in.NormL2();
 
- // std::cout << "xVal: " << xVal << std::endl;
+//  std::cout << "xVal: " << xVal << std::endl;
 
     //if(xVal > tol_) //another tolerance?!
     if(xVal != 0){
@@ -1932,7 +1960,7 @@ namespace CoupledField
       e_u.Init(0.0);
     }
 
- //   std::cout << "e_u: " << e_u.ToString() << std::endl;
+//    std::cout << "e_u: " << e_u.ToString() << std::endl;
 
     /*
      * set value of lastEu_ (only needed for classical_ model to get the rotation information for the lowerTriangle_)
@@ -1972,7 +2000,7 @@ namespace CoupledField
       /*
        * work on std data structure
        */
-      //std::cout << "Work on permanent storage" << std::endl;
+//      std::cout << "Work on permanent storage" << std::endl;
       Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],overwriteDirection);
       //Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],true);
 
@@ -1995,7 +2023,7 @@ namespace CoupledField
       /*
        * get copy of globRotList_[idElem]
        */
-    //  std::cout << "Working on temporal copy" << std::endl;
+//      std::cout << "Working on temporal copy" << std::endl;
 
       if(performanceMeasurement_){
         copyToTemporalStorageCounter_++;
@@ -2529,6 +2557,7 @@ namespace CoupledField
        * check if reevaluation is needed at all
        */
       if(rotListIt->hasChanged() == false){
+//        std::cout << "Rotstate did not change > reuse old value" << std::endl;
         /*
          * neither switching list did change since last time (and weights did not change either)
          * nor did the lower bound of the rotation area
@@ -2854,11 +2883,11 @@ namespace CoupledField
      * NOTE: element alpha = -1 and beta = -1 will have index 0,0!
      * -> add floor(1.0/delta_) != numRows/2
      */
-    int rowMin =  floor(b/delta_) + floor(1.0/delta_);
-    int rowMax = ceil(t/delta_) + floor(1.0/delta_)-1;
+    int rowMin =  std::floor(b/delta_) + std::floor(1.0/delta_);
+    int rowMax = std::ceil(t/delta_) + std::floor(1.0/delta_)-1;
 
-    int colMin =  floor(l/delta_) + floor(1.0/delta_);
-    int colMax =  ceil(r/delta_) + floor(1.0/delta_)-1;
+    int colMin =  std::floor(l/delta_) + std::floor(1.0/delta_);
+    int colMax =  std::ceil(r/delta_) + std::floor(1.0/delta_)-1;
 
     /*
      * NEW: use integers instead of unsigned integer
@@ -2869,11 +2898,11 @@ namespace CoupledField
     /*
      * 2. get indices of completely overlapped elements
      */
-    int rowMinFull =  ceil(b/delta_) + floor(1.0/delta_);
-    int rowMaxFull = floor(t/delta_) + floor(1.0/delta_)-1;
+    int rowMinFull =  std::ceil(b/delta_) + std::floor(1.0/delta_);
+    int rowMaxFull = std::floor(t/delta_) + std::floor(1.0/delta_)-1;
 
-    int colMinFull =  ceil(l/delta_) + floor(1.0/delta_);
-    int colMaxFull = floor(r/delta_) + floor(1.0/delta_)-1;
+    int colMinFull =  std::ceil(l/delta_) + std::floor(1.0/delta_);
+    int colMaxFull = std::floor(r/delta_) + std::floor(1.0/delta_)-1;
 
 //    std::cout << std::setprecision(12) << std::scientific << b << " " << t << " " << l << " " << r << std::endl;
 //    std::cout << std::setprecision(12) << std::scientific << floor(b) << " " << ceil(t) << " " << floor(l) << " " << ceil(r) << std::endl;
@@ -3164,11 +3193,11 @@ namespace CoupledField
      * NOTE: element alpha = -1 and beta = -1 will have index 0,0!
      * -> add floor(1.0/delta_) != numRows/2
      */
-    int rowMin =  floor(b/delta_) + floor(1.0/delta_);
-    int rowMax = ceil(t/delta_) + floor(1.0/delta_)-1;
+    int rowMin =  std::floor(b/delta_) + std::floor(1.0/delta_);
+    int rowMax = std::ceil(t/delta_) + std::floor(1.0/delta_)-1;
 
-    int colMin =  floor(l/delta_) + floor(1.0/delta_);
-    int colMax =  ceil(r/delta_) + floor(1.0/delta_)-1;
+    int colMin =  std::floor(l/delta_) + std::floor(1.0/delta_);
+    int colMax =  std::ceil(r/delta_) + std::floor(1.0/delta_)-1;
 
     /*
      * NEW: use integers instead of unsigned integer
@@ -3179,11 +3208,11 @@ namespace CoupledField
     /*
      * 2. get indices of completely overlapped elements
      */
-    int rowMinFull =  ceil(b/delta_) + floor(1.0/delta_);
-    int rowMaxFull = floor(t/delta_) + floor(1.0/delta_)-1;
+    int rowMinFull =  std::ceil(b/delta_) + std::floor(1.0/delta_);
+    int rowMaxFull = std::floor(t/delta_) + std::floor(1.0/delta_)-1;
 
-    int colMinFull =  ceil(l/delta_) + floor(1.0/delta_);
-    int colMaxFull = floor(r/delta_) + floor(1.0/delta_)-1;
+    int colMinFull =  std::ceil(l/delta_) + std::floor(1.0/delta_);
+    int colMaxFull = std::floor(r/delta_) + std::floor(1.0/delta_)-1;
 
 //    std::cout << std::setprecision(12) << std::scientific << b << " " << t << " " << l << " " << r << std::endl;
 //    std::cout << std::setprecision(12) << std::scientific << floor(b) << " " << ceil(t) << " " << floor(l) << " " << ceil(r) << std::endl;
@@ -4367,11 +4396,11 @@ namespace CoupledField
      * NOTE: element alpha = -1 and beta = -1 will have index 0,0!
      * -> add floor(1.0/delta_) != numRows/2
      */
-    int rowMin =  floor(b/delta) + floor(1.0/delta);
-    int rowMax = ceil(t/delta) + floor(1.0/delta)-1;
+    int rowMin =  std::floor(b/delta) + std::floor(1.0/delta);
+    int rowMax = std::ceil(t/delta) + std::floor(1.0/delta)-1;
 
-    int colMin =  floor(l/delta) + floor(1.0/delta);
-    int colMax =  ceil(r/delta) + floor(1.0/delta)-1;
+    int colMin =  std::floor(l/delta) + std::floor(1.0/delta);
+    int colMax =  std::ceil(r/delta) + std::floor(1.0/delta)-1;
 
     /*
      * NEW: use integers instead of unsigned integer
@@ -4382,11 +4411,11 @@ namespace CoupledField
     /*
      * 2. get indices of completely overlapped elements
      */
-    int rowMinFull =  ceil(b/delta) + floor(1.0/delta);
-    int rowMaxFull = floor(t/delta) + floor(1.0/delta)-1;
+    int rowMinFull =  std::ceil(b/delta) + std::floor(1.0/delta);
+    int rowMaxFull = std::floor(t/delta) + std::floor(1.0/delta)-1;
 
-    int colMinFull =  ceil(l/delta) + floor(1.0/delta);
-    int colMaxFull = floor(r/delta) + floor(1.0/delta)-1;
+    int colMinFull =  std::ceil(l/delta) + std::floor(1.0/delta);
+    int colMaxFull = std::floor(r/delta) + std::floor(1.0/delta)-1;
 
 
     if(skipUpperDiagonal == true){

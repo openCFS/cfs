@@ -616,6 +616,41 @@ public:
   virtual void SetRuntimeDependentFlag(std::string flagName, UInt intState){
     EXCEPTION( "Not implemented in base class");
   }
+  
+  virtual bool deltaMatActive(){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual int GetDeltaForm(){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual int GetTimeLevel(std::string EntitiyType){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(std::string tensorName,PtrCoefFct elastTensor = NULL, PtrCoefFct couplTensor = NULL ){
+    EXCEPTION("Not implemented in base class");
+  }
+  virtual shared_ptr<CoefFunction> GenerateRHSCoefFnc(std::string vectorName,PtrCoefFct elastTensor = NULL, PtrCoefFct couplTensor = NULL, bool onBoundary = false){
+    EXCEPTION("Not implemented in base class");
+  }
+  virtual shared_ptr<CoefFunction> GenerateOutputCoefFnc(std::string ResultName){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual Vector<Double> GetOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel, bool invert){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+  virtual void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, PtrCoefFct couplTensorCoefFct, Matrix<Double>& rotatedCouplTensor, int timeLevel){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual Double GetOutputSaturation(){
+    EXCEPTION( "Not implemented in base class");
+  }
+
 
   //! set regionId of neighbor
   virtual void SetNeighborRegionId(RegionIdType id) {

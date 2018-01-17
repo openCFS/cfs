@@ -135,6 +135,14 @@
                     <xsd:documentation>Defines Bloch periodic boundary conditions for electric potential</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                
+                <xsd:element name="fieldParallel" type="DT_FieldParallelBC">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a special field-parallel BC (i.e. En = 0). For non-hysteresis, this reduces to a flux-parallel BC
+                    (i.e. Dn = 0). For hysteretic matrials Dn = Pn.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -250,7 +258,16 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-
+  
+  <!-- Element type for specifying a special field parallel bc -->
+  <xsd:complexType name="DT_FieldParallelBC">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->

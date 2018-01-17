@@ -78,6 +78,11 @@ namespace CoupledField
                                          Integer idxEl, 
                                          bool overwrite) 
   {
+/*
+ * mnierla:
+ * Quelle > Dissertation Felix Wolf?
+ * 
+ */
 
     Vector<Double> &stringEl     = strings_[idxEl];
     UInt& actLength = StringLenght_[idxEl];
@@ -101,8 +106,12 @@ namespace CoupledField
       std::cout << "Branche 1: ComputeInv: Yin: " << newY << std::endl;
       std::cout << "Branche 1: ComputeInv: Yprev: " << previousYval_[idxEl] << std::endl;
       j = 0;
+      // yStart = everettPixel( -1,+1) = ySat
+      // yStart = everettPixel( 1,-1) = -ySat
       yStart = everettPixel( -epts_[j],epts_[j]);
       
+      // yStart = -ySat, newY >= -ySat
+      // > loop will be entered at least once
       while ( yStart < (newY*0.999) ) {
         j += 1;
         yStart = everettPixel( -epts_[j],epts_[j]);

@@ -28,6 +28,7 @@
 // new integrator concept
 #include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/BiLinForms/ADBInt.hh"
+#include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/StrainOperator.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
@@ -51,6 +52,8 @@ namespace CoupledField {
                                 Domain* domain)
     : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain )
   {
+//		std::cout << "PiezoCoupling - Constructor" << std::endl;
+		
     couplingName_ = "piezoDirect";
     materialClass_ = PIEZO;
 
@@ -76,13 +79,13 @@ namespace CoupledField {
   // *********************
   void PiezoCoupling::DefineIntegrators() {
 
+//		std::cout << "PiezoCoupling - DefineIntegrators" << std::endl;
     // get hold of both feFunctions
     shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
     shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
     shared_ptr<FeSpace> dispSpace = dispFct->GetFeSpace();
     shared_ptr<FeSpace> elecSpace = elecFct->GetFeSpace();
-    
-    
+	
     // Global::ComplexPart matType = Global::REAL;
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
@@ -152,39 +155,111 @@ namespace CoupledField {
         harmonicPML = false;
       }
       
-      // ==================================================================
-      //  STANDARD COUPLING INTEGRATOR
-      // ==================================================================
-      BaseBDBInt * stiffInt = NULL;
-      if (harmonicPML)
-      {
-        stiffInt = GetStiffIntegrator(actSDMat, actRegion, true, coefPMLScal);
-        // we need to set the coefficient function 'coefPMLVec' to both A-operator = ScaledStrainOp
-        // and B-operator = ScaledGradOp of the bilinear form 'stiffInt'
-        stiffInt->SetBCoefFunctionOpA(coefPMLVec);
-        stiffInt->GetBOp()->SetCoefFunction(coefPMLVec);
-      }
-      else
-      {
-        stiffInt = GetStiffIntegrator(actSDMat, actRegion, complexMatData_[actRegion]);
-      }
-      stiffInt->SetName("PiezoCouplingInt");
-      BiLinFormContext * stiffIntDescr =
-          new BiLinFormContext(stiffInt, STIFFNESS );
+			// check if elec pde is hysteretic
+			bool isHyst = false;
+			if(pde1_->IsHysteresis()){
+				EXCEPTION("Currently only the elec PDE may be hysteretic");
+			} else if(pde2_->IsHysteresis()){
+				isHyst = true;
+			}
+		
+			if(isHyst){
+//				std::cout << "Hyst case -> check if region is hyst" << std::endl;
+				BaseBDBInt* mechToElecInt = NULL;
+				BaseBDBInt* elecToMechInt = NULL;
+				
+				bool regionIsHyst = GetStiffIntegratorHyst( actSDMat,actRegion,complexMatData_[actRegion],&elecToMechInt, &mechToElecInt);
+				
+				if(regionIsHyst){
+//					std::cout << "Region is hyst" << std::endl;
+					
+//					if(mechToElecInt == NULL){
+//						std::cout << "mechToElecInt == NULL!!" << std::endl;
+//					}
+//					if(elecToMechInt == NULL){
+//						std::cout << "elecToMechInt == NULL!!" << std::endl;
+//					}
+					
+					elecToMechInt->SetName("PiezoCouplingIntElecToMech");
+					BiLinFormContext * stiffIntDescrElecMech =
+							new BiLinFormContext(elecToMechInt, STIFFNESS );
 
-      stiffIntDescr->SetEntities( actSDList, actSDList );
-      stiffIntDescr->SetFeFunctions( dispFct, elecFct );
-      stiffIntDescr->SetCounterPart(true);
+					stiffIntDescrElecMech->SetEntities( actSDList, actSDList );
+					stiffIntDescrElecMech->SetFeFunctions( dispFct, elecFct );
+					stiffIntDescrElecMech->SetCounterPart(false);
 
-      assemble_->AddBiLinearForm( stiffIntDescr );
+					assemble_->AddBiLinearForm( stiffIntDescrElecMech );
+//					std::cout << "first part put into place" << std::endl;
+					// remember own bilinearform 
+					bdbInts_[actRegion] = elecToMechInt;
+					
+					mechToElecInt->SetName("PiezoCouplingIntMechToElec");
+					BiLinFormContext * stiffIntDescrMechElec =
+							new BiLinFormContext(mechToElecInt, STIFFNESS );
 
-      // remember own bilinearform 
-      bdbInts_[actRegion] = stiffInt;
+					stiffIntDescrMechElec->SetEntities( actSDList, actSDList );
+					stiffIntDescrMechElec->SetFeFunctions( elecFct, dispFct );
+					stiffIntDescrMechElec->SetCounterPart(false);
 
+					assemble_->AddBiLinearForm( stiffIntDescrMechElec );
+
+					// remember own bilinearform 
+					bdbIntsCounterpart_[actRegion] = mechToElecInt;
+					considerCounterpart_ = true;
+//					std::cout << "everything put into place" << std::endl;
+				} else {
+					// std linear case
+					elecToMechInt->SetName("PiezoCouplingInt");
+					BiLinFormContext * stiffIntDescr =
+							new BiLinFormContext(elecToMechInt, STIFFNESS );
+
+					stiffIntDescr->SetEntities( actSDList, actSDList );
+					stiffIntDescr->SetFeFunctions( dispFct, elecFct );
+					stiffIntDescr->SetCounterPart(true);
+
+					assemble_->AddBiLinearForm( stiffIntDescr );
+
+					// remember own bilinearform 
+					bdbInts_[actRegion] = elecToMechInt;
+				}
+				
+			} else {
+				// ==================================================================
+				//  STANDARD COUPLING INTEGRATOR
+				// ==================================================================
+				BaseBDBInt * stiffInt = NULL;
+				if (harmonicPML)
+				{
+					stiffInt = GetStiffIntegrator(actSDMat, actRegion, true, coefPMLScal);
+					// we need to set the coefficient function 'coefPMLVec' to both A-operator = ScaledStrainOp
+					// and B-operator = ScaledGradOp of the bilinear form 'stiffInt'
+					stiffInt->SetBCoefFunctionOpA(coefPMLVec);
+					stiffInt->GetBOp()->SetCoefFunction(coefPMLVec);
+				}
+				else
+				{
+					stiffInt = GetStiffIntegrator(actSDMat, actRegion, complexMatData_[actRegion]);
+				}
+				stiffInt->SetName("PiezoCouplingInt");
+				BiLinFormContext * stiffIntDescr =
+						new BiLinFormContext(stiffInt, STIFFNESS );
+
+				stiffIntDescr->SetEntities( actSDList, actSDList );
+				stiffIntDescr->SetFeFunctions( dispFct, elecFct );
+				stiffIntDescr->SetCounterPart(true);
+
+				assemble_->AddBiLinearForm( stiffIntDescr );
+
+				// remember own bilinearform 
+				bdbInts_[actRegion] = stiffInt;
+
+			}      
     }
 
     // handling periodic boundary conditions (if any)
     DefinePBCIntegrators(dispFct, elecFct);
+		
+		DefineRhsLoadIntegrators();
   }
 
   void PiezoCoupling::DefinePBCIntegrators(shared_ptr<BaseFeFunction>& fe1, shared_ptr<BaseFeFunction>& fe2)
@@ -402,6 +477,8 @@ namespace CoupledField {
   
   void PiezoCoupling::DefinePostProcResults() {
     
+//		std::cout << "PiezoCoupling - DefinePostProcResults" << std::endl;
+		
     shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
     shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
@@ -435,11 +512,23 @@ namespace CoupledField {
     // b) coupling part -> use own ADB-form
     Double cplFactor = 1.0;
     shared_ptr<CoefFunctionFormBased> cplFunc;
-    if( isComplex_ ) {
-      cplFunc.reset(new CoefFunctionFlux<Complex,true>(dispFct, flux, cplFactor));
-    } else {
-      cplFunc.reset(new CoefFunctionFlux<Double,true>(dispFct, flux, cplFactor));
-    }
+		// if counterpart was stored separately, it is already transposed, i.e. we
+		// do not need have to tell cplFunc that we want to transpose
+		bool transposed = !considerCounterpart_;
+		if(transposed){
+			if( isComplex_ ) {
+				cplFunc.reset(new CoefFunctionFlux<Complex,true>(dispFct, flux, cplFactor));
+			} else {
+				cplFunc.reset(new CoefFunctionFlux<Double,true>(dispFct, flux, cplFactor));
+			}
+		} else {
+			if( isComplex_ ) {
+				cplFunc.reset(new CoefFunctionFlux<Complex>(dispFct, flux, cplFactor));
+			} else {
+				cplFunc.reset(new CoefFunctionFlux<Double>(dispFct, flux, cplFactor));
+			}
+		}
+
     // Build compound coefficient function for flux density
     PtrCoefFct coefFlux = CoefFunction::Generate(mp,part,
                          CoefXprBinOp(mp,coefElecD, cplFunc,
@@ -519,12 +608,27 @@ namespace CoupledField {
     std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
     for( ; it != bdbInts_.end(); ++it ) {
       RegionIdType region = it->first;
-      BaseBDBInt* bdb = it->second;
+			
+			if(considerCounterpart_){
+				// treat elecMech and mechElec separately
+				// bdbInts_ stores bdbIntegrator for mechanical pde (elecToMechInt)
+				BaseBDBInt* bdb = it->second;
+				stressCplFunc->AddIntegrator(bdb, region);
+//				std::cout << "StressCpl success" << std::endl;
+				
+				// bdbIntsCounterpart_ stores bdeIntegrator for electric pde (mechToElecInt)
+				BaseBDBInt* bdbCounterpart = bdbIntsCounterpart_[region];
+				cplFunc->AddIntegrator(bdbCounterpart, region);
+//				std::cout << "cpl success" << std::endl;
+				sChargeDens->AddVolumeCoef(region, coefFlux);
+			} else {
+				BaseBDBInt* bdb = it->second;
 
-      // 2) pass integrators to functors
-      cplFunc->AddIntegrator(bdb, region);
-      stressCplFunc->AddIntegrator(bdb, region);
-      sChargeDens->AddVolumeCoef(region, coefFlux);
+				// 2) pass integrators to functors
+				cplFunc->AddIntegrator(bdb, region);
+				stressCplFunc->AddIntegrator(bdb, region);
+				sChargeDens->AddVolumeCoef(region, coefFlux);
+			}
     }
   }
   
@@ -544,6 +648,335 @@ namespace CoupledField {
 //    availResults_.insert( charge );
   }
 
+	// for hysteresis we need rhs loads that have to be defined in coupling
+	// as it needs informattion about both pdes
+	void PiezoCoupling::DefineRhsLoadIntegrators() {
+
+//		std::cout << "PiezoCoupling - DefineLOADIntegrators" << std::endl;
+		
+		shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
+    shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
+
+    LinearForm * lin = NULL;
+		LinearForm * linElec = NULL;
+    // Flag, if coefficient function lives on updated geoemtry
+    bool coefUpdateGeo = true;
+		
+		SubTensorType tensorType = NO_TENSOR;
+    if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
+      tensorType = PLANE_STRAIN;
+    } else if( subType_ == "axi" ){
+      tensorType = AXI;
+    } else if (subType_ == "3d" || subType_ == "2.5d"){
+      tensorType = FULL;
+    } else {
+      EXCEPTION( "Unknown subtype '" << subType_ << "'" );
+    }
+
+		// check for hysteresis
+		bool isHyst = false;
+		if(pde1_->IsHysteresis()){
+			EXCEPTION("Currently only the elec PDE may be hysteretic");
+		} else if(pde2_->IsHysteresis()){
+			isHyst = true;
+		}
+
+		if(isHyst){
+			// get all regions with hysteresis information from elecPDE
+			shared_ptr<CoefFunctionMulti> hysteresisCoefs = pde2_->GetHystCoefs();
+			BaseMaterial * actSDMat = NULL;
+			
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+
+        // get regionIdType
+        RegionIdType curReg = it->first;
+				PtrCoefFct regionHystOperator = it->second;
+
+				actSDMat = materials_[curReg];
+				
+        // get SDList
+        shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+        actSDList->SetRegion( curReg );
+
+				// per default we evaluate at each integration point
+				// this behavior can be changed by setting a flag in coefFncHyst
+        bool fullevaluation = true;
+				Double factor = 1.0;
+				
+				// ------------------------
+				//  Obtain linear material
+				// ------------------------
+				shared_ptr<CoefFunction > couplingCoef;
+				if( isComplex_ ) {
+					couplingCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR, tensorType, 
+																							Global::COMPLEX, false  );
+				} else {
+					couplingCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR, tensorType, 
+																							 Global::REAL, false );
+				}	
+				
+//				std::cout << "couplCoef" << std::endl;
+//				std::cout << couplingCoef->ToString() << std::endl;
+				
+				// extract stiffness tensor from mech pde
+				std::map<RegionIdType, BaseMaterial*>  mechMat;
+				mechMat = pde1_->GetMaterialData();
+
+				shared_ptr<CoefFunction > stiffCoef;
+				stiffCoef = mechMat[curReg]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, 
+																							 Global::REAL, true );
+				
+				
+				// mech RHS
+				shared_ptr<CoefFunction> mechRHS = regionHystOperator->GenerateRHSCoefFnc("PiezoLoadForMechPDE",stiffCoef,couplingCoef);
+				
+				if ( isComplex_ ) {
+					if( subType_ == "axi" ) {
+						lin = new BUIntegrator<Complex>( new StrainOperatorAxi<FeH1,Complex>(),
+																	 Complex(factor),mechRHS,  coefUpdateGeo, fullevaluation);
+
+					} else if( subType_ == "planeStrain" ) {
+						lin = new BUIntegrator<Complex>( new StrainOperator2D<FeH1,Complex>(),
+																	 Complex(factor),mechRHS,  coefUpdateGeo, fullevaluation);
+
+					} else if( subType_ == "planeStress" ) {
+						lin = new BUIntegrator<Complex>( new StrainOperator2D<FeH1,Complex>(),
+												 Complex(factor),mechRHS,  coefUpdateGeo, fullevaluation);
+
+					} else if( subType_ == "3d") {
+						lin = new BUIntegrator<Complex>( new StrainOperator3D<FeH1,Complex>(),
+												Complex(factor),mechRHS,  coefUpdateGeo, fullevaluation);
+
+					} else if( subType_ == "2.5d") {
+						lin = new BUIntegrator<Complex>( new StrainOperator2p5D<FeH1,Complex>(),
+												Complex(factor),mechRHS,  coefUpdateGeo, fullevaluation);
+					} else {
+						EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+					}
+				} else {
+					if( subType_ == "axi" ) {
+						lin = new BUIntegrator<Double>( new StrainOperatorAxi<FeH1>(),
+																	(factor),mechRHS, coefUpdateGeo, fullevaluation);
+
+					} else if( subType_ == "planeStrain" ) {
+						lin = new BUIntegrator<Double>( new StrainOperator2D<FeH1>(),
+																	(factor),mechRHS, coefUpdateGeo, fullevaluation);
+
+					} else if( subType_ == "planeStress" ) {
+						lin = new BUIntegrator<Double>( new StrainOperator2D<FeH1>(),
+																	(factor),mechRHS, coefUpdateGeo, fullevaluation);
+					} else if( subType_ == "3d") {
+						lin = new BUIntegrator<Double>( new StrainOperator3D<FeH1>(),
+																	(factor),mechRHS, coefUpdateGeo, fullevaluation);
+					} else if( subType_ == "2.5d") {
+						lin = new BUIntegrator<Double>( new StrainOperator2p5D<FeH1>(),
+																	(factor),mechRHS, coefUpdateGeo, fullevaluation);
+
+					} else {
+						EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+					}
+				}
+
+        lin->SetName("PiezoLoadForMechPDE");
+        lin->SetSolDependent();
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( actSDList );
+        ctx->SetFeFunction(dispFct);
+        
+				assemble_->AddLinearForm(ctx);
+        // Add entity list will add nothing, if entities were already assigned
+        dispFct->AddEntityList(actSDList);
+				
+				// elec RHS
+				shared_ptr<CoefFunction> elecRHS = regionHystOperator->GenerateRHSCoefFnc("PiezoLoadForElecPDE",stiffCoef,couplingCoef);
+				
+        if(isComplex_) {
+          if( dim_ == 2 ) {
+//            lin = new BUIntegrator<Complex>( new GradientOperator<FeH1,2,1,Complex>(),
+//                                           Complex(factor),it->second,  coefUpdateGeo, fullevaluation);
+						linElec = new BUIntegrator<Complex>( new GradientOperator<FeH1,2,1,Complex>(),
+                                           Complex(factor),elecRHS, coefUpdateGeo, fullevaluation);
+          } else {
+            linElec = new BUIntegrator<Complex>( new GradientOperator<FeH1,3,1,Complex>(),
+                                            Complex(factor),elecRHS, coefUpdateGeo, fullevaluation);
+          }
+        } else  {
+          if( dim_ == 2 ) {
+            linElec = new BUIntegrator<Double>( new GradientOperator<FeH1,2> (),
+                                            (factor),elecRHS, coefUpdateGeo, fullevaluation);
+          } else {
+            linElec = new BUIntegrator<Double>( new GradientOperator<FeH1,3> (),
+                                             (factor),elecRHS, coefUpdateGeo, fullevaluation);
+          }
+        }
+
+        linElec->SetName("PiezoLoadForElecPDE");
+        linElec->SetSolDependent();
+        LinearFormContext *ctxElec = new LinearFormContext( linElec );
+        ctxElec->SetEntities( actSDList );
+        ctxElec->SetFeFunction(elecFct);
+        
+				assemble_->AddLinearForm(ctxElec);
+        // Add entity list will add nothing, if entities were already assigned
+        elecFct->AddEntityList(actSDList);
+
+      }
+    }
+  }
+
+  bool PiezoCoupling::GetStiffIntegratorHyst( BaseMaterial* actSDMat,
+                                     RegionIdType regionId, bool isComplex,
+																		 BaseBDBInt** elecToMechInt, BaseBDBInt** mechToElecInt) {
+    
+    SubTensorType tensorType = NO_TENSOR;
+    if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
+      tensorType = PLANE_STRAIN;
+    } else if( subType_ == "axi" ){
+      tensorType = AXI;
+    } else if (subType_ == "3d" || subType_ == "2.5d"){
+      tensorType = FULL;
+    } else {
+      EXCEPTION( "Unknown subtype '" << subType_ << "'" );
+    }
+    // ------------------------
+    //  Obtain linear material
+    // ------------------------		
+		shared_ptr<CoefFunction > couplingCoef;
+    if( isComplex ) {
+      couplingCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR, tensorType, 
+                                          Global::COMPLEX, false  );
+    } else {
+      couplingCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR, tensorType, 
+                                           Global::REAL, false );
+    }	
+		
+//		std::cout << "couplingCoefTensor: " << couplingCoef->ToString() << std::endl;
+//		
+		// check if current region is hysteretic
+		std::map<RegionIdType, StdVector<NonLinType> > nonLinMap;
+		nonLinMap = pde2_->GetNonLinRegionTypes();
+		StdVector<NonLinType> nonLinTypes = nonLinMap[regionId];
+    if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
+
+			// extract stiffness tensor from mech pde
+			std::map<RegionIdType, BaseMaterial*>  mechMat;
+			mechMat = pde1_->GetMaterialData();
+
+			shared_ptr<CoefFunction > stiffCoef;
+			stiffCoef = mechMat[regionId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, 
+																						 Global::REAL, true );
+
+			// get hyst operator for current region from elec pde
+			PtrCoefFct hystOperator;
+			shared_ptr<CoefFunctionMulti> hystCoefs;
+			hystCoefs = pde2_->GetHystCoefs();
+			hystOperator =hystCoefs->GetRegionCoef(regionId);
+				
+			// create hyst material
+			// note: curCoef holds the coupling tensor
+			// hyst case might be unsymmetric
+			// > in case of deltaFormulation, elecToMech holds an addition deltaS/deltaE
+			PtrCoefFct mechToElec = hystOperator->GenerateMatCoefFnc("CouplingMechToElec",stiffCoef,couplingCoef);
+			PtrCoefFct elecToMech = hystOperator->GenerateMatCoefFnc("CouplingElecToMech",stiffCoef,couplingCoef);
+			
+//			std::cout << "check size of matcoeffnc" << std::endl;
+			UInt numRows, numCols;
+			mechToElec->GetTensorSize(numRows,numCols);
+//			std::cout << "mechToElec: " << numRows << " " << numCols << std::endl;
+			
+			elecToMech->GetTensorSize(numRows,numCols);
+//			std::cout << "elecToMech: " << numRows << " " << numCols << std::endl;
+			
+			if ( isComplex ) {
+				if( subType_ == "axi" ) {
+					*elecToMechInt = new ADBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(),
+														new GradientOperator<FeH1,2,1,Complex>(),
+														elecToMech, 1.0, true );
+					*mechToElecInt = new ADBInt<Complex>(new GradientOperator<FeH1,2,1,Complex>(),
+														new StrainOperatorAxi<FeH1,Complex>(),
+														mechToElec, 1.0, true );
+				} else if( subType_ == "planeStrain" ) {
+					*elecToMechInt = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
+														new GradientOperator<FeH1,2,1,Complex>(),
+														elecToMech, 1.0, true);
+					*mechToElecInt = new ADBInt<Complex>(new GradientOperator<FeH1,2,1,Complex>(),
+														new StrainOperator2D<FeH1,Complex>(),
+														mechToElec, 1.0, true);
+				} else if( subType_ == "planeStress" ) {
+					*elecToMechInt = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
+														new GradientOperator<FeH1,2,1,Complex>(),
+														elecToMech, 1.0, true);
+					*mechToElecInt = new ADBInt<Complex>(new GradientOperator<FeH1,2,1,Complex>(),
+														new StrainOperator2D<FeH1,Complex>(),
+														mechToElec, 1.0, true);
+				} else if( subType_ == "3d") {
+					*elecToMechInt = new ADBInt<Complex>(new StrainOperator3D<FeH1,Complex>(),
+														new GradientOperator<FeH1,3,1,Complex>(),
+														elecToMech, 1.0, true);
+					*mechToElecInt = new ADBInt<Complex>(new GradientOperator<FeH1,3,1,Complex>(),
+														new StrainOperator3D<FeH1,Complex>(),
+														mechToElec, 1.0, true);
+				} else if( subType_ == "2.5d") {
+					*elecToMechInt = new ADBInt<Complex>(new StrainOperator2p5D<FeH1, Complex>(),
+														new GradientOperator2p5D<FeH1, 2, 1, Complex>(),
+														elecToMech, 1.0, true);
+					*mechToElecInt = new ADBInt<Complex>(new GradientOperator2p5D<FeH1, 2, 1, Complex>(),
+														new StrainOperator2p5D<FeH1, Complex>(),
+														mechToElec, 1.0, true);
+				} else {
+					EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+				}
+			}
+			else {
+				if( subType_ == "axi" ) {
+					*elecToMechInt = new ADBInt<Double>(new StrainOperatorAxi<FeH1>(),
+													new GradientOperator<FeH1,2>(),
+													elecToMech, 1.0, true );
+					*mechToElecInt = new ADBInt<Double>(new GradientOperator<FeH1,2>(),
+													new StrainOperatorAxi<FeH1>(),
+													mechToElec, 1.0, true );
+				} else if( subType_ == "planeStrain" ) {
+					*elecToMechInt = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
+														new GradientOperator<FeH1,2>(),
+														elecToMech, 1.0, true);
+					*mechToElecInt = new ADBInt<Double>(new GradientOperator<FeH1,2>(),
+														new StrainOperator2D<FeH1>(),
+														mechToElec, 1.0, true);
+				} else if( subType_ == "planeStress" ) {
+					*elecToMechInt = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
+														new GradientOperator<FeH1,2>(), 
+														elecToMech, 1.0, true);
+					*mechToElecInt = new ADBInt<Double>(new GradientOperator<FeH1,2>(), 
+													 new StrainOperator2D<FeH1>(),
+													 mechToElec, 1.0, true);
+				} else if( subType_ == "3d") {
+					*elecToMechInt = new ADBInt<Double>(new StrainOperator3D<FeH1>(),
+													new GradientOperator<FeH1,3>(), 
+													elecToMech, 1.0, true);
+				 *mechToElecInt = new ADBInt<Double>(new GradientOperator<FeH1,3>(), 
+													new StrainOperator3D<FeH1>(),
+													mechToElec, 1.0, true);
+				} else if( subType_ == "2.5d") {
+					*elecToMechInt = new ADBInt<Double>(new StrainOperator2p5D<FeH1, Double>(),
+																			new GradientOperator2p5D<FeH1, 2, 1, Double>(),
+																			elecToMech, 1.0, true);
+					*mechToElecInt = new ADBInt<Double>(new GradientOperator2p5D<FeH1, 2, 1, Double>(),
+																			new StrainOperator2p5D<FeH1, Double>(),
+																			mechToElec, 1.0, true);
+				} else {
+					EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+				}
+			}
+			return true;
+		} else {
+			// NON-HYST CASE 
+			*elecToMechInt = GetStiffIntegrator( actSDMat, regionId, isComplex );
+			return false;
+		}
+  }
+  
   BaseBDBInt *
   PiezoCoupling::GetStiffIntegrator( BaseMaterial* actSDMat,
                                      RegionIdType regionId,
@@ -572,70 +1005,74 @@ namespace CoupledField {
     } else {
       curCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR, tensorType, 
                                            Global::REAL, true );
-    }
-    
-    // ----------------------------------------
-    //  Determine correct stiffness integrator 
-    // ----------------------------------------
+    }	
 
-    // NOTE: here we have to couple +Bu with +GradV as in the constitutive equations Bu and -E are coupled!
-    // -> no factor -1 here
-    BaseBDBInt * integ = NULL;
-    if ( isComplex ) {
-      if( subType_ == "axi" ) {
-        integ = new ADBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,2,1,Complex>(),
-                                    curCoef, 1.0, true );
-      } else if( subType_ == "planeStrain" ) {
-        integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,2,1,Complex>(),
-                                    curCoef, 1.0, true);
-      } else if( subType_ == "planeStress" ) {
-        integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,2,1,Complex>(),
-                                    curCoef, 1.0, true);
-      } else if( subType_ == "3d") {
-        integ = new ADBInt<Complex>(new StrainOperator3D<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,3,1,Complex>(),
-                                    curCoef, 1.0, true);
-      } else if( subType_ == "2.5d") {
-        integ = new ADBInt<Complex>(new StrainOperator2p5D<FeH1, Complex>(),
-                                    new GradientOperator2p5D<FeH1, 2, 1, Complex>(),
-                                    curCoef, 1.0, true);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
-      }
-    }
-    else {
-      if( subType_ == "axi" ) {
-        integ = new ADBInt<Double>(new StrainOperatorAxi<FeH1>(),
-                                   new GradientOperator<FeH1,2>(),
-                                   curCoef, 1.0, true );
-      } else if( subType_ == "planeStrain" ) {
-        integ = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
-                                   new GradientOperator<FeH1,2>(),
-                                   curCoef, 1.0, true);
-      } else if( subType_ == "planeStress" ) {
-        integ = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
-                                   new GradientOperator<FeH1,2>(), 
-                                   curCoef, 1.0, true);
-      } else if( subType_ == "3d") {
-        integ = new ADBInt<Double>(new StrainOperator3D<FeH1>(),
-                                   new GradientOperator<FeH1,3>(), 
-                                   curCoef, 1.0, true);
-      } else if( subType_ == "2.5d") {
-        integ = new ADBInt<Double>(new StrainOperator2p5D<FeH1, Double>(),
-                                    new GradientOperator2p5D<FeH1, 2, 1, Double>(),
-                                    curCoef, 1.0, true);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
-      }
-    }
+		BaseBDBInt * integ = NULL;
+		
+		// NON-HYST CASE -> Symmetric
+		// ----------------------------------------
+		//  Determine correct stiffness integrator 
+		// ----------------------------------------
 
+		// NOTE: here we have to couple +Bu with +GradV as in the constitutive equations Bu and -E are coupled!
+		// -> no factor -1 here
+		if ( isComplex ) {
+			if( subType_ == "axi" ) {
+				integ = new ADBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(),
+																		new GradientOperator<FeH1,2,1,Complex>(),
+																		curCoef, 1.0, true );
+			} else if( subType_ == "planeStrain" ) {
+				integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
+																		new GradientOperator<FeH1,2,1,Complex>(),
+																		curCoef, 1.0, true);
+			} else if( subType_ == "planeStress" ) {
+				integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
+																		new GradientOperator<FeH1,2,1,Complex>(),
+																		curCoef, 1.0, true);
+			} else if( subType_ == "3d") {
+				integ = new ADBInt<Complex>(new StrainOperator3D<FeH1,Complex>(),
+																		new GradientOperator<FeH1,3,1,Complex>(),
+																		curCoef, 1.0, true);
+			} else if( subType_ == "2.5d") {
+				integ = new ADBInt<Complex>(new StrainOperator2p5D<FeH1, Complex>(),
+																		new GradientOperator2p5D<FeH1, 2, 1, Complex>(),
+																		curCoef, 1.0, true);
+			} else {
+				EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+			}
+		}
+		else {
+			if( subType_ == "axi" ) {
+				integ = new ADBInt<Double>(new StrainOperatorAxi<FeH1>(),
+																	 new GradientOperator<FeH1,2>(),
+																	 curCoef, 1.0, true );
+			} else if( subType_ == "planeStrain" ) {
+				integ = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
+																	 new GradientOperator<FeH1,2>(),
+																	 curCoef, 1.0, true);
+			} else if( subType_ == "planeStress" ) {
+				integ = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
+																	 new GradientOperator<FeH1,2>(), 
+																	 curCoef, 1.0, true);
+			} else if( subType_ == "3d") {
+				integ = new ADBInt<Double>(new StrainOperator3D<FeH1>(),
+																	 new GradientOperator<FeH1,3>(), 
+																	 curCoef, 1.0, true);
+			} else if( subType_ == "2.5d") {
+				integ = new ADBInt<Double>(new StrainOperator2p5D<FeH1, Double>(),
+																		new GradientOperator2p5D<FeH1, 2, 1, Double>(),
+																		curCoef, 1.0, true);
+			} else {
+				EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+			}
+		}
+
+		
     return integ;
 
   }
   
+	
   BaseBDBInt* PiezoCoupling::GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor)
   {
     SubTensorType tensorType = NO_TENSOR;

@@ -280,11 +280,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 				  curCoef.reset(new CoefFunctionHyst( actMat, actSDList,
 						  magFieldCoef,tensorType,MAG_RELUCTIVITY, mySpace));
 
-				//  std::cout << "Add to hystCoefs" << std::endl;
-				//  std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
-				  hysteresisCoefs_->AddRegion( actRegion, curCoef);
-				//  std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
-				  //std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
+            hysteresisCoefs_->AddRegion( actRegion, curCoef);
+
 //
 //      enum Hysteresis_fixpoint removed; the different hysteresis types are no selectable
 //      via input flag evaluationParameter > see stdSolveStep for more info
@@ -315,7 +312,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 //
 //					  isHysteresisFixPoint_ = true;
 //				  } else {
-//					//  std::cout << "Using DeltaMaterial Hysteresis" << std::endl;
 //
 //					  curCoef = curCoef_tmp;
 //					  isHysteresisFixPoint_ = false;
@@ -359,13 +355,11 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
 			  // add also material to global, distributed reluctivity coefficient function
 			  if ( nonLinTypes.Find(HYSTERESIS) != -1){// || nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
-			   // std::cout << "Do not add to reluc" << std::endl;
 			    /*
 			     * we cannot directly add coefFunctionHyst to reluc_ as reluc_ expects tensorial coefFncs
 			     * but coefFunctionHyst has to be a vector coefFnc
 			     */
 			  } else {
-			   // std::cout << "Add to reluc" << std::endl;
 			    reluc_->AddRegion(actRegion, curCoef);
 			  }
 
@@ -873,8 +867,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           }
         }
 
-        //std::cout << "type of lin: " << typeid(lin).name() << std::endl;
-
         lin->SetName("rhs_magnetization");
         LinearFormContext *ctx = new LinearFormContext( lin );
         ctx->SetEntities( actSDList );
@@ -996,7 +988,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
                                            Global::REAL, false );
     }
 
-  //  std::cout << "coefUpdateGeoMag " << coefUpdateGeo << std::endl;
 
     if ( complexMat) {
 	  // NEW: 3.7.15
@@ -1081,7 +1072,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     // Use complete implicit scheme
     Double gamma = 1;
     GLMScheme * scheme = new Trapezoidal(gamma);
-   // std::cout << "nonLin_?" << nonLin_ << std::endl;
 
     TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
