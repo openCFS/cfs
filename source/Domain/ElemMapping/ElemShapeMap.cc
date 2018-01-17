@@ -137,12 +137,12 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
   };
 
-//  // safety check for negative Jacobian determinant
-//  if (jacDet <= 0.0) {
-//	  std::cout << jacDet << std::endl;
-//    EXCEPTION(
-//        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
-//  }
+  // safety check for negative Jacobian determinant
+  if (jacDet <= 0.0) {
+	  std::cout << jacDet << std::endl;
+    EXCEPTION(
+        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
+  }
 
   // Check, if geometry is axi-symmetric. In this case scale the
   // Jacobian determinant with 2*pi*r

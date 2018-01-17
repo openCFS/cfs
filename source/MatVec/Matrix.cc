@@ -899,8 +899,19 @@ namespace CoupledField
       Matrix<Double> QT;
       QT.Resize(3,3);
       Q.Transpose(QT);
-      helpMat   = (*this) * QT;
-      retMat = Q * helpMat;
+
+      // shouldn't this work for 2x3 tensors?
+      if ( rowSize == 2 && colSize == 3 ) {
+        helpMat   = (*this) * QT;
+        retMat = R * helpMat;
+      }
+      else if (rowSize == 3 && colSize == 3 ) {
+        helpMat   = (*this) * QT;
+        retMat = Q * helpMat;
+      }
+
+      //helpMat   = (*this) * QT;
+      //retMat = Q * helpMat;
       std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
 
     } else if( (rowSize == 3 && colSize == 6) ||

@@ -172,6 +172,14 @@ namespace CoupledField {
     bool IsIterCoupled() 
     { return isIterCoupled_;};
 
+    shared_ptr<CoefFunctionMulti> GetHystCoefs(){
+      return hysteresisCoefs_;
+    }
+    
+    void InitHystCoefs(){
+      EXCEPTION("Not implemented in base class");
+    }
+    
     std::map<RegionIdType, StdVector<NonLinType> >& GetNonLinRegionTypes() 
     { return regionNonLinTypes_;};
 
@@ -326,8 +334,10 @@ namespace CoupledField {
     bool nonLin_;           //!< flag for nonlinear calculations
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
-    bool isHysteresis_;     //!< flag for hysteresis
+    // note: not all regions have to have hysteretic material behavior
+    bool isHysteresis_;
     bool isHysteresisFixPoint_;
+
     bool matDepend_;        //!< flag for material dependencies
 
     //! map for each region the type of nonlinearity
@@ -375,7 +385,6 @@ namespace CoupledField {
     //! \name Attributes connected to handling PDE coupling
     bool isIterCoupled_;        //!< PDE couples with others
     //@}
-
 
     // -----------------------------------------------------------------------
     // Time stepping
@@ -452,6 +461,12 @@ namespace CoupledField {
 
     //! This map stores the hysteresis coefFunctions
     shared_ptr<CoefFunctionMulti> hysteresisCoefs_;
+    
+    //! This map stores the polarization obtained by hysteresis coefFunctions
+    shared_ptr<CoefFunctionMulti> hysteresisPolarization_;
+    
+    //! This map stores the irreversible strains obtained by hysteresis coefFunctions
+    shared_ptr<CoefFunctionMulti> hysteresisStrain_;
 
   }; // class StdPDE
 

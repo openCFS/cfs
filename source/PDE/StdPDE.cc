@@ -438,7 +438,10 @@ namespace CoupledField {
             it->second->SetRuntimeDependentFlag(flagName,newState);
           }
         }
-     }
+     } else {
+			// check for coupled case if one of the pdes is hysteretic
+			//if(){}
+		 }
   }
 } // end of namespace
 

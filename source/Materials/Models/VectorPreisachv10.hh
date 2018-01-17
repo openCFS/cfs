@@ -8,7 +8,7 @@
 //#include "Preisach.hh"
 
 namespace CoupledField {
-
+  
 class Rectangle
 {
 public:
@@ -678,7 +678,497 @@ public:
       return ( preisachSum_[idElem] );
     }
   }
+  
+  //! returns the current input of the hyst-operator for element idxElem
+  Vector<Double> getInput_vec( Integer idElem )
+  {
+    return actXval_[idElem];
+  }
+  
+  bool checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol){
+    // According to Dahmen&Reusken - Numerik partieller DFG
+    // the residual is a non-sufficient condition
+    // instead we have to check the norm of jacT*res
+    Vector<Double> errorVec = Vector<Double>(dim_);
+    jacT.Mult(res,errorVec); 
+    errorNorm = errorVec.NormL2();
+    
+    std::cout << "CheckConvergence" << std::endl;
+    std::cout << "resIn: " << res.ToString() << std::endl;
+    std::cout << "jacT: " << jacT.ToString() << std::endl;
+    std::cout << "ErrorVec: " << errorVec.ToString() << std::endl;
+    
+    if(errorNorm <= tol){
+      return true;
+    } else {
+      return false;
+    }
+    
+  }
+  
+  Integer checkIncrement(Vector<Double>& xUpdate, Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac){
+    // According to Dahmen & Reusken, we have to check
+    // our increment by computing
+    // 
+    // rho = (||F(x)||^2 - ||F(x + increment)||^2) /
+    //       (||F(x||^2 - ||F(x) + F'(x)*increment||^2)
+    //
+    // F = residual
+    // F' = Jacobian
+    Double resNorm = res.NormL2();
+    Double resShiftedNorm = resShifted.NormL2();
+    Vector<Double> tmp = Vector<Double>(dim_);
+    jac.Mult(xUpdate,tmp);
+    
+    std::cout << "xUpdate: " << xUpdate.ToString() << std::endl;
+    std::cout << "jac: " << jac.ToString() << std::endl;
+    std::cout << "tmp: " << tmp.ToString() << std::endl;
+    
+    tmp = tmp + res;
+    Double tmpNorm = tmp.NormL2();
+    Double a = resNorm*resNorm - resShiftedNorm*resShiftedNorm;
+    Double b = resNorm*resNorm - tmpNorm*tmpNorm;
+    std::cout << "resNorm*resNorm - resShiftedNorm*resShiftedNorm: " << a << std::endl;
+    std::cout << "resNorm*resNorm - tmpNorm*tmpNorm: " << b  << std::endl;
+    Double rho = (resNorm*resNorm - resShiftedNorm*resShiftedNorm);
+    rho = rho/( resNorm*resNorm - tmpNorm*tmpNorm );
+    
+    // 0 < beta0 < beta1 < 1
+    Double beta0 = 0.15;
+    Double beta1 = 0.85;
+    
+    std::cout << "rho: " << rho << std::endl;
+    if(rho < beta0){
+      // increment not accepted; increase alpha in linesearch
+      return 1;
+    } else if(rho > beta1){
+      // increment accepted; decrease alpha for next linesearch call
+      return -1;
+    } else {
+      // increment ok; keep alpha as startvalue for next linesearch
+      return 0;
+    }
+    
+  }
+    
+  Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Double mu, Integer idElem, bool includeMu,bool wrtX){  
 
+    Vector<Double> res = Vector<Double>(dim_);
+    Vector<Double> hystVal;
+    // no permanent change to hyst operator
+    bool overwrite = false;
+    if(wrtX){
+      /*
+       * OLD: Residual wrt x
+       */
+      // NOTE: hystVal = electric or magnetic POLARIZATION
+      // yVal = mu*xVal + hystVal
+      // > res = (yVal - hystVal)/mu - xVal
+      // residual is computed wrt xVal
+      // to get residual wrt yVal, we have to multiply residual by mu
+      res = yVal;
+      hystVal = computeValue_vec(xVal, idElem, overwrite);
+      res -= hystVal;
+      res /= mu;
+      res -= xVal;
+
+    } else {
+      /*
+       * NEW: Residual wrt y
+       * 
+       * NOTE: Error in x will be larger than if residual is reduced wrt to x
+       * BUT: much faster convergence!
+       * 
+       */
+      res = yVal;
+      hystVal = computeValue_vec(xVal, idElem, overwrite);
+      res -= hystVal;
+
+      if(includeMu){
+        res.Add(-mu,xVal);
+      }
+    }
+    return res;
+  } 
+
+  Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Double mu, Integer idElem, Double sign, bool includeMu,bool wrtX){
+    
+//    std::cout << "CompueJacobian" << std::endl;
+    Double deltaXmin = 1e-10;
+    Double scal = 1e-8;
+    Double deltaX;
+
+    Vector<Double> xShifted;
+    Vector<Double> hystShifted;
+
+    bool overwrite = false;
+    Vector<Double> hyst = computeValue_vec(xVal, idElem, overwrite);
+
+    std::cout << "xVal: " << xVal.ToString() << std::endl;
+    std::cout << "yVal: " << hyst.ToString() << std::endl;
+    
+    Matrix<Double> jac = Matrix<Double>(dim_,dim_);
+    
+//    if(xVal.NormL2() >= XSaturated_){
+//      // last value is in saturation but yVal seems not (as we otherwise would
+//      // end up here);
+//      // we have to reduce xVal for the computation of Jacobian, as we otherwise
+//      // would get deltaY = hyst(xVal+delta) - hyst(xVal) = ySat-ySat = 0
+//      sign = -1.0;
+//    }
+    
+    if(wrtX){
+      /*
+       * OLD: Compute Jacobian for residual wrt x
+       */   
+      // NOTE: hystVal = electric or magnetic POLARIZATION
+      // jac = jacobian of residual
+      //     = dRes(xVal)/dxVal
+      //     = d( (yVal - hystVal)/mu - xVal ) / dxVal
+      // > jac_ij = -delta_ij - dhystVal_i/dxVal_j/mu
+      // with delta_ij being the kronecker delta
+      for(UInt i = 0; i < dim_; i++){
+        xShifted = xVal;
+
+        if(xVal.NormL2() >= XSaturated_){
+          // last value is in saturation but yVal seems not (as we otherwise would
+          // end up here);
+          // we have to reduce xVal for the computation of Jacobian, as we otherwise
+          // would get deltaY = hyst(xVal+delta) - hyst(xVal) = ySat-ySat = 0
+          // 1. set xShifted to xVal > already donw
+          // 2. scale xShifted by XSaturated_/xShifted.NormL2()
+          xShifted *= (XSaturated_/xShifted.NormL2());
+
+          sign = -1.0;
+        } 
+                
+        if( xVal[i] < 0 ){
+          deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
+        } else {
+          deltaX = sign*std::max( scal*xVal[i], deltaXmin );
+        }
+
+        xShifted[i] += deltaX;
+        
+        
+        // it might be that xShifted still might be in saturation even though
+        // deltaX was negative
+        // > in that case reduce xShifted just below sat value
+//        if((xShifted[i] >= XSaturated_)&&(xVal[i] >= XSaturated_)){
+//          xShifted[i] = (1.0-scal)*XSaturated_;
+//        } else if ((xShifted[i] <= -XSaturated_)&&(xVal[i] <= -XSaturated_)){
+//          xShifted[i] = -(1.0-scal)*XSaturated_;
+//        }
+        hystShifted = computeValue_vec(xShifted, idElem, overwrite);
+        
+        jac[i][i] = -1.0;
+        for(UInt j = 0; j < dim_; j++){
+          jac[j][i] -= (hystShifted[j]-hyst[j])/deltaX/mu; 
+        }
+
+      }
+    } else {
+      /*
+       * NEW: Compute Jacobian for residual wrt y
+       */ 
+      // NOTE: hystVal = electric or magnetic POLARIZATION
+      // jac = jacobian of residual
+      //     = dRes(xVal)/dxVal
+      //     = d( (yVal - hystVal) - mu*xVal ) / dxVal
+      // > jac_ij = -mu*delta_ij - dhystVal_i/dxVal_j
+      // with delta_ij being the kronecker delta
+      for(UInt i = 0; i < dim_; i++){
+        xShifted = xVal;
+
+        if(xVal.NormL2() >= XSaturated_){
+          // last value is in saturation but yVal seems not (as we otherwise would
+          // end up here);
+          // we have to reduce xVal for the computation of Jacobian, as we otherwise
+          // would get deltaY = hyst(xVal+delta) - hyst(xVal) = ySat-ySat = 0
+          // 1. set xShifted to xVal > already donw
+          // 2. scale xShifted by XSaturated_/xShifted.NormL2()
+          xShifted *= (XSaturated_/xShifted.NormL2());
+
+          sign = -1.0;
+        } 
+        
+        if( xVal[i] < 0 ){
+          deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
+        } else {
+          deltaX = sign*std::max( scal*xVal[i], deltaXmin );
+        }
+
+        xShifted[i] += deltaX;
+        
+        // it might be that xShifted still might be in saturation even though
+        // deltaX was negative
+        // > in that case reduce xShifted just below sat value
+//        if((xShifted[i] >= XSaturated_)&&(xVal[i] >= XSaturated_)){
+//          xShifted[i] = (1.0-scal)*XSaturated_;
+//        } else if ((xShifted[i] <= -XSaturated_)&&(xVal[i] <= -XSaturated_)){
+//          xShifted[i] = -(1.0-scal)*XSaturated_;
+//        }
+        
+        hystShifted = computeValue_vec(xShifted, idElem, overwrite);
+
+        std::cout << "sign: " << sign << std::endl;
+        std::cout << "deltaX: " << deltaX << std::endl;
+        std::cout << "xShifted: " << xShifted.ToString() << std::endl;
+        std::cout << "hystShifted: " << hystShifted.ToString() << std::endl;
+        
+        for(UInt j = 0; j < dim_; j++){
+          jac[j][i] = -(hystShifted[j]-hyst[j])/deltaX; 
+        }
+
+        if(includeMu){
+          jac[i][i] -= mu;
+        }
+
+      }
+    }
+    return jac;
+
+  }  
+ 
+  bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Double mu, Integer idElem,
+        Vector<Double>& res, Matrix<Double>& jac, Matrix<Double>& jacT,Double& alpha, Vector<Double>& xUpdate, bool includeMu,bool wrtX){
+    
+    UInt maxIter = 25;
+    UInt itCnt = 0;
+    
+    Matrix<Double> matToInvert = Matrix<Double>(dim_,dim_);
+    Matrix<Double> matInverted = Matrix<Double>(dim_,dim_);
+    Matrix<Double> jacTjac = Matrix<Double>(dim_,dim_);
+    jacT.Mult(jac,jacTjac);
+    Vector<Double> jacTres_neg = Vector<Double>(dim_);
+    Vector<Double> resNew = Vector<Double>(dim_);
+    Vector<Double> xNew = Vector<Double>(dim_);
+    Integer check;
+    
+    jacT.Mult(res,jacTres_neg);
+    jacTres_neg = jacTres_neg*(-1.0);
+    
+    Double alphaMax = 1e2;
+    Double alphaMin = 1e-15;
+    
+    bool success = false;
+    
+    while(true){
+      itCnt++;
+      
+      matToInvert = jacTjac;
+      for(UInt i = 0; i < dim_; i++){
+        matToInvert[i][i] +=  alpha*alpha;
+      }
+      
+      matToInvert.Invert(matInverted);
+      matInverted.Mult(jacTres_neg,xUpdate);
+      
+      xNew = xVal;
+      xNew += xUpdate;
+      resNew = computeResidual(xNew,yVal,mu,idElem,includeMu,wrtX);
+      
+      check = checkIncrement(xUpdate, res, resNew, jac);
+      
+      if(check == -1){
+        success = true;
+        alpha = alpha/2.0;
+        if(alpha < alphaMin){
+          // minimal alpha used; stop here
+          alpha = alphaMin;
+          break;
+        }
+      } else if(check == 0){
+        success = true;
+      } else {
+        success = false;
+        alpha = alpha*2.0;
+        if(alpha > alphaMax){
+          // maximal alpha used; stop here (regardless of success
+          alpha = alphaMax;
+          break;
+        }
+      }
+      
+      if(success){
+        std::cout << "LN Success after " << itCnt++ << " iterations" << std::endl;
+        break;
+      } else {
+        if(itCnt >= maxIter){
+          break;
+        }
+      }
+    }
+    
+    return success;
+    
+  }
+  
+  //! Try to compute input xVal to hyst operator, such that mu*xVal + H(xVal) = yVal
+  // return usable input xVal
+  Vector<Double> computeInput_vec(Vector<Double>& yVal, Integer idElem, Double mu, Double& alpha, 
+                bool overwrite = true,bool overwriteDirection = true){
+    
+    
+    Vector<Double> xVal = Vector<Double>(dim_);
+
+    bool wrtX = false;
+    
+    /*
+     * Check if yVal is beyond saturation > easy case
+     */
+    Double yNorm = yVal.NormL2();
+   
+    std::cout << "yNorm: " << yNorm << std::endl;
+    std::cout << "yNorm-YSaturated_: " << yNorm-YSaturated_ << std::endl;
+    if(yNorm >= YSaturated_){
+      std::cout << "Use simple approach" << std::endl;
+      // Important consequences:
+      // a) material is completely aligned with outer field (at least in Sutors model and therefore also x
+      // b) mu (eps) adds an important contribution
+      // c) xVal = (yVal - ySat+xSat*mu)/mu + xSat
+      //         = (yVal - ySat)/mu
+      Vector<Double> ySat = yVal;
+      ySat *= (YSaturated_/yNorm);
+      xVal = yVal;
+      xVal -= ySat;
+      xVal /= mu;
+    } 
+    /*
+     * Use Levenberg-Marquart algorithm as presented in Dahmen&Reusken - Numerik partialler DFG
+     */   
+    else {
+      std::cout << "Try LM" << std::endl;
+      // check if we have to take care of mu (eps) during computation of residual and so on
+      // this is only required, if mu (eps) adds a significant contribution to the output
+      Double slopeHyst = YSaturated_/XSaturated_;
+      
+      // tolerance wrt y > 1e-10 or 1e-12 seems good > takes 2-3 its
+      // only problem: y-x-loops look ugly as x can be quite off!
+      Double tolError = 1e-11;  
+      Double tolY = tolError;
+      if(wrtX){
+        // if we reduce wrt X use larger tol
+        // > error for y will be similar small
+        tolError = 10;
+        //tolError /= mu;
+      }
+      
+      UInt maxIter = 25;
+      UInt itCnt = 0;
+      
+      bool includeMu = !false;
+//      if(mu > slopeHyst*1e-2){
+//        std::cout << "mu = " << mu << " might have a significant influence as YSat/Xsat = " << slopeHyst << std::endl;
+//        includeMu = true;
+//      } else {
+//        std::cout << "mu = " << mu << " << YSat/Xsat = " << slopeHyst << std::endl;
+//        std::cout << "Will not consider its contribution during optimizations" << std::endl;
+//      }
+  
+      // use last compute Xval as starting ppoint
+      xVal = actXval_[idElem];
+      
+      Vector<Double> diff = yVal;
+      diff -= actYval_[idElem];
+      
+      if(diff.NormL2() < tolY){
+        std::cout << "Difference between requested yVal and previously computed yVal < " << tolY << std::endl;
+        return xVal;
+      }
+
+      Vector<Double> xUpdate = Vector<Double>(dim_);
+
+      // check if a starting value for the linesearch paramater alpha was given
+      // if not: set some starting value (found out by testing to be quite ok)
+      if(alpha < 0.0){
+        if(wrtX){
+          // large alpha needed
+          alpha = 10/std::sqrt(mu);;
+        } else {
+          // small alpha needed
+          alpha = 0.1*std::sqrt(mu);
+        }
+      }
+
+      Double sign = 1.0;
+      bool success = false;
+      bool successLS = false;
+
+      Vector<Double> res = Vector<Double>(dim_);
+      Matrix<Double> jac = Matrix<Double>(dim_,dim_);
+      Matrix<Double> jacT = Matrix<Double>(dim_,dim_);
+      Double errorNorm;
+
+      while(true){
+        itCnt++;
+        res = computeResidual(xVal,yVal,mu,idElem,includeMu,wrtX);
+        jac = computeJacobian(xVal,yVal,mu,idElem,sign,includeMu,wrtX);
+        jac.Transpose(jacT);
+
+        success = checkConvergence(res,jacT,errorNorm,tolError);
+        if(success){
+          std::cout << "Inversion success after it " << itCnt << std::endl;
+          if(wrtX){
+            std::cout << "Remaining error-Norm wrt xVal: " << errorNorm << std::endl;
+            Vector<Double> resY = res;
+            resY *= mu;
+            std::cout << "Remaining error-Norm wrt yVal: " << resY.NormL2() << std::endl;
+          } else {
+            std::cout << "Remaining error-Norm wrt yVal: " << errorNorm << std::endl;
+            Vector<Double> resX = res;
+            resX /= mu;
+            std::cout << "Remaining error-Norm wrt xVal: " << resX.NormL2() << std::endl;
+          }
+
+          break;
+        } else {
+          if(itCnt >= maxIter){
+            std::cout << "Inversion could not find a solution after " << itCnt << " iterations" << std::endl;
+
+            if(wrtX){
+              std::cout << "Remaining error-Norm wrt xVal: " << errorNorm << std::endl;
+              Vector<Double> resY = res;
+              resY *= mu;
+              std::cout << "Remaining error-Norm wrt yVal: " << resY.NormL2() << std::endl;
+            } else {
+              std::cout << "Remaining error-Norm wrt yVal: " << errorNorm << std::endl;
+              Vector<Double> resX = res;
+              resX /= mu;
+              std::cout << "Remaining error-Norm wrt xVal: " << resX.NormL2() << std::endl;
+            }
+            
+            break;
+          }
+        }
+
+//        std::cout << "currentValue of x: " << xVal.ToString() << std::endl;
+//        std::cout << "residual: " << res.ToString() << std::endl;
+
+        std::cout << "Perform Linesearch; starting error: " << errorNorm << std::endl;
+        successLS = performLinesearch(xVal,yVal,mu,idElem,res,jac,jacT,alpha,xUpdate,includeMu,wrtX);
+
+        if(successLS){
+          std::cout << "Linesearch was successful" << std::endl;
+          std::cout << "newAlpha: " << alpha << std::endl;
+          std::cout << "xUpdate: " << xUpdate.ToString() << std::endl;
+        } else {
+          std::cout << "Linesearch was NOT successful" << std::endl;
+          std::cout << "newAlpha: " << alpha << std::endl;
+          std::cout << "xUpdate: " << xUpdate.ToString() << std::endl;
+        }
+
+        xVal = xVal+xUpdate;
+        sign = sign*(-1.0);
+
+      }
+    }
+    actYval_[idElem] = yVal;
+    actXval_[idElem] = xVal;
+    return xVal;
+    
+  }
+  
   void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false){
     EXCEPTION("Not implemented in base class");
   }
@@ -719,7 +1209,7 @@ protected:
   /*!
    * Global quantities, i.e. the same for all FE elements of the same material
    */
-  Double Xsaturated_; //! saturation value for  input
+  Double XSaturated_; //! saturation value for  input
   Double YSaturated_; //! saturation value for output
 
   Matrix<Double> preisachWeights_; //! preisach weight function
@@ -744,6 +1234,12 @@ protected:
   Vector<Double>* preisachSum_;
   Vector<Double>* preisachSumTmp_;
 
+  /*
+   * for inversion 
+   */
+  Vector<Double>* actXval_;
+  Vector<Double>* actYval_;  
+ 
   /*!
    * Quantities needed by the revised approach (Sutor2015)
    */
