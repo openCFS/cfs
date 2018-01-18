@@ -1079,6 +1079,8 @@ def calc_cross_elem_vol_3D(s1,s2,s3):
 def write_stl(polydata,save=None):
   stlWriter =  vtk.vtkSTLWriter()
   fName = save if save else 'surface.stl'
+  if not fName.endswith(".stl"):
+    fName += ".stl"
   stlWriter.SetFileName(fName)
   stlWriter.SetInputData(polydata)
   stlWriter.Write()
@@ -1087,13 +1089,19 @@ def write_stl(polydata,save=None):
 
 # take points and cells list/arrays and create polydata
 # stores shortest edge length in 'short'
-def fill_vtk_polydata(points,cells):
+# optional pointIds, in case point ids don't match with list index of 'points'
+def fill_vtk_polydata(points,cells,pointIds=None):
   vtk_points = vtk.vtkPoints()
   vtk_cells = vtk.vtkCellArray()
   polydata = vtk.vtkPolyData()
   
-  for p in points:
-    vtk_points.InsertNextPoint(p)
+  if not pointIds:
+    for p in points:
+      vtk_points.InsertNextPoint(p)
+  else:
+    vtk_points.SetNumberOfPoints(len(points))
+    for i,p in enumerate(points):
+      vtk_points.InsertPoint(pointIds[i], p)
   
   for ce in cells:
     if len(ce) == 3: # triangle

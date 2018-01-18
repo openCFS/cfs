@@ -19,6 +19,7 @@ import sys
 
 # return list with length len(points)
 # for each point, this list gives the ids of its neighbors
+# assume that idx of 'points' is also the point id
 def getConnectivity(points,cells):
   # for each point ( id = array index), store tuple with all neighboring id nodes
   connectivity = [set() for index in range(len(points))]
@@ -41,16 +42,19 @@ def taubin_smoothing(points,connectivity,bounds=None):
   # smoothing parameter: p_i = p_i + lambda*L(p_{i,j})
   lamb = 0.8
   new_points = points
-  old_points = None
+  old_points = new_points
   i = 0
-  while True:
+  res = 999
+  while res > 1e-2:
+    print("iter:",i)
     old_points = new_points
-    new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb),connectivity,-lamb-0.04,bounds)
+    new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb,bounds),connectivity,-lamb-0.04,bounds)
     res = residual(old_points, new_points)
-    if res < 1e-2:
-      print("Taubin smoothing with ", i, " iterations")
-      break
     i += 1
+    if i == 2:
+      break
+  
+  print("Taubin smoothing with ", i, " iterations and res=",res)  
     
   return new_points
 
@@ -74,23 +78,25 @@ def laplacian_smoothing(points,connectivity,lamb,bounds=None):
   for i,vertex in enumerate(points):
     p = vertex
     # don't smooth at the boundary
-#     if np.isclose(p[0], bounds[0]) or np.isclose(p[1], bounds[1]) or np.isclose(p[2], bounds[2]) or np.isclose(p[0], bounds[3]) or np.isclose(p[1], bounds[4]) or np.isclose(p[2], bounds[5]):
-#       new_points[i] = p
-#     else:
-    # calculate L(p_i)
-    # w_ij*p_j + w_ik*p_k
-    num = np.asarray([0,0,0])
-    denom = 0
-    L = 0
-    # nid is id of a neighbor node
-    neighborhood = connectivity[i] 
-    for nid in neighborhood:
-      # n are coords of neighbor with id nid
-      n = points[nid]
-      # distance between neighbor and this node
-      w = 1.0 / np.linalg.norm(len(neighborhood))
-      L = L + w * (n-p)
-    new_points[i] = p + lamb * L   
+    if np.isclose(p[0], bounds[0]) or np.isclose(p[1], bounds[1]) or np.isclose(p[2], bounds[2]) or np.isclose(p[0], bounds[3]) or np.isclose(p[1], bounds[4]) or np.isclose(p[2], bounds[5]):
+#       print("point ",p," is close to bounds ",bounds)
+      new_points[i] = p
+    else:
+      # calculate L(p_i)
+      # w_ij*p_j + w_ik*p_k
+      num = np.asarray([0,0,0])
+      denom = 0
+      L = 0
+      # nid is id of a neighbor node
+      neighborhood = connectivity[i] 
+      for nid in neighborhood:
+        # n are coords of neighbor with id nid
+        n = np.asarray(points[nid])
+        # distance between neighbor and this node
+        w = 1.0 / np.linalg.norm(len(neighborhood))
+        L = L + w * (n-p)
+        
+      new_points[i] = p + lamb * L   
   
   return new_points  
 
@@ -312,7 +318,7 @@ if __name__ == "__main__":
   ################### actual work starts here ##############################
   # we need voxel array for gid mesh writing 
   args.bc_flags = None
-  array, points, cells = draw_profile_functions.generate_basecell(args,infoXml,None)
+  array, points, cells = draw_profile_functions.generate_basecell(args,infoXml)
   volume = calc_volume(array, infoXml)
   
   if args.target == "surface_mesh":
