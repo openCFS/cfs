@@ -87,6 +87,8 @@ SET(CMAKE_ARGS
   -DBUILD_SHARED_LIBS:BOOL=OFF
   -DPHIST_OUTLEV=${PHIST_OUTLEV}
   -DPHIST_ENABLE_MPI:BOOL=OFF
+  # workaround for bug https://bitbucket.org/essex/phist/issues/225/ghost-creating-consistent-sell-c-sigma
+  -DPHIST_SELL_SIGMA=1
   # will not compile w/o openmp and concurrently w/o mpi
   -DPHIST_ENABLE_OPENMP:BOOL=ON
   -DPHIST_ENABLE_COMPLEX:BOOL=ON
