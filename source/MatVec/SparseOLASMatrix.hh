@@ -154,6 +154,21 @@ namespace CoupledField {
       return nnz_;
     }
 
+    /** see the specific implementations */
+    virtual UInt GetRowSize(UInt i) const =0;
+
+    /** implemented in (S)CRS_Matrix but not in VBR_Matrix. Therefore ugly and dangerous OO :( */
+    virtual UInt* GetRowPointer() { assert(false); return NULL; }
+    virtual const UInt* GetRowPointer() const { assert(false); return NULL; }
+
+    /** implemented in (S)CRS_Matrix but not in VBR_Matrix */
+    virtual UInt* GetColPointer() { assert(false); return NULL; }
+    virtual const UInt* GetColPointer() const { assert(false); return NULL; }
+
+    /** implemented in (S)CRS_Matrix but not in VBR_Matrix */
+    virtual T* GetDataPointer() { assert(false); return NULL; }
+    virtual const T* GetDataPointer() const { assert(false); return NULL; }
+
     /** only implemented for CRS_Matrix and SCRS_Matrix */
     virtual unsigned int GetMaxRowSize() const {
       assert(false);
