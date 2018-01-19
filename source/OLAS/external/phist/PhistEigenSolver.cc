@@ -19,13 +19,13 @@
 
 #include "PhistEigenSolver.hh"
 #include "ghost/sparsemat.h"
-#include "phist_config.h"
-#include "phist_types.hpp"
 #include "phist_kernels.hpp"
 #include "phist_core.hpp"
 #include "phist_jada.hpp"
 
 //#include "phist_subspacejada.h"
+
+using std::complex;
 
 
 DECLARE_LOG(pes)
@@ -45,6 +45,8 @@ namespace CoupledField {
     xml_ = xml;
 
     comm_ = NULL;
+
+    scale_mass_ = xml_->Get("scale_mass")->As<bool>();
 
     which.SetName("phist_EeigSort:which");
     which.Add(phist_LM, "lm");
@@ -79,54 +81,15 @@ namespace CoupledField {
     ghost_finalize();
   }
 
-
-  /** implementation of phist_sparseMat_rowFunc which is called for every row to copy the sparse matrix data
-   * @param row global row index (int64 by default)
-   * @param nnz of row (output, int)
-   * @param col - column indices of row (output)
-   * @param values values of row (output)
-   * @param service - cfs internal use: pointer to cfs matrix */
-  int NonSymSparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service)
-  {
-    const StdMatrix* sm = (const StdMatrix*) service;
-    assert(sm != NULL);
-    assert(sm->GetStorageType() == BaseMatrix::SPARSE_NONSYM);
-
-    const CRS_Matrix<double>* mat = (const CRS_Matrix<double>*) service;
-    assert(mat != NULL);
-
-    assert(row >= 0);
-    assert(row < mat->GetNumRows());
-
-    *row_nnz = mat->GetRowSize(row);
-
-    double* data = (double*) values;
-
-    StdVector<int> cols(*row_nnz); // KILLME only for debug output
-    unsigned int base = mat->GetRowPointer()[row];
-    for(int i = 0; i < *row_nnz; i++) {
-      row_col[i] = mat->GetColPointer()[base + i];
-      cols[i] = row_col[i];
-    }
-
-    for(int i = 0; i < *row_nnz; i++)
-      data[i] = mat->GetDataPointer()[base + i];
-
-    LOG_DBG2(pes) << "NSSMRF row=" << row << " row_nnz=" << *row_nnz << " row_col=" << cols.ToString() << " values=" << ToString<double>((double*) values, *row_nnz);
-
-    return 0; // all ok
-  }
-
-
   /** Most used methods from SCRS_Matrix and CRS_Matrix have no common base :(. As templated methods cannot be
    * virtual, this would also be possible for some. Anyway, we do ugly copy&paste here :( */
-  int SymSparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service)
+  int SparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service_void)
   {
-    const StdMatrix* sm = (const StdMatrix*) service;
-    assert(sm != NULL);
-    assert(sm->GetStorageType() == BaseMatrix::SPARSE_SYM);
+    const PhistEigenSolver::SparseMatRowFuncService* service = (const PhistEigenSolver::SparseMatRowFuncService*) service_void;
 
-    const SCRS_Matrix<double>* mat = (const SCRS_Matrix<double>*) service;
+    assert(service->mat->GetStorageType() == BaseMatrix::SPARSE_SYM || service->mat->GetStorageType() == BaseMatrix::SPARSE_NONSYM);
+
+    const SparseOLASMatrix<double>* mat   = dynamic_cast<const SparseOLASMatrix<double>*>(service->mat);
     assert(mat != NULL);
 
     assert(row >= 0);
@@ -144,12 +107,14 @@ namespace CoupledField {
     }
 
     for(int i = 0; i < *row_nnz; i++)
-      data[i] = mat->GetDataPointer()[base + i];
+      data[i] = service->scale * mat->GetDataPointer()[base + i];
 
-    LOG_DBG2(pes) << "SSMRF row=" << row << " row_nnz=" << *row_nnz << " row_col=" << cols.ToString() << " values=" << ToString<double>((double*) values, *row_nnz);
+    LOG_DBG2(pes) << "SSMRF row=" << row << " row_nnz=" << *row_nnz << " scale=" << service->scale << " row_col=" << cols.ToString() << " values=" << ToString<double>((double*) values, *row_nnz);
 
     return 0; // all ok
   }
+
+
 
 
   void PhistEigenSolver::Setup(const BaseMatrix & mat, UInt numFreq, Double freqShift, bool sort)
@@ -164,19 +129,55 @@ namespace CoupledField {
     ToInfo();
   }
 
+void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
+{
+  // skip calculation of eigenvector residuals
+  // download X from GPU if applicable
+  int err = 0;
+  phist::kernels<double>::mvec_from_device(X, &err);
+  assert(err == 0);
+  // get pointer to row/col major block of vectors
+  double* xval = NULL; // will be set to memory owned by phist
+  phist_lidx lda, nloc;
+  phist::kernels<double>::mvec_my_length(X, &nloc, &err);
+  assert(err == 0);
+  phist::kernels<double>::mvec_extract_view(X, &xval, &lda, &err);
+  assert(err == 0);
+  // this is how one can extract the eigenvectors.
+  // TODO: move all of this to CalcEigenFrequencies and other functions below
+  mode_.Resize(nEig, nloc);
+  for (int j = 0; j < nEig; j++)
+  {
+    for (int i = 0; i < nloc; i++)
+    {
+      mode_[j][i] = xval[j * lda + i];
+    }
+  }
+}
 
   void PhistEigenSolver::Setup(const BaseMatrix& stiffMat, const BaseMatrix& massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
   {
     LOG_DBG(pes) << "PES:S(stiff, mass)";
+
+    shared_ptr<Timer> setup = info_->Get(ParamNode::SUMMARY)->Get("phist_setup/timer")->AsTimer();
+    setup->Start();
 
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
 
     SetupCommon(IsSymmetric(stiffMat), numFreq, freqShift, sort, bloch);
 
+    // we scale the B-Matrix as suggested by Jonas:
+    // A*x=lambda*sigma*B*x, with z.B. sigma=1.0/B(1,1) and then rescale
+    double b11;
+    dynamic_cast<const StdMatrix*>(&massMat)->GetDiagEntry(0, b11);
+    assert(b11 > 1e-15);
+    double scale = scale_mass_ ? 1./b11 : 1.0;
+    LOG_DBG(pes) << "PES:S b11=" << b11 << " -> B-scale=" << scale;
+
     // for include stuff issues, A_ and B_ attributes are not of full type
-    phist::types<double>::sparseMat_ptr A = (phist::types<double>::sparseMat_ptr) InitMatrix(stiffMat, &A_);
-    phist::types<double>::sparseMat_ptr B = (phist::types<double>::sparseMat_ptr) InitMatrix(massMat, &B_);
+    phist::types<double>::sparseMat_ptr A = (phist::types<double>::sparseMat_ptr) InitMatrix(stiffMat, &A_, 1.0);
+    phist::types<double>::sparseMat_ptr B = (phist::types<double>::sparseMat_ptr) InitMatrix(massMat, &B_, scale);
 
     // setup eigenvalue problem - taken from subspacejada (jacobi davidson)
     // create an operator from A
@@ -249,37 +250,26 @@ namespace CoupledField {
     phist::kernels<double>::mvec_create(&X,map,nEig,&err);
     assert(err >= 0);
 
+    setup->Stop();
+
+    shared_ptr<Timer> solve = info_->Get(ParamNode::SUMMARY)->Get("phist_solve/timer")->AsTimer();
+    solve->Start();
+
     phist::jada<double>::ComputeEigenvectors(Q,R,X,&err);
     assert(err >= 0);
 
-    // skip calculation of eigenvector residuals
-    
-    // download X from GPU if applicable
-    phist::kernels<double>::mvec_from_device(X,&err);
-    assert(err == 0);
+    // rescale ev_
+    complex<double> rescale(scale, 1.0);
+    LOG_DBG(pes) << "S: rescale ev_ by " << rescale << " org_ev=" << ev_.ToString();
+    ev_.ScalarMult(rescale);
+    LOG_DBG(pes) << "S: scaled ev_=" << ev_.ToString();
 
-    // get pointer to row/col major block of vectors
-    double* xval = NULL; // will be set to memory owned by phist
-    phist_lidx lda, nloc;
-    phist::kernels<double>::mvec_my_length(X,&nloc,&err);
-    assert(err == 0);
-    phist::kernels<double>::mvec_extract_view(X,&xval,&lda,&err);
-    assert(err == 0);
+
+    // skip calculation of eigenvector residuals
+    SaveModes(X, nEig);
+    solve->Stop();
+
     
-    // this is how one can extract the eigenvectors.
-    // TODO: move all of this to CalcEigenFrequencies and other functions below
-    mode_.Resize(nEig, nloc);
-    for (int j=0; j<nEig; j++)
-    {
-      for (int i=0; i<nloc; i++)
-      {
-        #ifdef PHIST_MVECS_ROW_MAJOR
-           mode_[j][i]=xval[i*lda+j];
-        #else
-           mode_[j][i]=xval[j*lda+i];
-        #endif
-      }
-    }
     ToInfo();
   }
 
@@ -357,26 +347,29 @@ namespace CoupledField {
     return sm->GetStorageType() == StdMatrix::SPARSE_SYM;
   }
 
-  sparseMat_t* PhistEigenSolver::InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist)
+  sparseMat_t* PhistEigenSolver::InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, double scale)
   {
     // create stiffness or mass matrix for phist - which will be ghost matrices
-    const SparseOLASMatrix<double>* stiff =  dynamic_cast<const SparseOLASMatrix<double>*>(&cfs);
-    assert(stiff != NULL);
-    assert(stiff->GetStorageType() == StdMatrix::SPARSE_SYM || stiff->GetStorageType() == StdMatrix::SPARSE_NONSYM);
-    bool sym = stiff->GetStorageType() == StdMatrix::SPARSE_SYM;
+    const SparseOLASMatrix<double>* mat =  dynamic_cast<const SparseOLASMatrix<double>*>(&cfs);
+    assert(mat != NULL);
+    assert(mat->GetStorageType() == StdMatrix::SPARSE_SYM || mat->GetStorageType() == StdMatrix::SPARSE_NONSYM);
+    bool sym = mat->GetStorageType() == StdMatrix::SPARSE_SYM;
     LOG_DBG(pes) << "IM: sym=" << sym;
 
-    assert(stiff != NULL);
-    LOG_DBG(pes) << " max row nnz=" << stiff->GetMaxRowSize();
-    LOG_DBG2(pes) << " row=" << stiff->Dump();
-    assert(stiff->GetNumRows() == stiff->GetNumCols());
+    assert(mat != NULL);
+    LOG_DBG(pes) << " max row nnz=" << mat->GetMaxRowSize();
+    LOG_DBG2(pes) << " row=" << mat->Dump();
+    assert(mat->GetNumRows() == mat->GetNumCols());
 
-    int err = 0;
-    phist_sparseMat_rowFunc func = sym ? SymSparseMatRowFunc : NonSymSparseMatRowFunc;
+
+    SparseMatRowFuncService service;
+    service.mat = dynamic_cast<const StdMatrix*>(&cfs);
+    service.scale = scale;
 
     phist::types<double>::sparseMat_ptr smp = (phist::types<double>::sparseMat_ptr) *phist;
     assert(smp == NULL); // we are prior initialization
-    phist::kernels<double>::sparseMat_create_fromRowFunc(&smp, comm_, stiff->GetNumRows(), stiff->GetNumCols(), stiff->GetMaxRowSize(), func, (void*) stiff, &err);
+    int err = 0;
+    phist::kernels<double>::sparseMat_create_fromRowFunc(&smp, comm_, mat->GetNumRows(), mat->GetNumCols(), mat->GetMaxRowSize(), SparseMatRowFunc, (void*) &service, &err);
     assert(err == 0);
     LOG_DBG(pes) << "create smp -> " << err;
     assert(smp != NULL);
@@ -445,15 +438,6 @@ namespace CoupledField {
     assert(modeNr < mode_.GetNumRows()); // assume 0-based
 
     mode.Resize(mode_.GetNumCols());
-    for(unsigned int i = 0; i < mode.GetSize(); i++)
-      mode[i] = mode_[modeNr][i];
+    mode_.GetCol(mode, modeNr);
   }
-
-  void PhistEigenSolver::GetComplexEigenMode(UInt modeNr, Vector<Complex>& mode)
-  {
-    // in bloch mode case the same as GetEigenMode,
-    // in quadratic case the modes have internally double size and we want the upper half
-    assert(false);
-  }
-
 }
