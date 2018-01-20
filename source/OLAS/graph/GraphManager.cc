@@ -227,10 +227,10 @@ namespace CoupledField {
 
     LOG_TRACE(graphMan) << "Finalize Graphmanager (SetupDoneMH) for multiharmonic case";
 
+    // ----------------------------------
+    //   D I A G O N A L    B L O C K S
+    // ----------------------------------
     for (  UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
-      // ----------------------------------
-      //   D I A G O N A L    B L O C K S
-      // ----------------------------------
       UInt idx = ComputeIndex( sbmRow, sbmRow );
 
       // Finalize assembly of graph
@@ -241,10 +241,12 @@ namespace CoupledField {
       // we need to allocate memory to store the resulting permutation
       // vector
       if ( reorder[0] != BaseOrdering::NOREORDERING ) {
-        EXCEPTION("Reordering in multiharmonic analysis not tested!!");
-        //newOrdering_[idx].Resize( blockInfoMH_->numLastFreeIndex );
+        WARN("================================================= \n"
+            " Reordering in multiharmonic analysis not tested!! \n "
+            "================================================= \n");
+        newOrdering_[idx].Resize( blockInfoMH_->numLastFreeIndex );
       }
-      graph_[idx]->FinaliseAssembly( reorder[0], false, &newOrdering_[idx] );
+      graph_[idx]->FinaliseAssembly( reorder[0], false, &newOrdering_[sbmRow] );
       LOG_DBG3(graphMan) << "Reordering array is "
                          << newOrdering_[idx].ToString();
 
@@ -252,14 +254,17 @@ namespace CoupledField {
       if ( graphIDBC_[idx] != NULL ) {
         LOG_DBG(graphMan) << "Finalize IDBC graph (" << sbmRow
                           << ", " << sbmRow << ")";
-        graphIDBC_[idx]->FinaliseAssembly( &newOrdering_[idx] );
+        graphIDBC_[idx]->FinaliseAssembly( &newOrdering_[sbmRow] );
       }
+    }
 
+
+    // -------------------------------------------
+    //   O F F  - D I A G O N A L    B L O C K S
+    // -------------------------------------------
+    for (  UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
       for ( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M ; ++sbmCol ) {
         if( sbmCol < 2 * N + 1){
-          // -------------------------------------------
-          //   O F F  - D I A G O N A L    B L O C K S
-          // -------------------------------------------
           UInt idx = ComputeIndex( sbmRow, sbmCol );
 
           //  Finalize assembly of graph (sorting, re-ordering, conversion to
@@ -274,6 +279,7 @@ namespace CoupledField {
           // diagonal element (sbmCol, sbmCol)
           UInt idxCol = ComputeIndex(sbmCol, sbmCol);
 
+          //TODO now quite clear which difference this makes
           graph_[idx]->FinaliseAssembly( BaseOrdering::NOREORDERING ,
                                          true, &newOrdering_[sbmRow],
                                          &newOrdering_[sbmCol] );
