@@ -3004,6 +3004,7 @@ namespace CoupledField {
     Vector<Double>* xRetrieved = new Vector<Double>[numTests];
     Vector<Double>* yRetrieved = new Vector<Double>[numTests];
     Vector<Double>* yError = new Vector<Double>[numTests];
+    Vector<Double>* xError = new Vector<Double>[numTests];
     Vector<Double>* yIn = new Vector<Double>[numTests]; 
     
     bool isVirgin = true;
@@ -3085,7 +3086,7 @@ namespace CoupledField {
 //    std::cout << "xIn[0]" << xIn[0].ToString() << std::endl;
 //    std::cout << "yIn[0]" << yIn[0].ToString() << std::endl;
     // D = eps*E + P
-    yIn[0] += eps_mu*xIn[0];
+    yIn[0].Add(eps_mu,xIn[0]);
        
     xRetrieved[0] = Vector<Double>(dim_);
     xRetrieved[0].Init(0.0);
@@ -3096,6 +3097,12 @@ namespace CoupledField {
     // evaluate Preisach OP to get the actual output; DO NOT OVERWRITE MEMORY
     yRetrieved[0] = Vector<Double>(dim_);
     yRetrieved[0].Init(0.0);
+    
+    xError[0] = Vector<Double>(dim_);
+    xError[0].Init(0.0);
+    
+    xError[0] = xRetrieved[0];
+    xError[0] -= xIn[0];
     
     yError[0] = Vector<Double>(dim_);
     yError[0].Init(0.0);
@@ -3109,12 +3116,13 @@ namespace CoupledField {
 //    Double inc = 2*MAT_xSat_/( (Double) numTests);
     
     for(UInt i = 1; i < numTests; i++){
+      std::cout << "##### TEST NR " << i << "#####" << std::endl;
 //      xIn[i] = Vector<Double>(dim_);
 //      xIn[i][0] = xIn[i-1][0] + inc;
 //      xIn[i][1] = xIn[i-1][0] + inc/2;
       overwriteMemory = true;
       yIn[i] = hystTMP->computeValue_vec(xIn[i], 0, overwriteMemory, overwriteDirection);
-      yIn[i] += eps_mu*xIn[i];
+      yIn[i].Add(eps_mu,xIn[i]);
       
       overwriteMemory = false;
       xRetrieved[i] = hystTMP->computeInput_vec(yIn[i], 0, eps_mu, alphaLinesearch_, overwriteMemory, overwriteDirection);
@@ -3128,8 +3136,25 @@ namespace CoupledField {
       yRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection);
       yError[i] = yRetrieved[i];
       yError[i] -= yIn[i];
+      
+      xError[i] = Vector<Double>(dim_);
+      xError[i].Init(0.0);
+      
+      xError[i] = xRetrieved[i];
+      xError[i] -= xIn[i];
     
-      testOutput << i<<"    "<<xIn[i][0]<<"    "<<xIn[i][1]<<"    "<<xRetrieved[i][0]<<"    "<<xRetrieved[i][1]<<"    "<<yIn[i][0]<<"    "<<yIn[i][1]<<"    "<<yRetrieved[i][0]<<"    "<<yRetrieved[i][1]<<"    "<<yError[i][0]<<"    "<<yError[i][1]<< std::endl;
+      testOutput << i<<"    "<<xIn[i][0]<<"    "<<xIn[i][1]<<"    "<<xRetrieved[i][0]<<"    "<<xRetrieved[i][1]<<"    "<<xError[i][0]<<"    "<<xError[i][1]<<"    "<<yIn[i][0]<<"    "<<yIn[i][1]<<"    "<<yRetrieved[i][0]<<"    "<<yRetrieved[i][1]<<"    "<<yError[i][0]<<"    "<<yError[i][1]<< std::endl;
+    
+      std::cout << "##### TARGET Y-VECTOR #####" << std::endl;
+      std::cout << yIn[i].ToString() << std::endl;
+      std::cout << "##### CORRECT X-VECTOR #####" << std::endl;
+      std::cout << xIn[i].ToString() << std::endl;
+      std::cout << "##### RETRIEVED X-VECTOR #####" << std::endl;
+      std::cout << xRetrieved[i].ToString() << std::endl;
+      std::cout << "##### ERROR VECTOR wrt X #####" << std::endl;
+      std::cout << xError[i].ToString() << std::endl;
+      std::cout << "##### ERROR VECTOR wrt Y #####" << std::endl;
+      std::cout << yError[i].ToString() << std::endl;
     }
     testOutput.close();
     
