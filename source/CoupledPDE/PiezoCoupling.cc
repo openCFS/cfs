@@ -60,7 +60,8 @@ namespace CoupledField {
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
-    nonLin_ = false;
+    //nonLin_ = false;
+		nonLin_ = pde1_->IsNonLin() || pde2_->IsNonLin();
     
     // Initialize nonlinearities
     InitNonLin();
