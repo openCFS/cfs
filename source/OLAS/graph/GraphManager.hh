@@ -108,8 +108,13 @@ class IDBC_Graph;
     //!                          graph manager will administer.
     //! \param useDistinctGraphs if true, every matrixType (MASS, STIFFNESS)
     //!                          can have a different sparsity and subBlock
-    //!                          pattern. 
-    void SetupInit( UInt numBlocks, bool useDistinctGraphs, bool isMultHarm = false);
+    //!                          pattern.
+    //! \param isMultHarm        True if we perform a multiharmonic analysis
+    //! \param N, M              Number of harmonics
+    void SetupInit( UInt numBlocks, bool useDistinctGraphs,
+                    bool isMultHarm = false,
+                    UInt N = 0,
+                    UInt M = 0);
 
     //! Finalises setup of the graph manager
 
@@ -157,8 +162,6 @@ class IDBC_Graph;
     //! Before a matrix block can set its sparsity pattern, the matrix
     //! block has to be registered and the number of unknowns and
     //! non free equations has to be set.
-    //! \param row            row number of the sbm block to be defined
-    //! \param col            column number of the sbm block to be defined
     //! \param blockInfo      pointer to structure containing the information
     //!                       how the SBMBlock is defined, i.e. a mapping
     //!                       of all equations defining this block and their
@@ -169,9 +172,7 @@ class IDBC_Graph;
     //! \note A SBMBlock can only be reordered, if it has no subblocks defined,
     //!       as otherwise we can not guarantee for continuous indices within
     //!       one block.
-    void RegisterBlockMultHarm( const UInt row,
-                                const UInt col,
-                                SBMBlockInfo* blockInfo );
+    void RegisterBlockMultHarm( SBMBlockInfo* blockInfo );
 
 
 
@@ -211,8 +212,7 @@ class IDBC_Graph;
                                 const StdVector<UInt>& colBlock,
                                 const StdVector<UInt>& colIndices,
                                 FEMatrixType matrixType,
-                                bool setCounterPart,
-                                bool isMultHarm = false);
+                                bool setCounterPart);
 
 
     //@}
@@ -308,15 +308,6 @@ class IDBC_Graph;
     //! conditions.
     void GenerateIDBCGraph( UInt rowNum, UInt colNum);
 
-    //! Auxiliary method for generation of IDBC graph objects in the multiharmonic case
-
-    //! This method will check for a SBMBlock defined by rowNum and colNum
-    //! whether it is necessary to generate an associated IDBC graph.
-    //! This will be the case, if the second column block contains degrees of
-    //! freedom that are fixed by inhomogeneous Dirichlet boundary
-    //! conditions.
-    void GenerateIDBCGraphMultHarm( UInt rowNum, UInt colNum );
-
     //! Auxiliary method for generation of graphs for coupled SBMBlocks
 
     //! This method can be called to generate the graph of a coupling object
@@ -351,6 +342,10 @@ class IDBC_Graph;
 
     //! Vector storing for each block meta information
     StdVector<SBMBlockInfo*> blockInfo_;
+
+    //! In multiharmonic analysis only one blockInfo is present
+    SBMBlockInfo* blockInfoMH_;
+
 
     //! Attribute to store the number of SBMBlocks that belong to the manager
     UInt numBlocks_;

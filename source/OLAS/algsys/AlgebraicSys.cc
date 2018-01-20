@@ -8,6 +8,7 @@
 #include <def_use_lapack.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_arpack.hh>
+#include <boost/lexical_cast.hpp>
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
@@ -1096,9 +1097,8 @@ namespace CoupledField {
     sbmIndex = numBlocks_;
     numBlocks_++;
     isDiagBlockSymm_.Push_back(true);
-    //if( !isInnerBlock ) {
-      numDirichletValuesPerBlock_.Push_back(0);
-    //}
+    numDirichletValuesPerBlock_.Push_back(0);
+
     blockInfo_.Push_back( new GraphManager::SBMBlockInfo() );
     
     // counters for indices  
@@ -1551,7 +1551,6 @@ namespace CoupledField {
         } // if clause
       } // loop functions
     } // loop blocks
-    
   }
 
 
@@ -1661,7 +1660,7 @@ namespace CoupledField {
     for( UInt i = 0; i < nnzBlocks; i++ ) {
       size_ += blockInfo_[0]->size;
     }
-    StdVector< StdVector<UInt> > toBeCopied(nnzBlocks);
+    StdVector< StdVector<UInt> > toBeCopied((2 * N + 1) * (2 * N + 1));
     rowIndList1_.Set(toBeCopied);
     rowList1_.Set(toBeCopied);
     rowIndList2_.Set(toBeCopied);
@@ -1837,7 +1836,6 @@ namespace CoupledField {
 
   }
 
-
   // **********************
   //   FinishRegistration
   // **********************
@@ -1850,26 +1848,19 @@ namespace CoupledField {
 
     // Different setup for multiharmonic analysis
     if( isMultHarm_ ){
-      UInt nBlocks = (isMultHarm_)? 2*solStrat_->GetNumHarmN()+1 : numBlocks_;
-      graphManager_->SetupInit( nBlocks, distinctMatGraphs_, true );
-
-      // In the multiharmonic case, we have only one set of equations
-      // but they are multiply present in the final system matrix
-      // (for the different frequencies). Therefore we feed the
-      // graph manager with the same sbm-block several times
       UInt N = solStrat_->GetNumHarmN();
       UInt M = solStrat_->GetNumHarmM();
 
-      for( UInt iRow = 0; iRow < 2*N+1; ++iRow ) {
-        graphManager_->RegisterBlockMultHarm( iRow, iRow, blockInfo_[0]);
-        for( UInt iCol = iRow + 1; iCol < iRow + M ; ++iCol ) {
-          if( iCol < 2 * N + 1){
-            graphManager_->RegisterBlockMultHarm( iRow, iCol, blockInfo_[0]);
-            // also register the transposed block
-            graphManager_->RegisterBlockMultHarm( iCol, iRow, blockInfo_[0]);
-          }
-        }
-      }
+      UInt numSBMRows = 2 * N + 1;
+      graphManager_->SetupInit( numSBMRows, distinctMatGraphs_, true, N, M );
+
+      // In the multiharmonic case, we have only one set of equations
+      // but they are present several times in the final system matrix
+      // (for the different frequencies)
+      graphManager_->RegisterBlockMultHarm( blockInfo_[0]);
+
+      // "real" SBM case
+      onlyOneMatrixBlock_ = false;
 
     }else{
       graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
@@ -1878,10 +1869,14 @@ namespace CoupledField {
       for( UInt sbmIndex = 0; sbmIndex < numBlocks_; ++sbmIndex ) {
         graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
       }
-    }
 
-    // "real" SBM case
-    onlyOneMatrixBlock_ = false;
+      // determine, if we have a "real" SBM-system with more than 1
+      // block in the sbm-matrix
+      if( numBlocks_ == 1  ||
+          ( numBlocks_ == 2 && solStrat_->UseStaticCondensation() ) ) {
+        onlyOneMatrixBlock_ = true;
+      }
+    }
     
     // set flag for registration
     registrationFinished_ = true;
@@ -1918,8 +1913,12 @@ namespace CoupledField {
     StdVector<UInt>& colNums      = colNums_.Mine();
 
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
-    MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
-    MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
+    if( isMultHarm_ ){
+      MapFctIdEqnToIndex_MultHarm(fctId1, eqnNrs1, rowBlocks, rowNums, nnzSBMInd_);
+    }else{
+      MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
+      MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
+    }
 
     // Quirk: If fctId1 == fctId2, we normally
     // need not set the counterPart. If however, they are now in
@@ -1932,12 +1931,49 @@ namespace CoupledField {
     graphManager_->SetElementPos( rowBlocks, rowNums,
                                   colBlocks, colNums,
                                   matrixType,
-                                  setCounterPart,
-                                  solStrat_->IsMultHarm());
+                                  setCounterPart);
 
   }
 
 
+  void AlgebraicSys::MapFctIdEqnToIndex_MultHarm( const FeFctIdType fctId,
+                                                   const StdVector<Integer>& eqns,
+                                                   StdVector<UInt>& blockNums,
+                                                   StdVector<UInt>& indices,
+                                                   const StdVector<UInt>& sbmIndices) {
+    LOG_DBG(algSys) << "MFIETI Mapping fctId,eqnNr to blockNum,indices";
+
+    blockNums.Resize(eqns.GetSize() * sbmIndices.GetSize() );
+    indices.Resize(eqns.GetSize() * sbmIndices.GetSize() );
+
+    UInt numEqns = eqns.GetSize();
+    UInt blockCnt = 0;
+    for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
+      const UInt & eqnNr = std::abs(eqns[iEqn]);
+
+      // take care of homogeneous BCs
+      if( eqnNr == 0) {
+        // TODO our multiharmonic sbm-blocks start with (0,0) but this
+        // is the homogeneous BC's block
+        EXCEPTION("Homogeneous BC's not yet implemented for multiharmonic analysis");
+        //blockNums[iEqn] = 0;
+        //indices[iEqn] = 0;
+      } else {
+        for(auto blockInd : sbmIndices){
+          blockNums[blockCnt] = blockInd;
+          // multiharmonic only one blockInfo
+          indices[blockCnt] = blockInfo_[0]->eqnToIndex[fctId][eqnNr];
+          ++blockCnt;
+        }
+
+      }
+    }
+
+  //for(UInt i = 0; i < blockNums.GetSize(); ++i){
+  //  std::cout<<"("<<blockNums[i]<<", "<<indices[i]<<") "<<std::endl;
+  //}
+
+  }
 
   void AlgebraicSys::MapFctIdEqnToIndex( const FeFctIdType fctId,
                                          const StdVector<Integer>& eqns,
@@ -2624,6 +2660,311 @@ namespace CoupledField {
       } //smbCol
     }// sbmRow
   }
+
+
+
+  template<typename T>
+  void AlgebraicSys::SetElementMatrix_MultHarm( FEMatrixType matrixType,
+                                                Matrix<T>& elemMat,
+                                                FeFctIdType fctId1,
+                                                const StdVector<Integer>& eqnNrs1,
+                                                FeFctIdType fctId2,
+                                                const StdVector<Integer>& eqnNrs2,
+                                                const StdVector<UInt>& sbmIndices) {
+
+    if(fctId1 != fctId2) EXCEPTION("AlgebraicSys::SetElementMatrix_MultHarm function Id's don't match!");
+
+    // lambda for converting flattened sbm-index to (row, col) tuple
+    UInt N = solStrat_->GetNumHarmN();
+    UInt M = solStrat_->GetNumHarmM();
+    auto DeflattenIndex = [N](UInt ind) { std::vector<UInt> a = {ind / (2*N+1), ind % (2*N+1)}; return a;};
+    auto FlattenIndex = [N](UInt row, UInt col) { return N * row + col;};
+
+    std::string t;
+    if (IS_LOG_ENABLED(algSys, dbg3)) {
+      // construct logging output
+      for(auto s : sbmIndices){
+        t.append("(");
+        t.append( boost::lexical_cast<std::string>(DeflattenIndex(s)[0]) );
+        t.append( ", ");
+        t.append( boost::lexical_cast<std::string>(DeflattenIndex(s)[1]) );
+        t.append("), ");
+      };
+    }
+
+    LOG_DBG(algSys) << "Setting element matrix for fctIds ("
+                     << fctId1 << ", " << fctId2 << ")";
+    LOG_DBG2(algSys) << "Matrix: " << feMatrixType.ToString(matrixType);
+    LOG_DBG2(algSys) << "EqnVec1: (" << eqnNrs1.GetSize() << "): " << eqnNrs1.ToString();
+    LOG_DBG2(algSys) << "EqnVec2: (" << eqnNrs2.GetSize() << "): " << eqnNrs2.ToString();
+    LOG_DBG3(algSys) << "elemMat (" << elemMat.GetNumRows() << ", " << elemMat.GetNumCols() << "):\n " << elemMat;
+    LOG_DBG3(algSys) << "in SBM blocks: " << t <<"\n";
+
+    // Security check: check if we have as many equations as numRows/Cols
+    // of the matrix
+    if(eqnNrs1.GetSize() != elemMat.GetNumRows()){
+      EXCEPTION("dummy1 " << eqnNrs1.GetSize() << " : eMat " << elemMat.GetNumRows() )
+    }
+    if(eqnNrs2.GetSize() != elemMat.GetNumCols()){
+      EXCEPTION("dummy2 " << eqnNrs2.GetSize() << " : eMat " << elemMat.GetNumCols() )
+    }
+    assert( eqnNrs1.GetSize() == elemMat.GetNumRows());
+    assert( eqnNrs2.GetSize() == elemMat.GetNumCols());
+
+
+    // TODO still open problem (performance) :
+    /* Problem in multiharmonic analysis
+     * In the classic SetElementMatrix method, every (fctId,eqnNr) occurs
+     * exactly once. But here it occurs in every block,
+     * according to sbmIndices.
+     *
+     * Therefore we currently call the special method MapFctIdEqnToIndex_MultHarm,
+     * which simply appends the CfsTLS vectors and then we continue as in the classic case.
+     *
+     * Maybe there is a more performant way but we would need to introduce a different concept.
+     *
+     */
+
+    //obtain thread local cache lists
+    UInt tNum = 0;
+#ifdef USE_OPENMP
+    tNum = omp_get_thread_num();
+#endif
+    StdVector< StdVector<UInt> >& rowIndList1  = rowIndList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& rowList1     = rowList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& rowIndList2  = rowIndList2_.Mine(tNum);
+    StdVector< StdVector<UInt> >& rowList2     = rowList2_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colIndList1  = colIndList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colList1     = colList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colIndList2  = colIndList2_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colList2     = colList2_.Mine(tNum);
+    StdVector<UInt>& rowBlocks                 = rowBlocks_.Mine(tNum);
+    //StdVector<UInt>& colBlocks                 = colBlocks_.Mine(tNum);
+    StdVector<UInt>& rowNums                   = rowNums_.Mine(tNum);
+    StdVector<UInt>& colNums                   = colNums_.Mine(tNum);
+
+
+    // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
+    // fctId1 is equal to fctId2 and therefore also the equation numbers
+    MapFctIdEqnToIndex_MultHarm(fctId1, eqnNrs1, rowBlocks, rowNums, sbmIndices);
+
+
+
+    // initialize empty vectors
+    // determine number of blocks, which must be initialized
+    // last block at position (2N+1, 2N+1), now compute the sbm-index
+/*    UInt nBlocks = FlattenIndex(2 * N + 1, 2 * N + 1);
+    for(UInt i = 0; i < nBlocks; ++i ) {
+      rowIndList1[i].Clear(true);
+      rowList1[i].Clear(true);
+      rowIndList2[i].Clear(true);
+      rowList2[i].Clear(true);
+      colIndList1[i].Clear(true);
+      colList1[i].Clear(true);
+      colIndList2[i].Clear(true);
+      colList2[i].Clear(true);
+    }*/
+    rowIndList1[0].Clear(true);
+    rowList1[0].Clear(true);
+    rowIndList2[0].Clear(true);
+    rowList2[0].Clear(true);
+    colIndList1[0].Clear(true);
+    colList1[0].Clear(true);
+    colIndList2[0].Clear(true);
+    colList2[0].Clear(true);
+
+    UInt numRows = rowBlocks.GetSize();
+    //UInt numCols = colBlocks.GetSize();
+
+    // Compute index of graph in graph pointer matrix
+    // get hold of vertex and edgelists
+    StdVector<UInt> & rList1 = rowList1[0];
+    StdVector<UInt> & rIndList1 = rowIndList1[0];
+    StdVector<UInt> & rList2 = rowList2[0];
+    StdVector<UInt> & rIndList2 = rowIndList2[0];
+    // get hold of vertex and edgelists
+    StdVector<UInt> & cList1 = colList1[0];
+    StdVector<UInt> & cIndList1 = colIndList1[0];
+    StdVector<UInt> & cList2 = colList2[0];
+    StdVector<UInt> & cIndList2 = colIndList2[0];
+
+    // Loop over all indices
+    for( UInt i = 0; i < numRows; ++i ) {
+      // get hold of block numbers and indices
+      const UInt & rowBlock = rowBlocks[i];
+      const UInt & rowNum = rowNums[i];
+      const UInt & colNum = rowNums[i];
+      // get limits of free indices
+      // remember: in multiharmonic analysis we only have one blockInfo
+      const UInt & lastFreeRowIndex = blockInfo_[0]->numLastFreeIndex;
+
+      // STEP 1: Generate row index list from first connect array, dropping
+      //         equation numbers for dofs fixed by (in)homogeneous Dirichlet
+      //         boundary conditions and changing the sign of those fixed by
+      //         constraints.
+      if ( rowNum > 0 ) {
+        if ( rowNum > lastFreeRowIndex ) {
+          rList2.Push_back( rowNum - lastFreeRowIndex - 1 );
+          rIndList2.Push_back( i );
+        } else {
+          rList1.Push_back( rowNum - 1);
+          rIndList1.Push_back( i );
+        }
+      }
+
+      // get limits of free indices
+      const UInt & lastFreeColIndex = blockInfo_[0]->numLastFreeIndex;
+
+      // STEP 2: Split the second connect array into two edge lists, one for
+      //         the graph and one for the IDBCgraph (which handles the indices
+      //         fixed by inhomogeneous Dirichlet boundary conditions)
+      if( colNum > 0 ) {
+        if ( colNum > lastFreeColIndex ) {
+          cList2.Push_back( colNum - lastFreeColIndex - 1);
+          cIndList2.Push_back( i );
+        }
+        else {
+          cList1.Push_back( colNum - 1);
+          cIndList1.Push_back( i );
+        }
+      }
+
+    }
+
+
+
+    SBM_Matrix * actMat = sysMat_[matrixType];
+    UInt rowInd, colInd;
+
+
+    // ======================================================================
+
+    // loop over all blocks and pass for every block the information to
+    // the corresponding graph / IDBC graph
+    LOG_DBG3(algSys) << "setting matrix entries";
+
+    UInt sbmInd;
+    for( UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
+      // ===================================================
+      // ==================== diagonal block ===============
+      // ===================================================
+      // sbm-index of current block
+      sbmInd = FlattenIndex(sbmRow, sbmRow);
+      LOG_DBG3(algSys) << "\tsetting SBM block (" << sbmRow
+          << "," << sbmRow << ") with sbm-index " << sbmInd;
+
+      StdMatrix * stdMat = actMat->GetPointer(sbmRow, sbmRow);
+
+      LOG_DBG3(algSys) << "\t1) free-free entries:";
+      LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
+      LOG_DBG3(algSys) << "\t\tcolIndices: " << cList1.ToString();
+      LOG_DBG3(algSys) << "\t\tmat: " << stdMat->ToInfoString();
+      // 2) Assemble all free <-> free entries
+      // loop over all rows/col
+
+      // Note: The following statement is experimental and not
+      // thorougly tested!
+
+      for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+        rowInd = rIndList1[i];
+        for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
+          colInd = cIndList1[j];
+          stdMat->AddToMatrixEntry( rList1[i], cList1[j], elemMat[rowInd][colInd] );
+        } //j
+      } //i
+
+      // 3) Assemble all free <-> fixed entries
+      if( cList2.GetSize() ) {
+        LOG_DBG3(algSys) << "\t3) free-fixed entries:";
+        LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
+        LOG_DBG3(algSys) << "\t\tcolIndices: " << cList2.ToString();
+
+        for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+          rowInd = rIndList1[i];
+          for ( UInt j = 0; j < cList2.GetSize(); j++ ) {
+            colInd = cIndList2[j];
+            idbcHandler_->AddWeightFixedToFree( matrixType, sbmRow, sbmRow,
+                                                rList1[i], cList2[j],
+                                                elemMat[rowInd][colInd]);
+          } // j
+        } // i
+      } // if cList2.GetSize()
+
+
+      for( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M ; ++sbmCol ) {
+        if( sbmCol < 2 * N + 1){
+          // =======================================================
+          // ==================== off-diagonal block ===============
+          // =======================================================
+          // sbm-index of current block
+          sbmInd = FlattenIndex(sbmRow, sbmCol);
+          LOG_DBG3(algSys) << "\tsetting SBM block (" << sbmRow
+              << "," << sbmCol << ") with sbm-index " << sbmInd;
+
+
+          StdMatrix * stdMat = actMat->GetPointer(sbmRow, sbmCol);
+          const StdVector<UInt> & rList1 = rowList1[sbmRow];
+          const StdVector<UInt> & rList2 = rowList2[sbmRow];
+          const StdVector<UInt> & cList1 = colList1[sbmCol];
+          const StdVector<UInt> & cList2 = colList2[sbmCol];
+          const StdVector<UInt> & rIndList1 = rowIndList1[sbmRow];
+          const StdVector<UInt> & rIndList2 = rowIndList2[sbmRow];
+          const StdVector<UInt> & cIndList1 = colIndList1[sbmCol];
+          const StdVector<UInt> & cIndList2 = colIndList2[sbmCol];
+
+          // Attention: This check is not really implemented in a clean way!
+          if( stdMat != NULL ) {
+            LOG_DBG3(algSys) << "\t1) free-free entries:";
+            LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
+            LOG_DBG3(algSys) << "\t\tcolIndices: " << cList1.ToString();
+            LOG_DBG3(algSys) << "\t\tmat: " << stdMat->ToInfoString();
+            // 2) Assemble all free <-> free entries
+            // loop over all rows/col
+
+            // Note: The following statement is experimental and not
+            // thorougly tested!
+
+            for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+              rowInd = rIndList1[i];
+              for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
+                colInd = cIndList1[j];
+                stdMat->AddToMatrixEntry( rList1[i], cList1[j],
+                                          elemMat[rowInd][colInd] );
+              } //j
+            } //i
+
+
+          } // stdMat != NULL
+
+          // 3) Assemble all free <-> fixed entries
+          if( cList2.GetSize() ) {
+            LOG_DBG3(algSys) << "\t3) free-fixed entries:";
+            LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
+            LOG_DBG3(algSys) << "\t\tcolIndices: " << cList2.ToString();
+
+            for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+              rowInd = rIndList1[i];
+              for ( UInt j = 0; j < cList2.GetSize(); j++ ) {
+                colInd = cIndList2[j];
+                idbcHandler_->AddWeightFixedToFree( matrixType, sbmRow, sbmCol,
+                                                    rList1[i], cList2[j],
+                                                    elemMat[rowInd][colInd]);
+              } // j
+            } // i
+          } // if cList2.GetSize()
+
+        }
+      }
+    }
+
+
+
+  }
+
+
+
+
+
 
   template<typename T>
   void AlgebraicSys::SetElementRHS( const Vector<T>& elemRHS, 
@@ -4470,6 +4811,16 @@ namespace CoupledField {
   SetElementMatrix( FEMatrixType, Matrix<Complex>&, 
                     FeFctIdType, const StdVector<Integer>& ,
                     FeFctIdType, const StdVector<Integer>& , bool, bool, bool);
+  template void AlgebraicSys::
+  SetElementMatrix_MultHarm( FEMatrixType, Matrix<Double>&,
+                    FeFctIdType, const StdVector<Integer>& ,
+                    FeFctIdType, const StdVector<Integer>& ,
+                    const StdVector<UInt>&);
+  template void AlgebraicSys::
+  SetElementMatrix_MultHarm( FEMatrixType, Matrix<Complex>&,
+                    FeFctIdType, const StdVector<Integer>& ,
+                    FeFctIdType, const StdVector<Integer>& ,
+                    const StdVector<UInt>&);
   
   template void AlgebraicSys::
   SetElementRHS( const Vector<Double>&, const FeFctIdType, 

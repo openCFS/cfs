@@ -401,6 +401,13 @@ namespace CoupledField {
                              StdVector<UInt>& indices );
 
     //! @see MapFctIdEqnToIndex()
+    void MapFctIdEqnToIndex_MultHarm(const FeFctIdType fctId,
+                                     const StdVector<Integer>& eqns,
+                                     StdVector<UInt>& blockNums,
+                                     StdVector<UInt>& indices,
+                                     const StdVector<UInt>& sbmIndices );
+
+    //! @see MapFctIdEqnToIndex()
     void MapFctIdEqnToIndex( const StdVector<FeFctIdType>& fctId,
                              const StdVector<Integer>& eqns,
                              StdVector<UInt>& blockNums,
@@ -557,6 +564,41 @@ namespace CoupledField {
                            bool setCounterPart, 
                            bool noStaticCond,
                            bool isDiagonal );
+
+
+    //! Assemble an element matrix into the global one for multiharmonic analysis
+
+    //! This methods assembles the given element matrix into a specified
+    //! global one (MASS, STIFFNESS, etc.), i.e. adds the entries to the.
+    //! global matrix. For element matrices which are associated
+    //! only with one Fct, only one identifier, the eqn numbers of the matrix
+    //! and the number of eqnNrs have to be specified.
+    //! For matrices which are associated with two different Fct identifiers,
+    //! the matrix will be assembled into the upper off-diagonal matrix-block
+    //! and the lower transposed one.
+    //! \param matrixType type of finite element destination matrix
+    //!                 (STIFFNESS, MASS, ...)
+    //! \param elemmat entries of the element matrix
+    //! \param fctId1 identifier for first Fct related to sub-graph
+    //! \param eqnNrs1 equation numbers (1-based) of the element matrix
+    //!                w.r.t. sub-graph associated with identifierFct1
+    //! \param numEqn1 number of equations related to sub-graph of
+    //!                identifierFct1
+    //! \param fctId2 identifier for first Fct related to sub-graph
+    //! \param eqnNrs2 equation numbers (1-based) of the element matrix
+    //!                w.r.t. sub-graph associated with identifierFct2
+    //! \param numEqn2 number of equations related to sub-graph of
+    //!                identifierFct2
+    //! \param sbmIndices SBM-indices of the sbm-blocks,
+    //!                   which have to be assembled
+    template<typename T>
+    void SetElementMatrix_MultHarm( FEMatrixType matrixType,
+                                   Matrix<T>& elemmat,
+                                   FeFctIdType fctId1,
+                                   const StdVector<Integer>& eqnNrs1,
+                                   FeFctIdType fctId2,
+                                   const StdVector<Integer>& eqnNrs2,
+                                   const StdVector<UInt>& sbmIndices );
 
     //! Assemble the local rhs vector to the global one
 
@@ -944,6 +986,8 @@ namespace CoupledField {
      * Shall be called for each phase, set each time exactly one parameter to true */
     void ExportLinSys(bool setup, bool pre_solve, bool post_solve);
 
+    //! In multiharmonic analysis, set the nonzero sbm-blocks
+    inline void SetNnzSBMInd(const StdVector<UInt>& sbmInd){ nnzSBMInd_ = sbmInd;};
 
   protected:
 
@@ -1140,6 +1184,8 @@ namespace CoupledField {
     
     //! Flag indicating use of multiharmonic analysis
     bool isMultHarm_;
+
+    StdVector<UInt> nnzSBMInd_;
 
     //! Flag indicating, if system matrix is complex
     bool isMatrixComplex_;

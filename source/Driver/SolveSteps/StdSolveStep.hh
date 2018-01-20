@@ -95,6 +95,9 @@ namespace CoupledField
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepHarmonic();
 
+    //! routine for initilizations befor execution the SolveStep-method
+    virtual void PreStepMultiHarmonic(StdVector<Double> harmFreq);
+
     //!  base method for solving one harmonic step 
     virtual void SolveStepHarmonic();
     
@@ -304,6 +307,8 @@ namespace CoupledField
     bool debugOutput_;
     UInt remainingEvalParameter_;
 
+    //! Vector containing the harmonic-frequencies (negative, 0, positive)
+    StdVector<Double> harmFreq_;
 
     //! Vector containing the rhs for the current stage based on the scheme
     //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system

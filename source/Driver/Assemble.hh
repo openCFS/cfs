@@ -76,9 +76,15 @@ namespace CoupledField {
     void AssembleMatrices(bool isNewtonPart=false);
     
     //! Assemble matrices with static condensation for transient simulations
-        void AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage, 
-                                        std::map<FeFctIdType, 
-                                        std::map<FEMatrixType,Double> > timeStepFactors);
+    void AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage,
+                                    std::map<FeFctIdType,
+                                    std::map<FEMatrixType,Double> > timeStepFactors);
+
+    //! Assemble matrices for multiharmonic analysis
+    void AssembleMatrices_MultHarm(Integer harmonic, UInt N, UInt M);
+
+    //! Initialize matrices for multiharmonic analysis
+    void InitMultHarm();
 
     //! Trigger assembly of all linear right hand side terms
     void AssembleLinRHS();
@@ -108,6 +114,9 @@ namespace CoupledField {
 
     /** Append info about registered (bi)linearforms */
     void ToInfo(PtrParamNode in);
+
+    //! Stops the timer in a multiharmonic analysis. It was started in InitMultHarm
+    void TimerStop();
 
     /** search for an integrator.
      * @param pde2 the second pde, note the order -> see debug file.
@@ -146,7 +155,6 @@ namespace CoupledField {
     //! Assemble matrices with static condensation
     void AssembleMatrices_Cond(bool isNewtonPart=false);
 
-    
     //! Assemble linearForms of right hand side
     void AssembleRHSLinForms(bool nonLin );
 
@@ -178,14 +186,16 @@ namespace CoupledField {
                        Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
                        FeFctIdType fctId1, FeFctIdType fctId2,
-                       bool preventStaticCondensation = false );
+                       bool preventStaticCondensation = false,
+                       const StdVector<UInt>& sbmIndices = StdVector<UInt>());
 
     //! Insert complex matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Complex>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
                        FeFctIdType fctId1, FeFctIdType fctId2,
-                       bool preventStaticCondensation = false );
+                       bool preventStaticCondensation = false,
+                       const StdVector<UInt>& sbmIndices = StdVector<UInt>() );
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation

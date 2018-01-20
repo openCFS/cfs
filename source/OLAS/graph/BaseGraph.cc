@@ -768,9 +768,9 @@ namespace CoupledField {
         // one in this row. If the last entry in the row is left of the
         // diagonal, or the diagonal itself, bwu will get <= 0, which is
         // okay.
-std::cout<<"csNodes_[node+1]"<<csNodes_[node+1]<<std::endl;
-std::cout<<"csEdges_[csNodes_[node+1] -1  ]"<<csEdges_[csNodes_[node+1] -1  ]<<std::endl;
-std::cout<<"node"<<node<<std::endl;
+//std::cout<<"csNodes_[node+1]"<<csNodes_[node+1]<<std::endl;
+//std::cout<<"csEdges_[csNodes_[node+1] -1  ]"<<csEdges_[csNodes_[node+1] -1  ]<<std::endl;
+//std::cout<<"node"<<node<<std::endl;
         bwtmp = Integer(csEdges_[csNodes_[node+1] -1  ] - node);
         if( bwtmp > 0) {
           bwu = (UInt) bwtmp;

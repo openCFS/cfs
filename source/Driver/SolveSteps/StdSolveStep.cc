@@ -5444,6 +5444,10 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     algsys_->InitRHS();
   }
 
+  void StdSolveStep::PreStepMultiHarmonic(StdVector<Double> harmFreq) {
+    algsys_->InitRHS();
+    harmFreq_ = harmFreq;
+  }
 
   void StdSolveStep::SolveStepHarmonic() {
     if ( nonLin_ || solStrat_->IsMultHarm() ) {
@@ -5521,14 +5525,33 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     //Set special RHS Values
     PDE_.SetRhsValues();
 
-
-
     assemble_->AssembleNonLinRHS();
 
+    // how many harmonics are we considering
+    UInt N = (multHarmFreqVec_.GetSize() - 1) / 2;
+
+    // initialize matrices because normally they are initialized in AssembleMatrices-method
+    // but since we call the assemble method for all sub-matrices, this wouldn't work
+    assemble_->InitMultHarm();
 
 
-    assemble_->AssembleMatrices( );
+    // loop over every frequency and assemble the correct SBM blocks
+    for(UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i ){
 
+      // set the frequency of the current harmonic
+      mParser_->SetValue( MathParser::GLOB_HANDLER, "f", multHarmFreqVec_[i] );
+
+      // which harmonic are we considering
+      Integer h = -N + i;
+
+      // assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
+      assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM() );
+
+
+
+    }
+
+    assemble_->TimerStop();
 
 
 

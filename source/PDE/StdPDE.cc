@@ -135,6 +135,29 @@ namespace CoupledField {
     // Structure for mapping of minor blocks 
     std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
 
+
+    StdVector<UInt> sbmInd(0);
+    // same as ComputeIndex method in GraphManager, here with a lambda function
+    if(algsys_->GetSolStrategy()->IsMultHarm()){
+      UInt N = algsys_->GetSolStrategy()->GetNumHarmN();
+      UInt M = algsys_->GetSolStrategy()->GetNumHarmM();
+
+      auto ComputeIndex = [N](UInt a, UInt b ) { return (2*N+1) * a + b;};
+
+      // store the sbm-indices of the nnz sbm-blocks
+      for( UInt iRow = 0; iRow < 2*N+1; ++iRow ) {
+        sbmInd.Push_back( ComputeIndex(iRow, iRow) );
+        for( UInt iCol = iRow + 1; iCol < iRow + M ; ++iCol ) {
+          if( iCol < 2 * N + 1){
+            sbmInd.Push_back( ComputeIndex(iRow, iCol) );
+          }
+        }
+      }
+
+      // register it at algsys
+      algsys_->SetNnzSBMInd(sbmInd);
+    }// endif is multiharmonic
+
     // -----------------------------------------------------------
     //  1) Register FeFunctions with Algebraic System
     // -----------------------------------------------------------
@@ -166,6 +189,7 @@ namespace CoupledField {
       }
     }
 
+
     // ---------------------------------------
     //  2) Define SBM-Blocks and minor blocks
     // ---------------------------------------
@@ -181,6 +205,8 @@ namespace CoupledField {
     }
 
     // Loop over blocks and register them at OLAS
+    // This also holds for multiharmonic case, because there we only have
+    // one set of equations, which are spread over the different blocks later on
     Integer sbmIndex = -1;
     for( UInt i = 0; i < numBlocks; ++i ) {
 
@@ -191,6 +217,8 @@ namespace CoupledField {
       if( solStrat_->IsMultHarm() && i != 0 ) EXCEPTION("Only one block allowed in multiharmonic algsys!");
 
       sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[i], isInnerBlock );
+
+
       if( minorBlocks.size() != 0 && sbmIndex != -1) {
         StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
 
@@ -234,6 +262,7 @@ namespace CoupledField {
     // Trigger writing of info file
     myInfo_->GetRoot()->ToFile("", true );
 
+
     // -----------------------------------
     //  3) Setup Sparsity Patterns
     // -----------------------------------
@@ -245,7 +274,7 @@ namespace CoupledField {
         FeFctIdType fctId1 = it1->second->GetFctId();
         FeFctIdType fctId2 = it2->second->GetFctId();
         // assemble upper diagonal blocks including diagonal
-        LOG_DBG(stdPde)<<pdename_<<":\tset graph for fctIds #"<< fctId1<<"and #"<<fctId2<<std::endl;
+        LOG_DBG(stdPde)<<pdename_<<":\tset graph for fctIds #"<< fctId1<<" and #"<<fctId2<<std::endl;
         assemble_->SetupMatrixGraph(fctId1, fctId2);
       } // it2
     } // it1
