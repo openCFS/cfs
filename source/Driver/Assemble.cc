@@ -2081,6 +2081,12 @@ namespace CoupledField
 
   bool Assemble::IsFEMatSymmetric( BiLinFormContext* actCt  ) {
 
+    if(analysisType_ == BasePDE::MULTIHARMONIC){
+      WARN("===================================================================== \n"
+           "         Developer warning: Check the symmetry of the matrix \n"
+           "         in Assemble::IsFEMatSymmetric \n"
+           "===================================================================== \n");
+    }
 
     bool isSymmetric = true;
     // set collecting all diagonal-positions
@@ -2114,7 +2120,7 @@ namespace CoupledField
     
     bool isComplex = false;
     if (actCt->GetIntegrator()->IsComplex() || 
-        analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE) {
+        analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE) {
       isComplex = true;
     }
     return isComplex;

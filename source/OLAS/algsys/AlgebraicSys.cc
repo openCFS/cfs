@@ -1729,8 +1729,8 @@ namespace CoupledField {
         //   D I A G O N A L    B L O C K S
         // ----------------------------------
         // Obtain reordering vector
-        UInt idx = graphManager_->ComputeIndex(sbmRow, sbmRow);
-        graphManager_->GetReordering(idx, newOrder);
+        // take care, the following method needs the row-number
+        graphManager_->GetReordering(sbmRow, newOrder);
 
         // Loop over all functions
         for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
@@ -1758,41 +1758,6 @@ namespace CoupledField {
           } // if clause
         } // loop functions
 
-//        for ( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M ; ++sbmCol ) {
-//                if( sbmCol < 2 * N + 1){
-//                  // ----------------------------------
-//                  //   O F F - D I A G O N A L    B L O C K S
-//                  // ----------------------------------
-//                  // Obtain reordering vector
-//                  UInt idx = graphManager_->ComputeIndex(sbmRow, sbmCol);
-//
-//                  // Loop over all functions
-//                  for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
-//                    boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
-//                    boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
-
-                    // Here we have to distinguish two cases:
-                    // a) PENALTY: We have to reorder all equations, as also the IDBC
-                    //             eqns are within the normal matrix. So we do not
-                    //             have to maintain the splitting w.r.t. lastFreeEqn
-                    // b) Elimination: We are just allowed to reorder equations <
-                    //                 numLastFreeEqnPerFct, as this is the size of
-                    //                 the underlying matrix. All fixed equations
-                    //                 are handled by the IDBC graph.
-//                    if( usingPenalty_) {
-//                      for( ; it != eqnToIndex.end(); ++it ){
-//                        it->second = newOrder[it->second-1];
-//                      }
-//                    } else {
-//                      for( ; it != eqnToIndex.end(); ++it ){
-//                        // Loop over all (eqn)->(index) entries
-//                        if( it->first <= lastFreeEqnPerFct_[iFct])
-//                          it->second = newOrder[it->second-1];
-//                      } // loop eqns
-//                    } // if clause
-//                  } // loop functions
-//                }
-//        }
       }
 
     }else{

@@ -96,8 +96,8 @@ namespace CoupledField {
     
     // Allocate memory to store the permutation vectors for the reordering
     // of the unknowns of each block
-    newOrdering_.Resize( numBlocks_  * numBlocks_);
-    for ( UInt i = 0; i < numBlocks_ * numBlocks_; i++ ) {
+    newOrdering_.Resize( numBlocks_);
+    for ( UInt i = 0; i < numBlocks_; i++ ) {
       newOrdering_[i].Resize(0);
     }
 
@@ -244,11 +244,11 @@ namespace CoupledField {
         WARN("================================================= \n"
             " Reordering in multiharmonic analysis not tested!! \n "
             "================================================= \n");
-        newOrdering_[idx].Resize( blockInfoMH_->numLastFreeIndex );
+        newOrdering_[sbmRow].Resize( blockInfoMH_->numLastFreeIndex );
       }
       graph_[idx]->FinaliseAssembly( reorder[0], false, &newOrdering_[sbmRow] );
       LOG_DBG3(graphMan) << "Reordering array is "
-                         << newOrdering_[idx].ToString();
+                         << newOrdering_[sbmRow].ToString();
 
       // Now finalize the assembly of the associated IDBC graph
       if ( graphIDBC_[idx] != NULL ) {
