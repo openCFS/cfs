@@ -42,9 +42,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # point coordinates from h5 file
   centers, _, _ = coords[0:3]
   
-  # appending cells
-  appends = vtk.vtkAppendPolyData()
-  
   if scale <= 0:
     scale = 1.0
 
@@ -88,62 +85,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   print("min:",bounds[0:3])
   print("max:",bounds[3:6])
   
-  my_grid = DistributedGrid(comm,samples,args.bc_res,bounds)
-  my_grid.to_info()
-  
-#   nCells = nx*ny*nz
-#   # distribute loop evenly over number of processes and take care
-#   # of remainder -> difference between work chunks can be 1
-#   # e.g. 10 loop runs, 4 processes, number of runs per process: [3,3,2,2]
-#   # number of loop runs per process:
-#   nRuns = [int(nCells/commSize) + (1 if p < nCells%commSize else 0) for p in range(0,commSize)]
-#   start = int(np.sum(nRuns[0:rank]))
-#   end = int(start + nRuns[my_grid.rank])
-  
-#   if my_grid.rank == 0: 
-#     eps = 1e-6
-#     x = np.arange(0,resolution[0]+1,1)
-#     y = np.arange(0,resolution[1]+1,1)
-#     z = np.arange(0,resolution[2]+1,1)
-#     decomp = np.full(resolution,-1,dtype=int)
-#     decomp[start:end+1,:,:] = rank
-#     sys.stdout.flush()
-#     finished_workers = 0
-#     from pyevtk.hl import gridToVTK  
-#     while finished_workers != commSize-1:
-#       # a status object containing source, tag and size of a message
-#       status = MPI.Status()
-#       data = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-#       
-#       assert(data[0] >= 0 and data[1] <= resolution[0])
-#       #get the message tag
-#       tag = status.Get_tag()
-#       source = status.Get_source()
-#       decomp[data[0]:data[1],:,:] = source
-#       comm.send(None,dest=source,tag=999)
-#       
-#       print(" source:",source, " data:",data)
-#       sys.stdout.flush()
-#       finished_workers += 1
-#     
-#     gridToVTK("decomp",x,y,z,cellData={"decomp":decomp})
-#   else:
-#     result = (start,end)
-#     comm.send(result,dest=0,tag=1)
-#     status = MPI.Status()
-#     tmp = comm.recv(source=0,status=status)
-#     # make sure communication wors
-#     if status.Get_tag() == 999:
-#       print("\n             rank ",rank," exiting now")
-#       sys.stdout.flush()
-#       sys.exit()
-#       
-#   sys.exit()
+  my_mpi_grid = MPI_Grid(comm,samples,args.bc_res,bounds)
+  my_mpi_grid.to_info()
   
   local_id = 0
-  for j in range(samples[1]):
-    for k in range(samples[2]):
-      for i in range(my_grid.start_x,my_grid.end_x):
+  for k in range(samples[2]):
+    for j in range(samples[1]):
+      for i in range(my_mpi_grid.start_x,my_mpi_grid.end_x):
         this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
         east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
         top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
@@ -166,9 +114,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         bc_input.stiffness_as_diameter = True
         cell_obj = basecell.Basecell(bc_input,id)
         # local i,j,k
-        li,lj,lk = get_3d_grid_coords(local_id, my_grid.chunks, samples[1], samples[2])
-        print("rank:",my_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
-        my_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
+        li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
+        print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+        my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
     
         local_id += 1
     
@@ -186,19 +134,19 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #     
 #     assert(len(void_elems) > 0)
     
-  x = np.arange(my_grid.bounds[0],my_grid.bounds[3]+my_grid.grid.hx-eps,my_grid.grid.hx)
-  y = np.arange(my_grid.bounds[1],my_grid.bounds[4]+my_grid.grid.hy-eps,my_grid.grid.hy)
-  z = np.arange(my_grid.bounds[2],my_grid.bounds[5]+my_grid.grid.hz-eps,my_grid.grid.hz)
+  x = np.arange(my_mpi_grid.bounds[0],my_mpi_grid.bounds[3]+my_mpi_grid.grid.hx-eps,my_mpi_grid.grid.hx)
+  y = np.arange(my_mpi_grid.bounds[1],my_mpi_grid.bounds[4]+my_mpi_grid.grid.hy-eps,my_mpi_grid.grid.hy)
+  z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+my_mpi_grid.grid.hz-eps,my_mpi_grid.grid.hz)
   
-  draw_non_design(nondes_coords, my_grid.grid.data, my_grid.bounds[0:3], (my_grid.grid.hx,my_grid.grid.hy,my_grid.grid.hz), 0)
-#   draw_non_design(void_elems, my_grid.grid.data, my_grid.bounds[0:3], (my_grid.grid.hx,my_grid.grid.hy,my_grid.grid.hz), -1)
+  draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds[0:3], (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz), 0)
+#   draw_non_design(void_elems, my_mpi_grid.grid.data, my_mpi_grid.bounds[0:3], (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz), -1)
   from pyevtk.hl import gridToVTK  
-  gridToVTK("voxels"+str(my_grid.rank),x,y,z,cellData={"voxels":my_grid.grid.data})
+  gridToVTK("voxels"+str(my_mpi_grid.rank),x,y,z,cellData={"voxels":my_mpi_grid.grid.data})
 
-  borders = my_grid.communicate_edges()
+  borders = my_mpi_grid.communicate_edges()
     
   # binary helper array
-  shape = np.asarray(my_grid.grid.data.shape[0:3]) + np.array((2,2,2))
+  shape = np.asarray(my_mpi_grid.grid.data.shape[0:3]) + np.array((2,2,2))
   print("helper shape:",shape)
   helper = np.zeros(shape,dtype=int)
   # use voxel info for Marching cubes algorithm
@@ -208,55 +156,51 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   for i in range(shape[0]-2):
     for j in range(shape[1]-2):
       for k in range(shape[2]-2):
-        if my_grid.grid.data[i,j,k] != -1: # valid voxel
+        if my_mpi_grid.grid.data[i,j,k] != -1: # valid voxel
           helper[i+1,j+1,k+1] = 1
   
   for b in borders:
     # b[0] stores direction oft cartesian comm
-    if b[0] > my_grid.rank:
+    if b[0] > my_mpi_grid.rank:
       if b[1] is not None:
         helper[shape[0]-1,1:shape[1]-1,1:shape[2]-1] = b[1] 
     else:
-      assert(b[0] < my_grid.rank)
+      assert(b[0] < my_mpi_grid.rank)
       if b[1] is not None:
         helper[0,1:shape[1]-1,1:shape[2]-1] = b[1]
 
-  print("hx,hy,hz:",my_grid.grid.hx,my_grid.grid.hy,my_grid.grid.hz)
-  hx = my_grid.grid.hx
-  hy = my_grid.grid.hy
-  hz = my_grid.grid.hz
+  print("hx,hy,hz:",my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
+  hx = my_mpi_grid.grid.hx
+  hy = my_mpi_grid.grid.hy
+  hz = my_mpi_grid.grid.hz
   # vtk rectgrid is node based
-  x = np.arange(my_grid.bounds[0]-hx,my_grid.bounds[3]+2*hx,hx)
-  y = np.arange(my_grid.bounds[1]-hy,my_grid.bounds[4]+2*hy,hy)
-  z = np.arange(my_grid.bounds[2]-hz,my_grid.bounds[5]+2*hz,hz)
+  x = np.arange(my_mpi_grid.bounds[0]-hx,my_mpi_grid.bounds[3]+2*hx,hx)
+  y = np.arange(my_mpi_grid.bounds[1]-hy,my_mpi_grid.bounds[4]+2*hy,hy)
+  z = np.arange(my_mpi_grid.bounds[2]-hz,my_mpi_grid.bounds[5]+2*hz,hz)
   from pyevtk.hl import gridToVTK  
-  gridToVTK("helper"+str(my_grid.rank),x,y,z,cellData={"helper":helper}) 
+  gridToVTK("helper"+str(my_mpi_grid.rank),x,y,z,cellData={"helper":helper}) 
  
   from skimage import measure
   # coords of vertices lie in [0,1-h]
-  verts, faces, normals, values = measure.marching_cubes(helper,spacing=(np.float32(my_grid.grid.hx),np.float32(my_grid.grid.hy),np.float32(my_grid.grid.hz)),allow_degenerate=False)
-  verts = np.asarray(verts) + (my_grid.grid.hx/2.0,my_grid.grid.hx/2.0,my_grid.grid.hx/2.0)
+  verts, faces, normals, values = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False)
+  verts = np.asarray(verts) + (my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hx/2.0)
   # translate from (0,0,0) to correct position
-  shift = np.asarray(my_grid.bounds[0:3])
+  shift = np.asarray(my_mpi_grid.bounds[0:3])
   verts = [p+shift for p in verts]
   
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
-  matviz_vtk.show_write_vtk(pd, 10, "marching"+str(my_grid.rank)+".vtp")
+  matviz_vtk.show_write_vtk(pd, 10, "marching"+str(my_mpi_grid.rank)+".vtp")
   
+  my_mpi_grid.set_vertices_and_faces(list(verts),list(faces))
   
-#   connectivity = basecell.getConnectivity(verts,faces)
-#   verts = basecell.taubin_smoothing(verts,connectivity)
-#   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
-#   matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(my_grid.rank)+".vtp")
+  my_mpi_grid.gather_data(append=True)
   
-#   ##### gather all vertices and cells
-  verts, faces = my_grid.gather_data(list(verts),list(faces))
-  
-  if my_grid.rank == 0:
+  data = None
+  if my_mpi_grid.rank == 0:
     import pymesh
-    print("before reducing: len(verts):",len(verts)," len(faces):",len(faces))
-    verts = np.asarray(verts)
-    faces = np.asarray(faces)
+    print("before reducing: len(verts):",len(my_mpi_grid.vertices)," len(faces):",len(my_mpi_grid.faces))
+    verts = np.asarray(my_mpi_grid.vertices)
+    faces = np.asarray(my_mpi_grid.faces)
     verts, faces, info = pymesh.remove_duplicated_vertices_raw(verts,faces,1e-4) 
     verts, faces, info = pymesh.remove_duplicated_faces_raw(verts,faces)
     print("after reducing: len(verts):",len(verts)," len(faces):",len(faces))
@@ -272,41 +216,28 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     normals.Update()
     matviz_vtk.show_write_vtk(normals.GetOutput(), 10, "marching_all.vtp")
     
-  return
-  ##### gather all vertices and cells
-#   verts, faces = my_grid.gather_data(list(verts),list(faces))
-#   
-#   if my_grid.rank == 0:
-#     pd = matviz_vtk.fill_vtk_polydata(verts, faces)
-#     clean = vtk.vtkCleanPolyData()
-#     clean.SetInputData(pd)
-#     clean.Update()
-#     normals = vtk.vtkPolyDataNormals()
-#     normals.SetInputData(pd)
-#     normals.SetConsistency(1)
-#     normals.SetAutoOrientNormals(1)
-#     normals.Update()
-#     matviz_vtk.show_write_vtk(normals.GetOutput(), 10, "marching_all.vtp")  
-    
-#     for i,v1 in enumerate(verts):
-#       for j,v2 in enumerate(verts):
-#         if i == j:
-#           continue
-#         print("v1,v2:",v1,v2)
-#         print("distance between ",v1, " and ", v2, ":", np.linalg.norm(np.asarray(v1),np.asarray(v2)))
+    data = (verts,faces)
   
-#     connectivity = basecell.getConnectivity(verts,faces)
-#     verts = basecell.taubin_smoothing(verts,connectivity)
-#     pd = matviz_vtk.fill_vtk_polydata(verts, faces)
-#      
-#     normals = vtk.vtkPolyDataNormals()
-#     normals.SetInputData(pd)
-#     normals.SetConsistency(1)
-#     normals.SetAutoOrientNormals(1)
-#     normals.Update()
-#      
-#     matviz_vtk.show_write_vtk(normals.GetOutput(), 10, "smoothed_marching"+str(my_grid.rank)+".vtp")
-
+  # broadcast all verts to all ranks
+  data = my_mpi_grid.comm.bcast(data,root=0)
+  my_mpi_grid.set_vertices_and_faces(data[0],data[1])
+  
+  for v in my_mpi_grid.vertices:
+    assert(v is not None)
+  assert(np.amax(my_mpi_grid.faces) < len(my_mpi_grid.vertices))
+  
+  # update after changing vertices and faces
+  my_mpi_grid.update_connectivity_verts_faces()
+  
+  # do parallel smoothing here
+  mpi_taubin_smoothing(my_mpi_grid)
+  
+  # send smoothed data to root
+  my_mpi_grid.gather_data(append=False, root=0)
+  
+  pd = matviz_vtk.fill_vtk_polydata(my_mpi_grid.vertices,my_mpi_grid.faces)
+  matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(my_mpi_grid.rank)+".vtp")
+    
   return pd
 
 # @param idx: tuple of three ints storing array indices(i,j,k)
@@ -504,8 +435,7 @@ def idx_out_of_bounds(point,bounds):
   
 #  Setup 2D distributed grid with shared ghost boundaries
 #  using mpi4py and the MPI Cartesian Communicator. 
-
-class DistributedGrid():
+class MPI_Grid():
   # total_samples: list with number of total samples in 3 directions
   # bc_res: resolution of one base cell (usually 40)
   # bounds: global (xmin,ymin,zmin,xmax,ymax,zmax)
@@ -528,7 +458,18 @@ class DistributedGrid():
     self.bounds[0] = self.start_x * (bounds[3]-bounds[0]) / total_samples[0] + bounds[0]
     self.bounds[3] = self.end_x * (bounds[3]-bounds[0]) / total_samples[0] + bounds[0]
     self.grid = RectGrid(int(self.chunks*bc_res),int(total_samples[1]*bc_res),int(total_samples[2]*bc_res), self.bounds)
-       
+    
+  def set_vertices_and_faces(self,verts,faces):
+    # contains ALL vertices
+    self.vertices = verts
+    self.faces = faces
+    self.update_connectivity_verts_faces()
+    self.chunks_vertices, self.start_verts_idx, self.end_verts_idx = self.calc_num_vertices()
+    print("rank ",self.rank," start:",self.start_verts_idx," end:",self.end_verts_idx," chunks:",self.chunks_vertices," total:",len(self.vertices))
+  
+  def update_connectivity_verts_faces(self):
+    self.connectivity = basecell.getConnectivity(self.vertices, self.faces)
+    
   # calculate number of slices, start and end idx along x-axis for this rank
   # @param total_slices: number of total slices
   def calc_num_cell_slices(self,total_slices):
@@ -541,6 +482,16 @@ class DistributedGrid():
     
     return chunks[self.rank], start_slice, end_slice
   
+  def calc_num_vertices(self):
+    assert(self.vertices is not None and len(self.vertices) > 0)
+    num_verts = len(self.vertices)
+    chunks = [int(num_verts/self.size) + (1 if p < num_verts%self.size else 0) for p in range(0,self.size)]
+    # start idx of 'vertices' list
+    start_idx = int(np.sum(chunks[0:self.rank]))
+    end_idx = int(start_idx + chunks[self.rank])
+    
+    return chunks[self.rank], start_idx, end_idx
+    
   def to_info(self):
     print("---- mpi distr grid ----")  
     print("rank:",self.rank)
@@ -555,9 +506,6 @@ class DistributedGrid():
       # coordinate dimension of shift is always 1, because we only have one dimension
       # coordinate dimension 1-based
       source, dest = self.cart.Shift(1,direction)
-      print("rank ", self.rank, " sending slice ",self.grid.nx-1," to rank ",dest)
-#       print("rank ", self.rank," direction:",direction," left:",source," right:",dest)
-      sys.stdout.flush()
 
       sendbuf = None
       if direction == -1:
@@ -568,6 +516,7 @@ class DistributedGrid():
       assert(sendbuf is not None)
       recvbuf = np.full_like(sendbuf,999)
       
+      # convert it directly to binary array
       helper = np.zeros_like(sendbuf, dtype=int)
       for i in range(helper.shape[0]):
         for j in range(helper.shape[1]):
@@ -586,18 +535,48 @@ class DistributedGrid():
     
     return recv
   
+  def communicate_vertices(self):
+    assert(self.vertices is not None)
+    recv = []
+    for direction in [-1,1]:
+      # coordinate dimension of shift is always 1, because we only have one dimension
+      # coordinate dimension 1-based
+      source, dest = self.cart.Shift(1,direction)
+      
+      sendbuf = (self.start_verts_idx, self.end_verts_idx,np.copy(self.vertices[self.start_verts_idx:self.end_verts_idx]))
+      
+      tmp = self.cart.sendrecv(sendbuf,dest=dest,source=source)
+      if source != MPI.PROC_NULL:
+        recv.append(tmp)
+    
+    #print("rank:",self.rank," got ",len(recv)," data chunks")  
+    return recv
+      
   # collect all points and cells on a single rank (0)
-  def gather_data(self,verts,faces,root=0):
-    data = self.comm.gather((verts,faces),root=root)
-    offset = len(verts)
-    if self.rank == root:
-      for d in data:
-        offset = len(verts)
-        verts.extend(d[0])
-        faces.extend(list(np.asarray(d[1])+offset))
+  # if append==True, append data coming from other ranks
+  # if append == False, update data coming from other ranks 
+  def gather_data(self,append,root=0):
+    if append:
+      data = self.comm.gather((self.vertices, self.faces),root=root)
+      if self.rank == root:
+        for d in data:
+          offset = len(self.vertices)
+          self.vertices.extend(d[0])
+          self.faces.extend(list(np.asarray(d[1])+offset))
+    else: # update
+      data = self.comm.gather((self.start_verts_idx, self.end_verts_idx,self.vertices[self.start_verts_idx:self.end_verts_idx]),root=root)
+      print("rank:", self.rank," len(vertices):", len(self.vertices))
+      if self.rank == root:
+        self.update_vertices(data)
         
-    return verts, faces    
-  
+  def update_vertices(self,recv):
+    for r in recv:
+      if r is not None:
+        start = r[0]
+        end = r[1]
+        assert(r[2] is not None and r[2] is not None)
+        self.vertices[start:end] = r[2]
+        
 class RectGrid():
   def __init__(self,nx,ny,nz,bounds):
     self.data = np.full((nx,ny,nz),999,dtype=int)
@@ -616,83 +595,43 @@ class RectGrid():
     print("spacing:",self.hx,self.hy,self.hz)
     sys.stdout.flush()
 
-def merge_duplicates(points,cells):
-  x = [v[0] for v in points]
-  y = [v[1] for v in points]
-  z = [v[2] for v in points]
-  
-#   from scipy import spatial 
-#   tol = 1e-3
-#   tree = spatial.KDTree(points) 
-#   #find all pairs of points within a distance 
-#   # gives indices with tuples of points indices 
-#   idx = tree.query_pairs(tol) 
-#   
-#   print("len(idx):",len(idx))
-  
-  import pandas
-  # use pandas to create data frame/table to identify duplicates
-  df = pandas.DataFrame({'x':x, 'y':y, 'z':z})
-  # list with duplicated pairs
-  pairs = list(df.groupby(list(df.columns)).groups.values())
-  print("num pairs:",sum(1 for p in pairs if len(p) >= 2))
-  map = list(range(len(points)))
-  
-  for p in pairs:
-    if len(p) == 2:
-      map[p[0]] = p[1]
-    if len(p) == 3:
-      map[p[0]] = p[2]
-      map[p[1]] = p[2]
-    assert(len(p) < 4)  
-      
-  for i in range(len(cells)):
-    assert(len(cells[i]) == 3)
-    cells[i] = [map[cells[i][0]],map[cells[i][1]],map[cells[i][2]]]
-      
-  ###### remove duplicated faces ##########
-  v0 = [f[0] for f in cells]
-  v1 = [f[1] for f in cells]
-  v2 = [f[2] for f in cells]
-  df = pandas.DataFrame({'v0':v0,'v1':v1,'v2':v2})
-  print("number of cells before cleaning:",len(cells))
-  cells =[list(c) for c in list(df.drop_duplicates().itertuples(index=False,name=None))]
-  print("number of cells after cleaning:",len(cells))
-  
-  verts, cells = renumber_verts_and_faces(points, cells)
-  
-  print("number of verts after cleaning:",len(verts))
-#   print("len(points)",len(points)," len(pairs):",len(pairs)," diff=",len(points)-len(pairs))
-  
-  return verts, cells
-
-def renumber_verts_and_faces(verts,faces):
-  import pandas
-  
-  v_in_faces = [f[0] for f in faces] + [f[1] for f in faces] + [f[2] for f in faces]
-  
-  df = pandas.DataFrame({'f':v_in_faces})
-  # list with valid unique point ids
-  unique = df.f.unique()
-  
-  # now map this ids to consecutive range from 0,...,#points
-  map = [-1] * (max(unique)+1)
-  count = 0
-  for u in unique:
-    map[u] = count
-    count +=1
+def mpi_taubin_smoothing(mpi_grid):
+  assert(mpi_grid.vertices is not None)
+  assert(mpi_grid.faces is not None)
+  assert(mpi_grid.connectivity is not None)
+  # smoothing parameter: p_i = p_i + lambda*L(p_{i,j})
+  lamb = 0.8
+  iter = 0
+  res = 999
+  old_points = None
+  start = mpi_grid.start_verts_idx
+  end = mpi_grid.end_verts_idx
+  #while res > 1e-2:
+  while iter < 20:
+    print("rank:",mpi_grid.rank," iter:",iter)
+    sys.stdout.flush()
+    old_points = mpi_grid.vertices[:]
+    assert(max(max(mpi_grid.connectivity)) < len(mpi_grid.vertices))
+    # shrink
+    mpi_grid.vertices = basecell.laplacian_smoothing(mpi_grid.vertices,mpi_grid.connectivity,lamb,start=start,end=end,rank=mpi_grid.rank)
+    # communicate smoothed vertices to other ranks
+    mpi_grid.update_vertices(mpi_grid.communicate_vertices())
+    res = basecell.residual(old_points, mpi_grid.vertices)
+    #print("rank:",mpi_grid.rank," residual:",res)
     
-  for i in range(len(faces)):
-    assert(len(faces[i]) == 3)
-    assert(map[faces[i][0]] != -1)
-    assert(map[faces[i][1]] != -1)
-    assert(map[faces[i][2]] != -1)
-    faces[i] = [map[faces[i][0]],map[faces[i][1]],map[faces[i][2]]]
-  
-  new_verts = [None] * len(unique)  
-  for u in unique:
-    new_verts[map[u]]= verts[u]
-  
-  assert(len(new_verts) == len(unique))
+    for v in mpi_grid.vertices:
+      assert(v is not None)
+    
+    # expand
+    mpi_grid.vertices=basecell.laplacian_smoothing(mpi_grid.vertices,mpi_grid.connectivity,-lamb-0.04,start=start,end=end,rank=mpi_grid.rank)
+    assert(mpi_grid.vertices is not None)
+    # communicate smoothed vertices to other ranks
+    mpi_grid.update_vertices(mpi_grid.communicate_vertices())
+    
+    res = basecell.residual(old_points, mpi_grid.vertices)
+    print("rank:",mpi_grid.rank," residual:",res)
+    iter += 1
+    
+  print("Taubin smoothing with ", iter, " iterations and res=",res)  
+    
 
-  return new_verts,faces

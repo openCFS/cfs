@@ -71,32 +71,54 @@ def residual(old,new):
 # using weighted average: L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i, assuming neighbors are p_j,p_k
 # bounds: tuple/list with 6 entries - points on these boundaries are not smoothed   
 # bounds order: xmin,ymin,zmin,xmax,ymax,zmax
-def laplacian_smoothing(points,connectivity,lamb,bounds=None):
-  new_points = [None] * len(points) 
+def laplacian_smoothing(points,connectivity,lamb,start=0,end=None,bounds=None,rank=None):
+  if end == None:
+    end = len(points)
+  new_points = points[:]
   if bounds is None:
     bounds = [0.0,0.0,0.0,1.0,1.0,1.0] # default unit cube
-  for i,vertex in enumerate(points):
-    p = vertex
+    
+  #print("rank:",rank," smoothing start:",start," end:",end, " lambda:",lamb)  
+  for i in range(start,end):
+    p = points[i]
     # don't smooth at the boundary
     if np.isclose(p[0], bounds[0]) or np.isclose(p[1], bounds[1]) or np.isclose(p[2], bounds[2]) or np.isclose(p[0], bounds[3]) or np.isclose(p[1], bounds[4]) or np.isclose(p[2], bounds[5]):
-#       print("point ",p," is close to bounds ",bounds)
       new_points[i] = p
+      assert(new_points[i] is not None)
     else:
       # calculate L(p_i)
       # w_ij*p_j + w_ik*p_k
-      num = np.asarray([0,0,0])
-      denom = 0
       L = 0
       # nid is id of a neighbor node
-      neighborhood = connectivity[i] 
+      neighborhood = connectivity[i]
+      #print("neighborhood: ",neighborhood)
       for nid in neighborhood:
         # n are coords of neighbor with id nid
         n = np.asarray(points[nid])
+        assert(n is not None)
         # distance between neighbor and this node
         w = 1.0 / np.linalg.norm(len(neighborhood))
-        L = L + w * (n-p)
+        assert(p is not None)
+        L += w * (n-p)
+        #print("w:",w," n:",n," p:",p)
+        #print("n-p:",n-p," w*(n-p):",w*(n-p)," L:",L)
         
       new_points[i] = p + lamb * L   
+      #print(p,"+",lamb,"*",L)
+      #print("old:",points[i]," new:",new_points[i])
+      assert(new_points[i] is not None)
+      
+      #sys.exit()
+  
+  assert(len(new_points) == len(points))
+  for i,p in enumerate(new_points):
+    if p is None:
+      print("Rank:",rank," i:",i, " has None")
+    assert(p is not None)
+    
+  #for i in range(len(points)):
+  #  print("old:",points[i]," new:",new_points[i])
+  
   
   return new_points  
 
