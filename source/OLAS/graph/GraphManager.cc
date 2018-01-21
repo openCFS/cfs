@@ -539,74 +539,7 @@ namespace CoupledField {
 
 
 
-
     
-
-    // Now we have the edge/vertex list for every block available, so
-    // we can loop explictily over vertices (=rows) and edges (=cols)
-    // of each block.
-    
-    // use this lambda function to avoid c&p code
-    auto loopBody = [this, setCounterPart] (UInt row, UInt col) {
-
-      // Compute index of graph in graph pointer matrix
-      UInt idx = ComputeIndex( row, col );
-
-      // Generate coupling graph and also transpose if necessary
-      if ( row != col ) {
-        GenerateCouplingGraph( row, col );
-        if ( setCounterPart ) {
-          GenerateCouplingGraph( col, row );
-        }
-
-        // Generate IDBC graph and its transpose if necessary
-        GenerateIDBCGraph( row, col );
-        if ( setCounterPart ) {
-          GenerateIDBCGraph( col, row );
-        }
-      }
-
-      // --- logging output ---
-      if( IS_LOG_ENABLED(graphMan, dbg3) ) {
-        LOG_DBG3(graphMan) << "IDBC/Graph insertion for block ("
-            << row << ", " << col << ")";
-
-        LOG_DBG3(graphMan) << "vertexList1: ";
-        for(UInt i=0; i <vertexList1_[row].size(); ++i )
-          LOG_DBG3(graphMan) << "\t" << vertexList1_[row][i];
-
-        LOG_DBG3(graphMan) << "vertexList2: ";
-        for(UInt i=0; i <vertexList2_[row].size(); ++i )
-          LOG_DBG3(graphMan) << "\t" << vertexList2_[row][i];
-
-        LOG_DBG3(graphMan) << "edgeList1: ";
-        for(UInt i=0; i <edgeList1_[col].size(); ++i )
-          LOG_DBG3(graphMan) << "\t" << edgeList1_[col][i];
-
-        LOG_DBG3(graphMan) << "edgeList2: ";
-        for(UInt i=0; i <edgeList2_[col].size(); ++i )
-          LOG_DBG3(graphMan) << "\t" << edgeList2_[col][i];
-      }
-
-      // Insert information into graph for real dofs
-      graph_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList1_[col] );
-
-      // Insert information into graph for fixed dofs
-      graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList2_[col] );
-
-      if ( setCounterPart == true ) {
-
-        idx = ComputeIndex( col, row );
-        LOG_DBG3(graphMan) << "IDBC: Inserting into (" << col << ", " << row << ")" << std::endl;
-
-        // Insert information into (transpose) graph for real dofs
-        graph_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList1_[row]);
-
-        // Insert information into graph for fixed dofs
-        graphIDBC_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList2_[row]  );
-
-      }
-    };
 
 
     // loop over all blocks and pass for every block the information to
@@ -619,8 +552,64 @@ namespace CoupledField {
       for (  UInt sbmRow = 0; sbmRow < 2*N_+1; ++sbmRow ) {
         for ( UInt sbmCol = sbmRow ; sbmCol < sbmRow + M_ ; ++sbmCol ) {
           if( sbmCol < 2 * N_ + 1){
-            // call the lambda function
-            loopBody(sbmRow, sbmCol);
+
+            // Compute index of graph in graph pointer matrix
+            UInt idx = ComputeIndex( sbmRow, sbmCol );
+
+            // Generate coupling graph and also transpose if necessary
+            if ( sbmRow != sbmCol ) {
+              GenerateCouplingGraph( sbmRow, sbmCol );
+              if ( setCounterPart ) {
+                GenerateCouplingGraph( sbmCol, sbmRow );
+              }
+
+              // Generate IDBC graph and its transpose if necessary
+              GenerateIDBCGraph( sbmRow, sbmCol );
+              if ( setCounterPart ) {
+                GenerateIDBCGraph( sbmCol, sbmRow );
+              }
+            }
+
+            // --- logging output ---
+            if( IS_LOG_ENABLED(graphMan, dbg3) ) {
+              LOG_DBG3(graphMan) << "IDBC/Graph insertion for block ("
+                  << sbmRow << ", " << sbmCol << ")";
+
+              LOG_DBG3(graphMan) << "vertexList1: ";
+              for(UInt i=0; i <vertexList1_[0].size(); ++i )
+                LOG_DBG3(graphMan) << "\t" << vertexList1_[0][i];
+
+              LOG_DBG3(graphMan) << "vertexList2: ";
+              for(UInt i=0; i <vertexList2_[0].size(); ++i )
+                LOG_DBG3(graphMan) << "\t" << vertexList2_[0][i];
+
+              LOG_DBG3(graphMan) << "edgeList1: ";
+              for(UInt i=0; i <edgeList1_[0].size(); ++i )
+                LOG_DBG3(graphMan) << "\t" << edgeList1_[0][i];
+
+              LOG_DBG3(graphMan) << "edgeList2: ";
+              for(UInt i=0; i <edgeList2_[0].size(); ++i )
+                LOG_DBG3(graphMan) << "\t" << edgeList2_[0][i];
+            }
+
+            // Insert information into graph for real dofs
+            graph_[idx]->AddVertexNeighbours( vertexList1_[0], edgeList1_[0] );
+
+            // Insert information into graph for fixed dofs
+            graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[0], edgeList2_[0] );
+
+            if ( setCounterPart == true ) {
+
+              idx = ComputeIndex( sbmCol, sbmRow );
+              LOG_DBG3(graphMan) << "IDBC: Inserting into (" << sbmCol << ", " << sbmRow << ")" << std::endl;
+
+              // Insert information into (transpose) graph for real dofs
+              graph_[idx]->AddVertexNeighbours( edgeList1_[0], vertexList1_[0]);
+
+              // Insert information into graph for fixed dofs
+              graphIDBC_[idx]->AddVertexNeighbours( edgeList1_[0], vertexList2_[0]  );
+
+            }
           }
         }
       }
@@ -632,7 +621,64 @@ namespace CoupledField {
       for( UInt row = 0; row < numBlocks_; ++row ) {
         for( UInt col = 0; col < numBlocks_; ++col ) {
           // call the lambda function
-          loopBody(row, col);
+
+          // Compute index of graph in graph pointer matrix
+          UInt idx = ComputeIndex( row, col );
+
+          // Generate coupling graph and also transpose if necessary
+          if ( row != col ) {
+            GenerateCouplingGraph( row, col );
+            if ( setCounterPart ) {
+              GenerateCouplingGraph( col, row );
+            }
+
+            // Generate IDBC graph and its transpose if necessary
+            GenerateIDBCGraph( row, col );
+            if ( setCounterPart ) {
+              GenerateIDBCGraph( col, row );
+            }
+          }
+
+          // --- logging output ---
+          if( IS_LOG_ENABLED(graphMan, dbg3) ) {
+            LOG_DBG3(graphMan) << "IDBC/Graph insertion for block ("
+                << row << ", " << col << ")";
+
+            LOG_DBG3(graphMan) << "vertexList1: ";
+            for(UInt i=0; i <vertexList1_[row].size(); ++i )
+              LOG_DBG3(graphMan) << "\t" << vertexList1_[row][i];
+
+            LOG_DBG3(graphMan) << "vertexList2: ";
+            for(UInt i=0; i <vertexList2_[row].size(); ++i )
+              LOG_DBG3(graphMan) << "\t" << vertexList2_[row][i];
+
+            LOG_DBG3(graphMan) << "edgeList1: ";
+            for(UInt i=0; i <edgeList1_[col].size(); ++i )
+              LOG_DBG3(graphMan) << "\t" << edgeList1_[col][i];
+
+            LOG_DBG3(graphMan) << "edgeList2: ";
+            for(UInt i=0; i <edgeList2_[col].size(); ++i )
+              LOG_DBG3(graphMan) << "\t" << edgeList2_[col][i];
+          }
+
+          // Insert information into graph for real dofs
+          graph_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList1_[col] );
+
+          // Insert information into graph for fixed dofs
+          graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList2_[col] );
+
+          if ( setCounterPart == true ) {
+
+            idx = ComputeIndex( col, row );
+            LOG_DBG3(graphMan) << "IDBC: Inserting into (" << col << ", " << row << ")" << std::endl;
+
+            // Insert information into (transpose) graph for real dofs
+            graph_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList1_[row]);
+
+            // Insert information into graph for fixed dofs
+            graphIDBC_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList2_[row]  );
+
+          }
         }
       }
     }

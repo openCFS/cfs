@@ -751,6 +751,13 @@ namespace CoupledField
   
   
   void Assemble::InitMultHarm() {
+    // Reset for matrix update
+    matrixUpdated_ = false;
+
+    // Temporary: Check each time for non-linearities
+    // On first Assembly, assemble all matrices for each BilinearForm
+    CheckNonLinearities(isFirstTime_);
+
     // Init all matrices, which have to be reassembled
     // Just to be done, when isNewtonPart is false!
     std::map<FEMatrixType, bool>::iterator it;
@@ -785,14 +792,6 @@ namespace CoupledField
         if( col < 2 * N + 1 && col >= 0) sbmInd.Push_back( ComputeIndex(iRow, col) );
       }
     }
-
-
-    // Reset for matrix update
-    matrixUpdated_ = false;
-
-    // Temporary: Check each time for non-linearities
-    // On first Assembly, assemble all matrices for each BilinearForm
-    CheckNonLinearities(isFirstTime_);
 
 
     // iterate over all entitylist-pairs and
@@ -1824,7 +1823,7 @@ namespace CoupledField
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC
     		  || analysisType_ ==BasePDE::INVERSESOURCE
 			  || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {

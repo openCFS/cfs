@@ -5528,7 +5528,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     assemble_->AssembleNonLinRHS();
 
     // how many harmonics are we considering
-    UInt N = (multHarmFreqVec_.GetSize() - 1) / 2;
+    UInt N = solStrat_->GetNumHarmN();
+    UInt M = solStrat_->GetNumHarmM();
 
     // initialize matrices because normally they are initialized in AssembleMatrices-method
     // but since we call the assemble method for all sub-matrices, this wouldn't work
@@ -5543,11 +5544,13 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
       // which harmonic are we considering
       Integer h = -N + i;
+      if( std::abs(h) >= (Integer)M ){
+        continue;
+      }else{
+        // assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
+        assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM() );
 
-      // assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
-      assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM() );
-
-
+      }
 
     }
 

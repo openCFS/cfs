@@ -233,7 +233,6 @@ namespace CoupledField {
 
 
   void AlgebraicSys::CreateLinSys() {
-
     LOG_TRACE(algSys) << "Creating linear system";
 
 
@@ -354,8 +353,7 @@ namespace CoupledField {
     BaseVector *bVec = NULL;
     SingleVector *sVec = NULL;
     UInt nB = (isMultHarm_)? 2*solStrat_->GetNumHarmN()+1 : numBlocks_;
-    for ( UInt k =0; k < nB; k++ ) {
-
+    for ( UInt k = 0; k < nB; k++ ) {
       // Get diag matrix for vector generation
       stdMat = sysMat_[SYSTEM]->GetPointer( k, k );
 
@@ -1880,6 +1878,7 @@ namespace CoupledField {
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     if( isMultHarm_ ){
       MapFctIdEqnToIndex_MultHarm(fctId1, eqnNrs1, rowBlocks, rowNums, nnzSBMInd_);
+      MapFctIdEqnToIndex_MultHarm(fctId2, eqnNrs2, colBlocks, colNums, nnzSBMInd_);
     }else{
       MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
       MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
@@ -3467,103 +3466,39 @@ namespace CoupledField {
       UInt M = solStrat_->GetNumHarmM();
 
       for( UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
-        // diagonal block
-        graph = graphManager_->GetGraph( sbmRow, sbmRow );
-        // we only allow nonsymmetric storage scheme
-        BaseMatrix::StorageType sT = BaseMatrix::SPARSE_NONSYM;
-        LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
-            << ", " << sbmRow+1 << ") is "
-            << BaseMatrix::storageType.ToString(sT);
-        retMat->SetSubMatrix ( sbmRow, sbmRow, entryType,
-                               sT,
-                               nrows, ncols, graph->GetNNE() );
-        for( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M ; ++sbmCol ) {
+        for( UInt sbmCol = sbmRow ; sbmCol < sbmRow + M ; ++sbmCol ) {
           if( sbmCol < 2 * N + 1){
-            // off-diagonal block
-            graph = graphManager_->GetGraph( sbmRow, sbmRow );
+            graph = graphManager_->GetGraph( sbmRow, sbmCol );
             // we only allow nonsymmetric storage scheme
             BaseMatrix::StorageType sT = BaseMatrix::SPARSE_NONSYM;
             LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
-                << ", " << sbmRow+1 << ") is "
+                << ", " << sbmCol+1 << ") is "
                 << BaseMatrix::storageType.ToString(sT);
             retMat->SetSubMatrix ( sbmRow, sbmCol, entryType,
-                                   sT,
-                                   nrows, ncols, graph->GetNNE() );
-            // also set the transposed
-            retMat->SetSubMatrix ( sbmCol, sbmRow, entryType,
-                                               sT,
-                                               nrows, ncols, graph->GetNNE() );
-          }
-        }
-      }
-
-
-
-    }else{
-
-      for ( sIt = feSubMatricesByBlocks_[matType].begin();
-            sIt != feSubMatricesByBlocks_[matType].end(); sIt++ ) {
-
-          // Determine row / col
-          UInt sbmRow = (*sIt).rowInd;
-          UInt sbmCol = (*sIt).colInd;
-
-          // Determine number of matrix rows and columns
-          UInt nrows = blockInfo_[sbmRow]->numLastFreeIndex;
-          UInt ncols = blockInfo_[sbmCol]->numLastFreeIndex;
-
-          // Check for necessity of generation
-          if ( sbmRow <= sbmCol || sbmSymm_ == false ) {
-
-            graph = graphManager_->GetGraph( sbmRow, sbmCol );
-            //sbmSymm_ = false;
-            // Trigger generation of sub-matrix
-            if ( sbmRow == sbmCol && sbmSymm_ == true ) {
-              // for diagonal blocks we allow a variable
-              // matrix layout which we query at the
-              // sol-strategy object
-
-              BaseMatrix::StorageType sT = solStrat_->GetStorageType(sbmRow);
-              LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
-                  << ", " << sbmCol+1 << ") is "
-                  << BaseMatrix::storageType.ToString(sT);
-
-              // If we perform static condensation and this is the
-              // inner-inner block, we use the variable block row
-              // format to increase performance.
-              if( statCond_ && sbmRow == numBlocks_-1 ) {
-                sT = BaseMatrix::VAR_BLOCK_ROW;
-              }
-
-              retMat->SetSubMatrix ( sbmRow, sbmCol, entryType,
-                                     sT,
-                                     nrows, ncols, graph->GetNNE() );
-            } else {
-              // Off-diagonal entries are by nature rectangular and thus, only
-              // two possibilities remain: either sparse_nonsym crs format
-              // of the variable block row format.
-              // CRS is the more general case and will be preferred.
-              retMat->SetSubMatrix ( sbmRow, sbmCol,
-                                     entryType, BaseMatrix::SPARSE_NONSYM,
-                                     nrows, ncols, graph->GetNNE() );
-              LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
-                            << ", " << sbmCol+1 << ") is "
-                            << BaseMatrix::storageType.ToString(BaseMatrix::SPARSE_NONSYM);
+                sT,
+                nrows, ncols, graph->GetNNE() );
+            // also set the transposed...if it's not the diagonal block
+            if(sbmRow != sbmCol){
+              retMat->SetSubMatrix ( sbmCol, sbmRow, entryType,
+                  sT,
+                  nrows, ncols, graph->GetNNE() );
             }
-
             // check, if matrix pattern can be shared and
             // obtain matrix graph
             if( sharePattern ) {
+              SubMatrixID id;
+              id.rowInd = sbmRow;
+              id.colInd = sbmCol;
               LOG_DBG(algSys) << "\tSharing pattern";
-              PatternIdType patternID = sbmPatternIds_[(*sIt)];
-              if( sbmPatternIds_[(*sIt)] != NO_PATTERN_ID ) {
+              PatternIdType patternID = sbmPatternIds_[id];
+              if( sbmPatternIds_[id] != NO_PATTERN_ID ) {
                 LOG_DBG(algSys) << "\tObtaining pattern '" << patternID << "' from pool";
                 (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( patternPool_, patternID );
               } else {
                 (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
-                sbmPatternIds_[(*sIt)] =
+                sbmPatternIds_[id] =
                     (*retMat)( sbmRow, sbmCol ).TransferPatternToPool( patternPool_ );
-                LOG_DBG(algSys) << "\tPutting pattern '" << sbmPatternIds_[(*sIt)] << "' to pool";
+                LOG_DBG(algSys) << "\tPutting pattern '" << sbmPatternIds_[id] << "' to pool";
               }
             } else {
               LOG_DBG(algSys) << "\tUsing no shared sparsity pattern";
@@ -3571,9 +3506,87 @@ namespace CoupledField {
               (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
             }
 
+          } // endif sbmCol < 2 * N + 1
+        } // loop over sbmCols
+      } // loop over sbmRows
 
+
+
+    }else{
+
+      for ( sIt = feSubMatricesByBlocks_[matType].begin();
+          sIt != feSubMatricesByBlocks_[matType].end(); sIt++ ) {
+
+        // Determine row / col
+        UInt sbmRow = (*sIt).rowInd;
+        UInt sbmCol = (*sIt).colInd;
+
+        // Determine number of matrix rows and columns
+        UInt nrows = blockInfo_[sbmRow]->numLastFreeIndex;
+        UInt ncols = blockInfo_[sbmCol]->numLastFreeIndex;
+
+        // Check for necessity of generation
+        if ( sbmRow <= sbmCol || sbmSymm_ == false ) {
+
+          graph = graphManager_->GetGraph( sbmRow, sbmCol );
+          //sbmSymm_ = false;
+          // Trigger generation of sub-matrix
+          if ( sbmRow == sbmCol && sbmSymm_ == true ) {
+            // for diagonal blocks we allow a variable
+            // matrix layout which we query at the
+            // sol-strategy object
+
+            BaseMatrix::StorageType sT = solStrat_->GetStorageType(sbmRow);
+            LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
+                << ", " << sbmCol+1 << ") is "
+                << BaseMatrix::storageType.ToString(sT);
+
+            // If we perform static condensation and this is the
+            // inner-inner block, we use the variable block row
+            // format to increase performance.
+            if( statCond_ && sbmRow == numBlocks_-1 ) {
+              sT = BaseMatrix::VAR_BLOCK_ROW;
+            }
+
+            retMat->SetSubMatrix ( sbmRow, sbmCol, entryType,
+                sT,
+                nrows, ncols, graph->GetNNE() );
+          } else {
+            // Off-diagonal entries are by nature rectangular and thus, only
+            // two possibilities remain: either sparse_nonsym crs format
+            // of the variable block row format.
+            // CRS is the more general case and will be preferred.
+            retMat->SetSubMatrix ( sbmRow, sbmCol,
+                entryType, BaseMatrix::SPARSE_NONSYM,
+                nrows, ncols, graph->GetNNE() );
+            LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
+                << ", " << sbmCol+1 << ") is "
+                << BaseMatrix::storageType.ToString(BaseMatrix::SPARSE_NONSYM);
           }
+
+          // check, if matrix pattern can be shared and
+          // obtain matrix graph
+          if( sharePattern ) {
+            LOG_DBG(algSys) << "\tSharing pattern";
+            PatternIdType patternID = sbmPatternIds_[(*sIt)];
+            if( sbmPatternIds_[(*sIt)] != NO_PATTERN_ID ) {
+              LOG_DBG(algSys) << "\tObtaining pattern '" << patternID << "' from pool";
+              (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( patternPool_, patternID );
+            } else {
+              (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
+              sbmPatternIds_[(*sIt)] =
+                  (*retMat)( sbmRow, sbmCol ).TransferPatternToPool( patternPool_ );
+              LOG_DBG(algSys) << "\tPutting pattern '" << sbmPatternIds_[(*sIt)] << "' to pool";
+            }
+          } else {
+            LOG_DBG(algSys) << "\tUsing no shared sparsity pattern";
+            // Set sparsity pattern of sub-matrix
+            (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
+          }
+
+
         }
+      }
     }
     return retMat;
   }
