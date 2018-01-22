@@ -162,7 +162,7 @@ function update_iterations() {
 			if ($("input[name=enable_autorefresh]").prop('checked') == true) {
 				setTimeout(function() {
 					update_iterations()
-				}, 1000);
+				}, 300);
 			} else {
 				running = false;
 			}

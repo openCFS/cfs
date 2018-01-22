@@ -1,24 +1,17 @@
-#menu {
-	top: 150px;
-	left: 0px;
-	width: 350px;
+h4 {
+	padding: 5px;
 }
 
-#settings {
-  top: 150px;
-  left: 0px;
-  width: 350px;
-}
-
-#content {
-	position: absolute;
-  top: 150px;
-  max-width: 1000px;
-  margin: 0px 0px 0px 350px;
-  padding: 15px;
+#simulation_id {
+	display: none;
 }
 
 /* dont show the iteration number */
 #iteration_num {
 	display: none;
+}
+
+/* make the settings on the left less bulky */
+.list-group-item {
+	padding: 3px;
 }

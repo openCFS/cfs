@@ -57,8 +57,8 @@ def cfs_recieve_blank():
   return cfs_recieve("")
   
 @app.route(settings["api"]["recieve_url"] + '/', methods = ['GET', 'POST'])
-@app.route(settings["api"]["recieve_url"] + '/<path:key>', methods = ['GET', 'POST'])
-def cfs_recieve(key = ""):
+@app.route(settings["api"]["recieve_url"] + '/<path:url_key>', methods = ['GET', 'POST'])
+def cfs_recieve(url_key = ""):
   data = ""
   
   # read the data from input stream directly
@@ -75,16 +75,16 @@ def cfs_recieve(key = ""):
 
     xml = etree.fromstring(data)
     
+    key = xml.xpath('//environment/@host')[0] + '/' + xml.xpath('//progOpts/@problem')[0]
+    
     if len(xml.xpath('//cfsStreaming/@id')) > 0:
-      if key == '':
-        key = xml.xpath('//cfsStreaming/@id')[0] + '/' + xml.xpath('//header/environment/@started')[0]
-      else:
-        key += '/' + xml.xpath('//cfsStreaming/@id')[0] + '/' + xml.xpath('//header/environment/@started')[0]
+      if not url_key == '':
+        key += url_key + '/' + xml.xpath('//cfsStreaming/@id')[0]
     else:
-      if key == '':
-        key = xml.xpath('//header/environment/@started')[0]
-      else:
-        key += '/' + xml.xpath('//header/environment/@started')[0]
+      if not url_key == '':
+        key += url_key
+
+    key += '/' + xml.xpath('//header/environment/@started')[0]
 
     GLOBAL_DATA_DICT[key] = xml
     
