@@ -3130,7 +3130,6 @@ namespace CoupledField {
     PtrParamNode setupNode = myInfo_->Get("setup");
     
     // Print overview of defined matrices
-    setupNode->SetComment("List of defined matrices");
     PtrParamNode matrixListNode = setupNode->Get("matrices");
     matrixListNode->SetComment("Memory is in MByte");
     
@@ -3257,7 +3256,6 @@ namespace CoupledField {
     PtrParamNode setupNode = myInfo_->Get("setup");
     
     // Print overview of feFunctions
-    setupNode->SetComment("List of registered FeFunctions");
     PtrParamNode fctListNode = setupNode->Get("feFunctions");
     std::map<FeFctIdType,std::string>::const_iterator it = fctNames_.begin();
     
@@ -3297,7 +3295,6 @@ namespace CoupledField {
     fctListNode->Get("totalNumDirichlet")->SetValue(totalNumDirichlet);
     
     // Print overview of blocks
-    setupNode->SetComment("List of SBM-blocks");
     PtrParamNode blockListNode = setupNode->Get("sbmBlocks");
     
     for( UInt i = 0; i < numBlocks_; ++i ) {
