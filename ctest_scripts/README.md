@@ -6,7 +6,7 @@ Description
 
 The scripts in  this directory are used to produce nightly  test reports for 
 [CDash](http://www.cdash.org) running on the
-[CFS++ development server](@CFS_DS_HTTPS@/cdash).
+[CFS++ development server](https://cfs.mdmt.tuwien.ac.at/cdash).
 
 Furthermore, the scripts are used  to build nightly binaries for certain Linux
  and  Windows platforms  at [Measurement  and Actuator  Division,  Institute of
@@ -16,7 +16,7 @@ Overview
 --------
 
 We  use   a  password-less  SSH  key   to  log  into   the  [Subversion  server
-](@CFS_DS_SVN@) at Erlangen.
+](https://cfs.mdmt.tuwien.ac.at/svn) at Erlangen.
 Therefore we can run automatical updates of the working copies (WCs)
 on          `wiki.mdmt.tuwien.ac.at`          from         the          script
 `sites/wiki/site_specific_init.cmake`.
@@ -30,7 +30,7 @@ The  Vagrant base  `.box` image  files are  stored locally  on  `wiki.mdmt` at
 `/var/www/html/boxes`.   They are  therefore, accessible  through  the [Apache
 server](http://wiki.mdmt.tuwien.ac.at/boxes) from within  TU Wien.  The images
 are        also        mirrored         on        the        [FTP
-server](@CFS_DS_FTP@/boxes).
+server](ftp://cfs.mdmt.tuwien.ac.at/boxes).
 
 The  VBoxes get  configured by  the `Vagrantfile`s  in the  corresponding site
 directories     to      mount     the     directories      `/opt/pckg`     and

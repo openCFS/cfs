@@ -1,0 +1,17 @@
+h4 {
+	padding: 5px;
+}
+
+#simulation_id {
+	display: none;
+}
+
+/* dont show the iteration number */
+#iteration_num {
+	display: none;
+}
+
+/* make the settings on the left less bulky */
+.list-group-item {
+	padding: 3px;
+}
