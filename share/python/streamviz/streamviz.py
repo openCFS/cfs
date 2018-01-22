@@ -1,14 +1,19 @@
 #!/usr/bin/env python2
 
+# webserver:
 from flask import Flask
 from flask import request
 
-from strings import *
-
+# xml parser
 from lxml import etree
 
+# settings
+from strings import *
+
+# html render module
 import render_html
 
+# plot module
 import api_plot
 
 app = Flask(__name__)
@@ -56,6 +61,7 @@ def cfs_recieve_blank():
 def cfs_recieve(key = ""):
   data = ""
   
+  # read the data from input stream directly
   if request.method == 'POST':
     chunk_size = 4096
     
@@ -82,13 +88,13 @@ def cfs_recieve(key = ""):
 
     GLOBAL_DATA_DICT[key] = xml
     
+    # set the event to trigger sending of the new xml data
+    # make sure to set the event AFTER putting the new xml
+    # into GLOBAL_DATA_DICT
     if key in UPDATE_EVENTS:
       for e in UPDATE_EVENTS[key]:
         e.set()
-    
-    #with open('data.xml', 'a') as f:
-    #  f.write(data)
-    
+
     print("recieved data!\n")
     return 'data recieved!\n'
   else:
@@ -97,4 +103,7 @@ def cfs_recieve(key = ""):
 
 
 if __name__ == "__main__":
-    app.run(threaded=True)
+  # need multithreading to server multiple clients.
+  # Otherwise pushing xml while ajaxing it with the event
+  # synchronization will not be possible
+  app.run(threaded=True)

@@ -136,6 +136,10 @@ function update_iterations() {
 
 	iteration_num = $("#iteration_num").html();
 
+	if (running == false) {
+		iteration_num = -1;
+	}
+	
 	$.ajax({
 		url : "/plot/" + key,
 		data : {
