@@ -33,7 +33,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
     return 'no_new_data'
 
 
-  xml = GLOBAL_DATA_DICT[key] # load xml again in case there is a new pne available
+  xml = GLOBAL_DATA_DICT[key] # load xml again in case there is a new one available
 
   fig = plt.figure()
 
@@ -86,15 +86,17 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
   imgdata = StringIO()
   fig.savefig(imgdata, format = 'svg')
   
-  # this 'all' might cause some probolems if toll is used
-  # by multiple people at the same time
+  # this 'all' might cause some probolems if this tool
+  # is used by multiple people at the same time
   # TODO: make sure it doesn't break the program
   plt.close('all')
-  
   
   imgdata.seek(0)  # rewind the data
 
   svg_dta = imgdata.readlines()  # this is svg data
+
+  # just to be sure:
+  del imgdata
 
   # data iteration num is used by javascript to determine the latest updated version
   # this is transmitted when requesting new data
