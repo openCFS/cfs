@@ -111,8 +111,8 @@ def render_view(GLOBAL_DATA_DICT, key):
     settings_data +=             '<td>' + value[0] + '</td></tr>'
 
   settings_data += '    </tbody></table></li>'
-  settings_data += '<li class="list-group-item"><button class="btn btn-primary" onclick="trigger_update()" >Update Data</button><br>'
-  settings_data += 'auto refresh: <input type="checkbox" name="enable_autorefresh" checked="checked" /></li>'
+  settings_data += '<!-- <li class="list-group-item"><button class="btn btn-primary" onclick="trigger_update()" >Update Data</button><br>'
+  settings_data += 'auto refresh: <input type="checkbox" name="enable_autorefresh" checked="checked" /></li> -->'
   settings_data += '</ul>'
   
   retdata = retdata.replace(settings['html_template']['key_settings'], settings_data)

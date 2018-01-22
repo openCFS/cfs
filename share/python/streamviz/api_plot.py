@@ -6,6 +6,8 @@ import threading
 # returns html with embedded svg OR error code 
 def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names, y1_res_names, y2_res_names, iteration_num):
   
+  data = ""
+  
   xml = GLOBAL_DATA_DICT[key]
   
   # iteration_num is the latest iteration that was shown by the GUI
@@ -37,7 +39,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
 
   fig = plt.figure()
 
-  x = xml.xpath('//process/iteration')[0].xpath('//@' + x_name)
+  x = xml.xpath('//process/iteration/@' + x_name)
   
   fig, ax1 = plt.subplots()
   t = x
@@ -45,7 +47,12 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
   y1_label = ""
   
   for y1_it_name in y1_it_names: 
-    y1_it = xml.xpath('//process/iteration')[0].xpath('//@' + y1_it_name)
+    y1_it = xml.xpath('//process/iteration/@' + y1_it_name)
+  
+    if len(t) != len(y1_it):
+      data += 'error len(' + y1_it_name + ') != len(' + x_name + ')!<br>'
+      data += str(len(y1_it_name)) + '!=' + str(len(x_name)) + '<br><br>'
+      continue
   
     y1_label += y1_it_name + ', '
     ax1.plot(t, y1_it, '-')
@@ -53,6 +60,11 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
   for y1_res_name in y1_res_names:
     y1_res = xml.xpath('//calculation/process/sequence/result[@data="' + y1_res_name + '"]/item/@value')
   
+    if len(t) != len(y1_res):
+      data += 'error len(' + y1_res_names + ') != len(' + x_name + '):<br>'
+      data += str(len(y1_res_names)) + '!=' + str(len(x_name)) + '<br><br>'
+      continue
+
     y1_label += y1_res_name + ', '
     ax1.plot(t, y1_res, '-')
 
@@ -67,7 +79,12 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
   y2_label = ""
   
   for y2_it_name in y2_it_names: 
-    y2_it = xml.xpath('//process/iteration')[0].xpath('//@' + y2_it_name)
+    y2_it = xml.xpath('//process/iteration/@' + y2_it_name)
+  
+    if len(t) != len(y2_it):
+      data += 'error len(' + y2_it_name + ') != len(' + x_name + ')!<br>'
+      data += str(len(y2_it_name)) + '!=' + str(len(x_name)) + '<br><br>'
+      continue
   
     y2_label += y2_it_name + ', '
     ax2.plot(t, y2_it, '-')
@@ -75,6 +92,11 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
   for y2_res_name in y2_res_names:
     y2_res = xml.xpath('//calculation/process/sequence/result[@data="' + y2_res_name + '"]/item/@value')
   
+    if len(t) != len(y2_res):
+      data += 'error len(' + y2_res_names + ') != len(' + x_name + ')!<br>'
+      data += str(len(y2_res_names)) + '!=' + str(len(x_name)) + '<br><br>'
+      continue
+
     y2_label += y2_res_name + ', '
     ax2.plot(t, y2_res, '-')
 
@@ -100,7 +122,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
 
   # data iteration num is used by javascript to determine the latest updated version
   # this is transmitted when requesting new data
-  data = '<div id="iteration_num">' + latest_received_iteration + '</div>'
+  data += '<div id="iteration_num">' + latest_received_iteration + '</div>'
   
   for l in svg_dta:
     data += l

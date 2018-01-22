@@ -3,7 +3,7 @@
 settings = {}
 
 settings["api"] = {}
-settings["api"]["recieve_url"] = '/cfs_recieve'
+settings["api"]["recieve_url"] = '/cfs_receive'
 settings["api"]["view_url"] = '/view'
 settings["api"]["plot_url"] = '/plot'
 settings["api"]["results"] = '/results'

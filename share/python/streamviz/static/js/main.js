@@ -3,7 +3,7 @@
  * start the 3 ajax request functions to request the result data, the viewed
  * results on the right and the iterative data
  */
-function trigger_update() {
+function trigger_update(force = false) {
 	if (!running) {
 	
 		running = true;
@@ -21,7 +21,10 @@ $( document ).ready(function() {
     $("#iteration * input").change(function () {
         console.log('input boxes changed');
         $("#iteration_num").html('-1');
+        trigger_update(true);
     });
+
+    $("input[name=iteration_selector_x][value=number]").prop('checked', true);
 });
 
 function update_results() {
@@ -137,6 +140,10 @@ function update_iterations() {
 	iteration_num = $("#iteration_num").html();
 
 	if (running == false) {
+		iteration_num = -1;
+	}
+	
+	if ($("input[name=enable_autorefresh]").prop('checked') == false) {
 		iteration_num = -1;
 	}
 	

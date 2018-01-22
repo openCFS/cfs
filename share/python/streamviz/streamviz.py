@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 # webserver:
 from flask import Flask
@@ -30,7 +30,7 @@ GLOBAL_DATA_DICT = {}
 # data transfer and html updating
 UPDATE_EVENTS = {}
 
-@app.route('/', methods = ['GET', 'POST'])
+@app.route('/', methods = ['GET'])
 def index():
   if request.method == 'GET':
     return render_html.render_index(GLOBAL_DATA_DICT, request)
@@ -52,6 +52,8 @@ def plot(key):
                        request.args.getlist('y1_res'), request.args.getlist('y2_res'), \
                        request.args.get('iteration_num'))
 
+
+@app.route('/', methods = ['POST'])
 @app.route(settings["api"]["recieve_url"], methods = ['GET', 'POST'])
 def cfs_recieve_blank():
   return cfs_recieve("")
@@ -75,11 +77,13 @@ def cfs_recieve(url_key = ""):
 
     xml = etree.fromstring(data)
     
+    print("status: " + xml.xpath('/cfsStreaming/cfsInfo/@status')[0])
+    
     key = xml.xpath('//environment/@host')[0] + '/' + xml.xpath('//progOpts/@problem')[0]
     
-    if len(xml.xpath('//cfsStreaming/@id')) > 0:
+    if len(xml.xpath('//cfsInfo/header/@id')) > 0:
       if not url_key == '':
-        key += url_key + '/' + xml.xpath('//cfsStreaming/@id')[0]
+        key += url_key + '/' + xml.xpath('//cfsInfo/header/@id')[0]
     else:
       if not url_key == '':
         key += url_key
