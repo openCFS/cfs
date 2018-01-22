@@ -1,5 +1,7 @@
+# all constant strings
 
 settings = {}
+
 settings["api"] = {}
 settings["api"]["recieve_url"] = '/cfs_recieve'
 settings["api"]["view_url"] = '/view'
