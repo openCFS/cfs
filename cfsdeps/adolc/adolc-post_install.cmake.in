@@ -1,0 +1,14 @@
+#=============================================================================
+# * copy the files to the cfs bin dir
+#=============================================================================
+
+# include files
+FILE(COPY "@adolc_install@/include/adolc" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include/adolc")
+
+# library
+FILE(GLOB_RECURSE LIBS_TO_INSTALL "@adolc_install@/lib64/*")
+FOREACH(LIB ${LIBS_TO_INSTALL})
+  message("copy ${LIB} to @CMAKE_CURRENT_BINARY_DIR@/@LIB_SUFFIX@/@CFS_ARCH_STR@/")
+  STRING(REPLACE "@adolc_install@/lib64/" "" FNAME "${LIB}")
+  FILE(COPY "${LIB}" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/@LIB_SUFFIX@/@CFS_ARCH_STR@/${FNAME}")
+ENDFOREACH()

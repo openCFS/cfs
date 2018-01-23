@@ -1,5 +1,11 @@
 * text=auto !eol
 /CMakeLists.txt svneol=native#text/plain
+cfsdeps/adolc/0001-Add-a-cast-operator-from-badouble-to-int.patch -text
+cfsdeps/adolc/0001-remove-a-from-adouble-printing.patch -text
+cfsdeps/adolc/0003-changed-I-O-stream-behaviour-of-adtl-to-fit-standard.patch -text
+cfsdeps/adolc/External_adolc.cmake -text
+cfsdeps/adolc/adolc-post_install.cmake.in -text
+cfsdeps/adolc/changed-io-stream-behaviour.patch -text
 cfsdeps/anaconda3/External_anaconda3.cmake -text
 cfsdeps/ansys_custom/External_ANSYS_custom.cmake -text
 cfsdeps/ansys_custom/ansys_custom-build.cmake.in -text
@@ -343,6 +349,7 @@ cmake_modules/CheckPardisoAPIVersion.cmake -text
 cmake_modules/ConfigureChecks.cmake -text
 cmake_modules/DetermineWorkingCopyInfos.cmake -text
 cmake_modules/DevelopmentServer.cmake -text
+cmake_modules/FindAdolc.cmake -text
 cmake_modules/FindCFSDEPS.cmake -text
 cmake_modules/FindIntelMKL.cmake -text
 cmake_modules/FindPrograms.cmake -text

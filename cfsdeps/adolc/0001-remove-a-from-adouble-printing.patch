@@ -1,0 +1,26 @@
+From 0934fc84337b90e3273e55fa3bb42d6a55cbe97b Mon Sep 17 00:00:00 2001
+From: Benjamin Jurgelucks <bjurgel@darwin.math.uni-paderborn.de>
+Date: Tue, 26 Jan 2016 14:56:47 +0100
+Subject: [PATCH] remove (a) from adouble printing
+
+Signed-off-by: Benjamin Jurgelucks <bjurgel@darwin.math.uni-paderborn.de>
+---
+ ADOL-C/src/adouble.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/ADOL-C/src/adouble.cpp b/ADOL-C/src/adouble.cpp
+index b76ebdf..c4476f1 100644
+--- a/ADOL-C/src/adouble.cpp
++++ b/ADOL-C/src/adouble.cpp
+@@ -434,7 +434,7 @@ adouble& adouble::operator = ( const adub& a ) {
+ std::ostream& operator << ( std::ostream& out, const badouble& y ) {
+     ADOLC_OPENMP_THREAD_NUMBER;
+     ADOLC_OPENMP_GET_THREAD_NUMBER;
+-    return out << ADOLC_GLOBAL_TAPE_VARS.store[y.loc()] << "(a)" ;
++    return out << ADOLC_GLOBAL_TAPE_VARS.store[y.loc()];
+ }
+ 
+ /*--------------------------------------------------------------------------*/
+-- 
+2.1.4
+
