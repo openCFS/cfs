@@ -1,0 +1,58 @@
+From 1faa6dc616b6cf937371e00be2a536d63d7d31bd Mon Sep 17 00:00:00 2001
+From: Benjamin Jurgelucks <bjurgel@mail.uni-paderborn.de>
+Date: Mon, 7 Mar 2016 19:16:29 +0100
+Subject: [PATCH 3/3] changed I/O-stream behaviour of adtl to fit standard
+ double: cfs uses string arithmetic.
+
+---
+ ADOL-C/src/adouble_tl.cpp | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/ADOL-C/src/adouble_tl.cpp b/ADOL-C/src/adouble_tl.cpp
+index 75c1a14..b9841b1 100644
+--- a/ADOL-C/src/adouble_tl.cpp
++++ b/ADOL-C/src/adouble_tl.cpp
+@@ -42,17 +42,26 @@ size_t refcounter::refcnt = 0;
+ 
+ /*******************  i/o operations  ***************************************/
+ ostream& operator << ( ostream& out, const adouble& a) {
+-    if (likely(adouble::_do_val() && adouble::_do_adval())) {
++ out <<a.val;
++/*    if (likely(adouble::_do_val() && adouble::_do_adval())) {
+ 	out << "Value: " << a.val;
+ 	out << " ADValues (" << adouble::numDir << "): ";
+ 	FOR_I_EQ_0_LT_NUMDIR
+ 	    out << a.ADVAL_I << " ";
+ 	out << "(a)";
+     }
++*/
+     return out;
+ }
+ 
+ istream& operator >> ( istream& in, adouble& a) {
++
++    double coval;
++    in >> coval;
++    FOR_I_EQ_0_LT_NUMDIR
++      in >> a.ADVAL_I;
++
++/*
+     if(likely(adouble::_do_val() && adouble::_do_adval())) {
+ 	char c;
+ 	do in >> c;
+@@ -75,9 +84,12 @@ istream& operator >> ( istream& in, adouble& a) {
+ 	while (c!=')' && !in.eof());
+ 	return in;
+     }
++*/
+     return in;
+ }
+ 
++
++
+ /**************** ADOLC_TRACELESS_SPARSE_PATTERN ****************************/
+ int ADOLC_Init_sparse_pattern(adouble *a, int n, unsigned int start_cnt) {
+     for(unsigned int i=0; i < n; i++) {
+-- 
+2.1.4
+
