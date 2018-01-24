@@ -68,7 +68,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 # ToDo: needs to be the correct link line
 SET(ADOLC_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}gmp${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}adolc${CMAKE_STATIC_LIBRARY_SUFFIX}"
   CACHE FILEPATH "ADOL-C library.")
 
 SET(ADOLC_INCLUDE_DIR "${adolc_install}/include/adolc")

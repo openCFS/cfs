@@ -66,3 +66,9 @@ set_source_files_properties(piezoMicroModelBK.cc
                               PROPERTIES COMPILE_FLAGS
                               -wd279)
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+IF(USE_ADOLC)
+  INCLUDE_DIRECTORIES(${ADOLC_INCLUDE_DIR})
+  LINK_DIRECTORIES(${ADOLC_LIBRARY})
+ENDIF(USE_ADOLC)
+
+
