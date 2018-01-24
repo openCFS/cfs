@@ -117,24 +117,24 @@ namespace CoupledField {
   // =========================================================================
 
 
-  /** Compares if two doubles are close to each other */
-  inline bool close(Double d1, Double d2) { return std::abs(d1-d2) < 1e-6; }
+  /** Compares if two Doubles are close to each other */
+  inline bool close(Double d1, Double d2) { return fabs(d1-d2) < 1e-6; }
 
   /** clang complains about std::abs(c1 - c2) if i* is unsigned int but it would be used for templated Matrix::IsSymmetric()
    * @param eps not used but there for compatibelity*/
-  inline bool close(int i1, int i2, double eps = 0.0) { return i1 == i2; }
-  inline bool close(unsigned int i1, unsigned int i2, double eps = 0.0) { return i1 == i2; }
+  inline bool close(int i1, int i2, Double eps = 0.0) { return i1 == i2; }
+  inline bool close(unsigned int i1, unsigned int i2, Double eps = 0.0) { return i1 == i2; }
 
   /** separate eps version to be faster! */
-  inline bool close(Double d1, Double d2, double eps) { return std::abs(d1-d2) < eps; }
+  inline bool close(Double d1, Double d2, Double eps) { return fabs(d1-d2) < eps; }
 
   /** Compared if two complex are close (if both the real and imaginary part are close) */
   inline bool close(Complex c1, Complex c2) { return close(c1.real(), c2.real()) && close(c1.imag(), c2.imag()); }
 
-  inline bool close(Complex c1, Complex c2, double eps) { return close(c1.real(), c2.real(), eps) && close(c1.imag(), c2.imag(), eps); }
+  inline bool close(Complex c1, Complex c2, Double eps) { return close(c1.real(), c2.real(), eps) && close(c1.imag(), c2.imag(), eps); }
 
   /** identifies numerical noise */
-  inline bool IsNoise(Double val) { return std::abs(val) < 1e-13; }
+  inline bool IsNoise(Double val) { return fabs(val) < 1e-13; }
 
   inline bool IsNoise(Complex val) { return IsNoise(val.real()) && IsNoise(val.imag()); }
 
@@ -236,14 +236,14 @@ namespace CoupledField {
 
   /** Calculates the L2 norm of a array. This is for cases where we
    * don't use one of our vectors. E.g. with IPOPT */
-  double NormL2(const Double* data, const UInt size);
+  Double NormL2(const Double* data, const UInt size);
 
-  double NormL2(const Double* data, const Double* data2, const UInt size);
+  Double NormL2(const Double* data, const Double* data2, const UInt size);
 
-  double NormL2(const SingleVector* data, const SingleVector* data2);
+  Double NormL2(const SingleVector* data, const SingleVector* data2);
 
   /** Calculate the average of an array */
-  double Average(const double* data, unsigned int size);
+  Double Average(const Double* data, unsigned int size);
 
   /** Calculate the Standard Deviation of an array */
   double StandardDeviation(const double* data, unsigned int size);
@@ -281,35 +281,35 @@ namespace CoupledField {
 
   /** Calculates the continuous Kreisselmeier and Steinhauser max approxmiation for two values.
    * @param beta -1 is special and makes real max, otherwise beta needs to be > 0 */
-  double SmoothMax(double left, double right, double beta);
+  Double SmoothMax(Double left, Double right, Double beta);
 
   /** Calculates the continuous Kreisselmeier and Steinhauser max approximation for arbitrary values. */
-  double SmoothMax(const StdVector<double>& values, double beta);
+  Double SmoothMax(const StdVector<Double>& values, Double beta);
 
   /** @param deriv -1 for left or 1 for right value to derive for */
-  double DerivSmoothMax(double left, double right, double beta, int derive);
+  Double DerivSmoothMax(Double left, Double right, Double beta, int derive);
 
   /** @param deriv index within values. */
-  double DerivSmoothMax(const StdVector<double>& values, double beta, unsigned int derive);
+  Double DerivSmoothMax(const StdVector<Double>& values, Double beta, unsigned int derive);
 
   /** @see CalcMaxApproximation() */
-  double SmoothMin(double left, double right, double beta);
+  Double SmoothMin(Double left, Double right, Double beta);
 
-  double SmoothMin(const StdVector<double>& values, double beta);
+  Double SmoothMin(const StdVector<Double>& values, Double beta);
 
   /** @see DerivSmoothMax() */
-  double DerivSmoothMin(double left, double right, double beta, int derive);
+  Double DerivSmoothMin(Double left, Double right, Double beta, int derive);
 
-  double DerivSmoothMin(const StdVector<double>& values, double beta, unsigned int derive);
+  Double DerivSmoothMin(const StdVector<Double>& values, Double beta, unsigned int derive);
 
   /** Calculates an approximation of the abs function:A(x) = sqrt(x^2 + eps^2) - eps
    * As used in Poulsen; A new scheme for imposing a minimum length scale in topology optimization; 2003
    * @param eps small, e.g. 10% of x */
-  double SmoothAbs(double x, double eps);
+  Double SmoothAbs(Double x, Double eps);
 
   /** derivative of
    * @see CalcAbsApproximation() */
-  double DerivSmoothAbs(double x, double eps);
+  Double DerivSmoothAbs(Double x, Double eps);
 
   inline unsigned int Product(const StdVector<unsigned int>& vec)
   {
@@ -321,7 +321,7 @@ namespace CoupledField {
   }
 
   /** uses the global domain->GetMathParser() to evaluate an expression */
-  double MathParse(const std::string& expr);
+  Double MathParse(const std::string& expr);
 
 } // end of CoupledField
 

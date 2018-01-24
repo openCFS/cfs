@@ -92,7 +92,7 @@ namespace CoupledField {
 
   // Specialisation for the RMatrix1 case
   template<>
-  SCRS_Matrix<double>::SCRS_Matrix( CoordFormat<double> &sparseMat ) : diagPtr_( NULL ){
+  SCRS_Matrix<Double>::SCRS_Matrix( CoordFormat<Double> &sparseMat ) {
 
 
     // Set general matrix pattern and dimension info
@@ -140,7 +140,7 @@ namespace CoupledField {
     NEWARRAY( data_  , Double , numEntries_ );
 
     // Sort input matrix, such that it conforms to our layout requirements
-    sparseMat.Sort( CoordFormat<double>::PURELEX );
+    sparseMat.Sort( CoordFormat<Double>::PURELEX );
 
     // Generate auxilliary vector
     UInt *auxVec = NULL;
@@ -824,7 +824,7 @@ namespace CoupledField {
 
 
   /*template<>
-  void SCRS_Matrix<Complex>::AddToMatrixEntry( UInt i, UInt j, const double& v)
+  void SCRS_Matrix<Complex>::AddToMatrixEntry( UInt i, UInt j, const Double& v)
   {
   }
 */
@@ -993,8 +993,8 @@ namespace CoupledField {
   Double SCRS_Matrix<T>::GetMaxDiag() const {
 
 
-    double maxDiag = 0;
-    double current = 0;
+    Double maxDiag = 0;
+    Double current = 0;
     UInt i;
 
     for ( i = 0; i < this->nrows_; i++ ) {

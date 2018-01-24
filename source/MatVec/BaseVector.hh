@@ -151,8 +151,8 @@ namespace CoupledField {
     }
 
     /** shortcuts */
-    double GetDoubleEntry(unsigned int i) const {
-      double v;
+    Double GetDoubleEntry(unsigned int i) const {
+      Double v;
       GetEntry(i, v);
       return v;
     }

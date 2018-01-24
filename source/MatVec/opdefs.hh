@@ -86,36 +86,36 @@ namespace CoupledField {
 
   /** this is defined only in C++11 - how can this idiots take so long?
    * defining the same for complex leads to overloading problems with std::conj with icc 15 even w/o using std::conj */
-  inline static double conj(const double &a1) {
+  inline static Double conj(const Double &a1) {
     return a1;
   }
 
   template <typename T>
-  inline double Real(T a) {  return ((std::complex<double>) a).real(); }
+  inline Double Real(T a) {  return ((std::complex<Double>) a).real(); }
 
   template <>
-  inline double Real<double>(double a) { return a; }
+  inline Double Real<Double>(Double a) { return a; }
 
   template <>
-  inline double Real<std::complex<double> >(std::complex<double> a) { return a.real(); }
+  inline Double Real<std::complex<Double> >(std::complex<Double> a) { return a.real(); }
 
   template <typename T>
-  inline double Imag(T a) { return ((std::complex<double>) a).imag(); }
+  inline Double Imag(T a) { return ((std::complex<Double>) a).imag(); }
 
   template <>
-  inline double Imag<double>(double a) { return 0; }
+  inline Double Imag<Double>(Double a) { return 0; }
 
   template <>
-  inline double Imag<std::complex<double> >(std::complex<double> a) { return a.imag(); }
+  inline Double Imag<std::complex<Double> >(std::complex<Double> a) { return a.imag(); }
   
   template <typename T>
   inline bool IsZero(T a) { return a == 0; }
 
   template <>
-  inline bool IsZero<double>(double a) { return a == 0.0; }
+  inline bool IsZero<Double>(Double a) { return a == 0.0; }
 
   template <>
-  inline bool IsZero<std::complex<double> >(std::complex<double> a) { return a.real() == 0.0 && a.imag() == 0.0; }
+  inline bool IsZero<std::complex<Double> >(std::complex<Double> a) { return a.real() == 0.0 && a.imag() == 0.0; }
 
   template <typename T>
   inline void PrintSingleEntry( T val, FILE *fp ) {
@@ -198,7 +198,7 @@ namespace CoupledField {
     //! for variables of Double and Complex type, where the inverse of arg is
     //! given as 1/arg.
     inline static T invert(const T& arg) {
-      return static_cast<T>(1.0/arg);
+      return static_cast<T>(T(1.0)/arg);
     }
 
     inline static double dotProduct(const double &a1, const double &a2 ) {

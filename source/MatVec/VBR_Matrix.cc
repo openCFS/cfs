@@ -934,8 +934,8 @@ namespace CoupledField {
   template<typename T>
   Double VBR_Matrix<T>::GetMaxDiag() const {
 
-    double maxDiag = 0;
-    double current = 0;
+    Double maxDiag = 0;
+    Double current = 0;
     UInt i = 0;
     for( i = 0; i < this->nrows_; ++i ) {
       current = OpType<T>::MaxDiag( data_[ diagPtr_[i] ] );
@@ -1305,12 +1305,12 @@ template<typename T>
        std::cerr << std::endl;
      }
      
-     double * fac = new double[size*size];
+     Double * fac = new Double[size*size];
      std::copy(block,block+size*size, fac);
      int N = size;
      int *IPIV = new int[N+1];
      int LWORK = N*N;
-     double *WORK = new double[LWORK];
+     Double *WORK = new Double[LWORK];
      int INFO;
 
      dgetrf(&N,&N,fac,&N,IPIV,&INFO);
@@ -1350,8 +1350,8 @@ template<typename T>
 //     
 //     char trans = 'T';
 //     int size = 2;
-//     double alpha = 1.0;
-//     double beta = 0.0;
+//     Double alpha = 1.0;
+//     Double beta = 0.0;
 //     int inc = 1;
 //     
 //     DGEMV(&trans, 

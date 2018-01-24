@@ -116,7 +116,7 @@ namespace CoupledField
 
     std::ostringstream os;
 
-    bool is_complex = boost::is_same<TYPE, std::complex<double> >::value;
+    bool is_complex = boost::is_same<TYPE, std::complex<Double> >::value;
 
     os << "<" << name << " dim1=\"" << size_row_ << "\" dim2=\"" << size_col_ << "\">";
     os << std::endl << offset << "  " << (is_complex ? "<complex>" : "<real>");
@@ -129,7 +129,7 @@ namespace CoupledField
         os << std::scientific;
         os.precision(6);
         os.width(13);
-        os << (IsNoise(data_[r][c]) ? 0.0 : data_[r][c]);
+        os << (IsNoise(data_[r][c]) ? TYPE(0.0) : data_[r][c]);
         if(c < size_col_ - 1) os << " ";
       }
     }
@@ -1514,7 +1514,7 @@ namespace CoupledField
   }
 
   template<>
-  Matrix<double> Matrix<double>::EntryMult(const Matrix<double>& other_mat) const
+  Matrix<Double> Matrix<Double>::EntryMult(const Matrix<Double>& other_mat) const
   {
     assert(size_row_ == 0 || size_col_ == 0);
     assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
@@ -1648,7 +1648,7 @@ namespace CoupledField
   
 
   template<class TYPE>
-  bool Matrix<TYPE>::IsHermitian(double eps) const
+  bool Matrix<TYPE>::IsHermitian(Double eps) const
   {
     for(UInt r = 0; r < size_row_; r++)
       for(UInt c = r+1; c < size_col_; c++)
@@ -1660,7 +1660,7 @@ namespace CoupledField
 
 
   template< >
-  bool Matrix<Complex>::IsHermitian(double eps) const
+  bool Matrix<Complex>::IsHermitian(Double eps) const
   {
     for(UInt r = 0; r < size_row_; r++)
     {
@@ -1675,7 +1675,7 @@ namespace CoupledField
         if(!close(u.real(), l.real()))
           return false;
 
-        if(!close(std::abs(u.imag()), std::abs(l.imag())))
+        if(!close(fabs(u.imag()), fabs(l.imag())))
           return false;
       }
     }
@@ -1699,7 +1699,7 @@ namespace CoupledField
       k1 = k + 1;
       for(i = k1; i <= nmat; ++i)
       {
-        if (data_[k][k] != 0.0)
+        if (data_[k][k] != TYPE(0.0))
         {
           data_[i][k] /= data_[k][k];
           for (j=k1; j<=nmat; ++j)
@@ -1783,13 +1783,13 @@ namespace CoupledField
         lp_rhsVec[i+j*brows]=b1[i][j];
       }
     
-    lp_rhsVecf77 = new std::complex<double>[size_row_*lp_nrRHS];
+    lp_rhsVecf77 = new std::complex<Double>[size_row_*lp_nrRHS];
     lp_interchanges = new int[size_row_*size_row_];
-    lp_workf77 = new std::complex<double>[size_row_*size_row_];
-    lp_sysVecf77 = new std::complex<double>[size_row_*size_row_];
+    lp_workf77 = new std::complex<Double>[size_row_*size_row_];
+    lp_sysVecf77 = new std::complex<Double>[size_row_*size_row_];
    
 
-    // Convert CFS++ Vector<Complex> to Vector<std::complex<double>>
+    // Convert CFS++ Vector<Complex> to Vector<std::complex<Double>>
     for ( UInt count = 0; count < size_row_*bcols; ++count ) {
       lp_rhsVecf77[count] = lp_rhsVec[count];
       }
@@ -1900,14 +1900,14 @@ namespace CoupledField
     lp_rwork.Init();
       
     Integer lp_infof77;
-    std::complex<double> auxValC;
+    std::complex<Double> auxValC;
 
-    std::complex<double>* lp_af77    = new std::complex<double>[size_row_*size_row_];
-    std::complex<double>* lp_workf77 = new std::complex<double>[99];
-    double* lp_wf77     = new double[size_row_];
-    double* lp_rworkf77 = new double[3*size_row_-2];
+    std::complex<Double>* lp_af77    = new std::complex<Double>[size_row_*size_row_];
+    std::complex<Double>* lp_workf77 = new std::complex<Double>[99];
+    Double* lp_wf77     = new Double[size_row_];
+    Double* lp_rworkf77 = new Double[3*size_row_-2];
       
-    // Convert CFS++ Vector<Complex> to Vector<std::complex<double>>
+    // Convert CFS++ Vector<Complex> to Vector<std::complex<Double>>
     for ( UInt count = 0; count < size_row_; count++ ) 
       for ( UInt countC = 0; countC <size_row_; countC++ ) {
         lp_af77[countC*size_row_+count] = data_[count][countC];
@@ -2134,7 +2134,7 @@ namespace CoupledField
     int *ipiv = new int[size_row_];
     int n = size_row_;
     int lwork = size_row_ * size_row_;
-    double *work = new double[lwork];
+    Double *work = new Double[lwork];
     int info;
 
     // calculate LU-factorization of block

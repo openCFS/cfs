@@ -102,7 +102,7 @@ DEFINE_LOG(bilinappx, "bilinappx")
   }
 
 
-  Double BiLinInterpolate::EvaluateFuncInv(double inVal)
+  Double BiLinInterpolate::EvaluateFuncInv(Double inVal)
   {
    
      EXCEPTION("not implemented");
@@ -112,7 +112,7 @@ DEFINE_LOG(bilinappx, "bilinappx")
   }
 
 
-  Double BiLinInterpolate::EvaluatePrimeInv(double inVal)
+  Double BiLinInterpolate::EvaluatePrimeInv(Double inVal)
   {
   
      EXCEPTION("not implemented");
