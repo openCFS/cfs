@@ -61,12 +61,12 @@ namespace CoupledField {
     //! find lower \param klo, and higher \param khi index of the boundary values of \param x in a monotonically 
     //! increasing double dataset \param axis. 
     //! Also returns difference.
-    void findBracketIndices(const double &x, const Vector<Double> & axis, UInt & klo, UInt & khi, double &diff);
+    void findBracketIndices(const Double &x, const Vector<Double> & axis, UInt & klo, UInt & khi, Double &diff);
 
     //! evaluates the functions
     virtual Double EvaluateFunc( Double t ) = 0;
-    virtual Double EvaluateFunc(double x, double y) {EXCEPTION("only implemented in BiLinInterpolate"); Double a=-1.; return a;} // bilinear
-    virtual Double EvaluateFunc(double x, double y, double z) {EXCEPTION("only implemented in TriLinInterpolate"); Double a=-1.; return a;} //trilinear
+    virtual Double EvaluateFunc(Double x, Double y) {EXCEPTION("only implemented in BiLinInterpolate"); Double a=-1.; return a;} // bilinear
+    virtual Double EvaluateFunc(Double x, Double y, Double z) {EXCEPTION("only implemented in TriLinInterpolate"); Double a=-1.; return a;} //trilinear
 
     //! evalutates the derivazive of the function
     virtual Double EvaluatePrime( Double t ) = 0;

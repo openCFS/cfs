@@ -154,7 +154,7 @@ namespace CoupledField
 
     /** check if the matrix is a Hermitian matrix. In the non complex case symmetry is checked.
      * @param eps if true use close() to compare the values by an eps  */
-    bool IsHermitian(double eps = 1e-6) const;
+    bool IsHermitian(Double eps = 1e-6) const;
 
 
     //! Get the number of rows
@@ -372,7 +372,7 @@ namespace CoupledField
     TYPE ScalarProduct(const Matrix<TYPE>& other_mat) const;
 
     //! Entry-wise multiplication with another matrix
-    Matrix<double> EntryMult(const Matrix<double>& other_mat) const;
+    Matrix<Double> EntryMult(const Matrix<Double>& other_mat) const;
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT( const SingleVector & mvec, SingleVector & rvec ) const;

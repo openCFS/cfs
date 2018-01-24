@@ -33,7 +33,7 @@ DEFINE_LOG(trilinappx, "trilinappx")
     Double zValue = 0.0;
     const UInt kx0end = x_.GetSize() - 1;
     UInt k0lo, k0hi;
-    double diff0;
+    Double diff0;
     // e.g x2=vds, x1jk
     if ( x0Entry > x_[kx0end]) {
       k0lo = kx0end-1;
@@ -75,7 +75,7 @@ DEFINE_LOG(trilinappx, "trilinappx")
   }
 
 
-  Double TriLinInterpolate::EvaluateFuncInv(double inVal)
+  Double TriLinInterpolate::EvaluateFuncInv(Double inVal)
   {
    
      EXCEPTION("not implemented");
@@ -85,7 +85,7 @@ DEFINE_LOG(trilinappx, "trilinappx")
   }
 
 
-  Double TriLinInterpolate::EvaluatePrimeInv(double inVal)
+  Double TriLinInterpolate::EvaluatePrimeInv(Double inVal)
   {
   
      EXCEPTION("not implemented");

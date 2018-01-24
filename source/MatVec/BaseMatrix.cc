@@ -29,8 +29,8 @@ static EnumTuple entryTypeTuples[] =
 {
  EnumTuple( BaseMatrix::NOENTRYTYPE, "noEntryType" ),
  EnumTuple( BaseMatrix::INTEGER, "integer" ),
- EnumTuple( BaseMatrix::DOUBLE, "double" ),
- EnumTuple( BaseMatrix::COMPLEX, "complex" ),
+ EnumTuple( BaseMatrix::DOUBLE, "Double" ),
+ EnumTuple( BaseMatrix::COMPLEX, "Complex" ),
  EnumTuple( BaseMatrix::F77REAL8, "F77REAL8" ),
  EnumTuple( BaseMatrix::F77COMPLEX16, "F77COMPLEX16")
 };

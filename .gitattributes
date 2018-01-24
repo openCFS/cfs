@@ -566,6 +566,7 @@ include/def_cfs_stats.hh.in -text
 include/def_config.hh.in -text
 include/def_disable_optimization.hh.in -text
 include/def_expl_templ_inst.hh.in -text
+include/def_use_adolc.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text

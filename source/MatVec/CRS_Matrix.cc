@@ -1467,8 +1467,8 @@ namespace CoupledField {
   Double CRS_Matrix<T>::GetMaxDiag() const {
 
 
-    double maxDiag = 0;
-    double current = 0;
+    Double maxDiag = 0;
+    Double current = 0;
     UInt i;
 
     for ( i = 0; i < this->nrows_; i++ ) {

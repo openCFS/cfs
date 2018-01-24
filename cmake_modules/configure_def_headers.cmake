@@ -143,3 +143,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_expl_templ_inst.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_disable_optimization.hh.in"
   "${CFS_BINARY_DIR}/include/def_disable_optimization.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_adolc.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_adolc.hh")

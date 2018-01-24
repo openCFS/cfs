@@ -64,7 +64,7 @@ TARGET_LINK_LIBRARIES(optimization ${TARGET_LL})
 #                       /space/fwein/packages/scpip/libscpip.a g2c gfortran m)                      
 IF(USE_ADOLC)
   INCLUDE_DIRECTORIES(${ADOLC_INCLUDE_DIR})
-  LINK_DIRECTORIES(${ADOLC_LIBRARY})
+  #LINK_DIRECTORIES(${ADOLC_LIBRARY})
 ENDIF(USE_ADOLC)
 
 
