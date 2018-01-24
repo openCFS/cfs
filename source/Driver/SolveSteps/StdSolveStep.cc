@@ -5554,6 +5554,11 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     }
 
+    assemble_->PostAssemble();
+    EXCEPTION("DELETE THE MATRIX EXPORTS ABOVE and the change in SBM_Matrix.cc!!!!")
+
+
+
     assemble_->TimerStop();
 
 

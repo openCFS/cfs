@@ -1932,11 +1932,6 @@ namespace CoupledField {
 
       }
     }
-
-  //for(UInt i = 0; i < blockNums.GetSize(); ++i){
-  //  std::cout<<"("<<blockNums[i]<<", "<<indices[i]<<") "<<std::endl;
-  //}
-
   }
 
   void AlgebraicSys::MapFctIdEqnToIndex( const FeFctIdType fctId,
@@ -2556,11 +2551,14 @@ namespace CoupledField {
 
           // Note: The following statement is experimental and not
           // thorougly tested!
-
           for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
             rowInd = rIndList1[i];
             for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
               colInd = cIndList1[j];
+std::cout<<"rList1[i]"<<rList1[i]<<std::endl;
+std::cout<<"cList1[j]"<<cList1[j]<<std::endl;
+std::cout<<"rowInd"<<rowInd<<std::endl;
+std::cout<<"colInd"<<colInd<<std::endl;
               stdMat->AddToMatrixEntry( rList1[i], cList1[j],
                                         elemMat[rowInd][colInd] );
             } //j
@@ -2640,9 +2638,9 @@ namespace CoupledField {
 
     // lambda for converting flattened sbm-index to (row, col) tuple
     UInt N = solStrat_->GetNumHarmN();
-    UInt M = solStrat_->GetNumHarmM();
+    //UInt M = solStrat_->GetNumHarmM();
     auto DeflattenIndex = [N](UInt ind) { std::vector<UInt> a = {ind / (2*N+1), ind % (2*N+1)}; return a;};
-    auto FlattenIndex = [N](UInt row, UInt col) { return N * row + col;};
+    //auto FlattenIndex = [N](UInt row, UInt col) { return N * row + col;};
 
     std::string t;
     if (IS_LOG_ENABLED(algSys, dbg3)) {
@@ -2703,31 +2701,19 @@ namespace CoupledField {
     StdVector< StdVector<UInt> >& colIndList2  = colIndList2_.Mine(tNum);
     StdVector< StdVector<UInt> >& colList2     = colList2_.Mine(tNum);
     StdVector<UInt>& rowBlocks                 = rowBlocks_.Mine(tNum);
-    //StdVector<UInt>& colBlocks                 = colBlocks_.Mine(tNum);
+    StdVector<UInt>& colBlocks                 = colBlocks_.Mine(tNum);
     StdVector<UInt>& rowNums                   = rowNums_.Mine(tNum);
     StdVector<UInt>& colNums                   = colNums_.Mine(tNum);
 
 
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
-    // fctId1 is equal to fctId2 and therefore also the equation numbers
-    MapFctIdEqnToIndex_MultHarm(fctId1, eqnNrs1, rowBlocks, rowNums, sbmIndices);
+    // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
+    //MapFctIdEqnToIndex_MultHarm(fctId1, eqnNrs1, rowBlocks, rowNums, sbmIndices);
+    //MapFctIdEqnToIndex_MultHarm(fctId2, eqnNrs2, colBlocks, colNums, sbmIndices);
+    MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
+    MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
 
 
-
-    // initialize empty vectors
-    // determine number of blocks, which must be initialized
-    // last block at position (2N+1, 2N+1), now compute the sbm-index
-/*    UInt nBlocks = FlattenIndex(2 * N + 1, 2 * N + 1);
-    for(UInt i = 0; i < nBlocks; ++i ) {
-      rowIndList1[i].Clear(true);
-      rowList1[i].Clear(true);
-      rowIndList2[i].Clear(true);
-      rowList2[i].Clear(true);
-      colIndList1[i].Clear(true);
-      colList1[i].Clear(true);
-      colIndList2[i].Clear(true);
-      colList2[i].Clear(true);
-    }*/
     rowIndList1[0].Clear(true);
     rowList1[0].Clear(true);
     rowIndList2[0].Clear(true);
@@ -2738,7 +2724,7 @@ namespace CoupledField {
     colList2[0].Clear(true);
 
     UInt numRows = rowBlocks.GetSize();
-    //UInt numCols = colBlocks.GetSize();
+    UInt numCols = colBlocks.GetSize();
 
     // Compute index of graph in graph pointer matrix
     // get hold of vertex and edgelists
@@ -2755,9 +2741,7 @@ namespace CoupledField {
     // Loop over all indices
     for( UInt i = 0; i < numRows; ++i ) {
       // get hold of block numbers and indices
-      const UInt & rowBlock = rowBlocks[i];
       const UInt & rowNum = rowNums[i];
-      const UInt & colNum = rowNums[i];
       // get limits of free indices
       // remember: in multiharmonic analysis we only have one blockInfo
       const UInt & lastFreeRowIndex = blockInfo_[0]->numLastFreeIndex;
@@ -2775,8 +2759,15 @@ namespace CoupledField {
           rIndList1.Push_back( i );
         }
       }
+    }
+
+    // Loop over all columns
+    for( UInt i = 0; i < numCols; ++i ) {
+      // get hold of block numbers and indices
+      const UInt & colNum = colNums[i];
 
       // get limits of free indices
+      // remember: in multiharmonic analysis we only have one blockInfo
       const UInt & lastFreeColIndex = blockInfo_[0]->numLastFreeIndex;
 
       // STEP 2: Split the second connect array into two edge lists, one for
@@ -2792,9 +2783,7 @@ namespace CoupledField {
           cIndList1.Push_back( i );
         }
       }
-
-    }
-
+    } // loop over cols
 
 
     SBM_Matrix * actMat = sysMat_[matrixType];
@@ -2807,35 +2796,51 @@ namespace CoupledField {
     // the corresponding graph / IDBC graph
     LOG_DBG3(algSys) << "setting matrix entries";
 
-    UInt sbmInd;
-    for( UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
-      // ===================================================
-      // ==================== diagonal block ===============
-      // ===================================================
-      // sbm-index of current block
-      sbmInd = FlattenIndex(sbmRow, sbmRow);
+    // now loop over every sbm-block specified in sbmIndices parameter
+    for(auto sbmInd : sbmIndices){
+      UInt sbmRow = DeflattenIndex(sbmInd)[0];
+      UInt sbmCol = DeflattenIndex(sbmInd)[1];
       LOG_DBG3(algSys) << "\tsetting SBM block (" << sbmRow
-          << "," << sbmRow << ") with sbm-index " << sbmInd;
+                << "," << sbmCol << ") with sbm-index " << sbmInd;
 
-      StdMatrix * stdMat = actMat->GetPointer(sbmRow, sbmRow);
+      StdMatrix * stdMat = actMat->GetPointer(sbmRow, sbmCol);
 
       LOG_DBG3(algSys) << "\t1) free-free entries:";
       LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
       LOG_DBG3(algSys) << "\t\tcolIndices: " << cList1.ToString();
       LOG_DBG3(algSys) << "\t\tmat: " << stdMat->ToInfoString();
-      // 2) Assemble all free <-> free entries
-      // loop over all rows/col
 
-      // Note: The following statement is experimental and not
-      // thorougly tested!
+      // Attention: This check is not really implemented in a clean way!
+      if( stdMat != NULL ) {
+        LOG_DBG3(algSys) << "\t1) free-free entries:";
+        LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
+        LOG_DBG3(algSys) << "\t\tcolIndices: " << cList1.ToString();
+        LOG_DBG3(algSys) << "\t\tmat: " << stdMat->ToInfoString();
+        // 2) Assemble all free <-> free entries
+        // loop over all rows/col
 
-      for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
-        rowInd = rIndList1[i];
-        for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
-          colInd = cIndList1[j];
-          stdMat->AddToMatrixEntry( rList1[i], cList1[j], elemMat[rowInd][colInd] );
-        } //j
-      } //i
+        // detailed logging output
+/*
+        for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+          rowInd = rIndList1[i];
+          for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
+            colInd = cIndList1[j];
+            std::cout<<"(rList1["<<i<<"], cList1["<<j<<"])= ("<<rList1[i]<<","<< cList1[j]<<std::endl;
+          } //j
+        } //i
+*/
+
+        for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+          rowInd = rIndList1[i];
+          for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
+            colInd = cIndList1[j];
+std::cout<<"elemMat[rowInd][colInd]"<<elemMat[rowInd][colInd]<<std::endl;
+            stdMat->AddToMatrixEntry( rList1[i], cList1[j], elemMat[rowInd][colInd] );
+          } //j
+        } //i
+
+
+      } // stdMat != NULL
 
       // 3) Assemble all free <-> fixed entries
       if( cList2.GetSize() ) {
@@ -2847,81 +2852,11 @@ namespace CoupledField {
           rowInd = rIndList1[i];
           for ( UInt j = 0; j < cList2.GetSize(); j++ ) {
             colInd = cIndList2[j];
-            idbcHandler_->AddWeightFixedToFree( matrixType, sbmRow, sbmRow,
-                                                rList1[i], cList2[j],
-                                                elemMat[rowInd][colInd]);
+            idbcHandler_->AddWeightFixedToFree( matrixType, sbmRow, sbmCol, rList1[i], cList2[j], elemMat[rowInd][colInd]);
           } // j
         } // i
       } // if cList2.GetSize()
-
-
-      for( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M ; ++sbmCol ) {
-        if( sbmCol < 2 * N + 1){
-          // =======================================================
-          // ==================== off-diagonal block ===============
-          // =======================================================
-          // sbm-index of current block
-          sbmInd = FlattenIndex(sbmRow, sbmCol);
-          LOG_DBG3(algSys) << "\tsetting SBM block (" << sbmRow
-              << "," << sbmCol << ") with sbm-index " << sbmInd;
-
-
-          StdMatrix * stdMat = actMat->GetPointer(sbmRow, sbmCol);
-          const StdVector<UInt> & rList1 = rowList1[sbmRow];
-          const StdVector<UInt> & rList2 = rowList2[sbmRow];
-          const StdVector<UInt> & cList1 = colList1[sbmCol];
-          const StdVector<UInt> & cList2 = colList2[sbmCol];
-          const StdVector<UInt> & rIndList1 = rowIndList1[sbmRow];
-          const StdVector<UInt> & rIndList2 = rowIndList2[sbmRow];
-          const StdVector<UInt> & cIndList1 = colIndList1[sbmCol];
-          const StdVector<UInt> & cIndList2 = colIndList2[sbmCol];
-
-          // Attention: This check is not really implemented in a clean way!
-          if( stdMat != NULL ) {
-            LOG_DBG3(algSys) << "\t1) free-free entries:";
-            LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
-            LOG_DBG3(algSys) << "\t\tcolIndices: " << cList1.ToString();
-            LOG_DBG3(algSys) << "\t\tmat: " << stdMat->ToInfoString();
-            // 2) Assemble all free <-> free entries
-            // loop over all rows/col
-
-            // Note: The following statement is experimental and not
-            // thorougly tested!
-
-            for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
-              rowInd = rIndList1[i];
-              for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
-                colInd = cIndList1[j];
-                stdMat->AddToMatrixEntry( rList1[i], cList1[j],
-                                          elemMat[rowInd][colInd] );
-              } //j
-            } //i
-
-
-          } // stdMat != NULL
-
-          // 3) Assemble all free <-> fixed entries
-          if( cList2.GetSize() ) {
-            LOG_DBG3(algSys) << "\t3) free-fixed entries:";
-            LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
-            LOG_DBG3(algSys) << "\t\tcolIndices: " << cList2.ToString();
-
-            for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
-              rowInd = rIndList1[i];
-              for ( UInt j = 0; j < cList2.GetSize(); j++ ) {
-                colInd = cIndList2[j];
-                idbcHandler_->AddWeightFixedToFree( matrixType, sbmRow, sbmCol,
-                                                    rList1[i], cList2[j],
-                                                    elemMat[rowInd][colInd]);
-              } // j
-            } // i
-          } // if cList2.GetSize()
-
-        }
-      }
     }
-
-
 
   }
 
@@ -3474,15 +3409,8 @@ namespace CoupledField {
             LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
                 << ", " << sbmCol+1 << ") is "
                 << BaseMatrix::storageType.ToString(sT);
-            retMat->SetSubMatrix ( sbmRow, sbmCol, entryType,
-                sT,
-                nrows, ncols, graph->GetNNE() );
-            // also set the transposed...if it's not the diagonal block
-            if(sbmRow != sbmCol){
-              retMat->SetSubMatrix ( sbmCol, sbmRow, entryType,
-                  sT,
-                  nrows, ncols, graph->GetNNE() );
-            }
+            retMat->SetSubMatrix ( sbmRow, sbmCol, entryType, sT, nrows, ncols, graph->GetNNE() );
+
             // check, if matrix pattern can be shared and
             // obtain matrix graph
             if( sharePattern ) {
@@ -3496,8 +3424,7 @@ namespace CoupledField {
                 (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( patternPool_, patternID );
               } else {
                 (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
-                sbmPatternIds_[id] =
-                    (*retMat)( sbmRow, sbmCol ).TransferPatternToPool( patternPool_ );
+                sbmPatternIds_[id] = (*retMat)( sbmRow, sbmCol ).TransferPatternToPool( patternPool_ );
                 LOG_DBG(algSys) << "\tPutting pattern '" << sbmPatternIds_[id] << "' to pool";
               }
             } else {
@@ -3505,6 +3432,37 @@ namespace CoupledField {
               // Set sparsity pattern of sub-matrix
               (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
             }
+
+            // also set the transposed...if it's not the diagonal block
+            if(sbmRow != sbmCol){
+              LOG_DBG(algSys) << "storage Type of matrix (" << sbmCol +1
+                  << ", " << sbmRow+1 << ") is "
+                  << BaseMatrix::storageType.ToString(sT);
+              retMat->SetSubMatrix ( sbmCol, sbmRow, entryType, sT, nrows, ncols, graph->GetNNE() );
+
+              if( sharePattern ) {
+                SubMatrixID id;
+                id.rowInd = sbmCol;
+                id.colInd = sbmRow;
+                LOG_DBG(algSys) << "\tSharing pattern";
+                PatternIdType patternID = sbmPatternIds_[id];
+                if( sbmPatternIds_[id] != NO_PATTERN_ID ) {
+                  LOG_DBG(algSys) << "\tObtaining pattern '" << patternID << "' from pool";
+                  (*retMat)( sbmCol, sbmRow ).SetSparsityPattern( patternPool_, patternID );
+                } else {
+                  (*retMat)( sbmCol, sbmRow ).SetSparsityPattern( *graph );
+                  sbmPatternIds_[id] = (*retMat)( sbmCol, sbmRow ).TransferPatternToPool( patternPool_ );
+                  LOG_DBG(algSys) << "\tPutting pattern '" << sbmPatternIds_[id] << "' to pool";
+                }
+              } else {
+                LOG_DBG(algSys) << "\tUsing no shared sparsity pattern";
+                // Set sparsity pattern of sub-matrix
+                (*retMat)( sbmCol, sbmRow ).SetSparsityPattern( *graph );
+              }
+            }
+
+
+
 
           } // endif sbmCol < 2 * N + 1
         } // loop over sbmCols

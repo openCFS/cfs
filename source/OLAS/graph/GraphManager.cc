@@ -241,9 +241,10 @@ namespace CoupledField {
       // we need to allocate memory to store the resulting permutation
       // vector
       if ( reorder[0] != BaseOrdering::NOREORDERING ) {
-        WARN("================================================= \n"
-            " Reordering in multiharmonic analysis not tested!! \n "
-            "================================================= \n");
+        EXCEPTION("================================================= \n"
+                  " Reordering in multiharmonic analysis not tested!! \n "
+                  " Please use noReordering \n"
+                  "================================================= \n");
         newOrdering_[sbmRow].Resize( blockInfoMH_->numLastFreeIndex );
       }
       graph_[idx]->FinaliseAssembly( reorder[0], false, &newOrdering_[sbmRow] );
@@ -300,6 +301,8 @@ namespace CoupledField {
                               << sbmRow << ", " << sbmCol << ")";
             graphIDBC_[idx]->FinaliseAssembly( &newOrdering_[sbmRow] );
           }
+
+
         }
       }
     }

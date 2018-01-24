@@ -623,6 +623,33 @@ namespace CoupledField {
     }
   }
 
+  void SBM_Matrix::Export_MultHarm( const std::string& fname,
+                                    BaseMatrix::OutputFormat format,
+                                    const UInt& N,
+                                    const StdVector<UInt>& sbmInd,
+                                    const std::string& comment) const {
+
+
+    std::stringstream ss;
+    std::string outFile;
+    UInt sbmRow, sbmCol;
+
+    for(auto i : sbmInd){
+      StdVector<UInt> c = DeflattenIndex(i);
+      sbmRow = c[0];
+      sbmCol = c[1];
+      ss << fname << '_' << sbmRow << '_' << sbmCol;
+      outFile =  fname + ss.str();
+      ss.str(std::string());
+      // export sub-matrix
+      if ( subMat_[ComputeIndex(sbmRow, sbmCol)] != NULL ) {
+        subMat_[ComputeIndex(sbmRow, sbmCol)]->Export( outFile.c_str(), format, comment );
+      }
+    }
+
+
+  }
+
   // ******************
   //   GetMemoryUsage
   // ******************

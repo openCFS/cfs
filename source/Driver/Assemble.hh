@@ -92,6 +92,8 @@ namespace CoupledField {
     //! Trigger assenbly of all non-linear right hand side terms
     void AssembleNonLinRHS();
 
+    void PostAssemble();
+
     // ======================================================
     //  MISCELLANEOUS METHODS
     // ======================================================

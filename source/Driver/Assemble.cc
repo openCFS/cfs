@@ -771,6 +771,14 @@ namespace CoupledField
     timer_->Start();
   }
 
+  void Assemble::PostAssemble(){
+    // Change flag
+    isFirstTime_ = false;
+
+    // We have assembled all matrices, we will not do so next time
+    // except: CheckNonLinearities sets one of these, or Optimization does
+    matReassemble_.clear();
+  }
 
   void Assemble::AssembleMatrices_MultHarm(Integer harmonic, UInt N, UInt M) {
 
@@ -792,7 +800,8 @@ namespace CoupledField
         if( col < 2 * N + 1 && col >= 0) sbmInd.Push_back( ComputeIndex(iRow, col) );
       }
     }
-
+std::cout<<"harmonics:"<<harmonic<<std::endl;
+std::cout<<"sbmInd:"<<sbmInd<<std::endl;
 
     // iterate over all entitylist-pairs and
     BiLinContextListType::iterator listIt = biLinForms_.begin();
@@ -1041,17 +1050,9 @@ namespace CoupledField
 #endif
 
     }// loop over entitylist pairs
-    // Change flag
-    isFirstTime_ = false;
-
-    // We have assembled all matrices, we will not do so next time
-    // except: CheckNonLinearities sets one of these, or Optimization does
-    matReassemble_.clear();
 
 
-       // algsys_->GetMatrix(STIFFNESS)->Export("assemble_stiff.mtx");
-       // algsys_->GetMatrix(MASS)->Export("assemble_mass.mtx");
-
+algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX_MARKET, N, sbmInd);
 
 
   }

@@ -286,6 +286,26 @@ namespace CoupledField {
                          BaseMatrix::OutputFormat format,
                          const std::string& comment = "" ) const;
 
+    //! Export the matrix to a file in MatrixMarket format
+
+    //! The method will export the matrix to an ascii file according to the
+    //! MatrixMarket specifications. For details of the specification see
+    //! http://math.nist.gov/MatrixMarket
+    //! \param fname used for building name of output files (see below)
+    //! \param N     number of harmonics
+    //! \param sbmInd  indices of sbm-Blocks to be exported
+    //! \param comment string to be inserted into file header (optional)
+    //! \note The method does currently export each sub-matrix to a separate
+    //!       file. The file names are constructed by appending the suffix
+    //!       <em>_i_j.mtx</em> to fname with (i,j) replaced by the index
+    //!       tuple for the sub-matrix.
+    virtual void Export_MultHarm( const std::string& fname,
+                                  BaseMatrix::OutputFormat format,
+                                  const UInt& N,
+                                  const StdVector<UInt>& sbmInd,
+                                  const std::string& comment = "") const;
+
+
     //@}
 
 
@@ -471,6 +491,14 @@ namespace CoupledField {
     //! pair (i,j) the corresponding index into the one-based 1D array.
     inline UInt ComputeIndex( UInt i, UInt j ) const {
       return ncols_ * i + j;
+    }
+
+
+    //! Computes the row and column of a given index
+    inline StdVector<UInt> DeflattenIndex(UInt ind) const {
+      UInt nr = (nrows_ - 1)/2;
+      std::vector<UInt> a = {ind / (2*nr+1), ind % (2*nr+1)};
+      return a;
     }
 
     //! Flag signalling symmetry of the matrix
