@@ -49,7 +49,7 @@ namespace CoupledField {
     EXCEPTION("Abs not implemented for this data type ");
   }
 
-  //! Specialize Abs to compute absolute value of a double variable
+  //! Specialize Abs to compute absolute value of a Double variable
   template<>
   inline Double Abs<Double> (Double a){
     return fabs(a);
@@ -122,16 +122,24 @@ namespace CoupledField {
     EXCEPTION("PrintSingleEntry not implemented for this data type ");
   }
 
-  //! Print a single double value to a file
+  //! Print a single Double value to a file
   template<>
   inline void PrintSingleEntry<Double>( Double val, FILE *fp ) {
+#ifndef USE_ADOLC
     fprintf( fp, " % 22.16E", val );
-  }
+#else
+    fprintf( fp, " % 22.16E", val.getValue() );
+#endif
+}
   
   //! Print a single complex value to a file
   template<>
   inline void PrintSingleEntry<Complex>( Complex val, FILE *fp ) {
+#ifndef USE_ADOLC
     fprintf( fp, " % 22.16E % 22.16E", (val.real()), (val.imag()) );
+#else
+     fprintf( fp, " % 22.16E % 22.16E", (val.real()).getValue(), (val.imag()).getValue() );
+#endif
   }
 
   //! Dummy implementation of multiplication of a real value and complex
@@ -201,7 +209,7 @@ namespace CoupledField {
       return static_cast<T>(T(1.0)/arg);
     }
 
-    inline static double dotProduct(const double &a1, const double &a2 ) {
+    inline static Double dotProduct(const Double &a1, const Double &a2 ) {
       return a1 * a2;
     }
 

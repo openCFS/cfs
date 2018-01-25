@@ -120,7 +120,9 @@ LISSolver::~LISSolver(){
 }
 
 void LISSolver::Setup(BaseMatrix &sysmat){
-
+#ifdef USE_ADOLC
+EXCEPTION("Not implemented");
+#else
   const StdMatrix& stdmat = dynamic_cast<const StdMatrix&>(sysmat);
   
   BaseMatrix::EntryType etype = stdmat.GetEntryType();
@@ -145,6 +147,7 @@ void LISSolver::Setup(BaseMatrix &sysmat){
   }
   if(etype == BaseMatrix::DOUBLE)
   {
+
     // symmetric or non-symmetric real case
     // in symmetric case convert scrs matrix to crs matrix
     const CRS_Matrix<Double>& crs = dynamic_cast<const CRS_Matrix<Double>&>(stdmat);
@@ -170,6 +173,7 @@ void LISSolver::Setup(BaseMatrix &sysmat){
       lis_vector_set_all(0.0, b_);
     }
     ownMatrixA_ = false;
+
   }
   else
   {
@@ -259,10 +263,14 @@ void LISSolver::Setup(BaseMatrix &sysmat){
     EXCEPTION("ERROR");
   }
   firstSetup_ = false;
+#endif
 }
 
 void LISSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
 {
+#ifdef USE_ADOLC
+EXCEPTION("Not implemented");
+#else
   if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
     for(Integer i=0, n=(Integer)rhs.GetSize(); i<n; i++){
       Double myEnt =0;
@@ -344,10 +352,14 @@ void LISSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVect
     EXCEPTION("after " << iterations << " iterations reached residual " << norm << " with target " << tolerance_ << " exceeding minminal tolerance " << minTol_); // CFS.cc will add it to info.xml
 
 # // case minTol < tolerance give warning in consructor
+#endif
 }
 
 
 void LISSolver::CreateConfigString(PtrParamNode configNode, string& output){
+#ifdef USE_ADOLC
+EXCEPTION("Not implemented");
+#else
   string solStr;
   string precondStr;
   CreateSolverString(configNode,solStr);
@@ -365,10 +377,14 @@ void LISSolver::CreateConfigString(PtrParamNode configNode, string& output){
   output = solStr + " " + precondStr + " " + globStream.str() + " -initx_ones false -initx_zeros false";
   infoNode_->Get("config")->SetValue(output);
   return;
+#endif
 }
 
 
 void LISSolver::CreateSolverString(PtrParamNode solverNode, string& output){
+#ifdef USE_ADOLC
+EXCEPTION("Not implemented");
+#else
   string solverString;
   string nodeName = solverNode->GetName();
   PtrParamNode sNode = solverNode->Get("solver",ParamNode::PASS);
@@ -453,10 +469,14 @@ void LISSolver::CreateSolverString(PtrParamNode solverNode, string& output){
   }
 
   output = solstream.str();
+#endif
 }
 
 
 void LISSolver::CreatePrecondString(PtrParamNode precondNode, string& output){
+#ifdef USE_ADOLC
+EXCEPTION("Not implemented");
+#else
   string precondString;
 
   PtrParamNode sNode = precondNode->Get("precond",ParamNode::PASS);
@@ -551,7 +571,7 @@ void LISSolver::CreatePrecondString(PtrParamNode precondNode, string& output){
     }
   }
   output = solstream.str();
-
+#endif
 }
 
 }
