@@ -347,7 +347,7 @@ namespace CoupledField {
      // Determine upper off diagonal element data and column index in columnwise order and
      // save them in dat_index and col_index
      std::vector<UInt> col_index(sum_ent_col,0), count_vec(this->nrows_,0);
-     std::vector<T> dat_index(sum_ent_col,0.);
+     std::vector<T> dat_index(sum_ent_col,T(0.0));
      UInt count = 0, row_count =0;
      // setup index counter vector
      for (UInt i = 0; i <this->nrows_;i++) {
@@ -2030,7 +2030,9 @@ namespace CoupledField {
                                     StdVector<Double>& dPC,
                                     UInt version,
                                     bool setSparsity){
-
+#ifdef USE_ADOLC
+      EXCEPTION("Not implemented.");
+#else
 #ifdef USE_MKL
     /******************** Some dimension checks *********************/
     UInt numRowB = B.GetNumRows();
@@ -2136,6 +2138,7 @@ namespace CoupledField {
 
 #else
     EXCEPTION("Compile with USE_MKL = ON in order to use the AMG-framework!")
+#endif
 #endif
   }
 

@@ -139,7 +139,7 @@ namespace CoupledField
     bool IsSymmetric() const;
 
     /** symmetry check with eps sensitivity. */
-    inline bool IsSymmetric(double eps) const
+    inline bool IsSymmetric(Double eps) const
     {
       if(!IsQuadratic())
         return false;
@@ -473,7 +473,7 @@ namespace CoupledField
     //! This methods estimates the condition number of the matrix
     //! \param k  estimated condition number
     //! \param info returns if the LU factorization was succesfull
-    void Invert_Lapack(double & k, int & info);
+    void Invert_Lapack(Double & k, int & info);
 
     //! Transpose the matrix and store the result in \a transposedMat
     //! \note The matrix itself gets not changed.
@@ -621,7 +621,7 @@ namespace CoupledField
                           lapackSysMatType & LAPACK_MATRIX_TYPE );
 
     //! Computes eigenvalues of an hermitian matrix and eigen vectors if necessary
-    void eigenvaluesWithLapack(Vector<Double> & b1,Matrix<double> * b2 = NULL);
+    void eigenvaluesWithLapack(Vector<Double> & b1,Matrix<Double> * b2 = NULL);
     //@}
 #endif
   
