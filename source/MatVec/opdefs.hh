@@ -49,6 +49,26 @@ namespace CoupledField {
     EXCEPTION("Abs not implemented for this data type ");
   }
 
+  template <typename T>
+  inline T Sqrt(T a){ 
+    EXCEPTION("Sqrt not implemented for this data type ");
+  }
+  template<>
+  inline Double Sqrt<Double> (Double a){
+    return sqrt(a);
+  }
+#ifndef USE_ADOLC
+   template<>
+  inline Complex Sqrt<Complex> (Complex a){
+    return sqrt(a);
+  }
+#else
+  template<>
+  inline Complex Sqrt<Complex> (Complex a){
+    EXCEPTION("Sqrt not implemented for this data type ");
+  }
+#endif
+
   //! Specialize Abs to compute absolute value of a Double variable
   template<>
   inline Double Abs<Double> (Double a){
@@ -199,7 +219,15 @@ namespace CoupledField {
   //! variables of type Double or Complex.
   template<typename T>
   struct OpType{
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //bjurgel AD conversion comment:                                                                             //
+    // this is a bad idea. These operators return  Double or Complex etc. However, I've seen a few cases         //
+    // where you are actually using the type T after this call.                                                  //
+    // This means you are relying on (automatic) implicit conversion of Double to T. Bad style and bad for AD.   //
+    // You probably want to return the type T instead but do you really? How can we be sure?                     //
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+      
     //! Compute the inverse of the input argument.
 
     //! This method computes the inverse of the input argument. It is intended
