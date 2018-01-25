@@ -274,14 +274,14 @@ template<typename T> class ElemStoreSol;
     //    virtual void Inner(const SingleVector& vec,Complex& s) const;
 
     //! Compute Euclidean norm of this vector object
-    double NormL2() const;
+    Double NormL2() const;
 
     /**  this functions localized the maximal component (absolute value) and returns it with its original sign
 		example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1 */ 
     Double SignedMax() const; 
 
     /** diff norm */
-    double NormL2(const Vector<T>& other) const;
+    Double NormL2(const Vector<T>& other) const;
 
     /** Sum of all the vector's elements */
     T Sum() const;

@@ -2674,7 +2674,7 @@ namespace CoupledField {
     else
     {
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
-      Complex entry = 0.0;
+      Complex entry = Complex(0.0);
       // #pragma omp parallel for private (entry)
       for( UInt i = 0; i < size; ++i ) {
 
@@ -2736,7 +2736,7 @@ namespace CoupledField {
     } else {
 
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptRhs );
-      Complex entry = 0.0;
+      Complex entry = Complex(0.0);
 
       for( UInt i = 0; i < size; ++i ) {
 

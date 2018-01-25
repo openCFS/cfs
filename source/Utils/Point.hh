@@ -22,7 +22,7 @@ public:
     data.Resize(3, 0.0);
   }
 
-  Point(const double val) {
+  Point(const Double val) {
     data.Resize(3, val);
   }
 
@@ -49,10 +49,10 @@ public:
   /** Assumes a Cartesian orientation and gives the direction, 0-based!
    * @param vec assumed to be of size 3 - pointer because of circular inclusion :(
    * @return 0-based index of (firt) non-zero index. */
-  static int GetCartesianOrientation(const Vector<double>* vec);
+  static int GetCartesianOrientation(const Vector<Double>* vec);
 
   /** Returns data vector */
-  inline const Vector<double>& GetCoordVector() { return data;}
+  inline const Vector<Double>& GetCoordVector() { return data;}
 
   //!
   Point & operator=(const Point & t);
@@ -122,12 +122,12 @@ public:
   * @return the form "(0.3;4.3;0.0)" but no digit control */
   std::string ToString() const;
 
-  Vector<double> data;
+  Vector<Double> data;
 
 private:
   /** common implementation
    * @param assume to be of size 3! */
-  static int GetCartesianOrientation(const double* vec);
+  static int GetCartesianOrientation(const Double* vec);
 
 };
 

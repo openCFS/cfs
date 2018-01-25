@@ -83,7 +83,7 @@ namespace CoupledField {
         return ( EvaluateFuncInv(t)/t );
       }
       else {
-        return ( nuMax_ + extrapolBeta_*std::exp(-extrapolAlpha_*t) );
+        return ( nuMax_ + extrapolBeta_*exp(-extrapolAlpha_*t) );
       };
     }
 
@@ -95,7 +95,7 @@ namespace CoupledField {
         return ( (EvaluatePrimeInv(t)*t - EvaluateFuncInv(t))/(t*t) ); 
       }
       else {
-        return ( -extrapolAlpha_*extrapolBeta_*std::exp(-extrapolAlpha_*t) );
+        return ( -extrapolAlpha_*extrapolBeta_*exp(-extrapolAlpha_*t) );
       }
     }
 

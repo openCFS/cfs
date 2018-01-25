@@ -68,7 +68,7 @@ namespace CoupledField
   }
 
 
-  Double LinInterpolate::EvaluateFuncInv(double inVal)
+  Double LinInterpolate::EvaluateFuncInv(Double inVal)
   {
    
     if ( inVal < y_[0] )
@@ -101,7 +101,7 @@ namespace CoupledField
     deltay = yAfter - yPrev;
     deltax = xAfter - xPrev;
  
-    if ( abs(deltay) < 1e-12 ) {
+    if ( fabs(deltay) < 1e-12 ) {
       erg= xPrev;
     }
     else {
@@ -113,7 +113,7 @@ namespace CoupledField
   }
 
 
-  Double LinInterpolate::EvaluatePrimeInv(double inVal)
+  Double LinInterpolate::EvaluatePrimeInv(Double inVal)
   {
   
     if ( inVal < y_[0] )
@@ -146,7 +146,7 @@ namespace CoupledField
     deltay = yAfter - yPrev;
     deltax = xAfter - xPrev;
  
-    if ( abs(deltay) < 1e-12 ) {
+    if ( fabs(deltay) < 1e-12 ) {
       erg= 0;
     }
     else {

@@ -4,6 +4,7 @@
 #include <ctime>
 #include <string>
 #include "boost/date_time/posix_time/posix_time.hpp"
+#include "General/defs.hh"
 
 namespace CoupledField
 {
@@ -41,11 +42,11 @@ class Timer
   int GetCalls() const { return calls_; }
 
   /** elapsed seconds. */
-  double GetWallTime() const;
+  Double GetWallTime() const;
 
   /** elapsed CPU seconds, might be higher than wall time if some parallelization
    * (e.g. OpenMP MKL) is used */
-  double GetCPUTime() const;
+  Double GetCPUTime() const;
 
   /** This writes writes a xml element with time attributes for ParamNode::ToFile().
    * @param name is used for "<name wall='xx' .../>
@@ -73,7 +74,7 @@ class Timer
   bool   running;
   clock_t start_clock;
   time_t  start_time;
-  double sum_time;
+  Double sum_time;
   clock_t sum_clock;
   std::string label_;
   bool sub_;

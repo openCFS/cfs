@@ -138,10 +138,10 @@ namespace CoupledField
    int maxIter_ = -1;
 
    /** not that LIS has three ways to calculate the residuum */
-   double tolerance_ = -1.0;
+   Double tolerance_ = -1.0;
 
    /** throws only an exception on maxIter exceeded if also minTol_ is not met */
-   double minTol_ = -1.0;
+   Double minTol_ = -1.0;
 
    /** activates a lis feature */
    bool logging_ = false;

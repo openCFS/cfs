@@ -14,8 +14,8 @@ namespace CoupledField {
     std::map<std::string, Vector<Double> >();
   
   Double Interpolate1D::Interpolate( const char* fileName, 
-                                     double xEntry,
-                                     double method ) {
+                                     Double xEntry,
+                                     Double method ) {
 
     // check if file was already read in
     if( xVals_.find(std::string(fileName)) == xVals_.end() ) {
