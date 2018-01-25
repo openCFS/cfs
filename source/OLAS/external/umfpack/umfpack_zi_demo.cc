@@ -61,10 +61,10 @@
 static int n = 5, nz = 12 ;
 static int Arow [ ] = { 0,  4,  1,  1,   2,   2,  0,  1,  2,  3,  4,  4} ;
 static int Acol [ ] = { 0,  4,  0,  2,   1,   2,  1,  4,  3,  2,  1,  2} ;
-static double Aval [ ] = {2., 1., 3., 4., -1., -3., 3., 6., 2., 1., 4., 2.} ;
-static double Avalz[ ] = {1., .4, .1, .2, -1., -.2, 0., 6., 3., 0., .3, .3} ;
-static double b [ ] = {8., 45., -3., 3., 19.}, x [5], r [5] ;
-static double bz[ ] = {1., -5., -2., 0., 2.2}, xz[5], rz[5] ;
+static Double Aval [ ] = {2., 1., 3., 4., -1., -3., 3., 6., 2., 1., 4., 2.} ;
+static Double Avalz[ ] = {1., .4, .1, .2, -1., -.2, 0., 6., 3., 0., .3, .3} ;
+static Double b [ ] = {8., 45., -3., 3., 19.}, x [5], r [5] ;
+static Double bz[ ] = {1., -5., -2., 0., 2.2}, xz[5], rz[5] ;
 
 /* Avalz, bz:  imaginary part of A and b */
 
@@ -87,17 +87,17 @@ static void error
 /* A' is the complex conjugate transpose, not the array transpose */
 /* -------------------------------------------------------------------------- */
 
-static double resid
+static Double resid
 (
     int transpose,
     int Ap [ ],
     int Ai [ ],
-    double Ax [ ]
-    , double Az [ ]
+    Double Ax [ ]
+    , Double Az [ ]
 )
 {
     int i, j, p ;
-    double norm ;
+    Double norm ;
 
     for (i = 0 ; i < n ; i++)
     {
@@ -148,9 +148,9 @@ static double resid
 
 int main (int argc, char **argv)
 {
-    double Info [UMFPACK_INFO], Control [UMFPACK_CONTROL], *Ax, *Cx, *Lx, *Ux,
+    Double Info [UMFPACK_INFO], Control [UMFPACK_CONTROL], *Ax, *Cx, *Lx, *Ux,
 	*W, t [2], *Dx, rnorm, *Rb, *y, *Rs ;
-    double *Az, *Lz, *Uz, *Dz, *Cz, *Rbz, *yz ;
+    Double *Az, *Lz, *Uz, *Dz, *Cz, *Rbz, *yz ;
     int *Ap, *Ai, *Cp, *Ci, row, col, p, lnz, unz, nr, nc, *Lp, *Li, *Ui, *Up,
 	*P, *Q, *Lj, i, j, k, anz, nfr, nchains, *Qinit, fnpiv, lnz1, unz1, nz1,
 	status, *Front_npivcol, *Front_parent, *Chain_start, *Wi, *Pinit, n1,

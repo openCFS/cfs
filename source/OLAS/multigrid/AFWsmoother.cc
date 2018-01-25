@@ -168,7 +168,7 @@ Step( const CRS_Matrix<T>&                  matrix,
       //changed, according to Patches_[n]
       ttmp1.Resize(p.GetSize(), 1);
       for(UInt i = 0; i < p.GetSize(); ++i){
-    	  T row = 0.0;
+    	  T row = T(0.0);
     	  UInt t = p[i];
     	  for(UInt r = pRow_[t]; r < pRow_[t + 1]; ++r){
     	    b = pCol_[r];
@@ -183,11 +183,11 @@ Step( const CRS_Matrix<T>&                  matrix,
       // uses another complex format. The slow part in the hardcoded version
       // is the multiplication of two complex scalars, this has something
       // to do with __muldc3
-      InvExtMat_[n].Mult_Blas(ttmp1, ttmp3, false, false, 1.0, 0.0, false);
+      InvExtMat_[n].Mult_Blas(ttmp1, ttmp3, false, false, T(1.0), T(0.0), false);
 
-      nSol.Resize(p.GetSize(), 0.0);
+      nSol.Resize(p.GetSize(), T(0.0));
       ttmp3.GetCol(tmp3, 0);
-      nSol.Add(1.0, exSol, 1.0, tmp3);
+      nSol.Add(T(1.0), exSol, T(1.0), tmp3);
 
       //insert it back into sol
       for(UInt i = 0; i < p.GetSize(); ++i){

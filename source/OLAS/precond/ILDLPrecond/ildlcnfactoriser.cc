@@ -113,7 +113,7 @@ namespace CoupledField {
 
     // We use as initial estimate for the number of entries in U the number
     // of entries in the upper triangle of A; if this is not sufficient, the
-    // STL will probably first double the vector size involving one copy step.
+    // STL will probably first Double the vector size involving one copy step.
     // We hope that this then will suffice.
     UInt memSize;
     memSize = (UInt)floor( (double)(sysMat.GetNnz() - this->sysMatDim_) / 2 + 0.5 );
@@ -127,10 +127,10 @@ namespace CoupledField {
     dataU.reserve( memSize );
 
     // OLAS uses one-base indexing, so we push_back a zero up front
-    dataD.push_back( 0 );
+    dataD.push_back( T(0.0) );
     rptrU.push_back( 0 );
     cidxU.push_back( 0 );
-    dataU.push_back( 0 );
+    dataU.push_back( T(0.0) );
 
 #ifdef DEBUG_ILDLCNFACTORISER
     (*debug) << " (Pre-)Allocated memory for storing factorisation"
@@ -249,11 +249,23 @@ namespace CoupledField {
 #endif
 
       // Keep user informed on progress
-      actDone = (double)(k*100) / (double)this->sysMatDim_;
+      actDone = (Double)(k*100) / (Double)this->sysMatDim_;
+//       actDone = (UInt)(actDone/10.0)*10;
+//       if ( actDone > percentDone ) {
+//         percentDone = (UInt)actDone;
+//       }
+#ifndef USE_ADOLC
       actDone = (UInt)(actDone/10.0)*10;
+
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
       }
+#else
+      actDone = (UInt)(actDone.getValue()/10.0)*10;
+      if ( actDone > percentDone ) {
+        percentDone = (UInt)actDone.getValue();
+      }
+#endif
 
       // Insert row k of A into linked list, but omit the diagonal entry
       if ( rptrA[k+1] - rptrA[k] > 1 ) {
@@ -353,8 +365,8 @@ namespace CoupledField {
       // -------------------
       //  Estimate row norm
       // -------------------
-      xiPlus  = +1.0 - nu[k];
-      xiMinus = -1.0 - nu[k];
+      xiPlus  = T(+1.0) - nu[k];
+      xiMinus = T(-1.0) - nu[k];
       xi[k] = Abs( xiPlus ) > Abs( xiMinus ) ? xiPlus : xiMinus;
       listElem = listIDX_[0];
       while ( listElem != listEnd ) {

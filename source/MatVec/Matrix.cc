@@ -2907,7 +2907,7 @@ namespace CoupledField
       result += tmp;
     }
 
-    return static_cast<TYPE>(sqrt(result)); // for compilers
+    return static_cast<TYPE>(Sqrt(result)); // for compilers
   }
 
   template<class TYPE>

@@ -186,7 +186,7 @@ namespace CoupledField {
     vecZFill.reserve( estNZPerRow );
     vecWFill.reserve( estNZPerRow );
 
-    T zero = 0.0;
+    T zero = T(0.0);
     for ( UInt k = 0; k <= sysMatDim_; k++ ) {
       vecZ.push_back( zero );
       vecW.push_back( zero );
@@ -283,13 +283,20 @@ namespace CoupledField {
       PrintVector( firstL, "firstL" );
 #endif
 
+
       // Keep user informed on progress
       actDone = (double)(k*100) / (double)sysMatDim_;
+#ifndef USE_ADOLC
       actDone = (UInt)(actDone/10.0)*10;
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
       }
-
+#else
+      actDone = (UInt)(actDone.getValue()/10.0)*10;
+      if ( actDone > percentDone ) {
+        percentDone = (UInt)actDone.getValue();
+      }
+#endif
 
       // *********************************
       //   COMPUTATION of k-th ROW of U
@@ -452,12 +459,12 @@ namespace CoupledField {
       //   GENERATE INDEX SET
       // **********************
       for ( i = k; i <= rightMostU; i++ ) {
-        if ( vecZ[i] != 0.0 ) {
+        if ( Abs(vecZ[i]) != T(0.0) ) {
           vecZFill.push_back( i );
         }
       }
       for ( i = k + 1; i <= lowestL; i++ ) {
-        if ( vecW[i] != 0.0 ) {
+        if ( Abs(vecW[i]) != T(0.0) ) {
           vecWFill.push_back( i );
         }
       }
@@ -669,7 +676,7 @@ namespace CoupledField {
     // We replace the diagonal entry of U by its inverse
     // so we don't need a division in the back substitutions
     for ( i = 0; i < sysMatDim_; i++ ) {
-      entryU_[ rptrU_[i] ] = 1.0 / entryU_[ rptrU_[i] ];
+       entryU_[ rptrU_[i] ] = T(1.0) / entryU_[ rptrU_[i] ];
     }
 
     // ********************************
@@ -1145,7 +1152,7 @@ namespace CoupledField {
       fprintf( fp, "%6d\t%6d\t", i+1, i+1 );
 
       // store non-zero entry
-      OpType<T>::ExportEntry( 1.0 / entryU_[ rptrU_[i] ], 0, 0, fp );
+      OpType<T>::ExportEntry( T(1.0) / entryU_[ rptrU_[i] ], 0, 0, fp );
       fprintf( fp, "\n" );
 
       // loop over remaining entries in this row

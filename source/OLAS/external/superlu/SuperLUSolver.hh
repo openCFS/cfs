@@ -81,7 +81,7 @@ namespace CoupledField {
     //! A flag specifying if Setup is being called for the first time
     bool firstCall_;
 
-    //! Do we solve a system with complex or double entries?
+    //! Do we solve a system with complex or Double entries?
     bool isComplex_;
 
     //! number of non zero entries
@@ -96,7 +96,7 @@ namespace CoupledField {
     NCformat       *Astore;
     NCformat       *Ustore;
     SCformat       *Lstore;
-    double         *a;
+    Double         *a;
     int            *asub;
     int            *xa;
     int            *perm_c; /* column permutation vector */
@@ -105,14 +105,14 @@ namespace CoupledField {
     void           *work;
     int            info, lwork, nrhs, ldx;
     int            i;
-    double         *rhsb;
-    double         *rhsx;
-    double         *xact;
-    double         *R;
-    double         *C;
-    double         *ferr;
-    double         *berr;
-    double         u, rpg, rcond;
+    Double         *rhsb;
+    Double         *rhsx;
+    Double         *xact;
+    Double         *R;
+    Double         *C;
+    Double         *ferr;
+    Double         *berr;
+    Double         u, rpg, rcond;
     mem_usage_t    mem_usage;
     superlu_options_t options;
     SuperLUStat_t stat;

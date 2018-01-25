@@ -234,8 +234,8 @@ namespace CoupledField {
 
     //! This array contains dynamically allocated workspace required for the
     //! LAPACK routines that perform iterative refinement.
-    double *workspaceF77REAL8_;
-    std::complex<double> *workspaceF77COMPLEX16_;
+    Double *workspaceF77REAL8_;
+    std::complex<Double> *workspaceF77COMPLEX16_;
     int *workspaceInt_;
     //@}
 
@@ -243,10 +243,10 @@ namespace CoupledField {
     //! \name Attributes related to equilibration of system matrix
 
     //! This array contains the scaling factors for the rows of the matrix
-    double *row_scalings_;
+    Double *row_scalings_;
 
     //! This array contains the scaling factors for the columns of the matrix
-    double *col_scalings_;
+    Double *col_scalings_;
 
     //! Stores the type of scaling LAPACK performed
     char scalingType_;

@@ -103,6 +103,7 @@ namespace CoupledField {
   template<typename T>
   void SuperLUSolver<T>::Setup( BaseMatrix &sysMat) {
 
+#ifndef USE_ADOLC
     PtrParamNode sNode;
     sNode = xml_->Get("superlu", ParamNode::INSERT);
     
@@ -386,7 +387,9 @@ namespace CoupledField {
 
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
-       
+#else
+    EXCEPTION("Not implemented");
+#endif
   }
 
 
@@ -398,6 +401,7 @@ namespace CoupledField {
   void SuperLUSolver<T>::Solve( const BaseMatrix &sysmat,
                                 const BaseVector &rhs,
                                 BaseVector &sol) {
+#ifndef USE_ADOLC
 
     LOG_TRACE(superluSolver) << " -----------------------------------------"
                              << "-------------------------------------";
@@ -458,7 +462,7 @@ namespace CoupledField {
       if ( info == 0 || info == probDim_+1 ) {
 
           /* This is how you could access the solution matrix. */
-          double *sol = (double*) ((DNformat*) X.Store)->nzval; 
+          Double *sol = (double*) ((DNformat*) X.Store)->nzval; 
 
           for(Integer idx=0; idx<probDim_; idx++) {
             theSol[idx] = sol[idx];
@@ -480,6 +484,9 @@ namespace CoupledField {
 
     if ( options.PrintStat ) StatPrint(&stat);
     StatFree(&stat);
+#else
+    EXCEPTION("Not implemented");
+#endif
   }
 
 // Explicit template instantiation
