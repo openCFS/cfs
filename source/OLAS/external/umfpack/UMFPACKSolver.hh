@@ -193,7 +193,7 @@ namespace CoupledField {
     //! A flag specifying if Setup is being called for the first time
     bool firstCall_;
 
-    //! Do we solve a system with complex or double entries?
+    //! Do we solve a system with complex or Double entries?
     bool isComplex_;
 
     //! number of non zero entries
@@ -201,8 +201,8 @@ namespace CoupledField {
 
     Integer status;
 
-    std::vector<double> Info;
-    std::vector<double> Control;
+    std::vector<Double> Info;
+    std::vector<Double> Control;
     
     Double strategy_;
     Double ordering_;

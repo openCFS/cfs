@@ -9,6 +9,8 @@
 #include <complex>
 
 #include <def_use_adolc.hh>
+#include "General/defs.hh"
+#include "General/Exception.hh"
 
 namespace CoupledField 
 {

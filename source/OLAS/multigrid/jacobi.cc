@@ -52,7 +52,7 @@ bool Jacobi<T>::Setup( const CRS_Matrix<T>& matrix )
 
     // fill the array with the inverses of the diagonal entries
     for( Integer i = 0; i < (Integer)Size_; i++ ) {
-        DiagonalInverse_[i] = 1.0 / dataP[ diagP[i] ];
+        DiagonalInverse_[i] = T(1.0) / dataP[ diagP[i] ];
     }
 
     // create auxiliary vector
@@ -96,7 +96,7 @@ Step( const CRS_Matrix<T>&                  matrix,
     //////////////////////////////////////////////
     // normal Jacobi
     //////////////////////////////////////////////
-    auxVec_.Init(0.0);
+    auxVec_.Init(T(0.0));
 
     Vector<T> r_h = rhs;
     matrix.MultSub(sol, r_h );

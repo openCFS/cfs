@@ -286,7 +286,7 @@ namespace CoupledField {
     solver_->Solve( *matrixC_, vecB1, vecA2 );
 
     // solve for a1 (lower part of equation system)
-    vecA1.Add(shift_, vecA2, 1., nInvB2);
+    vecA1.Add(shift_, vecA2, Complex(1.), nInvB2);
   }
 
   void ArpackMatInterface::MultBVQuad( Complex* x, Complex* y ) {
@@ -363,8 +363,8 @@ namespace CoupledField {
     // Perform matrix-vector multiplication - upper part
     matrixD_->Mult( vecX1, vecY1 );
     matrixA_->Mult( vecX2, vecTemp );
-    vecY1.Axpy(1.0,vecTemp);
-    vecY1.ScalarMult(-1.0);
+    vecY1.Axpy(Complex(1.0),vecTemp);
+    vecY1.ScalarMult(-Complex(1.0));
 
     // Perform matrix-vector multiplication - lower part
     vecY2.Init();
@@ -444,10 +444,10 @@ namespace CoupledField {
     return diagScale_;
   }
 
-  template void ArpackMatInterface::MultShiftOpV<double>(double*, double*);
-  template void ArpackMatInterface::MultRegularOpV<double>(double*, double*);
-  template void ArpackMatInterface::MultBV<double>(double*, double*);
-  template void ArpackMatInterface::MultAV<double>(double*, double*);
+  template void ArpackMatInterface::MultShiftOpV<Double>(Double*, Double*);
+  template void ArpackMatInterface::MultRegularOpV<Double>(Double*, Double*);
+  template void ArpackMatInterface::MultBV<Double>(Double*, Double*);
+  template void ArpackMatInterface::MultAV<Double>(Double*, Double*);
 
   template void ArpackMatInterface::MultShiftOpV<Complex>(Complex*, Complex*);
   template void ArpackMatInterface::MultRegularOpV<Complex>(Complex*, Complex*);

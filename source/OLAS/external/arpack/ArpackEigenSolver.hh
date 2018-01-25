@@ -41,7 +41,7 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
-    void Setup(const BaseMatrix & mat, UInt numFreq, double freqShift, bool sort);
+    void Setup(const BaseMatrix & mat, UInt numFreq, Double freqShift, bool sort);
 
     //! Setup routine for a generalized eigenvalue problem
     
@@ -53,7 +53,7 @@ namespace CoupledField {
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
     void Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat,
-               UInt numFreq, double freqShift, bool sort, bool bloch);
+               UInt numFreq, Double freqShift, bool sort, bool bloch);
     
     //! Setup routine for a quadratic eigenvalue problem
     
@@ -67,7 +67,7 @@ namespace CoupledField {
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
     void Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
-               UInt numFreq, double freqShift, bool sort );
+               UInt numFreq, Double freqShift, bool sort );
 
 
     //! Solve the linear generalized eigenvalue problem
@@ -104,7 +104,7 @@ namespace CoupledField {
     void SetupIndex(unsigned int numev);
 
     /** for SetupIndex */
-    typedef std::pair<double, unsigned int> ev_idx;
+    typedef std::pair<Double, unsigned int> ev_idx;
 
     /** for SetupIndex */
     static bool comperator(const ev_idx& one, const ev_idx& two)

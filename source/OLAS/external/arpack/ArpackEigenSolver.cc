@@ -218,7 +218,7 @@ namespace CoupledField {
 
 
   void ArpackEigenSolver::Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
-                                UInt numFreq, double freqShift, bool sort) {
+                                UInt numFreq, Double freqShift, bool sort) {
 
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = true;
@@ -341,7 +341,7 @@ namespace CoupledField {
       std::vector<ev_idx> org;
       for(unsigned int i = 0; i < numev; i++)
       {
-        double v = isBloch_ || isQuadratic_ ? std::abs(arpackSolver_->CmplxEigenvalue(i)) : arpackSolver_->Eigenvalue(i);
+        Double v = isBloch_ || isQuadratic_ ? Abs(arpackSolver_->CmplxEigenvalue(i)) : arpackSolver_->Eigenvalue(i);
         org.push_back(std::make_pair(v, i));
       }
 
@@ -403,7 +403,7 @@ namespace CoupledField {
       for (UInt i = 0; i < numEVs; i++ ) {
         solConverted[i] = arpackSolver_->CmplxEigenvalue(idx_[i]);
         if(isBloch_ && solConverted[i].real() >= 0.0)
-          solConverted[i] = sqrt(solConverted[i])/(8.0*atan(1.0));
+          solConverted[i] = Sqrt(solConverted[i])/(Complex(8.0*atan(1.0)));
       }
     }
 
@@ -508,7 +508,7 @@ namespace CoupledField {
   void ArpackEigenSolver::GetComplexEigenMode(UInt modeNr, Vector<Complex>& mode)
   {
     // in bloch mode case the same as GetEigenMode,
-    // in quadratic case the modes have internally double size and we want the upper half
+    // in quadratic case the modes have internally Double size and we want the upper half
     
     UInt size = matrixA_->GetNumRows();
 

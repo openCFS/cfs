@@ -181,7 +181,7 @@ namespace CoupledField {
       int *ipiv = new int[bs+1];
       int n = bs;
       int lwork = bs*bs;
-      double *work = new double[lwork];
+      Double *work = new Double[lwork];
       int info;
 
       // calculate LU-factorization of block

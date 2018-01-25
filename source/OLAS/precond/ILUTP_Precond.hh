@@ -225,10 +225,10 @@ namespace CoupledField {
 	bool retVal = false;
 
 	// A problem is here with the abs (g++ using int abs(int)!!!)
-	if ( abs(dVec_[i]) > abs(dVec_[j]) ) {
+	if ( Abs(dVec_[i]) > Abs(dVec_[j]) ) {
 	  retVal = true;
 	}
-	else if ( abs(dVec_[i]) == abs(dVec_[j]) ) {
+	else if ( Abs(dVec_[i]) == Abs(dVec_[j]) ) {
 	  if ( i < j ) {
 	    retVal = true;
     	  }
