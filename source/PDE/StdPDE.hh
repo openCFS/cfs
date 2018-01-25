@@ -219,8 +219,6 @@ namespace CoupledField {
       ;
     }
 
-  protected:
-
     //! Enum for type of nonconforming coupling (Nitsche or Mortar)
     typedef enum {
       NC_NONE,
@@ -250,6 +248,7 @@ namespace CoupledField {
       bool              movingMortarForm;
     };
 
+  protected:
     //! Constructor
     /*!
       \param aptgrid pointer to grid

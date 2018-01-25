@@ -643,10 +643,11 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
 
     // Loop over all integration points
     LocPointMapped lpm;
+    lpm.SetCheckJacobi(false);
     for(UInt i = 0; i < intPoints.GetSize(); i++) {
     	// Calculate for each integration point the LocPointMapped
     	lpm.Set(intPoints[i], esm, weights[i]);
-
+    	//lpm.SetCheckJacobi(false);
     	// get field vector scaled by square of material parameter
     	coef_->GetVector(field, lpm );
 

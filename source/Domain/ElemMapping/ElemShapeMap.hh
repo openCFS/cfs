@@ -173,6 +173,11 @@ namespace CoupledField {
     void SetSurfInfo( const std::set<RegionIdType>& volRegions,
     		          const RegionIdType volRegid = NO_REGION_ID );
 
+    //! set, if jacobi determinat should be checked; standard is YES
+    void SetCheckJacobi(bool check) {
+    		checkJacobi_ = check;
+    };
+
     //! Specialized version for NMG points
     void SetMortar( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
                                           Double weight, bool useMaster);
@@ -212,6 +217,9 @@ namespace CoupledField {
     //! Flag indicating, if surface element information is set
     bool isSurface;
     
+    //! check Jacobi detrminat
+    bool checkJacobi_;
+
     //! Normal direction of surface element (only set in case of a surface element)
     
     //! In case the struct gets initialized with a surface element, this member

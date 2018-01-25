@@ -35,7 +35,7 @@ std::ostream& operator <<(std::ostream& out, const LocPoint& lp) {
 //  C L A S S   LocPointMapped
 // ===========================================================================
 LocPointMapped::LocPointMapped() :
-    ptEl(NULL), weight(0.0), jacDet(0.0), isSurface(false) {
+    ptEl(NULL), weight(0.0), jacDet(0.0), isSurface(false), checkJacobi_(true) {
 
 }
 
@@ -98,7 +98,6 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
 
 void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
                          Double weight, Matrix<Double>& cornerCoord) {
-
   this->shapeMap = esm;
   this->lp = lp;
   this->weight = weight;
@@ -138,10 +137,10 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   };
 
   // safety check for negative Jacobian determinant
-  if (jacDet <= 0.0) {
-	  std::cout << jacDet << std::endl;
-    EXCEPTION(
-        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
+  if ( checkJacobi_ ) {
+	  if ( jacDet <= 0.0) {
+		  EXCEPTION("Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
+	  }
   }
 
   // Check, if geometry is axi-symmetric. In this case scale the

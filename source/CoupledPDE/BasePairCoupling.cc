@@ -163,14 +163,25 @@ namespace CoupledField {
         PtrParamNode list = in->Get("nonConformingGridInterfaces"); 
 
         for (UInt i = 0; i < ncIfList.GetSize(); ++i) {
-          std::string ncIfName = ncIfList[i]->Get("name")->As<std::string>(); 
-          RegionIdType ncIfId = ptGrid_->GetRegion().Parse(ncIfName);
+        	std::string ncIfName = ncIfList[i]->Get("name")->As<std::string>();
+        	RegionIdType ncIfId = ptGrid_->GetRegion().Parse(ncIfName);
 
-          PtrParamNode e = list->Get("nc_interface", ParamNode::APPEND); 
-          e->Get("name")->SetValue(ncIfName); 
-          e->Get("id")->SetValue(ncIfId);
+        	StdPDE::NcInterfaceInfo newIface;
+        	Enum<StdPDE::NcCouplingType> ncCouplingType;
+        	newIface.interfaceId = ptGrid_->GetNcInterfaceId( ncIfList[i]->Get("name")
+        	                                                        ->As<std::string>() );
+        	newIface.type = StdPDE::NC_MORTAR;
+//        	newIface.type = ncCouplingType.Parse( ncIfList[i]->Get("formulation",
+//        	          ParamNode::INSERT)->As<std::string>() );
+        	newIface.crossPointHandling = false;
+        	newIface.lagrangeMultType = StdPDE::LM_STANDARD;
 
-          ncIfaces_.Push_back(ncIfId);
+        	//PtrParamNode e = list->Get("nc_interface", ParamNode::APPEND);
+        	//e->Get("name")->SetValue(ncIfName);
+        	//e->Get("id")->SetValue(ncIfId);
+
+        	ncIfaces_.Push_back(ncIfId);
+        	ncInterfaces_.Push_back(newIface);
         }
       }
     }
