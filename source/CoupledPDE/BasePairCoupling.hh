@@ -18,6 +18,7 @@ namespace CoupledField
 {
 
   // forward class declaration
+  class StdPDE;
   class SinglePDE;
   class Assemble;
   class AlgebraicSys;
@@ -276,6 +277,9 @@ namespace CoupledField
 
     //! ncInterface regions of coupling object
     StdVector<RegionIdType> ncIfaces_;
+
+    //! ncInterface information
+    StdVector< StdPDE::NcInterfaceInfo > ncInterfaces_;
 
     //! Name of coupling
     std::string couplingName_;

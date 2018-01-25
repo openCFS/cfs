@@ -299,17 +299,14 @@ void CoefFunctionSurfVWP::GetVector(Vector<Double>& coefVec,
                                     const LocPointMapped& lpm ) {
   assert(this->dimType_ == VECTOR);
 
-  // create local point for surface
-  LocPointMapped lpmVol(lpm);
-
   //get magnetic flux density
   Vector<Double> Bvec;
-  coefs_[neighborRegionId_]->GetVector(Bvec, lpmVol );
+  coefs_[neighborRegionId_]->GetVector(Bvec, lpm );
 
   //get permeability
   Double permeability;
   std::map<RegionIdType,PtrCoefFct > permFncs = matCoef_[MAG_ELEM_PERMEABILITY]->GetRegionCoefs();
-  permFncs[neighborRegionId_]->GetScalar(permeability, lpmVol );
+  permFncs[neighborRegionId_]->GetScalar(permeability, lpm );
 
   coefVec = Bvec / std::sqrt( permeability );
 }

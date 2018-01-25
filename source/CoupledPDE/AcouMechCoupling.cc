@@ -18,6 +18,7 @@
 #include "FeBasis/H1/H1Elems.hh"
 
 // new integrator concept
+#include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -175,6 +176,75 @@ namespace CoupledField {
           break;
       }
     }
+
+    //now we do it for the non-conforming interfaces
+    for ( UInt actNC = 0, n = ncIfaces_.GetSize(); actNC < n; actNC++ ) {
+
+      // Get interface from grid and cast to MortarInterface class
+      shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ncInterfaces_[actNC].interfaceId);
+
+      // Check which volume region belongs to acoustic PDE
+//      MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(&(*ncIf));
+//      assert(mortarIf);
+
+      //for testing hard coded!!
+      PtrCoefFct density = coefFuncs[0];
+
+      switch(acouFormulation) {
+        // ==================
+        //   ACOU_POTENTIAL
+        // ==================
+        case ACOU_POTENTIAL:
+        {
+
+          // In case of transient / harmonic simulation, the acoustic PDE is
+          // already pre-multiplied by -1, so we can define one single
+          // coupling integrator for the damping matrix, which gets assembled
+          // also transposed
+          if( analysisType_ != BasePDE::EIGENFREQUENCY) {
+            DefCouplIntNC( "AcouMechPotCouplingIntNC", true, -1.0, DAMPING, dispFct,
+                         acouFct, ncIf, density );
+          } else {
+            // In case of an eigenfrequency simulation, we can only have
+            // positive definite matrices. Thus, the acoustic PDE is NOT
+            // pre-multiplied by -1 and we have to define two distinct
+            // coupling integrators for the DAMPING matrix. This is also why
+            // factor for the lower diagonal coupling integrator C_Phi_U
+            // has a switched sign.
+
+          DefCouplIntNC( "AcouMechPotCouplingInNC", false, -1.0, DAMPING, dispFct,
+                       acouFct, ncIf, density );
+          DefCouplIntNC( "AcouMechPotCouplingInt_TransposedNC", false, 1.0,
+                       DAMPING, acouFct, dispFct, ncIf, density );
+          }
+        }
+        break;
+
+        // ==================
+        //   ACOU_PRESSURE
+        // ==================
+        case ACOU_PRESSURE:
+
+          // First ensure, that we have no coupled eigenfrequency simulation:
+          // This case is not tested yet and might not be solvalbe.
+          if( analysisType_ == BasePDE::EIGENFREQUENCY ) {
+            EXCEPTION("A coupled mechanic-acoustic simulation can only be"
+                      "be performed in the acoustic potential formulation!");
+          }
+          DefCouplIntNC( "AcouMechPresStiffCouplingIntNC", false, -1.0, STIFFNESS, dispFct,
+                       acouFct, ncIf, density );
+
+          DefCouplIntNC( "AcouMechPresMassCouplingIntNC", false, 1.0, MASS, acouFct,
+                       dispFct, ncIf, density );
+
+          break;
+
+        default:
+          EXCEPTION("Unknown formulation for acoustics.");
+          break;
+      }
+    }
+
   }
 
   void AcouMechCoupling::DefCouplInt( const std::string& name,
@@ -224,4 +294,82 @@ namespace CoupledField {
     assemble_->AddBiLinearForm( context );
   }
   
+  void AcouMechCoupling::DefCouplIntNC( const std::string& name,
+                                      bool assembleTransposed,
+                                      Double factor,
+                                      FEMatrixType matType,
+                                      shared_ptr<BaseFeFunction>& fnc1,
+                                      shared_ptr<BaseFeFunction>& fnc2,
+									  shared_ptr<BaseNcInterface> ncIf,
+                                      const PtrCoefFct& density ) {
+
+	// create ElemLists for slave surface and intersection
+  	MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(&(*ncIf));
+  	assert(mortarIf);
+
+	shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
+                             elSlave(new SurfElemList(ptGrid_));
+    elMaster->SetRegion(mortarIf->GetMasterSurfRegion());
+    elSlave->SetRegion(mortarIf->GetSlaveSurfRegion());
+    shared_ptr<NcSurfElemList> elMortar = mortarIf->GetElemList();
+
+  	fnc1->AddEntityList(elMortar);
+  	fnc2->AddEntityList(elMortar);
+
+  	// check for position of integrator
+    SolutionType rowType = fnc1->GetResultInfo()->resultType;
+    BiLinearForm * cplInt = NULL;
+    std::cout << "asterVolRegion: " << mortarIf->GetMasterVolRegion()
+    		  << ";  SlaveVolRegion " <<  mortarIf->GetSlaveVolRegion() << std::endl;
+
+    if( dim_ == 2  ) {
+      if(rowType == MECH_DISPLACEMENT) {
+    	  std::cout << "Do A" << std::endl;
+    	cplInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,2>(),
+    			 new IdentityOperatorNormal<FeH1,2>(),
+				 density, factor,
+    	         mortarIf->GetMasterVolRegion(),
+    	         mortarIf->GetSlaveVolRegion(),
+    	         mortarIf->IsPlanar(),
+    	         geoUpdate_);
+      } else {
+    	  std::cout << "Do B" << std::endl;
+      	cplInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2>(),
+      			 new IdentityOperatorNormal<FeH1,2,2>(),
+				 density, factor,
+      	         mortarIf->GetMasterVolRegion(),
+      	         mortarIf->GetSlaveVolRegion(),
+      	         mortarIf->IsPlanar(),
+				 geoUpdate_);
+      }
+    } else if( dim_ == 3) {
+      if(rowType == MECH_DISPLACEMENT) {
+      	cplInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,3>(),
+      			 new IdentityOperatorNormal<FeH1,3>(),
+				 density, factor,
+      	         mortarIf->GetMasterVolRegion(),
+      	         mortarIf->GetSlaveVolRegion(),
+      	         mortarIf->IsPlanar(),
+				 geoUpdate_);
+      } else {
+        cplInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3>(),
+        		 new IdentityOperatorNormal<FeH1,3,3>(),
+    			 density, factor,
+                 mortarIf->GetMasterVolRegion(),
+                 mortarIf->GetSlaveVolRegion(),
+                 mortarIf->IsPlanar(),
+				 geoUpdate_);
+      }
+    } else {
+      EXCEPTION( "Coupling only for two and three dimensions defined" );
+    }
+
+    cplInt->SetName(name);
+    NcBiLinFormContext *ncContext = new NcBiLinFormContext(cplInt, matType);
+    ncContext->SetEntities( elMortar, elMortar );
+    ncContext->SetFeFunctions( fnc1, fnc2 );
+    ncContext->SetCounterPart(assembleTransposed);
+    assemble_->AddBiLinearForm( ncContext );
+    ncIf->RegisterIntegrator(ncContext);
+  }
 }
