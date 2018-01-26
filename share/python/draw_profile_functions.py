@@ -821,7 +821,11 @@ def generate_basecell(args,info):
   global infoXml
   infoXml = info
   
-  array = np.ones((res,res,res)) * (-1)
+  array = None
+  if args.multiple_regions:
+    array = np.ones((res,res,res),dtype=np.int) * (-1)
+    
+  array = np.zeros((res,res,res),dtype=np.int)
   
   profiles = create_profiles(args,infoXml)
   
@@ -873,8 +877,8 @@ def generate_basecell(args,info):
       # if basecell is symmetric, calculate only 1/8 and mirror the rest
       symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
       symmetric = False
-      write_profile_to_array(array, profiles[i])
-    
+      write_profile_to_array(array, profiles[i],args.multiple_regions)
+      
     if args.target == "volume_mesh":
       points, cells = voxels_to_points_and_cells(array)
       
@@ -890,6 +894,7 @@ def generate_basecell(args,info):
         matviz_vtk.show_write_vtk(polygon,1000,"3dlines_"+str(i)+".vtp")
       else:  
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
+  
   
   if args.target == "surface_mesh" or args.target == "marching_cubes":
     ############################ new surface mesh approach ####################
@@ -1044,7 +1049,8 @@ def calc_radius(profile,x,rad):
 # and mirror the rest
 # @param array: stores voxelized info on profile
 # @param profile: profile of interest
-def write_profile_to_array(array,profile):
+# @param multiple_regions: fill array with 0,1 or 2 (profile direction), else make array binary
+def write_profile_to_array(array,profile,multiple_regions):
   res = array.shape[0]
   
   bound = res if not symmetric else int(res/2)
@@ -1072,7 +1078,7 @@ def write_profile_to_array(array,profile):
         # inside the voxel, but this is too costly
 #         projection = calc_projection(profile, center)
         if (valx-r <= 1e-6):
-          array[idx[major],idx[minor_1],idx[minor_2]] = major
+          array[idx[major],idx[minor_1],idx[minor_2]] = major if multiple_regions else 1
             
   if symmetric:
     # mirror octant

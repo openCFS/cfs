@@ -1812,26 +1812,43 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   xmax = -999999
   ymin = 999999
   ymax = -999999
+  zmin = 999999
+  zmax = -999999
+
   for i in range(len(nodes)):
     # for all nodes on bottom, get xmin,xmax,ymin,ymax
-    if numpy.isclose(nodes[i][2],0.0,1e-12):
-      if nodes[i][0] < xmin:
-        xmin = nodes[i][0]
-      if nodes[i][0] > xmax:
-        xmax = nodes[i][0]       
-      if nodes[i][1] < ymin:
-        ymin = nodes[i][0]
-      if nodes[i][1] > ymax:
-        ymax = nodes[i][0]  
+    if nodes[i][0] < xmin:
+      xmin = nodes[i][0]
+    if nodes[i][0] > xmax:
+      xmax = nodes[i][0]       
+    if nodes[i][1] < ymin:
+      ymin = nodes[i][1]
+    if nodes[i][1] > ymax:
+      ymax = nodes[i][1]  
+    if nodes[i][2] < zmin:
+      zmin = nodes[i][2]
+    if nodes[i][2] > zmax:
+      zmax = nodes[i][2]  
+
+  print("xmin,ymin,zmin,xmax,ymax,zmax:",xmin,ymin,zmin,xmax,ymax,zmax)
   
 #  symmetric = []
-#   for i in range(len(nodes)):
+  for i in range(len(nodes)):
     # all nodes on top face are loads
-#     if numpy.isclose(nodes[i][2],1.0,1e-12):
-#       load.append(i)
+    if numpy.isclose(nodes[i][0],xmin,1e-12):
+      load.append(i)
+    if numpy.isclose(nodes[i][0],xmax,1e-12):
+      load.append(i)
+    if numpy.isclose(nodes[i][1],ymin,1e-12):
+      load.append(i)
+    if numpy.isclose(nodes[i][1],ymax,1e-12):
+      load.append(i)
+    if numpy.isclose(nodes[i][2],zmax,1e-12):
+      load.append(i)
+
     # all nodes on left face are supports
-#     if numpy.isclose(nodes[i][0],0.0,1e-12):
-#       support.append(i)
+    if numpy.isclose(nodes[i][2],zmin,1e-12):
+      support.append(i)
     # all edges of bb with z = 0 are supports
 #     if numpy.isclose(nodes[i][2],0.0,1e-12):
 #       if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
@@ -1850,11 +1867,11 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 #  print(len(load))
 #   print(len(support))
 # 
-#   mesh.bc.append(("load", load))
-#   mesh.bc.append(("support", support))
+  mesh.bc.append(("load", load))
+  mesh.bc.append(("support", support))
 #  mesh.bc.append(("symmetric", symmetric))
 
-  mesh = add_nodes_for_periodic_bc(mesh)
+#  mesh = add_nodes_for_periodic_bc(mesh)
 
   write_gid_mesh(mesh, meshfile[:-4]+".mesh") 
   

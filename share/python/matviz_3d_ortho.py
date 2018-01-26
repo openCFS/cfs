@@ -86,7 +86,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   print("max:",bounds[3:6])
   
   my_mpi_grid = MPI_Grid(comm,samples,args.bc_res,bounds)
-  my_mpi_grid.to_info()
+  #my_mpi_grid.to_info()
   
   local_id = 0
   for k in range(samples[2]):
@@ -138,36 +138,35 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   y = np.arange(my_mpi_grid.bounds[1],my_mpi_grid.bounds[4]+my_mpi_grid.grid.hy-eps,my_mpi_grid.grid.hy)
   z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+my_mpi_grid.grid.hz-eps,my_mpi_grid.grid.hz)
   
-  draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds[0:3], (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz), 0)
+ # import binvox_rw
+  #with open('skin_160.binvox', 'rb') as f:
+ #   model = binvox_rw.read_as_3d_array(f)
+  # model.data has boolean 3d array
+  #range0 = my_mpi_grid.end_x*args.bc_res - my_mpi_grid.start_x*args.bc_res 
+  #my_mpi_grid.grid.data[0:range0,0:samples[1]*args.bc_res,0:samples[2]*args.bc_res] = np.logical_or( model.data[my_mpi_grid.start_x*args.bc_res:my_mpi_grid.end_x*args.bc_res,0:samples[1]*args.bc_res,0:samples[2]*args.bc_res],my_mpi_grid.grid.data[0:range0+1,0:samples[1]*args.bc_res,0:samples[2]*args.bc_res] )
+  draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds[0:3], (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz), 1)
 #   draw_non_design(void_elems, my_mpi_grid.grid.data, my_mpi_grid.bounds[0:3], (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz), -1)
+  from scipy.ndimage import binary_fill_holes
+  my_mpi_grid.grid.data = binary_fill_holes(my_mpi_grid.grid.data).astype(bool)
   from pyevtk.hl import gridToVTK  
-  gridToVTK("voxels"+str(my_mpi_grid.rank),x,y,z,cellData={"voxels":my_mpi_grid.grid.data})
-
+  gridToVTK("voxels"+str(my_mpi_grid.rank),x,y,z,cellData={"voxels":my_mpi_grid.grid.data.astype(int)})
+  
   borders = my_mpi_grid.communicate_edges()
     
   # binary helper array
   shape = np.asarray(my_mpi_grid.grid.data.shape[0:3]) + np.array((2,2,2))
-  print("helper shape:",shape)
-  helper = np.zeros(shape,dtype=int)
-  # use voxel info for Marching cubes algorithm
-  # set voxels on boundary wit value 0
-  # set voxels inside structure with value 1
-  # voxels outside structure have value -1
-  for i in range(shape[0]-2):
-    for j in range(shape[1]-2):
-      for k in range(shape[2]-2):
-        if my_mpi_grid.grid.data[i,j,k] != -1: # valid voxel
-          helper[i+1,j+1,k+1] = 1
+  helper = np.zeros(shape,dtype=bool)
+  helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = my_mpi_grid.grid.data
   
   for b in borders:
     # b[0] stores direction oft cartesian comm
     if b[0] > my_mpi_grid.rank:
-      if b[1] is not None:
-        helper[shape[0]-1,1:shape[1]-1,1:shape[2]-1] = b[1] 
+      assert(b[1] is not None)
+      helper[shape[0]-1,1:shape[1]-1,1:shape[2]-1] = b[1] 
     else:
       assert(b[0] < my_mpi_grid.rank)
-      if b[1] is not None:
-        helper[0,1:shape[1]-1,1:shape[2]-1] = b[1]
+      assert(b[1] is not None)
+      helper[0,1:shape[1]-1,1:shape[2]-1] = b[1]
 
   print("hx,hy,hz:",my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
   hx = my_mpi_grid.grid.hx
@@ -178,7 +177,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   y = np.arange(my_mpi_grid.bounds[1]-hy,my_mpi_grid.bounds[4]+2*hy,hy)
   z = np.arange(my_mpi_grid.bounds[2]-hz,my_mpi_grid.bounds[5]+2*hz,hz)
   from pyevtk.hl import gridToVTK  
-  gridToVTK("helper"+str(my_mpi_grid.rank),x,y,z,cellData={"helper":helper}) 
+  gridToVTK("helper"+str(my_mpi_grid.rank),x,y,z,cellData={"helper":helper.astype(int)}) 
  
   from skimage import measure
   # coords of vertices lie in [0,1-h]
@@ -217,6 +216,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     matviz_vtk.show_write_vtk(normals.GetOutput(), 10, "marching_all.vtp")
     
     data = (verts,faces)
+    
+  #sys.exit()  
   
   # broadcast all verts to all ranks
   data = my_mpi_grid.comm.bcast(data,root=0)
@@ -229,11 +230,21 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # update after changing vertices and faces
   my_mpi_grid.update_connectivity_verts_faces()
   
+  xmin = min(my_mpi_grid.vertices, key=lambda t: t[0])[0]
+  xmax = max(my_mpi_grid.vertices, key=lambda t: t[0])[0]
+  ymin = min(my_mpi_grid.vertices, key=lambda t: t[1])[1]
+  ymax = max(my_mpi_grid.vertices, key=lambda t: t[1])[1]
+#   zmin = min(my_mpi_grid.vertices, key=lambda t: t[2])[2]
+  zmax = max(my_mpi_grid.vertices, key=lambda t: t[2])[2]
+  
   # do parallel smoothing here
-  mpi_taubin_smoothing(my_mpi_grid)
+  mpi_taubin_smoothing(my_mpi_grid,(xmin,ymin,0,xmax,ymax,zmax))
   
   # send smoothed data to root
   my_mpi_grid.gather_data(append=False, root=0)
+  
+  if my_mpi_grid.rank != 0:
+    sys.exit()
   
   pd = matviz_vtk.fill_vtk_polydata(my_mpi_grid.vertices,my_mpi_grid.faces)
   matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(my_mpi_grid.rank)+".vtp")
@@ -278,7 +289,7 @@ def write_nondes_to_vtr_file(args,min_bb,max_bb,nondes):
   bounds[0:3] = min_bb[0:3]
   bounds[3:6] = max_bb[0:3]
   
-  nondes_grid = np.full(resolution,0,dtype=int)
+  nondes_grid = np.full(resolution,0,dtype=bool)
   width = [bounds[3]-bounds[0],bounds[4]-bounds[1],bounds[5]-bounds[2]]
   
   hx = width[0] / float(resolution[0])
@@ -319,7 +330,8 @@ def draw_tetrahedron(A,B,C,D,grid,value=0):
   eps = 1e-6
   
   for t in triangles:
-    draw_triangle(t[0], t[1], t[2], grid, value)
+    #draw_triangle(t[0], t[1], t[2], grid, value)
+    draw_triangle_bresenham(t[0], t[1], t[2], grid, value)
 
 # @param v0, v1, v2: triangle vertices        
 # @param value: value to draw with        
@@ -334,9 +346,9 @@ def draw_triangle(v0,v1,v2,grid,value):
   
   eps = 1e-6
   
-  for u in np.linspace(0,1,num=samples10+10):
-    for v in np.linspace(0,1,num=samples20+10):
-      if u + v > 1.0:
+  for u in np.linspace(0,1,num=np.sqrt(2)*samples10+10):
+    for v in np.linspace(0,1,num=np.sqrt(2)*samples20+10):
+      if u + v > 1.0 + eps:
         continue
       
       p0 = v0 + u * v1v0 + v * v2v0 + eps
@@ -344,6 +356,73 @@ def draw_triangle(v0,v1,v2,grid,value):
       
       if not idx_out_of_bounds(p, grid.shape):
         grid[tuple(p)] = value
+
+def draw_triangle_bresenham(v0,v1,v2,grid,value=1):
+  for trip in [(v0,v1,v2),(v1,v0,v2),(v2,v1,v0)]:
+    res01 = bresenham_3d(trip[0],trip[1],grid,value)
+    res02 = bresenham_3d(trip[0],trip[2],grid,value)
+    
+    left = None
+    right = None
+    if len(res01) > 0 and len(res02) > 0:
+      for i in range(max(len(res01),len(res02))):
+        if i < len(res01):
+          left = res01[i]
+        if i < len(res02):
+          right = res02[i]
+        if left is not None and right is not None:  
+          bresenham_3d(left,right,grid,value)
+        else:
+          print("left right is None:",len(res01),len(res02))
+
+def bresenham_3d(p0,p1,array,value=1):
+  x0 = p0[0]
+  y0 = p0[1]
+  z0 = p0[2]
+  
+  x1 = p1[0]
+  y1 = p1[1]
+  z1 = p1[2]
+  
+  dx = np.abs(x1 - x0)
+  sx = 1 if x0 < x1 else -1
+
+  dy = np.abs(y1 - y0) 
+  sy = 1 if y0 < y1 else -1
+
+  dz = np.abs(z1 - z0) 
+  sz = 1 if z0 < z1 else -1
+
+  # max diff
+  dm = np.max([dx,dy,dz])
+  i = dm
+  x1 = y1 = z1 = int(dm/2)
+  
+  res = []
+  
+  while True:
+    if not idx_out_of_bounds((x0,y0,z0), array.shape):
+      array[x0,y0,z0] = value
+    res.append((x0,y0,z0))
+    if (i == 0):
+      break
+    i -= 1
+    x1 -= dx
+    if x1 < 0:
+      x1 += dm
+      x0 += sx
+      
+    y1 -= dy
+    if y1 < 0:
+      y1 += dm
+      y0 +=sy
+    
+    z1 -= dz
+    if z1 <0:
+      z1 += dm
+      z0 +=sz
+      
+  return res  
           
         
 # @param elem: list of lists, each entry contains 4 vertices (cartesian) of a tet
@@ -385,6 +464,117 @@ def draw_non_design(tets,grid,bounds,h,value):
       
       draw_tetrahedron(A, B, C, D, grid, value)
       
+      # get bounding box of this tet and fill holes inside 4 drawn triangles
+      mindim = [min(0,A[i],B[i],C[i],D[i]) for i in range(3)]
+      maxdim = [min(grid.shape[i],max(A[i],B[i],C[i],D[i])) for i in range(3)] 
+      
+      #subgrid = grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1]
+      
+      ## fill holes does not work, if we have a partial tet at the boundary
+      ## solution: add ghost layers with value 1 to 5 faces and keep one to 0
+      ## do all combinations and add pictures with logical or
+      
+      ## need bigger array with ghost layer
+      #shape = np.asarray(subgrid.shape[0:3]) + np.array((2,2,2))
+      #print("shape:",shape)
+      #collect = []
+      
+      ###### exclude xmin #########
+      #helper = np.zeros(shape,dtype=bool)
+      #helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = subgrid
+      ## fill layer at xmax
+      #helper[shape[0]-1,1:shape[1],1:shape[2]] = 1
+      ## layer at ymin
+      #helper[1:shape[0],0,1:shape[2]] = 1
+      ## layer at ymax
+      #helper[1:shape[0],shape[1]-1,1:shape[2]] = 1
+      ## layer at zmin
+      #helper[1:shape[0],1:shape[1],0] = 1
+      ## layer at zmax
+      #helper[1:shape[0],1:shape[1],shape[2]-1] = 1
+      #collect.append(binary_fill_holes(helper).astype(bool))
+      
+      ###### exclude xmax #########
+      #helper = np.zeros(shape,dtype=bool)
+      #helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = subgrid
+      ## fill layer at xmin
+      #helper[0,1:shape[1],1:shape[2]] = 1
+      ## layer at ymin
+      #helper[1:shape[0],0,1:shape[2]] = 1
+      ## layer at ymax
+      #helper[1:shape[0],shape[1]-1,1:shape[2]] = 1
+      ## layer at zmin
+      #helper[1:shape[0],1:shape[1],0] = 1
+      ## layer at zmax
+      #helper[1:shape[0],1:shape[1],shape[2]-1] = 1
+      #collect.append(binary_fill_holes(helper).astype(bool))
+      
+      ####### exclude ymin #########
+      #helper = np.zeros(shape,dtype=bool)
+      #helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = subgrid
+      ## fill layer at xmin
+      #helper[0,1:shape[1],1:shape[2]] = 1
+      ## layer at xmax
+      #helper[shape[0]-1,1:shape[1],1:shape[2]] = 1
+      ## layer at ymax
+      #helper[1:shape[0],shape[1]-1,1:shape[2]] = 1
+      ## layer at zmin
+      #helper[1:shape[0],1:shape[1],0] = 1
+      ## layer at zmax
+      #helper[1:shape[0],1:shape[1],shape[2]-1] = 1
+      #collect.append(binary_fill_holes(helper).astype(bool))
+      
+      ###### exclude ymax #########
+      #helper = np.zeros(shape,dtype=bool)
+      #helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = subgrid
+      ## fill layer at xmin
+      #helper[0,1:shape[1],1:shape[2]] = 1
+      ## layer at xmax
+      #helper[shape[0]-1,1:shape[1],1:shape[2]] = 1
+      ## layer at ymin
+      #helper[1:shape[0],0,1:shape[2]] = 1
+      ## layer at zmin
+      #helper[1:shape[0],1:shape[1],0] = 1
+      ## layer at zmax
+      #helper[1:shape[0],1:shape[1],shape[2]-1] = 1
+      #collect.append(binary_fill_holes(helper).astype(bool))
+      
+      ###### exclude zmin #########
+      #helper = np.zeros(shape,dtype=bool)
+      #helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = subgrid
+      ## fill layer at xmin
+      #helper[0,1:shape[1],1:shape[2]] = 1
+      ## layer at xmax
+      #helper[shape[0]-1,1:shape[1],1:shape[2]] = 1
+      ## layer at ymin
+      #helper[1:shape[0],0,1:shape[2]] = 1
+      ## layer at ymax
+      #helper[1:shape[0],shape[1]-1,1:shape[2]] = 1
+      ## layer at zmax
+      #helper[1:shape[0],1:shape[1],shape[2]-1] = 1
+      #collect.append(binary_fill_holes(helper).astype(bool))
+      
+      ###### exclude zmax #########
+      #helper = np.zeros(shape,dtype=bool)
+      #helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = subgrid
+      ## fill layer at xmin
+      #helper[0,1:shape[1],1:shape[2]] = 1
+      ## layer at xmax
+      #helper[shape[0]-1,1:shape[1],1:shape[2]] = 1
+      ## layer at ymin
+      #helper[1:shape[0],0,1:shape[2]] = 1
+      ## layer at ymax
+      #helper[1:shape[0],shape[1]-1,1:shape[2]] = 1
+      ## layer at zmin
+      #helper[1:shape[0],1:shape[1],0] = 1
+      #collect.append(binary_fill_holes(helper).astype(bool))
+       
+      #new = np.zeros(shape,dtype=bool)
+      #for c in collect:
+        #new = np.logical_or(new,c)
+        
+      #grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] = new[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1]  
+      
     else: # draw complete tet
       assert(not (idx_out_of_bounds(A, grid.shape) or idx_out_of_bounds(B, grid.shape) or idx_out_of_bounds(C, grid.shape)))
       
@@ -401,27 +591,8 @@ def draw_non_design(tets,grid,bounds,h,value):
       maxdim = [max(A[i],B[i],C[i],D[i]) for i in range(3)] 
       
       subgrid = grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1]
-      helper = np.ones(subgrid.shape) * 999
-      # convert to binary 3dimage, 0 is hole and 1 structure
-      for i in range(subgrid.shape[0]):
-        for j in range(subgrid.shape[1]):
-          for k in range(subgrid.shape[2]):
-            # solid
-            if subgrid[i,j,k] == value:
-              helper[i,j,k] = 1
-            else:
-              #void
-              assert(subgrid[i,j,k] != value)
-              helper[i,j,k] = 0
-       
-      helper = binary_fill_holes(helper).astype(int)
-       
-      for i in range(helper.shape[0]):
-        for j in range(helper.shape[1]):
-          for k in range(helper.shape[2]):
-            if helper[i,j,k] == 1:
-              subgrid[i,j,k] = value
-              
+      subgrid = binary_fill_holes(subgrid).astype(int)
+      
       grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] = subgrid           
 
 # check if given tuple of indices lies within given array bounds
@@ -516,23 +687,12 @@ class MPI_Grid():
       assert(sendbuf is not None)
       recvbuf = np.full_like(sendbuf,999)
       
-      # convert it directly to binary array
-      helper = np.zeros_like(sendbuf, dtype=int)
-      for i in range(helper.shape[0]):
-        for j in range(helper.shape[1]):
-            if sendbuf[i,j] != -1:
-              helper[i,j] = 1
-      
-      sendbuf = helper        
-      
       self.cart.Sendrecv(sendbuf,dest=dest,source=source,recvbuf=recvbuf)
       
-      if source == MPI.PROC_NULL:
+      if source != MPI.PROC_NULL:
         # got no data, cause neighbor does not exist
-        recv.append((source,None))
-      else:
         recv.append((source,recvbuf))
-    
+
     return recv
   
   def communicate_vertices(self):
@@ -546,10 +706,12 @@ class MPI_Grid():
       sendbuf = (self.start_verts_idx, self.end_verts_idx,np.copy(self.vertices[self.start_verts_idx:self.end_verts_idx]))
       
       tmp = self.cart.sendrecv(sendbuf,dest=dest,source=source)
+#       print("rank:",self.rank," got data from ",source)
+      
       if source != MPI.PROC_NULL:
         recv.append(tmp)
     
-    #print("rank:",self.rank," got ",len(recv)," data chunks")  
+#     print("rank:",self.rank," got ",len(recv)," data chunks")  
     return recv
       
   # collect all points and cells on a single rank (0)
@@ -565,7 +727,7 @@ class MPI_Grid():
           self.faces.extend(list(np.asarray(d[1])+offset))
     else: # update
       data = self.comm.gather((self.start_verts_idx, self.end_verts_idx,self.vertices[self.start_verts_idx:self.end_verts_idx]),root=root)
-      print("rank:", self.rank," len(vertices):", len(self.vertices))
+      #print("rank:", self.rank," len(vertices):", len(self.vertices))
       if self.rank == root:
         self.update_vertices(data)
         
@@ -579,7 +741,7 @@ class MPI_Grid():
         
 class RectGrid():
   def __init__(self,nx,ny,nz,bounds):
-    self.data = np.full((nx,ny,nz),999,dtype=int)
+    self.data = np.full((nx,ny,nz),999,dtype=bool)
 
     self.nx = nx
     self.ny = ny
@@ -595,12 +757,12 @@ class RectGrid():
     print("spacing:",self.hx,self.hy,self.hz)
     sys.stdout.flush()
 
-def mpi_taubin_smoothing(mpi_grid):
+def mpi_taubin_smoothing(mpi_grid,bounds=None):
   assert(mpi_grid.vertices is not None)
   assert(mpi_grid.faces is not None)
   assert(mpi_grid.connectivity is not None)
   # smoothing parameter: p_i = p_i + lambda*L(p_{i,j})
-  lamb = 0.8
+  lamb = 0.4
   iter = 0
   res = 999
   old_points = None
@@ -608,28 +770,22 @@ def mpi_taubin_smoothing(mpi_grid):
   end = mpi_grid.end_verts_idx
   #while res > 1e-2:
   while iter < 20:
-    print("rank:",mpi_grid.rank," iter:",iter)
     sys.stdout.flush()
-    old_points = mpi_grid.vertices[:]
+    old_points = mpi_grid.vertices.copy()
     assert(max(max(mpi_grid.connectivity)) < len(mpi_grid.vertices))
     # shrink
-    mpi_grid.vertices = basecell.laplacian_smoothing(mpi_grid.vertices,mpi_grid.connectivity,lamb,start=start,end=end,rank=mpi_grid.rank)
+    mpi_grid.vertices = basecell.laplacian_smoothing(mpi_grid.vertices,mpi_grid.connectivity,lamb,start=start,end=end,rank=mpi_grid.rank,bounds=bounds)
     # communicate smoothed vertices to other ranks
     mpi_grid.update_vertices(mpi_grid.communicate_vertices())
-    res = basecell.residual(old_points, mpi_grid.vertices)
-    #print("rank:",mpi_grid.rank," residual:",res)
-    
-    for v in mpi_grid.vertices:
-      assert(v is not None)
     
     # expand
-    mpi_grid.vertices=basecell.laplacian_smoothing(mpi_grid.vertices,mpi_grid.connectivity,-lamb-0.04,start=start,end=end,rank=mpi_grid.rank)
+    mpi_grid.vertices = basecell.laplacian_smoothing(mpi_grid.vertices,mpi_grid.connectivity,-lamb-0.04,start=start,end=end,rank=mpi_grid.rank,bounds=bounds)
     assert(mpi_grid.vertices is not None)
     # communicate smoothed vertices to other ranks
     mpi_grid.update_vertices(mpi_grid.communicate_vertices())
     
-    res = basecell.residual(old_points, mpi_grid.vertices)
-    print("rank:",mpi_grid.rank," residual:",res)
+    res = basecell.residual(old_points[start:end], mpi_grid.vertices[start:end])
+    print("rank:", mpi_grid.rank, " iter:", iter, " residual:", res)
     iter += 1
     
   print("Taubin smoothing with ", iter, " iterations and res=",res)  

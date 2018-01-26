@@ -108,8 +108,6 @@ def laplacian_smoothing(points,connectivity,lamb,start=0,end=None,bounds=None,ra
       #print("old:",points[i]," new:",new_points[i])
       assert(new_points[i] is not None)
       
-      #sys.exit()
-  
   assert(len(new_points) == len(points))
   for i,p in enumerate(new_points):
     if p is None:
@@ -431,6 +429,7 @@ class Basecell_Data():
     self.save_vtp = False
     self.to_info_xml = False
     self.stiffness_as_diameter = False
+    self.multiple_regions = False
     
     if not res_surf_lines:
       self.res_surf_lines = res
