@@ -143,6 +143,7 @@ namespace CoupledField {
   }
 
   void SimOutputGiD::WriteNodes() {
+#ifndef USE_ADOLC
 
     LOG_TRACE(simOutputGiD) << "Writing nodes";
 
@@ -176,7 +177,9 @@ namespace CoupledField {
     GiD_EndMesh();
 
     LOG_TRACE(simOutputGiD) << "Finished writing nodes" << std::endl;
-
+#else
+EXCEPTION("Not implemented.");
+#endif
   }
 
   void SimOutputGiD::WriteElementMesh( const std::string& name ,
@@ -462,8 +465,8 @@ namespace CoupledField {
     // number of occurences, to include it in the the resultname.
     
     if( actAnalysis_ == BasePDE::EIGENFREQUENCY ) {
-      if( std::abs(actStepVal_) > EPS ) {
-        if( std::abs(actStepVal_ - lastStepVal_) / actStepVal_ < 1e-4) {
+      if( fabs(actStepVal_) > EPS ) {
+        if( fabs(actStepVal_ - lastStepVal_) / actStepVal_ < 1e-4) {
           lastStepRepeated_++;
         } else {
           lastStepRepeated_ = 0;
@@ -540,6 +543,7 @@ namespace CoupledField {
                           ResultInfo::EntryType entryType,
                           ResultInfo::EntityUnknownType entityType,
                           Double time ) {
+#ifndef USE_ADOLC
 
     // assemble name for analysis step
     std::string analysisName = "transient";
@@ -656,6 +660,9 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     }
 
     GiD_EndResult();
+#else
+EXCEPTION("Not implemented.");
+#endif
   }
 
   void SimOutputGiD::
@@ -666,6 +673,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
                          ResultInfo::EntityUnknownType entityType,
                          const Double freq,
                          const ComplexFormat outputFormat ) {
+#ifndef USE_ADOLC
 
     // assemble name for analysis step
     std::string analysisName = "harmonic";
@@ -980,7 +988,9 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       }
       GiD_EndResult();
     }
-
+#else
+EXCEPTION("Not implemented.");
+#endif
   }
 
   // ********

@@ -136,8 +136,8 @@ namespace CoupledField
   }
 
   void ScatteredDataReader::GetQuantity(const std::string& quantity,
-                                        std::vector< std::vector<double> >& coordinates,
-                                        std::vector< std::vector<double> >& scatteredData)
+                                        std::vector< std::vector<Double> >& coordinates,
+                                        std::vector< std::vector<Double> >& scatteredData)
   {
     if(readers_.empty()) 
     {
@@ -155,7 +155,7 @@ namespace CoupledField
   }
 
   void ScatteredDataReader::GetQuantity(const std::string& quantity,
-                                        std::vector< std::vector<double> >& coordinates,
+                                        std::vector< std::vector<Double> >& coordinates,
                                         std::vector< std::vector<Complex> >& scatteredData)
   {
     if(readers_.empty())
@@ -172,8 +172,8 @@ namespace CoupledField
     coordinates = readers_[quantities2Readers_[quantity]]->coordinates_;
 
     // loop over elements
-    std::vector< std::vector<double> >& realParts = readers_[quantities2Readers_[quantity]]->scatteredDataPerQuantity_[quantity];
-    std::vector< std::vector<double> >& imagParts = readers_[quantities2Readers_[quantity]]->scatteredDataPerQuantityImag_[quantity];
+    std::vector< std::vector<Double> >& realParts = readers_[quantities2Readers_[quantity]]->scatteredDataPerQuantity_[quantity];
+    std::vector< std::vector<Double> >& imagParts = readers_[quantities2Readers_[quantity]]->scatteredDataPerQuantityImag_[quantity];
     // size of vector
     scatteredData.resize(imagParts.size());
     for(UInt aNode = 0; aNode < imagParts.size();aNode++){

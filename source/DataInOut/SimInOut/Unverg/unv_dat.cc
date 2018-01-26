@@ -3,14 +3,14 @@
 
 #include "SimInputUnv.hh"
 #include "unv_dat.hh"
-
+#include "General/defs.hh"
 using namespace CoupledField;
 
 char *UNV_FILE=NULL;
 
 point *NODES=NULL;
 int N_NODES=0;
-double NODES_X_MAX, NODES_X_MIN, NODES_Y_MAX, NODES_Y_MIN;
+Double NODES_X_MAX, NODES_X_MIN, NODES_Y_MAX, NODES_Y_MIN;
 
 element_data* ELEMENTS=NULL;
 int N_ELEMENTS=0;

@@ -407,10 +407,21 @@ namespace CoupledField {
 
       // Keep user informed on progress
       actDone = (double)(k*100) / (double)nRows;
+#ifndef USE_ADOLC
       actDone = (UInt)(actDone/10.0)*10;
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
       }
+#else
+      actDone = (UInt)(actDone.getValue()/10.0)*10;
+      if ( actDone > percentDone ) {
+        percentDone = (UInt)actDone.getValue();
+      }
+#endif
+//       actDone = (UInt)(actDone/10.0)*10;
+//       if ( actDone > percentDone ) {
+//         percentDone = (UInt)actDone;
+//       }
 
       // Determine number of non-zero entries in this row
       nnzInRowOfA = rptrA[k+1] - rptrA[k];
@@ -774,10 +785,23 @@ namespace CoupledField {
 
       // Keep user informed on progress
       actDone = (double)(k*100) / (double)nRows;
+#ifndef USE_ADOLC
       actDone = (UInt)(actDone/10.0)*10;
+
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
       }
+#else
+      actDone = (UInt)(actDone.getValue()/10.0)*10;
+      if ( actDone > percentDone ) {
+        percentDone = (UInt)actDone.getValue();
+      }
+#endif
+// 
+//       actDone = (UInt)(actDone/10.0)*10;
+//       if ( actDone > percentDone ) {
+//         percentDone = (UInt)actDone;
+//       }
 
       // Copy k-th row of A into dense vector (omitting diagonal)
       for ( i = rptrA[k]+1; i < rptrA[k+1]; i++ ) {

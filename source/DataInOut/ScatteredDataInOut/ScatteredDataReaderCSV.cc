@@ -106,9 +106,9 @@ namespace CoupledField
       EXCEPTION("Scattered data file '" << fileName_ << "' could not be opened!")
     }
     
-    // Variable for doubles values in a single line
-    std::vector<double> vec;
-    std::vector<double> coord(3);
+    // Variable for Doubles values in a single line
+    std::vector<Double> vec;
+    std::vector<Double> coord(3);
 
     // Iterate over lines in CSV file
     while(std::getline(myfile, row))
@@ -118,7 +118,7 @@ namespace CoupledField
       // Skip header lines.
       if(line <= skipLines_) continue;
 
-      // Tokenize row into string tokens and convert them to doubles.
+      // Tokenize row into string tokens and convert them to Doubles.
       Tokenizer tokens(row, boost::escaped_list_separator<char>('\\', ',', '\"'));
       if(vec.empty()) 
       {
@@ -160,7 +160,7 @@ namespace CoupledField
       {
         dofIt = qidDof2Column_[*qIt].begin();
         dofEnd = qidDof2Column_[*qIt].end();
-        std::vector<double> qdofs(std::distance(dofIt, dofEnd));
+        std::vector<Double> qdofs(std::distance(dofIt, dofEnd));
 
         for( ; dofIt != dofEnd; dofIt++ ) 
         {

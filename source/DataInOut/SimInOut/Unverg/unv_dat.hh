@@ -4,6 +4,7 @@
 
 
 #include "unv.hh"
+#include "General/defs.hh"
 
 #define MAX_NUM_NODES 1000
 #define MAX_NUM_ELEMENTS 1000
@@ -27,7 +28,7 @@ int XtParent(workData);
 /*   structures           */
 
 typedef struct {
-  double x1,x2,x3;
+  Double x1,x2,x3;
 } point;
 
 struct element_data {
@@ -40,7 +41,7 @@ struct element_data {
 };
 
 struct node_dat {
-  double data[6];
+  Double data[6];
 };
 
 struct set_55 {
@@ -49,7 +50,7 @@ struct set_55 {
 };
 
 struct elem_dat {
-  double data[12];
+  Double data[12];
 };
 
 struct set_56 {
@@ -75,7 +76,7 @@ extern char* UNV_FILE;
 extern point* NODES;
 extern point *DEF_NODES;
 extern int N_NODES;
-extern double NODES_X_MAX, NODES_X_MIN, NODES_Y_MAX, NODES_Y_MIN;
+extern Double NODES_X_MAX, NODES_X_MIN, NODES_Y_MAX, NODES_Y_MIN;
 
 //---- Element data -----
 extern element_data* ELEMENTS;

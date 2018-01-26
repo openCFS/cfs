@@ -51,11 +51,11 @@ namespace CoupledField
     //! The  GetQuantity   function  retrieves  the  desired   data  from  the
     //! corresponding reader.
     static void GetQuantity(const std::string& quantity,
-                            std::vector< std::vector<double> >& coordinates,
-                            std::vector< std::vector<double> >& scatteredData);
+                            std::vector< std::vector<Double> >& coordinates,
+                            std::vector< std::vector<Double> >& scatteredData);
 
     static void GetQuantity(const std::string& quantity,
-                            std::vector< std::vector<double> >& coordinates,
+                            std::vector< std::vector<Double> >& coordinates,
                             std::vector< std::vector<Complex> >& scatteredData);
 
 
@@ -81,12 +81,12 @@ namespace CoupledField
     std::set<std::string> registeredQuantities_;
 
     //! Array for point coordinates.
-    std::vector< std::vector<double> > coordinates_;
+    std::vector< std::vector<Double> > coordinates_;
 
     //! Map from  quantity id to a  vector containing the actual  data for the
     //! quantity.
-    std::map< std::string, std::vector< std::vector<double> > > scatteredDataPerQuantity_;
-    std::map< std::string, std::vector< std::vector<double> > > scatteredDataPerQuantityImag_;
+    std::map< std::string, std::vector< std::vector<Double> > > scatteredDataPerQuantity_;
+    std::map< std::string, std::vector< std::vector<Double> > > scatteredDataPerQuantityImag_;
 
     //! store mode of reader
     TransientMode readerMode_;

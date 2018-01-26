@@ -431,7 +431,7 @@ namespace CoupledField {
 
   template<>
   bool PostProcMax::opLtSingleDof( Complex a, Complex b ) {
-    return std::abs(a) < std::abs(b);
+    return Abs(a) < Abs(b);
   }
 
   
@@ -804,7 +804,7 @@ namespace CoupledField {
 
   template<>
   bool PostProcLimit::opLtSingleDof( Complex a, Double b ) {
-    return std::abs(a) < b;
+    return Abs(a) < b;
   }  
 
   template<class TYPE1, class TYPE2>
@@ -814,6 +814,6 @@ namespace CoupledField {
 
   template<>
   bool PostProcLimit::opGtSingleDof( Complex a, Double b ) {
-    return std::abs(a) > b;
+    return Abs(a) > b;
   }  
 }

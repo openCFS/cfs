@@ -177,10 +177,10 @@ namespace CoupledField {
     T beta2, beta1, beta0;
     T l2, l1, l0;
     T alpha;
-    double cOld, cNew;
+    Double cOld, cNew;
     T sNew;
     T aux, tmp;
-    double rho;
+    Double rho;
     BaseVector *tmpVec = NULL;
 
 
@@ -219,7 +219,7 @@ namespace CoupledField {
     sNew  = 0;
 
     // Compute stopping threshold for loop
-    double threshold = 1e-6;
+    Double threshold = 1e-6;
 
     xml_->GetValue("tol", threshold, ParamNode::INSERT);
     

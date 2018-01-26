@@ -532,7 +532,7 @@ namespace CoupledField {
       {
         // read matrix
         Matrix<Double> matrixCoeffs(5,1);
-        ParamTools::AsTensor<double>(isc->Get("coeffs"),1,5,matrixCoeffs); 
+        ParamTools::AsTensor<Double>(isc->Get("coeffs"),1,5,matrixCoeffs); 
 
         // transform to vector
         Vector<Double> coeffs;
@@ -950,7 +950,7 @@ namespace CoupledField {
         if(p->Has("weights"))
         {
           Matrix<Double> preisachWeightTensor(dim,dim);
-          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          ParamTools::AsTensor<Double>(p->Get("weights"), dim, dim, preisachWeightTensor);
           material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
         }
 
@@ -1214,7 +1214,7 @@ namespace CoupledField {
       if(mag->Get("magneticPermeability")->Has("linear"))
       {
         PtrParamNode lin = mag->Get("magneticPermeability")->Get("linear");
-        double eps = 1e-10;
+        Double eps = 1e-10;
      
         // === ISOTROPIC ===
         if(lin->Has("isotropic"))
@@ -1269,7 +1269,7 @@ namespace CoupledField {
           if(lin->GetByVal("tensor", std::string("dim1"), "3")->Has("real")) {
             PtrParamNode tens = 
                 lin->GetByVal("tensor", std::string("dim1"),"3" )->Get("real");
-            ParamTools::AsTensor<double>(tens, 3, 3, muTensor); 
+            ParamTools::AsTensor<Double>(tens, 3, 3, muTensor); 
             material->SetTensor(muTensor, MAG_PERMEABILITY, Global::REAL);
             isTensor = true;
           }
@@ -1278,7 +1278,7 @@ namespace CoupledField {
           if(lin->GetByVal("tensor", std::string("dim1"), "3")->Has("imag")) {
             PtrParamNode tens = 
                 lin->GetByVal("tensor", std::string("dim1"),"3" )->Get("imag");
-            ParamTools::AsTensor<double>(tens, 3, 3, muTensor);
+            ParamTools::AsTensor<Double>(tens, 3, 3, muTensor);
             material->SetTensor(muTensor, MAG_PERMEABILITY, Global::IMAG);
           }
         } // tensor
@@ -1761,7 +1761,7 @@ namespace CoupledField {
         if(p->Has("weights"))
         {
           Matrix<Double> preisachWeightTensor(dim,dim);
-          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          ParamTools::AsTensor<Double>(p->Get("weights"), dim, dim, preisachWeightTensor);
           material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
         }
       }
@@ -1907,11 +1907,11 @@ namespace CoupledField {
         else if (lin->Has("tensor")){
 
           // can only be a real 3x3 tensor
-          Matrix<double> tensor(3,3);
+          Matrix<Double> tensor(3,3);
           PtrParamNode tens_pn = 
               lin->GetByVal("tensor","dim1","3")->Get("real");
 
-          ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+          ParamTools::AsTensor<Double>(tens_pn, 3, 3, tensor);
           material->SetTensor(tensor, HEAT_CONDUCTIVITY_TENSOR, Global::REAL);
           material->SetSymmetryType(HEAT_CONDUCTIVITY_TENSOR,BaseMaterial::GENERAL);
 
@@ -2030,10 +2030,10 @@ namespace CoupledField {
       if(py->Has("tensor"))
       {
         // can only be a real 3x3 tensor
-        Matrix<double> tensor(3,3);
+        Matrix<Double> tensor(3,3);
         PtrParamNode tens_pn = 
             py->GetByVal("tensor","dim1","3")->Get("real");
-        ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+        ParamTools::AsTensor<Double>(tens_pn, 3, 3, tensor);
         material->SetTensor(tensor,PYROCOEFFICIENT_TENSOR,Global::REAL);
       }
     }
@@ -2050,10 +2050,10 @@ namespace CoupledField {
       if(te->Has("tensor"))
       {
         // can only be a real 3x3 tensor
-        Matrix<double> tensor(3,3);
+        Matrix<Double> tensor(3,3);
         PtrParamNode tens_pn = 
             te->GetByVal("tensor","dim1","3")->Get("real");
-        ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+        ParamTools::AsTensor<Double>(tens_pn, 3, 3, tensor);
         material->SetTensor(tensor,THERMAL_EXPANSION_TENSOR,Global::REAL);
       }
     }
@@ -2090,11 +2090,11 @@ namespace CoupledField {
 
       PtrParamNode mst = pn->Get("magnetoStrictionTensor_h");
       if(mst->Has("real")) {
-        ParamTools::AsTensor<double>(mst->Get("real"), 3, 6, couplingTensor);
+        ParamTools::AsTensor<Double>(mst->Get("real"), 3, 6, couplingTensor);
         material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h, Global::REAL );
       }
       if(mst->Has("imag")) {
-        ParamTools::AsTensor<double>(mst->Get("imag"), 3, 6, couplingTensor);
+        ParamTools::AsTensor<Double>(mst->Get("imag"), 3, 6, couplingTensor);
         material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h, Global::IMAG );
       }
     }
@@ -2118,11 +2118,11 @@ namespace CoupledField {
           }
           else if (lin->Has("tensor")){
             // can only be a real 3x3 tensor
-            Matrix<double> tensor(3,3);
+            Matrix<Double> tensor(3,3);
             PtrParamNode tens_pn =
                 lin->GetByVal("tensor","dim1","3")->Get("real");
 
-            ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+            ParamTools::AsTensor<Double>(tens_pn, 3, 3, tensor);
             material->SetTensor(tensor, ELEC_CONDUCTIVITY_TENSOR, Global::REAL);
             material->SetSymmetryType(ELEC_CONDUCTIVITY_TENSOR,BaseMaterial::GENERAL);
           }

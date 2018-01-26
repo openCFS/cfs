@@ -986,7 +986,7 @@ namespace CoupledField {
           for (j=0; j<nrDofs; j++)
             {
               //std::cerr << "trying to write " << i << ", " << j << std::endl;
-              (*output) << std::setw(14) << std::abs(x[i*nrDofs +j]);
+              (*output) << std::setw(14) << Abs(x[i*nrDofs +j]);
             }
         
           (*output) << std::endl;
@@ -1018,7 +1018,7 @@ namespace CoupledField {
         
           for (j=0; j<nrDofs; j++)
             {
-              if (abs(x[i*nrDofs +j].imag()) > 1e-16)
+              if (fabs(x[i*nrDofs +j].imag()) > 1e-16)
                 (*output) << std::setw(14) << CPhase(x[i*nrDofs +j]);
               else 
                 (*output) << std::setw(14) << 0.0;
