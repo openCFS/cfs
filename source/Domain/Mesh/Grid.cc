@@ -75,7 +75,7 @@ namespace CoupledField
 
   Matrix<double>& Grid::CalcGridBoundingBox(CoordSystem* sys, bool force_3D)
   {
-    Matrix<double>& box = grid_bounding_box_;
+    Matrix<Double>& box = grid_bounding_box_;
     if(box.GetNumRows() == 0)
     {
       // set the box ignoring force_3D!
@@ -85,7 +85,7 @@ namespace CoupledField
       StdVector<RegionIdType> regs;
       GetVolRegionIds(regs);
 
-      Matrix<double> tmp;
+      Matrix<Double> tmp;
 
       for(unsigned int r = 0; r < regs.GetSize(); r++)
       {
@@ -110,7 +110,7 @@ namespace CoupledField
     // this also works if box was created in a previous call but with another force_3D parameter
     if(GetDim() == 2 && ((!force_3D && box.GetNumRows() == 3) || (force_3D && box.GetNumRows() == 2)))
     {
-      Matrix<double> tmp(force_3D ? 3 : 2,2);
+      Matrix<Double> tmp(force_3D ? 3 : 2,2);
       tmp.Assign(box, 1.0, true); // size tolerant
       box = tmp;
     }
@@ -380,7 +380,7 @@ namespace CoupledField
   }
   
 
-  const Elem* Grid::GetElemAtGlobalCoord(const Vector<double>& globCoord,
+  const Elem* Grid::GetElemAtGlobalCoord(const Vector<Double>& globCoord,
                                          LocPoint& locCoord,
                                          const StdVector<shared_ptr<EntityList> >& srcEntities,
                                          bool printWarnings) {
@@ -749,7 +749,7 @@ namespace CoupledField
           // point to the same direction the result must be 1
           v1.Inner(v2, innerProd);
 
-          if((1.0 - std::fabs(innerProd)) >= eps)
+          if((1.0 - fabs(innerProd)) >= eps)
             return false;
 
           break;
@@ -788,7 +788,7 @@ namespace CoupledField
           // At this place we should have either linearly dependant normal
           // and n vectors or they face to different directions.
           // The value of innerProd indicates what is the case.
-          if((1.0 - std::fabs(innerProd)) >= eps)
+          if((1.0 - fabs(innerProd)) >= eps)
             return false;
 
           break;
@@ -888,8 +888,8 @@ namespace CoupledField
     if(!IsRegionRegular(region))
       return n;
 
-    StdVector<double> min(3);
-    StdVector<double> max(3);
+    StdVector<Double> min(3);
+    StdVector<Double> max(3);
     UInt dim = this->GetDim();
     min.Init(1e10);
     max.Init(1e-10);
@@ -908,7 +908,7 @@ namespace CoupledField
     }
 
     // Computes lattice spacing
-    StdVector<double> spacing; // the output
+    StdVector<Double> spacing; // the output
     GetElemShapeMap(elems[0], false)->GetEdgeLength(spacing);
 
     if (dim == 2)
@@ -1110,7 +1110,7 @@ namespace CoupledField
   void Grid::CreateBBoxFromElement(const Elem* elem,
                                    Double globToler,
                                    Double* bbox,
-                                   double updated)
+                                   Double updated)
   {
     Vector<Double> p;
     Double& xmin = bbox[0];
@@ -1185,7 +1185,7 @@ namespace CoupledField
 
   //! Define box handler, which additionally stores an index
   typedef CGAL::Box_intersection_d
-      ::Box_with_handle_d<double,3,const UInt*> HandleBox;
+      ::Box_with_handle_d<Double,3,const UInt*> HandleBox;
 
 
   typedef CGAL::Bbox_3 BBox3D;
@@ -1217,7 +1217,7 @@ namespace CoupledField
   
   
 
-  HandleBox Grid::CreateBoxFromCoord( const Vector<double>& coords, UInt* id,
+  HandleBox Grid::CreateBoxFromCoord( const Vector<Double>& coords, UInt* id,
                                       Double tol )
   {
     if(coords.GetSize()==2){
@@ -1444,7 +1444,7 @@ namespace CoupledField
 //                source->GetNodeCoordinate(point, it.GetNode(), true);
 //                coordSys->Global2LocalCoord(globPoint, point);
 //
-//                if ( std::fabs(globPoint[2] - z) < zEpsilon )
+//                if ( fabs(globPoint[2] - z) < zEpsilon )
 //                {
 //                  sourceNodeNumbers.Push_back(it.GetNode());
 //                  sourceNodeIndices.Push_back(it.GetPos());
@@ -1464,7 +1464,7 @@ namespace CoupledField
 //              source->GetNodeCoordinate(point, it.GetNode(), true);
 //              coordSys->Global2LocalCoord(globPoint, point);
 //
-//              if ( std::fabs(globPoint[2] - z) < zEpsilon )
+//              if ( fabs(globPoint[2] - z) < zEpsilon )
 //              {
 //                sourceNodeNumbers.Push_back(it.GetNode());
 //                sourceNodeIndices.Push_back(it.GetPos());
@@ -1637,7 +1637,7 @@ namespace CoupledField
 //        // The vector S contains the values of the shape functions
 //        // at the local coordinate of the source node. These values
 //        // serve also as the interpolation weights.
-//        Vector<double> S;
+//        Vector<Double> S;
 //        elem->ptElem->GetShFnc(S, locCoords, elem );
 //
 //        //        std::cout << "Local Coord: " << locCoords << std::endl;
@@ -1684,10 +1684,10 @@ namespace CoupledField
 
 namespace fbi {
   template<>
-  struct Traits<CoupledField::Elem*> : mpl::TraitsGenerator<double, double, double> {};
+  struct Traits<CoupledField::Elem*> : mpl::TraitsGenerator<Double, Double, Double> {};
   
   template<>
-  struct Traits< CoupledField::Vector<Double>* > : mpl::TraitsGenerator<double, double, double> {};
+  struct Traits< CoupledField::Vector<Double>* > : mpl::TraitsGenerator<Double, Double, Double> {};
 } // end namespace fbi
 
 namespace CoupledField {
@@ -1699,14 +1699,14 @@ namespace CoupledField {
                                 typename fbi::Traits<Elem*>::key_type>::type
     get(const Elem*) const;
     Grid* ptGrid_;
-    double globTol_;
+    Double globTol_;
     UInt dim_;
-    ElemBoxGenerator(Grid* ptGrid, double globTol, UInt dim)
+    ElemBoxGenerator(Grid* ptGrid, Double globTol, UInt dim)
       : ptGrid_(ptGrid), globTol_(globTol), dim_(dim) {}
   };
   
   template <>
-  std::pair<double, double>
+  std::pair<Double, Double>
   ElemBoxGenerator::get<0>(const Elem* elem) const
   {
     // create bounding box array, with the following indices:
@@ -1720,7 +1720,7 @@ namespace CoupledField {
   }
   
   template <>
-  std::pair<double, double>
+  std::pair<Double, Double>
   ElemBoxGenerator::get<1>(const Elem* elem) const
   {
     // create bounding box array, with the following indices:
@@ -1734,7 +1734,7 @@ namespace CoupledField {
   }
 
   template <>
-  std::pair<double, double>
+  std::pair<Double, Double>
   ElemBoxGenerator::get<2>(const Elem* elem) const
   {
     // create bounding box array, with the following indices:
@@ -1759,21 +1759,21 @@ namespace CoupledField {
   };
   
   template <>
-  std::pair<double, double>
+  std::pair<Double, Double>
   PointBoxGenerator::get<0>(const Vector<Double>* p) const
   {
     return std::make_pair((*p)[0], (*p)[0]);
   }
   
   template <>
-  std::pair<double, double>
+  std::pair<Double, Double>
   PointBoxGenerator::get<1>(const Vector<Double>* p) const
   {
     return std::make_pair((*p)[1], (*p)[1]);
   }
 
   template <>
-  std::pair<double, double>
+  std::pair<Double, Double>
   PointBoxGenerator::get<2>(const Vector<Double>* p) const
   {
     if(dim_ == 3) 

@@ -335,14 +335,14 @@ namespace CoupledField
     //!                       for the element search. If the set is empty,
     //!                       all (volume) regions are considered. 
     //! \return Element at global coordinate position.
-    const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
+    const Elem* GetElemAtGlobalCoord(const Vector<Double>& globCoord,
                                      LocPoint& locCoord,
                                      const StdVector<shared_ptr<EntityList> >& srcEntities =
                                      StdVector<shared_ptr<EntityList> >(),
                                      bool printWarnings = true );
     
     //! Return a list of elements and local coordinate for global coordinates
-    void GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
+    void GetElemsAtGlobalCoords( const StdVector<Vector<Double> >& globCoords,
                                 StdVector< LocPoint >& localCoords,
                                 StdVector< const Elem* > & elems,
                                 const StdVector<shared_ptr<EntityList> >& srcEntities =
@@ -568,7 +568,7 @@ namespace CoupledField
      * @param sys if NULL the the default one is used
      * @param force_3D third dimension is zero for 2D otherwise there is no third dimension in 2D
      * @return num rows == GetDim() or 3 for force_3D */
-    Matrix<double>& CalcGridBoundingBox(CoordSystem* sys = NULL, bool force_3D = false);
+    Matrix<Double>& CalcGridBoundingBox(CoordSystem* sys = NULL, bool force_3D = false);
 
 
     //! This method computes the x-y-z boundig box of a given region
@@ -1047,7 +1047,7 @@ namespace CoupledField
     void CreateBBoxFromElement(const Elem* elem,
                                Double globToler,
                                Double* bbox,
-                               double updated=false);
+                               Double updated=false);
 
   protected:
 
@@ -1059,11 +1059,11 @@ namespace CoupledField
 
     //! Define box handler, which additionally stores an index
     typedef CGAL::Box_intersection_d
-        ::Box_with_handle_d<double,3,const UInt*> HandleBox;
+        ::Box_with_handle_d<Double,3,const UInt*> HandleBox;
 
     //! Define box handler just with an ID
     typedef CGAL::Box_intersection_d
-        ::Box_d<double,3> IdBox;
+        ::Box_d<Double,3> IdBox;
 
   protected:
     //! Return list of potential elements containing global points
@@ -1082,7 +1082,7 @@ namespace CoupledField
     //! \param coords(in) The vector of global coordinates
     //! \param id(in) An identifier for this specific coordinate (e.g. index in a vector)
     //! \param tol(in) Tolerance in meters which determines the size of the bounding box
-    HandleBox CreateBoxFromCoord( const Vector<double>& coords,
+    HandleBox CreateBoxFromCoord( const Vector<Double>& coords,
                                   UInt *id,
                                   Double tol = 0.0 );
 
@@ -1116,7 +1116,7 @@ namespace CoupledField
   private:
 
     /** Here the result from CalcGridBoundingBox() is stored and reused. */
-    Matrix<double> grid_bounding_box_;
+    Matrix<Double> grid_bounding_box_;
 
 
 

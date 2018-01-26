@@ -26,7 +26,7 @@ IPOPT::IPOPT(Optimization* optimization, BaseOptimizer* base, PtrParamNode pn)
   this->base_ = base;
   this->optimizer_pn_ = pn->Get(Optimization::optimizer.ToString(Optimization::IPOPT_SOLVER), ParamNode::PASS);
   
-  double manual_scaling = optimizer_pn_ != NULL && optimizer_pn_->Has("obj_scaling_factor") ?
+  Double manual_scaling = optimizer_pn_ != NULL && optimizer_pn_->Has("obj_scaling_factor") ?
       optimizer_pn_->Get("obj_scaling_factor")->Get("value")->As<Double>() : 1.0;
   base->PostInitScale(manual_scaling);
   Init();

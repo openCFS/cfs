@@ -12,10 +12,10 @@
 #include "ODESolve/BaseODESolver.hh" 
 #include "ODESolve/BaseODEProblem.hh"
 
-typedef boost::multi_array<Matrix<double>, 1> array1_Matrix;
-typedef boost::multi_array<Matrix<double>, 2> array2_Matrix;
-typedef boost::multi_array<Vector<double>, 1> array1_Vector;
-typedef boost::multi_array<Vector<double>, 2> array2_Vector;
+typedef boost::multi_array<Matrix<Double>, 1> array1_Matrix;
+typedef boost::multi_array<Matrix<Double>, 2> array2_Matrix;
+typedef boost::multi_array<Vector<Double>, 1> array1_Vector;
+typedef boost::multi_array<Vector<Double>, 2> array2_Vector;
 typedef boost::multi_array<Double, 3> arrayD3;
 typedef boost::multi_array<Double, 4> arrayD4;
 

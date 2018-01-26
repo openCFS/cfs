@@ -45,10 +45,10 @@ public:
 
   /** Convenience function. Gives a lower bound. The explicit filter bound if given, otherwise
    * from the design element */
-  double GetLowerBound(const DesignElement* de) const;
+  Double GetLowerBound(const DesignElement* de) const;
 
   /** Set an explicit lower bound to overwrite the design's lower bound */
-  void SetLowerBound(double value) { explicit_lower_bound_ = value; }
+  void SetLowerBound(Double value) { explicit_lower_bound_ = value; }
 
   /** Set non_lin_scale and non_lin_offset. considers explicit_lower_bound_
    * @peram de reference design element for bounds */
@@ -59,7 +59,7 @@ public:
   Type GetType() const { return type_; }
 
   /** Sums up the weights of the neighbors and optionally the own element */
-  double CalcWeightSum(bool include_this) const;
+  Double CalcWeightSum(bool include_this) const;
 
   void Dump() const;
 
@@ -71,18 +71,18 @@ public:
     DesignElement* neighbour;
 
     /** pre-calculated weight: radius - distanance and >= 0 */
-    double        weight;
+    Double        weight;
 
     /** the distance in domain dimensions! */
-    double        distance;
+    Double        distance;
   };
 
 
   /** pre-calculated weight sum */
-  double weight_sum;
+  Double weight_sum;
 
   /** The weight of THIS element which is radius */
-  double weight;
+  Double weight;
 
   /** The neighbors if filter otherwise empty.
    * The element itself is NOT part of the neighborhood!
@@ -96,14 +96,14 @@ public:
    * This applies for Heaviside and tanh.
    * With solid_heaviside for a large beta F(x > 0) -> 1
    * With tanh for a small beta F(0) >> 0 and F(1) << 1. With eta != 0.5 this is unsymmetric */
-  double non_lin_scale;
-  double non_lin_offset;
+  Double non_lin_scale;
+  Double non_lin_offset;
 
   /** this is the beta parameter for the heaviside filters or tanh design filter. */
-  double     beta;
+  Double     beta;
 
   /** switching parameter for tanh */
-  double eta;
+  Double eta;
 
   /** to check where we belong to */
   RegionIdType region;
@@ -115,7 +115,7 @@ private:
   /** Holds the optional "force_lower_bound" attribute to overwrite the design lower bound
    * for Heaviside and tanh type filters. Necessary for mixed design scenarios where one has
    * a fixed design with equal lower and upper bound. */
-   double explicit_lower_bound_;
+   Double explicit_lower_bound_;
 
 };
 

@@ -13,7 +13,7 @@
 // C++ is so poor that there even is no really standard for pi - > why not????
 #ifndef M_PI
   #include <boost/math/constants/constants.hpp>
-  #define M_PI boost::math::constants::pi<double>()
+  #define M_PI boost::math::constants::pi<Double>()
 #endif
 
 
@@ -224,7 +224,7 @@ namespace CoupledField {
    * @param value set when given
    * @param set the info if given to be used for output
    * @return the 0-based column index */
-   unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val = NULL, EigenInfo* info = NULL);
+   unsigned int SearchMinMax(const Matrix<Double>& mat, unsigned int row, bool minimum, Double* val = NULL, EigenInfo* info = NULL);
 
 
   /** transforms a complex matrix to its complex conjugate */
@@ -246,7 +246,7 @@ namespace CoupledField {
   Double Average(const Double* data, unsigned int size);
 
   /** Calculate the Standard Deviation of an array */
-  double StandardDeviation(const double* data, unsigned int size);
+  Double StandardDeviation(const Double* data, unsigned int size);
 
   template <class TYPE>
   std::string ToString(const StdVector<Vector<TYPE> >& data, bool new_line = false);

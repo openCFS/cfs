@@ -113,20 +113,20 @@ namespace CoupledField
       * @param design_index use Find(Elem*, bool) to find your index -> is complicated, check it!
       * @param applic finds the real transfer function, see  GetErsatzMaterialFactor(unsigned int, const BaseForm*)
       * @return a good factor or an exception is thrown */
-     double GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial = false);
+     Double GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial = false);
 
      /** assigns the pamping matrix: pamping_ * rho * (1-rho) * M_0. (Sigmund; Morphology; 2007)
       * The mesh is assumed irregular as we have not the ErsatzMaterial::OptimizatioMaterial.
       * This method is only to be used via domain. ErsatzMaterial has its own implementation in AddMassToStiffness() */
-     bool GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& elemMat);
+     bool GetErsatzMaterialPamping(const Elem* elem, Matrix<Double>& elemMat);
 
      /** do we have a slack variable and such an AuxDesign? */
      virtual bool HasSlackVariable() const { return false; }
      virtual bool HasAlphaVariable() const { return false; }
 
      /** returns the slack variable if present or throws an exception */
-     virtual double GetSlackVariable() const { assert(false); return -1; }
-     virtual double GetAlphaVariable() const { assert(false); return -1; }
+     virtual Double GetSlackVariable() const { assert(false); return -1; }
+     virtual Double GetAlphaVariable() const { assert(false); return -1; }
 /*
 
      /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
@@ -138,7 +138,7 @@ namespace CoupledField
       * @param elem Elem pointer
       * @param direction if !=DEFAULT calculate derivative of Element matrix instead of element matrix
       * @returns whether the given element is subject to optimization and the element matrix therefore could be retrieved */
-     bool GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+     bool GetErsatzElementMatrix(Matrix<Double>& t, const Elem* elem, DesignElement::Type direction);
 
      /** Get the ErsatzMaterialDampingParameters
       * @param alpha Damping Parameter alpha
@@ -146,10 +146,10 @@ namespace CoupledField
       * @param elem the Element for which the parameters should be returned
       * @param direction if given return derivative in that direction
       * @return whether DampingParameters are optimized at all  */
-     //bool GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+     //bool GetErsatzMaterialDamping(Double& alpha, Double& beta, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
      
      /** Get the correct Damping parameter, alpha for Mass, beta for Stiffness */
-     //bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* integrator, */double& param);
+     //bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* integrator, */Double& param);
 
      bool HasMultiMaterial() const { return !multimaterial.IsEmpty();}
 
@@ -160,7 +160,7 @@ namespace CoupledField
       * @param tf transfer function, if not given searches by itself
       * @param mc to find the right one in the piezo case
       * @param derivative if given it contains the the index of the propert material */
-     bool GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, TransferFunction* tf = NULL, SubTensorType subTensor = NO_TENSOR, MaterialClass mc = MECHANIC, const DesignElement* derivative = NULL);
+     bool GetMultiMaterialTensor(Matrix<Double>& t, const Elem* elem, TransferFunction* tf = NULL, SubTensorType subTensor = NO_TENSOR, MaterialClass mc = MECHANIC, const DesignElement* derivative = NULL);
 
      /** This gets back a uniquely defined transfer function.
       * @param throw_exception if false NULL is returned when nothing is found!
@@ -201,15 +201,15 @@ namespace CoupledField
      /** <p>Take the design space from an external optimizer and apply it on the problem.
       * Do not solve the problem, but call this method before CalcCostFunction() :)</p>
       * <p>The background is, that external optimizers might have a own design space array
-      * (only doubles) where we have a StdVector of the complex DesignElement.</p>
+      * (only Doubles) where we have a StdVector of the complex DesignElement.</p>
       * @param space_in the design space (in variable). Size is GetDesignSpaceSize()
       * @return the design_id which is the old one if space_in did not change the design. */
-     virtual int ReadDesignFromExtern(const double* space_in);
-     int ReadDesignFromExtern(const StdVector<double>& space);
+     virtual int ReadDesignFromExtern(const Double* space_in);
+     int ReadDesignFromExtern(const StdVector<Double>& space);
      
      /** Compare the design with the present. Does not change anything!
       * @return true if the designs are equal and ReadDesignFromExtern() would give the old design id */
-     virtual bool CompareDesign(const double* space_in);
+     virtual bool CompareDesign(const Double* space_in);
            
      /** gives the initial guess (for the design space) 
       * @param space_out to this array of GetDesignSpaceSize() the initial guess is written to.
@@ -217,13 +217,13 @@ namespace CoupledField
       * true to return the variables as scaled for the optimizer 
       * @return the internal design_id as calculated by ReadDesignFromExtern()
       * @see SetDesignSpace() */
-     virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;
-     int WriteDesignToExtern(StdVector<double>& space_out, bool scaling = true) const;
-     int WriteDesignToExtern(Vector<double>& space_out, bool scaling = true) const;
+     virtual int WriteDesignToExtern(Double* space_out, bool scaling = true) const;
+     int WriteDesignToExtern(StdVector<Double>& space_out, bool scaling = true) const;
+     int WriteDesignToExtern(Vector<Double>& space_out, bool scaling = true) const;
 
      /** Similar but more general as WriteDesignToExtern().
       * @param out if it has a window writes to the window of the vector! */
-     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true)
+     virtual void WriteGradientToExtern(StdVector<Double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true)
      {
        // this contains the density filtered gradient or the shape mapping gradient calculation
        write_gradient_timer_->Start();
@@ -237,7 +237,7 @@ namespace CoupledField
      }
 
      /** provide the upper and lower bounds on the design variables to the optimizer */
-     virtual void WriteBoundsToExtern(double* x_l, double* x_u) const;
+     virtual void WriteBoundsToExtern(Double* x_l, Double* x_u) const;
      
      /** Sets the value of the described design element to 0
       * @param vs what values to set. Not all make sense -> exception
@@ -261,7 +261,7 @@ namespace CoupledField
 
      /** Service method to find our index in the design vector.
       * @return -1 if not throw_exception and not found
-      * @see double context for ShapeMapDesign::FindDesign()! */
+      * @see Double context for ShapeMapDesign::FindDesign()! */
      virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
      /** gives a design element by idx. Handles als AuxDesign */
@@ -340,7 +340,7 @@ namespace CoupledField
      /** Get Pamping value (e.g. Sigmund; Morpology; 2007)
       * Extend to regions if necessary!
       * @return 0 if not set. */
-     double GetPampingValue() const { return pamping_; }
+     Double GetPampingValue() const { return pamping_; }
 
      /** Do we do non_design_vicinity for larger filter/slopes */
      bool DoNonDesignVicinity() const { return non_design_vicinity_; }
@@ -431,8 +431,8 @@ namespace CoupledField
        unsigned int base;
        unsigned int elements;
        DesignConstant constant;
-       double scale_design;
-       double translate_design;
+       Double scale_design;
+       Double translate_design;
 
        /** points to the multimaterial array or is NULL */
        MultiMaterial* multimaterial;
@@ -496,13 +496,13 @@ namespace CoupledField
      unsigned int CalcPseudoDesignElements() const;
 
      /** Helper function for state tracking (nodeId ist 1-based). Function: 4 * s * (1 - s), where s is the interpolated density at node with nodeId, elemId is necessary for derivative */
-     double EvalInterfaceFunction(int nodeId, bool derivative = false);
+     Double EvalInterfaceFunction(int nodeId, bool derivative = false);
 
      /** Helper function for state tracking; elemId is necessary for derivative */
-     double CalcAverageDensityAtNode(int nodeId, bool derivative = false);
+     Double CalcAverageDensityAtNode(int nodeId, bool derivative = false);
 
      /** for heat optimization with interface function: this = load * temperate; load is normed to 1 */
-     double CalcTemperatureAtInterface(int nodeId);
+     Double CalcTemperatureAtInterface(int nodeId);
 
      /** for SIMP type constructor we have a number of elements,
       * data size = num of design * num region elements */
@@ -512,11 +512,11 @@ namespace CoupledField
 
 
      /** handles design and region reordering */
-     void WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
+     void WriteDenseGradientToExtern(StdVector<Double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Function* f, bool scaling = true) const;
 
      /** can handle the sparse slope constraint but no reordering as the dense version */
-     void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
+     void WriteSparseGradientToExtern(StdVector<Double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Function* f, bool scaling = true) const;
 
 
@@ -532,10 +532,10 @@ namespace CoupledField
      /** Helper for the constructor.
       * @param tf for tanh and heaviside and in the physcical case!! scaling and offset in tf is set!!
       * @return 'lower' or what is defined by the physical lower   */
-     double DetermineLowerBound(PtrParamNode pn, TransferFunction* tf);
+     Double DetermineLowerBound(PtrParamNode pn, TransferFunction* tf);
 
      /** Extracts a nodal value */
-     double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);
+     Double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);
 
      /** Helper method for ExtraxtResults() */
      template <class T>
@@ -601,7 +601,7 @@ namespace CoupledField
      bool non_design_vicinity_;
 
      /** the pamping parameter. Extend to region on request :) */
-     double pamping_;
+     Double pamping_;
 
      /** Here we save the constructing param nodes to allow to create a clone for the projection method */
      PtrParamNode pn_;

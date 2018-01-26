@@ -125,7 +125,7 @@ namespace CoupledField{
       bbox[4] = bboxNode->Get("ymax")->As<Double>();
       bbox[5] = bboxNode->Get("zmax")->As<Double>();
 
-      std::vector< std::vector<double> > coords;
+      std::vector< std::vector<Double> > coords;
       std::vector< std::vector<T> > data;  // CHANGED
       ScatteredDataReader::GetQuantity(qid_, coords, data);
 
@@ -242,6 +242,7 @@ namespace CoupledField{
 
     case FLANN:
 #ifdef USE_FLANN
+#ifndef USE_ADOLC
       {
         if(updateMode)
           return;
@@ -262,6 +263,9 @@ namespace CoupledField{
       index_->buildIndex();
       }
 #else
+EXCEPTION("Not implemented.");
+#endif
+#else
       EXCEPTION("FLANN not supported! Compile with USE_FLANN=ON.")
 #endif
       break;
@@ -280,7 +284,7 @@ namespace CoupledField{
   template<typename T, UInt DOFS>
   void CoefFunctionScatteredData<T,DOFS>::GetVector( Vector<T>& vec, 
                                                      const LocPointMapped& lpm ) {
-    Vector<double> globPoint(DOFS);
+    Vector<Double> globPoint(DOFS);
     lpm.shapeMap->Local2Global(globPoint, lpm.lp);
     this->InterpolateVector(globPoint,vec);
   }
@@ -302,9 +306,9 @@ namespace CoupledField{
 
 
       //obtain the global coordinate
-      Vector<double> globPoint(DOFS);
+      Vector<Double> globPoint(DOFS);
 
-      T divergence = 0.0;
+      T divergence = T(0.0);
       lpm.shapeMap->Local2Global(globPoint, lpm.lp);
       LocPointMapped tmpLocPoint = lpm;
 
@@ -340,7 +344,7 @@ namespace CoupledField{
         this->InterpolateVector(globPoint,curValue);
         val4 = curValue[d];
 
-        divergence += (-val1 + 8.0 * val2 - 8.0 * val3 + val4 ) / (12.0 * eps * dia[d]);
+        divergence += (-val1 + T(8.0) * val2 - T(8.0) * val3 + val4 ) / (T(12.0) * eps * dia[d]);
 
         globPoint[d] = buffer;
       }
@@ -372,7 +376,11 @@ namespace CoupledField{
       
     case FLANN:
 #ifdef USE_FLANN
+#ifndef USE_ADOLC
       KNNSearch_FLANN(globPoint, neighbors, l2dists, vectors);
+#else
+      EXCEPTION("Not implemented.");
+#endif
 #else
       EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_FLANN=ON!");
 #endif
@@ -423,7 +431,7 @@ namespace CoupledField{
       it = l2dists.Begin();
       for(UInt i=0; it != end; ++it, i++) {
         Double d = *it;
-        Double w = std::pow((R-d)/(R*d), p_);
+        Double w = pow((R-d)/(R*d), p_);
         weights += w;
         
         for(UInt dof=0; dof < DOFS; dof++) 
@@ -481,7 +489,7 @@ namespace CoupledField{
     vectors.Resize(nn);
 
     for(UInt i=0 ; it != search.end(); ++it, i++) {
-      l2Distances[i] = std::sqrt(it->second);
+      l2Distances[i] = sqrt(it->second);
       neighbors[i].Resize(globPoint.GetSize());
       vectors[i].Resize(globPoint.GetSize());
 
@@ -550,6 +558,7 @@ namespace CoupledField{
 #endif  
 
 #ifdef USE_FLANN
+#ifndef USE_ADOLC
   template<typename T, UInt DOFS>
     void CoefFunctionScatteredData<T,DOFS>::KNNSearch_FLANN(const Vector<Double> globPoint,
       StdVector< Vector<Double> >& neighbors,
@@ -585,7 +594,7 @@ namespace CoupledField{
     {
       for(UInt j=0; j<numNeighbors_; j++) 
       {
-        l2Distances[j] = std::sqrt(dists[i][j]);
+        l2Distances[j] = sqrt(dists[i][j]);
 
         if(quantityNode_->Has("searchRadius"))
         {
@@ -608,7 +617,7 @@ namespace CoupledField{
 
             for(UInt d=0; d<DOFS; d++)
             {
-              vectors[j][d] = scatteredData_[idx][d] * 0.0;
+              vectors[j][d] = scatteredData_[idx][d] * T(0.0);  //bjurgel AD conversion comment: are you sure this is correct?
               neighbors[j][d] = coordinates_[idx][d];
             }
           }
@@ -631,6 +640,7 @@ namespace CoupledField{
     delete[] indices.ptr();
     delete[] dists.ptr();
   }
+#endif
 #endif  
 
 

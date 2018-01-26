@@ -87,12 +87,12 @@ namespace CoupledField
     newX = normalizeInput(Xin);
 
     Yval = 0.0;
-    if ( abs(abs(newX)+eps_) > abs(stringEl[0]) || actLength == 0 ) {
+    if ( fabs(fabs(newX)+eps_) > fabs(stringEl[0]) || actLength == 0 ) {
       Yval =  everettPixel( -newX, newX );
     }
     else {
       Yval =  everettPixel(-stringEl[0],stringEl[0]);
-      if ( abs(abs(newX)+eps_) > abs(stringEl[actLength-1]) ) {
+      if ( fabs(fabs(newX)+eps_) > fabs(stringEl[actLength-1]) ) {
         for ( UInt i=0; i<actLength-2; i++ ) {
           Yval +=  2.0*everettPixel(stringEl[i],stringEl[i+1]);
         }
@@ -160,7 +160,7 @@ namespace CoupledField
         helpStringEl[0] = newX;
     }
     else { 
-      if ( abs( newX - stringEl[stringLength-1] ) > eps_ ) {
+      if ( fabs( newX - stringEl[stringLength-1] ) > eps_ ) {
         helpStringEl[0] = -stringEl[0];
         for ( UInt i=1; i<=stringLength; i++ ) {
           helpStringEl[i] = stringEl[i-1];
@@ -174,7 +174,7 @@ namespace CoupledField
         //      std::cout << "a=" << a << "  b=" << b << std::endl;
         
         while ( ( k<stringLength-1) && 
-                ( ( newX<=std::min(a,b) ) || ( newX>=std::max(a,b) ) ) ) {
+                ( ( newX<=fmin(a,b) ) || ( newX>=fmax(a,b) ) ) ) {
           k = k + 1;
           a = helpStringEl[stringLength-k-1];
           b = helpStringEl[stringLength-k];
@@ -312,8 +312,8 @@ namespace CoupledField
   Double Preisach::everettPixel(Double val1, Double val2)
   {
 
-    Double X1 = std::max(val1,val2);
-    Double X2 = std::min(val1,val2);
+    Double X1 = fmax(val1,val2);
+    Double X2 = fmin(val1,val2);
 
     UInt M = preisachWeights_.GetNumRows();
     Double delta = 2.0 / ( (Double) M );
@@ -349,10 +349,8 @@ namespace CoupledField
 
     Double area = 0.0;
     if ( idx1 >= 0 ) {
-      UInt start = std::min(idx1,idx2);
-      UInt stop  = std::max(idx1,idx2);
-
-      // why do we iterate over the whole square and not over the triangle?
+      UInt start = fmin(idx1,idx2);
+      UInt stop  = fmax(idx1,idx2);
       for ( UInt i=start; i<=stop; i++ ) {
         for ( UInt j=start; j<=stop; j++ ) {
           area += preisachWeights_[i][j];

@@ -272,7 +272,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
   for (UInt i=0; i<numNodes; ++i) {
     this->srcGrid_->GetNodeCoordinate(aCoord, nodeNums[i]);
     if (srcDim > destDim) {
-      if (abs(aCoord[2]-xyPlaneAtZ_) > zTol_) {
+      if (fabs(aCoord[2]-xyPlaneAtZ_) > zTol_) {
         continue;
       }
       aCoord.Resize(destDim);
@@ -535,7 +535,11 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("matrix")->Get("numCol")->SetValue(numCols);
     t->Stop();
     std::stringstream elapsed;
+#ifndef USE_ADOLC
     const int walltime((int) t->GetWallTime());
+#else
+    const int walltime((int) t->GetWallTime().getValue());
+#endif
     if(walltime > 120) {
       const int wallmin((int) (walltime / 60.0));
       if(wallmin > 60){
@@ -564,11 +568,11 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     UInt size = feFncVec.GetSize();
     if (this->dimDof_ > 1) {
       StdVector<DATA_TYPE> sum(this->dimDof_);
-      sum.Init(0.0);
+      sum.Init(DATA_TYPE(0.0));
 #pragma omp parallel
       {
         StdVector<DATA_TYPE> tSum(this->dimDof_);
-        tSum.Init(0.0);
+        tSum.Init(DATA_TYPE(0.0));
 #pragma omp for
         for (UInt i = 0; i < size; ++i) {
           if (this->countSolvecIndex_[i]) {
@@ -592,10 +596,10 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
       }
       std::cout << std::endl;
     } else {
-      DATA_TYPE sum = 0.0;
+      DATA_TYPE sum = DATA_TYPE(0.0);
 #pragma omp parallel
       {
-        DATA_TYPE tSum = 0.0;
+        DATA_TYPE tSum = DATA_TYPE(0.0);
 #pragma omp for
         for (UInt i = 0; i < size; ++i) {
           if (this->countSolvecIndex_[i]) {
@@ -781,7 +785,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetScalarValuesAtCoords( const StdV
 {
   StdVector< Vector<DATA_TYPE> > vecValues;
   this->GetVectorValuesAtCoords(globCoord,vecValues, ptGrid, srcEntities);
-  values.Resize(globCoord.GetSize(),0.0);
+  values.Resize(globCoord.GetSize(),DATA_TYPE(0.0));
   for(UInt i=0;i<vecValues.GetSize();++i){
     values[i] = vecValues[i][0];
   }

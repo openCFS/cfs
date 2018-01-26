@@ -72,7 +72,7 @@ namespace CoupledField
        * Checks for lambda smaller lambda_min! 
        * @param lambda this parameter is to be determined
        * @return the error assuming a single volume constraint */
-      double Evaluate(double lambda);
+      Double Evaluate(Double lambda);
 
       /** What type of bisection do we do? It becomes more subtle when not doing compliance! */
       Type type_;
@@ -82,13 +82,13 @@ namespace CoupledField
       
       /** this is the damping factor of the objective gradient for the optimality condtion.
        * The power is taken - default is 0.5 which is the square root */
-      double oc_damping_;
+      Double oc_damping_;
       
       /** minimal densitiy variation (see book (1.12)) = move limit for optimality condition */
-      double move_limit_;       
+      Double move_limit_;       
       
       /** This lambda is optimized in CalcNextDensity() and serves as a starting value */
-      double lambda_; 
+      Double lambda_; 
 
       /** The maximum number of lambda iterations */
       int max_lambda_iters_;
@@ -98,41 +98,41 @@ namespace CoupledField
       
       /** lambda_min from xml. Might not become smaller than this value. in trajectory we
        * switch sign then. */
-      double lambda_min_;
+      Double lambda_min_;
       
       /** err_eps for bisection iteration is fine. This is actually the feasibility tolerance */
-      double feasibility_;
+      Double feasibility_;
       
       /** for the framed mode the starting lower border */
-      double start_lower_;
-      double start_upper_;
+      Double start_lower_;
+      Double start_upper_;
       
       /** for the framed mode the enlargement when we start iteration or exceeded max_iters. 
        * This are factors (lambda_ * enlarge_x_)*/
-      double enlarge_lower_;
-      double enlarge_upper_;
+      Double enlarge_lower_;
+      Double enlarge_upper_;
 
       /** this are the borders for the framed bisection */
-      double lower_;
-      double upper_;
+      Double lower_;
+      Double upper_;
 
       /** For the framed type this means if we enlarge the borders in every iteration */
       bool always_enlarge_;
       
       /** For fumble this is the current step */
-      double step_;
+      Double step_;
       
       /** @see CalcNextFumbleIteration() */
-      double contract_;
+      Double contract_;
       
       /** @see CalcNextFumbleIteration() */
-      double expand_;
+      Double expand_;
       
       /** Here we save a design space such that we can play with different lambdas  */
-      Vector<double> vault_;
+      Vector<Double> vault_;
       
       /** This is a temporay design space such that it can be used in evalue */
-      Vector<double> evaluate_tmp_;
+      Vector<Double> evaluate_tmp_;
   };
 
 

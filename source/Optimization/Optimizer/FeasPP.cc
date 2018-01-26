@@ -273,8 +273,8 @@ void FeasPP::SolveProblem()
   ls.old_point_is_optimal = false;
   int iter = 1;
   // additional refinement of subproblem in failed linesearch
-  double refine = 1.0;
-  double kkt_val = -1.0;
+  Double refine = 1.0;
+  Double kkt_val = -1.0;
   // the old lambda is for augmented lagrangian not the lambda from the last subproblem as we do a linesearch
   Vector<double> lambda_old(m, 0.0);
 
@@ -404,13 +404,13 @@ FeasPP::LSR FeasPP::Backtracking(const Vector<double>& x_old, const Vector<doubl
   {
     x_new = x_old + t * d;
     optimization->GetDesign()->ReadDesignFromExtern(x_new.GetPointer());
-    double ov = EvalObjective(n, x_new.GetPointer(), true);
+    Double ov = EvalObjective(n, x_new.GetPointer(), true);
     // LOG_DBG2(feasPP) << "FP:B t/ov: " << t << "\t" << ov;
     std::cout << "FP:B t/ov: " << t << "\t" << ov << std::endl;
   }*/
 
   result.steps = 0;
-  double t = 2.0;
+  Double t = 2.0;
   // obj->outer_value is proper value for an approximation of the objective function
   // in case of non->approximation ipopt made the globalization!
   for(double ov = std::numeric_limits<double>::max(); ov >= obj->outer_val && t >= min_step_; result.steps++) // enter at least once!
@@ -455,13 +455,13 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
   CalcGradAugmentedLagrangian(x, y, rho, grad_phi);
   LOG_DBG3(feasPP) << "ALLS grad_phi=[" << grad_phi.ToString(0, ' ') << "]";
 
-  double grad_phi_d = grad_phi  * d;
-  double phi = CalcAugmentedLagrangian(x, y, rho);
+  Double grad_phi_d = grad_phi  * d;
+  Double phi = CalcAugmentedLagrangian(x, y, rho);
 
-  double eta = CalcEta(convex_tau, x, z);
+  Double eta = CalcEta(convex_tau, x, z);
 
   // norm(z -x)^2
-  double dist = pow(NormL2(z.GetPointer(), x.GetPointer(), n), 2);
+  Double dist = pow(NormL2(z.GetPointer(), x.GetPointer(), n), 2);
 
 
   Vector<double> grad_f(n);
@@ -484,7 +484,7 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
       // assert(grad_phi  * d  <= -0.5 * rho_eta_ * dist);
     }
   }
-  double sigma = 1.0;
+  Double sigma = 1.0;
   Vector<double> x_next(n);
   x_next = x + dx * sigma;
   Vector<double> y_next(m);
@@ -492,7 +492,7 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
 
   // perform Armijo
   // descent condition (23)
-  double sigma_phi = CalcAugmentedLagrangian(x_next, y_next, rho);
+  Double sigma_phi = CalcAugmentedLagrangian(x_next, y_next, rho);
 
   LSR result;
   result.org_dx = dx.NormL2();
@@ -529,18 +529,18 @@ double FeasPP::CalcEta(double tau, const Vector<double>& x_vec, const Vector<dou
   assert(x_vec.GetSize() == n && z_vec.GetSize() == n);
   // feasibility paper (18)
 
-  double eta = std::numeric_limits<double>::max();
+  Double eta = std::numeric_limits<double>::max();
 
   const StdVector<double>& grad_f = obj->outer_grad;
 
   for(unsigned int i = 0; i < n; i++)
   {
-    double x = x_vec[i];
-    double z = z_vec[i];
-    double u = U[i];
-    double l = L[i];
+    Double x = x_vec[i];
+    Double z = z_vec[i];
+    Double u = U[i];
+    Double l = L[i];
 
-    double eta_i;
+    Double eta_i;
     if(grad_f[i] >= 0.0)
       eta_i = (grad_f[i] + tau) * (2.0*u - z - x) / ((u-x)*(u-z));
     else
@@ -553,16 +553,16 @@ double FeasPP::CalcEta(double tau, const Vector<double>& x_vec, const Vector<dou
   return eta;
 }
 
-void FeasPP::CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec,  const Vector<double>& v_vec, Vector<double>& rho) const
+void FeasPP::CalcPenaltyRho(double eta, Double diff, const Vector<double>& y_vec,  const Vector<double>& v_vec, Vector<double>& rho) const
 {
   assert(m == m_e + m_c);
 
   for(unsigned int i = 0; i < m; i++)
   {
     Condition* g = constr[i]->GetCondition();
-    double y = y_vec[i];
-    double v = v_vec[i];
-    double rho_old = rho[i];
+    Double y = y_vec[i];
+    Double v = v_vec[i];
+    Double rho_old = rho[i];
 
     if(!g->IsFeasibilityConstraint())
       rho[i] = max(rho_old, (40.0 * m_c / (eta * diff)) * max(y * abs(v - y), (v-y) * (v-y)));
@@ -586,14 +586,14 @@ double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<dou
 
   // evaluate function values
   optimization->GetDesign()->ReadDesignFromExtern(x.GetPointer());
-  double f = EvalObjective(n, x.GetPointer(), true);
+  Double f = EvalObjective(n, x.GetPointer(), true);
   LOG_DBG3(feasPP) << "FP:CAL f=" << f << " rho=" << rho.ToString();
 
 
   StdVector<double> c(m);
   EvalConstraints(n, x.GetPointer(), m, true, c.GetPointer(), true);
 
-  double result = f;
+  Double result = f;
 
   for(unsigned int i = 0; i < m; i++)
   {
@@ -601,7 +601,7 @@ double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<dou
 
     bool case1 = -1.0 * y[i] / rho[i] <= c[i];
 
-    double tmp = case1 ?  y[i] * c[i] + 0.5 * rho[i] * c[i] * c[i] : y[i]*y[i] / (-2.0 * rho[i]);
+    Double tmp = case1 ?  y[i] * c[i] + 0.5 * rho[i] * c[i] * c[i] : y[i]*y[i] / (-2.0 * rho[i]);
 
     result += tmp;
 
@@ -649,9 +649,9 @@ void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<d
   optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
   for(unsigned int ci = 0; ci < m; ci++)
   {
-    double         c    = c_vec[ci];
-    double         y    = y_vec[ci];
-    double         rho  = rho_vec[ci];
+    Double         c    = c_vec[ci];
+    Double         y    = y_vec[ci];
+    Double         rho  = rho_vec[ci];
 
     bool case1 = -y / rho <= c;
 
@@ -666,7 +666,7 @@ void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<d
     {
       unsigned int idx = appr->jac_pattern[e];
 
-      double grad_c = c_grad[e];
+      Double grad_c = c_grad[e];
 
       grad[idx] += y * grad_c + rho*c*grad_c;
       LOG_DBG3(feasPP) << "FP:CGAL ci=" << ci << " g=" << appr->ToString() << " e=" << e << " idx=" << idx << " grad_c=" << grad_c << " -> " << (y * grad_c) << " + " << (rho*c*grad_c) << " -> " << grad[idx];
@@ -722,7 +722,7 @@ void FeasPP::UpdateAsymptotes(const Vector<double>&x_vec, int iter, bool force_r
   // We start our iterations with 1, therefore special case for iter >= 3
   for(unsigned int i = 0; i < n; i++)
   {
-    double x = x_vec[i];
+    Double x = x_vec[i];
     if(!force_reduction && iter < 3)
     {
       L[i] = x - max(1.0, abs(x));
@@ -733,8 +733,8 @@ void FeasPP::UpdateAsymptotes(const Vector<double>&x_vec, int iter, bool force_r
       const Vector<double>& x_p  = prev_x_.second;
       const Vector<double>& x_pp = prev_prev_x_.second;
 
-      double factor = force_reduction || (sgn(x - x_p[i]) != sgn(x_p[i] - x_pp[i])) ? mma_shrink_ : mma_grow_;
-      double x_old = force_reduction && iter <= 1 ? x : x_p[i];
+      Double factor = force_reduction || (sgn(x - x_p[i]) != sgn(x_p[i] - x_pp[i])) ? mma_shrink_ : mma_grow_;
+      Double x_old = force_reduction && iter <= 1 ? x : x_p[i];
 
       L[i] = max(x - max(mma_dist_, factor * (x_old - L[i])), l_min_);
       U[i] = min(x + max(mma_dist_, factor * (U[i] - x_old)), u_max_);
@@ -765,7 +765,7 @@ void FeasPP::UpdateAsymptotes(const Vector<double>&x_vec, int iter, bool force_r
   optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT, DesignElement::DEFAULT);
   EvalGradObjective(n, x.GetPointer(), true, f_grad);
 
-  double kkt = 0.0;
+  Double kkt = 0.0;
   for(unsigned int i = 0; i < n; i++)
     kkt += abs(f_grad[i] * (x[i] - x_old[i]));
 
@@ -773,7 +773,7 @@ void FeasPP::UpdateAsymptotes(const Vector<double>&x_vec, int iter, bool force_r
   for(unsigned int i = 0; i < m; i++)
   {
     Condition* g = constr[i]->GetCondition(false); // if we have, we take benson vanderbei because y is transformed!
-    double c = EvalConstraint(g, true, true);
+    Double c = EvalConstraint(g, true, true);
     kkt += abs(y[i] * c);
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
@@ -981,7 +981,7 @@ double MMAApproximation::Evaluate(const double* x_inner, Eval eval, StdVector<do
   assert(eval != GRAD || out->GetSize() == jac_pattern.GetSize());
   assert(eval != HESSIAN || out->GetSize() == hess_pattern.GetNumRows());
 
-  double result = 0.0;
+  Double result = 0.0;
 
   if(approximate)
     result = EvalApproximation(x_inner, eval, out);
@@ -997,29 +997,29 @@ double MMAApproximation::EvalApproximation(const double* x_inner, Eval eval, Std
   // Svanberg (2):
   // f(xi) = f(xo) - sum(p/(U-xo) + q/(xo-L)) + sum(p/(U-xi) + q/(xi-L))
   // d f(xi)/d xi = + p/((U-xi)**2) - q/((xi-L)**2)
-  double result = eval == FUNC ? outer_val : 0.0;
+  Double result = eval == FUNC ? outer_val : 0.0;
 
   // the function evaluation is based on the (pattern of the) Jacobian
   for(unsigned int e = 0, en = jac_pattern.GetSize(); e < en; e++)
   {
     unsigned int j = jac_pattern[e]; // Hessian is diagonal with row=col
     assert((eval != HESSIAN)  || ((hess_pattern(e,0) == hess_pattern(e,1)) && (hess_pattern(e,0) == jac_pattern[e])));
-    double grad = outer_grad[e];
-    double xo   = common->x_outer[j];
-    double xi   = x_inner[j];
-    double U    = common->U[j];
-    double L    = common->L[j];
+    Double grad = outer_grad[e];
+    Double xo   = common->x_outer[j];
+    Double xi   = x_inner[j];
+    Double U    = common->U[j];
+    Double L    = common->L[j];
 
 
-    double p = grad > 0 ? (U-xo)*(U-xo) *  grad : 0.0;
-    double q = grad < 0 ? (xo-L)*(xo-L) * -grad : 0.0;
+    Double p = grad > 0 ? (U-xo)*(U-xo) *  grad : 0.0;
+    Double q = grad < 0 ? (xo-L)*(xo-L) * -grad : 0.0;
 
     LOG_DBG3(feasPP) << "A:E f=" << ToString() << " j=" << j << " xo=" << xo << " xi=" << xi << " grad=" << grad << " U=" << U << " L=" << L << " p=" << p << " q=" << q << " ov=" << outer_val;
 
     assert(xo < U && xi < U && xo > L && xi > L);
 
     // (6) in Sonjas paper, only for the objective, this is only tau (or 0.0 if not applicable)
-    double tau = constraint_idx == -1 ? common->convex_tau : 0.0;
+    Double tau = constraint_idx == -1 ? common->convex_tau : 0.0;
 
     // maxima:
     // fp: tau*(xi-xo)**2/(U-xi);
@@ -1030,10 +1030,10 @@ double MMAApproximation::EvalApproximation(const double* x_inner, Eval eval, Std
     {
     case FUNC:
     {
-      double r_ = p/(U-xo) + q/(xo-L);
-      double s  = p/(U-xi) + q/(xi-L);
+      Double r_ = p/(U-xo) + q/(xo-L);
+      Double s  = p/(U-xi) + q/(xi-L);
       // (6) in Sonjas paper, only for the objective
-      double c = tau * (grad >= 0 ? (xi-xo)*(xi-xo)/(U-xi) : (xi-xo)*(xi-xo)/(xi-L));
+      Double c = tau * (grad >= 0 ? (xi-xo)*(xi-xo)/(U-xi) : (xi-xo)*(xi-xo)/(xi-L));
       result += -r_ + s + c;
       LOG_DBG3(feasPP) << "A:E f=" << ToString() << " func r_=" << r_ << " s=" << s << " c=" << c << " -> " << result;
       break;
@@ -1041,7 +1041,7 @@ double MMAApproximation::EvalApproximation(const double* x_inner, Eval eval, Std
     case GRAD:
     {
       // diff(fp,xi); diff(fn,xi)
-      double c = grad >= 0 ? 2.0*tau*(xi-xo)/(U-xi) + tau*(xi-xo)*(xi-xo)/((U-xi)*(U-xi))
+      Double c = grad >= 0 ? 2.0*tau*(xi-xo)/(U-xi) + tau*(xi-xo)*(xi-xo)/((U-xi)*(U-xi))
                            : 2.0*tau*(xi-xo)/(xi-L) - tau*(xi-xo)*(xi-xo)/((xi-L)*(xi-L));
       (*out)[e] = + p/((U-xi)*(U-xi)) - q/((xi-L)*(xi-L)) + c;
       LOG_DBG3(feasPP) << "A:E f=" << ToString() << " c=" << c << " grad out[" << e << "]=" << (*out)[e];
@@ -1050,7 +1050,7 @@ double MMAApproximation::EvalApproximation(const double* x_inner, Eval eval, Std
     case HESSIAN:
     {
       // diff(diff(fp,xi),xi); diff(diff(fn,xi),xi);
-      double c = grad >= 0 ? 2.0*tau/(U-xi) + 4.0*tau*(xi-xo)/((U-xi)*(U-xi)) + 2.0*tau*(xi-xo)*(xi-xo)/((U-xi)*(U-xi)*(U-xi))
+      Double c = grad >= 0 ? 2.0*tau/(U-xi) + 4.0*tau*(xi-xo)/((U-xi)*(U-xi)) + 2.0*tau*(xi-xo)*(xi-xo)/((U-xi)*(U-xi)*(U-xi))
                            : 2.0*tau/(xi-L) - 4.0*tau*(xi-xo)/((xi-L)*(xi-L)) + 2.0*tau*(xi-xo)*(xi-xo)/((xi-L)*(xi-L)*(xi-L));
       (*out)[e] = 2.0*p/((U-xi)*(U-xi)*(U-xi)) + 2.0*q/((xi-L)*(xi-L)*(xi-L)) + c;
       LOG_DBG3(feasPP) << "A:E f=" << ToString() << " c=" << c << " hess out[" << e << "]=" << (*out)[e];
@@ -1063,7 +1063,7 @@ double MMAApproximation::EvalApproximation(const double* x_inner, Eval eval, Std
 
 double MMAApproximation::EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out)
 {
-  double result = 0.0;
+  Double result = 0.0;
 
   if(GetFunction()->IsObjective())
   {
@@ -1162,7 +1162,7 @@ double MMAApproximation::TransformMultiplyer(double lambda_ipopt)
 
   LocalCondition* g = dynamic_cast<LocalCondition*>(GetCondition());
   Function::Local::Identifier& id = g->GetCurrentVirtualContext();
-  double t = 0.0;
+  Double t = 0.0;
   switch(g->GetType())
   {
   case Function::BENSON_VANDERBEI_1:

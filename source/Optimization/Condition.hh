@@ -118,22 +118,22 @@ namespace CoupledField
        // int GetFMOPosDefMinor() const { return fmo_pos_def_minor_; }
 
        /** creates an xml attribute name compatible string representation for coords */
-       static std::string ToString(const StdVector<boost::tuple<int, int, double> >&);
+       static std::string ToString(const StdVector<boost::tuple<int, int, Double> >&);
 
        /** The scaling is evaluated for external optimizers, not in OC!
         * This is the manual set scaling value - in objective_scaling_ case this value is ignored! */
-       double manual_scaling_value;
+       Double manual_scaling_value;
 
        /**The penalty formulation allows to add constraints via this penalty term to the objective.
         * Actually a penelty method finds iteratively the right value, in practice it is a given
         * parameter. Currently this is *only* implemented for the *Level-Set* method! */
-       double penalty;
+       Double penalty;
        
        /** Shall delta constraints be printed? Is only true if a value is given! */
        bool delta_logging;
 
        /** Used for caching 1.0 / complete_volume per region */
-       double volume_fraction;
+       Double volume_fraction;
 
        /** If there is a <result id="optResult_1" value="constraintGradient" detail="volume" />
         * this is the special result index where the constraint gradient is also stored in
@@ -146,11 +146,11 @@ namespace CoupledField
         * E11-E12-2E33 = E11-E12-E33-E33 = 0 = (E11,1) + (E12,-1) + (E33,-2) are generated. Then coord is 2 or 3 entries.
         * Note, that the entries are 1-based!!!
         * the factor for ErsatzMaterial::CalcHomogenizedTensorEntry() */
-       StdVector<boost::tuple<int, int, double> > coords;
+       StdVector<boost::tuple<int, int, Double> > coords;
 
        /** For design tracking, this are the elements we have to track. Function::elements is resized accordingly!
         * The vector is empty when we do not do design tracking */
-       StdVector<double> pattern;
+       StdVector<Double> pattern;
 
        /** for bloch eigenvalues which are extremal (searched and not full) */
        EigenInfo bloch;
@@ -184,7 +184,7 @@ namespace CoupledField
       Bound bound_;
 
       /** the bound value, the value_ attribute contains the function value */
-      double boundValue_;
+      Double boundValue_;
 
       bool delta_logging_ignored_;
 
@@ -311,13 +311,13 @@ namespace CoupledField
      Matrix<unsigned int>& GetHessianSparsityPattern();
 
      /** @see Function::CalcHessian() */
-     void CalcHessian(StdVector<double>& out, double factor);
+     void CalcHessian(StdVector<Double>& out, Double factor);
 
      /** This is the local context currently requested by the optimizer */
      Function::Local::Identifier& GetCurrentVirtualContext();
 
      /** Calculates the mean |value|  */
-     double CalcMeanValue() const;
+     Double CalcMeanValue() const;
 
      /** Calculates the max |value| */
      double CalcMaxValue() const;
@@ -327,10 +327,10 @@ namespace CoupledField
 
      /** Overloads the base method. If in special mode element value is returned. Otherwise
       * the max norm is returned (calculated on the fly */
-     double GetValue() const;
+     Double GetValue() const;
 
      /** Overloaded to set the local blown up values if in local mode.  */
-     void SetValue(double val);
+     void SetValue(Double val);
 
      /** overloads ToString() to add local information if in local mode. For debug logging */
      std::string ToString(MultipleExcitation* me = NULL) const;

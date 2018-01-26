@@ -71,11 +71,11 @@ namespace CoupledField{
     Double edgeLength, edgeLengthVel;
     if ( dim == 2 ) 
     {
-      edgeLength =  std::pow(vol, 1.0/2.0);
+      edgeLength =  pow(vol, 1.0/2.0);
     }
     else
     {
-      edgeLength =  std::pow(vol, 1.0/3.0);
+      edgeLength =  pow(vol, 1.0/3.0);
     }
     //std::cout << "vol: " << vol << " len: " << edgeLength << std::endl;
 
@@ -119,7 +119,7 @@ namespace CoupledField{
           help = 0.0;
           for ( UInt j=0; j<xiDx.GetNumRows(); j++ )
             help += myVec[j]*xiDx[j][i];
-          edgeLengthVel += std::abs(help);
+          edgeLengthVel += fabs(help);
         }
         edgeLengthVel = 2.0 * myVec.NormL2() / edgeLengthVel ;
       }

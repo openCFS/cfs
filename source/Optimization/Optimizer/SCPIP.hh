@@ -89,7 +89,7 @@ class Optimization;
     
       void finalize_solution(int status, int n, const double* x, const double* z_L, 
                              const double* z_U, int m, const double* g, 
-                             const double* lambda, double obj_value);
+                             const double* lambda, Double obj_value);
 
       /** This method is called every time SCPIP returns. It is more common
        * to IPOPT when next_iter is true! */

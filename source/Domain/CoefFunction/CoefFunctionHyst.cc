@@ -599,7 +599,7 @@ namespace CoupledField {
 				bool outofSat = false;
 				bool intoSat = false;
 				bool satToSat = false;
-				if (abs(MAT_initialOutput_[k].NormL2() - MAT_ySat_) >= tol_) {
+				if (fabs(MAT_initialOutput_[k].NormL2() - MAT_ySat_) >= tol_) {
 					// hyst operator is in saturation
 					intoSat = true;
 				}
@@ -1984,7 +1984,7 @@ namespace CoupledField {
 			 */
 			if ((XML_deltaEvalVersion_ >= 20) && (XML_deltaEvalVersion_ < 30)) {
 				for (UInt i = 0; i < dim_; i++) {
-					if (abs(diff[i]) < MAT_ampResolution_) {
+					if (fabs(diff[i]) < MAT_ampResolution_) {
 						if (diff[i] < 0) {
 							/*
 							 * new value is smaller than old value
@@ -2065,9 +2065,9 @@ namespace CoupledField {
 				//      std::cout << "deltaY.NormL2(): " << deltaY.NormL2() << std::endl;
 				//      std::cout << "abs(deltaY.NormL2() - 2*MAT_ySat_): " << abs(deltaY.NormL2() - 2*MAT_ySat_) << std::endl;
 
-				if (abs(currentOutput.NormL2() - MAT_ySat_) <= tol_) {
+				if (fabs(currentOutput.NormL2() - MAT_ySat_) <= tol_) {
 					// hyst operator is now in saturation
-					if (abs(toDiffY.NormL2() - MAT_ySat_) > tol_) {
+					if (fabs(toDiffY.NormL2() - MAT_ySat_) > tol_) {
 						// and was not in saturation the last time
 						intoSat = true;
 					} else {
@@ -2075,13 +2075,13 @@ namespace CoupledField {
 						// now we have to check if it stayed in the same saturation (i.e. that we did not
 						// switch from positive to negative saturation!
 						// allow much larger tolerance here
-						if (abs(deltaY.NormL2() - 2 * MAT_ySat_) < 1e-8) {
+						if (fabs(deltaY.NormL2() - 2 * MAT_ySat_) < 1e-8) {
 							satToSat = true;
 						}
 					}
 				} else {
 					// hyst operator is not in saturation
-					if (abs(toDiffY.NormL2() - MAT_ySat_) <= tol_) {
+					if (fabs(toDiffY.NormL2() - MAT_ySat_) <= tol_) {
 						// but was in saturation the last time
 						outofSat = true;
 					}
@@ -2182,10 +2182,10 @@ namespace CoupledField {
 
 					// check if single component is smaller than the tolerance
 					// if so: set dX[i] to MAT_ampResolution_
-					if (abs(dX[i]) == 0) {
+					if (fabs(dX[i]) == 0) {
 						outputTensor[i][i] = deltaMat_lastIt_[storageIdx][i][i]; // dangerous
 					} else {
-						outputTensor[i][i] = addValue + sign * abs(dY[i] / dX[i]);
+						outputTensor[i][i] = addValue + sign * fabs(dY[i] / dX[i]);
 					}
 					//        if(abs(dX[i]) < MAT_ampResolution_ ){
 					//          outputTensor[i][i] = addValue + sign*abs(dY[i]/MAT_ampResolution_);
@@ -2237,7 +2237,7 @@ namespace CoupledField {
 				std::cout << "X_current = " << X_current.ToString() << std::endl;
 
 				for (UInt i = 0; i < dim_; i++) {
-					outputTensor[i][i] = abs(dY_sol[storageIdx][i] / (X_target[i] - E_H_lastTS_[storageIdx][i]));
+					outputTensor[i][i] = fabs(dY_sol[storageIdx][i] / (X_target[i] - E_H_lastTS_[storageIdx][i]));
 				}
 			} else {
 
@@ -2260,10 +2260,10 @@ namespace CoupledField {
 
 						// check if single component is smaller than the tolerance
 						// if so: set dX[i] to MAT_ampResolution_
-						if (abs(dX[i]) < MAT_ampResolution_) {
-							outputTensor[i][i] = addValue + sign * abs(dY[i] / MAT_ampResolution_);
+						if (fabs(dX[i]) < MAT_ampResolution_) {
+							outputTensor[i][i] = addValue + sign * fabs(dY[i] / MAT_ampResolution_);
 						} else {
-							outputTensor[i][i] = addValue + sign * abs(dY[i] / dX[i]);
+							outputTensor[i][i] = addValue + sign * fabs(dY[i] / dX[i]);
 						}
 					}
 				}
@@ -2441,7 +2441,7 @@ namespace CoupledField {
 			//        std::cout << "Use last value as dX["<<i<<"] is 0" << std::endl;
 			//        //stick with last value
 			//        std::cout << "idx: " << idx << std::endl;
-			//        Double downStepping = std::pow(0.75,Double(cuttingApplied_[idx]));
+			//        Double downStepping = pow(0.75,Double(cuttingApplied_[idx]));
 			//
 			//        std::cout << "Downstepping: " << downStepping << std::endl;
 			//        Double tmpValue = deltaMat_lastIt_[idx][i][i]*downStepping;
@@ -2594,7 +2594,7 @@ namespace CoupledField {
 			}
 		} else if (flagName == "estimateSlope") {
 			// here we do not acutally set a flag but instead execute the estimateCurrentSlope function
-			Double fac = std::pow(10, -1.0 * Double(intState));
+			Double fac = pow(10, -1.0 * Double(intState));
 			//std::cout << "fac: " << fac << std::endl;
 			EstimateCurrentSlope(Vector<Double>(dim_), fac);
 
@@ -2958,8 +2958,11 @@ namespace CoupledField {
     xIn[0] = Vector<Double>(dim_);
     xIn[0].Init(0.0);
     xIn[0][1] = -MAT_xSat_;
-    
+#ifndef USE_ADOLC
     UInt numStepsFirstIncrease = (UInt) ( (Double)numTests/8.0 ) +1;
+#else
+    UInt numStepsFirstIncrease = (UInt) ( ( (Double)numTests/8.0).getValue() ) +1;
+#endif
     Double incr = MAT_xSat_/((Double) numStepsFirstIncrease-1);
     for(UInt i = 1; i < numStepsFirstIncrease; i++){
       xIn[i] = Vector<Double>(dim_);

@@ -34,8 +34,8 @@ public:
   virtual ~CoefFunctionOpt() { }
 
   //! \copydoc CoefFunction::GetTensor
-  void GetTensor(Matrix<double>& coefMat, const LocPointMapped& lpm) {
-    GetTensor<double>(coefMat, lpm);
+  void GetTensor(Matrix<Double>& coefMat, const LocPointMapped& lpm) {
+    GetTensor<Double>(coefMat, lpm);
   }
 
   void GetTensor(Matrix<Complex>& coefMat, const LocPointMapped& lpm) {
@@ -43,13 +43,13 @@ public:
   }
 
   //! \copydoc CoefFunction::GetMsfemElementMatrix
-  void GetMsfemElementMatrix(Matrix<double>& elemMat, const LocPointMapped& lpm) {
-    GetMsfemElementMatrix<double>(elemMat, lpm);
+  void GetMsfemElementMatrix(Matrix<Double>& elemMat, const LocPointMapped& lpm) {
+    GetMsfemElementMatrix<Double>(elemMat, lpm);
   }
 
   //! \copydoc CoefFunction::GetScalar
-  void GetScalar(double& scal, const LocPointMapped& lpm) {
-    GetScalar<double>(scal, lpm);
+  void GetScalar(Double& scal, const LocPointMapped& lpm) {
+    GetScalar<Double>(scal, lpm);
   }
 
   //! \copydoc CoefFunction::GetScalar
@@ -59,7 +59,7 @@ public:
 
   //! \copydoc CoefFunction::GetVector
   void GetVector(Vector<Double>& vec, const LocPointMapped& lpm) {
-    GetVector<double>(vec, lpm);
+    GetVector<Double>(vec, lpm);
   }
 
 

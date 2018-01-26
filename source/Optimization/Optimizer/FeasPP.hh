@@ -73,7 +73,7 @@ public:
 
   /** In the feasibility paper in (6) is a convexication term for the objective only.
    * The parameter is a scalar, fixed tau. Setting to 0.0 disables the term! */
-  double convex_tau;
+  Double convex_tau;
 
   compressed_matrix<double>* hessian;
 
@@ -103,28 +103,28 @@ private:
    * Feasibility paper (16)
    * @param x the functions will be evaluated at x
    * @param rho vector of penalty parameters, first the 'normal' constraints, then the feasibility constraints. */
-  double CalcAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const Vector<double>& rho);
+  Double CalcAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const Vector<double>& rho);
 
   /** the gradient with respect to x and y written all to grad
    * @param grad size n + m */
   void CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const Vector<double>& rho, Vector<double>& grad);
 
   /** strictly feasibility papert (18) and (19). necessary to ensure convergence */
-  double CalcEta(double tau, const Vector<double>& x_vec, const Vector<double>& z_vec);
+  Double CalcEta(double tau, const Vector<double>& x_vec, const Vector<double>& z_vec);
 
   /** calculates the penality parameter sfor the augmented Lagrangian.
    * Feasibility paper (20) and (21)
    * @param diff = norm(z-x)^2
    * @param rho old and to be overwritten */
-  void CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec,  const Vector<double>& v_vec, Vector<double>& rho) const;
+  void CalcPenaltyRho(double eta, Double diff, const Vector<double>& y_vec,  const Vector<double>& v_vec, Vector<double>& rho) const;
 
   typedef struct
   {
     bool old_point_is_optimal;
     int steps;
-    double stepwidth;
-    double org_dx;
-    double curr_dx;
+    Double stepwidth;
+    Double org_dx;
+    Double curr_dx;
   } LSR; // line search result
 
   /** performs backtracking linesearch. obj(x_new) >= obj(x_old)= ob->outer_value
@@ -145,7 +145,7 @@ private:
   void UpdateAsymptotes(const Vector<double>&x_outer, int iter, bool force_reduction = false);
 
   /** calc a not KKT like stopping criteria following (7.24) in Sonja's thesis */
-  // double CalcStopingCriteria(const Vector<double>& x, const Vector<double>& x_old, const Vector<double>& y);
+  // Double CalcStopingCriteria(const Vector<double>& x, const Vector<double>& x_old, const Vector<double>& y);
 
   /** eval all kkt errors */
   void EvalKKT(const Vector<double>& x, PtrParamNode in);
@@ -154,7 +154,7 @@ private:
    * @approx true for inner problem (ipopt-result), false for outer-problem */
   void CalcKKT(const Vector<double>& x, PtrParamNode in,  bool sub, bool det, bool max_norm = true);
 
-  double CalcAngle();
+  Double CalcAngle();
 
   /** assume the current design to be FMO tensors and output them */
   void DumpFMPTensors();
@@ -189,44 +189,44 @@ private:
   Vector<double> rho;
 
   /** the initial value for rho, optionally to be set in xml */
-  double rho_init_;
+  Double rho_init_;
 
   /** constant eta in (22) - different from eta_k (18) ... (21) */
-  double rho_eta_;
+  Double rho_eta_;
 
   /** decrease factor for augmented Lagrangian Armijo rule: my in (23) in (0,1) */
-  double decrease_;
+  Double decrease_;
 
   /** Augmented Lagrangian: Stepwidth for Armijo rule: beta in Step 5 in Algorithm 1 in (0,1) */
-  double stepwidth_;
+  Double stepwidth_;
 
   /** the minimal step width factor form augmented Lagrangian and backtracking */
-  double min_step_;
+  Double min_step_;
 
   /** MMA parameters for asymptotes update */
-  double mma_shrink_;
-  double mma_grow_;
-  double mma_dist_;
+  Double mma_shrink_;
+  Double mma_grow_;
+  Double mma_dist_;
 
   /** this design history is used and controlled by UpdateAsymptotes() */
   std::pair<int, Vector<double> > prev_x_;
   std::pair<int, Vector<double> > prev_prev_x_;
 
   /** bounds for the asymptotes */
-  double u_max_;
-  double l_min_;
+  Double u_max_;
+  Double l_min_;
 
   /** optional refinements in case backtracking returned to old solution. Then it might makes sense to
    * solve the subproblem again with tighter tolerances */
-  double max_refine_;
-  double refine_steps_;
+  Double max_refine_;
+  Double refine_steps_;
 
   /** maximal number of asymptotes reduction in case the subproblem cannot be solved. Enlarging is automatically
    * by UpdateAsymptotes when solutions don't oscillate */
   int max_reductions_;
 
   /** the KKT criterion for CalcKKT() */
-  double kkt_;
+  Double kkt_;
 
 };
 
@@ -243,7 +243,7 @@ public:
   typedef enum { FUNC, GRAD, HESSIAN } Eval;
 
   /** evaluate function value or first derivative according to the MMA approximation */
-  double Evaluate(const double* x_inner, Eval eval, StdVector<double>* out = NULL);
+  Double Evaluate(const double* x_inner, Eval eval, StdVector<double>* out = NULL);
 
   void AddHessianPattern(compressed_matrix<double>& hessian);
 
@@ -256,7 +256,7 @@ public:
    * transformed according to the feasibility paper. If this dies not apply for this function the input value is
    * returned.
    * You need to make sure, that the current CFS design is the final design of ipopt!! */
-  double TransformMultiplyer(double lambda_ipopt);
+  Double TransformMultiplyer(double lambda_ipopt);
 
   /** helper for logging
    * @param determinant @see GetCondition() */
@@ -274,11 +274,11 @@ public:
   Matrix<unsigned int> hess_pattern;
 
   /** bounds */
-  double lower;
-  double upper;
+  Double lower;
+  Double upper;
 
   /** function value of the outer function */
-  double outer_val;
+  Double outer_val;
 
   /** shall this function be approximated */
   bool approximate;
@@ -300,9 +300,9 @@ public:
 
 private:
 
-  double EvalApproximation(const double* x_inner, Eval eval, StdVector<double>* out);
+  Double EvalApproximation(const double* x_inner, Eval eval, StdVector<double>* out);
 
-  double EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out);
+  Double EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out);
 
   /** We cannot store a function pointer because of the local constraints where we need an index.
    * -1 is for objective */
