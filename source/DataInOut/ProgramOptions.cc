@@ -1007,7 +1007,7 @@ namespace CoupledField {
     out << "sizeof(size_t)         "  << fg_blue << sizeof(size_t) << fg_reset << endl;
     out << "sizeof(long)           "  << fg_blue << sizeof(long) << fg_reset << endl;    
     out << "sizeof(long int)       "  << fg_blue << sizeof(long int) << fg_reset << endl;
-    out << "sizeof(double)         "  << fg_blue << sizeof(double) << fg_reset << endl;    
+    out << "sizeof(Double)         "  << fg_blue << sizeof(Double) << fg_reset << endl;    
     out << "sizeof(void*)          "  << fg_blue << sizeof(void*) << fg_reset << endl;
     out << "CLOCKS_PER_SEC         "  << fg_blue << CLOCKS_PER_SEC << fg_reset << endl;
     

@@ -138,9 +138,9 @@ namespace CoupledField
         vend = it->second.end();
         
         int nVerts = it->second.size();
-        double x = 0.0;
-        double y = 0.0;
-        double z = 0.0;
+        Double x = 0.0;
+        Double y = 0.0;
+        Double z = 0.0;
         
         for( ; vit != vend; vit++ )
         {
@@ -206,9 +206,9 @@ namespace CoupledField
           vend = faceVertices_[face].end();
           
           int nVerts = faceVertices_[face].size();
-          double x = 0.0;
-          double y = 0.0;
-          double z = 0.0;
+          Double x = 0.0;
+          Double y = 0.0;
+          Double z = 0.0;
           
           for( ; vit != vend; vit++ )
           {
@@ -265,8 +265,8 @@ namespace CoupledField
     std::map<UInt, std::string>::iterator dofIt, dofEnd;  
     Entity2DataMap::iterator e2dIt = cell2Data_.begin();
 
-    std::vector<double> coord(3);
-    std::vector<double> qdofs;
+    std::vector<Double> coord(3);
+    std::vector<Double> qdofs;
 
     if(cellCenters_) 
     {
@@ -280,9 +280,9 @@ namespace CoupledField
         
         // Compute cell centers
         int nVerts = it->second.size();
-        double x = 0.0;
-        double y = 0.0;
-        double z = 0.0;
+        Double x = 0.0;
+        Double y = 0.0;
+        Double z = 0.0;
         
         for( ; vit != vend; vit++ )
         {
@@ -336,9 +336,9 @@ namespace CoupledField
           vend = faceVertices_[face].end();
           
           int nVerts = faceVertices_[face].size();
-          double x = 0.0;
-          double y = 0.0;
-          double z = 0.0;
+          Double x = 0.0;
+          Double y = 0.0;
+          Double z = 0.0;
           
           for( ; vit != vend; vit++ )
           {
@@ -651,7 +651,7 @@ namespace CoupledField
     unsigned int kNVals = kNValues;    
     float scale;
     vector<int> mapData;
-    vector<double> verts;
+    vector<Double> verts;
     CCMIOID mapID;
 
     // Read the vertices.  This involves reading both the vertex data and
@@ -728,7 +728,7 @@ namespace CoupledField
     CCMIOID field, phase;
     CCMIODimensionality dims;
     vector<int> mapData;
-    vector<double> data;
+    vector<Double> data;
 
     oldFile = (CCMIONextEntity(NULL, solution, kCCMIOFieldPhase, &h, &phase)
                != kCCMIONoErr);
@@ -801,7 +801,7 @@ namespace CoupledField
           break;
         case kCCMIOVector:
           {
-            vector<double> u, v, w;
+            vector<Double> u, v, w;
             CCMIOID scalar;
             CCMIOReadMultiDimensionalFieldData(&err, field,
                                                kCCMIOVectorX, &scalar);
@@ -859,7 +859,7 @@ namespace CoupledField
   }
 
   void ScatteredDataReaderCCM::ReadScalar( CCMIOError &err, CCMIOID& field,
-                                           vector<int> &mapData, vector<double> &data,
+                                           vector<int> &mapData, vector<Double> &data,
                                            bool readingVector /* = false */,
                                            const char* shortName /* = NULL */)
   {

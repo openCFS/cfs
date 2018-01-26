@@ -149,7 +149,7 @@ namespace CoupledField {
                     isize[0], Unstructured, &idxZone_[baseIdx][i]);
       
       // Get node coordinates
-      StdVector< Vector<double> > coords(3);
+      StdVector< Vector<Double> > coords(3);
       Vector<Double> point;
       
       UInt d = 0;
@@ -291,7 +291,7 @@ namespace CoupledField {
 #if 0
     int indexFlow,indexField;
 
-    StdVector<double> press(numNodes);
+    StdVector<Double> press(numNodes);
     for (UInt node=0; node<numNodes; node++) {
         press[node] = 1.0+xCoord[node]*(1.0 - yCoord[node]*yCoord[node])*exp(1.0-zCoord[node]);
     }
@@ -324,7 +324,7 @@ namespace CoupledField {
 // go to BaseIterativeData level and write time values
     cg_goto(indexFile_,indexBase_,"BaseIterativeData_t",1,"end");
     cgsize_t nuse=3;
-    double time[3];
+    Double time[3];
     time[0] = 1.0; time[1] = 2.0; time[2] = 3.0;
     cg_array_write("TimeValues",RealDouble,1,&nuse,&time);
 // create ZoneIterativeData
@@ -816,7 +816,7 @@ namespace CoupledField {
                                      const StdVector<shared_ptr<BaseResult> > & solList,
                                      ResultInfo::EntityUnknownType entityType ) {
 
-    static const double H180DEG_OVER_PI = 180.0 / M_PI;
+    static const Double H180DEG_OVER_PI = 180.0 / M_PI;
 
     BaseMatrix::EntryType entryType = solList[0]->GetEntryType();
 
@@ -919,11 +919,15 @@ namespace CoupledField {
               Complex sol = actSol[it.GetPos()*numDofs+iDof];
               
               if(writeAmplPhase_) 
-              {                
+              {
+#ifndef USE_ADOLC                
                 regionSols[resNameAmpl][regionId][idx] = hypot(sol.real(), sol.imag());
+#else
+                regionSols[resNameAmpl][regionId][idx] = hypot(sol.real().getValue(), sol.imag().getValue());
+#endif
                 regionSols[resNamePhase][regionId][idx] = 
-                  (std::abs(sol.imag()) > 1e-16) ?
-                  std::atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
+                  (fabs(sol.imag()) > 1e-16) ?
+                  atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
                   ( sol.real() < 0.0 ) ? 180 : 0 ;
               }
               else
@@ -1009,10 +1013,14 @@ namespace CoupledField {
                 
                 if(writeAmplPhase_) 
                 {
-                  regionSols[resNameAmpl][regionId][idx] = hypot(sol.real(), sol.imag());
+#ifndef USE_ADOLC                
+                regionSols[resNameAmpl][regionId][idx] = hypot(sol.real(), sol.imag());
+#else
+                regionSols[resNameAmpl][regionId][idx] = hypot(sol.real().getValue(), sol.imag().getValue());
+#endif
                   regionSols[resNamePhase][regionId][idx] = 
-                    (std::abs(sol.imag()) > 1e-16) ?
-                    std::atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
+                    (fabs(sol.imag()) > 1e-16) ?
+                    atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
                     ( sol.real() < 0.0 ) ? 180 : 0 ;
                 }
                 else

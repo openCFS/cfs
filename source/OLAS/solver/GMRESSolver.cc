@@ -282,7 +282,7 @@ namespace CoupledField {
 
 
     UInt i, k;
-    T aux = 0;
+    T aux = T(0);
 //    Double resNormNew = beta;
     approxIsGood = false;
 
@@ -360,7 +360,7 @@ namespace CoupledField {
 
 //      resNormNew = std::abs(bVec_[i+1]); // needed to obtain a Double
 
-      if ( std::abs(bVec_[i+1]) <= threshold ) {
+      if ( Abs(bVec_[i+1]) <= threshold ) {
         approxIsGood = true;
         stepCount = i;
         break;

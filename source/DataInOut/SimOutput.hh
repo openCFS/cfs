@@ -99,8 +99,8 @@ namespace CoupledField {
     
     //! Get from complex number the angle in degree with lower limit
     inline Double CPhase( const Complex& c ) const {
-      return (std::abs(c.imag()) > 1e-16) ?                   
-        std::atan2(c.imag(),c.real() )*180/M_PI : 
+      return (fabs(c.imag()) > 1e-16) ?                   
+        atan2(c.imag(),c.real() )*180/M_PI : 
          ( c.real() < 0.0 ) ? 180 : 0 ; 
     }
     

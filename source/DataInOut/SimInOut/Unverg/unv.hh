@@ -13,6 +13,13 @@
 
 #include "def_use_unv.hh"
 
+#ifdef USE_ADOLC
+//typedef adouble Double;
+typedef adtl::adouble Double;
+#else
+typedef double Double;
+#endif
+
 class unv {
   friend class dataset;
   enum UnvFlagType {
@@ -85,7 +92,7 @@ struct data_15 {
   int   def_coord_sys_n;
   int   dis_coord_sys_n;
   int   color;
-  double x1 ,x2, x3;
+  Double x1 ,x2, x3;
 };
 
 
@@ -111,12 +118,12 @@ struct header_55 {
   int    n_int_data_val;
   int    n_real_data_val;
   int    type_spec_int_par[10];
-  double type_spec_double_par[12];
+  Double type_spec_double_par[12];
 };
 
 struct data_55 {
   int    node_num;
-  double* node_data;
+  Double* node_data;
 };
 
 
@@ -145,13 +152,13 @@ struct header_56 {
   int    n_int_data_val;
   int    n_real_data_val;
   int    type_spec_int_par[10];
-  double type_spec_double_par[12];
+  Double type_spec_double_par[12];
 };
 
 struct data_56 {
   int    element_num;
   int    n_val_on_element;
-  double* element_data;
+  Double* element_data;
 };
 
 
@@ -234,7 +241,7 @@ struct data_781 {
   int    def_coord_sys_n;
   int    dis_coord_sys_n;
   int    color;
-  double x1, x2, x3;
+  Double x1, x2, x3;
 };
 
 
@@ -289,9 +296,9 @@ struct header_58 {
   int     data_type;    // ordinate data type
   int     num_values;   // number of data values
   int     abs_space;    // abscissa spacing
-  double  abs_min;      // abscissa minimum
-  double  abs_inc;      // abscissa increment
-  double  z_value;      // z-axis value
+  Double  abs_min;      // abscissa minimum
+  Double  abs_inc;      // abscissa increment
+  Double  z_value;      // z-axis value
   struct axis_58 {
     int   data_type;    // specific data type
     int   len_exp;      // length units exponent
@@ -304,9 +311,9 @@ struct header_58 {
 };
 
 struct data_58 {
-  double  step_val;
-  double  real;
-  double  imag;
+  Double  step_val;
+  Double  real;
+  Double  imag;
 };
 
 class dataset_58 : public dataset {

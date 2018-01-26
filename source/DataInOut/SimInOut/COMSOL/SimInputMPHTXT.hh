@@ -111,7 +111,7 @@ namespace CoupledField {
     
     //! This method reads all nodal coordinates into a vector of 3D-Points.
     //! \param nodeCoords (output) vector containing nodal coordinates
-    void GetCoordinates( std::vector< double > & nodeCoords );
+    void GetCoordinates( std::vector< Double > & nodeCoords );
     
     //! Get vector of nodes for each region
 

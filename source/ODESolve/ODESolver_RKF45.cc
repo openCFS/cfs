@@ -140,7 +140,7 @@ namespace CoupledField
     // errCon = (5/safetyFac_) rasied to the power (1/powergrow)
     //Double errCon = 1.89e-4;
     Double errCon;
-    errCon = std::pow((5.0/safetyFac_),(1.0/powerGrow));//1.0e-5;
+    errCon = pow((5.0/safetyFac_),(1.0/powerGrow));//1.0e-5;
    
     Integer i;
 
@@ -176,7 +176,7 @@ namespace CoupledField
 	  break;                    //Step succeeded. Compute size of next step
 	}
 	
-	hTemp = safetyFac_ * h * std::pow(errMax,powerShrink);
+	hTemp = safetyFac_ * h * pow(errMax,powerShrink);
 	//Truncation error too large, reduce stepsize, no more than factor 10
 	h = ( h >= 0.0 ?
 	      (hTemp > 0.1*h ? hTemp: 0.1*h ):(hTemp <0.1*h ? hTemp: 0.1*h ));
@@ -215,7 +215,7 @@ namespace CoupledField
 
     //Compute size of next step, no more than factor 5 increase
     if ( errMax > errCon ) {
-      hNext = safetyFac_ * h * std::pow(errMax, powerGrow);
+      hNext = safetyFac_ * h * pow(errMax, powerGrow);
     }
     else {
       hNext = 5.0*h;

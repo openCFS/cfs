@@ -761,7 +761,7 @@ namespace CoupledField {
     }
 
     /*std::string attrname;
-    double data1[32], data2[32];
+    Double data1[32], data2[32];
 
     std::cout.precision(7);
     std::cout.width(10);

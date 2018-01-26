@@ -5,8 +5,17 @@
 
 #define MAX_SETS 1000
 
+
+#ifdef USE_ADOLC
+//typedef adouble Double;
+typedef adtl::adouble Double;
+#else
+typedef double Double;
+#endif
+
+
 struct SetInfo {
-  double time;  // absolute time
+  Double time;  // absolute time
   int idx;      // index to data array
   int ndata;    // number of values per node/element
 };
@@ -66,11 +75,11 @@ protected:
   long          nDim; // dimension of the mesh
   DataTypes     dataType; //type of data: transient, harmonic, etc.
   long          nNodeDataSets; //number of node data sets (set 55)
-  double        nodeXData[MAX_SETS]; //time stamp of the node data sets
+  Double        nodeXData[MAX_SETS]; //time stamp of the node data sets
   long          nodeDataSetsNumData[MAX_SETS]; 
   long          nElemDataSets; //number of element data sets (set 56)
   long          elemDataSetsNumData[MAX_SETS];
-  double        elemXData[MAX_SETS];
+  Double        elemXData[MAX_SETS];
   long          numHistTypes;
   long          histDataSetsNumData[MAX_SETS];
   NodeDataTypes nodeDataSets[MAX_SETS]; //type of node data (displ., velocity, etc.); coded as integers
@@ -102,22 +111,22 @@ public:
   long GetElemDataSetNumData(long set) const;
   
   int ReadUniversalfile(const char *fileName);
-  const double* GetNodeXData(void) const {return nodeXData;}  
-  const double* GetElemXData(void) const {return elemXData;}
-  void GetHistXData(int &numSteps, double *stepVals) const;
+  const Double* GetNodeXData(void) const {return nodeXData;}  
+  const Double* GetElemXData(void) const {return elemXData;}
+  void GetHistXData(int &numSteps, Double *stepVals) const;
   long GetHistNumData(long type) const;
   
-  void GetPos(long iNode, double* pos) const;
+  void GetPos(long iNode, Double* pos) const;
   int GetMaxElemNodes(void) const;
   void GetElemNodes(long iElem, long& numNodes, long* nodes) const;
   void GetElemColor(long iElem, long& elemcolor) const;
   void GetElemType(long iElem, long& elemtype) const;
-  int GetNodeData(long iNode, long iData, double* d1, double* d2) const;
+  int GetNodeData(long iNode, long iData, Double* d1, Double* d2) const;
   int GetNodeHistData(long iNode, int type, long step,
-                      double *d1, double *d2) const;
-  int GetElemData(long iElem, long iData, double* d1, double* d2) const;
+                      Double *d1, Double *d2) const;
+  int GetElemData(long iElem, long iData, Double* d1, Double* d2) const;
 
-  double GetNodeDataTime(int idataset) const {return nodeXData[idataset];}
+  Double GetNodeDataTime(int idataset) const {return nodeXData[idataset];}
 
   void GetDataInfo(GDataInfo & datainfo) const;
 };
