@@ -185,13 +185,13 @@ class Function
     virtual bool IsObjective() const = 0;
 
     /** Get the parameter, if it was set */
-    double GetParameter() const { return parameter_;  }
+    Double GetParameter() const { return parameter_;  }
 
     /** The evaluates function values. -1.0 if not set. */
-    virtual double GetValue() const { return value_; }
+    virtual Double GetValue() const { return value_; }
 
     /** overloaded in SlopeCondition */
-    virtual void SetValue(double val) { value_ = val; }
+    virtual void SetValue(Double val) { value_ = val; }
 
     /** Access of the design variable in local constraints:
      * PLAIN: design variable, FILTERED: filtered design variable, PHYSICAL: filtered and penalized design variable
@@ -257,7 +257,7 @@ class Function
      * some special non-linear local constraints.
      * @param out needs to be the size of rows of GetHessianSparsityPattern()
      * @param factor -1 for normalizing lower bound constraints to c <= 0 */
-    virtual void CalcHessian(StdVector<double>& out, double factor);
+    virtual void CalcHessian(StdVector<Double>& out, Double factor);
 
     /** Requires this function an adjoint solution for the gradient? */
     bool IsAdjointBased() const;
@@ -297,7 +297,7 @@ class Function
     bool ForSensitivityFiltering() const;
 
     /** the tensor exists only in the homogenization constraint case */
-    Matrix<double>& GetTensor() { return tensor_; }
+    Matrix<Double>& GetTensor() { return tensor_; }
     
     /** index within all objectives for design element gradient */
     int GetIndex() const { return index_; }
@@ -400,24 +400,24 @@ class Function
       bool periodic;
 
       /** Data structure for the interpolation coefficients for latticeVol3D*/
-      Matrix<double> vol_coeff_;
-      Matrix<double> vol_a_;
-      Matrix<double> vol_b_;
-      Matrix<double> vol_c_;
+      Matrix<Double> vol_coeff_;
+      Matrix<Double> vol_a_;
+      Matrix<Double> vol_b_;
+      Matrix<Double> vol_c_;
 
       /** total volume for CalcLaminatesVol in the unregular grid case*/
-      double total_vol_;
+      Double total_vol_;
 
       Phase GetPhase() const { return phase_; }
 
       /** The beta value for smoothing min/max, checks if its set. */
-      double GetBeta() const { assert(beta_ != -3.14); return beta_; }
+      Double GetBeta() const { assert(beta_ != -3.14); return beta_; }
 
       /** The eps value form smoothing abs, checks if its set. */
-      double GetEps() const { assert(eps_ >= 0); return eps_; }
+      Double GetEps() const { assert(eps_ >= 0); return eps_; }
 
       /** The power for the globalized local sum( max(0, g_i(x) - c)^p) */
-      double GetPower() const { return power_; }
+      Double GetPower() const { return power_; }
 
       /** is globalied local? */
       bool IsGlobalized() const { return globalized_; }
@@ -464,14 +464,14 @@ class Function
 
 
         /** returns design value by the design type. getParameter == true works for ParamMat parameters. Works only for special neighborhoods! */
-        double GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access = DesignElement::SMART, bool getParameter = true) const;
+        Double GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access = DesignElement::SMART, bool getParameter = true) const;
 
         /** Service function. Calculates the actual objective, based on function->type.
          * Is very fast for grad_glob and power == 1
          * @param grad_glob only active when globalized. If grad_glob is active EvalFunction is called as in EvalGrad in order to calculated
          * the gradient.
          * @param von_mises_stresss only used when the function is stress -> determined by ErsatzMaterial::CalcVonMisesStressGlobalizationFactor() */
-        double EvalFunction(const Local* local, bool grad_glob = false, double von_mises_stresss = -1.0) const;
+        Double EvalFunction(const Local* local, bool grad_glob = false, Double von_mises_stresss = -1.0) const;
 
         /** Service function. Calculates all gradients for this and the neighbors. Only for real local function!.
          * Note, that the von Mises Stress gradient is NOT calculated here but in SIMP::CalcVonMisesStressGradient()!
@@ -503,20 +503,20 @@ class Function
 
         /** calculates the checkerboard value. The sign determines if the smaller or larger value is evaluated
          * @param beta < 0 is real max, otherwise it is a Kreiselmeier Steinhauser approximation */
-        double CalcCheckerboard(double beta) const;
-        double CalcCheckerboardGradient(int neigh_idx, double beta);
+        Double CalcCheckerboard(Double beta) const;
+        Double CalcCheckerboardGradient(int neigh_idx, Double beta);
 
         /** T. Poulsen's feature size control */
-        double CalcMole(double eps) const;
-        double CalcMoleGradient(int neigh_idx, double eps);
+        Double CalcMole(Double eps) const;
+        Double CalcMoleGradient(int neigh_idx, Double eps);
 
         /** Oscillation is a feature size control which is by variable radius a generalization of a checkerboard constraint */
-        double CalcOscillation(double beta) const;
-        double CalcOscillationGradient(int neigh_idx, double beta);
+        Double CalcOscillation(Double beta) const;
+        Double CalcOscillationGradient(int neigh_idx, Double beta);
 
         /** weak formulation of a greyness control */
-        double CalcJump() const;
-        double CalcJumpGradient(int neigh_id) const;
+        Double CalcJump() const;
+        Double CalcJumpGradient(int neigh_id) const;
 
         /** no change of slope sign. Positive if the prev and next slope have the same sign (getting larger or smaller) */
         double CalcBump() const;
@@ -527,75 +527,75 @@ class Function
         double CalcCurvatureGradient(int neigh_idx) const;
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
-        double CalcSumModuli(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
+        Double CalcSumModuli(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
         /** tensor trace of the material tensor in (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
-        double CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
+        Double CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
         /** volume of material of the homogenized cross shaped structure in 3D including derivatives */
-        //double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool derivative, double der) const;
+        //Double Calc3DCrossVolume(Double stiff1, Double stiff2, Double stiff3, bool derivative, Double der) const;
 
         /** Function returns/interpolates the volume in 3D for cross shaped base cell*/
-        double Interpolate_Volume3D(Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c, const Matrix<double>& vol_coeff,
-            double direction) const;
+        Double Interpolate_Volume3D(Vector<Double>& p, const Matrix<Double>& vol_a, const Matrix<Double>& vol_b, const Matrix<Double>& vol_c, const Matrix<Double>& vol_coeff,
+            Double direction) const;
 
         /** Get the index of the local interpolation interval*/
-        int GetInterpolationIndex(Matrix<double>, double&) const;
+        int GetInterpolationIndex(Matrix<Double>, Double&) const;
 
         /** Function evaluates the interpolation polynomial used for volume calculation in 3D for cross shaped base cell*/
-        double EvaluateC1Interpolation_3D( Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c,const Matrix<double> & vol_coeff, double & da, double & db,
-            double & dc, int & j, int & k, int & l, int & m, int & n, int &o) const;
+        Double EvaluateC1Interpolation_3D( Vector<Double>& p, const Matrix<Double>& vol_a, const Matrix<Double>& vol_b, const Matrix<Double>& vol_c,const Matrix<Double> & vol_coeff, Double & da, Double & db,
+            Double & dc, int & j, int & k, int & l, int & m, int & n, int &o) const;
 
         /** Function calculates the derivative of the interpolation polynomial with respect to stiffness number, specified by variable direction*/
-        double EvaluateC1Interpolation_Deriv_3D(Vector<double>& p, const Matrix<double> & vol_a, const Matrix<double> & vol_b, const Matrix<double>& vol_c, const Matrix<double> & vol_coeff, double & da, double & db,
-            double & dc, int & j, int & k, int & l, int & m, int & n, int & o,
-            double direction) const;
+        Double EvaluateC1Interpolation_Deriv_3D(Vector<Double>& p, const Matrix<Double> & vol_a, const Matrix<Double> & vol_b, const Matrix<Double>& vol_c, const Matrix<Double> & vol_coeff, Double & da, Double & db,
+            Double & dc, int & j, int & k, int & l, int & m, int & n, int & o,
+            Double direction) const;
 
         /** volume of material (strong phase for plane strain) in laminate homogenization and two_scale formulas */
-        double CalcTwoScaleVolume(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
+        Double CalcTwoScaleVolume(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
         /** volume of material from homogenized lattice structure in 3D */
-        double CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx=-1, bool derivative = false) const;
+        Double CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx=-1, bool derivative = false) const;
 
         /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
-        double CalcParamPSPosDef(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const;
+        Double CalcParamPSPosDef(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const;
 
         /** local tensor trace for FMO */
-        double CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const;
+        Double CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const;
 
         /** squared L2 norm of all tensor entries. Meant for the piezoelectric coupling tensor */
-        double CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const;
+        Double CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const;
 
         /** sum of all multimaterial designs */
-        double CalcMultiMaterialSum(int neigh_idx, const Local* local, bool derivative) const;
+        Double CalcMultiMaterialSum(int neigh_idx, const Local* local, bool derivative) const;
 
         /** local FMO positive definiteness of (E-val*I) >= param via determinants
          * @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */
-        double CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
+        Double CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
 
         /** local FMO positive definiteness of (E-val*I) >= param via Benson Vanderbei constraints */
-        double CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const;
+        Double CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const;
 
         /** local determinant of G: det G >=param. This is very nonlinear, there might be a need for positive definiteness To Do*/
-        double CalcDetGTensor(int neigh_idx, const Local* local, bool derivative) const;
+        Double CalcDetGTensor(int neigh_idx, const Local* local, bool derivative) const;
 
         /** Calculated the rotational of the gradient matrix */
-        double CalcRotGTensor(int neigh_idx, const Local* local, bool derivative, Type type) const;
+        Double CalcRotGTensor(int neigh_idx, const Local* local, bool derivative, Type type) const;
 
         /** For mapping problems ***/
-        double CalcTraceGMappingTensor(int neigh_idx, const Local* local, bool derivative) const;
-        double CalcDetGMappingTensor(int neigh_idx, const Local* local, bool derivative) const;
+        Double CalcTraceGMappingTensor(int neigh_idx, const Local* local, bool derivative) const;
+        Double CalcDetGMappingTensor(int neigh_idx, const Local* local, bool derivative) const;
 
 
 
         /* @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */
-        //double CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
+        //Double CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
 
         /** CalcStress() and the gradient are actually done in EM/SIMP */
         
         /** Shape Parameter Constraints */
-        double CalcShape(Function* f, const Local* l) const;
-        double CalcShapeGradient(Function* f, const Local* l, int neigh_idx) const;
+        Double CalcShape(Function* f, const Local* l) const;
+        Double CalcShapeGradient(Function* f, const Local* l, int neigh_idx) const;
 
         BaseDesignElement* element; // this represents DesignSpace::data[element_idx]
 
@@ -609,9 +609,9 @@ class Function
         int sign;
       private:
         /** to be reused */
-        static StdVector<double> tmp1;
-        static StdVector<double> tmp2;
-      }; // end of struct Identifier
+        static StdVector<Double> tmp1;
+        static StdVector<Double> tmp2;
+      };
 
       /** Elements with no full neighborhood are not stored. If they would be stored
        * we could easily calculate the virtual element number.
@@ -671,8 +671,8 @@ class Function
         void ToInfo(PtrParamNode info);
 
       private:
-        double radius;
-        double value;
+        Double radius;
+        Double value;
         DesignStructure::FilterSpace fs;
       }; // end of struct NeighborhoodStructure
 
@@ -684,13 +684,13 @@ class Function
 
       /** Functions based on a relaxed max formulation have beta for the Kreiselmeier/Steinhauser
        * continuation. This is (global) checkerboard. -1 is real max = infinity */
-      double beta_;
+      Double beta_;
 
       /** relaxation parameter to smooth abs by A(x) = sqrt(x^2 + eps^2) - eps. For (global) mole only */
-      double eps_;
+      Double eps_;
 
       /** power for globalization */
-      double power_;
+      Double power_;
 
       /** For oscillation we can define if we want the constraint for void, material or both.
        * Such different feature sized can be defined */
@@ -750,7 +750,7 @@ class Function
     Local* InitLocal(DesignSpace* space);
     
     /** extract the "coord" element and parse it to coord */
-    static void ParseCoord(PtrParamNode pn, boost::tuple<int, int, double>& coord);
+    static void ParseCoord(PtrParamNode pn, boost::tuple<int, int, Double>& coord);
 
     /** By the size of DesignSpace::GetNumberOfVariables() which might include slack - to be handled in AuxDesign.
      * the sparse patterns are determined on the fly by LocalCondition::GetSparsityPattern() */
@@ -768,13 +768,13 @@ class Function
     SlackFnct slackFnct_ = NO_FUNCTION;
 
     /** for HOM_TRACKING this is the target tensor. For HOM_FROBENIUS_PRODUCT this is the parameter */
-    Matrix<double> tensor_;
+    Matrix<Double> tensor_;
 
     /** The current function value */
-    double value_;
+    Double value_;
 
     /** Some special functions use a parameter: slope constraint and penalized volume */
-    double parameter_;
+    Double parameter_;
 
     /** manual switch for local constraints whether the plain value of the design variable, the filtered or the physical value is used */
     Access access_;

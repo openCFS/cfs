@@ -709,7 +709,7 @@ void MultipleExcitation::NormalizeMultipleExcitations(ObjectiveContainer* object
   if(DoAdjustWeights())
   {
     // find best cost
-    double best;
+    Double best;
     if(objectives->DoMaximize())
     {
       best = numeric_limits<double>::min();
@@ -726,8 +726,8 @@ void MultipleExcitation::NormalizeMultipleExcitations(ObjectiveContainer* object
       // this is for "best_value": We push (weight the gradient) the worst result most to equalize/over-/undercompensate
       // the algorithm is the foolowing: w_k^p J_k = const -> we define w_k' for J_k = J_best to be one.
       // By this we can compute all w_k'. The we sum up all w_k' to sum_w_k' and get w_k = w_k'/sum_w_k'
-      double t = objectives->DoMaximize() ? best / excitations[i].cost : excitations[i].cost / best;
-      t = std::pow(t, 1.0/damping); // fails for negative quotient with damping < 0
+      Double t = objectives->DoMaximize() ? best / excitations[i].cost : excitations[i].cost / best;
+      t = pow(t, 1.0/damping); // fails for negative quotient with damping < 0
       excitations[i].weight = min(t, max_gain);;
 
       LOG_DBG(exlog) << "NormalizeMultipleExcitations: excitation[" << i << "] best: " << best << " gain: " << t << " weight: " << excitations[i].weight;
@@ -736,7 +736,7 @@ void MultipleExcitation::NormalizeMultipleExcitations(ObjectiveContainer* object
 
 
   // normalize
-  double weight_sum = 0.0;
+  Double weight_sum = 0.0;
 
   for(unsigned int i = 0; i < exsi; i++)
     weight_sum += excitations[i].weight;
@@ -850,16 +850,16 @@ bool Excitation::Apply(bool switch_context)
   return switched;
 }
 
-double Excitation::GetOmega() const
+Double Excitation::GetOmega() const
 {
   if(frequency < 0.0)
     EXCEPTION("No frequency given");
   return 2 * M_PI * frequency;
 }
 
-double Excitation::GetFactor(Function* cost) const
+Double Excitation::GetFactor(Function* cost) const
 {
-  double factor = 1.0; // default
+  Double factor = 1.0; // default
 
   if(cost->FactorOmegaOmega())
   {
@@ -870,7 +870,7 @@ double Excitation::GetFactor(Function* cost) const
   return factor;
 }
 
-double Excitation::GetWeightedFactor(Function* f) const
+Double Excitation::GetWeightedFactor(Function* f) const
 {
   if(f->DoEvaluateAlways(sequence)) // sequence matches always
    return normalized_weight * GetFactor(f);

@@ -512,7 +512,7 @@ void SnOpt::AdjustWorkArrayMemory()
   // enlarge the minimal values determined by snmema_ by this factor
   // this is because according to the snopt manual, the minimal values
   // might not be enough
-  const double factor(1.0);
+  const Double factor(1.0);
   
   integer iPrt = 0;
   integer iSum = 0;

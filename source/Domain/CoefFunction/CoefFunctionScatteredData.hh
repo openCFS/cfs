@@ -25,46 +25,50 @@
 #include <list>
 #include <cmath>
 
+#ifdef USE_ADOLC
+#include "General/Exception.hh"
+#endif
+
 namespace CGAL
 {
 
   /** define this Point within the CGAL namespace as there is a Point.hh in CFS */
   struct Point {
-    double vec[3];
-    double vel[3];
+    Double vec[3];
+    Double vel[3];
     Complex velZ[3];
 
     Point() {
       vec[0]= vec[1] = vec[2] = 0;
       vel[0]= vel[1] = vel[2] = 0;
     }
-    Point (double x, double y, double z,
-        double vx, double vy, double vz) {
+    Point (Double x, Double y, Double z,
+        Double vx, Double vy, Double vz) {
       vec[0]=x; vec[1]=y; vec[2]=z;
       vel[0]=vx; vel[1]=vy; vel[2]=vz;
     }
 
-    Point (double x, double y, double z,
+    Point (Double x, Double y, Double z,
         Complex vx, Complex vy, Complex vz) {
       vec[0]=x; vec[1]=y; vec[2]=z;
       velZ[0]=vx; velZ[1]=vy; velZ[2]=vz;
     }
 
-    double x() const { return vec[ 0 ]; }
-    double y() const { return vec[ 1 ]; }
-    double z() const { return vec[ 2 ]; }
+    Double x() const { return vec[ 0 ]; }
+    Double y() const { return vec[ 1 ]; }
+    Double z() const { return vec[ 2 ]; }
 
-    void vx(double& ret) const { ret = vel[ 0 ]; }
-    void vy(double& ret) const { ret = vel[ 1 ]; }
-    void vz(double& ret) const { ret = vel[ 2 ]; }
+    void vx(Double& ret) const { ret = vel[ 0 ]; }
+    void vy(Double& ret) const { ret = vel[ 1 ]; }
+    void vz(Double& ret) const { ret = vel[ 2 ]; }
 
     void vx(Complex& ret) const { ret = velZ[ 0 ]; }
     void vy(Complex& ret) const { ret = velZ[ 1 ]; }
     void vz(Complex& ret) const { ret = velZ[ 2 ]; }
 
-    double& x() { return vec[ 0 ]; }
-    double& y() { return vec[ 1 ]; }
-    double& z() { return vec[ 2 ]; }
+    Double& x() { return vec[ 0 ]; }
+    Double& y() { return vec[ 1 ]; }
+    Double& z() { return vec[ 2 ]; }
 
     bool operator==(const Point& p) const
       {
@@ -77,37 +81,37 @@ namespace CGAL
   template <>
   struct Kernel_traits<CGAL::Point> {
     struct Kernel {
-      typedef double FT;
-      typedef double RT;
+      typedef Double FT;
+      typedef Double RT;
     };
   };
 } // end of namespace CGAL
 
 
 struct Construct_coord_iterator {
-  typedef  const double* result_type;
-  const double* operator()(const CGAL::Point& p) const
-  { return static_cast<const double*>(p.vec); }
+  typedef  const Double* result_type;
+  const Double* operator()(const CGAL::Point& p) const
+  { return static_cast<const Double*>(p.vec); }
 
-  const double* operator()(const CGAL::Point& p, int)  const
-  { return static_cast<const double*>(p.vec+3); }
+  const Double* operator()(const CGAL::Point& p, int)  const
+  { return static_cast<const Double*>(p.vec+3); }
 };
 
 struct Distance {
   typedef CGAL::Point Query_item;
-  typedef double FT;
+  typedef Double FT;
 
-  double transformed_distance(const CGAL::Point& p1, const CGAL::Point& p2) const {
-    double distx= p1.x()-p2.x();
-    double disty= p1.y()-p2.y();
-    double distz= p1.z()-p2.z();
+  Double transformed_distance(const CGAL::Point& p1, const CGAL::Point& p2) const {
+    Double distx= p1.x()-p2.x();
+    Double disty= p1.y()-p2.y();
+    Double distz= p1.z()-p2.z();
     return distx*distx+disty*disty+distz*distz;
   }
 
   template <class TreeTraits>
-  double min_distance_to_rectangle(const CGAL::Point& p,
+  Double min_distance_to_rectangle(const CGAL::Point& p,
                                    const CGAL::Kd_tree_rectangle<TreeTraits>& b) const {
-    double distance(0.0), h = p.x();
+    Double distance(0.0), h = p.x();
     if (h < b.min_coord(0)) distance += (b.min_coord(0)-h)*(b.min_coord(0)-h);
     if (h > b.max_coord(0)) distance += (h-b.max_coord(0))*(h-b.max_coord(0));
     h=p.y();
@@ -120,43 +124,45 @@ struct Distance {
   }
 
   template <class TreeTraits>
-  double max_distance_to_rectangle(const CGAL::Point& p,
+  Double max_distance_to_rectangle(const CGAL::Point& p,
                                    const CGAL::Kd_tree_rectangle<TreeTraits>& b) const {
-    double h = p.x();
+    Double h = p.x();
 
-    double d0 = (h >= (b.min_coord(0)+b.max_coord(0))/2.0) ?
+    Double d0 = (h >= (b.min_coord(0)+b.max_coord(0))/2.0) ?
                 (h-b.min_coord(0))*(h-b.min_coord(0)) : (b.max_coord(0)-h)*(b.max_coord(0)-h);
 
     h=p.y();
-    double d1 = (h >= (b.min_coord(1)+b.max_coord(1))/2.0) ?
+    Double d1 = (h >= (b.min_coord(1)+b.max_coord(1))/2.0) ?
                 (h-b.min_coord(1))*(h-b.min_coord(1)) : (b.max_coord(1)-h)*(b.max_coord(1)-h);
     h=p.z();
-    double d2 = (h >= (b.min_coord(2)+b.max_coord(2))/2.0) ?
+    Double d2 = (h >= (b.min_coord(2)+b.max_coord(2))/2.0) ?
                 (h-b.min_coord(2))*(h-b.min_coord(2)) : (b.max_coord(2)-h)*(b.max_coord(2)-h);
     return d0 + d1 + d2;
   }
 
-  double new_distance(double& dist, double old_off, double new_off,
+  Double new_distance(Double& dist, Double old_off, Double new_off,
                       int /* cutting_dimension */)  const {
     return dist + new_off*new_off - old_off*old_off;
   }
 
-  double transformed_distance(double d) const { return d*d; }
+  Double transformed_distance(Double d) const { return d*d; }
 
-  double inverse_of_transformed_distance(double d) { return std::sqrt(d); }
+  Double inverse_of_transformed_distance(Double d) { return sqrt(d); }
 
 }; // end of struct Distance
 
 
-typedef CGAL::Search_traits<double, CGAL::Point, const double*, Construct_coord_iterator> Traits;
+typedef CGAL::Search_traits<Double, CGAL::Point, const Double*, Construct_coord_iterator> Traits;
 typedef CGAL::Orthogonal_k_neighbor_search<Traits, Distance> K_neighbor_search;
 typedef K_neighbor_search::Tree Tree;
 
 #endif // USE_CGAL
 
+#ifndef USE_ADOLC
 #ifdef USE_FLANN
 #include <flann/flann.hpp>
 #endif // USE_FLANN
+#endif
 
 
 namespace CoupledField {
@@ -236,7 +242,7 @@ namespace CoupledField {
     void GetQuantityData(bool updateMode);
     void DumpData();
     
-    std::vector< std::vector<double> > coordinates_;
+    std::vector< std::vector<Double> > coordinates_;
     std::vector< std::vector<T> > scatteredData_;  // CHANGED
 
     std::string qid_;
@@ -272,6 +278,7 @@ namespace CoupledField {
 #endif
 
 #ifdef USE_FLANN
+#ifndef USE_ADOLC
     boost::shared_ptr< flann::Index<flann::L2<Double> > > index_;
     boost::shared_ptr< flann::Matrix<Double> > dataset_;
 
@@ -280,7 +287,7 @@ namespace CoupledField {
                          StdVector< Double >& l2Distances,
                          StdVector< Vector<T> >& vectors);
 #endif
-
+#endif
   };
 }
 

@@ -624,7 +624,7 @@ Condition* Condition::AppendSubCondition(StdVector<Condition*>& list, int pos_x,
 {
   Condition* sub = AppendSubCondition(list);
   sub->coords.Resize(1);
-  boost::tuple<int, int, double>& entry = sub->coords[0];
+  boost::tuple<int, int, Double>& entry = sub->coords[0];
   get<0>(entry) = pos_x;
   get<1>(entry) = pos_y;
   get<2>(entry) = 1.0; // default
@@ -670,7 +670,7 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
 
   // read the target in a huge temporary list such that it is cheap to compare against the design elements
   unsigned int grid_size = domain->GetGrid()->GetNumElems();
-  StdVector<double> tmp;
+  StdVector<Double> tmp;
   tmp.Resize(grid_size + 1, 0.0);
 
   ParamNodeList elems = xml->GetList("set").Last()->GetList("element");
@@ -680,7 +680,7 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
     throw Exception("'designTracking' requires the attribute 'physical' in the 'designTarget' file " + file);
 
   for(unsigned int i = 0; i < elems.GetSize(); i++)
-    tmp[elems[i]->Get("nr")->As<int>()] = elems[i]->Get("physical")->As<double>();
+    tmp[elems[i]->Get("nr")->As<int>()] = elems[i]->Get("physical")->As<Double>();
 
   // copy from pattern what we actually need
   pattern.Resize(elements.GetSize());
@@ -691,12 +691,12 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
 
 bool Condition::IsFeasible() const
 {
-  double diff = GetValue() - boundValue_; // handles also local constraints!
+  Double diff = GetValue() - boundValue_; // handles also local constraints!
 
   switch(bound_)
   {
     case EQUAL:
-      return std::abs(diff) < 1e-4;
+      return fabs(diff) < 1e-4;
 
     case LOWER_BOUND:
       return diff + 1e-4 > 0;
@@ -778,7 +778,7 @@ string Condition::ToString() const
   return os.str();  
 }
 
-string Condition::ToString(const StdVector<boost::tuple<int, int, double> >& coords)
+string Condition::ToString(const StdVector<boost::tuple<int, int, Double> >& coords)
 {
   assert(coords.GetSize() > 0);
   assert(get<2>(coords[0]) == 1.0); // so we don't have to start with a minus
@@ -792,7 +792,7 @@ string Condition::ToString(const StdVector<boost::tuple<int, int, double> >& coo
     assert(std::floor(get<2>(entry)) - get<2>(entry) == 0.0);
     int factor = static_cast<int>(get<2>(entry));
     assert((i == 0 && factor == 1) || i != 0);
-    if(std::abs(factor) != 1.0)
+    if(fabs(factor) != 1.0)
       os << factor;
     if(factor < 0)
       os << "m";
@@ -1035,7 +1035,7 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
   return hess_sparsity_;
 }
 
-void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
+void LocalCondition::CalcHessian(StdVector<Double>& out, Double factor)
 {
   assert(IsLocal());
 
@@ -1051,20 +1051,20 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
     break;
   case POS_DEF_DET_MINOR_3:
   {
-    Matrix<double> E;
+    Matrix<Double> E;
     // (E - v*I) >= gamma
-    double v = GetParameter();
-    double eps = 1.0 * GetBoundValue();
+    Double v = GetParameter();
+    Double eps = 1.0 * GetBoundValue();
 
     //Function::Local::Identifier& id = GetCurrentVirtualContext();
     assert(false);
     // local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(id.element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL); // the sub-tensor-type does'nt matter
-    double e11 = E[0][0]; // 1
-    double e12 = E[0][1]; // 2
-    double e22 = E[1][1]; // 3
-    double e13 = E[0][2]; // 4
-    double e23 = E[1][2]; // 5
-    double e33 = E[2][2]; // 6
+    Double e11 = E[0][0]; // 1
+    Double e12 = E[0][1]; // 2
+    Double e22 = E[1][1]; // 3
+    Double e13 = E[0][2]; // 4
+    Double e23 = E[1][2]; // 5
+    Double e33 = E[2][2]; // 6
 
     // (6.72) in the diss of Sonja Lehmann. For the eps see Function::CalcPosDefDeterminant()!
     out[0]  = factor * (e33 - v);      // 1
@@ -1089,7 +1089,7 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
   }
 }
 
-double LocalCondition::CalcMeanValue() const
+Double LocalCondition::CalcMeanValue() const
 {
   double sum = 0.0;
   for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
@@ -1102,12 +1102,12 @@ double LocalCondition::CalcMeanValue() const
   return res;
 }
 
-double LocalCondition::CalcMaxValue() const
+Double LocalCondition::CalcMaxValue() const
 {
-  double max = 0.0;
+  Double max = 0.0;
   for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
   {
-    double v = std::abs(local->virtual_elem_map[i].EvalFunction(local));
+    Double v = fabs(local->virtual_elem_map[i].EvalFunction(local));
     max = std::max(max, v);
   }
 
@@ -1148,7 +1148,7 @@ double LocalCondition::GetValue() const
     return value_;
 }
 
-void LocalCondition::SetValue(double val)
+void LocalCondition::SetValue(Double val)
 {
   if(IsLocal())
   {
@@ -1556,10 +1556,10 @@ void ConditionContainer::VirtualView::Done()
         Function::Local::Identifier& id = vem[i];
         assert(lc->GetType() !=  Function::SHAPE_INF);
         DesignElement* de =  dynamic_cast<DesignElement*>(id.element);
-        double sv = id.EvalFunction(lc->local);
+        Double sv = id.EvalFunction(lc->local);
 
         // in checkerboard we must not use abs
-        double corr = lc->GetType() == Function::OSCILLATION ? sv : std::abs(sv);
+        Double corr = lc->GetType() == Function::OSCILLATION ? sv : fabs(sv);
 
 
         de->specialResult[idx] = std::max(de->specialResult[idx], corr);

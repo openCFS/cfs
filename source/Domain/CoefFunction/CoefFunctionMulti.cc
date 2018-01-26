@@ -35,13 +35,13 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
     shared_ptr<CoefFunctionConst<Double> > rFct(new CoefFunctionConst<Double>());
     // generate empty coefficient functions
     if( dimType_ == CoefFunction::SCALAR) {
-      cFct->SetScalar(0.0);
-      rFct->SetScalar(0.0);
+      cFct->SetScalar(Complex(0.0));
+      rFct->SetScalar(Double(0.0));
     } else if( dimType_ == CoefFunction::VECTOR ) {
       Vector<Complex> cZvec(coef->GetVecSize());
       Vector<Double> rZvec(coef->GetVecSize());
-      cZvec.Init(0.0);
-      rZvec.Init(0.0);
+      cZvec.Init(Complex(0.0));
+      rZvec.Init(Double(0.0));
       cFct->SetVector(cZvec);
       rFct->SetVector(rZvec);
     } else if( dimType_ == CoefFunction::TENSOR ) {

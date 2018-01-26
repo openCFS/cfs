@@ -70,10 +70,10 @@ namespace CoupledField {
         return false;
       }
       
-      t = std::min(this->t_,source.t_);
-      b = std::max(this->b_,source.b_);
-      l = std::max(this->l_,source.l_);
-      r = std::min(this->r_,source.r_);
+      t = fmin(this->t_,source.t_);
+      b = fmax(this->b_,source.b_);
+      l = fmax(this->l_,source.l_);
+      r = fmin(this->r_,source.r_);
       
       target = Rectangle(l,r,t,b);
       return true;
@@ -135,7 +135,7 @@ namespace CoupledField {
     bool operator==(ListEntryv10 x) const{
       Double tol = 1e-16;
       
-      if(abs(val_ - x.getVal()) > tol){
+      if(fabs(val_ - x.getVal()) > tol){
         //std::cout << "Diffval: " << abs(val_ - x.getVal()) << std::endl;
         return false;
       }
@@ -230,7 +230,7 @@ namespace CoupledField {
         Vector<Double> tmp = rotEntry.getVecCopy();
         
         for(UInt i = 0; i< vec_.GetSize();i++){
-          if(abs(vec_[i]-tmp[i])>tol){
+          if(fabs(vec_[i]-tmp[i])>tol){
             //std::cout << "Diffvec " << abs(vec_[i]-tmp[i]) << std::endl;
             return false;
           }
@@ -286,7 +286,7 @@ namespace CoupledField {
         Vector<Double> tmp = rotEntry.getVecCopy();
         
         for(UInt i = 0; i< vec_.GetSize();i++){
-          if(abs(vec_[i]-tmp[i])>tol){
+          if(fabs(vec_[i]-tmp[i])>tol){
             /*
              * rotation direction does not coincide
              */
@@ -469,7 +469,7 @@ namespace CoupledField {
         
         Double tol = 1e-15;
         for(UInt i = 0; i< vec_.GetSize();i++){
-          if(abs(vec_[i]-newVector[i])>tol){
+          if(fabs(vec_[i]-newVector[i])>tol){
             rotHasChanged_ = true;
             break;
           }
@@ -884,15 +884,15 @@ namespace CoupledField {
         } 
         
 //        if( xVal[i] < 0 ){
-//          deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
+//          deltaX = sign*fmin( scal*xVal[i], -deltaXmin );
 //        } else {
-//          deltaX = sign*std::max( scal*xVal[i], deltaXmin );
+//          deltaX = sign*fmax( scal*xVal[i], deltaXmin );
 //        }
         
         if( xVal[i] < 0 ){
-          deltaX = sign*std::min( -scal*XSaturated_, -deltaXmin );
+          deltaX = sign*fmin( -scal*XSaturated_, -deltaXmin );
         } else {
-          deltaX = sign*std::max( scal*XSaturated_, deltaXmin );
+          deltaX = sign*fmax( scal*XSaturated_, deltaXmin );
         }
 
         xShifted[i] += deltaX;
@@ -1049,15 +1049,15 @@ namespace CoupledField {
         } 
         
 //        if( xVal[i] < 0 ){
-//          deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
+//          deltaX = sign*fmin( scal*xVal[i], -deltaXmin );
 //        } else {
-//          deltaX = sign*std::max( scal*xVal[i], deltaXmin );
+//          deltaX = sign*fmax( scal*xVal[i], deltaXmin );
 //        }
         
         if( xVal[i] < 0 ){
-          deltaX = sign*std::min( -scal*XSaturated_, -deltaXmin );
+          deltaX = sign*fmin( -scal*XSaturated_, -deltaXmin );
         } else {
-          deltaX = sign*std::max( scal*XSaturated_, deltaXmin );
+          deltaX = sign*fmax( scal*XSaturated_, deltaXmin );
         }
         
         std::cout << "deltaX " << deltaX << std::endl;
@@ -1109,7 +1109,7 @@ namespace CoupledField {
       Vector<Double> hystNew = Vector<Double>(dim_);
    
       jacT.Mult(res,jacTres_neg);
-      jacTres_neg = jacTres_neg*(-1.0);
+      jacTres_neg = jacTres_neg*Double(-1.0);
       
       Double alphaMax = 1e8;
       Double alphaMin = 1e-16;
@@ -1295,10 +1295,10 @@ namespace CoupledField {
         if(alpha < 0.0){
           if(wrtX){
             // larger alpha needed
-            alpha = 10/std::sqrt(mu);;
+            alpha = 10/sqrt(mu);;
           } else {
             // small alpha needed
-            alpha = 0.1*std::sqrt(mu);
+            alpha = 0.1*sqrt(mu);
           }
         }
         

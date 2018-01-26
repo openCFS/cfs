@@ -524,7 +524,7 @@ bool Optimization::IsTransient() {
   return(domain->GetDriver()->GetAnalysisType() == BasePDE::TRANSIENT);
 }
 
-double Optimization::GetStepWeight(unsigned int ts) const{
+Double Optimization::GetStepWeight(unsigned int ts) const{
   unsigned int nts = context->GetDriver()->GetNumSteps();
   if(IsFirstTransientStepStatic()){
     if(ts == 0){
@@ -559,9 +559,9 @@ bool Optimization::DoStopOptimization()
   if(stop.max_hours >= 0.0 && time_.GetSize() >= 3)
   {
     // avg. of the last three in seconds
-    double avg = (time_.Last() - time_[time_.GetSize() - 3])/3.0;
+    Double avg = (time_.Last() - time_[time_.GetSize() - 3])/3.0;
     // remaining time to max_hours in seconds
-    double remaining = stop.max_hours * 3600 - cfs_timer_->GetWallTime();
+    Double remaining = stop.max_hours * 3600 - cfs_timer_->GetWallTime();
 
     LOG_DBG(opt) << "DSO: wt=" << cfs_timer_->GetWallTime() << " cmp=" << time_[time_.GetSize() - 3] << " avg=" << avg << " mh=" << stop.max_hours << " re=" << remaining << " ti=" << time_.ToString();
 
@@ -586,8 +586,8 @@ bool Optimization::DoStopOptimization()
   {
     for(unsigned int i = hs-1; i >= (hs - stop.queue); i--)
     {
-      double delta = objectives.GetHistoryValue(true, i) - objectives.GetHistoryValue(true, i-1);
-      double rel = abs(delta / objectives.GetHistoryValue(true, i));
+      Double delta = objectives.GetHistoryValue(true, i) - objectives.GetHistoryValue(true, i-1);
+      Double rel = abs(delta / objectives.GetHistoryValue(true, i));
       if(rel > stop.value)
         return false;
     }
@@ -833,7 +833,7 @@ StdVector<Function*> Optimization::GetFunctions(bool only_active) const
   return result;
 }
 
-double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)
+Double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)
 {
   // the symmetry works only for squared models with a horizontal symmetry axis
 
@@ -846,7 +846,7 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
     throw Exception("Symmetry not possible as models seems to be not squared");
 
   int max = (int) design->data.GetSize();
-  double sum = 0;
+  Double sum = 0;
   // we assume the first element (1) be in the lower left corner and then a lexical
   // ordering to right and then the rows up.
   for(int i = 0; i < edge/2; i++)
@@ -855,13 +855,13 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
     {
       // our data index
       int idx = i*edge + j;
-      double idx_val = design->data[idx].GetValue(vs, access);
+      Double idx_val = design->data[idx].GetValue(vs, access);
 
       // our counterpart
       int cntr = max - (i*edge)-(edge-j);
-      double cntr_val = design->data[cntr].GetValue(vs, access);
+      Double cntr_val = design->data[cntr].GetValue(vs, access);
 
-      double err = (idx_val-cntr_val) / idx_val;
+      Double err = (idx_val-cntr_val) / idx_val;
       LOG_DBG3(opt) << "Symmetry " << DesignElement::valueSpecifier.ToString(vs)
                     << "(" << DesignElement::access.ToString(access) << "): "
                     << idx << " (" << idx_val << ") : " << cntr << " (" << cntr_val << ") -> " << err;
@@ -871,10 +871,10 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
     }
   }
 
-  return sum / (double) max;
+  return sum / (Double) max;
 }
 
-double Optimization::CalcObjective()
+Double Optimization::CalcObjective()
 {
   bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
@@ -887,7 +887,7 @@ double Optimization::CalcObjective()
   for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
     objectives.data[o]->ResetValue();
 
-  double result = 0.0;
+  Double result = 0.0;
 
   // the multiple excitation case is a special case - for all other cases this is executed once
   for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
@@ -904,12 +904,12 @@ double Optimization::CalcObjective()
       if(!f->DoEvaluate(&excite))
         continue;
 
-      //double ov = CalcObjective(excite, f); // this is virtual!
-      double ov = CalcFunction(excite, f, false); // this is virtual!
+      //Double ov = CalcObjective(excite, f); // this is virtual!
+      Double ov = CalcFunction(excite, f, false); // this is virtual!
       excite.cost += ov * f->GetPenalty();
 
       // we ignore the weight if the evaluation happens only once! TODO why not omega*omega? - Fabian
-      double weight = !f->DoEvaluateAlways(excite.sequence) ? 1.0 : excite.normalized_weight;
+      Double weight = !f->DoEvaluateAlways(excite.sequence) ? 1.0 : excite.normalized_weight;
 
       f->AddValue(ov * weight);
 
@@ -926,7 +926,7 @@ double Optimization::CalcObjective()
   return result;
 }
 
-void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
+void Optimization::CalcObjectiveGradient(StdVector<Double>* grad_out)
 {
   bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
@@ -965,7 +965,7 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
     baseOptimizer_->GetOptimierTimer()->Start();
 }
 
-double Optimization::CalcConstraint(Condition* g)
+Double Optimization::CalcConstraint(Condition* g)
 {
   bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
@@ -977,15 +977,15 @@ double Optimization::CalcConstraint(Condition* g)
   if(g == NULL)
     g = constraints.active[0];
 
-  double result = 0.0;
+  Double result = 0.0;
 
   for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
   {
     Excitation& excite = me->excitations[e];
     excite.Apply(); // for stuff like robust
     // in the evaluate once case only the last excitation
-    double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
-    double w = g->DoEvaluateAlways(excite.sequence) ? excite.GetWeightedFactor(g) : 1.0;
+    Double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
+    Double w = g->DoEvaluateAlways(excite.sequence) ? excite.GetWeightedFactor(g) : 1.0;
     result += v * w;
     LOG_DBG2(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " alw=" << g->DoEvaluateAlways(excite.sequence) << " w=" << w << " -> " << result;
   }
@@ -998,7 +998,7 @@ double Optimization::CalcConstraint(Condition* g)
 
 }
 
-void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
+void Optimization::CalcConstraintGradient(Condition* g, StdVector<Double>* grad_out)
 {
   bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
@@ -1053,7 +1053,7 @@ void Optimization::EvaluateSpecialResults()
 }
 
 
-void Optimization::StoreResults(double step_val)
+void Optimization::StoreResults(Double step_val)
 {
   // For PiezoSIMP we can do storing there and this method is overwritten
   // and might do nothing
@@ -1138,7 +1138,7 @@ PtrParamNode Optimization::CommitIteration()
 
 void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 {
-  double duration = time_.Last() - (time_.GetSize() > 1 ? time_[time_.GetSize() - 2] : 0.0);
+  Double duration = time_.Last() - (time_.GetSize() > 1 ? time_[time_.GetSize() - 2] : 0.0);
 
 
   if(out)
@@ -1207,7 +1207,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       CalcConstraint(g);
   }
   constraints.view->Done();
-  double max = -1.;
+  Double max = -1.;
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i]; // Now traverse in global mode
@@ -1222,9 +1222,9 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     if(g->IsLocalCondition())
     {
       LocalCondition* local = dynamic_cast<LocalCondition*>(g);
-      double max     = local->CalcMaxValue();
+      Double max     = local->CalcMaxValue();
       int    inf_cnt = local->CountInfeasibles();
-      double mean    = progOpts->DoDetailedInfo() ? local->CalcMeanValue() : -1.0;
+      Double mean    = progOpts->DoDetailedInfo() ? local->CalcMeanValue() : -1.0;
       if(progOpts->DoDetailedInfo() && out)
         *out << " \t" << max << " \t" << mean << " \t" << inf_cnt;
 
@@ -1236,7 +1236,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 
     else
     {
-      double value = g->GetValue();
+      Double value = g->GetValue();
       if(g->delta_logging)
         value = value - g->GetBoundValue();
       if(out && (g->GetType() != Function::EIGENFREQUENCY || log.plot_ev)) // don't spoil
@@ -1251,7 +1251,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       *out << " \t output_max = " << max;
 
   if(out && log.design){
-    StdVector<double> d;
+    StdVector<Double> d;
     d.Resize(design->GetNumberOfVariables());
     design->WriteDesignToExtern(d.GetPointer(), false);
     for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
@@ -1260,7 +1260,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   }
   
   if(out && log.designGradient){
-    StdVector<double> d;
+    StdVector<Double> d;
     d.Resize(design->GetNumberOfVariables());
     d.window.Set(d);
     design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
@@ -1279,7 +1279,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       if(g->IsLocalCondition()) continue; // this would be huge
       else
       {
-        StdVector<double> d;
+        StdVector<Double> d;
         d.Resize(design->GetNumberOfVariables());
         d.window.Set(d);
         design->WriteGradientToExtern(d, DesignElement::CONSTRAINT_GRADIENT, DesignElement::PLAIN, g, false);

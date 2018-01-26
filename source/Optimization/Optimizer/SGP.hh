@@ -47,56 +47,56 @@ public:
   StdVector<Condition*> constr;
 
   /** volume of the structure */
-  double volume, volume_observe;
+  Double volume, volume_observe;
 
   /** volume constraint bound */
-  double volume_bound;
+  Double volume_bound;
 
   /** value of the compliance */
-  double compliance;
+  Double compliance;
 
   /** constraint value and gradient of the outer function filtering_gaps*/
-  double filtering_gaps, filtering_gaps_observe;
-  StdVector<double> filtering_gap_grad;
-  StdVector<double> volume_grad;
-  double filtering_gaps_bound;
+  Double filtering_gaps, filtering_gaps_observe;
+  StdVector<Double> filtering_gap_grad;
+  StdVector<Double> volume_grad;
+  Double filtering_gaps_bound;
 
   /** the cfs design variable */
-  Vector<double> x_outer;
+  Vector<Double> x_outer;
 
   /** density rho and rotation angle theta, thicknesses s1, s2 */
-  StdVector<double> rho_outer, theta_outer, s1_outer, s2_outer;
+  StdVector<Double> rho_outer, theta_outer, s1_outer, s2_outer;
 
-  StdVector<Matrix<double> > E_outer;
+  StdVector<Matrix<Double> > E_outer;
 
-  StdVector<Matrix<double> > E_inner;
+  StdVector<Matrix<Double> > E_inner;
 
   /** lower asymptote */
-  StdVector<Matrix<double> > L;
+  StdVector<Matrix<Double> > L;
 
   /** upper asymptote */
-  StdVector<Matrix<double> > U;
+  StdVector<Matrix<Double> > U;
 
   /** values for lower and upper bound */
-  double lbound, ubound;
+  Double lbound, ubound;
 
   /** convergence tolerance for outer iterations */
-  double tolerance;
+  Double tolerance;
 
   /** convergence tolerance for volume bisection */
-  double volume_tolerance;
+  Double volume_tolerance;
 
   /** tau of model function in subsolve */
-  double tau;
+  Double tau;
 
   /** turn of finite differences derivative check*/
   bool derivative_check;
 
   /** base material matrix */
-  Matrix<double> E_0;
+  Matrix<Double> E_0;
 
   // penalty parameter
-  double pmin_vol,pmax_vol,ppen_vol,pmini,pmaxi,ppeni,pmin_filt,pmax_filt,ppen_filt;
+  Double pmin_vol,pmax_vol,ppen_vol,pmini,pmaxi,ppeni,pmin_filt,pmax_filt,ppen_filt;
 
   // counts outer iterations without any progress
   int worseCounter = 0;
@@ -110,9 +110,9 @@ public:
     int steps = -1;
     /** As we might use design bounds, this are the lower design bounds. Either from design or the design bound constraints
      * Indices by design type */
-    double lower_bound = -1;
-    double upper_bound = -1;
-    double inc = -1;
+    Double lower_bound = -1;
+    Double upper_bound = -1;
+    Double inc = -1;
   };
 
 
@@ -130,7 +130,7 @@ public:
   TransferFunction* tf;
 
   // merit function value
-  double merit;
+  Double merit;
 
   /** designMaterial helper object for two-scale optimization */
   DesignMaterial* helper_dm = NULL;
@@ -160,15 +160,15 @@ private:
   void UpdateToCurrentStep(bool inner = false);
 
   /** Performs a gradient check with central difference quotient for necessary derivatives */
-  StdVector<double> GradientCheck(double & max_grad_error);
+  StdVector<Double> GradientCheck(Double & max_grad_error);
 
   typedef struct
   {
     bool old_point_is_optimal;
     int steps;
-    double stepwidth;
-    double org_dx;
-    double curr_dx;
+    Double stepwidth;
+    Double org_dx;
+    Double curr_dx;
   } LSR; // line search result
 
   /** performs backtracking linesearch. obj(x_new) >= obj(x_old)= ob->outer_value
@@ -177,11 +177,11 @@ private:
    * The final design is stored in the CFS-Design!
    * @param the solution of the subproblem.
    * @return number of function evaluations and the norms of the designs*/
-  LSR Backtracking(const Vector<double>& x_old, const Vector<double>& x_new);
+  LSR Backtracking(const Vector<Double>& x_old, const Vector<Double>& x_new);
 
   /** update the asymptotes as long as they are not set to fixed!
    * @param force_reduction to react on subproblem problems */
-  void UpdateAsymptotes(const Vector<double>&x_outer, int iter, bool force_reduction = false);
+  void UpdateAsymptotes(const Vector<Double>&x_outer, int iter, bool force_reduction = false);
 
   /** writes design to rho_outer, theta_outer and E_outer, , E_outer is not updated for inner = true */
   void DesignToOuter(bool inner = false, bool only_update_outer = false);
@@ -190,13 +190,13 @@ private:
   void OuterToDesign(bool filter = false);
 
   /** create 2D rotation matrix for angle alpha */
-  void GetRotationMatrix(double alpha, Matrix<Double> & rot);
+  void GetRotationMatrix(Double alpha, Matrix<Double> & rot);
 
   /** create outer derivative from full design gradient */
-  void GetOuterDerivative(StdVector<Matrix<double> > & out, StdVector<Double>  obj_grad);
+  void GetOuterDerivative(StdVector<Matrix<Double> > & out, StdVector<Double>  obj_grad);
 
   /** helper function for derivative check, return only necessary gradient entries from design gradient */
-  void GetOuterDerivativeVector(StdVector<double> & out, StdVector<Double> obj_grad) ;
+  void GetOuterDerivativeVector(StdVector<Double> & out, StdVector<Double> obj_grad) ;
 
   /** assume the current design to be FMO tensors and output them */
   void DumpFMPTensors();
@@ -208,8 +208,8 @@ private:
   typedef enum { FIXED, MMA } Asymptotes;
 
   /** this design history is used and controlled by UpdateAsymptotes() */
-  std::pair<int, Vector<double> > prev_x_;
-  std::pair<int, Vector<double> > prev_prev_x_;
+  std::pair<int, Vector<Double> > prev_x_;
+  std::pair<int, Vector<Double> > prev_prev_x_;
 
 };
 
@@ -226,29 +226,29 @@ public:
   typedef enum { FUNC, GRAD} Eval;
 
   /** evaluate function value or first derivative according to the MMA approximation */
-  double Evaluate(const double* x_inner, Eval eval, StdVector<double>* out = NULL);
+  Double Evaluate(const Double* x_inner, Eval eval, StdVector<Double>* out = NULL);
 
   /** evaluate function according to the SGP approximation */
-  double SubSolve(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & s1, StdVector<double> & s2, StdVector<double> & theta_outer);
+  Double SubSolve(Eval eval, StdVector<Matrix<Double> > df, Double ppen, StdVector<Double> & s1, StdVector<Double> & s2, StdVector<Double> & theta_outer);
 
   /** evaluate function according to the SGP approximation for density_rotangle configuration*/
-  double SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
+  Double SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<Double> > df, Double ppen, StdVector<Double> & rho_outer, StdVector<Double> & theta_outer);
 
   /** evaluate function according to the SGP approximation, parameterization FOMO_Top*/
-  double SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer);
+  Double SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<Double> > df, Double ppen, StdVector<Double> & rho_outer, StdVector<Double> & theta_outer);
 
   /** evaluate function according to the SGP approximation, parameterization FOMO*/
-  double SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & theta_outer, double Vloc);
+  Double SubSolve_FOMO(Eval eval, StdVector<Matrix<Double> > df, Double ppen, StdVector<Double> & theta_outer, Double Vloc);
 
   /** evaluate function according to the SGP approximation, parameterization FMO*/
-  double SubSolve_FMO(Eval eval, StdVector<Matrix<double> > df, double ppen, double Vloc);
+  Double SubSolve_FMO(Eval eval, StdVector<Matrix<Double> > df, Double ppen, Double Vloc);
 
   /** helper for logging
    * @param determinant @see GetCondition() */
   std::string ToString();
 
   /** the gradient of the real (outer) function) */
-  StdVector<double> outer_grad;
+  StdVector<Double> outer_grad;
 
   /** this stores the sparsity pattern of the Jacobian, might be dense  */
   StdVector<unsigned int> jac_pattern;
@@ -259,8 +259,8 @@ public:
   Matrix<unsigned int> hess_pattern;
 
   /** bounds */
-  double lower;
-  double upper;
+  Double lower;
+  Double upper;
 
   /** shall this function be approximated */
   bool approximate;
@@ -273,15 +273,15 @@ public:
 
 private:
 
-  double EvalApproximation(double sum_inner_vars, Eval eval, Matrix<double> BB, Matrix<double> E_tmptmp, double ppen,int index);
-  double CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index);
-  double CalcAnalyticSol_FOMO(double &rho1, double &rho2, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double theta_inner, double ppen, double Vloc);
-  double CalcAnalyticSol_FMO(double &rho1, double &rho2, double & rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double ppen, double Vloc);
-  double EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out);
+  Double EvalApproximation(Double sum_inner_vars, Eval eval, Matrix<Double> BB, Matrix<Double> E_tmptmp, Double ppen,int index);
+  Double CalcAnalyticSol_FOMO_Top(Double &rho1, Double &rho2, Double & rho, Vector<Double> & ev,  Matrix<Double> & ev_vector,  Eval eval, Matrix<Double> BB, Double theta_inner, Double ppen, int index);
+  Double CalcAnalyticSol_FOMO(Double &rho1, Double &rho2, Vector<Double> & ev,  Matrix<Double> & ev_vector,  Eval eval, Matrix<Double> BB, Matrix<Double> L, Double theta_inner, Double ppen, Double Vloc);
+  Double CalcAnalyticSol_FMO(Double &rho1, Double &rho2, Double & rho3, Vector<Double> & ev,  Matrix<Double> & ev_vector,  Eval eval, Matrix<Double> BB, Matrix<Double> L, Double ppen, Double Vloc);
+  Double EvalDirect(const Double* x_inner, Eval eval, StdVector<Double>* out);
 
-  void CalcE_inner(Matrix<double> & E_inner, double s1, double s2,double theta,Matrix<double> & tmp);
+  void CalcE_inner(Matrix<Double> & E_inner, Double s1, Double s2,Double theta,Matrix<Double> & tmp);
 
-  void CalcE_inner_Density_Rotangle(Matrix<double> & E_inner, Matrix<double> E_0, double theta_inner);
+  void CalcE_inner_Density_Rotangle(Matrix<Double> & E_inner, Matrix<Double> E_0, Double theta_inner);
 
 
   /** We cannot store a function pointer because of the local constraints where we need an index.

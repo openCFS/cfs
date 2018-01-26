@@ -26,13 +26,13 @@ namespace CoupledField
 
   private:
     /** Performs the finite difference evaluation. Does not store. Resets design */
-    double PerformFiniteDifferenceEval(DesignElement* de, double current_objective, PtrParamNode cg);
+    Double PerformFiniteDifferenceEval(DesignElement* de, Double current_objective, PtrParamNode cg);
     
     /** our h-spacing from XML or default */
-    double h;
+    Double h;
     
     /** our order == 1 or 2 */
-    double order;
+    Double order;
     
     /** special result index for finite differences. -1 = no index!
      * This is where the information is stored in the special result section of the design element */

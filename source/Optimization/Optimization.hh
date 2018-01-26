@@ -105,31 +105,31 @@ namespace CoupledField
 
         /** A cost function is (here) always a scalar type. The value is recalculated when needed!
          * This also stores the value in history of the CostFunction */
-        virtual double CalcObjective();
+        virtual Double CalcObjective();
 
         /** Evaluates the cost-function gradient w.r.t. the design space. Apply SetDesignSpace() first!
          * Writes to DesingElement.objective_gradient.
          * Does a multiplication with Excitation::GetWeightedFactor(). Note, that 
          * the Calc* methods for the objective do only Excitation::GetFactor().
          * @param grad_out size is GetDesignSpaceSize(). If null only DesingElement.objective_gradient */
-        virtual void CalcObjectiveGradient(StdVector<double>* grad_out);
+        virtual void CalcObjectiveGradient(StdVector<Double>* grad_out);
 
         /** Determines the constraint.
          * The function value is stored in value_
          * @param which constraint to calc? Default is the only one! */
-        virtual double CalcConstraint(Condition* constraint);
+        virtual Double CalcConstraint(Condition* constraint);
 
         /** evaluates the gradient of the cost function by the desing element
          * Writes to DesignElement.contraint_gradient
          * @see CalcObjectiveGradient() for parameter description */
-        virtual void CalcConstraintGradient(Condition* constraint = NULL, StdVector<double>* grad_out = NULL);
+        virtual void CalcConstraintGradient(Condition* constraint = NULL, StdVector<Double>* grad_out = NULL);
 
         /** This is brute force debug method which calculates the symmetry of a sqared
          * model with horizontal symmetry axis with lexicographic order (at least works for gid).
          * If there is a special result index for vs, access the relative element symmetry errors
          * are written there.
          * @return the average relative symmetry error. */
-        double CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access);
+        Double CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access);
 
         /** This method checks if special results requiring special evaluation are there.
          * This works for now only for CalcSymmetry() */
@@ -191,7 +191,7 @@ namespace CoupledField
         
         /** in transient, first step can be static and have a different weight for the objective, this is the weight
          * converted so that it just has to be multiplied */
-        double GetStepWeight(unsigned int ts) const;
+        Double GetStepWeight(unsigned int ts) const;
         
         /** The current multiple excitation state -> check with IsEnabled() */
         MultipleExcitation* GetMultipleExcitation() const { return me; }
@@ -273,7 +273,7 @@ namespace CoupledField
 
            /** here ErsatzMaterial::CommitIteration() stores bloch information for plot.dat writing.
             * First entry is bandgap then the ev_min or ev_max info for each ev constraint. First label then the value */
-           StdVector<boost::tuple<std::string, double> > bloch_info;
+           StdVector<boost::tuple<std::string, Double> > bloch_info;
 
            /** if set write the gradient of the design to logfile */
            bool designGradient;
@@ -299,7 +299,7 @@ namespace CoupledField
          * CommitIteration(). For PiezoSIMP we can save more often and there this method
          * is overwritten and might do nothing.
          * @param step_val the "label" of the "transient" step. -1 is the integer counter */
-        virtual void StoreResults(double step_val = -1.0);
+        virtual void StoreResults(Double step_val = -1.0);
 
 
         /** Our MultipleExcitation objecte - by default disabled. Even if we have potenitally more than one
@@ -320,7 +320,7 @@ namespace CoupledField
          * Implemented in ErsatzMaterial
          * @param grad_out only used in derivative case
          * @return zero for derivative */
-        virtual double CalcFunction(Excitation& excite, Function* f, bool derivative) = 0;
+        virtual Double CalcFunction(Excitation& excite, Function* f, bool derivative) = 0;
 
 
         /** called by CommitIteration(), to be overwritten if additional data should be
@@ -376,13 +376,13 @@ namespace CoupledField
         DesignSpace* design;
 
         /** Here we keep the last iterations design space */
-        Vector<double>  last_iteration;
+        Vector<Double>  last_iteration;
 
         /** is the first step static */
         bool firstStepStatic;
         
         /** if the first step is static, this weight specifies how much the other steps add to the functional */
-        double otherStepWeight;
+        Double otherStepWeight;
 
         /** shortcut to domain->GetGrid() */
         Grid* grid;
@@ -407,7 +407,7 @@ namespace CoupledField
         shared_ptr<Timer> cfs_timer_;
 
         /** The time in seconds when. Set in CommitIteration() */
-        StdVector<double> time_;
+        StdVector<Double> time_;
   };
 
 } // namespace

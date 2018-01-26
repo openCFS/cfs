@@ -434,8 +434,8 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     //  compute angle phi of B vector 
     // -------------------------------
     Double angleBPhi;
-    if ( abs(elemSol[0]) > 1e-5 ) { 
-      angleBPhi = abs( std::atan( elemSol[1] / elemSol[0] ) );
+    if ( fabs(elemSol[0]) > 1e-5 ) { 
+      angleBPhi = fabs( atan( elemSol[1] / elemSol[0] ) );
       angleBPhi *= 180.0/3.141592654; // conversion rad to deg
     }
     else {
@@ -449,14 +449,14 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     // ---------------------------------
     Double angleBTheta = 0.0;
     if( is3d ) {
-      angleBTheta = std::acos( elemSol[2] / sqrt(elemSol[0]*elemSol[0] +
+      angleBTheta = acos( elemSol[2] / sqrt(elemSol[0]*elemSol[0] +
                                elemSol[1]*elemSol[1] + elemSol[2]*elemSol[2] ));
       angleBTheta *= 180.0/3.141592654; // conversion rad to deg
 
       // theta in spherical coordinates is defined as the angle between the
-      // zenith direction and the line segment (origin->point) with a range [0;180]
-      // therefore change range to [90;-90] and only use absolute value of it (-> symmetry!)
-      angleBTheta = abs(90 - angleBTheta);
+      // zenith direction and the line segment (origin->point) with a range [0°;180°]
+      // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
+      angleBTheta = fabs(90 - angleBTheta);
 
       // take care that theta does not exceed its limits
       // TODO-avolk: Improve handling like it is done for phi!
@@ -703,8 +703,8 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     //  compute angle phi of B vector
     // -------------------------------
     Double angleBPhi;
-    if ( abs(elemB[0]) > 1e-5 ) {
-      angleBPhi = abs( std::atan( elemB[1] / elemB[0] ) );
+    if ( fabs(elemB[0]) > 1e-5 ) {
+      angleBPhi = fabs( atan( elemB[1] / elemB[0] ) );
       angleBPhi *= 180.0/3.141592654; // conversion rad to deg
     }
     else {
@@ -718,14 +718,14 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     // ---------------------------------
     Double angleBTheta = 0.0;
     if( is3d ){
-      angleBTheta = std::acos( elemB[2] / sqrt(elemB[0]*elemB[0] +
+      angleBTheta = acos( elemB[2] / sqrt(elemB[0]*elemB[0] +
                                elemB[1]*elemB[1] + elemB[2]*elemB[2] ));
       angleBTheta *= 180.0/3.141592654; // conversion rad to deg
 
       // theta in spherical coordinates is defined as the angle between the
-      // zenith direction and the line segment (origin->point) with a range [0;180]
-      // therefore change range to [90;-90] and only use absolute value of it (-> symmetry!)
-      angleBTheta = abs(90 - angleBTheta);
+      // zenith direction and the line segment (origin->point) with a range [0°;180°]
+      // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
+      angleBTheta = fabs(90 - angleBTheta);
 
       // take care that theta does not exceed its limits
       // TODO-avolk: Improve handling like it is done for phi!
@@ -777,9 +777,9 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     // ---------------------------------------------------
     //  Angular based interpolation in the xy-plane (phi)
     // ---------------------------------------------------
-    double nuPrime = 0.0;
-    double nuPrimeXY = 0.0;
-    double nuPrimeZ = 0.0;
+    Double nuPrime = 0.0;
+    Double nuPrimeXY = 0.0;
+    Double nuPrimeZ = 0.0;
     
     // if angle is out of bounds or we have just one entry,
     // return boundary value (i.e.first or last) 

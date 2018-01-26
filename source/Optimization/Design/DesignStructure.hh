@@ -71,7 +71,7 @@ public:
 
   /** Helper for DesignStructure::InitFilter() and Function::Local::SetupStarLocalityElementMap.
    * Call only once if regular as it is not performance tunes! */
-  static double FindFilterRadius(FilterSpace filter, DesignElement* de, double value);
+  static Double FindFilterRadius(FilterSpace filter, DesignElement* de, Double value);
 
   static std::string ToString(const StdVector<std::pair<Elem*, int> >& data);
 
@@ -90,7 +90,7 @@ private:
   /** finds quite efficiently the neighborhood with an regular grid.
    * The idea is that by radius and edge size we construct a 2D/3D cube and check every element for distance.
    * @param neighbors to be reused */
-  void FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<Filter::NeighbourElement>& neighbors);
+  void FindRegularNeighborhood(DesignElement* base, Double radius, const StdVector<Double>& edges, StdVector<Filter::NeighbourElement>& neighbors);
 
   /** Helper for FindRegularNeighborhood().
    * Defines an element by the number of (+/-) steps in the main axes
@@ -102,7 +102,7 @@ private:
   DesignElement* GetNeighborElement(DesignElement* base, unsigned int steps, VicinityElement::Neighbour dir);
 
   /** A helper for InitFilter() with a recursive like implementation. See implementation. */
-  void FindUnstructuredNeighborhood(DesignElement* base, double radius,
+  void FindUnstructuredNeighborhood(DesignElement* base, Double radius,
                           StdVector<Filter::NeighbourElement>& neighbors);
 
   /** calc the distance between two points for the periodic case,
@@ -110,7 +110,7 @@ private:
    * @param base can on, close or far away from a periodic boundary node element
    * @param test element
    * @return a minimal distance with considered periodic boundaries */
-  double RelaxedDistance(const Elem* base, const Elem* test) const;
+  Double RelaxedDistance(const Elem* base, const Elem* test) const;
 
   /** set the vector contraintMapping */
   void SetPeriodicConstraintMapping();
@@ -134,7 +134,7 @@ private:
 
 
   /** helper for SetFilter() */
-  void WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours, bool first);
+  void WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, Double avg_radius, Double avg_neighbours, bool first);
 
   /** the way of the weighting in the filter. CONSTANT e.g. for MAX filter */
   enum Contribution { LINEAR, CONSTANT };
@@ -147,7 +147,7 @@ private:
   FilterSpace filter_space_;
 
   /** the filter value */
-  double value;
+  Double value;
 
   /** do we have periodic boundary conditions? */
   bool periodic_;

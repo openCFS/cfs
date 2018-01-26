@@ -30,15 +30,15 @@ SGP::SGP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
   n = 0;
   m = 0;
 
-  pmin_vol   = this_opt_pn_->Get("pmin_vol")->As<double>();
-  pmin_filt   = this_opt_pn_->Get("pmin_filt")->As<double>();
-  pmax_vol   = this_opt_pn_->Get("pmax_vol")->As<double>();
-  pmax_filt   = this_opt_pn_->Get("pmax_filt")->As<double>();
-  lbound = this_opt_pn_->Get("lower_bound")->As<double>();
-  ubound = this_opt_pn_->Get("upper_bound")->As<double>();
-  tolerance = this_opt_pn_->Get("tolerance")->As<double>();
-  volume_tolerance = this_opt_pn_->Get("volume_tolerance")->As<double>();
-  tau = this_opt_pn_->Get("tau")->As<double>();
+  pmin_vol   = this_opt_pn_->Get("pmin_vol")->As<Double>();
+  pmin_filt   = this_opt_pn_->Get("pmin_filt")->As<Double>();
+  pmax_vol   = this_opt_pn_->Get("pmax_vol")->As<Double>();
+  pmax_filt   = this_opt_pn_->Get("pmax_filt")->As<Double>();
+  lbound = this_opt_pn_->Get("lower_bound")->As<Double>();
+  ubound = this_opt_pn_->Get("upper_bound")->As<Double>();
+  tolerance = this_opt_pn_->Get("tolerance")->As<Double>();
+  volume_tolerance = this_opt_pn_->Get("volume_tolerance")->As<Double>();
+  tau = this_opt_pn_->Get("tau")->As<Double>();
   derivative_check = this_opt_pn_->Get("derivative_check")->As<bool>();
 
 
@@ -240,14 +240,14 @@ void SGP::SolveProblem()
   int iter = 1;
 
   // initialize merit functions and constraints
-  double merit_old = -1.;
+  Double merit_old = -1.;
 
   // set penalty parameter
   ppen_vol = 0.5*(pmin_vol+pmax_vol);
   ppen_filt = 0.5*(pmin_filt+pmax_filt);
 
   // initialize outer gradient
-  StdVector<Matrix<double> > df(n_elem);
+  StdVector<Matrix<Double> > df(n_elem);
   for (unsigned int i = 0; i < n_elem;i++) {
     df[i].Resize(3,3);
   }
@@ -259,8 +259,8 @@ void SGP::SolveProblem()
 
   // checks derivatives, if option is turned, on by finite differences
   if (derivative_check) {
-    StdVector<double> deriv_check(6*n_elem), deriv(6*n_elem);
-    double max_error = 0.;
+    StdVector<Double> deriv_check(6*n_elem), deriv(6*n_elem);
+    Double max_error = 0.;
     deriv_check = GradientCheck(max_error);
     std::cout<<"Derivative check:"<<std::endl;
     // Print finite difference derivative to screen
@@ -291,7 +291,7 @@ void SGP::SolveProblem()
 
     // Get outer gradient for subproblem
     GetOuterDerivative(df, obj->outer_grad);
-    if (abs(pmin_vol-pmax_vol) < tolerance) {
+    if (fabs(pmin_vol-pmax_vol) < tolerance) {
       // solves sub-model and updates rho_outer and theta_outer
       if (configuration == DENSITY_ROTANGLE) {
         obj->SubSolve_Density_Rotangle(SGPApproximation::FUNC,df,ppen_vol,rho_outer,theta_outer);
@@ -378,7 +378,7 @@ void SGP::SolveProblem()
 
         // Update strategy for penalty term of volume constraint
         if(penal_vol && volume > 0) {
-          if (abs(volume/(ppeni)-volume_bound) < volume_tolerance) {
+          if (fabs(volume/(ppeni)-volume_bound) < volume_tolerance) {
             penal_vol = false;
           } else {
             if (volume/(ppeni)-volume_bound > 0) {
@@ -396,7 +396,7 @@ void SGP::SolveProblem()
      }
      if (filtering_gaps > 0) {
        // Update strategy for filtering gap penalty parameter
-       if (abs((filtering_gaps/ppen_filt)) < filtering_gaps_bound) {
+       if (fabs((filtering_gaps/ppen_filt)) < filtering_gaps_bound) {
          //penal_filt = true;
        } else {
            if ((filtering_gaps/ppen_filt) > filtering_gaps_bound) {
@@ -427,7 +427,7 @@ void SGP::SolveProblem()
     iter = optimization->GetCurrentIteration();
 
     //convergence criterion
-    if (abs(merit-merit_old) < tolerance) {
+    if (fabs(merit-merit_old) < tolerance) {
       converged = true;
     }
   }
@@ -442,7 +442,7 @@ void SGP::SolveProblem()
     std::cout << "\nSGP did not converge: " << summary->Get("reason/msg")->As<string>() << std::endl;
 }
 
-StdVector<double> SGP::GradientCheck(double & max_grad_error) {
+StdVector<Double> SGP::GradientCheck(Double & max_grad_error) {
   DesignSpace* space = optimization->GetDesign();
 
   // calculate finite difference gradient from objective function with central difference quotient
@@ -455,11 +455,11 @@ StdVector<double> SGP::GradientCheck(double & max_grad_error) {
   grad_index[5] = space->FindDesign(DesignElement::MECH_33);
 
   // tolerance for finite difference gradient
-  double eps = 1e-6;
-  StdVector<double> diff_grad(grad_index.GetSize() * n_elem);
+  Double eps = 1e-6;
+  StdVector<Double> diff_grad(grad_index.GetSize() * n_elem);
   // Check gradient with central difference quotient
-  double obj_right, obj_left, grad_error,count=0;
-  StdVector<double> constr_val(m);
+  Double obj_right, obj_left, grad_error,count=0;
+  StdVector<Double> constr_val(m);
   for (unsigned int i = 0; i < n_elem;i++) {
     for (unsigned int j = 0; j < grad_index.GetSize();j++) {
       // calculate central difference quotient
@@ -494,8 +494,14 @@ StdVector<double> SGP::GradientCheck(double & max_grad_error) {
         }
       }
       x_outer[index] += eps;
-      diff_grad[count] = (obj_right-obj_left)/ (2.*eps);
+#ifndef USE_ADOLC
+      diff_grad[count] = (obj_right-obj_left)/ (2.*eps);  //This is bad. Why index with a double?
       grad_error = abs(diff_grad[count]-obj->outer_grad[index]);
+#else
+      diff_grad[count.getValue()] = (obj_right-obj_left)/ (2.*eps);  //This is bad. Why index with a double?
+      grad_error = fabs(diff_grad[count.getValue()]-obj->outer_grad[index]);
+#endif
+
       count++;
       if (grad_error > max_grad_error)
         max_grad_error = grad_error;
@@ -649,7 +655,7 @@ void SGP::OuterToDesign(bool filter) {
     space->IncrementDesignId();
 }
 
-void SGP::GetOuterDerivativeVector(StdVector<double> & out, StdVector<Double> obj_grad) {
+void SGP::GetOuterDerivativeVector(StdVector<Double> & out, StdVector<Double> obj_grad) {
   DesignSpace* space = optimization->GetDesign();
   unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
   unsigned int mech12 = space->FindDesign(DesignElement::MECH_12);
@@ -668,7 +674,7 @@ void SGP::GetOuterDerivativeVector(StdVector<double> & out, StdVector<Double> ob
     count += 6;
   }
 }
-void SGP::GetOuterDerivative(StdVector<Matrix<double> > & out, StdVector<Double> obj_grad) {
+void SGP::GetOuterDerivative(StdVector<Matrix<Double> > & out, StdVector<Double> obj_grad) {
   DesignSpace* space = optimization->GetDesign();
   unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
   unsigned int mech12 = space->FindDesign(DesignElement::MECH_12);
@@ -691,7 +697,7 @@ void SGP::GetOuterDerivative(StdVector<Matrix<double> > & out, StdVector<Double>
 }
 
 void SGP::TestRotation() {
-  Matrix<double> unit(3,3);
+  Matrix<Double> unit(3,3);
   unit[0][0] = 1;
   unit[0][1] = 0;
   unit[0][2] = 0;
@@ -702,10 +708,10 @@ void SGP::TestRotation() {
   unit[2][1] = 0;
   unit[2][2] = 0;
 
-  Matrix<double> unit2 = unit;
-  Matrix<double> unit3 = unit;
+  Matrix<Double> unit2 = unit;
+  Matrix<Double> unit3 = unit;
 
-  Matrix<double> rot(2,2);
+  Matrix<Double> rot(2,2);
 
   GetRotationMatrix(0,rot);
   unit.PerformRotation(rot,unit);
@@ -727,7 +733,7 @@ void SGP::TestRotation() {
 
 }
 
-void SGP::GetRotationMatrix(double alpha, Matrix<Double> & rot) {
+void SGP::GetRotationMatrix(Double alpha, Matrix<Double> & rot) {
   rot[0][0] = cos(alpha);
   rot[0][1] = sin(alpha);
   rot[1][0] = -sin(alpha);
@@ -738,10 +744,10 @@ void SGP::DesignToOuter(bool inner,bool only_update_outer) {
   DesignSpace* space = optimization->GetDesign();
 
   // 2D rotation matrix
-  Matrix<double> Rot;
+  Matrix<Double> Rot;
   Rot.Resize(2,2);
   unsigned int dens = 0., rot = 0., s1 = 0., s2 = 0.;
-  Vector<double> p(2);
+  Vector<Double> p(2);
   //designMaterial->GetTensor(material, dtype, stt, de->elem, de->GetType(), f->GetNotation());
   if (!only_update_outer) {
     if (configuration == DENSITY_ROTANGLE || configuration == FOMO_TOP || configuration == FOMO) {
@@ -771,7 +777,7 @@ void SGP::DesignToOuter(bool inner,bool only_update_outer) {
       }
       if (!inner) {
         E_outer[i].Resize(3,3);
-        Matrix<double> tmp(E_0);
+        Matrix<Double> tmp(E_0);
         tmp = E_inner[i];
         space->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CCW, true, theta_outer[i]);
         //LOG_DBG3(sgp) << "A:before rho E_outer["<< i << "]= "<< E_outer[i].ToString();
@@ -885,11 +891,11 @@ void SGPApproximation::PostInit()
   outer_grad.Resize(jac_pattern.GetSize());
 }
 
-double SGPApproximation::SubSolve(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & s1_outer, StdVector<double> & s2_outer, StdVector<double> & theta_outer) {
-  double obj = 0.0;
+Double SGPApproximation::SubSolve(Eval eval, StdVector<Matrix<Double> > df, Double ppen, StdVector<Double> & s1_outer, StdVector<Double> & s2_outer, StdVector<Double> & theta_outer) {
+  Double obj = 0.0;
 
-  Matrix<double> dL,BB,E_tmptmp(3,3), E_tmp(3,3);
-  double obj_min;
+  Matrix<Double> dL,BB,E_tmptmp(3,3), E_tmp(3,3);
+  Double obj_min;
 
   SGP::InnerVariable& s1_iv = common->GetInnerVar(DesignElement::STIFF1);
   SGP::InnerVariable& s2_iv = common->GetInnerVar(DesignElement::STIFF2);
@@ -906,14 +912,14 @@ double SGPApproximation::SubSolve(Eval eval, StdVector<Matrix<double> > df, doub
       }
     }
     BB = -dL * df[i] * dL;
-    Matrix<double> tmp(BB);
+    Matrix<Double> tmp(BB);
     LOG_DBG3(sgp) << "Subsolve: dL =" << dL.ToString();
     LOG_DBG3(sgp) << "Subsolve: BB =" << BB.ToString();
-    obj_min = std::numeric_limits<double>::infinity();
+    obj_min = std::numeric_limits<Double>::infinity();
     //brute force optimization
-    for (double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
-      for (double s1 = s1_iv.lower_bound; s1 <= s1_iv.upper_bound; s1 += s1_iv.inc) {
-        for (double s2 = s2_iv.lower_bound; s2 <= s2_iv.upper_bound; s2 += s2_iv.inc) {
+    for (Double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
+      for (Double s1 = s1_iv.lower_bound; s1 <= s1_iv.upper_bound; s1 += s1_iv.inc) {
+        for (Double s2 = s2_iv.lower_bound; s2 <= s2_iv.upper_bound; s2 += s2_iv.inc) {
           CalcE_inner(E_tmptmp,s1,s2,theta,tmp);
           LOG_DBG3(sgp) << "Subsolve BBphi = ["<<tmp.ToString()<<"]";
           E_tmp = E_tmptmp;
@@ -936,11 +942,11 @@ double SGPApproximation::SubSolve(Eval eval, StdVector<Matrix<double> > df, doub
   return obj;
 }
 
-double SGPApproximation::SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer) {
-  double obj = 0.0;
+Double SGPApproximation::SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<Double> > df, Double ppen, StdVector<Double> & rho_outer, StdVector<Double> & theta_outer) {
+  Double obj = 0.0;
 
-  Matrix<double> dL,BB,E_tmptmp(3,3), E_tmp(3,3);
-  double obj_min;
+  Matrix<Double> dL,BB,E_tmptmp(3,3), E_tmp(3,3);
+  Double obj_min;
 
   SGP::InnerVariable& theta_iv = common->GetInnerVar(DesignElement::ROTANGLE);
   SGP::InnerVariable& rho_iv = common->GetInnerVar(DesignElement::DENSITY);
@@ -958,11 +964,11 @@ double SGPApproximation::SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<d
     BB = -dL * df[i] * dL;
     LOG_DBG3(sgp) << "Subsolve: dL =" << dL.ToString();
     LOG_DBG3(sgp) << "Subsolve: BB =" << BB.ToString();
-    obj_min = std::numeric_limits<double>::infinity();
+    obj_min = std::numeric_limits<Double>::infinity();
     //brute force optimization
-    for (double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
+    for (Double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
       CalcE_inner_Density_Rotangle(E_tmptmp, common->E_0, theta);
-      for (double rho = rho_iv.lower_bound; rho <= rho_iv.upper_bound; rho += rho_iv.inc) {
+      for (Double rho = rho_iv.lower_bound; rho <= rho_iv.upper_bound; rho += rho_iv.inc) {
         E_tmp = E_tmptmp;
         E_tmp *= common->tf->Transform(rho);
         obj = EvalApproximation(rho,eval, BB, E_tmp, ppen, i);
@@ -979,19 +985,19 @@ double SGPApproximation::SubSolve_Density_Rotangle(Eval eval, StdVector<Matrix<d
   return obj;
 }
 
-double SGPApproximation::SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & rho_outer, StdVector<double> & theta_outer) {
-  double obj = 0.0;
+Double SGPApproximation::SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<Double> > df, Double ppen, StdVector<Double> & rho_outer, StdVector<Double> & theta_outer) {
+  Double obj = 0.0;
 
-  Matrix<double> dL,BB,E_tmptmp(3,3);
-  double obj_min;
+  Matrix<Double> dL,BB,E_tmptmp(3,3);
+  Double obj_min;
 
   SGP::InnerVariable& theta_iv = common->GetInnerVar(DesignElement::ROTANGLE);
 
-  double rho1 = 0, rho2 = 0, rho,rho1_min,rho2_min;
-  Vector<double> ev(2);
-  Matrix<double> ev_vector(2,2),ev_vectorT(2,2), ev_vector_min(2,2),ev_vectorT_min(2,2);
-  Matrix<double> atmp(2,2),help(2,2);
-  double l1_min,l2_min;
+  Double rho1 = 0, rho2 = 0, rho,rho1_min,rho2_min;
+  Vector<Double> ev(2);
+  Matrix<Double> ev_vector(2,2),ev_vectorT(2,2), ev_vector_min(2,2),ev_vectorT_min(2,2);
+  Matrix<Double> atmp(2,2),help(2,2);
+  Double l1_min,l2_min;
   // Loop over all elements
   for (unsigned int i = 0; i < common->n_elem; i++) {
     dL = common->E_outer[i] - common->L[i];
@@ -1009,9 +1015,9 @@ double SGPApproximation::SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> >
     LOG_DBG3(sgp) << "Subsolve: dL =" << dL.ToString();
     LOG_DBG3(sgp) << "Subsolve: df =" << df[i].ToString();
     LOG_DBG3(sgp) << "Subsolve: BB =" << BB.ToString();
-    obj_min = std::numeric_limits<double>::infinity();
+    obj_min = std::numeric_limits<Double>::infinity();
     //brute force optimization
-    for (double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
+    for (Double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
       obj = CalcAnalyticSol_FOMO_Top(rho1, rho2, rho, ev,  ev_vector,  eval, BB, theta, ppen, i);
       ev_vector.Transpose(ev_vectorT);
       LOG_DBG3(sgp) << "Subsolve: theta =" << theta << " obj = " << obj <<" rho = " <<rho<< " rho1 = " << rho1 << " rho2 = " << rho2<< " ppen = " << ppen;
@@ -1058,19 +1064,19 @@ double SGPApproximation::SubSolve_FOMO_Top(Eval eval, StdVector<Matrix<double> >
   return obj;
 }
 
-double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df, double ppen, StdVector<double> & theta_outer, double Vloc) {
-  double obj = 0.0;
+Double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<Double> > df, Double ppen, StdVector<Double> & theta_outer, Double Vloc) {
+  Double obj = 0.0;
 
-  Matrix<double> dL,BB;
-  double obj_min;
+  Matrix<Double> dL,BB;
+  Double obj_min;
 
   SGP::InnerVariable& theta_iv = common->GetInnerVar(DesignElement::ROTANGLE);
 
-  double rho1 = 0, rho2 = 0,rho1_min,rho2_min;
-  Vector<double> ev(2);
-  Matrix<double> ev_vector(2,2),ev_vectorT(2,2), ev_vector_min(2,2),ev_vectorT_min(2,2);
-  Matrix<double> atmp(2,2),help(2,2);
-  double l1_min,l2_min;
+  Double rho1 = 0, rho2 = 0,rho1_min,rho2_min;
+  Vector<Double> ev(2);
+  Matrix<Double> ev_vector(2,2),ev_vectorT(2,2), ev_vector_min(2,2),ev_vectorT_min(2,2);
+  Matrix<Double> atmp(2,2),help(2,2);
+  Double l1_min,l2_min;
   // Loop over all elements
   for (unsigned int i = 0; i < common->n_elem; i++) {
     dL = common->E_outer[i] - common->L[i];
@@ -1088,9 +1094,9 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
     LOG_DBG3(sgp) << "Subsolve: dL =" << dL.ToString();
     LOG_DBG3(sgp) << "Subsolve: df =" << df[i].ToString();
     LOG_DBG3(sgp) << "Subsolve: BB =" << BB.ToString();
-    obj_min = std::numeric_limits<double>::infinity();
+    obj_min = std::numeric_limits<Double>::infinity();
     //brute force optimization
-    for (double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
+    for (Double theta = theta_iv.lower_bound; theta <= theta_iv.upper_bound; theta += theta_iv.inc) {
       obj = CalcAnalyticSol_FOMO(rho1, rho2, ev,  ev_vector,  eval, BB,common->L[i], theta, ppen, Vloc);
       ev_vector.Transpose(ev_vectorT);
       LOG_DBG3(sgp) << "Subsolve: theta =" << theta << " obj = " << obj << " rho1 = " << rho1 << " rho2 = " << rho2<< " ppen = " << ppen;
@@ -1136,17 +1142,17 @@ double SGPApproximation::SubSolve_FOMO(Eval eval, StdVector<Matrix<double> > df,
   return obj;
 }
 
-double SGPApproximation::SubSolve_FMO(Eval eval, StdVector<Matrix<double> > df, double ppen, double Vloc) {
-  double obj = 0.0;
+Double SGPApproximation::SubSolve_FMO(Eval eval, StdVector<Matrix<Double> > df, Double ppen, Double Vloc) {
+  Double obj = 0.0;
 
-  Matrix<double> dL,BB;
-  double obj_min;
+  Matrix<Double> dL,BB;
+  Double obj_min;
 
-  double rho1 = 0, rho2 = 0,rho3 = 0,rho1_min,rho2_min,rho3_min;
-  Vector<double> ev(3);
-  Matrix<double> ev_vector(3,3),ev_vectorT(3,3), ev_vector_min(3,3),ev_vectorT_min(3,3);
-  Matrix<double> atmp(3,3),help(3,3);
-  double l1_min,l2_min,l3_min;
+  Double rho1 = 0, rho2 = 0,rho3 = 0,rho1_min,rho2_min,rho3_min;
+  Vector<Double> ev(3);
+  Matrix<Double> ev_vector(3,3),ev_vectorT(3,3), ev_vector_min(3,3),ev_vectorT_min(3,3);
+  Matrix<Double> atmp(3,3),help(3,3);
+  Double l1_min,l2_min,l3_min;
   // Loop over all elements
   for (unsigned int i = 0; i < common->n_elem; i++) {
     dL = common->E_outer[i] - common->L[i];
@@ -1163,7 +1169,7 @@ double SGPApproximation::SubSolve_FMO(Eval eval, StdVector<Matrix<double> > df, 
     LOG_DBG3(sgp) << "Subsolve: dL =" << dL.ToString();
     LOG_DBG3(sgp) << "Subsolve: df =" << df[i].ToString();
     LOG_DBG3(sgp) << "Subsolve: BB =" << BB.ToString();
-    obj_min = std::numeric_limits<double>::infinity();
+    obj_min = std::numeric_limits<Double>::infinity();
     obj = CalcAnalyticSol_FMO(rho1, rho2, rho3, ev,  ev_vector,  eval, BB, common->L[i],ppen,Vloc);
     LOG_DBG3(sgp) << "Subsolve: obj = " << obj << " rho1 = " << rho1 << " rho2 = " <<rho2<< " rho3 = "<<rho3;
 
@@ -1210,10 +1216,10 @@ double SGPApproximation::SubSolve_FMO(Eval eval, StdVector<Matrix<double> > df, 
   return obj;
 }
 
-double SGPApproximation::EvalApproximation(double vol_inner_vars, Eval eval, Matrix<double> BB, Matrix<double> E_tmptmp, double ppen, int index) {
+Double SGPApproximation::EvalApproximation(Double vol_inner_vars, Eval eval, Matrix<Double> BB, Matrix<Double> E_tmptmp, Double ppen, int index) {
 
-  Matrix<double> E_tmp(3,3), E_tmpinv(3,3),LLL(3,3);
-  double result = 0;
+  Matrix<Double> E_tmp(3,3), E_tmpinv(3,3),LLL(3,3);
+  Double result = 0;
   switch(eval)
   {
   case FUNC:
@@ -1232,7 +1238,7 @@ double SGPApproximation::EvalApproximation(double vol_inner_vars, Eval eval, Mat
   case GRAD:
   {
     // diff(fp,xi); diff(fn,xi)
-    //double c = grad >= 0 ? 2.0*tau*(xi-xo)/(U-xi) + tau*(xi-xo)*(xi-xo)/((U-xi)*(U-xi))
+    //Double c = grad >= 0 ? 2.0*tau*(xi-xo)/(U-xi) + tau*(xi-xo)*(xi-xo)/((U-xi)*(U-xi))
     //                     : 2.0*tau*(xi-xo)/(xi-L) - tau*(xi-xo)*(xi-xo)/((xi-L)*(xi-L));
     //(*out)[e] = + p/((U-xi)*(U-xi)) - q/((xi-L)*(xi-L)) + c;
     //LOG_DBG3(sgp) << "A:E f=" << ToString() << " c=" << c << " grad out[" << e << "]=" << (*out)[e];
@@ -1245,16 +1251,16 @@ double SGPApproximation::EvalApproximation(double vol_inner_vars, Eval eval, Mat
   return result;
 }
 
-double SGPApproximation::CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, double & rho, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, double theta_inner, double ppen, int index) {
+Double SGPApproximation::CalcAnalyticSol_FOMO_Top(Double &rho1, Double &rho2, Double & rho, Vector<Double> & ev,  Matrix<Double> & ev_vector,  Eval eval, Matrix<Double> BB, Double theta_inner, Double ppen, int index) {
 
-  Matrix<double> E_tmp(2,2);
-  double result = 0;
-  double psimp = common->tf->GetParam();
+  Matrix<Double> E_tmp(2,2);
+  Double result = 0;
+  Double psimp = common->tf->GetParam();
   switch(eval)
   {
   case FUNC:
   {
-    Matrix<double> tmp(BB);
+    Matrix<Double> tmp(BB);
     ev.Resize(2);
     ev_vector.Resize(2,2);
     common->optimization->GetDesign()->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
@@ -1263,14 +1269,14 @@ double SGPApproximation::CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, do
     E_tmp[1][0] = tmp[1][0];
     E_tmp[1][1] = tmp[1][1];
     E_tmp.eigenvaluesWithLapack(ev,&ev_vector);
-    double sqrB1 = sqrt(ev[0]);
-    double sqrB2 = sqrt(ev[1]);
-    double sqrB3 = sqrt(tmp[2][2]);
+    Double sqrB1 = sqrt(ev[0]);
+    Double sqrB2 = sqrt(ev[1]);
+    Double sqrB3 = sqrt(tmp[2][2]);
 
     rho1 = std::min(std::max(.01, .99*sqrB1/(sqrB1+sqrB2+sqrB3)),.98);
     rho2 = std::min(std::max(.01, .99*sqrB2/(sqrB1+sqrB2+sqrB3)),.98);
 
-    double rtmp = ev[0]/rho1+ev[1]/rho2+tmp[2][2]/(1.0-rho1-rho2);
+    Double rtmp = ev[0]/rho1+ev[1]/rho2+tmp[2][2]/(1.0-rho1-rho2);
 
     rho = pow(psimp * rtmp/ppen,1./(psimp+1.));
     rho = std::min(1.,std::max(.01,rho));
@@ -1284,15 +1290,15 @@ double SGPApproximation::CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, do
   return result;
 }
 
-double SGPApproximation::CalcAnalyticSol_FOMO(double &rho1, double &rho2, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L,double theta_inner, double ppen, double Vloc) {
+Double SGPApproximation::CalcAnalyticSol_FOMO(Double &rho1, Double &rho2, Vector<Double> & ev,  Matrix<Double> & ev_vector,  Eval eval, Matrix<Double> BB, Matrix<Double> L,Double theta_inner, Double ppen, Double Vloc) {
 
-  Matrix<double> E_tmp(2,2);
-  double result = 0;
+  Matrix<Double> E_tmp(2,2);
+  Double result = 0;
     switch(eval)
   {
   case FUNC:
   {
-    Matrix<double> tmp(BB);
+    Matrix<Double> tmp(BB);
     ev.Resize(2);
     ev_vector.Resize(2,2);
     common->optimization->GetDesign()->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL, DesignMaterial::CW, true, theta_inner);
@@ -1301,9 +1307,9 @@ double SGPApproximation::CalcAnalyticSol_FOMO(double &rho1, double &rho2, Vector
     E_tmp[1][0] = tmp[1][0];
     E_tmp[1][1] = tmp[1][1];
     E_tmp.eigenvaluesWithLapack(ev,&ev_vector);
-    double sqrB1 = sqrt(ev[0]);
-    double sqrB2 = sqrt(ev[1]);
-    double sqrB3 = sqrt(tmp[2][2]);
+    Double sqrB1 = sqrt(ev[0]);
+    Double sqrB2 = sqrt(ev[1]);
+    Double sqrB3 = sqrt(tmp[2][2]);
 
     rho1 = std::min(std::max(.01, .99*sqrB1/(sqrB1+sqrB2+sqrB3)),.98);
     rho2 = std::min(std::max(.01, .99*sqrB2/(sqrB1+sqrB2+sqrB3)),.98);
@@ -1318,15 +1324,15 @@ double SGPApproximation::CalcAnalyticSol_FOMO(double &rho1, double &rho2, Vector
   return result;
 }
 
-double SGPApproximation::CalcAnalyticSol_FMO(double &rho1, double &rho2, double & rho3, Vector<double> & ev,  Matrix<double> & ev_vector,  Eval eval, Matrix<double> BB, Matrix<double> L, double ppen, double Vloc) {
+Double SGPApproximation::CalcAnalyticSol_FMO(Double &rho1, Double &rho2, Double & rho3, Vector<Double> & ev,  Matrix<Double> & ev_vector,  Eval eval, Matrix<Double> BB, Matrix<Double> L, Double ppen, Double Vloc) {
 
-  Matrix<double> E_tmp(3,3);
-  double result = 0;
+  Matrix<Double> E_tmp(3,3);
+  Double result = 0;
   switch(eval)
   {
   case FUNC:
   {
-    Matrix<double> tmp(BB);
+    Matrix<Double> tmp(BB);
     ev.Resize(3);
     ev_vector.Resize(3,3);
     E_tmp[0][0] = BB[0][0];
@@ -1339,9 +1345,9 @@ double SGPApproximation::CalcAnalyticSol_FMO(double &rho1, double &rho2, double 
     E_tmp[2][1] = BB[2][1];
     E_tmp[2][2] = BB[2][2];
     E_tmp.eigenvaluesWithLapack(ev,&ev_vector);
-    double sqrB1 = sqrt(ev[0]);
-    double sqrB2 = sqrt(ev[1]);
-    double sqrB3 = sqrt(ev[2]);
+    Double sqrB1 = sqrt(ev[0]);
+    Double sqrB2 = sqrt(ev[1]);
+    Double sqrB3 = sqrt(ev[2]);
 
     rho1 = std::min(std::max(.01, .99*sqrB1/(sqrB1+sqrB2+sqrB3)),.98);
     rho2 = std::min(std::max(.01, .99*sqrB2/(sqrB1+sqrB2+sqrB3)),.98);
@@ -1358,9 +1364,9 @@ double SGPApproximation::CalcAnalyticSol_FMO(double &rho1, double &rho2, double 
   return result;
 }
 
-void SGPApproximation::CalcE_inner(Matrix<double> & E_inner, double s1, double s2, double theta_inner, Matrix<double> & tmp) {
+void SGPApproximation::CalcE_inner(Matrix<Double> & E_inner, Double s1, Double s2, Double theta_inner, Matrix<Double> & tmp) {
   E_inner.Resize(3,3);
-  Vector<double> p(2);
+  Vector<Double> p(2);
   p[0] = s1;
   p[1] = s2;
   common->helper_dm->ApplyHomRectC1Tensor(E_inner,p,DesignElement::NO_DERIVATIVE,PLANE);
@@ -1371,9 +1377,9 @@ void SGPApproximation::CalcE_inner(Matrix<double> & E_inner, double s1, double s
 
 }
 
-void SGPApproximation::CalcE_inner_Density_Rotangle(Matrix<double> & E_inner, Matrix<double> E_0, double theta_inner) {
+void SGPApproximation::CalcE_inner_Density_Rotangle(Matrix<Double> & E_inner, Matrix<Double> E_0, Double theta_inner) {
   E_inner.Resize(3,3);
-  Matrix<double> tmp(E_0);
+  Matrix<Double> tmp(E_0);
   common->optimization->GetDesign()->designMaterial->RotateTensor(tmp,DesignElement::NO_DERIVATIVE, DesignMaterial::VOIGT, DesignMaterial::CCW, true, theta_inner);
   E_inner = tmp;
 }

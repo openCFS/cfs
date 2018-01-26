@@ -114,26 +114,26 @@ int f2c_test()
 
     /* Local variables */
     static int iecn[100], idim, mode, eqcn[100];
-    static double y_ie__[10];
+    static Double y_ie__[10];
     static int info[23], rdim, iern[100];
-    static double y_eq__[10];
+    static Double y_eq__[10];
     static int ierr, eqrn[100];
-    static double spdw[1000];
+    static Double spdw[1000];
     static int spiw[1000], nout, n;
-    static double f_org__;
+    static Double f_org__;
     static int i_scp__[1000];
-    static double h_org__[10], g_org__[10];
+    static Double h_org__[10], g_org__[10];
     static int i_sub__[1000], iemax;
-    static double r_scp__[1000];
+    static Double r_scp__[1000];
     static int icntl[13];
-    static double r_sub__[1000];
+    static Double r_sub__[1000];
     static int eqmax;
-    static double rinfo[5], rcntl[6], x0[100], df[100], eqcoef[100];
+    static Double rinfo[5], rcntl[6], x0[100], df[100], eqcoef[100];
     static int ieleng, active[10], eqleng;
-    static double iederv[100];
+    static Double iederv[100];
     static int mactiv;
     static int linsys, mie, meq;
-    static double x_l__[100], y_l__[100], x_u__[100], y_u__[100];
+    static Double x_l__[100], y_l__[100], x_u__[100], y_u__[100];
     static int isubdim, rsubdim, spdwdim, spiwdim, spstrat;
 
 
@@ -238,7 +238,7 @@ int f2c_test()
 
 
 void scpfct (int n, int mie, int meq, const double* x,
-             double f_org, double* g_org, double* h_org)
+             Double f_org, double* g_org, double* h_org)
 {
   f_org = -1.0 * x[0];
   h_org[0] = exp(x[0]) - x[1];
@@ -247,7 +247,7 @@ void scpfct (int n, int mie, int meq, const double* x,
 
 
 /*
- * void scpgrd (int n, int mie, int meq,const double* x, double f_org, const double* g_org, const double* h_org,
+ * void scpgrd (int n, int mie, int meq,const double* x, Double f_org, const double* g_org, const double* h_org,
              const int* active, double* df, int* iern, int* iecn, double* iederv, int& ieleng,
              int* eqrn, int* eqcn, double* eqcoef, int& eqleng)
 {             
@@ -294,7 +294,7 @@ void scpfct (int n, int mie, int meq, const double* x,
 
 
 
-   void scpgrd (int n, int mie, int meq,const double* x, double f_org, const double* g_org, const double* h_org,
+   void scpgrd (int n, int mie, int meq,const double* x, Double f_org, const double* g_org, const double* h_org,
              const int* active, double* df, int* iern, int* iecn, double* iederv, int& ieleng,
              int* eqrn, int* eqcn, double* eqcoef, int& eqleng)
 {             
@@ -384,10 +384,10 @@ void test()
   int* eqcn = new int[eqlpar];
   int* spiw = new int[id3];
       
-  double f_org;
+  Double f_org;
 
-  double rcntl[6];
-  double rinfo[5];       
+  Double rcntl[6];
+  Double rinfo[5];       
          
   double* x0 = new double[nn];
   double* x_l = new double[nn];

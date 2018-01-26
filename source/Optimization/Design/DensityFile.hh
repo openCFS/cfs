@@ -54,7 +54,7 @@ private:
   /** create a DesignSpace in case we load ersatz material for a pure simulation. Does not work for shape mapping, ...*/
   static DesignSpace* CreateDesignSpace(bool force_region, const PtrParamNode& pn, const ParamNodeList& elems, const PtrParamNode& xml);
   static bool ReadDensity(PtrParamNode pn, const ParamNodeList& elems, bool force_region, DesignSpace* space,
-      double& lower_violation, double& upper_violation);
+      Double& lower_violation, Double& upper_violation);
 
   /** shall we write the densities for all iterations or overwrite? */
   bool all_iterations_;

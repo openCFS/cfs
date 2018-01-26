@@ -79,7 +79,7 @@ namespace CoupledField{
 
       tmp1 = one_i * omega * density_;
       tmp1 *= plateThick_/sigma_;
-      tmp2 = xi * sqrt(one_i);
+      tmp2 = xi * Sqrt(one_i);
       tmp3 = -tanh(tmp2);
       tmp3 /= tmp2;
       tmp3 += 1;
@@ -311,7 +311,7 @@ namespace CoupledField{
 
   inline void CoefFunctionImpedanceModel<Complex>::Calculate_cavityImpedance(Complex& Z_cav, const Double omega) {
     const Complex one_i(0,1);
-    Z_cav = -one_i/tan(omega*mppVolDepth_/c0_);
+    Z_cav = -one_i/Complex(tan(omega*(mppVolDepth_/c0_)));
   }
 
   void CoefFunctionImpedanceModel<Complex>::

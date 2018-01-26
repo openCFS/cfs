@@ -30,6 +30,11 @@
 #include <omp.h>
 #endif
 
+// #ifdef USE_ADOLC
+// #include "General/defs.hh"
+// #endif
+
+
 namespace CoupledField{
 
 

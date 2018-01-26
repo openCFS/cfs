@@ -62,40 +62,40 @@ namespace CoupledField
      * @param cfs_scale if true use cfs scaling values, not the optimizer values.
      *        Do it also for the gradient!!
      * @return the objective */
-    double EvalObjective(int n, const double* x, bool cfs_scale);
+    Double EvalObjective(int n, const Double* x, bool cfs_scale);
 
     /* Evaluates the objective gradient. In the autoscale case checks for old evaluation first.
      * Also does an EvalObjective() implicit!
      * @param cfs_scale @see EvalObjective()
      * @return true if within autoscale tolerance - false if restart necessary */
-    bool EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f);
+    bool EvalGradObjective(int n, const Double* x, bool cfs_scale, StdVector<Double>& grad_f);
 
     /** Evaluates the constraints or rather passes them on to the optimization
      * @param cfs_scale @see EvalObjective()
      * @param normalize transform to g <= 0 constraint. */
-    void EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g, bool normalize);
+    void EvalConstraints(int n, const Double* x, int m, bool cfs_scale, Double* g, bool normalize);
     
     /** helper for EvalConstraints() assuming the design to be set
      * @param normalize @see EvalConstraints()
      * @param direct_call if false we don't touch timers as we assume to be called by  EvalConstraints() */
-    double EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call = true);
+    Double EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call = true);
 
     /** Evaluates the constraint gradients
      * @param cfs_scale @see EvalObjective()
      * @param nonlin_only snopt makes a difference between linear and nonlinear constraints and only
      *  need evaluation for the nonlinear part */
-    void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize,
-        StdVector<double>& values, GradientType grtype = ALL);
+    void EvalGradConstraints(int n, const Double* x, int m, int nentries, bool cfs_scale, bool normalize,
+        StdVector<Double>& values, GradientType grtype = ALL);
 
     /** Helper vor EvalGradConstraint()
      * Called directly by FeasPP
      * @return nnz of constraint
      * @param direct_call @see EvalConstraint() */
-    int EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values, bool direct_call = true);
+    int EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<Double>& values, bool direct_call = true);
 
 
     /** Return the infinity value (here for ipopt) */
-    virtual double GetInfBound() const { return 1e19; }
+    virtual Double GetInfBound() const { return 1e19; }
 
     Optimization* optimization;
 
@@ -112,12 +112,12 @@ namespace CoupledField
     virtual void SolveProblem() = 0;
 
     /** Call this in the optimizer constructor when you have manual_scaling. */
-    void PostInitScale(double manual_scaling, bool no_autoscale = false);
+    void PostInitScale(Double manual_scaling, bool no_autoscale = false);
 
 
     /** Provide Upper and Lower bounds to the optimizer.
      * Note that snopt is able to do sparse linear abs functions like slope constraints by setting upper and lower bounds */
-    void GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u);
+    void GetBounds(int n, Double* x_l, Double* x_u, int m, Double* g_l, Double* g_u);
     
     /** If the actual optimizer is able to handle active sets return here the total number of active
      * constraints (including equality constraints which usually always active).
@@ -127,10 +127,10 @@ namespace CoupledField
     /** Combines a design_in with an objective */
     struct DesignMemory
     {
-      explicit DesignMemory(int id, double val) : design_id(id), value(val), gradient_design_id(id) {}
+      explicit DesignMemory(int id, Double val) : design_id(id), value(val), gradient_design_id(id) {}
       int design_id;
       /** is either the objective or a scaling */
-      double value;
+      Double value;
       int gradient_design_id;
     };
     
@@ -147,7 +147,7 @@ namespace CoupledField
     {
     public:
       /** This sets all value and prepares everything. Note that you have to do PostInit()! */
-      Scale(BaseOptimizer* base, PtrParamNode autoscale, double manual_scale, bool no_autoscale);
+      Scale(BaseOptimizer* base, PtrParamNode autoscale, Double manual_scale, bool no_autoscale);
       
       void PostInit();
       
@@ -158,7 +158,7 @@ namespace CoupledField
       /** Checks the current gradients in the design space against the tolerance.
        * Calculates opt_scaling if target is given!
        * @return true if not active or no tolerance or within tolerance */
-      bool CheckScaling(int n, StdVector<double>& grad);
+      bool CheckScaling(int n, StdVector<Double>& grad);
 
       /** Did we do autoscale? Interesting for iteration-0 commit */
       bool DoAutoscale() 
@@ -169,10 +169,10 @@ namespace CoupledField
       std::string ToString();
       
       /** out target for the autoscaled gradient. Not 0.0 means we do autoscale */
-      double target;
+      Double target;
       
       /** The tolerance as fraction before we rescale. 0.0 is only initial autoscale or no autoscale  */
-      double tol;
+      Double tol;
       
       /** do we do logarithmic scaling */
       bool logscale;
@@ -223,7 +223,7 @@ namespace CoupledField
     /** we need the adjoint for gradients only. In case of a line search the state problems are sufficient.
      * For the harmonic case we need to do the adjoint with the state as as for multiple frequences the system is reassembled.
      * Also note the multiple sequence issue! */
-    bool SolveAdjointProblemsIfNeeded(int n, const double* x, bool cfs_scale);
+    bool SolveAdjointProblemsIfNeeded(int n, const Double* x, bool cfs_scale);
     
     /** Here we store the objective value for a design. */
     DesignMemory design_;

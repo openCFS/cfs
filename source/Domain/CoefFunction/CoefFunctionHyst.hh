@@ -659,11 +659,11 @@ private:
 
           // 1. rotate around z-axis by angle gamma such that P lies in z-y plane
           // gamma = angle between z-y plane and dirP
-          gamma = std::atan2(dirP[0],dirP[1]);
+          gamma = atan2(dirP[0],dirP[1]);
 
           // 2. rotate around x-axis by angle alpha such that P lies on top of z-axis
           // alpha = angle between x-y plane and z
-          alpha = std::atan2(std::sqrt(dirP[1]*dirP[1]+dirP[0]*dirP[0]),dirP[2]);
+          alpha = atan2(sqrt(dirP[1]*dirP[1]+dirP[0]*dirP[0]),dirP[2]);
 
           // no rotation arouind y-axis needed > beta = 0
           // WARNING: this whole procedure is only valid if coupling tensor is at least
@@ -700,7 +700,7 @@ private:
 
           // std::atan2(dirP[0],dirP[1]) would rotate towards the y-axis
           // we want however the y-axis to rotate, so that we take -gamma instead
-          gamma = -std::atan2(dirP[0],dirP[1]);
+          gamma = -atan2(dirP[0],dirP[1]);
 
           Matrix<Double> R = Compute2DRotationMatrix(gamma);
 
@@ -835,15 +835,15 @@ private:
 
     Matrix<Double> R(3,3);
     R.Resize(3,3);
-    R[0][0] =  std::cos(beta) * std::cos(gamma);
-    R[0][1] = -std::cos(beta) * std::sin(gamma);
-    R[0][2] =  std::sin(beta);
-    R[1][0] =  std::cos(alpha)*std::sin(gamma) + std::sin(alpha)*std::sin(beta)*std::cos(gamma);
-    R[1][1] =  std::cos(alpha)*std::cos(gamma) - std::sin(alpha)*std::sin(beta)*std::sin(gamma);
-    R[1][2] = -std::sin(alpha)*std::cos(beta);
-    R[2][0] =  std::sin(alpha)*std::sin(gamma) - std::cos(alpha)*std::sin(beta)*std::cos(gamma);
-    R[2][1] =  std::sin(alpha)*std::cos(gamma) + std::cos(alpha)*std::sin(beta)*std::sin(gamma);
-    R[2][2] =  std::cos(alpha)*std::cos(beta);
+    R[0][0] =  cos(beta) * cos(gamma);
+    R[0][1] = -cos(beta) * sin(gamma);
+    R[0][2] =  sin(beta);
+    R[1][0] =  cos(alpha)*sin(gamma) + sin(alpha)*sin(beta)*cos(gamma);
+    R[1][1] =  cos(alpha)*cos(gamma) - sin(alpha)*sin(beta)*sin(gamma);
+    R[1][2] = -sin(alpha)*cos(beta);
+    R[2][0] =  sin(alpha)*sin(gamma) - cos(alpha)*sin(beta)*cos(gamma);
+    R[2][1] =  sin(alpha)*cos(gamma) + cos(alpha)*sin(beta)*sin(gamma);
+    R[2][2] =  cos(alpha)*cos(beta);
 
     return R;
 	}
@@ -854,10 +854,10 @@ private:
 
     Matrix<Double> R(2,2);
     R.Resize(2,2);
-    R[0][0] =  std::cos(gamma);
-    R[0][1] =  -std::sin(gamma);
-    R[1][0] =  std::sin(gamma);
-    R[1][1] =  std::cos(gamma);
+    R[0][0] =  cos(gamma);
+    R[0][1] =  -sin(gamma);
+    R[1][0] =  sin(gamma);
+    R[1][1] =  cos(gamma);
 
     return R;
   }

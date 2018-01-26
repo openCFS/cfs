@@ -102,7 +102,7 @@ void DesignStructure::Initialize()
   {
     SetPeriodicConstraintMapping();
     SetNodeElemMapping();
-    Matrix<double>& bb = grid->CalcGridBoundingBox();
+    Matrix<Double>& bb = grid->CalcGridBoundingBox();
     for(unsigned int r = 0; r < bb.GetNumRows(); r++)
       dimension[r] = bb[r][1] - bb[r][0];
   }
@@ -155,7 +155,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   filter_space_ = filterSpace.Parse(pn->Get("neighborhood")->As<string>());
   contribution_ = pn->Get("contribution")->As<string>() == "linear" ? LINEAR : CONSTANT;
-  value  = pn->Get("value")->As<double>();
+  value  = pn->Get("value")->As<Double>();
 
   if(value <= 0.0)
     ref.SetType(Filter::NO_FILTERING);
@@ -170,10 +170,10 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   {
     if(!pn->Has("density/beta"))
       throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(ref.density_) + "' density filtering");
-    ref.beta = pn->Get("density/beta")->As<double>();
+    ref.beta = pn->Get("density/beta")->As<Double>();
 
     if(pn->Has("density/force_lower_bound"))
-      ref.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
+      ref.SetLowerBound(pn->Get("density/force_lower_bound")->As<Double>());
 
     assert(space->design.GetSize() == 1); // extend for multiple regions with lower bounds which are now stored in non_lin_*
 
@@ -181,7 +181,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     {
       if(!pn->Has("density/eta"))
         throw Exception("Attribute 'eta' required for 'tanh' density filtering");
-      ref.eta = pn->Get("density/eta")->As<double>();
+      ref.eta = pn->Get("density/eta")->As<Double>();
     }
 
     // for any projection filter
@@ -200,8 +200,8 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   shared_ptr<Timer> timer = in->Get("timer")->AsTimer();
   timer->Start();
 
-  double avg_radius = 0;
-  double avg_neighbours = 0;
+  Double avg_radius = 0;
+  Double avg_neighbours = 0;
 
   // avoids multiple filter radius warning
   bool done = true;
@@ -210,7 +210,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   StdVector<unsigned int> too_far;   // element numbers too far away
 
   // our reference element dimensions for FindRegularNeighborhood()
-  StdVector<double> edges;
+  StdVector<Double> edges;
   if(regular)
   {
     domain->GetGrid()->GetElemShapeMap(data[0].elem, false)->GetEdgeLength(edges);
@@ -236,7 +236,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   // calculate radius for for first element
   // in case grid is regular, set only once and not in loop
-  double radius = FindFilterRadius(filter_space_, &data[start], value);
+  Double radius = FindFilterRadius(filter_space_, &data[start], value);
 
   #pragma omp parallel for schedule(dynamic) reduction(+:avg_radius,avg_neighbours) firstprivate(radius) shared(ref)
   for(unsigned int e = start; e < end; e++)
@@ -283,7 +283,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     if(de->simp->filter.Last().sensitivity_ == Filter::SHARP_SIGMUND || de->simp->filter.Last().sensitivity_ == Filter::SHARP_PLAIN)
     {
       // normalize with a 'bug'
-      double weight_sum = de->simp->filter.Last().CalcWeightSum(false) + 1.0;
+      Double weight_sum = de->simp->filter.Last().CalcWeightSum(false) + 1.0;
       // assume 1.0 for this weight -> in the end it might be smaller! but in DesignElement::GetFilteredValue() we cheat 1.0 again
       de->simp->filter.Last().weight = 1.0 / weight_sum;
       for(unsigned int j = 0, n = neighbors.GetSize(); j < n; j++)
@@ -309,7 +309,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 }
 
 
-void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours, bool first)
+void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, Double avg_radius, Double avg_neighbours, bool first)
 {
   in->Get("type")->SetValue(filterSpace.ToString(filter_space_));
 
@@ -349,8 +349,8 @@ void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Fi
       in_->Get("force_lower_bound")->SetValue(ref.GetLowerBound(NULL));
   }
 
-  double normalized_avg_radius = avg_radius / (space->data.GetSize()/space->design.GetSize());
-  double normalized_avg_neighbours = avg_neighbours / (space->data.GetSize()/space->design.GetSize());
+  Double normalized_avg_radius = avg_radius / (space->data.GetSize()/space->design.GetSize());
+  Double normalized_avg_neighbours = avg_neighbours / (space->data.GetSize()/space->design.GetSize());
 
   in->Get("avg_radius")->SetValue(normalized_avg_radius);
   in->Get("avg_neighbors")->SetValue(normalized_avg_neighbours);
@@ -360,7 +360,7 @@ void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Fi
 
 }
 
-void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<Filter::NeighbourElement>& neighbors)
+void DesignStructure::FindRegularNeighborhood(DesignElement* base, Double radius, const StdVector<Double>& edges, StdVector<Filter::NeighbourElement>& neighbors)
 {
   assert(regular);
   // from the radius define a square/cube and check for every element. The corners are sorted out by distance
@@ -371,7 +371,7 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
   // and for SHARP_SIGMUND also in the filtering itself! :(
 
   Filter& filter = base->simp->filter[0];
-  double val_rad = filter.sensitivity_ == Filter::SHARP_PLAIN || filter.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
+  Double val_rad = filter.sensitivity_ == Filter::SHARP_PLAIN || filter.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
 
   int x = static_cast<int>(ceil(radius / edges[0]));
   int y = static_cast<int>(ceil(radius / edges[1]));
@@ -390,10 +390,10 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
         if(other != NULL)
         {
           // check the element
-          double distance = RelaxedDistance(base->elem, other->elem);
+          Double distance = RelaxedDistance(base->elem, other->elem);
           if(distance <= radius)
           {
-            // value is here a double radius
+            // value is here a Double radius
             // this is the implementation from Bendsoe/ Sigmund
             Filter::NeighbourElement ne;
 
@@ -445,7 +445,7 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned
 }
 
 
-void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double radius,
+void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, Double radius,
                                                    StdVector<Filter::NeighbourElement>& neighbors)
 {
   // for 3D ist shall be significantly faster (O(N)) to make a discrete grid (e.g. of size radius) and sort
@@ -459,7 +459,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
   // the bug. Note, that another bug in SHARP_PLAIN and SHARP_SIGMUND is in normalization
   // and for SHARP_SIGMUND also in the filtering itself! :(
   Filter& filter = base->simp->filter[0];
-  double val_rad = filter.sensitivity_ == Filter::SHARP_PLAIN || filter.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
+  Double val_rad = filter.sensitivity_ == Filter::SHARP_PLAIN || filter.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
 
   assert(!periodic_); // only regular may be periodic!!
 
@@ -512,11 +512,11 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
     DesignElement* test_de = space->Find(test_num, base->GetType(), false, space->DoNonDesignVicinity()); // silent
 
     // no need (and not possible!) to evaluate the distance for non-design elements
-    double distance = test_de != NULL ? RelaxedDistance(base->elem, test) : std::numeric_limits<double>::max();
+    Double distance = test_de != NULL ? RelaxedDistance(base->elem, test) : std::numeric_limits<Double>::max();
 
     if(test_de != NULL && distance <= radius)
     {
-      // value is here a double radius
+      // value is here a Double radius
       // this is the implementation from Bendsoe/ Sigmund
       Filter::NeighbourElement ne;
 
@@ -559,7 +559,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
   }
 }
 
-inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) const
+inline Double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) const
 {
   // default case
   const Point& bb = base->extended->barycenter;
@@ -567,7 +567,7 @@ inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* tes
 
   assert(!(tb[0] == 0.0 && tb[1] == 0.0 && tb[2] == 0.0)/* && (test->ExpensiveCalcBarycenter()[0] != 0.0 ||  test->ExpensiveCalcBarycenter()[1] != 0.0)*/);
 
-  double dist = bb.Dist(tb);
+  Double dist = bb.Dist(tb);
 
   if(!periodic_)
   {
@@ -575,9 +575,9 @@ inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* tes
     return dist;
   }
 
-  double preSqrt = dist * dist;
+  Double preSqrt = dist * dist;
 
-  double dx, dy, dz;
+  Double dx, dy, dz;
 
   // the idea is, that we map other via the periodic boundary condition.
   // we make assumptions for all possible cases and choose the shortest
@@ -587,11 +587,11 @@ inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* tes
     {
       for(int x = -1; x <= 1; x += 1)
       {
-        dx = bb[0] - (tb[0] +  (double) x * dimension[0]);
+        dx = bb[0] - (tb[0] +  (Double) x * dimension[0]);
 
-        dy = bb[1] - (tb[1] +  (double) y * dimension[1]);
+        dy = bb[1] - (tb[1] +  (Double) y * dimension[1]);
 
-        dz = dim == 3 ? bb[2] - (tb[2] +  (double) z * dimension[2]) : 0.0;
+        dz = dim == 3 ? bb[2] - (tb[2] +  (Double) z * dimension[2]) : 0.0;
 
         preSqrt = std::min(preSqrt, dx * dx + dy * dy + dz * dz);
       }
@@ -607,9 +607,9 @@ inline double DesignStructure::RelaxedDistance(const Elem* base, const Elem* tes
 
 /** The is not performance tuned as for almost cases we have regular grids and then this method is
  * only called once. In the other cases - life with it */
-double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, double value)
+Double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, Double value)
 {
-  Matrix<double>  coords;
+  Matrix<Double>  coords;
   domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false );
 
 
@@ -621,19 +621,19 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
     case VOLUME_RADIUS:
     {
       // TODO really check for axis symmetry off
-      double tmp = domain->GetGrid()->GetElemShapeMap(de->elem, false)->CalcVolume();
+      Double tmp = domain->GetGrid()->GetElemShapeMap(de->elem, false)->CalcVolume();
       // The radius is <value> times square/cube edge length where the
       // square/cube has the volume of the element
-      double radius = value * std::pow(tmp, 1.0/ (double) domain->GetGrid()->GetDim());
+      Double radius = value * std::pow(tmp, 1.0/ (Double) domain->GetGrid()->GetDim());
       LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " from volume " << tmp << " to radius " << radius;
       return radius;
     }
 
     case MAX_EDGE:
     {
-      double max, tmp;
+      Double max, tmp;
       domain->GetGrid()->GetElemShapeMap(de->elem, false)->GetMaxMinEdgeLength(max, tmp);
-      double radius = value * max;
+      Double radius = value * max;
       LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " edge max=" << max << " min=" << tmp << " to radius " << radius;
       return radius;
     }

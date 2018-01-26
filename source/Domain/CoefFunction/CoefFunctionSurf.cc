@@ -308,7 +308,7 @@ void CoefFunctionSurfVWP::GetVector(Vector<Double>& coefVec,
   std::map<RegionIdType,PtrCoefFct > permFncs = matCoef_[MAG_ELEM_PERMEABILITY]->GetRegionCoefs();
   permFncs[neighborRegionId_]->GetScalar(permeability, lpm );
 
-  coefVec = Bvec / std::sqrt( permeability );
+  coefVec = Bvec / sqrt( permeability );
 }
 
 void CoefFunctionSurfVWP::GetVector(Vector<Complex>& coefVec,
