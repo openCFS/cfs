@@ -241,13 +241,14 @@ namespace CoupledField {
       // we need to allocate memory to store the resulting permutation
       // vector
       if ( reorder[0] != BaseOrdering::NOREORDERING ) {
-        EXCEPTION("================================================= \n"
-                  " Reordering in multiharmonic analysis not tested!! \n "
-                  " Please use noReordering \n"
-                  "================================================= \n");
+        //EXCEPTION("================================================= \n"
+        //          " Reordering in multiharmonic analysis not allowed!! \n "
+        //          " Please use noReordering \n"
+        //          "================================================= \n");
         newOrdering_[sbmRow].Resize( blockInfoMH_->numLastFreeIndex );
       }
       graph_[idx]->FinaliseAssembly( reorder[0], false, &newOrdering_[sbmRow] );
+
       LOG_DBG3(graphMan) << "Reordering array is "
                          << newOrdering_[sbmRow].ToString();
 
@@ -280,7 +281,7 @@ namespace CoupledField {
           // diagonal element (sbmCol, sbmCol)
           UInt idxCol = ComputeIndex(sbmCol, sbmCol);
 
-          //TODO now quite clear which difference this makes
+          //TODO not quite clear which difference this makes
           graph_[idx]->FinaliseAssembly( BaseOrdering::NOREORDERING ,
                                          true, &newOrdering_[sbmRow],
                                          &newOrdering_[sbmCol] );

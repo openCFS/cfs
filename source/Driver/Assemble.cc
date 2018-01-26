@@ -800,8 +800,6 @@ namespace CoupledField
         if( col < 2 * N + 1 && col >= 0) sbmInd.Push_back( ComputeIndex(iRow, col) );
       }
     }
-std::cout<<"harmonics:"<<harmonic<<std::endl;
-std::cout<<"sbmInd:"<<sbmInd<<std::endl;
 
     // iterate over all entitylist-pairs and
     BiLinContextListType::iterator listIt = biLinForms_.begin();

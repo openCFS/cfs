@@ -407,6 +407,14 @@ namespace CoupledField {
                                      StdVector<UInt>& indices,
                                      const StdVector<UInt>& sbmIndices );
 
+    //! Helper method for inserting an element method into the correct block
+    //! in a reordered multiharmonic analysis
+    void MapFctIdEqnToIndex_MultHarm( const FeFctIdType fctId,
+                                      const StdVector<Integer>& eqns,
+                                      StdVector<UInt>& blockNums,
+                                      StdVector<UInt>& indices );
+
+
     //! @see MapFctIdEqnToIndex()
     void MapFctIdEqnToIndex( const StdVector<FeFctIdType>& fctId,
                              const StdVector<Integer>& eqns,

@@ -1513,7 +1513,7 @@ namespace CoupledField {
     // Now we have all graphs and IDBC in their re-ordered state,
     // so we have to fetch the reordering array from the GraphManager and 
     // update information in the blockInfo array for all SBM-Blocks 
-    
+
     // Loop over all blocks
     for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
       GraphManager::SBMBlockInfo &bi = *blockInfo_[iBlock];
@@ -1588,15 +1588,8 @@ namespace CoupledField {
         // Fetch all SBM blocks, in which the current (rowFctId, colFctId) occurs.
         // In the multiharmonic case, give it all the non-zero (sbmRow, sbmCol) combinations
         for( UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
-          // diagonal block
-          SubMatrixID sID;
-          sID.rowInd = sbmRow;
-          sID.colInd = sbmRow;
-          // Insert sub-matrix identifier into corresponding FE-Matrix set
-          feSubMatricesByBlocks_[matrixType].insert( sID );
-          for( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M ; ++sbmCol ) {
+          for( UInt sbmCol = sbmRow; sbmCol < sbmRow + M ; ++sbmCol ) {
             if( sbmCol < 2 * N + 1){
-              // off-diagonal block
               SubMatrixID sID;
               sID.rowInd = sbmRow;
               sID.colInd = sbmCol;
@@ -1604,10 +1597,12 @@ namespace CoupledField {
               feSubMatricesByBlocks_[matrixType].insert( sID );
 
               //also set the transposed
-              sID.rowInd = sbmCol;
-              sID.colInd = sbmRow;
-              // Insert sub-matrix identifier into corresponding FE-Matrix set
-              feSubMatricesByBlocks_[matrixType].insert( sID );
+              if(sbmRow != sbmCol){
+                sID.rowInd = sbmCol;
+                sID.colInd = sbmRow;
+                // Insert sub-matrix identifier into corresponding FE-Matrix set
+                feSubMatricesByBlocks_[matrixType].insert( sID );
+              }
             }
           }
         }
@@ -1632,15 +1627,7 @@ namespace CoupledField {
     else {
       SubMatrixID sID;
       for (  UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
-        // Diagonal block
-        ++nnzBlocks;
-        if ( graphManager_->SubGraphExists( sbmRow, sbmRow ) == true ) {
-                    sID.rowInd = sbmRow;
-                    sID.colInd = sbmRow;
-                    feSubMatricesByBlocks_[SYSTEM].insert( sID );
-                  }
-        for ( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M ; ++sbmCol ) {
-          // Off-diagonal block
+        for ( UInt sbmCol = sbmRow; sbmCol < sbmRow + M ; ++sbmCol ) {
           if( sbmCol < 2 * N + 1){
             ++nnzBlocks;
             if ( graphManager_->SubGraphExists( sbmRow, sbmCol ) == true ) {
@@ -1648,6 +1635,17 @@ namespace CoupledField {
               sID.colInd = sbmCol;
               feSubMatricesByBlocks_[SYSTEM].insert( sID );
             }
+
+            // also handle the transpose
+            if(sbmRow != sbmCol){
+              ++nnzBlocks;
+              if ( graphManager_->SubGraphExists( sbmCol, sbmRow ) == true ) {
+                sID.rowInd = sbmCol;
+                sID.colInd = sbmRow;
+                feSubMatricesByBlocks_[SYSTEM].insert( sID );
+              }
+            }
+
           }
         }
       }
@@ -1709,92 +1707,57 @@ namespace CoupledField {
     }
 
     // Finalize graph manager setup
-    if( isMultHarm_ ){
-      graphManager_->SetupDoneMH(reorder, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM() );
-    }else{
-      graphManager_->SetupDone(reorder);
-    }
+    graphManager_->SetupDoneMH(reorder, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM() );
+
 
     // Now we have all graphs and IDBC in their re-ordered state,
     // so we have to fetch the reordering array from the GraphManager and
     // update information in the blockInfo array for all SBM-Blocks
-    if( isMultHarm_ ){
-      GraphManager::SBMBlockInfo &bi = *blockInfo_[0];
-      UInt numFcts = bi.eqnToIndex.GetSize();
-      StdVector<UInt> newOrder;
-      for (  UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
-        // ----------------------------------
-        //   D I A G O N A L    B L O C K S
-        // ----------------------------------
-        // Obtain reordering vector
-        // take care, the following method needs the row-number
-        graphManager_->GetReordering(sbmRow, newOrder);
+    GraphManager::SBMBlockInfo &bi = *blockInfo_[0];
+    UInt numFcts = bi.eqnToIndex.GetSize();
+    StdVector<UInt> newOrder;
 
-        // Loop over all functions
-        for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
-          boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
-          boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
+    // Since all diagonal blocks have the same reordering and only the
+    // blockInfo_ with indix 0 is valid, we only have to perform the following
+    // loop once. It is left as a loop for further implementations, where we
+    // might apply different reorderings to the blocks
+    for (  UInt sbmRow = 0; sbmRow < 1; ++sbmRow ) {
+      // ----------------------------------
+      //   D I A G O N A L    B L O C K S
+      // ----------------------------------
+      // Obtain reordering vector
+      // take care, the following method needs the row-number
+      graphManager_->GetReordering(sbmRow, newOrder);
 
-          // Here we have to distinguish two cases:
-          // a) PENALTY: We have to reorder all equations, as also the IDBC
-          //             eqns are within the normal matrix. So we do not
-          //             have to maintain the splitting w.r.t. lastFreeEqn
-          // b) Elimination: We are just allowed to reorder equations <
-          //                 numLastFreeEqnPerFct, as this is the size of
-          //                 the underlying matrix. All fixed equations
-          //                 are handled by the IDBC graph.
-          if( usingPenalty_) {
-            for( ; it != eqnToIndex.end(); ++it ){
+
+      // Loop over all functions
+      for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
+        boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
+        boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
+
+std::cout << "Reordering array is "<< newOrder.ToString()<<std::endl;
+
+        // Here we have to distinguish two cases:
+        // a) PENALTY: We have to reorder all equations, as also the IDBC
+        //             eqns are within the normal matrix. So we do not
+        //             have to maintain the splitting w.r.t. lastFreeEqn
+        // b) Elimination: We are just allowed to reorder equations <
+        //                 numLastFreeEqnPerFct, as this is the size of
+        //                 the underlying matrix. All fixed equations
+        //                 are handled by the IDBC graph.
+        if( usingPenalty_) {
+          for( ; it != eqnToIndex.end(); ++it ){
+            it->second = newOrder[it->second-1];
+          }
+        } else {
+          for( ; it != eqnToIndex.end(); ++it ){
+            // Loop over all (eqn)->(index) entries
+            if( it->first <= lastFreeEqnPerFct_[iFct])
               it->second = newOrder[it->second-1];
-            }
-          } else {
-            for( ; it != eqnToIndex.end(); ++it ){
-              // Loop over all (eqn)->(index) entries
-              if( it->first <= lastFreeEqnPerFct_[iFct])
-                it->second = newOrder[it->second-1];
-            } // loop eqns
-          } // if clause
-        } // loop functions
+          } // loop eqns
+        } // if clause
+      } // loop functions
 
-      }
-
-    }else{
-
-      // Loop over all blocks
-      for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
-        GraphManager::SBMBlockInfo &bi = *blockInfo_[iBlock];
-        UInt numFcts = bi.eqnToIndex.GetSize();
-
-        // Obtain reordering vector
-        StdVector<UInt> newOrder;
-        graphManager_->GetReordering(iBlock, newOrder);
-
-        // Loop over all functions
-        for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
-          boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
-          boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
-
-          // Here we have to distinguish two cases:
-          // a) PENALTY: We have to reorder all equations, as also the IDBC
-          //             eqns are within the normal matrix. So we do not
-          //             have to maintain the splitting w.r.t. lastFreeEqn
-          // b) Elimination: We are just allowed to reorder equations <
-          //                 numLastFreeEqnPerFct, as this is the size of
-          //                 the underlying matrix. All fixed equations
-          //                 are handled by the IDBC graph.
-          if( usingPenalty_) {
-            for( ; it != eqnToIndex.end(); ++it ){
-              it->second = newOrder[it->second-1];
-            }
-          } else {
-            for( ; it != eqnToIndex.end(); ++it ){
-              // Loop over all (eqn)->(index) entries
-              if( it->first <= lastFreeEqnPerFct_[iFct])
-                it->second = newOrder[it->second-1];
-            } // loop eqns
-          } // if clause
-        } // loop functions
-      } // loop blocks
     }
 
   }
@@ -1932,6 +1895,35 @@ namespace CoupledField {
 
       }
     }
+  }
+
+
+  void AlgebraicSys::MapFctIdEqnToIndex_MultHarm( const FeFctIdType fctId,
+                                                  const StdVector<Integer>& eqns,
+                                                  StdVector<UInt>& blockNums,
+                                                  StdVector<UInt>& indices ) {
+    LOG_DBG(algSys) << "MFIETI Mapping fctId,eqnNr to blockNum,indices";
+
+    blockNums.Resize(eqns.GetSize());
+    indices.Resize(eqns.GetSize());
+
+
+    UInt numEqns = eqns.GetSize();
+    for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
+      const UInt & eqnNr = std::abs(eqns[iEqn]);
+
+      // take care of homogeneous BCs
+      if( eqnNr == 0) {
+        blockNums[iEqn] = 0;
+        indices[iEqn] = 0;
+      } else {
+        // note: in multiharmonic analysis only one blockInfo
+        const UInt & blockNum = 0;
+        blockNums[iEqn] = blockNum;
+        indices[iEqn] = blockInfo_[blockNum]->eqnToIndex[fctId][eqnNr];
+      }
+    }
+
   }
 
   void AlgebraicSys::MapFctIdEqnToIndex( const FeFctIdType fctId,
@@ -2705,14 +2697,10 @@ std::cout<<"colInd"<<colInd<<std::endl;
     StdVector<UInt>& rowNums                   = rowNums_.Mine(tNum);
     StdVector<UInt>& colNums                   = colNums_.Mine(tNum);
 
-
-    // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
-    // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
-    //MapFctIdEqnToIndex_MultHarm(fctId1, eqnNrs1, rowBlocks, rowNums, sbmIndices);
-    //MapFctIdEqnToIndex_MultHarm(fctId2, eqnNrs2, colBlocks, colNums, sbmIndices);
-    MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
-    MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
-
+    // Re-map entries from (fctId,eqnNr) -> (index)
+    // Re-map entries from (fctId,eqnNr) -> (index)
+    MapFctIdEqnToIndex_MultHarm(fctId1, eqnNrs1, rowBlocks, rowNums);
+    MapFctIdEqnToIndex_MultHarm(fctId2, eqnNrs2, colBlocks, colNums);
 
     rowIndList1[0].Clear(true);
     rowList1[0].Clear(true);
@@ -2816,25 +2804,13 @@ std::cout<<"colInd"<<colInd<<std::endl;
         LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
         LOG_DBG3(algSys) << "\t\tcolIndices: " << cList1.ToString();
         LOG_DBG3(algSys) << "\t\tmat: " << stdMat->ToInfoString();
+
         // 2) Assemble all free <-> free entries
-        // loop over all rows/col
-
-        // detailed logging output
-/*
-        for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
-          rowInd = rIndList1[i];
-          for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
-            colInd = cIndList1[j];
-            std::cout<<"(rList1["<<i<<"], cList1["<<j<<"])= ("<<rList1[i]<<","<< cList1[j]<<std::endl;
-          } //j
-        } //i
-*/
 
         for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
           rowInd = rIndList1[i];
           for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
             colInd = cIndList1[j];
-std::cout<<"elemMat[rowInd][colInd]"<<elemMat[rowInd][colInd]<<std::endl;
             stdMat->AddToMatrixEntry( rList1[i], cList1[j], elemMat[rowInd][colInd] );
           } //j
         } //i
