@@ -238,7 +238,7 @@ void OptimalityCondition::CalcNextFramedIteration()
   // we count lambda iterations to handle the problem of coming too close to a boundary
   lambda_iters_ = 0;
   int count = 0;
-  Double err;
+  double err;
    
   do
   {
@@ -246,7 +246,7 @@ void OptimalityCondition::CalcNextFramedIteration()
     if(++count > max_lambda_iters_)
     {
       // enlarge only where we need to 
-      if(fabs(upper_ - lambda_) < fabs(lambda_ - lower_))
+      if(abs(upper_ - lambda_) < abs(lambda_ - lower_))
         upper_ = lower_ == upper_ ? start_upper_ : lambda_ * enlarge_upper_;
       else
         lower_ = lower_ == upper_ ? start_lower_ : lambda_ * enlarge_lower_;
@@ -273,7 +273,7 @@ void OptimalityCondition::CalcNextFramedIteration()
     LOG_DBG2(oc) << "lambda_iter/lambda/err/lower/upper = " <<  lambda_iters_ << "\t" 
                  << lambda_ << "\t" << err << "\t" << lower_ << "\t" << upper_; 
    }
-   while(fabs(err) > feasibility_  && lambda_iters_ < max_lambda_iters_);
+   while(abs(err) > feasibility_  && lambda_iters_ < max_lambda_iters_);
   
    if(lambda_iters_ >= max_lambda_iters_)
      std::cout << "Iteration fails to find valid Lagrangian: " << lambda_ << " err: " << err << " check bounds in 'optimalityCondition/framed/upper'\n";
@@ -292,7 +292,7 @@ void OptimalityCondition::CalcNextFumbleIteration()
   // the least error becomes the new lambda_k+1 and step_ becomes |lambda_k+1 - lambda_k|
 
   lambda_iters_ = 0;
-  Double min_err;
+  double min_err;
   
   do
   {
@@ -305,13 +305,13 @@ void OptimalityCondition::CalcNextFumbleIteration()
     // start with check lambda_ - expand_ * step_
     optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());    
     min_err = Evaluate(lambda_ - expand_ * step_);
-    Double fumble = -1.0 * expand_;
+    double fumble = -1.0 * expand_;
 
     // check with lambda_ - contract_ * step_
     optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());    
-    Double t = Evaluate(lambda_ - contract_ * step_);
+    double t = Evaluate(lambda_ - contract_ * step_);
     if(t < min_err) {
-//    if (fabs(t) < fabs(min_err)) {
+//    if(abs(t) < abs(min_err)) {
       fumble = -1.0 * contract_;
       min_err = t;
     }
@@ -320,7 +320,7 @@ void OptimalityCondition::CalcNextFumbleIteration()
     optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());
     t = Evaluate(lambda_ + contract_ * step_);
     if(t < min_err) {    
-    //if (fabs(t) < fabs(min_err)) {
+    //if(abs(t) < abs(min_err)) {
       fumble = contract_;
       min_err = t;
     }
@@ -329,14 +329,14 @@ void OptimalityCondition::CalcNextFumbleIteration()
     optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());    
     t = Evaluate(lambda_ + expand_ * step_);
     if(t < min_err) {
-    //if (fabs(t) < fabs(min_err)) {
+    //if(abs(t) < abs(min_err)) {
       fumble = expand_;
       min_err = t;
     }
     
     // new lambda:
     lambda_ += fumble * step_;
-    step_ = fabs(fumble * step_);
+    step_ = abs(fumble * step_);
     
     lambda_iters_++;
 
@@ -345,7 +345,7 @@ void OptimalityCondition::CalcNextFumbleIteration()
                  << Evaluate(lambda_ - expand_ * step_) << "\t" << Evaluate(lambda_ - contract_ * step_) << "\t"
                  << Evaluate(lambda_ + contract_ * step_) << "\t" <<  Evaluate(lambda_ + expand_ * step_);
   }
-  while(fabs(min_err) > feasibility_ && lambda_iters_ < max_lambda_iters_);
+  while(abs(min_err) > feasibility_ && lambda_iters_ < max_lambda_iters_);
 
   if(lambda_iters_ >= max_lambda_iters_)
     std::cout << "Iteration fails to find valid lagrangian: " << lambda_ << " err: " << min_err << std::endl;
@@ -359,18 +359,18 @@ void OptimalityCondition::CalcNextTrajectoryIteration()
   // find the proper lambda
   optimization->GetDesign()->WriteDesignToExtern(vault_.GetPointer());
   
-  Double err = Evaluate(lambda_);
+  double err = Evaluate(lambda_);
 
   LOG_DBG(oc) << "CalcNextIteration: lambda= " << lambda_ << " -> err=" << err;
   
   int    last_dir = 0;
-  Double factor;
+  double factor;
   lambda_iters_ = 0;
 
-  while(fabs(err) > feasibility_ && lambda_iters_ < max_lambda_iters_)
+  while(abs(err) > feasibility_ && lambda_iters_ < max_lambda_iters_)
   {
     // we have to support to step over zero!
-    if (fabs(lambda_) < lambda_min_)
+    if(abs(lambda_) < lambda_min_)
     {
       std::cout << "switch lamba from " << lambda_ << " to " << (lambda_ > 0 ? -1.0 : 1.0) << std::endl; 
       lambda_ = lambda_ > 0 ? -1.0 : 1.0;
@@ -420,14 +420,14 @@ void OptimalityCondition::CalcNextExtremizeIteration()
   {
     DesignElement* de = &data[i];
     // rho_e is the old rho
-    Double rho_e = de->GetDesign(DesignElement::PLAIN);   
-    Double obj_grad = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
+    double rho_e = de->GetDesign(DesignElement::PLAIN);   
+    double obj_grad = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
     
     // next is density times b_e which is compared with box constraints and move limit
-    Double next = rho_e + (obj_grad > 0 ? move_limit_ : -1.0 * move_limit_);        
+    double next = rho_e + (obj_grad > 0 ? move_limit_ : -1.0 * move_limit_);        
                     
-    Double lower = fmax(de->GetLowerBound(), rho_e - move_limit_);
-    Double upper = fmin(de->GetUpperBound(), rho_e + move_limit_);            
+    double lower = std::max(de->GetLowerBound(), rho_e - move_limit_);
+    double upper = std::min(de->GetUpperBound(), rho_e + move_limit_);            
 
     // we cannot set the design directly - otherwise the filter stencil get violated 
     evaluate_tmp_[i] = next;
@@ -444,14 +444,14 @@ void OptimalityCondition::CalcNextExtremizeIteration()
 }
 
 
-Double OptimalityCondition::Evaluate(Double lambda)
+double OptimalityCondition::Evaluate(double lambda)
 {
    // we assume DensityElement.objective_gradient to be set
    // we assume DensityElement.constraint_gradient to be set
   
-   if (fabs(lambda) < fabs(lambda_min_))
+   if(abs(lambda) < abs(lambda_min_))
    {
-     Double org_lambda = lambda;
+     double org_lambda = lambda;
      lambda = lambda < 0 ? -1.0 * lambda_min_ : lambda_min_;
      std::cout << "Optimality Condition evaluates with too small lambda " 
                << org_lambda << " adjust to " << lambda << std::endl;
@@ -472,11 +472,11 @@ Double OptimalityCondition::Evaluate(Double lambda)
    {
      DesignElement* de = &data[i];
      // rho_e is the old rho
-     Double rho_e = de->GetDesign(DesignElement::PLAIN);   
+     double rho_e = de->GetDesign(DesignElement::PLAIN);   
     
      // if filter is enabled we use the filtered value otherwise the plain one
-     Double smart_obj_grad = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
-     Double b_e = -1.0 * smart_obj_grad;
+     double smart_obj_grad = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
+     double b_e = -1.0 * smart_obj_grad;
 
      // ill posed problems have a problem here!  
      if((boost::math::isnan)(b_e)) EXCEPTION("b_e is nan");
@@ -484,15 +484,15 @@ Double OptimalityCondition::Evaluate(Double lambda)
      // for compliant mechanism the gradient can be positive, this is cut
      // -> Bendsoe/Sigmund. p 97
      // for piezo we might become negative lambdas -> cut the positive!
-     b_e = lambda >= 0.0 ? fmax(0.0, b_e) : fmin(0.0, b_e);
+     b_e = lambda >= 0.0 ? std::max(0.0, b_e) : std::min(0.0, b_e);
      
      b_e /= (lambda * de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g));
      
      // next is density times b_e which is compared with box constraints and move limit
-     Double next = rho_e * pow(b_e, oc_damping_);        
+     double next = rho_e * std::pow(b_e, oc_damping_);        
                      
-     Double lower = fmax(de->GetLowerBound(), rho_e - move_limit_);
-     Double upper = fmin(de->GetUpperBound(), rho_e + move_limit_);            
+     double lower = std::max(de->GetLowerBound(), rho_e - move_limit_);
+     double upper = std::min(de->GetUpperBound(), rho_e + move_limit_);            
 
      // we cannot set the design directly - otherwise the filter stencil get violated 
      evaluate_tmp_[i] = next;
@@ -510,12 +510,12 @@ Double OptimalityCondition::Evaluate(Double lambda)
    optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer());
    
    eval_const_timer_->Start();
-   Double vol = optimization->CalcConstraint(g);
+   double vol = optimization->CalcConstraint(g);
    eval_const_timer_->Stop();
 
    optimizer_timer_->Start();
 
-   Double err = g->GetBoundValue() - vol;
+   double err = g->GetBoundValue() - vol;
    return err;
 }
 

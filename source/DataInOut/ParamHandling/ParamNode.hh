@@ -9,8 +9,6 @@
 
 #include "Utils/StdVector.hh"
 #include "General/Exception.hh"
-#include "General/defs.hh"
-
 
 using std::string;
 
@@ -139,7 +137,7 @@ namespace CoupledField
     void SetValue(const char* value);
 
     /** Special version which handles the precision of the value. See implementation note! */
-    void SetValue(const Double, const int precision);
+    void SetValue(const double, const int precision);
 
     /** Set a ParamNode to an expandable InfoNode. Works recursively
      * @param overwrite_name if the the name of the parent node should be used */
@@ -290,11 +288,11 @@ namespace CoupledField
     *  example: 
     *  <pre>
     // instead of:
-    Double manual_scaling = node->Has("option", "name", "obj_scaling_factor") ?
+    double manual_scaling = node->Has("option", "name", "obj_scaling_factor") ?
     node->Get("option", "name", "obj_scaling_factor")->Get("value")->As<Double>() : 1.0;
     // you can do
-    Double manual_scaling = 1.0;
-    node->Get<Double>("option", "name", "obj_scaling_factor", manual_scaling, "value", false);
+    double manual_scaling = 1.0;
+    node->Get<double>("option", "name", "obj_scaling_factor", manual_scaling, "value", false);
     </pre> 
 //    */
 //    template <typename TYPE, typename TYPE2>

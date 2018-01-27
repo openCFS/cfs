@@ -67,20 +67,20 @@ void GradientCheck::SolveProblem()
 
   // solve the original problem once!!
   optimization->SolveStateProblem();
-  Double curr_obj = optimization->CalcObjective();
+  double curr_obj = optimization->CalcObjective();
   optimization->SolveAdjointProblems();
   optimization->CalcObjectiveGradient(NULL);
 
   // store here the finite difference value
-  Vector<Double> finite;
+  Vector<double> finite;
   finite.Resize(design->data.GetSize());
 
   // save here the analytical cost gradient
-  Vector<Double> analytical;
+  Vector<double> analytical;
   analytical.Resize(design->data.GetSize());
 
   // relative error
-  Vector<Double> error;
+  Vector<double> error;
   error.Resize(design->data.GetSize());
 
   // perform a lot of calculations
@@ -98,14 +98,14 @@ void GradientCheck::SolveProblem()
     finite[i] = PerformFiniteDifferenceEval(de, curr_obj, cg);
     analytical[i] = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN);
     error[i] = finite[i] != 0.0 ? ((finite[i] - analytical[i]) / finite[i])
-        : std::numeric_limits<Double>::max();
+        : std::numeric_limits<double>::max();
 
     cg->Get("grad")->SetValue(analytical[i]);
     cg->Get("fd_grad")->SetValue(finite[i]);
-    cg->Get("diff")->SetValue(Double(finite[i] - analytical[i]));
+    cg->Get("diff")->SetValue(finite[i] - analytical[i]);
     if (finite[i] != 0.0) {
-      cg->Get("error")->SetValue(Double((finite[i] - analytical[i]) / finite[i]));
-      cg->Get("factor")->SetValue(Double(analytical[i] / finite[i]));
+      cg->Get("error")->SetValue((finite[i] - analytical[i]) / finite[i]);
+      cg->Get("factor")->SetValue(analytical[i] / finite[i]);
     } else {
       cg->Get("error")->SetValue("finite difference is zero");
       cg->Get("factor")->SetValue("finite difference is zero");
@@ -116,36 +116,36 @@ void GradientCheck::SolveProblem()
   optimization->CommitIteration();
 
   // finish comparison
-  Double l2 = error.NormL2() / error.GetSize();
-  Double max = error.NormMax();
+  double l2 = error.NormL2() / error.GetSize();
+  double max = error.NormMax();
 
   info_->Get(ParamNode::SUMMARY)->Get("max_relative_error")->SetValue(max);
   info_->Get(ParamNode::SUMMARY)->Get("relative_L2_error")->SetValue(l2);
   std::cout << "relative error -> max=" << max << " L2=" << l2 << std::endl;
 }
 
-Double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, Double f_x, PtrParamNode in)
+double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x, PtrParamNode in)
 {
   Assemble* ass = Optimization::context->pde->GetAssemble();
 
-  Double f_x1 = 0.0, f_x2 = 0.0, fd = 0.0;
+  double f_x1 = 0.0, f_x2 = 0.0, fd = 0.0;
   // in first order we always perform a forward fifference quotient
   // if we are to close to the max value we step back.
   // Two things have to be considered:
   // - make sure f_x can be reused
   // - take care with foreard and backward differences for this case.
 
-  Double x_org = de->GetDesign(DesignElement::PLAIN);
+  double x_org = de->GetDesign(DesignElement::PLAIN);
 
   // consider first order
-  Double x_eval_1 = x_org + h <= de->GetUpperBound() ? x_org + h : x_org - h;
+  double x_eval_1 = x_org + h <= de->GetUpperBound() ? x_org + h : x_org - h;
   int x_dir_1 = x_org + h <= de->GetUpperBound() ? +1 : -1;
 
   // x_dir_1 = 1  : x_org .. x_eval_1 .. x_max
   // x_dir_1 = -1 : x_eval_1 .. x_org .. x_max
 
   // in the second order we also have to check against the lower bound
-  Double x_eval_2 = x_eval_1 - (x_dir_1 == 1 ? 2 : 1) * h;
+  double x_eval_2 = x_eval_1 - (x_dir_1 == 1 ? 2 : 1) * h;
   int x_dir_2 = +1;
   if (order == 2 && x_eval_2 < de->GetLowerBound())
   {
@@ -167,9 +167,9 @@ Double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, Double f_x,
   if (order == 2)
   {
     if (x_dir_1 == -1)
-      x_eval_1 = std::numeric_limits<Double>::max(); // we may not calculate this!
+      x_eval_1 = std::numeric_limits<double>::max(); // we may not calculate this!
     if (x_dir_2 == -1)
-      x_eval_2 = std::numeric_limits<Double>::min(); // we may not calculate this!
+      x_eval_2 = std::numeric_limits<double>::min(); // we may not calculate this!
   }
 
   // calc forward value not with degenerated second order case

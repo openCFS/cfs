@@ -41,13 +41,13 @@ public:
   bool Apply(bool switch_context = false);
 
   /** Find the fixed factor, does ignore weighting and does not apply it. */
-  Double GetFactor(Function* f) const;
+  double GetFactor(Function* f) const;
 
   /** Returns GetFactor() * normalized_weight */
-  Double GetWeightedFactor(Function* f) const;
+  double GetWeightedFactor(Function* f) const;
 
   /** Gets the current omege =  2 * pi * f */
-  Double GetOmega() const;
+  double GetOmega() const;
 
   /** read the tracking node list from XML */
   void ReadTrackings(PtrParamNode ts);
@@ -92,35 +92,35 @@ public:
   HarmonicDriver::Frequency* f_link;
 
   /** For multiharmonic excitation. -1.0 by default */
-  Double frequency;
+  double frequency;
 
   /** For Bloch mode analysis. The excitation index is the wave vector index.  */
-  Vector<Double> wave_vector;
+  Vector<double> wave_vector;
 
   /** this is the weight from the xml file.
    * @see normalized_weight */
-  Double weight;
+  double weight;
 
   /** do we need to reassemble the system? True for frequency, robust and transformation */
   bool reassemble;
 
   /** this is the normalized weight (sum of all weights of all excitations is 1).
    * Note that for functions with a single excitation (e.g. stress, volume) it shall be 1 */
-  Double normalized_weight;
+  double normalized_weight;
 
   /** A label denoting the excitation, depends on kind */
   std::string label;
 
   /** Here we store the calculated objective value, including costFunction/factor
    * to enable metaObjective. In the Optimization::cost struct we store a copy/average */
-  Double cost;
+  double cost;
 
   /** Here we might store the "original" (@see objective) gradient for analysis/output */
-  StdVector<Double> cost_gradient;
+  StdVector<double> cost_gradient;
 
   /** for the calculation of a homogenized material tensor, we use the test
    * strains defined in ErsatzMaterial::SetHomogenizationTestStrains() */
-  Vector<Double> test_strain;
+  Vector<double> test_strain;
 
   /** For transformation, this is the applied transformation. NULL means we don't do transformation*/
   Transform* transform;
@@ -213,10 +213,10 @@ public:
   int stride;
 
   /** the maximal span between the largest (1) and smallest weight as factor */
-  Double max_gain;
+  double max_gain;
 
   /** The exponent d in w_k^p J_k = const */
-  Double damping;
+  double damping;
 
 private:
 

@@ -116,7 +116,7 @@ namespace CoupledField
 
     std::ostringstream os;
 
-    bool is_complex = boost::is_same<TYPE, std::complex<Double> >::value;
+    bool is_complex = boost::is_same<TYPE, std::complex<double> >::value;
 
     os << "<" << name << " dim1=\"" << size_row_ << "\" dim2=\"" << size_col_ << "\">";
     os << std::endl << offset << "  " << (is_complex ? "<complex>" : "<real>");
@@ -129,7 +129,7 @@ namespace CoupledField
         os << std::scientific;
         os.precision(6);
         os.width(13);
-        os << (IsNoise(data_[r][c]) ? TYPE(0.0) : data_[r][c]);
+        os << (IsNoise(data_[r][c]) ? 0.0 : data_[r][c]);
         if(c < size_col_ - 1) os << " ";
       }
     }
@@ -435,21 +435,13 @@ namespace CoupledField
 
 
          if(data_[idy][idx]<= 0){
-#ifdef USE_ADOLC
-           red = lround( -255.0 * (data_[idy][idx]).getValue() ); //lround not defined in traceless AD mode at the moment. Maybe in traced mode?
-#else
            red = lround( -255.0 * data_[idy][idx] );
-#endif
            if ( red < 0 ) red=0;
            if ( red > 255 ) red=255;
            green = 0;
            blue = 0;
          } else {
-#ifdef USE_ADOLC
-          blue = lround( 255.0 * (data_[idy][idx]).getValue() );
-#else
            blue = lround( 255.0 * data_[idy][idx] );
-#endif
            if ( blue < 0 ) blue=0;
            if ( blue > 255 ) blue=255;
            red = 0;
@@ -632,11 +624,7 @@ namespace CoupledField
 
         long red, green, blue;
 
-#ifdef USE_ADOLC
-        double scaling = (fabs(data_[idy][idx])).getValue();
-#else
-        Double scaling = fabs(data_[idy][idx]);
-#endif
+        Double scaling = std::abs(data_[idy][idx]);
 
         /*
          * OLD
@@ -671,11 +659,7 @@ namespace CoupledField
         } else if(tmp < -1.0){
           tmp = -1.0;
         }
-#ifdef USE_ADOLC
-        double angle = acos(tmp.getValue())/M_PI * 180;
-#else
-        Double angle = acos(tmp)/M_PI * 180;
-#endif
+        Double angle = std::acos(tmp)/M_PI * 180;
         if((*rotY)[idy][idx] < 0){
           angle = 360-angle;
         }
@@ -1514,47 +1498,7 @@ namespace CoupledField
 
     return result;
   }
-  #ifdef USE_ADOLC
-  // bjurgel AD conversion comment:
-  // Specialisation is a bad idea (duplicate code). However, dotProduct uses implicit conversion.
-  // Please fix dotProduct, then we can remove duplicate code.
-  template<>
-  int Matrix<int>::ScalarProduct(const Matrix<int>& other_mat) const
-  {
-#ifdef CHECK_INITIALIZED
-    if(size_row_ == 0 || size_col_ == 0)
-      EXCEPTION("undefined Matrix");
-    if(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_)
-      EXCEPTION("incompatible dimension");
-#endif
 
-    int result(0);
-
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      result += (OpType<int>::dotProduct(data_[0][k], other_mat.data_[0][k])).getValue();
-
-    return result;
-  }
-    template<>
-  UInt Matrix<UInt>::ScalarProduct(const Matrix<UInt>& other_mat) const
-  {
-#ifdef CHECK_INITIALIZED
-    if(size_row_ == 0 || size_col_ == 0)
-      EXCEPTION("undefined Matrix");
-    if(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_)
-      EXCEPTION("incompatible dimension");
-#endif
-
-    UInt result(0);
-
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      result += (OpType<UInt>::dotProduct(data_[0][k], other_mat.data_[0][k])).getValue();
-
-    return result;
-  }
-#endif
-  
-  
   template<class TYPE>
   TYPE Matrix<TYPE>::FrobeniusProduct(const Matrix<TYPE>& other_mat) const
   {
@@ -1568,41 +1512,9 @@ namespace CoupledField
 
     return result;
   }
-#ifdef USE_ADOLC
-  // bjurgel AD conversion comment:
-  // Specialisation is a bad idea (duplicate code). However, dotProduct uses implicit conversion.
-  // Please fix dotProduct, then we can remove duplicate code.
-
-    template<>
-  int Matrix<int>::FrobeniusProduct(const Matrix<int>& other_mat) const
-  {
-    assert(size_row_ == 0 || size_col_ == 0);
-    assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
-
-    int result(0);
-
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      result += (OpType<int>::dotProduct(data_[0][k], other_mat.data_[0][k])).getValue();
-
-    return result;
-  }
-    template<>
-  UInt Matrix<UInt>::FrobeniusProduct(const Matrix<UInt>& other_mat) const
-  {
-    assert(size_row_ == 0 || size_col_ == 0);
-    assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
-
-    UInt result(0);
-
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      result += (OpType<UInt>::dotProduct(data_[0][k], other_mat.data_[0][k])).getValue();
-
-    return result;
-  }
-#endif
 
   template<>
-  Matrix<Double> Matrix<Double>::EntryMult(const Matrix<Double>& other_mat) const
+  Matrix<double> Matrix<double>::EntryMult(const Matrix<double>& other_mat) const
   {
     assert(size_row_ == 0 || size_col_ == 0);
     assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
@@ -1650,83 +1562,7 @@ namespace CoupledField
       for ( kk = 0; kk < size_col_; kk++)
         rvec1[k] += OpType<TYPE>::dotProduct(data_[k][kk],mvec1[kk]);
   }
-#ifdef USE_ADOLC
-  // bjurgel AD conversion comment:
-  // Specialisation is a bad idea (duplicate code). However, dotProduct uses implicit conversion.
-  // Please fix dotProduct, then we can remove duplicate code.
-    template<>
-  void Matrix<int>::MultInner(const SingleVector & mvec, SingleVector & rvec) const
-  {
-    Vector<int> const & mvec1 = dynamic_cast<const Vector<int>& >(mvec);
-    Vector<int> & rvec1 = dynamic_cast<Vector<int>& >(rvec);
   
-#if defined CHECK_INITIALIZED || defined CHECK_INDEX
-    UInt size_mvec = mvec1.GetSize();
-    UInt size_rvec = rvec1.GetSize();
- 
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      EXCEPTION("undefined Matrix");
-    if (size_mvec == 0) 
-      EXCEPTION("undefined Vector");
-    if (size_rvec == 0) 
-      EXCEPTION("undefined Vector");
-#endif
-
-#ifdef CHECK_INDEX
-    if (size_col_ != size_mvec) 
-      EXCEPTION("incompatible dimension");
-    if (size_row_ != size_rvec) 
-      EXCEPTION("incompatible dimension");
-#endif
-
-#endif
-
-    UInt k,kk;
-    rvec1.Init();
-    for ( k = 0; k < size_row_; k++)
-      for ( kk = 0; kk < size_col_; kk++)
-        rvec1[k] += (OpType<int>::dotProduct(data_[k][kk],mvec1[kk])).getValue(); //this is crazy.
-  }
-    // bjurgel AD conversion comment:
-  // Specialisation is a bad idea (duplicate code). However, dotProduct uses implicit conversion.
-  // Please fix dotProduct, then we can remove duplicate code.
-    template<>
-  void Matrix<UInt>::MultInner(const SingleVector & mvec, SingleVector & rvec) const
-  {
-    Vector<UInt> const & mvec1 = dynamic_cast<const Vector<UInt>& >(mvec);
-    Vector<UInt> & rvec1 = dynamic_cast<Vector<UInt>& >(rvec);
-  
-#if defined CHECK_INITIALIZED || defined CHECK_INDEX
-    UInt size_mvec = mvec1.GetSize();
-    UInt size_rvec = rvec1.GetSize();
- 
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      EXCEPTION("undefined Matrix");
-    if (size_mvec == 0) 
-      EXCEPTION("undefined Vector");
-    if (size_rvec == 0) 
-      EXCEPTION("undefined Vector");
-#endif
-
-#ifdef CHECK_INDEX
-    if (size_col_ != size_mvec) 
-      EXCEPTION("incompatible dimension");
-    if (size_row_ != size_rvec) 
-      EXCEPTION("incompatible dimension");
-#endif
-
-#endif
-
-    UInt k,kk;
-    rvec1.Init();
-    for ( k = 0; k < size_row_; k++)
-      for ( kk = 0; kk < size_col_; kk++)
-        rvec1[k] += (OpType<UInt>::dotProduct(data_[k][kk],mvec1[kk])).getValue(); //this is crazy.
-  }
-#endif
-
   // Perform a matrix-vector multiplication rvec = transpose(this)*mvec
   template<class TYPE>
   void Matrix<TYPE>::MultT(const SingleVector &mvec, SingleVector &rvec) const
@@ -1752,12 +1588,11 @@ namespace CoupledField
 #endif
     
     // overwrite output vector with 0.0s and set correct length
-    rvec1.Resize(size_col_, TYPE(0));
+    rvec1.Resize(size_col_, 0);
     for ( UInt k = 0; k < size_row_; ++k)
       for ( UInt kk = 0; kk < size_col_; ++kk)
         rvec1[kk] += data_[k][kk]*mvec1[k];
   }
-  
   
   // **************
   //   operator<<
@@ -1813,7 +1648,7 @@ namespace CoupledField
   
 
   template<class TYPE>
-  bool Matrix<TYPE>::IsHermitian(Double eps) const
+  bool Matrix<TYPE>::IsHermitian(double eps) const
   {
     for(UInt r = 0; r < size_row_; r++)
       for(UInt c = r+1; c < size_col_; c++)
@@ -1825,7 +1660,7 @@ namespace CoupledField
 
 
   template< >
-  bool Matrix<Complex>::IsHermitian(Double eps) const
+  bool Matrix<Complex>::IsHermitian(double eps) const
   {
     for(UInt r = 0; r < size_row_; r++)
     {
@@ -1840,7 +1675,7 @@ namespace CoupledField
         if(!close(u.real(), l.real()))
           return false;
 
-        if(!close(fabs(u.imag()), fabs(l.imag())))
+        if(!close(std::abs(u.imag()), std::abs(l.imag())))
           return false;
       }
     }
@@ -1864,7 +1699,7 @@ namespace CoupledField
       k1 = k + 1;
       for(i = k1; i <= nmat; ++i)
       {
-        if (data_[k][k] != TYPE(0.0))
+        if (data_[k][k] != 0.0)
         {
           data_[i][k] /= data_[k][k];
           for (j=k1; j<=nmat; ++j)
@@ -1924,10 +1759,10 @@ namespace CoupledField
 
     Integer *lp_interchanges;
     
-    std::complex<Double>* lp_rhsVecf77;
-    std::complex<Double>* lp_sysVecf77;
-    std::complex<Double>* lp_workf77;
-    std::complex<Double> auxVal2;
+    std::complex<double>* lp_rhsVecf77;
+    std::complex<double>* lp_sysVecf77;
+    std::complex<double>* lp_workf77;
+    std::complex<double> auxVal2;
     
     Vector<Complex> lp_sysVec, lp_work;
     lp_sysVec.Resize(size_row_*size_row_);
@@ -1948,13 +1783,13 @@ namespace CoupledField
         lp_rhsVec[i+j*brows]=b1[i][j];
       }
     
-    lp_rhsVecf77 = new std::complex<Double>[size_row_*lp_nrRHS];
+    lp_rhsVecf77 = new std::complex<double>[size_row_*lp_nrRHS];
     lp_interchanges = new int[size_row_*size_row_];
-    lp_workf77 = new std::complex<Double>[size_row_*size_row_];
-    lp_sysVecf77 = new std::complex<Double>[size_row_*size_row_];
+    lp_workf77 = new std::complex<double>[size_row_*size_row_];
+    lp_sysVecf77 = new std::complex<double>[size_row_*size_row_];
    
 
-    // Convert CFS++ Vector<Complex> to Vector<std::complex<Double>>
+    // Convert CFS++ Vector<Complex> to Vector<std::complex<double>>
     for ( UInt count = 0; count < size_row_*bcols; ++count ) {
       lp_rhsVecf77[count] = lp_rhsVec[count];
       }
@@ -2036,7 +1871,7 @@ namespace CoupledField
 #ifdef USE_LAPACK
   // Compile OLAS and CFS++ with USE_LAPACK
   template <class T>
-  void Matrix<T>::eigenvaluesWithLapack(Vector<Double> & lp_w, Matrix<Double> * ev_vec)
+  void Matrix<T>::eigenvaluesWithLapack(Vector<Double> & lp_w, Matrix<double> * ev_vec)
   {
     // computes all eigenvalues of a complex hermitian matrix
 
@@ -2065,14 +1900,14 @@ namespace CoupledField
     lp_rwork.Init();
       
     Integer lp_infof77;
-    std::complex<Double> auxValC;
+    std::complex<double> auxValC;
 
-    std::complex<Double>* lp_af77    = new std::complex<Double>[size_row_*size_row_];
-    std::complex<Double>* lp_workf77 = new std::complex<Double>[99];
-    Double* lp_wf77     = new Double[size_row_];
-    Double* lp_rworkf77 = new Double[3*size_row_-2];
+    std::complex<double>* lp_af77    = new std::complex<double>[size_row_*size_row_];
+    std::complex<double>* lp_workf77 = new std::complex<double>[99];
+    double* lp_wf77     = new double[size_row_];
+    double* lp_rworkf77 = new double[3*size_row_-2];
       
-    // Convert CFS++ Vector<Complex> to Vector<std::complex<Double>>
+    // Convert CFS++ Vector<Complex> to Vector<std::complex<double>>
     for ( UInt count = 0; count < size_row_; count++ ) 
       for ( UInt countC = 0; countC <size_row_; countC++ ) {
         lp_af77[countC*size_row_+count] = data_[count][countC];
@@ -2101,7 +1936,7 @@ namespace CoupledField
       for ( UInt count = 0; count < size_row_; count++ ) {
         for (UInt count2 = 0; count2 < size_row_;count2++) {
           (*ev_vec)[count][count2] = lp_af77[c].real();
-          if (fabs(lp_af77[c].imag()) > std::numeric_limits<float>::epsilon() ) {
+          if (std::abs(lp_af77[c].imag()) > std::numeric_limits<float>::epsilon() ) {
             EXCEPTION("Eigenvector is non real! ")
           }
           c++;
@@ -2261,7 +2096,7 @@ namespace CoupledField
     int *ipiv = new int[size_row_];
     int n = size_row_;
     int lwork = size_row_ * size_row_;
-    std::complex<Double> *work = new  std::complex<Double>[lwork];
+    std::complex<double> *work = new  std::complex<double>[lwork];
     int info;
 
     // calculate LU-factorization of block
@@ -2299,7 +2134,7 @@ namespace CoupledField
     int *ipiv = new int[size_row_];
     int n = size_row_;
     int lwork = size_row_ * size_row_;
-    Double *work = new Double[lwork];
+    double *work = new double[lwork];
     int info;
 
     // calculate LU-factorization of block
@@ -2321,7 +2156,7 @@ namespace CoupledField
   }
 
   
-  template<> void Matrix<Double>::Invert_Lapack(Double & rcond, int & inf) {
+  template<> void Matrix<Double>::Invert_Lapack(double & rcond, int & inf) {
 #ifdef CHECK_INDEX
     if( size_row_ != size_col_) {
       EXCEPTION("Can only invert square matrices");
@@ -2336,8 +2171,8 @@ namespace CoupledField
     int *ipiv = new int[size_row_];
     int n = size_row_;
     int lwork = size_row_ * size_row_;
-    Double *work = new Double[lwork];
-    Double *work1 = new Double[4*n];
+    double *work = new double[lwork];
+    double *work1 = new double[4*n];
     int info1, info2, info3;
 
     // calculate LU-factorization of block
@@ -2348,7 +2183,7 @@ namespace CoupledField
     }
 
     //compute 1-norm of the original matrix
-    Double anorm = 0.0;
+    double anorm = 0.0;
     for(UInt i = 0; i < size_row_; ++i){
       for(UInt j = 0; j < size_col_; ++j){
         if(anorm < data_[i][j]) anorm = data_[i][j];
@@ -2863,20 +2698,8 @@ namespace CoupledField
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
       result += data_[0][k] * data_[0][k];
 
-    return static_cast<TYPE>(sqrt(result)); // for compilers
+    return static_cast<TYPE>(std::sqrt(result)); // for compilers
   }
-#ifdef USE_ADOLC
-  template<>
-  Complex Matrix<Complex>::NormL2() const
-  {
-    Complex result(0);
-    
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      result += data_[0][k] * data_[0][k];
-
-    return static_cast<Complex>(Sqrt(result)); // for compilers
-  }
-#endif
 
   template<class TYPE>
   TYPE Matrix<TYPE>::Avg() const
@@ -2885,7 +2708,7 @@ namespace CoupledField
     TYPE v(0);
     for(unsigned int i = 0, n = size_row_*size_col_; i < n; i++)
       v += data_[0][i];
-    return v * TYPE(1./(size_row_*size_col_));
+    return v * (1./(size_row_*size_col_));
   }
 
 
@@ -2907,7 +2730,7 @@ namespace CoupledField
       result += tmp;
     }
 
-    return static_cast<TYPE>(Sqrt(result)); // for compilers
+    return static_cast<TYPE>(std::sqrt(result)); // for compilers
   }
 
   template<class TYPE>
@@ -2924,39 +2747,6 @@ namespace CoupledField
 
     return result;
   }
-
-//bjurgel AD conversion comment: perhaps just add an int conversion operator to traceless mode for CFS?
-// however, this may then behave differently than expected
-#ifdef USE_ADOLC
-  template<>
-  int Matrix<int>::DiffNormL1(const Matrix<int>& other) const
-  {
-#ifdef CHECK_INITIALIZED
-    if (size_row_ != other.size_row_ || size_col_ != other.size_col_)
-      EXCEPTION("Incompatible matrices");
-#endif
-
-    int result(0);
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      result += static_cast<int>((Abs(data_[0][k] - other.data_[0][k])).getValue());
-
-    return result;
-  }
-    template<>
-  UInt Matrix<UInt>::DiffNormL1(const Matrix<UInt>& other) const
-  {
-#ifdef CHECK_INITIALIZED
-    if (size_row_ != other.size_row_ || size_col_ != other.size_col_)
-      EXCEPTION("Incompatible matrices");
-#endif
-
-    UInt result(0);
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      result += static_cast<UInt>((Abs(data_[0][k] - other.data_[0][k])).getValue());
-
-    return result;
-  }
-#endif
 
   template<class TYPE>
   bool Matrix<TYPE>::ContainsNaN() const

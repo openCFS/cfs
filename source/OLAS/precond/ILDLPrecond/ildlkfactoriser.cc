@@ -200,10 +200,10 @@ namespace CoupledField {
     fillU.reserve( memSize );
 
     // OLAS uses one-base indexing, so we push_back a zero up front
-    dataD.push_back( T(0) );
+    dataD.push_back( 0 );
     rptrU.push_back( 0 );
     cidxU.push_back( 0 );
-    dataU.push_back( T(0) );
+    dataU.push_back( 0 );
     fillU.push_back( 0 );
 
 #ifdef DEBUG_ILDLKFACTORISER
@@ -266,18 +266,12 @@ namespace CoupledField {
 #endif
 
       // Keep user informed on progress
-      actDone = (Double)(k*100) / (Double)this->sysMatDim_;
-#ifndef USE_ADOLC
+      actDone = (double)(k*100) / (double)this->sysMatDim_;
       actDone = (UInt)(actDone/10.0)*10;
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
       }
-#else
-      actDone = (UInt)(actDone.getValue()/10.0)*10;
-      if ( actDone > percentDone ) {
-        percentDone = (UInt)actDone.getValue();
-      }
-#endif
+
       // Insert row k of A into linked list, but omit the diagonal entry,
       // and set the initial fill-levels for its pattern
       if ( rptrA[k+1] - rptrA[k] > 1 ) {
@@ -813,7 +807,7 @@ namespace CoupledField {
     }
 
     // Represent profile as floating point number
-    Double profileFP = profile + (Double) std::numeric_limits<unsigned int>::max() * profileMult;
+    Double profileFP = profile + (double) std::numeric_limits<unsigned int>::max() * profileMult;
 
     // ======================================================
     //  Compute estimation for memory requirements of factor
@@ -822,7 +816,7 @@ namespace CoupledField {
     Double fillIn, chunk, memSize;
 
     // Determine additional entries in profile
-    fillIn = profile + (Double) std::numeric_limits<unsigned int>::max() * profileMult - sysMat.GetNnz();
+    fillIn = profile + (double) std::numeric_limits<unsigned int>::max() * profileMult - sysMat.GetNnz();
 
     // Divide into equivalent chunks
     chunk = fillIn / bw;
@@ -835,11 +829,7 @@ namespace CoupledField {
     memSize = memSize > profileFP ? profileFP : memSize;
 
     // That's it
-#ifdef USE_ADOLC
-    return (UInt)memSize.getValue();
-#else
     return (UInt)memSize;
-#endif
   }
 
 

@@ -786,7 +786,7 @@ namespace CoupledField {
   // ENTITY ACCESS
   // ======================================================
   
-  void SimInputMPHTXT::GetCoordinates( std::vector< Double > & nodeCoords ) {
+  void SimInputMPHTXT::GetCoordinates( std::vector< double > & nodeCoords ) {
   }
 
 

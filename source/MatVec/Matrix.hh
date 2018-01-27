@@ -139,7 +139,7 @@ namespace CoupledField
     bool IsSymmetric() const;
 
     /** symmetry check with eps sensitivity. */
-    inline bool IsSymmetric(Double eps) const
+    inline bool IsSymmetric(double eps) const
     {
       if(!IsQuadratic())
         return false;
@@ -154,7 +154,7 @@ namespace CoupledField
 
     /** check if the matrix is a Hermitian matrix. In the non complex case symmetry is checked.
      * @param eps if true use close() to compare the values by an eps  */
-    bool IsHermitian(Double eps = 1e-6) const;
+    bool IsHermitian(double eps = 1e-6) const;
 
 
     //! Get the number of rows
@@ -372,7 +372,7 @@ namespace CoupledField
     TYPE ScalarProduct(const Matrix<TYPE>& other_mat) const;
 
     //! Entry-wise multiplication with another matrix
-    Matrix<Double> EntryMult(const Matrix<Double>& other_mat) const;
+    Matrix<double> EntryMult(const Matrix<double>& other_mat) const;
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT( const SingleVector & mvec, SingleVector & rvec ) const;
@@ -473,7 +473,7 @@ namespace CoupledField
     //! This methods estimates the condition number of the matrix
     //! \param k  estimated condition number
     //! \param info returns if the LU factorization was succesfull
-    void Invert_Lapack(Double & k, int & info);
+    void Invert_Lapack(double & k, int & info);
 
     //! Transpose the matrix and store the result in \a transposedMat
     //! \note The matrix itself gets not changed.
@@ -621,7 +621,7 @@ namespace CoupledField
                           lapackSysMatType & LAPACK_MATRIX_TYPE );
 
     //! Computes eigenvalues of an hermitian matrix and eigen vectors if necessary
-    void eigenvaluesWithLapack(Vector<Double> & b1,Matrix<Double> * b2 = NULL);
+    void eigenvaluesWithLapack(Vector<Double> & b1,Matrix<double> * b2 = NULL);
     //@}
 #endif
   

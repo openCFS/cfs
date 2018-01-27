@@ -62,9 +62,3 @@ TARGET_LINK_LIBRARIES(optimization ${TARGET_LL})
 #                       lapack blas
 #                       /space/fwein/packages/boost_dev/lib/libboost_serialization-gcc.so
 #                       /space/fwein/packages/scpip/libscpip.a g2c gfortran m)                      
-IF(USE_ADOLC)
-  INCLUDE_DIRECTORIES(${ADOLC_INCLUDE_DIR})
-  #LINK_DIRECTORIES(${ADOLC_LIBRARY})
-ENDIF(USE_ADOLC)
-
-

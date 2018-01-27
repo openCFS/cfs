@@ -29,7 +29,7 @@ public:
    * @return ony for "" we have solve succeeded!
    * @param refine factors the originally set tolerances. In case linesearch returned to the old point in the next iteration
    * the subproblem is solved again then with tighter tolerances. */
-  std::string SolveProblem(PtrParamNode in, Double refine);
+  std::string SolveProblem(PtrParamNode in, double refine);
 
   /** to be called when the first problem is solved */
   void EnableWarmstart();
@@ -90,9 +90,9 @@ public:
    Vector<double> orig_lambda;
 
    /** this are the original tolerances, modified in the refine case */
-   Double org_tol;
-   Double org_constr_viol_tol;
-   Double org_acceptable_constr_viol_tol;
+   double org_tol;
+   double org_constr_viol_tol;
+   double org_acceptable_constr_viol_tol;
 
 private:
 

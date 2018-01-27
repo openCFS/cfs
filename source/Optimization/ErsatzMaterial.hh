@@ -96,7 +96,7 @@ public:
    * Evaluated by HOM_TRACKING, HOM_TENSOR, HOM_FROBENIUS_PRODUCT (as objective only).
    * MechPDE reads it when "homogenizedTensor" is a region result!
    * It is a vector for the variants for transformation and robust */
-  StdVector<Matrix<Double> > homogenizedTensor;
+  StdVector<Matrix<double> > homogenizedTensor;
 
   DensityFile* GetDensityFile() { return densityFile; }
 
@@ -113,15 +113,15 @@ public:
   }
 
   // calculates for given node res = interface * (stateSol - trackVal)^2
-  Double CalcStateTrackingAtNode(int node);
+  double CalcStateTrackingAtNode(int node);
 
   // calculates for given node res = load * stateSol
-  Double CalcTempAtInterface(int node);
+  double CalcTempAtInterface(int node);
 
 protected:
   
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
-  virtual void StoreResults(Double step_val);
+  virtual void StoreResults(double step_val);
 
   /** @see Optimization::GetIterationFrequency() */
   std::string GetIterationFrequency();
@@ -155,19 +155,19 @@ protected:
    * @param calcMode how to solve the product.
    * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result
    * @param ev in the eigenvalue case factor for M' which is the eigenvalue. Then calcMode is EIGENVALUE */
-  Double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
+  double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
       App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
-      Double factor, CalcMode calcMode, Function* f, int res_idx = -1, Double ev = -1.0);
+      double factor, CalcMode calcMode, Function* f, int res_idx = -1, double ev = -1.0);
 
   /** for Virgininies stuff */
-  Double CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1,
+  double CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1,
       App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
-      Double factor, CalcMode calcMode, Function* f, int res_idx = -1);
+      double factor, CalcMode calcMode, Function* f, int res_idx = -1);
 
   /** for Virgininies stuff */
-  Double CalcU1KU2_mapping2(TransferFunction* tf, StdVector<SingleVector*>& u1,
+  double CalcU1KU2_mapping2(TransferFunction* tf, StdVector<SingleVector*>& u1,
       App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
-      Double factor, CalcMode calcMode, Function* f, int res_idx = -1);
+      double factor, CalcMode calcMode, Function* f, int res_idx = -1);
 
 
   /** Helper calling CalcU1KU2()
@@ -180,7 +180,7 @@ protected:
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * Also bi-material is nicely considered.
    * The template stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, Double ev = -1.0)
+  virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0)
   {
     throw Exception("not implemented");
   }
@@ -203,7 +203,7 @@ protected:
   /** Helper that asks MechanicMaterial. Works only for a single region.
    * @param excitation we need to make sure the excitation is the active one for robust
    * @return empty if multiple regions */
-  StdVector<std::pair<std::string, Double> > GetOrthotropeProperties(const Matrix<Double>& tensor, Excitation* ex);
+  StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex);
 
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.
    * Depending on the objective function SolveAdjointProblem() is called to additionally solve and store the
@@ -226,7 +226,7 @@ protected:
   /** A simple variant of IntegrateDesignVariable() which works also for non-simp transfer function.
    * Handles also non-regular and physical
    * @param normalized @see CalcVolume() */
-  Double CalcTrivialVolume(Function* f, bool derivative, bool normalized);
+  double CalcTrivialVolume(Function* f, bool derivative, bool normalized);
   /** calculates the integral over a design variable (note that volume is a special case of this (with all standard values) @see CalcVolume
    * regularization is using this usually with normalized = true, scale = true, square = true, factor = "the regularization parameter"
    * @param dtype The design variable to integrate over, use TENSOR_TRACE for tensor trace or DEFAULT for single design
@@ -236,9 +236,9 @@ protected:
    * @param normalized see CalcVolume
    * @param scale calculate the integral over the scaled design variable (<design scale="true">), i.e. the variable as in the optimizer
    * @param square calculate the integral over the square of the DesignVariable */
-  virtual Double IntegrateDesignVariable(Objective* f, Condition* g,
+  virtual double IntegrateDesignVariable(Objective* f, Condition* g,
       bool derivative, DesignElement::Type dtype, bool normalized = true,
-      bool scale = false, Double exponent = 1.0);
+      bool scale = false, double exponent = 1.0);
   /** Handles the Volume constraint. Has a constraint and constraint derivative mode
    * @param derivative if false the return value is calculated. Otherwise the value in
    *                   the design element is set.
@@ -246,7 +246,7 @@ protected:
    * @param grad_out if derivative is set and grad_out is not null it is set.
    * @param normalized if set use normalized "volume" i.e. sum(design * area) / sum(area) for each element, else only sum(design * area)
    * @return invalid in derivative case*/
-  virtual Double CalcVolume(Objective* f, Condition* g, bool derivative,
+  virtual double CalcVolume(Objective* f, Condition* g, bool derivative,
       bool normalized = true);
   /** Handles the Compliance constraint/objective. Has a objective, objective derivative,
    * constraint and constraint derivative mode
@@ -257,14 +257,14 @@ protected:
    * @param constraint if set calculate as given constraint, if null calculate as objective
    * @param grad_out if derivative is set and grad_out is not null it is set.
    * @return invalid in derivative case*/
-  virtual Double CalcCompliance(Excitation& excite, Objective* f, Condition* g,
+  virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* g,
       bool derivative);
   /** Calculates the objective only, no derivative */
-  Double CalcGlobalDynamicCompliance(Excitation& excite, Function* f);
+  double CalcGlobalDynamicCompliance(Excitation& excite, Function* f);
   /** Calculates heat energy as an equivalence to compliance in lin elasticity */
-  virtual Double CalcHeatEnergy(Excitation& excite, Objective* f, Condition* g, bool derivative);
+  virtual double CalcHeatEnergy(Excitation& excite, Objective* f, Condition* g, bool derivative);
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
-  template<class T> Double CalcOutput(Excitation& excite, Function* f);
+  template<class T> double CalcOutput(Excitation& excite, Function* f);
   /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 
    * constraint and constraint derivative mode
    * @param excite  the excitation used 
@@ -273,7 +273,7 @@ protected:
    * @param constraint if set calculate as given constraint, if null calculate as objective
    * @param solveproblem solve the tracking problem, e.g. shapeopt does solve the same problem already
    * @return invalid in derivative case*/
-  virtual Double CalcTracking(Excitation& excite, Objective* f, Condition* g, bool derivative);
+  virtual double CalcTracking(Excitation& excite, Objective* f, Condition* g, bool derivative);
 
   /** Handles tracking constraint/objective for given temperature at interfaces between solid and void
    *  @param excite The used excitation
@@ -282,32 +282,32 @@ protected:
    *  @param trackVal the value that we want to track
    *  @return sum over all tracked values at interface nodes
    */
-  virtual Double CalcStateTrackingAtInterface(Excitation& excite, Function* f, bool derivative, Double trackVal);
+  virtual double CalcStateTrackingAtInterface(Excitation& excite, Function* f, bool derivative, double trackVal);
 
   /**
    * Calculates and sets adjoint rhs for temperature (or any scalar state) at interfaces between solid an void
    * K*l^T = -2 * F' * (u - u_track)
    */
-  virtual void CalcAdjointRHSStateTracking(Excitation& excite, Function* f, Double trackVal, Vector<Double>& out);
+  virtual void CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out);
 
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
-  Double CalcEnergyFlux(Excitation& excite, Objective* f);
+  double CalcEnergyFlux(Excitation& excite, Objective* f);
 
   /** at the moment meant for param <= alpha +/- slack. To be extended by mathparser when required */
-  Double CalcExpression(Condition* g, bool derivative);
+  double CalcExpression(Condition* g, bool derivative);
 
   /** Standard Eigenfrequency (ev -> ef) problem.
    * This problem is better scaled than the eigenvalue problem and it matches eigenfrequency output
    * @param excite the wave vector for the function when bloch=full or the last for bloch=extremal*/
-  Double CalcEigenfrequency(Excitation& excite, Function* f, bool derivative);
+  double CalcEigenfrequency(Excitation& excite, Function* f, bool derivative);
 
   /** bandgap is the difference between two eigenfrequency problems in the bloch mode.
    * It would make sense to have a generic gap function between two independent functions */
-  Double CalcBandGap(Excitation& excite, Function* f, bool derivative);
+  double CalcBandGap(Excitation& excite, Function* f, bool derivative);
 
   /** calculates the variants of slack functions */
-  Double CalcSlackFunction(Function* f, bool derivative);
+  double CalcSlackFunction(Function* f, bool derivative);
 
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
@@ -315,7 +315,7 @@ protected:
    * @param u_glob the complete equation index global solution vector
    * @param adjoint switch action
    * @param q_u_glob output depending on adjoint flag. see u_glob */
-  void SetEnergyFluxVector(Function* f, const Vector<std::complex<Double> >& u_glob, bool adjoint, Vector<std::complex<Double> >& q_u_glob);
+  void SetEnergyFluxVector(Function* f, const Vector<std::complex<double> >& u_glob, bool adjoint, Vector<std::complex<double> >& q_u_glob);
 
   /** Find the node numbers which are common from a surface element and a volume element.
    * This maps from a surface element to the volume element.
@@ -328,29 +328,29 @@ protected:
   /** converts the teststrain vector in voigt notation to the corresponding matrix
    * @param matrix output
    * @param vec input */
-  void SetTestStrainMatrix(Matrix<Double>& matrix, const Vector<Double>& vec);
+  void SetTestStrainMatrix(Matrix<double>& matrix, const Vector<double>& vec);
 
   /** takes the result of the test strain computations and calculates the homogenized 
    *  material tensor (see Bendsoe/Sigmund: Topology Optimization, p. 122ff.
    *  It must be called only for the last excitation when all test strains are known.
    *  @param f to handle transformaiton and robustness. Extracts the excitation from f */
-  virtual Matrix<Double> CalcHomogenizedTensor(Function* f);
+  virtual Matrix<double> CalcHomogenizedTensor(Function* f);
 
   /** Calculates the gradient of the homogenization tracking. When J = 0.5 * || E^* - E^H ||^2
    * the this calulates -1 (E^* - E^H) * d(E^H)/d(rho_e) using a matrix scalar product
    * @param target E^* what we want
    * @param hom the pre calculated tensor E^H */
-  virtual void CalcHomogenizedTrackingGradient(const Matrix<Double>& target, const Matrix<Double>& hom, Function* f);
+  virtual void CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f);
 
   /** Calculates the gradient for the Frobenius inner prodcut. */
-  void CalcHomFrobeniusProductGradient(const Matrix<Double>& target,  const Matrix<Double>& hom, Function* f);
+  void CalcHomFrobeniusProductGradient(const Matrix<double>& target,  const Matrix<double>& hom, Function* f);
 
   /** Calculates the gradient if the constraints E^H = E^* where for each interested
    * tensor entry a own HOM_TENSOR constraint is required.
    * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
    * @param g the constraint is mandatory. It defines in the coord pair the tensor entry
    * @return the E^H tensor entry if !derivative */
-  Double CalcHomogenizedTensorConstraint(Condition* g, bool derivative);
+  double CalcHomogenizedTensorConstraint(Condition* g, bool derivative);
 
   /** Calculates a single homogenized tensor entry or it's derivative.
    * This is a helper for CalcHomogenizedTensorConstraint() but more general.
@@ -360,19 +360,19 @@ protected:
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
    * @param meta the meta excitation index (rotations, robust) or 0 for standard case
    * @return the E^H tensor entry if !derivative or 0 */
-  Double CalcHomogenizedTensorEntry(Context* ctxt, const boost::tuple<int, int, Double> entry, bool derivative, StdVector<Double>& grad_out, unsigned int meta);
+  double CalcHomogenizedTensorEntry(Context* ctxt, const boost::tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta);
 
   /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
    * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality
    * @param von_mises_stress set only for f == STRESS for derivative and not derivative */
-  Double CalcGlobalFunction(Function* f, bool derivative,  const Vector<Double>* von_mises_stress = NULL);
+  double CalcGlobalFunction(Function* f, bool derivative,  const Vector<double>* von_mises_stress = NULL);
 
   /** Evaluates objective and constraint functiond and gradient.
    * Overloaded in PiezoSIMP for own objectives.
    * @param grad_out only used in derivative case
    * @return zero for derivative */
-  virtual Double CalcFunction(Excitation& excite, Function* f, bool derivative);
+  virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
   /** Store the results from the forward/adjoint problem. Handles multiple excitations
    * @param read_sol store solution (maybe one would only like to save rhs)
    * @param read_rhs is only interesting for the forward problem
@@ -386,7 +386,7 @@ protected:
   // virtual void RhsCalculated(AdjointParameters* adjParams);
 
   /** Helper that gives the physical material tensor considers bi-material */
-  void GetPhysicalMaterial(BiLinForm* form, const DesignElement* de, const TransferFunction* tf, bool derivative, Matrix<Double>& out);
+  void GetPhysicalMaterial(BiLinForm* form, const DesignElement* de, const TransferFunction* tf, bool derivative, Matrix<double>& out);
 
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
   StateContainer forward;
@@ -401,11 +401,11 @@ protected:
   bool assume_constant_element_matrices_;
 
   /** cache the 1.0 / complete volume of the domain */
-  Double volume_fraction_;
+  double volume_fraction_;
 
   /** This is a helper for SetElementK() which adds for App::MECH in the harmonic case damping and mass
    * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
-  void AddMassToStiffness(Context* ctxt, const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<Double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, Double ev = -1.0);
+  void AddMassToStiffness(Context* ctxt, const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
@@ -430,16 +430,16 @@ private:
    * in Bendsoe/Sigmund - Topology Optimization page 124
    * @param u1 the element solution vector
    * @return the product test strain diff * (K or K') * test strain diff  */
-  static Double CalcHomogenizedElementProduct(ErsatzMaterial* em, Context* ctxt, DesignElement* de, bool derivative, Vector<Double>& u1,
-      Vector<Double>& u2, Matrix<Double>& test_strain_matrix_ij, Matrix<Double>& test_strain_matrix_kl);
+  static double CalcHomogenizedElementProduct(ErsatzMaterial* em, Context* ctxt, DesignElement* de, bool derivative, Vector<double>& u1,
+      Vector<double>& u2, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl);
 
   static Complex CalcU1KU2(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<Complex> u1_vec, Vector<Complex> u2_vec);
 
   /** See the non-template version for documentation! */
-  template<class T> Double CalcU1KU2(TransferFunction* tf,
+  template<class T> double CalcU1KU2(TransferFunction* tf,
       StdVector<SingleVector*>& u1, App::Type k, StdVector<SingleVector*>& u2,
-      DesignDependentRHS* ref, Double factor, CalcMode calcMode, Function* f,
-      int res_idx, Double ev);
+      DesignDependentRHS* ref, double factor, CalcMode calcMode, Function* f,
+      int res_idx, double ev);
 
   /** for design dependent interface driven excitation as for heat .... calculate element based f'
    * for all design elements de:
@@ -468,7 +468,7 @@ private:
    * @param factor factor to multiply the value by (can be excitation weight)
    * @param f objective the result is to be stored with
    * @param g constraint the result is to be stored with */
-  void CalcNewmarkDerivative(Excitation& excite, StateContainer& forward, StateContainer& adjoint, Double factor, Objective* f, Condition* g);
+  void CalcNewmarkDerivative(Excitation& excite, StateContainer& forward, StateContainer& adjoint, double factor, Objective* f, Condition* g);
 
   /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
   template<class T> void SolveAdjointProblem(Excitation* excite, Function* f);
@@ -496,18 +496,18 @@ private:
    *                   the design element is set. Optionally also grad_out
    * @param grad_out if derivative is set and grad_out is not null it is set.
    * @return invalid in derivative case*/
-  Double CalcGreyness(Condition* g, bool derivative);
+  double CalcGreyness(Condition* g, bool derivative);
 
   /** Calculates the difference between filtered and non-filtered stiffness tensor.
    * @param derivative if false the return value is calculated. Otherwise the value in
    *        the design element is set.
    * */
-  Double CalcFilteringGap(Condition* g, bool derivative);
+  double CalcFilteringGap(Condition* g, bool derivative);
 
   /** Evaluates virtually blown up local constraints based on the Function::Local neighborhood.
    * E.g. slope and mole. Note, that there are also the globalized variants.
    * @see CalcGlobalFunction() */
-  Double CalcLocalConstraint(Condition* g, bool derivative);
+  double CalcLocalConstraint(Condition* g, bool derivative);
 
   /** IntegrateDesignVariables() can do a lot, but no one wants to extend it to hande the derivative
    * case of the gap constraint: volume - penalized volume */
@@ -516,14 +516,14 @@ private:
   /** The design tracking matches a given pattern of physcial design by a certain extend (e.g. 90 %). T
    * The designTarget attribute is mandatory. If the region attribute is not given the periodic border
    * elements are used. If the region is given it might make sense to use the pattern definition in within the domain. */
-  Double CalcDesignTracking(Condition* g, bool derivative);
+  double CalcDesignTracking(Condition* g, bool derivative);
 
   /** Homogenization objective/ constraint.
    * Is once evaluate only! */
-  Double CalcPoissonsRatioAndYoungsModulus(Function* f, bool derivative);
+  double CalcPoissonsRatioAndYoungsModulus(Function* f, bool derivative);
 
   /** for CalcFunction() */
-  Double CalcHomTensor(Objective* c, Condition* g, bool derivative);
+  double CalcHomTensor(Objective* c, Condition* g, bool derivative);
 
   /** Calculates the product of the (system) surface normal matrix with the solution already in OLAS.
    * Note that we have to use 1 based OLAS vectors as the sparse system matrix is from OLAS .

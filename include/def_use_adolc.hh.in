@@ -1,5 +1,0 @@
-// Define used to check if ADOLC is used
-
-#cmakedefine USE_ADOLC
-
-

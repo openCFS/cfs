@@ -72,7 +72,7 @@ public:
   //! Constructor 
   CoefFunctionBOp( shared_ptr<BaseFeFunction> feFct,
                    shared_ptr<ResultInfo> info,
-                   TYPE factor = TYPE(1.0) );
+                   TYPE factor = 1.0 );
   
   //! Set integrator for specific region
   virtual void AddIntegrator( BaseBDBInt* form,  
@@ -156,7 +156,7 @@ public:
   //! Constructor
   CoefFunctionFlux( shared_ptr<BaseFeFunction> feFct,
                     shared_ptr<ResultInfo> info,
-                    TYPE factor = TYPE(1.0) );
+                    TYPE factor = 1.0 );
   //! Destructor
   virtual ~CoefFunctionFlux();
 
@@ -283,7 +283,7 @@ class CoefFunctionBdBKernel : public CoefFunctionFormBased
 public:
 
   //! Constructor
-  CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,  TYPE factor = TYPE(1.0));
+  CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,  TYPE factor = 1.0);
   //! Destructor
   virtual ~CoefFunctionBdBKernel();
 

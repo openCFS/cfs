@@ -143,7 +143,7 @@ bool SCPIP_HS071::eval_jac_g(int n, const double* x,
 
 void SCPIP_HS071::finalize_solution(int status, int n, const double* x, const double* z_L, 
                                     const double* z_U, int m, const double* g, 
-                                    const double* lambda, Double obj_value)
+                                    const double* lambda, double obj_value)
 {
   std::cout << "SCPIP finished: f=" << obj_value;
   for(int i = 0; i < m; i++)

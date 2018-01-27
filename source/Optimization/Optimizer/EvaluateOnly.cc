@@ -42,10 +42,10 @@ void EvaluateOnly::SolveProblem()
   // solve the state problem with the initial guess.
   std::cout << "Evaluate state problem for initial guess ..." << std::endl;
 
-  StdVector<Double> xl(optimization->GetDesign()->GetNumberOfVariables());
-  StdVector<Double> xu(xl.GetSize());
-  StdVector<Double> gl(optimization->constraints.view->GetNumberOfActiveConstraints());
-  StdVector<Double> gu(gl.GetSize());
+  StdVector<double> xl(optimization->GetDesign()->GetNumberOfVariables());
+  StdVector<double> xu(xl.GetSize());
+  StdVector<double> gl(optimization->constraints.view->GetNumberOfActiveConstraints());
+  StdVector<double> gu(gl.GetSize());
   GetBounds(xl.GetSize(), xl.GetPointer(), xu.GetPointer(), gl.GetSize(), gl.GetPointer(), gu.GetPointer());
 
   for(int i = 0; i < optimization->constraints.view->GetNumberOfActiveConstraints(); i++)
@@ -60,13 +60,13 @@ void EvaluateOnly::SolveProblem()
   int end = optimization->context->IsHarmonic() && !optimization->GetMultipleExcitation()->IsEnabled() ? hd->freqs.GetSize() : 1;
 
   // space to store the gradient values, we need it to evaluate density filtering.
-  StdVector<Double> grad(optimization->GetDesign()->GetNumberOfVariables());
+  StdVector<double> grad(optimization->GetDesign()->GetNumberOfVariables());
   grad.Init(0.0);
   // scale the window to the whole data domain
   grad.window.Set(grad);
 
   // our initial design
-  StdVector<Double> x;
+  StdVector<double> x;
   optimization->GetDesign()->WriteDesignToExtern(x);
 
   for(int i = 0; i < end; i++)
@@ -84,7 +84,7 @@ void EvaluateOnly::SolveProblem()
     optimization->SolveStateProblem();
 
     eval_obj_timer_->Start();
-    Double v = optimization->CalcObjective();
+    double v = optimization->CalcObjective();
     eval_obj_timer_->Stop();
     LOG_DBG(eval) << "SP: obj=" << v;
     // calc gradients, they might be stored in store results!
@@ -107,7 +107,7 @@ void EvaluateOnly::SolveProblem()
       v = EvalConstraint(g, false, false); // sets the timer itself
       optimizer_timer_->Stop();
 
-      Double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
+      double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
 
       LOG_DBG(eval) << "SP: g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " -> " << v * scaling; // snopt index in brackets
 

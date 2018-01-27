@@ -34,30 +34,30 @@ class AuxDesign : public DesignSpace
     virtual void PostInit(int objectives, int constraints);
 
     /** @see DesignSpace::ReadDesignFromExtern() */
-    virtual int ReadDesignFromExtern(const Double* space_in);
+    virtual int ReadDesignFromExtern(const double* space_in);
 
     /** overwrites DesignSpace::CompareDesign() */
-    virtual bool CompareDesign(const Double* space_in);
+    virtual bool CompareDesign(const double* space_in);
 
     /** writes design to the vector, prepending with shape variables */
-    virtual int WriteDesignToExtern(Double* space_out, bool scaling = true) const;
+    virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;
 
     /** write gradient out to the vector, appending with shape gradient
      * Sparse and dense! */
-    virtual void WriteGradientToExtern(StdVector<Double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true);
+    virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true);
 
     /** same as in DesignSpace, setting elements to zero, but also aux elements */
     virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
 
-    virtual void WriteBoundsToExtern(Double* x_l, Double* x_u) const;
+    virtual void WriteBoundsToExtern(double* x_l, double* x_u) const;
 
     virtual unsigned int GetNumberOfVariables() const;
 
     virtual int GetNumberOfAuxParameters() const { return aux_design_.GetSize(); }
 
-    void AddAuxDerivative(Function* f, unsigned int index, Double value);
+    void AddAuxDerivative(Function* f, unsigned int index, double value);
 
-    void AddAuxDerivatives(Objective* objective, Condition* constraint, StdVector<Double>& d, Double weight);
+    void AddAuxDerivatives(Objective* objective, Condition* constraint, StdVector<double>& d, double weight);
 
     /** @see DesignSpace::HasSlackVariable() */
     bool HasSlackVariable() const { return slack_ != NULL; }
@@ -69,9 +69,9 @@ class AuxDesign : public DesignSpace
     BaseDesignElement* GetAlphaDesign() { return &(aux_design_[1]); }
 
     /** @see DesignSpace::GetSlackVariable() */
-    Double GetSlackVariable() const { assert(slack_ != NULL); return aux_design_[0].GetDesign(); }
+    double GetSlackVariable() const { assert(slack_ != NULL); return aux_design_[0].GetDesign(); }
 
-    Double GetAlphaVariable() const { assert(alpha_ != NULL); return aux_design_[1].GetDesign(); }
+    double GetAlphaVariable() const { assert(alpha_ != NULL); return aux_design_[1].GetDesign(); }
 
     /** see DesignSpace::ToInfo() */
     virtual void ToInfo(ErsatzMaterial* em);
@@ -85,10 +85,10 @@ class AuxDesign : public DesignSpace
   protected:
 
     /** write the aux gradient part */
-    void WriteAuxGradientToExtern(StdVector<Double>& out, Function* f, bool scale = true) const;
+    void WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
 
     /** sparse version of WriteAuxGradientToExtern */
-    void WriteSparseAuxGradientToExtern(StdVector<Double>& out, Function* f, bool scale = true) const;
+    void WriteSparseAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
 
     /** compute the offset of aux design. It depends on exoprt_fe_design_, DesignSpace::data and */
     unsigned int AuxDesignOffset() const;
@@ -106,7 +106,7 @@ class AuxDesign : public DesignSpace
     StdVector<BaseDesignElement> aux_design_;
 
     /** factor for scaling the aux_parameters, this scales the gradient compared to material parameters gradient */
-    Double scaling_;
+    double scaling_;
 
     /** contains the slack design if slack design */
     PtrParamNode slack_;

@@ -200,9 +200,9 @@ namespace CoupledField
         ++totLines;
       }
 
-      // Variable for Doubles values in a single line
-      std::vector<Double> vec;
-      std::vector<Double> coord(3);
+      // Variable for doubles values in a single line
+      std::vector<double> vec;
+      std::vector<double> coord(3);
 
       geomfile.clear();
       geomfile.seekg(0,std::ios::beg);
@@ -257,14 +257,14 @@ namespace CoupledField
 
     for(UInt i=0;vfIt!=valueFileName_.End();++vfIt,++i){
 
-      if(!(fabs(valuetime_[i]-curTStep)<1e-10)) continue;
+      if(!(std::abs(valuetime_[i]-curTStep)<1e-10)) continue;
       typedef boost::tokenizer<boost::escaped_list_separator<char> > Tokenizer;
       std::string row;
       UInt line = 0;
       // Variable for doubles values in a single line
-      std::vector<Double> vec;
-      std::vector<Double> vecImag;
-      std::vector<Double> coord(3);
+      std::vector<double> vec;
+      std::vector<double> vecImag;
+      std::vector<double> coord(3);
 
       // Open CSV file
       std::fstream datafile((*vfIt).c_str(),std::ios::in);
@@ -326,14 +326,14 @@ namespace CoupledField
         {
           dofIt = qidDof2Column_[*qIt].begin();
           dofEnd = qidDof2Column_[*qIt].end();
-          std::vector<Double> qdofs(std::distance(dofIt, dofEnd));
-          std::vector<Double> qdofsImag(std::distance(dofIt, dofEnd));
+          std::vector<double> qdofs(std::distance(dofIt, dofEnd));
+          std::vector<double> qdofsImag(std::distance(dofIt, dofEnd));
 
           if(scatteredDataPerQuantity_.find(*qIt) == scatteredDataPerQuantity_.end()){
-            std::vector< std::vector<Double> > & ref = scatteredDataPerQuantity_[*qIt];
-            std::vector< std::vector<Double> > & refI = scatteredDataPerQuantityImag_[*qIt];
-            ref.resize(totLines,std::vector<Double>(qdofs.size()));
-            refI.resize(totLines,std::vector<Double>(qdofs.size()));
+            std::vector< std::vector<double> > & ref = scatteredDataPerQuantity_[*qIt];
+            std::vector< std::vector<double> > & refI = scatteredDataPerQuantityImag_[*qIt];
+            ref.resize(totLines,std::vector<double>(qdofs.size()));
+            refI.resize(totLines,std::vector<double>(qdofs.size()));
           }
 
           for( ; dofIt != dofEnd; dofIt++ )

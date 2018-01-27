@@ -60,12 +60,12 @@ void Timer::Stop()
 }
 
 
-Double Timer::GetWallTime() const
+double Timer::GetWallTime() const
 {
   return sum_time + (running ? time(NULL) - start_time : 0);
 }
 
-Double Timer::GetCPUTime() const
+double Timer::GetCPUTime() const
 {
   clock_t total = sum_clock + (running ? clock() - start_clock : 0);
   return total / (1.0 * CLOCKS_PER_SEC);

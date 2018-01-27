@@ -78,7 +78,7 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver is used
     //! \param sort
-    virtual void Setup(const BaseMatrix & mat,  UInt numFreq, Double freqShift, bool sort) = 0;
+    virtual void Setup(const BaseMatrix & mat,  UInt numFreq, double freqShift, bool sort) = 0;
     
     //! Setup routine for a generalized eigenvalue problem
     
@@ -91,7 +91,7 @@ namespace CoupledField {
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
     virtual void Setup( const BaseMatrix & stiffMat, const BaseMatrix & massMat,
-                        UInt numFreq, Double freqShift, bool sort, bool bloch) = 0;
+                        UInt numFreq, double freqShift, bool sort, bool bloch) = 0;
     
     //! Setup routine for a quadratic eigenvalue problem
     
@@ -105,7 +105,7 @@ namespace CoupledField {
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
     virtual void Setup( const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
-                        UInt numFreq, Double freqShift, bool sort) = 0;
+                        UInt numFreq, double freqShift, bool sort) = 0;
 
     /** Solve the linear generalized eigenvalue problem.
      *  This method triggers the calculation of the eigenvalue problem.

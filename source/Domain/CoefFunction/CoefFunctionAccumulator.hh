@@ -35,7 +35,7 @@ public:
    
   //! Return norm of accessed values since last reset
   Double GetNorm() {
-    return sqrt(squaredSum_);
+    return std::sqrt(squaredSum_);
   }
   
 //  //! Get vector norm

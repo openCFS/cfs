@@ -194,27 +194,6 @@ namespace CoupledField {
     for(unsigned int i = 0; i < size_; ++i)
       sum += OpType<T>::dotProduct(data_[i], secVec[i]);
   }
-  
-#ifdef USE_ADOLC
-    template <>
-  void Vector<int>::Inner(const SingleVector &vec, int &sum) const
-  {
-    const Vector<int>& secVec = dynamic_cast<const Vector<int>&>(vec);
-    sum = 0;
-
-    for(unsigned int i = 0; i < size_; ++i)
-      sum += int( (OpType<int>::dotProduct(data_[i], secVec[i]) ).getValue()  );
-  }
-      template <>
-  void Vector<UInt>::Inner(const SingleVector &vec, UInt &sum) const
-  {
-    const Vector<UInt>& secVec = dynamic_cast<const Vector<UInt>&>(vec);
-    sum = 0;
-
-    for(unsigned int i = 0; i < size_; ++i)
-      sum += UInt( (OpType<UInt>::dotProduct(data_[i], secVec[i]) ).getValue()  );
-  }
-#endif
 
   template <typename T>
   T Vector<T>::Inner(const SingleVector &vec) const 
@@ -228,33 +207,6 @@ namespace CoupledField {
 
     return sum;
   }
-  
-#ifdef USE_ADOLC  
-    template <>
-  int Vector<int>::Inner(const SingleVector &vec) const 
-  {
-    int sum(0);
-
-    const Vector<int>& secVec = dynamic_cast<const Vector<int>&>(vec);
-
-    for(unsigned int i = 0; i < size_; i++)  
-      sum += int( (OpType<int>::dotProduct(data_[i], secVec[i]) ).getValue()  );
-//    sum += OpType<int>::dotProduct(data_[i], secVec[i]);
-    return sum;
-  }
-      template <>
-  UInt Vector<UInt>::Inner(const SingleVector &vec) const 
-  {
-    UInt sum(0);
-
-    const Vector<UInt>& secVec = dynamic_cast<const Vector<UInt>&>(vec);
-
-    for(unsigned int i = 0; i < size_; i++)  
-      sum += UInt( (OpType<UInt>::dotProduct(data_[i], secVec[i]) ).getValue()  );
-//    sum += OpType<int>::dotProduct(data_[i], secVec[i]);
-    return sum;
-  }
-#endif
 
   template <typename T>
   T Vector<T>::Inner(const SingleVector& vec, unsigned int start, unsigned int end) const
@@ -269,33 +221,6 @@ namespace CoupledField {
     return sum;
   }
 
-#ifdef USE_ADOLC
-    template <>
-  int Vector<int>::Inner(const SingleVector& vec, unsigned int start, unsigned int end) const
-  {
-    int sum(0);
-
-    const Vector<int>& secVec = dynamic_cast<const Vector<int>&>(vec);
-
-    for(unsigned int i = start; i < end; i++)
-      sum += int((OpType<int>::dotProduct(data_[i], secVec[i]) ).getValue() );
-
-    return sum;
-  }
-      template <>
-  UInt Vector<UInt>::Inner(const SingleVector& vec, unsigned int start, unsigned int end) const
-  {
-    UInt sum(0);
-
-    const Vector<UInt>& secVec = dynamic_cast<const Vector<UInt>&>(vec);
-
-    for(unsigned int i = start; i < end; i++)
-      sum += UInt((OpType<UInt>::dotProduct(data_[i], secVec[i]) ).getValue() );
-
-    return sum;
-  }
-#endif
-  
   template <typename T>
   T Vector<T>::Inner() const
   {
@@ -306,29 +231,7 @@ namespace CoupledField {
 
     return sum;
   }
-#ifdef USE_ADOLC
-    template <>
-  int Vector<int>::Inner() const
-  {
-    int sum(0);
-
-    for(unsigned int i = 0; i < size_; i++)
-       sum += int((OpType<int>::dotProduct(data_[i], data_[i])).getValue() );
-
-    return sum;
-  }
-      template <>
-  UInt Vector<UInt>::Inner() const
-  {
-    UInt sum(0);
-
-    for(unsigned int i = 0; i < size_; i++)
-       sum += UInt((OpType<UInt>::dotProduct(data_[i], data_[i])).getValue() );
-
-    return sum;
-  }
-#endif
-
+  
   template<typename T>
   Vector<T> Vector<T>::Conj() const {
     return *this;
@@ -377,7 +280,7 @@ namespace CoupledField {
   template <typename T>
   inline Double Vector<T>::NormL2() const
   {				
-    Double sum = 0;
+    double sum = 0;
 
     //#pragma omp parallel for reduction(+:sum)
     for(unsigned int i = 0; i < size_; ++i)
@@ -388,11 +291,11 @@ namespace CoupledField {
 
 
   template <typename T>
-  inline Double Vector<T>::NormL2(const Vector<T>& other) const
+  inline double Vector<T>::NormL2(const Vector<T>& other) const
   {
     if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
 
-    Double sum = 0;
+    double sum = 0;
 
     //#pragma omp parallel for reduction(+:sum)
     for(unsigned int i = 0; i < size_; ++i)
@@ -418,7 +321,7 @@ namespace CoupledField {
   {
     assert(size_ > 0);
 
-    return Sum() *T(1.0/size_);
+    return Sum() * (1.0/size_);
   }
 
 
@@ -441,14 +344,14 @@ namespace CoupledField {
 
 
   template<> 
-  Double Vector<Double>::SignedMax() const 
+  double Vector<Double>::SignedMax() const 
   { 
-    Double ret(0.0),ret_new(0.0); 
+    double ret(0.0),ret_new(0.0); 
     int idx = 0;
     if(size_ == 0) EXCEPTION("empty vector"); 
 
     for(unsigned int i = 0; i < size_; ++i){
-      ret_new = fmax(ret, fabs(data_[i]));
+      ret_new = std::max(ret, std::abs(data_[i]));
       if(ret != ret_new){
 		// std::abs(data_[i]) > ret -> save index
 		idx = i;
@@ -460,15 +363,15 @@ namespace CoupledField {
   }
 
   template<> 
-  Double Vector<Complex>::SignedMax() const 
+  double Vector<Complex>::SignedMax() const 
   { 
-    Double ret(0.0),ret_new(0.0); 
+    double ret(0.0),ret_new(0.0); 
     int idx = 0;
     if(size_ == 0) EXCEPTION("empty vector"); 
 
     for(unsigned int i = 0; i < size_; ++i) {
-      ret_new = fmax(fabs(ret), fabs(data_[i].real())); 
-      if(fabs(ret) != fabs(ret_new)){
+      ret_new = std::max(std::abs(ret), std::abs(data_[i].real())); 
+      if(std::abs(ret) != std::abs(ret_new)){
 		// std::abs(data_[i]) > ret -> save index
 		idx = i;
 	ret = ret_new;
@@ -478,25 +381,25 @@ namespace CoupledField {
   } 
 
   template<> 
-  Double Vector<Double>::NormMax() const 
+  double Vector<Double>::NormMax() const 
   { 
-    Double ret(0.0); 
+    double ret(0.0); 
     if(size_ == 0) EXCEPTION("empty vector"); 
 
     for(unsigned int i = 0; i < size_; ++i) 
-      ret = fmax(ret, fabs(data_[i]));
+      ret = std::max(ret, std::abs(data_[i]));
 
     return ret; 
   }
   
   template<> 
-  Double Vector<Complex>::NormMax() const 
+  double Vector<Complex>::NormMax() const 
   { 
-    Double ret(0.0); 
+    double ret(0.0); 
     if(size_ == 0) EXCEPTION("empty vector"); 
 
     for(unsigned int i = 0; i < size_; ++i) 
-      ret = fmax(fabs(ret), fabs(data_[i].real())); 
+      ret = std::max(std::abs(ret), std::abs(data_[i].real())); 
 
     return ret; 
   }  
@@ -509,27 +412,27 @@ namespace CoupledField {
   }
 
   template<>
-  Double Vector<Double>::NormMax(const SingleVector& other) const
+  double Vector<Double>::NormMax(const SingleVector& other) const
   {
-    Double ret(0.0);
+    double ret(0.0);
     if(size_ == 0) EXCEPTION("empty vector");
     if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
     const Vector<Double>& o = dynamic_cast<const Vector<Double>&>(other);
     for(unsigned int i = 0; i < size_; ++i)
-      ret = fmax(ret, fabs(data_[i] - o.data_[i]));
+      ret = std::max(ret, std::abs(data_[i] - o.data_[i]));
 
     return ret;
   }
 
   template<>
-  Double Vector<Complex>::NormMax(const SingleVector& other) const
+  double Vector<Complex>::NormMax(const SingleVector& other) const
   {
-    Double ret(0.0);
+    double ret(0.0);
     if(size_ == 0) EXCEPTION("empty vector");
     if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
     const Vector<Complex>& o = dynamic_cast<const Vector<Complex>&>(other);
     for(unsigned int i = 0; i < size_; ++i)
-      ret = fmax(fabs(ret), fabs(data_[i].real() - o.data_[i].real()));
+      ret = std::max(std::abs(ret), std::abs(data_[i].real() - o.data_[i].real()));
 
     return ret;
   }
@@ -539,14 +442,13 @@ namespace CoupledField {
   Double Vector<T>::Normalize() {
     EXCEPTION("Vector<TYPE>::Normalize() is only defined for TYPE=Float,Double,Complex");
   }
-#ifndef USE_ADOLC
+
   template<>
   Double Vector<Float>::Normalize() {
     Double norm = NormL2();
     ScalarDiv(norm);
     return norm;
   }
-#endif  
 
   template<>
   Double Vector<Double>::Normalize() {
@@ -992,36 +894,6 @@ namespace CoupledField {
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] /= fac;
   }
-  
-#ifdef USE_ADOLC
-  template<>
-  void Vector<int>::ScalarDiv(const Double factor)
-  {
-#ifdef DEBUG_VECTOR
-    if(factor == 0)
-    {
-      EXCEPTION( "Vector::ScalarDiv: Division by Zero!" );
-    }
-#endif
-    int fac(static_cast<int>(factor.getValue())); // for compilers
-    for(unsigned int i = 0; i < size_; ++i)
-      data_[i] /= fac;
-  }
-  template<>
-  void Vector<UInt>::ScalarDiv(const Double factor)
-  {
-#ifdef DEBUG_VECTOR
-    if(factor == 0)
-    {
-      EXCEPTION( "Vector::ScalarDiv: Division by Zero!" );
-    }
-#endif
-    UInt fac(static_cast<UInt>(factor.getValue())); // for compilers
-    for(unsigned int i = 0; i < size_; ++i)
-      data_[i] /= fac;
-  }
-#endif
-
 
 
   // *********************
@@ -1035,22 +907,8 @@ namespace CoupledField {
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] *= fac;
   }
-#ifdef USE_ADOLC
-  template<>
-  void Vector<int>::ScalarMult(const Double factor)
-  {
-    int fac(static_cast<int>(factor.getValue())); // for compilers
-    for(unsigned int i = 0; i < size_; ++i)
-      data_[i] *= fac;
-  }
-  template<>
-  void Vector<UInt>::ScalarMult(const Double factor)
-  {
-    UInt fac(static_cast<UInt>(factor.getValue())); // for compilers
-    for(unsigned int i = 0; i < size_; ++i)
-      data_[i] *= fac;
-  }
-#endif
+
+
   // ***********************
   //   ScalarDiv (complex)
   // ***********************

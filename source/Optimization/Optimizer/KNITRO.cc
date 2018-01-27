@@ -143,7 +143,7 @@ void KNITRO::SetParameter(const string& name, int value)
     EXCEPTION("Setting KNITRO integer option " << name << " to " << value << " failed");
 }
 
-void KNITRO::SetParameter(const string& name, Double value)
+void KNITRO::SetParameter(const string& name, double value)
 {
   int status = KTR_set_double_param_by_name(kc, name.c_str(), value);
   if(status != 0)

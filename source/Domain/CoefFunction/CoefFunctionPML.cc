@@ -99,7 +99,7 @@ void CoefFunctionPML<T>::GetTensor(Matrix<Complex>& tensor,
   speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
-    if(fabs(locThick)>0.0){
+    if(abs(locThick)>0.0){
       Complex fac(0.0,-1.0 * sos* dampFunction_->ComputeFactor(position,locThick));
       tensor[i][i] = omega_ / (omega_ + fac);
     }else{
@@ -120,7 +120,7 @@ void CoefFunctionPML<T>::GetTensor(Matrix<Double>& tensor,
   speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
-    if(fabs(locThick)>0.0){
+    if(abs(locThick)>0.0){
       tensor[i][i] = dampFunction_->ComputeFactor(position,locThick) * sos;
     }else{
       tensor[i][i] = 0.0;
@@ -141,7 +141,7 @@ void CoefFunctionPML<T>::GetVector(Vector<Complex>& vec,
   speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
-    if(fabs(locThick)>0.0){
+    if(abs(locThick)>0.0){
       Complex fac(1.0,-1.0 * sos* dampFunction_->ComputeFactor(position,locThick)/omega_);
       vec[i] = dummy / fac;
     }else{
@@ -162,7 +162,7 @@ void CoefFunctionPML<T>::GetVector(Vector<Double>& vec,
   speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
-    if(fabs(locThick)>0.0){
+    if(abs(locThick)>0.0){
       vec[i] = dampFunction_->ComputeFactor(position,locThick) * sos;
     }else{
       vec[i] = 0.0;
@@ -182,7 +182,7 @@ void CoefFunctionPML<T>::GetScalar(Complex& val,
   speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
-    if(fabs(locThick)>0.0){
+    if(abs(locThick)>0.0){
       Complex fac(1.0,-1.0  *  sos * dampFunction_->ComputeFactor(position,locThick)/omega_);
       val *=  fac;
     }else{
@@ -367,13 +367,13 @@ void CoefFunctionPML<T>::GetThicknessAtPoint(Double& thickness, Double & positio
 
   if(coordLocalPoint[dir] > innerMinMaxComp_[dir][1] &&
      coordLocalPoint[dir] < outerMinMaxComp_[dir][1]){
-    thickness = fabs(outerMinMaxComp_[dir][1] - innerMinMaxComp_[dir][1]);
-    position = fabs( coordLocalPoint[dir] - innerMinMaxComp_[dir][1]);
+    thickness = abs(outerMinMaxComp_[dir][1] - innerMinMaxComp_[dir][1]);
+    position = abs( coordLocalPoint[dir] - innerMinMaxComp_[dir][1]);
   }
   if(coordLocalPoint[dir] < innerMinMaxComp_[dir][0] &&
      coordLocalPoint[dir] > outerMinMaxComp_[dir][0]){
-    thickness =fabs(outerMinMaxComp_[dir][0] - innerMinMaxComp_[dir][0]);
-    position = fabs(coordLocalPoint[dir] - innerMinMaxComp_[dir][0] );
+    thickness = abs(outerMinMaxComp_[dir][0] - innerMinMaxComp_[dir][0]);
+    position = abs(coordLocalPoint[dir] - innerMinMaxComp_[dir][0] );
   }
 
 }
@@ -408,11 +408,7 @@ CoefFunctionShiftedPML<T>::CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFc
   {
     scalingNode->GetValue("value", scalingCoefStr);
     scalingNode->GetValue("power", scalingPow);
-#ifndef USE_ADOLC
     scalingFunc_.reset(new DampFunctionPolyDirect(scalingPow));
-#else
-    scalingFunc_.reset(new DampFunctionPolyDirect(scalingPow.getValue()));  //this expects an int and you are providing a double. are you sure you want to do this?
-#endif
     scalingCoef_ = CoefFunction::Generate(this->mp_, Global::REAL, scalingCoefStr);
   }
 
@@ -421,11 +417,7 @@ CoefFunctionShiftedPML<T>::CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFc
   {
     shiftNode->GetValue("value", shiftCoefStr);
     shiftNode->GetValue("power", shiftPow);
-#ifndef USE_ADOLC
     shiftFunc_.reset(new DampFunctionPolyInverse(shiftPow));
-#else
-    shiftFunc_.reset(new DampFunctionPolyInverse(shiftPow.getValue()));
-#endif
     shiftCoef_ = CoefFunction::Generate(this->mp_, Global::REAL, shiftCoefStr);
   }
 
@@ -478,7 +470,7 @@ void CoefFunctionShiftedPML<T>::GetVector(Vector<Complex>& vector, const LocPoin
   for (UInt i = 0; i < this->dim_; ++i)
   {
     this->GetThicknessAtPoint(locThick, position, lpm, i);
-    if (fabs(locThick) > 0.0)
+    if (abs(locThick) > 0.0)
     {
       sigma = sos*this->dampFunction_->ComputeFactor(position, locThick);
       kappa = 1.0 + scalingFunc_->ComputeFactor(position, locThick);
@@ -520,7 +512,7 @@ void CoefFunctionShiftedPML<T>::GetScalar(Complex& scalar, const LocPointMapped&
   for (UInt i = 0; i < this->dim_; ++i)
   {
     this->GetThicknessAtPoint(locThick, position, lpm, i);
-    if (fabs(locThick) > 0.0)
+    if (abs(locThick) > 0.0)
     {
       sigma = sos*this->dampFunction_->ComputeFactor(position, locThick);
       kappa = 1.0 + scalingFunc_->ComputeFactor(position, locThick);

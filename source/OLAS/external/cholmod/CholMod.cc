@@ -59,7 +59,6 @@ CholMod<T>::~CholMod()
 template<typename T>
 void CholMod<T>::SetMatrix(const BaseMatrix &base_mat)
 {
-#ifndef USE_ADOLC
   const SparseOLASMatrix<T>& som =  dynamic_cast<const SparseOLASMatrix<T>&> (base_mat);
 
   if(som.GetStorageType() != BaseMatrix::SPARSE_SYM){
@@ -106,15 +105,11 @@ void CholMod<T>::SetMatrix(const BaseMatrix &base_mat)
   mat_->dtype = CHOLMOD_DOUBLE;
   mat_->sorted = true;
   mat_->packed = true;
-#else
-  EXCEPTION("Not implemented.");
-#endif
 }
 
 template<typename T>
 void CholMod<T>::Setup(BaseMatrix &sysMat)
 {
-#ifndef USE_ADOLC
   // do we really want to create a new entry? Might blast up the output
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
   PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("setup", at);
@@ -155,9 +150,6 @@ void CholMod<T>::Setup(BaseMatrix &sysMat)
     m->Get("lnz")->SetValue(common_.method[i].lnz);
     m->Get("fl")->SetValue(common_.method[i].fl);
   }
-#else
-  EXCEPTION("Not implemented.");
-#endif
 }
 
 
@@ -166,7 +158,6 @@ void CholMod<T>::Solve(const BaseMatrix &base_mat,
     const BaseVector &base_rhs,  BaseVector &base_sol)
 
 {
-#ifndef USE_ADOLC
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
   PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
   // out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
@@ -202,9 +193,6 @@ void CholMod<T>::Solve(const BaseMatrix &base_mat,
   std::copy(static_cast<T*>(sol->x), static_cast<T*>(sol->x) + sol->nrow, sol_ptr);
   cholmod_free_dense(&sol, &common_); // free the temp. solution
   LOG_TRACE2(cholmod) <<  "Solve: sol= " << base_sol.ToString();
-#else
-  EXCEPTION("Not implemented.");
-#endif
 }
 
 
@@ -212,7 +200,6 @@ void CholMod<T>::Solve(const BaseMatrix &base_mat,
 template<typename T>
 void CholMod<T>::InitParameters()
 {
-#ifndef USE_ADOLC
   LOG_TRACE2(cholmod) <<  "InitParameters";
 
   // initializes the parameter block with default stuff
@@ -243,9 +230,6 @@ void CholMod<T>::InitParameters()
     CheckParameter(m, &common_.method[idx].nd_components, "nd_components");
     CheckParameter(m, &common_.method[idx].ordering, "ordering");
   }
-#else
-  EXCEPTION("Not implemented.");
-#endif
 }
 
 template<typename T>

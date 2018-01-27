@@ -15,7 +15,7 @@
      &     name
       integer
      &     inform, lencw, leniw, lenrw, iw(leniw), ispec
-      Double precision
+      double precision
      &     rw(lenrw)
       character
      &     cw(lencw)*8

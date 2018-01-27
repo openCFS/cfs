@@ -86,7 +86,7 @@ namespace CoupledField {
          UInt nentries;
          UInt ridx;
          UInt cidx;
-         Double value;
+         double value;
          symmStorage_ = false;
 
          assemblyDone_ = false;

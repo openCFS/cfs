@@ -90,7 +90,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   // read the elements
   elements = domain->GetGrid()->GetNumElems(reg_data);
 
-  pamping_ = pn->Has("pamping") ? pn->Get("pamping/value")->As<Double>() : 0.0;
+  pamping_ = pn->Has("pamping") ? pn->Get("pamping/value")->As<double>() : 0.0;
   // check for non-design-vicinity
   non_design_vicinity_ = pn->Has("designSpace") ? pn->Get("designSpace/non_design_vicinity")->As<bool>() : false;
   // store the CFS element (number) to design element mapping.
@@ -127,7 +127,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     else if(FindDesign(dt, false) < 0)
     {
 
-      Double rb = pn_design[d]->Has("relative_bound") ? pn_design[d]->Get("relative_bound")->As<Double>(): -1.0;
+      double rb = pn_design[d]->Has("relative_bound") ? pn_design[d]->Get("relative_bound")->As<double>(): -1.0;
       bool   eb = pn_design[d]->Has("enforce_bounds") ? pn_design[d]->Get("enforce_bounds")->As<bool>(): false;
       design.Push_back(DesignID(dt, NULL, rb, eb));
     }
@@ -252,17 +252,17 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             dr.translate_design = 0.0;
             if(design_bim != "")
               dr.SetBiMaterial(design_bim);
-            Double upper = curr_design_pn->Get("upper")->As<Double>();
+            double upper = curr_design_pn->Get("upper")->As<double>();
             // for tanh and heaviside scaling and offset is set in the physical case
             TransferFunction* tf = GetTransferFunction(dt, App::MECH, false); // assume mech - otherwise we normally don't penalize - change if you need it
-            Double lower = DetermineLowerBound(curr_design_pn, tf);
+            double lower = DetermineLowerBound(curr_design_pn, tf);
 
             if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
               dr.scale_design = (upper - lower);
               dr.translate_design = lower;
             }
             bool random = curr_design_pn->Get("initial")->As<std::string>() == "random";
-            Double initial = -1;
+            double initial = -1;
 
             MathParser* mp = domain->GetMathParser();
             MathParser::HandleType mHandle = -1;
@@ -274,7 +274,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               domain->GetGrid()->SetElementBarycenters(reg_data[r], true);
             }
             else
-              initial = random ? -1.0 : curr_design_pn->Get("initial")->As<Double>();
+              initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
 
             if(!random && (initial < lower || initial > upper)) {
               info_->Get(ParamNode::HEADER)->SetWarning("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
@@ -356,7 +356,7 @@ DesignSpace::~DesignSpace(){
   }
 }
 
-Double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
+double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
 {
   bool pl = pn->Has("physical_lower");
 
@@ -367,13 +367,13 @@ Double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   {
     if(!pn->Has("lower"))
       throw Exception("In 'design' give 'lower' or 'pyhical_lower'");
-    return pn->Get("lower")->As<Double>();
+    return pn->Get("lower")->As<double>();
   }
      
   // we have to find the lower bound by the transfer function.
   assert(tf != NULL);
 
-  Double physical = pl ? pn->Get("physical_lower")->As<Double>() : pn->Get("lower")->As<Double>();
+  double physical = pl ? pn->Get("physical_lower")->As<double>() : pn->Get("lower")->As<double>();
 
   switch(tf->GetType())
   {
@@ -400,8 +400,8 @@ Double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
     // lower is set to physical!
     // example. For beta=5 and eta=0.5 tanh(>= 0) >= 0.0066. A negative design is not feasible!
     // therefore we have to set scaling and lower=physical
-    Double lv = tf->Transform(physical);
-    Double uv = tf->Transform(1.0); // we hope this is always true!!!
+    double lv = tf->Transform(physical);
+    double uv = tf->Transform(1.0); // we hope this is always true!!!
     tf->SetScaling((1.0 - (physical - lv/uv)/(1-lv/uv))/uv);
     tf->SetOffset((physical - lv/uv) / (1 - lv/uv));
     return physical;
@@ -542,7 +542,7 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
     // generate ResultInfo objects with the names, ... generated from the description
     shared_ptr<ResultInfo> opt_res = GenerateResultInfo(rd);
     // this also addes the result as available result
-    pde->DefineFieldResult(shared_ptr<FeFunction<Double> >(new FeFunction<Double>(NULL)), opt_res);
+    pde->DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), opt_res);
     // this compares the result with storeResults in the pde and activates it.
     bool added = pde->CheckStoreResult(opt_res);
     if(warn && !added)
@@ -550,9 +550,9 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
   }
 }
 
-Double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
+double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
 {
-  Double dens = CalcAverageDensityAtNode(nodeId,false);
+  double dens = CalcAverageDensityAtNode(nodeId,false);
   // with shape mapping density might be slightly larger one for tanh_sum or much larger with sum
   assert(dens < 1.01);
   dens = std::min(1.0, dens); // not very smooth but otherwise we open hell :(
@@ -563,16 +563,16 @@ Double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
     return 4.0 *  dens * (1.0 - dens);
 }
 
-Double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
+double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
 {
   StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(nodeId);
-  Double tmp = 0;
+  double tmp = 0;
   int found = 0;
-  Double lower = 0.0;
+  double lower = 0.0;
   //FIXME Assume design elements are all of the same type and application is HEAT
   TransferFunction* tf = GetTransferFunction(data[0].GetType(), App::HEAT);
   lower = tf->Transform(data[0].GetLowerBound());
-  Double den = 1.0 / (1.0 - lower);
+  double den = 1.0 / (1.0 - lower);
 
   for (unsigned int index = 0; index < elems.GetSize(); index++)
   {
@@ -593,13 +593,13 @@ Double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
     EXCEPTION("CADAN: Node has no neighbor elements!!")
 
   if (derivative) {
-    return 1.0 / (Double) found * den;
+    return 1.0 / (double) found * den;
   }
   else
-    return tmp / (Double) found;
+    return tmp / (double) found;
 }
 
-Double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
+double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
 {
   ShapeOptimizer* shopt = dynamic_cast<ShapeOptimizer*>(optimizer_);
 //  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
@@ -774,8 +774,8 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
       if (this->IsRegular())
       {
         /*domain->GetGrid()->GetElemNodesCoord(ptCoord_,elem->connect,false);
-        Double dx = ptCoord_[0][0]-ptCoord_[0][1];
-        Double dy = ptCoord_[1][0]-ptCoord_[1][1];
+        double dx = ptCoord_[0][0]-ptCoord_[0][1];
+        double dy = ptCoord_[1][0]-ptCoord_[1][1];
         elemMatrix *= 0.25*dx*dy;*/
         //elemMatrix *= 1.;
       } else {
@@ -792,11 +792,11 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
   }
 
-  Double bimat_factor = -1.0;
+  double bimat_factor = -1.0;
 
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
-  Double factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
+  double factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
 
   coef->orgMat->GetTensor(retMat, *lpm);
   retMat *= factor;
@@ -838,11 +838,11 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
     return true; // note that we have no plausibility check in GetMechMass()
   }
 
-  Double bimat_factor = -1.0;
+  double bimat_factor = -1.0;
 
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
-  Double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
+  double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
   coef->orgMat->GetScalar(retScal, *lpm);
   retScal *= factor;
 
@@ -870,7 +870,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
 
   coef->orgMat->GetVector(retVec, *lpm);
 
-  retVec[0] *=  EvalInterfaceFunction(lpm->lp.number) / (Double) data.GetSize();
+  retVec[0] *=  EvalInterfaceFunction(lpm->lp.number) / (double) data.GetSize();
 
   return true;
 }
@@ -894,12 +894,12 @@ bool DesignSpace::TestTensorPosDef(Matrix<T>& retMat, const LocPointMapped* lpm,
   return true;
 }
 
-Double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial)
+double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial)
 {
   // now do the trick, that the piezo coupling factor might be a product of the
   // density transfer function and the polarization transfer function
 
-  Double result = 1.0;
+  double result = 1.0;
   // go over all design elements we have (one for design only, with polarization
   // it is two
   for(unsigned int index = design_index; index < data.GetSize(); index += elements)
@@ -919,7 +919,7 @@ Double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type
       DesignElement* trans = ApplyTransformations(de);
       DesignElement* use = trans != NULL ? trans : de;
 
-      Double transformed = tf->Transform(use, DesignElement::SMART, forBimaterial); // handles design filtering
+      double transformed = tf->Transform(use, DesignElement::SMART, forBimaterial); // handles design filtering
       LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum
                        << " trans to " << DesignElement::ToString(trans,true)
                        << "/" << Optimization::application.ToString(applic) << " for "
@@ -933,7 +933,7 @@ Double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type
   }
   return result;
 }
-bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<Double>& elemMat)
+bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& elemMat)
 {
   // see also implementation ErsatzMaterial::AddMassToStiffness() for match!!!
   static MechMat mm = MechMat(this); // Assumes irregular mesh :(
@@ -945,9 +945,9 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<Double>& ele
     return false;
   // we use the physical design variable to match better
   TransferFunction* tf = GetTransferFunction(de->GetType(), App::MASS);
-  Double tv = tf->Transform(de, DesignElement::SMART); // be consistent with ErsatzMaterial::AddMassToStiffness()
+  double tv = tf->Transform(de, DesignElement::SMART); // be consistent with ErsatzMaterial::AddMassToStiffness()
   // now the original mass matrix
-  const Matrix<Double>& mass = dynamic_cast<const Matrix<Double>&>(mm.Mass(de->elem)); // FIXME might be complex!
+  const Matrix<double>& mass = dynamic_cast<const Matrix<double>&>(mm.Mass(de->elem)); // FIXME might be complex!
   LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " mass=" << mass.ToString();
   elemMat.Resize(mass.GetNumRows(), mass.GetNumCols());
   elemMat.Assign(mass, tv * (1.0-tv) * GetPampingValue());
@@ -957,7 +957,7 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<Double>& ele
 }
 
 /*
-bool DesignSpace::GetErsatzMaterialDamping(Double& alpha, Double& beta, const Elem* elem, DesignElement::Type direction){
+bool DesignSpace::GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem, DesignElement::Type direction){
   if(CollectMaterialParametersForElement(elem)){
     return(designMaterial->GetMaterialDamping(alpha, beta, direction));
   }
@@ -965,7 +965,7 @@ bool DesignSpace::GetErsatzMaterialDamping(Double& alpha, Double& beta, const El
 }
 
 */
-bool DesignSpace::GetErsatzElementMatrix(Matrix<Double>& t, const Elem* elem, DesignElement::Type direction){
+bool DesignSpace::GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
   if(designMaterial != NULL){
     designMaterial->GetErsatzElementMatrixMSFEM(t, elem, direction);
     return(true);
@@ -973,14 +973,14 @@ bool DesignSpace::GetErsatzElementMatrix(Matrix<Double>& t, const Elem* elem, De
   return(false);
 }
 
-//bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* form*, */ Double& param)
+//bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* form*, */ double& param)
 //{
 //  assert(false);
 //  return false;
 
   /* FIXME
   if(CollectMaterialParametersForElement(elem)){
-    Double dummy = 0.0;
+    double dummy = 0.0;
     if(form->GetName() == "MassInt") return(designMaterial->GetMaterialDamping(param, dummy));
     if(form->GetName() == "LinElastInt") return(designMaterial->GetMaterialDamping(dummy, param));
   }
@@ -988,7 +988,7 @@ bool DesignSpace::GetErsatzElementMatrix(Matrix<Double>& t, const Elem* elem, De
   */
 //}
 
-bool DesignSpace::GetMultiMaterialTensor(Matrix<Double>& t, const Elem* elem, TransferFunction* tf, SubTensorType stt, MaterialClass mc, const DesignElement* derivative)
+bool DesignSpace::GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, TransferFunction* tf, SubTensorType stt, MaterialClass mc, const DesignElement* derivative)
 {
   if(multimaterial.IsEmpty())
     return false;
@@ -1017,7 +1017,7 @@ bool DesignSpace::GetMultiMaterialTensor(Matrix<Double>& t, const Elem* elem, Tr
     if(idx < 0)
       return false;
 
-    static Matrix<Double> tmp;
+    static Matrix<double> tmp;
 
     for(unsigned int d = 0; d < design.GetSize(); d++)
     {
@@ -1126,7 +1126,7 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
 }
 
 
-int DesignSpace::ReadDesignFromExtern(const Double* space)
+int DesignSpace::ReadDesignFromExtern(const double* space)
 {
   bool new_design = false;
   const unsigned int nd = design.GetSize();
@@ -1136,12 +1136,12 @@ int DesignSpace::ReadDesignFromExtern(const Double* space)
     const unsigned int nr = regions[des].GetSize();
     for(unsigned int r = 0; r < nr; r++){
       DesignRegion& cur_reg = cur_des[r];
-      const Double scaling = cur_reg.scale_design;
-      const Double translation = cur_reg.translate_design;
+      const double scaling = cur_reg.scale_design;
+      const double translation = cur_reg.translate_design;
       const unsigned int u = cur_reg.base + cur_reg.elements;
       if(cur_reg.constant == VARIABLE) {
         for(unsigned int d = cur_reg.base; d < u; d++){
-          const Double v = space[s] * scaling + translation;
+          const double v = space[s] * scaling + translation;
           if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
             new_design = true;
           }
@@ -1150,7 +1150,7 @@ int DesignSpace::ReadDesignFromExtern(const Double* space)
           s++; // advance in every step
         } // for d
       }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS){ // in FIXED case, nothing is done
-        const Double v = space[s] * scaling + translation;
+        const double v = space[s] * scaling + translation;
         for(unsigned int d = cur_reg.base; d < u; d++){
           if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
             new_design = true;
@@ -1180,12 +1180,12 @@ int DesignSpace::ReadDesignFromExtern(const Double* space)
 
   return design_id;
 }
-int DesignSpace::ReadDesignFromExtern(const StdVector<Double>& space)
+int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)
 {
   return ReadDesignFromExtern(space.GetPointer());
 }
 
-bool DesignSpace::CompareDesign(const Double* space)
+bool DesignSpace::CompareDesign(const double* space)
 {
   const unsigned int nd = design.GetSize();
   unsigned int s = 0;
@@ -1194,12 +1194,12 @@ bool DesignSpace::CompareDesign(const Double* space)
     const unsigned int nr = regions[des].GetSize();
     for(unsigned int r = 0; r < nr; r++){
       DesignRegion& cur_reg = cur_des[r];
-      const Double scaling = cur_reg.scale_design;
-      const Double translation = cur_reg.translate_design;
+      const double scaling = cur_reg.scale_design;
+      const double translation = cur_reg.translate_design;
       const unsigned int u = cur_reg.base + cur_reg.elements;
       if(cur_reg.constant == VARIABLE) {
         for(unsigned int d = cur_reg.base; d < u; d++){
-          const Double v = space[s] * scaling + translation;
+          const double v = space[s] * scaling + translation;
           if(data[d].GetDesign(DesignElement::PLAIN) != v) {
             return(false);
           }
@@ -1208,7 +1208,7 @@ bool DesignSpace::CompareDesign(const Double* space)
           s++; // advance in every step
         } // for d
       }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS){ // in FIXED case, nothing is done
-        const Double v = space[s] * scaling + translation;
+        const double v = space[s] * scaling + translation;
         for(unsigned int d = cur_reg.base; d < u; d++){
           if(data[d].GetDesign(DesignElement::PLAIN) != v) {
             return(false);
@@ -1226,7 +1226,7 @@ bool DesignSpace::CompareDesign(const Double* space)
   return(true);
 }
 
-int DesignSpace::WriteDesignToExtern(Double* space, bool scaling) const
+int DesignSpace::WriteDesignToExtern(double* space, bool scaling) const
 {
   const unsigned int nd = design.GetSize();
   unsigned int d = 0;
@@ -1236,8 +1236,8 @@ int DesignSpace::WriteDesignToExtern(Double* space, bool scaling) const
     for(unsigned int r = 0; r < nr; r++){
       const DesignRegion& cur_reg = cur_des[r];
       LOG_DBG2(designSpace) << "WDTE: dr=" << cur_reg.ToString();
-      const Double rscaling = scaling ? 1.0 /cur_reg.scale_design : 1.0;
-      const Double translation = scaling ? cur_reg.translate_design : 0.0;
+      const double rscaling = scaling ? 1.0 /cur_reg.scale_design : 1.0;
+      const double translation = scaling ? cur_reg.translate_design : 0.0;
       if(cur_reg.constant == VARIABLE){
         const unsigned int u = cur_reg.base + cur_reg.elements;
         for(unsigned int s = cur_reg.base; s < u; s++){
@@ -1255,19 +1255,19 @@ int DesignSpace::WriteDesignToExtern(Double* space, bool scaling) const
   return design_id;
 }
 
-int DesignSpace::WriteDesignToExtern(StdVector<Double>& space_out, bool scaling) const
+int DesignSpace::WriteDesignToExtern(StdVector<double>& space_out, bool scaling) const
 {
   space_out.Reserve(GetNumberOfVariables());
   return WriteDesignToExtern(space_out.GetPointer(), scaling);
 }
 
-int DesignSpace::WriteDesignToExtern(Vector<Double>& space_out, bool scaling) const
+int DesignSpace::WriteDesignToExtern(Vector<double>& space_out, bool scaling) const
 {
   space_out.Resize(GetNumberOfVariables());
   return WriteDesignToExtern(space_out.GetPointer(), scaling);
 }
 
-void DesignSpace::WriteBoundsToExtern(Double* x_l, Double* x_u) const {
+void DesignSpace::WriteBoundsToExtern(double* x_l, double* x_u) const {
   const unsigned int nd = design.GetSize();
   const unsigned int nr = regions[0].GetSize();
   unsigned int d = 0;
@@ -1275,8 +1275,8 @@ void DesignSpace::WriteBoundsToExtern(Double* x_l, Double* x_u) const {
     const StdVector<DesignRegion>& cur_des = regions[des];
     for(unsigned int r = 0; r < nr; r++){
       const DesignRegion& cur_reg = cur_des[r];
-      const Double rscaling = 1.0 / cur_reg.scale_design;
-      const Double translation = cur_reg.translate_design;
+      const double rscaling = 1.0 / cur_reg.scale_design;
+      const double translation = cur_reg.translate_design;
       if(cur_reg.constant == VARIABLE){
         const unsigned int u = cur_reg.base + cur_reg.elements;
         for(unsigned int s = cur_reg.base; s < u; s++){
@@ -1292,7 +1292,7 @@ void DesignSpace::WriteBoundsToExtern(Double* x_l, Double* x_u) const {
   }
   assert(d == DesignSpace::GetNumberOfVariables());
 }
-void DesignSpace::WriteSparseGradientToExtern(StdVector<Double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool use_scaling) const
+void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool use_scaling) const
 {
   // Bastian did some complicated reordering stuff. For the only case of sparse Jacobians (slope constraints)
   // we'll have only the simple standard situation .. if this changes you have at least a test case :) Fabian
@@ -1312,12 +1312,12 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<Double>& out, DesignElem
     unsigned int s = sparsity[i];
     if(s <= data_size){ // else we have parts of the sparsity pattern on the aux design
       assert(out.InWindow(base + i));
-      Double scaling = use_scaling ? regions[FindDesign(data[s].GetType())][0].scale_design : 1.0;
+      double scaling = use_scaling ? regions[FindDesign(data[s].GetType())][0].scale_design : 1.0;
       out[base + i] = data[sparsity[i]].GetValue(vs, access, f) * scaling;
     }
   }
 }
-void DesignSpace::WriteDenseGradientToExtern(StdVector<Double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool use_scaling) const
+void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool use_scaling) const
 {
   // this does now do reordering as gradients are reordered in the optimizer
   // must be set in the constructor! might be trivial volume fraction or from file!!
@@ -1336,7 +1336,7 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<Double>& out, DesignEleme
     for(unsigned int r = 0; r < nr; r++)
     {
       const DesignRegion& cur_reg = cur_des[r];
-      const Double scaling = cur_reg.scale_design;
+      const double scaling = cur_reg.scale_design;
       const unsigned int u = cur_reg.base + cur_reg.elements;
       if(cur_reg.constant == VARIABLE)
       {
@@ -1624,7 +1624,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   // this is our entity result, a scalar or a vector of dim 2/3
   unsigned int dofs = result.GetResultInfo()->dofNames.GetSize();
   assert(dofs >= 1 && dofs <= 3);
-  StdVector<Double> result_value(dofs);
+  StdVector<double> result_value(dofs);
   // search where in data we are
   int base = FindDesign(descr.design);
   // loop over elements from result. We have to do it this way as the the connection
@@ -1635,7 +1635,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   result_data.Resize(result.GetEntityList()->GetSize() * dofs);
   // the default value is 0.0 but 1 for densities
   SolutionType st = result.GetResultInfo()->resultType;
-  Double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
+  double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
       || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
 
   Excitation* ex = domain->GetOptimization() != NULL ? Optimization::context->GetExcitation() : NULL;
@@ -1841,7 +1841,7 @@ void DesignSpace::DesignRegion::ToInfo(PtrParamNode node) const
 
 void MultiMaterial::ToInfo(PtrParamNode in)
 {
-  Matrix<Double> E;
+  Matrix<double> E;
   BaseMaterial* bm = NULL;
 
   SubTensorType stt = Optimization::context->pde->GetSubTensorType();
@@ -1888,18 +1888,18 @@ BaseMaterial* MultiMaterial::GetMultiMaterial(const MaterialClass mc)
 
 // explicit template instantiation for GCC compiler
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-template void DesignSpace::ExtractResults<Double>(shared_ptr<BaseResult> base_result);
-template void DesignSpace::ExtractResults<complex<Double> >(shared_ptr<BaseResult> base_result);
-template void DesignSpace::FillNodeResults<Double>(Result<Double>& result, ResultDescription& descr);
-template void DesignSpace::FillNodeResults<complex<Double> >(Result<complex<Double> >& result, ResultDescription& descr);
-template void DesignSpace::FillElementResults<Double>(Result<Double>& result, ResultDescription& descr);
-template void DesignSpace::FillElementResults<complex<Double> >(Result<complex<Double> >& result, ResultDescription& descr);
-template bool DesignSpace::ApplyPhysicalDesign<Double>(shared_ptr<CoefFunctionOpt> coef, Matrix<Double>& retMat, const LocPointMapped* lpm);
-template bool DesignSpace::ApplyPhysicalDesign<Double>(shared_ptr<CoefFunctionOpt> coef, Vector<Double>& retVEc, const LocPointMapped* lpm);
-template bool DesignSpace::ApplyPhysicalDesign<complex<Double> >(shared_ptr<CoefFunctionOpt> coef, Matrix<complex<Double> >& retMat, const LocPointMapped* lpm);
-template bool DesignSpace::ApplyPhysicalDesign<Double>(shared_ptr<CoefFunctionOpt> coef, Double& retScal, const LocPointMapped* lpm);
-template bool DesignSpace::ApplyPhysicalDesign<complex<Double> >(shared_ptr<CoefFunctionOpt> coef, complex<Double>& retScal, const LocPointMapped* lpm);
-template bool DesignSpace::TestTensorPosDef<Double>(Matrix<Double>& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
-template bool DesignSpace::TestTensorPosDef<complex<Double> >(Matrix<complex<Double> >& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
+template void DesignSpace::ExtractResults<double>(shared_ptr<BaseResult> base_result);
+template void DesignSpace::ExtractResults<complex<double> >(shared_ptr<BaseResult> base_result);
+template void DesignSpace::FillNodeResults<double>(Result<double>& result, ResultDescription& descr);
+template void DesignSpace::FillNodeResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
+template void DesignSpace::FillElementResults<double>(Result<double>& result, ResultDescription& descr);
+template void DesignSpace::FillElementResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
+template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm);
+template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, Vector<double>& retVEc, const LocPointMapped* lpm);
+template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, Matrix<complex<double> >& retMat, const LocPointMapped* lpm);
+template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm);
+template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, complex<double>& retScal, const LocPointMapped* lpm);
+template bool DesignSpace::TestTensorPosDef<double>(Matrix<double>& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
+template bool DesignSpace::TestTensorPosDef<complex<double> >(Matrix<complex<double> >& retMat, const LocPointMapped* lpm, DesignElement::Type direction);
 
 #endif

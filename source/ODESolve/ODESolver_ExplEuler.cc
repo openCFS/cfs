@@ -50,7 +50,7 @@ namespace CoupledField
           h = tStop - t;
         }
 
-        if (fabs(h) <= hMin){
+        if (std::abs(h) <= hMin){
           EXCEPTION("Step size too small");
           successLastSolve_ = false;
         }

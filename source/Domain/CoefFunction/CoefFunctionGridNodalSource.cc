@@ -192,15 +192,15 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::SetInverseParam( Double& alpha, Dou
 			this->approxSourceType_ != CoefFunction::DELTA) {
 
 		Double meanSOS = 340.0; //fix speed of sound
-		Double waveNumber = 2*M_PI*freq_ / pow( meanSOS, 2.0 );;
-		Double factorPropStiff = pow( meanElemVol_, 1.0/(Double)this->srcGrid_->GetDim() );
+		Double waveNumber = 2*M_PI*freq_ / std::pow( meanSOS, 2.0 );;
+		Double factorPropStiff = std::pow( meanElemVol_, 1.0/(Double)this->srcGrid_->GetDim() );
 		Double factorPropMass  = waveNumber * waveNumber * meanElemVol_;
 
 		if ( factorPropMass > factorPropStiff ) {
-			scalingHesse_ = pow( waveNumber, 4.0 );
+			scalingHesse_ = std::pow( waveNumber, 4.0 );
 		}
 		else {
-			scalingHesse_ = pow( factorPropStiff, -4.0 );
+			scalingHesse_ = std::pow( factorPropStiff, -4.0 );
 		}
 	}
 
@@ -336,7 +336,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		      if ( curP.second >= 0 ) {
 		    	  if ( isMeasuredNode_[i] ) {
 		    		  Complex val = actPDEsol[idx] - measVec_[i];
-		    		  this->solVec_[i] = Complex(1.0)*std::conj( val );
+		    		  this->solVec_[i] = 1.0*std::conj( val );
 		    	  	  idx++;
 		    	  }
 		      }
@@ -361,7 +361,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		  }
 		  //ComputeSourceData(actPDEsol);
 		  for ( UInt i=0; i<actPDEsol.GetSize(); i++ ) {
-			  Complex val( sourceAmp_[i]*cos(sourcePhi_[i]), sourceAmp_[i]*sin(sourcePhi_[i]) );
+			  Complex val( sourceAmp_[i]*std::cos(sourcePhi_[i]), sourceAmp_[i]*std::sin(sourcePhi_[i]) );
 			  this->solVec_[i] = val;
 		  }
 	  }
@@ -449,7 +449,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeSourceData(Vector<DATA_TYPE>
 		Double val;
 		Complex jphi(0,sourcePhi_[i]); //j*phi
 		Complex valC = actPDEsol[i] * std::exp(jphi);
-		val  = pow( (Abs ( valC.real() ) / (alpha_ * qExp_)), 1.0/(qExp_-1) );
+		val  = std::pow( (std::abs ( valC.real() ) / (alpha_ * qExp_)), 1.0/(qExp_-1) );
 		if ( valC.real() < 0.0 )
 			val *= -1.0;
 		sourceAmp_[i] = val;
@@ -463,12 +463,12 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeSourceData(Vector<DATA_TYPE>
 		//std::cout << "\n StartPhi: " << psi << "  Sol: " << sol << " Src: " << sourceAmp_[i] << std::endl;
 		UInt iter = 1;
 		while ( error > 1e-3 && iter < 100) {
-			fnc = 2.0*beta_*psiPrev + sourceAmp_[i] * ( sol.real()*sin(psiPrev) + sol.imag()*cos(psiPrev) );
-			fncDeriv = 2.0*beta_ + sourceAmp_[i] * ( -sol.real()*cos(psiPrev) + sol.imag()*sin(psiPrev) );
+			fnc = 2.0*beta_*psiPrev + sourceAmp_[i] * ( sol.real()*std::sin(psiPrev) + sol.imag()*std::cos(psiPrev) );
+			fncDeriv = 2.0*beta_ + sourceAmp_[i] * ( -sol.real()*std::cos(psiPrev) + sol.imag()*std::sin(psiPrev) );
 			//std::cout << "fnc: " <<  fnc << "  fncderiv: " << fncDeriv << std::endl;
 			psi -= 0.5*fnc/fncDeriv;
 
-			error = Abs(psi - psiPrev);
+			error = std::abs(psi - psiPrev);
 			psiPrev = psi;
 			//std::cout << "PhiAct: " << psi << "  ErrorPhi: " << error << std::endl;
 			iter++;
@@ -508,7 +508,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeOptCondition(Double& valAmp,
 
 		//amplitude
 		Double deltaAmp;
-		deltaAmp = alpha_* qExp_* pow( Abs( sourceAmp_[i]), qExp_-1.0 );
+		deltaAmp = alpha_* qExp_* std::pow( std::abs( sourceAmp_[i]), qExp_-1.0 );
 		if ( sourceAmp_[i] < 0.0 )
 			deltaAmp *= -1.0;
 
@@ -570,7 +570,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeDiff2Meas(Double& error) {
 				if (logLevel_ == "3" )
 					std::cout << " Nr: " << idx << "  PDE: " << actPDEsol[idx] << " Meas:"
 					          << measVec_[i] << "  Diff: " << val << std::endl;
-				error += Abs( val * std::conj(val) ) ;
+				error += std::abs( val * std::conj(val) ) ;
 				idx++;
 			}
 		}
@@ -591,7 +591,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::UpdateSource( Double& stepLength, b
 			Double Phi;
 			Phi = sourcePhiSave_[i] - stepLength * sourcePhiDelta_[i];
 			//project Phi to be between -pi/2 and pi/2
-			Phi = fmin(M_PI/2.0, fmax(-M_PI/2.0,Phi));
+			Phi = std::min(M_PI/2.0, std::max(-M_PI/2.0,Phi));
 			sourcePhi_[i] = Phi;
 		}
 	}
@@ -611,17 +611,12 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeTikh( Double& funcVal, Doubl
 
 	Double phi, arg;
 	for ( UInt i=0; i<sourceAmp_.GetSize(); i++ ) {
-		valAmp += alpha_*pow( Abs(sourceAmp_[i]), qExp_ );
-		phi     =  beta_*pow(Abs(sourcePhi_[i]), 2);
+		valAmp += alpha_*std::pow( std::abs(sourceAmp_[i]), qExp_ );
+		phi     =  beta_*std::pow(std::abs(sourcePhi_[i]), 2);
 		arg     =  ( M_PI/2.0 -phi )*(M_PI/2.0 + phi);
 		if ( arg < 1e-3 )
 			arg = 1e-3;
-#ifndef USE_ADOLC
-		valPhi += phi - rho_*log2l( arg );
-#else
-//                 valPhi += phi - rho_*log2l( arg );
-                EXCEPTION("WARNING: log2l for long double currently undefined?");
-#endif
+		valPhi += phi - rho_*std::log2l( arg );
 	}
 
 //	if ( adjustAlpha ) {
@@ -652,7 +647,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeMeasL2squared(Double& valL2 
 		const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
 		if ( curP.second > 0 ) {
 			if ( isMeasuredNode_[i] )
-				val += Abs( measVec_[i] * std::conj(measVec_[i]) );
+				val += std::abs( measVec_[i] * std::conj(measVec_[i]) );
 		}
 	}
 	valL2 = val;

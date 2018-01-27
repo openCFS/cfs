@@ -134,9 +134,9 @@ void InternalMesh::ReadMesh(Grid *mi)
   // Get Nodes
   mi_->AddNodes(maxNumNodes_);
 
-  const Double xinc((maximal_[0] - minimal_[0])/nelems_[0]);
-  const Double yinc((maximal_[1] - minimal_[1])/nelems_[1]);
-  const Double zinc(dim_ == 3 ? ((maximal_[2] - minimal_[2])/nelems_[2]) : Double(0.0));
+  const double xinc((maximal_[0] - minimal_[0])/nelems_[0]);
+  const double yinc((maximal_[1] - minimal_[1])/nelems_[1]);
+  const double zinc(dim_ == 3 ? ((maximal_[2] - minimal_[2])/nelems_[2]) : 0.0);
 
   // write node coordinates directly into the grid
   // regionNodes_ must contain all the node numbers and that can be done here, too

@@ -627,12 +627,12 @@ int dataset_55::read_data(int* stat) {
   int n=header.n_data_val_per_node*type_size;
 
   if (data.node_data==NULL) {
-    data.node_data=new Double[n];
+    data.node_data=new double[n];
     curr_node_data_size=n;
   }
   else if (n>curr_node_data_size) { 
     delete[] data.node_data;
-    data.node_data=new Double[n];
+    data.node_data=new double[n];
     curr_node_data_size=n;
   }
 
@@ -736,12 +736,12 @@ int dataset_56::read_data(int* stat) {
     int n=data.n_val_on_element*type_size;
 
     if (data.element_data==NULL) {
-      data.element_data=new Double[n];
+      data.element_data=new double[n];
       curr_element_data_size=n;
     }
     else if (n>curr_element_data_size) { 
       delete[] data.element_data;
-      data.element_data=new Double[n];
+      data.element_data=new double[n];
       curr_element_data_size=n;
     }
 
@@ -1101,7 +1101,7 @@ int dataset_58::read_data(int *status) {
   }
   
   if (is_even)
-    data.step_val = header.abs_min + header.abs_inc * (Double) step_idx;
+    data.step_val = header.abs_min + header.abs_inc * (double) step_idx;
   else
     *in >> data.step_val;
   ++step_idx;

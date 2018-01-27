@@ -62,9 +62,9 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 
   massIsDesign_ = pn->Get("optimizeMass")->As<bool>();
 
-  massFactor_ = pn->Get("massFactor")->As<Double>();
+  massFactor_ = pn->Get("massFactor")->As<double>();
 
-  trace_ = pn->Get("trace")->As<Double>();
+  trace_ = pn->Get("trace")->As<double>();
 
   dampingIsDesign_ = pn->Get("optimizeDamping")->As<bool>();
 
@@ -130,12 +130,12 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     all_param_ = hr->Get("allParameters")->As<bool>();
     PtrParamNode mean = hr->Get("meantensor");
     PtrParamNode tensor = mean->Get("tensor");
-    Matrix<Double> mat(3,1);
-    ParamTools::AsTensor<Double>(tensor->Get("real"),3, 1, mat);
+    Matrix<double> mat(3,1);
+    ParamTools::AsTensor<double>(tensor->Get("real"),3, 1, mat);
     mean_tensor_ = mat;
 
-    StdVector<Matrix<Double> > matrices(30);
-    StdVector<Vector<Double> > vectors(12);
+    StdVector<Matrix<double> > matrices(30);
+    StdVector<Vector<double> > vectors(12);
     mod_red_matrices_ = matrices;
     mod_red_vectors_ = vectors;
 //    PtrParamNode matnode = hr->Get("matrices");
@@ -169,8 +169,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
    // dimension_tot_ = hr->Get("dimensionTotale")->As<UInt>();
     Nl_ = hr->Get("Nl")->As<UInt>();
     Na_ = hr->Get("Na")->As<UInt>();
-    lmin_ = hr->Get("lmin")->As<Double>();
-    lmax_ = hr->Get("lmax")->As<Double>();
+    lmin_ = hr->Get("lmin")->As<double>();
+    lmax_ = hr->Get("lmax")->As<double>();
 
     all_param_ = hr->Get("allParameters")->As<bool>();
 
@@ -179,14 +179,14 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 
     PtrParamNode mean = hr->Get("meantensor");
     PtrParamNode tensor = mean->Get("tensor");
-    Matrix<Double> mat(3,1);
-    ParamTools::AsTensor<Double>(tensor->Get("real"),3, 1, mat);
+    Matrix<double> mat(3,1);
+    ParamTools::AsTensor<double>(tensor->Get("real"),3, 1, mat);
     mean_tensor_ = mat;
 
     int num_param=3;
     if (all_param_) num_param = 4;
 
-    StdVector<Matrix<Double> > mat_param(num_param);
+    StdVector<Matrix<double> > mat_param(num_param);
     matrices_param_ = mat_param;
 
 ///////////////Initialisation of matl2////////////////////////
@@ -195,17 +195,17 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 
     PtrParamNode matl2 = hr->Get("matl2");
     tensor = matl2->Get("tensor");
-    Matrix<Double> mattrans(Nl_+1,3*dimension_);
-    ParamTools::AsTensor<Double>(tensor->Get("real"),Nl_+1, 3*dimension_, mat);
+    Matrix<double> mattrans(Nl_+1,3*dimension_);
+    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_, mat);
     matrices_param_[num_param-1] = mat;*/
 
 
-    Matrix<Double> mattot(Nl_+1, 3*dimension_tot_);
+    Matrix<double> mattot(Nl_+1, 3*dimension_tot_);
     PtrParamNode matl2 = hr->Get("matl2");
     tensor = matl2->Get("tensor");
-    ParamTools::AsTensor<Double>(tensor->Get("real"),Nl_+1, 3*dimension_tot_, mattot);
+    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_tot_, mattot);
 
-    Matrix<Double> mattrans(Nl_+1,dimension_);
+    Matrix<double> mattrans(Nl_+1,dimension_);
     mat.Resize(Nl_+1, 3*dimension_);
     mat.Init();
     for (int i=0; i<3; i++)
@@ -220,14 +220,14 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     /*mat.Resize(Nl_+1,3*dimension_);
     PtrParamNode matl1 = hr->Get("matl1");
     tensor = matl1->Get("tensor");
-    ParamTools::AsTensor<Double>(tensor->Get("real"),Nl_+1, 3*dimension_, mat);
+    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_, mat);
     matrices_param_[num_param-2] = mat;*/
 
     mattot.Resize(Nl_+1, 3*dimension_tot_);
     mattot.Init();
     PtrParamNode matl1 = hr->Get("matl1");
     tensor = matl1->Get("tensor");
-    ParamTools::AsTensor<Double>(tensor->Get("real"),Nl_+1, 3*dimension_tot_, mattot);
+    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_tot_, mattot);
 
     mattrans.Resize(Nl_+1,dimension_);
     mattrans.Init();
@@ -246,7 +246,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
  /* mat.Resize(2*Na_+1,3*dimension_);
   PtrParamNode matphi = hr->Get("matphi");
   tensor = matphi->Get("tensor");
-  ParamTools::AsTensor<Double>(tensor->Get("real"),2*Na_+1, 3*dimension_, mat);
+  ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_, mat);
 
   matrices_param_[num_param-3] = mat;*/
 
@@ -254,7 +254,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     mattot.Init();
     PtrParamNode matphi = hr->Get("matphi");
     tensor = matphi->Get("tensor");
-    ParamTools::AsTensor<Double>(tensor->Get("real"),2*Na_+1, 3*dimension_tot_, mattot);
+    ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_tot_, mattot);
 
     mattrans.Resize(2*Na_+1,dimension_);
     mattrans.Init();
@@ -275,14 +275,14 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
           /*PtrParamNode mattheta = hr->Get("mattheta");
           tensor = mattheta->Get("tensor");
           mat.Resize(2*Na_+1,3*dimension_);
-          ParamTools::AsTensor<Double>(tensor->Get("real"),2*Na_+1, 3*dimension_, mat);
+          ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_, mat);
           matrices_param_[num_param-4] = mat;*/
 
           mattot.Resize(2*Na_+1, 3*dimension_tot_);
           mattot.Init();
           PtrParamNode mattheta = hr->Get("mattheta");
           tensor = mattheta->Get("tensor");
-          ParamTools::AsTensor<Double>(tensor->Get("real"),2*Na_+1, 3*dimension_tot_, mattot);
+          ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_tot_, mattot);
 
           mattrans.Resize(2*Na_+1,dimension_);
           mattrans.Init();
@@ -298,8 +298,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     }
 
 
-    StdVector<Matrix<Double> > matrices(30);
-    StdVector<Vector<Double> > vectors(12);
+    StdVector<Matrix<double> > matrices(30);
+    StdVector<Vector<double> > vectors(12);
     mod_red_matrices_ = matrices;
     mod_red_vectors_ = vectors;
 
@@ -337,24 +337,24 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       // read a
       unsigned int a_count;
       file >> a_count;
-      hom_rect_a_ = Matrix<Double>(a_count, 1);
+      hom_rect_a_ = Matrix<double>(a_count, 1);
       for (unsigned int i = 0; i < a_count; i++) {
         file >> hom_rect_a_[i][0];
       }
       // read b
       unsigned int b_count;
       file >> b_count;
-      hom_rect_b_ = Matrix<Double>(b_count, 1);
+      hom_rect_b_ = Matrix<double>(b_count, 1);
       for (unsigned int i = 0; i < b_count; i++) {
         file >> hom_rect_b_[i][0];
       }
       // calculate number of coefficient rows
       const unsigned int count = (a_count-1) * (b_count-1);
       // create and fill matrices
-      Matrix<Double>* matrices[] = {&hom_rect_coeff11_, &hom_rect_coeff12_,
+      Matrix<double>* matrices[] = {&hom_rect_coeff11_, &hom_rect_coeff12_,
                                     &hom_rect_coeff22_, &hom_rect_coeff33_};
       for (unsigned int k = 0; k < 4; k++) {
-        *matrices[k] = Matrix<Double>(count, 16);
+        *matrices[k] = Matrix<double>(count, 16);
         for (unsigned int i = 0; i < count; i++) {
           for (unsigned int j = 0; j < 16; j++) {
             file >> (*matrices[k])[i][j];
@@ -378,31 +378,31 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       // read a
       unsigned int a_count;
       file >> a_count;
-      hom_rect_a_ = Matrix<Double>(a_count, 1);
+      hom_rect_a_ = Matrix<double>(a_count, 1);
       for (unsigned int i = 0; i < a_count; i++) {
         file >> hom_rect_a_[i][0];
       }
       // read b
       unsigned int b_count;
       file >> b_count;
-      hom_rect_b_ = Matrix<Double>(b_count, 1);
+      hom_rect_b_ = Matrix<double>(b_count, 1);
       for (unsigned int i = 0; i < b_count; i++) {
         file >> hom_rect_b_[i][0];
       }
       // read c
       unsigned int c_count;
       file >> c_count;
-      hom_rect_c_ = Matrix<Double>(c_count, 1);
+      hom_rect_c_ = Matrix<double>(c_count, 1);
       for (unsigned int i = 0; i < c_count; i++) {
         file >> hom_rect_c_[i][0];
       }
       // calculate number of coefficient rows
       const unsigned int count = (a_count-1) * (b_count-1) * (c_count-1);
       // create and fill matrices
-      Matrix<Double>* matrices[] = {&hom_rect_coeff11_, &hom_rect_coeff12_, &hom_rect_coeff13_,
+      Matrix<double>* matrices[] = {&hom_rect_coeff11_, &hom_rect_coeff12_, &hom_rect_coeff13_,
                                     &hom_rect_coeff22_, &hom_rect_coeff23_, &hom_rect_coeff33_};
       for (unsigned int k = 0; k < 6; k++) {
-        *matrices[k] = Matrix<Double>(count, 64);
+        *matrices[k] = Matrix<double>(count, 64);
         for (unsigned int i = 0; i < count; i++) {
           for (unsigned int j = 0; j < 64; j++) {
             file >> (*matrices[k])[i][j];
@@ -421,17 +421,17 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       if (dim == 2) {
         //Check for old format of coefficient file. Delete at some point in the future.
         if (!root->Has("a/matrix/real")) {
-          ParamTools::AsMatrix<Double>(root->Get("a/matrix"),hom_rect_a_);
-          ParamTools::AsMatrix<Double>(root->Get("b/matrix"),hom_rect_b_);
-          ParamTools::AsMatrix<Double>(root->Get("coeff11/matrix"), hom_rect_coeff11_);
-          ParamTools::AsMatrix<Double>(root->Get("coeff12/matrix"), hom_rect_coeff12_);
-          ParamTools::AsMatrix<Double>(root->Get("coeff22/matrix"), hom_rect_coeff22_);
-          ParamTools::AsMatrix<Double>(root->Get("coeff33/matrix"), hom_rect_coeff33_);
+          ParamTools::AsMatrix<double>(root->Get("a/matrix"),hom_rect_a_);
+          ParamTools::AsMatrix<double>(root->Get("b/matrix"),hom_rect_b_);
+          ParamTools::AsMatrix<double>(root->Get("coeff11/matrix"), hom_rect_coeff11_);
+          ParamTools::AsMatrix<double>(root->Get("coeff12/matrix"), hom_rect_coeff12_);
+          ParamTools::AsMatrix<double>(root->Get("coeff22/matrix"), hom_rect_coeff22_);
+          ParamTools::AsMatrix<double>(root->Get("coeff33/matrix"), hom_rect_coeff33_);
           hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
           if (root->Has("c")) {
-            ParamTools::AsMatrix<Double>(root->Get("c/matrix"), hom_rect_c_);
-            ParamTools::AsMatrix<Double>(root->Get("coeff13/matrix"), hom_rect_coeff13_);
-            ParamTools::AsMatrix<Double>(root->Get("coeff23/matrix"), hom_rect_coeff23_);
+            ParamTools::AsMatrix<double>(root->Get("c/matrix"), hom_rect_c_);
+            ParamTools::AsMatrix<double>(root->Get("coeff13/matrix"), hom_rect_coeff13_);
+            ParamTools::AsMatrix<double>(root->Get("coeff23/matrix"), hom_rect_coeff23_);
             hom_rect_coeff13_ = hom_rect_coeff13_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
             hom_rect_coeff23_ = hom_rect_coeff23_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
           } else {
@@ -449,18 +449,18 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
           int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
           int dim3 = root->Get("a/matrix/dim1")->As<int>();
           int dim4 = root->Get("b/matrix/dim1")->As<int>();
-          ParamTools::AsTensor<Double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
-          ParamTools::AsTensor<Double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
-          ParamTools::AsTensor<Double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
-          ParamTools::AsTensor<Double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
-          ParamTools::AsTensor<Double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
-          ParamTools::AsTensor<Double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
+          ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
+          ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
+          ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
+          ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
+          ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
+          ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
           hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
           if (root->Has("c")) {
             int dim5 = root->Get("c/matrix/dim1")->As<int>();
-            ParamTools::AsTensor<Double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
-            ParamTools::AsTensor<Double>(root->Get("coeff13/matrix/real"), dim1, dim2, hom_rect_coeff13_);
-            ParamTools::AsTensor<Double>(root->Get("coeff23/matrix/real"), dim1, dim2, hom_rect_coeff23_);
+            ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
+            ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), dim1, dim2, hom_rect_coeff13_);
+            ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), dim1, dim2, hom_rect_coeff23_);
             hom_rect_coeff13_ = hom_rect_coeff13_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
             hom_rect_coeff23_ = hom_rect_coeff23_ * (notation == VOIGT ? sqrt(2.0) : 1.0);
           } else {
@@ -479,18 +479,18 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         int dim4 = root->Get("b/matrix/dim1")->As<int>();
         int dim5 = root->Get("c/matrix/dim1")->As<int>();
 
-        ParamTools::AsTensor<Double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
-        ParamTools::AsTensor<Double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
-        ParamTools::AsTensor<Double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
-        ParamTools::AsTensor<Double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
-        ParamTools::AsTensor<Double>(root->Get("coeff13/matrix/real"), dim1, dim2, hom_rect_coeff13_);
-        ParamTools::AsTensor<Double>(root->Get("coeff23/matrix/real"), dim1, dim2, hom_rect_coeff23_);
-        ParamTools::AsTensor<Double>(root->Get("coeff44/matrix/real"), dim1, dim2, hom_rect_coeff44_);
-        ParamTools::AsTensor<Double>(root->Get("coeff55/matrix/real"), dim1, dim2, hom_rect_coeff55_);
-        ParamTools::AsTensor<Double>(root->Get("coeff66/matrix/real"), dim1, dim2, hom_rect_coeff66_);
-        ParamTools::AsTensor<Double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
-        ParamTools::AsTensor<Double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
-        ParamTools::AsTensor<Double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
+        ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
+        ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
+        ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
+        ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
+        ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), dim1, dim2, hom_rect_coeff13_);
+        ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), dim1, dim2, hom_rect_coeff23_);
+        ParamTools::AsTensor<double>(root->Get("coeff44/matrix/real"), dim1, dim2, hom_rect_coeff44_);
+        ParamTools::AsTensor<double>(root->Get("coeff55/matrix/real"), dim1, dim2, hom_rect_coeff55_);
+        ParamTools::AsTensor<double>(root->Get("coeff66/matrix/real"), dim1, dim2, hom_rect_coeff66_);
+        ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
+        ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
+        ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
         // the internal tensor representation in 3D hom_rect_samples_ is Hill-Mandel
         hom_rect_coeff44_ = hom_rect_coeff44_ * (notation == VOIGT ? 2.0 : 1.);
         hom_rect_coeff55_ = hom_rect_coeff55_ * (notation == VOIGT ? 2.0 : 1.);
@@ -549,16 +549,16 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         PtrParamNode root = XmlReader::ParseFile(file);
         Notation notation = ((root->Get("notation")->As<string>() == "voigt") ? VOIGT : HILL_MANDEL);
         // read coefficients from XML
-        ParamTools::AsMatrix<Double>(root->Get("coeff11/matrix"), full_bspline_coeff11_);
-        ParamTools::AsMatrix<Double>(root->Get("coeff12/matrix"), full_bspline_coeff12_);
+        ParamTools::AsMatrix<double>(root->Get("coeff11/matrix"), full_bspline_coeff11_);
+        ParamTools::AsMatrix<double>(root->Get("coeff12/matrix"), full_bspline_coeff12_);
         if (grid_->getStorage().getDimension() == 3) {
-          ParamTools::AsMatrix<Double>(root->Get("coeff13/matrix"), full_bspline_coeff13_);
+          ParamTools::AsMatrix<double>(root->Get("coeff13/matrix"), full_bspline_coeff13_);
         }
-        ParamTools::AsMatrix<Double>(root->Get("coeff22/matrix"), full_bspline_coeff22_);
+        ParamTools::AsMatrix<double>(root->Get("coeff22/matrix"), full_bspline_coeff22_);
         if (grid_->getStorage().getDimension() == 3) {
-          ParamTools::AsMatrix<Double>(root->Get("coeff23/matrix"), full_bspline_coeff23_);
+          ParamTools::AsMatrix<double>(root->Get("coeff23/matrix"), full_bspline_coeff23_);
         }
-        ParamTools::AsMatrix<Double>(root->Get("coeff33/matrix"), full_bspline_coeff33_);
+        ParamTools::AsMatrix<double>(root->Get("coeff33/matrix"), full_bspline_coeff33_);
         // apply notation
         full_bspline_coeff33_ = full_bspline_coeff33_ * ((notation == VOIGT) ? 2.0 : 1.0);
 
@@ -577,10 +577,10 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         unsigned int count;
         file >> count;
         // create matrices
-        Matrix<Double>* matrices[] = {&full_bspline_coeff11_, &full_bspline_coeff12_,
+        Matrix<double>* matrices[] = {&full_bspline_coeff11_, &full_bspline_coeff12_,
                                       &full_bspline_coeff22_, &full_bspline_coeff33_};
         for (unsigned int k = 0; k < 4; k++) {
-          *matrices[k] = Matrix<Double>(count, 1);
+          *matrices[k] = Matrix<double>(count, 1);
         }
         // create matrices
         for (unsigned int i = 0; i < count; i++) {
@@ -607,10 +607,10 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         unsigned int count;
         file >> count;
         // create matrices
-        Matrix<Double>* matrices[] = {&full_bspline_coeff11_, &full_bspline_coeff12_, &full_bspline_coeff13_,
+        Matrix<double>* matrices[] = {&full_bspline_coeff11_, &full_bspline_coeff12_, &full_bspline_coeff13_,
                                       &full_bspline_coeff22_, &full_bspline_coeff23_, &full_bspline_coeff33_};
         for (unsigned int k = 0; k < 6; k++) {
-          *matrices[k] = Matrix<Double>(count, 1);
+          *matrices[k] = Matrix<double>(count, 1);
         }
         // fill matrices
         for (unsigned int i = 0; i < count; i++) {
@@ -631,8 +631,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         PtrParamNode hr = pn->Get("MSFEMC1");
         std::string file = hr->Get("file")->As<std::string>();
         PtrParamNode root = XmlReader::ParseFile(file);
-        ParamTools::AsMatrix<Double>(root->Get("a/matrix"),msfem_a_);
-        ParamTools::AsMatrix<Double>(root->Get("b/matrix"),msfem_b_);
+        ParamTools::AsMatrix<double>(root->Get("a/matrix"),msfem_a_);
+        ParamTools::AsMatrix<double>(root->Get("b/matrix"),msfem_b_);
         StdVector<std::string> index;
         index = "11","12","13","14","15","16","17","18","22","23","24","25",
             "26","27","28","33","34","35","36","37","38","44","45","46","47","48","55","56","57","58","66","67","68","77","78","88";
@@ -641,7 +641,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
           std::stringstream ss;
           ss<<"coeff"<<index[i]<<"/matrix";
           std::string tmp = ss.str();
-          ParamTools::AsMatrix<Double>(root->Get(tmp), msfem_coeff_[i]);
+          ParamTools::AsMatrix<double>(root->Get(tmp), msfem_coeff_[i]);
         }
         LOG_DBG3(dm) << "a = " << msfem_a_;
         LOG_DBG3(dm) << "b = " << msfem_b_;
@@ -665,10 +665,10 @@ void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, 
   Notation notation =  homRect->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
 
   PtrParamNode data = homRect->GetByVal("data", "a", a, "b", b);
-  hom_rect_samples_[idx][DesignElement::MECH_11 - DesignElement::MECH_11] = data->Get("e11")->As<Double>();
-  hom_rect_samples_[idx][DesignElement::MECH_12 - DesignElement::MECH_11] = data->Get("e12")->As<Double>();
-  hom_rect_samples_[idx][DesignElement::MECH_22 - DesignElement::MECH_11] = data->Get("e22")->As<Double>();
-  hom_rect_samples_[idx][DesignElement::MECH_33 - DesignElement::MECH_11] = data->Get("e33")->As<Double>() * (notation == VOIGT ? 2.0 : 1.0);
+  hom_rect_samples_[idx][DesignElement::MECH_11 - DesignElement::MECH_11] = data->Get("e11")->As<double>();
+  hom_rect_samples_[idx][DesignElement::MECH_12 - DesignElement::MECH_11] = data->Get("e12")->As<double>();
+  hom_rect_samples_[idx][DesignElement::MECH_22 - DesignElement::MECH_11] = data->Get("e22")->As<double>();
+  hom_rect_samples_[idx][DesignElement::MECH_33 - DesignElement::MECH_11] = data->Get("e33")->As<double>() * (notation == VOIGT ? 2.0 : 1.0);
   hom_rect_samples_[idx][DesignElement::MECH_13 - DesignElement::MECH_11] = 0.0;
   hom_rect_samples_[idx][DesignElement::MECH_23 - DesignElement::MECH_11] = 0.0;
 }
@@ -683,7 +683,7 @@ bool DesignMaterial::CollectMaterialParametersForElement(DesignSpace* space, con
   for(unsigned int index = base; index < space->data.GetSize(); index += space->elements)
   {
     DesignElement* de = &space->data[index];
-    Double val = de->GetDesign(DesignElement::SMART);
+    double val = de->GetDesign(DesignElement::SMART);
     LOG_DBG2(dm) << "CMPFE e=" << elem->elemNum << " de=" << de->ToString() << " v=" << val;
     SetParameter(de->GetType(), val);
   }
@@ -696,55 +696,55 @@ void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<st
 
       PtrParamNode mat1 = matnode->Get("matuxux" + tensor_comp[tensor_int]);
       PtrParamNode tensor = mat1->Get("tensor");
-      Matrix<Double> mat(dimbas,dimbas);
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, dimbas, mat);
+      Matrix<double> mat(dimbas,dimbas);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
       mod_red_matrices_[10*tensor_int +0] = mat;
 
       PtrParamNode mat2= matnode->Get("matuxvx" + tensor_comp[tensor_int] );
       tensor = mat2->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, dimbas, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
        mod_red_matrices_[10*tensor_int + 1] = mat;
 
       PtrParamNode mat3= matnode->Get("matvxvx" + tensor_comp[tensor_int]);
       tensor = mat3->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, dimbas, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
       mod_red_matrices_[10*tensor_int + 2] = mat;
 
 
       PtrParamNode mat4 = matnode->Get("matuxuy" + tensor_comp[tensor_int]);
       tensor = mat4->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, dimbas, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
       mod_red_matrices_[ 10*tensor_int +3] = mat;
 
       PtrParamNode mat5 = matnode->Get("matuxvy" + tensor_comp[tensor_int]);
       tensor = mat5->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, dimbas, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
        mod_red_matrices_[10*tensor_int + 4] = mat;
 
        PtrParamNode mat6 = matnode->Get("matuyvx" + tensor_comp[tensor_int]);
        tensor = mat6->Get("tensor");
-       ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, dimbas, mat);
+       ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
        mod_red_matrices_[ 10*tensor_int + 5] = mat;
 
       PtrParamNode mat7 = matnode->Get("matvxvy" + tensor_comp[tensor_int]);
       tensor = mat7->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, dimbas, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
       mod_red_matrices_[10*tensor_int + 6] = mat;
 
 
       PtrParamNode mat8 = matnode->Get("matuyuy" + tensor_comp[tensor_int]);
       tensor = mat8->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, dimbas, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
        mod_red_matrices_[10*tensor_int + 7] = mat;
 
        PtrParamNode mat9 = matnode->Get("matuyvy" + tensor_comp[tensor_int]);
        tensor = mat9->Get("tensor");
-       ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, dimbas, mat);
+       ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
        mod_red_matrices_[10*tensor_int + 8] = mat;
 
       PtrParamNode mat10 = matnode->Get("matvyvy" + tensor_comp[tensor_int]);
       tensor = mat10->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, dimbas, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
       mod_red_matrices_[10*tensor_int + 9] = mat;
 
 }
@@ -754,27 +754,27 @@ void DesignMaterial::FillModRedVectors(PtrParamNode vecnode, const StdVector<std
 
       PtrParamNode vecux = vecnode->Get("vecux" + tensor_comp[tensor_int] );
       PtrParamNode tensor = vecux->Get("tensor");
-      Matrix<Double> mat(dimbas,1);
-      Vector<Double> vec(dimbas);
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, 1, mat);
+      Matrix<double> mat(dimbas,1);
+      Vector<double> vec(dimbas);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, 1, mat);
       mat.GetCol(vec,0);
       mod_red_vectors_[4*tensor_int +0] = vec;
 
       PtrParamNode vecuy = vecnode->Get("vecuy" + tensor_comp[tensor_int]);
       tensor = vecuy->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, 1, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, 1, mat);
       mat.GetCol(vec,0);
       mod_red_vectors_[4*tensor_int +1] = vec;
 
       PtrParamNode vecvx = vecnode->Get("vecvx" + tensor_comp[tensor_int]);
       tensor = vecvx->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, 1, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, 1, mat);
       mat.GetCol(vec,0);
       mod_red_vectors_[ 4*tensor_int +2] = vec;
 
       PtrParamNode vecvy = vecnode->Get("vecvy" + tensor_comp[tensor_int]);
       tensor = vecvy->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),dimbas, 1, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, 1, mat);
       mat.GetCol(vec,0);
       mod_red_vectors_[ 4*tensor_int +3] = vec;
 
@@ -786,10 +786,10 @@ void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<st
 
       PtrParamNode mat1 = matnode->Get("matuxux" + tensor_comp[tensor_int]);
       PtrParamNode tensor = mat1->Get("tensor");
-      Matrix<Double> mattot(3*dimbastot,3*dimbastot);
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
-      Matrix<Double> mat(3*dimbas, 3*dimbas);
-      Matrix<Double> mattrans(dimbas, dimbas);
+      Matrix<double> mattot(3*dimbastot,3*dimbastot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      Matrix<double> mat(3*dimbas, 3*dimbas);
+      Matrix<double> mattrans(dimbas, dimbas);
       for (int i=0; i< 3; i++)
       {
         for (int j=0; j<3; j++)
@@ -803,7 +803,7 @@ void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<st
 
       PtrParamNode mat2= matnode->Get("matuxvx" + tensor_comp[tensor_int] );
       tensor = mat2->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
       for (int i=0; i< 3; i++)
       {
         for (int j=0; j<3; j++)
@@ -817,7 +817,7 @@ void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<st
 
       PtrParamNode mat3= matnode->Get("matvxvx" + tensor_comp[tensor_int]);
       tensor = mat3->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
       for (int i=0; i< 3; i++)
       {
         for (int j=0; j<3; j++)
@@ -831,7 +831,7 @@ void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<st
 
       PtrParamNode mat4 = matnode->Get("matuxuy" + tensor_comp[tensor_int]);
       tensor = mat4->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
       for (int i=0; i< 3; i++)
       {
         for (int j=0; j<3; j++)
@@ -844,7 +844,7 @@ void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<st
 
       PtrParamNode mat5 = matnode->Get("matuxvy" + tensor_comp[tensor_int]);
       tensor = mat5->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
       for (int i=0; i< 3; i++)
       {
         for (int j=0; j<3; j++)
@@ -857,7 +857,7 @@ void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<st
 
        PtrParamNode mat6 = matnode->Get("matuyvx" + tensor_comp[tensor_int]);
        tensor = mat6->Get("tensor");
-       ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+       ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
        for (int i=0; i< 3; i++)
        {
          for (int j=0; j<3; j++)
@@ -870,7 +870,7 @@ void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<st
 
       PtrParamNode mat7 = matnode->Get("matvxvy" + tensor_comp[tensor_int]);
       tensor = mat7->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
       for (int i=0; i< 3; i++)
              {
                for (int j=0; j<3; j++)
@@ -883,7 +883,7 @@ void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<st
 
       PtrParamNode mat8 = matnode->Get("matuyuy" + tensor_comp[tensor_int]);
       tensor = mat8->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
       for (int i=0; i< 3; i++)
       {
         for (int j=0; j<3; j++)
@@ -896,7 +896,7 @@ void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<st
 
        PtrParamNode mat9 = matnode->Get("matuyvy" + tensor_comp[tensor_int]);
        tensor = mat9->Get("tensor");
-       ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+       ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
        for (int i=0; i< 3; i++)
        {
          for (int j=0; j<3; j++)
@@ -909,7 +909,7 @@ void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<st
 
       PtrParamNode mat10 = matnode->Get("matvyvy" + tensor_comp[tensor_int]);
       tensor = mat10->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
       for (int i=0; i< 3; i++)
       {
         for (int j=0; j<3; j++)
@@ -927,22 +927,22 @@ void DesignMaterial::FillModRedVectors(PtrParamNode vecnode, const StdVector<std
 
       PtrParamNode vecux = vecnode->Get("vecux" + tensor_comp[tensor_int] );
       PtrParamNode tensor = vecux->Get("tensor");
-      Matrix<Double> mattot(3*dimbastot,1);
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 1, mattot);
-      Matrix<Double> mat(3*dimbas,1);
-      Matrix<Double> mattrans(dimbas,1);
+      Matrix<double> mattot(3*dimbastot,1);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 1, mattot);
+      Matrix<double> mat(3*dimbas,1);
+      Matrix<double> mattrans(dimbas,1);
       for (int i=0; i< 3; i++)
       {
         mattot.GetSubMatrix(mattrans, i*dimbastot, 0);
         mat.SetSubMatrix(mattrans, i*dimbas, 0);
       }
-      Vector<Double> vec(dimbas);
+      Vector<double> vec(dimbas);
       mat.GetCol(vec,0);
       mod_red_vectors_[4*tensor_int +0] = vec;
 
       PtrParamNode vecuy = vecnode->Get("vecuy" + tensor_comp[tensor_int]);
       tensor = vecuy->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 1, mattot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 1, mattot);
       for (int i=0; i< 3; i++)
             {
               mattot.GetSubMatrix(mattrans, i*dimbastot, 0);
@@ -953,7 +953,7 @@ void DesignMaterial::FillModRedVectors(PtrParamNode vecnode, const StdVector<std
 
       PtrParamNode vecvx = vecnode->Get("vecvx" + tensor_comp[tensor_int]);
       tensor = vecvx->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 1, mattot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 1, mattot);
       for (int i=0; i< 3; i++)
             {
               mattot.GetSubMatrix(mattrans, i*dimbastot, 0);
@@ -964,7 +964,7 @@ void DesignMaterial::FillModRedVectors(PtrParamNode vecnode, const StdVector<std
 
       PtrParamNode vecvy = vecnode->Get("vecvy" + tensor_comp[tensor_int]);
       tensor = vecvy->Get("tensor");
-      ParamTools::AsTensor<Double>(tensor->Get("real"),3*dimbastot, 1, mattot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 1, mattot);
       for (int i=0; i< 3; i++)
             {
               mattot.GetSubMatrix(mattrans, i*dimbastot, 0);
@@ -1221,35 +1221,35 @@ bool DesignMaterial::CheckRequiredDesigns(
   return false;
 }
 
-void DesignMaterial::SetParameter(const DesignElement::Type p, const Double value) {
+void DesignMaterial::SetParameter(const DesignElement::Type p, const double value) {
   params_[p] = value;
   // LOG_DBG3(dm) << "SP p=" << DesignElement::type.ToString(p) << " v=" << value;
 }
 
-void DesignMaterial::GetIsoMaterialTensor(Matrix<Double>& t,
+void DesignMaterial::GetIsoMaterialTensor(Matrix<double>& t,
     SubTensorType subTensor, DesignElement::Type direction) {
-  Double E = params_[DesignElement::EMODUL];
-  Double nu = params_[DesignElement::POISSON];
+  double E = params_[DesignElement::EMODUL];
+  double nu = params_[DesignElement::POISSON];
   switch (direction) {
   case DesignElement::NO_DERIVATIVE: {
-    Double lambda = nu * E / ((1.0 + nu) * (1.0 - 2.0 * nu));
-    Double mu = E / (2.0 * (1.0 + nu));
-    Double diag = lambda + 2.0 * mu;
+    double lambda = nu * E / ((1.0 + nu) * (1.0 - 2.0 * nu));
+    double mu = E / (2.0 * (1.0 + nu));
+    double diag = lambda + 2.0 * mu;
     SetIsoTensor(t, subTensor, diag, lambda, mu);
     break;
   }
   case DesignElement::EMODUL: {
-    Double dlambda_dE = nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
-    Double dmu_dE = 1.0 / (2.0 * (1.0 + nu));
-    Double ddiag_dE = dlambda_dE + 2.0 * dmu_dE;
+    double dlambda_dE = nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
+    double dmu_dE = 1.0 / (2.0 * (1.0 + nu));
+    double ddiag_dE = dlambda_dE + 2.0 * dmu_dE;
     SetIsoTensor(t, subTensor, ddiag_dE, dlambda_dE, dmu_dE);
     break;
   }
   case DesignElement::POISSON: {
-    Double dlambda_dnu = (1.0 + 2.0 * nu * nu) * E
+    double dlambda_dnu = (1.0 + 2.0 * nu * nu) * E
         / ((1.0 + nu) * (1.0 + nu) * (1.0 - 2.0 * nu) * (1.0 - 2.0 * nu));
-    Double dmu_dnu = E / (-2.0 * (1.0 + nu) * (1.0 + nu));
-    Double ddiag_dnu = dlambda_dnu + 2.0 * dmu_dnu;
+    double dmu_dnu = E / (-2.0 * (1.0 + nu) * (1.0 + nu));
+    double ddiag_dnu = dlambda_dnu + 2.0 * dmu_dnu;
     SetIsoTensor(t, subTensor, ddiag_dnu, dlambda_dnu, dmu_dnu);
     break;
   }
@@ -1259,27 +1259,27 @@ void DesignMaterial::GetIsoMaterialTensor(Matrix<Double>& t,
   }
 }
 
-Double DesignMaterial::GetIsoMaterialMass(DesignElement::Type direction) {
-  Double E = params_[DesignElement::EMODUL];
-  Double nu = params_[DesignElement::POISSON];
+double DesignMaterial::GetIsoMaterialMass(DesignElement::Type direction) {
+  double E = params_[DesignElement::EMODUL];
+  double nu = params_[DesignElement::POISSON];
   switch (direction) {
   case DesignElement::NO_DERIVATIVE: {
-    Double lambda = nu * E / ((1.0 + nu) * (1.0 - 2.0 * nu));
-    Double mu = E / (2.0 * (1.0 + nu));
-    Double diag = lambda + 2.0 * mu;
+    double lambda = nu * E / ((1.0 + nu) * (1.0 - 2.0 * nu));
+    double mu = E / (2.0 * (1.0 + nu));
+    double diag = lambda + 2.0 * mu;
     return (GetIsoMass(diag, mu));
   }
   case DesignElement::EMODUL: {
-    Double dlambda_dE = nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
-    Double dmu_dE = 1.0 / (2.0 * (1.0 + nu));
-    Double ddiag_dE = dlambda_dE + 2.0 * dmu_dE;
+    double dlambda_dE = nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
+    double dmu_dE = 1.0 / (2.0 * (1.0 + nu));
+    double ddiag_dE = dlambda_dE + 2.0 * dmu_dE;
     return (GetIsoMass(ddiag_dE, dmu_dE));
   }
   case DesignElement::POISSON: {
-    Double dlambda_dnu = (1.0 + 2.0 * nu * nu) * E
+    double dlambda_dnu = (1.0 + 2.0 * nu * nu) * E
         / ((1.0 + nu) * (1.0 + nu) * (1.0 - 2.0 * nu) * (1.0 - 2.0 * nu));
-    Double dmu_dnu = E / (-2.0 * (1.0 + nu) * (1.0 + nu));
-    Double ddiag_dnu = dlambda_dnu + 2.0 * dmu_dnu;
+    double dmu_dnu = E / (-2.0 * (1.0 + nu) * (1.0 + nu));
+    double ddiag_dnu = dlambda_dnu + 2.0 * dmu_dnu;
     return (GetIsoMass(ddiag_dnu, dmu_dnu));
   }
   default:
@@ -1287,13 +1287,13 @@ Double DesignMaterial::GetIsoMaterialMass(DesignElement::Type direction) {
   }
 }
 
-void DesignMaterial::GetLameMaterialTensor(Matrix<Double>& t,
+void DesignMaterial::GetLameMaterialTensor(Matrix<double>& t,
     SubTensorType subTensor, DesignElement::Type direction) {
   switch (direction) {
   case DesignElement::NO_DERIVATIVE: {
-    Double lambda = params_[DesignElement::LAMELAMBDA];
-    Double mu = params_[DesignElement::LAMEMU];
-    Double diag = lambda + 2.0 * mu;
+    double lambda = params_[DesignElement::LAMELAMBDA];
+    double mu = params_[DesignElement::LAMEMU];
+    double diag = lambda + 2.0 * mu;
     SetIsoTensor(t, subTensor, diag, lambda, mu);
     break;
   }
@@ -1309,12 +1309,12 @@ void DesignMaterial::GetLameMaterialTensor(Matrix<Double>& t,
   }
 }
 
-Double DesignMaterial::GetLameMaterialMass(DesignElement::Type direction) {
+double DesignMaterial::GetLameMaterialMass(DesignElement::Type direction) {
   switch (direction) {
   case DesignElement::NO_DERIVATIVE: {
-    Double lambda = params_[DesignElement::LAMELAMBDA];
-    Double mu = params_[DesignElement::LAMEMU];
-    Double diag = lambda + 2.0 * mu;
+    double lambda = params_[DesignElement::LAMELAMBDA];
+    double mu = params_[DesignElement::LAMEMU];
+    double diag = lambda + 2.0 * mu;
     return (GetIsoMass(diag, mu));
   }
   case DesignElement::LAMELAMBDA:
@@ -1326,11 +1326,11 @@ Double DesignMaterial::GetLameMaterialMass(DesignElement::Type direction) {
   }
 }
 
-void DesignMaterial::GetTransIsoMaterialTensor(Matrix<Double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
+void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
   LOG_DBG2(dm) << "GetTransIsoMaterialTensor called with direction=" << (direction == DesignElement::NO_DERIVATIVE ? "no_derivative" : DesignElement::type.ToString(direction)) << " and notation=" << notation;
   assert(type_ != DENSITY_TIMES_ROT_PA12 || subTensor == FULL);
-  Double E3(0.0);
-  Double E = params_[DesignElement::EMODULISO];
+  double E3(0.0);
+  double E = params_[DesignElement::EMODULISO];
   if (type_ != DENSITY_TIMES_ROT_PA12)
     E3 = params_[DesignElement::EMODUL];
   else
@@ -1338,11 +1338,11 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<Double>& t, SubTensorType 
     E3 = 137.4 + 2.4*E;
     E = 145.0 - 5.8*E;
   }
-  Double G3 = params_[DesignElement::GMODUL];
-  Double nu13 = params_[DesignElement::POISSON]; //used as theta in the boxed formulations
+  double G3 = params_[DesignElement::GMODUL];
+  double nu13 = params_[DesignElement::POISSON]; //used as theta in the boxed formulations
 
   if (subTensor == PLANE_STRESS) {
-    Double dens(1.0), factor(1.0), ninv2(0.0), D(0.0), D3(0.0), nD3(0.0);
+    double dens(1.0), factor(1.0), ninv2(0.0), D(0.0), D3(0.0), nD3(0.0);
     if((type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED
         || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED) && notation != HILL_MANDEL_NO_DENSITY)
     {
@@ -1434,7 +1434,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<Double>& t, SubTensorType 
       return;
     } // switch direction
     if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED){
-      Double rotAngle = params_[DesignElement::ROTANGLE];
+      double rotAngle = params_[DesignElement::ROTANGLE];
       LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
       RotateTensor(t, direction, notation, CW,true, rotAngle);
       LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
@@ -1450,11 +1450,11 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<Double>& t, SubTensorType 
   } // PLANE_STRESS
   
   // 3D AND PLANE_STRAIN
-  Double nu = params_[DesignElement::POISSONISO];
-  Double nu3;
-  Double n3;
-  Double c;
-  Double dens = 1.0, factor = 1.0;
+  double nu = params_[DesignElement::POISSONISO];
+  double nu3;
+  double n3;
+  double c;
+  double dens = 1.0, factor = 1.0;
   if((type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_ROT_PA12) && notation != HILL_MANDEL_NO_DENSITY){
     dens = params_[DesignElement::DENSITY];
     TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
@@ -1477,8 +1477,8 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<Double>& t, SubTensorType 
   }else{
     throw Exception("Not yet implemented!");
   }
-  Double f = E / ((1.0 + nu) * c);
-  Double dE = 0.0, dE3 = 0.0, dnu = 0.0, dnu3 = 0.0, dn3 = 0.0, dG3 = 0.0;
+  double f = E / ((1.0 + nu) * c);
+  double dE = 0.0, dE3 = 0.0, dnu = 0.0, dnu3 = 0.0, dn3 = 0.0, dG3 = 0.0;
   
   bool tensorset = false;
   switch(direction){
@@ -1488,11 +1488,11 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<Double>& t, SubTensorType 
   case DesignElement::ROTANGLEX:
   case DesignElement::ROTANGLEY:
   {
-    Double D = (1.0-n3)*f;
-    Double D3 = (1.0-nu)*E3/c;
-    Double nD = (nu+n3)*f;
-    Double nD3 = (1.0+nu)*nu3*f;
-    Double G = 0.5*E/(1.0+nu);
+    double D = (1.0-n3)*f;
+    double D3 = (1.0-nu)*E3/c;
+    double nD = (nu+n3)*f;
+    double nD3 = (1.0+nu)*nu3*f;
+    double G = 0.5*E/(1.0+nu);
     SetTransIsoTensor(t, subTensor, factor * D, factor * nD, factor * G, factor * D3, factor * nD3, factor*G3);
     tensorset = true;
     break;
@@ -1505,11 +1505,11 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<Double>& t, SubTensorType 
     }else if (type_ == TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED){
       dnu3 = -sqrt(0.125*(1.0-nu)*E3/E)*nu13/E;
     }else if(type_ == DENSITY_TIMES_ROT_PA12){
-      Double D =  -(29*((nu - 1)*nu13*nu13 + 2))/(10*(nu*nu - 1)*(nu13*nu13 - 1));
-      Double D3 = -12/(5*(nu13*nu13 - 1));
-      Double nD =  (29*(nu*(nu13*nu13 - 2) - nu13*nu13))/(10*(nu*nu - 1)*(nu13*nu13 - 1));
-      Double nD3 = -(0.3*nu13*(4*E - 954.1))/(E*(nu13*nu13 - 1)*sqrt(E3*.5*(1-nu)/E));
-      Double G = -29/(10*(nu + 1));
+      double D =  -(29*((nu - 1)*nu13*nu13 + 2))/(10*(nu*nu - 1)*(nu13*nu13 - 1));
+      double D3 = -12/(5*(nu13*nu13 - 1));
+      double nD =  (29*(nu*(nu13*nu13 - 2) - nu13*nu13))/(10*(nu*nu - 1)*(nu13*nu13 - 1));
+      double nD3 = -(0.3*nu13*(4*E - 954.1))/(E*(nu13*nu13 - 1)*sqrt(E3*.5*(1-nu)/E));
+      double G = -29/(10*(nu + 1));
       SetTransIsoTensor(t, subTensor, factor * D, factor * nD, factor * G, factor * D3, factor * nD3, 0.0);
       tensorset = true;
     }
@@ -1549,13 +1549,13 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<Double>& t, SubTensorType 
     return;
   } // switch(direction)
   if(!tensorset){ // several cases are handled already and set the tensor
-    Double dc = -dnu-2.0*dn3;
-    Double df = ( dE - E*dnu/(1.0+nu) - E*dc/c ) / ((1.0+nu)*c);
-    Double dD = (1.0-n3)*df - dn3*f;
-    Double dnD = (nu+n3)*df + (dnu+dn3)*f;
-    Double dD3 = ( (1.0-nu)*dE3 - dnu*E3 - (1.0-nu)*E3*dc/c ) / c;
-    Double dnD3 = (1.0+nu)*nu3*df + (1.0+nu)*dnu3*f + dnu*nu3*f;
-    Double dG = 0.5 * ( (1.0+nu)*dE - E*dnu ) / ( (1.0+nu)*(1.0+nu) );
+    double dc = -dnu-2.0*dn3;
+    double df = ( dE - E*dnu/(1.0+nu) - E*dc/c ) / ((1.0+nu)*c);
+    double dD = (1.0-n3)*df - dn3*f;
+    double dnD = (nu+n3)*df + (dnu+dn3)*f;
+    double dD3 = ( (1.0-nu)*dE3 - dnu*E3 - (1.0-nu)*E3*dc/c ) / c;
+    double dnD3 = (1.0+nu)*nu3*df + (1.0+nu)*dnu3*f + dnu*nu3*f;
+    double dG = 0.5 * ( (1.0+nu)*dE - E*dnu ) / ( (1.0+nu)*(1.0+nu) );
     SetTransIsoTensor(t, subTensor, factor * dD, factor * dnD, factor * dG, factor * dD3, factor * dnD3, factor * dG3);
   }
   
@@ -1568,7 +1568,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<Double>& t, SubTensorType 
     LOG_DBG2(dm)<< "GetTransIsoMaterialTensor: tensor after rotation = " << t.ToString(2);
   }
   if(notation == HILL_MANDEL || notation == HILL_MANDEL_NO_DENSITY){
-    Double sq2 = sqrt(2);
+    double sq2 = sqrt(2);
     for(UInt i=0;i<3;++i){
       for(UInt j=3;j<6;++j){
         t(i,j)*=sq2;
@@ -1582,14 +1582,14 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<Double>& t, SubTensorType 
 }
   
  
-Double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
-  Double E = params_[DesignElement::EMODULISO];
-  Double E3 = params_[DesignElement::EMODUL];
-  Double nu = params_[DesignElement::POISSONISO];
-  Double nu13 = params_[DesignElement::POISSON];
-  Double nu3 = nu13 * E3 / E;
-  Double n3 = nu3 * nu3 * E / E3;
-  Double c = (1.0 - nu - 2.0 * n3); // this is the interesting thing, this must not get 0, however this would imply a volume (trace of tensor) of infinity, so it is hopefully not occuring
+double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
+  double E = params_[DesignElement::EMODULISO];
+  double E3 = params_[DesignElement::EMODUL];
+  double nu = params_[DesignElement::POISSONISO];
+  double nu13 = params_[DesignElement::POISSON];
+  double nu3 = nu13 * E3 / E;
+  double n3 = nu3 * nu3 * E / E3;
+  double c = (1.0 - nu - 2.0 * n3); // this is the interesting thing, this must not get 0, however this would imply a volume (trace of tensor) of infinity, so it is hopefully not occuring
   if (type_ == TRANSVERSAL_ISOTROPIC) {
     if (c < 1e-8) {
       c = 1e-8;
@@ -1599,15 +1599,15 @@ Double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
     n3 = nu3 * nu3 * E / E3;
     c = (1.0 - nu - 2.0 * n3);
   }
-  Double f = E / ((1.0 + nu) * c);
-  Double dE = 0.0, dE3 = 0.0, dnu = 0.0, dnu3 = 0.0, dn3 = 0.0, dG3 = 0.0;
+  double f = E / ((1.0 + nu) * c);
+  double dE = 0.0, dE3 = 0.0, dnu = 0.0, dnu3 = 0.0, dn3 = 0.0, dG3 = 0.0;
 
   switch (direction) {
   case DesignElement::NO_DERIVATIVE: {
-    Double D = (1.0 - n3) * f;
-    Double D3 = (1.0 - nu) * E3 / c;
-    Double G3 = params_[DesignElement::GMODUL];
-    Double G = 0.5 * E / (1.0 + nu);
+    double D = (1.0 - n3) * f;
+    double D3 = (1.0 - nu) * E3 / c;
+    double G3 = params_[DesignElement::GMODUL];
+    double G = 0.5 * E / (1.0 + nu);
     return (GetTransIsoMass(D, G, D3, G3));
   }
   case DesignElement::EMODULISO:
@@ -1650,16 +1650,16 @@ Double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
   default:
     return (0.0);
   } // switch(direction)
-  Double dc = -dnu - 2.0 * dn3;
-  Double df = (dE - E * dnu / (1.0 + nu) - E * dc / c) / ((1.0 + nu) * c);
-  Double dD = (1.0 - n3) * df - dn3 * f;
-  Double dD3 = ((1.0 - nu) * dE3 - dnu * E3 - (1.0 - nu) * E3 * dc / c) / c;
-  Double dG = 0.5 * ((1.0 + nu) * dE - E * dnu) / ((1.0 + nu) * (1.0 + nu));
+  double dc = -dnu - 2.0 * dn3;
+  double df = (dE - E * dnu / (1.0 + nu) - E * dc / c) / ((1.0 + nu) * c);
+  double dD = (1.0 - n3) * df - dn3 * f;
+  double dD3 = ((1.0 - nu) * dE3 - dnu * E3 - (1.0 - nu) * E3 * dc / c) / c;
+  double dG = 0.5 * ((1.0 + nu) * dE - E * dnu) / ((1.0 + nu) * (1.0 + nu));
   return (GetTransIsoMass(dD, dG, dD3, dG3));
 }
 
-Double DesignMaterial::GetDensityTimesTensorMass(DesignElement::Type direction){
-  Double dens = params_[DesignElement::DENSITY];
+double DesignMaterial::GetDensityTimesTensorMass(DesignElement::Type direction){
+  double dens = params_[DesignElement::DENSITY];
   TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
   switch (direction){
   case DesignElement::NO_DERIVATIVE:
@@ -1675,14 +1675,14 @@ Double DesignMaterial::GetDensityTimesTensorMass(DesignElement::Type direction){
   }
 }
 
-void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<Double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
-  Double e11 = params_[DesignElement::MECH_11];
-  Double e22 = params_[DesignElement::MECH_22];
-  Double e33 = params_[DesignElement::MECH_33]; //This is already Hill-Mandel notation -> no scaling
-  Double e12 = params_[DesignElement::MECH_12];
-  Double rotAngle = params_[DesignElement::ROTANGLE];
-  Double lowerEigBound = params_[DesignElement::LOWER_EIG_BOUND];
-  Double dens(1.0), factor(1.0);
+void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
+  double e11 = params_[DesignElement::MECH_11];
+  double e22 = params_[DesignElement::MECH_22];
+  double e33 = params_[DesignElement::MECH_33]; //This is already Hill-Mandel notation -> no scaling
+  double e12 = params_[DesignElement::MECH_12];
+  double rotAngle = params_[DesignElement::ROTANGLE];
+  double lowerEigBound = params_[DesignElement::LOWER_EIG_BOUND];
+  double dens(1.0), factor(1.0);
   if((type_ == DENSITY_TIMES_ORTHOTROPIC) && (notation != HILL_MANDEL_NO_DENSITY)){
     dens = params_[DesignElement::DENSITY];
   }
@@ -1746,15 +1746,15 @@ void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<Double>& t, SubTensorTy
     throw Exception("subTensor not implemented yet");
 }
 
-void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<Double>& t, SubTensorType subTensor, DesignElement::Type direction)
+void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction)
 {
   // DumpParams();
-  Double e11 = 0;
-  Double e22 = 0;
-  Double e33 = 0;
-  Double e23 = 0;
-  Double e13 = 0;
-  Double e12 = 0;
+  double e11 = 0;
+  double e22 = 0;
+  double e33 = 0;
+  double e23 = 0;
+  double e13 = 0;
+  double e12 = 0;
   if (direction == DesignElement::NO_DERIVATIVE
       || direction == DesignElement::DENSITY
       || direction == DesignElement::ROTANGLE) {
@@ -1807,7 +1807,7 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<Double>& t, SubTensorT
     break;
   }
   if (type_ == DENSITY_TIMES_ROTATED_2D_TENSOR) {
-    Double rotAngle = params_[DesignElement::ROTANGLE];
+    double rotAngle = params_[DesignElement::ROTANGLE];
     LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
     RotateTensor(t, direction,HILL_MANDEL,CW,true, rotAngle);
     LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
@@ -1818,27 +1818,27 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<Double>& t, SubTensorT
 //    }
 //    count++;
   }
-  Double dens = params_[DesignElement::DENSITY];
+  double dens = params_[DesignElement::DENSITY];
   TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
   t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
 }
 
 
-void DesignMaterial::GetElasticFMOTensor(Matrix<Double>& E, DesignElement::Type direction, Notation notation)
+void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
 {
   // We use the anisotropic tensor only for solving FMO problems. We assume the design to be in Hill-Mandel
   // notation and therefore we need to transform it for using it in CFS
 
   bool set = direction == DesignElement::NO_DERIVATIVE; //|| direction == DesignElement::ROTANGLE;
 
-  Double e11 = set ? params_[DesignElement::MECH_11] : 0;
-  Double e22 = set ? params_[DesignElement::MECH_22] : 0;
-  Double e33 = set ? params_[DesignElement::MECH_33] : 0;
-  Double e23 = set ? params_[DesignElement::MECH_23] : 0;
-  Double e13 = set ? params_[DesignElement::MECH_13] : 0;
-  Double e12 = set ? params_[DesignElement::MECH_12] : 0;
+  double e11 = set ? params_[DesignElement::MECH_11] : 0;
+  double e22 = set ? params_[DesignElement::MECH_22] : 0;
+  double e33 = set ? params_[DesignElement::MECH_33] : 0;
+  double e23 = set ? params_[DesignElement::MECH_23] : 0;
+  double e13 = set ? params_[DesignElement::MECH_13] : 0;
+  double e12 = set ? params_[DesignElement::MECH_12] : 0;
   // We don't use rotAngle for FMO anymore due to SGP Optimizer
-  //Double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
+  //double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
 
   switch (direction) {
   case DesignElement::NO_DERIVATIVE:
@@ -1874,19 +1874,19 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<Double>& E, DesignElement::Type 
 
 }
 
-void DesignMaterial::GetHomRectTensor(Matrix<Double>& E, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
+void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
   // only relevant for hom_rect and hom_rect_c1
   FeH1LagrangeQuad9 fe;
 
   // Get design variables
-  Double a = params_[DesignElement::STIFF1];
-  Double b = params_[DesignElement::STIFF2];
-  Double c = params_[DesignElement::SHEAR1];
+  double a = params_[DesignElement::STIFF1];
+  double b = params_[DesignElement::STIFF2];
+  double c = params_[DesignElement::SHEAR1];
   if (subTensor == FULL) {
     c = params_[DesignElement::STIFF3];
   }
-  Double rotAngle = 0.;
+  double rotAngle = 0.;
   if (subTensor != FULL) {
     rotAngle = params_[DesignElement::ROTANGLE];
   }
@@ -1903,11 +1903,11 @@ void DesignMaterial::GetHomRectTensor(Matrix<Double>& E, SubTensorType subTensor
       p.coord[2] = c;
   }
 /* #ifndef NDEBUG
-  Vector<Double> peps(p.coord);
-  Double eps = 1e-8;
-  Matrix<Double> Eeps(E);
-  Matrix<Double> Etmp(E);
-  Vector<Double> Diff(3);
+  Vector<double> peps(p.coord);
+  double eps = 1e-8;
+  Matrix<double> Eeps(E);
+  Matrix<double> Etmp(E);
+  Vector<double> Diff(3);
  #endif
  */
   LOG_DBG2(dm) << "GHRT: dir=" << (direction == DesignElement::NO_DERIVATIVE ? "no_derivative" : DesignElement::type.ToString(direction))
@@ -1919,7 +1919,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<Double>& E, SubTensorType subTensor
   case DesignElement::ROTANGLEY:
   case DesignElement::DENSITY:
     if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
-      Vector<Double> shape;
+      Vector<double> shape;
 
       fe.GetShFnc(shape, p, elem);
 
@@ -1944,10 +1944,10 @@ void DesignMaterial::GetHomRectTensor(Matrix<Double>& E, SubTensorType subTensor
   case DesignElement::STIFF3:
   case DesignElement::SHEAR1:
     if(type_ == HOM_RECT || type_ == D_HOM_RECT) {
-      Matrix<Double> dummy; // not used -> strange function ?! :(
-      Matrix<Double>& jac = fe.GetLocDerivShFnc(p, elem);
+      Matrix<double> dummy; // not used -> strange function ?! :(
+      Matrix<double>& jac = fe.GetLocDerivShFnc(p, elem);
       LOG_DBG3(dm) << "GHRT: jac=" << jac.ToString(2);
-      Vector<Double> d_shape;
+      Vector<double> d_shape;
       jac.GetCol(d_shape, direction == DesignElement::STIFF1 ? 0 : 1);// a or by
       ApplyHomRectTensor(E, d_shape);
       // correct scaling to local FE coordinates
@@ -1978,15 +1978,15 @@ void DesignMaterial::GetHomRectTensor(Matrix<Double>& E, SubTensorType subTensor
         ApplyHomRectC1Tensor(Etmp,p,DesignElement::NO_DERIVATIVE,subTensor);
         LOG_DBG(dm)<<"Eeps11: "<<std::setprecision(10)<<Eeps[0][0]<<", E11: "<<Etmp[0][0]<<" Diff: "<<Eeps[0][0]-Etmp[0][0];
         LOG_DBG(dm)<<"Eeps13: "<<std::setprecision(10)<<Eeps[0][2]<<", E13: "<<Etmp[0][2]<<" Diff: "<<Eeps[0][2]-Etmp[0][2];
-        Double e11 = (Eeps[0][0]-Etmp[0][0])/eps;
-        Double e12 = (Eeps[0][1]-Etmp[0][1])/eps;
-        Double e13 = (Eeps[0][2]-Etmp[0][2])/eps;
-        Double e22 = (Eeps[1][1]-Etmp[1][1])/eps;
-        Double e23 = (Eeps[1][2]-Etmp[1][2])/eps;
-        Double e33 = (Eeps[2][2]-Etmp[2][2])/eps;
-        Double e44 = (Eeps[3][3]-Etmp[3][3])/eps;
-        Double e55 = (Eeps[4][4]-Etmp[4][4])/eps;
-        Double e66 = (Eeps[5][5]-Etmp[5][5])/eps;
+        double e11 = (Eeps[0][0]-Etmp[0][0])/eps;
+        double e12 = (Eeps[0][1]-Etmp[0][1])/eps;
+        double e13 = (Eeps[0][2]-Etmp[0][2])/eps;
+        double e22 = (Eeps[1][1]-Etmp[1][1])/eps;
+        double e23 = (Eeps[1][2]-Etmp[1][2])/eps;
+        double e33 = (Eeps[2][2]-Etmp[2][2])/eps;
+        double e44 = (Eeps[3][3]-Etmp[3][3])/eps;
+        double e55 = (Eeps[4][4]-Etmp[4][4])/eps;
+        double e66 = (Eeps[5][5]-Etmp[5][5])/eps;
         LOG_DBG(dm)<<"FD Derivative "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" E11= "<<e11<<" E12= "<<e12<<" E22= "<< e22<<
         " E33= "<<e33<<" E23= "<<e23<<" E13= "<<e13<<" E44= "<<e44<<" E55= "<<e55<<" E66= "<<e66;
         LOG_DBG(dm)<<"deriv p= "<<p[0]<<", "<<p[1]<<", "<<p[2];
@@ -2011,41 +2011,41 @@ void DesignMaterial::GetHomRectTensor(Matrix<Double>& E, SubTensorType subTensor
 
   if (type_ == D_HOM_RECT)
   {
-    Double dens = params_[DesignElement::DENSITY];
+    double dens = params_[DesignElement::DENSITY];
     TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
     E *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
   }
-  /*   for(Double y = 0; y <= 0.5; y += 0.25)
+  /*   for(double y = 0; y <= 0.5; y += 0.25)
    {
-   for(Double x = 0; x <= 0.5; x += 0.25 )
+   for(double x = 0; x <= 0.5; x += 0.25 )
    {
    p[0] = -1.0 + 4 * x; //
    p[1] = -1.0 + 4 * y;
    fe.GetShFnc(shape, p, NULL);
    hom_rect_samples_.GetCol(data, DesignElement::TENSOR11 - DesignElement::TENSOR11);
    assert(shape.GetSize() == data.GetSize());
-   Double val = shape * data;
+   double val = shape * data;
    std::cout << "x=" << x << " y=" << y << " xi=" << p[0] << " eta=" << p[1] << " -> " << val << std::endl; //" s=" << shape.ToString() << " d=" << data.ToString() << std::endl;
    }
    }*/
 }
 
-void DesignMaterial::GetRedBasCorrector(StdVector<Vector<Double> >& corrector_, const Matrix<Double>& G)
+void DesignMaterial::GetRedBasCorrector(StdVector<Vector<double> >& corrector_, const Matrix<double>& G)
 {
     //std::cout << "Computing corrector " << std::endl;
 
     assert ( (type_ == REDBAS_FREE) || (type_ == REDBAS_PARAM) || (type_ == REDBAS_MAPPING));
 
-   corrector_ = StdVector<Vector<Double> >(3 );
+   corrector_ = StdVector<Vector<double> >(3 );
   //std::cout << "corrector"<< std::endl;
-    Double G11 = G[1-1][1-1];
-    Double G12 = G[1-1][2-1];
-    Double G21 = G[2-1][1-1];
-    Double G22 = G[2-1][2-1];
+    double G11 = G[1-1][1-1];
+    double G12 = G[1-1][2-1];
+    double G21 = G[2-1][1-1];
+    double G22 = G[2-1][2-1];
 
    //std::cout << "G11=" << G11 << " G12=" << G12 << " G21=" << G21 << " G22=" << G22;
 
-  Matrix<Double> mat(dimension_, dimension_);
+  Matrix<double> mat(dimension_, dimension_);
   mat.Init();
 
   //mat =    G11*G11*matuxux11 + G11*G12*(matuxuy11 + matuxuy11t) + G12*G12*matuyuy11
@@ -2098,7 +2098,7 @@ void DesignMaterial::GetRedBasCorrector(StdVector<Vector<Double> >& corrector_, 
   for (int corrector_int =0; corrector_int<3; corrector_int++)
   {
 
-    Vector<Double> vec(dimension_);
+    Vector<double> vec(dimension_);
 
         if (corrector_int == 0)
         {
@@ -2116,7 +2116,7 @@ void DesignMaterial::GetRedBasCorrector(StdVector<Vector<Double> >& corrector_, 
           vec = mod_red_vectors_[ 4*2 +0]*G21 + mod_red_vectors_[4*2 +1]*G22 +mod_red_vectors_[4*2 +2]*G11 + mod_red_vectors_[4*2 +3]*G12;
         }
 
-        Vector<Double> sol(dimension_);
+        Vector<double> sol(dimension_);
         mat.DirectSolve(sol,vec);
         corrector_[corrector_int] = sol;
 
@@ -2125,7 +2125,7 @@ void DesignMaterial::GetRedBasCorrector(StdVector<Vector<Double> >& corrector_, 
 
 }
 
-void DesignMaterial::GetModRedHomTensor(Matrix<Double>& E, const Matrix<Double>& G, const StdVector<Vector<Double> >& corrector_, Notation notation)
+void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const StdVector<Vector<double> >& corrector_, Notation notation)
 {
 
     //std::cout << "Computing tensor" << std::endl;
@@ -2133,16 +2133,16 @@ void DesignMaterial::GetModRedHomTensor(Matrix<Double>& E, const Matrix<Double>&
   E.Init();
 
  // std::cout << "GetModRedTensorHom" << std::endl;
-  Double G11 = G(0,0);
-  Double G12 = G(0,1);
-  Double G21 = G(1,0);
-  Double G22 = G(1,1);
+  double G11 = G(0,0);
+  double G12 = G(0,1);
+  double G21 = G(1,0);
+  double G22 = G(1,1);
 
   UInt dimbas =0;
   if ((type_ == REDBAS_PARAM) || (type_ == REDBAS_FREE) || (type_ == REDBAS_MAPPING)) dimbas = dimension_;
   if ((type_ == GREEDY_PARAM) || (type_ == GREEDY_FREE) || (type_ == GREEDY_MAPPING)) dimbas = 3*dimension_;
 
-  Matrix<Double> mat(dimbas, dimbas);
+  Matrix<double> mat(dimbas, dimbas);
   mat.Init();
 
   mat.Add(G11*G11, mod_red_matrices_[10*0 + 0]);
@@ -2185,34 +2185,34 @@ void DesignMaterial::GetModRedHomTensor(Matrix<Double>& E, const Matrix<Double>&
 
 
 
-  Vector<Double> mat0(dimbas);
-  Vector<Double> mat1(dimbas);
-  Vector<Double> mat2(dimbas);
+  Vector<double> mat0(dimbas);
+  Vector<double> mat1(dimbas);
+  Vector<double> mat2(dimbas);
 
   mat.Mult(corrector_[0], mat0);
   mat.Mult(corrector_[1], mat1);
   mat.Mult(corrector_[2], mat2);
 
-  Vector<Double> vec0(dimbas);
-  Vector<Double> vec1(dimbas);
-  Vector<Double> vec2(dimbas);
+  Vector<double> vec0(dimbas);
+  Vector<double> vec1(dimbas);
+  Vector<double> vec2(dimbas);
 
   vec0 = mod_red_vectors_[4*0+0]*G11 + mod_red_vectors_[4*0+1]*G12 + mod_red_vectors_[4*1+2]*G21 + mod_red_vectors_[4*1+3]*G22;
   vec1 = mod_red_vectors_[4*1+0]*G11 + mod_red_vectors_[4*1+1]*G12 + mod_red_vectors_[4*0+2]*G21 + mod_red_vectors_[4*0+3]*G22;
   vec2 = mod_red_vectors_[4*2+0]*G21 + mod_red_vectors_[4*2+1]*G22 + mod_red_vectors_[4*2+2]*G11 + mod_red_vectors_[4*2+3]*G12;
 
 
- // Double p11 = corrector_[0]*vec1;
- // Double p12 = corrector_[0]*vec2;
- // Double p13 = corrector_[0]*vec3;
+ // double p11 = corrector_[0]*vec1;
+ // double p12 = corrector_[0]*vec2;
+ // double p13 = corrector_[0]*vec3;
 
- // Double p21 = corrector_[1]*vec1;
- // Double p22 = corrector_[1]*vec2;
- // Double p23 = corrector_[1]*vec3;
+ // double p21 = corrector_[1]*vec1;
+ // double p22 = corrector_[1]*vec2;
+ // double p23 = corrector_[1]*vec3;
 
- // Double p31 = corrector_[2]*vec1;
- // Double p32 = corrector_[2]*vec2;
- // Double p33 = corrector_[2]*vec3;
+ // double p31 = corrector_[2]*vec1;
+ // double p32 = corrector_[2]*vec2;
+ // double p33 = corrector_[2]*vec3;
 
    //E11 = E11mean + E11*dxg(u1) + E12*dyg(v1)
    E[1-1][1-1] = mean_tensor_[1-1][0]
@@ -2273,7 +2273,7 @@ void DesignMaterial::GetModRedHomTensor(Matrix<Double>& E, const Matrix<Double>&
 }
 
 
-void DesignMaterial::GetModRedHomTensor(Matrix<Double>& E, const Matrix<Double>& G, const Matrix<Double>& Gderiv, const StdVector<Vector<Double> >& corrector_, Notation notation)
+void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const Matrix<double>& Gderiv, const StdVector<Vector<double> >& corrector_, Notation notation)
 {
 
      //std::cout << "Computing derivative of tensor" << std::endl;
@@ -2281,21 +2281,21 @@ void DesignMaterial::GetModRedHomTensor(Matrix<Double>& E, const Matrix<Double>&
   E.Resize(3,3);
   E.Init();
 
-  Double G11 = G[1-1][1-1];
-  Double G12 = G[1-1][2-1];
-  Double G21 = G[2-1][1-1];
-  Double G22 = G[2-1][2-1];
+  double G11 = G[1-1][1-1];
+  double G12 = G[1-1][2-1];
+  double G21 = G[2-1][1-1];
+  double G22 = G[2-1][2-1];
 
-  Double G11d = Gderiv[1-1][1-1];
-  Double G12d = Gderiv[1-1][2-1];
-  Double G21d = Gderiv[2-1][1-1];
-  Double G22d = Gderiv[2-1][2-1];
+  double G11d = Gderiv[1-1][1-1];
+  double G12d = Gderiv[1-1][2-1];
+  double G21d = Gderiv[2-1][1-1];
+  double G22d = Gderiv[2-1][2-1];
 
   UInt dimbas =0;
   if ((type_ == REDBAS_PARAM) || (type_ == REDBAS_FREE) || (type_ == REDBAS_MAPPING)) dimbas = dimension_;
   if ((type_ == GREEDY_PARAM) || (type_ == GREEDY_FREE) || (type_ == GREEDY_MAPPING)) dimbas = 3*dimension_;
 
-  Matrix<Double> matd(dimbas, dimbas);
+  Matrix<double> matd(dimbas, dimbas);
   matd.Init();
 
   matd.Add(G11d*G11 + G11*G11d, mod_red_matrices_[10*0 + 0]);
@@ -2337,18 +2337,18 @@ void DesignMaterial::GetModRedHomTensor(Matrix<Double>& E, const Matrix<Double>&
    //matd.AddT(G12d*G22 + G12*G22d, mod_red_matrices_[10*2 + 8]);
 
 
-   Vector<Double> mat0(dimbas);
-   Vector<Double> mat1(dimbas);
-   Vector<Double> mat2(dimbas);
+   Vector<double> mat0(dimbas);
+   Vector<double> mat1(dimbas);
+   Vector<double> mat2(dimbas);
 
    matd.Mult(corrector_[0], mat0);
    matd.Mult(corrector_[1], mat1);
    matd.Mult(corrector_[2], mat2);
 
 
-   Vector<Double> vec0(dimbas);
-    Vector<Double> vec1(dimbas);
-    Vector<Double> vec2(dimbas);
+   Vector<double> vec0(dimbas);
+    Vector<double> vec1(dimbas);
+    Vector<double> vec2(dimbas);
 
     vec0 = mod_red_vectors_[4*0+0]*G11d + mod_red_vectors_[4*0+1]*G12d + mod_red_vectors_[4*1+2]*G21d + mod_red_vectors_[4*1+3]*G22d;
     vec1 = mod_red_vectors_[4*1+0]*G11d + mod_red_vectors_[4*1+1]*G12d + mod_red_vectors_[4*0+2]*G21d + mod_red_vectors_[4*0+3]*G22d;
@@ -2414,7 +2414,7 @@ void DesignMaterial::GetModRedHomTensor(Matrix<Double>& E, const Matrix<Double>&
 
 }
 
-void DesignMaterial::GetModRedGTensor(Matrix<Double>& G, DesignElement::Type direction, const bool& all_param)
+void DesignMaterial::GetModRedGTensor(Matrix<double>& G, DesignElement::Type direction, const bool& all_param)
 {
 
   G.Resize(2,2);
@@ -2427,10 +2427,10 @@ void DesignMaterial::GetModRedGTensor(Matrix<Double>& G, DesignElement::Type dir
   //Quad9FE fe;
   // std::cout << "GetModRedTensor" << std::endl;
 
-  Double theta = params_[DesignElement::ROTANGLE];
-  Double phi = params_[DesignElement::ROTANGLE2];
-  Double l1 = params_[DesignElement::SCALING1];
-  Double l2 = params_[DesignElement::SCALING2];
+  double theta = params_[DesignElement::ROTANGLE];
+  double phi = params_[DesignElement::ROTANGLE2];
+  double l1 = params_[DesignElement::SCALING1];
+  double l2 = params_[DesignElement::SCALING2];
 
   switch(direction)
   {
@@ -2543,10 +2543,10 @@ void DesignMaterial::GetModRedGTensor(Matrix<Double>& G, DesignElement::Type dir
   }
   else if ((type_ == REDBAS_FREE) | (type_ == GREEDY_FREE))
   {
-     Double G11 = params_[DesignElement::G11];
-     Double G12 = params_[DesignElement::G12];
-     Double G21 = params_[DesignElement::G21];
-     Double G22 = params_[DesignElement::G22];
+     double G11 = params_[DesignElement::G11];
+     double G12 = params_[DesignElement::G12];
+     double G21 = params_[DesignElement::G21];
+     double G22 = params_[DesignElement::G22];
 
      switch(direction)
        {
@@ -2606,7 +2606,7 @@ void DesignMaterial::GetModRedGTensor(Matrix<Double>& G, DesignElement::Type dir
 
 }
 
-void DesignMaterial::GetMappingTensor(Matrix<Double>& E, DesignElement::Type direction, Notation notation)
+void DesignMaterial::GetMappingTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
 {
 
     //std::string str = direction->ToString();
@@ -2616,16 +2616,16 @@ void DesignMaterial::GetMappingTensor(Matrix<Double>& E, DesignElement::Type dir
 
     //assert( (direction==DesignElement::GX_0) || (direction==DesignElement::GY_0) || (direction==DesignElement::GX_PX)  || (direction==DesignElement::GY_PX)   || (direction==DesignElement::GX_PY)  || (direction==DesignElement::GY_PY)   || (direction==DesignElement::GX_PXY)  || (direction==DesignElement::GY_PXY)  || (direction==DesignElement::NO_DERIVATIVE)   );
 
-    Matrix<Double> G(2,2);
+    Matrix<double> G(2,2);
     //We begin with calculating the gradient of the mapping in the element
     GetMappingGradient(G);
 
 
 
-     StdVector<Vector<Double> > corrector_(3);
+     StdVector<Vector<double> > corrector_(3);
      if (type_ == GREEDY_MAPPING)
      {
-         Vector<Double> paramvec(4);
+         Vector<double> paramvec(4);
          GetModRedParamVector(paramvec);
          GetGreedyCorrector(corrector_, paramvec, true);
      }
@@ -2640,7 +2640,7 @@ void DesignMaterial::GetMappingTensor(Matrix<Double>& E, DesignElement::Type dir
      }
      else
      {
-       Matrix<Double> Gderiv(2,2);
+       Matrix<double> Gderiv(2,2);
        GetMappingGradient(Gderiv,direction);
 
        GetModRedHomTensor(E, G, Gderiv, corrector_, notation);
@@ -2648,7 +2648,7 @@ void DesignMaterial::GetMappingTensor(Matrix<Double>& E, DesignElement::Type dir
 
 }
 
-void DesignMaterial::GetMappingGradient(Matrix<Double>& G)
+void DesignMaterial::GetMappingGradient(Matrix<double>& G)
 {
   //Here, we assume that the additional layer is on the north-east part of the domain and we assume that the ordering of the nodes for each element is as follows:
 
@@ -2703,23 +2703,23 @@ void DesignMaterial::GetMappingGradient(Matrix<Double>& G)
 
 
         //I need to know the coordinates of the nodes of the cells I am working with
-        Matrix<Double>  coords; // we ignore the n times constructs
+        Matrix<double>  coords; // we ignore the n times constructs
 
         StdVector<unsigned int> connect = current_elem->connect;
         // do not use updated coordinates up to now!!
         domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
 
-        Double x_0 = coords(0,south_west);
-        Double y_0 = coords(1,south_west);
+        double x_0 = coords(0,south_west);
+        double y_0 = coords(1,south_west);
 
-        Double x_px = coords(0,south_east);
-        Double y_px = coords(1,south_east);
+        double x_px = coords(0,south_east);
+        double y_px = coords(1,south_east);
 
-        Double x_pxy = coords(0,north_east);
-        Double y_pxy = coords(1,north_east);
+        double x_pxy = coords(0,north_east);
+        double y_pxy = coords(1,north_east);
 
-        Double x_py = coords(0,north_west);
-        Double y_py = coords(1,north_west);
+        double x_py = coords(0,north_west);
+        double y_py = coords(1,north_west);
 
         //std::cout << "south west: x = " << x_0 << " y = " << y_0 << std::endl;
         //std::cout << "south east: x = " << x_px << " y = " << y_px << std::endl;
@@ -2727,18 +2727,18 @@ void DesignMaterial::GetMappingGradient(Matrix<Double>& G)
         //std::cout << "north east: x = " << x_pxy << " y = " << y_pxy << std::endl;
 
 
-        Double gx_0 = de0_x->GetDesign(DesignElement::SMART);
-        Double gy_0 = de0_y->GetDesign(DesignElement::SMART);
+        double gx_0 = de0_x->GetDesign(DesignElement::SMART);
+        double gy_0 = de0_y->GetDesign(DesignElement::SMART);
 
-        Double gx_px = depx_x->GetDesign(DesignElement::SMART);
-        Double gy_px = depx_y->GetDesign(DesignElement::SMART);
+        double gx_px = depx_x->GetDesign(DesignElement::SMART);
+        double gy_px = depx_y->GetDesign(DesignElement::SMART);
 
 
-        Double gx_py = depy_x->GetDesign(DesignElement::SMART);
-        Double gy_py = depy_y->GetDesign(DesignElement::SMART);
+        double gx_py = depy_x->GetDesign(DesignElement::SMART);
+        double gy_py = depy_y->GetDesign(DesignElement::SMART);
 
-        Double gx_pxy = depxy_x->GetDesign(DesignElement::SMART);
-        Double gy_pxy = depxy_y->GetDesign(DesignElement::SMART);
+        double gx_pxy = depxy_x->GetDesign(DesignElement::SMART);
+        double gy_pxy = depxy_y->GetDesign(DesignElement::SMART);
 
         // G(0,0) = d_x g_x
         // G(0,1) = d_y g_x
@@ -2768,7 +2768,7 @@ void DesignMaterial::GetMappingGradient(Matrix<Double>& G)
 }
 
 
-void DesignMaterial::GetMappingGradient(Matrix<Double>& G, DesignElement::Type direction)
+void DesignMaterial::GetMappingGradient(Matrix<double>& G, DesignElement::Type direction)
 {
   //Here, we assume that the additional layer is on the north-east part of the domain and we assume that the ordering of the nodes for each element is as follows:
 
@@ -2828,23 +2828,23 @@ void DesignMaterial::GetMappingGradient(Matrix<Double>& G, DesignElement::Type d
 
 
         //I need to know the coordinates of the nodes of the cells I am working with
-        Matrix<Double>  coords; // we ignore the n times constructs
+        Matrix<double>  coords; // we ignore the n times constructs
 
         StdVector<unsigned int> connect = current_elem->connect;
         // do not use updated coordinates up to now!!
         domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
 
-        Double x_0 = coords(0,south_west);
-        Double y_0 = coords(1,south_west);
+        double x_0 = coords(0,south_west);
+        double y_0 = coords(1,south_west);
 
-        Double x_px = coords(0,south_east);
-        Double y_px = coords(1,south_east);
+        double x_px = coords(0,south_east);
+        double y_px = coords(1,south_east);
 
-        Double x_pxy = coords(0,north_east);
-        Double y_pxy = coords(1,north_east);
+        double x_pxy = coords(0,north_east);
+        double y_pxy = coords(1,north_east);
 
-        Double x_py = coords(0,north_west);
-        Double y_py = coords(1,north_west);
+        double x_py = coords(0,north_west);
+        double y_py = coords(1,north_west);
 
         switch(direction)
         {
@@ -2994,7 +2994,7 @@ void DesignMaterial::GetMappingGradient(Matrix<Double>& G, DesignElement::Type d
 
 
 
-void DesignMaterial::GetModRedTensor(Matrix<Double>& E, DesignElement::Type direction, Notation notation)
+void DesignMaterial::GetModRedTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
 {
 
   //if type_ == REDBAS_FREE or type_ == GREEDY_FREE then we must have all_param_
@@ -3003,15 +3003,15 @@ void DesignMaterial::GetModRedTensor(Matrix<Double>& E, DesignElement::Type dire
   E.Resize(3,3);
   E.Init();
 
-  Matrix<Double> G(2,2);
+  Matrix<double> G(2,2);
   GetModRedGTensor(G,DesignElement::NO_DERIVATIVE, all_param_);
 
-  Vector<Double> paramvec(4);
+  Vector<double> paramvec(4);
   GetModRedParamVector(paramvec);
 
-  Double theta = paramvec[0];
+  double theta = paramvec[0];
 
-  StdVector<Vector<Double> > corrector_(3);
+  StdVector<Vector<double> > corrector_(3);
   //The corrector calculation is always done with Voigt notation
   if ((type_ == REDBAS_PARAM) | (type_== REDBAS_FREE)) GetRedBasCorrector(corrector_, G);
   else if ((type_ == GREEDY_PARAM) | (type_== GREEDY_FREE)) GetGreedyCorrector(corrector_, paramvec, all_param_);
@@ -3022,7 +3022,7 @@ void DesignMaterial::GetModRedTensor(Matrix<Double>& E, DesignElement::Type dire
   }
   else
   {
-    Matrix<Double> Gderiv(2,2);
+    Matrix<double> Gderiv(2,2);
     GetModRedGTensor(Gderiv,direction, all_param_);
     GetModRedHomTensor(E, G, Gderiv, corrector_, notation);
   }
@@ -3038,7 +3038,7 @@ void DesignMaterial::GetModRedTensor(Matrix<Double>& E, DesignElement::Type dire
 }
 
 
-void DesignMaterial::GetModRedParamVector(Vector<Double>& params)
+void DesignMaterial::GetModRedParamVector(Vector<double>& params)
 {
 
   params.Resize(4,1);
@@ -3049,10 +3049,10 @@ void DesignMaterial::GetModRedParamVector(Vector<Double>& params)
     //Quad9FE fe;
     // std::cout << "GetModRedTensor" << std::endl;
 
-    Double theta = params_[DesignElement::ROTANGLE];
-    Double phi = params_[DesignElement::ROTANGLE2];
-    Double l1 = params_[DesignElement::SCALING1];
-    Double l2 = params_[DesignElement::SCALING2];
+    double theta = params_[DesignElement::ROTANGLE];
+    double phi = params_[DesignElement::ROTANGLE2];
+    double l1 = params_[DesignElement::SCALING1];
+    double l2 = params_[DesignElement::SCALING2];
 
     params[0]=theta;
     params[1]=phi;
@@ -3062,7 +3062,7 @@ void DesignMaterial::GetModRedParamVector(Vector<Double>& params)
   }
   else if ((type_==GREEDY_FREE) | (type_ == REDBAS_FREE))
   {
-      Matrix<Double> G(2,2);
+      Matrix<double> G(2,2);
       GetModRedGTensor(G,DesignElement::NO_DERIVATIVE, true);
 
       GetSVDGTensorParameters(G, params);
@@ -3070,7 +3070,7 @@ void DesignMaterial::GetModRedParamVector(Vector<Double>& params)
   }
   else if ((type_ == GREEDY_MAPPING) || (type_ == REDBAS_MAPPING))
   {
-    Matrix<Double> G(2,2);
+    Matrix<double> G(2,2);
       GetMappingGradient(G);
 
       GetSVDGTensorParameters(G, params);
@@ -3078,13 +3078,13 @@ void DesignMaterial::GetModRedParamVector(Vector<Double>& params)
 }
 
 
-/*void DesignMaterial::GetGreedyTensor(Matrix<Double>& E, DesignElement::Type direction, Notation notation)
+/*void DesignMaterial::GetGreedyTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
 {
 
   E.Resize(3,3);
   E.Init();
 
-  Matrix<Double> params(4,1);
+  Matrix<double> params(4,1);
   GetGreedyParams(params);
 
   GetGreedyTensor(E,params,all_param_, direction,notation);
@@ -3093,15 +3093,15 @@ void DesignMaterial::GetModRedParamVector(Vector<Double>& params)
 
 
 
-void DesignMaterial::GetGreedyCorrector(StdVector<Vector<Double> >& corrector_, const Vector<Double>& params, const bool& all_param)
+void DesignMaterial::GetGreedyCorrector(StdVector<Vector<double> >& corrector_, const Vector<double>& params, const bool& all_param)
 {
 
   assert((type_== GREEDY_PARAM) || (type_ == GREEDY_FREE) || (type_ == GREEDY_MAPPING));
 
-  Double theta = params[0];
-  Double phi = params[1];
-  Double l1 = params[2];
-  Double l2 = params[3];
+  double theta = params[0];
+  double phi = params[1];
+  double l1 = params[2];
+  double l2 = params[3];
 
   if (l1 < lmin_) l1 = lmin_;
   else if (l1 > lmax_) l1 = lmax_;
@@ -3109,15 +3109,15 @@ void DesignMaterial::GetGreedyCorrector(StdVector<Vector<Double> >& corrector_, 
   if (l2 < lmin_) l2 = lmin_;
   else if (l2 > lmax_) l2 = lmax_;
 
-  corrector_ = StdVector<Vector<Double> >(3);
-  corrector_[0] = Vector<Double>(3*dimension_);
-  corrector_[1] = Vector<Double>(3*dimension_);
-  corrector_[2] = Vector<Double>(3*dimension_);
+  corrector_ = StdVector<Vector<double> >(3);
+  corrector_[0] = Vector<double>(3*dimension_);
+  corrector_[1] = Vector<double>(3*dimension_);
+  corrector_[2] = Vector<double>(3*dimension_);
 
 
-  // corrector_[0] = Matrix<Double>(dimension_, 1);
-  // corrector_[1] = Matrix<Double>(dimension_, 1);
-  // corrector_[2] = Matrix<Double>(dimension_, 1);
+  // corrector_[0] = Matrix<double>(dimension_, 1);
+  // corrector_[1] = Matrix<double>(dimension_, 1);
+  // corrector_[2] = Matrix<double>(dimension_, 1);
 
   //We begin by computing the coefficients of the three correctors in the reduced basis associated to the value of these parameters
   if (all_param)
@@ -3125,18 +3125,18 @@ void DesignMaterial::GetGreedyCorrector(StdVector<Vector<Double> >& corrector_, 
 
       for (UInt k=0; k<dimension_; k++)
       {
-        Vector<Double> coord1theta(2*Na_+1);
-        Vector<Double> coord2theta(2*Na_+1);
-        Vector<Double> coord3theta(2*Na_+1);
-        Vector<Double> coord1phi(2*Na_+1);
-        Vector<Double> coord2phi(2*Na_+1);
-        Vector<Double> coord3phi(2*Na_+1);
-        Vector<Double> coord1l1(Nl_+1);
-        Vector<Double> coord2l1(Nl_+1);
-        Vector<Double> coord3l1(Nl_+1);
-        Vector<Double> coord1l2(Nl_+1);
-        Vector<Double> coord2l2(Nl_+1);
-        Vector<Double> coord3l2(Nl_+1);
+        Vector<double> coord1theta(2*Na_+1);
+        Vector<double> coord2theta(2*Na_+1);
+        Vector<double> coord3theta(2*Na_+1);
+        Vector<double> coord1phi(2*Na_+1);
+        Vector<double> coord2phi(2*Na_+1);
+        Vector<double> coord3phi(2*Na_+1);
+        Vector<double> coord1l1(Nl_+1);
+        Vector<double> coord2l1(Nl_+1);
+        Vector<double> coord3l1(Nl_+1);
+        Vector<double> coord1l2(Nl_+1);
+        Vector<double> coord2l2(Nl_+1);
+        Vector<double> coord3l2(Nl_+1);
 
         matrices_param_[0].GetCol(coord1theta, k);
         matrices_param_[0].GetCol(coord2theta, dimension_+ k);
@@ -3171,15 +3171,15 @@ void DesignMaterial::GetGreedyCorrector(StdVector<Vector<Double> >& corrector_, 
   {
           for (UInt k=0; k<dimension_; k++)
           {
-            Vector<Double> coord1phi(2*Na_+1);
-            Vector<Double> coord2phi(2*Na_+1);
-            Vector<Double> coord3phi(2*Na_+1);
-            Vector<Double> coord1l1(Nl_+1);
-            Vector<Double> coord2l1(Nl_+1);
-            Vector<Double> coord3l1(Nl_+1);
-            Vector<Double> coord1l2(Nl_+1);
-            Vector<Double> coord2l2(Nl_+1);
-            Vector<Double> coord3l2(Nl_+1);
+            Vector<double> coord1phi(2*Na_+1);
+            Vector<double> coord2phi(2*Na_+1);
+            Vector<double> coord3phi(2*Na_+1);
+            Vector<double> coord1l1(Nl_+1);
+            Vector<double> coord2l1(Nl_+1);
+            Vector<double> coord3l1(Nl_+1);
+            Vector<double> coord1l2(Nl_+1);
+            Vector<double> coord2l2(Nl_+1);
+            Vector<double> coord3l2(Nl_+1);
 
             matrices_param_[0].GetCol(coord1phi, k);
             matrices_param_[0].GetCol(coord2phi, dimension_+ k);
@@ -3207,11 +3207,11 @@ void DesignMaterial::GetGreedyCorrector(StdVector<Vector<Double> >& corrector_, 
 }
 
 
-void DesignMaterial::ApplyHomRectTensor(Matrix<Double>& E, const Vector<Double>& shape) const
+void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const
 {
   E.Resize(3, 3);
   E.Init(); // for off-diagonal
-  Vector<Double> data;
+  Vector<double> data;
   hom_rect_samples_.GetCol(data, DesignElement::MECH_11 - DesignElement::MECH_11);
   
   E[1 - 1][1 - 1] = shape * data;
@@ -3228,7 +3228,7 @@ void DesignMaterial::ApplyHomRectTensor(Matrix<Double>& E, const Vector<Double>&
   LOG_DBG(dm)<< "AHRT 33=" << E[3-1][3-1] << " data=" << data.ToString();
 }
 
-void DesignMaterial::ApplyHomRectC1Tensor(Matrix<Double>& E, Vector<Double>& p,
+void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     DesignElement::Type direction, SubTensorType subTensor) const {
   PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
   // length of the discretized design interval
@@ -3236,9 +3236,9 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<Double>& E, Vector<Double>& p,
   int n = hom_rect_b_.GetNumRows();
   int o = hom_rect_c_.GetNumRows();
   // grid size of the discretized design interval, works only for uniform grids
-  Double da = hom_rect_a_[1][0] - hom_rect_a_[0][0];
-  Double db = hom_rect_b_[1][0] - hom_rect_b_[0][0];
-  Double dc = 0.0;
+  double da = hom_rect_a_[1][0] - hom_rect_a_[0][0];
+  double db = hom_rect_b_[1][0] - hom_rect_b_[0][0];
+  double dc = 0.0;
   if (o > 1) {
     dc = hom_rect_c_[1][0] - hom_rect_c_[0][0];
   }
@@ -3355,7 +3355,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     // ==> old format
     file.close();
     bool dataIsSparse;
-    Matrix<Double> data;
+    Matrix<double> data;
     dataIsSparse = ReadDetailedStats(filename, data);
     // create regular grid
     sgpp::base::GridGenerator& gridGen = grid_->getGenerator();
@@ -3390,13 +3390,13 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     alpha6_.resize(N);
   }
   alpha7_.resize(N);
-  Double leveld;
-  Double indexd;
+  double leveld;
+  double indexd;
   std::vector<unsigned int> level(d, 0);
   std::vector<unsigned int> index(d, 0);
   sgpp::base::GridIndex grid_point(dim);
   level_ = 0; // we set that to the maximal level of the grid points
-  Double duck; // dummy
+  double duck; // dummy
   unsigned int j = 0;
   for (unsigned int i = 0; i < N; i++) {
     if (dim == 3) {
@@ -3519,8 +3519,8 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
 }
 
 void DesignMaterial::EvaluateFullGrid() {
-  Matrix<Double> E;
-  Double stepsize;
+  Matrix<double> E;
+  double stepsize;
   LocPoint p;
   p.coord.Resize(3);
 
@@ -3559,7 +3559,7 @@ void DesignMaterial::EvaluateFullGrid() {
   file.close();
 }
 
-void DesignMaterial::FillSparseGridWithFullGridData(Matrix<Double>& data) {
+void DesignMaterial::FillSparseGridWithFullGridData(Matrix<double>& data) {
   sgpp::base::GridStorage& gridStorage = grid_->getStorage();
 
   // create coefficient vectors
@@ -3627,7 +3627,7 @@ void DesignMaterial::FillSparseGridWithFullGridData(Matrix<Double>& data) {
   HierarchizeSparseGridCoefficients();
 }
 
-void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<Double>& data) {
+void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
   sgpp::base::GridStorage& gridStorage = grid_->getStorage();
   // Catalogue has to be in correct order! High error risk!
   // Better use new format instead
@@ -3734,7 +3734,7 @@ void DesignMaterial::HierarchizeSparseGridCoefficients() {
   }
 }
 
-void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<Double>& E, Vector<Double>& p,
+void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p,
      DesignElement::Type direction, SubTensorType subTensor) {
   // Method uses SGPP interpolation
   sgpp::base::DataVector point(p.GetPointer(), p.GetSize());
@@ -3828,12 +3828,12 @@ void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<Double>& E, Vector<Double>& p
   }
 }
 
-void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<Double>& E, Vector<Double>& p,
+void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p,
      DesignElement::Type direction, SubTensorType subTensor) const {
   E.Resize(3,3);
   E.Init(); // for off-diagonal
   const int margin = (bspline_degree_+1)/2 + 1;
-  const Double a = static_cast<Double>((bspline_degree_+1)/2);
+  const double a = static_cast<double>((bspline_degree_+1)/2);
   sgpp::base::BsplineBasis<int, int> bspline(bspline_degree_);
 
   if (!shearIsDesign_) {
@@ -3851,7 +3851,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<Double>& E, Vector<Dou
                i2 <= static_cast<int>(64.0 * p[1] + a); i2++) {
         // B-spline out of bounds, skip
         if ((i2 < 1-margin) || (i2 > 64+margin)) continue;
-        Double bspl_val;
+        double bspl_val;
         // evaluate tensor product B-spline
         if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
           // 6 because 64 is 2 to the 6th
@@ -3905,7 +3905,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<Double>& E, Vector<Dou
                  i3 <= static_cast<int>(64.0 * p[2] + a); i3++) {
           // B-spline out of bounds, skip
           if ((i3 < 1-margin) || (i3 > 63+margin)) continue;
-          Double bspl_val;
+          double bspl_val;
           // evaluate tensor product B-spline
           if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
             // 6 because 64 is 2 to the 6th
@@ -3946,10 +3946,10 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<Double>& E, Vector<Dou
   }
 }
 
-Double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sgpp::base::DataVector& alpha, sgpp::base::DataVector& point, DesignElement::Type direction) const {
+double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sgpp::base::DataVector& alpha, sgpp::base::DataVector& point, DesignElement::Type direction) const {
   // Approximates the derivative with finite differences
   unsigned int dimension;
-  Double h = 1./pow(2,level_+1) * 1e-6;
+  double h = 1./pow(2,level_+1) * 1e-6;
   switch (direction) {
     case DesignElement::STIFF1:
       dimension = 1;
@@ -3969,8 +3969,8 @@ Double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sgpp::base::DataVector& a
   pointL[dimension-1] -= h;
   pointU[dimension-1] += h;
 
-  Double valL = op_eval_->eval(alpha,pointL);
-  Double valU = op_eval_->eval(alpha,pointU);
+  double valL = op_eval_->eval(alpha,pointL);
+  double valU = op_eval_->eval(alpha,pointU);
 
   return (valU - valL) / (2*h);
 }
@@ -3978,14 +3978,14 @@ Double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sgpp::base::DataVector& a
 #endif //USE_SGPP
 
 
-Double DesignMaterial::CalcHomVolume(Vector<Double>& p, DesignElement::Type direction, bool derivative) {
+double DesignMaterial::CalcHomVolume(Vector<double>& p, DesignElement::Type direction, bool derivative) {
 
 #ifdef USE_SGPP
   // Method uses SGPP interpolation
   sgpp::base::DataVector point(p.GetPointer(), p.GetSize());
   LOG_DBG2(dm) << p;
 
-  Double vol;
+  double vol;
 
   if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
     std::unique_ptr<sgpp::base::OperationEval> opEval = sgpp::op_factory::createOperationEval(*grid_);
@@ -4014,7 +4014,7 @@ Double DesignMaterial::CalcHomVolume(Vector<Double>& p, DesignElement::Type dire
 #endif //USE_SGPP
 }
 
-bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<Double>& A,
+bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
     const Elem* elem,DesignElement::Type direction) {
     assert((type_ == MSFEM_C1));
 
@@ -4023,13 +4023,13 @@ bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<Double>& A,
       throw Exception("no elem data for MSFEM defined");
 
     // read design variables
-    Double a = params_[DesignElement::STIFF1];
-    Double b = params_[DesignElement::STIFF2];
-    //Double rotAngle = 0.;
+    double a = params_[DesignElement::STIFF1];
+    double b = params_[DesignElement::STIFF2];
+    //double rotAngle = 0.;
     //if (HasParameter(DesignElement::ROTANGLE)) {
     //  rotAngle = params_[DesignElement::ROTANGLE];
     //}
-    Vector<Double> p(2);
+    Vector<double> p(2);
     //if (HasParameter(DesignElement::ROTANGLE)) {
     //  p.Resize(3);
     //}
@@ -4047,9 +4047,9 @@ bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<Double>& A,
     //}
 
     // grid size of the discretized design interval, works only for uniform material catalogue grids so far
-    Double da = msfem_a_[1][0] - msfem_a_[0][0];
-    Double db = msfem_b_[1][0] - msfem_b_[0][0];
-    //Double drot = 0.;
+    double da = msfem_a_[1][0] - msfem_a_[0][0];
+    double db = msfem_b_[1][0] - msfem_b_[0][0];
+    //double drot = 0.;
     //if (HasParameter(DesignElement::ROTANGLE)) {
     //  drot = msfem_rot_[1][0] - msfem_rot_[0][0];
     //}
@@ -4087,10 +4087,10 @@ bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<Double>& A,
     return true;
 }
 
-int DesignMaterial::GetInterpolationIndex(Matrix<Double> interval, Double& point) const {
+int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point) const {
   PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
   int nRows = interval.GetNumRows();
-  Double h = interval[1][0] - interval[0][0];
+  double h = interval[1][0] - interval[0][0];
   int idx = -1;
   if (interval[0][0] <= point && point < interval[nRows - 1][0]) {
     idx = (int) ( (point - interval[0][0]) / h);
@@ -4117,15 +4117,15 @@ int DesignMaterial::GetInterpolationIndex(Matrix<Double> interval, Double& point
   return idx;
 }
 
-Double DesignMaterial::EvaluateC1Interpolation_3D(Vector<Double>& p,
-    const Matrix<Double> & coeff, Double & da, Double & db, Double & dc,
+double DesignMaterial::EvaluateC1Interpolation_3D(Vector<double>& p,
+    const Matrix<double> & coeff, double & da, double & db, double & dc,
     int & j, int & k, int & l, int & m, int & n, int &o) const {
   LOG_DBG(dm)<<"p=["<<p[0]<<","<<p[1]<<", "<<p[2]<<"]";
-  Double t=(p[0]-hom_rect_a_[j][0])/da;
-  Double u =(p[1]-hom_rect_b_[k][0])/db;
-  Double v=(p[2]-hom_rect_c_[l][0])/dc;
+  double t=(p[0]-hom_rect_a_[j][0])/da;
+  double u =(p[1]-hom_rect_b_[k][0])/db;
+  double v=(p[2]-hom_rect_c_[l][0])/dc;
   LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<" v= "<<v;
-  Double res = 0;
+  double res = 0;
   for (int ii = 0;ii<4;ii++) {
     for (int jj=0;jj<4;jj++) {
       for (int kk=0;kk<4;kk++) {
@@ -4137,16 +4137,16 @@ Double DesignMaterial::EvaluateC1Interpolation_3D(Vector<Double>& p,
   return res;
 }
 
-Double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<Double>& p,
-    const Matrix<Double> & coeff, Double & da, Double & db, Double & dc,
+double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p,
+    const Matrix<double> & coeff, double & da, double & db, double & dc,
     int & j, int & k, int & l, int & m, int & n, int & o,
     DesignElement::Type direction) const {
-  Double t = (p[0] - hom_rect_a_[j][0]) / (da);
-  Double u = (p[1] - hom_rect_b_[k][0]) / (db);
-  Double v = (p[2] - hom_rect_c_[l][0]) / (dc);
+  double t = (p[0] - hom_rect_a_[j][0]) / (da);
+  double u = (p[1] - hom_rect_b_[k][0]) / (db);
+  double v = (p[2] - hom_rect_c_[l][0]) / (dc);
   LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<" v= "<<v<<" j= "<<j<<" k= "<<k<<" l= "<<l;
   LOG_DBG(dm)<<"p_deriv: ["<<p[0]<<", "<<", "<<p[1]<<", "<<p[2];
-  Double deriv = 0;
+  double deriv = 0;
   if (direction == DesignElement::STIFF1) {
     for (int ii = 1; ii < 4; ii++) {
       for (int jj = 0; jj < 4; jj++) {
@@ -4184,11 +4184,11 @@ Double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<Double>& p,
   return deriv;
 }
 
-Double DesignMaterial::EvaluateC1Interpolation(Vector<Double>& p,
-    const Matrix<Double> & coeff, Double & da, Double & db, int & j, int & k,
+double DesignMaterial::EvaluateC1Interpolation(Vector<double>& p,
+    const Matrix<double> & coeff, double & da, double & db, int & j, int & k,
     int & m, int & n) const {
   LOG_DBG(dm)<<"p=["<<p[0]<<","<<p[1]<<"]";
-  Double u,t;
+  double u,t;
   if (type_ == MSFEM_C1) {
     t=(p[0]-msfem_a_[j][0])/(da);
     u =(p[1]-msfem_b_[k][0])/(db);
@@ -4198,7 +4198,7 @@ Double DesignMaterial::EvaluateC1Interpolation(Vector<Double>& p,
   }
   LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<"\n";
   LOG_DBG(dm)<<"j = "<<j<<" k= "<<k<<"\n";
-  Double res = 0;
+  double res = 0;
   for (int i = 0;i<4;i++) {
     for (int l=0;l<4;l++) {
       res += coeff[(n-1)*j+k][(i)*4+l]*pow(t,i)*pow(u,l);
@@ -4208,10 +4208,10 @@ Double DesignMaterial::EvaluateC1Interpolation(Vector<Double>& p,
   return res;
 }
 
-Double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<Double>& p,
-    const Matrix<Double> & coeff, Double & da, Double & db, int & j, int & k,
+double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<double>& p,
+    const Matrix<double> & coeff, double & da, double & db, int & j, int & k,
     int & m, int & n, DesignElement::Type direction) const {
-  Double u,t;
+  double u,t;
   if (type_ == MSFEM_C1) {
     t = (p[0] - msfem_a_[j][0]) / (da);
     u = (p[1] - msfem_b_[k][0]) / (db);
@@ -4221,7 +4221,7 @@ Double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<Double>& p,
   }
   LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<"\n";
 
-  Double deriv = 0;
+  double deriv = 0;
   if (direction == DesignElement::STIFF1) {
     for (int i = 1; i < 4; i++) {
       for (int l = 0; l < 4; l++) {
@@ -4244,7 +4244,7 @@ Double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<Double>& p,
   return deriv;
 }
 
-bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<Double>& ret) {
+bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& ret) {
   bool isHierarchized;
   unsigned int dim1, dim2, dim3, nRows, nCols;
 
@@ -4309,7 +4309,7 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<Double>& re
     // all tensor entries are given
     nCols = 6;
   }
-  Matrix<Double> data;
+  Matrix<double> data;
   data.Resize(nRows,nCols);
   data.Init();
   LOG_DBG(dm)<<"ReadDetailedStats: nRows = "<<nRows<<", nCols = "<<nCols<<", level = "<<level_;
@@ -4320,7 +4320,7 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<Double>& re
     strVec.Clear();
     SplitStringListWhitespace(line, strVec);
     for (unsigned int j=0; j<nCols; j++) {
-      data[i][j] = boost::lexical_cast<Double>(strVec[j+catalogueSize_.GetSize()]);
+      data[i][j] = boost::lexical_cast<double>(strVec[j+catalogueSize_.GetSize()]);
     }
     if (notation == VOIGT) {
       data[i][nCols-1] = data[i][nCols-1] * 2.0;
@@ -4346,11 +4346,11 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<Double>& re
   return isHierarchized;
 }
 
-void DesignMaterial::GetInterpolatedTensor(Matrix<Double>& t,
+void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
     SubTensorType subTensor, DesignElement::Type direction, Notation notation){
-  Double a = (direction == DesignElement::INTERPOLATION) ? 1.0 : params_[DesignElement::INTERPOLATION];
-  Double ma = (direction == DesignElement::INTERPOLATION) ? -1.0 : 1.0-a;
-  Double E = params_[DesignElement::EMODUL];
+  double a = (direction == DesignElement::INTERPOLATION) ? 1.0 : params_[DesignElement::INTERPOLATION];
+  double ma = (direction == DesignElement::INTERPOLATION) ? -1.0 : 1.0-a;
+  double E = params_[DesignElement::EMODUL];
   switch (subTensor) {
   case FULL:
     t.Resize(6, 6);
@@ -4375,7 +4375,7 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<Double>& t,
 
   if (type_ == D_INTERP_TENSOR || type_ == D_INTERP_TENSOR_ROT)
   {
-    Double dens = params_[DesignElement::DENSITY];
+    double dens = params_[DesignElement::DENSITY];
     TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
     t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
   }
@@ -4390,21 +4390,21 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<Double>& t,
   }
 }
 
-void DesignMaterial::GetLaminatesTensor(Matrix<Double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
+void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
   switch(subTensor){
   case PLANE_STRAIN:    //see Allaire: Shape optimization by the homogenization method, pp. 127 [(2.64),(2.65)]
   {
     t.Resize(3,3);
     t.Init();
-    Double eps = 5.0625e-4;
-    Double stiff1 = params_[DesignElement::STIFF1];
-    Double stiff2 = params_[DesignElement::STIFF2];
-    Double E = params_[DesignElement::EMODUL];
-    Double nu = params_[DesignElement::POISSON];
-    Double lambda = E * nu / ((1 + nu) * (1 - 2 * nu));
-    Double mu = E / (2 * (1 + nu));
-    Matrix<Double> D(3, 3);
-    Matrix<Double> Dinv(3, 3);
+    double eps = 5.0625e-4;
+    double stiff1 = params_[DesignElement::STIFF1];
+    double stiff2 = params_[DesignElement::STIFF2];
+    double E = params_[DesignElement::EMODUL];
+    double nu = params_[DesignElement::POISSON];
+    double lambda = E * nu / ((1 + nu) * (1 - 2 * nu));
+    double mu = E / (2 * (1 + nu));
+    Matrix<double> D(3, 3);
+    Matrix<double> Dinv(3, 3);
     D.SetEntry(0, 0, 1 / (4 * (mu + lambda)) + 1 / (4 * mu));
     D.SetEntry(0, 1, 1 / (4 * (mu + lambda)) - 1 / (4 * mu));
     D.SetEntry(1, 0, D(0, 1));
@@ -4455,35 +4455,35 @@ void DesignMaterial::GetLaminatesTensor(Matrix<Double>& t, SubTensorType subTens
   }
   case PLANE_STRESS:      //see Bendsoe, Sigmund: Topology Optimization S. 166
   {
-    Double E33 = 0.02;
-    Double stiff1 = params_[DesignElement::STIFF1];
-    Double stiff2 = params_[DesignElement::STIFF2];
-    Double E = params_[DesignElement::EMODUL];
-    Double nu = params_[DesignElement::POISSON];
-    Double n = (stiff2 + stiff1 * stiff2 * (nu * nu - 1) - 1);
+    double E33 = 0.02;
+    double stiff1 = params_[DesignElement::STIFF1];
+    double stiff2 = params_[DesignElement::STIFF2];
+    double E = params_[DesignElement::EMODUL];
+    double nu = params_[DesignElement::POISSON];
+    double n = (stiff2 + stiff1 * stiff2 * (nu * nu - 1) - 1);
     switch (direction) {
     case DesignElement::NO_DERIVATIVE:
     case DesignElement::ROTANGLE:
     case DesignElement::DENSITY: // Treated after switch
     {
-      Double E11 = -(E*stiff1)/n;
-      Double E22 = stiff2*E+stiff2*stiff2*nu*nu*E11;
-      Double E12 = stiff2*nu*E11;
+      double E11 = -(E*stiff1)/n;
+      double E22 = stiff2*E+stiff2*stiff2*nu*nu*E11;
+      double E12 = stiff2*nu*E11;
       Set2dVoigtTensor(t, E11, E22, E33, 0.0, 0.0, E12);
       break;
     }
     case DesignElement::STIFF1: {
-      Double E11 = -(E * (stiff2 - 1)) / (n * n);
-      Double E22 = stiff2 * stiff2 * nu * nu * E11;
-      Double E12 = stiff2 * nu * E11;
+      double E11 = -(E * (stiff2 - 1)) / (n * n);
+      double E22 = stiff2 * stiff2 * nu * nu * E11;
+      double E12 = stiff2 * nu * E11;
       Set2dVoigtTensor(t, E11, E22, 0.0, 0.0, 0.0, E12);
       break;
     }
     case DesignElement::STIFF2: {
-      Double E11 = (E * stiff1 * (stiff1 * (nu * nu - 1) + 1)) / (n * n);
-      Double E22 = E - 2 * stiff2 * nu * nu * E * stiff1 / n
+      double E11 = (E * stiff1 * (stiff1 * (nu * nu - 1) + 1)) / (n * n);
+      double E22 = E - 2 * stiff2 * nu * nu * E * stiff1 / n
           + stiff2 * stiff2 * nu * nu * E11;
-      Double E12 = -nu * E * stiff1 / n + stiff2 * nu * E11;
+      double E12 = -nu * E * stiff1 / n + stiff2 * nu * E11;
       Set2dVoigtTensor(t, E11, E22, 0.0, 0.0, 0.0, E12);
     break;
     }
@@ -4499,19 +4499,19 @@ void DesignMaterial::GetLaminatesTensor(Matrix<Double>& t, SubTensorType subTens
 
   if (type_ == D_LAMINATES)
   {
-    Double dens = params_[DesignElement::DENSITY];
+    double dens = params_[DesignElement::DENSITY];
     TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH);
     t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
   }
 
-  Double rotAngle = params_[DesignElement::ROTANGLE];
+  double rotAngle = params_[DesignElement::ROTANGLE];
   LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
   RotateTensor(t, direction, notation, CW, true, rotAngle);
   LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
   return;
 }
 
-void DesignMaterial::ZeroTensor(Matrix<Double>& t, SubTensorType subTensor) {
+void DesignMaterial::ZeroTensor(Matrix<double>& t, SubTensorType subTensor) {
   switch (subTensor) {
   case FULL:
     t.Resize(6, 6);
@@ -4528,8 +4528,8 @@ void DesignMaterial::ZeroTensor(Matrix<Double>& t, SubTensorType subTensor) {
   t.Init();
 }
 
-void DesignMaterial::Set2dVoigtTensor(Matrix<Double>& t, Double t11, Double t22,
-    Double t33, Double t23, Double t13, Double t12) {
+void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t22,
+    double t33, double t23, double t13, double t12) {
   t.Resize(3, 3);
   t.Init();
   t[0][0] = t11;
@@ -4543,7 +4543,7 @@ void DesignMaterial::Set2dVoigtTensor(Matrix<Double>& t, Double t11, Double t22,
   t[2][2] = t33;
 }
 
-void DesignMaterial::Set2dVoigtTensor(Matrix<Double>& t, Double t11, Double t12, Double t13, Double t21, Double t22, Double t23, Double t31, Double t32, Double t33) {
+void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33) {
   t.Resize(3, 3);
   t.Init();
   t[0][0] = t11;
@@ -4557,9 +4557,9 @@ void DesignMaterial::Set2dVoigtTensor(Matrix<Double>& t, Double t11, Double t12,
   t[2][2] = t33;
 }
 
-void DesignMaterial::SetOrthotropicTensor(Matrix<Double>& t,
-    SubTensorType subTensor, Double e11, Double e12, Double e13, Double e22,
-    Double e23, Double e33, Double e44, Double e55, Double e66) {
+void DesignMaterial::SetOrthotropicTensor(Matrix<double>& t,
+    SubTensorType subTensor, double e11, double e12, double e13, double e22,
+    double e23, double e33, double e44, double e55, double e66) {
   switch (subTensor) {
     case FULL:
       t.Resize(6, 6);
@@ -4586,9 +4586,9 @@ void DesignMaterial::SetOrthotropicTensor(Matrix<Double>& t,
     }
 }
 
-void DesignMaterial::SetTransIsoTensor(Matrix<Double>& t,
-    SubTensorType subTensor, Double iD, Double inD, Double iG, Double oD,
-    Double onD, Double oG) {
+void DesignMaterial::SetTransIsoTensor(Matrix<double>& t,
+    SubTensorType subTensor, double iD, double inD, double iG, double oD,
+    double onD, double oG) {
   switch (subTensor) {
   case FULL:
     t.Resize(6, 6);
@@ -4671,13 +4671,13 @@ void DesignMaterial::SetTransIsoTensor(Matrix<Double>& t,
   }
 }
 
-void DesignMaterial::SetIsoTensor(Matrix<Double>& t, SubTensorType subTensor,
-    Double D, Double nd, Double G) {
+void DesignMaterial::SetIsoTensor(Matrix<double>& t, SubTensorType subTensor,
+    double D, double nd, double G) {
   SetTransIsoTensor(t, subTensor, D, nd, G, D, nd, G);
 }
 
 
-void DesignMaterial::RotateHMStiffnessTensor(Matrix<Double>& t, SubTensorType subTensor, DesignElement::Type direction, Double a, Notation notation)
+void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation)
 {
   // FIXME, DOCU needed
   // FIXME, rotation of Hill-Mandel-Tensors might be not a good idea
@@ -4687,9 +4687,9 @@ void DesignMaterial::RotateHMStiffnessTensor(Matrix<Double>& t, SubTensorType su
   case PLANE_STRESS:
   case PLANE:
   {
-    Matrix<Double> theta(3,3);
-    Matrix<Double> help(3,3);
-    const Double sq2inv = 1/sqrt(2);
+    Matrix<double> theta(3,3);
+    Matrix<double> help(3,3);
+    const double sq2inv = 1/sqrt(2);
     theta.SetEntry(0,0, pow(cos(a),2));
     theta.SetEntry(0,1, pow(sin(a),2));
     theta.SetEntry(0,2, -sqrt(2)/2*sin(2*a));
@@ -4701,7 +4701,7 @@ void DesignMaterial::RotateHMStiffnessTensor(Matrix<Double>& t, SubTensorType su
     theta.SetEntry(2,2, cos(2*a));
     t.Mult(theta, help);
     if(direction == DesignElement::ROTANGLE){
-      Matrix<Double> dtheta(3,3);
+      Matrix<double> dtheta(3,3);
       dtheta.SetEntry(0,0, -sin(2*a));
       dtheta.SetEntry(0,1, -dtheta(0,0));
       dtheta.SetEntry(0,2, -sqrt(2)*cos(2*a));
@@ -4711,7 +4711,7 @@ void DesignMaterial::RotateHMStiffnessTensor(Matrix<Double>& t, SubTensorType su
       dtheta.SetEntry(2,0, dtheta(1,2));
       dtheta.SetEntry(2,1, dtheta(0,2));
       dtheta.SetEntry(2,2, -2*sin(2*a));
-      Matrix<Double> dthetaTttheta(3,3);
+      Matrix<double> dthetaTttheta(3,3);
 
       LOG_DBG3(dm) << "RHMST phi=" << a << " Theta=" << theta.ToString(2) << " dTheta=" << dtheta.ToString(2);
 
@@ -4747,7 +4747,7 @@ void DesignMaterial::RotateHMStiffnessTensor(Matrix<Double>& t, SubTensorType su
   }
 }
 
-void DesignMaterial::RotateTensor(Matrix<Double>& t, DesignElement::Type direction, Notation notation, Clock clock, bool angles, Double rx, Double ry, Double rz){
+void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation, Clock clock, bool angles, double rx, double ry, double rz){
   // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62
   // and also found in Wikipedia Drehmatrix (german)
   // rotates the material by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
@@ -4764,7 +4764,7 @@ void DesignMaterial::RotateTensor(Matrix<Double>& t, DesignElement::Type directi
     dim = 2;
   }
 
-  Double thetax = 0.0, thetay = 0.0, thetaz = 0.0;
+  double thetax = 0.0, thetay = 0.0, thetaz = 0.0;
   if(dim == 3){
     if (angles) {
       thetax = rx;
@@ -4796,12 +4796,12 @@ void DesignMaterial::RotateTensor(Matrix<Double>& t, DesignElement::Type directi
     thetaz = -thetaz;
   }
 
-  Double sthetax = sin(thetax);
-  Double cthetax = cos(thetax);
-  Double sthetay = sin(thetay);
-  Double cthetay = cos(thetay);
-  Double sthetaz = sin(thetaz);
-  Double cthetaz = cos(thetaz);
+  double sthetax = sin(thetax);
+  double cthetax = cos(thetax);
+  double sthetay = sin(thetay);
+  double cthetay = cos(thetay);
+  double sthetaz = sin(thetaz);
+  double cthetaz = cos(thetaz);
   Matrix<Double> R(dim, dim);
   SetRotationMatrix(R, sthetax, cthetax, sthetay, cthetay, sthetaz, cthetaz);
   LOG_DBG3(dm) << "Rotation matrix for tx=" << thetax << ", ty=" << thetay << ", tz=" << thetaz << " is " << R.ToString();
@@ -4931,13 +4931,13 @@ void DesignMaterial::RotateTensor(Matrix<Double>& t, DesignElement::Type directi
     t.VoigtToHillMandel();
   }
 }
-void DesignMaterial::SetRotationMatrix(Matrix<Double>& R, Double sthetax, Double cthetax, Double sthetay, Double cthetay, Double sthetaz, Double cthetaz, DesignElement::Type direction){
+void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz, DesignElement::Type direction){
   // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62
   // and also found in Wikipedia Drehmatrix (german)
   // rotates the material by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
   // direction of rotation around an axis is positive (ccw), if the axis is pointing towards oneself
   R.Resize(dim, dim);
-  Double ndx = 1.0, ndy = 1.0, ndz = 1.0;
+  double ndx = 1.0, ndy = 1.0, ndz = 1.0;
   // for the derivative, we replace the correspond sin by cos and cos by -sin and set nd to 0.0
   switch(direction){
   case DesignElement::ROTANGLEX:
@@ -4975,20 +4975,20 @@ void DesignMaterial::SetRotationMatrix(Matrix<Double>& R, Double sthetax, Double
   }
 }
 
-void DesignMaterial::RotatePiezoCouplingTensor(Matrix<Double>& E, Double phi, DesignElement::Type direction)
+void DesignMaterial::RotatePiezoCouplingTensor(Matrix<double>& E, double phi, DesignElement::Type direction)
 {
   // R(phi) * [e] * Q(phi)^T
   // derivative: dR(phi)/dphi * ([e] * Q(phi)^T) + R(phi) * ([e] * dQ(phi)/dphi)^T
 
   // Note, that we use VOIGT rotation matrix Q here, while in RotateHMStiffnessTensor Hill-Mandel is used. Also the QT here is QT^T of the HM rotation!
 
-  Matrix<Double> R(2,2);
+  Matrix<double> R(2,2);
   R[0][0] = cos(phi);
   R[0][1] = sin(phi);
   R[1][0] = -R[0][1];
   R[1][1] = R[0][0];
 
-  Matrix<Double> QT(3,3);
+  Matrix<double> QT(3,3);
 
   QT[0][0] = R[0][0]*R[0][0];
   QT[0][1] = R[1][0]*R[1][0];
@@ -5002,7 +5002,7 @@ void DesignMaterial::RotatePiezoCouplingTensor(Matrix<Double>& E, Double phi, De
   QT[2][1] = 2.0*R[1][0]*R[1][1];
   QT[2][2] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
 
-  Matrix<Double> help(2,3);
+  Matrix<double> help(2,3);
   E.Mult(QT, help); // help = E * Q^T
   if(direction != DesignElement::ROTANGLE)
   {
@@ -5013,13 +5013,13 @@ void DesignMaterial::RotatePiezoCouplingTensor(Matrix<Double>& E, Double phi, De
   }
   else
   {
-    Matrix<Double> dR(2,2);
+    Matrix<double> dR(2,2);
     dR[0][0] = -sin(phi);
     dR[0][1] = cos(phi);
     dR[1][0] = -cos(phi);
     dR[1][1] = -sin(phi);
 
-    Matrix<Double> dQT(3,3);
+    Matrix<double> dQT(3,3);
 
     dQT[0][0] = -2.0*R[0][0]*R[0][1];   // -2 cos(a) sin(a)
     dQT[0][1] = -dQT[0][0];             // 2 cos(a) sin(a)
@@ -5033,12 +5033,12 @@ void DesignMaterial::RotatePiezoCouplingTensor(Matrix<Double>& E, Double phi, De
     dQT[2][1] = 2.0*dQT[0][2];          // 2 sin(a)^2 - 2 cos(a)^2
     dQT[2][2] = 2.0 * dQT[0][0];        // -4 cos(a) sin(a)
 
-    Matrix<Double> left(2,3);
+    Matrix<double> left(2,3);
     dR.Mult(help, left); // left = dR * (E * Q^T)
 
     E.Mult(dQT, help); // help = E * dQ^T
 
-    Matrix<Double> right(2,3);
+    Matrix<double> right(2,3);
     R.Mult(help, right); // right = R * (help) = R * (E * dQ^T)
     E = left + right;
     LOG_DBG3(dm) << "RPCT phi=" << phi << " R=" << R.ToString(2) << " dR=" << dR.ToString(2) << " QT=" << QT.ToString(2) << " dQT=" << dQT.ToString(2);
@@ -5047,18 +5047,18 @@ void DesignMaterial::RotatePiezoCouplingTensor(Matrix<Double>& E, Double phi, De
 }
 
 
-void DesignMaterial::RotateElecTensor(Matrix<Double>& E, Double phi, DesignElement::Type direction)
+void DesignMaterial::RotateElecTensor(Matrix<double>& E, double phi, DesignElement::Type direction)
 {
   // R(phi) * [e] * R(phi)^T
   // derivative: dR(phi)/dphi * ([e] * R(phi)^T) + R(phi) * ([e] * dR(phi)/dphi)^T
 
-  Matrix<Double> RT(2,2);
+  Matrix<double> RT(2,2);
   RT[0][0] = cos(phi);
   RT[0][1] = -sin(phi);
   RT[1][0] = -RT[0][1];
   RT[1][1] = RT[0][0];
 
-  Matrix<Double> help(2,2);
+  Matrix<double> help(2,2);
   E.Mult(RT, help); // help = E * R^T
 
   if(direction != DesignElement::ROTANGLE)
@@ -5068,13 +5068,13 @@ void DesignMaterial::RotateElecTensor(Matrix<Double>& E, Double phi, DesignEleme
   }
   else
   {
-    Matrix<Double> dRT(2,2);
+    Matrix<double> dRT(2,2);
     dRT[0][0] = -sin(phi);
     dRT[0][1] = -cos(phi);
     dRT[1][0] = -dRT[0][1];
     dRT[1][1] = dRT[0][0];
 
-    Matrix<Double> left(2,2);
+    Matrix<double> left(2,2);
     dRT.MultT(help, left); // left = dR * (E * R^T)
 
     E.Mult(dRT, help); // help = E * dR^T
@@ -5086,7 +5086,7 @@ void DesignMaterial::RotateElecTensor(Matrix<Double>& E, Double phi, DesignEleme
 }
 
 
-Double DesignMaterial::GetTransIsoMass(Double iD, Double iG, Double oD, Double oG){
+double DesignMaterial::GetTransIsoMass(double iD, double iG, double oD, double oG){
   switch(dim){
   case 2:
     switch (transIsoType_) {
@@ -5106,11 +5106,11 @@ Double DesignMaterial::GetTransIsoMass(Double iD, Double iG, Double oD, Double o
   }
 }
 
-Double DesignMaterial::GetIsoMass(Double D, Double G) {
+double DesignMaterial::GetIsoMass(double D, double G) {
   return (GetTransIsoMass(D, G, D, G));
 }
 
-bool DesignMaterial::GetModRedGTensor(Matrix<Double>& T, const Elem* elem)
+bool DesignMaterial::GetModRedGTensor(Matrix<double>& T, const Elem* elem)
 {
   if(CollectMaterialParametersForElement(em_->GetDesign(), elem)) {
     GetModRedGTensor(T, DesignElement::NO_DERIVATIVE, true);
@@ -5120,7 +5120,7 @@ bool DesignMaterial::GetModRedGTensor(Matrix<Double>& T, const Elem* elem)
     return false;
 }
 
-bool DesignMaterial::GetTensor(Matrix<Double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation)
+bool DesignMaterial::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation)
 {
   switch(type)
   {
@@ -5148,7 +5148,7 @@ bool DesignMaterial::GetTensor(Matrix<Double>& t, DesignElement::Type type, SubT
 bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
   // we assume we have no complex material (special form of damping)
-  Matrix<Double> dt;
+  Matrix<double> dt;
   if(!GetMechTensor(dt, subTensor, elem, direction, notation))
     return false;
 
@@ -5158,7 +5158,7 @@ bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor,
   return true;
 }
 
-bool DesignMaterial::GetMechTensor(Matrix<Double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
+bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
   assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12 && type_ != REDBAS_PARAM && type_ != REDBAS_FREE && type_ != GREEDY_PARAM && type_ != GREEDY_FREE && type_ != GREEDY_MAPPING));
   // FIXME!! with parallel assembling GetMechTensor seems to be not thread save
@@ -5230,7 +5230,7 @@ bool DesignMaterial::GetMechTensor(Matrix<Double>& t, SubTensorType subTensor, c
 }
 
 
-bool DesignMaterial::GetElecTensor(Matrix<Double>& E, const Elem* elem, DesignElement::Type direction)
+bool DesignMaterial::GetElecTensor(Matrix<double>& E, const Elem* elem, DesignElement::Type direction)
 {
   if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
     return false;
@@ -5238,10 +5238,10 @@ bool DesignMaterial::GetElecTensor(Matrix<Double>& E, const Elem* elem, DesignEl
   // only 2D!
   bool set = direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE;
 
-  Double e11 = set ? params_[DesignElement::DIELEC_11] : 0;
-  Double e22 = set ? params_[DesignElement::DIELEC_22] : 0;
-  Double e12 = set ? params_[DesignElement::DIELEC_12] : 0;
-  Double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
+  double e11 = set ? params_[DesignElement::DIELEC_11] : 0;
+  double e22 = set ? params_[DesignElement::DIELEC_22] : 0;
+  double e12 = set ? params_[DesignElement::DIELEC_12] : 0;
+  double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
 
   E.Resize(2,2);
   E.Init();
@@ -5276,20 +5276,20 @@ bool DesignMaterial::GetElecTensor(Matrix<Double>& E, const Elem* elem, DesignEl
 }
 
 
-bool DesignMaterial::GetPiezoCouplingTensor(Matrix<Double>& E, const Elem* elem, DesignElement::Type direction)
+bool DesignMaterial::GetPiezoCouplingTensor(Matrix<double>& E, const Elem* elem, DesignElement::Type direction)
 {
   if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
     return false;
 
   // only 2D!
   bool set = direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE;
-  Double e11 = set ? params_[DesignElement::PIEZO_11] : 0;
-  Double e12 = set ? params_[DesignElement::PIEZO_12] : 0;
-  Double e13 = set ? params_[DesignElement::PIEZO_13] : 0;
-  Double e21 = set ? params_[DesignElement::PIEZO_21] : 0;
-  Double e22 = set ? params_[DesignElement::PIEZO_22] : 0;
-  Double e23 = set ? params_[DesignElement::PIEZO_23] : 0;
-  Double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
+  double e11 = set ? params_[DesignElement::PIEZO_11] : 0;
+  double e12 = set ? params_[DesignElement::PIEZO_12] : 0;
+  double e13 = set ? params_[DesignElement::PIEZO_13] : 0;
+  double e21 = set ? params_[DesignElement::PIEZO_21] : 0;
+  double e22 = set ? params_[DesignElement::PIEZO_22] : 0;
+  double e23 = set ? params_[DesignElement::PIEZO_23] : 0;
+  double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
   E.Resize(2,3);
   E.Init();
 
@@ -5331,7 +5331,7 @@ bool DesignMaterial::GetPiezoCouplingTensor(Matrix<Double>& E, const Elem* elem,
   return true;
 }
 
-Double DesignMaterial::GetMechMass(const Elem* elem, DesignElement::Type direction)
+double DesignMaterial::GetMechMass(const Elem* elem, DesignElement::Type direction)
 {
   if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
     throw Exception("no mass data found");
@@ -5367,7 +5367,7 @@ Double DesignMaterial::GetMechMass(const Elem* elem, DesignElement::Type directi
   }
 }
 
-bool DesignMaterial::GetMaterialDamping(Double& alpha, Double& beta, DesignElement::Type direction)
+bool DesignMaterial::GetMaterialDamping(double& alpha, double& beta, DesignElement::Type direction)
 {
   if (DampingIsDesign()) {
     switch (direction) {
@@ -5395,7 +5395,7 @@ bool DesignMaterial::GetMaterialDamping(Double& alpha, Double& beta, DesignEleme
 }
 
 void DesignMaterial::DumpParams() {
-  std::map<DesignElement::Type, Double>::iterator iter;
+  std::map<DesignElement::Type, double>::iterator iter;
 
   for (iter = params_.begin(); iter != params_.end(); ++iter)
     std::cout << "params[" << DesignElement::type.ToString(iter->first)
@@ -5445,7 +5445,7 @@ void DesignMaterial::SetEnums() {
   notation.Add(HILL_MANDEL_NO_DENSITY, "hill_mandel_no_density");
 }
 
-void DesignMaterial::GetSVDGTensorParameters(const Matrix<Double>& G, Vector<Double>& paramvec)
+void DesignMaterial::GetSVDGTensorParameters(const Matrix<double>& G, Vector<double>& paramvec)
 {
    /* G= R(theta)*(l1 0 \\ 0l2) R(phi) paramvec = (theta, phi, l1, l2) */
   //Check first that G is a 2 by 2 matrix
@@ -5461,19 +5461,19 @@ void DesignMaterial::GetSVDGTensorParameters(const Matrix<Double>& G, Vector<Dou
 
   //help = G'*G
   //help2 = G*G'
-  Matrix<Double> help(2,2);
-  Matrix<Double> transpose(2,2);
+  Matrix<double> help(2,2);
+  Matrix<double> transpose(2,2);
   G.Transpose(transpose);
-  Matrix<Double> help2(2,2);
+  Matrix<double> help2(2,2);
   G.MultT(G,help);
   G.Mult(transpose,help2);
 
-  Double theta = 0.5*std::atan2(help2(0,1)+help2(1,0), help2(0,0)-help2(1,1));
+  double theta = 0.5*std::atan2(help2(0,1)+help2(1,0), help2(0,0)-help2(1,1));
 
-  Double phi = -0.5*std::atan2(help(0,1)+help(1,0), help(0,0)-help(1,1));
+  double phi = -0.5*std::atan2(help(0,1)+help(1,0), help(0,0)-help(1,1));
 
-  Matrix<Double> Rthetainv(2,2);
-  Matrix<Double> Rphiinv(2,2);
+  Matrix<double> Rthetainv(2,2);
+  Matrix<double> Rphiinv(2,2);
   Rthetainv(0,0) = cos(theta);
   Rthetainv(1,1) = cos(theta);
   Rthetainv(0,1) = -sin(theta);
@@ -5484,14 +5484,14 @@ void DesignMaterial::GetSVDGTensorParameters(const Matrix<Double>& G, Vector<Dou
   Rphiinv(0,1) = -sin(phi);
   Rphiinv(1,0) = sin(phi);
 
-  Matrix<Double> t1(2,2);
-  Matrix<Double> t2(2,2);
+  Matrix<double> t1(2,2);
+  Matrix<double> t2(2,2);
 
   G.Mult(Rphiinv, t1);
   Rthetainv.Mult(t1,t2);
 
-  Double l1 = t2(0,0);
-  Double l2 = t2(1,1);
+  double l1 = t2(0,0);
+  double l2 = t2(1,1);
 
   if (l1 <0)
   {
@@ -5511,11 +5511,11 @@ void DesignMaterial::GetSVDGTensorParameters(const Matrix<Double>& G, Vector<Dou
 
 }
 
-Double DesignMaterial::AngleGreedyCalculus(const Vector<Double>& coeffs, const Double& angle)
+double DesignMaterial::AngleGreedyCalculus(const Vector<double>& coeffs, const double& angle)
 {
    assert(coeffs.GetSize() == 2*Na_+1);
 
-   Double s=0;
+   double s=0;
    for (UInt k= 0; k<2*Na_+1; k++ )
    {
      int indk = k - Na_;
@@ -5536,17 +5536,17 @@ Double DesignMaterial::AngleGreedyCalculus(const Vector<Double>& coeffs, const D
 
 }
 
-Double DesignMaterial::ScalingGreedyCalculus(const Vector<Double>& coeffs, const Double& l)
+double DesignMaterial::ScalingGreedyCalculus(const Vector<double>& coeffs, const double& l)
 {
    assert(coeffs.GetSize() == Nl_+1);
    assert((l>=lmin_) & (l<=lmax_));
-   Double dl = (lmax_ -lmin_)/Nl_;
+   double dl = (lmax_ -lmin_)/Nl_;
 
    int ind = static_cast <int> (std::floor((l-lmin_)/dl));
 
    if (ind < 0) ind=0;
    if (ind > int(Nl_)-1) ind = Nl_-1;
-   Double r = l-lmin_-ind*dl;
+   double r = l-lmin_-ind*dl;
 
    return (1.0-r)*coeffs[ind] + r*coeffs[ind+1];
 

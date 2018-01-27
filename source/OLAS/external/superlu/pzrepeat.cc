@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     fact_t      fact;
     trans_t     trans;
     yes_no_t    refact, usepr;
-    Double      u, drop_tol;
+    double      u, drop_tol;
     doublecomplex      *a;
     int         *asub, *xa;
     int         *perm_c; /* column permutation vector */

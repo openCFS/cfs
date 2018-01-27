@@ -69,7 +69,6 @@ namespace CoupledField {
   }
   void ArpackEigenSolver::Setup(const BaseMatrix & mat, UInt numFreq, Double freqShift, bool sort)
   {
-#ifndef USE_ADOLC
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
     isGeneralized_ = false;
@@ -124,15 +123,11 @@ namespace CoupledField {
     interface_->Setup( solver_, precond_ );
 
     ToInfo();
-#else
-  EXCEPTION("Not implemented.");
-#endif
   }
   
   
   void ArpackEigenSolver::Setup(const BaseMatrix& stiffMat, const BaseMatrix& massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
   {
-#ifndef USE_ADOLC
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
     isGeneralized_ = true;
@@ -208,9 +203,7 @@ namespace CoupledField {
     interface_->Setup( solver_, precond_ );
 
     ToInfo();
-#else
-  EXCEPTION("Not implemented.");
-#endif
+
   }
 
   void ArpackEigenSolver::ToInfo()
@@ -225,8 +218,7 @@ namespace CoupledField {
 
 
   void ArpackEigenSolver::Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
-                                UInt numFreq, Double freqShift, bool sort) {
-#ifndef USE_ADOLC
+                                UInt numFreq, double freqShift, bool sort) {
 
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = true;
@@ -335,14 +327,11 @@ namespace CoupledField {
     interface_->QuadSetup( solver_, precond_ );
 
     ToInfo();
-#else
-  EXCEPTION("Not implemented.");
-#endif
+
   }
 
   void ArpackEigenSolver::SetupIndex(unsigned int numev)
   {
-#ifndef USE_ADOLC
     // to be called after within each CalcEigenFrequencies()
     idx_.Resize(numev);
 
@@ -352,7 +341,7 @@ namespace CoupledField {
       std::vector<ev_idx> org;
       for(unsigned int i = 0; i < numev; i++)
       {
-        Double v = isBloch_ || isQuadratic_ ? Abs(arpackSolver_->CmplxEigenvalue(i)) : arpackSolver_->Eigenvalue(i);
+        double v = isBloch_ || isQuadratic_ ? std::abs(arpackSolver_->CmplxEigenvalue(i)) : arpackSolver_->Eigenvalue(i);
         org.push_back(std::make_pair(v, i));
       }
 
@@ -367,14 +356,10 @@ namespace CoupledField {
     else
       for(unsigned int i = 0; i < numev; i++)
         idx_[i] = i;
-#else
-  EXCEPTION("Not implemented.");
-#endif
   }
 
   void ArpackEigenSolver::CalcEigenFrequencies(BaseVector &sol, BaseVector &err)
   {
-#ifndef USE_ADOLC
     shared_ptr<Timer> timer = info_->Get("arpack/timer")->AsTimer();
     timer->Start();
 
@@ -418,7 +403,7 @@ namespace CoupledField {
       for (UInt i = 0; i < numEVs; i++ ) {
         solConverted[i] = arpackSolver_->CmplxEigenvalue(idx_[i]);
         if(isBloch_ && solConverted[i].real() >= 0.0)
-          solConverted[i] = Sqrt(solConverted[i])/(Complex(8.0*atan(1.0)));
+          solConverted[i] = sqrt(solConverted[i])/(8.0*atan(1.0));
       }
     }
 
@@ -437,14 +422,10 @@ namespace CoupledField {
     }
 
     timer->Stop();
-#else
-  EXCEPTION("Not implemented.");
-#endif
   }
 
   void ArpackEigenSolver::CalcConditionNumber(const BaseMatrix& mat, Double& condNumber, Vector<Double>& evs, Vector<Double>& err )
   {
-#ifndef USE_ADOLC
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
     isGeneralized_ = false;
@@ -509,9 +490,6 @@ namespace CoupledField {
     }
 
     condNumber = evs[evs.GetSize()-1] / evs[0];
-#else
-  EXCEPTION("Not implemented.");
-#endif
   }
 
   void ArpackEigenSolver::GetEigenMode(UInt modeNr, Vector<Complex> & mode)
@@ -530,7 +508,7 @@ namespace CoupledField {
   void ArpackEigenSolver::GetComplexEigenMode(UInt modeNr, Vector<Complex>& mode)
   {
     // in bloch mode case the same as GetEigenMode,
-    // in quadratic case the modes have internally Double size and we want the upper half
+    // in quadratic case the modes have internally double size and we want the upper half
     
     UInt size = matrixA_->GetNumRows();
 

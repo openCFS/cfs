@@ -150,7 +150,7 @@ int SCPIPBase::solve_problem(bool fromWarmstart)
   // is 'nlp_scaling_method' set to 'user-scaling' ? -> all but m are out parameters
   if(call_scale_parameters_)
   {
-    Double old_scaling = obj_scaling;
+    double old_scaling = obj_scaling;
     get_scaling_parameters(obj_scaling, use_g_scaling, m, g_scaling.GetPointer());
     // check if there was already 'obj_scaling_factor' and assert it has not changed
     if(use_obj_scaling && obj_scaling != old_scaling)
@@ -675,7 +675,7 @@ void SCPIPBase::EvaluateFunctionValues()
   {
     ConstraintShift& cs = shift[c];
     // the cs.shift is constraint scaled in SetSolver()
-    Double val = g[c] - cs.shift;
+    double val = g[c] - cs.shift;
 
     if(cs.equal)
     {
@@ -717,7 +717,7 @@ bool SCPIPBase::EvaluateGradients()
     int idx = 0;
     for(int c = 0; c < m; c++)
     {
-       Double scale = g_scaling[c];
+       double scale = g_scaling[c];
        for(int e = 0; e < jac_g_size[c]; e++)
        {
          jac_g[idx] *= scale;
@@ -763,7 +763,7 @@ void SCPIPBase::CopyConstraintGradient(const double* ipopt, double* scpip, Const
 {
   for(int i = 0; i < cs.nnz; i++)
   {
-    Double val = ipopt[i];
+    double val = ipopt[i];
     // the shift is not in the gradient, but maybe the inequality normalization
     val *= cs.factor;
     scpip[i] = val;
@@ -948,7 +948,7 @@ void SCPIPBase::SetIntegerValue(const std::string& key, int value)
   LOG_DBG(scpip_base) << "SIV key=" << key << " idx=" << idx << " value=" << value;
 }
 
-void SCPIPBase::SetNumericValue(const std::string& key, Double value)
+void SCPIPBase::SetNumericValue(const std::string& key, double value)
 {
   // check first for ipopt mimicry
   if(key == "obj_scaling_factor")

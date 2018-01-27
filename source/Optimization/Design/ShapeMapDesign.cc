@@ -29,11 +29,11 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->overlap.Add(TANH_SUM, "tanh_sum");
 
   this->overlap_ = overlap.Parse(pn->Get("shapeMap/overlap")->As<string>());
-  this->beta_ = pn->Get("shapeMap/beta")->As<Double>();
+  this->beta_ = pn->Get("shapeMap/beta")->As<double>();
   this->enforce_bounds_ = pn->Get("shapeMap/enforce_bounds")->As<bool>();
-  this->relative_node_bound_ = pn->Get("shapeMap/relative_node_bound")->As<Double>();
-  this->relative_profile_bound_ = pn->Get("shapeMap/relative_profile_bound")->As<Double>();
-  this->sensitivity_ = pn->Get("shapeMap/sensitivity")->As<Double>();
+  this->relative_node_bound_ = pn->Get("shapeMap/relative_node_bound")->As<double>();
+  this->relative_profile_bound_ = pn->Get("shapeMap/relative_profile_bound")->As<double>();
+  this->sensitivity_ = pn->Get("shapeMap/sensitivity")->As<double>();
   this->order_ = pn->Get("shapeMap/integration_order")->As<int>();
   this->order_order_ = order_ * order_;
   this->dim_ = domain->GetGrid()->GetDim();
@@ -121,7 +121,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
           sym->AddSymmetryReference(&shape_param_[ortho->start_param + idx], ortho, false, shape.type == NODE); // reciprocal for node
           // first opt item copies to first sym
 
-        if(sym_ortho && sym_map && !(odd_elements && p == end -1)) // Double mapping in x_sym and y_sym concurrently -> odd stuff already in sym_mirror
+        if(sym_ortho && sym_map && !(odd_elements && p == end -1)) // double mapping in x_sym and y_sym concurrently -> odd stuff already in sym_mirror
           sym->AddSymmetryReference(&shape_param_[ortho->end_param - 1 - idx], ortho, true, shape.type == NODE); // reciprocal for node
 
         if(sym_diag)
@@ -199,7 +199,7 @@ void ShapeMapDesign::CheckPlausibility()
    LOG_DBG(SMD) << "SSD: children of shapeParam: " << nodes.GetSize();
    assert(!nodes.IsEmpty());
    // first we add the shapes, as we might induce additional shapes during Init we add the profiles later
-   shape_.Reserve(2 * nodes.GetSize() * 4); // list is for nodes which are Doubled by profile, might become larger when we induce stuff. Important!!
+   shape_.Reserve(2 * nodes.GetSize() * 4); // list is for nodes which are doubled by profile, might become larger when we induce stuff. Important!!
    for(unsigned int i = 0, n = nodes.GetSize(); i < n; i++)
    {
      shape_.Push_back(ShapeParam());
@@ -279,7 +279,7 @@ void ShapeMapDesign::CheckPlausibility()
    StdVector<ShapeParam*> shape_y = FindShape(NODE, 1);
 
    num_node_shape_params_ = (nx_+1) * shape_x.GetSize() + (ny_+1) * shape_y.GetSize(); // one node more than elements
-   shape_param_.Reserve(2 * num_node_shape_params_); // all Doubled for profile
+   shape_param_.Reserve(2 * num_node_shape_params_); // all doubled for profile
    assert(shape_param_.Capacity() > 0);
 
    // take the shapes in the order they are stored in shape_ as read from xml plus induced shapes
@@ -307,7 +307,7 @@ void ShapeMapDesign::CheckPlausibility()
      assert(prof.end_param - prof.start_param == node.end_param - node.start_param);
      assert(prof.start_param - num_node_shape_params_ == node.start_param);
    }
-   assert((int) shape_param_.GetSize() == 2 * num_node_shape_params_); // all Doubled for profile
+   assert((int) shape_param_.GetSize() == 2 * num_node_shape_params_); // all doubled for profile
 
    // set map_ to map from shape_param to DesignSpace::data, fill with shape_param_
    map_.Resize(data.GetSize());
@@ -352,12 +352,12 @@ void ShapeMapDesign::CheckPlausibility()
        }
      }
    }
-   assert(shape_.Capacity() == 2 * nodes.GetSize() * 4); // induced nodes (*4) Doubled by profile
+   assert(shape_.Capacity() == 2 * nodes.GetSize() * 4); // induced nodes (*4) doubled by profile
    // don't map shape to density yet as symmetry might induce additional shapes
 }
 
 
-int ShapeMapDesign::ReadDesignFromExtern(const Double* space_in)
+int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
 {
   int old_design = design_id;
 
@@ -369,7 +369,7 @@ int ShapeMapDesign::ReadDesignFromExtern(const Double* space_in)
 
   for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
   {
-    Double v = space_in[i] * scaling_;
+    double v = space_in[i] * scaling_;
     if(!new_design && v != opt_shape_param_[i].elem->GetPlainDesignValue())
       new_design = true;
 
@@ -395,11 +395,11 @@ int ShapeMapDesign::ReadDesignFromExtern(const Double* space_in)
   return design_id;
 }
 
-bool ShapeMapDesign::CompareDesign(const Double* space_in)
+bool ShapeMapDesign::CompareDesign(const double* space_in)
 {
   for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
   {
-    Double v = space_in[i] * scaling_;
+    double v = space_in[i] * scaling_;
     if(v != opt_shape_param_[i].elem->GetPlainDesignValue())
       return false;
   }
@@ -408,9 +408,9 @@ bool ShapeMapDesign::CompareDesign(const Double* space_in)
   return AuxDesign::CompareDesign(space_in);
 }
 
-int ShapeMapDesign::WriteDesignToExtern(Double* space_out, bool scale) const
+int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scale) const
 {
-  Double rscaling = scale ? 1.0 / scaling_ : 1.0;
+  double rscaling = scale ? 1.0 / scaling_ : 1.0;
 
   for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
   {
@@ -424,7 +424,7 @@ int ShapeMapDesign::WriteDesignToExtern(Double* space_out, bool scale) const
   return design_id;
 }
 
-void ShapeMapDesign::WriteGradientToExtern(StdVector<Double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
+void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
 {
   LOG_DBG2(SMD) << "WGTE: f=" << f->ToString() << " ad=" << aux_design_.GetSize() << " osp=" << opt_shape_param_.GetSize() << " out=" << out.GetSize() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
   assert(out.window.GetStart() + out.window.GetSize() <= out.GetSize());
@@ -454,8 +454,8 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<Double>& out, DesignElement
     {
       assert(out.InWindow(base + s));
 
-      Double opt = opt_shape_param_[s].elem->GetPlainGradient(f);
-      Double sym = opt_shape_param_[s].sym->GetPlainSymGradient(f);
+      double opt = opt_shape_param_[s].elem->GetPlainGradient(f);
+      double sym = opt_shape_param_[s].sym->GetPlainSymGradient(f);
 
       out[base + s] = (opt + sym) * scaling;
 
@@ -478,11 +478,11 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<Double>& out, DesignElement
       LOG_DBG3(SMD) << "WGTE i=" << i << " s=" << s << " base=" << base << " b+s=" << (base+s);
 
       assert(out.InWindow(base + i));
-      Double scale = scaling ? scaling_ : 1.0;
+      double scale = scaling ? scaling_ : 1.0;
       assert(vs == BaseDesignElement::CONSTRAINT_GRADIENT);
 
-      Double opt = opt_shape_param_[s].elem->GetPlainGradient(f);
-      Double sym = opt_shape_param_[s].sym->GetPlainSymGradient(f);
+      double opt = opt_shape_param_[s].elem->GetPlainGradient(f);
+      double sym = opt_shape_param_[s].sym->GetPlainSymGradient(f);
 
       out[base + i] = (opt + sym) * scale;
     }
@@ -503,7 +503,7 @@ void ShapeMapDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type
   AuxDesign::Reset(vs, design);
 }
 
-void ShapeMapDesign::WriteBoundsToExtern(Double* x_l, Double* x_u) const
+void ShapeMapDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 {
   for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
   {
@@ -550,7 +550,7 @@ int ShapeMapDesign::FindDesign(DesignElement::Type dt, bool throw_exception) con
   return -1;
 }
 
-void ShapeMapDesign::ReadDensityXml(PtrParamNode set, Double& lower_violation, Double& upper_violation)
+void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, double& upper_violation)
 {
   ParamNodeList list = set->GetList("shapeParamElement");
   if(list.IsEmpty())
@@ -583,7 +583,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, Double& lower_violation, D
     if(dt == BaseDesignElement::NODE && pn->Get("dof")->As<string>() != Dof(spe.dof))
       EXCEPTION("shapeParamElement nr " << i << " has not the expected dof " << Dof(spe.dof));
 
-    Double val = pn->Get("design")->As<Double>();
+    double val = pn->Get("design")->As<double>();
     LOG_DBG2(SMD) << "RDX: design val=" << val;
 
     if(!shape->fixed && !shape->sym_induced) // with fixed we don't read bounds
@@ -600,7 +600,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, Double& lower_violation, D
     spe.SetDesign(val); // possibly corrected val
 
     // Get value of the relative bound for current design variable. If value not set, db = -1.
-    Double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
+    double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
     assert(!(shape->fixed && rb >= 0.0));
 
     // consider ShapeParam::clamped which overwrites relative_*_bound for the first and last element
@@ -972,7 +972,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    LOG_DBG(SMD) << "MSTD: di=" << design_id;
    Grid* grid = domain->GetGrid();
    // within the element coordinates we perform the integration
-   Matrix<Double> coords;
+   Matrix<double> coords;
    int res_idx_r = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_RELEVANT);
 
    assert(data.GetSize() == map_.GetSize());
@@ -999,8 +999,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      if(res_idx_r >= 0)
        de->specialResult[res_idx_r] = shapes.GetSize();
 
-     Double rho = 0.0; // sum up over all ips (if shapes is large enough :))
-     Double ip_rho = 0.0; // usage depends on overlap_
+     double rho = 0.0; // sum up over all ips (if shapes is large enough :))
+     double ip_rho = 0.0; // usage depends on overlap_
 
      if(!shapes.IsEmpty())
      {
@@ -1014,7 +1014,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
            {
            case MAX:
              for(unsigned int si = 0; si < shapes.GetSize(); si++){
-               Double t = Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, 2*beta_, ip_x, ip_y, false, false); // no derivative
+               double t = Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, 2*beta_, ip_x, ip_y, false, false); // no derivative
                if(t >= ip_rho) { // equal is important to overwrite index -1 with a 0.0 rho and not to keep it
                  ip_rho = t;
                  item.ip_param_idx[ip_y*order_+ip_x] = shapes[si]; // x fastest, easy to extend to 3D
@@ -1073,14 +1073,14 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
    Grid* grid = domain->GetGrid();
    // within the element coordinates we perform the integration
-   Matrix<Double> coords;
+   Matrix<double> coords;
    for(unsigned int r = 0, n = map_.GetSize(); r < n; r++) // traverse all rho design elements
    {
      Item& item = map_[r];
      DesignElement* de = item.rho;
      grid->GetElemNodesCoord(coords, de->elem->connect, false); // no deformed mesh
-     Double log_da = 0.0;
-     Double log_dw = 0.0;
+     double log_da = 0.0;
+     double log_dw = 0.0;
 
      if(item.relevant_nodes.GetSize() > 0)
      {
@@ -1115,12 +1115,12 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
              LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " ip_x=" << ip_x << " ip_y=" << ip_y << " s=" << s << " s1=" << s1->ToString() << " #dJ=" << s1->costGradient.GetSize() << " s2=" << s2->ToString() << " #dJ=" << s2->costGradient.GetSize();
 
              // this will point to the initially or cached da_norm
-             Double& da_norm = item.da_norm_cache[s * order_order_ + IntPointIdx(ip_x, ip_y)]; // reference such that we automatically store the stuff
+             double& da_norm = item.da_norm_cache[s * order_order_ + IntPointIdx(ip_x, ip_y)]; // reference such that we automatically store the stuff
 
              // check for first usage of da_cache
              if(!grad_cached)
              {
-               Double da = 0.0;
+               double da = 0.0;
                switch(overlap_)
                {
                case MAX:
@@ -1131,11 +1131,11 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                {
                  // we need the sum of tanh(a) as arguemnt. To validate the method we recompute it :(
                  StdVector<int>& shapes = item.relevant_nodes; // shortcut
-                 Double sum_rho = 0.0;
+                 double sum_rho = 0.0;
                  for(unsigned int si = 0; si < shapes.GetSize(); si++)
                    sum_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
                  // this is the derivative for the tanh(shape)
-                 Double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, true, false); // dtanh_da -> half beta!
+                 double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, true, false); // dtanh_da -> half beta!
                  da = tanh_sum_.d_map(sum_rho, d_tanh_d_shape);
                  LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
                                << " sum=" << sum_rho << " d_shape=" << d_tanh_d_shape << " -> " << da;
@@ -1159,10 +1159,10 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                ShapeParamElement* w1 = GetProfile(s1);
                ShapeParamElement* w2 = GetProfile(s2);
 
-               Double& dw_norm = item.dw_norm_cache[s * order_order_ + IntPointIdx(ip_x, ip_y)];
+               double& dw_norm = item.dw_norm_cache[s * order_order_ + IntPointIdx(ip_x, ip_y)];
                if(!grad_cached)
                {
-                 Double dw = 0.0;
+                 double dw = 0.0;
                  switch(overlap_)
                  {
                  case MAX:
@@ -1173,11 +1173,11 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
                  {
                    // we need the sum of tanh(a) as arguemnt. To validate the method we recompute it :(
                    StdVector<int>& shapes = item.relevant_nodes; // shortcut
-                   Double sum_rho = 0.0;
+                   double sum_rho = 0.0;
                    for(unsigned int si = 0; si < shapes.GetSize(); si++)
                      sum_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, beta_, ip_x, ip_y, false, false); // no derivative
                    // this is the derivative for the tanh(shape)
-                   Double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, false, true); // dtanh_dw -> half beta!
+                   double d_tanh_d_shape = Eval(s1, s2, coords, beta_, ip_x, ip_y, false, true); // dtanh_dw -> half beta!
                    dw = tanh_sum_.d_map(sum_rho, d_tanh_d_shape);
                    LOG_DBG3(SMD) << "MSG: el=" << de->elem->elemNum << " shapes=" << shapes.GetSize() << " ip_x=" << ip_x << " ip_y=" << ip_y
                        << " sum=" << sum_rho << " d_shape=" << d_tanh_d_shape << " -> " << dw;
@@ -1265,7 +1265,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    return NULL;
  }
 
- inline Double ShapeMapDesign::Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<Double>& coords, Double beta, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const
+ inline double ShapeMapDesign::Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const
  {
    assert(dim_ == 2);
    assert(s1->dof == s2->dof);
@@ -1283,20 +1283,20 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
    int dof = s1->dof;
    // element position
-   Double start = dof == 0 ? coords[0][0] : coords[1][0];
-   Double end   = dof == 0 ? coords[0][1] : coords[1][3];
+   double start = dof == 0 ? coords[0][0] : coords[1][0];
+   double end   = dof == 0 ? coords[0][1] : coords[1][3];
    // the parameters
-   Double a1 = s1->GetPlainDesignValue();
-   Double a2 = s2->GetPlainDesignValue();
+   double a1 = s1->GetPlainDesignValue();
+   double a2 = s2->GetPlainDesignValue();
    // the profiles
    assert(GetProfile(s1)->GetType() == BaseDesignElement::PROFILE);
-   Double w1 = 0.5 * GetProfile(s1)->GetPlainDesignValue(); // half profile as tanh wants the half width
-   Double w2 = 0.5 * GetProfile(s2)->GetPlainDesignValue();
+   double w1 = 0.5 * GetProfile(s1)->GetPlainDesignValue(); // half profile as tanh wants the half width
+   double w2 = 0.5 * GetProfile(s2)->GetPlainDesignValue();
 
-   Double xy = start + (dof == 0 ? ip_x : ip_y) /(order_-1.) * (end-start); // for dof=0 (x) xy is x and might be far away from a
-   Double a  = a1 + (dof == 0 ? ip_y : ip_x)/(order_-1.) * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
-   Double w  = w1 + (dof == 0 ? ip_y : ip_x)/(order_-1.) * (w2-w1);
-   Double val = -1.0;
+   double xy = start + (dof == 0 ? ip_x : ip_y) /(order_-1.) * (end-start); // for dof=0 (x) xy is x and might be far away from a
+   double a  = a1 + (dof == 0 ? ip_y : ip_x)/(order_-1.) * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
+   double w  = w1 + (dof == 0 ? ip_y : ip_x)/(order_-1.) * (w2-w1);
+   double val = -1.0;
    if(grad_a)
      val = d_tanh_da(beta, xy, a, w);
    if(grad_w)
@@ -1308,10 +1308,10 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    return val;
  }
 
- inline bool ShapeMapDesign::CloseEnough(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<Double>& coords) const
+ inline bool ShapeMapDesign::CloseEnough(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const
  {
    assert(dim_ == 2);
-   Double max        = Eval(s1, s2, coords, 2*beta_, 0,               0, false, false); // false=no derivative
+   double max        = Eval(s1, s2, coords, 2*beta_, 0,               0, false, false); // false=no derivative
    max = std::max(max, Eval(s1, s2, coords, 2*beta_, 0,        order_-1, false, false));
    max = std::max(max, Eval(s1, s2, coords, 2*beta_, order_-1,        0, false, false));
    max = std::max(max, Eval(s1, s2, coords, 2*beta_, order_-1, order_-1, false, false));
@@ -1319,19 +1319,19 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
  }
 
 
- inline Double ShapeMapDesign::tanh(Double beta, Double x, Double a, Double w) const
+ inline double ShapeMapDesign::tanh(double beta, double x, double a, double w) const
  {
    // set xrange[0:1]; a = 0.5; w=0.1; beta=30
    // plot 1-1/(exp(2*beta*(x-a+w)) + 1), 1/(exp(2*beta*(x-a-w)) + 1)
    //
    // ta(x)=1-1/(exp(2*beta*(x-a+w)) + 1)
    if(x <= a)
-     return 1.0 - 1/(exp(beta*(x-a+w))+1);
+     return 1.0 - 1/(std::exp(beta*(x-a+w))+1);
   else
-    return 1/(exp(beta*(x-a-w))+1);
+    return 1/(std::exp(beta*(x-a-w))+1);
  }
 
- inline Double ShapeMapDesign::d_tanh_da(Double beta, Double x, Double a, Double w) const
+ inline double ShapeMapDesign::d_tanh_da(double beta, double x, double a, double w) const
  {
    // set xrange[0:1]; a = 0.5; d=0.5; beta=30
    // plot -1* (exp(2*beta*(x-a+w)) + 1)**-2 *2*beta*exp(2*beta*(x-a+w)), (exp(2*beta*(x-a-w))+1)**-2 *2*beta*exp(2*beta*(x-a-w))
@@ -1347,17 +1347,17 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    // end
 
    if(x <= a)
-     return -1./((exp(beta*(x-a+w))+1) * (exp(beta*(x-a+w))+1)) * beta*exp(beta*(x-a+w));
+     return -1./((std::exp(beta*(x-a+w))+1) * (std::exp(beta*(x-a+w))+1)) * beta*std::exp(beta*(x-a+w));
   else
-    return 1/((exp(beta*(x-a-w))+1) * (exp(beta*(x-a-w))+1)) * beta*exp(beta*(x-a-w));
+    return 1/((std::exp(beta*(x-a-w))+1) * (std::exp(beta*(x-a-w))+1)) * beta*std::exp(beta*(x-a-w));
  }
 
- inline Double ShapeMapDesign::d_tanh_dw(Double beta, Double x, Double a, Double w) const
+ inline double ShapeMapDesign::d_tanh_dw(double beta, double x, double a, double w) const
  {
    if(x <= a)
-     return 1./((exp(beta*(x-a+w))+1) * (exp(beta*(x-a+w))+1)) * beta*exp(beta*(x-a+w));
+     return 1./((std::exp(beta*(x-a+w))+1) * (std::exp(beta*(x-a+w))+1)) * beta*std::exp(beta*(x-a+w));
   else
-    return 1/((exp(beta*(x-a-w))+1) * (exp(beta*(x-a-w))+1)) * beta*exp(beta*(x-a-w));
+    return 1/((std::exp(beta*(x-a-w))+1) * (std::exp(beta*(x-a-w))+1)) * beta*std::exp(beta*(x-a-w));
  }
 
 
@@ -1408,15 +1408,15 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
   MathParser* mp = domain->GetMathParser();
   MathParser::HandleType handle = mp->GetNewHandle();
 
-  // set the coordinate index ("xi", "yi") of the free value as integer value. "xi/nx" with make a Double out of it. We simply don't know the real coordinate
+  // set the coordinate index ("xi", "yi") of the free value as integer value. "xi/nx" with make a double out of it. We simply don't know the real coordinate
   std::string var = param->dof == 0 ? "yi" : "xi";
   mp->SetValue(handle, var, free);
 
   mp->SetExpr(handle, param->value);
-  Double value = mp->Eval(handle);
+  double value = mp->Eval(handle);
 
-  Double lower = -1;
-  Double upper = -1;
+  double lower = -1;
+  double upper = -1;
 
   if(!param->fixed)
   {
@@ -1436,7 +1436,7 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
   }
   else
   {
-    Double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
+    double rb = spe.GetType() == DesignElement::NODE ? relative_node_bound_ : relative_profile_bound_;
     if(rb >= 0 && !DensityFile::NeedLoadErsatzMaterial()) // don't set the bounds relative to initial when we later load an external design
     {
       spe.SetUpperBound(std::min(upper, std::max(value + rb/2, lower)));
@@ -1451,11 +1451,11 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free, bool
 
   spe.dof = param->dof;
   if(spe.dof == 0) {
-    spe.coord[1] = (Double) free / ny_; // free is max ny_
+    spe.coord[1] = (double) free / ny_; // free is max ny_
     spe.idx[1] = free;
   }
   if(spe.dof == 1) {
-    spe.coord[0] = (Double) free / nx_;
+    spe.coord[0] = (double) free / nx_;
     spe.idx[0] = free;
   }
 
@@ -1510,7 +1510,7 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int 
 
    assert(!(node != NULL && flip_orientation));
 
-   clamp = pn->Get("clamp")->As<Double>();
+   clamp = pn->Get("clamp")->As<double>();
 
    if(type == NODE)
    {
@@ -1680,12 +1680,12 @@ ShapeMapDesign::TanhSum::TanhSum()
   assert(map(2.0) <= 1.01);
 }
 
-inline Double ShapeMapDesign::TanhSum::tanh(Double x)
+inline double ShapeMapDesign::TanhSum::tanh(double x)
 {
-  return 1.0 - 1/(exp(beta*(x-0.5))+1);
+  return 1.0 - 1/(std::exp(beta*(x-0.5))+1);
 }
 
-inline Double ShapeMapDesign::TanhSum::map(Double x)
+inline double ShapeMapDesign::TanhSum::map(double x)
 {
   // set xrange[0:1]; a = 0.5; b=0.8; w=0.1; beta=30
   // ta(x,beta) = 1-1/(exp(beta*(x-a+w)) + 1)
@@ -1697,7 +1697,7 @@ inline Double ShapeMapDesign::TanhSum::map(Double x)
   return offset + scale * tanh(x);
 }
 
-inline Double ShapeMapDesign::TanhSum::d_map(Double x, Double dx)
+inline double ShapeMapDesign::TanhSum::d_map(double x, double dx)
 {
   // set xrange[0:1]; a = 0.5; b=0.8; w=0.1; beta=30
   // ta(x,beta) = 1-1/(exp(beta*(x-a+w)) + 1)
@@ -1708,7 +1708,7 @@ inline Double ShapeMapDesign::TanhSum::d_map(Double x, Double dx)
   // maxima:
   // f(x) := 1-1/(exp(11*(g(x)-0.5))+1);
   // diff(f(x),x);
-  return scale * std::pow(exp(beta*(x-0.5))+1, -2) * exp(beta*(x-0.5)) * beta * dx;
+  return scale * std::pow(std::exp(beta*(x-0.5))+1, -2) * std::exp(beta*(x-0.5)) * beta * dx;
 }
 
 void ShapeMapDesign::OptVar::Init(ShapeParamElement* elem)
@@ -1756,9 +1756,9 @@ void ShapeMapDesign::ElementSymmetry::ApplyDesign()
 }
 
 
-Double ShapeMapDesign::ElementSymmetry::GetPlainSymGradient(const Function* f) const
+double ShapeMapDesign::ElementSymmetry::GetPlainSymGradient(const Function* f) const
 {
-  Double res = 0.0;
+  double res = 0.0;
 
   for(unsigned int i = 0; i < hidden.GetSize(); i++)
   {

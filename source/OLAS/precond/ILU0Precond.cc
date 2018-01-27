@@ -160,21 +160,10 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
   for (k=0; k<a_size; k++) {
     // Keep user informed on progress
     actDone = (double)(k*100) / (double)(size_-1);
-//     actDone = (UInt)(actDone/10.0)*10;
-//     if ( actDone > percentDone ) {
-//       percentDone = (UInt)actDone;
-//     }
-#ifndef USE_ADOLC
-      actDone = (UInt)(actDone/10.0)*10;
-      if ( actDone > percentDone ) {
-        percentDone = (UInt)actDone;
-      }
-#else
-      actDone = (UInt)(actDone.getValue()/10.0)*10;
-      if ( actDone > percentDone ) {
-        percentDone = (UInt)actDone.getValue();
-      }
-#endif
+    actDone = (UInt)(actDone/10.0)*10;
+    if ( actDone > percentDone ) {
+      percentDone = (UInt)actDone;
+    }
 
     // set help array for nonzero column indices of row k 
     // the help array contains the positions of nonzero entries 
@@ -225,11 +214,7 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
 
     // if the diagonal has not been found or is zero
     // we terminate Setup and state that it failed.
-#ifndef USE_ADOLC
     if (jrow!=k || ilu_data_[j] == 0.0) {
-#else
-    if (jrow!=k || Abs(ilu_data_[j]) == 0.0) {
-#endif
       EXCEPTION("Zero pivot in ILU setup!");
     }// 0 pivot
 

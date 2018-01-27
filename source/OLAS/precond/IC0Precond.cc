@@ -110,22 +110,10 @@ namespace CoupledField {
 
         // Keep user informed on progress
         actDone = (double)(k*100) / (double)(size_-1);
-//         actDone = (UInt)(actDone/10.0)*10;
-//         if ( actDone > percentDone ) {
-//           percentDone = (UInt)actDone;
-//         }
-#ifndef USE_ADOLC
-      actDone = (UInt)(actDone/10.0)*10;
-
-      if ( actDone > percentDone ) {
-        percentDone = (UInt)actDone;
-      }
-#else
-      actDone = (UInt)(actDone.getValue()/10.0)*10;
-      if ( actDone > percentDone ) {
-        percentDone = (UInt)actDone.getValue();
-      }
-#endif
+        actDone = (UInt)(actDone/10.0)*10;
+        if ( actDone > percentDone ) {
+          percentDone = (UInt)actDone;
+        }
 
         Rkk = dataU_[rptrA[k]];
 
@@ -165,7 +153,7 @@ namespace CoupledField {
         }
 
         if (  CheckPositivity(Rkk) > 0 ) {
-          sqrRkk = Sqrt(Rkk);
+          sqrRkk = sqrt(Rkk);
           dataU_[rptrA[k]] = sqrRkk;
 
           for (UInt i=rptrA[k]+1; i<rptrA[k+1]; i++) {

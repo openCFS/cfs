@@ -18,37 +18,15 @@
 #include <def_build_type_options.hh>
 #include <def_xmlschema.hh>
 
-//#define USE_ADOLC 1 // why does this not autmatically work with include/def_use_adolc.hh.in and cmake USE_ADOLC option?
-#include "def_use_adolc.hh" // this is a really bad idea. where do i set this to read automatically?
-#ifdef USE_ADOLC
-#include "adolc/adtl.h"
-#endif
-
-
 namespace CoupledField{
 
-// if AD is to be used, then use adouble data type
-#ifdef USE_ADOLC 
-typedef boost::int32_t Integer;
-typedef boost::uint32_t UInt;
-typedef boost::int16_t ShortInt;
-typedef adtl::adouble adouble;
-typedef adouble Float;
-typedef adouble Double;
-typedef adouble Adouble; //for good measure
-typedef std::complex<Double> Complex;
-#else 
-// if not, then use standard
-  //! redeclaration of types
+//! redeclaration of types
 typedef boost::int32_t Integer;
 typedef boost::uint32_t UInt;
 typedef boost::int16_t ShortInt;
 typedef float Float;
 typedef double Double;
 typedef std::complex<Double> Complex;
-#endif
-
-
 
 #define MACRO2STRING(a) QUOTEMACRO(a)
 //! Auxiliary macro needed by MACRO2STRING
