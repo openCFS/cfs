@@ -144,10 +144,10 @@ namespace CoupledField {
     dataU.reserve( memSize );
 
     // OLAS uses one-base indexing, so we push_back a zero up front
-    dataD.push_back( T(0) );
+    dataD.push_back( 0 );
     rptrU.push_back( 0 );
     cidxU.push_back( 0 );
-    dataU.push_back( T(0) );
+    dataU.push_back( 0 );
 
 #ifdef DEBUG_ILDLTPFACTORISER
     (*debug) << " (Pre-)Allocated memory for storing factorisation"
@@ -255,17 +255,10 @@ namespace CoupledField {
 
       // Keep user informed on progress
       actDone = (double)(k*100) / (double)this->sysMatDim_;
-#ifndef USE_ADOLC
       actDone = (UInt)(actDone/10.0)*10;
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
       }
-#else
-      actDone = (UInt)(actDone.getValue()/10.0)*10;
-      if ( actDone > percentDone ) {
-        percentDone = (UInt)actDone.getValue();
-      }
-#endif
 
       // Insert row k of A into linked list, but omit the diagonal entry
       if ( rptrA[k+1] - rptrA[k] > 1 ) {
@@ -692,7 +685,7 @@ namespace CoupledField {
     Double norm = 0.0;
     Double threshold = 0.0;
 
-    std::vector<Double> filter;
+    std::vector<double> filter;
 
     // =========================
     //  Determine 1-norm of row
@@ -766,11 +759,11 @@ namespace CoupledField {
       //  Determine threshold for keeping
       //  only the maxFill largest entries
       // ==================================
-      std::vector<Double>::iterator cutOff = filter.begin() + maxFill - 1;
+      std::vector<double>::iterator cutOff = filter.begin() + maxFill - 1;
       nth_element( filter.begin(), cutOff, filter.end(),
-                   std::greater<Double>());
+                   std::greater<double>());
       // partial_sort( filter.begin(), cutOff, filter.end(),
-      //              std::greater<Double>());
+      //              std::greater<double>());
       threshold = *cutOff;
 
       // =======================================================

@@ -151,7 +151,7 @@ namespace CoupledField {
     int numArnoldiVec_;
 
     /** Facor of Arnolid vectors w.r.t number of frequencies (usually 1.1 ... 2) */
-    Double arnoldiFactor_;
+    double arnoldiFactor_;
 
     //! Size of equation system
     int size_;
@@ -165,7 +165,7 @@ namespace CoupledField {
     SingleVector* eigenVectors_;
 
     //! stores the tolerances for the calculated eigenvalues
-    Vector<Double> eigenTolerances_;
+    Vector<double> eigenTolerances_;
   };
 }
 

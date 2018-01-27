@@ -72,10 +72,10 @@ namespace CoupledField {
     dataU.reserve( nnzA - this->sysMatDim_ +1 ); // since these are 1
 
     // OLAS uses one-base indexing, so we push_back a zero up front
-    dataD.push_back( T(0.0) );
+    dataD.push_back( 0 );
     rptrU.push_back( 0 );
     cidxU.push_back( 0 );
-    dataU.push_back( T(0.0) );
+    dataU.push_back( 0 );
 
     // do the factorization
     FactoriseNumerics( sysMat, dataD, rptrU, cidxU, dataU );
@@ -120,7 +120,7 @@ namespace CoupledField {
     Integer nnzA = (sysMat.GetNnz() + this->sysMatDim_ ) / 2;
     std::vector<T> dataH;
     dataH.resize(nnzA - this->sysMatDim_+1);
-    dataH.push_back(T(0) );
+    dataH.push_back( 0 );
 
 		// COMPWARNING: unused variable Integer idx 
     Integer idxK1, idxK2, idxI1, idxI2;

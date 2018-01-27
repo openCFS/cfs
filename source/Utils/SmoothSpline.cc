@@ -76,7 +76,7 @@ namespace CoupledField
     Double xEndPrime;
     xEndPrime      = (xEnd_ - x_[numMeas_-2]) / (yEnd_ - y_[numMeas_-2]);
     extrapolAlpha_ = (xEnd_ - xEndPrime * yEnd_) / (xEnd_*yEnd_ - nuMax_*yEnd_*yEnd_);
-    extrapolBeta_  = ( (xEnd_/yEnd_) - nuMax_ ) * exp(extrapolAlpha_*yEnd_);   
+    extrapolBeta_  = ( (xEnd_/yEnd_) - nuMax_ ) * std::exp(extrapolAlpha_*yEnd_);   
   }
 
 

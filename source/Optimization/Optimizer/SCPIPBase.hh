@@ -9,7 +9,7 @@
 // This Interface is written to be used in Finite Element Simulation software CFS++
 // of chair for sensorics at the university of Erlangen in Germany.
 //
-// The Double usage in the C++SCPIP interface is realized via the USE_4_CFS compile
+// The double usage in the C++SCPIP interface is realized via the USE_4_CFS compile
 // time flag.
 #ifdef USE_4_CFS
   #include "General/Enum.hh"
@@ -149,7 +149,7 @@
      * @param obj_value the objective value of the last iterate */ 
     virtual void finalize_solution(int status, int n, const double* x, const double* z_L, 
         const double* z_U, int m, const double* g, 
-        const double* lambda, Double obj_value) = 0;
+        const double* lambda, double obj_value) = 0;
 
     /** Intermediate Callback method for the user. 
      * This method is called every SCPIP return, hence multiple times per iteration.
@@ -172,7 +172,7 @@
 
     void SetIntegerValue(const std::string& key, int value);
 
-    void SetNumericValue(const std::string& key, Double value);             
+    void SetNumericValue(const std::string& key, double value);             
 
     /** This containts the most important exit states. Make it readable with ToString().
      * It resembles the notation of IPOPT but clearly not the numbering */
@@ -191,7 +191,7 @@
 
         int IterationCount() { return base->info[20-1]; }
 
-        Double FinalObjective() { return base->f_org; }
+        double FinalObjective() { return base->f_org; }
 
       private:
         SCPIPBase* base;
@@ -211,16 +211,16 @@
       bool equal;
 
       /** the original value! */
-      Double lower;
+      double lower;
 
       /** the original value */
-      Double upper;
+      double upper;
 
       /** org value - shift = 0 */
-      Double shift;
+      double shift;
 
       /** only for unequal. is 1/-1 AFTER shifting */
-      Double factor;
+      double factor;
 
       /** shortcut to and redundant with grad_j_size */
       int nnz;
@@ -265,10 +265,10 @@
 
     /** The obj_scaling value foe objective and gradient. 
      * @see use_obj_scaling */
-    Double obj_scaling;
+    double obj_scaling;
 
     /** This is the original objective value */
-    Double f_org_unscaled;
+    double f_org_unscaled;
 
     /** do constraint scaling? must be set with 'nlp_scaling_method'='user-scaling' 
      * and is then read via get_scaling_parameters() */
@@ -337,7 +337,7 @@
 
     /** Contains the objective function value of the last computed iterate.
      * In case of scaling this is scaled! */
-    Double f_org;
+    double f_org;
 
     /** contains the values of the inequality constraints at the last computed iterate */
     StdVector<double> h_org;
@@ -432,7 +432,7 @@
 
 
     /** for some strange reason there is a problem with std::abs(). */
-    Double abs(double val)
+    double abs(double val)
     {
       return val > 0 ? val : -1.0 * val;
     }

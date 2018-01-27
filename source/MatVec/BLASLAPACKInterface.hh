@@ -8,10 +8,6 @@
 
 #include <complex>
 
-#include <def_use_adolc.hh>
-#include "General/defs.hh"
-#include "General/Exception.hh"
-
 namespace CoupledField 
 {
 
@@ -23,27 +19,6 @@ namespace CoupledField
 
 #ifdef USE_BLAS
 
-#ifdef USE_ADOLC
-// methods are currently not defined but could easily be added in the future. "Fleissarbeit"
-    inline void dgemm(char*, char*, int*, int*, int*, Double*, Double*, int* ,
-               Double*, int*, Double*, Double*, int*){EXCEPTION("Not implemented.");}
-    
-    // complex matrix matrix multiplication
-    inline void zgemm(char*, char*, int*, int*, int*, std::complex<Double>*,
-               std::complex<Double>*,int*, std::complex<Double>*,int*,
-               std::complex<Double>*, std::complex<Double>*,int*){EXCEPTION("Not implemented.");}
-    
-    // matrix vector multiplication
-    inline void dgemv(char*, int*, int*, Double*, Double*, int*, const Double*,
-               int*, Double*, Double*, int*){EXCEPTION("Not implemented.");}
-    
-    // complex matrix vector multiplication
-    inline void zgemv(char*, int*, int*, std::complex<Double>*, std::complex<Double>*,
-               int*, const std::complex<Double>*, int*, std::complex<Double>*,
-               std::complex<Double>*,int*){EXCEPTION("Not implemented.");}
-    
-#else
-    
   extern "C"{
     // matrix matrix multiplication
     void dgemm(char*, char*, int*, int*, int*, double*, double*, int* ,
@@ -64,95 +39,10 @@ namespace CoupledField
                std::complex<double>*,int*);
     
   }
-#endif
+
 #endif
 
 #ifdef USE_LAPACK
-
-#ifdef USE_ADOLC
-
-
-    //! LU decomoposition of a general matrix
-    void dgetrf( int* M, int *N, Double* A, int* lda, int* IPIV, int* INFO ){EXCEPTION("Not implemented.");}
-
-    void zgetrf( const int* m, const int* n, std::complex<Double>* a,
-                 const int* lda, int* ipiv, int* info ){EXCEPTION("Not implemented.");}
-
-    //! generate inverse of a matrix given its LU decomposition
-    void dgetri( int* N, Double* A, int* lda, int* IPIV, Double* WORK, int* lwork, int* INFO ){EXCEPTION("Not implemented.");}
-
-    void zgetri( const int* n, std::complex<Double>* a, const int* lda,
-                 const int* ipiv, std::complex<Double>* work, const int* lwork,
-				 int* info ){EXCEPTION("Not implemented.");}
-
-    //! Cholesky decomposition of a symmetric matrix
-    void dpotrf( char*, int*, Double*, int*, int* ){EXCEPTION("Not implemented.");}
-    
-    //! generate inverse of a matrix given its Cholesky decomposition
-    void dpotri( char*, int*, Double* , int*, int* ){EXCEPTION("Not implemented.");}
-    
-    //! solves positive definite system
-    void dposv( char*, int*, int*, Double*, int*, Double*, int*, int* ){EXCEPTION("Not implemented.");}
-     
-    //! solves symmetric problems with complex coefficients
-    void zsysv( char*, int*, int*, std::complex<Double>*, int*, int*,
-                std::complex<Double>*, int*, std::complex<Double>*, int*, int* ){EXCEPTION("Not implemented.");}
-    
-    //! solves hermitian problems
-    void zhesv( char*, int*, int*, std::complex<Double>*, int*, int*,
-                std::complex<Double>*, int*, std::complex<Double>*, int*, int* ){EXCEPTION("Not implemented.");}
-    
-    //! solves general kind of problems with complex coefficients
-    void zgesv( int*, int*, std::complex<Double>*, int*, int*, std::complex<Double>*, int*, int*){EXCEPTION("Not implemented.");}
-    //    Double LP_DLAMCH (char *CMACHp); // DLAMCH - determine Double precision machine parameters
-    
-    //! determines eigenvalues of a complex - valued matrix
-    void zheev( char*, char*, int*, std::complex<Double>*, int *, Double*,
-                std::complex<Double>*, int*, Double* ,int* ){EXCEPTION("Not implemented.");}
-
-    void dgbtrf( int*, int*, int*, int*, Double    *, int*, int*, int* );
-    void zgbtrf( int*, int*, int*, int*, std::complex<Double> *, int*, int*, int* ){EXCEPTION("Not implemented.");}
-
-    void dgbequ( int*, int*, int*, int*, Double*, int*, Double*,
-                 Double*, Double*, Double*, Double*, int* ){EXCEPTION("Not implemented.");}
-    void zgbequ( int*, int*, int*, int*, std::complex<Double>*, int*, Double*,
-                 Double*, Double*, Double*, Double*, int* ){EXCEPTION("Not implemented.");}
-
-    void dlaqgb( int*, int*, int*, int*, Double*, int*, Double*,
-                 Double*, Double*, Double*, Double*, char* ){EXCEPTION("Not implemented.");}
-    void zlaqgb( int*, int*, int*, int*, std::complex<Double>*, int*, Double*,
-                 Double*, Double*, Double*, Double*, char* ){EXCEPTION("Not implemented.");}
-
-    void dgbtrs( char*, int*, int*, int*, int*, Double*, int*, int*,
-                 Double*, int*, int* ){EXCEPTION("Not implemented.");}
-    void zgbtrs( char*, int*, int*, int*, int*, std::complex<Double>*, int*, int*,
-                 std::complex<Double>*, int*, int* ){EXCEPTION("Not implemented.");}
-
-    void dgbrfs( char*, int*, int*, int*, int*, const Double*, int*,
-                 Double*, int*, int*, const Double*, int*, Double*,
-                 int*, Double*, Double*, Double*, int*, int* ){EXCEPTION("Not implemented.");}
-    void zgbrfs( char*, int*, int*, int*, int*, const std::complex<Double>*, int*,
-                 std::complex<Double>*, int*, int*, const std::complex<Double>*, int*,
-                 std::complex<Double>*, int*, Double*, Double*, std::complex<Double>*,
-                 Double*, int* ){EXCEPTION("Not implemented.");}
-
-    void dlartg( Double*, Double*, Double*, Double*, Double* ){EXCEPTION("Not implemented.");}
-    void zlartg( std::complex<Double>*, std::complex<Double>*, Double*, std::complex<Double>*,
-                 std::complex<Double>* ){EXCEPTION("Not implemented.");}
-
-    void dpbtrf( char*, int*, int*, Double*, int*, int* ){EXCEPTION("Not implemented.");}
-    void zpbtrf( char*, int*, int*, Double*, int*, int* ){EXCEPTION("Not implemented.");}
-
-    void dpbtrs( char*, int*, int*, int*, Double*, int*, Double*, int*,
-                 int*){EXCEPTION("Not implemented.");}
-    void zpbtrs( char*, int*, int*, int*, Double*, int*, Double*, int*,
-                 int*){EXCEPTION("Not implemented.");}
-    void dsyev( char*, char*, int*, Double*, int*, Double*, Double*, int*, int* ){EXCEPTION("Not implemented.");}
-
-    void dgecon( char*, int*, Double*, int*, Double*, Double*, Double*, int*, int*){EXCEPTION("Not implemented.");}
-
-#else
-
 
   //! Prototypes for LAPACK routines
   extern "C" {
@@ -240,6 +130,6 @@ namespace CoupledField
 
   }
 #endif
-#endif
+
 }
 #endif

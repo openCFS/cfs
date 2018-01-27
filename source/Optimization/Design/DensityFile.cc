@@ -110,12 +110,12 @@ DesignSpace* DensityFile::CreateDesignSpace(bool force_region, const PtrParamNod
 }
 
 bool DensityFile::ReadDensity(PtrParamNode pn, const ParamNodeList& elems, bool force_region, DesignSpace* space,
-    Double& lower_violation, Double& upper_violation)
+    double& lower_violation, double& upper_violation)
 {
 
   DesignElement::Type last_dt = DesignElement::NO_TYPE;
   bool enforce_bounds = false;
-  Double relative_bound = -1.0;
+  double relative_bound = -1.0;
   const unsigned int elsize = elems.GetSize();
 
   // check the the dimensions! the number of design variables comes from the regions and designs
@@ -147,11 +147,11 @@ bool DensityFile::ReadDensity(PtrParamNode pn, const ParamNodeList& elems, bool 
       relative_bound = space->design[space->FindDesign(dt)].relative_bound;
     }
 
-    Double val;
+    double val;
     if (name != "design" && elems[e]->Has(name))
-      val = elems[e]->Get(name)->As<Double>();
+      val = elems[e]->Get(name)->As<double>();
     else
-      val = elems[e]->Get("design")->As<Double>();
+      val = elems[e]->Get("design")->As<double>();
     int idx = dt == DesignElement::MULTIMATERIAL ? elems[e]->Get("index")->As<int>() : -1;
 
     // replace the value of the DesignElement
@@ -251,8 +251,8 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
   }
 
   // check bound violations
-  Double lower_violation = 0.0;
-  Double upper_violation = 0.0;
+  double lower_violation = 0.0;
+  double upper_violation = 0.0;
 
 
   bool enforce_bounds = false;

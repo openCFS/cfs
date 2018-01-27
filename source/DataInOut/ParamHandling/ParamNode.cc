@@ -466,8 +466,8 @@ TYPE ParamNode::As() const
           unsigned int val = boost::any_cast<unsigned int>(value_);\
           return boost::lexical_cast<TYPE>(val);\
         }\
-        if( value_.type() == typeid(Double) ) {\
-          Double val = boost::any_cast<Double>(value_);\
+        if( value_.type() == typeid(double) ) {\
+          double val = boost::any_cast<double>(value_);\
           return boost::lexical_cast<TYPE>(val);\
         }\
         if( value_.type() == typeid(std::string) ) {\
@@ -758,9 +758,9 @@ void ParamNode::ToString(std::string& ret, int depth) const
     ret = boost::any_cast<std::string>(value_);
     return;
   }
-  if (value_.type() == typeid(Double))
+  if (value_.type() == typeid(double))
   {
-    Double val = boost::any_cast<Double>(value_);
+    double val = boost::any_cast<double>(value_);
     std::stringstream stream;
     stream.precision(precision_);
     stream << val;

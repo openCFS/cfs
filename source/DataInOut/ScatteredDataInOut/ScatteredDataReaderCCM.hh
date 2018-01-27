@@ -48,7 +48,7 @@ namespace CoupledField
     void ReadSolverInfo( CCMIOError &err, CCMIOID &solution);
     void ReadPost( CCMIOError &err, CCMIOID &solution );
     void ReadScalar( CCMIOError &err, CCMIOID& field, std::vector<int> &mapData,
-                     std::vector<Double> &data, bool readingVector = false,
+                     std::vector<double> &data, bool readingVector = false,
                      const char* shortName = NULL);
     void ReadSets( CCMIOError &err, CCMIOID &problem );
     void CheckError( CCMIOError const &err, char const *str );
@@ -78,7 +78,7 @@ namespace CoupledField
     static int const kCellInc;
 
     //! Data type for associating a node number with coordinates
-    typedef std::map< int, std::vector< Double > > VertexMap;
+    typedef std::map< int, std::vector< double > > VertexMap;
     //! Vertices of face and cell nodes
     VertexMap vertices_;
 
@@ -89,7 +89,7 @@ namespace CoupledField
     //! Vertices belonging to faces
     Entity2VertexMap faceVertices_;
 
-    typedef std::map< std::string, Double > Name2FloatMap;
+    typedef std::map< std::string, double > Name2FloatMap;
     typedef std::map< int, Name2FloatMap > Entity2DataMap;
 
     //! Map from global cell number to data defined on it.

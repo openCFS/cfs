@@ -65,11 +65,11 @@ namespace CoupledField {
     q_->Init();
 
     // We need some scalar variables
-    T delta_new = T(0);
-    T delta_old = T(0);
-    T alpha = T(0);
-    T beta = T(0);
-    T aux = T(0);
+    T delta_new = 0;
+    T delta_old = 0;
+    T alpha = 0;
+    T beta = 0;
+    T aux = 0;
 
     // Variables for loop control and related stuff
     bool loop = true;

@@ -35,29 +35,29 @@ namespace CoupledField {
     virtual void CalcBestParameter() {;};
 
     //! returns y(x)
-    virtual Double EvaluateFunc(Double x);
+    virtual double EvaluateFunc(double x);
 
     //! returns  y'(x)  
-    virtual Double EvaluatePrime(Double x) { 
+    virtual double EvaluatePrime(double x) { 
       EXCEPTION(" LinInterpolate: EvaluatePrime not implemented");
       return -1.0; 
     };
 
     ///
-    virtual Double EvaluateFuncInv(Double t);
+    virtual double EvaluateFuncInv(double t);
 
     ///
-    virtual Double EvaluatePrimeInv(Double t);
+    virtual double EvaluatePrimeInv(double t);
     //  { Error(" LinInterpolate:  EvaluatePrimeInv not implemented");};
 
     ///
     int GetSize() {return numMeas_;};
 
     ///
-    Double EvaluateOrigB(int i) {return y_[i];};
+    double EvaluateOrigB(int i) {return y_[i];};
 
     ///
-    Double EvaluateOrigNu(int i) {return x_[i]/y_[i];};
+    double EvaluateOrigNu(int i) {return x_[i]/y_[i];};
 
 
   private:

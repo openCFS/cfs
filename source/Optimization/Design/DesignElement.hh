@@ -111,7 +111,7 @@ private:
    * @param other for a 'close' neighbor element the first node's coordinate
    * @param spacing to identify periodic b.c. correctly
    * @return the index within VicinitiyElement::design */
-  static Neighbour FindRelativeNeighborLocation(Point& referenence, Point& other, StdVector<Double> spacing);
+  static Neighbour FindRelativeNeighborLocation(Point& referenence, Point& other, StdVector<double> spacing);
 };
 
 
@@ -120,10 +120,10 @@ class TopGradElement
 {
 public:
   /** standard ctor */
-  explicit TopGradElement(const Double val = 0.0) : value(val) {}
+  explicit TopGradElement(const double val = 0.0) : value(val) {}
 
   /** the value of the topgrad on this element */
-  Double value;
+  double value;
 };
 
 /** This class is introduced as a lightweight basic subset of the DesignElement
@@ -188,13 +188,13 @@ public:
   static bool IsShapeMapType(Type type) { return type == NODE || type == PROFILE || type == SHAPE_MAP; }
 
   /** Allows to set the design element. */
-  void SetDesign(Double value) { this->design = value; }
+  void SetDesign(double value) { this->design = value; }
 
   /** Return the design value.
    * In the derived DesignElement() the instance is overloaded and invalidated! */
-  virtual Double GetDesign() const { return(this->design); }
+  virtual double GetDesign() const { return(this->design); }
 
-  virtual Double GetDesign(BaseDesignElement::Access access) const { EXCEPTION("Not implemented"); return(0.0); };
+  virtual double GetDesign(BaseDesignElement::Access access) const { EXCEPTION("Not implemented"); return(0.0); };
 
   /** The index of this element within the design space - 0 based.
    * @see GetOptIndex()*/
@@ -208,19 +208,19 @@ public:
   virtual std::string ToString() const;
 
   /** This is only for the Heaviside Filter!! as is so often called there that it makes a real difference! */
-  Double GetPlainDesignValue() const { return design; }
+  double GetPlainDesignValue() const { return design; }
 
   /** for f = objective gives the value by index. For multiple objective use SumCostGradient() */
-  Double GetPlainGradient(const Function* f) const;
+  double GetPlainGradient(const Function* f) const;
 
   /** return from the function. for multi objective use SumCostGradient() */
-  Double GetPlainGradient(const Objective* c) const;
-  Double GetPlainGradient(const Condition* g) const;
+  double GetPlainGradient(const Objective* c) const;
+  double GetPlainGradient(const Condition* g) const;
 
   /** Sum app the old value (get and set together) */
-  void AddGradient(const Objective* c, const Condition* g, Double value);
+  void AddGradient(const Objective* c, const Condition* g, double value);
 
-  void AddGradient(const Function* f, Double value);
+  void AddGradient(const Function* f, double value);
 
   /** Reset either gradients of the class
    * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT
@@ -230,16 +230,16 @@ public:
 
   /**  Gets the lower bound of the design variable -
    * up to now this are defaults by type */
-  Double GetLowerBound() const { return lower_; }
+  double GetLowerBound() const { return lower_; }
 
   /** The upper bound of the design variable for the optimizer */
-  Double GetUpperBound() const { return upper_; }
+  double GetUpperBound() const { return upper_; }
 
   /** Set the lower bound of the design variable */
-  void SetLowerBound(const Double v) { lower_ = v; }
+  void SetLowerBound(const double v) { lower_ = v; }
 
   /** Set the upper bound of the design variable */
-  void SetUpperBound(const Double v) { upper_ = v; }
+  void SetUpperBound(const double v) { upper_ = v; }
 
   /** adjusts length of the gradient vectors possibly not known during creation */
   void PostInit(int objectives, int constraints)
@@ -259,29 +259,29 @@ public:
    * Every constraint contains an unique index attribute (which is the order in the xml file)
    * only for the purpose to index this vector.</p>
    * <p>Therefore this vector has to be initialized on runtime</p> */
-  StdVector<Double> constraintGradient;
+  StdVector<double> constraintGradient;
 
   /** For multiple objective functions. It already includes penalty! Don't access directly with the excpetion of ShapeMapDesign!
    * @see constraintGradient */
-  StdVector<Double> costGradient;
+  StdVector<double> costGradient;
 
   /** Sums up the costGradient values (they include penalty) */
-  Double SumObjectiveGradient() const;
+  double SumObjectiveGradient() const;
 
   /** for each node: grad = 4* ds/drho_filt * drho_filt/drho * (1-2*s)
    * s is the interpolated density at a node, e.g. s = 1/4*(rho_1+rho_2+rho_3+rho_4)
    * Need to store this in order to calculate the right derivative with filtering and penalization*/
-  Vector<Double> interfaceDrivenLoadGrad_;
+  Vector<double> interfaceDrivenLoadGrad_;
 
 protected:
 
   /** The scalar value. Public access only via getter to handle filtering. */
-  Double design;
+  double design;
 
   /** The lower bound of this design variable. Redundant but faster than look it up */
-  Double lower_;
+  double lower_;
 
-  Double upper_;
+  double upper_;
 
   /** what is our design type */
   Type type_;
@@ -311,7 +311,7 @@ public:
 
   /** at the moment we don't have filter for shape mapping but the slope constraints are implemented using GetDesign(SMART).
    * So just ignore it! */
-  virtual Double GetDesign(BaseDesignElement::Access access) const { return design; }
+  virtual double GetDesign(BaseDesignElement::Access access) const { return design; }
 
   /** to handle exporting only parts of the design (due to symmetry) to the external optimizers */
   virtual unsigned int GetOptIndex() const { assert(opt_index_ != std::numeric_limits<unsigned int>::max()); return opt_index_; }
@@ -326,7 +326,7 @@ public:
   int dof;
 
   /** The dof variable is set to -1.0.  */
-  StdVector<Double> coord;
+  StdVector<double> coord;
 
   /** the coord in terms of index within the regular space. Again -1 for the dof setting.
    * Note this is for node and we have one node more than elements in one direction.*/
@@ -352,7 +352,7 @@ public:
    * Is slow as it does the same evaluation often but is only O(n)
    * @param space to output 'penalizedDesign' the pointer is needed to find the transfer function
    * @param index location within the design space */
-  DesignElement(Type dt, Double lower, Double upper, Elem* elem, unsigned int index, MultiMaterial* mm);
+  DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index, MultiMaterial* mm);
 
   /** Dummy elements for Function */
   DesignElement(Elem* elem, Type type, unsigned int index, int pseudoElementIndex);
@@ -395,29 +395,29 @@ public:
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
-    Double GetDesign(Access access) const;
+    double GetDesign(Access access) const;
 
     /** Gives the physical design, which is penalized and filtered if we have density filtering.
      * Therefore there is no access as we are implicit SMART */
-    Double GetPhysicalDesign(const Context* ctxt = NULL) const;
+    double GetPhysicalDesign(const Context* ctxt = NULL) const;
 
     /** Return whether physical design is reasonable for this DesignElement::Type */
     bool HasPhysicalDesign() const;
 
     /** Overloads the original BaseDesignElement() method and invalidates it to force the access version */
-    Double GetDesign() const;
+    double GetDesign() const;
 
     /** Checks out specialResult[]!
      * @param dofs 1 for scalar values */
-    void GetValue(ResultDescription& rd, StdVector<Double>& out, unsigned int dofs) const;
+    void GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const;
 
     /** This method decides if either GetFilteredValue() or GetPlainValue() is to be returned.
      * @param f mandatory for vs = CONSTRAINT_GRADIENT and to determine if we are filtered! */
-    Double GetValue(ValueSpecifier vs, Access access, Function* f = NULL) const;
+    double GetValue(ValueSpecifier vs, Access access, Function* f = NULL) const;
 
     /** internal helper to get the value by type
      * @param g for sp = CONSTRAINT_GRADIENT only */
-    virtual Double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
+    virtual double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
 
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
@@ -438,7 +438,7 @@ public:
 
     /** Calculates the volume of the element, used static helpers.
      * caches the result, hence cheap to query again */
-    Double CalcVolume();
+    double CalcVolume();
 
     /** to make the class polymorphi and we can dynamic_cast<> it */
     /** Pointer to the element of the region, parameter for integration, ... */
@@ -461,7 +461,7 @@ public:
      * result description in XML: See DesignSpace::GetSpecialResultIndex()
      * <result id="optResult_2" design="density" access="plain" value="costGradient" />
      * <result id="optResult_3" design="density" access="plain" value="objective" /> */
-    Vector<Double> specialResult;
+    Vector<double> specialResult;
 
     static Enum<ValueSpecifier> valueSpecifier;
 
@@ -494,7 +494,7 @@ private:
   void Init();
 
   /** returns the non-scalar values */
-  void GetValue(ValueSpecifier sp, StdVector<Double>& out) const;
+  void GetValue(ValueSpecifier sp, StdVector<double>& out) const;
 
   /** the barycenter of this element only set on request. */
   Point* location_;
@@ -503,7 +503,7 @@ private:
   int pseudoElementIndex_;
 
   /** the element volume calculated on request by CalcVolume() */
-  Double elemVol_;
+  double elemVol_;
 
   /** up to now only needed to extract 'penalizedDesign'. Make it protected
    * if you need it. */
@@ -521,23 +521,23 @@ public:
 
   /** Does sensitvity filtering
    * @param g @see GetPlainValue() */
-  Double GetSensitivityFilteredValue(DesignElement::ValueSpecifier valueSpecifier, Function* g) const;
+  double GetSensitivityFilteredValue(DesignElement::ValueSpecifier valueSpecifier, Function* g) const;
 
   /** Does design filtering. */
-  Double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const;
+  double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const;
 
   /** Helper for GetDensityFilteredValue()
    * @param filter_idx to handle robust. 0 shall work in the non-robust case */
-  Double CalcHeaviside(Double input_value, unsigned int filter_idx) const;
+  double CalcHeaviside(double input_value, unsigned int filter_idx) const;
 
   /** Calculates the tanh function. This is a variant of the Xu-Filter, see also Wang/Laraow/Sigmund;2010
    * @param filter_idx see CalcHeaviside()*/
-  Double CalcTanh(Double input_value, unsigned int filter_idx) const;
+  double CalcTanh(double input_value, unsigned int filter_idx) const;
 
   /** only for sensitivities for density filtering.
    * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36)
    * @param sp COST_GRADIENT, CONSTRAINT_GRADIENT or DENSITY for PROJECTION only */
-  Double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func) const;
+  double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func) const;
 
   /** gives the proper filter index from DesignSpace::Context::Excitation */
   unsigned int DetermineFilterIndex() const;
@@ -572,7 +572,7 @@ private:
 class DesignID
 {
 public:
-   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL, Double rb = -1.0, bool enforce_bounds = false)
+   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL, double rb = -1.0, bool enforce_bounds = false)
    {
      this->design = design;
      this->multimaterial = mm;
@@ -585,7 +585,7 @@ public:
    MultiMaterial* multimaterial;
 
    /** relative bounds for design, negative if not applicable, size by number of design types */
-   Double relative_bound;
+   double relative_bound;
 
    /** shall the bounds be enforced when loading external designs */
    bool enforce_bounds;
@@ -648,20 +648,20 @@ public:
 };
 
 inline
-Double SIMPElement::CalcHeaviside(Double input_value, unsigned int filter_idx) const
+double SIMPElement::CalcHeaviside(double input_value, unsigned int filter_idx) const
 {
   const Filter& f = de_->simp->filter[filter_idx];
   assert(f.GetType() == Filter::DENSITY);
   assert(f.density_ == Filter::SOLID_HEAVISIDE || f.density_ == Filter::VOID_HEAVISIDE);
 
-  Double result;
+  double result;
 
-  Double b = f.beta;
+  double b = f.beta;
   assert(b >= 0.0 && b < 2000);
 
   if(f.density_ == Filter::SOLID_HEAVISIDE)
   {
-    Double tmp = 1.0 - exp(-b * input_value) + input_value * exp(-b);
+    double tmp = 1.0 - std::exp(-b * input_value) + input_value * std::exp(-b);
     result = f.non_lin_scale * tmp + f.non_lin_offset;
 
     // no LOG_DBG possible due to inline
@@ -669,8 +669,8 @@ Double SIMPElement::CalcHeaviside(Double input_value, unsigned int filter_idx) c
   else // if(f.density_ == Filter::MOD_HEAVISIDE)
   {
 
-    Double first    = exp(-1.0 * b * (1.0 - input_value));
-    Double second   = -1.0 * (1.0 - input_value) * exp(-1.0 * b);
+    double first    = std::exp(-1.0 * b * (1.0 - input_value));
+    double second   = -1.0 * (1.0 - input_value) * std::exp(-1.0 * b);
 
     assert(f.non_lin_scale > 1e-2); // if not you probably forgot to set force_lower_bound in the filter definition
 
@@ -683,21 +683,21 @@ Double SIMPElement::CalcHeaviside(Double input_value, unsigned int filter_idx) c
 }
 
 inline
-Double SIMPElement::CalcTanh(Double input_value, unsigned int filter_idx) const
+double SIMPElement::CalcTanh(double input_value, unsigned int filter_idx) const
 {
   const Filter& f = de_->simp->filter[filter_idx];
 
   assert(f.GetType() == Filter::DENSITY);
   assert(f.density_ == Filter::TANH);
 
-  Double b = f.beta;
-  Double e = f.eta;
+  double b = f.beta;
+  double e = f.eta;
 
   assert(b >= 0.0 && b < 2000);
 
   // 1 - 1/(exp(2*beta*(x-param)) + 1)
-  Double func = 1.0 - 1.0/(exp(2.0 * b * (input_value - e)) + 1.0);
-  Double result = f.non_lin_scale * (func) + f.non_lin_offset;
+  double func = 1.0 - 1.0/(std::exp(2.0 * b * (input_value - e)) + 1.0);
+  double result = f.non_lin_scale * (func) + f.non_lin_offset;
 
   // std::cout << "CT: de=" << ToString() << " fix=" << filter_idx << " s=" << f.non_lin_scale << " o=" << f.non_lin_offset << " iv=" << input_value << " func=" << func << " -> " << result << std::endl;
   return result;

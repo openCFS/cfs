@@ -32,22 +32,22 @@ public:
   virtual void PostInit(int objectives, int constraints);
 
   /** @see DesignSpace::ReadDesignFromExtern() */
-  virtual int ReadDesignFromExtern(const Double* space_in);
+  virtual int ReadDesignFromExtern(const double* space_in);
 
   /** overwrites DesignSpace::CompareDesign() */
-  virtual bool CompareDesign(const Double* space_in);
+  virtual bool CompareDesign(const double* space_in);
 
   /** writes design to the vector, beginning with shape variables (shape_param_) and then aux_design_ */
-  virtual int WriteDesignToExtern(Double* space_out, bool scaling = true) const;
+  virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;
 
   /** write gradient out to the vector, appending with shape gradient
    * Sparse and dense! */
-  virtual void WriteGradientToExtern(StdVector<Double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true);
+  virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true);
 
   /** same as in DesignSpace, setting elements to zero, but also aux elements */
   virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
 
-  virtual void WriteBoundsToExtern(Double* x_l, Double* x_u) const;
+  virtual void WriteBoundsToExtern(double* x_l, double* x_u) const;
 
   virtual unsigned int GetNumberOfVariables() const;
 
@@ -71,7 +71,7 @@ public:
   /** Called from DensityFile::ReadErsatzMaterial() with load ersatz material (-x)
    * @param set the set from the density.xml
    * @param lower_violation the maximal violation */
-  void ReadDensityXml(PtrParamNode set, Double& lower_violation, Double& upper_violation);
+  void ReadDensityXml(PtrParamNode set, double& lower_violation, double& upper_violation);
 
   /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
    * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
@@ -140,10 +140,10 @@ public:
     std::string value; // initial or fixed
 
     /** if >= 0 this is the relative bound for the first and last element */
-    Double clamp = -1.0;
+    double clamp = -1.0;
 
     /** in case we have a symmetry where we induce a shape and mirror it value goes to max - value. Max is the node value */
-    Double max = 1.0; // fixme an make it smart
+    double max = 1.0; // fixme an make it smart
 
     /** subject to optimization or fixed */
     bool fixed = false;
@@ -230,24 +230,24 @@ protected:
    * @param ip_x in range of order_. 0 for the left side of the element within s1/s2, )order_-1) for the right side
    * @param grad_a false for tanh, true for d_tanh_da
    * @param grad_w false for tanh, true for d_tanh_dw. */
-  Double Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<Double>& coords, Double beta, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const;
+  double Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, double beta, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const;
 
   /** Decides if we element given by the coordinates is close enough to the nodal shapes (profiles found implicitly) such that
    * it is worth to consider them. */
-  bool CloseEnough(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<Double>& coords) const;
+  bool CloseEnough(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const;
 
   /** tanh performs the smoothing from the mapping
    * @param beta for overlap = max or open_sum use 2*beta_ for historical reasons
    * @param x is the coordinate (x or y)
    * @param a the shape variable (center of object)
    * @param w half of the thickness/profile of the shape */
-  Double tanh(Double beta, Double x, Double a, Double w) const;
+  double tanh(double beta, double x, double a, double w) const;
 
   /** derivative of tanh w.r.t. a */
-  Double d_tanh_da(Double beta, Double x, Double a, Double w) const;
+  double d_tanh_da(double beta, double x, double a, double w) const;
 
   /** derivative of tanh w.r.t. w which is the half profile */
-  Double d_tanh_dw(Double beta, Double x, Double a, Double w) const;
+  double d_tanh_dw(double beta, double x, double a, double w) const;
 
   /** small helper */
   ShapeParam& GetProfile(const ShapeParam& node) { return shape_[node.idx + num_node_shapes_]; }
@@ -302,7 +302,7 @@ protected:
     void ApplyDesign();
 
     /** returns all plain gradients for the sym elements or 0.0 if no sym */
-    Double GetPlainSymGradient(const Function* f) const;
+    double GetPlainSymGradient(const Function* f) const;
 
     void Reset(DesignElement::ValueSpecifier vs);
 
@@ -381,8 +381,8 @@ protected:
 
     /** Stores da_norm to prevent recomputing. For 3D make sure you have not too much integration points!
      * Size and access is relevant_nodes * order_ * order */
-    StdVector<Double> da_norm_cache;
-    StdVector<Double> dw_norm_cache;
+    StdVector<double> da_norm_cache;
+    StdVector<double> dw_norm_cache;
   };
 
   /** mapping with size of rho to ShapeParamElement pointers to shape_param_   */
@@ -392,10 +392,10 @@ protected:
   int mapped_design_ = -1;
 
   /** controls the boundary. Relates to meter so it also depends on discretication. 30 is a small value (gray) and 70 gives a smaller boundary. */
-  Double beta_;
+  double beta_;
 
   /** this is the decision value for CloseEnough() */
-  Double sensitivity_;
+  double sensitivity_;
 
   /** MAX means that at each ip we consider only the shape which has the largest rho. Only the gradient of that shape will be considered at that ip.
    * The drawbacks are loss of material at overlaps and doubtful differentiability.
@@ -418,19 +418,19 @@ protected:
 
     /** tanh for limiting with exactly 0->0 and >=1 -> 1!!
      * @param x is the sum of tanh(shape1) + tanh(shape2) on a specific integration point */
-    Double map(Double x);
+    double map(double x);
 
     /** the derivative of map
      * @param x is sum of tanh(shape1) + tanh(shape2)
      * @param dx is d_tanh_a(shape) for the only shape  */
-    Double d_map(Double x, Double dx);
+    double d_map(double x, double dx);
 
   private:
     /** tanh for limiting with approx 0->0 and >=1 -> 1 */
-    Double tanh(Double x);
-    Double beta = 11;
-    Double offset = -1.0; // by this we correct tanh(x=0,1) such that map(x=0,1) is 0,1
-    Double scale = -1.0;  // works with offset
+    double tanh(double x);
+    double beta = 11;
+    double offset = -1.0; // by this we correct tanh(x=0,1) such that map(x=0,1) is 0,1
+    double scale = -1.0;  // works with offset
   } tanh_sum_;
 
 
@@ -459,8 +459,8 @@ protected:
   /** set element upper and lower relative to the initial value from load ersatz material.
    * lower is start - half rel_bound and upper is start + half rel_bound.
    * To overwritten by ShapeParam::clamped. smaller 0 disables */
-  Double relative_node_bound_;
-  Double relative_profile_bound_;
+  double relative_node_bound_;
+  double relative_profile_bound_;
 
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim

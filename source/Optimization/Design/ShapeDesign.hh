@@ -39,7 +39,7 @@ template <class TYPE> class Matrix;
 
     /** conditionally calls UpdateCoordinates()
      *  @see AuxDesign::ReadDesignFromExtern() */
-    int ReadDesignFromExtern(const Double* space_in);
+    int ReadDesignFromExtern(const double* space_in);
     
     /** return whether this element does depend on any deformations at all 
      * @param connect nodes of this element */
@@ -60,7 +60,7 @@ template <class TYPE> class Matrix;
      * a constraint has the type factor[0] * param[0] - factor[1] * param[1] <= 1.0 */
     struct ShapeConstraint {
       int param[2];
-      Double factor[2];
+      double factor[2];
     };
 
     /** return the shapeconstraints, this is called from Function.cc */
@@ -70,7 +70,7 @@ template <class TYPE> class Matrix;
 
     /** deformation-dependency tensor (3rd order)
      * for every node in grid this is a matrix, with dim rows and nshapeparams_ columns */
-    StdVector<Matrix<Double>* > nodedeformations_;
+    StdVector<Matrix<double>* > nodedeformations_;
 
     /** shortcut to dimension */
     UInt dim_;

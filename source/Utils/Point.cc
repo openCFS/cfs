@@ -79,7 +79,7 @@ std::string Point::ToString() const
    return os.str();
 }
 
-int  Point::GetCartesianOrientation(const Vector<Double>* vec)
+int  Point::GetCartesianOrientation(const Vector<double>* vec)
 {
   assert(vec != NULL);
   assert(vec->GetSize() == 3);
@@ -87,7 +87,7 @@ int  Point::GetCartesianOrientation(const Vector<Double>* vec)
 }
 
 
-int Point::GetCartesianOrientation(const Double* vec)
+int Point::GetCartesianOrientation(const double* vec)
 {
   assert(  (vec[0] != 0.0 && vec[1] == 0.0 && vec[2] == 0.0)
          ||(vec[0] == 0.0 && vec[1] != 0.0 && vec[2] == 0.0)
@@ -96,7 +96,7 @@ int Point::GetCartesianOrientation(const Double* vec)
     if(vec[i] != 0)
       return i;
 
-  EXCEPTION("vector is not Cartesian: " + StdVector<Double>::ToString(3, vec));
+  EXCEPTION("vector is not Cartesian: " + StdVector<double>::ToString(3, vec));
 }
 
 }

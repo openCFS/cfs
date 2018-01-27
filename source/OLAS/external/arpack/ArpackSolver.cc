@@ -7,8 +7,6 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include <boost/type_traits/is_complex.hpp>
 
-#include "MatVec/opdefs.hh"
-
 DECLARE_LOG(as)
 DEFINE_LOG(as, "arpackSolver")
 
@@ -21,9 +19,9 @@ namespace CoupledField {
   {
     shiftAndInvert_ = true;
     freqShift_ = 0.0;
-    tolerance_ = xml->Has("tolerance") ? xml->Get("tolerance")->As<Double>() : 1.e-8;
+    tolerance_ = xml->Has("tolerance") ? xml->Get("tolerance")->As<double>() : 1.e-8;
     maxIterations_ = xml->Has("maxIt") ? xml->Get("maxIt")->As<unsigned int>() : 5000;
-    arnoldiFactor_ = xml->Has("arnoldiFactor") ? xml->Get("arnoldiFactor")->As<Double>() : 2.0;
+    arnoldiFactor_ = xml->Has("arnoldiFactor") ? xml->Get("arnoldiFactor")->As<double>() : 2.0;
     numArnoldiVec_ = 0; // set later, based on arnoldiFactor_
     // cast to char* or receive compiler warning
     xml_which_ = xml->Has("which") ? xml->Get("which")->As<std::string>() : "";
@@ -72,13 +70,8 @@ namespace CoupledField {
       which_ = which;
       type_ = type;
 
-#ifdef USE_ADOLC
       // set default value for Arnoldi vectors
-      numArnoldiVec_ = fmax(numFreq_ + 1, int(numFreq_ * arnoldiFactor_.getValue()));
-#else
-      // set default value for Arnoldi vectors
-      numArnoldiVec_ = fmax(numFreq_ + 1, int(numFreq_ * arnoldiFactor_));
-#endif
+      numArnoldiVec_ = std::max(numFreq_ + 1, int(numFreq_ * arnoldiFactor_));
       
       // check, if number of Arnoldi vectors is larger than
       // size of system
@@ -96,8 +89,8 @@ namespace CoupledField {
           eigenValues_  = new Vector<Complex>(numArnoldiVec_);
           eigenVectors_ = new Vector<Complex>(numFreq_*size_);
         } else {
-          eigenValues_  = new Vector<Double>(numArnoldiVec_);
-          eigenVectors_ = new Vector<Double>(numFreq_*size_);
+          eigenValues_  = new Vector<double>(numArnoldiVec_);
+          eigenVectors_ = new Vector<double>(numFreq_*size_);
         }
       }
       eigenTolerances_.Resize(numArnoldiVec_);
@@ -123,13 +116,9 @@ namespace CoupledField {
       tolerance_     = 1e-10;
       maxIterations_ = 10000;
       // adjust to higher number of wanted frequencies
-      Double logNF = log10(numFreq_*1.0);
+      Double logNF = std::log10(numFreq_*1.0);
       if (logNF > 1.0) {
-#ifdef USE_ADOLC
-        Integer iterInc = static_cast<Integer>( (500 * floor(5*pow(10,logNF-1)) ).getValue());
-#else
-        Integer iterInc = static_cast<Integer>( 500 * floor(5*pow(10,logNF-1)) );
-#endif
+        Integer iterInc = static_cast<Integer>( 500 * std::floor(5*pow(10,logNF-1)) );
         maxIterations_ += iterInc;
       }
 
@@ -197,8 +186,8 @@ namespace CoupledField {
     StdVector<TYPE> workL(lenWorkL);
     StdVector<TYPE> matrixV(size_*numArnoldiVec_);
 
-    // this Double array is only for the complex part
-    StdVector<Double> rwork(size_);
+    // this double array is only for the complex part
+    StdVector<double> rwork(size_);
 
 
     StdVector<int> iparams(21); // initialized with 0's
@@ -308,7 +297,7 @@ namespace CoupledField {
     //       memory allocation here!
 
     bool rvec = true;
-    StdVector<Double> select(numArnoldiVec_); // is logical in Fortran! // Double *select = new Double [numArnoldiVec_];
+    StdVector<double> select(numArnoldiVec_); // is logical in Fortran! // Double *select = new Double [numArnoldiVec_];
     StdVector<TYPE> d(numArnoldiVec_*2);  // in dsdrv4.f (maxncv,2) and in zndrv4.f (maxncv)
     TYPE omgShift = pow(freqShift_*2*M_PI, bloch ? 1 : 2);
 
@@ -341,19 +330,19 @@ namespace CoupledField {
       interface_->MultBV(vecX, vecY);
       vecY = workD.GetPointer();
       interface_->MultAV(vecX, vecY);
-      Double vNrm2 = 0.0;
+      double vNrm2 = 0.0;
       for (Integer j=0; j<size_; j++) {
         vecX[j] = vecY[j] - d[i]*vecY[j+size_];
-        vNrm2 += Abs(vecX[j])*Abs(vecX[j]);
+        vNrm2 += abs(vecX[j])*abs(vecX[j]);
       }
-      eigenTolerances_[i] = Sqrt(vNrm2)/Abs(d[i]);    // cf. note above!
+      eigenTolerances_[i] = sqrt(vNrm2)/abs(d[i]);    // cf. note above!
     }
 
     return numEVConverged;
   }
 
   template <>
-  void ArpackSolver::CallAUPD<Double>(Integer* ido, char* bmat, Integer* n, char* which, Integer* nev, Double* tol,
+  void ArpackSolver::CallAUPD<double>(Integer* ido, char* bmat, Integer* n, char* which, Integer* nev, Double* tol,
       Double *resid, Integer *ncv, Double *V, Integer *ldv, Integer *iparam, Integer *ipntr,
       Double *workd, Double *workl, Integer *lworkl, Double *workDbleD, Integer *info)
   {
@@ -380,10 +369,10 @@ namespace CoupledField {
   }
 
   template <>
-  void ArpackSolver::CallEUPD<Double>(bool *rvec, char *howMny, Double *select, Double *d, Double *z, Integer *ldz,
-      Double *shift, Double *zwork, char *bmat, Integer* size, char *which, Integer *nev, Double *tol,
-      Double *resid, Integer *ncv, Double *V, Integer *ldv, Integer *iparam, Integer *ipntr,
-      Double *workd, Double *workl, Integer *lworkl, Double *workDbleD, Integer *info)
+  void ArpackSolver::CallEUPD<double>(bool *rvec, char *howMny, Double *select, double *d, double *z, Integer *ldz,
+      double *shift, double *zwork, char *bmat, Integer* size, char *which, Integer *nev, Double *tol,
+      double *resid, Integer *ncv, double *V, Integer *ldv, Integer *iparam, Integer *ipntr,
+      double *workd, double *workl, Integer *lworkl, Double *workDbleD, Integer *info)
   {
     dseupd(rvec, howMny, select, d, z, ldz, shift, bmat, size, which, nev, tol,
         resid, ncv, V, ldv, iparam, ipntr, workd, workl, lworkl, info);
@@ -532,7 +521,7 @@ namespace CoupledField {
         evec[i] = (Complex) 0.0;
       }
 
-      Complex omgShift = (Complex) freqShift_*Complex(8.0*atan(1.0));
+      Complex omgShift = (Complex) freqShift_*8.0*atan(1.0);
 
       zneupd(&rvec, (char*) "A", select, d, zEV, &size_, &omgShift, zwv, (char*) "G",
                       &size_, which_, &numFreq_, &tolerance_, residual, &numArnoldiVec_,
@@ -656,14 +645,14 @@ namespace CoupledField {
             Double vNrm2 = 0.0,v2Nrm2 = 0.0;
             for (int j=0; j<size_/2; j++) {
               zC[j] = zA[j]-d[ncv]*zB[j];
-              vNrm2 += pow(Abs(zC[j]),2);
+              vNrm2 += pow(abs(zC[j]),2);
             }
             for (int j=size_/2; j<size_; j++) {
               zC[j] = zA[j]-d[ncv]*zB[j];
-              v2Nrm2 += pow(Abs(zC[j]),2);
+              v2Nrm2 += pow(abs(zC[j]),2);
             }
             vNrm2 += v2Nrm2;
-            eigenTolerances_[pos] = Sqrt(vNrm2)/Abs(d[ncv]);
+            eigenTolerances_[pos] = sqrt(vNrm2)/abs(d[ncv]);
   
             // "normalize" eigenvectors: 
             ztmp = evec.GetPointer() + pos*size_;
@@ -673,7 +662,7 @@ namespace CoupledField {
             for (int j=size_/2; j<size_; j++) {
               vLen += ztmp[j]*std::conj(ztmp[j]);
             }
-            vLen = Sqrt(vLen);
+            vLen = sqrt(vLen);
             for (int j=0; j<size_; j++) {
               ztmp[j] /= vLen;
             }
@@ -682,7 +671,7 @@ namespace CoupledField {
             //    and look for first non-noisy entry
             int jNorm = size_/2, jFound=0;
             while (jFound==0 && jNorm<size_) {
-              if (Abs(ztmp[jNorm]) > epsTest)
+              if (std::abs(ztmp[jNorm]) > epsTest)
                 jFound = 1;
               else
                 jNorm++;
@@ -707,7 +696,7 @@ namespace CoupledField {
             //          for (Integer j=0; j<size_/2; j++) {
             //             normalize += std::conj(ztmp[j])*z1[j];
             //          }
-            //	  normalize = Sqrt(normalize);
+            //	  normalize = sqrt(normalize);
             //          ztmp = zEigenVectors_ + pos*size_;
             //          for (Integer j=0; j<size_; j++) {
             //             ztmp[j] /= normalize;

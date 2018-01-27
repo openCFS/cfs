@@ -70,7 +70,7 @@ namespace CoupledField
 
       //    std::cout << "iter=" << iter << " Xe=" << Xe << std::endl;
 
-      if ( fabs(Xe/a_) < 0.1 ) {
+      if ( abs(Xe/a_) < 0.1 ) {
         Yan = Ysaturated_ * Xe/(3.0*a_);
       }
       else {
@@ -90,7 +90,7 @@ namespace CoupledField
       nlfunc  = a1*YirrOld*YirrOld + b1*YirrOld + c1;
       dnlfunc = 2*a1*YirrOld + b1;
 
-      if ( fabs(dnlfunc) > 0 ) {
+      if ( abs(dnlfunc) > 0 ) {
         YirrNew = YirrOld - nlfunc / dnlfunc;
       }
       else {
@@ -100,7 +100,7 @@ namespace CoupledField
       //    std::cout << "nlfunc=" << nlfunc << " dnlfunc=" << dnlfunc << std::endl;
       //    std::cout << "YirrNew = " << YirrNew << std::endl;
 
-      if ( fabs(YirrNew) > 0 ) {
+      if ( abs(YirrNew) > 0 ) {
         err = ( YirrNew - YirrOld ) / YirrNew;
       }
       else {

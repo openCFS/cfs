@@ -54,9 +54,9 @@ int ReadNodesUnivFile(int **nodeReverseLabels,
     }
     
     if (set_num == 781) {
-      NODES[N_NODES].x1=(Double) set781.data.x1;
-      NODES[N_NODES].x2=(Double) set781.data.x2;
-      NODES[N_NODES].x3=(Double) set781.data.x3;
+      NODES[N_NODES].x1=(double) set781.data.x1;
+      NODES[N_NODES].x2=(double) set781.data.x2;
+      NODES[N_NODES].x3=(double) set781.data.x3;
       NODE_LABELS[N_NODES] = set781.data.node_label;
     } else {
       NODES[N_NODES].x1 = set15.data.x1;
@@ -316,7 +316,7 @@ int ReadNResultsUnivFile(int &i, Widget w, unv *unvf, int &blocks,
         for (n=0; n<upper; ++n) {
           j = nodeReverseLabels[set55.data.node_num];
           SETS55[i].dat[j].data[n] =
-            (Double) set55.data.node_data[n];
+            (double) set55.data.node_data[n];
         }
         if ((++k % 500)==0) {
           CheckForInterrupt();
@@ -401,7 +401,7 @@ int ReadEResultsUnivFile(int &i, Widget w, unv *unvf, int &blocks,
         for (n=0; n<upper; ++n) {
           // j = set56.data.element_num;
           SETS56[i].dat[localElementNumber].data[n] =
-            (Double) set56.data.element_data[n];
+            (double) set56.data.element_data[n];
         }
         if ((++k % 500)==0) {
           CheckForInterrupt();

@@ -28,10 +28,10 @@ namespace CoupledField
 
     dydt.Init();
     for (UInt i=0; i<len1; i++ ) {
-      val = pow( y[i], alpha_ );
+      val = std::pow( y[i], alpha_ );
       for (UInt j=0; j<len1; j++ ) {
         if ( i != j) {
-          dydt[i] +=  coeffs_[j][i] * pow( y[j], alpha_ ) 
+          dydt[i] +=  coeffs_[j][i] * std::pow( y[j], alpha_ ) 
             - coeffs_[i][j] * val;
         }
       }
@@ -53,18 +53,18 @@ namespace CoupledField
     for (UInt i=0; i<len1; i++ ) {
       for (UInt j=0; j<len1; j++ ) {
         if ( i != j) {
-          dfdy[i][j] = coeffs_[j][i] * alpha_ * pow( y[j], (alpha_-1) );
+          dfdy[i][j] = coeffs_[j][i] * alpha_ * std::pow( y[j], (alpha_-1) );
         }
       }
       //sum = 0.0;
       for (UInt j=0; j<len1; j++ ) {
         if ( i != j) {
           //sum -= coeffs_[i][j];
-          dfdy[i][i] -= coeffs_[i][j] * alpha_ * pow( y[i], (alpha_-1) );
+          dfdy[i][i] -= coeffs_[i][j] * alpha_ * std::pow( y[i], (alpha_-1) );
         }
       }
-      //      dfdy[i][i] = sum * alpha_ * pow( y[i], (alpha_-1) );
-      //coeffs_[i][j] * alpha_ * pow( y[i], (alpha_-1) );
+      //      dfdy[i][i] = sum * alpha_ * std::pow( y[i], (alpha_-1) );
+      //coeffs_[i][j] * alpha_ * std::pow( y[i], (alpha_-1) );
     }
      
     // std::cout << "Jacobi in Rosen:\n" << dfdy << std::endl; 

@@ -4,7 +4,7 @@
 
 #include <string>
 #include <iostream>
-#include "General/defs.hh"
+
 #include "unv_if.hh"
 #include "unv_dat.hh"
 //#include "bas_tool.h"
@@ -423,7 +423,7 @@ int CapaInterfaceC::ReadUniversalfile(const char *fileName)
   return 0;
 }
 
-void CapaInterfaceC::GetHistXData(int &numSteps, Double *stepVals) const {
+void CapaInterfaceC::GetHistXData(int &numSteps, double *stepVals) const {
   int i, j;
 
   if(NODES58 == NULL) 
@@ -459,7 +459,7 @@ long CapaInterfaceC::GetHistNumData(long type) const {
 //
 // Knotengeometrie holen
 //
-void CapaInterfaceC::GetPos(long iNode, Double* pos) const {
+void CapaInterfaceC::GetPos(long iNode, double* pos) const {
   ClipNodeIndex(iNode);
   pos[0]=NODES[iNode].x1;
   pos[1]=NODES[iNode].x2;
@@ -505,7 +505,7 @@ void CapaInterfaceC::GetElemType(long iElem, long& elemtype) const {
 // Knotendaten holen
 //
 int CapaInterfaceC::GetNodeData(long iNode, long dataIndex,
-                                Double* data1, Double* data2) const {
+                                double* data1, double* data2) const {
 
   int iData;
   ClipNodeIndex(iNode);
@@ -534,7 +534,7 @@ int CapaInterfaceC::GetNodeData(long iNode, long dataIndex,
 }
 
 int CapaInterfaceC::GetNodeHistData(long iNode, int type, long step,
-                                    Double *data1, Double *data2) const {
+                                    double *data1, double *data2) const {
   int i;
   
   ClipNodeIndex(iNode);
@@ -555,7 +555,7 @@ int CapaInterfaceC::GetNodeHistData(long iNode, int type, long step,
       if (iDof != 0)
         iDof -= 1;
       
-      Double sign = (NODES58[iNode].sets[i].header.res_dir < 0 ? -1.0 : 1.0);
+      double sign = (NODES58[iNode].sets[i].header.res_dir < 0 ? -1.0 : 1.0);
       
       data1[iDof] = sign * NODES58[iNode].sets[i].data[step-1].real;
       
@@ -571,7 +571,7 @@ int CapaInterfaceC::GetNodeHistData(long iNode, int type, long step,
 // Elementdaten holen
 //
 int CapaInterfaceC::GetElemData(long iElem, long dataIndex,
-                                Double* data1, Double* data2) const {
+                                double* data1, double* data2) const {
 
   int iData;
   ClipElemIndex(iElem);

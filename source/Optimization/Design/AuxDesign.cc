@@ -35,9 +35,9 @@ AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzM
     slack_  = pn->GetByVal("design", "name", "slack");
     aux_design_.Reserve(naux);
     BaseDesignElement de(BaseDesignElement::SLACK);
-    de.SetLowerBound(slack_->Get("lower")->As<Double>());
-    de.SetUpperBound(slack_->Get("upper")->As<Double>());
-    de.SetDesign(slack_->Get("initial")->As<Double>());
+    de.SetLowerBound(slack_->Get("lower")->As<double>());
+    de.SetUpperBound(slack_->Get("upper")->As<double>());
+    de.SetDesign(slack_->Get("initial")->As<double>());
     // we need to PostInit!
     aux_design_.Push_back(de);
   }
@@ -46,9 +46,9 @@ AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzM
   {
     alpha_  = pn->GetByVal("design", "name", "alpha");
     BaseDesignElement de(BaseDesignElement::ALPHA);
-    de.SetLowerBound(alpha_->Get("lower")->As<Double>());
-    de.SetUpperBound(alpha_->Get("upper")->As<Double>());
-    de.SetDesign(alpha_->Get("initial")->As<Double>());
+    de.SetLowerBound(alpha_->Get("lower")->As<double>());
+    de.SetUpperBound(alpha_->Get("upper")->As<double>());
+    de.SetDesign(alpha_->Get("initial")->As<double>());
     aux_design_.Push_back(de);
   }
 
@@ -100,7 +100,7 @@ void AuxDesign::ToInfo(ErsatzMaterial* em)
 
 }
 
-int AuxDesign::ReadDesignFromExtern(const Double* space_in)
+int AuxDesign::ReadDesignFromExtern(const double* space_in)
 {
   int old_design = design_id;
 
@@ -115,7 +115,7 @@ int AuxDesign::ReadDesignFromExtern(const Double* space_in)
 
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
-    Double v = space_in[offset + i] * scaling_;
+    double v = space_in[offset + i] * scaling_;
     if(!new_design && v != aux_design_[i].GetDesign())
       new_design = true;
 
@@ -138,7 +138,7 @@ inline unsigned int AuxDesign::AuxDesignOffset() const
   return 0;
 }
 
-bool AuxDesign::CompareDesign(const Double* space_in)
+bool AuxDesign::CompareDesign(const double* space_in)
 {
   if(exoprt_fe_design_ && !DesignSpace::CompareDesign(space_in))
     return false;
@@ -147,7 +147,7 @@ bool AuxDesign::CompareDesign(const Double* space_in)
 
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
-    Double v = space_in[offset + i] * scaling_;
+    double v = space_in[offset + i] * scaling_;
     if(v != aux_design_[i].GetDesign())
       return false;
   }
@@ -155,12 +155,12 @@ bool AuxDesign::CompareDesign(const Double* space_in)
   return true;
 }
 
-int AuxDesign::WriteDesignToExtern(Double* space_out, bool scale) const
+int AuxDesign::WriteDesignToExtern(double* space_out, bool scale) const
 {
   if(exoprt_fe_design_)
     DesignSpace::WriteDesignToExtern(space_out, scale);
 
-  Double rscaling = scale ? 1.0 / scaling_ : 1.0;
+  double rscaling = scale ? 1.0 / scaling_ : 1.0;
   unsigned int offset = AuxDesignOffset();
 
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
@@ -171,7 +171,7 @@ int AuxDesign::WriteDesignToExtern(Double* space_out, bool scale) const
   return design_id;
 }
 
-void AuxDesign::WriteGradientToExtern(StdVector<Double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
+void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
 {
   LOG_DBG(aux_des) << "WGTE: ad=" << aux_design_.GetSize() << " DS:GNOV=" << DesignSpace::GetNumberOfVariables() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
 
@@ -186,7 +186,7 @@ void AuxDesign::WriteGradientToExtern(StdVector<Double>& out, DesignElement::Val
     // in case the the gradient window covers DesignSpace design and aux design, we need to
     // modify the window before calling DesignSpace::Write*GradientToExtern().
     // this is e.g. not the case for sparse gradients not touching the aux design.
-    StdVector<Double>::Window org_window = out.window; // I like standard constructors :)
+    StdVector<double>::Window org_window = out.window; // I like standard constructors :)
 
     // FIXME! window != data!!!
     assert(out.window.GetSize() <= data_size + aux_design_.GetSize());
@@ -219,7 +219,7 @@ void AuxDesign::WriteGradientToExtern(StdVector<Double>& out, DesignElement::Val
 }
 
 
-void AuxDesign::WriteAuxGradientToExtern(StdVector<Double>& out, Function* f, bool scale) const
+void AuxDesign::WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale) const
 {
   Condition* g = dynamic_cast<Condition*>(f);
 
@@ -230,7 +230,7 @@ void AuxDesign::WriteAuxGradientToExtern(StdVector<Double>& out, Function* f, bo
                     << " HS=" << HasSlackVariable() << " base=" << base;
 
   assert(aux_design_.GetSize() <= out.window.GetSize());
-  Double s = scale ? scaling_ : 1.0;
+  double s = scale ? scaling_ : 1.0;
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
     if(HasSlackVariable() && g != NULL && g->HasGeneralSlackBound())
@@ -283,7 +283,7 @@ void AuxDesign::WriteAuxGradientToExtern(StdVector<Double>& out, Function* f, bo
   }
 }
 
-void AuxDesign::WriteSparseAuxGradientToExtern(StdVector<Double>& out, Function* f, bool scale) const {
+void AuxDesign::WriteSparseAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale) const {
   assert(f != NULL);
   assert(!f->IsObjective()); // only constraints can have sparse Jacobians
 
@@ -296,7 +296,7 @@ void AuxDesign::WriteSparseAuxGradientToExtern(StdVector<Double>& out, Function*
 
   assert(out.window.GetSize() == sparsity.GetSize());
   unsigned int base = out.window.GetStart();
-  Double s = scale ? scaling_ : 1.0;
+  double s = scale ? scaling_ : 1.0;
   for(unsigned int i = 0; i < sparsity.GetSize(); i++)
   {
     assert(out.InWindow(base + i));
@@ -312,7 +312,7 @@ void AuxDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type desi
   DesignSpace::Reset(vs, design);
 }
 
-void AuxDesign::WriteBoundsToExtern(Double* x_l, Double* x_u) const
+void AuxDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 {
   if(exoprt_fe_design_)
     DesignSpace::WriteBoundsToExtern(x_l, x_u);
@@ -336,12 +336,12 @@ unsigned int AuxDesign::GetNumberOfVariables() const
   }
 }
 
-void AuxDesign::AddAuxDerivative(Function* f, unsigned int index, Double value)
+void AuxDesign::AddAuxDerivative(Function* f, unsigned int index, double value)
 {
   aux_design_[index].AddGradient(f, value);
 }
 
-void AuxDesign::AddAuxDerivatives(Objective* f, Condition* g, StdVector<Double>& d, Double weight)
+void AuxDesign::AddAuxDerivatives(Objective* f, Condition* g, StdVector<double>& d, double weight)
 {
   assert(d.GetSize() == aux_design_.GetSize());
   for(unsigned int i = 0; i < aux_design_.GetSize(); i++){

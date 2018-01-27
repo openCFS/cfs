@@ -42,16 +42,8 @@ namespace CoupledField {
   struct SyncAccess<true>{
   public:
     static inline void AddTo(Double & target   , const Double  & src){
-// bjurgel AD conversion comment: pragma omp atomic apparently only works on primitive types...
-// Use critical and just live with the overhead...
-// Idea for the future: use e.g. adjoinablempi -> instrumentation depends on AD mode 
-#ifdef USE_ADOLC
-    #pragma omp critical
+#pragma omp atomic
       target += src;
-#else
-  #pragma omp atomic
-      target += src;
-#endif
     }
     static inline void AddTo(Complex & target  , const Complex & src){
 #pragma omp critical (MATRIX_COMPLEX_UPDATE)

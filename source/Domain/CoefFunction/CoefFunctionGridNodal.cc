@@ -308,7 +308,7 @@ template<class DATA_TYPE>
     numNodes_ = srcGrid_->GetNumNodes();
     numEqns_ = (numNodes_ + 1) * dimDof_;
     solVec_.Resize(numEqns_);
-    solVec_.Init(DATA_TYPE(0.0));
+    solVec_.Init(0.0);
   }
 
   template<class DATA_TYPE>
@@ -453,14 +453,14 @@ template<class DATA_TYPE>
       StdVector<DATA_TYPE> tFactorSum;
       if (countSum) {
         tSum.Resize(dimDof);
-        tSum.Init(DATA_TYPE(0.0));
+        tSum.Init(0.0);
         tFactorSum.Resize(dimDof);
-        tFactorSum.Init(DATA_TYPE(0.0));
+        tFactorSum.Init(0.0);
       }
-      DATA_TYPE tSum1 = DATA_TYPE(0.0);
-      DATA_TYPE tFactorSum1 = DATA_TYPE(0.0);
+      DATA_TYPE tSum1 = 0.0;
+      DATA_TYPE tFactorSum1 = 0.0;
       DATA_TYPE value;
-      DATA_TYPE factor = DATA_TYPE(1.0);
+      DATA_TYPE factor = 1.0;
       UInt node;
       UInt sourceIndex;
       UInt targetIndex;
@@ -612,9 +612,9 @@ template<class DATA_TYPE>
     StdVector<DATA_TYPE> factorSum;
     if (this->verboseSum_) {
       loadedSum.Resize(dimDof_);
-      loadedSum.Init(DATA_TYPE(0.0));
+      loadedSum.Init(0.0);
       factorSum.Resize(dimDof_);
-      factorSum.Init(DATA_TYPE(0.0));
+      factorSum.Init(0.0);
     }
     
     // get function for copying the result vector
@@ -625,7 +625,7 @@ template<class DATA_TYPE>
     std::set<std::string>::iterator regIter = srcRegions_.begin();
     if (sol.GetSize() != numEqns_) {
       sol.Resize(numEqns_);
-      sol.Init(DATA_TYPE(0.0));
+      sol.Init(0.0);
     }
     this->InitRegionNodes();
     bool loadValues = true;
@@ -787,7 +787,7 @@ template<class DATA_TYPE>
         if (this->stepNumberInterpolationA_ != newA) {
           if (this->stepNumberInterpolationA_ == std::numeric_limits<unsigned int>::max()) {
             this->solVecInterpolationA_.Resize(this->numEqns_);
-            this->solVecInterpolationA_.Init(DATA_TYPE(0.0));
+            this->solVecInterpolationA_.Init(0.0);
           }
           this->ReadSolution(newA,newAValue,this->solVecInterpolationA_);
           this->stepNumberInterpolationA_ = newA;
@@ -795,7 +795,7 @@ template<class DATA_TYPE>
         if (this->stepNumberInterpolationB_ != newB) {
           if (this->stepNumberInterpolationB_ == std::numeric_limits<unsigned int>::max()) {
             this->solVecInterpolationB_.Resize(this->numEqns_);
-            this->solVecInterpolationB_.Init(DATA_TYPE(0.0));
+            this->solVecInterpolationB_.Init(0.0);
           }
           this->ReadSolution(newB,newBValue,this->solVecInterpolationB_);
           this->stepNumberInterpolationB_ = newB;

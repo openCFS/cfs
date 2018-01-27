@@ -231,7 +231,7 @@ public:                                                             \
 }
 
   DEFINE_ENTRY_TYPE( Double   , BaseMatrix::DOUBLE);
-//   DEFINE_ENTRY_TYPE( Float    , BaseMatrix::FLOAT);
+  DEFINE_ENTRY_TYPE( Float    , BaseMatrix::FLOAT);
   DEFINE_ENTRY_TYPE( Complex  , BaseMatrix::COMPLEX);
   DEFINE_ENTRY_TYPE( Integer  , BaseMatrix::INTEGER);
   DEFINE_ENTRY_TYPE( UInt     , BaseMatrix::UINT);

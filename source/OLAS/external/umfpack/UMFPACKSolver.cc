@@ -120,7 +120,7 @@ namespace CoupledField {
   template<typename T>
   void UMFPACKSolver<T>::Setup( BaseMatrix &sysMat)
   {
-#ifndef USE_ADOLC
+
     // ============================================================
     //  Determine which of the two steps: symbolical and numerical
     //  factorisation must be performed
@@ -256,20 +256,20 @@ namespace CoupledField {
         int ipos = 1;
         int Ap[]={0,2,5,9,10,12};
         int Ai[]={0,1,0, 2,4,1,2,3, 4,2,1,4};
-        Double Ax[] = {2., 3., 3., -1., 4., 4., -3., 1., 2., 2., 6., 1., 
+        double Ax[] = {2., 3., 3., -1., 4., 4., -3., 1., 2., 2., 6., 1., 
                        3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3.} ;
-        Double Az[] = {1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.} ;
-        Double b[] = {8., 45., -3., 3., 19.} ;      
+        double Az[] = {1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.} ;
+        double b[] = {8., 45., -3., 3., 19.} ;      
 
         //status = umfpack_zi_transpose (n, n, Ap, Ai, Ax, NULL, (int *) NULL, (int *) NULL, Rp, Ri, Rx, Rz, 0) ;
 
         for(int i=0; i<=n; i++) Ap[i]++;
         for(int i=0; i<12; i++) Ai[i]++;
         
-        csrcsc_Double_(&n, &job, &ipos,
+        csrcsc_double_(&n, &job, &ipos,
                        Ax, Ai, Ap,
                        Rx, Ri, Rp);
-        csrcsc_Double_(&n, &job, &ipos,
+        csrcsc_double_(&n, &job, &ipos,
                        Az, Ai, Ap,
                        Rz, Ri, Rp);
 
@@ -497,9 +497,6 @@ namespace CoupledField {
     firstCall_ = false;
 
     setupTimer_->Stop();
-#else
-EXCEPTION("Not implemented.");
-#endif
   }
 
 
@@ -510,7 +507,6 @@ EXCEPTION("Not implemented.");
   template<typename T>
   void UMFPACKSolver<T>::Solve( const BaseMatrix &sysmat,  const BaseVector &rhs, BaseVector &sol)
   {
-#ifndef USE_ADOLC
     LOG_DBG(umfpackSolver) << "S: Solving linear system ...";
     
     if(firstCall_ == true)
@@ -568,9 +564,6 @@ EXCEPTION("Not implemented.");
     }
 
     solveTimer_->Stop();
-#else
-EXCEPTION("Not implemented.");
-#endif
   }
 
 // Explicit template instantiation

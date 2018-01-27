@@ -310,7 +310,7 @@ bool SCPIP::eval_jac_g(int n, const double* x_org, int m, int nele_jac, double* 
 
 void SCPIP::finalize_solution(int status, int n, const double* x, const double* z_L, 
                              const double* z_U, int m, const double* g, 
-                             const double* lambda, Double obj_value)
+                             const double* lambda, double obj_value)
 {
   LOG_TRACE2(scpip) << "finalize_solution: status = " << status << "; n = " << n << "; m = " << m 
                     << " obj_value = " << obj_value << " x_avg = " << Average(x, n) << " x_std_dev = " 

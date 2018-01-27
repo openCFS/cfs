@@ -38,33 +38,33 @@ namespace CoupledField {
     virtual void CalcBestParameter() {;};
 
     //! returns y(x)
-    virtual Double EvaluateFunc(Double x);
+    virtual double EvaluateFunc(double x);
 
-    virtual Double EvaluateFunc(Double x, Double y);
+    virtual double EvaluateFunc(double x, double y);
 
-    virtual Double EvaluateFunc(Double x, Double y, Double z);
+    virtual double EvaluateFunc(double x, double y, double z);
 
     //! returns  y'(x)  
-    virtual Double EvaluatePrime(Double x) { 
+    virtual double EvaluatePrime(double x) { 
       EXCEPTION(" TriLinInterpolate: EvaluatePrime not implemented");
       return -1.0; 
     };
 
     ///
-    virtual Double EvaluateFuncInv(Double t);
+    virtual double EvaluateFuncInv(double t);
 
     ///
-    virtual Double EvaluatePrimeInv(Double t);
+    virtual double EvaluatePrimeInv(double t);
     //  { Error(" TriLinInterpolate:  EvaluatePrimeInv not implemented");};
 
     ///
     int GetSize() {return numMeas_;};
 
     ///
-    Double EvaluateOrigB(int i) {return y_[i];};
+    double EvaluateOrigB(int i) {return y_[i];};
 
     ///
-    Double EvaluateOrigNu(int i) {return x_[i]/y_[i];};
+    double EvaluateOrigNu(int i) {return x_[i]/y_[i];};
 
 
   private:

@@ -130,7 +130,7 @@ namespace CoupledField {
 
     void ReadRegionsAndGroups();
 
-    void StoreSingleNode(UInt fileNodeNum, Double x, Double y, Double z, UInt &nodeNum,
+    void StoreSingleNode(UInt fileNodeNum, double x, double y, double z, UInt &nodeNum,
                          UInt &numNodes, UInt &maxNodeNum);
 
     void GetRegionAndGroupNamesBlocked();

@@ -68,7 +68,7 @@ template<typename T> class ElemStoreSol;
     //! Creates an vector with size \a size and gets initialized
     //! with \a entry. If no \a entry is provided, the vector
     //! is initialized with zeroes.
-    explicit Vector<T>(const UInt size, const T entry = T(0));
+    explicit Vector<T>(const UInt size, const T entry = 0);
 
     //! Copy Constructor
 
@@ -274,14 +274,14 @@ template<typename T> class ElemStoreSol;
     //    virtual void Inner(const SingleVector& vec,Complex& s) const;
 
     //! Compute Euclidean norm of this vector object
-    Double NormL2() const;
+    double NormL2() const;
 
     /**  this functions localized the maximal component (absolute value) and returns it with its original sign
 		example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1 */ 
     Double SignedMax() const; 
 
     /** diff norm */
-    Double NormL2(const Vector<T>& other) const;
+    double NormL2(const Vector<T>& other) const;
 
     /** Sum of all the vector's elements */
     T Sum() const;
@@ -477,7 +477,7 @@ template<typename T> class ElemStoreSol;
 
     //! Initialize vector
     void Init( ) {
-      Init( T(0) );
+      Init( 0 );
     }
 
     //! Initialize vector with a given entry

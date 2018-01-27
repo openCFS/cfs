@@ -136,18 +136,6 @@ IF(USE_HDF5)
 ENDIF(USE_HDF5)
 
 #-------------------------------------------------------------------------------
-# If USE_ADOLC is defined find Adolc library 
-#-------------------------------------------------------------------------------
-IF(USE_ADOLC)
-  SET(ADOLC_URL "${CFS_DS_SOURCES_DIR}/adolc")
-  SET(ADOLC_BASE "adol-c")
-  SET(ADOLC_VER "v2.6.3")
-  SET(ADOLC_GZ "${ADOLC_BASE}_${ADOLC_VER}.tar.gz")
-  SET(ADOLC_MD5 "d6ceceb26a6b2f8d808048857cc93cb8")
-  INCLUDE("${CFSDEPS_DIR}/adolc/External_adolc.cmake")
-ENDIF(USE_ADOLC)
-
-#-------------------------------------------------------------------------------
 # Search for CGNS library
 #-------------------------------------------------------------------------------
 IF(USE_CGNS)

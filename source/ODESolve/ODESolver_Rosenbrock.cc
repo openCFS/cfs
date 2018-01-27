@@ -65,7 +65,7 @@ void ODESolver_Rosenbrock::Solve( const Double tInit,
     //Choice of C only good for dimensionless case
     for ( i = 0; i < nvar; i++ ){
       C[i] = 1; 
-      yScal[i] = fmax(C[i],fabs(y[i]));
+      yScal[i] = std::max(C[i],std::abs(y[i]));
     }
 
     // *** Test ************************************
@@ -248,12 +248,12 @@ void ODESolver_Rosenbrock::RosenbAdaptiveStepsize (StdVector<Double> &y,
     errMax /= eps_;
     if ( errMax <= 1.0){
       hDid=h;
-      hNext=(errMax >errCon? safetyFac_ * h* pow(errMax, powerGrow) : Grow*h);
+      hNext=(errMax >errCon? safetyFac_ * h* std::pow(errMax, powerGrow) : Grow*h);
       //std::cout << "NumSteps: " << jtry << std::endl;
       return;
     }
     else{
-      hNext = safetyFac_ *h * pow(errMax,powerShrink);
+      hNext = safetyFac_ *h * std::pow(errMax,powerShrink);
       h = ( h >= 0.0 ? 
           ((Shrink*h) > hNext ? (Shrink*h) : (hNext)):((Shrink*h) < hNext ? (Shrink*h) : (hNext) ));
     }

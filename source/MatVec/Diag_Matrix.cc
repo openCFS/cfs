@@ -216,8 +216,8 @@ namespace CoupledField {
   Double Diag_Matrix<T>::GetMaxDiag() const {
 
 
-    Double maxDiag = 0;
-    Double current = 0;
+    double maxDiag = 0;
+    double current = 0;
     UInt i;
 
     for ( i = 0; i < this->nrows_; i++ ) {

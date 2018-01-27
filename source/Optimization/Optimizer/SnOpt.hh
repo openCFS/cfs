@@ -4,13 +4,8 @@
 #include <stdint.h>
 #include <string>
 
-#ifndef USE_ADOLC
 typedef int32_t integer;
 typedef double doublereal;
-#else
-typedef int32_t integer;
-typedef adtl::adouble doublereal;
-#endif
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Optimization/Optimizer/BaseOptimizer.hh"
@@ -43,7 +38,7 @@ public:
 
 private:
   /** Return the infinty value. According to snopt-manual this has to be at least 1e20 */
-  virtual Double GetInfBound() const
+  virtual double GetInfBound() const
   {
     return 1e20;
   }
@@ -114,7 +109,7 @@ private:
    *  minor_feasibility_tolerance: tolerance with which all variables satisfy upper/lower bounds
    *  linesearch_tolerance: in [0, 1], default 0.9, higher is less accurate
    */
-  void SetNumericValue(const std::string& key, Double value);
+  void SetNumericValue(const std::string& key, double value);
   
   /** Helper function for setting a string valued option 
    *  currently known options are: 

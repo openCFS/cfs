@@ -159,7 +159,7 @@ DEFINE_LOG(approxdata, "approxdata")
 
   }
 
-  void ApproxData::findBracketIndices(const Double &x, const Vector<Double> & axis, UInt & klo, UInt & khi, Double &diff) {
+  void ApproxData::findBracketIndices(const double &x, const Vector<Double> & axis, UInt & klo, UInt & khi, double &diff) {
     const UInt kend = axis.GetSize() - 1;
     UInt k;
     klo=0;

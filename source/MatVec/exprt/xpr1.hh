@@ -245,15 +245,15 @@ public:
     return *me;
   }
   
-  template <class E> Double in(const Xpr1<P,E>& x) const {
-    Double sum = 0.0;
+  template <class E> double in(const Xpr1<P,E>& x) const {
+    double sum = 0.0;
     const I* me = static_cast<const I*>(this);
 
     for (unsigned int i=0; i < me->size(); i++) sum += me->operator()(i) * x(i);
     return sum;
   }
-  template <class V> Double in(const Dim1<P,V>& x) const {
-    Double sum = 0.0;
+  template <class V> double in(const Dim1<P,V>& x) const {
+    double sum = 0.0;
     const I* me = static_cast<const I*>(this);
 
     for (unsigned int i=0; i < me->size(); i++) sum += me->operator()(i) * x(i);

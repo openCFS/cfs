@@ -54,7 +54,7 @@ namespace CoupledField {
     UInt numNodes = GetNumNodes();
     mi_->AddNodes(numNodes);
 
-    std::vector< Double > coords;
+    std::vector< double > coords;
     GetCoordinates( coords );
 
     for(UInt i=0; i<numNodes; i++) {
@@ -276,8 +276,8 @@ namespace CoupledField {
       std::cout << "  " << (*it) << std::endl;
       }
 
-      std::vector< Double > coords;
-      std::vector<Double>::iterator itc, endc;
+      std::vector< double > coords;
+      std::vector<double>::iterator itc, endc;
       GetCoordinates( coords );
       std::cout << "Coordinates: " << std::endl;
       itc = coords.begin();
@@ -380,7 +380,7 @@ namespace CoupledField {
   // ENTITY ACCESS
   // ======================================================
   
-  void SimInputMESH::GetCoordinates( std::vector< Double > & nodeCoords ) {
+  void SimInputMESH::GetCoordinates( std::vector< double > & nodeCoords ) {
 
     UInt i, ibuf;
 

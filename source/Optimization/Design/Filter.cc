@@ -24,16 +24,16 @@ Filter::Filter()
   eta            = -1.0;
   non_lin_scale  = -1.0;
   non_lin_offset = -1.0;
-  explicit_lower_bound_ = std::numeric_limits<Double>::min();
+  explicit_lower_bound_ = std::numeric_limits<double>::min();
   region         = NO_REGION_ID;
   weight         = 1.0;
   weight_sum     = -1.0;
 }
 
 
-Double Filter::CalcWeightSum(bool include_this) const
+double Filter::CalcWeightSum(bool include_this) const
 {
-Double res = 0.0;
+double res = 0.0;
 
 for(unsigned int i = 0, n = neighborhood.GetSize(); i < n; i++)
   res += neighborhood[i].weight;
@@ -45,9 +45,9 @@ return res;
 }
 
 
-Double Filter::GetLowerBound(const DesignElement* de) const
+double Filter::GetLowerBound(const DesignElement* de) const
 {
-  if(explicit_lower_bound_ != std::numeric_limits<Double>::min())
+  if(explicit_lower_bound_ != std::numeric_limits<double>::min())
     return explicit_lower_bound_;
   else
     return de->GetLowerBound();
@@ -69,15 +69,15 @@ void Filter::SetNonLinCorrection(const DesignElement* ref, unsigned int fix)
   de.simp->filter = *this; // only copy data, changes don't distribute back
   de.elem = ref->elem; // otherwise the logings segfault
 
-  Double ub = ref->GetUpperBound();
-  Double lb = ref->GetLowerBound();
+  double ub = ref->GetUpperBound();
+  double lb = ref->GetLowerBound();
 
   // calc the pure values
   de.simp->filter[fix].non_lin_scale = 1.0;
   de.simp->filter[fix].non_lin_offset = 0;
 
-  Double org_u = density_ == TANH ? de.simp->CalcTanh(ub, fix) : de.simp->CalcHeaviside(ub, fix);
-  Double org_l = density_ == TANH ? de.simp->CalcTanh(lb, fix) : de.simp->CalcHeaviside(lb, fix);
+  double org_u = density_ == TANH ? de.simp->CalcTanh(ub, fix) : de.simp->CalcHeaviside(ub, fix);
+  double org_l = density_ == TANH ? de.simp->CalcTanh(lb, fix) : de.simp->CalcHeaviside(lb, fix);
 
   LOG_DBG(ds) << "SNLC de=" << ref->ToString() << " fix=" << fix << " f=" << density.ToString(density_) << " ub=" << ub << " -> " << org_u << " lb=" << lb << " -> " << org_l;
 
@@ -100,8 +100,8 @@ void Filter::SetNonLinCorrection(const DesignElement* ref, unsigned int fix)
 
 void Filter::Dump() const
 {
-  Double weight_sum = weight;
-  Double distance_avg = 0.0;
+  double weight_sum = weight;
+  double distance_avg = 0.0;
   for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
   {
     weight_sum   += neighborhood[i].weight;

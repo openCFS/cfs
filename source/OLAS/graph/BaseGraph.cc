@@ -785,11 +785,7 @@ namespace CoupledField {
     }
     bwlower = bwlower_;
     bwupper = bwupper_;
-#ifdef USE_ADOLC
-    bwavg_  = UInt( bwavg_ / Double(numNodes_).getValue() );
-#else
     bwavg_  = UInt( bwavg_ / Double(numNodes_) );
-#endif
     bwAvg   = bwavg_;
 
 #ifdef DEBUG_BASEGRAPH

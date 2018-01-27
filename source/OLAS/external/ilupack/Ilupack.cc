@@ -53,7 +53,6 @@ Ilupack<T>::~Ilupack()
 template<typename T>
 void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
 {
-#ifndef USE_ADOLC
   const SparseOLASMatrix<T>& som =  dynamic_cast<const SparseOLASMatrix<T>&> (base_mat);
 
   LOG_TRACE2(ilupack) <<  "SetMatrix: SPARSE_SYM="  << (som.GetStorageType() == BaseMatrix::SPARSE_SYM)
@@ -158,15 +157,11 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   LOG_DBG2(ilupack) << "mat_.ia: " << StdVector<int>::ToString(mat.nr + 1, mat.ia);
   LOG_DBG2(ilupack) << "mat_.ja: " << StdVector<int>::ToString(elements, mat.ja);
   LOG_DBG2(ilupack) << "mat_.a: " << StdVector<double>::ToString(elements, mat.a);
-#else
-  EXCEPTION("Not implemented.");
-#endif
 }
 
 template<typename T>
 void Ilupack<T>::Setup(BaseMatrix &sysMat)
 {
-#ifndef USE_ADOLC
   // do we really want to create a new entry? Might blast up the output
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
   PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("setup", at);
@@ -238,9 +233,6 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat)
   timing->Get("total_time")->SetValue(ILUPACK_secnds[7]);
   timing->Get("initial_preprocessing")->SetValue(ILUPACK_secnds[0]);
   timing->Get("reordering_remaining_levels")->SetValue(ILUPACK_secnds[1]);
-#else
-  EXCEPTION("Not implemented.");
-#endif
 }
 
 
@@ -248,7 +240,6 @@ template<typename T>
 void Ilupack<T>::Solve(const BaseMatrix &base_mat, 
     const BaseVector &base_rhs,  BaseVector &base_sol)
 {
-#ifndef USE_ADOLC
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
   PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
 
@@ -312,11 +303,6 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
   timing->Get("maxtrix_vector_mult")->SetValue(ILUPACK_secnds[6]);
   PtrParamNode norms = out->Get("norms");
   norms->Get("target")->SetValue(param.fpar[23]);
-  
-#else
-  EXCEPTION("Not implemented.");
-#endif
-  
 }
 
 
@@ -324,7 +310,6 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
 template<typename T>
 void Ilupack<T>::InitParameters()
 {
-#ifndef USE_ADOLC
   LOG_TRACE2(ilupack) <<  "InitParameters";
 
   // initializes the parameter block with ilupacks default stuff
@@ -350,9 +335,6 @@ void Ilupack<T>::InitParameters()
   
   // TODO we currently ignore saddle point structures
   param.ind = NULL;
-#else
-  EXCEPTION("Not implemented.");
-#endif
 }
 
 

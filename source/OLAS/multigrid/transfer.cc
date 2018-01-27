@@ -645,8 +645,8 @@ GalerkinProductEdgeSys(StdVector<UInt>& A_H_rP,
   const UInt *cPC = A_h.GetColPointer();
   const UInt *rPC = A_h.GetRowPointer();
 
-  Double *re = new Double[nnz];
-  Double *im = new Double[nnz];
+  double *re = new double[nnz];
+  double *im = new double[nnz];
   for(UInt i = 0; i < nnz; ++i){
     re[i] = pC[i].real();
     im[i] = pC[i].imag();

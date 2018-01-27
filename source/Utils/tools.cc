@@ -93,26 +93,26 @@ namespace CoupledField {
 
   //! Convert (real,imag) => phase
   Double RealImagToPhase( const Complex& in ) {
-    return (fabs(in.imag()) > 1e-16) ?                   
-        atan2(in.imag(),in.real() )*180/M_PI : 
-        ( in.real() < Double(0.0) ) ? Double(180) : Double(0) ; 
+    return (std::abs(in.imag()) > 1e-16) ?                   
+        std::atan2(in.imag(),in.real() )*180/M_PI : 
+        ( in.real() < 0.0 ) ? 180 : 0 ; 
   }
 
 
   //! Convert (ampl,phase) => (real,imag)
   Complex AmplPhaseToComplex( Double val, Double phase ) {
-    return Complex( val * cos( phase / 180 * M_PI ),
-                    val * sin( phase / 180 * M_PI ) ); 
+    return Complex( val * std::cos( phase / 180 * M_PI ),
+                    val * std::sin( phase / 180 * M_PI ) ); 
   }
 
   //! Convert (ampl,phase) => real
   Double AmplPhaseToReal( Double val, Double phase ) {
-    return val * cos( phase / 180 * M_PI );
+    return val * std::cos( phase / 180 * M_PI );
   }
 
   //! Convert (ampl,phase) => imag
   Double AmplPhaseToImag( Double val, Double phase ) {
-    return val * sin( phase / 180 * M_PI );
+    return val * std::sin( phase / 180 * M_PI );
   }
 
 
@@ -186,7 +186,7 @@ namespace CoupledField {
     for(UInt i = 0; i < size; i++)
       result += data[i] * data[i];
 
-    return sqrt(result);
+    return std::sqrt(result);
   }
 
   Double NormL2(const Double* data1, const Double* data2, const UInt size)
@@ -195,10 +195,10 @@ namespace CoupledField {
     for(UInt i = 0; i < size; i++)
       result += (data1[i] - data2[i]) * (data1[i] - data2[i]);
 
-    return sqrt(result);
+    return std::sqrt(result);
   }
 
-  Double NormL2(const SingleVector* data, const SingleVector* data2)
+  double NormL2(const SingleVector* data, const SingleVector* data2)
   {
     assert(data != NULL && data2 != NULL);
 
@@ -208,7 +208,7 @@ namespace CoupledField {
     if(data->GetEntryType() == BaseMatrix::COMPLEX)
       return dynamic_cast<const Vector<Complex>& >(*data).NormL2(dynamic_cast<const Vector<Complex>& >(*data2));
     else
-      return dynamic_cast<const Vector<Double>& >(*data).NormL2(dynamic_cast<const Vector<Double>& >(*data2));
+      return dynamic_cast<const Vector<double>& >(*data).NormL2(dynamic_cast<const Vector<double>& >(*data2));
   }
 
 
@@ -248,7 +248,7 @@ namespace CoupledField {
 
 
   template <>
-  std::string ToString<std::complex<Double> >(const std::complex<Double>* data, unsigned int size)
+  std::string ToString<std::complex<double> >(const std::complex<double>* data, unsigned int size)
   {
     std::ostringstream os;
 
@@ -261,22 +261,22 @@ namespace CoupledField {
   }
 
 
-  Double Average(const Double* data, unsigned int size)
+  double Average(const double* data, unsigned int size)
   {
-    Double sum = 0.0;
+    double sum = 0.0;
     for(unsigned int i = 0; i < size; i++)
       sum += *(data + i);
 
     return sum / size;
   }
 
-  Double StandardDeviation(const Double* data, unsigned int size)
+  double StandardDeviation(const double* data, unsigned int size)
   {
     // expected value
-    Double e = Average(data, size);
+    double e = Average(data, size);
 
     // variance
-    Double v = 0.0;
+    double v = 0.0;
     for(unsigned int i = 0; i < size; i++)
       v += (*(data + i) - e) * (*(data + i) - e);
 
@@ -413,40 +413,40 @@ namespace CoupledField {
 
 
 
-  Double SmoothMax(Double left, Double right, Double beta)
+  double SmoothMax(double left, double right, double beta)
   {
     assert(beta > 0 || beta == -1.0);
-    if(beta == -1.0) return fmax(left, right);
+    if(beta == -1.0) return std::max(left, right);
 
     // the continuous Kreisselmeier and Steinhauser max approximation taken
     // from Sigmund; Morphology-based black and white filters for topology optimization; 2007
     // x = log ( sum(exp(beta * x_i)) / sum 1) / beta
 
-    return log(0.5 * (exp(left * beta) + exp(right * beta))) / beta;
+    return std::log(0.5 * (std::exp(left * beta) + std::exp(right * beta))) / beta;
   }
 
-  Double SmoothMax(const StdVector<Double>& values, Double beta)
+  double SmoothMax(const StdVector<double>& values, double beta)
   {
     assert(beta > 0 || beta == -1.0);
     assert(values.GetSize() > 0);
 
-    Double res = 0.0;
+    double res = 0.0;
 
     if(beta == -1.0)
     {
       res = values[0];
       for(unsigned int i = 1, n = values.GetSize(); i < n; i++)
-        res = fmax(res, values[i]);
+        res = std::max(res, values[i]);
     }
     else
     {
       // see  SmoothMax(double left, double right, double beta)
       // x = log ( sum(exp(beta * x_i)) / sum 1) / beta
-      Double sum = 0.0;
+      double sum = 0.0;
       for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
-        sum += exp(values[i] * beta);
+        sum += std::exp(values[i] * beta);
 
-      res = log(sum / (Double) values.GetSize()) / beta;
+      res = std::log(sum / (double) values.GetSize()) / beta;
     }
 
     // LOG_DBG3(tools) << "SmoothMax v=" << values.ToString() << " beta=" << beta << " -> " << res;
@@ -454,47 +454,47 @@ namespace CoupledField {
     return res;
   }
 
-  Double SmoothMin(Double left, Double right, Double beta)
+  double SmoothMin(double left, double right, double beta)
   {
     assert(beta > 0 || beta == -1.0);
     assert(right > 0 && left > 0);
 
     if(beta == -1.0)
-      return fmin(left, right);
+      return std::min(left, right);
 
     // see comment in CalcMaxApproximation()
-    return 1.0 - log(0.5 * (exp((1.0 - left) * beta) + exp((1.0 - right) * beta))) / beta;
+    return 1.0 - std::log(0.5 * (std::exp((1.0 - left) * beta) + std::exp((1.0 - right) * beta))) / beta;
   }
 
-  Double SmoothMin(const StdVector<Double>& values, Double beta)
+  double SmoothMin(const StdVector<double>& values, double beta)
   {
     assert(beta > 0 || beta == -1.0);
     assert(values.GetSize() > 0);
-    // see  SmoothMax(Double left, Double right, Double beta)
+    // see  SmoothMax(double left, double right, double beta)
 
     if(beta == -1.0)
     {
-      Double t = values[0];
+      double t = values[0];
       for(unsigned int i = 1, n = values.GetSize(); i < n; i++)
-        t = fmin(t, values[i]);
+        t = std::min(t, values[i]);
       return t;
     }
 
-    Double sum = 0.0;
+    double sum = 0.0;
     for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
-      sum += exp((1.0 - values[i]) * beta);
+      sum += std::exp((1.0 - values[i]) * beta);
 
-    return 1.0 - log(sum / (Double) values.GetSize()) / beta;
+    return 1.0 - std::log(sum / (double) values.GetSize()) / beta;
   }
 
 
-  Double DerivSmoothMax(Double left, Double right, Double beta, int derive)
+  double DerivSmoothMax(double left, double right, double beta, int derive)
   {
     assert(derive == -1 || derive == 1); // left or right
     assert(beta > 0);
 
-    Double exp_left  = exp(left * beta);
-    Double exp_right = exp(right * beta);
+    double exp_left  = std::exp(left * beta);
+    double exp_right = std::exp(right * beta);
 
     if(derive == -1)
       return exp_left / (exp_left + exp_right);
@@ -502,19 +502,19 @@ namespace CoupledField {
       return exp_right / (exp_left + exp_right);
   }
 
-  Double DerivSmoothMax(const StdVector<Double>& values, Double beta, unsigned int derive)
+  double DerivSmoothMax(const StdVector<double>& values, double beta, unsigned int derive)
   {
     assert(beta > 0);
 
-    Double my_exp = -1.0;
-    Double sum = 0.0;
+    double my_exp = -1.0;
+    double sum = 0.0;
 
     if(values.GetSize() == 1)
       return 1.0;
 
     for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
     {
-      Double v = exp(values[i] * beta);
+      double v = std::exp(values[i] * beta);
       sum += v;
       if(derive == i) my_exp = v; // not derive ist not a window based index
     }
@@ -523,11 +523,11 @@ namespace CoupledField {
     return my_exp / sum;
   }
 
-  Double DerivSmoothMin(Double left, Double right, Double beta, int derive)
+  double DerivSmoothMin(double left, double right, double beta, int derive)
   {
     assert(derive == -1 || derive == 1); // left or right
-    Double exp_left  = exp((1.0 - left) * beta);
-    Double exp_right = exp((1.0 - right) * beta);
+    double exp_left  = std::exp((1.0 - left) * beta);
+    double exp_right = std::exp((1.0 - right) * beta);
 
     if(derive == -1)
       return exp_left / (exp_left + exp_right);
@@ -535,17 +535,17 @@ namespace CoupledField {
       return exp_right / (exp_left + exp_right);
   }
 
-  Double DerivSmoothMin(const StdVector<Double>& values, Double beta, unsigned int derive)
+  double DerivSmoothMin(const StdVector<double>& values, double beta, unsigned int derive)
   {
-    Double my_exp = -1.0;
-    Double sum = 0.0;
+    double my_exp = -1.0;
+    double sum = 0.0;
 
     if(values.GetSize() == 1)
       return 1.0;
 
     for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
     {
-      Double v = exp((1.0 - values[i]) * beta);
+      double v = std::exp((1.0 - values[i]) * beta);
       sum += v;
       if(derive == i) my_exp = v;
     }
@@ -554,27 +554,44 @@ namespace CoupledField {
     return my_exp / sum;
   }
 
-  Double SmoothAbs(Double x, Double eps)
+  double SmoothAbs(double x, double eps)
   {
     assert(eps >= 0);
-    return sqrt(x*x + eps*eps) - eps;
+    return std::sqrt(x*x + eps*eps) - eps;
   }
 
-  Double DerivSmoothAbs(Double x, Double eps)
+  double DerivSmoothAbs(double x, double eps)
   {
     assert(eps >= 0);
-    assert(fabs(x) + eps > 0);
-    return x / sqrt(x*x + eps*eps);
+    assert(abs(x) + eps > 0);
+    return x / std::sqrt(x*x + eps*eps);
+  }
+
+
+  double MathParse(const std::string& expr)
+  {
+    // obtain handle
+    MathParser* parser = domain->GetMathParser();
+    MathParser::HandleType handle = parser->GetNewHandle(false);
+
+    // Set expression and evaluate
+    parser->SetExpr(handle, expr);
+    double ret = parser->Eval(handle);
+
+    // release handle
+    parser->ReleaseHandle(handle);
+
+    return ret;
   }
 
 
   // explicit template instantiation
-  template std::string ToString<Double>(const Double* data, unsigned int size);
+  template std::string ToString<double>(const double* data, unsigned int size);
   template std::string ToString<int>(const int* data, unsigned int size);
   template std::string ToString<unsigned int>(const unsigned int* data, unsigned int size);
-  template std::string ToString<std::complex<Double> >(const std::complex<Double>* data, unsigned int size);
+  template std::string ToString<std::complex<double> >(const std::complex<double>* data, unsigned int size);
 
-  template std::string ToString<Double>(const StdVector<Vector<Double> >& data, bool new_line);
+  template std::string ToString<double>(const StdVector<Vector<double> >& data, bool new_line);
   template std::string ToString<unsigned int>(const StdVector<StdVector<unsigned int> >& data, bool new_line);
 
 }// namespace CoupledField

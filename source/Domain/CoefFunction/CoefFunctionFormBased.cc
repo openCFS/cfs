@@ -397,7 +397,7 @@ void CoefFunctionEigen::GetEigenFromCoefVec(Vector<Double> &solVec)
 
   //Step 1: Conversion of this (coefVec) to a std::vector a in the correct order
 
-  std::vector<Double> lp_a, lp_w, lp_work;
+  std::vector<double> lp_a, lp_w, lp_work;
 
   // throwing otherwise "Not a valid Voigt stress/strain tensor for eigenvalue calculation"
   // is expensive as exception throwing has a slight overhead
@@ -777,19 +777,19 @@ template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensor(Matrix<TYPE>& t
 
 
 
-template class CoefFunctionBdBKernel<Double>;
+template class CoefFunctionBdBKernel<double>;
 template class CoefFunctionBdBKernel<Complex>;
 
-template class CoefFunctionDyadicStrain<Double>;
+template class CoefFunctionDyadicStrain<double>;
 template class CoefFunctionDyadicStrain<Complex>;
 
-template class CoefFunctionQuadSol<Double>;
+template class CoefFunctionQuadSol<double>;
 template class CoefFunctionQuadSol<Complex>;
 
-template class CoefFunctionStiffness<Double>;
+template class CoefFunctionStiffness<double>;
 template class CoefFunctionStiffness<Complex>;
 
-template class CoefFunctionLBM<Double>;
+template class CoefFunctionLBM<double>;
 
    
 } // end of namespace

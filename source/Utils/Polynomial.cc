@@ -130,7 +130,7 @@ void Polynomial<T,DIM>::Cleanup( Double tol ) {
   std::set<boost::array<UInt,DIM> > del;
   COEF_IT it = coefs_.begin();
   for( ; it != coefs_.end(); ++it ) {
-    if(  fabs(it->second) < tol ) {
+    if(  std::abs(it->second) < tol ) {
       del.insert(it->first);
     }
   }
@@ -150,7 +150,7 @@ std::string Polynomial<T,DIM>::ToString(bool omitZeros ) const {
   COEF_CONST_IT it = coefs_.begin();
   for( ; it != coefs_.end(); ++it ) {
 
-    if( fabs(it->second) < 1e-16 && omitZeros) 
+    if( std::abs(it->second) < 1e-16 && omitZeros) 
       continue;
 
     // print sign: + or -
@@ -161,7 +161,7 @@ std::string Polynomial<T,DIM>::ToString(bool omitZeros ) const {
     }
 
     // print coefficient value
-    out << fabs(it->second);
+    out << std::abs(it->second);
     for( UInt i = 0; i < DIM; ++i ) {
       UInt order = it->first[i];
 

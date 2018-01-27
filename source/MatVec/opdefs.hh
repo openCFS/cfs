@@ -49,27 +49,7 @@ namespace CoupledField {
     EXCEPTION("Abs not implemented for this data type ");
   }
 
-  template <typename T>
-  inline T Sqrt(T a){ 
-    EXCEPTION("Sqrt not implemented for this data type ");
-  }
-  template<>
-  inline Double Sqrt<Double> (Double a){
-    return sqrt(a);
-  }
-#ifndef USE_ADOLC
-   template<>
-  inline Complex Sqrt<Complex> (Complex a){
-    return sqrt(a);
-  }
-#else
-  template<>
-  inline Complex Sqrt<Complex> (Complex a){
-    EXCEPTION("Sqrt not implemented for this data type ");
-  }
-#endif
-
-  //! Specialize Abs to compute absolute value of a Double variable
+  //! Specialize Abs to compute absolute value of a double variable
   template<>
   inline Double Abs<Double> (Double a){
     return fabs(a);
@@ -106,60 +86,52 @@ namespace CoupledField {
 
   /** this is defined only in C++11 - how can this idiots take so long?
    * defining the same for complex leads to overloading problems with std::conj with icc 15 even w/o using std::conj */
-  inline static Double conj(const Double &a1) {
+  inline static double conj(const double &a1) {
     return a1;
   }
 
   template <typename T>
-  inline Double Real(T a) {  return ((std::complex<Double>) a).real(); }
+  inline double Real(T a) {  return ((std::complex<double>) a).real(); }
 
   template <>
-  inline Double Real<Double>(Double a) { return a; }
+  inline double Real<double>(double a) { return a; }
 
   template <>
-  inline Double Real<std::complex<Double> >(std::complex<Double> a) { return a.real(); }
+  inline double Real<std::complex<double> >(std::complex<double> a) { return a.real(); }
 
   template <typename T>
-  inline Double Imag(T a) { return ((std::complex<Double>) a).imag(); }
+  inline double Imag(T a) { return ((std::complex<double>) a).imag(); }
 
   template <>
-  inline Double Imag<Double>(Double a) { return 0; }
+  inline double Imag<double>(double a) { return 0; }
 
   template <>
-  inline Double Imag<std::complex<Double> >(std::complex<Double> a) { return a.imag(); }
+  inline double Imag<std::complex<double> >(std::complex<double> a) { return a.imag(); }
   
   template <typename T>
   inline bool IsZero(T a) { return a == 0; }
 
   template <>
-  inline bool IsZero<Double>(Double a) { return a == 0.0; }
+  inline bool IsZero<double>(double a) { return a == 0.0; }
 
   template <>
-  inline bool IsZero<std::complex<Double> >(std::complex<Double> a) { return a.real() == 0.0 && a.imag() == 0.0; }
+  inline bool IsZero<std::complex<double> >(std::complex<double> a) { return a.real() == 0.0 && a.imag() == 0.0; }
 
   template <typename T>
   inline void PrintSingleEntry( T val, FILE *fp ) {
     EXCEPTION("PrintSingleEntry not implemented for this data type ");
   }
 
-  //! Print a single Double value to a file
+  //! Print a single double value to a file
   template<>
   inline void PrintSingleEntry<Double>( Double val, FILE *fp ) {
-#ifndef USE_ADOLC
     fprintf( fp, " % 22.16E", val );
-#else
-    fprintf( fp, " % 22.16E", val.getValue() );
-#endif
-}
+  }
   
   //! Print a single complex value to a file
   template<>
   inline void PrintSingleEntry<Complex>( Complex val, FILE *fp ) {
-#ifndef USE_ADOLC
     fprintf( fp, " % 22.16E % 22.16E", (val.real()), (val.imag()) );
-#else
-     fprintf( fp, " % 22.16E % 22.16E", (val.real()).getValue(), (val.imag()).getValue() );
-#endif
   }
 
   //! Dummy implementation of multiplication of a real value and complex
@@ -219,25 +191,17 @@ namespace CoupledField {
   //! variables of type Double or Complex.
   template<typename T>
   struct OpType{
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //bjurgel AD conversion comment:                                                                             //
-    // this is a bad idea. These operators return  Double or Complex etc. However, I've seen a few cases         //
-    // where you are actually using the type T after this call.                                                  //
-    // This means you are relying on (automatic) implicit conversion of Double to T. Bad style and bad for AD.   //
-    // You probably want to return the type T instead but do you really? How can we be sure?                     //
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-      
     //! Compute the inverse of the input argument.
 
     //! This method computes the inverse of the input argument. It is intended
     //! for variables of Double and Complex type, where the inverse of arg is
     //! given as 1/arg.
     inline static T invert(const T& arg) {
-      return static_cast<T>(T(1.0)/arg);
+      return static_cast<T>(1.0/arg);
     }
 
-    inline static Double dotProduct(const Double &a1, const Double &a2 ) {
+    inline static double dotProduct(const double &a1, const double &a2 ) {
       return a1 * a2;
     }
 

@@ -364,10 +364,10 @@ namespace CoupledField {
       }
    
     z = 0.5 * (mat[q][q] - mat[p][p]) / mat[p][q];
-    t = fabs(z) + sqrt(1.0 + z*z);
+    t = std::fabs(z) + std::sqrt(1.0 + z*z);
     if (z < 0.0) t = - t;
     t = 1.0 / t;
-    c = 1.0 / sqrt(1.0 + t*t);
+    c = 1.0 / std::sqrt(1.0 + t*t);
     s = c * t;
     u = s / (1.0 + c);
    

@@ -392,7 +392,7 @@ namespace CoupledField
     //! assumed to be 1m.
     //! \param regionId (in) region identifier 
     //! \param updated (in) flag indicating if updated geometry should be used
-    Double CalcVolumeOfRegion( const RegionIdType regionId, bool updated = false);
+    double CalcVolumeOfRegion( const RegionIdType regionId, bool updated = false);
 
 
     //! \copydoc Grid::CalcVolumeOfEntityList

@@ -146,7 +146,7 @@ namespace CoupledField {
     UInt numNodes = nodalCoords_.size()/3;
     mi_->AddNodes(numNodes);
 
-    std::vector< Double > coords;
+    std::vector< double > coords;
 
     for(UInt i=0; i<numNodes; i++) {
       Vector<Double> loc(3);
@@ -915,11 +915,7 @@ namespace CoupledField {
 #else
     tmpVal *= fSize_;
 #endif
-#ifndef USE_ADOLC
     int tmp = (int) (tmpVal*10.0);
-#else
-    int tmp = (int) (tmpVal.getValue()*10.0);
-#endif
     tmpVal = tmp*0.1;
     std::cout << "Initial scan of input file";
     if (tmpVal > 0.1)
@@ -1515,7 +1511,7 @@ namespace CoupledField {
 
     std::string line;
     std::ostringstream errMsg;
-    Double x, y, z;
+    double x, y, z;
     UInt fileNodeNum = 0;
     // UInt numFields = 0;
     UInt nodeNum = 1;
@@ -1618,7 +1614,7 @@ namespace CoupledField {
   {
     std::string line;
     std::ostringstream errMsg;
-    Double x, y, z;
+    double x, y, z;
     UInt fileNodeNum = 0;
     UInt nodeNum = 1;
     UInt maxNodeNum = 0;
@@ -1679,7 +1675,7 @@ namespace CoupledField {
   }
 
   void SimInputCDB::StoreSingleNode(UInt fileNodeNum,
-                                    Double x, Double y, Double z,
+                                    double x, double y, double z,
                                     UInt &nodeNum,
                                     UInt &numNodes,
                                     UInt &maxNodeNum) {

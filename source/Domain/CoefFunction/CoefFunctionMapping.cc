@@ -52,7 +52,7 @@ void CoefFunctionMapping<T>::GetTensor(Matrix<Complex>& tensor,
 	  for(UInt i=0;i<this->dim_;++i){
 	    this->GetThicknessAtPoint(locThick,position,lpm,i);
         Double z = position/locThick;
-	    if(fabs(locThick)>0.0){
+	    if(abs(locThick)>0.0){
           Complex fac(locThick*this->dampFunction_->ComputeFactor(z,sos),0.0);
 	      tensor[i][i] = fac;
 	    }else{
@@ -75,7 +75,7 @@ void CoefFunctionMapping<T>::GetTensor(Matrix<Double>& tensor,
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     Double z = position/locThick;
-    if(fabs(locThick)>0.0){
+    if(abs(locThick)>0.0){
       tensor[i][i] = locThick*this->dampFunction_->ComputeFactor(z,sos) ;
     }else{
       tensor[i][i] = 1.0;
@@ -96,7 +96,7 @@ void CoefFunctionMapping<T>::GetVector(Vector<Complex>& vec,
 	  for(UInt i=0;i<this->dim_;++i){
 	    this->GetThicknessAtPoint(locThick,position,lpm,i);
         Double z = position/locThick;
-	    if(fabs(locThick)>0.0){
+	    if(abs(locThick)>0.0){
 	    	Complex fac(locThick*this->dampFunction_->ComputeFactor(z,sos),0.0);
 	    	vec[i] = fac;
 	    }else{
@@ -119,7 +119,7 @@ void CoefFunctionMapping<T>::GetVector(Vector<Double>& vec,
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     Double z = position/locThick;
-    if(fabs(locThick)>0.0){
+    if(abs(locThick)>0.0){
       vec[i] = locThick*this->dampFunction_->ComputeFactor(z,sos);
     }else{
       vec[i] = 1.0;
@@ -139,7 +139,7 @@ void CoefFunctionMapping<T>::GetScalar(Complex& val,
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     Double z = position/locThick;
-    if(fabs(locThick)>0.0){
+    if(abs(locThick)>0.0){
       Complex fac(locThick*this->dampFunction_->ComputeFactor(z,sos),0.0);
       val /= fac;
     }else{
@@ -160,7 +160,7 @@ void CoefFunctionMapping<T>::GetScalar(Double& val,
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     Double z = position/locThick;
-    if(fabs(locThick)>0.0){
+    if(abs(locThick)>0.0){
       val /= (locThick*this->dampFunction_->ComputeFactor(z,sos));
     }else{
       val *= 1.0;

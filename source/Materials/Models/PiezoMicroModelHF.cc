@@ -391,8 +391,8 @@ namespace CoupledField{
       frac2 = volFracPrev_[sys][elemIdx] / volFracInit_;
 
       transformationRates_[sys][elemIdx] = rateConst_  
-                                           * fabs( pow( frac1, viscoPlasticIdx_ ) )
-                                           * frac1 * pow( frac2, saturationIdx_ );
+                                           * std::abs( std::pow( frac1, viscoPlasticIdx_ ) )
+                                           * frac1 * std::pow( frac2, saturationIdx_ );
 
       if ( transformationRates_[sys][elemIdx] < 0.0 ) 
         transformationRates_[sys][elemIdx] = 0.0;

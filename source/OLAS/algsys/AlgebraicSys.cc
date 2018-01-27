@@ -2130,8 +2130,8 @@ namespace CoupledField {
           temp.Resize(invMat.GetNumRows(),k_ic.GetNumCols());
           
           // Fast method: use BLAS 
-          invMat.Mult_Blas(k_ic, temp, false, false, T(1.0), T(0.0));
-          k_ri.Mult_Blas(temp, k_rc, false, false, T(-1.0), T(1.0));
+          invMat.Mult_Blas(k_ic, temp, false, false, 1.0, 0.0);
+          k_ri.Mult_Blas(temp, k_rc, false, false, -1.0, 1.0);
           // Alternative solution without BLAS
 //            temp = invMat * k_ic;
 //            k_rc -= k_ri*temp;
@@ -2609,7 +2609,7 @@ namespace CoupledField {
     else
     {
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
-      Complex entry = Complex(0.0);
+      Complex entry = 0.0;
 
       // #pragma omp parallel for private (entry)
       for( UInt i = 0; i < size; ++i )
@@ -2674,7 +2674,7 @@ namespace CoupledField {
     else
     {
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
-      Complex entry = Complex(0.0);
+      Complex entry = 0.0;
       // #pragma omp parallel for private (entry)
       for( UInt i = 0; i < size; ++i ) {
 
@@ -2736,7 +2736,7 @@ namespace CoupledField {
     } else {
 
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptRhs );
-      Complex entry = Complex(0.0);
+      Complex entry = 0.0;
 
       for( UInt i = 0; i < size; ++i ) {
 

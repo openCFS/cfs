@@ -63,7 +63,7 @@ FeasSubProblem::~FeasSubProblem()
 {}
 
 
-std::string FeasSubProblem::SolveProblem(PtrParamNode in, Double refine)
+std::string FeasSubProblem::SolveProblem(PtrParamNode in, double refine)
 {
   // check for warmstart
   bool no_ws = false;
@@ -160,8 +160,8 @@ bool FeasSubProblem::get_bounds_info(Index n, Number* x_l, Number* x_u, Index m,
   assert(n == (int) feas_pp->optimization->GetDesign()->full_data.GetSize()); // TODO include aux design!
 
   // in Svanberg's original paper there are dynamic bounds given in (8)
-  Double asy = feas_pp->dynamic_design_bounds ? 0.9 : 1.0;
-  Double var = feas_pp->dynamic_design_bounds ? 0.1 : 0.0;
+  double asy = feas_pp->dynamic_design_bounds ? 0.9 : 1.0;
+  double var = feas_pp->dynamic_design_bounds ? 0.1 : 0.0;
 
   for(int i = 0; i < n; i++)
   {

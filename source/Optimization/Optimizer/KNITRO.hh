@@ -25,7 +25,7 @@ protected:
   void SolveProblem();
 
   /** @see BaseOptimizer::GetInfBound() */
-  Double GetInfBound() const { return KTR_INFBOUND; }
+  double GetInfBound() const { return KTR_INFBOUND; }
   
   /** @see BaseOptimizer::LogFileHeader() */
   void LogFileHeader(Optimization::Log& log)
@@ -44,7 +44,7 @@ private:
 
   void SetParameter(const std::string& name, int value);
 
-  void SetParameter(const std::string& name, Double value);
+  void SetParameter(const std::string& name, double value);
 
   /** kind of this pointer */
   KTR_context* kc;
@@ -60,7 +60,7 @@ private:
   StdVector<double> jac;
   
   // scalars given in KTR_solve()
-  Double obj; // objective value
+  double obj; // objective value
 
 
 };

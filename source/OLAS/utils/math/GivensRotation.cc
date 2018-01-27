@@ -52,11 +52,11 @@ namespace CoupledField {
 
       // double precision case
       else if ( sizeof(Double) == sizeof(float) ) {
-        Double myF = f;
-        Double myG = g;
-        Double myC = c;
-        Double myS = s;
-        Double myR = r;
+        double myF = f;
+        double myG = g;
+        double myC = c;
+        double myS = s;
+        double myR = r;
         dlartg( &myF, &myG, &myC, &myS, &myR );
       }
 
@@ -105,12 +105,12 @@ namespace CoupledField {
       }
 
       // double precision case
-      else if ( sizeof(Complex) == sizeof(std::complex<Double>) ) {
-        std::complex<Double> myF = f;
-        std::complex<Double> myG = g;
-        Double     myC = c;
-        std::complex<Double> myS = s;
-        std::complex<Double> myR = r;
+      else if ( sizeof(Complex) == sizeof(std::complex<double>) ) {
+        std::complex<double> myF = f;
+        std::complex<double> myG = g;
+        double     myC = c;
+        std::complex<double> myS = s;
+        std::complex<double> myR = r;
         zlartg( &myF, &myG, &myC, &myS, &myR );
         f = myF;
         g = myG;
@@ -171,8 +171,8 @@ namespace CoupledField {
       }
       else if ( f == 0.0 ) {
         c = 0.0;
-        s = fabs(g) >= 0.0 ? +1.0 : -1.0;
-        r = fabs(g);
+        s = std::abs(g) >= 0.0 ? +1.0 : -1.0;
+        r = std::abs(g);
       }
     }
 
@@ -181,7 +181,7 @@ namespace CoupledField {
       fg2 = f * f + g * g;
       r   = sqrt( fg2 );
       rr  = 1.0 / r;
-      c   = fabs(f) * rr;
+      c   = std::abs(f) * rr;
       s   = g * rr;
       if ( f < 0.0 ) {
         s = -s;
@@ -210,10 +210,10 @@ namespace CoupledField {
     Double fn, gn, d1, f2, g2, fg2;
 
     // Compute "norm" of f and g
-    fn = fabs(f.real()) > fabs(f.imag()) ? fabs(f.real())
-      : fabs(f.imag());
-    gn = fabs(g.real()) > fabs(g.imag()) ? fabs(g.real())
-      : fabs(g.imag());
+    fn = std::abs(f.real()) > std::abs(f.imag()) ? std::abs(f.real())
+      : std::abs(f.imag());
+    gn = std::abs(g.real()) > std::abs(g.imag()) ? std::abs(g.real())
+      : std::abs(g.imag());
 
     // Simple cases
     if ( fn == 0.0 || gn == 0.0 ) {

@@ -340,7 +340,7 @@ namespace CoupledField {
       {
         for(UInt i=0; i<numEnt; i++)
         {
-          var1[i] = Abs(var[i]);
+          var1[i] = std::abs(var[i]);
           var2[i] = CPhase(var[i]);
         }
         name1 = name + "_ampl";
@@ -380,7 +380,7 @@ namespace CoupledField {
         {
           for(UInt i=0; i<numEnt; i++)
           {
-            vars1[i*numDofs+j] = Abs(var[i*numDofs+j]);
+            vars1[i*numDofs+j] = std::abs(var[i*numDofs+j]);
             vars2[i*numDofs+j] = CPhase(var[i*numDofs+j]);
           }
           names1[j] = dofNames[j] + "_ampl";

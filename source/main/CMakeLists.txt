@@ -4,14 +4,6 @@ IF(USE_IPOPT)
   LINK_DIRECTORIES(${IPOPT_LINK_DIR})
 ENDIF(USE_IPOPT)
 
-IF(USE_ADOLC)
-  INCLUDE_DIRECTORIES(${ADOLC_INCLUDE_DIR})
-  #LINK_DIRECTORIES(${ADOLC_LIBRARY})
-ENDIF(USE_ADOLC)
-
-
-
-
 # List of source codes for current target.
 SET(CFS_SRCS CFS.cc)
 
@@ -22,32 +14,16 @@ ADD_EXECUTABLE(cfsbin ${CFS_SRCS})
 # are some nasty circular dependencies which should be resolved in
 # the future (see e.g. pde <-> domain, domain <-> gridcfs !!!)
   
-IF(USE_ADOLC)
-  SET(TARGET_LL
-    cfsgeneral
-    utils
-    datainout
-    paramh
-    utils
-    domain
-    elemmapping
-    ${CFS_FORTRAN_DYNRT_LIBS}
-    #${ADOLC_LIBRARY}
-    )
-ELSE(USE_ADOLC)
-  SET(TARGET_LL
-    cfsgeneral
-    utils
-    datainout
-    paramh
-    utils
-    domain
-    elemmapping
-    ${CFS_FORTRAN_DYNRT_LIBS}
-    )
-ENDIF(USE_ADOLC)
-
-
+SET(TARGET_LL
+  cfsgeneral
+  utils
+  datainout
+  paramh
+  utils
+  domain
+  elemmapping
+  ${CFS_FORTRAN_DYNRT_LIBS}
+  )
 
 IF(USE_XERCES)
   LIST(APPEND TARGET_LL ${XERCES_LIBRARY})

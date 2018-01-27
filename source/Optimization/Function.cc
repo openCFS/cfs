@@ -49,8 +49,8 @@ Enum<Function::Local::Locality> Function::Local::locality;
 Enum<Function::Local::Phase> Function::Local::phase;
 
 // speed up by sharing
-StdVector<Double> Function::Local::Identifier::tmp1;
-StdVector<Double> Function::Local::Identifier::tmp2;
+StdVector<double> Function::Local::Identifier::tmp1;
+StdVector<double> Function::Local::Identifier::tmp2;
 
 // sync the values with Local::Phase
 const int Function::Local::Identifier::NO_SIGN = -1000;
@@ -77,7 +77,7 @@ Function::Function(PtrParamNode pn) {
     this->design_ = BaseDesignElement::type.Parse(
         pn->Get("design")->As<string>());
 
-  this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<Double>() : 0.0;
+  this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
 
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
   // FIXME
@@ -294,10 +294,10 @@ bool Function::ReadTensor(Context* f_ctxt, PtrParamNode pn, Matrix<double>& matr
 
     matrix.Resize(dim, dim);
 
-    ParamTools::AsTensor<Double>(tens->Get("real"), dim, dim, matrix);
+    ParamTools::AsTensor<double>(tens->Get("real"), dim, dim, matrix);
 
     // check for a scaling factor
-    const Double factor(tens->Get("factor")->As<Double>());
+    const double factor(tens->Get("factor")->As<double>());
     if (factor != 1.0)
       matrix *= factor;
 
@@ -306,8 +306,8 @@ bool Function::ReadTensor(Context* f_ctxt, PtrParamNode pn, Matrix<double>& matr
 
   tens = pn->Get("isotropic", ParamNode::PASS);
   if (tens != NULL) {
-    Double emod = tens->Get("real")->Get("elasticityModulus")->As<Double>();
-    Double poisson = tens->Get("real")->Get("poissonNumber")->As<Double>();
+    double emod = tens->Get("real")->Get("elasticityModulus")->As<double>();
+    double poisson = tens->Get("real")->Get("poissonNumber")->As<double>();
 
     Matrix<double> tmp(6, 6); // always 3D first
     MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(tmp, emod, poisson);
@@ -330,7 +330,7 @@ bool Function::ReadTensor(Context* f_ctxt, PtrParamNode pn, Matrix<double>& matr
 }
 
 
-void Function::ParseCoord(PtrParamNode pn, boost::tuple<int, int, Double>& coord) {
+void Function::ParseCoord(PtrParamNode pn, boost::tuple<int, int, double>& coord) {
   string val = pn->Get("coord")->As<string>();
   boost::get<0>(coord) = lexical_cast<unsigned int>(val.at(0));
   boost::get<1>(coord) = lexical_cast<unsigned int>(val.at(1));
@@ -920,7 +920,7 @@ Matrix<unsigned int>& Function::GetHessianSparsityPattern() {
   return hess_sparsity_;
 }
 
-void Function::CalcHessian(StdVector<Double>& out, Double factor) {
+void Function::CalcHessian(StdVector<double>& out, double factor) {
   assert(out.GetSize() == 0);
   assert(GetHessianSparsityPattern().GetNumRows() == 0);
   // this function appears to have no Hessian, e.g. because it is linear :).
@@ -1031,9 +1031,9 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   // read xml parameters -> might be null valued!
   PtrParamNode pn = func->pn->Get("local", ParamNode::PASS);
 
-  this->beta_ = pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<Double>() : -3.14;
-  this->eps_ = pn != NULL && pn->Has("eps") ? pn->Get("eps")->As<Double>() : -3.14;
-  this->power_ = pn != NULL && pn->Has("power") ? pn->Get("power")->As<Double>() : 2.0;
+  this->beta_ = pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<double>() : -3.14;
+  this->eps_ = pn != NULL && pn->Has("eps") ? pn->Get("eps")->As<double>() : -3.14;
+  this->power_ = pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
   this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<string>()) : BOTH; // only oscillation
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : false;
@@ -1050,10 +1050,10 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     int dim3 = root->Get("a/matrix/dim1")->As<int>();
     int dim4 = root->Get("b/matrix/dim1")->As<int>();
     int dim5 = root->Get("c/matrix/dim1")->As<int>();
-    ParamTools::AsTensor<Double>(root->Get("a/matrix/real"), dim3, 1, this->vol_a_);
-    ParamTools::AsTensor<Double>(root->Get("b/matrix/real"), dim4, 1, this->vol_b_);
-    ParamTools::AsTensor<Double>(root->Get("c/matrix/real"), dim5, 1, this->vol_c_);
-    ParamTools::AsTensor<Double>(root->Get("volcoeff/matrix/real"), dim1, dim2, this->vol_coeff_);
+    ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, this->vol_a_);
+    ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, this->vol_b_);
+    ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, this->vol_c_);
+    ParamTools::AsTensor<double>(root->Get("volcoeff/matrix/real"), dim1, dim2, this->vol_coeff_);
   }
   //total volume in the non-regular case is needed for the volume calculations
   this->total_vol_ = 0.0;
@@ -2041,7 +2041,7 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local,
   radius = DesignStructure::FindFilterRadius(fs, &de, value);
 
   // find the orthogonal dimensions based on radius
-  StdVector<Double> edges;
+  StdVector<double> edges;
   domain->GetGrid()->GetElemShapeMap(de.elem, false)->GetEdgeLength(edges);
 
   assert(edges.GetSize() == dim);
@@ -2079,7 +2079,7 @@ void Function::Local::NeighborhoodStructure::ToInfo(PtrParamNode in) {
   in->Get("value")->SetValue(value);
   in->Get("radius")->SetValue(radius);
 
-  StdVector<Double> tmp;
+  StdVector<double> tmp;
   tmp.Push_back(orthogonal[0] * 2 + 1);
   tmp.Push_back(orthogonal[1] * 2 + 1);
   if (orthogonal.GetSize() == 3)
@@ -2131,7 +2131,7 @@ const BaseDesignElement* Function::Local::Identifier::GetElementByType(DesignEle
   return NULL;
 }
 
-Double Function::Local::Identifier::GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access, const bool getParameter) const
+double Function::Local::Identifier::GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access, const bool getParameter) const
 {
   const BaseDesignElement* de = GetElementByType(type);
   if (de != NULL)
@@ -2142,10 +2142,10 @@ Double Function::Local::Identifier::GetDesign(BaseDesignElement::Type type, cons
 }
 
 
-Double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_glob, Double von_mises_stress) const
+double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_glob, double von_mises_stress) const
 {
   // function value
-  Double fv = 0.0;
+  double fv = 0.0;
   Function* f = local->func_;
   DesignElement::Access access = f->ForDensityFiltering() ? DesignElement::SMART : DesignElement::PLAIN;
 
@@ -2307,10 +2307,10 @@ Double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
   {
     // we normalize all values by the number of "constraints". Note that it is
     // sufficient for the function value, the gradient is then also right
-    Double factor;
+    double factor;
     if (local->DoNormalizeGlobal()) {
       if (f->type_ == GLOBAL_TWO_SCALE_VOL) {
-        factor = local->space->IsRegular() ? (Double(1.0) / local->virtual_elem_map.GetSize()) : (Double(1.0)/local->total_vol_) ;
+        factor = local->space->IsRegular() ? (1.0 / local->virtual_elem_map.GetSize()) : (1./local->total_vol_) ;
       } else {
         factor = 1.0 / local->virtual_elem_map.GetSize();
       }
@@ -2318,11 +2318,11 @@ Double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
       factor = 1.;
     }
 
-    Double v = fmax(0.0, fv - f->GetParameter());
+    double v = std::max(0.0, fv - f->GetParameter());
 
-    Double p = local->GetPower();
+    double p = local->GetPower();
 
-    Double res = grad_glob ? p * pow(v, p - 1.0) : pow(v, p);
+    double res = grad_glob ? p * std::pow(v, p - 1.0) : std::pow(v, p);
 
     res *= factor;
 
@@ -2352,7 +2352,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
   // are we global? then we don't do anything if the globalization function gives zero
   // this applies the gradient of the globalization function (max(0, fv)^2)
   // EvalFunction() is very fast for power=1!
-  Double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local, true) : -1.0; // if not global we don't need grad_glob_fv
+  double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local, true) : -1.0; // if not global we don't need grad_glob_fv
 
   if(local->IsGlobalized() && grad_glob_fv == 0.0) {
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de=" << element->GetIndex() << " sign=" << sign << " fv=0.0 -> return immediately";
@@ -2362,7 +2362,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
 
   for (int n = -1, nn = neighbor.GetSize(); n < nn; n++)
   {
-    Double gv = -5.0;
+    double gv = -5.0;
 
     switch (ft)
     {
@@ -2502,10 +2502,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     if (local->IsGlobalized())
     {
       // actually the normalization is already in grad_glob_fv if power != 1.0!
-      Double factor = 1.0;
+      double factor = 1.0;
       if (local->DoNormalizeGlobal() && local->power_ == 1.0) {
         if (ft == GLOBAL_TWO_SCALE_VOL) {
-          factor = local->space->IsRegular() ? (Double(1.0) / local->virtual_elem_map.GetSize()) : Double(1.0) / local->total_vol_ ;
+          factor = local->space->IsRegular() ? (1.0 / local->virtual_elem_map.GetSize()) : 1. / local->total_vol_ ;
         } else {
           factor = 1.0 / local->virtual_elem_map.GetSize();
         }
@@ -2683,27 +2683,27 @@ double Function::Local::Identifier::CalcPerimeter(double eps, double l_k) const
   // We ignore the interfaces to the boundaries
   assert(this->neighbor.GetSize() == 1);
 
-  Double mine  = element->GetDesign(DesignElement::SMART);
-  Double other = neighbor[0]->GetDesign(DesignElement::SMART);
-  Double res   = l_k * (sqrt( (mine-other) * (mine-other) + eps * eps ) - eps);
+  double mine  = element->GetDesign(DesignElement::SMART);
+  double other = neighbor[0]->GetDesign(DesignElement::SMART);
+  double res   = l_k * (sqrt( (mine-other) * (mine-other) + eps * eps ) - eps);
 
   LOG_DBG3(func) << "L:I:CP de=" << element->GetIndex() << " other=" << neighbor[0]->GetIndex()
                  << " mine=" << mine << " other=" << other << " eps=" << eps << " l_k=" << l_k << " -> " << res;
   return res;
 }
 
-Double Function::Local::Identifier::CalcPerimeterGradient(int neigh_idx, Double eps, Double l_k) const
+double Function::Local::Identifier::CalcPerimeterGradient(int neigh_idx, double eps, double l_k) const
 {
   // P = sum_k p_k
   // p_k' = l_k * 0.5 * ((rho_i - rho_i+1)**2 + eps**2)**-0.5 * 2 * (rho_i - rho_i+1) * s
   // s = 1 for d p_k / d rho_i and -1 for d p_k / d rho_i+1
 
-  Double mine  = element->GetDesign(DesignElement::SMART);
-  Double other = neighbor[0]->GetDesign(DesignElement::SMART);
-  Double s = neigh_idx == -1 ? 1.0 : -1.0;
+  double mine  = element->GetDesign(DesignElement::SMART);
+  double other = neighbor[0]->GetDesign(DesignElement::SMART);
+  double s = neigh_idx == -1 ? 1.0 : -1.0;
 
-  // using not the pow() gives wrong results!
-  Double res = l_k * pow((mine-other)*(mine-other) + eps*eps, -0.5) * (mine-other) * s;
+  // using not the std::pow() gives wrong results!
+  double res = l_k * std::pow((mine-other)*(mine-other) + eps*eps, -0.5) * (mine-other) * s;
 
   LOG_DBG3(func) << "L:I:CPG de=" << element->GetIndex() << " other=" << neighbor[0]->GetIndex()
                  << " mine=" << mine << " other=" << other << " eps=" << eps << " l_k=" << l_k << " neigh_idx=" << neigh_idx << " -> " << res;
@@ -2731,34 +2731,34 @@ double Function::Local::Identifier::CalcPeriodicGradient(int neigh_idx) const
   return s;
 }
 
-Double Function::Local::Identifier::CalcOscillation(Double beta) const {
+double Function::Local::Identifier::CalcOscillation(double beta) const {
   assert(sign == 1 || sign == -1);
 
-  Double own = element->GetDesign(DesignElement::SMART);
+  double own = element->GetDesign(DesignElement::SMART);
   // we divide the neighbors in lower and upper
   unsigned int half = neighbor.GetSize() / 2;
 
   tmp1.Resize(half);
   for (unsigned int i = 0; i < half; i++)
     tmp1[i] = neighbor[i]->GetDesign(DesignElement::SMART);
-  Double prev = sign == -1 ? SmoothMax(tmp1, beta) : SmoothMin(tmp1, beta);
+  double prev = sign == -1 ? SmoothMax(tmp1, beta) : SmoothMin(tmp1, beta);
 
   tmp2.Resize(half);
   for (unsigned int i = 0; i < half; i++)
     tmp2[i] = neighbor[i + half]->GetDesign(DesignElement::SMART);
-  Double next = sign == -1 ? SmoothMax(tmp2, beta) : SmoothMin(tmp2, beta);
+  double next = sign == -1 ? SmoothMax(tmp2, beta) : SmoothMin(tmp2, beta);
 
-  Double min_max = 0.0; // min or max
-  Double res = 0.0;
+  double min_max = 0.0; // min or max
+  double res = 0.0;
 
   if (sign == 1) {
     // "Heaviside"(rho_i - max( rho_i-1, rho_i+1)
-    // Double smaller = fmax(0.0, own - fmax(left, right));
-    min_max = beta < 0 ? fmax(prev, next) : SmoothMax(prev, next, beta);
+    // double smaller = std::max(0.0, own - std::max(left, right));
+    min_max = beta < 0 ? std::max(prev, next) : SmoothMax(prev, next, beta);
     res = own - min_max;
   } else {
     // "Heaviside"(min( rho_i-1, rho_i+1) - rho_i)
-    // Double larger = fmax(0.0, std::min(left, right) - own);
+    // double larger = std::max(0.0, std::min(left, right) - own);
     min_max = beta < 0 ? std::min(prev, next) : SmoothMin(prev, next, beta);
     res = min_max - own;
   }
@@ -2766,11 +2766,11 @@ Double Function::Local::Identifier::CalcOscillation(Double beta) const {
   // LOG_DBG3(func) << "L:I:CO de=" << element->ToString() << " neigh=" << BaseDesignElement::ToString(neighbor)
   //               << " vals=" << tmp1.ToString() << "; " << tmp2.ToString() << " sign=" << sign << " own=" << own
   //               << " prev=" << prev << " next=" << next << " smooth=" << min_max << " hard="
-  //               << (sign == 1 ? (own - fmax(prev, next)) : (std::min(prev, next) - own)) << " -> " << res;
+  //               << (sign == 1 ? (own - std::max(prev, next)) : (std::min(prev, next) - own)) << " -> " << res;
   return res;
 }
 
-Double Function::Local::Identifier::CalcOscillationGradient(int neigh_idx, Double beta)
+double Function::Local::Identifier::CalcOscillationGradient(int neigh_idx, double beta)
 {
   assert(beta >= 0);
 
@@ -2784,12 +2784,12 @@ Double Function::Local::Identifier::CalcOscillationGradient(int neigh_idx, Doubl
   tmp1.Resize(half);
   for (unsigned int i = 0; i < half; i++)
     tmp1[i] = neighbor[i]->GetDesign(DesignElement::SMART);
-  Double prev = sign == -1 ? SmoothMax(tmp1, beta) : SmoothMin(tmp1, beta);
+  double prev = sign == -1 ? SmoothMax(tmp1, beta) : SmoothMin(tmp1, beta);
 
   tmp2.Resize(half);
   for (unsigned int i = 0; i < half; i++)
     tmp2[i] = neighbor[i + half]->GetDesign(DesignElement::SMART);
-  Double next = sign == -1 ? SmoothMax(tmp2, beta) : SmoothMin(tmp2, beta);
+  double next = sign == -1 ? SmoothMax(tmp2, beta) : SmoothMin(tmp2, beta);
 
   // sign = -1: min( max(x_0 .. x_half-1), max(x_half .. x_max) ) - own
   // sign =  1: own - max( min(x_0 .. x_half-1), min(x_half .. x_max) )
@@ -2800,10 +2800,10 @@ Double Function::Local::Identifier::CalcOscillationGradient(int neigh_idx, Doubl
   int side = neigh_idx < (int) half ? -1 : 1;
 
   // outer is simple
-  Double outer =  sign == 1 ? DerivSmoothMax(prev, next, beta, side) :  DerivSmoothMin(prev, next, beta, side);
+  double outer =  sign == 1 ? DerivSmoothMax(prev, next, beta, side) :  DerivSmoothMin(prev, next, beta, side);
   // we do not handle neighbor.GetSize() == 2 special as the Smooth tools are fast for this special case
   // inner depends on neigh_idx within the first or the next
-  Double inner = 0.0;
+  double inner = 0.0;
   if (side == -1)
     inner = sign == -1 ? DerivSmoothMax(tmp1, beta, neigh_idx) : DerivSmoothMin(tmp1, beta, neigh_idx);
   else
@@ -2813,7 +2813,7 @@ Double Function::Local::Identifier::CalcOscillationGradient(int neigh_idx, Doubl
   return (sign == 1 ? -1.0 : 1.0) * outer * inner;
 }
 
-Double Function::Local::Identifier::CalcMole(Double eps) const {
+double Function::Local::Identifier::CalcMole(double eps) const {
   // the neighborhood is even and stars with the most previous element
   // and ends with the most next element.
   // the own element in the center is not in neighbor but is separate
@@ -2842,19 +2842,19 @@ Double Function::Local::Identifier::CalcMole(Double eps) const {
 
   assert(tmp1.GetSize() == neighbor.GetSize() + 1);
 
-  Double sum = 0.0;
+  double sum = 0.0;
   for (unsigned int i = 0; i < tmp1.GetSize() - 1; i++) {
     sum += SmoothAbs(tmp1[i + 1] - tmp1[i], eps);
     LOG_DBG3(func)<< "L:I:CalcMole de=" << element->ToString() << " i=" << i << "|" << tmp1[i+1] << " - " << tmp1[i] << "|="
-    << (fabs(tmp1[i+1] - tmp1[i])) << " smoothed=" << SmoothAbs(tmp1[i+1] - tmp1[i], eps) << " sum=" << sum;
+    << (std::abs(tmp1[i+1] - tmp1[i])) << " smoothed=" << SmoothAbs(tmp1[i+1] - tmp1[i], eps) << " sum=" << sum;
   }
-  Double result = sum - SmoothAbs(tmp1.Last() - tmp1[0], eps);
+  double result = sum - SmoothAbs(tmp1.Last() - tmp1[0], eps);
   LOG_DBG3(func)<< "L:I:CalcMole de=" << element->ToString() << " bound=|" << tmp1.Last() << " - " << tmp1[0] << "| smoothed="
   << SmoothAbs(tmp1.Last() - tmp1[0], eps) << " -> " << result;
   return result;
 }
 
-Double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, Double eps) {
+double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, double eps) {
   // see comments in the forward function implementation
   // three cases for the sensitivity analysis: first, intermediate, last
 
@@ -2876,7 +2876,7 @@ Double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, Double eps) 
             neigh_idx < (int) half ? neigh_idx : neigh_idx + 1;
   assert(idx >= 0 && idx < (int ) tmp1.GetSize());
 
-  Double res = 0.0;
+  double res = 0.0;
 
   if (idx == 0) {
     res = DerivSmoothAbs(tmp1.Last() - tmp1[0], eps)
@@ -2902,24 +2902,24 @@ Double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, Double eps) 
   return res;
 }
 
-Double Function::Local::Identifier::CalcJump() const {
+double Function::Local::Identifier::CalcJump() const {
   assert(sign == NO_SIGN);
   assert(neighbor.GetSize() == 2);
 
   // sin(pi*(x_i-1 - x_+1))^2
   // no own value!
-  Double prev = neighbor[0]->GetDesign(DesignElement::SMART);
-  Double next = neighbor[1]->GetDesign(DesignElement::SMART);
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
 
-  Double mysin = sin(Double(M_PI * (prev - next)));
+  double sin = std::sin(M_PI * (prev - next));
 
   // LOG_DBG3(func) << "L:I:CJ de=" << element->ToString() << " prev=" << neighbor[0]->ToString() << "/" << prev
   //               << " next=" << neighbor[1]->ToString() << "/" << next << " slope=" << (prev-next) << " -> sin*sin";
 
-  return mysin * mysin;
+  return sin * sin;
 }
 
-Double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const {
+double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const {
   // g(x)=sin(pi*(x_i-1 - x_+1))^2
   // d g(x)/d x_i-1 = 2 * sin(pi*(x_i-1 - x_+1)) * cos (pi*(x_i-1 - x_+1)) * PI
 
@@ -2927,28 +2927,28 @@ Double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const {
   if (neigh_idx == -1)
     return 0.0;
 
-  Double prev = neighbor[0]->GetDesign(DesignElement::SMART);
-  Double next = neighbor[1]->GetDesign(DesignElement::SMART);
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
 
-  Double slope = prev - next;
+  double slope = prev - next;
 
   assert(neigh_idx == 0 || neigh_idx == 1);
-  Double factor = neigh_idx == 0 ? 1.0 : -1.0;
+  double factor = neigh_idx == 0 ? 1.0 : -1.0;
 
-  return 2.0 * sin(M_PI * slope) * cos(M_PI * slope) * M_PI * factor;
+  return 2.0 * std::sin(M_PI * slope) * std::cos(M_PI * slope) * M_PI * factor;
 }
 
-Double Function::Local::Identifier::CalcBump() const {
+double Function::Local::Identifier::CalcBump() const {
   assert(sign == NO_SIGN);
   assert(neighbor.GetSize() == 2);
 
   // (x_i-1 - x_i)(x_i - x_i+1)
   // no own value!
-  Double prev = neighbor[0]->GetDesign(DesignElement::SMART);
-  Double mine = element->GetDesign(DesignElement::SMART);
-  Double next = neighbor[1]->GetDesign(DesignElement::SMART);
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double mine = element->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
 
-  Double val = (prev - mine) * (mine - next);
+  double val = (prev - mine) * (mine - next);
 
   LOG_DBG3(func)<< "L:I:CB de=" << element->ToString()
   << " prev=" << neighbor[0]->ToString() << "/" << prev
@@ -2958,12 +2958,12 @@ Double Function::Local::Identifier::CalcBump() const {
   return val;
 }
 
-Double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const {
-  Double prev = neighbor[0]->GetDesign(DesignElement::SMART);
-  Double mine = element->GetDesign(DesignElement::SMART);
-  Double next = neighbor[1]->GetDesign(DesignElement::SMART);
+double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const {
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double mine = element->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
 
-  Double res = 0.0;
+  double res = 0.0;
 
   switch (neigh_idx) {
   case 0:
@@ -3017,10 +3017,10 @@ double Function::Local::Identifier::CalcCurvatureGradient(int neigh_idx) const
 
 double Function::Local::Identifier::CalcSumModuli(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
 {
-  Double E1 = GetDesign(DesignElement::EMODULISO, local, access, true);
-  Double E3 = GetDesign(DesignElement::EMODUL, local, access, true);
-  Double G = GetDesign(DesignElement::GMODUL, local, access, true);
-  Double theta = GetDesign(DesignElement::POISSON, local, access, true);
+  double E1 = GetDesign(DesignElement::EMODULISO, local, access, true);
+  double E3 = GetDesign(DesignElement::EMODUL, local, access, true);
+  double G = GetDesign(DesignElement::GMODUL, local, access, true);
+  double theta = GetDesign(DesignElement::POISSON, local, access, true);
 
   int dim = domain->GetGrid()->GetDim();
   if(dim ==2){ //case PLANE_STRESS, reformulated theta version
@@ -3044,32 +3044,32 @@ double Function::Local::Identifier::CalcSumModuli(const Local* local, DesignElem
     return (E1+E3)/(1.0-theta)+2*G;
   }
   else { // 3D case original version without theta, theta = nu_{oi}
-    Double nuiso = GetDesign(DesignElement::POISSONISO, local, access, true);
-    Double nuoisqrd = theta*theta;
+    double nuiso = GetDesign(DesignElement::POISSONISO, local, access, true);
+    double nuoisqrd = theta*theta;
     if(derivative)
     {
       switch(GetElement(neigh_idx)->GetType())
       {
       case DesignElement::EMODULISO:
       {
-        Double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
+        double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
         return (8*nuoisqrd*nuoisqrd)/(4*nuoisqrd*nuoisqrd*(1+nuiso)) - (E3*E3*(2*nuoisqrd + 1)*(nuiso - 1))/(n*n);
       }
       case DesignElement::EMODUL:
       {
-        Double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
+        double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
         return 1 - (2*E1*E1*nuoisqrd*(2*nuoisqrd + 1))/(n*n);
       }
       case DesignElement::GMODUL:
         return 4.0;
       case DesignElement::POISSON:
       {
-        Double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
+        double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
         return (4*E3*E1*theta*(E3 + E1 - E3*nuiso))/(n*n);
       }
       case DesignElement::POISSONISO:
       {
-        Double n = (nuiso + (2*E1*nuoisqrd)/E3 - 1);
+        double n = (nuiso + (2*E1*nuoisqrd)/E3 - 1);
         return (E1*(2*nuoisqrd + 1))/(n*n) - (2*E1)/((nuiso + 1)*(nuiso + 1));
       }
 
@@ -3082,13 +3082,13 @@ double Function::Local::Identifier::CalcSumModuli(const Local* local, DesignElem
 }
 
 
-Double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
+double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
 {
-  Double e11 = GetDesign(DesignElement::MECH_11, local, access, true);
-  Double e22 = GetDesign(DesignElement::MECH_22, local, access, true);
-  Double e33 = GetDesign(DesignElement::MECH_33, local, access, true);
-  Double e12 = GetDesign(DesignElement::MECH_12, local, access, true);
-  Double lowerEigBound = GetDesign(DesignElement::LOWER_EIG_BOUND, local, access, true);
+  double e11 = GetDesign(DesignElement::MECH_11, local, access, true);
+  double e22 = GetDesign(DesignElement::MECH_22, local, access, true);
+  double e33 = GetDesign(DesignElement::MECH_33, local, access, true);
+  double e12 = GetDesign(DesignElement::MECH_12, local, access, true);
+  double lowerEigBound = GetDesign(DesignElement::LOWER_EIG_BOUND, local, access, true);
 
   if(derivative)
   {
@@ -3112,18 +3112,18 @@ Double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* loca
     return 3.0*lowerEigBound+e11*e11+2.0*e12*e12+e22*e22+e33;
 }
 
-Double Function::Local::Identifier::Interpolate_Volume3D(Vector<Double>& p,
-    const Matrix<Double> & vol_a, const Matrix<Double> & vol_b, const Matrix<Double> & vol_c,
-    const Matrix<Double> & vol_coeff, Double direction) const {
+double Function::Local::Identifier::Interpolate_Volume3D(Vector<double>& p,
+    const Matrix<double> & vol_a, const Matrix<double> & vol_b, const Matrix<double> & vol_c,
+    const Matrix<double> & vol_coeff, double direction) const {
   // FIXME
   PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
-  Double vol = 0.;
+  double vol = 0.;
   int m = vol_a.GetNumRows();
   int n = vol_b.GetNumRows();
   int o = vol_c.GetNumRows();
-  Double da = vol_a[1][0] - vol_a[0][0];
-  Double db = vol_b[1][0] - vol_b[0][0];
-  Double dc = vol_c[1][0] - vol_c[0][0];
+  double da = vol_a[1][0] - vol_a[0][0];
+  double db = vol_b[1][0] - vol_b[0][0];
+  double dc = vol_c[1][0] - vol_c[0][0];
   int j = GetInterpolationIndex(vol_a,p[0]);
   int k = GetInterpolationIndex(vol_b,p[1]);
   int l = GetInterpolationIndex(vol_c,p[2]);
@@ -3139,10 +3139,10 @@ Double Function::Local::Identifier::Interpolate_Volume3D(Vector<Double>& p,
   return vol;
 }
 
-int Function::Local::Identifier::GetInterpolationIndex(Matrix<Double> interval, Double& val) const {
+int Function::Local::Identifier::GetInterpolationIndex(Matrix<double> interval, double& val) const {
   PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
   int sz = interval.GetNumRows();
-  Double h = interval[1][0] - interval[0][0];
+  double h = interval[1][0] - interval[0][0];
 
   int idx = -1;
   if (interval[0][0] <= val && val < interval[sz - 1][0]) {
@@ -3171,17 +3171,17 @@ int Function::Local::Identifier::GetInterpolationIndex(Matrix<Double> interval, 
 }
 
 
-Double Function::Local::Identifier::EvaluateC1Interpolation_3D(
-    Vector<Double>& p, const Matrix<Double> & vol_a, const Matrix<Double> & vol_b,
-    const Matrix<Double> & vol_c, const Matrix<Double> & vol_coeff, Double & da,
-    Double & db, Double & dc, int & j, int & k, int & l, int & m, int & n,
+double Function::Local::Identifier::EvaluateC1Interpolation_3D(
+    Vector<double>& p, const Matrix<double> & vol_a, const Matrix<double> & vol_b,
+    const Matrix<double> & vol_c, const Matrix<double> & vol_coeff, double & da,
+    double & db, double & dc, int & j, int & k, int & l, int & m, int & n,
     int &o) const {
   LOG_DBG(func)<<"p=["<<p[0]<<","<<p[1]<<", "<<p[2]<<"]";
-  Double t=(p[0]-vol_a[j][0])/da;
-  Double u =(p[1]-vol_b[k][0])/db;
-  Double v=(p[2]-vol_c[l][0])/dc;
+  double t=(p[0]-vol_a[j][0])/da;
+  double u =(p[1]-vol_b[k][0])/db;
+  double v=(p[2]-vol_c[l][0])/dc;
   LOG_DBG(func)<<"u = "<<u<<" t= "<<t<<" v= "<<v;
-  Double res = 0;
+  double res = 0;
   for (int ii = 0;ii<4;ii++) {
     for (int jj=0;jj<4;jj++) {
       for (int kk=0;kk<4;kk++) {
@@ -3193,18 +3193,18 @@ Double Function::Local::Identifier::EvaluateC1Interpolation_3D(
   return res;
 }
 
-Double Function::Local::Identifier::EvaluateC1Interpolation_Deriv_3D(
-    Vector<Double>& p, const Matrix<Double> & vol_a, const Matrix<Double> & vol_b,
-    const Matrix<Double> & vol_c, const Matrix<Double> & vol_coeff, Double & da,
-    Double & db, Double & dc, int & j, int & k, int & l, int & m, int & n,
-    int & o, Double direction) const {
+double Function::Local::Identifier::EvaluateC1Interpolation_Deriv_3D(
+    Vector<double>& p, const Matrix<double> & vol_a, const Matrix<double> & vol_b,
+    const Matrix<double> & vol_c, const Matrix<double> & vol_coeff, double & da,
+    double & db, double & dc, int & j, int & k, int & l, int & m, int & n,
+    int & o, double direction) const {
 
-  Double u = (p[0] - vol_a[j][0]) / (da);
-  Double t = (p[1] - vol_b[k][0]) / (db);
-  Double v = (p[2] - vol_c[l][0]) / dc;
+  double u = (p[0] - vol_a[j][0]) / (da);
+  double t = (p[1] - vol_b[k][0]) / (db);
+  double v = (p[2] - vol_c[l][0]) / dc;
   LOG_DBG(func)<<"Deriv: u = "<<u<<" t= "<<t<<" v= "<<v<<" j= "<<j<<" k= "<<k<<" l= "<<l;
   LOG_DBG(func)<<"p_deriv: ["<<p[0]<<", "<<", "<<p[1]<<", "<<p[2];
-  Double deriv = 0;
+  double deriv = 0;
   if (direction == 1) {
     for (int ii = 1; ii < 4; ii++) {
       for (int jj = 0; jj < 4; jj++) {
@@ -3300,13 +3300,13 @@ Double Function::Local::Identifier::EvaluateC1Interpolation_Deriv_3D(
 //}
 
 
-Double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
+double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   // temporary data structure
-  Vector<Double> p(3);
+  Vector<double> p(3);
   p[0] = GetDesign(DesignElement::STIFF1, local, access, true);;
   p[1] = GetDesign(DesignElement::STIFF2, local, access, true);;
   p[2] = GetDesign(DesignElement::STIFF3, local, access, true);;
-  Double direction;
+  double direction;
   if (!derivative) {
     direction = 0.;
     return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_,
@@ -3330,11 +3330,11 @@ Double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
   return -1.0;
 }
 
-Double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
+double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   DesignElement* de = dynamic_cast<DesignElement*>(element);
-  Double stiff1 = GetDesign(DesignElement::STIFF1, local, access, true);
-  Double stiff2 = GetDesign(DesignElement::STIFF2, local, access, true);
-  Double vol;
+  double stiff1 = GetDesign(DesignElement::STIFF1, local, access, true);
+  double stiff2 = GetDesign(DesignElement::STIFF2, local, access, true);
+  double vol;
   int dim = domain->GetGrid()->GetDim();
   bool regular = local->space->IsRegular();
   /** if grid is nonregular, the volume has to be scaled by element size */
@@ -3392,11 +3392,11 @@ Double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   return -1.0;
 }
 
-Double Function::Local::Identifier::CalcParamPSPosDef(const Local* local, DesignElement::Access access, int neigh_idx,
+double Function::Local::Identifier::CalcParamPSPosDef(const Local* local, DesignElement::Access access, int neigh_idx,
     bool derivative) const {
-  Double E1 = GetDesign(DesignElement::EMODULISO, local, access, true);
-  Double E3 = GetDesign(DesignElement::EMODUL, local, access, true);
-  Double nu31 = GetDesign(DesignElement::POISSON, local, access, true);
+  double E1 = GetDesign(DesignElement::EMODULISO, local, access, true);
+  double E3 = GetDesign(DesignElement::EMODUL, local, access, true);
+  double nu31 = GetDesign(DesignElement::POISSON, local, access, true);
 
   if (derivative)
     switch (GetElement(neigh_idx)->GetType()) {
@@ -3418,19 +3418,19 @@ Double Function::Local::Identifier::CalcParamPSPosDef(const Local* local, Design
 
 
 /* Condition: det(G-vId) >= eps*/
-Double Function::Local::Identifier::CalcDetGTensor(int neigh_idx, const Local* local, bool derivative) const
+double Function::Local::Identifier::CalcDetGTensor(int neigh_idx, const Local* local, bool derivative) const
 {
   const Condition* g = dynamic_cast<const Condition*>(local->func_);
 
-  Double v = g->GetParameter();
-  Double eps = 1.0 * g->GetBoundValue();
+  double v = g->GetParameter();
+  double eps = 1.0 * g->GetBoundValue();
 
-  Matrix<Double> G(2,2);
+  Matrix<double> G(2,2);
 
   bool ok = local->space->designMaterial->GetModRedGTensor(G, dynamic_cast<DesignElement*>(element)->elem);
   assert(ok);
 
-  Double ret = -12345678.0 * (ok ? 1.0 : 1.0);
+  double ret = -12345678.0 * (ok ? 1.0 : 1.0);
 
   //element->GetDesignSpace()->designMaterial->GetModRedGTensor(G, DesignElement::NO_DERIVATIVE);
 
@@ -3468,7 +3468,7 @@ Double Function::Local::Identifier::CalcDetGTensor(int neigh_idx, const Local* l
 }
 
 
-Double Function::Local::Identifier::CalcRotGTensor(int neigh_idx,  const Local* local, bool derivative, Type type) const
+double Function::Local::Identifier::CalcRotGTensor(int neigh_idx,  const Local* local, bool derivative, Type type) const
 {
   assert((local->locality_ == MULT_DESIGNS_NEXT_AND_REVERSE));
   //This means that in neighbor, we have
@@ -3480,35 +3480,35 @@ Double Function::Local::Identifier::CalcRotGTensor(int neigh_idx,  const Local* 
 
   Function* f = local->func_;
 
-  Double s = this->sign == -1 ? -1.0 : 1.0;
+  double s = this->sign == -1 ? -1.0 : 1.0;
 
- Double ret=0.0;
+ double ret=0.0;
 
- Double g110 =element->GetDesign(DesignElement::SMART);
- Double g11y =neighbor[1]->GetDesign(DesignElement::SMART);
- Double g120 =neighbor[2]->GetDesign(DesignElement::SMART);
- Double g12x = neighbor[3]->GetDesign(DesignElement::SMART);
+ double g110 =element->GetDesign(DesignElement::SMART);
+ double g11y =neighbor[1]->GetDesign(DesignElement::SMART);
+ double g120 =neighbor[2]->GetDesign(DesignElement::SMART);
+ double g12x = neighbor[3]->GetDesign(DesignElement::SMART);
 
- Double g210 =neighbor[5]->GetDesign(DesignElement::SMART);
- Double g21y =neighbor[7]->GetDesign(DesignElement::SMART);
- Double g220 =neighbor[8]->GetDesign(DesignElement::SMART);
- Double g22x =neighbor[9]->GetDesign(DesignElement::SMART);
+ double g210 =neighbor[5]->GetDesign(DesignElement::SMART);
+ double g21y =neighbor[7]->GetDesign(DesignElement::SMART);
+ double g220 =neighbor[8]->GetDesign(DesignElement::SMART);
+ double g22x =neighbor[9]->GetDesign(DesignElement::SMART);
 
 
- Double theta0  = element->GetDesign(DesignElement::SMART);
-  Double thetax = neighbor[0]->GetDesign(DesignElement::SMART);
-  Double thetay = neighbor[1]->GetDesign(DesignElement::SMART);
+ double theta0  = element->GetDesign(DesignElement::SMART);
+  double thetax = neighbor[0]->GetDesign(DesignElement::SMART);
+  double thetay = neighbor[1]->GetDesign(DesignElement::SMART);
 
-Double phi0 = neighbor[2]->GetDesign(DesignElement::SMART);
-Double phix = neighbor[3]->GetDesign(DesignElement::SMART);
-Double phiy = neighbor[4]->GetDesign(DesignElement::SMART);
+double phi0 = neighbor[2]->GetDesign(DesignElement::SMART);
+double phix = neighbor[3]->GetDesign(DesignElement::SMART);
+double phiy = neighbor[4]->GetDesign(DesignElement::SMART);
 
- Double l10 = neighbor[5]->GetDesign(DesignElement::SMART);
- Double l1x = neighbor[6]->GetDesign(DesignElement::SMART);
- Double l1y = neighbor[7]->GetDesign(DesignElement::SMART);
- Double l20 = neighbor[8]->GetDesign(DesignElement::SMART);
- Double l2x = neighbor[9]->GetDesign(DesignElement::SMART);
- Double l2y = neighbor[10]->GetDesign(DesignElement::SMART);
+ double l10 = neighbor[5]->GetDesign(DesignElement::SMART);
+ double l1x = neighbor[6]->GetDesign(DesignElement::SMART);
+ double l1y = neighbor[7]->GetDesign(DesignElement::SMART);
+ double l20 = neighbor[8]->GetDesign(DesignElement::SMART);
+ double l2x = neighbor[9]->GetDesign(DesignElement::SMART);
+ double l2y = neighbor[10]->GetDesign(DesignElement::SMART);
 
           if (!derivative)
           {
@@ -3722,7 +3722,7 @@ Double phiy = neighbor[4]->GetDesign(DesignElement::SMART);
 
  }
 
-Double Function::Local::Identifier::CalcDetGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
+double Function::Local::Identifier::CalcDetGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
 {
   assert((local->locality_ == NEXT_DIAG));
     //This means that in neighbor, we have
@@ -3750,7 +3750,7 @@ Double Function::Local::Identifier::CalcDetGMappingTensor(int neigh_idx,  const 
     //An element contains the value of the mappings gx and gy on its south_west node
 
 
-    Matrix<Double> G(2,2);
+    Matrix<double> G(2,2);
     G.Init();
 
     int south_west = 0;
@@ -3758,36 +3758,36 @@ Double Function::Local::Identifier::CalcDetGMappingTensor(int neigh_idx,  const 
     int north_east = 2;
     int north_west = 3;
 
-   Double ret=0.0;
+   double ret=0.0;
 
-   Double gx_0 =element->GetDesign(DesignElement::SMART);
-   Double gx_px =neighbor[0]->GetDesign(DesignElement::SMART);
-   Double gx_py =neighbor[1]->GetDesign(DesignElement::SMART);
-   Double gx_pxy= neighbor[2]->GetDesign(DesignElement::SMART);
+   double gx_0 =element->GetDesign(DesignElement::SMART);
+   double gx_px =neighbor[0]->GetDesign(DesignElement::SMART);
+   double gx_py =neighbor[1]->GetDesign(DesignElement::SMART);
+   double gx_pxy= neighbor[2]->GetDesign(DesignElement::SMART);
 
-   Double gy_0   =neighbor[3]->GetDesign(DesignElement::SMART);
-   Double gy_px  =neighbor[4]->GetDesign(DesignElement::SMART);
-   Double gy_py  =neighbor[5]->GetDesign(DesignElement::SMART);
-   Double gy_pxy =neighbor[6]->GetDesign(DesignElement::SMART);
+   double gy_0   =neighbor[3]->GetDesign(DesignElement::SMART);
+   double gy_px  =neighbor[4]->GetDesign(DesignElement::SMART);
+   double gy_py  =neighbor[5]->GetDesign(DesignElement::SMART);
+   double gy_pxy =neighbor[6]->GetDesign(DesignElement::SMART);
 
     //I need to know the coordinates of the nodes of the cells I am working with
-    Matrix<Double>  coords; // we ignore the n times constructs
+    Matrix<double>  coords; // we ignore the n times constructs
 
     StdVector<unsigned int> connect = dynamic_cast<DesignElement*>(element)->elem->connect;
     // do not use updated coordinates up to now!!
     domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
 
-    Double x_0 = coords(0,south_west);
-    Double y_0 = coords(1,south_west);
+    double x_0 = coords(0,south_west);
+    double y_0 = coords(1,south_west);
 
-    Double x_px = coords(0,south_east);
-    Double y_px = coords(1,south_east);
+    double x_px = coords(0,south_east);
+    double y_px = coords(1,south_east);
 
-    Double x_pxy = coords(0,north_east);
-    Double y_pxy = coords(1,north_east);
+    double x_pxy = coords(0,north_east);
+    double y_pxy = coords(1,north_east);
 
-    Double x_py = coords(0,north_west);
-    Double y_py = coords(1,north_west);
+    double x_py = coords(0,north_west);
+    double y_py = coords(1,north_west);
 
     G(0,0) = ( (gx_px - gx_0)*(x_px -x_0) + (gx_pxy - gx_px)*(x_pxy - x_px) + (gx_pxy - gx_py)*(x_pxy - x_py) + (gx_py - gx_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
     G(0,1) = ( (gx_px - gx_0)*(y_px -y_0) + (gx_pxy - gx_px)*(y_pxy - y_px) + (gx_pxy - gx_py)*(y_pxy - y_py) + (gx_py - gx_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
@@ -3803,7 +3803,7 @@ Double Function::Local::Identifier::CalcDetGMappingTensor(int neigh_idx,  const 
      }
    else
    {
-     Matrix<Double> Gd(2,2);
+     Matrix<double> Gd(2,2);
      Gd.Init();
 
      switch(neigh_idx)
@@ -3908,7 +3908,7 @@ Double Function::Local::Identifier::CalcDetGMappingTensor(int neigh_idx,  const 
 }
 
 
-Double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
+double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
 {
   assert((local->locality_ == NEXT_DIAG));
    //This means that in neighbor, we have
@@ -3935,7 +3935,7 @@ Double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
    //An element contains the value of the mappings gx and gy on its south_west node
 
 
-   Matrix<Double> G(2,2);
+   Matrix<double> G(2,2);
    G.Init();
 
    int south_west = 0;
@@ -3943,36 +3943,36 @@ Double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
    int north_east = 2;
    int north_west = 3;
 
-  Double ret=0.0;
+  double ret=0.0;
 
-  Double gx_0 =element->GetDesign(DesignElement::SMART);
-  Double gx_px =neighbor[0]->GetDesign(DesignElement::SMART);
-  Double gx_py =neighbor[1]->GetDesign(DesignElement::SMART);
-  Double gx_pxy= neighbor[2]->GetDesign(DesignElement::SMART);
+  double gx_0 =element->GetDesign(DesignElement::SMART);
+  double gx_px =neighbor[0]->GetDesign(DesignElement::SMART);
+  double gx_py =neighbor[1]->GetDesign(DesignElement::SMART);
+  double gx_pxy= neighbor[2]->GetDesign(DesignElement::SMART);
 
-  Double gy_0   =neighbor[3]->GetDesign(DesignElement::SMART);
-  Double gy_px  =neighbor[4]->GetDesign(DesignElement::SMART);
-  Double gy_py  =neighbor[5]->GetDesign(DesignElement::SMART);
-  Double gy_pxy =neighbor[6]->GetDesign(DesignElement::SMART);
+  double gy_0   =neighbor[3]->GetDesign(DesignElement::SMART);
+  double gy_px  =neighbor[4]->GetDesign(DesignElement::SMART);
+  double gy_py  =neighbor[5]->GetDesign(DesignElement::SMART);
+  double gy_pxy =neighbor[6]->GetDesign(DesignElement::SMART);
 
    //I need to know the coordinates of the nodes of the cells I am working with
-   Matrix<Double>  coords; // we ignore the n times constructs
+   Matrix<double>  coords; // we ignore the n times constructs
 
    StdVector<unsigned int> connect = dynamic_cast<DesignElement*>(element)->elem->connect;
    // do not use updated coordinates up to now!!
    domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
 
-   Double x_0 = coords(0,south_west);
-   Double y_0 = coords(1,south_west);
+   double x_0 = coords(0,south_west);
+   double y_0 = coords(1,south_west);
 
-   Double x_px = coords(0,south_east);
-   Double y_px = coords(1,south_east);
+   double x_px = coords(0,south_east);
+   double y_px = coords(1,south_east);
 
-   Double x_pxy = coords(0,north_east);
-   Double y_pxy = coords(1,north_east);
+   double x_pxy = coords(0,north_east);
+   double y_pxy = coords(1,north_east);
 
-   Double x_py = coords(0,north_west);
-   Double y_py = coords(1,north_west);
+   double x_py = coords(0,north_west);
+   double y_py = coords(1,north_west);
 
    G(0,0) = ( (gx_px - gx_0)*(x_px -x_0) + (gx_pxy - gx_px)*(x_pxy - x_px) + (gx_pxy - gx_py)*(x_pxy - x_py) + (gx_py - gx_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
    G(0,1) = ( (gx_px - gx_0)*(y_px -y_0) + (gx_pxy - gx_px)*(y_pxy - y_px) + (gx_pxy - gx_py)*(y_pxy - y_py) + (gx_py - gx_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
@@ -3988,7 +3988,7 @@ Double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
     }
   else
   {
-    Matrix<Double> Gd(2,2);
+    Matrix<double> Gd(2,2);
     Gd.Init();
 
     switch(neigh_idx)
@@ -4079,13 +4079,13 @@ Double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
 }
 
 
-Double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const {
+double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const {
   const Condition* g = dynamic_cast<const Condition*>(local->func_);
 
-  Double v = g->GetParameter();
-  Double eps = 1.0 * g->GetBoundValue();
+  double v = g->GetParameter();
+  double eps = 1.0 * g->GetBoundValue();
 
-  Matrix<Double> E;
+  Matrix<double> E;
   bool ok = local->space->designMaterial->GetTensor(E, g->GetDesignType(), PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
   // the sub-tensor-type does'nt matter
   // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation (elasticity only)
@@ -4101,9 +4101,9 @@ Double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const L
   // d_3 is done by Sonja using the Laplace formula, we use Sarrus
   // d_3 := ...
 
-  Double ret = -12345678.0 * (ok ? 1.0 : 1.0); // stupid stuff to use ok in release mode
+  double ret = -12345678.0 * (ok ? 1.0 : 1.0); // stupid stuff to use ok in release mode
 
-  Double e11, e22, e33, e23, e13, e12;
+  double e11, e22, e33, e23, e13, e12;
 
   switch (type) {
   case POS_DEF_DET_MINOR_1:
@@ -4221,15 +4221,15 @@ Double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const L
   return ret;
 }
 
-Double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
+double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
     const Local* local, bool derivative, Type type) const {
   const Condition* g = dynamic_cast<const Condition*>(local->func_);
-  Matrix<Double> E;
+  Matrix<double> E;
   // (E - v*I) >= gamma
-  Double v = g->GetParameter();
+  double v = g->GetParameter();
   // in case, we are used as "approximation" of the benson vanderbei constraints:
   //   det1(x) = bv1(x) - eps  <-- this eps is also on the left side!!
-  Double eps = g->GetBoundValue();
+  double eps = g->GetBoundValue();
 
   // the sub-tensor-type does'nt matter
   // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
@@ -4238,10 +4238,10 @@ Double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
 
   LOG_DBG3(func) << "L::I::CBV e_num=" << element->GetIndex() << " v=" << v << " E=" << E.ToString(0, false);
 
-  Double ret = -12345678.0;
+  double ret = -12345678.0;
 
   // soja: e1   e2   e3   e4   e5   e6
-  Double e11, e12, e22, e13, e23, e33;
+  double e11, e12, e22, e13, e23, e33;
 
   switch (type) {
   case BENSON_VANDERBEI_1:
@@ -4372,11 +4372,11 @@ Double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
   return ret;
 }
 
-Double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Local* local, bool derivative) const
+double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Local* local, bool derivative) const
   {
-    Matrix<Double> E;
+    Matrix<double> E;
 
-    Double ret = 0.0;
+    double ret = 0.0;
 
     if(!derivative)
     {
@@ -4394,7 +4394,7 @@ Double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Lo
     return ret;
   }
 
-Double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const
+double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const
 {
   Matrix<double> E;
   Function* f= local->func_;
@@ -4409,7 +4409,7 @@ Double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* 
   assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && (E.GetNumRows() == 3 || E.GetNumRows() == 6)));
   LOG_DBG3(func) << "L::I::CTT e_num=" << element->GetIndex() << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
 
-  Double ret = E.Trace() * (ok ? 1.0 : 1.0); // to use ok in assert
+  double ret = E.Trace() * (ok ? 1.0 : 1.0); // to use ok in assert
   assert(!(derivative && local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && ret != -1.0));
   assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && de->GetType() == DesignElement::MECH_33 && ret != 1.0));
   assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::MECH_33 && ret != 0.5));
@@ -4418,9 +4418,9 @@ Double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* 
   return ret;
 }
 
-Double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const
+double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const
 {
-  Matrix<Double> E;
+  Matrix<double> E;
   const BaseDesignElement* de = GetElement(neigh_idx);
   assert(local->func_->GetDesignType() == DesignElement::PIEZO_ALL);
   // as we square we do not need the linear derivative
@@ -4428,7 +4428,7 @@ Double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* l
 
   LOG_DBG3(func) << "L::I::CTN e_num=" << element->GetIndex() << " E=" << E.ToString(0, false);
 
-  Double ret = 0.0;
+  double ret = 0.0;
 
   if(!derivative)
     ret = pow(E.NormL2(), 2);
@@ -4501,16 +4501,16 @@ double Function::Local::Identifier::CalcDesignBound(Function* f, const Local* l,
   return -1.0; // please compiler
 }
   
-  Double Function::Local::Identifier::CalcShape(Function* f, const Local* l) const {
+  double Function::Local::Identifier::CalcShape(Function* f, const Local* l) const {
     assert(f->type_ == SHAPE_INF);
     int idx = dynamic_cast<LocalCondition*>(f)->GetCurrentRelativePosition();
     ShapeDesign::ShapeConstraint& c = dynamic_cast<ShapeDesign*>(l->space)->GetShapeConstraints()[idx];
     // note that if neighbor[0] should not be given, it points to the first design element and c.factor[1] is 0.0
-    Double ret = this->element->GetDesign() * c.factor[0] - this->neighbor[0]->GetDesign() * c.factor[1];
+    double ret = this->element->GetDesign() * c.factor[0] - this->neighbor[0]->GetDesign() * c.factor[1];
     return(ret);
   }
 
-  Double Function::Local::Identifier::CalcShapeGradient(Function* f, const Local* l, int neigh_idx) const {
+  double Function::Local::Identifier::CalcShapeGradient(Function* f, const Local* l, int neigh_idx) const {
     assert(f->type_ == SHAPE_INF);
     int idx = dynamic_cast<LocalCondition*>(f)->GetCurrentRelativePosition();
     ShapeDesign::ShapeConstraint& c = dynamic_cast<ShapeDesign*>(l->space)->GetShapeConstraints()[idx];

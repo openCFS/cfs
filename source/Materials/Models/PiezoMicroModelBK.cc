@@ -248,7 +248,7 @@ namespace CoupledField{
         if ( val < -1.0 ) 
           val = -1.0;
              
-        switchingVal_[i][j] = 2.0 * acos( val ) / M_PI;
+        switchingVal_[i][j] = 2.0 * std::acos( val ) / M_PI;
         //        std::cout << "switchingVals:" << switchingVal_[i][j] << std::endl;
       }
     }
@@ -427,21 +427,21 @@ namespace CoupledField{
 
 //     Double threshold =  sponP0_*1e-6;
 
-//     if ( fabs(cx) < threshold ) 
+//     if ( std::abs(cx) < threshold ) 
 //       cx = 0;
-//     if ( fabs(cy) < threshold ) 
+//     if ( std::abs(cy) < threshold ) 
 //       cy = 0;
-//     if ( fabs(cz) < threshold ) 
+//     if ( std::abs(cz) < threshold ) 
 //       cz = 0;
 
 //     Vector<Double> angle(dim_);
 //     Matrix<Double> rotMat(dim_,dim_);
 //     Matrix<Double> tmpS;
 
-//     lenxy = sqrt(cx*cx + cy*cy);
+//     lenxy = std::sqrt(cx*cx + cy*cy);
 //     angle[0] = 0.0;
-//     angle[1] = atan2(cz,lenxy); //
-//     angle[2] = atan2(cy, cx); //
+//     angle[1] = std::atan2(cz,lenxy); //
+//     angle[2] = std::atan2(cy, cx); //
 
 //     //get rotation matrix
 //     ComputeRotationMatrix( angle, rotMat );
@@ -584,32 +584,32 @@ namespace CoupledField{
           driveForcesElec_[elemIdx][i][j] = drivingForceElecStar;
 
         //compute transformation rates
-        if ( fabs( switchingVal_[i][j] ) < 1e-10 ) {
+        if ( abs( switchingVal_[i][j] ) < 1e-10 ) {
            transformationRates_[elemIdx][i][j] = 0; 
         }
         else {
           //electric part
           exp1 = 1.0 - ( driveForcesElec_[elemIdx][i][j] / drivingForceElecStar );
-          val  = exp(exp1);
-          transRateElec = rateConst_ * pow( val, viscoPlasticIdx_ );
+          val  = std::exp(exp1);
+          transRateElec = rateConst_ * std::pow( val, viscoPlasticIdx_ );
           if ( explicit_ )
-            transRateElec *= pow( volFracPrev_[elemIdx][i], saturationIdx_); 
+            transRateElec *= std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
           //std::cout << "rateElec:" << transRateElec << std::endl;
 
           //mechanical part
           exp1 = 1.0 - ( driveForcesMech_[elemIdx][i][j] / drivingForceMechStar );
-          val  = exp(exp1);
-          transRateMech = rateConst_ * pow( val, viscoPlasticIdx_ );
+          val  = std::exp(exp1);
+          transRateMech = rateConst_ * std::pow( val, viscoPlasticIdx_ );
           if ( explicit_ )
-            transRateMech *= pow( volFracPrev_[elemIdx][i], saturationIdx_); 
+            transRateMech *= std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
           //std::cout << "rateMech:" << transRateMech << std::endl;
 
           //coupling part part
           exp1 = 1.0 - ( driveForcesCouple_[elemIdx][i][j] / drivingForceCoupleStar );
-          val  = exp(exp1);
-          transRateCouple = rateConst_ * pow( val, viscoPlasticIdx_ );
+          val  = std::exp(exp1);
+          transRateCouple = rateConst_ * std::pow( val, viscoPlasticIdx_ );
           if ( explicit_ )
-            transRateCouple *= pow( volFracPrev_[elemIdx][i], saturationIdx_); 
+            transRateCouple *= std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
           //std::cout << "rateCouple:" << transRateCouple << std::endl;
 
           //overall rate
@@ -672,21 +672,21 @@ namespace CoupledField{
 
     Double threshold =  sponP0_*1e-6;
 
-    if ( fabs(cx) < threshold ) 
+    if ( std::abs(cx) < threshold ) 
       cx = 0;
-    if ( fabs(cy) < threshold ) 
+    if ( std::abs(cy) < threshold ) 
       cy = 0;
-    if ( fabs(cz) < threshold ) 
+    if ( std::abs(cz) < threshold ) 
       cz = 0;
 
     Vector<Double> angle(dim_);
     Matrix<Double> rotMat(dim_,dim_);
     Matrix<Double> tmpS;
 
-    lenxy = sqrt(cx*cx + cy*cy);
+    lenxy = std::sqrt(cx*cx + cy*cy);
     angle[0] = 0.0;
-    angle[1] = atan2(cz,lenxy); //
-    angle[2] = atan2(cy, cx); //
+    angle[1] = std::atan2(cz,lenxy); //
+    angle[2] = std::atan2(cy, cx); //
 
     //get rotation matrix
     ComputeRotationMatrix( angle, rotMat );
@@ -703,23 +703,23 @@ namespace CoupledField{
     Matrix<Double> rotX(3,3), rotY(3,3), rotZ(3,3);
     rotX.Init();
     rotX[0][0] = 1.0;
-    rotX[1][1] = cos(angles[0]);
-    rotX[1][2] = -sin(angles[0]);
-    rotX[2][1] = sin(angles[0]);
-    rotX[2][2] = cos(angles[0]);
+    rotX[1][1] = std::cos(angles[0]);
+    rotX[1][2] = -std::sin(angles[0]);
+    rotX[2][1] = std::sin(angles[0]);
+    rotX[2][2] = std::cos(angles[0]);
 
     rotY.Init();
-    rotY[0][0] = cos(angles[1]);
-    rotY[0][2] = -sin(angles[1]);
+    rotY[0][0] = std::cos(angles[1]);
+    rotY[0][2] = -std::sin(angles[1]);
     rotY[1][1] = 1.0;
-    rotY[2][0] = sin(angles[1]);
-    rotY[2][2] = cos(angles[1]);
+    rotY[2][0] = std::sin(angles[1]);
+    rotY[2][2] = std::cos(angles[1]);
 
     rotZ.Init();
-    rotZ[0][0] = cos(angles[2]);
-    rotZ[0][1] = -sin(angles[2]);
-    rotZ[1][0] = sin(angles[2]);
-    rotZ[1][1] = cos(angles[2]);
+    rotZ[0][0] = std::cos(angles[2]);
+    rotZ[0][1] = -std::sin(angles[2]);
+    rotZ[1][0] = std::sin(angles[2]);
+    rotZ[1][1] = std::cos(angles[2]);
     rotZ[2][2] = 1.0;
 
     Matrix<Double> help;

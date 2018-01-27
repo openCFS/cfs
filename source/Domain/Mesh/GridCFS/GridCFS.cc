@@ -683,7 +683,7 @@ namespace CoupledField {
 
     for(UInt i = 0, n = elems.GetSize(); i < n; i++)
     {
-      Double val = elems[i]->Get("design")->As<Double>();
+      double val = elems[i]->Get("design")->As<double>();
       if(val >= 1.0)
       {
         UInt nr = elems[i]->Get("nr")->As<UInt>();
@@ -1748,7 +1748,7 @@ namespace CoupledField {
                  << "node number " << inode );
     }
 
-    if ( (dim_ == 2) && rfPoint.GetSize() > 2 && (fabs(rfPoint[2]) > 1.0E-15) ) {
+    if ( (dim_ == 2) && rfPoint.GetSize() > 2 && (abs(rfPoint[2]) > 1.0E-15) ) {
       EXCEPTION( "GridCFS: Dimension of grid is 2D. "
                   << "But you wanted to set the 3D coordinate " << "("
                   << rfPoint[0] << ", " << rfPoint[1] << ", " << rfPoint[2]
