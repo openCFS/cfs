@@ -16,10 +16,16 @@ import render_html
 # plot module
 import api_plot
 
+# for global update dict:
+import datetime
+
 app = Flask(__name__)
 
 # global data dict always contains the latest xml file (in parsed version)
 GLOBAL_DATA_DICT = {}
+
+# contains the last update
+GLOBAL_UPDATED_DICT = {}
 
 # ajax functions will wait for an even aka new data
 # in order to do that they will put and event into this dictionary: key => Array(Event)
@@ -33,10 +39,17 @@ UPDATE_EVENTS = {}
 @app.route('/', methods = ['GET'])
 def index():
   if request.method == 'GET':
-    return render_html.render_index(GLOBAL_DATA_DICT, request)
+    return render_html.render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request)
   else:
     return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
+
+@app.route(settings["api"]["values"] + '/<path:key>', methods = ['GET', 'POST'])
+def values(key):
+  if request.method == 'GET':
+    return api_plot.get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, int(request.args.get('iteration_num')))
+  else:
+    return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
 @app.route(settings["api"]["view_url"] + '/<path:key>', methods = ['GET', 'POST'])
 def view(key):
@@ -50,7 +63,8 @@ def plot(key):
   return api_plot.plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, request.args.get('x'), \
                        request.args.getlist('y1_it'), request.args.getlist('y2_it'), \
                        request.args.getlist('y1_res'), request.args.getlist('y2_res'), \
-                       request.args.get('iteration_num'))
+                       int(request.args.get('iteration_num')), \
+                       (request.args.get('logscale_y1') == 'true'), (request.args.get('logscale_y2') == 'true'))
 
 
 @app.route('/', methods = ['POST'])
@@ -77,7 +91,7 @@ def cfs_recieve(url_key = ""):
 
     xml = etree.fromstring(data)
     
-    print("status: " + xml.xpath('/cfsStreaming/cfsInfo/@status')[0])
+    print("status: " + xml.xpath('//cfsInfo/@status')[0])
     
     key = xml.xpath('//environment/@host')[0] + '/' + xml.xpath('//progOpts/@problem')[0]
     
@@ -92,12 +106,13 @@ def cfs_recieve(url_key = ""):
 
     GLOBAL_DATA_DICT[key] = xml
     
+    GLOBAL_UPDATED_DICT[key] = str(datetime.datetime.now())
+    
     # set the event to trigger sending of the new xml data
     # make sure to set the event AFTER putting the new xml
     # into GLOBAL_DATA_DICT
     if key in UPDATE_EVENTS:
-      for e in UPDATE_EVENTS[key]:
-        e.set()
+      UPDATE_EVENTS[key].set()
 
     print("recieved data!\n")
     return 'data recieved!\n'
