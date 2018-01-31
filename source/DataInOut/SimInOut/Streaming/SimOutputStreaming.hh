@@ -3,6 +3,9 @@
 
 #include <iosfwd>
 #include <string>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/SimOutput.hh"
@@ -90,6 +93,20 @@ namespace CoupledField
       boost::asio::streambuf request_;
       boost::asio::streambuf response_;
     };
+
+    /** this service will be used by the client **/
+    boost::asio::io_service io_service;
+
+    /** this is the threaded function that calls io_service.run() to thread the file sending process **/
+    void io_service_runner(void);
+
+    /** wrapper that calls the function on the member **/
+    static void io_service_runner_wrapper(SimOutputStreaming* this_);
+
+    /** this is the according threading object **/
+    std::thread io_service_thread;
+
+    boost::shared_ptr<boost::asio::io_service::work> io_service_work;
 
     /** do http streaming or file? */
     bool http_;
