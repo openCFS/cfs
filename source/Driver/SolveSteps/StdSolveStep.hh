@@ -278,6 +278,9 @@ namespace CoupledField
     //! Vector containing rhs
     SBM_Vector rhsVec_;
 
+    // zero-vector, used in multiharmonic analysis
+    Vector<Complex> zVec_;
+
     //! Vectors used for NonLinHysteresis
     // current > current timestep and iteration
     SBM_Vector currentLinRhsVec_;

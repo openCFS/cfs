@@ -46,29 +46,61 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     feFunctions_ = PDE_.GetFeFunctions();
     rhsFeFunctions_ = PDE_.GetRhsFeFunctions();
     
-    // Copy vectors FE functions in SBM-vector for communication
-    // with OLAS and time stepping
-    solVec_.SetSize( feFunctions_.size() );
-    rhsVec_.SetSize( feFunctions_.size() );
-    
-//    resVec_.SetSize( feFunctions_.size() );
-//    nonLinRHS_.SetSize( feFunctions_.size() );
-
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
     it = feFunctions_.begin();
-    // UInt pos = 0;
-    for( ; it != feFunctions_.end(); ++it ){
-      shared_ptr<BaseFeFunction> & ptFct = it->second;
-      FeFctIdType id = ptFct->GetFctId();
-      solVec_.SetSubVector(ptFct->GetSingleVector(), id);
-    }
-    //pos = 0;
-    it = rhsFeFunctions_.begin();
-    for( ; it != rhsFeFunctions_.end(); ++it ){
-      shared_ptr<BaseFeFunction> & ptFct = it->second;
-      FeFctIdType id = ptFct->GetFctId();
-      rhsVec_.SetSubVector(ptFct->GetSingleVector(), id);
-    }
+
+    if( !solStrat_->IsMultHarm() ){
+      // Classic case
+
+      // Copy vectors FE functions in SBM-vector for communication
+      // with OLAS and time stepping
+      solVec_.SetSize( feFunctions_.size() );
+      rhsVec_.SetSize( feFunctions_.size() );
+
+      for( ; it != feFunctions_.end(); ++it ){
+        shared_ptr<BaseFeFunction> & ptFct = it->second;
+        FeFctIdType id = ptFct->GetFctId();
+        solVec_.SetSubVector(ptFct->GetSingleVector(), id);
+      }
+      //pos = 0;
+      it = rhsFeFunctions_.begin();
+      for( ; it != rhsFeFunctions_.end(); ++it ){
+        shared_ptr<BaseFeFunction> & ptFct = it->second;
+        FeFctIdType id = ptFct->GetFctId();
+        rhsVec_.SetSubVector(ptFct->GetSingleVector(), id);
+      }
+    }else{
+      // Multiharmonic case
+      if(feFunctions_.size() != 1) EXCEPTION("Multiharmonic case has more than one FE-function!!");
+
+      UInt N = solStrat_->GetNumHarmN();
+      // Copy vectors FE functions in SBM-vector for communication
+      // with OLAS and time stepping
+      solVec_.SetSize( 2 * N + 1 );
+      rhsVec_.SetSize( 2 * N + 1 );
+
+      //TODO this part must also be adapted, if we have excitation in more than the base-harmonic
+      // Currently we have to make sure that every sbm-sub vector is not NULL, therefore
+      // we set it to 0
+      for( ; it != feFunctions_.end(); ++it ){
+        shared_ptr<BaseFeFunction> & ptFct = it->second;
+        solVec_.SetSubVector(ptFct->GetSingleVector(), N + 1);
+        zVec_.Resize(ptFct->GetSingleVector()->GetSize(), (Complex)0 );
+        for(UInt i = 0; i < 2 * N + 1; ++i){
+          if(i != N + 1) solVec_.SetSubVector(&zVec_, i );
+        }
+      }
+      //pos = 0;
+      it = rhsFeFunctions_.begin();
+      for( ; it != rhsFeFunctions_.end(); ++it ){
+        shared_ptr<BaseFeFunction> & ptFct = it->second;
+        rhsVec_.SetSubVector(ptFct->GetSingleVector(), N + 1);
+        for(UInt i = 0; i < 2 * N + 1; ++i){
+          if(i != N + 1) rhsVec_.SetSubVector(&zVec_, i );
+        }
+      }
+    }// endif isMultHarm
+
     // Make sure to have both vectors as "weak" vectors,
     // as the feFunctions themselves are responsible for
     // creation and destruction.
@@ -5555,22 +5587,16 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     }
 
     assemble_->PostAssemble();
-    EXCEPTION("DELETE THE MATRIX EXPORTS ABOVE and the change in SBM_Matrix.cc!!!!")
-
-
 
     assemble_->TimerStop();
 
-
-
     PDE_.SetBCs();
+
 
     // store rhs vector back to PDE
     algsys_->GetRHSVal( rhsVec_ );
 
-    // Where should we get the matrix factors from in a harmonic case?
-    // In my opinion this method
-    //if( assemble_->IsMatrixUpdated() ) {
+
     std::map<FEMatrixType,Double> empty;
     algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
 
@@ -5589,6 +5615,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     // Incorporate Boundary conditions and
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
+
 
     if( assemble_->IsMatrixUpdated() ) {
       algsys_->SetupPrecond();
@@ -5610,6 +5637,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       //std::cout << "SOL after: \n " << solVec_ << std::endl;
       adjointSource_ = false;
     }
+
+EXCEPTION("UNTIL HERE AND NO FURTHER!!!!!!!!!!!")
   }
 
 

@@ -362,8 +362,10 @@ namespace CoupledField {
             }
           }
         }
-          // Subtract A*x from b
-        sbm_r.Axpy( -1.0, sbm_b );
+
+        // Subtract A*x from b
+        if(sbm_r.GetEntryType() == BaseMatrix::EntryType::COMPLEX) sbm_r.Axpy( (Complex)-1.0, sbm_b );
+        else sbm_r.Axpy( -1.0, sbm_b );
       }
 
       // -----------------

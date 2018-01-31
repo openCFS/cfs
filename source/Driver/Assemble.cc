@@ -1569,7 +1569,7 @@ algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX
       LinearFormContext& actContext = **formsIt;
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
-      if( actContext.IsNonLin() != nonLin )
+      if( (actContext.IsNonLin() != nonLin) && !algsys_->IsMultHarm() )
         continue; //TODO: uncomment this
 
       LinearForm* form = actContext.GetIntegrator();
@@ -1590,7 +1590,7 @@ algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX
         std::stringstream progStream;
         boost::progress_display progress( size, progStream );
         
-        if ( analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE ) {
+        if ( analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE ) {
 
           Vector<Complex> elemVec;
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
@@ -2079,12 +2079,12 @@ algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX
 
   bool Assemble::IsFEMatSymmetric( BiLinFormContext* actCt  ) {
 
-    if(analysisType_ == BasePDE::MULTIHARMONIC){
-      WARN("===================================================================== \n"
-           "         Developer warning: Check the symmetry of the matrix \n"
-           "         in Assemble::IsFEMatSymmetric \n"
-           "===================================================================== \n");
-    }
+//    if(analysisType_ == BasePDE::MULTIHARMONIC){
+//      WARN("===================================================================== \n"
+//           "         Developer warning: Check the symmetry of the matrix \n"
+//           "         in Assemble::IsFEMatSymmetric \n"
+//           "===================================================================== \n");
+//    }
 
     bool isSymmetric = true;
     // set collecting all diagonal-positions

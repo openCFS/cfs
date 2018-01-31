@@ -1442,7 +1442,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
      * Q = \gamma \omega^2 ||\hat{A}||^2 + \omega Im{ \hat{J}_i \hat{\overbar{A}} }
      * \hat{\overbar{A}} is the conjugate complex of \hat{A}
      */
-    if( analysistype_ == HARMONIC || MULTIHARMONIC){
+    if( (analysistype_ == HARMONIC) || (analysistype_ == MULTIHARMONIC) ){
 		shared_ptr<CoefFunctionMulti> eddyLossCoef =
 				dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
 		regIt = regions_.Begin();

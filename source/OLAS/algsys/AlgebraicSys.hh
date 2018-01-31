@@ -832,6 +832,19 @@ namespace CoupledField {
     void GetRHSVal( SingleVector &rhsVec,
                     const FeFctIdType fctId );
 
+    //! Return right-hand-side (RHS) vector for one SBM Block in multiharmonic analysis
+
+    //! This method returns the RHS vector associated with one specific
+    //! SBM Block. The entries are numbered according to the equations numbers
+    //! of the blockInfo_.
+    //! \param rhsVec RHS vector for specified FeFcunction
+    //! \param blockVec SBM block number
+    //! \param ident just an identifier, not to mix it up with a call to the above
+    //!              method, where the FeFctIdType is an argument (which is also an Integer)
+    void GetRHSVal( SingleVector &rhsVec,
+                    const UInt& blockVec,
+                    const bool ident);
+
 
     // ***********************************************************************
     //   Methods for passing general data
@@ -996,6 +1009,9 @@ namespace CoupledField {
 
     //! In multiharmonic analysis, set the nonzero sbm-blocks
     inline void SetNnzSBMInd(const StdVector<UInt>& sbmInd){ nnzSBMInd_ = sbmInd;};
+
+    //! Return if it is a multiharmonic analysis
+    bool IsMultHarm(){return isMultHarm_; };
 
   protected:
 

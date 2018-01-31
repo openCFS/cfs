@@ -178,6 +178,8 @@ namespace CoupledField {
   void AlgebraicSys::UpdateToSolStrategy() {
     LOG_TRACE(algSys) << "Updating parameters due to solution strategy";
     
+    if(isMultHarm_) EXCEPTION("AlgebraicSys::UpdateToSolStrategy() cannot handle multiharmonic case yet!")
+
     // switch according to type of solution strategy
     if( solStrat_->GetType() == SolStrategy::TWO_LEVEL_STRATEGY ) {
       
@@ -1735,8 +1737,6 @@ namespace CoupledField {
         boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
         boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
 
-std::cout << "Reordering array is "<< newOrder.ToString()<<std::endl;
-
         // Here we have to distinguish two cases:
         // a) PENALTY: We have to reorder all equations, as also the IDBC
         //             eqns are within the normal matrix. So we do not
@@ -1880,11 +1880,14 @@ std::cout << "Reordering array is "<< newOrder.ToString()<<std::endl;
 
       // take care of homogeneous BCs
       if( eqnNr == 0) {
-        // TODO our multiharmonic sbm-blocks start with (0,0) but this
-        // is the homogeneous BC's block
-        EXCEPTION("Homogeneous BC's not yet implemented for multiharmonic analysis");
-        //blockNums[iEqn] = 0;
-        //indices[iEqn] = 0;
+        // TODO check if this is correct
+        //WARN("Homogeneous BC's not yet tested for multiharmonic analysis!!!");
+        for(UInt i = 0; i < sbmIndices.GetSize(); ++i){
+          blockNums[blockCnt] = 0;
+          // multiharmonic only one blockInfo
+          indices[blockCnt] = 0;
+          ++blockCnt;
+        }
       } else {
         for(auto blockInd : sbmIndices){
           blockNums[blockCnt] = blockInd;
@@ -1914,6 +1917,8 @@ std::cout << "Reordering array is "<< newOrder.ToString()<<std::endl;
 
       // take care of homogeneous BCs
       if( eqnNr == 0) {
+        // TODO check if this is correct
+        //WARN("Homogeneous BC's not yet tested for multiharmonic analysis!!!");
         blockNums[iEqn] = 0;
         indices[iEqn] = 0;
       } else {
@@ -2547,10 +2552,6 @@ std::cout << "Reordering array is "<< newOrder.ToString()<<std::endl;
             rowInd = rIndList1[i];
             for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
               colInd = cIndList1[j];
-std::cout<<"rList1[i]"<<rList1[i]<<std::endl;
-std::cout<<"cList1[j]"<<cList1[j]<<std::endl;
-std::cout<<"rowInd"<<rowInd<<std::endl;
-std::cout<<"colInd"<<colInd<<std::endl;
               stdMat->AddToMatrixEntry( rList1[i], cList1[j],
                                         elemMat[rowInd][colInd] );
             } //j
@@ -2843,42 +2844,54 @@ std::cout<<"colInd"<<colInd<<std::endl;
 
   template<typename T>
   void AlgebraicSys::SetElementRHS( const Vector<T>& elemRHS, 
-                                    const FeFctIdType fctId,
-                                    StdVector<Integer>& eqnNrs ) {
+      const FeFctIdType fctId,
+      StdVector<Integer>& eqnNrs ) {
 
     LOG_DBG(algSys) << "SER: Setting element RHS for fctId ("<< fctId << ")";
     LOG_DBG2(algSys) << "SER: EqnVec: " << eqnNrs.ToString();
     LOG_DBG3(algSys) << "SER: vector is:\n " << elemRHS.ToString();
-    
+
     // Ensure that there are as many equations as vector entries
     assert(eqnNrs.GetSize() == elemRHS.GetSize());
-    
+
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt>& rowBlocks    = rowBlocks_.Mine();
     StdVector<UInt>& rowNums      = rowNums_.Mine();
     MapFctIdEqnToIndex(fctId, eqnNrs, rowBlocks, rowNums);
-    
-    // Now, dismantle equations
-     UInt numRows = rowBlocks.GetSize();
-     
-     // Loop over all rows
-     for( UInt iRow = 0; iRow < numRows; ++iRow ) {
-       // get hold of block numbers and indices
-       const UInt & rowBlock = rowBlocks[iRow];
-       const UInt & rowNum = rowNums[iRow];
 
-       // get limits of free indices
-       const UInt & lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
-       
-       // get vector
-       SingleVector &vec = (*rhs_)(rowBlock);
-       
-       if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
-         if ( rowNum <= lastFreeRowIndex ) {
-           vec.AddToEntry( rowNum-1, elemRHS[iRow]);
-         }
-       } // loop over rows
-     } // loop over blocks 
+    // Now, dismantle equations
+    UInt numRows = rowBlocks.GetSize();
+
+    // Loop over all rows
+    for( UInt iRow = 0; iRow < numRows; ++iRow ) {
+      // get hold of block numbers and indices
+      const UInt & rowBlock = rowBlocks[iRow];
+      const UInt & rowNum = rowNums[iRow];
+
+      // get limits of free indices
+      const UInt & lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
+
+      // get vector, differentiate between normal and multiharmonic case
+      // TODO this method must be adapted if we consider a real multiharmonic excitation
+      // with several harmonics
+      if( isMultHarm_ ){
+        SingleVector &vec = (*rhs_)(solStrat_->GetNumHarmN() + 1);
+        if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
+          if ( rowNum <= lastFreeRowIndex ) {
+            vec.AddToEntry( rowNum-1, elemRHS[iRow]);
+          }
+        } // loop over rows
+      } else{
+        SingleVector &vec = (*rhs_)(rowBlock);
+        if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
+          if ( rowNum <= lastFreeRowIndex ) {
+            vec.AddToEntry( rowNum-1, elemRHS[iRow]);
+          }
+        } // loop over rows
+      }
+
+
+    } // loop over blocks
   } 
 
 
@@ -2888,6 +2901,9 @@ std::cout<<"colInd"<<colInd<<std::endl;
     
     LOG_DBG(algSys) << "Setting node RHS of " << eqnNr << " for fct " 
                     << fctId << " to " << val;
+
+    if(isMultHarm_) EXCEPTION("AlgebraicSys::SetNodeRHS cannot handle multiharmonic case yet!")
+
     UInt block,idx;
     this->MapFctIdEqnToIndex(fctId,eqnNr,block,idx);
     rhs_->GetPointer(block)->AddToEntry(idx-1,val);
@@ -2897,6 +2913,8 @@ std::cout<<"colInd"<<colInd<<std::endl;
   void AlgebraicSys::SetFncRHS(  const Vector<T>& fncRHS, FeFctIdType fctId ) {
 
     LOG_DBG(algSys) << "Setting Function RHS for fctId ("<< fctId << ")";
+
+    if(isMultHarm_) EXCEPTION("AlgebraicSys::SetFncRHS cannot handle multiharmonic case yet!")
 
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt> blockNums, indices;
@@ -2930,6 +2948,8 @@ std::cout<<"colInd"<<colInd<<std::endl;
     
     LOG_TRACE(algSys) << "Updating RHS of matrix " 
                       << feMatrixType.ToString(matrixType);
+
+    if(isMultHarm_) EXCEPTION("AlgebraicSys::UpdateRHS cannot handle multiharmonic case yet!")
 
     //std::cout << "Updating RHS with matrix "
     //    << feMatrixType.ToString(matrixType) << std::endl;
@@ -3256,6 +3276,7 @@ std::cout<<"colInd"<<colInd<<std::endl;
   void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
     
     // resize solVec to match number of functions
+    EXCEPTION(" CONTINUE FURTHER IMPLEMENTATION HERE ");
     solVec.Resize( numFcts_);
     
     // loop over all feFctIDs
@@ -3311,18 +3332,56 @@ std::cout<<"colInd"<<colInd<<std::endl;
     }
   }
   
-  void AlgebraicSys::GetRHSVal( SBM_Vector& rhsVec ) {
-    
-    // resize rhsVec to match number of functions
-    rhsVec.Resize( numFcts_);
 
-    // loop over all feFctIDs
-    for(UInt i = 0; i < numFcts_; ++i ) {
 
-      // call specialized GetSolutionVal method
-      GetRHSVal(rhsVec(i), i);
+  void AlgebraicSys::GetRHSVal( SingleVector &ptRhs,
+                                const UInt& blockVec,
+                                const bool ident) {
+
+    LOG_TRACE(algSys) << "Getting multiharmonic RHSvalue";
+
+    // get all (blockId,index)-combinations for the current fctId
+    StdVector<UInt> blockNums, indices;
+    MapCompleteFctIdToIndex( NO_FCT_ID, blockNums, indices);
+    UInt size = blockNums.GetSize();
+    ptRhs.Resize(size);
+    ptRhs.Init();
+
+    if( ptRhs.GetEntryType() == BaseMatrix::DOUBLE ) {
+      EXCEPTION("This method shall only be called in multiharmonic analysis!!");
+    } else {
+      Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptRhs );
+      Complex entry = 0.0;
+
+      for( UInt i = 0; i < size; ++i ) {
+        // if index number is larger the lastFree dof, insert 0
+        // Remember: in multiharmonic analysis only one blockInfo_ !
+        if( indices[i] > blockInfo_[0]->numLastFreeIndex) {
+          entry = 0.0;
+        } else {
+          rhs_->GetPointer(blockVec)->GetEntry(indices[i]-1,entry);
+        }
+        retVec[i] = entry;
+      }
     }
-      
+  }
+
+  void AlgebraicSys::GetRHSVal( SBM_Vector& rhsVec ) {
+    if( !isMultHarm_ ){
+      // resize rhsVec to match number of functions
+      rhsVec.Resize( numFcts_);
+      // loop over all feFctIDs
+      for(UInt i = 0; i < numFcts_; ++i ) GetRHSVal(rhsVec(i), i);
+    }else{
+      // resize rhs-vector to number of harmonics (-N,...,0,...N)
+      UInt size = 2 * solStrat_->GetNumHarmN() + 1;
+      rhsVec.Resize( size );
+
+      // loop over ''block''-vectors and fill them
+      // call specialized GetSolutionVal method, the boolean
+      // has no effect, it's just an identifier to call the correct method
+      for(UInt i = 0; i < size; ++i) GetRHSVal(rhsVec(i), i, true);
+    }// endif isMultHarm
   }
   
   SBM_Matrix* AlgebraicSys::GenerateSBM_Matrix( FEMatrixType matType,
@@ -3793,231 +3852,235 @@ std::cout<<"colInd"<<colInd<<std::endl;
       matNode->Get("reordering",ParamNode::INSERT)->
           SetValue(BaseOrdering::reorderingType.ToString(ot));
       
-    } else {
-      // =========================================================================
-      //  True SBM Case, e.g. for multiharmonic analysis
-      // =========================================================================
-      WARN("The implementation of this section is not yet finished");
+    }
+
+    if( isMultHarm_ ){
+        // =========================================================================
+        //  True SBM Case, e.g. for multiharmonic analysis
+        // =========================================================================
+        WARN("The implementation of this section is not yet finished");
 
 
 
-      // --------------------------
-      //  Check Symmetry of Matrix
-      // --------------------------
-      PtrParamNode matNode = solStrat_->GetMatrixNode(0);
-      BaseMatrix::StorageType storType = BaseMatrix::NOSTORAGETYPE;
+        // --------------------------
+        //  Check Symmetry of Matrix
+        // --------------------------
+        PtrParamNode matNode = solStrat_->GetMatrixNode(0);
+        BaseMatrix::StorageType storType = BaseMatrix::NOSTORAGETYPE;
 
-      // we only allow nonsymmetric storage format
-      std::string storageString = "sparseNonSym";
-      if( matNode->Has("storage")) {
-        if( matNode->Get("storage")->As<std::string>() != "sparseNonSym" ){
-         EXCEPTION(" You probably perform a multiharmonic analysis, therefore please set nonsymmetric storage type! ");
+        // we only allow nonsymmetric storage format
+        std::string storageString = "sparseNonSym";
+        if( matNode->Has("storage")) {
+          if( matNode->Get("storage")->As<std::string>() != "sparseNonSym" ){
+           EXCEPTION(" You probably perform a multiharmonic analysis, therefore please set nonsymmetric storage type! ");
+          }
         }
-      }
 
-      bool canChangeMatFormat = false;
+        bool canChangeMatFormat = false;
 
-      matNode->GetValue("storage",storageString, ParamNode::INSERT);
-      storType = BaseMatrix::storageType.Parse(storageString);
+        matNode->GetValue("storage",storageString, ParamNode::INSERT);
+        storType = BaseMatrix::storageType.Parse(storageString);
 
 
-      // -----------------------------------------------
-      //  Check of Eigenvalue Solver not yet implemented
-      // -----------------------------------------------
-
+        // -----------------------------------------------
+        //  Check of Eigenvalue Solver not yet implemented
+        // -----------------------------------------------
 
 
 
-      // ------------------------------------------------
-      //  Check Solver
-      // ------------------------------------------------
-      std::string solverId = solStrat_->GetSolverId();
-      PtrParamNode solverList = myParam_->Get("solverList", ParamNode::INSERT);
-      ParamNodeList sNodes =  solverList->GetChildren();
-      PtrParamNode solverNode;
-      for( UInt i = 0; i < sNodes.GetSize(); ++i ){
-        if( sNodes[i]->Get("id")->As<std::string>() == solverId ){
-          solverNode = sNodes[i];
+
+        // ------------------------------------------------
+        //  Check Solver
+        // ------------------------------------------------
+        std::string solverId = solStrat_->GetSolverId();
+        PtrParamNode solverList = myParam_->Get("solverList", ParamNode::INSERT);
+        ParamNodeList sNodes =  solverList->GetChildren();
+        PtrParamNode solverNode;
+        for( UInt i = 0; i < sNodes.GetSize(); ++i ){
+          if( sNodes[i]->Get("id")->As<std::string>() == solverId ){
+            solverNode = sNodes[i];
+          }
         }
-      }
-      BaseSolver::SolverType st;
-      // set for allowed matrix types of the solver
-      std::set<BaseMatrix::StorageType> solverStorTypes;
-      if( !solverNode ) {
-        // ---------------------------------------------------
-        //  no solver set -> use default direct
-        // ---------------------------------------------------
-        st = BaseSolver::PARDISO_SOLVER;
-        solverList->Get("pardiso",ParamNode::INSERT)->
-          Get("id",ParamNode::INSERT)->SetValue(solverId);
-      }else{
-        // ---------------------------------------------------
-        //  solver set -> check for compatibility with matrix
-        // ---------------------------------------------------
+        BaseSolver::SolverType st;
+        // set for allowed matrix types of the solver
+        std::set<BaseMatrix::StorageType> solverStorTypes;
+        if( !solverNode ) {
+          // ---------------------------------------------------
+          //  no solver set -> use default direct
+          // ---------------------------------------------------
+          st = BaseSolver::PARDISO_SOLVER;
+          solverList->Get("pardiso",ParamNode::INSERT)->
+            Get("id",ParamNode::INSERT)->SetValue(solverId);
+        }else{
+          // ---------------------------------------------------
+          //  solver set -> check for compatibility with matrix
+          // ---------------------------------------------------
 
-        // convert solver string to enum
-        st = BaseSolver::solverType.Parse(solverNode->GetName());
+          // convert solver string to enum
+          st = BaseSolver::solverType.Parse(solverNode->GetName());
 
-        // obtain list of allowed matrix format
-        solverStorTypes = GetSolverCompatMatrixFormats(st);
+          // obtain list of allowed matrix format
+          solverStorTypes = GetSolverCompatMatrixFormats(st);
 
-        // check, if current matrix format is in allowed list
-        if( solverStorTypes.find(storType) == solverStorTypes.end() &&
-            solverStorTypes.size() != 0 ) {
-          //  matrix format is not allowed
-          EXCEPTION("Solver '" << solverNode->GetName()
-                    << "' can not operate on matrix with storage type '"
-                    << storageString << "'. \nChange format to '"
-                    << BaseMatrix::storageType.ToString(storType)
-                    << "'.");
-        }
-      }
-
-      // -------------------------------------------------------
-      //  Check Precond
-      // -------------------------------------------------------
-      std::string precondId = solStrat_->GetPrecondId();
-      PtrParamNode precondList = myParam_->Get("precondList",
-                                               ParamNode::INSERT);
-      ParamNodeList pNodes =  precondList->GetChildren();
-      PtrParamNode precondNode;
-      for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
-        if( pNodes[i]->Get("id")->As<std::string>() == precondId ) {
-          precondNode = pNodes[i];
-        }
-      }
-
-
-      BaseSolver::PrecondType pt;
-      if( !precondNode ) {
-        // -------------------------------------------------------
-        //  no precond set -> use default ID
-        // -------------------------------------------------------
-        pt = BasePrecond::ID;
-        precondList->Get("Id",ParamNode::INSERT)->
-            Get("id",ParamNode::INSERT)->SetValue(precondId);
-      }else{
-        // ---------------------------------------------------
-        //  precond set -> check for compatibility with matrix
-        // ---------------------------------------------------
-
-        // convert precond string to enum
-        pt = BaseSolver::precondType.Parse(precondNode->GetName());
-
-        // obtain list of allowed matrix format
-        std::set<BaseMatrix::StorageType> mf =
-            GetPrecondCompatMatrixFormats(pt);
-
-        // check, if current matrix format is in allowed list
-        if( mf.find(storType) == mf.end() &&
-            mf.size() != 0 ) {
-          //  matrix format is not allowed
-
-          //  a) we can change matrix AND (!!!) the requested
-          //     matrix layout is compatible with the solver -> change it
-
-          storType = *mf.begin();
-          bool isCompatibleWithSolver = (solverStorTypes.size() == 0 || solverStorTypes.find(storType) != solverStorTypes.end() );
-
-          if( canChangeMatFormat && isCompatibleWithSolver) {
-            storageString = BaseMatrix::storageType.ToString(storType);
-            matNode->Get("storage")->SetValue(storageString);
-          } else {
-            EXCEPTION("Precond '" << precondNode->GetName()
+          // check, if current matrix format is in allowed list
+          if( solverStorTypes.find(storType) == solverStorTypes.end() &&
+              solverStorTypes.size() != 0 ) {
+            //  matrix format is not allowed
+            EXCEPTION("Solver '" << solverNode->GetName()
                       << "' can not operate on matrix with storage type '"
                       << storageString << "'. \nChange format to '"
                       << BaseMatrix::storageType.ToString(storType)
                       << "'.");
-            // b) we can not change matrix -> EXCEPTION
-          } // canChangeFormat
-        } // find storageType
-        //EXCEPTION("Preconditioning for true SBM case not yet implemented!");
-      }
+          }
+        }
 
-      // ---------------------------------------------------
-      //  sensibility test for preconditioner
-      // ---------------------------------------------------
-      // a) all direct solver do not need any preconditioner
-      if(( st == BaseSolver::LDL_SOLVER ||
-          st == BaseSolver::LU_SOLVER  ||
-          st == BaseSolver::LAPACK_LU  ||
-          st == BaseSolver::LAPACK_LL  ||
-          st == BaseSolver::PARDISO_SOLVER )
-          && !(pt == BasePrecond::ID ||
-              pt == BasePrecond::NOPRECOND) ) {
-        EXCEPTION( "A direct solver only works with the Identity (ID) "
-                   "preconditioner." );
-      }
-
-      // --------------------------------------------------------
-      //  Check for shared pattern
-      // --------------------------------------------------------
-      if( st == BaseSolver::DIAGSOLVER ) {
-        sharedPatternPossible_ = false;
-      }
-
-      // ---------------
-      //  Check Reordering
-      // ---------------
-      BaseOrdering::ReorderingType ot = BaseOrdering::SLOAN;
-#ifdef USE_METIS
-      ot = BaseOrdering::METIS;
-#endif
-      bool canChangeReordering = true;
-      if (matNode->Has("reordering") &&
-          matNode->Get("reordering")->As<std::string>() != "_default_" ) {
-        ot = BaseOrdering::reorderingType.Parse(
-            matNode->Get("reordering")->As<std::string>());
-        canChangeReordering = false;
-      }
+        // -------------------------------------------------------
+        //  Check Precond
+        // -------------------------------------------------------
+        std::string precondId = solStrat_->GetPrecondId();
+        PtrParamNode precondList = myParam_->Get("precondList",
+                                                 ParamNode::INSERT);
+        ParamNodeList pNodes =  precondList->GetChildren();
+        PtrParamNode precondNode;
+        for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
+          if( pNodes[i]->Get("id")->As<std::string>() == precondId ) {
+            precondNode = pNodes[i];
+          }
+        }
 
 
-      // a) for our own direct solvers we activate re-ordering
-      if( (st == BaseSolver::LU_SOLVER ||
-           st == BaseSolver::LDL_SOLVER ||
-           st == BaseSolver::LAPACK_LL ||
-           st == BaseSolver::LAPACK_LU ) &&
-           ot == BaseOrdering::NOREORDERING &&
-          canChangeReordering == true ) {
-#ifdef USE_METIS
+        BaseSolver::PrecondType pt;
+        if( !precondNode ) {
+          // -------------------------------------------------------
+          //  no precond set -> use default ID
+          // -------------------------------------------------------
+          pt = BasePrecond::ID;
+          precondList->Get("Id",ParamNode::INSERT)->
+              Get("id",ParamNode::INSERT)->SetValue(precondId);
+        }else{
+          // ---------------------------------------------------
+          //  precond set -> check for compatibility with matrix
+          // ---------------------------------------------------
+
+          // convert precond string to enum
+          pt = BaseSolver::precondType.Parse(precondNode->GetName());
+
+          // obtain list of allowed matrix format
+          std::set<BaseMatrix::StorageType> mf =
+              GetPrecondCompatMatrixFormats(pt);
+
+          // check, if current matrix format is in allowed list
+          if( mf.find(storType) == mf.end() &&
+              mf.size() != 0 ) {
+            //  matrix format is not allowed
+
+            //  a) we can change matrix AND (!!!) the requested
+            //     matrix layout is compatible with the solver -> change it
+
+            storType = *mf.begin();
+            bool isCompatibleWithSolver = (solverStorTypes.size() == 0 || solverStorTypes.find(storType) != solverStorTypes.end() );
+
+            if( canChangeMatFormat && isCompatibleWithSolver) {
+              storageString = BaseMatrix::storageType.ToString(storType);
+              matNode->Get("storage")->SetValue(storageString);
+            } else {
+              EXCEPTION("Precond '" << precondNode->GetName()
+                        << "' can not operate on matrix with storage type '"
+                        << storageString << "'. \nChange format to '"
+                        << BaseMatrix::storageType.ToString(storType)
+                        << "'.");
+              // b) we can not change matrix -> EXCEPTION
+            } // canChangeFormat
+          } // find storageType
+          //EXCEPTION("Preconditioning for true SBM case not yet implemented!");
+        }
+
+        // ---------------------------------------------------
+        //  sensibility test for preconditioner
+        // ---------------------------------------------------
+        // a) all direct solver do not need any preconditioner
+        if(( st == BaseSolver::LDL_SOLVER ||
+            st == BaseSolver::LU_SOLVER  ||
+            st == BaseSolver::LAPACK_LU  ||
+            st == BaseSolver::LAPACK_LL  ||
+            st == BaseSolver::PARDISO_SOLVER )
+            && !(pt == BasePrecond::ID ||
+                pt == BasePrecond::NOPRECOND) ) {
+          EXCEPTION( "A direct solver only works with the Identity (ID) "
+                     "preconditioner." );
+        }
+
+        // --------------------------------------------------------
+        //  Check for shared pattern
+        // --------------------------------------------------------
+        if( st == BaseSolver::DIAGSOLVER ) {
+          sharedPatternPossible_ = false;
+        }
+
+        // ---------------
+        //  Check Reordering
+        // ---------------
+        BaseOrdering::ReorderingType ot = BaseOrdering::SLOAN;
+  #ifdef USE_METIS
         ot = BaseOrdering::METIS;
-#else
-        ot = BaseOrdering::SLOAN;
-#endif
-      }
+  #endif
+        bool canChangeReordering = true;
+        if (matNode->Has("reordering") &&
+            matNode->Get("reordering")->As<std::string>() != "_default_" ) {
+          ot = BaseOrdering::reorderingType.Parse(
+              matNode->Get("reordering")->As<std::string>());
+          canChangeReordering = false;
+        }
 
-      // b) pardiso and most external solvers need no reordering or have their own
-      if( st == BaseSolver::PARDISO_SOLVER &&
-          st == BaseSolver::UMFPACK &&
-          st == BaseSolver::ILUPACK &&
-//          st == BaseSolver::LIS &&
-          st == BaseSolver::SUPERLU &&
-          st == BaseSolver::SPOOLES &&
-          ot != BaseOrdering::NOREORDERING &&
-          canChangeReordering == true ) {
-        ot = BaseOrdering::NOREORDERING;
-      }
 
-      // c) ilu-based preconditioners prefer reordering
-      if( ( pt == BasePrecond::ILUK ||
-            pt == BasePrecond::ILUTP ||
-            pt == BasePrecond::ILDLK ||
-            pt == BasePrecond::ILDLTP ||
-            pt == BasePrecond::ILDLCN ) &&
-            ot == BaseOrdering::NOREORDERING &&
+        // a) for our own direct solvers we activate re-ordering
+        if( (st == BaseSolver::LU_SOLVER ||
+             st == BaseSolver::LDL_SOLVER ||
+             st == BaseSolver::LAPACK_LL ||
+             st == BaseSolver::LAPACK_LU ) &&
+             ot == BaseOrdering::NOREORDERING &&
             canChangeReordering == true ) {
-#ifdef USE_METIS
-        ot = BaseOrdering::METIS;
-#else
-        ot = BaseOrdering::SLOAN;
-#endif
-      }
+  #ifdef USE_METIS
+          ot = BaseOrdering::METIS;
+  #else
+          ot = BaseOrdering::SLOAN;
+  #endif
+        }
 
-      // in the end store back the reordering type
-      matNode->Get("reordering",ParamNode::INSERT)->
-          SetValue(BaseOrdering::reorderingType.ToString(ot));
+        // b) pardiso and most external solvers need no reordering or have their own
+        if( st == BaseSolver::PARDISO_SOLVER &&
+            st == BaseSolver::UMFPACK &&
+            st == BaseSolver::ILUPACK &&
+  //          st == BaseSolver::LIS &&
+            st == BaseSolver::SUPERLU &&
+            st == BaseSolver::SPOOLES &&
+            ot != BaseOrdering::NOREORDERING &&
+            canChangeReordering == true ) {
+          ot = BaseOrdering::NOREORDERING;
+        }
 
-    }// endif true sbm case
+        // c) ilu-based preconditioners prefer reordering
+        if( ( pt == BasePrecond::ILUK ||
+              pt == BasePrecond::ILUTP ||
+              pt == BasePrecond::ILDLK ||
+              pt == BasePrecond::ILDLTP ||
+              pt == BasePrecond::ILDLCN ) &&
+              ot == BaseOrdering::NOREORDERING &&
+              canChangeReordering == true ) {
+  #ifdef USE_METIS
+          ot = BaseOrdering::METIS;
+  #else
+          ot = BaseOrdering::SLOAN;
+  #endif
+        }
+
+        // in the end store back the reordering type
+        matNode->Get("reordering",ParamNode::INSERT)->
+            SetValue(BaseOrdering::reorderingType.ToString(ot));
+
+    }else{
+      WARN("This section is not yet implemented");
+    }
 
   }
   

@@ -173,16 +173,12 @@ namespace CoupledField {
         
         // switch depending on entry type
         if( myEntryType_ == BaseMatrix::DOUBLE ) {
-          Vector<Double> & myVec = 
-              dynamic_cast<Vector<Double>& >(*subVec_[i]);
-          Vector<Double> & rVec = 
-              dynamic_cast<Vector<Double>& >(*bVec.subVec_[i]);
+          Vector<Double> & myVec = dynamic_cast<Vector<Double>& >(*subVec_[i]);
+          Vector<Double> & rVec = dynamic_cast<Vector<Double>& >(*bVec.subVec_[i]);
           myVec = rVec;
         } else if( myEntryType_ == BaseMatrix::COMPLEX ) {
-          Vector<Complex> & myVec = 
-              dynamic_cast<Vector<Complex>& >(*subVec_[i]);
-          Vector<Complex> & rVec = 
-              dynamic_cast<Vector<Complex>& >(*bVec.subVec_[i]);
+          Vector<Complex> & myVec = dynamic_cast<Vector<Complex>& >(*subVec_[i]);
+          Vector<Complex> & rVec = dynamic_cast<Vector<Complex>& >(*bVec.subVec_[i]);
           myVec = rVec;
         } else {
           EXCEPTION( "Can only copy double- and complex "
