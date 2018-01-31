@@ -12,10 +12,11 @@
 using boost::asio::ip::tcp;
 
 using namespace CoupledField;
-using std::string;
 
 SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode, PtrParamNode infoNode, bool isRestart) :
-  SimOutput("", outputNode, infoNode, isRestart)
+  SimOutput("", outputNode, infoNode, isRestart),
+  io_service_thread(SimOutputStreaming::io_service_runner_wrapper, this), // initialize the sending thread
+  io_service_work(boost::make_shared<boost::asio::io_service::work>(io_service))
 {
   formatName_ = "streaming";
   capabilities_.insert(MESH_RESULTS);
@@ -29,12 +30,23 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode, PtrParamNode inf
   silent_ = outputNode->Has("silent") ? outputNode->Get("silent")->As<bool>() : false;
   content_ = PtrParamNode(new ParamNode(ParamNode::INSERT));
   content_->SetName("cfsStreaming");
+
+  // start the sending thread
+  io_service_thread.detach();
+
+  //wait_var = new std::condition_variable();
 }
 
 SimOutputStreaming::~SimOutputStreaming()
 {
   // send last .info.xml to receive status="finished" and memory data
   FinishStep();
+
+  io_service_work.reset();
+
+  sleep(1);
+
+  //io_service_thread.join();
 }
 
 void SimOutputStreaming::Init(Grid * ptGrid, bool printGridOnly)
@@ -79,9 +91,8 @@ void SimOutputStreaming::FinishStep()
 {
   if(http_)
   {
-    boost::asio::io_service io_service;
-    Client client(io_service, host_, port_, path_, this);
-    io_service.run();
+    /// TODO: make suicidal clients that delete themself
+    new Client(io_service, host_, port_, path_, this);
     results_.Clear();
   }
   else
@@ -182,6 +193,16 @@ void SimOutputStreaming::Transmit(std::ostream& out)
   }
   // write the stuff
   content_->ToXML(out, compressed_ ? -99 : 0, true); // adjust element type!
+}
+
+void SimOutputStreaming::io_service_runner(void) {
+  std::cout << "starting io_service thread ..." << std::endl;
+  io_service.run();
+  std::cout << "io_service thread ended" << std::endl;
+}
+
+void SimOutputStreaming::io_service_runner_wrapper(SimOutputStreaming* this_) {
+  this_->io_service_runner();
 }
 
 SimOutputStreaming::Client::Client(boost::asio::io_service& io_service,
