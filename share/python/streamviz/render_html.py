@@ -99,7 +99,7 @@ def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request):
     this_table_data['problem'] = this_problem
     this_table_data['started'] = this_started
     this_table_data['updated'] = GLOBAL_UPDATED_DICT[key]
-    this_table_data['iterations'] = xml.xpath('//cfsInfo/@infoWriteCounter')[0]
+    this_table_data['iterations'] = int(xml.xpath('//process/iteration[last()]/@number')[0])
     
     add_this_element = True # assume we can add this element
     
@@ -300,7 +300,7 @@ def render_view(GLOBAL_DATA_DICT, key):
   settings_data += '    </li>'
   settings_data += '</ul></div>'
 
-  body_data  = '<div class="col-sm-8" id="content"><h5 class="card-title">view current simulation "' + key + '":</h5>'
+  body_data  = '<div class="col-sm-8" id="content"><h5 class="card-title">' + key + ':</h5>'
   body_data += '<div id="iteration_plot"><div id="iteration_num">-1</div>'
   if len(xml.xpath('//objective/@type')) > 0:
     body_data += '<div id ="objective">' + xml.xpath('//objective/@type')[0] + '</div>'
