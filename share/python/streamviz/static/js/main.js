@@ -26,9 +26,9 @@ $( document ).ready(function() {
 	
 	continuous = false; // default for finished or abortet functions
 	
-	/*if ($("#status").html() == "running") {
+	if ($("#status").html() == "running") {
 		continuous = true
-	} else {*/
+	}/* else {*/
 		//we only need change on inpout changes when autorefresh is enabled
 	    $("#iteration * input").change(function () {
 	        console.log('input boxes changed');
