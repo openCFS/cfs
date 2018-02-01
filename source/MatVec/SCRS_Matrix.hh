@@ -528,6 +528,9 @@ namespace CoupledField {
     virtual std::string ToString( char colSeparator = ' ',
                                   char rowSeparator = '\n' ) const;
 
+
+    std::string Dump() const;
+
     //! Export the matrix to a file in MatrixMarket format
 
     //! The method will export the matrix to an ascii file according to the

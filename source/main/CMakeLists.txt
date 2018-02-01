@@ -22,8 +22,7 @@ SET(TARGET_LL
   utils
   domain
   elemmapping
-  ${CFS_FORTRAN_DYNRT_LIBS}
-  )
+  ${CFS_FORTRAN_DYNRT_LIBS} )
 
 IF(USE_XERCES)
   LIST(APPEND TARGET_LL ${XERCES_LIBRARY})
@@ -64,20 +63,17 @@ IF(UNIX AND USE_ANSYSRST)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
 ENDIF(UNIX AND USE_ANSYSRST)
 
-
-# This is dirty stuff and shall be removed! - Fabian 
-# copy & paste in cfstoolbin
-IF(USE_PHIST)
-  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -pthread -Wl,-rpath -Wl,/usr/lib64/mpi/gcc/openmpi/lib64 -Wl,--enable-new-dtags -L/usr/lib64/mpi/gcc/openmpi/lib64 -lmpi_cxx -lmpi")
-ENDIF()
-
 # Even if we did not compile CFS++ itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.
 IF(OPENMP_FOUND)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
 ENDIF()
 
-SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
 
-# Install the CFS++ executable target to ${CMAKE_INSTALL_PREFIX}/bin
-#INSTALL_TARGETS(/bin cfs)
+# Prevents undefined reference to `pci_system_init', ...
+# required by hwloc. Strange that this is not already necessary for USE_GHOST. 
+if(USE_PHIST)
+  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess")
+endif()
+
+SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
