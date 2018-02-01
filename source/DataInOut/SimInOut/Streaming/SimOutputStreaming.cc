@@ -104,16 +104,16 @@ void SimOutputStreaming::TransmitData(bool force) {
     /** we do not want to send more than one thing at a time,
      * otherwise client suicide will mess everything up **/
     if (force) {
-      //int i=0;
+      int i=0;
       while(current_client != NULL) {
-        sleep(0.01); // kindof busy sleep because this will only be executed at the very end
-        /*i++;
+        usleep(10000); // kindof busy sleep because this will only be executed at the very end
+        i++;
         if (i>2000) {
           // if this takes longer than 20 seconds, orphan the running client:
           current_client = NULL; // because we still want to try sending data
           // (to avoid deadlock)
           break;
-        }*/
+        }
       }
     }
     if ( current_client == NULL ) {
@@ -410,9 +410,11 @@ void SimOutputStreaming::Client::handle_read_content(const boost::system::error_
 
         // commit suicide here
         // DO NOT ACCESS ANY MEMBER VARIABLES AFTER DELETE!
-        delete base_->current_client;
+        // delete base_->current_client;
+        delete this; // we are using this since the client might have been overridden by forcefully sending
 
-        base_copy->current_client = NULL; // tell streaming that the client comitted suicide
+        if (this == base_copy->current_client) // we are just accessing the pointer so this comparison is fine
+          base_copy->current_client = NULL; // tell streaming that the client comitted suicide
       }
     }
 }
