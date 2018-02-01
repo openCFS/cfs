@@ -3201,11 +3201,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     }
   }
 
-  void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
+  void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
   {
-    // if ev_only_exite is set we use the given excitation
+    // if ev_only_excite is set we use the given excitation
     // -> it shall not coincide
-    assert(!(ev_only_exite != NULL && me->IsEnabled()));
+    assert(!(ev_only_excite != NULL && me->IsEnabled()));
     // shall we normalize afterwards?
     bool normalize = false;
 
@@ -3215,9 +3215,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // we need to solve the adjoints within the same context
 
     StdVector<Function*> funcs = GetFunctions(false);
-    for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+    // when ev_only_excite is given we evaluate for one excitation only
+    for(unsigned int e = 0; e < (ev_only_excite != NULL ? 1 : me->excitations.GetSize()); e++)
     {
-      Excitation& excite = ev_only_exite != NULL ? *ev_only_exite : me->excitations[e];
+      Excitation& excite = ev_only_excite != NULL ? *ev_only_excite : me->excitations[e];
       // ! sets the context!!
       bool switched = excite.Apply(true); // make the multiple sequence switch if necessary
       assert(excite.sequence == context->sequence);
@@ -3284,17 +3285,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     if(normalize)
       me->NormalizeMultipleExcitations(&objectives);
   }
-  void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_exite)
+  void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_excite)
   {
     // solve all adjoints needed for gradient calculation
-    assert(!(ev_only_exite != NULL && me->IsEnabled()));
+    assert(!(ev_only_excite != NULL && me->IsEnabled()));
 
     // check ErsatzMaterial::SolveStateProblem() and DoSolveAdjointWithState().
     if(!DoSolveAdjointWithState()) // was it already computed in ErsatzMaterial::SolveStateProblem() ?
     {
       for(unsigned int e = 0; e < me->excitations.GetSize(); ++e)
       {
-        Excitation* excite = ev_only_exite != NULL ? ev_only_exite : &me->excitations[e];
+        Excitation* excite = ev_only_excite != NULL ? ev_only_excite : &me->excitations[e];
 
         // it seems an excite.Apply() is missing for robustness ?!
 
@@ -3459,6 +3460,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     if(eval_timer)
       eval_timer->Stop();
 
+    assert(excite != NULL);
     excite->Apply(false); // the context shall be already switched
     assert(excite->sequence == context->sequence);
     assert(context->pde != NULL);
