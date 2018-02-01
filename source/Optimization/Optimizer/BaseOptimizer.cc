@@ -479,7 +479,7 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   optimizer_timer_->Start();
 }
 
-double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call)
+double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call, Excitation* ev_only_excite)
 {
   // for a proper time measurement we have to know if we are called by EvalConstraints() or directly (FeasPP)
   assert(!(!direct_call && !eval_const_timer_->IsRunning()));
@@ -500,7 +500,7 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
     else
       manual_scaling = g->manual_scaling_value;
   }
-  double org = optimization->CalcConstraint(g);
+  double org = optimization->CalcConstraint(g, ev_only_excite);
   double base = org;
   if(g->HasGeneralSlackBound())
   {

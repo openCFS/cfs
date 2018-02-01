@@ -268,7 +268,6 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
     // skip calculation of eigenvector residuals
     SaveModes(X, nEig);
     solve->Stop();
-
     
     ToInfo();
   }
