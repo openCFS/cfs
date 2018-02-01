@@ -214,6 +214,7 @@ MACRO (APPLY_PATCHES PATCHES INPUTDIR)
 ENDMACRO (APPLY_PATCHES)
 
 
+# dowloads a file if the local file does not already exist
 MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
   SET(PERFORM_DOWNLOAD 0)                             
   SET(DOWNLOAD_OKAY 0)                             
@@ -276,6 +277,7 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
           SET(DOWNLOAD_OKAY 1)
           BREAK()
         ELSE()
+          message("md5sum ${ACTUAL_MD5} != expected ${MD5_SUM} -> remove local file and continue")
           FILE(REMOVE ${LOCAL_FILE})
         ENDIF()
 
@@ -417,9 +419,18 @@ ENDMACRO()
 #------------------------------------------------------
 # Display all available variables
 #------------------------------------------------------
-MACRO(DUMP_VARIABLES)
+macro(DUMP_VARIABLES)
   get_cmake_property(_variableNames VARIABLES)
   foreach (_variableName ${_variableNames})
     message("${_variableName}=${${_variableName}}")
   endforeach()
-ENDMACRO()
+endmacro()
+
+# dump the content of the given directory
+macro(DUMP_DIR DIR)
+  message("DUMP_DIR ${DIR}:")
+  file(GLOB_RECURSE _DIR_VAR FOLLOW_SYMLINKS ${DIR})
+  foreach (_NAME ${_DIR_VAR})
+    message("${_NAME}")
+  endforeach()  
+endmacro()
