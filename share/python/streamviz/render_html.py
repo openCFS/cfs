@@ -12,6 +12,7 @@ html_raw_data = "html file not loaded"
 with open('template_html/index.html', 'r') as myfile:
   html_raw_data = myfile.read().replace('\n', '')
 
+
 #reder the selection menu
 def render_menu(GLOBAL_DATA_DICT, current_site):
   ret_string  = '<div class="btn-group">'
@@ -188,6 +189,28 @@ def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request):
   retdata = retdata.replace(settings['html_template']['key_content'], body_data)
   return retdata
 
+#creates a human readable time format
+def get_dd_hh_mm_ss_fromsecs(td):
+  
+    ret_string = ""
+    
+    if td.days > 0:
+      ret_string += str(td.days) + "d "
+    
+    td_hours = td.seconds//3600
+    if td_hours > 0:
+      ret_string += str(td_hours) + "h "
+    
+    td_mins = (td.seconds//60)%60
+    if td_mins > 0:
+      ret_string += str(td_mins) + "m "
+      
+    td_secs = td.seconds%60
+    
+    ret_string += str(td_secs) + "s"
+    
+    return ret_string
+
 #render view of one simulation
 def render_view(GLOBAL_DATA_DICT, key):
   retdata = html_raw_data
@@ -208,49 +231,15 @@ def render_view(GLOBAL_DATA_DICT, key):
   if xml.xpath('//cfsInfo/@status')[0] == 'finished':
     wall_in_secs = float(str(xml.xpath('//timer/@wall')[0]))
     
-    td = datetime.timedelta(0, wall_in_secs)
+    wall_td = datetime.timedelta(0, wall_in_secs)
     
-    wall_string = ""
-    
-    if td.days > 0:
-      wall_string += str(td.days) + "d "
-    
-    td_hours = td.seconds//3600
-    if td_hours > 0:
-      wall_string += str(td_hours) + "h "
-    
-    td_mins = (td.seconds//60)%60
-    if td_mins > 0:
-      wall_string += str(td_mins) + "m "
-      
-    td_secs = td.seconds%60
-    
-    wall_string += str(td_secs) + "s"
-    
-    settings_data += '        <li class="list-group-item">wall: ' + wall_string + '</li>'
+    settings_data += '        <li class="list-group-item">wall: ' + get_dd_hh_mm_ss_fromsecs(wall_td) + '</li>'
     
     cpu_in_secs = float(str(xml.xpath('//timer/@cpu')[0]))
     
-    td = datetime.timedelta(0, cpu_in_secs)
+    cpu_td = datetime.timedelta(0, cpu_in_secs)
     
-    cpu_string = ""
-    
-    if td.days > 0:
-      cpu_string += str(td.days) + "d "
-    
-    td_hours = td.seconds//3600
-    if td_hours > 0:
-      cpu_string += str(td_hours) + "h "
-    
-    td_mins = (td.seconds//60)%60
-    if td_mins > 0:
-      cpu_string += str(td_mins) + "m "
-      
-    td_secs = td.seconds%60
-    
-    cpu_string += str(td_secs) + "s"
-    
-    settings_data += '        <li class="list-group-item">CPU time: ' + cpu_string + '</li>'
+    settings_data += '        <li class="list-group-item">CPU time: ' + get_dd_hh_mm_ss_fromsecs(cpu_td) + '</li>'
     settings_data += '        <li class="list-group-item">peak memory: ' + xml.xpath('//memory/@peak')[0] + ' MB</li>'
   
   settings_data += '    </ul></li>'
