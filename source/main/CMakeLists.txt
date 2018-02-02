@@ -73,7 +73,7 @@ ENDIF()
 # Prevents undefined reference to `pci_system_init', ...
 # required by hwloc. Strange that this is not already necessary for USE_GHOST. 
 if(USE_PHIST)
-  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess")
+  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess -ludev")
 endif()
 
 SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
