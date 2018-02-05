@@ -50,6 +50,11 @@ SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
 SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 
 #-----------------------------------------------------------------------------
+# Set MKL_ROOT_DIR to an older MKL version (before 2017)
+#-----------------------------------------------------------------------------
+SET(MKL_ROOT_DIR "/home/intel/composer_xe_2011_sp1.8.273/mkl")
+
+#-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
