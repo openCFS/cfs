@@ -1509,9 +1509,9 @@ def mesh_basecell_boundary(points,cells,coords_2d,bound):
 # @param minz: smallest z value of domain
 # @param hx,hy,hz: lattice spacing
 def cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz):
-  i = int((point[0]-hx/2-minx) / hx)
-  j = int((point[1]-hy/2-miny) / hy)
-  k = int((point[2]-hz/2-minz) / hz)
+  i = int((point[0]-minx) / hx-1e-6)
+  j = int((point[1]-miny) / hy-1e-6)
+  k = int((point[2]-minz) / hz-1e-6)
   
 #   if i < 0 or j < 0 or k < 0:
 #   print("\np:",point)
