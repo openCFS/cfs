@@ -25,16 +25,18 @@
 
 #include "General/Environment.hh"
 #include "OLAS/solver/BaseSolver.hh"
-
-
+#include "PDE/BasePDE.hh"
+#include "Domain/Mesh/Grid.hh"
+#include "Domain/Domain.hh"
 #include "General/Enum.hh"
-
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/Logging/log.hpp"
 
 // include the original PETSC header
 //extern "C"
 
 #include "petsc.h"
-
+//#include "petsc/private/dmdaimpl.h"
 
 #define DIETAG 0
 #define INIT_MAT_STRUCT 1
@@ -53,6 +55,7 @@ namespace CoupledField
   class BaseVector;
   class Flags;
 
+
   class PETSCSolver : public BaseIterativeSolver
   {
   public:
@@ -68,7 +71,14 @@ namespace CoupledField
     void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);
 
     void SendWorkerCommand(int TAG);
-    
+    void createDMDA();
+    void AssembleStiffnessMatrix();
+    void SetLinRhs();
+
+    void GetDirchletVector();
+    void SetupMultigridSolver();
+
+//    void DMDAGetElements_3D(DM dm,PetscInt *nel,PetscInt *nen,const PetscInt *e[]);
     BaseSolver::SolverType GetSolverType() { return BaseSolver::PETSC; }
 
   private:
@@ -92,10 +102,17 @@ namespace CoupledField
 
     //stores the system Matrix
     Mat A_;
+    Mat Acopy_;
     //stores the current solution
     Vec x_;
+    Vec xcopy_;
     ///stores the current RHS
     Vec b_;
+    //Dirchlet Vector which consist of 0 when homDirchlet bc and 1 elsewhere
+    Vec N_;
+    Vec bcopy_;
+    Vec dirchletVec; //Dirchlet Vector which consist of -1 when homDirchlet bc and 1 elsewhere
+    Vec elemNodeNumVec; //Consist of all node numbers for elements from 1 .. n from CFS.
 
     // Create DM which are grid management
     DM da_nodes;
@@ -141,7 +158,9 @@ namespace CoupledField
     void setupMultiGrid();
     bool MG_FLAG =false;
     bool symmetric=false;
-
+    StdVector<int> homDirEquNr_;
+    PetscScalar * dirArray_;
+    StdVector<int> dirchletValue_;
   };
   
   
@@ -160,7 +179,6 @@ namespace CoupledField
     void SetupPetscWorker();
     void GetSol();
     void setupMultiGrid();
-    
     //PETSC Error Code
     PetscErrorCode ierr=0;
 
@@ -193,28 +211,28 @@ namespace CoupledField
       //Coarsegrid solver parameters
     PetscScalar coarse_rtol = 1.0e-8;
     PetscScalar coarse_atol = 1.0e-50;
-    PetscScalar coarse_dtol = 1e3;
+    PetscScalar coarse_dtol = 1e10;
     PetscInt coarse_maxits = 30;
 
     //Number of levels
-    PetscInt nlvls=2;
+    PetscInt nlvls=4;
 
     // Number of smoothening iterations per up/down smooth_sweeps
     PetscInt smooth_sweeps = 4;
 
 
-      ///pointer to xml node
-      PtrParamNode xml_;
+    ///pointer to xml node
+    PtrParamNode xml_;
 
-      bool MG_FLAG=false;
-      bool symmetric=false;
-      //Strings for setting Solver and Preconditioner
-      std::string solverstring_;
-      std::string precondstring_;
+    bool MG_FLAG=false;
+    bool symmetric=false;
+    //Strings for setting Solver and Preconditioner
+    std::string solverstring_;
+    std::string precondstring_;
 
 
-      std::string CreateSolverString(PtrParamNode);
-      std::string CreatePrecondString(PtrParamNode);
+    std::string CreateSolverString(PtrParamNode);
+    std::string CreatePrecondString(PtrParamNode);
   };
   
 }
