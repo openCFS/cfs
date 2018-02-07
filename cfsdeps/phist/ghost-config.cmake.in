@@ -1,0 +1,38 @@
+# this is a variant from ghost-config.cmake.in from the ghost project
+# as there full path names are used we have only in ghost
+# share/ghost/ghost-config-version.cmake
+# share/ghost/ghost-config.cmake.org 
+# here we provide a own share/ghost/ghost-config.cmake
+set(GHOST_INCLUDE_DIRS @CFS_BINARY_DIR@/include)
+
+# GHOST_LIBRARY is an advanced variable in cfs 
+# we need libpciaccess (from system) to build hwloc-binaries in phist, we don't want for Zcg_times_prec
+# set(GHOST_LIBRARIES @GHOST_LIBRARY@ -lpthread -lpciaccess)
+set(GHOST_LIBRARIES @GHOST_LIBRARY@ -lpciaccess)
+
+# HWLOC_LIBRARY is an advanced variable in cfs
+set(HWLOC_LIBRARIES @HWLOC_LIBRARY@)
+set(GHOST_LIBRARIES ${GHOST_LIBRARIES} ${HWLOC_LIBRARIES})
+
+# we have no scotch, zoltan, likwid and MPI
+
+# BLAS_LIBRARY is a cfs variable (not yet advanced :( )
+set(BLAS_LIBRARIES @BLAS_LIBRARY@)
+set(GHOST_LIBRARIES ${GHOST_LIBRARIES} ${BLAS_LIBRARIES})
+
+# for ghost we check for cuda to build accordingly or use the matching precompiled lib
+if(@CUDA_FOUND@)
+  set(CUDA_LIBRARIES @CUDA_LIBRARIES@ CACHE STRING "CUDA libraries (required by @CMAKE_PROJECT_NAME@)")
+  set(GHOST_LIBRARIES ${GHOST_LIBRARIES} ${CUDA_LIBRARIES})
+  set(GHOST_INCLUDE_DIRS ${GHOST_INCLUDE_DIRS} @CUDA_INCLUDE_DIRS@)
+endif()
+
+set(GHOST_C_FLAGS "${GHOST_C_FLAGS} -std=c99")
+
+if(@USE_OPENMP@) # check for USE_OPENMP
+  set(GHOST_C_FLAGS "${GHOST_C_FLAGS} @OpenMP_C_FLAGS@")
+  set(GHOST_CXX_FLAGS "${GHOST_CXX_FLAGS} @OpenMP_CXX_FLAGS@")
+  set(GHOST_Fortran_FLAGS "${GHOST_Fortran_FLAGS} @OpenMP_F_FLAGS@")
+endif()
+
+# we assume no MIC, whatever this is

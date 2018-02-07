@@ -2928,17 +2928,21 @@ namespace CoupledField {
       BaseSolver::SolverType st;
       // set for allowed matrix types of the solver
       std::set<BaseMatrix::StorageType> solverStorTypes;
-      if( !solverNode ) {
-        // -------------------------------------
-        //  no solver set -> use default direct 
-        // -------------------------------------
+
+      // check if a solver is specified
+      if(!solverNode)
+      {
+        // no solver set -> use default direct solver. Pardiso if available, else directLDL
+#ifdef USE_PARDISO
         st = BaseSolver::PARDISO_SOLVER;
-        solverList->Get("pardiso",ParamNode::INSERT)->
-          Get("id",ParamNode::INSERT)->SetValue(solverId);
-      } else {
-        // ---------------------------------------------------
+#else
+        st = BaseSolver::LDL_SOLVER;
+#endif
+        solverList->Get(BaseSolver::solverType.ToString(st),ParamNode::INSERT)->Get("id",ParamNode::INSERT)->SetValue(solverId);
+      }
+      else
+      {
         //  solver set -> check for compatibility with matrix
-        // ---------------------------------------------------
 
         // convert solver string to enum
        st = BaseSolver::solverType.Parse(solverNode->GetName());
@@ -2971,8 +2975,7 @@ namespace CoupledField {
       //  Check Precond
       // ---------------
       std::string precondId = solStrat_->GetPrecondId();
-      PtrParamNode precondList = myParam_->Get("precondList", 
-                                               ParamNode::INSERT);
+      PtrParamNode precondList = myParam_->Get("precondList", ParamNode::INSERT);
       ParamNodeList pNodes =  precondList->GetChildren();
       PtrParamNode precondNode;
       for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
@@ -3130,7 +3133,6 @@ namespace CoupledField {
     PtrParamNode setupNode = myInfo_->Get("setup");
     
     // Print overview of defined matrices
-    setupNode->SetComment("List of defined matrices");
     PtrParamNode matrixListNode = setupNode->Get("matrices");
     matrixListNode->SetComment("Memory is in MByte");
     
@@ -3257,7 +3259,6 @@ namespace CoupledField {
     PtrParamNode setupNode = myInfo_->Get("setup");
     
     // Print overview of feFunctions
-    setupNode->SetComment("List of registered FeFunctions");
     PtrParamNode fctListNode = setupNode->Get("feFunctions");
     std::map<FeFctIdType,std::string>::const_iterator it = fctNames_.begin();
     
@@ -3297,7 +3298,6 @@ namespace CoupledField {
     fctListNode->Get("totalNumDirichlet")->SetValue(totalNumDirichlet);
     
     // Print overview of blocks
-    setupNode->SetComment("List of SBM-blocks");
     PtrParamNode blockListNode = setupNode->Get("sbmBlocks");
     
     for( UInt i = 0; i < numBlocks_; ++i ) {

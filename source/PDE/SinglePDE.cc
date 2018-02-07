@@ -1238,6 +1238,9 @@ namespace CoupledField {
         << ": WriteResultsInFile() kstep: " <<  kstep
         << " actTimeFreq: " << actTimeFreq;
     
+    shared_ptr<Timer> timer = infoNode_->Get(ParamNode::SUMMARY)->Get("writeResults/timer")->AsTimer();
+    timer->Start();
+
     // ===================================================
     //  Trigger calculation of interpolated field results 
     // ===================================================
@@ -1415,8 +1418,8 @@ namespace CoupledField {
       }
 
       out.close();
-      
     }
+    timer->Stop();
   }
   
   
@@ -3255,7 +3258,6 @@ namespace CoupledField {
     //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
     std::string formulation;
     myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);
-    infoNode_->SetComment("List of defined Spaces");
     PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
     std::map<SolutionType, shared_ptr<FeSpace> > spaces = 
         CreateFeSpaces(formulation, feSpaceNode);
