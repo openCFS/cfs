@@ -35,11 +35,7 @@ SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/fftw/${FFTW_GZ}")
 SET(MD5_SUM ${FFTW_MD5})
 
 SET(DLFN "${fftw_prefix}/fftw-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-)
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "fftw" "${FFTW_VER}") 
   
@@ -111,10 +107,7 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  fftw
-)
+SET(CFSDEPS ${CFSDEPS} fftw)
 
 SET(FFTW_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 

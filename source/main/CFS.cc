@@ -73,9 +73,8 @@ PtrParamNode infoNode;
 
 
 #ifdef USE_PETSC
-int main(int argc, const char **argv){
-
-
+int main(int argc, const char **argv)
+{
   PetscInitialize(NULL,NULL,PETSC_NULL,PETSC_NULL);
   int rank;
   int size;
@@ -83,31 +82,30 @@ int main(int argc, const char **argv){
   //find which is my rank
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD,&size);
-  if (rank==0){ 
+  if (rank==0)
+  {
     CFS cfs(argc, argv);   
     ret = cfs.Run();
     //Send a Kill Tag to all workers before exiting the code
-    if (size>1){
-      for (rank = 1; rank < size; ++rank) {
+    if(size>1)
+      for(rank = 1; rank < size; ++rank)
         MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
-      }	
-    }
-
-  }
-  else {
-      PETSCWorker w(argc, argv);
-      w.run();
+  else
+  {
+    PETSCWorker w(argc, argv);
+    w.run();
   }
   PetscFinalize();
   return ret;
 }
 #else
-int main(int argc, const char **argv){
+int main(int argc, const char **argv)
+{
   CFS cfs(argc, argv);
   int ret = cfs.Run();
   return ret;
 }
-#endif
+#endif // USE_PETSC
 
 void PrintWarning(CoupledField::Exception& ex ) {
   

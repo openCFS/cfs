@@ -33,6 +33,8 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode, PtrParamNode inf
 
 SimOutputStreaming::~SimOutputStreaming()
 {
+  // send last .info.xml to receive status="finished" and memory data
+  FinishStep();
 }
 
 void SimOutputStreaming::Init(Grid * ptGrid, bool printGridOnly)

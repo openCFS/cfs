@@ -10,7 +10,7 @@
 #include "Forms/LinForms/LinearForm.hh"
 #include <sstream>
 #include <stdio.h>
-#include<mpi.h>
+#include <mpi.h>
 #include "PDE/SinglePDE.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 

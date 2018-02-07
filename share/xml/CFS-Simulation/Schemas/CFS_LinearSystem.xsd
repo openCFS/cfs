@@ -161,8 +161,6 @@
           <xsd:enumeration value="sparseSym"/>
           <xsd:enumeration value="sparseNonSym"/>
           <xsd:enumeration value="variableBlockRow"/>
-          <xsd:enumeration value="skylineSym"/>
-          <xsd:enumeration value="skylineNonSym"/>
           <xsd:enumeration value="lapackGBMatrix"/>
           <xsd:enumeration value="noStorageType"/>
         </xsd:restriction>

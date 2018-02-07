@@ -98,8 +98,6 @@ class TransferFunction;
       return params_.Mine()[p];
     }
 
-
-
     void static SetEnums();
 
     Type GetType() const { return type_; };
