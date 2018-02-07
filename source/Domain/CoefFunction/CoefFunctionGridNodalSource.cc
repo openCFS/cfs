@@ -653,10 +653,11 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeMeasL2squared(Double& valL2 
 	valL2 = val;
 }
 
-
-}
-
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 //  template class CoefFunctionGridNodalSource<Double>;
   template class CoefFunctionGridNodalSource<Complex>;
 #endif
+
+
+} // end of namespace
+
