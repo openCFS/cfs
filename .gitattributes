@@ -1344,7 +1344,9 @@ share/python/special_mesh_tools.py -text
 share/python/spy.py -text
 share/python/streamviz/__init__.py -text
 share/python/streamviz/api_plot.py -text
+share/python/streamviz/cpscript.py -text
 share/python/streamviz/render_html.py -text
+share/python/streamviz/send_data.py -text
 share/python/streamviz/start-stop.sh -text
 share/python/streamviz/static/css/bootstrap.min.css -text
 share/python/streamviz/static/css/bootstrap_submenu_hack.css -text
