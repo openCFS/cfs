@@ -284,6 +284,18 @@ namespace CoupledField {
         return "1/s";
         break;
 
+      case FLUIDMECH_TEMP:
+        return "K";
+        break;
+
+      case FLUIDMECH_TDR:
+        return "1/s";
+        break;
+
+      case FLUIDMECH_TEF:
+        return "m^2/s^3";
+        break;
+
       case FLUIDMECH_PRESSURE:
         return "Pa";
         break;
@@ -1456,7 +1468,10 @@ namespace CoupledField {
 
     SolutionTypeEnum.Add(FLUIDMECH_FORCE, "fluidMechForce");
     SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
+    SolutionTypeEnum.Add(FLUIDMECH_TEMP, "fluidMechTemp");
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
+    SolutionTypeEnum.Add(FLUIDMECH_TDR, "fluidMechTDR");
+    SolutionTypeEnum.Add(FLUIDMECH_TEF, "fluidMechTEF");
     SolutionTypeEnum.Add(FLUIDMECH_STRESS, "fluidMechStress");
     SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
     SolutionTypeEnum.Add(FLUIDMECH_WVT, "fluidMechWVT");
