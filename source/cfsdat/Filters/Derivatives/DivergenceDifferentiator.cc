@@ -159,8 +159,10 @@ void DivergenceDifferentiator::PrepareCalculation(){
 
 //#pragma omp parallel for num_threads(NUM_CFS_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
-    if((trgEnt)%(int(maxNumTrgEntities/20)) == 0){
-    std::cout<< "#"<< std::flush;
+    if (maxNumTrgEntities > 50){
+      if((trgEnt)%(int(maxNumTrgEntities/20)) == 0){
+      std::cout<< "#"<< std::flush;
+      }
     }
     CF::UInt globEntityNumber;
         globEntityNumber = globTrgEntity[trgEnt];
