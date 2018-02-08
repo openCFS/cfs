@@ -108,8 +108,8 @@ void SimOutputStreaming::TransmitData(bool force) {
       while(current_client != NULL) {
         usleep(10000); // kindof busy sleep because this will only be executed at the very end
         i++;
-        if (i>2000) {
-          // if this takes longer than 20 seconds, orphan the running client:
+        if (i>200) {
+          // if this takes longer than 2 seconds, orphan the running client:
           current_client = NULL; // because we still want to try sending data
           // (to avoid deadlock)
           break;

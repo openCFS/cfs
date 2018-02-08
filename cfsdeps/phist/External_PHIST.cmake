@@ -15,7 +15,7 @@ set(PHIST_INSTALL  "${PHIST_PREFIX}/install")
 if(CFS_DEPS_PRECOMPILED)
   set(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/phist/${PHIST_ZIP}")
 else()
-  set(LOCAL_FILE "${PHIST_SOURCE/${PHIST_ZIP}")
+  set(LOCAL_FILE "${PHIST_SOURCE}/${PHIST_ZIP}")
 endif()  
 
 SET(MIRRORS
