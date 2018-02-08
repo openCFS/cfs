@@ -52,10 +52,11 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   esm->CalcJ(this->jac, lp);
 
   // The inversion can only be performed in case we have a quadratic Jacobian
+  // otherwise pseudoinverse
   // i.e. the dimension of the element is the dimension of the grid
+  jac.Invert(jacInv);
   if (jac.GetNumCols() == jac.GetNumRows()) {
     // == normal volume element case (2D elemens in 2D, 3D elems in 3D) ===
-    jac.Invert(jacInv);
     jac.Determinant(jacDet);
 
   } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 2) {
