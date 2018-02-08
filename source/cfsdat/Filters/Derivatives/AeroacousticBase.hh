@@ -55,6 +55,19 @@ protected:
                     const UInt& numEquPerEnt,
                     const Double& scalarFactor);
 
+  void TensorProduct(Vector<Double>& retVec,
+                    const Vector<Double>& tensor1,
+                    const Vector<Double>& tensor2,
+                    const UInt& numEquPerEnt,
+                    const Double& scalarFactor);
+
+  void TensorProduct(Vector<Double>& retVec,
+                    const Vector<Double>& tensor1,
+                    const Vector<Double>& tensor2,
+                    const UInt& numEquPerEnt,
+                    const Double& scalarFactor,
+                    const Vector<Double>& scalar);
+
 
   void Node2Cell(Vector<Double>& returnVec,
         const Vector<Double>& inVec,
