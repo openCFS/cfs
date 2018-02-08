@@ -95,7 +95,7 @@ bool L2norm::Run(){
     }
   }
 
-  std::cout << returnVal << std::endl;
+  std::cout << "L2 Norm" << returnVal << std::endl;
   resultManager_->ActivateResult(filterResIds[0]);
 
   //now deactivate own upstream results

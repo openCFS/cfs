@@ -2471,6 +2471,8 @@ source/cfsdat/Filters/SignalProcessing/TemporalBlendingFilter.cc -text
 source/cfsdat/Filters/SignalProcessing/TemporalBlendingFilter.hh -text
 source/cfsdat/Filters/SignalProcessing/TimeMeanFilter.cc -text
 source/cfsdat/Filters/SignalProcessing/TimeMeanFilter.hh -text
+source/cfsdat/Filters/SynteticSources/BaseSNGR.cc -text
+source/cfsdat/Filters/SynteticSources/BaseSNGR.hh -text
 source/cfsdat/README -text
 source/cfsdat/Utils/AnalyticalFields.cc -text
 source/cfsdat/Utils/AnalyticalFields.hh -text
