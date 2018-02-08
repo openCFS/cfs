@@ -159,21 +159,27 @@ bool InputFilter::Run(){
       Vector<Double>& fullVec =  resultManager_->GetResultVector<Double>(*aIter,eqnVec);
 
       Double reqValue = cRes->stepValue;
-//      std::cout<<startTime_+reqValue<<std::endl;
-      CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+reqValue, 1E-6) );
+      UInt stepNumber = 1;
 
-      if(val == fileResult.timeLine->End()){
-        if(reqValue+*fileResult.timeLine->Begin() < *(fileResult.timeLine->End()-1))
-          std::cerr  << "ERROR: can not find a timestep for time value \'" << reqValue << "\' Either there are no more timesteps or floating point conversion errors occured" << std::endl;
-        else
-          std::cout << "\t\t\t WARN: Tying to access time data beyond source timeline. Results will be wrong for these steps. Take care if trying to append!" << std::endl;
-        fullVec.Init();
-        continue;
+
+      if(params_->Get("timeType",ParamNode::EX)->As<std::string>() != "static"){
+        CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+reqValue, 1E-6) );
+
+        if(val == fileResult.timeLine->End()){
+          if(reqValue+*fileResult.timeLine->Begin() < *(fileResult.timeLine->End()-1))
+            std::cerr  << "ERROR: can not find a timestep for time value \'" << reqValue << "\' Either there are no more timesteps or floating point conversion errors occured" << std::endl;
+          else
+            std::cout << "\t\t\t WARN: Tying to access time data beyond source timeline. Results will be wrong for these steps. Take care if trying to append!" << std::endl;
+          fullVec.Init();
+          continue;
+        }
+        UInt idx = std::distance(fileResult.timeLine->Begin(), val);
+        stepNumber = (*fileResult.stepNumbers.get())[idx];
       }
+
       CF::SolutionType solType = fileResult.resultType;
       std::set<std::string>::const_iterator regIter = aInfo->regNames->begin();
-      UInt idx = std::distance(fileResult.timeLine->Begin(), val);
-      UInt stepNumber = (*fileResult.stepNumbers.get())[idx];
+
       for(; regIter != aInfo->regNames->end(); ++regIter){
         Vector<Double> resVec;
         shared_ptr<BaseResult> inResult = inFile_->GetResult(fileResult.sequenceStep,stepNumber,solType,*regIter);
@@ -228,14 +234,15 @@ void InputFilter::AdaptFilterResults(){
       CF::StdVector<Double>::iterator timeIter = curResInfo->timeLine->Begin();
 
       bool allOK = true;
-      for(;timeIter != curResInfo->timeLine->End();++timeIter){
-        allOK &= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+*timeIter, 1E-5) ) != fileResult.timeLine->End();
-//        std::cout<<*timeIter<<std::endl;
+      if(params_->Get("timeType",ParamNode::EX)->As<std::string>() != "static"){
+        for(;timeIter != curResInfo->timeLine->End();++timeIter){
+          allOK &= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+*timeIter, 1E-5) ) != fileResult.timeLine->End();
+  //        std::cout<<*timeIter<<std::endl;
+        }
+
+        if(!allOK)
+          EXCEPTION("The input filter cannot provide every timestep which is requested. Check the definition of input results:")
       }
-
-      if(!allOK)
-        EXCEPTION("The input filter cannot provide every timestep which is requested. Check the definition of input results:")
-
 
     }else{
       StdVector<Double>& curT = (*fileResult.timeLine.get());
@@ -268,6 +275,7 @@ void InputFilter::CreateAvailableResultInfos(){
   std::map<UInt, BasePDE::AnalysisType> analysis;
   std::map<UInt, UInt> numSteps;
   inFile_->GetNumMultiSequenceSteps(analysis,numSteps);
+
 
   //now we obtain a List of all Results for each sequence Step
   std::map<UInt, BasePDE::AnalysisType>::iterator anaIter = analysis.begin();
