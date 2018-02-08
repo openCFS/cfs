@@ -112,7 +112,7 @@ bool OutputFilter::Run(){
             std::string regName = cResVec[aRe]->GetEntityList()->GetName();
             CF::RegionIdType rId = resultManager_->GetExtInfo(*rIter)->ptGrid->GetRegion().Parse(regName);
             cRes->mapping->GetRegionEquations(eqnVec,rId);
-            resVec.Resize(eqnVec.GetSize()); //TODO
+            resVec.Resize(eqnVec.GetSize());
             for(UInt aEq = 0; aEq<eqnVec.GetSize();++aEq){
               resVec[aEq] =  fullVec[eqnVec[aEq]];
             }
