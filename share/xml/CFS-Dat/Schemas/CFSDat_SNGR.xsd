@@ -1,0 +1,110 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for binary operations -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_SNGR">
+    <xsd:complexContent mixed="true">
+      <xsd:extension base="DT_BaseFilter">
+        <xsd:all>
+          <xsd:element name="TKE" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+            </xsd:complexType>
+ 	  </xsd:element>
+	  <xsd:element name="TEF" maxOccurs="1" minOccurs="1">
+	    <xsd:complexType>
+     	      <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+	    </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="meanVelocity" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+	  <xsd:element name="localDensity" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+	  <xsd:element name="localTemp" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="output" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+	  <xsd:element name="incrementModes" minOccurs="1" maxOccurs="1" default="equidistant">
+	    <xsd:simpleType>
+              <xsd:restriction  base="xsd:string">
+                <xsd:enumeration value="logarithmic"/>
+                <xsd:enumeration value="equidistant"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+	  <xsd:element name="waveNumBounds" minOccurs="1" maxOccurs="1">
+	    <xsd:complexType>
+	      <xsd:attribute name="minWN" type="xsd:double" use="required"/>
+     	      <xsd:attribute name="maxWN" type="xsd:double" use="required"/>
+            </xsd:complexType>
+	  </xsd:element>
+	  <xsd:element name="frequencyBounds" minOccurs="1" maxOccurs="1">
+	    <xsd:complexType>
+	      <xsd:attribute name="minFreq" type="xsd:positiveInteger" use="optional" default="800"/>
+     	      <xsd:attribute name="maxFreq" type="xsd:positiveInteger" use="optional" default="10000"/>
+            </xsd:complexType>
+	  </xsd:element>
+	  <xsd:element name="ensembles" minOccurs="0" maxOccurs="1" type="xsd:positiveInteger" default="1"/>
+        </xsd:all>
+        <xsd:attribute name="tkeCriterion" use="optional" default="0.0" type="xsd:double"/>
+        <xsd:attribute name="numOfModes" use="optional" default="30" type="xsd:positiveInteger"/>
+        <xsd:attribute name="signalLength" use="optional" default="0.0" type="xsd:double"/>
+        <xsd:attribute name="lengthScaleFactor" use="optional" default="1.0" type="xsd:double"/>
+        <xsd:attribute name="timeScaleFactor" use="optional" default="1.0" type="xsd:double"/>
+	<xsd:attribute name="angularFreqFactor" use="optional" default="1.0" type="xsd:double">
+	  <xsd:annotation>
+            <xsd:documentation> signal Length, in seconds, can be specified by user. If none is given length of
+	      output time singal will be chosen acording to the sampling theorem and the frequencies
+	      given by the user.
+	      angularFreqFactor should either be 0 or 1, this is to turn the use of angular frequency on and off 
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <!--xsd:attribute name="opType" use="required">
+          <xsd:simpleType>
+            <xsd:restriction  base="xsd:string">
+              <xsd:enumeration value="plus"/>
+              <xsd:enumeration value="minus"/>
+              <xsd:enumeration value="div"/>
+              <xsd:enumeration value="mult"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute--> 
+        <xsd:attribute name="inputFilterIds" use="required" type="xsd:token">
+          <xsd:annotation>
+            <xsd:documentation> Space separated Ids for the input filter. Creates a connection between
+              the filter with the given id and the current filter. Will be ignored for input filters.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+</xsd:schema>
