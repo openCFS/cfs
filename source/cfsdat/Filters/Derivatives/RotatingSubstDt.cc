@@ -210,8 +210,14 @@ bool RotatingSubstDt::Run(){
     if(hasMeanFlow_){
       meanFlow.Resize(gradient.GetSize());
       meanFlow = resultManager_->GetResultVector<Double>(meanFlowId_,eqnNums);
+      for(UInt i=0;i<last;++i){
+        //Scalar product
+        for(UInt d =0;d<gradDim_;++d){
+          gIdx = i*gradDim_+d;
+          returnVec[i] += meanFlow[gIdx]*gradient[gIdx];
+        }
+      }
     }
-
 
 
     EqnMapSimple& mapping = *resultManager_->GetResultAdapter(*aIter)->mapping.get();
@@ -219,16 +225,12 @@ bool RotatingSubstDt::Run(){
     for(UInt aEnt = 0; aEnt <rotEnts_.GetSize();aEnt++){
 
       mapping.GetEquation(aEqn,rotEnts_[aEnt],resultManager_->GetExtInfo(*aIter)->definedOn);
-
       //this may be a little hackisch but knowing how eqnationMapSimple works
       //its a little faster
       //returnVec[aEqn[0]] = rotField_[aEnt][1];
       for(UInt d =0;d<gradDim_;++d){
         gIdx = aEqn[0]*gradDim_+d;
         returnVec[aEqn[0]] += rotField_[aEnt][d]*gradient[gIdx];
-        if(hasMeanFlow_){
-        	returnVec[aEqn[0]] += meanFlow[gIdx]*gradient[gIdx];
-        }
       }
     }
     //now we loop over the entity equations
