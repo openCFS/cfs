@@ -67,14 +67,18 @@ protected:
   std::string res2Name;
   uuids::uuid res2Id;
 
+  std::string res3Name;
+  uuids::uuid res3Id;
 
 private:
 
   void LambVector(Vector<Double>& tempRetVec);
 
+  void LighthillTensor(Vector<Double>& tempRetVec);
+
   void LighthillSourceVector(Vector<Double>& tempRetVec);
 
-  void LighthillSourceTerm(Vector<Double>& tempRetVec);
+  void LighthillSourceTerm(Vector<Double>& tempRetVec, bool isTensorForm);
 
 
   Grid* inGrid_;
@@ -115,8 +119,11 @@ private:
   //! String if the full Lighthill or only the Lamb-vector is computed
   std::string Form_;
 
-  //! Boolean if an extern vorticity-input is provided of if we have to compute it
+  //! Boolean if an extern vorticity-input is provided or if we have to compute it
   bool externVorticity_;
+
+  //! Boolean if an extern density-input is provided when we have a variable density field (e. compressible flow)
+  bool externDensity_;
 
   bool checkSum_;
 
