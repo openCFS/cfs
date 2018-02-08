@@ -70,10 +70,13 @@ IF(OPENMP_FOUND)
 ENDIF()
 
 
+
+
+
 # Prevents undefined reference to `pci_system_init', ...
 # required by hwloc. Strange that this is not already necessary for USE_GHOST. 
 if(USE_PHIST)
-  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess -ludev")
+  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess  /usr/local/cuda-9.1/lib64/libcudart.so /usr/local/cuda-9.1/lib64/libcublas.so /usr/local/cuda-9.1/lib64/libcurand.so /usr/local/cuda-9.1/lib64/libcusparse.so" )
 endif()
 
 SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
