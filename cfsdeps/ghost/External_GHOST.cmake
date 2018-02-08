@@ -19,7 +19,7 @@ set(GHOST_INSTALL  "${GHOST_PREFIX}/install")
 if(CFS_DEPS_PRECOMPILED)
   set(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ghost/${GHOST_ZIP}")
 else()
-  set(LOCAL_FILE "${GHOST_SOURCE/${GHOST_ZIP}")
+  set(LOCAL_FILE "${GHOST_SOURCE}/${GHOST_ZIP}")
 endif()  
 
 

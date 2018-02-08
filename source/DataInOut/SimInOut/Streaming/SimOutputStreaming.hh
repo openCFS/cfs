@@ -51,7 +51,7 @@ namespace CoupledField
     /** This calls data transmit */
     void FinishStep();
 
-    /** This transmits the data */
+    /** This transmits the data; force = true can cause mem leak if connection fails! **/
     void TransmitData(bool force);
 
     /** Mesh results are node and cell results */
