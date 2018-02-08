@@ -1,21 +1,21 @@
 import paraview
-import paraview.numpy_support
+import numpy
 
 from paraview import vtk
 
+from paraview.vtk import vtkPVCatalyst as catalyst
+from paraview.vtk.util import numpy_support
+
+import vtkPVPythonCatalystPython as pythoncatalyst
+import paraview.simple
+
+import vtkParallelCorePython
 import sys, ntpath
 
-import numpy
-import numpy.random
 
 COPROCESSOR_MAP = {}
 
 def coprocessor_initialize():
-    import paraview
-    import vtkParallelCorePython
-    import vtk
-    from mpi4py import MPI
-    import os, sys
     
     print('initialize coprocessor!')
 
@@ -41,14 +41,8 @@ def coprocessor_initialize():
     # vtkPVPythonCatalystPython
     if pvsm.vtkSMProxyManager.GetVersionMajor() < 4 or (pvsm.vtkSMProxyManager.GetVersionMajor() == 4 and pvsm.vtkSMProxyManager.GetVersionMinor() < 2):
         print('Must use ParaView v4.2 or greater')
-        sys.exit(0)
+        return None
 
-    import numpy
-    from paraview.vtk import vtkPVCatalyst as catalyst
-    import vtkPVPythonCatalystPython as pythoncatalyst
-    import paraview.simple
-    import paraview.vtk as vtk
-    from paraview.vtk.util import numpy_support
     paraview.options.batch = True
     paraview.options.symmetric = True
 
@@ -76,13 +70,12 @@ def send_data(key, xml, host, port):
     
   coprocessor_coProcessor = COPROCESSOR_MAP[key][catalyst_receive_key]
 
-  time = 1
-  timeStep = 1
-  
-  import vtk
-  from paraview.vtk import vtkPVCatalyst as catalyst
-  import paraview
-  from paraview.vtk.util import numpy_support
+  if not coprocessor_coProcessor: # is NoneObject if error with python
+    return
+
+  time = xml.xpath('//calculation/process/sequence/result/item/@step')[-1] # get the latest value of the step attr which will be the total timesteps
+  timeStep = time
+
   dataDescription = catalyst.vtkCPDataDescription()
   dataDescription.SetTimeData(time, timeStep)
   dataDescription.AddInput(key)
@@ -102,12 +95,15 @@ def send_data(key, xml, host, port):
       dataDescription.dataset_key = key
       coprocessor_coProcessor.CoProcess(dataDescription)
 
+  # the following 2 comments are presented by the catalyst example
   # if we are running through Python we need to finalize extra stuff
   # to avoid memory leak messages.
   if ntpath.basename(sys.executable) == 'python':
       import vtkPVServerManagerApplicationPython as ApplicationPython
       ApplicationPython.vtkInitializationHelper.Finalize()
 
+  # note to self: help(pipeline) is an interesting workaround to deleting the pipeline effectively.
+  #     del or removeAll apparently does not work
   #pipeline = coprocessor_coProcessor.GetPipeline(0)
   #help(pipeline)
   #del pipeline
@@ -225,7 +221,7 @@ def get_data_arrays(xml):
         for dimension in range(dofs):
           element_data_arr[:,dimension] = numpy.array(xml.xpath('//results/result[@name="' + data_name + '"][@region="' + region_name +'"]/item/@v_' + str(dimension))).astype(numpy.float)
         
-        value_data = paraview.numpy_support.numpy_to_vtk(element_data_arr)
+        value_data = numpy_support.numpy_to_vtk(element_data_arr)
         value_data.SetName(region_name + '/' + data_name)
 
         data_arr.append(value_data)

@@ -16,11 +16,6 @@ def CreateCoProcessor():
       # create a new 'Parallel PolyData Writer'
       #parallelPolyDataWriter1 = servermanager.writers.XMLPPolyDataWriter(Input=Slice1)
 
-      # register the writer with coprocessor
-      # and provide it with information such as the filename to use,
-      # how frequently to write the data, etc.
-      #coprocessor.RegisterWriter(parallelPolyDataWriter1, filename='slice_%t.pvtp', freq=10)
-
     return Pipeline()
 
   class CoProcessor(coprocessing.CoProcessor):
