@@ -73,6 +73,9 @@ set(CTEST_BUILD_NAME "${BUILDNAME}")
 # Start out with an empty binary directory.
 #-----------------------------------------------------------------------------
 SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
+# make sure that it is really empty by deleting and creating new directory
+FILE(REMOVE_RECURSE ${CTEST_BINARY_DIRECTORY})
+FILE(MAKE_DIRECTORY ${CTEST_BINARY_DIRECTORY})
 
 #-----------------------------------------------------------------------------
 # Enter the following values into the initial cache
@@ -83,12 +86,15 @@ SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
    DEBUG:BOOL=OFF
    MKL_ROOT_DIR:PATH=/home/intel/composer_xe_2011_sp1.8.273/mkl
-   CFS_PARDISO:STRING=MKL")
+   CFS_PARDISO:STRING=MKL
+   CFS_FORCE_DEPS_CACHE_DIR=1")
 
 SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
 
 message("Start dashboard...")
 ctest_start(Nightly)
+
+FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
 
 message("  Configure")
 ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
