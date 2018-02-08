@@ -138,7 +138,10 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
     y1_min.append(min(y1_res))
     y1_max.append(max(y1_res))
 
-  ax1.set_xlabel(x_name)
+  if x_name == "name":
+    ax1.set_xlabel("iteration")
+  else:
+    ax1.set_xlabel(x_name)
   
   ax1.set_ylabel(y1_label[:-2])
   

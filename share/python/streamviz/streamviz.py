@@ -19,6 +19,9 @@ import api_plot
 # for global update dict:
 import datetime
 
+# for sending data to catalyst
+import catalyst_send
+
 app = Flask(__name__)
 
 # global data dict always contains the latest xml file (in parsed version)
