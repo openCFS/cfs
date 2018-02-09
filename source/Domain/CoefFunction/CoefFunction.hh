@@ -652,14 +652,14 @@ public:
   }
 
 
-  //! set regionId of neighbor
-  virtual void SetNeighborRegionId(RegionIdType id) {
-	  neighborRegionId_ = id;
+  //! set volume regionId being the correct neighbor of a surface region id
+  virtual void SetVolNeighborRegionId(RegionIdType surfId, RegionIdType volId) {
+	  neighborRegionId_[surfId] = volId;
   }
 
-  //! return regionId of neighbor
-  virtual RegionIdType GetNeighborRegionId() {
-	  return neighborRegionId_;
+  //! return volume regionId being the correct neighbor of a surface region id
+  virtual RegionIdType GetVolNeighborRegionId(RegionIdType surfId) {
+	  return neighborRegionId_[surfId];
   }
   //@}
 
@@ -724,8 +724,8 @@ protected:
   //! only needed for hystersis
   StdPDE* linkedPDE_;
 
-  //! volume region id of the specified neighbor (important for surface coefficients!)
-  RegionIdType neighborRegionId_;
+  //! for each surface Region id we have to correct neighbor volume region id
+  std::map<RegionIdType, RegionIdType> neighborRegionId_;
 
   //! Map Storing FeSpaces for each unknown of PDE
   std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;
