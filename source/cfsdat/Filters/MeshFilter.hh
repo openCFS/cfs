@@ -253,7 +253,7 @@ protected:
 
   int Index2Voigt(const UInt& dx1,
                   const UInt& dx2,
-                  const int dim);
+                  const UInt& dim);
 
   void CalcGradient(Vector<Double>& returnVec,
                       const Vector<Double>& inVec,
