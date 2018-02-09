@@ -901,14 +901,17 @@ void MeshFilter::CalcDivergence(Vector<Double>& returnVec,
 
 int MeshFilter::Index2Voigt(          const UInt& dx1,
                                       const UInt& dx2,
-                                      const int dim) {
+                                      const UInt& dim) {
+  if(dx1>=dim || dx2>=dim)
+    EXCEPTION("Index does not exist!")
   if (dim == 3) {
-    int indexT[dim][dim] = {{0,5,4},{5,1,3},{4,3,2}};
+    int indexT[3][3] = {{0,5,4},{5,1,3},{4,3,2}};
     return indexT[dx1][dx2];
-  } else {
-    int indexT[dim][dim] = {{0,2},{2,1}} ;
+  } else if (dim == 2){
+    int indexT[2][2] = {{0,2},{2,1}} ;
     return indexT[dx1][dx2];
   }
+  return dx1;
 
 }
 
@@ -923,7 +926,7 @@ void MeshFilter::CalcTensorDivergence(Vector<Double>& returnVec,
   returnVec.Resize(maxNumTrgEntities * numEquPerEnt);
   returnVec.Init();
 
-  int numbTensorEntries = numEquPerEnt + 1;
+  UInt numbTensorEntries = numEquPerEnt + 1;
   if (numEquPerEnt==3)numbTensorEntries = numEquPerEnt + 3;
 
 
