@@ -530,6 +530,10 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(INTEL_COMPVARS_SH "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.sh")
     SET(INTEL_COMPVARS_CMAKE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
 
+    if(NOT CTEST_CMAKE_COMMAND)
+      set(CTEST_CMAKE_COMMAND "cmake")
+    endif()
+
     FILE(WRITE "${INTEL_COMPVARS_SH}"
     "
     source ${INTEL_COMPILER_PATH}/bin/compilervars.sh intel64
