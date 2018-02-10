@@ -688,7 +688,7 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
     			Vector<Double> JInvTimesdJdr(dim_); JInvTimesdJdr.Init();
     			JInvTimesdJdr = Jinv * dJdrTimesE;
 
-    			Force(nNode,idim) +=  ( field.Inner(JInvTimesdJdr)*Jdet
+    			Force(nNode,idim) -=  ( field.Inner(JInvTimesdJdr)*Jdet
     					              - 0.5 *  field2 * DetdJ_dr ) * weights[i];
 
     		} // loop over dimension
