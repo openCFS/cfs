@@ -516,59 +516,9 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
 
   elseif(${COMPILER_TYPE} STREQUAL "ICC")
 
-    if(NOT INTEL_COMPILER_PATH)
-      if(EXISTS "/opt/intel/compilers_and_libraries/linux/bin/compilervars.sh") # default for intel 2016
-         set(INTEL_COMPILER_PATH "/opt/intel/compilers_and_libraries/linux")
-      elseif(EXISTS "/share/programs/intel/composer_xe_2015.2.164/bin/compilervars.sh")  
-        set(INTEL_COMPILER_PATH "/share/programs/intel/composer_xe_2015.2.164")
-      else()
-        message(FATAL_ERROR "No INTEL_COMPILER_PATH provied and no default could be found")
-      endif()  
-      message("No INTEL_COMPILER_PATH provied but we will go for ${INTEL_COMPILER_PATH}")
-    endif(NOT INTEL_COMPILER_PATH)
+    # make sure to manuall source /opt/intel/compilers_and_libraries/linux/bin/compilervars.sh intel64
+    # automatic source removed, still present in revsion 16404
 
-    SET(INTEL_COMPVARS_SH "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.sh")
-    SET(INTEL_COMPVARS_CMAKE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
-
-    if(NOT CTEST_CMAKE_COMMAND)
-      set(CTEST_CMAKE_COMMAND "cmake")
-    endif()
-
-    FILE(WRITE "${INTEL_COMPVARS_SH}"
-    "
-    source ${INTEL_COMPILER_PATH}/bin/compilervars.sh intel64
-    ${CTEST_CMAKE_COMMAND} -E environment
-    ")
-
-    SET(SHCMD
-      bash
-      "${INTEL_COMPVARS_SH}"
-    )
-    EXECUTE_PROCESS(
-      COMMAND ${SHCMD}
-      OUTPUT_VARIABLE INTEL_ENV_SH
-    )
-    STRING(REPLACE "\n" ";" INTEL_ENV_SH ${INTEL_ENV_SH})
-
-    SET(INTEL_ENV_CMAKE "")
-    FOREACH(LINE IN ITEMS ${INTEL_ENV_SH})
-      STRING(REPLACE "=" ";" LINE_TOKENS ${LINE})
-      LIST(GET LINE_TOKENS 0 VAR_NAME)
-      LIST(GET LINE_TOKENS 1 VAR_VALUE)
-      IF(NOT VAR_NAME STREQUAL "INTEL_LICENSE_FILE" AND
-         NOT VAR_NAME STREQUAL "PWD" AND
-         NOT VAR_NAME STREQUAL "SHLVL" AND
-         NOT VAR_NAME STREQUAL "_")
-        SET(INTEL_ENV_CMAKE "${INTEL_ENV_CMAKE}\nSET(ENV{${VAR_NAME}} \"${VAR_VALUE}\")")
-      ENDIF()
-    ENDFOREACH()
-
-    #message("INTEL_ENV_CMAKE XXX ${INTEL_ENV_CMAKE} XXX INTEL_ENV_CMAKE")
-    FILE(WRITE "${INTEL_COMPVARS_CMAKE}" "${INTEL_ENV_CMAKE}")
-    INCLUDE("${INTEL_COMPVARS_CMAKE}")
-
-    SET(ENV{LM_LICENSE_FILE} "/share/programs/intel/licenses/pmklicserv.lic")
-    SET(ENV{INTEL_LICENSE_FILE} "$ENV{LM_LICENSE_FILE}")
     SET(ENV{CC} "icc")
     SET(ENV{CXX} "icpc")
     SET(ENV{FC} "ifort")
