@@ -4,6 +4,7 @@ MACRO(GENERATE_TEST_NAME_LIST TEST_NAME_LIST)
     SET(${TEST_NAME_LIST} 
      linux64_trunk_gcc_release
      linux64_trunk_gcc_debug
+     linux64_trunk_gcc_serial_debug
      linux64_trunk_intel_release
      linux64_trunk_clang_release
      linux64_trunk_gcc_all_release)
