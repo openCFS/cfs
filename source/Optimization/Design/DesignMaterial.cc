@@ -1368,7 +1368,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
         D = E * E3 / (E3 - nu13 * nu13 * E);
         D3 = E3 * E3 / (E3 - nu13 * nu13 * E);
         nD3 = nu13 * E * E3 / (E3 - nu13 * nu13 * E);
-      } else if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == TRANSVERSAL_ISOTROPIC_BOXED || DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED){
+      } else if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED){
         D = E / (1 - nu13);
         D3 = E3 / (1 - nu13);
         nD3 = sqrt(E * E3 * nu13) / (1 - nu13);
@@ -1384,7 +1384,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
         D = E3 * E3 * ninv2;
         D3 = nu13 * nu13 * E3 * E3 * ninv2;
         nD3 = nu13 * E3 * E3 * ninv2;
-      } else if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == TRANSVERSAL_ISOTROPIC_BOXED || DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED){
+      } else if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED){
         D = 1 / (1 - nu13);
         nD3 = sqrt(E3 * nu13 / E) / (2 - 2 * nu13);
       }else{
@@ -1399,7 +1399,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
         D = -E * E * nu13 * nu13 * ninv2;
         D3 = -E3 * (-E3 + 2 * nu13 * nu13 * E) * ninv2;
         nD3 = -nu13 * nu13 * nu13 * E * E * ninv2;
-      } else if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == TRANSVERSAL_ISOTROPIC_BOXED || DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED){
+      } else if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED){
         D3 = 1 / (1 - nu13);
         nD3 = sqrt(E * nu13 / E3) / (2 - 2 * nu13);
       }else{
@@ -1414,7 +1414,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
         D = 2 * nu13 * E * E * E3 * ninv2;
         D3 = 2 * nu13 * E * E3 * E3 * ninv2;
         nD3 = E * E3 * (nu13 * nu13 * E + E3) * ninv2;
-      } else if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == TRANSVERSAL_ISOTROPIC_BOXED || DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED){
+      } else if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED){
         D = 1 / ((1 - nu13) * (1 - nu13));
         D3 = E3 * D;
         nD3 = sqrt(E * E3 / nu13) * (nu13 + 1) * D * 0.5;
