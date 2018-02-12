@@ -43,6 +43,7 @@ namespace CoupledField{
       LinearForm(bool coordUpdate = false ){
         coordUpdate_ = coordUpdate;
         isSolDependent_ = false;
+        extractReal_ = false;
       }
 
       //! Copy constructor
@@ -52,6 +53,7 @@ namespace CoupledField{
         this->name_ = right.name_;
         this->ptFeSpace_ = right.ptFeSpace_;
         this->intScheme_ = right.intScheme_;
+        this->extractReal_ = right.extractReal_;
       }
 
       //! Make deep copy of object pointer
