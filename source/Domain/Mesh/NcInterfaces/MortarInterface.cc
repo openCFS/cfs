@@ -579,11 +579,15 @@ void MortarInterface::UpdateInterface() {
           }
   
         }
-        omp_set_lock(&newNodesLock_);
+        #ifdef USE_OPENMP
+          omp_set_lock(&newNodesLock_);
+        #endif  
         for (UInt i = 0; i < tNewNodes.GetSize(); i++) {
           newNodes.Push_back(tNewNodes[i]);
         }
-        omp_unset_lock(&newNodesLock_);
+        #ifdef USE_OPENMP
+          omp_unset_lock(&newNodesLock_);
+        #endif  
       }
       break;
     default:
