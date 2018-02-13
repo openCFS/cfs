@@ -349,8 +349,8 @@ def draw_triangle(v0,v1,v2,grid,value):
   
   eps = 1e-6
   
-  for u in np.linspace(0,1,num=2*samples10+10):
-    for v in np.linspace(0,1,2*samples20+10):
+  for u in np.linspace(0,1,num=10*samples10+10):
+    for v in np.linspace(0,1,10*samples20+10):
       if u + v > 1.0 + eps:
         continue
       
@@ -472,75 +472,13 @@ def draw_non_design(tets,grid,bounds,h,solid=True):
       maxdim = [min(max(A[i],B[i],C[i],D[i]),grid.shape[i]) for i in range(3)] 
       
       subgrid = np.copy(grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1])
-      
-      helper = np.copy(subgrid)
-      newsub = np.copy(subgrid)
-      
-      # skip xmin
-      #subgrid[0,:,:] = 1
-#       helper[subgrid.shape[0]-1,:,:] = 1
-#       helper[:,:,0] = 1
-#       helper[:,:,subgrid.shape[2]-1] = 1
-#       helper[:,0,:] = 1
-#       helper[:,subgrid.shape[1]-1,:] = 1
-#       helper = binary_fill_holes(helper).astype(bool)
-#       newsub *= helper
-#       # skip xmax
-#       helper[0,:,:] = 1
-#       #subgrid[subgrid.shape[0]-1,:,:] = 1
-#       helper[:,:,0] = 1
-#       helper[:,:,subgrid.shape[2]-1] = 1
-#       helper[:,0,:] = 1
-#       helper[:,subgrid.shape[1]-1,:] = 1
-#       helper = binary_fill_holes(helper).astype(bool)
-#       newsub *= helper
-#       #skip ymin
-#       helper[0,:,:] = 1
-#       helper[subgrid.shape[0]-1,:,:] = 1
-#       helper[:,:,0] = 1
-#       helper[:,:,subgrid.shape[2]-1] = 1
-#       #subgrid[:,0,:] = 1
-#       helper[:,subgrid.shape[1]-1,:] = 1
-#       helper = binary_fill_holes(helper).astype(bool)
-#       newsub *= helper
-#       # skip ymax
-#       helper[0,:,:] = 1
-#       helper[subgrid.shape[0]-1,:,:] = 1
-#       helper[:,:,0] = 1
-#       helper[:,:,subgrid.shape[2]-1] = 1
-#       helper[:,0,:] = 1
-#       #subgrid[:,subgrid.shape[1]-1,:] = 1
-#       helper = binary_fill_holes(helper).astype(bool)
-#       newsub *= helper
-#       #skip zmin
-#       helper[0,:,:] = 1
-#       helper[subgrid.shape[0]-1,:,:] = 1
-#       #subgrid[:,:,0] = 1
-#       helper[:,:,subgrid.shape[2]-1] = 1
-#       helper[:,0,:] = 1
-#       helper[:,subgrid.shape[1]-1,:] = 1
-#       helper = binary_fill_holes(helper).astype(bool)
-#       newsub *= helper
-#       #skip zmax 
-#       helper[0,:,:] = 1
-#       helper[subgrid.shape[0]-1,:,:] = 1
-#       helper[:,:,0] = 1
-#       #subgrid[:,:,subgrid.shape[2]-1] = 1
-#       helper[:,0,:] = 1
-#       helper[:,subgrid.shape[1]-1,:] = 1
-#       helper = binary_fill_holes(helper).astype(bool)
-#       newsub *= helper
-      
-      assert(newsub.dtype == bool)
-      #assert(subgrid.dtype == bool)
-      #subgrid = binary_fill_holes(subgrid).astype(bool)
-      #assert(subgrid.dtype == bool)
+      subgrid = binary_fill_holes(subgrid).astype(bool)
+      assert(subgrid.dtype == bool)
       
       if solid: # replace 0 with 1 and keep 0
-        grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] = np.logical_or(newsub,grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1])
+        grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] = np.logical_or(subgrid,grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1])
       else: # replace 1 with 0 and keep 0
-        newsub = np.invert(newsub)
-        grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] *= newsub
+        grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] *= np.invert(subgrid)
       
     else: # draw complete tet
       assert(not (idx_out_of_bounds(A, grid.shape) or idx_out_of_bounds(B, grid.shape) or idx_out_of_bounds(C, grid.shape)))
@@ -566,8 +504,7 @@ def draw_non_design(tets,grid,bounds,h,solid=True):
       if solid: # replace 0 with 1 and keep 0
         grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] = np.logical_or(subgrid,grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1])
       else:
-        subgrid = np.invert(subgrid)
-        grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] *= subgrid
+        grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] *= np.invert(subgrid)
 
 # check if given tuple of indices lies within given array bounds
 # @param point (i,j,k)

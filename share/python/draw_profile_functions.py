@@ -898,25 +898,11 @@ def generate_basecell(args,info):
   
   if args.target == "surface_mesh" or args.target == "marching_cubes":
     ############################ new surface mesh approach ####################
-    # binary helper array
-    shape = array.shape[0:3]
-#     shape = [v+2 for v in shape]
-    helper = np.zeros(shape,dtype=int)
-    # use voxel info for Marching cubes algorithm
-    # set voxels on boundary wit value 0
-    # set voxels inside structure with value 1
-    # voxels outside structure have value -1
-    for i in range(0,args.res):
-      for j in range(0,args.res):
-        for k in range(0,args.res):
-          if array[i,j,k] > -1: # valid voxel
-            helper[i,j,k] = 1
-            
     # Use marching cubes to obtain the surface mesh of voxelized structure
     # marching_cubes expect float values (not double)
     h = np.float32(1.0/args.res)
     # coords of vertices lie in [0,1-h]
-    verts, faces, normals, values = measure.marching_cubes(helper,spacing=(h,h,h),allow_degenerate=False)
+    verts, faces, normals, values = measure.marching_cubes(array,spacing=(h,h,h),allow_degenerate=False)
     
     # marching_cubes returns float values
     verts = np.asarray(verts)
