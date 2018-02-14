@@ -20,6 +20,8 @@ ELSE()
   SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-shared_opt")
 ENDIF()
 
+SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
+
 # don't know if this even works!!
 # create new empty directory in test specific cmake files, not here!
 # SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
