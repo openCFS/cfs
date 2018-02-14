@@ -22,7 +22,6 @@ try:
 except:
   print("Warning: Could not load basecell and draw_profile_functions!")
   
-    
 # similar to create_3d_cross_ip; # without rotation and shearing
 def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,nondes=None):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
@@ -31,9 +30,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # scale: parameter for scaling the cell size if necessary
   # nondes: (centers, min_bb, max_bb, elem_dim)
   # nondes[centers]: list of elements (corner vertices) that define non-design regions
-  
-  # writes array with nondes to vtk file with extension *.vtr
-#   write_nondes_to_vtr_file(args,min_bb,max_bb,nondes)
   
   # MPI_Init() or MPI_Init_thread() is actually called when you import the MPI
   # use the standard communicator
@@ -69,12 +65,24 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   
   data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
   
+  my_mpi_grid = MPI_Grid(comm)
+  
   ################# voxel world #########################################
-  nondes_coords = nondes[0]
-  nondes_min = nondes[1]
-  nondes_max = nondes[2]
-  assert(len(nondes_min) == 3)
-  assert(len(nondes_max) == 3) 
+  nondes_min = 99999
+  nondes_max = -99999
+  nondes_coords = None
+  
+  if nondes:
+    nondes_coords = nondes[0]
+    nondes_min = nondes[1]
+    nondes_max = nondes[2]
+    assert(len(nondes_min) == 3)
+    assert(len(nondes_max) == 3)
+
+  # broadcast all nondes to all ranks
+  (nondes_coords,nondes_min,nondes_max) = my_mpi_grid.comm.bcast((nondes_coords,nondes_min,nondes_max),root=0)
+#   print("rank ", my_mpi_grid.rank," nondes:",len(nondes_coords))
+    
   # np.minimum gives elementwise min value
   bounds = [None] * 6
   bounds[0:3] = np.minimum(np.asarray(min_bb),np.asarray(nondes_min))
@@ -85,7 +93,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   print("min:",bounds[0:3])
   print("max:",bounds[3:6])
   
-  my_mpi_grid = MPI_Grid(comm,samples,args.bc_res,bounds)
+  my_mpi_grid.init_data_grid(samples, args.bc_res, bounds)
   my_mpi_grid.to_info()
   
   local_id = 0
@@ -123,16 +131,21 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   eps = 1e-6
   
   void_elems = []
-  # read void non-design manually  
-  import csv
-  with open('holes.txt') as csvfile:
-    readCSV = csv.reader(csvfile, delimiter=',')  
-    for row in readCSV:
-      # 4 elems with 3 coord components
-      assert(len(row) == 12)
-      void_elems.append([(float(row[0]),float(row[1]),float(row[2])), (float(row[3]),float(row[4]),float(row[5])), (float(row[6]),float(row[7]),float(row[8])), (float(row[9]),float(row[10]),float(row[11]))])
-    
-    assert(len(void_elems) > 0)
+  # only master reads text file
+  if my_mpi_grid.rank == 0:
+    # read void non-design manually  
+    import csv
+    with open('holes.txt') as csvfile:
+      readCSV = csv.reader(csvfile, delimiter=',')  
+      for row in readCSV:
+        # 4 elems with 3 coord components
+        assert(len(row) == 12)
+        void_elems.append([(float(row[0]),float(row[1]),float(row[2])), (float(row[3]),float(row[4]),float(row[5])), (float(row[6]),float(row[7]),float(row[8])), (float(row[9]),float(row[10]),float(row[11]))])
+       
+      assert(len(void_elems) > 0)
+  
+  # broadcast all verts to all ranks
+  void_elems = my_mpi_grid.comm.bcast(void_elems,root=0)    
   
   hx = (my_mpi_grid.bounds[3]-my_mpi_grid.bounds[0])/my_mpi_grid.grid.nx
   hy = (my_mpi_grid.bounds[4]-my_mpi_grid.bounds[1])/my_mpi_grid.grid.ny
@@ -144,15 +157,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   draw_non_design(void_elems, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
   draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds[0:3], (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
   from scipy.ndimage import binary_fill_holes
-  #my_mpi_grid.grid.data = binary_fill_holes(my_mpi_grid.grid.data).astype(bool)
-  
-  #x = np.arange(0,my_mpi_grid.grid.data.shape[0]+1,1)
-  #y = np.arange(0,my_mpi_grid.grid.data.shape[1]+1,1)
-  #z = np.arange(0,my_mpi_grid.grid.data.shape[2]+1,1)
-#   from pyevtk.hl import gridToVTK  
-#   gridToVTK("voxels"+str(my_mpi_grid.rank),x,y,z,cellData={"voxels":my_mpi_grid.grid.data.astype(int)})
-  
-#   sys.exit()
   
   borders = my_mpi_grid.communicate_edges()
     
@@ -160,6 +164,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   shape = np.asarray(my_mpi_grid.grid.data.shape[0:3]) + np.array((2,2,2))
   helper = np.zeros(shape,dtype=bool)
   helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = my_mpi_grid.grid.data
+  
+  # hope for python's garbage collector to delete voxel array
+  my_mpi_grid.grid.data = None
   
   for b in borders:
     # b[0] stores direction oft cartesian comm
@@ -175,23 +182,22 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   hx = my_mpi_grid.grid.hx
   hy = my_mpi_grid.grid.hy
   hz = my_mpi_grid.grid.hz
-  # vtk rectgrid is node based
-  x = np.arange(my_mpi_grid.bounds[0]-hx,my_mpi_grid.bounds[3]+2*hx,hx)
-  y = np.arange(my_mpi_grid.bounds[1]-hy,my_mpi_grid.bounds[4]+2*hy,hy)
-  z = np.arange(my_mpi_grid.bounds[2]-hz,my_mpi_grid.bounds[5]+2*hz,hz)
-  #from pyevtk.hl import gridToVTK  
-  #gridToVTK("helper"+str(my_mpi_grid.rank),x,y,z,cellData={"helper":helper.astype(int)}) 
  
   from skimage import measure
   # coords of vertices lie in [0,1-h]
-  verts, faces, normals, values = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False)
-  verts = np.asarray(verts) + (my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hx/2.0)
+  verts, faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False)
+  verts = np.asarray(verts) + (my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0)
   # translate from (0,0,0) to correct position
   shift = np.asarray(my_mpi_grid.bounds[0:3])
   verts = [p+shift for p in verts]
   
+  # hope for python's garbage collector to delete voxel array
+  helper = None
+  
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
   matviz_vtk.show_write_vtk(pd, 10, "marching"+str(my_mpi_grid.rank)+".vtp")
+  
+  pd = None
   
   my_mpi_grid.set_vertices_and_faces(list(verts),list(faces))
   
@@ -220,7 +226,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     
     data = (verts,faces)
     
-#   sys.exit()  
+  sys.exit()  
   
   # broadcast all verts to all ranks
   data = my_mpi_grid.comm.bcast(data,root=0)
@@ -434,6 +440,10 @@ def bresenham_3d(p0,p1,array,value=1):
 # @param grid: where to draw        
 # @param solid or void non-design?        
 def draw_non_design(tets,grid,bounds,h,solid=True):
+  # don't have non-design elems
+  if tets is None:
+    return 
+  
   from scipy.ndimage import binary_fill_holes
   assert(len(bounds) >=3 and len(h) == 3)
   for e in tets:
@@ -518,19 +528,19 @@ def idx_out_of_bounds(point,bounds):
 #  Setup 2D distributed grid with shared ghost boundaries
 #  using mpi4py and the MPI Cartesian Communicator. 
 class MPI_Grid():
-  # total_samples: list with number of total samples in 3 directions
-  # bc_res: resolution of one base cell (usually 40)
-  # bounds: global (xmin,ymin,zmin,xmax,ymax,zmax)
-  def __init__(self, comm, total_samples,bc_res,bounds):
-    assert(len(total_samples) == 3)
-    assert(len(bounds) == 6)
-
+  # init cartesian mpi world
+  def __init__(self,comm):
     self.comm = comm    
     self.rank, self.size = comm.Get_rank(), comm.Get_size()
     self.cart = comm.Create_cart(dims=(1,self.size))
-    
     self.coords = self.cart.Get_coords(self.rank)
-    
+  
+  # total_samples: list with number of total samples in 3 directions
+  # bc_res: resolution of one base cell (usually 40)
+  # bounds: global (xmin,ymin,zmin,xmax,ymax,zmax)  
+  def init_data_grid(self,total_samples,bc_res,bounds):
+    assert(len(total_samples) == 3)
+    assert(len(bounds) == 6)  
     # distribute along x-axis    
     # number of chunks for this rank
     # start_x,end_x: first and last x-slice for this rank

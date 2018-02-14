@@ -627,7 +627,8 @@ else:
   if args.mesh:
     if args.h5_nondes != "None":
 #       nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=True)
-      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=False)
+      if (MPI.COMM_WORLD.Get_rank()==0): 
+        nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=False)
          
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
@@ -635,7 +636,9 @@ else:
 # do we have to do 1D optimization? 
 if not args.target_volume:
   if args.mesh and args.h5_nondes != "None":
-    nondes_coords = (nondes_elements, nondes_min, nondes_max, nondes_elem_dim)
+    nondes_coords = None
+    if (MPI.COMM_WORLD.Get_rank()==0):
+      nondes_coords = (nondes_elements, nondes_min, nondes_max, nondes_elem_dim)
 #     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
     perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min_bb,max_bb=max_bb)
   else:
