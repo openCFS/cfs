@@ -143,11 +143,10 @@ namespace CoupledField {
             // factor for the lower diagonal coupling integrator C_Phi_U 
             // has a switched sign.
           
-          DefCouplInt( "AcouMechPotCouplingInt", false, -1.0, DAMPING, dispFct,
-                       acouFct, actSDList, coefFuncs, acouRegions );
-          DefCouplInt( "AcouMechPotCouplingInt_Transposed", false, 1.0,
-                       DAMPING, acouFct, dispFct,
-                       actSDList, coefFuncs, acouRegions );
+        	DefCouplInt( "AcouMechPotCouplingInt", false, -1.0, DAMPING, dispFct,
+                         acouFct, actSDList, coefFuncs, acouRegions );
+        	DefCouplInt( "AcouMechPotCouplingInt_Transposed", false, 1.0,
+                         DAMPING, acouFct, dispFct, actSDList, coefFuncs, acouRegions );
           }
         }
         break;
@@ -183,12 +182,13 @@ namespace CoupledField {
       // Get interface from grid and cast to MortarInterface class
       shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ncInterfaces_[actNC].interfaceId);
 
-      // Check which volume region belongs to acoustic PDE
-//      MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(&(*ncIf));
-//      assert(mortarIf);
+      //Nitsche coupling: edge/face information is required
+      this->ptGrid_->MapEdges();
+      this->ptGrid_->MapFaces();
 
-      //for testing hard coded!!
-      PtrCoefFct density = coefFuncs[0];
+      //for testing wrong density coefFunction!!
+      PtrCoefFct density  = CoefFunction::Generate( mp, Global::REAL, "1000.0");
+      PtrCoefFct constOne = CoefFunction::Generate( mp, Global::REAL, "1.0");
 
       switch(acouFormulation) {
         // ==================
@@ -212,9 +212,9 @@ namespace CoupledField {
             // factor for the lower diagonal coupling integrator C_Phi_U
             // has a switched sign.
 
-          DefCouplIntNC( "AcouMechPotCouplingInNC", false, -1.0, DAMPING, dispFct,
+          DefCouplIntNC( "AcouMechPotCouplingInNC", false, 1.0, DAMPING, dispFct,
                        acouFct, ncIf, density );
-          DefCouplIntNC( "AcouMechPotCouplingInt_TransposedNC", false, 1.0,
+          DefCouplIntNC( "AcouMechPotCouplingInt_TransposedNC", false, -1.0,
                        DAMPING, acouFct, dispFct, ncIf, density );
           }
         }
@@ -229,12 +229,12 @@ namespace CoupledField {
           // This case is not tested yet and might not be solvalbe.
           if( analysisType_ == BasePDE::EIGENFREQUENCY ) {
             EXCEPTION("A coupled mechanic-acoustic simulation can only be"
-                      "be performed in the acoustic potential formulation!");
+                      "performed in the acoustic potential formulation!");
           }
-          DefCouplIntNC( "AcouMechPresStiffCouplingIntNC", false, -1.0, STIFFNESS, dispFct,
-                       acouFct, ncIf, density );
+          DefCouplIntNC( "AcouMechPresStiffCouplingIntNC", false, 1.0, STIFFNESS, dispFct,
+                       acouFct, ncIf, constOne );
 
-          DefCouplIntNC( "AcouMechPresMassCouplingIntNC", false, 1.0, MASS, acouFct,
+          DefCouplIntNC( "AcouMechPresMassCouplingIntNC", false, -1.0, MASS, acouFct,
                        dispFct, ncIf, density );
 
           break;
@@ -244,6 +244,8 @@ namespace CoupledField {
           break;
       }
     }
+
+    std::cout << "AcouMechCoupling::DefineIntegrators OK" << std::endl;
 
   }
 
@@ -304,69 +306,58 @@ namespace CoupledField {
                                       const PtrCoefFct& density ) {
 
 	// create ElemLists for slave surface and intersection
-  	MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(&(*ncIf));
-  	assert(mortarIf);
+	MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(ncIf.get());
+	assert(mortarIf);
 
-	shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
-                             elSlave(new SurfElemList(ptGrid_));
-    elMaster->SetRegion(mortarIf->GetMasterSurfRegion());
-    elSlave->SetRegion(mortarIf->GetSlaveSurfRegion());
-    shared_ptr<NcSurfElemList> elMortar = mortarIf->GetElemList();
+  	//PtrCoefFct dens = materials_[mortarIf->GetMasterVolRegion()]
+  	//    	                             ->GetScalCoefFnc(DENSITY,Global::REAL);
 
-  	fnc1->AddEntityList(elMortar);
-  	fnc2->AddEntityList(elMortar);
+  	// create new entity list
+  	shared_ptr<ElemList> actSDList = ncIf->GetElemList();
 
   	// check for position of integrator
     SolutionType rowType = fnc1->GetResultInfo()->resultType;
     BiLinearForm * cplInt = NULL;
-    std::cout << "asterVolRegion: " << mortarIf->GetMasterVolRegion()
-    		  << ";  SlaveVolRegion " <<  mortarIf->GetSlaveVolRegion() << std::endl;
+    std::cout << "MasterVolRegion: " << mortarIf->GetMasterVolRegion()
+    		  << ";  SlaveVolRegion " <<  mortarIf->GetSlaveVolRegion()
+			  << std::endl;
+
+    BiLinearForm::CouplingDirection curcpl;
+    SurfaceBiLinFormContext *ncContext = NULL;
 
     if( dim_ == 2  ) {
       if(rowType == MECH_DISPLACEMENT) {
-    	  std::cout << "Do A" << std::endl;
-    	cplInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,2>(),
+    	std::cout << "Do A" << std::endl;
+    	curcpl = BiLinearForm::MASTER_SLAVE;
+    	cplInt = new SurfaceNitscheABInt<>( new IdentityOperator<FeH1,2,2>(),
     			 new IdentityOperatorNormal<FeH1,2>(),
-				 density, factor,
-    	         mortarIf->GetMasterVolRegion(),
-    	         mortarIf->GetSlaveVolRegion(),
-    	         mortarIf->IsPlanar(),
-    	         geoUpdate_);
+				 density, factor, curcpl, geoUpdate_);
       } else {
-    	  std::cout << "Do B" << std::endl;
-      	cplInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2>(),
+    	std::cout << "Do B" << std::endl;
+    	curcpl = BiLinearForm::SLAVE_MASTER;
+      	cplInt = new SurfaceNitscheABInt<>( new IdentityOperator<FeH1,2>(),
       			 new IdentityOperatorNormal<FeH1,2,2>(),
-				 density, factor,
-      	         mortarIf->GetMasterVolRegion(),
-      	         mortarIf->GetSlaveVolRegion(),
-      	         mortarIf->IsPlanar(),
-				 geoUpdate_);
+				 density, factor, curcpl, geoUpdate_);
       }
     } else if( dim_ == 3) {
       if(rowType == MECH_DISPLACEMENT) {
-      	cplInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,3>(),
+    	curcpl = BiLinearForm::MASTER_SLAVE;
+      	cplInt = new SurfaceNitscheABInt<>( new IdentityOperator<FeH1,3,3>(),
       			 new IdentityOperatorNormal<FeH1,3>(),
-				 density, factor,
-      	         mortarIf->GetMasterVolRegion(),
-      	         mortarIf->GetSlaveVolRegion(),
-      	         mortarIf->IsPlanar(),
-				 geoUpdate_);
+				 density, factor, curcpl, geoUpdate_);
       } else {
-        cplInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3>(),
+    	curcpl = BiLinearForm::SLAVE_MASTER;
+        cplInt = new SurfaceNitscheABInt<>( new IdentityOperator<FeH1,3>(),
         		 new IdentityOperatorNormal<FeH1,3,3>(),
-    			 density, factor,
-                 mortarIf->GetMasterVolRegion(),
-                 mortarIf->GetSlaveVolRegion(),
-                 mortarIf->IsPlanar(),
-				 geoUpdate_);
+    			 density, factor, curcpl, geoUpdate_);
       }
     } else {
       EXCEPTION( "Coupling only for two and three dimensions defined" );
     }
 
     cplInt->SetName(name);
-    NcBiLinFormContext *ncContext = new NcBiLinFormContext(cplInt, matType);
-    ncContext->SetEntities( elMortar, elMortar );
+    ncContext = new SurfaceBiLinFormContext(cplInt, matType, curcpl);
+    ncContext->SetEntities( actSDList, actSDList );
     ncContext->SetFeFunctions( fnc1, fnc2 );
     ncContext->SetCounterPart(assembleTransposed);
     assemble_->AddBiLinearForm( ncContext );
