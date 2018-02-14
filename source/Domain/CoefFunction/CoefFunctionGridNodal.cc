@@ -671,8 +671,8 @@ template<class DATA_TYPE>
         this->constantInput_[i].Resize(resVec.GetSize());
         StdVector<UInt> dummyNodeNums(size);
 #pragma omp parallel for
-        for (UInt i = 0; i < size; i++) {
-          dummyNodeNums[i] = i;
+        for (UInt ii = 0; ii < size; ii++) {
+          dummyNodeNums[ii] = ii;
         }
         crf(this->constantInput_[i],resVec,dummyNodeNums,generalFactor,spaceFactor,constantFactor,loadedSum,factorSum,countNodes);
       } else {
