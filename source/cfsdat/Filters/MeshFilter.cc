@@ -143,7 +143,7 @@ void MeshFilter::Node2Cell(Vector<Double>& returnVec,
   UInt curE;
   CF::StdVector<UInt> eqns;
 
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(resId)->mapping;
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(resId);
 
 
   // for every element in the target mesh
@@ -178,7 +178,7 @@ void MeshFilter::Cell2Node(Vector<Double>& returnVec,
   CF::Vector<Double> shFnc;
   CF::StdVector<UInt> eqns;
   CF::shared_ptr<ElemShapeMap> eShape;
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(resId)->mapping;
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(resId);
 
   for(UInt i=0;i < interpolData.size();++i){
     QuantityStruct aStru = interpolData[i];

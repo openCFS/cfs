@@ -49,26 +49,25 @@ public:
 
   virtual ~Lighthill();
 
-  virtual bool Run();
-
-
 
 protected:
 
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
+  
   virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();
 
-  std::string res1Name;
-  uuids::uuid res1Id;
+  std::string resVelocityName;
+  uuids::uuid resVelocityId;
 
-  std::string res2Name;
-  uuids::uuid res2Id;
+  std::string resVorticityName;
+  uuids::uuid resVorticityId;
 
-  std::string res3Name;
-  uuids::uuid res3Id;
+  std::string resDensityName;
+  uuids::uuid resDensityId;
 
 private:
 
@@ -126,6 +125,8 @@ private:
   bool externDensity_;
 
   bool checkSum_;
+  
+  Double aTF_;
 
 };
 

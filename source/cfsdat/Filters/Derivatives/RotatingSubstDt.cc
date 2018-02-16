@@ -22,43 +22,19 @@ namespace CFSDat{
 
 ResultIdList RotatingSubstDt::SetUpstreamResults(){
   ResultIdList generated;
-  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
-  for(;aIt!=filterResIds.End();++aIt){
-    std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
-
-    //first a single gradient input
-    std::string gradInResult = params_->Get("presGrad")->Get("resultName")->As<std::string>();
-    gradId_ = resultManager_->AddResult(gradInResult,this->filterTag_);
-
-    //second a single meanflow input
-    if(hasMeanFlow_){
-        std::string meanFlowInResult = params_->Get("meanFlow")->Get("resultName")->As<std::string>();
-        meanFlowId_ = resultManager_->AddResult(meanFlowInResult,this->filterTag_);
-
-        //copy the timeline from input result
-        resultManager_->SetTimeLine(meanFlowId_,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-        generated.Push_back(meanFlowId_);
-    }
-
-
-    //now a time cached time result
-    std::string timeInResult = params_->Get("pressure")->Get("resultName")->As<std::string>();
-    //hardcode a fith order stencil
-    //formular 2(p(1)-p(-1)) + p(2) - p(-2) / 8dt
-    CF::StdVector<Integer> timeLine(4);
-    timeLine[0] = -2;
-    timeLine[1] = -1;
-    timeLine[2] = 1;
-    timeLine[3] = 2;
-    timeId_ = resultManager_->AddResult(timeInResult,this->filterTag_,timeLine);
-
-    //copy the timeline from input result
-    resultManager_->SetTimeLine(timeId_,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-    resultManager_->SetTimeLine(gradId_,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-
-    generated.Push_back(timeId_);
-    generated.Push_back(gradId_);
-
+  
+  // pressure 
+  timeId_ = RegisterUpstreamResult(timeName_, -2, 2, filterResIds[0]);
+  generated.Push_back(timeId_);
+  
+  // pressure gradient
+  gradId_ = RegisterUpstreamResult(gradName_, filterResIds[0]);
+  generated.Push_back(gradId_);
+  
+  if(hasMeanFlow_) {
+    // meanflow 
+    meanFlowId_ = RegisterUpstreamResult(meanFlowName_, filterResIds[0]);
+    generated.Push_back(meanFlowId_);
   }
   return generated;
 }
@@ -133,7 +109,8 @@ void RotatingSubstDt::FinishInit(){
   std::cout << "\t ---> Rotating Time Derivative Filter prepares geometric information" << std::endl;
   //the only thing left to do is the identification
   //of rotating entity numbers if requested
-  if(params_->Has("rotatingDomain")){
+  if(params_->Has("rotatingDomain")) {
+    hasRotation_ = true;
     this->rpm_ = params_->Get("rotatingDomain")->Get("rpm")->As<Double>();
     if(params_->Get("rotatingDomain")->Has("cylinder")){
       if(resultManager_->GetExtInfo(gradId_)->ptGrid->GetDim() == 2){
@@ -143,12 +120,87 @@ void RotatingSubstDt::FinishInit(){
       }
     }
     std::cout << "\t\tFound " << rotEnts_.GetSize() << " cells/nodes in rotating region" <<   std::endl;
+  } else {
+    hasRotation_ = false;
   }
   gradDim_ = resultManager_->GetExtInfo(gradId_)->dofNames.GetSize();
 }
 
 
-bool RotatingSubstDt::Run(){
+bool RotatingSubstDt::UpdateResults(std::set<uuids::uuid>& upResults) {
+  /// this is the vector, which will be filled with the derivative result
+  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
+  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
+  const UInt size = returnVec.GetSize();
+  
+  // Smoothed noise robust derivatives
+  // http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
+  // scheme error of O(h^3)
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(timeId_, aTF - (2.0 * dt_));
+  Double factor = -(1.0/8.0)/dt_;
+  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  for (UInt i = 0; i < size; i++) {
+    returnVec[i] = inVec[i] * factor;
+  }
+  
+  inVec = GetUpstreamResultVector<Double>(timeId_, aTF - dt_);
+  factor = -(1.0/4.0)/dt_;
+  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  for (UInt i = 0; i < size; i++) {
+    returnVec[i] += inVec[i] * factor;
+  }
+
+  inVec = GetUpstreamResultVector<Double>(timeId_, aTF + dt_);
+  factor = (1.0/4.0)/dt_;
+  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  for (UInt i = 0; i < size; i++) {
+    returnVec[i] += inVec[i] * factor;
+  }
+  
+  inVec = GetUpstreamResultVector<Double>(timeId_, aTF + (2.0 * dt_));
+  factor = (1.0/8.0)/dt_;
+  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  for (UInt i = 0; i < size; i++) {
+    returnVec[i] += inVec[i] * factor;
+  }
+  
+  //now we add the substantial part
+  Vector<Double>& gradient = GetUpstreamResultVector<Double>(gradId_, aTF);
+  UInt gIdx = 0;
+  
+  Vector<Double> meanFlow;
+  if(hasMeanFlow_){
+    meanFlow.Resize(gradient.GetSize());
+    meanFlow = GetUpstreamResultVector<Double>(meanFlowId_, aTF);
+    for(UInt i=0;i<size;++i){
+      //Scalar product
+      for(UInt d =0;d<gradDim_;++d){
+        gIdx = i*gradDim_+d;
+        returnVec[i] += meanFlow[gIdx]*gradient[gIdx];
+      }
+    }
+  }
+  
+  if (hasRotation_) {
+    EqnMapSimple& mapping = *resultManager_->GetEqnMap(filterResIds[0]).get();
+    StdVector<UInt> aEqn(1);
+    for(UInt aEnt = 0; aEnt <rotEnts_.GetSize();aEnt++){
+    
+      mapping.GetEquation(aEqn,rotEnts_[aEnt],resultManager_->GetExtInfo(filterResIds[0])->definedOn);
+      //this may be a little hackisch but knowing how eqnationMapSimple works
+      //its a little faster
+      //returnVec[aEqn[0]] = rotField_[aEnt][1];
+      for(UInt d =0;d<gradDim_;++d){
+        gIdx = aEqn[0]*gradDim_+d;
+        returnVec[aEqn[0]] += rotField_[aEnt][d]*gradient[gIdx];
+      }
+    }
+  }
+  
+  return true;
+  /**
+  resultManager_->GetResultVector<Double>(gradId_,eqnNums);
+  
   std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
   std::set<uuids::uuid>::iterator aIter = activeResults.begin();
   for(; aIter != activeResults.end(); ++aIter){
@@ -158,12 +210,12 @@ bool RotatingSubstDt::Run(){
     Double aTF = resultManager_->GetStepValue(*aIter);
     std::string resName = resultManager_->GetExtInfo(*aIter)->resultName;
 
-    resultManager_->SetTimeValue(gradId_,aTF);
-    resultManager_->SetTimeValue(timeId_,aTF);
+    resultManager_->SetStepValue(gradId_,aTF);
+    resultManager_->SetStepValue(timeId_,aTF);
     resultManager_->ActivateResult(gradId_);
     resultManager_->ActivateResult(timeId_);
     if(hasMeanFlow_){
-    	resultManager_->SetTimeValue(meanFlowId_,aTF);
+    	resultManager_->SetStepValue(meanFlowId_,aTF);
     	resultManager_->ActivateResult(meanFlowId_);
     }
     resultManager_->DeactivateResult(*aIter);
@@ -188,10 +240,14 @@ bool RotatingSubstDt::Run(){
     returnVec.Init();
 
     // computation of the actual derivative 5 point stencil
-    Vector<Double>& rM2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-2);
-    Vector<Double>& rM1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-1);
-    Vector<Double>& rP1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,1);
-    Vector<Double>& rP2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,2);
+    //Vector<Double>& rM2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-2);
+    //Vector<Double>& rM1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-1);
+    //Vector<Double>& rP1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,1);
+    //Vector<Double>& rP2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,2);
+    Vector<Double>& rM2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums);
+    Vector<Double>& rM1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums);
+    Vector<Double>& rP1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums);
+    Vector<Double>& rP2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums);
 
     UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
 
@@ -220,7 +276,7 @@ bool RotatingSubstDt::Run(){
     }
 
 
-    EqnMapSimple& mapping = *resultManager_->GetResultAdapter(*aIter)->mapping.get();
+    EqnMapSimple& mapping = *resultManager_->GetEqnMap(*aIter).get();
     StdVector<UInt> aEqn(1);
     for(UInt aEnt = 0; aEnt <rotEnts_.GetSize();aEnt++){
 
@@ -237,6 +293,7 @@ bool RotatingSubstDt::Run(){
     resultManager_->ActivateResult(*aIter);
   }
   return true;
+  **/
 }
 
 
@@ -255,8 +312,9 @@ void RotatingSubstDt::ExtractCylinderVelocities(CF::PtrParamNode cylNode){
   r       = cylNode->Get("radius")->Get("value")->As<Double>();
 
   ResultManager::ConstInfoPtr gradInfo = resultManager_->GetExtInfo(gradId_);
-  ResultManager::ConstResPtr gradRes = resultManager_->GetResultAdapter(gradId_);
-  EqnMapSimple& mapping = *resultManager_->GetResultAdapter(timeId_,1)->mapping.get();
+  //ResultManager::ConstResPtr gradRes = resultManager_->GetEqnMap(gradId_);
+  //EqnMapSimple& mapping = *resultManager_->GetEqnMap(timeId_,1).get();
+  EqnMapSimple& mapping = *resultManager_->GetEqnMap(timeId_).get();
   StdVector<UInt>& eNums = *gradInfo->entityNumbers.get();
   bool hasExtraction = eNums.GetSize() != 0;
 
