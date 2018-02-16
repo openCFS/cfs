@@ -69,8 +69,6 @@ public:
     delete trgGrid_;
   }
 
-  virtual bool Run() = 0;
-
   virtual void FinishInit();
 
 

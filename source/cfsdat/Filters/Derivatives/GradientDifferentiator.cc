@@ -36,39 +36,13 @@ GradientDifferentiator::~GradientDifferentiator(){
 
 }
 
-bool GradientDifferentiator::Run(){
-  // we deactivate every result, except for our own
-  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
-  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
-
-  for(; aIter != activeResults.end(); ++aIter){
-    if(filterResIds.Find(*aIter) == -1){
-      WARN(" There are still active results when reaching the derivative filter. This indicates an unexpected use of the pipeline.")
-    }
-    resultManager_->DeactivateResult(*aIter);
-  }
-  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
-  resultManager_->SetTimeValue(upResIds[0],aTF);
-  // now we deactivate our own result and activate the others
-  resultManager_->ActivateResult(upResIds[0]);
-
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
-  }
-
-
-
-  CF::StdVector<UInt> eqnNums;
-
+bool GradientDifferentiator::UpdateResults(std::set<uuids::uuid>& upResults) {
   /// this is the vector, which will be filled with the derivative result
-  Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
-  returnVec.Init();
+  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
+  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
 
   // vector, containing the source data values
-  Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], aTF);
 
   Matrix& matrix = matrices_[matrixIndex_];
   const UInt maxNumTrgEntities = matrix.numTargets;
@@ -78,13 +52,6 @@ bool GradientDifferentiator::Run(){
   UInt tDim = trgMap_->GetNumEqnPerEnt();
 
   CalcGradient(returnVec, inVec, numEquPerEnt_, sourceM, targetSourceFactor, maxNumTrgEntities, tDim);
-
-  resultManager_->ActivateResult(filterResIds[0]);
-
-  //now deactivate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->DeactivateResult(upResIds[aRes]);
-  }
 
   return true;
 }
@@ -101,7 +68,7 @@ void GradientDifferentiator::PrepareCalculation(){
   std::cout << "\t\t 1/3 Obtaining source entities " << std::endl;
   uuids::uuid upRes = upResIds[0];
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
-  scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
+  scrMap_ = resultManager_->GetEqnMap(upRes);
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
   if(numEquPerEnt_ > 1){
@@ -122,7 +89,7 @@ void GradientDifferentiator::PrepareCalculation(){
     sEnt[globSrcEntity[i]] = i + 1;
   }
 
-  trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
+  trgMap_ = resultManager_->GetEqnMap(filterResIds[0]);
 
 
   differentiators_.Push_back(this);
@@ -222,21 +189,7 @@ void GradientDifferentiator::PrepareCalculation(){
 }
 
 ResultIdList GradientDifferentiator::SetUpstreamResults(){
-  ResultIdList generated;
-  //we should only have one filter Result
-  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
-  std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
-
-  //add input result to manager
-  std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
-  uuids::uuid newId = resultManager_->AddResult(inRes,this->filterTag_);
-
-  //set the timeline of upstream data if already set
-  resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-  generated.Push_back(newId);
-
-  return generated;
-
+  return SetDefaultUpstreamResults();
 }
 
 void GradientDifferentiator::AdaptFilterResults(){

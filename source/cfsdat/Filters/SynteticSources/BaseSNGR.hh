@@ -37,7 +37,7 @@ public:
 
   }
 
-  virtual bool Run();
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
 
 protected:
 

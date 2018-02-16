@@ -72,19 +72,20 @@ Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<
   filtResNames.insert(outRes);
 
   //add velocity input result to manager
-  this->res1Name = params_->Get("ResultList")->Get("velocity")->Get("resultName")->As<std::string>();
-  upResNames.insert(res1Name);
+  this->resVelocityName = params_->Get("ResultList")->Get("velocity")->Get("resultName")->As<std::string>();
+  upResNames.insert(resVelocityName);
 
   // if an external vorticity input exists, add it to manager
   if (externVorticity_ == true){
-    this->res2Name = params_->Get("ResultList")->Get("vorticity")->Get("resultName")->As<std::string>();
-    upResNames.insert(res2Name);
+    this->resVorticityName = params_->Get("ResultList")->Get("vorticity")->Get("resultName")->As<std::string>();
+    upResNames.insert(resVorticityName);
   }
 
-  // if an external vorticity input exists, add it to manager
+  // if an external density input exists, add it to manager
+  // density is second or third
   if (externDensity_ == true){
-    this->res3Name = params_->Get("ResultList")->Get("density")->Get("resultName")->As<std::string>();
-    upResNames.insert(res3Name);
+    this->resDensityName = params_->Get("ResultList")->Get("density")->Get("resultName")->As<std::string>();
+    upResNames.insert(resDensityName);
   }
 
   checkSum_ = false;
@@ -104,56 +105,10 @@ Lighthill::~Lighthill(){
 }
 
 
-bool Lighthill::Run(){
-  // we deactivate every result, except for our own
-  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
-  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
-
-
-  for(; aIter != activeResults.end(); ++aIter){
-    if(filterResIds.Find(*aIter) == -1){
-      WARN(" There are still active results when reaching the derivative filter. This indicates an unexpected use of the pipeline.")
-    }
-    resultManager_->DeactivateResult(*aIter);
-  }
-
-  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
-
-
-  resultManager_->SetTimeValue(upResIds[0],aTF);
-  resultManager_->ActivateResult(upResIds[0]);
-
-  // Activate extern vorticity-input, if provided
-  if(externVorticity_ == true){
-    resultManager_->SetTimeValue(upResIds[1],aTF);
-    resultManager_->ActivateResult(upResIds[1]);
-    // Activate extern density-input, if provided
-    if(externDensity_ == true){
-      resultManager_->SetTimeValue(upResIds[2],aTF);
-      resultManager_->ActivateResult(upResIds[2]);
-    }
-  } else {
-    // Activate extern density-input, if provided
-    if(externDensity_ == true){
-      resultManager_->SetTimeValue(upResIds[1],aTF);
-      resultManager_->ActivateResult(upResIds[1]);
-    }
-  }
-
-
-
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
-  }
-
-
-  CF::StdVector<UInt> eqnNums;
-  /// this is the vector, which will be filled with the wanted quantity
-  Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
-  returnVec.Init();
+bool Lighthill::UpdateResults(std::set<uuids::uuid>& upResults) {
+  /// this is the vector, which will be filled with the derivative result
+  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
+  aTF_ = resultManager_->GetStepValue(filterResIds[0]);
 
   Vector<Double> tempRetVec;
   if(Form_ == "AeroacousticSource_LambVector"){LambVector(tempRetVec);}
@@ -177,21 +132,13 @@ bool Lighthill::Run(){
     // Mesh size must be smaller than << Ma*c/(20*f) in the source region
     // to determine acoustically relevant flow structures
   }
-
-  resultManager_->ActivateResult(filterResIds[0]);
-
-  //now deactivate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->DeactivateResult(upResIds[aRes]);
-  }
-
+  
   return true;
 }
 
 
 void Lighthill::LambVector(Vector<Double>& tempRetVec){
-  CF::StdVector<UInt> eqnNums;
-  Vector<Double>& inVecVel = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
+  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, aTF_);
 
   Matrix& matrix = matrices_[matrixIndex_];
   const UInt maxNumTrgEntities = matrix.numTargets;
@@ -200,7 +147,7 @@ void Lighthill::LambVector(Vector<Double>& tempRetVec){
   if(externVorticity_ == true && Form_ == "AeroacousticSource_LambVector"){
     /************* case of externally provided vorticity ***************/
     // result is defined on nodes !!!
-    Vector<Double>& inVecOmega = resultManager_->GetResultVector<Double>(upResIds[1],eqnNums);
+    Vector<Double>& inVecOmega = GetUpstreamResultVector<Double>(resVorticityId, aTF_);
     OmegaVectorProductU(inVecVel, inVecOmega, LambVec, numEquPerEnt_);
   }else{
     /************* we compute the vorticity internally ***************/
@@ -229,11 +176,10 @@ void Lighthill::LambVector(Vector<Double>& tempRetVec){
 }
 
 void Lighthill::LighthillTensor(Vector<Double>& tempRetVec){
-  CF::StdVector<UInt> eqnNums;
-  Vector<Double>& inVecVel = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
-  Vector<Double>& inVecDensity = resultManager_->GetResultVector<Double>(upResIds[1],eqnNums);
+  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, aTF_);
+  Vector<Double>& inVecDensity = GetUpstreamResultVector<Double>(resDensityId, aTF_);
   if(externVorticity_ == true){
-    inVecDensity = resultManager_->GetResultVector<Double>(upResIds[2],eqnNums);
+    inVecDensity = GetUpstreamResultVector<Double>(resVorticityId, aTF_);
   }
 
   Vector<Double> LHTensor;
@@ -254,8 +200,7 @@ void Lighthill::LighthillTensor(Vector<Double>& tempRetVec){
 
 
 void Lighthill::LighthillSourceVector(Vector<Double>& tempRetVec){
-  CF::StdVector<UInt> eqnNums;
-  Vector<Double>& inVecVel = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
+  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, aTF_);
 
 
   Matrix& matrix = matrices_[matrixIndex_];
@@ -368,8 +313,8 @@ void Lighthill::PrepareCalculation(){
   uuids::uuid upRes = upResIds[0];
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
 
-  scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
-  trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
+  scrMap_ = resultManager_->GetEqnMap(upRes);
+  trgMap_ = resultManager_->GetEqnMap(filterResIds[0]);
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
 //TODO wrong number of equations per entity for VELOCITY if VORTICITY is read-in by EnSight as CFSVarName="fluidMechVorticity"
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
@@ -713,37 +658,10 @@ void Lighthill::PrepareCalculation(){
 }
 
 ResultIdList Lighthill::SetUpstreamResults(){
-  ResultIdList generated;
-  //we should only have one filter Result
-  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
-  std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
-
-  //add velocity input result to manager
-  this->res1Name = params_->Get("ResultList")->Get("velocity")->Get("resultName")->As<std::string>();
-  upResNames.insert(res1Name);
-  res1Id = resultManager_->AddResult(res1Name,this->filterTag_);
-  //set the timeline of upstream data
-  resultManager_->SetTimeLine(res1Id,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-  generated.Push_back(res1Id);
-
-  // if an external vorticity input exists, add it to manager
-  if (externVorticity_ == true){
-    this->res2Name = params_->Get("ResultList")->Get("vorticity")->Get("resultName")->As<std::string>();
-    upResNames.insert(res2Name);
-    res2Id = resultManager_->AddResult(res2Name,this->filterTag_);
-    resultManager_->SetTimeLine(res2Id,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-    generated.Push_back(res2Id);
-  }
-
-  // if an external vorticity input exists, add it to manager
-  if (externDensity_ == true){
-    this->res3Name = params_->Get("ResultList")->Get("density")->Get("resultName")->As<std::string>();
-    upResNames.insert(res3Name);
-    res3Id = resultManager_->AddResult(res3Name,this->filterTag_);
-    resultManager_->SetTimeLine(res3Id,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-    generated.Push_back(res3Id);
-  }
-
+  ResultIdList generated = SetDefaultUpstreamResults();
+  resVelocityId = upResNameIds[resVelocityName];
+  resVorticityId = upResNameIds[resVorticityName];
+  resDensityId = upResNameIds[resDensityName];
   return generated;
 }
 

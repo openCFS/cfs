@@ -29,9 +29,6 @@ public:
 
   virtual ~AeroacousticBase();
 
-  virtual bool Run() = 0;
-
-
 
 protected:
 

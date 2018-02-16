@@ -2486,6 +2486,8 @@ source/cfsdat/Utils/EqnNumberingSimple.hh -text
 source/cfsdat/Utils/KNNSearch.cc -text
 source/cfsdat/Utils/KNNSearch.hh -text
 source/cfsdat/Utils/Point.hh -text
+source/cfsdat/Utils/ResultCache.cc -text
+source/cfsdat/Utils/ResultCache.hh -text
 source/cfsdat/Utils/ResultManager.cc -text
 source/cfsdat/Utils/ResultManager.hh -text
 source/cfsdat/cfsdat.cc -text

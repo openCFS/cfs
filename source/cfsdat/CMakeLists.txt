@@ -39,6 +39,7 @@ SET(CFSDAT_SRCS
   Utils/EqnNumberingSimple.cc
   Utils/CFSDatProgramOptions.cc
   Utils/ResultManager.cc
+  Utils/ResultCache.cc
 #  Utils/KNNSearch.cc
 )
 

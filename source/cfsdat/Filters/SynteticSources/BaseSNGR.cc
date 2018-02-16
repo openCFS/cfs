@@ -21,12 +21,22 @@ namespace CFSDat{
 SNGRFilter::SNGRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
         :BaseFilter(numWorkers,config,resMan){
   this->filtStreamType_ = FIFO_FILTER;
-  this->inTKE = config->Get("TKE")->Get("resultName")->As<std::string>();
-  this->inTEF = config->Get("TEF")->Get("resultName")->As<std::string>();
-  this->inVelocity = config->Get("meanVelocity")->Get("resultName")->As<std::string>();
-  this->inDensity = config->Get("localDensity")->Get("resultName")->As<std::string>();
-  this->inTemp = config->Get("localTemp")->Get("resultName")->As<std::string>();
+  // output result
   this->outName = config->Get("output")->Get("resultName")->As<std::string>();
+  filtResNames.insert(outName);
+  
+  // input results
+  this->inTKE = config->Get("TKE")->Get("resultName")->As<std::string>();
+  upResNames.insert(inTKE);
+  this->inTEF = config->Get("TEF")->Get("resultName")->As<std::string>();
+  upResNames.insert(inTEF);
+  this->inVelocity = config->Get("meanVelocity")->Get("resultName")->As<std::string>();
+  upResNames.insert(inVelocity);
+  this->inDensity = config->Get("localDensity")->Get("resultName")->As<std::string>();
+  upResNames.insert(inDensity);
+  this->inTemp = config->Get("localTemp")->Get("resultName")->As<std::string>();
+  upResNames.insert(inTemp);
+  
   // mit dem TKE-Kriterium wird das Quellgebiet reduziert. Gänger Wert in der Literatur sind zB 10%; 
   // es werden dann der SNGR-Algorithmus nur für Knoten ausgeführt, die mindestens 10% der maximal auftretenden TKE erreichen.
   this->TKEcrit = config->Get("tkeCriterion")->As<Double>();
@@ -47,33 +57,11 @@ SNGRFilter::SNGRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
   this->minWN = config->Get("waveNumBounds")->Get("minWN")->As<Double>();
   // mit der Angabe von ensembles soll im Nachgang eine Ensembles-Mittelung an einem Mikrofonpunkt möglich sein.
   this->ensemble = config->Get("ensembles")->As<UInt>();
-  
-  filtResNames.insert(outName);
-  upResNames.insert(inTKE);
-  upResNames.insert(inVelocity);
-  upResNames.insert(inDensity);
-  upResNames.insert(inTemp);
-  upResNames.insert(inTEF);
-  uuids::uuid upRes = upResIds[0];
-  inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
-
 }
 // im wesentlichen übernommen von BinOpFilter
 
-bool SNGRFilter::Run(){
+bool SNGRFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
   Double aTF = resultManager_->GetStepValue(outId);
-  //set time value and activate the input results
-  resultManager_->SetTimeValue(tkeId,aTF);
-  resultManager_->SetTimeValue(tefId,aTF);
-  resultManager_->SetTimeValue(velocityId,aTF);
-  resultManager_->SetTimeValue(densityId,aTF);
-  resultManager_->SetTimeValue(temperatureId,aTF);
-  resultManager_->ActivateResult(tkeId);
-  resultManager_->ActivateResult(tefId);
-  resultManager_->ActivateResult(velocityId);
-  resultManager_->ActivateResult(densityId);
-  resultManager_->ActivateResult(temperatureId);
-  resultManager_->DeactivateResult(outId);
   
 //   --------------------------------------
 //  ============== new stuff =================
@@ -113,11 +101,11 @@ bool SNGRFilter::Run(){
 
   // get result for result id 
   CF::StdVector<UInt> numNds;
-  Vector<Double>& TKE = resultManager_->GetResultVector<Double>(tkeId,numNds);
-  Vector<Double>& TEF = resultManager_->GetResultVector<Double>(tefId,numNds);
-  Vector<Double>& meanVelocity = resultManager_->GetResultVector<Double>(velocityId,numNds);
-  Vector<Double>& localDensity = resultManager_->GetResultVector<Double>(densityId,numNds);
-  Vector<Double>& localTemp = resultManager_->GetResultVector<Double>(temperatureId,numNds);
+  Vector<Double>& TKE = GetUpstreamResultVector<Double>(tkeId, aTF);
+  Vector<Double>& TEF = GetUpstreamResultVector<Double>(tefId, aTF);
+  Vector<Double>& meanVelocity = GetUpstreamResultVector<Double>(velocityId, aTF);
+  Vector<Double>& localDensity = GetUpstreamResultVector<Double>(densityId, aTF);
+  Vector<Double>& localTemp = GetUpstreamResultVector<Double>(temperatureId, aTF);
 
   // set TKE threshold
   Double maxTKE=0.0;
@@ -265,57 +253,30 @@ bool SNGRFilter::Run(){
 //  ----------------------------------------
   
 
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
-  }
-
   //equation numbers for this result
   //here, those equation numbers are equal for all in/out results
   CF::StdVector<UInt> eqnNums;
-  Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(outId,eqnNums);
-  returnVec.Init();
+  Vector<Double>& returnVec = GetOwnResultVector<Double>(outId);
 
-  //Vector<Double>& res1V = resultManager_->GetResultVector<Double>(tkeId,eqnNums);
-  //Vector<Double>& res2V = resultManager_->GetResultVector<Double>(velocityId,eqnNums);
-
-  UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
+  const UInt last = returnVec.GetSize();
 
   // how to get a coordinate
   // CF::Vector<Double> pCoord;
   //inGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
-#pragma omp parallel for
+  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
   for(UInt i=0;i<last;++i){
     returnVec[i] = turbReconstVelocity[i];
   }
-  resultManager_->ActivateResult(outId);
   return true;
 }
 
 ResultIdList SNGRFilter::SetUpstreamResults(){
-  ResultIdList generated;
-  //sanity check
-  if(filterResIds.GetSize()>1){
-    EXCEPTION("Filter can only have one result. This indicates a Bug!")
-  }
-  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
-  outId = *aIt;
-  //we only have one filter result
-  std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
-  tkeId = resultManager_->AddResult(inTKE,this->filterTag_);
-  velocityId = resultManager_->AddResult(inVelocity,this->filterTag_);
-
-  // get the grid
-  inGrid_ = resultManager_->GetExtInfo(tkeId)->ptGrid;
-
-  //copy the timeline from input result
-  resultManager_->SetTimeLine(tkeId,(*resultManager_->GetExtInfo(outId)->timeLine.get()));
-  resultManager_->SetTimeLine(velocityId,(*resultManager_->GetExtInfo(outId)->timeLine.get()));
-  generated.Push_back(tkeId);
-  generated.Push_back(velocityId);
-
+  ResultIdList generated = SetDefaultUpstreamResults();
+  tkeId = upResNameIds[inTKE];
+  velocityId = upResNameIds[inVelocity];
+  tefId = upResNameIds[inTEF];
+  densityId = upResNameIds[inDensity];
+  temperatureId = upResNameIds[inTemp];
   return generated;
 }
 
@@ -324,6 +285,7 @@ void SNGRFilter::AdaptFilterResults(){
   //we can almost copy everything from time input (also scalar, etc.)
   resultManager_->CopyResultData(tkeId,outId);
   resultManager_->SetValid(outId);
+  inGrid_ = resultManager_->GetExtInfo(tkeId)->ptGrid;
 }
 
 //TODO AP3 Kumulativer Filter und timeline in prepare filter ala FFT filter (60h) -> output u'
