@@ -184,7 +184,7 @@ def degree_to_rad_quadrant(degree):
   else:
     return 2*np.pi-rad
   
-def cartesian_to_grid_coords(x,res,eps=1e-6):
+def cartesian_to_grid_coord(x,res,eps=1e-6):
   h = 1.0 / res # assume domain is 1m x 1m x 1m
   return int(round((x-h/2.0) / h+eps)) 
 
@@ -879,9 +879,6 @@ def generate_basecell(args,info):
       symmetric = False
       write_profile_to_array(array, profiles[i],args.multiple_regions)
       
-    if args.target == "volume_mesh":
-      points, cells = voxels_to_points_and_cells(array)
-      
     if args.target == "3dlines":
       if args.save_vtp: #write 3 .vtp files
         points = vtk.vtkPoints()
@@ -895,7 +892,9 @@ def generate_basecell(args,info):
       else:  
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
   
-  
+  if args.target == "volume_mesh":
+    points, cells = voxels_to_points_and_cells(array,multRegions=args.multiple_regions)
+      
   if args.target == "surface_mesh" or args.target == "marching_cubes":
     ############################ new surface mesh approach ####################
     # Use marching cubes to obtain the surface mesh of voxelized structure
@@ -1381,7 +1380,7 @@ def radius_to_3d_coords(profile,x,phi):
  
   return point
 
-def voxels_to_points_and_cells(array,wx=1.0,wy=1.0,wz=1.0):
+def voxels_to_points_and_cells(array,multRegions=False,wx=1.0,wy=1.0,wz=1.0):
   resx, resy, resz = array.shape
   
   hx = wx / resx
@@ -1397,12 +1396,16 @@ def voxels_to_points_and_cells(array,wx=1.0,wy=1.0,wz=1.0):
         y = j * hy + hy/2.0 
         z = k * hz + hz/2.0
         
-        if array[i,j,k] >= 0:
-           if i > 0 and j > 0 and k > 0 and i < resx-1 and j < resy-1 and k < resz - 1:   
-             if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
-               centers.append([x,y,z])
-           else:
-             centers.append([x,y,z])
+        if (array[i,j,k] >= 0 and multRegions) or(array[i,j,k] > 0 and not multRegions):
+          if i > 0 and j > 0 and k > 0 and i < resx-1 and j < resy-1 and k < resz - 1:
+            if multRegions:
+              if array[i-1,j,k] < 0 or array[i+1,j,k] < 0 or array[i,j-1,k] < 0 or array[i,j+1,k] < 0 or array[i,j,k-1] < 0 or array[i,j,k+1] < 0:
+                centers.append([x,y,z])
+            else:      
+              if array[i-1,j,k] == 0 or array[i+1,j,k] == 0 or array[i,j-1,k] == 0 or array[i,j+1,k] == 0 or array[i,j,k-1] == 0 or array[i,j,k+1] == 0:
+                centers.append([x,y,z])
+          else:
+            centers.append([x,y,z])       
         
   # dummy objects, create_centered_bars needs them
   vtk_points = vtk.vtkPoints()

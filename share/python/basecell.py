@@ -120,10 +120,14 @@ def laplacian_smoothing(points,connectivity,lamb,start=0,end=None,bounds=None,ra
   
   return new_points  
 
-def calc_volume(array,infoXml=None):
-  res, res, res = array.shape
+def calc_volume(array,multRegions=False,infoXml=None):
+  res = array.shape[0]
   
-  elems = np.where(array != -1,1,0).sum() # np.where() delivers array with info on if condition <> -1 is fulfilled
+  elems = 0
+  if multRegions:
+    elems = np.where(array != -1,1,0).sum() # np.where() delivers array with info on if condition <> -1 is fulfilled
+  else:
+    elems = np.where(array > 0,1,0).sum() # np.where() delivers array with info on if condition <> -1 is fulfilled
   
   vol = float(elems)/float(res**3)
   
@@ -339,7 +343,7 @@ if __name__ == "__main__":
   # we need voxel array for gid mesh writing 
   args.bc_flags = None
   array, points, cells = draw_profile_functions.generate_basecell(args,infoXml)
-  volume = calc_volume(array, infoXml)
+  volume = calc_volume(array, args.multiple_regions, infoXml)
   
   if args.target == "surface_mesh":
     connectivity = getConnectivity(points,cells)
