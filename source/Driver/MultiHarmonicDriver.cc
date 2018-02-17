@@ -162,7 +162,7 @@ namespace CoupledField
 
 
 
-/*
+
 
     // Log info for this harmonic
     if(progOpts->IsQuiet())
@@ -172,8 +172,9 @@ namespace CoupledField
 
     analysis_id_.step = actFreqStep_;
     analysis_id_.freq = actFreq_;
-    // analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
 
+    // analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
+/*
     handler_->BeginStep( actFreqStep_, actFreq_ );
     ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
     handler_->FinishStep( );

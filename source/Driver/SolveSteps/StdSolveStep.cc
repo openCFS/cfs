@@ -5638,7 +5638,6 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       adjointSource_ = false;
     }
 
-EXCEPTION("UNTIL HERE AND NO FURTHER!!!!!!!!!!!")
   }
 
 

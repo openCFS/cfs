@@ -3261,9 +3261,9 @@ namespace CoupledField {
         // if index number is larger the lastFree dof, insert Dirichlet value
         // (just if setIDBC is true!)
         if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex ) {
-          if ( setIDBC) 
+          if ( setIDBC)
             idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry, deltaIDBC);
-          else 
+          else
             entry = 0.0;
         } else {
           sol_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
@@ -3272,18 +3272,58 @@ namespace CoupledField {
       }
     }
   }
+
+
+  void AlgebraicSys::GetSolutionVal( SingleVector& ptSol,
+                                     const UInt& block,
+                                     bool setIDBC,
+                                     bool deltaIDBC,
+                                     const bool ident) {
+
+    LOG_TRACE(algSys) << "Getting multiharmonic solution values ";
+
+    StdVector<UInt> blockNums, indices;
+
+    MapCompleteFctIdToIndex( 0, blockNums, indices);
+    UInt size = blockNums.GetSize();
+    ptSol.Resize(size);
+    ptSol.Init();
+
+    if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
+      EXCEPTION("AlgebraicSys::GetSolutionVal Double-Version for multiharmonic not implemented");
+    }else{
+      Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
+      Complex entry = 0.0;
+      for( UInt i = 0; i < size; ++i ) {
+        // if index number is larger the lastFree dof, insert Dirichlet value
+        // (just if setIDBC is true!)
+        if( indices[i] > blockInfo_[0]->numLastFreeIndex ) {
+          if ( setIDBC) 
+            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry, deltaIDBC);
+          else 
+            entry = 0.0;
+        } else {
+          sol_->GetPointer(block)->GetEntry(indices[i]-1,entry);
+        }
+        retVec[i] = entry;
+      }
+    }
+  }
   
   void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
     
-    // resize solVec to match number of functions
-    EXCEPTION(" CONTINUE FURTHER IMPLEMENTATION HERE ");
-    solVec.Resize( numFcts_);
-    
-    // loop over all feFctIDs
-    for(UInt i = 0; i < numFcts_; ++i ) {
-    
-      // call specialized GetSolutionVal method
-      GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC);
+    if(!isMultHarm_){
+      solVec.Resize( numFcts_);
+      // loop over all feFctIDs
+      for(UInt i = 0; i < numFcts_; ++i ) GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC);
+    }else{
+      // resize rhs-vector to number of harmonics (-N,...,0,...N)
+      UInt size = 2 * solStrat_->GetNumHarmN() + 1;
+      solVec.Resize( size );
+      // loop over ''block''-vectors and fill them
+      // call specialized GetSolutionVal method, the boolean
+      // has no effect, it's just an identifier to call the correct method
+      for(UInt i = 0; i < size; ++i) GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC, true);
     }
   }
   
@@ -3340,7 +3380,6 @@ namespace CoupledField {
 
     LOG_TRACE(algSys) << "Getting multiharmonic RHSvalue";
 
-    // get all (blockId,index)-combinations for the current fctId
     StdVector<UInt> blockNums, indices;
     MapCompleteFctIdToIndex( NO_FCT_ID, blockNums, indices);
     UInt size = blockNums.GetSize();
@@ -3348,7 +3387,7 @@ namespace CoupledField {
     ptRhs.Init();
 
     if( ptRhs.GetEntryType() == BaseMatrix::DOUBLE ) {
-      EXCEPTION("This method shall only be called in multiharmonic analysis!!");
+      EXCEPTION("AlgebraicSys::GetRHSVal This method shall only be called in multiharmonic analysis!!");
     } else {
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptRhs );
       Complex entry = 0.0;
@@ -3378,7 +3417,7 @@ namespace CoupledField {
       rhsVec.Resize( size );
 
       // loop over ''block''-vectors and fill them
-      // call specialized GetSolutionVal method, the boolean
+      // call specialized GetRHSVal method, the boolean
       // has no effect, it's just an identifier to call the correct method
       for(UInt i = 0; i < size; ++i) GetRHSVal(rhsVec(i), i, true);
     }// endif isMultHarm

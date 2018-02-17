@@ -793,6 +793,19 @@ namespace CoupledField {
                          const FeFctIdType fctId,
                          bool setIDBC, bool deltaIDBC=false  );
 
+    //! Return solution vector for a given block in multiharmonic analysis
+
+    //! This method returns the solution vector associated with one specific
+    //! SBM-block. The entries are numbered according to the equations numbers
+    //! \param solVec solution vector for specified FeFcunction
+    //! \param ident (has no function) only purpose is to call the correct method
+    void GetSolutionVal( SingleVector& ptSol,
+                        const UInt& block,
+                        bool setIDBC,
+                        bool deltaIDBC,
+                        const bool ident);
+
+
     //! Helper function introduced for non-linear-transient stepping
     //! Background:
     //!   During transient, non-linear stepping, the first solution step

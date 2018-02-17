@@ -137,11 +137,10 @@ namespace CoupledField {
 
 
     StdVector<UInt> sbmInd(0);
-    // same as ComputeIndex method in GraphManager, here with a lambda function
     if(algsys_->GetSolStrategy()->IsMultHarm()){
       UInt N = algsys_->GetSolStrategy()->GetNumHarmN();
       UInt M = algsys_->GetSolStrategy()->GetNumHarmM();
-
+      // same as ComputeIndex method in GraphManager, here with a lambda function
       auto ComputeIndex = [N](UInt a, UInt b ) { return (2*N+1) * a + b;};
 
       // store the sbm-indices of the nnz sbm-blocks
