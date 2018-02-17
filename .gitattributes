@@ -386,8 +386,10 @@ ctest_scripts/sites/eamc061/linux64_shared_opt_intel_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_mingw_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_no_prec_gcc_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_trunk_clang_release.ctest -text
+ctest_scripts/sites/eamc061/linux64_trunk_gcc_all_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/eamc061/linux64_trunk_gcc_release.ctest -text
+ctest_scripts/sites/eamc061/linux64_trunk_gcc_serial_debug.ctest -text
 ctest_scripts/sites/eamc061/linux64_trunk_intel_release.ctest -text
 ctest_scripts/sites/eamc061/site_specific_init.cmake -text
 ctest_scripts/sites/eamc067/generate_test_name_list.cmake -text
@@ -515,6 +517,7 @@ ctest_scripts/sites/test-ubuntu14/linux64_trunk_gcc_release_deploy.cmake -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_debug.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_release.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_release_deploy.cmake -text
+ctest_scripts/sites/test-ubuntu14/linux64_trunk_no-openmp_gcc_release.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_no-opt_gcc_release.ctest -text
 ctest_scripts/sites/test-ubuntu14/site_specific_vars.cmake -text
 ctest_scripts/sites/test-ubuntu14/update_cfs_trunk.ctest -text
@@ -1461,10 +1464,12 @@ share/xml/CFS-Dat/Schemas/CFSDat_PostLighthill.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_ResultDef.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_RotDomain.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_RotSubstantialTimeDeriv.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_SNGR.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_SimplePoint.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_TDeriv1.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_TMean.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_TemporalBlending.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_TimeType.xsd -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Examples/MaterialDataBase.xml svneol=native#text/xml
 share/xml/CFS-Material/Examples/matElec.xml svneol=native#text/xml
@@ -2467,6 +2472,8 @@ source/cfsdat/Filters/SignalProcessing/TemporalBlendingFilter.cc -text
 source/cfsdat/Filters/SignalProcessing/TemporalBlendingFilter.hh -text
 source/cfsdat/Filters/SignalProcessing/TimeMeanFilter.cc -text
 source/cfsdat/Filters/SignalProcessing/TimeMeanFilter.hh -text
+source/cfsdat/Filters/SynteticSources/BaseSNGR.cc -text
+source/cfsdat/Filters/SynteticSources/BaseSNGR.hh -text
 source/cfsdat/README -text
 source/cfsdat/Utils/AnalyticalFields.cc -text
 source/cfsdat/Utils/AnalyticalFields.hh -text
@@ -2479,6 +2486,8 @@ source/cfsdat/Utils/EqnNumberingSimple.hh -text
 source/cfsdat/Utils/KNNSearch.cc -text
 source/cfsdat/Utils/KNNSearch.hh -text
 source/cfsdat/Utils/Point.hh -text
+source/cfsdat/Utils/ResultCache.cc -text
+source/cfsdat/Utils/ResultCache.hh -text
 source/cfsdat/Utils/ResultManager.cc -text
 source/cfsdat/Utils/ResultManager.hh -text
 source/cfsdat/cfsdat.cc -text

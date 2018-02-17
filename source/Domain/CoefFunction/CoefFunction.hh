@@ -616,15 +616,50 @@ public:
   virtual void SetRuntimeDependentFlag(std::string flagName, UInt intState){
     EXCEPTION( "Not implemented in base class");
   }
-
-  //! set regionId of neighbor
-  virtual void SetNeighborRegionId(RegionIdType id) {
-	  neighborRegionId_ = id;
+  
+  virtual bool deltaMatActive(){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual int GetDeltaForm(){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual int GetTimeLevel(std::string EntitiyType){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(std::string tensorName,PtrCoefFct elastTensor = NULL, PtrCoefFct couplTensor = NULL ){
+    EXCEPTION("Not implemented in base class");
+  }
+  virtual shared_ptr<CoefFunction> GenerateRHSCoefFnc(std::string vectorName,PtrCoefFct elastTensor = NULL, PtrCoefFct couplTensor = NULL, bool onBoundary = false){
+    EXCEPTION("Not implemented in base class");
+  }
+  virtual shared_ptr<CoefFunction> GenerateOutputCoefFnc(std::string ResultName){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual Vector<Double> GetOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel, bool invert){
+    EXCEPTION( "Not implemented in base class");
   }
 
-  //! return regionId of neighbor
-  virtual RegionIdType GetNeighborRegionId() {
-	  return neighborRegionId_;
+  virtual void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, PtrCoefFct couplTensorCoefFct, Matrix<Double>& rotatedCouplTensor, int timeLevel){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual Double GetOutputSaturation(){
+    EXCEPTION( "Not implemented in base class");
+  }
+
+
+  //! set volume regionId being the correct neighbor of a surface region id
+  virtual void SetVolNeighborRegionId(RegionIdType surfId, RegionIdType volId) {
+	  neighborRegionId_[surfId] = volId;
+  }
+
+  //! return volume regionId being the correct neighbor of a surface region id
+  virtual RegionIdType GetVolNeighborRegionId(RegionIdType surfId) {
+	  return neighborRegionId_[surfId];
   }
   //@}
 
@@ -689,8 +724,8 @@ protected:
   //! only needed for hystersis
   StdPDE* linkedPDE_;
 
-  //! volume region id of the specified neighbor (important for surface coefficients!)
-  RegionIdType neighborRegionId_;
+  //! for each surface Region id we have to correct neighbor volume region id
+  std::map<RegionIdType, RegionIdType> neighborRegionId_;
 
   //! Map Storing FeSpaces for each unknown of PDE
   std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;

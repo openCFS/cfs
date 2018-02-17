@@ -85,6 +85,8 @@ namespace CoupledField
     void ReadSpecialBCs();
 
     void FinalizeAfterTimeStep();
+    
+    void InitHystCoefs();
 
 
     // ======================================================
@@ -154,6 +156,9 @@ namespace CoupledField
 
   private:
 
+    bool regionApproxSet_;
+    std::map<RegionIdType,shared_ptr<ElemList> > SDLists_;
+    
     //! Read definitions for electric impedances
     void ReadImpedances();
 

@@ -30,12 +30,11 @@ public:
 
   virtual ~Node2CellInterpolator();
 
-  virtual bool Run();
-
-
 
 protected:
 
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
+  
   virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();

@@ -27,7 +27,8 @@ MeshFilter::MeshFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
   // there we might have two inputs (i.e. velocity and vorticity)
   if (params_-> Get("type")->As<std::string>() != "AeroacousticSource_LambVector" &&
       params_-> Get("type")->As<std::string>() != "AeroacousticSource_LighthillSourceVector" &&
-      params_-> Get("type")->As<std::string>() != "AeroacousticSource_LighthillSourceTerm"){
+      params_-> Get("type")->As<std::string>() != "AeroacousticSource_LighthillSourceTerm" &&
+      params_-> Get("type")->As<std::string>() != "AeroacousticSource_LighthillSourceTensor"){
         std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
         std::string outRes = params_->Get("singleResult")->Get("outputQuantity")->Get("resultName")->As<std::string>();
         filtResNames.insert(outRes);
@@ -142,7 +143,7 @@ void MeshFilter::Node2Cell(Vector<Double>& returnVec,
   UInt curE;
   CF::StdVector<UInt> eqns;
 
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(resId)->mapping;
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(resId);
 
 
   // for every element in the target mesh
@@ -177,7 +178,7 @@ void MeshFilter::Cell2Node(Vector<Double>& returnVec,
   CF::Vector<Double> shFnc;
   CF::StdVector<UInt> eqns;
   CF::shared_ptr<ElemShapeMap> eShape;
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdapter(resId)->mapping;
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(resId);
 
   for(UInt i=0;i < interpolData.size();++i){
     QuantityStruct aStru = interpolData[i];
@@ -469,7 +470,7 @@ bool MeshFilter::CalcLocCurl(CF::Matrix<Double>& derivCoefVec,
                             const CF::Double& maxDist,
                             const StdVector<CF::Double>& l2Distances,
                             const StdVector< CF::Vector<CF::Double> >& neighbors,
-                            const UInt& numNeighbors,
+                            const UInt& numNeighbors, //TODO WARUM?
                             const UInt& numEquPerEnt,
                             Grid* grid,
                             const Double epsScal,
@@ -894,6 +895,66 @@ void MeshFilter::CalcDivergence(Vector<Double>& returnVec,
     tempMat = vals * targetSourceFactor[targetIndex];
     returnVec[targetIndex] = tempMat.Trace();
 
+  }
+
+}
+
+int MeshFilter::Index2Voigt(          const UInt& dx1,
+                                      const UInt& dx2,
+                                      const UInt& dim) {
+  if(dx1>=dim || dx2>=dim)
+    EXCEPTION("Index does not exist!")
+  if (dim == 3) {
+    int indexT[3][3] = {{0,5,4},{5,1,3},{4,3,2}};
+    return indexT[dx1][dx2];
+  } else if (dim == 2){
+    int indexT[2][2] = {{0,2},{2,1}} ;
+    return indexT[dx1][dx2];
+  }
+  return dx1;
+
+}
+
+
+void MeshFilter::CalcTensorDivergence(Vector<Double>& returnVec,
+                                      const Vector<Double>& inVec,
+                                      const UInt& numEquPerEnt,
+                                      const StdVector< StdVector<CF::UInt> >& sourceM,
+                                      const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
+                                      const UInt& maxNumTrgEntities){
+
+  returnVec.Resize(maxNumTrgEntities * numEquPerEnt);
+  returnVec.Init();
+
+  UInt numbTensorEntries = numEquPerEnt + 1;
+  if (numEquPerEnt==3)numbTensorEntries = numEquPerEnt + 3;
+
+
+
+//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  for (UInt targetIndex = 0; targetIndex < maxNumTrgEntities; targetIndex++) {
+    returnVec[targetIndex] = 0.0;
+
+    StdVector<CF::UInt> sM = sourceM[targetIndex];
+
+    UInt patchSize = sM.GetSize();
+    CF::Matrix<Double> vals;
+    vals.Resize(numEquPerEnt, patchSize);
+    vals.InitValue(0.0);
+
+    for(UInt tensorRow = 0; tensorRow < numEquPerEnt; ++tensorRow){
+
+      for (CF::UInt j = 0; j < patchSize; j++) {
+        CF::UInt sourceIndex = sM[j];
+        for(UInt d = 0; d < numEquPerEnt; ++d){
+          vals[d][j] = inVec[numbTensorEntries * (sourceIndex-1) + Index2Voigt(tensorRow,d,numEquPerEnt)];
+
+        }
+       }
+      CF::Matrix<Double> tempMat;
+      tempMat = vals * targetSourceFactor[targetIndex];
+      returnVec[targetIndex + tensorRow] = tempMat.Trace();
+    }
   }
 
 }

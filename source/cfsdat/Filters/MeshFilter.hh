@@ -69,8 +69,6 @@ public:
     delete trgGrid_;
   }
 
-  virtual bool Run() = 0;
-
   virtual void FinishInit();
 
 
@@ -243,6 +241,17 @@ protected:
                       const StdVector< StdVector<CF::UInt> >& sourceM,
                       const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
                       const UInt& maxNumTrgEntities);
+
+  void CalcTensorDivergence(Vector<Double>& returnVec,
+                      const Vector<Double>& inVec,
+                      const UInt& numEquPerEnt,
+                      const StdVector< StdVector<CF::UInt> >& sourceM,
+                      const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
+                      const UInt& maxNumTrgEntities);
+
+  int Index2Voigt(const UInt& dx1,
+                  const UInt& dx2,
+                  const UInt& dim);
 
   void CalcGradient(Vector<Double>& returnVec,
                       const Vector<Double>& inVec,

@@ -234,7 +234,7 @@ namespace CoupledField
       GetResultArguments(UInt sequenceStep, SolutionType solType, std::string regionName);
       
       //! Less comparator for usage in std::map
-      const bool operator<(const GetResultArguments &r) const;
+      bool operator<(const GetResultArguments &r) const;
       
     private:
       UInt sequenceStep_;

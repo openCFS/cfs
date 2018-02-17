@@ -30,6 +30,10 @@ namespace CoupledField {
       return Yout;
     };
 
+    virtual Vector<Double> computeInput_vec(Vector<Double>& yVal, Integer idElem, Double mu, Double& alpha, bool overwrite = true,bool overwriteDirection = true) {
+      EXCEPTION("computeInput_vec not implemented in base-class");
+    };
+    
     //!
     virtual Double computeValueAndUpdate(Double xVal, Integer idxElem, 
                                          bool overwrite = true ) {

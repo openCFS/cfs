@@ -163,14 +163,12 @@ namespace CoupledField {
   //   Assignment operator
   // **********************
   SBM_Vector& SBM_Vector::operator= ( const SBM_Vector &bVec ) {
-
     // check, if vectors have the same length
     // 1) same length: loop over sub-vectors and copy entries
     if( size_ == bVec.size_ ){
-
       // loop over all sub-vectors
       for( UInt i = 0; i < size_; ++i ) {
-        
+			
         // switch depending on entry type
         if( myEntryType_ == BaseMatrix::DOUBLE ) {
           Vector<Double> & myVec = dynamic_cast<Vector<Double>& >(*subVec_[i]);
@@ -190,7 +188,6 @@ namespace CoupledField {
     // 2) different length: delete sub-vectors and copy all
     //    vectors from bVec
     else {
-
       // Only set subvectors, if this is not a cheap copy
       if( !ownSubVectors_ ) {
         EXCEPTION( "As this is a weak copy of a SBM-vector, I refuse to "

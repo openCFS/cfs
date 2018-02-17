@@ -51,6 +51,7 @@ namespace CoupledField {
     
     
     infoNode_ = infoNode;
+		considerCounterpart_ = false;
   }
 
 
@@ -162,14 +163,25 @@ namespace CoupledField {
         PtrParamNode list = in->Get("nonConformingGridInterfaces"); 
 
         for (UInt i = 0; i < ncIfList.GetSize(); ++i) {
-          std::string ncIfName = ncIfList[i]->Get("name")->As<std::string>(); 
-          RegionIdType ncIfId = ptGrid_->GetRegion().Parse(ncIfName);
+        	std::string ncIfName = ncIfList[i]->Get("name")->As<std::string>();
+        	RegionIdType ncIfId = ptGrid_->GetRegion().Parse(ncIfName);
 
-          PtrParamNode e = list->Get("nc_interface", ParamNode::APPEND); 
-          e->Get("name")->SetValue(ncIfName); 
-          e->Get("id")->SetValue(ncIfId);
+        	StdPDE::NcInterfaceInfo newIface;
+        	Enum<StdPDE::NcCouplingType> ncCouplingType;
+        	newIface.interfaceId = ptGrid_->GetNcInterfaceId( ncIfList[i]->Get("name")
+        	                                                        ->As<std::string>() );
+        	newIface.type = StdPDE::NC_MORTAR;
+//        	newIface.type = ncCouplingType.Parse( ncIfList[i]->Get("formulation",
+//        	          ParamNode::INSERT)->As<std::string>() );
+        	newIface.crossPointHandling = false;
+        	newIface.lagrangeMultType = StdPDE::LM_STANDARD;
 
-          ncIfaces_.Push_back(ncIfId);
+        	//PtrParamNode e = list->Get("nc_interface", ParamNode::APPEND);
+        	//e->Get("name")->SetValue(ncIfName);
+        	//e->Get("id")->SetValue(ncIfId);
+
+        	ncIfaces_.Push_back(ncIfId);
+        	ncInterfaces_.Push_back(newIface);
         }
       }
     }
@@ -657,7 +669,7 @@ namespace CoupledField {
         // NOTE: If no rotation is specified and the dimension is
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree, 
-        // so that we pick by default the yz-plane      
+        // so that we pick by default the yz-plane
         if( !rotNode->HasChildren() ) {
           if( dim_ == 2) {
             rotVec[0] = -90.0;

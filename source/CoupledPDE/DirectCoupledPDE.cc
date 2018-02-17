@@ -37,6 +37,7 @@ namespace CoupledField {
                                       Domain* domain)
 
     : StdPDE( aptgrid, paramNode, infoNode, simState, domain ) {
+//		std::cout << "DirectCoupledPDE - Constructor" << std::endl;
   }
 
 
@@ -73,7 +74,7 @@ namespace CoupledField {
   //   SetSinglePDEs
   // *****************
   void DirectCoupledPDE::SetSinglePDEs( const StdVector<SinglePDE*> &pdes ) {
-
+//		std::cout << "DirectCoupledPDE - SetSinglePDEs" << std::endl;
     singlePDEs_ = pdes;
 
     // create composed name of PDE
@@ -112,6 +113,7 @@ namespace CoupledField {
   // ********
   void DirectCoupledPDE::Init( UInt sequenceStep )
   {
+//		std::cout << "DirectCoupledPDE - Init" << std::endl;
     sequenceStep_ = sequenceStep;
 
     infoNode_ = myInfo_->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
@@ -204,7 +206,22 @@ namespace CoupledField {
 	//     std::cout << "this.IsNonLin()? " << this->nonLin_ << std::endl;
 	this->nonLin_ = singlePDEs_[0]->IsNonLin()||singlePDEs_[1]->IsNonLin();
 	//     std::cout << "this.IsNonLin()? " << this->nonLin_ << std::endl;
-     
+  
+	// check for hysteresis; has to be done before solve step gets defined
+	isHysteresis_ = false;
+		for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+			if((singlePDEs_[i]->IsHysteresis()) && (isHysteresis_ == false) )  {
+//				std::cout << "Hysteresis found!" << std::endl;
+				isHysteresis_ = true;
+				hysteresisCoefs_ = singlePDEs_[i]->hysteresisCoefs_;
+				hysteresisPolarization_ = singlePDEs_[i]->hysteresisPolarization_;
+				hysteresisStrain_ = singlePDEs_[i]->hysteresisStrain_;
+			} else if((singlePDEs_[i]->IsHysteresis()) && (isHysteresis_ == true) ) {
+				EXCEPTION("Only one of the two pdes should be hysteretic");
+			}
+    }   
+	
+	
     // define solveStep-driver
     DefineSolveStep();
 
@@ -219,10 +236,7 @@ namespace CoupledField {
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       isIterCoupled_ |= singlePDEs_[i]->IsIterCoupled();
     }
-      
   }
-  
-
 
   // **************************
   //   WriteGeneralPDEdefines
@@ -288,6 +302,6 @@ namespace CoupledField {
   void DirectCoupledPDE::DefineSolveStep() {
     solveStep_ = new StdSolveStep(*this);
   }
-
-
+	
+	
 }

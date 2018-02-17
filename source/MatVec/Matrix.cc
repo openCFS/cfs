@@ -899,8 +899,19 @@ namespace CoupledField
       Matrix<Double> QT;
       QT.Resize(3,3);
       Q.Transpose(QT);
-      helpMat   = (*this) * QT;
-      retMat = Q * helpMat;
+
+      // shouldn't this work for 2x3 tensors?
+      if ( rowSize == 2 && colSize == 3 ) {
+        helpMat   = (*this) * QT;
+        retMat = R * helpMat;
+      }
+      else if (rowSize == 3 && colSize == 3 ) {
+        helpMat   = (*this) * QT;
+        retMat = Q * helpMat;
+      }
+
+      //helpMat   = (*this) * QT;
+      //retMat = Q * helpMat;
       std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
 
     } else if( (rowSize == 3 && colSize == 6) ||
@@ -1959,6 +1970,32 @@ namespace CoupledField
   }
 
   template<class TYPE>
+  void Matrix<TYPE>::PseudoInvert(Matrix <TYPE> & inv) const
+  {
+
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0)
+      EXCEPTION( "Undefined Matrix!" );
+#endif
+
+    Matrix<TYPE> metric;
+    Matrix<TYPE> metricInverse;
+    Matrix<TYPE> tmp;
+
+    //std::cout<<*this<<std::endl;
+    metric.Resize(size_col_, size_col_);
+    MultT(*this, metric);
+    //std::cout<<metric<<std::endl;
+    metric.Invert(metricInverse);
+    //std::cout<<metricInverse<<std::endl;
+    tmp.Resize(size_row_, size_col_);
+    Mult(metricInverse,tmp);
+    tmp.Transpose(inv);
+    //std::cout<<inv<<std::endl;
+
+  }
+
+  template<class TYPE>
   void Matrix<TYPE>::Invert (Matrix <TYPE> & inv) const
   {   
 
@@ -1968,90 +2005,94 @@ namespace CoupledField
 #endif
 
 #ifdef CHECK_INDEX
-    if (size_row_ != size_col_ ) 
-      EXCEPTION( "No quadratic matrix!" );
+    if (size_row_ != size_col_ ) {
+      //EXCEPTION( "No quadratic matrix!" );
+      PseudoInvert(inv);
+    }
 #endif
+//TODO
+    if(size_row_== size_col_) {
+      TYPE det;
+      TYPE invDet;
+      switch (size_row_)
+        {
+        case 1:
+          inv.Resize(1);
+          inv[0][0] = 1/data_[0][0];
+          break;
+        case 2:
+          inv.Resize(2,2);
+          inv[0][0] = data_[1][1];
+          inv[0][1] = - data_[0][1];
+          inv[1][0] = - data_[1][0];
+          inv[1][1] = data_[0][0];
+          this->Determinant(det);
+          inv *= 1/det;
+          break;
 
-    TYPE det;
-    TYPE invDet;
-    switch (size_row_)
-      {
-      case 1: 
-        inv.Resize(1);
-        inv[0][0] = 1/data_[0][0];
-        break;
-      case 2:
-        inv.Resize(2,2);
-        inv[0][0] = data_[1][1];
-        inv[0][1] = - data_[0][1];
-        inv[1][0] = - data_[1][0];
-        inv[1][1] = data_[0][0];
-        this->Determinant(det);
-        inv *= 1/det;
-        break;
+        case 3:
+          // see Stoecker: "Taschenbuch Mathematischer Formeln und Moderner Verfahren" p.418
+          inv.Resize(3,3);
 
-      case 3:
-        // see Stoecker: "Taschenbuch Mathematischer Formeln und Moderner Verfahren" p.418
-        inv.Resize(3,3);
+          // === Old, recursive version ===
+          // see Str: "Taschenbuch Mathematischer Formeln und Moderner Verfahren" p.418
+          //for(UInt i=0; i<3; i++)
+          //  for(UInt j=0; j<3; j++)
+          //    inv[j][i] = Adjunct(i,j);
+          this->Determinant(det);
+          invDet = 1.0 / det;
+          // === New, explicit version (from Wikipedia) ===
+          inv[2][2] = (data_[0][0] * data_[1][1] - data_[0][1] * data_[1][0])*invDet;
+          inv[0][2] = (data_[0][1] * data_[1][2] - data_[0][2] * data_[1][1])*invDet;
+          inv[1][2] = (data_[0][2] * data_[1][0] - data_[0][0] * data_[1][2])*invDet;
 
-        // === Old, recursive version ===
-        // see Str: "Taschenbuch Mathematischer Formeln und Moderner Verfahren" p.418
-        //for(UInt i=0; i<3; i++)
-        //  for(UInt j=0; j<3; j++)
-        //    inv[j][i] = Adjunct(i,j);      
-        this->Determinant(det);
-        invDet = 1.0 / det;
-        // === New, explicit version (from Wikipedia) ===
-        inv[2][2] = (data_[0][0] * data_[1][1] - data_[0][1] * data_[1][0])*invDet;
-        inv[0][2] = (data_[0][1] * data_[1][2] - data_[0][2] * data_[1][1])*invDet;
-        inv[1][2] = (data_[0][2] * data_[1][0] - data_[0][0] * data_[1][2])*invDet;
+          inv[2][0] = (data_[1][0] * data_[2][1] - data_[1][1] * data_[2][0])*invDet;
+          inv[0][0] = (data_[1][1] * data_[2][2] - data_[1][2] * data_[2][1])*invDet;
+          inv[1][0] = (data_[1][2] * data_[2][0] - data_[1][0] * data_[2][2])*invDet;
 
-        inv[2][0] = (data_[1][0] * data_[2][1] - data_[1][1] * data_[2][0])*invDet;
-        inv[0][0] = (data_[1][1] * data_[2][2] - data_[1][2] * data_[2][1])*invDet;
-        inv[1][0] = (data_[1][2] * data_[2][0] - data_[1][0] * data_[2][2])*invDet;
+          inv[2][1] = (data_[0][1] * data_[2][0] - data_[0][0] * data_[2][1])*invDet;
+          inv[1][1] = (data_[0][0] * data_[2][2] - data_[0][2] * data_[2][0])*invDet;
+          inv[0][1] = (data_[0][2] * data_[2][1] - data_[0][1] * data_[2][2])*invDet;
+          break;
 
-        inv[2][1] = (data_[0][1] * data_[2][0] - data_[0][0] * data_[2][1])*invDet;
-        inv[1][1] = (data_[0][0] * data_[2][2] - data_[0][2] * data_[2][0])*invDet;
-        inv[0][1] = (data_[0][2] * data_[2][1] - data_[0][1] * data_[2][2])*invDet;
-        break;
-      
-      default: 
-        Double eps = 1e-40;
-        TYPE pivot;
-        TYPE pinv;
+        default:
+          Double eps = 1e-40;
+          TYPE pivot;
+          TYPE pinv;
 
-        //just copy the matrix
-        inv.Resize(size_row_);
-        for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-          inv.data_[0][k] = data_[0][k];
+          //just copy the matrix
+          inv.Resize(size_row_);
+          for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+            inv.data_[0][k] = data_[0][k];
 
-        //compute the inverse
-        for ( UInt k=0; k<size_row_; k++) {
-          pivot = inv[k][k];
-          pinv  = 1/pivot;
-          // std::abs not possible for uint
-          if ( ( pivot >  0 ? pivot : -pivot) > eps ) {
-            for (UInt j=0; j<size_row_; j++) {
-              if ( j != k ) {
-                inv[k][j] = -inv[k][j] * pinv;
-                for ( UInt i=0; i<size_row_; i++ ) {
-                  if ( i != k ) {
-                    inv[i][j] = inv[i][j] + inv[i][k] * inv[k][j];
+          //compute the inverse
+          for ( UInt k=0; k<size_row_; k++) {
+            pivot = inv[k][k];
+            pinv  = 1/pivot;
+            // std::abs not possible for uint
+            if ( ( pivot >  0 ? pivot : -pivot) > eps ) {
+              for (UInt j=0; j<size_row_; j++) {
+                if ( j != k ) {
+                  inv[k][j] = -inv[k][j] * pinv;
+                  for ( UInt i=0; i<size_row_; i++ ) {
+                    if ( i != k ) {
+                      inv[i][j] = inv[i][j] + inv[i][k] * inv[k][j];
+                    }
                   }
                 }
               }
+              for ( UInt i=0;  i<size_row_; i++ ) {
+                inv[i][k] = inv[i][k] * pinv;
+              }
+              inv[k][k] = pinv;
+              //	    std::cout << "inv current:\n" << inv << std::endl;
             }
-            for ( UInt i=0;  i<size_row_; i++ ) {
-              inv[i][k] = inv[i][k] * pinv;
+            else {
+              EXCEPTION("Get divison by zero in matrix inversion" );
             }
-            inv[k][k] = pinv;
-            //	    std::cout << "inv current:\n" << inv << std::endl;
-          }
-          else {
-            EXCEPTION("Get divison by zero in matrix inversion" );
           }
         }
-      }  
+      }
   }
 
   template<> void Matrix<Complex>::Invert (Matrix <Complex> & inv) const

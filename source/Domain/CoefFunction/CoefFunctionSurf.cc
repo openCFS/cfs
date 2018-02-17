@@ -244,7 +244,11 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
 
   // create local point for surface
   LocPointMapped surfLpm(lpm);//Permeabilitätsänderung
-  surfLpm.SetSurfInfo( regions_, neighborRegionId_);
+
+  //get regionId from surfRegion
+  RegionIdType surRegId = surfLpm.ptEl->regionId;
+  RegionIdType volNeighborRegionId = neighborRegionId_[surRegId];
+  surfLpm.SetSurfInfo( regions_, volNeighborRegionId);
 
   //RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
   //std::string regionName = ptGrid_->GetRegion().ToString(region);
@@ -252,13 +256,13 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
 
   //get magnetic flux density
   Vector<Double> Bvec;
-  coefs_[neighborRegionId_]->GetVector(Bvec, *surfLpm.lpmVol );
+  coefs_[volNeighborRegionId]->GetVector(Bvec, *surfLpm.lpmVol );
   //std::cout << "Bvec:  " << Bvec << std::endl;
 
   //get permeability
   Double permeability, matFactor;
   std::map<RegionIdType,PtrCoefFct > permFncs = matCoef_[MAG_ELEM_PERMEABILITY]->GetRegionCoefs();
-  permFncs[neighborRegionId_]->GetScalar(permeability, *surfLpm.lpmVol );
+  permFncs[volNeighborRegionId]->GetScalar(permeability, *surfLpm.lpmVol );
   matFactor = 1.0 / permeability;
 
   //compute: factors * ( (B*n)*B - 1/2*B^2*n )
@@ -299,17 +303,16 @@ void CoefFunctionSurfVWP::GetVector(Vector<Double>& coefVec,
                                     const LocPointMapped& lpm ) {
   assert(this->dimType_ == VECTOR);
 
-  // create local point for surface
-  LocPointMapped lpmVol(lpm);
-
   //get magnetic flux density
   Vector<Double> Bvec;
-  coefs_[neighborRegionId_]->GetVector(Bvec, lpmVol );
+  RegionIdType surRegId = lpm.ptEl->regionId;
+  RegionIdType volNeighborRegionId = neighborRegionId_[surRegId];
+  coefs_[volNeighborRegionId]->GetVector(Bvec, lpm );
 
   //get permeability
   Double permeability;
   std::map<RegionIdType,PtrCoefFct > permFncs = matCoef_[MAG_ELEM_PERMEABILITY]->GetRegionCoefs();
-  permFncs[neighborRegionId_]->GetScalar(permeability, lpmVol );
+  permFncs[volNeighborRegionId]->GetScalar(permeability, lpm );
 
   coefVec = Bvec / std::sqrt( permeability );
 }

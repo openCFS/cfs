@@ -37,8 +37,6 @@ public:
   virtual ~BaseMeshFilterType(){
   }
 
-  virtual bool Run() = 0;
-
 protected:
 
   virtual ResultIdList SetUpstreamResults()=0;

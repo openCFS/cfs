@@ -524,8 +524,11 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeOptCondition(Double& valAmp,
 
 		//phase
 		Double deltaPsi;
+		//std::cout << "Psi: " << psi << std::endl;
+
+		// about one degree difference to 90 degree
 		deltaPsi = 2*beta_*psi - sourceAmp_[i]*valC.imag()
-				   + rho_*2*psi / ( (M_PI/2 + psi) * (M_PI/2-psi) );
+			     + rho_*2*psi / ( (1.005*M_PI/2.0 + psi) * (1.005*M_PI/2.0-psi) );
 
 		sourcePhiDelta_[i] = deltaPsi;
 		valPhi +=  deltaPsi * deltaPsi;
@@ -650,10 +653,11 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeMeasL2squared(Double& valL2 
 	valL2 = val;
 }
 
-
-}
-
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 //  template class CoefFunctionGridNodalSource<Double>;
   template class CoefFunctionGridNodalSource<Complex>;
 #endif
+
+
+} // end of namespace
+

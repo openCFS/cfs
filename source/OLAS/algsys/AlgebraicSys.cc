@@ -2980,6 +2980,10 @@ namespace CoupledField {
 
       // security check: ensure that sub-vector has the same size
       // as the block indices
+			
+//			std::cout << "fup(i).GetSize() = " << fup(i).GetSize() << std::endl;
+//			std::cout << "indices.GetSize() = " << indices.GetSize() << std::endl; 
+			
       if( fup(i).GetSize() != indices.GetSize() ) {
         EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
                    "of indices do not match!");

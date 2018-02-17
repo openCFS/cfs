@@ -317,8 +317,9 @@ namespace CoupledField
     	while ( std::sqrt( res2/measL2squared_ ) > resStopCritRel_  &&  outerIter < maxReduceParSteps_ ) {
     		//solve adj
     		if ( logLevel_ == "2" || logLevel_ == "3" )
-    			std::cout << "\n Outer step " << outerIter+1 << " using alpha: " << alpha_
-				          << ";  beta: " << beta_ << ";  rho: " << rho_ << "\n\n";
+    			std::cout << "\n Outer step " << outerIter+1 << " using: \n alpha: " << alpha_
+				          << ";  beta: " << beta_ << ";  rho: " << rho_ <<  ";  Exponent q: "
+						  << qExp_ <<"\n\n";
 
     		rhsSource_->SetActive(false);
     		rhsMeas_->SetActive(true);
@@ -455,8 +456,8 @@ namespace CoupledField
     			  << "==========================\n\n"
     			  << "Relative L2 error: " << std::sqrt(res2 / measL2squared_)*100.0 << "%\n"
 				  << "Number of reducing parameter steps: " << outerIter << "\n"
-				  << "Final regularization parameters: alpha: " << alpha_*2.0
-				  << ";  beta: " << beta_*2.0 << ";  rho: " << rho_*2.0 << "\n"
+				  << "Final regularization parameters:\n  alpha: " << alpha_*2.0
+				  << ";  beta: " << beta_*2.0 << ";  rho: " << rho_*2.0 << ";  Exponent q: " << qExp_ << "\n"
 				  << "\n=================================================="
 				  << "==========================\n\n";
     }

@@ -18,6 +18,7 @@
 #include "General/Environment.hh"
 #include "Domain/Results/BaseResults.hh"
 #include "cfsdat/Utils/Defines.hh"
+#include "cfsdat/Utils/ResultCache.hh"
 #include "EqnNumberingSimple.hh"
 
 
@@ -31,6 +32,7 @@
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <boost/mpl/range_c.hpp>
 #include <boost/mpl/for_each.hpp>
 #include <boost/bind.hpp>
@@ -49,10 +51,8 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
   typedef enum {UNDEF_DTYPE, INT, DOUBLE, COMPLEX } ResDType;
 
   ExtendedResultInfo(){
-    isTimeCacheMaster = false;
     generatorId = uuids::nil_uuid();
     dType = UNDEF_DTYPE;
-    timeStepOffset = 0;
     isOutput = false;
     sequenceStep = 0;
     timeLine.reset(new CF::StdVector<Double>);
@@ -61,16 +61,16 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
     eqnNumbers.reset(new CF::StdVector<UInt>);
     stepNumbers.reset(new CF::StdVector<UInt>);
     isValid = false;
-    timeCacheMasterId = uuids::nil_uuid();
     ptGrid = NULL;
     isMeshResult = false;
+    minStepOffset = 0;
+    maxStepOffset = 0;
+    masterId = uuids::nil_uuid();
   }
 
   str1::shared_ptr<CF::ResultInfo> GetResultInfo(){
     return str1::shared_ptr<CF::ResultInfo>(this);
   }
-
-  bool isTimeCacheMaster;
 
   uuids::uuid generatorId;
 
@@ -88,8 +88,6 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
 
   ResDType dType;
 
-  Integer timeStepOffset;
-
   bool isOutput;
 
   bool isMeshResult;
@@ -97,17 +95,23 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
   bool isValid;
 
   Grid* ptGrid;
+  
+  Integer minStepOffset;
+  
+  Integer maxStepOffset;
+  
+  uuids::uuid masterId;
+  
+  std::set<uuids::uuid> slaveIds;
 
   bool operator==(const ExtendedResultInfo& other){
     bool isEqual = true;
     isEqual &= other.dType == this->dType;
-    isEqual &= other.isTimeCacheMaster == this->isTimeCacheMaster;
     isEqual &= other.regNames == this->regNames;
     isEqual &= (*other.entityNumbers.get()) == (*this->entityNumbers.get());
     isEqual &= (*other.eqnNumbers.get()) == (*this->eqnNumbers.get());
     isEqual &= (*other.timeLine.get()) == (*this->timeLine.get());
     isEqual &= (*other.stepNumbers.get()) == (*this->stepNumbers.get());
-    isEqual &= other.timeStepOffset == this->timeStepOffset;
     isEqual &= other.complexFormat == this->complexFormat;
     isEqual &= other.definedOn == this->definedOn;
     isEqual &= other.dofNames == this->dofNames;
@@ -119,19 +123,21 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
 
   void operator=(str1::shared_ptr<ExtendedResultInfo> other){
     this->dType               = other->dType;
-    this->isTimeCacheMaster   = other->isTimeCacheMaster;
     this->regNames            = other->regNames;
     this->entityNumbers       = other->entityNumbers;
     this->eqnNumbers          = other->eqnNumbers;
     this->timeLine            = other->timeLine;
     this->stepNumbers         = other->stepNumbers;
-    this->timeStepOffset      = other->timeStepOffset;
     this->complexFormat       = other->complexFormat;
     this->definedOn           = other->definedOn;
     this->dofNames            = other->dofNames;
     this->entryType           = other->entryType;
     this->resultName          = other->resultName;
     this->unit                = other->unit;
+    this->minStepOffset       = other->minStepOffset;
+    this->maxStepOffset       = other->maxStepOffset;
+    this->masterId            = other->masterId;
+    this->slaveIds            = other->slaveIds;
   }
 
   void ImportResultInfo(str1::shared_ptr<ResultInfo> info){
@@ -148,85 +154,39 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
 
 private:
 
-  uuids::uuid timeCacheMasterId;
-
   void CopyInfoFrom(str1::shared_ptr<ExtendedResultInfo> other){
     this->dType               = other->dType;
-    this->isTimeCacheMaster   = other->isTimeCacheMaster;
     this->regNames            = other->regNames;
     this->entityNumbers       = other->entityNumbers;
     this->eqnNumbers          = other->eqnNumbers;
     this->timeLine            = other->timeLine;
     this->stepNumbers         = other->stepNumbers;
-    this->timeStepOffset      = other->timeStepOffset;
     this->complexFormat       = other->complexFormat;
     this->definedOn           = other->definedOn;
     this->dofNames            = other->dofNames;
     this->entryType           = other->entryType;
     this->resultName          = other->resultName;
     this->unit                = other->unit;
+    this->minStepOffset       = other->minStepOffset;
+    this->maxStepOffset       = other->maxStepOffset;
+    this->masterId            = other->masterId;
+    this->slaveIds            = other->slaveIds;
   }
 
-};
-
-struct GenericResultAdapter{
-
-  GenericResultAdapter(){
-    stepValue = 0;
-    isUpToDate = false;
-  }
-
-  virtual ~GenericResultAdapter(){
-
-  }
-
-  virtual SingleVector* GetSingleVector() = 0;
-
-  str1::shared_ptr< EqnMapSimple > mapping;
-
-  //! result struct for export, one result for each entity list/region
-  CF::StdVector< str1::shared_ptr<CF::BaseResult> > baseResultVector;
-
-  Double stepValue;
-
-  UInt stepNumber;
-
-  bool isUpToDate;
-};
-
-template<typename T>
-struct ResultAdaptor : public GenericResultAdapter{
-
-  ResultAdaptor(){
-  }
-
-  virtual ~ResultAdaptor(){
-    resultVector.Clear();
-  }
-
-  SingleVector* GetSingleVector(){
-    return &resultVector;
-  }
-
-  Vector<T> resultVector;
 };
 
 }
-
-
 
 BOOST_FUSION_ADAPT_STRUCT(
     CFSDat::ExtendedResultInfo,
     (std::string, resultName)
     (CFSDat::ExtendedResultInfo::ResDType, dType)
     (bool, isOutput)
-    (bool, isTimeCacheMaster)
     (CFSDat::str1::shared_ptr< CoupledField::StdVector<Double> >,  timeLine)
     (CFSDat::str1::shared_ptr< CoupledField::StdVector<UInt> >,  stepNumbers)
     (CFSDat::str1::shared_ptr< std::set<std::string> >,  regNames)
     (CFSDat::str1::shared_ptr< CoupledField::StdVector<UInt> >,  entityNumbers)
     (CFSDat::str1::shared_ptr< CoupledField::StdVector<UInt> >,  eqnNumbers)
-    (CFSDat::Integer, timeStepOffset)
     (CFSDat::UInt, sequenceStep )
     (CoupledField::ResultInfo::EntryType , entryType)
     (CoupledField::StdVector<std::string>, dofNames)
