@@ -27,68 +27,71 @@ class SNGRFilter : public BaseFilter{
 public:
 
   SNGRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
-//  BinOpFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-//    :BaseFilter(numWorkers,config,resMan){
-//
-//  }
-
 
   virtual ~SNGRFilter(){
 
   }
 
   virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
+//  virtual bool Run();
 
 protected:
+
+  virtual void FinishInit();
 
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();
+
+  virtual void PrepareMethodBailly();
+
+  virtual void UpdateResultMethodBailly();
 
   //! for the mesh-check this mesh also needs to be stored, trgGrid_ is
   //! stored in MeshFilter
   Grid* inGrid_;
 
 
-  std::string inTKE;
-  uuids::uuid tkeId;
+  std::string inTKE_;
+  uuids::uuid tkeId_;
 
-  std::string inTEF;
-  uuids::uuid tefId;
+  std::string inTEF_;
+  uuids::uuid tefId_;
 
-  std::string inVelocity;
-  uuids::uuid velocityId;
+  std::string inVelocity_;
+  uuids::uuid velocityId_;
 
-  std::string inDensity;
-  uuids::uuid densityId;
+  std::string inDensity_;
+  uuids::uuid densityId_;
 
-  std::string inTemp;
-  uuids::uuid temperatureId;
+  std::string inTemp_;
+  uuids::uuid temperatureId_;
 
-  std::string outName;
-  uuids::uuid outId;
+  std::string outName_;
+  uuids::uuid outId_;
 
-  std::string incrModes;
-  uuids::uuid iModeId;
+  std::string interName_;
+  uuids::uuid interId_;
 
-  Double TKEcrit;
-  Double sigLength;
-  Double fL;
-  Double ft;
-  Double fa;
-  Double maxWN;
-  Double minWN;
-  UInt maxFreq;
-  UInt minFreq;
-  UInt numModes;
-  UInt ensemble;
+  std::string incrModes_;
+  uuids::uuid iModeId_;
+
+  Double TKEcrit_;
+  Double sigLength_;
+  Double fL_;
+  Double ft_;
+  Double fa_;
+  Double maxWN_;
+  Double minWN_;
+  UInt maxFreq_;
+  UInt minFreq_;
+  UInt numModes_;
+  UInt ensemble_;
   
-  Vector<Double> turbReconstVelocity;
+  Vector<Double> turbReconstVelocity_;
 
-  
   // time step of output signal
-  Double deltaT;
-  const Double pi = 3.14159265358979323846;
+  Double deltaT_;
   
 
 };
