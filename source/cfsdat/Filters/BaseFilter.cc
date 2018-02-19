@@ -24,6 +24,7 @@
 #include "SignalProcessing/FftFilter.hh"
 #include "SignalProcessing/TimeMeanFilter.hh"
 #include "SignalProcessing/TemporalBlendingFilter.hh"
+#include "Filters/SynteticSources/BaseSNGR.hh"
 #include <boost/tokenizer.hpp>
 #include <Filters/BaseMeshFilterType.hh>
 
@@ -47,7 +48,7 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
     newPtr = FilterPtr(new CFSDat::PostLighthillSource(0, filtNode, resMana));
   }
   else if (filtNode->GetName() == "syntheticTurbulence_SNGR") {
-//    newPtr = FilterPtr(new CFSDat::SNGRFilter(0, filtNode, resMana));
+    newPtr = FilterPtr(new CFSDat::SNGRFilter(0, filtNode, resMana));
   }
   else if ((filtNode->GetName() == "interpolation") ||
            (filtNode->GetName() == "differentiation") ||
