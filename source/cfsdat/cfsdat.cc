@@ -37,7 +37,7 @@
 #include <def_cfs_stats.hh>
 #include <def_use_openmp.hh>
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
 #include "PDE/BasePDE.hh"
@@ -124,14 +124,9 @@ int main(int argc, const char** argv)
   CoupledField::shared_ptr<CoupledField::Timer> datTimer(new CoupledField::Timer);
   datTimer->Start();
 
-  // Initialize our xerces dom parser to handle the cfs xml file
-  Xerces xerces(schema);
-
   // Write information to command line
   std::cout << "--- Reading parameter file " << std::endl;
-  xerces.SetFile(options->GetParamFileStr());
-
-  CoupledField::PtrParamNode configNode = xerces.CreateParamNodeInstance();
+  PtrParamNode configNode = XmlReader::ParseFile(options->GetParamFileStr(), schema);
 
   CFSDat::PtrResultManager resMan(new CFSDat::ResultManager());
 
