@@ -25,6 +25,15 @@ namespace CoupledField {
     Double computeValue(Double& yVal, Integer idxElem, 
                         bool overwrite = true);
 
+    // to get same name as for stdPreisach
+    Double computeValueAndUpdate(Double yVal, Integer idxElem, 
+                        bool overwrite = true){
+      // why is yVal passed as reference in the first place?
+      // the only affect on it is the normalization, but do we really want
+      // to overwrite the input?
+      return computeValue(yVal,idxElem,overwrite);
+    }
+
     void SetPreviousYval( Double yval, Integer idxElem ) {
       previousYval_[idxElem] = normalizeYval( yval );
     }
@@ -55,6 +64,10 @@ namespace CoupledField {
 
     //! compute preisach weights;
     void computePreisachWeights();
+    
+    void setFlags(UInt performanceFlag, UInt textOutputFlag, UInt mappingFlag){
+      ;
+    };
 
   protected:
 
@@ -72,7 +85,7 @@ namespace CoupledField {
     Vector<Double>* strings_;
     Vector<Double>* helpStrings_;
 
-    Vector<UInt> StringLenght_;
+    Vector<UInt> StringLength_;
     UInt maxStringLength_;
 
     Matrix<Double> preisachWeights_;

@@ -693,10 +693,10 @@ namespace CoupledField {
       jacT.Mult(res,errorVec); 
       errorNorm = errorVec.NormL2();
       
-      std::cout << "CheckConvergence" << std::endl;
-      std::cout << "resIn: " << res.ToString() << std::endl;
-      std::cout << "jacT: " << jacT.ToString() << std::endl;
-      std::cout << "ErrorVec: " << errorVec.ToString() << std::endl;
+      //std::cout << "CheckConvergence" << std::endl;
+      //std::cout << "resIn: " << res.ToString() << std::endl;
+      //std::cout << "jacT: " << jacT.ToString() << std::endl;
+      //std::cout << "ErrorVec: " << errorVec.ToString() << std::endl;
       
       if(errorNorm <= tol){
         return true;
@@ -706,96 +706,120 @@ namespace CoupledField {
       
     }
     
-    bool checkIncrement(Vector<Double>& xUpdate, Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha){
-      // According to Dahmen & Reusken, we have to check
-      // our increment by computing
-      // 
-      // rho = (||F(x)||^2 - ||F(x + increment)||^2) /
-      //       (||F(x||^2 - ||F(x) + F'(x)*increment||^2)
-      //
-      // F = residual
-      // F' = Jacobian
-      Double resNorm = res.NormL2();
-      Double resShiftedNorm = resShifted.NormL2();
-      Vector<Double> tmp = Vector<Double>(dim_);
-      jac.Mult(xUpdate,tmp);
+    bool checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, Vector<Double>& res, Vector<Double>& resShifted, 
+          Matrix<Double>& jac, Double& alpha){
       
-      std::cout << "res: " << res.ToString() << std::endl;
-      std::cout << "resShifted_: " << resShifted.ToString() << std::endl;
-      std::cout << "xUpdate: " << xUpdate.ToString() << std::endl;
-      std::cout << "jac: " << jac.ToString() << std::endl;
-      
-      tmp = tmp + res;
-      Double tmpNorm = tmp.NormL2();
-      Double a = resNorm*resNorm - resShiftedNorm*resShiftedNorm;
-      Double b = resNorm*resNorm - tmpNorm*tmpNorm;
-      std::cout << "resNorm*resNorm - resShiftedNorm*resShiftedNorm: " << a << std::endl;
-      std::cout << "resNorm*resNorm - tmpNorm*tmpNorm: " << b  << std::endl;
-      
-      Double rho;
-      if(b != 0){
-        rho = a/b;
-      } else {
-        rho = a;
-      }
-      
-      // 0 < beta0 < beta1 < 1
-      Double beta0 = 0.25;
-      Double beta1 = 0.75;
-      
-      std::cout << "rho: " << rho << std::endl;
-      std::cout << "current alpha: " << alpha << std::endl;
-      // test different stepping; the furhter away we are, the stronger
-      // we will adapt stepping alpha for next time
       bool success = false;
-
-      // increment not accepted; increase alpha in linesearch
-      if(rho < -100*beta0){
-        alpha = alpha*256.0;
-      } else if(rho < -10*beta0){
-	alpha = alpha*128.0;
-      } else if(rho < -beta0){
-	alpha = alpha*64.0;
-      } else if(rho < 0){
-        alpha = alpha*32.0;
-      } else if(rho < beta0/8.0){
-        alpha = alpha*16.0;
-      } else if(rho < beta0/4.0){
-        alpha = alpha*8.0;
-      } else if(rho < beta0/2.0){
-        alpha = alpha*4.0;
-      } else if(rho < beta0/1.5){
-	alpha = alpha*2.0;
-      } else if(rho < beta0){
-        alpha = alpha*1.5; 
-      } 
-      // increment accepted; decrease alpha for next linesearch call
-      // usually rho does not become much larger than 1 (from theory 1 = max)#
-      else if(rho > 1.8*beta1){
-	alpha = alpha/16.0;
-	success = true;
-      } else if(rho > 1.4*beta1){
-        alpha = alpha/8.0;
-        success = true;
-      } else if(rho > 1.2*beta1){
-        alpha = alpha/4.0;
-        success = true;
-      } else if(rho > 1.1*beta1){
-	alpha = alpha/2.0;
-	success = true;
-      } else if(rho > beta1){
-        alpha = alpha/1.5;
-        success = true;
+      if(xNew.NormL2() >= XSaturated_){
+          // input yVal is not in saturation (otherwise we would not be here but
+          // use the simple case)
+          // > new value cannot be in saturation either
+          // > current update will definitely not match
+          // > problem here: if xNew is in saturation, further comvergence using
+          //    the jacobian will not work as the slope will be such that we 
+          //    cannot leave this (wrongly obtained) saturation
+          // > discard update and try with different alpha again
+          //std::cout << "Intermediate solution has gone into saturation > discard!" << std::endl;
+          //std::cout << "xSaturated: " << XSaturated_ << std::endl;
+          //std::cout << "xUpdate: " << xUpdate.ToString() << std::endl;
+          //std::cout << "xNew: " << xNew.ToString() << std::endl;
+          
+          alpha = alpha*2.0;
+          //std::cout << "Increase alpha to reduce size of update; alpha = " << alpha << std::endl;
+          success = false;
       } else {
-        // best case
-        // increment ok; keep alpha as startvalue for next linesearch
-        success = true;
+        //std::cout << "Safe case: " << std::endl;
+        //std::cout << "Check increment according to residual" << std::endl;
+
+        // According to Dahmen & Reusken, we have to check
+        // our increment by computing
+        // 
+        // rho = (||F(x)||^2 - ||F(x + increment)||^2) /
+        //       (||F(x||^2 - ||F(x) + F'(x)*increment||^2)
+        //
+        // F = residual
+        // F' = Jacobian
+        Double resNorm = res.NormL2();
+        Double resShiftedNorm = resShifted.NormL2();
+        Vector<Double> tmp = Vector<Double>(dim_);
+        jac.Mult(xUpdate,tmp);
+  //      
+  //      std::cout << "res: " << res.ToString() << std::endl;
+  //      std::cout << "resShifted_: " << resShifted.ToString() << std::endl;
+  //      std::cout << "xUpdate: " << xUpdate.ToString() << std::endl;
+  //      std::cout << "jac: " << jac.ToString() << std::endl;
+  //      
+        tmp = tmp + res;
+        Double tmpNorm = tmp.NormL2();
+        Double a = resNorm*resNorm - resShiftedNorm*resShiftedNorm;
+        Double b = resNorm*resNorm - tmpNorm*tmpNorm;
+  //      std::cout << "resNorm*resNorm - resShiftedNorm*resShiftedNorm: " << a << std::endl;
+  //      std::cout << "resNorm*resNorm - tmpNorm*tmpNorm: " << b  << std::endl;
+  //      
+        Double rho;
+        if(b != 0){
+          rho = a/b;
+        } else {
+          rho = a;
+        }
+
+        // 0 < beta0 < beta1 < 1
+        Double beta0 = 0.25;
+        Double beta1 = 0.75;
+
+        //std::cout << "rho: " << rho << std::endl;
+  //      std::cout << "current alpha: " << alpha << std::endl;
+        // test different stepping; the furhter away we are, the stronger
+        // we will adapt stepping alpha for next time
+        
+        // increment not accepted; increase alpha in linesearch
+        if(rho < -100*beta0){
+          alpha = alpha*256.0;
+        } else if(rho < -10*beta0){
+          alpha = alpha*128.0;
+        } else if(rho < -beta0){
+          alpha = alpha*64.0;
+        } else if(rho < 0){
+          alpha = alpha*32.0;
+        } else if(rho < beta0/8.0){
+          alpha = alpha*16.0;
+        } else if(rho < beta0/4.0){
+          alpha = alpha*8.0;
+        } else if(rho < beta0/2.0){
+          alpha = alpha*4.0;
+        } else if(rho < beta0/1.5){
+          alpha = alpha*2.0;
+        } else if(rho < beta0){
+          alpha = alpha*1.5; 
+        } 
+        // increment accepted; decrease alpha for next linesearch call
+        // usually rho does not become much larger than 1 (from theory 1 = max)#
+        else if(rho > 1.8*beta1){
+          alpha = alpha/16.0;
+          success = true;
+        } else if(rho > 1.4*beta1){
+          alpha = alpha/8.0;
+          success = true;
+        } else if(rho > 1.2*beta1){
+          alpha = alpha/4.0;
+          success = true;
+        } else if(rho > 1.1*beta1){
+          alpha = alpha/2.0;
+          success = true;
+        } else if(rho > beta1){
+          alpha = alpha/1.5;
+          success = true;
+        } else {
+          // best case
+          // increment ok; keep alpha as startvalue for next linesearch
+          success = true;
+        }
       }
-      std::cout << "new alpha: " << alpha << std::endl;
+//      std::cout << "new alpha: " << alpha << std::endl;
       return success;
     }
     
-    Vector<Double> computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Double mu){
+    Vector<Double> computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu){
       /*
        *    yVal = mu*xVal + hystVal(xVal)
        * 
@@ -803,15 +827,22 @@ namespace CoupledField {
        */
       Vector<Double> res = Vector<Double>(dim_);
       res = xVal;
-      res.Add(1.0/mu,hystVal);
-      res.Add(-1.0/mu,yVal);
+      for(UInt i = 0; i < dim_; i++){
+        // assume that mu is diagonal and has entries != 0
+        if(mu[i][i] != 0){
+          res[i] += 1.0/mu[i][i]*hystVal[i];
+          res[i] += -1.0/mu[i][i]*yVal[i];
+        }
+      }
+//      res.Add(1.0/mu,hystVal);
+//      res.Add(-1.0/mu,yVal);
       
       return res;
     }
-        
-    Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Double mu, Integer idElem, 
-            bool wrtX, bool relative){
-
+    
+    Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu, Integer idElem, 
+    bool wrtX, bool relative){
+      
       Vector<Double> ret = computeAbsResidualX(xVal, yVal, hystVal, mu);
       if(wrtX){
         /*
@@ -836,7 +867,12 @@ namespace CoupledField {
          * > resRelY = reaAbsY/yVal.NormL2()
          * 
          */
-        ret = ret*(-mu);
+        
+        //ret = ret*(-mu);
+        for(UInt i = 0; i < dim_; i++){
+          ret[i] = -1.0*ret[i]*mu[i][i];
+        }
+        
         if(relative){
           Double yValNorm = yVal.NormL2();
           if(yValNorm != 0){
@@ -846,27 +882,38 @@ namespace CoupledField {
           }
         }
       }
-     
+      
       return ret;
     }
     
-    Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hyst, Double mu, Integer idElem, Double sign) {
+    Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hyst, 
+      Matrix<Double> mu, Integer idElem, Double sign, UInt attempt) {
       
-      //    std::cout << "CompueJacobian" << std::endl;
-//      Double deltaXmin = 1e-5;
-//      Double scal = 1e-5;
-      Double deltaXmin = 1e-10;
-      Double scal = 1e-10;
+          //std::cout << "ComputeJacobian" << std::endl;
+      //      Double deltaXmin = 1e-5;
+      //      Double scal = 1e-5;
+      Double deltaXmin; 
+      Double scal;
+      if(attempt == 0){
+        deltaXmin = 1e-12;
+        scal = 1e-12;
+      } else if(attempt == 1){
+        deltaXmin = 1e-10;
+        scal = 1e-10;
+      } else {
+        deltaXmin = 1e-8;
+        scal = 1e-8;
+      }
+      
       Double deltaX;
-      
       bool overwrite = false;
       Vector<Double> xShifted;
       Vector<Double> hystShifted;
       
       Matrix<Double> jac = Matrix<Double>(dim_,dim_);
       
-      std::cout << "xVal: " << xVal.ToString() << std::endl;
-      std::cout << "hystVal: " << hyst.ToString() << std::endl;
+      //std::cout << "xVal: " << xVal.ToString() << std::endl;
+      //std::cout << "hystVal: " << hyst.ToString() << std::endl;
       
       for(UInt i = 0; i < dim_; i++){
         xShifted = xVal;
@@ -876,29 +923,35 @@ namespace CoupledField {
           // end up here);
           // we have to reduce xVal for the computation of Jacobian, as we otherwise
           // might get deltaY = hyst(xVal+delta) - hyst(xVal) = ySat-ySat = 0
-          // 1. set xShifted to xVal > already donw
+          // 1. set xShifted to xVal > already down
           // 2. scale xShifted by XSaturated_/xShifted.NormL2()
           xShifted *= (XSaturated_/xShifted.NormL2());
-          
+          //std::cout << "xVal in Saturation" << std::endl;
           sign = -1.0;
         } 
         
-//        if( xVal[i] < 0 ){
-//          deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
-//        } else {
-//          deltaX = sign*std::max( scal*xVal[i], deltaXmin );
-//        }
+        //        if( xVal[i] < 0 ){
+        //          deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
+        //        } else {
+        //          deltaX = sign*std::max( scal*xVal[i], deltaXmin );
+        //        }
         
         if( xVal[i] < 0 ){
           deltaX = sign*std::min( -scal*XSaturated_, -deltaXmin );
         } else {
           deltaX = sign*std::max( scal*XSaturated_, deltaXmin );
         }
-
+        
         xShifted[i] += deltaX;
         
         hystShifted = computeValue_vec(xShifted, idElem, overwrite);
-        
+        if(xVal.NormL2() >= XSaturated_){
+        //std::cout << "hystVal: " << hyst.ToString() << std::endl;
+        //std::cout << "hystShifted: " << hystShifted.ToString() << std::endl;
+        Vector<Double> diff = hyst;
+        diff -= hystShifted;
+        //std::cout << "hystVal-hystShifted: " << diff.ToString() << std::endl;
+        }
         /*
          * Compute Jacobian for residual wrt x
          * 
@@ -906,16 +959,20 @@ namespace CoupledField {
          */   
         jac[i][i] = 1.0;
         for(UInt j = 0; j < dim_; j++){
-          jac[j][i] += (hystShifted[j]-hyst[j])/deltaX/mu; 
+          //jac[j][i] += (hystShifted[j]-hyst[j])/deltaX/mu; 
+          // assume matrix mu to be diagonal
+          if(mu[i][i]!=0){
+            jac[j][i] += (hystShifted[j]-hyst[j])/deltaX/mu[i][i]; 
+          }
         }
       }
       return jac;
     }
-   
+    
     Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
-            Double mu, Integer idElem, Double sign, bool wrtX, bool relative){
+    Matrix<Double> mu, Integer idElem, Double sign, bool wrtX, bool relative, UInt attempt){
       
-      Matrix<Double> jac = computeJacobianOfAbsResidualX(xVal, hyst, mu, idElem, sign);
+      Matrix<Double> jac = computeJacobianOfAbsResidualX(xVal, hyst, mu, idElem, sign, attempt);
       
       if(wrtX){
         /*
@@ -965,7 +1022,11 @@ namespace CoupledField {
          *            = 1/yVal.normL2() * jacAbsY_ij
          *            
          */
-        jac = jac*(-mu);
+        //jac = jac*(-mu);
+        Matrix<Double> tmp = Matrix<Double>(dim_,dim_);
+        tmp = jac;
+        mu.Mult(tmp,jac);
+        jac = jac*(-1.0);
         
         if(relative){
           Double yValNorm = yVal.NormL2();
@@ -986,11 +1047,11 @@ namespace CoupledField {
       res = yVal;
       res -= hystVal;
       
-      std::cout << "Compute Residual: " << std::endl;
-      std::cout << "xVal: " << xVal.ToString() << std::endl;
-      std::cout << "yVal: " << yVal.ToString() << std::endl;
-      std::cout << "hystVal: " << hystVal.ToString() << std::endl;
-
+      //std::cout << "Compute Residual: " << std::endl;
+      //std::cout << "xVal: " << xVal.ToString() << std::endl;
+      //std::cout << "yVal: " << yVal.ToString() << std::endl;
+      //std::cout << "hystVal: " << hystVal.ToString() << std::endl;
+      
       if(wrtX){
         /*
          * Residual wrt x
@@ -1012,7 +1073,7 @@ namespace CoupledField {
          * 
          * res = yVal - hystVal - mu*xVal
          */
-         res.Add(-mu,xVal);
+        res.Add(-mu,xVal);
       }
       return res;
     } 
@@ -1030,8 +1091,8 @@ namespace CoupledField {
       
       Matrix<Double> jac = Matrix<Double>(dim_,dim_);
       
-      std::cout << "xVal: " << xVal.ToString() << std::endl;
-      std::cout << "hystVal: " << hyst.ToString() << std::endl;
+      //std::cout << "xVal: " << xVal.ToString() << std::endl;
+      //std::cout << "hystVal: " << hyst.ToString() << std::endl;
       
       for(UInt i = 0; i < dim_; i++){
         xShifted = xVal;
@@ -1048,11 +1109,11 @@ namespace CoupledField {
           sign = -1.0;
         } 
         
-//        if( xVal[i] < 0 ){
-//          deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
-//        } else {
-//          deltaX = sign*std::max( scal*xVal[i], deltaXmin );
-//        }
+        //        if( xVal[i] < 0 ){
+        //          deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
+        //        } else {
+        //          deltaX = sign*std::max( scal*xVal[i], deltaXmin );
+        //        }
         
         if( xVal[i] < 0 ){
           deltaX = sign*std::min( -scal*XSaturated_, -deltaXmin );
@@ -1060,7 +1121,7 @@ namespace CoupledField {
           deltaX = sign*std::max( scal*XSaturated_, deltaXmin );
         }
         
-        std::cout << "deltaX " << deltaX << std::endl;
+        //std::cout << "deltaX " << deltaX << std::endl;
         
         xShifted[i] += deltaX;
         
@@ -1093,8 +1154,16 @@ namespace CoupledField {
     }  
     
     bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, Vector<Double>& xUpdate,
-          Matrix<Double>& jac, Matrix<Double>& jacT, Double mu, Integer idElem,Double& alpha, 
-          bool wrtX, bool relative){
+    Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Integer idElem,Double& alpha, 
+    bool wrtX, bool relative){
+      
+      if(xVal.NormL2() >= XSaturated_){
+        //std::cout << "xInput to Linesearch already above saturation!" << std::endl;
+        //std::cout << "xVal.NormL2(): " << xVal.NormL2() << std::endl;
+        //std::cout << "XSaturated_; " << XSaturated_ << std::endl;
+        //std::cout << "yVal.NormL2(): " << yVal.NormL2() << std::endl;
+        //std::cout << "YSaturated_; " << YSaturated_ << std::endl;
+      }
       
       UInt maxIter = 25;
       UInt itCnt = 0;
@@ -1107,7 +1176,7 @@ namespace CoupledField {
       Vector<Double> resNew = Vector<Double>(dim_);
       Vector<Double> xNew = Vector<Double>(dim_);
       Vector<Double> hystNew = Vector<Double>(dim_);
-   
+      
       jacT.Mult(res,jacTres_neg);
       jacTres_neg = jacTres_neg*(-1.0);
       
@@ -1136,28 +1205,31 @@ namespace CoupledField {
         
         hystNew = computeValue_vec(xNew, idElem, false);
         resNew = computeResidual(xNew,yVal,hystNew,mu,idElem,wrtX,relative);
-
+        
         //      if(resNew.NormL2() < bestResidual){
         //        bestResidual = resNew.NormL2();
         //        bestAlpha = alpha;
         //        bestUpdate = xUpdate;
         //      }
         
-        std::cout << "--Check increment-- " << std::endl;
-        std::cout << "Current alpha: " << alpha << std::endl;
-        std::cout << "y,xOld,hystOld: " << std::endl;
-        std::cout << yVal.ToString() << std::endl;
-        std::cout << xVal.ToString() << std::endl;
-        Vector<Double> hystOLD = computeValue_vec(xVal, idElem, false);
-        std::cout << hystOLD.ToString() << std::endl;
-        std::cout << "y,xOld,hystOld: " << std::endl;
-        std::cout << yVal.ToString() << std::endl;
-        std::cout << xNew.ToString() << std::endl;
-        std::cout << hystNew.ToString() << std::endl;
-        std::cout << "Current alpha: " << alpha << std::endl;
-        
-        success = checkIncrement(xUpdate, res, resNew, jac, alpha);
-        
+//        std::cout << "--Check increment-- " << std::endl;
+//        std::cout << "Current alpha: " << alpha << std::endl;
+//        std::cout << "y,xOld,hystOld: " << std::endl;
+//        std::cout << yVal.ToString() << std::endl;
+//        std::cout << xVal.ToString() << std::endl;
+//        Vector<Double> hystOLD = computeValue_vec(xVal, idElem, false);
+//        std::cout << hystOLD.ToString() << std::endl;
+//        std::cout << "y,xOld,hystOld: " << std::endl;
+//        std::cout << yVal.ToString() << std::endl;
+//        std::cout << xNew.ToString() << std::endl;
+//        std::cout << hystNew.ToString() << std::endl;
+//        std::cout << "Current alpha: " << alpha << std::endl;
+//        
+        //std::cout << "Current iteration: " << itCnt << std::endl;
+        //std::cout << "Alpha pre: " << alpha << std::endl;
+        success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha);
+        //std::cout << "Alpha post: " << alpha << std::endl;
+                
         if(alpha > alphaMax){
           // maximal alpha used; stop here (regardless of success
           alpha = alphaMax;
@@ -1194,15 +1266,15 @@ namespace CoupledField {
       }
       
       if(success){
-        std::cout << "Linesearch was successful" << std::endl;
-        std::cout << "newAlpha: " << alpha << std::endl;
+        //std::cout << "Linesearch was successful" << std::endl;
+        //std::cout << "newAlpha: " << alpha << std::endl;
       } else {
-        std::cout << "Linesearch was NOT successful" << std::endl;
-        std::cout << "newAlpha: " << alpha << std::endl;
+        //std::cout << "Linesearch was NOT successful" << std::endl;
+        //std::cout << "newAlpha: " << alpha << std::endl;
         
       }
       if(discard){
-        std::cout << "Rho < 0: Discard xUpdate: " << xUpdate.ToString() << std::endl;
+        //std::cout << "Rho < 0: Discard xUpdate: " << xUpdate.ToString() << std::endl;
       }
       
       return discard;
@@ -1211,8 +1283,8 @@ namespace CoupledField {
     
     //! Try to compute input xVal to hyst operator, such that mu*xVal + H(xVal) = yVal
     // return usable input xVal
-    Vector<Double> computeInput_vec(Vector<Double>& yVal, Integer idElem, Double mu, Double& alpha, 
-          bool overwrite = true,bool overwriteDirection = true){
+    Vector<Double> computeInput_vec(Vector<Double>& yVal, Integer idElem, Matrix<Double> mu, Double& alpha, 
+    bool overwrite = true,bool overwriteDirection = true){
       
       
       Vector<Double> xVal = Vector<Double>(dim_);
@@ -1222,10 +1294,29 @@ namespace CoupledField {
        */
       Double yNorm = yVal.NormL2();
       
-      std::cout << "yNorm: " << yNorm << std::endl;
-      std::cout << "yNorm-YSaturated_: " << yNorm-YSaturated_ << std::endl;
-      if(yNorm >= YSaturated_){
-        std::cout << "Use simple approach" << std::endl;
+      //std::cout << "yNorm: " << yNorm << std::endl;
+      //std::cout << "yNorm-YSaturated_: " << yNorm-YSaturated_ << std::endl;
+      // NOTE: it is not enough to compare yNorm >= YSaturated_ as at this point
+      // mu*xSat could already lead to a reasonable addition
+      // we can only use the simple case, if
+      // yNorm >= YSaturated_ + mu*XSaturated_ !
+      // Attention: this works only if mu is a scalar!
+      // > instead compute
+      //      yTMP = yVal - mu*yDir*XSaturated
+      // then check if yTMP.Norm >= YSaturated
+      Vector<Double> yTMP = Vector<Double>(dim_);
+      if(yNorm >= 0){
+        Vector<Double> yTMP2 = yVal;
+        // yTMP2 = yDir*XSaturated
+        yTMP2 *= XSaturated_/yNorm;
+        // yTMP = mu*yDir*XSaturated
+        mu.Mult(yTMP2,yTMP);
+        // yTMP = yDir*XSaturated - yVal
+        yTMP -= yVal;
+      }
+
+      if(yTMP.NormL2() >= YSaturated_){
+        //std::cout << "Use simple approach" << std::endl;
         // Important consequences:
         // a) material is completely aligned with outer field (at least in Sutors model and therefore also x
         // b) mu (eps) adds an important contribution
@@ -1235,13 +1326,19 @@ namespace CoupledField {
         ySat *= (YSaturated_/yNorm);
         xVal = yVal;
         xVal -= ySat;
-        xVal /= mu;
+
+        //xVal /= mu;
+        for(UInt i = 0; i < dim_; i++){
+          if(mu[i][i]!=0){
+            xVal[i] = xVal[i]/mu[i][i];
+          }
+        }             
       } 
       /*
        * Use Levenberg-Marquart algorithm as presented in Dahmen&Reusken - Numerik partialler DFG
        */   
-      else {
-        std::cout << "Try LM" << std::endl;
+      else { // LM
+        //std::cout << "Try LM" << std::endl;
         
         // tolerance wrt y > 1e-10 or 1e-12 seems good > takes 2-3 its
         // only problem: y-x-loops look ugly as x can be quite off!
@@ -1252,27 +1349,27 @@ namespace CoupledField {
         bool relError = !true;
         
         // toleranace for relative error criterion
-        Double tolError = 0.01;
-        if(!relError){
+        Double tolError = 1e-10;
+        if(relError == false){
           tolError = tolError*XSaturated_;
         }
-//        if(wrtX){
-//          tolError = 0.01;
-//          // if we reduce wrt X use larger tol
-//          // > error for y will be similar small
-//          if(relError){
-//            
-//          } else {
-//            tolError = 10;
-//          }
-//          //tolError /= mu;
-//        } else {
-//          if(relError){
-//            tolError = 1e-11;
-//          } else {
-//            tolError = 1e-9;
-//          }        
-//        }
+        //        if(wrtX){
+        //          tolError = 0.01;
+        //          // if we reduce wrt X use larger tol
+        //          // > error for y will be similar small
+        //          if(relError){
+        //            
+        //          } else {
+        //            tolError = 10;
+        //          }
+        //          //tolError /= mu;
+        //        } else {
+        //          if(relError){
+        //            tolError = 1e-11;
+        //          } else {
+        //            tolError = 1e-9;
+        //          }        
+        //        }
         
         UInt maxIter = 25;
         UInt itCnt = 0;
@@ -1280,11 +1377,24 @@ namespace CoupledField {
         // use last computed Xval as starting ppoint
         xVal = actXval_[idElem];
         
+        //std::cout << "actXVal (loaded): " << xVal.ToString() << std::endl;
+        if(xVal.NormL2() >= XSaturated_){
+          //std::cout << "xVal.NormL2() > XSaturated -> comming from saturation?!" << std::endl;
+          //std::cout << "xVal.NormL2(): " << xVal.NormL2() << std::endl;
+          //std::cout << "XSaturated: " << XSaturated_ << std::endl;
+          
+          
+          //std::cout << "This might lead to severe issues regarding convergense!" << std::endl;
+          //std::cout << "Start from 0-vec instead" << std::endl;
+          xVal = Vector<Double>(dim_);
+          xVal.Init();
+        }
+        
         Vector<Double> diff = yVal;
         diff -= actYval_[idElem];
         
         if(diff.NormL2() < tolY){
-          std::cout << "Difference between requested yVal and previously computed yVal < " << tolY << std::endl;
+          //std::cout << "Difference between requested yVal and previously computed yVal < " << tolY << std::endl;
           return xVal;
         }
         
@@ -1293,12 +1403,13 @@ namespace CoupledField {
         // check if a starting value for the linesearch paramater alpha was given
         // if not: set some starting value (found out by testing to be quite ok)
         if(alpha < 0.0){
+          Double muNorm = mu.NormL2();
           if(wrtX){
             // larger alpha needed
-            alpha = 10/std::sqrt(mu);;
+            alpha = 10/std::sqrt(muNorm);
           } else {
             // small alpha needed
-            alpha = 0.1*std::sqrt(mu);
+            alpha = 0.1*std::sqrt(muNorm);
           }
         }
         
@@ -1311,7 +1422,11 @@ namespace CoupledField {
         Matrix<Double> jacT = Matrix<Double>(dim_,dim_);
         Vector<Double> hyst;
         Double errorNorm;
-        
+        UInt attempt = 0;
+        //UInt bestAttempt = 0;
+        Vector<Double> bestSol = Vector<Double>(dim_);
+        Double bestErrorNorm = 1e10;
+           
         while(true){
           itCnt++;
           // do not override here
@@ -1319,91 +1434,151 @@ namespace CoupledField {
           
           bool relative = relError;
           res = computeResidual(xVal,yVal,hyst,mu,idElem,wrtX,relative);
-          jac = computeJacobian(xVal,yVal,hyst,res,mu,idElem,sign,wrtX,relative);
+          jac = computeJacobian(xVal,yVal,hyst,res,mu,idElem,sign,wrtX,relative,attempt);
           jac.Transpose(jacT);
           
-//          Double tolForCheck = tolError;
-//          if(relError && (xVal.NormL2() != 0)){
-//            // absError = |jacT*res|
-//            // relError = |jacT*res|/|xVal|
-//            // > to check for relError < tolError, we can instead check 
-//            //   if absError < tolError*|xVal|
-//            tolForCheck = tolError*xVal.NormL2();
-//            std::cout << "Check absError against tol: " << tolForCheck << std::endl;
-//          }
+          //          Double tolForCheck = tolError;
+          //          if(relError && (xVal.NormL2() != 0)){
+          //            // absError = |jacT*res|
+          //            // relError = |jacT*res|/|xVal|
+          //            // > to check for relError < tolError, we can instead check 
+          //            //   if absError < tolError*|xVal|
+          //            tolForCheck = tolError*xVal.NormL2();
+          //            std::cout << "Check absError against tol: " << tolForCheck << std::endl;
+          //          }
           
           if(relError) {
-            std::cout << "Check relError against tol: " << tolError << std::endl;
+            //std::cout << "Check relError against tol: " << tolError << std::endl;
           } else {
-            std::cout << "Check absError against tol: " << tolError << std::endl;
+            //std::cout << "Check absError against tol: " << tolError << std::endl;
           }
-
+          
           success = checkConvergence(res,jacT,errorNorm,tolError);
           
-          std::cout << "Actual errorCrit: " << errorNorm << std::endl;
-          std::cout << "Actual residual ";
+          //std::cout << "Actual errorCrit: " << errorNorm << std::endl;
+          //std::cout << "Actual residual ";
           if(wrtX){
-            std::cout << "(wrtX) ";
+            //std::cout << "(wrtX) ";
           }
-          std::cout << res.NormL2() << std::endl;
+          //std::cout << res.NormL2() << std::endl;
           
           if(success){
-            std::cout << "+++++++++++++++++++++++++++" << std::endl;
-            std::cout << "Inversion success after it " << itCnt << std::endl;
+            //std::cout << "+++++++++++++++++++++++++++" << std::endl;
+            //std::cout << "Inversion success after it " << itCnt << std::endl;
             //std::cout << "Last tol for convergence: " << tolForCheck << std::endl;
             if(wrtX){
-              std::cout << "Remaining error-Norm wrt xVal: " << errorNorm << std::endl;
+              //std::cout << "Remaining error-Norm wrt xVal: " << errorNorm << std::endl;
               Vector<Double> resY = res;
-              resY *= mu;
-              std::cout << "Remaining error-Norm wrt yVal: " << resY.NormL2() << std::endl;
+              for(UInt i = 0; i < dim_; i++){
+                resY[i] *= mu[i][i];
+              }
+              //std::cout << "Remaining error-Norm wrt yVal: " << resY.NormL2() << std::endl;
             } else {
-              std::cout << "Remaining error-Norm wrt yVal: " << errorNorm << std::endl;
+              //std::cout << "Remaining error-Norm wrt yVal: " << errorNorm << std::endl;
               Vector<Double> resX = res;
-              resX /= mu;
-              std::cout << "Remaining error-Norm wrt xVal: " << resX.NormL2() << std::endl;
+              for(UInt i = 0; i < dim_; i++){
+                if(mu[i][i]!=0){
+                  resX[i] /= mu[i][i];
+                }
+              }
+              //std::cout << "Remaining error-Norm wrt xVal: " << resX.NormL2() << std::endl;
             }
             
             break;
           } else {
             if(itCnt >= maxIter){
-              std::cout << "-------------------------------------------------------" << std::endl;
-              std::cout << "Inversion could not find a solution after " << itCnt << " iterations" << std::endl;
+              //std::cout << "-------------------------------------------------------" << std::endl;
+              //std::cout << "Inversion could not find a solution after " << itCnt << " iterations" << std::endl;
               //std::cout << "Last tol for convergence: " << tolForCheck << std::endl;
               if(wrtX){
-                std::cout << "Remaining error-Norm wrt xVal: " << errorNorm << std::endl;
+                //std::cout << "Remaining error-Norm wrt xVal: " << errorNorm << std::endl;
                 Vector<Double> resY = res;
-                resY *= mu;
-                std::cout << "Remaining error-Norm wrt yVal: " << resY.NormL2() << std::endl;
+                for(UInt i = 0; i < dim_; i++){
+                  resY[i] *= mu[i][i];
+                }
+                //std::cout << "Remaining error-Norm wrt yVal: " << resY.NormL2() << std::endl;
               } else {
-                std::cout << "Remaining error-Norm wrt yVal: " << errorNorm << std::endl;
+                //std::cout << "Remaining error-Norm wrt yVal: " << errorNorm << std::endl;
                 Vector<Double> resX = res;
-                resX /= mu;
-                std::cout << "Remaining error-Norm wrt xVal: " << resX.NormL2() << std::endl;
+                for(UInt i = 0; i < dim_; i++){
+                  if(mu[i][i]!=0){
+                    resX[i] /= mu[i][i];
+                  }
+                }
+                //std::cout << "Remaining error-Norm wrt xVal: " << resX.NormL2() << std::endl;
               }
               
-              break;
+              if(attempt < 2){
+                //std::cout << "Retry with different resolution for computation of Jacobian" << std::endl;
+
+                if(errorNorm < bestErrorNorm){
+                  bestSol = xVal;
+                  //bestAttempt = attempt;
+                
+                }
+                attempt++;
+                itCnt = 0;
+              } else {
+                //std::cout << "Tried all different resolutions for computation of Jacobian; quit" << std::endl;
+                //std::cout << "Use best found solution (for attempt " << bestAttempt << "): " << bestSol.ToString() << std::endl;
+                xVal = bestSol;
+                break;
+              }
+           
             }
           }
           
           //        std::cout << "currentValue of x: " << xVal.ToString() << std::endl;
           //        std::cout << "residual: " << res.ToString() << std::endl;
           
-          std::cout << "Perform Linesearch; starting error: " << errorNorm << std::endl;
+          //std::cout << "Perform Linesearch; starting error: " << errorNorm << std::endl;
           discardUpdate = performLinesearch(xVal, yVal, res, xUpdate, jac, jacT, mu, idElem, alpha, wrtX, relative);
           //discardUpdate = performLinesearch(xVal,yVal,mu,idElem,res,jac,jacT,alpha,xUpdate,wrtX,relative);
           
           if(!discardUpdate){
             xVal = xVal+xUpdate;
           } else {
-            break;
+            //break;
           }
           
           sign = sign*(-1.0);
           
         }
-      }
+        
+        
+        if(xVal.NormL2() >= XSaturated_){
+          //std::cout << "xVal.NormL2() > XSaturated -> LM should not lead xVal into saturation!" << std::endl;
+          //std::cout << "xVal.NormL2(): " << xVal.NormL2() << std::endl;
+          //std::cout << "XSaturated: " << XSaturated_ << std::endl;
+          EXCEPTION("LM lead xVal into saturation > should not be the case!");
+        }
+        
+      } // LM
       actYval_[idElem] = yVal;
       actXval_[idElem] = xVal;
+            
+      bool checkSolution = true;
+      if(checkSolution){
+        
+        Vector<Double> yCheck = Vector<Double>(dim_);
+        yCheck = computeValue_vec(xVal, idElem, false);
+        
+        //xVal /= mu;
+        for(UInt i = 0; i < dim_; i++){
+          if(mu[i][i]!=0){
+            yCheck[i] += xVal[i]*mu[i][i];
+          }
+        }             
+        
+        Vector<Double> diff = yCheck;
+        diff -= yVal;
+        
+        //std::cout << "NormDiff " << diff.NormL2() << std::endl;
+        if(diff.NormL2() > 1e-5){
+          //EXCEPTION("Inversion not successful");
+        }        
+      }
+      
       return xVal;
       
     }

@@ -65,7 +65,7 @@ namespace CoupledField {
     
     // Initialize nonlinearities
     InitNonLin();
-
+    
   }
 
   // **************
@@ -145,11 +145,13 @@ namespace CoupledField {
             coefPMLScal.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd, actSDList, pde1_->GetRegions(), false));
             coefPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd, actSDList, pde1_->GetRegions(), true));
           }
-          else
+          else{
             EXCEPTION("Unknown PML-formulation '" << pmlFormul << "'")
+					}
         }
-        else
+        else{
           EXCEPTION("Not implemented yet");
+				}
       }
       else
       {
@@ -729,9 +731,12 @@ namespace CoupledField {
 				stiffCoef = mechMat[curReg]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, 
 																							 Global::REAL, true );
 				
+        // important: pass information about stiffness and coupling tensor to hystOperator
+        // (if not already done)
+        regionHystOperator->SetElastAndCouplTensor(stiffCoef, couplingCoef);
 				
 				// mech RHS
-				shared_ptr<CoefFunction> mechRHS = regionHystOperator->GenerateRHSCoefFnc("PiezoLoadForMechPDE",stiffCoef,couplingCoef);
+				shared_ptr<CoefFunction> mechRHS = regionHystOperator->GenerateRHSCoefFnc("PiezoLoadForMechPDE");
 				
 				if ( isComplex_ ) {
 					if( subType_ == "axi" ) {
@@ -791,7 +796,7 @@ namespace CoupledField {
         dispFct->AddEntityList(actSDList);
 				
 				// elec RHS
-				shared_ptr<CoefFunction> elecRHS = regionHystOperator->GenerateRHSCoefFnc("PiezoLoadForElecPDE",stiffCoef,couplingCoef);
+				shared_ptr<CoefFunction> elecRHS = regionHystOperator->GenerateRHSCoefFnc("PiezoLoadForElecPDE");
 				
         if(isComplex_) {
           if( dim_ == 2 ) {
@@ -875,12 +880,17 @@ namespace CoupledField {
 			hystCoefs = pde2_->GetHystCoefs();
 			hystOperator =hystCoefs->GetRegionCoef(regionId);
 				
+      // IMPORTANT: pass information about stiffCoef and couplCoef to hystOperrator
+      // there it will not only be used for the Following MatCoefFnc but also used
+      // in the single pdes to get correct matrix entries!
+      hystOperator->SetElastAndCouplTensor(stiffCoef, couplingCoef);
+      
 			// create hyst material
 			// note: curCoef holds the coupling tensor
 			// hyst case might be unsymmetric
 			// > in case of deltaFormulation, elecToMech holds an addition deltaS/deltaE
-			PtrCoefFct mechToElec = hystOperator->GenerateMatCoefFnc("CouplingMechToElec",stiffCoef,couplingCoef);
-			PtrCoefFct elecToMech = hystOperator->GenerateMatCoefFnc("CouplingElecToMech",stiffCoef,couplingCoef);
+			PtrCoefFct mechToElec = hystOperator->GenerateMatCoefFnc("CouplingMechToElec");
+			PtrCoefFct elecToMech = hystOperator->GenerateMatCoefFnc("CouplingElecToMech");
 			
 //			std::cout << "check size of matcoeffnc" << std::endl;
 			UInt numRows, numCols;

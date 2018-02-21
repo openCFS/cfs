@@ -1864,6 +1864,8 @@ source/Driver/SolveSteps/IterSolveStep.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/SolveSteps/IterSolveStep.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/SolveSteps/SolveStepElec.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/SolveSteps/SolveStepElec.hh svneol=native#text/x-c%2B%2Bhdr
+source/Driver/SolveSteps/SolveStepHyst.cc -text
+source/Driver/SolveSteps/SolveStepHyst.hh -text
 source/Driver/SolveSteps/SolveStepMagEdge.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/SolveSteps/SolveStepMagEdge.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/SolveSteps/StdSolveStep.cc svneol=native#text/x-c%2B%2Bsrc
