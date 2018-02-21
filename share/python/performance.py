@@ -97,7 +97,7 @@ def gnuplot(timer, header=True):
   
 ## print standard analysis
 # @timer a list of Timer or a list of a list of Timer, then the minimum is printed first 
-def print_timer(timers, brief=False):
+def print_timer(timers, brief=False, threshold=0.0):
   timer = minimal_timer(timers) if type(timers[0]) == list else timers  
   meta = len(timers) if type(timers[0]) == list else 0
      
@@ -111,7 +111,9 @@ def print_timer(timers, brief=False):
   total_cpu  = max(timer[0].cpu, 1e-3)
  
   for e in range(len(timer)):
-     t = timer[e] 
+     t = timer[e]
+     if t.wall < threshold:
+       continue
      l = t.label + ('*' if t.sub else '')
      line = l.ljust(max_label) + ': {:4d}'.format(int(t.wall)) 
      if not brief:
@@ -130,9 +132,9 @@ def print_timer(timers, brief=False):
 parser = argparse.ArgumentParser(description='when called with .info.xml the timers of this file are read. Else a performance test is run with -m and -e')
 parser.add_argument("input", help="the xml file to run or the info.xml file to analyse (each with extension)")
 parser.add_argument('--brief', help="brief analysis output to make it within the 1K cdash buffer", action='store_true')
+parser.add_argument('--threshold', help="show only wall time above this seconds", type=float, default=0.0)
 parser.add_argument('-m', "--mesh", help="for execution give a mesh file for calculation, alternatively 'mesh_type' and 'res'")
 parser.add_argument('--exec', help="for execution what to call for cfs", default='cfs_rel')
-
 parser.add_argument('--repeat', help="how often shall execution be repeated - default is 1", type=int, default=1)
 args = parser.parse_args()
 
@@ -148,7 +150,7 @@ if args.input.endswith('.info.xml'):
   
   xml = open_xml(args.input)
   timer = read_info(xml, gap=True)
-  print_timer(timer, args.brief)
+  print_timer(timer, args.brief, args.threshold)
 
 else: # the whole run stuff
   if not args.mesh:

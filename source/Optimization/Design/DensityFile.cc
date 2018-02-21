@@ -393,17 +393,12 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
 
       ShapeMapDesign::ShapeParam* shape = smd->GetShape(spe);
 
-      // first assume we are a shape
-      int ref = shape->IsCenterNode() ? shape->GetFirstCenterNode()->idx : shape->idx;
-      if(shape->type == ShapeMapDesign::PROFILE)
-        ref = shape->partner->idx;
-
       std::stringstream ss;
       ss << "<shapeParamElement nr=\"" << spe->GetIndex();
       ss << "\" type=\"" << DesignElement::type.ToString(spe->GetType());
       ss << "\" dof=\"" << spe->dof.ToString(spe->dof_);
       ss << "\" shape=\"" << shape->idx; // legacy density.xml files don't have this attribute
-      ss << "\" ref=\"" << ref; // legacy density.xml files don't have this attribute
+      ss << "\" ref=\"" << shape->GetReferenceId(); // legacy density.xml files don't have this attribute
       ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
       ss << "\"/>";
       block[base + i] = ss.str();
