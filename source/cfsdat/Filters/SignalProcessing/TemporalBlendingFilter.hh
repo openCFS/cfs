@@ -28,10 +28,10 @@ public:
 
   virtual ~TemporalBlendFilter();
 
-  virtual bool Run();
-
 
 protected:
+
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
 
   //! Setup of Results of the filter
   virtual ResultIdList SetUpstreamResults();

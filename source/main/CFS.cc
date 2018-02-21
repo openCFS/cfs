@@ -338,7 +338,8 @@ void CFS::PrintGrid()
 
 void CFS::SolveProblem()
 {
-  // Set up Problem
+
+ // Set up Problem
  domain->PostInit();
 
  // Solves the driver or optimization problem

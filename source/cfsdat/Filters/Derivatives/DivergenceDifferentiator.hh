@@ -38,12 +38,11 @@ public:
 
   virtual ~DivergenceDifferentiator();
 
-  virtual bool Run();
-
-
 
 protected:
 
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
+  
   virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
@@ -68,6 +67,10 @@ private:
 
   //! Scaling of epsilon-parameter for RBF-basis function
   Double epsScal_;
+
+  //! if true, a console output of [minimal distance, maximal distance, optimized epsilon]
+  //! will be performed
+  bool logEps_;
 
   //! index in the static matrices vector to use
   UInt matrixIndex_;

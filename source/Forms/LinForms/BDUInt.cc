@@ -25,7 +25,8 @@ BDUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
 BDUIntegrator(VEC_DATA_TYPE factor,
              shared_ptr<CoefFunction > rhsCoef, 
              shared_ptr<CoefFunction > dCoef,
-             bool coordUpdate )
+             bool coordUpdate,
+			 bool extractReal)
              :LinearForm( coordUpdate ){
   factor_ = factor;
   this->name_ = "RhsBDUIntegrator";
@@ -39,7 +40,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
 //#endif
   this->rhsCoefs_ = rhsCoef;
   this->dCoef_ = dCoef;
-
+  extractReal_ = extractReal;
 }
 
 template< class B_OP, class VEC_DATA_TYPE, bool SURFACE >
@@ -48,7 +49,8 @@ BDUIntegrator(VEC_DATA_TYPE factor,
              shared_ptr<CoefFunction > rhsCoef,
              shared_ptr<CoefFunction > dCoef,
              const std::set<RegionIdType>& volRegions,
-             bool coordUpdate )
+             bool coordUpdate,
+			 bool extractReal)
              :LinearForm( coordUpdate ){
   factor_ = factor;
   this->name_ = "RhsBDUIntegrator";
@@ -63,6 +65,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
   this->rhsCoefs_ = rhsCoef;
   this->dCoef_ = dCoef;
   volRegions_ = volRegions;
+  extractReal_ = extractReal;
 }
 
   template<class B_OP, class VEC_DATA_TYPE, bool SURFACE >

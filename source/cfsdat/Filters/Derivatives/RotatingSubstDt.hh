@@ -37,30 +37,35 @@ public:
     if(params_->Has("rotatingDomain"))
       rpm_ = params_->Get("rotatingDomain")->Get("rpm")->As<Double>();
 
+    // outputresultname
     std::string outResult = params_->Get("outputQuantity")->Get("resultName")->As<std::string>();
-    std::string gradInResult = params_->Get("presGrad")->Get("resultName")->As<std::string>();
-    std::string timeInResult = params_->Get("pressure")->Get("resultName")->As<std::string>();
-    hasMeanFlow_ = false;
-    if(params_->Has("meanFlow")){
-      hasMeanFlow_ = true;
-      std::string meanFlowInResult = params_->Get("meanFlow")->Get("resultName")->As<std::string>();
-      upResNames.insert(meanFlowInResult);
-    }
     filtResNames.insert(outResult);
-    upResNames.insert(gradInResult);
-    upResNames.insert(timeInResult);
+    
+    // inputresultnames
+    timeName_ = params_->Get("pressure")->Get("resultName")->As<std::string>();
+    upResNames.insert(timeName_);
+    
+    gradName_ = params_->Get("presGrad")->Get("resultName")->As<std::string>();
+    upResNames.insert(gradName_);
+    
+    hasMeanFlow_ = params_->Has("meanFlow");
+    if(hasMeanFlow_){
+      // meanflow is third
+      meanFlowName_ = params_->Get("meanFlow")->Get("resultName")->As<std::string>();
+      upResNames.insert(meanFlowName_);
+    }
   }
 
   virtual ~RotatingSubstDt(){
 
   }
 
-  virtual bool Run();
-
   virtual void FinishInit();
 
 protected:
 
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
+  
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();
@@ -76,17 +81,22 @@ private:
 
   StdVector< Vector<Double> > rotField_;
 
+  std::string timeName_;
+  uuids::uuid timeId_;
+
+  std::string gradName_;
   uuids::uuid gradId_;
 
+  std::string meanFlowName_;
   uuids::uuid meanFlowId_;
-
-  uuids::uuid timeId_;
 
   UInt gradDim_;
 
   Double dt_;
 
   bool hasMeanFlow_;
+  
+  bool hasRotation_;
 
 };
 

@@ -34,7 +34,7 @@ PROJECT_NAME           = CFS++
 # This could be handy for archiving the generated documentation or
 # if some version control system is used.
 
-PROJECT_NUMBER         = 
+PROJECT_NUMBER         = @CFS_VERSION@
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewer
@@ -596,7 +596,7 @@ FILE_VERSION_FILTER    =
 # You can optionally specify a file name after the option, if omitted
 # DoxygenLayout.xml will be used as the name of the layout file.
 
-LAYOUT_FILE            =
+LAYOUT_FILE            = @CMAKE_CURRENT_BINARY_DIR@/doxygen/cfsDoxygenLayout.xml
 
 # The CITE_BIB_FILES tag can be used to specify one or more bib files
 # containing the references data. This must be a list of .bib files. The
@@ -672,109 +672,7 @@ WARN_LOGFILE           =
 # with spaces.
 
 INPUT                  = @CMAKE_SOURCE_DIR@/source \
-                         @CMAKE_SOURCE_DIR@/source/General \
-                         @CMAKE_SOURCE_DIR@/source/Forms \
-                         @CMAKE_SOURCE_DIR@/source/Forms/LinForms \
-                         @CMAKE_SOURCE_DIR@/source/Forms/BiLinForms \
-                         @CMAKE_SOURCE_DIR@/source/Forms/Operators \
-                         @CMAKE_SOURCE_DIR@/source/ODESolve \
-                         @CMAKE_SOURCE_DIR@/source/Materials \
-                         @CMAKE_SOURCE_DIR@/source/Materials/Models \
-                         @CMAKE_SOURCE_DIR@/source/cfstool \
-                         @CMAKE_SOURCE_DIR@/source/cfsdat \
-                         @CMAKE_SOURCE_DIR@/source/cfsdat/Filters \
-                         @CMAKE_SOURCE_DIR@/source/cfsdat/Filters/Derivatives \
-                         @CMAKE_SOURCE_DIR@/source/cfsdat/Filters/Input \
-                         @CMAKE_SOURCE_DIR@/source/cfsdat/Filters/Interpolators \
-                         @CMAKE_SOURCE_DIR@/source/cfsdat/Filters/Output \
-                         @CMAKE_SOURCE_DIR@/source/cfsdat/Utils \
-                         @CMAKE_SOURCE_DIR@/source/MatVec \
-                         @CMAKE_SOURCE_DIR@/source/MatVec/exprt \
-                         @CMAKE_SOURCE_DIR@/source/Domain \
-                         @CMAKE_SOURCE_DIR@/source/Domain/Mesh \
-                         @CMAKE_SOURCE_DIR@/source/Domain/Mesh/GridCFS \
-                         @CMAKE_SOURCE_DIR@/source/Domain/Mesh/MeshUtils \
-                         @CMAKE_SOURCE_DIR@/source/Domain/Mesh/MeshUtils/Intersection \
-                         @CMAKE_SOURCE_DIR@/source/Domain/Mesh/MeshUtils/Intersection/IntersectAlgos \
-                         @CMAKE_SOURCE_DIR@/source/Domain/CoefFunction \
-                         @CMAKE_SOURCE_DIR@/source/Domain/Results \
-                         @CMAKE_SOURCE_DIR@/source/Domain/CoordinateSystems \
-                         @CMAKE_SOURCE_DIR@/source/Domain/ElemMapping \
-                         @CMAKE_SOURCE_DIR@/source/OLAS \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/multigrid \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/utils \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/utils/math \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/precond \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/precond/ILDLPrecond \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/solver \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/graph \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/external \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/external/cholmod \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/external/ilupack \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/external/arpack \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/external/lapack \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/external/pardiso \
-                         @CMAKE_SOURCE_DIR@/source/OLAS/algsys \
-                         @CMAKE_SOURCE_DIR@/source/Driver \
-                         @CMAKE_SOURCE_DIR@/source/Driver/TimeSchemes \
-                         @CMAKE_SOURCE_DIR@/source/Driver/SolveSteps \
-                         @CMAKE_SOURCE_DIR@/source/CoupledPDE \
-                         @CMAKE_SOURCE_DIR@/source/Optimization \
-                         @CMAKE_SOURCE_DIR@/source/Optimization/Design \
-                         @CMAKE_SOURCE_DIR@/source/Optimization/Optimizer \
-                         @CMAKE_SOURCE_DIR@/source/PDE \
-                         @CMAKE_SOURCE_DIR@/source/PDE/LatticeBoltzmannSolver \
-                         @CMAKE_SOURCE_DIR@/source/FeBasis \
-                         @CMAKE_SOURCE_DIR@/source/FeBasis/HCurl \
-                         @CMAKE_SOURCE_DIR@/source/FeBasis/H1 \
-                         @CMAKE_SOURCE_DIR@/source/FeBasis/HDiv \
-                         @CMAKE_SOURCE_DIR@/source/FeBasis/L2 \
-                         @CMAKE_SOURCE_DIR@/source/cplreader \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/CFS++ \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/ANSYS \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/CGNS \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/GENGRIDS \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/FASTEST \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/VTKBased \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/VTKBased/EnSight \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/VTKBased/FLUENT \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/VTKBased/OPENFOAM \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/CFX \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/CFXexport \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/FieldView \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/OutputWriters \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/OutputWriters/hdf5 \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/integlib \
-                         @CMAKE_SOURCE_DIR@/source/cplreader/Documentation \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/DefineFiles \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/ParamHandling \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/Unverg \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/internalMesh \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/GiD \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/gmsh \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/TextOutput \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/AnsysRST \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev120 \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev100 \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev130 \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev110 \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/Streaming \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/hdf5 \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/AnsysFile \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/gmv \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/InfoResultOutput \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/xdmf \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/Logging \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/Logging/detail \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/Logging/extra \
-                         @CMAKE_SOURCE_DIR@/source/Utils \
-                         @CMAKE_SOURCE_DIR@/source/Utils/EvalIntegrals \
-                         @CMAKE_SOURCE_DIR@/source/Utils/mathParser \
-                         @CMAKE_SOURCE_DIR@/source/main \
-                         @CMAKE_SOURCE_DIR@/share/doc/developer/DoxygenConfig/mainpage.txt
+                         @CMAKE_SOURCE_DIR@/share/doc/developer/doxygen
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is
@@ -794,13 +692,14 @@ INPUT_ENCODING         = UTF-8
 
 FILE_PATTERNS          = *.hh \
                          *.h \
-                         *.hpp
+                         *.hpp \
+                         *.md
 
 # The RECURSIVE tag can be used to turn specify whether or not subdirectories
 # should be searched for input files as well. Possible values are YES and NO.
 # If left blank NO is used.
 
-RECURSIVE              = NO
+RECURSIVE              = YES
 
 # The EXCLUDE tag can be used to specify files and/or directories that should be
 # excluded from the INPUT source files. This way you can easily exclude a
@@ -836,22 +735,21 @@ EXCLUDE_SYMBOLS        =
 # directories that contain example code fragments that are included (see
 # the \include command).
 
-EXAMPLE_PATH           = @CMAKE_CURRENT_SOURCE_DIR@/AddDoc/coding-rules/ \
-                         @CMAKE_CURRENT_BINARY_DIR@/doxygen/snippets
+EXAMPLE_PATH           = @CMAKE_SOURCE_DIR@/source
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp
 # and *.h) to filter out the source-files in the directories. If left
 # blank all files are included.
 
-EXAMPLE_PATTERNS       =
+EXAMPLE_PATTERNS       = *.hh *.cc
 
 # If the EXAMPLE_RECURSIVE tag is set to YES then subdirectories will be
 # searched for input files to be used with the \include or \dontinclude
 # commands irrespective of the value of the RECURSIVE tag.
 # Possible values are YES and NO. If left blank NO is used.
 
-EXAMPLE_RECURSIVE      = NO
+EXAMPLE_RECURSIVE      = YES
 
 # The IMAGE_PATH tag can be used to specify one or more files or
 # directories that contain image that are included in the documentation (see
@@ -902,7 +800,7 @@ FILTER_SOURCE_PATTERNS =
 # (index.html). This can be useful if you have a project on for instance GitHub
 # and want reuse the introduction page also for the doxygen output.
 
-USE_MDFILE_AS_MAINPAGE = @CMAKE_SOURCE_DIR@/share/doc/developer/DoxygenConfig/mainpage.md
+USE_MDFILE_AS_MAINPAGE = main.md
 
 #---------------------------------------------------------------------------
 # configuration options related to source browsing
@@ -1015,13 +913,13 @@ HTML_FILE_EXTENSION    = .html
 # have to redo this when upgrading to a newer version of doxygen or when
 # changing the value of configuration settings such as GENERATE_TREEVIEW!
 
-HTML_HEADER            = @CMAKE_CURRENT_BINARY_DIR@/DoxygenConfig/header.html
+HTML_HEADER            = @CMAKE_CURRENT_BINARY_DIR@/doxygen/header.html
 
 # The HTML_FOOTER tag can be used to specify a personal HTML footer for
 # each generated HTML page. If it is left blank doxygen will generate a
 # standard footer.
 
-HTML_FOOTER            = @CMAKE_CURRENT_BINARY_DIR@/DoxygenConfig/footer.html
+HTML_FOOTER            = @CMAKE_CURRENT_BINARY_DIR@/doxygen/footer.html
 
 # The HTML_STYLESHEET tag can be used to specify a user-defined cascading
 # style sheet that is used by each HTML page. It can be used to
@@ -1040,7 +938,7 @@ HTML_STYLESHEET        =
 # robust against future updates. Doxygen will copy the style sheet file to
 # the output directory.
 
-HTML_EXTRA_STYLESHEET  = @CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/extra.css
+HTML_EXTRA_STYLESHEET  = #@CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/extra.css
 
 # The HTML_EXTRA_FILES tag can be used to specify one or more extra images or
 # other source files which should be copied to the HTML output directory. Note
@@ -1049,7 +947,18 @@ HTML_EXTRA_STYLESHEET  = @CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/extra.css
 # files. In the HTML_STYLESHEET file, use the file name only. Also note that
 # the files will be copied as-is; there are no commands or markers available.
 
-HTML_EXTRA_FILES       = @CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/background.png
+HTML_EXTRA_FILES       = @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/background.png \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/bootstrap.min.js \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/bootstrap.min.css \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/jquery-3.2.1.min.js \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/jquery.smartmenus.min.js \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/jquery.smartmenus.bootstrap.css \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/jquery.smartmenus.bootstrap.min.js \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/sm-core-css.css \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/doxy-boot.js \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/jquery.powertip.min.js \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/jquery.powertip.min.css \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen/config/customdoxygen.css 
 
 # The HTML_COLORSTYLE_HUE tag controls the color of the HTML output.
 # Doxygen will adjust the colors in the style sheet and background images
@@ -1268,7 +1177,7 @@ DISABLE_INDEX          = NO
 # Since the tree basically has the same information as the tab index you
 # could consider to set DISABLE_INDEX to NO when enabling this option.
 
-GENERATE_TREEVIEW      = YES
+GENERATE_TREEVIEW      = NO
 
 # The ENUM_VALUES_PER_LINE tag can be used to set the number of enum values
 # (range [0,1..20]) that doxygen will group on one line in the generated HTML
@@ -1281,7 +1190,7 @@ ENUM_VALUES_PER_LINE   = 4
 # used to set the initial width (in pixels) of the frame in which the tree
 # is shown.
 
-TREEVIEW_WIDTH         = 250
+TREEVIEW_WIDTH         = 
 
 # When the EXT_LINKS_IN_WINDOW option is set to YES doxygen will open
 # links to external symbols imported via tag files in a separate window.
@@ -1453,7 +1362,7 @@ EXTRA_PACKAGES         =
 # the first chapter. If it is left blank doxygen will generate a
 # standard header. Notice: only use this tag if you know what you are doing!
 
-LATEX_HEADER           = @CMAKE_CURRENT_BINARY_DIR@/DoxygenConfig/latexHeader.tex
+LATEX_HEADER           = @CMAKE_CURRENT_BINARY_DIR@/doxygen/latexHeader.tex
 
 # The LATEX_FOOTER tag can be used to specify a personal LaTeX footer for
 # the generated latex document. The footer should contain everything after

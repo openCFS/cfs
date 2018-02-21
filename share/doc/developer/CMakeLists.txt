@@ -68,9 +68,9 @@ IF (DOXYGEN)
 		    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc-develmanual.cmake"
 		    )
 
-  SET(DOXY_CONFIG_IN "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/doxy-config.in")
-  SET(DOXY_CONFIG "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/doxy-config")
-  # MESSAGE(STATUS "Configuring ${DOXY_CONFIG_IN} --> ${DOXY_CONFIG}")
+  SET(DOXY_CONFIG_IN "${CMAKE_CURRENT_SOURCE_DIR}/doxygen/config/doxy-config.in")
+  SET(DOXY_CONFIG "${CMAKE_CURRENT_BINARY_DIR}/doxygen/doxy-config")
+  # MESSAGE(STATUS "Configuring ${DOXY_CONFIG_IN} --> ${DOXY_CONFIG} for CFS++ ${CFS_VERSION}")
   CONFIGURE_FILE(${DOXY_CONFIG_IN}
     ${DOXY_CONFIG}
     @ONLY )

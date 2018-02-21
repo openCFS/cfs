@@ -216,7 +216,10 @@ namespace CoupledField {
           << "add Dirichlet BCs, since addIDBCPossible_ = false! "
           << "Did you call BuildSystemMatrix()?");
     }
-    
+  //  std::cout << "AddIDBCToRHS" << std::endl;
+  //  std::cout <<"Old IDBC Values: " << vecOldIDBC_->ToString() << std::endl;
+  //  std::cout <<"New IDBC Values: " << vecIDBC_->ToString() << std::endl;
+
     auxMat_[SYSTEM]->MultSub( *vecIDBC_, *rhs );
     if(deltaIDBC){
       auxMat_[SYSTEM]->MultAdd( *vecOldIDBC_, *rhs );

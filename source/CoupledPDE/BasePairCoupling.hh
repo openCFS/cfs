@@ -18,6 +18,7 @@ namespace CoupledField
 {
 
   // forward class declaration
+  class StdPDE;
   class SinglePDE;
   class Assemble;
   class AlgebraicSys;
@@ -252,6 +253,15 @@ namespace CoupledField
     //! This map stores the primary BDB integrators, which can be used for 
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> bdbInts_;
+    
+    // for the case that the coupling is not symmetric (i.e. in case of hysteresis
+    // with delta formulation) we need to store the counterpart in an additional map
+    std::map<RegionIdType, BaseBDBInt*> bdbIntsCounterpart_;
+    
+    // flag reporting if the additional map bdbIntsCounterpart_ was used
+    // true: map has to be considered
+    // false: map does not have to be considered
+    bool considerCounterpart_;
 
     //! Map storing functors for calculating general results
     std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;
@@ -267,6 +277,9 @@ namespace CoupledField
 
     //! ncInterface regions of coupling object
     StdVector<RegionIdType> ncIfaces_;
+
+    //! ncInterface information
+    StdVector< StdPDE::NcInterfaceInfo > ncInterfaces_;
 
     //! Name of coupling
     std::string couplingName_;

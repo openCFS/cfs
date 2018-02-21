@@ -95,6 +95,26 @@
   </xsd:complexType>
   
   <xsd:complexType name="DT_ElecPreisachHystModel">
+  <!-- <xsd:documentation xml:lang="en">
+    Scalar Preisach model in electrostatics is defined by
+     i) eSat / pSat = Saturation values for E-Field and Polarization P
+     ii) dirP       = direction of P
+     iii) a set of Preisach weights (the number of rows has to be specified by parameter dim_weights)
+    
+     For the piezoelectric case
+     -) strainForm > if set to 1, the piezoelectric d-form will be assumed as basis
+                    > if set to 0, the piezoelectric e-form will be assumed as basis (DEFAULT)
+      Note that in both cases, [c^E], [e] and [eps^S] are provided as small signal parameter.
+      In case of d-form, those will be transformed to the [s^E], [d] and [eps^T] at the beginning of the simulation
+        and then during each iteration transformed back to [c^E], [e] and [eps^S].
+      Idea behind d-form: as [e]/[d] depends on P, [eps^S] = [eps^T] - [d][c^E][d]^t will do in case that
+                           [eps^T] is taken as basis
+    -) betaCoef > the irreversible strains are computed via a polynomial sum of the
+              the polarization, i.e.
+              S^i = beta_0 + beta_1*P + beta_2*P^2 + beta_3*P^3 ... beta_n*P^n
+           > specify vector of n+1 doubles representing beta_n to beta_0 (from left to right)
+           > length of vector defined by dimCoefs
+   </xsd:documentation>-->
     <xsd:sequence>
       <xsd:element name="eSat" type="xsd:double"/>
       <xsd:element name="pSat" type="xsd:double"/>
@@ -107,26 +127,106 @@
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element> 
+      <xsd:element name="strainForm" type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
+      <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="0" default="1"/>
+      <xsd:element name="betaCoefs" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+          <xsd:minLength value="1"/> 
+            <xsd:maxLength value="11"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
     </xsd:sequence>
   </xsd:complexType>
   
     <xsd:complexType name="DT_ElecVectorPreisachHystModel">
+   <!--   <xsd:documentation xml:lang="en">
+    Vector Preisach model in electrostatics is defined by
+     i) eSat / pSat = Saturation values for E-Field and Polarization P
+     ii) evalVersion    = type of model and implementation that shall be used
+                        1: classical model (Sutor2012), list based implementation
+                        2: revised model (Sutor2015), list based implementation (DEFAULT)
+                        10: classical model (Sutor2012), matrix based implementation
+                        20: revised model (Sutor2015), matrix based implementation
+     iii) rotResistance > parameter needed for classical and revised model
+                        > spcifies how strong the direction of the polarization changes in relation to the
+                          amplitude
+                        > classical model: xthres = |x_in|^k
+                        > revised model: xthres = k*|x_in|
+     iv)  angularDistance > parameter needed only for revised model
+                          > maximal angle that might remain inside the material between polarization and
+                              outer field; gets applied each time when rotation states change direction;
+                              angular distance decreases to 0 for amplitudes going towards saturation                        
+     v) a set of Preisach weights (the number of rows has to be specified by parameter dim_weights)
+    
+     Optional parameter:
+     a) angularClipping > if set to a value != 0, all stored direction vectors are clipped to multiples of this angular value (in rad)
+     b) angularResolution,amplitudeResolution > changes in rotation angle/input amplitude below these thresholds
+                                                are not resolved; old state remains unchanged
+     c) initialState > vector providing an initial input to the hyst operator that shall be applied before the
+                        actual simulation starts; can be used to simulate a material which starts in saturation
+                        (for that purpose, the initial input has to have an amplitude >= eSat of course)
+                       Attention: this has to be conform with boundary conditions, i.e. if you specify initial state
+                                  to be (eSat,0,0), the polarization must be allowed to point into x direction at the boundary
+                                  > see e.g. the newly added fieldParallel bcs (i.e. E is parallel to BC but P does not have to be)
+                                  
+     Debug parameter:
+     x) printOut > if set to X!=0, the overlaid switching and rotation state (i.e. the Preisach plane) will be outputted
+                   to a bmp file (FOR EACH ELEMENT!) for each Xth time step
+     y) bmpResolution > resolution of the bmp images (only used if printOut != 0
+       
+     For the piezoelectric case
+     -) strainForm > if set to 1, the piezoelectric d-form will be assumed as basis
+                    > if set to 0, the piezoelectric e-form will be assumed as basis (DEFAULT)
+      Note that in both cases, [c^E], [e] and [eps^S] are provided as small signal parameter.
+      In case of d-form, those will be transformed to the [s^E], [d] and [eps^T] at the beginning of the simulation
+        and then during each iteration transformed back to [c^E], [e] and [eps^S].
+      Idea behind d-form: as [e]/[d] depends on P, [eps^S] = [eps^T] - [d][c^E][d]^t will do in case that
+                           [eps^T] is taken as basis
+     -) betaCoef > the irreversible strains are computed via a polynomial sum of the
+                     the polarization, i.e.
+                     S^i = beta_0 + beta_1*P + beta_2*P^2 + beta_3*P^3 ... beta_n*P^n
+                  > specify vector of n+1 doubles representing beta_n to beta_0 (from left to right)
+                  > length of vector defined by dimCoefs
+        </xsd:documentation>-->
     <xsd:sequence>
       <xsd:element name="eSat" type="xsd:double"/>
       <xsd:element name="pSat" type="xsd:double"/>
-      <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0"/>
-      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0"/>
-      <xsd:element name="angularDistance" type="xsd:double" minOccurs="0"/>
-      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger"/>
-      <xsd:element name="weights">
+      <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0" default="2"/>
+      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0" default="1"/>
+      <xsd:element name="angularDistance" type="xsd:double" minOccurs="0" default="0"/>
+      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger" minOccurs="1"/>
+      <xsd:element name="weights" minOccurs="1">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
             <xsd:maxLength value="100000000"/>
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element> 
-      <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
+      <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="0"/>
+      <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="0"/>
+      <xsd:element name="initialState" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+          <xsd:minLength value="3"/> 
+            <xsd:maxLength value="3"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
       <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      <xsd:element name="strainForm" type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
+      <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="0" default="1"/>
+      <xsd:element name="betaCoefs" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+          <xsd:minLength value="1"/> 
+            <xsd:maxLength value="11"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
     </xsd:sequence>
   </xsd:complexType>
   

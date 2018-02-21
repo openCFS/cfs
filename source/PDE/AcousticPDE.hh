@@ -85,6 +85,9 @@ namespace CoupledField{
     void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id,
     		                    RegionIdType actRegion, std::string tempId);
 
+//    //! Set special RHS values
+//    virtual void SetRhsValues();
+
   private:
 
     //! stores if the Acoustic PDE is in potential or pressure form
@@ -96,6 +99,10 @@ namespace CoupledField{
     //! Stores Rayleigh damping definition for each region
     std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
     
+
+    //! acoustic source density
+    shared_ptr<CoefFunctionMulti> acousticSourceDensityCoef_;
+
     //! Coefficient function for the flow field
 
     //! This coefficient function describes the flow field. As this 
