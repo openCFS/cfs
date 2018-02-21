@@ -64,15 +64,15 @@ namespace CoupledField {
 
   PhistEigenSolver::~PhistEigenSolver()
   {
-    int err = 0;
-    phist::kernels<double>::sparseMat_delete(A_, &err);
-    LOG_DBG(pes) << "~PES: del A -> " << err;
-    // assert(err = 0);
+    int iflag = 0;
+    phist::kernels<double>::sparseMat_delete(A_, &iflag);
+    LOG_DBG(pes) << "~PES: del A -> " << iflag;
+    // assert(iflag = 0);
     A_ = NULL;
 
-    phist::kernels<double>::sparseMat_delete(B_, &err);
-    LOG_DBG(pes) << "~PES: del B -> " << err;
-    // assert(err = 0);
+    phist::kernels<double>::sparseMat_delete(B_, &iflag);
+    LOG_DBG(pes) << "~PES: del B -> " << iflag;
+    // assert(iflag = 0);
     B_ = NULL;
 
     //ghost_densemat_destroy(x_);
@@ -133,16 +133,16 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
 {
   // skip calculation of eigenvector residuals
   // download X from GPU if applicable
-  int err = 0;
-  phist::kernels<double>::mvec_from_device(X, &err);
-  assert(err == 0);
+  int iflag = 0;
+  phist::kernels<double>::mvec_from_device(X, &iflag);
+  assert(iflag == 0);
   // get pointer to row/col major block of vectors
   double* xval = NULL; // will be set to memory owned by phist
   phist_lidx lda, nloc;
-  phist::kernels<double>::mvec_my_length(X, &nloc, &err);
-  assert(err == 0);
-  phist::kernels<double>::mvec_extract_view(X, &xval, &lda, &err);
-  assert(err == 0);
+  phist::kernels<double>::mvec_my_length(X, &nloc, &iflag);
+  assert(iflag == 0);
+  phist::kernels<double>::mvec_extract_view(X, &xval, &lda, &iflag);
+  assert(iflag == 0);
   // this is how one can extract the eigenvectors.
   // TODO: move all of this to CalcEigenFrequencies and other functions below
   mode_.Resize(nEig, nloc);
@@ -185,45 +185,45 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
 
     // we need the domain map of the matrix
     phist_const_map_ptr map = NULL;
-    int err = 0;
-    phist::kernels<double>::sparseMat_get_domain_map(A,&map,&err);
-    LOG_DBG(pes) << "sparseMat_get_domain_map -> " << err;
-    assert(err == 0);
+    int iflag = 0;
+    phist::kernels<double>::sparseMat_get_domain_map(A,&map,&iflag);
+    LOG_DBG(pes) << "sparseMat_get_domain_map -> " << iflag;
+    assert(iflag == 0);
 
     phist::types<double>::linearOp_ptr opB = new phist::types<double>::linearOp();
-    phist::core<double>::linearOp_wrap_sparseMat(opB,B,&err);
-    LOG_DBG(pes) << "linearOp_wrap_sparseMat -> " << err;
-    assert(err == 0);
+    phist::core<double>::linearOp_wrap_sparseMat(opB,B,&iflag);
+    LOG_DBG(pes) << "linearOp_wrap_sparseMat -> " << iflag;
+    assert(iflag == 0);
 
-    phist::core<double>::linearOp_wrap_sparseMat_pair(opA,A,B,&err);
-    LOG_DBG(pes) << "linearOp_wrap_sparseMat_pair -> " << err;
-    assert(err == 0);
+    phist::core<double>::linearOp_wrap_sparseMat_pair(opA,A,B,&iflag);
+    LOG_DBG(pes) << "linearOp_wrap_sparseMat_pair -> " << iflag;
+    assert(iflag == 0);
 
     int prob_size = numFreq+opts_.blockSize-1;
     LOG_DBG(pes) << "prob_size -> " << prob_size;
 
     // setup necessary vectors and matrices for the schur form
     phist::types<double>::mvec_ptr Q = NULL;
-    phist::kernels<double>::mvec_create(&Q,map,prob_size,&err);
-    LOG_DBG(pes) << "mvec_create -> " << err;
-    assert(err == 0);
+    phist::kernels<double>::mvec_create(&Q,map,prob_size,&iflag);
+    LOG_DBG(pes) << "mvec_create -> " << iflag;
+    assert(iflag == 0);
 
     phist::types<double>::sdMat_ptr R = NULL;
-    phist::kernels<double>::sdMat_create(&R,prob_size,prob_size,comm_,&err);
-    LOG_DBG(pes) << "sdMat_create -> " << err;
-    assert(err == 0);
+    phist::kernels<double>::sdMat_create(&R,prob_size,prob_size,comm_,&iflag);
+    LOG_DBG(pes) << "sdMat_create -> " << iflag;
+    assert(iflag == 0);
 
     resNorm_.Resize(prob_size);
     ev_.Resize(prob_size);
 
     // setup start vector (currently to (1 0 1 0 .. ) )
     phist::types<double>::mvec_ptr v0 = NULL;
-    phist::kernels<double>::mvec_create(&v0,map,1,&err);
-    LOG_DBG(pes) << "mvec_create -> " << err;
-    assert(err == 0);
+    phist::kernels<double>::mvec_create(&v0,map,1,&iflag);
+    LOG_DBG(pes) << "mvec_create -> " << iflag;
+    assert(iflag == 0);
 
-    phist::kernels<double>::mvec_put_value(v0,1.0,&err);
-    assert(err == 0);
+    phist::kernels<double>::mvec_put_value(v0,1.0,&iflag);
+    assert(iflag == 0);
 
     // skip residual calculation from subspacejada, not necessary for us
     opts_.v0=v0;
@@ -238,25 +238,27 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
     // A*Q = B*Q*R holds
     assert(opts_.how != phist_HARMONIC);
 
-    phist::jada<double>::subspacejada(opA, opB, opts_, Q, R, ev_.GetPointer(), resNorm_.GetPointer(), &nEig, &nIter, &err);
-    LOG_DBG(pes) << "subspacejada -> nEig=" << nEig << " nIter=" << nIter << " ev=" << ev_.ToString() << " -> " << err;
-    assert(err >= 0);
+    phist::jada<double>::subspacejada(opA, opB, opts_, Q, R, ev_.GetPointer(), resNorm_.GetPointer(), &nEig, &nIter, &iflag);
+    LOG_DBG(pes) << "subspacejada -> nEig=" << nEig << " nIter=" << nIter << " ev=" << ev_.ToString() << " -> " << iflag;
+    assert(iflag >= 0);
 
     // skip calculation of real residual, res = AQ - BQR
 
     // compute eigenvectors X: A*X=X*D and diagonal matrix D with eigenvalues
     // (for checking the sorting only).
     phist::types<double>::mvec_ptr X=NULL;
-    phist::kernels<double>::mvec_create(&X,map,nEig,&err);
-    assert(err >= 0);
+    // we want the information back from cuda in SaveModes(
+    iflag = PHIST_MVEC_REPLICATE_DEVICE_MEM; // ignored if not cuda
+    phist::kernels<double>::mvec_create(&X,map,nEig,&iflag);
+    assert(iflag >= 0); // iflag is reset to 0 for success
 
     setup->Stop();
 
     shared_ptr<Timer> solve = info_->Get(ParamNode::SUMMARY)->Get("phist_solve/timer")->AsTimer();
     solve->Start();
 
-    phist::jada<double>::ComputeEigenvectors(Q,R,X,&err);
-    assert(err >= 0);
+    phist::jada<double>::ComputeEigenvectors(Q,R,X,&iflag);
+    assert(iflag >= 0);
 
     // rescale ev_
     complex<double> rescale(scale, 1.0);
@@ -299,19 +301,19 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
     sort_ = sort;
 
     // MPI handle which is by default MPI_COMM_WORLD
-    int err;
-    phist_comm_create(&comm_, &err);
-    assert(err == 0);
+    int iflag;
+    phist_comm_create(&comm_, &iflag);
+    assert(iflag == 0);
     LOG_DBG(pes) << "phist_comm_create -> " << comm_;
 
     // dummy mpi arguments
     int argc = 0;
     char* v = NULL;
     char** argv = &v;
-    phist_kernels_init(&argc, &argv, &err);
+    phist_kernels_init(&argc, &argv, &iflag);
 
-    assert(err == 0);
-    LOG_DBG(pes) << "phist_kernels_init -> " << err;
+    assert(iflag == 0);
+    LOG_DBG(pes) << "phist_kernels_init -> " << iflag;
 
     // phist parameters usually read from opts-standard.txt
 
@@ -367,10 +369,10 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
 
     phist::types<double>::sparseMat_ptr smp = (phist::types<double>::sparseMat_ptr) *phist;
     assert(smp == NULL); // we are prior initialization
-    int err = 0;
-    phist::kernels<double>::sparseMat_create_fromRowFunc(&smp, comm_, mat->GetNumRows(), mat->GetNumCols(), mat->GetMaxRowSize(), SparseMatRowFunc, (void*) &service, &err);
-    assert(err == 0);
-    LOG_DBG(pes) << "create smp -> " << err;
+    int iflag = 0;
+    phist::kernels<double>::sparseMat_create_fromRowFunc(&smp, comm_, mat->GetNumRows(), mat->GetNumCols(), mat->GetMaxRowSize(), SparseMatRowFunc, (void*) &service, &iflag);
+    assert(iflag == 0);
+    LOG_DBG(pes) << "create smp -> " << iflag;
     assert(smp != NULL);
     return (sparseMat_t*) smp;
   }
@@ -417,7 +419,7 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
     }
   }
 
-  void PhistEigenSolver::CalcConditionNumber(const BaseMatrix& mat, Double& condNumber, Vector<Double>& evs, Vector<Double>& err )
+  void PhistEigenSolver::CalcConditionNumber(const BaseMatrix& mat, Double& condNumber, Vector<Double>& evs, Vector<Double>& err)
   {
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;

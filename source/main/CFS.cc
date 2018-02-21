@@ -90,6 +90,7 @@ int main(int argc, const char **argv)
     if(size>1)
       for(rank = 1; rank < size; ++rank)
         MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
+  }
   else
   {
     PETSCWorker w(argc, argv);

@@ -607,6 +607,10 @@ FILE(MAKE_DIRECTORY "${CFS_TEMP_DIR}")
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/FindCFSDEPS.cmake")
 
+# see also External_OpenBLAS, External_LAPACK or FindIntelMKL as the settings are quite different
+# message("BLAS_LIBRARY=${BLAS_LIBRARY}")
+# message("LAPACK_LIBRARY=${LAPACK_LIBRARY}")
+
 #-----------------------------------------------------------------------------
 # Set path of XML schema. If env variable XMLSCHEMA is set, use it!
 #-----------------------------------------------------------------------------
@@ -756,9 +760,7 @@ ENDIF(USE_CGNS)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)
 IF(NOT MINGW)
-IF(NOT CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
-ENDIF()
 ENDIF()
 ADD_SUBDIRECTORY(source/DataInOut/ScatteredDataInOut)
 
