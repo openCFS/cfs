@@ -108,7 +108,7 @@ void EvaluateOnly::SolveProblem()
     {
       Condition* g = optimization->constraints.view->Get(c);
       optimizer_timer_->Start(); // only for the assert
-      v = EvalConstraint(g, false, false, excite); // sets the timer itself
+      v = EvalConstraint(g, false, false, true, excite); // sets the timer itself
       optimizer_timer_->Stop();
 
       double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
