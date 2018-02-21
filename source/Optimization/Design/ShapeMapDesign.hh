@@ -157,8 +157,15 @@ public:
     /** indicates that only half of the shape is for optimization, the other is mapped. Checks orientation of the shape */
     bool ShallMapHalfShape() const;
 
-    /** are we first or second center node? */
-    bool IsCenterNode() const { return other_center != NULL; }
+    /** as long as we have no surface, we are !IsCenterShape() */
+    bool Is2DShape() const { assert(!IsSurfaceShape()); return(!IsCenterShape()); }
+;
+
+    /** are we first or second 3d center node or its profile? */
+    bool IsCenterShape() const { return type == NODE ? other_center != NULL : partner->other_center != NULL; }
+
+    /** are we a 3D surface (not yet implemented yet) */
+    bool IsSurfaceShape() const { return false; }
 
     /** for the 3D center node case give back the first center node. This can be called for the first center node, the second
      * center node and the common profile node. Note that the implementation is at the end of this file.
@@ -172,6 +179,10 @@ public:
     /** @see GetFirstCenterNode() */
     inline ShapeParam* GetSecondCenterNode();
 
+    /** The reference for 2d shape is the shape, for 3d second the first and for profiles the first shape.
+     * We need to implement here */
+    int GetReferenceId() const { return type == ShapeMapDesign::PROFILE ? partner->idx : (other_center != NULL ? std::min(other_center->idx, idx) : idx); }
+
     /** test if the param is part of the shape */
     bool IsPart(const ShapeParamElement* test) const { return (int) test->GetIndex() >= start_param && (int) test->GetIndex() < end_param; }
 
@@ -181,8 +192,8 @@ public:
     Type type = NODE; // NODE or PROFILE will also be set in Init
     int idx = -2; // number of shape param. -1 for CENTER
 
-    /** a 3D center has two nodes. The point via other_center to each other. NULL means that we are not part of a center.
-     * The shape_param with with the lower idx is defined as first, the other as second.
+    /** a 3D center has two nodes. They point via other_center to each other. NULL means that we are not part of a center.
+     * The shape_param with the lower idx is defined as first, the other as second.
      * The links are chained, hence if other_center != NULL then this shall hold: this->other_center->other_center == this.
      * Only a node has other_center. The corresponding profiles need to be NULL two center nodes share a single partner. */
     ShapeParam* other_center = NULL;
@@ -191,7 +202,13 @@ public:
      * single profile partner. The Profile partner points back to the first center node only. */
     ShapeParam* partner = NULL;
 
+    /** the dof of this shape. Note that this shape might be part of a center shape
+     * @see Flip() */
     ShapeParamElement::Dof dof = ShapeParamElement::NOT_SET;
+
+    /** For a dof x the orientation is y. For 3D center pairs X and Y it is Z. */
+    ShapeParamElement::Dof orientation = ShapeParamElement::NOT_SET;
+
     std::string lower; // to be math parsed with coordinates xi to be used as xi/nx
     std::string upper; //
     std::string value; // initial or fixed
@@ -216,13 +233,11 @@ public:
     /** this is the end of the optimization, reflects symmetry and is -1 if no design */
     int end_opt = -1;
 
-    /** For a dof x the orientation is y. For 3D center pairs X and Y it is Z. */
-    ShapeParamElement::Dof orientation = ShapeParamElement::NOT_SET;
-
     /** the x_symmetry for dof=y means we copy from left to right. x_symmetry for dof=x means we need to induce an
      * additional shape */
     Symmetry x_sym = NONE;
     Symmetry y_sym = NONE;
+    Symmetry z_sym = NONE;
     /** diag always induces a new shape */
     Symmetry diag  = NONE;
 

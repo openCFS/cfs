@@ -70,6 +70,8 @@ class Timer
    *  2. cout << GetTimeString(second (or microsec)_clock::local_time() - start_time);*/
   static const std::string GetTimeString(const boost::posix_time::time_duration period);
 
+  static const std::string GetTimeString(double seconds);
+
   /** Prints the time in human readable format to specified stream
    *  @param (in) stream output stream
    */
