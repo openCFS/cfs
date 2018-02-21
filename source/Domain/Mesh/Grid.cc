@@ -1151,32 +1151,33 @@ namespace CoupledField
       }
     }
 
-    // Calculate a diameter of the  element in each coordinate direction.  Use
-    // L2-length of element for directions in which no diameter is available.
-    shared_ptr<ElemShapeMap> esm = GetElemShapeMap(elem,updated);
-    Vector<Double> dia;    
-    esm->CalcDiameter(dia);
-    UInt elemDim = dia.GetSize();
-    Double length = NormL2(&dia[0], elemDim);
-    if(elemDim < 3) 
-    {
-      Vector<Double> tmpDia = dia;
-      dia.Resize(3);
-      for( UInt i=0; i<tmpDia.GetSize(); ++i ) {
-        dia[i] = tmpDia[i];
-      }
-      for(UInt i=elemDim; i<3; i++) 
-      {
-        dia[i] = length;
-      }
-    }    
+    Vector<Double> dia(3);
+    dia[0] = xmax - xmin;
+    dia[1] = ymax - ymin;
+    dia[2] = zmax - zmin;
 
-    xmin -= globToler*dia[0];
-    xmax += globToler*dia[0];
-    ymin -= globToler*dia[1];
-    ymax += globToler*dia[1];
-    zmin -= globToler*dia[2];
-    zmax += globToler*dia[2];
+    // If a two-dimensional element is part of a three dimensional grid we use the maximum diameter of all diameters
+    UInt elemDim = Elem::GetShape( Elem::GetShapeType( elem->type) ).dim;
+    if (elemDim < globalDim) {
+      Double maxDia = dia[0];
+      UInt i = dia[1] > dia[2] ? 1 : 2;
+      maxDia = dia[i] > maxDia ? dia[i] : maxDia;
+      Double thisTol = globToler*maxDia;
+
+      xmin -= thisTol;
+      xmax += thisTol;
+      ymin -= thisTol;
+      ymax += thisTol;
+      zmin -= thisTol;
+      zmax += thisTol;
+    } else {
+      xmin -= globToler*dia[0];
+      xmax += globToler*dia[0];
+      ymin -= globToler*dia[1];
+      ymax += globToler*dia[1];
+      zmin -= globToler*dia[2];
+      zmax += globToler*dia[2];
+    }
   }
 
 #ifdef USE_CGAL

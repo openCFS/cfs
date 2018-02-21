@@ -20,7 +20,7 @@ namespace CoupledField
   class BiLinearForm;
   class BaseBDBInt;
   class ResultFunctor;
-  class BaseFieldFunctor;
+class BaseFieldFunctor;
   class LinearFormContext;
   class CoefFunction;
   class CoefFunctionSurf;

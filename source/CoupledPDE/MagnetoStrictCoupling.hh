@@ -9,6 +9,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
 
 namespace CoupledField {
 class BaseResult;
@@ -54,6 +55,9 @@ class BiLinearForm;
     //! Definition of the (bi)linear forms
     void DefineIntegrators();
 
+    // for hysteresis we need rhs loads that contain information about both pdes
+    void DefineRhsLoadIntegrators();
+    
     //! Define available results
     void DefineAvailResults();
     
@@ -65,6 +69,15 @@ class BiLinearForm;
                                      RegionIdType regionId,
                                      bool isComplex );
 
+    // returns true if hysteretic behavior was found and false otherwise
+    // case true:
+    //  elecToMechInt = integrator that couples electric field to mechanics
+    //  mechToElecInt = integrator that couples mechancis to electric field
+    // case false:
+    //  elecToMechInt = output of GetStiffIntegrator
+    //  mechToElecInt = NULL and will not be used; instead isCounterpart will be set for assemblys
+    bool GetStiffIntegratorHyst( BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, 
+          BaseBDBInt** magToMechInt, BaseBDBInt** mechToMagInt);
 
     //! Subtype of related mechanical PDE
     std::string subType_;

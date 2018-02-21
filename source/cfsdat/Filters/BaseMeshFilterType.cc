@@ -72,7 +72,8 @@ FilterPtr BaseMeshFilterType::Generate(PtrParamNode ptrNode, PtrResultManager re
  else if(ptrNode->Get("type")->As<std::string>() == "SpaceDifferentiation_Curl"){
    newFilter = FilterPtr(new CFSDat::CurlDifferentiator(0,ptrNode,resMana));
  }
- else if(ptrNode->Get("type")->As<std::string>() == "AeroacousticSource_LighthillSourceTerm" ||
+ else if(ptrNode->Get("type")->As<std::string>() == "AeroacousticSource_LighthillSourceTensor" ||
+         ptrNode->Get("type")->As<std::string>() == "AeroacousticSource_LighthillSourceTerm" ||
          ptrNode->Get("type")->As<std::string>() == "AeroacousticSource_LighthillSourceVector" ||
          ptrNode->Get("type")->As<std::string>() == "AeroacousticSource_LambVector"){
    newFilter = FilterPtr(new CFSDat::Lighthill(0,ptrNode,resMana));

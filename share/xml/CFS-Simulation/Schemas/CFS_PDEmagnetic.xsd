@@ -71,11 +71,6 @@
                     <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
-               <xsd:element name="hysteresis_fixpoint" type="DT_ElecNonLinHyst">
-                  <xsd:annotation>
-                    <xsd:documentation>Permeability depends on magnetic flux density; uses simple fixpoint iteration for solution</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:element>
               </xsd:choice>
 
             </xsd:complexType>
@@ -310,6 +305,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
       <xsd:enumeration value="magFieldIntensity"/>
+      <xsd:enumeration value="elecFieldIntensity"/>
       <xsd:enumeration value="magEddyCurrentDensity"/>
       <xsd:enumeration value="magCoilCurrentDensity"/>
       <xsd:enumeration value="magTotalCurrentDensity"/>
@@ -319,7 +315,9 @@
       <xsd:enumeration value="fluxIndStrain"/>
       <xsd:enumeration value="magCoreLossDensity"/>
       <xsd:enumeration value="magMagnetization"/>
+      <xsd:enumeration value="magPolarization"/>
       <xsd:enumeration value="magElemPermeability"/>
+      <xsd:enumeration value="magJouleLossPowerDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 

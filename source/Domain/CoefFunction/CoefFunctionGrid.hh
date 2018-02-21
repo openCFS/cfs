@@ -98,6 +98,15 @@ class CoefFunctionGrid : public CoefFunction{
     //! Dump coefficient function to string
     virtual std::string ToString() const;
 
+    virtual void AddEntityList(shared_ptr<EntityList> ent){
+    	if(!this->entities_.Contains(ent)){
+    		entities_.Push_back(ent);
+    	}
+    	else {
+    		WARN("entity list " << ent->GetName() << " already contained in CoefFunction")
+    	}
+    }
+
     //! \copydoc CoefFunction::GetVecSize
     virtual UInt GetVecSize() const;
 
@@ -192,6 +201,12 @@ class CoefFunctionGrid : public CoefFunction{
     
     //! external step to t map
     std::map<UInt, Double> stepValueMap_;
+
+    //! stores the current stepnumber of external result
+    UInt curStep_;
+
+    //! stores the current step value of external result
+    Double curTStep_;
 
     //! stores the current mutlisequence step for external result
     UInt aSeqStep_;

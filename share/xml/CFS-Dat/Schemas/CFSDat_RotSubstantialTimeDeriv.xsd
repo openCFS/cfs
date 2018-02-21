@@ -27,7 +27,7 @@
           <xsd:element name="presGrad" type="DT_SimpleQuantity" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="meanFlow" type="DT_SimpleQuantity" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="outputQuantity" type="DT_SimpleQuantity" minOccurs="1" maxOccurs="1"/>
-          <xsd:element name="rotatingDomain" type="DT_RotDomain" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="rotatingDomain" type="DT_RotDomain" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
         <xsd:attribute name="inputFilterIds" use="required" type="xsd:token">
           <xsd:annotation>

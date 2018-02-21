@@ -132,8 +132,8 @@ namespace CoupledField {
       }
       what_ = exc.what_;
     }
-    
-    Exception::~Exception() throw (){
+
+    Exception::~Exception() {
         if(reason_)
             delete reason_;
     }

@@ -101,12 +101,6 @@ public:
                                         Grid* ptGrid,
                                         const StdVector<shared_ptr<EntityList> >& srcEntities =
                                             StdVector<shared_ptr<EntityList> >()  );
-
-private:
-  
-  //! perform initialization (set zeroCoef_)
-  void Init();
-
   //! Return coefficient function for a given region
   inline PtrCoefFct GetRegionCoef( RegionIdType region ) {
     std::map<RegionIdType,PtrCoefFct >::const_iterator it =
@@ -120,6 +114,11 @@ private:
     return it->second;
   }
   
+private:
+  
+  //! perform initialization (set zeroCoef_)
+  void Init();
+
   //! Map storing coefFunction of the analytical regions
   std::map<RegionIdType,PtrCoefFct > regionCoefs_;
   

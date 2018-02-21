@@ -42,6 +42,8 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
     case OP_TRACE:
     case OP_INV:
     case OP_DET:
+    case OP_RE:
+    case OP_IM:
       return 1;
       break;
         
@@ -239,7 +241,7 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
 
 bool CoefXpr::IsComplex( PtrCoefFct a,
                          OpType op ) {
-  if( op == OP_NORM ) {
+  if( (op == OP_NORM) || (op == OP_RE) || (op == OP_IM) ) {
     return false;
   } else {
     return a->IsComplex();
@@ -303,6 +305,19 @@ void CoefXpr::ApplyUnaryFunc( std::string& retReal, std::string& retImag,
       retImag = "0.0";
       break;
     
+    case OP_RE:
+      args = B(argReal);
+      retReal = B(args.Serialize(' '));
+      retImag = "0.0";
+      break;
+
+    case OP_IM:
+      args = B(argImag);
+      retReal = B(args.Serialize(' '));
+      retImag = "0.0";
+      break;
+
+
     case OP_SQRT:
       EXCEPTION( "Complex square root not implemented" );
       break;

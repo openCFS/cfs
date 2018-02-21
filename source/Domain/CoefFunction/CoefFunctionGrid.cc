@@ -87,6 +87,7 @@
 //include headers of subclasses for factory method
 #include "CoefFunctionGridNodalInterp.hh"
 #include "CoefFunctionGridNodalDefault.hh"
+#include "CoefFunctionGridNodalSource.hh"
 //#include "CoefFunctionGridHigherDefault.hh"
 //#include "CoefFunctionGridHigherInterp.hh"
 #include "Driver/BaseDriver.hh"
@@ -102,25 +103,46 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                                        shared_ptr<RegionList> regions){
   shared_ptr<CoefFunctionGrid> ret;
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
-  if(configNode->Has("defaultGrid")){
-    if(format == Global::COMPLEX){
-      ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
-          configNode->Get("defaultGrid"), tmpNode, regions));
-    }else{
-      ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
-          configNode->Get("defaultGrid"), tmpNode, regions));
-    }
-  }else if(configNode->Has("externalGrid")){
-    if(format == Global::COMPLEX){
-      ret.reset(new CoefFunctionGridNodalInterp<Complex>(ptDomain,
-          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
-    }else{
-      ret.reset(new CoefFunctionGridNodalInterp<Double>(ptDomain,
-          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
-    }
-  } else {
-    EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious bug, please report!");
+
+  if(configNode->Has("defaultGrid")) {
+	  std::string dependString;
+	  PtrParamNode tmpNodeType  =  configNode->Get("defaultGrid");
+	  tmpNodeType->GetValue("dependtype",dependString);
+
+	  if ( dependString == "INVSOURCE" || dependString == "INVMEASURE") {
+		  if(format == Global::COMPLEX){
+			  ret.reset(new CoefFunctionGridNodalSource<Complex>(ptDomain,
+					  configNode->Get("defaultGrid"), tmpNode, regions));
+		    }
+		  else{
+			  EXCEPTION("CoefFunctionGridNodalSource can just be complex");
+		  }
+	  }
+	  else {
+		  if (format == Global::COMPLEX) {
+			  ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
+					    configNode->Get("defaultGrid"), tmpNode, regions));
+		      }
+		  	  else {
+		  		  ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
+		                    configNode->Get("defaultGrid"), tmpNode, regions));
+		  	  }
+	  }
+
   }
+  else if(configNode->Has("externalGrid")){
+	  if(format == Global::COMPLEX){
+		  ret.reset(new CoefFunctionGridNodalInterp<Complex>(ptDomain,
+                    configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
+	  }
+	  else {
+		  ret.reset(new CoefFunctionGridNodalInterp<Double>(ptDomain,
+                    configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
+	  }
+  } else {
+   EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious bug, please report!");
+  }
+
   return ret;
 }
 

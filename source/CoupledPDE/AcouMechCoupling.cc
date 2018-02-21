@@ -18,6 +18,7 @@
 #include "FeBasis/H1/H1Elems.hh"
 
 // new integrator concept
+#include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -142,11 +143,10 @@ namespace CoupledField {
             // factor for the lower diagonal coupling integrator C_Phi_U 
             // has a switched sign.
           
-          DefCouplInt( "AcouMechPotCouplingInt", false, -1.0, DAMPING, dispFct,
-                       acouFct, actSDList, coefFuncs, acouRegions );
-          DefCouplInt( "AcouMechPotCouplingInt_Transposed", false, 1.0,
-                       DAMPING, acouFct, dispFct,
-                       actSDList, coefFuncs, acouRegions );
+        	DefCouplInt( "AcouMechPotCouplingInt", false, -1.0, DAMPING, dispFct,
+                         acouFct, actSDList, coefFuncs, acouRegions );
+        	DefCouplInt( "AcouMechPotCouplingInt_Transposed", false, 1.0,
+                         DAMPING, acouFct, dispFct, actSDList, coefFuncs, acouRegions );
           }
         }
         break;
@@ -175,6 +175,78 @@ namespace CoupledField {
           break;
       }
     }
+
+    //now we do it for the non-conforming interfaces
+    for ( UInt actNC = 0, n = ncIfaces_.GetSize(); actNC < n; actNC++ ) {
+
+      // Get interface from grid and cast to MortarInterface class
+      shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ncInterfaces_[actNC].interfaceId);
+
+      //Nitsche coupling: edge/face information is required
+      this->ptGrid_->MapEdges();
+      this->ptGrid_->MapFaces();
+
+      //for testing wrong density coefFunction!!
+      PtrCoefFct density  = CoefFunction::Generate( mp, Global::REAL, "1000.0");
+      PtrCoefFct constOne = CoefFunction::Generate( mp, Global::REAL, "1.0");
+
+      switch(acouFormulation) {
+        // ==================
+        //   ACOU_POTENTIAL
+        // ==================
+        case ACOU_POTENTIAL:
+        {
+
+          // In case of transient / harmonic simulation, the acoustic PDE is
+          // already pre-multiplied by -1, so we can define one single
+          // coupling integrator for the damping matrix, which gets assembled
+          // also transposed
+          if( analysisType_ != BasePDE::EIGENFREQUENCY) {
+            DefCouplIntNC( "AcouMechPotCouplingIntNC", true, -1.0, DAMPING, dispFct,
+                         acouFct, ncIf, density );
+          } else {
+            // In case of an eigenfrequency simulation, we can only have
+            // positive definite matrices. Thus, the acoustic PDE is NOT
+            // pre-multiplied by -1 and we have to define two distinct
+            // coupling integrators for the DAMPING matrix. This is also why
+            // factor for the lower diagonal coupling integrator C_Phi_U
+            // has a switched sign.
+
+          DefCouplIntNC( "AcouMechPotCouplingInNC", false, 1.0, DAMPING, dispFct,
+                       acouFct, ncIf, density );
+          DefCouplIntNC( "AcouMechPotCouplingInt_TransposedNC", false, -1.0,
+                       DAMPING, acouFct, dispFct, ncIf, density );
+          }
+        }
+        break;
+
+        // ==================
+        //   ACOU_PRESSURE
+        // ==================
+        case ACOU_PRESSURE:
+
+          // First ensure, that we have no coupled eigenfrequency simulation:
+          // This case is not tested yet and might not be solvalbe.
+          if( analysisType_ == BasePDE::EIGENFREQUENCY ) {
+            EXCEPTION("A coupled mechanic-acoustic simulation can only be"
+                      "performed in the acoustic potential formulation!");
+          }
+          DefCouplIntNC( "AcouMechPresStiffCouplingIntNC", false, 1.0, STIFFNESS, dispFct,
+                       acouFct, ncIf, constOne );
+
+          DefCouplIntNC( "AcouMechPresMassCouplingIntNC", false, -1.0, MASS, acouFct,
+                       dispFct, ncIf, density );
+
+          break;
+
+        default:
+          EXCEPTION("Unknown formulation for acoustics.");
+          break;
+      }
+    }
+
+    std::cout << "AcouMechCoupling::DefineIntegrators OK" << std::endl;
+
   }
 
   void AcouMechCoupling::DefCouplInt( const std::string& name,
@@ -224,4 +296,71 @@ namespace CoupledField {
     assemble_->AddBiLinearForm( context );
   }
   
+  void AcouMechCoupling::DefCouplIntNC( const std::string& name,
+                                      bool assembleTransposed,
+                                      Double factor,
+                                      FEMatrixType matType,
+                                      shared_ptr<BaseFeFunction>& fnc1,
+                                      shared_ptr<BaseFeFunction>& fnc2,
+									  shared_ptr<BaseNcInterface> ncIf,
+                                      const PtrCoefFct& density ) {
+
+	// create ElemLists for slave surface and intersection
+	MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(ncIf.get());
+	assert(mortarIf);
+
+  	//PtrCoefFct dens = materials_[mortarIf->GetMasterVolRegion()]
+  	//    	                             ->GetScalCoefFnc(DENSITY,Global::REAL);
+
+  	// create new entity list
+  	shared_ptr<ElemList> actSDList = ncIf->GetElemList();
+
+  	// check for position of integrator
+    SolutionType rowType = fnc1->GetResultInfo()->resultType;
+    BiLinearForm * cplInt = NULL;
+    std::cout << "MasterVolRegion: " << mortarIf->GetMasterVolRegion()
+    		  << ";  SlaveVolRegion " <<  mortarIf->GetSlaveVolRegion()
+			  << std::endl;
+
+    BiLinearForm::CouplingDirection curcpl;
+    SurfaceBiLinFormContext *ncContext = NULL;
+
+    if( dim_ == 2  ) {
+      if(rowType == MECH_DISPLACEMENT) {
+    	std::cout << "Do A" << std::endl;
+    	curcpl = BiLinearForm::MASTER_SLAVE;
+    	cplInt = new SurfaceNitscheABInt<>( new IdentityOperator<FeH1,2,2>(),
+    			 new IdentityOperatorNormal<FeH1,2>(),
+				 density, factor, curcpl, geoUpdate_);
+      } else {
+    	std::cout << "Do B" << std::endl;
+    	curcpl = BiLinearForm::SLAVE_MASTER;
+      	cplInt = new SurfaceNitscheABInt<>( new IdentityOperator<FeH1,2>(),
+      			 new IdentityOperatorNormal<FeH1,2,2>(),
+				 density, factor, curcpl, geoUpdate_);
+      }
+    } else if( dim_ == 3) {
+      if(rowType == MECH_DISPLACEMENT) {
+    	curcpl = BiLinearForm::MASTER_SLAVE;
+      	cplInt = new SurfaceNitscheABInt<>( new IdentityOperator<FeH1,3,3>(),
+      			 new IdentityOperatorNormal<FeH1,3>(),
+				 density, factor, curcpl, geoUpdate_);
+      } else {
+    	curcpl = BiLinearForm::SLAVE_MASTER;
+        cplInt = new SurfaceNitscheABInt<>( new IdentityOperator<FeH1,3>(),
+        		 new IdentityOperatorNormal<FeH1,3,3>(),
+    			 density, factor, curcpl, geoUpdate_);
+      }
+    } else {
+      EXCEPTION( "Coupling only for two and three dimensions defined" );
+    }
+
+    cplInt->SetName(name);
+    ncContext = new SurfaceBiLinFormContext(cplInt, matType, curcpl);
+    ncContext->SetEntities( actSDList, actSDList );
+    ncContext->SetFeFunctions( fnc1, fnc2 );
+    ncContext->SetCounterPart(assembleTransposed);
+    assemble_->AddBiLinearForm( ncContext );
+    ncIf->RegisterIntegrator(ncContext);
+  }
 }

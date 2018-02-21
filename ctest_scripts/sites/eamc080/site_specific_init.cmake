@@ -20,13 +20,11 @@ ELSE()
   SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-shared_opt")
 ENDIF()
 
-# this is copy pasted to the ctest cases
-set(CTEST_BUILD_NAME "Update Testsuite shared_opt")
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-shared_opt")
 SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
 
-# don't delete!!
-SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
+# don't know if this even works!!
+# create new empty directory in test specific cmake files, not here!
+# SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
 
 MESSAGE("\n---------------------------------------------------")
 MESSAGE("Update testsuite ${CTEST_SOURCE_DIRECTORY} ...")
