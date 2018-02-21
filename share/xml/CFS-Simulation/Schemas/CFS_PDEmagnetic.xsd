@@ -315,6 +315,7 @@
       <xsd:enumeration value="fluxIndStrain"/>
       <xsd:enumeration value="magCoreLossDensity"/>
       <xsd:enumeration value="magMagnetization"/>
+      <xsd:enumeration value="magPolarization"/>
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magJouleLossPowerDensity"/>
     </xsd:restriction>

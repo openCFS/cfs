@@ -70,6 +70,8 @@ namespace CoupledField
       std::cout << "VectorPreisach: Using revised vector model (Sutor2015)" << std::endl;
     }
 
+		//std::cout << "NumElements: " << numElem_ << std::endl;
+		
     /*
      * Local quantities, i.e. arrays storing different values for each FE element
      */
@@ -1108,6 +1110,8 @@ namespace CoupledField
 
     int cntInner = 0;
 
+	//	std::cout << "Overwrite direction? " << overwriteDirection << std::endl;
+		
     if((overwriteDirection)&&(needsInsert == true)){
       /*
        * Update rotation states
@@ -1952,6 +1956,7 @@ namespace CoupledField
     Double xVal = u_in.NormL2();
 
 //  std::cout << "xVal: " << xVal << std::endl;
+//	std::cout << "OverwriteDirection? " << overwriteDirection << std::endl;
 
     //if(xVal > tol_) //another tolerance?!
     if(xVal != 0){
@@ -1960,7 +1965,7 @@ namespace CoupledField
       e_u.Init(0.0);
     }
 
-//    std::cout << "e_u: " << e_u.ToString() << std::endl;
+   // std::cout << "e_u: " << e_u.ToString() << std::endl;
 
     /*
      * set value of lastEu_ (only needed for classical_ model to get the rotation information for the lowerTriangle_)
@@ -2000,7 +2005,7 @@ namespace CoupledField
       /*
        * work on std data structure
        */
-//      std::cout << "Work on permanent storage" << std::endl;
+     // std::cout << "Work on permanent storage" << std::endl;
       Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],overwriteDirection);
       //Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],true);
 
@@ -2023,7 +2028,7 @@ namespace CoupledField
       /*
        * get copy of globRotList_[idElem]
        */
-//      std::cout << "Working on temporal copy" << std::endl;
+     // std::cout << "Working on temporal copy" << std::endl;
 
       if(performanceMeasurement_){
         copyToTemporalStorageCounter_++;
@@ -2037,7 +2042,7 @@ namespace CoupledField
       }
 
 //      std::cout << "tmpList pre updating " << std::endl;
-//
+//std::list<RotListEntryv10>::iterator listIt;
 //      for(listIt = tmpList.begin(); listIt != tmpList.end(); listIt++){
 //      std::cout << listIt->ToString() << std::endl;
 //      }
@@ -2069,6 +2074,7 @@ namespace CoupledField
 //      std::cout << listIt->ToString() << std::endl;
 //      }
 //      std::cout << "##########################" << std::endl;
+//			
     }
 
 //    /*

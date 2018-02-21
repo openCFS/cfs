@@ -445,9 +445,12 @@ namespace CoupledField {
 				stiffCoef = mechMat[curReg]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, 
 																							 Global::REAL, true );
 				
-				
+        // important: pass information about stiffness and coupling tensor to hystOperator
+        // (if not already done)
+        regionHystOperator->SetElastAndCouplTensor(stiffCoef, couplingCoef);
+
 				// mech RHS
-				shared_ptr<CoefFunction> mechRHS = regionHystOperator->GenerateRHSCoefFnc("MagStrictLoadForMechPDE",stiffCoef,couplingCoef);
+				shared_ptr<CoefFunction> mechRHS = regionHystOperator->GenerateRHSCoefFnc("MagStrictLoadForMechPDE");
 				
 				if ( isComplex_ ) {
 					if( subType_ == "axi" ) {
@@ -507,7 +510,7 @@ namespace CoupledField {
         dispFct->AddEntityList(actSDList);
 				
 				// elec RHS
-				shared_ptr<CoefFunction> magRHS = regionHystOperator->GenerateRHSCoefFnc("MagStrictLoadForMagPDE",stiffCoef,couplingCoef);
+				shared_ptr<CoefFunction> magRHS = regionHystOperator->GenerateRHSCoefFnc("MagStrictLoadForMagPDE");
 				
 				if(isComplex_) {
           if( dim_ == 2 ) {
@@ -605,13 +608,16 @@ namespace CoupledField {
 			shared_ptr<CoefFunctionMulti> hystCoefs;
 			hystCoefs = pde2_->GetHystCoefs();
 			hystOperator =hystCoefs->GetRegionCoef(regionId);
-				
+      
+		  // important: pass information about stiffness and coupling tensor to hystOperator
+      // (if not already done)
+      hystCoefs->SetElastAndCouplTensor(stiffCoef, couplingCoef);
 			// create hyst material
 			// note: curCoef holds the coupling tensor
 			// hyst case might be unsymmetric
 			// > in case of deltaFormulation, elecToMech holds an addition deltaS/deltaE
-			PtrCoefFct mechToMag = hystOperator->GenerateMatCoefFnc("CouplingMechToMag",stiffCoef,couplingCoef);
-			PtrCoefFct magToMech = hystOperator->GenerateMatCoefFnc("CouplingMagToMech",stiffCoef,couplingCoef);
+			PtrCoefFct mechToMag = hystOperator->GenerateMatCoefFnc("CouplingMechToMag");
+			PtrCoefFct magToMech = hystOperator->GenerateMatCoefFnc("CouplingMagToMech");
 			
 //			std::cout << "check size of matcoeffnc" << std::endl;
 			UInt numRows, numCols;

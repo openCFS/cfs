@@ -881,9 +881,21 @@ namespace CoupledField
       // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
       helpMat   = (*this) * RT;
       retMat = R * helpMat;
-    } else if (R.GetNumCols() == 2 and R.GetNumRows() == 2) {
+    } else if ( rowSize == 2 && colSize == 2 && R.GetNumCols() == 2 and R.GetNumRows() == 2) {
+      // get memory for transposed rotation matrix
+      Matrix<Double> RT;
+      RT.Resize(2,2);
+      R.Transpose(RT);
+      // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
+      helpMat   = (*this) * RT;
+      retMat = R * helpMat;
+      
+    } else if( ( (rowSize == 2 && colSize == 3) ||
+               (rowSize == 3 && rowSize == 2 ) ||
+                (rowSize == 3 && colSize == 3)) &&
+             (R.GetNumCols() == 2 and R.GetNumRows() == 2) ) {
+      // case of 2x3 coupling tensors as well as 3x3 tensors with a 2x2 rotation matrix
       // 2D tensor rotation
-
       Matrix<Double> Q;
       Q.Resize(3,3);
       Q[0][0] = R[0][0]*R[0][0];
@@ -907,6 +919,13 @@ namespace CoupledField
       }
       else if (rowSize == 3 && colSize == 3 ) {
         helpMat   = (*this) * QT;
+        retMat = Q * helpMat;
+      }
+      else if ( rowSize == 2 && colSize == 3 ) {
+        Matrix<Double> RT;
+        RT.Resize(2,2);
+        R.Transpose(RT);
+        helpMat   = (*this) * RT;
         retMat = Q * helpMat;
       }
 
@@ -989,7 +1008,9 @@ namespace CoupledField
       //    EXCEPTION("Cannot rotate tensor due to dimensions!");
       //  }
     } else {
-      EXCEPTION("Tensor rotation currently only works for 3D matrices!");
+      std::ostringstream oss;
+      oss << "Rotation of "<<rowSize << " x " << colSize << " matrix not implemented yet.";
+      EXCEPTION(oss.str());
     }
     
 

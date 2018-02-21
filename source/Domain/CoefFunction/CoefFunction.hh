@@ -617,6 +617,14 @@ public:
     EXCEPTION( "Not implemented in base class");
   }
   
+  virtual bool useStrainForm(){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual std::string getPDEName(){
+    EXCEPTION("Not implemented in base class");
+  }
+  
   virtual bool deltaMatActive(){
     EXCEPTION("Not implemented in base class");
   }
@@ -629,21 +637,35 @@ public:
     EXCEPTION("Not implemented in base class");
   }
   
-  virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(std::string tensorName,PtrCoefFct elastTensor = NULL, PtrCoefFct couplTensor = NULL ){
+  virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(std::string tensorName ){
     EXCEPTION("Not implemented in base class");
   }
-  virtual shared_ptr<CoefFunction> GenerateRHSCoefFnc(std::string vectorName,PtrCoefFct elastTensor = NULL, PtrCoefFct couplTensor = NULL, bool onBoundary = false){
+  virtual shared_ptr<CoefFunction> GenerateRHSCoefFnc(std::string vectorName, bool onBoundary = false){
     EXCEPTION("Not implemented in base class");
   }
   virtual shared_ptr<CoefFunction> GenerateOutputCoefFnc(std::string ResultName){
     EXCEPTION("Not implemented in base class");
   }
   
-  virtual Vector<Double> GetOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel, bool invert){
+  virtual Vector<Double> GetOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel){
     EXCEPTION( "Not implemented in base class");
   }
 
-  virtual void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, PtrCoefFct couplTensorCoefFct, Matrix<Double>& rotatedCouplTensor, int timeLevel){
+  virtual void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor, int timeLevel,
+  bool rotate=true){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel_new, int timelevel_old, bool useStrains, bool useAbs,
+      std::string implementationVersion){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual void SetElastAndCouplTensor(PtrCoefFct elastTensor, PtrCoefFct couplTensor){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual void AddAdditionalSDList(shared_ptr<EntityList> actSDList, bool onSurface){
     EXCEPTION( "Not implemented in base class");
   }
   

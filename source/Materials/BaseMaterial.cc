@@ -408,8 +408,11 @@ namespace CoupledField
         continue;
         //this is the case for tensors like the preisach weights which shall be allowed to have more than 3 x 3 entries
         //furthermore, a rotation of these parameter is not necessary
+      } else if (it->second.GetNumCols() == 1 || it->second.GetNumRows() == 1){
+        continue;
+        // similar case as above; for hysteresis we may specify vectors via the material file
+        // those vectors do not have to be rotated
       }
-
       RotateTensorByRotationAngles( rotAngle, it->first, persistent );
     }
     

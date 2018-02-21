@@ -125,9 +125,13 @@ namespace CoupledField
     //----------------------- HYSTERESIS -------------------------------------
     //! solves for one nonlinear transient step
     //! consideres hystreresis nonlinearities in direct coupled PDEs
-    virtual void StepTransNonLinHysteresis();
-    virtual void StepTransNonLinHysteresisTotal();
-
+    virtual void StepTransNonLinHysteresis(){
+      EXCEPTION("No longer implemented in stdsolvestep; please use solvestephyst");
+    }
+    virtual void StepTransNonLinHysteresisTotal(){
+      EXCEPTION("No longer implemented in stdsolvestep; please use solvestephyst");
+    }
+    
     void SetLastItOrLastTSSBMVectors(bool lastTS);
     /*!
      * Helper funciton for setting up the equation system during
@@ -143,11 +147,15 @@ namespace CoupledField
      */
     virtual void CalcResidualAndConfigSystemForHysteresis(SBM_Vector& oldSolution,SBM_Vector& solIncrement, SBM_Vector& stageSol, Double usedEta,
                                                           UInt stage, UInt callingCnt, UInt evalVersion, bool trans, bool forceReevaluation,
-                                                          bool skipReassembly, bool debugOutput, bool reset);
+                                                          bool skipReassembly, bool debugOutput, bool reset){
+      EXCEPTION("No longer implemented in stdsolvestep; please use solvestephyst");
+    }
 
     //! does a line search and returns the optimal residual norm
     Double LineSearchHyst(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double& etaLineSearch, UInt evalVersion, UInt callingCnt,
-                      bool trans=false, bool performLineSearch=true, bool forceReevaluation=false, bool debugOutput=false, bool reset=false,UInt allowedSteps=5);
+                      bool trans=false, bool performLineSearch=true, bool forceReevaluation=false, bool debugOutput=false, bool reset=false,UInt allowedSteps=5){
+      EXCEPTION("No longer implemented in stdsolvestep; please use solvestephyst");
+    }
     
     //----------------------- helpfull methods--------------------------------------
 
@@ -280,6 +288,7 @@ namespace CoupledField
     // current > current timestep and iteration
     SBM_Vector currentLinRhsVec_;
     SBM_Vector currentNonLinRhsVec_;
+    SBM_Vector currentRhsVec_;
     SBM_Vector currentResVec_;
     SBM_Vector currentRHSload_partial_; // for full stepping only;
     // stores f_currentTS - f_lastTS - f_nonlin_lastTS; needs to be evaluated only during first iteration
