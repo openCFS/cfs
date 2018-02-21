@@ -554,8 +554,9 @@ bool DesignMaterial::CollectMaterialParametersForElement(DesignSpace* space, con
   for(unsigned int index = base; index < space->data.GetSize(); index += space->elements)
   {
     DesignElement* de = &space->data[index];
+    assert(de->elem->elemNum == elem->elemNum);
     double val = de->GetDesign(DesignElement::SMART);
-    LOG_DBG2(dm) << "CMPFE e=" << elem->elemNum << " de=" << de->ToString() << " v=" << val;
+    LOG_DBG2(dm) << "CMPFE e=" << elem->elemNum << " de=" << de->ToString() << " v=" << val; // << " thread:" << omp_get_thread_num();
     SetParameter(de->GetType(), val, false); // not global element data
   }
   current_elem = elem;
@@ -564,11 +565,11 @@ bool DesignMaterial::CollectMaterialParametersForElement(DesignSpace* space, con
 
 void DesignMaterial::SetParameter(const DesignElement::Type key, const double value, bool global)
 {
-  if(!global)
-    params_.Mine()[key] = value;
-  else
+  if(global)
     for(unsigned int i = 0; i < params_.GetNumSlots(); i++)
       params_.Mine(i)[key] = value;
+  else
+    params_.Mine()[key] = value;
 }
 
 double DesignMaterial::GetParameter(const std::map<DesignElement::Type, double>& map, const DesignElement::Type p)
@@ -592,15 +593,6 @@ const std::map<DesignElement::Type, double>& DesignMaterial::GetParameters() con
 {
   return params_.ConstMine();
 }
-
-bool DesignMaterial::ValidateParameters() const
-{
-  for(unsigned int i = 1; i < params_.GetNumSlots(); i++)
-    assert(params_.Mine(i).size() == params_.Mine(0).size());
-  return true;
-}
-
-
 
 unsigned int DesignMaterial::RequiredParameters( OptimizationMaterial::System material)
 {
