@@ -84,7 +84,7 @@ def get_image(input, set, design, fill=0.0):
     if not args.size:
       args.size = [800, 800]
 
-  print args.size
+  print(args.size)
   img = img.resize(args.size)
   
   return img, dens
