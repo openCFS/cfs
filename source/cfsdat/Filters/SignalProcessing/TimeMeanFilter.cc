@@ -64,7 +64,7 @@ bool TimeMeanFilter1::UpdateResults(std::set<uuids::uuid>& upResults) {
     Vector<Double>& returnVec = GetOwnResultVector<Double>(*oIter);
     
     const UInt size = returnVec.GetSize();
-    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt i = 0; i < size; i++) {
       returnVec[i] = 0.0;
     }
@@ -76,14 +76,14 @@ bool TimeMeanFilter1::UpdateResults(std::set<uuids::uuid>& upResults) {
     
     for (Integer i = 0; i != N_; i+= iStep) {
       Vector<Double>& inVec = GetUpstreamResultVector<Double>(upRes, actStepValue - ((double)i * dT));
-      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < size; i++) {
         returnVec[i] += inVec[i];
       }
     }
     
     const Double factor = (double)iStep / (double)N_;
-    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt i = 0; i < size; i++) {
       returnVec[i] /= factor;
     }

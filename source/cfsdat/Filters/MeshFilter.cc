@@ -931,7 +931,7 @@ void MeshFilter::CalcTensorDivergence(Vector<Double>& returnVec,
 
 
 
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt targetIndex = 0; targetIndex < maxNumTrgEntities; targetIndex++) {
     returnVec[targetIndex] = 0.0;
 

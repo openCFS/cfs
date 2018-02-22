@@ -53,7 +53,7 @@ bool GenericVecOpFilter<Operator>::UpdateResults(std::set<uuids::uuid>& upResult
   Vector<Double>& res2V = GetUpstreamResultVector<Double>(res2Id, aTF);
   
   const UInt last = returnVec.GetSize();
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(UInt i=0;i<last;++i){
     returnVec[i] = Operator::Apply(res1V[i],res2V[i]);
   }
