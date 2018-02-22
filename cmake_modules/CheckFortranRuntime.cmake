@@ -183,62 +183,7 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
   endforeach()
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 
-#-----------------------------------------------------------------------------
-# Lets find the runtime libraries of the Open64 Fortran compiler.
-# These compilers are only available under Linux.
-#
-# http://developer.amd.com/tools/cpu-development/x86-open64-compiler-suite/
-# http://www.open64.net/
-#-----------------------------------------------------------------------------
-IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "OPEN64")
-
-  EXECUTE_PROCESS(
-    COMMAND "${CMAKE_Fortran_COMPILER}" -print-search-dirs
-    WORKING_DIRECTORY "${CFS_BINARY_DIR}"
-    OUTPUT_VARIABLE FORTRAN_SEARCH_DIRS
-    RESULT_VARIABLE RETVAL
-    )
-
-  STRING(REPLACE "\n" ";" SEARCH_DIRS "${FORTRAN_SEARCH_DIRS}")
-  foreach(line IN LISTS SEARCH_DIRS)
-    IF(line MATCHES "programs")
-      STRING(REPLACE ":" ";" line "${line}")
-      foreach(item IN LISTS line)
-        STRING(STRIP "${item}" item)
-        get_filename_component(item "${item}" ABSOLUTE)
-        # MESSAGE(STATUS "item ${item}")
-        IF(EXISTS "${item}")
-          LIST(APPEND O64_FORTRAN_SEARCH_PATHS ${item})
-        ENDIF()
-      endforeach()
-    ENDIF()
-  endforeach()
-
-  FIND_LIBRARY(OPEN64_FORTRAN_LIBRARY
-    NAMES fortran
-    PATHS ${O64_FORTRAN_SEARCH_PATHS}
-    NO_DEFAULT_PATH
-    NO_CMAKE_ENVIRONMENT_PATH
-    NO_CMAKE_PATH
-    NO_SYSTEM_ENVIRONMENT_PATH
-    NO_CMAKE_SYSTEM_PATH 
-  )
-
-  FIND_LIBRARY(OPEN64_FFIO_LIBRARY
-    NAMES ffio
-    PATHS ${O64_FORTRAN_SEARCH_PATHS}
-    NO_DEFAULT_PATH
-    NO_CMAKE_ENVIRONMENT_PATH
-    NO_CMAKE_PATH
-    NO_SYSTEM_ENVIRONMENT_PATH
-    NO_CMAKE_SYSTEM_PATH 
-  )
-
-  LIST(APPEND CFS_FORTRAN_LIBS ${OPEN64_FORTRAN_LIBRARY})
-  LIST(APPEND CFS_FORTRAN_LIBS ${OPEN64_FFIO_LIBRARY})
-
-ENDIF()
-
+# support for the Open64 Fortran compiler removed. Check svn version 15997
 #==============================================================================
 # Create a header file include/def_cfs_fortran_interface.hh with the correct
 # mangling for the Fortran routines called in CFS++.
@@ -287,6 +232,7 @@ include(FortranCInterface)
 # are different (uppercase, tailing underline, ...).
 # Each fortran function which are used in CFS have to be listed here else one
 # will get an undefined reference to 'symbol' error.
+# Also make sure the function is defined in MatVec/BLASLAPACKInterface.hh
 FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh"
   MACRO_NAMESPACE "CFS_FORTRAN_INTERFACE_"
   SYMBOLS

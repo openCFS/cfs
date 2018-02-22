@@ -60,7 +60,7 @@ bool TemporalBlendFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
   mp_->ReleaseHandle(hand);
   const UInt size = inVec.GetSize();
   
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt i = 0; i < size; i++) {
     returnVec[i] = inVec[i] * ev;
   }

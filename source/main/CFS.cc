@@ -9,7 +9,6 @@
 #include <boost/version.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/exception/diagnostic_information.hpp>
-
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/DefineInOutFiles.hh"
@@ -28,13 +27,17 @@
 #include <unistd.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "DataInOut/Logging/LogConfigurator.hh"
-
 #include <def_use_mesh.hh>
+#include <def_use_petsc.hh>
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 #endif
 
+#ifdef USE_PETSC
+#include "petsc.h"
+#include "OLAS/external/petsc/PETSCSolver.hh"
+#endif
 
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "PDE/SinglePDE.hh"
@@ -68,12 +71,42 @@ extern "C" void _allmul() {
 // Create global info node
 PtrParamNode infoNode;
 
+
+#ifdef USE_PETSC
+int main(int argc, const char **argv)
+{
+  PetscInitialize(NULL,NULL,PETSC_NULL,PETSC_NULL);
+  int rank;
+  int size;
+  int ret =0;
+  //find which is my rank
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD,&size);
+  if (rank==0)
+  {
+    CFS cfs(argc, argv);   
+    ret = cfs.Run();
+    //Send a Kill Tag to all workers before exiting the code
+    if(size>1)
+      for(rank = 1; rank < size; ++rank)
+        MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
+  }
+  else
+  {
+    PETSCWorker w(argc, argv);
+    w.run();
+  }
+  PetscFinalize();
+  return ret;
+}
+#else
 int main(int argc, const char **argv)
 {
   CFS cfs(argc, argv);
   int ret = cfs.Run();
   return ret;
 }
+#endif // USE_PETSC
 
 void PrintWarning(CoupledField::Exception& ex ) {
   
@@ -226,7 +259,7 @@ int CFS::Run()
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else{
-      SolveProblem();
+        SolveProblem();
     }
 
     // wait for all drivers to be initialized before printing the math parser variables
@@ -236,29 +269,9 @@ int CFS::Run()
     if(!progOpts->IsQuiet())
       cout << endl; // conditional empty line
     
-    cout << ">> Total time: wall clock: '";
-    
-    int walltime = (int) timer->GetWallTime();
-    double cputime = timer->GetCPUTime();
-
-    if(walltime > 120) 
-    {
-      int wallmin((int) (walltime / 60.0));
-      int cpumin((int) (cputime / 60.0));
-      if(wallmin > 60)
-        cout << wallmin / 60 << "h " << (wallmin % 60) << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'";
-      else
-        cout << wallmin << "m " << (walltime % 60) << "s' CPU time: '" << cpumin << "m " << ((int) cputime % 60) << "s'";
-    }
-    else
-    {
-      cout << walltime << "s' CPU time: '" << cputime << "s'";
-    }
-    if(progOpts->IsQuiet())
-      cout << " at " << to_simple_string(second_clock::local_time()) << endl;
-
-    
-    cout << endl << endl;
+    cout << ">> Total wall-clock time: '" << Timer::GetTimeString(timer->GetWallTime())
+         << "' cpu time: '" << Timer::GetTimeString(timer->GetCPUTime())
+         << "' at " << to_simple_string(second_clock::local_time()) << endl << endl;
       
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
@@ -376,6 +389,8 @@ void CFS::ReadXMLFile()
   // parse the problem xml file, validate and fill with defaults from schema
   // continue to work only with the ParamNode tree
   paramNode_ = XmlReader::ParseFile(xmlFile, schema);
+
+  // paramNode_->Dump();
 }
 
 void CFS::SetupIO(PtrParamNode rootNode )

@@ -39,7 +39,7 @@ IF(MINGW)
   ENDIF()
 ENDIF()
 
-if(USE_ANACONDA3)
+if(BUILD_ANACONDA3)
   # manually set correct paths
   # must be done because anaconda gets installed during make, thus finding stuff does not work at configure
   set(PYTHON_EXECUTABLE "${CFS_BINARY_DIR}/cfsdeps/anaconda3/install/bin/python" CACHE STRING "executable path" FORCE)
@@ -48,18 +48,12 @@ if(USE_ANACONDA3)
   mark_as_advanced(PYTHON_LIBRARY)
   set(PYTHON_INCLUDE_DIR "${CFS_BINARY_DIR}/cfsdeps/anaconda3/install/include/python3.5m" CACHE STRING "incude path" FORCE)
   mark_as_advanced(PYTHON_INCLUDE_DIR)
-else(USE_ANACONDA3)
+else(BUILD_ANACONDA3)
   # find system python
   FIND_PACKAGE(PythonInterp)
   FIND_PACKAGE(PythonLibs)
-endif(USE_ANACONDA3)
+endif(BUILD_ANACONDA3)
 
-
-IF(BUILD_PARAVIEW AND NOT PYTHONINTERP_FOUND)
-  SET(MSG "No Python interpreter was found! Please make sure a Python")
-  SET(MSG "${MSG} interpreter is on the PATH.")
-  MESSAGE(FATAL_ERROR "${MSG}")
-ENDIF(BUILD_PARAVIEW AND NOT PYTHONINTERP_FOUND)
 
 #-----------------------------------------------------------------------------
 # This  code  has  been  taken  from  CMake  2.8.8  FindPythonInterp.cmake  to

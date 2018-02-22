@@ -305,6 +305,12 @@ namespace CoupledField {
       }
     }
 
+    /** convenience function adding two elements */
+    inline void Push_back(const TYPE& a, const TYPE& b) {
+      Push_back(a);
+      Push_back(b);
+    }
+
     //! Delete element from vector on position pos
     void Erase(const unsigned int pos);
 

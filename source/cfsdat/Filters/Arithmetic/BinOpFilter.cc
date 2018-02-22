@@ -59,7 +59,7 @@ bool GenericBinOpFilter<Operator>::UpdateResults(std::set<uuids::uuid>& upResult
     last = std::min(res1V.GetSize(),res2V.GetSize());
   }
   
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(UInt i=0;i<last;++i){
     returnVec[i] = Operator::Apply(res1V[i],res2V[i]);
   }

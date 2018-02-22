@@ -1,0 +1,6 @@
+// Define used to check if PETSC  used
+
+#cmakedefine USE_PETSC @USE_PETSC@
+
+#define CFS_PETSC_VERSION "@PETSC_VER@"
+

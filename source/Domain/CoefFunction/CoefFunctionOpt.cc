@@ -72,9 +72,6 @@ void CoefFunctionOpt::GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm)
  {
  case DIRECTION:
  case OPT:
-   // DesignSpace::ApplyPhysicalDesign(Tensor) is not thread save yet :(
-   #pragma omp critical (SAVE_OPT_TENSOR)
-   {
    // the element does not necessarily lay in the design space!
    // if ApplyPhysicalDesign() returns true, coefMat is already set
    if(!design->ApplyPhysicalDesign<T>(shared_from_this(), coefMat, &lpm))
@@ -82,7 +79,6 @@ void CoefFunctionOpt::GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm)
    //if (coefMat.GetNumCols() > 0) {
      //assert(design->TestTensorPosDef<T>(coefMat, &lpm , shared_from_this()->GetMaterialDerivative()));
    //}
-   }
    break;
  case ORG:
    orgMat->GetTensor(coefMat, lpm);
@@ -94,38 +90,6 @@ void CoefFunctionOpt::GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm)
 
   LOG_DBG3(coef) << "CFO:GT el=" << lpm.ptEl->elemNum  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set") << " -> " << coefMat.ToString(0, false);
 }
-
-template <class T>
-void CoefFunctionOpt::GetMsfemElementMatrix(Matrix<T>& elemMat, const LocPointMapped& lpm)
-{
- //assert(this->dimType_ == TENSOR);
- // if no coordinate system is set, just
-  // use internal vector
- if(coordSys_ != NULL)
-   EXCEPTION("the rotation is not fully finished ':-(\n");
-
- switch(state)
- {
- case DIRECTION:
- case OPT:
-   // the element does not necessarily lay in the design space!
-   // if ApplyPhysicalDesign() returns true, coefMat is already set
-   if(!design->ApplyPhysicalDesign<T>(shared_from_this(), elemMat, &lpm))
-     orgMat->GetMsfemElementMatrix(elemMat, lpm);
-   break;
- case ORG:
-   if(!design->ApplyPhysicalDesign<T>(shared_from_this(), elemMat, &lpm))
-     orgMat->GetMsfemElementMatrix(elemMat, lpm);
-   break;
- case SHADOW:
-   if(!design->ApplyPhysicalDesign<T>(shared_from_this(), elemMat, &lpm))
-     shadowMat->GetMsfemElementMatrix(elemMat, lpm);
-   break;
- }
-
-  //LOG_DBG3(coef) << "CFO:GT el=" << lpm.ptEl->elemNum  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set") << " -> " << coefMat.ToString(0, false);
-}
-
 
 template <class T>
 void CoefFunctionOpt::GetScalar(T& scal, const LocPointMapped& lpm)

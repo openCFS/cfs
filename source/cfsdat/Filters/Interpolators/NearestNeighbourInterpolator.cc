@@ -110,7 +110,7 @@ Double sumXi = 0.0;
 Double sumYi = 0.0;
 Double sumXi_squared = 0.0;
 Double sumYi_squared = 0.0;
-//#pragma omp parallel shared(origVec, newVec) num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel shared(origVec, newVec) num_threads(CFS_NUM_THREADS)
 //{
 //#pragma omp for
 for (UInt i = 0; i < origVec.GetSize(); ++i){
@@ -220,7 +220,7 @@ bool NearestNeighbourInterpolator::CreatesEqualMatrix(NearestNeighbourInterpolat
 CF::UInt NearestNeighbourInterpolator::CountUsedEntities(const StdVector<CF::UInt>& entities) {
   const CF::UInt size = entities.GetSize();
   CF::UInt numEntities = 0;
-#pragma omp parallel for reduction(+:numEntities) num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for reduction(+:numEntities) num_threads(CFS_NUM_THREADS)
   for(CF::UInt inEnt = 0; inEnt < size; inEnt++) {
     if (entities[inEnt] != UnusedEntityNumber) {
       numEntities++;
@@ -248,7 +248,7 @@ void NearestNeighbourInterpolator::GetUsedMappedEntities(const str1::shared_ptr<
       grid->GetNodesByName(regEntities, *sRegIter);
     }
     const UInt size = regEntities.GetSize();
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt eIter = 0; eIter < size; ++eIter) {
       CF::UInt entityNumber = regEntities[eIter];
       entities[map->GetEntityIndex(entityNumber)] = entityNumber;
@@ -386,7 +386,7 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
     targetSource.Resize(index);
     targetSourceFactor.Resize(index);
   }
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {

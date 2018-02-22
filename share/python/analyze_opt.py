@@ -21,8 +21,7 @@ def find_task(input):
 
 def process_file(file, args, out, recursive):
   if not os.path.exists(file):
-    print('error: file not found: ' + file)
-    sys.exit(3) 
+    raise RuntimeError('error: file not found: ' + file)
 
   xml = None 
   try:
@@ -37,13 +36,11 @@ def process_file(file, args, out, recursive):
   
   process = True
 
+  msg = ""
   q = xml.xpath('//optimization/summary/@problem')
   assert(len(q) <= 1)
-  if len(q) == 0:
-    if args.verbose:
-      print("pass '" + file + "', no optimization summary")
-    return
-  msg = q[0]
+  if len(q) == 1:
+     msg = q[0]
   
   if args.restrict == "snopt_difficulties":
     process = True if 'difficulties' in msg else False
@@ -53,7 +50,7 @@ def process_file(file, args, out, recursive):
   if process:
     # detect the order we have
     base = file[:-len('.info.xml')]
-    level = ord(base[-1]) - ord('a') if base[-2] == '_' and base[-1] >= 'a' and base[-1] <= 'z' else -1
+    level = ord(base[-1]) - ord('b') if base[-2] == '_' and base[-1] >= 'a' and base[-1] <= 'z' else -1
 
     iter = int(xpath(xml, "//iteration[last()]/@number"))
     if not recursive and iter < args.min_iter:
@@ -73,8 +70,8 @@ def process_file(file, args, out, recursive):
           print("skip '" + file + "' with " + cost + "=" + str(value))
         return   
 
-    if not recursive and not os.path.exists(base + '.density.xml'):
-      print("'" + base + ".density.xml' does not exist")
+    if not recursive and (not os.path.exists(base + '.density.xml') and not os.path.exists(base + '.density.xml.gz')):
+      print("'" + base + ".density.xml' or .density.xml.gz' does not exist")
       return   
 
     exe = xpath(xml, '//cfs/@exe')
@@ -82,10 +79,14 @@ def process_file(file, args, out, recursive):
     mesh = full[full.rfind('/')+1:] # remove path stuff
     full = xpath(xml, '//progOpts/@parameterFile')
     prob = full[full.rfind('/')+1:] # remove path stuff
-    new  = base + '_a' if level == -1 else base[:-1] + chr(ord('a') + level+1)
-    
-    cmd = exe + ' -m ' + mesh + ' -x ' + base + '.density.xml -p ' + prob + ' ' + new
-
+    new  = base + '_a' if level == -1 else base[:-1] + chr(ord('b') + level+1)
+    if os.path.exists(base + '.density.xml'):
+      cmd = exe + ' -m ' + mesh + ' -x ' + base + '.density.xml -p ' + prob + ' ' + new
+    elif os.path.exists(base + '.density.xml.gz'):
+      cmd = exe + ' -m ' + mesh + ' -x ' + base + '.density.xml.gz -p ' + prob + ' ' + new
+    else:
+      print("No density file found!")
+      return
     if args.warmstart:
       if args.warmstart == "qsub":
         print(generate_qsub_script("qsub_template.sh", cmd, new + '.sh', silent = True))
@@ -94,9 +95,9 @@ def process_file(file, args, out, recursive):
     else:
       if not args.no_recursive:
         if level == 0:
-          process_file(base[:-2] + '.info.xml', args, out, recursive=True) # base is ..._a
+          process_file(base[:-2] + '_a.info.xml', args, out, recursive=True) # base is ..._a
         if level > 0:  
-          process_file(base[:-1] + chr(ord('a') + level-1) + '.info.xml', args, out, recursive=True)
+          process_file(base[:-1] + chr(ord('b') + level-1) + '.info.xml', args, out, recursive=True)
       line = ('iter:' if not recursive else '  >>:') + '{:3}'.format(iter) + ' ' + cost + ': {:8.4f}'.format(value) + " issue: '" + msg[msg.find('- ')+2:] 
       if args.show_density:
         line += "' -> show_density.py " + file[:-9] + ".density.xml"
@@ -134,9 +135,12 @@ if "qsub" == args.warmstart:
 raw = [] # in the info case tuples (value, out) where out is a list of strings 
  
 for file in args.input:
-  res = process_file(file, args, [], recursive=False)
-  if res: # skip None
-    raw.append(res)
+  try:
+    res = process_file(file, args, [], recursive=False)
+    if res: # skip None
+      raw.append(res)
+  except RuntimeError as re:
+    print("Error processing ",file," -> ", str(re))
    
 if not args.warmstart:
   list = sorted(raw, key=lambda x: x[0], reverse=False if find_task(args.input) == "maxizie" else True)   

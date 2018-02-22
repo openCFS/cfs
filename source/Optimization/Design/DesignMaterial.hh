@@ -28,6 +28,7 @@ namespace CoupledField {
 template <class TYPE> class StdVector;
 
 class ErsatzMaterial;
+class DesignSpace;
 class TransferFunction;
 
   class DesignMaterial
@@ -35,14 +36,10 @@ class TransferFunction;
   public:
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC,
-      DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC, DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES, HOM_RECT, D_HOM_RECT, HOM_RECT_C1, MSFEM_C1, REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE, GREEDY_MAPPING, REDBAS_MAPPING} Type;
-
-    /* possibilities for the isotropic plane in transversal isotropy
-    typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
-      DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT,
-      REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE, GREEDY_MAPPING, REDBAS_MAPPING } Type; */
+      DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC,
+      DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,
+      D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES,
+      HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1} Type;
 
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -61,23 +58,8 @@ class TransferFunction;
 
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
-    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em);
+    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, DesignSpace* space);
     
-    /** reset the parameter space */
-    void ClearParameter() { params_.clear(); }
-
-    /** Set a parameter for the parametric material optimization */
-    void SetParameter(const DesignElement::Type p, const double value);
-
-    /** Get a parameter of the parametric material optimization */
-    double GetParameter(const DesignElement::Type p) { assert(HasParameter(p)); return params_[p]; }
-
-    /** checks for a parameter */
-    bool HasParameter(const DesignElement::Type p) const { return params_.find(p) != params_.end(); }
-
-    /** small helper to return the G-Matrix from model reduction to output as special result */
-    bool GetModRedGTensor(Matrix<double>& T, const Elem* elem);
-
     /** the general material tensor function */
     bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation);
 
@@ -89,9 +71,6 @@ class TransferFunction;
 
     /** Calculates MSFEM element matrix for a regular grid from material catalogue*/
     bool GetErsatzElementMatrixMSFEM(Matrix<double>& A,const Elem* elem, DesignElement::Type direction);
-
-    /** helper for GetModRedTensor() but also stand alone to output G Matrix from model reduction as special result */
-    void GetModRedGTensor(Matrix<double>& G, DesignElement::Type direction, const bool& all_param);
 
     /** returns the tensor with negative design variables such the design vector is still pos. definite */
     bool GetElecTensor(Matrix<double>& t,  const Elem* elem, DesignElement::Type direction);
@@ -112,13 +91,17 @@ class TransferFunction;
     /** retrieve damping parameters for element or derivative */
     bool GetMaterialDamping(double& alpha, double& beta, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
+    /** Get a parameter of the parametric material optimization. Takes it from the thread local storage. */
+    double GetParameter(const DesignElement::Type p) {
+      assert(HasParameter(p));
+      return params_.Mine()[p];
+    }
+
     void static SetEnums();
 
     Type GetType() const { return type_; };
 
     void SetType(Type type) {type_ = type;};
-
-    ErsatzMaterial* GetErsatzMaterial() {return em_;};
 
     /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
      * The enum is necessary for the constraint parameter notation. */
@@ -148,15 +131,37 @@ class TransferFunction;
        * @param vector p has the values of the design variable */
     void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+
   protected:
 
-    /** for debugging */
-    void DumpParams();
+    /** Set a parameter for the parametric material optimization.
+     * @param global set the value only thread local (element values) or global (as in constructor) on all thread versions */
+    void SetParameter(const DesignElement::Type p, const double value, bool global);
+
+    /** to access the the local copy of the map but have the checks in debug mode */
+    double GetParameter(const std::map<DesignElement::Type, double>& map, const DesignElement::Type p);
+
+    /** checks for a parameter. Checks the thread local storage. */
+    bool HasParameter(const DesignElement::Type p) const;
 
     /** Sets all Material Parameters in designMaterial for given element in the current context */
     bool CollectMaterialParametersForElement(DesignSpace* space, const Elem* elem);
 
-    std::map<DesignElement::Type, double> params_;
+    /** Return a local thread local data set to ease access within a function. Don't store!! */
+    const std::map<DesignElement::Type, double>& GetParameters() const;
+
+    /** for debugging */
+    void DumpParams();
+
+    /** this are the design variables for the current element!
+     * It is filled with default and optimization variables.
+     * Set by CollectMaterialParametersForElement().
+     * To be thread save this needs to be in a thread local storage with CFS_NUM_THREADS.
+     * Better don't access the map manually!! */
+    CfsTLS<std::map<DesignElement::Type, double> > params_;
 
     /** mass is considered an independent design */
     bool massIsDesign_;
@@ -222,20 +227,6 @@ class TransferFunction;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction, Notation notation);
-
-    /**Computes the homogenized tensor from the reduced-order model obtaind for the homogenization formula */
-    inline void GetModRedTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
-
-    void GetMappingTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation);
-
-    //Computes the gradient of the mapping inside the element considered
-    void GetMappingGradient(Matrix<double>& G);
-
-    //Computes the gradient of the gradient of the mapping inside the element considered with respect to all the variables considered
-    void GetMappingGradient(Matrix<double>& G, DesignElement::Type direction);
-
-    /**Computes the homogenized tensor from the reduced-order model obtained for the homogenization formula with the greedy algorithm*/
-    inline void GetGreedyTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetInterpolatedTensor(Matrix<double>& t, SubTensorType subTensor,  DesignElement::Type direction, Notation notation);
@@ -305,37 +296,6 @@ class TransferFunction;
     /** fills the row in hom_rect_samples_ */
     void FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const std::string& a, const std::string& b);
 
-    /** fills the matrices in mod_red_matrices_ **/
-    void FillModRedMatrices(PtrParamNode matnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas);
-    void FillModRedMatrices(PtrParamNode matnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas, const UInt& dimbastot);
-
-    /** fills the vectors in mod_red_vectors_ **/
-    void FillModRedVectors(PtrParamNode vecnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas);
-    void FillModRedVectors(PtrParamNode vecnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas, const UInt& dimbastot);
-
-    //Returns the homogenized elasticity tensor associated to the matrix G
-    void GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const StdVector<Vector<double> >& corrector_, Notation notation);
-
-    //Returns the derivative of the homogenized elasticity tensor associated with a matrix G and its derivative Gderiv
-    void GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const Matrix<double>& Gderiv, const StdVector<Vector<double> >& corrector_, Notation notation);
-
-    /** gives the SVD parameters of the 2*2 matrix G ***/
-    void GetSVDGTensorParameters(const Matrix<double>& G, Vector<double>& paramvec);
-
-    //Get the values of the parameters
-    void GetModRedParamVector(Vector<double>& params);
-
-    //Solves the corrector problems using the reduced basis
-    void GetRedBasCorrector(StdVector<Vector<double> >& corrector_, const Matrix<double>& G);
-
-    //Get the Corrector for the greedy model reduction
-    void GetGreedyCorrector(StdVector<Vector<double> >& corrector_, const Vector<double>& params, const bool& all_param);
-
-    //Compute the value of angle-dependent functions in the greedy case
-    double AngleGreedyCalculus(const Vector<double>& coeffs, const double& angle);
-
-    //Compute the value of scaling-dependent functions in the greedy caseS
-    double ScalingGreedyCalculus(const Vector<double>& coeffs, const double& l);
 
     /** fills the coefficient data structure for the bicubic interpolation*/
     void FillHomRectCoeff(Matrix<double> & coeff_,const char * filename);
@@ -394,6 +354,18 @@ class TransferFunction;
     Matrix<double> hom_rect_coeff55_;
     Matrix<double> hom_rect_coeff66_;
     Matrix<double> hom_rect_coeff13_;
+    Matrix<double> hom_rect_coeff14_;
+    Matrix<double> hom_rect_coeff15_;
+    Matrix<double> hom_rect_coeff16_;
+    Matrix<double> hom_rect_coeff24_;
+    Matrix<double> hom_rect_coeff25_;
+    Matrix<double> hom_rect_coeff26_;
+    Matrix<double> hom_rect_coeff34_;
+    Matrix<double> hom_rect_coeff35_;
+    Matrix<double> hom_rect_coeff36_;
+    Matrix<double> hom_rect_coeff45_;
+    Matrix<double> hom_rect_coeff46_;
+    Matrix<double> hom_rect_coeff56_;
     Matrix<double> hom_rect_a_;
     Matrix<double> hom_rect_b_;
     Matrix<double> hom_rect_c_;
@@ -404,33 +376,7 @@ class TransferFunction;
     Matrix<double> msfem_rot_;
     StdVector<Matrix<double> > msfem_coeff_;
 
-    //** Contains the matrices and vectors with the information for the model reduction case (reduced basis or greedy)
-    UInt dimension_;
-    UInt dimension_tot_;
-
-    //The matrices and vectors of the reduced model should be given in Voigt notation
-    StdVector<Matrix<double> > mod_red_matrices_;
-
-    StdVector<Vector<double> > mod_red_vectors_;
-
-    //Mean_tensor_ = [E11, E12, E33];
-    Matrix<double> mean_tensor_;
-
-    //Gives the information: do we treat the rotation angle theta just like another parameter or not
-    bool all_param_;
-
-
-    //Contains information for the greedy case
-    UInt Na_;
-    UInt Nl_;
-    double lmin_;
-    double lmax_;
-
-    //Contains the infomation about the parameters for the corrector problem in the greedy case
-    StdVector<Matrix<double> > matrices_param_;
-
-    /** only for ROTATION to get OptimizationMaterial */
-    ErsatzMaterial* em_;
+    DesignSpace* space_;
 
     Interpolation interpolation_;
     unsigned int level_;

@@ -261,6 +261,16 @@ namespace CoupledField {
       return rowPtr_[i+1] - rowPtr_[i];
     }
 
+    /** Return the maximal row size.
+     * @see GetRowSize() */
+    unsigned int GetMaxRowSize() const {
+      unsigned int max = 0;
+      for(unsigned int i = 0; i < this->nrows_; i++)
+        max = std::max(GetRowSize(i), max);
+      return max;
+    }
+
+
     //! Returns the number of entries
     UInt GetNumEntries() const {
       return numEntries_;
@@ -517,6 +527,9 @@ namespace CoupledField {
     //! method is primarily intended for debugging.
     virtual std::string ToString( char colSeparator = ' ',
                                   char rowSeparator = '\n' ) const;
+
+
+    std::string Dump() const;
 
     //! Export the matrix to a file in MatrixMarket format
 

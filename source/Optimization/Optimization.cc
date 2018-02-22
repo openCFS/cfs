@@ -385,11 +385,6 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_1, "bensonVanderbeiMinor1");
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
-  Function::type.Add(Function::DETERMINANT_MATRIX, "determinantMatrix");
-  Function::type.Add(Function::ROTATIONAL_MATRIX_1, "rotationalMatrix1");
-  Function::type.Add(Function::ROTATIONAL_MATRIX_2, "rotationalMatrix2");
-  Function::type.Add(Function::DETERMINANT_MAPPING, "determinantMapping");
-  Function::type.Add(Function::TRACE_MAPPING, "traceMapping");
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
@@ -874,7 +869,7 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
   return sum / (double) max;
 }
 
-double Optimization::CalcObjective()
+double Optimization::CalcObjective(Excitation* ev_only_excite)
 {
   bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
@@ -890,10 +885,10 @@ double Optimization::CalcObjective()
   double result = 0.0;
 
   // the multiple excitation case is a special case - for all other cases this is executed once
-  for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+  for(unsigned int e = 0; e < (ev_only_excite != NULL ? 1 : me->excitations.GetSize()); e++)
   {
-    Excitation& excite = me->excitations[e];
-    excite.Apply(); // sets the corresponding context
+    Excitation& excite = ev_only_excite != NULL ? *ev_only_excite : me->excitations[e];
+    excite.Apply(true); // sets the corresponding context
     excite.cost = 0.0;
 
     for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
@@ -926,7 +921,7 @@ double Optimization::CalcObjective()
   return result;
 }
 
-void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
+void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out, Excitation* ev_only_excite)
 {
   bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
@@ -941,14 +936,14 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
   {
     Objective* cost = objectives.data[obj];
     // the multiple excitation case is a special case - for all other cases this is executed once
-    for(unsigned int idx = 0; idx < cost->ctxt->excitations.GetSize(); idx++)
+    for(unsigned int idx = 0; idx < (ev_only_excite != NULL ? 1 : cost->ctxt->excitations.GetSize()); idx++)
     {
-      Excitation* excite = cost->ctxt->excitations[idx];
+      Excitation* excite = ev_only_excite != NULL ? ev_only_excite : cost->ctxt->excitations[idx];
 
       // some objectives are only to be evaluated for the last excitation
       if(!cost->DoEvaluate(excite))
         continue;
-      excite->Apply(); // set the correct context
+      excite->Apply(true); // set the correct context
 
       CalcFunction(*excite, cost, true);
     }
@@ -965,7 +960,7 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
     baseOptimizer_->GetOptimierTimer()->Start();
 }
 
-double Optimization::CalcConstraint(Condition* g)
+double Optimization::CalcConstraint(Condition* g, Excitation* ev_only_excite)
 {
   bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
@@ -979,10 +974,10 @@ double Optimization::CalcConstraint(Condition* g)
 
   double result = 0.0;
 
-  for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+  for(unsigned int e = 0; e < (ev_only_excite != NULL ? 1 : me->excitations.GetSize()); e++)
   {
-    Excitation& excite = me->excitations[e];
-    excite.Apply(); // for stuff like robust
+    Excitation& excite = ev_only_excite != NULL ? *ev_only_excite : me->excitations[e];
+    excite.Apply(true); // switch context too for stuff like robust
     // in the evaluate once case only the last excitation
     double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
     double w = g->DoEvaluateAlways(excite.sequence) ? excite.GetWeightedFactor(g) : 1.0;
@@ -998,7 +993,7 @@ double Optimization::CalcConstraint(Condition* g)
 
 }
 
-void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
+void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out, Excitation* ev_only_excite)
 {
   bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
   if(pause_timer)
@@ -1010,12 +1005,12 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
   if(g == NULL)
     g = constraints.active[0];
 
-  for(unsigned int i = 0; i < g->ctxt->excitations.GetSize(); i++)
+  for(unsigned int i = 0; i < (ev_only_excite != NULL ? 1 : g->ctxt->excitations.GetSize()); i++)
   {
-    Excitation* ex = g->ctxt->excitations[i];
+    Excitation* ex = ev_only_excite != NULL ? ev_only_excite : g->ctxt->excitations[i];
     if(g->DoEvaluate(ex))
     {
-      ex->Apply();
+      ex->Apply(true); // switch context if necessary
       CalcFunction(*ex, g, true);
     }
   }

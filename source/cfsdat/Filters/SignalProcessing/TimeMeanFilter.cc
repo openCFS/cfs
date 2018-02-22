@@ -72,14 +72,14 @@ bool TimeMeanFilter1::UpdateResults(std::set<uuids::uuid>& upResults) {
     returnVec.Init(0.0);
     for (Integer i = iStart; i <= iEnd; i++) {
       Vector<Double>& inVec = GetUpstreamResultVector<Double>(upRes, actStepIndex + i);
-      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < size; i++) {
         returnVec[i] += inVec[i];
       }
     }
     
     const Double factor = std::abs<Double>(1.0 / (Double)N_);
-    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt i = 0; i < size; i++) {
       returnVec[i] /= factor;
     }

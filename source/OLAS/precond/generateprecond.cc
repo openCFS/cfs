@@ -1,4 +1,3 @@
-#include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_suitesparse.hh>
 

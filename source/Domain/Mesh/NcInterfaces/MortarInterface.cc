@@ -373,7 +373,7 @@ void MortarInterface::MoveInterface() {
   nodeOffsets.Resize(numNodes * dim);
 
   if ( useGlobalCoords ) {
-    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt i = 0; i < numNodes; ++i) {
       for (UInt j = 0; j < dim; ++j) {
         nodeOffsets[i*dim+j] = mParser_->Eval(mphOffset_[j]);
@@ -389,7 +389,7 @@ void MortarInterface::MoveInterface() {
     if (!hasMoveInterfaceCoords_) {
       moveInterfaceOrigCoords_.Resize(numNodes);
       moveInterfaceLocalCoords_.Resize(numNodes);
-      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < numNodes; ++i) {
         ptGrid_->GetNodeCoordinate(moveInterfaceOrigCoords_[i], nodeNums_[i], false);
         coordSys_->Global2LocalCoord(moveInterfaceLocalCoords_[i], moveInterfaceOrigCoords_[i]);
@@ -397,7 +397,7 @@ void MortarInterface::MoveInterface() {
       hasMoveInterfaceCoords_ = true;
     }
 
-    #pragma omp parallel for private (coordNew,coordTmp) num_threads(NUM_CFS_THREADS)
+    #pragma omp parallel for private (coordNew,coordTmp) num_threads(CFS_NUM_THREADS)
     for (UInt i = 0; i < numNodes; ++i) {
       coordNew.Resize(dim);
       coordTmp.Resize(dim);
@@ -537,7 +537,7 @@ void MortarInterface::UpdateInterface() {
 
       break;
     case NCI_INTERSECT_POLYGON:
-      #pragma omp parallel num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel num_threads(CFS_NUM_THREADS)
       {
         // caching of data for each thread separatly
         StdVector<UInt> tNewNodes;
@@ -661,7 +661,7 @@ void MortarInterface::PreComputeIntersectionCandidatesCGAL(const StdVector<SurfE
   if(masterBoxes_.size() != numMasterElems || moveMaster_ ){
     masterBoxes_.resize(numMasterElems);
     uniqueIdxMaster_.Resize(numMasterElems);
-    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for(UInt aBox = 0; aBox < numMasterElems; aBox++){
       boost::array<Double,6> bbox;
       ptGrid_->CreateBBoxFromElement(masterElems[aBox], tolRel_, &bbox[0],isMoving_);
@@ -685,7 +685,7 @@ void MortarInterface::PreComputeIntersectionCandidatesCGAL(const StdVector<SurfE
   if(slaveBoxes_.size() != numSlaveElems || !moveMaster_){
     slaveBoxes_.resize(numSlaveElems);
     uniqueIdxSlave_.Resize(numSlaveElems);
-    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for(UInt aBox = 0; aBox < numSlaveElems; aBox++){
       boost::array<Double,6> bbox;
       uniqueIdxSlave_[aBox] = aBox;

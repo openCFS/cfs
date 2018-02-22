@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include <def_expl_templ_inst.hh>
-#include <def_use_lapack.hh>
 #include <def_use_blas.hh>
 
 #include "SparseOLASMatrix.hh"
@@ -135,7 +134,7 @@ namespace CoupledField {
       this->nnz_        = 0;
       this->ncols_      = 0;
       this->nrows_      = 0;
-      
+      this->currentLayout_ = UNSORTED;
       // We do not know a pool or pattern id yet
       patternPool_ = NULL;
       patternID_ = NO_PATTERN_ID;
@@ -484,6 +483,16 @@ namespace CoupledField {
       return rowPtr_[i+1] - rowPtr_[i];
     }
 
+    /** Return the maximal row size.
+     * @see GetRowSize() */
+    unsigned int GetMaxRowSize() const {
+      unsigned int max = 0;
+      for(unsigned int i = 0; i < this->nrows_; i++)
+        max = std::max(GetRowSize(i), max);
+      return max;
+    }
+
+
     //! Set the length (i.e. number of non-zero entries) of i-th row
 
     //! The method can be used to set the length (i.e. number of non-zero
@@ -650,6 +659,8 @@ namespace CoupledField {
     std::string ToString( char colSeparator = ' ',
                           char rowSeparator = '\n' ) const;
     
+    std::string Dump() const;
+
     //! Export the matrix to a file in MatrixMarket format
 
     //! The method will export the matrix to an ascii file according to the

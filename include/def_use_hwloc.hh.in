@@ -1,0 +1,5 @@
+// hwloc is a dependency for ghost and phist
+
+#cmakedefine BUILD_HWLOC @BUILD_HWLOC@
+
+#define HWLOC_VER "@HWLOC_VER@"

@@ -22,8 +22,7 @@ SET(TARGET_LL
   utils
   domain
   elemmapping
-  ${CFS_FORTRAN_DYNRT_LIBS}
-  )
+  ${CFS_FORTRAN_DYNRT_LIBS} )
 
 IF(USE_XERCES)
   LIST(APPEND TARGET_LL ${XERCES_LIBRARY})
@@ -34,42 +33,20 @@ IF(USE_LIBXML2)
 ENDIF(USE_LIBXML2)  
 
 IF(USE_LIBFBI)
-  LIST(APPEND TARGET_LL
-    ${BOOST_THREAD_LIB}
-  )
-ENDIF(USE_LIBFBI)
+  LIST(APPEND TARGET_LL ${BOOST_THREAD_LIB} )
+ENDIF()
 
 IF(MINGW)
   LIST(APPEND TARGET_LL
     -lws2_32
-    -lwsock32
-    )
-ELSEIF(DIST STREQUAL "FEDORA" AND REV STREQUAL "22")
-  LIST(APPEND TARGET_LL
-    -lpthread
-    -llapack
-    -lblas
-    -lquadmath
-    )
-ELSEIF(DIST STREQUAL "CENTOS" AND REV STREQUAL "6.7")
-  LIST(APPEND TARGET_LL
-    -lpthread
-########## RHEL is detected as CENTOS on Lima of RRZE: blas and lapack were not found, but we have mkl instead #############
-#    -llapack            
-#    -lblas
-    )
-ELSE()
-  LIST(APPEND TARGET_LL
-    -lpthread
-    -lquadmath
-     )
+    -lwsock32 )
 ENDIF()
 
 # Target link libraries for CFS++ executable target.
-TARGET_LINK_LIBRARIES(cfsbin 
-  ${TARGET_LL}
-  )
+TARGET_LINK_LIBRARIES(cfsbin ${TARGET_LL} )
 
+# lapack is in NETLIB, OPENBLAS and MKL
+# LIST(APPEND TARGET_LL -lpthread -lquadmath )
 
 #IF(MINGW)
 #  IF(CFS_BLAS_LAPACK STREQUAL MKL)
@@ -92,7 +69,11 @@ IF(OPENMP_FOUND)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
 ENDIF()
 
-SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
 
-# Install the CFS++ executable target to ${CMAKE_INSTALL_PREFIX}/bin
-#INSTALL_TARGETS(/bin cfs)
+# Prevents undefined reference to `pci_system_init', ...
+# required by hwloc. Strange that this is not already necessary for USE_GHOST. 
+if(USE_PHIST)
+  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess -ludev")
+endif()
+
+SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

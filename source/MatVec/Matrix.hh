@@ -1,7 +1,6 @@
 #ifndef FILE_MATRIX_2004
 #define FILE_MATRIX_2004
 
-#include <def_use_lapack.hh>
 #include <def_build_type_options.hh>
 
 #include <boost/type_traits/is_complex.hpp>
@@ -169,6 +168,9 @@ namespace CoupledField
       return size_col_;
     }
 
+    /** rows time columns */
+    unsigned int GetNumEntries() const { return size_row_ * size_col_; }
+
     //@}
 
     // =======================================================================
@@ -249,6 +251,13 @@ namespace CoupledField
 
     /** give a specific column */
     void GetCol(Vector<TYPE>& vec_out, UInt col) const;
+
+    /** For each row the minimum over all columns. For Complex see Vector::Min() */
+    void GetColMin(Vector<TYPE>& vec_out) const;
+
+    /** See GetColMin() */
+    void GetColMax(Vector<TYPE>& vec_out) const;
+
 
     //! Gets the diagonal elements of a  matrix in a one column matrix
     void GetDiagInMatrix( Matrix<TYPE>& columnMat ) const;
@@ -608,7 +617,6 @@ namespace CoupledField
  
     //@}
 
-#ifdef USE_LAPACK
     // =======================================================================
     // LAPACK INTERFACE
     // =======================================================================
@@ -624,14 +632,11 @@ namespace CoupledField
     //! solution vectors. The enumeration LAPACK_MATRIX_TYPE
     //! describes the qualities of the system matrix A, 
     //! like symmetric, hermitian or general
-    //! Compile with LAPACK - Support (USE_LAPACK = yes)
-    void solveWithLapack( Matrix<Complex> & b1,
-                          lapackSysMatType & LAPACK_MATRIX_TYPE );
+    void solveWithLapack( Matrix<Complex> & b1, lapackSysMatType & LAPACK_MATRIX_TYPE );
 
     //! Computes eigenvalues of an hermitian matrix and eigen vectors if necessary
     void eigenvaluesWithLapack(Vector<Double> & b1,Matrix<double> * b2 = NULL);
     //@}
-#endif
   
     // =======================================================================
     // MISCELLANEOUS METHODS

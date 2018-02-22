@@ -79,10 +79,13 @@ class Context
   SingleDriver* GetDriver() { return driver; }
 
   /** shortcut for dynamic_cast to eigenfrequency driver. Does no checking, so check for return NULL
+   * TODO make this stuff inline!
    * @return NULL if other driver. */
   EigenFrequencyDriver* GetEigenFrequencyDriver();
 
   HarmonicDriver* GetHarmonicDriver();
+
+  LatticeBoltzmannPDE* GetLatticeBoltzmannPDE();
 
   /** Do we have a harmonic problem? Then we are complex. Even if not, we might be eigenvalue and also complex*/
   bool IsHarmonic() const { return harmonic_; }
@@ -94,11 +97,9 @@ class Context
   bool IsEigenvalue() const { return eigenvalue_; }
 
   /** Do we Bloch Mode analysis? */
-  bool DoBloch() const { return bloch_; }
+  bool DoBloch() const { assert((bloch_ && num_bloch_wave_vectors > 0) || (!bloch_ && num_bloch_wave_vectors == 0)); return bloch_; }
 
-  inline bool DoLBM() const {return (ToApp() == App::LBM);}
-
-  LatticeBoltzmannPDE* GetLatticeBoltzmannPDE();
+  bool DoLBM() const {return (ToApp() == App::LBM);}
 
   /** the driver steps: 1 for static, numFreq for harmonic and wave numbers for bloch */
   unsigned int GetDriverSteps() const { assert(driver_steps_ > 0); return driver_steps_; }
@@ -189,7 +190,7 @@ private:
   /** do we solve an eigenvalue problem. Includes block mode problems */
   bool eigenvalue_;
 
-  /** bloch mode analyis is also eigenvalue but special due to the wave vectors encapsualted in excitations */
+  /** bloch mode analysis is also eigenvalue but special due to the wave vectors encapsulated in excitations */
   bool bloch_;
 
   /** we read the driver steps even without driver object to allow PrepareMultipleExcitation() */

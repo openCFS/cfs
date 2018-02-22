@@ -142,11 +142,6 @@ class Function
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
       DESIGN,                    /*!< local design bound */
       MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
-      DETERMINANT_MATRIX,        /*!< to ensure that the determinant of the gradient transformation matrix is positive in model-reduction*/         /*!< constraint to ensure that the transformation matrix G in model-reduction is indeed the gradient of a mapping*/
-      ROTATIONAL_MATRIX_1,       /*!< first rotational constraint */
-      ROTATIONAL_MATRIX_2,       /*!< 2nd rotational constraint */
-      DETERMINANT_MAPPING,       /*!< used in greedy-mapping*/
-      TRACE_MAPPING,             /*!< used in greedy-mapping*/
       SHAPE_INF,                 /*!< In Shape Optimization, there might be restrictions (not only box constraints) for shape parameters, this is the inf-norm version which splits nicely */
       EXPRESSION                 /*!< e.g. value smaller alpha+/-slack to be extended via mathparser when needed */
     } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
@@ -463,8 +458,9 @@ class Function
         const BaseDesignElement* GetElementByType(BaseDesignElement::Type type) const;
 
 
-        /** returns design value by the design type. getParameter == true works for ParamMat parameters. Works only for special neighborhoods! */
-        double GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access = DesignElement::SMART, bool getParameter = true) const;
+        /** returns design value by the design type.
+         * @param get_parameter == true works for ParamMat parameters. Works only for special neighborhoods! */
+        double GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access = DesignElement::SMART, bool get_parameter = true) const;
 
         /** Service function. Calculates the actual objective, based on function->type.
          * Is very fast for grad_glob and power == 1
@@ -575,18 +571,6 @@ class Function
 
         /** local FMO positive definiteness of (E-val*I) >= param via Benson Vanderbei constraints */
         double CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const;
-
-        /** local determinant of G: det G >=param. This is very nonlinear, there might be a need for positive definiteness To Do*/
-        double CalcDetGTensor(int neigh_idx, const Local* local, bool derivative) const;
-
-        /** Calculated the rotational of the gradient matrix */
-        double CalcRotGTensor(int neigh_idx, const Local* local, bool derivative, Type type) const;
-
-        /** For mapping problems ***/
-        double CalcTraceGMappingTensor(int neigh_idx, const Local* local, bool derivative) const;
-        double CalcDetGMappingTensor(int neigh_idx, const Local* local, bool derivative) const;
-
-
 
         /* @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */
         //double CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const;

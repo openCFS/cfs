@@ -115,9 +115,6 @@ Domain::Domain(
   ptMatHandler_ = ptMat;
   ptMatHandler_->SetDomain( this );
   
-  optimization_ = NULL;
-  designSpace_ = NULL;
-  
   // register variables defined in "variableList" element
   RegisterVariables();
 }
@@ -546,26 +543,13 @@ BasePDE* Domain::GetBasePDE()
 
 }
 
-DesignSpace* Domain::GetDesign(bool throw_exception)
-{
-  if(designSpace_ != NULL)
-    return designSpace_;
-
-//if(throw_exception)
-  //  EXCEPTION("no ersatzMaterial set in domain");
-
-  return NULL;
-}
-
 Grid* Domain::GetGrid(const std::string& id)
 {
   if (gridMap_.find(id) == gridMap_.end())
-  {
-    EXCEPTION( "Grid with id '" << id
-        << "' is not defined" );
-  }
+    EXCEPTION( "Grid with id '" << id << "' is not defined" );
   return gridMap_[id];
 }
+
 
 CoordSystem* Domain::GetCoordSystem(const std::string & name)
 {
