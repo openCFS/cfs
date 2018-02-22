@@ -75,17 +75,28 @@ public:
   // =======================================================================
   //@{ \name Result(Adapter/Vector) Access
 
-  //! Sets the step time value the given id
+  //! Sets the index of the actual step value for the given id
   //! Results get marked as invalid if the new value does not match any cached result.
   //! \param (in) requestedId unique id of result
-  //! \param (in) value new time value
+  //! \param (in) value new step number
+  void SetStepIndex(uuids::uuid requestedId, Integer value);
+  
+  //! Obtain index of the actual step value
+  //! \param (in) requestedId  unique id of result
+  //! \return UInt index of the step
+  UInt GetStepIndex(uuids::uuid requestedId);
+
+  //! Sets the step value of the given id
+  //! Results get marked as invalid if the new value does not match any cached result.
+  //! \param (in) requestedId unique id of result
+  //! \param (in) value new step value
   void SetStepValue(uuids::uuid requestedId, Double value);
   
   //! Obtain step value of given result
   //! \param (in) requestedId  unique id of result
-  //! \return Double value of step
+  //! \return Double value of the step
   Double GetStepValue(uuids::uuid requestedId);
-
+  
   //! Check if the given result is already updated
   //! \param (in) requestedId  unique id of result
   //! \param (in) offsetStep time/frequency step offset for future/past results

@@ -61,34 +61,39 @@ bool TimeDerivFilterD1::UpdateResults(std::set<uuids::uuid>& upResults) {
     Vector<Double>& returnVec = GetOwnResultVector<Double>(*oIter);
     const UInt size = returnVec.GetSize();
     const Double dT = timeSteps_[*oIter];
-    const Double actStepValue = resultManager_->GetStepValue(*oIter);
+    const Integer actStepIndex = resultManager_->GetStepIndex(*oIter);
     
-    Vector<Double>& inVec = GetUpstreamResultVector<Double>(upRes, actStepValue - (2.0 * dT));
-    Double factor = -(1.0/8.0)/dT;
-    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
-    for (UInt i = 0; i < size; i++) {
-      returnVec[i] = inVec[i] * factor;
-    }
-
-    inVec = GetUpstreamResultVector<Double>(upRes, actStepValue - dT);
-    factor = -(1.0/4.0)/dT;
-    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
-    for (UInt i = 0; i < size; i++) {
-      returnVec[i] += inVec[i] * factor;
-    }
-
-    inVec = GetUpstreamResultVector<Double>(upRes, actStepValue + dT);
-    factor = (1.0/4.0)/dT;
-    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
-    for (UInt i = 0; i < size; i++) {
-      returnVec[i] += inVec[i] * factor;
-    }
+    if (dT == 0.0) {
+      // temporal derivative of a constant value is zero
+      returnVec.Init(0.0);
+    } else {
+      Vector<Double>& inVec = GetUpstreamResultVector<Double>(upRes, actStepIndex - 2);
+      Double factor = -(1.0/8.0)/dT;
+      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      for (UInt i = 0; i < size; i++) {
+        returnVec[i] = inVec[i] * factor;
+      }
+  
+      inVec = GetUpstreamResultVector<Double>(upRes, actStepIndex - 1);
+      factor = -(1.0/4.0)/dT;
+      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      for (UInt i = 0; i < size; i++) {
+        returnVec[i] += inVec[i] * factor;
+      }
+  
+      inVec = GetUpstreamResultVector<Double>(upRes, actStepIndex + 1);
+      factor = (1.0/4.0)/dT;
+      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      for (UInt i = 0; i < size; i++) {
+        returnVec[i] += inVec[i] * factor;
+      }
     
-    inVec = GetUpstreamResultVector<Double>(upRes, actStepValue + (2.0 * dT));
-    factor = (1.0/8.0)/dT;
-    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
-    for (UInt i = 0; i < size; i++) {
-      returnVec[i] += inVec[i] * factor;
+      inVec = GetUpstreamResultVector<Double>(upRes, actStepIndex + 2);
+      factor = (1.0/8.0)/dT;
+      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      for (UInt i = 0; i < size; i++) {
+        returnVec[i] += inVec[i] * factor;
+      }
     }
   }
   return true;
@@ -130,9 +135,12 @@ void TimeDerivFilterD1::AdaptFilterResults(){
       std::stringstream s;
       s << "No upstream filter provided time information for the result "  << aFiltResName;
       CF::Exception(s.str());
+    } else if (curTime.GetSize() == 1) {
+      timeSteps_[filterResIds[aRes]] = 0.0;
+    } else {
+      //determine the timestep by subtracting first and second entry in timeline
+      timeSteps_[filterResIds[aRes]] = std::abs( curTime[1] - curTime[0]);
     }
-    //determine the timestep by subtracting first and second entry in timeline
-    timeSteps_[filterResIds[aRes]] = std::abs( curTime[1] - curTime[0]);
 
     resultManager_->CopyResultData(assocId,filterResIds[aRes]);
     resultManager_->SetValid(filterResIds[aRes]);

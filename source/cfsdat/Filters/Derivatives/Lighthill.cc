@@ -106,9 +106,9 @@ Lighthill::~Lighthill(){
 
 
 bool Lighthill::UpdateResults(std::set<uuids::uuid>& upResults) {
-  /// this is the vector, which will be filled with the derivative result
+  /// this is the vector, which will be filled with the result
   Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
-  aTF_ = resultManager_->GetStepValue(filterResIds[0]);
+  stepIndex_ = resultManager_->GetStepIndex(filterResIds[0]);
 
   Vector<Double> tempRetVec;
   if(Form_ == "AeroacousticSource_LambVector"){LambVector(tempRetVec);}
@@ -138,7 +138,7 @@ bool Lighthill::UpdateResults(std::set<uuids::uuid>& upResults) {
 
 
 void Lighthill::LambVector(Vector<Double>& tempRetVec){
-  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, aTF_);
+  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, stepIndex_);
 
   Matrix& matrix = matrices_[matrixIndex_];
   const UInt maxNumTrgEntities = matrix.numTargets;
@@ -147,7 +147,7 @@ void Lighthill::LambVector(Vector<Double>& tempRetVec){
   if(externVorticity_ == true && Form_ == "AeroacousticSource_LambVector"){
     /************* case of externally provided vorticity ***************/
     // result is defined on nodes !!!
-    Vector<Double>& inVecOmega = GetUpstreamResultVector<Double>(resVorticityId, aTF_);
+    Vector<Double>& inVecOmega = GetUpstreamResultVector<Double>(resVorticityId, stepIndex_);
     OmegaVectorProductU(inVecVel, inVecOmega, LambVec, numEquPerEnt_);
   }else{
     /************* we compute the vorticity internally ***************/
@@ -176,10 +176,10 @@ void Lighthill::LambVector(Vector<Double>& tempRetVec){
 }
 
 void Lighthill::LighthillTensor(Vector<Double>& tempRetVec){
-  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, aTF_);
-  Vector<Double>& inVecDensity = GetUpstreamResultVector<Double>(resDensityId, aTF_);
+  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, stepIndex_);
+  Vector<Double>& inVecDensity = GetUpstreamResultVector<Double>(resDensityId, stepIndex_);
   if(externVorticity_ == true){
-    inVecDensity = GetUpstreamResultVector<Double>(resVorticityId, aTF_);
+    inVecDensity = GetUpstreamResultVector<Double>(resVorticityId, stepIndex_);
   }
 
   Vector<Double> LHTensor;
@@ -200,7 +200,7 @@ void Lighthill::LighthillTensor(Vector<Double>& tempRetVec){
 
 
 void Lighthill::LighthillSourceVector(Vector<Double>& tempRetVec){
-  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, aTF_);
+  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, stepIndex_);
 
 
   Matrix& matrix = matrices_[matrixIndex_];
