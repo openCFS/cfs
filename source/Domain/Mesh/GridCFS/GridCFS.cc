@@ -1866,7 +1866,6 @@ namespace CoupledField {
     return numElems;
   }
 
-
   void GridCFS::AddNamedNodes( std::string name, StdVector<UInt> & nodeNums)
   {
     // Check if entities with given name exist already
@@ -3244,7 +3243,7 @@ namespace CoupledField {
         for( UInt j=i+1; j < points.GetSize()/2.0; j++ )
         {
           det = (points[2*i][0] - points[2*i+1][0]) * (points[2*j][1] - points[2*j+1][1]) - (points[2*j][0] - points[2*j+1][0]) * (points[2*i][1] - points[2*i+1][1]);
-          if(det != 0) {
+          if( abs(det) > 1e-10 ) {
             det1 = points[2*i][0] * points[2*i+1][1] - points[2*i+1][0] * points[2*i][1];
             det2 = points[2*j][0] * points[2*j+1][1] - points[2*j+1][0] * points[2*j][1];
             r[0] = ( det1 * (points[2*j][0] - points[2*j+1][0]) - det2 * (points[2*i][0] - points[2*i+1][0]) ) / det;

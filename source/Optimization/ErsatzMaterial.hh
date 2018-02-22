@@ -78,12 +78,6 @@ public:
   /** Adds validation stuff here to keep out of long constructor */
   virtual void PostInit();
 
-  /** Have all design elements the same size? -> same local element matrices */
-  bool IsDomainStructured()
-  {
-    return assume_constant_element_matrices_;
-  }
-
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
   typedef enum
   {
@@ -159,17 +153,6 @@ protected:
       App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1, double ev = -1.0);
 
-  /** for Virgininies stuff */
-  double CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1,
-      App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
-      double factor, CalcMode calcMode, Function* f, int res_idx = -1);
-
-  /** for Virgininies stuff */
-  double CalcU1KU2_mapping2(TransferFunction* tf, StdVector<SingleVector*>& u1,
-      App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
-      double factor, CalcMode calcMode, Function* f, int res_idx = -1);
-
-
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
    * 'elec_elec', 'elec_elec_quad', 'elec_mech', 'mech_elec' */
@@ -181,13 +164,6 @@ protected:
    * Also bi-material is nicely considered.
    * The template stuff is private, as C++ does not allow virtual templates. */
   virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0)
-  {
-    throw Exception("not implemented");
-  }
-
-
-  /** this is for Virginies stuff */
-  virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, App::Type app, DenseMatrix* out, CalcMode calcMode, bool derivative = true)
   {
     throw Exception("not implemented");
   }
@@ -264,7 +240,8 @@ protected:
   /** Calculates heat energy as an equivalence to compliance in lin elasticity */
   virtual double CalcHeatEnergy(Excitation& excite, Objective* f, Condition* g, bool derivative);
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
-  template<class T> double CalcOutput(Excitation& excite, Function* f);
+  template<class T>
+  double CalcOutput(Excitation& excite, Function* f);
   /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 
    * constraint and constraint derivative mode
    * @param excite  the excitation used 
@@ -397,9 +374,6 @@ protected:
   /** do we do SIMP or FreeMat or ... */
   Method method_;
 
-  /** true, if assuming regular grid, and only optimizing density, not DesignMaterial */
-  bool assume_constant_element_matrices_;
-
   /** cache the 1.0 / complete volume of the domain */
   double volume_fraction_;
 
@@ -421,9 +395,6 @@ protected:
   bool bitensor_;
 
 private:
-
-  /** Checks if the G-Matrix from model reduction shall be written as special result - and does it in case */
-  void OutputModRedGTensor();
 
   /** This is a helper for the calculation of the homogenized tensor or the derivative of it.
    * This is the inner of the sum for the homogenized tensor or the derivative formulation

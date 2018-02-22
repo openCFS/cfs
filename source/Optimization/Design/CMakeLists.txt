@@ -8,6 +8,7 @@ SET(DESIGN_SRCS
   ShapeDesign.cc
   DesignMaterial.cc
   Filter.cc
+  LocalElementCache.cc
 )
 
 ADD_LIBRARY(design STATIC ${DESIGN_SRCS})

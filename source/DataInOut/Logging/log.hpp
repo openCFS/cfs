@@ -406,7 +406,7 @@ template<> struct mark_log_as_compile_time_t<true> {
 
 
 #define BOOST_LOGL(log_name,lvl) \
-  if (::boost::logging::logger_keeper<(log_name ## _log_class::is_compile_time != 0),(log_name ## _log_class::is_enabled != 0)> keep = ::boost::logging::logger_and_level(log_name(),::boost::logging::level::lvl) ) ; else (*keep.stream()) << __LINE__ << ": "
+  if(::boost::logging::logger_keeper<(log_name ## _log_class::is_compile_time != 0),(log_name ## _log_class::is_enabled != 0)> keep = ::boost::logging::logger_and_level(log_name(),::boost::logging::level::lvl) ) ; else (*keep.stream()) << __LINE__ << ": "
 
 #define BOOST_LOG(log_name) BOOST_LOGL(log_name,default_)
 

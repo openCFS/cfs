@@ -45,7 +45,7 @@ public:
 
   virtual bool IsSolDependent();
 
-  virtual bool IsComplex();
+  virtual bool IsComplex() const;
 
   virtual void SetFeSpace( shared_ptr<FeSpace> feSpace );
 

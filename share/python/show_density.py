@@ -78,10 +78,14 @@ def get_image(input, set, design, fill=0.0):
   if args.grid:
     print_grid_on_image(img,dens)
   
-  if not args.orgsize:
-    ix, iy = dens.shape[0:2]
-    f = 800 / max(ix, iy)
-    img = img.resize((int(f * ix), int(f * iy)))
+  if args.orgsize:
+    args.size = img.size
+  else:
+    if not args.size:
+      args.size = [800, 800]
+
+  print(args.size)
+  img = img.resize(args.size)
   
   return img, dens
 
@@ -93,12 +97,19 @@ parser.add_argument('--saveall', help="saves all input files as png", action='st
 parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
 parser.add_argument('--grid', help="draw mesh lines", action='store_true')
 parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
+parser.add_argument('--size', help="resize image", nargs='*', type=int)
 parser.add_argument('--info', help="print some info about the density file and exit", action='store_true')
 parser.add_argument('--set', help="optional label of set, default is the last one")
 parser.add_argument('--tile', help="show periodic repetition of tile x tile patches", type=int)
+parser.add_argument('--tileborder', help="show tile borders when repeating patches. works only in combination with --tile", action='store_true')
 parser.add_argument('--fill', help="fill elements without density information with this pseudodensity value", type=float, default="0.0")
 
 args = parser.parse_args()
+
+if len(args.size) == 1:
+    args.size = (args.size[0], args.size[0])
+elif len(args.size) > 2:
+    args.size = args.size[0:2]
 
 input = args.input if len(args.input) > 0 else glob.glob("*.info.xml")
 if not args.saveall:
@@ -128,22 +139,27 @@ if args.saveall:
 else:
   for file in input:
     img, den = get_image(file, args.set, args.design, args.fill)
-  
+
     if args.tile:
-        assert(img.size[0] == img.size[1]) # extend if you need  
-        img = img.resize((int(1000/args.tile), int(1000/args.tile)))
-        nx = img.size[0]
-        ny = img.size[1]
-        dat = numpy.array(img) 
-        tiled = numpy.zeros((args.tile * ny, args.tile * nx), dtype="uint8")
-        for i in range(args.tile):
-          for j in range(args.tile):
-            tiled[i*nx : (i+1)*nx , j*ny : (j+1)*ny] = dat
-            if i > 0:
-              tiled[i*nx,:] = 0
-            if j > 0:  
-              tiled[:,j*nx] = 0
-        img = Image.fromarray(tiled)
+      assert(img.size[0] == img.size[1]) # extend if you need
+      if args.orgsize:
+        args.size = (img.size[0]*args.tile, img.size[1]*args.tile)
+      else:
+        if not args.size:
+          args.size = [1000, 1000]
+      img = img.resize((int(args.size[0]/args.tile), int(args.size[1]/args.tile)))
+      nx, ny = img.size
+      dat = numpy.array(img) 
+      tiled = numpy.zeros((args.tile * ny, args.tile * nx), dtype="uint8")
+      for i in range(args.tile):
+        for j in range(args.tile):
+          tiled[i*nx : (i+1)*nx , j*ny : (j+1)*ny] = dat
+          if args.tileborder:
+              if i > 0:
+                tiled[i*nx,:] = 0
+              if j > 0:  
+                tiled[:,j*nx] = 0
+      img = Image.fromarray(tiled)
     if args.save:
       print("saving image to file " + args.save)
       img.save(args.save)

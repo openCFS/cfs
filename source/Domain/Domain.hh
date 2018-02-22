@@ -169,8 +169,17 @@ namespace CoupledField
     //! Get pointer to simulation state object
     shared_ptr<SimState> GetSimState() {return simState_; }
     
-    //! Get pointer to grid object
-    Grid* GetGrid( const std::string& id = "default" );
+    /** Get pointer to grid object
+    * @param id "default" would work */
+    Grid* GetGrid(const std::string& id);
+
+    /** works only with a single grid */
+    Grid* GetGrid()
+    {
+      assert(gridMap_.size() == 1);
+      return gridMap_.begin()->second;
+    }
+
 
     /** return the name of the registered coordinate systems */
     StdVector<std::string> GetCoordSystems() const;
@@ -188,9 +197,10 @@ namespace CoupledField
     /** Sets the optimization from outside, like the driver */
     void SetOptimization(Optimization* optimization) { this->optimization_ = optimization; };
 
-    /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities.
-     * @return  NULL but an exception if not set and not silent*/
-    DesignSpace* GetDesign(bool throw_exception = true);
+    /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities. */
+    DesignSpace* GetDesign() { return designSpace_; }
+
+    bool HasDesign() const { return designSpace_ != NULL; }
 
     /** This is set by optimization which holds the data (in a derved form) or when we do loadErsatzMaterial or -x
      * Is is also reset here by the optimization destructor.
@@ -333,11 +343,11 @@ namespace CoupledField
     std::map<std::string, CoordSystem*> coordSys_;
 
     /** an optinal optimizer */
-    Optimization* optimization_;
+    Optimization* optimization_ = NULL;
 
     /** The ersatz material pointer is set be the domain or it points
      * to optimization data */
-    DesignSpace* designSpace_;
+    DesignSpace* designSpace_ = NULL;
 
 
     //! Mathematic parser object

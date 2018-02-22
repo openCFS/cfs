@@ -1,9 +1,9 @@
 #include <def_use_ilupack.hh>
-#include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_suitesparse.hh>
 #include <def_use_superlu.hh>
 #include <def_use_lis.hh>
+#include<def_use_petsc.hh>
 
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -13,10 +13,8 @@
 #include "generatesolver.hh"
 #include "General/Exception.hh"
 
-#ifdef USE_LAPACK
 #include "OLAS/external/lapack/Lapack_LU.hh"
 #include "OLAS/external/lapack/Lapack_LL.hh"
-#endif
 
 #ifdef USE_PARDISO
 #include "OLAS/external/pardiso/PardisoSolver.hh"
@@ -40,6 +38,9 @@
 #include "OLAS/external/lis/LISSolver.hh"
 #endif
 
+#ifdef USE_PETSC
+#include "OLAS/external/petsc/PETSCSolver.hh"
+#endif
 // include source code for templated solvers
 #include "BaseSolver.hh"
 #include "RichardsonSolver.hh"
@@ -200,7 +201,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
   break;
 
 
-#ifdef USE_LAPACK
   case BaseSolver::LAPACK_LU:
     if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
       EXCEPTION( "LAPACK_LU only works with a LAPACK_GBMATRIX!");
@@ -234,14 +234,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       }
     }
     break;
-#else
-  case BaseSolver::LAPACK_LU:
-    EXCEPTION( "Compile with USE_LAPACK to enable support for LAPACK_LU solver" );
-    break;
-  case BaseSolver::LAPACK_LL:
-    EXCEPTION( "Compile with USE_LAPACK to enable support for LAPACK_LL solver" );
-    break;
-#endif
 
   case BaseSolver::PARDISO_SOLVER:
 
@@ -393,6 +385,29 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 #endif
   break;
 
+  case BaseSolver::PETSC:
+
+ #ifdef USE_PETSC
+   {
+     // Check suitability of matrix
+     if (mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
+       EXCEPTION("PETSC only works with (S)CRS_Matrix class!");
+     const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
+      if(stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM
+         && stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM  )
+       EXCEPTION("PETSC only works with (S)CRS_Matrix class!");
+
+     retSolver = new PETSCSolver(solverNode, olasInfo, eType);
+     
+     LOG_DBG(genSolver) << " GenerateSolver: Generated PETSC solver";
+   }
+ #else
+   EXCEPTION("Compile with USE_PETSC to enable interface to PETSC.");
+ #endif
+   break;
+
+
+
   case BaseSolver::CHOLMOD:
 #ifdef USE_SUITESPARSE
   {
@@ -522,6 +537,11 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
       ret.insert(BaseMatrix::SPARSE_SYM);
       ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;
+
+    case BaseSolver::PETSC:
+          ret.insert(BaseMatrix::SPARSE_SYM);
+          ret.insert(BaseMatrix::SPARSE_NONSYM);
+          break;
 
     case BaseSolver::SUPERLU:
       ret.insert(BaseMatrix::SPARSE_NONSYM);

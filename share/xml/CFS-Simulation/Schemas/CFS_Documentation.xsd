@@ -218,6 +218,10 @@
       <xsd:enumeration value="solver"/>
       <xsd:enumeration value="static condensation"/>
       <xsd:enumeration value="elimination"/>
+      <xsd:enumeration value="eigenvalue"/>
+      <xsd:enumeration value="direct_solver"/>
+      <xsd:enumeration value="iterative_solver"/>
+      <xsd:enumeration value="cuda"/>
       
       <!-- ========================================================== -->
       <!--  Nonmatching Grid Related Keywords                         -->

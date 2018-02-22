@@ -259,7 +259,7 @@ RegisterCoefFct( const std::string& name,
     // query variables names
     std::string real, imag;
     CoefFunction::GenScalCompNames( real, imag, name, coef );
-#pragma omp parallel num_threads(NUM_CFS_THREADS)
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
     {
 #pragma omp critical (CoefFunctionCompound_Double)
       {
@@ -272,7 +272,7 @@ RegisterCoefFct( const std::string& name,
   
     StdVector<std::string> real, imag;
     CoefFunction::GenVecCompNames( real, imag, name, coef );
-#pragma omp parallel num_threads(NUM_CFS_THREADS)
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
     {
 #pragma omp critical (CoefFunctionCompound_Double)
       {
@@ -286,7 +286,7 @@ RegisterCoefFct( const std::string& name,
   } else if( dim == TENSOR ) {
     StdVector<std::string> real, imag;
     CoefFunction::GenTensorCompNames( real, imag, name, coef );
-#pragma omp parallel num_threads(NUM_CFS_THREADS)
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
     {
 #pragma omp critical (CoefFunctionCompound_Double)
       {
@@ -589,7 +589,7 @@ RegisterCoefFct( const std::string& name,
     // query variables names
     std::string real, imag;
     CoefFunction::GenScalCompNames( real, imag, name, coef );
-#pragma omp parallel num_threads(NUM_CFS_THREADS)
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
     {
 #pragma omp critical (CoefFunctionCompound_Double)
       {
@@ -604,7 +604,7 @@ RegisterCoefFct( const std::string& name,
   
     StdVector<std::string> real, imag;
     CoefFunction::GenVecCompNames( real, imag, name, coef );
-#pragma omp parallel num_threads(NUM_CFS_THREADS)
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
     {
 #pragma omp critical (CoefFunctionCompound_Double)
       {
@@ -626,7 +626,7 @@ RegisterCoefFct( const std::string& name,
   } else if( dim == TENSOR ) {
     StdVector<std::string> real, imag;
     CoefFunction::GenTensorCompNames( real, imag, name, coef );
-#pragma omp parallel num_threads(NUM_CFS_THREADS)
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
     {
 #pragma omp critical (CoefFunctionCompound_Double)
       {
@@ -666,7 +666,7 @@ void CoefFunctionCompound<Complex>::
 UpdateXpr( const LocPointMapped& lpm ) {
   
 //#ifdef USE_OPENMP
-//  if(omp_get_num_threads() == 1 && NUM_CFS_THREADS>1){
+//  if(omp_get_num_threads() == 1 && CFS_NUM_THREADS>1){
 //    WARN("Calling from serial region. May be dangerous")
 //  }
 //#endif

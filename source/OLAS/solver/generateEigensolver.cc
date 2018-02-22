@@ -1,4 +1,5 @@
 #include <def_use_arpack.hh>
+#include <def_use_phist.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_feast.hh>
 
@@ -10,7 +11,10 @@
 
 #include "BaseEigenSolver.hh"
 #ifdef USE_ARPACK
-#include "OLAS/external/arpack/ArpackEigenSolver.hh"
+  #include "OLAS/external/arpack/ArpackEigenSolver.hh"
+#endif
+#ifdef USE_PHIST
+  #include "OLAS/external/phist/PhistEigenSolver.hh"
 #endif
 
 #ifdef USE_FEAST
@@ -68,7 +72,7 @@ namespace CoupledField {
 
     BaseEigenSolver::EigenSolverType solver = BaseEigenSolver::NO_EIGENSOLVER;
     solver = BaseEigenSolver::eigenSolverType.Parse(solverStr);
-    
+
     // Branch depending on desired EigenSolver
     switch(solver)
     {
@@ -80,6 +84,14 @@ namespace CoupledField {
       #endif
       break;
 
+    case BaseEigenSolver::PHIST:
+      #ifdef USE_PHIST
+        retSolver = new PhistEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
+      #else
+        EXCEPTION( "compiled without Phist!" );
+      #endif
+      break;
+
     case BaseEigenSolver::FEAST:
       #ifdef USE_FEAST
         retSolver = new FeastEigenSolver(strat, eSolverXML, solverList, precondList, eigenInfo);
@@ -87,6 +99,7 @@ namespace CoupledField {
         EXCEPTION( "compiled without FEAST: set USE_FEAST=ON to use the FEAST solver!" );
       #endif
         break;
+
     case BaseEigenSolver::NO_EIGENSOLVER:
       assert(false);
     }

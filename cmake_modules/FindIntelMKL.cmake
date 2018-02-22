@@ -478,6 +478,10 @@ ENDIF() # MINGW OR MSVC
 #-------------------------------------------------------------------------------
 # Set BLAS, LAPACK and PARDISO libraries depending on the MKL version.
 #-------------------------------------------------------------------------------
+
+# see also External_OpenBLAS and External_LAPACK, where the setting is quite different:
+# e.g. BLAS_LIBRARY=-Wl,--start-group;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_intel_lp64.a;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_gnu_thread.a;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_core.a;-Wl,--end-group;-L/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/../compiler/lib/intel64;-liomp5;-lpthread;-lm;-ldl
+# e.g. LAPACK_LIBRARY=
 IF(CFS_BLAS_LAPACK STREQUAL "MKL")
   SET(BLAS_LIBRARY "${MKL_BLAS_LIB}")
   IF(MKL_MAJOR_VERSION LESS 10)

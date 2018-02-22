@@ -2,19 +2,12 @@
 #include <sstream>
 
 using namespace CoupledField;
-using namespace boost;
-using posix_time::ptime;
-using posix_time::second_clock;
-using posix_time::microsec_clock;
-using posix_time::time_duration;
 using std::string;
 
 Timer::Timer(const std::string& name, bool sub) :
   calls_(0),
   running(false),
   start_clock(0),
-  start_time(0),
-  sum_time(0),
   sum_clock(0),
   label_(name),
   sub_(sub)
@@ -32,7 +25,9 @@ void Timer::Start()
   // Set timer status to running and set the start time
   running = true;
   start_clock = clock();
-  start_time = time(0);
+
+  // https://stackoverflow.com/questions/6734375/get-current-time-in-milliseconds-using-c-and-boost
+  start_time_ = boost::posix_time::microsec_clock::local_time();
 
 }
 
@@ -40,10 +35,12 @@ void Timer::ResetStart()
 {
   // Set timer status to running, reset accumulated time, and set start time
   running = true;
-  sum_time    = 0;
-  sum_clock   = 0;
+
   start_clock = clock();
-  start_time  = time(0);
+  sum_clock   = 0;
+
+  start_time_ = boost::posix_time::microsec_clock::local_time();
+  sum_time_ =   0;
 
   calls_ = 1;
 }
@@ -51,10 +48,13 @@ void Timer::ResetStart()
 void Timer::Stop()
 {
   // Compute accumulated running time and set timer status to not running
-  if (running)
+  if(running)
   {
-    sum_time  += time(NULL) - start_time;
     sum_clock += clock() - start_clock;
+
+    boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+    boost::posix_time::time_duration delta_t = now - start_time_;
+    sum_time_ += delta_t.total_milliseconds() / 1000.0;
   }
   running = false;
 }
@@ -62,7 +62,13 @@ void Timer::Stop()
 
 double Timer::GetWallTime() const
 {
-  return sum_time + (running ? time(NULL) - start_time : 0);
+  double wall = sum_time_;
+  if(running) {
+    boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+    boost::posix_time::time_duration delta_t = now - start_time_;
+    wall += delta_t.total_milliseconds() / 1000.0;
+  }
+  return wall;
 }
 
 double Timer::GetCPUTime() const
@@ -78,6 +84,7 @@ string Timer::ToXMLFormat(const string& name) const
   os << "<" << name;
   if (label_ != "")
     os << " label=\""<< label_ << "\"";
+  os << " wall-clock=\"" << GetTimeString(GetWallTime()) << "\"";
   os << " wall=\"" << GetWallTime() << "\"";
   os << " cpu=\"" << GetCPUTime() << "\"";
   os << " calls=\"" << calls_ << "\"";
@@ -88,10 +95,10 @@ string Timer::ToXMLFormat(const string& name) const
   return os.str();
 }
 
-const string Timer::GetTimeString(const time_duration period)
+const string Timer::GetTimeString(const boost::posix_time::time_duration period)
 { 
-  if(date_time::micro != period.resolution() &&
-     date_time::sec   != period.resolution())
+  if(boost::date_time::micro != period.resolution() &&
+      boost::date_time::sec   != period.resolution())
   {
     return "NA";
   }
@@ -99,7 +106,7 @@ const string Timer::GetTimeString(const time_duration period)
   string time_output(to_simple_string(period));
   string suffix(" h");
   int max_length(11); // for micro, e. g. 01:02:03.04
-  if(date_time::sec == period.resolution()) max_length -= 3;
+  if(boost::date_time::sec == period.resolution()) max_length -= 3;
   if(time_output.substr(0, 2) == "00") // remove 0 hours
   {
     time_output = time_output.substr(3);
@@ -116,6 +123,22 @@ const string Timer::GetTimeString(const time_duration period)
     suffix = " s";
   }
   return time_output.substr(0, max_length) + suffix; // cut off microseconds
+}
+
+const std::string Timer::GetTimeString(double seconds)
+{
+  int h = (int) (seconds/3600);
+  int m = (int) ((seconds - (h*3600))/60);
+  double s = seconds - (h*3600) - (m*60);
+
+  std::stringstream ss;
+  if(h > 0)
+    ss << h << "h ";
+  if(m > 0)
+    ss << m << "m ";
+  ss.precision(4);
+  ss << s << "s";
+  return ss.str();
 }
 
 void Timer::PrintTime(std::ostream & stream){

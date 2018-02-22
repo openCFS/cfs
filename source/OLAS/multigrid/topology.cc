@@ -586,7 +586,6 @@ Integer Topology<T>::GetNumInterpolatingPoints() const
             if( CoarseIndex_[i] >= COARSE ) {
                 nPoints++;
             } else {
-                      Integer        size   = 0;
                 const Integer* const edges  = S_.GetEdges( i );
                 const Integer        nedges = S_.GetNumEdges( i );
                 // inkrement size for each edge to a coarse node
@@ -635,7 +634,7 @@ GetNumInterpolatedPoints( StdVector<UInt>& sizes ) const
     Integer totalNumPoints = 0;
 
     // run over all fine grid points
-    for( Integer i = 0; i < (Integer)GetSizeh(); i++ ) {
+    for(Integer i = 0; i < (Integer) GetSizeh(); i++ ) {
         // only coarse points interpolate other points
         if( IsCPoint(i) ) {
             // initialize the counter with 1, because every coarse

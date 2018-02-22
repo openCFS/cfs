@@ -3,7 +3,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 /* $Id$ */
-#include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
 
 #include "OLAS/multigrid/hierarchylevel.hh"
@@ -16,9 +15,7 @@
 #include "OLAS/solver/BaseSolver.hh"
 #include "OLAS/precond/IdPrecondStd.hh"
 
-#ifdef USE_LAPACK
 #include "OLAS/external/lapack/lapack.hh"
-#endif
 
 
 #ifndef  LOGLINE

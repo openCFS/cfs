@@ -192,15 +192,13 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
   
   if tensor.shape == (6,6):
     # 3D case for mech
-    phi = 0
- 
     # we do not use the standard spherical coordinate system but in to_vector() stuff from our rotation matrix
     # therefore, as z = sin(theta) instead of cos(theta) we need to run from [pi/2, 3/2 * pi] to cover all z
 
     #Create points on Surface
     d_phi = 2 * numpy.pi / (steps-1)
     for theta in numpy.arange(0.5 * numpy.pi, 1.5001 * numpy.pi, numpy.pi / (steps-1)):
-      for phi_i in numpy.arange(0, 2.0001 * numpy.pi, d_phi):
+      for phi in numpy.arange(0, 2.0001 * numpy.pi, d_phi):
         test = rotate_cfs(tensor, phi, theta)
         angle.append((phi, theta))
         data.append(test[0,0])
@@ -211,7 +209,6 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
         if aux_data == "mono_norm":  
           aux.append(sqrt(2.0 * (test[0,4]**2 + test[1,4]**2 + test[2,4]**2 + test[3,4]**2 +
                                  test[0,5]**2 + test[1,5]**2 + test[2,5]**2 + test[3,5]**2)))
-        phi += d_phi  
   else: 
     # 2D case for elec, piezo, mech
     # for mech it is enought to go from 0 to pi and duplicate, for piezo we need all. Do slow and easy
@@ -243,17 +240,16 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
   
   assert(len(data) == len(angle))    
   assert(len(aux) == len(data) or len(aux) == 0)
-  return angle, data, aux  
+  return angle, data, aux
 
 # finds the two largest maxima
 # @param param: data vector where the last two entries shall be a double of the first ones
 # @return the indices of the largest and second largest maxima. If there is no second then -1
+# THIS FUNCTION MIGHT NOT BE CORRECT!!!
 def find_maxima(data):
   first = [-1, -1e60]
   second = [-1, -1e60]
   for i in range(1, (len(data)/2)+1):      
-      
-
     if data[i-1] <= data[i] and data[i] >= data[i+1]:
       if data[i] >= first[1]:
         second = first[:] # deep copy
@@ -478,10 +474,11 @@ def poissons_ratio(tensor):
 ## find stiffest directions for a tensor
 # @param tensor elast tensor in voigt notation, elec tensor or piezo tensor
 # @return first, second the scaled vectors of stiffest directions. second is 0,0,0 if there is none, v21 and v12 if desired
+# THIS FUNCTION MIGHT NOT BE CORRECT!!!
 def find_stiffest_orientation(tensor, steps, also_poissons_ratio=False):
   angle, data, aux = perform_cfs_rotation(tensor, steps, also_poissons_ratio)
-  idx_first, idx_second = find_maxima(data[0])
-  
+  idx_first, idx_second = find_maxima(data)
+
   first = to_vector(angle[idx_first]) * data[idx_first]
   
   second = [0,0,0]

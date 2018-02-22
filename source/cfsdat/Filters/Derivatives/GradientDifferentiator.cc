@@ -124,7 +124,6 @@ void GradientDifferentiator::PrepareCalculation(){
     rId.Push_back(r);
   }
 
-
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
     CF::UInt globEntityNumber;
         globEntityNumber = globTrgEntity[trgEnt];

@@ -141,16 +141,8 @@ App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctx
   case DesignElement::MECH_22:
   case DesignElement::MECH_33:
   case DesignElement::SHEAR1:
-  case DesignElement::ROTANGLE2:
-  case DesignElement::SCALING1:
-  case DesignElement::SCALING2:
-  case DesignElement::G_MAP_X:
-  case DesignElement::G_MAP_Y:
   case DesignElement::MULTIMATERIAL:
   case DesignElement::INTERPOLATION:
-  case DesignElement::I_1:
-  case DesignElement::I_2:
-  case DesignElement::I_3:
     return App::MECH;
   case DesignElement::ACOU_DENSITY:
     return App::LAPLACE;

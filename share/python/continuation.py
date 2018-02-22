@@ -5,7 +5,7 @@ from cfs_utils import *
 
 ## performs continuation by doubling filter/density/beta, starting from 1
 # @param range_idx when we have a range with at least one doubled value. Then we add _a, _b from the second value on 
-def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executable, show, failsafe = False, range_idx = -1, qsub = None):
+def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executable, show, failsafe = False, range_idx = -1, qsub = None, plot = None):
 
   assert(range_idx < 26) # is 25 is z
   # to make use of range_idx. In the -1 case we don't use this below anyway
@@ -27,13 +27,13 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executab
     
   # start is initial if given ofr old_var = -1 or nothing for the first run (old_var == -1)
   start = ""  
-  if old_var == -1 and initial <> None:
+  if old_var == -1 and initial != None:
     start = "-x " + initial
   if old_var > -1:   
     start = "-x " + old_problem + ".density.xml"
 
   if not os.path.exists(short_problem + ".xml"):
-    print "error: file '" + short_problem + ".xml' not found"
+    print("error: file '" + short_problem + ".xml' not found")
     os.sys.exit()
   
   xml = open_xml(short_problem + ".xml")     
@@ -56,7 +56,7 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executab
       query = '//cfs:shapeMap/@relative_node_bound'
     if type == 'alphaSlackQuotient':
       query = '//cfs:constraint[@type="alphaSlackQuotient"]/@value'
-    assert(query <> None)
+    assert(query != None)
 
     r = replace(xml, query, str(var), unique = False)
     if r == 0:
@@ -69,14 +69,20 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, executab
     # see http://beige.ucs.indiana.edu/I590/node45.html
     generate_qsub_script(qsub, cmd, var_problem + '.sh', silent = True)
     if old_var == -1:
-      print('CONT' + str(cnt) + '=$(qsub ' + var_problem + '.sh)')
-      print('echo $CONT' + str(cnt))
+      print(('CONT' + str(cnt) + '=$(qsub ' + var_problem + '.sh)'))
+      print(('echo $CONT' + str(cnt)))
     else:  
-      print('CONT' + str(cnt) + '=$(qsub -W depend=afterok:$CONT' + str(cnt-1) + ' ' + var_problem + '.sh)')
-      print('echo $CONT' + str(cnt))
+      print(('CONT' + str(cnt) + '=$(qsub -W depend=afterok:$CONT' + str(cnt-1) + ' ' + var_problem + '.sh)'))
+      print(('echo $CONT' + str(cnt)))
   else:
     execute(cmd, output=True, silent = failsafe)
-      
+    if plot:
+      if old_var == -1:
+        # add header line once
+        if os.path.exists(var_problem + '.plot.dat'): 
+          plot.write(first_line(var_problem + '.plot.dat', '\t var'))
+      if os.path.exists(var_problem + '.plot.dat'):
+        plot.write(last_line(var_problem + '.plot.dat', '\t' + str(var)))    
   if show:
     execute("show_density.py " + var_problem + ".density.xml --save " + var_problem + ".png")
 
@@ -99,20 +105,25 @@ parser.add_argument('--qsub', help="template file to generate depenend job scrip
 
 args = parser.parse_args()
 
+# the plot dat file where we collect the last lineas. Not for qsub
+plot = None
+
 if args.qsub:
   if not os.path.exists(args.qsub):
-    print('qsub template file not found ' + args.qsub)
+    print(('qsub template file not found ' + args.qsub))
     os.sys.exit(1)
   args.noshow = True
+else:
+  plot = open(args.problem + ".dat", "w")
   
 if args.range:
   vals = eval(args.range)   
   if len(vals) == 0 or len(vals) == 1:
-    print "given --range '" + args.range + "' evaluates to " + str(len(val)) + " values"
+    print("given --range '" + args.range + "' evaluates to " + str(len(val)) + " values")
     sys.exit(-1)  
   for i in range(len(vals)):
-    ri = i if len(vals) <> len(set(vals)) else -1  
-    continuation(args.initial, cnt = i, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, range_idx = ri, qsub=args.qsub)  
+    ri = i if len(vals) != len(set(vals)) else -1  
+    continuation(args.initial, cnt = i, type = args.var, old_var=-1 if i == 0 else vals[i-1], var=vals[i], mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, range_idx = ri, qsub=args.qsub, plot = plot)  
 else:
   old = -1  
   var = args.start
@@ -125,14 +136,14 @@ else:
     old = -1
     dig = 6
     while var >= args.end:
-      var_problem = continuation(success, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe)
+      var_problem = continuation(success, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, plot = plot)
       infoXmlName = var_problem + ".info.xml"
       if os.path.exists(infoXmlName):
         doc_info = libxml2.parseFile(infoXmlName)
         xml_info = doc_info.xpathNewContext()
         conv  = xpath(xml_info, "//break/@converged")
       else:
-        print infoXmlName + " does not exist."
+        print(infoXmlName + " does not exist.")
       #old = digits(var, dig)
       #if conv == 'yes':
       success = var_problem + ".density.xml"
@@ -142,7 +153,10 @@ else:
       #  inc /= 2.
       #  var += inc     
   while var <= args.end:
-   continuation(args.initial, cmt = i, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub)
+   continuation(args.initial, cnt = i, type = args.var, old_var=old, var=digits(var, dig), mesh=args.mesh, short_problem=args.problem, executable=args.executable, show=not args.noshow, failsafe=args.failsafe, qsub=args.qsub, plot=plot)
    old = digits(var, dig)
    var += var * args.inc
    i += 1
+
+if plot:
+  print("saving meta plot file '" + args.problem + ".dat'")

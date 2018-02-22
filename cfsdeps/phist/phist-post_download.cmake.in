@@ -1,0 +1,3 @@
+# we need ghost-config.cmake in share/ghist where we have ghost-config-version.cmake
+message("copy @PHIST_PREFIX@/ghost-config.cmake to @CMAKE_CURRENT_BINARY_DIR@/share/ghost")
+file(COPY @PHIST_PREFIX@/ghost-config.cmake DESTINATION @CMAKE_CURRENT_BINARY_DIR@/share/ghost)

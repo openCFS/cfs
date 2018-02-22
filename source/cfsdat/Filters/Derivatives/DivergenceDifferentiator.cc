@@ -126,7 +126,7 @@ void DivergenceDifferentiator::PrepareCalculation(){
     rId.Push_back(r);
   }
 
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
     if (maxNumTrgEntities > 50){
       if((trgEnt)%(int(maxNumTrgEntities/20)) == 0){
