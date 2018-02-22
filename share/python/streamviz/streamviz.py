@@ -20,7 +20,7 @@ import api_plot
 import datetime
 
 # for sending data to catalyst
-import catalyst_send
+#import catalyst_send
 
 app = Flask(__name__)
 
