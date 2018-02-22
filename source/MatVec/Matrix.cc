@@ -2192,11 +2192,6 @@ namespace CoupledField
     }
 #endif
 
-#ifndef USE_LAPACK
-    EXCEPTION("Compile with LAPACK support for matrix inversion");
-#else
-
-
     int *ipiv = new int[size_row_];
     int n = size_row_;
     int lwork = size_row_ * size_row_;
@@ -2208,7 +2203,7 @@ namespace CoupledField
     dgetrf(&n,&n,data_[0],&n,ipiv,&info1);
     if( info1 != 0 ) {
       EXCEPTION("Error during LU-factorization of matrix. "
-                << "Error value is " << info1 );
+          << "Error value is " << info1 );
     }
 
     //compute 1-norm of the original matrix
@@ -2225,14 +2220,14 @@ namespace CoupledField
     dgecon(&norm, &n, data_[0], &n, &anorm, &rcond, work1, &n, &info2);
     if( info2 != 0 ) {
       EXCEPTION("Error during computation of condition number. "
-                << "Error value is " << info2 );
+          << "Error value is " << info2 );
     }
 
     // invert matrix using previous LU factorization
     dgetri(&n,data_[0],&n,ipiv,work,&lwork,&info3);
     if( info3 != 0 ) {
       EXCEPTION("Error during inversion of matrix. "
-                << "Error value is " << info3 );
+          << "Error value is " << info3 );
     }
 
     //check if any of the three operations above failed
@@ -2242,7 +2237,6 @@ namespace CoupledField
     delete[] ipiv;
     delete[] work;
     delete[] work1;
-#endif
 
   }
 

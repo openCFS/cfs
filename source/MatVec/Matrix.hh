@@ -1,7 +1,6 @@
 #ifndef FILE_MATRIX_2004
 #define FILE_MATRIX_2004
 
-#include <def_use_lapack.hh>
 #include <def_build_type_options.hh>
 
 #include <boost/type_traits/is_complex.hpp>

@@ -2,7 +2,6 @@
 #define FILE_BLASLAPACKINTERFACE
 
 #include <def_use_blas.hh>
-#include <def_use_lapack.hh>
 
 #include <def_cfs_fortran_interface.hh>
 

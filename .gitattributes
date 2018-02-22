@@ -540,7 +540,6 @@ include/def_use_hwloc.hh.in -text
 include/def_use_ilupack.hh.in -text
 include/def_use_ipopt.hh.in -text
 include/def_use_knitro.hh.in -text
-include/def_use_lapack.hh.in -text
 include/def_use_libfbi.hh.in -text
 include/def_use_libxml2.hh.in -text
 include/def_use_lis.hh.in -text
@@ -2411,7 +2410,6 @@ source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/tools.cc -text
 source/Utils/tools.hh -text
 source/cfsdat/CMakeLists.txt -text
-source/cfsdat/CMakeLists.txt_old -text
 source/cfsdat/Filters/Arithmetic/BinOpFilter.cc -text
 source/cfsdat/Filters/Arithmetic/BinOpFilter.hh -text
 source/cfsdat/Filters/Arithmetic/VecOpFilter.cc -text

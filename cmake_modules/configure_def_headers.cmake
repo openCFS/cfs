@@ -56,9 +56,6 @@ ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_blas.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_blas.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lapack.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_lapack.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_pardiso.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_pardiso.hh")
 
