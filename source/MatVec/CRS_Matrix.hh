@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include <def_expl_templ_inst.hh>
-#include <def_use_lapack.hh>
 #include <def_use_blas.hh>
 
 #include "SparseOLASMatrix.hh"

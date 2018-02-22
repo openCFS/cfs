@@ -3,7 +3,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 /* $Id$ */
-#include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
 
 #include "OLAS/multigrid/hierarchylevel.hh"
