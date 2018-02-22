@@ -1,5 +1,6 @@
 from paraview.simple import *
 from paraview import coprocessing
+import traceback
 
 #--------------------------------------------------------------
 # Code generated from cpstate.py to create the CoProcessor.
@@ -54,6 +55,7 @@ def RequestDataDescription(datadescription):
 
     # setup requests for all inputs based on the requirements of the
     # pipeline.
+    #traceback.print_stack()
     coprocessor.LoadRequestedData(datadescription)
 
 # ------------------------ Processing method ------------------------
@@ -67,10 +69,10 @@ def DoCoProcessing(datadescription):
     coprocessor.UpdateProducers(datadescription)
 
     # Write output data, if appropriate.
-    coprocessor.WriteData(datadescription);
+    #coprocessor.WriteData(datadescription);
 
     # Write image capture (Last arg: rescale lookup table), if appropriate.
-    coprocessor.WriteImages(datadescription, rescale_lookuptable=False)
+    #coprocessor.WriteImages(datadescription, rescale_lookuptable=False)
 
     # Live Visualization, if enabled.
     coprocessor.DoLiveVisualization(datadescription, datadescription.host, datadescription.port)
