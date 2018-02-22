@@ -138,28 +138,28 @@ bool RotatingSubstDt::UpdateResults(std::set<uuids::uuid>& upResults) {
   // scheme error of O(h^3)
   Vector<Double>& inVec = GetUpstreamResultVector<Double>(timeId_, aTF - (2.0 * dt_));
   Double factor = -(1.0/8.0)/dt_;
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt i = 0; i < size; i++) {
     returnVec[i] = inVec[i] * factor;
   }
   
   inVec = GetUpstreamResultVector<Double>(timeId_, aTF - dt_);
   factor = -(1.0/4.0)/dt_;
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt i = 0; i < size; i++) {
     returnVec[i] += inVec[i] * factor;
   }
 
   inVec = GetUpstreamResultVector<Double>(timeId_, aTF + dt_);
   factor = (1.0/4.0)/dt_;
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt i = 0; i < size; i++) {
     returnVec[i] += inVec[i] * factor;
   }
   
   inVec = GetUpstreamResultVector<Double>(timeId_, aTF + (2.0 * dt_));
   factor = (1.0/8.0)/dt_;
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt i = 0; i < size; i++) {
     returnVec[i] += inVec[i] * factor;
   }
