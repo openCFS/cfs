@@ -69,28 +69,28 @@ bool TimeDerivFilterD1::UpdateResults(std::set<uuids::uuid>& upResults) {
     } else {
       Vector<Double>& inVec = GetUpstreamResultVector<Double>(upRes, actStepIndex - 2);
       Double factor = -(1.0/8.0)/dT;
-      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < size; i++) {
         returnVec[i] = inVec[i] * factor;
       }
   
       inVec = GetUpstreamResultVector<Double>(upRes, actStepIndex - 1);
       factor = -(1.0/4.0)/dT;
-      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < size; i++) {
         returnVec[i] += inVec[i] * factor;
       }
   
       inVec = GetUpstreamResultVector<Double>(upRes, actStepIndex + 1);
       factor = (1.0/4.0)/dT;
-      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < size; i++) {
         returnVec[i] += inVec[i] * factor;
       }
     
       inVec = GetUpstreamResultVector<Double>(upRes, actStepIndex + 2);
       factor = (1.0/8.0)/dT;
-      #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < size; i++) {
         returnVec[i] += inVec[i] * factor;
       }
