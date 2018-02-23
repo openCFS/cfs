@@ -74,7 +74,7 @@ namespace CoupledField
     void createDMDA();
     void AssembleStiffnessMatrix();
     void SetLinRhs();
-
+    std::vector<int> GetCFSEqnMap();
     void GetDirchletVector();
     void SetupMultigridSolver();
 
@@ -161,6 +161,8 @@ namespace CoupledField
     StdVector<int> homDirEquNr_;
     PetscScalar * dirArray_;
     StdVector<int> dirchletValue_;
+    StdVector<unsigned int> cfsEqnMap_;
+
   };
   
   

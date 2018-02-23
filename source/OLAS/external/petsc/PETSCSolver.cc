@@ -13,6 +13,7 @@
 #include <mpi.h>
 #include "PDE/SinglePDE.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
+#include <map>
 
 
 
@@ -25,6 +26,15 @@ namespace CoupledField{
 
   DECLARE_LOG(petsc)
   DEFINE_LOG(petsc, "petscSolver")
+
+
+// std::vector<int>& PETSCSolver::GetCFSEqnMap(){
+//
+//
+//
+//  }
+
+
 
   void PETSCSolver::createDMDA(){
 
@@ -41,8 +51,32 @@ namespace CoupledField{
 
     for(unsigned int i=0; i < region_list.GetSize(); i++){
       // we are compatible with the region attribute and unbounded region elements
+
+
       string reg = region_list[i]->Get("region")->Has("name") ? region_list[i]->Get("region")->Get("name")->As<std::string>() : region_list[i]->As<std::string>();
       regionIds.Push_back(grid->GetRegionId(reg));
+      auto nodesList = grid->GetEntityList(EntityList::NODE_LIST, reg);
+      auto nodeIt=nodesList->GetIterator();
+      for (nodeIt.Begin(); !nodeIt.IsEnd(); nodeIt++)
+      {
+
+          StdVector<int> Eqns;
+          StdVector<SinglePDE *> PDEs=domain->GetSinglePDEs();
+          for(unsigned int i = 0; i < PDEs.GetSize(); i++){
+            SolutionType pde_solution=PDEs[i]->GetNativeSolutionType();
+            shared_ptr<BaseFeFunction> feFunction = PDEs[i]->GetFeFunction(pde_solution);
+            feFunction->GetFeSpace()->GetEqns(Eqns,nodeIt);
+//            std::cout<<nodeIt.GetNode()<<std::endl;
+//            std::cout<<Eqns.ToString()<<std::endl;
+            for (unsigned int ldof=0;ldof<Eqns.GetSize();ldof++){
+              // cfsEqnMap is zero based and will be used to map
+              cfsEqnMap_.Insert(nodeIt.GetNode()-1+ldof,Eqns[ldof]) ;
+
+            } //loop over dofs of each node
+
+          }//loop over all nodes
+
+      }
     }
     //Number of nodes in x y and z directions respectively in case of structured with hex elem it is always elemNum in one direction +1
     int nx=1,ny=1,nz=1;
@@ -271,8 +305,8 @@ namespace CoupledField{
 
 //           }
            assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
-//           std::cout<<elemVec.ToString()<<std::endl;
-//           std::cout<<eqnVec.ToString()<<std::endl;
+           std::cout<<elemVec.ToString()<<std::endl;
+           std::cout<<eqnVec.ToString()<<std::endl;
            VecSetValues(bcopy_,eqnVec.GetSize(),eqnVec.GetPointer(),elemVec.GetPointer(),ADD_VALUES);
        }
 
@@ -370,7 +404,7 @@ namespace CoupledField{
 		createDMDA();
 		AssembleStiffnessMatrix();
 		SetLinRhs();
-		//		GetDirchletVector();
+    GetDirchletVector();
 	}
 
 	//Destructor for solver
@@ -654,7 +688,7 @@ namespace CoupledField{
 		
 		KSPGetIterationNumber(solver_,&niter);CHKERRXX(ierr);
 		KSPGetResidualNorm(solver_,&rnorm);CHKERRXX(ierr);
-		
+
 		curr->Get("timing")->SetValue(t2-t1);
 		curr->Get("residualNorm")->SetValue(rnorm);
 		curr->Get("iterations")->SetValue(niter);
@@ -675,11 +709,13 @@ namespace CoupledField{
 		ierr=VecGetArray(x_global,&bufx);CHKERRXX(ierr);
 		PetscInt Size;
 		VecGetSize(x_global,&Size);
-		sol.Resize(Size);
+//		sol.Resize(Size);
 
-    for(int i=0; i<Size;i++){
-      sol.SetEntry(i,bufx[PetscInt(i)]);
-
+    for(unsigned int i=0; i<cfsEqnMap_.GetSize()/3;i++){
+     for (unsigned int ldof=0;ldof<3;ldof++){
+       if (cfsEqnMap_[(i*3)+ldof]!=0)
+         sol.SetEntry(cfsEqnMap_[(i*3)+ldof],bufx[PetscInt(i*3)+ldof]);
+     }
     }
 
 //		std::cout<<"RHS from CFS"<<rhs.ToString()<<std::endl;
@@ -726,6 +762,7 @@ namespace CoupledField{
 		}
 	
 	}
+
 
 
 	PETSCWorker::~PETSCWorker(){
