@@ -60,6 +60,10 @@ namespace CoupledField {
     for( ; it != feFunctions_.end(); ++it ){
       shared_ptr<BaseFeFunction> & ptFct = it->second;
       FeFctIdType id = ptFct->GetFctId();
+      // here the solution vector is filled with pointers from
+      // the FE function. Therefore setting the solVec_ in 
+      // algsys_->GetSolutionVal(solVec_) automatically fills the
+      // SingleVector in FE function
       solVec_.SetSubVector(ptFct->GetSingleVector(), id);
     }
     //pos = 0;
@@ -67,6 +71,10 @@ namespace CoupledField {
     for( ; it != rhsFeFunctions_.end(); ++it ){
       shared_ptr<BaseFeFunction> & ptFct = it->second;
       FeFctIdType id = ptFct->GetFctId();
+      // here the solution vector is filled with pointers from
+      // the FE function. Therefore setting the solVec_ in 
+      // algsys_->GetSolutionVal(solVec_) automatically fills the
+      // SingleVector in FE function
       rhsVec_.SetSubVector(ptFct->GetSingleVector(), id);
     }
     // Make sure to have both vectors as "weak" vectors,
@@ -222,6 +230,8 @@ namespace CoupledField {
     algsys_->Solve();
     
     // Get the solution and store it
+    // Since the entries of solVec_ are pointers to the SingleVector
+    // of the FE function, it automatically inserts the values there
     algsys_->GetSolutionVal(solVec_);
   }
   
@@ -317,7 +327,9 @@ namespace CoupledField {
         algsys_->Solve(setIDBC);
         
         // new solution is only an increment of the full solution =============
-        algsys_->GetSolutionVal( solInc, setIDBC );
+        // Since the entries of solVec_ are pointers to the SingleVector
+        // of the FE function, it automatically inserts the values there
+	algsys_->GetSolutionVal( solInc, setIDBC );
         
         //compute norms (residual and incremenal ones)
         Double residualL2Norm = 0.0;
@@ -622,6 +634,8 @@ namespace CoupledField {
       
       algsys_->Solve();
       
+     // Since the entries of solVec_ are pointers to the SingleVector
+     // of the FE function, it automatically inserts the values there
       algsys_->GetSolutionVal(stageSol);
     }
     
@@ -832,6 +846,8 @@ namespace CoupledField {
         
         algsys_->Solve(setIDBC);
         // if setIDBC is true, solInc will contain the inhom. Dirichlet values
+        // Since the entries of solVec_ are pointers to the SingleVector
+        // of the FE function, it automatically inserts the values there
         algsys_->GetSolutionVal(solInc, setIDBC );
         
         Double residualL2Norm = 0.0;
@@ -1081,7 +1097,9 @@ namespace CoupledField {
         //always set inhomog. Dirichlet BCs
         bool setIDBC = true;
         
-        algsys_->Solve(setIDBC);
+        algsys_->Solve(setIDBC); 
+        // Since the entries of solVec_ are pointers to the SingleVector
+        // of the FE function, it automatically inserts the values there
         algsys_->GetSolutionVal(solNew, setIDBC );
         
         // calculate incremental error ========================================
@@ -2655,6 +2673,8 @@ namespace CoupledField {
     }
     
     algsys_->Solve();
+    // Since the entries of solVec_ are pointers to the SingleVector
+    // of the FE function, it automatically inserts the values there
     algsys_->GetSolutionVal(solVec_);
     
     if ( adjointSource_ ) {
@@ -2721,6 +2741,8 @@ namespace CoupledField {
     algsys_->GetEigenMode( numMode );
     
     // Get the solution and store it
+    // Since the entries of solVec_ are pointers to the SingleVector
+    // of the FE function, it automatically inserts the values there
     algsys_->GetSolutionVal(solVec_);
   }
   
