@@ -25,9 +25,8 @@ namespace CoupledField {
   
   SolveStepHyst::SolveStepHyst(StdPDE & apde)
   :StdSolveStep(apde)
-  {
-	};
-	
+  {}
+
   //! Destructor
   SolveStepHyst::~SolveStepHyst() {
     //logFile_.close();
