@@ -8,7 +8,6 @@ set(anaconda3_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/anaconda3")
 set(anaconda3_install "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/anaconda3/install")
 
 SET(MIRRORS
-  "file:///home/ftoth/Downloads/Anaconda3-4.2.0-Linux-x86_64.sh" # local for testing
   "https://repo.continuum.io/archive/${ANACONDA3_SH}"
   "${ANACONDA3_URL}/${ANACONDA3_SH}"
   )
@@ -76,6 +75,18 @@ ExternalProject_Add(anaconda3-pillow
     INSTALL_COMMAND "${anaconda3_install}/bin/conda" "install" "--yes" "pillow"
 )
 
+# install mpi4py (needed for matviz tests)
+ExternalProject_Add(anaconda3-mpi4py
+    PREFIX ${anaconda3_prefix}
+    DEPENDS anaconda3
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    DOWNLOAD_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND "${anaconda3_install}/bin/conda" "install" "--yes" "mpi4py"
+)
+
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
@@ -84,9 +95,7 @@ SET(CFSDEPS
   anaconda3
   anaconda3-vtk
   anaconda3-pillow
+  anaconda3-mpi4py
 )
 
-set(PYTHON_LIBRARY "${anaconda3_install}/lib" CACHE PATH
-	"Path to Python library")
-
-
+set(PYTHON_LIBRARY "${anaconda3_install}/lib" CACHE PATH "Path to Python library")
