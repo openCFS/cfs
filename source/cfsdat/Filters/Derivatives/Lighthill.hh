@@ -126,7 +126,7 @@ private:
 
   bool checkSum_;
   
-  Double aTF_;
+  Integer stepIndex_;
 
 };
 

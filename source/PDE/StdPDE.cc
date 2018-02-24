@@ -24,6 +24,8 @@
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 
+#include "Utils/Timer.hh"
+
 namespace CoupledField {
 
 // declare logging stream
@@ -118,6 +120,11 @@ namespace CoupledField {
       return;
     }
 
+    // defining the graph can be expensive. Most expensive are (ordered by cost):
+    // - AlgebraicSys::GraphSetupDone()
+    // - Assemble::SetupMatrixGraph()
+    shared_ptr<Timer> timer = myInfo_->Get(ParamNode::HEADER)->Get("graph_setup/timer")->AsTimer();
+    timer->Start();
 
     // ==============================================
     //   DEFINE GRAPH AND SBM BLOCKS
@@ -284,6 +291,8 @@ namespace CoupledField {
     }else{
       algsys_->GraphSetupDone();
     }
+
+    timer->Stop();
 
     // create matrices and solver object, if PDE is not direct coupled
     CreateMatrices_Solver();

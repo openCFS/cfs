@@ -78,7 +78,7 @@ namespace CoupledField
     /** helper for EvalConstraints() assuming the design to be set
      * @param normalize @see EvalConstraints()
      * @param direct_call if false we don't touch timers as we assume to be called by  EvalConstraints() */
-    double EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call = true);
+    double EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call = true, Excitation* ev_only_excite = NULL);
 
     /** Evaluates the constraint gradients
      * @param cfs_scale @see EvalObjective()

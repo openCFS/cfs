@@ -92,10 +92,7 @@ LIST(APPEND TARGET_LL
   )
 
 IF(NOT MINGW)
-  LIST(APPEND TARGET_LL
-    -lpthread
-    ${CFS_FORTRAN_DYNRT_LIBS}
-    )
+  LIST(APPEND TARGET_LL -lpthread ${CFS_FORTRAN_DYNRT_LIBS} )
 ENDIF()
   
 LIST(APPEND TARGET_LL
@@ -103,24 +100,23 @@ LIST(APPEND TARGET_LL
   graph-olas
   precond-olas
   solver-olas
-  utils-olas
-)  
+  utils-olas )  
   
 IF(USE_ARPACK)
   LIST(APPEND TARGET_LL arpack-olas)
 ENDIF(USE_ARPACK)
 
-IF(USE_LAPACK)
-  LIST(APPEND TARGET_LL lapack-olas)
-ENDIF(USE_LAPACK)
+IF(USE_PHIST)
+  LIST(APPEND TARGET_LL phist-olas)
+ENDIF(USE_PHIST)
+
+LIST(APPEND TARGET_LL lapack-olas)
 
 IF(USE_PARDISO)
   LIST(APPEND TARGET_LL pardiso-olas)
 ENDIF(USE_PARDISO)
 
-LIST(APPEND TARGET_LL
-  ${CFS_FORTRAN_DYNRT_LIBS}
-  )
+LIST(APPEND TARGET_LL ${CFS_FORTRAN_DYNRT_LIBS} )
 
 TARGET_LINK_LIBRARIES(cfstoolbin ${TARGET_LL})
 
@@ -145,7 +141,12 @@ IF(OPENMP_FOUND)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
 ENDIF()
 
-SET_TARGET_PROPERTIES(cfstoolbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
+# Prevents undefined reference to `pci_system_init', ...
+# required by hwloc. Strange that this is not already necessary for USE_GHOST. 
+if(USE_PHIST)
+  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess -ludev")
+endif()
 
-# Install the cfstool executable target to ${CMAKE_INSTALL_PREFIX}/bin
-#INSTALL_TARGETS(/bin cfstool)
+
+
+SET_TARGET_PROPERTIES(cfstoolbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

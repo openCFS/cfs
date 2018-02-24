@@ -491,17 +491,20 @@ namespace CoupledField {
     // Check, if "nonLinList" is present
     PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinListNode ) { 
-
+      //std::cout << "NonLinListFound" << std::endl;
       // Get nonlinear types
       ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
         std::string actTypeString = nonLinNodes[i]->GetName();
         std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
+        //std::cout << "actTypeString " << actTypeString << std::endl;
+        //std::cout << "actId " << actId << std::endl;
+        
         NonLinType actType;
         String2Enum( actTypeString, actType );
 
+        //std::cout << "actType " << actType << std::endl;
         //save for each nonlinearity type the id
         nonLinTypes_[actId] = actType;
       }
@@ -514,9 +517,9 @@ namespace CoupledField {
       RegionIdType actRegionId;
       std::string actRegionName, actNonLinId;
       
-      //     if( regionNodes.GetSize() > 0 ) {
-      //       Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-      //     }
+//           if( regionNodes.GetSize() > 0 ) {
+//             Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
+//           }
       
       for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
         //take care: one region can have more then one nonlinearity!!
@@ -525,6 +528,8 @@ namespace CoupledField {
         regionNodes[i]->GetValue( "name", actRegionName );
         regionNodes[i]->GetValue( "nonLinIds", actNonLinId );
         
+        //std::cout << "actRegionName " << actRegionName << std::endl;
+        //std::cout << "actNonLinId " << actNonLinId << std::endl;
         if( actNonLinId == "" )
           continue;
         
@@ -534,6 +539,8 @@ namespace CoupledField {
         Tok tok(actNonLinId, sep);
         
         actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
+        //std::cout << "actRegionId " << actRegionId << std::endl;
+        
         
         for(Tok::iterator it=tok.begin(); it!=tok.end(); ++it) {
           std::string nonLinId = (*it);
@@ -569,7 +576,9 @@ namespace CoupledField {
       // of the integrators
       nonLinMethod_ = FIXEDPOINT;
       PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
-      if( nonLinNode ) {
+      // NEW: additionally check if nonLinearity is used at all for some region
+      // otherwise we do not have to search for nonlinear methods
+      if(( nonLinNode ) && (nonLin_ == true)) {
         std::string methodString;
         nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
         nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
@@ -1250,6 +1259,9 @@ namespace CoupledField {
         << ": WriteResultsInFile() kstep: " <<  kstep
         << " actTimeFreq: " << actTimeFreq;
     
+    shared_ptr<Timer> timer = infoNode_->Get(ParamNode::SUMMARY)->Get("writeResults/timer")->AsTimer();
+    timer->Start();
+
     // ===================================================
     //  Trigger calculation of interpolated field results 
     // ===================================================
@@ -1427,8 +1439,8 @@ namespace CoupledField {
       }
 
       out.close();
-      
     }
+    timer->Stop();
   }
   
   
@@ -3266,7 +3278,6 @@ namespace CoupledField {
     //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
     std::string formulation;
     myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);
-    infoNode_->SetComment("List of defined Spaces");
     PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
     std::map<SolutionType, shared_ptr<FeSpace> > spaces = 
         CreateFeSpaces(formulation, feSpaceNode);

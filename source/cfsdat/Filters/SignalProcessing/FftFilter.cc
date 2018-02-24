@@ -215,13 +215,13 @@ bool FftFilter::Run() {
       UInt step = timeIt->first - 1;
       if (numBlocks == 1) {
         // if there is just one block of data, apply the window function now
-        #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+        #pragma omp parallel for num_threads(CFS_NUM_THREADS)
         for (UInt i = 0; i < numPoints; ++i) {
           data_[i][step] = resVec[i] * winVec[step];
         }
       }
       else {
-        #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+        #pragma omp parallel for num_threads(CFS_NUM_THREADS)
         for (UInt i = 0; i < numPoints; ++i) {
           data_[i][step] = resVec[i];
         }
@@ -295,7 +295,7 @@ bool FftFilter::Run() {
     
     // scale result of FFT to compensate for effects of windowing and one-sided spectrum
     const Double winFactor2 = 2.0 * winFactor;
-    #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt point = 0; point < numPoints; ++point) {
       data_[point][0] *= winFactor;
       for (UInt freq = 1; freq < 2*numFreqs_; ++freq) {

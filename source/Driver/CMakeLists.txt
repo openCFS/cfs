@@ -15,6 +15,7 @@ SET(DRIVER_SRCS
   SolveSteps/IterSolveStep.cc
   SolveSteps/SolveStepElec.cc
   SolveSteps/StdSolveStep.cc
+  SolveSteps/SolveStepHyst.cc
   )
 
 ADD_LIBRARY(driver STATIC ${DRIVER_SRCS})

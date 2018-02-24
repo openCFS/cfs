@@ -24,7 +24,9 @@
 #include "SignalProcessing/FftFilter.hh"
 #include "SignalProcessing/TimeMeanFilter.hh"
 #include "SignalProcessing/TemporalBlendingFilter.hh"
+#include "Filters/SynteticSources/BaseSNGR.hh"
 #include <boost/tokenizer.hpp>
+#include <cmath>
 #include <Filters/BaseMeshFilterType.hh>
 
 namespace CFSDat{
@@ -47,7 +49,7 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
     newPtr = FilterPtr(new CFSDat::PostLighthillSource(0, filtNode, resMana));
   }
   else if (filtNode->GetName() == "syntheticTurbulence_SNGR") {
-//    newPtr = FilterPtr(new CFSDat::SNGRFilter(0, filtNode, resMana));
+    newPtr = FilterPtr(new CFSDat::SNGRFilter(0, filtNode, resMana));
   }
   else if ((filtNode->GetName() == "interpolation") ||
            (filtNode->GetName() == "differentiation") ||
@@ -196,13 +198,21 @@ void BaseFilter::ExtractFilterResults(){
     if(filtResNames.find(aInfo->resultName) != filtResNames.end()){
       //only push back the result id once.
       if(filterResIds.Find(aId) == -1){
+        bool combined = false;
         for (UInt i = 0; i < filterResIds.GetSize(); i++) {
           uuids::uuid otherId = filterResIds[i];
           ResultManager::ConstInfoPtr oInfo = resultManager_->GetExtInfo(otherId);
           if (aInfo->resultName == oInfo->resultName) {
             resultManager_->CombineResults(aId,otherId);
+            combined = true;
             break;
           }
+        }
+        if (combined) {
+          std::cout << "\t\t Providing and combining result " << aInfo->resultName << std::endl;
+        } else {
+          filterResNameIds[aInfo->resultName] = aId;
+          std::cout << "\t\t Providing result " << aInfo->resultName << std::endl;
         }
         filterResIds.Push_back(aId);
       }
@@ -221,6 +231,10 @@ bool BaseFilter::CheckNeeded() {
 }
 
 ResultIdList BaseFilter::SetDefaultUpstreamResults() {
+  std::set<uuids::uuid> allResultIdSet;
+  for (UInt i = 0; i < filterResIds.GetSize(); i++) {
+    allResultIdSet.insert(filterResIds[i]);
+  }
   ResultIdList resultIds;
   std::set<std::string>::iterator inItr = upResNames.begin();
   for (; inItr != upResNames.end(); inItr++) {
@@ -239,21 +253,39 @@ uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, uuids::uuid dow
 
 uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, Integer minOffset, 
                          Integer maxOffset, uuids::uuid downStreamResultId) {
+  std::set<uuids::uuid> idSet;
+  idSet.insert(downStreamResultId);
+  return RegisterUpstreamResult(name, minOffset, maxOffset, idSet);
+}
+
+uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, std::set<uuids::uuid> downStreamResultIds) {
+  return RegisterUpstreamResult(name, 0, 0, downStreamResultIds);
+}
+
+
+uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, Integer minOffset, 
+                         Integer maxOffset, std::set<uuids::uuid> downStreamResultIds) {
+  std::cout << "\t\t Requesting Result " << name << std::endl;
   Integer downStreamMaxStepOffset = 0;
-  if (downStreamResultId != uuids::nil_uuid()) {
-    if (filterResIds.Find(downStreamResultId) == -1) {
-      EXCEPTION("RegisterUpstreamResult not called with valid");
+  uuids::uuid validDownStreamId = uuids::nil_uuid();
+  std::set<uuids::uuid>::iterator dItr = downStreamResultIds.begin();
+  for (; dItr != downStreamResultIds.end(); dItr++) {
+    uuids::uuid downStreamResultId = *dItr;
+    if (downStreamResultId != uuids::nil_uuid()) {
+      if (filterResIds.Find(downStreamResultId) == -1) {
+        EXCEPTION("RegisterUpstreamResult not called with valid");
+      }
+      // here we get the offset of the newest downstream result to be evaluated
+      ResultManager::ConstInfoPtr outInPtr = resultManager_->GetExtInfo(downStreamResultId);
+      downStreamMaxStepOffset = std::max(outInPtr->maxStepOffset,downStreamMaxStepOffset);
+      validDownStreamId = downStreamResultId;
     }
-    // here we get the offset of the newest downstream result to be evaluated
-    ResultManager::ConstInfoPtr outInPtr = resultManager_->GetExtInfo(downStreamResultId);
-    downStreamMaxStepOffset = outInPtr->maxStepOffset;
   }
-  std::cout << " register " << name << std::endl;
   uuids::uuid newId = resultManager_->AddResult(name,this->filterTag_,
                             downStreamMaxStepOffset+minOffset,
                             downStreamMaxStepOffset+maxOffset);
-  if (downStreamResultId != uuids::nil_uuid()) {
-    resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(downStreamResultId)->timeLine.get()));
+  if (validDownStreamId != uuids::nil_uuid()) {
+    resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(validDownStreamId)->timeLine.get()));
   }
   upResNameIds[name] = newId;
   return newId;
@@ -350,19 +382,27 @@ void BaseFilter::PrepareUpstreamResult(uuids::uuid resId) {
 
   template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double, CF::StdVector<UInt>&);
   template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double, CF::StdVector<UInt>&);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer, CF::StdVector<UInt>&);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer, CF::StdVector<UInt>&);
   template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, CF::StdVector<UInt>&);
   template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, CF::StdVector<UInt>&);
   template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double);
   template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer);
   template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid);
   template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid);
   
   template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Double, CF::StdVector<UInt>&);
   template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Double, CF::StdVector<UInt>&);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Integer, CF::StdVector<UInt>&);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Integer, CF::StdVector<UInt>&);
   template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, CF::StdVector<UInt>&);
   template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, CF::StdVector<UInt>&);
   template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Double);
   template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Double);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Integer);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Integer);
   template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string);
   template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string);
 #endif

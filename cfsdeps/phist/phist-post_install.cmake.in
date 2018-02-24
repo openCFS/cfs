@@ -1,0 +1,16 @@
+# clean up phist installation
+
+# copy the static libs
+file(GLOB PHIST_STATIC_LIBS "@PHIST_INSTALL@/lib/*.a")
+file(COPY ${PHIST_STATIC_LIBS} DESTINATION "@PHIST_INSTALL@/lib64/@CFS_ARCH_STR@")
+
+# we may now remove the old lib directory
+file(REMOVE_RECURSE "@PHIST_INSTALL@/lib")
+
+# the bin directory is empty
+file(REMOVE_RECURSE "@PHIST_INSTALL@/bin")
+
+# keep the share directory with share/doc/phist/README.md and share/doc/phist/LICENSE.txt
+
+# copy data from install dir to the target (share, lib64 and include)
+file(COPY "@PHIST_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

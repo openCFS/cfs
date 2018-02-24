@@ -51,12 +51,12 @@ RBFInterpolator::~RBFInterpolator(){
 }
 
 bool RBFInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
-  /// this is the vector, which will be filled with the derivative result
+  /// this is the vector, which will be filled with the result
   Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
-  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
+  Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
 
   // vector, containing the source data values
-  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], aTF);
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
 
 
   Matrix& matrix = matrices_[matrixIndex_];
@@ -77,7 +77,7 @@ bool RBFInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
 CF::UInt RBFInterpolator::CountUsedEntities(const StdVector<CF::UInt>& entities) {
   const CF::UInt size = entities.GetSize();
   CF::UInt numEntities = 0;
-#pragma omp parallel for reduction(+:numEntities) num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for reduction(+:numEntities) num_threads(CFS_NUM_THREADS)
   for(CF::UInt inEnt = 0; inEnt < size; inEnt++) {
     if (entities[inEnt] != UnusedEntityNumber) {
       numEntities++;
@@ -105,7 +105,7 @@ void RBFInterpolator::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>
       grid->GetNodesByName(regEntities, *sRegIter);
     }
     const UInt size = regEntities.GetSize();
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt eIter = 0; eIter < size; ++eIter) {
       CF::UInt entityNumber = regEntities[eIter];
       entities[map->GetEntityIndex(entityNumber)] = entityNumber;
@@ -487,7 +487,7 @@ void RBFInterpolator::PrepareCGAL(){
   }
 
 
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
     StdVector<CF::Double> srcDist;
     srcDist.Resize(numNN_);

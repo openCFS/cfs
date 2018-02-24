@@ -56,6 +56,8 @@ class SingleVector;
      * Note that this is done after all systems are solved and stored. */
     void SetCurrentWaveVector(unsigned int index) { current_wave_vector_ = wave_vectors[index]; }
 
+    /** we need to store current_wave_vector, find the index :(. Not very fast! */
+    unsigned int GetCurrentWaveVectorIndex() const;
 
     /** Return the number of eigenfrequencies to be calculated. Not the number of wave_vectors!!
      * @see BaseDriver::GetNumSteps() */
@@ -101,9 +103,6 @@ class SingleVector;
     /** Prints info.xml, console and bloch.dat output. Handles if we are in the optimization case.
      * Does NOT write stuff to output files, This is done via StoreResults() */
     void PrintResult(int wave_vector_step = -1);
-
-    /** we need to store current_wave_vector, find the index :( */
-    unsigned int GetCurrentWaveVectorIndex() const;
 
     /** the different bloch ibz types. SYMMETRIC is the triangle/tetrahedron - only valid vor symmetric designs! */
     typedef enum { NO_IBZ, SYMMETRIC, QUADRANT, HORIZONZAL, FULL } Boundary;

@@ -663,6 +663,19 @@ namespace CoupledField {
   }
 
 
+  template<typename T>
+  std::string SCRS_Matrix<T>::Dump() const
+  {
+    // this is ugly copy&paste from CRS_Matrix :(
+    std::stringstream ss;
+    // don't use ToString() from this class but the glocal ToString() from tools.hh
+    ss << " row=" << ::ToString<unsigned int>(rowPtr_, this->nrows_+1) << std::endl;
+    ss << " col=" << ::ToString<unsigned int>(colInd_, this->nnz_)  << std::endl;
+    ss << " val=" << ::ToString<T>(data_, this->nnz_);
+    return ss.str();
+  }
+
+
   // *************************
   //   Export matrix to file
   // *************************
@@ -787,9 +800,8 @@ namespace CoupledField {
   // *******************************
 
   template<typename T>
-  void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v ) {
-
-
+inline void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v )
+  {
     // If the entry lies in the lower triangular part, we simply ignore it
     if ( j < i ) {
       return;
@@ -821,14 +833,6 @@ namespace CoupledField {
       }
     }
   }
-
-
-  /*template<>
-  void SCRS_Matrix<Complex>::AddToMatrixEntry( UInt i, UInt j, const double& v)
-  {
-  }
-*/
-
 
 
   // *****************************

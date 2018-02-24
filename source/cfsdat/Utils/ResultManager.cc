@@ -141,9 +141,24 @@ CF::StdVector<shared_ptr<BaseResult> >& ResultManager::GetBaseResultVector(uuids
   return resultMap_[requestedId].second->baseResultVector;
 }
 
+UInt ResultManager::GetStepIndex(uuids::uuid requestedId){
+  checkFinalized();
+  return resultMap_[requestedId].second->GetStepIndex();
+}
+
+void ResultManager::SetStepIndex(uuids::uuid requestedId, Integer stepIndex){
+  checkFinalized();
+  const CF::StdVector<Double>& timeLine = *resultMap_[requestedId].first->timeLine.get();
+  UInt setStepIndex = std::min<UInt>(std::max<Integer>(0,stepIndex)
+                                     ,timeLine.GetSize() - 1);
+  return resultMap_[requestedId].second->SetStepIndex(setStepIndex);
+}
+
 Double ResultManager::GetStepValue(uuids::uuid requestedId){
   checkFinalized();
-  return resultMap_[requestedId].second->GetStepValue();
+  const CF::StdVector<Double>& timeLine = *resultMap_[requestedId].first->timeLine.get();
+  const UInt index = resultMap_[requestedId].second->GetStepIndex();
+  return timeLine[index];
 }
 
 void ResultManager::SetStepValue(uuids::uuid requestedId, Double value){
@@ -159,7 +174,7 @@ void ResultManager::SetStepValue(uuids::uuid requestedId, Double value){
       minIndex = i;
     }
   }
-  resultMap_[requestedId].second->SetStepValue(timeLine[minIndex]);
+  resultMap_[requestedId].second->SetStepIndex(minIndex);
 }
 
 //  //this is avery annoying thing. since different input files have

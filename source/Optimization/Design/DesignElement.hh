@@ -149,9 +149,9 @@ public:
     TEMP_AT_INTERFACE, /* temperature at interface between solid and void */
     PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN,
-    TRANSFO_MATRIX,
     SHAPE_MAP_GRAD, /* the sum of all dtanh_da over all ip for a rho element for shape mapping */
-    SHAPE_MAP_RELEVANT /* the number of shapes with relevant contribution to this rho */
+    SHAPE_MAP_ORDER, /* the number of integration points for this element */
+    SHAPE_MAP_CORNER /* the difference between the minimal and maximal corner values (min and max for all shapes) Makes only sense for 1 shape!*/
   } ValueSpecifier;
 
     /** The type of this design element, influences the Get*Bound() methods.
@@ -164,9 +164,8 @@ public:
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, MECH_11, MECH_22, MECH_33, MECH_23, MECH_13, MECH_12, SLACK, ALPHA,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, ROTANGLE2, SCALING1, SCALING2, G11,G12,G21,G22, G_ALL,
-                   G_MAP_X, G_MAP_Y, GX_0, GX_PX, GX_PY, GX_PXY, GY_0, GY_PX, GY_PY, GY_PXY, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEX, ROTANGLEY, ROTANGLEZ, MULTIMATERIAL,INTERPOLATION,
-                   NODE, PROFILE, ALL_DESIGNS, I_1,I_2,I_3} Type;
+                   ROTANGLE, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEX, ROTANGLEY, ROTANGLEZ, MULTIMATERIAL,INTERPOLATION,
+                   NODE, PROFILE, ALL_DESIGNS } Type;
 
     /** This defines how to access variables (design, objective_gradient, ...),
      *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
@@ -318,12 +317,16 @@ public:
 
   void SetOptIndex(unsigned int idx) { this->opt_index_ = idx; }
 
-
   /** overwrite to add opt_idx */
   virtual std::string ToString() const;
 
+  /** The dof for shape elements. This is the design variable, the other coordinates are implicitly given be the mesh.*/
+  typedef enum { NOT_SET = -1, X=0, Y=1, Z=2 } Dof; // X=0 to Z=2 must not be changed, it is index to ShapeMapDesign::n_
+
+  static Enum<Dof> dof;
+
   /** for node which dof BaseDesignElement::value is for. value correspond to the missing entry in coord and idx*/
-  int dof;
+  Dof dof_;
 
   /** The dof variable is set to -1.0.  */
   StdVector<double> coord;
@@ -331,6 +334,7 @@ public:
   /** the coord in terms of index within the regular space. Again -1 for the dof setting.
    * Note this is for node and we have one node more than elements in one direction.*/
   StdVector<int> idx;
+
 private:
   /** see BaseDesignElement::GetOptIndex() */
   unsigned int opt_index_;
@@ -388,8 +392,9 @@ public:
       GLOBAL_SLOPE, GLOBAL_DESIGN, GLOBAL_CHECKERBOARD, STRESS,
       /*!< only for the projection function. This is the element wise fake filter part */
       PROJECTION_FILTER,
-      TRANSFO_MATRIX11, TRANSFO_MATRIX12,TRANSFO_MATRIX21,TRANSFO_MATRIX22,
-      SM_NODE, /*!< for shape map */
+      SM_NODE, /*!< for 2D shape map */
+      SM_NODE_A, /*!< for 3D shape map */
+      SM_NODE_B, /*!< for 3D shape map */
       SM_PROFILE  /*!< for shape map */
     } Detail;
 
@@ -631,7 +636,7 @@ public:
 
   SolutionType solutionType;
 
-  /** Finds the proper design element by element number */
+  /** Finds the proper design element by element number. DEFAULT if not given */
   DesignElement::Type design;
 
   /** optionally filtered or plain */

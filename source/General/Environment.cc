@@ -227,6 +227,10 @@ namespace CoupledField {
       case ELEC_FIELD_INTENSITY:
         return "V/m";
         break;
+        
+      case ELEC_FIELD_INTENSITY_SURF:
+        return "V/m";
+        break;
 
       case ELEC_POTENTIAL:
         return "V";
@@ -387,6 +391,7 @@ namespace CoupledField {
         break;
 
       case MAG_FLUX_DENSITY:
+      case MAG_FLUX_DENSITY_SURF:  
       case MAG_NORMAL_FLUX_DENSITY:
         return "Vs/m^2";
         break;
@@ -432,6 +437,9 @@ namespace CoupledField {
       case MAG_MAGNETIZATION:
         return "A/m";
 
+      case MAG_POLARIZATION:
+        return "Vs/m^2";
+        
       case MAG_EDDY_POWER:
       case MAG_CORE_LOSS:
         return "W";
@@ -1326,6 +1334,7 @@ namespace CoupledField {
     //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
+    SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_SURF, "elecFieldIntensitySurf");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_CURRENT_DENSITY, "elecCurrentDensity");
     SolutionTypeEnum.Add(ELEC_NORMAL_CURRENT_DENSITY, "elecNormalCurrentDensity");
@@ -1411,6 +1420,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUX_INDUCED_STRAIN, "fluxIndStrain");
 
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
+    SolutionTypeEnum.Add(MAG_FLUX_DENSITY_SURF, "magFluxDensitySurf");
     SolutionTypeEnum.Add(MAG_FLUX, "magFlux");
     SolutionTypeEnum.Add(MAG_NORMAL_FLUX_DENSITY, "magNormalFluxDensity");
     SolutionTypeEnum.Add(MAG_FIELD_INTENSITY, "magFieldIntensity");
@@ -1434,6 +1444,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     SolutionTypeEnum.Add(MAG_MAGNETIZATION, "magMagnetization");
+    SolutionTypeEnum.Add(MAG_POLARIZATION, "magPolarization");
 
     // magnetic - coil results
     SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");
@@ -1631,6 +1642,9 @@ namespace CoupledField {
     MaterialTypeEnum.Add( P_DIRECTION, "Pdirection" ); 
     MaterialTypeEnum.Add( HYST_MODEL, "hystModel" ); 
     MaterialTypeEnum.Add( PREISACH_DIM, "PreisachDim" );
+    MaterialTypeEnum.Add( HYST_STRAIN_FORM, "strainForm" );
+    MaterialTypeEnum.Add( HYST_BETA_COEFS, "betaCoefs" );
+    MaterialTypeEnum.Add( DIM_BETA_COEFS, "dim_betaCoefs" );
     MaterialTypeEnum.Add( ROT_RESISTANCE, "RotResistance" );
     MaterialTypeEnum.Add( PRINT_PREISACH, "printOut" );
     MaterialTypeEnum.Add( PRINT_PREISACH_RESOLUTION, "bmpResolution" );
@@ -1686,7 +1700,7 @@ namespace CoupledField {
 
 
   void SetNumberOfThreads(UInt numThreads){
-    NUM_CFS_THREADS = numThreads;
+    CFS_NUM_THREADS = numThreads;
   }
 
   Enum<SolutionType> SolutionTypeEnum;
@@ -1696,7 +1710,7 @@ namespace CoupledField {
   Enum<FEMatrixType> feMatrixType;
   UInt MAX_NUM_FE_MATRICES;
   //give default value of 1 for the OMP threads
-  UInt NUM_CFS_THREADS = 1;
+  UInt CFS_NUM_THREADS = 1;
 }
 
 

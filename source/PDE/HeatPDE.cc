@@ -277,7 +277,8 @@ void HeatPDE::DefineIntegrators() {
       shared_ptr<CoefFunction > curCoef = actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY_TENSOR, tensorType, Global::REAL );
 
       // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
-      if(domain->GetDesign(false) != NULL){
+      if(domain->HasDesign())
+      {
         CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), curCoef, this); // takes double and complex
         curCoef.reset(tmpFnc);
       }
@@ -303,7 +304,8 @@ void HeatPDE::DefineIntegrators() {
       stiffInt->SetName("HeatConductivity");
 
       // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
-      if(domain->GetDesign(false) != NULL) dynamic_pointer_cast<CoefFunctionOpt>(curCoef)->SetForm(stiffInt);
+      if(domain->HasDesign())
+        dynamic_pointer_cast<CoefFunctionOpt>(curCoef)->SetForm(stiffInt);
 
       BiLinFormContext* stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
 
@@ -900,7 +902,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
       EXCEPTION("Design dependent heat source must be defined on nodes!")
     }
 
-    if(domain->GetDesign(false) != NULL)
+    if(domain->HasDesign())
     {
       CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef[i], this); // takes double and complex
       coef[i].reset(tmpFnc);

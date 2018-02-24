@@ -315,6 +315,16 @@ namespace CoupledField {
     return s;
   }
 
+  template <typename T>
+  inline T Vector<T>::Product() const
+  {
+    T s(1);
+    for(unsigned int i = 0; i < size_; ++i)
+      s*=data_[i];
+
+    return s;
+  }
+
 
   template <typename T>
   inline T Vector<T>::Avg() const
@@ -324,6 +334,87 @@ namespace CoupledField {
     return Sum() * (1.0/size_);
   }
 
+
+  template <typename T>
+  inline T Vector<T>::Min() const
+  {
+    assert(size_ > 0);
+
+    T m = data_[0];
+    //unsigned int max_size = *(std::max_element(&n_.First(), &n_.Last()));
+    for(unsigned int i = 1; i < size_; ++i)
+      m = std::min(m, data_[i]);
+
+    return m;
+  }
+
+  template <>
+  Complex Vector<Complex>::Min() const
+  {
+    assert(size_ > 0);
+    Complex m = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i) {
+      if(data_[i].real() < m.real())
+        m.real(data_[i].real());
+      if(data_[i].imag() < m.imag())
+        m.imag(data_[i].imag());
+    }
+
+    return m;
+  }
+
+
+  template <typename T>
+  inline T Vector<T>::Max() const
+  {
+    assert(size_ > 0);
+
+    T m = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i)
+      m = std::max(m, data_[i]);
+
+    return m;
+  }
+
+  template <>
+  Complex Vector<Complex>::Max() const
+  {
+    assert(size_ > 0);
+    Complex m = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i) {
+      if(data_[i].real() > m.real())
+        m.real(data_[i].real());
+      if(data_[i].imag() > m.imag())
+        m.imag(data_[i].imag());
+    }
+
+    return m;
+  }
+
+
+  template <typename T>
+  inline void Vector<T>::MinMax(T& min, T& max) const
+  {
+    assert(size_ > 0);
+
+    min = data_[0];
+    max = data_[0];
+
+    for(unsigned int i = 1; i < size_; ++i) {
+      min = std::min(min, data_[i]);
+      max = std::max(max, data_[i]);
+    }
+  }
+
+  template <>
+  void Vector<Complex>::MinMax(Complex& min, Complex& max) const
+  {
+    min = Min();
+    max = Max();
+  }
 
 
   template<class TYPE> 
@@ -981,20 +1072,36 @@ namespace CoupledField {
     return false;
   }
 
-  //*********************
-  //  Equality operator
-  //*********************
   template<typename T>
-  bool Vector<T>::operator==(const Vector<T> &x) const {
-    if ( this == &x ) return true;
+  inline bool Vector<T>::operator==(const Vector<T> &x) const {
+    if ( this == &x ) return true; // we compare pointers, not references, therefore not recusively
     if ( size_ != x.size_ ) return false;
+
+    // memcmp is significantly faster than looping manually:
     
-    for ( UInt i = 0; i < size_; ++i ) {
-      if ( data_[i] != x.data_[i])
-        return false;
-    }
-    return true;
+    // vector compare: size=3 n=333333 opt=loop dt=00:00:00.008847
+    // vector compare: size=3 n=333333 opt=memcmp dt=00:00:00.005975
+    // vector compare: size=300 n=3333 opt=loop dt=00:00:00.002672
+    // vector compare: size=300 n=3333 opt=memcmp dt=00:00:00.000158
+    // vector compare: size=30000 n=33 opt=loop dt=00:00:00.002576
+    // vector compare: size=30000 n=33 opt=memcmp dt=00:00:00.000252
+
+    return memcmp(data_, x.data_, size_ * sizeof(T)) == 0 ? true : false;
   }
+
+  template<typename T>
+  inline bool Vector<T>::operator!=( const Vector<T>& x) const
+  {
+    if(this == &x) // we compare pointers, not references, therefore not recusively
+      return false;
+    if(size_ != x.size_)
+      return true;
+
+    // we assume memcmp is compiler optimized and not based on a function call
+    return memcmp(data_, x.data_, size_ * sizeof(T)) == 0 ? false : true;
+  }
+
+
 
   // ********************************
   //   Overload Assignment Operator

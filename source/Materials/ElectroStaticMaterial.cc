@@ -34,6 +34,9 @@ namespace CoupledField
     isAllowed_.insert( C_JILES );
     isAllowed_.insert( P_DIRECTION );
     isAllowed_.insert( PREISACH_DIM );
+    isAllowed_.insert( HYST_STRAIN_FORM );
+    isAllowed_.insert( HYST_BETA_COEFS );
+    isAllowed_.insert( DIM_BETA_COEFS );
     isAllowed_.insert( ROT_RESISTANCE );
     isAllowed_.insert( EVAL_VERSION );
     isAllowed_.insert( PRINT_PREISACH );
@@ -155,8 +158,7 @@ namespace CoupledField
     else {
       isSet_.insert( matType );
       if ( dataType == Global::REAL || dataType == Global::IMAG ) {
-        //std::cout << param.GetNumRows() << std::endl;
-        //std::cout << param.GetNumCols() << std::endl;
+
         if ( tensorParams_[matType].GetNumRows() == 0 ) {
           tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParams_[matType].Init();
@@ -169,14 +171,19 @@ namespace CoupledField
         tensorParams_[matType].SetPart( dataType, param );
         tensorParamsOrig_[matType].SetPart( dataType, param );
 
-        // to be consistent to old structure
-        if ( dataType == Global::REAL ) {
-          scalarParams_[matType] = Complex( param[2][2], 0.0);
-        }
-        else {
-          scalarParams_[matType] = Complex( 0.0, param[2][2]);
-          isComplex_.insert( matType );
-        }
+        // added this check to avoid seg-faults for tensors of size Nx1
+        // ( normal material parameter (like permittivity) do not need this check
+        //   but for some hysteresis parameter, Nx1 arrays are needed)
+        if(param.GetNumRows() >= 2 && param.GetNumCols() >= 2){
+          // to be consistent to old structure
+          if ( dataType == Global::REAL ) {
+             scalarParams_[matType] = Complex( param[2][2], 0.0); 
+          }
+          else {
+            scalarParams_[matType] = Complex( 0.0, param[2][2]);
+            isComplex_.insert( matType );
+          }
+        } 
       }
       else {
         std::string msg = "SetTensor-Double";

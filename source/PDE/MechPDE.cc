@@ -467,6 +467,7 @@ namespace CoupledField {
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
         bdbInts_[actRegion] = stiffInt;
+        LOG_TRACE(mechpde) << "Add Lin BDB" << std::endl;
         
         // write to info-xml
         PtrParamNode form = infoNode_->Get("header")->Get("integrators")->Get("matrixBiLinearForms")->GetByVal("bilinearForm","integrator","LinElastInt",ParamNode::APPEND);
@@ -490,17 +491,14 @@ namespace CoupledField {
     	  regionStiffness_[actRegion] = stiffCoeff;
         
     	  if (subType_ == "axi") {
-    		  nlBInt = new BDBInt<Double>(new NonLinStrainOperatorAxi<FeH1, Double>(myFct),
-                  stiffCoeff, 1.0, false);
+    		  nlBInt = new BDBInt<Double>(new NonLinStrainOperatorAxi<FeH1, Double>(myFct), stiffCoeff, 1.0, false);
     	  }
     	  else if (subType_ == "planeStrain" || subType_ == "planeStress") {
-          // std::cout << "Add NonLinStrainOperator2D" << std::endl;
-    		  nlBInt = new BDBInt<Double>(new NonLinStrainOperator2D<FeH1, Double>(myFct),
-                  stiffCoeff, 1.0, false);
+     	    LOG_TRACE(mechpde) << "Add NonLinStrainOperator2D" << std::endl;
+    		  nlBInt = new BDBInt<Double>(new NonLinStrainOperator2D<FeH1, Double>(myFct), stiffCoeff, 1.0, false);
     	  }
     	  else if (subType_ =="3d") {
-    		  nlBInt = new BDBInt<Double>(new NonLinStrainOperator3D<FeH1, Double>(myFct),
-                  stiffCoeff, 1.0, false);
+    		  nlBInt = new BDBInt<Double>(new NonLinStrainOperator3D<FeH1, Double>(myFct), stiffCoeff, 1.0, false);
     	  }
     	  else {
     		  assert(false);
@@ -609,7 +607,7 @@ namespace CoupledField {
       PtrCoefFct densCoeffScaled;
       
       // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
-      if(domain->GetDesign(false) != NULL)
+      if(domain->HasDesign())
       {
         CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), densCoeff, this);
         densCoeff.reset(tmpFnc);
@@ -645,7 +643,7 @@ namespace CoupledField {
       massInt->SetFeSpace( mySpace );
       
       // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
-      if(domain->GetDesign(false) != NULL)
+      if(domain->HasDesign())
         dynamic_pointer_cast<CoefFunctionOpt>(densCoeff)->SetForm(massInt);
       
       BiLinFormContext *massContext =  new BiLinFormContext( massInt, MASS );
@@ -1761,7 +1759,7 @@ namespace CoupledField {
       curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
     
     // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
-    if(domain->GetDesign(false) != NULL)
+    if(domain->HasDesign())
     {
       CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), curCoef, this); // takes double and complex
       curCoef.reset(tmpFnc);
@@ -1798,7 +1796,7 @@ namespace CoupledField {
     }
     
     // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
-    if(domain->GetDesign(false) != NULL)
+    if(domain->HasDesign())
       dynamic_pointer_cast<CoefFunctionOpt>(curCoef)->SetForm(integ);
     
     return integ;

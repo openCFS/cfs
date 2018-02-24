@@ -50,16 +50,16 @@ template<class Operator>
 bool GenericBinOpFilter<Operator>::UpdateResults(std::set<uuids::uuid>& upResults) {
   Vector<Double>& returnVec = GetOwnResultVector<Double>(outId);
   UInt last = returnVec.GetSize();
-  Double aTF = resultManager_->GetStepValue(outId);
+  Integer stepIndex = resultManager_->GetStepIndex(outId);
 
-  Vector<Double>& res1V = GetUpstreamResultVector<Double>(res1Id, aTF);
-  Vector<Double>& res2V = GetUpstreamResultVector<Double>(res2Id, aTF);
+  Vector<Double>& res1V = GetUpstreamResultVector<Double>(res1Id, stepIndex);
+  Vector<Double>& res2V = GetUpstreamResultVector<Double>(res2Id, stepIndex);
   if (res1V.GetSize() != res2V.GetSize()) {
     WARN("Input vectors for BinOp Filter are of different size");
     last = std::min(res1V.GetSize(),res2V.GetSize());
   }
   
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(UInt i=0;i<last;++i){
     returnVec[i] = Operator::Apply(res1V[i],res2V[i]);
   }

@@ -37,12 +37,12 @@ GridIntersectionFilter::~GridIntersectionFilter(){
 }
 
 bool GridIntersectionFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
-  /// this is the vector, which will be filled with the derivative result
+  /// this is the vector, which will be filled with the result
   Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
-  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
+  Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
 
   // vector, containing the source data values
-  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], aTF);
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
 
   returnVec.Init(0.0);
 
@@ -106,7 +106,7 @@ void GridIntersectionFilter::FillInterpolationMatrix(const StdVector<ElemInterse
   InterpolationMatrix->Init();
   UInt negativeCounter = 0;
   UInt nanInfCounter = 0;
-#pragma omp parallel reduction(+ : negativeCounter , nanInfCounter) num_threads(NUM_CFS_THREADS)
+#pragma omp parallel reduction(+ : negativeCounter , nanInfCounter) num_threads(CFS_NUM_THREADS)
 {
   StdVector<UInt> sElemEq;
   StdVector<UInt> tNodeEq;

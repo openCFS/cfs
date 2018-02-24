@@ -263,48 +263,32 @@ public:
   //@{ \name Access Methods
 
   //! Return real-valued tensor at integration point
-  virtual void GetTensor(Matrix<Double>& tensor, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetTensor(Matrix<Double>& tensor, const LocPointMapped& lpm ) {
     EXCEPTION( "CoefFunction::GetTensor<Double> called: This may not happen. "
-        << "Most likely this method is called with a complex-valued "
-        << "CoefFunction object." );
-  }
-
-  //! Return real-valued Msfem Element Matrix at integration point
-  virtual void GetMsfemElementMatrix(Matrix<Double>& matrix,
-      const LocPointMapped& lpm) {
-    EXCEPTION( "CoefFunction::GetMsfemElementMatrix<Double> called: This may not happen. "
-        << "Most likely this method is called with a complex-valued "
-        << "CoefFunction object." );
+        << "Most likely this method is called with a complex-valued CoefFunction object." );
   }
 
   //! Return real-valued vector at integration point
-  virtual void GetVector(Vector<Double>& vec, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm ) {
     EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen " 
-        << "Most likely this method is called with a complex-valued "
-        << "CoefFunction object." );
+        << "Most likely this method is called with a complex-valued CoefFunction object." );
   }
 
   //! Return real-valued element averaged value
-  virtual void GetAvgElemValue(Double & vec, 
-                         const Elem* elem) {
+  virtual void GetAvgElemValue(Double & vec, const Elem* elem) {
     EXCEPTION( "CoefFunction::GetAvgElemValue<Double> not implemented in base class" );
   }
 
 
   //! Return real-valued scalar at integration point
-  virtual void GetScalar(Double& scal, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetScalar(Double& scal, const LocPointMapped& lpm ) {
     EXCEPTION( "CoefFunction::GetScalar<Double> called: This may not happen. " 
         << "Most likely this method is called with a complex-valued "
         << "CoefFunction object." );
   }
 
   //! Return complex-valued tensor at integration point
-  virtual void GetTensor(Matrix<Complex>& tensor, 
-                         const LocPointMapped& lpm ) {
-    
+  virtual void GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm ) {
     // Provide default implementation in the base class, which returns
     // just the double values as real-valued complex matrix
     Matrix<Double> temp;
@@ -314,8 +298,7 @@ public:
   }
 
   //! Return complex-valued vector at integration point
-  virtual void GetVector(Vector<Complex>& vec, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetVector(Vector<Complex>& vec, const LocPointMapped& lpm ) {
     // Provide default implementation in the base class, which returns
      // just the double values as real-valued complex vector
      Vector<Double> temp;
@@ -617,6 +600,14 @@ public:
     EXCEPTION( "Not implemented in base class");
   }
   
+  virtual bool useStrainForm(){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual std::string getPDEName(){
+    EXCEPTION("Not implemented in base class");
+  }
+  
   virtual bool deltaMatActive(){
     EXCEPTION("Not implemented in base class");
   }
@@ -629,21 +620,35 @@ public:
     EXCEPTION("Not implemented in base class");
   }
   
-  virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(std::string tensorName,PtrCoefFct elastTensor = NULL, PtrCoefFct couplTensor = NULL ){
+  virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(std::string tensorName ){
     EXCEPTION("Not implemented in base class");
   }
-  virtual shared_ptr<CoefFunction> GenerateRHSCoefFnc(std::string vectorName,PtrCoefFct elastTensor = NULL, PtrCoefFct couplTensor = NULL, bool onBoundary = false){
+  virtual shared_ptr<CoefFunction> GenerateRHSCoefFnc(std::string vectorName, bool onBoundary = false){
     EXCEPTION("Not implemented in base class");
   }
   virtual shared_ptr<CoefFunction> GenerateOutputCoefFnc(std::string ResultName){
     EXCEPTION("Not implemented in base class");
   }
   
-  virtual Vector<Double> GetOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel, bool invert){
+  virtual Vector<Double> GetOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel){
     EXCEPTION( "Not implemented in base class");
   }
 
-  virtual void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, PtrCoefFct couplTensorCoefFct, Matrix<Double>& rotatedCouplTensor, int timeLevel){
+  virtual void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor, int timeLevel,
+  bool rotate=true){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel_new, int timelevel_old, bool useStrains, bool useAbs,
+      std::string implementationVersion){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual void SetElastAndCouplTensor(PtrCoefFct elastTensor, PtrCoefFct couplTensor){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual void AddAdditionalSDList(shared_ptr<EntityList> actSDList, bool onSurface){
     EXCEPTION( "Not implemented in base class");
   }
   

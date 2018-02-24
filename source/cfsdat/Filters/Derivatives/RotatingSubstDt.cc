@@ -130,48 +130,54 @@ void RotatingSubstDt::FinishInit(){
 bool RotatingSubstDt::UpdateResults(std::set<uuids::uuid>& upResults) {
   /// this is the vector, which will be filled with the derivative result
   Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
-  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
+  //Double aTF = resultManager_->GetStepValue(filterResIds[0]);
+  Integer actStepIndex = resultManager_->GetStepIndex(filterResIds[0]);
   const UInt size = returnVec.GetSize();
   
   // Smoothed noise robust derivatives
   // http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
   // scheme error of O(h^3)
-  Vector<Double>& inVec = GetUpstreamResultVector<Double>(timeId_, aTF - (2.0 * dt_));
-  Double factor = -(1.0/8.0)/dt_;
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
-  for (UInt i = 0; i < size; i++) {
-    returnVec[i] = inVec[i] * factor;
-  }
+  if (dt_ == 0.0) {
+    // temporal derivative of a constant value is zero
+    returnVec.Init(0.0);
+  } else {
+    Vector<Double>& inVec = GetUpstreamResultVector<Double>(timeId_, actStepIndex - 2);
+    Double factor = -(1.0/8.0)/dt_;
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+    for (UInt i = 0; i < size; i++) {
+      returnVec[i] = inVec[i] * factor;
+    }
+
+    inVec = GetUpstreamResultVector<Double>(timeId_, actStepIndex - 1);
+    factor = -(1.0/4.0)/dt_;
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+    for (UInt i = 0; i < size; i++) {
+      returnVec[i] += inVec[i] * factor;
+    }
+
+    inVec = GetUpstreamResultVector<Double>(timeId_, actStepIndex + 1);
+    factor = (1.0/4.0)/dt_;
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+    for (UInt i = 0; i < size; i++) {
+      returnVec[i] += inVec[i] * factor;
+    }
   
-  inVec = GetUpstreamResultVector<Double>(timeId_, aTF - dt_);
-  factor = -(1.0/4.0)/dt_;
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
-  for (UInt i = 0; i < size; i++) {
-    returnVec[i] += inVec[i] * factor;
+    inVec = GetUpstreamResultVector<Double>(timeId_, actStepIndex + 2);
+    factor = (1.0/8.0)/dt_;
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+    for (UInt i = 0; i < size; i++) {
+      returnVec[i] += inVec[i] * factor;
+    }
   }
 
-  inVec = GetUpstreamResultVector<Double>(timeId_, aTF + dt_);
-  factor = (1.0/4.0)/dt_;
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
-  for (UInt i = 0; i < size; i++) {
-    returnVec[i] += inVec[i] * factor;
-  }
-  
-  inVec = GetUpstreamResultVector<Double>(timeId_, aTF + (2.0 * dt_));
-  factor = (1.0/8.0)/dt_;
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
-  for (UInt i = 0; i < size; i++) {
-    returnVec[i] += inVec[i] * factor;
-  }
-  
   //now we add the substantial part
-  Vector<Double>& gradient = GetUpstreamResultVector<Double>(gradId_, aTF);
+  Vector<Double>& gradient = GetUpstreamResultVector<Double>(gradId_, actStepIndex);
   UInt gIdx = 0;
   
   Vector<Double> meanFlow;
   if(hasMeanFlow_){
     meanFlow.Resize(gradient.GetSize());
-    meanFlow = GetUpstreamResultVector<Double>(meanFlowId_, aTF);
+    meanFlow = GetUpstreamResultVector<Double>(meanFlowId_);
     for(UInt i=0;i<size;++i){
       //Scalar product
       for(UInt d =0;d<gradDim_;++d){

@@ -59,6 +59,9 @@ namespace CoupledField
     isAllowed_.insert( INITIAL_STATE_Y );
     isAllowed_.insert( INITIAL_STATE_Z );
     isAllowed_.insert( PREISACH_DIM );
+    isAllowed_.insert( HYST_STRAIN_FORM );
+    isAllowed_.insert( HYST_BETA_COEFS );
+    isAllowed_.insert( DIM_BETA_COEFS );
     isAllowed_.insert( ROT_RESISTANCE );
     isAllowed_.insert( HYST_MODEL );
     isAllowed_.insert( DATA_ACCURACY );
@@ -181,7 +184,6 @@ namespace CoupledField
   void ElectroMagneticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
                                           Global::ComplexPart dataType ) {
 
-
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
       std::string dim = "tensor";
@@ -202,13 +204,18 @@ namespace CoupledField
         tensorParams_[matType].SetPart( dataType, param );
         tensorParamsOrig_[matType].SetPart( dataType, param );
 
-        // to be consistent to old structure
-        if ( dataType == Global::REAL ) {
-          scalarParams_[matType] = Complex( param[2][2], 0.0);
-        }
-        else {
-          scalarParams_[matType] = Complex( 0.0, param[2][2]);
-          isComplex_.insert( matType );
+        // added this check to avoid seg-faults for tensors of size Nx1
+        // ( normal material parameter (like permittivity) do not need this check
+        //   but for some hysteresis parameter, Nx1 arrays are needed)
+        if(param.GetNumRows() >= 2 && param.GetNumCols() >= 2){
+          // to be consistent to old structure
+          if ( dataType == Global::REAL ) {
+            scalarParams_[matType] = Complex( param[2][2], 0.0);
+          }
+          else {
+            scalarParams_[matType] = Complex( 0.0, param[2][2]);
+            isComplex_.insert( matType );
+          }
         }
       }
       else {
@@ -220,7 +227,6 @@ namespace CoupledField
 
   void ElectroMagneticMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
                                           Global::ComplexPart dataType ) {
-
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {

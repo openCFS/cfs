@@ -37,12 +37,13 @@ TemporalBlendFilter::~TemporalBlendFilter(){
 }
 
 bool TemporalBlendFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
-  /// this is the vector, which will be filled with the derivative result
+  /// this is the vector, which will be filled with the result
   Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
   Double aTF = resultManager_->GetStepValue(filterResIds[0]);
+  Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
 
   // vector, containing the source data values
-  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], aTF);
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
 
 
   MathParser::HandleType hand;
@@ -59,7 +60,7 @@ bool TemporalBlendFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
   mp_->ReleaseHandle(hand);
   const UInt size = inVec.GetSize();
   
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt i = 0; i < size; i++) {
     returnVec[i] = inVec[i] * ev;
   }

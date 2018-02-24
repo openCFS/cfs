@@ -2,7 +2,6 @@
 #define FILE_BLASLAPACKINTERFACE
 
 #include <def_use_blas.hh>
-#include <def_use_lapack.hh>
 
 #include <def_cfs_fortran_interface.hh>
 
@@ -17,8 +16,8 @@ namespace CoupledField
   //! the BLAS and LAPACK libraries.
   //! Consider using LAPACKE in the future: http://www.netlib.org/lapack/lapacke.html
 
-#ifdef USE_BLAS
-
+   //! Make sure to add the function also to cmake_modules/CheckFortranRuntime.cmake
+   //! to have proper name mangling also for netlib and openblas
   extern "C"{
     // matrix matrix multiplication
     void dgemm(char*, char*, int*, int*, int*, double*, double*, int* ,
@@ -40,9 +39,6 @@ namespace CoupledField
     
   }
 
-#endif
-
-#ifdef USE_LAPACK
 
   //! Prototypes for LAPACK routines
   extern "C" {
@@ -129,7 +125,6 @@ namespace CoupledField
     // ! To be continued ...
 
   }
-#endif
 
 }
 #endif

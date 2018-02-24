@@ -1,0 +1,8 @@
+#=============================================================================
+# * copy the files to the cfs bin dir
+#=============================================================================
+
+# hwloc builds a lot of stuff which might be removable
+
+# copy data from install dir to the target.
+FILE(COPY "@HWLOC_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

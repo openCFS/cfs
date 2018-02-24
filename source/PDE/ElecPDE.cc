@@ -20,6 +20,7 @@
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
+#include "Driver/SolveSteps/SolveStepHyst.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "Driver/Assemble.hh"
 #include "Utils/ApproxData.hh"
@@ -138,7 +139,25 @@ namespace CoupledField {
         break;
   }
   
+  /*
+   * Initialize hysteresis coeficient functions
+   * 
+   * Note to this function:
+   *  as long as hysteresis is only used in elecPDE, it is sufficient to initialize
+   *  the hysteresis coeficient function for each region directly before creating
+   *  the integrators for stiffness matrix and rhs
+   * 
+   *  in the piezocoupled case, however, the coupled integrators are initialized
+   *  prior to the single-field integrator; as those coupled integrators may depend
+   *  on the hysteresis coef. function, it is important that these are already 
+   *  initizalized; therefore, this extra function is called during the definition
+   *  of the post-processing results (where the actual storage for the hyst-coef-functions
+   *  gets obtained) which is prior to the creation of both coupled and single field
+   *  integrators
+   * 
+   */
   void ElecPDE::InitHystCoefs() {
+    //std::cout << "Init Hyst Coefs" << std::endl;
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
     
@@ -187,19 +206,19 @@ namespace CoupledField {
       if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
         shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
         actSDList->SetRegion( actRegion );
-
-        PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
-        shared_ptr<FeSpace> mySpace = feFunctions_[ELEC_POTENTIAL]->GetFeSpace();
         
-        bool performInversionTest = true;
+        PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
+        PtrCoefFct elecFieldCoefSurf = this->GetCoefFct(ELEC_FIELD_INTENSITY_SURF);
+        bool performInversionTest = !true;
         PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
-                elecFieldCoef,tensorType,ELEC_PERMITTIVITY,mySpace,performInversionTest));
+                elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY,mySpace,performInversionTest));
         
         hysteresisCoefs_->AddRegion( actRegion, hystPol);
         
       }
     }
     regionApproxSet_ = true;
+    //std::cout << "Hyst Coefs set successfully" << std::endl;
   }
   
   void ElecPDE::DefineIntegrators() {
@@ -247,6 +266,7 @@ namespace CoupledField {
       actSDMat = it->second;
       
       // Get current region name
+      shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_POTENTIAL];
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
       
       shared_ptr<ElemList> actSDList;
@@ -259,6 +279,7 @@ namespace CoupledField {
       } else {
         actSDList = SDLists_[actRegion];
       }
+      
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
       std::string polyId = curRegNode->Get("polyId")->As<std::string>();
       std::string integId = curRegNode->Get("integId")->As<std::string>();
@@ -270,7 +291,9 @@ namespace CoupledField {
         // --- Set the approximation for the current region ---
         mySpace->SetRegionApproximation(actRegion, polyId, integId);
       }
-
+      
+      myFct->AddEntityList( actSDList );
+      
       // Take account for pml in frequency domain
       // 'coeffPMLScal' is the function used to scale the material tensor. If no PML is defined, it's unity
       PtrCoefFct coefPMLScal;
@@ -332,12 +355,12 @@ namespace CoupledField {
       BiLinFormContext * stiffIntDescr =
               new BiLinFormContext(stiffInt, STIFFNESS );
       
-      feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
+      //myFct->AddEntityList( actSDList );
       
       //stiffIntDescr->SetPtPdes(this, this);
       stiffIntDescr->SetEntities( actSDList, actSDList );
-      stiffIntDescr->SetFeFunctions( feFunctions_[ELEC_POTENTIAL],feFunctions_[ELEC_POTENTIAL]);
-      stiffInt->SetFeSpace( feFunctions_[ELEC_POTENTIAL]->GetFeSpace());
+      stiffIntDescr->SetFeFunctions( myFct, myFct);
+      stiffInt->SetFeSpace( myFct->GetFeSpace());
       
       assemble_->AddBiLinearForm( stiffIntDescr );
       // Important: Add bdb-integrator to global list, as we need them later
@@ -715,8 +738,9 @@ namespace CoupledField {
       shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_POTENTIAL];
       // Note; in the piezoelectric case we have to multiply by -1
       Double factor = 1.0;
-      if ( isPiezoCoupled_ )
+      if ( isPiezoCoupled_ ){
         factor = -1.0;
+      }
       
       for( UInt i = 0; i < fpNodeList.GetSize(); i++ ) {
         std::string regionName = fpNodeList[i]->Get("name")->As<std::string>();
@@ -730,9 +754,9 @@ namespace CoupledField {
           std::cout << "Volume region " << volRegName << "has NO hysteretic material assigned." << std::endl;
           std::cout << "Field parallel BC will thus act as default flux parallel BC." << std::endl;
         } else {
-          std::cout << "Volume region " << volRegName << " has hysteretic material assigned. fieldParallel BC added" << std::endl;
+          //std::cout << "Volume region " << volRegName << " has hysteretic material assigned. fieldParallel BC added" << std::endl;
           // create coef fnc delivering the boundary term (here just polarization)
-          PtrCoefFct hystBC = regionCoefs[volReg]->GenerateRHSCoefFnc("ElecPolarization",NULL,NULL,isSurface);
+          PtrCoefFct hystBC = regionCoefs[volReg]->GenerateRHSCoefFnc("ElecPolarization",isSurface);
           
           LinearForm * lin = NULL;
           
@@ -765,6 +789,10 @@ namespace CoupledField {
           // Add entity list will add nothing, if entities were already assigned
           myFct->AddEntityList(actSDList);
           
+          // IMPORTANT: add surface elements to hyst operator such that it gets
+          // storage space assigned
+					bool onBoundary = true;
+          regionCoefs[volReg]->AddAdditionalSDList(actSDList,onBoundary);
         }
       }
     }
@@ -785,9 +813,9 @@ namespace CoupledField {
     
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
-    if ( isPiezoCoupled_ )
+    if ( isPiezoCoupled_ ){
       factor = -1.0;
-    
+    }
     
     // Flag, if coefficient function lives on updated geoemtry
     bool coefUpdateGeo = true;
@@ -881,32 +909,11 @@ namespace CoupledField {
     // =================================
     //  Polarisation -> from hysteresis (VOLUME)
     // =================================
-    /*!
-     * Mathematical formulation
-     * (see detailed version under ...)
-     *
-     * Final weak form for fixpoint iteration with f containing all other rhs loads:
-     *  \int \grad W_e \cdot \eps_0 \grad V_e = f + \int \grad W_e \cdot P
-     *
-     *  -> we have to add the term
-     *    \int \grad W_e \cdot P
-     *  -> BUIntegrator(Gradient, factor*(+1), coefFncHyst)
-     *
-     * Notes:
-     *  - Polarization has only to be considered in volume integral
-     *  -> both boundary as well as interface conditions are set for D
-     *     (which should not change by splitting it into \eps_0 E + P)
-     *  - Only polarization itself is required; no derivatives, no divergence
-     *  -> the term \int W_e div(P) has to be treated by Green's integral theorem, too
-     *  -> if we would not do this, the boundary terms would only contain \eps_0 E instead
-     *     of \eps_0 E + P; therewith, conditions for D would be set wrong
-     */
-    //check for hysteresis
     /*
      * NEW: we have to put P on the rhs also for deltaMaterial stepping!
      * -> see StdSolveStep::StepTransNonLinHysteresis for details
      */
-    if ( isHysteresis_ ){ // && (isHysteresisFixPoint_)) {
+    if ( isHysteresis_ ){
       // std::cout << "Putting polarisation to rhs" << std::endl;
       LOG_DBG(elecpde) << "Putting polarisation to rhs";
       
@@ -921,10 +928,13 @@ namespace CoupledField {
         shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
         actSDList->SetRegion( curReg );
         
-        // currently we evaluate P only at the midpoint -> fullevaluation inside BUIntegrator has to be false
-        bool fullevaluation = !false;
+        // set fullevaluation to trigger evaluation at each integration point
+        // the nonlinear parameter "evaluation depth" determines if each
+        // integration point gets mapped to midpoint (> fullevaluation = false)
+        // or if hyst operator really is evaluated at the actual int. point
+        bool fullevaluation = true;
         
-        shared_ptr<CoefFunction> rhsPol = it->second->GenerateRHSCoefFnc("ElecPolarization",NULL,NULL);
+        shared_ptr<CoefFunction> rhsPol = it->second->GenerateRHSCoefFnc("ElecPolarization");
         
         //factor = factor*(-1.0);
         if(isComplex_) {
@@ -1024,6 +1034,7 @@ namespace CoupledField {
           SubTensorType tensorType,
           RegionIdType regionId ) {
     
+    //std::cout << "GetStiffIntegrator" << std::endl;
     BaseBDBInt * integ = NULL;
     bool isComplex = complexMatData_[regionId];
     
@@ -1032,93 +1043,21 @@ namespace CoupledField {
     bool regionIsHyst = false;
     StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[regionId];
     if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
+      //std::cout << "Found region with hysteresis" << std::endl;
       regionIsHyst = true;
       /* for both the delta material method as well as the std fixpoint method we have to know
        * which regions are affected by hysteresis
        */
-      // NEW: coefFncHyst should already be created during DefinePostProcResults
-      //      // create new entity list
-      //      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-      //      actSDList->SetRegion( regionId );
-      //      PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
-      //      shared_ptr<FeSpace> mySpace = feFunctions_[ELEC_POTENTIAL]->GetFeSpace();
-      //
-      //
-      //      //curCoef.reset(new CoefFunctionHyst( actSDMat, actSDList,
-      //      //                          elecFieldCoef,tensorType,ELEC_PERMITTIVITY,mySpace));
-      //
-      //        /*
-      //         * test coef fnc hyst mat
-      //         */
-      //        PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
-      //                                elecFieldCoef,tensorType,ELEC_PERMITTIVITY,mySpace));
-      //              
-      //        curCoef = hystPol->GenerateMatCoefFnc("Permittivity");
-
-      //        //curCoef.reset(coefMatTensor);
-      //        
-      //      hysteresisCoefs_->AddRegion( regionId, hystPol);
-      
+      // NEW: coefFncHyst should already be created during DefinePostProcResults!      
       PtrCoefFct hystPol = hysteresisCoefs_->GetRegionCoef(regionId);
+      
+      //std::cout << "Generate Mat Coef Fnc" << std::endl;
       curCoef = hystPol->GenerateMatCoefFnc("Permittivity");
       
+      //std::cout << "Generate Output Coef Fnc" << std::endl;
       PtrCoefFct hystOutput = hystPol->GenerateOutputCoefFnc("ElecPolarization");
       hysteresisPolarization_->AddRegion( regionId, hystOutput);
       
-      //     std::cout << "hysteresisCoefs_->GetDimType(): " << hysteresisCoefs_->GetDimType() << std::endl;
-      //
-      //    hysteresis fixpoint removed; all cases of hysteresis (debug (formerly fixpoint), real fixpoint, deltaMat)
-      //    use the same base solve step; via the input parameter evalulationParameter, on can set which
-      //    method to useee
-      //      if ( nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
-      //        /*
-      //         * here we treat the case: D = eps0*E + P
-      //         * P will be put on the rhs, for stiffness integrator we need just eps0, so we reset curCoef to eps0
-      //         */
-      //
-      //        /*
-      //         * NOTE: we need to insert eps0 as curCoef such that we can later
-      //         * evaluate D = eps0 E + P
-      //         * If we change the value of eps0 here, we will change D
-      //         */
-      //
-      //        std::string eps0 = "8.854187817e-12";
-      //
-      ////        Double Xsat,Ysat;
-      ////        actSDMat->GetScalar(Xsat, X_SATURATION, Global::REAL);
-      ////        actSDMat->GetScalar(Ysat, Y_SATURATION, Global::REAL);
-      ////        Double epsTest = Ysat/(1*Xsat);
-      ////        std::ostringstream eps_;
-      ////
-      ////        eps_ << epsTest;
-      ////        std::string eps0 = eps_.str();
-      //        StdVector<std::string> realVal = StdVector<std::string>(dim_*dim_);
-      //        realVal.Init("0.0");
-      //        realVal[0] = eps0;
-      //        if(dim_ == 2){
-      //          realVal[3] = eps0;
-      //        } else if(dim_ == 3){
-      //          realVal[4] = eps0;
-      //          realVal[8] = eps0;
-      //        }
-      //
-      //        StdVector<std::string> imagVal = StdVector<std::string>(dim_*dim_);
-      //        imagVal.Init("0.0");
-      //
-      //        curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
-      //
-      //        //std::cout << "Using FixPoint Hysteresis" << std::endl;
-      //        std::cout << "Attention: FixPoint Hysteresis just applies Preisach to given field. Hysteresis does not influence the result! " << std::endl;
-      //
-      //        isHysteresisFixPoint_ = true;
-      //      } else {
-      //
-      //      //  std::cout << "Using DeltaMaterial Hysteresis" << std::endl;
-      //
-      //        curCoef = curCoef_tmp;
-      //        isHysteresisFixPoint_ = false;
-      //      }
-      //
     }
     else {
       
@@ -1277,7 +1216,11 @@ namespace CoupledField {
   }
   
   void ElecPDE::DefineSolveStep() {
-    solveStep_ = new StdSolveStep(*this);
+		if(isHysteresis_){
+			solveStep_ = new SolveStepHyst(*this);
+		} else {
+			solveStep_ = new StdSolveStep(*this);
+		}
   }
   
   void ElecPDE::InitTimeStepping() {
@@ -1290,22 +1233,6 @@ namespace CoupledField {
   }
   
   void ElecPDE::FinalizeAfterTimeStep() {
-    
-    //check for hysteresis
-    /*
-     * NEW Jan 2017: Do not use this in combination with StdSolveStep::StepTransNonLinHyst
-     * -> the PreviousHystValues have to be set during the iterations, not at the end of the timestep!
-     */
-    
-    //	  if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
-    //		  //set current values to previous values for hysteresis operator
-    //		  //needed for the next time step
-    //		  std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
-    //		  std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-    //		  for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-    //			  it->second->SetPreviousHystVals();
-    //		  }
-    //	  }
   }
   
   void ElecPDE::ReadSpecialBCs( ) 
@@ -1332,16 +1259,12 @@ namespace CoupledField {
     // as soon as the surface B-operators are defined
   }
   
-  
-  
   void ElecPDE::SetPiezoCoupling()
   {
     
     isPiezoCoupled_ = true;
     
   }
-  
-  
   
   void ElecPDE::DefinePrimaryResults() {
     
@@ -1448,7 +1371,7 @@ namespace CoupledField {
   }
   
   void ElecPDE::DefinePostProcResults() {
-
+    
     shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_POTENTIAL];
     bool is2p5 = (subType_ == "2.5d");
     
@@ -1467,6 +1390,24 @@ namespace CoupledField {
     }
     DefineFieldResult( eFunc, ef );
     stiffFormCoefs_.insert(eFunc);
+    
+    // === SURF ELECTRIC FIELD INTENSITY ===
+    // Background tangential component(s) of electric field on boundary
+    //  required in case of hysteresis in combination with fieldParallel BC
+    //  (in this case the hystOperator has to be evaluated with the tangential 
+    //    component of E on the boundary)
+    shared_ptr<ResultInfo> efs ( new ResultInfo );
+    efs->resultType = ELEC_FIELD_INTENSITY_SURF;
+    efs->SetVectorDOFs(dim_, isaxi_, is2p5);
+    efs->unit = "V/m";
+    efs->definedOn = ResultInfo::SURF_ELEM;
+    efs->entryType = ResultInfo::VECTOR;
+    shared_ptr<CoefFunctionSurf> eFuncS;
+    
+    eFuncS.reset(new CoefFunctionSurf(false, 1.0, efs));
+    DefineFieldResult(eFuncS, efs);
+    // original function required, not surface version
+    surfCoefFcts_[eFuncS] = eFunc;
     
     // === ELECTRIC POLARIZATION ===
     // check if at least one region has hysteretic behavior
@@ -1525,48 +1466,6 @@ namespace CoupledField {
     } else {
       DefineFieldResult( fluxFunc, flux );
     }
-    
-    //    PtrCoefFct fluxFunc;
-    //    if( !isHysteresis_){
-    //      if( isComplex_ ) {
-    //        fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux, -1.0));
-    //      } else {
-    //        fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux, -1.0));
-    //      }
-    //      stiffFormCoefs_.insert(dynamic_pointer_cast<CoefFunctionFormBased>(fluxFunc));
-    //    } else {
-    //      /*
-    //       * in case of hysteresis, fluxFunc be computed via
-    //       * eps0 * E + P
-    //       */
-    //      PtrCoefFct linearFlux;
-    //
-    //      std::string eps0 = "8.854187817e-12";
-    //      StdVector<std::string> realVal = StdVector<std::string>(dim_*dim_);
-    //      realVal.Init("0.0");
-    //      realVal[0] = eps0;
-    //      if(dim_ == 2){
-    //        realVal[3] = eps0;
-    //      } else if(dim_ == 3){
-    //        realVal[4] = eps0;
-    //        realVal[8] = eps0;
-    //      }
-    //
-    //      StdVector<std::string> imagVal = StdVector<std::string>(dim_*dim_);
-    //      imagVal.Init("0.0");
-    //
-    //      linearFlux = CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,eFunc,
-    //                                         CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal),
-    //                                         CoefXpr::OP_MULT));
-    //
-    //      if( isComplex_ ) {
-    //        fluxFunc = CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,linearFlux,hysteresisCoefs_,CoefXpr::OP_ADD));
-    //      } else {
-    //        fluxFunc = CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_,linearFlux,hysteresisCoefs_,CoefXpr::OP_ADD));
-    //      }
-    //    }
-    //
-    //    DefineFieldResult( fluxFunc, flux );
     
     // === ELECTRIC SURFACE CHARGE DENSITY ===
     shared_ptr<ResultInfo> chargeD(new ResultInfo);
