@@ -954,6 +954,19 @@ namespace CoupledField
               }
             }
 
+
+            // in multiharmonic analysis, the mass matrix must be multiplied by the harmonic number
+            // TODO depending on the PDE, sometimes the mass matrix is named DAMPING, I really don't know why
+            // for MagEdgePDE and MagneticPDE this is the case
+            // Ideally such an operation would be performed way back in the PDE-class
+            // of after the assembling in algsys_->ConstructEffectiveMatrix but the fact that
+            // we need to loop over every frequency and multiply the mass matrices corresponding to the
+            // frequencies with different values, prevents such a ''clean'' solution
+            if( actContext.GetDestMat() == DAMPING ){
+              elemMatrix *= harmonic;
+              LOG_DBG3(assemble) << "AM_Std: real CEM MASS -> " << elemMatrix.ToString(2);
+            }
+
             // info.xml logging in detailed logging case for the first element only
             if(i == 0 && progOpts->DoDetailedInfo())
             {
@@ -997,29 +1010,6 @@ namespace CoupledField
             else
               InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2, false, sbmInd);
 
-//            if (secDestMat != NOTYPE ) { // Check for secondary matrix type
-//              Double dampFactor = 1.0;
-//              // get secondary matrix factor string
-//              Double secMatFac = actContext.EvalSecMatFac();
-//
-//              // damping with "exotic" complex material
-//              if ( form->IsComplex() ) {
-//                // complex damping
-//                elemMatrixC *= secMatFac * dampFactor;
-//
-//                // Pass secondary matrix part to algebraic system
-//                InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
-//              }
-//              // "standard" Rayleigh damping. Includes the standard SIMP optimization!
-//              else {
-//                // Rayleigh damping
-//                elemMatrix *= secMatFac * dampFactor;
-//                LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " Rayleigh damping form=" << form->GetName() << " sMF=" << secMatFac << " df=" <<  dampFactor;
-//                // Pass secondary matrix part to algebraic system
-//                InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
-//              }
-//
-//            } // handle secDestMat != NOTYPE
 
             // increment iterators
           } catch (Exception& e) {
@@ -2209,7 +2199,8 @@ algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX
     assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE
     		|| omega == 0.0);
 
-    if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE)
+    if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
+       domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC)
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
     else
       harmMat = elemMat;

@@ -158,27 +158,22 @@ namespace CoupledField
     ptPDE_->GetSolveStep()->PostStepHarmonic();
 
 
-
-
-
-
-
-
-    // Log info for this harmonic
-    if(progOpts->IsQuiet())
-      cout << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " frequency " << actFreq_ << endl;
-    else
-      cout << endl << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ <<" ======================= " << endl;
-
-    analysis_id_.step = actFreqStep_;
-    analysis_id_.freq = actFreq_;
-
+    // Set both of them to zero since they have no meaning in multiharmonic analysis
+    UInt actFreqStep = 0;
+    Double actFreq = 0.0;
+    analysis_id_.step = actFreqStep;
+    analysis_id_.freq = actFreq;
     // analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
-/*
-    handler_->BeginStep( actFreqStep_, actFreq_ );
-    ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
+
+    handler_->BeginStep( actFreqStep, actFreq );
+    ptPDE_->WriteResultsInFile( actFreqStep, actFreq );
     handler_->FinishStep( );
 
+
+
+EXCEPTION("END OF CURRENT IMPLEMENTATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
+/*
     // write out re-start in case of aborted simulation or if all steps should be written
     if(  actFreqStep_ == stopFreqStep_ || abortSimulation_  || writeAllSteps_ ) {
       if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
