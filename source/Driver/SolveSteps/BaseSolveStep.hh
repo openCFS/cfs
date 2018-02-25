@@ -10,6 +10,7 @@ namespace CoupledField
 {
 
   class BaseDriver;
+  class BaseVector;
 
   //! Base class for solution of a single step
 
@@ -56,6 +57,10 @@ namespace CoupledField
       EXCEPTION("InitTimeStepping not implemented!");
     }
 
+    virtual bool InitEigenvalueProblem(const bool isQuadratic=false){
+        EXCEPTION("not implemented here");
+    }
+
     //----------------------- HARMONIC---------------------------------------
     //! routine for initilizations before execution of the SolveStep-method
     virtual void PreStepHarmonic() = 0;
@@ -81,7 +86,18 @@ namespace CoupledField
       EXCEPTION( "Not implemented here!" );
       return 0;
     }
-    
+
+    //! Calculate the Eigenfrequencies in the interval [minVal,maxVal]
+    virtual UInt CalcEigenFrequencies( Vector<Double>& frequencies, Vector<Double>& errBounds,
+                                       Double minVal, Double maxVal) {
+      EXCEPTION( "Not implemented her!");
+      return 0;
+    }
+
+    virtual void CalcEigenValues(BaseVector &sol, BaseVector &err, Double minVal, Double maxVal){
+        EXCEPTION( "Not implemented here!");
+    }
+
     //! extract the numMode-th eigenmode of a generalized eigenvalue problem.
     //! Therefore, previously CalcEigenFrequencies() has to be called.
     virtual void GetEigenMode( UInt numMode ) {

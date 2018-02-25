@@ -13,6 +13,9 @@
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "OLAS/solver/BaseEigenSolver.hh"
+//#include "OLAS/algsys/AlgebraicSys.hh"
+#include "MatVec/SBM_Matrix.hh"
 
 #include "PDE/StdPDE.hh"
 
@@ -24,6 +27,9 @@ namespace CoupledField {
 
   DECLARE_LOG(efd)
   DEFINE_LOG(efd, "eigenFrequencyDriver")
+
+  // forward declaration
+  class BaseVector;
 
   // ***************
   //   Constructor
@@ -46,6 +52,9 @@ namespace CoupledField {
     ibz_     = false;
     eigenFreqs = NULL;
     save_step_ = 1;
+    minVal_ = 0.0;
+    maxVal_ = 0.0;
+    eigenValuesAreReal_=true;
 
     // replace with a concrete element
     param_ = param_->Get("eigenFrequency");
@@ -74,15 +83,17 @@ namespace CoupledField {
       }
     }
 
-    delete eigenFreqs;
+    //delete eigenFreqs;
     eigenFreqs = NULL;
   }
 
   void EigenFrequencyDriver::Init(bool restart)
   {
     // read required parameters from parameter node
-    param_->GetValue( "numModes", numFreq_ );
-    param_->GetValue( "freqShift", freqShift_ );
+    param_->GetValue( "numModes", numFreq_ , ParamNode::INSERT );
+    param_->GetValue( "freqShift", freqShift_ , ParamNode::INSERT ); // this should be shift-point and is in general complex valued
+    param_->GetValue( "minVal", minVal_, ParamNode::INSERT );
+    param_->GetValue( "maxVal", maxVal_, ParamNode::INSERT );
     param_->GetValue( "writeModes", writeModes_, ParamNode::PASS );
     param_->GetValue( "isQuadratic", isQuadratic_, ParamNode::PASS );
     // read flag if all results should get written to database file section
@@ -99,9 +110,10 @@ namespace CoupledField {
       throw Exception("Bloch mode Eigenfrequency analysis not implemented for quadratic form");
 
     // the eigenfrequencies are complex in the quadratic case or in bloch mode
-    if(isQuadratic_ || isBloch_) eigenFreqs = new Vector<Complex>(numFreq_);
-                            else eigenFreqs = new Vector<Double>(numFreq_);
+    //if(isQuadratic_ || isBloch_) eigenFreqs = new Vector<Complex>(numFreq_);
+    //                        else eigenFreqs = new Vector<Double>(numFreq_);
 
+    eigenFreqs = & Frequency;
     InitializePDEs();
   }
 
@@ -302,12 +314,15 @@ namespace CoupledField {
 
   double EigenFrequencyDriver::GetFrequency(unsigned int idx) const
   {
+    /** old
     if(isQuadratic_)
       return dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].imag() / (2.0 * M_PI);
     if(isBloch_)
       return dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].real();
     else
       return dynamic_cast<Vector<double>&>(*eigenFreqs)[idx];
+    **/
+    return Frequency[idx];;
   }
 
   double EigenFrequencyDriver::GetDamping(unsigned int idx) const
@@ -347,6 +362,69 @@ namespace CoupledField {
     // Trigger calculation
     ptPDE_->WriteGeneralPDEdefines();
     BaseSolveStep* step = ptPDE_->GetSolveStep();
+    // Start of FEAST section and layout for new, more flexible structure which does not rely on the intermediate
+    // functions in algSys, StdSolveStep, ...
+    if (maxVal_>0) { // use only for feast -> TODO: remove this if
+    // here we should - do the necessary computation depending on the problem type
+    StdSolveStep* sstep = dynamic_cast<StdSolveStep*>(step);
+    BaseEigenSolver* eigenSolver = sstep->GetAlgSys()->GetEigenSolver();
+    // initialize AlgSys
+    sstep->GetAlgSys()->InitSol();
+    sstep->GetAlgSys()->InitMatrix();
+    sstep->GetAssemble()->AssembleMatrices();
+    // determine which EV problem to set up: we make a generalized one
+    // We should probably check if we have both matrices, but currently I do not now a case where we do not ...
+    SBM_Matrix* massMat = sstep->GetAlgSys()->GetMatrix(MASS);
+    SBM_Matrix* stiffMat = sstep->GetAlgSys()->GetMatrix(STIFFNESS);
+    UInt i = massMat->GetNumCols();
+    if (i>1) {
+        EXCEPTION("only implemented for SBM matrices with a single block")
+    }
+    // check matrix dimensions
+    assert( massMat->GetNumCols()==massMat->GetNumRows() );
+    assert( stiffMat->GetNumCols()==stiffMat->GetNumRows() );
+    massMat->GetEntryType(); // real or complex
+    massMat->GetPointer(0,0);
+    // * the quadratic EVP should go somewhere else, as it required a completely different handling of the results
+    // setup the eigen solver (problem type is determined in Setup based on matrix properties)
+    sstep->GetAlgSys()->GetEigenSolver()->Setup(*(stiffMat->GetPointer(0,0)),*(massMat->GetPointer(0,0)),isBloch_);
+    // check if the modes or eigenvectors will be complex
+    bool complexModes = sstep->GetAlgSys()->GetEigenSolver()->HasComplexModes();
+    bool complexEV = sstep->GetAlgSys()->GetEigenSolver()->HasComplexEigenvalues();
+
+    if (minVal_>=0 || maxVal_>=0) { // we have an interval
+        if (complexEV) {
+            Vector<Complex> evals,errs;
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+            eigsRe.Resize(evals.GetSize());
+            eigsIm.Resize(evals.GetSize());
+            for (int i=0;i<(int)evals.GetSize();i++) {
+                eigsRe[i] = evals[i].real();
+                eigsIm[i] = evals[i].imag();
+            }
+            Eig2FreqDamp(evals,Frequency,DampingRatio);
+        }
+        else {
+            Vector<Double> evals,errs;
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
+            eigsRe.Resize(evals.GetSize());
+            eigsRe = evals;
+            Eig2Freq(evals,Frequency);
+        }
+        // info output: ToDo: make this pretty
+        std::cout << "eigsRe = " << eigsRe.ToString() << "\n";
+        std::cout << "eigsIm = " << eigsIm.ToString() << "\n";
+        std::cout << "Frequency = " << Frequency.ToString() << "\n";
+        std::cout << "DampingRatio = " << DampingRatio.ToString() << "\n";
+    }
+    else if ( numFreq_ > 0 || freqShift_ > 0  ){ // we have num + shift
+        // the old stuff should be moved here, after adaption to the new structure of BaseEigenSolver
+        EXCEPTION("not implemented yet")
+    } else {
+        EXCEPTION("this case should not be possible in the XML schema")
+    }
+    }
+    else{ // the old stuff to (re)move
 
     if(isBloch_)
     {
@@ -376,6 +454,8 @@ namespace CoupledField {
         PrintResult();
       }
     }
+    }// end old stuff
+
     // in optimization we write the results via StoreResults() because
     // we don't necessarily write every forward step.
     if(!domain->GetOptimization()) // in other words: if not optimization
@@ -413,7 +493,7 @@ namespace CoupledField {
 
     LOG_DBG(efd) << "CBWV wvs=" << wave_vector_step << " wv=" << current_wave_vector_.ToString();
 
-    Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
+    Vector<Complex> ef = Vector<Complex>(numFreq_);//dynamic_cast<Vector<Complex>& >(*eigenFreqs);
     ptPDE_->GetSolveStep()->CalcEigenFrequencies(ef , errBounds_, numFreq_, freqShift_, sort_, isBloch_);
 
     PrintResult(wave_vector_step);
@@ -433,14 +513,17 @@ namespace CoupledField {
     unsigned int wvs = isBloch_ ? wave_vectors.GetSize() : 1; // save wave vector size
     unsigned int w = isBloch_ ? GetCurrentWaveVectorIndex() : 0;
 
-    for(unsigned int fi=0; fi < eigenFreqs->GetSize(); fi++)
+    // generates a index-array ModeOrder containing the mode indices sorted by ascending Frequency value
+    SortModes();
+
+    for(unsigned int fi=0; fi < Frequency.GetSize(); fi++)
     {
       // Phase 2: calculate eigenmodes
       if(writeModes_)
       {
         ptPDE_->GetSolveStep()->SetActStep(fi);
-        ptPDE_->GetSolveStep()->SetActFreq(std::abs(GetFrequency(fi)));
-        ptPDE_->GetSolveStep()->GetEigenMode(fi);
+        ptPDE_->GetSolveStep()->SetActFreq(GetFrequency(ModeOrder[fi]));
+        ptPDE_->GetSolveStep()->GetEigenMode(ModeOrder[fi]); // this stores the eigen mode result in AlgSys's sol_
 
         // stupid paraview needs an increasing series of save_value :(
 
@@ -457,7 +540,7 @@ namespace CoupledField {
           LOG_DBG3(efd) << "SR total=" << total << " digs=" << digs << " sig=" << sig << " count=" << (w * wvs + fi + 1);
         }
         else // for bloch case we label <step>.<nr> from the info.xml
-          save_value = isBloch_ ? w + (fi+1.0) / (eigenFreqs->GetSize() < 9 ? 10.0 : 100.0) : std::abs(GetFrequency(fi));
+          save_value = isBloch_ ? w + (fi+1.0) / (eigenFreqs->GetSize() < 9 ? 10.0 : 100.0) : std::abs(GetFrequency(ModeOrder[fi]));
 
         LOG_DBG(efd) << "SR w=" << w << " fi=" << fi << " save_step_=" << save_step_ << " save_value=" << save_value;
 

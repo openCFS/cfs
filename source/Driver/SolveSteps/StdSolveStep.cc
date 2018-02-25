@@ -2735,6 +2735,23 @@ namespace CoupledField {
     return frequencies.GetSize();
   }
   
+  UInt StdSolveStep::CalcEigenFrequencies( Vector<Double>& frequencies, Vector<Double>& errBounds, Double minVal, Double maxVal){
+      algsys_->InitRHS();
+      algsys_->InitSol();
+      algsys_->InitMatrix();
+      assemble_->AssembleMatrices();
+      // Setup solver  - we cannot be quadratic and bloch concurrently!
+      //algsys_->SetupEigenSolver(minVal, maxVal);
+      // Calculate eigenfrequencies
+      algsys_->CalcEigenFrequencies( frequencies, errBounds );
+      algsys_->ExportLinSys(false, false, true); // setup
+      return frequencies.GetSize();
+  }
+
+  void StdSolveStep::CalcEigenValues(BaseVector &sol, BaseVector &err, Double minVal, Double maxVal ){
+      algsys_->CalcEigenValues( sol, err, minVal, maxVal );
+  }
+
   void StdSolveStep::GetEigenMode( UInt numMode ) {
     
     

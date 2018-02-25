@@ -21,6 +21,11 @@ namespace CoupledField {
 
     virtual ~FeastEigenSolver();
 
+    //! Setup for a standard EVP
+    void Setup(const BaseMatrix & A, bool isHermitian=false);
+    //! Setup for a generalised EVP
+    void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false);
+
     /* Setup routine for standard eigenvalue problem
      * @see BaseEigenSolver::Setup() */
     void Setup(const BaseMatrix& mat, unsigned int numFreq, double freqShift, bool sort);
@@ -37,9 +42,16 @@ namespace CoupledField {
                 const BaseMatrix& dampMat,
                 unsigned int numFreq, double freqShift, bool sort );
 
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, Double minVal, Double maxVal);
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint){
+        EXCEPTION("not implemented yet");
+    }
+
     /** Solve the linear generalized eigenvalue problem
      * @see BaseEigenSolver::CalcEigenFrequencies() */
-    void CalcEigenFrequencies(BaseVector& sol, BaseVector& err);
+    void CalcEigenFrequencies(BaseVector& sol, BaseVector& err){
+        EXCEPTION("obsolete - should be removed from interface");
+    }
 
     /**Calculate a particular eigenmode as a postprocessing solution
      * @see BaseEigenSolver::GetEigenMode() */
@@ -62,7 +74,7 @@ namespace CoupledField {
     double freqShift_;
 
     /** the stiffness matrix we setup for all cases */
-    const StdMatrix* a_;
+    //const StdMatrix* a_;
 
     /** the mass matrix for generalized problems */
     const StdMatrix* b_;
@@ -91,7 +103,7 @@ namespace CoupledField {
     int info_;
 
     /** matrix of computed orthonormal eigenvectors */
-    StdVector<double> x_;
+    StdVector<Complex> x_;
 
     /** set by Setup() */
     bool generalized_;

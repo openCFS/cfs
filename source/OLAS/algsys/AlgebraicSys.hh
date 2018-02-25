@@ -11,6 +11,7 @@
 #include "General/Exception.hh"
 #include "OLAS/graph/GraphManager.hh"
 #include "Utils/ThreadLocalStorage.hh"
+//#include "OLAS/solver/BaseEigenSolver.hh"
 
 namespace CoupledField {
 
@@ -178,7 +179,6 @@ namespace CoupledField {
     //! \param bloch mode problems are complex but not quadratic
     void SetupEigenSolver(UInt numFreq, Double shift, bool quadratic, bool sort, bool bloch);
 
-
     //! Solve the linear system.
     //! Calling this method triggers the solution of the linear system
     //! defined by the Finite-Element system matrix, i.e. sysMat_[SYSTEM],
@@ -230,6 +230,7 @@ namespace CoupledField {
     //! \note This method may only be called if SetupEigenfrequencySolver()
     //!       was called previously.
     void CalcEigenFrequencies(Vector<Complex>& frequencies, Vector<Double>& err);
+    void CalcEigenValues(BaseVector &sol, BaseVector &err, Double minVal, Double maxVal);
 
     //! Calculate eigenmodes of a generalized eigenvalue problem
 
@@ -934,6 +935,8 @@ namespace CoupledField {
     /** Handle export linear system at the different phases. Checks by itself what needs to be done it anything.
      * Shall be called for each phase, set each time exactly one parameter to true */
     void ExportLinSys(bool setup, bool pre_solve, bool post_solve);
+
+    BaseEigenSolver* GetEigenSolver(){ return eigenSolver_; };
 
 
   protected:

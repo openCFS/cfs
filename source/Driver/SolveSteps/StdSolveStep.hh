@@ -118,6 +118,11 @@ namespace CoupledField
     UInt CalcEigenFrequencies( Vector<Complex> & frequencies, Vector<Double> & errBounds,
                                UInt numFreq, double shift, bool sort, bool bloch);
 
+    //! Calculate the Eigenfrequencies in an interval [minVal,maxVal]
+    UInt CalcEigenFrequencies( Vector<Double>& frequencies, Vector<Double>& errBounds, Double minVal, Double maxVal);
+
+    void CalcEigenValues(BaseVector &sol, BaseVector &err, Double minVal, Double maxVal );
+
     //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
     //! Therefore, previously CalcEigenFrequencies() has to be called.
     void GetEigenMode( UInt numMode );
@@ -161,6 +166,8 @@ namespace CoupledField
 
     /** The Assemle opject contains the bilinear forms */
     Assemble* GetAssemble() { return assemble_; } 
+
+    AlgebraicSys * GetAlgSys() { return algsys_; }
 
     //! Set the current time step
     void SetTimeStep( Double dt );
