@@ -568,7 +568,47 @@ template<FeHCurlHi::DiffType DIFF_TYPE>
 void FeHCurlHiTria::CalcLocShFnc2( Matrix<Double>& shape,
                                   const LocPointMapped& lpm,
                                   const Elem* elem, UInt comp ) {
-EXCEPTION("Implement me");
+
+  if (updateUnknowns_) CalcNumUnknowns();
+  AutoDiff<Double, 2> x (lpm.lp.coord[0],0);
+  AutoDiff<Double, 2> y (lpm.lp.coord[1],1);
+  AutoDiff<Double, 2> lambda[3] = {1.0 - x - y, x, y};
+  shape.Resize(2,actNumFncs_);
+  shape.Init();
+
+  StdVector<AutoDiff<Double, 2> > Vals;
+  // ------------------------
+  // 1) Edge shape functions
+  // ------------------------
+  for( UInt i = 0; i < 3; ++i ) {
+    UInt order = orderEdge_[i];
+    if(order > 1) EXCEPTION("HCurl TRIA shape functions only defined for order 0 and 1!");
+    UInt index1 = shape_.edgeVertices[i][0]-1;
+    UInt index2 = shape_.edgeVertices[i][1]-1;
+    if ( elem->extended->edges[i] < 0 ) std::swap(index1, index2);  // fmax > f1 > f2
+
+    // === a) standard Nedelec shape functions ===
+    //Xpr_Diff_SVGradU<2,DIFF_TYPE> xpr( lambda[index1], lambda[index2], 1.0);
+    for( UInt k = 0; k < 2; ++k ){
+      shape[k][i] = lambda[index1].DVal(k) * lambda[index2].Val() + lambda[index2].DVal(k) * lambda[index1].Val();
+    }
+
+    // === b) gradient functions
+    if( useEdgeGrad_[i] ) {
+      WARN("Gradient fields for TRIA elements not thoroughly tested!!!");
+      if (!onlyLowestOrder_){
+        ScaledIntLegendreP2(Vals, order + 1, lambda[index2]+lambda[index1], lambda[index2]-lambda[index1]);
+        for (UInt j = 0; j < order; ++j) {
+          Xpr_GradU<2,DIFF_TYPE> xpr(Vals[j]);
+          for( UInt k = 0; k < 2; ++k ) {
+            shape[k][j] = xpr[k];
+          }
+        }
+      } //if: edgeGrad
+    }
+    if(onlyLowestOrder_) return;
+  }
+  return;
 }
 
 // =======================
@@ -705,7 +745,7 @@ void FeHCurlHiQuad::CalcLocShFnc2( Matrix<Double>& shape,
     }
     // b) gradient functions
     if( useEdgeGrad_[i] ) {
-      EXCEPTION("NOt implemented");
+      EXCEPTION("Not implemented");
     }
   }
   return;
