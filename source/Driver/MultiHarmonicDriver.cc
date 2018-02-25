@@ -158,16 +158,52 @@ namespace CoupledField
     ptPDE_->GetSolveStep()->PostStepHarmonic();
 
 
-    // Set both of them to zero since they have no meaning in multiharmonic analysis
-    UInt actFreqStep = 0;
-    Double actFreq = 0.0;
-    analysis_id_.step = actFreqStep;
-    analysis_id_.freq = actFreq;
-    // analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
 
-    handler_->BeginStep( actFreqStep, actFreq );
-    ptPDE_->WriteResultsInFile( actFreqStep, actFreq );
-    handler_->FinishStep( );
+    for(UInt i = 0; i < numHarmonics_N_; ++i  ){
+      // current frequency
+      Double actF = harmFreq_[numHarmonics_N_ - 1 - i];
+      // which harmonic are we considering
+      Integer h = -numHarmonics_N_ + i;
+      if( std::abs(h) >= (Integer)numHarmonics_M_ ){
+        continue;
+      }else{
+        // the harmonics number h can be negative but the frequency step can't
+        // therefore use the index i
+        // i = [  0     1     2  ...   N    N+1   N+2 ...  2N ]
+        // h = [ -N   -N+1  -N+2 ...   0     1     2  ...   N ]
+        UInt actFreqStep = h;
+        Double actFreq = 0.0;
+        analysis_id_.step = actFreqStep;
+        analysis_id_.freq = actFreq;
+
+        // Now we need to set the actual solution and rhs vector (depending on
+        // the current harmonic). This basically stores the solution and rhs back to
+        // the PDE itself
+        // Usually this is done in the StdSolveStep when algsys_->GetSolutionVal(solVec_)
+        // is called but in the multiharmonic case this must be done here.
+        //TODO do we even need this ?!
+        ptPDE_->GetSolveStep()->GetRHSValMultHarm(h);
+        ptPDE_->GetSolveStep()->GetSolutionValMultHarm(h);
+
+
+
+
+        handler_->BeginStep( actFreqStep, actFreq );
+        ptPDE_->WriteResultsInFile( actFreqStep, actFreq );
+        handler_->FinishStep( );
+
+
+
+
+
+
+      }
+    }
+
+
+
+
+
 
 
 

@@ -91,12 +91,9 @@ namespace CoupledField
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
 
-    //----------------------- HARMONIC---------------------------------------
+    //----------------------- HARMONIC AND MULTIHARMONIC -------------------------
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepHarmonic();
-
-    //! routine for initilizations befor execution the SolveStep-method
-    virtual void PreStepMultiHarmonic(StdVector<Double> harmFreq);
 
     //!  base method for solving one harmonic step 
     virtual void SolveStepHarmonic();
@@ -110,7 +107,13 @@ namespace CoupledField
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() {;};
     
-    //----------------------- HARMONIC ---------------------------------------
+    //! same as GetSoltionVal and GetRHSVal but only in the
+    //! multiharmonic case and it's triggered by the MultiHarmonicDriver
+    //! in the SolveProblem() method
+    void GetSolutionValMultHarm(const UInt& h);
+    void GetRHSValMultHarm(const UInt& h);
+
+    //----------------------- EIGENFREQUENCY ----------------------------------
 
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
     UInt CalcEigenFrequencies( Vector<Double> & frequencies, Vector<Double> & errBounds,
@@ -318,9 +321,6 @@ namespace CoupledField
     bool forceReevaluation_;
     bool debugOutput_;
     UInt remainingEvalParameter_;
-
-    //! Vector containing the harmonic-frequencies (negative, 0, positive)
-    StdVector<Double> harmFreq_;
 
     //! Vector containing the rhs for the current stage based on the scheme
     //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system

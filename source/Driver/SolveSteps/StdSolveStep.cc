@@ -46,14 +46,6 @@ namespace CoupledField {
     feFunctions_ = PDE_.GetFeFunctions();
     rhsFeFunctions_ = PDE_.GetRhsFeFunctions();
     
-    // Copy vectors FE functions in SBM-vector for communication
-    // with OLAS and time stepping
-    solVec_.SetSize( feFunctions_.size() );
-    rhsVec_.SetSize( feFunctions_.size() );
-    
-    //    resVec_.SetSize( feFunctions_.size() );
-    //    nonLinRHS_.SetSize( feFunctions_.size() );
-    
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
     it = feFunctions_.begin();
 
@@ -2657,11 +2649,6 @@ namespace CoupledField {
     algsys_->InitRHS();
   }
 
-  void StdSolveStep::PreStepMultiHarmonic(StdVector<Double> harmFreq) {
-    algsys_->InitRHS();
-    harmFreq_ = harmFreq;
-  }
-
   void StdSolveStep::SolveStepHarmonic() {
     if ( nonLin_ || solStrat_->IsMultHarm() ) {
       StepHarmonicNonLin();
@@ -2673,17 +2660,6 @@ namespace CoupledField {
   
   
   void StdSolveStep::StepHarmonicLin() {
-    
-    //JUST A HACK!!!!
-    //matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
-    //matrix_factor_Complex_[NO_FCT_ID][DAMPING] = CompSetLinRHSlex(0.0,actFreq_*2*M_PI);
-    //matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(-1.0 * actFreq_*actFreq_*4*M_PI*M_PI,0);
-    
-    //matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
-    //matrix_factor_Complex_[NO_FCT_ID][DAMPING] = Complex(1.0,0.0);
-    //matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(1.0,0.0);
-    
-    
     //Set special RHS Values
     //std::cout << "Do Apply Loads" << std::endl;
     PDE_.SetRhsValues();
@@ -2787,8 +2763,11 @@ namespace CoupledField {
     PDE_.SetBCs();
 
 
-    // store rhs vector back to PDE
-    algsys_->GetRHSVal( rhsVec_ );
+    // Usually this is the place where the method algsys_->GetRHSVal(rhsVec_)
+    // is called to store the rhs vector back to PDE but in the multiharmonic
+    // case this must be done for each frequency, which is
+    // triggered in MultiharmonicDriver::SolveProblem by a call to
+    // StdSolveStep::GetRHSValMultHarm(h), where h is the harmonic number
 
 
     std::map<FEMatrixType,Double> empty;
@@ -2817,21 +2796,20 @@ namespace CoupledField {
     }
 
     algsys_->Solve();
-    algsys_->GetSolutionVal(solVec_);
+    // Usually this is the place where the method algsys_->GetSolutionVal(solVec_)
+    // is called but in the multiharmonic case this must be done for each frequency
+    // triggered in MultiharmonicDriver::SolveProblem by a call to
+    // StdSolveStep::GetSolutionValMultHarm(h), where h is the harmonic number
 
-    if ( adjointSource_ ) {
-      //check if adjoint PDE has been solved in case of source localization
-      //if yes, we have to multiply the solution with a standard mass matrix
-      std::cout << "DO multiply with MASS-matrix" << std::endl;
-      //solVec_.Export("sol1.dat",BaseMatrix::MATRIX_MARKET);
-      algsys_->InitRHS();
-      algsys_->UpdateRHS(AUXILIARY,solVec_,true);
-      algsys_->GetRHSVal( solVec_ );
-      //solVec_.Export("sol2.dat",BaseMatrix::MATRIX_MARKET);
-      //std::cout << "SOL after: \n " << solVec_ << std::endl;
-      adjointSource_ = false;
-    }
+  }
 
+  void StdSolveStep::GetSolutionValMultHarm(const UInt& h){
+    algsys_->GetSolutionVal(h, solVec_);
+  }
+
+
+  void StdSolveStep::GetRHSValMultHarm(const UInt& h){
+    algsys_->GetRHSVal(h, rhsVec_);
   }
 
 
