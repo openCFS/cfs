@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
-  elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -37,7 +34,7 @@
 
   <!-- This is an abstract basic type so that it cannot appear in an -->
   <!-- instance document -->
-  <xsd:complexType name="DT_AnalysisBasic" abstract="true"/>  
+  <xsd:complexType name="DT_AnalysisBasic" abstract="true"/>
 
   <!-- ******************************************************************* -->
   <!--   Definition of basic Analysis element -->
@@ -51,9 +48,7 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element Analysis Static -->
   <!-- ******************************************************************* -->
-  <xsd:element name="static" type="DT_AnalysisStatic"
-    substitutionGroup="AnalysisBasic"> 
-  </xsd:element>
+  <xsd:element name="static" type="DT_AnalysisStatic" substitutionGroup="AnalysisBasic"> </xsd:element>
 
   <!-- Data type for static analysis -->
   <xsd:complexType name="DT_AnalysisStatic">
@@ -61,8 +56,8 @@
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
           <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
-		</xsd:sequence>      
-      </xsd:extension>    
+        </xsd:sequence>
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -72,28 +67,26 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element AnalysisTransient -->
   <!-- ******************************************************************* -->
-  <xsd:element name="transient" type="DT_AnalysisTransient"
-    substitutionGroup="AnalysisBasic"> 
-  </xsd:element>
+  <xsd:element name="transient" type="DT_AnalysisTransient" substitutionGroup="AnalysisBasic"> </xsd:element>
 
   <!-- Data type for transient section, i.e. parameters required for
        performing a transient analysis -->
   <xsd:complexType name="DT_AnalysisTransient">
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
-      	<xsd:sequence>
+        <xsd:sequence>
           <xsd:element name="numSteps" type="xsd:token"/>
           <xsd:element name="deltaT" type="xsd:token"/>
           <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
-           <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
-        
+
         <!-- Specify behavior of time step varaible t. Accumulated denots that
              the time is accumulated over several sequence steps.
              Zero denotes that each MultiSequence step has its own local time, 
              starting at 0 -->
         <xsd:attribute name="initialTime" default="accumulated">
-   	      <xsd:simpleType>
+          <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="accumulated"/>
               <xsd:enumeration value="zero"/>
@@ -107,8 +100,7 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element AnalysisHarmonic -->
   <!-- ******************************************************************* -->
-  <xsd:element name="harmonic" type="DT_AnalysisHarmonic"
-    substitutionGroup="AnalysisBasic"/>
+  <xsd:element name="harmonic" type="DT_AnalysisHarmonic" substitutionGroup="AnalysisBasic"/>
 
   <!-- Data type for harmonic section, i.e. parameters required for
        performing a harmonic analysis -->
@@ -134,9 +126,9 @@
                 <xsd:element name="freq" maxOccurs="unbounded" minOccurs="1">
                   <xsd:complexType>
                     <xsd:attribute name="value" type="xsd:token" use="required"/>
-                    <xsd:attribute name="weight" type="xsd:token" default="1.0" use="optional"/> 
+                    <xsd:attribute name="weight" type="xsd:token" default="1.0" use="optional"/>
                   </xsd:complexType>
-                </xsd:element>                
+                </xsd:element>
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
@@ -145,8 +137,8 @@
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
-  </xsd:complexType> 
-  
+  </xsd:complexType>
+
   <!-- ******************************************************************* -->
   <!--   Definition of element eigenFrequency -->
   <!-- ******************************************************************* -->
@@ -159,38 +151,46 @@
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
           <xsd:element name="isQuadratic" type="DT_CFSBool"/>
-          <xsd:element name="numModes" type="xsd:token"/>
-          <xsd:element name="freqShift" type="DT_NonNegFloat"/>
+          <xsd:choice>
+            <xsd:sequence>
+              <xsd:element name="numModes" type="xsd:token"/>
+              <xsd:element name="freqShift" type="DT_NonNegFloat"/>
+            </xsd:sequence>
+            <xsd:sequence>
+              <xsd:element name="minVal" type="xsd:token" default="0" minOccurs="0"/>
+              <xsd:element name="maxVal" type="xsd:token"/>
+            </xsd:sequence>
+          </xsd:choice>
           <xsd:element name="writeModes" type="DT_CFSBool"/>
           <!-- bloch band gap visualization on the IBZ -->
           <xsd:element name="bloch" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:sequence>
-               <xsd:element name="ibz" minOccurs="0" maxOccurs="1">
-                 <xsd:complexType>
-                   <xsd:attribute name="sample" use="required">
-                     <xsd:simpleType>
-                       <xsd:restriction base="xsd:token">
-                         <!-- This is a triangle in 2D and and tetrahedron in 3D. Note that this is only valid for symmetric designs! --> 
-                         <xsd:enumeration value="symmetric"/>
-                         <!-- This is a (boundary! of a) rectangle in 3D (first quadrant) and a cube in 3D. Necessary for non-symmetric designs! -->
-                         <xsd:enumeration value="quadrant"/>
-                         <!-- This is just the horizontal part for 2D and 3D -->
-                         <xsd:enumeration value="horizontal"/>
-                         <!-- this regularly samples the first quadrant, has no practical meaning - just to verify the quadrant and triangle -->
-                         <xsd:enumeration value="full"/>
+                <xsd:element name="ibz" minOccurs="0" maxOccurs="1">
+                  <xsd:complexType>
+                    <xsd:attribute name="sample" use="required">
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:token">
+                          <!-- This is a triangle in 2D and and tetrahedron in 3D. Note that this is only valid for symmetric designs! -->
+                          <xsd:enumeration value="symmetric"/>
+                          <!-- This is a (boundary! of a) rectangle in 3D (first quadrant) and a cube in 3D. Necessary for non-symmetric designs! -->
+                          <xsd:enumeration value="quadrant"/>
+                          <!-- This is just the horizontal part for 2D and 3D -->
+                          <xsd:enumeration value="horizontal"/>
+                          <!-- this regularly samples the first quadrant, has no practical meaning - just to verify the quadrant and triangle -->
+                          <xsd:enumeration value="full"/>
                         </xsd:restriction>
-                     </xsd:simpleType>
-                   </xsd:attribute>
-                   <xsd:attribute name="steps" use="required" type="xsd:int"/>
-                 </xsd:complexType>
-               </xsd:element>
-               <xsd:element name="waveVector" minOccurs="0" maxOccurs="unbounded">
-                 <xsd:complexType>
+                      </xsd:simpleType>
+                    </xsd:attribute>
+                    <xsd:attribute name="steps" use="required" type="xsd:int"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="waveVector" minOccurs="0" maxOccurs="unbounded">
+                  <xsd:complexType>
                     <xsd:attribute name="x" type="xsd:float" use="required"/>
                     <xsd:attribute name="y" type="xsd:float" use="required"/>
-                 </xsd:complexType>
-               </xsd:element>
+                  </xsd:complexType>
+                </xsd:element>
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
@@ -202,7 +202,7 @@
         <xsd:attribute name="sort" use="optional" type="xsd:boolean" default="true"/>
       </xsd:extension>
     </xsd:complexContent>
-  </xsd:complexType> 
+  </xsd:complexType>
 
 
   <!-- ******************************************************************* -->
@@ -216,8 +216,8 @@
   <xsd:complexType name="DT_AnalysisInverseSource">
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
-        <xsd:sequence>   
-          <xsd:element name="measDataFilename" type="xsd:string" minOccurs="1" maxOccurs="1"/>          
+        <xsd:sequence>
+          <xsd:element name="measDataFilename" type="xsd:string" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="freq" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="alphaPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="betaPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
@@ -225,7 +225,7 @@
           <xsd:element name="expPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="resStopCritRel" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="maxReduceParSteps" type="xsd:token" minOccurs="1" maxOccurs="1"/>
-          <xsd:element name="maxGradSteps" type="xsd:token" minOccurs="1" maxOccurs="1"/>         
+          <xsd:element name="maxGradSteps" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="maxNumLineSearch" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="minMicDistant" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="logLevel" type="xsd:string" minOccurs="1" maxOccurs="1"/>
@@ -234,6 +234,6 @@
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
-  </xsd:complexType> 
+  </xsd:complexType>
 
 </xsd:schema>

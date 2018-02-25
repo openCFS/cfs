@@ -187,6 +187,10 @@ namespace CoupledField {
     //! as a value of the enumeration data type StructureType.
     virtual BaseMatrix::StructureType GetStructureType() const = 0;
 
+    //! The method returns the storage type of the matrix. This is encoded
+    //! as a value of the enumeration data type StorageType.
+    virtual BaseMatrix::StorageType GetStorageType() const = 0;
+
     //! Return the Entry type of the matrix
 
     //! The method returns the entry type of the matrix on the scalar level.

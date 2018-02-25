@@ -404,6 +404,9 @@ namespace CoupledField {
   //! - STANDARD_SYSTEM
   typedef enum { NOALGSYSTYPE, SBM_SYSTEM, STANDARD_SYSTEM } AlgSysType;
 
+  //! Type of Eigenvalue Problem
+  typedef enum {NO_TYPE, REAL_SYMMETRIC, REAL_GENERAL, COMPLEX_SYMMETRIC, COMPLEX_HERMITIAN, COMPLEX_GENERAL} EigenValueProblemType;
+
   //! Type of cycle used for algebraic multigrid preconditioner
 
   //! This enumeration data type describes the type of solutions
