@@ -13,30 +13,22 @@
 //================================================================================================
 
 
-#include <fstream>
-#include <iostream>
-#include <string>
-
-#include <boost/lexical_cast.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-
-
-// signal handling for catching Ctr-C
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <DataInOut/ParamHandling/ParamNode.hh>
+#include <DataInOut/ResultHandler.hh>
+#include <DataInOut/SimState.hh>
+#include <Domain/Domain.hh>
+#include <Driver/MultiHarmonicDriver.hh>
+#include <Driver/SolveSteps/BaseSolveStep.hh>
+#include <General/defs.hh>
+#include <General/Environment.hh>
+#include <General/Exception.hh>
+#include <PDE/BasePDE.hh>
 #include <signal.h>
-
-#include "Driver/MultiHarmonicDriver.hh"
-#include "Driver/SolveSteps/StdSolveStep.hh"
-#include "Driver/Assemble.hh"
-#include "DataInOut/SimState.hh"
-#include "Utils/Timer.hh"
-
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ResultHandler.hh"
-#include "DataInOut/ProgramOptions.hh"
-
-#include "PDE/StdPDE.hh"
-
-#include "Domain/Domain.hh"
+#include <Utils/StdVector.hh>
+#include <Utils/Timer.hh>
+#include <cstdlib>
+#include <iostream>
 
 
 using std::cout;
@@ -159,55 +151,36 @@ namespace CoupledField
 
 
 
-    for(UInt i = 0; i < numHarmonics_N_; ++i  ){
+    for(UInt i = 0; i < harmFreq_.GetSize(); ++i  ){
       // current frequency
-      Double actF = harmFreq_[numHarmonics_N_ - 1 - i];
+      Double actFreq = harmFreq_[i];
       // which harmonic are we considering
       Integer h = -numHarmonics_N_ + i;
-      if( std::abs(h) >= (Integer)numHarmonics_M_ ){
-        continue;
-      }else{
-        // the harmonics number h can be negative but the frequency step can't
-        // therefore use the index i
-        // i = [  0     1     2  ...   N    N+1   N+2 ...  2N ]
-        // h = [ -N   -N+1  -N+2 ...   0     1     2  ...   N ]
-        UInt actFreqStep = h;
-        Double actFreq = 0.0;
-        analysis_id_.step = actFreqStep;
-        analysis_id_.freq = actFreq;
 
-        // Now we need to set the actual solution and rhs vector (depending on
-        // the current harmonic). This basically stores the solution and rhs back to
-        // the PDE itself
-        // Usually this is done in the StdSolveStep when algsys_->GetSolutionVal(solVec_)
-        // is called but in the multiharmonic case this must be done here.
-        //TODO do we even need this ?!
-        ptPDE_->GetSolveStep()->GetRHSValMultHarm(h);
-        ptPDE_->GetSolveStep()->GetSolutionValMultHarm(h);
+      // the harmonics number h can be negative but the frequency step can't
+      // therefore use the index i
+      // i = [  0     1     2  ...   N    N+1   N+2 ...  2N ]
+      // h = [ -N   -N+1  -N+2 ...   0     1     2  ...   N ]
+      UInt actFreqStep = i;
+      analysis_id_.step = actFreqStep;
+      analysis_id_.freq = actFreq;
 
+      // Now we need to set the actual solution and rhs vector (depending on
+      // the current harmonic). This basically stores the solution and rhs back to
+      // the PDE itself
+      // Usually this is done in the StdSolveStep when algsys_->GetSolutionVal(solVec_)
+      // is called but in the multiharmonic case this must be done here.
+      //TODO do we even need this ?!
 
+      ptPDE_->GetSolveStep()->GetRHSValMultHarm(i);
+      ptPDE_->GetSolveStep()->GetSolutionValMultHarm(i);
 
-
-        handler_->BeginStep( actFreqStep, actFreq );
-        ptPDE_->WriteResultsInFile( actFreqStep, actFreq );
-        handler_->FinishStep( );
-
-
-
-
-
-
-      }
+      handler_->BeginStep( actFreqStep, actFreq );
+      ptPDE_->WriteResultsInFile( actFreqStep, actFreq );
+      handler_->FinishStep( );
     }
 
 
-
-
-
-
-
-
-EXCEPTION("END OF CURRENT IMPLEMENTATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
 /*
     // write out re-start in case of aborted simulation or if all steps should be written
@@ -232,9 +205,7 @@ EXCEPTION("END OF CURRENT IMPLEMENTATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
     envNode->Get("remainingTime")->SetValue(remainingTime);
     envNode->Get("timePerStep")->SetValue(timePerStep_);
-
-
-
+*/
 
 
     handler_->FinishMultiSequenceStep();
@@ -244,7 +215,7 @@ EXCEPTION("END OF CURRENT IMPLEMENTATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // Perform finalization only if not part of sequence
     if(!isPartOfSequence_) 
       handler_->Finalize();
-*/
+
   }
 
 

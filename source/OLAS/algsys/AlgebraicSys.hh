@@ -782,6 +782,10 @@ namespace CoupledField {
     //!                false: is needed in case of nonlinear PDE, incremental formulation!
     void GetSolutionVal( SBM_Vector& sbmSolVec, bool setIDBC=true, bool deltaIDBC=false );
     
+
+    void GetSolutionVal( const UInt& h, SBM_Vector& sbmSolVec, bool setIDBC=true, bool deltaIDBC=false );
+
+
     //! Return solution vector for one single FeFct
 
     //! This method returns the solution vector associated with one specific
@@ -835,6 +839,13 @@ namespace CoupledField {
     //!                  as SBM-index)
     void GetRHSVal( SBM_Vector& sbmRhsVec );
     
+    //! Return block right-hand-side (RHS) vector from multiharmonic anlysis
+
+    //! This method returns the specified right-hand-side block (h) as
+    //! SBM-vector. The blocks are split per FctIdType,
+    void GetRHSVal( const UInt& h, SBM_Vector& sbmRhsVec );
+
+
     //! Return right-hand-side (RHS) vector for one single FeFct
 
     //! This method returns the RHS vector associated with one specific

@@ -49,73 +49,32 @@ namespace CoupledField {
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
     it = feFunctions_.begin();
 
-    if( !solStrat_->IsMultHarm() ){
-      // Classic case
+    // Copy vectors FE functions in SBM-vector for communication
+    // with OLAS and time stepping
+    solVec_.SetSize( feFunctions_.size() );
+    rhsVec_.SetSize( feFunctions_.size() );
 
-      // Copy vectors FE functions in SBM-vector for communication
-      // with OLAS and time stepping
-      solVec_.SetSize( feFunctions_.size() );
-      rhsVec_.SetSize( feFunctions_.size() );
+    for( ; it != feFunctions_.end(); ++it ){
+      shared_ptr<BaseFeFunction> & ptFct = it->second;
+      FeFctIdType id = ptFct->GetFctId();
+      // here the solution vector is filled with pointers from
+      // the FE function. Therefore setting the solVec_ in
+      // algsys_->GetSolutionVal(solVec_) automatically fills the
+      // SingleVector in FE function
+      solVec_.SetSubVector(ptFct->GetSingleVector(), id);
+    }
+    //pos = 0;
+    it = rhsFeFunctions_.begin();
+    for( ; it != rhsFeFunctions_.end(); ++it ){
+      shared_ptr<BaseFeFunction> & ptFct = it->second;
+      FeFctIdType id = ptFct->GetFctId();
+      // here the solution vector is filled with pointers from
+      // the FE function. Therefore setting the solVec_ in
+      // algsys_->GetSolutionVal(solVec_) automatically fills the
+      // SingleVector in FE function
+      rhsVec_.SetSubVector(ptFct->GetSingleVector(), id);
+    }
 
-      for( ; it != feFunctions_.end(); ++it ){
-        shared_ptr<BaseFeFunction> & ptFct = it->second;
-        FeFctIdType id = ptFct->GetFctId();
-        // here the solution vector is filled with pointers from
-        // the FE function. Therefore setting the solVec_ in
-        // algsys_->GetSolutionVal(solVec_) automatically fills the
-        // SingleVector in FE function
-        solVec_.SetSubVector(ptFct->GetSingleVector(), id);
-      }
-      //pos = 0;
-      it = rhsFeFunctions_.begin();
-      for( ; it != rhsFeFunctions_.end(); ++it ){
-        shared_ptr<BaseFeFunction> & ptFct = it->second;
-        FeFctIdType id = ptFct->GetFctId();
-        // here the solution vector is filled with pointers from
-        // the FE function. Therefore setting the solVec_ in
-        // algsys_->GetSolutionVal(solVec_) automatically fills the
-        // SingleVector in FE function
-        rhsVec_.SetSubVector(ptFct->GetSingleVector(), id);
-      }
-    }else{
-      // Multiharmonic case
-      if(feFunctions_.size() != 1) EXCEPTION("Multiharmonic case has more than one FE-function!!");
-
-      UInt N = solStrat_->GetNumHarmN();
-      // Copy vectors FE functions in SBM-vector for communication
-      // with OLAS and time stepping
-      solVec_.SetSize( 2 * N + 1 );
-      rhsVec_.SetSize( 2 * N + 1 );
-
-      //TODO this part must also be adapted, if we have excitation in more than the base-harmonic
-      // Currently we have to make sure that every sbm-sub vector is not NULL, therefore
-      // we set it to 0
-      for( ; it != feFunctions_.end(); ++it ){
-        shared_ptr<BaseFeFunction> & ptFct = it->second;
-        solVec_.SetSubVector(ptFct->GetSingleVector(), N + 1);
-        zVec_.Resize(ptFct->GetSingleVector()->GetSize(), (Complex)0 );
-        for(UInt i = 0; i < 2 * N + 1; ++i){
-          // here the solution vector is filled with pointers from
-          // the FE function. Therefore setting the solVec_ in
-          // algsys_->GetSolutionVal(solVec_) automatically fills the
-          // SingleVector in FE function
-          if(i != N + 1) solVec_.SetSubVector(&zVec_, i );
-        }
-      }
-      //pos = 0;
-      it = rhsFeFunctions_.begin();
-      for( ; it != rhsFeFunctions_.end(); ++it ){
-        shared_ptr<BaseFeFunction> & ptFct = it->second;
-        rhsVec_.SetSubVector(ptFct->GetSingleVector(), N + 1);
-        for(UInt i = 0; i < 2 * N + 1; ++i){
-          // here the solution vector is filled with pointers from
-          // the FE function. Therefore setting the solVec_ in
-          // algsys_->GetSolutionVal(solVec_) automatically fills the
-          // SingleVector in FE function
-          if(i != N + 1) rhsVec_.SetSubVector(&zVec_, i );
-        }
-      }
-    }// endif isMultHarm
 
     // Make sure to have both vectors as "weak" vectors,
     // as the feFunctions themselves are responsible for

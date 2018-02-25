@@ -110,8 +110,8 @@ namespace CoupledField
     //! same as GetSoltionVal and GetRHSVal but only in the
     //! multiharmonic case and it's triggered by the MultiHarmonicDriver
     //! in the SolveProblem() method
-    void GetSolutionValMultHarm(const UInt& h);
-    void GetRHSValMultHarm(const UInt& h);
+    virtual void GetSolutionValMultHarm(const UInt& h);
+    virtual void GetRHSValMultHarm(const UInt& h);
 
     //----------------------- EIGENFREQUENCY ----------------------------------
 

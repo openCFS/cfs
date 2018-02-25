@@ -3315,22 +3315,24 @@ namespace CoupledField {
   }
   
   void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
-    
-    if(!isMultHarm_){
-      solVec.Resize( numFcts_);
-      // loop over all feFctIDs
-      for(UInt i = 0; i < numFcts_; ++i ) GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC);
-    }else{
-      // resize rhs-vector to number of harmonics (-N,...,0,...N)
-      UInt size = 2 * solStrat_->GetNumHarmN() + 1;
-      solVec.Resize( size );
-      // loop over ''block''-vectors and fill them
+    solVec.Resize( numFcts_);
+    // loop over all feFctIDs
+    for(UInt i = 0; i < numFcts_; ++i ) GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC);
+  }
+
+
+  void AlgebraicSys::GetSolutionVal( const UInt& h,  SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
+      solVec.Resize( numFcts_ );
+      // Get the correct block-vector
       // call specialized GetSolutionVal method, the boolean
       // has no effect, it's just an identifier to call the correct method
-      for(UInt i = 0; i < size; ++i) GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC, true);
-    }
+      GetSolutionVal(solVec(0), h, setIDBC, deltaIDBC, true);
   }
   
+
+
+
+
   void AlgebraicSys::GetRHSVal( SingleVector &ptRhs,
                                 const FeFctIdType fctId  ) {
     
@@ -3410,23 +3412,26 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::GetRHSVal( SBM_Vector& rhsVec ) {
-    if( !isMultHarm_ ){
-      // resize rhsVec to match number of functions
-      rhsVec.Resize( numFcts_);
-      // loop over all feFctIDs
-      for(UInt i = 0; i < numFcts_; ++i ) GetRHSVal(rhsVec(i), i);
-    }else{
-      // resize rhs-vector to number of harmonics (-N,...,0,...N)
-      UInt size = 2 * solStrat_->GetNumHarmN() + 1;
-      rhsVec.Resize( size );
+    // resize rhsVec to match number of functions
+    rhsVec.Resize( numFcts_);
+    // loop over all feFctIDs
+    for(UInt i = 0; i < numFcts_; ++i ) GetRHSVal(rhsVec(i), i);
+  }
 
-      // loop over ''block''-vectors and fill them
-      // call specialized GetRHSVal method, the boolean
-      // has no effect, it's just an identifier to call the correct method
-      for(UInt i = 0; i < size; ++i) GetRHSVal(rhsVec(i), i, true);
-    }// endif isMultHarm
+
+
+  void AlgebraicSys::GetRHSVal( const UInt& h, SBM_Vector& rhsVec ) {
+    rhsVec.Resize( numFcts_ );
+
+    // Get the correct block-vector
+    // call specialized GetRHSVal method, the boolean
+    // has no effect, it's just an identifier to call the correct method
+    GetRHSVal(rhsVec(0), h, true);
   }
   
+
+
+
   SBM_Matrix* AlgebraicSys::GenerateSBM_Matrix( FEMatrixType matType,
                                                 BaseMatrix::EntryType entryType,
                                                 bool sharePattern ) {
