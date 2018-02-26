@@ -1858,10 +1858,10 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 #         support.append(i)
       # x is x_min or x_max  
          
-#    if nodes[i][1] < -2.9999999:
-#      support.append(i)
-#    elif nodes[i][1] > 31.9999999:
-#      load.append(i)
+    if nodes[i][1] < -2.9999999:
+      support.append(i)
+    elif nodes[i][1] > 31.9999999:
+      load.append(i)
 #    if nodes[i][2] < 0.0000001:
 #      symmetric.append(i)
 #  print(len(load))
@@ -2534,9 +2534,9 @@ def create_3d_mesh_from_array(array,multRegion,widthx=1.0,widthy=1.0,widthz=1.0,
       for x in range(nx):
         e = Element()
         e.type = HEXA8
-        if (array[x][y][z] >= 0.0 and multRegion):
+        if (array[x,y,z] >= 0.0 and multRegion):
           e.region = "mech" + str(int(array[x][y][z]))
-        elif (array[x][y][z] >= 0.0 and not multRegion):
+        elif (array[x,y,z] > 0 and not multRegion):
           e.region = "mech"
         else:
           e.region = "void"

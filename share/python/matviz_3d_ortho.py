@@ -5,6 +5,7 @@ import matviz_vtk
 import vtk
 import math
 import sys
+import ray_triangle
 
 try:
   import meshpy.triangle as triangle
@@ -96,37 +97,37 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   my_mpi_grid.init_data_grid(samples, args.bc_res, bounds)
   my_mpi_grid.to_info()
   
-  local_id = 0
-  for k in range(samples[2]):
-    for j in range(samples[1]):
-      for i in range(my_mpi_grid.start_x,my_mpi_grid.end_x):
-        this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
-        east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
-        top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
-        front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+  #local_id = 0
+  #for k in range(samples[2]):
+    #for j in range(samples[1]):
+      #for i in range(my_mpi_grid.start_x,my_mpi_grid.end_x):
+        #this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
+        #east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
+        #top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
+        #front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
          
-        assert(this is not None and east is not None and top is not None and front is not None)
+        #assert(this is not None and east is not None and top is not None and front is not None)
          
-        # if one of the values is < min_thresh, set it to min_thresh        
-        # if one of the values is > max_thresh, set it to max_thresh
-        x1 = min(max(this[0],min_thresh),max_thresh)
-        x2 = min(max(east[0],min_thresh),max_thresh)
-        y1 = min(max(this[1],min_thresh),max_thresh)
-        y2 = min(max(top[1],min_thresh),max_thresh)
-        z1 = min(max(this[2],min_thresh),max_thresh)
-        z2 = min(max(front[2],min_thresh),max_thresh)
+        ## if one of the values is < min_thresh, set it to min_thresh        
+        ## if one of the values is > max_thresh, set it to max_thresh
+        #x1 = min(max(this[0],min_thresh),max_thresh)
+        #x2 = min(max(east[0],min_thresh),max_thresh)
+        #y1 = min(max(this[1],min_thresh),max_thresh)
+        #y2 = min(max(top[1],min_thresh),max_thresh)
+        #z1 = min(max(this[2],min_thresh),max_thresh)
+        #z2 = min(max(front[2],min_thresh),max_thresh)
          
-        flags = None
-        bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
-        bc_input.eta = 0.7
-        bc_input.stiffness_as_diameter = True
-        cell_obj = basecell.Basecell(bc_input,id)
-        # local i,j,k
-        li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
-        print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
-        my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
+        #flags = None
+        #bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
+        #bc_input.eta = 0.7
+        #bc_input.stiffness_as_diameter = True
+        #cell_obj = basecell.Basecell(bc_input,id)
+        ## local i,j,k
+        #li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
+        #print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+        #my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
      
-        local_id += 1
+        #local_id += 1
     
   eps = 1e-6
   
@@ -154,8 +155,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   y = np.arange(my_mpi_grid.bounds[1],my_mpi_grid.bounds[4]+hy-eps,hy)
   z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+hz-eps,hz)
   
-  draw_non_design(void_elems, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
-  draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds[0:3], (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
+  #draw_non_design(void_elems, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
+  #draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds[0:3],(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
+  ray_triangle.draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds[0:3],(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),1)
   from scipy.ndimage import binary_fill_holes
   
   borders = my_mpi_grid.communicate_edges()
@@ -183,6 +185,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   hy = my_mpi_grid.grid.hy
   hz = my_mpi_grid.grid.hz
  
+  print(helper.shape,np.sum(helper))
   from skimage import measure
   # coords of vertices lie in [0,1-h]
   verts, faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False)
