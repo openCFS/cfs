@@ -1227,8 +1227,8 @@ namespace CoupledField {
     Double gamma = 1.0;
     GLMScheme * scheme = new Trapezoidal(gamma);
     
-    //TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresisFixPoint_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0) );
+    TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresis_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
     feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme);
   }
   

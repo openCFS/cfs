@@ -62,6 +62,13 @@ namespace CoupledField {
 
     //nonLin_ = false;
 		nonLin_ = pde1_->IsNonLin() || pde2_->IsNonLin();
+        // check if elec pde is hysteretic
+    isHyst_ = false;
+    if(pde1_->IsHysteresis()){
+      EXCEPTION("Currently only the elec PDE may be hysteretic");
+    } else if(pde2_->IsHysteresis()){
+      isHyst_ = true;
+    }
     
     // Initialize nonlinearities
     InitNonLin();
@@ -157,16 +164,8 @@ namespace CoupledField {
       {
         harmonicPML = false;
       }
-      
-			// check if elec pde is hysteretic
-			bool isHyst = false;
-			if(pde1_->IsHysteresis()){
-				EXCEPTION("Currently only the elec PDE may be hysteretic");
-			} else if(pde2_->IsHysteresis()){
-				isHyst = true;
-			}
 		
-			if(isHyst){
+			if(isHyst_){
 //				std::cout << "Hyst case -> check if region is hyst" << std::endl;
 				BaseBDBInt* mechToElecInt = NULL;
 				BaseBDBInt* elecToMechInt = NULL;
@@ -676,15 +675,7 @@ namespace CoupledField {
       EXCEPTION( "Unknown subtype '" << subType_ << "'" );
     }
 
-		// check for hysteresis
-		bool isHyst = false;
-		if(pde1_->IsHysteresis()){
-			EXCEPTION("Currently only the elec PDE may be hysteretic");
-		} else if(pde2_->IsHysteresis()){
-			isHyst = true;
-		}
-
-		if(isHyst){
+		if(isHyst_){
 			// get all regions with hysteresis information from elecPDE
 			shared_ptr<CoefFunctionMulti> hysteresisCoefs = pde2_->GetHystCoefs();
 			BaseMaterial * actSDMat = NULL;
@@ -1216,7 +1207,9 @@ namespace CoupledField {
       //a timestepping for the elecPDE
       shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
 
-      shared_ptr<BaseTimeScheme> elecScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+      TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHyst_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+      
+      shared_ptr<BaseTimeScheme> elecScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0, nlType) );
 
       elecFct->SetTimeScheme(elecScheme);
       elecFct->GetTimeScheme()->Init(elecFct->GetSingleVector(),dt);

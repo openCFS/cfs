@@ -687,7 +687,7 @@ namespace CoupledField {
        * the tensors returned by this functions should normally be on the current
        * time level, i.e. timelevel should be 0
        */
-      int timeLevel_to_diff = hystCoefFunction_->GetTimeLevel("Mat"); 
+      int timeLevel_to_diff = hystCoefFunction_->GetTimeLevel("DeltaMat"); 
       
       ComputeTensor(outputTensor, lpm, timeLevel_to_diff, tensorName_, implementationVersion, transposed_, rotate, useAbs );
     }
@@ -1660,8 +1660,10 @@ namespace CoupledField {
       if(forceCurrentTS_){
         return 0; 
       }
-      if(Type == "Mat"){
-        return timeLevel_Mat_;
+      if(Type == "Material"){
+        return timeLevel_Material_;
+      } else if (Type == "DeltaMat"){
+        return timeLevel_DeltaMat_;
       } else if (Type == "RHS"){
         return timeLevel_RHS_;
       } else if (Type == "BC"){
@@ -1994,10 +1996,11 @@ namespace CoupledField {
     // independent of the actual value of timeLevel_xxx_
     bool forceCurrentTS_;
     int RUN_deltaForm_;
-    UInt timeLevel_Mat_;
-    UInt timeLevel_RHS_;
-    UInt timeLevel_BC_;
-    UInt timeLevel_Output_;
+    Integer timeLevel_Material_;
+    Integer timeLevel_DeltaMat_;
+    Integer timeLevel_RHS_;
+    Integer timeLevel_BC_;
+    Integer timeLevel_Output_;
     PtrCoefFct hystItself_;
     
     
