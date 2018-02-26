@@ -7,6 +7,7 @@
 #include "TransientDriver.hh"
 #include "HarmonicDriver.hh"
 #include "EigenFrequencyDriver.hh"
+#include "InverseSourceDriver.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "PDE/SinglePDE.hh"

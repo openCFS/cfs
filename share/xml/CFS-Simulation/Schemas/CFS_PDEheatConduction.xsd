@@ -43,6 +43,7 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/> 
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/> 
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
@@ -68,6 +69,19 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- List defining damping types -->
+          <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="mapping" type="DT_DampingMapping">
+                  <xsd:annotation>
+                    <xsd:documentation>Allows region to be a Mapping layer.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
           <!-- Type of velocity (optional) -->
           <xsd:element name="velocityList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -114,6 +128,12 @@
                   </xsd:annotation>
                 </xsd:element>
 
+                <xsd:element name="heatTransport" type="DT_HeatR">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines heat transport (Robin B.C.) on a given boundary</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
                 <xsd:element name="heatFlux" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>Defines heat flux (Neumann B.C.)</xsd:documentation>
@@ -221,9 +241,9 @@
   <!-- Element type for specifying cauchy boundary condition -->
   <xsd:complexType name="DT_HeatR">
     <xsd:complexContent>
-      <xsd:extension base="DT_HeatHD">
-        <xsd:attribute name="heatTransferCoefficient" type="xsd:token" use="required"/>
-        <xsd:attribute name="bulkTemperature" type="xsd:token" use="optional" default="0.0"/>
+      <xsd:extension base="DT_BcInhomScalar">
+        <xsd:attribute name="heatTransferCoefficient" type="xsd:double" />
+        <xsd:attribute name="bulkTemperature" type="xsd:double" default="20.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -233,7 +253,7 @@
   <!-- Element type for specifying rhs source term -->
   <xsd:complexType name="DT_HeatRHS">
     <xsd:attribute name="region" type="xsd:token" use="required"/>
-    <xsd:attribute name="isharmonic" type="DT_CFSBool" use="required"/>
+    <xsd:attribute name="isharmonic" type="xsd:boolean" use="required"/>
     <xsd:attribute name="inputId" type="xsd:token" use="optional"/>
   </xsd:complexType>
 

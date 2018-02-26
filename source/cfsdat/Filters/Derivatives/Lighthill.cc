@@ -40,12 +40,19 @@ Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<
   this->filtStreamType_ = FIFO_FILTER;
 
 
-  std::cout<<("============================================================ \n"
-      "Make sure you set the ''density='' in the xml-scheme correctly, \n"
-      "otherwise it is chosen to be 1.0 !! \n"
-      "============================================================")<<std::endl;
 
-  density_ = config->Get("scheme")->Get("density")->As<Double>();
+
+
+  if(config->Get("ResultList")->Get("density")->Has("resultName") == false){
+    density_ = config->Get("ResultList/density/uniformValue")->As<Double>();
+    std::cout<<("============================================================ \n"
+        "Make sure you set density ''uniformValue='' in the xml-scheme correctly, \n"
+        "otherwise it is chosen to be 1.0 !! \n"
+        "============================================================")<<std::endl;
+    externDensity_ = false;
+  }else{
+    externDensity_ = true;
+  }
 
   // ( LambVectorLighthill || LighthillSourceVector || LighthillSourceTerm )
   Form_ = config->Get("type")->As<std::string>();
@@ -65,13 +72,20 @@ Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<
   filtResNames.insert(outRes);
 
   //add velocity input result to manager
-  this->res1Name = params_->Get("ResultList")->Get("velocity")->Get("resultName")->As<std::string>();
-  upResNames.insert(res1Name);
+  this->resVelocityName = params_->Get("ResultList")->Get("velocity")->Get("resultName")->As<std::string>();
+  upResNames.insert(resVelocityName);
 
   // if an external vorticity input exists, add it to manager
   if (externVorticity_ == true){
-    this->res2Name = params_->Get("ResultList")->Get("vorticity")->Get("resultName")->As<std::string>();
-    upResNames.insert(res2Name);
+    this->resVorticityName = params_->Get("ResultList")->Get("vorticity")->Get("resultName")->As<std::string>();
+    upResNames.insert(resVorticityName);
+  }
+
+  // if an external density input exists, add it to manager
+  // density is second or third
+  if (externDensity_ == true){
+    this->resDensityName = params_->Get("ResultList")->Get("density")->Get("resultName")->As<std::string>();
+    upResNames.insert(resDensityName);
   }
 
   checkSum_ = false;
@@ -80,6 +94,8 @@ Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<
   }
 
   epsScal_ = params_->Get("RBF_Settings")->Get("epsilonScaling")->As<Double>();
+  logEps_ = false; //no logging for this class
+  //logEps_ = params_->Get("RBF_Settings")->Get("logEps")->As<bool>();
 
 }
 
@@ -89,48 +105,16 @@ Lighthill::~Lighthill(){
 }
 
 
-bool Lighthill::Run(){
-  // we deactivate every result, except for our own
-  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
-  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
-
-
-  for(; aIter != activeResults.end(); ++aIter){
-    if(filterResIds.Find(*aIter) == -1){
-      WARN(" There are still active results when reaching the derivative filter. This indicates an unexpected use of the pipeline.")
-    }
-    resultManager_->DeactivateResult(*aIter);
-  }
-
-  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
-
-
-  resultManager_->SetTimeValue(upResIds[0],aTF);
-  resultManager_->ActivateResult(upResIds[0]);
-
-  // Activate extern vorticity-input, if provided
-  if(externVorticity_ == true){
-    resultManager_->SetTimeValue(upResIds[1],aTF);
-    resultManager_->ActivateResult(upResIds[1]);
-  }
-
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
-  }
-
-
-  CF::StdVector<UInt> eqnNums;
-  /// this is the vector, which will be filled with the wanted quantity
-  Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
-  returnVec.Init();
+bool Lighthill::UpdateResults(std::set<uuids::uuid>& upResults) {
+  /// this is the vector, which will be filled with the derivative result
+  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
+  aTF_ = resultManager_->GetStepValue(filterResIds[0]);
 
   Vector<Double> tempRetVec;
   if(Form_ == "AeroacousticSource_LambVector"){LambVector(tempRetVec);}
   if(Form_ == "AeroacousticSource_LighthillSourceVector"){LighthillSourceVector(tempRetVec);}
-  if(Form_ == "AeroacousticSource_LighthillSourceTerm"){LighthillSourceTerm(tempRetVec);}
+  if(Form_ == "AeroacousticSource_LighthillSourceTerm"){LighthillSourceTerm(tempRetVec, false);}
+  if(Form_ == "AeroacousticSource_LighthillSourceTensor"){LighthillSourceTerm(tempRetVec, true);}
 
   returnVec = tempRetVec * density_;
 
@@ -148,21 +132,13 @@ bool Lighthill::Run(){
     // Mesh size must be smaller than << Ma*c/(20*f) in the source region
     // to determine acoustically relevant flow structures
   }
-
-  resultManager_->ActivateResult(filterResIds[0]);
-
-  //now deactivate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->DeactivateResult(upResIds[aRes]);
-  }
-
+  
   return true;
 }
 
 
 void Lighthill::LambVector(Vector<Double>& tempRetVec){
-  CF::StdVector<UInt> eqnNums;
-  Vector<Double>& inVecVel = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
+  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, aTF_);
 
   Matrix& matrix = matrices_[matrixIndex_];
   const UInt maxNumTrgEntities = matrix.numTargets;
@@ -171,7 +147,7 @@ void Lighthill::LambVector(Vector<Double>& tempRetVec){
   if(externVorticity_ == true && Form_ == "AeroacousticSource_LambVector"){
     /************* case of externally provided vorticity ***************/
     // result is defined on nodes !!!
-    Vector<Double>& inVecOmega = resultManager_->GetResultVector<Double>(upResIds[1],eqnNums);
+    Vector<Double>& inVecOmega = GetUpstreamResultVector<Double>(resVorticityId, aTF_);
     OmegaVectorProductU(inVecVel, inVecOmega, LambVec, numEquPerEnt_);
   }else{
     /************* we compute the vorticity internally ***************/
@@ -199,11 +175,32 @@ void Lighthill::LambVector(Vector<Double>& tempRetVec){
   tempRetVec = LambVec;
 }
 
+void Lighthill::LighthillTensor(Vector<Double>& tempRetVec){
+  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, aTF_);
+  Vector<Double>& inVecDensity = GetUpstreamResultVector<Double>(resDensityId, aTF_);
+  if(externVorticity_ == true){
+    inVecDensity = GetUpstreamResultVector<Double>(resVorticityId, aTF_);
+  }
+
+  Vector<Double> LHTensor;
+  TensorProduct(LHTensor, inVecVel, inVecVel, numEquPerEnt_, 1.0, inVecDensity);
+
+  Matrix& matrix = matrices_[matrixIndex_];
+  StdVector< StdVector<CF::UInt> >& sourceMDiv = matrix.targetSourceIndexDiv;
+  StdVector< CF::Matrix<CF::Double> >& targetSourceFactorDiv = matrix.targetSourceFactorDiv;
+  const UInt maxNumTrgEntities = matrix.numTargets;
+
+  /**************** Div(renoldsStress) *****************************/
+  Vector<Double> firstDivergence;
+  CalcTensorDivergence(firstDivergence, LHTensor, numEquPerEnt_, sourceMDiv, targetSourceFactorDiv, maxNumTrgEntities);
+
+  tempRetVec = firstDivergence;
+}
+
 
 
 void Lighthill::LighthillSourceVector(Vector<Double>& tempRetVec){
-  CF::StdVector<UInt> eqnNums;
-  Vector<Double>& inVecVel = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
+  Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, aTF_);
 
 
   Matrix& matrix = matrices_[matrixIndex_];
@@ -239,7 +236,7 @@ void Lighthill::LighthillSourceVector(Vector<Double>& tempRetVec){
 
 
 
-void Lighthill::LighthillSourceTerm(Vector<Double>& tempRetVec){
+void Lighthill::LighthillSourceTerm(Vector<Double>& tempRetVec, bool isTensorForm){
   CF::StdVector<UInt> eqnNums;
 
   Matrix& matrix = matrices_[matrixIndex_];
@@ -255,7 +252,11 @@ void Lighthill::LighthillSourceTerm(Vector<Double>& tempRetVec){
 
 
   Vector<Double> LightVec;
-  this->LighthillSourceVector(LightVec);
+  if (isTensorForm) {
+    this->LighthillTensor(LightVec);
+  } else {
+    this->LighthillSourceVector(LightVec);
+  }
 
   // interpolate from element-centroid to nodes
   Vector<Double> LightVecN;
@@ -312,8 +313,8 @@ void Lighthill::PrepareCalculation(){
   uuids::uuid upRes = upResIds[0];
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
 
-  scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
-  trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
+  scrMap_ = resultManager_->GetEqnMap(upRes);
+  trgMap_ = resultManager_->GetEqnMap(filterResIds[0]);
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
 //TODO wrong number of equations per entity for VELOCITY if VORTICITY is read-in by EnSight as CFSVarName="fluidMechVorticity"
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
@@ -415,7 +416,7 @@ void Lighthill::PrepareCalculation(){
         CF::Vector<CF::Double> tmpCoords;
         UInt numSrcPoints;
         Double maxd;
-        if(externVorticity_ == false && Form_ != "AeroacousticSource_LambVector"){
+        if(Form_ != "AeroacousticSource_LambVector"){
         /****************** 1) Divergence ****************************************/
         sM.Clear(false);
         maxd = 0.0;
@@ -433,7 +434,7 @@ void Lighthill::PrepareCalculation(){
         numSrcPoints = srcDist.GetSize();
         CF::Matrix<CF::Double> tsFDiv;
         while( !CalcLocDivergence(tsFDiv, trgCoord, maxd, srcDist, neighbourCoords,
-            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_)){
+            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_, logEps_)){
           // find furthest point
           Double d = 0.0;
           UInt maxId = 0;
@@ -473,7 +474,7 @@ void Lighthill::PrepareCalculation(){
         numSrcPoints = srcDist.GetSize();
         CF::Matrix<CF::Double> tsFGrad;
         while( !CalcLocGradient(tsFGrad, trgCoord, maxd, srcDist, neighbourCoords,
-            numSrcPoints, 1, inGrid_, epsScal_)){
+            numSrcPoints, 1, inGrid_, epsScal_, logEps_)){
           // find furthest point
           Double d = 0.0;
           UInt maxId = 0;
@@ -494,7 +495,7 @@ void Lighthill::PrepareCalculation(){
         sourceMGrad[trgEnt] = sM;
 
         }
-
+        if(externVorticity_ == false){
         /***************** 3) Curl ******************************************/
         sM.Clear(false);
         neighbourCoords.Clear(false);
@@ -514,7 +515,7 @@ void Lighthill::PrepareCalculation(){
         numSrcPoints = srcDist.GetSize();
         CF::Matrix<CF::Double> tsFCurl;
         while( !CalcLocCurl(tsFCurl, trgCoord, maxd, srcDist, neighbourCoords,
-            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_)){
+            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_, logEps_)){
           // find furthest point
           Double d = 0.0;
           UInt maxId = 0;
@@ -542,6 +543,7 @@ void Lighthill::PrepareCalculation(){
         }
         sourceMN2C[trgEnt] = sM;
 
+        }
     }
   }
 
@@ -555,7 +557,7 @@ void Lighthill::PrepareCalculation(){
   // share a common node, therefore we use a nn-search
   if(externVorticity_ == false && Form_ != "AeroacousticSource_LambVector"){
   std::cout << "\t\t 4/4 Creating interpolation matrices for interpolators " << std::endl;
-//#pragma omp parallel num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel num_threads(CFS_NUM_THREADS)
 //  {
   std::vector<Point_3> pointsEtN; //EtN...elements to nodes
   std::vector<CF::UInt> indicesEtN;
@@ -656,27 +658,10 @@ void Lighthill::PrepareCalculation(){
 }
 
 ResultIdList Lighthill::SetUpstreamResults(){
-  ResultIdList generated;
-  //we should only have one filter Result
-  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
-  std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
-
-  //add velocity input result to manager
-  this->res1Name = params_->Get("ResultList")->Get("velocity")->Get("resultName")->As<std::string>();
-  upResNames.insert(res1Name);
-  res1Id = resultManager_->AddResult(res1Name,this->filterTag_);
-  //set the timeline of upstream data
-  resultManager_->SetTimeLine(res1Id,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-  generated.Push_back(res1Id);
-
-  // if an external vorticity input exists, add it to manager
-  if (externVorticity_ == true){
-    this->res2Name = params_->Get("ResultList")->Get("vorticity")->Get("resultName")->As<std::string>();
-    upResNames.insert(res2Name);
-    res2Id = resultManager_->AddResult(res2Name,this->filterTag_);
-    resultManager_->SetTimeLine(res2Id,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-    generated.Push_back(res2Id);
-  }
+  ResultIdList generated = SetDefaultUpstreamResults();
+  resVelocityId = upResNameIds[resVelocityName];
+  resVorticityId = upResNameIds[resVorticityName];
+  resDensityId = upResNameIds[resDensityName];
   return generated;
 }
 
@@ -694,7 +679,8 @@ void Lighthill::AdaptFilterResults(){
 
   //input must be node-based
   if (resultManager_->GetDefOn(upResIds[0]) == ExtendedResultInfo::ELEMENT){
-    EXCEPTION("Lighthill/Lamb filter requires velocity to be defined on nodes!");
+    EXCEPTION("Lighthill/Lamb filter requires velocity to be defined on nodes!\n" <<
+        "  Use a Cell2Node Filter to transform the filter input.");
   }
 
 
@@ -704,7 +690,8 @@ void Lighthill::AdaptFilterResults(){
   resultManager_->SetRegionNames(filterResIds[0],this->trgRegions_);
 
   CF::StdVector<std::string> dofnames;
-  if( Form_ == "AeroacousticSource_LighthillSourceTerm"){
+  if( Form_ == "AeroacousticSource_LighthillSourceTerm" ||
+      Form_ == "AeroacousticSource_LighthillSourceTensor"){
     resultManager_->SetEntryType(filterResIds[0],ExtendedResultInfo::SCALAR);
     dofnames.Push_back("x");
   }else{

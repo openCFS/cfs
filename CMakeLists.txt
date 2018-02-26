@@ -3,7 +3,7 @@
 #-----------------------------------------------------------------------------
 
 SET(REQ_MAJOR_VER 3)
-SET(REQ_MINOR_VER 7)
+SET(REQ_MINOR_VER 5)
 SET(REQ_PATCH_VER 2)
 
 #-----------------------------------------------------------------------------
@@ -98,25 +98,22 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
-SET(CFS_VERSION_YEAR "17")
-SET(CFS_VERSION_MONTH "10")
-SET(CFS_VERSION
-  "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
+SET(CFS_VERSION_YEAR "18")
+SET(CFS_VERSION_MONTH "02")
+SET(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
 SET(CFS_NAME "AMGme")
 
-colormsg(HIBLUE
-  "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
+colormsg(HIBLUE "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host
 #-----------------------------------------------------------------------------
 SITE_NAME(CFS_BUILD_HOST)
-SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}"
-  CACHE INTERNAL "CFS_BUILD_HOST")
+SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}" CACHE INTERNAL "CFS_BUILD_HOST")
 
 #-----------------------------------------------------------------------------
 # Set user who builds CFS++, in order to be able to track back who built a
@@ -172,8 +169,8 @@ OPTION(CFS_DEPS_PRECOMPILED
 #-----------------------------------------------------------------------------
 # Switch on/off usage of custom-built Python
 #-----------------------------------------------------------------------------
-# exteranl anaconda
-OPTION(USE_ANACONDA3
+# external anaconda
+OPTION(BUILD_ANACONDA3
   "build anaconda3 from continuum analytics, not necessary for CFS++ itself"
   OFF)
 
@@ -220,39 +217,55 @@ SET(XML_READER ${XML_READER_DEFAULT}
 # it should now compile with all  other combinations of BLAS/LAPACK If we want
 # to try out the Pardiso matching this would have to be implemented separately
 #-----------------------------------------------------------------------------
-SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
-  CACHE STRING
+SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT} CACHE STRING
   "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB")
+SET(CFS_PARDISO "MKL" CACHE STRING 
+    "Pardiso implementation for CFS. May be one of MKL or SCHENK. Irrelevant if disabled via USE_PARDISO")
+OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)" ${USE_PARDISO_DEFAULT})
 
-SET(CFS_PARDISO "MKL"
-  CACHE STRING
-  "Pardiso implementation for CFS. May be one of MKL or SCHENK. Irrelevant if disabled via USE_PARDISO")
-OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)"
-  ${USE_PARDISO_DEFAULT})
-OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
-  ${USE_ARPACK_DEFAULT})
-OPTION(USE_PHIST "Use the PHIST eigensolver library."
-  ${USE_PHIST_DEFAULT})
-OPTION(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners."
-  ${USE_ILUPACK_DEFAULT})
-OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK solvers from SuiteSparse."
-  ${USE_SUITESPARSE_DEFAULT})
-OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers."
-  ${USE_LIS_DEFAULT})
-OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs."
-  ${USE_SUPERLU_DEFAULT})
-OPTION(USE_PETSC "Use (P)ortable, (E)xtensible (T)oolkit for (S)cientific (C)omputation"
-  ${USE_PETSC_DEFAULT})
+OPTION(USE_ARPACK "Use the ARPACK eigensolver library." ${USE_ARPACK_DEFAULT})
+OPTION(USE_FEAST "Use the FEAST eigenvalue solver." ${USE_FEAST_DEFAULT})
+OPTION(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners." ${USE_ILUPACK_DEFAULT})
+OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK direct solvers from SuiteSparse." ${USE_SUITESPARSE_DEFAULT})
+OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers (OpenMP parallel)" ${USE_LIS_DEFAULT})
+OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs." ${USE_SUPERLU_DEFAULT})
+OPTION(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
+OPTION(USE_PHIST "phist eigensolver library from sppexa." ${USE_PHIST_DEFAULT})
+OPTION(USE_GHOST "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" ${USE_GHOST_DEFAULT})
 
+if(USE_FEAST AND NOT CFS_BLAS_LAPACK STREQUAL "MKL" )
+  MESSAGE(FATAL_ERROR "USE_FEAST=ON requires Intel MKL! Set CFS_BLAS_LAPACK=MKL")
+endif()
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
 #-----------------------------------------------------------------------------
-IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
-  SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
+if(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
+  set(CFS_BLAS_LAPACK "MKL" CACHE STRING
     "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB, Disable USE_PARDISO or set CFS_PARDSIO to SCHENK if not MKL"
     FORCE)
   # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")
-ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
+endif(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
+
+# Do we have mpi? There are multiple mpi installations, one should stick with one
+# but we don't build mpi by cfsdeps to allow usage of tuned hpc mpi instances.
+# phist requires ghost, ghost requires hwloc. One can set hwloc also for petsc
+if(USE_PETSC)
+  set(USE_MPI "ON")
+  INCLUDE("cmake_modules/mpi.cmake")
+else()
+  set(USE_MPI "OFF") 
+endif()
+
+# phist requires ghost
+if(USE_PHIST)
+  set(USE_GHOST ON CACHE BOOL "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" FORCE)
+endif()
+
+if(USE_GHOST)
+  set(BUILD_HWLOC ON CACHE BOOL "toggled by USE_PHIST and USE_GHOST" FORCE)  
+else() 
+  set(BUILD_HWLOC OFF CACHE BOOL "toggled by USE_PHIST and USE_GHOST" FORCE)  
+endif()
 
 # Disables Optimization in CFS++. Optimization is (and shall) still compiled but
 # optimization problems don't run. Furthermore CFS_Optimiztion.xsd will be replaced
@@ -372,18 +385,7 @@ OPTION(PROFILING "Set profiling compiler options for Release (-g)." ${PROFILING_
 OPTION(COVERAGE "Turn on coverage compier options."  ${COVERAGE_DEFAULT})
 OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."  ${CFSTOOL_DEFAULT})
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})
-
-#-----------------------------------------------------------------------------
-# Shall we build ParaView?
-#-----------------------------------------------------------------------------
-OPTION(BUILD_PARAVIEW
-  "Build the ParaView post-processor with CFS++/NACS HDF5 and extension?."
-  ${BUILD_PARAVIEW_DEFAULT})
-
-IF(BUILD_PARAVIEW)
-  # We need CGNS for ParaView
-  SET(USE_CGNS ON CACHE BOOL "Use CFD General Notation System." FORCE)
-ENDIF()
+OPTION(UNIT_TESTS "Build CFS++ unit tests (cfstest)."  ${UNIT_TESTS_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Shall we build HDFView?
@@ -449,13 +451,14 @@ MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
 MARK_AS_ADVANCED(EXPLICIT_TEMPLATE_INSTANTIATION)
-MARK_AS_ADVANCED(BUILD_PARAVIEW)
 MARK_AS_ADVANCED(BUILD_HDFVIEW)
 MARK_AS_ADVANCED(COVERAGE)
 MARK_AS_ADVANCED(PROFILING)
 MARK_AS_ADVANCED(XMLSCHEMA)
 MARK_AS_ADVANCED(USE_XERCES)
 MARK_AS_ADVANCED(USE_LIBXML2)
+#MARK_AS_ADVANCED(USE_GHOST)
+MARK_AS_ADVANCED(BUILD_HWLOC)
 MARK_AS_ADVANCED(DISABLE_OPTIMIZATION)
 
 #-----------------------------------------------------------------------------
@@ -608,6 +611,10 @@ FILE(MAKE_DIRECTORY "${CFS_TEMP_DIR}")
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/FindCFSDEPS.cmake")
 
+# see also External_OpenBLAS, External_LAPACK or FindIntelMKL as the settings are quite different
+# message("BLAS_LIBRARY=${BLAS_LIBRARY}")
+# message("LAPACK_LIBRARY=${LAPACK_LIBRARY}")
+
 #-----------------------------------------------------------------------------
 # Set path of XML schema. If env variable XMLSCHEMA is set, use it!
 #-----------------------------------------------------------------------------
@@ -678,6 +685,14 @@ ADD_SUBDIRECTORY(source/OLAS/external/lapack)
 IF(USE_PARDISO)
   ADD_SUBDIRECTORY(source/OLAS/external/pardiso)
 ENDIF(USE_PARDISO)
+
+if(USE_FEAST)
+  ADD_SUBDIRECTORY(source/OLAS/external/feast)
+endif(USE_FEAST)
+CMAKE_DEPENDENT_OPTION(USE_FEAST_COMMUNITY "Use the community version of FEAST" ON USE_FEAST OFF)
+MARK_AS_ADVANCED(USE_FEAST_COMMUNITY)
+CMAKE_DEPENDENT_OPTION(USE_FEAST_COMMUNITY_PRECOMPILED "Use the precompiled FEAST libraries" OFF USE_FEAST_COMMUNITY OFF)
+MARK_AS_ADVANCED(USE_FEAST_COMMUNITY_PRECOMPILED)
 
 IF(USE_SUITESPARSE)
   ADD_SUBDIRECTORY(source/OLAS/external/umfpack)
@@ -757,9 +772,7 @@ ENDIF(USE_CGNS)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)
 IF(NOT MINGW)
-IF(NOT CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
-ENDIF()
 ENDIF()
 ADD_SUBDIRECTORY(source/DataInOut/ScatteredDataInOut)
 
@@ -806,6 +819,10 @@ ENDIF(CFSTOOL)
 IF(CFSDAT)
   ADD_SUBDIRECTORY(source/cfsdat)
 ENDIF(CFSDAT)
+
+if(UNIT_TESTS)
+  add_subdirectory(source/unittests)
+endif(UNIT_TESTS)
 
 #-----------------------------------------------------------------------------
 # Build the actual headers with defines from templates.

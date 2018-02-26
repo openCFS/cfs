@@ -68,6 +68,15 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! Dump coefficient function to string
     virtual std::string ToString() const =0 ;
 
+    virtual void AddEntityList(shared_ptr<EntityList> ent){
+    	if(!this->entities_.Contains(ent)){
+    		entities_.Push_back(ent);
+    	}
+    	else {
+    		WARN("entity list " << ent->GetName() << " already contained in CoefFunction")
+    	}
+    }
+
     //! \copydoc CoefFunction::SetDerivativeOperation
     virtual void SetDerivativeOperation(CoefDerivativeType type){
       this->derivType_ = type;
@@ -153,6 +162,10 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! Updates the solution vector
     bool UpdateSolution();
     
+    //! Perform a simple equation mapping for nodal grids
+    //! to make solution access simpler
+    void MapEqns();
+
 #ifdef USE_OPENMP
     //! thread locking for UpdateSolution function
     omp_lock_t updateSolutionLock_;
@@ -163,6 +176,12 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
 
     //! Extract the solution for a source element in order to apply the interpolation operator
     void GetElemSolution(Vector<DATA_TYPE> & sol, UInt eNum);
+
+    //! Associate node numbers to equations
+    std::map<UInt,UInt> nodeIdxMap_;
+
+    //! the equation Numbers, for each node, dimDOF equation numbers
+	StdVector< StdVector<UInt> > eqnNumbers_;
 
     //! Stores the current solution vector
     Vector<DATA_TYPE> solVec_;
@@ -185,12 +204,18 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! Total number of equations
     UInt numEqns_;
 
+    //! Equation mapping completed
+    bool eqnMapComplete_;
+
     //! Pointer to math parser instance
     MathParser* mp_;
 
     //! Handle for expression determines current time/freq value 
     MathParser::HandleType mHandleStep_;
     
+    //! shared pointer to coefFunction representing multiplicative factor
+    shared_ptr<CoefFunction> factorFnc_;
+
     //! stores the stepnumber of the last update solution process
     UInt lastStepUpdate_;
     

@@ -42,25 +42,24 @@ namespace CoupledField {
   struct SyncAccess<true>{
   public:
     static inline void AddTo(Double & target   , const Double  & src){
-#pragma omp atomic
-      target += src;
+      #pragma omp atomic
+        target += src;
     }
     static inline void AddTo(Complex & target  , const Complex & src){
-#pragma omp critical (MATRIX_COMPLEX_UPDATE)
+      // atomic is much faster than critical but does not work for complex
+      #pragma omp critical (MATRIX_COMPLEX_UPDATE)
       {
-      target += src;
+        target += src;
       }
     }
     static inline void Set(Double & target   , const Double  & src){
-#pragma omp critical (MATRIX_DOUBLE_SET)
-      {
-      target = src;
-      }
+      #pragma omp atomic write
+        target = src;
     }
     static inline void Set(Complex & target  , const Complex & src){
-#pragma omp critical (MATRIX_COMPLEX_SET)
+      #pragma omp critical (MATRIX_COMPLEX_SET)
       {
-      target = src;
+        target = src;
       }
     }
   };

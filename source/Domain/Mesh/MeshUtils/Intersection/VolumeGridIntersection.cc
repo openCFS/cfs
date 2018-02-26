@@ -67,7 +67,7 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
   UInt numIntersects = 0;
   UInt intersectsOutsideElem = 0;
   UInt intersectsSmall = 0;
-  UInt numThreads= NUM_CFS_THREADS;
+  UInt numThreads= CFS_NUM_THREADS;
 
   std::cout << "\t\t\t Processing " << numCandidates << " intersection candidates using " <<  numThreads << " threads." << std::endl;
 

@@ -28,7 +28,8 @@ CoefFunctionMulti::~CoefFunctionMulti() {
 }
 
 void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
-  // check, if this is the first entry
+
+	// check, if this is the first entry
   if( regionCoefs_.size() == 0 ) {
     shared_ptr<CoefFunctionConst<Complex> > cFct(new CoefFunctionConst<Complex>());
     shared_ptr<CoefFunctionConst<Double> > rFct(new CoefFunctionConst<Double>());
@@ -96,7 +97,7 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
   // for this region
   if( regionCoefs_.find( region ) != regionCoefs_.end() ) {
     EXCEPTION( "There was already a coefficient function defined for "
-        << "the region width id " << region );
+        << "the region with id " << region );
   }
 
   // adjust dependency of this coeffunction

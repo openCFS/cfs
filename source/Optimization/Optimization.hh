@@ -105,24 +105,24 @@ namespace CoupledField
 
         /** A cost function is (here) always a scalar type. The value is recalculated when needed!
          * This also stores the value in history of the CostFunction */
-        virtual double CalcObjective();
+        double CalcObjective(Excitation* ev_only_excite = NULL);
 
         /** Evaluates the cost-function gradient w.r.t. the design space. Apply SetDesignSpace() first!
          * Writes to DesingElement.objective_gradient.
          * Does a multiplication with Excitation::GetWeightedFactor(). Note, that 
          * the Calc* methods for the objective do only Excitation::GetFactor().
          * @param grad_out size is GetDesignSpaceSize(). If null only DesingElement.objective_gradient */
-        virtual void CalcObjectiveGradient(StdVector<double>* grad_out);
+        virtual void CalcObjectiveGradient(StdVector<double>* grad_out, Excitation* ev_only_excite = NULL);
 
         /** Determines the constraint.
          * The function value is stored in value_
          * @param which constraint to calc? Default is the only one! */
-        virtual double CalcConstraint(Condition* constraint);
+        virtual double CalcConstraint(Condition* constraint, Excitation* ev_only_excite = NULL);
 
         /** evaluates the gradient of the cost function by the desing element
          * Writes to DesignElement.contraint_gradient
          * @see CalcObjectiveGradient() for parameter description */
-        virtual void CalcConstraintGradient(Condition* constraint = NULL, StdVector<double>* grad_out = NULL);
+        virtual void CalcConstraintGradient(Condition* constraint = NULL, StdVector<double>* grad_out = NULL, Excitation* ev_only_excite = NULL);
 
         /** This is brute force debug method which calculates the symmetry of a sqared
          * model with horizontal symmetry axis with lexicographic order (at least works for gid).

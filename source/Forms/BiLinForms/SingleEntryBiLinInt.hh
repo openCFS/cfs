@@ -55,7 +55,7 @@ namespace CoupledField{
     }
     
     //! \see LinearForm::IsComplex
-    bool IsComplex() {
+    bool IsComplex() const {
       return val_->IsComplex();
     }
     

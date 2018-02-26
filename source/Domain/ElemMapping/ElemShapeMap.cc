@@ -35,7 +35,7 @@ std::ostream& operator <<(std::ostream& out, const LocPoint& lp) {
 //  C L A S S   LocPointMapped
 // ===========================================================================
 LocPointMapped::LocPointMapped() :
-    ptEl(NULL), weight(0.0), jacDet(0.0), isSurface(false) {
+    ptEl(NULL), weight(0.0), jacDet(0.0), isSurface(false), checkJacobi_(true) {
 
 }
 
@@ -52,10 +52,11 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   esm->CalcJ(this->jac, lp);
 
   // The inversion can only be performed in case we have a quadratic Jacobian
+  // otherwise pseudoinverse
   // i.e. the dimension of the element is the dimension of the grid
+  jac.Invert(jacInv);
   if (jac.GetNumCols() == jac.GetNumRows()) {
     // == normal volume element case (2D elemens in 2D, 3D elems in 3D) ===
-    jac.Invert(jacInv);
     jac.Determinant(jacDet);
 
   } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 2) {
@@ -98,7 +99,6 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
 
 void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
                          Double weight, Matrix<Double>& cornerCoord) {
-
   this->shapeMap = esm;
   this->lp = lp;
   this->weight = weight;
@@ -137,12 +137,12 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
   };
 
-//  // safety check for negative Jacobian determinant
-//  if (jacDet <= 0.0) {
-//	  std::cout << jacDet << std::endl;
-//    EXCEPTION(
-//        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
-//  }
+  // safety check for negative Jacobian determinant
+  if ( checkJacobi_ ) {
+	  if ( jacDet <= 0.0) {
+		  EXCEPTION("Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
+	  }
+  }
 
   // Check, if geometry is axi-symmetric. In this case scale the
   // Jacobian determinant with 2*pi*r

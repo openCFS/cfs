@@ -33,7 +33,7 @@ namespace CoupledField {
     void CalcElemVector(Vector<Complex>& elemVec,EntityIterator& ent);
 
     //! \see LinearForm::IsComplex
-    bool IsComplex() {
+    bool IsComplex() const {
       return val_->IsComplex();
     }
     

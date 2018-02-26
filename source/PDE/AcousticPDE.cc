@@ -369,7 +369,7 @@ namespace CoupledField{
       if( dampingList_[actRegion] == PML ) {
         std::string dampId;
         curRegNode->GetValue("dampingId",dampId);
-        if(analysistype_ == HARMONIC){
+        if(analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE){
           //in case of complexFluid, speed of sound is complex; so compute a real valued one
           shared_ptr<CoefFunction> densR, blkR, c0R;
           if ( complexFluidFormulation_ ) {
@@ -1490,6 +1490,38 @@ namespace CoupledField{
       } // loop entities
     } // if
 
+    // =====================
+    //  ACOUSTIC SOURCE DENSITY
+    // =====================
+    //LOG_DBG(heatcondpde) << "Reading acoustic source density";
+
+    ReadRhsExcitation( "acouSourceDensity", empty,
+                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Acoustic source density must be defined on elements")
+      }
+      EntityIterator it = ent[i]->GetIterator();
+      it.Begin();
+
+      if(isComplex_) {
+        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(),
+                                          Complex(1.0), coef[i], coefUpdateGeo);
+      } else  {
+        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(),
+                                         1.0, coef[i], coefUpdateGeo);
+      }
+      lin->SetName("AcousticSourceDensityInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+
+      RegionIdType regionId = ent[i]->GetRegion();
+      acousticSourceDensityCoef_->AddRegion(  regionId, coef[i] );
+    } // for
+
     // =====================================
     //  rhsValues for e.g. for aeroacoustics
     // =====================================
@@ -1500,6 +1532,36 @@ namespace CoupledField{
         EXCEPTION("RHS and speed of sound at Laplace operator currently not possible");
 
       coef[i]->SetConservative(true);
+      //std::cout << "ADD" << std::endl;
+      coef[i]->SetFeFunction( feFunctions_[formulation_], formulation_);
+
+      if ( !approxSourceWithDeltaFnc_ && coef[i]->GetInverseType() == CoefFunction::INVSOURCE )  {
+    	  std::cout << "Add BUIntegrator SRC" << std::endl;
+    	  // check type of entitylist
+          if (ent[i]->GetType() == EntityList::NODE_LIST) {
+            EXCEPTION("Acoustic source density must be defined on elements")
+          }
+          EntityIterator it = ent[i]->GetIterator();
+          it.Begin();
+
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(),
+                                              Complex(1.0), coef[i], coefUpdateGeo);
+          } else  {
+            lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(),
+                                             1.0, coef[i], coefUpdateGeo);
+          }
+          lin->SetName("AcousticSourceDensityInverseInt");
+          LinearFormContext *ctx = new LinearFormContext( lin );
+          ctx->SetEntities( ent[i] );
+          ctx->SetFeFunction(myFct);
+          assemble_->AddLinearForm(ctx);
+
+          RegionIdType regionId = ent[i]->GetRegion();
+          acousticSourceDensityCoef_->AddRegion(  regionId, coef[i] );
+      }
+
+      //if ( coef[i]->GetInverseType() == CoefFunction::INVSOURCE )
       this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i], ent[i]);
     }
 
@@ -1647,6 +1709,44 @@ namespace CoupledField{
     } // for
 
   }
+
+  // **********
+  // SetRhsLoads
+  // **********
+//  void  AcousticPDE::SetRhsValues() {
+//
+//	std::cout << "DO AcousticPDE::SetRhsValues() " << std::endl;
+//    //do the same for RHS
+//	//PtrCoefFct& sol = fieldCoefs_[ACOU_PRESSURE];
+//
+//    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator rFncIt= this->rhsFeFunctions_.begin();
+//    while ( rFncIt != this->rhsFeFunctions_.end() ) {
+////    	LoadCoefList loadCoefs = rFncIt->second->GetLoadCoefFunctions();
+////    	LoadCoefList::iterator it = loadCoefs.begin();
+////    	for ( ; it != loadCoefs.end(); ++it  ) {
+////    		PtrCoefFct ptCoef = it->first;
+////    		StdVector<shared_ptr<EntityList> > & lists = it->second;
+////    		if ( lists[0]->GetName() == "inner" ) {
+////    			std::cout << "Size: " << lists[0]->GetSize() << std::endl;
+////    			std::cout << "Type: " << lists[0]->GetType() << std::endl;
+////    		}
+////    		shared_ptr<EntityList>& singleList = lists[0];
+////    		EntityIterator entIt = singleList->GetIterator();
+////    		if ( singleList->GetType() == EntityList::ELEM_LIST ) {
+////    			for ( entIt.Begin(); !entIt.IsEnd(); entIt++) {
+////    				std::cout << "Node: " << entIt.GetNode() << std::endl;
+////    			}
+////    		}
+////    	}
+////    	std::cout << "END \n " << std::endl;
+//
+//
+//
+//    	rFncIt->second->ApplyLoads();
+//    	rFncIt++;
+//    }
+//  }
+
 
   void AcousticPDE::DefineSolveStep(){
     solveStep_ = new StdSolveStep(*this);
@@ -2190,6 +2290,17 @@ namespace CoupledField{
     resultFunctors_[ACOU_POT_ENERGY] = keFuncPot;
     stiffFormFunctors_.insert(keFuncPot);
 
+    //== ACOUSTIC LOAD DDENSITY  ====
+    shared_ptr<ResultInfo> loadDensity( new ResultInfo);
+    loadDensity->resultType = ACOU_RHS_LOAD_DENSITY;
+    loadDensity->dofNames = "";
+    loadDensity->unit = "";
+
+    loadDensity->definedOn = ResultInfo::NODE;
+    loadDensity->entryType = ResultInfo::SCALAR;
+
+    acousticSourceDensityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+    DefineFieldResult( acousticSourceDensityCoef_,loadDensity );
   }
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){

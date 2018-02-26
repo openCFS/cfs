@@ -54,6 +54,7 @@ SGP::SGP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
   volume = 0.;
   volume_observe = 0.;
   volume_bound = 0.;
+  volume_cfs = 0;
   filtering_gaps = 0.;
   filtering_gaps_observe = 0.;
   filtering_gaps_bound = 0.;
@@ -146,8 +147,12 @@ void SGP::PostInit()
 
   // set design variable configuration, e.g. DESIGN_ROTANGLE or STIFF1_STIFF2 or FOMO or FOMO_Top or FMO
   SetConfiguration();
+  ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(optimization);
+  assert(em != NULL);
   if (configuration == STIFF1_STIFF2) {
-    helper_dm = new DesignMaterial(this_opt_pn_->Get("subsolver/designMaterial"), OptimizationMaterial::system.Parse(optimization->GetDesign()->designMaterial->GetErsatzMaterial()->pn->Get("material")->As<std::string>()), optimization->GetDesign()->design, optimization->GetDesign()->designMaterial->GetErsatzMaterial());
+    helper_dm = new DesignMaterial(this_opt_pn_->Get("subsolver/designMaterial"),
+            OptimizationMaterial::system.Parse(em->pn->Get("material")->As<std::string>()),
+            optimization->GetDesign()->design, optimization->GetDesign());
     helper_dm->SetType(DesignMaterial::HOM_RECT_C1);
   }
 
@@ -1439,15 +1444,15 @@ double SGPApproximation::CalcAnalyticSol_FOMO_Top(double &rho1, double &rho2, do
     DesignSpace* space = common->optimization->GetDesign();
     unsigned int mech11 = space->FindDesign(DesignElement::MECH_11);
     unsigned int mech22 = space->FindDesign(DesignElement::MECH_22);
-    unsigned int mech33 = space->FindDesign(DesignElement::MECH_33);
+    //unsigned int mech33 = space->FindDesign(DesignElement::MECH_33);
     unsigned int dens = space->FindDesign(DesignElement::DENSITY);
 
     double lower_mech11 = space->GetDesignElement(mech11*common->n_elem+index)->GetLowerBound();
     double upper_mech11 = space->GetDesignElement(mech11*common->n_elem+index)->GetUpperBound();
     double lower_mech22 = space->GetDesignElement(mech22*common->n_elem+index)->GetLowerBound();
     double upper_mech22 = space->GetDesignElement(mech22*common->n_elem+index)->GetUpperBound();
-    double lower_mech33 = space->GetDesignElement(mech33*common->n_elem+index)->GetLowerBound();
-    double upper_mech33 = space->GetDesignElement(mech33*common->n_elem+index)->GetUpperBound();
+    //double lower_mech33 = space->GetDesignElement(mech33*common->n_elem+index)->GetLowerBound();
+    //double upper_mech33 = space->GetDesignElement(mech33*common->n_elem+index)->GetUpperBound();
     double lower_dens = space->GetDesignElement(dens*common->n_elem+index)->GetLowerBound();
     double upper_dens = space->GetDesignElement(dens*common->n_elem+index)->GetUpperBound();
 

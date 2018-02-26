@@ -17,7 +17,7 @@ namespace CoupledField
     regionName_(regionName) {
   }
   
-  const bool SimInput::GetResultArguments::operator<(const GetResultArguments &r) const {
+   bool SimInput::GetResultArguments::operator<(const GetResultArguments &r) const {
     return (sequenceStep_ < r.sequenceStep_) || (solType_ < r.solType_) || (regionName_ < r.regionName_);
   }
 

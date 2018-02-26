@@ -390,6 +390,7 @@ MACRO(INIT_CACHE CACHE_VAR)
      CMAKE_COLOR_MAKEFILE:BOOL=OFF
      CFSDAT:BOOL=ON
      CFSTOOL:BOOL=ON
+     UNIT_TESTS:BOOL=OFF
     "
   )
 ENDMACRO()
@@ -481,10 +482,6 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{CC} "/usr/bin/gcc")
     SET(ENV{CXX} "/usr/bin/g++")
     SET(ENV{FC} "/usr/bin/gfortran")
-    SET(ENV{LC_MESSAGES} "C")
-    SET(ENV{LC_ALL} "C")
-    SET(ENV{LANG} "C")
-    SET(ENV{LANGUAGE} "C")
 
   elseif(${COMPILER_TYPE} STREQUAL "GCC-6")
     # search for compilers from software collections
@@ -498,83 +495,40 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{CXX} "${SCL_CXX}")
     SET(ENV{FC} "${SCL_FC}")
 
-    SET(ENV{LC_MESSAGES} "C")
-    SET(ENV{LC_ALL} "C")
-    SET(ENV{LANG} "C")
-    SET(ENV{LANGUAGE} "C")
+  elseif(${COMPILER_TYPE} STREQUAL "GCC-7")
+    # search for compilers from software collections
+    execute_process(COMMAND scl enable devtoolset-7 -- which gcc
+                    OUTPUT_VARIABLE SCL_CC OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND scl enable devtoolset-7 -- which g++
+                    OUTPUT_VARIABLE SCL_CXX OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND scl enable devtoolset-7 -- which gfortran
+                    OUTPUT_VARIABLE SCL_FC OUTPUT_STRIP_TRAILING_WHITESPACE)
+    SET(ENV{CC} "${SCL_CC}")
+    SET(ENV{CXX} "${SCL_CXX}")
+    SET(ENV{FC} "${SCL_FC}")
 
   elseif(${COMPILER_TYPE} STREQUAL "CLANG")
     SET(ENV{CC} "clang")
     SET(ENV{CXX} "clang++")
     SET(ENV{FC} "gfortran")
-    SET(ENV{LC_MESSAGES} "C")
-    SET(ENV{LC_ALL} "C")
-    SET(ENV{LANG} "C")
-    SET(ENV{LANGUAGE} "C")
-
 
   elseif(${COMPILER_TYPE} STREQUAL "ICC")
 
-    if(NOT INTEL_COMPILER_PATH)
-      if(EXISTS "/opt/intel/compilers_and_libraries/linux/bin/compilervars.sh") # default for intel 2016
-         set(INTEL_COMPILER_PATH "/opt/intel/compilers_and_libraries/linux")
-      elseif(EXISTS "/share/programs/intel/composer_xe_2015.2.164/bin/compilervars.sh")  
-        set(INTEL_COMPILER_PATH "/share/programs/intel/composer_xe_2015.2.164")
-      else()
-        message(FATAL_ERROR "No INTEL_COMPILER_PATH provied and no default could be found")
-      endif()  
-      message("No INTEL_COMPILER_PATH provied but we will go for ${INTEL_COMPILER_PATH}")
-    endif(NOT INTEL_COMPILER_PATH)
+    # make sure to manuall source /opt/intel/compilers_and_libraries/linux/bin/compilervars.sh intel64
+    # automatic source removed, still present in revsion 16404
 
-    SET(INTEL_COMPVARS_SH "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.sh")
-    SET(INTEL_COMPVARS_CMAKE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
-
-    FILE(WRITE "${INTEL_COMPVARS_SH}"
-    "
-    source ${INTEL_COMPILER_PATH}/bin/compilervars.sh intel64
-    ${CTEST_CMAKE_COMMAND} -E environment
-    ")
-
-    SET(SHCMD
-      bash
-      "${INTEL_COMPVARS_SH}"
-    )
-    EXECUTE_PROCESS(
-      COMMAND ${SHCMD}
-      OUTPUT_VARIABLE INTEL_ENV_SH
-    )
-    STRING(REPLACE "\n" ";" INTEL_ENV_SH ${INTEL_ENV_SH})
-
-    SET(INTEL_ENV_CMAKE "")
-    FOREACH(LINE IN ITEMS ${INTEL_ENV_SH})
-      STRING(REPLACE "=" ";" LINE_TOKENS ${LINE})
-      LIST(GET LINE_TOKENS 0 VAR_NAME)
-      LIST(GET LINE_TOKENS 1 VAR_VALUE)
-      IF(NOT VAR_NAME STREQUAL "INTEL_LICENSE_FILE" AND
-         NOT VAR_NAME STREQUAL "PWD" AND
-         NOT VAR_NAME STREQUAL "SHLVL" AND
-         NOT VAR_NAME STREQUAL "_")
-        SET(INTEL_ENV_CMAKE "${INTEL_ENV_CMAKE}\nSET(ENV{${VAR_NAME}} \"${VAR_VALUE}\")")
-      ENDIF()
-    ENDFOREACH()
-
-    #message("INTEL_ENV_CMAKE XXX ${INTEL_ENV_CMAKE} XXX INTEL_ENV_CMAKE")
-    FILE(WRITE "${INTEL_COMPVARS_CMAKE}" "${INTEL_ENV_CMAKE}")
-    INCLUDE("${INTEL_COMPVARS_CMAKE}")
-
-    SET(ENV{LM_LICENSE_FILE} "/share/programs/intel/licenses/pmklicserv.lic")
-    SET(ENV{INTEL_LICENSE_FILE} "$ENV{LM_LICENSE_FILE}")
     SET(ENV{CC} "icc")
     SET(ENV{CXX} "icpc")
     SET(ENV{FC} "ifort")
-    SET(ENV{LC_MESSAGES} "C")
-    SET(ENV{LC_ALL} "C")
-    SET(ENV{LANG} "C")
-    SET(ENV{LANGUAGE} "C")
 
   else()
-    message("can only set compiler environment for GCC, GCC-6, CLANG or ICC, not for ${COMPILER}!")
+    message("can only set compiler environment for GCC, GCC-6, GCC-7, CLANG or ICC, not for ${COMPILER}!")
   endif()
+
+  SET(ENV{LC_MESSAGES} "C")
+  SET(ENV{LC_ALL} "C")
+  SET(ENV{LANG} "C")
+  SET(ENV{LANGUAGE} "C")
 
   IDENTIFY_COMPILER()
 endmacro()

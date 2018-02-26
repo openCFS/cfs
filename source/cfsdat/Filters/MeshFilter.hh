@@ -69,8 +69,6 @@ public:
     delete trgGrid_;
   }
 
-  virtual bool Run() = 0;
-
   virtual void FinishInit();
 
 
@@ -201,7 +199,8 @@ protected:
                       const UInt& numNeighbors,
                       const UInt& numEquPerEnt,
                       Grid* grid,
-                      const Double epsScal);
+                      const Double epsScal,
+                      const bool logEps);
 
 
   bool CalcLocGradient(CF::Matrix<Double>& derivCoefVec,
@@ -212,7 +211,8 @@ protected:
                       const UInt& numNeighbors,
                       const UInt& numEquPerEnt,
                       Grid* grid,
-                      const Double epsScal);
+                      const Double epsScal,
+                      const bool logEps);
 
 
   bool CalcLocDivergence(CF::Matrix<Double>& derivCoefVec,
@@ -223,7 +223,8 @@ protected:
                       const UInt& numNeighbors,
                       const UInt& numEquPerEnt,
                       Grid* grid,
-                      const Double epsScal);
+                      const Double epsScal,
+                      const bool logEps);
 
 
   void CalcCurl(Vector<Double>& returnVec,
@@ -240,6 +241,17 @@ protected:
                       const StdVector< StdVector<CF::UInt> >& sourceM,
                       const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
                       const UInt& maxNumTrgEntities);
+
+  void CalcTensorDivergence(Vector<Double>& returnVec,
+                      const Vector<Double>& inVec,
+                      const UInt& numEquPerEnt,
+                      const StdVector< StdVector<CF::UInt> >& sourceM,
+                      const StdVector< CF::Matrix<CF::Double> >& targetSourceFactor,
+                      const UInt& maxNumTrgEntities);
+
+  int Index2Voigt(const UInt& dx1,
+                  const UInt& dx2,
+                  const UInt& dim);
 
   void CalcGradient(Vector<Double>& returnVec,
                       const Vector<Double>& inVec,

@@ -163,8 +163,10 @@ namespace CoupledField{
   }
 
   void TimeSchemeGLM::ComputeStageRHS(UInt actStage, Integer derivId,
-                                      SingleVector* rhsVec, Integer subIdx){
+                                      SingleVector* rhsVec, Integer subIdx, bool forceIncremental){
 
+    //std::cout << "Compute StageRHS" << std::endl;
+    //std::cout << "Requested derivID = " << derivId << " (0 > mult with stiffness K; 1 > mult with D; 2 > mult with M)" << std::endl;
     //if the derivative id is equal to solution we do not need to do anything
     //as the corresponding line in the GLM is equal to zero, but not! always
     if(derivId > (Integer)curScheme_->maxDerivOrder_ ||
@@ -176,15 +178,30 @@ namespace CoupledField{
     UInt dId = (UInt) derivId;
     //Calculate coefficient matrix row index
     UInt cRow = actStage * (curScheme_->maxDerivOrder_+1) + dId;
-
+    
+		/*
+		 * NOTE: the predictors that are computed here, do not coincide with
+		 *			 \tilde{u} and \tilde{\dot{u}} from the text book
+		 *			instead, they are obtained by setting in \tilde{u} and \tilde{\dot{u}}
+		 *			into the RHS formulation and then rearrange the corresponding terms
+		 *			by matrices; 
+		 *			> those predictors correspond to a matrix each (stiffness, damping,
+		 *				mass, etc)
+		 */
+			
     if(curScheme_->usePredictors_ && predictorCalculated_[dId]){
+      //std::cout << "Update RHS with predictors - Reuse predictors" << std::endl;
       rhsVec->Add((*predictors_[dId]));
     }else{
       //update for old solutions
+      //std::cout << "Update RHS with predictors - Compute predictors" << std::endl;
       for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
         UInt col = curScheme_->numStages_+i;
 
+        //std::cout << "current order " << col << "  0,1 = sol itself; 2 = first time deriv; 3 = second time deriv" << std::endl;
+        
         Double coef = curScheme_->schemeCoefs_[cRow][col];
+        //std::cout << "scaling factor: " << coef << std::endl;
         if(coef !=0){
           //std::cout << "cRow: " << cRow << "  col: " << col << "  Value: " << coef << std::endl;
           SingleVector * curVec = glmVector_[i];
@@ -203,15 +220,19 @@ namespace CoupledField{
     // of alternative ways to accomplish the non-linear solution scheme
     // furthermore, we assume, that the stageVector always holds the solution at the current non-linear iteration
     // NOT the increment. Here it becomes apparent why solveStep and Timescheme are no longer separated as initially intended
-    if(nLinType_ == INCREMENTAL){
+    if((nLinType_ == INCREMENTAL)||forceIncremental){
+      //std::cout << "Incremental formulation: Update RHS with -(K_eff-K)*curSol" << std::endl;
+      //std::cout << "(K_eff-K) = damping (C) and mass (M) contributions to effective stiffness matrix" << std::endl;
       UInt col = curScheme_->numStages_;
+      //std::cout << "current order " << col << "  0,1 = sol itself; 2 = first time deriv; 3 = second time deriv" << std::endl;
       Double coef = curScheme_->schemeCoefs_[cRow][col];
+      //std::cout << "scaling factor: " << coef << std::endl;
       if(coef !=0){
         ////This is currently a HACK!!
         //if ( curType_ == GLMScheme::BDF2 && col > 0 )
         //  coef = curScheme_->schemeCoefs_[cRow][col-1];
 
-        //std::cout << "NL:  cRow: " << cRow << "  col: " << col << "  Value: " << coef << std::endl;
+     //   std::cout << "NL:  cRow: " << cRow << "  col: " << col << "  Value: " << coef << std::endl;
         SingleVector * curVec = stageVector_[actStage];
         rhsVec->Add(coef * -1.0,(*curVec));
       }

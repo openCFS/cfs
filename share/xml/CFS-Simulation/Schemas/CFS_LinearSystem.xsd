@@ -161,8 +161,6 @@
           <xsd:enumeration value="sparseSym"/>
           <xsd:enumeration value="sparseNonSym"/>
           <xsd:enumeration value="variableBlockRow"/>
-          <xsd:enumeration value="skylineSym"/>
-          <xsd:enumeration value="skylineNonSym"/>
           <xsd:enumeration value="lapackGBMatrix"/>
           <xsd:enumeration value="noStorageType"/>
         </xsd:restriction>
@@ -257,6 +255,9 @@
       <xsd:element name="maxNumIters" type="xsd:positiveInteger"/>
       <xsd:element name="abortOnMaxNumIters" type="DT_CFSBool" default="yes" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="stopOnLimit" type="DT_StopIter" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="hysteresisEvaluationParameter" type="xsd:positiveInteger" default="1" minOccurs="0" maxOccurs="1"/>
+    <!--  <xsd:element name="evalVersion" type="xsd:positiveInteger" default="1" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="forceResidualReevaluation" type="DT_CFSBool" default="no" minOccurs="0" maxOccurs="1"/>-->
     </xsd:sequence>
     <xsd:attribute name="method" type="DT_NonLinSolver" use="optional"
       default="fixPoint"/>

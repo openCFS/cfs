@@ -16,6 +16,6 @@
 +  ADD_DEFINITIONS(-DNPOSIX=1 -DGETRUSAGE=1)
 +ENDIF()
 +
- IF(NOT CMAKE_CROSSCOMPILING AND NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "OPEN64")
+ IF(NOT CMAKE_CROSSCOMPILING)
    # Create a header file blas_lapack.h with the correct mangling
    # for the Fortran routines called in my C programs.

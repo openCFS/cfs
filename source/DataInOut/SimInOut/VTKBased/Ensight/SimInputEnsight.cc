@@ -349,6 +349,71 @@ void SimInputEnsight::FillResultMap(){
   dens->definedOn = ResultInfo::NODE;
   dens->entryType = ResultInfo::SCALAR;
 
+  //================================================
+  // FluidMech Turbulent Eddy Frequency (epsilon)
+  //================================================
+  //Basic CFS definition
+  this->cfsEnsightResMap_[FLUIDMECH_TEF].res.reset( new ResultInfo);
+  shared_ptr<ResultInfo> tef = this->cfsEnsightResMap_[FLUIDMECH_TEF].res;
+  tef->resultType = FLUIDMECH_TEF;
+  tef->resultName = SolutionTypeEnum.ToString(FLUIDMECH_TEF);
+  tef->dofNames = "";
+  tef->unit = "kg/m^3";
+
+  tef->definedOn = ResultInfo::NODE;
+  tef->entryType = ResultInfo::SCALAR;
+
+  //================================================
+  // FluidMechTemperature
+  //================================================
+  //Basic CFS definition
+  this->cfsEnsightResMap_[FLUIDMECH_TEMP].res.reset( new ResultInfo);
+  shared_ptr<ResultInfo> temp = this->cfsEnsightResMap_[FLUIDMECH_TEMP].res;
+  temp->resultType = FLUIDMECH_TEMP;
+  temp->resultName = SolutionTypeEnum.ToString(FLUIDMECH_TEMP);
+  temp->dofNames = "";
+  temp->unit = "K";
+
+  temp->definedOn = ResultInfo::NODE;
+  temp->entryType = ResultInfo::SCALAR;
+
+  //================================================
+  // FluidMech Turbulent Kinetic Energy
+  //================================================
+  //Basic CFS definition
+  this->cfsEnsightResMap_[FLUIDMECH_TKE].res.reset( new ResultInfo);
+  shared_ptr<ResultInfo> tke = this->cfsEnsightResMap_[FLUIDMECH_TKE].res;
+  tke->resultType = FLUIDMECH_TKE;
+  tke->resultName = SolutionTypeEnum.ToString(FLUIDMECH_TKE);
+  tke->dofNames = "";
+  tke->unit = "m^2/s^2";
+
+  tke->definedOn = ResultInfo::NODE;
+  tke->entryType = ResultInfo::SCALAR;
+
+  //================================================
+  // FluidMech specific Turbulent Dissipation Rate (omega)
+  //================================================
+  //Basic CFS definition
+  this->cfsEnsightResMap_[FLUIDMECH_TDR].res.reset( new ResultInfo);
+  shared_ptr<ResultInfo> tdr = this->cfsEnsightResMap_[FLUIDMECH_TDR].res;
+  tdr->resultType = FLUIDMECH_TDR;
+  tdr->resultName = SolutionTypeEnum.ToString(FLUIDMECH_TDR);
+  tdr->dofNames = "";
+  tdr->unit = "1/s";
+
+  tdr->definedOn = ResultInfo::NODE;
+  tdr->entryType = ResultInfo::SCALAR;
+
+
+  // IF you want to add a new CFS Variable as Ensight input
+  // 1. "define a section like the one above for FluidMechDensity
+  // 2. define the relevant format (dofs and so on)
+  // 3. register FLUIDMECH_DENSITY in Environment.hh
+  // 4. add xml name of FLUIDMECH_DENSITY to SetEnvironmentEnums() in Environment.cc
+  // 5. add unit of FLUIDMECH_DENSITY to SetEnvironmentEnums() in Environment.cc
+  // DONE
+
 }
 
 

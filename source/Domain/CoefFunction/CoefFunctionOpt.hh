@@ -42,11 +42,6 @@ public:
     GetTensor<Complex>(coefMat, lpm);
   }
 
-  //! \copydoc CoefFunction::GetMsfemElementMatrix
-  void GetMsfemElementMatrix(Matrix<double>& elemMat, const LocPointMapped& lpm) {
-    GetMsfemElementMatrix<double>(elemMat, lpm);
-  }
-
   //! \copydoc CoefFunction::GetScalar
   void GetScalar(double& scal, const LocPointMapped& lpm) {
     GetScalar<double>(scal, lpm);
@@ -107,6 +102,8 @@ public:
 
   /** Is DesignElement::NO_DERIVATIVE is state is not DIRECTION. For tensors and mass */
   DesignElement::Type GetMaterialDerivative() const { return direction; }
+
+  State GetState() const { return state; }
 
   /** the original material. Required if no optimization available or for SIMP and bi-material optimization */
   PtrCoefFct orgMat;

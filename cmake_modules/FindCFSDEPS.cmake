@@ -84,9 +84,17 @@ which can be reused for other CFS++ builds.
 This directory may even be located on a network share.")
 ENDIF(NOT CFS_DEPS_CACHE_DIR)
 
-FILE(TO_CMAKE_PATH
-  "${CFS_DEPS_CACHE_DIR}"
-  CFS_DEPS_CACHE_DIR)
+FILE(TO_CMAKE_PATH "${CFS_DEPS_CACHE_DIR}" CFS_DEPS_CACHE_DIR)
+
+# for configure projectes we may not use ninja but need make
+if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+  message("CMAKE_GENERATOR = ${CMAKE_GENERATOR}")
+  find_program(CONFIGURE_MAKE_PROGRAM make)
+else()
+  set(CONFIGURE_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build configure projects")
+endif()
+mark_as_advanced(CONFIGURE_MAKE_PROGRAM)
+
 
 #-------------------------------------------------------------------------------
 # Build zlib library
@@ -454,6 +462,18 @@ ENDIF(USE_LIBFBI)
 INCLUDE("${CFSDEPS_DIR}/spacepart/External_spacepart.cmake")
 
 #-----------------------------------------------------------------------------
+# FEAST - FEAST Eigenvalue Solver
+#-----------------------------------------------------------------------------
+IF(USE_FEAST_COMMUNITY)
+  SET(FEAST_URL "${CFS_DS_SOURCES_DIR}/feast")
+  SET(FEAST_BASE "feast")
+  SET(FEAST_VER "3.0")
+  SET(FEAST_GZ "${FEAST_BASE}_${FEAST_VER}.tgz")
+  SET(FEAST_MD5 "f03819c19a8724d0095dd24eae7ba43a")
+  INCLUDE("${CFSDEPS_DIR}/feast/External_FEAST.cmake")
+ENDIF()
+
+#-----------------------------------------------------------------------------
 # FLANN - Fast Library for Approximate Nearest Neighbors
 #-----------------------------------------------------------------------------
 IF(USE_FLANN)
@@ -546,14 +566,62 @@ IF(BUILD_HDFVIEW)
 ENDIF(BUILD_HDFVIEW)
 
 #-------------------------------------
-# External anaconda 3
+# External anaconda 3 as a service for test machines at TU-Wien
 #-------------------------------------
-if(USE_ANACONDA3)
+if(BUILD_ANACONDA3)
   SET(ANACONDA3_URL "${CFS_DS_SOURCES_DIR}/anaconda3")
   SET(ANACONDA3_SH "Anaconda3-4.2.0-Linux-x86_64.sh")
   SET(ANACONDA3_MD5 "4692f716c82deb9fa6b59d78f9f6e85c")
   INCLUDE("${CFSDEPS_DIR}/anaconda3/External_anaconda3.cmake")
-endif(USE_ANACONDA3)
+endif(BUILD_ANACONDA3)
+
+# PETSc requires mpi
+if(USE_PETSC)
+  SET(PETSC_VER "3.8.3")
+  SET(PETSC_TGZ "petsc-${PETSC_VER}.tar.gz")
+  SET(PETSC_MD5 "322cbcf2a0f7b7bad562643b05d66f11")
+  
+  INCLUDE("${CFSDEPS_DIR}/petsc/External_PETSC.cmake")
+endif(USE_PETSC)
+
+# hwloc is a build dependency for ghost/phist but not explicitly used, therefore BUILD_HWLOC 
+if(BUILD_HWLOC)
+  SET(HWLOC_VER "1.11.8") # note that 1.11 is hardcoded in External_HWLOC!
+  SET(HWLOC_TGZ "hwloc-${HWLOC_VER}.tar.gz")
+  SET(HWLOC_MD5 "a0fa1c9109a4d8b4b6568e62cc9b6e30") 
+  
+  INCLUDE("${CFSDEPS_DIR}/hwloc/External_HWLOC.cmake")
+endif(BUILD_HWLOC)
+
+# ghost is required for phist or could be used standalone
+if(USE_GHOST)
+  # we use the cfs-fork of ghost and download the stuff via bitbuket
+  # we could also use a subversion mirror on github but only for ghost, not for phist
+  # svn co https://github.com/RRZE-HPC/GHOST/trunk@r<REVSION>
+  set(GHOST_REV "9937a9dc71d7") # subversion revision numbers are are more easily handable :(
+  set(GHOST_MD5 "9939c6176c4e42d15133eab5e646e7a2")
+  set(GHOST_ZIP "${GHOST_REV}.zip")
+  # https://bitbucket.org/fabian_wein/cfs_ghost/get/840f2717f849.zip -> fabian_wein-cfs_ghost-840f2717f849
+  # https://bitbucket.org/essex/ghost/get/f3c78b57e836.zip -> essex-ghost-f3c78b57e836
+  set(GHOST_BB_USER "essex")
+  set(GHOST_BB_PROJECT "ghost")
+  include("${CFSDEPS_DIR}/ghost/External_GHOST.cmake")
+  
+  ADD_DEPENDENCIES(ghost hwloc)
+endif(USE_GHOST)
+
+# phist provides a ghost (=cuda if available) based EV-solver
+if(USE_PHIST)
+  set(PHIST_REV "213468cf2885") 
+  set(PHIST_MD5 "b0814da53605354641322cde613b9d61")
+  set(PHIST_ZIP "${PHIST_REV}.zip")
+  set(PHIST_BB_USER "essex")
+  set(PHIST_BB_PROJECT "phist")
+  include("${CFSDEPS_DIR}/phist/External_PHIST.cmake")
+  
+  ADD_DEPENDENCIES(phist ghost)
+endif(USE_PHIST)
+
 
 #-------------------------------------------------------------------------------
 # The cfsdeps meta target. Issue 'make -jX cfsdeps' to build all required.

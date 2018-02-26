@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # CMake, the cross-platform, open-source build system.
-# Needed by HDF5 and ParaView.
+# Needed by HDF5
 #
 # Project Homepage
 # http://www.cmake.org/

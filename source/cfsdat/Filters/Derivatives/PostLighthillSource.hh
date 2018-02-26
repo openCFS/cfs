@@ -29,11 +29,11 @@ public:
 
   virtual ~PostLighthillSource();
 
-  virtual bool Run();
-
 
 protected:
 
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
+  
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();

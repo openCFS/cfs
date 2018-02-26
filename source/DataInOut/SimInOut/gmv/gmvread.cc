@@ -5588,11 +5588,15 @@ void regcell(long icell, long nc)
     }
 
     /*  If cell consists of all duplicate nodes, set to first node.  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
     if (ndup <= 0)
     {
       dupverts[0] = fverts[0];
       dupnverts[0] = 1;
     }
+#pragma GCC diagnostic pop
 
     nfaces = nf;
     if (nfaces == 0) nfaces = 1;

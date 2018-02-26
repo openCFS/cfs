@@ -44,7 +44,7 @@ void AeroacousticBase::OmegaVectorProductU(const Vector<Double>& inVecVel,
 if(dim == 3){
   omega.Resize(inVecVel.GetSize() / dim, dim);
   omega.Init();
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt j = 0; j < inVecVel.GetSize() / dim; ++j) {
     for(CF::UInt k = 0; k < dim; ++k){
       vel[j][k] = inVecVel[dim * j + k];
@@ -60,14 +60,14 @@ if(dim == 3){
   // 2D case
   omega.Resize(inVecVel.GetSize() / dim, 1);
   omega.Init();
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt j = 0; j < inVecVel.GetSize() / dim; ++j) {
     for(CF::UInt k = 0; k < dim; ++k){
       vel[j][k] = inVecVel[dim * j + k];
     }
     omega[j][0] = inVecOmega[j];
    }
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt j = 0; j < inVecVel.GetSize() / dim; ++j) {
     retVec[j * dim] =     -vel[j][1] * omega[j][0];
     retVec[j * dim + 1] =  vel[j][0] * omega[j][0];
@@ -101,6 +101,44 @@ void AeroacousticBase::ScalarProduct(Vector<Double>& retVec,
   }
 }
 
+void AeroacousticBase::TensorProduct(Vector<Double>& retVec,
+                                    const Vector<Double>& tensor1,
+                                    const Vector<Double>& tensor2,
+                                    const UInt& numEquPerEnt,
+                                    const Double& scalarFactor,
+                                    const Vector<Double>& scalar){
+
+  if(tensor1.GetSize() != tensor2.GetSize()) EXCEPTION("TensorProduct: input tensors don't have the same size!!!");
+//  if(tensor1.GetSize()/numEquPerEnt != scalar.GetSize()) EXCEPTION("TensorProduct: input tensors and scalar dimension don't match!!!");
+
+  int a = 1;
+  if (numEquPerEnt==3) a = 3;
+
+  retVec.Resize(tensor1.GetSize() * (numEquPerEnt + a) / numEquPerEnt);
+  retVec.Init();
+
+  //We use Voigt notation to number the tensor
+  for(UInt i = 0; i < scalar.GetSize(); ++i){
+      if (a == 1) {
+        retVec[(numEquPerEnt + a)*i + 0] = scalarFactor * scalar[i] * tensor1[numEquPerEnt * i + 0] * tensor2[numEquPerEnt * i + 0];
+        retVec[(numEquPerEnt + a)*i + 1] = scalarFactor * scalar[i] * tensor1[numEquPerEnt * i + 1] * tensor2[numEquPerEnt * i + 1];
+        retVec[(numEquPerEnt + a)*i + 2] = scalarFactor * scalar[i] * tensor1[numEquPerEnt * i + 0] * tensor2[numEquPerEnt * i + 1];
+      }
+      else if  (a == 3){
+        retVec[(numEquPerEnt + a)*i + 0] = scalarFactor * scalar[i] * tensor1[numEquPerEnt * i + 0] * tensor2[numEquPerEnt * i + 0];
+        retVec[(numEquPerEnt + a)*i + 1] = scalarFactor * scalar[i] * tensor1[numEquPerEnt * i + 1] * tensor2[numEquPerEnt * i + 1];
+        retVec[(numEquPerEnt + a)*i + 2] = scalarFactor * scalar[i] * tensor1[numEquPerEnt * i + 2] * tensor2[numEquPerEnt * i + 2];
+
+        retVec[(numEquPerEnt + a)*i + 3] = scalarFactor * scalar[i] * tensor1[numEquPerEnt * i + 1] * tensor2[numEquPerEnt * i + 2];
+
+        retVec[(numEquPerEnt + a)*i + 4] = scalarFactor * scalar[i] * tensor1[numEquPerEnt * i + 0] * tensor2[numEquPerEnt * i + 2];
+        retVec[(numEquPerEnt + a)*i + 5] = scalarFactor * scalar[i] * tensor1[numEquPerEnt * i + 0] * tensor2[numEquPerEnt * i + 1];
+
+
+      }
+
+  }
+}
 
 
 
@@ -115,7 +153,7 @@ void AeroacousticBase::Node2Cell(Vector<Double>& returnVec,
   returnVec.Init();
 
 
-//#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(UInt i = 0; i < maxNumTrgEntities; ++i){
     UInt patchSize = targetSourceIndex[i].GetSize();
     StdVector<UInt> sM = targetSourceIndex[i];

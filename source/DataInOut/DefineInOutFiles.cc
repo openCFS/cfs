@@ -275,7 +275,8 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     actNode->GetValue( "gridId", gridId, ParamNode::PASS );
     gridIds[actId] = gridId;
     
-    std::cout << "++ Creating " << actFormat << " writer with ID '" << actId << "'" << std::endl;
+    if(!progOpts->IsQuiet())
+      std::cout << "++ Creating " << actFormat << " writer with ID '" << actId << "'" << std::endl;
     out[actId]  = CreateSingleOutputFileObject(simName,actNode,infoNode,restart);
 
   } // loop over reader nodes
