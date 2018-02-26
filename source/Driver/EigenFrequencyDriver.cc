@@ -383,14 +383,11 @@ namespace CoupledField {
     // check matrix dimensions
     assert( massMat->GetNumCols()==massMat->GetNumRows() );
     assert( stiffMat->GetNumCols()==stiffMat->GetNumRows() );
-    massMat->GetEntryType(); // real or complex
-    massMat->GetPointer(0,0);
     // * the quadratic EVP should go somewhere else, as it required a completely different handling of the results
     // setup the eigen solver (problem type is determined in Setup based on matrix properties)
     sstep->GetAlgSys()->GetEigenSolver()->Setup(*(stiffMat->GetPointer(0,0)),*(massMat->GetPointer(0,0)),isBloch_);
-    // check if the modes or eigenvectors will be complex
-    bool complexModes = sstep->GetAlgSys()->GetEigenSolver()->HasComplexModes();
-    bool complexEV = sstep->GetAlgSys()->GetEigenSolver()->HasComplexEigenvalues();
+    // check if the eigenvalues will be complex
+    bool complexEV = eigenSolver->HasComplexEigenvalues();
 
     if (minVal_>=0 || maxVal_>=0) { // we have an interval
         if (complexEV) {
