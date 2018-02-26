@@ -22,16 +22,585 @@ namespace CoupledField {
   // declare logging stream
   DECLARE_LOG(solvestephyst)
   DEFINE_LOG(solvestephyst, "solvestephyst")
-  
+  	
   SolveStepHyst::SolveStepHyst(StdPDE & apde)
   :StdSolveStep(apde)
-  {}
-
+  {
+		trans_ = true;
+		flagsInitialized_ = false;
+    
+    
+    // old stuff; keep until new version is available
+        /*
+     * for hysteresis, initialize additional values needed by
+     * CalcResidualAndConfigSystemForHysteresis
+     */
+//    if(isHyst_){
+//      
+      currentLinRhsVec_ = rhsVec_;
+//      // set all rhs and res values to rhsVec_ first to initialize the
+//      // correct size
+      currentNonLinRhsVec_ = rhsVec_;
+      currentNonLinRhsVec_.Init();
+//      
+//      currentRHSload_partial_ = rhsVec_;
+//      currentRHSload_partial_.Init();
+//      
+      currentResVec_ = currentNonLinRhsVec_;
+//      
+//      oldTSLinRhsVec_ = currentNonLinRhsVec_;
+//      oldTSNonLinRhsVec_ = currentNonLinRhsVec_;
+//      
+//      oldItResVec_ = currentNonLinRhsVec_;
+//      oldItNonLinRhsVec_ = currentNonLinRhsVec_;
+//      
+//      oldTSSolVec_ = solVec_;
+//      oldTSSolVec_.Init();
+//    }
+    
+	}
+	
   //! Destructor
   SolveStepHyst::~SolveStepHyst() {
     //logFile_.close();
   }
   
+	void SolveStepHyst::ReadNonLinDataHyst(){
+
+		PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
+    
+    // Check, if any nonlinear node was found
+    if( !nonLinNode ) {
+      WARN("Taking default parameters for nonlinear data" );
+    }
+    
+		if(nonLinNode){
+			// for hysteresis
+			UInt evalParameter;
+			nonLinNode->GetValue( "hysteresisEvaluationParameter", evalParameter, ParamNode::INSERT );
+
+			/*
+			 * New: evaluationParameter is a multidigit integer that is used to set
+			 * multiple parameter at once;
+			 * it is decomposed into blocks of one or more digits which then act
+			 * as parameter
+			 *
+			 * evalParameter = zyx...dcba
+			 *  a: evalVersion
+			 *      0: fixPoint for debugging (hyst has no effect on solution)
+			 *      1: fixPoint
+			 *      2: fixPoint with extended rhs
+			 *      3: deltaMat
+			 *      4: deltaMat with extended rhs
+			 *  b: forceReevaluation
+			 *      0: incremental evaluation of residual
+			 *      1: reevaluation of residual
+			 *  c: debugFlag
+			 *      0: no output
+			 *      1: debug output to cout
+			 *
+			 *  zyx...d > get passed to hystoperator where it is decomposed further
+			 *
+			 */
+			//      std::cout << "Read in hysteresisEvaluationParameter: " << evalParameter << std::endl;
+			evalCase_ = evalParameter%10;
+
+			evalParameter = evalParameter/10;
+			forceReevaluation_ = bool(evalParameter%10);
+
+			evalParameter = evalParameter/10;
+			debugOutput_ = bool(evalParameter%10);
+
+			remainingEvalParameter_ = evalParameter/10;
+
+			//      std::cout << "evalVersion: " << evalCase_ << std::endl;
+			//      std::cout << "forceReevaluation: " << forceReevaluation_ << std::endl;
+			//      std::cout << "debugOutput: " << debugOutput_ << std::endl;
+			//      std::cout << "remainingEvalParameter: " << remainingEvalParameter_ << std::endl;
+
+			// set parameter for coefFncHyst
+			//			std::cout << "set flag in coeffnchyst" << std::endl;
+			PDE_.SetFlagInCoefFncHyst("SetInputDependentFlags",remainingEvalParameter_);
+		}
+	}
+	
+	void SolveStepHyst::InitTimeStepping(){
+		LOG_TRACE(solvestephyst) << "SolveStepHyst::InitTimeStepping";
+		// call InitTimeStepping of base class first
+		StdSolveStep::InitTimeStepping();
+		
+		// Now initialize additional storage	
+    LinRhsVec_.Resize(feFunctions_.size());
+    NonLinRhsVec_.Resize(feFunctions_.size());
+		predictorCorrectorUpdate_.Resize(feFunctions_.size());
+		
+		RhsVec_.Resize(feFunctions_.size());
+		ResVec_.Resize(feFunctions_.size());
+		stageRHSUpdate_.Resize(feFunctions_.size());
+		
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+    UInt rhsSize = 0;
+    
+    //reserve memory for the rhs
+    for(fncIt = feFunctions_.begin(); fncIt != feFunctions_.end();++fncIt ){
+      rhsSize = fncIt->second->GetSingleVector()->GetSize();
+      FeFctIdType id = fncIt->second->GetFctId();
+      
+			LinRhsVec_.SetSubVector(new Vector<Double>(),id);
+      LinRhsVec_.GetPointer(id)->Resize(rhsSize);
+			
+			NonLinRhsVec_.SetSubVector(new Vector<Double>(),id);
+      NonLinRhsVec_.GetPointer(id)->Resize(rhsSize);
+			
+			predictorCorrectorUpdate_.SetSubVector(new Vector<Double>(),id);
+      predictorCorrectorUpdate_.GetPointer(id)->Resize(rhsSize);
+				
+			RhsVec_.SetSubVector(new Vector<Double>(),id);
+      RhsVec_.GetPointer(id)->Resize(rhsSize);
+			
+			ResVec_.SetSubVector(new Vector<Double>(),id);
+      ResVec_.GetPointer(id)->Resize(rhsSize);
+			
+			stageRHSUpdate_.SetSubVector(new Vector<Double>(),id);
+      stageRHSUpdate_.GetPointer(id)->Resize(rhsSize);
+    }
+    
+		LinRhsVec_.Init();
+    NonLinRhsVec_.Init();
+		predictorCorrectorUpdate_.Init();
+		
+		RhsVec_.Init();
+		ResVec_.Init();
+		stageRHSUpdate_.Init();
+    
+    /*
+     * Time levelflags
+     * (-10 is no valid option for later usage and will trigger an initial setup
+     *  in each case)
+     */
+    timeLevelMaterialCurrent_ = -10;
+	  timeLevelDeltaMatCurrent_ = -10;
+    
+    
+  }
+	
+  void SolveStepHyst::SolveStepTrans() {
+    
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt ){
+      if( fncIt->second->GetTimeScheme()->isIncremental() == false){
+        WARN("SolveStepHyst: currently only incremental stepping implemented");
+        fncIt->second->GetTimeScheme()->forceIncremental();
+      }
+    } 		
+    
+    StepTransNonLinHysteresis();
+  }  
+  
+	void SolveStepHyst::SetupRES(){
+		/*
+		 * Compute residual for current iteration k+1
+		 * using full evaluation, i.e.
+		 * 
+		 * res_k+1 = rhs_k+1 (including contribution from time-stepping)
+		 *				 - K_k+1 (std stiffness, no delta)*u_k+1
+		 * 
+		 */	
+		/*
+		 * timeLevelMaterial
+		 * -2: material tensors (eps, e, h, ...) are independent of hysteresis
+		 * -1: material tensors are to be evaluated with hyst output from last ts (n)
+		 *  0: material tensors are to be evaluated with current hyst output (k)
+		 *  1: material tensors are to be evaluated with hyst output from previous it (k-1)
+		 */
+		Integer timeLevelMaterial; 
+		/*
+		 * timeLevelDeltaMat
+		 * -2: no delta matrix formulation
+		 * -1: delta matrix formulation with delta towards last ts (n) 
+		 *			e.g. deltaP = P_k - P_n
+		 *  0: --- invalid
+		 *  1: delta matrix formulation with delta towards previous it (k-1)
+		 *			e.g. deltaP = P_k - P_k-1
+		 */
+		Integer timeLevelDeltaMat; 
+		/*
+		 * timeLevelRHSHyst
+		 * -2: hyst operator will not be added to rhs
+		 * -1: output of hyst operator from last ts (n) will be added to rhs
+		 *  0: current output of hyst operator (k) will be added to rhs
+		 *  1: output of hyst operator from last it (k-1) will be added to rhs
+		 */
+		Integer timeLevelRHSHyst;
+		/*
+		 * solutionForUpdate
+		 *  solutionForUpdate = solVec_ = u_k
+		 *			> update rhs with K_eff * u_k
+		 *			> incremental stepping towards last iteration
+		 *			> deltaU_k+1 = u_k+1 - u_k
+		 *	solutionForUpdate = solVecLastTS_ = u_n
+		 *			> update rhs with K_eff * u_n
+		 *			> incremental stepping towards last ts
+		 *			> deltaU_k+1 = u_k+1 - u_n
+		 */
+		SBM_Vector solutionForUpdate;
+
+		/*
+		 * Currently only full evaluation implemented, i.e.
+		 * all evaluations use the current output of the hyst operator
+		 * but no delta-matrix
+		 */
+		solutionForUpdate = solVec_;
+		timeLevelMaterial = 0;
+		timeLevelDeltaMat = -2;
+		timeLevelRHSHyst = 0;
+		
+		SetupRESorRHS(timeLevelMaterial, timeLevelDeltaMat, timeLevelRHSHyst, solutionForUpdate, ResVec_);
+	}
+	
+	void SolveStepHyst::SetupRHS(){
+		/*
+		 * During timestep (ts) n+1 and iteration (it) k+1
+		 * compute rhs vector rhs_k for INCREMENTAL stepping
+		 * 
+		 * (K_k + C + M) deltaU_k+1 = rhs_k
+		 *
+		 * Note: solution u_k is the current solution as u_k+1 has yet to be computed
+		 *			 therefore, k stands represents for the last known value (current value)
+		 *			 k-1 for the previous iteration and n for the last time step
+		 * 
+		 * For computation of rhs_k the following flags and vectors need to be set: 
+		 */
+		/*
+		 * timeLevelMaterial
+		 * -2: material tensors (eps, e, h, ...) are independent of hysteresis
+		 * -1: material tensors are to be evaluated with hyst output from last ts (n)
+		 *  0: material tensors are to be evaluated with current hyst output (k)
+		 *  1: material tensors are to be evaluated with hyst output from previous it (k-1)
+		 */
+		Integer timeLevelMaterial; 
+		/*
+		 * timeLevelDeltaMat
+		 * -2: no delta matrix formulation
+		 * -1: delta matrix formulation with delta towards last ts (n) 
+		 *			e.g. deltaP = P_k - P_n
+		 *  0: --- invalid
+		 *  1: delta matrix formulation with delta towards previous it (k-1)
+		 *			e.g. deltaP = P_k - P_k-1
+		 */
+		Integer timeLevelDeltaMat; 
+		/*
+		 * timeLevelRHSHyst
+		 * -2: hyst operator will not be added to rhs
+		 * -1: output of hyst operator from last ts (n) will be added to rhs
+		 *  0: current output of hyst operator (k) will be added to rhs
+		 *  1: output of hyst operator from last it (k-1) will be added to rhs
+		 */
+		Integer timeLevelRHSHyst;
+		/*
+		 * solutionForUpdate
+		 *  solutionForUpdate = solVec_ = u_k
+		 *			> update rhs with K_eff * u_k
+		 *			> incremental stepping towards last iteration
+		 *			> deltaU_k+1 = u_k+1 - u_k
+		 *	solutionForUpdate = solVecLastTS_ = u_n
+		 *			> update rhs with K_eff * u_n
+		 *			> incremental stepping towards last ts
+		 *			> deltaU_k+1 = u_k+1 - u_n
+		 */
+		SBM_Vector solutionForUpdate;
+
+		/*   
+		 * Distinguish the following cases:
+		 */		
+		if(evalCase_ == 0){
+			/*
+			 * 0) debug mode = fixpoint iteration without considering hysteresis at all;
+			 *		incremental stepping towards last iteration k:
+			 *			deltaU_k+1 = u_k+1 - u_k
+			 *			rhs_k = rhs_lin + rhs_nonlin_k + rhs_timestepping(u_k) 
+			 *							- K_k (std stiffness, no delta)*u_k
+			 */
+			solutionForUpdate = solVec_;
+			timeLevelMaterial = -2;
+			timeLevelDeltaMat = -2;
+			timeLevelRHSHyst = -2;
+		} else if(evalCase_ == 1){
+			/*
+			 * 1) fixpoint iteration towards last iteration k:
+			 *			deltaU_k+1 = u_k+1 - u_k
+			 *			rhs_k = rhs_lin + rhs_nonlin_k + rhs_timestepping(u_k)
+			 *							- K_k (std stiffness, no delta)*u_k
+			 *							+ rhs_hyst_k
+			 */
+			solutionForUpdate = solVec_;
+			timeLevelMaterial = 0;
+			timeLevelDeltaMat = -2;
+			timeLevelRHSHyst = 0; 
+		} else if(evalCase_ == 2){
+			/*
+			 * 2) fixpoint iteration towards last timestep n:
+		   *			deltaU_k+1 = u_k+1 - u^n
+			 *			rhs_k = rhs_lin + rhs_nonlin_k + rhs_timestepping(u_n)
+			 *							- K_k (std stiffness, no delta)*u^n
+			 *							+ rhs_hyst_n
+			 */
+			solutionForUpdate = solVecLastTS_;
+			timeLevelMaterial = 0;
+			timeLevelDeltaMat = -2;
+			timeLevelRHSHyst = -1;
+		} else if(evalCase_ == 3){
+			/*
+			 * 3) deltaMat computation towards last iteration k:
+			 *			deltaU_k+1 = u_k+1 - u_k
+			 *			rhs_k = rhs_lin + rhs_nonlin_k + rhs_timestepping(u_k)
+			 *							- K_k (std stiffness, no delta)*u_k
+			 *							+ rhs_hyst_k-1
+			 */
+			solutionForUpdate = solVec_;
+			timeLevelMaterial = 0;
+			timeLevelDeltaMat = -2;
+			timeLevelRHSHyst = 1;
+		} else if(evalCase_ == 4){
+			/*
+			 * 4) deltaMat computation towards last timestep n:
+			 *			deltaU_k+1 = u_k+1 - u^n
+			 *			rhs_k = rhs_lin + rhs_nonlin_k + rhs_timestepping(u_n)
+			 *							- K_k (std stiffness, no delta)*u_n
+			 *							+ rhs_hyst_n
+			 * 
+			 */
+			solutionForUpdate = solVecLastTS_;
+			timeLevelMaterial = 0;
+			timeLevelDeltaMat = -2;
+			timeLevelRHSHyst = -1;
+		} else {
+			EXCEPTION("Eval case not implemented yet.")
+		}
+		
+		SetupRESorRHS(timeLevelMaterial, timeLevelDeltaMat, timeLevelRHSHyst, solutionForUpdate, RhsVec_);
+		
+	}
+	
+  void SolveStepHyst::AssembleSystem(UInt evalCase){
+    /*
+     *  Assemble system according to evalCase
+     *  > delta or fixpoint; activated or not  
+     */
+
+    /*
+		 * timeLevelMaterial
+		 * -2: material tensors (eps, e, h, ...) are independent of hysteresis
+		 * -1: material tensors are to be evaluated with hyst output from last ts (n)
+		 *  0: material tensors are to be evaluated with current hyst output (k)
+		 *  1: material tensors are to be evaluated with hyst output from previous it (k-1)
+		 */
+		Integer timeLevelMaterial; 
+		/*
+		 * timeLevelDeltaMat
+		 * -2: no delta matrix formulation
+		 * -1: delta matrix formulation with delta towards last ts (n) 
+		 *			e.g. deltaP = P_k - P_n
+		 *  0: --- invalid
+		 *  1: delta matrix formulation with delta towards previous it (k-1)
+		 *			e.g. deltaP = P_k - P_k-1
+		 */
+		Integer timeLevelDeltaMat; 
+    
+    if(evalCase_ == 0){
+			/*
+			 * 0) debug mode = fixpoint iteration without considering hysteresis at all;
+       *    > linear system has to be assembled
+			 */
+			timeLevelMaterial = -2;
+			timeLevelDeltaMat = -2;
+		} else if( (evalCase_ == 1)||(evalCase_ == 2) ){
+			/*
+			 * 1,2) fixpoint iteration towards last iteration k or last ts n:
+       *    > nonlinear system (mat tensors depend on hysteresis) but no delta
+			 */
+			timeLevelMaterial = 0;
+			timeLevelDeltaMat = -2;
+		} else if(evalCase_ == 3){
+			/*
+			 * 3) deltaMat computation towards last iteration k:
+			 *			deltaU_k+1 = u_k+1 - u_k
+       *    > delta mat to be evaluated with respect to last iteration (k-1)
+			 */
+			timeLevelMaterial = 0;
+			timeLevelDeltaMat = 1;
+		} else if(evalCase_ == 4){
+			/*
+			 * 4) deltaMat computation towards last timestep n:
+			 *			deltaU_k+1 = u_k+1 - u^n
+			 *    > delta mat to be evaluated with respect to last timestep (n)
+			 */
+			timeLevelMaterial = 0;
+			timeLevelDeltaMat = -1;
+		} else {
+			EXCEPTION("Eval case not implemented yet.")
+		}
+    
+    AssembleSystem(timeLevelMaterial, timeLevelDeltaMat);
+    
+  }
+  
+  void SolveStepHyst::AssembleSystem(Integer timeLevelMaterial, Integer timeLevelDeltaMat){
+    /*
+     *  Assemble system according to flags timeLevelDeltaMat, timeLevelMaterial
+     *  > this is used for res and rhs assembly as here the system might be different
+     *    from the one that actually has to be solved
+     */
+    
+    if( (timeLevelDeltaMat != timeLevelDeltaMatCurrent_) ||
+				(timeLevelMaterial != timeLevelMaterialCurrent_) ||
+				(systemRequiresReassembly_ == true) ) {
+			LOG_TRACE(solvestephyst) << "SolveStepHyst::Assemble matrices";
+			PDE_.SetFlagInCoefFncHyst("SetTimeLevelMaterial",timeLevelMaterial);
+			PDE_.SetFlagInCoefFncHyst("SetTimeLevelDeltaMat",timeLevelDeltaMat);
+			assemble_->AssembleMatrices(false);
+
+			systemRequiresReassembly_ = false;
+			timeLevelMaterialCurrent_ = timeLevelMaterial;
+			timeLevelDeltaMatCurrent_ = timeLevelDeltaMat;
+		}
+  }
+  
+	void SolveStepHyst::SetupRESorRHS(Integer timeLevelMaterial, Integer timeLevelDeltaMat, 
+		Integer timeLevelRHSHyst, SBM_Vector& solutionForUpdate, SBM_Vector& returnVector){
+		
+		/*
+		 * 0. Init returnVector
+		 */
+		returnVector.Init();
+		
+		/*
+		 * 1. Assemble system if required
+     * > here we have to use the version with prescribed timelevels as those
+     *   might differ from the ones that are required by evalCase_
+		 */
+    AssembleSystem(timeLevelMaterial, timeLevelDeltaMat);
+    
+		/*
+		 * 2. Setup Linear part and predictor corrector update
+		 */
+		if(LinRHSRequiresReassembly_){
+			LOG_TRACE(solvestephyst) << "SolveStepHyst::Assemble linear RHS/RES";
+		
+			LinRhsVec_.Init();
+      algsys_->InitRHS(LinRhsVec_);
+      assemble_->AssembleLinRHS();
+      algsys_->GetRHSVal( LinRhsVec_ );
+						
+			LinRHSRequiresReassembly_ = false;
+		}
+		returnVector.Add(1.0,LinRhsVec_);
+		
+		if(PredictorCorrectorRequiresReassembly_){
+			LOG_TRACE(solvestephyst) << "SolveStepHyst::Compute predictor/corrector update";
+		
+			predictorCorrectorUpdate_.Init();
+      algsys_->InitRHS(predictorCorrectorUpdate_);
+			
+			if(trans_){
+				// remember: (currently) we only support single stage timestepping!
+				UInt stage = 0;
+				
+				std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+				std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+				std::map<FEMatrixType,Integer>::iterator matIt;
+				
+				// update RHS according to time stepping
+				// here we only want to get the update due to predictor corrector, but
+				// not the update for incremental stepping (this has to be done separately
+				// as the value for update differs)
+				bool skipIncremental = true;
+				
+				for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+					if(matIt->second < 0)
+						continue;
+
+					for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt ){
+						FeFctIdType fctId = fncIt->second->GetFctId();
+						fncIt->second->GetTimeScheme()->ComputeStageRHS(stage,matIt->second,stageRHS_.GetPointer(fctId),-1,skipIncremental);
+					}
+
+					algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+				}	
+			}
+			algsys_->GetRHSVal( predictorCorrectorUpdate_ );
+			
+			PredictorCorrectorRequiresReassembly_ = false;
+		}
+		returnVector.Add(1.0,predictorCorrectorUpdate_);
+		
+		/*
+		 * 3. Setup nonlin RHS with hysteresis
+		 */
+		if( (timeLevelDeltaMat != timeLevelDeltaMatCurrent_) ||
+				(NonLinRHSRequiresReassembly_ == true) ) {
+			LOG_TRACE(solvestephyst) << "SolveStepHyst::Assemble non-linear RHS/RES";
+
+			NonLinRhsVec_.Init();
+			algsys_->InitRHS(NonLinRhsVec_); //load storage into algsys
+			PDE_.SetFlagInCoefFncHyst("SetTimeLevelRHSHyst",timeLevelRHSHyst);			
+			assemble_->AssembleNonLinRHS(); 
+			algsys_->GetRHSVal( NonLinRhsVec_ );
+			
+			NonLinRHSRequiresReassembly_ = false;
+			timeLevelRHSHystCurrent_ = timeLevelRHSHyst;
+		}
+		returnVector.Add(1.0,NonLinRhsVec_);
+		
+		/*
+		 * 4. Update res/rhs according to update solution vector
+		 */
+		// load returnVector into algsys; then update for incremental formulation
+		algsys_->InitRHS(returnVector);
+
+		// Stiffness part
+		LOG_TRACE(solvestephyst) << "SolveStepHyst::Update with K_eff*u";
+		LOG_TRACE(solvestephyst) << "SolveStepHyst::Update with K_eff*u - Part 1: K";
+		solutionForUpdate.ScalarMult(-1.0);
+		algsys_->UpdateRHS(STIFFNESS,solutionForUpdate,true);
+		if(!trans_){
+			algsys_->UpdateRHS(STIFFNESS_UPDATE,solutionForUpdate,true);
+		}
+		solutionForUpdate.ScalarMult(-1.0);
+
+		// Damping, Mass part (with corresponding scaling > done via timestepping)
+		if(trans_){
+			LOG_TRACE(solvestephyst) << "SolveStepHyst::Update with K_eff*u - Part 2: C,M";
+			std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+			std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+			std::map<FEMatrixType,Integer>::iterator matIt;
+			
+			bool forceReset = true;
+			UInt stage = 0;
+			for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+				if(matIt->second < 0)
+					continue;
+
+				// write scaled solution vector (scaled by timestepping factors) to stageRHSUpdate_
+				for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt ){
+					FeFctIdType fctId = fncIt->second->GetFctId();
+					fncIt->second->GetTimeScheme()->UpdateStageRHSWithVector(stage,matIt->second,stageRHSUpdate_.GetPointer(fctId),
+																						solutionForUpdate.GetPointer(fctId), -1.0, forceReset);
+
+				}
+				// now update loaded rhs with matrix*scaled solution vector
+				algsys_->UpdateRHS(matIt->first,stageRHSUpdate_,true);
+			}
+		}
+		/*
+		 * 5. Retrieve vector
+		 */
+		algsys_->GetRHSVal( returnVector );
+		
+	}
+	
+	
+	
 //  void SolveStepHyst::SetLastItOrLastTSSBMVectors(bool lastTS){
 //    /*
 //     *  Function needed in NonLinHysteresis case
@@ -657,16 +1226,22 @@ namespace CoupledField {
 			// -(Keff-K)*stageSol on the rhs (note: K is usually not included in ComputeStageRHS
 			// as the corresponding factor = 0 (for Newmark); so we have to subtract
 			// K*stageSol separately (see above)
-			bool forceIncremental = true;
+			bool skipIncremental = true;
+			bool forceReset = true;
       for(matIt = matrices.begin();matIt != matrices.end();matIt++){
         if(matIt->second < 0)
           continue;
         
         for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt ){
           FeFctIdType fctId = fncIt->second->GetFctId();
-          fncIt->second->GetTimeScheme()->ComputeStageRHS(stage,matIt->second,stageRHS_.GetPointer(fctId),-1,forceIncremental);
+          fncIt->second->GetTimeScheme()->ComputeStageRHS(stage,matIt->second,stageRHS_.GetPointer(fctId),-1,skipIncremental);
+					std::cout << "Manually Update with stageSol.GetPointer(fctId) = " << stageSol.GetPointer(fctId)->ToString() << std::endl;
+					fncIt->second->GetTimeScheme()->UpdateStageRHSWithVector(stage,matIt->second,stageRHSUpdate_.GetPointer(fctId),
+                                            stageSol.GetPointer(fctId), -1.0, forceReset);
+		
         }
         algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+				algsys_->UpdateRHS(matIt->first,stageRHSUpdate_,true);
       }
 			
 			// same issue maybe as with the initialisation > for coupled pde, pos does not give
@@ -882,6 +1457,11 @@ namespace CoupledField {
       std::cout << "####   Nr: " << timestepCnt << "   #### " << std::endl;
     }
     
+		if(!flagsInitialized_){
+			ReadNonLinDataHyst();
+			flagsInitialized_ = true;
+		}
+		
     LOG_TRACE(solvestephyst) << "solvestephyst::StepTransNonLinHysteresis";
     
     SBM_Vector solInc(BaseMatrix::DOUBLE);
@@ -990,7 +1570,7 @@ namespace CoupledField {
     
     /*
      * NOTE:
-     * evalVersion_
+     * evalCase_
      * 0 = debug fixpoint > hysteresis will be evaluated only during output
      *
      * 1 = fixpoint / deltaMat
@@ -998,7 +1578,7 @@ namespace CoupledField {
      *       lhs = deltaMat, rhs with eps0/nu0 during later iteration
      * 2 = deltaMat during all iterations
      */
-    //    std::cout << "evalVerion: " << evalVersion_ << std::endl;
+    //    std::cout << "evalVerion: " << evalCase_ << std::endl;
     
     /*
      * ITERATION 0
@@ -1018,7 +1598,7 @@ namespace CoupledField {
 //    std::cout << "actSol at start of TS: " << actSol.ToString() << std::endl;
 //    
     CalcResidualAndConfigSystemForHysteresis(solVec_,solInc,stageSol, initialEta, stage,
-            iterationCounter, evalVersion_, transient,
+            iterationCounter, evalCase_, transient,
             forceReevaluation, skipReassembly, debugOutput_, reset);
     // after this initial setup, we have to call SetLastItOrLastTSSBMVectors, to store the current
     // res and nonlinRHS as the values from the previous iteration so that these values are correct
@@ -1110,7 +1690,7 @@ namespace CoupledField {
       // new solution (oldSolution + etaOpt*solutionIncrement) is written to solVec_
       // with each reset, try also one smaller step for linesearch
       UInt allowedSteps = 7+2*numResets;
-      residualL2Norm = LineSearchHyst(solInc, stageSol, etaLineSearch, evalVersion_, iterationCounter,
+      residualL2Norm = LineSearchHyst(solInc, stageSol, etaLineSearch, evalCase_, iterationCounter,
               transient , performLinesearch ,forceReevaluation, debugOutput_, reset, allowedSteps);
       
       // calculation of relative residual error =======================================
@@ -1203,7 +1783,7 @@ namespace CoupledField {
         // now we have to reassemble the system (we basically repeat all steps till start of loop)
         // the reset flag will have the same meaning as an iterationCounter of 0 (i.e. full evaluation, computation of rhs, ...)
         CalcResidualAndConfigSystemForHysteresis(solVec_,solInc,stageSol, initialEta, stage,
-                iterationCounter, evalVersion_, transient,
+                iterationCounter, evalCase_, transient,
                 forceReevaluation, skipReassembly, debugOutput_, reset);
         
         if(numResets > 4){
@@ -1577,5 +2157,476 @@ namespace CoupledField {
     
     PDE_.FinalizeAfterTimeStep();
   }
+  
+  void SolveStepHyst::StepTransNonLinHysteresisNew() {
+		static UInt timestepCnt = 0;
+		timestepCnt++;
+		LOG_TRACE(solvestephyst) << "SolveStepHyst::Begin of timestep " << timestepCnt;
+		
+    /*
+     * Initial checks
+     */
+		if(!flagsInitialized_){
+			ReadNonLinDataHyst();
+			flagsInitialized_ = true;	
+		}
+		//obtain the number of stages
+    UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
+    if ( numStages > 1 ){
+      /*
+       * maybe it is quite easy to enable multiple stages, maybe it does not work;
+       * feel free to find out
+       */
+      EXCEPTION("SolveStepHyst: just one stage time-stepping allowed");
+    }
+    UInt stage = 0;
+    
+    /*
+     * Setup and initialize solution vectors and rhs
+     */
+    SBM_Vector solInc(BaseMatrix::DOUBLE);
+    SBM_Vector actSol(BaseMatrix::DOUBLE);
+    actSol = solVec_;
+    
+    // solVec_ currently holds the solution from the previous timestep
+    // create backup for later usage
+    solVecLastTS_ = solVec_;
+    
+    /*
+     * Compute norm of linear rhs as reference value for relative res. error
+     */
+    rhsVec_.Init();
+    algsys_->InitRHS(rhsVec_);
+    
+    // setup right hand side
+    Double loadFactor = 1.0;
+    Double RhsLinL2Norm = SetLinRHS(loadFactor);
+    
+    /*
+     * Init time stepping
+     */
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+    std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+    
+    bool updatePredictor = ( PDE_.IsIterCoupled() == false || couplingIter_ == 0 );
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+      fncIt->second->GetTimeScheme()->BeginStep(updatePredictor);
+    }
+    
+    /*
+     * Important: Although stageSol seems not to be necessary, the TimeScheme will rely on it
+     * It HAS to store the total solution (not the increment!) -> see TimeSchemeGLM.cc
+     * Important2: Incremental stepping is only working (correctly) for EffectiveStiffness formulation
+     */
+    SBM_Vector stageSol;
+    stageSol.Resize(feFunctions_.size());
+		
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+      FeFctIdType fctId = fncIt->second->GetFctId();
+      stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(stage),fctId);
+      fncIt->second->GetTimeScheme()->InitStage(stage,actTime_,PDE_.GetDomain());
+    }
+    stageSol.SetOwnership(false);
+    
+    /*
+     * During the later computations, we will add all incremental solutions to
+     * stageSol; unlike the case of StepTransNonLin, we add the results to the
+     * current solution instead of only gathering the increments.
+     * Note that we initialize stageSol with actSol in StepTransNonLin, too, but
+     * there, we will overwrite stageSol with 0.0 during the first iteration
+     */
+    stageSol = actSol;
+    solVec_  = actSol;
+    
+    /*
+     * disable output of switching and rotation state as BMP images (even if flag
+     * printOut is set to 1 in material file)
+     */
+    PDE_.SetFlagInCoefFncHyst("allowBMP",false);
+        
+    /*
+     * Setup flags
+     */
+    // currently, we allow only incremental stepping, i.e. we compute only
+    // the increment to the last ts solution; in that sense, the dirichlet
+    // boundary conditions have to be the difference of current values and the
+    // values from the last ts
+    bool deltaIDBC = true;
+    
+    static UInt overallIterationCounter = 0;
+    UInt iterationCounter = 0;
+    bool performOneMoreStep;
+    Double initialEta = 0.0;
+    Double residualErr;
+    Double incrementalErr;
+    
+    // keep track of residual; if it is not decreasing over several iterations > reset (see below)
+    bool reset = false; 
+    UInt numResets = 0;
+    std::deque<Double> resNormHistory(5, 50000);
+    
+    /*
+     * Reset iteration depended flags
+     */
+    systemRequiresReassembly_ = true;;
+    LinRHSRequiresReassembly_ = true;
+    NonLinRHSRequiresReassembly_ = true;
+    PredictorCorrectorRequiresReassembly_ = true;
+    
+    /*
+     * ITERATION 0
+     * > Setup initial rhs vector and assemble system (if required)
+     */
+    
+
+    
+    
+    
+//    
+//    std::cout << "solVec_ at start of TS: " << solVec_.ToString() << std::endl;
+//    std::cout << "stageSol at start of TS: " << stageSol.ToString() << std::endl;
+//    std::cout << "actSol at start of TS: " << actSol.ToString() << std::endl;
+//    
+    CalcResidualAndConfigSystemForHysteresis(solVec_,solInc,stageSol, initialEta, stage,
+            iterationCounter, evalCase_, trans_,
+            true, false, debugOutput_, reset);
+    // after this initial setup, we have to call SetLastItOrLastTSSBMVectors, to store the current
+    // res and nonlinRHS as the values from the previous iteration so that these values are correct
+    // when we call CalcResidualAndConfigSystemForHysteresis during the first actual iteration
+    SetLastItOrLastTSSBMVectors(false);
+    /*
+     * ITERATION > 0
+     */
+    do {
+      
+      overallIterationCounter++;
+      iterationCounter++;
+      
+      LOG_DBG(solvestephyst) << "StepTransNonLinHysteresis: Iteration: " << iterationCounter ;
+      
+      if(debugOutput_){
+        std::cout << "####                   #### " << std::endl;
+        std::cout << "#### BEGIN OF ITERATION #### " << std::endl;
+        std::cout << "####   Nr: " << iterationCounter << "   #### " << std::endl;
+        std::cout << "####   Total Nr: " << overallIterationCounter << "   #### " << std::endl;
+      }
+      
+      /*
+       *  Assembly has already be done during CalcResidualAnd...
+       *  Now build up the algebraic system
+       */
+      // set system matrix to zero initially, as ConstructEffectiveMatrix only
+      // sums up the contributions
+      matrix_factor_.clear();
+      algsys_->InitMatrix(SYSTEM);
+      for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+        FeFctIdType fctId = fncIt->second->GetFctId();
+        fncIt->second->GetTimeScheme()->AddMatFactors(0,matrices,matrix_factor_[fctId]);
+        algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+      }
+      
+      PDE_.SetBCs();
+      algsys_->BuildInDirichlet();
+      algsys_->SetupPrecond();
+      algsys_->SetupSolver();
+      
+      bool setIDBC = false;
+      
+      if (( iterationCounter == 1 && couplingIter_ == 0 )||(reset)) {
+        /*
+         * we only need to include the idbc values once during the first iteration
+         * in the new approach, we do not need deltaIDBC as we start from 0
+         */
+        setIDBC = true;
+      }
+      
+      /*
+       *  SOLVE SYSTEM
+       */
+      algsys_->Solve(setIDBC,deltaIDBC);
+      
+      /*
+       *  RETRIEVE SOLUTION INCREMENT
+       *  1, iteration: increment towards 0, i.e. full solution
+       *  2+ iteration: increment towards previous iteration
+       */
+      algsys_->GetSolutionVal(solInc, setIDBC, deltaIDBC );
+      
+      /*
+       * CALCULATE RESIDUAL AND SETUP SYSTEM FOR NEXT ITERATION VIA LINESEARCH
+       */
+      Double residualL2Norm = 0.0;
+      Double etaLineSearch  = 1.0;
+      bool performLinesearch;
+      
+      if (( lineSearch_ == "none" || iterationCounter == 1 )||(reset)) {
+        /*
+         * during the first step, we need a full step with eta = 1.0
+         * this has to be done to ensure correct idbc values!
+         */
+        performLinesearch = false;
+      } else {
+        performLinesearch = true;
+      }
+      
+      if(reset){
+        // reset reset flag
+        reset = false;
+      }
+      
+      // the linesearching will test different etas and take the one which
+      // produces the smallest residual
+      // afterwards the system will be setup (assembled) with this new solution
+      // new solution (oldSolution + etaOpt*solutionIncrement) is written to solVec_
+      // with each reset, try also one smaller step for linesearch
+      UInt allowedSteps = 7+2*numResets;
+      //residualL2Norm = LineSearchHyst(solInc, stageSol, etaLineSearch, evalCase_, iterationCounter,
+     //         transient , performLinesearch ,forceReevaluation, debugOutput_, reset, allowedSteps);
+      
+      // calculation of relative residual error =======================================
+      //if ( RhsLinL2Norm > 0.0 ){
+      //Double oldResError = residualErr;
+      if ( RhsLinL2Norm > 1.0 ){
+        residualErr = residualL2Norm / RhsLinL2Norm;
+      } else {
+        residualErr = residualL2Norm;
+      }
+      
+      resNormHistory.push_back(residualErr);
+      resNormHistory.pop_front();
+      
+      // calculate incremental error ========================================
+      //TODO: we should have eta*solInc.NormL2() as we do not perform full steps in general
+      //Double solIncrL2Norm = solInc.NormL2();
+      
+      Double solIncrL2Norm = etaLineSearch*solInc.NormL2();
+      Double solL2Norm  = solVec_.NormL2();
+      
+      if ( solL2Norm > 1.0 ){
+        // if ( actSolL2Norm > 1e-7 ){
+        incrementalErr = solIncrL2Norm / solL2Norm;
+      } else {
+        incrementalErr = solIncrL2Norm;
+        // incrementalErr = solIncrL2Norm/1e-7;
+      }
+      
+      // update actSol to currently computed value
+      actSol = solVec_;
+      
+      performOneMoreStep =
+              (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+      
+      if(residualErr < 1e-18){
+        /*
+         * in some cases e.g. E -> 0, P != 0 (remanence)
+         * the residual might become very small although the solution does not converge
+         * if the residual becomes too small ( ~ 1e-28) the system reports
+         * error during solution (at least if using pardiso);
+         * -> a complete reevaluation of the residual might help
+         *
+         */
+        //forceReevaluation = true;
+      } else {
+        /*
+         * restore old state
+         */
+        //forceReevaluation = forceReevaluation_;
+      }
+      
+      if(debugOutput_){
+        std::cout << "UsedEta: " << etaLineSearch << std::endl;
+        std::cout << "Solution update: " << solInc.ToString() << std::endl;
+        std::cout << "current solution norm: " << solL2Norm << std::endl;
+        std::cout << "incrementalErr_abs: " << solIncrL2Norm << std::endl;
+        std::cout << "incrementalErr_rel: " << incrementalErr << std::endl;
+        std::cout << "residualErr: " << residualErr << std::endl;
+      }
+      
+      // compare residual at front and back; should have decreased; otherwise try reset
+      if(resNormHistory.front() <= resNormHistory.back()){
+        std::cout << "Residual did not decrease. Reset?" << std::endl;
+        std::cout << "Iteration " << iterationCounter << " of timestep " << timestepCnt << std::endl;
+        std::cout << "Number of previous resets: " << numResets << std::endl;
+        reset = true;
+        
+        // reset deque
+        for(UInt i = 0; i < resNormHistory.size(); i++){
+          resNormHistory[i] = 50000;
+        }
+      }
+      
+      if(reset == true){
+        numResets += 1;
+        //      std::cout << "Perform reset" << std::endl;
+        // set solution to 0 i.e. set new starting point for iterations
+        // note: the memory of the hyst operator is not deleted but as we do not
+        //       write it until the end of the timestep, it is basically still the
+        //       state from the start of the timestep
+        solVec_.Init();
+        // estimate slope around this point
+        // estimate using a stepping
+        PDE_.SetFlagInCoefFncHyst("estimateSlope",9+numResets);
+        // for the first iteration after the reset, we have to include the boundary conditions
+        // again and they must not e the deltaBCs but the full boundary conditions (as we start from 0)
+        deltaIDBC = false;
+        
+        // now we have to reassemble the system (we basically repeat all steps till start of loop)
+        // the reset flag will have the same meaning as an iterationCounter of 0 (i.e. full evaluation, computation of rhs, ...)
+        CalcResidualAndConfigSystemForHysteresis(solVec_,solInc,stageSol, initialEta, stage,
+                iterationCounter, evalCase_, trans_,
+                false, false, debugOutput_, reset);
+        
+        if(numResets > 4){
+          EXCEPTION("Error cannot be decreases by resetting");
+        }                                                 
+      }
+      
+      
+      // output of norms and data to info.xml
+      if ( nonLinLogging_ == true ) {
+        // get current step
+        UInt actStep = PDE_.GetSolveStep()->GetActStep();
+        
+        if (PDE_.IsIterCoupled()) {
+          WriteNonLinIterToInfoXML(pdename_, couplingIter_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+        } else {
+          //WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErrABS, etaLineSearch);
+          WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+        }
+        // write norm to file
+        logFile_ <<  iterationCounter << "\t"
+                << residualErr << "\t"
+                << incrementalErr << "\t"
+                << etaLineSearch << std::endl;
+      }
+      
+      /*
+       * STORE CURRENT VALUES FOR NEXT ITERATION
+       */
+      bool lastTS = false;
+      // Note: by calling SetPreviousHystVals with flag lastTS = false,
+      //        coefFncHyst will evaluate the hysteresis operator with
+      //        the current state of solVec_; for this evaluation, the memory of
+      //        the hysteresis operator will be locked, i.e. the evaluation will
+      //        lead to reversible changes
+      PDE_.SetPreviousHystVals(lastTS);
+      SetLastItOrLastTSSBMVectors(lastTS);
+      
+    } while(performOneMoreStep && (iterationCounter < nonLinMaxIter_));
+    
+    abortOnMaxIter_ = true;
+    if (performOneMoreStep && (iterationCounter >= nonLinMaxIter_) && abortOnMaxIter_) {
+      EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
+              << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+              << "' at iteration '" << iterationCounter
+              << "'.\n ==> incremental error: " << incrementalErr
+              << "\n ==> residual error: " << residualErr);
+    }
+    
+    // check solution
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;
+    limitFeFctIt = feFunctions_.find(solutionLimit_);
+    //std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+    UInt pos;
+    if (limitFeFctIt != feFunctions_.end() ) {
+      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+        if (fncIt == limitFeFctIt) { // pos is now referring to the corresponding subVec[pos]
+          //const SingleVector * subv = solVec_.GetPointer(pos);
+          Vector<Double> & dsubVec = dynamic_cast<Vector<Double> & > (*(solVec_.GetPointer(pos)));
+          for (UInt j=0; j < dsubVec.GetSize(); j++) {
+            if (dsubVec[j] >= maxValidValue_) {
+              EXCEPTION("A value ('" << dsubVec[j] << "') in the solution of PDE '" << pdename_ <<
+                      "' is larger than the allowed maximum limit set in the XML: "
+                      << maxValidValue_);
+            }
+            if (dsubVec[j] <= minValidValue_) {
+              EXCEPTION("A value ('" << dsubVec[j] << "') in the solution of PDE '" << pdename_ <<
+                      "' is smaller than the allowed minimum limit set in the XML: "
+                      << minValidValue_);
+            }
+          }
+        }
+      }
+    }
+    
+    //update stage
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+      fncIt->second->GetTimeScheme()->FinishStep();
+    }
+    
+    if(debugOutput_){
+      std::cout << "Iterative scheme was successful after " << iterationCounter << " iterations" << std::endl;
+    }
+    
+    /*
+     * STORE CURRENT VALUES FOR NEXT ITERATION
+     */
+    bool lastTS = true;
+    // Note: by calling SetPreviousHystVals with flag lastTS = true,
+    //        coefFncHyst will evaluate the hysteresis operator with
+    //        the final state of solVec_; for this evaluation, the memory of
+    //        the hysteresis operator will be unlocked, i.e. the evaluation will
+    //        lead to irreversible changes
+    PDE_.SetPreviousHystVals(lastTS);
+    SetLastItOrLastTSSBMVectors(lastTS);
+    
+    /*
+     * Store IDBC values from the current time step in form of its rhs representation
+     * (i.e. the effect that it will have on the rhs)
+     * these values are needed to compute the deltaIDBC values
+     * (currently not used)
+     */
+    algsys_->SetOldDirichletValues();
+    
+    /*
+     * allow to output switching and rotation state as BMP images (if flag
+     * printOut is set to 1 in material file)
+     */
+    PDE_.SetFlagInCoefFncHyst("allowBMP",true);
+    
+    /*
+     * set evaluationPurpose to 4, i.e. output
+     * this will lock the hysteresis operator again and will only evaluate
+     * the hystOperator at the midpoint of each element regardless of the
+     * evaluation depth
+     * > for more infos see coefFncHyst
+     */
+    PDE_.SetFlagInCoefFncHyst("evaluationPurpose",4);
+    
+    if(debugOutput_){
+      std::cout << "####                 #### " << std::endl;
+      std::cout << "#### END OF TIMESTEP #### " << std::endl;
+      std::cout << "####                 #### " << std::endl;
+      PDE_.SetFlagInCoefFncHyst("outputDebugInfos",1);
+    }
+    
+    //TODO: continue here
+    //TODO: add defaultValue to xmlSchema!!!!!
+  }
+
+    void SolveStepHyst::SetLastItOrLastTSSBMVectors(bool lastTS){
+    /*
+     *  Function needed in NonLinHysteresis case
+     *
+     *  it stores the current values of rhs, residual, solution, ...
+     *  for the next iteration or next ts by copying it to the corresponding
+     *  SBMVectors
+     */
+    
+    if(lastTS){
+      // oldTS > values after last iteration of previous TS
+      // to be stored after iteration suceeded
+      oldTSLinRhsVec_ = currentLinRhsVec_;
+      oldTSNonLinRhsVec_ = currentNonLinRhsVec_;
+      oldTSSolVec_ = solVec_;
+    } else {
+      // oldIt > values of the current TS but from previous It
+      // during first iteration of a new TS, these vectors contain the values
+      // after the last iteration of the previous TS (similar as oldTS...)
+      oldItNonLinRhsVec_ = currentNonLinRhsVec_;
+      oldItResVec_ = currentResVec_;
+    }
+  }
+  
   
 } // end of namespace

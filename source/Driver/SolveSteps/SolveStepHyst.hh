@@ -39,6 +39,18 @@ namespace CoupledField
     //! Destructor
     virtual ~SolveStepHyst();
 
+    void SetupRESorRHS(Integer timeLevelMaterial, Integer timeLevelDeltaMat, 
+          Integer timeLevelRHSHyst, SBM_Vector& solutionForUpdate, SBM_Vector& returnVector);
+    
+    void SetupRHS();
+    void SetupRES();
+    void AssembleSystem(UInt evalCase);
+    void AssembleSystem(Integer timeLevelMaterial, Integer timeLevelDeltaMat);
+    void InitTimeStepping();
+    void SolveStepTrans();
+    void ReadNonLinDataHyst();
+    
+    virtual void StepTransNonLinHysteresisNew();
     
     //----------------------- HYSTERESIS -------------------------------------
     //! solves for one nonlinear transient step
@@ -46,7 +58,7 @@ namespace CoupledField
     virtual void StepTransNonLinHysteresis();
     virtual void StepTransNonLinHysteresisTotal();
 
-    //void SetLastItOrLastTSSBMVectors(bool lastTS);
+    void SetLastItOrLastTSSBMVectors(bool lastTS);
     /*!
      * Helper funciton for setting up the equation system during
      *            StepTransNonLinHysteresis()
@@ -69,11 +81,41 @@ namespace CoupledField
     
 
     //! returns the hysteresis operator
-    Hysteresis * GetHystOperator(UInt iSD) {
-      return hyst_[iSD];
+    Hysteresis * GetHystOperator(UInt idx) {
+      return hyst_[idx];
     };
+    
+    
+  private:
+    bool flagsInitialized_;
+    bool trans_;
+    
+    bool systemRequiresReassembly_;
+    bool LinRHSRequiresReassembly_;
+    bool NonLinRHSRequiresReassembly_;
+    bool PredictorCorrectorRequiresReassembly_;
+    
+    Integer timeLevelRHSHystCurrent_;
+    Integer timeLevelMaterialCurrent_;
+    Integer timeLevelDeltaMatCurrent_;
+    
+    SBM_Vector LinRhsVec_;
+    SBM_Vector NonLinRhsVec_;
+    SBM_Vector predictorCorrectorUpdate_;
+
+    SBM_Vector RhsVec_;
+    SBM_Vector ResVec_;
+    
+    SBM_Vector stageRHSUpdate_;
+    SBM_Vector solVecLastTS_;
+            
+    UInt evalCase_;
+    
   };
 
+
+    
+  
 } // end of namespace
 
 #endif
