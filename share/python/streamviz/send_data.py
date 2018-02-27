@@ -14,7 +14,7 @@ import sys, ntpath
 import types
 
 COPROCESSOR_MAP = {}
-DATA_ARRAY_MAP = {}
+#DATA_ARRAY_MAP = {}
 
 def coprocessor_initialize():
     
@@ -66,27 +66,26 @@ def send_data(key, xml, host, port):
   if not key in COPROCESSOR_MAP:
     print("Setting up new coprocessor map for " + key)
     COPROCESSOR_MAP[key] = {}
-    DATA_ARRAY_MAP[key] = types.SimpleNamespace()
-    DATA_ARRAY_MAP[key].node_data_arr, DATA_ARRAY_MAP[key].element_data_arr = get_init_data_arrays(xml)
+    #DATA_ARRAY_MAP[key] = types.SimpleNamespace()
+    #DATA_ARRAY_MAP[key].node_data_arr, DATA_ARRAY_MAP[key].element_data_arr = get_init_data_arrays(xml)
     
   
   if not catalyst_receive_key in COPROCESSOR_MAP[key]:
     print("Setting up new coprocessor map for " + key + ": " + catalyst_receive_key)
     
-    dataDescription = catalyst.vtkCPDataDescription()
-    dataDescription.SetTimeData(0, 0)
-    dataDescription.AddInput(key)
-  
-    polyData = get_grid_obj(xml) # <-- vtkPolyData
-        
-    dataDescription.GetInputDescriptionByName(key).SetGrid(polyData)
-
-    dataDescription.host = host
-    dataDescription.port = port
-    dataDescription.dataset_key = key
+#     dataDescription = catalyst.vtkCPDataDescription()
+#     dataDescription.SetTimeData(0, 0)
+#     dataDescription.AddInput(key)
+#   
+#     polyData = get_grid_obj(xml) # <-- vtkPolyData
+#         
+#     dataDescription.GetInputDescriptionByName(key).SetGrid(polyData)
+# 
+#     dataDescription.host = host
+#     dataDescription.port = port
+#     dataDescription.dataset_key = key
     
     COPROCESSOR_MAP[key][catalyst_receive_key] = coprocessor_initialize();
-    COPROCESSOR_MAP[key][catalyst_receive_key].CoProcess(dataDescription)
     
   coprocessor_coProcessor = COPROCESSOR_MAP[key][catalyst_receive_key]
 
@@ -105,15 +104,16 @@ def send_data(key, xml, host, port):
 
   if coprocessor_coProcessor.RequestDataDescription(dataDescription):
       polyData = get_grid_obj(xml) # <-- vtkPolyData
+
+      #node_data_arr, element_data_arr = get_init_data_arrays(xml)
+      #node_data_arr, element_data_arr = set_node_element_data(xml, node_data_arr, element_data_arr)
       
-      for data_arr in DATA_ARRAY_MAP[key].element_data_arr:
-        polyData.GetCellData().AddArray(DATA_ARRAY_MAP[key].element_data_arr[data_arr])
+      #for data_arr in element_data_arr:
+      #  polyData.GetCellData().AddArray(element_data_arr[data_arr])
       #for data_arr in DATA_ARRAY_MAP[key].node_data_arr:
       #  polyData.GetCellData().AddArray(data_arr) ///TODO do this for nodes
       
       dataDescription.GetInputDescriptionByName(key).SetGrid(polyData)
-      
-      set_node_element_data(xml, DATA_ARRAY_MAP[key].node_data_arr, DATA_ARRAY_MAP[key].element_data_arr)
       
       dataDescription.host = host
       dataDescription.port = port
@@ -176,60 +176,44 @@ def get_grid_obj(xml):
   cell_list = [0] * ELEMENT_COUNT # initialize all cells as 0
 
   for region_name in xml.xpath('//grid/regionList/region/@name'):
-    this_region_element_count = len(xml.xpath('//grid/regionList/region[@name="' + region_name + '"]/element'))
+    element_arr = xml.xpath('//grid/regionList/region[@name="' + region_name + '"]/element')
+    this_region_element_count = len(element_arr)
     
     print('region_name: '+ region_name)
     
-    type_arr = xml.xpath('//grid/regionList/region[@name="' + region_name + '"]/element/@type')
-    
-    element_arr = xml.xpath('//grid/regionList/region[@name="' + region_name + '"]/element')
-    
     for element_idx in range(this_region_element_count):
-      type = type_arr[element_idx]
       
       element = element_arr[element_idx]
+      type = element.attrib['type']
       
       element_id = int(element.attrib['id'])
       
       if type == 'QUAD4':
-        node_0_id = int(element.xpath('@node_0')[0])
-        node_1_id = int(element.xpath('@node_1')[0])
-        node_2_id = int(element.xpath('@node_2')[0])
-        node_3_id = int(element.xpath('@node_3')[0])
-        
-        
         quad = vtk.vtkQuad()
-        quad.GetPointIds().SetId(0,node_0_id)
-        quad.GetPointIds().SetId(1,node_1_id)
-        quad.GetPointIds().SetId(2,node_2_id)
-        quad.GetPointIds().SetId(3,node_3_id)
-        
-        #poly_elements.InsertNextCell(quad)
+        quad.GetPointIds().SetId(0, int(element.attrib['node_0']))
+        quad.GetPointIds().SetId(1, int(element.attrib['node_1']))
+        quad.GetPointIds().SetId(2, int(element.attrib['node_2']))
+        quad.GetPointIds().SetId(3, int(element.attrib['node_3']))
+
         cell_list[element_id] = quad
       elif type == 'HEXA8':
         node_id = [0, 0, 0, 0, 0, 0, 0, 0]
         
-        # See  https://www.evl.uic.edu/aej/524/lecture05.html
-        node_id[0] = int(element.xpath('@node_' + str(4))[0])
-        node_id[1] = int(element.xpath('@node_' + str(5))[0])
-        node_id[2] = int(element.xpath('@node_' + str(1))[0])
-        node_id[3] = int(element.xpath('@node_' + str(0))[0])
+        # See  https://datascience.lanl.gov/data/ParaViewCatalyst4_2Tutorial.pdf
+        node_id[0] = int(element.attrib['node_4'])
+        node_id[1] = int(element.attrib['node_5'])
+        node_id[2] = int(element.attrib['node_1'])
+        node_id[3] = int(element.attrib['node_0'])
         
-        node_id[4] = int(element.xpath('@node_' + str(7))[0])
-        node_id[5] = int(element.xpath('@node_' + str(6))[0])
-        node_id[6] = int(element.xpath('@node_' + str(2))[0])
-        node_id[7] = int(element.xpath('@node_' + str(3))[0])
-        
-        #for tmp_indx in range(8):
-        #  print(str(tmp_indx) + ': x=' + str(pts.GetPoint(node_id[tmp_indx])[0]) + ': y=' + str(pts.GetPoint(node_id[tmp_indx])[1]) + ': z=' + str(pts.GetPoint(node_id[tmp_indx])[2]))
-        
-        #return
-        
+        node_id[4] = int(element.attrib['node_7'])
+        node_id[5] = int(element.attrib['node_6'])
+        node_id[6] = int(element.attrib['node_2'])
+        node_id[7] = int(element.attrib['node_3'])
+
         hexa8 = vtk.vtkHexahedron()
         for i in range(8):
           hexa8.GetPointIds().SetId(i,node_id[i])
-        
-        #poly_elements.InsertNextCell(hexa8)
+
         cell_list[element_id] = hexa8
       elif type == 'asdf1':
         print('WARNING: type "' + type + '" not supported (yet)!')
@@ -238,32 +222,29 @@ def get_grid_obj(xml):
       else:
         print('WARNING: type "' + type + '" not supported (yet)!')
   
-  poly_elements = vtk.vtkCellArray()
-
-  for cell in cell_list:
-    if cell == 0:
-      # use node #0 which is just at 0, 0, 0:
-      dummy_quad = vtk.vtkQuad()
-      dummy_quad.GetPointIds().SetId(0,0)
-      dummy_quad.GetPointIds().SetId(1,0)
-      dummy_quad.GetPointIds().SetId(2,0)
-      dummy_quad.GetPointIds().SetId(3,0)
-      poly_elements.InsertNextCell(dummy_quad)
-    else:
-      poly_elements.InsertNextCell(cell)
-
-  pdo = vtk.vtkPolyData()
-
+  pdo = vtk.vtkUnstructuredGrid()
+ 
+  pdo.Allocate(1)
+    
   pdo.SetPoints(pts)
   
   # Allocate memory for elements
   pdo.Allocate(ELEMENT_COUNT)
-  
-  pdo.SetPolys(poly_elements)
+
+  for cell in cell_list:
+    if cell == 0:
+      # use node #0 which is just at 0, 0, 0:
+      dummy_vertex = vtk.vtkVertex()
+      dummy_vertex.GetPointIds().SetId(0,0)
+      
+      pdo.InsertNextCell(dummy_vertex.GetCellType(), dummy_vertex.GetPointIds())
+    else:
+      pdo.InsertNextCell(cell.GetCellType(), cell.GetPointIds())
+
   
   pdo.tmp_bounds = pts.GetBounds()
   pdo.tmp_pts = pts
-  
+
   return pdo
 
 def get_init_data_arrays(xml):
@@ -369,4 +350,4 @@ def set_node_element_data(xml, node_data_arr, element_data_arr):
       else:
         print("unknows result")
   
-  return
+  return node_data_arr, element_data_arr
