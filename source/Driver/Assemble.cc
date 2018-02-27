@@ -533,6 +533,7 @@ namespace CoupledField
 
       for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
         //copy bilinear forms
+#pragma omp critical
         biLinForms[iForm] = forms[iForm]->GetIntegrator()->Clone();
       }
 //     #pragma omp critical
