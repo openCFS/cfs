@@ -210,12 +210,13 @@ void SimOutputStreaming::Transmit(std::ostream& out)
       for(unsigned int d = 0; d < dofs; d++)
         ss << " v_" << boost::lexical_cast<std::string>(d) << "=\"" << resultVec[dofs * e + d] << "\"";
 
+      ss << " id=\"";
       // mandatory for nodes
       if(resInfo->definedOn == ResultInfo::NODE)
-        ss << " id=\"" << nodes[e] << "\"";
-      else if(!compressed_) // for elements it is redundand so we skip it in compressed mode
-        ss << " id=\"" << elems[e]->elemNum << "\"";
-      ss << "/>";
+        ss << nodes[e];
+      else
+        ss << elems[e]->elemNum;
+      ss << "\"/>";
       block[e] = ss.str();
     }
   }

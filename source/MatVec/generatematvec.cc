@@ -1,8 +1,5 @@
 #include <complex>
 
-#include <def_use_lapack.hh>
-
-
 // Include LAPACK stuff
 #include "OLAS/external/lapack/lapack.hh"
 #include "OLAS/external/lapack/LapackGBMatrix.hh"

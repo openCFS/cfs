@@ -84,6 +84,7 @@ string Timer::ToXMLFormat(const string& name) const
   os << "<" << name;
   if (label_ != "")
     os << " label=\""<< label_ << "\"";
+  os << " wall-clock=\"" << GetTimeString(GetWallTime()) << "\"";
   os << " wall=\"" << GetWallTime() << "\"";
   os << " cpu=\"" << GetCPUTime() << "\"";
   os << " calls=\"" << calls_ << "\"";
@@ -122,6 +123,22 @@ const string Timer::GetTimeString(const boost::posix_time::time_duration period)
     suffix = " s";
   }
   return time_output.substr(0, max_length) + suffix; // cut off microseconds
+}
+
+const std::string Timer::GetTimeString(double seconds)
+{
+  int h = (int) (seconds/3600);
+  int m = (int) ((seconds - (h*3600))/60);
+  double s = seconds - (h*3600) - (m*60);
+
+  std::stringstream ss;
+  if(h > 0)
+    ss << h << "h ";
+  if(m > 0)
+    ss << m << "m ";
+  ss.precision(4);
+  ss << s << "s";
+  return ss.str();
 }
 
 void Timer::PrintTime(std::ostream & stream){

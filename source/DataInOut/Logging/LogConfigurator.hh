@@ -31,7 +31,6 @@ BOOST_LOG_DEFINE_LEVEL(trace2, 1450)
 #define LOGL(log_name,lvl) BOOST_LOGL(log_name,lvl)
 #define LOG(log_name) BOOST_LOG(log_name)
 
-
 #ifndef NDEBUG
 #define LOG_DBG3(log_name) BOOST_LOGL(log_name,dbg3)
 #define LOG_DBG2(log_name) BOOST_LOGL(log_name,dbg2)
@@ -70,7 +69,7 @@ namespace CoupledField {
     //! Set logging level
     void SetLogLevel( const std::string& logStream,
                       const std::string& level );
-    
+
   protected:
     
     //! Name of XML file containing the settings for logging.

@@ -23,7 +23,7 @@ namespace CoupledField
     BaseDriver(shared_ptr<SimState> simState, Domain* domain, 
                PtrParamNode paramNode, PtrParamNode infoNode );
 
-    //! Destructor
+    //! DestructorInverseSourceDriver
     virtual ~BaseDriver();
 
     //! Initialization method

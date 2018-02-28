@@ -3,7 +3,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 /* $Id$ */
-#include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
 
 #include "OLAS/multigrid/hierarchylevel.hh"
@@ -697,7 +696,7 @@ UInt HierarchyLevel<T>::SetupAgglomerates(){
   Agglomerate_->InsertNodeIndex(nodeNumIndex_);
 
   // setup agglomerates graphs
-  UInt sizeH = Agglomerate_->CreateAgglomerateGraphs(*AuxMatrix_);
+  Integer sizeH = Agglomerate_->CreateAgglomerateGraphs(*AuxMatrix_);
   if( 0 > sizeH ) {
     EXCEPTION(" AMG: agglomerate setup failed\n");
     return false;

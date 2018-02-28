@@ -1,5 +1,4 @@
 #include <def_use_ilupack.hh>
-#include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_suitesparse.hh>
 #include <def_use_superlu.hh>

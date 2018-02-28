@@ -31,7 +31,7 @@ public:
 
   virtual ~InputFilter();
 
-  virtual bool Run();
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
 
   virtual void FinishInit(){
 

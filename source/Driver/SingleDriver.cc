@@ -19,6 +19,7 @@ namespace CoupledField{
     isPartOfSequence_ = isPartOfSequence;
     ptPDE_ = NULL;
     writeAllSteps_ = false;
+    approxSourceWithDeltaFnc_ = false;
     
     // Set current value of time step and time step size in the mathParser
     mathParser_ = domain_->GetMathParser();
@@ -35,6 +36,8 @@ namespace CoupledField{
       // Initialize pdes 
       domain_->CreatePDEs( 1, info_->GetParent() );
       ptPDE_ = domain_->GetBasePDE();
+
+      ptPDE_->SetSourceApproxType( approxSourceWithDeltaFnc_);
 
       domain_->InitPDEs( 1 );
     }

@@ -2128,7 +2128,7 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
 
    assert(sa1->dof_ == sa2->dof_ && sb1->dof_ == sb2->dof_ && sa1->dof_ != sb1->dof_);
    assert(sa1->GetType() == sa2->GetType() && sa1->GetType() == sb1->GetType() && sa1->GetType() == sb2->GetType() && sa1->GetType() == BaseDesignElement::NODE);
-   assert(smd_->GetShape(sa1)->IsCenterNode());
+   assert(smd_->GetShape(sa1)->IsCenterShape() && smd_->GetShape(sa1)->type == NODE);
 
    assert(smd_->GetProfile(sa1) == smd_->GetProfile(sb1)); // two center nodes share a profile
 
@@ -2687,7 +2687,8 @@ StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, Shap
 
 ShapeParamElement* ShapeMapDesign::GetSecondCenterNodeParam(ShapeParam* shape, ShapeParamElement* test)
 {
-  assert(shape->IsCenterNode());
+  assert(shape->IsCenterShape());
+  assert(shape->type == NODE);
   unsigned int test_idx = test->GetIndex();
   assert(shape->IsPart(test) || shape->other_center->IsPart(test));
 
@@ -2890,18 +2891,19 @@ void ShapeMapDesign::ShapeParam::InheritProperties(ShapeParam* base)
                 << " y_sym=" << y_sym << " orientation=" << orientation;
 }
 
-bool ShapeMapDesign::ShapeParam::ShallInduceOrthogonalSymmetry() const
+
+inline bool ShapeMapDesign::ShapeParam::ShallInduceOrthogonalSymmetry() const
 {
-  if(x_sym == MIRROR && orientation == 1)
+  if(x_sym == MIRROR && orientation == ShapeParamElement::Y)
     return true;
 
-  if(y_sym == MIRROR && orientation == 0)
+  if(y_sym == MIRROR && orientation == ShapeParamElement::X)
     return true;
 
   return false;
 }
 
-bool ShapeMapDesign::ShapeParam::ShallInduceDiagonalSymmetry() const
+inline bool ShapeMapDesign::ShapeParam::ShallInduceDiagonalSymmetry() const
 {
   if(diag == MIRROR)
     return true;
@@ -2910,12 +2912,17 @@ bool ShapeMapDesign::ShapeParam::ShallInduceDiagonalSymmetry() const
 }
 
 
-bool ShapeMapDesign::ShapeParam::ShallMapHalfShape() const
+inline bool ShapeMapDesign::ShapeParam::ShallMapHalfShape() const
 {
-  if(x_sym == MIRROR && orientation == 0)
+  assert(!IsSurfaceShape());
+
+  if(x_sym == MIRROR && orientation == ShapeParamElement::X)
     return true;
 
-  if(y_sym == MIRROR && orientation == 1)
+  if(y_sym == MIRROR && orientation == ShapeParamElement::Y)
+    return true;
+
+  if(z_sym == MIRROR && orientation == ShapeParamElement::Z)
     return true;
 
   return false;
@@ -2946,7 +2953,6 @@ inline bool ShapeMapDesign::ShapeParam::IsSecondCenterNode() const
   return other_center != NULL && idx > other_center->idx;
 }
 
-
 std::string ShapeMapDesign::ShapeParam::ToString() const
 {
   std::stringstream ss;
@@ -2965,9 +2971,12 @@ std::string ShapeMapDesign::ShapeParam::ToString() const
 void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
 {
   in->Get("idx")->SetValue(idx);
+  in->Get("ref")->SetValue(GetReferenceId());
   in->Get("type")->SetValue(ShapeMapDesign::type.ToString(type));
-  if(type == NODE)
+  if(type == NODE) {
     in->Get("dof")->SetValue(ShapeParamElement::dof.ToString(dof));
+    in->Get("orientation")->SetValue(ShapeParamElement::dof.ToString(orientation));
+  }
   if(fixed)
     in->Get("fixed")->SetValue(value);
   else {

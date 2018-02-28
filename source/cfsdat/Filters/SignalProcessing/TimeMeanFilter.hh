@@ -41,8 +41,6 @@ public:
 
   }
 
-  virtual bool Run() = 0;
-
 
 protected:
 
@@ -83,9 +81,9 @@ public:
 
   }
 
-  virtual bool Run();
-
 protected:
+
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
 
   virtual ResultIdList SetUpstreamResults();
 
@@ -110,7 +108,7 @@ private:
 
 // Vector<Double>& returnVec;
  Vector<Double> tmp_;
- int N_;
+ Integer N_;
 
 };
 }

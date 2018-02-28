@@ -57,6 +57,9 @@ namespace CoupledField {
     //! Pointer to math parser instance
     MathParser * mathParser_;
     
+    //! approximate source with delta functions
+    bool approxSourceWithDeltaFnc_;
+
   };
 
 }

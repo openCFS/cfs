@@ -2,7 +2,6 @@
 #define FILE_BLASLAPACKINTERFACE
 
 #include <def_use_blas.hh>
-#include <def_use_lapack.hh>
 
 #include <def_cfs_fortran_interface.hh>
 
@@ -120,6 +119,8 @@ namespace CoupledField
     void zpbtrs( char*, int*, int*, int*, double*, int*, double*, int*,
                  int*);
     void dsyev( char*, char*, int*, double*, int*, double*, double*, int*, int* );
+
+    void dgecon( char*, int*, double*, int*, double*, double*, double*, int*, int*);
 
     // ! To be continued ...
 

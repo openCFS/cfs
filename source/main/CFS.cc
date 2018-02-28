@@ -269,29 +269,9 @@ int CFS::Run()
     if(!progOpts->IsQuiet())
       cout << endl; // conditional empty line
     
-    cout << ">> Total time: wall clock: '";
-    
-    int walltime = (int) timer->GetWallTime();
-    double cputime = timer->GetCPUTime();
-
-    if(walltime > 120) 
-    {
-      int wallmin((int) (walltime / 60.0));
-      int cpumin((int) (cputime / 60.0));
-      if(wallmin > 60)
-        cout << wallmin / 60 << "h " << (wallmin % 60) << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'";
-      else
-        cout << wallmin << "m " << (walltime % 60) << "s' CPU time: '" << cpumin << "m " << ((int) cputime % 60) << "s'";
-    }
-    else
-    {
-      cout << walltime << "s' CPU time: '" << cputime << "s'";
-    }
-    if(progOpts->IsQuiet())
-      cout << " at " << to_simple_string(second_clock::local_time()) << endl;
-
-    
-    cout << endl << endl;
+    cout << ">> Total wall-clock time: '" << Timer::GetTimeString(timer->GetWallTime())
+         << "' cpu time: '" << Timer::GetTimeString(timer->GetCPUTime())
+         << "' at " << to_simple_string(second_clock::local_time()) << endl << endl;
       
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
@@ -358,7 +338,8 @@ void CFS::PrintGrid()
 
 void CFS::SolveProblem()
 {
-  // Set up Problem
+
+ // Set up Problem
  domain->PostInit();
 
  // Solves the driver or optimization problem
