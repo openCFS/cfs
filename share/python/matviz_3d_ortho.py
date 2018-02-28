@@ -367,7 +367,7 @@ def draw_non_design(tets,grid,bounds,h,solid=True):
   assert(prod is not None)
   for p in prod:
     # transfer to voxel world
-    i,j,k = cartesian_to_voxel_coords(p,bounds[0],bounds[1],bounds[2],h[0],h[1],h[2])
+    i,j,k = draw_profile_functions.cartesian_to_voxel_coords(p,bounds[0],bounds[1],bounds[2],h[0],h[1],h[2])
     assert(not matviz_3d_ortho.idx_out_of_bounds((i,j,k),grid.shape))
     grid[i,j,k] = solid
 
