@@ -14,8 +14,10 @@ import sys, ntpath
 import types
 
 COPROCESSOR_MAP = {}
-#DATA_ARRAY_MAP = {}
 
+# initialize the coprocessor
+# this is mainly taken from https://gitlab.kitware.com/paraview/paraview/blob/master/Examples/Catalyst/PythonFullExample/coprocessor.py
+# and adapted 
 def coprocessor_initialize():
     
     print('initialize coprocessor!')
@@ -57,6 +59,9 @@ def coprocessor_initialize():
   
     return coprocessor_coProcessor
 
+# this sends the data
+# if no coprocessor exists, one will be created
+# PLEASE NOTE: NODE DATA NOT YET IMPLEMENTED
 def send_data(key, xml, host, port):
   
   global COPROCESSOR_MAP
@@ -66,25 +71,9 @@ def send_data(key, xml, host, port):
   if not key in COPROCESSOR_MAP:
     print("Setting up new coprocessor map for " + key)
     COPROCESSOR_MAP[key] = {}
-    #DATA_ARRAY_MAP[key] = types.SimpleNamespace()
-    #DATA_ARRAY_MAP[key].node_data_arr, DATA_ARRAY_MAP[key].element_data_arr = get_init_data_arrays(xml)
-    
   
   if not catalyst_receive_key in COPROCESSOR_MAP[key]:
     print("Setting up new coprocessor map for " + key + ": " + catalyst_receive_key)
-    
-#     dataDescription = catalyst.vtkCPDataDescription()
-#     dataDescription.SetTimeData(0, 0)
-#     dataDescription.AddInput(key)
-#   
-#     polyData = get_grid_obj(xml) # <-- vtkPolyData
-#         
-#     dataDescription.GetInputDescriptionByName(key).SetGrid(polyData)
-# 
-#     dataDescription.host = host
-#     dataDescription.port = port
-#     dataDescription.dataset_key = key
-    
     COPROCESSOR_MAP[key][catalyst_receive_key] = coprocessor_initialize();
     
   coprocessor_coProcessor = COPROCESSOR_MAP[key][catalyst_receive_key]
@@ -98,52 +87,40 @@ def send_data(key, xml, host, port):
     time = int(time_steps[-1]) # get the latest value of the step attr which will be the total timesteps
   timeStep = time
 
+  # create the datapackage we are sending
   dataDescription = catalyst.vtkCPDataDescription()
   dataDescription.SetTimeData(float(time), timeStep)
   dataDescription.AddInput(key)
 
   if coprocessor_coProcessor.RequestDataDescription(dataDescription):
-      polyData = get_grid_obj(xml) # <-- vtkPolyData
+    # only send data if a catalyst is connected
+    
+    # build get the grid!
+    polyData = get_grid_obj(xml) # <-- vtkPolyData
 
-      #node_data_arr, element_data_arr = get_init_data_arrays(xml)
-      #node_data_arr, element_data_arr = set_node_element_data(xml, node_data_arr, element_data_arr)
-      
-      #for data_arr in element_data_arr:
-      #  polyData.GetCellData().AddArray(element_data_arr[data_arr])
-      #for data_arr in DATA_ARRAY_MAP[key].node_data_arr:
-      #  polyData.GetCellData().AddArray(data_arr) ///TODO do this for nodes
-      
-      dataDescription.GetInputDescriptionByName(key).SetGrid(polyData)
-      
-      dataDescription.host = host
-      dataDescription.port = port
-      dataDescription.dataset_key = key
-      coprocessor_coProcessor.CoProcess(dataDescription)
+    # get the node and element data
+    node_data_arr, element_data_arr = get_data_arrays(xml)
 
-  # the following 2 comments are presented by the catalyst example
-  # if we are running through Python we need to finalize extra stuff
-  # to avoid memory leak messages.
-  #if ntpath.basename(sys.executable) == 'python':
-  #    import vtkPVServerManagerApplicationPython as ApplicationPython
-  #    ApplicationPython.vtkInitializationHelper.Finalize()
-
-  # note to self: help(pipeline) is an interesting workaround to deleting the pipeline effectively.
-  #     del or removeAll apparently does not work
-  #pipeline = coprocessor_coProcessor.GetPipeline(0)
-  #help(pipeline)
-  #del pipeline
-
-  #coprocessor_coProcessor.RemoveAllPipelines()
-  #coprocessor_coProcessor.RemoveAllObservers()
-  #del coprocessor_coProcessor
+    # and attach it to the data
+    for data_arr in element_data_arr:
+      polyData.GetCellData().AddArray(element_data_arr[data_arr])
+    #for data_arr in DATA_ARRAY_MAP[key].node_data_arr:
+    #  polyData.GetCellData().AddArray(data_arr) ///TODO do this for nodes
+    
+    # attack the data to the data that needs to be send
+    dataDescription.GetInputDescriptionByName(key).SetGrid(polyData)
+    
+    dataDescription.host = host
+    dataDescription.port = port
+    dataDescription.dataset_key = key
+    
+    # and send the data to the correct ip:port
+    coprocessor_coProcessor.CoProcess(dataDescription)
 
 def get_grid_obj(xml):
 
   DIMENSIONS = xml.xpath('//domain/grids/grid/@dimensions')[0]
-  
-  #ELEMENT_COUNT = int(xml.xpath('//domain/grids/grid/@elements')[0])
-  #NODE_COUNT = int(xml.xpath('//domain/grids/grid/@nodes')[0])
-  
+
   # first, reserve space so all node ids will fit in. potentially having a lot of nodes from 0 to x empty
   # aka we map the node and element ids 1:1
   ELEMENT_COUNT = max(list(map(int, xml.xpath('//grid/regionList/region/element/@id')))) + 1
@@ -162,19 +139,27 @@ def get_grid_obj(xml):
   print("element count: " + str(ELEMENT_COUNT))
   print("node count: " + str(NODE_COUNT))
 
+  # iterate over all xells in the xml
   for idx in range(len(node_id_str)):
     this_node_id = int(node_id_str[idx])
+    # and set the coordinates
     node_x[this_node_id] = float(node_x_str[idx])
     node_y[this_node_id] = float(node_y_str[idx])
     node_z[this_node_id] = float(node_z_str[idx])
 
   pts = vtk.vtkPoints()
   
+  # insert all points
   for idx in range(NODE_COUNT):
     pts.InsertNextPoint(node_x[idx], node_y[idx], node_z[idx])
 
+  # we now have all points from the xml as vtkPoints
+  # the mapping of the id is 1:1, points not defined in the
+  # xml have x=y=z=0
+
   cell_list = [0] * ELEMENT_COUNT # initialize all cells as 0
 
+  # same procedure with the elements
   for region_name in xml.xpath('//grid/regionList/region/@name'):
     element_arr = xml.xpath('//grid/regionList/region[@name="' + region_name + '"]/element')
     this_region_element_count = len(element_arr)
@@ -223,15 +208,14 @@ def get_grid_obj(xml):
         print('WARNING: type "' + type + '" not supported (yet)!')
   
   pdo = vtk.vtkUnstructuredGrid()
- 
-  pdo.Allocate(1)
-    
+
   pdo.SetPoints(pts)
   
   # Allocate memory for elements
   pdo.Allocate(ELEMENT_COUNT)
 
   for cell in cell_list:
+    # if cell not present in xml, add a single point element using point #0
     if cell == 0:
       # use node #0 which is just at 0, 0, 0:
       dummy_vertex = vtk.vtkVertex()
@@ -247,107 +231,60 @@ def get_grid_obj(xml):
 
   return pdo
 
-def get_init_data_arrays(xml):
+def get_data_arrays(xml):
 
   NODE_COUNT = max(map(int, xml.xpath('//domain/grids/grid/@nodes')))+1
   ELEMENT_COUNT = max(map(int, xml.xpath('//domain/grids/grid/@elements')))+1
 
   node_data_arr = {}
   element_data_arr = {}
+  
+  # the result tags within sequence are unique
+  # where the result tags within "results" are appended.
+  # since we only want to send the latest values,
+  # we take the latest tag <results><result>
+  # with the correct name and region
 
-  for region_name in xml.xpath('//grid/regionList/region/@name'):
-    this_region_element_count = len(xml.xpath('//grid/regionList/region[@name="' + region_name + '"]/element'))
+  for sequence_result_element in xml.xpath('//sequence/result'):
+    seq_data_name = sequence_result_element.attrib['data']
+    seq_region_name = sequence_result_element.attrib['location']
     
-    print('region_name: '+ region_name)
+    result_element = xml.xpath('//results/result[@name="' + seq_data_name + '"][@region="' + seq_region_name +'"][last()]')[0]
     
-    data_name_arr = xml.xpath('//streaming/process/sequence/result[@location="' + region_name + '"]/@data')
-    data_defOn_arr = xml.xpath('//streaming/process/sequence/result[@location="' + region_name + '"]/@definedOn')
+    data_name = result_element.attrib['name']
+    data_defOn = result_element.attrib['solution']
+    region_name = result_element.attrib['region']
+    dofs = result_element.attrib['dofs']
+  
+    #print("data_name: " + data_name)
+    #print("data_defOn: " + data_defOn)
+    #print("region_name: " + region_name)
+    #print("dofs: " + dofs)
     
-    print(data_name_arr)
-    print(data_defOn_arr)
-    
-    type_arr = xml.xpath('//grid/regionList/region[@name="' + region_name + '"]/element/@type')
+    if data_defOn == "element":
+       
+      dofs = int(xml.xpath('//results/result[@name="' + data_name + '"][@region="' + region_name +'"]/@dofs')[0])
 
-    for result_index in range(len(data_name_arr)):
+      print("element result: " + data_name + " has dofs=" + str(dofs))
       
-      data_name = data_name_arr[result_index]
-      data_defOn = data_defOn_arr[result_index]
+      #initialize value 2D array with zeros
+      tmp_element_data_arr = numpy.zeros((ELEMENT_COUNT, dofs)).astype(numpy.float)
+       
+      value_data = numpy_support.numpy_to_vtk(tmp_element_data_arr, deep=True)
+      value_data.SetName(region_name + '/' + data_name)
 
-      if data_defOn == "element":
+      for tmp_element in list(result_element):
         
-        dofs = int(xml.xpath('//results/result[@name="' + data_name + '"][@region="' + region_name +'"]/@dofs')[0])
-        
-        print("element result: " + data_name + " has dofs=" + str(dofs))
-        tmp_element_data_arr = numpy.zeros((ELEMENT_COUNT, dofs)).astype(numpy.double)
-        
-        value_data = numpy_support.numpy_to_vtk(tmp_element_data_arr)
-        value_data.SetName(region_name + '/' + data_name)
-  
-        element_data_arr[region_name + '/' + data_name] = value_data
-      elif data_defOn == "node":
-        dofs = int(xml.xpath('//results/result[@name="' + data_name + '"][@region="' + region_name +'"]/@dofs')[0])
-        node_data_zeros = numpy.zeros((NODE_COUNT, dofs))
-        
-        
-        value_data = numpy_support.numpy_to_vtk(node_data_zeros)
-        value_data.SetName(region_name + '/' + data_name)
-        
-        node_data_arr[region_name + '/' + data_name] = value_data
-      else:
-        print("unknown defon")
+        # set all tuples from xml into vtkData Array
+        tuple_arr = numpy.zeros(dofs, dtype=float)
+         
+        for tuple_idx in range(dofs):
+          tuple_arr[tuple_idx] = tmp_element.attrib['v_' + str(tuple_idx)]
 
-  
-  return node_data_arr, element_data_arr
+        value_data.SetTuple(int(tmp_element.attrib['id']), tuple_arr)
 
-def set_node_element_data(xml, node_data_arr, element_data_arr):
-  NODE_COUNT = max(map(int, xml.xpath('//domain/grids/grid/@nodes')))+1
-  ELEMENT_COUNT = max(map(int, xml.xpath('//domain/grids/grid/@elements')))+1
-  
-  for region_name in xml.xpath('//grid/regionList/region/@name'):
-    this_region_element_count = len(xml.xpath('//grid/regionList/region[@name="' + region_name + '"]/element'))
-    
-    print('region_name: '+ region_name)
-    
-    data_name_arr = xml.xpath('//streaming/process/sequence/result[@location="' + region_name + '"]/@data')
-    data_defOn_arr = xml.xpath('//streaming/process/sequence/result[@location="' + region_name + '"]/@definedOn')
-    
-    print(data_name_arr)
-    print(data_defOn_arr)
-    
-    type_arr = xml.xpath('//grid/regionList/region[@name="' + region_name + '"]/element/@type')
+      # add that array with a recognizeable key
+      element_data_arr[region_name + '/' + data_name] = value_data
 
-    for result_index in range(len(data_name_arr)):
-      
-      data_name = data_name_arr[result_index]
-      data_defOn = data_defOn_arr[result_index]
-      
-      if data_defOn == "element":
-        
-        dofs = int(xml.xpath('//results/result[@name="' + data_name + '"][@region="' + region_name +'"]/@dofs')[0])
-        
-        print("element result: " + data_name + " has dofs=" + str(dofs))
-        
-        this_data = element_data_arr[region_name + '/' + data_name]
-        
-        for tmp_element in xml.xpath('(//results/result[@name="' + data_name + '"][@region="' + region_name +'"])[last()]/item'):
-          
-          tuple_arr = numpy.zeros(dofs)
-          
-          for tuple_idx in range(dofs):
-            tuple_arr[tuple_idx] = tmp_element.attrib['v_' + str(tuple_idx)]
-
-          this_data.SetTuple(int(tmp_element.attrib['id']), tuple_arr)
-        
-      #elif data_defOn == "node":
-        #dofs = int(xml.xpath('//results/result[@name="' + data_name + '"][@region="' + region_name +'"]/@dofs')[0])
-        #
-        #print("node result: " + data_name + " has dofs=" + str(dofs))
-        #node_data_arr = numpy.zeros((NODE_COUNT, dofs))
-        
-        #value_data = numpy_support.numpy_to_vtk(node_data_arr)
-        #value_data.SetName(region_name + '/' + data_name)
-        #pdo.GetCellData().SetScalars(value_data) TODO: fix
-      else:
-        print("unknows result")
-  
+  # return node and element vtkDataArray
   return node_data_arr, element_data_arr
