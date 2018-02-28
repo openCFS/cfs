@@ -212,7 +212,7 @@ def get_dd_hh_mm_ss_fromsecs(td):
     return ret_string
 
 #render view of one simulation
-def render_view(GLOBAL_DATA_DICT, key):
+def render_view(GLOBAL_DATA_DICT, key, client_ip):
   retdata = html_raw_data
   retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'view'))
   
@@ -243,6 +243,14 @@ def render_view(GLOBAL_DATA_DICT, key):
     settings_data += '        <li class="list-group-item">peak memory: ' + xml.xpath('//memory/@peak')[0] + ' MB</li>'
   
   settings_data += '    </ul></li>'
+  
+  settings_data += '    <li class="list-group-item">'
+  settings_data += '    send data to catalyst:<br/>'
+  settings_data += '    ip: <input type="text" id="catalyst_ip" value="' + client_ip + '"/> port: <input type="text" id="catalyst_port" value="22222"/><br/>'
+  settings_data += '    <button class="btn btn-primary" id="catalyst_send_button">send data</button>'
+  settings_data += '    auto update: <input type="checkbox" id="catalyst_send_auto_update"/>'
+  settings_data += '    </li>'
+  
   settings_data += '    <li class="list-group-item">results:'
   settings_data += '    <table class="table table-sm" id="result">'
   settings_data += '        <thead><td>view</td><td></td></thead><tbody>'

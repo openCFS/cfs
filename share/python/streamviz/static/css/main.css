@@ -2,6 +2,14 @@ h4 {
 	padding: 5px;
 }
 
+#catalyst_ip {
+  width: 150px;
+}
+
+#catalyst_port {
+  width: 70px;
+}
+
 #simulation_id {
 	display: none;
 }
