@@ -30,6 +30,13 @@ TimeMeanFilter1::TimeMeanFilter1(UInt numWorkers, CoupledField::PtrParamNode con
   //first case we have explicitly given the single result tag
   if(params_->Has("meanSpan")){
     N_ = params_->Get("meanSpan")->As<int>();
+  } else {
+    WARN("No time meanSpan set for filter " << filterId_ << ", setting 20 now");
+    N_ = 20;
+  }
+  if (N_ == 0) {
+    WARN("meanSpan set to 0 for filter " << filterId_ << ", should at least be one, setting 1 now");
+    N_ = 1;
   }
   if( params_->Has("singleResult") ){
     PtrParamNode singleNode = params_->Get("singleResult");
@@ -43,88 +50,45 @@ TimeMeanFilter1::TimeMeanFilter1(UInt numWorkers, CoupledField::PtrParamNode con
   //TODO FIR FILTER SETUP general
 }
 
-bool TimeMeanFilter1::Run(){
-  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
-  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
-  for(; aIter != activeResults.end(); ++aIter){
-    if(filterResIds.Find(*aIter) == -1)
-      continue;
+bool TimeMeanFilter1::UpdateResults(std::set<uuids::uuid>& upResults) {
+  std::set<uuids::uuid>::iterator oIter = upResults.begin();
+  //std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
+  //std::set<uuids::uuid>::iterator aIter = activeResults.begin();
+  for(; oIter != upResults.end(); ++oIter){
     //we now set the time for the associated results
-    Double aTF = resultManager_->GetStepValue(*aIter);
-    std::string resName = resultManager_->GetExtInfo(*aIter)->resultName;
+    std::string resName = resultManager_->GetExtInfo(*oIter)->resultName;
     //do we already have the timestep? is it constant?
     //yes for now
     uuids::uuid upRes = filtResToUpResIds_[resName];
-
-
-
-    //here is the trick, only the obsolete result gets activated
-    // for the rest we just interchange filtResToUpResIds_[resName]
-    // for this second order derivative we cannot do anything
-    // but if we go to higher order filteres we try to pass only
-    // results which are new to upstream
-    resultManager_->SetTimeValue(upRes,aTF);
-    // now we deactivate our own result and activate the others
-    resultManager_->ActivateResult(upRes);
-
-    resultManager_->DeactivateResult(*aIter);
-  }
-
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
-  }
-
-  aIter = activeResults.begin();
-  for(; aIter != activeResults.end(); ++aIter){
-    if(filterResIds.Find(*aIter) == -1)
-      continue;
-    std::string resName = resultManager_->GetExtInfo(*aIter)->resultName;
-    uuids::uuid upRes = filtResToUpResIds_[resName];
-
-    CF::StdVector<UInt> eqnNums; //they should be equal...
-    Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(*aIter,eqnNums);
-    UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
-
-
-    int initialTimeStep = (*(resultManager_->GetExtInfo(upRes)->timeLine.get()))[0] / timeSteps_[*aIter];
-    int currentStep = resultManager_->GetStepValue(*aIter,0)/timeSteps_[*aIter] - initialTimeStep;
-    if (0 == currentStep){
-      tmp_ = resultManager_->GetResultVector<Double>(*aIter,eqnNums);
-      tmp_.Init();
+    
+    Vector<Double>& returnVec = GetOwnResultVector<Double>(*oIter);
+    
+    const UInt size = returnVec.GetSize();
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+    for (UInt i = 0; i < size; i++) {
+      returnVec[i] = 0.0;
     }
-
-
-    if (currentStep < N_){
-      Vector<Double>& r = resultManager_->GetResultVector<Double>(upRes,eqnNums,0);
-
-      // Calculation procedure
-      for(UInt i=0;i<last;++i){
-        tmp_[i] = (((currentStep)*tmp_[i] + r[i])/(currentStep + 1));
-        returnVec[i] = tmp_[i];
-      }
-    }else {
-      Vector<Double>& r1 = resultManager_->GetResultVector<Double>(upRes,eqnNums,-N_);
-      Vector<Double>& r2 = resultManager_->GetResultVector<Double>(upRes,eqnNums,0);
-
-      // Calculation procedure
-      for(UInt i=0;i<last;++i){
-        tmp_[i] += ((r2[i] - r1[i]  )/(N_));
-        returnVec[i] = tmp_[i];
+    
+    const Double dT = timeSteps_[*oIter];
+    const Double actStepValue = resultManager_->GetStepValue(*oIter);
+    
+    const Integer iStep = N_ > 0 ? 1 : -1;
+    
+    for (Integer i = 0; i != N_; i+= iStep) {
+      Vector<Double>& inVec = GetUpstreamResultVector<Double>(upRes, actStepValue - ((double)i * dT));
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+      for (UInt i = 0; i < size; i++) {
+        returnVec[i] += inVec[i];
       }
     }
-//    std::cout<< returnVec[0] << std::endl;
-//    std::cout<< returnVec[1] << std::endl;
-//    std::cout<< returnVec[2] << std::endl;
-    resultManager_->ActivateResult(*aIter);
+    
+    const Double factor = (double)iStep / (double)N_;
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+    for (UInt i = 0; i < size; i++) {
+      returnVec[i] /= factor;
+    }
   }
-
-  //now deactivate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->DeactivateResult(upResIds[aRes]);
-  }
+  
   return true;
 }
 
@@ -132,13 +96,15 @@ bool TimeMeanFilter1::Run(){
 ResultIdList TimeMeanFilter1::SetUpstreamResults(){
   ResultIdList generated;
   CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
-
   for(;aIt!=filterResIds.End();++aIt){
     std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
     std::string upstreamRes = inOutNames_.left.at(filterResName);
-
-    uuids::uuid newId = resultManager_->AddResult(upstreamRes,this->filterTag_);
-    resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
+    uuids::uuid newId;
+    if (N_ > 0) {
+      newId = RegisterUpstreamResult(upstreamRes, -N_, 0, *aIt);
+    } else {
+      newId = RegisterUpstreamResult(upstreamRes, 0, -N_, *aIt);
+    }
     generated.Push_back(newId);
     //additionally we store the uuids belonging to one upRes
     filtResToUpResIds_[filterResName] = newId;
@@ -162,12 +128,6 @@ void TimeMeanFilter1::AdaptFilterResults(){
       EXCEPTION("Problem in filter pipeline detected. Time mean input result \"" <<  inInfo->resultName << "\" could not be provided.")
     }
 
-    if (N_ == 0){
-      std::cout<<"\nWARNING:     \n" <<
-                 "           Problem in filter input of "<<  inInfo->resultName <<" detected. Time meanSpan must be >0. \n" <<
-                 "           N_ is set to 20.\n"<< std::endl;
-      N_ = 20;
-    }
 
     CF::StdVector<Double> curTime = *inInfo->timeLine.get();
     if(curTime.GetSize() == 0){

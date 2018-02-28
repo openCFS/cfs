@@ -13,6 +13,7 @@ namespace CoupledField {
     actTime_ = 0.0;
     actFreq_ = 0.0;
     couplingIter_ = 0;
+    adjointSource_ = false;
   }
 
   

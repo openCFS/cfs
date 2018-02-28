@@ -122,21 +122,7 @@ FftFilter::FftFilter(UInt numWorkers, PtrParamNode config, PtrResultManager resM
 }
 
 ResultIdList FftFilter::SetUpstreamResults() {
-  if (filterResIds.GetSize() == 0) {
-    EXCEPTION("No result of filter " << filterId_ << "has been requested");
-  }
-  else if (filterResIds.GetSize() > 1) {
-    EXCEPTION("Filter " << filterId_ << " may only have one result, but has"
-        << filterResIds.GetSize());
-  }
-  
-  ResultIdList resList;
-  
-  // there is only one upstream result
-  uuids::uuid resId = resultManager_->AddResult(*upResNames.begin(),
-                                                this->filterTag_);
-  resList.Push_back(resId);
-  return resList;
+  return SetDefaultUpstreamResults();
 }
 
 void FftFilter::AdaptFilterResults() {
@@ -211,26 +197,31 @@ bool FftFilter::Run() {
     data_.Init();
     
     // loop over all time steps of input and obtain data
-    UInt numSources = sources_.GetSize();
+    //UInt numSources = sources_.GetSize();
     std::map<UInt, Double>::iterator timeIt = globalStepValueMap_.begin(),
                                      timeEnd = globalStepValueMap_.end();
     for ( ; timeIt != timeEnd; ++timeIt) {
-      resultManager_->SetTimeValue(inId, timeIt->second);
+      /**
+      resultManager_->SetStepValue(inId, timeIt->second);
       resultManager_->ActivateResult(inId);
       for (UInt i = 0; i < numSources; ++i) {
         sources_[i]->Run();
       }
       resVec = resultManager_->GetResultVector<Double>(inId, eqnVec);
+      **/
+      resVec = GetUpstreamResultVector<Double>(inId, timeIt->second);
       assert(resVec.GetSize() == numPoints);
       
       UInt step = timeIt->first - 1;
       if (numBlocks == 1) {
         // if there is just one block of data, apply the window function now
+        #pragma omp parallel for num_threads(CFS_NUM_THREADS)
         for (UInt i = 0; i < numPoints; ++i) {
           data_[i][step] = resVec[i] * winVec[step];
         }
       }
       else {
+        #pragma omp parallel for num_threads(CFS_NUM_THREADS)
         for (UInt i = 0; i < numPoints; ++i) {
           data_[i][step] = resVec[i];
         }
@@ -303,7 +294,8 @@ bool FftFilter::Run() {
 #endif
     
     // scale result of FFT to compensate for effects of windowing and one-sided spectrum
-    Double winFactor2 = 2.0 * winFactor;
+    const Double winFactor2 = 2.0 * winFactor;
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt point = 0; point < numPoints; ++point) {
       data_[point][0] *= winFactor;
       for (UInt freq = 1; freq < 2*numFreqs_; ++freq) {

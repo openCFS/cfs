@@ -709,11 +709,13 @@ DECLARE_LOG(fefunc)
   template<typename T>
   void FeFunction<T>::GetEntitySolution( SingleVector& elemSol, 
                                          const EntityIterator& it ){
-    LOG_DBG(fefunc) << PREFIX << "GetEntitySolution()";
+	LOG_DBG(fefunc) << PREFIX << "GetEntitySolution()";
     Vector<T> & temp = dynamic_cast<Vector<T>&>(elemSol);
+
     StdVector<Integer> eqns;
     Vector<T> & vals = *coeffs_;
     feSpace_->GetEqns(eqns, it);
+
     temp.Resize(eqns.GetSize());
     // In case no equation was found, this indicates that the nodes, for which
     // the results should be calculated could not be found. Thus we have
@@ -914,37 +916,64 @@ DECLARE_LOG(fefunc)
   
   template<typename T>
   void FeFunction<T>::ApplyLoads(){
-    //LOG_DBG(fefunc) << PREFIX << "ApplyLoads()";
-    //loop over all loads
-    LoadCoefList::iterator it = loadCoefs_.begin();
-    // Loop over all coeffunctions
-    for ( ; it != loadCoefs_.end(); ++it  ) {
-      PtrCoefFct ptCoef = it->first;
-      StdVector<shared_ptr<EntityList> > & lists = it->second;
-      if(ptCoef->IsConservative()){
-        //this is a little circumfencial allocaing and releasing memory
-        //in each step. perhaps it would be better to make a class variable or do it
-        //differently somehow
-        Vector<T> loadVec(this->coeffs_->GetSize());
-        loadVec.Init();
-        ptCoef->MapConservative(this->feSpace_,loadVec);
-        this->algsys_->SetFncRHS(loadVec,this->fctId_);
-      }else{
-        //ok here we pass again the work to the space
-//        // check, if entity list is defined on elements or nodes
-//        if( curEnt->GetType() == EntityList::ELEM_LIST ||
-//            curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
-          // Map coefficient function onto the actual FeSpace
-          std::map<Integer, T> coefs;
-          feSpace_->MapCoefFctToSpace( lists, ptCoef, shared_from_this(), coefs, false );
+	  //LOG_DBG(fefunc) << PREFIX << "ApplyLoads()";
+	  //loop over all loads
+	  LoadCoefList::iterator it = loadCoefs_.begin();
+	  // Loop over all coeffunctions
+	  for ( ; it != loadCoefs_.end(); ++it  ) {
+		  PtrCoefFct ptCoef = it->first;
+		  StdVector<shared_ptr<EntityList> > & lists = it->second;
 
-          typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
-          for( ; coefIt != coefs.end(); ++coefIt ) {
-            this->algsys_->SetNodeRHS(coefIt->second,this->fctId_,(Integer)coefIt->first);
-//          }
-        }
-      }
-    } // loop: coefs
+		  CoefFunction::CoefInverseType type = ptCoef->GetInverseType();
+		  CoefFunction::CoefInverseSourceApprox typeApprox = ptCoef->GetInverseSourceApproxType();
+		  if(ptCoef->IsConservative()){
+			  //this is a little circumfencial allocaing and releasing memory
+			  //in each step. perhaps it would be better to make a class variable or do it
+			  //differently somehow
+			  Vector<T> loadVec(this->coeffs_->GetSize());
+			  loadVec.Init();
+			  ptCoef->MapConservative(this->feSpace_,loadVec);
+			  //this is a hack for source localization
+			  if ( type != CoefFunction::INVSOURCE || typeApprox == CoefFunction::DELTA)
+				  this->algsys_->SetFncRHS(loadVec,this->fctId_);
+			  }
+			  else{
+				  //ok here we pass again the work to the space
+				  //        // check, if entity list is defined on elements or nodes
+				  //        if( curEnt->GetType() == EntityList::ELEM_LIST ||
+				  //            curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
+				  // Map coefficient function onto the actual FeSpace
+				  std::map<Integer, T> coefs;
+				  feSpace_->MapCoefFctToSpace( lists, ptCoef, shared_from_this(), coefs, false );
+
+				  typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
+				  for( ; coefIt != coefs.end(); ++coefIt ) {
+					  this->algsys_->SetNodeRHS(coefIt->second,this->fctId_,(Integer)coefIt->first);
+				  }
+			  }
+
+		  }// loop: coefs
+  }
+
+  template<typename T>
+  void FeFunction<T>::ApplyLoads(PtrCoefFct& values) {
+	  //loop over all loads
+	  LoadCoefList::iterator it = loadCoefs_.begin();
+
+	  // Loop over all coeffunctions
+	  for ( ; it != loadCoefs_.end(); ++it  ) {
+		  PtrCoefFct ptCoef = it->first;
+		  StdVector<shared_ptr<EntityList> > & lists = it->second;
+
+		  std::map<Integer, T> coefs;
+		  feSpace_->MapCoefFctToSpace( lists, ptCoef, shared_from_this(), coefs, false );
+
+		  typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
+		  for( ; coefIt != coefs.end(); ++coefIt ) {
+			  //std::cout << "Val: " << coefIt->second << std::endl;
+			  this->algsys_->SetNodeRHS(coefIt->second,this->fctId_,(Integer)coefIt->first);
+		  }
+	  }// loop: coefs
   }
 
 

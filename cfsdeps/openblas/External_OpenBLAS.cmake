@@ -133,6 +133,9 @@ MARK_AS_ADVANCED(OPENBLAS_LIBRARY_RELEASE)
 #-------------------------------------------------------------------------------
 # Set BLAS/LAPACK_LIBRARY according to configuration
 #-------------------------------------------------------------------------------
+
+# for OPENBLAS LAPACK_LIBRARY is the same as BLAS_LIBRARY. See also External_LAPACK for netlib and FindIntelMKL
+# e.g. lib64/OPENSUSE_TUMBLEWEED_X86_64/libopenblas.a;-lpthread
 IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
   IF(DEBUG)
     SET(BLAS_LIBRARY "${OPENBLAS_LIBRARY_DEBUG}")
@@ -141,5 +144,4 @@ IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
     SET(BLAS_LIBRARY "${OPENBLAS_LIBRARY_RELEASE}")
     SET(LAPACK_LIBRARY "${OPENBLAS_LIBRARY_RELEASE}")
   ENDIF(DEBUG)
-
 ENDIF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")

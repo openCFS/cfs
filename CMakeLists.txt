@@ -224,14 +224,18 @@ SET(CFS_PARDISO "MKL" CACHE STRING
 OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)" ${USE_PARDISO_DEFAULT})
 
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library." ${USE_ARPACK_DEFAULT})
+OPTION(USE_FEAST "Use the FEAST eigenvalue solver." ${USE_FEAST_DEFAULT})
 OPTION(USE_ILUPACK "Iterative solver package with own algebraic multilevel prconditioners." ${USE_ILUPACK_DEFAULT})
-OPTION(USE_SUITESPARSE "CholMod and UMFPACK direct solvers from SuiteSparse." ${USE_SUITESPARSE_DEFAULT})
-OPTION(USE_LIS "Suite of OpenMP paralell solvers.." ${USE_LIS_DEFAULT})
+OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK direct solvers from SuiteSparse." ${USE_SUITESPARSE_DEFAULT})
+OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers (OpenMP parallel)" ${USE_LIS_DEFAULT})
 OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs." ${USE_SUPERLU_DEFAULT})
 OPTION(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
 OPTION(USE_PHIST "phist eigensolver library from sppexa." ${USE_PHIST_DEFAULT})
 OPTION(USE_GHOST "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" ${USE_GHOST_DEFAULT})
 
+if(USE_FEAST AND NOT CFS_BLAS_LAPACK STREQUAL "MKL" )
+  MESSAGE(FATAL_ERROR "USE_FEAST=ON requires Intel MKL! Set CFS_BLAS_LAPACK=MKL")
+endif()
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
 #-----------------------------------------------------------------------------
@@ -607,6 +611,10 @@ FILE(MAKE_DIRECTORY "${CFS_TEMP_DIR}")
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/FindCFSDEPS.cmake")
 
+# see also External_OpenBLAS, External_LAPACK or FindIntelMKL as the settings are quite different
+# message("BLAS_LIBRARY=${BLAS_LIBRARY}")
+# message("LAPACK_LIBRARY=${LAPACK_LIBRARY}")
+
 #-----------------------------------------------------------------------------
 # Set path of XML schema. If env variable XMLSCHEMA is set, use it!
 #-----------------------------------------------------------------------------
@@ -677,6 +685,14 @@ ADD_SUBDIRECTORY(source/OLAS/external/lapack)
 IF(USE_PARDISO)
   ADD_SUBDIRECTORY(source/OLAS/external/pardiso)
 ENDIF(USE_PARDISO)
+
+if(USE_FEAST)
+  ADD_SUBDIRECTORY(source/OLAS/external/feast)
+endif(USE_FEAST)
+CMAKE_DEPENDENT_OPTION(USE_FEAST_COMMUNITY "Use the community version of FEAST" ON USE_FEAST OFF)
+MARK_AS_ADVANCED(USE_FEAST_COMMUNITY)
+CMAKE_DEPENDENT_OPTION(USE_FEAST_COMMUNITY_PRECOMPILED "Use the precompiled FEAST libraries" OFF USE_FEAST_COMMUNITY OFF)
+MARK_AS_ADVANCED(USE_FEAST_COMMUNITY_PRECOMPILED)
 
 IF(USE_SUITESPARSE)
   ADD_SUBDIRECTORY(source/OLAS/external/umfpack)
@@ -756,9 +772,7 @@ ENDIF(USE_CGNS)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)
 IF(NOT MINGW)
-IF(NOT CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
-ENDIF()
 ENDIF()
 ADD_SUBDIRECTORY(source/DataInOut/ScatteredDataInOut)
 
