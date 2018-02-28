@@ -284,7 +284,7 @@ namespace CoupledField {
     }
 
     //! Destructor
-    virtual ~SurfaceMortarABIntMA() {};
+    virtual ~SurfaceMortarABIntMA(){};
 
     //! Compute element matrix associated to AB form
     void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,

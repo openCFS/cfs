@@ -779,7 +779,7 @@ void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
 #endif
   }
 
-  if ( ptMasterOp_ == this->aOperator_) {
+  if ( ptMasterOp_ != this->bOperator_) {
 	  elemMat = result;
   } else {
 	  result.Transpose(elemMat);
