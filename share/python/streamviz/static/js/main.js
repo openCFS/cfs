@@ -79,10 +79,16 @@ function update_values(refresh = false) {
 				}
 			}
 
+			
 			if (refresh) {
-				setTimeout(function() {
-					update_values(true)
-				}, 300);
+				if ($("#status").html() == "finished") {
+					window.location.reload(false); 
+				}
+				else {
+					setTimeout(function() {
+						update_values(true)
+					}, 300);
+				}
 			}
 		},
 		error : function( jqXHR, textStatus, errorThrown ) {
@@ -156,7 +162,7 @@ function update_iterations(refresh = false) {
 				$("#iteration_plot").html(result);
 			}
 
-			if (refresh) {
+			if (refresh && !($("#status").html() == "finished")) {
 				setTimeout(function() {
 					update_iterations(true)
 				}, 300);
