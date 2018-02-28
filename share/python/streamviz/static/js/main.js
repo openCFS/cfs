@@ -24,6 +24,28 @@ $( document ).ready(function() {
 		return;
 	}
 	
+	$("#catalyst_send_button").click(function() {
+		ip = $("#catalyst_ip").val();
+		port = $("#catalyst_port").val();
+		
+		key = $("#simulation_id").html()
+		
+		$.ajax({
+			url : "/catalyst_send/" + key,
+			data : {
+				"key" : key,
+				"port" : port,
+				"ip" : ip
+			},
+			success : function(result) {
+			},
+			error : function( jqXHR, textStatus, errorThrown ) {
+			},
+			traditional : true,
+			timeout : 1000 // timeout of 1 second
+		});
+	});
+	
 	continuous = false; // default for finished or abortet functions
 	
 	if ($("#status").html() == "running") {

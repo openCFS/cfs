@@ -20,7 +20,7 @@ import api_plot
 import datetime
 
 # for sending data to catalyst
-#import catalyst_send
+import send_data
 
 app = Flask(__name__)
 
@@ -38,6 +38,11 @@ GLOBAL_UPDATED_DICT = {}
 # client side within javascript. This will ensure performance and prevent useless
 # data transfer and html updating
 UPDATE_EVENTS = {}
+
+# This header should be set by the reverse proxy.
+# Make sure to have the real IP here
+# Don't use the X-Forward-For from the request
+PROXY_REAL_IP_HEADER = "X-Real-IP"
 
 @app.route('/', methods = ['GET'])
 def index():
@@ -57,7 +62,8 @@ def values(key):
 @app.route(settings["api"]["view_url"] + '/<path:key>', methods = ['GET', 'POST'])
 def view(key):
   if request.method == 'GET':
-    return render_html.render_view(GLOBAL_DATA_DICT, key)
+    client_ip = request.headers.get(PROXY_REAL_IP_HEADER, "127.0.0.1")
+    return render_html.render_view(GLOBAL_DATA_DICT, key, client_ip)
   else:
     return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
@@ -69,6 +75,11 @@ def plot(key):
                        int(request.args.get('iteration_num')), \
                        (request.args.get('logscale_y1') == 'true'), (request.args.get('logscale_y2') == 'true'))
 
+
+@app.route(settings["api"]["catalyst_send"] + '/<path:key>', methods = ['GET', 'POST'])
+def send_data_func(key):
+  send_data.send_data(key, GLOBAL_DATA_DICT[key], request.args.get('ip'), request.args.get('port'))
+  return ""
 
 @app.route('/', methods = ['POST'])
 @app.route(settings["api"]["recieve_url"], methods = ['GET', 'POST'])
