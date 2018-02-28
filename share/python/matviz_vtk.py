@@ -203,10 +203,10 @@ def show_vtk(polydata, res, planes=[], show_edges=False, show_axes=False):
         mapper.SetInputConnection(filter.GetOutputPort())
     else:
       mapper.SetInputData(polydata)
-  
+      
   actor = vtk.vtkActor()
   actor.SetMapper(mapper)
-  #actor.GetProperty().SetColor(0.5, 0.5, 0.5)  # (R,G,B)
+  actor.GetProperty().SetColor(0.5, 0.5, 0.5)  # (R,G,B)
   
   if show_edges: # show surface with edges
     actor.GetProperty().EdgeVisibilityOn()

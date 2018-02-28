@@ -14,13 +14,6 @@ from special_mesh_tools import *
 import cfs_utils
 import matviz_vtk
 
-try:
-  import meshpy.triangle as triangle
-  from meshpy.tet import MeshInfo, build
-except:
-  print("Failed to load meshpy - need it for tetrahedralized mesh")
-
-
 # writes a dense two region mesh
 # def write_dense_mesh(pixels, size, file, threshold):
 

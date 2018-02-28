@@ -97,37 +97,37 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   my_mpi_grid.init_data_grid(samples, args.bc_res, bounds)
   my_mpi_grid.to_info()
   
-  #local_id = 0
-  #for k in range(samples[2]):
-    #for j in range(samples[1]):
-      #for i in range(my_mpi_grid.start_x,my_mpi_grid.end_x):
-        #this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
-        #east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
-        #top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
-        #front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+  local_id = 0
+  for k in range(samples[2]):
+    for j in range(samples[1]):
+      for i in range(my_mpi_grid.start_x,my_mpi_grid.end_x):
+        this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
+        east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
+        top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
+        front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
          
-        #assert(this is not None and east is not None and top is not None and front is not None)
+        assert(this is not None and east is not None and top is not None and front is not None)
          
-        ## if one of the values is < min_thresh, set it to min_thresh        
-        ## if one of the values is > max_thresh, set it to max_thresh
-        #x1 = min(max(this[0],min_thresh),max_thresh)
-        #x2 = min(max(east[0],min_thresh),max_thresh)
-        #y1 = min(max(this[1],min_thresh),max_thresh)
-        #y2 = min(max(top[1],min_thresh),max_thresh)
-        #z1 = min(max(this[2],min_thresh),max_thresh)
-        #z2 = min(max(front[2],min_thresh),max_thresh)
+        # if one of the values is < min_thresh, set it to min_thresh        
+        # if one of the values is > max_thresh, set it to max_thresh
+        x1 = min(max(this[0],min_thresh),max_thresh)
+        x2 = min(max(east[0],min_thresh),max_thresh)
+        y1 = min(max(this[1],min_thresh),max_thresh)
+        y2 = min(max(top[1],min_thresh),max_thresh)
+        z1 = min(max(this[2],min_thresh),max_thresh)
+        z2 = min(max(front[2],min_thresh),max_thresh)
          
-        #flags = None
-        #bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
-        #bc_input.eta = 0.7
-        #bc_input.stiffness_as_diameter = True
-        #cell_obj = basecell.Basecell(bc_input,id)
-        ## local i,j,k
-        #li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
-        #print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
-        #my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
+        flags = None
+        bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
+        bc_input.eta = 0.7
+        bc_input.stiffness_as_diameter = True
+        cell_obj = basecell.Basecell(bc_input,id)
+        # local i,j,k
+        li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
+        print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+        my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
      
-        #local_id += 1
+        local_id += 1
     
   eps = 1e-6
   
@@ -151,14 +151,18 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   hx = (my_mpi_grid.bounds[3]-my_mpi_grid.bounds[0])/my_mpi_grid.grid.nx
   hy = (my_mpi_grid.bounds[4]-my_mpi_grid.bounds[1])/my_mpi_grid.grid.ny
   hz = (my_mpi_grid.bounds[5]-my_mpi_grid.bounds[2])/my_mpi_grid.grid.nz
-  x = np.arange(my_mpi_grid.bounds[0],my_mpi_grid.bounds[3]+hx-eps,hx)
-  y = np.arange(my_mpi_grid.bounds[1],my_mpi_grid.bounds[4]+hy-eps,hy)
-  z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+hz-eps,hz)
+  #x = np.arange(my_mpi_grid.bounds[0],my_mpi_grid.bounds[3]+hx-eps,hx)
+  #y = np.arange(my_mpi_grid.bounds[1],my_mpi_grid.bounds[4]+hy-eps,hy)
+  #z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+hz-eps,hz)
   
-  #draw_non_design(void_elems, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
-  #draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds[0:3],(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
-  ray_triangle.draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds[0:3],(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),1)
-  from scipy.ndimage import binary_fill_holes
+  
+  draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
+  draw_non_design(void_elems, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
+#   x = np.arange(0,my_mpi_grid.grid.data.shape[0]+1,1)
+#   y = np.arange(0,my_mpi_grid.grid.data.shape[1]+1,1)
+#   z = np.arange(0,my_mpi_grid.grid.data.shape[2]+1,1)
+#   from pyevtk.hl import gridToVTK
+#   gridToVTK("voxels"+str(my_mpi_grid.rank),x,y,z,cellData={"voxels":my_mpi_grid.grid.data.astype(int)})
   
   borders = my_mpi_grid.communicate_edges()
     
@@ -185,7 +189,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   hy = my_mpi_grid.grid.hy
   hz = my_mpi_grid.grid.hz
  
-  print(helper.shape,np.sum(helper))
+  #print(helper.shape,np.sum(helper))
   from skimage import measure
   # coords of vertices lie in [0,1-h]
   verts, faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False)
@@ -229,7 +233,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     
     data = (verts,faces)
     
-  sys.exit()  
+#   sys.exit()  
   
   # broadcast all verts to all ranks
   data = my_mpi_grid.comm.bcast(data,root=0)
@@ -318,206 +322,54 @@ def write_nondes_to_vtr_file(args,min_bb,max_bb,nondes):
   
   from pyevtk.hl import gridToVTK
   gridToVTK("nondesign",x,y,z,cellData={"nondes":nondes_grid})
-
-# draw 4 faces/triangles of a tetrahedron spanned by vertices A,B,C,D
-#     C
-#   /   \
-#  /     \ 
-# A-------B
-# triangle plane equation: A + u * (B-A) + v * (C - A), u,v \in [0,1] and u+v <= 1
-# tetrahedron consists of 4 triangles: ABC, ABD, BCD, ADC
-# @param value: value to draw with
-def draw_tetrahedron(A,B,C,D,grid,value=1):
-  triangles = []
-  
-  # triangle ABC
-  triangles.append((np.asarray(A),np.asarray(B),np.asarray(C)))
-  # triangle ABD
-  triangles.append((np.asarray(A),np.asarray(B),np.asarray(D)))
-  # triangle BCD
-  triangles.append((np.asarray(B),np.asarray(C),np.asarray(D)))
-  # triangle ADC
-  triangles.append((np.asarray(A),np.asarray(D),np.asarray(C)))
-  
-  eps = 1e-6
-  
-  for t in triangles:
-    draw_triangle(t[0], t[1], t[2], grid, value)
-    #draw_triangle_bresenham(t[0], t[1], t[2], grid, value)
-
-# @param v0, v1, v2: triangle vertices        
-# @param value: value to draw with        
-def draw_triangle(v0,v1,v2,grid,value):
-  # directional vectors
-  v1v0 = v1 - v0
-  v2v0 = v2 - v0
-  
-  # number of samples
-  samples10 = abs(max(v1v0))
-  samples20 = abs(max(v2v0))
-  
-  eps = 1e-6
-  
-  for u in np.linspace(0,1,num=10*samples10+10):
-    for v in np.linspace(0,1,10*samples20+10):
-      if u + v > 1.0 + eps:
-        continue
-      
-      p0 = v0 + u * v1v0 + v * v2v0 + eps
-      p = [int(v) for v in p0]
-      
-      if not idx_out_of_bounds(p, grid.shape):
-        grid[tuple(p)] = value
-
-def draw_triangle_bresenham(v0,v1,v2,grid,value=1):
-  for trip in [(v0,v1,v2),(v1,v0,v2),(v2,v1,v0)]:
-    res01 = bresenham_3d(trip[0],trip[1],grid,value)
-    res02 = bresenham_3d(trip[0],trip[2],grid,value)
-    
-    left = None
-    right = None
-    if len(res01) > 0 and len(res02) > 0:
-      for i in range(max(len(res01),len(res02))):
-        if i < len(res01):
-          left = res01[i]
-        if i < len(res02):
-          right = res02[i]
-        if left is not None and right is not None:  
-          bresenham_3d(left,right,grid,value)
-        else:
-          print("left right is None:",len(res01),len(res02))
-
-def bresenham_3d(p0,p1,array,value=1):
-  x0 = p0[0]
-  y0 = p0[1]
-  z0 = p0[2]
-  
-  x1 = p1[0]
-  y1 = p1[1]
-  z1 = p1[2]
-  
-  dx = np.abs(x1 - x0)
-  sx = 1 if x0 < x1 else -1
-
-  dy = np.abs(y1 - y0) 
-  sy = 1 if y0 < y1 else -1
-
-  dz = np.abs(z1 - z0) 
-  sz = 1 if z0 < z1 else -1
-
-  # max diff
-  dm = np.max([dx,dy,dz])
-  i = dm
-  x1 = y1 = z1 = int(dm/2)
-  
-  res = []
-  
-  while True:
-    if not idx_out_of_bounds((x0,y0,z0), array.shape):
-      array[x0,y0,z0] = value
-    res.append((x0,y0,z0))
-    if (i == 0):
-      break
-    i -= 1
-    x1 -= dx
-    if x1 < 0:
-      x1 += dm
-      x0 += sx
-      
-    y1 -= dy
-    if y1 < 0:
-      y1 += dm
-      y0 +=sy
-    
-    z1 -= dz
-    if z1 <0:
-      z1 += dm
-      z0 +=sz
-      
-  return res  
-          
         
 # @param tets: list of lists, each entry contains 4 vertices (cartesian) of a tet
+# @param grid: where to draw
 # @param bounds: list of bounds of cartesian world
 # @param h: lattice spacings in 3 directions 
-# @param grid: where to draw        
 # @param solid or void non-design?        
 def draw_non_design(tets,grid,bounds,h,solid=True):
-  # don't have non-design elems
-  if tets is None:
-    return 
-  
-  from scipy.ndimage import binary_fill_holes
   assert(len(bounds) >=3 and len(h) == 3)
+  ug = vtk.vtkUnstructuredGrid()
+  vtkpoints = vtk.vtkPoints()
   for e in tets:
-    assert(len(e) == 4)
+    tetra = vtk.vtkTetra()
+    for i,p in enumerate(e):
+      id = vtkpoints.InsertNextPoint(p)
+      tetra.GetPointIds().SetId(i,id)
     
-    # A: (i,j,k)
-    A = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[0],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
-    B = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[1],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
-    C = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[2],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
-    D = np.asarray(draw_profile_functions.cartesian_to_voxel_coords(e[3],bounds[0],bounds[1],bounds[2],h[0],h[1],h[2]))
-    
-    #     print("A:",A)
-    #     print("B:",B)
-    #     print("C:",C)
-    #     print("D:",D)
-    #       sys.exit()
-    
-    # find out which vertex is inside and which partial triangle to draw
-    vertices = [A,B,C,D]
-    vertex_outside = [idx_out_of_bounds(v, grid.shape) for v in vertices]
-    
-    # whole tet lies outside local grid
-    if np.all(vertex_outside):
-      continue  
-      # at least one vertex is inside domain
-    elif np.any(np.invert(vertex_outside)) and not np.all(np.invert(vertex_outside)):
-      # list of vertices inside domain
-      valid_verts_idx = np.where(np.invert(vertex_outside))[0]
-      for idx in valid_verts_idx:
-        grid[tuple(vertices[idx])] = 1
-      
-      draw_tetrahedron(A, B, C, D, grid, 1 )
-      
-      # get bounding box of this tet and fill holes inside 4 drawn triangles
-      mindim = [max(min(A[i],B[i],C[i],D[i]),0) for i in range(3)]
-      maxdim = [min(max(A[i],B[i],C[i],D[i]),grid.shape[i]) for i in range(3)] 
-      
-      subgrid = np.copy(grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1])
-      subgrid = binary_fill_holes(subgrid).astype(bool)
-      assert(subgrid.dtype == bool)
-      
-      if solid: # replace 0 with 1 and keep 0
-        grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] = np.logical_or(subgrid,grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1])
-      else: # replace 1 with 0 and keep 0
-        grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] *= np.invert(subgrid)
-      
-    else: # draw complete tet
-      assert(not (idx_out_of_bounds(A, grid.shape) or idx_out_of_bounds(B, grid.shape) or idx_out_of_bounds(C, grid.shape)))
-      
-      # works only if A is a tuple
-      grid[tuple(A)] = 1 
-      grid[tuple(B)] = 1
-      grid[tuple(C)] = 1
-      grid[tuple(D)] = 1
-      
-      draw_tetrahedron(A,B,C,D,grid,1)
-      
-      # get bounding box of this tet and fill holes inside 4 drawn triangles
-      mindim = [min(A[i],B[i],C[i],D[i]) for i in range(3)]
-      maxdim = [max(A[i],B[i],C[i],D[i]) for i in range(3)] 
-      
-      subgrid = np.copy(grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1])
-      assert(subgrid.dtype == bool)
-      subgrid = binary_fill_holes(subgrid).astype(bool)
-      assert(subgrid.dtype == bool)
-      
-      
-      if solid: # replace 0 with 1 and keep 0
-        grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] = np.logical_or(subgrid,grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1])
-      else:
-        grid[int(mindim[0]):int(maxdim[0])+1,int(mindim[1]):int(maxdim[1])+1,int(mindim[2]):int(maxdim[2])+1] *= np.invert(subgrid)
+    ug.InsertNextCell(tetra.GetCellType(),tetra.GetPointIds())
+  
+  ug.SetPoints(vtkpoints)
+  
+  vtkpoints = None
+  
+  resample = vtk.vtkResampleToImage() 
+  resample.SetInputDataObject(ug)
+  resample.UseInputBoundsOff()
+  resample.SetSamplingBounds(bounds[0],bounds[3],bounds[1],bounds[4],bounds[2],bounds[5])
+  resample.SetSamplingDimensions(grid.shape)
+  resample.Update()
+  
+  ug = None
+  
+  itp = vtk.vtkImageDataToPointSet()
+  itp.SetInputDataObject(resample.GetOutput())
+  itp.Update()
+  
+  resample = None
+  
+  from vtk.util import numpy_support
+  fact = numpy_support.vtk_to_numpy(itp.GetOutput().GetPointData().GetArray('vtkValidPointMask')).astype(bool)
+  points = numpy_support.vtk_to_numpy(itp.GetOutput().GetPoints().GetData())
+  
+  prod = [p for i,p in enumerate(points) if fact[i]]
+  assert(prod is not None)
+  for p in prod:
+    # transfer to voxel world
+    i,j,k = cartesian_to_voxel_coords(p,bounds[0],bounds[1],bounds[2],h[0],h[1],h[2])
+    assert(not matviz_3d_ortho.idx_out_of_bounds((i,j,k),grid.shape))
+    grid[i,j,k] = solid
 
 # check if given tuple of indices lies within given array bounds
 # @param point (i,j,k)

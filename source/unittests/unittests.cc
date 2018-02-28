@@ -55,18 +55,69 @@ BOOST_AUTO_TEST_CASE(vector_compare)
 
 BOOST_AUTO_TEST_CASE(push_back_serial)
 {
+  int datSize = 1e9;
+  int nRuns = 10;
   StdVector<double> a,b;
-  size = 1e9;
-  Time start(boost::posix_time::microsec_clock::local_time());
+  TimeDuration dt1, dt2, dt3, dt4;
 
-  for (int i = 0; i < size; i ++)
-    a.Push_back(i);
+  for (int runs = 0; runs < nRuns; runs++) {
+    a.Clear();
+    b.Clear();
+    Time start1(boost::posix_time::microsec_clock::local_time());
+    for (int i = 0; i < datSize; i ++)
+      a.Push_back(i);
 
-  Time end(boost::posix_time::microsec_clock::local_time());
-  TimeDuration dt = end - start;
+    Time end1(boost::posix_time::microsec_clock::local_time());
+    dt1 += end1 - start1;
 
-  std::cout << "serial time:" << dt.total_seconds() << std::endl;
-  #pragma omp parallel for critical
-  for (int i = 0; i < size; i ++)
-    b.Push_back(i);
+    Time start2(boost::posix_time::microsec_clock::local_time());
+
+    #pragma omp parallel num_threads(1)
+    {
+//      std::cout << "running with " << omp_get_num_threads() << " thread" << std::endl;
+      #pragma omp for
+      for (int i = 0; i < datSize; i ++) {
+        #pragma omp critical
+        b.Push_back(i);
+      }
+    }
+    Time end2(boost::posix_time::microsec_clock::local_time());
+    dt2 += end2 - start2;
+
+    BOOST_CHECK(a == b);
+
+    a.Clear();
+    b.Clear();
+
+    Time start3(boost::posix_time::microsec_clock::local_time());
+    #pragma omp parallel
+    {
+  //    std::cout << "running with " << omp_get_num_threads() << std::endl;
+      #pragma omp for
+      for (int i = 0; i < datSize; i ++)
+        #pragma omp critical
+        a.Push_back(i);
+    }
+    Time end3(boost::posix_time::microsec_clock::local_time());
+    dt3 += end3 - start3;
+
+    a.Clear();
+
+    Time start4(boost::posix_time::microsec_clock::local_time());
+    #pragma omp parallel
+    {
+  //    std::cout << "running with " << omp_get_num_threads() << std::endl;
+      #pragma omp for
+      for (int i = 0; i < datSize; i ++)
+        a.Push_back(i);
+    }
+    Time end4(boost::posix_time::microsec_clock::local_time());
+    dt4 += end4 - start4;
+  }
+
+  std::cout << "Average run times for 10 loop iterations" << std::endl;
+  std::cout << "serial time: " << dt1.total_seconds()/nRuns << " seconds" << std::endl;
+  std::cout << "1 thread with critical :" << dt2.total_seconds()/nRuns << " seconds" << std::endl;
+  std::cout << "multiple threads with critical :" << dt3.total_seconds()/nRuns << " seconds" << std::endl;
+  std::cout << "multiple threads without critical :" << dt4.total_seconds()/nRuns << " seconds" << std::endl;
 }

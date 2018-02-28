@@ -14,13 +14,7 @@ import sympy.solvers
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
-
 #matplotlib.use('tkagg')
-try:
-  import meshpy.triangle as triangle
-  from meshpy.tet import MeshInfo, build
-except:
-  print("Failed to load meshpy - need it for tetrahedralized mesh")
   
 try:
   from skimage import measure

@@ -38,21 +38,19 @@ def getConnectivity(points,cells):
   
   return connectivity
 
-def taubin_smoothing(points,connectivity,bounds=None):
+def taubin_smoothing(points,connectivity,bounds=None,iter=0):
   # smoothing parameter: p_i = p_i + lambda*L(p_{i,j})
-  lamb = 0.8
+  lamb = 0.2
   new_points = points
   old_points = new_points
   i = 0
   res = 999
-  while res > 1e-2:
+  while res > 1e-2 or i < iter:
     print("iter:",i)
     old_points = new_points
-    new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb,bounds),connectivity,-lamb-0.04,bounds)
+    new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb,bounds=bounds),connectivity,-lamb-0.04,bounds=bounds)
     res = residual(old_points, new_points)
     i += 1
-    if i == 2:
-      break
   
   print("Taubin smoothing with ", i, " iterations and res=",res)  
     
@@ -116,7 +114,6 @@ def laplacian_smoothing(points,connectivity,lamb,start=0,end=None,bounds=None,ra
     
   #for i in range(len(points)):
   #  print("old:",points[i]," new:",new_points[i])
-  
   
   return new_points  
 
