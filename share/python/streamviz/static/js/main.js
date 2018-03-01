@@ -93,7 +93,7 @@ function update_values(refresh = false) {
 				console.log("no new data!")
 			} else {
 				// if new data, then also send catalyst
-				if $('#catalyst_send_auto_update').is(":checked") {
+				if ($('#catalyst_send_auto_update').is(":checked")) {
 					catalyst_send();
 				}
 				data = JSON.parse(result);
