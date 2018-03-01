@@ -97,7 +97,7 @@ class SingleVector;
         std::generate(std::begin(ModeOrder), std::end(ModeOrder), [&]{ return n++; });
         // sort it by requency
         std::sort(std::begin(ModeOrder),std::end(ModeOrder),[&](int i1, int i2) { return Frequency[i1] < Frequency[i2]; } );
-        std::cout << "ModeOrder : "<<ModeOrder.ToString()<<"\n";
+        std::cout << " ModeOrder : "<<ModeOrder.ToString()<<"\n";
     }
 
     /** Return the number of eigenfrequencies to be calculated. Not the number of wave_vectors!!
