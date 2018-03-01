@@ -493,6 +493,12 @@ namespace CoupledField {
     Vector<Complex> ef = Vector<Complex>(numFreq_);//dynamic_cast<Vector<Complex>& >(*eigenFreqs);
     ptPDE_->GetSolveStep()->CalcEigenFrequencies(ef , errBounds_, numFreq_, freqShift_, sort_, isBloch_);
 
+    // put the real part into the "frequency" vector -> it should be the eigenvalue actually
+    Frequency.Resize(ef.GetSize());
+    for (int i=0;i<(int)ef.GetSize();i++){
+        Frequency[i] = ef[i].real();
+    }
+
     PrintResult(wave_vector_step);
     // we need to calculate and output results before the displacements are overwritten.
     // only if not optimization or if optimization when it is evaluatate_initial_design
