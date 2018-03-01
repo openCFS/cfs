@@ -122,7 +122,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
     LOG_DBG(SMD)<< "SSD ortho sym " << ref_node.sym_ortho->ToString() << " sym osi=" << ref_node.sym_ortho->ShallInduceOrthogonalSymmetry() << " syn odi=" << ref_node.sym_ortho->ShallInduceDiagonalSymmetry();
   }
   // second added is diagonal
-  if (ref_node.ShallInduceDiagonalSymmetry())
+  if(ref_node.ShallInduceDiagonalSymmetry())
   {
     shape_.Push_back(ShapeParam());
     ref_node.sym_diag = &(shape_.Last());
@@ -134,7 +134,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
     << " sym dsi=" << ref_node.sym_diag->ShallInduceDiagonalSymmetry() << " ind=" << shape_.Last().sym_induced;
   }
   // third is diagonal and then orthogonal (to the side of mapped of original)
-  if (ref_node.ShallInduceDiagonalSymmetry() && ref_node.ShallInduceOrthogonalSymmetry())
+  if(ref_node.ShallInduceDiagonalSymmetry() && ref_node.ShallInduceOrthogonalSymmetry())
   {
     shape_.Push_back(ShapeParam());
     ref_node.sym_diag_ortho = &(shape_.Last());
@@ -589,8 +589,10 @@ void ShapeMapDesign::SetupOptShapeParam()
   for(unsigned int s = 0; s < shape_.GetSize(); s++)
   {
     ShapeParam& shape = shape_[s];
-    LOG_DBG(SMD)<< "SOSP opt " << shape.ToString() << ": start_param=" << shape.start_param << " end_param=" << shape.end_param
-        << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt << " ind=" << shape.sym_induced;
+    LOG_DBG(SMD) << "SOSP opt " << shape.ToString() << " start_param=" << " center=" << shape.IsCenterShape()
+                 << " first=" << shape.IsFirstCenterNode() << " second=" << shape.IsSecondCenterNode();
+    LOG_DBG(SMD) << "SOSP start_param=" << shape.start_param << " end_param=" << shape.end_param
+                 << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt << " ind=" << shape.sym_induced;
     // fixed and symmetry induced shapes don't belong to opt_shape_param_ by definition
     if(!shape.fixed && !shape.sym_induced)
     {
@@ -604,6 +606,10 @@ void ShapeMapDesign::SetupOptShapeParam()
       ShapeParam* ortho = shape.sym_ortho;
       ShapeParam* diag = shape.sym_diag;
       ShapeParam* diag_ortho = shape.sym_diag_ortho;
+      LOG_DBG(SMD)<< "SOSP: sym_ortho=" << sym_ortho << " sym_diag=" << sym_diag << " sym_map=" << sym_map;
+      LOG_DBG(SMD)<< "SOSP: ortho=" << (ortho != NULL ? ortho->ToString() : "null");
+      LOG_DBG(SMD)<< "SOSP: diag=" << (diag != NULL ? diag->ToString() : "null");
+      LOG_DBG(SMD)<< "SOSP: diag_ortho=" << (diag_ortho != NULL ? diag_ortho->ToString() : "null");
       assert(!(sym_ortho && ortho == NULL));
       assert(!(sym_diag && diag == NULL));
       assert(!(sym_ortho && sym_diag && diag == NULL));
@@ -2803,9 +2809,10 @@ void ShapeMapDesign::ShapeParam::ParseBounds(ShapeParam* target, const PtrParamN
 void ShapeMapDesign::ShapeParam::InheritProperties(ShapeParam* base)
 {
   assert(base != NULL);
-  orientation = base->orientation;
+  orientation = base->orientation; // for the 3D center case this is actually a little early
   x_sym = base->x_sym;
   y_sym = base->y_sym;
+  z_sym = base->z_sym;
   diag = base->diag;
   sym_induced = base->sym_induced; // orthogonal and/or diagonal
 }
@@ -2836,8 +2843,11 @@ void ShapeMapDesign::ShapeParam::InheritProperties(ShapeParam* base)
      if(!flip_orientation) {
        x_sym = ShapeMapDesign::symmetry.Parse(pn->Get("left_right_sym")->As<string>());
        y_sym = ShapeMapDesign::symmetry.Parse(pn->Get("bottom_up_sym")->As<string>());
+       if(type == CENTER)
+         z_sym = ShapeMapDesign::symmetry.Parse(pn->Get("front_back_sym")->As<string>());
      }
      else {
+       assert(domain->GetGrid()->GetDim() == 2);
        x_sym = ShapeMapDesign::symmetry.Parse(pn->Get("bottom_up_sym")->As<string>());
        y_sym = ShapeMapDesign::symmetry.Parse(pn->Get("left_right_sym")->As<string>());
      }
@@ -2866,6 +2876,7 @@ void ShapeMapDesign::ShapeParam::InheritProperties(ShapeParam* base)
                 << "dof=" << dof << " orientation=" << orientation
                 << " x_sym=" << ShapeMapDesign::symmetry.ToString(x_sym)
                 << " y_sym=" << ShapeMapDesign::symmetry.ToString(y_sym)
+                << " z_sym=" << ShapeMapDesign::symmetry.ToString(z_sym)
                 << " diag="  << ShapeMapDesign::symmetry.ToString(diag)
                 << " induce_ortho=" << ShallInduceOrthogonalSymmetry()
                 << " induce_diag=" << ShallInduceDiagonalSymmetry();
@@ -2888,17 +2899,34 @@ void ShapeMapDesign::ShapeParam::InheritProperties(ShapeParam* base)
 
 
    LOG_DBG(SMD) << "SP:I final: idx=" << idx << " type=" << type << " base=" << (base != NULL ? base->idx : -1) << " x_sym=" << x_sym
-                << " y_sym=" << y_sym << " orientation=" << orientation;
+                << " y_sym=" << y_sym << " z_sym=" << z_sym << " orientation=" << orientation;
 }
 
 
 inline bool ShapeMapDesign::ShapeParam::ShallInduceOrthogonalSymmetry() const
 {
-  if(x_sym == MIRROR && orientation == ShapeParamElement::Y)
-    return true;
+  if(Is2DShape())
+  {
+    if(x_sym == MIRROR && orientation == ShapeParamElement::Y)
+      return true;
 
-  if(y_sym == MIRROR && orientation == ShapeParamElement::X)
-    return true;
+    if(y_sym == MIRROR && orientation == ShapeParamElement::X)
+      return true;
+  }
+  if(IsCenterShape())
+  {
+    // standing shape (dof=x,z, orientation=y) and a left_right_sym/x_sym: Then there is a parallel shape induced
+    // standing shape (dof=x,z, orientation=y) and a bottom_up_sym/y_sym:  Only mapping!
+    if(x_sym == MIRROR && orientation != ShapeParamElement::X)
+      return true;
+
+    if(y_sym == MIRROR && orientation != ShapeParamElement::Y)
+      return true;
+
+    if(z_sym == MIRROR && orientation != ShapeParamElement::Z)
+      return true;
+  }
+  assert(!IsSurfaceShape());
 
   return false;
 }
@@ -2933,6 +2961,16 @@ inline bool ShapeMapDesign::ShapeParam::IsFirstCenterNode() const
 {
   return other_center != NULL && idx < other_center->idx;
 }
+
+/** are we first or second 3d center node or its profile? */
+inline bool ShapeMapDesign::ShapeParam::IsCenterShape() const
+{
+  if(type == NODE)
+    return other_center != NULL; // 2d and 3d
+  else
+    return partner != NULL && partner->other_center != NULL;
+}
+
 
 ShapeMapDesign::ShapeParam* ShapeMapDesign::ShapeParam::GetSecondCenterNode()
 {
@@ -2995,6 +3033,8 @@ void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
   if(!this->sym_induced) {
     in->Get("left_right_sym")->SetValue(ShapeMapDesign::symmetry.ToString(x_sym));
     in->Get("bottom_up_sym")->SetValue(ShapeMapDesign::symmetry.ToString(y_sym));
+    if(domain->GetGrid()->GetDim() == 3)
+      in->Get("front_back_sym")->SetValue(ShapeMapDesign::symmetry.ToString(z_sym));
   }
   else
     in->Get("sym_induced")->SetValue(true); // we have this shape only as a result of a shape inducing symmetry

@@ -148,7 +148,10 @@ public:
     void ToInfo(PtrParamNode pn);
 
     /** indicate the symmetry data that an additional shape shall be induced?. Checks the orientation of the shape.
-     * This is for orthogonal mirroring, depending on the orientation we map or mirror orthogonal */
+     * This is for orthogonal mirroring, depending on the orientation we map or mirror orthogonal
+     * Possibly "Parallel" would be the better term than "Orthogonal"?!
+     * A 2d example is a horizontal bar (dof=y, orientation=x) and bottom_up/y_sym: Then there is a parallel bar induced.
+     * A 3d center example is standing shape (dof=x,z, orientation=y) and a left_right_sym/x_sym: Then there is a parallel shape induced  */
     bool ShallInduceOrthogonalSymmetry() const;
 
     /** diagonal symmetry induces a new mirror shape of switched direction. Used for square symmetric for band-gaps */
@@ -159,10 +162,9 @@ public:
 
     /** as long as we have no surface, we are !IsCenterShape() */
     bool Is2DShape() const { assert(!IsSurfaceShape()); return(!IsCenterShape()); }
-;
 
     /** are we first or second 3d center node or its profile? */
-    bool IsCenterShape() const { return type == NODE ? other_center != NULL : partner->other_center != NULL; }
+    bool IsCenterShape() const;
 
     /** are we a 3D surface (not yet implemented yet) */
     bool IsSurfaceShape() const { return false; }
