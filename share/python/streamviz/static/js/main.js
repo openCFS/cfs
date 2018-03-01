@@ -8,6 +8,28 @@ function trigger_update(continuous = false) {
 	update_iterations(continuous);
 }
 
+function catalyst_send() {
+	ip = $("#catalyst_ip").val();
+	port = $("#catalyst_port").val();
+	
+	key = $("#simulation_id").html()
+	
+	$.ajax({
+		url : "/catalyst_send/" + key,
+		data : {
+			"key" : key,
+			"port" : port,
+			"ip" : ip
+		},
+		success : function(result) {
+		},
+		error : function( jqXHR, textStatus, errorThrown ) {
+		},
+		traditional : true,
+		timeout : 1000 // timeout of 1 second
+	});
+}
+
 $( document ).ready(function() {
 
     // check the default x iterator
@@ -24,27 +46,7 @@ $( document ).ready(function() {
 		return;
 	}
 	
-	$("#catalyst_send_button").click(function() {
-		ip = $("#catalyst_ip").val();
-		port = $("#catalyst_port").val();
-		
-		key = $("#simulation_id").html()
-		
-		$.ajax({
-			url : "/catalyst_send/" + key,
-			data : {
-				"key" : key,
-				"port" : port,
-				"ip" : ip
-			},
-			success : function(result) {
-			},
-			error : function( jqXHR, textStatus, errorThrown ) {
-			},
-			traditional : true,
-			timeout : 1000 // timeout of 1 second
-		});
-	});
+	$("#catalyst_send_button").click(catalyst_send());
 	
 	continuous = false; // default for finished or abortet functions
 	
@@ -90,6 +92,10 @@ function update_values(refresh = false) {
 			if (result.indexOf("no_new_data") !== -1) {
 				console.log("no new data!")
 			} else {
+				// if new data, then also send catalyst
+				if $('#catalyst_send_auto_update').is(":checked") {
+					catalyst_send();
+				}
 				data = JSON.parse(result);
 
 				for (var name in data['iterations']) {
@@ -103,7 +109,7 @@ function update_values(refresh = false) {
 
 			
 			if (refresh) {
-				if ($("#status").html() == "finished") {
+				if ($("#status").html() != "running") {
 					window.location.reload(false); 
 				}
 				else {
@@ -184,7 +190,7 @@ function update_iterations(refresh = false) {
 				$("#iteration_plot").html(result);
 			}
 
-			if (refresh && !($("#status").html() == "finished")) {
+			if (refresh && !($("#status").html() != "running")) {
 				setTimeout(function() {
 					update_iterations(true)
 				}, 300);
