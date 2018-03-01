@@ -2368,7 +2368,7 @@ namespace CoupledField {
       } else {
         performLinesearch = true;
       }
-      
+      if (performLinesearch) std::cout << "used performLinesearch to make gcc 7 happy";// TODO: use it for real!
       if(reset){
         // reset reset flag
         reset = false;
