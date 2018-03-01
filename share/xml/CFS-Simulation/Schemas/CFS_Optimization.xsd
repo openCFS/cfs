@@ -1142,8 +1142,12 @@
                         </xsd:sequence>
                         <!-- the center attributes -->
                         <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1" />
+                        <!-- symmetry along the x-axis - y-axis or xy-plane -->
                         <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" />
+                        <!-- symmetry along the y-axis - x-axis or xz-plane -->
                         <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" />
+                        <!-- symmetry along the z-axis - xy-plane -->
+                        <xsd:attribute name="front_back_sym" use="optional" type="DT_Symmetry" default="none" />
                         <!-- induces shape with other dof -->
                         <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" />
                       </xsd:complexType>
