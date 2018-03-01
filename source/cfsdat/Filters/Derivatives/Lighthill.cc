@@ -177,13 +177,16 @@ void Lighthill::LambVector(Vector<Double>& tempRetVec){
 
 void Lighthill::LighthillTensor(Vector<Double>& tempRetVec){
   Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, stepIndex_);
-  Vector<Double>& inVecDensity = GetUpstreamResultVector<Double>(resDensityId, stepIndex_);
-  if(externVorticity_ == true){
-    inVecDensity = GetUpstreamResultVector<Double>(resVorticityId, stepIndex_);
+  Vector<Double> LHTensor;
+  if(externDensity_ == true){
+    Vector<Double>& inVecDensity = GetUpstreamResultVector<Double>(resDensityId, stepIndex_);
+    TensorProduct(LHTensor, inVecVel, inVecVel, numEquPerEnt_, 1.0, inVecDensity);
+  } else {
+    TensorProduct(LHTensor, inVecVel, inVecVel, numEquPerEnt_, 1.0);
   }
 
-  Vector<Double> LHTensor;
-  TensorProduct(LHTensor, inVecVel, inVecVel, numEquPerEnt_, 1.0, inVecDensity);
+
+
 
   Matrix& matrix = matrices_[matrixIndex_];
   StdVector< StdVector<CF::UInt> >& sourceMDiv = matrix.targetSourceIndexDiv;
