@@ -10,6 +10,7 @@ from paraview.vtk import vtkPVCatalyst as catalyst
 from paraview.vtk import vtkPVPythonCatalystPython as pythoncatalyst
 from paraview.vtk import vtkParallelCorePython
 from paraview.vtk import vtkPVClientServerCoreCorePython as CorePython
+from paraview.vtk import vtkPVServerManagerApplicationPython as ApplicationPython
 
 import paraview.simple
 
@@ -27,11 +28,6 @@ def coprocessor_initialize():
 
     paraview.options.batch = True
     paraview.options.symmetric = True
-    try:
-        import vtkPVServerManagerApplicationPython as ApplicationPython
-    except:
-        paraview.print_error("Error: Cannot import vtkPVServerManagerApplicationPython")
-
     if not CorePython.vtkProcessModule.GetProcessModule():
         pvoptions = None
         if paraview.options.batch:
