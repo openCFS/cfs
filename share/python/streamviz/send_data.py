@@ -6,10 +6,13 @@ from paraview import vtk
 from paraview.vtk import vtkPVCatalyst as catalyst
 from paraview.vtk.util import numpy_support
 
-import vtkPVPythonCatalystPython as pythoncatalyst
+from paraview.vtk import vtkPVCatalyst as catalyst
+from paraview.vtk import vtkPVPythonCatalystPython as pythoncatalyst
+from paraview.vtk import vtkParallelCorePython
+from paraview.vtk import vtkPVClientServerCoreCorePython as CorePython
+
 import paraview.simple
 
-import vtkParallelCorePython
 import sys, ntpath
 import types
 
@@ -24,7 +27,6 @@ def coprocessor_initialize():
 
     paraview.options.batch = True
     paraview.options.symmetric = True
-    import vtkPVClientServerCoreCorePython as CorePython
     try:
         import vtkPVServerManagerApplicationPython as ApplicationPython
     except:
@@ -51,8 +53,7 @@ def coprocessor_initialize():
 
     coprocessor_coProcessor = catalyst.vtkCPProcessor()
     pm = paraview.servermanager.vtkProcessModule.GetProcessModule()
-    
-    import vtkPVPythonCatalystPython as pythoncatalyst
+
     pipeline = pythoncatalyst.vtkCPPythonScriptPipeline()
     pipeline.Initialize("cpscript.py")
     coprocessor_coProcessor.AddPipeline(pipeline)
