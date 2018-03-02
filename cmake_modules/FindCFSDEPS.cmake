@@ -586,8 +586,8 @@ if(USE_GHOST)
   # we use the cfs-fork of ghost and download the stuff via bitbuket
   # we could also use a subversion mirror on github but only for ghost, not for phist
   # svn co https://github.com/RRZE-HPC/GHOST/trunk@r<REVSION>
-  set(GHOST_REV "9937a9dc71d7") # subversion revision numbers are are more easily handable :(
-  set(GHOST_MD5 "9939c6176c4e42d15133eab5e646e7a2")
+  set(GHOST_REV "656ea8c55fd3") # subversion revision numbers are are more easily handable :(
+  set(GHOST_MD5 "35eb5df4bc2bca54a9aa55d6f94c9f0e")
   set(GHOST_ZIP "${GHOST_REV}.zip")
   # https://bitbucket.org/fabian_wein/cfs_ghost/get/840f2717f849.zip -> fabian_wein-cfs_ghost-840f2717f849
   # https://bitbucket.org/essex/ghost/get/f3c78b57e836.zip -> essex-ghost-f3c78b57e836
