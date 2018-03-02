@@ -106,11 +106,6 @@ public:
 
   static Enum<Type> type;
 
-  /** The symmetry is defined globally but stored in ShapeParam */
-  typedef enum { NONE, MIRROR } Symmetry;
-
-  static Enum<Symmetry> symmetry;
-
   /** The integration strategy applied forItem::GetOrder() */
   typedef enum { CONSTANT_FULL, FULL_OR_NOTHING, TAILORED } IntStrategy;
 
@@ -188,6 +183,9 @@ public:
     /** test if the param is part of the shape */
     bool IsPart(const ShapeParamElement* test) const { return (int) test->GetIndex() >= start_param && (int) test->GetIndex() < end_param; }
 
+    /** are we the master shape or an induced sape? */
+    bool IsInduced() const;
+
     /** for debug purpose */
     std::string ToString() const;
 
@@ -237,22 +235,36 @@ public:
 
     /** the x_symmetry for dof=y means we copy from left to right. x_symmetry for dof=x means we need to induce an
      * additional shape */
-    Symmetry x_sym = NONE;
-    Symmetry y_sym = NONE;
-    Symmetry z_sym = NONE;
+    bool x_sym = false;
+    bool y_sym = false;
+    bool z_sym = false;
     /** diag always induces a new shape */
-    Symmetry diag  = NONE;
+    bool diag  = false;
 
-    /** a shape with dof x and x_symmetry mirror or diagonal mirror means that an additional mirror induced shape needs to be inserted.
-     * This bool indicates if this shape is such a mirror induced shape */
-    bool sym_induced = false;
+    /** induced shapes have an identification of their kind (parallel mirrored, diagonal mirrored (=orthogonal).
+     * In 2D this are three combinations. With the master shape (source for the induced) this are four shapes */
+    struct Induce
+    {
+      static ShapeParam* GetParallelOnly(StdVector<ShapeParam*>& induced);
+      static ShapeParam* GetDiagonalOnly(StdVector<ShapeParam*>& induced);
+      static ShapeParam* GetDiagonalParallel(StdVector<ShapeParam*>& induced);
 
-   /** For a non-sym_induced shape this are the links to the induced shapes.
+      /** the master shape is the base for the induced one. Then the other flags need to be off. Not that only
+       * the master has the induced vector. An each entry has in Induce the description */
+      bool master = true;
+      //  a shape with dof x and x_symmetry mirror or diagonal mirror means that an additional parallel mirrored induced shape needs to be created
+      bool parallel = false;
+      bool diagonal = false;
+    };
+
+    /** The master shape has no induced information but his induced child shapes have it. */
+    Induce induce;
+
+   /** For the master shape only (induce.master = true) this are the links to the induced shapes.
+    * The induced shapes have this vector empty!
     * for full symmetry as for bloch modes one structure becomes four structures, here are the three.
     * Note that there is for full symmetry also mapping,  only 1/8 of the data is opt! */
-    ShapeParam* sym_ortho = NULL; // same direction
-    ShapeParam* sym_diag  = NULL; // changed direction to base shape
-    ShapeParam* sym_diag_ortho = NULL; // first diag, then ortho -> changed direction to base shape
+    StdVector<ShapeParam*> induced;
 
   private:
     /** little helper which reads only bounds and values */
@@ -432,6 +444,8 @@ private:
   unsigned int GetEndShapeIdx(const Function* f) const;
 
   void InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
+
+  ShapeParam* InduceSymmetryNodeHelper(ShapeParam& ref_node);
 
   /** This are our shape parameters which are blown up to shape_param_. When induced, the ortho induces follows the shape, then the diagonal induced
    * First node then profile, therefore always even size. */

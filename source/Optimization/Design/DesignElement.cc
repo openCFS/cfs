@@ -50,10 +50,6 @@ Enum<DesignElement::Detail>         DesignElement::detail;
 Enum<ShapeParamElement::Dof>        ShapeParamElement::dof;
 
 Enum<ShapeMapDesign::Type>          ShapeMapDesign::type;
-Enum<ShapeMapDesign::Symmetry>      ShapeMapDesign::symmetry;
-
-
-
 
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
@@ -721,11 +717,6 @@ void DesignElement::SetEnums()
   ShapeMapDesign::type.Add(ShapeMapDesign::CENTER, "center");
   ShapeMapDesign::type.Add(ShapeMapDesign::NODE, "node");
   ShapeMapDesign::type.Add(ShapeMapDesign::PROFILE, "profile");
-
-  ShapeMapDesign::symmetry.SetName("ShapeMapDesign::Symmetry");
-  ShapeMapDesign::symmetry.Add(ShapeMapDesign::NONE, "none");
-  ShapeMapDesign::symmetry.Add(ShapeMapDesign::MIRROR, "mirror");
-
 
   ShapeParamElement::dof.SetName("ShapeParamElement::Dof");
   ShapeParamElement::dof.Add(ShapeParamElement::NOT_SET, "not_set");
