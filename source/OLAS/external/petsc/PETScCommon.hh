@@ -32,7 +32,6 @@ class PETScCommon
 {
 public:
 PETScCommon();
-
 void SetupMatrix();
 void AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsVec,Vec &dirVec,StdVector<int> &homDirEquNr,StdVector<int> &dirchletValue);
 void GetHomDirMG(Vec &dirVec);
