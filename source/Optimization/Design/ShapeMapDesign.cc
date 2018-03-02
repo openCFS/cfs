@@ -110,40 +110,48 @@ void ShapeMapDesign::CheckPlausibility()
       throw Exception("Set 'volume' function to non-linear with shape mapping");
 }
 
+ShapeMapDesign::ShapeParam* ShapeMapDesign::InduceSymmetryNodeHelper(ShapeParam& ref_node)
+{
+  shape_.Push_back(ShapeParam());
+  ShapeParam* ind = &(shape_.Last());
+  ref_node.induced.Push_back(ind);
+  ind->induce.master = false;
+  // don't forget to set further ind.incude flags
+  return ind;
+}
+
 void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn)
 {
   // first added is orthogonal
   if(ref_node.ShallInduceOrthogonalSymmetry())
   {
-    shape_.Push_back(ShapeParam());
-    ref_node.sym_ortho = &(shape_.Last());
-    ref_node.sym_ortho->ParseAndInit(node_pn, NULL);
-    ref_node.sym_ortho->sym_induced = true;
-    LOG_DBG(SMD)<< "SSD ortho sym " << ref_node.sym_ortho->ToString() << " sym osi=" << ref_node.sym_ortho->ShallInduceOrthogonalSymmetry() << " syn odi=" << ref_node.sym_ortho->ShallInduceDiagonalSymmetry();
+    ShapeParam* ind = InduceSymmetryNodeHelper(ref_node);
+    ind->induce.parallel = true;
+    ind->ParseAndInit(node_pn, NULL, false); // don't flip orientation
+    LOG_DBG(SMD)<< "SSD ortho sym " << ind->ToString() << " sym osi=" << ind->ShallInduceOrthogonalSymmetry() << " syn odi=" << ind->ShallInduceDiagonalSymmetry();
   }
   // second added is diagonal
   if(ref_node.ShallInduceDiagonalSymmetry())
   {
-    shape_.Push_back(ShapeParam());
-    ref_node.sym_diag = &(shape_.Last());
-    ref_node.sym_diag->ParseAndInit(node_pn, NULL, true); // we flip!
-    ref_node.sym_diag->sym_induced = true;
-    assert(ref_node.sym_diag->dof != ref_node.dof);
-    assert(ref_node.sym_diag->orientation != ref_node.orientation);
-    LOG_DBG(SMD) << "SSD diag sym " << ref_node.sym_diag->ToString() << "  sym osi=" << ref_node.sym_diag->ShallInduceDiagonalSymmetry()
-    << " sym dsi=" << ref_node.sym_diag->ShallInduceDiagonalSymmetry() << " ind=" << shape_.Last().sym_induced;
+    ShapeParam* ind = InduceSymmetryNodeHelper(ref_node);
+    ind->induce.diagonal = true;
+    ind->ParseAndInit(node_pn, NULL, true); // we flip!
+    assert(ind->dof != ref_node.dof);
+    assert(ind->orientation != ref_node.orientation);
+    LOG_DBG(SMD) << "SSD diag sym " << ind->ToString() << "  sym osi=" << ind->ShallInduceDiagonalSymmetry()
+    << " sym dsi=" << ind->ShallInduceDiagonalSymmetry() << " ind=" << shape_.Last().IsInduced();
   }
   // third is diagonal and then orthogonal (to the side of mapped of original)
   if(ref_node.ShallInduceDiagonalSymmetry() && ref_node.ShallInduceOrthogonalSymmetry())
   {
-    shape_.Push_back(ShapeParam());
-    ref_node.sym_diag_ortho = &(shape_.Last());
-    ref_node.sym_diag_ortho->ParseAndInit(node_pn, NULL, true); // we flip!
-    ref_node.sym_diag_ortho->sym_induced = true;
-    assert(ref_node.sym_diag_ortho->dof != ref_node.dof);
-    assert(ref_node.sym_diag_ortho->orientation != ref_node.orientation);
-    LOG_DBG(SMD) << "SSD diag ortho sym " << ref_node.sym_diag_ortho->ToString() << "  sym osi=" << ref_node.sym_diag_ortho->ShallInduceDiagonalSymmetry()
-    << " sym dsi=" << ref_node.sym_diag_ortho->ShallInduceDiagonalSymmetry() << " ind=" << shape_.Last().sym_induced;
+    ShapeParam* ind = InduceSymmetryNodeHelper(ref_node);
+    ind->induce.parallel = true;
+    ind->induce.diagonal = true;
+    ind->ParseAndInit(node_pn, NULL, true); // we flip!
+    assert(ind->dof != ref_node.dof);
+    assert(ind->orientation != ref_node.orientation);
+    LOG_DBG(SMD) << "SSD diag ortho sym " << ind->ToString() << "  sym osi=" << ind->ShallInduceDiagonalSymmetry()
+    << " sym dsi=" << ind->ShallInduceDiagonalSymmetry() << " ind=" << shape_.Last().IsInduced();
   }
 }
 
@@ -232,7 +240,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
      ShapeParam& item = shape_.Last(); // the item to be processed. Capacity needs to be large enough such that this reference is not fucked up
      item.ParseAndInit(nodes[i], NULL); // size might be != i when we induce
      LOG_DBG(SMD) << "SSD " << item.ToString() << " : i=" << i  << " osi=" << item.ShallInduceOrthogonalSymmetry()
-                  << " dsi=" << item.ShallInduceDiagonalSymmetry() << " ind=" << item.sym_induced;
+                  << " dsi=" << item.ShallInduceDiagonalSymmetry() << " ind=" << item.IsInduced();
 
      // first added is orthogonal
     InduceSymmetryNodes(item, nodes[i]);
@@ -268,8 +276,7 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
        prof->partner = nodal;
        prof->ParseAndInit(profile, nodal); // one profile for each node shape, give reverence to node to copy sym and orientation
        assert(prof->other_center == NULL); // we don't have this in profile
-       assert(!(nodal->sym_induced && !prof->sym_induced));
-       assert(prof->sym_ortho == NULL && prof->sym_diag == NULL && prof->sym_diag_ortho == NULL); // needs to be set later
+       assert(prof->induced.IsEmpty()); // needs to be set later
      }
    }
    assert(shape_.GetSize() <= estimate);
@@ -277,24 +284,21 @@ void ShapeMapDesign::InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNod
 
 
    // now set the symmetry links for profiles
-   for(unsigned int i = 0; i <  (unsigned int) num_node_shapes_; i++)
+   for(unsigned int ni = 0; ni <  (unsigned int) num_node_shapes_; ni++)
    {
-     ShapeParam& node    = shape_[i];
+     ShapeParam& node    = shape_[ni];
      ShapeParam* profile = node.partner;
-     assert(dim_ == 3 || profile->idx == num_node_shapes_ + (int) i); // 3D center nodes are not 1:1 with profile
+     assert(dim_ == 3 || profile->idx == num_node_shapes_ + (int) ni); // 3D center nodes are not 1:1 with profile
 
-     assert((node.sym_induced && profile->sym_induced) || (!node.sym_induced && !profile->sym_induced));
-     assert(profile->sym_ortho == NULL && profile->sym_diag == NULL && profile->sym_diag_ortho == NULL); // not set yet
-     if(!node.sym_induced) // we search for the base functions
+     assert((node.IsInduced() && profile->IsInduced()) || (!node.IsInduced() && !profile->IsInduced()));
+     assert(profile->induced.IsEmpty()); // not set yet
+     for(unsigned int ii = 0; ii < node.induced.GetSize(); ii++)
      {
-       if(node.sym_ortho != NULL)
-         profile->sym_ortho = &shape_[profile->idx + (node.sym_ortho->idx - node.idx)];
-
-       if(node.sym_diag != NULL)
-         profile->sym_diag = &shape_[profile->idx + (node.sym_diag->idx - node.idx)];
-
-       if(node.sym_diag_ortho != NULL)
-         profile->sym_diag_ortho = &shape_[profile->idx + (node.sym_diag_ortho->idx - node.idx)];
+       ShapeParam* node_ind = node.induced[ii];
+       ShapeParam* prof_ind = &shape_[profile->idx + (node_ind->idx - node.idx)];
+       assert(node_ind->IsInduced());
+       prof_ind->induce = node_ind->induce;
+       profile->induced.Push_back(prof_ind);
      }
    }
 
@@ -592,9 +596,9 @@ void ShapeMapDesign::SetupOptShapeParam()
     LOG_DBG(SMD) << "SOSP opt " << shape.ToString() << " start_param=" << " center=" << shape.IsCenterShape()
                  << " first=" << shape.IsFirstCenterNode() << " second=" << shape.IsSecondCenterNode();
     LOG_DBG(SMD) << "SOSP start_param=" << shape.start_param << " end_param=" << shape.end_param
-                 << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt << " ind=" << shape.sym_induced;
+                 << " start_opt=" << shape.start_opt << " end_opt=" << shape.end_opt << " ind=" << shape.IsInduced();
     // fixed and symmetry induced shapes don't belong to opt_shape_param_ by definition
-    if(!shape.fixed && !shape.sym_induced)
+    if(!shape.fixed && !shape.IsInduced())
     {
       // we mirror if we have a symmetry induced shape as next shape (6 = upper-v[0], 5 = upper-v[1], ...)
       bool sym_ortho = shape.ShallInduceOrthogonalSymmetry();
@@ -603,9 +607,9 @@ void ShapeMapDesign::SetupOptShapeParam()
       // we copy the element when we have symmetry but not the above case (0->6, 1->5, 2->4, ...)
       bool sym_map = shape.ShallMapHalfShape();
       // see SetupShapeDesign()
-      ShapeParam* ortho = shape.sym_ortho;
-      ShapeParam* diag = shape.sym_diag;
-      ShapeParam* diag_ortho = shape.sym_diag_ortho;
+      ShapeParam* ortho      = shape.induce.GetParallelOnly(shape.induced);
+      ShapeParam* diag       = shape.induce.GetDiagonalOnly(shape.induced);
+      ShapeParam* diag_ortho = shape.induce.GetDiagonalParallel(shape.induced);
       LOG_DBG(SMD)<< "SOSP: sym_ortho=" << sym_ortho << " sym_diag=" << sym_diag << " sym_map=" << sym_map;
       LOG_DBG(SMD)<< "SOSP: ortho=" << (ortho != NULL ? ortho->ToString() : "null");
       LOG_DBG(SMD)<< "SOSP: diag=" << (diag != NULL ? diag->ToString() : "null");
@@ -613,8 +617,8 @@ void ShapeMapDesign::SetupOptShapeParam()
       assert(!(sym_ortho && ortho == NULL));
       assert(!(sym_diag && diag == NULL));
       assert(!(sym_ortho && sym_diag && diag == NULL));
-      assert(!sym_ortho || ortho->sym_induced);
-      assert(!sym_diag || diag->sym_induced);
+      assert(!sym_ortho || ortho->IsInduced());
+      assert(!sym_diag || diag->IsInduced());
       // add one in the mirror case with odd design elements for not mirrored center element - note 0-based counting!
       bool odd_elements = (shape.end_param - shape.start_param) % 2 == 0 ? false : true;
       shape.start_opt = opt_shape_param_.GetSize();
@@ -706,7 +710,7 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   {
     const ShapeParam& shape = shape_[s];
 
-    if(!shape.fixed && !shape.sym_induced)
+    if(!shape.fixed && !shape.IsInduced())
     {
       assert(shape.start_opt >= 0); // - 1 if not applicable
       assert(shape.end_opt > 0);
@@ -809,7 +813,7 @@ void ShapeMapDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Fun
     // don't deal with the complicated stuff!
     assert(!node.fixed);
     assert(!prof.fixed);
-    assert(!node.sym_induced);
+    assert(!node.IsInduced());
     assert(!node.ShallMapHalfShape());
     assert((node.dof == 0 && f->GetType() == Function::OVERHANG_VERT) || (node.dof == 1 && f->GetType() == Function::OVERHANG_HOR));
       // LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " s=" << s << " ts=" << two_signs << " prev=" << prev << " per=" << periodic << " sp=" << shape.start_param << " ep=" << shape.end_param << " so=" << shape.start_opt << " eo=" << shape.end_opt;
@@ -873,7 +877,7 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
 
     assert(!(f->GetDesignType() == BaseDesignElement::NODE && shape.type == PROFILE));
     assert(!(f->GetDesignType() == BaseDesignElement::PROFILE && shape.type == NODE));
-    if(!shape.fixed && !shape.sym_induced)
+    if(!shape.fixed && !shape.IsInduced())
     {
       assert(f->GetDesignType() == Convert(shape.type)); // NODE or PROFILE
 
@@ -1124,7 +1128,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
     if(dt == BaseDesignElement::NODE && pn->Get("dof")->As<string>() != ShapeParamElement::dof.ToString(spe.dof_))
       EXCEPTION("shapeParamElement nr " << i << " has not the expected dof " << ShapeParamElement::dof.ToString(spe.dof_));
 
-    if(!shape->fixed && !shape->sym_induced) // with fixed we don't read bounds
+    if(!shape->fixed && !shape->IsInduced()) // with fixed we don't read bounds
     {
       lower_violation = std::max(lower_violation, spe.GetLowerBound() - val);
       upper_violation = std::max(upper_violation, val - spe.GetUpperBound());
@@ -2814,7 +2818,6 @@ void ShapeMapDesign::ShapeParam::InheritProperties(ShapeParam* base)
   y_sym = base->y_sym;
   z_sym = base->z_sym;
   diag = base->diag;
-  sym_induced = base->sym_induced; // orthogonal and/or diagonal
 }
 
  void ShapeMapDesign::ShapeParam::ParseAndInit(PtrParamNode pn, ShapeParam* base, bool flip_orientation)
@@ -2841,18 +2844,18 @@ void ShapeMapDesign::ShapeParam::InheritProperties(ShapeParam* base)
    if((type == CENTER || type == NODE) && !part_of_center)
    {
      if(!flip_orientation) {
-       x_sym = ShapeMapDesign::symmetry.Parse(pn->Get("left_right_sym")->As<string>());
-       y_sym = ShapeMapDesign::symmetry.Parse(pn->Get("bottom_up_sym")->As<string>());
+       x_sym = pn->Get("left_right_sym")->As<string>() != "none";
+       y_sym = pn->Get("bottom_up_sym")->As<string>() != "none";
        if(type == CENTER)
-         z_sym = ShapeMapDesign::symmetry.Parse(pn->Get("front_back_sym")->As<string>());
+         z_sym = pn->Get("front_back_sym")->As<string>() != "none";
      }
      else {
        assert(domain->GetGrid()->GetDim() == 2);
-       x_sym = ShapeMapDesign::symmetry.Parse(pn->Get("bottom_up_sym")->As<string>());
-       y_sym = ShapeMapDesign::symmetry.Parse(pn->Get("left_right_sym")->As<string>());
+       x_sym = pn->Get("bottom_up_sym")->As<string>() != "none";
+       y_sym = pn->Get("left_right_sym")->As<string>() != "none";
      }
 
-     diag  = ShapeMapDesign::symmetry.Parse(pn->Get("diagonal_sym")->As<string>());
+     diag  = pn->Get("diagonal_sym")->As<string>() != "none";
    }
 
    // a real node
@@ -2874,11 +2877,8 @@ void ShapeMapDesign::ShapeParam::InheritProperties(ShapeParam* base)
    LOG_DBG(SMD) << "SP:I idx=" << idx << " type=" << type
                 << " base=" << (base == NULL ? -1 : base->type)
                 << "dof=" << dof << " orientation=" << orientation
-                << " x_sym=" << ShapeMapDesign::symmetry.ToString(x_sym)
-                << " y_sym=" << ShapeMapDesign::symmetry.ToString(y_sym)
-                << " z_sym=" << ShapeMapDesign::symmetry.ToString(z_sym)
-                << " diag="  << ShapeMapDesign::symmetry.ToString(diag)
-                << " induce_ortho=" << ShallInduceOrthogonalSymmetry()
+                << " x_sym=" << x_sym << " y_sym=" << y_sym << " z_sym=" << z_sym
+                << " diag=" << diag << " induce_ortho=" << ShallInduceOrthogonalSymmetry()
                 << " induce_diag=" << ShallInduceDiagonalSymmetry();
 
    if(type == PROFILE)
@@ -2907,23 +2907,23 @@ inline bool ShapeMapDesign::ShapeParam::ShallInduceOrthogonalSymmetry() const
 {
   if(Is2DShape())
   {
-    if(x_sym == MIRROR && orientation == ShapeParamElement::Y)
+    if(x_sym && orientation == ShapeParamElement::Y)
       return true;
 
-    if(y_sym == MIRROR && orientation == ShapeParamElement::X)
+    if(y_sym && orientation == ShapeParamElement::X)
       return true;
   }
   if(IsCenterShape())
   {
     // standing shape (dof=x,z, orientation=y) and a left_right_sym/x_sym: Then there is a parallel shape induced
     // standing shape (dof=x,z, orientation=y) and a bottom_up_sym/y_sym:  Only mapping!
-    if(x_sym == MIRROR && orientation != ShapeParamElement::X)
+    if(x_sym && orientation != ShapeParamElement::X)
       return true;
 
-    if(y_sym == MIRROR && orientation != ShapeParamElement::Y)
+    if(y_sym && orientation != ShapeParamElement::Y)
       return true;
 
-    if(z_sym == MIRROR && orientation != ShapeParamElement::Z)
+    if(z_sym && orientation != ShapeParamElement::Z)
       return true;
   }
   assert(!IsSurfaceShape());
@@ -2933,7 +2933,7 @@ inline bool ShapeMapDesign::ShapeParam::ShallInduceOrthogonalSymmetry() const
 
 inline bool ShapeMapDesign::ShapeParam::ShallInduceDiagonalSymmetry() const
 {
-  if(diag == MIRROR)
+  if(diag)
     return true;
   else
     return false;
@@ -2944,13 +2944,13 @@ inline bool ShapeMapDesign::ShapeParam::ShallMapHalfShape() const
 {
   assert(!IsSurfaceShape());
 
-  if(x_sym == MIRROR && orientation == ShapeParamElement::X)
+  if(x_sym && orientation == ShapeParamElement::X)
     return true;
 
-  if(y_sym == MIRROR && orientation == ShapeParamElement::Y)
+  if(y_sym && orientation == ShapeParamElement::Y)
     return true;
 
-  if(z_sym == MIRROR && orientation == ShapeParamElement::Z)
+  if(z_sym && orientation == ShapeParamElement::Z)
     return true;
 
   return false;
@@ -2991,6 +2991,12 @@ inline bool ShapeMapDesign::ShapeParam::IsSecondCenterNode() const
   return other_center != NULL && idx > other_center->idx;
 }
 
+inline bool ShapeMapDesign::ShapeParam::IsInduced() const
+{
+  assert(!(induce.master && (induce.parallel || induce.diagonal)));
+  return !induce.master;
+}
+
 std::string ShapeMapDesign::ShapeParam::ToString() const
 {
   std::stringstream ss;
@@ -3002,7 +3008,7 @@ std::string ShapeMapDesign::ShapeParam::ToString() const
     // << " xsym=" << x_sym << " ysim=" << y_sym
     // << " ortho=" << (sym_ortho != NULL ? sym_ortho->idx : -1)
     // << " diag=" << (sym_diag != NULL ? sym_diag->idx : -1)
-    // << " diag_ortho=" << (sym_diag_ortho != NULL ? sym_diag_ortho->idx : -1) << " ind=" << sym_induced;
+    // << " diag_ortho=" << (sym_diag_ortho != NULL ? sym_diag_ortho->idx : -1) << " ind=" << IsInduced();
   return ss.str();
 }
 
@@ -3030,15 +3036,43 @@ void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
   in->Get("variables")->SetValue(end_param - start_param);
   in->Get("design")->SetValue(end_opt - start_opt);
 
-  if(!this->sym_induced) {
-    in->Get("left_right_sym")->SetValue(ShapeMapDesign::symmetry.ToString(x_sym));
-    in->Get("bottom_up_sym")->SetValue(ShapeMapDesign::symmetry.ToString(y_sym));
+  if(!IsInduced()) {
+    in->Get("left_right_sym")->SetValue(x_sym);
+    in->Get("bottom_up_sym")->SetValue(y_sym);
     if(domain->GetGrid()->GetDim() == 3)
-      in->Get("front_back_sym")->SetValue(ShapeMapDesign::symmetry.ToString(z_sym));
+      in->Get("front_back_sym")->SetValue(z_sym);
   }
   else
-    in->Get("sym_induced")->SetValue(true); // we have this shape only as a result of a shape inducing symmetry
+    in->Get("IsInduced()")->SetValue(true); // we have this shape only as a result of a shape inducing symmetry
 }
+
+ShapeMapDesign::ShapeParam* ShapeMapDesign::ShapeParam::Induce::GetParallelOnly(StdVector<ShapeMapDesign::ShapeParam*>& induced)
+{
+  for(unsigned int i = 0; i < induced.GetSize(); i++)
+    if(induced[i]->induce.parallel && !induced[i]->induce.diagonal)
+      return induced[i];
+
+  return NULL;
+}
+
+ShapeMapDesign::ShapeParam* ShapeMapDesign::ShapeParam::Induce::GetDiagonalOnly(StdVector<ShapeMapDesign::ShapeParam*>& induced)
+{
+  for(unsigned int i = 0; i < induced.GetSize(); i++)
+    if(!induced[i]->induce.parallel && induced[i]->induce.diagonal)
+      return induced[i];
+
+  return NULL;
+}
+
+ShapeMapDesign::ShapeParam* ShapeMapDesign::ShapeParam::Induce::GetDiagonalParallel(StdVector<ShapeMapDesign::ShapeParam*>& induced)
+{
+  for(unsigned int i = 0; i < induced.GetSize(); i++)
+    if(induced[i]->induce.parallel && induced[i]->induce.diagonal)
+      return induced[i];
+
+  return NULL;
+}
+
 
 ShapeMapDesign::TanhSum::TanhSum()
 {
