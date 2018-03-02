@@ -8,6 +8,9 @@
 #include "PETScCommon.hh"
 
 #include <string>
+#include <sstream>
+#include <stdio.h>
+#include <mpi.h>
 #include "MatVec/SparseOLASMatrix.hh"
 #include "MatVec/SCRS_Matrix.hh"
 #include "MatVec/CRS_Matrix.hh"
@@ -15,12 +18,9 @@
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "Driver/Assemble.hh"
 #include "Forms/LinForms/LinearForm.hh"
-#include <sstream>
-#include <stdio.h>
-#include <mpi.h>
 #include "PDE/SinglePDE.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
-#include <unordered_map>
+
 
 namespace CoupledField {
 
@@ -34,8 +34,18 @@ PETScCommon::~PETScCommon() {
 }
 
 
-
-
+void PETScCommon::PenaltyHomDir(Mat &sysMat,Vec &rhsVec,Vec &f){
+  MatDiagonalScale(sysMat,f,f);
+  Vec NI;
+  VecDuplicate(f,&NI);
+  VecSet(NI,1.0);
+  VecAXPY(NI,-1.0,f);
+  MatDiagonalSet(sysMat,NI,ADD_VALUES);
+  // Zero out possible loads in the RHS that coincide
+  // with Dirichlet conditions
+  VecPointwiseMult(rhsVec,rhsVec,f);
+  VecDestroy(&NI);
+}
 
 
 void PETScCommon::SetupMatrix(UInt dim,UInt* nnzr,bool symmetric, Mat &sysMat,Vec &solVec,Vec &rhsVec){
@@ -83,79 +93,76 @@ void PETScCommon::SetupSolverContext(Mat &sysMat,KSP &solver,PC &precond,string 
 }
 
 
-void PETScCommon::GetSol(Vec &solVec,Vec &solGlobal){
+void PETScCommon::GetGlobalVec(Vec &x,Vec &xGlobal){
   VecScatter ctx;
   //Collect the solution vector from different procs
-  ierr=VecScatterCreateToZero(solVec,&ctx,&solGlobal);CHKERRXX(ierr);
-  ierr=VecScatterBegin(ctx,solVec,solGlobal,INSERT_VALUES,SCATTER_FORWARD);CHKERRXX(ierr);
-  ierr=VecScatterEnd(ctx,solVec,solGlobal,INSERT_VALUES,SCATTER_FORWARD);CHKERRXX(ierr);
+  ierr=VecScatterCreateToZero(x,&ctx,&xGlobal);CHKERRXX(ierr);
+  ierr=VecScatterBegin(ctx,x,xGlobal,INSERT_VALUES,SCATTER_FORWARD);CHKERRXX(ierr);
+  ierr=VecScatterEnd(ctx,x,xGlobal,INSERT_VALUES,SCATTER_FORWARD);CHKERRXX(ierr);
   ierr=VecScatterDestroy(&ctx);CHKERRXX(ierr);
 
 }
-//void PETScCommon::SetupMGSolver(){
-//  DM  *da_list,*daclist;
-//  Mat R;
-//
-//
-//  //create DMs for all levels of the multigrid so that Petsc can construct coarse grids
-//  PetscMalloc(sizeof(DM)*nlvls,&da_list);
-//  PetscMalloc(sizeof(DM)*nlvls,&daclist);
-//  for (PetscInt k=0; k<nlvls; k++){
-//    da_list[k] = NULL;
-//    daclist[k] = NULL;
-//  }
-//
-//  //Set the finest nodal mesh as the first item in the da list
-//  daclist[0]=da_nodes;
-//  // petsc constructs DM structures for all other grid level
-//  DMCoarsenHierarchy(da_nodes,nlvls-1,&daclist[1]);
-//  for (PetscInt k=0; k<nlvls; k++) {
-//    // NOTE: finest grid is nlevels - 1: PCMG MUST USE THIS ORDER ???
-//    da_list[k] = daclist[nlvls-1-k];
-//    DMDASetUniformCoordinates(da_list[k],0,1,0,1,0,1);CHKERRXX(ierr);
-//
-//  }
-//
-//  PCMGSetLevels(precond_,nlvls,NULL);CHKERRXX(ierr);
-//  PCMGSetType(precond_,PC_MG_MULTIPLICATIVE); CHKERRXX(ierr);// Default
-//  ierr = PCMGSetCycleType(precond_,PC_MG_CYCLE_V);CHKERRXX(ierr);
-//  PCMGSetGalerkin(precond_,PC_MG_GALERKIN_BOTH);CHKERRXX(ierr);
-//
-//  for (PetscInt k=1; k<nlvls; k++) {
-//    DMCreateInterpolation(da_list[k-1],da_list[k],&R,NULL);CHKERRXX(ierr);
-//    PCMGSetInterpolation(precond_,k,R);CHKERRXX(ierr);
-//    MatDestroy(&R);CHKERRXX(ierr);
-//  }
-//  // Now all DM data structure other than the finest level can be destroyed
-//  for (PetscInt k=1; k<nlvls; k++) { // DO NOT DESTROY LEVEL 0
-//    DMDestroy(&daclist[k]);CHKERRXX(ierr);
-//  }
-//
-//  PetscFree(da_list);CHKERRXX(ierr);
-//  PetscFree(daclist);CHKERRXX(ierr);
-//
-//  KSP cksp;
-//  PCMGGetCoarseSolve(precond_,&cksp);
-//  // The solver
-//  ierr = KSPSetType(cksp,KSPGMRES);
-//
-//  ierr=KSPSetTolerances(cksp,coarse_rtol,coarse_atol,coarse_dtol,coarse_maxits);
-//
-//  PC cpc;
-//  KSPGetPC(cksp,&cpc);
-//  PCSetType(cpc,PCSOR);
-//
-//  for (PetscInt k=1;k<nlvls;k++){
-//    KSP dksp;
-//    PCMGGetSmoother(precond_,k,&dksp);
-//    PC dpc;
-//    KSPGetPC(dksp,&dpc);
-//    ierr = KSPSetType(dksp,KSPGMRES); // KSPCG, KSPGMRES, KSPCHEBYSHEV (VERY GOOD FOR SPD)
-//
-//    ierr = KSPSetTolerances(dksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,smooth_sweeps); // NOTE in the above maxitr=restart;
-//    PCSetType(dpc,PCSOR);// PCJACOBI, PCSOR for KSPCHEBYSHEV very good
-//  }
-//}
+void PETScCommon::SetupMGSolver(DM &da_nodes,PC &precond_){
+  DM  *da_list,*daclist;
+  Mat R;
+  //create DMs for all levels of the multigrid so that Petsc can construct coarse grids
+  PetscMalloc(sizeof(DM)*nlvls,&da_list);
+  PetscMalloc(sizeof(DM)*nlvls,&daclist);
+  for (PetscInt k=0; k<nlvls; k++){
+    da_list[k] = NULL;
+    daclist[k] = NULL;
+  }
+
+  //Set the finest nodal mesh as the first item in the da list
+  daclist[0]=da_nodes;
+  // petsc constructs DM structures for all other grid level
+  DMCoarsenHierarchy(da_nodes,nlvls-1,&daclist[1]);
+  for (PetscInt k=0; k<nlvls; k++) {
+    // NOTE: finest grid is nlevels - 1: PCMG MUST USE THIS ORDER ???
+    da_list[k] = daclist[nlvls-1-k];
+  }
+
+  ierr=PCMGSetLevels(precond_,nlvls,NULL);CHKERRXX(ierr);
+  ierr=PCMGSetType(precond_,PC_MG_MULTIPLICATIVE); CHKERRXX(ierr);// Default
+  ierr = PCMGSetCycleType(precond_,PC_MG_CYCLE_V);CHKERRXX(ierr);
+  ierr=PCMGSetGalerkin(precond_,PC_MG_GALERKIN_BOTH);CHKERRXX(ierr);
+
+  for (PetscInt k=1; k<nlvls; k++) {
+    DMCreateInterpolation(da_list[k-1],da_list[k],&R,NULL);CHKERRXX(ierr);
+    PCMGSetInterpolation(precond_,k,R);CHKERRXX(ierr);
+    MatDestroy(&R);CHKERRXX(ierr);
+  }
+  // Now all DM data structure other than the finest level can be destroyed
+  for (PetscInt k=1; k<nlvls; k++) { // DO NOT DESTROY LEVEL 0
+    DMDestroy(&daclist[k]);CHKERRXX(ierr);
+  }
+
+  PetscFree(da_list);CHKERRXX(ierr);
+  PetscFree(daclist);CHKERRXX(ierr);
+
+  KSP cksp;
+  PCMGGetCoarseSolve(precond_,&cksp);
+  // The solver
+  ierr = KSPSetType(cksp,KSPGMRES);
+
+  ierr=KSPSetTolerances(cksp,coarse_rtol,coarse_atol,coarse_dtol,coarse_maxits);
+
+  PC cpc;
+  KSPGetPC(cksp,&cpc);
+  PCSetType(cpc,PCSOR);
+
+  for (PetscInt k=1;k<nlvls;k++){
+    KSP dksp;
+    PCMGGetSmoother(precond_,k,&dksp);
+    PC dpc;
+    KSPGetPC(dksp,&dpc);
+    ierr = KSPSetType(dksp,KSPGMRES); // KSPCG, KSPGMRES, KSPCHEBYSHEV (VERY GOOD FOR SPD)
+
+    ierr = KSPSetTolerances(dksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,smooth_sweeps); // NOTE in the above maxitr=restart;
+    PCSetType(dpc,PCSOR);// PCJACOBI, PCSOR for KSPCHEBYSHEV very good
+  }
+}
+
 void PETScCommon::GetGridInfoMG(int &nx,int &ny,int &nz,int &dimension){
   //Get a grid pointer so that useful informations can be extracted
   Grid * grid=domain->GetGrid();
@@ -216,7 +223,7 @@ void PETScCommon::CreateDMDA(DM & daNodes,Mat &sysMat,Vec &solVec,Vec &rhsVec,Ve
   //Setup the DM which is used for Grid Management
   DMSetUp(daNodes);
   DMCreateMatrix(daNodes,&sysMat);
-  DMDASetElementType(daNodes, DMDA_ELEMENT_Q1);
+//  DMDASetElementType(daNodes, DMDA_ELEMENT_Q1);
   ierr = DMCreateGlobalVector(daNodes,&(solVec));
   VecDuplicate(solVec,&(rhsVec));
   PetscInt sizeGloabalVec=0;
@@ -268,15 +275,17 @@ void PETScCommon::GetCFSEqnMapMG(StdVector<unsigned int> &cfsEqnMap){
 
 
 
-void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsVec,Vec &dirVec,StdVector<int> &homDirEquNr,StdVector<int> &dirchletValue){
+void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsVec,Vec &dirNodeVec,Vec &dirVec,int nx,int ny,int nz){
 
 
 //  std::cout<<"Entered Assembly"<<std::endl;
 
 
-
-
  //This method gets the local element matrix and assembels into global matrix
+
+    //Number of element nodes
+    int nen=0;
+
 
    //Get the assemble context from the domain
    Assemble* assemble=domain->GetBasePDE()->GetAssemble();
@@ -317,6 +326,7 @@ void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsV
      EntityIterator  firstEntIt = context.GetFirstEntities()->GetIterator();
      for ( firstEntIt.Begin(); !firstEntIt.IsEnd(); firstEntIt++ ) {
        StdVector<unsigned int> nodesInElem=firstEntIt.GetElem()->connect;
+       nen=nodesInElem.GetSize();
        for (unsigned int i =0;i<nodesInElem.GetSize();i++){
          globalNodeNum.Push_back(nodesInElem[i]);
        }
@@ -341,14 +351,9 @@ void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsV
 
 
 //   std::cout<<"Calculated Element Stiffness Matrix"<<std::endl;
-   int m,n,p;
-   DMDAGetInfo(daNodes,NULL,&m,&n,&p,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 
    // Zero the matrix
    MatZeroEntries(sysMat);
-
-   //Number of element nodes
-   int nen=8;
 
    // Edof array
    PetscInt edof[24];
@@ -356,10 +361,10 @@ void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsV
    //Set the Dirchlet Vector With the homogeneous boundary conditions
 
    PetscScalar * dirArray;
-   VecGetArray(dirVec,&dirArray);
+   VecGetArray(dirNodeVec,&dirArray);
 
    // Loop over elements. nel is number of elements within processor
-   for (PetscInt elem=0;elem<((m-1)*(n-1)*(p-1));elem++){
+   for (PetscInt elem=0;elem<((nx-1)*(ny-1)*(nz-1));elem++){
 //      std::cout<<"NodeNum for Elements    "<<elem+1;
      // loop over element nodes
      for (PetscInt elem_node=0;elem_node<nen;elem_node++){
@@ -373,12 +378,13 @@ void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsV
          int gidx = globalNodeNum[elem*nen+elem_node]-1;
          int eqnNr = 3*(globalNodeNum[elem*nen+elem_node]-1)+dof; //CFS node number is one  based indexing ,here its zero based
          if (dirArray[gidx] == -1.0){
-           homDirEquNr.Push_back(eqnNr);
-           dirchletValue.Push_back(0);
+//           homDirEquNr.Push_back(eqnNr);
+//           dirchletValue.Push_back(0);
+//           std::cout<<eqnNr<<std::endl;
+           VecSetValue(dirVec,(PetscInt)eqnNr,0,INSERT_VALUES);
          }
          edof[idx]=eqnNr;
 //          edof[elem_node*3+dof] = 3*necon[elem*nen+elem_node]+dof;
-//          std::cout<<eqnNr<<std::endl;
        }//dof Loop
      }//Element Node Loop
 //      std::cout<<" "<<std::endl;
@@ -399,7 +405,6 @@ void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsV
 void PETScCommon::SetLinRhs(Vec &rhsVec){
 
  //Get the RHS
-
 
  Vector<Double> elemVec;
  Assemble * assemble=domain->GetBasePDE()->GetAssemble();
@@ -443,7 +448,7 @@ void PETScCommon::SetLinRhs(Vec &rhsVec){
 }
 
 
-void  PETScCommon::GetHomDirMG(Vec &dirVec){
+void  PETScCommon::GetHomDirNodes(Vec &dirVec){
 
   //Homogeneous Dirchlet Boundary conditions
 

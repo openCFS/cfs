@@ -45,11 +45,15 @@
 #define SETUP_SOLVER_CONTEXT 4
 #define SOLVE 5
 #define DATA 6
-#define GET_SOL 7
+#define GET_GLOBAL_VEC 7
 #define SOLVER_STRING 8
 #define SETUP_MG 9
 #define ISSYMMETRIC 10
-#define HOM_DIR_ELIMINATION 11
+#define SET_HOM_DIR_VEC 11
+#define HOM_DIR_PENALTY 12
+#define ASSEMBLE_VEC_DIR 13
+#define GET_SOL 14
+
 
 
 namespace CoupledField
@@ -75,7 +79,7 @@ void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);
 
 void SendWorkerCommand(int TAG);
 
-//    void DMDAGetElements_3D(DM dm,PetscInt *nel,PetscInt *nen,const PetscInt *e[]);
+
 BaseSolver::SolverType GetSolverType() { return BaseSolver::PETSC; }
 
 private:
@@ -93,7 +97,7 @@ Vec x_;
 //stores the current RHS
 Vec b_;
 
-Vec N_;
+Vec dirNodeVec_;
 
 // Create DM which are grid management
 DM da_nodes;
@@ -131,6 +135,8 @@ std::string solverstring_;
 std::string precondstring_;
 bool MG_FLAG =false;
 bool symmetric=false;
+Vec N_;//dirVector which consist of 0 when a eqnNr corresponds to HomDirBC ,all other place the value is 1
+StdVector<unsigned int> cfsEqnMap_;
 
 };
 
@@ -147,7 +153,7 @@ private:
 
 void InitPetscWorker();
 
-void HomDirElimination();
+void HomDirVec();
 //PETSC Error Code
 PetscErrorCode ierr=0;
 
@@ -166,7 +172,7 @@ Vec b_;
 // Create DM which are grid management
 DM da_nodes;
 
-Vec N_;
+Vec dirNodeVec_;
 
 /** with throw exception when exceeded */
 PetscInt maxIter_ = 10000;
@@ -200,7 +206,7 @@ bool symmetric=false;
 std::string solverstring_;
 std::string precondstring_;
 ParamNodeList regionList_;
-
+Vec N_;
 };
   
 }

@@ -30,6 +30,7 @@ PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::Ent
   precond_=nullptr;
   solver_=nullptr;
   firstSetup_ = true;
+  dirNodeVec_=nullptr;
   N_=nullptr;
 
   infoNode_ =  olasInfo->Get("petsc");
@@ -53,6 +54,7 @@ PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::Ent
 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
   MPI_Comm_size(MPI_COMM_WORLD,&size_);
+  GetCFSEqnMapMG(cfsEqnMap_);
 
 }
 
@@ -102,12 +104,12 @@ void PETSCSolver::Setup(BaseMatrix &sysmat){
   }
 
 
-
+  int nx=0,ny=0,nz=0,dimension=0;
   if (firstSetup_ ){
     SendWorkerCommand(SETUP_MATRIX);
     if (MG_FLAG){
 
-      int nx=0,ny=0,nz=0,dimension=0;
+
       GetGridInfoMG(nx,ny,nz,dimension);
       for (int rank=1;rank<size_;rank++){
         ierr=MPI_Send(&nx,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
@@ -115,8 +117,9 @@ void PETSCSolver::Setup(BaseMatrix &sysmat){
         ierr=MPI_Send(&nz,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
         ierr=MPI_Send(&dimension,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
       }
-      CreateDMDA(da_nodes,A_,x_,b_,N_,nx,ny,nz,dimension);
-      GetHomDirMG(N_);
+      CreateDMDA(da_nodes,A_,x_,b_,dirNodeVec_,nx,ny,nz,dimension);
+      GetHomDirNodes(dirNodeVec_);
+
 
     }
     else {
@@ -128,41 +131,56 @@ void PETSCSolver::Setup(BaseMatrix &sysmat){
       SetupMatrix(dim,nnzr,symmetric,A_,b_,x_);
     }
   }
-  StdVector<int>homDirEquNr;
-  StdVector<int>dirchletValue;
-  if (!MG_FLAG){
+
+  if (MG_FLAG){
+    SendWorkerCommand(SET_HOM_DIR_VEC);
+    VecDuplicate(b_,&N_);
+    VecSet(N_,1.0);
+    SendWorkerCommand(GET_GLOBAL_VEC);
+    VecAssemblyBegin(dirNodeVec_);
+    VecAssemblyEnd(dirNodeVec_);
+    Vec dirNodeVecGlobal_;
+    GetGlobalVec(dirNodeVec_,dirNodeVecGlobal_);
+    AssembleMatrixMG(A_,da_nodes,x_,b_,dirNodeVecGlobal_,N_,nx,ny,nz);
+
+    SendWorkerCommand(ASSEMBLE_MAT);
+    MatAssemblyBegin(A_, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(A_, MAT_FINAL_ASSEMBLY);
+
+    SendWorkerCommand(ASSEMBLE_VEC_DIR);
+    VecAssemblyBegin(N_);
+    VecAssemblyEnd(N_);
+    SetLinRhs(b_);
+    SendWorkerCommand(ASSEMBLE_VEC_RHS);
+    VecAssemblyBegin(b_);
+    VecAssemblyEnd(b_);
+    SendWorkerCommand(HOM_DIR_PENALTY);
+    PenaltyHomDir(A_,b_,N_);
+
+
+  }
+
+  else {
     /*setting values only using the proc 0 while others wait and then asemble is called in all procs so
-     the matix can be distributed.Set each matrix value one by one (highly inefficient there are better ways to do
-     this which requires some tweakng to the data structure we receive from the matrix class  )*/
+    the matix can be distributed.Set each matrix value one by one (highly inefficient there are better ways to do
+    this which requires some tweakng to the data structure we receive from the matrix class  )*/
     for (int i=0;i<int(dim);i++){
-      for (int j=rowPtr[i];j<rowPtr[i+1];j++){
-        ierr=MatSetValue(A_,i,colPtr[j],dataPtr[j],INSERT_VALUES);
-      }
+     for (int j=rowPtr[i];j<rowPtr[i+1];j++){
+       ierr=MatSetValue(A_,i,colPtr[j],dataPtr[j],INSERT_VALUES);
+     }
     }
 
     //  Distribute the assembeled matrix accross all process
     SendWorkerCommand(ASSEMBLE_MAT);
     ierr=MatAssemblyBegin(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
     ierr=MatAssemblyEnd(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
-  }
-  else {
-    AssembleMatrixMG(A_,da_nodes,x_,b_,N_,homDirEquNr,dirchletValue);
-    SendWorkerCommand(ASSEMBLE_MAT);
-    MatAssemblyBegin(A_, MAT_FINAL_ASSEMBLY);
-    MatAssemblyEnd(A_, MAT_FINAL_ASSEMBLY);
 
-    SendWorkerCommand(HOM_DIR_ELIMINATION);
-    for (int rank=1;rank<size_;rank++){
-      ierr=MPI_Send(homDirEquNr.GetPointer(), sizeof(int)*homDirEquNr.GetSize(),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
-    }
-    MatZeroRowsColumns(A_,homDirEquNr.GetSize(),homDirEquNr.GetPointer(),PetscScalar(0.0),NULL,NULL);
   }
-
 
  if (firstSetup_){
-
-  SendWorkerCommand(SETUP_SOLVER_CONTEXT);
-  SetupSolverContext(A_,solver_,precond_,solverstring_,precondstring_,tolerance_,minTol_,maxIter_,MG_FLAG);
+   SendWorkerCommand(SETUP_SOLVER_CONTEXT);
+   SetupSolverContext(A_,solver_,precond_,solverstring_,precondstring_,tolerance_,minTol_,maxIter_,MG_FLAG);
+   if(MG_FLAG){SetupMGSolver(da_nodes,precond_);}
  }
   firstSetup_=false;
 
@@ -185,23 +203,16 @@ void PETSCSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVe
     SendWorkerCommand(ASSEMBLE_VEC_RHS);
     ierr= VecAssemblyBegin(b_);CHKERRXX(ierr);
     ierr= VecAssemblyEnd(b_);CHKERRXX(ierr);
-
-  }
-  else{
-    SetLinRhs(b_);
-    SendWorkerCommand(ASSEMBLE_VEC_RHS);
-    VecAssemblyBegin(b_);
-    VecAssemblyEnd(b_);
   }
 
 
-  StdVector<unsigned int> cfsEqnMap;
-  GetCFSEqnMapMG(cfsEqnMap);
+
   double t1,t2;
   t1 = MPI_Wtime();
   //Solve the linear system
   SendWorkerCommand(SOLVE);
   ierr = KSPSolve(solver_,b_,x_);CHKERRXX(ierr);
+  VecSet(b_,0.0);
   t2 = MPI_Wtime();
   // Log the the norm and max iter
   PtrParamNode curr = infoNode_->Get(ParamNode::PROCESS)->Get("solve", ParamNode::APPEND);
@@ -218,7 +229,7 @@ void PETSCSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVe
   //Create a global vector and scatter context to collect the solution vector to master process
   SendWorkerCommand(GET_SOL);
   Vec x_global;
-  GetSol(x_,x_global);
+  GetGlobalVec(x_,x_global);
 
 
   //gets the solution vector in bufx array from petsc array
@@ -230,10 +241,10 @@ void PETSCSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVe
 //  std::cout<<cfsEqnMap.ToString()<<std::endl;
 
   if (MG_FLAG){
-    for(unsigned int i=0; i<cfsEqnMap.GetSize()/3;i++)
+    for(unsigned int i=0; i<cfsEqnMap_.GetSize()/3;i++)
         for (unsigned int ldof=0;ldof<3;ldof++)
-          if (cfsEqnMap[(i*3)+ldof]!=0)
-            sol.SetEntry(cfsEqnMap[(i*3)+ldof]-1,bufx[PetscInt(i*3)+ldof]);
+          if (cfsEqnMap_[(i*3)+ldof]!=0)
+            sol.SetEntry(cfsEqnMap_[(i*3)+ldof]-1,bufx[PetscInt(i*3)+ldof]);
   }
   else {
     for(UInt i=0; i<sol.GetSize();i++)
@@ -259,14 +270,14 @@ void PETSCSolver::SendWorkerCommand(int TAG){
 //Methods for PETSCWorker class
 PETSCWorker::PETSCWorker(int argc,const char **argv){
   //init petsc objects
-  A_ =NULL;
-  b_=NULL;
-  solver_=NULL;
-  x_=NULL;
-  precond_=NULL;
-  N_=NULL;
-  da_nodes=NULL;
-
+  A_ =nullptr;
+  b_=nullptr;
+  solver_=nullptr;
+  x_=nullptr;
+  precond_=nullptr;
+  dirNodeVec_=nullptr;
+  da_nodes=nullptr;
+  N_=nullptr;
   progOpts = new ProgramOptions(argc, argv);
 
   // Parse command line
@@ -336,8 +347,9 @@ void PETSCWorker::run(){
       case DIETAG:
         done=true;
         break;
-      case HOM_DIR_ELIMINATION:
-        HomDirElimination();
+      case SET_HOM_DIR_VEC:
+        VecDuplicate(b_,&N_);
+        VecSet(N_,1.0);
         break;
       case SETUP_MATRIX:
         InitPetscWorker();
@@ -348,19 +360,32 @@ void PETSCWorker::run(){
         break;
       case SETUP_SOLVER_CONTEXT:
         SetupSolverContext(A_,solver_,precond_,solverstring_,precondstring_,tolerance_,minTol_,maxIter_,MG_FLAG);
+        if(MG_FLAG){SetupMGSolver(da_nodes,precond_);}
         break;
       case ASSEMBLE_VEC_RHS:
         ierr=	VecAssemblyBegin(b_);
         ierr=	VecAssemblyEnd(b_);
         break;
+      case ASSEMBLE_VEC_DIR:
+        ierr= VecAssemblyBegin(N_);
+        ierr= VecAssemblyEnd(N_);
+        break;
       case SOLVE:
         ierr = KSPSolve(solver_,b_,x_);
+        VecSet(b_,0.0);
         break;
       case GET_SOL:
         Vec x_global;
-        GetSol(x_,x_global);
+        GetGlobalVec(x_,x_global);
         break;
-
+      case GET_GLOBAL_VEC:
+        VecAssemblyBegin(dirNodeVec_);
+        VecAssemblyEnd(dirNodeVec_);
+        Vec dirNodeVecGlobal_;
+        GetGlobalVec(dirNodeVec_,dirNodeVecGlobal_);
+        break;
+      case HOM_DIR_PENALTY:
+        PenaltyHomDir(A_,b_,N_);
     }
   }
 }
@@ -375,8 +400,7 @@ void PETSCWorker::InitPetscWorker(){
     MPI_Recv(&ny,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
     MPI_Recv(&nz,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
     MPI_Recv(&dimension,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
-
-    CreateDMDA(da_nodes,A_,x_,b_,N_,nx,ny,nz,dimension);
+    CreateDMDA(da_nodes,A_,x_,b_,dirNodeVec_,nx,ny,nz,dimension);
   }
   else {
     int size;
@@ -387,25 +411,9 @@ void PETSCWorker::InitPetscWorker(){
     //Receive the nnzr array
     MPI_Recv(nnzr,dim,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
     MPI_Recv(&symmetric,1,MPIU_BOOL,0,ISSYMMETRIC,PETSC_COMM_WORLD,&status);
-
     SetupMatrix(dim,nnzr,symmetric,A_,b_, x_);
 
-
   }
-
-
-}
-void PETSCWorker::HomDirElimination(){
-  MPI_Status status;
-  int size;
-  MPI_Probe(0,DATA,PETSC_COMM_WORLD,&status);
-  MPI_Get_count(&status,MPI_INT,&size);
-  int dim=size/sizeof(int);
-  int *homDirEqnNr = new int[dim];
-//  std::cout<<"HomDirEqn Dimension  "<<dim<<std::endl;
-  //Receive the nnzr array
-  MPI_Recv(homDirEqnNr,dim,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
-  MatZeroRowsColumns(A_,dim,(PetscInt *)homDirEqnNr,PetscScalar(0.0),NULL,NULL);
 }
 
 }	
