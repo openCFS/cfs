@@ -2104,6 +2104,8 @@ source/OLAS/external/pardiso/PardisoSolverPrimitive.hh -text
 source/OLAS/external/petsc/CMakeLists.txt -text
 source/OLAS/external/petsc/PETSCSolver.cc -text
 source/OLAS/external/petsc/PETSCSolver.hh -text
+source/OLAS/external/petsc/PETScCommon.cc -text
+source/OLAS/external/petsc/PETScCommon.hh -text
 source/OLAS/external/phist/CMakeLists.txt -text
 source/OLAS/external/phist/PhistEigenSolver.cc -text
 source/OLAS/external/phist/PhistEigenSolver.hh -text
