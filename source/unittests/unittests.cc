@@ -74,7 +74,6 @@ BOOST_AUTO_TEST_CASE(push_back_serial)
 
     #pragma omp parallel num_threads(1)
     {
-//      std::cout << "running with " << omp_get_num_threads() << " thread" << std::endl;
       #pragma omp for
       for (int i = 0; i < datSize; i ++) {
         #pragma omp critical
@@ -92,7 +91,6 @@ BOOST_AUTO_TEST_CASE(push_back_serial)
     Time start3(boost::posix_time::microsec_clock::local_time());
     #pragma omp parallel
     {
-  //    std::cout << "running with " << omp_get_num_threads() << std::endl;
       #pragma omp for
       for (int i = 0; i < datSize; i ++)
         #pragma omp critical
@@ -106,7 +104,6 @@ BOOST_AUTO_TEST_CASE(push_back_serial)
     Time start4(boost::posix_time::microsec_clock::local_time());
     #pragma omp parallel
     {
-  //    std::cout << "running with " << omp_get_num_threads() << std::endl;
       #pragma omp for
       for (int i = 0; i < datSize; i ++)
         a.Push_back(i);

@@ -193,7 +193,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   from skimage import measure
   # coords of vertices lie in [0,1-h]
   verts, faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False)
-  verts = np.asarray(verts) + (my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0)
+  verts = np.asarray(verts) - (my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0)
   # translate from (0,0,0) to correct position
   shift = np.asarray(my_mpi_grid.bounds[0:3])
   verts = [p+shift for p in verts]

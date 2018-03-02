@@ -1825,23 +1825,34 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 
   print("xmin,ymin,zmin,xmax,ymax,zmax:",xmin,ymin,zmin,xmax,ymax,zmax)
   
+  big_cylinder = [206,48.1375,-106,254,91.849,-62]
+  small_clinder = [116,49,-41,164,71,-19]
 #  symmetric = []
+  eps = 1e-6
   for i in range(len(nodes)):
-    # all nodes on top face are loads
-    if numpy.isclose(nodes[i][0],xmin,1e-12):
+    # all nodes on big cylinder
+    if big_cylinder[0]-eps < nodes[i][0] < big_cylinder[3]:
       load.append(i)
-    if numpy.isclose(nodes[i][0],xmax,1e-12):
+    if big_cylinder[1]-eps < nodes[i][1] < big_cylinder[4]:
       load.append(i)
-    if numpy.isclose(nodes[i][1],ymin,1e-12):
+    if big_cylinder[2]-eps < nodes[i][2] < big_cylinder[5]:
       load.append(i)
-    if numpy.isclose(nodes[i][1],ymax,1e-12):
+    # all nodes on small cylinder
+    if small_clinder[0]-eps < nodes[i][0] < small_clinder[3]:
       load.append(i)
-    if numpy.isclose(nodes[i][2],zmax,1e-12):
+    if small_clinder[1]-eps < nodes[i][1] < small_clinder[4]:
       load.append(i)
+    if small_clinder[2]-eps < nodes[i][2] < small_clinder[5]:
+      load.append(i)       
 
     # all nodes on left face are supports
-    if numpy.isclose(nodes[i][2],zmin,1e-12):
+    if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
       support.append(i)
+    if numpy.isclose(nodes[i][1],ymin,1e-12) or numpy.isclose(nodes[i][1],ymax,1e-12):
+      support.append(i)
+    if numpy.isclose(nodes[i][2],zmax,1e-12):
+      support.append(i)    
+      
     # all edges of bb with z = 0 are supports
 #     if numpy.isclose(nodes[i][2],0.0,1e-12):
 #       if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
@@ -1851,10 +1862,6 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 #         support.append(i)
       # x is x_min or x_max  
          
-    if nodes[i][1] < -2.9999999:
-      support.append(i)
-    elif nodes[i][1] > 31.9999999:
-      load.append(i)
 #    if nodes[i][2] < 0.0000001:
 #      symmetric.append(i)
 #  print(len(load))
