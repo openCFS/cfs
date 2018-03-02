@@ -1,19 +1,14 @@
 #include "PETSCSolver.hh"
 
 #include <string>
+#include <sstream>
+#include <stdio.h>
+#include <mpi.h>
 #include "MatVec/SparseOLASMatrix.hh"
 #include "MatVec/SCRS_Matrix.hh"
 #include "MatVec/CRS_Matrix.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
-#include "Driver/Assemble.hh"
-#include "Forms/LinForms/LinearForm.hh"
-#include <sstream>
-#include <stdio.h>
-#include <mpi.h>
-#include "PDE/SinglePDE.hh"
-#include "Driver/TimeSchemes/BaseTimeScheme.hh"
-#include <unordered_map>
 
 
 

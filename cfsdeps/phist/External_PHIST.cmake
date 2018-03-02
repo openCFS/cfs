@@ -80,13 +80,13 @@ SET(CMAKE_ARGS
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
   #-DPYTHON_EXECUTABLE:FILEPATH=python2 # not yet python3 compatible
   # We do not want to see warning messages from external projects
-#  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
-#  -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
+  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
+  -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   # phist settings 
   -DBUILD_SHARED_LIBS:BOOL=OFF
 #  -DPHIST_OUTLEV=${PHIST_OUTLEV}
-  -DPHIST_ENABLE_MPI:BOOL=ON
+  -DPHIST_ENABLE_MPI:BOOL=OFF
   # workaround for bug https://bitbucket.org/essex/phist/issues/225/ghost-creating-consistent-sell-c-sigma
   -DPHIST_SELL_SIGMA=1
   # will not compile w/o openmp and concurrently w/o mpi
