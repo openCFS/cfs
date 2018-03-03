@@ -2042,7 +2042,8 @@ CoefXprMechSubTensor::CoefXprMechSubTensor( MathParser * mp, PtrCoefFct a )
 }
 CoefXprMechSubTensor::CoefXprMechSubTensor( MathParser * mp, const CoefXpr& a) 
 : CoefXpr(mp){
-  
+  transposed_=false;
+  tensorType_ = NO_TENSOR;
   Global::ComplexPart part = a.IsComplex() ? Global::COMPLEX : Global::REAL;
   PtrCoefFct temp = CoefFunction::Generate( mp_, part, a );  
 }
@@ -2234,7 +2235,7 @@ CoefXprSubTensor::CoefXprSubTensor(MathParser * mp, PtrCoefFct a )
 }
 CoefXprSubTensor::CoefXprSubTensor( MathParser * mp, const CoefXpr& a) 
 : CoefXpr(mp) {
-  
+  SetSubTensorType(NO_TENSOR,false);
   Global::ComplexPart part = a.IsComplex() ? Global::COMPLEX : Global::REAL;
   PtrCoefFct temp = CoefFunction::Generate( mp_, part, a );  
 }
@@ -2444,7 +2445,7 @@ CoefXprMechSubVector::CoefXprMechSubVector( MathParser * mp, PtrCoefFct a )
 }
 CoefXprMechSubVector::CoefXprMechSubVector( MathParser * mp, const CoefXpr& a)
 : CoefXpr(mp){
-
+  SetSubTensorType(NO_TENSOR);
   Global::ComplexPart part = a.IsComplex() ? Global::COMPLEX : Global::REAL;
   PtrCoefFct temp = CoefFunction::Generate( mp_, part, a );
 }
