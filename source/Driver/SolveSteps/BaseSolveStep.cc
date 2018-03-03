@@ -14,6 +14,9 @@ namespace CoupledField {
     actFreq_ = 0.0;
     couplingIter_ = 0;
     adjointSource_ = false;
+    numTimeStep_=0;
+    auxSet_=false;
+    startStep_=0;
   }
 
   
