@@ -328,7 +328,7 @@ namespace CoupledField {
   double EigenFrequencyDriver::GetDamping(unsigned int idx) const
   {
     if(isQuadratic_)
-      return dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].real();
+      return DampingRatio[idx];// dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].real();
     else
       return 0.0;
   }
@@ -440,8 +440,15 @@ namespace CoupledField {
 
       if(isQuadratic_)
       {
-        Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
+        Vector<Complex> ef = Vector<Complex>();
+        ef.Init(); ef.Resize(numFreq_);
         step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_, isBloch_);
+        Frequency.Init(0.0);Frequency.Resize(ef.GetSize());
+        DampingRatio.Init(0.0);DampingRatio.Resize(ef.GetSize());
+        for (int i=0; i<(int)ef.GetSize();i++){
+            Frequency[i] = ef[i].imag()/(2*M_PI);
+            DampingRatio[i] = ef[i].real();
+        }
         PrintResult();
       }
       else // real generalized
