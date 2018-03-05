@@ -592,11 +592,7 @@ public:
 	  EXCEPTION("SetPreviousHystVals not available");
   }
 
-  virtual void SetInputDependentFlags(UInt intState){
-    EXCEPTION( "Not implemented in base class");
-  }
-
-  virtual void SetRuntimeDependentFlag(std::string flagName, UInt intState){
+  virtual void SetFlag(std::string flagName, Integer intState){
     EXCEPTION( "Not implemented in base class");
   }
   

@@ -303,9 +303,9 @@ namespace CoupledField {
   enum  Directions {X=0, Y=1, Z=2, radXY=3, radXZ=4, radYZ=5};
 
   //! nonlinear method definition
-  typedef enum {FIXEDPOINT=1, NEWTON=2} NonLinMethodType ; 
+  typedef enum {FIXEDPOINT=1, NEWTON=2, HYST_DEBUG=3, HYST_FIXPOINT_IT=4, HYST_FIXPOINT_TS=5, HYST_DELTAMAT_IT=6, HYST_DELTAMAT_TS=7 } NonLinMethodType ; 
   extern Enum<NonLinMethodType> NonLinMethodTypeEnum;
-
+  
   //! output format for complex numbers
   typedef enum {REAL_IMAG, AMPLITUDE_PHASE} ComplexFormat;
 

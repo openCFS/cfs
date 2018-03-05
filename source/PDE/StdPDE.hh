@@ -195,7 +195,7 @@ namespace CoupledField {
         /*
          *
          */
-        void SetFlagInCoefFncHyst(std::string flagName, UInt newState);
+        void SetFlagInCoefFncHyst(std::string flagName, Integer newState);
         
         /*
          * when dealing with Hysteresis using StdSolveStep, we need to set/adjust parts of

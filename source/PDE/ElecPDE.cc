@@ -209,9 +209,8 @@ namespace CoupledField {
         
         PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
         PtrCoefFct elecFieldCoefSurf = this->GetCoefFct(ELEC_FIELD_INTENSITY_SURF);
-        bool performInversionTest = !true;
         PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
-                elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY,mySpace,performInversionTest));
+                elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY,mySpace));
         
         hysteresisCoefs_->AddRegion( actRegion, hystPol);
         

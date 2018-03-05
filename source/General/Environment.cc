@@ -1696,6 +1696,11 @@ namespace CoupledField {
     // ==== Initialization of NonLinMethodEnum ====
     NonLinMethodTypeEnum.Add( FIXEDPOINT, "fixPoint" );
     NonLinMethodTypeEnum.Add( NEWTON, "newton" );
+    NonLinMethodTypeEnum.Add( HYST_FIXPOINT_IT, "HYST_fixPoint_IT" );
+    NonLinMethodTypeEnum.Add( HYST_FIXPOINT_TS, "HYST_fixPoint_TS" );
+    NonLinMethodTypeEnum.Add( HYST_DELTAMAT_IT, "HYST_deltaMat_IT" );
+    NonLinMethodTypeEnum.Add( HYST_DELTAMAT_TS, "HYST_deltaMat_TS" );
+    NonLinMethodTypeEnum.Add( HYST_DEBUG, "HYST_debug" );
   }
 
 
