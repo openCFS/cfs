@@ -1148,7 +1148,8 @@
                         <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" />
                         <!-- symmetry along the z-axis - xy-plane -->
                         <xsd:attribute name="front_back_sym" use="optional" type="DT_Symmetry" default="none" />
-                        <!-- induces shape with other dof -->
+                        <!-- induces shape with dof and orientation flipped. 
+                             For the center case we do this for all diagonals concurrently, this makes a three bar cross out of one bar. -->
                         <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" />
                       </xsd:complexType>
                    </xsd:element>
