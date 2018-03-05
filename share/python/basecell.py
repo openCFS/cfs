@@ -38,21 +38,24 @@ def getConnectivity(points,cells):
   
   return connectivity
 
-def taubin_smoothing(points,connectivity,bounds=None,iter=0):
+def taubin_smoothing(points,connectivity,bounds=None,niter=0,lamb = None):
   # smoothing parameter: p_i = p_i + lambda*L(p_{i,j})
-  lamb = 0.2
+  if lamb is None:
+    lamb = 0.2
+  assert(lamb is not None)  
   new_points = points
-  old_points = new_points
+#   old_points = new_points
   i = 0
-  res = 999
-  while res > 1e-2 or i < iter:
+  res = 1e-6
+  while res > 1e-2 or i < niter:
     print("iter:",i)
-    old_points = new_points
+    #old_points = np.copy(new_points)
     new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb,bounds=bounds),connectivity,-lamb-0.04,bounds=bounds)
-    res = residual(old_points, new_points)
+    #res = residual(old_points, new_points)
     i += 1
   
-  print("Taubin smoothing with ", i, " iterations and res=",res)  
+  #print("Taubin smoothing with ", i, " iterations and res=",res)  
+  print("Taubin smoothing with ", i, " iterations")
     
   return new_points
 
@@ -74,7 +77,7 @@ def laplacian_smoothing(points,connectivity,lamb,start=0,end=None,bounds=None,ra
     end = len(points)
   new_points = points[:]
   if bounds is None:
-    bounds = [0.0,0.0,0.0,1.0,1.0,1.0] # default unit cube
+    bounds = [-9999,-9999,-9999,9999,9999,9999] # default unit cube
     
   #print("rank:",rank," smoothing start:",start," end:",end, " lambda:",lamb)  
   for i in range(start,end):
