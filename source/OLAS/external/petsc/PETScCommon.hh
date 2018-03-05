@@ -33,6 +33,7 @@ class PETScCommon
 public:
 PETScCommon();
 void SetupMatrix();
+void CheckLevels(int nx,int ny,int nz);
 void AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsVec,Vec &dirNodeVec,Vec &dirVec,int nx,int ny,int nz);
 void GetHomDirNodes(Vec &dirVec);
 void SetLinRhs(Vec &rhsVec);
@@ -49,6 +50,7 @@ void PenaltyHomDir(Mat &sysMatVec,Vec &rhsVec,Vec &f);
 std::string CreateSolverString(PtrParamNode);
 std::string CreatePrecondString(PtrParamNode);
 
+
 private:
 PetscErrorCode ierr=0;
 //Coarsegrid solver parameters
@@ -59,6 +61,9 @@ PetscInt coarse_maxits = 30;
 
 //Number of levels
 PetscInt nlvls=2;
+
+//just for warning in recursion loop
+int MGLevels=nlvls;
 
 // Number of smoothening iterations per up/down smooth_sweeps
 PetscInt smooth_sweeps = 4;

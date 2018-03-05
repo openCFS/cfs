@@ -35,11 +35,11 @@ PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::Ent
 
   infoNode_ =  olasInfo->Get("petsc");
   xml_ = pn;
-  maxIter_    = pn->Has("maxIter") ? pn->Get("maxIter")->As<int>() : 10000;
+  maxIter_    = xml_->Has("maxIter") ? pn->Get("maxIter")->As<int>() : 10000;
 
-  tolerance_  = pn->Has("tolerance") ? pn->Get("tolerance")->As<double>() : 1e-12;
-  minTol_     = pn->Has("minimalTolerance") ? pn->Get("minimalTolerance")->As<double>() : 1e-11;
-  logging_    = pn->Has("logging") ? pn->Get("logging")->As<bool>() : false;
+  tolerance_  = xml_->Has("tolerance") ? pn->Get("tolerance")->As<double>() : 1e-12;
+  minTol_     = xml_->Has("minimalTolerance") ? pn->Get("minimalTolerance")->As<double>() : 1e-11;
+  logging_    = xml_->Has("logging") ? pn->Get("logging")->As<bool>() : false;
 
   PtrParamNode hdr = infoNode_->Get(ParamNode::HEADER);
   hdr->Get("maxIter")->SetValue(maxIter_);
@@ -49,8 +49,7 @@ PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::Ent
   solverstring_=CreateSolverString(xml_);
   precondstring_=CreatePrecondString(xml_);
   if (precondstring_=="mg")
-        MG_FLAG=true;
-
+    MG_FLAG=true;
 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
   MPI_Comm_size(MPI_COMM_WORLD,&size_);
@@ -118,8 +117,15 @@ void PETSCSolver::Setup(BaseMatrix &sysmat){
         ierr=MPI_Send(&dimension,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
       }
       CreateDMDA(da_nodes,A_,x_,b_,dirNodeVec_,nx,ny,nz,dimension);
+      CheckLevels(nx,ny,nz);
       GetHomDirNodes(dirNodeVec_);
-
+      SendWorkerCommand(SET_HOM_DIR_VEC);
+      VecDuplicate(b_,&N_);
+      VecSet(N_,1.0);
+      SendWorkerCommand(GET_GLOBAL_VEC);
+      VecAssemblyBegin(dirNodeVec_);
+      VecAssemblyEnd(dirNodeVec_);
+      GetGlobalVec(dirNodeVec_,dirNodeVecGlobal_); // dirNodeVecGlobal_ has entire vector in master node
 
     }
     else {
@@ -132,31 +138,32 @@ void PETSCSolver::Setup(BaseMatrix &sysmat){
     }
   }
 
-  if (MG_FLAG){
-    SendWorkerCommand(SET_HOM_DIR_VEC);
-    VecDuplicate(b_,&N_);
-    VecSet(N_,1.0);
-    SendWorkerCommand(GET_GLOBAL_VEC);
-    VecAssemblyBegin(dirNodeVec_);
-    VecAssemblyEnd(dirNodeVec_);
-    Vec dirNodeVecGlobal_;
-    GetGlobalVec(dirNodeVec_,dirNodeVecGlobal_);
-    AssembleMatrixMG(A_,da_nodes,x_,b_,dirNodeVecGlobal_,N_,nx,ny,nz);
 
+  if (MG_FLAG){
+    //Zeros all matrix entry without affecting the non-zero structure of sparse matrix
+    SendWorkerCommand(MAT_ZERO_ENTRIES);
+    MatZeroEntries(A_);
+
+    //Assembly of sys mat done only in master yet. We can switch to multiple node assembly
+    AssembleMatrixMG(A_,da_nodes,x_,b_,dirNodeVecGlobal_,N_,nx,ny,nz);
     SendWorkerCommand(ASSEMBLE_MAT);
-    MatAssemblyBegin(A_, MAT_FINAL_ASSEMBLY);
-    MatAssemblyEnd(A_, MAT_FINAL_ASSEMBLY);
+    ierr=MatAssemblyBegin(A_, MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
+    ierr=MatAssemblyEnd(A_, MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
+
 
     SendWorkerCommand(ASSEMBLE_VEC_DIR);
-    VecAssemblyBegin(N_);
-    VecAssemblyEnd(N_);
+    ierr=VecAssemblyBegin(N_);CHKERRXX(ierr);
+    ierr=VecAssemblyEnd(N_);CHKERRXX(ierr);
+
+    // Set the right hand side vector with master node only.
     SetLinRhs(b_);
     SendWorkerCommand(ASSEMBLE_VEC_RHS);
-    VecAssemblyBegin(b_);
-    VecAssemblyEnd(b_);
+    ierr=VecAssemblyBegin(b_);CHKERRXX(ierr);
+    ierr=VecAssemblyEnd(b_);CHKERRXX(ierr);
+
+    // Apply penalty to zero out the nodes.
     SendWorkerCommand(HOM_DIR_PENALTY);
     PenaltyHomDir(A_,b_,N_);
-
 
   }
 
@@ -169,19 +176,18 @@ void PETSCSolver::Setup(BaseMatrix &sysmat){
        ierr=MatSetValue(A_,i,colPtr[j],dataPtr[j],INSERT_VALUES);
      }
     }
-
     //  Distribute the assembeled matrix accross all process
     SendWorkerCommand(ASSEMBLE_MAT);
     ierr=MatAssemblyBegin(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
     ierr=MatAssemblyEnd(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
+  }
+  if (firstSetup_){
+    SendWorkerCommand(SETUP_SOLVER_CONTEXT);
+    SetupSolverContext(A_,solver_,precond_,solverstring_,precondstring_,tolerance_,minTol_,maxIter_,MG_FLAG);
+    if(MG_FLAG){SetupMGSolver(da_nodes,precond_);}
 
   }
 
- if (firstSetup_){
-   SendWorkerCommand(SETUP_SOLVER_CONTEXT);
-   SetupSolverContext(A_,solver_,precond_,solverstring_,precondstring_,tolerance_,minTol_,maxIter_,MG_FLAG);
-   if(MG_FLAG){SetupMGSolver(da_nodes,precond_);}
- }
   firstSetup_=false;
 
 }
@@ -302,9 +308,7 @@ PETSCWorker::PETSCWorker(int argc,const char **argv){
 
   }
 
-
-
- }
+}
 
 
 
@@ -386,6 +390,10 @@ void PETSCWorker::run(){
         break;
       case HOM_DIR_PENALTY:
         PenaltyHomDir(A_,b_,N_);
+        break;
+      case MAT_ZERO_ENTRIES:
+        MatZeroEntries(A_);
+        break;
     }
   }
 }
@@ -401,6 +409,7 @@ void PETSCWorker::InitPetscWorker(){
     MPI_Recv(&nz,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
     MPI_Recv(&dimension,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
     CreateDMDA(da_nodes,A_,x_,b_,dirNodeVec_,nx,ny,nz,dimension);
+    if (MG_FLAG){CheckLevels(nx,ny,nz);}
   }
   else {
     int size;
