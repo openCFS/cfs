@@ -143,13 +143,17 @@ public:
     void ToInfo(PtrParamNode pn);
 
     /** indicate the symmetry data that an additional shape shall be induced?. Checks the orientation of the shape.
-     * This is for orthogonal mirroring, depending on the orientation we map or mirror orthogonal
-     * Possibly "Parallel" would be the better term than "Orthogonal"?!
+     * This is for parallel mirroring, depending on the orientation we map or mirror. Mirroring means reciprocal data (x - > 1-x)
      * A 2d example is a horizontal bar (dof=y, orientation=x) and bottom_up/y_sym: Then there is a parallel bar induced.
-     * A 3d center example is standing shape (dof=x,z, orientation=y) and a left_right_sym/x_sym: Then there is a parallel shape induced  */
-    bool ShallInduceOrthogonalSymmetry() const;
+     * A 3d center example is standing shape (dof=x,z, orientation=y)
+     *  For a a left_right_sym/x_sym: we induce and mirror the x-node. But the z-node is induced but not mirrored!   */
+    bool ShallInduceMirrorSymmetry() const;
 
-    /** diagonal symmetry induces a new mirror shape of switched direction. Used for square symmetric for band-gaps */
+    /** only 3D (center nodes). See the description of ShallInduceMirrorSymmetry(). It results in a non reciprocal induce setting */
+    bool ShallInduceCloneSymmetry() const;
+
+    /** diagonal symmetry induces a new mirror shape of switched direction. Used for square symmetric for band-gaps.
+     * The rotation angle is orthogonal to the dof-orientation plane. For 3D center nodes we do not differentiate but do all there flips together*/
     bool ShallInduceDiagonalSymmetry() const;
 
     /** indicates that only half of the shape is for optimization, the other is mapped. Checks orientation of the shape */
@@ -241,20 +245,22 @@ public:
     /** diag always induces a new shape */
     bool diag  = false;
 
-    /** induced shapes have an identification of their kind (parallel mirrored, diagonal mirrored (=orthogonal).
-     * In 2D this are three combinations. With the master shape (source for the induced) this are four shapes */
+    /** induced shapes have an identification of their kind
+     * In 2D this are three combinations. Mirrored (which means the value is reciprocal), diagonal (which means the value is copied)
+     * and both (first diagonal and then mirrored) With the master shape (source for the induced) this are four shapes
+     * for square symmetry in 2D.
+     * For 3D center nodes we have also the case of a copied value. Hence the same information for virtual as reciprocal.
+     * The diagonal flipping is always around the axis othogonal to the place dof-orientation. Hence in 2D around the x-axis.*/
     struct Induce
     {
-      static ShapeParam* GetParallelOnly(StdVector<ShapeParam*>& induced);
-      static ShapeParam* GetDiagonalOnly(StdVector<ShapeParam*>& induced);
-      static ShapeParam* GetDiagonalParallel(StdVector<ShapeParam*>& induced);
-
       /** the master shape is the base for the induced one. Then the other flags need to be off. Not that only
        * the master has the induced vector. An each entry has in Induce the description */
       bool master = true;
-      //  a shape with dof x and x_symmetry mirror or diagonal mirror means that an additional parallel mirrored induced shape needs to be created
-      bool parallel = false;
-      bool diagonal = false;
+
+      /** are the values induced reciprocal? This is the case for a mirrored shape - e.g. a horizontal shape mirrored at the
+       * x-axis. All other cases are copying the value. On comparing the dof and orientation we can identify which of the symmetry
+       * cases we have (see above) */
+      bool reciprocal = false;
     };
 
     /** The master shape has no induced information but his induced child shapes have it. */
@@ -485,10 +491,9 @@ private:
     void PostInit(int objectives, int constraints);
 
     /** @param elem the virtual element
-     * @param shape the original shape (when mapping) or the induced one
-     * @param map do we map or only mirror
+     * @param shape the source shape. When mapping the original or the induced one otherwise
      * @param reciprocal if the value is shape.max - base->value */
-    void AddSymmetryReference(ShapeParamElement* elem, ShapeParam* shape, bool map, bool reciprocal);
+    void AddSymmetryReference(ShapeParamElement* elem, ShapeParam* shape, bool reciprocal);
 
     /** for logging
      * @param grad add gradient details */
@@ -502,7 +507,6 @@ private:
 
       ShapeParamElement* elem  = NULL;  // the virtual element from opt_shape_param_
       ShapeParam*        shape = NULL;  // the original shape (when only map) or the induced shape
-      bool               map   = false;    // just for debugging, do we stem from debugging information?
       bool               reciprocal = false; // copy the original value or shape.max - val, also for gradient!
     };
 
