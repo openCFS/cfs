@@ -18,7 +18,6 @@ namespace CoupledField
 {
   // forward class declarations
   class StdPDE;
-  class WriteResults;
   struct ResultInfo;
   class SingleDriver;
   class IDBC_Handler;
@@ -42,58 +41,28 @@ namespace CoupledField
     void SetupRESorRHS(Integer timeLevelMaterial, Integer timeLevelDeltaMat, 
           Integer timeLevelRHSHyst, SBM_Vector& solutionForUpdate, SBM_Vector& returnVector);
     
-    void SetupRHS();
-    void SetupRES();
-    void AssembleSystem(UInt evalCase);
+    void SetupRHS(SBM_Vector& solutionForUpdate);
+    void SetupRES(SBM_Vector& solutionForUpdate);
+    
+    void AssembleSystem();
     void AssembleSystem(Integer timeLevelMaterial, Integer timeLevelDeltaMat);
+    
     void InitTimeStepping();
     void SolveStepTrans();
     void ReadNonLinDataHyst();
     
-    virtual void StepTransNonLinHysteresisNew();
-    
-    //----------------------- HYSTERESIS -------------------------------------
-    //! solves for one nonlinear transient step
-    //! consideres hystreresis nonlinearities in direct coupled PDEs
     virtual void StepTransNonLinHysteresis();
-    virtual void StepTransNonLinHysteresisTotal();
-
-    void SetLastItOrLastTSSBMVectors(bool lastTS);
-    /*!
-     * Helper funciton for setting up the equation system during
-     *            StepTransNonLinHysteresis()
-     * Background: During the solve step, the matrices and the rhs have to be
-     *  assembled multiple times during linesearch, for the calculation of the
-     *  residual error and of course to get a system to be solved;
-     *  for simplification, encapsulate that sequence of function calls
-     *  in a separate function
-     */
-    /*
-     * for residual computation we need a slightly different version -> see .cc file
-     */
-    virtual void CalcResidualAndConfigSystemForHysteresis(SBM_Vector& oldSolution,SBM_Vector& solIncrement, SBM_Vector& stageSol, Double usedEta,
-                                                          UInt stage, UInt callingCnt, UInt evalVersion, bool trans, bool forceReevaluation,
-                                                          bool skipReassembly, bool debugOutput, bool reset);
-
+    
     //! does a line search and returns the optimal residual norm
     Double LineSearchHyst(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double& etaLineSearch, UInt evalVersion, UInt callingCnt,
                       bool trans=false, bool performLineSearch=true, bool forceReevaluation=false, bool debugOutput=false, bool reset=false,UInt allowedSteps=5);
-    
-
-    //! returns the hysteresis operator
-    Hysteresis * GetHystOperator(UInt idx) {
-      return hyst_[idx];
-    };
-    
-    
+        
   private:
     bool flagsInitialized_;
     bool trans_;
     
-    bool systemRequiresReassembly_;
-    bool LinRHSRequiresReassembly_;
-    bool NonLinRHSRequiresReassembly_;
-    bool PredictorCorrectorRequiresReassembly_;
+    bool LinRHSRequiresAssembly_;
+    bool PredictorCorrectorRequiresAssembly_;
     
     Integer timeLevelRHSHystCurrent_;
     Integer timeLevelMaterialCurrent_;
@@ -108,8 +77,44 @@ namespace CoupledField
     
     SBM_Vector stageRHSUpdate_;
     SBM_Vector solVecLastTS_;
-            
-    UInt evalCase_;
+    SBM_Vector solVecLastIT_;
+    SBM_Vector solVecForUpdate_; 
+    
+    SBM_Vector lastUpdateVecForNonLinRHS_; 
+    SBM_Vector lastUpdateVecForMatrices_; 
+    
+    /*
+     * NEW: describe behavior via new nonlin parameter from xml file
+     */
+    UInt evalDepth_;
+    UInt measurePerformance_;
+    UInt testInvesion_;
+
+   
+    //! Vectors used for NonLinHysteresis
+    // current > current timestep and iteration
+    SBM_Vector currentLinRhsVec_;
+    //SBM_Vector currentRhsVec_;
+    SBM_Vector currentResVec_;
+
+
+    // + solVec which is defined above
+
+    // oldTS > values after last iteration of previous TS
+    // to be stored after iteration suceeded
+    //SBM_Vector oldTSLinRhsVec_;
+    //SBM_Vector oldTSNonLinRhsVec_;
+    //SBM_Vector oldTSSolVec_;
+
+    // oldIt > values of the current TS but from previous It
+    // during first iterartion of a new TS, these vectors contain the values
+    // after the last iteration of the previous TS (similar as oldTS...)
+    //SBM_Vector oldItNonLinRhsVec_;
+    //SBM_Vector oldItResVec_;
+
+    //! Additional flags and parameter for hyst
+    bool forceReevaluation_;
+    bool debugOutput_;
     
   };
 

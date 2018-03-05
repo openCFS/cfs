@@ -160,15 +160,13 @@ namespace CoupledField {
         // quantity that is computed (B) although the standard Preisach
         // as well as the VectorPreisach model need H as input
         PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
-        
-        bool performInversionTest = !true;
-        
+
         // please note: 
         //  in magnetics, the hysteresis model is supposed to return the
         //  magnetic polarizaiton J_P = mu*M
         //  (in older versions, the magnetization M was returned!)
         PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
-                magFieldCoef,tensorType,MAG_RELUCTIVITY,mySpace,performInversionTest));
+                magFieldCoef,tensorType,MAG_RELUCTIVITY,mySpace));
         
         hysteresisCoefs_->AddRegion( actRegion, hystPol);
         
