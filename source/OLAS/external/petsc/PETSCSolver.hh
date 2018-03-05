@@ -53,6 +53,7 @@
 #define HOM_DIR_PENALTY 12
 #define ASSEMBLE_VEC_DIR 13
 #define GET_SOL 14
+#define MAT_ZERO_ENTRIES 15
 
 
 
@@ -137,6 +138,8 @@ bool MG_FLAG =false;
 bool symmetric=false;
 Vec N_;//dirVector which consist of 0 when a eqnNr corresponds to HomDirBC ,all other place the value is 1
 StdVector<unsigned int> cfsEqnMap_;
+Vec dirNodeVecGlobal_=nullptr;
+
 
 };
 
@@ -152,8 +155,6 @@ PETSCWorker(int argc,const char **argv);
 private:
 
 void InitPetscWorker();
-
-void HomDirVec();
 //PETSC Error Code
 PetscErrorCode ierr=0;
 
@@ -183,21 +184,6 @@ PetscScalar tolerance_ = 1e-12;
 /** throws only an exception on maxIter exceeded if also minTol_ is not met */
 PetscScalar minTol_ =  1e-11;
 
-
-////Coarsegrid solver parameters
-//PetscScalar coarse_rtol = 1.0e-8;
-//PetscScalar coarse_atol = 1.0e-50;
-//PetscScalar coarse_dtol = 1e10;
-//PetscInt coarse_maxits = 30;
-//
-////Number of levels
-//PetscInt nlvls=4;
-//
-//// Number of smoothening iterations per up/down smooth_sweeps
-//PetscInt smooth_sweeps = 4;
-//
-
-//pointer to xml node
 PtrParamNode xml_;
 
 bool MG_FLAG=false;
@@ -205,8 +191,8 @@ bool symmetric=false;
 //Strings for setting Solver and Preconditioner
 std::string solverstring_;
 std::string precondstring_;
-ParamNodeList regionList_;
 Vec N_;
+Vec dirNodeVecGlobal_=nullptr;
 };
   
 }

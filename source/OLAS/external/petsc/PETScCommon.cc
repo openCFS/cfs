@@ -156,12 +156,31 @@ void PETScCommon::SetupMGSolver(DM &da_nodes,PC &precond_){
     PCMGGetSmoother(precond_,k,&dksp);
     PC dpc;
     KSPGetPC(dksp,&dpc);
-    ierr = KSPSetType(dksp,KSPGMRES); // KSPCG, KSPGMRES, KSPCHEBYSHEV (VERY GOOD FOR SPD)
+    ierr = KSPSetType(dksp,KSPCG); // KSPCG, KSPGMRES, KSPCHEBYSHEV (VERY GOOD FOR SPD)
 
     ierr = KSPSetTolerances(dksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,smooth_sweeps); // NOTE in the above maxitr=restart;
-    PCSetType(dpc,PCSOR);// PCJACOBI, PCSOR for KSPCHEBYSHEV very good
+    PCSetType(dpc,PCJACOBI);// PCJACOBI, PCSOR for KSPCHEBYSHEV very good
   }
 }
+
+void PETScCommon::CheckLevels(int nx,int ny,int nz){
+
+  PetscScalar divisor = PetscPowScalar(2.0,(PetscScalar)nlvls-1.0);
+  // x - dir
+  if ( std::floor((PetscScalar)(nx-1)/divisor) != (nx-1.0)/((PetscInt)divisor)
+      || std::floor((PetscScalar)(ny-1)/divisor) != (ny-1.0)/((PetscInt)divisor)
+          || std::floor((PetscScalar)(nz-1)/divisor) != (nz-1.0)/((PetscInt)divisor)) {
+    nlvls=nlvls-1;
+    CheckLevels(nx,ny,nz);
+
+  }
+  else{
+    if (MGLevels!=nlvls)
+      WARN("The provided Levels for MG will not work for the current problem so we set to the maximum possible levels");
+    return;
+  }
+}
+
 
 void PETScCommon::GetGridInfoMG(int &nx,int &ny,int &nz,int &dimension){
   //Get a grid pointer so that useful informations can be extracted
@@ -230,7 +249,7 @@ void PETScCommon::CreateDMDA(DM & daNodes,Mat &sysMat,Vec &solVec,Vec &rhsVec,Ve
   VecGetSize(solVec,&sizeGloabalVec);
   VecCreateMPI(PETSC_COMM_WORLD,PETSC_DECIDE,sizeGloabalVec/PetscInt(3),&dirVec);
   VecSet(dirVec,1.0);
-  ierr=MatSetOption (sysMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
+//  ierr=MatSetOption (sysMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
 
  }
 
@@ -275,8 +294,16 @@ void PETScCommon::GetCFSEqnMapMG(StdVector<unsigned int> &cfsEqnMap){
 
 
 
-void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsVec,Vec &dirNodeVec,Vec &dirVec,int nx,int ny,int nz){
+void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsVec,Vec &dirNodeVec,Vec &dirVec,
+    int nx,int ny,int nz){
 
+   // Edof array
+   PetscInt edof[24];
+
+   //Set the Dirchlet Vector With the homogeneous boundary conditions
+
+   PetscScalar * dirArray;
+   VecGetArray(dirNodeVec,&dirArray);
 
 //  std::cout<<"Entered Assembly"<<std::endl;
 
@@ -296,8 +323,6 @@ void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsV
    StdVector<int> globalNodeNum;
 
 
-   //Matrix to store the element stiffness matrix write a method to convert the Matrix to Petsc Matrix
-   Matrix<double>elemMatrix;
 
 
    Vector<double>elemVector;
@@ -316,9 +341,6 @@ void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsV
      ElemList elemList(domain->GetGrid());
      // region elements
      domain->GetGrid()->GetElems(elems, reg);
-     EntityIterator ei = elemList.GetIterator();
-     elemList.SetElement(elems[0]); // region's first element
-     assert(ei.GetElem()->elemNum == elems[0]->elemNum);
 
      //Extract the element node connectivity information which is useful for assembly of Stiffness matrix
      // Everything here is zero based and the globalNodeNum array consist of all the nodes of each element starting
@@ -326,78 +348,46 @@ void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsV
      EntityIterator  firstEntIt = context.GetFirstEntities()->GetIterator();
      for ( firstEntIt.Begin(); !firstEntIt.IsEnd(); firstEntIt++ ) {
        StdVector<unsigned int> nodesInElem=firstEntIt.GetElem()->connect;
+       int elem=(firstEntIt.GetElem()->elemNum)-1;
        nen=nodesInElem.GetSize();
+     //Matrix to store the element stiffness matrix write a method to convert the Matrix to Petsc Matrix
+       Matrix<double>elemMatrix;
        for (unsigned int i =0;i<nodesInElem.GetSize();i++){
          globalNodeNum.Push_back(nodesInElem[i]);
-       }
-//        std::cout<<"NodeNum for Elements " <<elemNumber<<"   "<<nodesInElem.ToString()<<std::endl;
-//        std::cout<<"equVec2ForElements"<<eqnVec2.ToString()<<std::endl;
-     }
-
-//      std::cout<<"NodeNum for elements indexed from 1 to n   "<<globalNodeNum.ToString()<<std::endl;
-
-     form->CalcElementMatrix(elemMatrix, ei, ei); // use the region part
-//      std::cout<<elemMatrix.ToString()<<std::endl;
-     }
-
-
-   //copy the element matrix to the PetscVector
-   for( UInt i=0; i <elemMatrix.GetNumRows(); i++){
-        for( UInt j=0; j < elemMatrix.GetNumCols(); j++){
-          elemMatrix.GetEntry(i,j,KE[i*(elemMatrix.GetNumCols()) + j]);
-//           std::cout<<KE[i*(elemMatrix.GetNumCols()) + j]<<std::endl;
-        }
-   }
-
-
-//   std::cout<<"Calculated Element Stiffness Matrix"<<std::endl;
-
-   // Zero the matrix
-   MatZeroEntries(sysMat);
-
-   // Edof array
-   PetscInt edof[24];
-
-   //Set the Dirchlet Vector With the homogeneous boundary conditions
-
-   PetscScalar * dirArray;
-   VecGetArray(dirNodeVec,&dirArray);
-
-   // Loop over elements. nel is number of elements within processor
-   for (PetscInt elem=0;elem<((nx-1)*(ny-1)*(nz-1));elem++){
-//      std::cout<<"NodeNum for Elements    "<<elem+1;
-     // loop over element nodes
-     for (PetscInt elem_node=0;elem_node<nen;elem_node++){
-
-//        std::cout<<" "<<necon[elem*nen+elem_node]+1;
-       // Get local dofs
-       for (PetscInt dof=0;dof <3;dof++){
-         // element local idx 0 ... 23
-         int idx = elem_node*3+dof;
-         // global idx
-         int gidx = globalNodeNum[elem*nen+elem_node]-1;
-         int eqnNr = 3*(globalNodeNum[elem*nen+elem_node]-1)+dof; //CFS node number is one  based indexing ,here its zero based
-         if (dirArray[gidx] == -1.0){
-//           homDirEquNr.Push_back(eqnNr);
-//           dirchletValue.Push_back(0);
-//           std::cout<<eqnNr<<std::endl;
-           VecSetValue(dirVec,(PetscInt)eqnNr,0,INSERT_VALUES);
+       }//loop over all nodes in elements
+       form->CalcElementMatrix(elemMatrix, firstEntIt, firstEntIt); // use the region part
+   //      std::cout<<elemMatrix.ToString()<<std::endl;
+        //copy the element matrix to the PetscVector
+         for( UInt i=0; i <elemMatrix.GetNumRows(); i++){
+              for( UInt j=0; j < elemMatrix.GetNumCols(); j++){
+                elemMatrix.GetEntry(i,j,KE[i*(elemMatrix.GetNumCols()) + j]);
+      //           std::cout<<KE[i*(elemMatrix.GetNumCols()) + j]<<std::endl;
+              }
          }
-         edof[idx]=eqnNr;
-//          edof[elem_node*3+dof] = 3*necon[elem*nen+elem_node]+dof;
-       }//dof Loop
-     }//Element Node Loop
-//      std::cout<<" "<<std::endl;
-     //Set the element Stiffness matrix value to the Global Stiffness matrix
-     ierr = MatSetValues(sysMat,24,edof,24,edof,KE,ADD_VALUES);
-   }//Local Element Loopcoe
-//    std::cout<<homDirEquNr_.ToString()<<std::endl;
-//    PetscInt row=0,col=0;
-//    MatGetSize(A_,&row,&col);
-//    std::cout<<"Matrix Size"<<row<<"   "<<col<<std::endl;
-//   std::cout<<"Assembly complete"<<std::endl;
- }
+           // loop over element nodes
+           for (PetscInt elem_node=0;elem_node<nen;elem_node++){
+      //        std::cout<<" "<<necon[elem*nen+elem_node]+1;
+             // Get local dofs
+             for (PetscInt dof=0;dof <3;dof++){
+               // element local idx 0 ... 23
+               int idx = elem_node*3+dof;
+               // global idx
+               int gidx = globalNodeNum[elem*nen+elem_node]-1;
+               int eqnNr = 3*(globalNodeNum[elem*nen+elem_node]-1)+dof; //CFS node number is one  based indexing ,here its zero based
+               if (dirArray[gidx] == -1.0 ){
+                 VecSetValue(dirVec,(PetscInt)eqnNr,0,INSERT_VALUES);
+               }
+               edof[idx]=eqnNr;
+      //          edof[elem_node*3+dof] = 3*necon[elem*nen+elem_node]+dof;
+             }//dof Loop
+           }//Element Node Loop
+      //      std::cout<<" "<<std::endl;
+           //Set the element Stiffness matrix value to the Global Stiffness matrix
+           ierr = MatSetValues(sysMat,24,edof,24,edof,KE,ADD_VALUES);
+         }//Local Element Loopcoe
+     }//loop over all elements
 
+}
 
 
 
@@ -493,10 +483,17 @@ std::string PETScCommon::CreatePrecondString(PtrParamNode xml){
   string output;
   PtrParamNode sNode = xml->Get("precond",ParamNode::PASS);
   ParamNodeList sol = sNode->GetChildren();
-
   UInt numChilds = sol.GetSize();
   if(numChilds==2){
     output = sol[1]->GetName();
+    if (output=="mg"){
+      nlvls=sol[1]->Get("nlvls")->As<int>();
+      coarse_atol=sol[1]->Get("coarse_atol")->As<double>();
+      coarse_rtol=sol[1]->Get("coarse_rtol")->As<double>();
+      coarse_dtol=sol[1]->Get("coarse_dtol")->As<double>();
+      coarse_maxits=sol[1]->Get("coarse_maxits")->As<int>();
+      MGLevels=nlvls;
+    }
   }
   else{
     output="jacobi";

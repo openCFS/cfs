@@ -1172,11 +1172,14 @@
             </xsd:annotation>
           </xsd:element>
           <xsd:element name="mg">
-          <xsd:annotation>
-              <xsd:documentation xml:lang="en">
-                "Not yet implemented completely dont use this"
-              </xsd:documentation>
-            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:attribute name="nlvls" use="optional" type="xsd:int" default="1" />
+              <xsd:attribute name="smoothSweeps" use="optional" type="xsd:int" default="2"/>
+							<xsd:attribute name="coarse_rtol" use="optional" type="xsd:double" default="1.0e-8"/>
+							<xsd:attribute name="coarse_atol" use="optional" type="xsd:double" default="1.0e-50"/>
+							<xsd:attribute name="coarse_dtol" use="optional" type="xsd:double" default="1e3"/>
+							<xsd:attribute name="coarse_maxits" use="optional" type="xsd:int" default="30"/>
+						</xsd:complexType>
            </xsd:element>
           <xsd:element name="asm"/>
           <xsd:element name="bjacobi"/>
@@ -1252,7 +1255,7 @@
       <xsd:extension base="DT_EigenSolverBasic">
         <xsd:sequence>
           <xsd:element name="tolerance" type="xsd:float" minOccurs="0"/>
-          <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0" />
           <!-- The arnoldi vectors are at least n+1 and typcally 2*n. Chose a Factor from 1.1 ... 2 or larger -->
           <xsd:element name="arnoldiFactor" type="xsd:float" minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
