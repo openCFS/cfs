@@ -174,7 +174,7 @@ def plot_angle_data(file, angle, data):
 # @param force_scale overwrites args.scale
 # @param min_bb/max_bb: min/max coordinates of bounding box
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
-def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes_coords = None, min_bb = None, max_bb = None):
+def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes = None, min_bb = None, max_bb = None):
   
   volume = None  # might ne set
   
@@ -187,7 +187,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
     # either Image or polydata  
     viz = None
     if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp","hom_ortho_3d"):
-
       if args.show in ("hom_rot_cross", "hom_sheared_rot_cross", "hom_frame", "hom_framed_cross", "hom_rect", "hom_ortho_3d"):
         if h5_read:
           microparams = read_stiff_angle(f, dim_2D, args)
@@ -320,10 +319,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   print('Lufo bracket is calculated!')
 
                 if args.show == 'simp':
-                  me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
+                  me = create_validation_mesh(coords, nondes[0], s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
                 else:
                   if args.type == "apod6" or args.type == "robot": 
-                    me = create_validation_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
+                    me = create_validation_mesh(coords, nondes[0], s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
                 write_gid_mesh(me, args.mesh+".mesh")
                 exit()  
               else:
@@ -343,8 +342,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
               if args.show == "hom_ortho_3d" or args.mesh:
                 
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
-                if nondes_coords:
-                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad,nondes=nondes_coords)
+                if nondes:
+                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad,nondes=nondes)
                 else:
                   viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad,nondes=None)
                 me = None                
@@ -453,7 +452,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D or a '.info.xml' file or a .mat file including a matrix from matlab (2sc)")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
 parser.add_argument("--h5_region", help="design region name (default 'mech')", default="mech")
-parser.add_argument("--h5_nondes", help="non-design region name (default 'non-design')", default="non-design")
+parser.add_argument("--h5_nondes", help="non-design (solid) region name (default 'non-design')", default="non-design")
+parser.add_argument("--h5_nondes_void", help="non-design (void) region name (default 'non-design')", default="holes")
 # parser.add_argument('--h5_nonreg', action='store_true', help='assume the h5 file to be nonregular')
 parser.add_argument('--h5_info', action='store_true', help='dump some meta data information about the h5 file')
 parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
@@ -629,18 +629,23 @@ else:
 #       nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=True)
       if (MPI.COMM_WORLD.Get_rank()==0): 
         nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=False)
+    if args.h5_nondes_void != "None":
+      if (MPI.COMM_WORLD.Get_rank()==0): 
+        nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements = centered_elements(f, args.h5_nondes_void,centered=False)
          
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
   
 # do we have to do 1D optimization? 
 if not args.target_volume:
-  if args.mesh and args.h5_nondes != "None":
-    nondes_coords = None
+  if args.mesh and (args.h5_nondes != "None" or args.h5_nondes_void != "None"):
+    nondes_void = None
+    nondes_solid = None
     if (MPI.COMM_WORLD.Get_rank()==0):
-      nondes_coords = (nondes_elements, nondes_min, nondes_max, nondes_elem_dim)
+      nondes_solid = (nondes_elements, nondes_min, nondes_max)
+      nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
 #     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min_bb,max_bb=max_bb)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,(nondes_solid,nondes_void),min_bb=min_bb,max_bb=max_bb)
   else:
     perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb)
 else:

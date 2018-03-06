@@ -29,8 +29,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
   # min_bb/max_bb: bounding box of design regions
   # scale: parameter for scaling the cell size if necessary
-  # nondes: (centers, min_bb, max_bb, elem_dim)
-  # nondes[centers]: list of elements (corner vertices) that define non-design regions
+  # nondes: store info on solid and void nondesign regions, has 2 entries: 0 -> solid non-design, 1 -> void non_design
+  # nondes[0]: solid nondesign -> (centers, min_bb, max_bb, elem_dim)
+  # nondes[0][centers]: list of elements (corner vertices) that define non-design regions
   
   # MPI_Init() or MPI_Init_thread() is actually called when you import the MPI
   # use the standard communicator
@@ -72,13 +73,19 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   nondes_min = 99999
   nondes_max = -99999
   nondes_coords = None
+  holes = None
   
-  if nondes:
-    nondes_coords = nondes[0]
-    nondes_min = nondes[1]
-    nondes_max = nondes[2]
+  if nondes[0] and nondes[1]: # assume holes are within bounding box of solid non-design and design domain
+    nondes_coords = nondes[0][0]
+    nondes_min = nondes[0][1]
+    nondes_max = nondes[0][2]
     assert(len(nondes_min) == 3)
     assert(len(nondes_max) == 3)
+    holes = nondes[1][0]
+    holes_min = nondes[1][1]
+    holes_max = nondes[1][2]
+    assert(len(holes_min) == 3)
+    assert(len(holes_max) == 3)
 
   # broadcast all nondes to all ranks
   (nondes_coords,nondes_min,nondes_max) = my_mpi_grid.comm.bcast((nondes_coords,nondes_min,nondes_max),root=0)
@@ -105,9 +112,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
         top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
         front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
-         
+            
         assert(this is not None and east is not None and top is not None and front is not None)
-         
+            
         # if one of the values is < min_thresh, set it to min_thresh        
         # if one of the values is > max_thresh, set it to max_thresh
         x1 = min(max(this[0],min_thresh),max_thresh)
@@ -116,7 +123,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         y2 = min(max(top[1],min_thresh),max_thresh)
         z1 = min(max(this[2],min_thresh),max_thresh)
         z2 = min(max(front[2],min_thresh),max_thresh)
-         
+            
         flags = None
         bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
         bc_input.eta = 0.7
@@ -126,27 +133,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
         print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
         my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
-     
+        
         local_id += 1
     
   eps = 1e-6
   
-  void_elems = []
-  # only master reads text file
-  if my_mpi_grid.rank == 0:
-    # read void non-design manually  
-    import csv
-    with open('holes.txt') as csvfile:
-      readCSV = csv.reader(csvfile, delimiter=',')  
-      for row in readCSV:
-        # 4 elems with 3 coord components
-        assert(len(row) == 12)
-        void_elems.append([(float(row[0]),float(row[1]),float(row[2])), (float(row[3]),float(row[4]),float(row[5])), (float(row[6]),float(row[7]),float(row[8])), (float(row[9]),float(row[10]),float(row[11]))])
-       
-      assert(len(void_elems) > 0)
-  
   # broadcast all verts to all ranks
-  void_elems = my_mpi_grid.comm.bcast(void_elems,root=0)    
+  holes = my_mpi_grid.comm.bcast(holes,root=0)    
   
   hx = (my_mpi_grid.bounds[3]-my_mpi_grid.bounds[0])/my_mpi_grid.grid.nx
   hy = (my_mpi_grid.bounds[4]-my_mpi_grid.bounds[1])/my_mpi_grid.grid.ny
@@ -155,9 +148,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   #y = np.arange(my_mpi_grid.bounds[1],my_mpi_grid.bounds[4]+hy-eps,hy)
   #z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+hz-eps,hz)
   
-  
   draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
-  draw_non_design(void_elems, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
+  draw_non_design(holes, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
 #   x = np.arange(0,my_mpi_grid.grid.data.shape[0]+1,1)
 #   y = np.arange(0,my_mpi_grid.grid.data.shape[1]+1,1)
 #   z = np.arange(0,my_mpi_grid.grid.data.shape[2]+1,1)

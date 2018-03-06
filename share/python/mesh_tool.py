@@ -1833,17 +1833,22 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
     # all nodes on big cylinder
     if big_cylinder[0]-eps < nodes[i][0] < big_cylinder[3] and big_cylinder[1]-eps < nodes[i][1] < big_cylinder[4] and big_cylinder[2]-eps < nodes[i][2] < big_cylinder[5]:
       load.append(i)
+      continue
     # all nodes on small cylinder
     if small_clinder[0]-eps < nodes[i][0] < small_clinder[3] and small_clinder[1]-eps < nodes[i][1] < small_clinder[4] and small_clinder[2]-eps < nodes[i][2] < small_clinder[5]:
       load.append(i)
+      continue
 
     # all nodes on left face are supports
     if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
       load.append(i)
+      continue
     if numpy.isclose(nodes[i][1],ymin,1e-12) or numpy.isclose(nodes[i][1],ymax,1e-12):
       load.append(i)
+      continue
     if numpy.isclose(nodes[i][2],zmax,1e-12):
-      load.append(i)    
+      load.append(i)
+      continue    
      
     if nodes[i][2] < zmin+2:
       support.append(i)

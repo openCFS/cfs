@@ -1361,7 +1361,6 @@ share/python/process_image.py -text
 share/python/replace_dots.py -text
 share/python/shape_map.py -text
 share/python/show_density.py -text
-share/python/smooth_stl.py -text
 share/python/sort_bloch.py -text
 share/python/special_mesh_tools.py -text
 share/python/spy.py -text
