@@ -171,7 +171,7 @@ namespace CoupledField
     void SetTimeStep( Double dt );
 
     //! computes linear part of RHS
-    Double SetLinRHS(Double loadFactor,bool nonlin = false);
+    Double SetLinRHS(Double loadFactor,bool nonlin = false, bool multiharmonic = false);
 
     //! computes ldelta inear part of RHS; in case of sub stepping
     UInt SetDeltaLinRHS();
@@ -289,9 +289,6 @@ namespace CoupledField
     //! Vector containing rhs
     SBM_Vector rhsVec_;
 
-    // zero-vector, used in multiharmonic analysis
-    Vector<Complex> zVec_;
-
     //! Vectors used for NonLinHysteresis
     // current > current timestep and iteration
     SBM_Vector currentLinRhsVec_;
@@ -338,9 +335,17 @@ namespace CoupledField
     std::ofstream logFile_;
     MathParser::HandleType mHandle_;
     MathParser* mParser_;
-  };
+
+private:
+  void AssembleMH(const UInt& N, const UInt& M);
+
+  //! Vector containing all solution vectors for all harmonics
+  //! in a multiharmonic analysis. We need this vector because
+  //! solVec_ is only used to pass certain harmonics back to
+  //! the PDE
+  SBM_Vector solVecMH_;
+};
 
 } // end of namespace
 
 #endif
-

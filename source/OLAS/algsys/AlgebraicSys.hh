@@ -654,6 +654,19 @@ namespace CoupledField {
     //! \param SysMatUpdated indicates if we need to allocate new memory for the tmpRHS_ vector
     void UpdateRHS(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated);
 
+    //! Performs a matrix-vector multiplication and adds the vector to the rhs
+
+    //! This method multiplies a specified global matrix (STIFFNES, MASS,
+    //! etc.) with a given vector and adds the result vector to the global
+    //! rhs.
+    //! \f[ rhs = rhs + \mathbf A_{matrixType} \cdot fup \f]
+    //! This method is currently only used to adapt the rhs for nonlinear multiharmonic analysis.
+    //! \param matrixType type of finite element matrix (STIFFNESS, MASS, ...)
+    //!                 which gets multiplied
+    //! \param fup array with vector entries, which get multiplied
+    //! \param SysMatUpdated indicates if we need to allocate new memory for the tmpRHS_ vector
+    void UpdateRHS_MultHarm(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated);
+
 
     //! Add a value to a diagonal matrix entry
 
@@ -809,6 +822,14 @@ namespace CoupledField {
                         bool deltaIDBC,
                         const bool ident);
 
+    //! Return solution vector for a given block in multiharmonic analysis
+
+    //! This method returns the solution vector associated with one specific
+    //! SBM-block. The entries are numbered according to the equations numbers
+    //! \param solVec solution vector for specified FeFcunction
+    void GetFullMultiHarmSolutionVal(SBM_Vector& solVec, bool setIDBC, bool deltaIDBC = false);
+
+
 
     //! Helper function introduced for non-linear-transient stepping
     //! Background:
@@ -842,9 +863,14 @@ namespace CoupledField {
     //! Return block right-hand-side (RHS) vector from multiharmonic anlysis
 
     //! This method returns the specified right-hand-side block (h) as
-    //! SBM-vector. The blocks are split per FctIdType,
+    //! SBM-vector
     void GetRHSVal( const UInt& h, SBM_Vector& sbmRhsVec );
 
+
+    //! Return full right-hand-side (RHS) vector from multiharmonic anlysis
+
+    //! This method returns the full multiharmonic right-hand-side
+    void GetFullMultiHarmRHSVal(SBM_Vector& rhsVec );
 
     //! Return right-hand-side (RHS) vector for one single FeFct
 

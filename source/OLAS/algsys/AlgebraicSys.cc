@@ -670,8 +670,8 @@ namespace CoupledField {
 
     if(domain->GetBasePDE()->GetName() == "LatticeBoltzmann") // we have to adjust size of solution vector for LBM optimization
     {
-    	LOG_DBG(algSys) << "Resized solution vector for LBM optimization to " << (*sysMat_[SYSTEM])(0,0).GetNumRows();
-    	sol_->GetPointer(0)->Resize((*sysMat_[SYSTEM])(0,0).GetNumRows());
+      LOG_DBG(algSys) << "Resized solution vector for LBM optimization to " << (*sysMat_[SYSTEM])(0,0).GetNumRows();
+      sol_->GetPointer(0)->Resize((*sysMat_[SYSTEM])(0,0).GetNumRows());
     }
 
     // start timer of solver
@@ -2165,6 +2165,10 @@ namespace CoupledField {
       rhs_->Init();
     }
     else {
+      if(solStrat_->IsMultHarm()){
+        EXCEPTION("This branch of AlgebraicSys::InitSol is not"
+                  "meant to be reached in a multiharmonic analysis!");
+      }
       // find out affected blocks
       std::set<UInt> & blockNums = fctIdsInBlocks_[fctId];
       std::set<UInt>::iterator it = blockNums.begin();
@@ -2174,21 +2178,29 @@ namespace CoupledField {
     }
   }
   
+
+
+
   void AlgebraicSys::InitRHS( const SBM_Vector& newRHS ) {
     
     LOG_TRACE(algSys) << "Initializing RHS with new vector";
-
     
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
-    if( newRHS.GetSize() != numFcts_ && domain->GetBasePDE()->GetName() != "LatticeBoltzmann") {
+    if( (newRHS.GetSize() != numFcts_ && domain->GetBasePDE()->GetName() != "LatticeBoltzmann") && !solStrat_->IsMultHarm() ) {
       EXCEPTION( "New rhs consists of " << newRHS.GetSize() << " sub-vectors, the RHS of the algebraic system of " << rhs_->GetSize() << " entries." )
     }
     
     if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann"){
-    	*(rhs_) = newRHS;
-    	LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->GetPointer(0)->ToString(0,',');
-    	return;
+      *(rhs_) = newRHS;
+      LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->GetPointer(0)->ToString(0,',');
+      return;
+    }
+
+    if(solStrat_->IsMultHarm() ){
+      *(rhs_) = newRHS;
+      LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->ToString();
+      return;
     }
 
     // loop over all feFctIDs
@@ -2223,14 +2235,18 @@ namespace CoupledField {
   }
   
   void AlgebraicSys::InitSol( const FeFctIdType fctId ) {
-    
     LOG_TRACE(algSys) << "Initializing solution of fctId " << fctId;
     
+
     if ( fctId == NO_FCT_ID ) {
       // in this case initialize complete RHS   
       sol_->Init();
     }
     else {
+      if(solStrat_->IsMultHarm()){
+        EXCEPTION("This branch of AlgebraicSys::InitSol is not"
+                  "meant to be reached in a multiharmonic analysis!");
+      }
       // find out affected blocks
       std::set<UInt> & blockNums = fctIdsInBlocks_[fctId];
       std::set<UInt>::iterator it = blockNums.begin();
@@ -2951,8 +2967,6 @@ namespace CoupledField {
 
     if(isMultHarm_) EXCEPTION("AlgebraicSys::UpdateRHS cannot handle multiharmonic case yet!")
 
-    //std::cout << "Updating RHS with matrix "
-    //    << feMatrixType.ToString(matrixType) << std::endl;
 
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
@@ -2980,10 +2994,7 @@ namespace CoupledField {
 
       // security check: ensure that sub-vector has the same size
       // as the block indices
-			
-//			std::cout << "fup(i).GetSize() = " << fup(i).GetSize() << std::endl;
-//			std::cout << "indices.GetSize() = " << indices.GetSize() << std::endl; 
-			
+
       if( fup(i).GetSize() != indices.GetSize() ) {
         EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
                    "of indices do not match!");
@@ -3000,25 +3011,25 @@ namespace CoupledField {
                 ->AddToEntry(indices[j]-1, nRHS[j] );
           }else if(!usingPenalty_){
             idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
-			    		indices[j],rhs_,nRHS[j]);
+              indices[j],rhs_,nRHS[j]);
           }
         }
 
       }
       else if( fup.GetEntryType() == BaseMatrix::COMPLEX ) {
-        	Vector<Complex> & nRHS =
-        			dynamic_cast<Vector<Complex>&>( fup(i) );
+          Vector<Complex> & nRHS =
+              dynamic_cast<Vector<Complex>&>( fup(i) );
 
-        	for( UInt j = 0; j < size; ++j ) {
-        		// omit entries for Dirichlet values
-        		if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
-        			tmpRHS_->GetPointer(blockNums[j])
-    	                		  ->AddToEntry(indices[j]-1, nRHS[j] );
-        		}else if(!usingPenalty_){
-        			idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
-    	  			    		indices[j],rhs_,nRHS[j]);
-        		}
-        	}
+          for( UInt j = 0; j < size; ++j ) {
+            // omit entries for Dirichlet values
+            if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+              tmpRHS_->GetPointer(blockNums[j])
+                            ->AddToEntry(indices[j]-1, nRHS[j] );
+            }else if(!usingPenalty_){
+              idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
+                      indices[j],rhs_,nRHS[j]);
+            }
+          }
 
       }
       else {
@@ -3031,6 +3042,81 @@ namespace CoupledField {
 
   }
   
+
+
+  void AlgebraicSys::UpdateRHS_MultHarm(FEMatrixType matrixType,
+                                        const SBM_Vector& fup,bool SysMatUpdated) {
+
+    LOG_TRACE(algSys) << "Updating multiharmonic RHS of matrix "
+                      << feMatrixType.ToString(matrixType);
+
+
+    if(matrixTypes_.find(matrixType) == matrixTypes_.end())
+      return;
+
+    // ensure that the RHS vector to set consists of as many
+    // sub-vectors as the RHS of the system
+    if( fup.GetSize() != rhs_->GetSize() ) {
+      EXCEPTION( "New rhs consists of " << fup.GetSize()
+                 << " sub-vectors, the RHS of the algebraic system of "
+                 << rhs_->GetSize() << " entries." )
+    }
+
+    // loop over all harmonics and create a converted rhs
+    if(tmpRHS_== NULL)
+      tmpRHS_ = dynamic_cast<SBM_Vector*> ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
+
+    tmpRHS_->Init();
+
+    if(numFcts_ != 1){ EXCEPTION("AlgebraicSys::UpdateRHS_MultHarm currently "
+                                 "only implemented for ONE FunctionID");}
+
+    // get all (blockId,index)-combinations for the current fctId
+    StdVector<UInt> blockNums, indices;
+    MapCompleteFctIdToIndex( 0, blockNums, indices);
+    UInt size = blockNums.GetSize();
+
+    for(UInt i = 0; i < 2 * solStrat_->GetNumHarmN() + 1 ; ++i ) {
+      // security check: ensure that sub-vector has the same size
+      // as the block indices
+      if( fup(i).GetSize() != indices.GetSize() ) {
+        EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
+                   "of indices do not match!");
+      }
+
+      if( fup.GetEntryType() == BaseMatrix::DOUBLE ) {
+        Vector<Double> & nRHS = dynamic_cast<Vector<Double>&>( fup(i) );
+        for( UInt j = 0; j < size; ++j ) {
+          // omit entries for Dirichlet values
+          if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+            tmpRHS_->GetPointer(blockNums[j])->AddToEntry(indices[j]-1, nRHS[j] );
+          }else if(!usingPenalty_){
+            idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j], indices[j],rhs_,nRHS[j]);
+          }
+        }
+
+      }
+      else if( fup.GetEntryType() == BaseMatrix::COMPLEX ) {
+          Vector<Complex> & nRHS = dynamic_cast<Vector<Complex>&>( fup(i) );
+          for( UInt j = 0; j < size; ++j ) {
+            // omit entries for Dirichlet values
+            if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+              tmpRHS_->GetPointer(blockNums[j])->AddToEntry(indices[j]-1, nRHS[j] );
+            }else if(!usingPenalty_){
+              idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j], indices[j],rhs_,nRHS[j]);
+            }
+          }
+      }
+      else {
+        EXCEPTION("Implement me. Dont worry: mostly C&P code");
+      }
+    }
+    //now just perform multiplication
+    sysMat_[matrixType]->MultAdd(*tmpRHS_,*rhs_);
+
+  }
+
+
   template<typename T>
   void AlgebraicSys::AddToDiagMatrixEntry( FEMatrixType matrixType,
                                            const FeFctIdType fctId,
@@ -3223,13 +3309,13 @@ namespace CoupledField {
 
     if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann")
     {
-    	//FIXME Dirty code, can be improved!
-    	ptSol.Resize(size);
-    	Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
-    	retVec = *(sol_->GetPointer(0));
+      //FIXME Dirty code, can be improved!
+      ptSol.Resize(size);
+      Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
+      retVec = *(sol_->GetPointer(0));
 
-    	return;
-  	}
+      return;
+    }
 
     if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
@@ -3330,7 +3416,15 @@ namespace CoupledField {
   }
   
 
+  void AlgebraicSys::GetFullMultiHarmSolutionVal(SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
+    solVec.Resize( 2 * solStrat_->GetNumHarmN() + 1 );
 
+    // loop over all block vector and call specialized GetRHSVal method, the boolean
+    // has no effect, it's just an identifier to call the correct method
+    for( UInt i = 0; i < solVec.GetSize(); ++i){
+      GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC, true);
+    }
+  }
 
 
   void AlgebraicSys::GetRHSVal( SingleVector &ptRhs,
@@ -3430,6 +3524,15 @@ namespace CoupledField {
   }
   
 
+  void AlgebraicSys::GetFullMultiHarmRHSVal(SBM_Vector& rhsVec ) {
+    rhsVec.Resize( 2 * solStrat_->GetNumHarmN() + 1 );
+
+    // loop over all block vector and call specialized GetRHSVal method, the boolean
+    // has no effect, it's just an identifier to call the correct method
+    for( UInt i = 0; i < rhsVec.GetSize(); ++i){
+      GetRHSVal(rhsVec(i), i, true);
+    }
+  }
 
 
   SBM_Matrix* AlgebraicSys::GenerateSBM_Matrix( FEMatrixType matType,

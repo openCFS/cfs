@@ -68,6 +68,18 @@ namespace CoupledField {
     }
   }
 
+  // ******************************
+  //   Reset the initial EntryType
+  // ******************************
+  void SBM_Vector::ResetEntryType(BaseMatrix::EntryType entryType){
+    if(size_ == 0 && subVec_ == NULL && ownSubVectors_){
+      myEntryType_ = entryType;
+    }else{
+      EXCEPTION("SBM_Vector::ResetEntryType Cannot reset the entry-type\n"
+                "because the SBM_Vector was already modified");
+    }
+  }
+
 
   // ***********************************************************
   //   Set number of vector entries and re-size internal array
