@@ -1129,6 +1129,7 @@
                       </xsd:annotation>
                       <xsd:complexType>
                         <xsd:sequence>
+                          <!-- this is the center node node, a subset of the original 2D node -->
                           <xsd:element name="node" minOccurs="2" maxOccurs="2">
                             <xsd:complexType>
                               <xsd:attribute name="dof" use="required" type="DT_Axis" />
@@ -1137,11 +1138,12 @@
                               <xsd:attribute name="lower" type="xsd:token" use="optional" />
                               <xsd:attribute name="upper" type="xsd:token" use="optional" />
                               <xsd:attribute name="fixed" type="xsd:token" use="optional" />
+                              <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1" />
                            </xsd:complexType>
                           </xsd:element>
                         </xsd:sequence>
                         <!-- the center attributes -->
-                        <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1" />
+
                         <!-- symmetry along the x-axis - y-axis or xy-plane -->
                         <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" />
                         <!-- symmetry along the y-axis - x-axis or xz-plane -->
@@ -1154,6 +1156,7 @@
                       </xsd:complexType>
                    </xsd:element>
 
+                   <!-- this is the 2D node, the node within center is smaller und defined above -->
                    <xsd:element name="node" minOccurs="0" maxOccurs="unbounded">
                      <xsd:annotation>
                        <xsd:documentation>In 2D mandatory. With dof=x for every y a x is the variable.</xsd:documentation>

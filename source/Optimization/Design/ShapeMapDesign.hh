@@ -160,7 +160,7 @@ public:
     bool ShallMapHalfShape() const;
 
     /** as long as we have no surface, we are !IsCenterShape() */
-    bool Is2DShape() const { assert(!IsSurfaceShape()); return(!IsCenterShape()); }
+    bool Is2DShape() const;
 
     /** are we first or second 3d center node or its profile? */
     bool IsCenterShape() const;
@@ -255,7 +255,7 @@ public:
     {
       /** the master shape is the base for the induced one. Then the other flags need to be off. Not that only
        * the master has the induced vector. An each entry has in Induce the description */
-      bool master = true;
+      ShapeParam* master = NULL;
 
       /** are the values induced reciprocal? This is the case for a mirrored shape - e.g. a horizontal shape mirrored at the
        * x-axis. All other cases are copying the value. On comparing the dof and orientation we can identify which of the symmetry
@@ -449,9 +449,15 @@ private:
   /* @return num_node_shape_ or shape_.GetSize() */
   unsigned int GetEndShapeIdx(const Function* f) const;
 
-  void InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
+  /** creates for 2D induced symmetry nodes. */
+  void Induce2dSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
+
+  /** create 3d center node symmetry nodes. Works for x_sym, y_sym and z_sym. diag is always for all possible to flips.
+   * In contrast to Induce2dSymmetryNodes() the shapes shall be already parsed and initialized, therefore not paramnode necessary. */
+  void InduceCenterNodesSymmetryNodes(ShapeParam& first, ShapeParam& second);
 
   ShapeParam* InduceSymmetryNodeHelper(ShapeParam& ref_node);
+  void InduceSymmetryNodeHelper(ShapeParam& first, ShapeParam& second);
 
   /** This are our shape parameters which are blown up to shape_param_. When induced, the ortho induces follows the shape, then the diagonal induced
    * First node then profile, therefore always even size. */
