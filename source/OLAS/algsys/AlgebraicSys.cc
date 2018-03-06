@@ -3047,9 +3047,7 @@ namespace CoupledField {
   void AlgebraicSys::UpdateRHS_MultHarm(FEMatrixType matrixType,
                                         const SBM_Vector& fup,bool SysMatUpdated) {
 
-    LOG_TRACE(algSys) << "Updating multiharmonic RHS of matrix "
-                      << feMatrixType.ToString(matrixType);
-
+    LOG_TRACE(algSys) << "Updating multiharmonic RHS of matrix "<< feMatrixType.ToString(matrixType);
 
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
@@ -3085,16 +3083,8 @@ namespace CoupledField {
       }
 
       if( fup.GetEntryType() == BaseMatrix::DOUBLE ) {
-        Vector<Double> & nRHS = dynamic_cast<Vector<Double>&>( fup(i) );
-        for( UInt j = 0; j < size; ++j ) {
-          // omit entries for Dirichlet values
-          if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
-            tmpRHS_->GetPointer(blockNums[j])->AddToEntry(indices[j]-1, nRHS[j] );
-          }else if(!usingPenalty_){
-            idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j], indices[j],rhs_,nRHS[j]);
-          }
-        }
-
+        EXCEPTION(" AlgebraicSys::UpdateRHS_MultHarm called with a Double vector\n"
+                  " this should not happen!");
       }
       else if( fup.GetEntryType() == BaseMatrix::COMPLEX ) {
           Vector<Complex> & nRHS = dynamic_cast<Vector<Complex>&>( fup(i) );

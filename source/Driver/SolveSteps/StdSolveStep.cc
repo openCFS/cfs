@@ -2682,57 +2682,55 @@ namespace CoupledField {
     bool performOneMoreStep = true;
 
     // =========================================================
-    //  1) Solve the multiharmonic ''linear'' system
+    //  1) Solve the initial multiharmonic ''linear'' system
     // =========================================================
-    //Set special RHS Values
+    // Set special RHS Values
     PDE_.SetRhsValues();
 
     assemble_->AssembleNonLinRHS();
 
-    // how many harmonics are we considering
+    // Define how many harmonics we are considering
     UInt N = solStrat_->GetNumHarmN();
     UInt M = solStrat_->GetNumHarmM();
 
-    // initialize matrices because normally they are initialized in AssembleMatrices-method
+    // Initialize matrices because normally they are initialized in AssembleMatrices-method
     // but since we call the assemble method for all sub-matrices, this wouldn't work
     assemble_->InitMultHarm();
 
-
-    // loop over every frequency and assemble the correct SBM blocks
+    // Loop over every frequency and assemble the correct SBM blocks
     AssembleMH(N, M);
 
+    // Sets flag that matrix was already assembled. The method CheckNonLinearities
+    // redoes this
     assemble_->PostAssemble();
 
-    assemble_->TimerStop();
-
+    // Calls method ApplyBC and ApplyLoads in FeFunction
     PDE_.SetBCs();
-
 
     // Usually this is the place where the method algsys_->GetRHSVal(rhsVec_)
     // is called to store the rhs vector back to PDE but in the multiharmonic
     // case this must be done for each frequency, which is
-    // triggered in MultiharmonicDriver::SolveProblem by a call to
-    // StdSolveStep::GetRHSValMultHarm(h), where h is the harmonic number
-
+    // triggered in MultiharmonicDriver::SolveProblem after the whole system is solved
+    // by a call to StdSolveStep::GetRHSValMultHarm(h), where h is the harmonic number
 
     std::map<FEMatrixType,Double> empty;
     algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
 
     // Incorporate Boundary conditions and
-    // recalc the preconditioner eventually
+    // recalculate the preconditioner eventually
     algsys_->BuildInDirichlet();
 
+    algsys_->SetupPrecond();
+    algsys_->SetupSolver();
 
-    if( assemble_->IsMatrixUpdated() ) {
-      algsys_->SetupPrecond();
-      algsys_->SetupSolver();
-    }
-
+    // Solve the linear system
     algsys_->Solve();
+
     // Usually this is the place where the method algsys_->GetSolutionVal(solVec_)
-    // is called but in the multiharmonic case this must be done for each frequency
-    // triggered in MultiharmonicDriver::SolveProblem by a call to
-    // StdSolveStep::GetSolutionValMultHarm(h), where h is the harmonic number
+    // is called but in the multiharmonic case this must be done for each frequency,
+    // which is triggered in MultiharmonicDriver::SolveProblem after the whole system
+    // is solved, by a call to StdSolveStep::GetSolutionValMultHarm(h),
+    // where h is the harmonic number.
 
 
 
@@ -2740,62 +2738,65 @@ namespace CoupledField {
     //  2) Solve the full multiharmonic nonlinear system
     // =========================================================
 
-
     // =================================
-    //  Outer loop: Multilevel strategy
+    //  2.1) Outer loop: Multilevel strategy
     // =================================
 
+    // This will be the incremental solution (deflect vector),
+    // meaning \Delta u^{k+1} = u^{k+1} - u^k
     SBM_Vector solInc(BaseMatrix::COMPLEX);
 
+    // Get the solution of the initial (linear) multiharmonic system.
+    solVecMH_.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
+    algsys_->GetFullMultiHarmSolutionVal( solVecMH_, false);
 
-    // Get the solution of the ''linear'' multiharmonic system.
-    // Unfortunately we have to use this temporary vector
-    SBM_Vector tmpSol(BaseMatrix::COMPLEX);
-    algsys_->GetFullMultiHarmSolutionVal( tmpSol, false);
-    solVecMH_ = tmpSol;
-
-
-    // get actual solution
-    // usually it is done via actSol = solVec_; but we need the full multiharmonic solution
+    // Get actual solution. Usually it is done via actSol = solVec_;
+    // but we need the full multiharmonic solution vector
     SBM_Vector actSol(BaseMatrix::COMPLEX);
     actSol = solVecMH_;
 
-    // number of outer iterations currently hardcoded
+    // TODO this hardcoded variable is just for development purposes and must be changed!!
+    // Number of outer iterations currently hardcoded
     UInt numLevels = 3;
     for( UInt iLevel = 0; iLevel < numLevels; ++iLevel ) {
-      // create new timer object and put it to related info element
+      // Create new timer object and put it to related info element
       shared_ptr<Timer> timer(new Timer());
       PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
       iter->GetByVal("solStep","value",iLevel+1,ParamNode::INSERT)->Get("timer")->SetValue(timer);
       timer->Start();
 
-      // update the current solution step in a multilevel approach and
-      // inform PDEs (containing the FeSpaces), as well as the AlgebraicSystem
+      // As long as we don't have a TwoLevel solution strategy this method
+      // does not do anything...
       solStrat_->SetActSolStep(iLevel + 1);
+
+      // This method just reads the nonlinear xml-node
       ReadNonLinData();
+
+      // UpdateToSolStrategy in FeSpaces is actually only used for the TwoLevel
+      // solution strategy, where the first level only contains lowest order
+      // Hcurl basis functions and the other level higher order basis.
+      // In our case this method does not do anything
       PDE_.UpdateToSolStrategy();
 
+      //================================================================================
+      // TODO is this correct?
       // we do not need to do algsys_->UpdateToSolStrategy(); here because this method
       // only sets the effective matrices and vectors, which we do manually later on
+      //================================================================================
 
-      // set the boundary conditions
-      PDE_.SetBCs();
+      // Calls method ApplyBC and ApplyLoads in FeFunction
+      // TODO check if we really need this, because it was already called in
+      // the initial linear part above
+      if(iLevel != 0) PDE_.SetBCs();
 
-      //perform the load-steps
+      // Perform the load-steps
       Double loadFactor = 1.0;
       PDE_.GetInfoNode()->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
 
-
-      //Set special RHS Values
-      PDE_.SetRhsValues();
-
-
-      // this is done in SetLinRHS
-      //assemble_->AssembleNonLinRHS();
-
-
-      // why do we need to get the rhs vector as sol?????
-      //algsys_->GetFullMultiHarmRHSVal(solVecMH);
+      // Performs assembling of linear/nonlinear rhs,
+      // performs PDE_.SetRhsValues(),
+      // gets the full multiharmonic rhs value as RhsLinVal_
+      // and computes the L2 norm of this RhsLinVal_ vector
       Double RhsLinL2Norm = SetLinRHS(loadFactor, true, true);
 
       // set iteration counter
@@ -2807,31 +2808,36 @@ namespace CoupledField {
 
 
       // =================================
-      //  Inner nonlinear loop
+      //  2.2) Inner nonlinear loop
       // =================================
       do {
         iterationCounter++;
-
-        if ( lineSearch_ != "none" || iterationCounter == 1) {
-
-          // if the RHS depends on the nonlinearity, we have to re-assemble it
-          if( assemble_->IsRhsSolDependent() ) {
-            EXCEPTION("StdSolveStep::StepHarmonicNonLin() cannot handle solution-dependent"
-                      "rhs yet!")
-          }
-
-          // setup the matrices
-          // loop over every frequency and assemble the correct SBM blocks
-          AssembleMH(N, M);
-
-          //substract from RHS the term K*sol
-          solVecMH_.ScalarMult(-1.0);
-          algsys_->UpdateRHS_MultHarm(SYSTEM,solVecMH_,true);
-          solVecMH_.ScalarMult(-1.0);
+        // if the RHS depends on the nonlinearity, we have to re-assemble it
+        if( assemble_->IsRhsSolDependent() ) {
+          EXCEPTION("StdSolveStep::StepHarmonicNonLin() cannot handle solution-dependent"
+              "rhs yet!")
         }
 
-          PDE_.SetBCs();
+        // Setup the matrices, only if this is not the first step
+        // Loop over every frequency and assemble the correct SBM blocks
+        if(iLevel != 0) AssembleMH(N, M);
 
+        // This is done because we want to solve the deflect-system:
+        // K(u^k) \cdot \Delta u^{k+1} = f - K(u^k) \cdot u^k
+        // where f - K(u^k) \cdot u^k gets set as the new rhs in algsys_
+        // Note: in algsys the above solVecMH_ becomes tmpRHS_
+        solVecMH_.ScalarMult(-1.0);
+        algsys_->UpdateRHS_MultHarm(SYSTEM,solVecMH_,true);
+        solVecMH_.ScalarMult(-1.0);
+
+        //================================================================================
+        // TODO Do we really need this method here?? => temporarily deactivated it
+        //PDE_.SetBCs();
+        //================================================================================
+
+        // If this is the first outer iteration, we don't have to do this,
+        // we just reuse it from the inial linear section
+        if(iLevel != 0){
           // compute effective matrix
           std::map<FEMatrixType,Double> empty;
           algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
@@ -2844,100 +2850,75 @@ namespace CoupledField {
             algsys_->SetupPrecond();
             algsys_->SetupSolver();
           }
+        }// end if(iLevel != 1)
 
+        // Solve the deflect system K(u^k) \cdot \Delta u^{k+1} = f - K(u^k) \cdot u^k
+        // for the deflect-vector \Delta u^{k+1}
+        // TODO DO WE NEED TO CALL IT WITH SETIDBC?
+        algsys_->Solve();
 
+        // Get the incremental solution (deflect vector), second argument is setIDBC
+        algsys_->GetFullMultiHarmSolutionVal( solInc, false);
 
+        // Initialize norms (residual and incremental ones)
+        Double residualL2Norm = 0.0;
+        Double etaLineSearch  = 1.0;
 
-          // ==========================================
-          // ========== DO WE NEED TO CALL IT WITH SETIDBC?????
-          // ========== WE WOULD PROBABLY HAVE TO ADAPT PDE_.SetBCs()
-          algsys_->Solve();
+        // Perform line search to get the 'optimal' eta, which minimizes the residual-norm
+        // Meaning: u^{k+1} = u^k + eta * \Delta u^{k+1} in order to minimize
+        // the residual r^{k+1} = f - K(u^{k+1}) \cdot u^{k+1} is minimized
+        residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
 
+        // Store the new solution u^{k+1}
+        // Usually actSol is stored in solVec_ but this is not our full multiharmonic
+        // solution vector, therefore we store it in the temporary multiharmonic
+        // solution vector solVecMH
+        solVecMH_ = actSol;
 
+        // Calculation relative residual error
+        Double residualErr;
+        if ( RhsLinL2Norm > 1.0 )
+          residualErr = residualL2Norm / RhsLinL2Norm;
+        else
+          residualErr = residualL2Norm;
 
+        // calculate incremental error
+        Double incrementalErr;
+        Double solIncrL2Norm = solInc.NormL2();
+        Double actSolL2Norm  = actSol.NormL2();
 
+        if ( actSolL2Norm ) incrementalErr = solIncrL2Norm / actSolL2Norm;
+        else {
+          incrementalErr = solIncrL2Norm;
+          WARN("Zero solution vector!! ");
+        }
 
-
-          // new solution is only an increment of the full solution =============
-          algsys_->GetFullMultiHarmSolutionVal( solInc, false);
-
-
-
-
-
-
-
-
-          //compute norms (residual and incremental ones)
-          Double residualL2Norm = 0.0;
-          Double etaLineSearch  = 1.0;
-
-          // do line search
-          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
-
-          // store the new solution
-          // usually actSol is stored in solVec_ but this is not our full multiharmonic
-          // solution vector, therefore we store it in the temporary multiharmonic
-          // solution vector solVecMH
-          solVecMH_ = actSol;
-
-
-
-
-
-
-
-
-          // calculation relative residual error ====================================
-          Double residualErr;
-          if ( RhsLinL2Norm > 1.0 )
-            residualErr = residualL2Norm / RhsLinL2Norm;
-          else
-            residualErr = residualL2Norm;
-
-          // calculate incremental error ========================================
-          Double incrementalErr;
-          Double solIncrL2Norm = solInc.NormL2();
-          Double actSolL2Norm  = actSol.NormL2();
-
-          if ( actSolL2Norm ) incrementalErr = solIncrL2Norm / actSolL2Norm;
-          else {
-            incrementalErr = solIncrL2Norm;
-            WARN("Zero solution vector!! ");
+        // Output of norms and data
+        if ( nonLinLogging_ == true ) {
+          //UInt actStep = PDE_.GetSolveStep()->GetActStep();
+          if (PDE_.IsIterCoupled()) {
+            WriteNonLinIterToInfoXML(pdename_, couplingIter_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+          } else {
+            WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
           }
+          // write norm to file
+          logFile_ <<  iterationCounter << "\t"
+              << residualErr << "\t"
+              << incrementalErr << "\t"
+              << etaLineSearch << std::endl;
+        }
 
-          // output of norms and data
-          if ( nonLinLogging_ == true ) {
-            //UInt actStep = PDE_.GetSolveStep()->GetActStep();
-            if (PDE_.IsIterCoupled()) {
-              WriteNonLinIterToInfoXML(pdename_, couplingIter_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-            } else {
-              WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-            }
-            // write norm to file
-            logFile_ <<  iterationCounter << "\t"
-                    << residualErr << "\t"
-                    << incrementalErr << "\t"
-                    << etaLineSearch << std::endl;
-          }
+        // boolean variable, holds condition if another iteration step is necessary
+        performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
-          // boolean variable, holds condition if another iteration step is necessary
-          performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-
-
-          if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
-            EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
-                    << "' in step no '" << iLevel+1
-                    << "' at iteration '" << iterationCounter
-                    << "'.\n ==> incremental error: " << incrementalErr
-                    << "\n ==> residual error: " << residualErr);
-          }
-
-
-
-    }while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
-
-
+        if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
+              << "' in step no '" << iLevel+1
+              << "' at iteration '" << iterationCounter
+              << "'.\n ==> incremental error: " << incrementalErr
+              << "\n ==> residual error: " << residualErr);
+        }
+      }while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
     }// Outer Loop
 
 
@@ -3105,15 +3086,14 @@ namespace CoupledField {
   // ======================================================
   // METHODS FOR NONLINEAR ANALYSIS
   // ======================================================
-  
-  // sets excitation coil and returns L2Norm of them
+
   Double StdSolveStep::SetLinRHS( Double loadFactor, bool nonlin, bool multiharmonic)
   {
     
     //std::cout << "SetLinRHS with bool nonlin = " << nonlin << std::endl;
     Double RhsLinL2Norm;
     
-    // to incorporate loads+
+    // to incorporate loads
     if(nonlin){
       assemble_->AssembleNonLinRHS();
     } else {
@@ -3212,7 +3192,7 @@ namespace CoupledField {
       assemble_->AssembleNonLinRHS();
       
       // setup the matrices
-      bool isNewton = false;
+      bool isNewton = false; warum assembliern wir hier neu???????????????
       assemble_->AssembleMatrices(isNewton);
       
       if( trans ) {
