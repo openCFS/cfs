@@ -86,10 +86,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     holes_max = nondes[1][2]
     assert(len(holes_min) == 3)
     assert(len(holes_max) == 3)
+    design_elems = nondes[2]
 
   # broadcast all nondes to all ranks
   (nondes_coords,nondes_min,nondes_max) = my_mpi_grid.comm.bcast((nondes_coords,nondes_min,nondes_max),root=0)
 #   print("rank ", my_mpi_grid.rank," nondes:",len(nondes_coords))
+# broadcast all holes to all ranks
+  holes = my_mpi_grid.comm.bcast(holes,root=0)    
     
   # np.minimum gives elementwise min value
   bounds = [None] * 6
@@ -112,9 +115,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
         top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
         front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
-            
+             
         assert(this is not None and east is not None and top is not None and front is not None)
-            
+             
         # if one of the values is < min_thresh, set it to min_thresh        
         # if one of the values is > max_thresh, set it to max_thresh
         x1 = min(max(this[0],min_thresh),max_thresh)
@@ -123,7 +126,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         y2 = min(max(top[1],min_thresh),max_thresh)
         z1 = min(max(this[2],min_thresh),max_thresh)
         z2 = min(max(front[2],min_thresh),max_thresh)
-            
+             
         flags = None
         bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
         bc_input.eta = 0.7
@@ -133,13 +136,10 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
         print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
         my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
-        
+         
         local_id += 1
     
   eps = 1e-6
-  
-  # broadcast all verts to all ranks
-  holes = my_mpi_grid.comm.bcast(holes,root=0)    
   
   hx = (my_mpi_grid.bounds[3]-my_mpi_grid.bounds[0])/my_mpi_grid.grid.nx
   hy = (my_mpi_grid.bounds[4]-my_mpi_grid.bounds[1])/my_mpi_grid.grid.ny
@@ -148,6 +148,10 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   #y = np.arange(my_mpi_grid.bounds[1],my_mpi_grid.bounds[4]+hy-eps,hy)
   #z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+hz-eps,hz)
   
+  tmp = np.zeros_like(my_mpi_grid.grid.data,dtype=bool)
+  draw_non_design(nondes_coords+design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
+  my_mpi_grid.grid.data *= tmp
+  design_elems = None
   draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
   draw_non_design(holes, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
 #   x = np.arange(0,my_mpi_grid.grid.data.shape[0]+1,1)
@@ -155,6 +159,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #   z = np.arange(0,my_mpi_grid.grid.data.shape[2]+1,1)
 #   from pyevtk.hl import gridToVTK
 #   gridToVTK("voxels"+str(my_mpi_grid.rank),x,y,z,cellData={"voxels":my_mpi_grid.grid.data.astype(int)})
+
+  nondes_coords = None
+  holes = None
   
   borders = my_mpi_grid.communicate_edges()
     
@@ -185,7 +192,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   from skimage import measure
   # coords of vertices lie in [0,1-h]
   verts, faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False)
-  verts = np.asarray(verts) - (my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0)
+  verts = np.asarray(verts) - np.asarray(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
   # translate from (0,0,0) to correct position
   shift = np.asarray(my_mpi_grid.bounds[0:3])
   verts = [p+shift for p in verts]
@@ -325,6 +332,7 @@ def draw_non_design(tets,grid,bounds,h,solid=True):
   ug = vtk.vtkUnstructuredGrid()
   vtkpoints = vtk.vtkPoints()
   for e in tets:
+    #print("e:",e)
     tetra = vtk.vtkTetra()
     for i,p in enumerate(e):
       id = vtkpoints.InsertNextPoint(p)
