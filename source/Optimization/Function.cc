@@ -864,7 +864,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
     }
   }
   // empty elements for shape mapping!
-  //  assert(elements.GetSize() == elements.Capacity());
+  //  assert(elements.GetSize() == elements.GetCapacity());
 }
 
 void Function::SetDenseSparsityPattern(DesignSpace* space) {

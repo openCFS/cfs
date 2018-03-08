@@ -133,12 +133,22 @@ public:
    *  The 3D center case is composed by two NODE elements - this connection is encoded in center_idx. */
   struct ShapeParam
   {
+    ShapeParam() { induced.Reserve(4);} // should not be necessary!
+
     /** Note that we need a default constructor for StdVector. The symmetry pointers for profile are not set yet!
      * We assume idx to be set to >=0 for nodes or -1 for center
      * @param pn node for the shape
-     * @param base reference for profile or center nodes only to copy sym and orientation, ...
-     * @param flip_orientation reinterpret direction for diagonal mirroring. Only for node, not again for profile */
-    void ParseAndInit(PtrParamNode pn, ShapeParam* base, bool flip_orientation = false);
+     * @param base reference for profile or center nodes only to copy sym and orientation, ... */
+    void ParseAndInit(PtrParamNode pn, ShapeParam* base = NULL);
+
+    /** Copy properties, similar effect as ParseAndInit() */
+    void CopyProperties(const ShapeParam* ref);
+
+    /** flip orientation. flip dof and orientation but also adapt and x_sym, y_sym.
+     * This is a service function for diagonal induced shapes.
+     * @pram center_node for 3D. This will flip both, first and second center node, together. Such that first->orientation == second->orientation
+     *                   0 will swap orientation with first->dof and 1 will swap orientation with second->dof */
+    void FlipOrientation(int center_node = -1);
 
     void ToInfo(PtrParamNode pn);
 
@@ -275,7 +285,9 @@ public:
   private:
     /** little helper which reads only bounds and values */
     static void ParseBounds(ShapeParam* target, const PtrParamNode& pn);
-    void InheritProperties(ShapeParam* base);
+    static void ParseSymmetry(ShapeParam* target, const PtrParamNode& pn);
+    /** copy attributes found in the envelope center node (symmetry and orientation only) */
+    void CopyBaseCenterProperties(ShapeParam* base);
   };
 
   /** Give ShapeParam, very fast! */
@@ -450,12 +462,14 @@ private:
   unsigned int GetEndShapeIdx(const Function* f) const;
 
   /** creates for 2D induced symmetry nodes. */
-  void Induce2dSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
+  void Induce2DSymmetryNodes(ShapeParam& ref_node);
 
   /** create 3d center node symmetry nodes. Works for x_sym, y_sym and z_sym. diag is always for all possible to flips.
-   * In contrast to Induce2dSymmetryNodes() the shapes shall be already parsed and initialized, therefore not paramnode necessary. */
-  void InduceCenterNodesSymmetryNodes(ShapeParam& first, ShapeParam& second);
+   * In contrast to Induce2dSymmetryNodes() the shapes shall be already parsed and initialized, therefore not paramnode necessary.
+   * @param cn are the two center nodes */
+  void InduceCenterSymmetryNodes(ShapeParam& first, ShapeParam& second);
 
+  /** create a new node, add it as induced to ref_node and set properties */
   ShapeParam* InduceSymmetryNodeHelper(ShapeParam& ref_node);
   void InduceSymmetryNodeHelper(ShapeParam& first, ShapeParam& second);
 
