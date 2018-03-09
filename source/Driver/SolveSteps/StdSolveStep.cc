@@ -3009,8 +3009,7 @@ namespace CoupledField {
         continue;
       } else {
         // assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
-        assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(),
-            solStrat_->GetNumHarmM());
+        assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
       }
     }
   }
@@ -3192,7 +3191,7 @@ namespace CoupledField {
       assemble_->AssembleNonLinRHS();
       
       // setup the matrices
-      bool isNewton = false; warum assembliern wir hier neu???????????????
+      bool isNewton = false;
       assemble_->AssembleMatrices(isNewton);
       
       if( trans ) {

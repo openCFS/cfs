@@ -573,6 +573,7 @@ namespace CoupledField {
       if(size_ > 1)
         ss << '_' << j;
       outFile = fname + ss.str();
+      ss.str(std::string());
 
       // export sub-vector
       if ( subVec_[j] != NULL ) {

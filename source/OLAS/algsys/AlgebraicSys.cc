@@ -2887,14 +2887,19 @@ namespace CoupledField {
       // get limits of free indices
       const UInt & lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
 
-      // get vector, differentiate between normal and multiharmonic case
+      // Get vector, differentiate between normal and multiharmonic case
       // TODO this method must be adapted if we consider a real multiharmonic excitation
-      // with several harmonics
+      // with several harmonics. Currently only an excitation in the base-harmonic is allowed.
+      // Until now, the rhs-indices (SBM sub vectors) N+1 and N-1 are set
+      // index:     [  0     1     2  ... N-1  N    N+1   N+2 ...  2N ]
+      // harmonic:  [ -N   -N+1  -N+2 ... -1   0     1     2  ...   N ]
       if( isMultHarm_ ){
-        SingleVector &vec = (*rhs_)(solStrat_->GetNumHarmN() + 1);
+        SingleVector &vecP = (*rhs_)(solStrat_->GetNumHarmN() + 1);
+        SingleVector &vecN = (*rhs_)(solStrat_->GetNumHarmN() - 1);
         if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
           if ( rowNum <= lastFreeRowIndex ) {
-            vec.AddToEntry( rowNum-1, elemRHS[iRow]);
+            vecP.AddToEntry( rowNum-1, elemRHS[iRow]);
+            vecN.AddToEntry( rowNum-1, elemRHS[iRow]);
           }
         } // loop over rows
       } else{
@@ -4222,8 +4227,6 @@ namespace CoupledField {
         matNode->Get("reordering",ParamNode::INSERT)->
             SetValue(BaseOrdering::reorderingType.ToString(ot));
 
-    }else{
-      WARN("This section is not yet implemented");
     }
 
   }
