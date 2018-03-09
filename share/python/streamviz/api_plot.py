@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from io import StringIO
 import threading
 import json
+import svgwrite
 
 def get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
   data = {}
@@ -60,7 +61,8 @@ def get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
 
 
 # returns html with embedded svg OR error code 
-def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names, y1_res_names, y2_res_names, iteration_num, logscale_y1, logscale_y2):
+def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names, y1_res_names, y2_res_names, \
+         iteration_num, logscale_y1, logscale_y2, result_view_arr):
   
   data = ""
   
@@ -223,5 +225,124 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
   # transfer everything from svg_data to our "data" output variable
   for l in svg_dta:
     data += l
+  
+  if len(result_view_arr) >= 0:
+    domain_elem = xml.xpath('//header/domain')[0]
+    
+    _2d_orientation = "error"
+    
+    if int(domain_elem.attrib['nx']) == 1:
+      _2d_orientation = 'yz'
+    elif int(domain_elem.attrib['ny']) == 1:
+      _2d_orientation = 'xz'
+    elif int(domain_elem.attrib['nz']) == 1:
+      _2d_orientation = 'xy'
+    else:
+      print('Error: not a 2D grid!')
+      data += '<br/>Error: not a 2D grid!'
+      # return data to avoid complete failure
+      return data
+  
+    for this_result_name in result_view_arr:
+      
+      result_elm = xml.xpath('//results/result[@name="' + this_result_name + '"][last()]')[0]
+      
+      ax_x_descr = "x"
+      ax_y_descr = "x"
+      
+      x_coords = []
+      y_coords = []
+      values = []
+      
+      values = np.array(result_elm.xpath('item/@v_0')).astype(np.float)
+
+      if _2d_orientation == 'yz':
+        ax_x_descr = 'y'
+        ax_y_descr = 'z'
+      elif _2d_orientation == 'xz':
+        ax_x_descr = 'x'
+        ax_y_descr = 'z'
+      elif _2d_orientation == 'xy':
+        ax_x_descr = 'x'
+        ax_y_descr = 'y'
+        
+      x_node_coords = []
+      y_node_coords = []
+      if _2d_orientation == 'yz':
+        x_node_coords = np.array(xml.xpath('//grid/nodeList/node/@y')).astype(np.float)
+        y_node_coords = np.array(xml.xpath('//grid/nodeList/node/@z')).astype(np.float)
+      elif _2d_orientation == 'xz':
+        x_node_coords = np.array(xml.xpath('//grid/nodeList/node/@x')).astype(np.float)
+        y_node_coords = np.array(xml.xpath('//grid/nodeList/node/@z')).astype(np.float)
+      elif _2d_orientation == 'xy':
+        x_node_coords = np.array(xml.xpath('//grid/nodeList/node/@x')).astype(np.float)
+        y_node_coords = np.array(xml.xpath('//grid/nodeList/node/@y')).astype(np.float)
+
+      imgdata = StringIO()
+
+      value_pos = 0
+      if result_elm.attrib['solution'] == 'element':
+        
+        dwg = svgwrite.Drawing(profile='tiny')
+        
+        max_value = max(values)
+        min_value = min(values)
+        
+        value_factor = 255/(max_value-min_value)
+        
+        for this_poly_element in xml.xpath('//regionList/region[@name="' + result_elm.attrib['region'] + '"]/element'):
+          node_count = int(this_poly_element.attrib['nodes'])
+          
+          points = []
+        
+          for node_id in range(node_count):
+            node_number = int(this_poly_element.attrib['node_'+str(node_id)])
+            
+            # we need to subtract one since the node start counting at 1, but we start counting at 0
+            coord_tuple = (x_node_coords[node_number-1], \
+                           y_node_coords[node_number-1] )
+            points.append(coord_tuple)
+
+          color_value = (values[value_pos]-min_value) * value_factor
+          polygon = dwg.polygon(points=points, fill=svgwrite.rgb(color_value, 0, 255-color_value), stroke='black', stroke_width=0)
+          dwg.add(polygon)
+          
+          value_pos += 1
+        dwg.viewbox(min(x_node_coords), min(y_node_coords), max(x_node_coords), max(y_node_coords))
+        dwg.write(fileobj=imgdata)
+          
+      elif result_elm.attrib['solution'] == 'node':
+        fig = plt.figure()
+        
+        plt.colorbar()
+        
+        fig.tight_layout()
+        
+        fig.savefig(imgdata, format = 'svg')
+        
+        # this 'all' might cause some probolems if this tool
+        # is used by multiple people at the same time
+        # TODO: make sure it doesn't break the program
+        plt.close('all')
+      
+        plt.tripcolor(x_node_coords, y_node_coords, values)
+
+      else:
+        data += "<br>unknown element solution type<br>"
+        continue
+
+      imgdata.seek(0)  # rewind the data
+    
+      svg_dta = imgdata.readlines()  # this is svg data
+    
+      # just to be sure:
+      del imgdata
+
+      data += "<br/>"
+      data += this_result_name + ":<br/>"
+      
+      # transfer everything from svg_data to our "data" output variable
+      for l in svg_dta:
+        data += l
   
   return data

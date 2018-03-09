@@ -73,7 +73,8 @@ def plot(key):
                        request.args.getlist('y1_it'), request.args.getlist('y2_it'), \
                        request.args.getlist('y1_res'), request.args.getlist('y2_res'), \
                        int(request.args.get('iteration_num')), \
-                       (request.args.get('logscale_y1') == 'true'), (request.args.get('logscale_y2') == 'true'))
+                       (request.args.get('logscale_y1') == 'true'), (request.args.get('logscale_y2') == 'true'),
+                       request.args.getlist('view_results'))
 
 
 @app.route(settings["api"]["catalyst_send"] + '/<path:key>', methods = ['GET', 'POST'])
