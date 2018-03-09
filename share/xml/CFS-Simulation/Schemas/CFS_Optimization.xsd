@@ -1133,11 +1133,17 @@
                           <xsd:element name="node" minOccurs="2" maxOccurs="2">
                             <xsd:complexType>
                               <xsd:attribute name="dof" use="required" type="DT_Axis" />
-                              <!-- lower, uppde and initial go together or fixed. We apply the mathparser to all of them! -->
+                              
+                              <!-- lower, upper and initial go together or fixed or slave! We apply the mathparser to all of them! -->
                               <xsd:attribute name="initial" type="xsd:token" use="optional" />
                               <xsd:attribute name="lower" type="xsd:token" use="optional" />
                               <xsd:attribute name="upper" type="xsd:token" use="optional" />
                               <xsd:attribute name="fixed" type="xsd:token" use="optional" />
+                              
+                              <!-- slave is for cubical symmetry (all center symmetries on, here the two dofs of a center node reduce to one.
+                                   Therefore one of the nodes has slave and dof but must not have initial, lower, upper, fixed -->
+                              <xsd:attribute name="slave" type="xsd:boolean" use="optional" default="false" />
+
                               <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1" />
                            </xsd:complexType>
                           </xsd:element>

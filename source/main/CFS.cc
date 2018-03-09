@@ -266,8 +266,6 @@ int CFS::Run()
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
 
     timer->Stop();
-    if(!progOpts->IsQuiet())
-      cout << endl; // conditional empty line
     
     cout << ">> Total wall-clock time: '" << Timer::GetTimeString(timer->GetWallTime())
          << "' cpu time: '" << Timer::GetTimeString(timer->GetCPUTime())

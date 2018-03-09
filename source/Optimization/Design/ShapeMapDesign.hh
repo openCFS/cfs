@@ -169,6 +169,9 @@ public:
     /** indicates that only half of the shape is for optimization, the other is mapped. Checks orientation of the shape */
     bool ShallMapHalfShape() const;
 
+    /** indicates that the other center node is a slave of this one */
+    bool ShallBeMasterOfSlave() const;
+
     /** as long as we have no surface, we are !IsCenterShape() */
     bool Is2DShape() const;
 
@@ -232,6 +235,10 @@ public:
 
     /** in case we have a symmetry where we induce a shape and mirror it value goes to max - value. Max is the node value */
     double max = 1.0; // fixme an make it smart
+
+    /** in case of 3D bloch optimization we need cubical symmetry and there the two dofs of a center node need to be the same.
+     * In the slave case fixed, initial, lower, upper must not be given. */
+    bool slave = false;
 
     /** subject to optimization or fixed */
     bool fixed = false;
