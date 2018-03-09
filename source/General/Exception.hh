@@ -72,7 +72,7 @@ namespace CoupledField {
     Exception( const Exception& exc ) throw ();
 
     //! Destructor
-    virtual ~Exception() throw();
+    virtual ~Exception();
 
     //! Set callback method for exceptions
     static void SetCallbackEx(boost::function<void (Exception& x)> cb );

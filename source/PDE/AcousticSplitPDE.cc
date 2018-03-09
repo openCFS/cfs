@@ -202,26 +202,27 @@ namespace CoupledField{
         velocityCoef_->AddRegion( actRegion, regionVelocity );
       }
 
+
+      // ====================================================================
+      // Take account for mapping of an infinite domain
+      // ====================================================================
+      shared_ptr<CoefFunction> coeffMAPScal, coeffMAPVec;
+      bool isMapping = false;
+      if( dampingList_[actRegion] == MAPPING ) {
+        std::string dampId;
+        curRegNode->GetValue("dampingId",dampId);
+        if(analysistype_ == HARMONIC){
+          EXCEPTION("Harmonic analysis not allowed!");
+        }else{
+          PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
+          coeffMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,true));
+          coeffMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,false));
+          isMapping = true;
+        }
+      }
+
       BaseBDBInt * stiffInt = NULL;
       if(formulation_ == SPLIT_SCALAR){
-        // ====================================================================
-        // Take account for mapping of an infinite domain
-        // ====================================================================
-        shared_ptr<CoefFunction> coeffMAPScal, coeffMAPVec;
-        bool isMapping = false;
-        if( dampingList_[actRegion] == MAPPING ) {
-          std::string dampId;
-          curRegNode->GetValue("dampingId",dampId);
-          if(analysistype_ == HARMONIC){
-            EXCEPTION("Harmonic analysis not allowed!");
-          }else{
-            PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
-            coeffMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,true));
-            coeffMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,false));
-            isMapping = true;
-          }
-        }
-
 
       // ====================================================================
       // standard stiffness integrator Scalar (includes infinite mapping)
@@ -251,10 +252,26 @@ namespace CoupledField{
         // standard stiffness integrator Vector TODO include mapping for the problem
         // ====================================================================
           if( dim_ == 2 ) {
+            if(isMapping){
+
+              stiffInt = new BBInt<Double>(new ScaledGradientOperator<FeH1,2,Double>(),
+                                            coeffMAPScal, 1.0, updatedGeo_ );
+              stiffInt->SetBCoefFunctionOpB(coeffMAPVec);
+            }else{
               stiffInt = new BBInt<Double>(new CurlOperator<FeH1,2,Double>(), val1 , 1.0, updatedGeo_ );
+            }
           }
           else{
-            stiffInt = new BBInt<Double>(new CurlOperator<FeHCurl,3,Double>(), val1 , 1.0, updatedGeo_ );
+            if(isMapping){
+              //TODO implement mapping Vector Potential e.g. implementation vector potential
+//              stiffInt = new BBInt<Double>(new ScaledCurlOperator<FeHCurl,3,Double>(),
+//                  coeffMAPScal, 1.0, updatedGeo_ );
+//              stiffInt->SetBCoefFunctionOpB(coeffMAPVec);
+            }
+            else
+            {
+              stiffInt = new BBInt<Double>(new CurlOperator<FeHCurl,3,Double>(), val1 , 1.0, updatedGeo_ );
+            }
           }
           stiffInt->SetName("CurlCurlIntegrator");
       }
@@ -350,7 +367,19 @@ namespace CoupledField{
     // Get FESpace and FeFunction of formulation
     shared_ptr<BaseFeFunction> myFct = feFunctions_[formulation_];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
-    StdVector<std::string> vecDofNames = myFct->GetResultInfo()->dofNames;
+    StdVector<std::string> vecComponents = myFct->GetResultInfo()->dofNames;
+
+    StdVector<std::string> vecDofNames;
+    if( ptGrid_->GetDim() == 3 ) {
+      vecDofNames = "x", "y", "z";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        vecDofNames = "r", "z";
+      } else {
+        vecDofNames = "x", "y";
+      }
+    }
+
     LinearForm * lin = NULL;
     Double factor = 1.0;
 
@@ -459,30 +488,33 @@ namespace CoupledField{
         EXCEPTION("Tangential Velocity is not used in the scalar potential formulation! - uncomment tag in XML input ");
       }
       if(myParam_->Get("bcsAndLoads")->Has("tangentialVelocity3D")){
-        EXCEPTION("Tangential Velocity is not used in the scalar potential formulation! - uncomment tag in XML input ");
+        EXCEPTION("Tangential Velocity 3D is not used in the scalar potential formulation! - uncomment tag in XML input ");
       }
     }else{
       if(myParam_->Get("bcsAndLoads")->Has("normalVelocity")){
         EXCEPTION("Normal Velocity is not used in the scalar potential formulation! - uncomment tag in XML input ");
       }
       if ( dim_ == 2){
-        ReadRhsExcitation( "tangentialVelocity", empty, ResultInfo::SCALAR, isComplex_,
+        ReadRhsExcitation( "tangentialVelocity", vecDofNames, ResultInfo::SCALAR, isComplex_,
                               ent, coef, updatedGeo_ );
 
         if(myParam_->Get("bcsAndLoads")->Has("tangentialVelocity3D")){
-          EXCEPTION("Tangential Velocity is not used in the scalar potential formulation! - uncomment tag in XML input ");
+          EXCEPTION("Tangential Velocity 3D is not used in the scalar potential formulation! - uncomment tag in XML input ");
         }
       }else{
         ReadRhsExcitation( "tangentialVelocity3D", vecDofNames, ResultInfo::VECTOR, isComplex_,
                               ent, coef, updatedGeo_ );
         if(myParam_->Get("bcsAndLoads")->Has("tangentialVelocity")){
-          EXCEPTION("Tangential Velocity is not used in the scalar potential formulation! - uncomment tag in XML input ");
+          EXCEPTION("Tangential Velocity 2D is not used in the scalar potential formulation! - uncomment tag in XML input ");
         }
       }
     }
 
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // ensure that list contains only surface elements
+      //TODO iterator weg und durch oberflaechenelement ersetzen
+      //(ent[i]->GetType() == EntityList::NODE_LIST ||
+      // ent[i]->GetType() == EntityList::SURF_ELEM_LIST )
       EntityIterator it = ent[i]->GetIterator();
       UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
       if( elemDim != (dim_-1) ) {

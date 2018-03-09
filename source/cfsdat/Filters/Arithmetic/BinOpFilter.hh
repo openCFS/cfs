@@ -35,8 +35,6 @@ public:
 
   }
 
-  virtual bool Run() = 0;
-
 protected:
 
   struct  PlusOp{
@@ -90,9 +88,9 @@ public:
 
   }
 
-  virtual bool Run();
-
 protected:
+
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
 
   virtual ResultIdList SetUpstreamResults();
 

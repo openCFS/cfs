@@ -24,15 +24,18 @@
           becomes so ill-conditioned, which will either result in an exception or very bad
           results.
           Typical values 0.1
-          
-          localityScaling: divides the real epsilon (epsilonScaling / maxDistance) by the
-          given number. This controls, how many points are used for building the differentation-
-          matrix. The higher the number, the more points will be used. The "optimal" number of
-          points will probably be the node-number of one element, but this is not verified yet.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="localityScaling" type="xsd:double" use="required"/>
+    <xsd:attribute name="logEps" type="xsd:boolean" default="false">
+      <xsd:annotation>
+        <xsd:documentation>
+          logEps: Console output of [minimal distance, maximal distance, optimized epsilon]
+          NOTE: Should only be used for investigating the quality of the derivative, because
+          it totally spams the console
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
    </xsd:complexType>
   
 </xsd:schema>

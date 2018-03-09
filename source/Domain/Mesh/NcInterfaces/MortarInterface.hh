@@ -10,6 +10,9 @@
 
 #include "BaseNcInterface.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 namespace CoupledField {
 
@@ -95,10 +98,17 @@ class MortarInterface : public BaseNcInterface {
     bool IntersectRects( SurfElem *ifaceElem1, SurfElem *ifaceElem2,
                          StdVector<UInt> &newNodes );
 
+    //! get interface element coordinates for polygon intersection
+    void GetInterfaceElemCoordinates(SurfElem *ifElem, StdVector< Vector<Double> >& coordinates);
+
     //! intersect two elements of arbitrary type
     bool IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
-                            StdVector<UInt> &newNodes );
-
+                            StdVector<UInt> &newNodes, 
+                            StdVector< Vector<Double> >& p1, StdVector< Vector<Double> >& p2, StdVector< Vector<Double> >& r,    
+                            Vector<Double>& temp1, Vector<Double>& temp2, 
+                            Vector<Double>& ez, Vector<Double>& v, Vector<Double>& e,
+                            Matrix<Double>& rMat, Matrix<Double>& rMatTrans,
+                            StdVector< Vector<Double> >& p1Rot, StdVector< Vector<Double> >& p2Rot);
 
     //! Calculates the intersection of two lines [a,b] and [c,d] and stores
     //! the intersection point (if any) in e.
@@ -125,9 +135,16 @@ class MortarInterface : public BaseNcInterface {
     //! \param p1 (in) first polygon to be intersected
     //! \param p2 (in) second polygon to be intersected
     //! \param r (out) resulting polygon
+    //! \param c1 temporary vector for each thread
+    //! \param c2 temporary vector for each thread
+    //! \param e temporary vector for each thread
+    //! \param temp1 temporary vector for each thread
+    //! \param temp2 temporary vector for each thread
     bool CutPolys(StdVector< Vector<Double> > &p1,
       StdVector< Vector<Double> > &p2, const bool coPlanarIface,
-      StdVector< Vector<Double> > &r);
+      StdVector< Vector<Double> > &r,
+      Vector<Double> & c1, Vector<Double> & c2, Vector<Double> & e,
+      Vector<Double> & temp1, Vector<Double> & temp2);
 
     //! Returns if a point lies inside a convex polygon. Optionally the
     //! centroid of the polygon may be given in order to save computational
@@ -157,6 +174,13 @@ class MortarInterface : public BaseNcInterface {
     UInt TriangulatePoly( const StdVector< Vector<Double> > &p,
                           StdVector<MortarNcSurfElem*> &tri,
                           StdVector<UInt> &newNodes );
+
+    //! Adds a node to the grid and adds the node number to the new nodes vector
+    //! \param coordinate is the position of the new node
+    //! \param nodeNo is the node number the new node obtains from the grid
+    //! \param newNodes is the new nodes vector
+    void AddNodeToGrid(const Vector<Double>& coordinate, UInt& nodeNo, StdVector<UInt>& newNodes);
+
 
     // =======================================================================
     // Class variables
@@ -190,17 +214,6 @@ class MortarInterface : public BaseNcInterface {
     Vector<Double> s_Line_, t_Line_;
     Vector<Double> normal_Line_;
 
-    //chache for temporary points in intersect poly
-    //this will prevent functioning in case of OMP!!!!!!
-    //make threadlocal storage for this to work
-    StdVector< Vector<Double> > p1Poly_, p2Poly_, rPoly_;
-    UInt oldPoly1_;
-    UInt oldPoly2_;
-
-    //caching for cutPolys
-    Vector<Double> c1_, c2_, e_;
-    Vector<Double> temp1_, temp2_;
-
     bool isReset_;
     
     //if true, nc interface will be updated, but no mesh update will be done
@@ -213,17 +226,51 @@ class MortarInterface : public BaseNcInterface {
 
     Vector<Double> translationVector_;
 
+    // caching of node numbers for rotating interfaces
+    bool hasNodeNums_;
+    StdVector<UInt> nodeNums_;
+
+    // caching of moved interface coordinated for rotating interfaces
+    bool hasMoveInterfaceCoords_;
+    StdVector< Vector<Double> > moveInterfaceLocalCoords_;
+    StdVector< Vector<Double> > moveInterfaceOrigCoords_;
+
+    // caching of elements for rotating interface
+    bool hasSurfElems_;
+    StdVector<SurfElem*> masterElems_;
+    StdVector<SurfElem*> slaveElems_;
+
+#ifdef USE_OPENMP
+    // lock for the grid for parallel evaluation of intersection faces
+    omp_lock_t gridLock_;
+    // lock for the new nodes vector for parallel evaluation of intersection faces
+    omp_lock_t newNodesLock_;
+    // lock for the new element vector for parallel evaluation of intersection faces
+    omp_lock_t elemListLock_;
+#endif
+
+
 #ifdef USE_CGAL
     //! Calculates the intersection between two polygons using CGAL
     //! \param p1 (in) first polygon to be intersected
     //! \param p2 (in) second polygon to be intersected
     //! \param r (out) resulting polygon
+    //! \param temp1 temporary vector for each thread
+    //! \param temp2 temporary vector for each thread
+    //! \param ez temporary vector for each thread
+    //! \param v temporary vector for each thread
+    //! \param e temporary vector for each thread
+    //! \param rMat temporary matrix for each thread
+    //! \param rMatTrans temporary matrix for each thread
+    //! \param p1rot temporary vector for each thread
+    //! \param p2rot temporary vector for each thread
     bool CutPolysCGAL(StdVector<Vector<Double> > &p1, StdVector<Vector<Double> > &p2,
-                      const bool coPlanarIface, StdVector<Vector<Double> > &r);
+                      const bool coPlanarIface, StdVector<Vector<Double> > &r, 
+                      Vector<Double>& temp1, Vector<Double>& temp2,
+                      Vector<Double>& ez, Vector<Double>& v, Vector<Double>& e,
+                      Matrix<Double>& rMat, Matrix<Double>& rMatTrans,
+                      StdVector< Vector<Double> >& p1Rot, StdVector< Vector<Double> >& p2Rot);
 
-    // caching for CutPolysCGAL
-    Matrix<Double> rMat_, rMatTrans_;
-    StdVector< Vector<Double> > p1Rot_, p2Rot_;
 
     void PreComputeIntersectionCandidatesCGAL(const StdVector<SurfElem*>& masterElems,const StdVector<SurfElem*>& slaveElems);
 

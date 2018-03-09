@@ -85,7 +85,7 @@ SET(CMAKE_ARGS
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   # phist settings 
   -DBUILD_SHARED_LIBS:BOOL=OFF
-  -DPHIST_OUTLEV=${PHIST_OUTLEV}
+#  -DPHIST_OUTLEV=${PHIST_OUTLEV}
   -DPHIST_ENABLE_MPI:BOOL=OFF
   # workaround for bug https://bitbucket.org/essex/phist/issues/225/ghost-creating-consistent-sell-c-sigma
   -DPHIST_SELL_SIGMA=1
@@ -94,6 +94,7 @@ SET(CMAKE_ARGS
   -DPHIST_ENABLE_COMPLEX:BOOL=ON
   -DPHIST_KERNEL_LIB:STRING=ghost
   -DGHOST_DIR:STRING=${CMAKE_CURRENT_BINARY_DIR}/share/ghost
+  -DBLA_VENDOR=Intel10_64lp_seq
 )
 
 #-------------------------------------------------------------------------------

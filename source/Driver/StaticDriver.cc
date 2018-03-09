@@ -71,7 +71,7 @@ namespace CoupledField {
       if (lbm_)
         handler_->BeginMultiSequenceStep( sequenceStep_, BasePDE::TRANSIENT, 9999);
       else
-      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
+        handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
     }
     // In case we allow general postprocessing or this analysis is part of 
     // a multisequence (in which case the subsequent run could need this

@@ -1477,8 +1477,8 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
 }
 void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
-  unsigned int start = design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE ? 0 : FindDesign(design) * elements;
-  unsigned int end   = design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE ? data.GetSize() : start + elements;
+  unsigned int start = (design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE) ? 0 : FindDesign(design) * elements;
+  unsigned int end   = (design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE) ? data.GetSize() : start + elements;
   LOG_DBG3(designSpace) << "Reset: vs=" << DesignElement::valueSpecifier.ToString(vs) << " design="
                         << DesignElement::type.ToString(design) << " from " << start << " to " << end;
 

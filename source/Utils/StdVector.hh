@@ -153,6 +153,18 @@ namespace CoupledField {
       return const_iterator(this, 0);
     }
     
+    //! Return iterator pointing to first element
+    //! otherwise we can't use C++11 auto
+    iterator begin() {
+        return iterator(this, 0);
+    }
+
+    //! Return iterator pointing to first element
+    //! otherwise we can't use C++11 auto
+    const_iterator begin() const {
+      return const_iterator(this, 0);
+    }
+
     //! Return iterator pointing to last element
     iterator End() {
         return iterator(this, size_);
@@ -163,6 +175,19 @@ namespace CoupledField {
         return const_iterator( this, size_ );
     }
     
+
+    //! Return iterator pointing to last element
+    //! otherwise we can't use C++11 auto
+    iterator end() {
+        return iterator(this, size_);
+    }
+
+    //! Return iterator pointing to last element
+    //! otherwise we can't use C++11 auto
+    const_iterator end() const {
+        return const_iterator( this, size_ );
+    }
+
     // =======================================================================
     //  VECTOR METHODS
     // =======================================================================
