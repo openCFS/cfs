@@ -67,6 +67,10 @@ $( document ).ready(function() {
 	        $("#iteration_num").html('-1');
 	        update_iterations(false);
 	    });
+	    $("input[name='result_selector_view']").change(function () {
+	        $("#iteration_num").html('-1');
+	        update_iterations(false);
+	    });
 	//}
 
     trigger_update(continuous);
@@ -168,7 +172,12 @@ function update_iterations(refresh = false) {
 	if ($("#logscale_y2").prop('checked') == true) {
 		logscale_y2 = true;
 	}
-	
+
+	result_array = [];
+	$("input[name='result_selector_view']:checked").each( function () {
+		result_array.push($(this).val());
+	});
+
 	$.ajax({
 		url : "/plot/" + key,
 		data : {
@@ -179,7 +188,8 @@ function update_iterations(refresh = false) {
 			"y2_res" : y2_res,
 			"iteration_num" : iteration_num,
 			"logscale_y1" : logscale_y1,
-			"logscale_y2" : logscale_y2
+			"logscale_y2" : logscale_y2,
+			"view_results" : result_array
 		},
 		success : function(result) {
 

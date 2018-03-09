@@ -251,17 +251,23 @@ def render_view(GLOBAL_DATA_DICT, key, client_ip):
   settings_data += '    auto update: <input type="checkbox" id="catalyst_send_auto_update"/>'
   settings_data += '    </li>'
   
-  settings_data += '    <li class="list-group-item">results:'
-  settings_data += '    <table class="table table-sm" id="result">'
-  settings_data += '        <thead><td>view</td><td></td></thead><tbody>'
-  
-  for result in xml.xpath('//streaming/process/sequence/result'):
-    name = result.xpath('@data')[0]
+  if int(xml.xpath('//grids/grid/@dimensions')[0]) == 2:
+    # we have a 2-Dimensional grid here. Therefore we offer to render it
+    settings_data += '    <li class="list-group-item">results:'
+    settings_data += '    <table class="table table-sm" id="result">'
+    settings_data += '        <thead><td>view</td><td></td></thead><tbody>'
     
-    settings_data += '        <tr><td><input class="form-control" type="checkbox" name="result_selector_view" value="' + name + '" /></td>'
-    settings_data +=             '<td>' + name + '</td></tr>'
-
-  settings_data += '    </tbody></table></li>'
+    for result in xml.xpath('//results/result'):
+      if int(result.attrib['dofs']) == 1:
+        # we can only display 1D data as color image!
+        name = result.attrib['name']
+        
+        settings_data += '        <tr><td><input class="form-control" type="checkbox" name="result_selector_view" value="' + name + '" /></td>'
+        settings_data +=             '<td>' + name + '</td></tr>'
+  
+    settings_data += '    </tbody></table></li>'
+  
+  
   settings_data += '    <li class="list-group-item">iterations and scalar results:'
   settings_data += '    <table class="table table-sm" id="iteration">'
   #hide the x selector for now
