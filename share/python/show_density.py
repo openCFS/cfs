@@ -97,7 +97,7 @@ parser.add_argument('--saveall', help="saves all input files as png", action='st
 parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
 parser.add_argument('--grid', help="draw mesh lines", action='store_true')
 parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
-parser.add_argument('--size', help="resize image", nargs='*', type=int)
+parser.add_argument('--size', help="resize image", nargs='*', type=int, default=[1000])
 parser.add_argument('--info', help="print some info about the density file and exit", action='store_true')
 parser.add_argument('--set', help="optional label of set, default is the last one")
 parser.add_argument('--tile', help="show periodic repetition of tile x tile patches", type=int)
