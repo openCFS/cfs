@@ -2,6 +2,7 @@ SET(RESULTS_SRCS
   BaseResults.cc
   ResultFunctor.cc
   ResultInfo.cc
+  MHTimeFreqResult.cc
   )
 
 

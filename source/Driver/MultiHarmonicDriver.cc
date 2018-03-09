@@ -65,6 +65,8 @@ namespace CoupledField
     // default for numHarmonics_M is numHarmonics_N
     numHarmonics_M_ = ( param_->Has("numHarmonics_M") ) ?  param_->Get("numHarmonics_M")->MathParse<Double>() : numHarmonics_N_;
     
+    numFFT_ = param_->Get("numFFTPoints")->MathParse<Double>();
+
     // read flag if all results should get written to database file section
     // to allow e.g. for general postprocessing or result extraction
     param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );

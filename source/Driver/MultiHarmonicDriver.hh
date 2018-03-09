@@ -64,6 +64,9 @@ public:
   //! Number of considered harmonics for the nonlinearity, e.g. nonlinear BH-curve in electromagnetics
   UInt numHarmonics_M_;
 
+  //! Number of considered time evaluation points for FFT and iFFT
+  UInt numFFT_;
+
   //! Harmonic, we are currently considering
   UInt actHarm_;
 

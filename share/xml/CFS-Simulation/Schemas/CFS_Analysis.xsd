@@ -21,6 +21,7 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="static"/>
               <xsd:enumeration value="harmonic"/>
+              <xsd:enumeration value="multiharmonic"/>
               <xsd:enumeration value="transient"/>
               <xsd:enumeration value="eigenFrequency"/>
               <xsd:enumeration value="inverseSource"/>
@@ -170,6 +171,19 @@
                 OPTIONAL, default is numHarmonics_M=numHarmonics_N
                 Number of harmonics taken into account for describing the nonlinear behaviour
                 of the system, e.g. nonlinear BH-curve in electromagnetics
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="numFFTPoints" type="xsd:token" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Number of time points in one period of base-frequency.
+                NOTE: numFFTPoints is a scaling factor for numHarmonics_N,
+                the real number of considered time evaluation points, then is
+                      numFFTPoints * numHarmonics_N + 1
+                The FFT of the time-result into freq-result is based on this number of 
+                evaluation points. Also the other way round (transformation from
+                frequency- intotime-domain uses these number of steps).
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>

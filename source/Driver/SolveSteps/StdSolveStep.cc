@@ -16,7 +16,7 @@
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 //#include "MatVec/SingleVector.hh"
-
+#include "Domain/Results/MHTimeFreqResult.hh"
 
 namespace CoupledField {
   
@@ -2679,6 +2679,28 @@ namespace CoupledField {
 
   void StdSolveStep::StepHarmonicNonLin() {
 
+    // Set some variables
+    UInt N = solStrat_->GetNumHarmN();
+    UInt M = solStrat_->GetNumHarmM();
+    Double bF = solStrat_->GetBaseFreq();
+    UInt numFFT = solStrat_->GetNumFFT();
+
+
+
+
+
+    // =========================================================================
+    // Create multiharmonic time-frequency object and provide basic information
+    // =========================================================================
+    MHTimeFreqResult Test(N, M, bF, numFFT);
+
+
+
+
+
+
+
+
     bool performOneMoreStep = true;
 
     // =========================================================
@@ -2688,10 +2710,6 @@ namespace CoupledField {
     PDE_.SetRhsValues();
 
     assemble_->AssembleNonLinRHS();
-
-    // Define how many harmonics we are considering
-    UInt N = solStrat_->GetNumHarmN();
-    UInt M = solStrat_->GetNumHarmM();
 
     // Initialize matrices because normally they are initialized in AssembleMatrices-method
     // but since we call the assemble method for all sub-matrices, this wouldn't work

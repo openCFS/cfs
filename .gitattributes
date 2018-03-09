@@ -1817,6 +1817,8 @@ source/Domain/Mesh/NcInterfaces/PolygonIterators.hh svneol=native#text/x-c%2B%2B
 source/Domain/Results/BaseResults.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Results/BaseResults.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Results/CMakeLists.txt -text
+source/Domain/Results/MHTimeFreqResult.cc -text
+source/Domain/Results/MHTimeFreqResult.hh -text
 source/Domain/Results/ResultFunctor.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Results/ResultFunctor.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Results/ResultInfo.cc svneol=native#text/x-c%2B%2Bsrc

@@ -1,0 +1,93 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// ================================================================================================
+/*!
+ *       \file     MHTimeFreqResult.hh
+ *       \brief    Storage container for multiharmonic results
+ *
+ *       \date     Mar 9, 2018
+ *       \author   kroppert
+ */
+//================================================================================================
+
+#ifndef FILE_CFS_MHTIMEFREQRESULT_HH
+#define FILE_CFS_MHTIMEFREQRESULT_HH
+
+#include "Utils/StdVector.hh"
+#include "General/Environment.hh"
+#include "MatVec/SBM_Vector.hh"
+
+namespace CoupledField {
+
+
+//! Class for storing a result in time and frequency domain
+
+//! This class gets handed over a time- or frequency-domain
+//! result from a multiharmonic analysis and stores the
+//! SBM result vectors. Furthermore it can transform between
+//! the two solution domains, via FFT.
+//! The number of considered time evaluation points is given
+//! by nFFT_
+class MHTimeFreqResult{
+
+public:
+
+  //! Constructor
+  MHTimeFreqResult(const UInt& N,
+                   const UInt& M,
+                   const Double& baseFreq,
+                   const UInt& nFFT);
+
+  //! Destructor
+  ~MHTimeFreqResult();
+
+
+  // ========================================================================
+  //  GETTERS / SETTERS
+  // ========================================================================
+  const SBM_Vector& getFreqResult() const { return freqResult_; }
+  const SBM_Vector& getTimeResult() const { return timeResult_; }
+  void setFreqResult(const SBM_Vector& freqResult) { freqResult_ = freqResult; }
+  void setTimeResult(const SBM_Vector& timeResult) { timeResult_ = timeResult; }
+
+
+
+private:
+
+  //! Called by constructor
+  //! Create the time-vector, based on the base-frequency
+  //! and the considered number of evaluation points in
+  //! one period of the base frequency
+  void CreateTimeVec();
+
+  //! Result-vector in time-domain, it should only consist of
+  //! ONE SBM block, containing one SingleVector with the result
+  SBM_Vector timeResult_;
+
+  //! Result-vector in frequency domain. It contains one SBM block
+  //! per frequency
+  SBM_Vector freqResult_;
+
+  //! Number of time points in one period of base-frequency.
+  //! The FFT of the timeResult into freqResult is based on this
+  //! number of evaluation points.
+  //! Also the other way round (transformation from frequency- into
+  //! time-domain uses these number of steps)
+  //! It is provided by the xml-parameter "numFFTPoints"
+  UInt nFFT_;
+
+  //! Base frequency (1st harmonic)
+  Double baseFreq_;
+
+  //! Time-vector, based on the base-frequency and the considered
+  //! number of evaluation points in one period of the base period
+  StdVector<Double> timeVec_;
+
+  //! Number of considered harmonics
+  UInt N_;
+};// end of class MHTimeFreqResult
+
+}// end of namespace
+#endif

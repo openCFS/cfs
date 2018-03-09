@@ -117,15 +117,17 @@ public:
 
   bool IsMultHarm(){ return isMultHarm_; }
 
-  void SetMultHarm(UInt bF, UInt nN, UInt nM){
+  void SetMultHarm(UInt bF, UInt nN, UInt nM, UInt numFFT){
     baseFreq_ = bF;
     numHarmN_ = nN;
     numHarmM_ = nM;
+    numFFT_ = numFFT;
   }
 
   UInt GetBaseFreq(){ return baseFreq_; }
   UInt GetNumHarmN(){ return numHarmN_; }
   UInt GetNumHarmM(){ return numHarmM_; }
+  UInt GetNumFFT(){ return numFFT_; }
 
 protected:
   
@@ -153,6 +155,9 @@ protected:
   UInt numHarmN_;
   //! Number of harmonics for nonlinearity
   UInt numHarmM_;
+
+  //! Number of considered time evaluation points for FFT and iFFT
+  UInt numFFT_;
 
 
 };
