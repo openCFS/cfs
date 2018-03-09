@@ -46,6 +46,12 @@
                     <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
                   </xsd:complexType>
                 </xsd:element>
+                <xsd:element name="density">
+                  <xsd:complexType>
+                    <xsd:attribute name="uniformValue" type="xsd:double" default="1.0" use="optional"/>
+                    <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+                  </xsd:complexType>
+                </xsd:element>
                 <xsd:element name="outputQuantity">
                   <xsd:complexType>
                     <xsd:attribute name="resultName" type="xsd:token" use="required"/>
@@ -89,6 +95,7 @@
               LambVector L = density(Vorticity x U) <br/>
               LighthillVector  T = L + GRAD(0.5 U.U) <br/>
               LighthillSourceTerm S = DIV(T)        <br/>
+              LighthillSourceTensor LT = density U U        <br/>
               Gradient  GRAD(U) = {U,x ; U,y ; U,z} <br/>
               Divergence  DIV(U) = ux,x + uy,y + uz,z <br/>
               Curl  CURL(U) = {uz,y - uy,z ; ux,z - uz,x ; uy,x - ux,y} <br/>

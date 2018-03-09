@@ -46,9 +46,10 @@ public:
 
   virtual ~NearestNeighbourInterpolator();
 
-  virtual bool Run();
-
 protected:
+
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
+  
 /*
   //! Count the number of entities, which are used for the interpolation
   CF::UInt CountUsedEntities(const StdVector<CF::UInt>& entities);

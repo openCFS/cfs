@@ -131,6 +131,8 @@ cfsdeps/cgns/cgnsview-ccmio.patch -text
 cfsdeps/cmake/External_CMake.cmake -text
 cfsdeps/cmake/cmake-configure.cmake.in -text
 cfsdeps/cmake/cmake-install.cmake.in -text
+cfsdeps/feast/External_FEAST.cmake -text
+cfsdeps/feast/make.inc.in -text
 cfsdeps/fftw/External_FFTW.cmake -text
 cfsdeps/fftw/fftw-configure.cmake.in -text
 cfsdeps/fftw/lis-configure.cmake.in -text
@@ -342,8 +344,10 @@ ctest_scripts/sites/eamc061/linux64_shared_opt_mingw_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_no_prec_gcc_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_openblas_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_trunk_clang_release.ctest -text
+ctest_scripts/sites/eamc061/linux64_trunk_gcc_all_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/eamc061/linux64_trunk_gcc_release.ctest -text
+ctest_scripts/sites/eamc061/linux64_trunk_gcc_serial_debug.ctest -text
 ctest_scripts/sites/eamc061/linux64_trunk_intel_release.ctest -text
 ctest_scripts/sites/eamc061/site_specific_init.cmake -text
 ctest_scripts/sites/eamc067/generate_test_name_list.cmake -text
@@ -449,6 +453,7 @@ ctest_scripts/sites/test-sl7/generate_test_name_list.cmake -text
 ctest_scripts/sites/test-sl7/init_test.cmake -text
 ctest_scripts/sites/test-sl7/linux64_trunk_gcc-6_debug.ctest -text
 ctest_scripts/sites/test-sl7/linux64_trunk_gcc-6_release.ctest -text
+ctest_scripts/sites/test-sl7/linux64_trunk_gcc-7_release.ctest -text
 ctest_scripts/sites/test-sl7/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/test-sl7/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/test-sl7/linux64_trunk_gcc_release_deploy.cmake -text
@@ -462,12 +467,15 @@ ctest_scripts/sites/test-ubuntu14/README.md -text
 ctest_scripts/sites/test-ubuntu14/deploy_draco.cmake -text
 ctest_scripts/sites/test-ubuntu14/generate_test_name_list.cmake -text
 ctest_scripts/sites/test-ubuntu14/init_test.cmake -text
+ctest_scripts/sites/test-ubuntu14/linux64_trunk_doc-doxygen.ctest -text
+ctest_scripts/sites/test-ubuntu14/linux64_trunk_doc-doxygen_deploy.cmake -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_gcc_release_deploy.cmake -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_debug.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_release.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_icc_release_deploy.cmake -text
+ctest_scripts/sites/test-ubuntu14/linux64_trunk_no-openmp_gcc_release.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_no-opt_gcc_release.ctest -text
 ctest_scripts/sites/test-ubuntu14/site_specific_vars.cmake -text
 ctest_scripts/sites/test-ubuntu14/update_cfs_trunk.ctest -text
@@ -520,6 +528,7 @@ include/def_use_cgal.hh.in -text
 include/def_use_cgns.hh.in -text
 include/def_use_comsol.hh.in -text
 include/def_use_ensight.hh.in -text
+include/def_use_feast.hh.in -text
 include/def_use_fftw.hh.in -text
 include/def_use_flann.hh.in -text
 include/def_use_ghost.hh.in -text
@@ -531,7 +540,6 @@ include/def_use_hwloc.hh.in -text
 include/def_use_ilupack.hh.in -text
 include/def_use_ipopt.hh.in -text
 include/def_use_knitro.hh.in -text
-include/def_use_lapack.hh.in -text
 include/def_use_libfbi.hh.in -text
 include/def_use_libxml2.hh.in -text
 include/def_use_lis.hh.in -text
@@ -599,15 +607,8 @@ share/doc/auxilliaries/Pics/titelseite_logos.svg -text
 share/doc/auxilliaries/Pics/tu_signet.png -text svneol=unset#unset
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/CMakeLists.txt svneol=native#text/plain
-share/doc/developer/DoxygenConfig/background.png -text svneol=unset#unset
-share/doc/developer/DoxygenConfig/doxy-config.in -text
-share/doc/developer/DoxygenConfig/extra.css -text
-share/doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
-share/doc/developer/DoxygenConfig/headerTemplate.html svneol=native#text/html
-share/doc/developer/DoxygenConfig/latexHeader.tex -text
 share/doc/developer/DoxygenConfig/mainpage.md -text
 share/doc/developer/DoxygenConfig/mainpage.txt svneol=native#text/plain
-share/doc/developer/DoxygenConfig/markdownSyntax.md -text
 share/doc/developer/DoxygenConfig/schemaDoc.md -text
 share/doc/developer/DoxygenConfig/xmlRef.md -text
 share/doc/developer/develManual/Int.bib -text
@@ -775,6 +776,26 @@ share/doc/developer/develManual/sources/vagrant_box.sh -text
 share/doc/developer/develManual/timestepping.tex -text
 share/doc/developer/doc-develmanual.cmake.in -text
 share/doc/developer/doc-doxygen.cmake.in -text
+share/doc/developer/doxygen/README.md -text
+share/doc/developer/doxygen/config/bootstrap.min.css -text
+share/doc/developer/doxygen/config/bootstrap.min.js -text
+share/doc/developer/doxygen/config/cfsDoxygenLayout.xml.in -text
+share/doc/developer/doxygen/config/customdoxygen.css -text
+share/doc/developer/doxygen/config/doxy-boot.js -text
+share/doc/developer/doxygen/config/doxy-config.in -text
+share/doc/developer/doxygen/config/extra.css -text
+share/doc/developer/doxygen/config/footer.html.in -text
+share/doc/developer/doxygen/config/header.html.in -text
+share/doc/developer/doxygen/config/jquery-3.2.1.min.js -text
+share/doc/developer/doxygen/config/jquery.powertip.min.css -text
+share/doc/developer/doxygen/config/jquery.powertip.min.js -text
+share/doc/developer/doxygen/config/jquery.smartmenus.bootstrap.css -text
+share/doc/developer/doxygen/config/jquery.smartmenus.bootstrap.min.js -text
+share/doc/developer/doxygen/config/jquery.smartmenus.min.js -text
+share/doc/developer/doxygen/config/latexHeader.tex.in -text
+share/doc/developer/doxygen/config/sm-core-css.css -text
+share/doc/developer/doxygen/pages/main.md -text
+share/doc/developer/doxygen/pages/markdownSyntax.md -text
 share/doc/doc-common.cmake.in -text
 share/doc/tutorial/CFS++_NewPDE.pptx -text
 share/doc/tutorial/CFS++_OverviewAndSimulation.pptx -text
@@ -1345,7 +1366,9 @@ share/python/special_mesh_tools.py -text
 share/python/spy.py -text
 share/python/streamviz/__init__.py -text
 share/python/streamviz/api_plot.py -text
+share/python/streamviz/cpscript.py -text
 share/python/streamviz/render_html.py -text
+share/python/streamviz/send_data.py -text
 share/python/streamviz/start-stop.sh -text
 share/python/streamviz/static/css/bootstrap.min.css -text
 share/python/streamviz/static/css/bootstrap_submenu_hack.css -text
@@ -1424,10 +1447,12 @@ share/xml/CFS-Dat/Schemas/CFSDat_PostLighthill.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_ResultDef.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_RotDomain.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_RotSubstantialTimeDeriv.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_SNGR.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_SimplePoint.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_TDeriv1.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_TMean.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_TemporalBlending.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_TimeType.xsd -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Examples/MaterialDataBase.xml svneol=native#text/xml
 share/xml/CFS-Material/Examples/matElec.xml svneol=native#text/xml
@@ -1712,6 +1737,8 @@ source/Domain/CoefFunction/CoefFunctionGridNodalDefault.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalDefault.hh -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.hh -text
+source/Domain/CoefFunction/CoefFunctionGridNodalSource.cc -text
+source/Domain/CoefFunction/CoefFunctionGridNodalSource.hh -text
 source/Domain/CoefFunction/CoefFunctionHyst.cc -text
 source/Domain/CoefFunction/CoefFunctionHyst.hh -text
 source/Domain/CoefFunction/CoefFunctionImpedanceModel.cc -text
@@ -1808,6 +1835,8 @@ source/Driver/FormsContexts.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/FormsContexts.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/HarmonicDriver.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/HarmonicDriver.hh svneol=native#text/x-c%2B%2Bhdr
+source/Driver/InverseSourceDriver.cc -text
+source/Driver/InverseSourceDriver.hh -text
 source/Driver/MultiSequenceDriver.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/MultiSequenceDriver.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/SingleDriver.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1818,6 +1847,8 @@ source/Driver/SolveSteps/IterSolveStep.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/SolveSteps/IterSolveStep.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/SolveSteps/SolveStepElec.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/SolveSteps/SolveStepElec.hh svneol=native#text/x-c%2B%2Bhdr
+source/Driver/SolveSteps/SolveStepHyst.cc -text
+source/Driver/SolveSteps/SolveStepHyst.hh -text
 source/Driver/SolveSteps/SolveStepMagEdge.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/SolveSteps/SolveStepMagEdge.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/SolveSteps/StdSolveStep.cc svneol=native#text/x-c%2B%2Bsrc
@@ -2045,6 +2076,10 @@ source/OLAS/external/cholmod/CMakeLists.txt -text
 source/OLAS/external/cholmod/CholMod.cc -text
 source/OLAS/external/cholmod/CholMod.hh -text
 source/OLAS/external/cholmod/CholModDummy.cc -text
+source/OLAS/external/feast/CMakeLists.txt -text
+source/OLAS/external/feast/FeastEigenSolver.cc -text
+source/OLAS/external/feast/FeastEigenSolver.hh -text
+source/OLAS/external/feast/README.md -text
 source/OLAS/external/ilupack/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/ilupack/Ilupack.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/OLAS/external/ilupack/Ilupack.hh -text svneol=unset#text/x-c%2B%2Bhdr
@@ -2071,6 +2106,8 @@ source/OLAS/external/pardiso/PardisoSolverPrimitive.hh -text
 source/OLAS/external/petsc/CMakeLists.txt -text
 source/OLAS/external/petsc/PETSCSolver.cc -text
 source/OLAS/external/petsc/PETSCSolver.hh -text
+source/OLAS/external/petsc/PETScCommon.cc -text
+source/OLAS/external/petsc/PETScCommon.hh -text
 source/OLAS/external/phist/CMakeLists.txt -text
 source/OLAS/external/phist/PhistEigenSolver.cc -text
 source/OLAS/external/phist/PhistEigenSolver.hh -text
@@ -2377,7 +2414,6 @@ source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/tools.cc -text
 source/Utils/tools.hh -text
 source/cfsdat/CMakeLists.txt -text
-source/cfsdat/CMakeLists.txt_old -text
 source/cfsdat/Filters/Arithmetic/BinOpFilter.cc -text
 source/cfsdat/Filters/Arithmetic/BinOpFilter.hh -text
 source/cfsdat/Filters/Arithmetic/VecOpFilter.cc -text
@@ -2430,6 +2466,8 @@ source/cfsdat/Filters/SignalProcessing/TemporalBlendingFilter.cc -text
 source/cfsdat/Filters/SignalProcessing/TemporalBlendingFilter.hh -text
 source/cfsdat/Filters/SignalProcessing/TimeMeanFilter.cc -text
 source/cfsdat/Filters/SignalProcessing/TimeMeanFilter.hh -text
+source/cfsdat/Filters/SynteticSources/BaseSNGR.cc -text
+source/cfsdat/Filters/SynteticSources/BaseSNGR.hh -text
 source/cfsdat/README -text
 source/cfsdat/Utils/AnalyticalFields.cc -text
 source/cfsdat/Utils/AnalyticalFields.hh -text
@@ -2442,6 +2480,8 @@ source/cfsdat/Utils/EqnNumberingSimple.hh -text
 source/cfsdat/Utils/KNNSearch.cc -text
 source/cfsdat/Utils/KNNSearch.hh -text
 source/cfsdat/Utils/Point.hh -text
+source/cfsdat/Utils/ResultCache.cc -text
+source/cfsdat/Utils/ResultCache.hh -text
 source/cfsdat/Utils/ResultManager.cc -text
 source/cfsdat/Utils/ResultManager.hh -text
 source/cfsdat/cfsdat.cc -text

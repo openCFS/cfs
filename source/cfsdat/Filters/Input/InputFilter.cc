@@ -69,86 +69,17 @@ InputFilter::~InputFilter(){
   delete ptGrid;
 }
 
-bool InputFilter::Run(){
-  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
-  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
+bool InputFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
+  std::set<uuids::uuid>::iterator aIter = upResults.begin();
+  for(; aIter != upResults.end(); ++aIter){
 
-  //=========================
-  //TODO: this needs to be cleaner!!!
-  //=========================
-  //this is just an intermediate solution...
-  // this can produce wrong results as soon as multiple child filters are active...
-  //should be deactivated.
-  if(this->ranAlready_){
-    std::map<std::string,StdVector<Integer> > offsets;
-    std::map<std::string,StdVector<boost::uuids::uuid> > offIds;
-    for(; aIter != activeResults.end(); ++aIter){
-      //loop over results and determine if they are offsets
-      ResultManager::ConstInfoPtr aInfo = resultManager_->GetExtInfo(*aIter);
-      if(aInfo->resultName == "")
-        continue;
-      offsets[aInfo->resultName].Push_back(aInfo->timeStepOffset);
-      offIds[aInfo->resultName].Push_back(*aIter);
-    }
-
-    //now we loop over the map and try to shift results and deactivate them
-    std::map<std::string,StdVector<Integer> >::iterator mpIter = offsets.begin();
-    for(; mpIter != offsets.end(); ++mpIter){
-      if(mpIter->second.GetSize()==1){
-        continue;
-      }
-      StdVector<Integer> cVec = mpIter->second;
-      std::sort(cVec.Begin(),cVec.End());
-      StdVector<boost::uuids::uuid>& uidVec = offIds[mpIter->first];
-
-      //safe
-      //for(UInt aV=0;aV<cVec.GetSize()-1;++aV){
-      //  if(cVec[aV] != cVec[aV]-1){
-      //    EXCEPTION("TIME BUFFER RESULT OFFSET TIMELINE IS NOT CONTINUOUS!");
-      //  }
-      //}
-      //ADDITIONAL: could be, that we compute only every other step.
-      // need to check with timeline...
-
-      for(UInt aV=0;aV<cVec.GetSize()-1;++aV){
-        if(cVec[aV+1] != cVec[aV]+1)
-          continue;
-        CF::StdVector<UInt> eqnVec;
-        //now shift the result and deactivate them
-        UInt idx1 = mpIter->second.Find(cVec[aV]);
-        UInt idx2 = mpIter->second.Find(cVec[aV+1]);
-        //std::cout << "\tShifting result \'" << mpIter->first << "\' from step offset " <<  cVec[aV+1] << " to offset value " << cVec[aV] << std::endl;
-        Vector<Double>& fullVec1 =  resultManager_->GetResultVector<Double>(uidVec[idx1],eqnVec);
-        Vector<Double>& fullVec2 =  resultManager_->GetResultVector<Double>(uidVec[idx2],eqnVec);
-        for(UInt aE=0;aE<fullVec1.GetSize();++aE){
-          fullVec1[aE] = fullVec2[aE];
-        }
-        resultManager_->DeactivateResult(uidVec[idx1]);
-      }
-    }
-  }
-  this->ranAlready_ = true;
-  //=========================
-  // END TODO: this needs to be cleaner
-  //=========================
-
-  activeResults = resultManager_->GetActiveResults();
-  aIter = activeResults.begin();
-  for(; aIter != activeResults.end(); ++aIter){
-
-    if(filterResIds.Find(*aIter) == -1) //TODO warum?
-      continue;
     ResultManager::ConstInfoPtr aInfo = resultManager_->GetExtInfo(*aIter);
-    ResultManager::ConstResPtr cRes = resultManager_->GetResultAdapter(*aIter);
 
     ExtendedResultInfo fileResult;
     for(UInt i=0;i<availInputResults_.GetSize();++i){
       if(availInputResults_[i].resultName == aInfo->resultName){
         fileResult = availInputResults_[i];
       }
-    }
-    if(fileResult.resultName != aInfo->resultName){
-      EXCEPTION("Could not find requested result name in File");
     }
 
     if(resultManager_->GetExtInfo(*aIter)->dType == ExtendedResultInfo::COMPLEX){
@@ -158,22 +89,27 @@ bool InputFilter::Run(){
       CF::StdVector<UInt> eqnVec;
       Vector<Double>& fullVec =  resultManager_->GetResultVector<Double>(*aIter,eqnVec);
 
-      Double reqValue = cRes->stepValue;
-//      std::cout<<startTime_+reqValue<<std::endl;
-      CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+reqValue, 1E-6) );
+      Double reqValue = resultManager_->GetStepValue(*aIter);
+      UInt stepNumber = 1;
 
-      if(val == fileResult.timeLine->End()){
-        if(reqValue+*fileResult.timeLine->Begin() < *(fileResult.timeLine->End()-1))
-          std::cerr  << "ERROR: can not find a timestep for time value \'" << reqValue << "\' Either there are no more timesteps or floating point conversion errors occured" << std::endl;
-        else
-          std::cout << "\t\t\t WARN: Tying to access time data beyond source timeline. Results will be wrong for these steps. Take care if trying to append!" << std::endl;
-        fullVec.Init();
-        continue;
+      if(params_->Get("timeType",ParamNode::EX)->As<std::string>() != "static"){
+        CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+reqValue, 1E-6) );
+
+        if(val == fileResult.timeLine->End()){
+          if(reqValue+*fileResult.timeLine->Begin() < *(fileResult.timeLine->End()-1))
+            std::cerr  << "ERROR: can not find a timestep for time value \'" << reqValue << "\' Either there are no more timesteps or floating point conversion errors occured" << std::endl;
+          else
+            std::cout << "\t\t\t WARN: Tying to access time data beyond source timeline. Results will be wrong for these steps. Take care if trying to append!" << std::endl;
+          fullVec.Init();
+          continue;
+        }
+        UInt idx = std::distance(fileResult.timeLine->Begin(), val);
+        stepNumber = (*fileResult.stepNumbers.get())[idx];
       }
+
       CF::SolutionType solType = fileResult.resultType;
       std::set<std::string>::const_iterator regIter = aInfo->regNames->begin();
-      UInt idx = std::distance(fileResult.timeLine->Begin(), val);
-      UInt stepNumber = (*fileResult.stepNumbers.get())[idx];
+
       for(; regIter != aInfo->regNames->end(); ++regIter){
         Vector<Double> resVec;
         shared_ptr<BaseResult> inResult = inFile_->GetResult(fileResult.sequenceStep,stepNumber,solType,*regIter);
@@ -185,7 +121,7 @@ bool InputFilter::Run(){
         }
         RegionIdType regId = aInfo->ptGrid->GetRegion().Parse(*regIter);
         eqnVec.Clear(true);
-        cRes->mapping->GetRegionEquations(eqnVec,regId);
+        resultManager_->GetEqnMap(*aIter)->GetRegionEquations(eqnVec,regId);
         for(UInt aEq = 0; aEq<eqnVec.GetSize();++aEq){
 //TODO REGION_PROBLEM: if more than one target-region is specified in the xml-scheme, e.g. fluid and one boundary, then
           //the result vector contains exactly ONE more entry than without the boundary, independent of the number of
@@ -193,6 +129,7 @@ bool InputFilter::Run(){
           fullVec[eqnVec[aEq]] = resVec[aEq];
         }
       }
+      resultManager_->SetResultVecUpToDate(*aIter, true);
     }
   }
 
@@ -201,8 +138,6 @@ bool InputFilter::Run(){
 
 ResultIdList InputFilter::SetUpstreamResults(){
   //nothing to be done here
-
-
   ResultIdList newList;
   return newList;
 }
@@ -228,14 +163,15 @@ void InputFilter::AdaptFilterResults(){
       CF::StdVector<Double>::iterator timeIter = curResInfo->timeLine->Begin();
 
       bool allOK = true;
-      for(;timeIter != curResInfo->timeLine->End();++timeIter){
-        allOK &= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+*timeIter, 1E-5) ) != fileResult.timeLine->End();
-//        std::cout<<*timeIter<<std::endl;
+      if(params_->Get("timeType",ParamNode::EX)->As<std::string>() != "static"){
+        for(;timeIter != curResInfo->timeLine->End();++timeIter){
+          allOK &= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+*timeIter, 1E-5) ) != fileResult.timeLine->End();
+  //        std::cout<<*timeIter<<std::endl;
+        }
+
+        if(!allOK)
+          EXCEPTION("The input filter cannot provide every timestep which is requested. Check the definition of input results:")
       }
-
-      if(!allOK)
-        EXCEPTION("The input filter cannot provide every timestep which is requested. Check the definition of input results:")
-
 
     }else{
       StdVector<Double>& curT = (*fileResult.timeLine.get());
@@ -268,6 +204,7 @@ void InputFilter::CreateAvailableResultInfos(){
   std::map<UInt, BasePDE::AnalysisType> analysis;
   std::map<UInt, UInt> numSteps;
   inFile_->GetNumMultiSequenceSteps(analysis,numSteps);
+
 
   //now we obtain a List of all Results for each sequence Step
   std::map<UInt, BasePDE::AnalysisType>::iterator anaIter = analysis.begin();

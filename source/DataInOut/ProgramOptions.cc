@@ -20,7 +20,6 @@
 #include <def_use_gmsh.hh>
 #include <def_use_cgns.hh>
 #include <def_use_ccmio.hh>
-#include <def_use_lapack.hh>
 #include <def_use_cgal.hh>
 #include <def_use_libfbi.hh>
 #include <def_use_flann.hh>

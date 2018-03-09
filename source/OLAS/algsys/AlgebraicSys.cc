@@ -5,7 +5,6 @@
 
 #include <def_use_metis.hh>
 #include <def_use_pardiso.hh>
-#include <def_use_lapack.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_arpack.hh>
 #include <def_use_phist.hh>
@@ -578,7 +577,7 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::SetOldDirichletValues() {
-    idbcHandler_->ToString();
+   // idbcHandler_->ToString();
     idbcHandler_->SetOldDirichletValues();
   }
 
@@ -2368,8 +2367,8 @@ namespace CoupledField {
     LOG_TRACE(algSys) << "Updating RHS of matrix " 
                       << feMatrixType.ToString(matrixType);
 
-    //std::cout << "Updating RHS with matrix "
-    //    << feMatrixType.ToString(matrixType) << std::endl;
+//    std::cout << "Updating RHS with matrix "
+//        << feMatrixType.ToString(matrixType) << std::endl;
 
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
@@ -2397,6 +2396,10 @@ namespace CoupledField {
 
       // security check: ensure that sub-vector has the same size
       // as the block indices
+			
+//			std::cout << "fup(i).GetSize() = " << fup(i).GetSize() << std::endl;
+//			std::cout << "indices.GetSize() = " << indices.GetSize() << std::endl; 
+			
       if( fup(i).GetSize() != indices.GetSize() ) {
         EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
                    "of indices do not match!");
@@ -2417,7 +2420,24 @@ namespace CoupledField {
           }
         }
 
-      } else {
+      }
+      else if( fup.GetEntryType() == BaseMatrix::COMPLEX ) {
+        	Vector<Complex> & nRHS =
+        			dynamic_cast<Vector<Complex>&>( fup(i) );
+
+        	for( UInt j = 0; j < size; ++j ) {
+        		// omit entries for Dirichlet values
+        		if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+        			tmpRHS_->GetPointer(blockNums[j])
+    	                		  ->AddToEntry(indices[j]-1, nRHS[j] );
+        		}else if(!usingPenalty_){
+        			idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
+    	  			    		indices[j],rhs_,nRHS[j]);
+        		}
+        	}
+
+      }
+      else {
         EXCEPTION("Implement me. Dont worry: mostly C&P code");
       }
 
@@ -2502,11 +2522,11 @@ namespace CoupledField {
         // Now we are done
         return;
       }
-      else {
-        WARN("SBM_System::ConstructEffectiveMatrix: "
-            << "Map with factors is empty, but there are "
-            << matrixTypes_.size() << " FE matrices in the game!");
-      }
+//      else {
+//        WARN("SBM_System::ConstructEffectiveMatrix: "
+//            << "Map with factors is empty, but there are "
+//            << matrixTypes_.size() << " FE matrices in the game!");
+//      }
     }
     
     for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
@@ -3795,6 +3815,11 @@ namespace CoupledField {
                                              sizeB,
                                              sizeB,
                                              cI.GetSize());
+
+
+
+        crsMat.ChangeLayout(CRS_Matrix<Double>::LEX);
+
         break;
 
     }// switch dimension

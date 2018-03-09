@@ -527,10 +527,8 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::EvalResult(shared_ptr<BaseResu
 
   // get coefFunction
   PtrCoefFct coef = GetCoefFct();
-  RegionIdType neighborId = coef->GetNeighborRegionId();
-  StdVector<RegionIdType> neighborIds(1);
-  neighborIds[0] = neighborId;
 
+  StdVector<RegionIdType> neighborIds(1);
   Vector<TYPE>& vec = actSol.GetVector();
   vec.Resize( nameIt.GetSize() * dim_ );
   vec.Init();
@@ -540,6 +538,9 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::EvalResult(shared_ptr<BaseResu
   for(nameIt.Begin(); !nameIt.IsEnd(); nameIt++)  {
     shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
     		                                                            nameIt.GetName());
+
+    //get correct volume neighbor region id
+    neighborIds[0] = coef->GetVolNeighborRegionId(actSDList->GetRegion());
 
     // get nodes belonging to the surface elements
     StdVector<UInt> surfNodeList;
@@ -614,7 +615,7 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
 
 
     Vector<Double> field;
-    Matrix<Double> JInv, dJ_dr, CornerCoords,J;
+    Matrix<Double> dJ_dr, CornerCoords,J;
     Double DetdJ_dr;
 
     StdVector<UInt>  connectivity = ptElement->connect;
@@ -642,10 +643,11 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
 
     // Loop over all integration points
     LocPointMapped lpm;
+    lpm.SetCheckJacobi(false);
     for(UInt i = 0; i < intPoints.GetSize(); i++) {
     	// Calculate for each integration point the LocPointMapped
     	lpm.Set(intPoints[i], esm, weights[i]);
-
+    	//lpm.SetCheckJacobi(false);
     	// get field vector scaled by square of material parameter
     	coef_->GetVector(field, lpm );
 
@@ -683,9 +685,9 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
     			dJdrTimesE = dJ_dr * field;
 
     			Vector<Double> JInvTimesdJdr(dim_); JInvTimesdJdr.Init();
-    			JInvTimesdJdr = JInv * dJdrTimesE;
+    			JInvTimesdJdr = Jinv * dJdrTimesE;
 
-    			Force(nNode,idim) +=  ( field.Inner(JInvTimesdJdr)*Jdet
+    			Force(nNode,idim) -=  ( field.Inner(JInvTimesdJdr)*Jdet
     					              - 0.5 *  field2 * DetdJ_dr ) * weights[i];
 
     		} // loop over dimension

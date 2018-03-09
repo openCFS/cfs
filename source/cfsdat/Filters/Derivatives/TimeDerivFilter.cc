@@ -52,65 +52,44 @@ TimeDerivFilterD1::TimeDerivFilterD1(UInt numWorkers, CoupledField::PtrParamNode
   }
 }
 
-bool TimeDerivFilterD1::Run(){
-  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
-  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
-  for(; aIter != activeResults.end(); ++aIter){
-    if(filterResIds.Find(*aIter) == -1)
-      continue;
-    //we now set the time for the associated results
-    Double aTF = resultManager_->GetStepValue(*aIter);
-    std::string resName = resultManager_->GetExtInfo(*aIter)->resultName;
-    //do we already have the timestep? is it constant?
-    //yes for now
+bool TimeDerivFilterD1::UpdateResults(std::set<uuids::uuid>& upResults) {
+  std::set<uuids::uuid>::iterator oIter = upResults.begin();
+  for(; oIter != upResults.end(); ++oIter){
+    std::string resName = resultManager_->GetExtInfo(*oIter)->resultName;
     uuids::uuid upRes = filtResToUpResIds_[resName];
 
-    //here is the trick, only the obsolete result gets activated
-    // for the rest we just interchange filtResToUpResIds_[resName]
-    // for this second order derivative we cannot do anything
-    // but if we go to higher order filteres we try to pass only
-    // results which are new to upstream
-    resultManager_->SetTimeValue(upRes,aTF);
-    // now we deactivate our own result and activate the others
-    resultManager_->ActivateResult(upRes);
-
-    resultManager_->DeactivateResult(*aIter);
-  }
-
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
-  }
-  aIter = activeResults.begin();
-  for(; aIter != activeResults.end(); ++aIter){
-    if(filterResIds.Find(*aIter) == -1)
-      continue;
-    std::string resName = resultManager_->GetExtInfo(*aIter)->resultName;
-    uuids::uuid upRes = filtResToUpResIds_[resName];
-
-    CF::StdVector<UInt> eqnNums; //they should be equal...
-    Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(*aIter,eqnNums);
-    Vector<Double>& r1 = resultManager_->GetResultVector<Double>(upRes,eqnNums,-2);
-    Vector<Double>& r2 = resultManager_->GetResultVector<Double>(upRes,eqnNums,-1);
-    Vector<Double>& r3 = resultManager_->GetResultVector<Double>(upRes,eqnNums,1);
-    Vector<Double>& r4 = resultManager_->GetResultVector<Double>(upRes,eqnNums,2);
-    UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
-
-    // computation of the actual derivative 5 point stencil
-    // Smoothed noise robust derivatives
-    // http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
-    // scheme error of O(h^3)
-    for(UInt i=0;i<last;++i){
-      returnVec[i] = ((2*(r3[i]-r2[i])+r4[i]-r1[i])/(8*timeSteps_[*aIter]));
+    Vector<Double>& returnVec = GetOwnResultVector<Double>(*oIter);
+    const UInt size = returnVec.GetSize();
+    const Double dT = timeSteps_[*oIter];
+    const Double actStepValue = resultManager_->GetStepValue(*oIter);
+    
+    Vector<Double>& inVec = GetUpstreamResultVector<Double>(upRes, actStepValue - (2.0 * dT));
+    Double factor = -(1.0/8.0)/dT;
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+    for (UInt i = 0; i < size; i++) {
+      returnVec[i] = inVec[i] * factor;
     }
-    resultManager_->ActivateResult(*aIter);
-  }
 
-  //now deactivate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->DeactivateResult(upResIds[aRes]);
+    inVec = GetUpstreamResultVector<Double>(upRes, actStepValue - dT);
+    factor = -(1.0/4.0)/dT;
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+    for (UInt i = 0; i < size; i++) {
+      returnVec[i] += inVec[i] * factor;
+    }
+
+    inVec = GetUpstreamResultVector<Double>(upRes, actStepValue + dT);
+    factor = (1.0/4.0)/dT;
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+    for (UInt i = 0; i < size; i++) {
+      returnVec[i] += inVec[i] * factor;
+    }
+    
+    inVec = GetUpstreamResultVector<Double>(upRes, actStepValue + (2.0 * dT));
+    factor = (1.0/8.0)/dT;
+    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+    for (UInt i = 0; i < size; i++) {
+      returnVec[i] += inVec[i] * factor;
+    }
   }
   return true;
 }
@@ -122,13 +101,7 @@ ResultIdList TimeDerivFilterD1::SetUpstreamResults(){
   for(;aIt!=filterResIds.End();++aIt){
     std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
     std::string upstreamRes = inOutNames_.left.at(filterResName);
-    CF::StdVector<Integer> timeLine(4);
-    timeLine[0] = -2;
-    timeLine[1] = -1;
-    timeLine[2] = 1;
-    timeLine[3] = 2;
-    uuids::uuid newId = resultManager_->AddResult(upstreamRes,this->filterTag_,timeLine);
-    resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
+    uuids::uuid newId = RegisterUpstreamResult(upstreamRes, -2, 2, *aIt);
     generated.Push_back(newId);
     //additionally we store the uuids belonging to one upRes
     filtResToUpResIds_[filterResName] = newId;

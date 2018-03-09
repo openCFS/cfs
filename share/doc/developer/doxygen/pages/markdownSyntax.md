@@ -1,5 +1,76 @@
-Markdown Syntax {#mdsyntax}
-===============
+\page Markdown_Syntax
+Markdown Syntax {#randomentryintoc}
+===========================
+
+Quickstart
+----------------
+Like in LaTeX, paragraphs are staretd by inserting a blank line.
+To increase the readability in ASCII, put each sentance on a seperate line.
+This also allows for better change tracking.
+Code can be marked by a single quotation mark for `inline code`.
+One can also create code blocks by starting the lines in a prargraph by an indentation of a least four spaces 
+
+    code block
+    with multiple, ununumbered lines
+    use the correct tick. i.e. ` to mark code
+
+Or one can use triple quotation marks
+```
+to enclose a code block
+with numbered lines
+```
+
+### Headings
+
+You can structure your texts by using heasings of differnet levels.
+```
+# H1
+## H2
+### H3
+#### H4
+```
+
+For the first tow levels you may also use:
+```
+Top level heading H1
+====================
+Subheading H2
+-------------
+```
+
+### Lists and Enumerations
+
+To define lists simply start a line with any *list caracter*
+* a star
++ a plus
+- a minus
+
+To start an enumeration
+1. start a line with a number
+2. followed by a dot
+4. the value of the number does not matter
+
+### Links
+
+The last important points are links.
+There are two types of links: *inline* and *reference*.
+Both are created by text in square brackets, i.e. `[link]`.
+An inline link is directly followed by the url, i.e. `[link](https://cfs.mdmt.tuwien.ac.at)`.
+For reference links like [cfs] or [cfs-doc] the url can be given later in the document, like so
+```
+[cfs]: https://cfs.mdmt.tuwien.ac.at
+```
+Links within the documentation [md](@ref Markdown_Syntax)
+[md](@ref CoefFunctionExpression)
+[md](/Markdown_Syntax/)
+
+
+[cfs]: https://cfs.mdmt.tuwien.ac.at
+[cfs-doc]: https://cfs-doc.mdmt.tuwien.ac.at 
+
+
+Links within the documentation [md](@ref Markdown_Syntax)
+[md](@ref CoefFunctionExpression)
 
 \section overview Overview
 

@@ -154,6 +154,11 @@ namespace CoupledField
     	auxSet_ = set;
     }
 
+    //! set adjoint
+    void SetAdjointSource() {
+    	adjointSource_ = true;
+    }
+
   protected:
 
     //! Constructor
@@ -181,6 +186,10 @@ namespace CoupledField
 
     //! if AMG is used, is auxiliary built?
     bool auxSet_;
+
+    //!
+    bool adjointSource_;
+
   };
 
 

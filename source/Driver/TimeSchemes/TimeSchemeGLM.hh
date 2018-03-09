@@ -64,7 +64,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
     //This function is pretty messy right now and we need to reconsider
     // mainly because of the many if clauses to realize a optional predictor scheme...
     //! \copydoc BaseTimeScheme::ComputeStageRHS(UInt,Integer,SingleVector*,Integer)
-    virtual void ComputeStageRHS(UInt actStage, Integer derivId, SingleVector* rhsVec, Integer subIdx=-1);
+    virtual void ComputeStageRHS(UInt actStage, Integer derivId, SingleVector* rhsVec, Integer subIdx=-1, bool forceIncremental=false);
 
     /// Update the GLM Vectors according to new solution
     virtual void FinishStep( );

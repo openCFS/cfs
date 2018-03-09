@@ -697,7 +697,7 @@ Vector<double> LogspaceBase(double start, double end, int n)
   template std::string ToString<double>(const double* data, unsigned int size);
   template std::string ToString<int>(const int* data, unsigned int size);
   template std::string ToString<unsigned int>(const unsigned int* data, unsigned int size);
-  template std::string ToString<std::complex<double> >(const std::complex<double>* data, unsigned int size);
+  // std::string ToString<std::complex<double> >(const std::complex<double>* data, unsigned int size) is expicitly instantiated
 
   template std::string ToString<double>(const StdVector<Vector<double> >& data, bool new_line);
   template std::string ToString<unsigned int>(const StdVector<StdVector<unsigned int> >& data, bool new_line);

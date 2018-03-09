@@ -41,7 +41,7 @@ public:
 
   }
 
-  virtual bool Run() = 0;
+  //virtual bool Run() = 0;
 
 
 protected:
@@ -83,7 +83,8 @@ public:
 
   }
 
-  virtual bool Run();
+  //virtual bool Run();
+  bool UpdateResults(std::set<uuids::uuid>& upResults);
 
 protected:
 

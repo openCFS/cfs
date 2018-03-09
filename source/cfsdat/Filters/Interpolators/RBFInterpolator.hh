@@ -43,13 +43,10 @@ public:
 
   virtual ~RBFInterpolator();
 
-  virtual bool Run();
-
-
 
 protected:
 
-
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
 
   virtual void PrepareCalculation();
 
