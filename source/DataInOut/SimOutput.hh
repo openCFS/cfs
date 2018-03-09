@@ -29,8 +29,7 @@ namespace CoupledField {
   public:
     
     //! Type for associating a result name the related BaseResult objects
-    typedef std::map<std::string, 
-                     StdVector<shared_ptr<BaseResult> > > ResultMapType;
+    typedef std::map<std::string, StdVector<shared_ptr<BaseResult> > > ResultMapType;
 
     //! Define capabilities of writing out certain information
     typedef enum {

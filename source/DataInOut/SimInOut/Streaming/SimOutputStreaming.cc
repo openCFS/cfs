@@ -86,6 +86,7 @@ void SimOutputStreaming::RegisterResult(shared_ptr<BaseResult> br, UInt saveBegi
 
 void SimOutputStreaming::BeginStep( UInt stepNum, Double stepVal)
 {
+  results_.Clear();
   actStep_ = stepNum;
   actStepVal_ = stepVal;
 }
@@ -122,7 +123,6 @@ void SimOutputStreaming::TransmitData(bool force) {
       // (except for the final data which will still be tried)
       current_client = new Client(io_service, this);
       current_client->Send(host_, port_, path_);
-      results_.Clear();
     }
   } else {
     std::ofstream out(path_.c_str());
