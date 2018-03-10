@@ -113,7 +113,7 @@ namespace CoupledField {
     //if(isQuadratic_ || isBloch_) eigenFreqs = new Vector<Complex>(numFreq_);
     //                        else eigenFreqs = new Vector<Double>(numFreq_);
 
-    eigenFreqs = & Frequency;
+    eigenFreqs = & frequency_;
     InitializePDEs();
   }
 
@@ -314,21 +314,13 @@ namespace CoupledField {
 
   double EigenFrequencyDriver::GetFrequency(unsigned int idx) const
   {
-    /** old
-    if(isQuadratic_)
-      return dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].imag() / (2.0 * M_PI);
-    if(isBloch_)
-      return dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].real();
-    else
-      return dynamic_cast<Vector<double>&>(*eigenFreqs)[idx];
-    **/
-    return Frequency[idx];;
+    return frequency_[idx];;
   }
 
   double EigenFrequencyDriver::GetDamping(unsigned int idx) const
   {
     if(isQuadratic_)
-      return DampingRatio[idx];// dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].real();
+      return dampingRatio_[idx];// dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].real();
     else
       return 0.0;
   }
@@ -393,26 +385,26 @@ namespace CoupledField {
         if (complexEV) {
             Vector<Complex> evals,errs;
             sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
-            eigsRe.Resize(evals.GetSize());
-            eigsIm.Resize(evals.GetSize());
+            eigsRe_.Resize(evals.GetSize());
+            eigsIm_.Resize(evals.GetSize());
             for (int i=0;i<(int)evals.GetSize();i++) {
-                eigsRe[i] = evals[i].real();
-                eigsIm[i] = evals[i].imag();
+                eigsRe_[i] = evals[i].real();
+                eigsIm_[i] = evals[i].imag();
             }
-            Eig2FreqDamp(evals,Frequency,DampingRatio);
+            Eig2FreqDamp(evals,frequency_,dampingRatio_);
         }
         else {
             Vector<Double> evals,errs;
             sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
-            eigsRe.Resize(evals.GetSize());
-            eigsRe = evals;
-            Eig2Freq(evals,Frequency);
+            eigsRe_.Resize(evals.GetSize());
+            eigsRe_ = evals;
+            Eig2Freq(evals,frequency_);
         }
         // info output: ToDo: make this pretty
-        std::cout << "eigsRe = " << eigsRe.ToString() << "\n";
-        std::cout << "eigsIm = " << eigsIm.ToString() << "\n";
-        std::cout << "Frequency = " << Frequency.ToString() << "\n";
-        std::cout << "DampingRatio = " << DampingRatio.ToString() << "\n";
+        std::cout << "eigsRe = " << eigsRe_.ToString() << "\n";
+        std::cout << "eigsIm = " << eigsIm_.ToString() << "\n";
+        std::cout << "Frequency = " << frequency_.ToString() << "\n";
+        std::cout << "dampingRatio_ = " << dampingRatio_.ToString() << "\n";
     }
     else if ( numFreq_ > 0 || freqShift_ > 0  ){ // we have num + shift
         // the old stuff should be moved here, after adaption to the new structure of BaseEigenSolver
@@ -441,13 +433,13 @@ namespace CoupledField {
       if(isQuadratic_)
       {
         Vector<Complex> ef = Vector<Complex>();
-        ef.Init(); ef.Resize(numFreq_);
+        ef.Resize(numFreq_);
         step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_, isBloch_);
-        Frequency.Init(0.0);Frequency.Resize(ef.GetSize());
-        DampingRatio.Init(0.0);DampingRatio.Resize(ef.GetSize());
+        frequency_.Resize(ef.GetSize());
+        dampingRatio_.Resize(ef.GetSize());
         for (int i=0; i<(int)ef.GetSize();i++){
-            Frequency[i] = ef[i].imag()/(2*M_PI);
-            DampingRatio[i] = ef[i].real();
+            frequency_[i] = ef[i].imag()/(2*M_PI);
+            dampingRatio_[i] = ef[i].real();
         }
         PrintResult();
       }
@@ -501,9 +493,9 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->CalcEigenFrequencies(ef , errBounds_, numFreq_, freqShift_, sort_, isBloch_);
 
     // put the real part into the "frequency" vector -> it should be the eigenvalue actually
-    Frequency.Resize(ef.GetSize());
+    frequency_.Resize(ef.GetSize());
     for (int i=0;i<(int)ef.GetSize();i++){
-        Frequency[i] = ef[i].real();
+        frequency_[i] = ef[i].real();
     }
 
     PrintResult(wave_vector_step);
@@ -523,17 +515,17 @@ namespace CoupledField {
     unsigned int wvs = isBloch_ ? wave_vectors.GetSize() : 1; // save wave vector size
     unsigned int w = isBloch_ ? GetCurrentWaveVectorIndex() : 0;
 
-    // generates a index-array ModeOrder containing the mode indices sorted by ascending Frequency value
+    // generates a index-array modeOrder_ containing the mode indices sorted by ascending Frequency value
     SortModes();
 
-    for(unsigned int fi=0; fi < Frequency.GetSize(); fi++)
+    for(unsigned int fi=0; fi < frequency_.GetSize(); fi++)
     {
       // Phase 2: calculate eigenmodes
       if(writeModes_)
       {
         ptPDE_->GetSolveStep()->SetActStep(fi);
-        ptPDE_->GetSolveStep()->SetActFreq(GetFrequency(ModeOrder[fi]));
-        ptPDE_->GetSolveStep()->GetEigenMode(ModeOrder[fi]); // this stores the eigen mode result in AlgSys's sol_
+        ptPDE_->GetSolveStep()->SetActFreq(GetFrequency(modeOrder_[fi]));
+        ptPDE_->GetSolveStep()->GetEigenMode(modeOrder_[fi]); // this stores the eigen mode result in AlgSys's sol_
 
         // stupid paraview needs an increasing series of save_value :(
 
@@ -550,7 +542,7 @@ namespace CoupledField {
           LOG_DBG3(efd) << "SR total=" << total << " digs=" << digs << " sig=" << sig << " count=" << (w * wvs + fi + 1);
         }
         else // for bloch case we label <step>.<nr> from the info.xml
-          save_value = isBloch_ ? w + (fi+1.0) / (eigenFreqs->GetSize() < 9 ? 10.0 : 100.0) : std::abs(GetFrequency(ModeOrder[fi]));
+          save_value = isBloch_ ? w + (fi+1.0) / (eigenFreqs->GetSize() < 9 ? 10.0 : 100.0) : std::abs(GetFrequency(modeOrder_[fi]));
 
         LOG_DBG(efd) << "SR w=" << w << " fi=" << fi << " save_step_=" << save_step_ << " save_value=" << save_value;
 
