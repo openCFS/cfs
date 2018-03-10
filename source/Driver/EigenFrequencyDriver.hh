@@ -91,13 +91,13 @@ class SingleVector;
         }
     }
     void SortModes(){
-        ModeOrder.Resize(Frequency.GetSize());
+        modeOrder_.Resize(frequency_.GetSize());
         std::size_t n(0);
-        // allocate ModeOrder
-        std::generate(std::begin(ModeOrder), std::end(ModeOrder), [&]{ return n++; });
+        // allocate modeOrder_
+        std::generate(std::begin(modeOrder_), std::end(modeOrder_), [&]{ return n++; });
         // sort it by requency
-        std::sort(std::begin(ModeOrder),std::end(ModeOrder),[&](int i1, int i2) { return Frequency[i1] < Frequency[i2]; } );
-        std::cout << " ModeOrder : "<<ModeOrder.ToString()<<"\n";
+        std::sort(std::begin(modeOrder_),std::end(modeOrder_),[&](int i1, int i2) { return frequency_[i1] < frequency_[i2]; } );
+        std::cout << " modeOrder_ : "<<modeOrder_.ToString()<<"\n";
     }
 
     /** Return the number of eigenfrequencies to be calculated. Not the number of wave_vectors!!
@@ -130,21 +130,21 @@ class SingleVector;
     static bool DoBloch(PtrParamNode node) { return node->Has("bloch"); }
 
     /** the resent calculated eigenvalues. Might be complex, @see GetFrequency(). Corresponds with errBounds_ */
-    SingleVector* eigenFreqs;
+    SingleVector* eigenFreqs; //ToDo: remove due to new structure -> frequency_
 
     //! the recent calculated eigen values, might be complex
-    SingleVector* eigenVals;
+    SingleVector* eigenVals_;
 
-    Vector<Double> Frequency; // frequency
-    Vector<Double> DampingRatio; // damping ratio
-    Vector<Double> eigsRe; // real part
-    Vector<Double> eigsIm; // imag part
+    Vector<Double> frequency_; // frequency
+    Vector<Double> dampingRatio_; // damping ratio
+    Vector<Double> eigsRe_; // real part
+    Vector<Double> eigsIm_; // imag part
 
     /** this is the list of wave vectors we have to process.
      * Obtained arbitrary */
     StdVector<Vector<double> > wave_vectors;
 
-    StdVector<int> ModeOrder; // for sorting the obtained modes
+    StdVector<int> modeOrder_; // for sorting the obtained modes
 
   private:
 
