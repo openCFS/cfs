@@ -2899,7 +2899,8 @@ namespace CoupledField {
         if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
           if ( rowNum <= lastFreeRowIndex ) {
             vecP.AddToEntry( rowNum-1, elemRHS[iRow]);
-            vecN.AddToEntry( rowNum-1, elemRHS[iRow]);
+            // this entry must be conjugate complex
+            vecN.AddToEntry( rowNum-1, std::conj(elemRHS[iRow]));
           }
         } // loop over rows
       } else{

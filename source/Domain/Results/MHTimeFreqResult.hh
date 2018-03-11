@@ -16,6 +16,7 @@
 #define FILE_CFS_MHTIMEFREQRESULT_HH
 
 #include "Utils/StdVector.hh"
+#include "MatVec/Vector.hh"
 #include "General/Environment.hh"
 #include "MatVec/SBM_Vector.hh"
 
@@ -47,10 +48,13 @@ public:
   // ========================================================================
   //  GETTERS / SETTERS
   // ========================================================================
-  const SBM_Vector& getFreqResult() const { return freqResult_; }
-  const SBM_Vector& getTimeResult() const { return timeResult_; }
-  void setFreqResult(const SBM_Vector& freqResult) { freqResult_ = freqResult; }
-  void setTimeResult(const SBM_Vector& timeResult) { timeResult_ = timeResult; }
+
+  void SetFrequencyResult(const SBM_Vector& freqResult);
+
+
+  //! Method for evaluating a Fourier series with given Fourier-coefficients.
+  //! Evaluate Fourier series at given discrete times in timeVec_
+  void FourierToTime();
 
 
 
@@ -62,13 +66,14 @@ private:
   //! one period of the base frequency
   void CreateTimeVec();
 
-  //! Result-vector in time-domain, it should only consist of
-  //! ONE SBM block, containing one SingleVector with the result
-  SBM_Vector timeResult_;
+  //! Result-vector in time-domain. Outer vector is time-step,
+  //! inner one contains the spatial dof's
+  StdVector< Vector<Complex> > timeResult_;
 
-  //! Result-vector in frequency domain. It contains one SBM block
-  //! per frequency
-  SBM_Vector freqResult_;
+  //! Result-vector in frequency domain. Outer vector is frequency (harmonic),
+  //! inner one contains the spatial dof's
+  StdVector< Vector<Complex> > freqResult_;
+  //SBM_Vector freqResult_;
 
   //! Number of time points in one period of base-frequency.
   //! The FFT of the timeResult into freqResult is based on this
@@ -78,8 +83,11 @@ private:
   //! It is provided by the xml-parameter "numFFTPoints"
   UInt nFFT_;
 
-  //! Base frequency (1st harmonic)
-  Double baseFreq_;
+  //! Base angular frequency (1st harmonic)
+  Double omega0_;
+
+  //! Number of (spatial) dof's in computational domain
+  UInt spatialSize_;
 
   //! Time-vector, based on the base-frequency and the considered
   //! number of evaluation points in one period of the base period
@@ -87,6 +95,7 @@ private:
 
   //! Number of considered harmonics
   UInt N_;
+
 };// end of class MHTimeFreqResult
 
 }// end of namespace

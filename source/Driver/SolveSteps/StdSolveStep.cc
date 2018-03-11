@@ -2685,22 +2685,6 @@ namespace CoupledField {
     Double bF = solStrat_->GetBaseFreq();
     UInt numFFT = solStrat_->GetNumFFT();
 
-
-
-
-
-    // =========================================================================
-    // Create multiharmonic time-frequency object and provide basic information
-    // =========================================================================
-    MHTimeFreqResult Test(N, M, bF, numFFT);
-
-
-
-
-
-
-
-
     bool performOneMoreStep = true;
 
     // =========================================================
@@ -2772,6 +2756,52 @@ namespace CoupledField {
     // but we need the full multiharmonic solution vector
     SBM_Vector actSol(BaseMatrix::COMPLEX);
     actSol = solVecMH_;
+
+
+
+
+
+
+
+
+
+
+// Delete this output
+    SBM_Vector tmp(BaseMatrix::COMPLEX);
+    algsys_->GetFullMultiHarmRHSVal(tmp);
+    std::cout<<"tmp(0)"<<tmp(0).ToString()<<std::endl;
+    std::cout<<"tmp(1)"<<tmp(1).ToString()<<std::endl;
+    std::cout<<"tmp(2)"<<tmp(2).ToString()<<std::endl;
+    std::cout<<"tmp(3)"<<tmp(3).ToString()<<std::endl;
+    std::cout<<"tmp(4)"<<tmp(4).ToString()<<std::endl;
+    std::cout<<"tmp(5)"<<tmp(5).ToString()<<std::endl;
+    std::cout<<"tmp(6)"<<tmp(6).ToString()<<std::endl;
+
+    std::cout<<"actSol(0)"<<actSol(0).ToString()<<std::endl;
+    std::cout<<"actSol(1)"<<actSol(1).ToString()<<std::endl;
+    std::cout<<"actSol(2)"<<actSol(2).ToString()<<std::endl;
+    std::cout<<"actSol(3)"<<actSol(3).ToString()<<std::endl;
+    std::cout<<"actSol(4)"<<actSol(4).ToString()<<std::endl;
+    std::cout<<"actSol(5)"<<actSol(5).ToString()<<std::endl;
+    std::cout<<"actSol(6)"<<actSol(6).ToString()<<std::endl;
+
+
+
+    // =========================================================================
+    // Create multiharmonic time-frequency object and provide basic information
+    // =========================================================================
+    MHTimeFreqResult Test(N, M, bF, numFFT);
+
+    Test.SetFrequencyResult(actSol);
+    Test.FourierToTime();
+
+
+
+
+
+
+
+
 
     // TODO this hardcoded variable is just for development purposes and must be changed!!
     // Number of outer iterations currently hardcoded
