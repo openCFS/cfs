@@ -350,72 +350,36 @@
     </xsd:complexContent>
   </xsd:complexType>
   
+  
+  
   <!-- ==================================================================== -->
   <!-- ==                                                                == -->
-  <!-- ==               USE SOLVERS AS PRECONDITIONERS                   == -->
+  <!-- ==                   OLAS_SBM_DIAG preconditioner                 == -->
   <!-- ==                                                                == -->
   <!-- ==================================================================== -->
   
-  <!-- ******************************************************************** -->
-  <!--  Definition of OLAS_PCG Solver as Preconditioner                     -->
-  <!-- ******************************************************************** -->
- <!-- <xsd:element name="cg" type="DT_SolverOLASPCG"
-    substitutionGroup="PrecondBasic"/>-->
   
   <!-- ******************************************************************** -->
-  <!--  Definition of LAPACK_LU Solver as Preconditioner                    -->
+  <!-- Definition of element for OLAS_SBM_DIAG Preconditioner               -->
   <!-- ******************************************************************** -->
- <!-- <xsd:element name="lapackLU" type="DT_SolverLAPACKLU"
-    substitutionGroup="PrecondBasic"/>
-  -->
-  <!-- ******************************************************************** -->
-  <!--  Definition of LAPACK_LL Solver as Preconditioner                    -->
-  <!-- ******************************************************************** -->
-<!--  <xsd:element name="lapackLL" type="DT_SolverLAPACKLL"
-    substitutionGroup="PrecondBasic"/>-->
-  
-  <!-- ******************************************************************** -->
-  <!--  Definition of OLAS_PARDISO Solver as Preconditioner                 -->
-  <!-- ******************************************************************** -->
- <!-- <xsd:element name="pardiso" type="DT_SolverPARDISO"
-    substitutionGroup="PrecondBasic"/>-->
-  <!-- PARDISO -->
-  
-  <!-- ******************************************************************** -->
-  <!--  Definition of OLAS_DIRECT_LU Solver as Preconditioner               -->
-  <!-- ******************************************************************** -->
- <!-- <xsd:element name="directLU" type="DT_SolverDIRECT_LU"
-    substitutionGroup="PrecondBasic"/>-->
-  
-  <!-- ******************************************************************** -->
-  <!--  Definition of OLAS_DIRECT_LDL Solver as Preconditioner              -->
-  <!-- ******************************************************************** -->
- <!-- <xsd:element name="directLDL" type="DT_SolverDIRECT_LDL"
-    substitutionGroup="PrecondBasic"/>-->
-  
-  <!-- ******************************************************************** -->
-  <!--  Definition of OLAS_GMRES Solver as Preconditioner                   -->
-  <!-- ******************************************************************** -->
- <!-- <xsd:element name="gmres" type="DT_SolverOLASGMRES"
-    substitutionGroup="PrecondBasic"/>-->
-  
-  <!--  Definition of OLAS_ILUPACK Solver as Preconditioner                 -->
-  <!-- ******************************************************************** -->
- <!-- <xsd:element name="ilupack" type="DT_Ilupack"
-    substitutionGroup="PrecondBasic"/>-->
-  
-  <!-- ******************************************************************** -->
-  <!--  Definition of OLAS_Cholmod Solver as Preconditioner                 -->
-  <!-- ******************************************************************** -->
- <!-- <xsd:element name="cholmod" type="DT_CholMod" 
-    substitutionGroup="PrecondBasic"/>-->
-  
-  <!-- ******************************************************************** -->
-  <!--  Definition of OLAS_PCG Solver as Preconditioner                     -->
-  <!-- ******************************************************************** -->
-  <!--<xsd:element name="minres" type="DT_SolverOLASMINRES"
-    substitutionGroup="PrecondBasic"/>-->
+  <xsd:element name="SBMJacobi" type="DT_PrecondSBMJacobi" substitutionGroup="PrecondBasic"/>
   
   
-
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_SBM_DIAG Preconditioner           -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondSBMJacobi">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="precond" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="isMultiHarmonic" type="xsd:boolean"/>
+              <xsd:attribute name="id" type="xsd:token" default="default"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 </xsd:schema>

@@ -2186,6 +2186,8 @@ source/OLAS/precond/MGPrecond.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/precond/MGPrecond.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/SBMDiagPrecond.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/precond/SBMDiagPrecond.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/precond/SBMJacobiPrecond.cc -text
+source/OLAS/precond/SBMJacobiPrecond.hh -text
 source/OLAS/precond/SSORPrecond.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/precond/SSORPrecond.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/generateprecond.cc svneol=native#text/x-c%2B%2Bsrc

@@ -32,6 +32,7 @@
 #include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
 #include "OLAS/precond/IC0Precond.hh"
 #include "OLAS/precond/SBMDiagPrecond.hh"
+#include "OLAS/precond/SBMJacobiPrecond.hh"
 
 namespace CoupledField {
 
@@ -483,6 +484,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
     // Branch depending on desired preconditioner
     PtrParamNode infoNode, blockInfoNode;
     SBMDiagPrecond * dp = NULL;
+    SBMJacobiPrecond * jp = NULL;
     
     switch( ptype ) {
 
@@ -499,6 +501,49 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
 //      LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated Identity preconditioner";
      break;
       
+     // ============================
+     //   SBM-Jacobi Preconditioner
+     // ============================
+    case BasePrecond::SBM_JACOBI:
+    {
+      // Check if the multiharmonic optimized version is used
+      bool isMultiHarmonic = (precondNode->Get("precond")->Has("isMultiHarmonic") == true)? true : false;
+
+      jp = new SBMJacobiPrecond(numBlocks, olasInfo, isMultiHarmonic);
+      infoNode = jp->GetInfoNode();
+
+      // Loop over all blocks and assign to each diagonal block a
+      // StdPrecond object with the same preconditioner, otherwise we
+      // would have a SBMDiagPrecond
+      std::string precondId;
+      if(precondNode->Get("precond")->Has("id")){
+        precondId = precondNode->Get("precond")->Get("id")->As<std::string>();
+      }else{
+        EXCEPTION("No preconditioner id was defined for the SBM_Jacobi preconditioner!!");
+      }
+
+      if(!isMultiHarmonic){
+        for( UInt i = 0; i < numBlocks; ++i ) {
+          // just for the info-xml
+          blockInfoNode = infoNode->Get("block",ParamNode::APPEND);
+          blockInfoNode->Get("num")->SetValue(i+1);
+          // generate preconditioner object
+          BasePrecond * actPrecond = GenerateStdPrecondObject( mat(i,i), precondId, precondList, blockInfoNode );
+          // pass precond object to sbm-preconditioner
+          jp->SetPrecond(i, actPrecond );
+        }
+      }else{
+        // multiharmonic Version
+        // generate preconditioner object
+        BasePrecond * actPrecond = GenerateStdPrecondObject( mat(0,0), precondId, precondList, blockInfoNode );
+        // pass precond object to sbm-preconditioner
+        jp->SetPrecond(0, actPrecond );
+      }
+      retVal = jp;
+    }
+      break;
+
+
       // ============================
       //   SBM-Diag Preconditioner
       // ============================ 
@@ -602,6 +647,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
         break;
         
       case BasePrecond::SBM_DIAG:
+      case BasePrecond::SBM_JACOBI:
         // works with all SBM matrices
         break;
             
