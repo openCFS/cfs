@@ -10,6 +10,7 @@ namespace CoupledField {
                                   PtrParamNode olasInfo,
                                   bool isMultiHarmonic)
   : BaseSBMPrecond(numBlocks, olasInfo) {
+    isMultHarm_ = isMultiHarmonic;
     if(isMultHarm_){
       stdPreconds_.Resize( 1 );
     }else{
@@ -18,7 +19,7 @@ namespace CoupledField {
     stdPreconds_.Init(NULL);
 
     setMHPrecond_ = false;
-    isMultHarm_ = isMultiHarmonic;
+
   }
   
 
