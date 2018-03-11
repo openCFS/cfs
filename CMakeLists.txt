@@ -437,6 +437,20 @@ IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
   ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
 ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 
+# set the mode of cfstool
+SET(CFS_TESTSUITE_CFSTOOL_MODE "scalardiff" CACHE STRING "The mode used to compare hdf5 files by cfstool. May be 'scalardiff', 'L2diff', or 'relL2diff'.")
+if( NOT ( (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "scalardiff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "L2diff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "relL2diff") ) )
+  message("select a correct value for CFS_TESTSUITE_CFSTOOL_MODE.")
+endif()
+
+# set the number of thread to use for the testing runs
+include(ProcessorCount)
+ProcessorCount(NCPU)
+SET(CFS_TESTSUITE_THREADS "${NCPU}" CACHE STRING "Number of threads to use for the cfs testing runs, i.e. use argument '-t CFS_TESTSUITE_THREADS' in cfs runs.")
+if(NOT CFS_TESTSUITE_THREADS MATCHES "^[1-9][0-9]*$")
+  message("CFS_TESTSUITE_THREADS must be integer valued.")
+endif()
+
 #-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
 #-----------------------------------------------------------------------------
