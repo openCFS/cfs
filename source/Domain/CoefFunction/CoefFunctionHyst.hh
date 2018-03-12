@@ -1994,10 +1994,10 @@ namespace CoupledField {
     // independent of the actual value of timeLevel_xxx_
     bool forceCurrentTS_;
     int RUN_deltaForm_;
-    UInt timeLevel_Mat_;
-    UInt timeLevel_RHS_;
-    UInt timeLevel_BC_;
-    UInt timeLevel_Output_;
+    Integer timeLevel_Mat_;
+    Integer timeLevel_RHS_;
+    Integer timeLevel_BC_;
+    Integer timeLevel_Output_;
     PtrCoefFct hystItself_;
     
     
