@@ -351,7 +351,7 @@ void ShapeMapDesign::InduceCenterSymmetryNodes(ShapeParam& first, ShapeParam& se
      throw Exception("provide at least a 'center' or 'node' entry for 'shapeMap'");
 
    // first we add the shapes, as we might induce additional shapes during ParseAndInit we add the profiles later. We must not resize during push_back, therefore check the initial guess
-   unsigned int estimate = -1;
+   unsigned int estimate = 0;
    if(dim_ == 2)
      estimate = 2 * nodes.GetSize() * 4; // 2 for profile and 4 for symmetry
    else
