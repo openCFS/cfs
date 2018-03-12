@@ -19,6 +19,7 @@
 # if there is no cd ... following generate_qsub_script() from cfs_utils.py will add it
 # the last line will get the cfs call by generate_qsub_script
 module load intel64
+export CFS_NUM_THREADS=4
 export MKL_NUM_THREADS=4
 export OMP_NUM_THREADS=4
 
