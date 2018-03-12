@@ -79,13 +79,10 @@ def get_image(input, set, design, fill=0.0):
     print_grid_on_image(img,dens)
   
   if args.orgsize:
-    args.size = img.size
-  else:
-    if not args.size:
-      args.size = [800, 800]
-
-  print(args.size)
-  img = img.resize(args.size)
+    args.resize = img.size
+  
+  print(args.resize)
+  img = img.resize(args.resize)
   
   return img, dens
 
@@ -97,7 +94,7 @@ parser.add_argument('--saveall', help="saves all input files as png", action='st
 parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
 parser.add_argument('--grid', help="draw mesh lines", action='store_true')
 parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
-parser.add_argument('--size', help="resize image", nargs='*', type=int, default=[1000])
+parser.add_argument('--resize', help="resize image to given size, give '<res>' or '<xres> <yres>' ", nargs='*', type=int, default=[800])
 parser.add_argument('--info', help="print some info about the density file and exit", action='store_true')
 parser.add_argument('--set', help="optional label of set, default is the last one")
 parser.add_argument('--tile', help="show periodic repetition of tile x tile patches", type=int)
@@ -106,10 +103,11 @@ parser.add_argument('--fill', help="fill elements without density information wi
 
 args = parser.parse_args()
 
-if len(args.size) == 1:
-    args.size = (args.size[0], args.size[0])
-elif len(args.size) > 2:
-    args.size = args.size[0:2]
+# later overwritten if args.orgsize is set
+if len(args.resize) == 1:
+    args.resize = (args.resize[0], args.resize[0])
+elif len(args.resize) > 2:
+    args.resize = args.resize[0:2]
 
 input = args.input if len(args.input) > 0 else glob.glob("*.info.xml")
 if not args.saveall:
@@ -142,12 +140,9 @@ else:
 
     if args.tile:
       assert(img.size[0] == img.size[1]) # extend if you need
-      if args.orgsize:
-        args.size = (img.size[0]*args.tile, img.size[1]*args.tile)
-      else:
-        if not args.size:
-          args.size = [1000, 1000]
-      img = img.resize((int(args.size[0]/args.tile), int(args.size[1]/args.tile)))
+      if args.orgsize: # otherwise args.resize is set above
+        args.resize = (img.size[0]*args.tile, img.size[1]*args.tile)
+      img = img.resize((int(args.resize[0]/args.tile), int(args.resize[1]/args.tile)))
       nx, ny = img.size
       dat = numpy.array(img) 
       tiled = numpy.zeros((args.tile * ny, args.tile * nx), dtype="uint8")
