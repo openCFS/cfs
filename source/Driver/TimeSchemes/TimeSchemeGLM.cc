@@ -255,7 +255,7 @@ namespace CoupledField{
     if((nLinType_ == INCREMENTAL)&&(skipIncremental == false)){
 			bool forceReset = false; 
 			Double fac = -1.0;
-			std::cout << "Update with stageVector_[actStage] = " << stageVector_[actStage]->ToString() << std::endl;
+			LOG_DBG(timeschemeglm) << "Update with stageVector_[actStage] = " << stageVector_[actStage]->ToString() << std::endl;
 			UpdateStageRHSWithVector(actStage, derivId, rhsVec, stageVector_[actStage], fac, forceReset);
 			
 //      //std::cout << "Incremental formulation: Update RHS with -(K_eff-K)*curSol" << std::endl;
