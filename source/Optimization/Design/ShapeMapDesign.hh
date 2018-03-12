@@ -141,8 +141,9 @@ public:
      * @param base reference for profile or center nodes only to copy sym and orientation, ... */
     void ParseAndInit(PtrParamNode pn, ShapeParam* base = NULL);
 
-    /** Copy properties, similar effect as ParseAndInit() */
-    void CopyProperties(const ShapeParam* ref);
+    /** Copy properties, similar effect as ParseAndInit()
+     * @param copy_master_data is used to set data for a 3D slave node, does not touch dof and slave attribute */
+    void CopyProperties(const ShapeParam* ref, bool copy_master_data = false);
 
     /** flip orientation. flip dof and orientation but also adapt and x_sym, y_sym.
      * This is a service function for diagonal induced shapes.

@@ -292,7 +292,7 @@ ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesign
 std::string ShapeParamElement::ToString() const
 {
   std::stringstream ss;
-  ss << "(idx=" << index_ << " opt_idx=" << opt_index_ << " t=" << type.ToString(type_) << " d=" << dof.ToString(dof_) << " v=" << design << ")";
+  ss << "(idx=" << index_ << " opt_idx=" << ((int) opt_index_) << " t=" << type.ToString(type_) << " d=" << dof.ToString(dof_) << " v=" << design << ")";
   return ss.str();
 }
 
