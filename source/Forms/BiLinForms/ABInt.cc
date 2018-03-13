@@ -232,105 +232,103 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   //3. obtain pointers to associated volume elements
   //4. loop over int points of surface element and do a standard integration
 
-  //this is more or less a switch case statement which terms to consider and
-  // where to acquire the equation numbers
   const SurfElem* sElem1 = ent1.GetSurfElem();
   const SurfElem* sElem2 = ent2.GetSurfElem();
   //just to be sure, this context requires it1 and it2 to be identical
   if(sElem1->elemNum != sElem2->elemNum){
     EXCEPTION("SurfaceBiLinFormContext requires identical iterators")
   }
+
   //now lets try to downcast to MortarNcSurfElem
-  const MortarNcSurfElem * mSe1 = dynamic_cast<const MortarNcSurfElem*>(sElem1);
-  const MortarNcSurfElem * mSe2 = dynamic_cast<const MortarNcSurfElem*>(sElem2);
+  const MortarNcSurfElem * mSe = dynamic_cast<const MortarNcSurfElem*>(sElem1);
 
-
-
+  //this is more or less a switch case statement which terms to consider and
+  // where to acquire the equation numbers
   bool useMaster1 = false,useMaster2 = false;
   this->GetVolFromSurfElem(useMaster1,useMaster2);
-  const Elem* ptVolElem1 = (useMaster1) ? mSe1->ptMaster->ptVolElems[0]
-                                        : mSe1->ptSlave->ptVolElems[0] ;
-  const Elem* ptVolElem2 = (useMaster2) ? mSe2->ptMaster->ptVolElems[0]
-                                        : mSe2->ptSlave->ptVolElems[0] ;
+  const Elem* ptVolElem1 = (useMaster1) ? mSe->ptMaster->ptVolElems[0]
+                                        : mSe->ptSlave->ptVolElems[0] ;
+  const Elem* ptVolElem2 = (useMaster2) ? mSe->ptMaster->ptVolElems[0]
+                                        : mSe->ptSlave->ptVolElems[0] ;
 
   Matrix<MAT_DATA_TYPE> aMat, bMat;
   MAT_DATA_TYPE fac(0.0);
 
-  // Obtain FE element from feSpace and integration scheme
+  // Integration order must be the same for all Nitsche integrators,
+  // regardless of coupling direction.
   IntegOrder order1, order2;
   IntScheme::IntegMethod method1, method2;
+  BaseFE* ptFeMaster = this->ptFeSpace1_->GetFe(mSe->ptMaster->ptVolElems[0]->elemNum);
+  BaseFE* ptFeSlave =  this->ptFeSpace2_->GetFe(mSe->ptSlave->ptVolElems[0]->elemNum);
+  this->ptFeSpace1_->GetIntegration(ptFeMaster, mSe->ptMaster->ptVolElems[0]->regionId,
+                                    method1, order1);
+  this->ptFeSpace2_->GetIntegration(ptFeSlave, mSe->ptSlave->ptVolElems[0]->regionId,
+                                    method2, order2);
+
+  // Obtain FE element from FeSpace
   BaseFE* ptFeA =   this->ptFeSpace1_->GetFe(ptVolElem1->elemNum);
   BaseFE* ptFeB =   this->ptFeSpace2_->GetFe(ptVolElem2->elemNum);
-  this->ptFeSpace1_->GetIntegration(ptFeA,ptVolElem1->regionId,method1,order1);
-  this->ptFeSpace2_->GetIntegration(ptFeB,ptVolElem2->regionId,method2,order2);
 
   const UInt nrFncsA = ptFeA->GetNumFncs();
   const UInt nrFncsB = ptFeB->GetNumFncs();
 
   // Get shape map from grid
-  shared_ptr<ElemShapeMap> esm1 =
-      ent1.GetGrid()->GetElemShapeMap( mSe1, this->coordUpdate_ );
-  shared_ptr<ElemShapeMap> esm2 =
-      ent1.GetGrid()->GetElemShapeMap( mSe2, this->coordUpdate_ );
+  shared_ptr<ElemShapeMap> esm =
+      ent1.GetGrid()->GetElemShapeMap( mSe, this->coordUpdate_ );
 
   // Get integration points
   StdVector<LocPoint> intPoints;
   StdVector<Double> weights;
-  this->intScheme_->GetIntPoints( Elem::GetShapeType(mSe1->type),
-      method1, order1, method2, order2,
-      intPoints, weights );
+  this->intScheme_->GetIntPoints( Elem::GetShapeType(mSe->type),
+                                  method1, order1, method2, order2,
+                                  intPoints, weights );
 
   elemMat.Resize( nrFncsA * this->aOperator_->GetDimDof(),
-      nrFncsB * this->bOperator_->GetDimDof() );
+                  nrFncsB * this->bOperator_->GetDimDof() );
   elemMat.Init();
 
   MAT_DATA_TYPE myFactor = this->factor_;
-  if(this->isPenalty_){
-    ////adapt the penalization term to the desired one
-    ////first, the standard
-    //MAT_DATA_TYPE surface2(1.0/esm1->CalcVolume());
-    //myFactor *= surface2;
+  if (this->isPenalty_) {
+    shared_ptr<ElemShapeMap> esm1T =
+        ent1.GetGrid()->GetElemShapeMap( mSe->ptMaster, this->coordUpdate_ );
+    shared_ptr<ElemShapeMap> esm2T =
+        ent1.GetGrid()->GetElemShapeMap( mSe->ptSlave, this->coordUpdate_ );
 
-   shared_ptr<ElemShapeMap> esm1T =
-       ent1.GetGrid()->GetElemShapeMap( mSe1->ptMaster, this->coordUpdate_ );
-   shared_ptr<ElemShapeMap> esm2T =
-       ent1.GetGrid()->GetElemShapeMap( mSe1->ptSlave, this->coordUpdate_ );
+    //obtain pointer to basis functions
+    BaseFE* SFe1 = this->ptFeSpace1_->GetFe(mSe->ptMaster->elemNum);
+    BaseFE* SFe2 = this->ptFeSpace1_->GetFe(mSe->ptSlave->elemNum);
 
-   //obtain pointer to basis functions
-   BaseFE* SFe1 = this->ptFeSpace1_->GetFe(mSe2->ptMaster->elemNum);
-   BaseFE* SFe2 = this->ptFeSpace1_->GetFe(mSe2->ptSlave->elemNum);
-
-   MAT_DATA_TYPE tmp(2.0);
-   Double min,max;
-   esm1T->GetMaxMinEdgeLength(min,max);
-   UInt order1 = SFe1->GetIsoOrder();
-   if(order1 == 0){
-     StdVector<UInt> aIsoOrder;
-     SFe1->GetAnisoOrder(aIsoOrder);
-     for(UInt i=0;i<aIsoOrder.GetSize();i++)
-       order1 = (aIsoOrder[i]>order1)? aIsoOrder[i] : order1;
-   }
-   MAT_DATA_TYPE surface1(min/(Double)order1);
-   esm2T->GetMaxMinEdgeLength(min,max);
-   UInt order2 = SFe2->GetIsoOrder();
-   if(order2 == 0){
-     StdVector<UInt> aIsoOrder;
-     SFe2->GetAnisoOrder(aIsoOrder);
-     for(UInt i=0;i<aIsoOrder.GetSize();i++)
-       order2 = (aIsoOrder[i]>order2)? aIsoOrder[i] : order2;
-   }
-   MAT_DATA_TYPE surface2(min/(Double)order2);
-   myFactor *= tmp/(surface1+surface2);
+    MAT_DATA_TYPE tmp(2.0);
+    Double min,max;
+    esm1T->GetMaxMinEdgeLength(min,max);
+    UInt order1 = SFe1->GetIsoOrder();
+    if(order1 == 0){
+      StdVector<UInt> aIsoOrder;
+      SFe1->GetAnisoOrder(aIsoOrder);
+      for(UInt i=0;i<aIsoOrder.GetSize();i++)
+        order1 = (aIsoOrder[i]>order1)? aIsoOrder[i] : order1;
+    }
+    MAT_DATA_TYPE surface1(min/(Double)order1);
+    esm2T->GetMaxMinEdgeLength(min,max);
+    UInt order2 = SFe2->GetIsoOrder();
+    if(order2 == 0){
+      StdVector<UInt> aIsoOrder;
+      SFe2->GetAnisoOrder(aIsoOrder);
+      for(UInt i=0;i<aIsoOrder.GetSize();i++)
+        order2 = (aIsoOrder[i]>order2)? aIsoOrder[i] : order2;
+    }
+    MAT_DATA_TYPE surface2(min/(Double)order2);
+    myFactor *= tmp/(surface1+surface2);
   }
 
   // Loop over all integration points
-  LocPointMapped lp1,lp2;
+  LocPointMapped lp1, lp2;
   const UInt numIntPts = intPoints.GetSize();
   for( UInt i = 0; i < numIntPts; ++i ) {
 
     // Calculate for each integration point the LocPointMapped
-    lp1.SetMortar( intPoints[i], esm1, weights[i],useMaster1 );
-    lp2.SetMortar( intPoints[i], esm2, weights[i],useMaster2 );
+    lp1.SetMortar( intPoints[i], esm, weights[i],useMaster1 );
+    lp2.SetMortar( intPoints[i], esm, weights[i],useMaster2 );
 
     // Calculate A-matrix (first differential operator)
     this->aOperator_->CalcOpMat( this->aMat_, lp1, ptFeA );
