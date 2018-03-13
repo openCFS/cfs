@@ -150,6 +150,13 @@ protected:
   //! \return success of the computation
   uuids::uuid RegisterUpstreamResult(std::string name, Integer minOffset, 
                          Integer maxOffset, std::set<uuids::uuid> downStreamResultIds);
+  
+  //! Get the maximum step offset from downstream results
+  //! \param (in) downStreamResultIds ids of results needed from downstream filter
+  //! \return maximum step offset from downstream results
+  virtual Integer GetDownStreamMaxStepOffset(std::set<uuids::uuid> downStreamResultIds);
+  
+  virtual void CopyTimeLineUpstream(uuids::uuid upStreamId, uuids::uuid downStreamId);
                          
   //=================================================================
   // Helper Functions for Downstream Result Initialization

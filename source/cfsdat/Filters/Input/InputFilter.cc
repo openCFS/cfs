@@ -166,7 +166,7 @@ void InputFilter::AdaptFilterResults(){
       if(params_->Get("timeType",ParamNode::EX)->As<std::string>() != "static"){
         for(;timeIter != curResInfo->timeLine->End();++timeIter){
           allOK &= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+*timeIter, 1E-5) ) != fileResult.timeLine->End();
-  //        std::cout<<*timeIter<<std::endl;
+          //std::cout<<*timeIter<<std::endl;
         }
 
         if(!allOK)

@@ -22,6 +22,7 @@
 #include "Filters/Derivatives/TimeDerivFilter.hh"
 #include "Filters/Derivatives/PostLighthillSource.hh"
 #include "SignalProcessing/FftFilter.hh"
+#include "SignalProcessing/FIRFilter.hh"
 #include "SignalProcessing/TimeMeanFilter.hh"
 #include "SignalProcessing/TemporalBlendingFilter.hh"
 #include "Filters/SynteticSources/BaseSNGR.hh"
@@ -38,6 +39,9 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
   }
   else if (filtNode->GetName() == "meshOutput") {
     newPtr = FilterPtr(new CFSDat::OutputFilter(0,filtNode,resMana));
+  }
+  else if (filtNode->GetName() == "fir") {
+    newPtr = FilterPtr(new CFSDat::FIRFilter(0,filtNode,resMana));
   }
   else if (filtNode->GetName() == "timeDeriv1") {
     newPtr = FilterPtr(new CFSDat::TimeDerivFilterD1(0,filtNode,resMana));
@@ -266,8 +270,36 @@ uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, std::set<uuids:
 uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, Integer minOffset, 
                          Integer maxOffset, std::set<uuids::uuid> downStreamResultIds) {
   std::cout << "\t\t Requesting Result " << name << std::endl;
-  Integer downStreamMaxStepOffset = 0;
+  Integer downStreamMaxStepOffset = GetDownStreamMaxStepOffset(downStreamResultIds);
   uuids::uuid validDownStreamId = uuids::nil_uuid();
+  std::set<uuids::uuid>::iterator dItr = downStreamResultIds.begin();
+  for (; dItr != downStreamResultIds.end(); dItr++) {
+    uuids::uuid downStreamResultId = *dItr;
+    if (downStreamResultId != uuids::nil_uuid()) {
+      if (filterResIds.Find(downStreamResultId) == -1) {
+        EXCEPTION("RegisterUpstreamResult not called with valid");
+      }
+      validDownStreamId = downStreamResultId;
+    }
+  }
+  uuids::uuid newId = resultManager_->AddResult(name,this->filterTag_,
+                            downStreamMaxStepOffset+minOffset,
+                            downStreamMaxStepOffset+maxOffset);
+  if (validDownStreamId != uuids::nil_uuid()) {
+    CopyTimeLineUpstream(newId, validDownStreamId);
+    //resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(validDownStreamId)->timeLine.get()));
+    //resultManager_->SetTimeLine(newId,resultManager_->GetTimeLine(validDownStreamId));
+  }
+  upResNameIds[name] = newId;
+  return newId;
+}
+
+void BaseFilter::CopyTimeLineUpstream(uuids::uuid upStreamId, uuids::uuid downStreamId) {
+  resultManager_->SetTimeLine(upStreamId,resultManager_->GetTimeLine(downStreamId));
+}
+
+Integer BaseFilter::GetDownStreamMaxStepOffset(std::set<uuids::uuid> downStreamResultIds) {
+  Integer downStreamMaxStepOffset = 0;
   std::set<uuids::uuid>::iterator dItr = downStreamResultIds.begin();
   for (; dItr != downStreamResultIds.end(); dItr++) {
     uuids::uuid downStreamResultId = *dItr;
@@ -278,17 +310,9 @@ uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, Integer minOffs
       // here we get the offset of the newest downstream result to be evaluated
       ResultManager::ConstInfoPtr outInPtr = resultManager_->GetExtInfo(downStreamResultId);
       downStreamMaxStepOffset = std::max(outInPtr->maxStepOffset,downStreamMaxStepOffset);
-      validDownStreamId = downStreamResultId;
     }
   }
-  uuids::uuid newId = resultManager_->AddResult(name,this->filterTag_,
-                            downStreamMaxStepOffset+minOffset,
-                            downStreamMaxStepOffset+maxOffset);
-  if (validDownStreamId != uuids::nil_uuid()) {
-    resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(validDownStreamId)->timeLine.get()));
-  }
-  upResNameIds[name] = newId;
-  return newId;
+  return downStreamMaxStepOffset;
 }
 
 

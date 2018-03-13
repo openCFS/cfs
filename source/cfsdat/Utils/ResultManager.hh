@@ -160,6 +160,11 @@ public:
   //! \return Vector of time step values (copied)
   CF::StdVector<Double> GetTimeLine(uuids::uuid resId);
 
+  //! Returns true if a result is constant in time
+  //! \param (in) resId unique id of Result
+  //! \return true if a result is constant in time
+  bool IsConstant(uuids::uuid resId);
+  
   //! Set the time step value vector of the given result
   //!   - Replace if vector has already been set
   //!   - Only valid during initialization phase.
