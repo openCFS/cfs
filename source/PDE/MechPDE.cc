@@ -2890,6 +2890,23 @@ namespace CoupledField {
     DefineFieldResult(normalStressFct, normalStressInfo);
     surfCoefFcts_[normalStressFct] = sigmaFunc;
     
+    // === MECHANIC REACTION FORCE (= integral of surface traction, i.e. normal stress from above, over the surface region ) ===
+    shared_ptr<ResultInfo> reactionForceInfo;
+    reactionForceInfo.reset(new ResultInfo);
+    reactionForceInfo->resultType = MECH_FORCE;
+    reactionForceInfo->dofNames = dispDofNames;
+    reactionForceInfo->unit = "N";
+    reactionForceInfo->entryType = ResultInfo::VECTOR;
+    reactionForceInfo->definedOn = ResultInfo::SURF_REGION;
+    // Integrate surface traction
+    shared_ptr<ResultFunctor> reactionForceFct;
+    if(isComplex_)
+        reactionForceFct.reset(new ResultFunctorIntegrate<Complex>(normalStressFct, feFct, reactionForceInfo));
+    else
+        reactionForceFct.reset(new ResultFunctorIntegrate<Double>(normalStressFct, feFct, reactionForceInfo));
+    resultFunctors_[MECH_FORCE] = reactionForceFct;
+    availResults_.insert(reactionForceInfo);
+
     // === MECH_TENOSR_HILL_MANDEL converts to HillMandel notation
     shared_ptr<ResultInfo> mech_tensor_hm(new ResultInfo);
     mech_tensor_hm->resultType = MECH_TENSOR_HILL_MANDEL;
