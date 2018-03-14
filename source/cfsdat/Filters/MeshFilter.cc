@@ -648,6 +648,9 @@ bool MeshFilter::CalcLocGradient(CF::Matrix<Double>& derivCoefVec,
     Double k; //inverse of condition number
     int inf;
     ALoc.Invert_Lapack(k, inf);
+    if(inf != 0){
+    	EXCEPTION ("Error during lapack inversion, Error integer = "<<inf);
+    }
     if(k < upperBound && k > lowerBound && inf==0) c = true;
     else if(k > upperBound && inf==0) eps = eps / 2.0;
     else if(k < lowerBound || inf!=0) eps = eps * 2.0;
