@@ -534,6 +534,8 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
         }
       }else{
         // multiharmonic Version
+        blockInfoNode = infoNode->Get("block",ParamNode::APPEND);
+        blockInfoNode->Get("num")->SetValue(1);
         // generate preconditioner object
         BasePrecond * actPrecond = GenerateStdPrecondObject( mat(0,0), precondId, precondList, blockInfoNode );
         // pass precond object to sbm-preconditioner

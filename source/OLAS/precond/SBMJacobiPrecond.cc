@@ -90,15 +90,7 @@ namespace CoupledField {
           stdPreconds_[iRow]->Apply(*stdMat, *rStd, *zStd );
         }
       }
-
-      // If preconditioner for row is defined, apply it
-      if( stdPreconds_[iRow] != NULL ) {
-        const StdMatrix * stdMat = A.GetPointer(iRow,iRow);
-        const SingleVector * rStd = r.GetPointer(iRow);
-        SingleVector * zStd = z.GetPointer(iRow);
-        stdPreconds_[iRow]->Apply(*stdMat, *rStd, *zStd );
-      }
-    }
+    }// loop over all rows
   }
 
   void  SBMJacobiPrecond::Setup( SBM_Matrix &A ) {
