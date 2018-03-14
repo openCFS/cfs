@@ -417,7 +417,7 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
     {
       // we need to set the global excitation index!
       unsigned int base = 0;
-      for(unsigned int t = 0; t < ctxt.context_idx; t++) // smaller by intention to not count ourselves
+      for(int t = 0; t < ctxt.context_idx; t++) // smaller by intention to not count ourselves
         base += manager->context[t].excitations.GetSize(); // already set up to this point
       for(unsigned int i = 0; i < ctxt.excitations.GetSize(); i++)
       {
