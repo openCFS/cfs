@@ -163,6 +163,7 @@ void SimOutputStreaming::Transmit(std::ostream& out)
   for(unsigned int r = 0; r < results_.GetSize(); r++)
   {
     shared_ptr<BaseResult> sol = results_[r];
+    bool cplx = sol->GetEntryType() == BaseMatrix::COMPLEX;
     shared_ptr<ResultInfo> resInfo = sol->GetResultInfo();
 
     PtrParamNode rpn = results->Get("result", ParamNode::APPEND);
@@ -180,20 +181,22 @@ void SimOutputStreaming::Transmit(std::ostream& out)
       rpn->Get("dof_" + boost::lexical_cast<std::string>(d))->SetValue(resInfo->dofNames[d]);
 
     rpn->Get("unit")->SetValue(resInfo->unit);
-
-    // TODO now only real valued!
+    if(cplx)
+      rpn->Get("desiredComplexFormat")->SetValue(resInfo->complexFormat == REAL_IMAG ? "realImag" : "amplPhase");
 
     // we do the fast bulk block stuff as it saves a lot of time!
     StdVector<std::string>& block = rpn->GetFastBulkBlock();
 
-    // the result vector is a set of dofs
-    Vector<double>& resultVec = dynamic_cast<Result<double>&>(*sol).GetVector();
-    // the actual item size
-    unsigned int items = resultVec.GetSize() / dofs;
+    SingleVector* vec = sol->GetSingleVector();
+    assert(vec != NULL && vec->GetSize() >= 0);
 
-    // TODO handle only simple cases here!
+    // the result vector is a set of dofs
+    unsigned int items = vec->GetSize() / dofs;
+
     StdVector<unsigned int> nodes; // nodes per region
     StdVector<Elem*> elems;   // // elements per region
+    // TODO handle only simple cases here!
+    assert(resInfo->definedOn == ResultInfo::NODE || resInfo->definedOn == ResultInfo::ELEMENT);
     if(resInfo->definedOn == ResultInfo::NODE)
       grid->GetNodesByRegion(nodes, regid);
     else
@@ -208,7 +211,14 @@ void SimOutputStreaming::Transmit(std::ostream& out)
       ss << "<item";
 
       for(unsigned int d = 0; d < dofs; d++)
-        ss << " v_" << boost::lexical_cast<std::string>(d) << "=\"" << resultVec[dofs * e + d] << "\"";
+      {
+        ss << " v_" << d << "=\"";
+        if(cplx)
+          ss << vec->GetComplexEntry(dofs * e + d);
+        else
+          ss << vec->GetDoubleEntry(dofs * e + d);
+        ss << "\"";
+      }
 
       ss << " id=\"";
       // mandatory for nodes
