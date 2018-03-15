@@ -932,11 +932,8 @@ void MeshFilter::CalcTensorDivergence(Vector<Double>& returnVec,
   UInt numbTensorEntries = numEquPerEnt + 1;
   if (numEquPerEnt==3)numbTensorEntries = numEquPerEnt + 3;
 
-
-
 //#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt targetIndex = 0; targetIndex < maxNumTrgEntities; targetIndex++) {
-    returnVec[targetIndex] = 0.0;
 
     StdVector<CF::UInt> sM = sourceM[targetIndex];
 
@@ -956,7 +953,7 @@ void MeshFilter::CalcTensorDivergence(Vector<Double>& returnVec,
        }
       CF::Matrix<Double> tempMat;
       tempMat = vals * targetSourceFactor[targetIndex];
-      returnVec[targetIndex + tensorRow] = tempMat.Trace();
+      returnVec[numEquPerEnt * targetIndex + tensorRow] = tempMat.Trace();
     }
   }
 
