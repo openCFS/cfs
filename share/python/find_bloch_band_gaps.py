@@ -5,10 +5,75 @@ import numpy
 import os
 import sys
 import argparse
+import math
 from lxml import etree
+
+# stuff for show
+import matplotlib
+matplotlib.use('tkagg')
+from matplotlib import pyplot as plt
+
+def print_gnuplot(offset, args, segments, max_mode, max_freq):
+  if args.maxfrequency:
+    print('set yrange [0:' + str(args.maxfrequency) + ']')
+  elif args.commonsymbol:
+    print('set yrange [0:*]')
+  else:
+    print('set yrange [0:' + str(max_freq * 1.2) + ']') # leave space for the labels
+  if args.horizontal:
+    print('set xrange [0:' + str(segments[-1]) + ']')
+  else:
+    for s in range(0, len(segments) - 1):
+      print('set arrow ' + str(s + 1) + '  from ' + str(segments[s]) + ',0 to ' + str(segments[s]) + ',' + str(max_freq) + ' nohead lt rgb "gray" lw 2')
+  
+  if args.nicelabel:
+    print('set ylabel "eigenfrequency in Hz" offset 1')
+    print('set xlabel "wave vector (' + ('horizontal ' if args.horizontal else '') + 'IBZ)"')
+    symbols = ['"{/Symbol G}"', '"X"', '"{/Symbol M}"', '"R"']
+    xtics = 'set xtics (' + symbols[0] + ' 0'
+    for i in range(len(segments)):
+      xtics += ', ' + symbols[i + 1 if i < len(segments) - 1 else 0] + ' ' + str(segments[i])
+    
+    print(xtics + ')')
+  else:
+    print('unset ylabel')
+    print('unset xlabel')
+  wl = '' if args.nolines else ' with linespoints lw 2 ' if not args.commonsymbol else ' with lines lw 2'
+  lc = ' lc black ' if args.paper or args.commonsymbol else ''
+  for i in range(offset, max_mode): # 1-based
+    title = ' notitle ' if args.commonsymbol or not args.title else ' t "' + str(i - offset + 1) + '. mode" '
+    print(('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i + 1) + title + wl + lc + (' ,\\' if i < max_mode - 1 else ''))
 
 gap_count = 0
 offset = None
+
+# this creates a matplotlib plot as alternative to generate a gnuplot script
+# return matplot.pyplot to apply show() or savefig() on int  
+def create_plot(org, dim, args):
+  # the first columns are step, k_x, k_y (k_z)
+  assert(org.shape[1] > dim + 1)
+  # extract the real data
+  data = org[:,dim+1:]
+  # number of wave vectors, the first is already reapeated as last row
+  vectors = data.shape[0]
+  modes = data.shape[1]
+  x = range(0,vectors)
+  for mode in range(modes):
+    plt.plot(x, data[:,mode], marker='o')                 
+  
+  # add vertical markers where we switch direction in the wave vector
+  height = numpy.amax(data)
+  # only the colums with k_x, k_y (,k_z), note that the last row might be a repetition of the first one
+  vec = org[:,1:dim+1]
+  for k in range(2,vectors): # skip first vector as we access -1 and skip the second to have no vertical bar there
+    for d in range(dim):
+      if (vec[k,d] != 0.0 and vec[k-1,d] == 0.0) or \
+         (not math.isclose(vec[k,d],numpy.pi,rel_tol=1e-5) and math.isclose(vec[k-1,d],numpy.pi,rel_tol=1e-5)): 
+        print(k,d)
+        plt.plot([k-1,k-1],[0,height],'k-')
+      
+  return plt
+
 
 def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
   global gap_count
@@ -119,7 +184,8 @@ parser.add_argument('--nopartial', action='store_true', help='handle only full b
 parser.add_argument('--maxmode', help="maximal mode number to be considered", default=9999, type=int)
 parser.add_argument('--maxfrequency', help="maximal frequency", type=float)
 parser.add_argument('--info', action='store_true', help='show range for all modes')
-parser.add_argument('--xml', help='export info to a xml file')
+parser.add_argument('--xml', help='export info as xml to the given filename')
+parser.add_argument('--show', help='pop-up a matplotlib figure', action='store_true')
 parser.add_argument('--gnuplot', help='create gnuplot output, specify the type', choices = ['eps', 'png', 'console'])
 parser.add_argument('--nolines', action='store_true', help='gnuplot: do not concatenate points by lines')
 parser.add_argument('--commonsymbol', action='store_true', help='gnuplot: use the same line symbol for all lines')
@@ -134,7 +200,6 @@ if not os.path.exists(args.bloch):
   print("file not found '" + args.bloch + "'")
   sys.exit(1)
 org = numpy.loadtxt(args.bloch)
- 
 dim = get_dim(args)
 
 offset = 3 if dim == 2 else 4 # step, k_x, k_y (,k_z)
@@ -216,38 +281,13 @@ if not args.horizontal:
     check_gap(org, i, 0, segments[-1], eps, args.gnuplot, gaps)
 
 if args.gnuplot:
-  if args.maxfrequency:
-    print('set yrange [0:' + str(args.maxfrequency) + ']')
-  else:  
-    if args.commonsymbol:
-      print('set yrange [0:*]')
-    else:
-      print('set yrange [0:' + str(max_freq * 1.2) + ']') # leave space for the labels
-  if args.horizontal:
-    print('set xrange [0:' + str(segments[-1]) + ']')    
-  else:
-    for s in range(0,len(segments)-1):
-      print('set arrow ' + str(s+1) + '  from ' + str(segments[s]) + ',0 to ' + str(segments[s]) + ',' + str(max_freq) + ' nohead lt rgb "gray" lw 2')  
-  
-  if args.nicelabel:
-     print('set ylabel "eigenfrequency in Hz" offset 1')
-     print('set xlabel "wave vector (' + ('horizontal ' if args.horizontal else '') + 'IBZ)"')
-     symbols = ['"{/Symbol G}"', '"X"', '"{/Symbol M}"', '"R"']
-     xtics = 'set xtics (' + symbols[0] + ' 0'
-     for i in range(len(segments)):
-        xtics += ', ' + symbols[i+1 if i < len(segments)-1 else 0] + ' ' + str(segments[i])
-     print(xtics + ')')    
-  else:
-    print('unset ylabel') 
-    print('unset xlabel')     
+  print_gnuplot(offset, args, segments, max_mode, max_freq) 
+ 
 
-  wl =   '' if args.nolines else ' with linespoints lw 2 ' if not args.commonsymbol else ' with lines lw 2' 
-  lc = ' lc black ' if args.paper or args.commonsymbol else ''
-  for i in range(offset,  max_mode): # 1-based
-    title = ' notitle ' if args.commonsymbol or not args.title else ' t "' + str(i-offset+1) + '. mode" ' 
-    print(('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '')) 
- 
- 
+if args.show:
+  plt = create_plot(org, dim, args)
+  plt.show()
+
 if args.xml:
   root.find("gaps").attrib["count"]=str(gap_count)
   file = open(args.xml, "w")

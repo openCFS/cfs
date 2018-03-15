@@ -264,6 +264,7 @@ int CFS::Run()
 
     timer->Stop();
     
+    cout << endl;
     cout << ">> Total wall-clock time: '" << Timer::GetTimeString(timer->GetWallTime())
          << "' cpu time: '" << Timer::GetTimeString(timer->GetCPUTime())
          << "' at " << to_simple_string(second_clock::local_time()) << endl << endl;
