@@ -226,7 +226,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
   for l in svg_dta:
     data += l
   
-  if len(result_view_arr) >= 0:
+  if len(result_view_arr) > 0:
     domain_elem = xml.xpath('//header/domain')[0]
     
     _2d_orientation = "error"
