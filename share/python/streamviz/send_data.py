@@ -3,7 +3,6 @@ import numpy
 
 from paraview import vtk
 
-from paraview.vtk import vtkPVCatalyst as catalyst
 from paraview.vtk.util import numpy_support
 
 from paraview.vtk import vtkPVCatalyst as catalyst

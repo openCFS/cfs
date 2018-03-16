@@ -245,7 +245,7 @@ def render_view(GLOBAL_DATA_DICT, key, client_ip):
   settings_data += '    </ul></li>'
   
   settings_data += '    <li class="list-group-item">'
-  settings_data += '    send data to catalyst (5.5):<br/>'
+  settings_data += '    send data to catalyst (v5.5*):<br/>'
   settings_data += '    ip: <input type="text" id="catalyst_ip" value="' + client_ip + '"/> port: <input type="text" id="catalyst_port" value="22222"/><br/>'
   settings_data += '    <button class="btn btn-primary" id="catalyst_send_button">send data</button>'
   settings_data += '    auto update: <input type="checkbox" id="catalyst_send_auto_update"/>'
