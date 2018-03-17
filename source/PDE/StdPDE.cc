@@ -448,7 +448,7 @@ namespace CoupledField {
      }
   }
 
-  void StdPDE::SetFlagInCoefFncHyst(std::string flagName, UInt newState){
+  void StdPDE::SetFlagInCoefFncHyst(std::string flagName, Integer newState){
 
     if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
         //set current values to previous values for hysteresis operator
@@ -456,17 +456,7 @@ namespace CoupledField {
         std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
         std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
 
-        // check flagName first
-        if(flagName == "SetInputDependentFlags"){
-          // set parameter to be defined via xml input file
-          // has to be done only once
-          for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-            /*
-             * Note: If locked = true, overwrite = false
-             */
-            it->second->SetInputDependentFlags(newState);
-          }
-        } else if(flagName == "outputDebugInfos"){
+        if(flagName == "outputDebugInfos"){
           for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
             /*
              * Note: If locked = true, overwrite = false
@@ -479,7 +469,7 @@ namespace CoupledField {
             /*
              * Note: If locked = true, overwrite = false
              */
-            it->second->SetRuntimeDependentFlag(flagName,newState);
+            it->second->SetFlag(flagName,newState);
           }
         }
      } else {

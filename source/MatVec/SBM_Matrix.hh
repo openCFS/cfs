@@ -224,6 +224,11 @@ namespace CoupledField {
       return SBM_MATRIX;
     }
 
+    BaseMatrix::StorageType GetStorageType() const {
+        WARN("what should be the storage type of a SBM_Matrix?") // FIXME: define StorageType of SBM_Matrix
+        return NOSTORAGETYPE;
+    }
+
     //! Return the Entry type of the matrix
 
     //! The method returns the entry type of the matrix on the scalar level.

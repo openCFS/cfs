@@ -83,7 +83,7 @@ class BiLinearForm;
     std::string subType_;
     
   private:
-
+    bool isHyst_;
   };
 
 

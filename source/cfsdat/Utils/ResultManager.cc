@@ -284,6 +284,10 @@ CF::StdVector<Double> ResultManager::GetTimeLine(uuids::uuid resId){
   RESULT_MANAGER_OBTAIN_SH_PTR_FIELD(resId,timeLine)
 }
 
+bool ResultManager::IsConstant(uuids::uuid resId) {
+  return resultMap_[resId].first->timeLine->GetSize() <= 1;
+}
+
 void ResultManager::SetTimeLine(uuids::uuid resId, CF::StdVector<Double> tVec){
   checkNotFinalized();
   RESULT_MANAGER_COPY_SH_PTR_FIELD(resId,timeLine,tVec)

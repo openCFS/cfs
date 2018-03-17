@@ -15,6 +15,9 @@ namespace CoupledField {
     multHarmFreqVec_.Resize(0);
     couplingIter_ = 0;
     adjointSource_ = false;
+    numTimeStep_=0;
+    auxSet_=false;
+    startStep_=0;
   }
 
   

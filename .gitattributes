@@ -454,6 +454,7 @@ ctest_scripts/sites/test-sl7/init_test.cmake -text
 ctest_scripts/sites/test-sl7/linux64_trunk_gcc-6_debug.ctest -text
 ctest_scripts/sites/test-sl7/linux64_trunk_gcc-6_release.ctest -text
 ctest_scripts/sites/test-sl7/linux64_trunk_gcc-7_MINIMAL_release.ctest -text
+ctest_scripts/sites/test-sl7/linux64_trunk_gcc-7_relL2diff_release.ctest -text
 ctest_scripts/sites/test-sl7/linux64_trunk_gcc-7_release.ctest -text
 ctest_scripts/sites/test-sl7/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/test-sl7/linux64_trunk_gcc_release.ctest -text
@@ -468,6 +469,7 @@ ctest_scripts/sites/test-ubuntu14/README.md -text
 ctest_scripts/sites/test-ubuntu14/deploy_draco.cmake -text
 ctest_scripts/sites/test-ubuntu14/generate_test_name_list.cmake -text
 ctest_scripts/sites/test-ubuntu14/init_test.cmake -text
+ctest_scripts/sites/test-ubuntu14/linux64_trunk_OPENBLAS_gcc_release.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_doc-doxygen.ctest -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_doc-doxygen_deploy.cmake -text
 ctest_scripts/sites/test-ubuntu14/linux64_trunk_gcc_debug.ctest -text
@@ -1435,6 +1437,7 @@ share/xml/CFS-Dat/Schemas/CFSDat_DefOn.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_DiffScheme.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_Differentiation.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_DifferentiationType.xsd -text
+share/xml/CFS-Dat/Schemas/CFSDat_FIRFilter.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_FftFilter.xsd svneol=native#text/xml
 share/xml/CFS-Dat/Schemas/CFSDat_FilterList.xsd -text
 share/xml/CFS-Dat/Schemas/CFSDat_GridType.xsd -text
@@ -2461,6 +2464,8 @@ source/cfsdat/Filters/MeshFilter.cc -text
 source/cfsdat/Filters/MeshFilter.hh -text
 source/cfsdat/Filters/Output/OutputFilter.cc -text
 source/cfsdat/Filters/Output/OutputFilter.hh -text
+source/cfsdat/Filters/SignalProcessing/FIRFilter.cc -text
+source/cfsdat/Filters/SignalProcessing/FIRFilter.hh -text
 source/cfsdat/Filters/SignalProcessing/FftFilter.cc svneol=native#text/plain
 source/cfsdat/Filters/SignalProcessing/FftFilter.hh svneol=native#text/plain
 source/cfsdat/Filters/SignalProcessing/TemporalBlendingFilter.cc -text

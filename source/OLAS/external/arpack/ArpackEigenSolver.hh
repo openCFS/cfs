@@ -32,6 +32,15 @@ namespace CoupledField {
     //! Default Destructor
     virtual ~ArpackEigenSolver();
 
+    //! Setup for a standard EVP
+    virtual void Setup(const BaseMatrix & A, bool isHermitian=false){
+        EXCEPTION("not yet implemented")
+    };
+    //! Setup for a generalised EVP
+    virtual void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false ){
+        EXCEPTION("not yet implemented")
+    };
+
     //! Setup routine for standard eigenvalue problem
 
     //! Setup routine for various initialization tasks of a standard
@@ -76,6 +85,13 @@ namespace CoupledField {
     //! \param sol Vector with converged eigenvalues. The size is the number of converged evs
     //! \param err Vector with error bound of eigenvalues
     void CalcEigenFrequencies(BaseVector &sol, BaseVector &err);
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, Double minVal, Double maxVal){
+        EXCEPTION("not yet implemented");;
+    }
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint){
+        EXCEPTION("not yet implemented");;
+    }
+
     
     //! Calculate a particular eigenmode as a postprocessing solution
 

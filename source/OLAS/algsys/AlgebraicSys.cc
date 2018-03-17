@@ -138,7 +138,8 @@ namespace CoupledField {
     delete idbcHandler_;
     idbcHandler_ = NULL;
     
-    delete eigenValues_; eigenValues_ = NULL;
+    //delete eigenValues_;
+    eigenValues_ = NULL;
     delete eigenValError_; eigenValError_ = NULL;
 
     for( UInt i = 0; i < numBlocks_; ++i )
@@ -930,6 +931,17 @@ namespace CoupledField {
     err = errVec;
 
     ExportLinSys(false, false, true);
+  }
+
+  void AlgebraicSys::CalcEigenValues(BaseVector &sol, BaseVector &err, Double minVal, Double maxVal){
+      eigenSolver_->CalcEigenValues(sol,err,minVal,maxVal);
+      //SingleVector ev = dynamic_cast< SingleVector & > sol;
+      //SingleVector * sv = dynamic_cast<BaseVector &>(sol);
+      //eigenValues_ = dynamic_cast<SingleVector &>(sol);
+      //eigenValues_ = dynamic_cast<SingleVector>(*sol);
+      //eigenValues_ = dynamic_cast<SingleVector>(&sol);// target is not pinter or ref
+      eigenValues_ = dynamic_cast<SingleVector *>(&sol);
+      ExportLinSys(false, false, true);
   }
 
   void AlgebraicSys::GetEigenMode( UInt numMode )  {

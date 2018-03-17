@@ -45,3 +45,17 @@ SET(CTEST_INITIAL_CACHE
 # Update, Configure, Build & Test
 #-----------------------------------------------------------------------------
 DO_TESTING()
+
+# do the same again with N cores
+SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
+SET(CTEST_INITIAL_CACHE_BASE "${CTEST_INITIAL_CACHE}") # the base from above
+foreach(TESTSUITE_THREADS 1 8)
+  # change build name
+  set(CTEST_BUILD_NAME "trunk -t${TESTSUITE_THREADS} ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+  # add number of threads to test with
+  SET(CTEST_INITIAL_CACHE
+    "${CTEST_INITIAL_CACHE_BASE}
+    CFS_TESTSUITE_THREADS=${TESTSUITE_THREADS}")
+  # test again
+  DO_CONFIG_AND_TEST()
+endforeach(TESTSUITE_THREADS)

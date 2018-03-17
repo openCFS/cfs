@@ -244,6 +244,79 @@ namespace CoupledField {
     //TODO: for future purpose it would be helpful to be able
     //to add two and more volume regions to one master or slave side
   };
+
+  //! class for calculation of bilinear forms for non-conforming coupling
+  //! in case of mechanical-Acoustic coupling
+  template<class COEF_DATA_TYPE=Double, class B_DATA_TYPE=Double>
+  class SurfaceMortarABIntMA : public SurfaceABInt<COEF_DATA_TYPE,B_DATA_TYPE> {
+
+  public:
+
+    //! Define data type for matrix entries, derived by type trait
+    typedef PROMOTE(B_DATA_TYPE, COEF_DATA_TYPE) MAT_DATA_TYPE;
+
+    //! Constructor with pointer to CoefFunction for surface itself
+    SurfaceMortarABIntMA( BaseBOperator * aOp, BaseBOperator * bOp,
+                        PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+						bool coplanar,
+                        bool coordUpdate = false);
+
+    //! Constructor with CoefFunctions for a number of volume regions
+    SurfaceMortarABIntMA( BaseBOperator * aOp, BaseBOperator * bOp,
+                        const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
+                        MAT_DATA_TYPE factor,
+						bool coplanar,
+						bool coordUpdate = false);
+
+    //! Copy Constructor
+    SurfaceMortarABIntMA(const SurfaceMortarABIntMA& right)
+     : SurfaceABInt<COEF_DATA_TYPE,B_DATA_TYPE>(right){
+      this->ptMasterOp_ = right.ptMasterOp_;
+      this->ptSlaveOp_  = right.ptSlaveOp_;
+      this->ptFeSpaceSlave_ = right.ptFeSpaceSlave_;
+      this->ptFeSpaceMaster_ = right.ptFeSpaceMaster_;
+      this->isCoplanar_ = right.isCoplanar_;
+    }
+
+    //! \copydoc BiLinearForm::Clone
+    virtual SurfaceMortarABIntMA* Clone(){
+      return new SurfaceMortarABIntMA( *this );
+    }
+
+    //! Destructor
+    virtual ~SurfaceMortarABIntMA(){};
+
+    //! Compute element matrix associated to AB form
+    void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                            EntityIterator& ent1,
+                            EntityIterator& ent2 );
+
+    //! Set finite element space in cases of mixed spaces
+    void SetFeSpace( shared_ptr<FeSpace> feSpace1,
+                     shared_ptr<FeSpace> feSpace2);
+
+    //! Set coupling direction
+    //void SetCoupling(BiLinearForm::CouplingDirection cplDir) { cplDirection_ = cplDir; };
+
+  protected:
+
+    //! Pointer to the differential operator for the master side
+    BaseBOperator* ptMasterOp_;
+
+    //! Pointer to the differential operator for the slave side
+    BaseBOperator* ptSlaveOp_;
+
+    //! pointer to the FeSpace of the Lagrange multiplier / slave side
+    shared_ptr<FeSpace> ptFeSpaceSlave_;
+
+    //! pointer to the FeSpace of the field variable on the master side
+    shared_ptr<FeSpace> ptFeSpaceMaster_;
+
+    //! Is the interface coplanar?
+    bool isCoplanar_;
+
+  };
+
 }
 
 #endif

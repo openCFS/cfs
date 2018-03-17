@@ -465,6 +465,24 @@ macro(DO_TESTING)
   message("  All done") 
 endmacro()
 
+macro(DO_CONFIG_AND_TEST)
+  #-----------------------------------------------------------------------------
+  # Configure and Testing
+  #-----------------------------------------------------------------------------
+  message("Start dashboard...")
+  set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+  ctest_start(Nightly)
+  message("  Configure")
+  file(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
+  ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+  ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+  message("  Test")
+  ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+  message("  Submit as ${CTEST_BUILD_NAME}")
+  ctest_submit(RETURN_VALUE res)
+  message("  All done")
+endmacro()
+
 
 macro(SET_COMPILER_ENV COMPILER_TYPE)
   message("Setting environment for ${COMPILER_TYPE}")

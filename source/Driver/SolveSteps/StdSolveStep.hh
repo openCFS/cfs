@@ -124,49 +124,21 @@ namespace CoupledField
     UInt CalcEigenFrequencies( Vector<Complex> & frequencies, Vector<Double> & errBounds,
                                UInt numFreq, double shift, bool sort, bool bloch);
 
+    //! Calculate the Eigenfrequencies in an interval [minVal,maxVal]
+    UInt CalcEigenFrequencies( Vector<Double>& frequencies, Vector<Double>& errBounds, Double minVal, Double maxVal);
+
+    void CalcEigenValues(BaseVector &sol, BaseVector &err, Double minVal, Double maxVal );
+
     //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
     //! Therefore, previously CalcEigenFrequencies() has to be called.
     void GetEigenMode( UInt numMode );
-    
-    //----------------------- HYSTERESIS -------------------------------------
-    //! solves for one nonlinear transient step
-    //! consideres hystreresis nonlinearities in direct coupled PDEs
-    virtual void StepTransNonLinHysteresis(){
-      EXCEPTION("No longer implemented in stdsolvestep; please use solvestephyst");
-    }
-    virtual void StepTransNonLinHysteresisTotal(){
-      EXCEPTION("No longer implemented in stdsolvestep; please use solvestephyst");
-    }
-    
-    void SetLastItOrLastTSSBMVectors(bool lastTS);
-    /*!
-     * Helper funciton for setting up the equation system during
-     *            StepTransNonLinHysteresis()
-     * Background: During the solve step, the matrices and the rhs have to be
-     *  assembled multiple times during linesearch, for the calculation of the
-     *  residual error and of course to get a system to be solved;
-     *  for simplification, encapsulate that sequence of function calls
-     *  in a separate function
-     */
-    /*
-     * for residual computation we need a slightly different version -> see .cc file
-     */
-    virtual void CalcResidualAndConfigSystemForHysteresis(SBM_Vector& oldSolution,SBM_Vector& solIncrement, SBM_Vector& stageSol, Double usedEta,
-                                                          UInt stage, UInt callingCnt, UInt evalVersion, bool trans, bool forceReevaluation,
-                                                          bool skipReassembly, bool debugOutput, bool reset){
-      EXCEPTION("No longer implemented in stdsolvestep; please use solvestephyst");
-    }
-
-    //! does a line search and returns the optimal residual norm
-    Double LineSearchHyst(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double& etaLineSearch, UInt evalVersion, UInt callingCnt,
-                      bool trans=false, bool performLineSearch=true, bool forceReevaluation=false, bool debugOutput=false, bool reset=false,UInt allowedSteps=5){
-      EXCEPTION("No longer implemented in stdsolvestep; please use solvestephyst");
-    }
     
     //----------------------- helpfull methods--------------------------------------
 
     /** The Assemle opject contains the bilinear forms */
     Assemble* GetAssemble() { return assemble_; } 
+
+    AlgebraicSys * GetAlgSys() { return algsys_; }
 
     //! Set the current time step
     void SetTimeStep( Double dt );
@@ -190,14 +162,6 @@ namespace CoupledField
                               SBM_Vector& actSol, 
                               Double& etaLineSearch, Double& RHSLin2Norm,
                               bool trans=false);
-
-
-    //! returns the hysteresis operator
-    Hysteresis * GetHystOperator(UInt iSD) {
-      return hyst_[iSD];
-    };
-    
-
 
   protected:
     
@@ -290,36 +254,7 @@ namespace CoupledField
     //! Vector containing rhs
     SBM_Vector rhsVec_;
 
-    //! Vectors used for NonLinHysteresis
-    // current > current timestep and iteration
-    SBM_Vector currentLinRhsVec_;
-    SBM_Vector currentNonLinRhsVec_;
-    SBM_Vector currentRhsVec_;
-    SBM_Vector currentResVec_;
-    SBM_Vector currentRHSload_partial_; // for full stepping only;
-    // stores f_currentTS - f_lastTS - f_nonlin_lastTS; needs to be evaluated only during first iteration
-    // during each iteration f_nonlin_currentTS has to be added to get full RHSload
-
-    // + solVec which is defined above
-
-    // oldTS > values after last iteration of previous TS
-    // to be stored after iteration suceeded
-    SBM_Vector oldTSLinRhsVec_;
-    SBM_Vector oldTSNonLinRhsVec_;
-    SBM_Vector oldTSSolVec_;
-
-    // oldIt > values of the current TS but from previous It
-    // during first iterartion of a new TS, these vectors contain the values
-    // after the last iteration of the previous TS (similar as oldTS...)
-    SBM_Vector oldItNonLinRhsVec_;
-    SBM_Vector oldItResVec_;
-
-    //! Additional flags and parameter for hyst
-    UInt evalVersion_;
-    bool forceReevaluation_;
-    bool debugOutput_;
-    UInt remainingEvalParameter_;
-
+    //! Vector containing the rhs for the current stage based on the scheme
     //! Vector containing the rhs for the current stage based on the scheme
     //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system
     SBM_Vector stageRHS_;
@@ -329,8 +264,6 @@ namespace CoupledField
     
     //! Map Storing FeSpaces for each solution type of PDE
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
-    //hysteresis operator;    
-    StdVector<Hysteresis *> hyst_;
 
 
     std::ofstream logFile_;

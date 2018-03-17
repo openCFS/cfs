@@ -556,6 +556,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechDisplacedSurfVolume"/>
       <xsd:enumeration value="mechPower"/>
+      <xsd:enumeration value="mechForce"/>
     </xsd:restriction>
   </xsd:simpleType>
 

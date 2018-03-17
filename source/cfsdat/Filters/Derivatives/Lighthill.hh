@@ -113,7 +113,7 @@ private:
   static CF::StdVector<Matrix> matrices_;
 
   //! Density, if not specified in xml-scheme it is automatically set to one
-  Double density_;
+  Double density_ = 1.0;
 
   //! String if the full Lighthill or only the Lamb-vector is computed
   std::string Form_;

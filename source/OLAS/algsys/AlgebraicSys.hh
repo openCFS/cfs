@@ -11,6 +11,7 @@
 #include "General/Exception.hh"
 #include "OLAS/graph/GraphManager.hh"
 #include "Utils/ThreadLocalStorage.hh"
+//#include "OLAS/solver/BaseEigenSolver.hh"
 
 namespace CoupledField {
 
@@ -178,7 +179,6 @@ namespace CoupledField {
     //! \param bloch mode problems are complex but not quadratic
     void SetupEigenSolver(UInt numFreq, Double shift, bool quadratic, bool sort, bool bloch);
 
-
     //! Solve the linear system.
     //! Calling this method triggers the solution of the linear system
     //! defined by the Finite-Element system matrix, i.e. sysMat_[SYSTEM],
@@ -230,6 +230,7 @@ namespace CoupledField {
     //! \note This method may only be called if SetupEigenfrequencySolver()
     //!       was called previously.
     void CalcEigenFrequencies(Vector<Complex>& frequencies, Vector<Double>& err);
+    void CalcEigenValues(BaseVector &sol, BaseVector &err, Double minVal, Double maxVal);
 
     //! Calculate eigenmodes of a generalized eigenvalue problem
 
@@ -1061,6 +1062,7 @@ namespace CoupledField {
 
     //! In multiharmonic analysis, set the nonzero sbm-blocks
     inline void SetNnzSBMInd(const StdVector<UInt>& sbmInd){ nnzSBMInd_ = sbmInd;};
+    BaseEigenSolver* GetEigenSolver(){ return eigenSolver_; };
 
     //! Return if it is a multiharmonic analysis
     bool IsMultHarm(){return isMultHarm_; };

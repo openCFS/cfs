@@ -188,7 +188,7 @@ namespace CoupledField {
         //    evaluation (the issue is, that we need a deltaMatrix on the lhs and a non-deltaMatrix
         //    on the rhs
         if(deltaFormActive_ && (deltaForm_ != 0) ) {
-          //std::cout << "Get Permittivity - Compute DeltaMatrix" << std::endl;
+         // std::cout << "Get Permittivity - Compute DeltaMatrix" << std::endl;
           //        std::cout << "Compute DeltaMatrix" << std::endl;
           bool useStrains = false;
           
@@ -210,11 +210,12 @@ namespace CoupledField {
             //std::cout << "DeltaMatStrain: " << deltaMat_strains.ToString() << std::endl;
           }
           
-        } else if (deltaForm_ != 0){
-          //        std::cout << "deltaFormSet_ == true, but deltaMatNotActive!" << std::endl;
-        } else {
-          //        std::cout << "deltaFormSet_ == false" << std::endl;
-        }
+        } 
+//          else if (deltaForm_ != 0){
+//                  std::cout << "deltaFormSet_ == true, but deltaMatNotActive!" << std::endl;
+//        } else {
+//                  std::cout << "deltaFormSet_ == false" << std::endl;
+//        }
         
       } else if (tensorName == "CouplingMechToElec"){
         //      std::cout << "ComputeMechToElec" << std::endl;
@@ -687,7 +688,7 @@ namespace CoupledField {
        * the tensors returned by this functions should normally be on the current
        * time level, i.e. timelevel should be 0
        */
-      int timeLevel_to_diff = hystCoefFunction_->GetTimeLevel("Mat"); 
+      int timeLevel_to_diff = hystCoefFunction_->GetTimeLevel("DeltaMat"); 
       
       ComputeTensor(outputTensor, lpm, timeLevel_to_diff, tensorName_, implementationVersion, transposed_, rotate, useAbs );
     }
@@ -1486,7 +1487,7 @@ namespace CoupledField {
       PtrCoefFct dependency1,
       SubTensorType tensorType,
       MaterialType matType,
-      shared_ptr<FeSpace> ptFeSpace, bool performInversionTest=false);
+      shared_ptr<FeSpace> ptFeSpace);
     
     //! Constructor
     CoefFunctionHyst( BaseMaterial* const material,
@@ -1495,14 +1496,14 @@ namespace CoupledField {
     PtrCoefFct dependency2,
     SubTensorType tensorType,
     MaterialType matType,
-    shared_ptr<FeSpace> ptFeSpace, bool performInversionTest=false);
+    shared_ptr<FeSpace> ptFeSpace);
     
     void Init(BaseMaterial* const material,
     shared_ptr<ElemList> actSDList,
     PtrCoefFct dependency1,
     SubTensorType tensorType,
     MaterialType matType,
-    shared_ptr<FeSpace> ptFeSpace, bool performInversionTest=false);
+    shared_ptr<FeSpace> ptFeSpace);
     
     //! Destructor
     virtual ~CoefFunctionHyst();
@@ -1521,9 +1522,7 @@ namespace CoupledField {
       numCols = MAT_initialTensor_.GetNumCols();
     }
     
-    void SetInputDependentFlags(UInt multiDigitInteger);
-    
-    void SetRuntimeDependentFlag(std::string flagName, UInt intState);
+    void SetFlag(std::string flagName, Integer intState);
     
     void SetPreviousHystVals(bool setLastTS, bool forceMemoryLock = false);
     
@@ -1651,7 +1650,7 @@ namespace CoupledField {
     bool deltaMatActive(){
       return deltaMatActive_;
     }
-    
+        
     int GetDeltaForm(){
       return RUN_deltaForm_;
     }
@@ -1660,8 +1659,10 @@ namespace CoupledField {
       if(forceCurrentTS_){
         return 0; 
       }
-      if(Type == "Mat"){
-        return timeLevel_Mat_;
+      if(Type == "Material"){
+        return timeLevel_Material_;
+      } else if (Type == "DeltaMat"){
+        return timeLevel_DeltaMat_;
       } else if (Type == "RHS"){
         return timeLevel_RHS_;
       } else if (Type == "BC"){
@@ -1994,10 +1995,11 @@ namespace CoupledField {
     // independent of the actual value of timeLevel_xxx_
     bool forceCurrentTS_;
     int RUN_deltaForm_;
-    UInt timeLevel_Mat_;
-    UInt timeLevel_RHS_;
-    UInt timeLevel_BC_;
-    UInt timeLevel_Output_;
+    Integer timeLevel_Material_;
+    Integer timeLevel_DeltaMat_;
+    Integer timeLevel_RHS_;
+    Integer timeLevel_BC_;
+    Integer timeLevel_Output_;
     PtrCoefFct hystItself_;
     
     
@@ -2127,7 +2129,7 @@ namespace CoupledField {
     UInt MAT_bmpResolution_;
     UInt MAT_printOut_;
     
-    bool storageInitizalized_;
+    bool storageInitialized_;
     /*
      * ################################################
      * ### Parameters extracted from xml input file ###
@@ -2143,87 +2145,12 @@ namespace CoupledField {
      * (will be set by function SetInputDependentFlags)
      */
     bool XMLParameterSet_;
-    /*
-     * XML_deltaEvalVersion_ = xy
-     *
-     *  x > determines what values to use for deltaX and deltaY
-     *  y > determines what to with deltaX and deltaY
-     *
-     *  XML_deltaEvalVersion_ = x0 (10,20,30,...)
-     *
-     *    deltaMat = addTensor +/- abs(deltaY)/abs(deltaX)
-     *
-     *    ->  see "DirectDivisionAbsNew" in CreateDeltaMatrix
-     *
-     *  XML_deltaEvalVersion_ = x1 (11,21,31,...)
-     *
-     *    deltaMat =
-     *          addTensor +/- abs(deltaY)/abs(deltaX) (if deltaY != 0)
-     *
-     *          deltaMat_lastIt_[idx]/10;             (if deltaY == 0 && deltaMat_lastIt_[idx] > 10*rev_mat_fac_)
-     *
-     *    ->  see "DirectDivisionAbsSatStepDownNew" in CreateDeltaMatrix
-     *
-     *  XML_deltaEvalVersion_ = 1y (10,11)
-     *
-     *    deltaX = currentInput - E_B_lastIt_ or
-     *           = currentInput - E_B_lastTS_ (depending on flag lastTS_)
-     *
-     *    deltaY = currentOutput - P_J_lastIt_ or
-     *           = currentOutput - P_J_lastTS_ (depending on flag lastTS_)
-     *
-     *  XML_deltaEvalVersion_ = 2y (20,21)
-     *
-     *    a) to be done before evaluating the hysteresis operator
-     *    deltaX = currentInput - E_B_lastIt_ or
-     *           = currentInput - E_B_lastTS_ (depending on flag lastTS_)
-     *
-     *    if deltaX[i] < minimalShift  for all i
-     *      -> reuse old deltaMatrix
-     *    if deltaX[i] < minimalShift  for some i but not for all i
-     *      -> shift input a little
-     *      -> currentInput[i] += minimalShift
-     *
-     *    b) evaluate hystersis operator with shifted (or unshifted) input
-     *
-     *    deltaY = currentOutput - P_J_lastIt_ or
-     *           = currentOutput - P_J_lastTS_ (depending on flag lastTS_)
-     *
-     *    Advantage: no issues with division by 0 during CreateDeltaMat
-     *               numerical noise will be overwritten by minimalShift
-     *    Disadvantage: hystoperator is not evaluated at the actual input
-     *                  solution might drift over time
-     *
-     *  XML_deltaEvalVersion_ = 3y (30,31)
-     *
-     *    a) evaluate hystersis operator at currentInput and at a shiftedInput
-     *      with
-     *        shiftedInput = currentInput + minimalShift * (1,1,1)
-     *    b)
-     *      deltaX = minimalShift * (1,1,1)
-     *      deltaY = shiftedOutput - currentOutput
-     *
-     *    Advantage: no issues wiht division by 0
-     *               differential deltaMatrix computed
-     *    Disadvantage: hystOperator needs to be evaluated twice
-     *
-     */
-    UInt XML_deltaEvalVersion_;
     
     /*
-     * kHApproxVersion_
-     *
-     *  used for approximating H from B in magnetic case
-     *  kHApproxVersion_ = 1     -> H_new = nu0*B_new - M_old
-     *  kHApproxVersion_ = 2     -> H_new = deltaMat_lastIt_ * (B_new - B_old) + H_old
-     */
-    UInt XML_HApproxVersion_;
-    
-    /*
-     * kEvaluationDepth_ (to be set ONCE at the start of the simulation; set via
+     * EvaluationDepth_ (to be set ONCE at the start of the simulation; set via
      *                    input file possible)
      *
-     *  kEvaluationDepth_= 1 (standard)
+     *  EvaluationDepth_= 1 (standard)
      *   - each element has exactly one hysteresis operator attached
      *   - numHystOperators = numElems
      *   - each Hysteresis operator will only be evaluated at the midpoint of
@@ -2232,7 +2159,7 @@ namespace CoupledField {
      *    of the Hysteresis operator, ...) at the midpoint of the corresponding
      *    element
      *
-     *  kEvaluationDepth_ = 2 (extended)
+     *  EvaluationDepth_ = 2 (extended)
      *   - each element has exactly one hysteresis operator attached
      *   - numHystOperators = numElems
      *   - for the functions GetScalar, GetVector and GetTensor (in BDB, BDU, ...
@@ -2250,14 +2177,14 @@ namespace CoupledField {
      *      at the midpoint of the element in hope that this state does not differ
      *      too much from the actual hysteretic state at the integration points
      *
-     *  kEvaluationDepth_ = 3 (full)
+     *  EvaluationDepth_ = 3 (full)
      *  (not yet implemented, but possible approach for future)
      *   - each INTEGRATION point + the midpoint have one hysteresis operator
      *    attached
      *   - numHystOperators = numElems * (numIntegrationsPoints + 1)
      *   - Evaluation and storage is done for each integration point
      */
-    UInt XML_EvaluationDepth_;
+    Integer XML_EvaluationDepth_;
     
     /*
      * activates differnet levels of runtime measurement
@@ -2265,12 +2192,14 @@ namespace CoupledField {
      * 1: measuerment of evaluation time of hyst operator
      * 2: detailed measurement of evaluation time of hyst operator
      */
-    UInt XML_performanceMeasurement_;
+    Integer XML_performanceMeasurement_;
     
     /*
-     * level of text output; 0 = no output; 1 = std info; 2 = debug
+     * Test inversion algorithm
+     * XML_testInversion_ specifies test number; if XML_testInversion_ > highest
+     *  test number > test all
      */
-    UInt XML_textOutputLevel_;
+    Integer XML_testInversion_;
     
     /*
      * #########################################################################
@@ -2282,61 +2211,9 @@ namespace CoupledField {
     /*
      * may be set to false to lock the rotation state of the hysteresis operator
      * changes in put will thus only affect the amplitude
+     * > does not work if false; set it to true and leave it true
      */
     bool RUN_overwriteDirection_;
-    
-    /*
-     * determines whether the value from the last time step (true) or the one from
-     * the last iteration (false) shall be used to compute the delta matrix
-     */
-    bool RUN_useLastTS_;
-    
-    /*
-     * RUN_vectorToReturn_
-     *
-     *  used to tweak the behavior of the rhs load
-     *
-     *  RUN_vectorToReturn_ =
-     *    1 -> evaluate Hysteresis operator and returns its value in rhs load
-     *          integrator
-     *    2 -> return zero vector (needed for implementations where we do not
-     *          put P/M to the rhs or only for the first two iteratons)
-     *    3 -> evaluate Hysteresis operator but return not its value, but the
-     *          difference to the value from the last TS
-     *    4 -> return only the value of the lastTS (needed for full stepping)
-     */
-    UInt RUN_vectorToReturn_;
-    
-    /*
-     * tensorToReturn_
-     *
-     *  used to tweak the behavior of the coefficient function from outside
-     *  needed in StdSolveStep as we need to assemble the deltaMatrix on the lhs
-     *  and the freeField tensor on the rhs
-     *
-     *  tensorToReturn_ =
-     *    1 -> return InitialTensor
-     *    2 -> return FreeFieldTensor
-     *    3 -> return computed deltaMatrix
-     *
-     */
-    UInt RUN_tensorToReturn_;
-    
-    /*
-     * tensorToAdd_
-     *
-     *  used to tweak the computation of the deltaMatrix
-     *
-     *  deltaMatrix =
-     *    electrostatics:     tensorToAdd + deltaP/deltaE
-     *    magnetics:          tensorToAdd - deltaM/deltaB
-     *
-     *  tensorToAdd_ =
-     *    1 -> add InitialTensor
-     *    2 -> add FreeFieldTensor
-     *
-     */
-    UInt RUN_tensorToAdd_;
     
     /*
      * evaluationPurpose_ (to be changed during the iterative solve step)
@@ -2357,24 +2234,13 @@ namespace CoupledField {
      *  state)
      *
      */
-    UInt RUN_evaluationPurpose_;
+    Integer RUN_evaluationPurpose_;
     
     /*
      * switch needed to activate BMP output only at the end of each time step
      * (otherwise there would be way to much bmp output if done during each iteration)
      */
     bool RUN_allowBMP_;
-    
-    /*
-     * single global flag for indicating if residual could be reduced during
-     * last iteration; this may be taken as an indicatior that we should adapt
-     * the computatoin of the deltaMat
-     * (obvious issue: the residual is a global quantity whereas the deltaMat is
-     *  a local one, i.e. just because the residual did not converge, does not mean
-     *  that the computation of all deltaMatrices should be changed (maybe some
-     *  are already appropriate))
-     */
-    bool RUN_residualDecreased_;
     
     /*
      * ######################
@@ -2559,8 +2425,6 @@ namespace CoupledField {
     shared_ptr<FeSpace> ptFeSpace_;
     UInt numIntegrationPoints_;
     std::map<int,UInt> locPointIndices_;
-    
-    
     
     // for bisection stuff
     Vector<Double>* dY_sol;

@@ -177,13 +177,16 @@ void Lighthill::LambVector(Vector<Double>& tempRetVec){
 
 void Lighthill::LighthillTensor(Vector<Double>& tempRetVec){
   Vector<Double>& inVecVel = GetUpstreamResultVector<Double>(resVelocityId, stepIndex_);
-  Vector<Double>& inVecDensity = GetUpstreamResultVector<Double>(resDensityId, stepIndex_);
-  if(externVorticity_ == true){
-    inVecDensity = GetUpstreamResultVector<Double>(resVorticityId, stepIndex_);
+  Vector<Double> LHTensor;
+  if(externDensity_ == true){
+    Vector<Double>& inVecDensity = GetUpstreamResultVector<Double>(resDensityId, stepIndex_);
+    TensorProduct(LHTensor, inVecVel, inVecVel, numEquPerEnt_, 1.0, inVecDensity);
+  } else {
+    TensorProduct(LHTensor, inVecVel, inVecVel, numEquPerEnt_, 1.0);
   }
 
-  Vector<Double> LHTensor;
-  TensorProduct(LHTensor, inVecVel, inVecVel, numEquPerEnt_, 1.0, inVecDensity);
+
+
 
   Matrix& matrix = matrices_[matrixIndex_];
   StdVector< StdVector<CF::UInt> >& sourceMDiv = matrix.targetSourceIndexDiv;
@@ -310,15 +313,15 @@ void Lighthill::PrepareCalculation(){
   std::cout << "\t ---> Lighthill preparing for calculation" << std::endl;
   //if(externVorticity_ == false || Form_ != "AeroacousticSource_LambVector"){
   std::cout << "\t\t 1/4 Obtaining source entities (nodes) " << std::endl;
-  uuids::uuid upRes = upResIds[0];
+  uuids::uuid upRes = resVelocityId;
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
 
   scrMap_ = resultManager_->GetEqnMap(upRes);
   trgMap_ = resultManager_->GetEqnMap(filterResIds[0]);
-  ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
+  ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upRes);
 //TODO wrong number of equations per entity for VELOCITY if VORTICITY is read-in by EnSight as CFSVarName="fluidMechVorticity"
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
-  if(numEquPerEnt_ != inGrid_->GetDim()) EXCEPTION("Grid and Values don't have the same dimension!!");
+  if(numEquPerEnt_ != inGrid_->GetDim()) EXCEPTION("Grid (dim="<<inGrid_->GetDim()<<") and Values of "<< resultManager_->GetResultName(upRes) <<" (dim="<<numEquPerEnt_<<") don't have the same dimension!!");
   if(numEquPerEnt_ == 1) EXCEPTION("Input (velocity) is a scalar, it should be a vector!!");
 
 
