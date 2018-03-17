@@ -1388,10 +1388,13 @@ int main(int argc, char** argv)
       std::cout << "Checking for mesh results:\n"
         << "==========================\n";
       maxDiffMesh = CFSTool::Diff( file1, file2, "", true, false, maxDiffResultName);
+      std::cout << "<DartMeasurement name=\"scalardiff (mesh)\" type=\"numeric/double\">"<<maxDiffMesh<<"</DartMeasurement>\n";
       std::cout << "Checking for history results:\n"
         << "=============================\n";
       maxDiffHist = CFSTool::Diff( file1, file2, "", true, true, maxDiffResultName );
+      std::cout << "<DartMeasurement name=\"scalardiff (history)\" type=\"numeric/double\">"<<maxDiffHist<<"</DartMeasurement>\n";
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
+      std::cout << "<DartMeasurement name=\"scalardiff\" type=\"numeric/double\">"<<maxDiff<<"</DartMeasurement>\n";
       if( maxDiff > tolerance ) {
         std::cout << "error: maximum difference " << maxDiff << " for '" << maxDiffResultName << "' > " << tolerance
                   << " for '" << file1 << "' and '" << file2 << std::endl;
@@ -1412,13 +1415,18 @@ int main(int argc, char** argv)
         Double maxDiffMesh,maxDiffMeshRel;
         Double errMesh = CFSTool::CheckL2(file1,file2,false,maxDiffMesh,maxDiffMeshRel,maxDiffResultName);
         std::cout << "Maximum L2 norm = " << errMesh << " @ "<< maxDiffResultName << "\n";
+        std::cout << "<DartMeasurement name=\"absL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMesh<<"</DartMeasurement>\n";
+        std::cout << "<DartMeasurement name=\"relL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMeshRel<<"</DartMeasurement>\n";
         std::cout << "Checking for history results:\n"
         << "==========================\n";
         Double maxDiffHist,maxDiffHistRel;
         Double errHist = CFSTool::CheckL2(file1,file2,true,maxDiffHist,maxDiffHistRel,maxDiffResultName);
         std::cout << "Maximum L2 norm = " << errHist << " @ "<< maxDiffResultName <<"\n";
+        std::cout << "<DartMeasurement name=\"absL2diff (history)\" type=\"numeric/double\">"<<maxDiffHist<<"</DartMeasurement>\n";
+        std::cout << "<DartMeasurement name=\"relL2diff (history)\" type=\"numeric/double\">"<<maxDiffHistRel<<"</DartMeasurement>\n";
         Double err = std::max(errMesh,errHist);
         std::cout << "\n";
+        std::cout << "<DartMeasurement name=\"L2diff\" type=\"numeric/double\">"<<err<<"</DartMeasurement>\n";
         if ( err > tolerance ) {
             std::cout << "========================================================\n";
             std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
@@ -1442,6 +1450,8 @@ int main(int argc, char** argv)
         CFSTool::CheckL2(file1,file2,false,absDiff,maxDiffMeshRel,maxDiffResultName);
         std::cout << "\n";
         std::cout << " -> Maximum relative L2 norm = " << maxDiffMeshRel << " @ "<< maxDiffResultName << "\n";
+        std::cout << "<DartMeasurement name=\"absL2diff (mesh)\" type=\"numeric/double\">"<<absDiff<<"</DartMeasurement>\n";
+        std::cout << "<DartMeasurement name=\"relL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMeshRel<<"</DartMeasurement>\n";
         std::cout << "\n";
         std::cout << "#####################################################\n";
         std::cout << "#           Checking for history results ...        #\n";
@@ -1450,8 +1460,11 @@ int main(int argc, char** argv)
         CFSTool::CheckL2(file1,file2,true,absDiff,maxDiffHistRel, maxDiffResultName);
         std::cout << "\n";
         std::cout << " -> Maximum relative L2 norm = " << maxDiffHistRel << " @ " << maxDiffResultName << "\n";
+        std::cout << "<DartMeasurement name=\"absL2diff (history)\" type=\"numeric/double\">"<<absDiff<<"</DartMeasurement>\n";
+        std::cout << "<DartMeasurement name=\"relL2diff (history)\" type=\"numeric/double\">"<<maxDiffHistRel<<"</DartMeasurement>\n";
         std::cout << "\n";
         Double err = std::max(maxDiffMeshRel,maxDiffHistRel);
+        std::cout << "<DartMeasurement name=\"relL2diff\" type=\"numeric/double\">"<<err<<"</DartMeasurement>\n";
         if ( err > tolerance ) {
             std::cout << "========================================================\n";
             std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
