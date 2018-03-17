@@ -2740,9 +2740,9 @@ namespace CoupledField {
     //  2) Solve the full multiharmonic nonlinear system
     // =========================================================
 
-    // =================================
+    // =======================================
     //  2.1) Outer loop: Multilevel strategy
-    // =================================
+    // =======================================
 
     // This will be the incremental solution (deflect vector),
     // meaning \Delta u^{k+1} = u^{k+1} - u^k
@@ -2758,35 +2758,6 @@ namespace CoupledField {
     actSol = solVecMH_;
 
 
-
-
-
-
-
-
-
-
-// Delete this output
-    SBM_Vector tmp(BaseMatrix::COMPLEX);
-    algsys_->GetFullMultiHarmRHSVal(tmp);
-    std::cout<<"tmp(0)"<<tmp(0).ToString()<<std::endl;
-    std::cout<<"tmp(1)"<<tmp(1).ToString()<<std::endl;
-    std::cout<<"tmp(2)"<<tmp(2).ToString()<<std::endl;
-    std::cout<<"tmp(3)"<<tmp(3).ToString()<<std::endl;
-    std::cout<<"tmp(4)"<<tmp(4).ToString()<<std::endl;
-    std::cout<<"tmp(5)"<<tmp(5).ToString()<<std::endl;
-    std::cout<<"tmp(6)"<<tmp(6).ToString()<<std::endl;
-
-    std::cout<<"actSol(0)"<<actSol(0).ToString()<<std::endl;
-    std::cout<<"actSol(1)"<<actSol(1).ToString()<<std::endl;
-    std::cout<<"actSol(2)"<<actSol(2).ToString()<<std::endl;
-    std::cout<<"actSol(3)"<<actSol(3).ToString()<<std::endl;
-    std::cout<<"actSol(4)"<<actSol(4).ToString()<<std::endl;
-    std::cout<<"actSol(5)"<<actSol(5).ToString()<<std::endl;
-    std::cout<<"actSol(6)"<<actSol(6).ToString()<<std::endl;
-
-
-
     // =========================================================================
     // Create multiharmonic time-frequency object and provide basic information
     // =========================================================================
@@ -2794,13 +2765,6 @@ namespace CoupledField {
 
     Test.SetFrequencyResult(actSol);
     Test.FourierToTime();
-
-
-
-
-
-
-
 
 
     // TODO this hardcoded variable is just for development purposes and must be changed!!

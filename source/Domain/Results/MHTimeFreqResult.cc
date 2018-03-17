@@ -67,9 +67,6 @@ namespace CoupledField {
 
 
 
-
-
-
   void MHTimeFreqResult::FourierToTime(){
     // First of all, check if we have the number of spatial dof's
     if(spatialSize_ == 0) EXCEPTION("MHTimeFreqResult::FourierToTime no result was set!!")
@@ -79,7 +76,6 @@ namespace CoupledField {
     // Since the timeVec_ size is much smaller than the number of
     // dof's in the domain, our outer loop will be the timeVec_ entries
     // and the inner loop will be the parallel loop over dof's
-
     timeResult_.Resize(timeVec_.GetSize());
 
     // Outer loop over discrete times
@@ -104,15 +100,10 @@ namespace CoupledField {
           // harmonic number
           int h = k - N_;
           Complex c = (cos(h * omega0_ * t) + Complex(0.0,1.0)*sin(h * omega0_ *t));
-std::cout<<"Complex(0.0,1.0)*sin(h * omega0_ *t) for h = "<<h<<": -> "<<Complex(0.0,1.0)*sin(h * omega0_ *t)<<std::endl;
-std::cout<<"cos(h * omega0_ *t) for h = "<<h<<": -> "<<cos(h * omega0_ *t)<<std::endl;
-std::cout<<"fR[0] for h = "<<h<<": -> "<<fR[0]<<std::endl;
-std::cout<<"c for h = "<<h<<": -> "<<c<<std::endl;
 #pragma omp for
           for(UInt j = 0; j < spatialSize_; ++j){
             localA[j] += fR[j] * c;
           }
-std::cout<<"localA[0] = "<<localA[0]<<std::endl;
         }
         // implicit barrier ensures all local copies are ready for aggregation
 
