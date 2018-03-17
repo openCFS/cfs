@@ -374,7 +374,6 @@
         <xsd:sequence>
           <xsd:element name="precond" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
-              <xsd:attribute name="isMultiHarmonic" type="xsd:boolean"/>
               <xsd:attribute name="id" type="xsd:token" default="default"/>
             </xsd:complexType>
           </xsd:element>

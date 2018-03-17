@@ -338,7 +338,7 @@ namespace CoupledField
     MathParser* mParser_;
 
 private:
-  void AssembleMH(const UInt& N, const UInt& M);
+  void AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks = false);
 
   //! Vector containing all solution vectors for all harmonics
   //! in a multiharmonic analysis. We need this vector because

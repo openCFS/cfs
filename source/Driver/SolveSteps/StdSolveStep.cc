@@ -2700,7 +2700,7 @@ namespace CoupledField {
     assemble_->InitMultHarm();
 
     // Loop over every frequency and assemble the correct SBM blocks
-    AssembleMH(N, M);
+    AssembleMH(N, M, true);
 
     // Sets flag that matrix was already assembled. The method CheckNonLinearities
     // redoes this
@@ -2716,7 +2716,7 @@ namespace CoupledField {
     // by a call to StdSolveStep::GetRHSValMultHarm(h), where h is the harmonic number
 
     std::map<FEMatrixType,Double> empty;
-    algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
+    algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
 
     // Incorporate Boundary conditions and
     // recalculate the preconditioner eventually
@@ -2888,7 +2888,7 @@ namespace CoupledField {
         if(iLevel != 0){
           // compute effective matrix
           std::map<FEMatrixType,Double> empty;
-          algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
+          algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
 
           // Incorporate Boundary conditions and
           // recalc the preconditioner eventually
@@ -3046,18 +3046,27 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::AssembleMH(const UInt& N, const UInt& M) {
+  void StdSolveStep::AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks) {
     // loop over every frequency and assemble the correct SBM blocks
-    for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
-      // set the frequency of the current harmonic
-      mParser_->SetValue(MathParser::GLOB_HANDLER, "f", multHarmFreqVec_[i]);
-      // which harmonic are we considering
-      Integer h = -N + i;
-      if (std::abs(h) >= (Integer) (M)) {
-        continue;
-      } else {
-        // assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
-        assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
+
+    // Special treatment is needed for the diagonal blocks, due to the mass part,
+    // therefore handle this case seperately
+    assemble_->AssembleMatrices_MultHarm(0, solStrat_->GetNumHarmN(),
+        solStrat_->GetNumHarmM(),
+        multHarmFreqVec_);
+
+    if(!onlyDiagBlocks){
+      for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
+        // set the frequency of the current harmonic
+        mParser_->SetValue(MathParser::GLOB_HANDLER, "f", multHarmFreqVec_[i]);
+        // which harmonic are we considering
+        Integer h = -N + i;
+        if (std::abs(h) >= (Integer) (M) || h == 0) {
+          continue;
+        } else {
+          // assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
+          assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
+        }
       }
     }
   }

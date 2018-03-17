@@ -780,10 +780,11 @@ namespace CoupledField
     matReassemble_.clear();
   }
 
-  void Assemble::AssembleMatrices_MultHarm(Integer harmonic, UInt N, UInt M) {
+  void Assemble::AssembleMatrices_MultHarm(Integer harmonic, UInt N, UInt M,
+                                  const StdVector<Double>& multHarmFreqVec) {
 
-    LOG_DBG(assemble) << "AM_Std: AssembleMatricesMultHarm() enter sequence=" << domain->GetDriver()->GetActSequenceStep()<<
-        " for harmonic N="<<harmonic;
+    LOG_DBG(assemble) << "AM_Std: AssembleMatricesMultHarm() enter sequence="
+        << domain->GetDriver()->GetActSequenceStep() << " for harmonic N=" << harmonic;
 
     // same as ComputeIndex method in GraphManager, here with a lambda function
     auto ComputeIndex = [N](UInt a, UInt b ) { return (2*N+1) * a + b;};
@@ -955,18 +956,6 @@ namespace CoupledField
             }
 
 
-            // in multiharmonic analysis, the mass matrix must be multiplied by the harmonic number
-            // TODO depending on the PDE, sometimes the mass matrix is named DAMPING, I really don't know why
-            // for MagEdgePDE and MagneticPDE this is the case
-            // Ideally such an operation would be performed way back in the PDE-class
-            // of after the assembling in algsys_->ConstructEffectiveMatrix but the fact that
-            // we need to loop over every frequency and multiply the mass matrices corresponding to the
-            // frequencies with different values, prevents such a ''clean'' solution
-            if( actContext.GetDestMat() == DAMPING ){
-              elemMatrix *= harmonic;
-              LOG_DBG3(assemble) << "AM_Std: real CEM MASS -> " << elemMatrix.ToString(2);
-            }
-
             // info.xml logging in detailed logging case for the first element only
             if(i == 0 && progOpts->DoDetailedInfo())
             {
@@ -1004,12 +993,52 @@ namespace CoupledField
             ReMapEquations(eqnVec1, fctId1);
             ReMapEquations(eqnVec2, fctId2);
 
-            // Pass element matrix to algebraic system (primary matrix)
-            if ( form->IsComplex() )
-              InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2, false, sbmInd);
-            else
-              InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2, false, sbmInd);
 
+            // in multiharmonic analysis, the mass matrix must be multiplied by the harmonic number
+            // TODO depending on the PDE, sometimes the mass matrix is named DAMPING, I really don't know why
+            // for MagEdgePDE and MagneticPDE this is the case
+            // Ideally such an operation would be performed way back in the PDE-class
+            // of after the assembling in algsys_->ConstructEffectiveMatrix but the fact that
+            // we need to loop over every frequency and multiply the mass matrices corresponding to the
+            // frequencies with different values, prevents such a ''clean'' solution
+            if( harmonic == 0 && multHarmFreqVec.GetSize() != 0){
+              if( actContext.GetDestMat() == DAMPING ){
+                // Store the sbm-indices of the blocks, which correspond to harmonic 0
+                // in a vector with size 0 to pass it to InsertMatrix method.
+                // This is kind of a workaround
+                StdVector<UInt> diagInd(1);
+                for( UInt iRow = 0; iRow < 2*N+1; ++iRow ) {
+                  diagInd.Init(0);
+                  diagInd[0] =  sbmInd[iRow];
+                  Double f = multHarmFreqVec[iRow];
+                  LOG_DBG3(assemble) << "AM_Std: real CEM MASS  in "
+                      "SBM block with index "<<diagInd[0]<<" -> "
+                      << elemMatrix.ToString(2);
+
+                  // Pass element matrix to algebraic system (primary matrix)
+                  if ( form->IsComplex() ){
+                    EXCEPTION("Assembling of complex bilinear form in multiharmonic analysis not yet implemented!");
+                  }else{
+                    InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2,
+                        fctId1, fctId2, false, diagInd, f, true);
+                  }
+
+                }
+              }else{
+                // Pass element matrix to algebraic system (primary matrix)
+                if ( form->IsComplex() )
+                  InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2, false, sbmInd);
+                else
+                  InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2, false, sbmInd);
+              }
+
+            }else{
+              // Pass element matrix to algebraic system (primary matrix)
+              if ( form->IsComplex() )
+                InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2, false, sbmInd);
+              else
+                InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2, false, sbmInd);
+            }
 
             // increment iterators
           } catch (Exception& e) {
@@ -2007,11 +2036,10 @@ algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX
       matrixMap_[MASS_UPDATE]      = SYSTEM;
       break;
 
-
     case BasePDE::MULTIHARMONIC:
       matrixMap_[SYSTEM]    = SYSTEM;
       matrixMap_[STIFFNESS] = SYSTEM;
-      matrixMap_[DAMPING]   = SYSTEM;
+      matrixMap_[DAMPING]   = DAMPING;
       matrixMap_[MASS]      = SYSTEM;
       matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
       matrixMap_[DAMPING_UPDATE]   = SYSTEM;
@@ -2133,7 +2161,9 @@ algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX
                                StdVector<Integer>& eqnVec2,
                                FeFctIdType fctId1, FeFctIdType fctId2,
                                bool preventStaticCond,
-                               const StdVector<UInt>& sbmIndices)
+                               const StdVector<UInt>& sbmIndices,
+                               const Double& f,
+                               bool isMultHarmDiag)
   {
     // map original matrix destination to analysis-dependent one
     FEMatrixType mappedDest = matrixMap_[dest];
@@ -2156,7 +2186,12 @@ algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX
     } else {
       assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE);
 
-      Double omega = mp_->Eval( mHandle_ );
+      Double omega;
+      if(isMultHarmDiag){
+        omega = 2 * M_PI * f;
+      }else{
+        omega = mp_->Eval( mHandle_ );
+      }
 
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
 
@@ -2183,7 +2218,9 @@ algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX
                                StdVector<Integer>& eqnVec2,
                                FeFctIdType fctId1, FeFctIdType fctId2,
                                bool preventStaticCond,
-                               const StdVector<UInt>& sbmIndices) {
+                               const StdVector<UInt>& sbmIndices,
+                               const Double& f,
+                               bool isMultHarmDiag) {
     Matrix<Complex> harmMat;
 
     // map original matrix destination to analysis-dependent one
@@ -2195,7 +2232,14 @@ algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX
         || analysisType_ == BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY);
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
-    Double omega = mp_->Eval( mHandle_ );
+
+    Double omega;
+    if(isMultHarmDiag){
+      omega = 2 * M_PI * f;
+    }else{
+      omega = mp_->Eval( mHandle_ );
+    }
+
 
     // for bloch mode we need special handling. The mass matrix needs to be complex but
     // Matrix2Harmonic wourl use omega=0 as we have no actFreq.

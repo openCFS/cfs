@@ -615,8 +615,8 @@ namespace CoupledField {
         // construct file name
         if(ncols_ > 1 || nrows_ > 1)
           ss << fname << '_' << i << '_' << j;
-        outFile =  fname + ss.str();
-
+        outFile =  ss.str();
+        ss.str(std::string());
         // export sub-matrix
         if ( subMat_[ComputeIndex(i,j)] != NULL ) {
           subMat_[ComputeIndex(i,j)]->Export( outFile.c_str(), format, comment );
@@ -641,7 +641,7 @@ namespace CoupledField {
       sbmRow = c[0];
       sbmCol = c[1];
       ss << fname << '_' << sbmRow << '_' << sbmCol;
-      outFile =  fname + ss.str();
+      outFile =  ss.str();
       ss.str(std::string());
       // export sub-matrix
       if ( subMat_[ComputeIndex(sbmRow, sbmCol)] != NULL ) {

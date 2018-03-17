@@ -1622,8 +1622,8 @@ namespace CoupledField {
     //    sub-graph that the graph manager stores
     // --------------------------------------------------------------------
     UInt nnzBlocks = 0; //number of nonzero blocks
-    if ( matrixTypes_.size() > 1 ) {
-      EXCEPTION("AlgebraicSys::GraphSetupDoneMH() more than one matrix type...not implemented yet \n"
+    if ( matrixTypes_.size() > 2 ) {
+      EXCEPTION("AlgebraicSys::GraphSetupDoneMH() more than two matrix type...not implemented yet \n"
                 "for the multiharmonic case!" );
     }
     else {
@@ -1636,6 +1636,7 @@ namespace CoupledField {
               sID.rowInd = sbmRow;
               sID.colInd = sbmCol;
               feSubMatricesByBlocks_[SYSTEM].insert( sID );
+              feSubMatricesByBlocks_[DAMPING].insert( sID );
             }
 
             // also handle the transpose
@@ -1645,6 +1646,7 @@ namespace CoupledField {
                 sID.rowInd = sbmCol;
                 sID.colInd = sbmRow;
                 feSubMatricesByBlocks_[SYSTEM].insert( sID );
+                feSubMatricesByBlocks_[DAMPING].insert( sID );
               }
             }
 
@@ -3151,7 +3153,8 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::ConstructEffectiveMatrix( const FeFctIdType fctId,
-                            const std::map<FEMatrixType,Double> &matFactors ) {
+                            const std::map<FEMatrixType,Double> &matFactors,
+                            const bool isMultHarm) {
 
     LOG_TRACE(algSys) << "Constructing effective system matrix for feFunction "
         << "with id " << fctId;
@@ -3165,7 +3168,7 @@ namespace CoupledField {
 
     factorMap::const_iterator it;
     SBM_Matrix *sys = sysMat_[SYSTEM];
-    
+
     // As one functionId can be spread over many SBM blocks, we
     // have to map the fctId to (sbmBlocks,indices)
     std::map<UInt, std::set<UInt> > freeIndPerBlock, fixedIndPerBlock;
@@ -3176,7 +3179,7 @@ namespace CoupledField {
     if( freeIndPerBlock.size() == 0 ) {
       return;
     }
-    
+
     // It's okay, if there are no factors, if there is only a system
     // matrix and no other ones
     if ( matFactors.empty() == true ) {
@@ -3188,25 +3191,33 @@ namespace CoupledField {
         // Now we are done
         return;
       }
-//      else {
-//        WARN("SBM_System::ConstructEffectiveMatrix: "
-//            << "Map with factors is empty, but there are "
-//            << matrixTypes_.size() << " FE matrices in the game!");
-//      }
     }
-    
-    for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
-      if ( sysMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
-        std::map<UInt, std::set<UInt> > dummyFreeSet;
-        sys->Add( (*it).second, *sysMat_[(*it).first], 
-                  dummyFreeSet, freeIndPerBlock );
+
+
+    // In multiharmonic analysis, we habe to adapt the mass part
+    if(isMultHarm){
+      SBM_Matrix *mass = sysMat_[DAMPING];
+      for(UInt iRow = 0; iRow < 2 * solStrat_->GetNumHarmN() +1; ++iRow){
+        StdMatrix* sysSub = sys->GetPointer(iRow, iRow);
+        StdMatrix* massSub = mass->GetPointer(iRow, iRow);
+        // multiply massSub with harmonic number and add it to system matrix
+        //Integer fac = (iRow - solStrat_->GetNumHarmN() < 0)? -1 : 1;
+        Integer fac = 1;
+        sysSub->Add(fac, *massSub);
+      }
+    }else{
+      for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
+        if ( sysMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
+          std::map<UInt, std::set<UInt> > dummyFreeSet;
+          sys->Add( (*it).second, *sysMat_[(*it).first],
+              dummyFreeSet, freeIndPerBlock );
+        }
       }
     }
 
     // Also assemble the effective auxilliary system matrix for moving
     // IDBCs to the right-hand side
     idbcHandler_->BuildSystemMatrix( matFactors, freeIndPerBlock );
-
   }
 
   template<typename T>

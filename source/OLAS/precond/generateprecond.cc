@@ -506,10 +506,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
      // ============================
     case BasePrecond::SBM_JACOBI:
     {
-      // Check if the multiharmonic optimized version is used
-      bool isMultiHarmonic = (precondNode->Get("precond")->Has("isMultiHarmonic") == true)? true : false;
-
-      jp = new SBMJacobiPrecond(numBlocks, olasInfo, isMultiHarmonic);
+      jp = new SBMJacobiPrecond(numBlocks, olasInfo);
       infoNode = jp->GetInfoNode();
 
       // Loop over all blocks and assign to each diagonal block a
@@ -522,25 +519,16 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
         EXCEPTION("No preconditioner id was defined for the SBM_Jacobi preconditioner!!");
       }
 
-      if(!isMultiHarmonic){
-        for( UInt i = 0; i < numBlocks; ++i ) {
-          // just for the info-xml
-          blockInfoNode = infoNode->Get("block",ParamNode::APPEND);
-          blockInfoNode->Get("num")->SetValue(i+1);
-          // generate preconditioner object
-          BasePrecond * actPrecond = GenerateStdPrecondObject( mat(i,i), precondId, precondList, blockInfoNode );
-          // pass precond object to sbm-preconditioner
-          jp->SetPrecond(i, actPrecond );
-        }
-      }else{
-        // multiharmonic Version
+      for( UInt i = 0; i < numBlocks; ++i ) {
+        // just for the info-xml
         blockInfoNode = infoNode->Get("block",ParamNode::APPEND);
-        blockInfoNode->Get("num")->SetValue(1);
+        blockInfoNode->Get("num")->SetValue(i+1);
         // generate preconditioner object
-        BasePrecond * actPrecond = GenerateStdPrecondObject( mat(0,0), precondId, precondList, blockInfoNode );
+        BasePrecond * actPrecond = GenerateStdPrecondObject( mat(i,i), precondId, precondList, blockInfoNode );
         // pass precond object to sbm-preconditioner
-        jp->SetPrecond(0, actPrecond );
+        jp->SetPrecond(i, actPrecond );
       }
+
       retVal = jp;
     }
       break;

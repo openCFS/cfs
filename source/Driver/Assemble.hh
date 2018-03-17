@@ -81,7 +81,8 @@ namespace CoupledField {
                                     std::map<FEMatrixType,Double> > timeStepFactors);
 
     //! Assemble matrices for multiharmonic analysis
-    void AssembleMatrices_MultHarm(Integer harmonic, UInt N, UInt M);
+    void AssembleMatrices_MultHarm(Integer harmonic, UInt N, UInt M,
+     const StdVector<Double>& multHarmFreqVec = StdVector<Double>());
 
     //! Initialize matrices for multiharmonic analysis
     void InitMultHarm();
@@ -193,7 +194,9 @@ namespace CoupledField {
                        StdVector<Integer>& eqnVec2,
                        FeFctIdType fctId1, FeFctIdType fctId2,
                        bool preventStaticCondensation = false,
-                       const StdVector<UInt>& sbmIndices = StdVector<UInt>());
+                       const StdVector<UInt>& sbmIndices = StdVector<UInt>(),
+                       const Double& f = 0,
+                       bool isMultHarmDiag = false);
 
     //! Insert complex matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
@@ -201,7 +204,9 @@ namespace CoupledField {
                        StdVector<Integer>& eqnVec2,
                        FeFctIdType fctId1, FeFctIdType fctId2,
                        bool preventStaticCondensation = false,
-                       const StdVector<UInt>& sbmIndices = StdVector<UInt>() );
+                       const StdVector<UInt>& sbmIndices = StdVector<UInt>(),
+                       const Double& f = 0,
+                       bool isMultHarmDiag = false);
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation
