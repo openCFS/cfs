@@ -1356,6 +1356,9 @@ namespace CoupledField {
     UInt M = solStrat_->GetNumHarmM();
     Double bF = solStrat_->GetBaseFreq();
     UInt numFFT = solStrat_->GetNumFFT();
+    if(numFFT % 2 != 0){
+      EXCEPTION("Please provide a numFFT xml attribute, which is even!");
+    }
 
     bool performOneMoreStep = true;
 
@@ -1438,6 +1441,12 @@ namespace CoupledField {
 
     Test.SetFrequencyResult(actSol);
     Test.FourierToTime();
+
+    Test.TimeToFourier();
+
+
+
+
 
 
     // TODO this hardcoded variable is just for development purposes and must be changed!!

@@ -19,6 +19,8 @@
 #include "MatVec/Vector.hh"
 #include "General/Environment.hh"
 #include "MatVec/SBM_Vector.hh"
+#include "MatVec/Matrix.hh"
+
 
 namespace CoupledField {
 
@@ -56,6 +58,9 @@ public:
   //! Evaluate Fourier series at given discrete times in timeVec_
   void FourierToTime();
 
+  //! Method for computing the Fourier series from a given time-signal.
+  void TimeToFourier();
+
 
 
 private:
@@ -73,7 +78,6 @@ private:
   //! Result-vector in frequency domain. Outer vector is frequency (harmonic),
   //! inner one contains the spatial dof's
   StdVector< Vector<Complex> > freqResult_;
-  //SBM_Vector freqResult_;
 
   //! Number of time points in one period of base-frequency.
   //! The FFT of the timeResult into freqResult is based on this
@@ -82,6 +86,10 @@ private:
   //! time-domain uses these number of steps)
   //! It is provided by the xml-parameter "numFFTPoints"
   UInt nFFT_;
+
+  //! Number of frequencies in result
+  UInt numFreqs_;
+
 
   //! Base angular frequency (1st harmonic)
   Double omega0_;
@@ -95,6 +103,10 @@ private:
 
   //! Number of considered harmonics
   UInt N_;
+
+  //! Buffer for all input data of the FFT (one time series per row)
+  //! Will be overwritten with the result of the FFT.
+  Matrix<Complex> data_;
 
 };// end of class MHTimeFreqResult
 
