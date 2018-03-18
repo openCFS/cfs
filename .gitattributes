@@ -132,6 +132,7 @@ cfsdeps/cmake/External_CMake.cmake -text
 cfsdeps/cmake/cmake-configure.cmake.in -text
 cfsdeps/cmake/cmake-install.cmake.in -text
 cfsdeps/feast/External_FEAST.cmake -text
+cfsdeps/feast/feast-post_install.cmake.in -text
 cfsdeps/feast/make.inc.in -text
 cfsdeps/fftw/External_FFTW.cmake -text
 cfsdeps/fftw/fftw-configure.cmake.in -text

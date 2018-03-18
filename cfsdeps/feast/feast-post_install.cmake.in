@@ -1,0 +1,21 @@
+# post install script for feast
+
+# we write everything that needs to be zipped to a manifest file
+set(manifest "@CMAKE_CURRENT_BINARY_DIR@/cfsdeps/feast/src/feast-build/install_manifest.txt")
+
+# install libs
+FILE(GLOB_RECURSE FILES_TO_INSTALL "@FEAST_LIB_DIR@/*")
+set(lib_dest "@CMAKE_CURRENT_BINARY_DIR@/@LIB_SUFFIX@/@CFS_ARCH_STR@")                                     
+FOREACH(IFILE ${FILES_TO_INSTALL})
+  STRING(REPLACE "@FEAST_LIB_DIR@" "${lib_dest}" dest "${IFILE}")
+  FILE(INSTALL "${IFILE}" DESTINATION "${lib_dest}")
+  FILE(APPEND "${manifest}" "${dest}\n")
+ENDFOREACH()
+
+# install includes
+FILE(GLOB_RECURSE FILES_TO_INSTALL "@feast_include@/*")                                         
+FOREACH(IFILE ${FILES_TO_INSTALL})
+  STRING(REPLACE "@feast_include@" "@FEAST_INCLUDE_DIR@" dest "${IFILE}")
+  FILE(INSTALL "${IFILE}" DESTINATION "@FEAST_INCLUDE_DIR@")
+  FILE(APPEND "${manifest}" "${dest}\n")
+ENDFOREACH()
