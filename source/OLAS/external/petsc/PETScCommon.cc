@@ -76,7 +76,7 @@ void PETScCommon::SetupSolverContext(Mat &sysMat,KSP &solver,PC &precond,string 
   //creates rhs and lhs vector from Matrix with appropriate size
   //setup linear solver context with preconditioner for petsc ksp methods //now hard coded
   ierr=KSPCreate(PETSC_COMM_WORLD,&(solver));CHKERRXX(ierr);
-  ierr = KSPSetTolerances(solver,tol,minTol,PETSC_DEFAULT,maxIter);CHKERRXX(ierr);
+  ierr = KSPSetTolerances(solver,minTol,tol,PETSC_DEFAULT,maxIter);CHKERRXX(ierr);
   ierr = KSPSetInitialGuessNonzero(solver,PETSC_TRUE);CHKERRXX(ierr);
   ierr = KSPSetType(solver,solverstring.c_str());CHKERRXX(ierr);
   // The preconditinoer
