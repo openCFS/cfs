@@ -49,9 +49,11 @@ SET(CTEST_INITIAL_CACHE "${CTEST_INITIAL_CACHE_BASE}
 #-----------------------------------------------------------------------------
 DO_TESTING()
 
-# do the same again with N cores
+# do the same again with 1 & 8 cores
 SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
 foreach(TESTSUITE_THREADS 1 8)
+  # remove results from last run
+  file(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}/Testing")
   # change build name
   set(CTEST_BUILD_NAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE} -t${TESTSUITE_THREADS}")
   # add number of threads to test with
