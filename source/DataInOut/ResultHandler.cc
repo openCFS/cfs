@@ -312,11 +312,9 @@ namespace CoupledField {
 
   // Trigger writing of all output writers
   std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
-  for( fileIt = outFiles_.begin(); 
-      fileIt != outFiles_.end(); fileIt++ ) {
-    LOG_DBG(resHandler) << "Finishing step for output '"
-        << fileIt->second->GetName() << "'";
-    fileIt->second->FinishStep( );
+  for( fileIt = outFiles_.begin(); fileIt != outFiles_.end(); fileIt++ ) {
+    LOG_DBG(resHandler) << "Finishing step for output '" << fileIt->second->GetName() << "'";
+    fileIt->second->FinishStep();
   }    
 
   // something is written, so update also info
