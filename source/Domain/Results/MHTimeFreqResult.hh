@@ -17,9 +17,9 @@
 
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
+#include "MatVec/Matrix.hh"
 #include "General/Environment.hh"
 #include "MatVec/SBM_Vector.hh"
-#include "MatVec/Matrix.hh"
 
 
 namespace CoupledField {
@@ -53,6 +53,13 @@ public:
 
   void SetFrequencyResult(const SBM_Vector& freqResult);
 
+  Matrix<Complex> GetFrequencyResult(){
+    return freqResult_;
+  }
+
+  Matrix<Complex> GetTimeResult(){
+    return timeResult_;
+  }
 
   //! Method for evaluating a Fourier series with given Fourier-coefficients.
   //! Evaluate Fourier series at given discrete times in timeVec_
@@ -73,11 +80,13 @@ private:
 
   //! Result-vector in time-domain. Outer vector is time-step,
   //! inner one contains the spatial dof's
-  StdVector< Vector<Complex> > timeResult_;
+  //StdVector< Vector<Complex> > timeResult_;
+  Matrix<Complex> timeResult_;
 
   //! Result-vector in frequency domain. Outer vector is frequency (harmonic),
   //! inner one contains the spatial dof's
-  StdVector< Vector<Complex> > freqResult_;
+  //StdVector< Vector<Complex> > freqResult_;
+  Matrix<Complex> freqResult_;
 
   //! Number of time points in one period of base-frequency.
   //! The FFT of the timeResult into freqResult is based on this
@@ -86,10 +95,6 @@ private:
   //! time-domain uses these number of steps)
   //! It is provided by the xml-parameter "numFFTPoints"
   UInt nFFT_;
-
-  //! Number of frequencies in result
-  UInt numFreqs_;
-
 
   //! Base angular frequency (1st harmonic)
   Double omega0_;

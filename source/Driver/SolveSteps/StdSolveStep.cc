@@ -1434,15 +1434,25 @@ namespace CoupledField {
     actSol = solVecMH_;
 
 
+
+
+
+
+
     // =========================================================================
     // Create multiharmonic time-frequency object and provide basic information
     // =========================================================================
-    MHTimeFreqResult Test(N, M, bF, numFFT);
+    MHTimeFreqResult Test1(N, M, bF, numFFT);
+    MHTimeFreqResult Test2(N, M, bF, numFFT);
 
-    Test.SetFrequencyResult(actSol);
-    Test.FourierToTime();
+    Test1.SetFrequencyResult(actSol);
 
-    Test.TimeToFourier();
+    Test2.SetFrequencyResult(actSol);
+
+    Test2.FourierToTime();
+
+    Test2.TimeToFourier();
+
 
 
 
