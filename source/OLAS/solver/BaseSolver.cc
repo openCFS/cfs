@@ -31,8 +31,10 @@ namespace CoupledField {
     EnumTuple( BaseSolver::ILUPACK, "ilupack" ),
     EnumTuple( BaseSolver::CHOLMOD, "cholmod"),
     EnumTuple( BaseSolver::LIS, "lis"),
-    EnumTuple( BaseSolver::PETSC, "petsc"),    
-    EnumTuple( BaseSolver::SUPERLU, "superlu" )
+    EnumTuple( BaseSolver::PETSC, "petsc"),
+    EnumTuple( BaseSolver::SUPERLU, "superlu" ),
+    EnumTuple( BaseSolver::PHIST, "phist_linSolv")
+
   };
 
   Enum<BaseSolver::SolverType> BaseSolver::solverType = \
