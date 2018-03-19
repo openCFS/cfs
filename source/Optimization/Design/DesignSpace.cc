@@ -272,7 +272,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             double initial = -1;
 
             MathParser* mp = domain->GetMathParser();
-            MathParser::HandleType mHandle = -1;
+            MathParser::HandleType mHandle = 4711;
             std::string expr = curr_design_pn->Get("initial")->As<std::string>();
             bool initDependsOnSpace = CoefFunction::ExprDependsOnSpace(mp,expr);
             if (initDependsOnSpace) {
@@ -322,6 +322,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
                 elemToDesign[de.elem->elemNum].second = true; // real designs here!
               }
             }
+            if(mHandle != 4711)
+              mp->ReleaseHandle(mHandle);
           }
         }
       }
@@ -547,7 +549,7 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
     domain->GetGrid()->GetElems(elems, region);
     StdVector<DesignElement> tmp;
     // the Push_back must not resize!!!!
-    assert(pseudoDesigns_.Capacity() >= pseudoDesigns_.GetSize() + 1);
+    assert(pseudoDesigns_.GetCapacity() >= pseudoDesigns_.GetSize() + 1);
     pseudoDesigns_.Push_back(tmp);
     StdVector<DesignElement>& vec = pseudoDesigns_.Last();
     // construct pseudo design elements
