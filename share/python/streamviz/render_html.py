@@ -119,6 +119,8 @@ def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request):
       TABLE_DATA = sorted(TABLE_DATA, key=lambda x: int(x[sorted_with]),  reverse=(request.args.get("reverse", 'False') == 'True'))
     else:
       TABLE_DATA = sorted(TABLE_DATA, key=lambda x: x[sorted_with],  reverse=(request.args.get("reverse", 'False') == 'True'))
+  else:
+    TABLE_DATA = sorted(TABLE_DATA, key=lambda x: x["updated"],  reverse=True)
   
   body_data  = '<table class="table table-sm" id="table_overview">'
   body_data += ' <thead><td></td>'
