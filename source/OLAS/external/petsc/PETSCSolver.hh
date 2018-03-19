@@ -23,6 +23,8 @@
 #define PETSCSOLVER_HH_
 #include <def_expl_templ_inst.hh>
 
+
+
 #include "General/Environment.hh"
 #include "OLAS/solver/BaseSolver.hh"
 #include "PDE/BasePDE.hh"
@@ -74,8 +76,7 @@ virtual ~PETSCSolver();
 /** Every call sets up a new preconditionier. */
 void Setup(BaseMatrix &sysmat);
 
-/** To satisfy the compiler
-* @param sysmat shall be the one Setup() is called with */
+
 void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);
 
 void SendWorkerCommand(int TAG);
@@ -187,7 +188,7 @@ PetscScalar minTol_ =  1e-11;
 PtrParamNode xml_;
 
 bool MG_FLAG=false;
-bool symmetric=false;
+bool symmetric=true;
 //Strings for setting Solver and Preconditioner
 std::string solverstring_;
 std::string precondstring_;
