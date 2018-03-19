@@ -34,6 +34,7 @@ find_package(CUDA QUIET)
 
 if(CUDA_FOUND)
   set(GHOST_CUDA "cuda")
+  set(CUDA_LIBS  "${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcudart.so;${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcublas.so;${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcurand.so;${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusparse.so;" CACHE FILEPATH "cuda libs.")
   message(STATUS "ghost: cuda found on the system" )
 
 else()

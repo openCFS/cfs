@@ -23,6 +23,8 @@
 #define PETSCSOLVER_HH_
 #include <def_expl_templ_inst.hh>
 
+
+
 #include "General/Environment.hh"
 #include "OLAS/solver/BaseSolver.hh"
 #include "PDE/BasePDE.hh"
@@ -45,11 +47,16 @@
 #define SETUP_SOLVER_CONTEXT 4
 #define SOLVE 5
 #define DATA 6
-#define GET_SOL 7
+#define GET_GLOBAL_VEC 7
 #define SOLVER_STRING 8
 #define SETUP_MG 9
 #define ISSYMMETRIC 10
-#define HOM_DIR_ELIMINATION 11
+#define SET_HOM_DIR_VEC 11
+#define HOM_DIR_PENALTY 12
+#define ASSEMBLE_VEC_DIR 13
+#define GET_SOL 14
+#define MAT_ZERO_ENTRIES 15
+
 
 
 namespace CoupledField
@@ -69,13 +76,12 @@ virtual ~PETSCSolver();
 /** Every call sets up a new preconditionier. */
 void Setup(BaseMatrix &sysmat);
 
-/** To satisfy the compiler
-* @param sysmat shall be the one Setup() is called with */
+
 void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);
 
 void SendWorkerCommand(int TAG);
 
-//    void DMDAGetElements_3D(DM dm,PetscInt *nel,PetscInt *nen,const PetscInt *e[]);
+
 BaseSolver::SolverType GetSolverType() { return BaseSolver::PETSC; }
 
 private:
@@ -93,7 +99,7 @@ Vec x_;
 //stores the current RHS
 Vec b_;
 
-Vec N_;
+Vec dirNodeVec_;
 
 // Create DM which are grid management
 DM da_nodes;
@@ -131,6 +137,10 @@ std::string solverstring_;
 std::string precondstring_;
 bool MG_FLAG =false;
 bool symmetric=false;
+Vec N_;//dirVector which consist of 0 when a eqnNr corresponds to HomDirBC ,all other place the value is 1
+StdVector<unsigned int> cfsEqnMap_;
+Vec dirNodeVecGlobal_=nullptr;
+
 
 };
 
@@ -146,8 +156,6 @@ PETSCWorker(int argc,const char **argv);
 private:
 
 void InitPetscWorker();
-
-void HomDirElimination();
 //PETSC Error Code
 PetscErrorCode ierr=0;
 
@@ -166,7 +174,7 @@ Vec b_;
 // Create DM which are grid management
 DM da_nodes;
 
-Vec N_;
+Vec dirNodeVec_;
 
 /** with throw exception when exceeded */
 PetscInt maxIter_ = 10000;
@@ -177,30 +185,15 @@ PetscScalar tolerance_ = 1e-12;
 /** throws only an exception on maxIter exceeded if also minTol_ is not met */
 PetscScalar minTol_ =  1e-11;
 
-
-////Coarsegrid solver parameters
-//PetscScalar coarse_rtol = 1.0e-8;
-//PetscScalar coarse_atol = 1.0e-50;
-//PetscScalar coarse_dtol = 1e10;
-//PetscInt coarse_maxits = 30;
-//
-////Number of levels
-//PetscInt nlvls=4;
-//
-//// Number of smoothening iterations per up/down smooth_sweeps
-//PetscInt smooth_sweeps = 4;
-//
-
-//pointer to xml node
 PtrParamNode xml_;
 
 bool MG_FLAG=false;
-bool symmetric=false;
+bool symmetric=true;
 //Strings for setting Solver and Preconditioner
 std::string solverstring_;
 std::string precondstring_;
-ParamNodeList regionList_;
-
+Vec N_;
+Vec dirNodeVecGlobal_=nullptr;
 };
   
 }
