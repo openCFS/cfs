@@ -273,7 +273,7 @@ def render_view(GLOBAL_DATA_DICT, key, client_ip):
         # we can only display 1D data as color image!
         name = result.attrib['name']
         
-        settings_data += '        <tr><td><input class="form-control" type="checkbox" name="result_selector_view" value="' + name + '" /></td>'
+        settings_data += '        <tr><td><input class="form-control" type="radio" name="result_selector_view" value="' + name + '" /></td>'
         settings_data +=             '<td>' + name + '</td></tr>'
   
   if len(xml.xpath("//eigenFrequency/result/wave_vector"))>0:
