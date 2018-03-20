@@ -169,14 +169,64 @@ def get_grid_obj(xml):
       
       element_id = int(element.attrib['id'])
       
-      if type == 'QUAD4':
+      if type == 'UNDEF':
+        print('warning: undefined element')
+      elif type == 'POINT':
+        point = vtk.vtkVertex()
+        point.GetPointIds().SetId(0,int(element.attrib['node_0']))
+        cell_list[element_id] = point
+      elif type == 'LINE2':
+        line = vtk.vtkLine()
+        line.GetPointIds().SetId(0,int(element.attrib['node_0']))
+        line.GetPointIds().SetId(1,int(element.attrib['node_1']))
+        cell_list[element_id] = line
+      elif type == 'LINE3':
+        quadraticEdge = vtk.vtkQuadraticEdge()
+        for i in range(3):
+          quadraticEdge.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = quadraticEdge
+      elif type == 'TRIA3':
+        polygon = vtk.vtkPolygon()
+        for i in range(4):
+          polygon.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = polygon
+      elif type == 'TRIA6':
+        quadraticTriangle = vtk.vtkQuadraticTriangle()
+        for i in range(6):
+          quadraticTriangle.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = quadraticTriangle
+      elif type == 'QUAD4':
         quad = vtk.vtkQuad()
-        quad.GetPointIds().SetId(0, int(element.attrib['node_0']))
-        quad.GetPointIds().SetId(1, int(element.attrib['node_1']))
-        quad.GetPointIds().SetId(2, int(element.attrib['node_2']))
-        quad.GetPointIds().SetId(3, int(element.attrib['node_3']))
-
+        for i in range(4):
+          quad.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
         cell_list[element_id] = quad
+      elif type == 'QUAD8':
+        quadraticQuad = vtk.vtkQuadraticQuad()
+        for i in range(8):
+          quadraticQuad.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = quadraticQuad
+      elif type == 'QUAD9':
+        polygon = vtk.vtkPolygon() # node 9 in the middle, then a circle around
+        polygon.GetPointIds().SetId(0,int(element.attrib['node_8']))
+        polygon.GetPointIds().SetId(1,int(element.attrib['node_0']))
+        polygon.GetPointIds().SetId(2,int(element.attrib['node_4']))
+        polygon.GetPointIds().SetId(3,int(element.attrib['node_1']))
+        polygon.GetPointIds().SetId(4,int(element.attrib['node_5']))
+        polygon.GetPointIds().SetId(5,int(element.attrib['node_2']))
+        polygon.GetPointIds().SetId(6,int(element.attrib['node_6']))
+        polygon.GetPointIds().SetId(7,int(element.attrib['node_3']))
+        polygon.GetPointIds().SetId(8,int(element.attrib['node_7']))
+        cell_list[element_id] = polygon
+      elif type == 'TET4':
+        tetra = vtk.vtkTetra()
+        for i in range(4):
+          tetra.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = tetra
+      elif type == 'TET10':
+        quadraticTetra = vtk.vtkQuadraticTetra()
+        for i in range(10):
+          quadraticTetra.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = quadraticTetra
       elif type == 'HEXA8':
         node_id = [0, 0, 0, 0, 0, 0, 0, 0]
         
@@ -196,9 +246,56 @@ def get_grid_obj(xml):
           hexa8.GetPointIds().SetId(i,node_id[i])
 
         cell_list[element_id] = hexa8
-      elif type == 'asdf1':
-        print('WARNING: type "' + type + '" not supported (yet)!')
-      elif type == 'asdf2':
+      elif type == 'HEXA20':
+        quadraticHexahedron = vtk.vtkQuadraticHexahedron()
+        for i in range(20):
+          quadraticHexahedron.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = quadraticHexahedron
+      elif type == 'HEXA27': # same as 20; TODO: complete
+        quadraticHexahedron = vtk.vtkQuadraticHexahedron()
+        for i in range(20):
+          quadraticHexahedron.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = quadraticHexahedron
+      elif type == 'PYRA5':
+        pyramid = vtk.vtkPyramid()
+        for i in range(5):
+          pyramid.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = pyramid
+      elif type == 'PYRA13': # same as 5; TODO: complete
+        pyramid = vtk.vtkPyramid()
+        for i in range(5):
+          pyramid.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = pyramid
+      elif type == 'PYRA14': # same as 5; TODO: complete
+        pyramid = vtk.vtkPyramid()
+        for i in range(5):
+          pyramid.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = pyramid
+      elif type == 'WEDGE6':
+        wedge = vtk.vtkWedge()
+        for i in range(6):
+          wedge.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = wedge
+      elif type == 'WEDGE15': # same as 6; TODO: complete
+        wedge = vtk.vtkWedge()
+        for i in range(6):
+          wedge.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = wedge
+      elif type == 'WEDGE18': # same as 6; TODO: complete
+        wedge = vtk.vtkWedge()
+        for i in range(6):
+          wedge.GetPointIds().SetId(i,int(element.attrib['node_'+str(i)]))
+        cell_list[element_id] = wedge
+      elif type == 'POLYGON':
+        polygon = vtk.vtkPolygon() # node 9 in the middle, then a circle around
+        
+        for node_id in range(100): # 100 poly limit
+          if not ('node_'+str(i)) in element.attrib:
+            break;
+          polygon.GetPointIds().SetId(node_id,int(element.attrib['node_'+str(node_id)]))
+
+        cell_list[element_id] = polygon
+      elif type == 'POLYHEDRON':
         print('WARNING: type "' + type + '" not supported (yet)!')
       else:
         print('WARNING: type "' + type + '" not supported (yet)!')
