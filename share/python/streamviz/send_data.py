@@ -18,6 +18,12 @@ import types
 
 COPROCESSOR_MAP = {}
 
+def delete_coprocessor(key):
+  if not key in COPROCESSOR_MAP:
+    return
+  tmp_co = COPROCESSOR_MAP.pop(key)
+  del tmp_co
+
 # initialize the coprocessor
 # this is mainly taken from https://gitlab.kitware.com/paraview/paraview/blob/master/Examples/Catalyst/PythonFullExample/coprocessor.py
 # and adapted 
