@@ -6,17 +6,25 @@ import urllib
 from audioop import reverse
 
 import datetime
+import os
+import psutil
 
 #The html file with marker; see strings.py for all marker definitions 
 html_raw_data = "html file not loaded"
 with open('template_html/index.html', 'r') as myfile:
-  html_raw_data = myfile.read().replace('\n', '')
-
+  html_raw_data = myfile.read()
 
 #reder the selection menu
 def render_menu(GLOBAL_DATA_DICT, current_site):
   ret_string  = '<div class="btn-group">'
-  ret_string += '<a class="nav-link" href="/">overview</a>'
+  if current_site == 'index':
+    ret_string += '<a class="nav-link text-white bg-primary" href="/">overview</a>'
+  else:
+    ret_string += '<a class="nav-link" href="/">overview</a>'
+  if current_site == 'status':
+    ret_string += '<a class="nav-link text-white bg-primary" href="/status">status</a>'
+  else:
+    ret_string += '<a class="nav-link" href="/status">status</a>'
   
   hosts = {}
   for key in GLOBAL_DATA_DICT:
@@ -66,6 +74,22 @@ def render_menu(GLOBAL_DATA_DICT, current_site):
 
   ret_string += '</div>'
   return ret_string
+
+def render_status(GLOBAL_DATA_DICT, max_memory_in_bytes):
+  retdata = html_raw_data
+  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'status'))
+  
+  process = psutil.Process(os.getpid())
+  
+  memory_in_bytes = process.memory_info().rss
+  body_data = 'used memory: '
+  
+  body_data += get_human_readable_bytes(memory_in_bytes) + '<br />'
+  
+  body_data += 'maximum memory: ' + get_human_readable_bytes(max_memory_in_bytes) + '<br />'
+
+  retdata = retdata.replace(settings['html_template']['key_content'], body_data)
+  return retdata
 
 #render main page
 def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request):
@@ -197,6 +221,16 @@ def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request):
   retdata = retdata.replace(settings['html_template']['key_content'], body_data)
   return retdata
 
+def get_human_readable_bytes(memory_in_bytes):
+  if memory_in_bytes > 1024*1024*1024:
+    return ("%.3f" % (memory_in_bytes/(1024*1024*1024))) + ' GByte'
+  elif memory_in_bytes > 1024*1024:
+    return ("%.3f" % (memory_in_bytes/(1024*1024))) + ' MByte'
+  elif memory_in_bytes > 1024:
+    return ("%.3f" % (memory_in_bytes/1024)) + ' KByte'
+  else:
+    return str(memory_in_bytes) + ' Byte'
+
 #creates a human readable time format
 def get_dd_hh_mm_ss_fromsecs(td):
   
@@ -273,7 +307,7 @@ def render_view(GLOBAL_DATA_DICT, key, client_ip):
         # we can only display 1D data as color image!
         name = result.attrib['name']
         
-        settings_data += '        <tr><td><input class="form-control" type="checkbox" name="result_selector_view" value="' + name + '" /></td>'
+        settings_data += '        <tr><td><input class="form-control" type="radio" name="result_selector_view" value="' + name + '" /></td>'
         settings_data +=             '<td>' + name + '</td></tr>'
   
   if len(xml.xpath("//eigenFrequency/result/wave_vector"))>0:
