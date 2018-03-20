@@ -2109,8 +2109,12 @@ source/OLAS/external/petsc/PETSCSolver.hh -text
 source/OLAS/external/petsc/PETScCommon.cc -text
 source/OLAS/external/petsc/PETScCommon.hh -text
 source/OLAS/external/phist/CMakeLists.txt -text
+source/OLAS/external/phist/PhistCore.cc -text
+source/OLAS/external/phist/PhistCore.hh -text
 source/OLAS/external/phist/PhistEigenSolver.cc -text
 source/OLAS/external/phist/PhistEigenSolver.hh -text
+source/OLAS/external/phist/PhistLinearSolver.cc -text
+source/OLAS/external/phist/PhistLinearSolver.hh -text
 source/OLAS/external/superlu/CMakeLists.txt -text
 source/OLAS/external/superlu/SuperLUSolver.cc -text
 source/OLAS/external/superlu/SuperLUSolver.hh -text

@@ -1,4 +1,4 @@
-SET(PHIST_SRCS PhistEigenSolver.cc)
+SET(PHIST_SRCS PhistEigenSolver.cc PhistLinearSolver.cc PhistCore.cc)
 
 ADD_LIBRARY(phist-olas STATIC ${PHIST_SRCS})
 

@@ -1,12 +1,13 @@
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg') # importing matplotlib and this line fixes segfaults when spamming plot too often
 import matplotlib.pyplot as plt
 from io import StringIO
 import threading
 import json
 import svgwrite
 
+# get the latest values
 def get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
   data = {}
   
@@ -144,7 +145,6 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
     
     # this 'all' might cause some probolems if this tool
     # is used by multiple people at the same time
-    # TODO: make sure it doesn't break the program
     plt.close('all')
     
     imgdata.seek(0)  # rewind the data
@@ -255,7 +255,6 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
         
         # this 'all' might cause some probolems if this tool
         # is used by multiple people at the same time
-        # TODO: make sure it doesn't break the program
         plt.close('all')
       
         plt.tripcolor(x_node_coords, y_node_coords, values)
@@ -393,7 +392,6 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
   
   # this 'all' might cause some probolems if this tool
   # is used by multiple people at the same time
-  # TODO: make sure it doesn't break the program
   plt.close('all')
   
   imgdata.seek(0)  # rewind the data
