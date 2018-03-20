@@ -100,7 +100,13 @@ def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request):
     this_table_data['problem'] = this_problem
     this_table_data['started'] = this_started
     this_table_data['updated'] = GLOBAL_UPDATED_DICT[key]
-    this_table_data['iterations'] = int(xml.xpath('//process/iteration[last()]/@number')[0])
+    
+    iteration_num_array = xml.xpath('//process/iteration[last()]/@number')
+    
+    if len(iteration_num_array) > 0:
+      this_table_data['iterations'] = int(iteration_num_array[0])
+    else:
+      this_table_data['iterations'] = -1
     
     add_this_element = True # assume we can add this element
     
@@ -253,7 +259,10 @@ def render_view(GLOBAL_DATA_DICT, key, client_ip):
   settings_data += '    auto update: <input type="checkbox" id="catalyst_send_auto_update"/>'
   settings_data += '    </li>'
   
+  close_result_list = False
+  
   if int(xml.xpath('//grids/grid/@dimensions')[0]) == 2:
+    close_result_list = True
     # we have a 2-Dimensional grid here. Therefore we offer to render it
     settings_data += '    <li class="list-group-item">results:'
     settings_data += '    <table class="table table-sm" id="result">'
@@ -267,6 +276,17 @@ def render_view(GLOBAL_DATA_DICT, key, client_ip):
         settings_data += '        <tr><td><input class="form-control" type="checkbox" name="result_selector_view" value="' + name + '" /></td>'
         settings_data +=             '<td>' + name + '</td></tr>'
   
+  if len(xml.xpath("//eigenFrequency/result/wave_vector"))>0:
+    if not close_result_list:
+      settings_data += '    <li class="list-group-item">results:'
+      settings_data += '    <table class="table table-sm" id="result">'
+      settings_data += '        <thead><td>view</td><td></td></thead><tbody>'
+    
+    close_result_list = True
+    settings_data += '        <tr><td><input class="form-control" type="checkbox" name="result_selector_view_bloch" value="true" /></td>'
+    settings_data +=             '<td>[bloch] eigenfrequency</td></tr>'
+  
+  if close_result_list:
     settings_data += '    </tbody></table></li>'
   
   
@@ -285,18 +305,20 @@ def render_view(GLOBAL_DATA_DICT, key, client_ip):
     settings_data += '            <td id="td_seqres_container_' + name + '">' + name + ': ' + result.xpath('item[last()]')[0].xpath('@value')[0]
     settings_data += ' ' + result.xpath('item[last()]')[0].xpath('@unit')[0] + '</td></tr>'
 
-  for value in xml.xpath('//process/iteration[last()]')[0].items():
-    #hide the x selector for now
-    if value[0] == 'number':
-      # don't show the number in y selection:
-      settings_data += '        <tr style="display:none">'
-    else:
-      settings_data += '        <tr>'
-    
-    settings_data += '<td style="display: none"><input class="form-control" type="radio" name="iteration_selector_x" value="' + value[0] + '" /></td>'
-    settings_data +=             '<td><input class="form-control" type="checkbox" name="iteration_selector_y1" value="' + value[0] + '" /></td>'
-    settings_data +=             '<td><input class="form-control" type="checkbox" name="iteration_selector_y2" value="' + value[0] + '" /></td>'
-    settings_data +=             '<td id="td_seqit_container_' + value[0] + '">' + value[0] + '</td></tr>'
+  last_iteration_elem = xml.xpath('//process/iteration[last()]')
+  if len(last_iteration_elem) > 0:
+    for value in last_iteration_elem[0].items():
+      #hide the x selector for now
+      if value[0] == 'number':
+        # don't show the number in y selection:
+        settings_data += '        <tr style="display:none">'
+      else:
+        settings_data += '        <tr>'
+      
+      settings_data += '<td style="display: none"><input class="form-control" type="radio" name="iteration_selector_x" value="' + value[0] + '" /></td>'
+      settings_data +=             '<td><input class="form-control" type="checkbox" name="iteration_selector_y1" value="' + value[0] + '" /></td>'
+      settings_data +=             '<td><input class="form-control" type="checkbox" name="iteration_selector_y2" value="' + value[0] + '" /></td>'
+      settings_data +=             '<td id="td_seqit_container_' + value[0] + '">' + value[0] + '</td></tr>'
 
   settings_data += '    </tbody></table></li>'
   settings_data += '    <li class="list-group-item">use logscale:<br />'

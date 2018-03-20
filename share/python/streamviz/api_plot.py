@@ -62,7 +62,7 @@ def get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
 
 # returns html with embedded svg OR error code 
 def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names, y1_res_names, y2_res_names, \
-         iteration_num, logscale_y1, logscale_y2, result_view_arr):
+         iteration_num, logscale_y1, logscale_y2, result_view_arr, show_bloch):
   
   data = ""
   
@@ -225,6 +225,67 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
   # transfer everything from svg_data to our "data" output variable
   for l in svg_dta:
     data += l
+  
+  del svg_dta
+  
+  if show_bloch:
+    
+    x_axis_values = [] # 1D array with 1, 2, 3, <latest step>, <latest step +1>
+    
+    y_axis_values_array = [] # 2D array. first Index is the mode, second the step. Latest step is first repeated
+    
+    last_result_elem = xml.xpath('//sequenceStep/eigenFrequency/result[last()]')[0]
+    
+    fig = plt.figure()
+
+    plt.xlabel("direction")
+    plt.ylabel("frequency [Hz]")
+
+    # plot stuff
+    
+    first_wavevector = list(last_result_elem)[0]
+    
+    for tmp in first_wavevector:
+      y_axis_values_array.append([])
+    
+    for wave_vector_elm in last_result_elem:
+      this_step = int(wave_vector_elm.attrib['step'])
+      
+      x_axis_values.append(this_step)
+      
+      for mode in wave_vector_elm:
+        y_axis_values_array[int(mode.attrib['nr'])-1].append(float(mode.attrib['frequency']))
+    
+    # append the first vector as last element
+    for mode in first_wavevector:
+        y_axis_values_array[int(mode.attrib['nr'])-1].append(float(mode.attrib['frequency']))
+    x_axis_values.append(len(last_result_elem))
+    
+    for mode_nr in range(len(first_wavevector)):
+      plt.plot(x_axis_values, y_axis_values_array[mode_nr], '-o')
+    
+    fig.tight_layout()
+    plt.gca().set_ylim(bottom=0) # set bottom of plot to be always 0
+    
+    imgdata = StringIO()
+    fig.savefig(imgdata, format = 'svg')
+    
+    # this 'all' might cause some probolems if this tool
+    # is used by multiple people at the same time
+    # TODO: make sure it doesn't break the program
+    plt.close('all')
+    
+    imgdata.seek(0)  # rewind the data
+  
+    svg_dta = imgdata.readlines()  # this is svg data
+
+    # transfer everything from svg_data to our "data" output variable
+    for l in svg_dta:
+      data += l
+  
+    # just to be sure:
+    del imgdata
+    del svg_dta
   
   if len(result_view_arr) > 0:
     domain_elem = xml.xpath('//header/domain')[0]
