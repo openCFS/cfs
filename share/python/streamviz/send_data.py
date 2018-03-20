@@ -3,7 +3,6 @@ import numpy
 
 from paraview import vtk
 
-from paraview.vtk import vtkPVCatalyst as catalyst
 from paraview.vtk.util import numpy_support
 
 from paraview.vtk import vtkPVCatalyst as catalyst
@@ -246,7 +245,13 @@ def get_data_arrays(xml):
     seq_data_name = sequence_result_element.attrib['data']
     seq_region_name = sequence_result_element.attrib['location']
     
-    result_element = xml.xpath('//results/result[@name="' + seq_data_name + '"][@region="' + seq_region_name +'"][last()]')[0]
+    result_element = None
+    
+    try:
+      result_element = xml.xpath('//results/result[@name="' + seq_data_name + '"][@region="' + seq_region_name +'"][last()]')[0]
+      break
+    except:
+      continue
     
     data_name = result_element.attrib['name']
     data_defOn = result_element.attrib['solution']
