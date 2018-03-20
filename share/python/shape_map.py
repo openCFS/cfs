@@ -153,12 +153,15 @@ def vtk_color_transform(matplotlib_color_code):
   assert(False)
   
 class Shape: 
-  def __init__(self, id, dof, dof_b = None, scale = [1.0,1.0,1.0]):
+  def __init__(self, id, dof, dof_b = None, scale = [1.0,1.0,1.0], ref = None):
     self.id = id
+    # legacy shape have no ref yet
+    self.ref = ref
     self.dof = dof
     self.dof_b = dof_b
 
     self.scale = scale
+    # the element number
     self.el = []
     # node variable a. For 3D there is also b
     self.a = []
@@ -396,7 +399,7 @@ def read_xml(xml, set, profile):
     # we do not know yet if we are 2D or 3D. For 3D center nodes, the there are two nodes dof the the shape dof is the third by definition
     first_dof = dof(list[0].get('dof')) # might change
     first_shape = int(list[0].get('shape'))
-    shape = Shape(id = len(shapes), dof = first_dof, scale = scale)
+    shape = Shape(id = len(shapes), dof = first_dof, scale = scale, ref = ref)
     for el in list:
       nr = int(el.get('nr'))
       v  = float(el.get('design'))
@@ -435,7 +438,7 @@ def resample(shapes, resample):
   new_space = np.linspace(0, 1.0, num=resample+1, endpoint=True)
 
   for o in shapes:
-     s = Shape(o.id, o.dof)
+     s = Shape(o.id, o.dof, ref = o.ref)
      s.el = list(range(len(res) * (resample+1), (len(res)+1) * (resample+1)))
      v = interp1d(org_space, o.a, kind='cubic')
      s.a = v(new_space)
@@ -724,14 +727,21 @@ def export(shapes, filename, suppress_profile):
   # <shapeParamElement nr="0" type="node" dof="x" design="0.3"/>
   for shape in shapes:
     for i in range(len(shape.a)):  
-      out.write('    <shapeParamElement nr="' + str(shape.el[i]) + '" type="node" dof="' + dof(shape.dof) + '" design="' + str(shape.a[i]) + '"/>\n')
+      out.write('    <shapeParamElement nr="' + str(shape.el[i]) 
+                + '" type="node" dof="' + dof(shape.dof) + '" shape="' + str(shape.id) 
+                + '" ref="' + str(shape.ref)
+                + '" design="' + str(shape.a[i]) + '"/>\n')
   if not suppress_profile:
     base = shapes[-1].el[-1]+1
     for shape in shapes:
-      for i in range(len(shape.a)):  
-        out.write('    <shapeParamElement nr="' + str(base + shape.el[i]) + '" type="profile" dof="' + dof(shape.dof) + '" design="' + str(shape.profile[i]) + '"/>\n')
-        
-           
+      for i in range(len(shape.a)):
+        # for the profile the dof is the orientation
+        assert(len(shape.b) == 0) # 3d not yet implemented
+        assert(shape.dof == 0 or shape.dof == 1)
+        pdof = 'y' if shape.dof == 0 else 'x' 
+        out.write('    <shapeParamElement nr="' + str(base + shape.el[i]) 
+                  + '" type="profile" dof="' + pdof + '" shape="' + str(len(shapes) + shape.id) 
+                  + '" ref="' + str(shape.ref) + '" design="' + str(shape.profile[i]) + '"/>\n')
   out.write('  </set>\n')
   out.write(' </cfsErsatzMaterial>\n')
   

@@ -6,7 +6,7 @@
 #include "OLAS/precond/BasePrecond.hh"
 #include "OLAS/solver/generatesolver.hh"
 #include "OLAS/solver/BaseSolver.hh"
-
+#include "Utils/Timer.hh"
 #include "ArpackMatInterface.hh"
 
 namespace CoupledField {
@@ -133,8 +133,13 @@ namespace CoupledField {
       }
     }
     // Setup solver and precond-object
+    precond_->GetSetupTimer()->Start();
     precond_->Setup( *matrixC_ );
+    precond_->GetSetupTimer()->Stop();
+
+    solver_->GetSetupTimer()->Start();
     solver_->Setup( *matrixC_ );
+    solver_->GetSetupTimer()->Stop();
   }
 
   void ArpackMatInterface::QuadSetup( BaseSolver* solver, BasePrecond* precond ) {
@@ -158,8 +163,15 @@ namespace CoupledField {
     diagScale_ = 1.0;
 
     // Setup solver and precond-object
+    // we must do the whole timer management manually as we do not go via a non-overloaded BaseSolver function
+    // For the standard FEA this is done in AlgebraicSys::SetupPrecond()
+    precond_->GetSetupTimer()->Start();
     precond_->Setup( *matrixC_ );
+    precond_->GetSetupTimer()->Stop();
+
+    solver_->GetSetupTimer()->Start();
     solver_->Setup( *matrixC_ );
+    solver_->GetSetupTimer()->Stop();
   }
 
   template <class TYPE>
@@ -173,8 +185,9 @@ namespace CoupledField {
     vecY.Replace( size_, y1, false );
     
     // Solve system 
-    solver_->Solve( *matrixC_, vecX, vecY );
-
+    solver_->GetSolveTimer()->Start();
+    solver_->Solve(*matrixC_, vecX, vecY);
+    solver_->GetSolveTimer()->Stop();
   }
 
   template <class TYPE>
@@ -192,8 +205,9 @@ namespace CoupledField {
     matrixA_->Mult(vecX, ax);
 
     // Solve system 
+    solver_->GetSolveTimer()->Start();
     solver_->Solve(*matrixC_, ax, vecY);
-
+    solver_->GetSolveTimer()->Stop();
   }
   
   template <class TYPE>
@@ -268,7 +282,9 @@ namespace CoupledField {
     // solve N*nInvB2 = b2
     nInvB2.Init();
     if ( useStiffInNMat_ ) {
+      solver_->GetSolveTimer()->Start();
       solver_->Solve( *matrixC_, vecB2, nInvB2);
+      solver_->GetSolveTimer()->Stop();
     } else {
       nInvB2.Add(vecB2);
     }
@@ -283,8 +299,9 @@ namespace CoupledField {
     vecB1.Add(mx);
     // full rhs
     vecB1.ScalarMult(-1.0);
+    solver_->GetSolveTimer()->Start();
     solver_->Solve( *matrixC_, vecB1, vecA2 );
-
+    solver_->GetSolveTimer()->Stop();
     // solve for a1 (lower part of equation system)
     vecA1.Add(shift_, vecA2, 1., nInvB2);
   }

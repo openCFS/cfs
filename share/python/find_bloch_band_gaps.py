@@ -49,7 +49,7 @@ offset = None
 
 # this creates a matplotlib plot as alternative to generate a gnuplot script
 # return matplot.pyplot to apply show() or savefig() on int  
-def create_plot(org, dim, args):
+def create_plot(org, dim):
   # the first columns are step, k_x, k_y (k_z)
   assert(org.shape[1] > dim + 1)
   # extract the real data
@@ -69,7 +69,6 @@ def create_plot(org, dim, args):
     for d in range(dim):
       if (vec[k,d] != 0.0 and vec[k-1,d] == 0.0) or \
          (not math.isclose(vec[k,d],numpy.pi,rel_tol=1e-5) and math.isclose(vec[k-1,d],numpy.pi,rel_tol=1e-5)): 
-        print(k,d)
         plt.plot([k-1,k-1],[0,height],'k-')
       
   return plt
@@ -186,6 +185,7 @@ parser.add_argument('--maxfrequency', help="maximal frequency", type=float)
 parser.add_argument('--info', action='store_true', help='show range for all modes')
 parser.add_argument('--xml', help='export info as xml to the given filename')
 parser.add_argument('--show', help='pop-up a matplotlib figure', action='store_true')
+parser.add_argument('--save', help='write the matplotlib figure to the given file name (png, pdf, svg, ...)')
 parser.add_argument('--gnuplot', help='create gnuplot output, specify the type', choices = ['eps', 'png', 'console'])
 parser.add_argument('--nolines', action='store_true', help='gnuplot: do not concatenate points by lines')
 parser.add_argument('--commonsymbol', action='store_true', help='gnuplot: use the same line symbol for all lines')
@@ -284,9 +284,13 @@ if args.gnuplot:
   print_gnuplot(offset, args, segments, max_mode, max_freq) 
  
 
-if args.show:
-  plt = create_plot(org, dim, args)
-  plt.show()
+if args.show or args.save:
+  plt = create_plot(org, dim)
+  if args.save:
+    plt.savefig(args.save)
+    print("created file '" + args.save + "'")
+  if args.show:
+    plt.show()
 
 if args.xml:
   root.find("gaps").attrib["count"]=str(gap_count)

@@ -2461,6 +2461,9 @@ namespace CoupledField {
 
       StdVector<double> edges;
 
+      if(volElems_.IsEmpty() || volElems_.First().IsEmpty())
+        throw Exception("no volume elements in grid found, maybe dimension mismatch with analysis");
+
       // take the first vol element of the first vol region. The first ordered element might be a surface element
       GetElemShapeMap(volElems_.First().First(), false)->GetEdgeLength(edges);
       assert(edges.GetSize() == GetDim());

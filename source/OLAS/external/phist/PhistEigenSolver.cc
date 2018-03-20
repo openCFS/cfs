@@ -99,17 +99,18 @@ namespace CoupledField {
 
     double* data = (double*) values;
 
-    StdVector<int> cols(*row_nnz); // KILLME only for debug output
     unsigned int base = mat->GetRowPointer()[row];
+    //StdVector<int> cols(*row_nnz); // KILLME only for debug output
     for(int i = 0; i < *row_nnz; i++) {
       row_col[i] = mat->GetColPointer()[base + i];
-      cols[i] = row_col[i];
+      // cols[i] = row_col[i];
     }
 
     for(int i = 0; i < *row_nnz; i++)
       data[i] = service->scale * mat->GetDataPointer()[base + i];
 
-    LOG_DBG2(pes) << "SSMRF row=" << row << " row_nnz=" << *row_nnz << " scale=" << service->scale << " row_col=" << cols.ToString() << " values=" << ToString<double>((double*) values, *row_nnz);
+    LOG_DBG2(pes) << "SSMRF row=" << row << " row_nnz=" << *row_nnz << " scale=" << service->scale << " values=" << ToString<double>((double*) values, *row_nnz);
+    //LOG_DBG3(pes) << "SSMRF row=" << row << " row_col=" << cols.ToString();
 
     return 0; // all ok
   }
