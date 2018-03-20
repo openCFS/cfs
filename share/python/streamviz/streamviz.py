@@ -64,7 +64,7 @@ def values(key):
 def view(key):
   if request.method == 'GET':
     client_ip = request.remote_addr
-    if request.headers.has(PROXY_REAL_IP_HEADER):
+    if request.headers.has_key(PROXY_REAL_IP_HEADER):
       client_ip = request.headers.get(PROXY_REAL_IP_HEADER, "127.0.0.1")
     return render_html.render_view(GLOBAL_DATA_DICT, key, client_ip)
   else:
@@ -76,8 +76,9 @@ def plot(key):
                        request.args.getlist('y1_it'), request.args.getlist('y2_it'), \
                        request.args.getlist('y1_res'), request.args.getlist('y2_res'), \
                        int(request.args.get('iteration_num')), \
-                       (request.args.get('logscale_y1') == 'true'), (request.args.get('logscale_y2') == 'true'),
-                       request.args.getlist('view_results'))
+                       (request.args.get('logscale_y1') == 'true'), (request.args.get('logscale_y2') == 'true'), \
+                       request.args.getlist('view_results'), \
+                       (request.args.get('view_result_bloch', 'false') == 'true'))
 
 
 @app.route(settings["api"]["catalyst_send"] + '/<path:key>', methods = ['GET', 'POST'])
