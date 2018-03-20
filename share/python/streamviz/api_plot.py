@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from io import StringIO
 import threading
@@ -98,136 +100,6 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
 
   xml = GLOBAL_DATA_DICT[key] # load xml again in case there is a new one available
 
-  fig = plt.figure()
-
-  x = xml.xpath('//process/iteration/@' + x_name)
-  
-  fig, ax1 = plt.subplots()
-  t = x
-  
-  y1_label = ""
-  
-  y1_min = []
-  y1_max = []
-  
-  for y1_it_name in y1_it_names:
-    # convert to list of floats
-    y1_it = [float(i) for i in xml.xpath('//process/iteration/@' + y1_it_name)]
-  
-    if len(t) != len(y1_it):
-      data += 'error len(' + y1_it_name + ') != len(' + x_name + ')!<br>'
-      data += str(len(y1_it_name)) + '!=' + str(len(x_name)) + '<br><br>'
-      continue
-  
-    y1_label += y1_it_name + ', '
-    ax1.plot(t, y1_it, '-')
-    
-    y1_min.append(min(y1_it))
-    y1_max.append(max(y1_it))
-
-  for y1_res_name in y1_res_names:
-    # convert to list of floats
-    y1_res = [float(i) for i in xml.xpath('//calculation/process/sequence/result[@data="' + y1_res_name + '"]/item/@value')]
-  
-    if len(t) != len(y1_res):
-      data += 'error len(' + y1_res_names + ') != len(' + x_name + '):<br>'
-      data += str(len(y1_res_names)) + '!=' + str(len(x_name)) + '<br><br>'
-      continue
-
-    y1_label += y1_res_name + ', '
-    ax1.plot(t, y1_res, '-')
-    
-    y1_min.append(min(y1_res))
-    y1_max.append(max(y1_res))
-
-  if x_name == "name":
-    ax1.set_xlabel("iteration")
-  else:
-    ax1.set_xlabel(x_name)
-  
-  ax1.set_ylabel(y1_label[:-2])
-  
-  if logscale_y1:
-    ax1.set_yscale('log')
-    if y1_min:
-      ax1.set_ylim(min(y1_min), max(y1_max))
-  else:
-    ax1.autoscale(True, 'both')
-  
-  ax2 = ax1.twinx()
-  
-  y2_label = ""
-  
-  y2_min = []
-  y2_max = []
-  
-  for y2_it_name in y2_it_names:
-    # convert to list of floats
-    y2_it = [float(i) for i in xml.xpath('//process/iteration/@' + y2_it_name)]
-  
-    if len(t) != len(y2_it):
-      data += 'error len(' + y2_it_name + ') != len(' + x_name + ')!<br>'
-      data += str(len(y2_it_name)) + '!=' + str(len(x_name)) + '<br><br>'
-      continue
-  
-    y2_label += y2_it_name + ', '
-    ax2.plot(t, y2_it, '-')
-    
-    y2_min.append(min(y2_it))
-    y2_max.append(max(y2_it))
-
-  for y2_res_name in y2_res_names:
-    # convert to list of floats
-    y2_res = [float(i) for i in xml.xpath('//calculation/process/sequence/result[@data="' + y2_res_name + '"]/item/@value')]
-  
-    if len(t) != len(y2_res):
-      data += 'error len(' + y2_res_names + ') != len(' + x_name + ')!<br>'
-      data += str(len(y2_res_names)) + '!=' + str(len(x_name)) + '<br><br>'
-      continue
-
-    y2_label += y2_res_name + ', '
-    ax2.plot(t, y2_res, '-')
-    
-    y2_min.append(min(y2_res))
-    y2_max.append(max(y2_res))
-
-  ax2.set_ylabel(y2_label[:-2])
-  
-  if logscale_y2:
-    ax2.set_yscale('log')
-    if y2_min:
-      ax2.set_ylim(min(y2_min), max(y2_max))
-  else:
-    ax2.autoscale(True, 'both')
-  
-  fig.tight_layout()
-  
-  imgdata = StringIO()
-  fig.savefig(imgdata, format = 'svg')
-  
-  # this 'all' might cause some probolems if this tool
-  # is used by multiple people at the same time
-  # TODO: make sure it doesn't break the program
-  plt.close('all')
-  
-  imgdata.seek(0)  # rewind the data
-
-  svg_dta = imgdata.readlines()  # this is svg data
-
-  # just to be sure:
-  del imgdata
-
-  # data iteration num is used by javascript to determine the latest updated version
-  # this is transmitted when requesting new data
-  data += '<div id="iteration_num">' + str(latest_received_iteration) + '</div>'
-  data += '<div id ="status">' + xml.xpath('//cfsInfo/@status')[0] + '</div>'
-  
-  # transfer everything from svg_data to our "data" output variable
-  for l in svg_dta:
-    data += l
-  
-  del svg_dta
-  
   if show_bloch:
     
     x_axis_values = [] # 1D array with 1, 2, 3, <latest step>, <latest step +1>
@@ -405,5 +277,141 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
       # transfer everything from svg_data to our "data" output variable
       for l in svg_dta:
         data += l
+  
+  fig = plt.figure()
+
+  x = xml.xpath('//process/iteration/@' + x_name)
+  
+  fig, ax1 = plt.subplots()
+  t = x
+  
+  y1_label = ""
+  
+  y1_min = []
+  y1_max = []
+  
+  for y1_it_name in y1_it_names:
+    # convert to list of floats
+    y1_it = [float(i) for i in xml.xpath('//process/iteration/@' + y1_it_name)]
+  
+    if len(t) != len(y1_it):
+      data += 'error len(' + y1_it_name + ') != len(' + x_name + ')!<br>'
+      data += str(len(y1_it_name)) + '!=' + str(len(x_name)) + '<br><br>'
+      continue
+  
+    y1_label += y1_it_name + ', '
+    ax1.plot(t, y1_it, '-', label=y1_it_name)
+    
+    y1_min.append(min(y1_it))
+    y1_max.append(max(y1_it))
+
+  for y1_res_name in y1_res_names:
+    # convert to list of floats
+    y1_res = [float(i) for i in xml.xpath('//calculation/process/sequence/result[@data="' + y1_res_name + '"]/item/@value')]
+  
+    if len(t) != len(y1_res):
+      data += 'error len(' + y1_res_names + ') != len(' + x_name + '):<br>'
+      data += str(len(y1_res_names)) + '!=' + str(len(x_name)) + '<br><br>'
+      continue
+
+    y1_label += y1_res_name + ', '
+    ax1.plot(t, y1_res, '-', label=y1_res_name)
+    
+    y1_min.append(min(y1_res))
+    y1_max.append(max(y1_res))
+
+  if x_name == "name":
+    ax1.set_xlabel("iteration")
+  else:
+    ax1.set_xlabel(x_name)
+  
+  ax1.set_ylabel(y1_label[:-2])
+  
+  if logscale_y1:
+    ax1.set_yscale('log')
+    if y1_min:
+      ax1.set_ylim(min(y1_min), max(y1_max))
+  else:
+    ax1.autoscale(True, 'both')
+  
+  ax1.legend(loc='lower left', bbox_to_anchor=(0, 1))
+  ax2 = ax1.twinx()
+
+  # "advance the colors" aka prevent color resetting when plotting for other axis
+  ax2._get_lines.prop_cycler = ax1._get_lines.prop_cycler
+
+  y2_label = ""
+  
+  y2_min = []
+  y2_max = []
+  
+  for y2_it_name in y2_it_names:
+    # convert to list of floats
+    y2_it = [float(i) for i in xml.xpath('//process/iteration/@' + y2_it_name)]
+  
+    if len(t) != len(y2_it):
+      data += 'error len(' + y2_it_name + ') != len(' + x_name + ')!<br>'
+      data += str(len(y2_it_name)) + '!=' + str(len(x_name)) + '<br><br>'
+      continue
+  
+    y2_label += y2_it_name + ', '
+    ax2.plot(t, y2_it, '-', label=y2_it_name)
+    
+    y2_min.append(min(y2_it))
+    y2_max.append(max(y2_it))
+
+  for y2_res_name in y2_res_names:
+    # convert to list of floats
+    y2_res = [float(i) for i in xml.xpath('//calculation/process/sequence/result[@data="' + y2_res_name + '"]/item/@value')]
+  
+    if len(t) != len(y2_res):
+      data += 'error len(' + y2_res_names + ') != len(' + x_name + ')!<br>'
+      data += str(len(y2_res_names)) + '!=' + str(len(x_name)) + '<br><br>'
+      continue
+
+    y2_label += y2_res_name + ', '
+    ax2.plot(t, y2_res, '-', label=y2_res_name)
+    
+    y2_min.append(min(y2_res))
+    y2_max.append(max(y2_res))
+
+  ax2.set_ylabel(y2_label[:-2])
+  
+  if logscale_y2:
+    ax2.set_yscale('log')
+    if y2_min:
+      ax2.set_ylim(min(y2_min), max(y2_max))
+  else:
+    ax2.autoscale(True, 'both')
+
+  ax2.legend(loc='lower right', bbox_to_anchor=(1, 1))
+  
+  fig.tight_layout()
+  
+  imgdata = StringIO()
+  fig.savefig(imgdata, format = 'svg')
+  
+  # this 'all' might cause some probolems if this tool
+  # is used by multiple people at the same time
+  # TODO: make sure it doesn't break the program
+  plt.close('all')
+  
+  imgdata.seek(0)  # rewind the data
+
+  svg_dta = imgdata.readlines()  # this is svg data
+
+  # just to be sure:
+  del imgdata
+
+  # data iteration num is used by javascript to determine the latest updated version
+  # this is transmitted when requesting new data
+  data += '<div id="iteration_num">' + str(latest_received_iteration) + '</div>'
+  data += '<div id ="status">' + xml.xpath('//cfsInfo/@status')[0] + '</div>'
+  
+  # transfer everything from svg_data to our "data" output variable
+  for l in svg_dta:
+    data += l
+  
+  del svg_dta
   
   return data
