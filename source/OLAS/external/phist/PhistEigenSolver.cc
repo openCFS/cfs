@@ -1,27 +1,8 @@
-#include <limits>
-#include <string.h>
 
-#include "MatVec/StdMatrix.hh"
-#include "MatVec/CRS_Matrix.hh"
-#include "MatVec/SCRS_Matrix.hh"
-#include "MatVec/generatematvec.hh"
-#include "Utils/Timer.hh"
-#include "Domain/Domain.hh"
-#include "Driver/BaseDriver.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/Logging/LogConfigurator.hh"
-#include "OLAS/algsys/SolStrategy.hh"
 
-#include "OLAS/precond/generateprecond.hh"
-#include "OLAS/precond/BasePrecond.hh"
-#include "OLAS/solver/generatesolver.hh"
-#include "OLAS/solver/BaseSolver.hh"
 
 #include "PhistEigenSolver.hh"
-#include "ghost/sparsemat.h"
-#include "phist_kernels.hpp"
-#include "phist_core.hpp"
-#include "phist_jada.hpp"
+
 
 //#include "phist_subspacejada.h"
 
@@ -81,43 +62,6 @@ namespace CoupledField {
     ghost_finalize();
   }
 
-  /** Most used methods from SCRS_Matrix and CRS_Matrix have no common base :(. As templated methods cannot be
-   * virtual, this would also be possible for some. Anyway, we do ugly copy&paste here :( */
-  int SparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service_void)
-  {
-    const PhistEigenSolver::SparseMatRowFuncService* service = (const PhistEigenSolver::SparseMatRowFuncService*) service_void;
-
-    assert(service->mat->GetStorageType() == BaseMatrix::SPARSE_SYM || service->mat->GetStorageType() == BaseMatrix::SPARSE_NONSYM);
-
-    const SparseOLASMatrix<double>* mat   = dynamic_cast<const SparseOLASMatrix<double>*>(service->mat);
-    assert(mat != NULL);
-
-    assert(row >= 0);
-    assert(row < mat->GetNumRows());
-
-    *row_nnz = mat->GetRowSize(row);
-
-    double* data = (double*) values;
-
-    unsigned int base = mat->GetRowPointer()[row];
-    //StdVector<int> cols(*row_nnz); // KILLME only for debug output
-    for(int i = 0; i < *row_nnz; i++) {
-      row_col[i] = mat->GetColPointer()[base + i];
-      // cols[i] = row_col[i];
-    }
-
-    for(int i = 0; i < *row_nnz; i++)
-      data[i] = service->scale * mat->GetDataPointer()[base + i];
-
-    LOG_DBG2(pes) << "SSMRF row=" << row << " row_nnz=" << *row_nnz << " scale=" << service->scale << " values=" << ToString<double>((double*) values, *row_nnz);
-    //LOG_DBG3(pes) << "SSMRF row=" << row << " row_col=" << cols.ToString();
-
-    return 0; // all ok
-  }
-
-
-
-
   void PhistEigenSolver::Setup(const BaseMatrix & mat, UInt numFreq, Double freqShift, bool sort)
   {
     LOG_DBG(pes) << "PES:S(stiff)";
@@ -130,31 +74,31 @@ namespace CoupledField {
     ToInfo();
   }
 
-void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
-{
-  // skip calculation of eigenvector residuals
-  // download X from GPU if applicable
-  int iflag = 0;
-  phist::kernels<double>::mvec_from_device(X, &iflag);
-  assert(iflag == 0);
-  // get pointer to row/col major block of vectors
-  double* xval = NULL; // will be set to memory owned by phist
-  phist_lidx lda, nloc;
-  phist::kernels<double>::mvec_my_length(X, &nloc, &iflag);
-  assert(iflag == 0);
-  phist::kernels<double>::mvec_extract_view(X, &xval, &lda, &iflag);
-  assert(iflag == 0);
-  // this is how one can extract the eigenvectors.
-  // TODO: move all of this to CalcEigenFrequencies and other functions below
-  mode_.Resize(nEig, nloc);
-  for (int j = 0; j < nEig; j++)
+  void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
   {
-    for (int i = 0; i < nloc; i++)
+    // skip calculation of eigenvector residuals
+    // download X from GPU if applicable
+    int iflag = 0;
+    phist::kernels<double>::mvec_from_device(X, &iflag);
+    assert(iflag == 0);
+    // get pointer to row/col major block of vectors
+    double* xval = NULL; // will be set to memory owned by phist
+    phist_lidx lda, nloc;
+    phist::kernels<double>::mvec_my_length(X, &nloc, &iflag);
+    assert(iflag == 0);
+    phist::kernels<double>::mvec_extract_view(X, &xval, &lda, &iflag);
+    assert(iflag == 0);
+    // this is how one can extract the eigenvectors.
+    // TODO: move all of this to CalcEigenFrequencies and other functions below
+    mode_.Resize(nEig, nloc);
+    for (int j = 0; j < nEig; j++)
     {
-      mode_[j][i] = xval[j * lda + i];
+      for (int i = 0; i < nloc; i++)
+      {
+        mode_[j][i] = xval[j * lda + i];
+      }
     }
   }
-}
 
   void PhistEigenSolver::Setup(const BaseMatrix& stiffMat, const BaseMatrix& massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
   {
@@ -176,9 +120,15 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
     double scale = scale_mass_ ? 1./b11 : 1.0;
     LOG_DBG(pes) << "PES:S b11=" << b11 << " -> B-scale=" << scale;
 
+    shared_ptr<Timer> setup_phistMatrix = info_->Get(ParamNode::SUMMARY)->Get("setup_phistMatrix/timer")->AsTimer();
+    setup_phistMatrix->SetSub();
+    setup_phistMatrix->Start();
+
+
     // for include stuff issues, A_ and B_ attributes are not of full type
     phist::types<double>::sparseMat_ptr A = (phist::types<double>::sparseMat_ptr) InitMatrix(stiffMat, &A_, 1.0);
     phist::types<double>::sparseMat_ptr B = (phist::types<double>::sparseMat_ptr) InitMatrix(massMat, &B_, scale);
+
 
     // setup eigenvalue problem - taken from subspacejada (jacobi davidson)
     // create an operator from A
@@ -199,6 +149,9 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
     phist::core<double>::linearOp_wrap_sparseMat_pair(opA,A,B,&iflag);
     LOG_DBG(pes) << "linearOp_wrap_sparseMat_pair -> " << iflag;
     assert(iflag == 0);
+
+    setup_phistMatrix->Stop();
+
 
     int prob_size = numFreq+opts_.blockSize-1;
     LOG_DBG(pes) << "prob_size -> " << prob_size;
@@ -271,6 +224,16 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
     // skip calculation of eigenvector residuals
     SaveModes(X, nEig);
     solve->Stop();
+
+    //Delete all things declared using new or create.
+    delete []  opA;
+    delete [] opB;
+
+    phist::kernels<double>::sparseMat_delete(A, &iflag);
+    phist::kernels<double>::sparseMat_delete(B, &iflag);
+    phist::kernels<double>::mvec_delete(Q, &iflag);
+    phist::kernels<double>::mvec_delete(X, &iflag);
+    phist::kernels<double>::sdMat_delete(R, &iflag);
     
     ToInfo();
   }
@@ -300,22 +263,6 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
 
     isBloch_ = bloch;
     sort_ = sort;
-
-    // MPI handle which is by default MPI_COMM_WORLD
-    int iflag;
-    phist_comm_create(&comm_, &iflag);
-    assert(iflag == 0);
-    LOG_DBG(pes) << "phist_comm_create -> " << comm_;
-
-    // dummy mpi arguments
-    int argc = 0;
-    char* v = NULL;
-    char** argv = &v;
-    phist_kernels_init(&argc, &argv, &iflag);
-
-    assert(iflag == 0);
-    LOG_DBG(pes) << "phist_kernels_init -> " << iflag;
-
     // phist parameters usually read from opts-standard.txt
 
     // fill the jadaOpts struct to pass settings to the solver
@@ -348,36 +295,6 @@ void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
     assert(sm != NULL);
     return sm->GetStorageType() == StdMatrix::SPARSE_SYM;
   }
-
-  sparseMat_t* PhistEigenSolver::InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, double scale)
-  {
-    // create stiffness or mass matrix for phist - which will be ghost matrices
-    const SparseOLASMatrix<double>* mat =  dynamic_cast<const SparseOLASMatrix<double>*>(&cfs);
-    assert(mat != NULL);
-    assert(mat->GetStorageType() == StdMatrix::SPARSE_SYM || mat->GetStorageType() == StdMatrix::SPARSE_NONSYM);
-    bool sym = mat->GetStorageType() == StdMatrix::SPARSE_SYM;
-    LOG_DBG(pes) << "IM: sym=" << sym;
-
-    assert(mat != NULL);
-    LOG_DBG(pes) << " max row nnz=" << mat->GetMaxRowSize();
-    LOG_DBG2(pes) << " row=" << mat->Dump();
-    assert(mat->GetNumRows() == mat->GetNumCols());
-
-
-    SparseMatRowFuncService service;
-    service.mat = dynamic_cast<const StdMatrix*>(&cfs);
-    service.scale = scale;
-
-    phist::types<double>::sparseMat_ptr smp = (phist::types<double>::sparseMat_ptr) *phist;
-    assert(smp == NULL); // we are prior initialization
-    int iflag = 0;
-    phist::kernels<double>::sparseMat_create_fromRowFunc(&smp, comm_, mat->GetNumRows(), mat->GetNumCols(), mat->GetMaxRowSize(), SparseMatRowFunc, (void*) &service, &iflag);
-    assert(iflag == 0);
-    LOG_DBG(pes) << "create smp -> " << iflag;
-    assert(smp != NULL);
-    return (sparseMat_t*) smp;
-  }
-
 
   void PhistEigenSolver::ToInfo()
   {
