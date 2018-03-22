@@ -3,7 +3,7 @@ from numpy import *
 import scipy.interpolate as ip 
 import time
 import vtk
-
+import vtk.util.numpy_support
 #from vtk.util.colors import *
 
 # # creates 3D data to vtkPolyData
@@ -1097,7 +1097,7 @@ def show_write_vtk(poly, res, save, actors=[], show_axes=False):
     #writer.SetDataModeToAscii()
     writer.SetFileName(save)
     writer.Write()
-    print("saved polydata to file", save)
+    print("saved polydata to '" + save + "'")
   else:
     show_vtk(poly, res, actors, show_axes=show_axes)  
     
