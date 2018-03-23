@@ -4,7 +4,7 @@
 #include <def_use_superlu.hh>
 #include <def_use_lis.hh>
 #include<def_use_petsc.hh>
-#include<def_use_phist.hh>
+#include <def_use_phist_cg.hh>
 
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -45,7 +45,7 @@
 
 
 
-#ifdef USE_PHIST
+#ifdef USE_PHIST_CG
 #include "OLAS/external/phist/PhistLinearSolver.hh"
 #endif
 
@@ -421,7 +421,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
   case BaseSolver::PHIST:
 
-  #ifdef USE_PHIST
+  #ifdef USE_PHIST_CG
     {
       // Check suitability of matrix
       if (mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)

@@ -230,8 +230,8 @@ OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK direct solvers from SuiteSparse.
 OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers (OpenMP parallel)" ${USE_LIS_DEFAULT})
 OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs." ${USE_SUPERLU_DEFAULT})
 OPTION(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
-OPTION(USE_PHIST "phist eigensolver library from sppexa." ${USE_PHIST_DEFAULT})
-OPTION(USE_GHOST "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" ${USE_GHOST_DEFAULT})
+OPTION(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFAULT})
+OPTION(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
 
 if(USE_FEAST AND NOT CFS_BLAS_LAPACK STREQUAL "MKL" )
   MESSAGE(FATAL_ERROR "USE_FEAST=ON requires Intel MKL! Set CFS_BLAS_LAPACK=MKL")
@@ -257,14 +257,14 @@ else()
 endif()
 
 # phist requires ghost
-if(USE_PHIST)
-  set(USE_GHOST ON CACHE BOOL "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" FORCE)
+if(USE_PHIST_EV OR USE_PHIST_CG)
+  set(BUILD_GHOST ON CACHE BOOL "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" FORCE)
 endif()
 
-if(USE_GHOST)
-  set(BUILD_HWLOC ON CACHE BOOL "toggled by USE_PHIST and USE_GHOST" FORCE)  
+if(BUILD_GHOST)
+  set(BUILD_HWLOC ON CACHE BOOL "toggled by USE_PHIST and BUILD_GHOST" FORCE)  
 else() 
-  set(BUILD_HWLOC OFF CACHE BOOL "toggled by USE_PHIST and USE_GHOST" FORCE)  
+  set(BUILD_HWLOC OFF CACHE BOOL "toggled by USE_PHIST and BUILD_GHOST" FORCE)  
 endif()
 
 # Disables Optimization in CFS++. Optimization is (and shall) still compiled but
@@ -457,7 +457,7 @@ MARK_AS_ADVANCED(PROFILING)
 MARK_AS_ADVANCED(XMLSCHEMA)
 MARK_AS_ADVANCED(USE_XERCES)
 MARK_AS_ADVANCED(USE_LIBXML2)
-#MARK_AS_ADVANCED(USE_GHOST)
+#MARK_AS_ADVANCED(BUILD_GHOST)
 MARK_AS_ADVANCED(BUILD_HWLOC)
 MARK_AS_ADVANCED(DISABLE_OPTIMIZATION)
 
@@ -672,9 +672,9 @@ IF(USE_ARPACK)
   ADD_SUBDIRECTORY(source/OLAS/external/arpack)
 ENDIF(USE_ARPACK)
 
-IF(USE_PHIST)
+IF(USE_PHIST_CG OR USE_PHIST_EV)
   ADD_SUBDIRECTORY(source/OLAS/external/phist)
-ENDIF(USE_PHIST)
+ENDIF(USE_PHIST_CG OR USE_PHIST_EV)
 
 IF(USE_ILUPACK)
   ADD_SUBDIRECTORY(source/OLAS/external/ilupack)

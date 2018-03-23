@@ -594,7 +594,7 @@ if(BUILD_HWLOC)
 endif(BUILD_HWLOC)
 
 # ghost is required for phist or could be used standalone
-if(USE_GHOST)
+if(BUILD_GHOST)
   # we use the cfs-fork of ghost and download the stuff via bitbuket
   # we could also use a subversion mirror on github but only for ghost, not for phist
   # svn co https://github.com/RRZE-HPC/GHOST/trunk@r<REVSION>
@@ -608,10 +608,10 @@ if(USE_GHOST)
   include("${CFSDEPS_DIR}/ghost/External_GHOST.cmake")
   
   ADD_DEPENDENCIES(ghost hwloc)
-endif(USE_GHOST)
+endif(BUILD_GHOST)
 
 # phist provides a ghost (=cuda if available) based EV-solver
-if(USE_PHIST)
+if(USE_PHIST_EV OR USE_PHIST_CG)
   set(PHIST_REV "71f4a86a0296") 
   set(PHIST_MD5 "c0ef0b4bdcaa1086bc08bb68eae6dd70")
   set(PHIST_ZIP "${PHIST_REV}.zip")
@@ -620,7 +620,7 @@ if(USE_PHIST)
   include("${CFSDEPS_DIR}/phist/External_PHIST.cmake")
   
   ADD_DEPENDENCIES(phist ghost)
-endif(USE_PHIST)
+endif()
 
 
 #-------------------------------------------------------------------------------
