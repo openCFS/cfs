@@ -229,10 +229,10 @@ OPTION(USE_SUITESPARSE "CholMod and UMFPACK direct solvers from SuiteSparse." ${
 OPTION(USE_LIS "Suite of OpenMP paralell solvers.." ${USE_LIS_DEFAULT})
 OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs." ${USE_SUPERLU_DEFAULT})
 OPTION(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
-OPTION(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_DEFAULT})
-OPTION(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_DEFAULT})
+OPTION(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFAULT})
+OPTION(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
 
-OPTION(USE_GHOST "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" ${USE_GHOST_DEFAULT})
+
 
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
@@ -256,13 +256,13 @@ endif()
 
 # phist requires ghost
 if(USE_PHIST_EV OR USE_PHIST_CG)
-  set(USE_GHOST ON CACHE BOOL "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" FORCE)
+  set(BUILD_GHOST ON CACHE BOOL "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" FORCE)
 endif()
 
-if(USE_GHOST)
-  set(BUILD_HWLOC ON CACHE BOOL "toggled by USE_PHIST and USE_GHOST" FORCE)  
+if(BUILD_GHOST)
+  set(BUILD_HWLOC ON CACHE BOOL "toggled by USE_PHIST and BUILD_GHOST" FORCE)  
 else() 
-  set(BUILD_HWLOC OFF CACHE BOOL "toggled by USE_PHIST and USE_GHOST" FORCE)  
+  set(BUILD_HWLOC OFF CACHE BOOL "toggled by USE_PHIST and BUILD_GHOST" FORCE)  
 endif()
 
 # Disables Optimization in CFS++. Optimization is (and shall) still compiled but
@@ -455,7 +455,7 @@ MARK_AS_ADVANCED(PROFILING)
 MARK_AS_ADVANCED(XMLSCHEMA)
 MARK_AS_ADVANCED(USE_XERCES)
 MARK_AS_ADVANCED(USE_LIBXML2)
-#MARK_AS_ADVANCED(USE_GHOST)
+#MARK_AS_ADVANCED(BUILD_GHOST)
 MARK_AS_ADVANCED(BUILD_HWLOC)
 MARK_AS_ADVANCED(DISABLE_OPTIMIZATION)
 
