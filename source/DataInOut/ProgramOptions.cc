@@ -14,7 +14,8 @@
 #include <def_use_metis.hh>
 #include <def_use_xerces.hh>
 #include <def_use_arpack.hh>
-#include <def_use_phist.hh>
+#include <def_use_phist_cg.hh>
+#include <def_use_phist_ev.hh>
 #include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>
 #include <def_use_cgns.hh>
@@ -28,7 +29,6 @@
 #include <def_use_petsc.hh>
 #include <def_use_hwloc.hh>
 #include <def_use_ghost.hh>
-#include <def_use_phist.hh>
 #include <def_disable_optimization.hh>
 
 
@@ -859,21 +859,29 @@ namespace CoupledField {
     out << "USE_PETSC:             " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
-#ifdef USE_GHOST
-    out << "USE_GHOST:             " << fg_blue << "YES" << fg_reset << endl;
+#ifdef BUILD_GHOST
+    out << "BUILD_GHOST:             " << fg_blue << "YES" << fg_reset << endl;
     out << "GHOST_BITBUCKET:       " << fg_blue << GHOST_SOURCE << fg_reset << endl;
     out << "GHOST_COMMIT:          " << fg_blue << GHOST_REV << fg_reset << endl;
 #else
-    out << "USE_GHOST:             " << fg_blue << "NO" << fg_reset << endl;
+    out << "BUILD_GHOST:             " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
 
-#ifdef USE_PHIST
+#ifdef USE_PHIST_CG
     out << "USE_PHIST:             " << fg_blue << "YES" << fg_reset << endl;
     out << "PHIST_BITBUCKET:       " << fg_blue << PHIST_SOURCE << fg_reset << endl;
     out << "PHIST_COMMIT:          " << fg_blue << PHIST_REV << fg_reset << endl;
 #else
-    out << "USE_PHIST:             " << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_PHIST_CG:             " << fg_blue << "NO" << fg_reset << endl;
+#endif
+
+#ifdef USE_PHIST_EV
+    out << "USE_PHIST:             " << fg_blue << "YES" << fg_reset << endl;
+    out << "PHIST_BITBUCKET:       " << fg_blue << PHIST_SOURCE << fg_reset << endl;
+    out << "PHIST_COMMIT:          " << fg_blue << PHIST_REV << fg_reset << endl;
+#else
+    out << "USE_PHIST_EV:             " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
     out << "CFS_BOOST_VERSION:     " << fg_blue << (BOOST_VERSION / 100000) << "." << (BOOST_VERSION / 100 % 1000) << "." << (BOOST_VERSION % 100) << fg_reset << endl;

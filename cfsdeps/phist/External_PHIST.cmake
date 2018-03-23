@@ -95,6 +95,9 @@ SET(CMAKE_ARGS
   -DPHIST_KERNEL_LIB:STRING=ghost
   -DGHOST_DIR:STRING=${CMAKE_CURRENT_BINARY_DIR}/share/ghost
   -DBLA_VENDOR=Intel10_64lp_seq
+  -DPERFCHECK=ON
+  
+  
 )
 
 #-------------------------------------------------------------------------------

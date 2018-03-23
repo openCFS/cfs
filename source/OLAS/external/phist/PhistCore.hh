@@ -3,6 +3,10 @@
  *
  *  Created on: Mar 5, 2018
  *      Author: sri
+ *      Description: The Phist Core Class serves as intereface containing common functions of both the linear solver
+ *       and eigen solver. The solvers share the matcreate functions and a few common operations.
+ *       The linear and eigen solvers are derived from this and their respective base sovlers.
+ *       This is done to avoid code duplications.
  */
 
 #ifndef OLAS_EXTERNAL_PHIST_PHISTCORE_HH_
