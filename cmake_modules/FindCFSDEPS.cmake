@@ -599,7 +599,7 @@ if(USE_GHOST)
 endif(USE_GHOST)
 
 # phist provides a ghost (=cuda if available) based EV-solver
-if(USE_PHIST)
+if(USE_PHIST_EV OR USE_PHIST_CG)
   set(PHIST_REV "71f4a86a0296") 
   set(PHIST_MD5 "c0ef0b4bdcaa1086bc08bb68eae6dd70")
   set(PHIST_ZIP "${PHIST_REV}.zip")
@@ -608,7 +608,7 @@ if(USE_PHIST)
   include("${CFSDEPS_DIR}/phist/External_PHIST.cmake")
   
   ADD_DEPENDENCIES(phist ghost)
-endif(USE_PHIST)
+endif()
 
 
 #-------------------------------------------------------------------------------

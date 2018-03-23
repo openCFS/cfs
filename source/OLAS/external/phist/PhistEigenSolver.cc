@@ -263,6 +263,8 @@ namespace CoupledField {
 
     isBloch_ = bloch;
     sort_ = sort;
+
+
     // phist parameters usually read from opts-standard.txt
 
     // fill the jadaOpts struct to pass settings to the solver

@@ -1,5 +1,5 @@
 #include <def_use_arpack.hh>
-#include <def_use_phist.hh>
+#include <def_use_phist_ev.hh>
 #include <def_use_pardiso.hh>
 
 #include "MatVec/BaseMatrix.hh"
@@ -12,8 +12,9 @@
 #ifdef USE_ARPACK
   #include "OLAS/external/arpack/ArpackEigenSolver.hh"
 #endif
-#ifdef USE_PHIST
+#ifdef USE_PHIST_EV
   #include "OLAS/external/phist/PhistEigenSolver.hh"
+   #include "OLAS/external/phist/PhistCore.hh"
 #endif
 
 namespace CoupledField {
@@ -80,7 +81,7 @@ namespace CoupledField {
       break;
 
     case BaseEigenSolver::PHIST:
-      #ifdef USE_PHIST
+      #ifdef USE_PHIST_EV
         retSolver = new PhistEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
       #else
         EXCEPTION( "compiled without Phist!" );

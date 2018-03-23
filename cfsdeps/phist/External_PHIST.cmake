@@ -95,6 +95,9 @@ SET(CMAKE_ARGS
   -DPHIST_KERNEL_LIB:STRING=ghost
   -DGHOST_DIR:STRING=${CMAKE_CURRENT_BINARY_DIR}/share/ghost
   -DBLA_VENDOR=Intel10_64lp_seq
+  -DPERFCHECK=ON
+  
+  
 )
 
 #-------------------------------------------------------------------------------
@@ -124,7 +127,7 @@ else()
     # somehow I cannot make the post_downlowad step work, hence we do it here.
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PD}"
     CMAKE_ARGS ${CMAKE_ARGS}
-    BUILD_COMMAND make libs
+    BUILD_COMMAND make 
     INSTALL_COMMAND make install
     BUILD_BYPRODUCTS ${PHIST_LIBRARY})
 

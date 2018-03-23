@@ -229,7 +229,9 @@ OPTION(USE_SUITESPARSE "CholMod and UMFPACK direct solvers from SuiteSparse." ${
 OPTION(USE_LIS "Suite of OpenMP paralell solvers.." ${USE_LIS_DEFAULT})
 OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs." ${USE_SUPERLU_DEFAULT})
 OPTION(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
-OPTION(USE_PHIST "phist eigensolver library from sppexa." ${USE_PHIST_DEFAULT})
+OPTION(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_DEFAULT})
+OPTION(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_DEFAULT})
+
 OPTION(USE_GHOST "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" ${USE_GHOST_DEFAULT})
 
 #-----------------------------------------------------------------------------
@@ -253,7 +255,7 @@ else()
 endif()
 
 # phist requires ghost
-if(USE_PHIST)
+if(USE_PHIST_EV OR USE_PHIST_CG)
   set(USE_GHOST ON CACHE BOOL "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" FORCE)
 endif()
 
@@ -664,9 +666,9 @@ IF(USE_ARPACK)
   ADD_SUBDIRECTORY(source/OLAS/external/arpack)
 ENDIF(USE_ARPACK)
 
-IF(USE_PHIST)
+IF(USE_PHIST_CG OR USE_PHIST_EV)
   ADD_SUBDIRECTORY(source/OLAS/external/phist)
-ENDIF(USE_PHIST)
+ENDIF(USE_PHIST_CG OR USE_PHIST_EV)
 
 IF(USE_ILUPACK)
   ADD_SUBDIRECTORY(source/OLAS/external/ilupack)

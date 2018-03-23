@@ -42,12 +42,9 @@ IF(MINGW)
     -lwsock32 )
 ENDIF()
 
-IF(USE_PHIST)
-  LIST(APPEND TARGET_LL ${CUDA_LIBS} ${HWLOC_LIBRARY} )
+IF(USE_PHIST_EV OR USE_PHIST_CG)
+  LIST(APPEND TARGET_LL ${CUDA_LIBS} ${HWLOC_LIBRARY})
 ENDIF()
-
-# Target link libraries for CFS++ executable target.
-TARGET_LINK_LIBRARIES(cfsbin ${TARGET_LL} )
 
 # lapack is in NETLIB, OPENBLAS and MKL
 # LIST(APPEND TARGET_LL -lpthread -lquadmath )
@@ -66,14 +63,14 @@ SET(CFS_LINK_FLAGS "")
 IF(UNIX AND USE_ANSYSRST)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
 ENDIF(UNIX AND USE_ANSYSRST)
-
 # Even if we did not compile CFS++ itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.
 IF(OPENMP_FOUND)
-  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
+  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}  ")
 ENDIF()
 
-
+# Target link libraries for CFS++ executable target.
+TARGET_LINK_LIBRARIES(cfsbin ${TARGET_LL})
 
 
 
@@ -81,8 +78,14 @@ ENDIF()
 # required by hwloc. Strange that this is not already necessary for USE_GHOST. 
 
 
-if(USE_PHIST)
+if(USE_PHIST_EV OR USE_PHIST_CG)
   set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess -ludev" )
 endif()
+
+
+
+
+
+
 
 SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
