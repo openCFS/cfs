@@ -860,12 +860,12 @@ namespace CoupledField {
     out << "USE_PETSC:             " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
-#ifdef USE_GHOST
-    out << "USE_GHOST:             " << fg_blue << "YES" << fg_reset << endl;
+#ifdef BUILD_GHOST
+    out << "BUILD_GHOST:             " << fg_blue << "YES" << fg_reset << endl;
     out << "GHOST_BITBUCKET:       " << fg_blue << GHOST_SOURCE << fg_reset << endl;
     out << "GHOST_COMMIT:          " << fg_blue << GHOST_REV << fg_reset << endl;
 #else
-    out << "USE_GHOST:             " << fg_blue << "NO" << fg_reset << endl;
+    out << "BUILD_GHOST:             " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
 
