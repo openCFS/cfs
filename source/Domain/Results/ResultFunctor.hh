@@ -135,6 +135,7 @@ public:
   ResultFunctorIntegrate( PtrCoefFct coef,
                           shared_ptr<BaseFeFunction> feFct,
                           shared_ptr<ResultInfo> inf );
+
   //! Destructor
   virtual ~ResultFunctorIntegrate();
 
@@ -145,11 +146,15 @@ public:
   virtual PtrCoefFct GetCoefFct() {
     return coef_;
   }
+  void SetAveraged(bool average) {
+    average_ = average;
+  }
 
 private:
 
   //! Pointer to FeFunction
   shared_ptr<BaseFeFunction> feFct_;
+  bool average_;
 };
 
 
