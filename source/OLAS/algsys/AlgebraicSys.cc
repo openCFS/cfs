@@ -169,7 +169,7 @@ namespace CoupledField {
   }
   
   void AlgebraicSys::UpdateToSolStrategy() {
-    LOG_TRACE(algSys) << "Updating parameters due to solution strategy";
+    LOG_DBG(algSys) << "Updating parameters due to solution strategy";
     
     // switch according to type of solution strategy
     if( solStrat_->GetType() == SolStrategy::TWO_LEVEL_STRATEGY ) {
@@ -182,7 +182,7 @@ namespace CoupledField {
         // --------------------------
         //  Step 1: Only (1,1) block
         // --------------------------
-        LOG_TRACE(algSys) << "\t=> Switching to reduced (1,1)-system";
+        LOG_DBG(algSys) << "\t=> Switching to reduced (1,1)-system";
         
         delete effMat_;
         delete effSol_;
@@ -198,7 +198,7 @@ namespace CoupledField {
         // --------------------------
         //  Step 2: Complete system
         // --------------------------
-        LOG_TRACE(algSys) << "\t=> Switching to full system again";
+        LOG_DBG(algSys) << "\t=> Switching to full system again";
         delete effMat_;
         delete effSol_;
         delete effRhs_;
@@ -227,7 +227,7 @@ namespace CoupledField {
 
   void AlgebraicSys::CreateLinSys() {
 
-    LOG_TRACE(algSys) << "Creating linear system";
+    LOG_DBG(algSys) << "Creating linear system";
 
 
     // first check, if registration is finished
@@ -371,7 +371,7 @@ namespace CoupledField {
 
   void AlgebraicSys::CreatePrecond() {
     
-    LOG_TRACE(algSys) << "Creating preconditioner";
+    LOG_DBG(algSys) << "Creating preconditioner";
     
     // check, if system was already created
     if( !systemCreated_ ) {
@@ -397,7 +397,7 @@ namespace CoupledField {
 
   void AlgebraicSys::CreateSolver() {
     
-    LOG_TRACE(algSys) << "Creating solver";
+    LOG_DBG(algSys) << "Creating solver";
     
     // check, if system was already created
     if( !systemCreated_ ) {
@@ -422,7 +422,7 @@ namespace CoupledField {
 
   void AlgebraicSys::CreateEigenSolver() {
     
-    LOG_TRACE(algSys) << "Creating eigenvalue solver";
+    LOG_DBG(algSys) << "Creating eigenvalue solver";
     // check, if system was already created
     if( !systemCreated_ ) {
       EXCEPTION( "Matrices were not created yet. Please call "
@@ -448,7 +448,7 @@ namespace CoupledField {
 
   void AlgebraicSys::SetupPrecond()  {
     
-    LOG_TRACE(algSys) << "Setup of preconditioner";
+    LOG_DBG(algSys) << "Setup of preconditioner";
     // check, if system was already created
     if( !systemCreated_ ) {
       EXCEPTION( "Matrices were not created yet. Please call "
@@ -476,7 +476,7 @@ namespace CoupledField {
 
   void AlgebraicSys::SetupSolver() {
     
-    LOG_TRACE(algSys) << "Setup of solver";
+    LOG_DBG(algSys) << "Setup of solver";
     // check, if system was already created
     if( !systemCreated_ ) {
       EXCEPTION( "Matrices were not created yet. Please call "
@@ -507,7 +507,7 @@ namespace CoupledField {
 
   void AlgebraicSys::SetupEigenSolver(UInt numFreq, Double shift, bool isQuadratic, bool sort, bool bloch) {
     
-    LOG_TRACE(algSys) << "Setup of eigenvalue solver";
+    LOG_DBG(algSys) << "Setup of eigenvalue solver";
     // check, if system was already created
     if( !systemCreated_ ) {
       EXCEPTION( "Matrices were not created yet. Please call "
@@ -582,14 +582,14 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::AddIDBCToRHS(bool deltaIDBC) {
-    LOG_TRACE(algSys) << "Add IDBC to RHS ";
+    LOG_DBG(algSys) << "Add IDBC to RHS ";
 
     idbcHandler_->AddIDBCToRHS( rhs_, deltaIDBC );
   }
 
   void AlgebraicSys::Solve(bool setIDBC, bool deltaIDBC) {
     
-    LOG_TRACE(algSys) << "Solving problem";
+    LOG_DBG(algSys) << "Solving problem";
 
     // ======================================================================
     //  CHECK FOR CALCULATION OF CONDITION NUMBER
@@ -857,7 +857,7 @@ namespace CoupledField {
 
   void AlgebraicSys::CalcEigenFrequencies(Vector<Double>& frequencies, Vector<Double>& err)
   {
-    LOG_TRACE(algSys) << "Calculating real-valued eigenfrequencies";
+    LOG_DBG(algSys) << "Calculating real-valued eigenfrequencies";
 
     // Trigger calculation of eigenvalues
     eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
@@ -874,7 +874,7 @@ namespace CoupledField {
 
   void AlgebraicSys::CalcEigenFrequencies(Vector<Complex>& frequencies, Vector<Double>& err)
   {
-    LOG_TRACE(algSys) << "Calculating complex-valued eigenfrequencies";
+    LOG_DBG(algSys) << "Calculating complex-valued eigenfrequencies: bloch=" << eigenSolver_->IsBloch() << " quadratic=" << eigenSolver_->IsQuadratic();
 
     // Check, if eigenvalue solver is quadratic, as only in this case
     // this method is well-defined
@@ -950,7 +950,7 @@ namespace CoupledField {
   // ***************
   FeFctIdType AlgebraicSys::ObtainFctId( const std::string& fctString ) {
 
-   LOG_TRACE(algSys) << "Obtaining FctId for fct '" << fctString << "'";
+   LOG_DBG(algSys) << "Obtaining FctId for fct '" << fctString << "'";
 
    // Check, if system was already finalized
    if( registrationFinished_ ) {
@@ -1005,11 +1005,9 @@ namespace CoupledField {
   }
   
   
-  Integer AlgebraicSys::
-  DefineSBMMatrixBlock( const std::map<FeFctIdType,std::set<Integer> >& eqns,
-                        bool isInnerBlock ) {
-    
-    LOG_TRACE(algSys) << "Defining new SBM block #" << numBlocks_;
+  Integer AlgebraicSys::DefineSBMMatrixBlock( const std::map<FeFctIdType,std::set<Integer> >& eqns, bool isInnerBlock )
+  {
+    LOG_DBG(algSys) << "Defining new SBM block #" << numBlocks_;
 
     // Check, if system was already finalized
     if( registrationFinished_ ) {
@@ -1039,7 +1037,7 @@ namespace CoupledField {
     
     // check, if map contains any entries at all
     if (eqns.size() == 0 || eqns.begin()->second.size() == 0) {
-      LOG_TRACE(algSys) << "\tBlock is empty, leaving";
+      LOG_DBG(algSys) << "\tBlock is empty, leaving";
       // in addition, if this block is supposed to be the static condensation block,
       // we deactivate it
       
@@ -1048,7 +1046,7 @@ namespace CoupledField {
       
       if( isInnerBlock && statCond_) {
         statCond_ = false;
-        LOG_TRACE(algSys) << "\tDeactivating static condensation";
+        LOG_DBG(algSys) << "\tDeactivating static condensation";
       }
       return -1;
     }
@@ -1181,8 +1179,7 @@ namespace CoupledField {
 
   void AlgebraicSys::RegisterSubMatrixBlocks( UInt sbmIndex, UInt numMinorBlocks ) {
     
-    LOG_TRACE(algSys) << "Registering " << numMinorBlocks 
-        << " sub-matrix blocks for SBM block #" << sbmIndex;
+    LOG_DBG(algSys) << "Registering " << numMinorBlocks << " sub-matrix blocks for SBM block #" << sbmIndex;
 
     if( registrationFinished_ ) {
       EXCEPTION("Can not register new submatrix matrix blocks after "
@@ -1248,11 +1245,11 @@ namespace CoupledField {
                                       const FeFctIdType fctId1,
                                       const FeFctIdType fctId2 ) {
 
-    LOG_TRACE(algSys) << "Setting matrix type '" << feMatrixType.ToString(matrixType)
+    LOG_DBG(algSys) << "Setting matrix type '" << feMatrixType.ToString(matrixType)
                            << "' for fct-Ids (" << fctId1 << ", " << fctId2 << ")";
                            
-    LOG_TRACE(algSys) << "\tsymmetry: " << isSymmetric;
-    LOG_TRACE(algSys) << "\tcomplex values: " << isComplex;
+    LOG_DBG(algSys) << "\tsymmetry: " << isSymmetric;
+    LOG_DBG(algSys) << "\tcomplex values: " << isComplex;
 
     
     // Note: The "isSymmetric" attribute is a bit misleading, as its meaning differs,
@@ -1288,7 +1285,7 @@ namespace CoupledField {
         // Note: The sbmSymmetry is not affected in this case.
         if( !isSymmetric) {
           this->matIsSymm_[fctId1] = false;
-          LOG_TRACE(algSys) << "\t=> matrix will begic";
+          LOG_DBG(algSys) << "\t=> matrix will begic";
         }
       
       } else {
@@ -1299,7 +1296,7 @@ namespace CoupledField {
         // symmetry of the SBM-Matrix. In case at least one integrator
         // is non-symmetric, so will be the SBM matrix.
         this->sbmSymm_ &= isSymmetric;
-        LOG_TRACE(algSys) << "\t=> SBM-symmetry: " << this->sbmSymm_;
+        LOG_DBG(algSys) << "\t=> SBM-symmetry: " << this->sbmSymm_;
 
         // If matrix is symmetric
         if( isSymmetric) {
@@ -1330,7 +1327,7 @@ namespace CoupledField {
   // ******************
   void AlgebraicSys::GraphSetupDone() {
 
-    LOG_TRACE(algSys) << "Finished setup of graph";
+    LOG_DBG(algSys) << "Finished setup of graph";
 
     std::set<FEMatrixType>::iterator fIt;
     std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
@@ -1781,7 +1778,7 @@ namespace CoupledField {
   void AlgebraicSys::InitMatrix( FEMatrixType matrixType,
                                  const FeFctIdType fctId ) {
     
-    LOG_TRACE(algSys) << "Initializing matrix " << feMatrixType.ToString(matrixType)
+    LOG_DBG(algSys) << "Initializing matrix " << feMatrixType.ToString(matrixType)
                       << " for fctId " << fctId;
     
     // If matrix specified init this one
@@ -1818,7 +1815,7 @@ namespace CoupledField {
 
   void AlgebraicSys::InitRHS( const FeFctIdType fctId ) {
     
-    LOG_TRACE(algSys) << "Initializing RHS for fctId " << fctId;
+    LOG_DBG(algSys) << "Initializing RHS for fctId " << fctId;
     
     if ( fctId == NO_FCT_ID ) {
       // in this case initialize complete RHS   
@@ -1836,7 +1833,7 @@ namespace CoupledField {
   
   void AlgebraicSys::InitRHS( const SBM_Vector& newRHS ) {
     
-    LOG_TRACE(algSys) << "Initializing RHS with new vector";
+    LOG_DBG(algSys) << "Initializing RHS with new vector";
 
     
     // ensure that the RHS vector to set consists of as many
@@ -1884,7 +1881,7 @@ namespace CoupledField {
   
   void AlgebraicSys::InitSol( const FeFctIdType fctId ) {
     
-    LOG_TRACE(algSys) << "Initializing solution of fctId " << fctId;
+    LOG_DBG(algSys) << "Initializing solution of fctId " << fctId;
     
     if ( fctId == NO_FCT_ID ) {
       // in this case initialize complete RHS   
@@ -1902,7 +1899,7 @@ namespace CoupledField {
   
   void AlgebraicSys::InitSol( const SBM_Vector& newSol ) {
     
-    LOG_TRACE(algSys) << "Initializing solution with new vector";
+    LOG_DBG(algSys) << "Initializing solution with new vector";
     REFACTOR;
   }
   
@@ -2364,7 +2361,7 @@ namespace CoupledField {
   void AlgebraicSys::UpdateRHS(FEMatrixType matrixType, 
                                const SBM_Vector& fup,bool SysMatUpdated) {
     
-    LOG_TRACE(algSys) << "Updating RHS of matrix " 
+    LOG_DBG(algSys) << "Updating RHS of matrix "
                       << feMatrixType.ToString(matrixType);
 
 //    std::cout << "Updating RHS with matrix "
@@ -2487,7 +2484,7 @@ namespace CoupledField {
   void AlgebraicSys::ConstructEffectiveMatrix( const FeFctIdType fctId,
                             const std::map<FEMatrixType,Double> &matFactors ) {
 
-    LOG_TRACE(algSys) << "Constructing effective system matrix for feFunction "
+    LOG_DBG(algSys) << "Constructing effective system matrix for feFunction "
         << "with id " << fctId;
     if (IS_LOG_ENABLED(algSys, dbg)) {
       LOG_DBG(algSys) << "Factors are:";
@@ -2562,7 +2559,7 @@ namespace CoupledField {
 
   void AlgebraicSys::BuildInDirichlet() {
 
-    LOG_TRACE(algSys) << "Incorporating Dirichlet values into system matrix";
+    LOG_DBG(algSys) << "Incorporating Dirichlet values into system matrix";
 
     // If necessary modify matrix diagonal for penalty approach
     if ( assembleDirichletToSysMat_ == true ) {
@@ -2584,7 +2581,7 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::ClearIDBCFromSolutionVal( SingleVector& ptSol,const FeFctIdType fctId){
-    LOG_TRACE(algSys) << "Clearing IDBC nodes from solution values of fct " << fctId;
+    LOG_DBG(algSys) << "Clearing IDBC nodes from solution values of fct " << fctId;
 
     // get all (blockId,index)-combinations for the current fctId
     StdVector<UInt> blockNums, indices;
@@ -2628,7 +2625,7 @@ namespace CoupledField {
                                      const FeFctIdType fctId,
                                      bool setIDBC, bool deltaIDBC) {
 
-    LOG_TRACE(algSys) << "Getting solution values of fct " << fctId;
+    LOG_DBG(algSys) << "Getting solution values of fct " << fctId;
 
     // get all (blockId,index)-combinations for the current fctId
     StdVector<UInt> blockNums, indices;
@@ -2709,7 +2706,7 @@ namespace CoupledField {
   void AlgebraicSys::GetRHSVal( SingleVector &ptRhs,
                                 const FeFctIdType fctId  ) {
     
-    LOG_TRACE(algSys) << "Getting RHSvalue of fct " << fctId;
+    LOG_DBG(algSys) << "Getting RHSvalue of fct " << fctId;
     
     // get all (blockId,index)-combinations for the current fctId
     StdVector<UInt> blockNums, indices;
@@ -2769,7 +2766,7 @@ namespace CoupledField {
                                                 BaseMatrix::EntryType entryType,
                                                 bool sharePattern ) {
     
-    LOG_TRACE(algSys) << "Generating SBMMatrix of size " << numBlocks_ 
+    LOG_DBG(algSys) << "Generating SBMMatrix of size " << numBlocks_
         << " for matrix type " << feMatrixType.ToString(matType);
 
     // STEP 1: Generate empty SBM_Matrix
@@ -3148,7 +3145,7 @@ namespace CoupledField {
   
   void AlgebraicSys::PrintFeMatrixInfo( ) {
 
-    LOG_TRACE(algSys) << "Print matrix information";
+    LOG_DBG(algSys) << "Print matrix information";
     
     PtrParamNode setupNode = myInfo_->Get("setup");
     
@@ -3274,7 +3271,7 @@ namespace CoupledField {
   // *************************
   void AlgebraicSys::PrintRegistrationInfo( ) const {
     
-    LOG_TRACE(algSys) << "Print registration info";
+    LOG_DBG(algSys) << "Print registration info";
     
     PtrParamNode setupNode = myInfo_->Get("setup");
     

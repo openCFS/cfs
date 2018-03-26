@@ -113,7 +113,9 @@ namespace CoupledField {
   template<class TYPE>
   void PhistEigenSolver::Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian)
   {
+    // TODO one of both shall be enough!
     hermitian_ = isHermitian;
+    isBloch_ = isHermitian;
     complex_ = boost::is_complex<TYPE>::value;
     assert(!(hermitian_ && !complex_));
 
@@ -241,15 +243,18 @@ namespace CoupledField {
     sol.Resize(numFreq_);
     err.Resize(numFreq_);
 
-    assert(sol.GetEntryType() == BaseMatrix::DOUBLE);
+    assert(sol.GetEntryType() == complex_ ? BaseMatrix::COMPLEX : BaseMatrix::DOUBLE);
     assert(err.GetEntryType() == BaseMatrix::DOUBLE);
 
     double pi_pi = 2.0*M_PI;
     assert(close(pi_pi, 8.0*atan(1.0)));
 
+    assert(!(complex_ && sol.GetEntryType() != BaseMatrix::COMPLEX));
+    Vector<TYPE>& solConverted = dynamic_cast<Vector<TYPE>&>(sol);
+
     for(unsigned int i =0; i < numFreq_; i++) {
       // rigid modes are approx zero and can be negative -> abs to avoid NaN
-      sol.SetEntry(i, sqrt(std::abs(ev_[i].real()))/pi_pi); // this is the omega^2 -> f transformation from ArpackEigenSolver :(
+      solConverted[i] = sqrt(std::abs(ev_[i].real()))/pi_pi; // this is the omega^2 -> f transformation from ArpackEigenSolver :(
       err.SetEntry(i, resNorm_[i]);
     }
 
