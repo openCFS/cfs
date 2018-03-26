@@ -194,6 +194,11 @@ namespace CoupledField {
     std::set<MaterialType> GetIsComplexInfo() const
     { return isComplex_;};
 
+    //! get info if material paramter ist complex
+    bool IsComplex( MaterialType mtype) const {
+      return ( isComplex_.find(mtype) != isComplex_.end() );
+    }
+
     //! get the tensors
     tensorMap GetTensorParams() const
     { return tensorParams_;};
