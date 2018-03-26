@@ -20,6 +20,7 @@
 //#include "Materials/thermoelasticMaterial.hh"
 //#include "Materials/pyroelectricMaterial.hh"
 #include "Materials/magStrictMaterial.hh"
+#include "Utils/tools.hh"
 
 // Note, that the methods ComputeIso/OrthoMechStiffnesTensor were commented out
 // in revision 7562 and are not in the code -> check the repository!
@@ -83,7 +84,7 @@ namespace CoupledField {
       }
       else if ( matClass == MECHANIC ) {
         material = new MechanicMaterial(mp, cs);
-        ReadMechanic( material, pn );
+        ReadMechanic( dynamic_cast<MechanicMaterial *>(material), pn );
       }    
       else if ( matClass == FLUID ) {\
         material = new AcousticMaterial(mp, cs);
@@ -256,26 +257,11 @@ namespace CoupledField {
   //**********************************************************************
   //*************  READ MECHANICS ****************************************
   //**********************************************************************
-  void XMLMaterialHandler::ReadMechanic(BaseMaterial *material, PtrParamNode mech) 
+  void XMLMaterialHandler::ReadMechanic(BaseMaterial *material, PtrParamNode mech)
   {
     //    std::cout << "ReadMechanics" << std::endl;
-    
-    bool     flagEModulReal=false;
-    bool     flagPoissonReal=false;
-    // bool     flagEModulImag=false;
-    // bool     flagPoissonImag=false;
-    
-    bool     flagEModulXReal=false;
-    bool     flagEModulYReal=false;
-    bool     flagEModulZReal=false;
-    bool     flagPoissonXYReal=false;
-    bool     flagPoissonYZReal=false;
-    bool     flagPoissonXZReal=false;
-    bool     flagShearModulYZReal=false;
-    bool     flagShearModulZXReal=false;
-    bool     flagShearModulXYReal=false;
-    
-    bool     flagElastTensorReal=false;
+    bool     flagElasticitySet=false;
+
     // bool     flagElastTensorImag=false;
     
     
@@ -304,60 +290,36 @@ namespace CoupledField {
         //read real elasticity tensor   
         if(tens->Has("real")) {
           ParamTools::AsStringTensor( tens->Get("real"), 36, realVals );
-          flagElastTensorReal = true;
         }
         if(tens->Has("imag")) {
           ParamTools::AsStringTensor( tens->Get("imag"), 36, imagVals );
-          //flagElastTensorImag = true;
         }
         elastCoef = CoefFunction::Generate(mp_,  Global::COMPLEX, 6, 6,
                 realVals, imagVals );
         material->SetCoefFct( MECH_STIFFNESS_TENSOR, elastCoef);
         material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::GENERAL);
-        
+        flagElasticitySet = true;
       } // end tensor  
       
-      // check values for isotropic      
+      // check values for isotropic
       if(elast->Has("isotropic"))
       {
-        // read the real part
-        if(elast->Get("isotropic")->Has("real"))
+        PtrParamNode iso = elast->Get("isotropic");
+        StdVector<std::string> vRe(36), vIm(36);
+        vRe.Init("0");
+        vIm.Init("0");
+        if ( iso->Has("real") ) // read the real part
         {
-          PtrParamNode real = elast->Get("isotropic")->Get("real");
-          
-          // read real elasticity modulus
-          if(real->Has("elasticityModulus"))
-          {
-            material->SetScalar(real->Get("elasticityModulus")->As<std::string>(), MECH_EMODULUS, Global::REAL ); 
-            flagEModulReal = true;
-          }
-          
-          // read real Poisson number
-          if(real->Has("poissonNumber"))
-          {
-            material->SetScalar(real->Get("poissonNumber")->As<std::string>(), MECH_POISSON, Global::REAL ); 
-            flagPoissonReal = true;
-          }
+          vRe = ReadMechanicIsotropic(iso->Get("real"));
         }
-        // read the imaginary part
-        if(elast->Get("isotropic")->Has("imag"))
+        if ( iso->Has("imag") ) // read the imaginary part
         {
-          PtrParamNode imag = elast->Get("isotropic")->Get("imag");
-          
-          //read imaginary elasticity modulus
-          if(imag->Has("elasticityModulus"))
-          {
-            material->SetScalar(imag->Get("elasticityModulus")->As<std::string>(), MECH_EMODULUS, Global::IMAG ); 
-            // flagEModulImag = true;
-          }
-          
-          // read imaginary Poisson number
-          if(imag->Has("poissonNumber"))
-          {
-            material->SetScalar(imag->Get("poissonNumber")->As<std::string>(), MECH_POISSON, Global::IMAG ); 
-            // flagPoissonImag = true;
-          }
+          vIm = ReadMechanicIsotropic(iso->Get("imag"));
         }
+        PtrCoefFct C = CoefFunction::Generate(mp_, Global::IMAG,6,6,vRe,vIm);
+        material->SetCoefFct(MECH_STIFFNESS_TENSOR,C);
+        material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::ISOTROPIC);
+        flagElasticitySet = true;
       } // end of isotropic
       
       // Note, in revision 7565 there were some details in the code now deleted 
@@ -377,97 +339,55 @@ namespace CoupledField {
         if(real->Has("elasticityModulus_1"))
         {
           material->SetScalar(real->Get("elasticityModulus_1")->As<Double>(), MECH_EMODULUS_X, Global::REAL ); 
-          flagEModulXReal = true;
         }
         
         if(real->Has("elasticityModulus_2"))
         {
           material->SetScalar(real->Get("elasticityModulus_2")->As<Double>(), MECH_EMODULUS_Y, Global::REAL ); 
-          flagEModulYReal = true;
         }
         
         if(real->Has("elasticityModulus_3"))
         {
           material->SetScalar(real->Get("elasticityModulus_3")->As<Double>(), MECH_EMODULUS_Z, Global::REAL ); 
-          flagEModulZReal = true;
         }
         
         // read orthotropic Poisson numbers
         if(real->Has("poissonNumber_12"))
         {
           material->SetScalar(real->Get("poissonNumber_12")->As<Double>(), MECH_POISSON_XY, Global::REAL ); 
-          flagPoissonXYReal = true;
         }
         
         if(real->Has("poissonNumber_23"))
         {
           material->SetScalar(real->Get("poissonNumber_23")->As<Double>(), MECH_POISSON_YZ, Global::REAL ); 
-          flagPoissonYZReal = true;
         }
         
         if(real->Has("poissonNumber_13"))
         {
           material->SetScalar(real->Get("poissonNumber_13")->As<Double>(), MECH_POISSON_XZ, Global::REAL ); 
-          flagPoissonXZReal = true;
         }
         
         // read orthotropic shear modulus
         if(real->Has("shearModulus_23"))
         {
           material->SetScalar(real->Get("shearModulus_23")->As<Double>(), MECH_GMODULUS_YZ, Global::REAL ); 
-          flagShearModulYZReal = true;
         }
         
         if(real->Has("shearModulus_31"))
         {
           material->SetScalar(real->Get("shearModulus_31")->As<Double>(), MECH_GMODULUS_ZX, Global::REAL ); 
-          flagShearModulZXReal = true;
         }
         
         if(real->Has("shearModulus_12"))
         {
           material->SetScalar(real->Get("shearModulus_12")->As<Double>(), MECH_GMODULUS_XY, Global::REAL ); 
-          flagShearModulXYReal = true;
         }
       }  // orthotropic      
     } // end of elasticity
     
     
-    if (flagEModulReal==true && 
-            flagPoissonReal==true && 
-            flagElastTensorReal==false) {
-      material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::ISOTROPIC);
-    }
-    else if (flagEModulReal==false && 
-            flagPoissonReal==false && 
-            flagElastTensorReal==true) {
-      //stiffness tensor is already set
-    }
-    else if (flagEModulXReal==true && 
-            flagEModulYReal==true && 
-            flagEModulZReal==true && 
-            flagPoissonXYReal==true && 
-            flagPoissonYZReal==true && 
-            flagPoissonXZReal==true && 
-            flagShearModulYZReal==true &&
-            flagShearModulZXReal==true &&
-            flagShearModulXYReal==true) {
-      material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::ORTHOTROPIC);
-    }
-    else if (flagEModulReal==true && 
-            flagPoissonReal==true && 
-            flagElastTensorReal==true) {
-      EXCEPTION( "mechanical stiffness tensor is over determined.\n"
-              << " You specified the tensor as well as E-Modul "
-              << "and Poisson number" );
-    }
-    else if (flagEModulReal==false && 
-            flagEModulXReal==false && 
-            flagElastTensorReal==false) {
-      EXCEPTION ("mechanical stiffness must be specified somehow." );
-    }
-    else {
-      EXCEPTION( "mechanical stiffness tensor can not be computed." );
+    if (flagElasticitySet==false) {
+      EXCEPTION ("mechanical stiffness must be specified somehow.");
     }
     
     //read viscoelastic parameters
@@ -687,6 +607,62 @@ namespace CoupledField {
      */
   }
   
+  StdVector<std::string> XMLMaterialHandler::ReadMechanicIsotropic(PtrParamNode node)
+  {
+    StdVector<std::string> vals(36);
+    vals.Init("0");
+    std::string mu, lam;
+    // read as strings and add formulas if lame parameters are not given directly
+    if(node->Has("elasticityModulus") && node->Has("poissonNumber"))
+    {
+      std::string E = Bracket(node->Get("elasticityModulus")->As<std::string>());
+      std::string nu = Bracket(node->Get("poissonNumber")->As<std::string>());
+      std::stringstream sLameMu,sLameLambda;
+      sLameMu << Bracket(E) << "/(2*(1+"<<Bracket(nu)<<"))";
+      sLameLambda << nu<<"*"<<E<<"/((1+"<<nu<<")*(1-2*"<<nu<<"))";
+      mu = E+"/(2*(1+"+nu+"))";// E/(2*(1+nu))
+      lam = nu+"*"+E+"/((1+"+nu+")*(1-2*"+nu+"))";// nu*E/((1+nu)*(1-2*nu))
+      //material->SetScalar(sLameMu.str(),MECH_LAME_MU,dataType);
+      //material->SetScalar(sLameLambda.str(),MECH_LAME_LAMBDA,dataType);
+    }
+    else if (node->Has("compressionModulus") && node->Has("shearModulus"))
+    {
+      std::string K = Bracket(node->Get("compressionModulus")->As<std::string>());
+      std::string G = Bracket(node->Get("shearModulus")->As<std::string>());
+      std::stringstream sLameLambda;
+      sLameLambda <<"("<< K << "-2*"<< G << "/3)";
+      mu = G;
+      lam = Bracket( K+"-2/3*"+G );//sLameLambda.str();
+      //material->SetScalar(G,MECH_LAME_MU,dataType);
+      //material->SetScalar(sLameLambda.str(),MECH_LAME_LAMBDA,dataType);
+    }
+    else if (node->Has("lameParameterMu") && node->Has("lameParameterLambda"))
+    {
+      mu = Bracket(node->Get("lameParameterMu")->As<std::string>());
+      lam = Bracket(node->Get("lameParameterLambda")->As<std::string>());
+      //material->SetScalar( node->Get("lameParameterMu")->As<std::string>(), MECH_LAME_MU, dataType);
+      //material->SetScalar( node->Get("lameParameterLambda")->As<std::string>(), MECH_LAME_LAMBDA, dataType);
+    }
+    else {
+      EXCEPTION ("Specify E+nu, K+B, or lambda+mu!" );
+    }
+    // build the tensor elements
+    std::string diag = Bracket("2*"+mu+"+"+lam); // 2*mu+lam
+    vals[0] = diag;
+    vals[1] = lam;
+    vals[2] = lam;
+    vals[6] = lam;
+    vals[7] = diag;
+    vals[8] = lam;
+    vals[12] = lam;
+    vals[13] = lam;
+    vals[14] = diag;
+    vals[21] = mu;
+    vals[28] = mu;
+    vals[35] = mu;
+    return vals;
+  }
+
   
   //**********************************************************************
   //*************  READ ACOUSTICS ****************************************
