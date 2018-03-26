@@ -213,33 +213,33 @@ class Shape:
 
   # return the coordinates for both profile nodes
   #@return x1,y1,x2,y2
-  def get_profiles(self, idx, profile_factor):
+  def get_profiles(self, idx):
     x,y = self.get_center(idx)
     if self.dof == 0:
-       return x - profile_factor * self.profile[idx], y, x + profile_factor * self.profile[idx], y
+       return x - self.profile[idx], y, x + self.profile[idx], y
     else:    
-      return x, y - profile_factor * self.profile[idx], x, y + profile_factor * self.profile[idx]   
+      return x, y - self.profile[idx], x, y + self.profile[idx]   
       
   # return the line coordinates for the profile
   #@param left (True) or right (False)
-  def get_profile(self, idx_1, idx_2, left, profile_factor):
+  def get_profile(self, idx_1, idx_2, left):
     x_val = []
     y_val = []
 
     x,y = self.get_center(idx_1)
     if self.dof == 0:
-      x += (-1.0 if left else +1.0) * profile_factor* self.profile[idx_1]
+      x += (-1.0 if left else +1.0) * self.profile[idx_1]
     else:    
-      y += (-1.0 if left else +1.0) * profile_factor * self.profile[idx_1]  
+      y += (-1.0 if left else +1.0) * self.profile[idx_1]  
     
     x_val.append(x)
     y_val.append(y)
     
     x,y = self.get_center(idx_2)
     if self.dof == 0:
-      x += (-1.0 if left else +1.0) * profile_factor * self.profile[idx_2]
+      x += (-1.0 if left else +1.0) * self.profile[idx_2]
     else:    
-      y += (-1.0 if left else +1.0) * profile_factor * self.profile[idx_2]  
+      y += (-1.0 if left else +1.0) * self.profile[idx_2]  
     
     x_val.append(x)
     y_val.append(y)
@@ -420,7 +420,7 @@ def read_xml(xml, set, profile):
           shape.dof_b = d # done everytime but who cares ...
           shape.b.append(v)
         else:
-          shape.profile.append(v) 
+          shape.profile.append(v if not profile else profile) 
           shape.valid.append(True) # not really necessary    
 
     # print(len(shape.a), len(shape.b), len(shape.profile))
@@ -732,7 +732,7 @@ def import_from_image(filename, resample, repair):
   return shapes
     
 # creates a matplotlib figure     
-def plot_data(res, shapes, profile_factor, unit):
+def plot_data(res, shapes, unit):
   # find extreme bounds to also visualize negative node positions
   minimal = [0.0]*2
   maximal = [1.0]*2
@@ -755,10 +755,10 @@ def plot_data(res, shapes, profile_factor, unit):
       fig.gca().add_artist(c)
       
     for i in range(0,n-1):
-      x1, y1 = shape.get_profile(i, i+1, True, profile_factor) # left      
+      x1, y1 = shape.get_profile(i, i+1, True) # left      
       l = plt.Line2D(x1,y1, marker='.', color=shape.color)        
       sub.add_line(l)
-      x2, y2 = shape.get_profile(i, i+1, False, profile_factor) # right          
+      x2, y2 = shape.get_profile(i, i+1, False) # right          
       l = plt.Line2D(x2,y2, marker='.', color=shape.color)                                    
       sub.add_line(l)
       
@@ -769,7 +769,7 @@ def plot_data(res, shapes, profile_factor, unit):
   return fig, sub
 
 # create vtk polydata tesselation
-def create_2d_vtk(shapes, profile_factor):
+def create_2d_vtk(shapes):
   # create vtk cells and points
   points = vtk.vtkPoints()
   cells = vtk.vtkCellArray()
@@ -780,7 +780,7 @@ def create_2d_vtk(shapes, profile_factor):
     last_center = points.InsertNextPoint(cx, cy, 0.0)
   
     # last (-1) 'left' and 'right' profile nodes
-    xl, yl, xr, yr = shape.get_profiles(0, profile_factor)
+    xl, yl, xr, yr = shape.get_profiles(0)
     last_left = points.InsertNextPoint(xl, yl, 0.0)
     last_right = points.InsertNextPoint(xr, yr, 0.0)
   
@@ -791,7 +791,7 @@ def create_2d_vtk(shapes, profile_factor):
       this_center = points.InsertNextPoint(cx, cy, 0.0)
   
       # this 'left' and 'right' profile nodes
-      xl, yl, xr, yr = shape.get_profiles(i, profile_factor)
+      xl, yl, xr, yr = shape.get_profiles(i)
       this_left = points.InsertNextPoint(xl, yl, 0.0)
       this_right = points.InsertNextPoint(xr, yr, 0.0)
     
@@ -970,8 +970,8 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument("input", help="a .density.xml or .grad.plot file or a image")
   parser.add_argument("--set", help="set nr within a .density.file", type=int)
-  parser.add_argument("--profile", help="give the profile if it is not in input", type=float)
-  parser.add_argument("--half_profile", help="lecay files have a doubled profile value. This corrects this", action='store_true')
+  parser.add_argument("--profile", help="give the profile if it is not in input or to overwrite", type=float)
+  parser.add_argument("--scale_profile", help="legacay files have a doubled profile value. Scale them by .5", type=float)
   parser.add_argument('--resample', help="resample to this resolution", type=int)
   parser.add_argument('--repair', help="interpolate unsure data (when parsing from image)", action='store_true')
   parser.add_argument('--symmetrize', help="mirror on x-axis", action='store_true')
@@ -979,7 +979,7 @@ if __name__ == '__main__':
   parser.add_argument('--export', help="write a density.xml file with shapeParam variables")
   parser.add_argument('--suppress_profile', help="do not export profile", action='store_true')
   parser.add_argument('--unbounded', help="do not restrict the visualization on a unit square", action='store_true')
-  parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps or even vtp!")
+  parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps, vtp")
   parser.add_argument('--noshow', help="don't show the image", action='store_true')
   parser.add_argument('--nooutline', help="don't show outline of the design domain for 3D", action='store_true')
   args = parser.parse_args()
@@ -997,6 +997,10 @@ if __name__ == '__main__':
     shapes = import_from_image(args.input, args.resample, args.repair)
   
   print('average profile is ' + str(1.0/len(shapes) * sum([ s.average_valid_profile() for s in shapes])))
+    
+  if args.scale_profile:
+    for s in shapes:
+      s.profile = list(args.scale_profile * numpy.array(s.profile))  
     
   if args.symmetrize:
     symmetrize(shapes)  
@@ -1025,13 +1029,13 @@ if __name__ == '__main__':
       ap.Update()
       poly = ap.GetOutput()
     else:
-      poly = create_2d_vtk(shapes,  1.0 if not args.half_profile else .5)
+      poly = create_2d_vtk(shapes)
     if args.save:
       show_write_vtk(poly,800,args.save)
     if not args.noshow:
       show_vtk(poly,800,show_edges=True if d3 else False) 
   else:
-    fig, sub = plot_data(800, shapes, 1.0 if not args.half_profile else .5, not args.unbounded)
+    fig, sub = plot_data(800, shapes, not args.unbounded)
     if args.save:
       print("write '" + args.save + "'")
       fig.savefig(args.save)

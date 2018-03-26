@@ -2,6 +2,8 @@
 #define OLAS_Phist_EIGENSOLVER_HH
 
 #include "PhistCore.hh"
+#include "OLAS/solver/BaseSolver.hh"
+#include "OLAS/solver/BaseEigenSolver.hh"
 
 namespace CoupledField {
   
@@ -21,6 +23,7 @@ namespace CoupledField {
     
     //! Default Destructor
     virtual ~PhistEigenSolver();
+
 
     //! Setup routine for standard eigenvalue problem
 
@@ -98,15 +101,19 @@ namespace CoupledField {
     } SparseMatRowFuncService;
 
   private:
+
+    /** templated instance of the overwritten Setup() */
+    template<class TYPE>
+    void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false);
+
+    /** templated instance of the overwritten CalcEigenValues() */
+    template<class TYPE>
+    void CalcEigenValues(BaseVector &sol, BaseVector &err, UInt N, Double shiftPoint);
+
     /** print setup information */
     void ToInfo();
 
-    void SetupCommon(bool sym, unsigned int numFreq, double freqShift, bool sort, bool bloch);
-
-    /** provide A_ or B_ not as pointer value but as pointer itself as the pointer value is NULL prior init
-     * @param scale to scale the B-matrix. 1.0 else
-     * @return the value we set phist to (redundant to phist**) */
-//    sparseMat_t* InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, double scale);
+    void SetupCommon(unsigned int numFreq, double freqShift);
 
     /** little helper */
     bool IsSymmetric(const BaseMatrix& cfs) const;
@@ -142,6 +149,18 @@ namespace CoupledField {
 
     /** shall we scale the mass matrix as suggested by Jonas? */
     bool scale_mass_;
+
+    /** in case we have scale_mass_, this is the value */
+    double scale_mass_val_ = 1.0;
+
+    /** is this a Hermitian system */
+    bool hermitian_ = false;
+
+    /** to know which type we use. Not all complex need to be hermitian! */
+    bool complex_ = false;
+
+    /** remove when switching to new interface, we then have eigenProblemType_ */
+    bool sym_ = false;
 
     // we do not use solver and preconditioners from CFS for Phist
   };

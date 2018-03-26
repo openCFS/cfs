@@ -133,10 +133,14 @@ namespace CoupledField {
       }
     }
     // Setup solver and precond-object
+    precond_->GetSetupTimer()->SetSub(); // is in the service of arpack
+    precond_->GetPrecondTimer()->SetSub();
     precond_->GetSetupTimer()->Start();
     precond_->Setup( *matrixC_ );
     precond_->GetSetupTimer()->Stop();
 
+    solver_->GetSetupTimer()->SetSub();
+    solver_->GetSolveTimer()->SetSub();
     solver_->GetSetupTimer()->Start();
     solver_->Setup( *matrixC_ );
     solver_->GetSetupTimer()->Stop();
