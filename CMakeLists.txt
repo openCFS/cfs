@@ -271,7 +271,7 @@ endif()
 # optimization problems don't run. Furthermore CFS_Optimiztion.xsd will be replaced
 # in the build copy of the schema. Meant for deploying CFS++ to the public.
 # Note that this option is advanced, so you need to toggle in ccmake to see it.
-OPTION(DISABLE_OPTIMIZATION "Disables to run optimization problmes (still compiled)" ${DISABLE_OPTIMIZATION_DEFAULT})
+OPTION(DISABLE_OPTIMIZATION "Disables to run optimization problems (still compiled)" ${DISABLE_OPTIMIZATION_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # set USE_XERCES and USE_LIBXML2 (disjunct!) according to XML_READER choice
@@ -359,7 +359,7 @@ OPTION(USE_IPOPT "Use the external open source IPOPT optimizer." ${USE_IPOPT_DEF
 OPTION(USE_CGAL
   "Activate fast element mapping using CGAL library."
   ${USE_CGAL_DEFAULT})
-
+  
 #-----------------------------------------------------------------------------
 # Use libfbi toggles the inclusion of the Fast Box Intersection library.
 # Please note, that either CGAL or libfbi can be used at a time, but not both!
@@ -387,6 +387,11 @@ OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."  ${CFSTOOL_DEFAULT})
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})
 OPTION(UNIT_TESTS "Build CFS++ unit tests (cfstest)."  ${UNIT_TESTS_DEFAULT})
 
+# Since CFSDAT depends on the CGAL library, we need to force USE_CGAL to ON.
+IF(CFSDAT)
+    SET(USE_CGAL ON CACHE BOOL "Activate fast element mapping using CGAL library." FORCE)
+ENDIF()
+  
 #-----------------------------------------------------------------------------
 # Shall we build HDFView?
 #-----------------------------------------------------------------------------
