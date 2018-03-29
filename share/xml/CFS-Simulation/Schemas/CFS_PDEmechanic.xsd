@@ -547,7 +547,9 @@
       <xsd:enumeration value="mechTotalEnergy"/>
       <xsd:enumeration value="mechDyadicStrainSum"/>
       <xsd:enumeration value="mechQuadDisplacementSum"/>
-      <xsd:enumeration value="homogenizedTensor"/>      
+      <xsd:enumeration value="homogenizedTensor"/>
+      <xsd:enumeration value="mechStrainAverage"/>
+      <xsd:enumeration value="mechStressAverage"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -557,6 +559,8 @@
       <xsd:enumeration value="mechDisplacedSurfVolume"/>
       <xsd:enumeration value="mechPower"/>
       <xsd:enumeration value="mechForce"/>
+      <xsd:enumeration value="mechStrainAverage"/>
+      <xsd:enumeration value="mechStressAverage"/>
     </xsd:restriction>
   </xsd:simpleType>
 
