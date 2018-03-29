@@ -2800,11 +2800,11 @@ namespace CoupledField {
       shared_ptr<ResultFunctor> homResFunctor;
       if(isComplex_) {
         homResFunctor.reset(new ResultFunctorIntegrate<Complex>(origCoef, feFct, homResInfo));
-        dynamic_cast<ResultFunctorIntegrate<Complex>*>(homResFunctor.get())->SetAveraged(true);
+        dynamic_pointer_cast< ResultFunctorIntegrate<Complex> >(homResFunctor)->SetAveraged(true);
       }
       else {
         homResFunctor.reset(new ResultFunctorIntegrate<Double>(origCoef, feFct, homResInfo));
-        dynamic_cast<ResultFunctorIntegrate<Double>*>(homResFunctor.get())->SetAveraged(true);
+        dynamic_pointer_cast< ResultFunctorIntegrate<Double> >(homResFunctor)->SetAveraged(true);
       }
       resultFunctors_[i.first] = homResFunctor;
     }
