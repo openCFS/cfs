@@ -42,32 +42,20 @@ namespace CoupledField {
   {
     int iflag = 0;
 
+    assert(A_ != NULL);
+    if(complex_)
+      phist::kernels<Complex>::sparseMat_delete(A_, &iflag);
+    else
+      phist::kernels<double>::sparseMat_delete(A_, &iflag);
 
-    if(A_ != NULL)
-    {
-      if(complex_)
-        phist::kernels<Complex>::sparseMat_delete(A_, &iflag);
-      else
-        phist::kernels<double>::sparseMat_delete(A_, &iflag);
-      LOG_DBG(pes) << "~PES: del A -> " << iflag;
-      assert(iflag == 0);
-      A_ = NULL;
-    }
+    A_ = NULL;
 
-    if(B_ != NULL)
-    {
-      if(complex_)
-        phist::kernels<Complex>::sparseMat_delete(B_, &iflag);
-      else
-        phist::kernels<double>::sparseMat_delete(B_, &iflag);
-      LOG_DBG(pes) << "~PES: del B -> " << iflag;
-      assert(iflag == 0);
-      B_ = NULL;
-    }
-
-
-    //ghost_densemat_destroy(x_);
-    //ghost_densemat_destroy(y_);
+    assert(B_ != NULL);
+    if(complex_)
+      phist::kernels<Complex>::sparseMat_delete(B_, &iflag);
+    else
+      phist::kernels<double>::sparseMat_delete(B_, &iflag);
+    B_ = NULL;
 
     ghost_finalize();
   }
@@ -84,35 +72,38 @@ namespace CoupledField {
     ToInfo();
   }
 
-  void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
+  template<class TYPE>
+  void PhistEigenSolver::SaveModes(typename phist::types<TYPE>::mvec_ptr X, int nEig)
   {
     // skip calculation of eigenvector residuals
     // download X from GPU if applicable
     int iflag = 0;
     phist::kernels<double>::mvec_from_device(X, &iflag);
-    assert(iflag == 0);
+
     // get pointer to row/col major block of vectors
-    double* xval = NULL; // will be set to memory owned by phist
+    TYPE* xval = NULL; // will be set to memory owned by phist
     phist_lidx lda, nloc;
-    phist::kernels<double>::mvec_my_length(X, &nloc, &iflag);
-    assert(iflag == 0);
-    phist::kernels<double>::mvec_extract_view(X, &xval, &lda, &iflag);
-    assert(iflag == 0);
+    phist::kernels<TYPE>::mvec_my_length(X, &nloc, &iflag);
+    phist::kernels<TYPE>::mvec_extract_view(X, &xval, &lda, &iflag);
+    LOG_DBG(pes) << "SM: lda=" << lda << " nloc=" << nloc << " nEig=" << nEig;
+    LOG_DBG3(pes) << "SM: xval=" << ToString(xval, nloc * lda);
+
     // this is how one can extract the eigenvectors.
-    // TODO: move all of this to CalcEigenFrequencies and other functions below
     mode_.Resize(nEig, nloc);
+    LOG_DBG(pes) << "SM: mode_.rows=" << mode_.GetNumRows() << " .cols=" << mode_.GetNumCols();
+    assert((int) sort_idx_.GetSize() == nEig);
     for (int j = 0; j < nEig; j++)
-    {
       for (int i = 0; i < nloc; i++)
-      {
-        mode_[j][i] = xval[j * lda + i];
-      }
-    }
+        mode_[sort_idx_[j]][i] = xval[j * lda + i]; // mode_ is always complex!
+    LOG_DBG3(pes) << "SM: mode=" << mode_.ToString(2,true);
   }
 
   template<class TYPE>
   void PhistEigenSolver::Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian)
   {
+    shared_ptr<Timer> timer = info_->Get(ParamNode::SUMMARY)->Get("phist_setup/timer")->AsTimer();
+    timer->Start();
+
     // TODO one of both shall be enough!
     hermitian_ = isHermitian;
     isBloch_ = isHermitian;
@@ -127,10 +118,6 @@ namespace CoupledField {
     scale_mass_val_ = scale_mass_ ? ((Complex) (1./b11)).real() : 1.0;
     LOG_DBG(pes) << "PES:S b11=" << b11 << " -> B-scale=" << scale_mass_val_;
 
-    shared_ptr<Timer> timer = info_->Get(ParamNode::SUMMARY)->Get("setup_phistMatrix/timer")->AsTimer();
-    timer->SetSub();
-    timer->Start();
-
     // for include stuff issues, A_ and B_ attributes are not of full type
     A_ = InitMatrix<TYPE>(A, &A_, 1.0);
     // TODO: in the Bloch-case the B-Matrix does not change and can be reused!
@@ -142,6 +129,9 @@ namespace CoupledField {
   template<class TYPE>
   void PhistEigenSolver::CalcEigenValues(BaseVector &sol, BaseVector &err, UInt numFreq, double freqShift)
   {
+    shared_ptr<Timer> solve = info_->Get(ParamNode::SUMMARY)->Get("phist_solve/timer")->AsTimer();
+    solve->Start();
+
     // for include stuff issues, A_ and B_ attributes are not of full type
     assert(A_ != NULL && B_ != NULL); // Setup() has to been called first!
     typename phist::types<TYPE>::sparseMat_ptr A = (typename phist::types<TYPE>::sparseMat_ptr) A_;
@@ -158,16 +148,13 @@ namespace CoupledField {
     int iflag = 0;
     phist::kernels<TYPE>::sparseMat_get_domain_map(A,&map,&iflag);
     LOG_DBG(pes) << "sparseMat_get_domain_map -> " << iflag;
-    assert(iflag == 0);
 
     typename phist::types<TYPE>::linearOp_ptr opB = new typename phist::types<TYPE>::linearOp();
     phist::core<TYPE>::linearOp_wrap_sparseMat(opB,B,&iflag);
     LOG_DBG(pes) << "linearOp_wrap_sparseMat -> " << iflag;
-    assert(iflag == 0);
 
     phist::core<TYPE>::linearOp_wrap_sparseMat_pair(opA,A,B,&iflag);
     LOG_DBG(pes) << "linearOp_wrap_sparseMat_pair -> " << iflag;
-    assert(iflag == 0);
 
     int prob_size = numFreq+opts_.blockSize-1;
     LOG_DBG(pes) << "prob_size -> " << prob_size;
@@ -176,12 +163,11 @@ namespace CoupledField {
     typename phist::types<TYPE>::mvec_ptr Q = NULL;
     phist::kernels<TYPE>::mvec_create(&Q,map,prob_size,&iflag);
     LOG_DBG(pes) << "mvec_create -> " << iflag;
-    assert(iflag == 0);
 
     typename phist::types<TYPE>::sdMat_ptr R = NULL;
     phist::kernels<TYPE>::sdMat_create(&R,prob_size,prob_size,comm_,&iflag);
     LOG_DBG(pes) << "sdMat_create -> " << iflag;
-    assert(iflag == 0);
+
 
     resNorm_.Resize(prob_size);
     ev_.Resize(prob_size);
@@ -190,10 +176,8 @@ namespace CoupledField {
     typename phist::types<TYPE>::mvec_ptr v0 = NULL;
     phist::kernels<TYPE>::mvec_create(&v0,map,1,&iflag);
     LOG_DBG(pes) << "mvec_create -> " << iflag;
-    assert(iflag == 0);
 
     phist::kernels<TYPE>::mvec_put_value(v0,1.0,&iflag);
-    assert(iflag == 0);
 
     // skip residual calculation from subspacejada, not necessary for us
     opts_.v0=v0;
@@ -222,8 +206,6 @@ namespace CoupledField {
     phist::kernels<TYPE>::mvec_create(&X,map,nEig,&iflag);
     assert(iflag >= 0); // iflag is reset to 0 for success
 
-    shared_ptr<Timer> solve = info_->Get(ParamNode::SUMMARY)->Get("phist_solve/timer")->AsTimer();
-    solve->Start();
 
     phist::jada<TYPE>::ComputeEigenvectors(Q,R,X,&iflag);
     assert(iflag >= 0);
@@ -235,9 +217,18 @@ namespace CoupledField {
     LOG_DBG(pes) << "S: scaled ev_=" << ev_.ToString();
 
 
+    double pi_pi = 2.0*M_PI;
+    assert(close(pi_pi, 8.0*atan(1.0)));
+
+    // we need to sort our stuff
+    StdVector<double> freq(numFreq_);
+    for(unsigned int i =0; i < numFreq_; i++) // rigid modes are approx zero and can be negative -> abs to avoid NaN
+      freq[i] = sqrt(std::abs(ev_[i].real()))/pi_pi; // this is the omega^2 -> f transformation from ArpackEigenSolver :(
+    SetupSortIdx(freq);
+
     // skip calculation of eigenvector residuals
-    SaveModes(X, nEig);
-    solve->Stop();
+    // save the modes in a sorted fashion
+    SaveModes<TYPE>(X, nEig);
 
     // store solution and error
     sol.Resize(numFreq_);
@@ -245,17 +236,13 @@ namespace CoupledField {
 
     assert(sol.GetEntryType() == complex_ ? BaseMatrix::COMPLEX : BaseMatrix::DOUBLE);
     assert(err.GetEntryType() == BaseMatrix::DOUBLE);
-
-    double pi_pi = 2.0*M_PI;
-    assert(close(pi_pi, 8.0*atan(1.0)));
-
+    // no set results
     assert(!(complex_ && sol.GetEntryType() != BaseMatrix::COMPLEX));
     Vector<TYPE>& solConverted = dynamic_cast<Vector<TYPE>&>(sol);
 
     for(unsigned int i =0; i < numFreq_; i++) {
-      // rigid modes are approx zero and can be negative -> abs to avoid NaN
-      solConverted[i] = sqrt(std::abs(ev_[i].real()))/pi_pi; // this is the omega^2 -> f transformation from ArpackEigenSolver :(
-      err.SetEntry(i, resNorm_[i]);
+      solConverted[i] = freq[sort_idx_[i]];
+      err.SetEntry(i, resNorm_[sort_idx_[i]]);
     }
 
     //Delete all things declared using new or create.
@@ -265,8 +252,28 @@ namespace CoupledField {
     phist::kernels<TYPE>::mvec_delete(Q, &iflag);
     phist::kernels<TYPE>::mvec_delete(X, &iflag);
     phist::kernels<TYPE>::sdMat_delete(R, &iflag);
+
+    solve->Stop();
     
     ToInfo();
+  }
+
+
+  void PhistEigenSolver::SetupSortIdx(const StdVector<double>& freq)
+  {
+    // to be called after within each CalcEigenFrequencies()
+    sort_idx_.Resize(freq.GetSize());
+
+    // we sort with a std::pair<||ev||, org_idx>
+    std::vector<ev_idx> org;
+    org.reserve(freq.GetSize());
+    for(unsigned int i = 0; i < freq.GetSize(); i++)
+      org.push_back(std::make_pair(freq[i], i));
+
+    std::sort(org.begin(), org.end(), PhistEigenSolver::comperator);
+
+    for(unsigned int i = 0; i < freq.GetSize(); i++)
+      sort_idx_[i] = org[i].second;
   }
 
 
@@ -338,8 +345,6 @@ namespace CoupledField {
     is->Get("blockSize")->SetValue(opts_.innerSolvBlockSize);
   }
 
-
-
   void PhistEigenSolver::Setup(const BaseMatrix& stiffMat, const BaseMatrix& massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
   {
     LOG_DBG(pes) << "PES:S(stiff, mass)";
@@ -386,8 +391,10 @@ namespace CoupledField {
 
   }
 
-  void PhistEigenSolver::GetEigenMode(UInt modeNr, Vector<Complex> & mode)
+  void PhistEigenSolver::GetEigenMode(unsigned int modeNr, Vector<Complex>& mode)
   {
+    LOG_DBG(pes) << "GEM: modeNr=" << modeNr;
+    assert(mode_.GetNumRows() > 0 && mode_.GetNumCols() > 0);
     if(modeNr >= mode_.GetNumRows())
     {
       std::cout << "PhistEigenSolver::GetEigenMode(" << modeNr << ") not in 0 ... " << mode_.GetNumRows() << std::endl;
@@ -397,6 +404,7 @@ namespace CoupledField {
     assert(modeNr < mode_.GetNumRows()); // assume 0-based
 
     mode.Resize(mode_.GetNumCols());
-    mode_.GetCol(mode, modeNr);
+    mode_.GetRow(mode, modeNr);
+    LOG_DBG3(pes) << "GEM -> " << mode.ToString();
   }
 }

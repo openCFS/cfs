@@ -118,7 +118,8 @@ namespace CoupledField {
     /** little helper */
     bool IsSymmetric(const BaseMatrix& cfs) const;
 
-    void SaveModes(phist::types<double>::mvec_ptr X, int nEig);
+    template<class TYPE>
+    void SaveModes(typename phist::types<TYPE>::mvec_ptr X, int nEig);
 
     phist_jadaOpts opts_;
 
@@ -162,7 +163,22 @@ namespace CoupledField {
     /** remove when switching to new interface, we then have eigenProblemType_ */
     bool sym_ = false;
 
-    // we do not use solver and preconditioners from CFS for Phist
+    /** sorts the eigenfrequencies and sets the sort_idx_ permutation. */
+    void SetupSortIdx(const StdVector<double>& freq); // TODO: move to BaseEigenSolver
+
+    /** for SetupSortIdx */
+    typedef std::pair<double, unsigned int> ev_idx;  // TODO: move to BaseEigenSolver
+
+    /** for SetupIndex */
+    static bool comperator(const ev_idx& one, const ev_idx& two)  // TODO: move to BaseEigenSolver
+    {
+      return one.first < two.first;
+    }
+
+    /** this is the permutation matrix which allows sorting. Always used
+     * and in the non-sorting case set to 0,1,2, ... */
+    StdVector<unsigned int> sort_idx_; // TODO: move to BaseEigenSolver
+
   };
 }
 

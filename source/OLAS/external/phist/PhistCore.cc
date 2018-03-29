@@ -87,10 +87,16 @@ sparseMat_t* PhistCore::InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, d
   service.mat = dynamic_cast<const StdMatrix*>(&cfs);
   service.scale = scale;
 
+  int iflag = 0;
+
   // see https://stackoverflow.com/questions/610245/where-and-why-do-i-have-to-put-the-template-and-typename-keywords
   typename phist::types<TYPE>::sparseMat_ptr smp = (typename phist::types<TYPE>::sparseMat_ptr) *phist;
-  assert(smp == NULL); // we are prior initialization
-  int iflag = 0;
+
+  // if already initialized, e.g. because of optimization, we delete forst
+  if(smp != NULL)
+    phist::kernels<TYPE>::sparseMat_delete(smp, &iflag);
+  assert(iflag == 0);
+
   phist::kernels<TYPE>::sparseMat_create_fromRowFunc(&smp, comm_, mat->GetNumRows(), mat->GetNumCols(), mat->GetMaxRowSize(), SparseMatRowFunc<TYPE>, (void*) &service, &iflag);
   assert(iflag == 0);
 

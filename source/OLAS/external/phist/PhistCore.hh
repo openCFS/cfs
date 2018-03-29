@@ -56,6 +56,9 @@ public:
 
 protected:
 
+  /** creates the matrix. If the space is already occupied (!= NULL) it is deleted first
+   * @param see it as referenece to the pointer we store the stuff to. It shall point to NULL in the beginning!
+   * @return new content of phist */
   template<class TYPE>
   sparseMat_t* InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, double scale);
 
