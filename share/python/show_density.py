@@ -88,7 +88,7 @@ def get_image(input, set, design, fill=0.0):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("input", nargs='*',  help="the density.xml file to visualize or the files(s) for --saveall")
+parser.add_argument("input", nargs='*', help="the density.xml file to visualize or the files(s) for --saveall")
 parser.add_argument('--save', help="optional filename to write image")
 parser.add_argument('--saveall', help="saves all input files as png", action='store_true')
 parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
