@@ -793,7 +793,16 @@ namespace CoupledField {
     }
   }
 
-
+  template<typename T>
+  T CRS_Matrix<T>::MultColumnWithVec(const UInt & r, const Vector<T>& vec) const{
+    T sum = 0.0;
+    UInt i, b;
+    for( i = rowPtr_[r]; i < rowPtr_[r+1]; ++i){
+      b = colInd_[i];
+      sum += data_[i] * vec[b];
+    }
+    return sum;
+  }
 
   // ***********
   //   MultSub
