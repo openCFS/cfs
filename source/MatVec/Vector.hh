@@ -283,6 +283,9 @@ template<typename T> class ElemStoreSol;
     /** diff norm */
     double NormL2(const Vector<T>& other) const;
 
+    //** evaluate ModalAssuranceCriterion */
+    Double MAC(const Vector<T>& other) const;
+
     /** Sum of all the vector's elements */
     T Sum() const;
 
@@ -296,6 +299,11 @@ template<typename T> class ElemStoreSol;
     T Min() const;
 
     T Max() const;
+
+    /** returns the entry with the maximum absolute value */
+    T MaxAbs() const;
+    /** returns the entry with the maximum absolute value, the location is reported in loc */
+    T MaxAbs(int& loc) const;
 
     /** return the minimal and maximal element concurrently.
      * @see Min() for complex */
