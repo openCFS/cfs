@@ -854,6 +854,15 @@ namespace CoupledField {
     }
   }
 
+  PtrParamNode AlgebraicSys::GetExportLinSysParam(){
+    if(!solStrat_->GetParamNode()->Has("exportLinSys")){
+      return NULL;
+    }
+    else {
+      return solStrat_->GetParamNode()->Get("exportLinSys");
+    }
+  }
+
 
 
   void AlgebraicSys::CalcEigenFrequencies(Vector<Double>& frequencies, Vector<Double>& err)

@@ -99,7 +99,7 @@ namespace CoupledField {
     //! It calculates a given eigenmode and stores in a use supplied vector.
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eignmode
-    void GetEigenMode( UInt modeNr, Vector<Complex> & mode );
+    void GetEigenMode( UInt modeNr, Vector<Complex> & mode, bool right=true );
     void GetComplexEigenMode( UInt modeNr, Vector<Complex> & mode );
 
 

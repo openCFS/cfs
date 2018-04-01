@@ -938,6 +938,8 @@ namespace CoupledField {
 
     BaseEigenSolver* GetEigenSolver(){ return eigenSolver_; };
 
+    PtrParamNode GetExportLinSysParam();
+
 
   protected:
 
