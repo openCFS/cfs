@@ -156,12 +156,6 @@ namespace CoupledField {
         // ==================
         case ACOU_PRESSURE:
           
-          // First ensure, that we have no coupled eigenfrequency simulation:
-          // This case is not tested yet and might not be solvalbe.
-          if( analysisType_ == BasePDE::EIGENFREQUENCY ) {
-            EXCEPTION("A coupled mechanic-acoustic simulation can only be"
-                      "be performed in the acoustic potential formulation!");
-          }
           DefCouplInt( "AcouMechPresStiffCouplingInt", false, -1.0, STIFFNESS, dispFct, 
                        acouFct, actSDList, oneCoefFuncs, acouRegions );
           

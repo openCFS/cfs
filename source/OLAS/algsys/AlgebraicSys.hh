@@ -940,6 +940,8 @@ namespace CoupledField {
 
     PtrParamNode GetExportLinSysParam();
 
+    bool IsMatrixComplex(){return isMatrixComplex_;};
+
 
   protected:
 
