@@ -213,7 +213,7 @@ namespace CoupledField {
             if (isHermitian) {
                 newType = COMPLEX_HERMITIAN;
                 if (!isSymmetric) {
-                    WARN("one can use symmetric matrix storage for hermitian matrices")
+                    EXCEPTION("non-symmetric matrix storage used for hermitian EVP -> Use symmetric matrix storage")
                 }
             }
             else {
