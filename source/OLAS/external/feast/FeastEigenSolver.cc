@@ -201,9 +201,69 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
     } break;;
     case COMPLEX_SYMMETRIC: {
         LOG_DBG3(fes) << "complex-symmetric EVP";
-        //I1 = 0.5*(maxVal+minVal); LOG_DBG3(fes) << "CEF Emid: " << I1;
+        I1[0] = 0.5*(maxVal+minVal); I1[1]=0.0; LOG_DBG3(fes) << "CEF Emid: " << I1;
         I2 = 0.5*(maxVal-minVal); LOG_DBG3(fes) << "CEF r: " << I2;
-        EXCEPTION("not yet implemented")
+        LOG_DBG3(fes) << "CEF m0: " << m0_; // specifies the initial guess for subspace dimension to be used
+        LOG_DBG3(fes) << "CEF x:" << vr_.ToString();
+        LOG_DBG3(fes) << "CEF n: " << n_; // size of the problem
+        // setup A-matrix
+        const SCRS_Matrix<Complex>* a_const = dynamic_cast<const SCRS_Matrix<Complex>*>(a_);
+        SCRS_Matrix<Complex>* a = const_cast<SCRS_Matrix<Complex>*>(a_const);
+        Vector<double> aDouble; aDouble.Resize(2*a->GetNnz(),0.0); // factor 2 for complex
+        for (int i=0;i<(int)a->GetNnz();i++) {
+          aDouble[2*i] = a->GetDataPointer()[i].real();
+          aDouble[2*i+1] = a->GetDataPointer()[i].imag();
+        }
+        LOG_DBG3(fes) << "CEF a_size: " << a->GetNumEntries();
+        LOG_DBG3(fes) << "CEF a: " << StdVector<Complex>::ToString(a->GetNumEntries(), a->GetDataPointer(), 0);
+        LOG_DBG3(fes) << "CEF ia: " << ia_.ToString();
+        LOG_DBG3(fes) << "CEF ja: " << ja_.ToString();
+        // output parameters
+        double epsout;
+        Vector<Complex>& E_c = dynamic_cast<Vector<Complex>&>(sol); // eigenvalues
+        Vector<double> E; E.Resize(2*m0_,0.0); // factor 2 for complex
+        Vector<Complex>& res_c = dynamic_cast<Vector<Complex>&>(err); // Relative residual
+        Vector<double> res; res.Resize(2*m0_,0.0); // factor 2 for complex
+        Vector<double> X; X.Resize(2*n_*m0_);// eigenvectors (if needed) //factor 2 for complex
+        if(!generalized_) // solve standard EVP
+        {
+          zfeast_scsrev(&uplo, &n_, aDouble.GetPointer(), ia_.GetPointer(), ja_.GetPointer(),
+              fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
+              E.GetPointer(), X.GetPointer(), &m_, res.GetPointer(), &info_);
+        }
+        else // generalized EVP
+        {
+          const SCRS_Matrix<Complex>* bc = dynamic_cast<const SCRS_Matrix<Complex>*>(b_);
+          SCRS_Matrix<Complex>* b = const_cast<SCRS_Matrix<Complex>*>(bc);
+          Vector<double> bDouble; bDouble.Resize(2*b->GetNnz(),0.0); // factor 2 for complex
+          for (int i=0;i<(int)b->GetNnz();i++) {
+            bDouble[2*i] = b->GetDataPointer()[i].real();
+            bDouble[2*i+1] = b->GetDataPointer()[i].imag();
+          }
+          assert((int) ib_.GetSize() == n_ + 1);
+          assert(b->GetNumEntries() < b->GetNnz()); // for symmetric matrices!
+          LOG_DBG3(fes) << "CEF b_size: " << b->GetNumEntries();
+          LOG_DBG3(fes) << "CEF b: " << StdVector<Complex>::ToString(b->GetNumEntries(), b->GetDataPointer(), 0);
+          LOG_DBG3(fes) << "CEF ib: " << ib_.ToString();
+          LOG_DBG3(fes) << "CEF jb: " << jb_.ToString();
+          zfeast_scsrgv(&uplo, &n_, aDouble.GetPointer(), ia_.GetPointer(), ja_.GetPointer(), bDouble.GetPointer(), ib_.GetPointer(), jb_.GetPointer(),
+              fpm_.GetPointer(), &epsout, &loop, I1, &I2, &m0_,
+              E.GetPointer(), X.GetPointer(), &m_, res.GetPointer(), &info_);
+        }
+        LOG_DBG(fes) << "CEF epsout -> " << epsout;
+        // put the solution into the complex vectors
+        E_c.Resize(m_);
+        res_c.Resize(m_);
+        vr_.Resize(m_*n_);
+        LOG_DBG3(fes) << "CEF # of found eigen values =  " << m_;
+        LOG_DBG3(fes) << "CEF # elements in X: "<<X.GetSize();
+        for (int i=0;i<m_;i++){
+          E_c[i] = Complex( E[2*i],E[2*i+1] );
+          res_c[i] = Complex( res[2*i], res[2*i+1] );
+          for (int j=0;j<n_;j++){
+            vr_[i*n_+j] = Complex( X[i*n_*2+2*j], X[i*n_*2+2*j+1]);
+          }
+        }
     } break;;
     case COMPLEX_GENERAL: {
         LOG_DBG3(fes) << "complex-general EVP";
