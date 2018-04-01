@@ -364,6 +364,7 @@ namespace CoupledField {
     sstep->GetAlgSys()->InitSol();
     sstep->GetAlgSys()->InitMatrix();
     sstep->GetAssemble()->AssembleMatrices();
+    sstep->GetAlgSys()->ExportLinSys(true,false,false); // export the setup
     // determine which EV problem to set up: we make a generalized one
     // We should probably check if we have both matrices, but currently I do not now a case where we do not ...
     SBM_Matrix* massMat = sstep->GetAlgSys()->GetMatrix(MASS);
@@ -405,6 +406,24 @@ namespace CoupledField {
         std::cout << "eigsIm = " << eigsIm_.ToString() << "\n";
         std::cout << "Frequency = " << frequency_.ToString() << "\n";
         std::cout << "dampingRatio_ = " << dampingRatio_.ToString() << "\n";
+        // export solution
+        PtrParamNode els = sstep->GetAlgSys()->GetExportLinSysParam();
+        if (els) {
+          if(els->Get("solution")->As<bool>()) {
+            BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
+            std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
+            if(domain->GetDriver()->GetAnalysisId().ToString(true) != ""){
+              base += "_" + domain->GetDriver()->GetAnalysisId().ToString(true);
+            }
+            for (UInt i=0; i< frequency_.GetSize();i++) {
+              Vector<Complex> mode;
+              sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode);
+              mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1),vec_format);
+              sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode,false);
+              mode.Export( base + "_mode-left_" + lexical_cast<std::string>(i+1),vec_format);
+            }
+          }
+        }
     }
     else if ( numFreq_ > 0 || freqShift_ > 0  ){ // we have num + shift
         // the old stuff should be moved here, after adaption to the new structure of BaseEigenSolver

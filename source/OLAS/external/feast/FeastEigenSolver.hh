@@ -55,7 +55,7 @@ namespace CoupledField {
 
     /**Calculate a particular eigenmode as a postprocessing solution
      * @see BaseEigenSolver::GetEigenMode() */
-    void GetEigenMode(unsigned int modeNr, Vector<Complex>& mode);
+    void GetEigenMode(unsigned int modeNr, Vector<Complex>& mode, bool right=true);
     void GetComplexEigenMode(unsigned int modeNr, Vector<Complex>& mode);
 
 
@@ -102,8 +102,9 @@ namespace CoupledField {
     /** the last result value -> MKL manual pake 1635 */
     int info_;
 
-    /** matrix of computed orthonormal eigenvectors */
-    StdVector<Complex> x_;
+    /** the right and left eingenvectors */
+    StdVector<Complex> vr_;
+    StdVector<Complex> vl_;
 
     /** set by Setup() */
     bool generalized_;

@@ -69,7 +69,7 @@ void FeastEigenSolver::Setup(const BaseMatrix & A, bool isHermitian){
     n_ = A.GetNumRows(); // size of the problem
     uint m0 = 0; xml_->GetValue("m0", m0, ParamNode::INSERT); if (m0>0) m0_ = m0; else m0_=n_; // initial subspace size
     assert(m0_ <= n_);
-    x_.Resize(m0_ * n_, 0.0);
+    vr_.Resize(m0_ * n_, 0.0);
 
     // store the matrix
 
@@ -143,7 +143,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         I1[0] = 0.5*(maxVal+minVal); I1[1]=0.0; LOG_DBG3(fes) << "CEF Emid: " << I1;
         I2 = 0.5*(maxVal-minVal); LOG_DBG3(fes) << "CEF r: " << I2;
         LOG_DBG3(fes) << "CEF m0: " << m0_; // specifies the initial guess for subspace dimension to be used
-        LOG_DBG3(fes) << "CEF x:" << x_.ToString();
+        LOG_DBG3(fes) << "CEF x:" << vr_.ToString();
         LOG_DBG3(fes) << "CEF n: " << n_; // size of the problem
         // setup A-matrix
         const CRS_Matrix<double>* a_const = dynamic_cast<const CRS_Matrix<double>*>(a_);
@@ -160,7 +160,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         Vector<Complex>& res_c = dynamic_cast<Vector<Complex>&>(err); // Relative residual
         Vector<double> res; res.Resize(2*m0_,0.0); // factor 2 for complex
         Vector<double> X; X.Resize(2*n_*m0_*2);// eigenvectors (if needed) //factor 2 for complex // factor 2 for L and R
-        //assert((int) x_.Capacity() >= 4 * n_ * m0_);
+        //assert((int) vr_.Capacity() >= 4 * n_ * m0_);
         if(!generalized_) // solve standard EVP
         {
             dfeast_gcsrev(&n_, a->GetDataPointer(), ia_.GetPointer(), ja_.GetPointer(),
@@ -184,14 +184,16 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         // put the solution into the complex vectors
         E_c.Resize(m_);
         res_c.Resize(m_);
-        x_.Resize(m_*n_);
+        vr_.Resize(m_*n_);
+        vl_.Resize(m_*n_);
         LOG_DBG3(fes) << "CEF # of found eigen values =  " << m_;
         LOG_DBG3(fes) << "CEF # elements in X: "<<X.GetSize();
         for (int i=0;i<m_;i++){
             E_c[i] = Complex( E[2*i],E[2*i+1] );
             res_c[i] = Complex( res[2*i], res[2*i+1] );
             for (int j=0;j<n_;j++){
-                x_[i*n_+j] = Complex( X[i*n_*2+2*j], X[i*n_*2+2*j+1]);
+                vr_[i*n_+j] = Complex( X[i*n_*2+2*j], X[i*n_*2+2*j+1]);
+                vl_[i*n_+j] = Complex( X[2*n_*m_+i*n_*2+2*j], X[2*n_*m_+i*n_*2+2*j+1]);
             }
             //printf("   %d %.15e+i*%.15e %.15e\n",i,*(E+2*i),*(E+2*i+1),*(res+i));
         }
@@ -216,7 +218,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         I1[0] = minVal; LOG_DBG3(fes) << "CEF Emin: " << I1[0];
         I2 = maxVal; LOG_DBG3(fes) << "CEF Emax: " << I2;
         LOG_DBG3(fes) << "CEF m0: " << m0_; // specifies the initial guess for subspace dimension to be used
-        LOG_DBG3(fes) << "CEF x:" << x_.ToString();
+        LOG_DBG3(fes) << "CEF x:" << vr_.ToString();
         LOG_DBG3(fes) << "CEF n: " << n_; // size of the problem
         // setup A-matrix
         const SCRS_Matrix<Complex>* a_const = dynamic_cast<const SCRS_Matrix<Complex>*>(a_);
@@ -269,7 +271,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         LOG_DBG(fes) << "CEF epsout -> " << epsout;
         // save over the eigenvectors
         for (int i=0;i<n_*m_;i++) {
-            x_[i] = Complex( X[2*i], X[2*i+1] );
+            vr_[i] = Complex( X[2*i], X[2*i+1] );
         }
     } break;;
     case REAL_SYMMETRIC : {
@@ -277,7 +279,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         I1[0] = minVal; LOG_DBG3(fes) << "CEF Emin: " << I1;
         I2 = maxVal; LOG_DBG3(fes) << "CEF Emax: " << I2;
         LOG_DBG3(fes) << "CEF m0: " << m0_; // specifies the initial guess for subspace dimension to be used
-        LOG_DBG3(fes) << "CEF x:" << x_.ToString();
+        LOG_DBG3(fes) << "CEF x:" << vr_.ToString();
         LOG_DBG3(fes) << "CEF n: " << n_; // size of the problem
         // setup A-matrix
         const SCRS_Matrix<double>* a_const = dynamic_cast<const SCRS_Matrix<double>*>(a_);
@@ -320,7 +322,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
         LOG_DBG(fes) << "CEF epsout -> " << epsout;
         // save over the eigenvector
         for (int i=0;i<n_*m_;i++) {
-            x_[i] = Complex( X[i], 0.0 );
+            vr_[i] = Complex( X[i], 0.0 );
         }
     } break;;
     default: {
@@ -336,7 +338,7 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
     LOG_DBG(fes) << "CEF m -> " << m_;
     LOG_DBG(fes) << "CEF e -> " << sol.ToString();
     LOG_DBG(fes) << "CEF res -> " << err.ToString();
-    LOG_DBG3(fes) << "CEF x:" << x_.ToString();
+    LOG_DBG3(fes) << "CEF x:" << vr_.ToString();
 }
 
 void FeastEigenSolver::Setup(const BaseMatrix& stiffMat, unsigned int numFreq, double freqShift, bool sort)
@@ -362,7 +364,7 @@ void FeastEigenSolver::Setup(const BaseMatrix& stiffMat, unsigned int numFreq, d
   n_ = stiffMat.GetNumRows(); // size of the problem
   uint m0 = 0; xml_->GetValue("m0", m0, ParamNode::INSERT); if (m0>0) m0_ = m0; else m0_=n_; // initial subspace size
   assert(m0_ <= n_);
-  x_.Resize(m0_ * n_, 0.0);
+  vr_.Resize(m0_ * n_, 0.0);
 
   // store the matrix
 
@@ -419,13 +421,25 @@ int info;
 
 
 
-void FeastEigenSolver::GetEigenMode(unsigned int modeNr, Vector<Complex>& mode)
-{
+void FeastEigenSolver::GetEigenMode(unsigned int modeNr, Vector<Complex>& mode, bool right){
   mode.Resize(n_, 0.0);
   assert((int) modeNr <= m_); // assume 0-based!!
-  assert(x_.GetSize() >= modeNr * n_);
-  for(unsigned int i = 0; i < (unsigned int) n_; i++)
-    mode[i] = x_[modeNr * n_ + i];
+  if (eigenProblemType_==REAL_SYMMETRIC || eigenProblemType_==COMPLEX_SYMMETRIC || eigenProblemType_==COMPLEX_HERMITIAN ){
+    right = true; // for these EVPs we have vl_=vr_
+  }
+  // select what to return
+  StdVector<Complex>* v;
+  if (right) {
+    v = &vr_;
+  }
+  else {
+    v = &vl_;
+  }
+  // set return vector
+  assert(v->GetSize() >= modeNr*n_);
+  for(int i = 0; i < n_; i++) {
+    mode[i] = (*v)[modeNr * n_ + i];
+  }
 }
 
 void FeastEigenSolver::GetComplexEigenMode(unsigned int modeNr, Vector<Complex>& mode)
