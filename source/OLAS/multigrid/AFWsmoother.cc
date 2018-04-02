@@ -156,7 +156,8 @@ Step( const CRS_Matrix<T>&                  matrix,
     }
 
     Vector<T> tmp1, tmp2, nSol, exRhs, exSol;
-    T row = 0;
+    T row = 0.0;
+
     UInt pS = 0;
     //NOTE: SizeNodes_ is the same as Patches_.GetSize()
     for(UInt n = 0; n < SizeNodes_; ++n){
@@ -171,9 +172,10 @@ Step( const CRS_Matrix<T>&                  matrix,
       //changed, according to Patches_[n]
       tmp1.Resize(pS);
 
+
       for(UInt i = 0; i < pS; ++i){
-    	  row = matrix.MultColumnWithVec(p[i], sol);
-    	  tmp1[ i ] = exRhs[i] - row;
+        row = matrix.MultColumnWithVec(p[i], sol);
+        tmp1[i] = exRhs[i] - row;
       }
 
       tmp2 = InvExtMat_[n] * tmp1;
@@ -184,6 +186,7 @@ Step( const CRS_Matrix<T>&                  matrix,
         sol[p[i]] = nSol[i];
       }
     }
+
 }
 
 /**********************************************************/
