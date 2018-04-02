@@ -304,6 +304,18 @@ namespace CoupledField {
     return sqrt(sum);
   }
 
+  template <typename T>
+  inline double Vector<T>::MAC(const Vector<T>& other) const
+    {
+      if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
+      Vector<T> v1c = this->Conj();
+      double up = abs(v1c.Inner(other));
+      T down1 = (this->Conj()).Inner(other);
+      T down2 = this->Inner(other.Conj());//.Inner(this);
+      Complex down = Complex(down1*down2);
+      return up*up/down.real();
+    }
+
 
   template <typename T>
   inline T Vector<T>::Sum() const
@@ -394,6 +406,26 @@ namespace CoupledField {
     return m;
   }
 
+  template <typename T>
+  inline T Vector<T>::MaxAbs() const {
+    int tmp;
+    return Vector<T>::MaxAbs(tmp);
+  }
+
+  template <typename T>
+  inline T Vector<T>::MaxAbs(int & loc) const {
+    T m = data_[0];
+    double abs, m_abs = 0;
+    for(int i = 1; i < (int)size_; ++i) {
+      abs = (double) std::abs(data_[i]);
+      if ( abs > m_abs ) {
+        m_abs = abs;
+        m = data_[i];
+        loc = i;
+      }
+    }
+    return m;
+  }
 
   template <typename T>
   inline void Vector<T>::MinMax(T& min, T& max) const

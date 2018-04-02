@@ -1191,44 +1191,30 @@ namespace CFSTool {
                       Vector<Complex> diffVec;// dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
                       diffVec.Resize( inVec_fut.GetSize() );
 
+                      // normalize modes
+                      if (types[actMsStep] == BasePDE::EIGENFREQUENCY) {
+                        // search for the position of the maximum absolute value in reference vector
+                        int i_ref = 0;
+                        Complex norm_ref = inVec_ref.MaxAbs(i_ref);
+                        // use this normalization element to scale the modes
+                        Complex norm_fut = inVec_fut[i_ref];
+                        std::cout << "\t\tMAC(fut,ref) = " << inVec_fut.MAC(inVec_ref) << "\n";
+                        std::cout << "\t\tNormalizing modes by "<< norm_fut << " (fut), "<< norm_ref << " (ref)\n";
+                        inVec_fut.ScalarDiv(norm_fut);
+                        inVec_ref.ScalarDiv(norm_ref);
+                      }
                       // norm for reference
                       refL2 = inVec_ref.NormL2();
-
-                      if (types[actMsStep] == BasePDE::EIGENFREQUENCY) {
-                          // switch the sign if necessary, only do check on non-zero elements
-                          // to make this robust we normalize with the norm and check against a tolerance
-                          Double zerotol = 1.0e-12;
-                          for (int i=0; i<(int)inVec_ref.GetSize();i++) {
-                              if ( std::abs(inVec_fut[i].real()/refL2) > zerotol ) {
-                                  if (inVec_fut[i].real()*inVec_ref[i].real() < 0) {
-                                      inVec_fut.ScalarMult(-1);
-                                      //std::cout << "real diff (val="<<inVec_fut[i].real()/refL2<<") on node " << i << " -> switch\n";
-                                  }
-                                  break; // found non-zero element -> stop
-                              } else if ( std::abs(inVec_fut[i].imag()/refL2) > zerotol ) {
-                                  if (inVec_fut[i].imag()*inVec_ref[i].imag() < 0) {
-                                       inVec_fut.ScalarMult(-1);
-                                       //std::cout << "imag diff (val="<<inVec_fut[i].imag()/refL2<<") on node " << i << " -> switch\n";
-                                  }
-                                  break; // found non-zero element -> stop
-                              }
-                          }
-                      }
+                      // the difference vector
                       diffVec = inVec_fut - inVec_ref;
-
-                      //
+                      // compute norms and metrics
                       Complex diffMin, diffMax, refMin, refMax, diffAvg, refAvg;
                       diffVec.MinMax(diffMin, diffMax);
                       inVec_ref.MinMax(refMin,refMax);
                       diffAvg = diffVec.Avg();
                       refAvg = inVec_ref.Avg();
-                      // calculate norms
-                      //
                       diffL2 = diffVec.NormL2();
-
-
-
-
+                      // output
                       std::cout << "\t\tMinimum: " << diffMin << " (difference), "<< refMin <<" (reference)\n";
                       std::cout << "\t\tMaximum: " << diffMax << " (difference), "<< refMax <<" (reference)\n";
                       std::cout << "\t\tAverage: " << diffAvg << " (difference), "<< refAvg <<" (reference)\n";

@@ -1066,6 +1066,10 @@ namespace CoupledField {
 
     //! Return if it is a multiharmonic analysis
     bool IsMultHarm(){return isMultHarm_; };
+    PtrParamNode GetExportLinSysParam();
+
+    bool IsMatrixComplex(){return isMatrixComplex_;};
+
 
   protected:
 
