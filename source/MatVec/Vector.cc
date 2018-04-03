@@ -308,14 +308,18 @@ namespace CoupledField {
   inline double Vector<T>::MAC(const Vector<T>& other) const
     {
       if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
-      Vector<T> v1c = this->Conj();
-      double up = abs(v1c.Inner(other));
+      Vector<T> v1c =  this->Conj();
+      Double up = std::abs(v1c.Inner(other));
       T down1 = (this->Conj()).Inner(other);
-      T down2 = this->Inner(other.Conj());//.Inner(this);
+      T down2 = this->Inner(other.Conj());
       Complex down = Complex(down1*down2);
       return up*up/down.real();
     }
 
+  template <>
+  inline double Vector<UInt>::MAC(const Vector<UInt>& other) const {
+    EXCEPTION("Not useful for unsigned integer");
+  }
 
   template <typename T>
   inline T Vector<T>::Sum() const
@@ -407,12 +411,6 @@ namespace CoupledField {
   }
 
   template <typename T>
-  inline T Vector<T>::MaxAbs() const {
-    int tmp;
-    return Vector<T>::MaxAbs(tmp);
-  }
-
-  template <typename T>
   inline T Vector<T>::MaxAbs(int & loc) const {
     T m = data_[0];
     double abs, m_abs = 0;
@@ -425,6 +423,11 @@ namespace CoupledField {
       }
     }
     return m;
+  }
+
+  template <>
+  inline UInt Vector<UInt>::MaxAbs(int & loc) const {
+    EXCEPTION("Not useful for unsigned integer");
   }
 
   template <typename T>
@@ -1319,10 +1322,10 @@ namespace CoupledField {
   template class Vector<Double>;
   template class Vector<Complex>;
   template class Vector<Integer>;
-  template class Vector<unsigned int>;
+  template class Vector<UInt>;
   template std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &);
   template std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> & );
-  template std::ostream & operator<<<unsigned int> (std::ostream & , const Vector<unsigned int> &);
+  template std::ostream & operator<<<UInt> (std::ostream & , const Vector<UInt> &);
   template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
 #endif
 

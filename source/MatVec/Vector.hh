@@ -300,8 +300,6 @@ template<typename T> class ElemStoreSol;
 
     T Max() const;
 
-    /** returns the entry with the maximum absolute value */
-    T MaxAbs() const;
     /** returns the entry with the maximum absolute value, the location is reported in loc */
     T MaxAbs(int& loc) const;
 
