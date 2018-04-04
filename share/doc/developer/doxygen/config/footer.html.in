@@ -1,0 +1,19 @@
+<!-- start footer part -->
+</div>
+<!-- end grid -->
+<!-- disable below: id is needed for treeview function! -->
+<!--div id="nav-path" class="navpath">
+  <ul>
+    $navpath
+  </ul>
+</div-->
+<footer class="footer">
+  <div class="container">
+  <p class="text-muted">
+    Source code documentation for $projectname $projectnumber generated on $date $year by <a href="http://www.doxygen.org/index.html">doxygen</a> $doxygenversion
+  </p>
+  </div>
+</footer>
+</body>
+<script type="text/javascript" src="doxy-boot.js"></script><!-- must come last to alter the final html gerated by doxygens js -->
+</html>

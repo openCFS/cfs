@@ -11,204 +11,190 @@
  *        obtained is set into PetscMat only using the master class ,all other commands must be called
  *        by all workers
  *              
- *
+ *        
  *       \date     oct 30, 2017
  *       \author   sri
  */
 //================================================================================================
 
+
+
 #ifndef PETSCSOLVER_HH_
 #define PETSCSOLVER_HH_
 #include <def_expl_templ_inst.hh>
 
+
+
 #include "General/Environment.hh"
 #include "OLAS/solver/BaseSolver.hh"
-
-
+#include "PDE/BasePDE.hh"
+#include "Domain/Mesh/Grid.hh"
+#include "Domain/Domain.hh"
 #include "General/Enum.hh"
-
-
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "PETScCommon.hh"
 // include the original PETSC header
 //extern "C"
 
 #include "petsc.h"
+//#include "petsc/private/dmdaimpl.h"
 
- 
+#define DIETAG 0
+#define SETUP_MATRIX 1
+#define ASSEMBLE_MAT 2
+#define ASSEMBLE_VEC_RHS  3
+#define SETUP_SOLVER_CONTEXT 4
+#define SOLVE 5
+#define DATA 6
+#define GET_GLOBAL_VEC 7
+#define SOLVER_STRING 8
+#define SETUP_MG 9
+#define ISSYMMETRIC 10
+#define SET_HOM_DIR_VEC 11
+#define HOM_DIR_PENALTY 12
+#define ASSEMBLE_VEC_DIR 13
+#define GET_SOL 14
+#define MAT_ZERO_ENTRIES 15
+
+
+
 namespace CoupledField
 {
+class BaseMatrix;
+class BaseVector;
+class Flags;
 
-  class BaseMatrix;
-  class BaseVector;
-  class Flags;
 
-  class PETSCSolver : public BaseIterativeSolver
-  {
-  public:
-    typedef enum {NOSOLVER = 0,
-                  CG = 1,
-                  BICG = 2,
-                  CGS = 3,
-                  BICGSTAB = 4,
-                  BICGSTABL = 5,
-                  GPBICG = 6,
-                  TFQMR = 7,
-                  ORTHOMIN = 8,
-                  GMRES = 9,
-                  JACOBI = 10,
-                  GS = 11,
-                  SOR = 12,
-                  BICGSAFE = 13,
-                  CR = 14,
-                  BICR = 15,
-                  CRS = 16,
-                  BICRSTAB = 17,
-                  GPBICR = 18,
-                  BICRSAFE = 19,
-                  FGMRES = 20,
-                  IDRS = 21,
-                  MINRES = 22
-            } PETSCSolverType;
-   static Enum<PETSCSolverType> petscSolverType;
+class PETSCSolver : public BaseIterativeSolver ,  PETScCommon
+{
+public:
+PETSCSolver(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::EntryType type);
 
-   typedef enum {NONE = 0,
-                 JACOBI_PRE = 1,
-                 ILU = 2,
-                 SSOR = 3,
-                 HYBRID = 4,
-                 IS = 5,
-                 SAINV = 6,
-                 SAAMG = 7,
-                 ILUC = 8,
-                 ILUT = 9,
-                 ADDS = 10
-           } PETSCPrecondType;
-  static Enum<PETSCPrecondType> petscPrecondType;
+virtual ~PETSCSolver();
 
-   PETSCSolver(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::EntryType type);
+/** Every call sets up a new preconditionier. */
+void Setup(BaseMatrix &sysmat);
 
-   virtual ~PETSCSolver();
 
-   /** Every call sets up a new preconditionier. */
-   void Setup(BaseMatrix &sysmat);
+void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);
 
-   /** To satisfy the compiler
-    * @param sysmat shall be the one Setup() is called with */
-   void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);
+void SendWorkerCommand(int TAG);
 
-   void SendWorkerCommand(int TAG);
-   
-   BaseSolver::SolverType GetSolverType() { return BaseSolver::PETSC; }
 
-  private:
+BaseSolver::SolverType GetSolverType() { return BaseSolver::PETSC; }
 
-   ///Method to read xml definition and create the configuration string
-   //void CreateConfigString(PtrParamNode configNode, std::string& output);
+private:
+//PETSC Error Code
+PetscErrorCode ierr=0;
 
-   ///Reads information for solver and creates an appropriate string
-   //void CreateSolverString(PtrParamNode solverNode, std::string& output);
+PC precond_;//ksp linear precond context
 
-   ///Reads information for solver and creates an appropriate string
-   //void CreatePrecondString(PtrParamNode precondNode, std::string& output);
+KSP solver_; //ksp linear solver context
 
-   //PETSC_SOLVER solver_;
+//stores the system Matrix
+Mat A_;
+//stores the current solution
+Vec x_;
+//stores the current RHS
+Vec b_;
 
-   PC precond_;//ksp linear precond context
+Vec dirNodeVec_;
 
-   KSP solver_; //ksp linear solver context
+// Create DM which are grid management
+DM da_nodes;
+//pointer to xml node
+PtrParamNode xml_;
 
-   //stores the system Matrix
-   Mat A_;
-   // this is our working copy we can safely delete without disturbing cfs
-   Mat A0_;
+//internal status flag for updated matrix computations
+bool firstSetup_=true;
+/** with throw exception when exceeded */
+PetscInt maxIter_ = -1;
+/** not that PETSC has three ways to calculate the residuum */
+PetscScalar tolerance_ = -1.0;
+/** throws only an exception on maxIter exceeded if also minTol_ is not met */
+PetscScalar minTol_ = -1.0;
 
-   //stores the current solution
-   Vec x_;
+/** Logs extra info when enabled */
+bool logging_ = false;
 
-   ///stores the current RHS
-   Vec b_;
+//To find the rank of the processor its currently in
+int rank_=0;
+int size_=0;
+//    //Coarsegrid solver parameters
+//    PetscScalar coarse_rtol = 1.0e-8;
+//    PetscScalar coarse_atol = 1.0e-50;
+//    PetscScalar coarse_dtol = 1e3;
+//    PetscInt coarse_maxits = 30;
+//
+//    //Number of levels
+//    PetscInt nlvls=2;
+//
+//    // Number of smoothening iterations per up/down smooth_sweeps
+//    PetscInt smooth_sweeps = 4;
 
-   ///pointer to xml node
-   PtrParamNode xml_;
+std::string solverstring_;
+std::string precondstring_;
+bool MG_FLAG =false;
+bool symmetric=false;
+Vec N_;//dirVector which consist of 0 when a eqnNr corresponds to HomDirBC ,all other place the value is 1
+StdVector<unsigned int> cfsEqnMap_;
+Vec dirNodeVecGlobal_=nullptr;
 
-   ///internal status flag for updated matrix computations
-   bool firstSetup_;
 
-   ///reset solution vector to zero if Setup is called
-   bool resetXZero_;
+};
 
-   bool ownMatrixA_;
 
-   /** with throw exception when exceeded */
-   PetscInt maxIter_ = -1;
+class PETSCWorker : public PETScCommon
+{
+public:
 
-   /** not that PETSC has three ways to calculate the residuum */
-   PetscScalar tolerance_ = -1.0;
+void run();
+PETSCWorker(int argc,const char **argv);
+~PETSCWorker();
 
-   /** throws only an exception on maxIter exceeded if also minTol_ is not met */
-   PetscScalar minTol_ = -1.0;
+private:
 
-   /** activates a PETSC feature */
-   bool logging_ = false;
-  
-   //To find the rank of the processor its currently in
-   PetscMPIInt mpi_rank;
+void InitPetscWorker();
+//PETSC Error Code
+PetscErrorCode ierr=0;
 
-  };
-  
-  
-  class PETSCWorker
-  {
-  public:
-   
-    
-    void run();
-    PETSCWorker();
-    ~PETSCWorker();
-    
-  private:
-   
-    int InitPetscWorker();
-    void SetupPetscWorker(int);
-    void GetSol();
+PC precond_;//ksp linear precond context
 
-    PC precond_;//ksp linear precond context
+KSP solver_; //ksp linear solver context
 
-    KSP solver_; //ksp linear solver context
+//stores the system Matrix
+Mat A_;
 
-    //stores the system Matrix
-    Mat A_;
-    // this is our working copy we can safely delete without disturbing cfs
-    Mat A0_;
+//stores the current solution
+Vec x_;
 
-    //stores the current solution
-    Vec x_;
+///stores the current RHS
+Vec b_;
+// Create DM which are grid management
+DM da_nodes;
 
-    ///stores the current RHS
-    Vec b_;
+Vec dirNodeVec_;
 
-    ///pointer to xml node
-    PtrParamNode xml_;
+/** with throw exception when exceeded */
+PetscInt maxIter_ = 10000;
 
-    ///internal status flag for updated matrix computations
-    bool firstSetup_;
+/** note that PETSC has three ways to calculate the residuum */
+PetscScalar tolerance_ = 1e-12;
 
-    ///reset solution vector to zero if Setup is called
-    bool resetXZero_;
+/** throws only an exception on maxIter exceeded if also minTol_ is not met */
+PetscScalar minTol_ =  1e-11;
 
-    bool ownMatrixA_;
+PtrParamNode xml_;
 
-    /** with throw exception when exceeded */
-    PetscInt maxIter_ = 10000;
-
-    /** not that PETSC has three ways to calculate the residuum */
-    PetscScalar tolerance_ = 1e-12;
-
-    /** throws only an exception on maxIter exceeded if also minTol_ is not met */
-    PetscScalar minTol_ =  1e-11;
-
-    /** activates a PETSC feature */
-    bool logging_ = false;
-  };
+bool MG_FLAG=false;
+bool symmetric=true;
+//Strings for setting Solver and Preconditioner
+std::string solverstring_;
+std::string precondstring_;
+Vec N_;
+Vec dirNodeVecGlobal_=nullptr;
+};
   
 }
 #endif

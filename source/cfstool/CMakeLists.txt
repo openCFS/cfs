@@ -106,9 +106,9 @@ IF(USE_ARPACK)
   LIST(APPEND TARGET_LL arpack-olas)
 ENDIF(USE_ARPACK)
 
-IF(USE_PHIST)
-  LIST(APPEND TARGET_LL phist-olas)
-ENDIF(USE_PHIST)
+IF(USE_PHIST_EV OR USE_PHIST_CG)
+  LIST(APPEND TARGET_LL ${CUDA_LIBS} ${HWLOC_LIBRARY} )
+ENDIF(USE_PHIST_EV OR USE_PHIST_CG )
 
 LIST(APPEND TARGET_LL lapack-olas)
 
@@ -141,13 +141,11 @@ IF(OPENMP_FOUND)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
 ENDIF()
 
-# This is dirty stuff and shall be removed! - Fabian
-IF(USE_PHIST)
-  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -pthread -Wl,-rpath -Wl,/usr/lib64/mpi/gcc/openmpi/lib64 -Wl,--enable-new-dtags -L/usr/lib64/mpi/gcc/openmpi/lib64 -lmpi_cxx -lmpi")
-ENDIF()
+# Prevents undefined reference to `pci_system_init', ...
+# required by hwloc. Strange that this is not already necessary for USE_GHOST. 
+if(USE_PHIST_EV OR USE_PHIST_CG)
+  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess -ludev" )
+endif()
 
 
 SET_TARGET_PROPERTIES(cfstoolbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
-
-# Install the cfstool executable target to ${CMAKE_INSTALL_PREFIX}/bin
-#INSTALL_TARGETS(/bin cfstool)

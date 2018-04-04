@@ -1,0 +1,6 @@
+// Define used to check if GHOST kernel lib is used (for CUDA and PHIST)
+
+#cmakedefine BUILD_GHOST @BUILD_GHOST@
+
+#define GHOST_SOURCE "@GHOST_BB_USER@/@GHOST_BB_PROJECT@"
+#define GHOST_REV "@GHOST_REV@"

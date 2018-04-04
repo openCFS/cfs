@@ -26,21 +26,17 @@ BUIntegrator(BaseBOperator * bOp,
              VEC_DATA_TYPE factor,
              shared_ptr<CoefFunction > rhsCoef, 
              bool coordUpdate,
-             bool fullEvaluation )
+             bool fullEvaluation,
+			 bool extractReal)
              : LinearForm( coordUpdate ),
                fullEvaluation_(fullEvaluation) {
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
   this->bOperator_= bOp;
 
-//  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
-//#ifndef NDEBUG
-//  if(rhsCoef->GetDimType() != CoefFunction::VECTOR){
-//    Exception("BDB integrator expects the coefficient function to be vectorial!\n \
-//                     For scalar valued Things, create a vectorial function with one component");
-//  }
-//#endif
+
   this->rhsCoefs_ = rhsCoef;
+  extractReal_ = extractReal;
 
 }
 
@@ -51,14 +47,15 @@ BUIntegrator(BaseBOperator * bOp,
              shared_ptr<CoefFunction > rhsCoef,
              const std::set<RegionIdType>& volRegions,
              bool coordUpdate,
-             bool fullEvaluation )
+             bool fullEvaluation,
+			 bool extractReal)
              : LinearForm( coordUpdate ), 
                fullEvaluation_(fullEvaluation) 
                {
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
   this->bOperator_= bOp;
-
+  extractReal_ = extractReal;
   assert(rhsCoef->GetDimType() == CoefFunction::VECTOR ||
          rhsCoef->GetDimType() == CoefFunction::SCALAR);
 #ifndef NDEBUG

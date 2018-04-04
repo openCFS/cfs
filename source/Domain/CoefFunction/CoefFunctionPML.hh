@@ -264,6 +264,11 @@ public:
     return std::tr1::is_same<T,Complex>::value;
   }
 
+  std::string ToString() const {
+      std::string out = "CoefFunctionPML";
+      return out;
+  };
+
 protected:
     //void ComputeDampingFactor( Vector<Double>& factors,
     //                           const LocPointMapped& lpm,

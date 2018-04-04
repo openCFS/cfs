@@ -1,7 +1,6 @@
 #ifndef FILE_MATRIX_2004
 #define FILE_MATRIX_2004
 
-#include <def_use_lapack.hh>
 #include <def_build_type_options.hh>
 
 #include <boost/type_traits/is_complex.hpp>
@@ -168,6 +167,9 @@ namespace CoupledField
     {       
       return size_col_;
     }
+
+    /** rows time columns */
+    unsigned int GetNumEntries() const { return size_row_ * size_col_; }
 
     //@}
 
@@ -468,6 +470,14 @@ namespace CoupledField
     //! \param inv matrix which will hold the inverse
     void Invert ( Matrix <TYPE> & inv ) const;
     
+    //! PseudoInvert the matrix and store it in 'inv'
+
+    //! This method calculates the inverse of the matrix and stores it
+    //! into \a inv. The original matrix remains unchanged.
+    //! This method is explicitly and efficient coded for matrices up
+    //! \param inv matrix which will hold the inverse
+    void PseudoInvert ( Matrix <TYPE> & inv ) const;
+
     //! Invert the matrix itself with Lapack
     
     //! This methods inverts a general matrix using a LU-factorization of
@@ -475,6 +485,13 @@ namespace CoupledField
     //! \note The matrix itself gets overwritten in this method.
     void Invert_Lapack();
     
+    //! Compute the condition number of the matrix with Lapack
+
+    //! This methods estimates the condition number of the matrix
+    //! \param k  estimated condition number
+    //! \param info returns if the LU factorization was succesfull
+    void Invert_Lapack(double & k, int & info);
+
     //! Transpose the matrix and store the result in \a transposedMat
     //! \note The matrix itself gets not changed.
     //! \note If the transposed of a matrix is needed for a operation

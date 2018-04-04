@@ -35,9 +35,11 @@ SET(CFSDAT_SRCS
   Filters/SignalProcessing/FftFilter.cc
   Filters/SignalProcessing/TemporalBlendingFilter.cc
   Filters/SignalProcessing/TimeMeanFilter.cc
+  Filters/SynteticSources/BaseSNGR.cc
   Utils/EqnNumberingSimple.cc
   Utils/CFSDatProgramOptions.cc
   Utils/ResultManager.cc
+  Utils/ResultCache.cc
 #  Utils/KNNSearch.cc
 )
 
@@ -55,9 +57,10 @@ ENDIF(MKL_BLAS_LIB)
 
 TARGET_LINK_LIBRARIES(cfsdatbin ${TARGET_LL})
 
-SET(CFS_LINK_FLAGS "")
+# see comment in main/CMakeLists.txt for reason
+if(USE_PHIST)
+  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess -ludev")
+endif()
+
 
 SET_TARGET_PROPERTIES(cfsdatbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
-
-# Install the cfstool executable target to ${CMAKE_INSTALL_PREFIX}/bin
-#INSTALL_TARGETS(/bin cfsdat)

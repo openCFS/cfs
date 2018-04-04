@@ -199,7 +199,7 @@ namespace CoupledField
     // Otherwise we issue an error
     if( (biLinContext->GetEntryType() == Global::IMAG ||
          biLinContext->GetEntryType() == Global::COMPLEX )
-        && analysisType_ != BasePDE::HARMONIC ) {
+        && analysisType_ != BasePDE::HARMONIC && analysisType_ != BasePDE::INVERSESOURCE) {
       EXCEPTION( "Can not add integrator '"
                  << biLinContext->GetIntegrator()->GetName()
                  << "' with complex/imaginary entries for a "
@@ -519,11 +519,11 @@ namespace CoupledField
 
 
 #ifdef USE_OPENMP
-#pragma omp parallel num_threads(NUM_CFS_THREADS)
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
     {
 
 
-      UInt numT = NUM_CFS_THREADS;
+      UInt numT = CFS_NUM_THREADS;
       UInt aThread = omp_get_thread_num();
       StdVector<BiLinearForm *> biLinForms(forms.GetSize());
 
@@ -1271,7 +1271,7 @@ namespace CoupledField
         std::stringstream progStream;
         boost::progress_display progress( size, progStream );
         
-        if ( analysisType_ == BasePDE::HARMONIC ) {
+        if ( analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE ) {
 
           Vector<Complex> elemVec;
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
@@ -1307,7 +1307,14 @@ namespace CoupledField
             }
 
             // Calculate real valued element vector
-            form->CalcElemVector(elemVec, entIt);
+            // check if only the real part of a complex value shall be considered
+            if( form->IsExtractReal()  ){
+            	Vector<Complex> tmp;
+            	form->CalcElemVector(tmp, entIt);
+            	elemVec = tmp.GetPart(Global::REAL);
+            }else{
+            	form->CalcElemVector(elemVec, entIt);
+            }
             LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " elemVec=" << elemVec.ToString();
 
             // Map equation numbers
@@ -1342,14 +1349,17 @@ namespace CoupledField
     for ( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ )
     {
       // get integrator
-      BiLinFormContext & context = **it;
+      BiLinFormContext& context = **it;
+      BiLinearForm*     form    = context.GetIntegrator();
 
-      PtrParamNode form = list->Get("bilinearForm", ParamNode::APPEND);
+      PtrParamNode inf = list->Get("bilinearForm", ParamNode::APPEND);
       // integrator name
-      form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
-      BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context.GetIntegrator());
+      inf->Get("integrator")->SetValue(form->GetName());
+      inf->Get("complex")->SetValue(form->IsComplex());
+
+      BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);
       if(bdb != NULL && bdb->GetBOp() != NULL && bdb->GetBOp()->GetName() != "")
-        form->Get("BOp")->SetValue(bdb->GetBOp()->GetName());
+        inf->Get("BOp")->SetValue(bdb->GetBOp()->GetName());
 
       // region name of entity list
       std::string regionName;
@@ -1367,11 +1377,11 @@ namespace CoupledField
           (context.GetFirstEntities());
         regionName = list->GetName();
       }
-      form->Get("region")->SetValue(regionName);
+      inf->Get("region")->SetValue(regionName);
 
       // add information about row / column coordinate
-      PtrParamNode row = form->Get("row", ParamNode::APPEND);
-      PtrParamNode col = form->Get("column", ParamNode::APPEND);
+      PtrParamNode row = inf->Get("row", ParamNode::APPEND);
+      PtrParamNode col = inf->Get("column", ParamNode::APPEND);
       
      // associated PDEs
       row->Get("pde")->SetValue(context.GetFirstPde()->GetName());
@@ -1394,7 +1404,7 @@ namespace CoupledField
 
       
       // matrix destination
-      PtrParamNode dest = form->Get("destination", ParamNode::APPEND);
+      PtrParamNode dest = inf->Get("destination", ParamNode::APPEND);
       
       // original destination matrix
       Enum2String(context.GetDestMat(), tmp );
@@ -1410,7 +1420,7 @@ namespace CoupledField
       dest->Get("feSecondMatrixFac")->SetValue(context.GetSecMatFac());
       
       // additional attributes
-      PtrParamNode attr = form->Get("attributes", ParamNode::APPEND);
+      PtrParamNode attr = inf->Get("attributes", ParamNode::APPEND);
       
       // entry Type (real / imag)
       tmp = Global::complexPart.ToString(context.GetEntryType());
@@ -1496,7 +1506,9 @@ namespace CoupledField
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC
+    		  || analysisType_ ==BasePDE::INVERSESOURCE
+			  || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
         
         matReassemble_[actContext.GetDestMat()] = true;
@@ -1686,6 +1698,14 @@ namespace CoupledField
       matrixMap_[MASS_UPDATE]      = SYSTEM;
       break;
 
+    case BasePDE::INVERSESOURCE:
+       matrixMap_[SYSTEM]    = SYSTEM;
+       matrixMap_[STIFFNESS] = SYSTEM;
+       matrixMap_[DAMPING]   = SYSTEM;
+       matrixMap_[MASS]      = SYSTEM;
+       matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
+       break;
+
     case BasePDE::EIGENFREQUENCY:
       matrixMap_[SYSTEM]    = NOTYPE;
       matrixMap_[STIFFNESS] = STIFFNESS;
@@ -1764,7 +1784,7 @@ namespace CoupledField
     
     bool isComplex = false;
     if (actCt->GetIntegrator()->IsComplex() || 
-        analysisType_ == BasePDE::HARMONIC ) { 
+        analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE) {
       isComplex = true;
     }
     return isComplex;
@@ -1803,7 +1823,7 @@ namespace CoupledField
       algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
 
     } else {
-      assert(analysisType_ == BasePDE::HARMONIC);
+      assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE);
 
       Double omega = mp_->Eval( mHandle_ );
 
@@ -1831,16 +1851,18 @@ namespace CoupledField
 
     assert(mappedDest != NOTYPE);
     // bloch mode analysis is complex
-    assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::EIGENFREQUENCY);
+    assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE
+    		|| analysisType_ == BasePDE::EIGENFREQUENCY);
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
     Double omega = mp_->Eval( mHandle_ );
 
     // for bloch mode we need special handling. The mass matrix needs to be complex but
     // Matrix2Harmonic wourl use omega=0 as we have no actFreq.
-    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || omega == 0.0);
+    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE
+    		|| omega == 0.0);
 
-    if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC)
+    if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE)
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
     else
       harmMat = elemMat;

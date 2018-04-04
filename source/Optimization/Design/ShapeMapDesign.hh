@@ -106,15 +106,21 @@ public:
 
   static Enum<Type> type;
 
-  /** The symmetry is defined globally but stored in ShapeParam */
-  typedef enum { NONE, MIRROR } Symmetry;
-
-  static Enum<Symmetry> symmetry;
-
   /** The integration strategy applied forItem::GetOrder() */
   typedef enum { CONSTANT_FULL, FULL_OR_NOTHING, TAILORED } IntStrategy;
 
   static Enum<IntStrategy> intStrategy;
+
+  /** this describes the continuation of a strucuture in 1D. Either tanh as in Wein, Stingl; 2017 or piecewise linear for cheaper numerical integration. */
+  typedef enum { TANH, LINEAR } ShapeFunc;
+
+  Enum<ShapeFunc> shapeFunc;
+
+  ShapeFunc GetShapeFunc() const { return shapeFunc_; }
+
+  const Vector<unsigned int>& GetDiscretization() const { return n_; }
+
+  double GetBeta() const { return beta_; }
 
   /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
   static BaseDesignElement::Type Convert(Type type);
@@ -127,27 +133,54 @@ public:
    *  The 3D center case is composed by two NODE elements - this connection is encoded in center_idx. */
   struct ShapeParam
   {
+    ShapeParam() { induced.Reserve(4);} // should not be necessary!
+
     /** Note that we need a default constructor for StdVector. The symmetry pointers for profile are not set yet!
      * We assume idx to be set to >=0 for nodes or -1 for center
      * @param pn node for the shape
-     * @param base reference for profile or center nodes only to copy sym and orientation, ...
-     * @param flip_orientation reinterpret direction for diagonal mirroring. Only for node, not again for profile */
-    void ParseAndInit(PtrParamNode pn, ShapeParam* base, bool flip_orientation = false);
+     * @param base reference for profile or center nodes only to copy sym and orientation, ... */
+    void ParseAndInit(PtrParamNode pn, ShapeParam* base = NULL);
+
+    /** Copy properties, similar effect as ParseAndInit()
+     * @param copy_master_data is used to set data for a 3D slave node, does not touch dof and slave attribute */
+    void CopyProperties(const ShapeParam* ref, bool copy_master_data = false);
+
+    /** flip orientation. flip dof and orientation but also adapt and x_sym, y_sym.
+     * This is a service function for diagonal induced shapes.
+     * @pram center_node for 3D. This will flip both, first and second center node, together. Such that first->orientation == second->orientation
+     *                   0 will swap orientation with first->dof and 1 will swap orientation with second->dof */
+    void FlipOrientation(int center_node = -1);
 
     void ToInfo(PtrParamNode pn);
 
     /** indicate the symmetry data that an additional shape shall be induced?. Checks the orientation of the shape.
-     * This is for orthogonal mirroring, depending on the orientation we map or mirror orthogonal */
-    bool ShallInduceOrthogonalSymmetry() const;
+     * This is for parallel mirroring, depending on the orientation we map or mirror. Mirroring means reciprocal data (x - > 1-x)
+     * A 2d example is a horizontal bar (dof=y, orientation=x) and bottom_up/y_sym: Then there is a parallel bar induced.
+     * A 3d center example is standing shape (dof=x,z, orientation=y)
+     *  For a a left_right_sym/x_sym: we induce and mirror the x-node. But the z-node is induced but not mirrored!   */
+    bool ShallInduceMirrorSymmetry() const;
 
-    /** diagonal symmetry induces a new mirror shape of switched direction. Used for square symmetric for band-gaps */
+    /** only 3D (center nodes). See the description of ShallInduceMirrorSymmetry(). It results in a non reciprocal induce setting */
+    bool ShallInduceCloneSymmetry() const;
+
+    /** diagonal symmetry induces a new mirror shape of switched direction. Used for square symmetric for band-gaps.
+     * The rotation angle is orthogonal to the dof-orientation plane. For 3D center nodes we do not differentiate but do all there flips together*/
     bool ShallInduceDiagonalSymmetry() const;
 
     /** indicates that only half of the shape is for optimization, the other is mapped. Checks orientation of the shape */
     bool ShallMapHalfShape() const;
 
-    /** are we first or second center node? */
-    bool IsCenterNode() const { return other_center != NULL; }
+    /** indicates that the other center node is a slave of this one */
+    bool ShallBeMasterOfSlave() const;
+
+    /** as long as we have no surface, we are !IsCenterShape() */
+    bool Is2DShape() const;
+
+    /** are we first or second 3d center node or its profile? */
+    bool IsCenterShape() const;
+
+    /** are we a 3D surface (not yet implemented yet) */
+    bool IsSurfaceShape() const { return false; }
 
     /** for the 3D center node case give back the first center node. This can be called for the first center node, the second
      * center node and the common profile node. Note that the implementation is at the end of this file.
@@ -161,8 +194,15 @@ public:
     /** @see GetFirstCenterNode() */
     inline ShapeParam* GetSecondCenterNode();
 
+    /** The reference for 2d shape is the shape, for 3d second the first and for profiles the first shape.
+     * We need to implement here */
+    int GetReferenceId() const { return type == ShapeMapDesign::PROFILE ? partner->idx : (other_center != NULL ? std::min(other_center->idx, idx) : idx); }
+
     /** test if the param is part of the shape */
     bool IsPart(const ShapeParamElement* test) const { return (int) test->GetIndex() >= start_param && (int) test->GetIndex() < end_param; }
+
+    /** are we the master shape or an induced sape? */
+    bool IsInduced() const;
 
     /** for debug purpose */
     std::string ToString() const;
@@ -170,8 +210,8 @@ public:
     Type type = NODE; // NODE or PROFILE will also be set in Init
     int idx = -2; // number of shape param. -1 for CENTER
 
-    /** a 3D center has two nodes. The point via other_center to each other. NULL means that we are not part of a center.
-     * The shape_param with with the lower idx is defined as first, the other as second.
+    /** a 3D center has two nodes. They point via other_center to each other. NULL means that we are not part of a center.
+     * The shape_param with the lower idx is defined as first, the other as second.
      * The links are chained, hence if other_center != NULL then this shall hold: this->other_center->other_center == this.
      * Only a node has other_center. The corresponding profiles need to be NULL two center nodes share a single partner. */
     ShapeParam* other_center = NULL;
@@ -180,7 +220,13 @@ public:
      * single profile partner. The Profile partner points back to the first center node only. */
     ShapeParam* partner = NULL;
 
+    /** the dof of this shape. Note that this shape might be part of a center shape
+     * @see Flip() */
     ShapeParamElement::Dof dof = ShapeParamElement::NOT_SET;
+
+    /** For a dof x the orientation is y. For 3D center pairs X and Y it is Z. */
+    ShapeParamElement::Dof orientation = ShapeParamElement::NOT_SET;
+
     std::string lower; // to be math parsed with coordinates xi to be used as xi/nx
     std::string upper; //
     std::string value; // initial or fixed
@@ -190,6 +236,10 @@ public:
 
     /** in case we have a symmetry where we induce a shape and mirror it value goes to max - value. Max is the node value */
     double max = 1.0; // fixme an make it smart
+
+    /** in case of 3D bloch optimization we need cubical symmetry and there the two dofs of a center node need to be the same.
+     * In the slave case fixed, initial, lower, upper must not be given. */
+    bool slave = false;
 
     /** subject to optimization or fixed */
     bool fixed = false;
@@ -205,31 +255,47 @@ public:
     /** this is the end of the optimization, reflects symmetry and is -1 if no design */
     int end_opt = -1;
 
-    /** For a dof x the orientation is y. For 3D center pairs X and Y it is Z. */
-    ShapeParamElement::Dof orientation = ShapeParamElement::NOT_SET;
-
     /** the x_symmetry for dof=y means we copy from left to right. x_symmetry for dof=x means we need to induce an
      * additional shape */
-    Symmetry x_sym = NONE;
-    Symmetry y_sym = NONE;
+    bool x_sym = false;
+    bool y_sym = false;
+    bool z_sym = false;
     /** diag always induces a new shape */
-    Symmetry diag  = NONE;
+    bool diag  = false;
 
-    /** a shape with dof x and x_symmetry mirror or diagonal mirror means that an additional mirror induced shape needs to be inserted.
-     * This bool indicates if this shape is such a mirror induced shape */
-    bool sym_induced = false;
+    /** induced shapes have an identification of their kind
+     * In 2D this are three combinations. Mirrored (which means the value is reciprocal), diagonal (which means the value is copied)
+     * and both (first diagonal and then mirrored) With the master shape (source for the induced) this are four shapes
+     * for square symmetry in 2D.
+     * For 3D center nodes we have also the case of a copied value. Hence the same information for virtual as reciprocal.
+     * The diagonal flipping is always around the axis othogonal to the place dof-orientation. Hence in 2D around the x-axis.*/
+    struct Induce
+    {
+      /** the master shape is the base for the induced one. Then the other flags need to be off. Not that only
+       * the master has the induced vector. An each entry has in Induce the description */
+      ShapeParam* master = NULL;
 
-   /** For a non-sym_induced shape this are the links to the induced shapes.
+      /** are the values induced reciprocal? This is the case for a mirrored shape - e.g. a horizontal shape mirrored at the
+       * x-axis. All other cases are copying the value. On comparing the dof and orientation we can identify which of the symmetry
+       * cases we have (see above) */
+      bool reciprocal = false;
+    };
+
+    /** The master shape has no induced information but his induced child shapes have it. */
+    Induce induce;
+
+   /** For the master shape only (induce.master = true) this are the links to the induced shapes.
+    * The induced shapes have this vector empty!
     * for full symmetry as for bloch modes one structure becomes four structures, here are the three.
     * Note that there is for full symmetry also mapping,  only 1/8 of the data is opt! */
-    ShapeParam* sym_ortho = NULL; // same direction
-    ShapeParam* sym_diag  = NULL; // changed direction to base shape
-    ShapeParam* sym_diag_ortho = NULL; // first diag, then ortho -> changed direction to base shape
+    StdVector<ShapeParam*> induced;
 
   private:
     /** little helper which reads only bounds and values */
     static void ParseBounds(ShapeParam* target, const PtrParamNode& pn);
-    void InheritProperties(ShapeParam* base);
+    static void ParseSymmetry(ShapeParam* target, const PtrParamNode& pn);
+    /** copy attributes found in the envelope center node (symmetry and orientation only) */
+    void CopyBaseCenterProperties(ShapeParam* base);
   };
 
   /** Give ShapeParam, very fast! */
@@ -242,7 +308,7 @@ public:
   struct NumInt
   {
     /** the constructor with the ShapeMap pn. Calls SetTailored conditionally */
-    void Init(PtrParamNode pn, const Vector<unsigned int>& n, double beta, PtrParamNode info);
+    void Init(ShapeMapDesign* smd, PtrParamNode pn, PtrParamNode info);
 
     /** standard output, does not print warning here */
     void ToInfo(PtrParamNode info) const;
@@ -262,11 +328,22 @@ public:
     Vector<double> tailored_bounds; // 1e-10, 1e-9, ..., 0.1, 1
     Vector<int>    tailored_order;
 
+    /** for statistics: cells which need integration */
+    unsigned int int_cells_cnt = 0;
+
+    /** for statistics: sum of 1D integration on cells we integrate (-> avg. order)  */
+    unsigned int int_cells_order_sum = 0;
+
   private:
     /** determined tailored one by evaluating necessary order for dtanh(beta) on a 1D min(n) grid
      * based on the tanh(beta) max - min bounds per element
      * @param info will add warnings there when max_order is too small or the max newtwon-cotes order is not sufficient */
-    void SetTailored(const Vector<unsigned int>& n, PtrParamNode info);
+    void SetTailoredTanh(PtrParamNode info);
+
+    /** For LINEAR shape function we integrate first order. In the grayness we do full integration. The order is determined
+     * here based on sensitivity.
+     * @see linear_int_order_ */
+    void SetLinearIntOrder(PtrParamNode info);
 
     /** tanh function */
     double Func(double x, double pos) const;
@@ -284,6 +361,17 @@ public:
     int FindOrder(double x1, double x2, double pos, double accuracy) const;
 
     double beta = -1.0;
+
+    /** product of n */
+    unsigned int cells_;
+
+    ShapeMapDesign::ShapeFunc sf_;
+
+    /** what GetTailoredOrder() returns in the LINEAR case with 1st order integration */
+    int linear_int_order_ = -1;
+
+    /** the element spacing */
+    double h = -1.0;
   };
 
 private:
@@ -381,6 +469,18 @@ private:
   /* @return num_node_shape_ or shape_.GetSize() */
   unsigned int GetEndShapeIdx(const Function* f) const;
 
+  /** creates for 2D induced symmetry nodes. */
+  void Induce2DSymmetryNodes(ShapeParam& ref_node);
+
+  /** create 3d center node symmetry nodes. Works for x_sym, y_sym and z_sym. diag is always for all possible to flips.
+   * In contrast to Induce2dSymmetryNodes() the shapes shall be already parsed and initialized, therefore not paramnode necessary.
+   * @param cn are the two center nodes */
+  void InduceCenterSymmetryNodes(ShapeParam& first, ShapeParam& second);
+
+  /** create a new node, add it as induced to ref_node and set properties */
+  ShapeParam* InduceSymmetryNodeHelper(ShapeParam& ref_node);
+  void InduceSymmetryNodeHelper(ShapeParam& first, ShapeParam& second);
+
   /** This are our shape parameters which are blown up to shape_param_. When induced, the ortho induces follows the shape, then the diagonal induced
    * First node then profile, therefore always even size. */
   StdVector<ShapeParam> shape_;
@@ -419,10 +519,9 @@ private:
     void PostInit(int objectives, int constraints);
 
     /** @param elem the virtual element
-     * @param shape the original shape (when mapping) or the induced one
-     * @param map do we map or only mirror
+     * @param shape the source shape. When mapping the original or the induced one otherwise
      * @param reciprocal if the value is shape.max - base->value */
-    void AddSymmetryReference(ShapeParamElement* elem, ShapeParam* shape, bool map, bool reciprocal);
+    void AddSymmetryReference(ShapeParamElement* elem, ShapeParam* shape, bool reciprocal);
 
     /** for logging
      * @param grad add gradient details */
@@ -436,7 +535,6 @@ private:
 
       ShapeParamElement* elem  = NULL;  // the virtual element from opt_shape_param_
       ShapeParam*        shape = NULL;  // the original shape (when only map) or the induced shape
-      bool               map   = false;    // just for debugging, do we stem from debugging information?
       bool               reciprocal = false; // copy the original value or shape.max - val, also for gradient!
     };
 
@@ -497,7 +595,7 @@ private:
      * @param ip result: vector [0...1]^dim
      * @param ip_x, ip_y, ip_y index of integration < max_order
      * @return closed Newton-Cotes weight for the 2D/3D point */
-    static double SetIP(StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
+    static double SetIPGetWeight(const ShapeMapDesign* smd, StdVector<double>& ip, int ip_x, int ip_y, int ip_z, int max_order);
 
     /** maximal diff max_corner_value and min_corner_value for all shapes */
     double MaxDiffCornerValue() const;
@@ -515,7 +613,8 @@ private:
     /** Empty constructor for vector reason. Call Init()! */
     EvalAtIp() { };
 
-    /** call Init() first in the object lifetime */
+    /** call Init() first in the object lifetime.
+     * @param n is ShapeMapDesign::n_ */
     void Init(ShapeMapDesign* smd);
 
     /** gives the coordinates for evaluation directly.
@@ -524,15 +623,14 @@ private:
     double Setup(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta);
 
     /** no gradient */
-    double Tanh() const { return dim == 2 ? EvalTanh2d() : EvalTanh3d(); }
+    double ShapeFunc() const;
     /** use order information! 0 = void, 1 = solid, 2 = eval */
-    double SmartTanh(int order) const;
+    double SmartShapeFunc(int order) const;
 
-    double GradTanh(bool grad_a, bool grad_b, bool grad_w) const {
-      return dim == 2 ? EvalTanhGrad2d(grad_a, grad_w) : EvalTanhGrad3d(grad_a, grad_b, grad_w);
-    }
+    double GradShapeFunc(bool grad_a, bool grad_b, bool grad_w) const;
+
     /** user order information. See SmartTanh() */
-    double SmartGradTanh(int order, bool grad_a, bool grad_b, bool grad_w) const;
+    double SmartGradShapeFunc(int order, bool grad_a, bool grad_b, bool grad_w) const;
 
   private:
     double Setup2d(const StdVector<ShapeParamElement*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta);
@@ -543,6 +641,12 @@ private:
     double EvalTanhGrad2d(bool grad_a, bool grad_w) const;
     double EvalTanhGrad3d(bool grad_a, bool grad_b, bool grad_w) const;
 
+    double EvalLinear2d() const;
+    double EvalLinear3d() const;
+    double EvalLinearGrad2d(bool grad_a, bool grad_w) const;
+    double EvalLinearGrad3d(bool grad_a, bool grad_b, bool grad_w) const;
+
+    // 2D and 3D common
     double a = -1;
     double w = -1;
     /** normalized. x is dof variable in 2D */
@@ -550,17 +654,23 @@ private:
     /** this is the interpolation variable a = (1-t) * a1 + t * a2 with t = 0 ... 1 */
     double t = -1;
 
-    double beta = -1;
-
+    // extension for 3D
     /** normalized. x is a dof in 3D center nodes and y is b dof */
     double b = -1; // 3D
     double y = -1;
     double r = -1; // 3D: distance (x,y) -> (a,b)
 
+    // shapeFunc == TANH
+    double beta = -1;
     double exapw = -1;
     double examw = -1;
     double erw = -1;
 
+    // shapeFunc == LINEAR
+    /** linear spacing = 1/element size. The maximal for all directions */
+    double h = -1;
+
+    // technical
     int dim = -1;
     ShapeMapDesign* smd_ = NULL;
     /** helper for Setup */
@@ -569,6 +679,8 @@ private:
 
   /** this is the design_id for the last MapShapeToDensit() run */
   int mapped_design_ = -1;
+
+  ShapeFunc shapeFunc_;
 
   /** controls the boundary. Relates to meter so it also depends on discretication. 30 is a small value (gray) and 70 gives a smaller boundary. */
   double beta_;
@@ -583,6 +695,10 @@ private:
 
   /** no need for static */
   Enum<Overlap> overlap;
+
+  /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
+  Overlap overlap_;
+
 
   /** small helper for tanh_sum */
   struct TanhSum
@@ -607,8 +723,6 @@ private:
     double scale = -1.0;  // works with offset
   } tanh_sum_;
 
-  /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
-  Overlap overlap_;
 
   /** number of elements of rho in x-direction. +1 for nodes! */
   unsigned int nx_ = 0;
@@ -639,9 +753,13 @@ private:
   /** reference to optimization as we need it in MapShapeGradient() to get the functions */
   Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
 
-  NumInt numInt_;
+  /** Measure MapShapeToDensity() */
+  shared_ptr<Timer> mapping_timer_;
 
-  void InduceSymmetryNodes(ShapeParam& ref_node, const PtrParamNode node_pn);
+  /** Measure MapShapeGradient() */
+  shared_ptr<Timer> gradient_timer_;
+
+  NumInt numInt;
 };
 
 

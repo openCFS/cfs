@@ -288,6 +288,10 @@ template<typename T> class ElemStoreSol;
 
     T Avg() const;
 
+    /** Product of elements.
+     * @see Inner()  */
+    T Product() const;
+
     /** Extremal element. For Complex separate for real and imaginary part */
     T Min() const;
 
@@ -342,9 +346,6 @@ template<typename T> class ElemStoreSol;
     
     //! Is this vector collinear with another vector?
     bool Collinear( const Vector<T>& vec);
-    
-    //! Equality operator
-    bool operator==(const Vector<T> &x) const;
     
 //@}
 
@@ -409,6 +410,7 @@ template<typename T> class ElemStoreSol;
 
     //@{
 
+
     //! Assignment operator
     Vector<T> &operator=(const Vector<T> &x);
 
@@ -450,6 +452,13 @@ template<typename T> class ElemStoreSol;
     //@}
 
 #endif // EXPR_TEMPLATES
+
+
+    //! Equality operator - outside EXPR_TEMPLATES
+    bool operator==(const Vector<T> &x) const;
+
+    /** comparison is done via memcmp */
+    bool operator!=( const Vector<T>& x) const;
 
 
 

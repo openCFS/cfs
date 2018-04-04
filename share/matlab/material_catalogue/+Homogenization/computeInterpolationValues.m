@@ -107,6 +107,7 @@ for i=1:numPoints
 %         volume = vec(end);
 %     else
         [Eh, volume, meshfilename] = Homogenization.getElasticityTensorOfMicroCell(point, meshgenerationfunc, Efull, cfsworkingdirectory);
+        disp(Eh)
 %     end
     if ~isempty(Eh)
         if givenByLevelAndIndex

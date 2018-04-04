@@ -219,10 +219,10 @@ namespace CoupledField {
                                   StdVector<PointSelection>& coords ) {
 
     // Check if entities with given name exist already
-    if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
-      EXCEPTION( "Entities with name " << name
-                 << " are already defined" );
-    }
+    //if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
+    //  EXCEPTION( "Entities with name " << name
+    //             << " are already defined" );
+    //}
 
     // get coordinate system
     CoordSystem * cosy = NULL;
@@ -1869,14 +1869,24 @@ namespace CoupledField {
   void GridCFS::AddNamedNodes( std::string name, StdVector<UInt> & nodeNums)
   {
     // Check if entities with given name exist already
-    if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
-      EXCEPTION( "Entities with name " << name
-                 << " are already defined" );
-    }
-    namedNodeNames_.Push_back(name);
-    namedNodes_.Push_back(nodeNums);
-    nameTypeMap_[name] = EntityList::NAMED_NODES;
-    entityDim_[name] = 0;
+    //if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
+    //  EXCEPTION( "Entities with name " << name
+    //             << " are already defined" );
+    //}
+	  if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
+		  // get the vector of already defined nodes
+	    // but first we need the index
+	    ptrdiff_t pos = find(namedNodeNames_.Begin(), namedNodeNames_.End(), name) - namedNodeNames_.Begin();
+	    StdVector<UInt> &nN = namedNodes_[pos];
+	    StdVector<UInt> &nN_new = nodeNums;
+      // now add the new nodeNums (if they are not already in the vector)
+      for (auto& n : nN_new) if( !(std::find(nN.begin(), nN.end(), n) != nN.end()) ) nN.Push_back(n);
+	  }else{
+      namedNodeNames_.Push_back(name);
+      namedNodes_.Push_back(nodeNums);
+      nameTypeMap_[name] = EntityList::NAMED_NODES;
+      entityDim_[name] = 0;
+	  }
   }
 
   void GridCFS::AddNamedElems( std::string name, StdVector<UInt> & elemNums)

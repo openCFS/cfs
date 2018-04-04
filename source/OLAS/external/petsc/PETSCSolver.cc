@@ -1,434 +1,454 @@
 #include "PETSCSolver.hh"
 
 #include <string>
+#include <sstream>
+#include <stdio.h>
+#include <mpi.h>
 #include "MatVec/SparseOLASMatrix.hh"
 #include "MatVec/SCRS_Matrix.hh"
 #include "MatVec/CRS_Matrix.hh"
 #include "DataInOut/ProgramOptions.hh"
-#include <sstream>
-#include <stdio.h>
-#include<mpi.h>
+#include "DataInOut/ParamHandling/XmlReader.hh"
+#include "Utils/Timer.hh"
 
-#define INIT_MAT_STRUCT 0
-#define ASSEMBLE_MAT 1
-#define ASSEMBLE_VEC_RHS  2
-#define SETUP_MATRIX 3
-#define SOLVE 4
-#define SEND_NNZR 5
-#define GET_SOL 6
-#define DIETAG 7
 
+
+//Checks Petsc error code, if non-zero it calls the C++ error handler which throws an exception
+#define CHKERRXX(ierr)  do {if (PetscUnlikely(ierr)) {PetscError(PETSC_COMM_SELF,__LINE__,PETSC_FUNCTION_NAME,__FILE__,ierr,PETSC_ERROR_IN_CXX,0);}} while(0)
 
 using std::string;
 
 namespace CoupledField{
-	//initialize PETSCSolver class 	
-	PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::EntryType type){
 
-		//init petsc objects
-		A_ =NULL;
-		A0_=NULL;
-		b_=NULL;
-		solver_=NULL;
+DECLARE_LOG(petsc)
+DEFINE_LOG(petsc, "petscSolver")
+//initialize PETSCSolver class
+PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::EntryType type){
+  A_=nullptr;
+  da_nodes=nullptr;
+  x_=nullptr;
+  b_=nullptr;
+  precond_=nullptr;
+  solver_=nullptr;
+  firstSetup_ = true;
+  dirNodeVec_=nullptr;
+  N_=nullptr;
 
-		
-		infoNode_ =  olasInfo->Get("petsc");
-		
-		xml_ = pn;
-		firstSetup_ = true;
-		ownMatrixA_ = false;
-		
-		maxIter_    = pn->Has("maxIter") ? pn->Get("maxIter")->As<int>() : 10000;
-		tolerance_  = pn->Has("tolerance") ? pn->Get("tolerance")->As<double>() : 1e-12;
-		minTol_     = pn->Has("minimalTolerance") ? pn->Get("minimalTolerance")->As<double>() : 1e-11;
-		//logging_    = pn->Has("logging") ? pn->Get("logging")->As<bool>() : false;
-		//resetXZero_ = pn->Has("zeroInitialValue") ? pn->Get("zeroInitialValue")->As<bool>() : false;
-		
-		PtrParamNode hdr = infoNode_->Get(ParamNode::HEADER);
-		hdr->Get("maxIter")->SetValue(maxIter_);
-		hdr->Get("tolerance")->SetValue(tolerance_);
-		hdr->Get("minimalTolerance")->SetValue(minTol_);
-		
-		// Solve() also sets solver and precond as attributes to xml_ but w/o arguments and also when the elements here are not given
-		if(xml_->Has("solver"))
-			hdr->Get("solver")->SetValue(xml_->Get("solver"), false);
-		if(xml_->Has("precond"))
-			hdr->Get("precond")->SetValue(xml_->Get("precond"),false);
-		
-	}
+  infoNode_ =  olasInfo->Get("petsc");
+  xml_ = pn;
+  maxIter_    = xml_->Has("maxIter") ? pn->Get("maxIter")->As<int>() : 10000;
 
-	PETSCSolver::~PETSCSolver(){
+  tolerance_  = xml_->Has("tolerance") ? pn->Get("tolerance")->As<double>() : 1e-12;
+  minTol_     = xml_->Has("minimalTolerance") ? pn->Get("minimalTolerance")->As<double>() : 1e-11;
+  logging_    = xml_->Has("logging") ? pn->Get("logging")->As<bool>() : false;
 
-		VecDestroy(&x_);
-		VecDestroy(&b_);
-		
-		MatDestroy(&A_);
-		MatDestroy(&A0_);
-		
-		KSPDestroy(&solver_);
-	}
+  PtrParamNode hdr = infoNode_->Get(ParamNode::HEADER);
+  hdr->Get("maxIter")->SetValue(maxIter_);
+  hdr->Get("tolerance")->SetValue(double(tolerance_));
+  hdr->Get("minimalTolerance")->SetValue(double(minTol_));
 
-	void PETSCSolver::Setup(BaseMatrix &sysmat){
+  solverstring_=CreateSolverString(xml_);
+  precondstring_=CreatePrecondString(xml_);
+  if (precondstring_=="mg"){
+    MG_FLAG=true;
+    GetCFSEqnMapMG(cfsEqnMap_);
+  }
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
+  MPI_Comm_size(MPI_COMM_WORLD,&size_);
 
 
-		int rank;
-		int size;
-		//find which is my rank
-		MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-		MPI_Comm_size(MPI_COMM_WORLD,&size);
-		PetscErrorCode ierr=0;
-		
-		//create petsc matrix form the sysmatrix
-		const StdMatrix& stdmat = dynamic_cast<const StdMatrix&>(sysmat);
-		
-		BaseMatrix::EntryType etype = stdmat.GetEntryType(); //currently only real values can be solved using Petsc should implement for complex values
-		BaseMatrix::StorageType stype = stdmat.GetStorageType();
+}
 
-		const CRS_Matrix<Double>& crs = dynamic_cast<const CRS_Matrix<Double>&>(stdmat);
-		if(crs.GetNumCols() != crs.GetNumRows()){
-      EXCEPTION("IS solver only tested for quadratic matrices");
+	//Destructor for solver
+PETSCSolver::~PETSCSolver(){
+
+  VecDestroy(&x_);
+  VecDestroy(&b_);
+  MatDestroy(&A_);
+  KSPDestroy(&solver_);
+  VecDestroy(&dirNodeVecGlobal_);
+  VecDestroy(&dirNodeVec_);
+  VecDestroy(&N_);
+  cfsEqnMap_.Clear(false);
+  DMDestroy(&da_nodes);
+
+}
+
+	
+
+void PETSCSolver::Setup(BaseMatrix &sysmat){
+
+
+
+  //create petsc matrix form the sysmatrix
+  const StdMatrix& stdmat = static_cast<const StdMatrix&>(sysmat);
+
+  BaseMatrix::EntryType etype = stdmat.GetEntryType(); //currently only real values can be solved using Petsc should implement for complex values
+  assert(etype==BaseMatrix::DOUBLE);
+
+  BaseMatrix::StorageType stype = stdmat.GetStorageType();
+
+  if (stype==BaseMatrix::SPARSE_SYM){symmetric=true;}
+
+  //Requires the grid information ie dimension of the mesh, global_coordinates, boundary_type,stencil_type,ndof,stencil_width
+
+  const SCRS_Matrix<Double>& crs = static_cast<const SCRS_Matrix<Double>&>(sysmat);
+
+  if(crs.GetNumCols() != crs.GetNumRows()){
+  EXCEPTION("PETSC solver only tested for quadratic matrices");
+  }
+  //gather info
+  UInt dim = 0;
+  PetscInt* rowPtr = nullptr;
+  PetscInt* colPtr = nullptr;
+  PetscScalar * dataPtr = nullptr;
+
+  dim = crs.GetNumRows();
+  rowPtr = (PetscInt*) crs.GetRowPointer();
+  colPtr = (PetscInt*) crs.GetColPointer();
+  dataPtr = const_cast<PetscScalar *>(crs.GetDataPointer());
+
+
+  int nx=0,ny=0,nz=0,dimension=0;
+  if (firstSetup_ ){
+    SendWorkerCommand(SETUP_MATRIX);
+    if (MG_FLAG){
+
+
+      GetGridInfoMG(nx,ny,nz,dimension);
+      for (int rank=1;rank<size_;rank++){
+        ierr=MPI_Send(&nx,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
+        ierr=MPI_Send(&ny,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
+        ierr=MPI_Send(&nz,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
+        ierr=MPI_Send(&dimension,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
+      }
+      CreateDMDA(da_nodes,A_,x_,b_,dirNodeVec_,nx,ny,nz,dimension);
+      CheckLevels(nx,ny,nz);
+      GetHomDirNodes(dirNodeVec_);
+      SendWorkerCommand(SET_HOM_DIR_VEC);
+      VecDuplicate(b_,&N_);
+      VecSet(N_,1.0);
+      SendWorkerCommand(GET_GLOBAL_VEC);
+      VecAssemblyBegin(dirNodeVec_);
+      VecAssemblyEnd(dirNodeVec_);
+      GetGlobalVec(dirNodeVec_,dirNodeVecGlobal_); // dirNodeVecGlobal_ has entire vector in master node
+
     }
-		//gather info
-    UInt dim = crs.GetNumRows();
+    else {
 
-		PetscInt * rowPtr = (PetscInt *)crs.GetRowPointer();
-    PetscInt * colPtr = (PetscInt *)crs.GetColPointer();
-		PetscScalar * dataPtr = const_cast<PetscScalar *>(crs.GetDataPointer());
-		
-
-		
-		int * nnzr = new int[dim];
-		
-		for (int ii=0;ii<dim;ii++){
-			nnzr[ii]=crs.GetRowSize(ii)+100;
-		}
-		SendWorkerCommand(INIT_MAT_STRUCT);
-	
-		for (rank=1;rank<size;++rank){	
-			MPI_Send(nnzr, sizeof(int)*dim,MPI_INT,rank,SEND_NNZR,PETSC_COMM_WORLD);
-		}
-
-		
-		if(firstSetup_) {
-			
-			ierr=MatCreate(PETSC_COMM_WORLD,&A_); 
-			ierr=MatSetSizes(A_,PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim));
-			ierr=MatSetFromOptions(A_);
-			ierr=MatSetUp(A_);
-			ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);
-			ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);
-			//setting values only using the proc 0 while others wait and then asemble is called in all procs so the matix can be distributed
-		}
-		else {
-			ierr=MatDestroy(&A0_);
-		}
-
-		//set matrix values 
-		//TODO add a method in the class for running different code root and other procs 
-		
-		for (int i=0;i<dim;i++){
-			for (int j=rowPtr[i];j<rowPtr[i+1];j++){
-				ierr=MatSetValue(A_,i,colPtr[j],dataPtr[j],INSERT_VALUES);
-			}
-		}
-			
-			// ierr=MatCreateSeqAIJWithArrays(PETSC_COMM_WORLD,PetscInt(dim),PetscInt(dim),rowPtr,colPtr,dataPtr,&A_);
-			
-		SendWorkerCommand(ASSEMBLE_MAT);	
-
-		MatAssemblyBegin(A_,MAT_FINAL_ASSEMBLY);
-		MatAssemblyEnd(A_,MAT_FINAL_ASSEMBLY);
-		
-		
-				
-	
-			
-		
-		SendWorkerCommand(SETUP_MATRIX);
-		//Using this matrix A0_ for solving the linear system so original matrix is untouched maybe Petsc doesnt require this.
-		ierr=MatDuplicate(A_,MAT_COPY_VALUES,&A0_);
-		
-		//Create Vector and solver objects and set parameters 
-		if(firstSetup_) {
-			//create rhs and sol vector and allocate size in setup step
-			//Allocate size for rhs vec assuming the size is equal to dim of sysmat
-			ierr=VecCreate(PETSC_COMM_WORLD,&b_);
-			ierr=VecSetSizes(b_,PETSC_DECIDE,PetscInt(dim));
-			ierr=VecSetFromOptions(b_);
-			
-			
-			//Allocate sol vec 
-			ierr=VecDuplicate(b_,&x_);
-			
-			//setup linear solver context with preconditioner for petsc ksp methods //now hard coded 
-			ierr=KSPCreate(PETSC_COMM_WORLD,&(solver_));
-			
-			// Set up the solver
-			ierr = KSPSetType(solver_,KSPCG); // KSPCG - CG SOLVER 
-
-			ierr = KSPSetTolerances(solver_,minTol_,tolerance_,PETSC_DEFAULT,maxIter_);
-
-			ierr = KSPSetInitialGuessNonzero(solver_,PETSC_TRUE);
-		
-			ierr = KSPSetOperators(solver_,A0_,A0_);
-
-			// The preconditinoer
-			KSPGetPC(solver_,&precond_);
-			// Make jacobi the default solver
-			PCSetType(precond_,PCJACOBI);
-
-			// Set solver from options
-			KSPSetFromOptions(solver_);
-
-			// Get the prec again - check if it has changed
-			KSPGetPC(solver_,&precond_);
-
-		}
-		
-
-	}
+      //To preallocate without grid info we require info about number of non-zero per row
+      UInt * nnzr = new UInt[dim];
+      for (UInt ii=0;ii<dim;ii++){
+      //100 is just a big enough number which ensures there is no lack of memory allocation for petsc matix in parallel
+       nnzr[ii]=crs.GetRowSize(ii)+100;
+      }
+      //only time where data is sent using mpi(can be implemented better)
+      for (int rank=1;rank<size_;rank++){
+        ierr=MPI_Send(&nnzr[0], sizeof(int)*dim,MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
+        ierr=MPI_Send(&symmetric,sizeof(bool),MPIU_BOOL,rank,ISSYMMETRIC,PETSC_COMM_WORLD);CHKERRXX(ierr);
+      }
+      SetupMatrix(dim,nnzr,symmetric,A_,b_,x_);
+    }
+  }
 
 
-	void PETSCSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol){
-	
-		PetscErrorCode ierr=0;
-			
-		//Suggested to use vecsetvalues instead of this but for now ignoring since there are no pointer to vec data array found	
-	
-		SendWorkerCommand(ASSEMBLE_VEC_RHS);
-		ierr=	VecAssemblyBegin(b_);
-		ierr=	VecAssemblyEnd(b_);         
+  if (MG_FLAG){
+    //Zeros all matrix entry without affecting the non-zero structure of sparse matrix
+    SendWorkerCommand(MAT_ZERO_ENTRIES);
+    MatZeroEntries(A_);
 
-		
-		if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {		
-			for(PetscInt i=0, n=(PetscInt)rhs.GetSize(); i<n; i++){
-				Double myEnt =0;
-				rhs.GetEntry((UInt)i,myEnt);
-				ierr=VecSetValue(b_,i,PetscScalar(myEnt),INSERT_VALUES);
-			
-				
-			}
-			
-		} 
-		SendWorkerCommand(ASSEMBLE_VEC_RHS);
-		ierr=	VecAssemblyBegin(b_);
-		ierr=	VecAssemblyEnd(b_);
-		
+    shared_ptr<Timer> Assemble = infoNode_->Get(ParamNode::SUMMARY)->Get("petsc_assembly/timer")->AsTimer();
+    Assemble->SetSub();
+    Assemble->Start();
 
 
-	
-		SendWorkerCommand(SOLVE);
-		ierr = KSPSolve(solver_,b_,x_);
-		
+    //Assembly of sys mat done only in master yet. We can switch to multiple node assembly
+    AssembleMatrixMG(A_,da_nodes,x_,b_,dirNodeVecGlobal_,N_,nx,ny,nz);
+    SendWorkerCommand(ASSEMBLE_MAT);
+    ierr=MatAssemblyBegin(A_, MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
+    ierr=MatAssemblyEnd(A_, MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
+    Assemble->Stop();
 
-		
-		// PetscInt niter;
-		// PetscScalar rnorm;
-		// KSPGetIterationNumber(solver_,&niter);
-		// KSPGetResidualNorm(solver_,&rnorm); 	
-		
-		// PetscPrintf(PETSC_COMM_WORLD,"PETSC_SOLVER:  iter: %i, rerr.: %e, time: %f\n",niter,rnorm);
-		
-		if(ierr){
-		EXCEPTION("Solver returned ierror code: " << ierr << " ...aborting")
-		}
-	
-		SendWorkerCommand(GET_SOL);
-		
-		Vec x_global;
-		VecScatter ctx;
-		
-		//Collect the solution vector from different procs 
-		VecScatterCreateToZero(x_,&ctx,&x_global);
-		VecScatterBegin(ctx,x_,x_global,INSERT_VALUES,SCATTER_FORWARD);
-		VecScatterEnd(ctx,x_,x_global,INSERT_VALUES,SCATTER_FORWARD);
-		VecScatterDestroy(&ctx);
-	
-		//gets the solution vector in bufx array from petsc array 
-		PetscScalar *bufx;
-		VecGetArray(x_global,&bufx);
-		
-		if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
-			for(UInt i=0; i<sol.GetSize();i++){
-				
-				sol.SetEntry(i,bufx[PetscInt(i)]);
-			}
-		}
-		ierr=VecRestoreArray(x_global,&bufx);
-	}	
+    SendWorkerCommand(ASSEMBLE_VEC_DIR);
+    ierr=VecAssemblyBegin(N_);CHKERRXX(ierr);
+    ierr=VecAssemblyEnd(N_);CHKERRXX(ierr);
 
-	
-	void PETSCSolver::SendWorkerCommand(int TAG){
-		int rank;
-		int size;
-		//find which is my rank
-		MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-		MPI_Comm_size(MPI_COMM_WORLD,&size);
-		for (rank = 1; rank < size; ++rank) {
-			MPI_Send(0, 0, MPI_INT, rank, TAG, MPI_COMM_WORLD);
-		}		
-	}
-	//Methods for PETSCWorker class
-	PETSCWorker::PETSCWorker(){
-		
-		//init petsc objects
-		A_ =NULL;
-		A0_=NULL;
-		b_=NULL;
-		solver_=NULL;
-	}
+    // Set the right hand side vector with master node only.
+    SetLinRhs(b_);
+    SendWorkerCommand(ASSEMBLE_VEC_RHS);
+    ierr=VecAssemblyBegin(b_);CHKERRXX(ierr);
+    ierr=VecAssemblyEnd(b_);CHKERRXX(ierr);
+
+    // Apply penalty to zero out the nodes.
+    SendWorkerCommand(HOM_DIR_PENALTY);
+    PenaltyHomDir(A_,b_,N_);
+
+  }
+
+  else {
+    /*setting values only using the proc 0 while others wait and then asemble is called in all procs so
+    the matix can be distributed.Set each matrix value one by one (highly inefficient there are better ways to do
+    this which requires some tweakng to the data structure we receive from the matrix class  )*/
+    for (int i=0;i<int(dim);i++){
+     for (int j=rowPtr[i];j<rowPtr[i+1];j++){
+       ierr=MatSetValue(A_,i,colPtr[j],dataPtr[j],INSERT_VALUES);
+     }
+    }
+    //  Distribute the assembeled matrix accross all process
+    SendWorkerCommand(ASSEMBLE_MAT);
+    ierr=MatAssemblyBegin(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
+    ierr=MatAssemblyEnd(A_,MAT_FINAL_ASSEMBLY);CHKERRXX(ierr);
+  }
+  if (firstSetup_){
+    SendWorkerCommand(SETUP_SOLVER_CONTEXT);
+    SetupSolverContext(A_,solver_,precond_,solverstring_,precondstring_,tolerance_,minTol_,maxIter_,MG_FLAG);
+    if(MG_FLAG){SetupMGSolver(da_nodes,precond_);}
+
+  }
 
 
-	PETSCWorker::~PETSCWorker(){
+  firstSetup_=false;
+
+}
+
+
+void PETSCSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol){
+
+  if (!MG_FLAG){
+    SendWorkerCommand(ASSEMBLE_VEC_RHS);
+    ierr= VecAssemblyBegin(b_);CHKERRXX(ierr);
+    ierr= VecAssemblyEnd(b_);CHKERRXX(ierr);
+    if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
+      for(PetscInt i=0, n=(PetscInt)rhs.GetSize(); i<n; i++){
+        Double myEnt =0;
+        rhs.GetEntry((UInt)i,myEnt);
+        ierr=VecSetValue(b_,i,PetscScalar(myEnt),INSERT_VALUES);
+      }
+    }
+    SendWorkerCommand(ASSEMBLE_VEC_RHS);
+    ierr= VecAssemblyBegin(b_);CHKERRXX(ierr);
+    ierr= VecAssemblyEnd(b_);CHKERRXX(ierr);
+  }
+
+
+
+  double t1,t2;
+  t1 = MPI_Wtime();
+  //Solve the linear system
+  SendWorkerCommand(SOLVE);
+  ierr = KSPSolve(solver_,b_,x_);CHKERRXX(ierr);
+  PetscReal RHSnorm;
+  VecNorm(b_,NORM_2,&RHSnorm);
+  VecSet(b_,0.0);
+  t2 = MPI_Wtime();
+  // Log the the norm and max iter
+  PtrParamNode curr = infoNode_->Get(ParamNode::PROCESS)->Get("solve", ParamNode::APPEND);
+  PetscInt niter=0;
+  PetscScalar rnorm=0.0;
+
+  KSPGetIterationNumber(solver_,&niter);CHKERRXX(ierr);
+  KSPGetResidualNorm(solver_,&rnorm);CHKERRXX(ierr);
+
+  rnorm = rnorm/RHSnorm;
+  curr->Get("timing")->SetValue(t2-t1);
+  curr->Get("residualNorm")->SetValue(rnorm);
+  curr->Get("iterations")->SetValue(niter);
+
+  //Create a global vector and scatter context to collect the solution vector to master process
+  SendWorkerCommand(GET_SOL);
+  Vec x_global;
+  GetGlobalVec(x_,x_global);
+
+
+  //gets the solution vector in bufx array from petsc array
+  PetscScalar *bufx;
+  ierr=VecGetArray(x_global,&bufx);CHKERRXX(ierr);
+  PetscInt Size;
+  VecGetSize(x_global,&Size);
+//		sol.Resize(Size);
+//  std::cout<<cfsEqnMap.ToString()<<std::endl;
+
+  if (MG_FLAG){
+    for(unsigned int i=0; i<cfsEqnMap_.GetSize()/3;i++)
+        for (unsigned int ldof=0;ldof<3;ldof++)
+          if (cfsEqnMap_[(i*3)+ldof]!=0)
+            sol.SetEntry(cfsEqnMap_[(i*3)+ldof]-1,bufx[PetscInt(i*3)+ldof]);
+  }
+  else {
+    for(UInt i=0; i<sol.GetSize();i++)
+     sol.SetEntry(i,bufx[PetscInt(i)]);
+  }
+
+//		std::cout<<"RHS from CFS"<<rhs.ToString()<<std::endl;
+//		std::cout<<"Solution Vector in PETSc" <<sol.ToString()<<std::endl;
+  ierr=VecRestoreArray(x_global,&bufx);CHKERRXX(ierr);
+
+
+
+}
+
 		
-		VecDestroy(&x_);
-		VecDestroy(&b_);
-		
-		MatDestroy(&A_);
-		MatDestroy(&A0_);
-		
-		KSPDestroy(&solver_);
-	}
+void PETSCSolver::SendWorkerCommand(int TAG){
+
+  for (int rank = 1; rank < size_; rank++) {
+    ierr=MPI_Send(0, 0, MPI_INT, rank, TAG, MPI_COMM_WORLD);CHKERRXX(ierr);
+  }
+}
+
+//Methods for PETSCWorker class
+PETSCWorker::PETSCWorker(int argc,const char **argv){
+  //init petsc objects
+  A_ =nullptr;
+  b_=nullptr;
+  solver_=nullptr;
+  x_=nullptr;
+  precond_=nullptr;
+  dirNodeVec_=nullptr;
+  da_nodes=nullptr;
+  N_=nullptr;
+  progOpts = new ProgramOptions(argc, argv);
+
+  // Parse command line
+  progOpts->ParseData();
+
+  string xmlFile = progOpts->GetParamFileStr();
+  string schema = progOpts->GetSchemaPathStr();
+
+  schema += "/CFS-Simulation/CFS.xsd";
+
+  xml_ = XmlReader::ParseFile(xmlFile, schema)->Get("sequenceStep")->Get("linearSystems")->Get("system")->Get("solverList");
+  if(xml_->GetChild()->GetName()=="petsc"){
+
+    xml_=xml_->Get("petsc");
+    maxIter_    = xml_->Has("maxIter") ? xml_->Get("maxIter")->As<int>() : 10000;
+    tolerance_  = xml_->Has("tolerance") ? xml_->Get("tolerance")->As<double>() : 1e-12;
+    minTol_     = xml_->Has("minimalTolerance") ? xml_->Get("minimalTolerance")->As<double>() : 1e-11;
+    solverstring_=CreateSolverString(xml_);
+    precondstring_=CreatePrecondString(xml_);
+    if (precondstring_=="mg")
+      MG_FLAG=true;
+
+  }
+
+}
+
+
+
+PETSCWorker::~PETSCWorker(){
+
+  VecDestroy(&x_);
+  VecDestroy(&b_);
+
+  MatDestroy(&A_);
+
+  KSPDestroy(&solver_);
+
+  VecDestroy(&dirNodeVecGlobal_);
+  VecDestroy(&dirNodeVec_);
+  VecDestroy(&N_);
+  DMDestroy(&da_nodes);
+
+  //delete the PtrParamNode  and progOpts of worker
+  delete progOpts;
+  progOpts = NULL;
+  xml_.reset();
+
+}
 
  
- 
-	void PETSCWorker::run(){
+
+void PETSCWorker::run(){
 
 
-		PetscErrorCode ierr;
-		bool done=false;
-		MPI_Status stat;
-		int work;
-		int dim;
 
-		//Worker loop which runs till a kill command is received
-		
-		// MPI communication for starting starting some process in worker 
-		// The only case where data is sent using MPI is the nnzr array which is required for PetscMat Preallocation
+  bool done=false;
+  MPI_Status stat;
+  int work;
+  //Worker loop which runs till a kill command is received
+  // MPI communication for starting some process in worker
+  while (!done){
+    MPI_Recv(&work,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&stat);
+    switch(stat.MPI_TAG){
+      case DIETAG:
+        done=true;
+        break;
+      case SET_HOM_DIR_VEC:
+        VecDuplicate(b_,&N_);
+        VecSet(N_,1.0);
+        break;
+      case SETUP_MATRIX:
+        InitPetscWorker();
+        break;
+      case ASSEMBLE_MAT:
+        ierr=	MatAssemblyBegin(A_,MAT_FINAL_ASSEMBLY);
+        ierr=	MatAssemblyEnd(A_,MAT_FINAL_ASSEMBLY);
+        break;
+      case SETUP_SOLVER_CONTEXT:
+        SetupSolverContext(A_,solver_,precond_,solverstring_,precondstring_,tolerance_,minTol_,maxIter_,MG_FLAG);
+        if(MG_FLAG){SetupMGSolver(da_nodes,precond_);}
+        break;
+      case ASSEMBLE_VEC_RHS:
+        ierr=	VecAssemblyBegin(b_);
+        ierr=	VecAssemblyEnd(b_);
+        break;
+      case ASSEMBLE_VEC_DIR:
+        ierr= VecAssemblyBegin(N_);
+        ierr= VecAssemblyEnd(N_);
+        break;
+      case SOLVE:
+        ierr = KSPSolve(solver_,b_,x_);
+        PetscReal RHSnorm;
+        VecNorm(b_,NORM_2,&RHSnorm);
+        VecSet(b_,0.0);
+        break;
+      case GET_SOL:
+        Vec x_global;
+        GetGlobalVec(x_,x_global);
+        break;
+      case GET_GLOBAL_VEC:
+        VecAssemblyBegin(dirNodeVec_);
+        VecAssemblyEnd(dirNodeVec_);
+        Vec dirNodeVecGlobal_;
+        GetGlobalVec(dirNodeVec_,dirNodeVecGlobal_);
+        break;
+      case HOM_DIR_PENALTY:
+        PenaltyHomDir(A_,b_,N_);
+        break;
+      case MAT_ZERO_ENTRIES:
+        MatZeroEntries(A_);
+        break;
+    }
+  }
+}
 
-		while (!done){
-			MPI_Recv(&work,1,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&stat);
-			//Need to change to switch case 
-			if (stat.MPI_TAG==DIETAG){
-				done=true;
-			}
-			else if (stat.MPI_TAG==INIT_MAT_STRUCT){
-				dim=InitPetscWorker();	
-			}
-			else if (stat.MPI_TAG==ASSEMBLE_MAT){
-	
-				ierr=	MatAssemblyBegin(A_,MAT_FINAL_ASSEMBLY);
-				ierr=	MatAssemblyEnd(A_,MAT_FINAL_ASSEMBLY);
-			}
-			else if (stat.MPI_TAG==SETUP_MATRIX){
-				SetupPetscWorker(dim);
-			}
-			else if (stat.MPI_TAG==ASSEMBLE_VEC_RHS){
-				
-				ierr=	VecAssemblyBegin(b_);
-				ierr=	VecAssemblyEnd(b_);
-			}
-			else if (stat.MPI_TAG==SOLVE){
-				ierr = KSPSolve(solver_,b_,x_);
-			}
-			else if (stat.MPI_TAG==GET_SOL){
-				GetSol();
-			}
-		}
-  }		 
- 
 
-	int PETSCWorker::InitPetscWorker(){
-		PetscErrorCode ierr;
-		
-		MPI_Status status;
-		int size;
-				
-		
-		MPI_Probe(0,SEND_NNZR,PETSC_COMM_WORLD,&status);
-		MPI_Get_count(&status,MPI_INT,&size);
-		int dim=size/sizeof(int);
-		int *nnzr = new int[dim];
-		
-		MPI_Recv(nnzr,dim,MPI_INT,0,SEND_NNZR,PETSC_COMM_WORLD,&status);
+void PETSCWorker::InitPetscWorker(){
 
-		if(firstSetup_) {
-			
-			ierr=MatCreate(PETSC_COMM_WORLD,&A_); 
-			ierr=MatSetSizes(A_,PETSC_DECIDE,PETSC_DECIDE,PetscInt(dim),PetscInt(dim));
-			ierr=MatSetFromOptions(A_);
-			ierr=MatSetUp(A_);
-			ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);
-			ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);
-			//setting values only using the proc 0 while others wait and then asemble is called in all procs so the matix can be distributed
-		}
-		else {
-			ierr=MatDestroy(&A0_);
-		}
+  MPI_Status status;
+  if (MG_FLAG){
+    int nx,ny,nz,dimension;
+    MPI_Recv(&nx,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
+    MPI_Recv(&ny,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
+    MPI_Recv(&nz,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
+    MPI_Recv(&dimension,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
+    CreateDMDA(da_nodes,A_,x_,b_,dirNodeVec_,nx,ny,nz,dimension);
+    if (MG_FLAG){CheckLevels(nx,ny,nz);}
+  }
+  else {
+    int size;
+    MPI_Probe(0,DATA,PETSC_COMM_WORLD,&status);
+    MPI_Get_count(&status,MPI_INT,&size);
+    int dim=size/sizeof(int);
+    UInt *nnzr = new UInt[dim];
+    //Receive the nnzr array
+    MPI_Recv(nnzr,dim,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
+    MPI_Recv(&symmetric,1,MPIU_BOOL,0,ISSYMMETRIC,PETSC_COMM_WORLD,&status);
+    SetupMatrix(dim,nnzr,symmetric,A_,b_, x_);
 
-		return dim;
-
-	}
-
-	void PETSCWorker::SetupPetscWorker(int dim){
-		PetscErrorCode ierr;
-		//Using this matrix A0_ for solving the linear system so original matrix is untouched maybe Petsc doesnt require this.
-		ierr=MatDuplicate(A_,MAT_COPY_VALUES,&A0_);
-		
-		//Create Vector and solver objects and set parameters 
-		if(firstSetup_) {
-			//create rhs and sol vector and allocate size in setup step
-			//Allocate size for rhs vec assuming the size is equal to dim of sysmat
-			ierr=VecCreate(PETSC_COMM_WORLD,&b_);
-			ierr=VecSetSizes(b_,PETSC_DECIDE,PetscInt(dim));
-			ierr=VecSetFromOptions(b_);
-			
-			
-			//Allocate sol vec 
-			ierr=VecDuplicate(b_,&x_);
-			
-			//setup linear solver context with preconditioner for petsc ksp methods //now hard coded 
-			ierr=KSPCreate(PETSC_COMM_WORLD,&(solver_));
-			
-			// Set up the solver
-			ierr = KSPSetType(solver_,KSPCG); // KSPCG - CG SOLVER 
-
-			ierr = KSPSetTolerances(solver_,minTol_,tolerance_,PETSC_DEFAULT,maxIter_);
-
-			ierr = KSPSetInitialGuessNonzero(solver_,PETSC_TRUE);
-		
-			ierr = KSPSetOperators(solver_,A0_,A0_);
-
-			// The preconditinoer
-			KSPGetPC(solver_,&precond_);
-			// Make jacobi the default solver
-			PCSetType(precond_,PCJACOBI);
-
-			// Set solver from options
-			KSPSetFromOptions(solver_);
-
-			// Get the prec again - check if it has changed
-			KSPGetPC(solver_,&precond_);
-
-		}
-
-	}
-
-	void PETSCWorker::GetSol(){
-
-		Vec x_global;
-		VecScatter ctx;
-		VecScatterCreateToZero(x_,&ctx,&x_global);
-		VecScatterBegin(ctx,x_,x_global,INSERT_VALUES,SCATTER_FORWARD);
-		VecScatterEnd(ctx,x_,x_global,INSERT_VALUES,SCATTER_FORWARD);
-		VecScatterDestroy(&ctx);
-		
-
-	}
-	
-	
+  }
+}
 
 }	
 
 
-	

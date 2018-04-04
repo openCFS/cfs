@@ -1,56 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
-  elementFormDefault="qualified">
-  
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
       Coupled Field Solver project CFS++
       Schema description for Solver parameters
     </xsd:documentation>
   </xsd:annotation>
-  
+
   <!-- ******************************************************************* -->
   <!--   Definition of basic Solver data type -->
   <!-- ******************************************************************* -->
-  
+
   <!-- This is an abstract basic type so that it cannot appear in an -->
   <!-- instance document -->
   <xsd:complexType name="DT_SolverBasic" abstract="true">
     <xsd:attribute name="id" type="xsd:token" default="default"/>
   </xsd:complexType>
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of basic Solver element -->
   <!-- ******************************************************************* -->
-  
+
   <!-- This element is abstract in order to force substitution -->
   <!-- by the derived specialised Solver elements -->
   <xsd:element name="SolverBasic" type="DT_SolverBasic" abstract="true"/>
-  
+
   <!-- ******************************************************************* -->
   <!--   Definition of basic EigenSolver data type -->
   <!-- ******************************************************************* -->
-  
+
   <!-- This is an abstract basic type so that it cannot appear in an -->
   <!-- instance document -->
   <xsd:complexType name="DT_EigenSolverBasic" abstract="true">
     <xsd:attribute name="id" type="xsd:token" default="default"/>
   </xsd:complexType>
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of basic EigenSolver element -->
   <!-- ******************************************************************* -->
-  
+
   <!-- This element is abstract in order to force substitution -->
   <!-- by the derived specialised Solver elements -->
   <xsd:element name="EigenSolverBasic" type="DT_EigenSolverBasic" abstract="true"/>
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of stopping rule for iterative solvers -->
   <!-- ******************************************************************* -->
@@ -67,21 +64,20 @@
       </xsd:simpleType>
     </xsd:attribute>
   </xsd:complexType>
-  
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                          OLAS_PCG Solver                      == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for OLAS_PCG Solver -->
   <!-- ******************************************************************* -->
-  <xsd:element name="cg" type="DT_SolverOLASPCG"
-    substitutionGroup="SolverBasic"/>
-  
-  
+  <xsd:element name="cg" type="DT_SolverOLASPCG" substitutionGroup="SolverBasic"/>
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for OLAS_PCG Solver -->
   <!-- ******************************************************************* -->
@@ -89,9 +85,9 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
-          
+
           <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0" maxOccurs="1"/>
-          
+
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -99,9 +95,8 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          <xsd:element name="maxIter" type="xsd:positiveInteger"
-            minOccurs="0" default="50">
+
+          <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0" default="50">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Maximum number of iterations before the solver stops. If this number of iterations
@@ -109,9 +104,8 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          <xsd:element name="resDirectly" type="xsd:positiveInteger"
-            minOccurs="0" default="50">
+
+          <xsd:element name="resDirectly" type="xsd:positiveInteger" minOccurs="0" default="50">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 The CG algorithm will compute an incremental residual
@@ -121,7 +115,7 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
+
           <xsd:element name="logging" type="DT_CFSBool" minOccurs="0" default="no">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -130,7 +124,7 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
+
           <xsd:element name="consoleConvergence" type="DT_CFSBool" minOccurs="0" default="no">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -139,27 +133,26 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
+
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
-  
+
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                         LAPACK_LU Solver                      == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for LAPACK_LU Solver -->
   <!-- ******************************************************************* -->
-  <xsd:element name="lapackLU" type="DT_SolverLAPACKLU"
-    substitutionGroup="SolverBasic"/>
-  
-  
+  <xsd:element name="lapackLU" type="DT_SolverLAPACKLU" substitutionGroup="SolverBasic"/>
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for LAPACK_LU Solver -->
   <!-- ******************************************************************* -->
@@ -174,22 +167,21 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
-  
+
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                         LAPACK_LL Solver                      == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for LAPACK_LL Solver -->
   <!-- ******************************************************************* -->
-  <xsd:element name="lapackLL" type="DT_SolverLAPACKLL"
-    substitutionGroup="SolverBasic"/>
-  
-  
+  <xsd:element name="lapackLL" type="DT_SolverLAPACKLL" substitutionGroup="SolverBasic"/>
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for LAPACK_LL Solver -->
   <!-- ******************************************************************* -->
@@ -202,22 +194,21 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
-  
+
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                         PARDISO Solver                        == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for PARDISO Solver -->
   <!-- ******************************************************************* -->
-  <xsd:element name="pardiso" type="DT_SolverPARDISO"
-    substitutionGroup="SolverBasic"/>
-  
-  
+  <xsd:element name="pardiso" type="DT_SolverPARDISO" substitutionGroup="SolverBasic"/>
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for PARDISO Solver -->
   <!-- ******************************************************************* -->
@@ -225,12 +216,12 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence minOccurs="0" maxOccurs="1">
-          <xsd:element name="type"      type="DT_PardisoSolverType" minOccurs="0" default="direct"/>
-          <xsd:element name="posDef"    type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="type" type="DT_PardisoSolverType" minOccurs="0" default="direct"/>
+          <xsd:element name="posDef" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="hermitean" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="symStruct" type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="ordering"  type="DT_PardisoOrdering" minOccurs="0"/>
-          
+          <xsd:element name="ordering" type="DT_PardisoOrdering" minOccurs="0"/>
+
           <xsd:element name="outOfCore" type="xsd:int" minOccurs="0" default="0">
             <xsd:annotation>
               <xsd:documentation xml:lang="en"> Switch on out-of-core (OOC) mode of Pardiso. With
@@ -243,8 +234,8 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          <xsd:element name="IterRefineSteps"  type="xsd:int" minOccurs="0">
+
+          <xsd:element name="IterRefineSteps" type="xsd:int" minOccurs="0">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Sets the iterative refinement steps. Advisable for non symmetric
@@ -253,9 +244,9 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
+
           <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
-          
+
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -263,9 +254,8 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          <xsd:element name="maxIter" type="xsd:positiveInteger"
-            minOccurs="0" default="300">
+
+          <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0" default="300">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Maximum number of Krylov-subspace iterations. Acts on DPARM(1).
@@ -273,17 +263,15 @@
             </xsd:annotation>
           </xsd:element>
 
-          <xsd:element name="coarseGridDim" type="xsd:double"
-            minOccurs="0" default="1e-6">
+          <xsd:element name="coarseGridDim" type="xsd:double" minOccurs="0" default="1e-6">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Coarse Grid Matrix Dimension. Acts on DPARM(3).
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          <xsd:element name="maxNumGridLevels" type="xsd:positiveInteger"
-            minOccurs="0" default="10">
+
+          <xsd:element name="maxNumGridLevels" type="xsd:positiveInteger" minOccurs="0" default="10">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Maximum Number of Grid Levels. Acts on DPARM(4).
@@ -291,51 +279,48 @@
             </xsd:annotation>
           </xsd:element>
 
-          <xsd:element name="incompFacDropVal" type="xsd:double"
-            minOccurs="0" default="1e-2">
+          <xsd:element name="incompFacDropVal" type="xsd:double" minOccurs="0" default="1e-2">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Dropping value for the incomplete factor. Acts on DPARM(5).
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          <xsd:element name="schurcompDropVal" type="xsd:double"
-            minOccurs="0" default="5e-5">
+
+          <xsd:element name="schurcompDropVal" type="xsd:double" minOccurs="0" default="5e-5">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Dropping value for the schurcomplement. Acts on DPARM(6).
               </xsd:documentation>
             </xsd:annotation>
-          </xsd:element>          
+          </xsd:element>
 
-          <xsd:element name="maxNumFillIn" type="xsd:positiveInteger"
-            minOccurs="0" default="10">
+          <xsd:element name="maxNumFillIn" type="xsd:positiveInteger" minOccurs="0" default="10">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Maximum number of fill-in in each column in the factor. Acts on DPARM(7).
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          <xsd:element name="invBoundIncompFac" type="xsd:positiveInteger"
-            minOccurs="0" default="500">
+
+          <xsd:element name="invBoundIncompFac" type="xsd:positiveInteger" minOccurs="0"
+            default="500">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Bound for the inverse of the incomplete factor L. Acts on IPARM(8).
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          <xsd:element name="maxNumStagnationSteps" type="xsd:positiveInteger"
-            minOccurs="0" default="25">
+
+          <xsd:element name="maxNumStagnationSteps" type="xsd:positiveInteger" minOccurs="0"
+            default="25">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Maximum number of non-improvement steps in Krylov-Subspace method. Acts on IPARM(9).
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
+
           <xsd:element name="logging" type="DT_CFSBool" minOccurs="0" default="no">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -344,8 +329,9 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          <xsd:element name="loggingPerformance" type="xsd:boolean" minOccurs="0" maxOccurs="1" default="false">
+
+          <xsd:element name="loggingPerformance" type="xsd:boolean" minOccurs="0" maxOccurs="1"
+            default="false">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Print in .info.xml file information on time consumption of symbolic and
@@ -354,19 +340,19 @@
             </xsd:annotation>
           </xsd:element>
 
-          <xsd:element name="stats"     type="DT_CFSBool" minOccurs="0">
+          <xsd:element name="stats" type="DT_CFSBool" minOccurs="0">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Let PARDISO print statistics while it is solving the problem.
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-            
+
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <xsd:simpleType name="DT_PardisoOrdering">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="noReordering"/>
@@ -387,13 +373,12 @@
   <!-- ==                         UMFPACK Solver                        == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for UMFPACK Solver -->
   <!-- ******************************************************************* -->
-  <xsd:element name="umfpack" type="DT_SolverUMFPACK"
-    substitutionGroup="SolverBasic">
+  <xsd:element name="umfpack" type="DT_SolverUMFPACK" substitutionGroup="SolverBasic">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
         UMFPACK by Timothy A. Davis is a set of routines for solving 
@@ -403,8 +388,8 @@
         http://www.cise.ufl.edu/research/sparse/umfpack
       </xsd:documentation>
     </xsd:annotation>
-  </xsd:element>  
-  
+  </xsd:element>
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for UMFPACK Solver -->
   <!-- ******************************************************************* -->
@@ -412,7 +397,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence minOccurs="0" maxOccurs="1">
-          <xsd:element name="strategy"  type="DT_UMFPACKStrategy" minOccurs="0" default="auto">
+          <xsd:element name="strategy" type="DT_UMFPACKStrategy" minOccurs="0" default="auto">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 This is the most important control parameter.  It determines what kind of 
@@ -420,15 +405,15 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          <xsd:element name="ordering"  type="DT_UMFPACKOrdering" minOccurs="0" default="amd">
+
+          <xsd:element name="ordering" type="DT_UMFPACKOrdering" minOccurs="0" default="amd">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Set the ordering type as documented for umfpack_*_defaults.
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
+
           <xsd:element name="tol" type="xsd:double" minOccurs="0" default="0.1">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -436,7 +421,7 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
+
           <xsd:element name="symtol" type="xsd:double" minOccurs="0" default="0.001">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -444,7 +429,7 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
+
           <xsd:element name="irstep" type="xsd:unsignedInt" minOccurs="0" default="2">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -452,7 +437,7 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
+
           <xsd:element name="printinglevel" type="xsd:unsignedInt" minOccurs="0" default="1">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -475,12 +460,12 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-            
+
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <xsd:simpleType name="DT_UMFPACKOrdering">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="none"/>
@@ -498,19 +483,18 @@
       <xsd:enumeration value="symmetric"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                         SuperLU Solver                        == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for SuperLU Solver -->
   <!-- ******************************************************************* -->
-  <xsd:element name="superlu" type="DT_SolverSuperLU"
-    substitutionGroup="SolverBasic">
+  <xsd:element name="superlu" type="DT_SolverSuperLU" substitutionGroup="SolverBasic">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
         SuperLU package contains a set of subroutines to solve sparse linear
@@ -543,7 +527,7 @@
         http://www.netlib.org/scalapack/prototype
       </xsd:documentation>
     </xsd:annotation>
-  </xsd:element>  
+  </xsd:element>
 
   <!-- ******************************************************************* -->
   <!--   Definition of data types for SuperLU Solver -->
@@ -552,12 +536,12 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
-          <xsd:element name="logging"     type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                        SPARSE DIRECT Solver                   == -->
@@ -565,17 +549,15 @@
   <!-- ==                     (LU_SOLVER or LDL_SOLVER)                 == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for DIRECT Solvers -->
   <!-- ******************************************************************* -->
-  <xsd:element name="directLU" type="DT_SolverDIRECT_LU"
-    substitutionGroup="SolverBasic"/>
-  <xsd:element name="directLDL" type="DT_SolverDIRECT_LDL"
-    substitutionGroup="SolverBasic"/>
-  
-  
+  <xsd:element name="directLU" type="DT_SolverDIRECT_LU" substitutionGroup="SolverBasic"/>
+  <xsd:element name="directLDL" type="DT_SolverDIRECT_LDL" substitutionGroup="SolverBasic"/>
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data types for DIRECT Solvers -->
   <!-- ******************************************************************* -->
@@ -583,19 +565,18 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
-          <xsd:element name="saveFacFile" type="xsd:token"  minOccurs="0"/>
-          <xsd:element name="logging"     type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="saveFacFile" type="xsd:token" minOccurs="0"/>
+          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <xsd:complexType name="DT_SolverDIRECT_LDL">
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
-          <xsd:element name="itRefSteps" type="xsd:nonNegativeInteger"
-            minOccurs="0"/>
+          <xsd:element name="itRefSteps" type="xsd:nonNegativeInteger" minOccurs="0"/>
           <xsd:element name="itRefVerbosity" minOccurs="0">
             <xsd:simpleType>
               <xsd:restriction base="xsd:integer">
@@ -606,45 +587,42 @@
             </xsd:simpleType>
           </xsd:element>
           <xsd:element name="saveFacFile" type="xsd:token" minOccurs="0"/>
-          <xsd:element name="savePatternOnly" type="DT_CFSBool"
-            minOccurs="0"/>
+          <xsd:element name="savePatternOnly" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                        OLAS_DIAGONAL Solver                   == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  <xsd:element name="diagsolver" substitutionGroup="SolverBasic"
-                type="DT_SolverOLASDiag"/>
-  
+
+  <xsd:element name="diagsolver" substitutionGroup="SolverBasic" type="DT_SolverOLASDiag"/>
+
   <xsd:complexType name="DT_SolverOLASDiag">
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic"/>
     </xsd:complexContent>
   </xsd:complexType>
-    
-  
-  
+
+
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                         OLAS_GMRES Solver                     == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for OLAS_GMRES Solver -->
   <!-- ******************************************************************* -->
-  <xsd:element name="gmres" type="DT_SolverOLASGMRES"
-    substitutionGroup="SolverBasic"/>
-  
-  
+  <xsd:element name="gmres" type="DT_SolverOLASGMRES" substitutionGroup="SolverBasic"/>
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for OLAS_GMRES Solver -->
   <!-- ******************************************************************* -->
@@ -654,29 +632,26 @@
         <xsd:sequence>
           <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
           <xsd:element name="tol" type="xsd:float" minOccurs="0"/>
-          <xsd:element name="maxIter" type="xsd:positiveInteger"
-            minOccurs="0"/>
-          <xsd:element name="maxKrylovDim" type="xsd:positiveInteger"
-            minOccurs="0"/>
+          <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0"/>
+          <xsd:element name="maxKrylovDim" type="xsd:positiveInteger" minOccurs="0"/>
           <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
-  
+
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                           ILUPACK Solver                      == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for ILUPACK Solver                            -->
   <!-- ******************************************************************* -->
-  <xsd:element name="ilupack" type="DT_Ilupack"
-    substitutionGroup="SolverBasic">
+  <xsd:element name="ilupack" type="DT_Ilupack" substitutionGroup="SolverBasic">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
         ILUPACK by Matthias Bollhoefer is package of multilevel incomplete
@@ -686,7 +661,7 @@
       </xsd:documentation>
     </xsd:annotation>
   </xsd:element>
-  
+
   <!-- <ilupack>
     <permutation type="inital"  matrix="sym" ordering="mmd" matchin="mwm" />
     <permutation type="regular" matrix="sym" ordering="mmd" matching="mwm" />
@@ -694,9 +669,9 @@
     <engine type="sqmr"/>
     <flag name="aggressiveDropping" state="on"/>
     </ilupack> -->
-  
+
   <!-- Definition of the ILUPACK matrix attribute -->
-  <xsd:simpleType name="DT_Ilupack_Matrix">  
+  <xsd:simpleType name="DT_Ilupack_Matrix">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="sym"/>
       <xsd:enumeration value="pd"/>
@@ -704,8 +679,8 @@
       <xsd:enumeration value="her"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for ILUPACK Solver -->
   <!-- ******************************************************************* -->
@@ -713,9 +688,9 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
-          
+
           <xsd:element name="ordering" maxOccurs="1" minOccurs="0">
-            <xsd:simpleType>  
+            <xsd:simpleType>
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="metise"/>
                 <xsd:enumeration value="metisn"/>
@@ -727,10 +702,10 @@
                 <xsd:enumeration value="pq"/>
               </xsd:restriction>
             </xsd:simpleType>
-          </xsd:element>          
-          
+          </xsd:element>
+
           <xsd:element name="matching" minOccurs="0" maxOccurs="1" type="xsd:boolean" default="true"/>
-          
+
           <xsd:element name="amg" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:sequence>
@@ -746,11 +721,12 @@
                         </xsd:restriction>
                       </xsd:simpleType>
                     </xsd:attribute>
-                    <xsd:attribute name="n-pre-smothing" default="1" use="optional" type="xsd:nonNegativeInteger"/>
+                    <xsd:attribute name="n-pre-smothing" default="1" use="optional"
+                      type="xsd:nonNegativeInteger"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
-              
+
               <xsd:attribute name="type" default="ilu">
                 <xsd:simpleType>
                   <xsd:restriction base="xsd:token">
@@ -761,60 +737,66 @@
                 </xsd:simpleType>
               </xsd:attribute>
             </xsd:complexType>
-            </xsd:element>
-            
+          </xsd:element>
+
           <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
-            <xsd:element name="iterativeSolver" minOccurs="0" maxOccurs="1">
-              <xsd:complexType>
-                <xsd:attribute name="solver" use="optional">
-                  <xsd:simpleType>
-                    <xsd:restriction base="xsd:token">
-                      <xsd:enumeration value="pcg"/>
-                      <xsd:enumeration value="sbcg"/>
-                      <xsd:enumeration value="bcg"/>
-                      <xsd:enumeration value="sqmr"/>
-                      <xsd:enumeration value="bcgstab"/>
-                      <xsd:enumeration value="tfqmr"/>
-                      <xsd:enumeration value="fom"/>
-                      <xsd:enumeration value="gmres"/>
-                      <xsd:enumeration value="fgmres"/>
-                      <xsd:enumeration value="dqmres"/>                    
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:attribute>
-                <xsd:attribute name="maxIter" type="xsd:nonNegativeInteger" default="500" use="optional"/>
-                <xsd:attribute name="residualTol" type="xsd:double" default="1e-8" use="optional"/>  
-                <xsd:attribute name="nrestart" type="xsd:nonNegativeInteger" use="optional">
-                  <xsd:annotation>
-                    <xsd:documentation>
+          <xsd:element name="iterativeSolver" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="solver" use="optional">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="pcg"/>
+                    <xsd:enumeration value="sbcg"/>
+                    <xsd:enumeration value="bcg"/>
+                    <xsd:enumeration value="sqmr"/>
+                    <xsd:enumeration value="bcgstab"/>
+                    <xsd:enumeration value="tfqmr"/>
+                    <xsd:enumeration value="fom"/>
+                    <xsd:enumeration value="gmres"/>
+                    <xsd:enumeration value="fgmres"/>
+                    <xsd:enumeration value="dqmres"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <xsd:attribute name="maxIter" type="xsd:nonNegativeInteger" default="500"
+                use="optional"/>
+              <xsd:attribute name="residualTol" type="xsd:double" default="1e-8" use="optional"/>
+              <xsd:attribute name="nrestart" type="xsd:nonNegativeInteger" use="optional">
+                <xsd:annotation>
+                  <xsd:documentation>
                       Number of steps before GMRES is restarted.
                       The iterative solver uses restarted GMRES (resp. fGMRES).
                       By default, the ilupack intern default value is taken.
                       Note that a smaller number reduces the memory, while a larger number
                       can improve the convergence
                     </xsd:documentation>
-                  </xsd:annotation>
-                </xsd:attribute>
-              </xsd:complexType>
-            </xsd:element>  <!-- end of engine -->
-            
-            <xsd:element name="dropTolLU" type="xsd:float" default="1e-2" minOccurs="0" maxOccurs="1"/>
-            <xsd:element name="dropTolSchur" type="xsd:float" default="1e-2" minOccurs="0" maxOccurs="1"/>
-            <xsd:element name="condest" type="xsd:positiveInteger" default="100" minOccurs="0" maxOccurs="1" />
-            <xsd:element name="elbowSpace" type="xsd:positiveInteger" default="10" minOccurs="0" maxOccurs="1"/>
-    
+                </xsd:annotation>
+              </xsd:attribute>
+            </xsd:complexType>
+          </xsd:element>
+          <!-- end of engine -->
+
+          <xsd:element name="dropTolLU" type="xsd:float" default="1e-2" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="dropTolSchur" type="xsd:float" default="1e-2" minOccurs="0"
+            maxOccurs="1"/>
+          <xsd:element name="condest" type="xsd:positiveInteger" default="100" minOccurs="0"
+            maxOccurs="1"/>
+          <xsd:element name="elbowSpace" type="xsd:positiveInteger" default="10" minOccurs="0"
+            maxOccurs="1"/>
+
         </xsd:sequence>
-        <xsd:attribute name="matrix" use="optional" type="DT_Ilupack_Matrix" />
+        <xsd:attribute name="matrix" use="optional" type="DT_Ilupack_Matrix"/>
       </xsd:extension>
     </xsd:complexContent>
-  </xsd:complexType> <!-- end of DT_Ilupack -->
-  
+  </xsd:complexType>
+  <!-- end of DT_Ilupack -->
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for CholMod Solver                            -->
   <!-- ******************************************************************* -->
-  
+
   <xsd:element name="cholmod" type="DT_CholMod" substitutionGroup="SolverBasic"/>
-  
+
   <xsd:complexType name="DT_CholMod">
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
@@ -824,7 +806,7 @@
               <xsd:sequence>
                 <xsd:element name="method" minOccurs="0" maxOccurs="10">
                   <xsd:complexType>
-                    <xsd:attribute name="id" use="required" type="xsd:int"/>                    
+                    <xsd:attribute name="id" use="required" type="xsd:int"/>
                     <xsd:attribute name="prune_dense" type="xsd:float" default="10.0"/>
                     <xsd:attribute name="prune_dense2" type="xsd:float" default="-1.0"/>
                     <xsd:attribute name="nd_oksep" type="xsd:float" default="1.0"/>
@@ -869,9 +851,9 @@
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
-  </xsd:complexType>  
-  
-  
+  </xsd:complexType>
+
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                        LIS ITERATIVE Solver                   == -->
@@ -886,8 +868,7 @@
   <!-- ******************************************************************* -->
   <!-- Definition of element for OLAS_MINRES Solver -->
   <!-- ******************************************************************* -->
-  <xsd:element name="lis" type="DT_LISSpec"
-    substitutionGroup="SolverBasic">
+  <xsd:element name="lis" type="DT_LISSpec" substitutionGroup="SolverBasic">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
         Lis, a Library of Iterative Solvers for linear systems, is a parallel
@@ -899,8 +880,8 @@
       </xsd:documentation>
     </xsd:annotation>
   </xsd:element>
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for OLAS_GMRES Solver -->
   <!-- ******************************************************************* -->
@@ -917,7 +898,7 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType-->
-  
+
   <xsd:complexType name="DT_LISSpec">
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
@@ -926,18 +907,20 @@
           <xsd:element name="solver" type="DT_SolverLIS" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="maxIter" type="xsd:int" default="10000" minOccurs="0" maxOccurs="1"/>
           <!-- This is the target residual given to lis. Note, that lis knows three norms -->
-          <xsd:element name="tolerance" type="xsd:double" default="1e-12" maxOccurs="1" minOccurs="0"/>
+          <xsd:element name="tolerance" type="xsd:double" default="1e-12" maxOccurs="1"
+            minOccurs="0"/>
           <!-- When maxIter is exceeded but the achieved resual is not worse the minimalTolerance no exception is thrown -->
-          <xsd:element name="minimalTolerance" type="xsd:double" default="1e-11" maxOccurs="1" minOccurs="0"/>
+          <xsd:element name="minimalTolerance" type="xsd:double" default="1e-11" maxOccurs="1"
+            minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" default="false" minOccurs="0"/>
           <xsd:element name="zeroInitialValue" type="xsd:boolean" default="false" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
- 
-  
+
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for LIS ITERATIVE Solver -->
   <!-- ******************************************************************* -->
@@ -945,8 +928,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:choice>
-          <xsd:element name="CG"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="BiCG"   type="xsd:token"   minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="CG" type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="BiCG" type="xsd:token" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="CGS"/>
           <xsd:element name="BiCGSTAB"/>
           <xsd:element name="BiCGSTABL">
@@ -958,7 +941,7 @@
           <xsd:element name="TFQMR"/>
           <xsd:element name="Orthomin">
             <xsd:complexType>
-              <xsd:attribute name="restart" type="xsd:int" default="40"></xsd:attribute>
+              <xsd:attribute name="restart" type="xsd:int" default="40"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="GMRES">
@@ -970,7 +953,7 @@
           <xsd:element name="GaussSeidel"/>
           <xsd:element name="SOR">
             <xsd:complexType>
-              <xsd:attribute name="omega" default="1.9" type="xsd:double"></xsd:attribute>
+              <xsd:attribute name="omega" default="1.9" type="xsd:double"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="BiCGSave"/>
@@ -995,7 +978,7 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <xsd:complexType name="DT_PreCondLIS">
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
@@ -1078,7 +1061,7 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
@@ -1091,47 +1074,25 @@
   <!-- ******************************************************************* -->
   <!--xsd:element name="petsc" type="DT_PETSCSpec"
     substitutionGroup="SolverBasic"/-->
-  <!-- ******************************************************************* -->
-  <!-- Definition of element for OLAS_MINRES Solver -->
-  <!-- ******************************************************************* -->
+  
   <xsd:element name="petsc" type="DT_PETSCSpec"
     substitutionGroup="SolverBasic">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
-        PETSC, a Library of Iterative Solvers for linear systems, is a parallel
-        numerical library for solving the linear equations Ax = b
-        and the standard eigenvalue problems Ax = lambda x with real sparse matrices
+        PETSC, a Library of Iterative Solvers for linear systems, is a mpi parallel
+        numerical library for solving the linear equations Ax = b (implemented)for real sparse matrices
         using iterative methods.
-        
-        http://www.ssisc.org/
       </xsd:documentation>
     </xsd:annotation>
   </xsd:element>
   
   
-  <!-- ******************************************************************* -->
-  <!--   Definition of data type for OLAS_GMRES Solver -->
-  <!-- ******************************************************************* -->
-  <!--xsd:complexType name="DT_SolverOLASPETSC">
-    <xsd:complexContent>
-      <xsd:extension base="DT_SolverBasic">
-        <xsd:sequence>
-          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
-          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
-          <xsd:element name="maxIter" type="xsd:positiveInteger"
-            minOccurs="0"/>
-          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
-        </xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType-->
-  
   <xsd:complexType name="DT_PETSCSpec">
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
-          <xsd:element name="precond" type="DT_PreCondPETSC" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="solver" type="DT_SolverPETSC" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="precond" type="DT_PreCondPETSC" minOccurs="1" maxOccurs="1" />
+          <xsd:element name="solver" type="DT_SolverPETSC" minOccurs="1" maxOccurs="1" />
           <xsd:element name="maxIter" type="xsd:int" default="10000" minOccurs="0" maxOccurs="1"/>
           <!-- This is the target residual given to PETSC. Note, that PETSC knows three norms -->
           <xsd:element name="tolerance" type="xsd:double" default="1e-12" maxOccurs="1" minOccurs="0"/>
@@ -1153,52 +1114,20 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:choice>
-          <xsd:element name="CG"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="BiCG"   type="xsd:token"   minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="CGS"/>
-          <xsd:element name="BiCGSTAB"/>
-          <xsd:element name="BiCGSTABL">
-            <xsd:complexType>
-              <xsd:attribute name="degree" type="xsd:int" default="2"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="CPBiCG"/>
-          <xsd:element name="TFQMR"/>
-          <xsd:element name="Orthomin">
-            <xsd:complexType>
-              <xsd:attribute name="restart" type="xsd:int" default="40"></xsd:attribute>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="GMRES">
-            <xsd:complexType>
-              <xsd:attribute name="restart" type="xsd:int" default="40"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="Jacobi"/>
-          <xsd:element name="GaussSeidel"/>
-          <xsd:element name="SOR">
-            <xsd:complexType>
-              <xsd:attribute name="omega" default="1.9" type="xsd:double"></xsd:attribute>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="BiCGSave"/>
-          <xsd:element name="CR"/>
-          <xsd:element name="BiCR"/>
-          <xsd:element name="CRS"/>
-          <xsd:element name="BiCRSTAB"/>
-          <xsd:element name="GPBiCR"/>
-          <xsd:element name="minres"/>
-          <xsd:element name="BiCRSAFE"/>
-          <xsd:element name="FGMRES">
-            <xsd:complexType>
-              <xsd:attribute name="restart" type="xsd:int" default="40" use="optional"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="IDRs">
-            <xsd:complexType>
-              <xsd:attribute name="irestart" type="xsd:int" default="2"/>
-            </xsd:complexType>
-          </xsd:element>
+          <xsd:element name="cg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="fcg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="gmres"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="fgmres"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="bcgs"   type="xsd:token"   minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="groppcg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="pipecg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="pipecgrr"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="nash"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="stcg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="minres"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="bicg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="symmlq"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="cr"  type="xsd:token" minOccurs="0" maxOccurs="1"/>   
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
@@ -1208,80 +1137,44 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:choice>
-          <xsd:element name="none"/>
           <xsd:element name="jacobi"/>
-          <xsd:element name="iluk">
+          <xsd:element name="sor">
             <xsd:complexType>
-              <!-- even when given as float, it will be interpretet as int by PETSC -->
-              <xsd:attribute name="fill" type="xsd:int" default="0" use="optional"/>
-            </xsd:complexType>
+                <xsd:attribute name="omega" type="xsd:double" default="1.0" use="optional"/>
+             </xsd:complexType>
           </xsd:element>
-          <xsd:element name="ssor">
-            <xsd:complexType>
-              <xsd:attribute name="omega" type="xsd:double" default="1.0" use="optional"/>
-            </xsd:complexType>
+     	  <xsd:element name="gamg">
+     	   <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                "Algebraic Multigrid Only Works for sparseNonSym Matrix. 
+                It also requires  much more tuning to achieve a good speed to solution(these options will be added later)
+                For now one can use .petscrc file which should be in the running directory to add options
+                refer this for options that can be configured for this gamg preconditioner
+                http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMG.html"
+              </xsd:documentation>
+            </xsd:annotation>
           </xsd:element>
-          <!--xsd:element name="hybrid">
+          <xsd:element name="mg">
             <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="solver" minOccurs="0" maxOccurs="1" default="SOR">
-                  <xsd:simpleType>
-                    <xsd:restriction base="xsd:token">
-                      <xsd:enumeration value="CG"/>
-                      <xsd:enumeration value="BiCG"/>
-                      <xsd:enumeration value="CGS"/>
-                      <xsd:enumeration value="BiCGSTAB"/>
-                      <xsd:enumeration value="BiCGSTABL"/>
-                      <xsd:enumeration value="CPBiCG"/>
-                      <xsd:enumeration value="TFQMR"/>
-                      <xsd:enumeration value="Orthomin"/>
-                      <xsd:enumeration value="GMRES"/>
-                      <xsd:enumeration value="Jacobi"/>
-                      <xsd:enumeration value="GaussSeidel"/>
-                      <xsd:enumeration value="SOR"/>
-                      <xsd:enumeration value="BiCGSave"/>
-                      <xsd:enumeration value="CR"/>
-                      <xsd:enumeration value="BiCR"/>
-                      <xsd:enumeration value="BiCRSTAB"/>
-                      <xsd:enumeration value="GPBiCR"/>
-                      <xsd:enumeration value="FGMRES"/>
-                      <xsd:enumeration value="IDRs"/>
-                      <xsd:enumeration value="minres"/>
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:element>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element-->
-          <xsd:element name="is">
-            <xsd:complexType>
-              <xsd:attribute name="alpha" type="xsd:double" use="optional" default="1.0"/>
-              <xsd:attribute name="m" type="xsd:int" use="optional" default="3"/>
-            </xsd:complexType>
+              <xsd:attribute name="nlvls" use="optional" type="xsd:int" default="1" />
+              <xsd:attribute name="smoothSweeps" use="optional" type="xsd:int" default="2"/>
+							<xsd:attribute name="coarse_rtol" use="optional" type="xsd:double" default="1.0e-8"/>
+							<xsd:attribute name="coarse_atol" use="optional" type="xsd:double" default="1.0e-50"/>
+							<xsd:attribute name="coarse_dtol" use="optional" type="xsd:double" default="1e3"/>
+							<xsd:attribute name="coarse_maxits" use="optional" type="xsd:int" default="30"/>
+						</xsd:complexType>
+           </xsd:element>
+          <xsd:element name="asm"/>
+          <xsd:element name="bjacobi"/>
+          <xsd:element name="icc"> 
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                "Only Works for serial case"
+              </xsd:documentation>
+            </xsd:annotation>
           </xsd:element>
-          <xsd:element name="sainv">
-            <xsd:complexType>
-              <xsd:attribute name="drop" type="xsd:double" default="0.5" use="optional"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="saamg">
-            <xsd:complexType>
-              <xsd:attribute name="unsym" type="xsd:boolean" use="optional" default="false"/>
-              <xsd:attribute name="theta" type="xsd:double" use="optional" default="0.05"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="iluc">
-            <xsd:complexType>
-              <xsd:attribute name="drop" type="xsd:double" default="0.05"/>
-              <xsd:attribute name="fillInRate" type="xsd:double" default="5.0"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="ilut">
-            <xsd:complexType>
-              <xsd:attribute name="drop" type="xsd:double" default="0.05"/>
-              <xsd:attribute name="fillInRate" type="xsd:double" default="5.0"/>
-            </xsd:complexType>
-          </xsd:element>
+          
+          
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
@@ -1296,15 +1189,14 @@
   <!-- ==                        OLAS_MINRES Solver                     == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for OLAS_MINRES Solver -->
   <!-- ******************************************************************* -->
-  <xsd:element name="minres" type="DT_SolverOLASMINRES"
-    substitutionGroup="SolverBasic"/>
-  
-  
+  <xsd:element name="minres" type="DT_SolverOLASMINRES" substitutionGroup="SolverBasic"/>
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for OLAS_GMRES Solver -->
   <!-- ******************************************************************* -->
@@ -1314,29 +1206,27 @@
         <xsd:sequence>
           <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
-          <xsd:element name="maxIter" type="xsd:positiveInteger"
-            minOccurs="0"/>
+          <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0"/>
           <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
-  
+
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                    ARPACK EIGENVALUE SOLVER                   == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!-- Definition of element for ARPACK Eigenvalue Solver -->
   <!-- ******************************************************************* -->
-  <xsd:element name="arpack" type="DT_EigenSolverARPACK"
-    substitutionGroup="EigenSolverBasic"/>
-  
-  
+  <xsd:element name="arpack" type="DT_EigenSolverARPACK" substitutionGroup="EigenSolverBasic"/>
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for ARPACK Eigenvalue Solver -->
   <!-- ******************************************************************* -->
@@ -1345,7 +1235,7 @@
       <xsd:extension base="DT_EigenSolverBasic">
         <xsd:sequence>
           <xsd:element name="tolerance" type="xsd:float" minOccurs="0"/>
-          <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0" />
           <!-- The arnoldi vectors are at least n+1 and typcally 2*n. Chose a Factor from 1.1 ... 2 or larger -->
           <xsd:element name="arnoldiFactor" type="xsd:float" minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
@@ -1366,29 +1256,154 @@
           </xsd:element>
         </xsd:sequence>
       </xsd:extension>
-      
+
     </xsd:complexContent>
   </xsd:complexType>
 
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                    PHIST EIGENVALUE SOLVER                    == -->
-  <!-- ==                                                               == -->
+  <!-- ==               https://bitbucket.org/essex/phist               == -->
   <!-- =================================================================== -->
-  
+
   <xsd:element name="phist" type="DT_EigenSolverPHIST" substitutionGroup="EigenSolverBasic"/>
-  
+ 
   <xsd:complexType name="DT_EigenSolverPHIST">
     <xsd:complexContent>
       <xsd:extension base="DT_EigenSolverBasic">
         <xsd:sequence>
-          <xsd:element name="tolerance" type="xsd:float" minOccurs="0"/>
-          <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          <!-- more options are found in phist_jadaOpts.h ->  -->
+          <xsd:element name="innerSolv" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="type" use="optional" default="minres">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <!-- GMRES for general matrices (with left and/or right preconditioning) -->
+                    <xsd:enumeration value="gmres"/>
+                    <!-- MINRES for symmetric and indefinite matrices -->
+                    <xsd:enumeration value="minres"/>
+                    <!-- QMR for general matrices -->
+                    <xsd:enumeration value="qmr"/>
+                    <!-- BiCGStab for general matrices -->
+                    <xsd:enumeration value="bicgstab"/>
+                    <!-- CG on the normal equations, preconditioned by CARP (parallel SSOR) -->
+                    <xsd:enumeration value="carp_cg"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <!-- Jonas gave this low value as default?! -->
+              <xsd:attribute name="maxIter" type="xsd:positiveInteger" use="optional" default="10"/>
+              <!--  if set to -1, innerSolvMaxBas=innerSolvMaxIters is used (no restarting of e.g. GMRES) -->
+              <xsd:attribute name="maxBas" type="xsd:int" use="optional" default="-1"/>
+              <!-- if set to -1, the outer block size (blockSize) is used. -->
+              <xsd:attribute name="blockSize" type="xsd:int" use="optional" default="-1"/>
+              <!-- extra effort to get good jada updates (in practice this may mean a more accurate orthogonalization etc.) -->
+              <xsd:attribute name="robust" type="xsd:int" use="optional" default="1"/>
+              <xsd:attribute name="baseTol" type="xsd:float" use="optional" default=".1"/>
+            </xsd:complexType>
+          </xsd:element>
+	      </xsd:sequence>
+	     
+        <xsd:attribute name="convTol" type="xsd:float" use="optional" default="1e-8"/>
+        <xsd:attribute name="maxIter" type="xsd:nonNegativeInteger" use="optional" default="150"/>
+        <xsd:attribute name="blockSize" use="optional" default="4">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:int">
+              <xsd:enumeration value="1"/>
+              <xsd:enumeration value="2"/>
+              <xsd:enumeration value="4"/>
+              <xsd:enumeration value="6"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="which" use="optional" default="sr">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <!-- largest magnitude --> 
+              <xsd:enumeration value="lm"/>
+              <!-- smallest magnitude --> 
+              <xsd:enumeration value="sm"/>
+              <!-- largest real part --> 
+              <xsd:enumeration value="lr"/>
+              <!-- smallest real part --> 
+            <xsd:enumeration value="sr"/>
+          </xsd:restriction>
+         </xsd:simpleType>
+        </xsd:attribute>
+        <!-- shall we scale the mass matrix by 1/m[1,1]?. Rescaling is done automatically -->
+        <xsd:attribute name="scale_mass" type="xsd:boolean" use="optional" default="true"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                    FEAST EIGENVALUE SOLVER                    == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+
+  <xsd:element name="feast" type="DT_EigenSolverFEAST" substitutionGroup="EigenSolverBasic"/>
+
+  <xsd:complexType name="DT_EigenSolverFEAST">
+    <xsd:complexContent>
+      <xsd:extension base="DT_EigenSolverBasic">
+        <xsd:all>
+
+          <!-- Allow separate solver within eigenfrequency calculation -->
+          <!-- <xsd:element name="solver" minOccurs="0" >
+            <xsd:complexType>
+              <xsd:attribute name="id"  type="xsd:token" default="default"/>
+            </xsd:complexType>
+          </xsd:element>-->
+          <xsd:element name="stopCrit" type="xsd:nonNegativeInteger" minOccurs="0" default="12">
+            <xsd:annotation>
+              <xsd:documentation>error trace double precision stopping criteria eps=10^(-stopCrit)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="Ne" type="xsd:nonNegativeInteger" minOccurs="0" default="8">
+            <xsd:annotation>
+              <xsd:documentation>The number of contour points (see the description of FEAST algorithm). Must be one of {3,4,5,6,8,10,12,16,20,24,32,40,48}.</xsd:documentation>
+	          </xsd:annotation>
+          </xsd:element>
+	        <xsd:element name="maxRefinmentLoops" type="xsd:nonNegativeInteger" minOccurs="0" default="20">
+	          <xsd:annotation>
+	            <xsd:documentation>Maximum number of Extended Eigensolver refinement loops allowed.</xsd:documentation>
+            </xsd:annotation>         
+          </xsd:element>
+	        <xsd:element name="m0" type="xsd:nonNegativeInteger" minOccurs="0">
+	          <xsd:annotation>
+	            <xsd:documentation>specifies the initial guess for subspace dimension to be used, [m0,n]. Set m0 â¥ m where m is the total number of eigenvalues located in the interval [emin, emax]Maximum number of Extended Eigensolver refinement loops allowed.</xsd:documentation>
+            </xsd:annotation>         
+          </xsd:element>
           <xsd:element name="numVec" type="xsd:nonNegativeInteger" minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
+        </xsd:all>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>  
+  
+    <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                    PHIST Linear SOLVER                    == -->
+  <!-- ==               https://bitbucket.org/essex/phist               == -->
+  <!-- =================================================================== -->
+  
+  <xsd:element name="phist_linSolv" type="DT_PHISTSpec" substitutionGroup="SolverBasic"/>  
+  <xsd:complexType name="DT_PHISTSpec">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="maxIter" type="xsd:int" default="10000" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="tolerance" type="xsd:double" default="1e-12" maxOccurs="1" minOccurs="0"/>
+          <xsd:element name="blockSize" type="xsd:int" default="4" maxOccurs="1" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+  
+ 
+  
+ 
+  
   
 </xsd:schema>

@@ -154,7 +154,10 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-deprecated -Wno-attributes -Wno-unused-local-typedefs -Wno-overflow")
 
   IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "5.0") # there is no >= and also there is no 5.0.0.0
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-address -Wno-error=address")
+    # /home/fwein/code/trunk/cfs/debug/include/boost/archive/detail/iserializer.hpp:65:1: error: this use of "defined" may not be portable [-Werror=expansion-to-defined] 
+     #if ! DONT_USE_HAS_NEW_OPERATOR
+
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-address -Wno-error=address -Wno-expansion-to-defined ")
   ENDIF()  
 
   IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "6.0")
@@ -213,12 +216,13 @@ main ()
   ENDIF(COVERAGE)
   
   IF(NOT USE_OPENMP)
-    IF(NOT USE_PHIST)
+    IF(NOT USE_PHIST_EV OR USE_PHIST_CG)
       SET(CFS_C_FLAGS "-Werror -Wcomment ${CFS_C_FLAGS}")
       SET(CFS_CXX_FLAGS "-Werror -Wcomment ${CFS_CXX_FLAGS}")
-    ENDIF(NOT USE_PHIST)  
+    ENDIF(NOT USE_PHIST_EV OR USE_PHIST_CG )  
   ENDIF(NOT USE_OPENMP)
-
+  
+  
   IF(NOT USE_CGAL)
     SET(CFS_C_FLAGS "-pedantic ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-pedantic ${CFS_CXX_FLAGS}")
@@ -313,20 +317,7 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::basic_istream::get")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::max")
   ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
-  
-  # The  intel  compiler might  not  know  the  function __builtin_isnan  (and
-  #  isinf), so redirect that to isnan
-  # comment it out as it breaks with icc 2016 and gcc 6 libs
-  #SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
-  # end icc section
-ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "OPEN64")
-  IF(NOT USE_CGAL)
-    SET(CFS_C_FLAGS "-pedantic ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-pedantic ${CFS_CXX_FLAGS}")
-  ELSE(NOT USE_CGAL)
-    SET(CFS_C_FLAGS "-mieee-fp -fp-accuracy=strict -DCGAL_DISABLE_ROUNDING_MATH_CHECK ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-mieee-fp -fp-accuracy=strict -DCGAL_DISABLE_ROUNDING_MATH_CHECK ${CFS_CXX_FLAGS}")
-  ENDIF()
+  # Open64 compiler support removed. See svn version 15997  
 ENDIF() # close all CXX compiler specific blocks
 
 # common for all compilers

@@ -37,42 +37,49 @@ def dof(val):
     return 1
   if val == 'z':
     return 2
+  print(val)
   assert(False)
 
 # 'x' and 'y' -> 'z' 
 def flip_dof(dof1, dof2):
   
   if dof1 == 0:
+    assert(dof2 == 1 or dof2 == 2)
     if dof2 == 1:
       return 2
     else:
       return 1
 
   if dof1 == 1:
+    assert(dof2 == 0 or dof2 == 2)
     if dof2 == 2:
       return 0
     else:
       return 2
 
   if dof1 == 2:
+    assert(dof2 == 0 or dof2 == 1)
     if dof2 == 0:
       return 1
     else:
       return 0
   
   if dof1 == 'x':
+    assert(dof2 == 'y' or dof2 == 'z')
     if dof2 == 'y':
       return 'z'
     else:
       return 'y'
 
   if dof1 == 'y':
+    assert(dof2 == 'x' or dof2 == 'z')
     if dof2 == 'z':
       return 'x'
     else:
       return 'z'
 
   if dof1 == 'z':
+    assert(dof2 == 'x' or dof2 == 'y')
     if dof2 == 'x':
       return 'y'
     else:
@@ -83,7 +90,7 @@ def flip_dof(dof1, dof2):
 def create_figure(res, minimal, maximal):
 
   dpi_x = res / 100.0 
-  
+
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_x))
   ax = fig.add_subplot(111)
   ax.set_xlim(min(0,minimal[0]), max(1,maximal[0]))
@@ -108,12 +115,50 @@ def find_shape_by_dof(shapes, dof):
       res.append(s)  
   return res     
 
-
+# transforms ids from 0 to 6 to color codes 'b' to 'k'. Only for matplotlib, not for vtk!
+def matplotlib_color_coder(id):
+  id = id % 6
+  if id == 0:
+    return 'b'  
+  if id == 1:
+    return 'g'  
+  if id == 2:
+    return 'r'  
+  if id == 3:
+    return 'c'  
+  if id == 4:
+    return 'm'  
+  if id == 5:
+    return 'y'  
+  if id == 6:
+    return 'k'
+  assert(id <= 6)  
+  
+# transforms a matplotlib color code to a vtk color name
+def vtk_color_transform(matplotlib_color_code):
+  if matplotlib_color_code == 'b':
+    return 'blue'
+  if matplotlib_color_code == 'g':
+    return 'green'
+  if matplotlib_color_code == 'r':
+    return 'red'
+  if matplotlib_color_code == 'c':
+    return 'cyan'
+  if matplotlib_color_code == 'm':
+    return 'magenta'
+  if matplotlib_color_code == 'y':
+    return 'yellow'
+  if matplotlib_color_code == 'k':
+    return 'khaki'
+  assert(False)
   
 class Shape: 
-  def __init__(self, id, dof):
+  def __init__(self, id, dof, dof_b = None, scale = [1.0,1.0,1.0]):
     self.id = id
     self.dof = dof
+    self.dof_b = dof_b
+
+    self.scale = scale
     self.el = []
     # node variable a. For 3D there is also b
     self.a = []
@@ -121,21 +166,8 @@ class Shape:
     self.b = []
     self.profile = []
     self.valid = [] # only necessary for image import
-    if id == 0:
-      self.color = 'b'  
-    if id == 1:
-      self.color = 'g'  
-    if id == 2:
-      self.color = 'r'  
-    if id == 3:
-      self.color = 'c'  
-    if id == 4:
-      self.color = 'm'  
-    if id == 5:
-      self.color = 'y'  
-    if id == 6:
-      self.color = 'k'
-    assert(id <= 6)  
+    # the color is in matplotlib code ('b', ...) transform for vtk
+    self.color = matplotlib_color_coder(id)  
   
   # print the shape info
   def __str__(self):
@@ -148,6 +180,8 @@ class Shape:
   #@return x, y for center point a
   def get_center(self, idx):   
     free = idx * float(1./(len(self.el)-1))
+    # fails for 3D!!!
+    free *= self.scale[1-self.dof]
     val  = self.a[idx]
     # this is the a middle line
     x = free if self.dof == 1 else val
@@ -350,21 +384,25 @@ def read_legacy_xml(filename, set, profile):
 
 # reads 2D and 3D s
 def read_xml(xml, set, profile):
+  # find scaling assuming equal mesh sizing
+  nx, ny, nz = read_mesh_info_xml(xml)
+  scale = [1.0, float(ny)/nx, float(nz)/nx] # nz=1 ignored in 2D 
+  
   shapes = []
-
   sq = 'last()' if not set else '@id="' + str(set) + '"'
-  list = xml.xpath('//set[' + sq + ']/shapeParamElement[@ref="0"]')
+  ref = 0 # the current ref id to read the shape from, incremented at end of loop
+  list = xml.xpath('//set[' + sq + ']/shapeParamElement[@ref="' + str(ref) + '"]') 
   while list:
     # we do not know yet if we are 2D or 3D. For 3D center nodes, the there are two nodes dof the the shape dof is the third by definition
     first_dof = dof(list[0].get('dof')) # might change
     first_shape = int(list[0].get('shape'))
-    shape = Shape(id = len(shapes), dof = first_dof)
+    shape = Shape(id = len(shapes), dof = first_dof, scale = scale)
     for el in list:
       nr = int(el.get('nr'))
-      v =  float(el.get('design'))
-      d = dof(dof(el.get('dof')))
-      s = int(el.get('shape'))
-      t = el.get('type')
+      v  = float(el.get('design'))
+      d  = dof(el.get('dof'))
+      s  = int(el.get('shape'))
+      t  = el.get('type')
       
       if s == first_shape:
         shape.a.append(v)
@@ -372,7 +410,7 @@ def read_xml(xml, set, profile):
       else:
         if t == 'node':
           assert(d != first_dof)
-          shape.dof = flip_dof(first_dof, d) # done everytime but who cares ...
+          shape.dof_b = d # done everytime but who cares ...
           shape.b.append(v)
         else:
           shape.profile.append(v) 
@@ -381,8 +419,11 @@ def read_xml(xml, set, profile):
     # print(len(shape.a), len(shape.b), len(shape.profile))
     assert(len(shape.a) == len(shape.profile))
     assert(len(shape.b) == 0 or len(shape.b) == len(shape.a)) # 3D case
+    assert((len(shape.b) == 0 and shape.dof_b is None) or (len(shape.b) > 0 and shape.dof_b is not None))
     shapes.append(shape)
-    list = xml.xpath('//set[' + sq + ']/shapeParamElement[@ref="' + str(len(shapes)) + '"]')
+    
+    ref += 1 if len(shape.b) == 0 else 2 
+    list = xml.xpath('//set[' + sq + ']/shapeParamElement[@ref="' + str(ref) + '"]')
 
   return shapes   
 
@@ -694,38 +735,91 @@ def export(shapes, filename, suppress_profile):
   out.write('  </set>\n')
   out.write(' </cfsErsatzMaterial>\n')
   
+
+# small permutation helper
+#@param pm the indices define from where to take the value
+def permutate(pm, v0, v1, v2):  
+  assert(len(pm) == 3)
+  v = [v0, v1, v2]
+  #print('permutate: pm=',pm, '(',v0,v1,v2,') -> ',v[pm[0]], v[pm[1]], v[pm[2]]) 
+  return (v[pm[0]], v[pm[1]], v[pm[2]])
+  
+  
 ## creates a 3d vtk polydate from a shape
-#@param res how fine to resolve a circle  
-def create_3d_vtk(shape, res):
+#@param res how fine to resolve a circle, shall be even!
+#@param color a native vtk color name. The colors can only be seen with Paraview!  
+def create_3d_vtk_shape(shape, res, color = 'blue'):
   assert(len(shape.a) == len(shape.b) == len(shape.profile))
+  assert(res % 2 == 0)
+
+  # here we assume a cylinder standing on the xy plane, growing in the z-direction
+  # this needs to permutated when we store the actual nodal coordinates
+  pm = None
+  if shape.dof == 0 and shape.dof_b == 1: # this is the assumed case xy
+    pm = [0, 1, 2] 
+  if shape.dof == 1 and shape.dof_b == 0: # yx plane, could be probably be same as above
+    pm = [1, 0, 2] 
+  if shape.dof == 0 and shape.dof_b == 2: # xz plane
+    pm = [0, 2, 1]
+  if shape.dof == 2 and shape.dof_b == 0: # zx plane
+    pm = [1, 2, 0]
+  if shape.dof == 1 and shape.dof_b == 2: # yz plane
+    pm = [2, 0, 1]
+  if shape.dof == 2 and shape.dof_b == 1: # zy plane
+    pm = [2, 1, 0]
+  
   # centers points
   ns = len(shape.a)
   z = np.linspace(0,1,ns)
-
   l = np.linspace(0,2*np.pi, res)
 
-  points = vtk.vtkPoints()
+  points = []
+  
   for s in range(ns-1):
     b = s*2*res # base
     c1x = shape.a[s] + shape.profile[s] * np.cos(l)
     c1y = shape.b[s] + shape.profile[s] * np.sin(l)
     c2x = shape.a[s+1] + shape.profile[s+1] * np.cos(l)
     c2y = shape.b[s+1] + shape.profile[s+1] * np.sin(l)
-    for r in range(res):
-      points.InsertPoint(b + 2*r, c1x[r], c1y[r], z[s])
-      points.InsertPoint(b + 2*r+1, c2x[r], c2y[r], z[s+1])
-
-    cell = vtk.vtkCellArray()
-  
-  cell.InsertNextCell(2*(ns-1)*res) # number of points
-  for i in range(2*(ns-1)*res):
-    cell.InsertCellPoint(i)
     
-  poly = vtk.vtkPolyData()
-  poly.SetPoints(points)  
-  poly.SetStrips(cell)
+    for r in range(res):
+      points.append(permutate(pm, c1x[r], c1y[r], z[s]))
+      points.append(permutate(pm, c2x[r], c2y[r], z[s+1]))
+      # points.append((c1x[r], c1y[r], z[s]))
+      # points.append((c2x[r], c2y[r], z[s+1]))
   
-  return poly
+  cells = []
+  for s in range(ns-1):
+    b = s*2*res # base
+    for r in range(res):
+      id1 = b + 2*r   # base line start
+      id2 = b + 2*r+1 # upper line start
+      id3 = (s+1)*2*res + 2*r # base line end
+      id4 = (s+1)*2*res + 2*r+1 # upper line end
+      cells.append((id1, id3, id2))
+      cells.append((id3, id4, id2))
+    
+  cells = []
+  for d in range(int(len(points)/4)):
+    cells.append((4*d+0, 4*d+2, 4*d+1))  
+    cells.append((4*d+2, 4*d+1, 4*d+3))
+    if (d < int(len(points)/4)-1):
+      cells.append((4*d+2, 4*d+4, 4*d+3))
+      cells.append((4*d+4, 4*d+5, 4*d+3))
+    
+  poly = fill_vtk_polydata(points, cells)
+  
+    # Setup the colors array
+  colors = vtk.vtkUnsignedCharArray()
+  colors.SetNumberOfComponents(3)
+  colors.SetName("color")
+  nc = vtk.vtkNamedColors().GetColor3d(color)
+  for c in range(len(cells)):
+    colors.InsertNextTuple3(nc[0], nc[1], nc[2])
+  
+  poly.GetCellData().SetScalars(colors)
+  return poly  
+
   
 # __name__ is 'shape_map' if imported or '__main__' if run as commandline tool
 if __name__ == '__main__':
@@ -742,6 +836,7 @@ if __name__ == '__main__':
   parser.add_argument('--unbounded', help="do not restrict the visualization on a unit square", action='store_true')
   parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps or even vtp!")
   parser.add_argument('--noshow', help="don't show the image", action='store_true')
+  parser.add_argument('--nooutline', help="don't show outline of the design domain for 3D", action='store_true')
   args = parser.parse_args()
   
   if not os.path.exists(args.input):
@@ -766,19 +861,24 @@ if __name__ == '__main__':
 
   # do we do 3d? 
   d3 = len(shapes[0].b) > 0
-
   # vtp generation exclusivly triggerd by saving an vtp file
   if d3 or (args.save and args.save.endswith('.vtp')):
     poly = None
     if d3:
-      assert(len(shapes) == 1)
-      poly = create_3d_vtk(shapes[0], 100)
-      assert(not args.save)
+      ap = vtk.vtkAppendPolyData()
+      for shape in shapes:
+        poly = create_3d_vtk_shape(shape, 26, color = vtk_color_transform(shape.color))
+        ap.AddInputData(poly)
+      if not args.nooutline:
+        ap.AddInputData(generate_outline_box([1,1,1], [0,0,0])) # make smarter if you need it  
+      ap.Update()
+      poly = ap.GetOutput()
     else:
       poly = create_2d_vtk(shapes,  1.0 if not args.half_profile else .5)
+    if args.save:
       show_write_vtk(poly,800,args.save)
     if not args.noshow:
-      show_vtk(poly,800,show_edges=True if d3 else True) # show edges
+      show_vtk(poly,800,show_edges=True if d3 else False) 
   else:
     fig, sub = plot_data(800, shapes, 1.0 if not args.half_profile else .5, not args.unbounded)
     if args.save:
@@ -796,6 +896,6 @@ else:
   #fig.show()
   import vtk
   from matviz_vtk import *
-  poly = create_3d_vtk()
+  poly = create_3d_vtk_shape()
   #show_write_vtk(poly, 200, 'polydata.vtp')
   show_vtk(poly, 800)

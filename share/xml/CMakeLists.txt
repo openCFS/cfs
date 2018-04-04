@@ -99,6 +99,8 @@ ADD_CUSTOM_TARGET(share_xml_dat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_TDeriv1.xsd ${DST_DIR}/Schemas/CFSDat_TDeriv1.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_TMean.xsd ${DST_DIR}/Schemas/CFSDat_TMean.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_Aeroacoustic.xsd ${DST_DIR}/Schemas/CFSDat_Aeroacoustic.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_SNGR.xsd ${DST_DIR}/Schemas/CFSDat_SNGR.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_TimeType.xsd ${DST_DIR}/Schemas/CFSDat_TimeType.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_AeroacousticType.xsd ${DST_DIR}/Schemas/CFSDat_AeroacousticType.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_PostLighthill.xsd ${DST_DIR}/Schemas/CFSDat_PostLighthill.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_TemporalBlending.xsd ${DST_DIR}/Schemas/CFSDat_TemporalBlending.xsd

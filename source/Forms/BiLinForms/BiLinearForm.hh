@@ -112,7 +112,7 @@ class BiLinearForm : public CfsCopyable{
         name_ = name;
       }
 
-      virtual bool IsComplex()=0;
+      virtual bool IsComplex() const =0;
       
       //! Return, if bilinear form produces symmetric matrices
       bool IsSymmetric() {return isSymmetric_;}

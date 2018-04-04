@@ -46,7 +46,7 @@ def create_vtk_poly_data(angle, data):
       tri.GetPointIds().SetId(1, (i + 1) * samples + j)
       tri.GetPointIds().SetId(2, i * samples + j + 1)
       pdo.InsertNextCell(tri.GetCellType(), tri.GetPointIds())
-  
+
   return pdo
 
 # # create a list of vtk actors displaying symmetry planesfrom vtk.util.colors import
@@ -136,24 +136,98 @@ def create_symmety_planes(minima, scale, add_planes):
   return actors
 
 
+# small helper to genetate a 3d wire frame for a box as polydata.
+# see vtk.vtkAppendPolyData()
+def generate_outline_box(size = [1,1,1], offset = [0,0,0]):
+  
+  # see https://www.vtk.org/Wiki/VTK/Examples/Python/GeometricObjects/Display/ColoredLines
+  
+  pts = vtk.vtkPoints()
+  for x in [offset[0], offset[0] + size[0]]:
+    for y in [offset[1], offset[1] + size[1]]:
+     for z in [offset[2], offset[2] + size[2]]:
+        pts.InsertNextPoint(x, y, z)
+        ##print(x,y,z)
+  #0: 0 0 0
+  #1: 0 0 1
+  #2: 0 1 0
+  #3: 0 1 1
+  #4: 1 0 0
+  #5: 1 0 1
+  #6: 1 1 0
+  #7: 1  1 1
+
+  # point codings for the lines
+  edges = [[0,4], [4,6], [6,2], [2,0], [0,1], [4,5], [6, 7], [2,3], [1,5], [5, 7], [7,3], [3,1]]
+  lines = vtk.vtkCellArray()
+  for edge in edges:
+    line = vtk.vtkLine()
+    line.GetPointIds().SetId(0,edge[0]) 
+    line.GetPointIds().SetId(1,edge[1])
+    lines.InsertNextCell(line)
+  
+  poly = vtk.vtkPolyData()
+  poly.SetPoints(pts)
+  poly.SetLines(lines)
+  
+  colors = vtk.vtkUnsignedCharArray()
+  colors.SetNumberOfComponents(3)
+  colors.SetName("color")
+  nc = vtk.vtkNamedColors().GetColor3d('black')
+  for c in range(len(edges)):
+    colors.InsertNextTuple3(nc[0], nc[1], nc[2])
+  
+  poly.GetCellData().SetScalars(colors)
+  
+  return poly
+  
 # show the data on the screen
 # @planes list of vtk actors containing symmetry planes 
-def show_vtk(polydata, res, planes=[],show_edges=False):
+def show_vtk(polydata, res, planes=[], show_edges=False, show_axes=False):
   # Create a mapper and actor
   mapper = vtk.vtkPolyDataMapper()
   if vtk.VTK_MAJOR_VERSION <= 5:
     mapper.SetInput(polydata)
   else:
-    mapper.SetInputData(polydata)
+    if show_axes:
+        # Scale (normalize) the data. Scaling the axes actor instead would destroy
+        # the rendered coordinate axes for very small scaling factors.
+        bounds = polydata.GetBounds()
+        scale = 1.0/min([bounds[1]-bounds[0], bounds[3]-bounds[2], bounds[5]-bounds[4]])
+        transform = vtk.vtkTransform()
+        transform.Scale(scale, scale, scale)
+        filter = vtk.vtkTransformFilter()
+        filter.SetInputData(polydata)
+        filter.SetTransform(transform)
+    
+        mapper.SetInputConnection(filter.GetOutputPort())
+    else:
+      mapper.SetInputData(polydata)
   
   actor = vtk.vtkActor()
   actor.SetMapper(mapper)
-  actor.GetProperty().SetColor(0.5, 0.5, 0.5)  # (R,G,B)
+  #actor.GetProperty().SetColor(0.5, 0.5, 0.5)  # (R,G,B)
   
   if show_edges: # show surface with edges
     actor.GetProperty().EdgeVisibilityOn()
-    
-  # Setup a renderer, render window, and interactor
+
+  if show_axes:
+      # Create axes actor
+      axes = vtk.vtkAxesActor()
+      bounds = polydata.GetBounds()
+      # Scale axes
+      scale *= 1.2
+      length = array([bounds[1]*scale, bounds[3]*scale, bounds[5]*scale])
+      tipLength = axes.GetNormalizedTipLength() / length * length[argmin(length)]
+      axes.SetTotalLength(length)
+      axes.SetNormalizedTipLength(tipLength)
+      axes.SetNormalizedShaftLength(1-tipLength)
+      # Set axis label color
+      axes.GetXAxisCaptionActor2D().GetCaptionTextProperty().SetColor(1,0,0)
+      axes.GetYAxisCaptionActor2D().GetCaptionTextProperty().SetColor(0,1,0)
+      axes.GetZAxisCaptionActor2D().GetCaptionTextProperty().SetColor(0,0,1)
+  
+  # Setup a renderer, render window and interactor
   renderer = vtk.vtkRenderer()
   renderWindow = vtk.vtkRenderWindow()
   # renderWindow.SetWindowName("Test")
@@ -169,9 +243,10 @@ def show_vtk(polydata, res, planes=[],show_edges=False):
     renderer.AddActor(planes[i])
 
   renderer.AddActor(actor)
-  
+  if show_axes:
+    renderer.AddActor(axes)
+
   renderer.SetBackground(1, 1, 1)  # Background color white
-   
 
   # Render and interact
   renderWindow.Render()
@@ -1012,7 +1087,7 @@ def get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx
 # # litte helper
 # @param save filename or none
 # @param list which might be empty
-def show_write_vtk(poly, res, save, actors=[]):
+def show_write_vtk(poly, res, save, actors=[], show_axes=False):
   if save:
     writer = vtk.vtkXMLPolyDataWriter()
     if vtk.VTK_MAJOR_VERSION <= 5:
@@ -1024,7 +1099,7 @@ def show_write_vtk(poly, res, save, actors=[]):
     writer.Write()
     print("saved polydata to file", save)
   else:
-    show_vtk(poly, res, actors)  
+    show_vtk(poly, res, actors, show_axes=show_axes)  
     
 def calc_cross_elem_vol_3D(s1,s2,s3):
   # calculates element volume of cross structure in 3D

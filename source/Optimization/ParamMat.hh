@@ -39,8 +39,6 @@ class TransferFunction;
       else
         SetElementK<double,double>(ctxt, de, tf, app, mat_out, derivative, calcMode, ev);
     }
-    
-    virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative);
 
     /** see the SIMP case
      * T1 is the out matrix type

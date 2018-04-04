@@ -397,8 +397,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         print("Input data is read as " + args.notation)
       if h5_read:
         tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
-      else:
-        print(tensor)
       angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
       
       if args.plot != None:
@@ -416,8 +414,11 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   # not from file and not 2D -> this is the single tensor with optional planes 
   else:
     angle, data, aux = perform_cfs_rotation(tensor, int(args.sampling), aux_code)
-  
-    print("largest stiffness: " + str(numpy.max(data)) + " smallest stiffness: " + str(numpy.min(data)))
+    angle_max = angle[numpy.argmax(numpy.abs(data))]
+    angle_min = angle[numpy.argmin(numpy.abs(data))]
+
+    print(" largest stiffness: {:>13.6e}".format(numpy.max(numpy.abs(data))) + "  in direction " + str(to_vector(angle_max)))
+    print("smallest stiffness: {:>13.6e}".format(numpy.min(numpy.abs(data))) + "  in direction " + str(to_vector(angle_min)))
     if len(aux) > 0:
       print("largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux)))
     
@@ -442,7 +443,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
           mins.append(tmp3[i]) 
       actors = create_symmety_planes(mins, 1.2 * numpy.max(data if args.show == None else aux), not args.symmetries_planes == "false")
   
-    show_write_vtk(poly, args.res, args.save, actors)  
+    show_write_vtk(poly, args.res, args.save, actors, args.axes)  
   
   return volume
   
@@ -461,6 +462,7 @@ parser.add_argument("--target_volume", help="find optimal scaling. Makes only se
 parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
 parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_frame', 'hom_framed_cross', 'hom_cross_bar', 'rot', 'stream', 'hom_rect_mod', 'simp', 'hom_ortho_3d'])
+parser.add_argument("--axes", help="show axes", action='store_true', default=False)
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -581,7 +583,8 @@ if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.
     dim_2D = '2D'
     input = args.input
     args.tensor = 'matlab'
-  if not args.tensor == 'matlab' and args.tensor == 'mechTensor':  
+  if not args.tensor == 'matlab' and args.tensor == 'mechTensor':
+    print(input)
     tensor = to_mech_tensor(input)
     tensor = HillMandel2Voigt(tensor) if args.notation == "mandel" else tensor
     print("Voigt notation of input tensor:")

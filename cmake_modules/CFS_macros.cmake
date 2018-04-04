@@ -214,6 +214,7 @@ MACRO (APPLY_PATCHES PATCHES INPUTDIR)
 ENDMACRO (APPLY_PATCHES)
 
 
+# dowloads a file if the local file does not already exist
 MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
   SET(PERFORM_DOWNLOAD 0)                             
   SET(DOWNLOAD_OKAY 0)                             
@@ -276,6 +277,7 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
           SET(DOWNLOAD_OKAY 1)
           BREAK()
         ELSE()
+          message("md5sum ${ACTUAL_MD5} != expected ${MD5_SUM} -> remove local file and continue")
           FILE(REMOVE ${LOCAL_FILE})
         ENDIF()
 
@@ -320,7 +322,6 @@ ENDMACRO()
 MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   STRING(REGEX REPLACE "^.+[/\\]" "" ZIP_NAME ${ZIP_FILE})
   STRING(REGEX REPLACE "${ZIP_NAME}$" "" TARGET_DIR ${ZIP_FILE})
-  MESSAGE("ZIP_TO_CACHE ZF=${ZIP_FILE}")
   IF(NOT EXISTS "${TARGET_DIR}")
     FILE(MAKE_DIRECTORY "${TARGET_DIR}")
   ENDIF()
@@ -417,9 +418,18 @@ ENDMACRO()
 #------------------------------------------------------
 # Display all available variables
 #------------------------------------------------------
-MACRO(DUMP_VARIABLES)
+macro(DUMP_VARIABLES)
   get_cmake_property(_variableNames VARIABLES)
   foreach (_variableName ${_variableNames})
     message("${_variableName}=${${_variableName}}")
   endforeach()
-ENDMACRO()
+endmacro()
+
+# dump the content of the given directory
+macro(DUMP_DIR DIR)
+  message("DUMP_DIR ${DIR}:")
+  file(GLOB_RECURSE _DIR_VAR FOLLOW_SYMLINKS ${DIR})
+  foreach (_NAME ${_DIR_VAR})
+    message("${_NAME}")
+  endforeach()  
+endmacro()

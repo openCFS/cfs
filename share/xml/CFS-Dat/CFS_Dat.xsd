@@ -34,6 +34,7 @@
   <xsd:include schemaLocation="Schemas/CFSDat_TemporalBlending.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_TMean.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_FilterList.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFSDat_SNGR.xsd"/>
 
 
   <xsd:group name="FilterGroup">
@@ -54,6 +55,7 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
+      <xsd:element name="syntheticTurbulence_SNGR" type="DT_SNGR"/>
       <xsd:element name="fft" type="DT_FFT"/>
       <xsd:element name="timeMean" type="DT_TMean">
         <xsd:annotation>

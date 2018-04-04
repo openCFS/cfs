@@ -28,7 +28,7 @@ template <class TYPE> class Matrix;
 
     /** Overwrite the virtual base function.
      * We have always a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT */
-    virtual bool IsRegular() const { return false; }
+    virtual bool IsRegular(bool check_enforce_unstructured = false) { return false; }
 
     /** Read parameters from xml file and initialize our design elements */
     void Configure(PtrParamNode pn, int objectives, int constraints);

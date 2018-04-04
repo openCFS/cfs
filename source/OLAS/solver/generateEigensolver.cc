@@ -1,6 +1,7 @@
 #include <def_use_arpack.hh>
-#include <def_use_phist.hh>
+#include <def_use_phist_ev.hh>
 #include <def_use_pardiso.hh>
+#include <def_use_feast.hh>
 
 #include "MatVec/BaseMatrix.hh"
 #include "OLAS/algsys/SolStrategy.hh"
@@ -12,8 +13,13 @@
 #ifdef USE_ARPACK
   #include "OLAS/external/arpack/ArpackEigenSolver.hh"
 #endif
-#ifdef USE_PHIST
+#ifdef USE_PHIST_EV
   #include "OLAS/external/phist/PhistEigenSolver.hh"
+   #include "OLAS/external/phist/PhistCore.hh"
+#endif
+
+#ifdef USE_FEAST
+#include "OLAS/external/feast/FeastEigenSolver.hh"
 #endif
 
 namespace CoupledField {
@@ -80,12 +86,20 @@ namespace CoupledField {
       break;
 
     case BaseEigenSolver::PHIST:
-      #ifdef USE_PHIST
+      #ifdef USE_PHIST_EV
         retSolver = new PhistEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
       #else
         EXCEPTION( "compiled without Phist!" );
       #endif
       break;
+
+    case BaseEigenSolver::FEAST:
+      #ifdef USE_FEAST
+        retSolver = new FeastEigenSolver(strat, eSolverXML, solverList, precondList, eigenInfo);
+      #else
+        EXCEPTION( "compiled without FEAST: set USE_FEAST=ON to use the FEAST solver!" );
+      #endif
+        break;
 
     case BaseEigenSolver::NO_EIGENSOLVER:
       assert(false);

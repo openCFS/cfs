@@ -176,8 +176,7 @@ void MultipleExcitation::SetHarmonic(Context* ctxt, unsigned int base, int num_f
   // Fills the excitations list with the data provided in the xml file as problem description
 
   HarmonicDriver* hd = ctxt->GetHarmonicDriver();
-
-  assert(excitations.Capacity() >= base + num_freq);
+  assert(excitations.GetCapacity() >= base + num_freq);
   excitations.Resize(base + num_freq);
 
   for (int i = 0; i < num_freq; i++)
@@ -194,8 +193,7 @@ void MultipleExcitation::SetHarmonic(Context* ctxt, unsigned int base, int num_f
 void MultipleExcitation::SetBlochWaves(Context* ctxt, unsigned int base, int num_wave)
 {
   const StdVector<Vector<double> >& wv =  ctxt->GetEigenFrequencyDriver()->wave_vectors;
-
-  assert(excitations.Capacity() >= base + num_wave);
+  assert(excitations.GetCapacity() >= base + num_wave);
   excitations.Resize(base + num_wave);
 
   for (int i = 0; i < num_wave; i++)
@@ -293,7 +291,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
 
   // by definition, we always have at least one excitation.
   // This does not necessarily need to be a load (but might be voltage, pressure, ...)
-  assert(excitations.Capacity() >= context_base + 1); // avoid moving by resize like hell
+  assert(excitations.GetCapacity() >= context_base + 1);
   excitations.Resize(context_base + 1);
   excitations[context_base].index = context_base;
 
@@ -313,7 +311,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   // this might become explicitly given excite in the optimization xml description
   ParamNodeList pn_ex;
 
-  LOG_DBG(exlog) << "PME: cs=" << ctxt->sequence << " en=" << IsEnabled() << " seq=" << sequence_ << " cb=" << context_base << " cap=" << excitations.Capacity();
+  LOG_DBG(exlog) << "PME: cs=" << ctxt->sequence << " en=" << IsEnabled() << " seq=" << sequence_ << " cb=" << context_base << " cap=" << excitations.GetCapacity();
 
   // initialize data and do simple plausibility check. Note that also 1 is "multiple"
   // only for our sequence. We assume only one multipleExcitations element in xml even for multiple sequence optimzation
@@ -419,7 +417,7 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
     {
       // we need to set the global excitation index!
       unsigned int base = 0;
-      for(unsigned int t = 0; t < ctxt.context_idx; t++) // smaller by intention to not count ourselves
+      for(int t = 0; t < ctxt.context_idx; t++) // smaller by intention to not count ourselves
         base += manager->context[t].excitations.GetSize(); // already set up to this point
       for(unsigned int i = 0; i < ctxt.excitations.GetSize(); i++)
       {
@@ -457,7 +455,7 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
   unsigned int dim = domain->GetGrid()->GetDim();
 
   int cases = dim == 2 ? 3 : 6;
-  assert(excitations.Capacity() >= base + cases * GetNumberMeta(ctxt, true)); // so we need no copy constructor in ApplyTransformation()
+  assert(excitations.GetCapacity() >= base + cases * GetNumberMeta(ctxt, true)); // so we need no copy constructor in ApplyTransformation()
   excitations.Resize(base + cases);
 
   assert((int) MechPDE::X == 0);
@@ -519,7 +517,7 @@ void MultipleExcitation::ApplyRobust(const Context* ctxt)
 
   assert(robust.num_robust >= 1 && excitations.GetSize() >= 1); // num_robust_ might be 0 or 1 if we don't do robust
 
-  assert(excitations.Capacity() >= (principle - n_ex_ctxt) + n_ex_ctxt * robust.num_robust); // the *additional* excitations only!
+  assert(excitations.GetCapacity() >= (principle - n_ex_ctxt) + n_ex_ctxt * robust.num_robust); // the *additional* excitations only!
   excitations.Resize((principle - n_ex_ctxt) + n_ex_ctxt * robust.num_robust);
 
   LOG_DBG2(exlog) << "AR: c=" << ctxt->context_idx << " principle=" << principle << " n_ex_ctxt=" << n_ex_ctxt
@@ -588,7 +586,7 @@ void MultipleExcitation::ApplyTransformations(const Context* ctxt, DesignSpace* 
   unsigned int old_base = excitations.GetSize();
 
   // multiply excitations. Robust comes first, the transformation
-  assert(excitations.Capacity() >= principle * GetNumberMeta(ctxt, true));
+  assert(excitations.GetCapacity() >= principle * GetNumberMeta(ctxt, true));
   excitations.Resize(principle * GetNumberMeta(ctxt, true));
 
   for(unsigned int t = 0; t < trans.GetSize(); t++)
@@ -635,7 +633,7 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
   Assemble* ass = ctxt->pde->GetAssemble();
 
   assert((ctxt->sequence == 1 && base == 0) || ((int) base >= ctxt->sequence-1));
-  assert(excitations.Capacity() >= base + num_loads * GetNumberMeta(ctxt, true));
+  assert(excitations.GetCapacity() >= base + num_loads * GetNumberMeta(ctxt, true));
   excitations.Resize(base + num_loads);
 
   // when the loads are given in the optimization section of the xml file

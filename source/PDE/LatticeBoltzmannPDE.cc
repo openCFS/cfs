@@ -1454,7 +1454,7 @@ void LatticeBoltzmannPDE::SetupElements()
   // vector initialized with density value of inner cells
   elements.Resize(n_elems, 0.0);
 
-  DesignSpace* space = domain->GetDesign(false);
+  DesignSpace* space = domain->GetDesign();
   if(space != NULL)
   {
     for(unsigned int r = 0; r < design_reg_.GetSize(); r++)

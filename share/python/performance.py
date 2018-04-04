@@ -70,7 +70,11 @@ def run_and_read(binary, mesh, xml, problem):
 ## find the minimum values for each entry with a list of a list of Timer objects
 # @return a timer object with minimal values. Note that gap is not recomputed
 def minimal_timer(timers):
-  # we have not an object with an info.xml timer status but wach info.xml is a list of Timer
+  # we have not an object with an info.xml timer status but each info.xml is a list of Timer
+
+  # check if all timers have same length
+  assert(all(len(t) == len(timers[0]) for t in timers)), 'number of timers in info.xml files differ'
+
   minimal = []
   meta = len(timers)  
   item = len(timers[0])
@@ -96,71 +100,207 @@ def gnuplot(timer, header=True):
   print(line)      
   
 ## print standard analysis
-# @timer a list of Timer or a list of a list of Timer, then the minimum is printed first 
-def print_timer(timers, brief=False):
-  timer = minimal_timer(timers) if type(timers[0]) == list else timers  
-  meta = len(timers) if type(timers[0]) == list else 0
-     
-  max_label = max([len(t.label) for t in timer]) + 1 # add 1 for * in sub case
-  if not brief:  
-    print('TIMER (sec)'.ljust(max_label) + ': _____WALL____ ~ ______CPU______' + (' : PAR' if not meta else ''))
+# @param timer a list of Timer or a list of a list of Timer, then the minimum is printed first
+# @param brief shorter ouput (no percentage and change)
+# @param wall show wall time
+# @param cpu show cpu time
+# @param ref reference file
+# @param threshold show timer only if wall >= threshold 
+def print_timer(timers, brief=False, wall=True, cpu=True, ref=None, threshold=0.0):
+  if type(timers[0]) == list and len(timers) > 1:
+    timer = [minimal_timer(timers)]
+    meta = len(timers)
   else:
-    print('TIMER (sec)'.ljust(max_label) + ': WALL ~    CPU')    
- 
-  total_wall = max(timer[0].wall, 1)
-  total_cpu  = max(timer[0].cpu, 1e-3)
- 
-  for e in range(len(timer)):
-     t = timer[e] 
-     l = t.label + ('*' if t.sub else '')
-     line = l.ljust(max_label) + ': {:4d}'.format(int(t.wall)) 
-     if not brief:
-       line += ' [{:.1%}'.format(t.wall/total_wall).rjust(8) + ']'
-     line += ' ~ {:6.0f}'.format(t.cpu) if t.cpu >= 10000 else ' ~ {:6.1f}'.format(t.cpu)   
-     if not brief: 
-       line += '[{:.1%}'.format(t.cpu/total_cpu).rjust(8) + ']' 
-     
-     if not meta and timer[e].speed and timer[e].speed >= 1:
-       line += ' : {:.1f}'.format(timer[e].speed)
-     
-     for m in range(meta):
-       line += (' \t | ' if m == 0 else ' \t : ') + str(int(timers[m][e].wall)) + '\t (' + str(timers[m][e].cpu) + ')'
-     print(line)
-        
-parser = argparse.ArgumentParser(description='when called with .info.xml the timers of this file are read. Else a performance test is run with -m and -e')
-parser.add_argument("input", help="the xml file to run or the info.xml file to analyse (each with extension)")
-parser.add_argument('--brief', help="brief analysis output to make it within the 1K cdash buffer", action='store_true')
-parser.add_argument('-m', "--mesh", help="for execution give a mesh file for calculation, alternatively 'mesh_type' and 'res'")
-parser.add_argument('--exec', help="for execution what to call for cfs", default='cfs_rel')
+    timer = timers
+    meta = 0  
 
-parser.add_argument('--repeat', help="how often shall execution be repeated - default is 1", type=int, default=1)
+  # header
+  max_label = max([len(t.label) for t in timer[0]]) + 1 # add 1 for * in sub case
+  head = 'TIMER (sec)'.ljust(max_label)
+  if brief:
+    if not ref:
+      head += ':'
+      head += '   WALL' if wall else ''
+      head += ' ~' if wall and cpu else '' 
+      head += '   CPU ' if cpu else ''
+      for m in range(meta):
+        head += '  | ' if m == 0 else '  : '
+        head += 'WALL_{:d}'.format(m) if wall else ''
+        head += ' ~ ' if wall and cpu else ''
+        head += ' CPU_{:d}'.format(m) if cpu else ''
+    else:
+      head += ': MIN_CPU |    REF'    
+  else:
+    if not ref:
+      if meta:
+        head += ': '
+        head += '____MIN_WALL___' if wall else ''
+        head += ' ~ ' if wall and cpu else ''
+        head += '____MIN_CPU____' if cpu else ''
+      else:
+        head += ': '
+        head += '______WALL_____' if wall else ''
+        head += ' ~ ' if wall and cpu else ''
+        head += '______CPU______' if cpu else ''
+#      head += ' : PAR' if not meta else ''
+      for m in range(meta):
+        head += '  |' if m == 0 else '  :'
+        head += ' WALL_{:d} '.format(m) if wall else ''
+        head += '   ~' if wall and cpu else ''
+        head += '  CPU_{:d} '.format(m) if cpu else ''
+        head += '  '
+    else:
+      head += ':  ___MIN_CPU____  |  ___CPU_REF____  '
+  print(head)
+ 
+  total_wall = max(timer[0][0].wall, 1)
+  total_cpu  = max(timer[0][0].cpu, 1e-3)
+  if ref:
+    total_cpu_ref  = max(ref[0].cpu, 1e-3)
+    
+  # timer
+  for e,t in enumerate(timer[0]):
+    if t.wall < threshold:
+      continue
+    # format for time display
+    format_wall = '{: 6.0f}' if t.wall >= 10000 else '{: 6.2f}'
+    format_cpu = '{: 6.0f}' if t.cpu >= 10000 else '{: 6.2f}'
+    l = t.label + ('*' if t.sub else '')
+    line = l.ljust(max_label)
+    line += ': '
+    if wall and not ref:
+      # wall time
+      line += format_wall.format(t.wall)
+      if not brief:
+        line += ' [{:.1%}]'.format(t.wall/total_wall).rjust(9)
+    line += ' ~ ' if wall and cpu else ''
+    if cpu:
+      # cpu time
+      line += format_cpu.format(t.cpu)   
+      if not brief: 
+        line += '[{:.1%}]'.format(t.cpu/total_cpu).rjust(9)
+    
+    if not meta and t.speed and t.speed >= 1:
+      line += ' : {:.1f}'.format(t.speed)
+    
+    rel_eps = 0.1
+    if not ref:
+      # iterate over all timers
+      for m in range(meta):
+        line += '  | ' if m == 0 else '  : '
+        if wall:
+          line += format_wall.format(timers[m][e].wall)
+          if not brief:
+            # show change if influence on total time is > 3%
+            if t.wall > total_wall * 0.03:
+              rel_diff = (timers[m][e].wall - t.wall)/t.wall if t.wall != 0.0 else 0.0
+              line += '(+)' if rel_diff > rel_eps else '(-)' if rel_diff < -rel_eps else '   '
+            else:
+              line += '   '
+        line += ' ~ ' if wall and cpu else ''
+        if cpu:
+          line += format_cpu.format(timers[m][e].cpu)
+          if not brief:
+            # show change if influence on total time is > 3%
+            if t.cpu > total_cpu * 0.03:
+              rel_diff = (timers[m][e].cpu - t.cpu)/t.cpu if t.cpu != 0.0 else 0.0
+              line += '(+)' if rel_diff > rel_eps else '(-)' if rel_diff < -rel_eps else '   '
+            else:
+              line += '   '
+    else:
+      line += '  | ' + format_cpu.format(ref[e].cpu)
+      if not brief:
+        line += ' [{:.1%}]'.format(ref[e].cpu/total_cpu_ref).rjust(9)
+    print(line)
+
+# compare two timers
+# @param eps compares relative error against eps (optional, default 10%) 
+def has_rel_error(timer_ref, timer, eps=0.01, skip_noise=None):
+  assert(len(timer_ref) == len(timer))
+
+  total_cpu_ref  = max(timer_ref[0].cpu, 1e-3)
+  total_cpu  = max(timer[0].cpu, 1e-3)
+
+  error = False
+  for time_ref, time in zip(timer_ref, timer):
+    if skip_noise and time_ref.cpu < skip_noise and time.cpu < skip_noise:
+      continue
+
+    good = time_ref.cpu/total_cpu_ref
+    test = time.cpu/total_cpu
+
+    diff = (test - good)/good if good != 0.0 else test
+    if diff > eps:
+      print(' * error: {:s} is {:.0f}% slower than reference'.format(time.label, diff*100))
+      error = True
+    elif diff < -eps:
+      print(' * error: {:s} is {:.0f}% faster than reference'.format(time.label, abs(diff)*100))
+      error = True
+
+  if error:
+    return True
+
+  return False
+      
+
+parser = argparse.ArgumentParser(description='when called with .info.xml the timers of this file are read. Else a performance test is run with -m and -e')
+parser.add_argument("input", nargs='*', help="the xml file to run or the info.xml file(s) to analyze (each with extension)")
+parser.add_argument('--brief', help="brief analysis output to make it within the 1K cdash buffer", action='store_true')
+parser.add_argument('--wall', help="show only wall times", action='store_true', default=False)
+parser.add_argument('--cpu', help="show only cpu times", action='store_true', default=False)
+parser.add_argument('--threshold', help="show only wall time above this seconds", type=float, default=0.0)
+parser.add_argument('-m', '--mesh', help="for execution give a mesh file for calculation, alternatively 'mesh_type' and 'res'")
+parser.add_argument('--executable', help="for execution what to call for cfs", default='cfs_rel')
+parser.add_argument('-r', '--repeat', help="how often shall execution be repeated - default is 1", type=int, default=1)
+parser.add_argument("--skip_noise", help="suppress too small times", type=float, default=1e-1)
+parser.add_argument('--ref', help="reference file to compare timers with")
 args = parser.parse_args()
 
+cpu = False if args.wall else True
+wall = False if args.cpu else True
 
-if not os.path.exists(args.input):
-  print("error: cannot open file '"  + args.input + "'")
-  sys.exit(2)
-
-if args.input.endswith('.info.xml'):
+if args.input[0].endswith('.info.xml'):
   if args.mesh or args.repeat != 1:
     print("error: when analysing an info.xml don't give mesh or repeat")
     sys.exit(1)  
   
-  xml = open_xml(args.input)
-  timer = read_info(xml, gap=True)
-  print_timer(timer, args.brief)
+  timers = []
+  for info_file in args.input:
+    xml = open_xml(info_file)
+    timers.append(read_info(xml, gap=True))
+
+  if args.ref:
+    xml = open_xml(args.ref)
+    timer_ref = read_info(xml, gap=True)
+    timer = minimal_timer(timers)
+    if has_rel_error(timer_ref, timer, skip_noise=args.skip_noise):
+      print_timer(timers, args.brief, wall, cpu, timer_ref)
+      os.sys.exit(1)
+    else:
+      print('++ Times are good. ++')        
+      os.sys.exit(0)
+  else:
+    print_timer(timers, args.brief, wall, cpu, None, args.threshold)
 
 else: # the whole run stuff
-  if not args.mesh:
-    print('error: give --mesh or --mesh_type and --res when not doing .info.xml analysis')
-    sys.exit(1)            
   assert(args.input.endswith('.xml'))
   problem = args.input[:-4]
+  if not args.mesh:
+    args.mesh = problem + '.mesh'
   if args.repeat == 1:
     timer = run_and_read(args.executable, args.mesh, problem + '.xml', problem)  
-    print_timer(timer)
+    if args.ref:
+      xml = open_xml(args.ref)
+      timer_ref = read_info(xml, gap=True)
+      if has_rel_error(timer_ref, timer_tst, skip_noise=args.skip_noise):
+        print_timer(timers, args.brief, wall, cpu, timer_ref)
+    else:
+      print_timer(timer, args.brief, wall, cpu)
   else:
     timers = []  
     for i in range(args.repeat):
-      timers.append(run_and_read(args.executable, args.mesh, problem + '.xml', problem + "-" + str(i+1)))  
-    print_timer(timers)    
+      timers.append(run_and_read(args.executable, args.mesh, problem + '.xml', problem + "-" + str(i+1)))
+    if args.ref:
+      print("error: comparison of reference file with multiple runs not implemented yet")
+    else:
+      print_timer(timers, args.brief, wall, cpu)

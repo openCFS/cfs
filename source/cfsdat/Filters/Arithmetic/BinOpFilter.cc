@@ -15,6 +15,8 @@
 
 #include "BinOpFilter.hh"
 
+#include <algorithm> 
+
 namespace CFSDat{
 
 FilterPtr BinOpFilter::GenerateOperator(PtrParamNode binOpNode, PtrResultManager resMana){
@@ -45,60 +47,32 @@ GenericBinOpFilter<Operator>::GenericBinOpFilter(UInt numWorkers, CF::PtrParamNo
 }
 
 template<class Operator>
-bool GenericBinOpFilter<Operator>::Run(){
+bool GenericBinOpFilter<Operator>::UpdateResults(std::set<uuids::uuid>& upResults) {
+  Vector<Double>& returnVec = GetOwnResultVector<Double>(outId);
+  UInt last = returnVec.GetSize();
   Double aTF = resultManager_->GetStepValue(outId);
-  //set time value and activate the input results
-  resultManager_->SetTimeValue(res1Id,aTF);
-  resultManager_->SetTimeValue(res2Id,aTF);
-  resultManager_->ActivateResult(res1Id);
-  resultManager_->ActivateResult(res2Id);
-  resultManager_->DeactivateResult(outId);
 
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
+  Vector<Double>& res1V = GetUpstreamResultVector<Double>(res1Id, aTF);
+  Vector<Double>& res2V = GetUpstreamResultVector<Double>(res2Id, aTF);
+  if (res1V.GetSize() != res2V.GetSize()) {
+    WARN("Input vectors for BinOp Filter are of different size");
+    last = std::min(res1V.GetSize(),res2V.GetSize());
   }
-
-  //equation numbers for this result
-  //here, those equation numbers are equal for all in/out results
-  CF::StdVector<UInt> eqnNums;
-  Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(outId,eqnNums);
-  returnVec.Init();
-
-  Vector<Double>& res1V = resultManager_->GetResultVector<Double>(res1Id,eqnNums);
-  Vector<Double>& res2V = resultManager_->GetResultVector<Double>(res2Id,eqnNums);
-
-  UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
-
+  
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(UInt i=0;i<last;++i){
     returnVec[i] = Operator::Apply(res1V[i],res2V[i]);
   }
-  resultManager_->ActivateResult(outId);
+  
   return true;
 }
 
 template<class Operator>
 ResultIdList GenericBinOpFilter<Operator>::SetUpstreamResults(){
-  ResultIdList generated;
-  //sanity check
-  if(filterResIds.GetSize()>1){
-    EXCEPTION("Filter can only have one result. This indicates a Bug!")
-  }
-  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
-  outId = *aIt;
-  //we only have one filter result
-  std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
-  res1Id = resultManager_->AddResult(res1Name,this->filterTag_);
-  res2Id = resultManager_->AddResult(res2Name,this->filterTag_);
-
-  //copy the timeline from input result
-  resultManager_->SetTimeLine(res1Id,(*resultManager_->GetExtInfo(outId)->timeLine.get()));
-  resultManager_->SetTimeLine(res2Id,(*resultManager_->GetExtInfo(outId)->timeLine.get()));
-  generated.Push_back(res1Id);
-  generated.Push_back(res2Id);
-
+  ResultIdList generated = SetDefaultUpstreamResults();
+  res1Id = upResNameIds[res1Name];
+  res2Id = upResNameIds[res2Name];
+  outId = filterResIds[0];
   return generated;
 }
 

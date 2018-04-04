@@ -14,9 +14,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_config.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_arpack.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_phist.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_phist.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ilupack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ilupack.hh")
 
@@ -25,6 +22,22 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lis.hh.in"
   
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_petsc.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_petsc.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_hwloc.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_hwloc.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ghost.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_ghost.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_phist_cg.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_phist_cg.hh")
+  
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_phist_ev.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_phist_ev.hh")
+
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mpi.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_mpi.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_suitesparse.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_suitesparse.hh")
@@ -46,9 +59,6 @@ ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_blas.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_blas.hh")
-
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lapack.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_lapack.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_pardiso.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_pardiso.hh")
@@ -92,6 +102,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_libxml2.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mesh.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_mesh.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_feast.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_feast.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_comsol.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_comsol.hh")
@@ -146,4 +159,3 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_expl_templ_inst.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_disable_optimization.hh.in"
   "${CFS_BINARY_DIR}/include/def_disable_optimization.hh")
-  

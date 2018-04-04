@@ -415,6 +415,9 @@ public:
   //! added, not set as in ApplyBCs
   virtual void ApplyLoads();
 
+  //! incorporate loads defined in values
+  virtual void ApplyLoads(PtrCoefFct& values);
+
   //! Set the feFunction to values obtained by external data sources
   virtual void ApplyExternalData();
 

@@ -5,10 +5,10 @@
 
 #include <def_use_metis.hh>
 #include <def_use_pardiso.hh>
-#include <def_use_lapack.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_arpack.hh>
-#include <def_use_phist.hh>
+#include <def_use_phist_cg.hh>
+#include <def_use_phist_ev.hh>
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
@@ -578,7 +578,7 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::SetOldDirichletValues() {
-    idbcHandler_->ToString();
+   // idbcHandler_->ToString();
     idbcHandler_->SetOldDirichletValues();
   }
 
@@ -2368,8 +2368,8 @@ namespace CoupledField {
     LOG_TRACE(algSys) << "Updating RHS of matrix " 
                       << feMatrixType.ToString(matrixType);
 
-    //std::cout << "Updating RHS with matrix "
-    //    << feMatrixType.ToString(matrixType) << std::endl;
+//    std::cout << "Updating RHS with matrix "
+//        << feMatrixType.ToString(matrixType) << std::endl;
 
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
@@ -2397,6 +2397,10 @@ namespace CoupledField {
 
       // security check: ensure that sub-vector has the same size
       // as the block indices
+			
+//			std::cout << "fup(i).GetSize() = " << fup(i).GetSize() << std::endl;
+//			std::cout << "indices.GetSize() = " << indices.GetSize() << std::endl; 
+			
       if( fup(i).GetSize() != indices.GetSize() ) {
         EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
                    "of indices do not match!");
@@ -2417,7 +2421,24 @@ namespace CoupledField {
           }
         }
 
-      } else {
+      }
+      else if( fup.GetEntryType() == BaseMatrix::COMPLEX ) {
+        	Vector<Complex> & nRHS =
+        			dynamic_cast<Vector<Complex>&>( fup(i) );
+
+        	for( UInt j = 0; j < size; ++j ) {
+        		// omit entries for Dirichlet values
+        		if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+        			tmpRHS_->GetPointer(blockNums[j])
+    	                		  ->AddToEntry(indices[j]-1, nRHS[j] );
+        		}else if(!usingPenalty_){
+        			idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
+    	  			    		indices[j],rhs_,nRHS[j]);
+        		}
+        	}
+
+      }
+      else {
         EXCEPTION("Implement me. Dont worry: mostly C&P code");
       }
 
@@ -2502,11 +2523,11 @@ namespace CoupledField {
         // Now we are done
         return;
       }
-      else {
-        WARN("SBM_System::ConstructEffectiveMatrix: "
-            << "Map with factors is empty, but there are "
-            << matrixTypes_.size() << " FE matrices in the game!");
-      }
+//      else {
+//        WARN("SBM_System::ConstructEffectiveMatrix: "
+//            << "Map with factors is empty, but there are "
+//            << matrixTypes_.size() << " FE matrices in the game!");
+//      }
     }
     
     for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
@@ -2928,17 +2949,21 @@ namespace CoupledField {
       BaseSolver::SolverType st;
       // set for allowed matrix types of the solver
       std::set<BaseMatrix::StorageType> solverStorTypes;
-      if( !solverNode ) {
-        // -------------------------------------
-        //  no solver set -> use default direct 
-        // -------------------------------------
+
+      // check if a solver is specified
+      if(!solverNode)
+      {
+        // no solver set -> use default direct solver. Pardiso if available, else directLDL
+#ifdef USE_PARDISO
         st = BaseSolver::PARDISO_SOLVER;
-        solverList->Get("pardiso",ParamNode::INSERT)->
-          Get("id",ParamNode::INSERT)->SetValue(solverId);
-      } else {
-        // ---------------------------------------------------
+#else
+        st = BaseSolver::LDL_SOLVER;
+#endif
+        solverList->Get(BaseSolver::solverType.ToString(st),ParamNode::INSERT)->Get("id",ParamNode::INSERT)->SetValue(solverId);
+      }
+      else
+      {
         //  solver set -> check for compatibility with matrix
-        // ---------------------------------------------------
 
         // convert solver string to enum
        st = BaseSolver::solverType.Parse(solverNode->GetName());
@@ -2971,8 +2996,7 @@ namespace CoupledField {
       //  Check Precond
       // ---------------
       std::string precondId = solStrat_->GetPrecondId();
-      PtrParamNode precondList = myParam_->Get("precondList", 
-                                               ParamNode::INSERT);
+      PtrParamNode precondList = myParam_->Get("precondList", ParamNode::INSERT);
       ParamNodeList pNodes =  precondList->GetChildren();
       PtrParamNode precondNode;
       for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
@@ -3130,7 +3154,6 @@ namespace CoupledField {
     PtrParamNode setupNode = myInfo_->Get("setup");
     
     // Print overview of defined matrices
-    setupNode->SetComment("List of defined matrices");
     PtrParamNode matrixListNode = setupNode->Get("matrices");
     matrixListNode->SetComment("Memory is in MByte");
     
@@ -3257,7 +3280,6 @@ namespace CoupledField {
     PtrParamNode setupNode = myInfo_->Get("setup");
     
     // Print overview of feFunctions
-    setupNode->SetComment("List of registered FeFunctions");
     PtrParamNode fctListNode = setupNode->Get("feFunctions");
     std::map<FeFctIdType,std::string>::const_iterator it = fctNames_.begin();
     
@@ -3297,7 +3319,6 @@ namespace CoupledField {
     fctListNode->Get("totalNumDirichlet")->SetValue(totalNumDirichlet);
     
     // Print overview of blocks
-    setupNode->SetComment("List of SBM-blocks");
     PtrParamNode blockListNode = setupNode->Get("sbmBlocks");
     
     for( UInt i = 0; i < numBlocks_; ++i ) {
@@ -3795,6 +3816,11 @@ namespace CoupledField {
                                              sizeB,
                                              sizeB,
                                              cI.GetSize());
+
+
+
+        crsMat.ChangeLayout(CRS_Matrix<Double>::LEX);
+
         break;
 
     }// switch dimension

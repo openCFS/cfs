@@ -62,40 +62,13 @@ NearestNeighbourInterpolator::~NearestNeighbourInterpolator(){
 
 }
 
-bool NearestNeighbourInterpolator::Run(){
-  // we deactivate every result, except for our own
-  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
-  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
-
-  for(; aIter != activeResults.end(); ++aIter){
-    if(filterResIds.Find(*aIter) == -1){
-      WARN(" There are still active results when reaching the interpolation filter. This indicates an unexpected use of the pipeline.")
-    }
-    resultManager_->DeactivateResult(*aIter);
-  }
+bool NearestNeighbourInterpolator::UpdateResults(std::set<uuids::uuid>& upResults){
+  /// this is the vector, which will be filled with the derivative result
+  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
   Double aTF = resultManager_->GetStepValue(filterResIds[0]);
-  resultManager_->SetTimeValue(upResIds[0],aTF);
-  // now we deactivate our own result and activate the others
-  resultManager_->ActivateResult(upResIds[0]);
-
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
-  }
-
-
-
-
-
-  CF::StdVector<UInt> eqnNums;
-  /// this is the vector, which will be filled with the interpolation result
-  Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
-  returnVec.Init();
 
   // vector, containing the source data values
-  Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], aTF);
   
   // TODO matrix interpolation here
   Matrix& matrix = matrices_[matrixIndex_];
@@ -103,36 +76,8 @@ bool NearestNeighbourInterpolator::Run(){
   StdVector<CF::UInt>& targetSourceIndex = matrix.targetSourceIndex;
   StdVector<CF::UInt>& targetSource = matrix.targetSource;
   StdVector<CF::Double>& targetSourceFactor = matrix.targetSourceFactor;
-
   
   NearestNeighbourInterpolation(returnVec, inVec, numEquPerEnt_, targetSource, targetSourceIndex, numNeighbors_, targetSourceFactor, maxNumTrgEntities);
-
-
-  resultManager_->ActivateResult(filterResIds[0]);
-
-
-  // TODO make a XML input that triggers the quality evaluation
-  if(mCheck_ == true){
-    /*
-    Vector<Double> testVec;
-    testVec.Resize(inVec.GetSize());
-    vec.Clear(false);
-    str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upResIds[0])->mapping;
-
-    scatteredData.Clear(false);
-    scatteredData.Resize(targetCoords_.GetSize());
-
-    this->FillScatteredDataVec(scatteredData, vec, returnVec, targetCoords_);
-    this->Interpolation(testVec, scatteredData, vec, upMap, targetCoords_, sourceCoords_, interpolDataSrc_, inGrid_);
-
-    this->CheckFilterResults(inVec, testVec);
-    */
-  }
-
-  //now deactivate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->DeactivateResult(upResIds[aRes]);
-  }
 
   return true;
 }
@@ -165,7 +110,7 @@ Double sumXi = 0.0;
 Double sumYi = 0.0;
 Double sumXi_squared = 0.0;
 Double sumYi_squared = 0.0;
-//#pragma omp parallel shared(origVec, newVec) num_threads(NUM_CFS_THREADS)
+//#pragma omp parallel shared(origVec, newVec) num_threads(CFS_NUM_THREADS)
 //{
 //#pragma omp for
 for (UInt i = 0; i < origVec.GetSize(); ++i){
@@ -275,7 +220,7 @@ bool NearestNeighbourInterpolator::CreatesEqualMatrix(NearestNeighbourInterpolat
 CF::UInt NearestNeighbourInterpolator::CountUsedEntities(const StdVector<CF::UInt>& entities) {
   const CF::UInt size = entities.GetSize();
   CF::UInt numEntities = 0;
-#pragma omp parallel for reduction(+:numEntities) num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for reduction(+:numEntities) num_threads(CFS_NUM_THREADS)
   for(CF::UInt inEnt = 0; inEnt < size; inEnt++) {
     if (entities[inEnt] != UnusedEntityNumber) {
       numEntities++;
@@ -303,7 +248,7 @@ void NearestNeighbourInterpolator::GetUsedMappedEntities(const str1::shared_ptr<
       grid->GetNodesByName(regEntities, *sRegIter);
     }
     const UInt size = regEntities.GetSize();
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt eIter = 0; eIter < size; ++eIter) {
       CF::UInt entityNumber = regEntities[eIter];
       entities[map->GetEntityIndex(entityNumber)] = entityNumber;
@@ -359,7 +304,7 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
   uuids::uuid upRes = upResIds[0];
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
-  scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
+  scrMap_ = resultManager_->GetEqnMap(upRes);
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
   bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
   
@@ -371,7 +316,7 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
     numNeighbors_ = numSrcEntities;
   }
   
-  trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
+  trgMap_ = resultManager_->GetEqnMap(filterResIds[0]);
   /*
   // checking, if interpolation matrix need to be created
   for (UInt i = 0; i < interpolators_.GetSize(); i++) {
@@ -441,7 +386,7 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
     targetSource.Resize(index);
     targetSourceFactor.Resize(index);
   }
-  #pragma omp parallel for num_threads(NUM_CFS_THREADS)
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
@@ -503,21 +448,7 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
 
 
 ResultIdList NearestNeighbourInterpolator::SetUpstreamResults(){
-  ResultIdList generated;
-  //we should only have one filter Result
-  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
-  std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
-
-  //add input result to manager
-  std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
-  uuids::uuid newId = resultManager_->AddResult(inRes,this->filterTag_);
-
-  //set the timeline of upstream data if already set
-  resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-  generated.Push_back(newId);
-
-  return generated;
-
+  return SetDefaultUpstreamResults();
 }
 
 void NearestNeighbourInterpolator::AdaptFilterResults(){

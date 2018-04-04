@@ -6,337 +6,2573 @@
 #include "CoefFunction.hh"
 #include "Materials/BaseMaterial.hh"
 #include "FeBasis/FeFunctions.hh"
+#include "Utils/Timer.hh"
 //#include "Materials/Models/Preisach.hh"
 
 namespace CoupledField {
-
-// forward class declaration
-class ApproxData;
-class BaseBOperator;
-class Grid;
-class FeFunctions;
-
-
-// ============================================================================
-//  Hysteresis
-// ============================================================================
-//! Provide a coefficient for hysteresis modeling
-//! \note This class only works for real-valued scalar data.
-class CoefFunctionHyst : public CoefFunction{
-public:
-
-  //! Constructor
-  CoefFunctionHyst( BaseMaterial* const material,
-                    shared_ptr<ElemList> actSDList,
-                    PtrCoefFct dependency,
-					SubTensorType tensorType,
-					MaterialType matType);
-
-  //! Destructor
-  virtual ~CoefFunctionHyst();
   
-  //! Initialize with data
-  void Init( BaseMaterial* const material, shared_ptr<ElemList> actSDList);
+  // forward class declaration
+  class ApproxData;
+  class BaseBOperator;
+  class Grid;
+  class FeFunctions;
+  class CoefFunctionHyst;
   
-  //! \see CoefFunction::GetScalar
-  void GetScalar(Double& coefScalar, const LocPointMapped& lpm );
-
-  void GetVector(Vector<Double>& coefScalar, const LocPointMapped& lpm);
-
-  //! Return real-valued tensor at integration point
-  void GetTensor(Matrix<Double>& tensor, const LocPointMapped& lpm );
-
-  //!
-  void SetPreviousHystVals(bool setNextToLastTS = false);
-
-  //! Create for the vector case deltaMat from dX and dY
-  void CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, Matrix<Double>& deltaMat);
-
-  //! \see CoefFunction::ToString
-  std::string ToString() const;
-
-  //! Return size of vector in case coefficient function is a vector
-  virtual UInt GetVecSize() const {
-	  return dependCoef_->GetVecSize();
-  }
-
-  //! Return row and columns size of tensor if coefficient function is a tensor
-  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-      numRows = matInitialTensor_.GetNumRows();
-      numCols = matInitialTensor_.GetNumCols();
-  }
-
-  void setOverwrite(bool overwrite_new){
-    overwrite_ = overwrite_new;
-  }
-
-  void setOverwriteDirection(bool overwrite_new){
-    overwriteDirection_ = overwrite_new;
-  }
-
-  void setUseNextToLastTS(bool useNextToLastTS_new){
-    useNextToLastTS_ = useNextToLastTS_new;
-  }
-
-  void setDeltaComputation(bool deltaComputation_new){
-    deltaComputation_ = deltaComputation_new;
-  }
-
-  void SetFlag(std::string flagName,bool newState);
-
-protected:
+  class CoefFunctionHelper : public CoefFunction{
+  public:
+    
+    // note: coupling tensor has to be in non-transposed form (i.e. 3x6 or 2x3, 2x4)
+    CoefFunctionHelper(PtrCoefFct ptrFieldTensor,PtrCoefFct ptrElasticityTensor,
+      PtrCoefFct ptrCouplingTensor, PtrCoefFct CoefFncHyst)
+    :CoefFunction(){
+      
+      isAnalytic_ = false;
+      isComplex_  = false;
+      dependType_ = SOLUTION;
+      
+      ptrFieldTensor_ = ptrFieldTensor;
+      ptrElastTensor_ = ptrElasticityTensor;
+      ptrCouplTensor_ = ptrCouplingTensor;
+      hystCoefFunction_ = CoefFncHyst;
+      
+      UInt couplRows, couplCols;
+      if(ptrCouplTensor_ != NULL){
+        ptrCouplTensor_->GetTensorSize(couplRows,couplCols);
+        if(couplCols < couplRows){
+          EXCEPTION("Coupling tensor has to be in non-transposed form");
+        }
+        isCoupled_ = true;
+      } else {
+        isCoupled_ = false;
+      }
+      
+      if(isCoupled_ == false){
+        // no coupling tensors at all
+        strainForm_ = -1;
+      } else {
+        bool useStrainForm = hystCoefFunction_->useStrainForm();
+        if(!useStrainForm){
+          // just take input tensors as they are, i.e. e-form or h-form
+          strainForm_ = 0;
+        }else{
+          std::string PDEName = hystCoefFunction_->getPDEName();
+          if(PDEName == "Electrostatic"){
+            // piezo case
+            // compute d-form as basis for coupling
+            strainForm_ = 1;
+          } else {
+            // magstrict case
+            // compute g-form 
+            strainForm_ = 2;
+          }
+        }
+      }
+      
+      // !!! small material parameter are assumed to be constant over region !!!
+      // i.e. for each region, just one linear material tensor of eac kind stored
+      // to obtain those values, we have to evaluate the ptrCoefFunctions at an lpm
+      // do this during the first call to getTensor
+      tensorsInitialized_ = false;
+    }
+    
+    virtual ~CoefFunctionHelper(){};
+    
+    void GetScalar(Double& outputScalar, const LocPointMapped& lpm ){
+      EXCEPTION("CoefFunctionHelper returns no scalars")
+    }
+    
+    void GetVector(Vector<Double>& outputVector,const LocPointMapped& lpm){
+      EXCEPTION("CoefFunctionHelper returns no vectors")
+    }
+    
+    void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm ){
+      EXCEPTION("CoefFunctionHelper returns no tensors")
+    }
+    
+    virtual UInt GetVecSize() const {
+      EXCEPTION("GetVecSize not used here")
+    }
+    
+    virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+      EXCEPTION("GetTensorSize not used here")
+    }
+    
+    std::string ToString() const {
+      return "Dummy string";
+    }
+    
+  protected:  
+    
+    void ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm, int timeLevel_to_diff, 
+      std::string tensorName, std::string implementationVersion, bool transposed, bool rotate, bool useAbs ){
+      //std::cout << "+++++ Coef Function Hyst Mat - Get Tensor ++++++" << std::endl;
+      UInt numCols, numRows;
+      // GetTensorSize will return the size of the actual tensor that shall
+      // be returned, i.e. if it is the transposed of the couplTensor_
+      // numCols = numRows(coupTensor_)
+      GetTensorSize(numRows,numCols);
+      Matrix<Double> tmp;
+      
+      outputTensor.Resize(numRows,numCols);
+      outputTensor.Init();
+      
+      if(tensorsInitialized_ == false){
+        InitLinearTensors(lpm);
+      }
+      
+      if(transposed){
+        tmp = Matrix<Double>(numCols,numRows);
+      } else {
+        tmp = Matrix<Double>(numRows,numCols);
+      }
+      tmp.Init();
+      
+      int deltaForm_ = hystCoefFunction_->GetDeltaForm();
+      bool deltaFormActive_ = hystCoefFunction_->deltaMatActive();
+      
+      // always compute deltaMat from current value to a previous one (timeLevel_to_diff)
+      int timelevel_cur = 0;
+      
+      if(tensorName == "Permittivity"){
+        //std::cout << "Get Permittivity" << std::endl;
+        /*
+         * The following cases are possible:
+         *  I. pure electrostatics:
+         *     a) no-deltaMat > return epsS
+         *     b) deltamat    > return epsS + dP/dE
+         *  II. coupled piezo-electric case
+         *     a) e-form as basis
+         *        return epsS + dP/dE - e*dS/dE
+         *     b) d-form as basis
+         *        return epsT - d [c] d^T + dP/dE - d [c] dS/dE
+         */
+        
+        // in case of piezoelectricity, we have to check for e-form or d-form
+        // in case of e-form, fieldTensor is seens (and set to be) epsS which needs
+        // no further treatment
+        Matrix<Double> e_scaled;
+        Matrix<Double> tmp2;
+        if(strainForm_ == 1){
+          //std::cout << "Get Permittivity - Compute epsS from epsT" << std::endl;
+          // d-form shall be used as basis; fieldTensor such represents epsT
+          // to get the required epsS we have to compute
+          //  epsS = epsT - d(P)[c]d(P)^T
+          // where d(P) is the scaled and rotated coupling tensor in d-form
+          Matrix<Double> d_scaled, d_scaled_transposed;
+          
+          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,d_scaled,timelevel_cur,rotate);
+          
+          // e = d*c
+          d_scaled.Mult(elastTensor_,e_scaled);
+          d_scaled.Transpose(d_scaled_transposed);
+          // tmp2 = e*d^T = dcd^T
+          e_scaled.Mult(d_scaled_transposed,tmp2);
+          
+          // tmp = epsT
+          tmp = fieldTensor_;
+          
+          // tmp = epsT - d*c*d^T
+          tmp.Add(-1.0,tmp2);
+          
+        } else {
+          //std::cout << "Get Permittivity - Take epsS directly" << std::endl;
+          // uncoupled case or e-form
+          // just take epsS directly
+          tmp = fieldTensor_;
+        }
+        
+        // check if deltaMat shall be added
+        // here we have two flags:
+        //  deltaForm_ is used to indicate if we are using a delta formulation in general
+        //  deltaFormActive_ indicates if we actually need this deltaMatrix for the current
+        //    evaluation (the issue is, that we need a deltaMatrix on the lhs and a non-deltaMatrix
+        //    on the rhs
+        if(deltaFormActive_ && (deltaForm_ != 0) ) {
+          //std::cout << "Get Permittivity - Compute DeltaMatrix" << std::endl;
+          //        std::cout << "Compute DeltaMatrix" << std::endl;
+          bool useStrains = false;
+          
+          // deltaMat will be computed using the current value (timelevel_cur = 0)
+          // and the value at timelevel (-1 > last ts; +1 > last iteration)
+          Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
+          
+          tmp.Add(1.0,deltaMat);
+          //std::cout << "DeltaMat: " << deltaMat.ToString() << std::endl;
+          if(strainForm_ != -1){
+            //std::cout << "Get Permittivity - Add dS/dE" << std::endl;
+            // coupled case
+            // here we have to add -e*dS/dE in addition
+            useStrains = true;
+            Matrix<Double> deltaMat_strains = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
+            e_scaled.Mult(deltaMat_strains,tmp2);
+            
+            tmp.Add(-1.0,tmp2);
+            //std::cout << "DeltaMatStrain: " << deltaMat_strains.ToString() << std::endl;
+          }
+          
+        } else if (deltaForm_ != 0){
+          //        std::cout << "deltaFormSet_ == true, but deltaMatNotActive!" << std::endl;
+        } else {
+          //        std::cout << "deltaFormSet_ == false" << std::endl;
+        }
+        
+      } else if (tensorName == "CouplingMechToElec"){
+        //      std::cout << "ComputeMechToElec" << std::endl;
+        Matrix<Double> rotatedCouplTensor;
+        
+        if(strainForm_ == 1){
+          // use d-form as basis, i.e. the followings steps have to be applied
+          // 1. scale and rotate d
+          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+          // 2. compute e from d
+          // e = d*c
+          rotatedCouplTensor.Mult(elastTensor_,tmp);
+        } else {
+          // use e-form as basis, i.e. the following step has to be done
+          // 1. acale and rotate e
+          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+          tmp = rotatedCouplTensor;
+        }
+        
+      } else if (tensorName == "CouplingElecToMech"){ 
+        // this is basically the same tensor as mechToElec except for the case of
+        // deltaFormulation; in the later case, we have to add c*dS/dE
+        
+        //      std::cout << "ComputeElecToMech" << std::endl;
+        Matrix<Double> rotatedCouplTensor;
+        
+        if(strainForm_ == 1){
+          // use d-form as basis, i.e. the followings steps have to be applied
+          // 1. scale and rotate d
+          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+          // 2. compute e from d
+          // e = d*c
+          rotatedCouplTensor.Mult(elastTensor_,tmp);
+        } else {
+          // use e-form as basis, i.e. the following step has to be done
+          // 1. acale and rotate e
+          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+          tmp = rotatedCouplTensor;
+        }
+        
+        if(deltaFormActive_ && (deltaForm_ != 0) ) {
+          //        std::cout << "Compute DeltaMatrix" << std::endl;
+          bool useStrains = true;
+          
+          // deltaMat will be computed using the current value (timelevel_cur = 0)
+          // and the value at timelevel (-1 > last ts; +1 > last iteration)
+          Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
+          Matrix<Double> tmp2;
+          // tmp2 = dS/dE*c
+          deltaMat.Mult(elastTensor_,tmp2);
+          
+          // tmp = e_scaled_rotated + dS/dE*c
+          tmp.Add(1.0,tmp2);
+        }    
+      } else if(tensorName == "Reluctivity"){
+        //std::cout << "Get Reluctivity" << std::endl;
+        /*
+         * The following cases are possible:
+         *  I. pure magnetics:
+         *     a) no-deltaMat > return nuS
+         *     b) deltamat    > return nuS - dM/dB
+         *  II. coupled magnetostrictive case
+         *     a) h-form as basis
+         *        return nuS -dM/dB + h*dS/dB
+         *     b) g-form as basis
+         *        return nuT + g [c] g^T - dM/dB + g [c] dS/dB
+         */
+        
+        // in case of magnetostriction, we have to check for h-form or g-form
+        // in case of h-form, fieldTensor is seen (and set to be) nuS which needs
+        // no further treatment
+        Matrix<Double> h_scaled;
+        Matrix<Double> tmp2;
+        if(strainForm_ == 1){
+          //std::cout << "Get Reluctivity - Compute nuS from nuT" << std::endl;
+          // g-form shall be used as basis; fieldTensor such represents nuT
+          // to get the required nuS we have to compute
+          // (note that compared to piezos, we have a + here)
+          //  nuS = nuT + g(P)[c]g(P)^T
+          // where g(P) is the scaled and rotated coupling tensor in g-form
+          Matrix<Double> g_scaled, g_scaled_transposed;
+          
+          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,g_scaled,timelevel_cur,rotate);
+          
+          // h = g*c
+          g_scaled.Mult(elastTensor_,h_scaled);
+          h_scaled.Transpose(g_scaled_transposed);
+          // tmp2 = h*g^T = gcg^T
+          h_scaled.Mult(g_scaled_transposed,tmp2);
+          
+          // tmp = nuT
+          tmp = fieldTensor_;
+          
+          // tmp = nuT + g*c*g^T
+          tmp.Add(1.0,tmp2);
+          
+        } else {
+          //std::cout << "Get Reluctivity - Take nuS directly" << std::endl;
+          // uncoupled case or h-form
+          // just take nuS directly
+          tmp = fieldTensor_;
+        }
+        
+        // check if deltaMat shall be added
+        // here we have two flags:
+        //  deltaForm_ is used to indicate if we are using a delta formulation in general
+        //  deltaFormActive_ indicates if we actually need this deltaMatrix for the current
+        //    evaluation (the issue is, that we need a deltaMatrix on the lhs and a non-deltaMatrix
+        //    on the rhs
+        if(deltaFormActive_ && (deltaForm_ != 0) ) {
+          //std::cout << "Get Reluctivity - Compute DeltaMatrix" << std::endl;
+          //        std::cout << "Compute DeltaMatrix" << std::endl;
+          bool useStrains = false;
+          
+          // deltaMat will be computed using the current value (timelevel_cur = 0)
+          // and the value at timelevel (-1 > last ts; +1 > last iteration)
+          Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
+          
+          // note: deltaMat will compute dP/dB, but we want to have -dM/dB
+          // i.e. add -nu*deltaMat to tmp
+          // in other words we want to have:
+          // dH = nu*(Identiy - deltaMat)*dB
+          Matrix<Double> tmp3;
+          tmp3.Resize(numRows,numCols);
+          tmp.Mult(deltaMat,tmp3);
+          
+          tmp.Add(-1.0,tmp3);
+          
+          //tmp.Add(-795774.7155,deltaMat);
+          //std::cout << "DeltaMat (dP/dB): " << deltaMat.ToString() << std::endl;
+          
+          if(strainForm_ != -1){
+            //std::cout << "Get Reluctivity - Add dS/dB" << std::endl;
+            // coupled case
+            // here we have to add +g[c] dS/dB in addition
+            useStrains = true;
+            Matrix<Double> deltaMat_strains = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
+            h_scaled.Mult(deltaMat_strains,tmp2);
+            
+            tmp.Add(1.0,tmp2);
+            //std::cout << "DeltaMatStrain: " << deltaMat_strains.ToString() << std::endl;
+          }
+          
+        } else if (deltaForm_ != 0){
+          //        std::cout << "deltaFormSet_ == true, but deltaMatNotActive!" << std::endl;
+        } else {
+          //        std::cout << "deltaFormSet_ == false" << std::endl;
+        }
+ 
+      } else {
+        //std::cout << "Tensor " << tensorName << " requested, but not yet implemented " << std::endl;
+        EXCEPTION("Tensor not implemented yet");
+      }
+      
+      if(transposed){
+        //std::cout << "Perform transpose" << std::endl;
+        tmp.Transpose(outputTensor);
+        //std::cout << "Transposed tensor: " << tmp.ToString() << std::endl;
+      } else {
+        outputTensor = tmp;
+      }
+      //std::cout << "Return the following tensor: " << outputTensor.ToString() << std::endl;
+    }
+    
+    void ComputeVector(Vector<Double>& outputVector,const LocPointMapped& lpm, int timeLevel, int baseSign, std::string vectorName, bool onBoundary ){
+      //std::cout << "Coef Function Hyst RHS Load - Get Vector" << std::endl;
+      // return vector that can be put onto rhs of system; 
+      // the sign of term shall be such, that it can be added with + in the
+      // corresponding pdes
+      // Example: in piezo systems we have (among others) -int_Omega (BN)^T*P dOmega 
+      //          on rhs, so we would return -P here
+      Double specificSign;
+      
+      if(tensorsInitialized_ == false){
+        InitLinearTensors(lpm);
+      }
+      
+      //std::cout << "Timelevel: " << timeLevel << " (0 = current, 1 = last it, -1 = last ts)" << std::endl;
+      //      if(onBoundary){
+      //        if(timeLevelRHS == -1){
+      //          //        std::cout << "Get BC wrt to the last ts" << std::endl;
+      //        } else if (timeLevelRHS != 0){
+      //          //        std::cout << "Get BC wrt to the last "<< timeLevelRHS << "th it" << std::endl;
+      //        } else {
+      //          //        std::cout << "Put current value of hyst to BC" << std::endl;
+      //        }
+      //      } else {
+      //        if(timeLevelRHS == -1){
+      //          //        std::cout << "Get RHS Load wrt to the last ts" << std::endl;
+      //        } else if (timeLevelRHS != 0){
+      //          //        std::cout << "Get RHS Load wrt to the last "<< timeLevelRHS << "th it" << std::endl;
+      //        } else {
+      //          //        std::cout << "Put current value of hyst to RHS" << std::endl;
+      //        }
+      //      }
+      
+      if(vectorName == "ElecPolarization"){
+        //std::cout << "ElecPolarization was requested" << std::endl;
+        // rhs (electrostatics, w = testfunction): 
+        // + int_Volume nabla(w)^T P dOmega
+        // - int_Surface w P^T n dGamma
+        // > specificSign = +
+        specificSign = 1.0;
+        
+        outputVector = Vector<Double>(GetVecSize());
+        outputVector.Init();
+        outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevel);
+        
+        //std::cout << "BaseSign = " << baseSign << std::endl;
+        
+        outputVector.ScalarMult(specificSign*baseSign);
+        
+      } else if (vectorName == "PiezoLoadForMechPDE"){
+        //      std::cout << "PiezoLoadForMechPDE was requested" << std::endl;
+        //TODO: implement correct vector function; at the moment, return simply zero
+        //      std::cout << couplTensor_->ToString() << std::endl;
+        outputVector = Vector<Double>(GetVecSize());
+        outputVector.Init();
+        //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
+      } else if (vectorName == "PiezoLoadForElecPDE"){
+        //      std::cout << "PiezoLoadForElecPDE was requested" << std::endl;
+        //TODO: implement correct vector function; at the moment, return simply zero
+        //      std::cout << couplTensor_->ToString() << std::endl;
+        outputVector = Vector<Double>(GetVecSize());
+        outputVector.Init();
+        //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
+      } else if(vectorName == "MagPolarization"){
+        //std::cout << "MagPolarization was requested" << std::endl;
+        // rhs (magnetics, w = testfunction): 
+        // + int_Volume rot(w)^T M dOmega
+        // > specificSign = +
+        specificSign = 1.0;
+        
+        outputVector = Vector<Double>(GetVecSize());
+        outputVector.Init();
+        outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevel);
+        
+        outputVector.ScalarMult(specificSign*baseSign);
+      } else if(vectorName == "MagMagnetization"){
+        //std::cout << "MagMagnetization was requested" << std::endl;
+        // rhs (magnetics, w = testfunction): 
+        // + int_Volume rot(w)^T M dOmega
+        // > specificSign = +
+        specificSign = 1.0;
+        
+        outputVector = Vector<Double>(GetVecSize());
+        outputVector.Init();
+        // get polarization J_pol
+        outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevel);
+        //std::cout << "Output of hyst operator: " << outputVector.ToString() << std::endl;
+        // M = nu*J_pol
+        Matrix<Double> h_scaled;
+        Matrix<Double> tmp,tmp2;
+        if(strainForm_ == 1){
+          //std::cout << "Get Reluctivity - Compute nuS from nuT" << std::endl;
+          // g-form shall be used as basis; fieldTensor such represents nuT
+          // to get the required nuS we have to compute
+          // (note that compared to piezos, we have a + here)
+          //  nuS = nuT + g(P)[c]g(P)^T
+          // where g(P) is the scaled and rotated coupling tensor in g-form
+          Matrix<Double> g_scaled, g_scaled_transposed;
+          bool rotate = true;
+          // material tensor should always be on the actual time level
+          int timelevel_RotatedTensor = 0;
+          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,g_scaled,timelevel_RotatedTensor,rotate);
+          
+          // h = g*c
+          g_scaled.Mult(elastTensor_,h_scaled);
+          h_scaled.Transpose(g_scaled_transposed);
+          // tmp2 = h*g^T = gcg^T
+          h_scaled.Mult(g_scaled_transposed,tmp2);
+          
+          // tmp = nuT
+          tmp = fieldTensor_;
+          
+          // tmp = nuT + g*c*g^T
+          tmp.Add(1.0,tmp2);
+          
+        } else {
+          //std::cout << "Get Reluctivity - Take nuS directly" << std::endl;
+          // uncoupled case or h-form
+          // just take nuS directly
+          tmp = fieldTensor_;
+          //std::cout << "FieldTensor: " << fieldTensor_.ToString() << std::endl;
+        }
+        // scale with the actual nu
+        Vector<Double> tmpVec = Vector<Double>(GetVecSize());
+        tmp.Mult(outputVector,tmpVec);
+        //std::cout << "tmpVec: " << tmpVec.ToString() << std::endl;
+        outputVector = tmpVec;
+        
+        //std::cout << "Return: " << outputVector.ToString() << std::endl;
+        outputVector.ScalarMult(specificSign*baseSign);
+        //outputVector.ScalarMult(specificSign*baseSign*795774.7155);
+      }
+      else {
+        //std::cout << "Vector " << vectorName << " requested, but not yet implemented " << std::endl;
+        EXCEPTION("Vector not implemented yet");
+      }
+      
+      //std::cout << "return: " << std::endl;
+      //std::cout << outputVector.ToString() << std::endl;
+    }
+    
+    void InitLinearTensors(const LocPointMapped& lpm){
+      //std::cout << "Init Linear Tensors" << std::endl;
+      
+      // !!! small material parameter are assumed to be constant over region !!!
+      // i.e. for each region, just one linear material tensor of eac kind stored
+      // to obtain those values, we have to evaluate the ptrCoefFunctions at an lpm
+      // do this during the first call to getTensor
+      UInt numRows, numCols;
+      ptrFieldTensor_->GetTensorSize(numRows,numCols);
+      Matrix<Double> epsS_nuS = Matrix<Double>(numRows,numCols);
+      ptrFieldTensor_->GetTensor(epsS_nuS,lpm);
+      
+      if(strainForm_ == -1){
+        //std::cout << "Single field case" << std::endl;
+        /*
+         * single field case
+         * > only fieldTensor needed
+         * > remaining tensors stay unitinialized
+         */
+        fieldTensor_ = epsS_nuS;
+        
+        //std::cout << "Initialized tensors: " << std::endl;
+        //std::cout << "Field Tensor: " << fieldTensor_.ToString() << std::endl;
+      } else if(strainForm_ != -1){
+        //std::cout << "Coupled case" << std::endl;
+        /*
+         * Coupled case
+         */
+        // get e-form / h-form
+        UInt numRows1, numCols1, numRows2, numCols2;
+        ptrElastTensor_->GetTensorSize(numRows1,numCols1);
+        Matrix<Double> cE_B = Matrix<Double>(numRows1,numCols1);
+        ptrElastTensor_->GetTensor(cE_B,lpm);
+        
+        ptrCouplTensor_->GetTensorSize(numRows2,numCols2);
+        Matrix<Double> e_h = Matrix<Double>(numRows2,numCols2);
+        ptrCouplTensor_->GetTensor(e_h,lpm);
+        
+        if(strainForm_ == 0){
+          //std::cout << "Coupled case - e/h form" << std::endl;
+          // just keep e-form/h-form
+          fieldTensor_ = epsS_nuS;
+          couplTensor_ = e_h;
+          elastTensor_ = cE_B;
+        } else if(strainForm_ == 1){
+          //std::cout << "Coupled case - d form" << std::endl;
+          // piezo
+          // transform to d-form
+          // d = cE^-1*e = sE*e
+          Matrix<Double> sE = Matrix<Double>(numRows1,numCols1);
+          cE_B.Invert(sE);
+          
+          Matrix<Double> d = Matrix<Double>(numRows2,numCols2);
+          sE.Mult(e_h,d);
+          
+          // epsT = epsS + d e^t
+          Matrix<Double> epsT = Matrix<Double>(numRows,numCols);
+          Matrix<Double> e_trans = Matrix<Double>(numCols2,numRows2);
+          e_h.Transpose(e_trans);
+          d.Mult(e_trans,epsT);
+          epsT.Add(1.0,epsS_nuS);
+          
+          fieldTensor_ = epsT;
+          couplTensor_ = d;
+          // NOTE: we do not keep sE but take cE instead
+          // later during the solution, we will need cE (not sE) and as cE is
+          // not depending on hysteresis, we can directly use the linear tensor
+          elastTensor_ = cE_B;
+        } else if(strainForm_ == 2){
+          //std::cout << "Coupled case - g form" << std::endl;
+          // magstrict
+          // transform to g-form
+          // g = cE_B^-1*h = sB*h
+          Matrix<Double> sB = Matrix<Double>(numRows1,numCols1);
+          cE_B.Invert(sB);
+          
+          Matrix<Double> g = Matrix<Double>(numRows2,numCols2);
+          sB.Mult(e_h,g);
+          
+          // nuT = nuS - g h^t
+          Matrix<Double> nuT = Matrix<Double>(numRows,numCols);
+          Matrix<Double> h_trans = Matrix<Double>(numCols2,numRows2);
+          e_h.Transpose(h_trans);
+          g.Mult(h_trans,nuT);
+          nuT.Add(-1.0,epsS_nuS);
+          nuT *= (-1.0);
+          
+          fieldTensor_ = nuT;
+          couplTensor_ = g;
+          // NOTE: we do not keep sE but take cE instead
+          // later during the solution, we will need cE (not sE) and as cE is
+          // not depending on hysteresis, we can directly use the linear tensor
+          elastTensor_ = cE_B;
+          
+        }
+//        std::cout << "Initialized tensors: " << std::endl;
+//        std::cout << "Field Tensor: " << fieldTensor_.ToString() << std::endl;
+//        std::cout << "Coupling Tensor: " << couplTensor_.ToString() << std::endl;
+//        std::cout << "Elasticity Tensor: " << elastTensor_.ToString() << std::endl;
+      }
+      
+      tensorsInitialized_ = true;
+    }
+    
+    PtrCoefFct ptrFieldTensor_;
+    PtrCoefFct ptrElastTensor_;
+    PtrCoefFct ptrCouplTensor_;
+    bool isCoupled_;
+    
+    PtrCoefFct hystCoefFunction_;
+    
+    Matrix<Double> fieldTensor_ ;
+    Matrix<Double> elastTensor_;
+    Matrix<Double> couplTensor_;
+    
+    bool tensorsInitialized_;
+    
+    /*
+     * -1 : not coupled at all
+     *  0 : coupled e-form/h-form (piezo/magstrict)
+     *  1 : coupled d-form (piezo)
+     *  2 : coupled g-form (magstrict)
+     */
+    int strainForm_;
+  };
   
-  //! compute X and Y value
-  void ComputeXY( const LocPointMapped& lpm, Double& X, Double& Y);
-
-  //! compute X and Y vector for vector model
-  void ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>& X, Vector<Double>& Y);
-
-  //! Constant initial value of the curve
-  Double coefScalar_;
+  class CoefFunctionHystMatTensor : public CoefFunctionHelper{
+  public:
+		
+    // note: coupling tensor has to be in non-transposed form (i.e. 3x6 or 2x3, 2x4)
+    CoefFunctionHystMatTensor(PtrCoefFct ptrFieldTensor,PtrCoefFct ptrElasticityTensor,
+      PtrCoefFct ptrCouplingTensor, PtrCoefFct CoefFncHyst,
+      std::string tensorName, bool transposed)
+    :CoefFunctionHelper(ptrFieldTensor,ptrElasticityTensor,ptrCouplingTensor, CoefFncHyst){
+      
+      // HystMat specific
+      dimType_ = TENSOR;      
+      tensorName_ = tensorName;
+      transposed_ = transposed;
+    }
+    
+    virtual ~CoefFunctionHystMatTensor(){};
+    
+//    void GetScalar(Double& outputScalar, const LocPointMapped& lpm ){
+//      EXCEPTION("CoefFunctionHystMatTensor only returns tensors")
+//    }
+//    
+//    void GetVector(Vector<Double>& outputVector,const LocPointMapped& lpm){
+//      EXCEPTION("CoefFunctionHystMatTensor only returns tensors")
+//    }
+//    
+//    virtual UInt GetVecSize() const {
+//      EXCEPTION("GetVecSize not used here")
+//    }
+    
+    void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm ){
+      //std::cout << "Coef Function Hyst Mat - Get Tensor" << std::endl;
+      
+      bool rotate = true;
+      bool useAbs = false;
+      std::string implementationVersion = "Division";
+      
+      /*
+       * timelevel determines which value of P shall be used to evaluate the
+       * scaling and rotation of the matrices; 
+       * the tensors returned by this functions should normally be on the current
+       * time level, i.e. timelevel should be 0
+       */
+      int timeLevel_to_diff = hystCoefFunction_->GetTimeLevel("Mat"); 
+      
+      ComputeTensor(outputTensor, lpm, timeLevel_to_diff, tensorName_, implementationVersion, transposed_, rotate, useAbs );
+    }
+    
+    //! Return row and columns size of tensor if coefficient function is a tensor
+    virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+      if( (tensorName_ == "Permittivity") || (tensorName_ == "Reluctivity")){
+        ptrFieldTensor_->GetTensorSize(numRows,numCols);
+      } else if ( (tensorName_ == "CouplingMechToElec") || (tensorName_ == "CouplingElecToMech") 
+        || (tensorName_ == "CouplingMechToMag") || (tensorName_ == "ComputeMagToMech") ){
+        ptrCouplTensor_->GetTensorSize(numRows,numCols);
+      } else {
+        EXCEPTION("Tensor type unknown");
+      }
+      if(transposed_){
+        UInt tmp = numRows;
+        numRows = numCols;
+        numCols = tmp;
+      }
+    }
+    
+  private:
+    
+    std::string tensorName_;
+    bool transposed_;
+  };
   
-  //! hysteresis object
-  Hysteresis * hyst_;
+  class CoefFunctionHystRHSLoad : public CoefFunctionHelper{
+    
+  public:
+    
+    CoefFunctionHystRHSLoad(PtrCoefFct ptrFieldTensor,PtrCoefFct ptrElasticityTensor,
+      PtrCoefFct ptrCouplingTensor, PtrCoefFct CoefFncHyst,
+      std::string vectorName, bool transposed, bool onBoundary)
+    :CoefFunctionHelper(ptrFieldTensor,ptrElasticityTensor,ptrCouplingTensor, CoefFncHyst){
+      
+      // HystRHSLoad specific
+      dimType_ = VECTOR;            
+      vectorName_ = vectorName;
+      transposed_ = transposed;
+      onBoundary_ = onBoundary;
+    }
+    
+    virtual ~CoefFunctionHystRHSLoad(){};
+    
+    void GetScalar(Double& outputScalar, const LocPointMapped& lpm ){
+      EXCEPTION("CoefFunctionHystRHSLoad only returns vectors")
+    }
+    
+    void GetVector(Vector<Double>& outputVector,const LocPointMapped& lpm){
+      //std::cout << "Coef Function Hyst RHS Load - Get Vector" << std::endl;
+      // return vector that can be put onto rhs of system; 
+      // the sign of term shall be such, that it can be added with + in the
+      // corresponding pdes
+      // Example: in piezo systems we have (among others) -int_Omega (BN)^T*P dOmega 
+      //          on rhs, so we would return -P here
+      
+      int timeLevel;
+      Double baseSign;
+      
+      if(onBoundary_){
+        // boundary terms usually are evluated with the current value of polarization etc
+        // whereas the rhs depends on usage of deltaMat or not
+        timeLevel = hystCoefFunction_->GetTimeLevel("BC");
+        //std::cout << "Boundary Term, timelevel = " << timeLevel << std::endl;
+        // furtherrmore, the  boundary terms and the (volume) loads have opposite
+        // aigns
+        baseSign = -1.0;
+      } else {
+        timeLevel = hystCoefFunction_->GetTimeLevel("RHS");
+                //std::cout << "RHS Term, timelevel = " << timeLevel << std::endl;
+        baseSign = 1.0;
+      }
 
-  //! previous Xval in hysteresis
-  //! -> this is the value of the last timestep (if any)
-  //! no longer needed -> instead XpreviousEval_ to check if this
-  //! value was used during the last evaluation (there can be several evaluations
-  //! during one iteration!)
-  //Vector<Double> Xprevious_;
-  //Vector<Double> Yprevious_;
-  Vector<Double> XpreviousEval_;
-  Vector<Double> YpreviousEval_;
+      ComputeVector(outputVector,lpm, timeLevel, baseSign, vectorName_, onBoundary_ );
+    }
 
-  //! previous iteration value of hystersis
-  //! -> this is the value of the last iteration (if any)
-  //! -> needed to check if input has changed during iteration steps
-  //! -> if not -> avoid recomputation and return YpreviousIt_
-  Vector<Double> XpreviousIt_;
-  Vector<Double> YpreviousIt_;
+    virtual UInt GetVecSize() const {
+      
+      UInt numRows,numCols;
+      if( (vectorName_ == "ElecPolarization") || (vectorName_ == "MagPolarization") || (vectorName_ == "MagMagnetization")){
+        ptrFieldTensor_->GetTensorSize(numRows,numCols);
+      } else if ( (vectorName_ == "PiezoLoadForMechPDE") || (vectorName_ == "PiezoLoadForElecPDE") 
+        || (vectorName_ == "MagStrictLoadForMechPDE") || (vectorName_ == "MagStrictLoadForMagPDE") ){
+        ptrCouplTensor_->GetTensorSize(numRows,numCols);
+      } else {
+        EXCEPTION("Vector type unknown");
+      }
+      if(transposed_){
+        return numCols;
+      } else {
+        return numRows;
+      }
+    }
 
-  Vector<Double> XnextToLastTS_;
-  Vector<Double> YnextToLastTS_;
-
-  //! delta material tensor
-  //! new: extend to array of matrices so that we can store the old state of each element
-  Matrix<Double>* matDeltaTensor_;
-
-  //! non-delta matrial tensor (basically eps0, nu0 as diagonal matrix)
-  Matrix<Double> matFreeFieldTensor_;
-
-  //! for vector version
-  //! XcurrentItVec_, YcurrentItVec_ store values of the current iteration; if function is called several times
-  //                             with the same (or very close input), we avoid recomputations
-  Vector<Double>* XcurrentItVEC_;
-  Vector<Double>* YcurrentItVEC_;
-  //! XpreviousItVec_, YcurrentItVec_ store values of the previous iteration; these vectors are needed to compute
-  //                             the deltaMaterial deltaP/deltaE
-  Vector<Double>* XpreviousItVEC_;
-  Vector<Double>* YpreviousItVEC_;
-
-  //!
-  // values from the FIRST iteration of the last time step
-  // > to estimate the deltaMatrxi for the first iteration of a new timestep
-  //    it is not (always) a good idea to use the difference between current input
-  //    and the previous iteration direction
-  //    > reason: during the last iterations of a timestep, the steppings can be in
-  //              totally different direction as the outer field is; if the delta matrix
-  //              gets computed with such a difference, the first step of the new timestep
-  //              (with possible new idbc values) might perform a huge step in the wrong
-  //              direction
-  //  > try to approximate the delta matrix for the first timestep by calculating
-  //    delta between the current input (i.e. the solution of the last timestep) and
-  //    the value at the first iteration of the last timestep (= solution of the next to
-  //    last timestep)
-  Vector<Double>* XnextToLastTSVEC_;
-  Vector<Double>* YnextToLastTSVEC_;
-
-  //! dXpreviousItVec_, dYcurrentItVec_ store values of dX and dY of the previous iteration;
-  //                             we can compare these vectors to the current difference dX and dY to avoid
-  //                             recomputation
-  Vector<Double>* dXpreviousItVEC_;
-  Vector<Double>* dYpreviousItVEC_;
-
-  //! XpreviousEvalVec_, YpreviousEvalVec_ store the last used input/output of the hysteresis operator
-  //                             that can avoid recomputations if the same input is used several times for example
-  Vector<Double>* XpreviousEvalVEC_;
-  Vector<Double>* YpreviousEvalVEC_;
-
-  //! globale element to local element numbering
-  std::map<UInt, UInt> globalElem2Local_;
+//    void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm ){
+//      EXCEPTION("CoefFunctionHystRHSLoad only returns vectors")
+//    }
+//    
+//    virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+//      EXCEPTION("GetTensorSize not used here")
+//    }
+    
+  private:
+    std::string vectorName_;
+    bool transposed_;
+    bool onBoundary_;
+  };
   
-  //! Coefficient function which this one depends one
-  PtrCoefFct dependCoef_;
+  
+  //class CoefFunctionHystMatTensor : public CoefFunction{
+  //  public:
+  //		
+  //    // note: coupling tensor has to be in non-transposed form (i.e. 3x6 or 2x3, 2x4)
+  //    CoefFunctionHystMatTensor(PtrCoefFct ptrFieldTensor,PtrCoefFct ptrElasticityTensor,
+  //      PtrCoefFct ptrCouplingTensor, PtrCoefFct CoefFncHyst,
+  //      std::string tensorName, bool transposed)
+  //    :CoefFunction(){
+  //      
+  //      dimType_ = TENSOR;
+  //      isAnalytic_ = false;
+  //      isComplex_  = false;
+  //      dependType_ = SOLUTION;
+  //      
+  //      ptrFieldTensor_ = ptrFieldTensor;
+  //      ptrElastTensor_ = ptrElasticityTensor;
+  //      ptrCouplTensor_ = ptrCouplingTensor;
+  //      hystCoefFunction_ = CoefFncHyst;
+  //      
+  //      UInt couplRows, couplCols;
+  //      if(ptrCouplTensor_ != NULL){
+  //        ptrCouplTensor_->GetTensorSize(couplRows,couplCols);
+  //        if(couplCols < couplRows){
+  //          EXCEPTION("Coupling tensor has to be in non-transposed form");
+  //        }
+  //        isCoupled_ = true;
+  //      } else {
+  //        isCoupled_ = false;
+  //      }
+  //      
+  //      if(isCoupled_ == false){
+  //        // no coupling tensors at all
+  //        strainForm_ = -1;
+  //      } else {
+  //        bool useStrainForm = hystCoefFunction_->useStrainForm();
+  //        if(!useStrainForm){
+  //          // just take input tensors as they are, i.e. e-form or h-form
+  //          strainForm_ = 0;
+  //        }else{
+  //          std::string PDEName = hystCoefFunction_->getPDEName();
+  //          if(PDEName == "Electrostatic"){
+  //            // piezo case
+  //            // compute d-form as basis for coupling
+  //            strainForm_ = 1;
+  //          } else {
+  //            // magstrict case
+  //            // compute g-form 
+  //            strainForm_ = 2;
+  //          }
+  //        }
+  //      }
+  //      
+  //      tensorName_ = tensorName;
+  //      transposed_ = transposed;
+  //      
+  //      // !!! small material parameter are assumed to be constant over region !!!
+  //      // i.e. for each region, just one linear material tensor of eac kind stored
+  //      // to obtain those values, we have to evaluate the ptrCoefFunctions at an lpm
+  //      // do this during the first call to getTensor
+  //      tensorsInitialized_ = false;
+  //    }
+  //    
+  //    virtual ~CoefFunctionHystMatTensor(){};
+  //    
+  //    void GetScalar(Double& outputScalar, const LocPointMapped& lpm ){
+  //      EXCEPTION("CoefFunctionHystMatTensor only returns tensors")
+  //    }
+  //    
+  //    void GetVector(Vector<Double>& outputVector,const LocPointMapped& lpm){
+  //      EXCEPTION("CoefFunctionHystMatTensor only returns tensors")
+  //    }
+  //    
+  //    virtual UInt GetVecSize() const {
+  //      EXCEPTION("GetVecSize not used here")
+  //    }
+  //    
+  //    void InitLinearTensors(const LocPointMapped& lpm){
+  //      std::cout << "Init Linear Tensors" << std::endl;
+  //      
+  //      // !!! small material parameter are assumed to be constant over region !!!
+  //      // i.e. for each region, just one linear material tensor of eac kind stored
+  //      // to obtain those values, we have to evaluate the ptrCoefFunctions at an lpm
+  //      // do this during the first call to getTensor
+  //      UInt numRows, numCols;
+  //      ptrFieldTensor_->GetTensorSize(numRows,numCols);
+  //      Matrix<Double> epsS_nuS = Matrix<Double>(numRows,numCols);
+  //      ptrFieldTensor_->GetTensor(epsS_nuS,lpm);
+  //      
+  //      if(strainForm_ == -1){
+  //        std::cout << "Single field case" << std::endl;
+  //        /*
+  //         * single field case
+  //         * > only fieldTensor needed
+  //         * > remaining tensors stay unitinialized
+  //         */
+  //        fieldTensor_ = epsS_nuS;
+  //        
+  //        std::cout << "Initialized tensors: " << std::endl;
+  //        std::cout << "Field Tensor: " << fieldTensor_.ToString() << std::endl;
+  //      } else if(strainForm_ != -1){
+  //        std::cout << "Coupled case" << std::endl;
+  //        /*
+  //         * Coupled case
+  //         */
+  //        // get e-form / h-form
+  //        UInt numRows1, numCols1, numRows2, numCols2;
+  //        ptrElastTensor_->GetTensorSize(numRows1,numCols1);
+  //        Matrix<Double> cE_B = Matrix<Double>(numRows1,numCols1);
+  //        ptrElastTensor_->GetTensor(cE_B,lpm);
+  //        
+  //        ptrCouplTensor_->GetTensorSize(numRows2,numCols2);
+  //        Matrix<Double> e_h = Matrix<Double>(numRows2,numCols2);
+  //        ptrCouplTensor_->GetTensor(e_h,lpm);
+  //        
+  //        if(strainForm_ == 0){
+  //          std::cout << "Coupled case - e/h form" << std::endl;
+  //          // just keep e-form/h-form
+  //          fieldTensor_ = epsS_nuS;
+  //          couplTensor_ = e_h;
+  //          elastTensor_ = cE_B;
+  //        } else if(strainForm_ == 1){
+  //          std::cout << "Coupled case - d form" << std::endl;
+  //          // piezo
+  //          // transform to d-form
+  //          // d = cE^-1*e = sE*e
+  //          Matrix<Double> sE = Matrix<Double>(numRows1,numCols1);
+  //          cE_B.Invert(sE);
+  //          
+  //          Matrix<Double> d = Matrix<Double>(numRows2,numCols2);
+  //          sE.Mult(e_h,d);
+  //          
+  //          // epsT = epsS + d e^t
+  //          Matrix<Double> epsT = Matrix<Double>(numRows,numCols);
+  //          Matrix<Double> e_trans = Matrix<Double>(numCols2,numRows2);
+  //          e_h.Transpose(e_trans);
+  //          d.Mult(e_trans,epsT);
+  //          epsT.Add(1.0,epsS_nuS);
+  //          
+  //          fieldTensor_ = epsT;
+  //          couplTensor_ = d;
+  //          // NOTE: we do not keep sE but take cE instead
+  //          // later during the solution, we will need cE (not sE) and as cE is
+  //          // not depending on hysteresis, we can directly use the linear tensor
+  //          elastTensor_ = cE_B;
+  //        } else if(strainForm_ == 2){
+  //          std::cout << "Coupled case - g form" << std::endl;
+  //          // magstrict
+  //          // transform to g-form
+  //          // g = cE_B^-1*h = sB*h
+  //          Matrix<Double> sB = Matrix<Double>(numRows1,numCols1);
+  //          cE_B.Invert(sB);
+  //          
+  //          Matrix<Double> g = Matrix<Double>(numRows2,numCols2);
+  //          sB.Mult(e_h,g);
+  //          
+  //          // nuT = nuS - g h^t
+  //          Matrix<Double> nuT = Matrix<Double>(numRows,numCols);
+  //          Matrix<Double> h_trans = Matrix<Double>(numCols2,numRows2);
+  //          e_h.Transpose(h_trans);
+  //          g.Mult(h_trans,nuT);
+  //          nuT.Add(-1.0,epsS_nuS);
+  //          nuT *= (-1.0);
+  //          
+  //          fieldTensor_ = nuT;
+  //          couplTensor_ = g;
+  //          // NOTE: we do not keep sE but take cE instead
+  //          // later during the solution, we will need cE (not sE) and as cE is
+  //          // not depending on hysteresis, we can directly use the linear tensor
+  //          elastTensor_ = cE_B;
+  //          
+  //        }
+  //        std::cout << "Initialized tensors: " << std::endl;
+  //        std::cout << "Field Tensor: " << fieldTensor_.ToString() << std::endl;
+  //        std::cout << "Coupling Tensor: " << couplTensor_.ToString() << std::endl;
+  //        std::cout << "Elasticity Tensor: " << elastTensor_.ToString() << std::endl;
+  //      }
+  // 
+  //      tensorsInitialized_ = true;
+  //    }
+  //    
+  //    void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm ){
+  //      std::cout << "Coef Function Hyst Mat - Get Tensor" << std::endl;
+  //      UInt numCols, numRows;
+  //      // GetTensorSize will return the size of the actual tensor that shall
+  //      // be returned, i.e. if it is the transposed of the couplTensor_
+  //      // numCols = numRows(coupTensor_)
+  //      GetTensorSize(numRows,numCols);
+  //      Matrix<Double> tmp;
+  //      
+  //      outputTensor.Resize(numRows,numCols);
+  //      outputTensor.Init();
+  //      
+  //      if(tensorsInitialized_ == false){
+  //        InitLinearTensors(lpm);
+  //      }
+  //      
+  //      if(transposed_){
+  //        tmp = Matrix<Double>(numCols,numRows);
+  //      } else {
+  //        tmp = Matrix<Double>(numRows,numCols);
+  //      }
+  //      tmp.Init();
+  //      
+  //      int deltaForm_ = hystCoefFunction_->GetDeltaForm();
+  //      bool deltaFormActive_ = hystCoefFunction_->deltaMatActive();
+  //      bool rotate = true;
+  //      bool useAbs = false;
+  //      std::string implementationVersion = "Division";
+  //      
+  //      /*
+  //       * timelevel determines which value of P shall be used to evaluate the
+  //       * scaling and rotation of the matrices; 
+  //       * the tensors returned by this functions should normally be on the current
+  //       * time level, i.e. timelevel should be 0
+  //       */
+  //      int timelevel_for_diff = hystCoefFunction_->GetTimeLevel("Mat"); 
+  //      int timelevel_cur = 0;
+  //      
+  //      if(tensorName_ == "Permittivity"){
+  //        std::cout << "Get Permittivity" << std::endl;
+  //        /*
+  //         * The following cases are possible:
+  //         *  I. pure electrostatics:
+  //         *     a) no-deltaMat > return epsS
+  //         *     b) deltamat    > return epsS + dP/dE
+  //         *  II. coupled piezo-electric case
+  //         *     a) e-form as basis
+  //         *        return epsS + dP/dE - e*dS/dE
+  //         *     b) d-form as basis
+  //         *        return epsT - d [c] d^T + dP/dE - d [c] dS/dE
+  //         */
+  //
+  //        // in case of piezoelectricity, we have to check for e-form or d-form
+  //        // in case of e-form, fieldTensor is seens (and set to be) epsS which needs
+  //        // no further treatment
+  //        Matrix<Double> e_scaled;
+  //        Matrix<Double> tmp2;
+  //        if(strainForm_ == 1){
+  //          std::cout << "Get Permittivity - Compute epsS from epsT" << std::endl;
+  //          // d-form shall be used as basis; fieldTensor such represents epsT
+  //          // to get the required epsS we have to compute
+  //          //  epsS = epsT - d(P)[c]d(P)^T
+  //          // where d(P) is the scaled and rotated coupling tensor in d-form
+  //          Matrix<Double> d_scaled, d_scaled_transposed;
+  //          
+  //          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,d_scaled,timelevel_cur,rotate);
+  //
+  //          // e = d*c
+  //          d_scaled.Mult(elastTensor_,e_scaled);
+  //          d_scaled.Transpose(d_scaled_transposed);
+  //          // tmp2 = e*d^T = dcd^T
+  //          e_scaled.Mult(d_scaled_transposed,tmp2);
+  //
+  //          // tmp = epsT
+  //          tmp = fieldTensor_;
+  //
+  //          // tmp = epsT - d*c*d^T
+  //          tmp.Add(-1.0,tmp2);
+  //          
+  //        } else {
+  //          std::cout << "Get Permittivity - Take epsS directly" << std::endl;
+  //          // uncoupled case or e-form
+  //          // just take epsS directly
+  //          tmp = fieldTensor_;
+  //        }
+  //        
+  //        // check if deltaMat shall be added
+  //        // here we have two flags:
+  //        //  deltaForm_ is used to indicate if we are using a delta formulation in general
+  //        //  deltaFormActive_ indicates if we actually need this deltaMatrix for the current
+  //        //    evaluation (the issue is, that we need a deltaMatrix on the lhs and a non-deltaMatrix
+  //        //    on the rhs
+  //        if(deltaFormActive_ && (deltaForm_ != 0) ) {
+  //          std::cout << "Get Permittivity - Compute DeltaMatrix" << std::endl;
+  //          //        std::cout << "Compute DeltaMatrix" << std::endl;
+  //          bool useStrains = false;
+  //          
+  //          // deltaMat will be computed using the current value (timelevel_cur = 0)
+  //          // and the value at timelevel (-1 > last ts; +1 > last iteration)
+  //          Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timelevel_for_diff, useStrains, useAbs,implementationVersion);
+  //          
+  //          tmp.Add(1.0,deltaMat);
+  //          std::cout << "DeltaMat: " << deltaMat.ToString() << std::endl;
+  //          if(strainForm_ != -1){
+  //            std::cout << "Get Permittivity - Add dS/dE" << std::endl;
+  //            // coupled case
+  //            // here we have to add -e*dS/dE in addition
+  //            useStrains = true;
+  //            Matrix<Double> deltaMat_strains = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timelevel_for_diff, useStrains, useAbs,implementationVersion);
+  //            e_scaled.Mult(deltaMat_strains,tmp2);
+  //            
+  //            tmp.Add(-1.0,tmp2);
+  //            std::cout << "DeltaMatStrain: " << deltaMat_strains.ToString() << std::endl;
+  //          }
+  //          
+  //        } else if (deltaForm_ != 0){
+  //          //        std::cout << "deltaFormSet_ == true, but deltaMatNotActive!" << std::endl;
+  //        } else {
+  //          //        std::cout << "deltaFormSet_ == false" << std::endl;
+  //        }
+  //        
+  //      } else if (tensorName_ == "CouplingMechToElec"){
+  //        //      std::cout << "ComputeMechToElec" << std::endl;
+  //        Matrix<Double> rotatedCouplTensor;
+  //     
+  //        if(strainForm_ == 1){
+  //          // use d-form as basis, i.e. the followings steps have to be applied
+  //          // 1. scale and rotate d
+  //          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+  //          // 2. compute e from d
+  //          // e = d*c
+  //          rotatedCouplTensor.Mult(elastTensor_,tmp);
+  //        } else {
+  //          // use e-form as basis, i.e. the following step has to be done
+  //          // 1. acale and rotate e
+  //          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+  //          tmp = rotatedCouplTensor;
+  //        }
+  //        
+  //      } else if (tensorName_ == "CouplingElecToMech"){ 
+  //        // this is basically the same tensor as mechToElec except for the case of
+  //        // deltaFormulation; in the later case, we have to add c*dS/dE
+  //        
+  //        //      std::cout << "ComputeElecToMech" << std::endl;
+  //        Matrix<Double> rotatedCouplTensor;
+  //     
+  //        if(strainForm_ == 1){
+  //          // use d-form as basis, i.e. the followings steps have to be applied
+  //          // 1. scale and rotate d
+  //          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+  //          // 2. compute e from d
+  //          // e = d*c
+  //          rotatedCouplTensor.Mult(elastTensor_,tmp);
+  //        } else {
+  //          // use e-form as basis, i.e. the following step has to be done
+  //          // 1. acale and rotate e
+  //          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+  //          tmp = rotatedCouplTensor;
+  //        }
+  //        
+  //        if(deltaFormActive_ && (deltaForm_ != 0) ) {
+  //          //        std::cout << "Compute DeltaMatrix" << std::endl;
+  //          bool useStrains = true;
+  //          
+  //          // deltaMat will be computed using the current value (timelevel_cur = 0)
+  //          // and the value at timelevel (-1 > last ts; +1 > last iteration)
+  //          Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timelevel_for_diff, useStrains, useAbs,implementationVersion);
+  //          Matrix<Double> tmp2;
+  //          // tmp2 = dS/dE*c
+  //          deltaMat.Mult(elastTensor_,tmp2);
+  //          
+  //          // tmp = e_scaled_rotated + dS/dE*c
+  //          tmp.Add(1.0,tmp2);
+  //        }        
+  //      } else {
+  //        std::cout << "Tensor " << tensorName_ << " requested, but not yet implemented " << std::endl;
+  //      }
+  //
+  //      if(transposed_){
+  //        std::cout << "Perform transpose" << std::endl;
+  //        tmp.Transpose(outputTensor);
+  //        std::cout << "Transposed tensor: " << tmp.ToString() << std::endl;
+  //      } else {
+  //        outputTensor = tmp;
+  //      }
+  //      std::cout << "Return the following tensor: " << outputTensor.ToString() << std::endl;
+  //    }
+  //    
+  //    //! Return row and columns size of tensor if coefficient function is a tensor
+  //    virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+  //      if( (tensorName_ == "Permittivity") || (tensorName_ == "Reluctivity")){
+  //        ptrFieldTensor_->GetTensorSize(numRows,numCols);
+  //      } else if ( (tensorName_ == "CouplingMechToElec") || (tensorName_ == "CouplingElecToMech") 
+  //        || (tensorName_ == "CouplingMechToMag") || (tensorName_ == "ComputeMagToMech") ){
+  //        ptrCouplTensor_->GetTensorSize(numRows,numCols);
+  //      } else {
+  //        EXCEPTION("Tensor type unknown");
+  //      }
+  //      if(transposed_){
+  //        UInt tmp = numRows;
+  //        numRows = numCols;
+  //        numCols = tmp;
+  //      }
+  //    }
+  //    
+  //  private:
+  //    
+  //    PtrCoefFct ptrFieldTensor_;
+  //    PtrCoefFct ptrElastTensor_;
+  //    PtrCoefFct ptrCouplTensor_;
+  //    bool isCoupled_;
+  //    
+  //    PtrCoefFct hystCoefFunction_;
+  //    
+  //    std::string tensorName_;
+  //    bool transposed_;
+  //    
+  //    Matrix<Double> fieldTensor_ ;
+  //    Matrix<Double> elastTensor_;
+  //    Matrix<Double> couplTensor_;
+  //    
+  //    bool tensorsInitialized_;
+  //    
+  //    /*
+  //     * -1 : not coupled at all
+  //     *  0 : coupled e-form/h-form (piezo/magstrict)
+  //     *  1 : coupled d-form (piezo)
+  //     *  2 : coupled g-form (magstrict)
+  //     */
+  //    int strainForm_;
+  //  };
+  
+//  class CoefFunctionHystRHSLoad : public CoefFunction{
+//    
+//  public:
+//    
+//    CoefFunctionHystRHSLoad(PtrCoefFct fieldTensor,PtrCoefFct elasticityTensor,
+//      PtrCoefFct couplingTensor, PtrCoefFct CoefFncHyst,
+//      std::string vectorName, bool transposed, bool onBoundary)
+//    :CoefFunction(){
+//      
+//      dimType_ = VECTOR;
+//      isAnalytic_ = false;
+//      isComplex_  = false;
+//      dependType_ = SOLUTION;
+//      
+//      fieldTensor_ = fieldTensor;
+//      elastTensor_ = elasticityTensor;
+//      couplTensor_ = couplingTensor;
+//      
+//      UInt couplRows, couplCols;
+//      if(couplTensor_ != NULL){
+//        couplTensor_->GetTensorSize(couplRows,couplCols);
+//        if(couplCols < couplRows){
+//          EXCEPTION("Coupling tensor has to be in non-transposed form");
+//        }
+//      }
+//      
+//      hystCoefFunction_ = CoefFncHyst;
+//      
+//      vectorName_ = vectorName;
+//      transposed_ = transposed;
+//      onBoundary_ = onBoundary;
+//    }
+//    
+//    virtual ~CoefFunctionHystRHSLoad(){};
+//    
+//    void GetScalar(Double& outputScalar, const LocPointMapped& lpm ){
+//      EXCEPTION("CoefFunctionHystRHSLoad only returns vectors")
+//    }
+//    
+//    void GetVector(Vector<Double>& outputVector,const LocPointMapped& lpm){
+//      std::cout << "Coef Function Hyst RHS Load - Get Vector" << std::endl;
+//      // return vector that can be put onto rhs of system; 
+//      // the sign of term shall be such, that it can be added with + in the
+//      // corresponding pdes
+//      // Example: in piezo systems we have (among others) -int_Omega (BN)^T*P dOmega 
+//      //          on rhs, so we would return -P here
+//      
+//      int timeLevel;
+//      Double specificSign;
+//      Double baseSign;
+//      
+//      if(onBoundary_){
+//        // boundary terms usually are evluated with the current value of polarization etc
+//        // whereas the rhs depends on usage of deltaMat or not
+//        timeLevel = hystCoefFunction_->GetTimeLevel("BC");
+//        // furtherrmore, the  boundary terms and the (volume) loads have opposite
+//        // aigns
+//        baseSign = -1.0;
+//      } else {
+//        timeLevel = hystCoefFunction_->GetTimeLevel("RHS");
+//        baseSign = 1.0;
+//      }
+//      std::cout << "Timelevel: " << timeLevel << " (0 = current, 1 = last it, -1 = last ts)" << std::endl;
+//      //      if(onBoundary_){
+//      //        if(timeLevelRHS == -1){
+//      //          //        std::cout << "Get BC wrt to the last ts" << std::endl;
+//      //        } else if (timeLevelRHS != 0){
+//      //          //        std::cout << "Get BC wrt to the last "<< timeLevelRHS << "th it" << std::endl;
+//      //        } else {
+//      //          //        std::cout << "Put current value of hyst to BC" << std::endl;
+//      //        }
+//      //      } else {
+//      //        if(timeLevelRHS == -1){
+//      //          //        std::cout << "Get RHS Load wrt to the last ts" << std::endl;
+//      //        } else if (timeLevelRHS != 0){
+//      //          //        std::cout << "Get RHS Load wrt to the last "<< timeLevelRHS << "th it" << std::endl;
+//      //        } else {
+//      //          //        std::cout << "Put current value of hyst to RHS" << std::endl;
+//      //        }
+//      //      }
+//      
+//      if(vectorName_ == "ElecPolarization"){
+//        std::cout << "ElecPolarization was requested" << std::endl;
+//        if(onBoundary_){
+//          std::cout << "ON BOUNDARY" << std::endl;
+//        }
+//        // rhs (electrostatics, w = testfunction): 
+//        // + int_Volume nabla(w)^T P dOmega
+//        // - int_Surface w P^T n dGamma
+//        // > specificSign = +
+//        specificSign = 1.0;
+//        
+//        outputVector = Vector<Double>(GetVecSize());
+//        outputVector.Init();
+//        outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevel);
+//        
+//        outputVector.ScalarMult(specificSign*baseSign);
+//        
+//      } else if (vectorName_ == "PiezoLoadForMechPDE"){
+//        //      std::cout << "PiezoLoadForMechPDE was requested" << std::endl;
+//        //TODO: implement correct vector function; at the moment, return simply zero
+//        //      std::cout << couplTensor_->ToString() << std::endl;
+//        outputVector = Vector<Double>(GetVecSize());
+//        outputVector.Init();
+//        //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
+//      } else if (vectorName_ == "PiezoLoadForElecPDE"){
+//        //      std::cout << "PiezoLoadForElecPDE was requested" << std::endl;
+//        //TODO: implement correct vector function; at the moment, return simply zero
+//        //      std::cout << couplTensor_->ToString() << std::endl;
+//        outputVector = Vector<Double>(GetVecSize());
+//        outputVector.Init();
+//        //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
+//      } else if(vectorName_ == "MagPolarization"){
+//        std::cout << "MagPolarization was requested" << std::endl;
+//        // rhs (magnetics, w = testfunction): 
+//        // + int_Volume rot(w)^T M dOmega
+//        // > specificSign = +
+//        specificSign = 1.0;
+//        
+//        outputVector = Vector<Double>(GetVecSize());
+//        outputVector.Init();
+//        outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevel);
+//        
+//        outputVector.ScalarMult(specificSign*baseSign);
+//      }
+//      else {
+//        EXCEPTION("VectorName not implemented yet");
+//      }
+//      
+//      std::cout << "Coef Function Hyst RHS Load - return: " << std::endl;
+//      std::cout << outputVector.ToString() << std::endl;
+//    }
+//    
+//    virtual UInt GetVecSize() const {
+//      
+//      UInt numRows,numCols;
+//      if( (vectorName_ == "ElecPolarization") || (vectorName_ == "MagPolarization")){
+//        fieldTensor_->GetTensorSize(numRows,numCols);
+//      } else if ( (vectorName_ == "PiezoLoadForMechPDE") || (vectorName_ == "PiezoLoadForElecPDE") 
+//        || (vectorName_ == "MagStrictLoadForMechPDE") || (vectorName_ == "MagStrictLoadForMagPDE") ){
+//        couplTensor_->GetTensorSize(numRows,numCols);
+//      } else {
+//        EXCEPTION("Vector type unknown");
+//      }
+//      if(transposed_){
+//        return numCols;
+//      } else {
+//        return numRows;
+//      }
+//    }
+//    
+//    void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm ){
+//      EXCEPTION("CoefFunctionHystRHSLoad only returns vectors")
+//    }
+//    
+//    //! Return row and columns size of tensor if coefficient function is a tensor
+//    virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+//      EXCEPTION("GetVecSize not used here")
+//    }
+//    
+//  private:
+//    
+//    PtrCoefFct fieldTensor_;
+//    PtrCoefFct elastTensor_;
+//    PtrCoefFct couplTensor_;
+//    
+//    PtrCoefFct hystCoefFunction_;
+//    
+//    std::string vectorName_;
+//    bool transposed_;
+//    bool onBoundary_;
+//  };
+//  
+  
+  class CoefFunctionHystOutput : public CoefFunctionHelper{
+    
+  public:
+    
+    CoefFunctionHystOutput(PtrCoefFct ptrFieldTensor,PtrCoefFct ptrElasticityTensor,
+      PtrCoefFct ptrCouplingTensor, PtrCoefFct CoefFncHyst ,std::string ResultName)    
+    :CoefFunctionHelper(ptrFieldTensor,ptrElasticityTensor,ptrCouplingTensor, CoefFncHyst){
 
-  //! type of material
-   MaterialType matType_;
+      if( (ResultName == "DeltaPermeability")||(ResultName == "DeltaPermittivity") ){
+        dimType_ = TENSOR;
+      } else {
+        dimType_ = VECTOR;
+      }
+      
+      isAnalytic_ = false;
+      isComplex_  = false;
+      dependType_ = SOLUTION;
+      onBoundary_ = false;
+      
+      hystCoefFunction_ = CoefFncHyst;
+      resultName_ = ResultName;
+    }
+    
+    virtual ~CoefFunctionHystOutput(){};
+    
+    void GetScalar(Double& outputScalar, const LocPointMapped& lpm ){
+      EXCEPTION("CoefFunctionHystOutput returns no scalars")
+    }
+    
+    void GetVector(Vector<Double>& outputVector,const LocPointMapped& lpm){
+      //std::cout << "Coef Function Hyst RHS Load - Get Vector" << std::endl;
+      // return vector that can be put onto rhs of system; 
+      // the sign of term shall be such, that it can be added with + in the
+      // corresponding pdes
+      // Example: in piezo systems we have (among others) -int_Omega (BN)^T*P dOmega 
+      //          on rhs, so we would return -P here
+      
+      int timeLevel = 0;
+      Double baseSign = 1.0;
+      //std::cout << "result " << resultName_ << " requested" << std::endl;
+      
+      ComputeVector(outputVector,lpm, timeLevel, baseSign, resultName_, onBoundary_ );
+    }
+    
+//    void GetVector(Vector<Double>& outputVector,const LocPointMapped& lpm){     
+//
+//      //std::cout << "Coef Function Hyst Output - Get Vector" << std::endl;
+//      // output is always the actual quantity
+//      int timeLevelOutput = 0;
+//      if(resultName_ == "ElecPolarization"){    
+//        outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevelOutput);
+//      } else if (resultName_ == "MagPolarization"){
+//        outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevelOutput);
+//      } else {
+//        EXCEPTION("Unknown result")
+//      }
+//      //std::cout << "Output: " << outputVector.ToString() << std::endl;
+//    }
+    
+    void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm ){
+      if( (resultName_ == "DeltaPermeability")||(resultName_ == "DeltaPermittivity") ){
+        //TODO: estimate permeability or permittivity around current working point
+        UInt numCols,numRows;
+        hystCoefFunction_->GetTensorSize(numRows,numCols);
+        outputTensor.Resize(numRows,numCols);
+        outputTensor.Init();
+      } else {
+        EXCEPTION("Unknown result")
+      }
+    }
+    
+    virtual UInt GetVecSize() const {
+      return hystCoefFunction_->GetVecSize();
+    }
+    
+    //! Return row and columns size of tensor if coefficient function is a tensor
+    virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+      hystCoefFunction_->GetTensorSize(numRows,numCols);
+    }
+    
+  private:
+    
+    PtrCoefFct hystCoefFunction_;
+    std::string resultName_;
+    bool onBoundary_;
+  };
+  
+  
+  // ============================================================================
+  //  Hysteresis
+  // ============================================================================
+  //! Provide a coefficient for hysteresis modeling
+  //! \note This class only works for real-valued scalar data.
+  class CoefFunctionHyst : public CoefFunction{
+  public:
+    
+    //! Constructor
+    CoefFunctionHyst( BaseMaterial* const material,
+      shared_ptr<ElemList> actSDList,
+      PtrCoefFct dependency1,
+      SubTensorType tensorType,
+      MaterialType matType,
+      shared_ptr<FeSpace> ptFeSpace, bool performInversionTest=false);
+    
+    //! Constructor
+    CoefFunctionHyst( BaseMaterial* const material,
+    shared_ptr<ElemList> actSDList,
+    PtrCoefFct dependency1,
+    PtrCoefFct dependency2,
+    SubTensorType tensorType,
+    MaterialType matType,
+    shared_ptr<FeSpace> ptFeSpace, bool performInversionTest=false);
+    
+    void Init(BaseMaterial* const material,
+    shared_ptr<ElemList> actSDList,
+    PtrCoefFct dependency1,
+    SubTensorType tensorType,
+    MaterialType matType,
+    shared_ptr<FeSpace> ptFeSpace, bool performInversionTest=false);
+    
+    //! Destructor
+    virtual ~CoefFunctionHyst();
+    
+    //  //! Initialize with data
+    //  void Init( BaseMaterial* const material, shared_ptr<ElemList> actSDList);
+    
+    //! Return size of vector in case coefficient function is a vector
+    virtual UInt GetVecSize() const {
+      return dependCoef1_->GetVecSize();
+    }
+    
+    //! Return row and columns size of tensor if coefficient function is a tensor
+    virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+      numRows = MAT_initialTensor_.GetNumRows();
+      numCols = MAT_initialTensor_.GetNumCols();
+    }
+    
+    void SetInputDependentFlags(UInt multiDigitInteger);
+    
+    void SetRuntimeDependentFlag(std::string flagName, UInt intState);
+    
+    void SetPreviousHystVals(bool setLastTS, bool forceMemoryLock = false);
+    
+    void GetScalar(Double& outputScalar, const LocPointMapped& lpm );
+    
+    void GetVector( Vector<Double>& outputVector,const LocPointMapped& lpm);
+    
+    void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm );
+    
+    std::string ToString() const;
+    
+    void EstimateCurrentSlope(Vector<Double> steppingDirection, Double scaling);
+    
+    Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel1, int timelevel2, bool useStrains, bool useAbs, std::string implementationVersion );
+    
+    Vector<Double> GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel);
+    
+    Vector<Double> GetOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
+    
+    Vector<Double> RetrieveInputToHysteresisOperator(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary);
+    
+    Vector<Double> RetrieveLPMSolution(LocPointMapped& actualLPM, UInt storageIdx, int timeLevel, bool onBoundary);
+    
+    Double GetOutputSaturation(){
+      return MAT_ySat_;
+    }
+    
+    PtrCoefFct GenerateMatCoefFnc(std::string tensorName){
+      PtrCoefFct ret;
+      if((tensorName == "Permittivity")||(tensorName == "CouplingMechToElec")||(tensorName == "CouplingElecToMech")){
+        // Note: for Piezo we need two different coupling functions
+        // Reason: in case of deltaMat formulation, the coupling matrices are not 
+        //         transposed of each other as the mech to elec term has deltaS/deltaE
+        //         in addition to the rotated coupling operator
+        PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
+        
+        bool transposed = false;
+        if(tensorName == "CouplingElecToMech"){
+          // in mech PDE we need e^T or d^T
+          transposed = true;
+        }
+        shared_ptr<CoefFunctionHystMatTensor> c(new CoefFunctionHystMatTensor(eps, 
+          elastTensorFct_, couplTensorFct_, hystItself_,tensorName,transposed));
+        
+        ret = c;
+      } else if((tensorName == "Reluctivity")||(tensorName == "CouplingMechToMag")||(tensorName == "CouplingMagToMech")){
+        PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY,tensorType_,Global::REAL);
+        
+        bool transposed = false;
+        if(tensorName == "CouplingMagToMech"){
+          // in mech PDE we need h^T or g^T
+          transposed = true;
+        }
+        shared_ptr<CoefFunctionHystMatTensor> c(new CoefFunctionHystMatTensor(nu, 
+          elastTensorFct_, couplTensorFct_, hystItself_,tensorName,transposed));
+        
+        ret = c;
+      } else {
+        EXCEPTION("tensorName not implemented yet");
+      }
+      
+      return ret;
+    }
+    
+    PtrCoefFct GenerateRHSCoefFnc(std::string vectorName, bool onBoundary = false ){
+      PtrCoefFct ret;
+      if( (vectorName == "ElecPolarization") || (vectorName == "PiezoLoadForMechPDE") || (vectorName == "PiezoLoadForElecPDE")){
+        PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
+        
+        bool transposed = false;
+        if(vectorName == "PiezoLoadForMechPDE"){
+          // in mech PDE we need h^T or g^T
+          transposed = true;
+        }
+        shared_ptr<CoefFunctionHystRHSLoad> c(new CoefFunctionHystRHSLoad(eps,  elastTensorFct_, couplTensorFct_, hystItself_,vectorName,transposed,onBoundary));
+        
+        ret = c;
+      } else if( (vectorName == "MagMagnetization") || (vectorName == "MagStrictLoadForMechPDE") || (vectorName == "PMagStrictLoadForMagPDE")){
+        PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY,tensorType_,Global::REAL);
+        
+        bool transposed = false;
+        if(vectorName == "MagStrictLoadForMechPDE"){
+          // in mech PDE we need h^T or g^T
+          transposed = true;
+        }
+        shared_ptr<CoefFunctionHystRHSLoad> c(new CoefFunctionHystRHSLoad(nu,  elastTensorFct_, couplTensorFct_, hystItself_,vectorName,transposed,onBoundary));
+        
+        ret = c;
+      } else {
+        //std::cout << "RHSCoefFunction for " << vectorName << " requested." << std::endl;
+        EXCEPTION("vectorName not implemented yet");
+      }
+      
+      return ret;
+    }
+    
+    PtrCoefFct GenerateOutputCoefFnc(std::string ResultName){
+      
+      PtrCoefFct ret;
+      
+      if(ResultName == "ElecPolarization") {
+        PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
 
-  //! type of subtensor
-  SubTensorType tensorType_;
+        shared_ptr<CoefFunctionHystOutput> c(new CoefFunctionHystOutput(eps,  elastTensorFct_, couplTensorFct_, hystItself_,ResultName));
+        ret = c;
+      } else if ( (ResultName == "MagPolarization") || (ResultName == "MagMagnetization") ){
+        PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY,tensorType_,Global::REAL);
 
-  //! direction to be traken from vector in case of sclalar hystersis
-  Directions dirP_;
-
-  //! initial material tensor
-  Matrix<Double> matInitialTensor_;
-
-  //! list of all elements
-  shared_ptr<ElemList> SDList_;
-
-  //!
-  BaseMaterial* material_;
-
-  //! dim for vector model
-  UInt dim_;
-
-  //! this one is to distinguish between scalar and vector preisach
-  //! do not confuse this with dimType_!
-  CoefDimType methodType_;
-
-  Double xSat_;
-  Double ySat_;
-  Double rotRes_;
-  UInt printOut_;
-  UInt bmpResolution_;
-  Double rev_mat_fac_;
-
-  UInt evalVersion_;
-  UInt numRows_;
-  Double tol_;
-
-  //! flag needed in context of deltaStepping and linesearch;
-  //! as different steps are tested during linesearch, we do not want them to have
-  //! a permanent effect on the memory of the hysteresis operator
-  //! if overwrite = false -> hysteresis operator applies changes only to a temporary copy
-  bool overwrite_;
-  bool overwriteDirection_;
-
-  /*! New important flag: deltaComputation_
-   *
-   * Initial approach -> please read to end to get adapted approach
-   *
-   * if set to true, GetTensor will return
-   *      [deltaY/deltaX] + rev_mat_factor
-   *    = [(YcurrentItVEC_ - YpreviousItVEC_)/(XcurrentItVEC_ - XpreviousItVEC_)] + rev_mat_factor
-   *
-   * if set to false, GetTensor will return
-   *       [YcurrentItVEC_/XcurrentItVEC_] + rev_mat_factor
-   *
-   * Notes:
-   *  a) the "[ ]" denote a not yet determined way of evaluating this expressions (remember we have a division of vectors)
-   *  b) for magnetics, we have to return the inverse of that expression (as we have to compute \nu instead of \mu)
-   *
-   * Background/Idea behind the two different return values:
-   *
-   *  1. Assume the following iteration approach (for the example of electrostatics):
-   *      D_n+1 = D_n + deltaD
-   *      E_n+1 = E_n + deltaE
-   *      P_n+1 = P_n + deltaP
-   *      rev_mat_factor = eps0
-   *      n = time step
-   *
-   *      div (D_n+1) = div (D_n + deltaD)
-   *                  = div (eps0 * E_n + P_n + eps0 * deltaE + deltaP)
-   *                  = div ( [eps0 + P_n/E_n]*E_n + [eps_0 + deltaP/deltaE]*deltaE ) = f_n+1
-   *      -> div( [eps_0 + deltaP/deltaE]*deltaE ) = f_n+1 - div( [eps0 + P_n/E_n]*E_n )
-   *
-   *      Here we can already see, that we have different "material relations"
-   *      [eps_0 + deltaP/deltaE] vs. [eps0 + P_n/E_n] to be used in the same expression.
-   *
-   *      Note further, that we compute E not D during the iterations (in fact we use potential but that gives us E).
-   *      To compute the correct value of D_n+1, we have to use the "material relation" from the rhs, i.e.
-   *        D_n+1 = [eps0 + P_n+1/E_n+1]*E_n+1 = eps0*E_n+1 + P_n+1
-   *      Using the relation from the lhs, we would get
-   *        D_n+1 = [eps_0 + deltaP/deltaE]*E_n+1 = eps0*E_n+1 + (P_n+1 - P_n) * E_n+1/(E_n+1 - E_n)
-   *        -> this does not fit!
-   *
-   *  2. As we cannot compute div( [eps_0 + deltaP/deltaE]*deltaE ) directly, as we do not know deltaP, deltaE yet,
-   *      we use the following iteration scheme:
-   *
-   *      D_n+1^k+1 = D_n+1^k + deltaD^k+1
-   *      E_n+1^k+1 = E_n+1^k + deltaE^k+1
-   *      P_n+1^k+1 = P_n+1^k + deltaP^k+1
-   *      with D_n+1^0 = D_n etc.
-   *      n = time step; k = iteration
-   *
-   *      -> div( [eps_0 + deltaP^k/deltaE^k]*deltaE^k+1 ) = f_n+1 - div( [eps0 + P_n+1^k/E_n+1^k]*E_n+1^k )
-   *
-   *      D_n+1^k+1 = [eps0 + P_n+1^k+1/E_n+1^k+1]*E_n+1^k+1
-   *
-   *  3. Sidenote:
-   *      If we use a delta-stepping for non-linear material curves (e.g. B-H-curve in magnetics) we do NOT need
-   *      such a flag. This comes from the different approach that reads
-   *        D_n+1^k+1 = D_n+1^k + deltaD^k+1
-   *              = eps(E_n+1^k) [ E_n+1^k + deltaE^k+1 ]
-   *
-   *      As one hopefully can see, both terms E_n+1^k and deltaE^k+1 use the same material relation eps(E_n+1^k).
-   *
-   *      We could use a similar approach for the hysteresis case, too, by setting:
-   *      div (D_n+1) = div (D_n + deltaD)
-   *                  = div (eps0 * E_n + P_n + eps0 * deltaE + deltaP)
-   *                  = div ( [eps0 * (P_n + deltaP)/(E_n + deltaE)] * (E_n + deltaE) )
-   *                  = div ( [eps0 * P_n+1/E_n+1] * E_n+1 )
-   *
-   *      By doing so, we would always calculate the stepping in a fixed-point way as we would
-   *      compute the slope deltaP/deltaE using deltaP = P_n+1 - 0 and deltaE = E_n+1 - 0.
-   *
-   *      -> Keep this alternative in mind in case the other approach does not work.
-   *
-   *  4. BIG ISSUE:
-   *      Remanence points!
-   *        if E -> 0 and P != 0, deltaP/deltaE might still work (as deltaP hopefully tends to 0 when deltaE does)
-   *        however, P/E is a problem
-   *          a) we could simply return eps0 in that case, but that would lead to a wrong rhs of 0 instead of P_remanence
-   *          b) add P_remanence to rhs (as it was tried during a rhs-update strategy) and set material tensor for
-   *              the rhs-modification to eps0
-   *
-   *     Adapted scheme:
-   *
-   *        div( [eps_0 + deltaP^k/deltaE^k]*deltaE^k+1 ) = f_n+1 - div( eps0*E_n+1^k ) - div( P_n+1^k )
-   *
-   *        in that sense, deltaComputation_ has the following purpose now:
-   *
-   * if deltaComputation_ is set to true, GetTensor will return
-   *      [deltaY/deltaX] + rev_mat_factor
-   *    = [(YcurrentItVEC_ - YpreviousItVEC_)/(XcurrentItVEC_ - XpreviousItVEC_)] + rev_mat_factor
-   *
-   * if deltaComputation_ is set to false, GetTensor will return
-   *       rev_mat_factor
-   *
-   */
-  bool deltaComputation_;
-  /*
-   * use flag to switch between the delta computation using
-   * a) the previousIterationValues > useNextLastTS_ = false
-   * b) the nextLastTimestepValues -> useNextLastTS_ = true
-   */
-
-
-  /*
-   * for magnetics, we need the inverse deltaMatrix, as we not need \mu but \nu
-   * -> indicate that by a flag
-   */
-  bool compute_inverse_;
-
-
-  /*
-   * new flags
-   */
-  bool returnFreeFieldTensor_;
-  bool returnInitialTensor_;
-  bool addFreeFieldTensorToDeltaMat_;
-  bool addInitialTensorToDeltaMat_;
-  bool useNextToLastTS_;
-  bool useDeltaY_;
-  bool useDeltaX_;
-  bool hystMemoryLocked_;
-  bool hystDirectionLocked_;
-  bool returnZeroValues_;
-  bool allowBMP_;
-  std::string PDEName_;
-};
-
+        shared_ptr<CoefFunctionHystOutput> c(new CoefFunctionHystOutput(nu,  elastTensorFct_, couplTensorFct_, hystItself_,ResultName));
+        ret = c;
+      } else {
+        EXCEPTION("Result not implemented");
+      }    
+      return ret;
+    }
+    
+    std::string getPDEName(){
+      return PDEName_;
+    }
+    
+    bool useStrainForm(){
+      return MAT_useStrainForm_;
+    }
+    
+    bool deltaMatActive(){
+      return deltaMatActive_;
+    }
+    
+    int GetDeltaForm(){
+      return RUN_deltaForm_;
+    }
+    
+    int GetTimeLevel(std::string Type){
+      if(forceCurrentTS_){
+        return 0; 
+      }
+      if(Type == "Mat"){
+        return timeLevel_Mat_;
+      } else if (Type == "RHS"){
+        return timeLevel_RHS_;
+      } else if (Type == "BC"){
+        return timeLevel_BC_;
+      } else if (Type == "Output"){
+        return timeLevel_Output_;
+      } else {
+        EXCEPTION("Tpye not known");
+        return -2;
+      }
+    }
+    
+    void TestInversion(Matrix<Double> eps_mu);
+    
+    void SetElastAndCouplTensor(PtrCoefFct elastTensor, PtrCoefFct couplTensor){
+      //std::cout << "Elast and Coupl tensor were passed by coupled pde!" << std::endl;
+      elastTensorFct_ = elastTensor;
+      couplTensorFct_ = couplTensor;
+    }
+    
+    /*
+     * Helper function that allows to add additional SD lists to the hyst operator
+     * > needed to add storage space for surface elements
+     * > has to be executed before storage was initialized!
+     */
+    void AddAdditionalSDList(shared_ptr<EntityList> actSDList, bool isSurface);
+    
+  private:
+    
+    void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor,int timeLevel,
+            bool rotate = true){
+      // compare to Kaltenbacher "Numerical Simulation ..." 3rd Edition p. 387
+      //
+      // scaling:
+      // [e(P)] = P^i_k/P_sat[e]
+      //
+      // for vector model, an additional rotation towards P could be reasonable
+      
+      // get actual indices for storage array to find out if we need to reevaluated or not
+      UInt operatorIdx, storageIdx;
+      LocPointMapped actualLPM;
+      
+      PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx);
+      
+      if(rotatedCouplingTensor_requiresReeval_[storageIdx] == false){
+        //      std::cout << "Coupling Tensor already rotated > no reeval performed" << std::endl;
+        rotatedCouplTensor = rotatedCouplingTensor_[storageIdx];
+      } else {
+        
+        // obtain coupling tensor first
+        UInt numRows, numCols;
+        numCols = couplTensor.GetNumCols();
+        numRows = couplTensor.GetNumRows();
+        //couplTensorCoefFnc->GetTensorSize(numRows,numCols);
+        //Matrix<Double> couplTensor = Matrix<Double>(numRows,numCols);
+        //couplTensorCoefFnc->GetTensor(couplTensor,actualLPM);
+        
+        //      std::cout << "Retrieved coupling tensor: " << couplTensor.ToString() << std::endl;
+        //      std::cout << "Rotate coupling tensor" << std::endl;
+        rotatedCouplTensor = Matrix<Double>(numRows,numCols);
+        Matrix<Double> scaledCouplTensor = Matrix<Double>(numRows,numCols);
+        
+        // get current polarization (elec or mag)
+        Vector<Double> P = GetOutputOfHysteresisOperator(lpm, timeLevel);
+        
+        //      std::cout << "Current polarization vector " << P.ToString() << std::endl;
+        //      
+        // calculate scaling
+        assert(MAT_ySat_ != 0);
+        Double scaling = P.NormL2()/MAT_ySat_;
+        
+        scaledCouplTensor = couplTensor* scaling;
+        
+        //      std::cout << "Scalaed coupling tensor " << scaledCouplTensor.ToString() << std::endl;
+        //      
+        if(rotate == true){
+          if(P.NormL2() == 0){
+            //        std::cout << "Polarization is zero > perform no rotation" << std::endl;
+            rotatedCouplTensor = scaledCouplTensor;
+            
+          } else {
+            Vector<Double> dirP = Vector<Double>(P.GetSize());
+            dirP = P / P.NormL2();
+            
+            // calculate rotation matrix
+            if(numCols == 4){
+              // axi case: 2x4 matrix
+              WARN("Rotation for axi case not implemented yet. No rotation was peformed");
+              rotatedCouplTensor = scaledCouplTensor;
+              
+            } else if (numCols == 6){
+              // 3d plane case
+              // Idea: Create rotation matrix, that maps the current direction of P onto z-axis
+              //       as the z-axis is the default polarization axis in the mat file
+              //       To obtained the desired behavior, we have to rotate the z-axis onto P however.
+              //       This can be done by taking the transposed rotation matrix.
+              
+              Double alpha, beta, gamma;
+              
+              // 1. rotate around z-axis by angle gamma such that P lies in z-y plane
+              // gamma = angle between z-y plane and dirP
+              gamma = std::atan2(dirP[0],dirP[1]);
+              
+              // 2. rotate around x-axis by angle alpha such that P lies on top of z-axis
+              // alpha = angle between x-y plane and z
+              alpha = std::atan2(std::sqrt(dirP[1]*dirP[1]+dirP[0]*dirP[0]),dirP[2]);
+              
+              // no rotation arouind y-axis needed > beta = 0
+              // WARNING: this whole procedure is only valid if coupling tensor is at least
+              // transverse isotropic! Otherwise we have to figure out on which axis to rotate
+              // the transverse directions
+              beta = 0.0;
+              Matrix<Double> R = Compute3DRotationMatrix(alpha, beta, gamma);
+              
+              // take transpose matrix to revert rotation (i.e. rotate z-axis onto dirP)
+              Matrix<Double> RT;
+              RT.Resize(3,3);
+              R.Transpose(RT);
+              
+              assert(rotatedCouplTensor.GetNumRows() == 3);
+              assert(rotatedCouplTensor.GetNumCols() == 6);
+              
+              scaledCouplTensor.PerformRotation(RT,rotatedCouplTensor);
+              
+            } else {
+              // 2d plane strain or plane stress case
+              // Important remark:
+              //  for 2d plane strain and stress (and somehow also for axi) the coupling tensor
+              //  will be rotated by default by alpha = -90 and gamma = -90.
+              //  This results in the following mapping of the coordinate axis:
+              //    z > y, y > x, x > z
+              //  I.e. the material is rotated such that the default polarization is in +y direction.
+              //  We thus have two possibilities to align the material tensor to the 2d polarization
+              //  direction:
+              //  a) get original 3x6 tensor and rotate that tensor according to the 3d version above
+              //      then cut out subtensor
+              //  b) take cut out subtensor and perform rotation directly in 2d
+              //      > Version b done in the following
+              Double gamma;
+              
+              // std::atan2(dirP[0],dirP[1]) would rotate towards the y-axis
+              // we want however the y-axis to rotate, so that we take -gamma instead
+              gamma = -std::atan2(dirP[0],dirP[1]);
+              
+              Matrix<Double> R = Compute2DRotationMatrix(gamma);
+              
+              assert(rotatedCouplTensor.GetNumRows() == 3);
+              assert(rotatedCouplTensor.GetNumCols() == 6);
+              
+              scaledCouplTensor.PerformRotation(R,rotatedCouplTensor);
+              
+            }
+          }
+        }
+        
+        rotatedCouplingTensor_requiresReeval_[storageIdx] = false;
+        rotatedCouplingTensor_[storageIdx] = rotatedCouplTensor;
+        
+      }
+    }
+    
+    // helper functions for computation of rhs loads and lhs tensors
+    //  
+    //	Matrix<Double> ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, bool invert, bool scaleOnly){
+    //	  // compare to Kaltenbacher "Numerical Simulation ..." 3rd Edition p. 387
+    //	  //
+    //	  // scaling:
+    //	  // [e(P)] = P^i_k/P_sat[e]
+    //	  //
+    //	  // for vector model, an additional rotation towards P could be reasonable
+    //
+    //	  // get CURRENT state of P (electric or magnetic polarization)
+    //	  UInt timeLevel = 0;
+    //
+    //	  Vector<Double> P = hystPol_->GetOutputOfHysteresisOperator(lpm, timeLevel, invert);
+    //	  Double Psat = hystPol_->GetOutputSaturation();
+    //
+    //	  // calculate scaling
+    //	  Double scaling = P.NormL2()/Psat;
+    //
+    //    Matrix<Double> couplTensorMat; 
+    //    couplTensor_->GetTensor(couplTensorMat,lpm);
+    //	  Matrix<Double> retMat = Matrix<Double>(couplTensorMat.GetNumRows(),couplTensorMat.GetNumCols());
+    //
+    //	  retMat = couplTensorMat* scaling;
+    //
+    //	  if(scaleOnly || (P.NormL2() == 0)){
+    //	    return retMat;
+    //	  }
+    //
+    //	  Vector<Double> dirP = Vector<Double>(P.GetSize());
+    //	  dirP = P / P.NormL2();
+    //
+    //	  // calculate rotation matrix
+    //	  if(subType_ == AXI){
+    //	    WARN("Rotation for axi case not implemented yet. No rotation was peformed");
+    //	  } else if (subType_== FULL){
+    //	    // Idea: Create rotation matrix, that maps the current direction of P onto z-axis
+    //	    //       as the z-axis is the default polarization axis in the mat file
+    //	    //       To obtained the desired behavior, we have to rotate the z-axis onto P however.
+    //	    //       This can be done by taking the transposed rotation matrix.
+    //
+    //	    Double alpha, beta, gamma;
+    //
+    //	    // 1. rotate around z-axis by angle gamma such that P lies in z-y plane
+    //	    // gamma = angle between z-y plane and dirP
+    //	    gamma = std::atan2(dirP[0],dirP[1]);
+    //
+    //	    // 2. rotate around x-axis by angle alpha such that P lies on top of z-axis
+    //	    // alpha = angle between x-y plane and z
+    //	    alpha = std::atan2(std::sqrt(dirP[1]*dirP[1]+dirP[0]*dirP[0]),dirP[2]);
+    //
+    //	    // no rotation arouind y-axis needed > beta = 0
+    //	    // WARNING: this whole procedure is only valid if coupling tensor is at least
+    //	    // transverse isotropic! Otherwise we have to figure out on which axis to rotate
+    //	    // the transverse directions
+    //	    beta = 0.0;
+    //	    Matrix<Double> R = Compute3DRotationMatrix(alpha, beta, gamma);
+    //
+    //	    // take transpose matrix to revert rotation (i.e. rotate z-axis onto dirP)
+    //	    Matrix<Double> RT;
+    //      RT.Resize(3,3);
+    //      R.Transpose(RT);
+    //	    Matrix<Double> rotatedState;
+    //
+    //      assert(retMat.GetNumRows() == 3);
+    //      assert(retMat.GetNumCols() == 6);
+    //
+    //	    rotatedState.Resize(3,6);
+    //
+    //	    retMat.PerformRotation(RT,rotatedState);
+    //
+    //	  } else {
+    //	    // 2d plane strain or plane stress cas
+    //	    // Important remark:
+    //	    //  for 2d plane strain and stress (and somehow also for axi) the coupling tensor
+    //	    //  will be rotated by default by alpha = -90 and gamma = -90.
+    //	    //  This results in the following mapping of the coordinate axis:
+    //	    //    z > y, y > x, x > z
+    //	    //  I.e. the material is rotated such that the default polarization is in +y direction.
+    //	    //  We thus have two possibilities to align the material tensor to the 2d polarization
+    //	    //  direction:
+    //	    //  a) get original 3x6 tensor and rotate that tensor according to the 3d version above
+    //	    //      then cut out subtensor
+    //	    //  b) take cut out subtensor and perform rotation directly in 2d
+    //	    //      > Version b done in the following
+    //	    Double gamma;
+    //
+    //	    // std::atan2(dirP[0],dirP[1]) would rotate towards the y-axis
+    //	    // we want however the y-axis to rotate, so that we take -gamma instead
+    //	    gamma = -std::atan2(dirP[0],dirP[1]);
+    //
+    //	    Matrix<Double> R = Compute2DRotationMatrix(gamma);
+    //
+    //      Matrix<Double> rotatedState;
+    //      rotatedState.Resize(2,3);
+    //
+    //      assert(retMat.GetNumRows() == 2);
+    //      assert(retMat.GetNumCols() == 3);
+    //
+    //      retMat.PerformRotation(R,rotatedState);
+    //
+    //	  }
+    //
+    //	  return retMat;
+    //	}
+    
+    Matrix<Double> Compute3DRotationMatrix(Double alpha, Double beta, Double gamma){
+      // Compute rotation matrix based on Kardan Angles
+      // Implementation taken from BaseMaterial class
+      
+      // Calculate rotation matrix( based on Kardan-Angles)
+      // Ref.: C. Woernle, "Skript: Dynamik von Mehrkoerpersystemen,
+      // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
+      // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
+      
+      Matrix<Double> R(3,3);
+      R.Resize(3,3);
+      R[0][0] =  std::cos(beta) * std::cos(gamma);
+      R[0][1] = -std::cos(beta) * std::sin(gamma);
+      R[0][2] =  std::sin(beta);
+      R[1][0] =  std::cos(alpha)*std::sin(gamma) + std::sin(alpha)*std::sin(beta)*std::cos(gamma);
+      R[1][1] =  std::cos(alpha)*std::cos(gamma) - std::sin(alpha)*std::sin(beta)*std::sin(gamma);
+      R[1][2] = -std::sin(alpha)*std::cos(beta);
+      R[2][0] =  std::sin(alpha)*std::sin(gamma) - std::cos(alpha)*std::sin(beta)*std::cos(gamma);
+      R[2][1] =  std::sin(alpha)*std::cos(gamma) + std::cos(alpha)*std::sin(beta)*std::sin(gamma);
+      R[2][2] =  std::cos(alpha)*std::cos(beta);
+      
+      return R;
+    }
+    
+    Matrix<Double> Compute2DRotationMatrix(Double gamma){
+      // Compute rotation matrix based on Kardan Angles
+      // Here we basically rotate in the x-y-plane
+      
+      Matrix<Double> R(2,2);
+      R.Resize(2,2);
+      R[0][0] =  std::cos(gamma);
+      R[0][1] =  -std::sin(gamma);
+      R[1][0] =  std::sin(gamma);
+      R[1][1] =  std::cos(gamma);
+      
+      return R;
+    }
+    
+    
+    bool PreprocessLPM(const LocPointMapped& lpmInput, LocPointMapped& lpmOutput,
+    UInt& operatorIdx, UInt& storageIdx, bool forceMidpoint = false);
+    
+    Vector<Double> CalcOutputOfHysteresisOperator(Vector<Double> inpute, UInt operatorIdx, UInt storageIdx,
+    bool forceMemoryLock = false, bool forceMemoryWrite = false);
+    
+    void InitStorage();
+    
+    void CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, Matrix<Double>& outputTensor, std::string evalMethod,
+    UInt storageIdx, bool intoSat, bool outofSat, bool satToSat, Vector<Double>& X_current);
+    
+    void ExtractSolutionAndInputForHystOperator(Vector<Double>& extractedSolution, Vector<Double>& extractedInput, UInt& operatorIndex,
+    UInt& storageIndex, const LocPointMapped& lpm, bool midpointOnly);
+    
+    UInt EvaluateHysteresisOperator( Vector<Double> inputToHystOperator, Vector<Double>& outputOfHystOperator,
+    UInt operatorIndex, UInt storageIndex, bool overwriteMemory, Vector<Double>& currentSolution );
+    
+    bool EvaluateAtMidpointOnly();
+    bool OverwriteHystMemory();
+    
+    // for usage with coefFunctionHystMat
+    bool deltaMatActive_;
+    // if set to true, timelevel for evaluation will be at the current timestep
+    // independent of the actual value of timeLevel_xxx_
+    bool forceCurrentTS_;
+    int RUN_deltaForm_;
+    Integer timeLevel_Mat_;
+    Integer timeLevel_RHS_;
+    Integer timeLevel_BC_;
+    Integer timeLevel_Output_;
+    PtrCoefFct hystItself_;
+    
+    
+    IntegOrder IntegOrder_;
+		IntScheme::IntegMethod IntegMethod_;
+    
+    // for coupled pdes, we need to know about the mechanical material as well
+    // as the coupling tensor;
+    // these parameters have to be set from inside the coupled pde (e.g. PiezoCoupling.cc)
+    // and have to be set prior to the integrator definition in the single pdes;
+    // best place to set these parameter: inside the define integrator function of the coupled
+    // pde (as this one will be executed prior to the integrator definition of the single pdes)
+    PtrCoefFct elastTensorFct_;
+    PtrCoefFct couplTensorFct_;
+    
+    Matrix<Double>* rotatedCouplingTensor_;
+    bool* rotatedCouplingTensor_requiresReeval_;
+    
+    // for inversion with Levenberg Marquart and linesearch
+    // for each material we store the last used linesearch stepping alpha
+    // as starting value for next usage
+    // starting value = -1 > first estimation done during first call to
+    // computeInput_vec
+    Double alphaLinesearch_;
+    bool performInversionTest_;
+    
+    
+    /*
+     * ###############################################
+     * ### Parameters extracted from material file ###
+     * ###############################################
+     */
+    /*
+     * Initial/small signal material tensor (permittivity / reluctivity)
+     */
+    Matrix<Double> MAT_initialTensor_; // small signal tensor of permittivity / reluctivity
+    Matrix<Double> MAT_smallSignalTensor_; // small signal tensor of permittivity / permeability
+    Matrix<Double> MAT_freeFieldTensor_;
+    
+    /*
+     * Preisach weights and its size in form of the number of rows
+     */
+    Matrix<Double> MAT_PreisachWeights_;
+    UInt MAT_numRows_;
+    
+    /*  elemMat.Resize( nrFncs * bOperator_->GetDimDof());
+     elemMat.Init();
+     
+     
+     // Loop over all integration points
+     LocPointMapped lp;
+     * Saturation values for input (x, E/H) and output (y, P/M) of
+     * hysteresis operator
+     */
+    Double MAT_xSat_;
+    Double MAT_ySat_;
+    
+    /*
+     * determines whether the vector or the scalar model shall be used
+     */
+    CoefDimType MAT_methodType_;
+    
+    /*
+     * Additional parameter for scalar Preisach model
+     */
+    /*
+     * Direction (x,y,z) in which Polarization of material points
+     */
+    Directions MAT_dirP_;
+    
+    /*
+     * Additional parameter for vector Preisach model
+     */
+    // determines wheter the vector model from 2012 (classical) or the one from#
+    // 2015 (revised) is used
+    bool isClassical_;
+    
+    /*
+     * see VectorPreisach10 for more details
+     */
+    Double MAT_rotRes_;
+    Double MAT_angResistance_;
+    
+    /*
+     * if != 0, the rotation states of the vector preisach model will be clipped
+     * to the provided precision (in rad)
+     */
+    Double MAT_angClipping_;
+    
+    /*
+     *  new parameter added 03.07.2017
+     *
+     *  these parameter mark the minimal change (in rad and in L2-Norm)
+     *  of the input to the hysteresis operator which shall be resolved;
+     *  i.e. the current input will be compared against
+     *  a) the old TS/iteration state
+     *  b) against the previous input
+     *
+     *  both times, it will be checked if
+     *    (currentInput - oldInput).L2Norm() < MAT_ampResolution_
+     *    std::acos(currentInput.Inner(oldInput)) < MAT_angResolution_
+     *
+     *  if both criteria are true, the old value is taken and no reevaluation is done
+     */
+    Double MAT_angResolution_;
+    Double MAT_ampResolution_;
+    
+    /*
+     * 1,2 nested-list implementation of classical and revised vector hyst. model
+     * 10,20 matrix based implementation of classical and revised vector hyst. model
+     */
+    UInt MAT_vecPreisachImplementationVersion_;
+    
+    /*
+     * Initial input to the vector hysteresis operator;
+     * and output of the vector hysteresis operator to this input
+     * Note: the value specified in the mat file is the INPUT to the hyst operator
+     *        not the actual polarization/magnetization state
+     */
+    Vector<Double> MAT_initialInput_;
+    Vector<Double>* MAT_initialOutput_;
+    
+    /*
+     * enables output of overlapped switching and rotation state in form of bmp
+     * images
+     */
+    UInt MAT_bmpResolution_;
+    UInt MAT_printOut_;
+    
+    bool storageInitizalized_;
+    /*
+     * ################################################
+     * ### Parameters extracted from xml input file ###
+     * ################################################
+     */
+    /*
+     * bool indicating if parameter where already set
+     * Note: we cannot (maybe we can if we get a handle to the xml input during
+     * the creation of the hyst operator) initialize these parameter in the constructor
+     * as we need to pass a certain input from the xml flag; this should be done
+     * in the StdSolveStep during the very first iteration;
+     * to check if this step was done use the XMLParameterSet_ flag
+     * (will be set by function SetInputDependentFlags)
+     */
+    bool XMLParameterSet_;
+    /*
+     * XML_deltaEvalVersion_ = xy
+     *
+     *  x > determines what values to use for deltaX and deltaY
+     *  y > determines what to with deltaX and deltaY
+     *
+     *  XML_deltaEvalVersion_ = x0 (10,20,30,...)
+     *
+     *    deltaMat = addTensor +/- abs(deltaY)/abs(deltaX)
+     *
+     *    ->  see "DirectDivisionAbsNew" in CreateDeltaMatrix
+     *
+     *  XML_deltaEvalVersion_ = x1 (11,21,31,...)
+     *
+     *    deltaMat =
+     *          addTensor +/- abs(deltaY)/abs(deltaX) (if deltaY != 0)
+     *
+     *          deltaMat_lastIt_[idx]/10;             (if deltaY == 0 && deltaMat_lastIt_[idx] > 10*rev_mat_fac_)
+     *
+     *    ->  see "DirectDivisionAbsSatStepDownNew" in CreateDeltaMatrix
+     *
+     *  XML_deltaEvalVersion_ = 1y (10,11)
+     *
+     *    deltaX = currentInput - E_B_lastIt_ or
+     *           = currentInput - E_B_lastTS_ (depending on flag lastTS_)
+     *
+     *    deltaY = currentOutput - P_J_lastIt_ or
+     *           = currentOutput - P_J_lastTS_ (depending on flag lastTS_)
+     *
+     *  XML_deltaEvalVersion_ = 2y (20,21)
+     *
+     *    a) to be done before evaluating the hysteresis operator
+     *    deltaX = currentInput - E_B_lastIt_ or
+     *           = currentInput - E_B_lastTS_ (depending on flag lastTS_)
+     *
+     *    if deltaX[i] < minimalShift  for all i
+     *      -> reuse old deltaMatrix
+     *    if deltaX[i] < minimalShift  for some i but not for all i
+     *      -> shift input a little
+     *      -> currentInput[i] += minimalShift
+     *
+     *    b) evaluate hystersis operator with shifted (or unshifted) input
+     *
+     *    deltaY = currentOutput - P_J_lastIt_ or
+     *           = currentOutput - P_J_lastTS_ (depending on flag lastTS_)
+     *
+     *    Advantage: no issues with division by 0 during CreateDeltaMat
+     *               numerical noise will be overwritten by minimalShift
+     *    Disadvantage: hystoperator is not evaluated at the actual input
+     *                  solution might drift over time
+     *
+     *  XML_deltaEvalVersion_ = 3y (30,31)
+     *
+     *    a) evaluate hystersis operator at currentInput and at a shiftedInput
+     *      with
+     *        shiftedInput = currentInput + minimalShift * (1,1,1)
+     *    b)
+     *      deltaX = minimalShift * (1,1,1)
+     *      deltaY = shiftedOutput - currentOutput
+     *
+     *    Advantage: no issues wiht division by 0
+     *               differential deltaMatrix computed
+     *    Disadvantage: hystOperator needs to be evaluated twice
+     *
+     */
+    UInt XML_deltaEvalVersion_;
+    
+    /*
+     * kHApproxVersion_
+     *
+     *  used for approximating H from B in magnetic case
+     *  kHApproxVersion_ = 1     -> H_new = nu0*B_new - M_old
+     *  kHApproxVersion_ = 2     -> H_new = deltaMat_lastIt_ * (B_new - B_old) + H_old
+     */
+    UInt XML_HApproxVersion_;
+    
+    /*
+     * kEvaluationDepth_ (to be set ONCE at the start of the simulation; set via
+     *                    input file possible)
+     *
+     *  kEvaluationDepth_= 1 (standard)
+     *   - each element has exactly one hysteresis operator attached
+     *   - numHystOperators = numElems
+     *   - each Hysteresis operator will only be evaluated at the midpoint of
+     *    the corresponding element
+     *   - all data structures store the values (elementSolution, current output
+     *    of the Hysteresis operator, ...) at the midpoint of the corresponding
+     *    element
+     *
+     *  kEvaluationDepth_ = 2 (extended)
+     *   - each element has exactly one hysteresis operator attached
+     *   - numHystOperators = numElems
+     *   - for the functions GetScalar, GetVector and GetTensor (in BDB, BDU, ...
+     *    integrators), the Hysteresis operator will be evaluated at the
+     *    coordinates of the corresponding integration point
+     *   - during the call to SetPreviousHystValues as well as during the call to
+     *    GetScalar and GetVector for OUTPUT computation, the Hysteresis operator
+     *    will be evaluated at the midpoint of the corresponding element
+     *   - all data structures store the values at the midpoint of the element;
+     *   - the Hysteresis operator will only store the state at the midpoint, i.e.
+     *    all evaluation at other integrations points will be executed on temporal
+     *    storage
+     *
+     *    -> basically, the Hysteresis operator stores the state of the material
+     *      at the midpoint of the element in hope that this state does not differ
+     *      too much from the actual hysteretic state at the integration points
+     *
+     *  kEvaluationDepth_ = 3 (full)
+     *  (not yet implemented, but possible approach for future)
+     *   - each INTEGRATION point + the midpoint have one hysteresis operator
+     *    attached
+     *   - numHystOperators = numElems * (numIntegrationsPoints + 1)
+     *   - Evaluation and storage is done for each integration point
+     */
+    UInt XML_EvaluationDepth_;
+    
+    /*
+     * activates differnet levels of runtime measurement
+     * 0: no measurement
+     * 1: measuerment of evaluation time of hyst operator
+     * 2: detailed measurement of evaluation time of hyst operator
+     */
+    UInt XML_performanceMeasurement_;
+    
+    /*
+     * level of text output; 0 = no output; 1 = std info; 2 = debug
+     */
+    UInt XML_textOutputLevel_;
+    
+    /*
+     * #########################################################################
+     * ### Parameters the will/might change during execution of StdSolveStep ###
+     * ### these parameters are to be set from outside via SetIntegerFlag    ###
+     * #########################################################################
+     */
+    
+    /*
+     * may be set to false to lock the rotation state of the hysteresis operator
+     * changes in put will thus only affect the amplitude
+     */
+    bool RUN_overwriteDirection_;
+    
+    /*
+     * determines whether the value from the last time step (true) or the one from
+     * the last iteration (false) shall be used to compute the delta matrix
+     */
+    bool RUN_useLastTS_;
+    
+    /*
+     * RUN_vectorToReturn_
+     *
+     *  used to tweak the behavior of the rhs load
+     *
+     *  RUN_vectorToReturn_ =
+     *    1 -> evaluate Hysteresis operator and returns its value in rhs load
+     *          integrator
+     *    2 -> return zero vector (needed for implementations where we do not
+     *          put P/M to the rhs or only for the first two iteratons)
+     *    3 -> evaluate Hysteresis operator but return not its value, but the
+     *          difference to the value from the last TS
+     *    4 -> return only the value of the lastTS (needed for full stepping)
+     */
+    UInt RUN_vectorToReturn_;
+    
+    /*
+     * tensorToReturn_
+     *
+     *  used to tweak the behavior of the coefficient function from outside
+     *  needed in StdSolveStep as we need to assemble the deltaMatrix on the lhs
+     *  and the freeField tensor on the rhs
+     *
+     *  tensorToReturn_ =
+     *    1 -> return InitialTensor
+     *    2 -> return FreeFieldTensor
+     *    3 -> return computed deltaMatrix
+     *
+     */
+    UInt RUN_tensorToReturn_;
+    
+    /*
+     * tensorToAdd_
+     *
+     *  used to tweak the computation of the deltaMatrix
+     *
+     *  deltaMatrix =
+     *    electrostatics:     tensorToAdd + deltaP/deltaE
+     *    magnetics:          tensorToAdd - deltaM/deltaB
+     *
+     *  tensorToAdd_ =
+     *    1 -> add InitialTensor
+     *    2 -> add FreeFieldTensor
+     *
+     */
+    UInt RUN_tensorToAdd_;
+    
+    /*
+     * evaluationPurpose_ (to be changed during the iterative solve step)
+     *
+     *  flag needed in combination with kEvaluationDepth_
+     *  it will determine, whether the hysteresis operator is to be evaluated
+     *  at the midpoint of an element or at an integration point
+     *
+     *  kEvaluationDepth_   >    1 (standard)    2 (extended)          3 (full)
+     *  evaluationPurpose_ v
+     *    1 (assemble)          midpoint        integration point     integration point
+     *    2 (store lastIT)      midpoint        midpoint              integration point + midpoint
+     *    3 (store lastTS)      midpoint        midpoint              integration point + midpoint
+     *    4 (output)            midpoint        midpoint              midpoint
+     *
+     *  (cases 2 and 3 differ in terms of memory locking; for case 2, we evaluate the
+     *  hysteresis operator only on temporal storage, for case 3 we set the actual
+     *  state)
+     *
+     */
+    UInt RUN_evaluationPurpose_;
+    
+    /*
+     * switch needed to activate BMP output only at the end of each time step
+     * (otherwise there would be way to much bmp output if done during each iteration)
+     */
+    bool RUN_allowBMP_;
+    
+    /*
+     * single global flag for indicating if residual could be reduced during
+     * last iteration; this may be taken as an indicatior that we should adapt
+     * the computatoin of the deltaMat
+     * (obvious issue: the residual is a global quantity whereas the deltaMat is
+     *  a local one, i.e. just because the residual did not converge, does not mean
+     *  that the computation of all deltaMatrices should be changed (maybe some
+     *  are already appropriate))
+     */
+    bool RUN_residualDecreased_;
+    
+    /*
+     * ######################
+     * ### Misc parameter ###
+     * ######################
+     */
+    /*
+     * For performance measurement
+     */
+    Timer* timer_;
+    UInt totalCallingCounter_;
+    UInt totalEvaluationCounter_;
+    Double avgEvaluationTime_;
+    Double totalEvaluationTime_;
+    
+    /*
+     * Parameter passed from FE context
+     */
+    std::string PDEName_;
+    
+    //! global element to local element numbering
+    std::map<UInt, UInt> globalElem2Local_;
+    std::map<UInt, bool> globalElemOnSurf_;
+    
+    //! Coefficient function which this one depends one
+    PtrCoefFct dependCoef1_;
+    PtrCoefFct dependCoef1Surf_;
+    
+    //! type of tensor to be returned
+    //! electrostatics: permittivity
+    //! magnetics: reluctivity
+    MaterialType matType_;
+    
+    //! type of subtensor (axi, plane)
+    SubTensorType tensorType_;
+    
+    //! list of all elements
+    std::list<shared_ptr<EntityList> > SDList_List_;
+    UInt numElemSD_;
+    
+    //! for standard and extended evaluation,
+    //! we need one hysteresisOperator per element
+    //! for full evaluation, we have N+1 hyst-Operators per element,
+    //! where N is the number of integration points
+    UInt numHystOperators_;
+    
+    //! for standard evaluation, we have to store values like the old
+    //! input/output, the old and current deltaMatrix, etc for each element
+    //! for extended and full evaluation we have to store it for each integration
+    //! point + for the middlepoint
+    UInt numStorageEntries_;
+    
+    //! dim of vector that is returned in GetVector
+    //! basically 2 (for 2d) or 3 (for 3d)
+    UInt dim_;
+    
+    /*
+     * constants for permittivity and reluctivity of vacuum (eps0 and nu0)
+     */
+    Double rev_mat_fac_;
+    
+    Double tol_;
+    
+    //! actual hysteresis operator
+    Hysteresis* hyst_;
+    Hysteresis* hystTMP;
+    
+    //! material object
+    BaseMaterial* material_;
+    
+    
+    bool MAT_useStrainForm_;
+    int MAT_dim_beta_;
+    Matrix<Double> MAT_betaCoefs_;
+    
+		/*
+     
+     /*
+     * ###############
+     * ### Storage ###
+     * ###############
+     */
+    /*
+     * Storage vectors for quantities of the current iteration;
+     * First letter refers to the quantity stored in the electrostatic case,
+     * second letter to the quantity stored in the magnetic case, i.e.
+     *
+     *          electrostatics            magnetics
+     * E_B_       E - ElecField             B - MagFlux         -> solution obtained directly
+     *                                                              from BOperation applied to the
+     *                                                              corresponding potential
+     * P_J_       P - ElecPolarization      J - mag Polarization -> output of the Hysteresis operator
+     *
+     * E_H_       E - ElecField             H - MagField        -> input to the Hysteresis operator
+     *                                        (needed as
+     *                                        VectorPreisach has
+     *                                        no inverse from yet)
+     *
+     *
+     */
+    Vector<Double>* E_B_;
+    Vector<Double>* P_J_;
+    Vector<Double>* E_H_;
+    Vector<Double>* Si_;
+    
+    /*
+     * Storage vectors for quantities of the last iteration;
+     * these values will ONLY be overwritten during each iteration by calling the
+     * function
+     *    SetPreviousHystValues(false)
+     *
+     */
+    Vector<Double>* E_B_lastIt_;
+    Vector<Double>* P_J_lastIt_;
+    Vector<Double>* E_H_lastIt_;
+    Vector<Double>* Si_lastIt_;
+    
+    /*
+     * Storage vectors for quantites of the last timestep;
+     * these values will ONLY be set during the FIRST iteration of each time step
+     * by calling
+     *    SetPreviousHystValues(true)
+     */
+    Vector<Double>* E_B_lastTS_;
+    Vector<Double>* P_J_lastTS_;
+    Vector<Double>* E_H_lastTS_;
+    Vector<Double>* Si_lastTS_;
+    bool* requiresReeval_;
+    bool* Si_requiresReeval_;
+    
+    /*
+     * Storage matrices for current deltaMatrix and deltaMatrix of the last
+     * iteration and of the last time step;
+     * later one is currently only used to estimate the current magnetic field
+     * H_new from the element solution B_new (we cannot directly retrieve H_new
+     * from the FE system as we would have to know the correct magnetization to
+     * compute H = nu0 * B - M)
+     * deltaMat_lastIt_ will be set via SetPreviousHystValues
+     * deltaMat_lastTS_ will be set via SetPreviousHystValues(true)
+     */
+    Matrix<Double>* deltaMat_;
+    Matrix<Double>* deltaMat_lastIt_;
+    Matrix<Double>* deltaMat_lastTS_;
+    bool* deltaMat_requiresReeval_;
+    
+    Matrix<Double>* deltaMatStrain_;
+    Matrix<Double>* deltaMatStrain_lastIt_;
+    Matrix<Double>* deltaMatStrain_lastTS_;
+    bool* deltaMatStrain_requiresReeval_;
+    
+    // resulting from function EstimateCurrentSlope
+    Matrix<Double>* deltaMat_estimated_;
+    
+    /*
+     * for deltaEvaluation version 40-50 (> cutting of input to saturation)
+     * > by cutting the input to saturation, we avoid a jump in deltaMat from
+     *   a higher deltaValue (e-4-e-7) to eps0/nu0 by simply reusing the last
+     *   stored deltaMatrix;
+     *   this has the problem, that we keep this old value of deltaMatrix as long
+     *   as both the current input and the last input (that was used to compute
+     *   deltaX) remain above saturation (which might be the case);
+     *   if both values stay above saturation, we might actually need a slope of
+     *   eps0/nu0 and the last value of deltaMat is simply to large
+     * > this counter shall keep track of the double-cutting-cases; if multiple such
+     *   cases appear in a row, we slowly turn the previously stored state towards
+     *   eps0/nu0 (e.g. by dividing the reused deltamat by 10^cuttingApplied
+     */
+    Vector<UInt> cuttingApplied_;
+    // during each iteration we only want to allow one step down
+    // (otherwise we would step down multiple times per element one for each integration point)
+    // RUN_ as it has to be reset during runtime via SetRuntimeDependentFlag
+    Vector<UInt> RUN_cuttingAlreadyCounted_;
+    
+    
+    // flags for checking if deltaMat was alreday computed during the current timestep / iteration
+    // has to be reset after end of timestep / iteration
+    Vector<UInt> RUN_deltaMatComputedDuringCurrentTS_;
+    Vector<UInt> RUN_deltaMatComputedDuringCurrentIt_;
+    
+    
+    // needed to get integration point
+    shared_ptr<FeSpace> ptFeSpace_;
+    UInt numIntegrationPoints_;
+    std::map<int,UInt> locPointIndices_;
+    
+    
+    
+    // for bisection stuff
+    Vector<Double>* dY_sol;
+    Vector<Double>* X_low;
+    Vector<Double>* X_up;
+    
+    // flags indicating if we need inversion (for e.g. for magnetics)
+    // and if we have an inverse model for that
+    bool needsInversion_;
+    bool hasInverseModel_;
+    
+  };
 
 }
 #endif
