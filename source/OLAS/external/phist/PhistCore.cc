@@ -30,7 +30,7 @@ PhistCore::PhistCore() {
 }
 
 PhistCore::~PhistCore() {
-  // TODO Auto-generated destructor stub
+
 }
 
 /** Most used methods from SCRS_Matrix and CRS_Matrix have no common base :(. As templated methods cannot be

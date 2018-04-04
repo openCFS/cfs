@@ -34,6 +34,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "PETScCommon.hh"
+
 // include the original PETSC header
 //extern "C"
 
@@ -118,20 +119,6 @@ PetscScalar minTol_ = -1.0;
 /** Logs extra info when enabled */
 bool logging_ = false;
 
-//To find the rank of the processor its currently in
-int rank_=0;
-int size_=0;
-//    //Coarsegrid solver parameters
-//    PetscScalar coarse_rtol = 1.0e-8;
-//    PetscScalar coarse_atol = 1.0e-50;
-//    PetscScalar coarse_dtol = 1e3;
-//    PetscInt coarse_maxits = 30;
-//
-//    //Number of levels
-//    PetscInt nlvls=2;
-//
-//    // Number of smoothening iterations per up/down smooth_sweeps
-//    PetscInt smooth_sweeps = 4;
 
 std::string solverstring_;
 std::string precondstring_;
@@ -194,6 +181,7 @@ std::string solverstring_;
 std::string precondstring_;
 Vec N_;
 Vec dirNodeVecGlobal_=nullptr;
+
 };
   
 }

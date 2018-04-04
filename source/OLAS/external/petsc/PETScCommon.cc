@@ -27,10 +27,15 @@ namespace CoupledField {
 #define CHKERRXX(ierr)  do {if (PetscUnlikely(ierr)) {PetscError(PETSC_COMM_SELF,__LINE__,PETSC_FUNCTION_NAME,__FILE__,ierr,PETSC_ERROR_IN_CXX,0);}} while(0)
 
 PETScCommon::PETScCommon() {
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
+  MPI_Comm_size(MPI_COMM_WORLD,&size_);
+
 }
 
 PETScCommon::~PETScCommon() {
-  // TODO Auto-generated destructor stub
+
+
 }
 
 
@@ -156,7 +161,7 @@ void PETScCommon::SetupMGSolver(DM &da_nodes,PC &precond_){
     PCMGGetSmoother(precond_,k,&dksp);
     PC dpc;
     KSPGetPC(dksp,&dpc);
-    ierr = KSPSetType(dksp,KSPCG); // KSPCG, KSPGMRES, KSPCHEBYSHEV (VERY GOOD FOR SPD)
+    ierr = KSPSetType(dksp,innerSovler.c_str()); // KSPCG, KSPGMRES, KSPCHEBYSHEV (VERY GOOD FOR SPD)
 
     ierr = KSPSetTolerances(dksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,smooth_sweeps); // NOTE in the above maxitr=restart;
     PCSetType(dpc,PCJACOBI);// PCJACOBI, PCSOR for KSPCHEBYSHEV very good
@@ -166,19 +171,14 @@ void PETScCommon::SetupMGSolver(DM &da_nodes,PC &precond_){
 void PETScCommon::CheckLevels(int nx,int ny,int nz){
 
   PetscScalar divisor = PetscPowScalar(2.0,(PetscScalar)nlvls-1.0);
-  // x - dir
   if ( std::floor((PetscScalar)(nx-1)/divisor) != (nx-1.0)/((PetscInt)divisor)
       || std::floor((PetscScalar)(ny-1)/divisor) != (ny-1.0)/((PetscInt)divisor)
           || std::floor((PetscScalar)(nz-1)/divisor) != (nz-1.0)/((PetscInt)divisor)) {
     nlvls=nlvls-1;
     CheckLevels(nx,ny,nz);
-
   }
-  else{
-    if (MGLevels!=nlvls)
-      WARN("The provided Levels for MG will not work for the current problem so we set to the maximum possible levels");
+  else
     return;
-  }
 }
 
 
@@ -198,7 +198,6 @@ void PETScCommon::GetGridInfoMG(int &nx,int &ny,int &nz,int &dimension){
     // we are compatible with the region attribute and unbounded region elements
     string reg = regionList[i]->Get("region")->Has("name") ? regionList[i]->Get("region")->Get("name")->As<std::string>() : regionList[i]->As<std::string>();
     regionIds.Push_back(grid->GetRegionId(reg));
-//     GetCFSEqnMapMG(cfsEqnMap_,regionList);
   }//loop over all regions
 
   //Number of nodes in x y and z directions respectively in case of structured with hex elem it is always elemNum in one direction +1
@@ -217,7 +216,15 @@ void PETScCommon::GetGridInfoMG(int &nx,int &ny,int &nz,int &dimension){
     EXCEPTION("Multigrid Doesn't Work for periodic domain yet");
   }
 
+   paramNode=domain->GetParamRoot()->Get("sequenceStep")->Get("linearSystems")->Get("system")
+       ->Get("solutionStrategy")->Get("standard");
+   if (paramNode->Get("matrix/reordering")->As<std::string>() !="noReordering")
+     EXCEPTION("Set matrix reordering to noReordering");
+
+
   dimension=grid->GetDim();
+
+
 }
 
 
@@ -242,6 +249,7 @@ void PETScCommon::CreateDMDA(DM & daNodes,Mat &sysMat,Vec &solVec,Vec &rhsVec,Ve
   //Setup the DM which is used for Grid Management
   DMSetUp(daNodes);
   DMCreateMatrix(daNodes,&sysMat);
+  ierr=MatSetOption (sysMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
 //  DMDASetElementType(daNodes, DMDA_ELEMENT_Q1);
   ierr = DMCreateGlobalVector(daNodes,&(solVec));
   VecDuplicate(solVec,&(rhsVec));
@@ -255,6 +263,7 @@ void PETScCommon::CreateDMDA(DM & daNodes,Mat &sysMat,Vec &solVec,Vec &rhsVec,Ve
 
 
 void PETScCommon::GetCFSEqnMapMG(StdVector<unsigned int> &cfsEqnMap){
+//This function also sets the assemble flag to not assemble in cfs.
 // Calling the grid class a lot might affect performance
 //check here for performance issues
   Grid * grid =domain->GetGrid();
@@ -289,7 +298,8 @@ void PETScCommon::GetCFSEqnMapMG(StdVector<unsigned int> &cfsEqnMap){
       }//loop over all pdes
     }//loop over all nodes
   }//loop over all regions
-
+  assemble_=domain->GetBasePDE()->GetAssemble();
+  assemble_->SkipElemAssembly();
 }
 
 
@@ -297,99 +307,97 @@ void PETScCommon::GetCFSEqnMapMG(StdVector<unsigned int> &cfsEqnMap){
 void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsVec,Vec &dirNodeVec,Vec &dirVec,
     int nx,int ny,int nz){
 
-   // Edof array
-   PetscInt edof[24];
+  // Edof array
+  PetscInt edof[24];
 
-   //Set the Dirchlet Vector With the homogeneous boundary conditions
+  //Set the Dirchlet Vector With the homogeneous boundary conditions
 
-   PetscScalar * dirArray;
-   VecGetArray(dirNodeVec,&dirArray);
+  PetscScalar * dirArray;
+  VecGetArray(dirNodeVec,&dirArray);
 
-//  std::cout<<"Entered Assembly"<<std::endl;
-
-
- //This method gets the local element matrix and assembels into global matrix
-
-    //Number of element nodes
-    int nen=0;
+  //  std::cout<<"Entered Assembly"<<std::endl;
 
 
-   //Get the assemble context from the domain
-   Assemble* assemble=domain->GetBasePDE()->GetAssemble();
+  //This method gets the local element matrix and assembels into global matrix
 
-   StdVector<int> eqnVec1;
-
-   //One based in CFS , but we will use 0 based in petsc
-   StdVector<int> globalNodeNum;
+  //Number of element nodes
+  int nen=0;
 
 
+  //One based in CFS , but we will use 0 based in petsc
+  StdVector<int> globalNodeNum;
 
-
-   Vector<double>elemVector;
-   PetscScalar KE[24*24]; // Element stiffness matrix
+  Vector<double>elemVector;
+  PetscScalar KE[24*24]; // Element stiffness matrix
 
    // Loop over all bilinear forms and calculate the element stiffness matrix for all regions, in this case since its a structured grid one
    // element stiffness matrix should be sufficient.
+  int elem=0;
 
-   // Using the same implemetation as in LocalElementCache and Assemble.cc , need to verify if its right !!
-   for(std::set<BiLinFormContext*>::iterator it = assemble->GetBiLinForms().begin();
-       it != assemble->GetBiLinForms().end(); it++ ){
-     BiLinFormContext& context = **it;
-     BiLinearForm*     form    = context.GetIntegrator();
-     RegionIdType reg = context.GetFirstEntities()->GetRegion();
-     StdVector<Elem*> elems;
-     ElemList elemList(domain->GetGrid());
-     // region elements
-     domain->GetGrid()->GetElems(elems, reg);
+   // Using the same implemetation as in LocalElementCache and Assemble.cc
+  for(std::set<BiLinFormContext*>::iterator it = assemble_->GetBiLinForms().begin();
+     it != assemble_->GetBiLinForms().end(); it++ ){
+    BiLinFormContext& context = **it;
+    BiLinearForm*     form    = context.GetIntegrator();
+    RegionIdType reg = context.GetFirstEntities()->GetRegion();
+    StdVector<Elem*> elems;
+    ElemList elemList(domain->GetGrid());
+    //Extract the element node connectivity information which is useful for assembly of Stiffness matrix
+    // Everything here is zero based and the globalNodeNum array consist of all the nodes of each element starting
+    // from zero to N. It is also assumed that the number of nodes per element is 8
+    EntityIterator  firstEntIt = context.GetFirstEntities()->GetIterator();
 
-     //Extract the element node connectivity information which is useful for assembly of Stiffness matrix
-     // Everything here is zero based and the globalNodeNum array consist of all the nodes of each element starting
-     // from zero to N. It is also assumed that the number of nodes per element is 8
-     EntityIterator  firstEntIt = context.GetFirstEntities()->GetIterator();
-     for ( firstEntIt.Begin(); !firstEntIt.IsEnd(); firstEntIt++ ) {
-       StdVector<unsigned int> nodesInElem=firstEntIt.GetElem()->connect;
-       int elem=(firstEntIt.GetElem()->elemNum)-1;
-       nen=nodesInElem.GetSize();
-     //Matrix to store the element stiffness matrix write a method to convert the Matrix to Petsc Matrix
-       Matrix<double>elemMatrix;
-       for (unsigned int i =0;i<nodesInElem.GetSize();i++){
-         globalNodeNum.Push_back(nodesInElem[i]);
-       }//loop over all nodes in elements
-       form->CalcElementMatrix(elemMatrix, firstEntIt, firstEntIt); // use the region part
-   //      std::cout<<elemMatrix.ToString()<<std::endl;
-        //copy the element matrix to the PetscVector
-         for( UInt i=0; i <elemMatrix.GetNumRows(); i++){
-              for( UInt j=0; j < elemMatrix.GetNumCols(); j++){
-                elemMatrix.GetEntry(i,j,KE[i*(elemMatrix.GetNumCols()) + j]);
-      //           std::cout<<KE[i*(elemMatrix.GetNumCols()) + j]<<std::endl;
-              }
-         }
-           // loop over element nodes
-           for (PetscInt elem_node=0;elem_node<nen;elem_node++){
-      //        std::cout<<" "<<necon[elem*nen+elem_node]+1;
-             // Get local dofs
-             for (PetscInt dof=0;dof <3;dof++){
-               // element local idx 0 ... 23
-               int idx = elem_node*3+dof;
-               // global idx
-               int gidx = globalNodeNum[elem*nen+elem_node]-1;
-               int eqnNr = 3*(globalNodeNum[elem*nen+elem_node]-1)+dof; //CFS node number is one  based indexing ,here its zero based
-               if (dirArray[gidx] == -1.0 ){
-                 VecSetValue(dirVec,(PetscInt)eqnNr,0,INSERT_VALUES);
-               }
-               edof[idx]=eqnNr;
-      //          edof[elem_node*3+dof] = 3*necon[elem*nen+elem_node]+dof;
-             }//dof Loop
-           }//Element Node Loop
-      //      std::cout<<" "<<std::endl;
-           //Set the element Stiffness matrix value to the Global Stiffness matrix
-           ierr = MatSetValues(sysMat,24,edof,24,edof,KE,ADD_VALUES);
-         }//Local Element Loopcoe
-     }//loop over all elements
+    for (firstEntIt.Begin();!firstEntIt.IsEnd();firstEntIt++){
+      CacluateElementStiffnessMatrix(firstEntIt,globalNodeNum,nen,form,elem,KE);
+      CalculateDirNodesAndEdof(dirVec,edof,nen,dirArray,globalNodeNum,elem);
+      ierr = MatSetValues(sysMat,24,edof,24,edof,KE,ADD_VALUES); CHKERRXX(ierr);
+     }//loop over all element
+    }//loop over all bilinear forms
 
 }
 
+void PETScCommon::CalculateDirNodesAndEdof(Vec &dirVec,PetscInt edof[],const int &nen,const PetscScalar * dirArray,
+    const StdVector<int> &globalNodeNum,const int &elem){
 
+  // loop over element nodes
+  for (PetscInt elem_node=0;elem_node<nen;elem_node++){
+    // Get local dofs
+    for (PetscInt dof=0;dof <3;dof++){
+      // element local idx 0 ... 23
+      int idx = elem_node*3+dof;
+      // global idx
+      int gidx = globalNodeNum[elem*nen+elem_node]-1;
+      int eqnNr = 3*(globalNodeNum[elem*nen+elem_node]-1)+dof; //CFS node number is one  based indexing ,here its zero based
+      if (dirArray[gidx] == -1.0 ){
+        VecSetValue(dirVec,(PetscInt)eqnNr,0,INSERT_VALUES);
+      }
+      edof[idx]=eqnNr;
+  //          edof[elem_node*3+dof] = 3*necon[elem*nen+elem_node]+dof;
+    }//dof Loop
+  }//Element Node Loop
+
+}
+
+void PETScCommon::CacluateElementStiffnessMatrix(EntityIterator &firstEntIt, StdVector<int> &globalNodeNum
+    ,int &nen , BiLinearForm  *form ,int &elem , PetscScalar KE[] ){
+
+  StdVector<unsigned int> nodesInElem=firstEntIt.GetElem()->connect;
+
+  elem=(firstEntIt.GetElem()->elemNum)-1;
+  nen=nodesInElem.GetSize();
+  //Matrix to store the element stiffness matrix write a method to convert the Matrix to Petsc Matrix
+  Matrix<double>elemMatrix;
+  for (unsigned int i =0;i<nodesInElem.GetSize();i++)
+    globalNodeNum.Push_back(nodesInElem[i]);
+
+  form->CalcElementMatrix(elemMatrix, firstEntIt, firstEntIt); // use the region part
+
+  //copy the element matrix to the PetscVector
+  for( UInt i=0; i <elemMatrix.GetNumRows(); i++)
+    for( UInt j=0; j < elemMatrix.GetNumCols(); j++)
+      elemMatrix.GetEntry(i,j,KE[i*(elemMatrix.GetNumCols()) + j]);
+
+}
 
 
 void PETScCommon::SetLinRhs(Vec &rhsVec){
@@ -397,9 +405,7 @@ void PETScCommon::SetLinRhs(Vec &rhsVec){
  //Get the RHS
 
  Vector<Double> elemVec;
- Assemble * assemble=domain->GetBasePDE()->GetAssemble();
-
- StdVector<LinearFormContext *> linForms_=assemble->GetLinForms();
+ StdVector<LinearFormContext *> linForms_=assemble_->GetLinForms();
  StdVector<LinearFormContext*>::iterator formsIt;
  // iterate over all descriptors
  for(formsIt = linForms_.Begin(); formsIt != linForms_.End(); formsIt++)
@@ -419,14 +425,10 @@ void PETScCommon::SetLinRhs(Vec &rhsVec){
 
         form->CalcElemVector(elemVec, entIt);
         //Find the equNr in Petsc Format for the given element
-//           StdVector<unsigned int> nodeVec=entIt.GetElem()->connect;
-//           for (unsigned int elem_node=0;elem_node<nodeVec.GetSize();elem_node++  ){
           for (int dof=0;dof<3;dof++){
             int eqnNr=3* (entIt.GetNode()-1)+dof;
             eqnVec.Push_back(eqnNr);
           }
-
-//           }
         assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
 //        std::cout<<elemVec.ToString()<<std::endl;
 //        std::cout<<eqnVec.ToString()<<std::endl;
@@ -493,6 +495,7 @@ std::string PETScCommon::CreatePrecondString(PtrParamNode xml){
       coarse_dtol=sol[1]->Get("coarse_dtol")->As<double>();
       coarse_maxits=sol[1]->Get("coarse_maxits")->As<int>();
       MGLevels=nlvls;
+      innerSovler=sol[1]->Get("innerSolver")->As<string>();
     }
   }
   else{

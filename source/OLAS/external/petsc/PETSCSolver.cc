@@ -48,14 +48,13 @@ PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::Ent
   hdr->Get("minimalTolerance")->SetValue(double(minTol_));
 
   solverstring_=CreateSolverString(xml_);
-  precondstring_=CreatePrecondString(xml_);
+  precondstring_=CreatePrecondString(xml_); //this fn also gets some values to be set for the multigrid if precond=mg
   if (precondstring_=="mg"){
     MG_FLAG=true;
-    GetCFSEqnMapMG(cfsEqnMap_);
+    GetCFSEqnMapMG(cfsEqnMap_); //This fn also sets the assemble class flag skipElemAssembly_.
   }
 
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
-  MPI_Comm_size(MPI_COMM_WORLD,&size_);
+
 
 
 }
@@ -204,12 +203,10 @@ void PETSCSolver::Setup(BaseMatrix &sysmat){
     SendWorkerCommand(SETUP_SOLVER_CONTEXT);
     SetupSolverContext(A_,solver_,precond_,solverstring_,precondstring_,tolerance_,minTol_,maxIter_,MG_FLAG);
     if(MG_FLAG){SetupMGSolver(da_nodes,precond_);}
-
+    infoNode_->Get(ParamNode::HEADER)->Get("mgLevels")->SetValue(nlvls);
   }
 
-
   firstSetup_=false;
-
 }
 
 
@@ -254,7 +251,6 @@ void PETSCSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVe
   curr->Get("timing")->SetValue(t2-t1);
   curr->Get("residualNorm")->SetValue(rnorm);
   curr->Get("iterations")->SetValue(niter);
-
   //Create a global vector and scatter context to collect the solution vector to master process
   SendWorkerCommand(GET_SOL);
   Vec x_global;
@@ -328,7 +324,6 @@ PETSCWorker::PETSCWorker(int argc,const char **argv){
     precondstring_=CreatePrecondString(xml_);
     if (precondstring_=="mg")
       MG_FLAG=true;
-
   }
 
 }

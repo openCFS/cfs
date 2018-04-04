@@ -1172,15 +1172,24 @@
             </xsd:annotation>
           </xsd:element>
           <xsd:element name="mg">
-            <xsd:complexType>
-              <xsd:attribute name="nlvls" use="optional" type="xsd:int" default="1" />
-              <xsd:attribute name="smoothSweeps" use="optional" type="xsd:int" default="2"/>
+			      <xsd:complexType>
+			        <xsd:attribute name="nlvls" use="optional" type="xsd:int" default="10" />
+			        <xsd:attribute name="smoothSweeps" use="optional" type="xsd:int" default="2"/>
 							<xsd:attribute name="coarse_rtol" use="optional" type="xsd:double" default="1.0e-8"/>
 							<xsd:attribute name="coarse_atol" use="optional" type="xsd:double" default="1.0e-50"/>
 							<xsd:attribute name="coarse_dtol" use="optional" type="xsd:double" default="1e3"/>
 							<xsd:attribute name="coarse_maxits" use="optional" type="xsd:int" default="30"/>
-						</xsd:complexType>
-           </xsd:element>
+							<xsd:attribute name="innerSolver" use="optional"  default="chebyshev">  
+							 <xsd:simpleType>
+						    <xsd:restriction base="xsd:string">
+						      <xsd:enumeration value="chebyshev"/>
+						      <xsd:enumeration value="cg"/>
+						      <xsd:enumeration value="gmres"/>
+						    </xsd:restriction> 
+						   </xsd:simpleType>      
+						  </xsd:attribute>
+			     </xsd:complexType>
+          </xsd:element>
           <xsd:element name="asm"/>
           <xsd:element name="bjacobi"/>
           <xsd:element name="icc"> 
@@ -1190,8 +1199,8 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          
+           
+         
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
