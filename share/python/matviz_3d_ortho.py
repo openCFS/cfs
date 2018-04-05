@@ -5,7 +5,6 @@ import matviz_vtk
 import vtk
 import math
 import sys
-import ray_triangle
 
 try:
   import meshpy.triangle as triangle
@@ -74,7 +73,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   nondes_max = -99999
   nondes_coords = None
   holes = None
-  
+  design_elems = None
   if nondes[0] and nondes[1]: # assume holes are within bounding box of solid non-design and design domain
     nondes_coords = nondes[0][0]
     nondes_min = nondes[0][1]
@@ -91,8 +90,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # broadcast all nondes to all ranks
   (nondes_coords,nondes_min,nondes_max) = my_mpi_grid.comm.bcast((nondes_coords,nondes_min,nondes_max),root=0)
 #   print("rank ", my_mpi_grid.rank," nondes:",len(nondes_coords))
-# broadcast all holes to all ranks
-  holes = my_mpi_grid.comm.bcast(holes,root=0)    
+  # broadcast all holes and design elems to all ranks
+  holes = my_mpi_grid.comm.bcast(holes,root=0)
+  design_elems = my_mpi_grid.comm.bcast(design_elems,root=0)        
     
   # np.minimum gives elementwise min value
   bounds = [None] * 6
@@ -149,8 +149,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   #z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+hz-eps,hz)
   
   tmp = np.zeros_like(my_mpi_grid.grid.data,dtype=bool)
-  draw_non_design(nondes_coords+design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
+  draw_non_design(design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
   my_mpi_grid.grid.data *= tmp
+  
   design_elems = None
   draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
   draw_non_design(holes, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
@@ -368,7 +369,7 @@ def draw_non_design(tets,grid,bounds,h,solid=True):
   for p in prod:
     # transfer to voxel world
     i,j,k = draw_profile_functions.cartesian_to_voxel_coords(p,bounds[0],bounds[1],bounds[2],h[0],h[1],h[2])
-    assert(not matviz_3d_ortho.idx_out_of_bounds((i,j,k),grid.shape))
+    assert(not idx_out_of_bounds((i,j,k),grid.shape))
     grid[i,j,k] = solid
 
 # check if given tuple of indices lies within given array bounds
@@ -443,7 +444,7 @@ class MPI_Grid():
     print("---- mpi distr grid ----")  
     print("rank:",self.rank)
     print("bounds:",self.bounds)
-    print("start:,",self.start_x," end:",self.end_x)
+    print("start:",self.start_x," end:",self.end_x)
     self.grid.to_info()
     sys.stdout.flush()
   

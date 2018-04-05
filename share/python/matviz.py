@@ -647,7 +647,7 @@ if not args.target_volume:
       nondes_solid = (nondes_elements, nondes_min, nondes_max)
       nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
 #     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,(nondes_solid,nondes_void,design_elems),min_bb=min_bb,max_bb=max_bb)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes=(nondes_solid,nondes_void,design_elems),min_bb=min_bb,max_bb=max_bb)
   else:
     perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb)
 else:
