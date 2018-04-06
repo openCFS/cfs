@@ -1437,7 +1437,6 @@ namespace CoupledField {
     
     Matrix<Double> actCoord, jac, jacInv, jacInvT;
     Vector<Double> midPoint, globVec, actLocDir;
-    Double jacDet;
     
     // loop over all volume region results
     for( UInt i = 0; i < resultList.GetSize(); ++i ) {
@@ -1467,11 +1466,15 @@ namespace CoupledField {
           Vector<Double> midPoint = 
               Elem::shapes[ptElem->type].midPointCoord;
           esm->CalcJ( jac, midPoint );
-
           // calculate for every element jacobian and map "local" direction vector
-          jac.Invert( jacInv );
-          globVec = Transpose(jacInv) * actLocDir;
-          globVec /= globVec.NormL2();
+          if (jac.GetNumCols() == 1) {
+            globVec.Resize(dim_); // do nothing for the case of surface/line elements in 3D
+          }
+          else {
+            jac.Invert( jacInv );
+            globVec = Transpose(jacInv) * actLocDir;
+            globVec /= globVec.NormL2();
+          }
           for(UInt iDim = 0; iDim < dim_; iDim++ ) {
             actVal[it.GetPos()*dim_ + iDim] = globVec[iDim];
           }
@@ -1501,9 +1504,7 @@ namespace CoupledField {
           Vector<Double> midPoint = 
               Elem::shapes[ptElem->type].midPointCoord;
           esm->CalcJ( jac, midPoint );
-
-          jac.Determinant(jacDet);
-          actVal[it.GetPos()] = jacDet;
+          actVal[it.GetPos()] = esm->CalcJDet(jac,midPoint);
         } // loop over elements
         break;
         

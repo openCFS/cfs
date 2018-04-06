@@ -64,25 +64,21 @@ bool TimeMeanFilter1::UpdateResults(std::set<uuids::uuid>& upResults) {
     Vector<Double>& returnVec = GetOwnResultVector<Double>(*oIter);
     
     const UInt size = returnVec.GetSize();
-    #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-    for (UInt i = 0; i < size; i++) {
-      returnVec[i] = 0.0;
-    }
+    const Integer actStepIndex = resultManager_->GetStepIndex(*oIter);
     
-    const Double dT = timeSteps_[*oIter];
-    const Double actStepValue = resultManager_->GetStepValue(*oIter);
+    const Integer iStart = N_ > 0 ? -N_+1 : 0;
+    const Integer iEnd = N_ > 0 ? 0 : -N_-1;
     
-    const Integer iStep = N_ > 0 ? 1 : -1;
-    
-    for (Integer i = 0; i != N_; i+= iStep) {
-      Vector<Double>& inVec = GetUpstreamResultVector<Double>(upRes, actStepValue - ((double)i * dT));
+    returnVec.Init(0.0);
+    for (Integer i = iStart; i <= iEnd; i++) {
+      Vector<Double>& inVec = GetUpstreamResultVector<Double>(upRes, actStepIndex + i);
       #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for (UInt i = 0; i < size; i++) {
         returnVec[i] += inVec[i];
       }
     }
     
-    const Double factor = (double)iStep / (double)N_;
+    const Double factor = std::abs<Double>(1.0 / (Double)N_);
     #pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt i = 0; i < size; i++) {
       returnVec[i] /= factor;
@@ -101,9 +97,9 @@ ResultIdList TimeMeanFilter1::SetUpstreamResults(){
     std::string upstreamRes = inOutNames_.left.at(filterResName);
     uuids::uuid newId;
     if (N_ > 0) {
-      newId = RegisterUpstreamResult(upstreamRes, -N_, 0, *aIt);
+      newId = RegisterUpstreamResult(upstreamRes, -N_+1, 0, *aIt);
     } else {
-      newId = RegisterUpstreamResult(upstreamRes, 0, -N_, *aIt);
+      newId = RegisterUpstreamResult(upstreamRes, 0, -N_-1, *aIt);
     }
     generated.Push_back(newId);
     //additionally we store the uuids belonging to one upRes

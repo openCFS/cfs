@@ -73,7 +73,7 @@ namespace CoupledField
   void MechanicMaterial::Finalize() {
 
     // Trigger calculation of stiffness tensor
-    ComputeFullStiffTensor();
+    //ComputeFullStiffTensor();
 
   }
 

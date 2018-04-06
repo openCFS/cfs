@@ -35,6 +35,7 @@ public:
     ReflectionCoefficient = 1e-3;
     functionType = NO_TYPE;
     DampFactor = 1.0;
+    constFactor =1.0;
   }
 
   virtual ~DampFunction() {};

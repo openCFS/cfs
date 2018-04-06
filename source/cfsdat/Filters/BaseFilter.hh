@@ -126,6 +126,13 @@ protected:
   //! \return success of the computation
   uuids::uuid RegisterUpstreamResult(std::string name, uuids::uuid downStreamResultId);
                          
+  //! Registers a result needed from upstream filters,
+  //! assuming that no time step offsets are requried
+  //! \param (in) name name of the result to register
+  //! \param (in) downStreamResultIds ids of result needed from downstream filter
+  //! \return success of the computation
+  uuids::uuid RegisterUpstreamResult(std::string name, std::set<uuids::uuid> downStreamResultIds);
+  
   //! Registers a result needed from upstream filters.
   //! \param (in) name name of the result to register
   //! \param (in) minOffset minimum offset step required relative to the downstream result to be computed
@@ -135,6 +142,22 @@ protected:
   uuids::uuid RegisterUpstreamResult(std::string name, Integer minOffset, 
                          Integer maxOffset, uuids::uuid downStreamResultId);
 
+  //! Registers a result needed from upstream filters.
+  //! \param (in) name name of the result to register
+  //! \param (in) minOffset minimum offset step required relative to the downstream result to be computed
+  //! \param (in) maxOffset maximum offset step required relative to the downstream result to be computed
+  //! \param (in) downStreamResultIds ids of results needed from downstream filter
+  //! \return success of the computation
+  uuids::uuid RegisterUpstreamResult(std::string name, Integer minOffset, 
+                         Integer maxOffset, std::set<uuids::uuid> downStreamResultIds);
+  
+  //! Get the maximum step offset from downstream results
+  //! \param (in) downStreamResultIds ids of results needed from downstream filter
+  //! \return maximum step offset from downstream results
+  virtual Integer GetDownStreamMaxStepOffset(std::set<uuids::uuid> downStreamResultIds);
+  
+  virtual void CopyTimeLineUpstream(uuids::uuid upStreamId, uuids::uuid downStreamId);
+                         
   //=================================================================
   // Helper Functions for Downstream Result Initialization
   //=================================================================
@@ -203,47 +226,93 @@ protected:
   //! Function for receiving a result vector computed by upstream filters.
   //! Therefore, this function invokes Run() of the usptream filters
   //! \param (in) resId id of the result
-  //! \param (in) timeValue time step value required
+  //! \param (in) stepValue step value required
   //! \param (out) eqnNumbers equation number of the result
   //! \return a reference to the result vector
   template<typename T>
-  Vector<T>& GetUpstreamResultVector(uuids::uuid resId, Double timeValue, 
+  Vector<T>& GetUpstreamResultVector(uuids::uuid resId, Double stepValue, 
                                     CF::StdVector<UInt>& eqnNumbers) {
-    resultManager_->SetStepValue(resId,timeValue);
+    resultManager_->SetStepValue(resId,stepValue);
+    return GetUpstreamResultVector<T>(resId, eqnNumbers);
+  }
+  
+  //! Function for receiving a result vector computed by upstream filters.
+  //! Therefore, this function invokes Run() of the usptream filters
+  //! \param (in) resId id of the result
+  //! \param (in) stepIndex step index in the timeline
+  //! \param (out) eqnNumbers equation number of the result
+  //! \return a reference to the result vector
+  template<typename T>
+  Vector<T>& GetUpstreamResultVector(uuids::uuid resId, Integer stepIndex, 
+                                    CF::StdVector<UInt>& eqnNumbers) {
+    resultManager_->SetStepIndex(resId,stepIndex);
     return GetUpstreamResultVector<T>(resId, eqnNumbers);
   }
   
   //! Function for receiving a result vector computed by upstream filters.
   //! Therefore, this function invokes Run() of the usptream filters
   //! \param (in) resName name of the result
-  //! \param (in) timeValue time step value required
+  //! \param (in) stepValue step value required
   //! \param (out) eqnNumbers equation number of the result
   //! \return a reference to the result vector
   template<typename T>
-  Vector<T>& GetUpstreamResultVector(std::string resName, Double timeValue, 
+  Vector<T>& GetUpstreamResultVector(std::string resName, Double stepValue, 
                                     CF::StdVector<UInt>& eqnNumbers) {
-    return GetUpstreamResultVector<T>(upResNameIds[resName], timeValue, eqnNumbers);
+    return GetUpstreamResultVector<T>(upResNameIds[resName], stepValue, eqnNumbers);
+  }
+  
+  //! Function for receiving a result vector computed by upstream filters.
+  //! Therefore, this function invokes Run() of the usptream filters
+  //! \param (in) resName name of the result
+  //! \param (in) stepIndex step index in the timeline
+  //! \param (out) eqnNumbers equation number of the result
+  //! \return a reference to the result vector
+  template<typename T>
+  Vector<T>& GetUpstreamResultVector(std::string resName, Integer stepIndex, 
+                                    CF::StdVector<UInt>& eqnNumbers) {
+    return GetUpstreamResultVector<T>(upResNameIds[resName], stepIndex, eqnNumbers);
   }
   
   //! Function for receiving a result vector computed by upstream filters.
   //! Therefore, this function invokes Run() of the usptream filters
   //! \param (in) resId id of the result
-  //! \param (in) timeValue time step value required
+  //! \param (in) stepValue step value required
   //! \return a reference to the result vector
   template<typename T>
-  Vector<T>& GetUpstreamResultVector(uuids::uuid resId, Double timeValue) {
-    resultManager_->SetStepValue(resId,timeValue);
+  Vector<T>& GetUpstreamResultVector(uuids::uuid resId, Double stepValue) {
+    resultManager_->SetStepValue(resId,stepValue);
+    return GetUpstreamResultVector<T>(resId);
+  }
+  
+  //! Function for receiving a result vector computed by upstream filters.
+  //! Therefore, this function invokes Run() of the usptream filters
+  //! \param (in) resId id of the result
+  //! \param (in) stepIndex step index in the timeline
+  //! \return a reference to the result vector
+  template<typename T>
+  Vector<T>& GetUpstreamResultVector(uuids::uuid resId, Integer stepIndex) {
+    resultManager_->SetStepIndex(resId,stepIndex);
     return GetUpstreamResultVector<T>(resId);
   }
   
   //! Function for receiving a result vector computed by upstream filters.
   //! Therefore, this function invokes Run() of the usptream filters
   //! \param (in) resName name of the result
-  //! \param (in) timeValue time step value required
+  //! \param (in) stepValue step value required
   //! \return a reference to the result vector
   template<typename T>
-  Vector<T>& GetUpstreamResultVector(std::string resName, Double timeValue) {
-    return GetUpstreamResultVector<T>(upResNameIds[resName], timeValue);
+  Vector<T>& GetUpstreamResultVector(std::string resName, Double stepValue) {
+    return GetUpstreamResultVector<T>(upResNameIds[resName], stepValue);
+  }
+  
+  //! Function for receiving a result vector computed by upstream filters.
+  //! Therefore, this function invokes Run() of the usptream filters
+  //! \param (in) resName name of the result
+  //! \param (in) stepIndex step index in the timeline
+  //! \return a reference to the result vector
+  template<typename T>
+  Vector<T>& GetUpstreamResultVector(std::string resName, Integer stepIndex) {
+    return GetUpstreamResultVector<T>(upResNameIds[resName], stepIndex);
   }
   
   //! Function for receiving a result vector computed by upstream filters.
@@ -325,6 +394,10 @@ protected:
 
   /// list of incomming, active result ids which match the entries in filtResNames
   ResultIdList filterResIds;
+  
+  /// map from filter result names to filter result Ids
+  /// filled by ExtractFilterResults
+  std::map<std::string, uuids::uuid> filterResNameIds;
   
   /// set of all result names which are required from upstream filters
   std::set<std::string> upResNames;

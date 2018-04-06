@@ -103,8 +103,8 @@ namespace CoupledField {
       EXCEPTION( "runtimeToString not implemented in base-Class" );
     };
 
-    virtual void setFlags(UInt performanceFlag, UInt textOutputFlag, UInt mappingFlag){
-      EXCEPTION( "setFlags not inplemented in base-Class")
+    virtual void setFlags(UInt performanceFlag){
+      EXCEPTION( "setFlag not inplemented in base-Class")
     };
 
 

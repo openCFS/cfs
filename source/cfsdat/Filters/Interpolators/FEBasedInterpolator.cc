@@ -32,12 +32,12 @@ FEBasedInterpolator::~FEBasedInterpolator(){
 }
 
 bool FEBasedInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
-  /// this is the vector, which will be filled with the interpolation result
+  /// this is the vector, which will be filled with the result
   Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
-  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
+  Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
 
   // vector, containing the source data values
-  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], aTF);
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
 
   //perform interpolation From Elem result to nodes
   CF::Vector<Double> srcShFnc;

@@ -648,6 +648,9 @@ bool MeshFilter::CalcLocGradient(CF::Matrix<Double>& derivCoefVec,
     Double k; //inverse of condition number
     int inf;
     ALoc.Invert_Lapack(k, inf);
+    if(inf != 0){
+    	EXCEPTION ("Error during lapack inversion, Error integer = "<<inf);
+    }
     if(k < upperBound && k > lowerBound && inf==0) c = true;
     else if(k > upperBound && inf==0) eps = eps / 2.0;
     else if(k < lowerBound || inf!=0) eps = eps * 2.0;
@@ -929,11 +932,8 @@ void MeshFilter::CalcTensorDivergence(Vector<Double>& returnVec,
   UInt numbTensorEntries = numEquPerEnt + 1;
   if (numEquPerEnt==3)numbTensorEntries = numEquPerEnt + 3;
 
-
-
 //#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt targetIndex = 0; targetIndex < maxNumTrgEntities; targetIndex++) {
-    returnVec[targetIndex] = 0.0;
 
     StdVector<CF::UInt> sM = sourceM[targetIndex];
 
@@ -953,7 +953,7 @@ void MeshFilter::CalcTensorDivergence(Vector<Double>& returnVec,
        }
       CF::Matrix<Double> tempMat;
       tempMat = vals * targetSourceFactor[targetIndex];
-      returnVec[targetIndex + tensorRow] = tempMat.Trace();
+      returnVec[numEquPerEnt * targetIndex + tensorRow] = tempMat.Trace();
     }
   }
 

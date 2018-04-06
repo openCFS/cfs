@@ -69,9 +69,11 @@ protected:
 
   std::string outName_;
   uuids::uuid outId_;
+  bool calcOutId_;
 
   std::string interName_;
   uuids::uuid interId_;
+  bool calcInterId_;
 
   std::string incrModes_;
   uuids::uuid iModeId_;

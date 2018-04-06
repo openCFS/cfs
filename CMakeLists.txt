@@ -184,6 +184,7 @@ OPTION(USE_UNV "Use Universal File for simulation output." ${USE_UNV_DEFAULT})
 # USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
 OPTION(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
 OPTION(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
+OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." ${USE_ANSYSRST_DEFAULT})
 
 IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." ${USE_ANSYSRST_DEFAULT})
@@ -213,10 +214,8 @@ SET(XML_READER ${XML_READER_DEFAULT}
 # it should now compile with all  other combinations of BLAS/LAPACK If we want
 # to try out the Pardiso matching this would have to be implemented separately
 #-----------------------------------------------------------------------------
-SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT} CACHE STRING
-  "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB")
-SET(CFS_PARDISO "MKL" CACHE STRING 
-    "Pardiso implementation for CFS. May be one of MKL or SCHENK. Irrelevant if disabled via USE_PARDISO")
+SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT} CACHE STRING "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB")
+SET(CFS_PARDISO ${CFS_PARDISO_DEFAULT} CACHE STRING "Pardiso implementation for CFS. May be one of MKL or SCHENK. Irrelevant if disabled via USE_PARDISO")
 OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)" ${USE_PARDISO_DEFAULT})
 
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library." ${USE_ARPACK_DEFAULT})
@@ -229,18 +228,18 @@ OPTION(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi instal
 OPTION(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFAULT})
 OPTION(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
 
-if(USE_FEAST AND NOT CFS_BLAS_LAPACK STREQUAL "MKL" )
+IF(USE_FEAST AND NOT CFS_BLAS_LAPACK STREQUAL "MKL" )
   MESSAGE(FATAL_ERROR "USE_FEAST=ON requires Intel MKL! Set CFS_BLAS_LAPACK=MKL")
-endif()
+ENDIF()
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
 #-----------------------------------------------------------------------------
-if(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
-  set(CFS_BLAS_LAPACK "MKL" CACHE STRING
+IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
+  SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
     "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB, Disable USE_PARDISO or set CFS_PARDSIO to SCHENK if not MKL"
     FORCE)
   # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")
-endif(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
+ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 
 # Do we have mpi? There are multiple mpi installations, one should stick with one
 # but we don't build mpi by cfsdeps to allow usage of tuned hpc mpi instances.
@@ -437,6 +436,20 @@ IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
     MESSAGE("${MSG}")
   ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
 ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+
+# set the mode of cfstool
+SET(CFS_TESTSUITE_CFSTOOL_MODE "scalardiff" CACHE STRING "The mode used to compare hdf5 files by cfstool. May be 'scalardiff', 'L2diff', or 'relL2diff'.")
+IF( NOT ( (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "scalardiff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "L2diff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "relL2diff") ) )
+  MESSAGE("select a correct value for CFS_TESTSUITE_CFSTOOL_MODE.")
+ENDIF()
+
+# set the number of thread to use for the testing runs
+include(ProcessorCount)
+ProcessorCount(NCPU)
+SET(CFS_TESTSUITE_THREADS "${NCPU}" CACHE STRING "Number of threads to use for the cfs testing runs, i.e. use argument '-t CFS_TESTSUITE_THREADS' in cfs runs.")
+IF(NOT CFS_TESTSUITE_THREADS MATCHES "^[1-9][0-9]*$")
+  MESSAGE("CFS_TESTSUITE_THREADS must be integer valued.")
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
@@ -684,11 +697,23 @@ ENDIF(USE_ILUPACK)
 ADD_SUBDIRECTORY(source/OLAS/external/lapack)
 
 IF(USE_PARDISO)
+  # PARDISO form MKL also requires BLAS/LAPACK from MKL
+  # with CFS_PARDISO=SCHENK can be used with OPENBLAS or NETLIB
+  if(CFS_PARDISO STREQUAL "MKL" AND NOT CFS_BLAS_LAPACK STREQUAL "MKL")
+    MESSAGE(FATAL_ERROR "CFS_PARDISO=MKL requires CFS_BLAS_LAPACK=MKL. Disable USE_PARDISO or set CFS_PARDSIO to SCHENK if not using CFS_BLAS_LAPACK=MKL.")
+  endif()
   ADD_SUBDIRECTORY(source/OLAS/external/pardiso)
 ENDIF(USE_PARDISO)
 
 if(USE_FEAST)
+  # the current FEAST implementation can be from MKL (only for symmetric versions)
+  # or from the origninal online source (COMMUNITY).
+  # Both require MKL. To get rid of this dependency one would have to implement
+  # the reverse communication interface to include another lineare solver (default=pardiso).
   ADD_SUBDIRECTORY(source/OLAS/external/feast)
+  if(NOT CFS_BLAS_LAPACK STREQUAL "MKL")
+    MESSAGE(FATAL_ERROR "USE_FEAST=ON requires Intel MKL! Set CFS_BLAS_LAPACK=MKL")
+  endif()
 endif(USE_FEAST)
 CMAKE_DEPENDENT_OPTION(USE_FEAST_COMMUNITY "Use the community version of FEAST" ON USE_FEAST OFF)
 MARK_AS_ADVANCED(USE_FEAST_COMMUNITY)

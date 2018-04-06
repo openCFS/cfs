@@ -81,29 +81,6 @@ void SNGRFilter::FinishInit(){
 
 
 bool SNGRFilter::UpdateResults(std::set<uuids::uuid>& upResults){
-
-// TODO matthias checkin
-//  resultManager_->SetTimeValue(tkeId,aTF);
-//  resultManager_->SetTimeValue(tefId,aTF);
-//  resultManager_->SetTimeValue(velocityId,aTF);
-//  resultManager_->SetTimeValue(densityId,aTF);
-//  resultManager_->SetTimeValue(temperatureId,aTF);
-  resultManager_->ActivateResult(tkeId_);
-  resultManager_->ActivateResult(tefId_);
-  resultManager_->ActivateResult(velocityId_);
-  resultManager_->ActivateResult(densityId_);
-  resultManager_->ActivateResult(temperatureId_);
-  resultManager_->DeactivateResult(outId_);
-  resultManager_->DeactivateResult(interId_);
-  
-
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
-  }
-
 //   --------------------------------------
 //  ============== SNGR CORE =================
 //  ----------------------------------------
@@ -305,27 +282,34 @@ bool SNGRFilter::UpdateResults(std::set<uuids::uuid>& upResults){
 //  ============== SNGR =================
 //  ----------------------------------------
 
+  // now we calculate all results, independently if requested or not for one time step, 
+  // so set equal time steps for all results
+  UInt stepIndex = resultManager_->GetStepIndex(*upResults.begin());
+  for (UInt i = 0; i < filterResIds.GetSize(); i++) {
+    resultManager_->SetStepIndex(filterResIds[i], stepIndex);
+  }
 
   //equation numbers for this result
   //here, those equation numbers are equal for all in/out results
-  Vector<Double>& returnVec = GetOwnResultVector<Double>(outId_);
+  if (calcOutId_) {
+    Vector<Double>& returnVec = GetOwnResultVector<Double>(outId_);
+#pragma omp parallel for
+    for(UInt i=0;i<meanVelocity.GetSize();++i){
+      returnVec[i] = meanVelocity[i];
+    }
+    resultManager_->SetResultVecUpToDate(outId_,true);
+  }
   
+  if (calcInterId_) {
+    Vector<Double>& returnVecInter = GetOwnResultVector<Double>(interId_);
+    //RETURN OTHER OUTPUT intermediate result
 #pragma omp parallel for
-  for(UInt i=0;i<meanVelocity.GetSize();++i){
-    returnVec[i] = meanVelocity[i];
+    for(UInt i=0;i<TKE.GetSize();++i){
+      returnVecInter[i] = TKE[i];
+    }
+    resultManager_->SetResultVecUpToDate(interId_,true);
   }
-
-  resultManager_->SetResultVecUpToDate(outId_,true);
-
-  Vector<Double>& returnVecInter = GetOwnResultVector<Double>(interId_);
-
-  //RETURN OTHER OUTPUT intermediate result
-#pragma omp parallel for
-  for(UInt i=0;i<TKE.GetSize();++i){
-    returnVecInter[i] = TKE[i];
-  }
-  resultManager_->SetResultVecUpToDate(interId_,true);
-
+  
   return true;
 }
 
@@ -338,21 +322,30 @@ ResultIdList SNGRFilter::SetUpstreamResults(){
   tefId_ = upResNameIds[inTEF_];
   densityId_ = upResNameIds[inDensity_];
   temperatureId_ = upResNameIds[inTemp_];
-
   return generated;
 }
 
 void SNGRFilter::AdaptFilterResults(){
   //We should check some validity...
   //we can almost copy everything from time input (also scalar, etc.)
-  outId_ = filterResIds[0];
-  resultManager_->CopyResultData(velocityId_,outId_);
-  resultManager_->SetValid(outId_);
-
-  //REGISTER INTERMEDIATE result
-  interId_  = filterResIds[1];
-  resultManager_->CopyResultData(tkeId_,interId_);
-  resultManager_->SetValid(interId_);
+  
+  if (filterResNameIds.find(outName_) != filterResNameIds.end()) {
+    outId_ = filterResNameIds[outName_];
+    resultManager_->CopyResultData(velocityId_,outId_);
+    resultManager_->SetValid(outId_);
+    calcOutId_ = true;
+  } else {
+    calcOutId_ = false;
+  }
+  
+  if (filterResNameIds.find(interName_) != filterResNameIds.end()) {
+    interId_ = filterResNameIds[interName_];
+    resultManager_->CopyResultData(tkeId_,interId_);
+    resultManager_->SetValid(interId_);
+    calcInterId_ = true;
+  } else {
+    calcInterId_ = false;
+  }
 }
 
 void SNGRFilter::PrepareMethodBailly(){

@@ -117,7 +117,7 @@ SET(CFSDEPS ${CFSDEPS} openblas)
 # only parts of LAPACK are optimized. OpenBLAS can be build without LAPACK in request but then 
 # cfs does not link
 #-------------------------------------------------------------------------------
-SET(BLAS_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libopenblas.a;-lpthread")
+SET(BLAS_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libopenblas.a;-lpthread;-lm")
 SET(LAPACK_LIB "${BLAS_LIB}")
 
 
