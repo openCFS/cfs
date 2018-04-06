@@ -76,13 +76,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     # shall work at least for openblas
     set(PETSC_BLAS " --with-blaslapack-lib=${LAPACK_LIB}")
   endif()       
-  # trigger debugging (which is on per default)
-  if(CMAKE_BUILD_TYPE MATCHES "DEBUG")
-    set(PETSC_DEBUG " --with-debugging=1")
-  else()
-    set(PETSC_DEBUG " --with-debugging=0")
-  endif()  
-  
+ 
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
@@ -96,9 +90,15 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     # petsc has a python2 configure, maybe later also python3 compatible?
     # python2 config/configure.py  CC=$CC CXX=$CXX FC=$FC --prefix=/home/fwein/tmp/petsc-3.8.3/killme
     # CC, .. shall be mpicc to be verified in mpi.cmake. Unfortunately there is no assert() in cmake :(
-    CONFIGURE_COMMAND python2 ${PETSC_SOURCE}/config/configure.py CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} FC=${CMAKE_Fortran_COMPILER} ${PETSC_DEBUG} --prefix=${PETSC_INSTALL} ${PETSC_BLAS} --with-x=0 --with-c2html=0 --with-valgrind=0 COPTFLAGS='-O3 -march=native -mtune=native' CXXOPTFLAGS='-O3 -march=native -mtune=native' FOPTFLAGS='-O3 -march=native -mtune=native' 
+    #Coudn't avoid copy paste for configure command as the configure command messes up things quotes
+    if(CMAKE_BUILD_TYPE MATCHES "DEBUG")
+     CONFIGURE_COMMAND ${PETSC_SOURCE}/./configure --with-cc=${CMAKE_C_COMPILER} --with-cxx=${CMAKE_CXX_COMPILER} --with-fc=${CMAKE_Fortran_COMPILER} --with-debugging=1 COPTFLAGS=-O3 CXXOPTFLAGS=-O3 FOPTFLAGS=-O3 --prefix=${PETSC_INSTALL} --with-valgrind=0 ${PETSC_BLAS}
+    else()
+     CONFIGURE_COMMAND ${PETSC_SOURCE}/./configure --with-cc=${CMAKE_C_COMPILER} --with-cxx=${CMAKE_CXX_COMPILER} --with-fc=${CMAKE_Fortran_COMPILER} --with-debugging=0 COPTFLAGS=-O3 CXXOPTFLAGS=-O3 FOPTFLAGS=-O3 --prefix=${PETSC_INSTALL} --with-valgrind=0 ${PETSC_BLAS}
+    endif()    
     INSTALL_COMMAND ${CONFIGURE_MAKE_PROGRAM} install
     BUILD_BYPRODUCTS ${PETSC_LIBRARY}
+    
   )
 
   #-------------------------------------------------------------------------------

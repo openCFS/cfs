@@ -1,6 +1,6 @@
 // Define used to check if PHIST eigensolver library is used
 
-#cmakedefine USE_PHIST @USE_PHIST@
+#cmakedefine USE_PHIST_CG @USE_PHIST_CG@
 
 #define PHIST_SOURCE "@PHIST_BB_USER@/@PHIST_BB_PROJECT@"
 #define PHIST_REV "@PHIST_REV@"

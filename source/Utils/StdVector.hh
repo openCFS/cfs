@@ -230,7 +230,7 @@ namespace CoupledField {
     inline bool IsEmpty() const {return (size_? false : true);}
   
     //! Returns capacity of the vector
-    inline unsigned int Capacity() const {return capacity_;}
+    inline unsigned int GetCapacity() const {return capacity_;}
 
     /** Increases the capacity.
      * If the new capacity is smaller than the current one nothing happens.
@@ -296,11 +296,17 @@ namespace CoupledField {
      * Any existing data is overwritten. */
     void Import(const TYPE* source, unsigned int size);
     
-    //! Add element of the same type at the end of the vector
-    inline void Push_back(const TYPE & y = TYPE() ) {
+    /** Add element of the same type at the end of the vector.
+     * If there is not enough capacity (GetCapacity()) the data is copied to a new data of doubled size.
+     * Note that this invalidates all pointers to data entries! If you have such an issue, make sure you Reserve() sufficient
+     * space before Push_back() the first element.
+     * @param no_expand throws an exception if the capacity is too small and data expanding would be necessary */
+    inline void Push_back(const TYPE & y = TYPE(), bool no_expand = false) {
       if ( size_ < capacity_ ) {
         data_[size_++] = y;
       } else {
+        if(no_expand)
+          EXCEPTION("Capacity " << capacity_ << " for Push_back() to small but data expansion not allowed");
         _Push_back_expand(y);
       }
     }

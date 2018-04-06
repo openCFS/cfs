@@ -32,6 +32,16 @@ SET(MD5_SUM ${GHOST_MD5})
 # ghost automatically builds for cuda if it finds it. Add this via CUDA_FOUND to the package name
 find_package(CUDA QUIET)
 
+if(CUDA_FOUND)
+  set(GHOST_CUDA "cuda")
+  set(CUDA_LIBS  "${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcudart.so;${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcublas.so;${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcurand.so;${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusparse.so;" CACHE FILEPATH "cuda libs.")
+  message(STATUS "ghost: cuda found on the system" )
+
+else()
+  set(GHOST_CUDA "no-cuda")
+  message(STATUS "ghost: cuda not found on the system")
+endif()
+
 SET(DLFN "${GHOST_PREFIX}/ghost-download.cmake") 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
@@ -39,13 +49,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DL
 set(PI "${GHOST_PREFIX}/ghost-post_install.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/ghost/ghost-post_install.cmake.in" "${PI}" @ONLY) 
 
-if(CUDA_FOUND)
-  set(GHOST_CUDA "cuda")
-  message(STATUS "ghost: cuda found on the system")
-else()
-  set(GHOST_CUDA "no-cuda")
-  message(STATUS "ghost: cuda not found on the system")
-endif()
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "ghost_${GHOST_CUDA}" "${GHOST_REV}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
