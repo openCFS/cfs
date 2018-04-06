@@ -170,9 +170,7 @@ OPTION(CFS_DEPS_PRECOMPILED
 # Switch on/off usage of custom-built Python
 #-----------------------------------------------------------------------------
 # external anaconda
-OPTION(BUILD_ANACONDA3
-  "build anaconda3 from continuum analytics, not necessary for CFS++ itself"
-  OFF)
+OPTION(BUILD_ANACONDA3 "build anaconda3 from continuum analytics, not necessary for CFS++ itself" OFF)
 
 #-----------------------------------------------------------------------------
 # Switch on/off external libraries and other options for compile
@@ -188,9 +186,7 @@ OPTION(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSI
 OPTION(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
 
 IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  OPTION(USE_ANSYSRST
-    "Use ANSYS .RST format for simulation output."
-    ${USE_ANSYSRST_DEFAULT})
+  OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." ${USE_ANSYSRST_DEFAULT})
 ENDIF()
 
 #-----------------------------------------------------------------------------
@@ -249,23 +245,23 @@ endif(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 # Do we have mpi? There are multiple mpi installations, one should stick with one
 # but we don't build mpi by cfsdeps to allow usage of tuned hpc mpi instances.
 # phist requires ghost, ghost requires hwloc. One can set hwloc also for petsc
-if(USE_PETSC)
-  set(USE_MPI "ON")
+IF(USE_PETSC)
+  SET(USE_MPI "ON")
   INCLUDE("cmake_modules/mpi.cmake")
-else()
-  set(USE_MPI "OFF") 
-endif()
+ELSE()
+  SET(USE_MPI "OFF") 
+ENDIF()
 
 # phist requires ghost
-if(USE_PHIST_EV OR USE_PHIST_CG)
-  set(BUILD_GHOST ON CACHE BOOL "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" FORCE)
-endif()
+IF(USE_PHIST_EV OR USE_PHIST_CG)
+  SET(BUILD_GHOST ON CACHE BOOL "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" FORCE)
+ENDIF()
 
-if(BUILD_GHOST)
-  set(BUILD_HWLOC ON CACHE BOOL "toggled by USE_PHIST and BUILD_GHOST" FORCE)  
-else() 
-  set(BUILD_HWLOC OFF CACHE BOOL "toggled by USE_PHIST and BUILD_GHOST" FORCE)  
-endif()
+IF(BUILD_GHOST)
+  SET(BUILD_HWLOC ON CACHE BOOL "toggled by USE_PHIST and BUILD_GHOST" FORCE)  
+ELSE() 
+  SET(BUILD_HWLOC OFF CACHE BOOL "toggled by USE_PHIST and BUILD_GHOST" FORCE)  
+ENDIF()
 
 # Disables Optimization in CFS++. Optimization is (and shall) still compiled but
 # optimization problems don't run. Furthermore CFS_Optimiztion.xsd will be replaced
