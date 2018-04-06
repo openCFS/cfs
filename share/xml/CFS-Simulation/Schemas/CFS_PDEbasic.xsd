@@ -1402,8 +1402,8 @@
                           </xsd:complexType>
                         </xsd:element>
                       </xsd:sequence>
-                      <xsd:attribute name="coordSysId" type="xsd:token" use="optional"
-                        default="default"/>
+                      <xsd:attribute name="coordSysId" type="xsd:token" use="optional" default="default"/>
+                      <xsd:attribute default="yes" name="normalise" type="DT_CFSBool"/>
                     </xsd:complexType>
                   </xsd:element>
 
