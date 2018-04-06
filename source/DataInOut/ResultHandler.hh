@@ -86,10 +86,10 @@ namespace CoupledField {
 
     //! Update previously registered result
     void UpdateResult( shared_ptr<BaseResult> sol );
-    
+
     //! New update method, which is just called once
     void UpdateResults();
-    
+
     //! Finish single analysis step
     void FinishStep( );
 

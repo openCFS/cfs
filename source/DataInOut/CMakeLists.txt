@@ -32,15 +32,8 @@ ADD_LIBRARY(datainout STATIC ${DATAINOUT_SRCS})
 SET(TARGET_LL
   simouttext
   simoutinfo
-  )
-
-IF(NOT MINGW)
-IF(NOT CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-  LIST(APPEND TARGET_LL
-    simoutstreaming
-    )
-ENDIF()
-ENDIF()
+  simoutstreaming
+)
 
 LIST(APPEND TARGET_LL
   ${BOOST_PROGRAM_OPTIONS_LIB}

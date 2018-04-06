@@ -106,9 +106,9 @@ IF(USE_ARPACK)
   LIST(APPEND TARGET_LL arpack-olas)
 ENDIF(USE_ARPACK)
 
-IF(USE_PHIST)
-  LIST(APPEND TARGET_LL phist-olas)
-ENDIF(USE_PHIST)
+IF(USE_PHIST_EV OR USE_PHIST_CG)
+  LIST(APPEND TARGET_LL ${CUDA_LIBS} ${HWLOC_LIBRARY} )
+ENDIF(USE_PHIST_EV OR USE_PHIST_CG )
 
 LIST(APPEND TARGET_LL lapack-olas)
 
@@ -143,10 +143,9 @@ ENDIF()
 
 # Prevents undefined reference to `pci_system_init', ...
 # required by hwloc. Strange that this is not already necessary for USE_GHOST. 
-if(USE_PHIST)
-  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess -ludev")
+if(USE_PHIST_EV OR USE_PHIST_CG)
+  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess -ludev" )
 endif()
-
 
 
 SET_TARGET_PROPERTIES(cfstoolbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

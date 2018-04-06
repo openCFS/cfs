@@ -29,8 +29,12 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_hwloc.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ghost.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ghost.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_phist.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_phist.hh")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_phist_cg.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_phist_cg.hh")
+  
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_phist_ev.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_phist_ev.hh")
+
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mpi.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_mpi.hh")
