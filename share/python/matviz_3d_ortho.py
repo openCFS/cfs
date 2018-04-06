@@ -85,7 +85,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     holes_max = nondes[1][2]
     assert(len(holes_min) == 3)
     assert(len(holes_max) == 3)
-    design_elems = nondes[2]
+    design_elems = nondes[2][0]
+    design_elems_min = nondes[2][1]
+    design_elems_max = nondes[2][2]
 
   # broadcast all nondes to all ranks
   (nondes_coords,nondes_min,nondes_max) = my_mpi_grid.comm.bcast((nondes_coords,nondes_min,nondes_max),root=0)
@@ -126,14 +128,38 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         y2 = min(max(top[1],min_thresh),max_thresh)
         z1 = min(max(this[2],min_thresh),max_thresh)
         z2 = min(max(front[2],min_thresh),max_thresh)
-             
+
+        li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])        
+        # bounds (voxel coords) of local base cell
+        # xmin,ymin,zmin
+        h = (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
+        left,lower,back = draw_profile_functions.voxel_to_cartesian_coords((li*args.bc_res,lj*args.bc_res,lk*args.bc_res), design_bounds[0:3], h)
+        # xmax,ymax,zmax
+        right,upper,front = draw_profile_functions.voxel_to_cartesian_coords(((li+1)*args.bc_res,(lj+1)*args.bc_res,(lk+1)*args.bc_res), design_bounds[0:3], h)
+        
+        left_lower_back = (left,lower,back)
+        left_upper_back = (left,upper,back)
+        left_lower_front = (left,lower,front)
+        left_upper_front = (left,upper,front)
+        
+        right_lower_back = (right,lower,back)
+        right_upper_back = (right,upper,back)
+        right_lower_front = (right,lower,front)
+        right_upper_front = (right,upper,front)
+        
+        # if base cell corners outside design domain, don't compute
+        if out_of_bounds(left_lower_back, design_bounds) and out_of_bounds(left_upper_back, design_bounds)\
+          and out_of_bounds(left_lower_front, design_bounds) and out_of_bounds(left_upper_front, design_bounds)\
+          and out_of_bounds(right_lower_back, design_bounds) and out_of_bounds(right_upper_back, design_bounds)\
+          and out_of_bounds(right_lower_front, design_bounds) and out_of_bounds(right_upper_front, design_bounds):
+            continue
+        
         flags = None
         bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
         bc_input.eta = 0.7
         bc_input.stiffness_as_diameter = True
         cell_obj = basecell.Basecell(bc_input,id)
         # local i,j,k
-        li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
         print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
         my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
          
@@ -567,5 +593,13 @@ def mpi_taubin_smoothing(mpi_grid,bounds=None):
     iter += 1
     
   print("Taubin smoothing with ", iter, " iterations and res=",res)  
-    
 
+# @param point: list with 3 components
+# @param bounds: list with 6 entries (xmin,ymin,zmin,xmax,ymax,zmax)
+def out_of_bounds(point,bounds):
+  eps = 1e-6
+  if bounds[0]-eps <= point[0] <= bounds[3]+eps and bounds[1]-eps <= point[1] <= bounds[4]+eps and bounds[2]-eps <= point[2] <= bounds[5]+eps:
+    return False
+  else:
+    print("point ",point, " is out of bounds ",design_bounds)
+    return True

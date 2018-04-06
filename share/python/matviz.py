@@ -630,7 +630,7 @@ else:
 #       nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=True)
       if (MPI.COMM_WORLD.Get_rank()==0): 
         nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=False)
-        _, _, _, _, _, _, design_elems = centered_elements(f, args.h5_region,centered=False)
+        _, design_elems_min, design_elems_max, _, _, _, design_elems = centered_elements(f, args.h5_region,centered=False)
     if args.h5_nondes_void != "None":
       if (MPI.COMM_WORLD.Get_rank()==0): 
         nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements = centered_elements(f, args.h5_nondes_void,centered=False)
@@ -643,11 +643,13 @@ if not args.target_volume:
   if args.mesh and (args.h5_nondes != "None" or args.h5_nondes_void != "None"):
     nondes_void = None
     nondes_solid = None
+    design = None
     if (MPI.COMM_WORLD.Get_rank()==0):
       nondes_solid = (nondes_elements, nondes_min, nondes_max)
       nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
 #     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes=(nondes_solid,nondes_void,design_elems),min_bb=min_bb,max_bb=max_bb)
+      design = (design_elems, design_elems_min, design_elems_max)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes=(nondes_solid,nondes_void,design),min_bb=min_bb,max_bb=max_bb)
   else:
     perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb)
 else:
