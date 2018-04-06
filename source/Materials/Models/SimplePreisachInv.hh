@@ -65,7 +65,7 @@ namespace CoupledField {
     //! compute preisach weights;
     void computePreisachWeights();
     
-    void setFlags(UInt performanceFlag, UInt textOutputFlag, UInt mappingFlag){
+    void setFlags(UInt performanceFlag){
       ;
     };
 

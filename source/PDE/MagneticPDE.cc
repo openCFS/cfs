@@ -160,15 +160,13 @@ namespace CoupledField {
         // quantity that is computed (B) although the standard Preisach
         // as well as the VectorPreisach model need H as input
         PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
-        
-        bool performInversionTest = !true;
-        
+
         // please note: 
         //  in magnetics, the hysteresis model is supposed to return the
         //  magnetic polarizaiton J_P = mu*M
         //  (in older versions, the magnetization M was returned!)
         PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
-                magFieldCoef,tensorType,MAG_RELUCTIVITY,mySpace,performInversionTest));
+                magFieldCoef,tensorType,MAG_RELUCTIVITY,mySpace));
         
         hysteresisCoefs_->AddRegion( actRegion, hystPol);
         
@@ -1105,7 +1103,7 @@ namespace CoupledField {
     Double gamma = 1;
     GLMScheme * scheme = new Trapezoidal(gamma);
     
-    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresis_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
     feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
     

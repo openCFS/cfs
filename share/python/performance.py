@@ -215,7 +215,7 @@ def print_timer(timers, brief=False, wall=True, cpu=True, ref=None, threshold=0.
 
 # compare two timers
 # @param eps compares relative error against eps (optional, default 10%) 
-def has_rel_error(timer_ref, timer, eps=0.01, skip_noise=None):
+def has_rel_error(timer_ref, timer, eps=0.1, skip_noise=None):
   assert(len(timer_ref) == len(timer))
 
   total_cpu_ref  = max(timer_ref[0].cpu, 1e-3)
@@ -223,6 +223,9 @@ def has_rel_error(timer_ref, timer, eps=0.01, skip_noise=None):
 
   error = False
   for time_ref, time in zip(timer_ref, timer):
+    if time.label == 'not_measured':
+      continue
+
     if skip_noise and time_ref.cpu < skip_noise and time.cpu < skip_noise:
       continue
 

@@ -154,46 +154,39 @@ Step( const CRS_Matrix<T>&                  matrix,
     if( !(this->IsPrepared()) || force_setup ) {
         if( false == Setup(matrix) )  return;
     }
-    Vector<T> tmp1, tmp3, nSol, exRhs, exSol;
-    Matrix<T> ttmp1, ttmp3;
-    UInt b = 0;
+
+    Vector<T> tmp1, tmp2, nSol, exRhs, exSol;
+    T row = 0.0;
+
+    UInt pS = 0;
     //NOTE: SizeNodes_ is the same as Patches_.GetSize()
     for(UInt n = 0; n < SizeNodes_; ++n){
       StdVector<UInt>& p = Patches_[n];
+      pS = p.GetSize();
+
       //extract rhs and sol
       exRhs = rhs.GetEntries(p);
       exSol = sol.GetEntries(p);
 
       //multiply only columns of Kh with u_sol, which are
       //changed, according to Patches_[n]
-      ttmp1.Resize(p.GetSize(), 1);
-      for(UInt i = 0; i < p.GetSize(); ++i){
-    	  T row = 0.0;
-    	  UInt t = p[i];
-    	  for(UInt r = pRow_[t]; r < pRow_[t + 1]; ++r){
-    	    b = pCol_[r];
-    		  row += pDat_[ r ] * sol[ b ];
-    	  }
-    	  ttmp1[ i ][0] = exRhs[i] - row;
+      tmp1.Resize(pS);
+
+
+      for(UInt i = 0; i < pS; ++i){
+        row = matrix.MultColumnWithVec(p[i], sol);
+        tmp1[i] = exRhs[i] - row;
       }
 
-      ttmp3.Resize(p.GetSize(), 1);
-
-      // Blas is way faster than the hardcoded version because it somehow
-      // uses another complex format. The slow part in the hardcoded version
-      // is the multiplication of two complex scalars, this has something
-      // to do with __muldc3
-      InvExtMat_[n].Mult_Blas(ttmp1, ttmp3, false, false, 1.0, 0.0, false);
-
-      nSol.Resize(p.GetSize(), 0.0);
-      ttmp3.GetCol(tmp3, 0);
-      nSol.Add(1.0, exSol, 1.0, tmp3);
+      tmp2 = InvExtMat_[n] * tmp1;
+      nSol = exSol + tmp2;
 
       //insert it back into sol
-      for(UInt i = 0; i < p.GetSize(); ++i){
+      for(UInt i = 0; i < pS; ++i){
         sol[p[i]] = nSol[i];
       }
     }
+
 }
 
 /**********************************************************/

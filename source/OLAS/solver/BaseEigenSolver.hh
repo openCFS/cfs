@@ -18,6 +18,7 @@ namespace CoupledField {
   
   // forward class declaration
   class SolStrategy;
+  class StdMatrix;
   
   // =========================================================================
   // BASE EIGENVALUE SOLVER
@@ -37,8 +38,8 @@ namespace CoupledField {
     //! - ARPACK
     //! - PHIST
     //! - FEAST
-    static Enum<EigenSolverType> eigenSolverType;    
-    
+    static Enum<EigenSolverType> eigenSolverType;
+
   public:
     
     //! Default Constructor
@@ -56,7 +57,12 @@ namespace CoupledField {
         freqShift_(0.0),
         isQuadratic_(false),
         isBloch_(false),
-        sort_(false)
+        sort_(false),
+        isReal_(true),
+        isSymmetric_(true),
+        isHermitian_(false),
+        a_(NULL),
+        eigenProblemType_(NO_TYPE)
     {
     }
     
@@ -65,12 +71,42 @@ namespace CoupledField {
     }
 
     //! Get type of eigenvalue problem to be solved
-    bool IsQuadratic() const {return isQuadratic_;}
+    bool IsQuadratic() const {return isQuadratic_;}// ToDo: remove due to new structure
 
     /** do we calculate in complex generalized EV mode */
-    bool IsBloch() const { return isBloch_; }
+    bool IsBloch() const { return isBloch_; }// ToDo: remove due to new structure
+
+    bool IsComplex() {return (!isSymmetric_ || !isReal_);} // ToDo: remove due to new structure
 
     //! Setup routine for standard eigenvalue problem
+
+    //! Setup for a standard EVP
+    virtual void Setup(const BaseMatrix & A, bool isHermitian=false) =0;
+    //! Setup for a generalised EVP
+    virtual void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false) =0;
+
+    //! returns if eingevalues will be complex
+    bool HasComplexEigenvalues(){
+        switch (eigenProblemType_){
+            case REAL_SYMMETRIC: return false;
+            case REAL_GENERAL: return true;
+            case COMPLEX_SYMMETRIC: return true;
+            case COMPLEX_HERMITIAN: return false;
+            case COMPLEX_GENERAL: return true;
+            default: EXCEPTION("set the problem type"); return true;
+        }
+    }
+    //! returns if Modes are complex
+    bool HasComplexModes(){
+        switch (eigenProblemType_){
+            case REAL_SYMMETRIC: return false;
+            case REAL_GENERAL: return true;
+            case COMPLEX_SYMMETRIC: return true;
+            case COMPLEX_HERMITIAN: return true;
+            case COMPLEX_GENERAL: return true;
+            default: EXCEPTION("set the problem type"); return true;
+        }
+    }
 
     //! Setup routine for various initialization tasks of a standard
     //! eigenvalue problem.
@@ -79,7 +115,7 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver is used
     //! \param sort
-    virtual void Setup(const BaseMatrix & mat,  UInt numFreq, double freqShift, bool sort) = 0;
+    virtual void Setup(const BaseMatrix & mat,  UInt numFreq, double freqShift, bool sort) = 0;// ToDo: remove due to new structure
     
     //! Setup routine for a generalized eigenvalue problem
     
@@ -92,7 +128,7 @@ namespace CoupledField {
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
     virtual void Setup( const BaseMatrix & stiffMat, const BaseMatrix & massMat,
-                        UInt numFreq, double freqShift, bool sort, bool bloch) = 0;
+                        UInt numFreq, double freqShift, bool sort, bool bloch) = 0;// ToDo: remove due to new structure
     
     //! Setup routine for a quadratic eigenvalue problem
     
@@ -106,13 +142,21 @@ namespace CoupledField {
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
     virtual void Setup( const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
-                        UInt numFreq, double freqShift, bool sort) = 0;
+                        UInt numFreq, double freqShift, bool sort) = 0;// ToDo: remove due to new structure
 
     /** Solve the linear generalized eigenvalue problem.
      *  This method triggers the calculation of the eigenvalue problem.
      * @param sol Vector with converged eigenvalues. The size of sol is the number of converged eigenvalues!
      * @param err Vector with error bound of eigenvalues */
-    virtual void CalcEigenFrequencies( BaseVector &sol, BaseVector &err ) = 0;
+    virtual void CalcEigenFrequencies( BaseVector &sol, BaseVector &err ) = 0;// ToDo: remove due to new structure
+
+    //! compute the eigenvalues in an interval [minVal,maxVal]
+    //! the return type StdVector<T> depends on the problem type
+    virtual void CalcEigenValues( BaseVector &sol, BaseVector &err, Double minVal, Double maxVal ) = 0;
+
+    //! compute N eigenvalues closest to the shift point
+    //! the return type StdVector<T> depends on the problem type
+    virtual void CalcEigenValues( BaseVector &sol, BaseVector &err, UInt N, Double shiftPoint ) = 0;
 
     //! Calculate a particular eigenmode as a postprocessing solution
 
@@ -120,7 +164,7 @@ namespace CoupledField {
     //! It returns a given eigenmode and stores in a use supplied vector.
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eignmode
-    virtual void GetEigenMode( UInt modeNr, Vector<Complex> & mode ) = 0;
+    virtual void GetEigenMode( UInt modeNr, Vector<Complex> & mode, bool right=true ) = 0;
     virtual void GetComplexEigenMode( UInt modeNr, Vector<Complex> & mode ) = 0;
     
     
@@ -133,6 +177,65 @@ namespace CoupledField {
                                       Vector<Double>& evs,
                                       Vector<Double>& err ) = 0;
     
+    void CheckMatrix(bool & isReal, bool & isSymmetric,const BaseMatrix & A ) {
+
+        switch (A.GetStorageType()) {
+        case BaseMatrix::SPARSE_SYM: isSymmetric=true; break;
+        case BaseMatrix::SPARSE_NONSYM: isSymmetric=false; break;
+        default: EXCEPTION("storage type" << A.GetStorageType() << " not handeled");
+        }
+        switch(A.GetEntryType()){
+        case BaseMatrix::DOUBLE: isReal=true; break;
+        case BaseMatrix::COMPLEX: isReal=false; break;
+        default: EXCEPTION("Matrix should be DOUBLE or COMPLEX");
+        }
+
+    }
+
+    //! set the problem type depending on the matrix properties A (real|complex, symmetric|non-symmetric)
+    //! optional: specify if the problem is Hermitian
+    void SetProblemType(const BaseMatrix & A, bool isHermitian=false) {
+        bool isReal, isSymmetric;
+        CheckMatrix(isReal, isSymmetric, A);
+        EigenValueProblemType newType;
+        if (isReal) {
+            if (isSymmetric) {
+                newType = REAL_SYMMETRIC;
+            }
+            else {
+                newType = REAL_GENERAL;
+            }
+            if (isHermitian) {
+                WARN("isHermitian=true does not make sense for a real matrix")
+            }
+        }
+        else {
+            if (isHermitian) {
+                newType = COMPLEX_HERMITIAN;
+                if (!isSymmetric) {
+                    EXCEPTION("non-symmetric matrix storage used for hermitian EVP -> Use symmetric matrix storage")
+                }
+            }
+            else {
+                if (isSymmetric) {
+                    newType = COMPLEX_SYMMETRIC;
+                }
+                else {
+                    newType = COMPLEX_GENERAL;
+                }
+            }
+        }
+        if (eigenProblemType_==NO_TYPE) {// was not set yet so just set it
+            eigenProblemType_=newType;
+        }
+        else { // check if it is consistent
+            if (eigenProblemType_!=newType) {
+                EXCEPTION("cannot change eigen problem type")
+            }
+        }
+    }
+
+
   protected: 
 
     //! Pointer to solution strategy object
@@ -165,19 +268,32 @@ namespace CoupledField {
     PtrParamNode info_;
     
     //! Number of frequencies to be calculated
-    UInt numFreq_;
+    UInt numFreq_;// ToDo: remove due to new structure
     
     //! Value of frequency shift
-    Double freqShift_;
+    Double freqShift_;// ToDo: remove due to new structure
 
     //! Flag indicating if a quadratic eigenvalue problem is solved
-    bool isQuadratic_;
+    bool isQuadratic_;// ToDo: remove due to new structure
 
     //! Flag indication if a complex generalized bloch mode EV problem is solved
-    bool isBloch_;
+    bool isBloch_;// ToDo: remove due to new structure
 
     /** shall we sort the evs` */
-    bool sort_;
+    bool sort_;// ToDo: remove due to new structure
+
+    //! flag to specify if the solution is real
+    bool isReal_;// ToDo: remove due to new structure
+
+    //! flag to specify if all matrices are symmetric
+    bool isSymmetric_;// ToDo: remove due to new structure
+
+    bool isHermitian_;// ToDo: remove due to new structure
+
+    //! the matrix to solve
+    const StdMatrix* a_;
+
+    EigenValueProblemType eigenProblemType_;
   };
   
 }

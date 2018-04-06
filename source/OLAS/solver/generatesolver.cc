@@ -3,7 +3,7 @@
 #include <def_use_suitesparse.hh>
 #include <def_use_superlu.hh>
 #include <def_use_lis.hh>
-#include<def_use_petsc.hh>
+#include <def_use_petsc.hh>
 #include <def_use_phist_cg.hh>
 
 #include "OLAS/algsys/SolStrategy.hh"

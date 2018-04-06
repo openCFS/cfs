@@ -53,7 +53,7 @@ namespace CoupledField {
       return "No runtime information available for Scalar Preisach model";
     };
 
-    void setFlags(UInt performanceFlag, UInt textOutputFlag, UInt mappingFlag){
+    void setFlags(UInt performanceFlag){
       ;
     };
 

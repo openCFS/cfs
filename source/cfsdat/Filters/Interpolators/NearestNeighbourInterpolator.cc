@@ -54,7 +54,8 @@ NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::
   p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
   numNeighbors_ = config->Get("scheme")->Get("numNeighbours")->As<UInt>();
 
-
+  useElemAsTarget_ = false;
+  if(params_->Has("useElemAsTarget")){useElemAsTarget_ = params_->Get("useElemAsTarget")->As<bool>();}
   mCheck_ = false;
 }
 
@@ -63,12 +64,12 @@ NearestNeighbourInterpolator::~NearestNeighbourInterpolator(){
 }
 
 bool NearestNeighbourInterpolator::UpdateResults(std::set<uuids::uuid>& upResults){
-  /// this is the vector, which will be filled with the derivative result
+  /// this is the vector, which will be filled with the result
   Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
-  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
+  Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
 
   // vector, containing the source data values
-  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], aTF);
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
   
   // TODO matrix interpolation here
   Matrix& matrix = matrices_[matrixIndex_];
@@ -391,7 +392,11 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
       CF::Vector<Double> pCoord;
-      trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
+      if(useElemAsTarget_){
+        trgGrid_->GetElemCentroid(pCoord, globEntityNumber,true);
+      } else {
+        trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
+      }
       Point_3 query(pCoord[0],pCoord[1],pCoord[2]);
       Distance tr_dist;
       K_neighbor_search search(tree, query, numNeighbors_);
@@ -472,7 +477,11 @@ void NearestNeighbourInterpolator::AdaptFilterResults(){
   resultManager_->SetRegionNames(filterResIds[0],this->trgRegions_);
   //after this filter we have nodal values on different regions
   //on a different grid
-  resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  if(useElemAsTarget_){
+    resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::ELEMENT);
+  } else {
+    resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  }
   resultManager_->SetGrid(filterResIds[0],this->trgGrid_);
   resultManager_->SetMeshResult(filterResIds[0],true);
 

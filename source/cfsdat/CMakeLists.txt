@@ -33,6 +33,7 @@ SET(CFSDAT_SRCS
   Filters/Interpolators/Node2CellInterpolator.cc
   Filters/Interpolators/L2norm.cc
   Filters/SignalProcessing/FftFilter.cc
+  Filters/SignalProcessing/FIRFilter.cc
   Filters/SignalProcessing/TemporalBlendingFilter.cc
   Filters/SignalProcessing/TimeMeanFilter.cc
   Filters/SynteticSources/BaseSNGR.cc

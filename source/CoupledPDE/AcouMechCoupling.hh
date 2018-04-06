@@ -65,7 +65,7 @@ class BiLinearForm;
                       shared_ptr<BaseFeFunction>& fnc1,
                       shared_ptr<BaseFeFunction>& fnc2,
 					  shared_ptr<BaseNcInterface> ncIf,
-                      const PtrCoefFct& coefFuncs);
+					  const std::map< RegionIdType, PtrCoefFct >& coefFuncs);
 
     //! Subtype of related mechanical PDE
     std::string subType_;

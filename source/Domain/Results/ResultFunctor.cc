@@ -351,12 +351,14 @@ template class EnergyResultFunctor<Double>;
 
 template<class TYPE> ResultFunctorIntegrate<TYPE>::ResultFunctorIntegrate( PtrCoefFct coef,
                         shared_ptr<BaseFeFunction> feFct,
-                        shared_ptr<ResultInfo> inf ) :
+                        shared_ptr<ResultInfo> inf) :
                         ResultFunctor( inf) {
   derivType_ = INTEGRATED;
   coef_ = coef;
   feFct_ = feFct;
+  average_ = false;
 }
+
     
 template<class TYPE> ResultFunctorIntegrate<TYPE>::~ResultFunctorIntegrate() {
   
@@ -380,6 +382,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
   // hande the different cases commonly instead of copy & paste hell!
   TYPE tempValScal = 0.0;
   TYPE elemValScal = 0.0;
+  TYPE elemVolume = 0.0;
   Vector<TYPE> tempValVec;
   Vector<TYPE> elemValVec(numDofs);
   Matrix<TYPE> tempValMat;
@@ -393,7 +396,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
                                               : nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName());
 
     EntityIterator elemIt = actSDList->GetIterator();
-
+    TYPE regionVolume = 0.0;
     // loop over elements
     for (elemIt.Begin(); !elemIt.IsEnd(); elemIt++)
     {
@@ -432,6 +435,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
 
       // Loop over all integration points
       LocPointMapped lpm;
+      elemVolume =0;
       for(UInt i = 0; i < intPoints.GetSize(); i++)
       {
         // Calculate for each integration point the LocPointMapped
@@ -455,6 +459,9 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
           break;
         default:
           assert(false);
+        }
+        if (average_) { // we need to compute the volume
+          elemVolume += lpm.jacDet * weights[i];
         }
       } // loop integration points
 
@@ -494,7 +501,20 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
       default:
         assert(false);
       }
+      regionVolume += elemVolume;
     } // loop elements
+    if (average_) { // divide by total volume
+      switch(coef_->GetDimType())
+      {
+      case CoefFunction::SCALAR:
+        vec[nameIt.GetPos()] /= regionVolume;
+        break;
+      default: // = CoefFunction::VECTOR | CoefFunction::TENSOR
+        for(unsigned jDof = 0; jDof < numDofs; ++jDof )
+          vec[pos+jDof] /= regionVolume;
+        break;
+      }
+    }
     pos+= numDofs;
   } // loop regions
 }
@@ -685,7 +705,7 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
     			dJdrTimesE = dJ_dr * field;
 
     			Vector<Double> JInvTimesdJdr(dim_); JInvTimesdJdr.Init();
-    			JInvTimesdJdr = Jinv * dJdrTimesE;
+    			JInvTimesdJdr = JinvT * dJdrTimesE;
 
     			Force(nNode,idim) -=  ( field.Inner(JInvTimesdJdr)*Jdet
     					              - 0.5 *  field2 * DetdJ_dr ) * weights[i];

@@ -3652,41 +3652,43 @@ namespace CoupledField {
       else if ( subType_ == "planeStress" )
         tensorType = PLANE_STRESS;
 
+      //get correct scaling of penalty term
+      Double matVal = 0.0;
+      StdVector<Vector<Double> > points(1);
+      Vector<Double> p1(DIM);
+      p1.Init();
+      points[0]= p1;
 
-      if ( isComplex_ ) {
+      if ( isMaterialComplex_ ) {
         coefMech = materials_[nitscheIf->GetMasterVolRegion()]
           ->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::COMPLEX);
-        EXCEPTION("Nitsche for Mechanical PDE currently not working!!")
+
+        StdVector< Matrix<Complex> > mat;
+        coefMech->GetTensorValuesAtCoords(points, mat, this->ptGrid_);
+
+        for (UInt i = 0, numRows = mat[0].GetNumRows(); i < numRows; ++i) {
+          matVal += mat[0][i][i].real();
+        }
+
+        matVal /= (Double) mat[0].GetNumRows();
       }
       else {
         coefMech = materials_[nitscheIf->GetMasterVolRegion()]
           ->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::REAL);
 
-        //get correct scaling of penalty term
-        StdVector<Vector<Double> > points(1);
-        Vector<Double> p1(DIM);
-        p1.Init();
-        points[0]= p1;
-        StdVector<Matrix<Double> > mats;
-        coefMech->GetTensorValuesAtCoords(points,mats,this->ptGrid_);
-        //std::cout << "matTensor\n: " << mats[0] << std::endl;
+        StdVector< Matrix<Double> > mat;
+        coefMech->GetTensorValuesAtCoords(points, mat, this->ptGrid_);
 
-        Double matVal = 0.0;
-        for (UInt i=0; i<mats[0].GetNumRows(); i++)
-          matVal += mats[0][i][i];
+        for (UInt i = 0, numRows = mat[0].GetNumRows(); i < numRows; ++i) {
+          matVal += mat[0][i][i];
+        }
 
-        matVal /= (Double)mats[0].GetNumRows();
-        //std::cout << "matVal: " << matVal << std::endl;
-
-        //scale the penalty value
-        beta *= matVal;
+        matVal /= (Double) mat[0].GetNumRows();
       }
-    }
 
-//    Who wrote this????? It is tested!!
-//    if ( analysistype_ == HARMONIC ) {
-//      WARN("HARMONIC CASE NOT TESTET FOR ACOUSTIC NMG");
-//    }
+      //scale the penalty value
+      beta *= matVal;
+    }
 
     curcpl = BiLinearForm::MASTER_MASTER;
 

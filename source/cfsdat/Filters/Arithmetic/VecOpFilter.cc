@@ -47,10 +47,10 @@ GenericVecOpFilter<Operator>::GenericVecOpFilter(UInt numWorkers, CF::PtrParamNo
 template<class Operator>
 bool GenericVecOpFilter<Operator>::UpdateResults(std::set<uuids::uuid>& upResults) {
   Vector<Double>& returnVec = GetOwnResultVector<Double>(outId);
-  Double aTF = resultManager_->GetStepValue(outId);
+  Integer stepIndex = resultManager_->GetStepIndex(outId);
 
-  Vector<Double>& res1V = GetUpstreamResultVector<Double>(res1Id, aTF);
-  Vector<Double>& res2V = GetUpstreamResultVector<Double>(res2Id, aTF);
+  Vector<Double>& res1V = GetUpstreamResultVector<Double>(res1Id, stepIndex);
+  Vector<Double>& res2V = GetUpstreamResultVector<Double>(res2Id, stepIndex);
   
   const UInt last = returnVec.GetSize();
   #pragma omp parallel for num_threads(CFS_NUM_THREADS)

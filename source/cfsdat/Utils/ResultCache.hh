@@ -20,14 +20,14 @@
 #include "cfsdat/Utils/Defines.hh"
 #include "EqnNumberingSimple.hh"
 
+#include <limits>
 
 namespace CFSDat{
 
 struct GenericResultAdapter{
 
   GenericResultAdapter(){
-    stepValue = 0;
-    stepNumber = 1;
+    stepIndex = std::numeric_limits<UInt>::max();
     isUpToDate = false;
   }
 
@@ -42,9 +42,7 @@ struct GenericResultAdapter{
   //! result struct for export, one result for each entity list/region
   //CF::StdVector< str1::shared_ptr<CF::BaseResult> > baseResultVector;
 
-  Double stepValue;
-
-  UInt stepNumber;
+  UInt stepIndex;
 
   bool isUpToDate;
 };
@@ -80,9 +78,9 @@ public:
 
   virtual ~GenericResultCache();
 
-  void SetStepValue(Double stepValue);
+  void SetStepIndex(UInt stepIndex);
 
-  Double GetStepValue();
+  UInt GetStepIndex();
 
   void SetVectorSize(UInt vectorSize);
 

@@ -545,6 +545,9 @@ namespace CoupledField {
     void Mult_type(const Vector<Complex> &mvec, Vector<Complex> &rvec);
     void MultAdd_type( const Vector<Complex> &mvec, Vector<Complex> &rvec );
 
+    //! Multiplication of row i with vector vec
+    T MultColumnWithVec(const UInt & r, const Vector<T>& vec) const;
+
     //@}
 
 

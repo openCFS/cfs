@@ -1817,11 +1817,14 @@ namespace CoupledField
     
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 
-    if( analysisType_ == BasePDE::TRANSIENT
-        || analysisType_ == BasePDE::STATIC
-        || analysisType_ == BasePDE::EIGENFREQUENCY) {
-      algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
-
+    if( analysisType_ == BasePDE::TRANSIENT || analysisType_ == BasePDE::STATIC || analysisType_ == BasePDE::EIGENFREQUENCY) {
+      if ( (analysisType_ == BasePDE::EIGENFREQUENCY) && (algsys_->IsMatrixComplex()) ) {
+        // we have an eigenvalue problem with complex system matrices (e.g. mechanics with complex stiffness tensor)
+        Matrix2Harmonic( harmMat, elemMat, STIFFNESS, context.GetEntryType(), 1.0 ); // elemMat -> harmMat with omega=1 and STIFFNESS will convert REAL->COMPLEX
+        algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
+      } else {
+        algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
+      }
     } else {
       assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE);
 
