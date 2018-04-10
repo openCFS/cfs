@@ -13,6 +13,8 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionGridNodalSource.cc
   CoefFunctionGridNodalDefault.cc
   CoefFunctionGridNodalInterp.cc
+  CoefFunctionGridElement.cc
+  CoefFunctionGridElementDefault.cc
   CoefFunctionMeanFlowConvection.cc
   CoefFunctionImpedanceModel.cc
   CoefFunctionMulti.cc
