@@ -74,7 +74,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   nondes_coords = None
   holes = None
   design_elems = None
-  if nondes[0] and nondes[1]: # assume holes are within bounding box of solid non-design and design domain
+  if nondes and nondes[0] and nondes[1]: # assume holes are within bounding box of solid non-design and design domain
     nondes_coords = nondes[0][0]
     nondes_min = nondes[0][1]
     nondes_max = nondes[0][2]
@@ -166,32 +166,33 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         local_id += 1
     
   eps = 1e-6
-  
-  hx = (my_mpi_grid.bounds[3]-my_mpi_grid.bounds[0])/my_mpi_grid.grid.nx
-  hy = (my_mpi_grid.bounds[4]-my_mpi_grid.bounds[1])/my_mpi_grid.grid.ny
-  hz = (my_mpi_grid.bounds[5]-my_mpi_grid.bounds[2])/my_mpi_grid.grid.nz
-  #x = np.arange(my_mpi_grid.bounds[0],my_mpi_grid.bounds[3]+hx-eps,hx)
-  #y = np.arange(my_mpi_grid.bounds[1],my_mpi_grid.bounds[4]+hy-eps,hy)
-  #z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+hz-eps,hz)
-  
-  tmp = np.zeros_like(my_mpi_grid.grid.data,dtype=bool)
-  draw_non_design(design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
-  my_mpi_grid.grid.data *= tmp
-  
-  design_elems = None
-  draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
-  draw_non_design(holes, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
-#   x = np.arange(0,my_mpi_grid.grid.data.shape[0]+1,1)
-#   y = np.arange(0,my_mpi_grid.grid.data.shape[1]+1,1)
-#   z = np.arange(0,my_mpi_grid.grid.data.shape[2]+1,1)
-#   from pyevtk.hl import gridToVTK
-#   gridToVTK("voxels"+str(my_mpi_grid.rank),x,y,z,cellData={"voxels":my_mpi_grid.grid.data.astype(int)})
 
-  nondes_coords = None
-  holes = None
-  
-  borders = my_mpi_grid.communicate_edges()
+  if nondes:  
+    hx = (my_mpi_grid.bounds[3]-my_mpi_grid.bounds[0])/my_mpi_grid.grid.nx
+    hy = (my_mpi_grid.bounds[4]-my_mpi_grid.bounds[1])/my_mpi_grid.grid.ny
+    hz = (my_mpi_grid.bounds[5]-my_mpi_grid.bounds[2])/my_mpi_grid.grid.nz
+    #x = np.arange(my_mpi_grid.bounds[0],my_mpi_grid.bounds[3]+hx-eps,hx)
+    #y = np.arange(my_mpi_grid.bounds[1],my_mpi_grid.bounds[4]+hy-eps,hy)
+    #z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+hz-eps,hz)
     
+    tmp = np.zeros_like(my_mpi_grid.grid.data,dtype=bool)
+    draw_non_design(design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
+    my_mpi_grid.grid.data *= tmp
+    
+    design_elems = None
+    draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
+    draw_non_design(holes, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
+  #   x = np.arange(0,my_mpi_grid.grid.data.shape[0]+1,1)
+  #   y = np.arange(0,my_mpi_grid.grid.data.shape[1]+1,1)
+  #   z = np.arange(0,my_mpi_grid.grid.data.shape[2]+1,1)
+  #   from pyevtk.hl import gridToVTK
+  #   gridToVTK("voxels"+str(my_mpi_grid.rank),x,y,z,cellData={"voxels":my_mpi_grid.grid.data.astype(int)})
+  
+    nondes_coords = None
+    holes = None
+    
+  borders = my_mpi_grid.communicate_edges()
+      
   # binary helper array
   shape = np.asarray(my_mpi_grid.grid.data.shape[0:3]) + np.array((2,2,2))
   helper = np.zeros(shape,dtype=bool)
@@ -209,7 +210,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
       assert(b[0] < my_mpi_grid.rank)
       assert(b[1] is not None)
       helper[0,1:shape[1]-1,1:shape[2]-1] = b[1]
-
+  
   print("hx,hy,hz:",my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
   hx = my_mpi_grid.grid.hx
   hy = my_mpi_grid.grid.hy

@@ -40,21 +40,19 @@ def getConnectivity(points,cells):
 
 def taubin_smoothing(points,connectivity,bounds=None,niter=0,lamb = None):
   # smoothing parameter: p_i = p_i + lambda*L(p_{i,j})
-  if lamb is None:
-    lamb = 0.2
   assert(lamb is not None)  
   new_points = points
-#   old_points = new_points
+  old_points = new_points
   i = 0
-  res = 1e-6
+  res = 0
   while res > 1e-2 or i < niter:
-    print("iter:",i)
-    #old_points = np.copy(new_points)
+    print("iter:",i, "res:",res)
     new_points = laplacian_smoothing(laplacian_smoothing(new_points,connectivity,lamb,bounds=bounds),connectivity,-lamb-0.04,bounds=bounds)
-    #res = residual(old_points, new_points)
+    res = residual(old_points, new_points)
+    old_points = np.copy(new_points)
     i += 1
   
-  #print("Taubin smoothing with ", i, " iterations and res=",res)  
+#   print("Taubin smoothing with ", i, " iterations and res=",res, " niter:",niter)  
   print("Taubin smoothing with ", i, " iterations")
     
   return new_points
@@ -209,6 +207,7 @@ if __name__ == "__main__":
   parser.add_argument('--stiffness_as_diameter',help="interprete values for x1, x2, y1, ... directly as radii", action='store_true',default=False,required=False)
   parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
   parser.add_argument('--smooth_iter', help="number of steps for Taubin's surface smoothing",type=int, default=30)
+  parser.add_argument('--smooth_lambda', help="smoothing factor(between 0 and 1), default=0.4",type=float, default=0.4)
   
   
   args = parser.parse_args()
@@ -345,9 +344,16 @@ if __name__ == "__main__":
   array, points, cells = draw_profile_functions.generate_basecell(args,infoXml)
   volume = calc_volume(array, args.multiple_regions, infoXml)
   
+#   x = np.arange(0,array.shape[0]+1,1)
+#   y = np.arange(0,array.data.shape[1]+1,1)
+#   z = np.arange(0,array.data.shape[2]+1,1)
+#   from pyevtk.hl import gridToVTK
+#   gridToVTK("array",x,y,z,cellData={"voxels":array.astype(int)})
+  
   if args.target == "surface_mesh":
     connectivity = getConnectivity(points,cells)
-    points = taubin_smoothing(points,connectivity) 
+    print("smoothing with niter:",args.smooth_iter," and lambda=",args.smooth_lambda)
+    points = taubin_smoothing(points,connectivity,bounds=[0,0,0,1,1,1],niter=args.smooth_iter,lamb=float(args.smooth_lambda)) 
   
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)
