@@ -46,6 +46,7 @@ class BiLinearForm : public CfsCopyable{
         isSymmetric_ = false;
         isNewtonBilinearForm_ = false;
         isSymmetric_ = false;
+        isSolDependent_ = false;
       }
 
       /** This assignment operator is only! designed for use for OMP
@@ -66,11 +67,12 @@ class BiLinearForm : public CfsCopyable{
 
         this->name_ = right.name_;
 
-        // we just cpoy the feSpace pointers and need to make sure
+        // we just copy the feSpace pointers and need to make sure
         // not to alter their state...
         this->ptFeSpace1_ = right.ptFeSpace1_;
         this->ptFeSpace2_ = right.ptFeSpace2_;
         this->intScheme_ = right.intScheme_;
+        this->isSolDependent_ = false;
       }
 
       /** Create a deep copy of the current objects pointer in combination
@@ -150,6 +152,10 @@ class BiLinearForm : public CfsCopyable{
       virtual void SetSolDependent(bool depend) {
     	  isSolDependent_ = depend;
       }
+
+      IntScheme* GetIntScheme() { return intScheme_.get(); }
+
+      FeSpace* GetFeSpace1() { return ptFeSpace1_.get(); }
 
     protected:
 

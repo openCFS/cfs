@@ -70,7 +70,7 @@ namespace CoupledField{
       this->ptFeSpace2_ = feSpace2;
       this->intScheme_ = ptFeSpace1_->GetIntScheme();
     }
-    
+
   protected:
 
     //! Number of unknowns 

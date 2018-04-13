@@ -1482,6 +1482,7 @@
                 <xsd:enumeration value="heat"/>
                 <xsd:enumeration value="acoustic"/>
                 <xsd:enumeration value="lbm"/>
+                <xsd:enumeration value="magnetic"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>               
@@ -1593,6 +1594,7 @@
           <xsd:enumeration value="stress"/>
           <xsd:enumeration value="lbm"/>
           <xsd:enumeration value="heat"/>
+          <xsd:enumeration value="magnetic"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

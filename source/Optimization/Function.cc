@@ -90,6 +90,10 @@ Function::Function(PtrParamNode pn) {
 
   slackFnct_ = slackFnct.Parse(pn->Get("function")->As<string>());
 
+  // default is set in Function, may this moves later to Function, too
+  if(pn->Has("region") && pn->Get("region")->As<string>() != "all")
+    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
+
   if(type_ == SLACK_FNCT && slackFnct_ == NO_FUNCTION)
     EXCEPTION("a function 'slackFunction' requires the attribute 'function' to be set");
 
@@ -351,6 +355,9 @@ void Function::ToInfo(PtrParamNode info) {
 
   info->Get("filtered")->SetValue(ForDensityFiltering() || ForSensitivityFiltering());
 
+  if(region != ALL_REGIONS)
+    info->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
+
   if(local != NULL)
     local->ToInfo(info_);
 }
@@ -451,6 +458,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case SHAPE_INF:
   case PRESSURE_DROP:
   case HEAT_ENEGRY:
+  case MAG_FLUX_DENS_Y:
+  case MAG_FLUX_DENS_X:
   case TEMP_TRACKING_AT_INTERFACE:
   case MULTIMATERIAL_SUM:
   case SLACK:
@@ -733,6 +742,8 @@ bool Function::ForSensitivityFiltering() const {
   case STRESS_DENSITY:
   case PRESSURE_DROP:
   case HEAT_ENEGRY:
+  case MAG_FLUX_DENS_Y:
+  case MAG_FLUX_DENS_X:
   case EIGENFREQUENCY:
   case BANDGAP:
   case FILTERING_GAP:

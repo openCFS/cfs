@@ -74,13 +74,14 @@ namespace CoupledField{
     // Obtain FE element from feSpace and integration scheme
     IntegOrder order;
     IntScheme::IntegMethod method;
-    BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, method, order );
+    BaseFE* ptFe = ptFeSpace1_->GetFe(ent1, method, order );
 
     const UInt nrFncs = ptFe->GetNumFncs();
 
+
+
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
-
     // Get integration points
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
@@ -134,6 +135,7 @@ namespace CoupledField{
 #endif
 
       // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " elemMat=" << elemMat.ToString(2);
+      LOG_DBG3(bdbint) << "CEM dMat_" << dMat_.ToString(2) << " bMat_=" << bMat_.ToString(2) << " dbMat_=" << dbMat_.ToString(2) << "elemMat=" << elemMat.ToString(2);
     }
 
     // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " dbMat=" << dbMat_.ToString();

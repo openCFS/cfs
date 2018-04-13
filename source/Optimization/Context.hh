@@ -24,7 +24,7 @@ struct App
   /** The App::Type type identifies the PDE to use.
    *  A subset of the values are PDE identifiers for Context::ToPDE() and Context::ToApp().
    * The heat and acoustic transfer functions are Laplace! */
-  typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, NO_APP} Type;
+  typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, MAG, NO_APP} Type;
 };
 
 

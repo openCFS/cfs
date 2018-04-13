@@ -87,6 +87,14 @@ void LocalElementCache::InitShadow(DesignSpace::DesignRegion* dr)
     Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, mt));
     break;
   }
+  case OptimizationMaterial::MAG:
+  {
+    mc = ELECTROMAGNETIC;
+    mt = MAG_RELUCTIVITY;
+    Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, mt));
+    break;
+  }
+
   case OptimizationMaterial::PIEZOCOUPLING:
   case OptimizationMaterial::ACOUSTIC:
   case OptimizationMaterial::ELEC:

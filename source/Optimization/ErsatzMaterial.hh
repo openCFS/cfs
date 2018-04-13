@@ -224,6 +224,7 @@ protected:
    * @return invalid in derivative case*/
   virtual double CalcVolume(Objective* f, Condition* g, bool derivative,
       bool normalized = true);
+
   /** Handles the Compliance constraint/objective. Has a objective, objective derivative,
    * constraint and constraint derivative mode
    * @param excite for multiple excitations, defines which solution and rhs to use
@@ -235,10 +236,18 @@ protected:
    * @return invalid in derivative case*/
   virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* g,
       bool derivative);
+
   /** Calculates the objective only, no derivative */
   double CalcGlobalDynamicCompliance(Excitation& excite, Function* f);
+
   /** Calculates heat energy as an equivalence to compliance in lin elasticity */
   virtual double CalcHeatEnergy(Excitation& excite, Objective* f, Condition* g, bool derivative);
+
+  /** calc magnetic flux density as 1/N * sum<J,B*A> where B is the BOp from the BDBInt (here the curl operator) and A is the
+   * element solution vector (scalar) and J is either [1,0] or [0,1] to select the horizontal or vertical part and N averages over
+   * the sum of the N elements of f->region. The scalar product is evaluates over the integration points */
+  double CalcMagFluxDensity(Excitation& excite, Function* f, bool derivative);
+
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
   template<class T>
   double CalcOutput(Excitation& excite, Function* f);
@@ -266,6 +275,9 @@ protected:
    * K*l^T = -2 * F' * (u - u_track)
    */
   virtual void CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out);
+
+  /** magnetic flux density */
+  void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
 
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/

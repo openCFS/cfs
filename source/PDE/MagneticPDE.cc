@@ -28,6 +28,7 @@
 #include "Materials/Models/Preisach.hh"
 //#include "Materials/Models/VectorPreisach.hh"
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -325,6 +326,8 @@ namespace CoupledField {
 			  // ====================================================================
 			  shared_ptr<CoefFunction > curCoef;
         
+			  CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
+
         if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
           /* for both the delta material method as well as the std fixpoint method we have to know
            * which regions are affected by hysteresis
@@ -346,6 +349,11 @@ namespace CoupledField {
 				  curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType, Global::REAL );
 				  // for postprocessing
 				  PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL);
+			      if(domain->HasDesign())
+			      {
+			        cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
+			        curCoef.reset(cfo);
+			      }
 				  matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
 			  }
         
@@ -365,13 +373,16 @@ namespace CoupledField {
 			  }
 			  stiffInt->SetName("CurlCurlIntegrator");
 			  stiffInt->SetFeSpace( mySpace);
-			  BiLinFormContext * stiffIntDescr =
-                new BiLinFormContext(stiffInt, STIFFNESS );
+			  BiLinFormContext* stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
 			  stiffIntDescr->SetEntities( actSDList, actSDList );
 			  stiffIntDescr->SetFeFunctions( myFct, myFct );
         
 			  assemble_->AddBiLinearForm( stiffIntDescr );
         
+			  // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+        if(cfo)
+          cfo->SetForm(stiffInt);
+
 			  // Important: Add bdb-integrator to global list, as we need them later
 			  // for calculation of postprocessing results
 			  bdbInts_[actRegion] = stiffInt;
@@ -1811,6 +1822,28 @@ namespace CoupledField {
     jld->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
     DefineFieldResult( jldCoef, jld );
+
+
+    // optimization results are provided in DesignSpace::ExtractResults()
+    // copied from MechPDE
+    // === MECH_PSEUDO_DENISTY ===
+    shared_ptr<ResultInfo> mpd(new ResultInfo);
+    mpd->resultType = MECH_PSEUDO_DENSITY;
+    mpd->entryType = ResultInfo::SCALAR;
+    mpd->definedOn = ResultInfo::ELEMENT;
+    mpd->dofNames = "";
+    mpd->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mpd); // the fe-function is only a dummy
+
+    // === PHYSICAL_PSEUDO_DENISTY ===
+    shared_ptr<ResultInfo> ppd(new ResultInfo);
+    ppd->resultType = PHYSICAL_PSEUDO_DENSITY;
+    ppd->entryType = ResultInfo::SCALAR;
+    ppd->definedOn = ResultInfo::ELEMENT;
+    ppd->dofNames = "";
+    ppd->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
+
   }
   
   void MagneticPDE::FinalizePostProcResults() {

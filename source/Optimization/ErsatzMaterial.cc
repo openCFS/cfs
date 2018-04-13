@@ -25,6 +25,8 @@
 #include "FeBasis/FeSpace.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Forms/BiLinForms/BDBInt.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
@@ -65,6 +67,7 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Utils/tools.hh"
 #include "Utils/Timer.hh"
+#include "Domain/Mesh/Grid.hh"
 
 namespace CoupledField {
 class BaseMaterial;
@@ -1334,6 +1337,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       result = CalcHeatEnergy(excite, c, g, derivative);
       break;
 
+      case Function::MAG_FLUX_DENS_Y:
+      case Function::MAG_FLUX_DENS_X:
+      result = CalcMagFluxDensity(excite, f, derivative);
+      break;
+
       case Function::ELEC_ENERGY:
         assert(false);// shall be handled before
         break;
@@ -1812,6 +1820,91 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     }
     return res;
   }
+
+  double ErsatzMaterial::CalcMagFluxDensity(Excitation& excite, Function* f, bool derivative)
+  {
+    if(f->region == ALL_REGIONS)
+      throw Exception("For function " + f->ToString() + " the attribute 'region' is mandatory");
+
+    // get elements
+    StdVector<Elem*> elems;
+
+    domain->GetGrid()->GetElems(elems, f->region);
+    assert(!elems.IsEmpty());
+    // annoying entity iterator got hold the elem
+    ElemList el(elems[0],domain->GetGrid());
+
+    // the stored element solution vector
+    StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
+
+    double result = 0.0;
+
+    Matrix<double> b_mat; // this holds the curl-operator for the whole element. for 2D rect it shall be 2 rows, 4 columns
+
+    Vector<double> mag_flux_density;
+
+    for(unsigned int e = 0; e < elems.GetSize(); e++)
+    {
+      Elem* elem = elems[e];
+      el.SetElement(elem);
+
+      assert(sol.GetSize() > elem->elemNum);
+      Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
+      assert(vec != NULL);
+      Vector<double>& a = *vec;
+      assert(!(domain->GetGrid()->IsRegionRegular(f->region) && a.GetSize() != 4)); // for regular 2D grid!!!
+      LOG_DBG2(em) << "CMDF: i=" << e << " e=" << elem->elemNum << " -> " << a.ToString();
+
+      // we need a lot of similar stuff as in BDBInt::CalcElementMatrix().
+      // get the form first
+      BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator();
+      BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
+      assert(bdb != NULL);
+      // get B-mat
+      StdVector<LocPoint> intPoints; // Get integration Points
+      LocPointMapped lp;
+      StdVector<double> weights;
+      IntegOrder order;
+      IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+      BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
+      form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type), method, order, intPoints, weights );
+      LOG_DBG2(em) << "CMFD i=" << e << " e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
+      assert(method != IntScheme::UNDEFINED);
+      assert(!intPoints.IsEmpty());
+
+      // Get shape map from grid
+      shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
+
+      // Loop over all integration points
+      for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
+      {
+        // Calculate for each integration point the LocPointMapped
+
+        lp.Set( intPoints[ip], esm, weights[ip] );
+
+        // Call the CalcBMat()-method
+        bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
+        assert(b_mat.GetNumCols() == a.GetSize());
+        assert(b_mat.GetNumRows() == domain->GetGrid()->GetDim());
+
+        b_mat *= weights[ip];
+        Vector<double> res;
+        b_mat.Mult(a, res);
+        mag_flux_density += res;
+
+        LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " mfd=" << mag_flux_density.ToString() << " b_mat=" << b_mat.ToString(0, false);
+      }
+    } // end loop elems
+
+    // normalize mfd
+    mag_flux_density /= elems.GetSize();
+
+    assert(f->GetType() == Function::MAG_FLUX_DENS_X || f->GetType() == Function::MAG_FLUX_DENS_Y);
+    return f->GetType() == Function::MAG_FLUX_DENS_X ? mag_flux_density[0] : mag_flux_density[1];
+
+    return result;
+  }
+
 
   template<class T>
   double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
@@ -2441,7 +2534,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
     // tempAtInterface(node) = load(node) * temp(node), here load is normed to 1
     NodeList nodeList(domain->GetGrid());
-    StdVector<UInt> nodeId(1);
+    StdVector<unsigned int> nodeId(1);
     nodeId[0] = node;
     nodeList.SetNodes(nodeId);
 
@@ -2462,15 +2555,95 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   void ErsatzMaterial::CalcAdjointRHSStateTracking(Excitation& excite, Function* f, double trackVal, Vector<double>& out)
   {
-    Vector<double> stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+    const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
     out.Resize(stateSol.GetSize(),0.0);
 
-    Vector<double> loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
+    const Vector<double>& loads = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
     double factor = 0.0;
     f->ctxt->pde->GetParamNode()->GetValue("bcsAndLoads/designDependentHeatSource/value",factor);
 
     for (unsigned int i = 0; i < stateSol.GetSize(); i++)
       out[i] = - 2.0 * loads[i] * (stateSol[i] - trackVal) * design->data.GetSize() / factor;
+  }
+
+  void ErsatzMaterial::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
+  {
+    // J = 1/N * sum<J,B*A> = sum (J^T(B*A)), see CalcMagFluxDensity() where J=[1,0] or [0,1]
+    // B = 2 rows, 4 columns, A = 4 rows, 1 column, J = 2 row, 1 col
+    // d(<J,B*A>)/dA = d((B*A)^T J)/dA = B^T J -> 4 rows, 1 col
+    // do this for all elements A and add with factor 1/N to rhs
+    // B^T J is either the first or second row of the 2x4 B matrix
+    assert(out.GetSize() == 0); // if not, we can skip resizing
+    const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+    out.Resize(stateSol.GetSize(),0.0);
+
+    // loop over all elements in region f->region
+    // get B and set it to the nodal positions via eqnMap from element nodes
+
+    // ugly copy and paste from CalcMagFluxDensity()
+    StdVector<Elem*> elems;
+    domain->GetGrid()->GetElems(elems, f->region);
+    // annoying entity iterator got hold the elem
+    ElemList el(elems[0],domain->GetGrid());
+
+    Matrix<double> b_mat; // this holds the curl-operator for the whole element. for 2D rect it shall be 2 rows, 4 columns
+    BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator();
+
+    // this gets the equation numbers for the element
+    StdVector<int> eqns;
+
+    // select first or second row of b_mat
+    assert(f->GetType() == Function::MAG_FLUX_DENS_X || f->GetType() == Function::MAG_FLUX_DENS_Y);
+    bool x_comp = f->GetType() == Function::MAG_FLUX_DENS_X;
+
+    for(unsigned int e = 0; e < elems.GetSize(); e++)
+    {
+      Elem* elem = elems[e];
+      el.SetElement(elem);
+
+      // we need a lot of similar stuff as in BDBInt::CalcElementMatrix().
+      // get the form first
+      BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
+      assert(bdb != NULL);
+      // get B-mat
+      StdVector<LocPoint> intPoints; // Get integration Points
+      LocPointMapped lp;
+      StdVector<double> weights;
+      IntegOrder order;
+      IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+      BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
+      form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type), method, order, intPoints, weights );
+      LOG_DBG2(em) << "CMFD i=" << e << " e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
+      assert(method != IntScheme::UNDEFINED);
+      assert(!intPoints.IsEmpty());
+
+      // Get shape map from grid
+      shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
+
+      // Loop over all integration points
+      for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
+      {
+        // Calculate for each integration point the LocPointMapped
+
+        lp.Set( intPoints[ip], esm, weights[ip] );
+
+        // Call the CalcBMat()-method
+        bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
+        LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " b_mat=" << b_mat.ToString(0, false);
+
+        // traverse nodes
+        form->GetFeSpace1()->GetElemEqns(eqn, elem);
+        assert(eqn.GetSize() == elem->connect.GetSize());
+        assert(b_mat.GetNumCols() == elem->connect.GetSize());
+        for(unsigned int n = 0; n < eqn.GetSize(); n++)
+          out[eqn[n]] += 1.0/elems.GetSize() * weights[ip] * b_mat[x_comp ? 0 : 1][n];
+      }
+    } // end loop elems
+
+  }
+
+
+
   }
 
 
@@ -3627,13 +3800,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         break;
       }
       case Function::TEMP_TRACKING_AT_INTERFACE:
-      {
         CalcAdjointRHSStateTracking(excite, f, f->GetParameter(), rhs);
         break;
-      }
+
+      case Function::MAG_FLUX_DENS_Y:
+      case Function::MAG_FLUX_DENS_X:
+        CalcMagFluxAdjRHS(excite, f, rhs);
+        break;
+
       default:
-      assert(false);
-      break;
+        assert(false);
+        break;
     }
 
     shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType());

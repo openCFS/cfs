@@ -255,9 +255,8 @@ int CFS::Run()
 
     if(progOpts->GetPrintGrid())
       PrintGrid();
-    else{
-        SolveProblem();
-    }
+    else
+      SolveProblem();
 
     // wait for all drivers to be initialized before printing the math parser variables
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);

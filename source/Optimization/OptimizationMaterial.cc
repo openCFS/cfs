@@ -78,6 +78,9 @@ OptimizationMaterial* OptimizationMaterial::CreateInstance(System sys, ErsatzMat
   case HEAT:
     return new HeatMat(em, ctxt);
 
+  case MAG:
+    return new MagMat(em, ctxt);
+
   case ACOUSTIC:
     return new AcouMat(em, ctxt);
 
@@ -451,6 +454,16 @@ HeatMat::HeatMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, c
   stiff_.integrator = "HeatConductivity";
   stiff_.mc = THERMIC;
   stiff_.mt = HEAT_CONDUCTIVITY;
+  // mass does not apply yet
+}
+
+MagMat::MagMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
+{
+  system_ = MAG;
+
+  stiff_.integrator = "CurlCurlIntegrator";
+  stiff_.mc = ELECTROMAGNETIC;
+  stiff_.mt = MAG_RELUCTIVITY;
   // mass does not apply yet
 }
 

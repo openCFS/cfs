@@ -394,6 +394,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
   Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
+  Function::type.Add(Function::MAG_FLUX_DENS_X, "magFluxDensX");
+  Function::type.Add(Function::MAG_FLUX_DENS_Y,"magFluxDensY");
 
   Function::slackFnct.SetName("Function::SlackFnct");
   Function::slackFnct.Add(Function::NO_FUNCTION, "no_function");
@@ -483,6 +485,7 @@ void Optimization::SetEnums()
   OptimizationMaterial::system.Add(OptimizationMaterial::PIEZOCOUPLING, "piezo");
   OptimizationMaterial::system.Add(OptimizationMaterial::MECH, "mechanic");
   OptimizationMaterial::system.Add(OptimizationMaterial::HEAT, "heat");
+  OptimizationMaterial::system.Add(OptimizationMaterial::MAG, "magnetic");
   OptimizationMaterial::system.Add(OptimizationMaterial::ACOUSTIC, "acoustic");
   OptimizationMaterial::system.Add(OptimizationMaterial::LBM, "lbm");
 
@@ -490,6 +493,7 @@ void Optimization::SetEnums()
   application.Add(App::NO_APP, "no_app");
   application.Add(App::ACOUSTIC, "acoustic");
   application.Add(App::HEAT, "heat");
+  application.Add(App::MAG, "magnetic");
   application.Add(App::LAPLACE, "laplace");
   application.Add(App::MECH, "mech");
   application.Add(App::MASS, "mass");
@@ -638,6 +642,7 @@ Optimization* Optimization::CreateInstance()
     case OptimizationMaterial::MECH:
     case OptimizationMaterial::ACOUSTIC:
     case OptimizationMaterial::HEAT:
+    case OptimizationMaterial::MAG:
     case OptimizationMaterial::ELEC:
     case OptimizationMaterial::LBM:
       opt = new SIMP(); // generally single PDE!

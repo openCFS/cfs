@@ -556,7 +556,7 @@ namespace CoupledField{
   BaseFE* FeSpaceHCurlHi::GetFe( const EntityIterator ent ,
                                  IntScheme::IntegMethod& method,
                                  IntegOrder & order  ) {
-    BaseFE * ret = GetFe(ent);
+    BaseFE* ret = GetFe(ent);
 
     // Set correct integration order
     RegionIdType eRegion = GetVolElem(ent.GetElem())->regionId;

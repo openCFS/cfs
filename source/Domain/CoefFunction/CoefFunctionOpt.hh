@@ -79,7 +79,7 @@ public:
     this->form = form;
   }
 
-  /** only to query the name to finde the proper transfer function */
+  /** only to query the name to find the proper transfer function */
   const BiLinearForm* GetForm() const  {
     return form;
   }

@@ -108,6 +108,8 @@ App::Type TransferFunction::Default(const Context* ctxt)
     return App::LAPLACE;
   case App::LBM:
     return App::LBM;
+  case App::MAG:
+    return App::MAG;
   default:
     throw Exception("invalid");
   }

@@ -61,7 +61,7 @@ public:
   //! Destructor
   virtual ~BaseBDBInt() {
   }
-  
+
   //! Obtain differential operator
   virtual BaseBOperator* GetBOp() = 0;
   

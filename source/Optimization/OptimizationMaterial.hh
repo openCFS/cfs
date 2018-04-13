@@ -49,7 +49,7 @@ public:
   virtual ~OptimizationMaterial();
   
   /** Id of our material class */
-  typedef enum { NO_SYSTEM = -1, PIEZOCOUPLING, MECH, ELEC, HEAT, ACOUSTIC, LBM } System;
+  typedef enum { NO_SYSTEM = -1, PIEZOCOUPLING, MECH, ELEC, HEAT, MAG, ACOUSTIC, LBM } System;
 
   /** calls the proper constructor */
   static OptimizationMaterial* CreateInstance(System sys, ErsatzMaterial* em, Context* ctxt);
@@ -238,6 +238,12 @@ class HeatMat : public OptimizationMaterial
 {
 public:
   HeatMat(ErsatzMaterial* em, Context* ctxt);
+};
+
+class MagMat : public OptimizationMaterial
+{
+public:
+  MagMat(ErsatzMaterial* em, Context* ctxt);
 };
 
 

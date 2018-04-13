@@ -89,6 +89,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   applicationForm.Add(App::MECH, "MechStressStrain", false);
   applicationForm.Add(App::MECH, "PiezoStressStrain", false);
   applicationForm.Add(App::HEAT, "HeatConductivity", false);
+  applicationForm.Add(App::MAG, "CurlCurlIntegrator", false);
   applicationForm.Add(App::PIEZO_COUPLING, "linPiezoCoupling");
   applicationForm.Add(App::CHARGE_DENSITY, "LinNeumannInt");
   applicationForm.Add(App::PRESSURE, "PressureLinForm");
@@ -898,13 +899,44 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   // this is legacy stuff, most times ApplyPhysicalDesignElementMatrix() shall be used
   assert(retMat.GetNumCols() <= (domain->GetGrid()->GetDim() == 2 ? 3 : 6));
-
+  assert(coef->GetForm() != NULL); // needs to be set manually via CoefFunctionOpt::SetForm()
   double bimat_factor = -1.0;
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
   double factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
 
+  // we store the original material tensor in retMat
   coef->orgMat->GetTensor(retMat, *lpm);
-  retMat *= factor;
+  //retMat *= factor;
+
+  if(app == App::MAG)
+  {
+    // retMat = nu_0 * nu_r
+
+    // we assume the org mat to be a dim x dim diagonal matrix
+    assert(retMat.GetNumRows() == domain->GetGrid()->GetDim());
+    assert(retMat.GetNumCols() == retMat.GetNumRows());
+    assert(retMat[0][1] == 0.0); // shall be a diagonal matrix
+    assert(retMat.IsSymmetric());
+
+    Matrix<T> nu_0(retMat.GetNumRows(), retMat.GetNumCols());
+    for(unsigned int i = 0; i < retMat.GetNumRows(); i++)
+       nu_0[i][i] = 1/(4*M_PI*1e-7);
+    assert(nu_0[0][1] == 0.0);
+
+    LOG_DBG3(designSpace) << "APD<Matrix> mag: nu_0=" << nu_0.ToString(-1,false) << " nu_0*nu_r=" << retMat.ToString(-1,false);
+
+    // result = nu_0 + nu_0*nu_r*x - nu_0*x where is is the pseudo density scalar
+    // result = nu_0*nu_r*x + (1-x)*nu_0
+    // currently we have in retMat=nu_0*nu_r
+    retMat *= factor;
+    retMat.Add(1-factor, nu_0);
+    LOG_DBG3(designSpace) << "APD<Matrix> mag: x=" << factor << " -> " <<  retMat.ToString(-1,false);
+    assert(((Complex) retMat[0][0]).real() > 0.0);
+  }
+  else
+  {
+	  retMat *= factor; // true for mech and almost all other stuff
+  }
 
   DesignRegion* dr = GetRegion(lpm->ptEl->regionId);
   if(dr->HasBiMaterial())
@@ -945,9 +977,22 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
+  // factor is the pseudo density case, in case it has the penalty parameter applied
   double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
+
+  // retScal becomes the original value
   coef->orgMat->GetScalar(retScal, *lpm);
-  retScal *= factor;
+
+  if(app == App::MAG)
+  {
+	double mu_0 = 4*M_PI*1e-7;
+	double mu_0mu_r = ((Complex) retScal).real();
+	retScal = mu_0*(1+(mu_0mu_r-1)*factor);
+  }
+  else
+  {
+	retScal *= factor;
+  }
 
   DesignRegion* dr = GetRegion(lpm->ptEl->regionId);
   if(dr->HasBiMaterial())

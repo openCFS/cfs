@@ -242,6 +242,7 @@ StateSolution::~StateSolution()
 
 SolutionType StateSolution::GetSolutionType(SinglePDE* pde, App::Type app)
 {
+  // what is the physical solution type we need to request from cfs to store as state solution?
   switch(app)
   {
   case App::NO_APP: // up to now
@@ -253,13 +254,13 @@ SolutionType StateSolution::GetSolutionType(SinglePDE* pde, App::Type app)
     return ELEC_POTENTIAL;
   case App::HEAT:
     return HEAT_TEMPERATURE;
+  case App::MAG:
+	return MAG_POTENTIAL;
   case App::ACOUSTIC:
     return ACOU_POTENTIAL;
   case App::LAPLACE:
     assert(false);
     break;
-    // app = App::MECH;
-    //solt = MECH_DISPLACEMENT;
   case App::LBM:
     return LBM_PROBABILITY_DISTRIBUTION;
   default:

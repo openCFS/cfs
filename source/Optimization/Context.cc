@@ -216,6 +216,7 @@ App::Type Context::ToApp(const SinglePDE* pde)
   if(pde->GetName() == "heatConduction") return App::HEAT;
   if(pde->GetName() == "acoustic") return App::ACOUSTIC;
   if(pde->GetName() == "LatticeBoltzmann") return App::LBM;
+  if(pde->GetName() == "magnetic") return App::MAG;
 
   throw Exception("invalid");
 }
@@ -249,6 +250,12 @@ void Context::SetPDEs()
       pde = domain->GetSinglePDE("heatConduction", true);
       pdes[App::HEAT] = pde;
     }
+
+    if(sp->GetName() == "magnetic") {
+      pde = domain->GetSinglePDE("magnetic", true);
+      pdes[App::MAG] = pde;
+    }
+
 
     if(sp->GetName() == "acoustic") {
       pde = domain->GetSinglePDE("acoustic", true);

@@ -40,7 +40,7 @@
 #include "Utils/tools.hh"
 
 namespace CoupledField {
-class DenseMatrix;
+class DenseMatrix ;
 }  // namespace CoupledField
 
 using namespace CoupledField;
@@ -92,6 +92,8 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
   OptimizationMaterial* mat = ctxt->mat;
   Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
 
+  assert(app != App::MAG); // shall be in MagSIMP.cc
+
   switch(app)
   {
   case App::MECH:
@@ -106,7 +108,7 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, false) : tf->Transform(de, DesignElement::SMART);// not the bimat case
 
     // copy from real mechStiffness to potential complex out and factor the derivative
-    Assign(out, stiffness, k_factor);
+    Assign(out, stiffness, k_factor); // out = k_factor * stiffness
     // This log is very expensive, it blows up inv_tensor in the debug mode
     // LOG_DBG3(simp) << "SetElementK: el=" << de->elem->elemNum << " di=" << de->GetIndex() << " mm=" << mm << " K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
 
