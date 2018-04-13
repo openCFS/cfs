@@ -108,7 +108,7 @@ namespace CoupledField {
 
     /** templated instance of the overwritten CalcEigenValues() */
     template<class TYPE>
-    void CalcEigenValues(BaseVector &sol, BaseVector &err, UInt N, Double shiftPoint);
+    void CalcEigenValues(BaseVector &sol, BaseVector &err, unsigned int N, double shiftPoint);
 
     /** print setup information */
     void ToInfo();

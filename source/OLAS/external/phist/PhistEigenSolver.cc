@@ -126,8 +126,9 @@ namespace CoupledField {
     timer->Stop();
   }
 
+
   template<class TYPE>
-  void PhistEigenSolver::CalcEigenValues(BaseVector &sol, BaseVector &err, UInt numFreq, double freqShift)
+  void PhistEigenSolver::CalcEigenValues(BaseVector &sol, BaseVector &err, unsigned int numFreq, double freqShift)
   {
     shared_ptr<Timer> solve = info_->Get(ParamNode::SUMMARY)->Get("phist_solve/timer")->AsTimer();
     solve->Start();
