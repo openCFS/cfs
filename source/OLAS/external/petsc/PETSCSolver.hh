@@ -143,6 +143,7 @@ PETSCWorker(int argc,const char **argv);
 private:
 
 void InitPetscWorker();
+void AssembleMatrix();
 //PETSC Error Code
 PetscErrorCode ierr=0;
 
@@ -181,7 +182,7 @@ std::string solverstring_;
 std::string precondstring_;
 Vec N_;
 Vec dirNodeVecGlobal_=nullptr;
-
+int nx=0,ny=0,nz=0,dimension=0;
 };
   
 }
