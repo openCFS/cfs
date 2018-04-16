@@ -13,11 +13,13 @@
 #include "FeBasis/HCurl/HCurlElems.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
+#include "Domain/CoefFunction/CoefFunctionHarmBalance.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+
 
 // forms
 #include "Forms/BiLinForms/BDBInt.hh"
@@ -125,19 +127,13 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     RegionIdType actRegion;
     BaseMaterial * actMat = NULL;
 
-    // flag for updatedLagrange formulation
-    //bool upLagrangeForm = true;
-
-
     // initially, check for regularization factor
     Double regularizationFactor = 1e-6;
     myParam_->GetValue("penaltyFactor", regularizationFactor, ParamNode::PASS);
 
-    //==============================================================
-    //begin new implementation
-    //==============================================================
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_POTENTIAL];
     shared_ptr<FeSpace> feSpace = feFunc->GetFeSpace();
+
 
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
       actRegion = regions_[iRegion];
@@ -160,29 +156,31 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // pass entitylist ot fespace / fefunction
       feFunc->AddEntityList( actSDList );
 
+
       // Switch, if region is linear / nonlinear
       if ( nonLinTypes.GetSize() > 0 ) {
-
         // ================================
         //  Nonlinear Stiffness Integrator
         // =================================
-
-        // create stiffness integrator
-        //BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
-        PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
         PtrCoefFct nuNl = NULL;
-
-
+        PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
         if ( analysistype_ == MULTIHARMONIC ) {
-          WARN("========================================================= \n "
-              "MagEdgePDE::DefineIntegrators() Setting the magnetic flux density \n"
-              "to zero is just a temporary fix, this must be adapted!!! \n"
-              "==========================================================");
-          nuNl = CoefFunction::Generate(mp_, Global::REAL, "0.0");
+          // =========================================
+          //  Multiharmonic Stiffness Integrator
+          // =========================================
+
+          // Create new harmonic balance coefficient function and register the regions and material
+          multiHarmCoef_.reset(new CoefFunctionHarmBalance<Double>(feFunc, regions_, materials_, ptGrid_, magFluxCoef) );
+          // ========= End of Harmonic Balancing initiation section ====================
+
+          nuNl = multiHarmCoef_->GenerateMatCoefFnc(iRegion, "Reluctivity");
+
         }else{
+          // ========================================
+          //  Classic Nonlinear Stiffness Integrator
+          // ========================================
           nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef);
         }
-
 
 
 
@@ -205,7 +203,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        bdbInts_[actRegion] = stiff1;
        // add also material to global, distributed reluctivity coefficient function
        reluc_->AddRegion(actRegion, nuNl);
-
 
 
 
@@ -233,22 +230,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
          assemble_->AddBiLinearForm( stiffContext2 );
        }
 
-       /*if ( analysistype_ == STATIC ) {
-         // not needed for StdSolveStep
-         // =================================
-         //  Nonlinear RHS-integrator
-         // =================================
-         LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiff1, -1.0, feFunc );
-         rhsNlinForm->SetName("RHSNonLinForm");
-
-         // Set explicitly the solution dependency
-         rhsNlinForm->SetSolDependent();
-         LinearFormContext * rhsNlinContext =
-             new LinearFormContext( rhsNlinForm );
-         rhsNlinContext->SetEntities( actSDList );
-         rhsNlinContext->SetFeFunction( feFunc );
-         assemble_->AddLinearForm( rhsNlinContext );
-       }*/
       } else {
 
        // ***************************************
@@ -570,38 +551,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
       } // if: current / voltage driven
     } // loop: coils
-
-    /*
-      // ============================
-      // PERMANENT MAGNETS
-      // ============================
-      //
-      // check, if this subdomain is a permanent magnet
-      for ( UInt perm = 0; perm < magnetsDomain_.GetSize(); perm++ ) {
-        if ( actRegion == magnetsDomain_[perm] ) {
-          EXCEPTION("Currently magnetic 3D with edge elements do not support permanent magnets");
-
-          Vector<Double> magnetization(dim_);
-          magnetization[0] = magnetsOriX_[perm];
-          magnetization[1] = magnetsOriY_[perm];
-          magnetization[2] = magnetsOriZ_[perm];
-
-          // Get reluctivity for this domain and perform consistency check
-          Double reluctivity;
-          actMat->GetScalar(reluctivity,MAG_RELUCTIVITY,Global::REAL);
-
-          std::string fncname = "none";
-          LinearForm *permSource =
-            new MagPerm3DInt(magnetization, reluctivity,
-                             isaxi_, upLagrangeForm );
-
-          LinearFormContext * permContext =
-            new LinearFormContext( permSource );
-          permContext->SetPtPde( this );
-          permContext->SetResult( results_[0], actSDList );
-          assemble_->AddLinearForm( permContext );
-        }
-      }*/
 
   } // end DefineIntegrators
 

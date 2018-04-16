@@ -18,6 +18,7 @@
 //#include "MatVec/SingleVector.hh"
 #include "Domain/Results/MHTimeFreqResult.hh"
 
+
 namespace CoupledField {
   
   // declare logging stream
@@ -1296,7 +1297,7 @@ namespace CoupledField {
     
     //this has to be done each frequency!
     assemble_->AssembleLinRHS();
-    
+
     assemble_->AssembleMatrices( );
     PDE_.SetBCs();
     
@@ -1384,6 +1385,36 @@ namespace CoupledField {
     // Calls method ApplyBC and ApplyLoads in FeFunction
     PDE_.SetBCs();
 
+
+
+
+
+
+
+
+
+
+
+
+
+    //hier dann sowas wie PDE_.SetMultHarmSolVec(harmonic i, solution) mit for loop
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // Usually this is the place where the method algsys_->GetRHSVal(rhsVec_)
     // is called to store the rhs vector back to PDE but in the multiharmonic
     // case this must be done for each frequency, which is
@@ -1412,6 +1443,18 @@ namespace CoupledField {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     // =========================================================
     //  2) Solve the full multiharmonic nonlinear system
     // =========================================================
@@ -1428,6 +1471,8 @@ namespace CoupledField {
     solVecMH_.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
     algsys_->GetFullMultiHarmSolutionVal( solVecMH_, false);
 
+
+
     // Get actual solution. Usually it is done via actSol = solVec_;
     // but we need the full multiharmonic solution vector
     SBM_Vector actSol(BaseMatrix::COMPLEX);
@@ -1442,16 +1487,62 @@ namespace CoupledField {
     // =========================================================================
     // Create multiharmonic time-frequency object and provide basic information
     // =========================================================================
-    MHTimeFreqResult Test1(N, M, bF, numFFT);
-    MHTimeFreqResult Test2(N, M, bF, numFFT);
+    MHTimeFreqResult ftRes(N, M, bF, numFFT);
 
-    Test1.SetFrequencyResult(actSol);
+    ftRes.SetFrequencyResult(actSol);
+    ftRes.FourierToTime();
 
-    Test2.SetFrequencyResult(actSol);
+    // Delete that...it's just to check the FFT
+    ftRes.TimeToFourier();
+    ftRes.FourierToTime();
+    // ========================================
 
-    Test2.FourierToTime();
 
-    Test2.TimeToFourier();
+    Vector<Complex> testFreq = ftRes.GetFreqResult(2);
+    Vector<Complex> testTime = ftRes.GetTimeResult(2);
+    std::cout<< testFreq.ToString() << " \n actSol(1) = " << actSol(1).ToString()<< " \n actSol(2) = " << actSol(2).ToString()<< " \n actSol(3) = "<< actSol(3).ToString()  << std::endl;
+
+
+
+
+
+
+
+
+    // Get the solution and store it
+    // Since the entries of solVec_ are pointers to the SingleVector
+    // of the FE function, it automatically inserts the values there
+
+    // Insert it back into the PDE via the pointer-vector solVec_
+    for(UInt i = 0; i < solVecMH_.GetSize(); ++i){
+      algsys_->GetSolutionVal(i, solVec_);
+      // Now the PDE has the solution vector via the FeSpace
+      // and we activate the callback mechanism to cache the
+      // solution vector for current harmonic
+      mParser_->SetValue(MathParser::GLOB_HANDLER, "updateTrigger", true);
+
+
+//      that's where we have to hand over the solution vector to the CoefFunction for caching,
+//      then carry out the iFFT, evaluate the BH curve -> nu(B) -> FFT --> split into harmonics
+//      and return the \hat{\nu}_i back to assemble
+//
+//      ...actually the callback mechanism should read the solution vector from the PDE
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1634,6 +1725,7 @@ namespace CoupledField {
 
     // Special treatment is needed for the diagonal blocks, due to the mass part,
     // therefore handle this case seperately
+    mParser_->SetValue(MathParser::GLOB_HANDLER, "mhFlag", 0);
     assemble_->AssembleMatrices_MultHarm(0, solStrat_->GetNumHarmN(),
         solStrat_->GetNumHarmM(),
         multHarmFreqVec_);
@@ -1642,6 +1734,7 @@ namespace CoupledField {
       for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
         // set the frequency of the current harmonic
         mParser_->SetValue(MathParser::GLOB_HANDLER, "f", multHarmFreqVec_[i]);
+        mParser_->SetValue(MathParser::GLOB_HANDLER, "mhFlag", i);
         // which harmonic are we considering
         Integer h = -N + i;
         if (std::abs(h) >= (Integer) (M) || h == 0) {

@@ -53,13 +53,30 @@ public:
 
   void SetFrequencyResult(const SBM_Vector& freqResult);
 
-  Matrix<Complex> GetFrequencyResult(){
-    return freqResult_;
+  Matrix<Complex> GetFullFrequencyResult(){ return freqResult_;}
+
+  Matrix<Complex> GetFullTimeResult(){ return timeResult_;}
+
+  Vector<Complex> GetTimeResult(int tStep){
+    Vector<Complex> ret;
+    timeResult_.GetCol(ret, tStep);
+    return ret;
   }
 
-  Matrix<Complex> GetTimeResult(){
-    return timeResult_;
+  Vector<Complex> GetFreqResult(int tStep){
+    Vector<Complex> ret;
+    freqResult_.GetCol(ret, tStep);
+    return ret;
   }
+
+
+
+
+
+
+  // ========================================================================
+  //  SHIFT BETWEEN TIME AND FREQUENCY DOMAIN
+  // ========================================================================
 
   //! Method for evaluating a Fourier series with given Fourier-coefficients.
   //! Evaluate Fourier series at given discrete times in timeVec_
@@ -78,15 +95,19 @@ private:
   //! one period of the base frequency
   void CreateTimeVec();
 
-  //! Result-vector in time-domain. Outer vector is time-step,
-  //! inner one contains the spatial dof's
-  //StdVector< Vector<Complex> > timeResult_;
+  //! Result-vector in time-domain.
+  //! One time series per row
   Matrix<Complex> timeResult_;
 
-  //! Result-vector in frequency domain. Outer vector is frequency (harmonic),
-  //! inner one contains the spatial dof's
-  //StdVector< Vector<Complex> > freqResult_;
+  //! Result-vector in frequency domain.
+  //! One time series per row
   Matrix<Complex> freqResult_;
+
+  //! We need this result to fill the correct freqResult_ matrix
+  //! after the MKL FFT computation
+  Matrix<Complex> deleteMeResult_;
+
+
 
   //! Number of time points in one period of base-frequency.
   //! The FFT of the timeResult into freqResult is based on this

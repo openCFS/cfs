@@ -49,10 +49,14 @@ namespace CoupledField {
     N_ = N;
     timeResult_.Resize(0,0);
     freqResult_.Resize(0,0);
-    nFFT_ = nFFT + 1 ;
+    nFFT_ = nFFT  ;
+    // Already caught in StdSolveStep::StepHarmonicNonLin
+    //if(nFFT % 2 != 0){
+    //  EXCEPTION("Number of FFT points should be even!")
+    //}
+
     omega0_ = 2 * M_PI * baseFreq;
     spatialSize_ = 0;
-
 
     // Create the time vector
     CreateTimeVec();
@@ -82,6 +86,10 @@ namespace CoupledField {
     }
 
 
+//    for(UInt i = 0; i < freqResult_.GetNumCols(); ++i){
+//      std::cout<<"Initial freqResult_["<<i<<"] = "<< freqResult_[10][i]<<std::endl;
+//    }
+
   }
 
 
@@ -91,12 +99,20 @@ namespace CoupledField {
     // MKL overwrites the provided time array with frequency results,
     // therefore copy the timeResult into freqResult and perform the
     // FFT on freqResult_
-    freqResult_.Resize(0,0);
+    freqResult_.Resize(timeResult_.GetNumRows(), 2 * N_ + 1);
     freqResult_.Init();
-    freqResult_ = timeResult_;
+    //freqResult_ = timeResult_;
+
+
+    deleteMeResult_.Resize(0,0);
+    deleteMeResult_.Init();
+    deleteMeResult_ = timeResult_;
+
+
+    Complex tmp;
 
 #ifdef USE_MKL
-   /*========================================================
+    /*========================================================
      * 1) Create Descriptor
      * ========================================================
      * Allocate a fresh descriptor for the problem with a call to the
@@ -120,7 +136,7 @@ namespace CoupledField {
     MKL_LONG status = DftiCreateDescriptor(&dftHandle, precision, domain, dim, nFFT_);
     DFTI_CHECK_STATUS(dftHandle, status);
 
-   /*========================================================
+    /*========================================================
      * 2) Set Value
      * ========================================================
      * Optionally adjust the descriptor configuration with a call to the
@@ -133,7 +149,7 @@ namespace CoupledField {
     status = DftiSetValue(dftHandle, DFTI_CONJUGATE_EVEN_STORAGE, DFTI_COMPLEX_COMPLEX);
     DFTI_CHECK_STATUS(dftHandle, status);
 
-   /* ========================================================
+    /* ========================================================
      * 3) Commit Descriptor
      * ========================================================
      * Commit the descriptor with a call to the DftiCommitDescriptor or
@@ -147,7 +163,7 @@ namespace CoupledField {
     status = DftiCommitDescriptor(dftHandle);
     DFTI_CHECK_STATUS(dftHandle, status);
 
-   /*========================================================
+    /*========================================================
      * 4) Perform FFT
      * ========================================================
      * Compute the transform with a call to the DftiComputeForward/DftiComputeBackward
@@ -159,28 +175,69 @@ namespace CoupledField {
      * (DftiSetValueDM followed by DftiCommitDescriptorDM) or create and commit another descriptor.
      */
 
-      // No averaging, let MKL handle the loop
+    // No averaging, let MKL handle the loop and
+    // reorder the harmonics because the static harmonic 0
+    // is located at position [0] and the output from MKL looks
+    // like
+    // [0   1   2   ...   N-1   N   -N    -N+1   ...   -2   -1]
+    // but we need the following order
+    // [-N   -N+1   ...   -1   0    1   ...    N-1    N]
+    // Furthermore the size of freqResult_-columns (output from
+    // the FFT) is nFFT_, therefore we have to extract the
+    // static harmonic and N_ positive and N_ negative ones from
+    // the matrix ... or simply set the unwanted to zero
     for(UInt i = 0; i < spatialSize_; ++i){
-      status = DftiComputeForward(dftHandle, freqResult_[i]);
+      //status = DftiComputeForward(dftHandle, freqResult_[i]);
+      //DFTI_CHECK_STATUS(dftHandle, status);
+
+      status = DftiComputeForward(dftHandle, deleteMeResult_[i]);
       DFTI_CHECK_STATUS(dftHandle, status);
+
+      // Static entry for harmonic 0
+      tmp = deleteMeResult_[i][0];
+      // Fill the correct frequency result matrix and also scale the FFT correctly
+      for(UInt k = 1; k < N_ + 1; ++k){
+        freqResult_[i][N_ + k] = deleteMeResult_[i][k];
+      }
+      for(UInt k = 1; k < N_ + 1; ++k){
+        freqResult_[i][N_ - k] = deleteMeResult_[i][nFFT_ - k];
+      }
+      freqResult_[i][N_] = tmp;
+
     }
 
     status = DftiFreeDescriptor(&dftHandle); // ignore errors from Free function
 #endif
 
-  }
+    freqResult_ = freqResult_ * (1.0 / ((nFFT_ )/2));
+
+//    for(UInt i = 0; i < deleteMeResult_.GetNumCols(); ++i){
+//      std::cout<<"deleteMeResult_["<<i<<"] = "<<deleteMeResult_[10][i]<<std::endl;
+//    }
+//    for(UInt i = 0; i < freqResult_.GetNumCols(); ++i){
+//      std::cout<<"freqResult_["<<i<<"] = "<<freqResult_[10][i]<<std::endl;
+//    }
+ }
 
 
   void MHTimeFreqResult::FourierToTime(){
     // First of all, check if we have the number of spatial dof's
     if(spatialSize_ == 0) EXCEPTION("MHTimeFreqResult::FourierToTime no result was set!!")
 
+    if( freqResult_.GetNumCols() != 2 * N_ + 1){
+      EXCEPTION("MHTimeFreqResult::FourierToTime There are " << freqResult_.GetNumCols()
+          << " frequencies given but \n  the number of harmonics is N_ = " << N_);
+    }
+
+
     // Evaluate Fourier series at given discrete times in timeVec_
 
     // Since the timeVec_ size is much smaller than the number of
     // dof's in the domain, our outer loop will be the timeVec_ entries
     // and the inner loop will be the parallel loop over dof's
-    timeResult_.Resize(spatialSize_ ,nFFT_);
+    timeResult_.Resize(spatialSize_ ,nFFT_ );
+    timeResult_.InitValue(0.0);
+
 
     // Outer loop over discrete times
     Double t = 0.0;
@@ -191,11 +248,11 @@ namespace CoupledField {
         // harmonic number
         h = k - N_;
         for(UInt j = 0; j < spatialSize_; ++j){
-          timeResult_[j][i] += freqResult_[j][k] * (cos(h * omega0_ * t) + Complex(0.0,1.0)*sin(h * omega0_ *t));
+          // multiplication with 0.5 due to double sided spectrum
+          timeResult_[j][i] += freqResult_[j][k] * (cos(h * omega0_ * t) + Complex(0.0,1.0)*sin(h * omega0_ *t)) * 0.5;
         }
       }
     }// loop over time array
-
 
 //    for(UInt i = 0; i < timeResult_.GetNumCols(); ++i){
 //      std::cout<<"timeResult_["<<i<<"] = "<<timeResult_[10][i]<<std::endl;
@@ -205,12 +262,14 @@ namespace CoupledField {
 
 
   void MHTimeFreqResult::CreateTimeVec(){
-    timeVec_.Resize(nFFT_, 0.0);
+    // -1 because the last "signal point" in the time signal
+    // must not be equal to the first one
+    timeVec_.Resize(nFFT_ , 0.0);
 
     // Period length of base frequency
     Double baseFreq = omega0_ / (2 * M_PI);
     Double tBase = 1.0 / baseFreq;
-    Double dT = tBase / (nFFT_ - 1);
+    Double dT = tBase / (nFFT_);
     Double tAc = 0.0;
     // Fill vector with equally spaced timesteps over [0, tBase]
     for(auto& t : timeVec_){

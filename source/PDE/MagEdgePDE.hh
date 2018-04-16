@@ -123,6 +123,9 @@ namespace CoupledField
     //! regions.
     std::set<RegionIdType> regularizedRegions_;
     
+    //! Coefficient function for the multiharmonic material adaptions
+    shared_ptr<CoefFunction> multiHarmCoef_;
+
   private:
   };
 

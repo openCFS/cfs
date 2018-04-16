@@ -83,6 +83,12 @@ namespace CoupledField
       // positive frequencies starting at numHarmonics_N_ + 1
       harmFreq_[numHarmonics_N_ + 1 + i] = (i + 1) * baseFreq_;
     }
+
+    // Set the flag for the harmonic callback mechanism
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "mhFlag", 0 );
+    // Set the flag for the solution-cache callback mechanism
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "updateTrigger", false );
+
   }
 
   MultiHarmonicDriver::~MultiHarmonicDriver()

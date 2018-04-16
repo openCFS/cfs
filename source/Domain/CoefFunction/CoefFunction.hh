@@ -587,6 +587,14 @@ public:
                                         StdVector<shared_ptr<EntityList> >() ) {
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
+
+  //! Needed for harmonic balancing CoefFunctionHarmBalance
+  virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(const UInt& iRegion,
+                                                      const std::string& name){
+    EXCEPTION("Not implemented in base class");
+  }
+
+
   //! Functions needed for Hystersis
   virtual void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false) {
 	  EXCEPTION("SetPreviousHystVals not available");

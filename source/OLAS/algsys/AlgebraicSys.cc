@@ -3436,11 +3436,15 @@ namespace CoupledField {
 
 
   void AlgebraicSys::GetSolutionVal( const UInt& h,  SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
-      solVec.Resize( numFcts_ );
-      // Get the correct block-vector
-      // call specialized GetSolutionVal method, the boolean
-      // has no effect, it's just an identifier to call the correct method
-      GetSolutionVal(solVec(0), h, setIDBC, deltaIDBC, true);
+    if(numFcts_ != 1){
+      EXCEPTION("AlgebraicSys::GetSolutionVal This shouldn't happen");
+    }
+
+    solVec.Resize( 1 );
+    // Get the correct block-vector
+    // call specialized GetSolutionVal method, the boolean
+    // has no effect, it's just an identifier to call the correct method
+    GetSolutionVal(solVec(0), h, setIDBC, deltaIDBC, true);
   }
   
 
