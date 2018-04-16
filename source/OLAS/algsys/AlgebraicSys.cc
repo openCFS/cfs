@@ -7,8 +7,8 @@
 #include <def_use_pardiso.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_arpack.hh>
-#include <def_use_phist.hh>
-#include <boost/lexical_cast.hpp>
+#include <def_use_phist_cg.hh>
+#include <def_use_phist_ev.hh>
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"

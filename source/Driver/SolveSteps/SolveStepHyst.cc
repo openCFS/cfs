@@ -26,22 +26,7 @@ namespace CoupledField {
   SolveStepHyst::SolveStepHyst(StdPDE & apde)
   :StdSolveStep(apde)
   {
-		trans_ = true;
-		flagsInitialized_ = false;
-    
-    
-    // old stuff; keep until new version is available
-        /*
-     * for hysteresis, initialize additional values needed by
-     * CalcResidualAndConfigSystemForHysteresis
-     */
- 
-    currentLinRhsVec_ = rhsVec_;
-    currentResVec_ = rhsVec_;
-    currentResVec_.Init();
-
-    
-	}
+  }
 	
   //! Destructor
   SolveStepHyst::~SolveStepHyst() {

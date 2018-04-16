@@ -504,7 +504,7 @@ bool ParamNode::As<bool>() const
     std::string str = boost::any_cast<std::string>(value_);
     if(str == "yes" || str == "true" || str == "on" || str == "enable" || str == "1")
       return true;
-    if(str == "no" || str == "false" || str == "off" || str == "disable" || str == "0")
+    if(str == "no" || str == "false" || str == "off" || str == "disable" || str == "0" || str == "none")
       return false;
 
    EXCEPTION("Cannot convert node '" << name_ << "' with value '" << str << "' to boolean");

@@ -9,6 +9,10 @@
 
 #include "PDE/SinglePDE.hh"
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+
 #include <fstream>
 #include <boost/algorithm/string.hpp>
 
@@ -1460,6 +1464,61 @@ namespace CoupledField {
       
       FieldAtPoints & actField = sensors_[iPart];
       actField.fileName = actNode->Get("fileName")->As<std::string>();
+
+      /* check if directory-path for sensor array file exists */
+      // search for last Slash in fileName
+      int idx_lastSlash = actField.fileName.find_last_of("/");
+      // if idx_lastSlash = -1 -> "/" not found, else position of the last slash
+      // if there is a "/" in the filename -> save directory is not "." -> check if it exists
+      if ( idx_lastSlash != -1){
+        // get directory name
+        std::string directoryName;
+        directoryName = actField.fileName.substr(0,idx_lastSlash);
+        // ensure errno is cleared and call mkdir with the directory name
+        errno = 0;
+        int mkdir_call;
+        mkdir_call = mkdir( directoryName.c_str(), S_IRWXU | S_IRGRP | S_IWGRP | S_IROTH );
+
+        if ( mkdir_call == -1 && errno == EEXIST ){
+          // directory exists, do nothing
+          errno = 0;
+        } else if ( mkdir_call == 0 ){
+          // directory didn't exist but was created, do nothing
+        } else{
+          // directory didn't exist, and couldn't be created -> raise exception
+          EXCEPTION("The directory: '" << directoryName << "' to save the sensor arrays doesn't exist and couldn't be created! Please create it by hand!" );
+        }
+
+        /* working alternative version
+        // check existence
+        struct stat directory_attr;
+        int stat_call;
+        errno = 0;
+        stat_call = stat( directoryName.c_str(), &directory_attr);
+
+        if( stat_call < 0 ){
+          // stat call failed
+          if( errno == ENOENT ){
+            EXCEPTION("The directory: '" << directoryName << "' to save the sensor arrays does not exist!" );
+          } else {
+            // other errno
+            EXCEPTION("The 'stat'-call of directory: '" << directoryName << "' to save the sensor arrays failed with errno=" << errno << " ! Check the directory path!" );
+            }
+        } else {
+          // stat call successful -> do nothing
+        }
+
+        if(  !(directory_attr.st_mode & S_IFDIR) ){
+          EXCEPTION("The specified path: '" << directoryName << "' to save the sensor arrays is not a directory!");
+          }
+        else{
+          // is directory do nothing //
+          }
+          */
+      } else {
+        // no slash in filename -> do nothing
+      }
+
       actField.csv = actNode->Get("csv")->As<bool>();
       std::string coordSysId = actNode->Get("coordSysId")->As<std::string>();
       actField.coordSys = domain_->GetCoordSystem(coordSysId);

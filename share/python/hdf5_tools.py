@@ -291,7 +291,7 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
     from numpy import array, argwhere
     Is = hdf5_file['Mesh']['Regions'][subregion][rtype].value-1
     Ir = hdf5_file['Mesh']['Regions'][region][rtype].value-1
-    Isr = array([argwhere(Ir==i)[0][0] for i in Is])
+    Isr = array([argwhere(Ir==i).ravel() for i in Is if i in Ir]).ravel()
     return Isr
 
 

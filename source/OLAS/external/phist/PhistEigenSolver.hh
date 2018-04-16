@@ -1,21 +1,14 @@
 #ifndef OLAS_Phist_EIGENSOLVER_HH
 #define OLAS_Phist_EIGENSOLVER_HH
 
-#include "OLAS/solver/BaseEigenSolver.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "MatVec/Matrix.hh"
-#include "phist_enums.h"
-#include "phist_config.h"
-#include "phist_types.hpp"
-#include "phist_jadaOpts.h"
-#include "phist_void_aliases.h"
+#include "PhistCore.hh"
 
 namespace CoupledField {
   
   class StdMatrix;
   class sparseMat_t; // phist matrix type
 
-  class PhistEigenSolver : public BaseEigenSolver
+  class PhistEigenSolver : public BaseEigenSolver , PhistCore
   {
   public:
     
@@ -113,7 +106,7 @@ namespace CoupledField {
     /** provide A_ or B_ not as pointer value but as pointer itself as the pointer value is NULL prior init
      * @param scale to scale the B-matrix. 1.0 else
      * @return the value we set phist to (redundant to phist**) */
-    sparseMat_t* InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, double scale);
+//    sparseMat_t* InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, double scale);
 
     /** little helper */
     bool IsSymmetric(const BaseMatrix& cfs) const;

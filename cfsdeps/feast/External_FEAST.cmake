@@ -8,17 +8,17 @@
 #-------------------------------------------------------------------------------
 # Set paths to FEAST sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
-set(feast_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/feast")
-set(feast_source  "${feast_prefix}/src/feast")
-set(feast_install "${feast_prefix}/install")
-set(feast_include "${feast_source}/${FEAST_VER}/include")
+SET(feast_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/feast")
+SET(feast_source  "${feast_prefix}/src/feast")
+SET(feast_install "${feast_prefix}/install")
+SET(feast_include "${feast_source}/${FEAST_VER}/include")
 
 # determine which feast library to copy over in the post_install step
-if(USE_FEAST_COMMUNITY_PRECOMPILED)
-  set(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/x64")
-else(USE_FEAST_COMMUNITY_PRECOMPILED)
-  set(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/${CFS_ARCH_STR}")
-endif(USE_FEAST_COMMUNITY_PRECOMPILED)
+IF(USE_FEAST_COMMUNITY_PRECOMPILED)
+  SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/x64")
+ELSE(USE_FEAST_COMMUNITY_PRECOMPILED)
+  SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/${CFS_ARCH_STR}")
+ENDIF(USE_FEAST_COMMUNITY_PRECOMPILED)
 
 #-----------------------------------------------------------------------------
 # Determine paths of FEAST includes.
@@ -103,16 +103,16 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
-  if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+  IF("${CMAKE_GENERATOR}" STREQUAL "Ninja")
     # FEAST does not use CMake but make only: We cannot use the CMake Ninja-generator,
     # we use make instead to build FEAST
     find_program(FEAST_MAKE_PROGRAM make)
-  else("${CMAKE_GENERATOR}" STREQUAL "Ninja")
-    set(FEAST_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build FEAST")
-  endif("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+  ELSE("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    SET(FEAST_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build FEAST")
+  ENDIF("${CMAKE_GENERATOR}" STREQUAL "Ninja")
   MARK_AS_ADVANCED(FEAST_MAKE_PROGRAM)
   # here we should decide if we need to build feast, or only copy the pre-compiled libs a below
-  if(USE_FEAST_COMMUNITY_PRECOMPILED)
+  IF(USE_FEAST_COMMUNITY_PRECOMPILED)
   # only copy over
   ExternalProject_Add(feast
     PREFIX "${feast_prefix}"
@@ -125,7 +125,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS ${FEAST_LIBRARY}
   )
-  else(USE_FEAST_COMMUNITY_PRECOMPILED)
+  ELSE(USE_FEAST_COMMUNITY_PRECOMPILED)
   # compile feast
   ExternalProject_Add(feast
     PREFIX "${feast_prefix}"
@@ -138,7 +138,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS ${FEAST_LIBRARY}
   )
-  endif(USE_FEAST_COMMUNITY_PRECOMPILED)
+  ENDIF(USE_FEAST_COMMUNITY_PRECOMPILED)
 
   # post install for precompiled
   ExternalProject_Add_Step(feast post_install

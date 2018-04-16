@@ -37,6 +37,7 @@ def dof(val):
     return 1
   if val == 'z':
     return 2
+  print(val)
   assert(False)
 
 # 'x' and 'y' -> 'z' 
@@ -116,6 +117,7 @@ def find_shape_by_dof(shapes, dof):
 
 # transforms ids from 0 to 6 to color codes 'b' to 'k'. Only for matplotlib, not for vtk!
 def matplotlib_color_coder(id):
+  id = id % 6
   if id == 0:
     return 'b'  
   if id == 1:

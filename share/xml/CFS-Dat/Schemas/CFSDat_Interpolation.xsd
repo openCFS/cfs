@@ -25,6 +25,13 @@
       <xsd:extension base="DT_BaseFilter">
         <xsd:sequence>
           <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0"/>
+          <xsd:element name="useElemAsTarget" type="xsd:boolean" default="0" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Parameter that defines the target entity, Nodes(false=default) or Element(true)
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           <xsd:element name="noSlipWall" type="xsd:boolean" minOccurs="0"/>
           <xsd:element name="sourceSum" type="xsd:boolean" default="0" minOccurs="0"></xsd:element>
           <xsd:element name="targetMesh">

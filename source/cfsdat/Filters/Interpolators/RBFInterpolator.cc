@@ -43,6 +43,8 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
   numNW_ = 13;
   noSlip_ = false;
   if(config->Has("noSlipWall")){noSlip_ = true;}
+  useElemAsTarget_ = false;
+  if(params_->Has("useElemAsTarget")){useElemAsTarget_ = params_->Get("useElemAsTarget")->As<bool>();}
 
 }
 
@@ -164,6 +166,12 @@ void RBFInterpolator::PrepareCalculation(){
   std::cout << "\n\t\t Interpolation prepared!" << std::endl;
 }
 
+//TODO prepare entities
+//void RBFInterpolator::PrepareEntities(){
+//
+//}
+
+
 void RBFInterpolator::PreparePATCH(){
   std::cout << "\t ---> RBFInterpolator preparing for interpolation" << std::endl;
 
@@ -199,7 +207,8 @@ void RBFInterpolator::PreparePATCH(){
   const CF::UInt numTrgEntities = CountUsedEntities(globTrgEntity);
 
   std::cout << "\t\t\t Interpolator is dealing with " << numSrcEntities <<
-               " source " << (inElems ? "elements" : "nodes") << " and "<< numTrgEntities << " target nodes" << std::endl;
+               " source " << (inElems ? "elements" : "nodes") << " and "<< numTrgEntities << " target "
+               << (useElemAsTarget_ ? "elements" : "nodes") << std::endl;
 
   std::cout << "\t\t 3/4 Creating search tree " << std::endl;
   std::vector<CF::UInt> indices;
@@ -262,7 +271,12 @@ void RBFInterpolator::PreparePATCH(){
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) { // Loop over the Target points
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
-      trgGrid_->GetNodeCoordinate3D(globCoords[trgEnt], globEntityNumber);
+      if(useElemAsTarget_){
+        trgGrid_->GetElemCentroid(globCoords[trgEnt], globEntityNumber,true);
+      } else {
+        trgGrid_->GetNodeCoordinate3D(globCoords[trgEnt], globEntityNumber);
+      }
+
     }
   }
 
@@ -431,7 +445,8 @@ void RBFInterpolator::PrepareCGAL(){
   const CF::UInt numTrgEntities = CountUsedEntities(globTrgEntity);
 
   std::cout << "\t\t\t Interpolator is dealing with " << numSrcEntities <<
-               " source " << (inElems ? "elements" : "nodes") << " and "<< numTrgEntities << " target nodes" << std::endl;
+               " source " << (inElems ? "elements" : "nodes") << " and "<< numTrgEntities << " target "
+               << (useElemAsTarget_ ? "elements" : "nodes") << std::endl;
 
   std::cout << "\t\t 3/4 Creating search tree " << std::endl;
   std::vector<Point_3> points;
@@ -495,7 +510,11 @@ void RBFInterpolator::PrepareCGAL(){
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
       CF::Vector<Double> pCoord;
-      trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
+      if(useElemAsTarget_){
+        trgGrid_->GetElemCentroid(pCoord, globEntityNumber,true);
+      } else {
+        trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
+      }
       Point_3 query(pCoord[0],pCoord[1],pCoord[2]);
       Distance tr_dist;
 //TODO do not know why but it calls the get(..) method from NearstNeighbourInterpolator, altough there is one defined here...
@@ -608,7 +627,13 @@ void RBFInterpolator::AdaptFilterResults(){
 
   //after this filter we have nodal values on different regions
   //on a different grid
-  resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  if(useElemAsTarget_){
+    resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::ELEMENT);
+  } else {
+    resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  }
+
+
   resultManager_->SetGrid(filterResIds[0],this->trgGrid_);
   resultManager_->SetMeshResult(filterResIds[0],true);
 

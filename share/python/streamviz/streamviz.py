@@ -10,16 +10,39 @@ from lxml import etree
 # settings
 from strings import *
 
+# for forced garbage collection
+import gc
+
 # html render module
 import render_html
 
 # plot module
 import api_plot
 
+# for global update dict:
+import datetime
+
+# for keeping track of all keys
+from collections import deque
+
+# for geting ram usage
+import os
+import psutil
+
+# for sending data to catalyst
+import send_data
+
+from flask.wrappers import Request
+
 app = Flask(__name__)
 
 # global data dict always contains the latest xml file (in parsed version)
 GLOBAL_DATA_DICT = {}
+
+# contains the last update
+GLOBAL_UPDATED_DICT = {}
+
+GLOBAL_KEY_DEQUEUE = deque([])
 
 # ajax functions will wait for an even aka new data
 # in order to do that they will put and event into this dictionary: key => Array(Event)
@@ -30,18 +53,40 @@ GLOBAL_DATA_DICT = {}
 # data transfer and html updating
 UPDATE_EVENTS = {}
 
+# This header should be set by the reverse proxy.
+# Make sure to have the real IP here
+# Don't use the X-Forward-For from the request
+PROXY_REAL_IP_HEADER = "X-Real-IP"
+
+# in bytes
+MAX_MEMORY = 2*1024*1024*1024 # = 2 GByte
+#MAX_MEMORY = 250*1024*1024 # = 250 MByte
+
 @app.route('/', methods = ['GET'])
 def index():
   if request.method == 'GET':
-    return render_html.render_index(GLOBAL_DATA_DICT, request)
+    return render_html.render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request)
   else:
     return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
+@app.route('/status', methods = ['GET'])
+def status():
+    return render_html.render_status(GLOBAL_DATA_DICT, MAX_MEMORY)
+
+@app.route(settings["api"]["values"] + '/<path:key>', methods = ['GET', 'POST'])
+def values(key):
+  if request.method == 'GET':
+    return api_plot.get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, int(request.args.get('iteration_num')))
+  else:
+    return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
 @app.route(settings["api"]["view_url"] + '/<path:key>', methods = ['GET', 'POST'])
 def view(key):
   if request.method == 'GET':
-    return render_html.render_view(GLOBAL_DATA_DICT, key)
+    client_ip = request.remote_addr
+    if request.headers.has_key(PROXY_REAL_IP_HEADER):
+      client_ip = request.headers.get(PROXY_REAL_IP_HEADER, "127.0.0.1")
+    return render_html.render_view(GLOBAL_DATA_DICT, key, client_ip)
   else:
     return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
@@ -50,8 +95,16 @@ def plot(key):
   return api_plot.plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, request.args.get('x'), \
                        request.args.getlist('y1_it'), request.args.getlist('y2_it'), \
                        request.args.getlist('y1_res'), request.args.getlist('y2_res'), \
-                       request.args.get('iteration_num'))
+                       int(request.args.get('iteration_num')), \
+                       (request.args.get('logscale_y1') == 'true'), (request.args.get('logscale_y2') == 'true'), \
+                       request.args.getlist('view_results'), \
+                       (request.args.get('view_result_bloch', 'false') == 'true'))
 
+
+@app.route(settings["api"]["catalyst_send"] + '/<path:key>', methods = ['GET', 'POST'])
+def send_data_func(key):
+  send_data.send_data(key, GLOBAL_DATA_DICT[key], request.args.get('ip'), request.args.get('port'))
+  return ""
 
 @app.route('/', methods = ['POST'])
 @app.route(settings["api"]["recieve_url"], methods = ['GET', 'POST'])
@@ -61,6 +114,51 @@ def cfs_recieve_blank():
 @app.route(settings["api"]["recieve_url"] + '/', methods = ['GET', 'POST'])
 @app.route(settings["api"]["recieve_url"] + '/<path:url_key>', methods = ['GET', 'POST'])
 def cfs_recieve(url_key = ""):
+  process = psutil.Process(os.getpid())
+  
+  memory_in_bytes = process.memory_info().rss
+  if memory_in_bytes > (0.95 * MAX_MEMORY): # if we are over the soft limit
+    # collect garbage
+    for i in range(3): # multiple times to improve efficiency
+      gc.collect()
+  
+  def tidy_up():
+    oldest_key = GLOBAL_KEY_DEQUEUE.pop() # get oldest xml key
+    if oldest_key in GLOBAL_DATA_DICT:
+      oldest_data = GLOBAL_DATA_DICT.pop(oldest_key) # delete oldest xml keys
+      del oldest_data
+    if oldest_key in GLOBAL_UPDATED_DICT:
+      oldest_updated = GLOBAL_UPDATED_DICT.pop(oldest_key) 
+      del oldest_updated
+    send_data.delete_coprocessor(oldest_key)
+    
+    # collect garbage
+    gc.collect()
+
+  process = psutil.Process(os.getpid())
+  memory_in_bytes = process.memory_info().rss
+  if memory_in_bytes > (0.99 * MAX_MEMORY): # we are reaching our limit
+    print('reaching soft limit #1')
+    tidy_up()
+  
+  if memory_in_bytes > (1.05 * MAX_MEMORY): # now we really need to delete stuff
+    print('reaching soft limit #2')
+    for i in range(10):
+      tidy_up()
+      process = psutil.Process(os.getpid())
+      memory_in_bytes = process.memory_info().rss
+      if memory_in_bytes < (0.95 * MAX_MEMORY):
+        break;
+  
+  if memory_in_bytes > (1.1 * MAX_MEMORY): # now we really really need to delete stuff
+    print('reaching hard limit!')
+    for i in range(50):
+      tidy_up()
+      process = psutil.Process(os.getpid())
+      memory_in_bytes = process.memory_info().rss
+      if memory_in_bytes < (0.90 * MAX_MEMORY):
+        break;
+  
   data = ""
   
   # read the data from input stream directly
@@ -77,7 +175,7 @@ def cfs_recieve(url_key = ""):
 
     xml = etree.fromstring(data)
     
-    print("status: " + xml.xpath('/cfsStreaming/cfsInfo/@status')[0])
+    print("status: " + xml.xpath('//cfsInfo/@status')[0])
     
     key = xml.xpath('//environment/@host')[0] + '/' + xml.xpath('//progOpts/@problem')[0]
     
@@ -90,14 +188,18 @@ def cfs_recieve(url_key = ""):
 
     key += '/' + xml.xpath('//header/environment/@started')[0]
 
+    if not key in GLOBAL_DATA_DICT: # only add key if not already in
+      GLOBAL_KEY_DEQUEUE.appendleft(key)
+
     GLOBAL_DATA_DICT[key] = xml
+    
+    GLOBAL_UPDATED_DICT[key] = str(datetime.datetime.now())
     
     # set the event to trigger sending of the new xml data
     # make sure to set the event AFTER putting the new xml
     # into GLOBAL_DATA_DICT
     if key in UPDATE_EVENTS:
-      for e in UPDATE_EVENTS[key]:
-        e.set()
+      UPDATE_EVENTS[key].set()
 
     print("recieved data!\n")
     return 'data recieved!\n'
@@ -110,4 +212,4 @@ if __name__ == "__main__":
   # need multithreading to server multiple clients.
   # Otherwise pushing xml while ajaxing it with the event
   # synchronization will not be possible
-  app.run(threaded=True)
+  app.run(threaded=True, port=5000, host='127.0.0.1')

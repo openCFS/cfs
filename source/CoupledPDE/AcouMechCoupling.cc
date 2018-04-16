@@ -124,7 +124,7 @@ namespace CoupledField {
       switch(acouFormulation) {
         // ==================
         //   ACOU_POTENTIAL
-        // ==================coefFuncs
+        // ==================
         case ACOU_POTENTIAL:
         {
           
