@@ -2,7 +2,19 @@
 # use the official gcc image, based on debian
 # can use verions as well, like gcc:5.2
 # see https://hub.docker.com/_/gcc/
+stages:
+  - configure
+  - build
+  - test
 
+configure:
+  stage: configure
+  script:
+    - pwd
+    - ls
+    - mkdir build
+    - cd build
+    - cmake ..
 
 build:
   stage: build
@@ -11,6 +23,8 @@ build:
   # before_script: 
   #   - apt update && apt -y install make autoconf 
   script: 
+    - echo "hi" > testfile
+    - pwd
     - ls
   #artifacts:
   #  paths:
@@ -19,9 +33,10 @@ build:
   # cache:
   #   paths:
   #     - "*.o"
+  
 
 # run tests using the binary built before
 test:
   stage: test
   script:
-    - ./runmytests.sh
+    - ls -l
