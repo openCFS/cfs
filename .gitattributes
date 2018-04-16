@@ -1676,10 +1676,6 @@ source/Domain/CoefFunction/CoefFunctionFormBased.cc svneol=native#text/x-c%2B%2B
 source/Domain/CoefFunction/CoefFunctionFormBased.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/CoefFunction/CoefFunctionGrid.cc -text
 source/Domain/CoefFunction/CoefFunctionGrid.hh -text
-source/Domain/CoefFunction/CoefFunctionGridElement.cc -text
-source/Domain/CoefFunction/CoefFunctionGridElement.hh -text
-source/Domain/CoefFunction/CoefFunctionGridElementDefault.cc -text
-source/Domain/CoefFunction/CoefFunctionGridElementDefault.hh -text
 source/Domain/CoefFunction/CoefFunctionGridNodal.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodal.hh -text
 source/Domain/CoefFunction/CoefFunctionGridNodalDefault.cc -text
