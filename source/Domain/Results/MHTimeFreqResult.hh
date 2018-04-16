@@ -69,9 +69,9 @@ public:
     return ret;
   }
 
+  UInt GetNumTimeSteps(){ return timeResult_.GetNumRows(); }
 
-
-
+  UInt GetNumFreqSteps(){ return freqResult_.GetNumRows(); }
 
 
   // ========================================================================

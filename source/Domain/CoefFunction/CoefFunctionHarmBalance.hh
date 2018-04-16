@@ -63,6 +63,8 @@ public:
   PtrCoefFct GenerateMatCoefFnc(const UInt& iRegion,
                                 const std::string& name);
 
+  void RegisterElemsInRegion(shared_ptr<ElemList> actSDList);
+
 
 protected:
 
@@ -98,6 +100,22 @@ protected:
   //! inner one contains the spatial dof's
   //StdVector< Vector<Complex> > freqResult_;
   Matrix<Complex> freqResult_;
+
+  //! Number of regions
+  UInt numRegions_;
+
+  //! Safety flag to check if the elements of all regions were registered
+  bool regionRegistration_;
+
+  //! Store the elements of each region (need information
+  //! about the integration points later on)
+  StdVector< shared_ptr<ElemList> > elemListPerRegion_;
+
+  //! Total number of elements
+  UInt numElems_;
+
+  //! Store how many times, the solution vector was read
+  UInt updateIter_;
 
   unsigned int maxInt_;
 };

@@ -594,6 +594,11 @@ public:
     EXCEPTION("Not implemented in base class");
   }
 
+  //! Needed for harmonic balancing CoefFunctionHarmBalance
+  virtual void RegisterElemsInRegion(shared_ptr<ElemList> actSDList){
+    EXCEPTION("Not implemented in base class");
+  }
+
 
   //! Functions needed for Hystersis
   virtual void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false) {

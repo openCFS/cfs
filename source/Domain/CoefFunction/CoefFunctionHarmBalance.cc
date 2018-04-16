@@ -33,10 +33,20 @@ namespace CoupledField
 
     magFluxCoef_ = magFluxCoef;
 
+    regionRegistration_ = false;
+
     maxInt_ = std::numeric_limits<unsigned int>::max();
+
+    updateIter_ = 0;
 
     // Reset the frequency results
     freqResult_.Resize(0,0);
+
+    numRegions_ = regions.GetSize();
+
+    elemListPerRegion_.Resize(0);
+
+    numElems_ = 0;
 
 
     // For the callback mechanism
@@ -53,7 +63,7 @@ namespace CoupledField
     // For the callback mechanism
     solHandle_ = mp_->GetNewHandle(true);
     // Bind the handle to the correct expression
-    mp_->SetExpr(solHandle_,"updateTrigger");
+    mp_->SetExpr(solHandle_,"cacheResult");
     // register callback mechanism if expression changes
     mp_->AddExpChangeCallBack( boost::bind(&CoefFunctionHarmBalance<T>::UpdateSolution, this ), solHandle_ );
 
@@ -120,10 +130,28 @@ namespace CoupledField
       EXCEPTION("CoefFunctionHarmBalance<T>::GenerateMatCoefFnc Nonlinear part not yet implemented");
       //ret = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef_);
     }
-
-
     return ret;
   }
+
+
+  template<class T>
+  void CoefFunctionHarmBalance<T>::
+  RegisterElemsInRegion(shared_ptr<ElemList> actSDList){
+    // Check if the number of allowed regions is exceeded
+    if(regionRegistration_ == true){
+      EXCEPTION("CoefFunctionHarmBalance::RegisterElemsInRegion Error when trying \n"
+          "to set a region, which was probably already registered!");
+    }
+
+    elemListPerRegion_.Push_back(actSDList);
+    numElems_ += actSDList->GetSize();
+
+    // Check and set the flag if all regions are set
+    if(elemListPerRegion_.GetSize() == numRegions_) {
+      regionRegistration_ = true;
+    }
+  }
+
 
   template<class T>
   void CoefFunctionHarmBalance<T>::
@@ -138,8 +166,49 @@ namespace CoupledField
     std::cout<< this->mp_->GetExpr(solHandle_  )<<std::endl;
     std::cout<< this->mp_->Eval(solHandle_) <<std::endl;
 
-    //here read and cache the solution vector from the PDE
+    /*
+     * 1. Check if the update callback was called more often than 2*N_+1
+     *    if so, throw an exception
+     *    2.true We can perform the inverse FFT of the nu(t) signal
+     *           This should be somehow done in the MHTimeFreqResult class
+     *           But how can we give the solution to this class?
+     *           Maybe create an instance right here in this class
+     *           and us it as the nu-object in accordance to the python tool
+     *    2.false Cache the solution vectors until 1. is true...I think that
+     *            is more performant because afterwards we can loop over all
+     *            vectors in parallel and evaluate B where we need
+     *            it IN PARALLEL.
+     *            But therefore we need to really copy the vectors...
+     *            we'll see how the memory is affected
+     */
 
+
+    //=================================================================================
+    //=============================== Just for testing purposes =======================
+    if( this->mp_->Eval(solHandle_)== 0 ){
+      // testwise dummy evaluation of magnetic flux density at some element point
+
+      EntityIterator it = elemListPerRegion_[0]->GetIterator();
+      for(  it.Begin(); !it.IsEnd(); it++  ){
+        const Elem * el = it.GetElem();
+
+        LocPoint lp = Elem::shapes[el->type].midPointCoord;
+        std::cout<<lp.coord.ToString()<<std::endl;
+        LocPointMapped lpm;
+        shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
+        lpm.Set(lp, esm, 0.0);
+
+        Vector<Complex> dummyFluxVec;
+        magFluxCoef_->GetVector(dummyFluxVec, lpm);
+        std::cout<<dummyFluxVec.ToString()<<std::endl;
+      }
+      //==============================================================================
+
+
+
+    }else{
+      EXCEPTION("This case is not yet handled");
+    }
 
 
   }
