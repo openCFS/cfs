@@ -15,6 +15,9 @@ configure:
     - mkdir build
     - cd build
     - cmake ..
+  artifacts:
+    paths:
+      - build/
 
 build:
   stage: build
@@ -26,6 +29,8 @@ build:
     - echo "hi" > testfile
     - pwd
     - ls
+  dependencies:
+    - configure
   #artifacts:
   #  paths:
   #    - mybinary
@@ -40,3 +45,5 @@ test:
   stage: test
   script:
     - ls -l
+  dependencies:
+    - build
