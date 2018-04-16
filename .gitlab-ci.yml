@@ -10,7 +10,7 @@ stages:
 # cache the build files
 cache:
   paths:
-  - build
+    - build
 
 configure:
   stage: configure
@@ -20,9 +20,9 @@ configure:
     - mkdir build
     - cd build
     - cmake ..
-  artifacts:
-    paths:
-      - build/
+#  artifacts:
+#    paths:
+#      - build/
 
 build:
   stage: build
@@ -36,9 +36,9 @@ build:
     - make
   dependencies:
     - configure
-  artifacts:
-    paths:
-      - build
+#  artifacts:
+#    paths:
+#      - build
   # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
   # cache:
   #   paths:
