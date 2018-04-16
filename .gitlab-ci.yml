@@ -7,6 +7,11 @@ stages:
   - build
   - test
 
+# cache the build files
+cache:
+  paths:
+  - build
+
 configure:
   stage: configure
   script:
@@ -25,15 +30,15 @@ build:
   # install the necessary build tools when needed
   # before_script: 
   #   - apt update && apt -y install make autoconf 
-  script: 
-    - echo "hi" > testfile
-    - pwd
+  script:
+    - cd build
     - ls
+    - make
   dependencies:
     - configure
-  #artifacts:
-  #  paths:
-  #    - mybinary
+  artifacts:
+    paths:
+      - build
   # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
   # cache:
   #   paths:
@@ -45,5 +50,7 @@ test:
   stage: test
   script:
     - ls -l
+    - cd build
+    - ctest
   dependencies:
     - build
