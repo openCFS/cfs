@@ -7,8 +7,10 @@ stages:
   - build
   - test
 
-# cache the build files
+# cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
+# use the ref-name, e.g. `master` as key -> same for sucessive builds
 cache:
+  key: ${CI_COMMIT_REF_NAME}
   paths:
     - build
 
@@ -17,7 +19,7 @@ configure:
   script:
     - pwd
     - ls
-    - mkdir build
+    - mkdir -p build
     - cd build
     - cmake ..
 #  artifacts:
