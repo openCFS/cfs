@@ -4,8 +4,8 @@
 # see https://hub.docker.com/_/gcc/
 stages:
   - configure
-  - build
-  - test
+#  - build
+#  - test
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
 # use the ref-name, e.g. `master` as key -> same for sucessive builds
@@ -22,9 +22,10 @@ configure:
     - mkdir -p build
     - cd build
     - cmake ..
-#  artifacts:
-#    paths:
-#      - build/
+    - cmake .
+  artifacts:
+    paths:
+      - build/CMakeCache.txt
 
 build:
   stage: build
