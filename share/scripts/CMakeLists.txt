@@ -62,7 +62,7 @@ ENDIF(WIN32)
 #-------------------------------------------------------------------------------
 # Custom target for copying cfstool to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
-IF(CFSTOOL)
+IF(BUILD_CFSTOOL)
   IF(WIN32)
     SET(CFSTOOL_SCRIPT "cfstool.bat")
   ELSE(WIN32)
@@ -82,7 +82,7 @@ IF(CFSTOOL)
       COMMENT "Copying \"cfstool\" script to ${CFS_BINARY_DIR}/bin folder...")
   ENDIF()
 
-ENDIF(CFSTOOL)
+ENDIF(BUILD_CFSTOOL)
 
 #-------------------------------------------------------------------------------
 # Custom target for copying cfsdat to ${CFS_BINARY_DIR}/bin
