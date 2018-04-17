@@ -374,7 +374,7 @@ OPTION(USE_FLANN
 OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
 OPTION(PROFILING "Set profiling compiler options for Release." ${PROFILING_DEFAULT})
 OPTION(COVERAGE "Turn on coverage compier options."  ${COVERAGE_DEFAULT})
-OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."  ${CFSTOOL_DEFAULT})
+OPTION(BUILD_CFSTOOL "Build CFS++ converter tool (cfstool)."  ${BUILD_CFSTOOL_DEFAULT})
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})
 OPTION(UNIT_TESTS "Build CFS++ unit tests (cfstest)."  ${UNIT_TESTS_DEFAULT})
 
@@ -402,36 +402,6 @@ OPTION(EXPLICIT_TEMPLATE_INSTANTIATION
 #-----------------------------------------------------------------------------
 SET(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING
   "Path where the XML schema for the input files is located.")
-
-#-----------------------------------------------------------------------------
-# Specify path to CFS++ testsuite. If this path exists, CTest compatible
-# test cases will be generated in the current binary directory.
-#-----------------------------------------------------------------------------
-IF(NOT TESTSUITE_DIR_DEFAULT)
-  SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
-ENDIF(NOT TESTSUITE_DIR_DEFAULT) 
-
-SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
-
-IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
-  IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-    # In order to perform tests we need the CFSTOOL and HDF5!
-    SET(CFSTOOL ON CACHE BOOL
-      "Build CFS++ converter tool (cfstool)." FORCE)
-    
-    SET(USE_HDF5 ON CACHE INTERNAL
-      "Use HDF5 for simulation in/output." FORCE)
-    
-    ADD_SUBDIRECTORY(${TESTSUITE_DIR}
-      "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
-
-  ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-    SET(MSG "Testsuite directory '${TESTSUITE_DIR}' does not contain")
-    SET(MSG "${MSG} TESTSUIT.\nPlease specify a proper location!")
-
-    MESSAGE("${MSG}")
-  ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 
 # set the mode of cfstool
 SET(CFS_TESTSUITE_CFSTOOL_MODE "scalardiff" CACHE STRING "The mode used to compare hdf5 files by cfstool. May be 'scalardiff', 'L2diff', or 'relL2diff'.")
@@ -541,13 +511,40 @@ IF(BUILD_TESTING)
     "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
     CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
-
   #---------------------------------------------------------------------------
   # Include CMake module for testing support
   # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
   #---------------------------------------------------------------------------
   INCLUDE(CTest)
+  #-----------------------------------------------------------------------------
+  # Specify path to CFS++ testsuite. If this path exists, CTest compatible
+  # test cases will be generated in the current binary directory.
+  #-----------------------------------------------------------------------------
+  IF(NOT TESTSUITE_DIR_DEFAULT)
+    SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
+  ENDIF(NOT TESTSUITE_DIR_DEFAULT)
+
+  SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
+
+  IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+    IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+      ADD_SUBDIRECTORY(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+    ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+      SET(MSG "Testsuite directory '${TESTSUITE_DIR}' does not contain")
+      SET(MSG "${MSG} TESTSUIT.\nPlease specify a proper location!")
+      MESSAGE("${MSG}")
+    ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+  ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+  # check if we have options
+  # In order to perform tests we need the CFSTOOL and HDF5!
+  if(NOT BUILD_CFSTOOL)
+    message(FATAL_ERROR "BUILD_TESTING=ON requires BUILD_CFSTOOL=ON.")
+  endif()
+  if(NOT USE_HDF5)
+    message(FATAL_ERROR "BUILD_TESTING=ON requires USE_HDF5=ON.")
+  endif()
 ENDIF(BUILD_TESTING)
+MARK_AS_ADVANCED(TESTSUITE_DIR)
 
 #-----------------------------------------------------------------------------
 # Enables python testsuite (contains matviz.py tests) used be the optimization group
@@ -832,11 +829,9 @@ ADD_SUBDIRECTORY(source/Optimization/Design)
 ADD_SUBDIRECTORY(source/Optimization/Optimizer)
 ADD_SUBDIRECTORY(source/main)
 
-IF(CFSTOOL)
+IF(BUILD_CFSTOOL)
   ADD_SUBDIRECTORY(source/cfstool)
-  #  SET(USE_FFTW ON CACHE BOOL 
-  #  "Activate DFT and filtering capabilities of cfstool." FORCE)
-ENDIF(CFSTOOL)
+ENDIF(BUILD_CFSTOOL)
 
 IF(CFSDAT)
   ADD_SUBDIRECTORY(source/cfsdat)
