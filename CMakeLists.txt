@@ -530,7 +530,6 @@ IF(BUILD_TESTING)
     IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
       ADD_SUBDIRECTORY(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
     ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-      message(FATAL_ERROR "TESTSUITE_DIR does not contain a directoy 'TESTSUIT'.\n"
       SET(MSG "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'.\n")
       SET(MSG "${MSG}Please specify a proper location!\n")
       SET(MSG "${MSG}Did you clone with 'git clone --recurse-submodules'?\n")
