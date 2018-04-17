@@ -872,22 +872,84 @@ namespace CoupledField {
         //        if(p->Has("Pr"))
         //          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL );
         
-        // read direction of polarization
+        Matrix<Double> directionVector;
         if(p->Has("dirP"))
         {
-          int dir = p->Get("dirP")->As<Integer>();
-          
-          if(dir == 1) material->SetScalar("X", P_DIRECTION );
-          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
-          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
-          
-          if(dir != 1 && dir != 2 && dir != 3)
-            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
-                    << " hysteresis model polarization");
+          //std::cout << "InitialState found" << std::endl;
+          ParamTools::AsTensor<double>(p->Get("dirP"),1, 3, directionVector);
+          //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+        } else {
+          //std::cout << "NO InitialState found" << std::endl;
+          directionVector.Resize(1,3);
+          directionVector.Init();
         }
+        
+        material->SetScalar( directionVector[0][0], P_DIRECTION_X, Global::REAL);
+        material->SetScalar( directionVector[0][1], P_DIRECTION_Y, Global::REAL);
+        material->SetScalar( directionVector[0][2], P_DIRECTION_Z, Global::REAL);
+                   
+        // OLD Version: only coordinate axis were allowed
+//        // read direction of polarization
+//        if(p->Has("dirP"))
+//        {
+//          int dir = p->Get("dirP")->As<Integer>();
+//          
+//          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+//          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+//          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+//          
+//          if(dir != 1 && dir != 2 && dir != 3)
+//            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
+//                    << " hysteresis model polarization");
+//        }
+        
         // not needed anymore -> preisach is always scalar; vector model has its own name now
         material->SetScalar("SCALAR", PREISACH_DIM);
+                
+        bool useExtension = false;
+        Double rotResistance = 1;
+        Double angularDistance = 0;
+        Matrix<Double> initialStateTensor = Matrix<Double>(1,3);
+        initialStateTensor.Init();
         
+        if(p->Has("pseudoVectorExtension"))
+        {
+          PtrParamNode pExt = p->Get("pseudoVectorExtension");
+          
+          if(pExt->Has("useExtension"))
+          {
+            useExtension = pExt->Get("useExtension")->As<bool>();
+          }
+
+          if(pExt->Has("rotResistance"))
+          {
+            rotResistance = pExt->Get("rotResistance")->As<double>();
+          }
+
+          if(pExt->Has("angularDistance"))
+          {
+            angularDistance = pExt->Get("angularDistance")->As<double>();
+          }
+          
+          if(pExt->Has("initialState"))
+          {
+            //std::cout << "InitialState found" << std::endl;
+            ParamTools::AsTensor<double>(pExt->Get("initialState"),1, 3, initialStateTensor);
+            //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+          } 
+        }
+        int useExtensionInt = 0;
+        if(useExtension){
+          useExtensionInt = 1;
+        }
+        
+        material->SetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
+        material->SetScalar(rotResistance, ROT_RESISTANCE, Global::REAL);
+        material->SetScalar(angularDistance, ANG_DISTANCE, Global::REAL);
+        material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
+        material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
+        material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
+                
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
         if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
@@ -970,7 +1032,7 @@ namespace CoupledField {
         if(p->Has("angularResolution")){
           material->SetScalar(p->Get("angularResolution")->As<Double>(), ANG_RESOLUTION, Global::REAL);
         } else {
-          material->SetScalar(0.0001, ANG_RESOLUTION, Global::REAL);
+          material->SetScalar(1e-9, ANG_RESOLUTION, Global::REAL);
         }
         
         if(p->Has("angularClipping")){
@@ -982,9 +1044,9 @@ namespace CoupledField {
         if(p->Has("amplitudeResolution")){
           material->SetScalar(p->Get("amplitudeResolution")->As<Double>(), AMP_RESOLUTION, Global::REAL);
         } else {
-          material->SetScalar(0.0, AMP_RESOLUTION, Global::REAL);
+          material->SetScalar(1e-9, AMP_RESOLUTION, Global::REAL);
         }
-        
+				        
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
         if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
@@ -1053,7 +1115,9 @@ namespace CoupledField {
           material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
         }
         
-      }
+      } 
+    } else {
+      material->SetScalar("none", HYST_MODEL);
     }
   }
   
@@ -1397,21 +1461,82 @@ namespace CoupledField {
         //        if(p->Has("Mr"))
         //          material->SetScalar(p->Get("Mr")->As<Double>(), Y_REMANENCE, Global::REAL );
         
-        // read direction of polarization
+        Matrix<Double> directionVector;
         if(p->Has("dirJ"))
         {
-          int dir = p->Get("dirJ")->As<Integer>();
-          
-          if(dir == 1) material->SetScalar("X", P_DIRECTION );
-          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
-          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
-          
-          if(dir != 1 && dir != 2 && dir != 3)
-            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
-                    << " hysteresis model polarization");
+          //std::cout << "InitialState found" << std::endl;
+          ParamTools::AsTensor<double>(p->Get("dirJ"),1, 3, directionVector);
+          //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+        } else {
+          //std::cout << "NO InitialState found" << std::endl;
+          directionVector.Resize(1,3);
+          directionVector.Init();
         }
+        
+        material->SetScalar( directionVector[0][0], P_DIRECTION_X, Global::REAL);
+        material->SetScalar( directionVector[0][1], P_DIRECTION_Y, Global::REAL);
+        material->SetScalar( directionVector[0][2], P_DIRECTION_Z, Global::REAL);
+                   
+        // OLD Version: only coordinate axis were allowed
+//        // read direction of polarization
+//        if(p->Has("dirJ"))
+//        {
+//          int dir = p->Get("dirJ")->As<Integer>();
+//          
+//          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+//          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+//          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+//          
+//          if(dir != 1 && dir != 2 && dir != 3)
+//            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
+//                    << " hysteresis model polarization");
+//        }
         // not needed anymore -> preisach is always scalar; vector model has its own name now
         material->SetScalar("SCALAR", PREISACH_DIM);
+        
+        bool useExtension = false;
+        Double rotResistance = 1;
+        Double angularDistance = 0;
+        Matrix<Double> initialStateTensor = Matrix<Double>(1,3);
+        initialStateTensor.Init();
+        
+        if(p->Has("pseudoVectorExtension"))
+        {
+          PtrParamNode pExt = p->Get("pseudoVectorExtension");
+          
+          if(pExt->Has("useExtension"))
+          {
+            useExtension = pExt->Get("useExtension")->As<bool>();
+          }
+
+          if(pExt->Has("rotResistance"))
+          {
+            rotResistance = pExt->Get("rotResistance")->As<double>();
+          }
+
+          if(pExt->Has("angularDistance"))
+          {
+            angularDistance = pExt->Get("angularDistance")->As<double>();
+          }
+          
+          if(pExt->Has("initialState"))
+          {
+            //std::cout << "InitialState found" << std::endl;
+            ParamTools::AsTensor<double>(pExt->Get("initialState"),1, 3, initialStateTensor);
+            //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+          } 
+        }
+        int useExtensionInt = 0;
+        if(useExtension){
+          useExtensionInt = 1;
+        }
+        
+        material->SetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
+        material->SetScalar(rotResistance, ROT_RESISTANCE, Global::REAL);
+        material->SetScalar(angularDistance, ANG_DISTANCE, Global::REAL);
+        material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
+        material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
+        material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
         
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
@@ -1492,10 +1617,10 @@ namespace CoupledField {
           material->SetScalar(0.0, ANG_DISTANCE, Global::REAL);
         }
         
-        if(p->Has("angularResolution")){
+				if(p->Has("angularResolution")){
           material->SetScalar(p->Get("angularResolution")->As<Double>(), ANG_RESOLUTION, Global::REAL);
         } else {
-          material->SetScalar(0.0, ANG_RESOLUTION, Global::REAL);
+          material->SetScalar(1e-9, ANG_RESOLUTION, Global::REAL);
         }
         
         if(p->Has("angularClipping")){
@@ -1507,9 +1632,9 @@ namespace CoupledField {
         if(p->Has("amplitudeResolution")){
           material->SetScalar(p->Get("amplitudeResolution")->As<Double>(), AMP_RESOLUTION, Global::REAL);
         } else {
-          material->SetScalar(0.0, AMP_RESOLUTION, Global::REAL);
+          material->SetScalar(1e-9, AMP_RESOLUTION, Global::REAL);
         }
-        
+								
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
         if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
@@ -1578,8 +1703,61 @@ namespace CoupledField {
           material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
         }
         
-      }
+        if(p->Has("hystInversion"))
+        {
+          PtrParamNode pInv = p->Get("hystInversion");
+          
+          int maxNumIts = 35;
+          if(pInv->Has("maxNumberIterations"))
+          {
+            maxNumIts = pInv->Get("maxNumberIterations")->As<Integer>();
+          }
+          material->SetScalar(maxNumIts, MAX_NUM_IT_HYST_INV);
+          
+          double tolH = 1e-12;
+          if(pInv->Has("residualTolH"))
+          {
+            tolH = pInv->Get("residualTolH")->As<double>();
+          }
+          material->SetScalar(tolH, RES_TOL_H_HYST_INV, Global::REAL);
+          
+          double tolB = 1e-12;
+          if(pInv->Has("residualTolB"))
+          {
+            tolB = pInv->Get("residualTolB")->As<double>();
+          }
+          material->SetScalar(tolB, RES_TOL_B_HYST_INV, Global::REAL);
+          
+          double jacRes = 1e-12;
+          if(pInv->Has("jacobiResolution"))
+          {
+            jacRes = pInv->Get("jacobiResolution")->As<double>();
+          }
+          material->SetScalar(jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
+          
+          bool useTikhonov = false;
+          if(pInv->Has("useTikhonov"))
+          {
+            useTikhonov = pInv->Get("useTikhonov")->As<bool>();
+          }
+          int useTikhonovInt = 0;
+          if(useTikhonov){
+            useTikhonovInt = 1;
+          }
+          material->SetScalar(useTikhonovInt, TIKHONOV_HYST_INV);
+          
+          double alphaLSStart = 0.25;
+          if(pInv->Has("alphaRegStart"))
+          {
+            alphaLSStart = pInv->Get("alphaRegStart")->As<double>();
+          }
+          material->SetScalar(alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
+
+        }
+      }  
       
+    } else {
+      material->SetScalar("none", HYST_MODEL);
     }
     
     //read real magmech coupling tensor

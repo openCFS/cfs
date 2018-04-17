@@ -588,10 +588,14 @@ public:
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
   //! Functions needed for Hystersis
-  virtual void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false) {
+  virtual void SetPreviousHystVals(bool lastTS = false, bool forceMemoryLock = false){
 	  EXCEPTION("SetPreviousHystVals not available");
   }
 
+  virtual void TestInversion(UInt testNumber, bool stopAfterTests, bool printStatistics, bool writeResultsToFiles){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
   virtual void SetFlag(std::string flagName, Integer intState){
     EXCEPTION( "Not implemented in base class");
   }
@@ -605,6 +609,10 @@ public:
   }
   
   virtual bool deltaMatActive(){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual bool couplingTensorSet(){
     EXCEPTION("Not implemented in base class");
   }
   
@@ -626,10 +634,35 @@ public:
     EXCEPTION("Not implemented in base class");
   }
   
+  virtual void ActiveOneShotSlopeEstimation(Double steppingLength, Double scaling){
+    EXCEPTION( "Not implemented in base class");
+  }
+    
+  virtual void checkSaturationStateAllElements(Double& lastTSSatAvg, Double& lastItSatAvg, Double& curItSatAvg,
+      Double& oppositeDirAsTSAvg, Double& oppositeDirAsItAvg){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
   virtual Vector<Double> GetOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel){
     EXCEPTION( "Not implemented in base class");
   }
 
+  virtual bool anyMatrixForLocalInversionRequiresComputation(){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual void getMatrixForLocalInversion(const LocPointMapped& Originallpm, Matrix<Double>& matrixForInversion, Matrix<Double>& matrixForInversionInverse){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual void setMatrixForLocalInversion(Matrix<Double> matrixForInversion, Matrix<Double> matrixForInversionInverse, UInt storageIdx, bool reuse){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual void getLPMMaps(std::map<UInt, LocPointMapped >& allLPM, std::map<UInt, LocPointMapped >& midpointLPM){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
   virtual void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor, int timeLevel,
   bool rotate=true){
     EXCEPTION( "Not implemented in base class");

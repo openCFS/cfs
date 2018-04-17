@@ -2,19 +2,175 @@
 
 #include <iostream>
 #include <fstream>
-
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 
 namespace CoupledField
 { 
+  DECLARE_LOG(scalpreisach)
+  DEFINE_LOG(scalpreisach, "scalpreisach")
+  
+  ExtendedPreisach::ExtendedPreisach(Integer numElem, Double xSat, Double ySat, 
+          Matrix<Double>& preisachWeight, Double rotationalResistance , Double angularDistance, UInt dim, bool isVirgin):
+  Preisach(numElem, xSat, ySat, preisachWeight, isVirgin){
+    
+    if(angularDistance != 0){
+      WARN("angularDistance not yet used in ExtendedPreisach");
+    }
+    
+    rotResistance_ = rotationalResistance;
+    dim_ = dim;
+    
+    rotationStates_ = new std::map<Double,Vector<Double> >[numElem];
+    currentDirection_ = new Vector<Double>[numElem];
+  }
+  
+  ExtendedPreisach::~ExtendedPreisach(){
+    delete [] rotationStates_;
+    delete [] currentDirection_;
+  }
+  
+  void ExtendedPreisach::UpdateRotationState(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
+    
+    /*
+     * 1. Decompose flux_in into amplitude and direction
+     */
+    Double ampl = flux_in.NormL2();
+    if(ampl <= 0){
+      // nothing to update
+      return;
+    }
+    
+    Vector<Double> dir = flux_in;
+    dir.ScalarDiv(ampl);
+    
+    /*
+     * 2. Compute actual setting value as for Vector Modell 2015er edition
+     */
+    // major difference: we use the flux quantity; full setting shall be achived
+    // if material goes in saturation, i.e. we have to clip towards YSaturation_
+    // however. YSaturation is the saturation value for P not for the flux quantity
+    Vector<Double> satInCurDir = Vector<Double>(dim_);
+    eps_mu.Mult(dir,satInCurDir);
+    satInCurDir.ScalarMult(XSaturated_);
+    satInCurDir.Add(YSaturated_,dir);
+    // satInCurDir = (YSaturated_*Identity + XSaturated*eps_mu)*dir
+    Double satValue = satInCurDir.NormL2();
+    
+    if(ampl >= satValue){
+      ampl = 1.0;
+    } else {
+      ampl = ampl/satValue;
+    }
+    
+    Double X_thres = ampl*rotResistance_;
+    if(X_thres > 1.0){
+      X_thres = 1.0;
+    } else if (X_thres <= 0){
+      return;
+    }
+    
+    /*
+     * 3. Update list using X_thres
+     */
+    // special case: list empty
+    if(rotationStates_[idx].empty()){
+      // directly insert X_thres, dir
+      rotationStates_[idx][X_thres] = dir;
+    } else {
+      std::map<Double, Vector<Double> >::iterator insertPos;
+      std::pair<std::map<Double, Vector<Double> >::iterator,bool> retVal; 
+      /*
+       * Advantage from taking a map:
+       *  > map is sorted automatically
+       *  > insert function will find the correct position (according to key)
+       *      and will return its position
+       *  > using this position we can easily wipe out rest according to wiping
+       *      out rules (which are much easier for the rotation states as the 
+       *      only rule is: remove all entries with key < X_thres, keep rest
+       */
+      retVal = rotationStates_[idx].insert(std::pair<Double, Vector<Double> >(X_thres, dir));
+      insertPos = retVal.first;
+      
+      // if X_thres was inserted, insertPos point to the new entry
+      // if X_thres was not inserted (due to its value already in the map), insertPos points to the 
+      //  this prevously inserted element
+      
+      std::map<Double, Vector<Double> >::iterator startPos = rotationStates_[idx].begin();
+      rotationStates_[idx].erase(startPos,insertPos); // insertPos is kept
+      
+    }
+  }
+  
+  void ExtendedPreisach::EvaluateRotationState(UInt idx){
+    // evaluate rotationStates_ and store in currentDirection_
+    // iterate through map from back to front
+    Vector<Double> dirVector = Vector<Double>(dim_);
+    dirVector.Init();
+    Double curWeight;
+    
+    if(!rotationStates_[idx].empty()){
+
+      Double curVal;
+      Double nextVal;
+    
+      std::map<Double, Vector<Double> >::reverse_iterator curPos;
+      for(curPos = rotationStates_[idx].rbegin(); curPos != rotationStates_[idx].rend(); curPos++){
+        if(curPos++ == rotationStates_[idx].rend()){
+          // currently we are in the last entry 
+          nextVal = 0.0;
+        } else {
+          nextVal = curPos->first;
+        }
+        curPos--;
+        curVal = curPos->first;
+        
+        // each rotation state is weighted with the actual area that is assigned
+        // to it in the Preisach-like plane
+        // as in the SutorModel from 2015 this plane consists of triangles like
+        /*
+         * Rotation states form flipped L-shapes in the whole Preisach plane
+         *
+         *            S_U           alpha           T_U
+         *      __ __ __ __ __ __ __ |_  __ __ __ __ __ __
+         *     |                     |                  /
+         *     |A0                   |                /
+         *     |      _ _ _ _ _ _ _ _|_ _ _ _ _ _ _ /_ ex1
+         *     |     |   A1          |            /
+         *     |     |     _ _ _ _ _ |_ _ _ _ _ /_ ex2
+         *     |     |   |    A2     |        /
+         *     |     |   |           |      /
+         *     |     |   |        _ _| _ _/_ _ exN
+         *     |     |   |      |    |  /
+         *     |_____|___|______|_AN_|/____________________ beta
+         *     |     |   |      |   /
+         *     |     |   |      | /
+         *     |     |   |      /
+         *     |     |   |    /
+         *     |     |   |  /
+         *     |     |   |/
+         *     |     |  /
+         *     |     |/
+         *     |    /
+         *     |_ /
+         *           T_L
+         */
+        // Unlike the actual vector model, these states are not furtehr sub
+        // divided so that the area computation is very simple
+        // > take outersquare - innersquare, divide by 2 (for triangles), divide
+        //  by 2 to value between 0 and 1 (preisach plane goes from -1 to +1)
+        curWeight = (curVal*curVal - nextVal*nextVal)/4.0;
+        dirVector.Add(curWeight,curPos->second);
+      }
+    }
+    currentDirection_[idx] = dirVector;  
+  }
   
   Preisach::Preisach(Integer numElem, Double xSat, Double ySat, 
           Matrix<Double>& preisachWeight, bool isVirgin) 
   : Hysteresis(numElem)
   {
-    
-    std::cout << "ScalarPreisach: Using Everett function" << std::endl;
-    
+    LOG_TRACE(scalpreisach) << "ScalarPreisach: Using Everett function";
     //tol_ = 1e-5;
     tol_ = 1e-15;
     
@@ -30,15 +186,15 @@ namespace CoupledField
     
     preisachWeights_ = preisachWeight;
     preisachSum_.Resize(numElem);
-    preisachSum_.Init(0);
+    preisachSum_.Init();
     StringLength_.Resize(numElem);
     
     strings_     = new Vector<Double>[numElem];
     helpStrings_ = new Vector<Double>[numElem];
-    minmaxtype_     = new Vector<Integer>[numElem];
+    minmaxtype_ = new Vector<Integer>[numElem];
     evaluatedEverettPixel_ = new Vector<Double>[numElem];
     maxStringLength_ = 100;
-    
+
     for (Integer el=0; el<numElem; el++) {
       strings_[el].Resize(maxStringLength_);
 			minmaxtype_[el].Resize(maxStringLength_);
@@ -76,6 +232,7 @@ namespace CoupledField
   }
   
   Double Preisach::bisect(Double dY,Double xMin,Double xMax, Double xFixed, Double eps_mu, Double tol){
+		LOG_DBG(scalpreisach) << "perform bisection for dY: " << dY;
 //    std::cout << "perform bisection" << std::endl;
 //    std::cout << "dY: " << dY << std::endl;
 //    std::cout << "xMin: " << xMin << std::endl;
@@ -115,6 +272,7 @@ namespace CoupledField
         diffMiddle = dY - everettMiddle - dX*dX_to_dY;
         
         if(abs(diffMiddle) < tol){
+					LOG_DBG(scalpreisach) << "Remaining diff: " << abs(diffMiddle);
           return xMiddle;
         }
         
@@ -137,6 +295,8 @@ namespace CoupledField
           xMax = xMiddle;
         }
       }
+      LOG_DBG(scalpreisach) << "Maxnumber of iteations reached ( case: xFixed >= -1 )";
+			LOG_DBG(scalpreisach) << "Remaining diff: " << abs(diffMiddle);
 			return xMiddle;
     } else {
       // for the open edge case, we have to be careful as the everettPixel
@@ -184,10 +344,12 @@ namespace CoupledField
           xMax = xMiddle;
         }
       }
+      LOG_DBG(scalpreisach) << "Maxnumber of iteations reached ( case: xFixed < -1 )";
+			LOG_DBG(scalpreisach) << "Remaining diff: " << abs(diffMiddle);
 			return xMiddle;
     }
   }
-  
+
   Double Preisach::computeInputAndUpdate(Double Yin, Double eps_mu, Integer idx, bool overwrite){
     /*
      * NEW implementation; this shall replace class SimplePreisachInv that
@@ -198,6 +360,8 @@ namespace CoupledField
      *         piezokeramischer Aktoren" - Dissertation, Felix Wolf, p. 127ff
      */
     
+		LOG_DBG(scalpreisach) << "Compute inverse of Preisach operator for Yin = " << Yin;
+		
     /*
      * 0. Check if Input drives system into saturation
      *    > make sure to not only compare with YSaturated but also 
@@ -208,9 +372,17 @@ namespace CoupledField
      *      we can get a significant difference to the actual Yin
      */
     Double Xout;
-    Double tol = 1e-8;
+		Double x1,x2; // search interval for later bisection
+		x1 = 0.0;
+		x2 = 0.0;
+    Double tol = 1e-10;
+    // dX_to_dY is the factor which is needed to transfer a normalized dX to 
+    // a normalized dY
+    // dY_norm = dY/YSaturated = eps_mu*dX/YSaturated = eps_mu*dX*XSaturated/XSaturated/YSaturated
+    //         = eps_mu*XSaturated/YSaturated * dX_norm
     Double dX_to_dY = eps_mu*XSaturated_/YSaturated_;
-    
+    UInt invcase = 0;
+		UInt subcase = 0;
     //std::cout << "Inversion" << std::endl;
     //std::cout << "Yin: " << Yin << std::endl;
     //std::cout << "YSaturated: " << YSaturated_ << std::endl;
@@ -226,6 +398,7 @@ namespace CoupledField
        * xOut = (yIn - Ysaturated_)/eps_mu
        */
       Xout = (Yin - YSaturated_)/eps_mu;
+      invcase = 1;
     } else if (Yin <= (-YSaturated_ - eps_mu*XSaturated_) ){
       //std::cout << "neg saturation" << std::endl;
       /*
@@ -236,7 +409,9 @@ namespace CoupledField
        * xOut = (yIn + Ysaturated_)/eps_mu
        */
       Xout = (Yin + YSaturated_)/eps_mu;
+      invcase = 2;
     } else {
+      invcase = 3;
       /*
        * 1. Compute difference between requested yVal and previously computed value
        */
@@ -247,19 +422,49 @@ namespace CoupledField
       
       // TODO:; should be normalized AFTER subtracting x
       // do not cap to +/-1 here as Y is not the polarization (that is actually capped!)
-      Double Y_normalized = Yin/YSaturated_;
-      Double P_old_normalized = previousPval_[idx];
-//      std::cout << "Y_normalized: " << Y_normalized << std::endl;
-//      std::cout << "P_old_normalized: " << P_old_normalized << std::endl;
-//      
-      Double dY = Y_normalized - P_old_normalized;
-//      std::cout << "Y_normalized - P_old_normalized: " << dY << std::endl;
-//      std::cout << "previousXval_[idx]: " << previousXval_[idx] << std::endl;
-//      std::cout << "dX_to_dY*previousXval_[idx]): " << dX_to_dY*previousXval_[idx] << std::endl;
-//      
-      dY = dY - dX_to_dY*previousXval_[idx];
-      //std::cout << "Y_normalized - P_old_normalized - dX_to_dY*previousXval_[idx]: " << dY << std::endl;
+      // EDIT: 26.3.2018
+      //  we have to cap, but not to +/-1 (that would be for polarization) but
+      //  to +/- (1 + dX_to_dY*Xsaturated)
+      // > reason: in the following we compute dY as the difference between oldthat can
+      //           be represented by the Preisach plane is
+      //           2*YSaturated_ + 2*eps_mu*XSaturated_ 
+      //           (considering the reversible part);
+      //           If we start in saturation, however, we have a previous |Y| > YSaturated.
+      //           This leads to a dY that can be larger than 2*YSaturated_ + 2*eps_mu*XSaturated_.
+      //           Even if this is not the case, the later finesearch will try to compensate this
+      //           dY by adapting the Preisach plane. This works quite well actually, but is wrong
+      //           apparently as the finesearch computes dY from YSaturated+eps_mu*XSaturated and not from the actual
+      //           Yold.
+      //            > restrict Yold to (YSaturated+eps_mu*XSaturated)/YSaturated
+      //          
       
+      // OLD without capping > works well unless we come from a saturated state
+//      Double Y_normalized = Yin/YSaturated_;
+//      Double P_old_normalized = previousPval_[idx];    
+//      Double Y_old_normalized = P_old_normalized+dX_to_dY*previousXval_[idx];
+//      LOG_DBG(scalpreisach) << "yOld: " << Y_old_normalized*YSaturated_;
+//      Double dY = Y_normalized - Y_old_normalized;
+
+      // NEW with capping
+      Double Y_normalized = Yin/YSaturated_;
+      Double P_old_normalized = previousPval_[idx];    
+      Double Y_old_normalized = P_old_normalized+dX_to_dY*previousXval_[idx];
+      LOG_DBG(scalpreisach) << "Y_old: " << Y_old_normalized*YSaturated_;
+      LOG_DBG(scalpreisach) << "Y_old_normalized: " << Y_old_normalized;
+      if(Y_old_normalized > (1 + dX_to_dY)){
+        Y_old_normalized = 1 + dX_to_dY;
+      } else if (Y_old_normalized < -(1 + dX_to_dY)){
+        Y_old_normalized = -1 - dX_to_dY;
+      }
+      LOG_DBG(scalpreisach) << "Y_old_normalized (clipped): " << Y_old_normalized;
+      
+      Double dY = Y_normalized - Y_old_normalized;
+
+      
+//     dY = dY - dX_to_dY*previousXval_[idx];
+      //std::cout << "Y_normalized - P_old_normalized - dX_to_dY*previousXval_[idx]: " << dY << std::endl;
+      LOG_DBG(scalpreisach) << "Starting value for dY: " << dY*YSaturated_;
+			LOG_DBG(scalpreisach) << "Starting value for dY (normalized): " << dY;
       Integer minmaxcur = 0.0;
 			if(dY > 0){
 				// larger value than before > input has to be larger than
@@ -276,13 +481,14 @@ namespace CoupledField
       if(abs(dY) < tol){
         // difference is negligible
         //std::cout << "take previous xvalue" << std::endl;
+        invcase = 31;
         Xout = previousXval_[idx];
       } else{
+        invcase = 32;
         Vector<Double> &stringEl = strings_[idx];
 				Vector<int> &minmaxEl = minmaxtype_[idx];
 				Vector<Double> &everettEl = evaluatedEverettPixel_[idx];
         
-				Double x1,x2; // search interval for later bisection
 				x1 = -1.0; // lower bound for max, left bound for min
 				x2 = 1.0; // upper bound for max, right bound for min
 				
@@ -295,6 +501,7 @@ namespace CoupledField
          *						 a max after a min than adding a max after a max)
          */
 				if( (actLength >= 1)&&(minmaxcur == minmaxEl[actLength-1]) ){
+					LOG_DBG(scalpreisach) << "remove last entry of list: " << stringEl[actLength-1];
           //std::cout << "remove last entry of list: " << stringEl[actLength-1] << std::endl;
 					// delete last entry (not actually here but just virtually)
 					// the value of the corresponding everett pixel now increases
@@ -328,7 +535,7 @@ namespace CoupledField
 						// min> min was removed; right bound can be decreased to removed entry
 						x2 = stringEl[actLength-1];
 					}
-					
+					LOG_DBG(scalpreisach) << "Updated dY: " << dY;
 					actLength--;
 				}
 				
@@ -350,7 +557,7 @@ namespace CoupledField
 						// searching range between 0 and maximal value
 						x1 = 0;
 						x2 = 1;
-						
+						subcase = 0;
 						break; // go to fine search
 					} else {
             // here we need to check if our dY would lead to a new list entry
@@ -392,11 +599,17 @@ namespace CoupledField
             if(actLength >= 2){
               //std::cout << "stringEl[actLength-2]: "<< stringEl[actLength-2] << std::endl;
               dX -= stringEl[actLength-2];
+							subcase = 2;
             } else {
               // last entry; everettEl counts twice
               availSpace += everettEl[actLength-1];
               // we also have to take the difference towards the other edge of the triangle, so add last entry another time
-              dX += stringEl[actLength-1];
+							// dX += stringEl[actLength-1];
+							// > instead: add dX*dX_to_dY to availspace instead of increasing dX!
+							// dX is simply stringEL here
+							availSpace += dX_to_dY*dX;
+							subcase = 1;
+              //
             }
             availSpace += dX_to_dY*dX;
             
@@ -453,7 +666,7 @@ namespace CoupledField
 									// min> min was removed; right bound can be decreased to removed entry
 									x2 = stringEl[actLength-1];
 								}
-								
+								LOG_DBG(scalpreisach) << "Updated dY: " << dY;
 								actLength--;
 							}
 						}
@@ -467,7 +680,9 @@ namespace CoupledField
 			} // reuse old value
       
       // rescale to -xSat to +xSat
+			LOG_DBG(scalpreisach) << "Found Xout (normalized): " << Xout;
       Xout *= XSaturated_;
+			LOG_DBG(scalpreisach) << "Found Xout: " << Xout;
 		} // pos/neg/no saturation
 		
 		/*
@@ -477,11 +692,32 @@ namespace CoupledField
      * > has to be done for ALL cases
      */	
 		//if(overwrite){
-      computeValueAndUpdate( Xout, idx, overwrite );
+      //computeValueAndUpdate( Xout, idx, overwrite );
       Double yRetrieved = computeValueAndUpdate( Xout, idx, overwrite );
       //std::cout << "Xout: " << Xout << std::endl;
       //std::cout << "pRetrieved: " << yRetrieved << std::endl;
+			LOG_DBG(scalpreisach) << "Found Xout: " << Xout;
       yRetrieved+=Xout*eps_mu;
+      LOG_DBG(scalpreisach) << "Found Yout: " << yRetrieved;
+      bool debug = true;
+      if(debug){
+        if(abs(yRetrieved-Yin) > 100*tol){
+        LOG_DBG(scalpreisach) << "InversionCase: " << invcase;
+				LOG_DBG(scalpreisach) << "SubCase: " << subcase;
+        LOG_DBG(scalpreisach) << "yRequested: " << Yin;
+        LOG_DBG(scalpreisach) << "Found Yout: " << yRetrieved;
+        LOG_DBG(scalpreisach) << "Difference: " << yRetrieved-Yin;
+				
+				Double P_old_normalized = previousPval_[idx];
+				Double Y_old_normalized = P_old_normalized+dX_to_dY*previousXval_[idx];
+
+				LOG_DBG(scalpreisach) << "yOld: " << Y_old_normalized*YSaturated_;
+				LOG_DBG(scalpreisach) << "yRequested-yOld: " << Yin-Y_old_normalized*YSaturated_;
+				LOG_DBG(scalpreisach) << "yRequested-yOld (normalized): " << Yin-Y_old_normalized;
+				LOG_DBG(scalpreisach) << "x1, x2, xOut: " << x1 << ", " << x2 << ", " << Xout;
+        }
+      }
+      
       //std::cout << "yRetrieved: " << yRetrieved << std::endl;
       //std::cout << "yRequested: " << Yin << std::endl;
 		//}
@@ -572,6 +808,8 @@ namespace CoupledField
 		} else if(diff < 0){
 			// new input is smaller than last one > leads to a minimum
 			minmaxcur = -1;
+		} else if(diff == 0){
+			return preisachSum_[idx];
 		}
     
     //    std::cout << "Element: " << idx << std::endl;

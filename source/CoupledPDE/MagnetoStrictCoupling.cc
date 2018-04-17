@@ -617,36 +617,44 @@ namespace CoupledField {
 			
 			magToMech->GetTensorSize(numRows,numCols);
 //			std::cout << "elecToMech: " << numRows << " " << numCols << std::endl;
-						
+					
+      // NOTE: the used set of governing equations
+      //   H = -[h]*S + [nu]*B
+      //   [sigma] = [c]*S - [h]*B
+      // couple with a negative sign, so we have to use a factor of -1 for the coupling matrices 
+      // > due to convention the MatCoefFnc will return +h, so we have to multiply by -1 as for
+      //   the linear case
+      double factor = -1.0;
+      
 			if ( isComplex ) {
 				if( subType_ == "axi" ) {
 					*magToMechInt = new ADBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(),
 														new CurlOperatorAxi<Complex>(),
-														magToMech, 1.0, true );
+														magToMech, factor, true );
 					*mechToMagInt = new ADBInt<Complex>(new CurlOperatorAxi<Complex>(),
 														new StrainOperatorAxi<FeH1,Complex>(),
-														mechToMag, 1.0, true );
+														mechToMag, factor, true );
 				} else if( subType_ == "planeStrain" ) {
 					*magToMechInt = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
 														new CurlOperator<FeH1,2, Complex>(),
-														magToMech, 1.0, true);
+														magToMech, factor, true);
 					*mechToMagInt = new ADBInt<Complex>(new CurlOperator<FeH1,2, Complex>(),
 														new StrainOperator2D<FeH1,Complex>(),
-														mechToMag, 1.0, true);
+														mechToMag, factor, true);
 				} else if( subType_ == "planeStress" ) {
 					*magToMechInt = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
 														new CurlOperator<FeH1,2, Complex>(),
-														magToMech, 1.0, true);
+														magToMech, factor, true);
 					*mechToMagInt = new ADBInt<Complex>(new CurlOperator<FeH1,2, Complex>(),
 														new StrainOperator2D<FeH1,Complex>(),
-														mechToMag, 1.0, true);
+														mechToMag, factor, true);
 				} else if( subType_ == "3d") {
 					*magToMechInt = new ADBInt<Complex>(new StrainOperator3D<FeH1,Complex>(),
 														new CurlOperator<FeH1,3, Complex>(),
-														magToMech, 1.0, true);
+														magToMech, factor, true);
 					*mechToMagInt = new ADBInt<Complex>(new CurlOperator<FeH1,3, Complex>(),
 														new StrainOperator3D<FeH1,Complex>(),
-														mechToMag, 1.0, true);
+														mechToMag, factor, true);
 				} else if( subType_ == "2.5d") {
 					EXCEPTION( "Subtype '" << subType_ << "' not implemented for magstrict yet" );
 				} else {

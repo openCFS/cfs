@@ -165,10 +165,7 @@ namespace CoupledField {
         
         bool IsHysteresis() 
         { return isHysteresis_;};
-        
-        bool IsHysteresis_Fixpoint()
-        { return isHysteresisFixPoint_;};
-        
+                
         bool IsIterCoupled() 
         { return isIterCoupled_;};
         
@@ -192,6 +189,13 @@ namespace CoupledField {
           return feFunctions_[st]->GetResultInfo()->dofNames;
         }
         
+        void TestInversionOfHystOperator(UInt testNumber, bool stopAfterTests, bool printStatistics, bool writeResultsToFiles);
+        
+        void EstimateCurrentSlopeForHysteresis(Double steppingLength, Double scaling);
+        
+        void CheckSaturationOfHystOperators(Double& lastTSSatAvg, Double& lastItSatAvg, Double& curItSatAvg,
+              Double& oppositeDirAsTSAvg, Double& oppositeDirAsItAvg);
+        
         /*
          *
          */
@@ -209,6 +213,8 @@ namespace CoupledField {
          * SetPreviousHystVals -> store input and output values from last iteration
          */
         void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false);
+        
+        bool MaterialTensorsHystDependent();
         
         virtual void FinalizeAfterTimeStep() {
           EXCEPTION("FinalizeAfterTimeStep has to be implemented for specific PDE");
@@ -334,8 +340,6 @@ namespace CoupledField {
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
     // note: not all regions have to have hysteretic material behavior
     bool isHysteresis_;
-    bool isHysteresisFixPoint_;
-
     
     bool matDepend_;        //!< flag for material dependencies
     

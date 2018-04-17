@@ -33,6 +33,9 @@ namespace CoupledField
     isAllowed_.insert( K_JILES );
     isAllowed_.insert( C_JILES );
     isAllowed_.insert( P_DIRECTION );
+    isAllowed_.insert( P_DIRECTION_X );
+    isAllowed_.insert( P_DIRECTION_Y );
+    isAllowed_.insert( P_DIRECTION_Z );
     isAllowed_.insert( PREISACH_DIM );
     isAllowed_.insert( HYST_STRAIN_FORM );
     isAllowed_.insert( HYST_BETA_COEFS );
@@ -42,6 +45,7 @@ namespace CoupledField
     isAllowed_.insert( PRINT_PREISACH );
     isAllowed_.insert( PRINT_PREISACH_RESOLUTION );
     isAllowed_.insert( IS_TESTING );
+    isAllowed_.insert( SCALPREISACH_USE_EXT );
     isAllowed_.insert( ANG_DISTANCE );
     isAllowed_.insert( ANG_CLIPPING );
     isAllowed_.insert( ANG_RESOLUTION );
@@ -410,47 +414,47 @@ namespace CoupledField
 
 
   //============================== Hysteresis =====================================
-
-  Double ElectroStaticMaterial::ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
-
-    Double matDiff, eps;
-
-    UInt idx = globalElem2Local_[nrElem];
-    Double Ycurrent = hyst_->computeValueAndUpdate(Xval, idx);
-
-    //    std::cout << "epsDiff: " << " Xval=" << Xval << "  Yval=" << Ycurrent << std::endl;
-
-    //compute differential material parameter
-    Double dX = Xval - Xprevious_[idx];
-    Double dY = Ycurrent -Yprevious_[idx];
-
-    if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
-      GetScalar(eps,ELEC_PERMITTIVITY,Global::REAL);
-      matDiff = eps;
-    }
-    else {
-      matDiff = dY / dX;
-    }
-
-    return matDiff;
-  }
-
-
-  void ElectroStaticMaterial::SetPreviousHystVal( UInt nrElem, Double Xval ) {
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    Xprevious_[idx] = Xval;
-    Yprevious_[idx] = hyst_->computeValueAndUpdate( Xval, idx );
-  }
-
-
-  Double ElectroStaticMaterial::ComputeScalarHystVal( UInt nrElem, Double Xval ) {
-
-    UInt idx    = globalElem2Local_[nrElem];
-    Double Yval = hyst_->computeValueAndUpdate( Xval, idx );
-
-    return Yval;
-  }
+//
+//  Double ElectroStaticMaterial::ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
+//
+//    Double matDiff, eps;
+//
+//    UInt idx = globalElem2Local_[nrElem];
+//    Double Ycurrent = hyst_->computeValueAndUpdate(Xval, idx);
+//
+//    //    std::cout << "epsDiff: " << " Xval=" << Xval << "  Yval=" << Ycurrent << std::endl;
+//
+//    //compute differential material parameter
+//    Double dX = Xval - Xprevious_[idx];
+//    Double dY = Ycurrent -Yprevious_[idx];
+//
+//    if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
+//      GetScalar(eps,ELEC_PERMITTIVITY,Global::REAL);
+//      matDiff = eps;
+//    }
+//    else {
+//      matDiff = dY / dX;
+//    }
+//
+//    return matDiff;
+//  }
+//
+//
+//  void ElectroStaticMaterial::SetPreviousHystVal( UInt nrElem, Double Xval ) {
+//
+//    UInt idx = globalElem2Local_[nrElem];
+//
+//    Xprevious_[idx] = Xval;
+//    Yprevious_[idx] = hyst_->computeValueAndUpdate( Xval, idx );
+//  }
+//
+//
+//  Double ElectroStaticMaterial::ComputeScalarHystVal( UInt nrElem, Double Xval ) {
+//
+//    UInt idx    = globalElem2Local_[nrElem];
+//    Double Yval = hyst_->computeValueAndUpdate( Xval, idx );
+//
+//    return Yval;
+//  }
 
 }

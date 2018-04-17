@@ -39,13 +39,15 @@ namespace CoupledField
     virtual ~SolveStepHyst();
 
     void SetupRESorRHS(Integer timeLevelMaterial, Integer timeLevelDeltaMat, 
-          Integer timeLevelRHSHyst, SBM_Vector& solutionForUpdate, SBM_Vector& returnVector);
+          Integer timeLevelRHSHyst, SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, 
+          SBM_Vector& solutionForRHSAssembly, SBM_Vector& returnVector);
     
-    void SetupRHS(SBM_Vector& solutionForUpdate);
-    void SetupRES(SBM_Vector& solutionForUpdate);
+    void SetupRHS(SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, SBM_Vector& solutionForRHSAssembly, UInt iterationCounter);
+    void SetupRES(SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, SBM_Vector& solutionForRHSAssembly, UInt iterationCounter);
+    void ComputeKeffTimesSolution(SBM_Vector& solution, SBM_Vector& returnVector);
     
-    void AssembleSystem();
-    void AssembleSystem(Integer timeLevelMaterial, Integer timeLevelDeltaMat);
+    void AssembleSystem(SBM_Vector& solutionForAssembly, UInt iterationCounter);
+    void AssembleSystem(Integer timeLevelMaterial, Integer timeLevelDeltaMat, SBM_Vector& solutionForAssembly);
     
     void InitTimeStepping();
     void SolveStepTrans();
@@ -53,11 +55,30 @@ namespace CoupledField
     
     virtual void StepTransNonLinHysteresis();
     
+    void WriteHystIterToInfoXML(const std::string& pdeName,
+          const std::string& nonLinSolveMethod,
+          const UInt coupledIterStep,
+          const UInt solStep,
+          const UInt iterationCounter,
+          const UInt iterationCounterTotal,
+          const Double residualErr, 
+          const Double incrementalErr, double etaLineSearch);
+    
+    void WriteHystIterToInfoXML(const std::string& pdeName,
+          const std::string& nonLinSolveMethod,
+          const UInt solStep,
+          const UInt iterationCounter,
+          const UInt iterationCounterTotal,
+          const Double residualErr, 
+          const Double incrementalErr, double etaLineSearch);
+    
     //! does a line search and returns the optimal residual norm
-    Double LineSearchHyst(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double& etaLineSearch, UInt evalVersion, UInt callingCnt,
-                      bool trans=false, bool performLineSearch=true, bool forceReevaluation=false, bool debugOutput=false, bool reset=false,UInt allowedSteps=5);
+    Double LineSearchHyst(SBM_Vector& currentSol, SBM_Vector& solIncrement, UInt iterationCounter);
         
   private:
+    // new flag indicating if material tensors (mu,eps,e,d,...) depend on hysteresis or not
+    // if not and deltaMat == false > system matrix needs no reassembly!
+    bool materialTensorsHystDepenedent_;
     bool flagsInitialized_;
     bool trans_;
     
@@ -72,8 +93,7 @@ namespace CoupledField
     SBM_Vector NonLinRhsVec_;
     SBM_Vector predictorCorrectorUpdate_;
 
-    SBM_Vector RhsVec_;
-    SBM_Vector ResVec_;
+    SBM_Vector resVec_;
     
     SBM_Vector stageRHSUpdate_;
     SBM_Vector solVecLastTS_;
@@ -89,14 +109,6 @@ namespace CoupledField
     UInt evalDepth_;
     UInt measurePerformance_;
     UInt testInvesion_;
-
-   
-    //! Vectors used for NonLinHysteresis
-    // current > current timestep and iteration
-    SBM_Vector currentLinRhsVec_;
-    //SBM_Vector currentRhsVec_;
-    SBM_Vector currentResVec_;
-
 
     // + solVec which is defined above
 
@@ -116,6 +128,8 @@ namespace CoupledField
     bool forceReevaluation_;
     bool debugOutput_;
     
+    // new failback tolerance that might also be ok if real criterion fails
+    Double failBackCrit_;
   };
 
 

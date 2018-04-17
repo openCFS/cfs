@@ -1643,6 +1643,10 @@ namespace CoupledField {
     MaterialTypeEnum.Add( K_JILES, "kJiles" );
     MaterialTypeEnum.Add( C_JILES, "cJiles" ); 
     MaterialTypeEnum.Add( P_DIRECTION, "Pdirection" ); 
+    MaterialTypeEnum.Add( P_DIRECTION_X, "PdirectionX" ); 
+    MaterialTypeEnum.Add( P_DIRECTION_Y, "PdirectionY" ); 
+    MaterialTypeEnum.Add( P_DIRECTION_Z, "PdirectionZ" ); 
+    MaterialTypeEnum.Add( SCALPREISACH_USE_EXT, "useExtension" );
     MaterialTypeEnum.Add( HYST_MODEL, "hystModel" ); 
     MaterialTypeEnum.Add( PREISACH_DIM, "PreisachDim" );
     MaterialTypeEnum.Add( HYST_STRAIN_FORM, "strainForm" );
@@ -1657,6 +1661,13 @@ namespace CoupledField {
     MaterialTypeEnum.Add( ANG_CLIPPING, "angularClipping" );
     MaterialTypeEnum.Add( ANG_RESOLUTION, "angularResolution" );
     MaterialTypeEnum.Add( AMP_RESOLUTION, "amplitudeResolution" );
+    MaterialTypeEnum.Add( HYST_INVERSION, "hystInversion" );
+    MaterialTypeEnum.Add( MAX_NUM_IT_HYST_INV, "maxNumberIterations" );
+    MaterialTypeEnum.Add( RES_TOL_H_HYST_INV, "residualTolH" );
+    MaterialTypeEnum.Add( RES_TOL_B_HYST_INV, "residualTolB" );
+    MaterialTypeEnum.Add( JAC_RESOLUTION_HYST_INV, "jacobiResolution" );
+    MaterialTypeEnum.Add( TIKHONOV_HYST_INV, "useTikhonov" );
+    MaterialTypeEnum.Add( ALPHA_LS_HYST_INV, "alphaRegStart" );
     MaterialTypeEnum.Add( INITIAL_STATE, "initialStates" );
     MaterialTypeEnum.Add( INITIAL_STATE_X, "initialStatesX" );
     MaterialTypeEnum.Add( INITIAL_STATE_Y, "initialStatesY" );

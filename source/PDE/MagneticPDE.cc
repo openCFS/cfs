@@ -161,15 +161,25 @@ namespace CoupledField {
         // as well as the VectorPreisach model need H as input
         PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
 
-        // please note: 
-        //  in magnetics, the hysteresis model is supposed to return the
-        //  magnetic polarizaiton J_P = mu*M
-        //  (in older versions, the magnetization M was returned!)
-        PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
-                magFieldCoef,tensorType,MAG_RELUCTIVITY,mySpace));
+        // check if hysteresis is defined in material file, too!
+        std::string hystType;
+        actSDMat->GetScalar(hystType, HYST_MODEL);
         
-        hysteresisCoefs_->AddRegion( actRegion, hystPol);
+        if(hystType == "none"){
+          std::string warnmsg = "Hysteresis set on region " + regionName + " but no hysteresis model was defined in mat file. Skip.";
+          regionNonLinTypes_[actRegion] = NO_NONLINEARITY;
+          WARN(warnmsg);
+        } else {
         
+            // please note: 
+          //  in magnetics, the hysteresis model is supposed to return the
+          //  magnetic polarizaiton J_P = mu*M
+          //  (in older versions, the magnetization M was returned!)
+          PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
+                  magFieldCoef,tensorType,MAG_RELUCTIVITY,mySpace));
+
+          hysteresisCoefs_->AddRegion( actRegion, hystPol);
+        }
       }
     }
     regionApproxSet_ = true;
@@ -331,6 +341,7 @@ namespace CoupledField {
            */
           // NEW: coefFncHyst should already be created during DefinePostProcResults!      
           PtrCoefFct hystPol = hysteresisCoefs_->GetRegionCoef(actRegion);
+
           curCoef = hystPol->GenerateMatCoefFnc("Reluctivity");
           
           PtrCoefFct hystOutput = hystPol->GenerateOutputCoefFnc("MagPolarization");
@@ -844,6 +855,10 @@ namespace CoupledField {
         
         // get regionIdType
         RegionIdType curReg = it->first;
+        
+        if(it->second == NULL){
+          continue;
+        }
         
         // get SDList
         shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );

@@ -18,6 +18,19 @@ namespace CoupledField {
     ///
     virtual ~Hysteresis();
 
+    // for extension of scalar model
+    virtual void UpdateRotationState(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
+      EXCEPTION( "UpdateRotationState not implemented in base-Class" );
+    }
+    
+    virtual void EvaluateRotationState(UInt idx){
+      EXCEPTION( "EvaluateRotationState not implemented in base-Class" );
+    }
+    
+    virtual Vector<Double> getRotationDirectionAndUpdate(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
+      EXCEPTION( "getRotationDirectionAndUpdate not implemented in base-Class" );
+    }
+    
     //!
     virtual Double computeValue(Double& xVal, Integer idxElem, bool overwrite = true) {
       EXCEPTION( "computeValue not implemented in base-Class" );
@@ -30,11 +43,22 @@ namespace CoupledField {
       return Yout;
     };
 
-    virtual Vector<Double> computeInput_vec(Vector<Double>& yVal, Integer idElem, Matrix<Double> mu, Double& alpha, bool overwrite = true,bool overwriteDirection = true) {
+    virtual Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
+      Matrix<Double> mu, bool overwriteDirection = true){
       EXCEPTION("computeInput_vec not implemented in base-class");
-    };
+    }
     
-    virtual Double computeInputAndUpdate(Double Yin, Double eps_mu, Integer idx, bool overwrite = true){
+    virtual Vector<Double> computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
+      Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
+      Matrix<Double> mu, bool overwriteDirection, 
+      UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
+      UInt& maximalNumberOfLinesearchIterations, UInt& successCode, 
+      Double& minAlpha, Double& maxAlpha, Double& avgAlpha ){
+      EXCEPTION("computeInput_vec not implemented in base-class");
+    }
+        
+    // do not overwrite memory per default
+    virtual Double computeInputAndUpdate(Double Yin, Double eps_mu, Integer operatorIndex, bool overwrite = false){
       EXCEPTION( "computeInputAndUpdate not implemented in base-Class" );
       return 0.0;
     };
@@ -105,6 +129,11 @@ namespace CoupledField {
 
     virtual void setFlags(UInt performanceFlag){
       EXCEPTION( "setFlag not inplemented in base-Class")
+    };
+    
+    virtual void SetParamsForInversion(UInt maxIter, Double resTolH, Double resTolB, Double jacobiResolution,
+          bool useTikhonov, Double alphaLSStart, Double angClipping){
+      EXCEPTION( "Only implemented and required for VectorPreisach model");
     };
 
 

@@ -660,7 +660,7 @@ namespace CoupledField {
   public:
     VectorPreisachv10(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, Double angularDistance, Double angularClipping);
+      bool classical, Double angularDistance, Double angResolution);
     
     virtual ~VectorPreisachv10();
     
@@ -669,48 +669,104 @@ namespace CoupledField {
       EXCEPTION("Not implemented in base class");
     }
     
-    //! returns the current output of the hyst-operator for element idxElem
-    Vector<Double> getValue_vec( Integer idElem, bool overwrite = true )
-    {
-      if(overwrite == false){
-        return (preisachSumTmp_[idElem]);
-      } else {
-        return ( preisachSum_[idElem] );
-      }
+    void ClipDirection(Vector<Double>& targetVector);
+    
+    void SetParamsForInversion(UInt maxIter, Double resTolH, Double resTolB, Double jacobiResolution,
+          bool useTikhonov, Double alphaLSStart, Double angClipping){
+      INV_maxIter_ = maxIter;
+      INV_resTolH_ = resTolH;
+      INV_resTolB_ = resTolB;
+      INV_jacobiResolution_ = jacobiResolution;
+      INV_useTikhonov_ = useTikhonov;
+      INV_alphaLSStart_ = alphaLSStart;
+      INV_angClipping_ = angClipping;
     }
     
-    //! returns the current input of the hyst-operator for element idxElem
-    Vector<Double> getInput_vec( Integer idElem )
-    {
-      // prevXval is the input vector that was computed last
-      return prevXval_[idElem];
-    }
     
+    // 
+    /*
+     * get-function should no longer be used
+     * background: coefFunctionHyst allows for "extended" evaluation, i.e.
+     *  each element has one hysteresis operator (addresable by index operatorIdx)
+     *  that gets evaluated at each integration point separately; the results 
+     *  of these evaluations is stored separately, too (addresable by index storageIdx)
+     * > the hyst operator does not know about this additional storageIdx and such
+     *   it cannot return the correct value when called by getValue_vec
+     * > when comparisons to previous solutions are required (i.e. check for changes)
+     *   this should be done in coefFunctionHyst
+     * > exception: for inversion via LevenbergMarquart, we need to know the previous
+     *   values at the storageIdx > those values should be passed to the compute input
+     *   function
+     */
+//    //! returns the current output of the hyst-operator for element idxElem
+//    Vector<Double> getValue_vec( Integer idElem, bool overwrite = true )
+//    {
+//      if(overwrite == false){
+//        return (preisachSumTmp_[idElem]);
+//      } else {
+//        return ( preisachSum_[idElem] );
+//      }
+//    }
+    
+    bool checkInversionOutput(Vector<Double>& xComputed, Vector<Double>& yTarget, 
+			Matrix<Double>& mu, Double tol, Double& resYNorm, Integer operatorIdx, bool overwriteMemory, bool overwriteDirection, bool output = false);
+		
     bool checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol);
     
-    bool checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, Vector<Double>& res, Vector<Double>& resShifted, 
-          Matrix<Double>& jac, Double& alpha);
+    Double computeRho(Vector<Double>& xNew, Vector<Double>& xUpdate, 
+				Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac);
+    
+    Integer checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, 
+		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha);
+    
+    Integer checkIncrementOLD(Vector<Double>& xNew, Vector<Double>& xUpdate, 
+		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha);
     
     Vector<Double> computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
     
     Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu, Matrix<Double> mu_inv, 
     bool wrtX, bool relative);
     
-    Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hyst, 
-          Matrix<Double> mu_inv, Integer idElem, Double sign, UInt implementation);
+    Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
+          Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
+					bool overwriteMemory, bool overwriteDirection);
     
     Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
-          Matrix<Double> mu, Matrix<Double> mu_inv, Integer idElem, Double sign, bool wrtX, bool relative, UInt implementation);
+          Matrix<Double> mu, Matrix<Double> mu_inv, Integer operatorIdx, Double sign, bool wrtX, bool relative, 
+					UInt implementation, bool overwriteMemory, bool overwriteDirection);
     
-    bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, Vector<Double>& xUpdate,
-    Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, Integer idElem,Double& alpha, 
-    bool wrtX, bool relative);
+    bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
+		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
+		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
+		Double& alpha, Double alphaMin, Double alphaMax,  bool wrtX, bool relative, UInt& numberOfIterations, Vector<Double>& xStart);
     
     //! Try to compute input xVal to hyst operator, such that mu*xVal + H(xVal) = yVal
     // return usable input xVal
-    Vector<Double> computeInput_vec(Vector<Double>& yVal, Integer idElem, Matrix<Double> mu, Double& alpha, 
-    bool overwrite = true,bool overwriteDirection = true);
+    /*
+     * computeInput_vec is the one to be called in coefFunctionHyst
+     * Exception: testInversion > here we use computeInput_vec_withStatistics
+     */
+    Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
+      Matrix<Double> mu, bool overwriteDirection = true){
+      
+      Vector<Double> prevYval = Vector<Double>(dim_);
+      mu.Mult(prevXVal_[operatorIndex],prevYval);
+      prevYval.Add(1.0,prevHVal_[operatorIndex]);
+      
+      return computeInput_vec_withPrevStates(yVal, prevYval,
+        prevXVal_[operatorIndex], prevHVal_[operatorIndex], operatorIndex, mu, overwriteDirection);
+    }
     
+    Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
+      Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
+      Matrix<Double> mu, bool overwriteDirection = true);
+    
+    Vector<Double> computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
+      Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
+      Matrix<Double> mu, bool overwriteDirection, 
+      UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
+      UInt& maximalNumberOfLinesearchIterations, UInt& succesCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha );
+        
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false){
       EXCEPTION("Not implemented in base class");
     }
@@ -737,8 +793,8 @@ namespace CoupledField {
     
   protected:
     Vector<Double> evaluateNewRotationDirection(Vector<Double>& e_u_new, Vector<Double>& e_u_old, Double xVal);
-    
-    Vector<Double> clipNewRotationDirection(Vector<Double>& e_u_new);
+        
+    Vector<Double> restrictToHalfspace(Vector<Double>& e_u_new);
     
     /*!
      * Global quantities, i.e. the same for all FE elements of the same material
@@ -756,37 +812,38 @@ namespace CoupledField {
     UInt numElem_; //! total number of FE elements
     UInt numRows_; //! number of rows of the Preisach plane
     
+    Double angResolution_; //! tolerance for resoultion of angular clipping; provided via mat.xml
     Double delta_; //! resolution of Preisach plane
     Double tol_; //! tolerance for all kind of comparisons
     
     bool classical_; //! switch between classical evaluation (2012 version of vector model) or revised evaluation (2015 version)
-    
+    bool restrictToHalfspace_;
     
     /*!
      * Local quantities, i.e. one for each FE elements of the same material
+     * NOTE: these values may only be written by function
+     *        computeValue_vec and ONLY if flag overwrite=true
      */
     Vector<Double>* preisachSum_;
     Vector<Double>* preisachSumTmp_;
     
-    /*
-     * for inversion 
-     */
-    Vector<Double>* prevXval_;
-    Vector<Double>* prevYval_;
-    Vector<Double>* prevHystval_;
+    // additional for inversion
+    Vector<Double>* prevXVal_;
+    Vector<Double>* prevHVal_;
     
+    // For inversion via Levenberg Marquardt
+    UInt INV_maxIter_;
+    Double INV_resTolH_;
+    Double INV_resTolB_;
+    Double INV_jacobiResolution_;
+    bool INV_useTikhonov_;
+    Double INV_alphaLSStart_;
+    Double INV_angClipping_;
+        
     /*!
      * Quantities needed by the revised approach (Sutor2015)
      */
-    Double angularDistance_; //! angular distance between old rotation state and new input direction which remains for small fields
-    
-    /*
-     * The input direction gets clipped to discrete angles inside the used coordinate system;
-     * angularClipping = 0 -> no clipping
-     * angularClipping > 0 -> minimal angular step that gets resolved; value in rad
-     */
-    Double angularClipping_;
-    
+    Double angularDistance_; //! angular distance between old rotation state and new input direction which remains for small fields    
     
     /*
      * runtime measurement
@@ -818,7 +875,7 @@ namespace CoupledField {
   public:
     VectorPreisachv10_MatrixApproach(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, Double angularDistance, Double angularClipping);
+      bool classical, Double angularDistance, Double angResolution);
     
     ~VectorPreisachv10_MatrixApproach();
     
@@ -865,7 +922,7 @@ namespace CoupledField {
   public:
     VectorPreisachv10_ListApproach(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, Double angularDistance, Double angularClipping);
+      bool classical, Double angularDistance, Double angResolution);
     
     virtual ~VectorPreisachv10_ListApproach();
     

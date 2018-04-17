@@ -759,11 +759,9 @@ namespace CoupledField
         GetScalar(isTesting, IS_TESTING);
 
         Double angDistance;
-        Double angClipping;
         Matrix<Double> easyAxis_Matrix;
         Vector<Double> easyAxis = Vector<Double>(dim);
         GetScalar(angDistance, ANG_DISTANCE, Global::REAL);
-        GetScalar(angClipping, ANG_CLIPPING, Global::REAL);
 
       /*
        * should be obsolete as hyst_ is initialized in coefFctHyst
@@ -776,25 +774,25 @@ namespace CoupledField
 
         hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
                                                    weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
+                                                   classical, angDistance,1e-4);
       } else if(evalVersion == 2){
         classical = false; // revised vector preisach model -> sutor2015
 
         hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
                                                    weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
+                                                   classical, angDistance,1e-4);
       } else if(evalVersion == 10){
         classical = true; // original vector preisach model -> sutor2015; matrix based implementation
 
         hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
                                                    weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
+                                                   classical, angDistance,1e-4);
       } else if(evalVersion == 20){
         classical = false; // revised vector preisach model -> sutor2015; matrix based implementation
 
         hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
                                                    weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance,angClipping);
+                                                   classical, angDistance,1e-4);
       } else {
         EXCEPTION("evalVersion has to be one of the following: \n "
             "1: classical vector model (sutor2012) \n"
