@@ -143,12 +143,12 @@ ELSEIF(UNIX OR MINGW)
     COMMAND id -unr # get user name (possibly DOMAIN\user)
     COMMAND sed s/[A-Z]\\+\\\\// # remove 'DOMAIN\' from 'DOMAIN\user' ('\' must be escaped in cmake)
     WORKING_DIRECTORY "."
-    OUTPUT_VARIABLE CFS_BUILD_USER RESULT_VARIABLE res OUTPUT_VARIABLE out
+    RESULT_VARIABLE res OUTPUT_VARIABLE out
     )
   if(res)
     message("could not determine user: ${res}, ${out}")
   endif(res)
-  STRING(STRIP "${CFS_BUILD_USER}" CFS_BUILD_USER)
+  STRING(STRIP "${out}" CFS_BUILD_USER)
 ENDIF()
 
 SET(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
