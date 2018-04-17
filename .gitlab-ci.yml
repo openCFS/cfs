@@ -4,8 +4,6 @@
 # see https://hub.docker.com/_/gcc/
 stages:
   - configure
-#  - build
-#  - test
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
 # use the ref-name, e.g. `master` as key -> same for sucessive builds
@@ -14,46 +12,18 @@ cache:
   paths:
     - build
 
+# only include a config step for the start
 configure:
   stage: configure
   script:
-    - pwd
-    - ls
-    - mkdir -p build
+    - pwd # show where we are
+    - ls # list source
+    - mkdir -p build # make build dir
     - cd build
+    - rm -f CMakeCache.txt # clear any old chache
     - cmake ..
     - cmake .
+  # provides artifacts in gitlab (can be downloaded)
   artifacts:
     paths:
-      - build/CMakeCache.txt
-
-build:
-  stage: build
-  # instead of calling g++ directly you can also use some build toolkit like make
-  # install the necessary build tools when needed
-  # before_script: 
-  #   - apt update && apt -y install make autoconf 
-  script:
-    - cd build
-    - ls
-    - make
-  dependencies:
-    - configure
-#  artifacts:
-#    paths:
-#      - build
-  # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
-  # cache:
-  #   paths:
-  #     - "*.o"
-  
-
-# run tests using the binary built before
-test:
-  stage: test
-  script:
-    - ls -l
-    - cd build
-    - ctest
-  dependencies:
-    - build
+      - build/CMakeCache.txt 
