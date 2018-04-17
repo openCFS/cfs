@@ -19,9 +19,9 @@ The directory structure of the source looks as follows (e.g., **eclipse project*
 ![](/share/doc/developer/pages/pics/Src_Directory.png)
 
 
-What to understand first 
-------------------------
+First steps to understand the structure of CFS++
+---------------------------------------------------
 
-* A tour through CFS++. We perform a simple static mechanical computation and explain, which objects are created at which instant of time during the computation!
+* [A tour through CFS++](/share/doc/developer/pages/TourCFS.md). We perform a simple static mechanical computation and explain, which objects are created at which instant of time during the computation!
 * How to implement a new PDE?
 * How to implement a new post-processing result?

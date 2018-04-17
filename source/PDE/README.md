@@ -3,13 +3,19 @@ PDE    ([back to main page](/source/CFS_Library_Documentation.md))
 
 The PDE class is responsible to connect numerics with physics. Please not that for each PDE we generate an own class being derived from **SinglePDE** and it is stored in an own .hh and .cc file. Thereby, we have the following hierarchy:
 
-* BasePDE: Abstract base class 
+* BasePDE: Abstract base class
 * StdPDE: Base class for all single-field and direct-coupled field problems
 * SinglePDE: Base class for all kinds of single field problems (PDEs)
 
-![](/share/doc/developer/pages/pics/PDEsHierarchy.png)
+The hierarchy for the PDE for electrostatics is as follows:
+```mermaid
+graph LR
+    A[ElecPDE] --> B[SinglePDE]
+    B --> C[StdPDE]
+    C --> D[BasePDE]
+```
 
->
+<!--![](/share/doc/developer/pages/pics/PDEsHierarchy.png)-->
 
 Each PDE class contains at least the following methods
 
