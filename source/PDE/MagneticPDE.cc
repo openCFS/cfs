@@ -350,6 +350,9 @@ namespace CoupledField {
           PtrCoefFct hystOutput2 = hystPol->GenerateOutputCoefFnc("MagMagnetization");
           hysteresisMagnetization_->AddRegion( actRegion, hystOutput2);
           
+          PtrCoefFct hystOutput3 = hystPol->GenerateOutputCoefFnc("MagFieldIntensityHyst");
+          hysteresisFieldIntensity_->AddRegion( actRegion, hystOutput3);
+          
 			  } else{
 				  // ====================================================================
 				  //  Standard Linear CASE (2D AND 3D)
@@ -1422,13 +1425,17 @@ namespace CoupledField {
     magIntens->unit = "A/m";
     magIntens->definedOn = ResultInfo::ELEMENT;
     magIntens->entryType = ResultInfo::VECTOR;
-    shared_ptr<CoefFunctionFormBased> magIntensFunc;
-    if( isComplex_ ) {
-      magIntensFunc.reset(new CoefFunctionFlux<Complex>(feFct, magIntens));
-    } else {
-      magIntensFunc.reset(new CoefFunctionFlux<Double>(feFct, magIntens));
+    
+    if ( !isHysteresis_){
+      shared_ptr<CoefFunctionFormBased> magIntensFunc;
+      if( isComplex_ ) {
+        magIntensFunc.reset(new CoefFunctionFlux<Complex>(feFct, magIntens));
+      } else {
+        magIntensFunc.reset(new CoefFunctionFlux<Double>(feFct, magIntens));
+      }
+      DefineFieldResult( magIntensFunc, magIntens );
+      stiffFormCoefs_.insert(magIntensFunc);
     }
-    stiffFormCoefs_.insert(magIntensFunc);
     
     // Magnetization and Polarization and Field Intensity
     if ( isHysteresis_){
@@ -1436,6 +1443,7 @@ namespace CoupledField {
       hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
       hysteresisPolarization_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
       hysteresisMagnetization_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+      hysteresisFieldIntensity_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
       
       shared_ptr<ResultInfo> magJ ( new ResultInfo );
       magJ->resultType = MAG_POLARIZATION;
@@ -1457,42 +1465,48 @@ namespace CoupledField {
       DefineFieldResult( hysteresisMagnetization_, magM );
       availResults_.insert( magM );
       
+      DefineFieldResult( hysteresisFieldIntensity_, magIntens );
+      availResults_.insert( magIntens );
+      
+      
+      
       // new: init hysteresis right now (so that it is available
       // in case of magnetostrictive coupling for the definition of
       // the integrators
       InitHystCoefs();
       
+//      
+////      // we should use the same nu here that is used for inversion etc
+////      // otherwise results do not match!
+////      PtrCoefFct magMag;
+////      PtrCoefFct nu0 = CoefFunction::Generate( mp_, Global::REAL, "795774.7155");
+////
+////      magMag = CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_,nu0,hysteresisPolarization_,CoefXpr::OP_MULT));
+////      DefineFieldResult( magMag, magM );
+////      availResults_.insert( magM );
+//      
+//      // Field intensity
+//      PtrCoefFct magIntensFuncMod;
+//      /*
+//       * in case of hysteresis, H has is computed from B using nu0;
+//       * however, B = nu0^-1 H + nu0^-1 M
+//       * i.e.
+//       * H = nu0*B - M
+//       * i.e.
+//       * subtract M
+//       */
+//      if( isComplex_ ) {
+//        magIntensFuncMod = CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,magIntensFunc,hysteresisMagnetization_,CoefXpr::OP_SUB));
+//      } else {
+//        magIntensFuncMod = CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_,magIntensFunc,hysteresisMagnetization_,CoefXpr::OP_SUB));
+//      }
+//      DefineFieldResult( magIntensFuncMod, magIntens );
       
-//      // we should use the same nu here that is used for inversion etc
-//      // otherwise results do not match!
-//      PtrCoefFct magMag;
-//      PtrCoefFct nu0 = CoefFunction::Generate( mp_, Global::REAL, "795774.7155");
-//
-//      magMag = CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_,nu0,hysteresisPolarization_,CoefXpr::OP_MULT));
-//      DefineFieldResult( magMag, magM );
-//      availResults_.insert( magM );
-      
-      // Field intensity
-      PtrCoefFct magIntensFuncMod;
-      /*
-       * in case of hysteresis, H has is computed from B using nu0;
-       * however, B = nu0^-1 H + nu0^-1 M
-       * i.e.
-       * H = nu0*B - M
-       * i.e.
-       * subtract M
-       */
-      if( isComplex_ ) {
-        magIntensFuncMod = CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,magIntensFunc,hysteresisMagnetization_,CoefXpr::OP_SUB));
-      } else {
-        magIntensFuncMod = CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_,magIntensFunc,hysteresisMagnetization_,CoefXpr::OP_SUB));
-      }
-      DefineFieldResult( magIntensFuncMod, magIntens );
-      
-    } else {
-      // use std computation of mag intensity, i.e. H = B/mu
-      DefineFieldResult( magIntensFunc, magIntens );
-    }
+    } 
+//      else {
+//      // use std computation of mag intensity, i.e. H = B/mu
+//      DefineFieldResult( magIntensFunc, magIntens );
+//    }
     
     // for both BdBKernel and EnergyResultFunctor, we need to apply the -1 factor
     // to get right sign in the results (even though the energy results are not really usable in the coupled case as they neglect the influnce of the coupled pde)

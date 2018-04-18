@@ -32,21 +32,21 @@ namespace CoupledField {
     Double specificSign;
     
     if(tensorsInitialized_ == false){
-      InitLinearTensors(lpm);
+      EXCEPTION("Linear tensors have to be initialized by now!");
     }
     
-    if(hystCoefFunction_->anyMatrixForLocalInversionRequiresComputation() && ((vectorName == "MagPolarization")||(vectorName == "MagMagnetization")) ){
-      // for calculation of magnetic magnetization, we need to know the material tensor mu/nu
-      // as M = nu*P = mu^-1*P
-      // the problem is, that mu itself depends on P in case of magstrict coupling
-      // and that P requires mu to be computed from B
-      // > specify mu/nu with previous value of P, i.e. 
-      //      nu = nu(P_k-1) at iteration k
-      // to ensure that all integration points/all evaluations during a timestep-iteration
-      // uses the same state of nu/mu, we precompute this value for all evluation points the first time
-      // we call ComputeVector or ComputeTensor
-      PrecomputeMaterialTensorForInverison();
-    }
+//    if(hystCoefFunction_->anyMatrixForLocalInversionRequiresComputation() && ((vectorName == "MagPolarization")||(vectorName == "MagMagnetization")) ){
+//      // for calculation of magnetic magnetization, we need to know the material tensor mu/nu
+//      // as M = nu*P = mu^-1*P
+//      // the problem is, that mu itself depends on P in case of magstrict coupling
+//      // and that P requires mu to be computed from B
+//      // > specify mu/nu with previous value of P, i.e. 
+//      //      nu = nu(P_k-1) at iteration k
+//      // to ensure that all integration points/all evaluations during a timestep-iteration
+//      // uses the same state of nu/mu, we precompute this value for all evluation points the first time
+//      // we call ComputeVector or ComputeTensor
+//      PrecomputeMaterialTensorForInverison();
+//    }
         
     //std::cout << "Timelevel: " << timeLevel << " (0 = current, 1 = last it, -1 = last ts)" << std::endl;
     //      if(onBoundary){
@@ -77,7 +77,7 @@ namespace CoupledField {
       
       outputVector = Vector<Double>(GetVecSize());
       outputVector.Init();
-      outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevel);
+      outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel);
       
       //std::cout << "BaseSign = " << baseSign << std::endl;
       
@@ -113,9 +113,21 @@ namespace CoupledField {
       outputVector.Init();
       // note: getOutputOfHystOperator requires the material tensor for inversion to be set
       // therefore, PrecomputeMaterialTensorForInverison is triggered when MagPolarization is requested
-      outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevel);
+      outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel);
       
       outputVector.ScalarMult(specificSign*baseSign);
+    } else if(vectorName == "MagFieldIntensityHyst"){
+      //std::cout << "MagMagnetization was requested" << std::endl;
+      // rhs (magnetics, w = testfunction): 
+      // + int_Volume rot(w)^T M dOmega
+      // > specificSign = +
+      specificSign = 1.0;
+      
+      outputVector = Vector<Double>(GetVecSize());
+      outputVector.Init();
+      // get polarization J_pol
+      outputVector = hystCoefFunction_->GetPrecomputedInputToHysteresisOperator(lpm,timeLevel);
+      
     } else if(vectorName == "MagMagnetization"){
       //std::cout << "MagMagnetization was requested" << std::endl;
       // rhs (magnetics, w = testfunction): 
@@ -126,7 +138,7 @@ namespace CoupledField {
       outputVector = Vector<Double>(GetVecSize());
       outputVector.Init();
       // get polarization J_pol
-      outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevel);
+      outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel);
       //std::cout << "Output of hyst operator: " << outputVector.ToString() << std::endl;
       
       // get the matrix that was used to compute P from B to scale P to M
@@ -329,29 +341,31 @@ namespace CoupledField {
       /*
        * THE NEXT TWO FUNCTIONS LEAD TO ISSUES WITH RACE CONDITIONS
        */
-      
       if(tensorsInitialized_ == false){
-        LOG_DBG(coeffcthysthelper) << "Initialize linear tensors";
-        InitLinearTensors(lpm);
+        EXCEPTION("Linear tensors have to be initialized by now!");
       }
+//      if(tensorsInitialized_ == false){
+//        LOG_DBG(coeffcthysthelper) << "Initialize linear tensors";
+//        InitLinearTensors(lpm);
+//      }
 //      std::cout << "+++++ Coef Function Hyst Mat - Compute Tensor 2 ++++++" << std::endl;
-      if(hystCoefFunction_->anyMatrixForLocalInversionRequiresComputation() && 
-              ((tensorName == "Reluctivity")||(tensorName == "CouplingMechToMag")||(tensorName == "CouplingMagToMech")) ){
-        LOG_DBG(coeffcthysthelper) << "Set matrix for inversion";
-        // for calculation of magnetic magnetization, we need to know the material tensor mu/nu
-        // as M = nu*P = mu^-1*P
-        // the problem is, that mu itself depends on P in case of magstrict coupling
-        // and that P requires mu to be computed from B
-        // > specify mu/nu with previous value of P, i.e. 
-        //      nu = nu(P_k-1) at iteration k
-        // to ensure that all integration points/all evaluations during a timestep-iteration
-        // uses the same state of nu/mu, we precompute this value for all evluation points the first time
-        // we call ComputeVector or ComputeTensor
-        if(lockPrecomputationAndDeltaMat == false){
-          LOG_DBG(coeffcthysthelper) << "PrecomputeMaterialTensorForInverison unlocked";
-          PrecomputeMaterialTensorForInverison();
-        }
-      }
+//      if(hystCoefFunction_->anyMatrixForLocalInversionRequiresComputation() && 
+//              ((tensorName == "Reluctivity")||(tensorName == "CouplingMechToMag")||(tensorName == "CouplingMagToMech")) ){
+//        LOG_DBG(coeffcthysthelper) << "Set matrix for inversion";
+//        // for calculation of magnetic magnetization, we need to know the material tensor mu/nu
+//        // as M = nu*P = mu^-1*P
+//        // the problem is, that mu itself depends on P in case of magstrict coupling
+//        // and that P requires mu to be computed from B
+//        // > specify mu/nu with previous value of P, i.e. 
+//        //      nu = nu(P_k-1) at iteration k
+//        // to ensure that all integration points/all evaluations during a timestep-iteration
+//        // uses the same state of nu/mu, we precompute this value for all evluation points the first time
+//        // we call ComputeVector or ComputeTensor
+//        if(lockPrecomputationAndDeltaMat == false){
+//          LOG_DBG(coeffcthysthelper) << "PrecomputeMaterialTensorForInverison unlocked";
+//          PrecomputeMaterialTensorForInverison();
+//        }
+//      }
 //      std::cout << "+++++ Coef Function Hyst Mat - Compute Tensor 3 ++++++" << std::endl;
       if(transposed){
         tmp = Matrix<Double>(numCols,numRows);
@@ -1678,7 +1692,7 @@ namespace CoupledField {
     E_B_diff.Init();
     E_B_diff.Add(1.0,E_B_stepping,-1.0,E_B_current);
     
-    Vector<Double> P_J_current = GetOutputOfHysteresisOperator(Originallpm,currentTimelevel);
+    Vector<Double> P_J_current = GetPrecomputedOutputOfHysteresisOperator(Originallpm,currentTimelevel);
     bool forceMemoryLock = true;
     bool forceMemoryWrite = false;
     Vector<Double> P_J_stepping = CalcOutputOfHysteresisOperator(E_B_stepping,operatorIdx,storageIdx,forceMemoryLock,forceMemoryWrite);
@@ -2201,8 +2215,8 @@ namespace CoupledField {
       Vector<Double> E_B_diff = E_B_new;
       E_B_diff -= E_B_old;
       
-      Vector<Double> P_J_new = GetOutputOfHysteresisOperator(Originallpm,timelevel_new);
-      Vector<Double> P_J_old = GetOutputOfHysteresisOperator(Originallpm,timelevel_old);
+      Vector<Double> P_J_new = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_new);
+      Vector<Double> P_J_old = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_old);
       
       LOG_DBG(coeffcthystdeltamat) << "Old output of hyst operator: " << P_J_old.ToString();
       LOG_DBG(coeffcthystdeltamat) << "Current output of hyst operator: " << P_J_new.ToString();
@@ -2300,7 +2314,7 @@ namespace CoupledField {
     }
     
     // get polarizaton / output of hyst operator first
-    Vector<Double> P = GetOutputOfHysteresisOperator(Originallpm, timeLevel);
+    Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(Originallpm, timeLevel);
     
     // Si = 3/2*(beta0 + beta1*|P| + beta2*|P|^2 + ... + betan*|P|^n)*(dirP*dirP^T - 1/3[I])
     Double normP = P.NormL2();
@@ -2351,8 +2365,8 @@ namespace CoupledField {
   
   
   
-	Vector<Double> CoefFunctionHyst::GetOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel) {
-    LOG_TRACE(coeffcthyst) << "GetOutputOfHysteresisOperator for timelevel " << timeLevel;
+	Vector<Double> CoefFunctionHyst::GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel) {
+    LOG_TRACE(coeffcthyst) << "GetPrecomputedOutputOfHysteresisOperator for timelevel " << timeLevel;
     //std::cout << "Get Output of Hyst Operator" << std::endl;
     //std::cout << "Timelevel: " << timeLevel << " (0 = current, -1 = lastTS, +1 = lastIt)" << std::endl;
 		/*
@@ -2384,7 +2398,9 @@ namespace CoupledField {
 		UInt operatorIdx, storageIdx;
 		LocPointMapped actualLPM;
     
-		bool onBoundary = PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+//		bool onBoundary =     PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+
+    PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
     
 		/*std::cout << "timeLevel " << timeLevel << std::endl;
      std::cout << "storageIdx: " << storageIdx << std::endl;
@@ -2408,31 +2424,35 @@ namespace CoupledField {
 			// return value from last iteration
 			return P_J_lastIt_[storageIdx];
 		} else {
-      LOG_TRACE(coeffcthyst) << "> current value";
-      if(hystOperatorLocked_){
-        // no evaluation > return current state
-				LOG_TRACE(coeffcthyst) << "Output: hystOperatorLocked_ locked";
-        return P_J_[storageIdx];
-      }
+      return P_J_[storageIdx];
       
-			// get current state; here we have to check if a reevaluation is needed
-			// note: requiresReeval_ has one entry for each storage, not for each operator
-			if (false == requiresReeval_[storageIdx]) {
-        LOG_TRACE(coeffcthyst) << "> NO reeval; take stored value";
-				//std::cout << "no reeval needed as flag is false!" << std::endl;
-				// return current value
-				return P_J_[storageIdx];
-			}
+//      OLD
+//      
+//      LOG_TRACE(coeffcthyst) << "> current value";
+//      if(hystOperatorLocked_){
+//        // no evaluation > return current state
+//				LOG_TRACE(coeffcthyst) << "Output: hystOperatorLocked_ locked";
+//        return P_J_[storageIdx];
+//      }
+//      
+//			// get current state; here we have to check if a reevaluation is needed
+//			// note: requiresReeval_ has one entry for each storage, not for each operator
+//			if (false == requiresReeval_[storageIdx]) {
+//        LOG_TRACE(coeffcthyst) << "> NO reeval; take stored value";
+//				//std::cout << "no reeval needed as flag is false!" << std::endl;
+//				// return current value
+//				return P_J_[storageIdx];
+//			}
 		}
-    LOG_TRACE(coeffcthyst) << "> reeval needed";
-		/*
-     * 3. Evaluate hysteresis operator
-     */
-		// first get input
-		Vector<Double> input = RetrieveInputToHysteresisOperator(actualLPM, operatorIdx, storageIdx, onBoundary);
-    
-		// then compute output
-		return CalcOutputOfHysteresisOperator(input, operatorIdx, storageIdx);
+//    LOG_TRACE(coeffcthyst) << "> reeval needed";
+//		/*
+//     * 3. Evaluate hysteresis operator
+//     */
+//		// first get input
+//		Vector<Double> input = RetrieveInputToHysteresisOperator(actualLPM, operatorIdx, storageIdx, onBoundary);
+//    
+//		// then compute output
+//		return CalcOutputOfHysteresisOperator(input, operatorIdx, storageIdx);
     
 	}
   
@@ -2777,7 +2797,13 @@ namespace CoupledField {
     }
   }
 	
-  Vector<Double> CoefFunctionHyst::GetPrecomputedInputToHystOperator(Integer timeLevel, UInt storageIdx){
+  Vector<Double> CoefFunctionHyst::GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel){
+
+		UInt operatorIdx, storageIdx;
+		LocPointMapped actualLPM;
+
+    PreprocessLPM(Originallpm, actualLPM, operatorIdx, storageIdx);
+    
     if(timeLevel == -1){
       return E_H_lastTS_[storageIdx];
     } else if(timeLevel == -1){
@@ -2786,27 +2812,7 @@ namespace CoupledField {
       return E_H_[storageIdx];
     }
   }
-  
-  Vector<Double> CoefFunctionHyst::GetPrecomputedOutputOfHystOperator(Integer timeLevel, UInt storageIdx){
-    if(timeLevel == -1){
-      return P_J_lastTS_[storageIdx];
-    } else if(timeLevel == -1){
-      return P_J_lastIt_[storageIdx];
-    } else {
-      return P_J_[storageIdx];
-    }
-  }
-  
-  Vector<Double> CoefFunctionHyst::GetPrecomputedElementSolutions(Integer timeLevel, UInt storageIdx){
-    if(timeLevel == -1){
-      return E_B_lastTS_[storageIdx];
-    } else if(timeLevel == -1){
-      return E_B_lastIt_[storageIdx];
-    } else {
-      return E_B_[storageIdx];
-    }
-  }
-  
+      
   void CoefFunctionHyst::EvaluateHystOperatorsInt(Integer intFlag){
     
     bool setMatForInversion = false;
@@ -2952,7 +2958,7 @@ namespace CoupledField {
 //          UInt storageIdx = innerIt->first;
 //          //        bool isMidpoint = innerIt->second;
 //          LocPointMapped curLoc = allLPMmap_[storageIdx];
-//          GetOutputOfHysteresisOperator(curLoc, 0);
+//          GetPrecomputedOutputOfHysteresisOperator(curLoc, 0);
 //        }
 //      } 
 //#pragma omp barrier
@@ -2971,7 +2977,7 @@ namespace CoupledField {
 //        UInt storageIdx = innerIt->first;
 ////        bool isMidpoint = innerIt->second;
 //        LocPointMapped curLoc = allLPMmap_[storageIdx];
-//        GetOutputOfHysteresisOperator(curLoc, 0);
+//        GetPrecomputedOutputOfHysteresisOperator(curLoc, 0);
 //      }
 //    } 
 //#endif
@@ -3571,7 +3577,7 @@ namespace CoupledField {
     
 		// return current state of hyst operator
 		UInt timeLevel = 0;
-		outputVector = GetOutputOfHysteresisOperator(lpm, timeLevel);
+		outputVector = GetPrecomputedOutputOfHysteresisOperator(lpm, timeLevel);
 	}
   
 	void CoefFunctionHyst::GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm) {

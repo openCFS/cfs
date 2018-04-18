@@ -141,7 +141,7 @@ namespace CoupledField
     //! This map stores the magnetization obtained by hysteresis coefFunctions
     shared_ptr<CoefFunctionMulti> hysteresisPolarization_;
     shared_ptr<CoefFunctionMulti> hysteresisMagnetization_;
-    
+    shared_ptr<CoefFunctionMulti> hysteresisFieldIntensity_;
   };
   
 } // end of namespace

@@ -927,7 +927,7 @@ namespace CoupledField {
   //        
   //        outputVector = Vector<Double>(GetVecSize());
   //        outputVector.Init();
-  //        outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevel);
+  //        outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel);
   //        
   //        outputVector.ScalarMult(specificSign*baseSign);
   //        
@@ -954,7 +954,7 @@ namespace CoupledField {
   //        
   //        outputVector = Vector<Double>(GetVecSize());
   //        outputVector.Init();
-  //        outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevel);
+  //        outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel);
   //        
   //        outputVector.ScalarMult(specificSign*baseSign);
   //      }
@@ -1054,9 +1054,9 @@ namespace CoupledField {
     //      // output is always the actual quantity
     //      int timeLevelOutput = 0;
     //      if(resultName_ == "ElecPolarization"){    
-    //        outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevelOutput);
+    //        outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevelOutput);
     //      } else if (resultName_ == "MagPolarization"){
-    //        outputVector = hystCoefFunction_->GetOutputOfHysteresisOperator(lpm,timeLevelOutput);
+    //        outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevelOutput);
     //      } else {
     //        EXCEPTION("Unknown result")
     //      }
@@ -1153,10 +1153,6 @@ namespace CoupledField {
     void GetScalar(Double& outputScalar, const LocPointMapped& lpm );
     
     void GetVector( Vector<Double>& outputVector,const LocPointMapped& lpm);
-    
-    Vector<Double> GetPrecomputedInputToHystOperator(Integer timeLevel, UInt storageIdx);
-    Vector<Double> GetPrecomputedOutputOfHystOperator(Integer timeLevel, UInt storageIdx);
-    Vector<Double> GetPrecomputedElementSolutions(Integer timeLevel, UInt storageIdx);
     
     void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm );
     
@@ -1266,7 +1262,9 @@ namespace CoupledField {
     
     Vector<Double> GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel);
     
-    Vector<Double> GetOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
+    Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
+
+    Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
     
     Vector<Double> RetrieveInputToHysteresisOperator(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary);
     
@@ -1378,7 +1376,7 @@ namespace CoupledField {
         
         shared_ptr<CoefFunctionHystOutput> c(new CoefFunctionHystOutput(hystHelper_,ResultName));
         ret = c;
-      } else if ( (ResultName == "MagPolarization") || (ResultName == "MagMagnetization") ){
+      } else if ( (ResultName == "MagPolarization") || (ResultName == "MagMagnetization") || (ResultName == "MagFieldIntensityHyst") ){
         PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY,tensorType_,Global::REAL);
         
         if(hystHelper_ == NULL){
@@ -1561,7 +1559,7 @@ namespace CoupledField {
         Matrix<Double> scaledCouplTensor = Matrix<Double>(numRows,numCols);
         
         // get current polarization (elec or mag)
-        Vector<Double> P = GetOutputOfHysteresisOperator(lpm, timeLevel);
+        Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(lpm, timeLevel);
         
         //      std::cout << "Current polarization vector " << P.ToString() << std::endl;
         //      
@@ -1679,7 +1677,7 @@ namespace CoupledField {
     //	  // get CURRENT state of P (electric or magnetic polarization)
     //	  UInt timeLevel = 0;
     //
-    //	  Vector<Double> P = hystPol_->GetOutputOfHysteresisOperator(lpm, timeLevel, invert);
+    //	  Vector<Double> P = hystPol_->GetPrecomputedOutputOfHysteresisOperator(lpm, timeLevel, invert);
     //	  Double Psat = hystPol_->GetOutputSaturation();
     //
     //	  // calculate scaling
