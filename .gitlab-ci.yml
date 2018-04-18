@@ -43,6 +43,6 @@ test:
   stage: test
   script:
     - cd build
-    - ctest
+    - ctest run_testsuite.ctest -V
   dependencies:
     - build

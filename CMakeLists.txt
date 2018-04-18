@@ -493,62 +493,6 @@ INCLUDE("cmake_modules/CheckFortranRuntime.cmake")
 INCLUDE("cmake_modules/ConfigureChecks.cmake")
 
 #-----------------------------------------------------------------------------
-# Configure Dart testing support.  This should be done before any
-# MESSAGE(FATAL_ERROR ...) commands are invoked (???) and after the languages
-# for the project have been defined since CMake needs to know about the 
-# language-specific build tools.
-#-----------------------------------------------------------------------------
-
-#-----------------------------------------------------------------------------
-# Switch support for testing off by default. It will be switched on by the
-# CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
-# cache. Cf. ctest_scripts/*.cmake
-#-----------------------------------------------------------------------------
-OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
-
-IF(BUILD_TESTING)
-  SET(BUILDNAME
-    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
-    CACHE STRING "Name of build on the dashboard")
-  MARK_AS_ADVANCED(BUILDNAME)
-  #---------------------------------------------------------------------------
-  # Include CMake module for testing support
-  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
-  #---------------------------------------------------------------------------
-  INCLUDE(CTest)
-  #-----------------------------------------------------------------------------
-  # Specify path to CFS++ testsuite. If this path exists, CTest compatible
-  # test cases will be generated in the current binary directory.
-  #-----------------------------------------------------------------------------
-  IF(NOT TESTSUITE_DIR_DEFAULT)
-    SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
-  ENDIF(NOT TESTSUITE_DIR_DEFAULT)
-
-  SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
-
-  IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
-    IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-      ADD_SUBDIRECTORY(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
-    ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-      SET(MSG "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'.\n")
-      SET(MSG "${MSG}Please specify a proper location!\n")
-      SET(MSG "${MSG}Did you clone with 'git clone --recurse-submodules'?\n")
-      SET(MSG "${MSG}If not do 'git fetch --recurse-submodules'\n")
-      MESSAGE(FATAL_ERROR "${MSG}")
-    ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-  ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
-  # check if we have options
-  # In order to perform tests we need the CFSTOOL and HDF5!
-  if(NOT BUILD_CFSTOOL)
-    message(FATAL_ERROR "BUILD_TESTING=ON requires BUILD_CFSTOOL=ON.")
-  endif()
-  if(NOT USE_HDF5)
-    message(FATAL_ERROR "BUILD_TESTING=ON requires USE_HDF5=ON.")
-  endif()
-ENDIF(BUILD_TESTING)
-MARK_AS_ADVANCED(TESTSUITE_DIR)
-
-#-----------------------------------------------------------------------------
 # Enables python testsuite (contains matviz.py tests) used be the optimization group
 #-----------------------------------------------------------------------------
 OPTION(PYTHON_TESTS "Add testing of python modules (currently stuff from the optimization group)")
@@ -644,6 +588,67 @@ TODAY(CFS_CONF_DATE)
 # and other informations from working copy
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/DetermineWorkingCopyInfos.cmake")
+
+#-----------------------------------------------------------------------------
+# Configure Dart testing support.  This should be done before any
+# MESSAGE(FATAL_ERROR ...) commands are invoked (???) and after the languages
+# for the project have been defined since CMake needs to know about the 
+# language-specific build tools.
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# Switch support for testing off by default. It will be switched on by the
+# CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
+# cache. Cf. ctest_scripts/*.cmake
+#-----------------------------------------------------------------------------
+OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
+
+IF(BUILD_TESTING)
+  SET(BUILDNAME
+    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
+    CACHE STRING "Name of build on the dashboard")
+  MARK_AS_ADVANCED(BUILDNAME)
+  #---------------------------------------------------------------------------
+  # Include CMake module for testing support
+  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
+  #---------------------------------------------------------------------------
+  INCLUDE(CTest)
+  #-----------------------------------------------------------------------------
+  # Specify path to CFS++ testsuite. If this path exists, CTest compatible
+  # test cases will be generated in the current binary directory.
+  #-----------------------------------------------------------------------------
+  IF(NOT TESTSUITE_DIR_DEFAULT)
+    SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
+  ENDIF(NOT TESTSUITE_DIR_DEFAULT)
+
+  SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
+
+  IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+    IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+      ADD_SUBDIRECTORY(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+    ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+      SET(MSG "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'.\n")
+      SET(MSG "${MSG}Please specify a proper location!\n")
+      SET(MSG "${MSG}Did you clone with 'git clone --recurse-submodules'?\n")
+      SET(MSG "${MSG}If not do 'git fetch --recurse-submodules'\n")
+      MESSAGE(FATAL_ERROR "${MSG}")
+    ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+  ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+  # check if we have options
+  # In order to perform tests we need the CFSTOOL and HDF5!
+  if(NOT BUILD_CFSTOOL)
+    message(FATAL_ERROR "BUILD_TESTING=ON requires BUILD_CFSTOOL=ON.")
+  endif()
+  if(NOT USE_HDF5)
+    message(FATAL_ERROR "BUILD_TESTING=ON requires USE_HDF5=ON.")
+  endif()
+  # set a build name
+  SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
+  # configure the dashboard and include config
+  CONFIGURE_FILE(ctest_scripts/shared/CTestConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/CTestConfig.cmake @ONLY)
+  CONFIGURE_FILE(ctest_scripts/shared/run_testsuite.ctest.in ${CMAKE_CURRENT_BINARY_DIR}/run_testsuite.ctest @ONLY)
+ENDIF(BUILD_TESTING)
+MARK_AS_ADVANCED(TESTSUITE_DIR)
 
 #-----------------------------------------------------------------------------
 # Make sure the compiler can find include files from CFS.
