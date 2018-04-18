@@ -9,6 +9,7 @@ stages:
 #  - test
   - no_ctest
   - ctest_continuous
+  - ctest_experimental
   - clear_and_rebuild
 
 # this is run before/after every step
@@ -105,6 +106,12 @@ ctest_continuous:
     - ctest -D Continuous -V
   after_script: [] # override global
   
+ctest_experimental:
+  stage: ctest_experimental
+  when: manual
+  script:
+    - ctest -D Experimental -V
+  after_script: [] # override global
 
 clear_and_rebuild:
   stage: clear_and_rebuild
