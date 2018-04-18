@@ -36,6 +36,7 @@ start:
     - rm -f DartConfiguration.tcl # remove old config
     - cmake -DCTEST_GIT_UPDATE_CUSTOM="git;status" .. # configure with git update command
     # by default CTest does 'git fetch' which fails due to insufficient rights
+    - cat DartConfiguration.tcl # debug
     - ctest -D ContinuousStart -V
     - ctest -D ContinuousUpdate -V
   artifacts:
@@ -49,6 +50,7 @@ configure:
   stage: configure
   script:
     - rm -f CMakeCache.txt # clear any old chache
+    - cat DartConfiguration.tcl # debug
     - ctest -D ContinuousConfigure -V
   # provides artifacts in gitlab (can be downloaded)
   artifacts:
@@ -60,11 +62,13 @@ configure:
 build:
   stage: build
   script:
+    - cat DartConfiguration.tcl # debug
     - ctest -D ContinuousBuild -V
 
 test:
   stage: test
   script:
+    - cat DartConfiguration.tcl # debug
     - ctest -D ContinuousTest -V
 
 clear_and_rebuild:
