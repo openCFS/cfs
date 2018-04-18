@@ -13,6 +13,7 @@ stages:
 before_script:
   - mkdir -p build # make build dir
   - cd build
+  - cat Testing/TAG || echo "no TAG"
   - pwd
   - ls
 after_script:
@@ -31,6 +32,7 @@ cache:
 start:
   stage: start_dashboard
   script:
+    - rm -rf Testing # start with clean testing dir
     - ls DartConfiguration.tcl || cmake -DCTEST_GIT_UPDATE_CUSTOM="git;status" .. # configure with git update command
     # by default CTest does 'git fetch' which fails due to insufficient rights
     - ctest -D ContinuousStart -VV
