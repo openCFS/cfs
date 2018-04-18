@@ -15,7 +15,7 @@ before_script:
   - cd build
   - pwd
   - ls
-  - ls CMakeCache.txt || cmake . # configure if we have no config
+  - ls CMakeCache.txt || cmake .. # configure if we have no config
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
 # use the ref-name, e.g. `master` as key -> same for sucessive builds
