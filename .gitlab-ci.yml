@@ -15,7 +15,6 @@ before_script:
   - cd build
   - pwd
   - ls
-  - ls CMakeCache.txt || cmake .. # configure if we have no config
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
 # use the ref-name, e.g. `master` as key -> same for sucessive builds
@@ -25,8 +24,9 @@ cache:
     - build
 
 start:
-  stage: start
+  stage: update
   script:
+    - ls CMakeCache.txt || cmake .. # configure if we have no config
     - ctest -D ContinuousStart
     - ctest -D ContinuousUpdate
 
@@ -52,12 +52,12 @@ build:
 test:
   stage: test
   script:
-    - ctest -D ContinuousTest
+    - ctest -D ContinuousTest -V
   dependencies:
     - build
 
 start:
   stage: submit
   script:
-    - ctest -D ContinuousSubmit
+    - ctest -D ContinuousSubmit -V
   when: always
