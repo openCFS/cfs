@@ -17,6 +17,7 @@ before_script:
   - ls
 after_script:
   - pwd
+  - cd build
   - ls
   - ctest -D ContinuousSubmit -V
 
@@ -37,6 +38,8 @@ start:
   artifacts:
     paths:
       - build/DartConfiguration.tcl
+      - build/Testing/TAG
+      - build/Testing/Temporary/*
     expire_in: 1 week
 
 configure:
@@ -48,6 +51,7 @@ configure:
   artifacts:
     paths:
       - build/CMakeCache.txt
+      - build/Makefile
     expire_in: 1 week
   dependencies:
     - start
@@ -72,5 +76,5 @@ clear_and_rebuild:
   script:
     - rm -rf * # clear all in build
     - cmake -DCTEST_GIT_UPDATE_CUSTOM="git;status" .. # configure to generate DartConfig
-    - ctest -D Experimental -V
+    - ctest -D Experimental
   after_script: [] # override global
