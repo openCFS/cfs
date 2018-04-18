@@ -654,6 +654,12 @@ IF(BUILD_TESTING)
   CONFIGURE_FILE(ctest_scripts/shared/build.ctest.in ${CMAKE_CURRENT_BINARY_DIR}/build.ctest @ONLY)
   CONFIGURE_FILE(ctest_scripts/shared/test.ctest.in ${CMAKE_CURRENT_BINARY_DIR}/test.ctest @ONLY)
   include(${CMAKE_CURRENT_BINARY_DIR}/CTestConfig.cmake)
+  # write the variables in DartConfiguration.tcl.in
+  # https://github.com/Kitware/CMake/blob/master/Modules/DartConfiguration.tcl.in
+  set(DROP_SITE "${CFS_DS_CDASH_DROP_SITE}")
+  set(DROP_LOCATION "/cdash/submit.php?project=${CTEST_PROJECT_NAME}")
+  SET(DROP_METHOD "http")
+  INCLUDE(CTest) # to actually write DartConfiguration.tcl
 ENDIF(BUILD_TESTING)
 MARK_AS_ADVANCED(TESTSUITE_DIR)
 

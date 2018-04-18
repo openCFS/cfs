@@ -7,6 +7,15 @@ stages:
   - build
   - test
 
+before_script:
+  - mkdir -p build # make build dir
+  - cd build
+  - ctest -D ContinuousStart
+
+after_script:
+  - cd build
+  - ctest -D ContinuousSubmit
+
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
 # use the ref-name, e.g. `master` as key -> same for sucessive builds
 cache:
@@ -23,8 +32,7 @@ configure:
     - mkdir -p build # make build dir
     - cd build
     - rm -f CMakeCache.txt # clear any old chache
-    - echo "CFS_TESTSUITE_MODEL:STRING=Continuous" > CMakeCache.txt # put stuff in the cache
-    - ctest -S configure.ctest -VV
+    - ctest -D ContinuousConfigure -V
   # provides artifacts in gitlab (can be downloaded)
   artifacts:
     paths:
@@ -35,7 +43,7 @@ build:
   stage: build
   script:
     - cd build
-    - ctest -S build.ctest -VV
+    - ctest -D ContinuousBuild -V
   dependencies:
     - configure
 
@@ -43,6 +51,6 @@ test:
   stage: test
   script:
     - cd build
-    - ctest -S test.ctest -V
+    - ctest -D ContinuousTest
   dependencies:
     - build
