@@ -46,17 +46,13 @@ build:
   stage: build
   script:
     - ctest -D ContinuousBuild -V
-  dependencies:
-    - configure
 
 test:
   stage: test
   script:
     - ctest -D ContinuousTest -V
-  dependencies:
-    - build
 
-start:
+submit:
   stage: submit
   script:
     - ctest -D ContinuousSubmit -V
