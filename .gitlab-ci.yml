@@ -4,9 +4,9 @@ variables:
 
 stages:
   - start_dashboard
-  - configure
-  - build
-  - test
+#  - configure
+#  - build
+#  - test
   - clear_and_rebuild
 
 # this is run before/after every step
@@ -39,6 +39,10 @@ start:
     - cat DartConfiguration.tcl # debug
     - ctest -D ContinuousStart -V
     - ctest -D ContinuousUpdate -V
+    - ctest -D ContinuousSubmit -V
+    - ctest -D ContinuousConfigure -V
+    - ctest -D ContinuousSubmit -V
+    - ctest -D ContinuousBuild -V
   artifacts:
     paths:
       - build/DartConfiguration.tcl
@@ -46,7 +50,7 @@ start:
       - build/Testing/Temporary/*
     expire_in: 1 week
 
-configure:
+.configure:
   stage: configure
   script:
     - rm -f CMakeCache.txt # clear any old chache
@@ -59,13 +63,13 @@ configure:
       - build/Makefile
     expire_in: 1 week
 
-build:
+.build:
   stage: build
   script:
     - cat DartConfiguration.tcl # debug
     - ctest -D ContinuousBuild -V
 
-test:
+.test:
   stage: test
   script:
     - cat DartConfiguration.tcl # debug
