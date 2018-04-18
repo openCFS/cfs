@@ -33,10 +33,11 @@ start:
   stage: start_dashboard
   script:
     - rm -rf Testing # start with clean testing dir
-    - ls DartConfiguration.tcl || cmake -DCTEST_GIT_UPDATE_CUSTOM="git;status" .. # configure with git update command
+    - rm -f DartConfiguration.tcl # remove old config
+    - cmake -DCTEST_GIT_UPDATE_CUSTOM="git;status" .. # configure with git update command
     # by default CTest does 'git fetch' which fails due to insufficient rights
-    - ctest -D ContinuousStart -VV
-    - ctest -D ContinuousUpdate -VV
+    - ctest -D ContinuousStart -V
+    - ctest -D ContinuousUpdate -V
   artifacts:
     paths:
       - build/DartConfiguration.tcl
@@ -55,22 +56,16 @@ configure:
       - build/CMakeCache.txt
       - build/Makefile
     expire_in: 1 week
-  dependencies:
-    - start
 
 build:
   stage: build
   script:
     - ctest -D ContinuousBuild -V
-  dependencies:
-    - start
 
 test:
   stage: test
   script:
     - ctest -D ContinuousTest -V
-  dependencies:
-    - start
 
 clear_and_rebuild:
   stage: clear_and_rebuild
