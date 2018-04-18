@@ -14,12 +14,8 @@ before_script:
   - mkdir -p build # make build dir
   - cd build
   - cat Testing/TAG || echo "no TAG"
-  - pwd
-  - ls
 after_script:
-  - pwd
   - cd build
-  - ls
   - ctest -D ExperimentalSubmit --track Gitlab -V
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
@@ -33,11 +29,9 @@ start:
   stage: start_dashboard
   script:
     - rm -rf Testing # start with clean testing dir
-    - ls
     - rm -f DartConfiguration.tcl # remove old config
     - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
     # by default CTest does 'git fetch' which fails due to insufficient rights
-    - cat DartConfiguration.tcl # debug
     - ctest -D ExperimentalStart --track Gitlab -V
   artifacts:
     paths:
