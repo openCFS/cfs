@@ -23,8 +23,8 @@ configure:
     - mkdir -p build # make build dir
     - cd build
     - rm -f CMakeCache.txt # clear any old chache
-    - cmake ..
-    - cmake .
+    - echo "CFS_TESTSUITE_MODEL:STRING=Continuous" > CMakeCache.txt # put stuff in the cache
+    - ctest -S configure.ctest -VV
   # provides artifacts in gitlab (can be downloaded)
   artifacts:
     paths:
@@ -35,7 +35,7 @@ build:
   stage: build
   script:
     - cd build
-    - make
+    - ctest -S build.ctest -VV
   dependencies:
     - configure
 
@@ -43,6 +43,6 @@ test:
   stage: test
   script:
     - cd build
-    - ctest -S run_testsuite.ctest -V
+    - ctest -S test.ctest -V
   dependencies:
     - build

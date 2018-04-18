@@ -644,9 +644,16 @@ IF(BUILD_TESTING)
   endif()
   # set a build name
   SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
+  SET(CFS_TESTSUITE_MODEL "Experimental" CACHE PATH "Model for the test submission to CDash.")
+  if( NOT (CFS_TESTSUITE_MODEL STREQUAL "Nightly" OR CFS_TESTSUITE_MODEL STREQUAL "Continuous" OR CFS_TESTSUITE_MODEL STREQUAL "Experimental") )
+    MESSAGE(FATAL_ERROR "CFS_TESTSUITE_MODEL='${CFS_TESTSUITE_MODEL}' but must be equal to 'Nightly|Continuous|Experimental'")
+  endif()
   # configure the dashboard and include config
   CONFIGURE_FILE(ctest_scripts/shared/CTestConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/CTestConfig.cmake @ONLY)
-  CONFIGURE_FILE(ctest_scripts/shared/run_testsuite.ctest.in ${CMAKE_CURRENT_BINARY_DIR}/run_testsuite.ctest @ONLY)
+  CONFIGURE_FILE(ctest_scripts/shared/configure.ctest.in ${CMAKE_CURRENT_BINARY_DIR}/configure.ctest @ONLY)
+  CONFIGURE_FILE(ctest_scripts/shared/build.ctest.in ${CMAKE_CURRENT_BINARY_DIR}/build.ctest @ONLY)
+  CONFIGURE_FILE(ctest_scripts/shared/test.ctest.in ${CMAKE_CURRENT_BINARY_DIR}/test.ctest @ONLY)
+  include(${CMAKE_CURRENT_BINARY_DIR}/CTestConfig.cmake)
 ENDIF(BUILD_TESTING)
 MARK_AS_ADVANCED(TESTSUITE_DIR)
 
