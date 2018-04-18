@@ -38,8 +38,10 @@ start:
     # by default CTest does 'git fetch' which fails due to insufficient rights
     - cat DartConfiguration.tcl # debug
     - ctest -D ContinuousStart -V
-    - ctest -D ContinuousUpdate -V
-    - ctest -D ContinuousSubmit -V
+    # - ctest -D ContinuousUpdate -V
+    # - ctest -D ContinuousSubmit -V
+    - make ContinuousConfigure
+    - make ContinuousSubmit
     - ctest -D ContinuousConfigure -V
     - ctest -D ContinuousSubmit -V
     - ctest -D ContinuousBuild -V
