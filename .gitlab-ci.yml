@@ -4,9 +4,11 @@ variables:
 
 stages:
   - start_dashboard
-#  - configure
+  - configure
 #  - build
 #  - test
+  - no_ctest
+  - ctest_continuous
   - clear_and_rebuild
 
 # this is run before/after every step
@@ -34,8 +36,8 @@ start:
   script:
     - rm -rf Testing # start with clean testing dir
     - ls
-    - rm -f DartConfiguration.tcl # remove old config
-    - cmake -DCTEST_GIT_UPDATE_CUSTOM="git;status" .. # configure with git update command
+    #- rm -f DartConfiguration.tcl # remove old config
+    #- cmake -DCTEST_GIT_UPDATE_CUSTOM="git;status" .. # configure with git update command
     # by default CTest does 'git fetch' which fails due to insufficient rights
     - cat DartConfiguration.tcl # debug
     - ctest -D ContinuousStart -V
@@ -77,6 +79,32 @@ start:
   script:
     - cat DartConfiguration.tcl # debug
     - ctest -D ContinuousTest -V
+
+configure:
+  stage: configure
+  when: manual
+  script:
+    - cmake -DCTEST_GIT_UPDATE_CUSTOM="git;status" .. # configure to generate DartConfig
+    - cmake . # number 2
+  after_script: [] # override global
+
+no_ctest:
+  stage: no_ctest
+  when: manual
+  script:
+    - cmake .. # configure to generate DartConfig
+    - cmake . # number 2
+    - make -j2
+    - ctest
+  after_script: [] # override global
+
+ctest_continuous:
+  stage: ctest_continuous
+  when: manual
+  script:
+    - ctest -D Continuous -V
+  after_script: [] # override global
+  
 
 clear_and_rebuild:
   stage: clear_and_rebuild
