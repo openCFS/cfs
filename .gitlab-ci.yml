@@ -5,11 +5,8 @@ variables:
 stages:
   - start_dashboard
   - configure
-#  - build
-#  - test
-  - no_ctest
-  - ctest_continuous
-  - ctest_experimental
+  - build
+  - test
   - clear_and_rebuild
 
 # this is run before/after every step
@@ -23,7 +20,7 @@ after_script:
   - pwd
   - cd build
   - ls
-  - ctest -D ContinuousSubmit -V
+  - ctest -D ExperimentalSubmit --track Gitlab -V
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
 # use the ref-name, e.g. `master` as key -> same for sucessive builds
@@ -37,31 +34,22 @@ start:
   script:
     - rm -rf Testing # start with clean testing dir
     - ls
-    #- rm -f DartConfiguration.tcl # remove old config
-    #- cmake -DCTEST_GIT_UPDATE_CUSTOM="git;status" .. # configure with git update command
+    - rm -f DartConfiguration.tcl # remove old config
+    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
     # by default CTest does 'git fetch' which fails due to insufficient rights
     - cat DartConfiguration.tcl # debug
-    - ctest -D ContinuousStart -V
-    # - ctest -D ContinuousUpdate -V
-    # - ctest -D ContinuousSubmit -V
-    - make ContinuousConfigure
-    - make ContinuousSubmit
-    - ctest -D ContinuousConfigure -V
-    - ctest -D ContinuousSubmit -V
-    - ctest -D ContinuousBuild -V
-# artifacts:
-#   paths:
-#     - build/DartConfiguration.tcl
-#     - build/Testing/TAG
-#     - build/Testing/Temporary/*
-#   expire_in: 1 week
+    - ctest -D ExperimentalStart --track Gitlab -V
+  artifacts:
+    paths:
+      - build/DartConfiguration.tcl
+      - build/Testing/TAG
+      - build/Testing/Temporary/*
+    expire_in: 1 week
 
-.configure:
+configure:
   stage: configure
   script:
-    - rm -f CMakeCache.txt # clear any old chache
-    - cat DartConfiguration.tcl # debug
-    - ctest -D ContinuousConfigure -V
+    - ctest -D ExperimentalConfigure --track Gitlab -V
   # provides artifacts in gitlab (can be downloaded)
   artifacts:
     paths:
@@ -69,55 +57,21 @@ start:
       - build/Makefile
     expire_in: 1 week
 
-.build:
+build:
   stage: build
   script:
-    - cat DartConfiguration.tcl # debug
-    - ctest -D ContinuousBuild -V
+    - ctest -D ExperimentalBuild --track Gitlab -V
 
-.test:
+test:
   stage: test
   script:
-    - cat DartConfiguration.tcl # debug
-    - ctest -D ContinuousTest -V
-
-configure:
-  stage: configure
-  when: manual
-  script:
-    - cmake -DCTEST_GIT_UPDATE_CUSTOM="git;status" .. # configure to generate DartConfig
-    - cmake . # number 2
-  after_script: [] # override global
-
-no_ctest:
-  stage: no_ctest
-  when: manual
-  script:
-    - cmake .. # configure to generate DartConfig
-    - cmake . # number 2
-    - make -j2
-    - ctest
-  after_script: [] # override global
-
-ctest_continuous:
-  stage: ctest_continuous
-  when: manual
-  script:
-    - ctest -D Continuous -V
-  after_script: [] # override global
-  
-ctest_experimental:
-  stage: ctest_experimental
-  when: manual
-  script:
-    - ctest -D Experimental -V
-  after_script: [] # override global
+    - ctest -D ExperimentalTest --track Gitlab -V
 
 clear_and_rebuild:
   stage: clear_and_rebuild
   when: manual
   script:
     - rm -rf * # clear all in build
-    - cmake -DCTEST_GIT_UPDATE_CUSTOM="git;status" .. # configure to generate DartConfig
-    - ctest -D Experimental
+    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure to generate DartConfig
+    - ctest -D Experimental --track Gitlab -V
   after_script: [] # override global
