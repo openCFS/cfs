@@ -3,7 +3,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 stages:
-  - update
+  - start_dashboard
   - configure
   - build
   - test
@@ -24,7 +24,7 @@ cache:
     - build
 
 start:
-  stage: update
+  stage: start_dashboard
   script:
     - ls CMakeCache.txt || cmake .. # configure if we have no config
     - ctest -D ContinuousStart
