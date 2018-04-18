@@ -3,18 +3,16 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 stages:
+  - update
   - configure
   - build
   - test
+  - submit
 
+# this is run before every step
 before_script:
   - mkdir -p build # make build dir
   - cd build
-  - ctest -D ContinuousStart
-
-after_script:
-  - cd build
-  - ctest -D ContinuousSubmit
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
 # use the ref-name, e.g. `master` as key -> same for sucessive builds
@@ -23,14 +21,16 @@ cache:
   paths:
     - build
 
+start:
+  stage: start
+  script:
+    - ctest -D ContinuousStart
+    - ctest -D ContinuousUpdate
+
 # only include a config step for the start
 configure:
   stage: configure
   script:
-    - pwd # show where we are
-    - ls # list source
-    - mkdir -p build # make build dir
-    - cd build
     - rm -f CMakeCache.txt # clear any old chache
     - ctest -D ContinuousConfigure -V
   # provides artifacts in gitlab (can be downloaded)
@@ -42,7 +42,6 @@ configure:
 build:
   stage: build
   script:
-    - cd build
     - ctest -D ContinuousBuild -V
   dependencies:
     - configure
@@ -50,7 +49,12 @@ build:
 test:
   stage: test
   script:
-    - cd build
     - ctest -D ContinuousTest
   dependencies:
     - build
+
+start:
+  stage: submit
+  script:
+    - ctest -D ContinuousSubmit
+  when: always
