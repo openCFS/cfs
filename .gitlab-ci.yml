@@ -27,8 +27,8 @@ start:
   stage: start_dashboard
   script:
     - ls CMakeCache.txt || cmake .. # configure if we have no config
-    - ctest -D ContinuousStart
-    - ctest -D ContinuousUpdate
+    - ctest -D ContinuousStart -VV
+    - ctest -D ContinuousUpdate -VV
 
 # only include a config step for the start
 configure:
