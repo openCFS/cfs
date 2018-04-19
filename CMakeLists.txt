@@ -649,17 +649,12 @@ IF(BUILD_TESTING)
     MESSAGE(FATAL_ERROR "CFS_TESTSUITE_MODEL='${CFS_TESTSUITE_MODEL}' but must be equal to 'Nightly|Continuous|Experimental'")
   endif()
   # configure the dashboard and include config
-  CONFIGURE_FILE(ctest_scripts/shared/CTestConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/CTestConfig.cmake @ONLY)
-  CONFIGURE_FILE(ctest_scripts/shared/configure.ctest.in ${CMAKE_CURRENT_BINARY_DIR}/configure.ctest @ONLY)
-  CONFIGURE_FILE(ctest_scripts/shared/build.ctest.in ${CMAKE_CURRENT_BINARY_DIR}/build.ctest @ONLY)
-  CONFIGURE_FILE(ctest_scripts/shared/test.ctest.in ${CMAKE_CURRENT_BINARY_DIR}/test.ctest @ONLY)
-  include(${CMAKE_CURRENT_BINARY_DIR}/CTestConfig.cmake)
   # write the variables in DartConfiguration.tcl which is used by `ctest -D` or `make Experimental`
   # https://github.com/Kitware/CMake/blob/master/Modules/DartConfiguration.tcl.in
   set(DROP_SITE "${CFS_DS_CDASH_DROP_SITE}")
   set(DROP_LOCATION "/cdash/submit.php?project=${CTEST_PROJECT_NAME}")
   SET(DROP_METHOD "http")
-  set(BUILDNAME "${CFS_GIT_COMMIT} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}")
+  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}")
   INCLUDE(CTest) # to actually write DartConfiguration.tcl
 ENDIF(BUILD_TESTING)
 MARK_AS_ADVANCED(TESTSUITE_DIR)
