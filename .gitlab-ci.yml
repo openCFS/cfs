@@ -1,4 +1,5 @@
 # This file is used to define the CI pipeline for GitLab
+# https://docs.gitlab.com/ee/ci/yaml
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
@@ -12,11 +13,17 @@ before_script:
   - mkdir -p build # make build dir
   - cd build
   - cat Testing/TAG || echo "no TAG"
+  - rm -f CMakeCache.txt # clear old cache
+  - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
+# after the before script we should be in the build dir and ready to run ctest
+    
 after_script:
   - cd build
   - cat Testing/TAG || echo "no TAG"
-  - ls Testing
-  - ctest -D ExperimentalSubmit --track Gitlab -V
+  - ctest -D ExperimentalSubmit --track Gitlab -V # this is in after to always submit a result, also it a sub-step failed
+  # clean up for next build
+  - rm -rf Testing
+  - rm CMakeCache.txt
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
 # use the ref-name, e.g. `master` as key -> same for sucessive builds
@@ -28,51 +35,40 @@ cache:
   paths:
     - build
 
-.start:
-  stage: start_dashboard
+.job_template: &config_build_test
   script:
-    - rm -rf Testing # start with clean testing dir
-    - rm -f DartConfiguration.tcl # remove old config
-    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
-    # by default CTest does 'git fetch' which fails due to insufficient rights
-    - ctest -D ExperimentalStart --track Gitlab -V
-  artifacts:
-    paths:
-      - build/DartConfiguration.tcl
-      - build/Testing/TAG
-      - build/Testing/Temporary/*
-    expire_in: 1 week
-
-.configure:
-  stage: configure
-  script:
-    - ctest -D ExperimentalConfigure --track Gitlab -V
-  # provides artifacts in gitlab (can be downloaded)
-  artifacts:
-    paths:
-      - build/CMakeCache.txt
-      - build/Makefile
-    expire_in: 1 week
-
-build:linux:
-  stage: build
-  script:
-    - rm -f CMakeCache.txt # clear old cache
-    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
-    # by default CTest does 'git fetch' which fails due to insufficient rights
     - ctest -D ExperimentalStart --track Gitlab -V
     - ctest -D ExperimentalConfigure --track Gitlab -V
     - ctest -D ExperimentalSubmit --track Gitlab # intermittent submit to get live CDash results
     - ctest -D ExperimentalBuild --track Gitlab -V
     - ctest -D ExperimentalSubmit --track Gitlab
-    - ctest -D ExperimentalTest --track Gitlab
+    - ctest -D ExperimentalTest --track Gitlab    
   artifacts:
-    paths:
+    paths: # just an example
       - build/DartConfiguration.tcl
-      - build/Testing/TAG # needed for test submitssion
-      - build/Testing/Temporary/* # debug only ?
-    expire_in: 1 week
+    expire_in: 2 days
 
+build:gcc4: # eventually we should have one job for each required configuration
+  stage: build
+  tags:
+    - gcc4
+  <<: *config_build_test
+
+build:gcc6:
+  stage: build
+  tags:
+    - gcc6
+  before_script:
+    - mkdir build || cd build # descend in build
+    - scl enable devtoolset-6 -- bash || gcc --version # try software collection, and if it fails use native gcc (and hope it's 6 - need correct tag on the runner)
+    - cat Testing/TAG || echo "no TAG" # just debug
+    - rm -f CMakeCache.txt # clear old cache
+    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
+  <<: *config_build_test
+  
+
+# the test stage can only be seperated if each build configuration is used by only one runner (via the runner cache
+# or the dependecies are obtained via artifacts through the gitlab server
 .test:stdconf: # this must be tied to a runner with shared cache (who did the build)
   stage: test
   script:
