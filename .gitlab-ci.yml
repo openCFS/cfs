@@ -4,7 +4,7 @@ variables:
 
 stages:
   - build # config and build combined
-  - test # we may have several test configs for one build
+#  - test # we may have several test configs for one build
   - clear_and_rebuild
 
 # this is run before/after every step
@@ -64,6 +64,8 @@ build:linux:
     - ctest -D ExperimentalConfigure --track Gitlab -V
     - ctest -D ExperimentalSubmit --track Gitlab # intermittent submit to get live CDash results
     - ctest -D ExperimentalBuild --track Gitlab -V
+    - ctest -D ExperimentalSubmit --track Gitlab
+    - ctest -D ExperimentalTest --track Gitlab
   artifacts:
     paths:
       - build/DartConfiguration.tcl
@@ -71,14 +73,14 @@ build:linux:
       - build/Testing/Temporary/* # debug only ?
     expire_in: 1 week
 
-test:stdconf:
+.test:stdconf: # this must be tied to a runner with shared cache (who did the build)
   stage: test
   script:
     - ctest -D ExperimentalTest --track Gitlab
   dependencies:
     - build:linux
 
-test:t1:
+.test:t1: # this must be tied to a runner with shared cache
   stage: test
   when: manual # only run on demand
   script:
