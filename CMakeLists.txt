@@ -871,3 +871,21 @@ ADD_SUBDIRECTORY(share/mkmesh)
 #-----------------------------------------------------------------------------
 ADD_SUBDIRECTORY(share/xml)
 ADD_SUBDIRECTORY(share/xsl)
+
+#-----------------------------------------------------------------------------
+# Add an install Target using CPack
+#-----------------------------------------------------------------------------
+
+# set cpack config options
+# see https://cmake.org/Wiki/CMake:CPackConfiguration
+string(SUBSTRING ${CFS_GIT_COMMIT} 0 8 CPACK_PACKAGE_VERSION)
+if(CFS_WC_MODIFIED)
+  set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}-modified")
+endif(CFS_WC_MODIFIED)
+
+# choose what to install
+# see https://cmake.org/cmake/help/v3.9/command/install.html#installing-directories
+INSTALL(DIRECTORY "${CFS_BINARY_DIR}/bin" DESTINATION "." USE_SOURCE_PERMISSIONS)
+INSTALL(DIRECTORY "${CFS_BINARY_DIR}/lib64" DESTINATION "." USE_SOURCE_PERMISSIONS PATTERN "*.a" EXCLUDE) # lib64 only works for 64bit ...
+INSTALL(DIRECTORY "${CFS_BINARY_DIR}/share" DESTINATION "." USE_SOURCE_PERMISSIONS)
+INCLUDE(CPack)
