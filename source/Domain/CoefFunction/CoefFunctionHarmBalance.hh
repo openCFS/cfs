@@ -37,6 +37,7 @@ class CoefFunctionHarmBalance : public CoefFunction {
 public:
   //! Constructor
   CoefFunctionHarmBalance(shared_ptr<BaseFeFunction> feFct,
+                          shared_ptr<FeSpace> feSpc,
                           const StdVector<RegionIdType>& regions,
                           const std::map<RegionIdType, BaseMaterial*>& materials,
                           Grid* ptGrid,
@@ -61,10 +62,19 @@ public:
   virtual UInt GetVecSize() const;
 
   PtrCoefFct GenerateMatCoefFnc(const UInt& iRegion,
-                                const std::string& name);
+                                const std::string& name,
+                                const bool nonLin);
 
-  void RegisterElemsInRegion(shared_ptr<ElemList> actSDList);
+  //! Method is called with a specific subdomain in the PDE
+  //! and registers this region
+  //! Method is called in the integrator-definition section of the
+  //! specific PDE
+  void RegisterElemsInRegion(shared_ptr<ElemList> actSDList,
+                             const UInt& iRegion);
 
+  virtual CoefDimType GetDimType() const{
+    return dimType_;
+  }
 
 protected:
 
@@ -84,7 +94,13 @@ protected:
   //! Handle for the solution cache callback-mechanism
   MathParser::HandleType solHandle_;
 
+  //! CoefFunction for magnetic flux density
   PtrCoefFct magFluxCoef_ = NULL;
+
+  PtrCoefFct JUSTATEST_ = NULL;
+
+  //! CoefFunction for nonlinear reluctivity evaluation
+  std::map<UInt, PtrCoefFct> nonLinNuCoefMap_;
 
   //! Vector containing all regions the PDE is defined on. From StdPDE
   StdVector<RegionIdType> regions_;
@@ -104,12 +120,17 @@ protected:
   //! Number of regions
   UInt numRegions_;
 
+  //! Pointer to the FeSpace for quantity MAG_FLUX_DENSITY,
+  //! in order to retrieve information about integration points
+  shared_ptr<FeSpace> fluxFESpace_;
+
   //! Safety flag to check if the elements of all regions were registered
   bool regionRegistration_;
 
   //! Store the elements of each region (need information
   //! about the integration points later on)
   StdVector< shared_ptr<ElemList> > elemListPerRegion_;
+  StdVector< Integer > regionList_;
 
   //! Total number of elements
   UInt numElems_;

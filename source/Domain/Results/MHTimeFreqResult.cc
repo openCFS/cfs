@@ -104,10 +104,15 @@ namespace CoupledField {
     //freqResult_ = timeResult_;
 
 
-    deleteMeResult_.Resize(0,0);
-    deleteMeResult_.Init();
+    deleteMeResult_.Resize(timeResult_.GetNumRows(), timeResult_.GetNumCols());
+    //deleteMeResult_.SetPart(Global::ComplexPart::REAL, timeResult_, true);
+    //deleteMeResult_.Init();
     deleteMeResult_ = timeResult_;
-
+    //for(UInt i = 0; i < timeResult_.GetNumRows(); ++i){
+    //  for(UInt j = 0; j < timeResult_.GetNumCols(); ++j ){
+    //    deleteMeResult_[i][j] = timeResult_[i][j];
+    //  }
+    //}
 
     Complex tmp;
 
@@ -242,6 +247,7 @@ namespace CoupledField {
     // Outer loop over discrete times
     Double t = 0.0;
     int h = 0;
+    Complex tmp;
     for(UInt i = 0; i < timeVec_.GetSize(); ++i ){
       t = timeVec_[i];
       for(UInt k = 0; k < 2 * N_ + 1; ++k){
@@ -250,6 +256,7 @@ namespace CoupledField {
         for(UInt j = 0; j < spatialSize_; ++j){
           // multiplication with 0.5 due to double sided spectrum
           timeResult_[j][i] += freqResult_[j][k] * (cos(h * omega0_ * t) + Complex(0.0,1.0)*sin(h * omega0_ *t)) * 0.5;
+          //timeResult_[j][i] += tmp.real();
         }
       }
     }// loop over time array

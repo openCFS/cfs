@@ -13,6 +13,7 @@
 
 #include "Domain/CoefFunction/CoefXpr.hh"
 
+#include "FeBasis/FeSpace.hh"
 
 namespace CoupledField
 {
@@ -21,12 +22,16 @@ namespace CoupledField
   // ==========================================================================
   template<class T>
   CoefFunctionHarmBalance<T>::CoefFunctionHarmBalance(shared_ptr<BaseFeFunction> feFct,
+                                                      shared_ptr<FeSpace> feSpc,
                                                       const StdVector<RegionIdType>& regions,
                                                       const std::map<RegionIdType, BaseMaterial*>& materials,
                                                        Grid* ptGrid,
                                                       PtrCoefFct magFluxCoef):CoefFunction() {
 
     feFct_ = dynamic_pointer_cast<FeFunction<T> >(feFct);
+
+    fluxFESpace_ = dynamic_pointer_cast<FeSpace >(feSpc);
+
     regions_ = regions;
     materials_ = materials;
     ptGrid_ = ptGrid;
@@ -45,9 +50,9 @@ namespace CoupledField
     numRegions_ = regions.GetSize();
 
     elemListPerRegion_.Resize(0);
+    regionList_.Resize(0);
 
     numElems_ = 0;
-
 
     // For the callback mechanism
     mp_ = domain->GetMathParser();
@@ -64,8 +69,18 @@ namespace CoupledField
     solHandle_ = mp_->GetNewHandle(true);
     // Bind the handle to the correct expression
     mp_->SetExpr(solHandle_,"cacheResult");
+    // Flag for first time calculation
+    mp_->SetValue(MathParser::GLOB_HANDLER, "cacheResult", -1);
     // register callback mechanism if expression changes
     mp_->AddExpChangeCallBack( boost::bind(&CoefFunctionHarmBalance<T>::UpdateSolution, this ), solHandle_ );
+
+
+
+    isAnalytic_ = false;
+    isComplex_ = false;
+
+    // take care, it's changed throughout the class!!
+    dimType_ = CoefFunction::SCALAR;
 
   }
 
@@ -73,41 +88,12 @@ namespace CoupledField
   CoefFunctionHarmBalance<T>::
   ~CoefFunctionHarmBalance() {}
 
-  template<class T>
-  void CoefFunctionHarmBalance<T>::
-  GetScalar(T& coefScal, const LocPointMapped& lpm ){
-    EXCEPTION("CoefFunctionHarmBalance::GetScalar NOT IMPLEMENTED YET")
-  }
-
-  template<class T>
-  void CoefFunctionHarmBalance<T>::
-  GetVector(Vector<T>& coefVec, const LocPointMapped& lpm){
-    EXCEPTION("CoefFunctionHarmBalance::GetVector NOT IMPLEMENTED YET")
-  }
-
-  template<class T>
-  void CoefFunctionHarmBalance<T>::
-  GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm){
-    EXCEPTION("CoefFunctionHarmBalance::GetTensor NOT IMPLEMENTED YET")
-  }
-
-  template<class T>
-  UInt CoefFunctionHarmBalance<T>::
-  GetVecSize() const{
-    EXCEPTION("CoefFunctionHarmBalance::GetVecSize NOT IMPLEMENTED YET")
-  }
-
-  template<class T>
-  std::string CoefFunctionHarmBalance<T>::
-  ToString() const {
-    return "CoefFunctionHarmBalance";
-  }
-
 
   template<class T>
   PtrCoefFct CoefFunctionHarmBalance<T>::
   GenerateMatCoefFnc(const UInt& iRegion,
-                     const std::string& name){
+                     const std::string& name,
+                     const bool nonLin){
     if( name != "Reluctivity"){
       EXCEPTION("CoefFunctionHarmBalance::GenerateMatCoefFnc unrecognized"
                 "name of expected quantity:"<<name)
@@ -126,9 +112,25 @@ namespace CoupledField
     if(mp_->Eval(harmHandle_) == maxInt_ ){
       // return the linear reluctivity
       ret = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
+
+      // Also set the correct nonlinear reluctivity evaluation CoefFunctions here
+      // ONLY FOR THE REGIONS WHICH ARE REALLY NONLINEAR!!!
+      if( nonLin ){
+        // we need the real part of this CoefFunction GetVector because the
+        // GetScalCoefFncNonLin method can only handle real values
+
+        dimType_ = VECTOR;
+        PtrCoefFct realThis = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_, (PtrCoefFct)this, CoefXpr::OP_RE));
+        //PtrCoefFct realThis = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_, magFluxCoef_, CoefXpr::OP_RE));
+        JUSTATEST_ = realThis;
+        nonLinNuCoefMap_[actRegion] = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, realThis);
+
+      }else{
+        nonLinNuCoefMap_[actRegion] = ret;
+      }
+
     }else{
       EXCEPTION("CoefFunctionHarmBalance<T>::GenerateMatCoefFnc Nonlinear part not yet implemented");
-      //ret = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef_);
     }
     return ret;
   }
@@ -136,7 +138,8 @@ namespace CoupledField
 
   template<class T>
   void CoefFunctionHarmBalance<T>::
-  RegisterElemsInRegion(shared_ptr<ElemList> actSDList){
+  RegisterElemsInRegion(shared_ptr<ElemList> actSDList,
+                        const UInt& iRegion){
     // Check if the number of allowed regions is exceeded
     if(regionRegistration_ == true){
       EXCEPTION("CoefFunctionHarmBalance::RegisterElemsInRegion Error when trying \n"
@@ -144,7 +147,9 @@ namespace CoupledField
     }
 
     elemListPerRegion_.Push_back(actSDList);
+    regionList_.Push_back(iRegion);
     numElems_ += actSDList->GetSize();
+
 
     // Check and set the flag if all regions are set
     if(elemListPerRegion_.GetSize() == numRegions_) {
@@ -166,9 +171,10 @@ namespace CoupledField
     std::cout<< this->mp_->GetExpr(solHandle_  )<<std::endl;
     std::cout<< this->mp_->Eval(solHandle_) <<std::endl;
 
+
     /*
      * 1. Check if the update callback was called more often than 2*N_+1
-     *    if so, throw an exception
+     *
      *    2.true We can perform the inverse FFT of the nu(t) signal
      *           This should be somehow done in the MHTimeFreqResult class
      *           But how can we give the solution to this class?
@@ -180,38 +186,111 @@ namespace CoupledField
      *            it IN PARALLEL.
      *            But therefore we need to really copy the vectors...
      *            we'll see how the memory is affected
+     *
+     * UPDATE:  It does not mind if we evaluate the magnetic flux density
+     *          only on the element midpoint because if we calculate it
+     *          on integrations points, we get the same value for every
+     *          integration point of one element, since the specific
+     *          coef function, which is necessary to compute the B field
+     *          calls FeFunctions::GetElemSolution ... which is one B-value
+     *          for one element
      */
 
+    // Loop over all regions and over every integration point in this region
+    // and cache the magnetic flux density result
 
-    //=================================================================================
-    //=============================== Just for testing purposes =======================
-    if( this->mp_->Eval(solHandle_)== 0 ){
-      // testwise dummy evaluation of magnetic flux density at some element point
 
-      EntityIterator it = elemListPerRegion_[0]->GetIterator();
-      for(  it.Begin(); !it.IsEnd(); it++  ){
-        const Elem * el = it.GetElem();
 
-        LocPoint lp = Elem::shapes[el->type].midPointCoord;
-        std::cout<<lp.coord.ToString()<<std::endl;
-        LocPointMapped lpm;
-        shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
-        lpm.Set(lp, esm, 0.0);
 
-        Vector<Complex> dummyFluxVec;
-        magFluxCoef_->GetVector(dummyFluxVec, lpm);
-        std::cout<<dummyFluxVec.ToString()<<std::endl;
+
+    if( this->mp_->Eval(solHandle_) >= 0 ){
+
+      // These integration parameters can vary between regions
+      IntegOrder order;
+      IntScheme::IntegMethod method;
+      StdVector<LocPoint> intPoints;
+      StdVector<Double> weights;
+      LocPointMapped lpm;
+      Vector<Complex> dummyFluxVec;
+
+      // Loop over every region
+      for(UInt i = 0; i < elemListPerRegion_.GetSize(); ++i){
+
+        EntityIterator it = elemListPerRegion_[i]->GetIterator();
+        RegionIdType regId = regions_[ regionList_[i] ];
+        fluxFESpace_->GetFe(it, method, order);
+        // Loop over every element in that region
+        for(it.Begin(); !it.IsEnd(); it++){
+          const Elem * el = it.GetElem();
+          shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
+          // Where do we evaluate the magnetic flux density?
+          // Element or integration point -> see UPDATE from above
+          LocPoint lp = Elem::shapes[el->type].midPointCoord;
+          lpm.Set(lp, esm, 0.0);
+          magFluxCoef_->GetVector(dummyFluxVec, lpm);
+//          Evaluate the nu right here!!!!!!!!
+
+
+std::cout<<"dummyFluxVec.ToString()"<<dummyFluxVec.ToString()<<std::endl;
+
+          Vector<Double> test;
+          JUSTATEST_->GetVector(test, lpm);
+std::cout<<"test.ToString()"<<test.ToString()<<std::endl;
+
+
+          Double dummy;
+          nonLinNuCoefMap_[regId]->GetScalar(dummy, lpm);
+std::cout<<"dummy.ToString()"<<dummy<<std::endl;
+
+
+        }
       }
-      //==============================================================================
 
+EXCEPTION("WE STILL NEED TO CACHE IT!");
 
-
-    }else{
-      EXCEPTION("This case is not yet handled");
     }
-
-
   }
+
+
+
+  template<class T>
+  void CoefFunctionHarmBalance<T>::
+  GetScalar(T& coefScal, const LocPointMapped& lpm ){
+    EXCEPTION("CoefFunctionHarmBalance::GetScalar NOT IMPLEMENTED YET")
+  }
+
+  template<class T>
+  void CoefFunctionHarmBalance<T>::
+  GetVector(Vector<T>& coefVec, const LocPointMapped& lpm){
+
+    // This is just for testing, don't take anything for granted from here !!!!!!!!!
+    Vector<Complex> tmp;
+    magFluxCoef_->GetVector(tmp, lpm);
+    coefVec = tmp.GetPart(Global::REAL);
+    //std::cout<<"=========================================================\n"
+    //           "========================================================="<<std::endl;
+    //EXCEPTION("CoefFunctionHarmBalance::GetVector NOT IMPLEMENTED YET")
+  }
+
+  template<class T>
+  void CoefFunctionHarmBalance<T>::
+  GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm){
+    EXCEPTION("CoefFunctionHarmBalance::GetTensor NOT IMPLEMENTED YET")
+  }
+
+  template<class T>
+  UInt CoefFunctionHarmBalance<T>::
+  GetVecSize() const{
+    // spatial dimension (dimension of B vector)
+    return ptGrid_->GetDim();
+  }
+
+  template<class T>
+  std::string CoefFunctionHarmBalance<T>::
+  ToString() const {
+    return "CoefFunctionHarmBalance";
+  }
+
 
 
   // Explicit template instantiation

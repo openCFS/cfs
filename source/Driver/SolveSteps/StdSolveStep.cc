@@ -1493,11 +1493,11 @@ namespace CoupledField {
     ftRes.FourierToTime();
 
     // ========= Delete that...it's just to check the FFT ==============
-    //ftRes.TimeToFourier();
-    //ftRes.FourierToTime();
-    //Vector<Complex> testFreq = ftRes.GetFreqResult(2);
-    //Vector<Complex> testTime = ftRes.GetTimeResult(2);
-    //std::cout<< testFreq.ToString() << " \n actSol(1) = " << actSol(1).ToString()<< " \n actSol(2) = " << actSol(2).ToString()<< " \n actSol(3) = "<< actSol(3).ToString()  << std::endl;
+    ftRes.TimeToFourier();
+    ftRes.FourierToTime();
+    Vector<Complex> testFreq = ftRes.GetFreqResult(2);
+    Vector<Complex> testTime = ftRes.GetTimeResult(2);
+    std::cout<< testFreq.ToString() << " \n actSol(1) = " << actSol(1).ToString()<< " \n actSol(2) = " << actSol(2).ToString()<< " \n actSol(3) = "<< actSol(3).ToString()  << std::endl;
     // ==================================================================
 
 
@@ -1512,14 +1512,18 @@ namespace CoupledField {
     for(UInt i = 0; i < ftRes.GetNumTimeSteps(); ++i){
       // TODO this should be double
       Vector<Complex> timeStepVec = ftRes.GetTimeResult(i);
-      solVec_(0) = timeStepVec;
+      solVec_(0) = (Vector<Complex>)timeStepVec;
+
+
+
+
 
       // trigger the callback mechanism in CoefFunctionHarmBalance
       // Now the PDE has the solution vector via the FeSpace
       // and we activate the callback mechanism to cache the
       // solution vector for current harmonic
 
-      mParser_->SetValue(MathParser::GLOB_HANDLER, "cacheResult", 0);
+      mParser_->SetValue(MathParser::GLOB_HANDLER, "cacheResult", i);
 
     }
 

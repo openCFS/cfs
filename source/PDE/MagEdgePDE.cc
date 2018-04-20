@@ -136,7 +136,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
     // Create new harmonic balance coefficient function and register the regions and material
-    multiHarmCoef_.reset(new CoefFunctionHarmBalance<Double>(feFunc, regions_, materials_, ptGrid_, magFluxCoef) );
+    multiHarmCoef_.reset(new CoefFunctionHarmBalance<Double>(feFunc, feSpace, regions_, materials_, ptGrid_, magFluxCoef) );
 
 
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
@@ -169,8 +169,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         PtrCoefFct nuNl = NULL;
         if ( analysistype_ == MULTIHARMONIC ) {
           // register element list of region
-          multiHarmCoef_->RegisterElemsInRegion(actSDList);
-          nuNl = multiHarmCoef_->GenerateMatCoefFnc(iRegion, "Reluctivity");
+          bool nL = (nonLinTypes.GetSize() > 0)? true : false;
+          multiHarmCoef_->RegisterElemsInRegion(actSDList, iRegion);
+          nuNl = multiHarmCoef_->GenerateMatCoefFnc(iRegion, "Reluctivity", nL);
         }else{
           // ========================================
           //  Classic Nonlinear Stiffness Integrator

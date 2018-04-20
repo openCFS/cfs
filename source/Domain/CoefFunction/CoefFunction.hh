@@ -270,7 +270,7 @@ public:
 
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm ) {
-    EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen " 
+    EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen "
         << "Most likely this method is called with a complex-valued CoefFunction object." );
   }
 
@@ -590,12 +590,14 @@ public:
 
   //! Needed for harmonic balancing CoefFunctionHarmBalance
   virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(const UInt& iRegion,
-                                                      const std::string& name){
+                                                      const std::string& name,
+                                                      const bool nonLin){
     EXCEPTION("Not implemented in base class");
   }
 
   //! Needed for harmonic balancing CoefFunctionHarmBalance
-  virtual void RegisterElemsInRegion(shared_ptr<ElemList> actSDList){
+  virtual void RegisterElemsInRegion(shared_ptr<ElemList> actSDList,
+                                     const UInt& iRegion){
     EXCEPTION("Not implemented in base class");
   }
 
