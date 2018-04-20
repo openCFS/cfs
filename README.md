@@ -1,41 +1,42 @@
 CFS++
 ==============================
 
+[![pipeline status](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/pipeline.svg)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master)
+
 This is the git repository of CFS++.
-It is currently kept in sync with our [SVN repo](https://cfs.mdmt.tuwien.ac.at/svn/CFS++).
-This is done by [subgit](https://subgit.com/).
-Integration ws done accoding to the [gitlab-guide](https://docs.gitlab.com/ce/user/project/import/svn.html).
-Our subgit instance is registered with the following data, which was issued for free (academic project) by TMate Software
+
+Building
+--------
+
+For building you need
+* cmake
+* C++ and Fortran compilers
+
+We use CMake so it might be as simple as
 ```
-Registered for:       CFS++ (http://cfs-doc.mdmt.tuwien.ac.at)
-Purchase ID:          OS-515510923183017
-Expiration date:      November 17, 2018
+mkdir build && cd build
+cmake ..
+ccmake . # to review the options
+make
 ```
 
-It should be used for testing, i.e. for writing developer docu in the branch `devel_docu`.
+To get started be sure to visit the [wiki](/../wikis).
+
+Running
+------------
+
+After a sucessful build you can execute
+```
+./bin/cfs
+```
+For details visit the [user documentation](https://cfs-doc.mdmt.tuwien.ac.at) with plenty of examples.
+
 
 [Developer Documentation](/share/doc/developer/README.md)
----------------
+---------------------------------------------------------
+Is done by markdown files at appropriate locations direclty in the source tree.
+They should be all linked in [`share/doc/developer/README.md`](/share/doc/developer/README.md).
 
-Working locally
----------------
-
-1. clone the repository `git clone ...`
-2. checkout the branch `git checkout devel_docu`
-3. add, commit & push
-
-To avoid unnecessary merge commits, tell git to always rebase when pulling, to do this on a project level add this to your `.git/config` file
-```
-[branch "devel_docu"]
-  rebase = true
-```
-Of course there are [different possibilities to avoid merge commits](http://kernowsoul.com/blog/2012/06/20/4-ways-to-avoid-merge-commits-in-git/).
-
-Working on gitlab
------------------
-
-You can edit or create files directly on gitlab.
-This way one can use the `preview` function of the editor.
-Be sure to
-* write commit messages
-* commit to the correct branch 
+Bugs
+----------------
+Did you _really_ find a bug? Please create an [issue](/../issues), and then fix it ...
