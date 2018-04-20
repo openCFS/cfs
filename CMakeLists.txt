@@ -602,7 +602,7 @@ INCLUDE("cmake_modules/DetermineWorkingCopyInfos.cmake")
 # cache. Cf. ctest_scripts/*.cmake
 #-----------------------------------------------------------------------------
 OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
-
+CMAKE_DEPENDENT_OPTION(PACK_TESTSUITE "Pack the testsuite using CPack" OFF "BUILD_TESTING" OFF) # set to off all the time, distributable testsuite must be created for this
 IF(BUILD_TESTING)
   SET(BUILDNAME
     "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
@@ -655,7 +655,25 @@ IF(BUILD_TESTING)
   set(DROP_LOCATION "/cdash/submit.php?project=${CTEST_PROJECT_NAME}")
   SET(DROP_METHOD "http")
   set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}")
+  if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
+    # get the build host
+    execute_process(COMMAND ${CFS_BINARY_DIR}/bin/cfs --version --noColor
+                    COMMAND grep CFS_BUILD_HOST
+                    COMMAND awk "{print $2}"
+                    RESULT_VARIABLE var
+                    OUTPUT_VARIABLE ORIGINAL_BUILD_HOST)
+    string(STRIP "${ORIGINAL_BUILD_HOST}" ORIGINAL_BUILD_HOST) # important for comparison !
+    #message("CFS_BUILD_HOST='${CFS_BUILD_HOST}' ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
+    if(NOT (CFS_BUILD_HOST STREQUAL "${ORIGINAL_BUILD_HOST}") )
+      # modify build name 
+      set(BUILDNAME "${BUILDNAME} tested on ${CFS_BUILD_HOST}")
+      # re-write the Testing/TAG for CDash submission
+      file(WRITE ${CFS_BINARY_DIR}/Testing/TAG "${GITLAB_TEST_TAG}\nGitlab\n" )
+    endif()
+  endif(GITLAB_TEST_TAG)
   INCLUDE(CTest) # to actually write DartConfiguration.tcl
+  # add a packing test
+  add_test(Install_Pack_Linux_TGZ cpack -G TGZ --verbose)
 ENDIF(BUILD_TESTING)
 MARK_AS_ADVANCED(TESTSUITE_DIR)
 
@@ -899,4 +917,9 @@ endif(CFS_WC_MODIFIED)
 INSTALL(DIRECTORY "${CFS_BINARY_DIR}/bin" DESTINATION "." USE_SOURCE_PERMISSIONS)
 INSTALL(DIRECTORY "${CFS_BINARY_DIR}/lib64" DESTINATION "." USE_SOURCE_PERMISSIONS PATTERN "*.a" EXCLUDE) # lib64 only works for 64bit ...
 INSTALL(DIRECTORY "${CFS_BINARY_DIR}/share" DESTINATION "." USE_SOURCE_PERMISSIONS)
+if(BUILD_TESTING AND PACK_TESTSUITE)
+  INSTALL(FILES "${CFS_BINARY_DIR}/CTestTestfile.cmake" DESTINATION ".")
+  INSTALL(DIRECTORY "${CFS_BINARY_DIR}/testsuite" DESTINATION "." USE_SOURCE_PERMISSIONS)
+endif(BUILD_TESTING AND PACK_TESTSUITE)
+
 INCLUDE(CPack)
