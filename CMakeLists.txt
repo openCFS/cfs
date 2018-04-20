@@ -604,10 +604,6 @@ INCLUDE("cmake_modules/DetermineWorkingCopyInfos.cmake")
 OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
 CMAKE_DEPENDENT_OPTION(PACK_TESTSUITE "Pack the testsuite using CPack" OFF "BUILD_TESTING" OFF) # set to off all the time, distributable testsuite must be created for this
 IF(BUILD_TESTING)
-  SET(BUILDNAME
-    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
-    CACHE STRING "Name of build on the dashboard")
-  MARK_AS_ADVANCED(BUILDNAME)
   #---------------------------------------------------------------------------
   # Include CMake module for testing support
   # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
@@ -654,7 +650,8 @@ IF(BUILD_TESTING)
   set(DROP_SITE "${CFS_DS_CDASH_DROP_SITE}")
   set(DROP_LOCATION "/cdash/submit.php?project=${CTEST_PROJECT_NAME}")
   SET(DROP_METHOD "http")
-  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}")
+  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}" CACHE STRING "Name of build on the dashboard")
+  MARK_AS_ADVANCED(BUILDNAME)
   if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
     # get the build host
     execute_process(COMMAND ${CFS_BINARY_DIR}/bin/cfs --version --noColor
@@ -904,6 +901,10 @@ ADD_SUBDIRECTORY(share/xsl)
 #-----------------------------------------------------------------------------
 # Add an install Target using CPack
 #-----------------------------------------------------------------------------
+# can be used via: cpack -G TZG
+# with testing also via: ctest -R Install
+# from within the build directory
+
 
 # set cpack config options
 # see https://cmake.org/Wiki/CMake:CPackConfiguration
@@ -916,7 +917,7 @@ endif(CFS_WC_MODIFIED)
 # see https://cmake.org/cmake/help/v3.9/command/install.html#installing-directories
 INSTALL(DIRECTORY "${CFS_BINARY_DIR}/bin" DESTINATION "." USE_SOURCE_PERMISSIONS)
 INSTALL(DIRECTORY "${CFS_BINARY_DIR}/lib64" DESTINATION "." USE_SOURCE_PERMISSIONS PATTERN "*.a" EXCLUDE) # lib64 only works for 64bit ...
-INSTALL(DIRECTORY "${CFS_BINARY_DIR}/share" DESTINATION "." USE_SOURCE_PERMISSIONS)
+INSTALL(DIRECTORY "${CFS_BINARY_DIR}/share" DESTINATION "." USE_SOURCE_PERMISSIONS PATTERN "CMakeFiles" EXCLUDE PATTERN "Makefile" EXCLUDE)
 if(BUILD_TESTING AND PACK_TESTSUITE)
   INSTALL(FILES "${CFS_BINARY_DIR}/CTestTestfile.cmake" DESTINATION ".")
   INSTALL(DIRECTORY "${CFS_BINARY_DIR}/testsuite" DESTINATION "." USE_SOURCE_PERMISSIONS)
