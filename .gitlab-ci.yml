@@ -22,6 +22,7 @@ after_script:
   - cat Testing/TAG || echo "no TAG"
   - ctest -D ExperimentalSubmit --track Gitlab -V # this is in after to always submit a result, also it a sub-step failed
   # clean up for next build
+  - rm -rf CFS-*.tar.gz
   - rm -rf Testing
   - rm CMakeCache.txt
 
@@ -88,7 +89,7 @@ test:gcc4:linux:
   <<: *test_prepare
   script:
     - cmake -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
-    - ctest -D ExperimentalTest -E Install -E ElecTherm_ElTh_NMGtransient -E Preisach -E CFSdat_FFT_2D --track Gitlab # exclude the install step and the failing tests
+    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|Preisach|CFSdat_FFT_2D" --track Gitlab # exclude the install step and the failing tests
   dependencies:
     - build:gcc4
 
