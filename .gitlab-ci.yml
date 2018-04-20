@@ -132,8 +132,7 @@ deploy:gcc4:mdmt:
   tags:
     - linux
     - mdmt
-  stage:
-    - deploy
+  stage: deploy
   only:
     refs:
       - master # only for refs pushed to master
