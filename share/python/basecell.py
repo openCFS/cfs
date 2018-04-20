@@ -208,7 +208,7 @@ if __name__ == "__main__":
   parser.add_argument('--tets', help="tetrahedralize surface mesh", action='store_true',default=False)
   parser.add_argument('--smooth_iter', help="number of steps for Taubin's surface smoothing",type=int, default=30)
   parser.add_argument('--smooth_lambda', help="smoothing factor(between 0 and 1), default=0.4",type=float, default=0.4)
-  
+  parser.add_argument('--simplify', help="collapse short edges to reduce number of triangles", action='store_true', default=False)
   
   args = parser.parse_args()
   
@@ -287,6 +287,8 @@ if __name__ == "__main__":
     fileNameBase += "_skip_y" if args.skip_y else ""
     fileNameBase += "_skip_z" if args.skip_z else ""
     fileNameBase += "_" + args.target
+    if args.simplify:
+      fileNameBase += "_reduced"
     args.save = fileNameBase  
   else:
     if args.save.endswith(".stl") or args.save.endswith(".vtp"):

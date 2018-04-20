@@ -250,7 +250,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
       // independent of the filter type, radius determines the neighborhood
       // via barycenter distance.
-      if(!regular)  // save calling if possible
+      if(!regular)   // save calling if possible
         radius = FindFilterRadius(filter_space_, de, value);
 
       // set the filter neighborhood which is determined by radius

@@ -902,15 +902,18 @@ def generate_basecell(args,info):
     # scale structure to [0,1]^3
     # moves structure to [0,1]^3
     verts += (h/2.0,h/2.0,h/2.0)
+    points = verts
+    cells = faces 
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
     # points: list with 3d coords
-    if args.target == "surface_mesh":
-      points, bp_lists = adjust_and_extract_boundary_points(profiles, verts)
-      points, cells = mesh_boundary_circles(points, faces, bp_lists, args.bc_flags)
-    else:
-      points = verts
-      cells = faces  
+    if args.target == "surface_mesh" or args.target == "marching_cubes":
+      points, bp_lists = adjust_and_extract_boundary_points(profiles, points)
+      if args.target == "surface_mesh" :
+        points, cells = mesh_boundary_circles(points, cells, bp_lists, args.bc_flags)
+      
+      if args.simplify:  
+        points, cells = collapse_short_edges(points, cells)
       
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
@@ -1496,16 +1499,6 @@ def cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz):
   j = int((point[1]-miny) / hy-1e-6)
   k = int((point[2]-minz) / hz-1e-6)
   
-#   if i < 0 or j < 0 or k < 0:
-#   print("\np:",point)
-#   print("i,j,k:",i,j,k)
-#   print("hx,hy,hz:",hx,hy,hz)
-#   print("minx,miny,minz:",minx,miny,minz)
-#   sys.exit()
-  
-#   assert(i >= 0 and j >= 0 and k >= 0)
-#   assert( i < array.shape[0] and j < array.shape[1] and k < array.shape[2])  
-  
   return i,j,k
 
 def voxel_to_cartesian_coords(voxel,lbounds,h):
@@ -1514,3 +1507,45 @@ def voxel_to_cartesian_coords(voxel,lbounds,h):
   z = voxel[2] * h[2] + lbounds[2] + 1e-6
   
   return x,y,z
+
+def calc_edge_lengths(mesh):
+  import pymesh
+  minEdge = 9999
+  av = 0
+  maxEdge = -9999
+  for i,f in enumerate(mesh.faces):
+    # a triangle faces has 3 edges
+    v0 = mesh.vertices[f[0]]
+    v1 = mesh.vertices[f[1]]
+    v2 = mesh.vertices[f[2]]
+   
+    tmp = min(np.linalg.norm(v1-v0),np.linalg.norm(v2-v0),np.linalg.norm(v2-v1))
+    if minEdge > tmp:
+      minEdge = tmp
+    tmp = max(np.linalg.norm(v1-v0),np.linalg.norm(v2-v0),np.linalg.norm(v2-v1))
+    if maxEdge < tmp:
+      maxEdge = tmp
+
+    av += np.linalg.norm(v1-v0)
+    av += np.linalg.norm(v2-v0)
+    av += np.linalg.norm(v2-v1)
+
+  av = av / 3.0 / len(mesh.faces)
+   
+  print("min,max,av:",minEdge,maxEdge,av)
+  return minEdge, maxEdge, av
+
+# use pymesh to collapse short edges and afterwards to repair obtuse triangles
+def collapse_short_edges(verts,faces):
+  import pymesh
+  mesh = pymesh.form_mesh(np.asarray(verts),np.asarray(faces))
+  minl,maxnl,avl = calc_edge_lengths(mesh)
+  t = 0.8*avl
+  mesh, info = pymesh.collapse_short_edges(mesh, abs_threshold=t,preserve_feature=True)
+  minl,maxnl,avl = calc_edge_lengths(mesh)
+  t = 0.8*avl
+  mesh, info = pymesh.collapse_short_edges(mesh, abs_threshold=t,preserve_feature=True)
+  print("info:",info)
+  mesh, info = pymesh.remove_obtuse_triangles(mesh,130)
+  print("info:",info)
+  return mesh.vertices, mesh.faces
