@@ -85,7 +85,7 @@ build:gcc6:
   before_script:
     - mkdir build || cd build # descend in build
     - ls # debug
-    - tar -xzvf "CFS-"$CI_COMMIT_SHA"-Linux.tar.gz" # extract
+    - tar -xzvf "CFS-"$CI_COMMIT_SHA"-Linux.tar.gz" --strip-components=1 # extract to correct location
 
 test:gcc4:linux:
   tags:
