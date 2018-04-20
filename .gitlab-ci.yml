@@ -136,6 +136,7 @@ deploy:gcc4:mdmt:
   only:
     refs:
       - master # only for refs pushed to master
+      - gitlab-runner-integration # for testing purposes only >>>>>> delete at merge
   dependencies:
     - build:gcc4
   before_script:
