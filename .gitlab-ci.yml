@@ -6,7 +6,7 @@ variables:
 stages:
   - build # config and build combined
   - test # we may have several test configs for one build
-  - clear_and_rebuild
+  - deploy
 
 # this is run before/after every step
 before_script:
