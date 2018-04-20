@@ -167,7 +167,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     
   eps = 1e-6
 
-  if nondes:  
+  if nondes:
     hx = (my_mpi_grid.bounds[3]-my_mpi_grid.bounds[0])/my_mpi_grid.grid.nx
     hy = (my_mpi_grid.bounds[4]-my_mpi_grid.bounds[1])/my_mpi_grid.grid.ny
     hz = (my_mpi_grid.bounds[5]-my_mpi_grid.bounds[2])/my_mpi_grid.grid.nz
@@ -220,9 +220,10 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   from skimage import measure
   # coords of vertices lie in [0,1-h]
   verts, faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False)
-  verts = np.asarray(verts) - np.asarray(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
   # translate from (0,0,0) to correct position
-  shift = np.asarray(my_mpi_grid.bounds[0:3])
+  # and marching cubes shift everything by 0.5 * hx/hy/hz
+  shift = np.asarray(my_mpi_grid.bounds[0:3]) - np.asarray((my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0))
+  print("shift:",shift)
   verts = [p+shift for p in verts]
   
   # hope for python's garbage collector to delete voxel array
@@ -281,7 +282,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   zmax = max(my_mpi_grid.vertices, key=lambda t: t[2])[2]
   
   # do parallel smoothing here
-  mpi_taubin_smoothing(my_mpi_grid,(xmin,ymin,0,xmax,ymax,zmax))
+  mpi_taubin_smoothing(my_mpi_grid,(xmin,ymin,0,xmax,ymax,zmax),niter=args.bc_smooth)
   
   # send smoothed data to root
   my_mpi_grid.gather_data(append=False, root=0)
@@ -562,7 +563,7 @@ class RectGrid():
     print("spacing:",self.hx,self.hy,self.hz)
     sys.stdout.flush()
 
-def mpi_taubin_smoothing(mpi_grid,bounds=None):
+def mpi_taubin_smoothing(mpi_grid,bounds=None,niter=None):
   assert(mpi_grid.vertices is not None)
   assert(mpi_grid.faces is not None)
   assert(mpi_grid.connectivity is not None)
@@ -574,7 +575,7 @@ def mpi_taubin_smoothing(mpi_grid,bounds=None):
   start = mpi_grid.start_verts_idx
   end = mpi_grid.end_verts_idx
   #while res > 1e-2:
-  while iter < 20:
+  while iter < niter:
     sys.stdout.flush()
     old_points = mpi_grid.vertices.copy()
     assert(max(max(mpi_grid.connectivity)) < len(mpi_grid.vertices))

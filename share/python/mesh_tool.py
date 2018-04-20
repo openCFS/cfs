@@ -1359,11 +1359,9 @@ def create_backstep(x_res, y_res, z_res):
     for x in range(0, nnx): 
       side[1].append((z*nny+ny)*nnx+x) 
  
-   
   # back and front as it appears with paraview 
   mesh.bc.append(("back", list(range(0, (nx+1)*(ny+1))))) 
   mesh.bc.append(("front", list(range(nz*(nx+1)*(ny+1), (nz+1)*(nx+1)*(ny+1))))) 
- 
  
   mesh.bc.append(("left_bottom_back",   [0])) 
   mesh.bc.append(("right_bottom_back",  [nx])) 
@@ -1593,7 +1591,6 @@ def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_s
     mesh.elements.append(e) 
   return mesh
 
-
 def create_mesh_from_tetgen(meshfile, region):
   print('read tetgenfile' + meshfile + '.1.ele')
   all_elements = numpy.loadtxt(meshfile + '.1.ele', dtype='int' , skiprows=1)
@@ -1800,76 +1797,12 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
 ## Manually add simple boundary conditions 
   load = []
   support = []
-  np_nodes = numpy.asarray(nodes)
-  xmin = 999999
-  xmax = -999999
-  ymin = 999999
-  ymax = -999999
-  zmin = 999999
-  zmax = -999999
-
-  for i in range(len(nodes)):
-    # for all nodes on bottom, get xmin,xmax,ymin,ymax
-    if nodes[i][0] < xmin:
-      xmin = nodes[i][0]
-    if nodes[i][0] > xmax:
-      xmax = nodes[i][0]       
-    if nodes[i][1] < ymin:
-      ymin = nodes[i][1]
-    if nodes[i][1] > ymax:
-      ymax = nodes[i][1]  
-    if nodes[i][2] < zmin:
-      zmin = nodes[i][2]
-    if nodes[i][2] > zmax:
-      zmax = nodes[i][2]  
-
-  print("xmin,ymin,zmin,xmax,ymax,zmax:",xmin,ymin,zmin,xmax,ymax,zmax)
   
-  big_cylinder = [206,48.1375,-106,254,91.849,-62]
-  small_clinder = [116,49,-41,164,71,-19]
-#  symmetric = []
-  eps = 1e-6
-  for i in range(len(nodes)):
-    # all nodes on big cylinder
-    if big_cylinder[0]-eps < nodes[i][0] < big_cylinder[3] and big_cylinder[1]-eps < nodes[i][1] < big_cylinder[4] and big_cylinder[2]-eps < nodes[i][2] < big_cylinder[5]:
-      load.append(i)
-      continue
-    # all nodes on small cylinder
-    if small_clinder[0]-eps < nodes[i][0] < small_clinder[3] and small_clinder[1]-eps < nodes[i][1] < small_clinder[4] and small_clinder[2]-eps < nodes[i][2] < small_clinder[5]:
-      load.append(i)
-      continue
-
-    # all nodes on left face are supports
-    if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
-      load.append(i)
-      continue
-    if numpy.isclose(nodes[i][1],ymin,1e-12) or numpy.isclose(nodes[i][1],ymax,1e-12):
-      load.append(i)
-      continue
-    if numpy.isclose(nodes[i][2],zmax,1e-12):
-      load.append(i)
-      continue    
-     
-    if nodes[i][2] < zmin+2:
-      support.append(i)
-      
-    # all edges of bb with z = 0 are supports
-#     if numpy.isclose(nodes[i][2],0.0,1e-12):
-#       if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
-#         support.append(i)
-      # y is y_min or y_max
-#       elif numpy.isclose(nodes[i][1],ymin,1e-12) or numpy.isclose(nodes[i][1],ymax,1e-12):
-#         support.append(i)
-      # x is x_min or x_max  
-         
-#    if nodes[i][2] < 0.0000001:
-#      symmetric.append(i)
-  print("load:",len(load))
-  print("support:",len(support))
-# 
-  mesh.bc.append(("load", load))
-  mesh.bc.append(("support", support))
-#  mesh.bc.append(("symmetric", symmetric))
+  xmin,ymin,zmin,xmax,ymax,zmax = calc_bounding_box(mesh)
+#   print("xmin,ymin,zmin,xmax,ymax,zmax:",xmin,ymin,zmin,xmax,ymax,zmax)
+  
+#   mesh = add_bc_for_ppbox(mesh,xmin,xmax,ymin,ymax,zmin,zmax)
+  mesh = name_bb_faces(mesh,xmin,ymin,zmin,xmax,ymax,zmax)
 
 #  mesh = add_nodes_for_periodic_bc(mesh)
 
@@ -2762,43 +2695,11 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
 # @param viz: vtk polydata object
 # @param stlname: name of stl file
 def create_validation_mesh_for_box_varel(viz,stlName):
-  ## test pymesh stuff
-  vertices, faces = matviz_vtk.vtk_polydata_to_numpy(viz)
-  mesh_interp = pymesh.form_mesh(vertices,faces)
+  create_volume_mesh_with_gmsh(stlName)
   
-  if not os.path.exists("top_panel.stl"):
-    print("Error:Could not find non-design stl 'top_panel.stl'")
-    sys.exit()
-    
-  mesh_merge = pymesh.load_mesh("top_panel.stl")
-  mesh = pymesh.boolean(mesh_interp, mesh_merge, "union")
-  
-  pymesh.save_mesh("test_pymesh.stl",mesh)
 def create_validation_mesh_for_pp_box(stlName,diffName,unionName):
-  if not (diffName.endswith(".stl") and unionName.endswith(".stl")):
-    print("need stl files for non-design regions!")
-    sys.exit()
+  create_volume_mesh_with_gmsh(stlName)
   
-  baseName = stlName[:-4]
-  
-  import pymesh
-  baseMesh = pymesh.load_mesh(stlName)
-  diffMesh = pymesh.load_mesh(diffName)
-  unionMesh = pymesh.load_mesh(unionName)
-  
-  diff = pymesh.boolean(baseMesh, diffMesh, "difference")
-  union = pymesh.boolean(diff, unionMesh, "union")
-  
-  # some mesh post-processing
-  split, _ = pymesh.meshutils.split_long_edges(union,4)
-  collapse, _ = pymesh.meshutils.collapse_short_edges(split,2.0,preserve_feature=True)
-  mesh = pymesh.resolve_self_intersection(collapse, engine="auto")
-  pymesh.save_mesh(baseName + "_validation.stl", mesh)
-  
-  create_volume_mesh_with_gmsh("validation_ppbox.stl")
-  
-  return "Not implemented yet"
-
 def create_volume_mesh_from_stl(stlName,write_vtk=False):
   assert(stlName.endswith(".stl"))
   # -p Tetrahedralizes a piececwise linear complex
@@ -2827,6 +2728,108 @@ def create_volume_mesh_with_gmsh(stlName):
   
   # -3: tetrahedralize (3D)
   # -optimize: use netgen's mesh optimization tool
-  command = "gmsh -3 -optimize " + geoName
+  command = "gmsh -3 " + geoName
   cfs_utils.execute(command)
   create_mesh_from_gmsh(baseName)  
+  
+def add_bc_for_ppbox(mesh,xmin,xmax,ymin,ymax,zmin,zmax):
+  big_cylinder = [206,48.1375,-106,254,91.849,-62]
+  small_clinder = [116,49,-41,164,71,-19]
+  eps = 1e-6
+  load = []
+  support = []
+  nodes = mesh.nodes
+  for i in range(len(nodes)):
+    # all nodes on big cylinder
+    if big_cylinder[0]-eps < nodes[i][0] < big_cylinder[3] and big_cylinder[1]-eps < nodes[i][1] < big_cylinder[4] and big_cylinder[2]-eps < nodes[i][2] < big_cylinder[5]:
+      load.append(i)
+      continue
+    # all nodes on small cylinder
+    if small_clinder[0]-eps < nodes[i][0] < small_clinder[3] and small_clinder[1]-eps < nodes[i][1] < small_clinder[4] and small_clinder[2]-eps < nodes[i][2] < small_clinder[5]:
+      load.append(i)
+      continue
+
+    # all nodes on left face are supports
+    if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
+      load.append(i)
+      continue
+    if numpy.isclose(nodes[i][1],ymin,1e-12) or numpy.isclose(nodes[i][1],ymax,1e-12):
+      load.append(i)
+      continue
+    if numpy.isclose(nodes[i][2],zmax,1e-12):
+      load.append(i)
+      continue    
+     
+    if nodes[i][2] < zmin+2:
+      support.append(i)
+  
+  print("load:",len(load))
+  print("support:",len(support))
+  
+  mesh.bc.append(("load", load))
+  mesh.bc.append(("support", support))
+  
+  return mesh  
+
+def calc_bounding_box(mesh):
+  xmin = 999999
+  xmax = -999999
+  ymin = 999999
+  ymax = -999999
+  zmin = 999999
+  zmax = -999999
+  
+  nodes = mesh.nodes
+  
+  for i in range(len(nodes)):
+    # for all nodes on bottom, get xmin,xmax,ymin,ymax
+    if nodes[i][0] < xmin:
+      xmin = nodes[i][0]
+    if nodes[i][0] > xmax:
+      xmax = nodes[i][0]       
+    if nodes[i][1] < ymin:
+      ymin = nodes[i][1]
+    if nodes[i][1] > ymax:
+      ymax = nodes[i][1]  
+    if nodes[i][2] < zmin:
+      zmin = nodes[i][2]
+    if nodes[i][2] > zmax:
+      zmax = nodes[i][2]  
+  
+  assert(xmax > xmin)
+  assert(ymax > ymin)
+  assert(zmax > zmin)    
+  return  xmin,ymin,zmin,xmax,ymax,zmax   
+
+# name nodes on faces of bbox ("top","bottom",...)
+# works for tet mesh
+def name_bb_faces(mesh,xmin,ymin,zmin,xmax,ymax,zmax): 
+  nodes = mesh.nodes
+  top = []
+  bottom = []
+  left = []
+  right = []
+  back = []
+  front = []
+  for i in range(len(nodes)):
+    if numpy.isclose(nodes[i][0],xmin):
+      left.append(i)
+    elif numpy.isclose(nodes[i][0],xmax):
+      right.append(i)
+    elif numpy.isclose(nodes[i][1],ymin):
+      front.append(i)
+    elif numpy.isclose(nodes[i][1],ymax):
+      back.append(i)
+    elif numpy.isclose(nodes[i][2],zmin):
+      bottom.append(i)
+    elif numpy.isclose(nodes[i][2],zmax):
+      top.append(i)
+      
+  mesh.bc.append(("top",top))
+  mesh.bc.append(("bottom",bottom))
+  mesh.bc.append(("left",left))
+  mesh.bc.append(("right",right))
+  mesh.bc.append(("front",front))
+  mesh.bc.append(("back",back))
+  
+  return mesh      

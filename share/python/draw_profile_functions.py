@@ -1536,14 +1536,13 @@ def calc_edge_lengths(mesh):
   return minEdge, maxEdge, av
 
 # use pymesh to collapse short edges and afterwards to repair obtuse triangles
-def collapse_short_edges(verts,faces):
+def collapse_short_edges(verts,faces,abs_thresh=None):
   import pymesh
   mesh = pymesh.form_mesh(np.asarray(verts),np.asarray(faces))
   minl,maxnl,avl = calc_edge_lengths(mesh)
-  t = 0.8*avl
-  mesh, info = pymesh.collapse_short_edges(mesh, abs_threshold=t,preserve_feature=True)
-  minl,maxnl,avl = calc_edge_lengths(mesh)
-  t = 0.8*avl
+  t = abs_thresh
+  if abs_thresh is None:
+    t = 0.8*avl
   mesh, info = pymesh.collapse_short_edges(mesh, abs_threshold=t,preserve_feature=True)
   print("info:",info)
   mesh, info = pymesh.remove_obtuse_triangles(mesh,130)
