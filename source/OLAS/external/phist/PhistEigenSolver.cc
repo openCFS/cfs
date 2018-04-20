@@ -90,11 +90,13 @@ namespace CoupledField {
 
     // this is how one can extract the eigenvectors.
     mode_.Resize(nEig, nloc);
+    // we rescale x by sqrt(scaling) as we have x^T (scale*B) x = 1
+    double rescale = std::sqrt(scale_mass_val_);
     LOG_DBG(pes) << "SM: mode_.rows=" << mode_.GetNumRows() << " .cols=" << mode_.GetNumCols();
     assert((int) sort_idx_.GetSize() == nEig);
     for (int j = 0; j < nEig; j++)
       for (int i = 0; i < nloc; i++)
-        mode_[sort_idx_[j]][i] = xval[j * lda + i]; // mode_ is always complex!
+        mode_[sort_idx_[j]][i] = xval[i * lda + j] * rescale ; // mode_ is always complex!
     LOG_DBG3(pes) << "SM: mode=" << mode_.ToString(2,true);
   }
 
@@ -335,6 +337,7 @@ namespace CoupledField {
     phist->Get("minBas")->SetValue(opts_.minBas);
     phist->Get("maxBas")->SetValue(opts_.maxBas);
     phist->Get("which")->SetValue(which.ToString(opts_.which));
+    phist->Get("mass_scaling")->SetValue(scale_mass_val_);
 
     PtrParamNode is = phist->Get("innerSolv");
     is->Get("type")->SetValue(linSolv.ToString(opts_.innerSolvType));
