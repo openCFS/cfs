@@ -908,7 +908,7 @@ ADD_SUBDIRECTORY(share/xsl)
 
 # set cpack config options
 # see https://cmake.org/Wiki/CMake:CPackConfiguration
-string(SUBSTRING ${CFS_GIT_COMMIT} 0 8 CPACK_PACKAGE_VERSION)
+string(STRIP "${CFS_GIT_COMMIT}" CPACK_PACKAGE_VERSION)
 if(CFS_WC_MODIFIED)
   set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}-modified")
 endif(CFS_WC_MODIFIED)
