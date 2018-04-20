@@ -109,6 +109,4 @@ LIST(APPEND TARGET_LL siminrefelems)
 
 LIST(APPEND TARGET_LL simoutinfo)
 
-LIST(APPEND TARGET_LL datainout)
-
 TARGET_LINK_LIBRARIES(datainout ${TARGET_LL})

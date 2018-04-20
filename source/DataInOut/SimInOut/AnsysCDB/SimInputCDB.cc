@@ -184,12 +184,6 @@ namespace CoupledField {
       }
     }
 
-    // Convert all region names to upper case letters
-    for(UInt i=0, n=regionNames_.size(); i<n; i++) {
-      std::string& str = regionNames_[i];
-      boost::to_upper(str);
-    }
-
     // Since ANSYS Workbench does not necessarily create components for volume
     // and surface elements, we create a default region for either type.
     Integer volRegionId = -2;
@@ -270,8 +264,6 @@ namespace CoupledField {
         elems[j] = elemNumsMap[elemGroupData_[i][j]];
       }
 
-      // Convert name to upper case letters
-      boost::to_upper(name);
       
       mi_->AddNamedElems(name, elems);
     }
@@ -322,10 +314,7 @@ namespace CoupledField {
             std::string name = egIt->first;
             StdVector<UInt>& elems = egIt->second;
             
-            // Convert name to upper case letters
-            std::string name_upper = boost::to_upper_copy(name);
-            
-            mi_->AddNamedElems(name_upper, elems);
+            mi_->AddNamedElems(name, elems);
             
             // Rename node list
             ngnIt = std::find(nodeGroupNames_.begin(), nodeGroupNames_.end(),
@@ -347,11 +336,8 @@ namespace CoupledField {
           for( ; egIt != egEnd; egIt++) 
           {
             std::string name = egIt->first;
-
-            // Convert name to upper case letters
-            std::string name_upper = boost::to_upper_copy(name);
             
-            names.Push_back(name_upper);
+            names.Push_back(name);
             
             // Rename node list
             ngnIt = std::find(nodeGroupNames_.begin(), nodeGroupNames_.end(),
@@ -369,12 +355,10 @@ namespace CoupledField {
             std::string name = egIt->first;
             StdVector<UInt>& elems = egIt->second;
             
-            // Convert name to upper case letters
-            std::string name_upper = boost::to_upper_copy(name);
 
             UInt id = ids[std::distance(names.Begin(), std::find(names.Begin(),
                                                                  names.End(),
-                                                                 name_upper))];
+                                                                 name ))];
 
             for(UInt i=0, n=elems.GetSize(); i<n; i++) 
             {  
@@ -421,7 +405,6 @@ namespace CoupledField {
         nodes[j] = nodeNumsMap_[nodes[j]];
       }
       
-      boost::to_upper(name);
       mi_->AddNamedNodes(name, nodes);
     }
   }

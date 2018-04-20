@@ -68,7 +68,7 @@ CMAKE_MINIMUM_REQUIRED(
 #-----------------------------------------------------------------------------
 IF(COMMAND CMAKE_POLICY)
   IF(POLICY CMP0038)
-    CMAKE_POLICY(SET CMP0038 OLD)
+    CMAKE_POLICY(SET CMP0038 NEW)
   ENDIF(POLICY CMP0038)
 ENDIF(COMMAND CMAKE_POLICY)
 
@@ -143,12 +143,12 @@ ELSEIF(UNIX OR MINGW)
     COMMAND id -unr # get user name (possibly DOMAIN\user)
     COMMAND sed s/[A-Z]\\+\\\\// # remove 'DOMAIN\' from 'DOMAIN\user' ('\' must be escaped in cmake)
     WORKING_DIRECTORY "."
-    OUTPUT_VARIABLE CFS_BUILD_USER RESULT_VARIABLE res OUTPUT_VARIABLE out
+    RESULT_VARIABLE res OUTPUT_VARIABLE out
     )
   if(res)
     message("could not determine user: ${res}, ${out}")
   endif(res)
-  STRING(STRIP "${CFS_BUILD_USER}" CFS_BUILD_USER)
+  STRING(STRIP "${out}" CFS_BUILD_USER)
 ENDIF()
 
 SET(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
@@ -882,3 +882,21 @@ ADD_SUBDIRECTORY(share/mkmesh)
 #-----------------------------------------------------------------------------
 ADD_SUBDIRECTORY(share/xml)
 ADD_SUBDIRECTORY(share/xsl)
+
+#-----------------------------------------------------------------------------
+# Add an install Target using CPack
+#-----------------------------------------------------------------------------
+
+# set cpack config options
+# see https://cmake.org/Wiki/CMake:CPackConfiguration
+string(SUBSTRING ${CFS_GIT_COMMIT} 0 8 CPACK_PACKAGE_VERSION)
+if(CFS_WC_MODIFIED)
+  set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}-modified")
+endif(CFS_WC_MODIFIED)
+
+# choose what to install
+# see https://cmake.org/cmake/help/v3.9/command/install.html#installing-directories
+INSTALL(DIRECTORY "${CFS_BINARY_DIR}/bin" DESTINATION "." USE_SOURCE_PERMISSIONS)
+INSTALL(DIRECTORY "${CFS_BINARY_DIR}/lib64" DESTINATION "." USE_SOURCE_PERMISSIONS PATTERN "*.a" EXCLUDE) # lib64 only works for 64bit ...
+INSTALL(DIRECTORY "${CFS_BINARY_DIR}/share" DESTINATION "." USE_SOURCE_PERMISSIONS)
+INCLUDE(CPack)
