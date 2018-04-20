@@ -574,7 +574,8 @@ if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.
     dim_2D = '2D'
     input = args.input
     args.tensor = 'matlab'
-  if not args.tensor == 'matlab' and args.tensor == 'mechTensor':  
+  if not args.tensor == 'matlab' and args.tensor == 'mechTensor':
+    print(input)
     tensor = to_mech_tensor(input)
     tensor = HillMandel2Voigt(tensor) if args.notation == "mandel" else tensor
     print("Voigt notation of input tensor:")

@@ -111,15 +111,12 @@ int main(int argc, const char **argv)
 void PrintWarning(CoupledField::Exception& ex ) {
   
   // Print warning on command line
- std::string msg = ex.GetMsg();
- std::string fileName = ex.GetFileName();
- UInt lineNum = ex.GetLineNum();
+  std::string msg = ex.GetMsg();
+  std::string fileName = ex.GetFileName();
+  UInt lineNum = ex.GetLineNum();
  
-  std::cerr << "\n "
-      << fg_blue << "WARNING:" << fg_reset << "\n "
-      << msg << endl;
-  std::cerr << "\n(" << fileName << ", Line " 
-            << lineNum  << ")\n\n";
+  std::cerr << "\n " << fg_blue << "WARNING:" << fg_reset << "\n " << msg << endl;
+  std::cerr << "\n(" << fileName << ", Line " << lineNum  << ")\n\n";
   
   // Print warning also to info xml
   PtrParamNode warn = infoNode->Get("warning",ParamNode::INSERT);
@@ -266,8 +263,6 @@ int CFS::Run()
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
 
     timer->Stop();
-    if(!progOpts->IsQuiet())
-      cout << endl; // conditional empty line
     
     cout << ">> Total wall-clock time: '" << Timer::GetTimeString(timer->GetWallTime())
          << "' cpu time: '" << Timer::GetTimeString(timer->GetCPUTime())
@@ -363,13 +358,11 @@ void CFS::WriteXMLSkeleton()
   string simName = progOpts->GetSimName();
   if(meshFile == "")
     meshFile = simName + ".mesh";
-  SimInput * ptInputfile = new SimInputMESH(meshFile, PtrParamNode(), infoNode);
-  ptInputfile->InitModule();
+  SimInputMESH input(meshFile, PtrParamNode(), infoNode);
+  input.InitModule();
   // class writing log-information
-  SkeletonConf *ptskel = new SkeletonConf(ptInputfile);
-  ptskel->WriteConf();
-  delete ptskel;
-  delete ptInputfile;
+  SkeletonConf skeleton(dynamic_cast<SimInput*>(&input));
+  skeleton.WriteConf();
 }
 
 

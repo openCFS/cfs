@@ -195,6 +195,9 @@ namespace CoupledField {
 
   void ResultHandler::UpdateResult( shared_ptr<BaseResult> sol ) {
 
+    shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("update_results/timer")->AsTimer();
+    timer->Start();
+
     LOG_DBG(resHandler) << "UR: " << sol->GetResultInfo()->ToString();
     
     // check, if result is to be updated
@@ -209,10 +212,13 @@ namespace CoupledField {
     // Update results recursively (for postprocessing results )
     UpdateResultRec(*(resultContexts_[sol]));
     LOG_DBG(resHandler) << "UR: finished";
+
+    timer->Stop();
   }
 
   void ResultHandler::UpdateResults() {
     LOG_DBG(resHandler) << "UR: needed=" << isNeeded_.size();
+
     // iterate over all results, which are needed
     for(std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin(); it != isNeeded_.end(); it++)
     {
@@ -237,6 +243,9 @@ namespace CoupledField {
     // -----------------------
     UpdateResults();
     
+    shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("finish_step/timer")->AsTimer();
+    timer->Start();
+
     // === Primary results ===
     // iterate over all results, which are needed
     std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin();
@@ -312,17 +321,16 @@ namespace CoupledField {
 
   // Trigger writing of all output writers
   std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
-  for( fileIt = outFiles_.begin(); 
-      fileIt != outFiles_.end(); fileIt++ ) {
-    LOG_DBG(resHandler) << "Finishing step for output '"
-        << fileIt->second->GetName() << "'";
-    fileIt->second->FinishStep( );
+  for( fileIt = outFiles_.begin(); fileIt != outFiles_.end(); fileIt++ ) {
+    LOG_DBG(resHandler) << "Finishing step for output '" << fileIt->second->GetName() << "'";
+    fileIt->second->FinishStep();
   }    
 
   // something is written, so update also info
   domain->GetInfoRoot()->ToFile();
 
   LOG_DBG(resHandler) << "FinishStep " << actStep_ << " done";
+  timer->Stop();
 }
 
   void ResultHandler::FinishMultiSequenceStep() {

@@ -140,6 +140,46 @@ void AeroacousticBase::TensorProduct(Vector<Double>& retVec,
   }
 }
 
+void AeroacousticBase::TensorProduct(Vector<Double>& retVec,
+                                    const Vector<Double>& tensor1,
+                                    const Vector<Double>& tensor2,
+                                    const UInt& numEquPerEnt,
+                                    const Double& scalarFactor){
+
+  if(tensor1.GetSize() != tensor2.GetSize()) EXCEPTION("TensorProduct: input tensors don't have the same size!!!");
+//  if(tensor1.GetSize()/numEquPerEnt != scalar.GetSize()) EXCEPTION("TensorProduct: input tensors and scalar dimension don't match!!!");
+
+  int a = 1;
+  if (numEquPerEnt==3) a = 3;
+
+  retVec.Resize(tensor1.GetSize() * (numEquPerEnt + a) / numEquPerEnt);
+  retVec.Init();
+
+  UInt iLoop = tensor1.GetSize()/numEquPerEnt;
+
+  //We use Voigt notation to number the tensor
+  for(UInt i = 0; i < iLoop; ++i){
+      if (a == 1) {
+        retVec[(numEquPerEnt + a)*i + 0] = scalarFactor * tensor1[numEquPerEnt * i + 0] * tensor2[numEquPerEnt * i + 0];
+        retVec[(numEquPerEnt + a)*i + 1] = scalarFactor * tensor1[numEquPerEnt * i + 1] * tensor2[numEquPerEnt * i + 1];
+        retVec[(numEquPerEnt + a)*i + 2] = scalarFactor * tensor1[numEquPerEnt * i + 0] * tensor2[numEquPerEnt * i + 1];
+      }
+      else if  (a == 3){
+        retVec[(numEquPerEnt + a)*i + 0] = scalarFactor * tensor1[numEquPerEnt * i + 0] * tensor2[numEquPerEnt * i + 0];
+        retVec[(numEquPerEnt + a)*i + 1] = scalarFactor * tensor1[numEquPerEnt * i + 1] * tensor2[numEquPerEnt * i + 1];
+        retVec[(numEquPerEnt + a)*i + 2] = scalarFactor * tensor1[numEquPerEnt * i + 2] * tensor2[numEquPerEnt * i + 2];
+
+        retVec[(numEquPerEnt + a)*i + 3] = scalarFactor * tensor1[numEquPerEnt * i + 1] * tensor2[numEquPerEnt * i + 2];
+
+        retVec[(numEquPerEnt + a)*i + 4] = scalarFactor * tensor1[numEquPerEnt * i + 0] * tensor2[numEquPerEnt * i + 2];
+        retVec[(numEquPerEnt + a)*i + 5] = scalarFactor * tensor1[numEquPerEnt * i + 0] * tensor2[numEquPerEnt * i + 1];
+
+
+      }
+
+  }
+}
+
 
 
 void AeroacousticBase::Node2Cell(Vector<Double>& returnVec,

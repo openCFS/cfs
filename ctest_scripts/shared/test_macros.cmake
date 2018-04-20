@@ -396,7 +396,7 @@ MACRO(INIT_CACHE CACHE_VAR)
 ENDMACRO()
 
 
-macro(IDENTIFY_DISTRO)
+MACRO(IDENTIFY_DISTRO)
   #-----------------------------------------------------------------------------
   # Identify distro.
   #-----------------------------------------------------------------------------
@@ -406,10 +406,10 @@ macro(IDENTIFY_DISTRO)
     RETURN_VALUE RETVAL)
   FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
   INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
-endmacro()
+ENDMACRO()
 
 # condigures CTestConfig.cmake.in via CTestConfig.cmake.in which is first searched in ctest_scripts/sites/<HOST>/ then in test_scripts/shared/
-macro(WRITE_CTEST_CONFIG)
+MACRO(WRITE_CTEST_CONFIG)
   # copy over CTestConfig.cmake.in
   # puts it into the binary dir
 
@@ -417,17 +417,17 @@ macro(WRITE_CTEST_CONFIG)
     SET(CFS_BUILD_HOST "${HOSTNAME}") # hostname is set in SET_GLOBAL_VARS()
   ENDIF()
 
-  message("Copy CTestConfig.cmake config, checking for host ${CFS_BUILD_HOST}")  
-  set(SITE_CTEST_CONFIG "${CTEST_SOURCE_DIRECTORY}/ctest_scripts/sites/${CFS_BUILD_HOST}/CTestConfig.cmake.in")
+  MESSAGE("Copy CTestConfig.cmake config, checking for host ${CFS_BUILD_HOST}")  
+  SET(SITE_CTEST_CONFIG "${CTEST_SOURCE_DIRECTORY}/ctest_scripts/sites/${CFS_BUILD_HOST}/CTestConfig.cmake.in")
   MESSAGE("check for ${SITE_CTEST_CONFIG}")
-  if(EXISTS ${SITE_CTEST_CONFIG})
-    message("  ${SITE_CTEST_CONFIG} -> ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake")
-    configure_file(${SITE_CTEST_CONFIG} ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake @ONLY)
-  else()
-    message("  using ${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in")
-    configure_file(${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake @ONLY)
-  endif()
-endmacro()
+  IF(EXISTS ${SITE_CTEST_CONFIG})
+    MESSAGE("  ${SITE_CTEST_CONFIG} -> ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake")
+    CONFIGURE_FILE(${SITE_CTEST_CONFIG} ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake @ONLY)
+  ELSE()
+    MESSAGE("  using ${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in")
+    CONFIGURE_FILE(${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/CTestConfig.cmake.in ${CTEST_BINARY_DIRECTORY}/CTestConfig.cmake @ONLY)
+  ENDIF()
+ENDMACRO()
 
 
 
@@ -436,44 +436,62 @@ endmacro()
 # this reduces excessive copy & paste
 
 
-macro(DO_TESTING)
+MACRO(DO_TESTING)
   #-----------------------------------------------------------------------------
   # Start the Update, Configure, Build and Testing
   #-----------------------------------------------------------------------------
-  message("Start dashboard...")
-  set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+  MESSAGE("Start dashboard...")
+  SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
   # see http://www.vtk.org/Wiki/CTest:Nightly,_Experimental,_Continuous
-  ctest_start(Nightly)
+  CTEST_START(Nightly)
 
-  message("  Update")
-  ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
+  MESSAGE("  Update")
+  CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
 
-  message("  Configure")
-  file(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
+  MESSAGE("  Configure")
+  FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
   # some configurations require to repeat the same ctest_configure() command
-  ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-  ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+  CTEST_CONFIGURE(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+  CTEST_CONFIGURE(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 
-  message("  Build")
-  ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+  MESSAGE("  Build")
+  CTEST_BUILD(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 
-  message("  Test")
-  ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+  MESSAGE("  Test")
+  CTEST_TEST(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 
-  message("  Submit as ${CTEST_BUILD_NAME}")
-  ctest_submit(RETURN_VALUE res)
-  message("  All done") 
-endmacro()
+  MESSAGE("  Submit as ${CTEST_BUILD_NAME}")
+  CTEST_SUBMIT(RETURN_VALUE res)
+  MESSAGE("  All done") 
+ENDMACRO()
+
+MACRO(DO_CONFIG_AND_TEST)
+  #-----------------------------------------------------------------------------
+  # Configure and Testing
+  #-----------------------------------------------------------------------------
+  MESSAGE("Start dashboard...")
+  SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+  CTEST_START(Nightly)
+  MESSAGE("  Configure")
+  FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
+  CTEST_CONFIGURE(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+  CTEST_CONFIGURE(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+  MESSAGE("  Test")
+  CTEST_TEST(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+  MESSAGE("  Submit as ${CTEST_BUILD_NAME}")
+  CTEST_SUBMIT(RETURN_VALUE res)
+  MESSAGE("  All done")
+ENDMACRO()
 
 
-macro(SET_COMPILER_ENV COMPILER_TYPE)
-  message("Setting environment for ${COMPILER_TYPE}")
+MACRO(SET_COMPILER_ENV COMPILER_TYPE)
+  MESSAGE("Setting environment for ${COMPILER_TYPE}")
   # =========================================================================
   #
   #  Set evironment for different compilers (gcc and intel)
   #
   # =========================================================================
-  if(${COMPILER_TYPE} STREQUAL "GCC")
+  IF(${COMPILER_TYPE} STREQUAL "GCC")
     #-----------------------------------------------------------------------------
     # Set the following environment variables for the test run. This can be used
     # to specifiy the compilers and that all messages should be output in English
@@ -483,36 +501,36 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{CXX} "/usr/bin/g++")
     SET(ENV{FC} "/usr/bin/gfortran")
 
-  elseif(${COMPILER_TYPE} STREQUAL "GCC-6")
+  ELSEIF(${COMPILER_TYPE} STREQUAL "GCC-6")
     # search for compilers from software collections
-    execute_process(COMMAND scl enable devtoolset-6 -- which gcc
+    EXECUTE_PROCESS(COMMAND scl enable devtoolset-6 -- which gcc
                     OUTPUT_VARIABLE SCL_CC OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND scl enable devtoolset-6 -- which g++
+    EXECUTE_PROCESS(COMMAND scl enable devtoolset-6 -- which g++
                     OUTPUT_VARIABLE SCL_CXX OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND scl enable devtoolset-6 -- which gfortran
+    EXECUTE_PROCESS(COMMAND scl enable devtoolset-6 -- which gfortran
                     OUTPUT_VARIABLE SCL_FC OUTPUT_STRIP_TRAILING_WHITESPACE)
     SET(ENV{CC} "${SCL_CC}")
     SET(ENV{CXX} "${SCL_CXX}")
     SET(ENV{FC} "${SCL_FC}")
 
-  elseif(${COMPILER_TYPE} STREQUAL "GCC-7")
+  ELSEIF(${COMPILER_TYPE} STREQUAL "GCC-7")
     # search for compilers from software collections
-    execute_process(COMMAND scl enable devtoolset-7 -- which gcc
+    EXECUTE_PROCESS(COMMAND scl enable devtoolset-7 -- which gcc
                     OUTPUT_VARIABLE SCL_CC OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND scl enable devtoolset-7 -- which g++
+    EXECUTE_PROCESS(COMMAND scl enable devtoolset-7 -- which g++
                     OUTPUT_VARIABLE SCL_CXX OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND scl enable devtoolset-7 -- which gfortran
+    EXECUTE_PROCESS(COMMAND scl enable devtoolset-7 -- which gfortran
                     OUTPUT_VARIABLE SCL_FC OUTPUT_STRIP_TRAILING_WHITESPACE)
     SET(ENV{CC} "${SCL_CC}")
     SET(ENV{CXX} "${SCL_CXX}")
     SET(ENV{FC} "${SCL_FC}")
 
-  elseif(${COMPILER_TYPE} STREQUAL "CLANG")
+  ELSEIF(${COMPILER_TYPE} STREQUAL "CLANG")
     SET(ENV{CC} "clang")
     SET(ENV{CXX} "clang++")
     SET(ENV{FC} "gfortran")
 
-  elseif(${COMPILER_TYPE} STREQUAL "ICC")
+  ELSEIF(${COMPILER_TYPE} STREQUAL "ICC")
 
     # make sure to manuall source /opt/intel/compilers_and_libraries/linux/bin/compilervars.sh intel64
     # automatic source removed, still present in revsion 16404
@@ -521,9 +539,9 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{CXX} "icpc")
     SET(ENV{FC} "ifort")
 
-  else()
-    message("can only set compiler environment for GCC, GCC-6, GCC-7, CLANG or ICC, not for ${COMPILER}!")
-  endif()
+  ELSE()
+    MESSAGE("can only set compiler environment for GCC, GCC-6, GCC-7, CLANG or ICC, not for ${COMPILER}!")
+  ENDIF()
 
   SET(ENV{LC_MESSAGES} "C")
   SET(ENV{LC_ALL} "C")
@@ -531,9 +549,9 @@ macro(SET_COMPILER_ENV COMPILER_TYPE)
   SET(ENV{LANGUAGE} "C")
 
   IDENTIFY_COMPILER()
-endmacro()
+ENDMACRO()
 
-macro(IDENTIFY_COMPILER)
+MACRO(IDENTIFY_COMPILER)
     SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
     SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
     SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
@@ -547,5 +565,5 @@ macro(IDENTIFY_COMPILER)
     EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp" RESULT_VARIABLE RETVAL)
     # include compiler info
     INCLUDE("${COMPILER_ID_FILE}")
-endmacro()
+ENDMACRO()
 

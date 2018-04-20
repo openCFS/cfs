@@ -209,9 +209,8 @@ namespace CoupledField {
         
         PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
         PtrCoefFct elecFieldCoefSurf = this->GetCoefFct(ELEC_FIELD_INTENSITY_SURF);
-        bool performInversionTest = !true;
         PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
-                elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY,mySpace,performInversionTest));
+                elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY,mySpace));
         
         hysteresisCoefs_->AddRegion( actRegion, hystPol);
         
@@ -1227,8 +1226,8 @@ namespace CoupledField {
     Double gamma = 1.0;
     GLMScheme * scheme = new Trapezoidal(gamma);
     
-    //TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresisFixPoint_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0) );
+    TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresis_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
     feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme);
   }
   

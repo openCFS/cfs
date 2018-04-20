@@ -52,6 +52,13 @@ namespace CoupledField {
 		
 		nonLin_ = pde1_->IsNonLin() || pde2_->IsNonLin();
 		
+    isHyst_ = false;
+    if(pde1_->IsHysteresis()){
+      EXCEPTION("Currently only the elec PDE may be hysteretic");
+    } else if(pde2_->IsHysteresis()){
+      isHyst_ = true;
+    }
+    
     // Initialize nonlinearities
     InitNonLin();
     
@@ -96,17 +103,9 @@ namespace CoupledField {
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
-      
-      // check if mag pde is hysteretic
-			bool isHyst = false;
-			if(pde1_->IsHysteresis()){
-				EXCEPTION("Currently only the mag PDE may be hysteretic");
-			} else if(pde2_->IsHysteresis()){
-				isHyst = true;
-			}
-			
+      			
 			// copied from PiezoCoupling.cc
-			if(isHyst){
+			if(isHyst_){
 				//				std::cout << "Hyst case -> check if region is hyst" << std::endl;
 				BaseBDBInt* mechToMagInt = NULL;
 				BaseBDBInt* magToMechInt = NULL;
@@ -390,15 +389,7 @@ namespace CoupledField {
       EXCEPTION( "Unknown subtype '" << subType_ << "'" );
     }
 
-		// check for hysteresis
-		bool isHyst = false;
-		if(pde1_->IsHysteresis()){
-			EXCEPTION("Currently only the elec PDE may be hysteretic");
-		} else if(pde2_->IsHysteresis()){
-			isHyst = true;
-		}
-
-		if(isHyst){
+		if(isHyst_){
 			// get all regions with hysteresis information from elecPDE
 			shared_ptr<CoefFunctionMulti> hysteresisCoefs = pde2_->GetHystCoefs();
 			BaseMaterial * actSDMat = NULL;
@@ -818,7 +809,9 @@ namespace CoupledField {
       //a timestepping for the magPDE
       shared_ptr<BaseFeFunction> magFct = pde2_->GetFeFunction(MAG_POTENTIAL);
 			
-      shared_ptr<BaseTimeScheme> magScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+      TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHyst_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+
+      shared_ptr<BaseTimeScheme> magScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0, nlType) );
 			
       magFct->SetTimeScheme(magScheme);
       magFct->GetTimeScheme()->Init(magFct->GetSingleVector(),dt);

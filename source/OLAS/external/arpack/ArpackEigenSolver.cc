@@ -471,7 +471,7 @@ namespace CoupledField {
     condNumber = evs[evs.GetSize()-1] / evs[0];
   }
 
-  void ArpackEigenSolver::GetEigenMode(UInt modeNr, Vector<Complex> & mode)
+  void ArpackEigenSolver::GetEigenMode(UInt modeNr, Vector<Complex> & mode, bool right)
   {
     UInt size = matrixA_->GetNumRows();
     mode.Resize( size );

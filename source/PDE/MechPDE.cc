@@ -2779,6 +2779,36 @@ namespace CoupledField {
       dssFunc.reset(new ResultFunctorIntegrate<Double>(dyadic, feFct, dyadicStrainSum));
     resultFunctors_[MECH_DYADIC_STRAIN_SUM] = dssFunc;
     
+    // === homogenised (=averaged) MECHANIC QUANTITIES ===
+    // take the original result info and coef function, and then apply the ResultFunctorIntegrate
+    // you need to add a new SolutionType in Environment (and xml).
+    std::map<SolutionType,std::pair<shared_ptr<ResultInfo>, PtrCoefFct> > averages;
+    averages[MECH_STRAIN_AVERAGE] = std::pair<shared_ptr<ResultInfo>, PtrCoefFct>(strain,strainFunc);
+    averages[MECH_STRESS_AVERAGE] = std::pair<shared_ptr<ResultInfo>, PtrCoefFct>(stress,sigmaFunc);
+    for (auto const& i : averages) {
+      shared_ptr<ResultInfo> origResInfo = i.second.first;
+      PtrCoefFct origCoef = i.second.second;
+      shared_ptr<ResultInfo> homResInfo(new ResultInfo);
+      homResInfo->resultType = i.first; // must be changed to correct SolutionType
+      homResInfo->definedOn = ResultInfo::REGION; // on the region, because we integrate it over the volume
+      // copy the rest
+      homResInfo->dofNames = origResInfo->dofNames;
+      homResInfo->unit = origResInfo->unit;
+      homResInfo->entryType = origResInfo->entryType;
+      availResults_.insert( homResInfo );
+      // set the result functor to integrate and average over the volume
+      shared_ptr<ResultFunctor> homResFunctor;
+      if(isComplex_) {
+        homResFunctor.reset(new ResultFunctorIntegrate<Complex>(origCoef, feFct, homResInfo));
+        dynamic_pointer_cast< ResultFunctorIntegrate<Complex> >(homResFunctor)->SetAveraged(true);
+      }
+      else {
+        homResFunctor.reset(new ResultFunctorIntegrate<Double>(origCoef, feFct, homResInfo));
+        dynamic_pointer_cast< ResultFunctorIntegrate<Double> >(homResFunctor)->SetAveraged(true);
+      }
+      resultFunctors_[i.first] = homResFunctor;
+    }
+
     // === MECHANIC DEFORMATION ENERGY DENSITY ===
     shared_ptr<ResultInfo> defEnergyDens(new ResultInfo);
     defEnergyDens->resultType = MECH_DEFORM_ENERGY_DENS;
@@ -2890,6 +2920,41 @@ namespace CoupledField {
     DefineFieldResult(normalStressFct, normalStressInfo);
     surfCoefFcts_[normalStressFct] = sigmaFunc;
     
+    // === MECHANIC REACTION FORCE (= integral of surface traction, i.e. normal stress from above, over the surface region ) ===
+    shared_ptr<ResultInfo> reactionForceInfo;
+    reactionForceInfo.reset(new ResultInfo);
+    reactionForceInfo->resultType = MECH_FORCE;
+    reactionForceInfo->dofNames = dispDofNames;
+    reactionForceInfo->unit = "N";
+    reactionForceInfo->entryType = ResultInfo::VECTOR;
+    reactionForceInfo->definedOn = ResultInfo::SURF_REGION;
+    // Integrate surface traction
+    shared_ptr<ResultFunctor> reactionForceFct;
+    if(isComplex_)
+        reactionForceFct.reset(new ResultFunctorIntegrate<Complex>(normalStressFct, feFct, reactionForceInfo));
+    else
+        reactionForceFct.reset(new ResultFunctorIntegrate<Double>(normalStressFct, feFct, reactionForceInfo));
+    resultFunctors_[MECH_FORCE] = reactionForceFct;
+    availResults_.insert(reactionForceInfo);
+
+    // === DENSITY ===
+//    shared_ptr<ResultInfo> matDens(new ResultInfo);
+//    matDens->resultType = DENSITY;
+//    matDens->dofNames = "";
+//    matDens->unit = "Ws/m^3";
+//    matDens->entryType = ResultInfo::SCALAR;
+//    matDens->definedOn = ResultInfo::ELEMENT;
+//    PtrCoefFct one = CoefFunction::Generate(mp_, Global::REAL, "1.0", "0.0");
+//    //densCoeff = actSDMat->GetScalCoefFnc( DENSITY,Global::REAL );
+//    shared_ptr<ResultFunctor> oneFunc;
+//    if( isComplex_ ) {
+//      oneFunc.reset(new CoefFunctionBdBKernel<Complex>(one, 1.0));
+//    } else {
+//      oneFunc.reset(new CoefFunctionBdBKernel<Double>(one, 1.0));
+//    }
+//    DefineFieldResult( densFunc, kinEnergyDens );
+//    massFormCoefs_.insert(kedFunc);
+
     // === MECH_TENOSR_HILL_MANDEL converts to HillMandel notation
     shared_ptr<ResultInfo> mech_tensor_hm(new ResultInfo);
     mech_tensor_hm->resultType = MECH_TENSOR_HILL_MANDEL;

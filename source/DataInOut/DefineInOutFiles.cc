@@ -77,9 +77,9 @@
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
 #include "DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh"
 #ifndef __MINGW32__
-#ifndef __INTEL_COMPILER
+//#ifndef __INTEL_COMPILER
 #include "DataInOut/SimInOut/Streaming/SimOutputStreaming.hh"
-#endif
+//#endif
 #endif
 
 #include "DataInOut/ParamHandling/XMLMaterialHandler.hh"
@@ -561,12 +561,12 @@ shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(std::string
   }
 
 #ifndef __MINGW32__
-#ifndef __INTEL_COMPILER
+// #ifndef __INTEL_COMPILER
   if (fFormat == "streaming")
   {
     aOutput = shared_ptr<SimOutput> (new SimOutputStreaming(configNode, infoNode, isRestart));
   }
-#endif
+// #endif
 #endif
 
   return aOutput;

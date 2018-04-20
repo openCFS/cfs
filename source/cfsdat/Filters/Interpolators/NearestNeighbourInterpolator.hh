@@ -115,6 +115,9 @@ private:
   //! perform a mesh-check. If mesh-check is set in xml-> mCheck = true
   bool mCheck_;
 
+  //! if true, then element values are the interpolation target
+  bool useElemAsTarget_;
+
   //! for the mesh-check this mesh also needs to be stored, trgGrid_ is
   //! stored in MeshFilter
   Grid* inGrid_;

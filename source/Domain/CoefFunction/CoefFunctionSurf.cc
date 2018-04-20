@@ -306,13 +306,13 @@ void CoefFunctionSurfVWP::GetVector(Vector<Double>& coefVec,
   //get magnetic flux density
   Vector<Double> Bvec;
   RegionIdType surRegId = lpm.ptEl->regionId;
-  RegionIdType volNeighborRegionId = neighborRegionId_[surRegId];
-  coefs_[volNeighborRegionId]->GetVector(Bvec, lpm );
+  //RegionIdType volNeighborRegionId = neighborRegionId_[surRegId];
+  coefs_[surRegId]->GetVector(Bvec, lpm );
 
   //get permeability
   Double permeability;
   std::map<RegionIdType,PtrCoefFct > permFncs = matCoef_[MAG_ELEM_PERMEABILITY]->GetRegionCoefs();
-  permFncs[volNeighborRegionId]->GetScalar(permeability, lpm );
+  permFncs[surRegId]->GetScalar(permeability, lpm );
 
   coefVec = Bvec / std::sqrt( permeability );
 }

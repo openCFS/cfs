@@ -152,7 +152,6 @@ namespace CoupledField {
           alNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
           CoordSystem *  coordSys = domain->GetCoordSystem(coordSysId);
 
-
           // Read in components
           ParamNodeList compList = alNode->GetList("comp");
           UInt dim = ptGrid_->GetDim();
@@ -167,15 +166,17 @@ namespace CoupledField {
             real[index] = val;
           }
           // Generate coil coefficient function for current direction
-          PtrCoefFct dirCoef = CoefFunction::Generate(mParser_, type, real, imag );
-          CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mParser_, dirCoef, CoefXpr::OP_NORM );
-          PtrCoefFct dirAbs = CoefFunction::Generate( mParser_, type, dirAbsOp );
-          CoefXprVecScalOp unitOp = CoefXprVecScalOp( mParser_, dirCoef, dirAbs, CoefXpr::OP_DIV );
-
-          PtrCoefFct unitDir = CoefFunction::Generate(mParser_, type, unitOp );
+          PtrCoefFct dirCoef;
+          if (alNode->Get("normalise",ParamNode::PASS)->As<std::string>() == "yes") { // normalise direction by it's length
+            PtrCoefFct inputDirCoef = CoefFunction::Generate(mParser_, type, real, imag );
+            dirCoef = CoefFunction::Generate(mParser_, type, CoefXprVecScalOp( mParser_, inputDirCoef, CoefXprUnaryOp( mParser_, inputDirCoef, CoefXpr::OP_NORM ) , CoefXpr::OP_DIV ) );
+          }
+          else { // keep it as it was defined
+            dirCoef = CoefFunction::Generate(mParser_, type, real, imag );
+          }
 
           // in the end multiply by the orientation factor
-          CoefXprVecScalOp orientOp = CoefXprVecScalOp( mParser_, unitDir, 
+          CoefXprVecScalOp orientOp = CoefXprVecScalOp( mParser_, dirCoef,
                                                         boost::lexical_cast<std::string>(actPart.orientFlag),
                                                         CoefXpr::OP_MULT );
 

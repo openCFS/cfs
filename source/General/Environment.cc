@@ -1322,6 +1322,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_DYADIC_STRAIN_SUM, "mechDyadicStrainSum");
     SolutionTypeEnum.Add(MECH_QUAD_DISP, "mechQuadDisplacement");
     SolutionTypeEnum.Add(MECH_QUAD_DISP_SUM, "mechQuadDisplacementSum");
+    // averages
+    SolutionTypeEnum.Add(MECH_STRAIN_AVERAGE, "mechStrainAverage");
+    SolutionTypeEnum.Add(MECH_STRESS_AVERAGE, "mechStressAverage");
 
 
     SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
@@ -1696,6 +1699,11 @@ namespace CoupledField {
     // ==== Initialization of NonLinMethodEnum ====
     NonLinMethodTypeEnum.Add( FIXEDPOINT, "fixPoint" );
     NonLinMethodTypeEnum.Add( NEWTON, "newton" );
+    NonLinMethodTypeEnum.Add( HYST_FIXPOINT_IT, "HYST_fixPoint_IT" );
+    NonLinMethodTypeEnum.Add( HYST_FIXPOINT_TS, "HYST_fixPoint_TS" );
+    NonLinMethodTypeEnum.Add( HYST_DELTAMAT_IT, "HYST_deltaMat_IT" );
+    NonLinMethodTypeEnum.Add( HYST_DELTAMAT_TS, "HYST_deltaMat_TS" );
+    NonLinMethodTypeEnum.Add( HYST_DEBUG, "HYST_debug" );
   }
 
 
