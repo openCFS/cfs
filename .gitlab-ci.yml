@@ -139,6 +139,8 @@ deploy:gcc4:mdmt:
       - master # only for refs pushed to master
   dependencies:
     - build:gcc4
+  before_script:
+    - cd build # must be there due to dependencies
   script:
     - scp "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
     - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz --strip 1 -C /opt/programs/cfs_master"
