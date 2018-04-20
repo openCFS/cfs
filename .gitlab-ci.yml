@@ -69,10 +69,14 @@ build:gcc6:
     - gcc6
   before_script:
     - mkdir build || cd build # descend in build
-    - scl enable devtoolset-6 -- bash || gcc --version # try software collection, and if it fails use native gcc (and hope it's 6 - need correct tag on the runner)
+    - scl enable devtoolset-6 -- bash || gcc --version # 
     - cat Testing/TAG || echo "no TAG" # just debug
     - rm -f CMakeCache.txt # clear old cache
-    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
+    # try software collection, and if it fails use native gcc
+    # check gcc version via grep
+    - scl enable devtoolset-6 -- gcc --version | grep '6\.[0-9]\.[0-9]' || gcc --version | grep '6\.[0-9]\.[0-9]'
+    # initial config with devtoolset
+    - scl enable devtoolset-6 -- cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. || cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
   <<: *config_build_ctest
 
 # re-build everything
@@ -144,3 +148,4 @@ deploy:gcc4:mdmt:
   script:
     - scp "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
     - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz --strip 1 -C /opt/programs/cfs_master"
+  after_script: []
