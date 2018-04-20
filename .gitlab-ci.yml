@@ -42,6 +42,7 @@ cache:
 .job_template: &config_build_test
   script:
     - ctest -D ExperimentalStart --track Gitlab -V
+    - ctest -D ExperimentalUpdate --track Gitlab -V
     - ctest -D ExperimentalConfigure --track Gitlab -V
     - ctest -D ExperimentalSubmit --track Gitlab # intermittent submit to get live CDash results
     - ctest -D ExperimentalBuild --track Gitlab -V
