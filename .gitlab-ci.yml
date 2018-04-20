@@ -42,7 +42,7 @@ cache:
 #################################################
 # Here we define the build jobs, if one fails we do not need to test
 
-.job_template: &config_build_test
+.job_template: &config_build_ctest
   script:
     - ctest -D ExperimentalStart --track Gitlab -V
     - ctest -D ExperimentalUpdate --track Gitlab -V
@@ -61,7 +61,7 @@ build:gcc4: # eventually we should have one job for each required configuration
   stage: build
   tags:
     - gcc4
-  <<: *config_build_test
+  <<: *config_build_ctest
 
 build:gcc6:
   stage: build
@@ -73,8 +73,22 @@ build:gcc6:
     - cat Testing/TAG || echo "no TAG" # just debug
     - rm -f CMakeCache.txt # clear old cache
     - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
-  <<: *config_build_test
-  
+  <<: *config_build_ctest
+
+# re-build everything
+complete-build:gcc4:
+  stage: build
+  tags:
+    - gcc4
+  when: manual
+  before_script:
+    - rm -rf build # clear
+    - mkdir build
+    - cd build
+    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
+  <<: *config_build_ctest
+
+
 #################################################
 # TEST STAGE
 #################################################
@@ -111,14 +125,20 @@ test:gcc4:linux:multicore: # if the machine has multiple
     - build:gcc4
 
 #################################################
-# SPECIAL STAGES
+# DEPLOY STAGES
 #################################################
 
-clear_and_rebuild:
-  stage: clear_and_rebuild
-  when: manual
+deploy:gcc4:mdmt:
+  tags:
+    - linux
+    - mdmt
+  stage:
+    - deploy
+  only:
+    refs:
+      - master # only for refs pushed to master
+  dependencies:
+    - build:gcc4
   script:
-    - rm -rf * # clear all in build
-    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure to generate DartConfig
-    - ctest -D Experimental --track Gitlab -V
-  after_script: [] # override global
+    - scp "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
+    - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz --strip 1 -C /opt/programs/cfs_master"
