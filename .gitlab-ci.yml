@@ -87,7 +87,8 @@ build:gcc6:
   tags:
     - gcc6
   before_script:
-    - mkdir build || cd build # descend in build
+    - mkdir -p build # create if it does not exist
+    - cd build # descend in build
     - rm -f CMakeCache.txt # clear old cache
     # try software collection, and if it fails use native gcc
     # check gcc version via grep
@@ -102,7 +103,8 @@ build:gcc7:
     - gcc7
   when: manual
   before_script:
-    - mkdir build || cd build # descend in build
+    - mkdir -p build # create if it does not exist
+    - cd build # descend in build
     - rm -f CMakeCache.txt # clear old cache
     # try software collection, and if it fails use native gcc
     # check gcc version via grep
@@ -134,7 +136,8 @@ complete-build:linux:
 # test preparation starts by extracting the build files from assets
 .job_template: &test_prepare
   before_script:
-    - mkdir build || cd build # descend in build
+    - mkdir -p build
+    - cd build # descend in build
     - ls # debug
     - tar -xzvf "CFS-"$CI_COMMIT_SHA"-Linux.tar.gz" --strip-components=1 # extract to correct location
 
