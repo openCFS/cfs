@@ -62,13 +62,7 @@ cache:
     - ctest -D ExperimentalSubmit --track Gitlab
     - ctest -D ExperimentalTest -R Install --track Gitlab # only do the install testing
     # check the coding_score
-    - errors=$( grep '[0-9]\+ \(or more \)\?Compiler errors' build.out | sed 's|[ ]\+\([0-9]\+\).\+|\1|' )
-grep '[0-9]\+ \(or more \)\?Compiler warnings' build.out | sed 's|[ ]\+\([0-9]\+\).\+|\1|'
-    - warnings=$( grep '[0-9]\+ \(or more\)\? Compiler warnings' build.out | sed 's|[ ]\+\([0-9]\+\).\+|\1|' )
-    - insertions=$(git diff --stat HEAD HEAD~1 | tail -n 1 | sed 's|.\+\([0-9]\+\) insertion.\+|\1|')
-    - deletions=$(git diff --stat HEAD HEAD~1 | tail -n 1 | sed 's|.\+\([0-9]\+\) deletion.\+|\1|')
-    - echo "$errors errors, $warnings warnings, $insertions insertions, $deletions deletions"
-    - awk "BEGIN {printf \"coding_score=%.2f\n\", ( ($errors+$warnings)>=($insertions+$deletions)) ? 0.0 : (1-($errors+$warnings)/($insertions+$deletions))*100 }" # compute and print the score
+    - ../ctest_scripts/shared/coding_score.sh build.out
   coverage: '/coding_score=(\d+[.]\d+)/'
   artifacts:
     paths: # just an example
