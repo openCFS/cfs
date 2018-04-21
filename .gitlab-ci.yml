@@ -49,9 +49,17 @@ cache:
     - ctest -D ExperimentalUpdate --track Gitlab -V
     - ctest -D ExperimentalConfigure --track Gitlab -V
     - ctest -D ExperimentalSubmit --track Gitlab # intermittent submit to get live CDash results
-    - ctest -D ExperimentalBuild --track Gitlab -V
+    - ctest -D ExperimentalBuild --track Gitlab -V | tee build.out
     - ctest -D ExperimentalSubmit --track Gitlab
     - ctest -D ExperimentalTest -R Install --track Gitlab # only do the install testing
+    # check the coding_score
+    - errors=$(grep '[0-9]\+ Compiler errors' build.out | sed 's|.\+\([0-9]\+\).\+|\1|')
+    - warnings=$(grep '[0-9]\+ Compiler warnings' build.out | sed 's|.\+\([0-9]\+\).\+|\1|')
+    - insertions=$(git diff --stat HEAD HEAD~1 | tail -n 1 | sed 's|.\+\([0-9]\+\) insertion.\+|\1|')
+    - deletions=$(git diff --stat HEAD HEAD~1 | tail -n 1 | sed 's|.\+\([0-9]\+\) deletion.\+|\1|')
+    - echo "$errors errors, $warnings warnings, $insertions insertions, $deletions deletions"
+    - awk "BEGIN {printf \"coding_score=%.2f\n\", (1-(2*$errors+$warnings)/($insertions+$deletions))*100}"
+  coverage: '/coding_score=(\d+[.]\d+)/'
   artifacts:
     paths: # just an example
       - build/DartConfiguration.tcl
@@ -123,7 +131,7 @@ complete-build:linux:
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
 .ctest_coverage: &ctest_coverage
-  coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+\n+.+\n+(The following tests FAILED:\n(\s+\d+\s-\s\w+.+\n)*)*/'
+  coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/'
 
 test:gcc4:linux:
   tags:
@@ -136,7 +144,7 @@ test:gcc4:linux:
   dependencies:
     - build:gcc4
   <<: *ctest_coverage
-  
+
 test:gcc4:linux:multicore: # if the machine has multiple
   tags:
     - linux
