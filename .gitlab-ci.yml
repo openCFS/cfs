@@ -4,31 +4,34 @@ variables:
   GIT_STRATEGY: fetch # this is faster than clone and should re-use a workspace
   GIT_SUBMODULE_STRATEGY: recursive
 
+# stages in the pipeline run in succession
 stages:
   - build # config and build combined
   - test # we may have several test configs for one build
   - deploy
- 
+
+# determines when the pipeline runs:
+#  - for the master branch
+#  - for branches/tags called "test-*" 
 .default_pipeline_rules: &default_pipeline_rules
   only:
     refs:
       - master
-      - /^test-.*$/ # all branches starting with "test-*"
+      - /^test-.*$/
 
 # this is run before/after every step
+# we should be in the build dir and ready to run ctest
 before_script:
   - mkdir -p build # make build dir
   - cd build
-  - cat Testing/TAG || echo "no TAG"
+  - cat Testing/TAG || echo "no TAG" # debug
   - rm -f CMakeCache.txt # clear old cache
   - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
-# after the before script we should be in the build dir and ready to run ctest
-    
+# cleanup and CDash submission - in after to always submit a result, also if one 'script' command failed   
 after_script:
   - cd build
-  - cat Testing/TAG || echo "no TAG"
-  - ctest -D ExperimentalSubmit --track Gitlab -V # this is in after to always submit a result, also it a sub-step failed
-  # clean up for next build
+  - cat Testing/TAG || echo "no TAG" # debug
+  - ctest -D ExperimentalSubmit --track Gitlab -V
   - rm CMakeCache.txt
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
@@ -157,7 +160,7 @@ complete-build:linux:
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependecies
-test:gcc4:linux:
+test_stable:gcc4:linux:
   tags:
     - linux
   stage: test
@@ -167,7 +170,18 @@ test:gcc4:linux:
   dependencies:
     - build:gcc4
 
-test:gcc4:linux:multicore: # if the machine has multiple
+test_all_multicore:gcc4:linux: # if the machine has multiple
+  tags:
+    - linux
+  stage: test
+  <<: *test_prepare
+  <<: *test_all_multicore
+  <<: *ctest_coverage  
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  dependencies:
+    - build:gcc4
+
+test_all_multicore:gcc6:linux: # if the machine has multiple
   tags:
     - linux
   stage: test
@@ -177,7 +191,19 @@ test:gcc4:linux:multicore: # if the machine has multiple
   <<: *ctest_coverage  
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
-    - build:gcc4
+    - build:gcc6
+
+test_all_multicore:gcc7:linux: # if the machine has multiple
+  tags:
+    - linux
+  stage: test
+  when: manual
+  <<: *test_prepare
+  <<: *test_all_multicore
+  <<: *ctest_coverage  
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  dependencies:
+    - build:gcc7
 
 #################################################
 # DEPLOY STAGES
@@ -187,7 +213,7 @@ test:gcc4:linux:multicore: # if the machine has multiple
   only:
     refs:
       - master # only for refs pushed to master
-      - gitlab-runner-integration # only for testing
+      - /.*-gitlab-runner-integration/ # only for testing
   tags:
     - linux
     - mdmt
