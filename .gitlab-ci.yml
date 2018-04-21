@@ -163,7 +163,7 @@ complete-build:linux:
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependecies
-test_stable:gcc4:linux:
+stable:gcc4:linux:
   tags:
     - linux
   stage: test
@@ -173,7 +173,8 @@ test_stable:gcc4:linux:
   dependencies:
     - build:gcc4
 
-test_all_multicore:gcc4:linux: # if the machine has multiple
+# pre-pend the jobs with x as they are sorted alphabetically
+x-all:gcc4:linux: # if the machine has multiple
   tags:
     - linux
   stage: test
@@ -184,7 +185,7 @@ test_all_multicore:gcc4:linux: # if the machine has multiple
   dependencies:
     - build:gcc4
 
-test_all_multicore:gcc6:linux: # if the machine has multiple
+x-all:gcc6:linux: # if the machine has multiple
   tags:
     - linux
   stage: test
@@ -196,7 +197,7 @@ test_all_multicore:gcc6:linux: # if the machine has multiple
   dependencies:
     - build:gcc6
 
-test_all_multicore:gcc7:linux: # if the machine has multiple
+x-all:gcc7:linux: # if the machine has multiple
   tags:
     - linux
   stage: test
@@ -229,7 +230,7 @@ copy_to_draco:
     - build:gcc4
   script:
     # copy over via scp
-    - scp "build/CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz" || echo "source file not found"
+    - scp "build/CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz" || echo "WARNING: source file not found"
     # extract on draco by ssh
     - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz -C /opt/programs/cfs_master"
     # set the new symlink and replace the old one in one atomic operation
