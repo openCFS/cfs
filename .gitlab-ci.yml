@@ -107,9 +107,9 @@ complete-build:gcc4:
 
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
-# test regex at http://rubular.com/
+# in the format '/REGEX/' - one can test REGEX at http://rubular.com/
 .ctest_coverage: &ctest_coverage
-  coverage: '\(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+\n+.+\n+(The following tests FAILED:\n(\s+\d+\s-\s\w+.+\n)*)*\'
+  coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+\n+.+\n+(The following tests FAILED:\n(\s+\d+\s-\s\w+.+\n)*)*/'
 
 test:gcc4:linux:
   tags:
