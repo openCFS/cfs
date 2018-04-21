@@ -70,8 +70,6 @@ build:gcc6:
     - gcc6
   before_script:
     - mkdir build || cd build # descend in build
-    - scl enable devtoolset-6 -- bash || gcc --version # 
-    - cat Testing/TAG || echo "no TAG" # just debug
     - rm -f CMakeCache.txt # clear old cache
     # try software collection, and if it fails use native gcc
     # check gcc version via grep
@@ -80,11 +78,26 @@ build:gcc6:
     - scl enable devtoolset-6 -- cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. || cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
   <<: *config_build_ctest
 
-# re-build everything
-complete-build:gcc4:
+build:gcc7:
   stage: build
   tags:
-    - gcc4
+    - gcc7
+  when: manual
+  before_script:
+    - mkdir build || cd build # descend in build
+    - rm -f CMakeCache.txt # clear old cache
+    # try software collection, and if it fails use native gcc
+    # check gcc version via grep
+    - scl enable devtoolset-7 -- gcc --version | grep '7\.[0-9]\.[0-9]' || gcc --version | grep '7\.[0-9]\.[0-9]'
+    # initial config with devtoolset
+    - scl enable devtoolset-7 -- cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. || cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
+  <<: *config_build_ctest
+
+# re-build everything
+complete-build:linux:
+  stage: build
+  tags:
+    - linux
   when: manual
   before_script:
     - rm -rf build # clear
