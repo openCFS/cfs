@@ -1,7 +1,13 @@
 CFS++
 ==============================
 
-[![pipeline status](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/pipeline.svg)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master)
+[![pipeline status](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/pipeline.svg)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) [![Testsuite](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=test_stable:gcc4:linux)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master)
+
+* `CodeScore` [![build gcc4](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=build:gcc4:linux)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) GCC4 build +++ [![build gcc6](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=build:gcc6:linux)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) GCC6 build +++ [![build gcc7](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=build:gcc7:linux)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) GCC7 build
+* `Testsuite` [![test_all gcc4](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=test_all:gcc4:linux)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) GCC4 build +++ [![test_all gcc6](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=test_all:gcc6:linux)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) GCC6 build +++ [![test_all gcc7](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/badges/master/coverage.svg?job=test_all:gcc7:linux)](https://cfs-dev.mdmt.tuwien.ac.at/cfs/CFS/commits/master) GCC7 build
+
+
+
 
 This is the git repository of CFS++.
 
