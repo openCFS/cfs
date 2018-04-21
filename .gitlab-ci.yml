@@ -8,6 +8,12 @@ stages:
   - build # config and build combined
   - test # we may have several test configs for one build
   - deploy
+ 
+.default_pipeline_rules: &default_pipeline_rules
+  only:
+    refs:
+      - master
+      - /^test-.*$/ # all branches starting with "test-*"
 
 # this is run before/after every step
 before_script:
@@ -43,7 +49,7 @@ cache:
 #################################################
 # Here we define the build jobs, if one fails we do not need to test
 
-.job_template: &config_build_ctest
+.default_build_job: &default_build_job
   script:
     - ctest -D ExperimentalStart --track Gitlab -V
     - ctest -D ExperimentalUpdate --track Gitlab -V
@@ -65,12 +71,13 @@ cache:
       - build/DartConfiguration.tcl
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
     expire_in: 2h
+  <<: *default_pipeline_rules
 
 build:gcc4: # eventually we should have one job for each required configuration
   stage: build
   tags:
     - gcc4
-  <<: *config_build_ctest
+  <<: *default_build_job
 
 build:gcc6:
   stage: build
@@ -84,7 +91,7 @@ build:gcc6:
     - scl enable devtoolset-6 -- gcc --version | grep '6\.[0-9]\.[0-9]' || gcc --version | grep '6\.[0-9]\.[0-9]'
     # initial config with devtoolset
     - scl enable devtoolset-6 -- cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. || cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
-  <<: *config_build_ctest
+  <<: *default_build_job
 
 build:gcc7:
   stage: build
@@ -99,7 +106,7 @@ build:gcc7:
     - scl enable devtoolset-7 -- gcc --version | grep '7\.[0-9]\.[0-9]' || gcc --version | grep '7\.[0-9]\.[0-9]'
     # initial config with devtoolset
     - scl enable devtoolset-7 -- cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. || cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
-  <<: *config_build_ctest
+  <<: *default_build_job
 
 # re-build everything
 complete-build:linux:
@@ -112,7 +119,7 @@ complete-build:linux:
     - mkdir build
     - cd build
     - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
-  <<: *config_build_ctest
+  <<: *default_build_job
 
 
 #################################################
@@ -121,6 +128,7 @@ complete-build:linux:
 # the test stage might run on a different runner than the build, thus
 # the binaries are shared via the gitlab server (artifacts/dependencies)
 
+# test preparation starts by extracting the build files from assets
 .job_template: &test_prepare
   before_script:
     - mkdir build || cd build # descend in build
@@ -133,17 +141,31 @@ complete-build:linux:
 .ctest_coverage: &ctest_coverage
   coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/'
 
+# this is the config that has to pass
+.test_stable: &test_stable
+  script:
+    - cmake -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
+    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|Preisach|CFSdat_FFT_2D" --track Gitlab # exclude the install step and the failing tests
+  <<: *default_pipeline_rules
+
+# test everything
+.test_all_multicore: &test_all_multicore
+  script:
+    - cmake -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
+    - ctest -D ExperimentalTest -E Install --track Gitlab # exclude the install step
+  <<: *default_pipeline_rules
+
+# now we define the actual tests, i.e. we decide which build we want to test
+# the build is taken from the dependecies
 test:gcc4:linux:
   tags:
     - linux
   stage: test
   <<: *test_prepare
-  script:
-    - cmake -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
-    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|Preisach|CFSdat_FFT_2D" --track Gitlab # exclude the install step and the failing tests
+  <<: *test_stable
+  <<: *ctest_coverage 
   dependencies:
     - build:gcc4
-  <<: *ctest_coverage
 
 test:gcc4:linux:multicore: # if the machine has multiple
   tags:
@@ -151,36 +173,38 @@ test:gcc4:linux:multicore: # if the machine has multiple
   stage: test
   when: manual
   <<: *test_prepare
+  <<: *test_all_multicore
+  <<: *ctest_coverage  
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  script:
-    - cmake -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
-    - ctest -D ExperimentalTest -E Install --track Gitlab # exclude the install step
   dependencies:
     - build:gcc4
-  <<: *ctest_coverage
 
 #################################################
 # DEPLOY STAGES
 #################################################
 
-deploy:gcc4:mdmt:
+.deploy_rules: &deploy_rules
+  only:
+    refs:
+      - master # only for refs pushed to master
+      - gitlab-runner-integration # only for testing
   tags:
     - linux
     - mdmt
   stage: deploy
-  only:
-    refs:
-      - master # only for refs pushed to master
-      - gitlab-runner-integration # for testing purposes only >>>>>> delete at merge
+  after_script: []
+  before_script: []
+  
+copy_to_draco:
   dependencies:
     - build:gcc4
-  before_script:
-    - cd build # must be there due to dependencies
   script:
     # copy over via scp
-    - scp "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
+    - scp "build/CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz" || echo "source file not found"
     # extract on draco by ssh
     - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz -C /opt/programs/cfs_master"
     # set the new symlink and replace the old one in one atomic operation
-    - ssh draco "cd /opt/programs/cfs_master/; ln -s CFS-$CI_COMMIT_SHA-Linux new; mv -fT new latest; ./cleanup.sh"
-  after_script: []
+    - ssh draco "cd /opt/programs/cfs_master/; ln -s CFS-$CI_COMMIT_SHA-Linux new; mv -fT new latest; ./cleanup.sh"    
+  environment:
+    name: share_programs
+  <<: *deploy_rules
