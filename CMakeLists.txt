@@ -915,9 +915,17 @@ endif(CFS_WC_MODIFIED)
 
 # choose what to install
 # see https://cmake.org/cmake/help/v3.9/command/install.html#installing-directories
-INSTALL(DIRECTORY "${CFS_BINARY_DIR}/bin" DESTINATION "." USE_SOURCE_PERMISSIONS)
-INSTALL(DIRECTORY "${CFS_BINARY_DIR}/lib64" DESTINATION "." USE_SOURCE_PERMISSIONS PATTERN "*.a" EXCLUDE) # lib64 only works for 64bit ...
-INSTALL(DIRECTORY "${CFS_BINARY_DIR}/share" DESTINATION "." USE_SOURCE_PERMISSIONS PATTERN "CMakeFiles" EXCLUDE PATTERN "Makefile" EXCLUDE PATTERN "*.dir" EXCLUDE)
+
+if(UNIX)
+  # tailing / in source leads to rename to destionation
+  #INSTALL(PROGRAMS "${CFS_BINARY_DIR}/bin" DESTINATION "." PATTERN "[A-Z]*" EXCLUDE)
+  INSTALL(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin/LINUX_${CFS_ARCH}" USE_SOURCE_PERMISSIONS)
+  INSTALL(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib64/LINUX_${CFS_ARCH}" USE_SOURCE_PERMISSIONS PATTERN "*.a" EXCLUDE) # lib64 only works for 64bit ...
+else(UNIX)
+  message("install only implemented for UNIX")
+endif(UNIX)
+INSTALL(DIRECTORY "${CFS_BINARY_DIR}/share/" DESTINATION "share" USE_SOURCE_PERMISSIONS PATTERN "CMakeFiles" EXCLUDE PATTERN "Makefile" EXCLUDE PATTERN "*.dir" EXCLUDE)
+# this is only usful on a portable testsuite and at them moment disabled by default
 if(BUILD_TESTING AND PACK_TESTSUITE)
   INSTALL(FILES "${CFS_BINARY_DIR}/CTestTestfile.cmake" DESTINATION ".")
   INSTALL(DIRECTORY "${CFS_BINARY_DIR}/testsuite" DESTINATION "." USE_SOURCE_PERMISSIONS)
