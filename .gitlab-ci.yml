@@ -26,7 +26,7 @@ before_script:
   - cd build
   - cat Testing/TAG || echo "no TAG" # debug
   - rm -f CMakeCache.txt # clear old cache
-  - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
+  - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
 # cleanup and CDash submission - in after to always submit a result, also if one 'script' command failed   
 after_script:
   - cd build
@@ -68,6 +68,7 @@ cache:
     paths: # just an example
       - build/DartConfiguration.tcl
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
+      - build/Testing
     expire_in: 2h
   <<: *default_pipeline_rules
 
@@ -75,6 +76,12 @@ build:gcc4: # eventually we should have one job for each required configuration
   stage: build
   tags:
     - gcc4
+  before_script:
+    - mkdir -p build # create if it does not exist
+    - cd build # descend in build
+    - rm -f CMakeCache.txt # clear old cache
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG GCC4' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
+    - sh config_cmd
   <<: *default_build_job
 
 build:gcc6:
@@ -89,7 +96,8 @@ build:gcc6:
     # check gcc version via grep
     - scl enable devtoolset-6 -- gcc --version | grep '6\.[0-9]\.[0-9]' || gcc --version | grep '6\.[0-9]\.[0-9]'
     # initial config with devtoolset
-    - scl enable devtoolset-6 -- cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. || cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG GCC6' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
+    - scl enable devtoolset-6 -- sh config_cmd || sh config_cmd
   <<: *default_build_job
 
 build:gcc7:
@@ -105,7 +113,8 @@ build:gcc7:
     # check gcc version via grep
     - scl enable devtoolset-7 -- gcc --version | grep '7\.[0-9]\.[0-9]' || gcc --version | grep '7\.[0-9]\.[0-9]'
     # initial config with devtoolset
-    - scl enable devtoolset-7 -- cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. || cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG GCC7' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
+    - scl enable devtoolset-7 -- sh config_cmd || sh config_cmd
   <<: *default_build_job
 
 # re-build everything
@@ -118,7 +127,7 @@ complete-build:linux:
     - rm -rf build # clear
     - mkdir build
     - cd build
-    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG complete-build" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
   <<: *default_build_job
 
 
@@ -129,32 +138,36 @@ complete-build:linux:
 # the binaries are shared via the gitlab server (artifacts/dependencies)
 
 # test preparation starts by extracting the build files from assets
-.job_template: &test_prepare
+.ctest_default: &ctest_default
   before_script:
     - mkdir -p build
     - cd build # descend in build
     - ls # debug
     - tar -xzvf "CFS-"$CI_COMMIT_SHA"-Linux.tar.gz" --strip-components=1 # extract to correct location
-
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
-.ctest_coverage: &ctest_coverage
   coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/'
+  # no chache for testing necessary - binary comes from artifacts
+  cache: {}
+  <<: *default_pipeline_rules
+
 
 # this is the config that has to pass
 .test_stable: &test_stable
   script:
-    - cmake -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG GCC4 stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
+    - ctest -D ExperimentalUpdate --track Gitlab
     - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|Preisach|CFSdat_FFT_2D" --track Gitlab # exclude the install step and the failing tests
-  <<: *default_pipeline_rules
+  <<: *ctest_default
 
 # test everything
 .test_all_multicore: &test_all_multicore
   script:
-    - cmake -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG GCC4 all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
+    - ctest -D ExperimentalUpdate --track Gitlab
     - ctest -D ExperimentalTest -E Install --track Gitlab # exclude the install step
-  <<: *default_pipeline_rules
+  <<: *ctest_default
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependecies
@@ -162,9 +175,7 @@ stable:gcc4:linux:
   tags:
     - linux
   stage: test
-  <<: *test_prepare
   <<: *test_stable
-  <<: *ctest_coverage 
   dependencies:
     - build:gcc4
 
@@ -173,9 +184,7 @@ x-all:gcc4:linux: # if the machine has multiple
   tags:
     - linux
   stage: test
-  <<: *test_prepare
   <<: *test_all_multicore
-  <<: *ctest_coverage  
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
     - build:gcc4
@@ -185,9 +194,7 @@ x-all:gcc6:linux: # if the machine has multiple
     - linux
   stage: test
   when: manual
-  <<: *test_prepare
   <<: *test_all_multicore
-  <<: *ctest_coverage  
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
     - build:gcc6
@@ -197,9 +204,7 @@ x-all:gcc7:linux: # if the machine has multiple
     - linux
   stage: test
   when: manual
-  <<: *test_prepare
   <<: *test_all_multicore
-  <<: *ctest_coverage  
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
     - build:gcc7
