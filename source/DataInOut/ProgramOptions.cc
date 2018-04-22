@@ -613,7 +613,8 @@ namespace CoupledField {
         << "CFS_BUILD_USER:        " << fg_blue << CFS_BUILD_USER << fg_reset << endl
         << "CFS_BUILD_DISTRO:      " << fg_blue << CFS_BUILD_DISTRO << fg_reset << endl
         << "CFS_GIT_COMMIT:        " << fg_blue << CFS_GIT_COMMIT << fg_reset << endl
-        << "CFS_GIT_BRANCH:        " << fg_blue << CFS_GIT_BRANCH << fg_reset << endl;
+        << "CFS_GIT_BRANCH:        " << fg_blue << CFS_GIT_BRANCH << fg_reset << endl
+        << "CFS_WC_REVISION:        " << fg_blue << CFS_WC_REVISION << fg_reset << endl;
 
     out << endl;
 
@@ -982,7 +983,7 @@ namespace CoupledField {
           << "===========" << endl;
       out << " CFS++ - Coupled Field Simulation" << endl << endl
           << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
-          << " (rev " << CFS_WC_REVISION << ")" << endl
+          << " " << CFS_WC_REVISION << endl
           << " compiled " << __DATE__
           << " as " << CMAKE_BUILD_TYPE << endl
           << " CFS++ routines use " << CFS_NUM_THREADS << " threads for this run."

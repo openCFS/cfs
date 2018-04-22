@@ -1,29 +1,257 @@
-# This file is a template, and might need editing before it works on your project.
-# use the official gcc image, based on debian
-# can use verions as well, like gcc:5.2
-# see https://hub.docker.com/_/gcc/
+# This file is used to define the CI pipeline for GitLab
+# https://docs.gitlab.com/ee/ci/yaml
+#
+# Syntax tipps:
+# * check on https://cfs-dev.mdmt.tuwien.ac.at/ci/lint
+# * do not use a command `echo "warming: the : is not allowed in a string"`
+
+# https://docs.gitlab.com/ee/ci/variables/#variables-expressions
+variables:
+  GIT_STRATEGY: fetch # this is faster than clone and should re-use a workspace
+  GIT_SUBMODULE_STRATEGY: recursive
+  CDASH_TRACK: Gitlab # will be overwritten by nichtly schedule
+
+# stages in the pipeline run in succession
 stages:
-  - configure
+  - build # config and build combined
+  - test # we may have several test configs for one build
+  - deploy
+
+# determines when the pipeline runs
+.default_pipeline_rules: &default_pipeline_rules
+  only:
+    refs:
+      - master # for the master branch
+      - /^test-.*$/ # for branches/tags called "test-*"
+      - web # For pipelines created using 'Run pipeline' button in GitLab UI under project/Pipelines
+      - schedules # For scheduled pipelines
+
+# this is run before/after every step
+# we should be in the build dir and ready to run ctest
+before_script:
+  - mkdir -p build # make build dir
+  - cd build
+  - cat Testing/TAG || echo "no TAG" # debug
+  - rm -f CMakeCache.txt # clear old cache
+  - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
+# cleanup and CDash submission - in after to always submit a result, also if one 'script' command failed   
+after_script:
+  - cd build
+  - cat Testing/TAG || echo "no TAG" # debug
+  - ctest -D ExperimentalSubmit --track $CDASH_TRACK -V
+  - rm CMakeCache.txt || echo "no CMakeCache.txt ?"
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
 # use the ref-name, e.g. `master` as key -> same for sucessive builds
+# it is stored as a zip archive and extracted before each stage - this takes time,
+# thus we combine the build and configure step
+# the key is used to define which chache is used for which job.
 cache:
   key: ${CI_COMMIT_REF_NAME}
   paths:
-    - build
+    - build/cfsdeps/cache
+    - build/bin
+    - build/lib*
+    - build/Testing
 
-# only include a config step for the start
-configure:
-  stage: configure
+#################################################
+# BUILD STAGE
+#################################################
+# Here we define the build jobs, if one fails we do not need to test
+
+.default_build_job: &default_build_job
   script:
-    - pwd # show where we are
-    - ls # list source
-    - mkdir -p build # make build dir
-    - cd build
-    - rm -f CMakeCache.txt # clear any old chache
-    - cmake ..
-    - cmake .
-  # provides artifacts in gitlab (can be downloaded)
+    - ctest -D ExperimentalStart --track $CDASH_TRACK -V
+    - ctest -D ExperimentalUpdate --track $CDASH_TRACK -V
+    - ctest -D ExperimentalConfigure --track $CDASH_TRACK -V
+    - ctest -D ExperimentalSubmit --track $CDASH_TRACK # intermittent submit to get live CDash results
+    - ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.out
+    - ctest -D ExperimentalSubmit --track $CDASH_TRACK
+    - ctest -D ExperimentalTest -R Install --track $CDASH_TRACK # only do the install testing
+    # check the coding_score
+    - ../ctest_scripts/shared/coding_score.sh build.out
+  coverage: '/coding_score=(\d+[.]\d+)/'
   artifacts:
-    paths:
-      - build/CMakeCache.txt 
+    paths: # just an example
+      - build/DartConfiguration.tcl
+      - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
+      - build/Testing
+    expire_in: 2h
+  <<: *default_pipeline_rules
+
+build:gcc4: # eventually we should have one job for each required configuration
+  stage: build
+  tags:
+    - gcc4
+  before_script:
+    - mkdir -p build # create if it does not exist
+    - cd build # descend in build
+    - rm -f CMakeCache.txt # clear old cache
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG GCC4' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
+    - sh config_cmd
+  <<: *default_build_job
+
+build:gcc6:
+  stage: build
+  tags:
+    - gcc6
+  before_script:
+    - mkdir -p build # create if it does not exist
+    - cd build # descend in build
+    - rm -f CMakeCache.txt # clear old cache
+    # try software collection, and if it fails use native gcc
+    # check gcc version via grep
+    - scl enable devtoolset-6 -- gcc --version | grep '6\.[0-9]\.[0-9]' || gcc --version | grep '6\.[0-9]\.[0-9]'
+    # initial config with devtoolset
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG GCC6' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
+    - scl enable devtoolset-6 -- sh config_cmd || sh config_cmd
+  <<: *default_build_job
+
+build:gcc7:
+  stage: build
+  tags:
+    - gcc7
+  before_script:
+    - mkdir -p build # create if it does not exist
+    - cd build # descend in build
+    - rm -f CMakeCache.txt # clear old cache
+    # try software collection, and if it fails use native gcc
+    # check gcc version via grep
+    - scl enable devtoolset-7 -- gcc --version | grep '7\.[0-9]\.[0-9]' || gcc --version | grep '7\.[0-9]\.[0-9]'
+    # initial config with devtoolset
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG GCC7' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
+    - scl enable devtoolset-7 -- sh config_cmd || sh config_cmd
+  <<: *default_build_job
+
+# re-build everything
+complete-build:linux:
+  stage: build
+  tags:
+    - linux
+  when: manual
+  before_script:
+    - rm -rf build # clear
+    - mkdir build
+    - cd build
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG complete-build" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
+  <<: *default_build_job
+
+
+#################################################
+# TEST STAGE
+#################################################
+# the test stage might run on a different runner than the build, thus
+# the binaries are shared via the gitlab server (artifacts/dependencies)
+
+# test preparation starts by extracting the build files from assets
+.ctest_default: &ctest_default
+  before_script:
+    - mkdir -p build
+    - cd build # descend in build
+    - ls # debug
+    - tar -xzvf "CFS-"$CI_COMMIT_SHA"-Linux.tar.gz" --strip-components=1 # extract to correct location
+    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # ensure we have a working update command
+    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
+    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
+# [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
+# https://docs.gitlab.com/ee/ci/yaml/#coverage
+# in the format '/REGEX/' - one can test REGEX at http://rubular.com/
+  coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/'
+  # no chache for testing necessary - binary comes from artifacts
+  cache: {}
+  <<: *default_pipeline_rules
+
+
+# this is the config that has to pass
+.test_stable: &test_stable
+  script:
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG GCC4 stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
+    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
+    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|Preisach|CFSdat_FFT_2D" --track $CDASH_TRACK # exclude the install step and the failing tests
+  <<: *ctest_default
+
+# test everything
+.test_all_multicore: &test_all_multicore
+  script:
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG GCC4 all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
+    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
+    - ctest -D ExperimentalTest -E Install --track $CDASH_TRACK # exclude the install step
+  <<: *ctest_default
+
+# now we define the actual tests, i.e. we decide which build we want to test
+# the build is taken from the dependecies
+stable:gcc4:linux:
+  tags:
+    - linux
+  stage: test
+  <<: *test_stable
+  dependencies:
+    - build:gcc4
+
+# pre-pend the jobs with x as they are sorted alphabetically
+testsuite:gcc4:linux: # if the machine has multiple
+  tags:
+    - linux
+  stage: test
+  <<: *test_all_multicore
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  dependencies:
+    - build:gcc4
+
+testsuite:gcc6:linux: # if the machine has multiple
+  tags:
+    - linux
+  stage: test
+  <<: *test_all_multicore
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  dependencies:
+    - build:gcc6
+
+testsuite:gcc7:linux: # if the machine has multiple
+  tags:
+    - linux
+  stage: test
+  <<: *test_all_multicore
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  dependencies:
+    - build:gcc7
+
+#################################################
+# DEPLOY STAGES
+#################################################
+
+.deploy_rules: &deploy_rules
+  only:
+    refs:
+      - master # only for refs pushed to master
+      - /.*-gitlab-runner-integration/ # only for testing
+  tags:
+    - linux
+    - mdmt
+  stage: deploy
+  after_script: []
+  before_script: []
+  
+copy_to_draco:
+  dependencies:
+    - build:gcc4
+  script:
+    # copy over via scp
+    - scp "build/CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz" || echo "WARNING source file not found"
+  environment:
+    name: share_programs
+  <<: *deploy_rules
+
+install_on_draco:
+  script:
+    # wait for the copy to finish, timeout after 120s
+    - ssh draco 'inotifywait -t180 -e close_write /opt/programs/cfs_master'
+    # extract on draco by ssh
+    - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz -C /opt/programs/cfs_master"
+    # set the new symlink and replace the old one in one atomic operation
+    - ssh draco "cd /opt/programs/cfs_master/; ln -s CFS-$CI_COMMIT_SHA-Linux new; mv -fT new latest"
+    # run the cleanup script
+    - ssh draco "cd /opt/programs/cfs_master/; ./cleanup.sh"
+  environment:
+    name: share_programs
+  <<: *deploy_rules
