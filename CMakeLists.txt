@@ -663,9 +663,7 @@ IF(BUILD_TESTING)
     #message("CFS_BUILD_HOST='${CFS_BUILD_HOST}' ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
     if(NOT (CFS_BUILD_HOST STREQUAL "${ORIGINAL_BUILD_HOST}") )
       # modify build name 
-      set(BUILDNAME "${BUILDNAME} tested on ${CFS_BUILD_HOST}")
-      # re-write the Testing/TAG for CDash submission
-      file(WRITE ${CFS_BINARY_DIR}/Testing/TAG "${GITLAB_TEST_TAG}\nGitlab\n" )
+      set(BUILDNAME "${BUILDNAME} built on ${ORIGINAL_BUILD_HOST}")
     endif()
   endif(GITLAB_TEST_TAG)
   INCLUDE(CTest) # to actually write DartConfiguration.tcl

@@ -147,6 +147,8 @@ complete-build:linux:
     - ls # debug
     - tar -xzvf "CFS-"$CI_COMMIT_SHA"-Linux.tar.gz" --strip-components=1 # extract to correct location
     - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # ensure we have a working update command
+    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
+    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
@@ -160,7 +162,7 @@ complete-build:linux:
 .test_stable: &test_stable
   script:
     - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG GCC4 stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK
+    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|Preisach|CFSdat_FFT_2D" --track $CDASH_TRACK # exclude the install step and the failing tests
   <<: *ctest_default
 
@@ -168,7 +170,7 @@ complete-build:linux:
 .test_all_multicore: &test_all_multicore
   script:
     - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG GCC4 all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK
+    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -E Install --track $CDASH_TRACK # exclude the install step
   <<: *ctest_default
 
