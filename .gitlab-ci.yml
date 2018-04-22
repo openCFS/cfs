@@ -226,10 +226,20 @@ copy_to_draco:
   script:
     # copy over via scp
     - scp "build/CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz" || echo "WARNING source file not found"
+  environment:
+    name: share_programs
+  <<: *deploy_rules
+
+install_on_draco:
+  script:
+    # wait for the copy to finish, timeout after 120s
+    - ssh draco 'inotifywait -t180 -e close_write /opt/programs/cfs_master'
     # extract on draco by ssh
     - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz -C /opt/programs/cfs_master"
     # set the new symlink and replace the old one in one atomic operation
-    - ssh draco "cd /opt/programs/cfs_master/; ln -s CFS-$CI_COMMIT_SHA-Linux new; mv -fT new latest; ./cleanup.sh"    
+    - ssh draco "cd /opt/programs/cfs_master/; ln -s CFS-$CI_COMMIT_SHA-Linux new; mv -fT new latest"
+    # run the cleanup script
+    - ssh draco "cd /opt/programs/cfs_master/; ./cleanup.sh"
   environment:
     name: share_programs
   <<: *deploy_rules
