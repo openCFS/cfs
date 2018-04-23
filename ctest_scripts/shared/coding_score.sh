@@ -12,8 +12,8 @@ echo "-----------------------------------------"
 
 errors=$( grep '[0-9]\+ \(or more \)\?Compiler errors' $1 | sed 's|[ ]\+\([0-9]\+\).\+|\1|' )
 warnings=$( grep '[0-9]\+ \(or more \)\?Compiler warnings' $1 | sed 's|[ ]\+\([0-9]\+\).\+|\1|' )
-insertions=$(git diff --stat HEAD HEAD~1 | tail -n 1 | sed 's|.\+\([0-9]\+\) insertion.\+|\1|')
-deletions=$(git diff --stat HEAD HEAD~1 | tail -n 1 | sed 's|.\+\([0-9]\+\) deletion.\+|\1|')
+insertions=$(git diff --stat HEAD~1 HEAD | tail -n 1 | sed 's|.\+, \([0-9]\+\) insertion.\+|\1|')
+deletions=$(git diff --stat HEAD~1 HEAD | tail -n 1 | sed 's|.\+, \([0-9]\+\) deletion.\+|\1|')
 
 echo "$errors errors, $warnings warnings, $insertions insertions, $deletions deletions"
 # compute and print the score:

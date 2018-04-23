@@ -35,7 +35,7 @@ before_script:
   - rm -f CMakeCache.txt # clear old cache
   # go back one commit and then update with CTest by checkoing out the test-SHA again
   - git checkout HEAD~1
-  - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" ..
+  - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8}" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" ..
 # cleanup and CDash submission - in after to always submit a result, also if one 'script' command failed   
 after_script:
   - cd build
@@ -89,7 +89,7 @@ build:gcc4: # eventually we should have one job for each required configuration
     - mkdir -p build # create if it does not exist
     - cd build # descend in build
     - rm -f CMakeCache.txt # clear old cache
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG | ${CI_COMMIT_SHA:0:8} | GCC4' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC4' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
     - sh config_cmd
   <<: *default_build_job
 
@@ -105,7 +105,7 @@ build:gcc6:
     # check gcc version via grep
     - scl enable devtoolset-6 -- gcc --version | grep '6\.[0-9]\.[0-9]' || gcc --version | grep '6\.[0-9]\.[0-9]'
     # initial config with devtoolset
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG | ${CI_COMMIT_SHA:0:8} | GCC6' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC6' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
     - scl enable devtoolset-6 -- sh config_cmd || sh config_cmd
   <<: *default_build_job
 
@@ -121,7 +121,7 @@ build:gcc7:
     # check gcc version via grep
     - scl enable devtoolset-7 -- gcc --version | grep '7\.[0-9]\.[0-9]' || gcc --version | grep '7\.[0-9]\.[0-9]'
     # initial config with devtoolset
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG | ${CI_COMMIT_SHA:0:8} | GCC7' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC7' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
     - scl enable devtoolset-7 -- sh config_cmd || sh config_cmd
   <<: *default_build_job
 
@@ -135,7 +135,7 @@ complete-build:linux:
     - rm -rf build # clear
     - mkdir build
     - cd build
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG | ${CI_COMMIT_SHA:0:8} | complete-build" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / complete-build" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
   <<: *default_build_job
 
 
@@ -175,7 +175,7 @@ complete-build:linux:
 # test everything
 .test_all_multicore: &test_all_multicore
   script:
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG | ${CI_COMMIT_SHA:0:8} | GCC4 all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC4 / all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
@@ -230,7 +230,6 @@ testsuite:gcc7:linux: # if the machine has multiple
   only:
     refs:
       - master # only for refs pushed to master
-      - /.*-gitlab-runner-integration/ # only for testing
   tags:
     - linux
     - mdmt
