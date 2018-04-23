@@ -650,6 +650,7 @@ IF(BUILD_TESTING)
   set(DROP_SITE "${CFS_DS_CDASH_DROP_SITE}")
   set(DROP_LOCATION "/cdash/submit.php?project=${CTEST_PROJECT_NAME}")
   SET(DROP_METHOD "http")
+  set(NIGHTLY_START_TIME "00:00:00 CET")
   set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}" CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
   if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate

@@ -76,7 +76,7 @@ cache:
       - build/DartConfiguration.tcl
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
       - build/Testing
-    expire_in: 2h
+    expire_in: 3 days
   <<: *default_pipeline_rules
 
 build:gcc4: # eventually we should have one job for each required configuration
@@ -201,6 +201,7 @@ testsuite:gcc4:linux: # if the machine has multiple
 testsuite:gcc6:linux: # if the machine has multiple
   tags:
     - linux
+    - gcc6
   stage: test
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
@@ -210,6 +211,7 @@ testsuite:gcc6:linux: # if the machine has multiple
 testsuite:gcc7:linux: # if the machine has multiple
   tags:
     - linux
+    - gcc7
   stage: test
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
@@ -229,6 +231,7 @@ testsuite:gcc7:linux: # if the machine has multiple
     - linux
     - mdmt
   stage: deploy
+  chache: {}
   after_script: []
   before_script: []
   
@@ -244,8 +247,8 @@ copy_to_draco:
 
 install_on_draco:
   script:
-    # wait for the copy to finish, timeout after 120s
-    - ssh draco 'inotifywait -t180 -e close_write /opt/programs/cfs_master'
+    # wait for the copy to finish, timeout after 120s, if timeout try to list file
+    - ssh draco 'inotifywait -t180 -e close_write /opt/programs/cfs_master' || ssh draco 'ls /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz'
     # extract on draco by ssh
     - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz -C /opt/programs/cfs_master"
     # set the new symlink and replace the old one in one atomic operation
