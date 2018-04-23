@@ -2831,5 +2831,5 @@ def name_bb_faces(mesh,xmin,ymin,zmin,xmax,ymax,zmax):
   mesh.bc.append(("right",right))
   mesh.bc.append(("front",front))
   mesh.bc.append(("back",back))
-  
+   
   return mesh      
