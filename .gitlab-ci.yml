@@ -231,7 +231,7 @@ testsuite:gcc7:linux: # if the machine has multiple
     - linux
     - mdmt
   stage: deploy
-  chache: {}
+  cache: {}
   after_script: []
   before_script: []
   
