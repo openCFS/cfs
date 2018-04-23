@@ -33,7 +33,9 @@ before_script:
   - cd build
   - cat Testing/TAG || echo "no TAG" # debug
   - rm -f CMakeCache.txt # clear old cache
-  - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # configure with git update command
+  # go back one commit and then update with CTest by checkoing out the test-SHA again
+  - git checkout HEAD~1
+  - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" ..
 # cleanup and CDash submission - in after to always submit a result, also if one 'script' command failed   
 after_script:
   - cd build
