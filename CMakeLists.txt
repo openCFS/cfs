@@ -663,8 +663,10 @@ IF(BUILD_TESTING)
     string(STRIP "${ORIGINAL_BUILD_HOST}" ORIGINAL_BUILD_HOST) # important for comparison !
     #message("CFS_BUILD_HOST='${CFS_BUILD_HOST}' ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
     if(NOT (CFS_BUILD_HOST STREQUAL "${ORIGINAL_BUILD_HOST}") )
+      # extract the short name (first 2 domain name components)
+      string(REGEX MATCH "[^.]+([.][^.]+)?" ORIGINAL_BUILD_HOST "${ORIGINAL_BUILD_HOST}")
       # modify build name 
-      set(BUILDNAME "${BUILDNAME} built on ${ORIGINAL_BUILD_HOST}")
+      set(BUILDNAME "${BUILDNAME} [built on ${ORIGINAL_BUILD_HOST}]")
     endif()
   endif(GITLAB_TEST_TAG)
   INCLUDE(CTest) # to actually write DartConfiguration.tcl
