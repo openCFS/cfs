@@ -81,48 +81,43 @@ cache:
     expire_in: 3 days
   <<: *default_pipeline_rules
 
-build:gcc4: # eventually we should have one job for each required configuration
-  stage: build
-  tags:
-    - gcc4
+.gcc_before: &gcc_before
   before_script:
     - mkdir -p build # create if it does not exist
     - cd build # descend in build
     - rm -f CMakeCache.txt # clear old cache
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC4' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
-    - sh config_cmd
+    # try software collection, and if it fails use native gcc
+    # check gcc version via grep
+    - scl enable devtoolset-$GCC_VERSION -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" || gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
+    # initial config with devtoolset
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC${GCC_VERSION}' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
+    - scl enable devtoolset-$GCC_VERSION -- sh config_cmd || sh config_cmd  
+
+build:gcc4: # eventually we should have one job for each required configuration
+  stage: build
+  tags:
+    - gcc4
+  variables:
+    GCC_VERSION: 4
+  <<: *gcc_before
   <<: *default_build_job
 
 build:gcc6:
   stage: build
   tags:
     - gcc6
-  before_script:
-    - mkdir -p build # create if it does not exist
-    - cd build # descend in build
-    - rm -f CMakeCache.txt # clear old cache
-    # try software collection, and if it fails use native gcc
-    # check gcc version via grep
-    - scl enable devtoolset-6 -- gcc --version | grep '6\.[0-9]\.[0-9]' || gcc --version | grep '6\.[0-9]\.[0-9]'
-    # initial config with devtoolset
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC6' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
-    - scl enable devtoolset-6 -- sh config_cmd || sh config_cmd
+  variables:
+    GCC_VERSION: 6
+  <<: *gcc_before
   <<: *default_build_job
 
 build:gcc7:
   stage: build
   tags:
     - gcc7
-  before_script:
-    - mkdir -p build # create if it does not exist
-    - cd build # descend in build
-    - rm -f CMakeCache.txt # clear old cache
-    # try software collection, and if it fails use native gcc
-    # check gcc version via grep
-    - scl enable devtoolset-7 -- gcc --version | grep '7\.[0-9]\.[0-9]' || gcc --version | grep '7\.[0-9]\.[0-9]'
-    # initial config with devtoolset
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC7' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
-    - scl enable devtoolset-7 -- sh config_cmd || sh config_cmd
+  variables:
+    GCC_VERSION: 7
+  <<: *gcc_before
   <<: *default_build_job
 
 # re-build everything
@@ -165,7 +160,7 @@ complete-build:linux:
 # this is the config that has to pass
 .test_stable: &test_stable
   script:
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC4 / stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / ${BUILD_NAME} / stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
@@ -175,7 +170,7 @@ complete-build:linux:
 # test everything
 .test_all_multicore: &test_all_multicore
   script:
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC4 / all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / ${BUILD_NAME} / all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
@@ -197,6 +192,8 @@ testsuite:gcc4:linux: # if the machine has multiple
   tags:
     - linux
   stage: test
+  variables:
+    BUILD_NAME: GCC4
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
@@ -207,6 +204,8 @@ testsuite:gcc6:linux: # if the machine has multiple
     - linux
     - gcc6
   stage: test
+  variables:
+    BUILD_NAME: GCC6
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
@@ -217,6 +216,8 @@ testsuite:gcc7:linux: # if the machine has multiple
     - linux
     - gcc7
   stage: test
+  variables:
+    BUILD_NAME: GCC7
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
