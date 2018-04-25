@@ -48,6 +48,7 @@ namespace CoupledField {
                                      const UInt& nFFT){
     spatialSize_ = 0;
     omega0_ = 0.0;
+    timeResInit_ = false;
     nFFT_ = 0;
     N_ = 0;
 
@@ -58,6 +59,7 @@ namespace CoupledField {
   MHTimeFreqResult::MHTimeFreqResult(){
     spatialSize_ = 0;
     omega0_ = 0.0;
+    timeResInit_ = false;
     nFFT_ = 0;
     N_ = 0;
   }
@@ -81,6 +83,20 @@ namespace CoupledField {
     this->CreateTimeVec();
   }
 
+  void MHTimeFreqResult::PrintTimeResults(){
+    for(UInt i = 0; i < this->GetNumTimeSteps(); ++i ){
+        //std::cout<<"Time result for time step "<< i <<" : "<<this->GetTimeResult(i).ToString()<<std::endl;
+        std::cout<<"Time result for time step "<< i <<" : " << this->GetTimeResult(i)[10]<< std::endl;
+    }
+  }
+
+  void MHTimeFreqResult::PrintFreqResults(){
+    for(UInt i = 0; i < this->GetNumFreqSteps(); ++i ){
+      int harm = i - N_;
+      //std::cout<<"Frequency result for harmonic "<< harm <<" : "<<this->GetFreqResult(i).ToString()<<std::endl;
+      std::cout<<"Frequency result for harmonic "<< harm <<" : "<<this->GetFreqResult(i)[10]<<std::endl;
+    }
+  }
 
 
   void MHTimeFreqResult::SetFrequencyResult(const SBM_Vector & freqRes){
@@ -109,6 +125,40 @@ namespace CoupledField {
 
   }
 
+  void MHTimeFreqResult::SetTimeResult(const Vector<Double>& timeRes,
+                                       const UInt& timeStep){
+    // check if result was already initialized
+    if(!timeResInit_){
+      EXCEPTION("MHTimeFreqResult::SetTimeResult You need to initialize the time result before use via InitTimeResult(spatialSize)");
+    }
+
+    // check the spatial size
+    if(timeRes.GetSize() != timeResult_.GetNumRows()){
+      EXCEPTION("MHTimeFreqResult::SetTimeResult You want to set a vector with size "<< timeRes.GetSize()<<
+          " into the timeResult_ matrix with only "<< timeResult_.GetNumRows()<< " entries!!");
+    }
+
+    // check the time size
+    if(timeStep >= timeResult_.GetNumCols()){
+      EXCEPTION("MHTimeFreqResult::SetTimeResult You want to set the time vector for step "<< timeStep<<
+          " but the result allows only  "<< timeResult_.GetNumCols()<< " steps!!");
+    }
+
+    UInt i = timeStep;
+    Double t;
+    for(UInt j = 0; j < spatialSize_; ++j){
+      timeRes.GetEntry(j, t);
+      timeResult_[j][i] = (Complex)t;
+    }
+
+
+    Vector<Complex>tmp;
+    timeResult_.GetCol(tmp,timeStep);
+    std::cout<<"timeResult_ row "<< timeStep<< " : "<<tmp.ToString()<<std::endl;
+
+  }
+
+
 
   void MHTimeFreqResult::TimeToFourier(){
     if(timeResult_.GetNumCols() == 0) EXCEPTION("MHTimeFreqResult::TimeToFourier No time signal was set!");
@@ -118,12 +168,8 @@ namespace CoupledField {
     // FFT on freqResult_
     freqResult_.Resize(timeResult_.GetNumRows(), 2 * N_ + 1);
     freqResult_.Init();
-    //freqResult_ = timeResult_;
-
 
     deleteMeResult_.Resize(timeResult_.GetNumRows(), timeResult_.GetNumCols());
-    //deleteMeResult_.SetPart(Global::ComplexPart::REAL, timeResult_, true);
-    //deleteMeResult_.Init();
     deleteMeResult_ = timeResult_;
     //for(UInt i = 0; i < timeResult_.GetNumRows(); ++i){
     //  for(UInt j = 0; j < timeResult_.GetNumCols(); ++j ){
@@ -243,6 +289,10 @@ namespace CoupledField {
 
 
   void MHTimeFreqResult::FourierToTime(){
+    if(timeResInit_){
+      EXCEPTION("MHTimeFreqResult::FourierToTime It seems that a timeresult was already set");
+    }
+
     // First of all, check if we have the number of spatial dof's
     if(spatialSize_ == 0) EXCEPTION("MHTimeFreqResult::FourierToTime no result was set!!")
 
@@ -250,7 +300,6 @@ namespace CoupledField {
       EXCEPTION("MHTimeFreqResult::FourierToTime There are " << freqResult_.GetNumCols()
           << " frequencies given but \n  the number of harmonics is N_ = " << N_);
     }
-
 
     // Evaluate Fourier series at given discrete times in timeVec_
 
@@ -260,11 +309,9 @@ namespace CoupledField {
     timeResult_.Resize(spatialSize_ ,nFFT_ );
     timeResult_.InitValue(0.0);
 
-
     // Outer loop over discrete times
     Double t = 0.0;
     int h = 0;
-    Complex tmp;
     for(UInt i = 0; i < timeVec_.GetSize(); ++i ){
       t = timeVec_[i];
       for(UInt k = 0; k < 2 * N_ + 1; ++k){
@@ -273,7 +320,6 @@ namespace CoupledField {
         for(UInt j = 0; j < spatialSize_; ++j){
           // multiplication with 0.5 due to double sided spectrum
           timeResult_[j][i] += freqResult_[j][k] * (cos(h * omega0_ * t) + Complex(0.0,1.0)*sin(h * omega0_ *t)) * 0.5;
-          //timeResult_[j][i] += tmp.real();
         }
       }
     }// loop over time array

@@ -84,8 +84,9 @@ protected:
 
   void UpdateSolution();
 
-  //! DESCRIBE ME
   //! ===========================================
+  //! ===========================================
+  //! DESCRIBE ME
   struct HBRegionHelper
   {
     //! Store the elements of each region (need information
@@ -101,6 +102,9 @@ protected:
     //! Region, the PDE is defined on. From StdPDE
     RegionIdType region;
   };
+  //! DESCRIBE ME
+  //! ===========================================
+  //! ===========================================
 
 
   //! Method is called with a specific subdomain in the PDE
@@ -140,13 +144,10 @@ protected:
   //! Pointer to grid object
   Grid * ptGrid_;
 
-  //! Result-vector in frequency domain. Outer vector is frequency (harmonic),
-  //! inner one contains the spatial dof's
-  //StdVector< Vector<Complex> > freqResult_;
-  Matrix<Complex> freqResult_;
-
   //! Number of regions
   UInt numRegions_;
+
+  UInt numRegisteredRegions_;
 
   //! Pointer to the FeSpace for quantity MAG_FLUX_DENSITY,
   //! in order to retrieve information about integration points
@@ -173,6 +174,10 @@ protected:
   //! For every region we create one HBRegionHelper struct.
   //! The iRegion variable is the key (comes from PDE)
   StdVector<HBRegionHelper> hbRegion_;
+
+  //! Temporary vector nuFreqTmp_[i] contains the nu(timestep) of element nuFreqTmpELEM_[i]
+  Vector<UInt> nuFreqTmpELEM_;
+  Vector<Double> nuFreqTmp_;
 
 };
 } //end of namespace

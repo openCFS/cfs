@@ -68,12 +68,14 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
     updateIter_ = 0;
 
-    // Reset the frequency results
-    freqResult_.Resize(0,0);
-
     numRegions_ = regions.GetSize();
 
+    numRegisteredRegions_ = 0;
+
     numElems_ = 0;
+
+    nuFreqTmpELEM_.Resize(0);
+    nuFreqTmp_.Resize(0);
 
     // For the callback mechanism
     mp_ = domain->GetMathParser();
@@ -179,12 +181,40 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
     numElems_ += actSDList->GetSize();
 
+    ++numRegisteredRegions_;
+
     LOG_DBG(coeffctharmbalance) << "Until now, a total of "<< numElems_ <<" elements was registered";
 
     // Check and set the flag if all regions are set
-    if(regStruc.elemListPerRegion->GetSize() == numRegions_) {
+    if(numRegisteredRegions_ == numRegions_) {
       regionRegistration_ = true;
       LOG_DBG(coeffctharmbalance) << "\t All regions were registered, total number of elements = "<< numElems_;
+      LOG_DBG(coeffctharmbalance) << "Setting CoefFuncionHarmBalance-intern solution vector for nu(timestep)";
+
+      // Now set the vector containing nu of elements
+      nuFreqTmpELEM_.Resize(numElems_, 0);
+      nuFreqTmp_.Resize(numElems_, 0.0);
+      UInt elemIterator = 0;
+      EntityIterator it;
+      for(UInt i = 0; i < hbRegion_.GetSize(); ++i){
+        HBRegionHelper& regStruc = hbRegion_[i];
+        // obtain the iterator to loop over the elements of the region
+        it = regStruc.elemListPerRegion->GetIterator();
+        // Loop over every element in that region
+        for(it.Begin(); !it.IsEnd(); it++){
+          nuFreqTmpELEM_[elemIterator] = it.GetElem()->elemNum;
+          ++elemIterator;
+        }
+      }
+
+      // Sanity check
+      if(elemIterator != numElems_){
+        EXCEPTION("CoefFunctionHarmBalance<T>::RegisterElemsInRegion This should really not happen!!");
+      }
+
+      // Initialize the time result
+      freqTimeRes_.InitTimeResult(elemIterator);
+      LOG_DBG(coeffctharmbalance) << "\t Finished setting CoefFuncionHarmBalance-intern solution vector for nu(timestep)";
     }
   }
 
@@ -196,6 +226,40 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
     std::cout<< this->mp_->GetExpr(harmHandle_  )<<std::endl;
     std::cout<< this->mp_->Eval(harmHandle_) <<std::endl;
+
+//    std::string logString = "";
+//    if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
+//      // construct logging output
+//      for(UInt i = 0; i < freqTimeRes_.GetNumTimeSteps(); ++i){
+//        logString.append("CoefFunctionHarmBalance: Time result for time step ");
+//        logString.append( boost::lexical_cast<std::string>(i) );
+//        logString.append(" : ");
+//        logString.append(freqTimeRes_.GetTimeResult(i).ToString());
+//        logString.append("\n");
+//      }
+//    }
+//    LOG_DBG3(coeffctharmbalance) << logString <<"\n";
+
+freqTimeRes_.PrintTimeResults();
+
+    freqTimeRes_.TimeToFourier();
+
+freqTimeRes_.PrintFreqResults();
+
+//    logString = "";
+//    if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
+//      // construct logging output
+//      for(UInt i = 0; i < freqTimeRes_.GetNumFreqSteps(); ++i){
+//        logString.append("CoefFunctionHarmBalance: Frequency result for time step ");
+//        logString.append( boost::lexical_cast<std::string>(i) );
+//        logString.append(" : ");
+//        logString.append(freqTimeRes_.GetFreqResult(i).ToString());
+//        logString.append("\n");
+//      }
+//    }
+//    LOG_DBG3(coeffctharmbalance) << logString <<"\n";
+
+
   }
 
   template<class T>
@@ -236,66 +300,52 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
 
     // These integration parameters can vary between regions
-    IntegOrder order;
-    IntScheme::IntegMethod method;
+    LocPoint lp;
+    EntityIterator it;
     LocPointMapped lpm;
     Double nuOfB = 0.0;
+    shared_ptr<ElemShapeMap> esm;
+
+
+    UInt elemIterator = 0;
 
     // This is the first call of this method, therefore we
     // store some stuff, we need frequently in the following iterations
-    if( this->mp_->Eval(solHandle_) == 0 ){
+    if( this->mp_->Eval(solHandle_) >= 0 ){
       // Loop over every region
       for(UInt i = 0; i < hbRegion_.GetSize(); ++i){
         HBRegionHelper& regStruc = hbRegion_[i];
 
-        EntityIterator it = regStruc.elemListPerRegion->GetIterator();
-        fluxFESpace_->GetFe(it, method, order);
+        // obtain the iterator to loop over the elements of the region
+        it = regStruc.elemListPerRegion->GetIterator();
+
         // Loop over every element in that region
         for(it.Begin(); !it.IsEnd(); it++){
           const Elem * el = it.GetElem();
-          shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
+          esm = it.GetGrid()->GetElemShapeMap(el, true);
           // Where do we evaluate the magnetic flux density?
           // Element or integration point -> see UPDATE from above
-          LocPoint lp = Elem::shapes[el->type].midPointCoord;
+          lp = Elem::shapes[el->type].midPointCoord;
           lpm.Set(lp, esm, 0.0);
 
-
-// TODO bis hierhin brauchen wir das ja alles nur einmal machen und könnten es dann einfach wiederverwenden?!
           // Evaluate the nu(B)
           regStruc.nonLinNuCoefMap->GetScalar(nuOfB, lpm);
-std::cout<<"nuOfB.ToString()"<<nuOfB<<std::endl;
-
-// TODO for the final version we need to evaluate correctly at
-// integration point level, not only at element level
 
           // now cache it for the element
-//TODO create a vector containing the element number which gets initialized, maybe even in RegisterElemsInRegion
+          nuFreqTmp_[ elemIterator ] = nuOfB;
+          ++elemIterator;
         }
-//TODO hier übergeben wir es erst dem freqTimeRes_ Objekt
+        LOG_DBG(coeffctharmbalance) << "nu of virtual timestep "
+            <<this->mp_->Eval(solHandle_)<<" : "<<nuFreqTmp_.ToString();
+      } // loop over every region
 
+
+      // Now fill the appropriate time result in MHTimeFreqResult
+      freqTimeRes_.SetTimeResult(nuFreqTmp_, this->mp_->Eval(solHandle_) );
 
     }
 
 
-    // The first call from above already initialized the important
-    // stuff and we can reuse is here
-    if( this->mp_->Eval(solHandle_) >= 1 ){
-      // Loop over every region
-      for(UInt i = 0; i < hbRegion_.GetSize(); ++i){
-
-        }
-//hier übergeben wir es erst dem freqTimeRes_ Objekt
-
-      }
-
-
-
-
-
-
-EXCEPTION("WE STILL NEED TO CACHE IT!");
-
-    }
   }
 
 

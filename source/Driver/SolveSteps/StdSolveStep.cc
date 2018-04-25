@@ -1515,9 +1515,6 @@ namespace CoupledField {
       solVec_(0) = (Vector<Complex>)timeStepVec;
 
 
-
-
-
       // trigger the callback mechanism in CoefFunctionHarmBalance
       // Now the PDE has the solution vector via the FeSpace
       // and we activate the callback mechanism to cache the
@@ -1527,9 +1524,10 @@ namespace CoupledField {
 
     }
 
-
-
-
+    // Now that the nu(t) results are cached, we can perform the FFT
+    UInt f = 1;
+    mParser_->SetValue(MathParser::GLOB_HANDLER, "mhFlag", f);
+    f = 0;
 
 
 
@@ -1750,7 +1748,7 @@ namespace CoupledField {
 
     // Special treatment is needed for the diagonal blocks, due to the mass part,
     // therefore handle this case seperately
-    mParser_->SetValue(MathParser::GLOB_HANDLER, "mhFlag", 0);
+    //Parser_->SetValue(MathParser::GLOB_HANDLER, "mhFlag", 0);
     assemble_->AssembleMatrices_MultHarm(0, solStrat_->GetNumHarmN(),
         solStrat_->GetNumHarmM(),
         multHarmFreqVec_);

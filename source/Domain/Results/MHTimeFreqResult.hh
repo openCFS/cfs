@@ -56,18 +56,33 @@ public:
        const Double& baseFreq,
        const UInt& nFFT);
 
+  //! Initialize the timeResult_ matrix with (spatialSize, nFFT_)
+  void InitTimeResult(const UInt spatialSize){
+    timeResult_.Resize(spatialSize, nFFT_);
+    timeResult_.InitValue(0.0);
+    spatialSize_ = spatialSize;
+    timeResInit_ = true;
+  }
+
+  void PrintTimeResults();
+  void PrintFreqResults();
+
+
   // ========================================================================
   //  GETTERS / SETTERS
   // ========================================================================
 
   void SetFrequencyResult(const SBM_Vector& freqResult);
 
+  void SetTimeResult(const Vector<Double>& timeResult,
+                     const UInt& timeStep);
+
   Matrix<Complex> GetFullFrequencyResult(){ return freqResult_;}
 
   Matrix<Complex> GetFullTimeResult(){ return timeResult_;}
 
   Vector<Complex> GetTimeResult(int tStep){
-    Vector<Complex> ret;
+    Vector<Complex> ret(0.0);
     timeResult_.GetCol(ret, tStep);
     return ret;
   }
@@ -78,9 +93,9 @@ public:
     return ret;
   }
 
-  UInt GetNumTimeSteps(){ return timeResult_.GetNumRows(); }
+  UInt GetNumTimeSteps(){ return timeResult_.GetNumCols(); }
 
-  UInt GetNumFreqSteps(){ return freqResult_.GetNumRows(); }
+  UInt GetNumFreqSteps(){ return freqResult_.GetNumCols(); }
 
 
   // ========================================================================
@@ -116,7 +131,7 @@ private:
   //! after the MKL FFT computation
   Matrix<Complex> deleteMeResult_;
 
-
+  bool timeResInit_;
 
   //! Number of time points in one period of base-frequency.
   //! The FFT of the timeResult into freqResult is based on this
