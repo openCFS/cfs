@@ -348,12 +348,11 @@ ENDIF(USE_SUPERLU)
 #-------------------------------------------------------------------------------
 SET(BOOST_BASE "boost")
 SET(BOOST_MAJOR_VER 1)
-SET(BOOST_MINOR_VER 58)
+SET(BOOST_MINOR_VER 67)
+SET(BOOST_VER "${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}")
 SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
 SET(BOOST_GZ "${BOOST_BASE}_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2")
-SET(BOOST_MD5 "b8839650e61e9c1c0a89f371dd475546") # 1.58
-#SET(BOOST_MD5 "65a840e1a0b13a558ff19eeb2c4f0cbe") # 1.60
-#SET(BOOST_MD5 "6095876341956f65f9d35939ccea1a9f") # 1.61
+SET(BOOST_MD5 "ced776cb19428ab8488774e1415535ab") # 1.67
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------
