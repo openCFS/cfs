@@ -76,9 +76,9 @@ cache:
     - mkdir -p build # create if it does not exist
     - cd build # descend in build
     - rm -f CMakeCache.txt # clear old cache
-    # go back one revision and then update by test
+    # go back one revision and then update by ctest
     - git checkout HEAD~1
-    # try software collection, and if it fails use native gcc
+    # try software collection, and if it fails, use native gcc
     - rm -f scl_version
     # check gcc version via grep
     - (scl enable devtoolset-$GCC_VERSION -- gcc --version && echo $GCC_VERSION > scl_version) | grep "${GCC_VERSION}\.[0-9]\.[0-9]" || (scl enable devtoolset-3 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "3" > scl_version ) || gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
