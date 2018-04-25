@@ -68,7 +68,7 @@ CMAKE_MINIMUM_REQUIRED(
 #-----------------------------------------------------------------------------
 IF(COMMAND CMAKE_POLICY)
   IF(POLICY CMP0038)
-    CMAKE_POLICY(SET CMP0038 OLD)
+    CMAKE_POLICY(SET CMP0038 NEW)
   ENDIF(POLICY CMP0038)
 ENDIF(COMMAND CMAKE_POLICY)
 
@@ -143,12 +143,12 @@ ELSEIF(UNIX OR MINGW)
     COMMAND id -unr # get user name (possibly DOMAIN\user)
     COMMAND sed s/[A-Z]\\+\\\\// # remove 'DOMAIN\' from 'DOMAIN\user' ('\' must be escaped in cmake)
     WORKING_DIRECTORY "."
-    OUTPUT_VARIABLE CFS_BUILD_USER RESULT_VARIABLE res OUTPUT_VARIABLE out
+    RESULT_VARIABLE res OUTPUT_VARIABLE out
     )
   if(res)
     message("could not determine user: ${res}, ${out}")
   endif(res)
-  STRING(STRIP "${CFS_BUILD_USER}" CFS_BUILD_USER)
+  STRING(STRIP "${out}" CFS_BUILD_USER)
 ENDIF()
 
 SET(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
@@ -374,7 +374,7 @@ OPTION(USE_FLANN
 OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
 OPTION(PROFILING "Set profiling compiler options for Release." ${PROFILING_DEFAULT})
 OPTION(COVERAGE "Turn on coverage compier options."  ${COVERAGE_DEFAULT})
-OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."  ${CFSTOOL_DEFAULT})
+OPTION(BUILD_CFSTOOL "Build CFS++ converter tool (cfstool)."  ${BUILD_CFSTOOL_DEFAULT})
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})
 OPTION(UNIT_TESTS "Build CFS++ unit tests (cfstest)."  ${UNIT_TESTS_DEFAULT})
 
@@ -402,36 +402,6 @@ OPTION(EXPLICIT_TEMPLATE_INSTANTIATION
 #-----------------------------------------------------------------------------
 SET(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING
   "Path where the XML schema for the input files is located.")
-
-#-----------------------------------------------------------------------------
-# Specify path to CFS++ testsuite. If this path exists, CTest compatible
-# test cases will be generated in the current binary directory.
-#-----------------------------------------------------------------------------
-IF(NOT TESTSUITE_DIR_DEFAULT)
-  SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
-ENDIF(NOT TESTSUITE_DIR_DEFAULT) 
-
-SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
-
-IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
-  IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-    # In order to perform tests we need the CFSTOOL and HDF5!
-    SET(CFSTOOL ON CACHE BOOL
-      "Build CFS++ converter tool (cfstool)." FORCE)
-    
-    SET(USE_HDF5 ON CACHE INTERNAL
-      "Use HDF5 for simulation in/output." FORCE)
-    
-    ADD_SUBDIRECTORY(${TESTSUITE_DIR}
-      "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
-
-  ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-    SET(MSG "Testsuite directory '${TESTSUITE_DIR}' does not contain")
-    SET(MSG "${MSG} TESTSUIT.\nPlease specify a proper location!")
-
-    MESSAGE("${MSG}")
-  ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 
 # set the mode of cfstool
 SET(CFS_TESTSUITE_CFSTOOL_MODE "scalardiff" CACHE STRING "The mode used to compare hdf5 files by cfstool. May be 'scalardiff', 'L2diff', or 'relL2diff'.")
@@ -521,33 +491,6 @@ INCLUDE("cmake_modules/CheckFortranRuntime.cmake")
 # Perform some configure checks
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/ConfigureChecks.cmake")
-
-#-----------------------------------------------------------------------------
-# Configure Dart testing support.  This should be done before any
-# MESSAGE(FATAL_ERROR ...) commands are invoked (???) and after the languages
-# for the project have been defined since CMake needs to know about the 
-# language-specific build tools.
-#-----------------------------------------------------------------------------
-
-#-----------------------------------------------------------------------------
-# Switch support for testing off by default. It will be switched on by the
-# CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
-# cache. Cf. ctest_scripts/*.cmake
-#-----------------------------------------------------------------------------
-OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
-
-IF(BUILD_TESTING)
-  SET(BUILDNAME
-    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
-    CACHE STRING "Name of build on the dashboard")
-  MARK_AS_ADVANCED(BUILDNAME)
-
-  #---------------------------------------------------------------------------
-  # Include CMake module for testing support
-  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
-  #---------------------------------------------------------------------------
-  INCLUDE(CTest)
-ENDIF(BUILD_TESTING)
 
 #-----------------------------------------------------------------------------
 # Enables python testsuite (contains matviz.py tests) used be the optimization group
@@ -645,6 +588,92 @@ TODAY(CFS_CONF_DATE)
 # and other informations from working copy
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/DetermineWorkingCopyInfos.cmake")
+
+#-----------------------------------------------------------------------------
+# Configure Dart testing support.  This should be done before any
+# MESSAGE(FATAL_ERROR ...) commands are invoked (???) and after the languages
+# for the project have been defined since CMake needs to know about the 
+# language-specific build tools.
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# Switch support for testing off by default. It will be switched on by the
+# CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
+# cache. Cf. ctest_scripts/*.cmake
+#-----------------------------------------------------------------------------
+OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
+CMAKE_DEPENDENT_OPTION(PACK_TESTSUITE "Pack the testsuite using CPack" OFF "BUILD_TESTING" OFF) # set to off all the time, distributable testsuite must be created for this
+IF(BUILD_TESTING)
+  #---------------------------------------------------------------------------
+  # Include CMake module for testing support
+  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
+  #---------------------------------------------------------------------------
+  INCLUDE(CTest)
+  #-----------------------------------------------------------------------------
+  # Specify path to CFS++ testsuite. If this path exists, CTest compatible
+  # test cases will be generated in the current binary directory.
+  #-----------------------------------------------------------------------------
+  IF(NOT TESTSUITE_DIR_DEFAULT)
+    SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
+  ENDIF(NOT TESTSUITE_DIR_DEFAULT)
+
+  SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
+
+  IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+    IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+      ADD_SUBDIRECTORY(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+    ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+      SET(MSG "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'.\n")
+      SET(MSG "${MSG}Please specify a proper location!\n")
+      SET(MSG "${MSG}Did you clone with 'git clone --recurse-submodules'?\n")
+      SET(MSG "${MSG}If not do 'git fetch --recurse-submodules'\n")
+      MESSAGE(FATAL_ERROR "${MSG}")
+    ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+  ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+  # check if we have options
+  # In order to perform tests we need the CFSTOOL and HDF5!
+  if(NOT BUILD_CFSTOOL)
+    message(FATAL_ERROR "BUILD_TESTING=ON requires BUILD_CFSTOOL=ON.")
+  endif()
+  if(NOT USE_HDF5)
+    message(FATAL_ERROR "BUILD_TESTING=ON requires USE_HDF5=ON.")
+  endif()
+  # set a build name
+  SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
+  SET(CFS_TESTSUITE_MODEL "Experimental" CACHE PATH "Model for the test submission to CDash.")
+  if( NOT (CFS_TESTSUITE_MODEL STREQUAL "Nightly" OR CFS_TESTSUITE_MODEL STREQUAL "Continuous" OR CFS_TESTSUITE_MODEL STREQUAL "Experimental") )
+    MESSAGE(FATAL_ERROR "CFS_TESTSUITE_MODEL='${CFS_TESTSUITE_MODEL}' but must be equal to 'Nightly|Continuous|Experimental'")
+  endif()
+  # configure the dashboard and include config
+  # write the variables in DartConfiguration.tcl which is used by `ctest -D` or `make Experimental`
+  # https://github.com/Kitware/CMake/blob/master/Modules/DartConfiguration.tcl.in
+  set(DROP_SITE "${CFS_DS_CDASH_DROP_SITE}")
+  set(DROP_LOCATION "/cdash/submit.php?project=${CTEST_PROJECT_NAME}")
+  SET(DROP_METHOD "http")
+  set(NIGHTLY_START_TIME "00:00:00 CET")
+  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}" CACHE STRING "Name of build on the dashboard")
+  MARK_AS_ADVANCED(BUILDNAME)
+  if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
+    # get the build host
+    execute_process(COMMAND ${CFS_BINARY_DIR}/bin/cfs --version --noColor
+                    COMMAND grep CFS_BUILD_HOST
+                    COMMAND awk "{print $2}"
+                    RESULT_VARIABLE var
+                    OUTPUT_VARIABLE ORIGINAL_BUILD_HOST)
+    string(STRIP "${ORIGINAL_BUILD_HOST}" ORIGINAL_BUILD_HOST) # important for comparison !
+    #message("CFS_BUILD_HOST='${CFS_BUILD_HOST}' ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
+    if(NOT (CFS_BUILD_HOST STREQUAL "${ORIGINAL_BUILD_HOST}") )
+      # extract the short name (first 2 domain name components)
+      string(REGEX MATCH "[^.]+([.][^.]+)?" ORIGINAL_BUILD_HOST "${ORIGINAL_BUILD_HOST}")
+      # modify build name 
+      set(BUILDNAME "${BUILDNAME} [built on ${ORIGINAL_BUILD_HOST}]")
+    endif()
+  endif(GITLAB_TEST_TAG)
+  INCLUDE(CTest) # to actually write DartConfiguration.tcl
+  # add a packing test
+  add_test(Install_Pack_Linux_TGZ cpack -G TGZ --verbose)
+ENDIF(BUILD_TESTING)
+MARK_AS_ADVANCED(TESTSUITE_DIR)
 
 #-----------------------------------------------------------------------------
 # Make sure the compiler can find include files from CFS.
@@ -832,11 +861,9 @@ ADD_SUBDIRECTORY(source/Optimization/Design)
 ADD_SUBDIRECTORY(source/Optimization/Optimizer)
 ADD_SUBDIRECTORY(source/main)
 
-IF(CFSTOOL)
+IF(BUILD_CFSTOOL)
   ADD_SUBDIRECTORY(source/cfstool)
-  #  SET(USE_FFTW ON CACHE BOOL 
-  #  "Activate DFT and filtering capabilities of cfstool." FORCE)
-ENDIF(CFSTOOL)
+ENDIF(BUILD_CFSTOOL)
 
 IF(CFSDAT)
   ADD_SUBDIRECTORY(source/cfsdat)
@@ -871,3 +898,38 @@ ADD_SUBDIRECTORY(share/mkmesh)
 #-----------------------------------------------------------------------------
 ADD_SUBDIRECTORY(share/xml)
 ADD_SUBDIRECTORY(share/xsl)
+
+#-----------------------------------------------------------------------------
+# Add an install Target using CPack
+#-----------------------------------------------------------------------------
+# can be used via: cpack -G TZG
+# with testing also via: ctest -R Install
+# from within the build directory
+
+
+# set cpack config options
+# see https://cmake.org/Wiki/CMake:CPackConfiguration
+string(STRIP "${CFS_GIT_COMMIT}" CPACK_PACKAGE_VERSION)
+if(CFS_WC_MODIFIED)
+  set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}-modified")
+endif(CFS_WC_MODIFIED)
+
+# choose what to install
+# see https://cmake.org/cmake/help/v3.9/command/install.html#installing-directories
+
+if(UNIX)
+  # tailing / in source leads to rename to destionation
+  #INSTALL(PROGRAMS "${CFS_BINARY_DIR}/bin" DESTINATION "." PATTERN "[A-Z]*" EXCLUDE)
+  INSTALL(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin/LINUX_${CFS_ARCH}" USE_SOURCE_PERMISSIONS)
+  INSTALL(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib64/LINUX_${CFS_ARCH}" USE_SOURCE_PERMISSIONS PATTERN "*.a" EXCLUDE) # lib64 only works for 64bit ...
+else(UNIX)
+  message("install only implemented for UNIX")
+endif(UNIX)
+INSTALL(DIRECTORY "${CFS_BINARY_DIR}/share/" DESTINATION "share" USE_SOURCE_PERMISSIONS PATTERN "CMakeFiles" EXCLUDE PATTERN "Makefile" EXCLUDE PATTERN "*.dir" EXCLUDE)
+# this is only usful on a portable testsuite and at them moment disabled by default
+if(BUILD_TESTING AND PACK_TESTSUITE)
+  INSTALL(FILES "${CFS_BINARY_DIR}/CTestTestfile.cmake" DESTINATION ".")
+  INSTALL(DIRECTORY "${CFS_BINARY_DIR}/testsuite" DESTINATION "." USE_SOURCE_PERMISSIONS)
+endif(BUILD_TESTING AND PACK_TESTSUITE)
+
+INCLUDE(CPack)

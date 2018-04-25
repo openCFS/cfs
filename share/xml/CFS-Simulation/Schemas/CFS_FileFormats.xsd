@@ -510,6 +510,8 @@
         <xsd:attribute name="linearizeEntities" type="xsd:token" default=""/>
         <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
         <xsd:attribute name="scaleFac" type="xsd:double" default="1.0"/>
+        <xsd:attribute name="readFVMesh" type="DT_CFSBool" default="no"/>
+        <xsd:attribute name="fixFVPyramids" type="DT_CFSBool" default="yes"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

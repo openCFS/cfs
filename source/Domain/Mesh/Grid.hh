@@ -784,6 +784,38 @@ namespace CoupledField
         @return result vector: [nx ny nz] returns 0 vector, if mesh is not regular */
     virtual StdVector<UInt> GetBoundaries(RegionIdType region);
 
+
+    // =======================================================================
+    // FINITE VOLUME REPRESENTATION SECTION
+    // =======================================================================
+    //@{ \name Methods for finite volume representations
+
+  public:
+  
+    struct FiniteVolumeRepresentation {
+    
+      FiniteVolumeRepresentation();
+      
+      bool isSet;
+      Grid* grid;
+      std::vector<bool> isVolumeElement;
+      StdVector<UInt> masterElement;
+    
+      UInt faceCount;
+      std::vector<bool> isFaceBoundary;
+      StdVector<UInt> faceMasterElement;
+      StdVector<UInt> faceSlaveElement;
+      StdVector<UInt> facePointIndex;
+      StdVector<UInt> facePoint;
+    };
+    
+    Grid::FiniteVolumeRepresentation& GetFiniteVolumeRepresentation();
+    
+  private:
+    
+    FiniteVolumeRepresentation fvr_;
+
+
     // =======================================================================
     // NONCONFORMING INTERFACES SECTION
     // =======================================================================
