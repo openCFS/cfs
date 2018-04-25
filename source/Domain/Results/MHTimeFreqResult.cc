@@ -46,23 +46,40 @@ namespace CoupledField {
                                      const UInt& M,
                                      const Double& baseFreq,
                                      const UInt& nFFT){
+    spatialSize_ = 0;
+    omega0_ = 0.0;
+    nFFT_ = 0;
+    N_ = 0;
+
+    this->Init(N, M, baseFreq, nFFT);
+  }
+
+  // Default constructor
+  MHTimeFreqResult::MHTimeFreqResult(){
+    spatialSize_ = 0;
+    omega0_ = 0.0;
+    nFFT_ = 0;
+    N_ = 0;
+  }
+
+
+
+  MHTimeFreqResult::~MHTimeFreqResult(){}
+
+
+  void MHTimeFreqResult::Init(const UInt& N,
+                              const UInt& M,
+                              const Double& baseFreq,
+                              const UInt& nFFT){
     N_ = N;
     timeResult_.Resize(0,0);
     freqResult_.Resize(0,0);
     nFFT_ = nFFT  ;
-    // Already caught in StdSolveStep::StepHarmonicNonLin
-    //if(nFFT % 2 != 0){
-    //  EXCEPTION("Number of FFT points should be even!")
-    //}
-
     omega0_ = 2 * M_PI * baseFreq;
     spatialSize_ = 0;
-
     // Create the time vector
-    CreateTimeVec();
+    this->CreateTimeVec();
   }
-
-  MHTimeFreqResult::~MHTimeFreqResult(){}
 
 
 

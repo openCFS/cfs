@@ -15,8 +15,13 @@
 
 #include "FeBasis/FeSpace.hh"
 
+#include "DataInOut/Logging/LogConfigurator.hh"
+
 namespace CoupledField
 {
+DECLARE_LOG(coeffctharmbalance)
+DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
+
   // ==========================================================================
   //  COEFFICIENT FUNCTION HARMONIC BALANCING
   // ==========================================================================
@@ -24,16 +29,35 @@ namespace CoupledField
   CoefFunctionHarmBalance<T>::CoefFunctionHarmBalance(shared_ptr<BaseFeFunction> feFct,
                                                       shared_ptr<FeSpace> feSpc,
                                                       const StdVector<RegionIdType>& regions,
-                                                      const std::map<RegionIdType, BaseMaterial*>& materials,
-                                                       Grid* ptGrid,
-                                                      PtrCoefFct magFluxCoef):CoefFunction() {
+                                                      std::map<RegionIdType, BaseMaterial*>& materials,
+                                                      Grid* ptGrid,
+                                                      PtrCoefFct magFluxCoef,
+                                                      const UInt& N,
+                                                      const UInt& M,
+                                                      const Double& baseFreq,
+                                                      const UInt& nFFT):CoefFunction() {
+
+    // Initialize the hbRegion_ vector. Therefore loop over every region
+    // and assign material...and roughly init the remaining in the struct
+    hbRegion_.Resize(regions.GetSize());
+
+    for(UInt iRegion = 0; iRegion < regions.GetSize(); ++iRegion){
+      HBRegionHelper& st = hbRegion_[iRegion];
+      st.elemListPerRegion = NULL;
+      RegionIdType actRegion = regions[iRegion];
+      st.material = materials[actRegion];
+      st.nonLinNuCoefMap = NULL;
+      st.region = regions[iRegion];
+    }
+
+    //! For the initialization from the PDE-class,
+    //! Calls the Init method in MHTimeFreqResult
+    freqTimeRes_.Init(N, M, baseFreq, nFFT);
 
     feFct_ = dynamic_pointer_cast<FeFunction<T> >(feFct);
 
     fluxFESpace_ = dynamic_pointer_cast<FeSpace >(feSpc);
 
-    regions_ = regions;
-    materials_ = materials;
     ptGrid_ = ptGrid;
 
     magFluxCoef_ = magFluxCoef;
@@ -48,9 +72,6 @@ namespace CoupledField
     freqResult_.Resize(0,0);
 
     numRegions_ = regions.GetSize();
-
-    elemListPerRegion_.Resize(0);
-    regionList_.Resize(0);
 
     numElems_ = 0;
 
@@ -75,13 +96,11 @@ namespace CoupledField
     mp_->AddExpChangeCallBack( boost::bind(&CoefFunctionHarmBalance<T>::UpdateSolution, this ), solHandle_ );
 
 
-
+    // Variables from CoefFunction base-class
     isAnalytic_ = false;
     isComplex_ = false;
-
     // take care, it's changed throughout the class!!
     dimType_ = CoefFunction::SCALAR;
-
   }
 
   template<class T>
@@ -93,7 +112,8 @@ namespace CoupledField
   PtrCoefFct CoefFunctionHarmBalance<T>::
   GenerateMatCoefFnc(const UInt& iRegion,
                      const std::string& name,
-                     const bool nonLin){
+                     const bool nonLin,
+                     shared_ptr<ElemList> actSDList){
     if( name != "Reluctivity"){
       EXCEPTION("CoefFunctionHarmBalance::GenerateMatCoefFnc unrecognized"
                 "name of expected quantity:"<<name)
@@ -102,8 +122,15 @@ namespace CoupledField
     RegionIdType actRegion;
     BaseMaterial * actMat = NULL;
 
-    actRegion = regions_[iRegion];
-    actMat    = materials_[actRegion];
+
+    HBRegionHelper & regStruc = hbRegion_[iRegion];
+
+
+    actRegion = regStruc.region;
+    actMat    = regStruc.material;
+
+    // Register the elements
+    this->RegisterElemsInRegion(actSDList, iRegion, regStruc);
 
     PtrCoefFct ret = NULL;
 
@@ -114,19 +141,18 @@ namespace CoupledField
       ret = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
 
       // Also set the correct nonlinear reluctivity evaluation CoefFunctions here
-      // ONLY FOR THE REGIONS WHICH ARE REALLY NONLINEAR!!!
+      // Only for the regions which are really nonlinear!
       if( nonLin ){
+        LOG_DBG(coeffctharmbalance) << "Generating nonlinear multiharmonic "
+            "material coefficient function for region"<< actRegion <<" with material "<< actMat;
+
         // we need the real part of this CoefFunction GetVector because the
         // GetScalCoefFncNonLin method can only handle real values
-
         dimType_ = VECTOR;
         PtrCoefFct realThis = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_, (PtrCoefFct)this, CoefXpr::OP_RE));
-        //PtrCoefFct realThis = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_, magFluxCoef_, CoefXpr::OP_RE));
-        JUSTATEST_ = realThis;
-        nonLinNuCoefMap_[actRegion] = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, realThis);
-
+        regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, realThis);
       }else{
-        nonLinNuCoefMap_[actRegion] = ret;
+        regStruc.nonLinNuCoefMap = ret;
       }
 
     }else{
@@ -139,21 +165,26 @@ namespace CoupledField
   template<class T>
   void CoefFunctionHarmBalance<T>::
   RegisterElemsInRegion(shared_ptr<ElemList> actSDList,
-                        const UInt& iRegion){
+                        const UInt& iRegion,
+                        HBRegionHelper& regStruc){
     // Check if the number of allowed regions is exceeded
     if(regionRegistration_ == true){
       EXCEPTION("CoefFunctionHarmBalance::RegisterElemsInRegion Error when trying \n"
           "to set a region, which was probably already registered!");
     }
 
-    elemListPerRegion_.Push_back(actSDList);
-    regionList_.Push_back(iRegion);
+    LOG_DBG(coeffctharmbalance) << "Registering region "<<regStruc.region<<" with "<< actSDList->GetSize()<<" elements";
+
+    regStruc.elemListPerRegion = actSDList;
+
     numElems_ += actSDList->GetSize();
 
+    LOG_DBG(coeffctharmbalance) << "Until now, a total of "<< numElems_ <<" elements was registered";
 
     // Check and set the flag if all regions are set
-    if(elemListPerRegion_.GetSize() == numRegions_) {
+    if(regStruc.elemListPerRegion->GetSize() == numRegions_) {
       regionRegistration_ = true;
+      LOG_DBG(coeffctharmbalance) << "\t All regions were registered, total number of elements = "<< numElems_;
     }
   }
 
@@ -161,6 +192,8 @@ namespace CoupledField
   template<class T>
   void CoefFunctionHarmBalance<T>::
   UpdateHarm(){
+    LOG_DBG(coeffctharmbalance) << "\t UpdateHarm()";
+
     std::cout<< this->mp_->GetExpr(harmHandle_  )<<std::endl;
     std::cout<< this->mp_->Eval(harmHandle_) <<std::endl;
   }
@@ -168,6 +201,8 @@ namespace CoupledField
   template<class T>
   void CoefFunctionHarmBalance<T>::
   UpdateSolution(){
+    LOG_DBG(coeffctharmbalance) << "\t Starting UpdateSolution() in CoefFunctionHarmBalance";
+
     std::cout<< this->mp_->GetExpr(solHandle_  )<<std::endl;
     std::cout<< this->mp_->Eval(solHandle_) <<std::endl;
 
@@ -197,27 +232,23 @@ namespace CoupledField
      */
 
     // Loop over all regions and over every integration point in this region
-    // and cache the magnetic flux density result
+    // and cache the magnetic reluctivity result
 
 
+    // These integration parameters can vary between regions
+    IntegOrder order;
+    IntScheme::IntegMethod method;
+    LocPointMapped lpm;
+    Double nuOfB = 0.0;
 
-
-
-    if( this->mp_->Eval(solHandle_) >= 0 ){
-
-      // These integration parameters can vary between regions
-      IntegOrder order;
-      IntScheme::IntegMethod method;
-      StdVector<LocPoint> intPoints;
-      StdVector<Double> weights;
-      LocPointMapped lpm;
-      Vector<Complex> dummyFluxVec;
-
+    // This is the first call of this method, therefore we
+    // store some stuff, we need frequently in the following iterations
+    if( this->mp_->Eval(solHandle_) == 0 ){
       // Loop over every region
-      for(UInt i = 0; i < elemListPerRegion_.GetSize(); ++i){
+      for(UInt i = 0; i < hbRegion_.GetSize(); ++i){
+        HBRegionHelper& regStruc = hbRegion_[i];
 
-        EntityIterator it = elemListPerRegion_[i]->GetIterator();
-        RegionIdType regId = regions_[ regionList_[i] ];
+        EntityIterator it = regStruc.elemListPerRegion->GetIterator();
         fluxFESpace_->GetFe(it, method, order);
         // Loop over every element in that region
         for(it.Begin(); !it.IsEnd(); it++){
@@ -227,24 +258,40 @@ namespace CoupledField
           // Element or integration point -> see UPDATE from above
           LocPoint lp = Elem::shapes[el->type].midPointCoord;
           lpm.Set(lp, esm, 0.0);
-          magFluxCoef_->GetVector(dummyFluxVec, lpm);
-//          Evaluate the nu right here!!!!!!!!
 
 
-std::cout<<"dummyFluxVec.ToString()"<<dummyFluxVec.ToString()<<std::endl;
+// TODO bis hierhin brauchen wir das ja alles nur einmal machen und könnten es dann einfach wiederverwenden?!
+          // Evaluate the nu(B)
+          regStruc.nonLinNuCoefMap->GetScalar(nuOfB, lpm);
+std::cout<<"nuOfB.ToString()"<<nuOfB<<std::endl;
 
-          Vector<Double> test;
-          JUSTATEST_->GetVector(test, lpm);
-std::cout<<"test.ToString()"<<test.ToString()<<std::endl;
+// TODO for the final version we need to evaluate correctly at
+// integration point level, not only at element level
+
+          // now cache it for the element
+//TODO create a vector containing the element number which gets initialized, maybe even in RegisterElemsInRegion
+        }
+//TODO hier übergeben wir es erst dem freqTimeRes_ Objekt
 
 
-          Double dummy;
-          nonLinNuCoefMap_[regId]->GetScalar(dummy, lpm);
-std::cout<<"dummy.ToString()"<<dummy<<std::endl;
+    }
 
+
+    // The first call from above already initialized the important
+    // stuff and we can reuse is here
+    if( this->mp_->Eval(solHandle_) >= 1 ){
+      // Loop over every region
+      for(UInt i = 0; i < hbRegion_.GetSize(); ++i){
 
         }
+//hier übergeben wir es erst dem freqTimeRes_ Objekt
+
       }
+
+
+
+
+
 
 EXCEPTION("WE STILL NEED TO CACHE IT!");
 

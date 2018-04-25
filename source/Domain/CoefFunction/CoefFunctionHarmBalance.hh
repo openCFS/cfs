@@ -20,6 +20,9 @@
 #include "FeBasis/FeFunctions.hh"
 #include "Utils/mathParser/mathParser.hh"
 
+// To switch between time- and frequency domain
+#include "Domain/Results/MHTimeFreqResult.hh"
+
 
 namespace CoupledField  {
 
@@ -39,12 +42,17 @@ public:
   CoefFunctionHarmBalance(shared_ptr<BaseFeFunction> feFct,
                           shared_ptr<FeSpace> feSpc,
                           const StdVector<RegionIdType>& regions,
-                          const std::map<RegionIdType, BaseMaterial*>& materials,
+                          std::map<RegionIdType, BaseMaterial*>& materials,
                           Grid* ptGrid,
-                          PtrCoefFct magFluxCoef);
+                          PtrCoefFct magFluxCoef,
+                          const UInt& N,
+                          const UInt& M,
+                          const Double& baseFreq,
+                          const UInt& nFFT);
 
   //! Destructor
   virtual ~CoefFunctionHarmBalance();
+
 
   //! \copydoc CoefFunction::GetScalar
   virtual void GetScalar(T& coefScal, const LocPointMapped& lpm );
@@ -63,14 +71,8 @@ public:
 
   PtrCoefFct GenerateMatCoefFnc(const UInt& iRegion,
                                 const std::string& name,
-                                const bool nonLin);
-
-  //! Method is called with a specific subdomain in the PDE
-  //! and registers this region
-  //! Method is called in the integrator-definition section of the
-  //! specific PDE
-  void RegisterElemsInRegion(shared_ptr<ElemList> actSDList,
-                             const UInt& iRegion);
+                                const bool nonLin,
+                                shared_ptr<ElemList> actSDList);
 
   virtual CoefDimType GetDimType() const{
     return dimType_;
@@ -81,6 +83,34 @@ protected:
   void UpdateHarm();
 
   void UpdateSolution();
+
+  //! DESCRIBE ME
+  //! ===========================================
+  struct HBRegionHelper
+  {
+    //! Store the elements of each region (need information
+    //! about the integration points later on)
+    shared_ptr<ElemList> elemListPerRegion;
+
+    //! Attribute handling info on material data. From StdPDE
+    BaseMaterial* material = NULL;
+
+    //! CoefFunction for nonlinear reluctivity evaluation
+    PtrCoefFct nonLinNuCoefMap;
+
+    //! Region, the PDE is defined on. From StdPDE
+    RegionIdType region;
+  };
+
+
+  //! Method is called with a specific subdomain in the PDE
+  //! and registers this region
+  //! Method is called in the integrator-definition section of the
+  //! specific PDE
+  void RegisterElemsInRegion(shared_ptr<ElemList> actSDList,
+                             const UInt& iRegion,
+                             HBRegionHelper& regStruc);
+
 
   //! FeFunction containing the coefficients
   shared_ptr<FeFunction<T> > feFct_;
@@ -97,17 +127,15 @@ protected:
   //! CoefFunction for magnetic flux density
   PtrCoefFct magFluxCoef_ = NULL;
 
-  PtrCoefFct JUSTATEST_ = NULL;
-
   //! CoefFunction for nonlinear reluctivity evaluation
-  std::map<UInt, PtrCoefFct> nonLinNuCoefMap_;
+  //std::map<UInt, PtrCoefFct> nonLinNuCoefMap_;
 
   //! Vector containing all regions the PDE is defined on. From StdPDE
-  StdVector<RegionIdType> regions_;
+//  StdVector<RegionIdType> regions_;
 
   //! Attribute handling info on material data
   //! Maps regions and (simple) materials. From StdPDE
-  std::map<RegionIdType, BaseMaterial*> materials_;
+  //std::map<RegionIdType, BaseMaterial*> materials_;
 
   //! Pointer to grid object
   Grid * ptGrid_;
@@ -129,8 +157,8 @@ protected:
 
   //! Store the elements of each region (need information
   //! about the integration points later on)
-  StdVector< shared_ptr<ElemList> > elemListPerRegion_;
-  StdVector< Integer > regionList_;
+  //StdVector< shared_ptr<ElemList> > elemListPerRegion_;
+  //StdVector< Integer > regionList_;
 
   //! Total number of elements
   UInt numElems_;
@@ -139,6 +167,13 @@ protected:
   UInt updateIter_;
 
   unsigned int maxInt_;
+
+  MHTimeFreqResult freqTimeRes_;
+
+  //! For every region we create one HBRegionHelper struct.
+  //! The iRegion variable is the key (comes from PDE)
+  StdVector<HBRegionHelper> hbRegion_;
+
 };
 } //end of namespace
 

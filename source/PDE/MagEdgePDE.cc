@@ -21,6 +21,7 @@
 #include "Domain/CoefFunction/CoefXpr.hh"
 
 
+
 // forms
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
@@ -34,6 +35,8 @@
 
 //time stepping
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
+
+#include "Driver/MultiHarmonicDriver.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -136,7 +139,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
     // Create new harmonic balance coefficient function and register the regions and material
-    multiHarmCoef_.reset(new CoefFunctionHarmBalance<Double>(feFunc, feSpace, regions_, materials_, ptGrid_, magFluxCoef) );
+    UInt baseFreq, N, M, nFFT;
+    if(analysistype_ == MULTIHARMONIC){
+      baseFreq = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->baseFreq_;
+      N = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_N_;
+      M = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_M_;
+      nFFT = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numFFT_;
+    }
+    multiHarmCoef_.reset(new CoefFunctionHarmBalance<Double>(feFunc, feSpace, regions_, materials_, ptGrid_, magFluxCoef, N, M, baseFreq, nFFT) );
 
 
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
@@ -170,8 +180,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         if ( analysistype_ == MULTIHARMONIC ) {
           // register element list of region
           bool nL = (nonLinTypes.GetSize() > 0)? true : false;
-          multiHarmCoef_->RegisterElemsInRegion(actSDList, iRegion);
-          nuNl = multiHarmCoef_->GenerateMatCoefFnc(iRegion, "Reluctivity", nL);
+          nuNl = multiHarmCoef_->GenerateMatCoefFnc(iRegion, "Reluctivity", nL, actSDList);
         }else{
           // ========================================
           //  Classic Nonlinear Stiffness Integrator

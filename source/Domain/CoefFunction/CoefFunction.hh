@@ -591,7 +591,8 @@ public:
   //! Needed for harmonic balancing CoefFunctionHarmBalance
   virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(const UInt& iRegion,
                                                       const std::string& name,
-                                                      const bool nonLin){
+                                                      const bool nonLin,
+                                                      shared_ptr<ElemList> actSDList){
     EXCEPTION("Not implemented in base class");
   }
 

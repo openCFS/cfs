@@ -37,6 +37,9 @@ class MHTimeFreqResult{
 
 public:
 
+  //! Default Constructor
+  MHTimeFreqResult();
+
   //! Constructor
   MHTimeFreqResult(const UInt& N,
                    const UInt& M,
@@ -46,6 +49,12 @@ public:
   //! Destructor
   ~MHTimeFreqResult();
 
+
+  //! Initialization, does the same as the constructor
+  void Init(const UInt& N,
+       const UInt& M,
+       const Double& baseFreq,
+       const UInt& nFFT);
 
   // ========================================================================
   //  GETTERS / SETTERS
