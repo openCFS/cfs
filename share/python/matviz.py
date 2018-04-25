@@ -21,12 +21,22 @@ try:
 except:
   print("WARNING:Could not load mpi4py!")
 
+
+TWO_SCALE = (
+  "hom_rot_cross",
+  "hom_sheared_rot_cross",
+  "hom_frame",
+  "hom_framed_cross",
+  "hom_rect",
+  "hom_ortho_3d"
+  )
+
 ## reads design_stiff*, design_shear* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults 
 
 # considers density read
 # @param angle array of anglex, angley, anglez
-# @return s1, s2, s3, angle, sh1  
-def read_stiff_angle(hdf_file, dim_2D, args):
+# @return dict with design variables (s1, s2, s3, sh1, angle)  
+def read_design(hdf_file, dim_2D, args):
   res = dict()
   # rot means, that we only show rotation according to rotAngle, e.g. for piezoelectric polarization
   sh1 = numpy.ones((len(centers),1)) * .5 # fix for no shearing 
@@ -80,7 +90,9 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     res['s3'] = res['s1']
   elif args.parametrization == 'simp':
     res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
-    res['angle'] = numpy.zeros(((len(s1), 3)))
+    res['s2'] = res['s1']
+    res['s3'] = res['s1']
+    res['angle'] = numpy.zeros(((len(res['s1']), 3)))
     return res
   if has_element(hdf_file, "design_density_" + args.hom_access):
     print("args.h5_step:" + str(args.h5_step))
@@ -188,91 +200,59 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
     viz = None
     if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp","hom_ortho_3d"):
 
-      if args.show in ("hom_rot_cross", "hom_sheared_rot_cross", "hom_frame", "hom_framed_cross", "hom_rect", "hom_ortho_3d"):
-        if h5_read:
-          microparams = read_stiff_angle(f, dim_2D, args)
-        if args.show == "hom_sheared_rot_cross":
-          s1 = microparams['s1']
-          s2 = microparams['s2']
-          s3 = microparams['s3']
-          try:
-            sh1 = microparams['sh1']
-          except:
-            pass
-        elif args.show == "hom_framed_cross":
-          s1 = microparams['s1']
-          s2 = microparams['s2']
-          s3 = microparams['s3']
-          s4 = microparams['s4']
-        elif h5_read:
-          s1 = microparams['s1']
-          s2 = microparams['s2']
-          s3 = microparams['s3']
-          try:
-            sh1 = microparams['sh1']
-          except:
-            pass
-        if h5_read:
-          angle = microparams['angle']
-        else:
-          angle,s1,s2,coords = read_stiff_angle_matlab(args.input)
+      if args.show == "simp":
+        args.parametrization = "simp"
+      if h5_read:
+        design = read_design(f, dim_2D, args)
       else:
-        if args.show == "simp":
-          args.parametrization = 'simp'
-          microparams = read_stiff_angle(f, dim_2D, args)
-          s2 = microparams['s2']
-          s3 = microparams['s3']
-        else:
-          microparams = read_stiff_angle(f, dim_2D, args)
-          s2 = microparams['s2']
-          s3 = microparams['s3']
-          print("Only correct in 2D: volume for regular grid: " + str(calc_volume(s1, s2)))
-        s1 = microparams['s1']
-        angle = microparams['angle']
-        sh1 = microparams['sh1']
+        angle, s1, s2, coords = read_stiff_angle_matlab(args.input)
+
+      if dim_2D and args.show in TWO_SCALE:
+        print("Volume for regular grid: " + str(calc_volume(design['s1'], design['s2'])))
       
       # add angle bias, e.g. by 90 deg to correct thomas
-      angle += args.angle_bias * numpy.pi / 180
+      design['angle'] += args.angle_bias * numpy.pi / 180
       # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
-      angle *= -1.0
+      design['angle'] *= -1.0
       if args.angle_factor != 1.0:
         print('scale angle by ' + str(args.angle_factor))
-        angle *= args.angle_factor  
-      if not args.show == "simp":
-        print('unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']')
-      else:
-        print('unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + ']')
+        design['angle'] *= args.angle_factor
+      
+      for key, value in design.items():
+        print('unscaled {:s} in [{:f}:{:f}]'.format(key, numpy.min(value), numpy.max(value)))
   
       # viz is either Image or polydata
       if dim_2D and not args.show == 'simp':
-        v = calc_volume(s1, s2)
-        print("Only correct in 2D: volume for regular grid: " + str(v))
         if args.show == "hom_rect": 
           if args.hom_grad == 'none':
-            viz = show_frame(coords, s1, s2, args.hom_dir, args.res, args.scale)
+            viz = show_frame(coords, design, args.hom_dir, args.res, args.scale)
           else:
-            viz = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, args.res)
+            viz = show_frame_grad(coords, design, args.hom_grad, args.hom_dir, args.res)
         elif args.show == "hom_rect_mod":
-          viz = show_modified_frame(coords, s1, s2, angle[:, 0], "all", args.res, scale, args.color, args.save)
+          design['angle'] = design['angle'][:,0]
+          viz = show_modified_frame(coords, design, "all", args.res, scale, args.color, args.save)
         elif args.show == "hom_rot_cross" or args.show == "rot":
           # add optional angle bias
           # print 'change angle'
+          design['angle'] = design['angle'][:,0]
           if args.hom_grad == 'none':
-            viz = show_rot_cross(coords, s1, s2, angle[:, 0], args.hom_dir, args.res, scale, args.color, args.save)
+            viz = show_rot_cross(coords, design, args.hom_dir, args.res, scale, args.color, args.save)
           else:
-            viz = show_rot_cross_grad(coords, s1, s2, angle[:, 0], args.hom_grad, args.hom_dir, args.res, scale, args.save)
+            viz = show_rot_cross_grad(coords, design, args.hom_grad, args.hom_dir, args.res, scale, args.save)
         elif args.show == "hom_sheared_rot_cross":
-          viz = show_sheared_rot_cross(coords, s1, s2, sh1, angle[:,0], args.hom_dir, args.res, args.scale, args.color, args.save)
+          design['angle'] = design['angle'][:,0]
+          viz = show_sheared_rot_cross(coords, design, args.hom_dir, args.res, args.scale, args.color, args.save)
         elif args.show == "hom_frame":
-          viz = show_frame2(coords, microparams['microparams'], args.res, args.scale, args.color, args.save)
+          viz = show_frame2(coords, design, args.res, args.scale, args.color, args.save)
         elif args.show == "hom_framed_cross":
           viz = show_framed_cross(coords, microparams['microparams'], args.res, args.scale, args.color, args.save)
         elif args.show == "hom_cross_bar":
-          angle = numpy.zeros((len(s1),1))
-          viz = show_cross_bar(coords, s1, s2, sh1, angle, args.hom_dir, args.res, args.scale, args.color, args.save)
+          design['angle'] = numpy.zeros((len(s1),1))
+          viz = show_cross_bar(coords, design, args.hom_dir, args.res, args.scale, args.color, args.save)
         elif args.show == "stream":
             samples = args.hom_samples.split(',')
-            viz = show_streamline(coords, s1, s2, angle[:, 0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, float(samples[0]), float(samples[1]), args.stream_max_traces_per_cell, args.res, args.save != None, info, args.stream_force)            
+            design['angle'] = design['angle'][:,0]
+            viz = show_streamline(coords, design, args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, float(samples[0]), float(samples[1]), args.stream_max_traces_per_cell, args.res, args.save != None, info, args.stream_force)            
         else:
           assert(False)
       # the 3D VTK stuff      
@@ -320,17 +300,17 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   print('Lufo bracket is calculated!')
 
                 if args.show == 'simp':
-                  me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
+                  me = create_validation_mesh(coords, nondes_coords, design, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
                 else:
                   if args.type == "apod6" or args.type == "robot": 
-                    me = create_validation_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
+                    me = create_validation_mesh(coords, nondes_coords, design, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
                 write_gid_mesh(me, args.mesh+".mesh")
                 exit()  
               else:
                 if args.show == "hom_rot_cross":
-                  viz = create_3d_cross_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres,csize)   
+                  viz = create_3d_cross_ip(coords, design, args.hom_samples, args.hom_grad, scale, valid_position, args.thres,csize)   
                 elif args.show == "hom_rect":
-                  viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
+                  viz = create_3d_frame_ip(coords, design, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
                 elif args.show == "hom_ortho_3d":
                   print("Ohoh, I shouldn't be here...")
                   sys.exit()
@@ -344,7 +324,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 tmp = args.hom_samples.split(',')
                 samples = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
-                viz = matviz_3d_ortho.create_3d_interpretation_ortho_new(args, coords, min_bb, max_bb, s1, s2, s3, scale, samples, args.hom_grad, args.thres)
+                viz = matviz_3d_ortho.create_3d_interpretation_ortho_new(args, coords, min_bb, max_bb, design, scale, samples, args.hom_grad, args.thres)
 
                 me = None                
                 if args.save:
@@ -367,10 +347,12 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   assert(me is not None)  
                   write_gid_mesh(me, "validation_mesh.mesh", scale)      
               else:
-                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, samples, args.hom_grad, scale, valid_position, args.thres)
+                viz = create_3d_frame_ip(coords, design, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
-          if args.hom_grad == 'none':
-              viz = create_3d_frame(coords, s1, s2, s3, angle, args.hom_dir, scale)
+          if args.show == 'simp':
+            viz = create_block(coords, design, scale, args.thres)
+          elif args.hom_grad == 'none':
+            viz = create_3d_frame(coords, design, args.hom_dir, scale)
           elif args.unstructured:
             # dimensions of the new regular grid
             n = args.unstructured.split(',')
@@ -381,14 +363,14 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
               # load mesh from hdf5 file
               mesh = create_mesh_from_hdf5(f, ['design', 'nondesign', 'void'], 'load', 'support')
               # write design values for each element node to file 
-              write_node_design(args.nodefile + '_' + repr(nx) + 'x' + repr(ny) + 'x' + repr(nz), mesh, coords, s1, s2, s3, angle)
+              write_node_design(args.nodefile + '_' + repr(nx) + 'x' + repr(ny) + 'x' + repr(nz), mesh, coords, design)
             else:
               # create structured 3D mesh from given hdf5_file which can be non-structured
-              mesh = create_3d_mesh_unstructured(coords, nondes_coords, nondes_force, nondes_support, s1, s2, s3, angle, nx, ny, nz, args.hom_grad, args.scale)
+              mesh = create_3d_mesh_unstructured(coords, nondes_coords, nondes_force, nondes_support, design, nx, ny, nz, args.hom_grad, args.scale)
               # postprocess the structured mesh for the robot arm, removal of some irregularities 
               mesh = post_process_mesh(mesh, coords, nondes_coords, nx, ny, nz)
           else:
-            print('hom_rect in 3D only for --hom_grad none implemented')
+            print("hom_rect in 3D only for '--hom_grad none' implemented")
             exit()
               
     # no hom_rect stuff but orientational stiffness
@@ -441,7 +423,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
       for i in range(len(tmp3)):
         if tmp3[i][1] <= float(args.symmetries_threshold):
           mins.append(tmp3[i]) 
-      actors = create_symmety_planes(mins, 1.2 * numpy.max(data if args.show == None else aux), not args.symmetries_planes == "false")
+      actors = create_symmetry_planes(mins, 1.2 * numpy.max(data if args.show == None else aux), not args.symmetries_planes == "false")
   
     show_write_vtk(poly, args.res, args.save, actors, args.axes)  
   

@@ -51,7 +51,7 @@ def create_vtk_poly_data(angle, data):
 
 # # create a list of vtk actors displaying symmetry planesfrom vtk.util.colors import
 # @param minim
-def create_symmety_planes(minima, scale, add_planes):
+def create_symmetry_planes(minima, scale, add_planes):
   # code source: http://code.google.com/p/pythonxy/source/browse/src/python/vtk/DOC/Examples/Rendering/Cylinder.py
  
   minima = []
@@ -61,7 +61,7 @@ def create_symmety_planes(minima, scale, add_planes):
  
   actors = [] 
    
-  for i in range(len(minima)):
+  for mini in minima:
      
     # Create cylinder
     cylinder = vtk.vtkCylinderSource()
@@ -82,12 +82,12 @@ def create_symmety_planes(minima, scale, add_planes):
     actor_c.SetMapper(mapper_c)
         
     actor_c.GetProperty().SetColor(black)
-    angle = minima[i][0]
+    angle = mini[0]
     phi = angle[0]
     theta = angle[1]
 
     
-    print("angle: " + str(angle) + " -> " + str(to_vector(angle)) + " = " + str(minima[i][1]))
+    print("angle: " + str(angle) + " -> " + str(to_vector(angle)) + " = " + str(mini[1]))
     
     # actor_c.RotateX(90)
     # actor_c.RotateY(angle[0] * 180/numpy.pi)
@@ -174,7 +174,7 @@ def generate_outline_box(size = [1,1,1], offset = [0,0,0]):
   colors.SetNumberOfComponents(3)
   colors.SetName("color")
   nc = vtk.vtkNamedColors().GetColor3d('black')
-  for c in range(len(edges)):
+  for c in edges:
     colors.InsertNextTuple3(nc[0], nc[1], nc[2])
   
   poly.GetCellData().SetScalars(colors)
@@ -239,8 +239,8 @@ def show_vtk(polydata, res, planes=[], show_edges=False, show_axes=False):
   renderWindow.SetSize(res, res)
    
   # Add the actor to the scene
-  for i in range(len(planes)):
-    renderer.AddActor(planes[i])
+  for plane in planes:
+    renderer.AddActor(plane)
 
   renderer.AddActor(actor)
   if show_axes:
@@ -308,14 +308,14 @@ def create_centered_bars(cells, points, coords, dim, angle=None, not_drawn = Non
   
   #optional parameters: @param  not_drawn (faces which are not drawn)
   #                     @param angle list of angle_x, angle_y, angle_z or None
-  for i in range(len(coords)):
-    p, c = create_centered_bar(cells, points, coords[i],dim, angle,not_drawn)
+  for cc in coords:
+    p, c = create_centered_bar(cells, points, cc, dim, angle, not_drawn)
     points_list.extend(p)
     cells_list.extend(c)
     
   return points_list, cells_list
   
-def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None):
+def create_centered_bar(cells, points, center, dim, angle=None, not_drawn = None):
   # helper for create_cross and create_frame
   # @param cells  vtk.vtkCellArray() where cells are added via InsertNextCell
   # @param points vtk.vtkPoints() where the points are added
@@ -335,9 +335,9 @@ def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None)
   base = points.GetNumberOfPoints()
   # calculate corner points of quad and add them to global points list
   point_vec = create_point_vector_centered_bar(center, dim, angle)
-  for i in range(len(point_vec)):
-    points.InsertNextPoint(point_vec[i])  # 0 ... 7
-    points_list.append(point_vec[i])
+  for p in point_vec:
+    points.InsertNextPoint(p)  # 0 ... 7
+    points_list.append(p)
   
   # Create a cell array to store the quad in
   # quads = vtk.vtkCellArray()
@@ -405,8 +405,50 @@ def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None)
     cells_list.append((base + 0,base + 1,base + 4,base + 5))
 
   return points_list, cells_list
+
+def create_block(coords, design, scale, thres = 0.0):
+  
+  s1 = design['s1']
+
+  centers, min, max, elem_dim = coords
+
+  dx = elem_dim[0]
+  dy = elem_dim[1] 
+  dz = elem_dim[2]
+
+  cells = vtk.vtkCellArray()
+  points = vtk.vtkPoints()
+
+  if scale <= 0:
+    scale = 1.0
+
+  for i, s in enumerate(s1):
+    coord = centers[i]
+    if s > thres:
+      create_centered_bar(cells, points, coord, (scale * dx, scale * dy, scale * dz))
+    
+  polydata = vtk.vtkPolyData()
+  polydata.SetPoints(points)
+  polydata.SetPolys(cells)
+  
+  colors = vtk.vtkUnsignedCharArray()
+  colors.SetNumberOfComponents(3)
+  colors.SetName("color")
+  nc = vtk.vtkNamedColors().GetColor3d('black')
+  for c in s1:
+    colors.InsertNextTuple3(nc[0], nc[1], nc[2])
+  
+#  polydata.GetCellData().SetScalars(colors)
+  
+  return polydata
+
 # # without rotation and shearing
-def create_3d_frame(coords, s1, s2, s3, angles, dir, scale):
+def create_3d_frame(coords, design, dir, scale):
+  
+  s1 = design['s1']
+  s2 = design['s2']
+  s3 = design['s3']
+  angles = design['angle']
 
   centers, min, max, elem_dim = coords
 
@@ -436,33 +478,33 @@ def create_3d_frame(coords, s1, s2, s3, angles, dir, scale):
     
   return polydata
 
-def sign(p1,p2,p3):
+def sign(p1, p2, p3):
   return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
 
-def point_in_triangle(pt, v1,v2,v3):
+def point_in_triangle(pt, v1, v2, v3):
   b1 = sign(pt, v1, v2) < 0.;
   b2 = sign(pt, v2, v3) < 0.;
   b3 = sign(pt, v3, v1) < 0.;
   return ((b1 == b2) and (b2 == b3));
 
-def test_point_outside_circle(midpoint,radius, point):
+def test_point_outside_circle(midpoint, radius, point):
   if (point[0] - midpoint[0]) ** 2 + (point[1] - midpoint[1]) ** 2 < radius ** 2:
     return False
   else:
     return True    
 
     
-def valid_bar_position_apod6(coords,center, dim, angle=None):
+def valid_bar_position_apod6(coords, center, dim, angle=None):
   point_vec = create_point_vector_centered_bar(center, dim, angle)
   valid = True
-  for i in range(len(point_vec)):
-    if not valid_position_apod6(point_vec[i], coords):
+  for p in point_vec:
+    if not valid_position_apod6(p, coords):
       valid = False
   return valid
 
 # # for the robot arm we have check for the two nondesign holes as they are within the
 # # convex hull of the design :(
-def valid_position_robot(pos, coords,opt=0):
+def valid_position_robot(pos, coords, opt=0):
   #mi, ma = coords[1:3]
   #delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
  # if int(delta[0]) == 508 and int(delta[2]) == 126:
@@ -473,7 +515,7 @@ def valid_position_robot(pos, coords,opt=0):
     return False
   return True
 
-def valid_position_lufo(pos,coords):
+def valid_position_lufo(pos, coords):
   dx = 2.
   dy = 2.
   dz = 2. 
@@ -533,7 +575,7 @@ def valid_position_lufo(pos,coords):
 
   return True   
 
-def valid_ring_position_apod6(pos, coords,opt = 0. ):
+def valid_ring_position_apod6(pos, coords, opt = 0. ):
   # option opt: change cut out area for validation mesh
   # coordinates of the holes manually, returns False if point is inside a hole
   # mesh is rotated by Ry
@@ -607,7 +649,7 @@ def valid_ring_position_apod6(pos, coords,opt = 0. ):
 
 # # for the apod6 part we have check for the holes in nondesign region as they are within the
 # # convex hull of the design :(
-def valid_position_apod6(pos, coords,opt = 0. ):
+def valid_position_apod6(pos, coords, opt = 0. ):
   # option opt: change cut out area for validation mesh
   # coordinates of the holes manually, returns False if point is inside a hole
   # mesh is rotated by Ry
@@ -706,7 +748,7 @@ def valid_position_apod6(pos, coords,opt = 0. ):
   return True
   
 # # without rotation and shearing
-def create_3d_frame_ip(coords, s1, s2, s3, angles, ip, grad, scale, valid_position, thres=0.0, csize = None):
+def create_3d_frame_ip(coords, design, ip, grad, scale, valid_position, thres=0.0, csize = None):
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
   # NOT tested with angles
   # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
@@ -717,7 +759,12 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip, grad, scale, valid_positi
   #                 If part is not implemented valid_position is None and no cells inside the convex hull are removed from the structure
   # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
   # csize: size of one cell, e.g. [8,8,8]
-  
+
+  s1 = design['s1']
+  s2 = design['s2']
+  s3 = design['s3']
+  angles = design['angles']
+    
   # point coordinates from h5 file
   centers, min, max = coords[0:3] 
   
@@ -768,7 +815,7 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip, grad, scale, valid_positi
           if True:# if s1 >= thres:#valid_bar_position_apod6(points,coord, (scale * scale_[0] * dx, scale * s1 * dx, scale * s1 * dx), angle):
             # draw thickest bars first 
             coords = []
-            for i  in range(4):
+            for _ in range(4):
               coords.append(coord)
             # add offset for s1 for all s1-bars
             coords[0] += [0.,-s1/4.,s1/4.]
@@ -865,7 +912,7 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip, grad, scale, valid_positi
   return polydata
 
 # # without rotation and shearing
-def create_3d_cross_ip(coords, s1, s2, s3, angles, ip_nx, grad, scale,valid_position,thres=0.0,csize = None):
+def create_3d_cross_ip(coords, design, ip_nx, grad, scale, valid_position, thres=0.0, csize = None):
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
   # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
   # grad: type of interpolation ('linear', 'nearest')
@@ -876,6 +923,11 @@ def create_3d_cross_ip(coords, s1, s2, s3, angles, ip_nx, grad, scale,valid_posi
   # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
   # csize: size of one cell, e.g. [8,8,8]
   
+  s1 = design['s1']
+  s2 = design['s2']
+  s3 = design['s3']
+  angles = design['angles']
+    
   # point coordinates from h5 file
   centers, min, max = coords[0:3] 
   
@@ -1101,7 +1153,7 @@ def show_write_vtk(poly, res, save, actors=[], show_axes=False):
   else:
     show_vtk(poly, res, actors, show_axes=show_axes)  
     
-def calc_cross_elem_vol_3D(s1,s2,s3):
+def calc_cross_elem_vol_3D(s1, s2, s3):
   # calculates element volume of cross structure in 3D
   vol = 0.
   for i in range(len(s1[:,0])):
@@ -1120,7 +1172,7 @@ def calc_cross_elem_vol_3D(s1,s2,s3):
 
 # writes polydata to file in STL format
 # @param save filename or none
-def write_stl(polydata,save=None):
+def write_stl(polydata, save=None):
   stlWriter =  vtk.vtkSTLWriter()
   fName = save if save else 'surface.stl'
   stlWriter.SetFileName(fName)
@@ -1158,7 +1210,7 @@ def fill_vtk_polydata(points,cells):
   
   return polydata
 
-def add_triangle(id1,id2,id3,cells):
+def add_triangle(id1, id2, id3, cells):
   assert(id1 != id2 and id2 != id3)
     
   i1 = id1
