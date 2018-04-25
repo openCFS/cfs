@@ -27,16 +27,6 @@ stages:
       - schedules # For scheduled pipelines
 
 # this is run before/after every step
-# we should be in the build dir and ready to run ctest
-before_script:
-  - mkdir -p build # make build dir
-  - cd build
-  - cat Testing/TAG || echo "no TAG" # debug
-  - rm -f CMakeCache.txt # clear old cache
-  # go back one commit and then update with CTest by checkoing out the test-SHA again
-  - git checkout HEAD~1
-  - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8}" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" ..
-# cleanup and CDash submission - in after to always submit a result, also if one 'script' command failed   
 after_script:
   - cd build
   - cat Testing/TAG || echo "no TAG" # debug
@@ -86,18 +76,21 @@ cache:
     - mkdir -p build # create if it does not exist
     - cd build # descend in build
     - rm -f CMakeCache.txt # clear old cache
+    # go back one revision and then update by test
+    - git checkout HEAD~1
     # try software collection, and if it fails use native gcc
     - rm -f scl_version
     # check gcc version via grep
     - (scl enable devtoolset-$GCC_VERSION -- gcc --version && echo $GCC_VERSION > scl_version) | grep "${GCC_VERSION}\.[0-9]\.[0-9]" || (scl enable devtoolset-3 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "3" > scl_version ) || gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
     # initial config with devtoolset
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC${GCC_VERSION}' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC${GCC_VERSION}' -DCTEST_GIT_UPDATE_CUSTOM='git;checkout;$CI_COMMIT_SHA' .." > config_cmd
     - scl enable devtoolset-`cat scl_version` -- sh config_cmd || sh config_cmd
 
 build:gcc4: # eventually we should have one job for each required configuration
   stage: build
   tags:
     - gcc4
+    - release
   variables:
     GCC_VERSION: 4
   <<: *gcc_before
@@ -148,7 +141,8 @@ complete-build:linux:
     - cd build # descend in build
     - ls # debug
     - tar -xzvf "CFS-"$CI_COMMIT_SHA"-Linux.tar.gz" --strip-components=1 # extract to correct location
-    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # ensure we have a working update command
+    - git checkout HEAD~1
+    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" .. # ensure we have a working update command
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
@@ -206,7 +200,7 @@ testsuite:gcc4:linux: # if the machine has multiple
 testsuite:gcc6:linux: # if the machine has multiple
   tags:
     - linux
-    - gcc6
+    - gcc6 # just to avoid centos6
   stage: test
   variables:
     BUILD_NAME: GCC6
@@ -218,7 +212,7 @@ testsuite:gcc6:linux: # if the machine has multiple
 testsuite:gcc7:linux: # if the machine has multiple
   tags:
     - linux
-    - gcc7
+    - gcc7 # just to avoid centos6
   stage: test
   variables:
     BUILD_NAME: GCC7
