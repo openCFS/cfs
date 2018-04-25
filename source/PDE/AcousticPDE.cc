@@ -1362,10 +1362,8 @@ namespace CoupledField{
         			CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
         }
         else {
-        	PtrCoefFct tmp2 = CoefFunction::Generate( mp_, part,
-                    			CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
-        	exValue = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, tmp2,surfDens,
-                                                     CoefXpr::OP_MULT) );
+          PtrCoefFct tmp2 = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
+          exValue = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, surfDens, tmp2, CoefXpr::OP_MULT) );
         }
 
         if( dim_ == 2) {
