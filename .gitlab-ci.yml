@@ -87,11 +87,12 @@ cache:
     - cd build # descend in build
     - rm -f CMakeCache.txt # clear old cache
     # try software collection, and if it fails use native gcc
+    - rm -f scl_version
     # check gcc version via grep
-    - scl enable devtoolset-$GCC_VERSION -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" || gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
+    - (scl enable devtoolset-$GCC_VERSION -- gcc --version && echo $GCC_VERSION > scl_version) | grep "${GCC_VERSION}\.[0-9]\.[0-9]" || (scl enable devtoolset-3 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "3" > scl_version ) || gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
     # initial config with devtoolset
     - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC${GCC_VERSION}' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
-    - scl enable devtoolset-$GCC_VERSION -- sh config_cmd || sh config_cmd  
+    - scl enable devtoolset-`cat scl_version` -- sh config_cmd || sh config_cmd
 
 build:gcc4: # eventually we should have one job for each required configuration
   stage: build
@@ -183,6 +184,9 @@ stable:gcc4:linux:
   tags:
     - linux
   stage: test
+  variables:
+    BUILD_NAME: GCC4
+  retry: 1
   <<: *test_stable
   dependencies:
     - build:gcc4
