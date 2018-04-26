@@ -53,11 +53,13 @@ cache:
 
 .default_build_job: &default_build_job
   script:
+    - cat pre_cmd || touch pre_cmd # be sure pre_cmd exists (it may contain scl-enable)
+    # we use the devtoolset for any second-level configure things to have the correct environment
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK -V
-    - ctest -D ExperimentalConfigure --track $CDASH_TRACK -V
+    - sh -c "$(cat pre_cmd) ctest -D ExperimentalConfigure --track $CDASH_TRACK -V"
     - ctest -D ExperimentalSubmit --track $CDASH_TRACK # intermittent submit to get live CDash results
-    - ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.out
+    - sh -c "$(cat pre_cmd) ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.out"
     - ctest -D ExperimentalSubmit --track $CDASH_TRACK
     - ctest -D ExperimentalTest -R Install --track $CDASH_TRACK # only do the install testing
     # check the coding_score
@@ -82,9 +84,11 @@ cache:
     - rm -f scl_version
     # check gcc version via grep
     - (scl enable devtoolset-$GCC_VERSION -- gcc --version && echo $GCC_VERSION > scl_version) | grep "${GCC_VERSION}\.[0-9]\.[0-9]" || (scl enable devtoolset-3 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "3" > scl_version ) || gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
-    # initial config with devtoolset
+    # write out the config_cmd
     - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC${GCC_VERSION}' -DCTEST_GIT_UPDATE_CUSTOM='git;checkout;$CI_COMMIT_SHA' .." > config_cmd
-    - scl enable devtoolset-`cat scl_version` -- sh config_cmd || sh config_cmd
+    # write out the correct scl as pre_cmd
+    - scl enable devtoolset-`cat scl_version` -- echo "scl enable devtoolset-$(cat scl_version) -- " > pre_cmd || echo "" > pre_cmd
+    - sh -c "$(cat pre_cmd) $(cat config_cmd)"
 
 build:gcc4: # eventually we should have one job for each required configuration
   stage: build
