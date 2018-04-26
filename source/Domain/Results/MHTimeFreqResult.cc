@@ -83,19 +83,40 @@ namespace CoupledField {
     this->CreateTimeVec();
   }
 
-  void MHTimeFreqResult::PrintTimeResults(){
-    for(UInt i = 0; i < this->GetNumTimeSteps(); ++i ){
-        //std::cout<<"Time result for time step "<< i <<" : "<<this->GetTimeResult(i).ToString()<<std::endl;
-        std::cout<<"Time result for time step "<< i <<" : " << this->GetTimeResult(i)[10]<< std::endl;
-    }
+
+  void MHTimeFreqResult::PrintTimeVector(){
+    LOG_DBG3(mhtimefreqresult) << "CoefFunctionHarmBalance: Time vector: " << timeVec_.ToString();
   }
 
-  void MHTimeFreqResult::PrintFreqResults(){
-    for(UInt i = 0; i < this->GetNumFreqSteps(); ++i ){
-      int harm = i - N_;
-      //std::cout<<"Frequency result for harmonic "<< harm <<" : "<<this->GetFreqResult(i).ToString()<<std::endl;
-      std::cout<<"Frequency result for harmonic "<< harm <<" : "<<this->GetFreqResult(i)[10]<<std::endl;
+
+  void MHTimeFreqResult::PrintTimeResults(const UInt& index){
+    std::string logString = "CoefFunctionHarmBalance: Time result for element with index ";
+    logString.append( boost::lexical_cast<std::string>(index) );
+    logString.append("\n \t and timesteps 0 to ");
+    logString.append( boost::lexical_cast<std::string>(this->GetNumTimeSteps() - 1) );
+    logString.append(" : \n");
+
+    // construct logging output
+    for(UInt i = 0; i < this->GetNumTimeSteps(); ++i){
+      logString.append( boost::lexical_cast<std::string>(this->GetTimeResult(i)[index].real()) );
+      logString.append(",\n");
     }
+    LOG_DBG3(mhtimefreqresult) << logString <<"\n";
+  }
+
+  void MHTimeFreqResult::PrintFreqResults(const UInt& index){
+    std::string logString = "CoefFunctionHarmBalance: Frequency result for element with index ";
+    logString.append( boost::lexical_cast<std::string>(index) );
+    logString.append("\n \t and frequency steps 0 to ");
+    logString.append( boost::lexical_cast<std::string>(this->GetNumFreqSteps() - 1) );
+    logString.append(" : \n");
+
+    // construct logging output
+    for(UInt i = 0; i < this->GetNumFreqSteps(); ++i){
+      logString.append( boost::lexical_cast<std::string>(this->GetFreqResult(i)[index]) );
+      logString.append(",\n");
+    }
+    LOG_DBG3(mhtimefreqresult) << logString <<"\n";
   }
 
 

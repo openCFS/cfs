@@ -223,53 +223,25 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
   void CoefFunctionHarmBalance<T>::
   UpdateHarm(){
     LOG_DBG(coeffctharmbalance) << "\t UpdateHarm()";
+    // Just for the logging output give the index of solution vector to print
+    UInt index = 20;
+    if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
+      freqTimeRes_.PrintTimeResults(index);
+      freqTimeRes_.PrintTimeVector();
+    }
 
-    std::cout<< this->mp_->GetExpr(harmHandle_  )<<std::endl;
-    std::cout<< this->mp_->Eval(harmHandle_) <<std::endl;
-
-//    std::string logString = "";
-//    if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
-//      // construct logging output
-//      for(UInt i = 0; i < freqTimeRes_.GetNumTimeSteps(); ++i){
-//        logString.append("CoefFunctionHarmBalance: Time result for time step ");
-//        logString.append( boost::lexical_cast<std::string>(i) );
-//        logString.append(" : ");
-//        logString.append(freqTimeRes_.GetTimeResult(i).ToString());
-//        logString.append("\n");
-//      }
-//    }
-//    LOG_DBG3(coeffctharmbalance) << logString <<"\n";
-
-freqTimeRes_.PrintTimeResults();
-
+    // Perform FFT of time-signal
     freqTimeRes_.TimeToFourier();
 
-freqTimeRes_.PrintFreqResults();
-
-//    logString = "";
-//    if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
-//      // construct logging output
-//      for(UInt i = 0; i < freqTimeRes_.GetNumFreqSteps(); ++i){
-//        logString.append("CoefFunctionHarmBalance: Frequency result for time step ");
-//        logString.append( boost::lexical_cast<std::string>(i) );
-//        logString.append(" : ");
-//        logString.append(freqTimeRes_.GetFreqResult(i).ToString());
-//        logString.append("\n");
-//      }
-//    }
-//    LOG_DBG3(coeffctharmbalance) << logString <<"\n";
-
-
+    if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
+      freqTimeRes_.PrintFreqResults(index);
+    }
   }
 
   template<class T>
   void CoefFunctionHarmBalance<T>::
   UpdateSolution(){
     LOG_DBG(coeffctharmbalance) << "\t Starting UpdateSolution() in CoefFunctionHarmBalance";
-
-    std::cout<< this->mp_->GetExpr(solHandle_  )<<std::endl;
-    std::cout<< this->mp_->Eval(solHandle_) <<std::endl;
-
 
     /*
      * 1. Check if the update callback was called more often than 2*N_+1

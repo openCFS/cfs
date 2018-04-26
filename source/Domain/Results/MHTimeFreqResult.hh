@@ -64,8 +64,13 @@ public:
     timeResInit_ = true;
   }
 
-  void PrintTimeResults();
-  void PrintFreqResults();
+
+  // ========================================================================
+  //  LOGGING / PRINT METHODS
+  // ========================================================================
+  void PrintTimeResults(const UInt& index);
+  void PrintFreqResults(const UInt& index);
+  void PrintTimeVector();
 
 
   // ========================================================================
@@ -96,6 +101,8 @@ public:
   UInt GetNumTimeSteps(){ return timeResult_.GetNumCols(); }
 
   UInt GetNumFreqSteps(){ return freqResult_.GetNumCols(); }
+
+  StdVector<Double> GetTimeStepVector(){ return timeVec_; }
 
 
   // ========================================================================

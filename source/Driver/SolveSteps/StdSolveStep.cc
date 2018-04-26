@@ -1397,8 +1397,6 @@ namespace CoupledField {
 
 
 
-    //hier dann sowas wie PDE_.SetMultHarmSolVec(harmonic i, solution) mit for loop
-
 
 
 
@@ -1493,11 +1491,11 @@ namespace CoupledField {
     ftRes.FourierToTime();
 
     // ========= Delete that...it's just to check the FFT ==============
-    ftRes.TimeToFourier();
-    ftRes.FourierToTime();
-    Vector<Complex> testFreq = ftRes.GetFreqResult(2);
-    Vector<Complex> testTime = ftRes.GetTimeResult(2);
-    std::cout<< testFreq.ToString() << " \n actSol(1) = " << actSol(1).ToString()<< " \n actSol(2) = " << actSol(2).ToString()<< " \n actSol(3) = "<< actSol(3).ToString()  << std::endl;
+    //ftRes.TimeToFourier();
+    //ftRes.FourierToTime();
+    //Vector<Complex> testFreq = ftRes.GetFreqResult(2);
+    //Vector<Complex> testTime = ftRes.GetTimeResult(2);
+    //std::cout<< testFreq.ToString() << " \n actSol(1) = " << actSol(1).ToString()<< " \n actSol(2) = " << actSol(2).ToString()<< " \n actSol(3) = "<< actSol(3).ToString()  << std::endl;
     // ==================================================================
 
 
@@ -1514,51 +1512,16 @@ namespace CoupledField {
       Vector<Complex> timeStepVec = ftRes.GetTimeResult(i);
       solVec_(0) = (Vector<Complex>)timeStepVec;
 
-
       // trigger the callback mechanism in CoefFunctionHarmBalance
-      // Now the PDE has the solution vector via the FeSpace
-      // and we activate the callback mechanism to cache the
-      // solution vector for current harmonic
-
+      // Now the PDE has the solution vector via the FeSpace and we activate
+      // the callback mechanism to cache the solution vector for current harmonic
       mParser_->SetValue(MathParser::GLOB_HANDLER, "cacheResult", i);
-
     }
 
     // Now that the nu(t) results are cached, we can perform the FFT
     UInt f = 1;
     mParser_->SetValue(MathParser::GLOB_HANDLER, "mhFlag", f);
     f = 0;
-
-
-
-
-    // Get the solution and store it
-    // Since the entries of solVec_ are pointers to the SingleVector
-    // of the FE function, it automatically inserts the values there
-
-    // Insert it back into the PDE via the pointer-vector solVec_
-//    for(UInt i = 0; i < solVecMH_.GetSize(); ++i){
-//      algsys_->GetSolutionVal(i, solVec_);
-      // Now the PDE has the solution vector via the FeSpace
-      // and we activate the callback mechanism to cache the
-      // solution vector for current harmonic
-//      mParser_->SetValue(MathParser::GLOB_HANDLER, "updateTrigger", true);
-
-
-//      that's where we have to hand over the solution vector to the CoefFunction for caching,
-//      then carry out the iFFT, evaluate the BH curve -> nu(B) -> FFT --> split into harmonics
-//      and return the \hat{\nu}_i back to assemble
-//
-//      ...actually the callback mechanism should read the solution vector from the PDE
-
-//    }
-
-
-
-
-
-
-
 
 
 
