@@ -131,16 +131,6 @@ protected:
   //! CoefFunction for magnetic flux density
   PtrCoefFct magFluxCoef_ = NULL;
 
-  //! CoefFunction for nonlinear reluctivity evaluation
-  //std::map<UInt, PtrCoefFct> nonLinNuCoefMap_;
-
-  //! Vector containing all regions the PDE is defined on. From StdPDE
-//  StdVector<RegionIdType> regions_;
-
-  //! Attribute handling info on material data
-  //! Maps regions and (simple) materials. From StdPDE
-  //std::map<RegionIdType, BaseMaterial*> materials_;
-
   //! Pointer to grid object
   Grid * ptGrid_;
 
@@ -155,11 +145,6 @@ protected:
 
   //! Safety flag to check if the elements of all regions were registered
   bool regionRegistration_;
-
-  //! Store the elements of each region (need information
-  //! about the integration points later on)
-  //StdVector< shared_ptr<ElemList> > elemListPerRegion_;
-  //StdVector< Integer > regionList_;
 
   //! Total number of elements
   UInt numElems_;
@@ -180,6 +165,7 @@ protected:
   Vector<Double> nuFreqTmp_;
 
 };
+
 } //end of namespace
 
 #endif

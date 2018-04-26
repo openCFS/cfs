@@ -1520,8 +1520,7 @@ namespace CoupledField {
 
     // Now that the nu(t) results are cached, we can perform the FFT
     UInt f = 1;
-    mParser_->SetValue(MathParser::GLOB_HANDLER, "mhFlag", f);
-    f = 0;
+    mParser_->SetValue(MathParser::GLOB_HANDLER, "finishCash", f);
 
 
 
@@ -1711,7 +1710,7 @@ namespace CoupledField {
 
     // Special treatment is needed for the diagonal blocks, due to the mass part,
     // therefore handle this case seperately
-    //Parser_->SetValue(MathParser::GLOB_HANDLER, "mhFlag", 0);
+    //Parser_->SetValue(MathParser::GLOB_HANDLER, "finishCash", 0);
     assemble_->AssembleMatrices_MultHarm(0, solStrat_->GetNumHarmN(),
         solStrat_->GetNumHarmM(),
         multHarmFreqVec_);
@@ -1720,7 +1719,7 @@ namespace CoupledField {
       for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
         // set the frequency of the current harmonic
         mParser_->SetValue(MathParser::GLOB_HANDLER, "f", multHarmFreqVec_[i]);
-        mParser_->SetValue(MathParser::GLOB_HANDLER, "mhFlag", i);
+        mParser_->SetValue(MathParser::GLOB_HANDLER, "finishCash", i);
         // which harmonic are we considering
         Integer h = -N + i;
         if (std::abs(h) >= (Integer) (M) || h == 0) {

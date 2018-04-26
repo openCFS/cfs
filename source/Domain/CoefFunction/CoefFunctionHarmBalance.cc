@@ -81,9 +81,9 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
     mp_ = domain->GetMathParser();
     harmHandle_ = mp_->GetNewHandle(true);
     // Bind the handle to the correct expression
-    mp_->SetExpr(harmHandle_,"mhFlag");
+    mp_->SetExpr(harmHandle_,"finishCash");
     // Flag for first time calculation
-    mp_->SetValue(MathParser::GLOB_HANDLER, "mhFlag", std::numeric_limits<unsigned int>::max());
+    mp_->SetValue(MathParser::GLOB_HANDLER, "finishCash", std::numeric_limits<unsigned int>::max());
     // register callback mechanism if expression changes
     mp_->AddExpChangeCallBack( boost::bind(&CoefFunctionHarmBalance<T>::UpdateHarm, this ), harmHandle_ );
 
@@ -136,11 +136,6 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
     PtrCoefFct ret = NULL;
 
-    // Check if this is the initial computation, if so, then we act like the material
-    // was linear
-    if(mp_->Eval(harmHandle_) == maxInt_ ){
-      // return the linear reluctivity
-      ret = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
 
       // Also set the correct nonlinear reluctivity evaluation CoefFunctions here
       // Only for the regions which are really nonlinear!
@@ -153,13 +148,12 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
         dimType_ = VECTOR;
         PtrCoefFct realThis = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_, (PtrCoefFct)this, CoefXpr::OP_RE));
         regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, realThis);
+        dimType_ = SCALAR;
+        ret = (PtrCoefFct)this;
       }else{
-        regStruc.nonLinNuCoefMap = ret;
+        regStruc.nonLinNuCoefMap = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
+        ret = (PtrCoefFct)this;
       }
-
-    }else{
-      EXCEPTION("CoefFunctionHarmBalance<T>::GenerateMatCoefFnc Nonlinear part not yet implemented");
-    }
     return ret;
   }
 
@@ -332,13 +326,11 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
   void CoefFunctionHarmBalance<T>::
   GetVector(Vector<T>& coefVec, const LocPointMapped& lpm){
 
-    // This is just for testing, don't take anything for granted from here !!!!!!!!!
-    Vector<Complex> tmp;
-    magFluxCoef_->GetVector(tmp, lpm);
-    coefVec = tmp.GetPart(Global::REAL);
-    //std::cout<<"=========================================================\n"
-    //           "========================================================="<<std::endl;
-    //EXCEPTION("CoefFunctionHarmBalance::GetVector NOT IMPLEMENTED YET")
+      // This is just for testing, don't take anything for granted from here !!!!!!!!!
+      Vector<Complex> tmp;
+      magFluxCoef_->GetVector(tmp, lpm);
+      coefVec = tmp.GetPart(Global::REAL);
+
   }
 
   template<class T>
@@ -362,6 +354,8 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
 
 
+
+
   // Explicit template instantiation
   #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
     template class CoefFunctionHarmBalance<Double>;
@@ -369,5 +363,3 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
   #endif
 
 } // end of namespace
-
-
