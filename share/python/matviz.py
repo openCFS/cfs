@@ -124,7 +124,7 @@ def read_design(hdf_file, dim_2D, args):
   return res
 
 # # show or write either Image or polydata
-# @param viz eithe Image or polydata
+# @param viz either Image or polydata
 # @save filename for output
 # @return the volume fraction if determined or None
 def show_or_write(viz, args):
@@ -153,7 +153,7 @@ def show_or_write(viz, args):
       print('write file: ' + args.save)
       fig.savefig(args.save, bbox_inches=extent)
       if args.save.split('.')[-1] != 'pdf':      
-        # I war not able to  render a memory image first, make an array out of the data and determine the grayness
+        # I was not able to render a memory image first, make an array out of the data and determine the grayness
         # So read again from file :( 
         tmp = Image.open(args.save).convert('L')  # make gray, otherwise data has the dimension x*y*4 (rgm + alpha)
         dat = numpy.array(tmp)
@@ -170,7 +170,7 @@ def show_or_write(viz, args):
     matplotlib.pyplot.close(fig)
 
   else:
-    show_write_vtk(viz, args.res, args.save)
+    show_write_vtk(viz, args.res, args.save, camera_settings=args.cam)
     
   return volume  
 
@@ -425,7 +425,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
           mins.append(tmp3[i]) 
       actors = create_symmetry_planes(mins, 1.2 * numpy.max(data if args.show == None else aux), not args.symmetries_planes == "false")
   
-    show_write_vtk(poly, args.res, args.save, actors, args.axes)  
+    show_write_vtk(poly, args.res, args.save, actors, args.axes, camera_settings=args.cam)  
   
   return volume
   
@@ -466,6 +466,7 @@ parser.add_argument("--stream_force", help="force streamlines for special cases"
 parser.add_argument("--minimal", help="minimal stiffness to be drawn, will be scaled", type=float, default=0.0)
 parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['simp','hom_rect', 'trans-iso', 'ortho'])
 parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")
+parser.add_argument("--cam", help="set camera (7 space-separated floats): position, focal point, roll", nargs=7, type=float, default=None)
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
 parser.add_argument("--penalty", help="penalty parameter for SIMP (default 5)", default=5.0)
 parser.add_argument("--color", help="only for hom_rot_cross: 'black' or colormap from http://matplotlib.org/examples/color/colormaps_reference.html, default='gray'", default="grayscale")
@@ -531,6 +532,7 @@ infoXml_read = None
 elem_dim = None
 min_bb = None
 max_bb = None
+
 # check if we read data from command line instead from an h5 file or a info.xml was given
 if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.endswith(".mat"):
     

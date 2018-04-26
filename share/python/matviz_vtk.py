@@ -3,6 +3,7 @@ from numpy import *
 import scipy.interpolate as ip 
 import time
 import vtk
+from os.path import splitext
 
 #from vtk.util.colors import *
 
@@ -183,7 +184,7 @@ def generate_outline_box(size = [1,1,1], offset = [0,0,0]):
   
 # show the data on the screen
 # @planes list of vtk actors containing symmetry planes 
-def show_vtk(polydata, res, planes=[], show_edges=False, show_axes=False):
+def show_vtk(polydata, res, save, planes=[], show_edges=False, show_axes=False, camera_settings=None):
   # Create a mapper and actor
   mapper = vtk.vtkPolyDataMapper()
   if vtk.VTK_MAJOR_VERSION <= 5:
@@ -235,7 +236,7 @@ def show_vtk(polydata, res, planes=[], show_edges=False, show_axes=False):
   renderWindow.AddRenderer(renderer);
   renderWindowInteractor = vtk.vtkRenderWindowInteractor()
   renderWindowInteractor.SetRenderWindow(renderWindow)
-   
+
   renderWindow.SetSize(res, res)
    
   # Add the actor to the scene
@@ -247,14 +248,68 @@ def show_vtk(polydata, res, planes=[], show_edges=False, show_axes=False):
     renderer.AddActor(axes)
 
   renderer.SetBackground(1, 1, 1)  # Background color white
+#  renderWindow.SetAlphaBitPlanes(1)
+
+  if camera_settings:
+    renderWindow.Render()
+    cam = vtk.vtkCamera()
+    cam.SetPosition(camera_settings[0], camera_settings[1], camera_settings[2])
+    cam.SetFocalPoint(camera_settings[3], camera_settings[4], camera_settings[5])
+    cam.SetRoll(camera_settings[6])
+    renderer.SetActiveCamera(cam)
 
   # Render and interact
   renderWindow.Render()
-   
-  #*** SetWindowName after renderWindow.Render() is called***
-  # renderWindow.SetWindowName("Test")
-   
-  renderWindowInteractor.Start()
+
+
+  if save:
+    save_screenshot(renderWindow, save)
+  else:
+    #*** SetWindowName after renderWindow.Render() is called***
+    # renderWindow.SetWindowName("Test")
+    renderWindowInteractor.Start()
+
+  # Display camera settings
+  cam = renderer.GetActiveCamera()
+  cam_settings = '{:f} {:f} {:f}'.format(*cam.GetPosition())
+  cam_settings += ' {:f} {:f} {:f}'.format(*cam.GetFocalPoint())
+  cam_settings += ' {:f}'.format(cam.GetRoll())
+  print('camera when closing window: ' + cam_settings)
+
+
+def save_screenshot(renderWindow, save):
+  renderWindow.SetOffScreenRendering(True)
+  renderWindow.Render()
+
+  windowToImageFilter = vtk.vtkWindowToImageFilter()
+  windowToImageFilter.SetInput(renderWindow)
+  windowToImageFilter.Update()
+  
+  fileType = splitext(save)[1]
+  if fileType == '.png':
+    writer = vtk.vtkPNGWriter()
+    writer.SetFileName(save)
+    writer.SetInputConnection(windowToImageFilter.GetOutputPort())
+    writer.Write()
+  elif fileType == '.pdf':
+    writer = vtk.vtkGL2PSExporter()
+    writer.SetSilent(True)
+    writer.SetFileFormatToPDF()
+    writer.SetTitle(save)
+    writer.SetRenderWindow(renderWindow)
+    writer.SetFilePrefix(splitext(save)[0])
+    writer.Write()
+  elif fileType == '.eps':
+    writer = vtk.vtkGL2PSExporter()
+    writer.SetSilent(True)
+    writer.SetFileFormatToEPS()
+    writer.SetTitle(save)
+    writer.SetRenderWindow(renderWindow)
+    writer.SetFilePrefix(splitext(save)[0])
+    writer.Write()
+  else:
+    print('File type {:s} not supported. Choose one out of (png).'.format(fileType))
+
 
 def create_point_vector_centered_bar(center, dim, angle=None):
   
@@ -1139,8 +1194,8 @@ def get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx
 # # litte helper
 # @param save filename or none
 # @param list which might be empty
-def show_write_vtk(poly, res, save, actors=[], show_axes=False):
-  if save:
+def show_write_vtk(poly, res, save, actors=[], show_axes=False, camera_settings=None):
+  if save and save.split('.')[-1] == 'vtp':
     writer = vtk.vtkXMLPolyDataWriter()
     if vtk.VTK_MAJOR_VERSION <= 5:
       writer.SetInput(poly)
@@ -1151,7 +1206,7 @@ def show_write_vtk(poly, res, save, actors=[], show_axes=False):
     writer.Write()
     print("saved polydata to file", save)
   else:
-    show_vtk(poly, res, actors, show_axes=show_axes)  
+    show_vtk(poly, res, save, actors, show_axes=show_axes, camera_settings=camera_settings)  
     
 def calc_cross_elem_vol_3D(s1, s2, s3):
   # calculates element volume of cross structure in 3D
