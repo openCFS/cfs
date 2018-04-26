@@ -154,6 +154,19 @@ namespace CoupledField {
       return nnz_;
     }
 
+    virtual T GetDiagEntry(unsigned int row) const = 0;
+
+    T GetTrace() const
+    {
+      assert(GetNumRows() == GetNumCols());
+      T res = 0;
+      for(unsigned int i = 0; i < GetNumRows(); i++)
+        res += GetDiagEntry(i);
+      return res;
+    }
+
+    T GetAvgDiag() const { return GetTrace() * (1./GetNumRows()); }
+
     /** see the specific implementations */
     virtual UInt GetRowSize(UInt i) const =0;
 

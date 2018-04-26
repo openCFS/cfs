@@ -45,6 +45,7 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
     LOG_DBG(genEigSolver) << "GESO: id=" << eSolverId << " childs=" << sNodes.GetSize();
     PtrParamNode eSolverXML;
     for( UInt i = 0; i < sNodes.GetSize(); ++i ) {
+      LOG_DBG(genEigSolver) << "GESO: test " << sNodes[i]->Get("id")->As<std::string>();
       if( sNodes[i]->Get("id")->As<std::string>() == eSolverId ) {
         eSolverXML = sNodes[i]; 
       }

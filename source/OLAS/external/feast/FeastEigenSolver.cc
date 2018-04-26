@@ -169,7 +169,7 @@ void FeastEigenSolver::CalcEigenFrequencies(BaseVector& bvs, BaseVector& err)
     double epsout;
     int loop;
     e.Resize(m0_); // e: m found eigenvalues
-    assert((int) x_.Capacity() >= n_ * m0_);
+    assert((int) x_.GetCapacity() >= n_ * m0_);
     res.Resize(m0_); // the first m get the relative residuals
 
     if(!generalized_)

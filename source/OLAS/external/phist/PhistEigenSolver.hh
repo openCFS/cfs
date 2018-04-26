@@ -163,6 +163,9 @@ namespace CoupledField {
     /** remove when switching to new interface, we then have eigenProblemType_ */
     bool sym_ = false;
 
+    /** from the last ev the iterations */
+    int last_iter_ = -1;
+
     /** sorts the eigenfrequencies and sets the sort_idx_ permutation. */
     void SetupSortIdx(const StdVector<double>& freq); // TODO: move to BaseEigenSolver
 

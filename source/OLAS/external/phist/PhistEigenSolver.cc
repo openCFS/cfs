@@ -88,6 +88,11 @@ namespace CoupledField {
     LOG_DBG(pes) << "SM: lda=" << lda << " nloc=" << nloc << " nEig=" << nEig;
     LOG_DBG3(pes) << "SM: xval=" << ToString(xval, nloc * lda);
 
+    if(lda != nEig)
+      EXCEPTION("phist could only solve for " << lda << " of " << nEig << " modes");
+    if(nloc == 0)
+      EXCEPTION("phist could could not compute the eigenmodes");
+
     // this is how one can extract the eigenvectors.
     mode_.Resize(nEig, nloc);
     // we rescale x by sqrt(scaling) as we have x^T (scale*B) x = 1
@@ -101,7 +106,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void PhistEigenSolver::Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian)
+  void PhistEigenSolver::Setup(const BaseMatrix& A, const BaseMatrix& B, bool isHermitian)
   {
     shared_ptr<Timer> timer = info_->Get(ParamNode::SUMMARY)->Get("phist_setup/timer")->AsTimer();
     timer->Start();
@@ -114,8 +119,10 @@ namespace CoupledField {
 
     // we scale the B-Matrix as suggested by Jonas:
     // A*x=lambda*sigma*B*x, with z.B. sigma=1.0/B(1,1) and then rescale
-    TYPE b11;
-    dynamic_cast<const StdMatrix*>(&B)->GetDiagEntry(0, b11);
+    const SparseOLASMatrix<TYPE>* olas = dynamic_cast<const SparseOLASMatrix<TYPE>* >(&B);
+    assert(olas != NULL);
+    TYPE b11 = olas->GetAvgDiag();
+
     assert(((Complex) b11).real() > 1e-15);
     scale_mass_val_ = scale_mass_ ? ((Complex) (1./b11)).real() : 1.0;
     LOG_DBG(pes) << "PES:S b11=" << b11 << " -> B-scale=" << scale_mass_val_;
@@ -198,6 +205,7 @@ namespace CoupledField {
     phist::jada<TYPE>::subspacejada(opA, opB, opts_, Q, R, ev_.GetPointer(), resNorm_.GetPointer(), &nEig, &nIter, &iflag);
     LOG_DBG(pes) << "subspacejada -> nEig=" << nEig << " nIter=" << nIter << " ev=" << ev_.ToString() << " -> " << iflag;
     assert(iflag >= 0);
+    last_iter_ = nIter;
 
     // skip calculation of real residual, res = AQ - BQR
 
@@ -277,6 +285,8 @@ namespace CoupledField {
 
     for(unsigned int i = 0; i < freq.GetSize(); i++)
       sort_idx_[i] = org[i].second;
+
+    std::cout << "phist sort: " << sort_idx_.ToString() << std::endl;
   }
 
 
@@ -302,7 +312,7 @@ namespace CoupledField {
     opts_.blockSize = xml_->Get("blockSize")->As<int>();
     opts_.maxIters  = xml_->Get("maxIter")->As<int>();
     opts_.minBas    = numFreq + 2 * opts_.blockSize; // 28
-    opts_.maxBas    = 60; //opts.minBas + 10 * opts.blockSize; // 60
+    opts_.maxBas    = xml_->Get("maxBas")->As<int>(); //opts.minBas + 10 * opts.blockSize; // 60
 
     // parameters for the linear system stuff. The element is optional
     bool is = xml_->Has("innerSolv");
@@ -337,7 +347,6 @@ namespace CoupledField {
     phist->Get("minBas")->SetValue(opts_.minBas);
     phist->Get("maxBas")->SetValue(opts_.maxBas);
     phist->Get("which")->SetValue(which.ToString(opts_.which));
-    phist->Get("mass_scaling")->SetValue(scale_mass_val_);
 
     PtrParamNode is = phist->Get("innerSolv");
     is->Get("type")->SetValue(linSolv.ToString(opts_.innerSolvType));
@@ -347,11 +356,19 @@ namespace CoupledField {
     is->Get("maxIter")->SetValue(opts_.innerSolvMaxIters);
     is->Get("robust")->SetValue(opts_.innerSolvRobust);
     is->Get("blockSize")->SetValue(opts_.innerSolvBlockSize);
+
+    PtrParamNode proc = info_->Get(ParamNode::PROCESS);
+    PtrParamNode curr = proc->Get("phist", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
+    curr->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());
+    curr->Get("iter")->SetValue(last_iter_);
+    curr->Get("mass_scaling")->SetValue(scale_mass_val_);
+
   }
 
   void PhistEigenSolver::Setup(const BaseMatrix& stiffMat, const BaseMatrix& massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
   {
     LOG_DBG(pes) << "PES:S(stiff, mass)";
+
 
     this->numFreq_ = numFreq;
     this->freqShift_ = freqShift;
@@ -400,12 +417,7 @@ namespace CoupledField {
     LOG_DBG(pes) << "GEM: modeNr=" << modeNr;
     assert(mode_.GetNumRows() > 0 && mode_.GetNumCols() > 0);
     if(modeNr >= mode_.GetNumRows())
-    {
-      std::cout << "PhistEigenSolver::GetEigenMode(" << modeNr << ") not in 0 ... " << mode_.GetNumRows() << std::endl;
-      mode.Init(0);
-      return;
-    }
-    assert(modeNr < mode_.GetNumRows()); // assume 0-based
+      EXCEPTION("request mode " << (modeNr+1) << " (1-based) not available");
 
     mode.Resize(mode_.GetNumCols());
     mode_.GetRow(mode, modeNr);

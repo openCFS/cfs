@@ -228,6 +228,8 @@ namespace CoupledField {
       v = data_[i];
     }
 
+    T GetDiagEntry(unsigned int row) const { return data_[row]; }
+
     //! Determine maximum absolute value of diagonal entries
 
     //! This method determines the the maximal absolute value (on the scalar)
