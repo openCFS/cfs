@@ -30,7 +30,7 @@ stages:
 after_script:
   - cd build
   - cat Testing/TAG || echo "no TAG" # debug
-  - ctest -D ExperimentalSubmit --track $CDASH_TRACK -V
+  - ctest -D ExperimentalSubmit --track $CDASH_TRACK
   - rm CMakeCache.txt || echo "no CMakeCache.txt ?"
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
