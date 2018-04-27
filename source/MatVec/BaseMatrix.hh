@@ -177,7 +177,6 @@ namespace CoupledField {
     //! level of the entries on the main diagonal of the matrix.
     virtual Double GetMaxDiag() const = 0;
 
-
     // **** Matrix Data and Structure information ****
 
 

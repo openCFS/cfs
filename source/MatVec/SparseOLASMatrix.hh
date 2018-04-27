@@ -4,6 +4,7 @@
 #include "BaseMatrix.hh"
 #include "StdMatrix.hh"
 #include "Vector.hh"
+#include "MatVec/opdefs.hh"
 
 namespace CoupledField {
 
@@ -166,6 +167,14 @@ namespace CoupledField {
     }
 
     T GetAvgDiag() const { return GetTrace() * (1./GetNumRows()); }
+
+    double GetMaxDiag() const
+    {
+      double maxDiag = -1e-70;
+      for(unsigned int i = 0; i < this->nrows_; ++i )
+        maxDiag = std::max(maxDiag, Abs<T>(GetDiagEntry(i)));
+      return maxDiag;
+    }
 
     /** see the specific implementations */
     virtual UInt GetRowSize(UInt i) const =0;

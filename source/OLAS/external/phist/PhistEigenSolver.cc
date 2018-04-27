@@ -206,6 +206,10 @@ namespace CoupledField {
     LOG_DBG(pes) << "subspacejada -> nEig=" << nEig << " nIter=" << nIter << " ev=" << ev_.ToString() << " -> " << iflag;
     assert(iflag >= 0);
     last_iter_ = nIter;
+    sum_iter_ += nIter;
+    count_iter_++;
+
+
 
     // skip calculation of real residual, res = AQ - BQR
 
@@ -361,7 +365,9 @@ namespace CoupledField {
     PtrParamNode curr = proc->Get("phist", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
     curr->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());
     curr->Get("iter")->SetValue(last_iter_);
+    curr->Get("avg_iter")->SetValue(sum_iter_ / (double) count_iter_);
     curr->Get("mass_scaling")->SetValue(scale_mass_val_);
+    curr->Get("sorting")->SetValue(sort_idx_.ToString());
 
   }
 
