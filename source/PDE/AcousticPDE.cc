@@ -89,6 +89,10 @@ namespace CoupledField{
   std::map<SolutionType, shared_ptr<FeSpace> > AcousticPDE::CreateFeSpaces( const std::string&  formulation,
                   PtrParamNode infoNode ){
 
+    if(this->analysistype_ == STATIC){
+      EXCEPTION("No STATIC analysis in AcousticPDE");
+    }
+
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H1"){
       std::string form = SolutionTypeEnum.ToString(formulation_);
