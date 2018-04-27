@@ -78,8 +78,6 @@ cache:
     - mkdir -p build # create if it does not exist
     - cd build # descend in build
     - rm -f CMakeCache.txt # clear old cache
-    # go back one revision and then update by ctest
-    - git checkout HEAD~1
     # try software collection, and if it fails, use native gcc
     - rm -f scl_version
     # check gcc version via grep
@@ -89,6 +87,8 @@ cache:
     # write out the correct scl as pre_cmd
     - scl enable devtoolset-`cat scl_version` -- echo "scl enable devtoolset-$(cat scl_version) -- " > pre_cmd || echo "" > pre_cmd
     - sh -c "$(cat pre_cmd) $(cat config_cmd)"
+    # go back one revision and then update by ctest
+    - git checkout HEAD~1
 
 build:gcc4: # eventually we should have one job for each required configuration
   stage: build
@@ -128,7 +128,9 @@ complete-build:linux:
     - rm -rf build # clear
     - mkdir build
     - cd build
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / complete-build" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / complete-build" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" ..
+    # go back one revision and then update by ctest
+    - git checkout HEAD~1
   <<: *default_build_job
 
 
@@ -144,7 +146,7 @@ complete-build:linux:
     - mkdir -p build
     - cd build # descend in build
     - ls # debug
-    - tar -xzvf "CFS-"$CI_COMMIT_SHA"-Linux.tar.gz" --strip-components=1 # extract to correct location
+    - tar -xzvf "CFS-$CI_COMMIT_SHA-Linux.tar.gz" --strip-components=1 # extract to correct location
     - git checkout HEAD~1
     - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" .. # ensure we have a working update command
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
