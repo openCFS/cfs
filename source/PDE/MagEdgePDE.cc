@@ -192,8 +192,15 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
         //compute permeability
         PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-        PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, nuNl, CoefXpr::OP_DIV ) );
-        matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+
+        if(analysistype_ == MULTIHARMONIC){
+          PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::COMPLEX, CoefXprBinOp(mp_, constOne, nuNl, CoefXpr::OP_DIV ) );
+          matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+        }else{
+          PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, nuNl, CoefXpr::OP_DIV ) );
+          matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+        }
+
 
         BaseBDBInt* stiff1 = NULL;
         stiff1 = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
@@ -814,9 +821,17 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     permeability->unit = "Vs/Am";
     permeability->definedOn = ResultInfo::ELEMENT;
     permeability->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
-    matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
-    DefineFieldResult(permFct, permeability);
+    // In multiharmonic analysis we have complex permeability
+    if(analysistype_ == MULTIHARMONIC){
+      shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, true));
+      matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
+      DefineFieldResult(permFct, permeability);
+    }else{
+      shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
+      matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
+      DefineFieldResult(permFct, permeability);
+    }
+
   }
 
   void MagEdgePDE::DefinePostProcResults() {

@@ -1385,40 +1385,6 @@ namespace CoupledField {
     // Calls method ApplyBC and ApplyLoads in FeFunction
     PDE_.SetBCs();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // Usually this is the place where the method algsys_->GetRHSVal(rhsVec_)
-    // is called to store the rhs vector back to PDE but in the multiharmonic
-    // case this must be done for each frequency, which is
-    // triggered in MultiharmonicDriver::SolveProblem after the whole system is solved
-    // by a call to StdSolveStep::GetRHSValMultHarm(h), where h is the harmonic number
-
     std::map<FEMatrixType,Double> empty;
     algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
 
@@ -1431,27 +1397,6 @@ namespace CoupledField {
 
     // Solve the linear system
     algsys_->Solve();
-
-    // Usually this is the place where the method algsys_->GetSolutionVal(solVec_)
-    // is called but in the multiharmonic case this must be done for each frequency,
-    // which is triggered in MultiharmonicDriver::SolveProblem after the whole system
-    // is solved, by a call to StdSolveStep::GetSolutionValMultHarm(h),
-    // where h is the harmonic number.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     // =========================================================
     //  2) Solve the full multiharmonic nonlinear system
@@ -1469,42 +1414,38 @@ namespace CoupledField {
     solVecMH_.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
     algsys_->GetFullMultiHarmSolutionVal( solVecMH_, false);
 
-
-
     // Get actual solution. Usually it is done via actSol = solVec_;
     // but we need the full multiharmonic solution vector
     SBM_Vector actSol(BaseMatrix::COMPLEX);
     actSol = solVecMH_;
 
-
-
-
-
-
-
-    // =========================================================================
+    // ========================================================================
     // Create multiharmonic time-frequency object and provide basic information
-    // =========================================================================
+    // ========================================================================
     MHTimeFreqResult ftRes(N, M, bF, numFFT);
 
+    // Register the multiharmonic solution at MHTimeFreqREsult
     ftRes.SetFrequencyResult(actSol);
+    // and transform the solution into time-domain to be able
+    // to evaluate the nonlinearity (e.g. BH curve in electromagnetics)
     ftRes.FourierToTime();
 
-    // ========= Delete that...it's just to check the FFT ==============
-    //ftRes.TimeToFourier();
-    //ftRes.FourierToTime();
-    //Vector<Complex> testFreq = ftRes.GetFreqResult(2);
-    //Vector<Complex> testTime = ftRes.GetTimeResult(2);
-    //std::cout<< testFreq.ToString() << " \n actSol(1) = " << actSol(1).ToString()<< " \n actSol(2) = " << actSol(2).ToString()<< " \n actSol(3) = "<< actSol(3).ToString()  << std::endl;
-    // ==================================================================
 
+    // ============================================================================
+    // Evaluation of nonlinearity via callback mechanism in CoefFunctionHarmBalance
+    // ============================================================================
 
     // Now we have to evaluate the nonlinearity at every integration point
+    // (not yet possible, so we evaluate it element wise)
     // and transform the time signal back into frequency domain.
     // Therefore we loop over every time step, which MHTimeFreqResult provides
     // and set the solVec_ pointer to the correct sub-SBM vector in FeFunctions.
     // Then the CoefFunctionHarmBalance should evaluate the nonlinearity at the
     // integration points and store the solution...still in time domain.
+    // The transformation back into the frequency domain is carried out after this
+    // loop via changing the math parser variable "finishCash", which is a callback
+    // to CoefFunctionHarmBalance::UpdateSolution() and transforms the nu(t) into
+    // nu(harmonic)
 
     // Loop over time steps
     for(UInt i = 0; i < ftRes.GetNumTimeSteps(); ++i){
@@ -1512,7 +1453,7 @@ namespace CoupledField {
       Vector<Complex> timeStepVec = ftRes.GetTimeResult(i);
       solVec_(0) = (Vector<Complex>)timeStepVec;
 
-      // trigger the callback mechanism in CoefFunctionHarmBalance
+      // Trigger the callback mechanism in CoefFunctionHarmBalance
       // Now the PDE has the solution vector via the FeSpace and we activate
       // the callback mechanism to cache the solution vector for current harmonic
       mParser_->SetValue(MathParser::GLOB_HANDLER, "cacheResult", i);
@@ -1523,20 +1464,15 @@ namespace CoupledField {
     mParser_->SetValue(MathParser::GLOB_HANDLER, "finishCash", f);
 
 
+    // ===========================================================
+    //  2.1.1) Actual beginning of outer loop
+    // ===========================================================
 
-
-
-
-
-
-
-
-
-
-
-
-    // TODO this hardcoded variable is just for development purposes and must be changed!!
+    // FIXME this hardcoded variable is just for development purposes and must be changed!!
     // Number of outer iterations currently hardcoded
+    std::cout<<"======================================================= \n"
+               "        StdSolveStep ADAPT THE INNER ITERATION NUMBER \n"
+               "======================================================= \n"<<std::endl;
     UInt numLevels = 3;
     for( UInt iLevel = 0; iLevel < numLevels; ++iLevel ) {
       // Create new timer object and put it to related info element

@@ -83,7 +83,8 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
     // Bind the handle to the correct expression
     mp_->SetExpr(harmHandle_,"finishCash");
     // Flag for first time calculation
-    mp_->SetValue(MathParser::GLOB_HANDLER, "finishCash", std::numeric_limits<unsigned int>::max());
+    //mp_->SetValue(MathParser::GLOB_HANDLER, "finishCash", std::numeric_limits<unsigned int>::max());
+    mp_->SetValue(MathParser::GLOB_HANDLER, "finishCash", 0);
     // register callback mechanism if expression changes
     mp_->AddExpChangeCallBack( boost::bind(&CoefFunctionHarmBalance<T>::UpdateHarm, this ), harmHandle_ );
 
@@ -142,7 +143,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
       if( nonLin ){
         LOG_DBG(coeffctharmbalance) << "Generating nonlinear multiharmonic "
             "material coefficient function for region"<< actRegion <<" with material "<< actMat;
-
+        regStruc.isNonLin = true;
         // we need the real part of this CoefFunction GetVector because the
         // GetScalCoefFncNonLin method can only handle real values
         dimType_ = VECTOR;
@@ -151,6 +152,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
         dimType_ = SCALAR;
         ret = (PtrCoefFct)this;
       }else{
+        regStruc.isNonLin = false;
         regStruc.nonLinNuCoefMap = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
         ret = (PtrCoefFct)this;
       }
@@ -319,7 +321,27 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
   template<class T>
   void CoefFunctionHarmBalance<T>::
   GetScalar(T& coefScal, const LocPointMapped& lpm ){
-    EXCEPTION("CoefFunctionHarmBalance::GetScalar NOT IMPLEMENTED YET")
+
+    RegionIdType elemReg = lpm.ptEl->regionId;
+    if( this->mp_->Eval(harmHandle_) == 0 ){
+      // loop over regions and get the region of the lpm
+      for(auto reg : hbRegion_){
+        if( reg.region == elemReg){
+          reg.nonLinNuCoefMap->GetScalar(coefScal, lpm);
+          break;
+        }
+      }
+    }else{
+      // Set in StdSolveStep::AssembleMH
+      UInt freqStep = this->mp_->Eval(harmHandle_);
+      // Get the corresponding nu(harmonic) result
+      //freqTimeRes_.GetFreqResult(freqStep)
+
+
+      EXCEPTION("NOT IMPLEMENTED YET")
+    }
+
+
   }
 
   template<class T>

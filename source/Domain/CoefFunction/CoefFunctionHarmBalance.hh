@@ -101,6 +101,8 @@ protected:
 
     //! Region, the PDE is defined on. From StdPDE
     RegionIdType region;
+
+    bool isNonLin;
   };
   //! DESCRIBE ME
   //! ===========================================
@@ -164,6 +166,8 @@ protected:
   Vector<UInt> nuFreqTmpELEM_;
   Vector<Double> nuFreqTmp_;
 
+  //! Map for getting the position of a certain elemNum in the freqTimeRes_ construct
+  boost::unordered_map<UInt, UInt> positionOfElem_;
 };
 
 } //end of namespace
