@@ -50,7 +50,7 @@ if(BUILD_ANACONDA3)
   mark_as_advanced(PYTHON_INCLUDE_DIR)
 else(BUILD_ANACONDA3)
   # look for anaconda in mdmt environment
-  find_program(PYTHON_EXECUTABLE NAMES python PATHS "/share/programs/anaconda/3/latest/bin" "/share/programs/anaconda/2/latest/bin" NO_DEFAULT_PATH)
+  find_program(PYTHON_EXECUTABLE NAMES python PATHS "/share/programs/anaconda/latest/bin" "/share/programs/anaconda/3/latest/bin" "/share/programs/anaconda/2/latest/bin" NO_DEFAULT_PATH)
   # find system python
   FIND_PACKAGE(PythonInterp)
   FIND_PACKAGE(PythonLibs)
