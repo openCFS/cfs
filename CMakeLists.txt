@@ -406,15 +406,16 @@ SET(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING
 # set the mode of cfstool
 SET(CFS_TESTSUITE_CFSTOOL_MODE "scalardiff" CACHE STRING "The mode used to compare hdf5 files by cfstool. May be 'scalardiff', 'L2diff', or 'relL2diff'.")
 IF( NOT ( (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "scalardiff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "L2diff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "relL2diff") ) )
-  MESSAGE("select a correct value for CFS_TESTSUITE_CFSTOOL_MODE.")
+  MESSAGE(FATAL_ERROR "select a correct value for CFS_TESTSUITE_CFSTOOL_MODE: 'scalardiff', 'L2diff', or 'relL2diff'")
 ENDIF()
 
 # set the number of thread to use for the testing runs
 include(ProcessorCount)
 ProcessorCount(NCPU)
 SET(CFS_TESTSUITE_THREADS "${NCPU}" CACHE STRING "Number of threads to use for the cfs testing runs, i.e. use argument '-t CFS_TESTSUITE_THREADS' in cfs runs.")
+# check if integer is set
 IF(NOT CFS_TESTSUITE_THREADS MATCHES "^[1-9][0-9]*$")
-  MESSAGE("CFS_TESTSUITE_THREADS must be integer valued.")
+  MESSAGE(FATAL_ERROR "CFS_TESTSUITE_THREADS must be integer valued.")
 ENDIF()
 
 #-----------------------------------------------------------------------------

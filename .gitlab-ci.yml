@@ -27,20 +27,10 @@ stages:
       - schedules # For scheduled pipelines
 
 # this is run before/after every step
-# we should be in the build dir and ready to run ctest
-before_script:
-  - mkdir -p build # make build dir
-  - cd build
-  - cat Testing/TAG || echo "no TAG" # debug
-  - rm -f CMakeCache.txt # clear old cache
-  # go back one commit and then update with CTest by checkoing out the test-SHA again
-  - git checkout HEAD~1
-  - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8}" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" ..
-# cleanup and CDash submission - in after to always submit a result, also if one 'script' command failed   
 after_script:
   - cd build
   - cat Testing/TAG || echo "no TAG" # debug
-  - ctest -D ExperimentalSubmit --track $CDASH_TRACK -V
+  - ctest -D ExperimentalSubmit --track $CDASH_TRACK
   - rm CMakeCache.txt || echo "no CMakeCache.txt ?"
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
@@ -63,11 +53,13 @@ cache:
 
 .default_build_job: &default_build_job
   script:
+    - cat pre_cmd || touch pre_cmd # be sure pre_cmd exists (it may contain scl-enable)
+    # we use the devtoolset for any second-level configure things to have the correct environment
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK -V
-    - ctest -D ExperimentalConfigure --track $CDASH_TRACK -V
+    - sh -c "$(cat pre_cmd) ctest -D ExperimentalConfigure --track $CDASH_TRACK -V"
     - ctest -D ExperimentalSubmit --track $CDASH_TRACK # intermittent submit to get live CDash results
-    - ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.out
+    - sh -c "$(cat pre_cmd) ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.out"
     - ctest -D ExperimentalSubmit --track $CDASH_TRACK
     - ctest -D ExperimentalTest -R Install --track $CDASH_TRACK # only do the install testing
     # check the coding_score
@@ -81,48 +73,49 @@ cache:
     expire_in: 3 days
   <<: *default_pipeline_rules
 
-build:gcc4: # eventually we should have one job for each required configuration
-  stage: build
-  tags:
-    - gcc4
+.gcc_before: &gcc_before
   before_script:
     - mkdir -p build # create if it does not exist
     - cd build # descend in build
     - rm -f CMakeCache.txt # clear old cache
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC4' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
-    - sh config_cmd
+    # try software collection, and if it fails, use native gcc
+    - rm -f scl_version
+    # check gcc version via grep
+    - (scl enable devtoolset-$GCC_VERSION -- gcc --version && echo $GCC_VERSION > scl_version) | grep "${GCC_VERSION}\.[0-9]\.[0-9]" || (scl enable devtoolset-3 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "3" > scl_version ) || gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
+    # write out the config_cmd
+    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC${GCC_VERSION}' -DCTEST_GIT_UPDATE_CUSTOM='git;checkout;$CI_COMMIT_SHA' .." > config_cmd
+    # write out the correct scl as pre_cmd
+    - scl enable devtoolset-`cat scl_version` -- echo "scl enable devtoolset-$(cat scl_version) -- " > pre_cmd || echo "" > pre_cmd
+    - sh -c "$(cat pre_cmd) $(cat config_cmd)"
+    # go back one revision and then update by ctest
+    - git checkout HEAD~1
+
+build:gcc4: # eventually we should have one job for each required configuration
+  stage: build
+  tags:
+    - gcc4
+    - release
+  variables:
+    GCC_VERSION: 4
+  <<: *gcc_before
   <<: *default_build_job
 
 build:gcc6:
   stage: build
   tags:
     - gcc6
-  before_script:
-    - mkdir -p build # create if it does not exist
-    - cd build # descend in build
-    - rm -f CMakeCache.txt # clear old cache
-    # try software collection, and if it fails use native gcc
-    # check gcc version via grep
-    - scl enable devtoolset-6 -- gcc --version | grep '6\.[0-9]\.[0-9]' || gcc --version | grep '6\.[0-9]\.[0-9]'
-    # initial config with devtoolset
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC6' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
-    - scl enable devtoolset-6 -- sh config_cmd || sh config_cmd
+  variables:
+    GCC_VERSION: 6
+  <<: *gcc_before
   <<: *default_build_job
 
 build:gcc7:
   stage: build
   tags:
     - gcc7
-  before_script:
-    - mkdir -p build # create if it does not exist
-    - cd build # descend in build
-    - rm -f CMakeCache.txt # clear old cache
-    # try software collection, and if it fails use native gcc
-    # check gcc version via grep
-    - scl enable devtoolset-7 -- gcc --version | grep '7\.[0-9]\.[0-9]' || gcc --version | grep '7\.[0-9]\.[0-9]'
-    # initial config with devtoolset
-    - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC7' -DCTEST_GIT_UPDATE_CUSTOM='git;status' .." > config_cmd
-    - scl enable devtoolset-7 -- sh config_cmd || sh config_cmd
+  variables:
+    GCC_VERSION: 7
+  <<: *gcc_before
   <<: *default_build_job
 
 # re-build everything
@@ -135,7 +128,9 @@ complete-build:linux:
     - rm -rf build # clear
     - mkdir build
     - cd build
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / complete-build" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / complete-build" -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" ..
+    # go back one revision and then update by ctest
+    - git checkout HEAD~1
   <<: *default_build_job
 
 
@@ -151,8 +146,8 @@ complete-build:linux:
     - mkdir -p build
     - cd build # descend in build
     - ls # debug
-    - tar -xzvf "CFS-"$CI_COMMIT_SHA"-Linux.tar.gz" --strip-components=1 # extract to correct location
-    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;status" .. # ensure we have a working update command
+    - tar -xzvf "CFS-$CI_COMMIT_SHA-Linux.tar.gz" --strip-components=1 # extract to correct location
+    - cmake -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" .. # ensure we have a working update command
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
@@ -165,8 +160,9 @@ complete-build:linux:
 # this is the config that has to pass
 .test_stable: &test_stable
   script:
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC4 / stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / ${BUILD_NAME} / stable" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_THREADS=1 -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # re-configure with most robust test config
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
+    - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|Preisach|CFSdat_FFT_2D" --track $CDASH_TRACK # exclude the install step and the failing tests
@@ -175,8 +171,9 @@ complete-build:linux:
 # test everything
 .test_all_multicore: &test_all_multicore
   script:
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / GCC4 / all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${CI_COMMIT_SHA:0:8} / ${BUILD_NAME} / all_multicore" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DCFS_TESTSUITE_CFSTOOL_MODE=relL2diff .. # multicore
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
+    - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -E Install --track $CDASH_TRACK # exclude the install step
@@ -188,6 +185,9 @@ stable:gcc4:linux:
   tags:
     - linux
   stage: test
+  variables:
+    BUILD_NAME: GCC4
+  retry: 1
   <<: *test_stable
   dependencies:
     - build:gcc4
@@ -197,6 +197,8 @@ testsuite:gcc4:linux: # if the machine has multiple
   tags:
     - linux
   stage: test
+  variables:
+    BUILD_NAME: GCC4
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
@@ -205,8 +207,10 @@ testsuite:gcc4:linux: # if the machine has multiple
 testsuite:gcc6:linux: # if the machine has multiple
   tags:
     - linux
-    - gcc6
+    - gcc6 # just to avoid centos6
   stage: test
+  variables:
+    BUILD_NAME: GCC6
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
@@ -215,8 +219,10 @@ testsuite:gcc6:linux: # if the machine has multiple
 testsuite:gcc7:linux: # if the machine has multiple
   tags:
     - linux
-    - gcc7
+    - gcc7 # just to avoid centos6
   stage: test
+  variables:
+    BUILD_NAME: GCC7
   <<: *test_all_multicore
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
