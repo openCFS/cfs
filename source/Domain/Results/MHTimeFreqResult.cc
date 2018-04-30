@@ -173,9 +173,9 @@ namespace CoupledField {
     }
 
 
-    Vector<Complex>tmp;
-    timeResult_.GetCol(tmp,timeStep);
-    std::cout<<"timeResult_ row "<< timeStep<< " : "<<tmp.ToString()<<std::endl;
+    //Vector<Complex>tmp;
+    //timeResult_.GetCol(tmp,timeStep);
+    //std::cout<<"timeResult_ row "<< timeStep<< " : "<<tmp.ToString()<<std::endl;
 
   }
 

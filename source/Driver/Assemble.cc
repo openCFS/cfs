@@ -816,9 +816,6 @@ namespace CoupledField
       std::stringstream progStream;
       boost::progress_display progress( size*forms.GetSize(), progStream );
 
-      std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
-
-
       // First loop over all integrators to check, if any of them
       // gets re-assembled
       // Loop over all bilinearforms

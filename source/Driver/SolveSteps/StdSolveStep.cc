@@ -223,7 +223,7 @@ namespace CoupledField {
     // =================================
     UInt numLevels = solStrat_->GetNumSolSteps();
     for( UInt iLevel = 0; iLevel < numLevels; ++iLevel ) {
-      
+
       // create new timer object and put it to related info element
       shared_ptr<Timer> timer(new Timer());
       PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
@@ -237,7 +237,7 @@ namespace CoupledField {
       ReadNonLinData();
       PDE_.UpdateToSolStrategy();
       algsys_->UpdateToSolStrategy();
-      
+
       // set the boundary conditions
       PDE_.SetBCs();
       
@@ -271,7 +271,7 @@ namespace CoupledField {
           // setup the matrices
           isNewton = false;
           assemble_->AssembleMatrices(isNewton);
-          
+
           //substract from RHS the term K*sol
           solVec_.ScalarMult(-1.0);
           algsys_->UpdateRHS(SYSTEM,solVec_,true);
@@ -1406,16 +1406,17 @@ namespace CoupledField {
     // This will be the incremental solution (deflect vector),
     // meaning \Delta u^{k+1} = u^{k+1} - u^k
     SBM_Vector solInc(BaseMatrix::COMPLEX);
+    algsys_->GetFullMultiHarmSolutionVal( solInc, false);
 
     // Get the solution of the initial (linear) multiharmonic system.
+    //TODO do we even need this?
     solVecMH_.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
-
-    algsys_->GetFullMultiHarmSolutionVal( solVecMH_, false);
+    solVecMH_ = solInc;
 
     // Get actual solution. Usually it is done via actSol = solVec_;
     // but we need the full multiharmonic solution vector
     SBM_Vector actSol(BaseMatrix::COMPLEX);
-    actSol = solVecMH_;
+    actSol = solInc;
 
 
     // ========================================================================
@@ -1468,7 +1469,9 @@ namespace CoupledField {
       // Calls method ApplyBC and ApplyLoads in FeFunction
       // TODO check if we really need this, because it was already called in
       // the initial linear part above
-      if(iLevel != 0) PDE_.SetBCs();
+      if(iLevel != 0){
+        PDE_.SetBCs();
+      }
 
       // Perform the load-steps
       Double loadFactor = 1.0;
@@ -1655,6 +1658,9 @@ namespace CoupledField {
 
   void StdSolveStep::AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks) {
     // loop over every frequency and assemble the correct SBM blocks
+
+    std::cout << "  - Calculating BiLinearForms for multiharmonic analysis" <<std::endl;
+
 
     // Special treatment is needed for the diagonal blocks, due to the mass part,
     // therefore handle this case seperately
@@ -1952,6 +1958,8 @@ namespace CoupledField {
       //store new solution but take care for multiharmonic analysis
       solVecMH_ = actSol;
 
+      this->EvaluateNonlinearity(ftRes, actSol);
+
       
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
@@ -1963,14 +1971,10 @@ namespace CoupledField {
       this->AssembleMH(solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
       assemble_->PostAssemble();
 
-
-
       solVecMH_.ScalarMult(-1.0);
       algsys_->UpdateRHS_MultHarm(SYSTEM,solVecMH_,true);
       solVecMH_.ScalarMult(-1.0);
 
-      
-      
       
       // =====================================================================
       // calculation of error norms
