@@ -6,6 +6,7 @@
 #include <iterator>
 
 #include "Domain/Domain.hh"
+#include "OLAS/solver/BaseEigenSolver.hh"
 
 namespace CoupledField {
 
@@ -67,7 +68,7 @@ class SingleVector;
         freq.Resize( eigRe.GetSize() );
         Double twoPi = 8.0*atan(1.0);
         for (UInt i=0; i < eigRe.GetSize(); i++) {
-            freq[i] = sqrt(eigRe[i])/twoPi;
+          freq[i] = sqrt(std::abs(eigRe[i]))/twoPi; // take the absolute value only to avoid problems with very small but negative EVs
         }
     }
     void Eig2FreqDamp(Vector<Double>& eigRe, Vector<Double>& eigIm, Vector<Double> & freq, Vector<Double> & damp ) {
@@ -78,7 +79,7 @@ class SingleVector;
         for (UInt i=0; i < eigRe.GetSize(); i++) {
             double eigRatio = eigIm[i]/eigRe[i];
             damp[i] = sqrt( 1.0/(1.0-eigRatio*eigRatio) );
-            freq[i] = eigRe[i]/damp[i]/twoPi;
+            freq[i] = std::abs(eigRe[i])/damp[i]/twoPi;
         }
     }
     void Eig2FreqDamp(Vector<Complex>& eig, Vector<Double> & freq, Vector<Double> & damp ) {
@@ -88,9 +89,10 @@ class SingleVector;
         Double twoPi = 8.0*atan(1.0);
         for (UInt i=0; i < eig.GetSize(); i++) {
             // no idea if this is correct in general ...
-            double omega = sqrt(eig[i].real());
-            damp[i] = eig[i].imag()/omega;
-            freq[i] = omega/twoPi;
+          Complex lam = sqrt(eig[i]);
+          double omega = lam.real();
+          damp[i] = lam.imag();
+          freq[i] = omega/twoPi;
         }
     }
     void SortModes(){
@@ -228,6 +230,8 @@ class SingleVector;
     unsigned int save_step_;
 
     bool eigenValuesAreReal_;
+
+    BaseEigenSolver::ModeNormalization modeNormalization_;
 
   };
 

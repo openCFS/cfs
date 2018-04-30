@@ -62,6 +62,9 @@ namespace CoupledField {
     /** @see BaseEigenSolver::CalcConditionNumber() */
     void CalcConditionNumber( const BaseMatrix& mat, double& condNumber, Vector<double>& evs, Vector<double>& err);
 
+    //! Translate the info integer to a message
+    std::string FeastInfo(Integer info);
+
   private:
     /** print setup information */
     void ToInfo();
