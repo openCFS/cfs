@@ -218,7 +218,6 @@ namespace CoupledField {
     //get actual solution
     SBM_Vector  actSol(BaseMatrix::DOUBLE);
     actSol = solVec_;
-    
     // =================================
     //  Outer loop: Multilevel strategy 
     // =================================
@@ -297,19 +296,17 @@ namespace CoupledField {
           setIDBC = true;
         
         algsys_->Solve(setIDBC);
-        
         // new solution is only an increment of the full solution =============
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
         algsys_->GetSolutionVal( solInc, setIDBC );
-        
         //compute norms (residual and incremenal ones)
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
         if ( lineSearch_ == "none" || iterationCounter == 1) {
           //to incooperate the inhomog. Dirichlet BCs we need a full
           //step for the first iteration
-          
+
           actSol.Add(1.0, solInc);
           // store the new solution
           solVec_ = actSol;
@@ -1412,6 +1409,7 @@ namespace CoupledField {
 
     // Get the solution of the initial (linear) multiharmonic system.
     solVecMH_.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
+
     algsys_->GetFullMultiHarmSolutionVal( solVecMH_, false);
 
     // Get actual solution. Usually it is done via actSol = solVec_;
@@ -1419,49 +1417,16 @@ namespace CoupledField {
     SBM_Vector actSol(BaseMatrix::COMPLEX);
     actSol = solVecMH_;
 
+
     // ========================================================================
     // Create multiharmonic time-frequency object and provide basic information
     // ========================================================================
     MHTimeFreqResult ftRes(N, M, bF, numFFT);
 
-    // Register the multiharmonic solution at MHTimeFreqREsult
-    ftRes.SetFrequencyResult(actSol);
-    // and transform the solution into time-domain to be able
-    // to evaluate the nonlinearity (e.g. BH curve in electromagnetics)
-    ftRes.FourierToTime();
-
-
-    // ============================================================================
-    // Evaluation of nonlinearity via callback mechanism in CoefFunctionHarmBalance
-    // ============================================================================
-
-    // Now we have to evaluate the nonlinearity at every integration point
-    // (not yet possible, so we evaluate it element wise)
-    // and transform the time signal back into frequency domain.
-    // Therefore we loop over every time step, which MHTimeFreqResult provides
-    // and set the solVec_ pointer to the correct sub-SBM vector in FeFunctions.
-    // Then the CoefFunctionHarmBalance should evaluate the nonlinearity at the
-    // integration points and store the solution...still in time domain.
-    // The transformation back into the frequency domain is carried out after this
-    // loop via changing the math parser variable "finishCash", which is a callback
-    // to CoefFunctionHarmBalance::UpdateSolution() and transforms the nu(t) into
-    // nu(harmonic)
-
-    // Loop over time steps
-    for(UInt i = 0; i < ftRes.GetNumTimeSteps(); ++i){
-      // TODO this should be double
-      Vector<Complex> timeStepVec = ftRes.GetTimeResult(i);
-      solVec_(0) = (Vector<Complex>)timeStepVec;
-
-      // Trigger the callback mechanism in CoefFunctionHarmBalance
-      // Now the PDE has the solution vector via the FeSpace and we activate
-      // the callback mechanism to cache the solution vector for current harmonic
-      mParser_->SetValue(MathParser::GLOB_HANDLER, "cacheResult", i);
-    }
-
-    // Now that the nu(t) results are cached, we can perform the FFT
-    UInt f = 1;
-    mParser_->SetValue(MathParser::GLOB_HANDLER, "finishCash", f);
+    // Evaluate the nonlinearity (transform solution in time domain =>
+    // evaluate the curl for the B-field => evaluate BH curve =>
+    // transform the nu(t) back to frequency domain nu(harmonic)
+    this->EvaluateNonlinearity(ftRes, actSol);
 
 
     // ===========================================================
@@ -1536,7 +1501,11 @@ namespace CoupledField {
 
         // Setup the matrices, only if this is not the first step
         // Loop over every frequency and assemble the correct SBM blocks
-        if(iLevel != 0) AssembleMH(N, M);
+        if(iLevel != 0){
+          assemble_->InitMultHarm();
+          AssembleMH(N, M);
+          assemble_->PostAssemble();
+        }
 
         // This is done because we want to solve the deflect-system:
         // K(u^k) \cdot \Delta u^{k+1} = f - K(u^k) \cdot u^k
@@ -1545,6 +1514,7 @@ namespace CoupledField {
         solVecMH_.ScalarMult(-1.0);
         algsys_->UpdateRHS_MultHarm(SYSTEM,solVecMH_,true);
         solVecMH_.ScalarMult(-1.0);
+        // actSol is unaffected by this...
 
         //================================================================================
         // TODO Do we really need this method here?? => temporarily deactivated it
@@ -1583,7 +1553,7 @@ namespace CoupledField {
         // Perform line search to get the 'optimal' eta, which minimizes the residual-norm
         // Meaning: u^{k+1} = u^k + eta * \Delta u^{k+1} in order to minimize
         // the residual r^{k+1} = f - K(u^{k+1}) \cdot u^{k+1} is minimized
-        residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
+        residualL2Norm = LineSearchMultHarm(solInc, actSol, etaLineSearch, ftRes);
 
         // Store the new solution u^{k+1}
         // Usually actSol is stored in solVec_ but this is not our full multiharmonic
@@ -1640,13 +1610,55 @@ namespace CoupledField {
 
   }
 
+  void StdSolveStep::EvaluateNonlinearity(MHTimeFreqResult& ftRes,
+                                          const SBM_Vector& actSol){
+
+    // Register the multiharmonic solution at MHTimeFreqREsult
+    ftRes.SetFrequencyResult(actSol);
+    // and transform the solution into time-domain to be able
+    // to evaluate the nonlinearity (e.g. BH curve in electromagnetics)
+    ftRes.FourierToTime();
+
+
+    // ============================================================================
+    // Evaluation of nonlinearity via callback mechanism in CoefFunctionHarmBalance
+    // ============================================================================
+
+    // Now we have to evaluate the nonlinearity at every integration point
+    // (not yet possible, so we evaluate it element wise)
+    // and transform the time signal back into frequency domain.
+    // Therefore we loop over every time step, which MHTimeFreqResult provides
+    // and set the solVec_ pointer to the correct sub-SBM vector in FeFunctions.
+    // Then the CoefFunctionHarmBalance should evaluate the nonlinearity at the
+    // integration points and store the solution...still in time domain.
+    // The transformation back into the frequency domain is carried out after this
+    // loop via changing the math parser variable "finishCash", which is a callback
+    // to CoefFunctionHarmBalance::UpdateSolution() and transforms the nu(t) into
+    // nu(harmonic)
+
+    // Loop over time steps
+    for(UInt i = 0; i < ftRes.GetNumTimeSteps(); ++i){
+      // TODO this should be double
+      Vector<Complex> timeStepVec = ftRes.GetTimeResult(i);
+      solVec_(0) = (Vector<Complex>)timeStepVec;
+
+      // Trigger the callback mechanism in CoefFunctionHarmBalance
+      // Now the PDE has the solution vector via the FeSpace and we activate
+      // the callback mechanism to cache the solution vector for current harmonic
+      mParser_->SetValue(MathParser::GLOB_HANDLER, "cacheResult", i);
+    }
+
+    // Now that the nu(t) results are cached, we can perform the FFT
+    UInt f = 1;
+    mParser_->SetValue(MathParser::GLOB_HANDLER, "finishCash", f);
+  }
 
   void StdSolveStep::AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks) {
     // loop over every frequency and assemble the correct SBM blocks
 
     // Special treatment is needed for the diagonal blocks, due to the mass part,
     // therefore handle this case seperately
-    //Parser_->SetValue(MathParser::GLOB_HANDLER, "finishCash", 0);
+    mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", 0);
     assemble_->AssembleMatrices_MultHarm(0, solStrat_->GetNumHarmN(),
         solStrat_->GetNumHarmM(),
         multHarmFreqVec_);
@@ -1655,9 +1667,9 @@ namespace CoupledField {
       for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
         // set the frequency of the current harmonic
         mParser_->SetValue(MathParser::GLOB_HANDLER, "f", multHarmFreqVec_[i]);
-        mParser_->SetValue(MathParser::GLOB_HANDLER, "finishCash", i);
+        Integer h = -solStrat_->GetNumHarmN() + i;
+        mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
         // which harmonic are we considering
-        Integer h = -N + i;
         if (std::abs(h) >= (Integer) (M) || h == 0) {
           continue;
         } else {
@@ -1850,23 +1862,19 @@ namespace CoupledField {
       else actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement);
 
       //store new solution but take care for multiharmonic analysis
-      if(solStrat_->IsMultHarm()){
-        solVecMH_ = actSol;
-      }else{
-        solVec_ = actSol;
-      }
-      
+      solVec_ = actSol;
+
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
       // and nonlinpart if any
       assemble_->AssembleNonLinRHS();
-      
+
       // setup the matrices
       bool isNewton = false;
       assemble_->AssembleMatrices(isNewton);
-      
+
+
       if( trans ) {
-        if(solStrat_->IsMultHarm()) EXCEPTION("StdSolveStep::LineSearch No transient simulation in multiharmonic analysis!")
         //now update RHS according to time stepping
         std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
         std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
@@ -1880,7 +1888,7 @@ namespace CoupledField {
           }
           algsys_->UpdateRHS(matIt->first,stageRHS_,true);
         }
-        
+
         //substract from RHS the term K*sol
         solVec_.ScalarMult(-1.0);
         algsys_->UpdateRHS(STIFFNESS,solVec_,true);
@@ -1888,27 +1896,89 @@ namespace CoupledField {
         solVec_.ScalarMult(-1.0);
       }
       else {
-        if(solStrat_->IsMultHarm()){
-          solVecMH_.ScalarMult(-1.0);
-          algsys_->UpdateRHS_MultHarm(SYSTEM,solVecMH_,true);
-          solVecMH_.ScalarMult(-1.0);
-        }else{
         solVec_.ScalarMult(-1.0);
         algsys_->UpdateRHS(SYSTEM,solVec_,true);
         solVec_.ScalarMult(-1.0);
-        }
       }
+
+
+      // =====================================================================
+      // calculation of error norms
+      // =====================================================================
+      SBM_Vector actRHS(BaseMatrix::DOUBLE);
+      algsys_->GetRHSVal( actRHS );
+
+      // calculation of residual error =======================================
+      Double residualL2Norm = actRHS.NormL2();
+
+      if (residualL2Norm < residualL2NormOpt) {
+        residualL2NormOpt = residualL2Norm;
+        etaOpt = eta[i];
+      }
+    }
+
+    //std::cout << "Optimal eta = " << etaOpt << std::endl;
+    etaLineSearch = etaOpt;
+
+    // Set new solution
+   actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+
+    return residualL2NormOpt;
+  }
+
+
+  Double StdSolveStep::LineSearchMultHarm(SBM_Vector& solIncrement, SBM_Vector& actSol,
+          Double& etaLineSearch, MHTimeFreqResult& ftRes)  {
+
+    SBM_Vector solOld(BaseMatrix::DOUBLE);
+    solOld = actSol;
+    const UInt nrEtas = 4;
+    const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
+
+    // initialize etaOpt or receive compiler warning
+    Double etaOpt = 0.0;
+    Double residualL2NormOpt = 1e15;
+
+    for( UInt i=0; i<nrEtas; i++) {
+      LOG_DBG(stdsolvestep) <<" LineSearchMultHarm: Testing eta = " << eta[i];
+      // take care about the data types (we need complex type in multiharmonic analysis)
+      if(actSol.GetEntryType() == BaseMatrix::DOUBLE){
+        EXCEPTION("StdSolveStep::LineSearchMultHarm Solution vector is real valued in multiharmonic analysis!");
+        //actSol.Add( 1.0, solOld, eta[i], solIncrement);
+      }else{
+        actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement);
+      }
+
+      //store new solution but take care for multiharmonic analysis
+      solVecMH_ = actSol;
+
+      
+      // set RHS: linear part
+      algsys_->InitRHS(RhsLinVal_ );
+      // and nonlinpart if any
+      assemble_->AssembleNonLinRHS();
+      
+      // setup the matrices
+      assemble_->InitMultHarm();
+      this->AssembleMH(solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
+      assemble_->PostAssemble();
+
+
+
+      solVecMH_.ScalarMult(-1.0);
+      algsys_->UpdateRHS_MultHarm(SYSTEM,solVecMH_,true);
+      solVecMH_.ScalarMult(-1.0);
+
+      
       
       
       // =====================================================================
       // calculation of error norms
       // =====================================================================
       SBM_Vector actRHS(BaseMatrix::DOUBLE);
-      if(solStrat_->IsMultHarm()){
-        actRHS.ResetEntryType(BaseMatrix::COMPLEX);
-        algsys_->GetFullMultiHarmRHSVal( actRHS );
-      }
-      else algsys_->GetRHSVal( actRHS );
+      actRHS.ResetEntryType(BaseMatrix::COMPLEX);
+      algsys_->GetFullMultiHarmRHSVal( actRHS );
+
       
       // calculation of residual error =======================================
       Double residualL2Norm = actRHS.NormL2();
@@ -1930,6 +2000,7 @@ namespace CoupledField {
   }
   
   
+
   Double StdSolveStep::LineSearchMag(SBM_Vector& solIncrement, SBM_Vector& actSol,
           Double& etaLineSearch, bool trans)
   {

@@ -66,6 +66,10 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
     maxInt_ = std::numeric_limits<unsigned int>::max();
 
+    N_ = N;
+
+    M_ = M;
+
     updateIter_ = 0;
 
     numRegions_ = regions.GetSize();
@@ -79,14 +83,14 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
     // For the callback mechanism
     mp_ = domain->GetMathParser();
-    harmHandle_ = mp_->GetNewHandle(true);
+    cashHandle_ = mp_->GetNewHandle(true);
     // Bind the handle to the correct expression
-    mp_->SetExpr(harmHandle_,"finishCash");
+    mp_->SetExpr(cashHandle_,"finishCash");
     // Flag for first time calculation
     //mp_->SetValue(MathParser::GLOB_HANDLER, "finishCash", std::numeric_limits<unsigned int>::max());
     mp_->SetValue(MathParser::GLOB_HANDLER, "finishCash", 0);
     // register callback mechanism if expression changes
-    mp_->AddExpChangeCallBack( boost::bind(&CoefFunctionHarmBalance<T>::UpdateHarm, this ), harmHandle_ );
+    mp_->AddExpChangeCallBack( boost::bind(&CoefFunctionHarmBalance<T>::FinishCash, this ), cashHandle_ );
 
 
     // For the callback mechanism
@@ -96,12 +100,19 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
     // Flag for first time calculation
     mp_->SetValue(MathParser::GLOB_HANDLER, "cacheResult", -1);
     // register callback mechanism if expression changes
-    mp_->AddExpChangeCallBack( boost::bind(&CoefFunctionHarmBalance<T>::UpdateSolution, this ), solHandle_ );
+    mp_->AddExpChangeCallBack( boost::bind(&CoefFunctionHarmBalance<T>::CashTimeResult, this ), solHandle_ );
+
+    // For the correct choice of nu's in GetScalar method
+    harmonicHandle_ = mp_->GetNewHandle(true);
+    // Bind the handle to the correct expression
+    mp_->SetExpr(harmonicHandle_,"harmonicHandle");
+    // Flag for first time calculation
+    mp_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", -1);
 
 
     // Variables from CoefFunction base-class
     isAnalytic_ = false;
-    isComplex_ = false;
+    isComplex_ = true;
     // take care, it's changed throughout the class!!
     dimType_ = CoefFunction::SCALAR;
   }
@@ -144,11 +155,15 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
         LOG_DBG(coeffctharmbalance) << "Generating nonlinear multiharmonic "
             "material coefficient function for region"<< actRegion <<" with material "<< actMat;
         regStruc.isNonLin = true;
+
         // we need the real part of this CoefFunction GetVector because the
         // GetScalCoefFncNonLin method can only handle real values
-        dimType_ = VECTOR;
-        PtrCoefFct realThis = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_, (PtrCoefFct)this, CoefXpr::OP_RE));
-        regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, realThis);
+        shared_ptr<CoefFunction> BField = NULL;
+        BField.reset(new CoefFunctionHarmBalanceEval<Double>(magFluxCoef_, ptGrid_));
+
+        //PtrCoefFct realThis = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_, BField, CoefXpr::OP_RE));
+
+        regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, BField);
         dimType_ = SCALAR;
         ret = (PtrCoefFct)this;
       }else{
@@ -217,7 +232,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
   template<class T>
   void CoefFunctionHarmBalance<T>::
-  UpdateHarm(){
+  FinishCash(){
     LOG_DBG(coeffctharmbalance) << "\t UpdateHarm()";
     // Just for the logging output give the index of solution vector to print
     UInt index = 20;
@@ -229,6 +244,10 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
     // Perform FFT of time-signal
     freqTimeRes_.TimeToFourier();
 
+    // =========================================================================
+    // TODO Don't forget the conjugate for off-diagonals!!!
+    // =========================================================================
+
     if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
       freqTimeRes_.PrintFreqResults(index);
     }
@@ -236,7 +255,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
   template<class T>
   void CoefFunctionHarmBalance<T>::
-  UpdateSolution(){
+  CashTimeResult(){
     LOG_DBG(coeffctharmbalance) << "\t Starting UpdateSolution() in CoefFunctionHarmBalance";
 
     /*
@@ -316,49 +335,51 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
   }
 
+  template<>
+  void CoefFunctionHarmBalance<Double>::
+  GetScalar(Double& coefScal, const LocPointMapped& lpm ){
+    EXCEPTION("CoefFunctionHarmBalance<T>::GetScalar called in Double version, this is not allowed!")
+  }
 
-
-  template<class T>
-  void CoefFunctionHarmBalance<T>::
-  GetScalar(T& coefScal, const LocPointMapped& lpm ){
+  template<>
+  void CoefFunctionHarmBalance<Complex>::
+  GetScalar(Complex& coefScal, const LocPointMapped& lpm ){
+    Double coefScalReal = 0.0;
 
     RegionIdType elemReg = lpm.ptEl->regionId;
-    if( this->mp_->Eval(harmHandle_) == 0 ){
+    if( this->mp_->Eval(harmonicHandle_) == 0 ){
       // loop over regions and get the region of the lpm
       for(auto reg : hbRegion_){
         if( reg.region == elemReg){
-          reg.nonLinNuCoefMap->GetScalar(coefScal, lpm);
+          reg.nonLinNuCoefMap->GetScalar(coefScalReal, lpm);
+          coefScal = (Complex)coefScalReal;
           break;
         }
       }
     }else{
-      // Set in StdSolveStep::AssembleMH
-      UInt freqStep = this->mp_->Eval(harmHandle_);
-      // Get the corresponding nu(harmonic) result
-      //freqTimeRes_.GetFreqResult(freqStep)
 
-
-      EXCEPTION("NOT IMPLEMENTED YET")
+      int harmonic = this->mp_->Eval(harmonicHandle_);
+      const Vector<Complex>& fR = freqTimeRes_.GetFreqResult(N_ + harmonic);
+      coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ];
+      // If harmonic is positive, we need conjugate ḩat{nu}
+      if(harmonic > 0){
+        Double tmp = coefScal.imag() * -1.0;
+        coefScal.imag(tmp);
+      }
     }
-
-
   }
 
   template<class T>
   void CoefFunctionHarmBalance<T>::
   GetVector(Vector<T>& coefVec, const LocPointMapped& lpm){
-
-      // This is just for testing, don't take anything for granted from here !!!!!!!!!
-      Vector<Complex> tmp;
-      magFluxCoef_->GetVector(tmp, lpm);
-      coefVec = tmp.GetPart(Global::REAL);
-
+    EXCEPTION("CoefFunctionHarmBalance::GetVector NOT IMPLEMENTED HERE");
   }
+
 
   template<class T>
   void CoefFunctionHarmBalance<T>::
   GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm){
-    EXCEPTION("CoefFunctionHarmBalance::GetTensor NOT IMPLEMENTED YET")
+    EXCEPTION("CoefFunctionHarmBalance::GetTensor NOT IMPLEMENTED YET");
   }
 
   template<class T>
@@ -376,12 +397,74 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
 
 
+  // ==========================================================================
+  //  COEFFICIENT FUNCTION HARMONIC BALANCING EVALUATE B FIELD
+  // ==========================================================================
+  template<class T>
+  CoefFunctionHarmBalanceEval<T>::CoefFunctionHarmBalanceEval(PtrCoefFct magFluxCoef,
+                                                              Grid* ptGrid):CoefFunction() {
+
+    mp_ = domain->GetMathParser();
+
+    ptGrid_ = ptGrid;
+
+
+    //PtrCoefFct realBField = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_, magFluxCoef, CoefXpr::OP_RE));
+
+    magFluxCoef_ = magFluxCoef;
+
+    // Variables from CoefFunction base-class
+    isAnalytic_ = false;
+    isComplex_ = false;
+    // take care, it's changed throughout the class!!
+    dimType_ = CoefFunction::VECTOR;
+  }
+
+  template<class T>
+  CoefFunctionHarmBalanceEval<T>::
+  ~CoefFunctionHarmBalanceEval() {}
+
+  template<class T>
+  void CoefFunctionHarmBalanceEval<T>::
+  GetVector(Vector<T>& coefVec, const LocPointMapped& lpm){
+      // This is just for testing, don't take anything for granted from here !!!!!!!!!
+      Vector<Complex> tmp;
+      magFluxCoef_->GetVector(tmp, lpm);
+      coefVec = tmp.GetPart(Global::REAL);
+  }
+
+  template<class T>
+  void CoefFunctionHarmBalanceEval<T>::
+  GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm){
+    EXCEPTION("CoefFunctionHarmBalance::GetTensor NOT IMPLEMENTED YET")
+  }
+
+  template<class T>
+  void CoefFunctionHarmBalanceEval<T>::
+  GetScalar(T& coefMat, const LocPointMapped& lpm){
+    EXCEPTION("CoefFunctionHarmBalance::GetScalar NOT IMPLEMENTED YET")
+  }
+
+  template<class T>
+  UInt CoefFunctionHarmBalanceEval<T>::
+  GetVecSize() const{
+    // spatial dimension (dimension of B vector)
+    return ptGrid_->GetDim();
+  }
+
+  template<class T>
+  std::string CoefFunctionHarmBalanceEval<T>::
+  ToString() const {
+    return "CoefFunctionHarmBalanceEval";
+  }
 
 
   // Explicit template instantiation
   #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
     template class CoefFunctionHarmBalance<Double>;
     template class CoefFunctionHarmBalance<Complex>;
+    template class CoefFunctionHarmBalanceEval<Double>;
+    template class CoefFunctionHarmBalanceEval<Complex>;
   #endif
 
 } // end of namespace

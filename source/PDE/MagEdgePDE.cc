@@ -127,6 +127,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   // *****************************
   void MagEdgePDE::DefineIntegrators() {
 
+    // FIXME This is a dirty fix, the problem is described in gitlab issue #5
+    if(analysistype_ == MULTIHARMONIC){
+      reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, true));
+    }
+
+
     RegionIdType actRegion;
     BaseMaterial * actMat = NULL;
 
@@ -146,7 +152,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       M = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_M_;
       nFFT = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numFFT_;
     }
-    multiHarmCoef_.reset(new CoefFunctionHarmBalance<Double>(feFunc, feSpace, regions_, materials_, ptGrid_, magFluxCoef, N, M, baseFreq, nFFT) );
+    multiHarmCoef_.reset(new CoefFunctionHarmBalance<Complex>(feFunc, feSpace, regions_, materials_, ptGrid_, magFluxCoef, N, M, baseFreq, nFFT) );
 
 
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
@@ -203,7 +209,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
 
         BaseBDBInt* stiff1 = NULL;
-        stiff1 = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
+        if(analysistype_ == MULTIHARMONIC){
+          stiff1 = new BBInt<Complex>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, (Complex)1.0, updatedGeo_) ;
+        }else{
+          stiff1 = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
+        }
+
         stiff1->SetName("CurlCurlIntegrator-NL");
 
        BiLinFormContext * stiffContext =

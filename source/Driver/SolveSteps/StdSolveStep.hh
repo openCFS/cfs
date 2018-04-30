@@ -26,6 +26,7 @@ namespace CoupledField
   class BaseIDBC_Handler;
   class FeSpace;
   class SolStrategy;
+  class MHTimeFreqResult;
 
   //  class Domain;
   
@@ -153,6 +154,11 @@ namespace CoupledField
     Double LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, 
                       Double& etaLineSearch, bool trans=false);
 
+    //! does a line search for multiharmonic analysis and returns the optimal residual norm
+    Double LineSearchMultHarm(SBM_Vector& solIncrement, SBM_Vector& actSol,
+                      Double& etaLineSearch, MHTimeFreqResult& ftRes);
+
+
     //! does a line search and returns the optimal residual norm
     Double LineSearchMag(SBM_Vector& solIncrement, SBM_Vector& actSol,
                       Double& etaLineSearch, bool trans=false);
@@ -272,6 +278,9 @@ namespace CoupledField
 
 private:
   void AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks = false);
+
+  void EvaluateNonlinearity(MHTimeFreqResult& ftRes, const SBM_Vector& actSol);
+
 
   //! Vector containing all solution vectors for all harmonics
   //! in a multiharmonic analysis. We need this vector because

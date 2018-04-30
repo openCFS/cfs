@@ -2243,8 +2243,10 @@ algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX
 
     // for bloch mode we need special handling. The mass matrix needs to be complex but
     // Matrix2Harmonic wourl use omega=0 as we have no actFreq.
-    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE
-    		|| omega == 0.0);
+    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC ||
+        domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC ||
+        domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
+        omega == 0.0);
 
     if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
        domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC)

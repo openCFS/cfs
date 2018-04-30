@@ -57,6 +57,7 @@ public:
   //! \copydoc CoefFunction::GetScalar
   virtual void GetScalar(T& coefScal, const LocPointMapped& lpm );
 
+
   //! \copydoc CoefFunction::GetVector
   virtual void GetVector(Vector<T>& coefVec, const LocPointMapped& lpm);
 
@@ -80,9 +81,9 @@ public:
 
 protected:
 
-  void UpdateHarm();
+  void FinishCash();
 
-  void UpdateSolution();
+  void CashTimeResult();
 
   //! ===========================================
   //! ===========================================
@@ -124,17 +125,22 @@ protected:
   //! Pointer to math parser instance
   MathParser* mp_;
 
-  //! Handle for the harmonic callback-mechanism
-  MathParser::HandleType harmHandle_;
+  //! Handle for the cashing callback-mechanism
+  MathParser::HandleType cashHandle_;
 
   //! Handle for the solution cache callback-mechanism
   MathParser::HandleType solHandle_;
 
-  //! CoefFunction for magnetic flux density
-  PtrCoefFct magFluxCoef_ = NULL;
+  //! Handle for the harmonic callback-mechanism
+  MathParser::HandleType harmonicHandle_;
 
   //! Pointer to grid object
   Grid * ptGrid_;
+
+  //! CoefFunction for magnetic flux density
+  PtrCoefFct BField = NULL;
+
+  PtrCoefFct magFluxCoef_ = NULL;
 
   //! Number of regions
   UInt numRegions_;
@@ -156,6 +162,11 @@ protected:
 
   unsigned int maxInt_;
 
+  //! Number of harmonics
+  UInt N_;
+
+  UInt M_;
+
   MHTimeFreqResult freqTimeRes_;
 
   //! For every region we create one HBRegionHelper struct.
@@ -170,6 +181,48 @@ protected:
   boost::unordered_map<UInt, UInt> positionOfElem_;
 };
 
+
+
+template <class T>
+class CoefFunctionHarmBalanceEval : public CoefFunction {
+
+public:
+  //! Constructor
+  CoefFunctionHarmBalanceEval(PtrCoefFct magFluxCoef,
+                              Grid* ptGrid);
+
+  //! Destructor
+  virtual ~CoefFunctionHarmBalanceEval();
+
+
+  //! \copydoc CoefFunction::GetScalar
+  virtual void GetScalar(T& coefScal, const LocPointMapped& lpm );
+
+
+  //! \copydoc CoefFunction::GetVector
+  virtual void GetVector(Vector<T>& coefVec, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::GetTensor
+  virtual void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+  //! \copydoc CoefFunction::GetVecSize
+  virtual UInt GetVecSize() const;
+
+private:
+
+  //! Pointer to math parser instance
+  MathParser* mp_;
+
+  //! Pointer to grid object
+  Grid * ptGrid_;
+
+  //! CoefFunction for magnetic flux density
+  PtrCoefFct magFluxCoef_ = NULL;
+
+};
 } //end of namespace
 
 #endif

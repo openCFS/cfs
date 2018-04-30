@@ -86,8 +86,7 @@ namespace CoupledField
 
     // Set the flag for the harmonic callback mechanism
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "finishCash", 0 );
-    // Set the flag for the solution-cache callback mechanism
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "updateTrigger", -1 );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "harmonicHandle", 0 );
 
   }
 
