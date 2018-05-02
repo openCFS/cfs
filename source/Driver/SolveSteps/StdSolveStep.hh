@@ -155,7 +155,7 @@ namespace CoupledField
                       Double& etaLineSearch, bool trans=false);
 
     //! does a line search for multiharmonic analysis and returns the optimal residual norm
-    Double LineSearchMultHarm(SBM_Vector& solIncrement, SBM_Vector& actSol,
+    Double LineSearchMultHarm(const SBM_Vector& solIncrement, SBM_Vector& actSol,
                       Double& etaLineSearch, MHTimeFreqResult& ftRes);
 
 

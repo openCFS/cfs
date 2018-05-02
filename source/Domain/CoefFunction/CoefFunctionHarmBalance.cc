@@ -235,7 +235,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
   FinishCash(){
     LOG_DBG(coeffctharmbalance) << "\t UpdateHarm()";
     // Just for the logging output give the index of solution vector to print
-    UInt index = 20;
+    UInt index = 100;
     if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
       freqTimeRes_.PrintTimeResults(index);
       freqTimeRes_.PrintTimeVector();
@@ -347,7 +347,8 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
     Double coefScalReal = 0.0;
 
     RegionIdType elemReg = lpm.ptEl->regionId;
-    if( this->mp_->Eval(harmonicHandle_) == 0 ){
+    if( this->mp_->Eval(harmonicHandle_) == -1 ){
+      // For the initial multiharmonic iteration
       // loop over regions and get the region of the lpm
       for(auto reg : hbRegion_){
         if( reg.region == elemReg){
@@ -361,10 +362,9 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
       int harmonic = this->mp_->Eval(harmonicHandle_);
       const Vector<Complex>& fR = freqTimeRes_.GetFreqResult(N_ + harmonic);
       coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ];
-      // If harmonic is positive, we need conjugate ḩat{nu}
-      if(harmonic > 0){
-        Double tmp = coefScal.imag() * -1.0;
-        coefScal.imag(tmp);
+      // If harmonic is negative, we need conjugate ḩat{nu}
+      if(harmonic < 0){
+        std::conj(coefScal);
       }
     }
   }

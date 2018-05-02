@@ -3089,6 +3089,11 @@ namespace CoupledField {
                  << rhs_->GetSize() << " entries." )
     }
 
+    if( fup.GetEntryType() == BaseMatrix::DOUBLE ) {
+      EXCEPTION(" AlgebraicSys::UpdateRHS_MultHarm called with a Double vector\n"
+                " this should not happen!");
+    }
+
     // loop over all harmonics and create a converted rhs
     if(tmpRHS_== NULL)
       tmpRHS_ = dynamic_cast<SBM_Vector*> ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
@@ -3103,6 +3108,8 @@ namespace CoupledField {
     MapCompleteFctIdToIndex( 0, blockNums, indices);
     UInt size = blockNums.GetSize();
 
+    // We only need to set index N_ - 1 and N_ + 1
+    // TODO this only works if we have excitation in the base harmonic
     for(UInt i = 0; i < 2 * solStrat_->GetNumHarmN() + 1 ; ++i ) {
       // security check: ensure that sub-vector has the same size
       // as the block indices
@@ -3111,25 +3118,18 @@ namespace CoupledField {
                    "of indices do not match!");
       }
 
-      if( fup.GetEntryType() == BaseMatrix::DOUBLE ) {
-        EXCEPTION(" AlgebraicSys::UpdateRHS_MultHarm called with a Double vector\n"
-                  " this should not happen!");
+      Vector<Complex> & nRHS = dynamic_cast<Vector<Complex>&>( fup(i) );
+      for( UInt j = 0; j < size; ++j ) {
+        // omit entries for Dirichlet values
+        if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+          tmpRHS_->GetPointer(i)->AddToEntry(indices[j]-1, nRHS[j] );
+        }else if(!usingPenalty_){
+          idbcHandler_->AddFixedToFreeRHS(matrixType, i, indices[j],rhs_,nRHS[j]);
+        }
       }
-      else if( fup.GetEntryType() == BaseMatrix::COMPLEX ) {
-          Vector<Complex> & nRHS = dynamic_cast<Vector<Complex>&>( fup(i) );
-          for( UInt j = 0; j < size; ++j ) {
-            // omit entries for Dirichlet values
-            if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
-              tmpRHS_->GetPointer(blockNums[j])->AddToEntry(indices[j]-1, nRHS[j] );
-            }else if(!usingPenalty_){
-              idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j], indices[j],rhs_,nRHS[j]);
-            }
-          }
-      }
-      else {
-        EXCEPTION("Implement me. Dont worry: mostly C&P code");
-      }
+
     }
+
     //now just perform multiplication
     sysMat_[matrixType]->MultAdd(*tmpRHS_,*rhs_);
 
@@ -3215,7 +3215,7 @@ namespace CoupledField {
     }
 
 
-    // In multiharmonic analysis, we habe to adapt the mass part
+    // In multiharmonic analysis, we have to adapt the mass part
     if(isMultHarm){
       SBM_Matrix *mass = sysMat_[DAMPING];
       for(UInt iRow = 0; iRow < 2 * solStrat_->GetNumHarmN() +1; ++iRow){
@@ -3449,7 +3449,8 @@ namespace CoupledField {
   
 
   void AlgebraicSys::GetFullMultiHarmSolutionVal(SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
-    solVec.Resize( 2 * solStrat_->GetNumHarmN() + 1 );
+    solVec.Resize( 2 * solStrat_->GetNumHarmN() + 1);
+    solVec.Init();
 
     // loop over all block vector and call specialized GetRHSVal method, the boolean
     // has no effect, it's just an identifier to call the correct method

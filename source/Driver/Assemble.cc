@@ -51,7 +51,7 @@ namespace CoupledField
     mp_ = mp;
     isFirstTime_ = true;
     matrixUpdated_ = false;
-    printProgressBar_ = false;
+    printProgressBar_ = true;
     info_ = infoNode;
     lin_forms_given_ = false;
 
@@ -797,8 +797,8 @@ namespace CoupledField
         sbmInd.Push_back( ComputeIndex(iRow, iRow) );
       }else{
         // off-diagonal sbm-blocks
-        UInt col = iRow + harmonic;
-        if( col < 2 * N + 1 && col >= 0) sbmInd.Push_back( ComputeIndex(iRow, col) );
+        Integer col = iRow + harmonic;
+        if( col < 2 * (Integer)N + 1 && col >= 0) sbmInd.Push_back( ComputeIndex(iRow, col) );
       }
     }
 
@@ -821,6 +821,9 @@ namespace CoupledField
       // Loop over all bilinearforms
       bool anyReassemble = false;
 
+
+
+      // In multiharmonic analysis we always reassemble!
       for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
         BiLinFormContext & actContext = *forms[iForm];
@@ -905,6 +908,15 @@ namespace CoupledField
           // get matrix destinations
           FEMatrixType destMat = actContext.GetDestMat();
           FEMatrixType secDestMat = actContext.GetSecDestMat();
+
+
+          //================================================================
+          // IMPORTANT: In multiharmonic analysis, no off-diagonal
+          //            sub mass matrices!
+          //================================================================
+          if( harmonic != 0 && destMat == FEMatrixType::DAMPING){
+            continue;
+          }
 
 
           // If assemble was already called and the current destination
@@ -992,16 +1004,14 @@ namespace CoupledField
 
 
             // in multiharmonic analysis, the mass matrix must be multiplied by the harmonic number
-            // TODO depending on the PDE, sometimes the mass matrix is named DAMPING, I really don't know why
-            // for MagEdgePDE and MagneticPDE this is the case
             // Ideally such an operation would be performed way back in the PDE-class
-            // of after the assembling in algsys_->ConstructEffectiveMatrix but the fact that
+            // or after the assembling in algsys_->ConstructEffectiveMatrix but the fact that
             // we need to loop over every frequency and multiply the mass matrices corresponding to the
             // frequencies with different values, prevents such a ''clean'' solution
             if( harmonic == 0 && multHarmFreqVec.GetSize() != 0){
               if( actContext.GetDestMat() == DAMPING ){
                 // Store the sbm-indices of the blocks, which correspond to harmonic 0
-                // in a vector with size 0 to pass it to InsertMatrix method.
+                // in a vector with size 1 to pass it to InsertMatrix method.
                 // This is kind of a workaround
                 StdVector<UInt> diagInd(1);
                 for( UInt iRow = 0; iRow < 2*N+1; ++iRow ) {
@@ -1585,6 +1595,7 @@ algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX
       LinearFormContext& actContext = **formsIt;
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
+      // For multiharmonic analysis, we always reassemble the RHS
       if( (actContext.IsNonLin() != nonLin) && !algsys_->IsMultHarm() )
         continue; //TODO: uncomment this
 

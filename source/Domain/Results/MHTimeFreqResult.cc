@@ -121,6 +121,12 @@ namespace CoupledField {
 
 
   void MHTimeFreqResult::SetFrequencyResult(const SBM_Vector & freqRes){
+    // If this is not the first calculation, clean stuff up
+    if(spatialSize_ != 0){
+      timeResult_.Resize(0,0);
+      freqResult_.Resize(0,0);
+    }
+
     // Set the number of spatial dof's as the size of the first frequency
     // result. It doesn't matter which one we consider, since they all
     // have the same size

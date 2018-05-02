@@ -86,7 +86,7 @@ namespace CoupledField
 
     // Set the flag for the harmonic callback mechanism
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "finishCash", 0 );
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "harmonicHandle", 0 );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "harmonicHandle", -1 );
 
   }
 
