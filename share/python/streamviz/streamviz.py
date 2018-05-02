@@ -38,6 +38,7 @@ app = Flask(__name__)
 
 # global data dict always contains the latest xml file (in parsed version)
 GLOBAL_DATA_DICT = {}
+GLOBAL_DATA_SIZE_DICT = {}
 
 # contains the last update
 GLOBAL_UPDATED_DICT = {}
@@ -62,6 +63,9 @@ PROXY_REAL_IP_HEADER = "X-Real-IP"
 MAX_MEMORY = 2*1024*1024*1024 # = 2 GByte
 #MAX_MEMORY = 250*1024*1024 # = 250 MByte
 
+# ration <bytes used reported by os> divided by <sum of sizes of saved xml strings>
+MEMORY_BYTE_RATIO = -1
+
 @app.route('/', methods = ['GET'])
 def index():
   if request.method == 'GET':
@@ -71,7 +75,7 @@ def index():
 
 @app.route('/status', methods = ['GET'])
 def status():
-    return render_html.render_status(GLOBAL_DATA_DICT, MAX_MEMORY)
+    return render_html.render_status(GLOBAL_DATA_DICT, MAX_MEMORY, MEMORY_BYTE_RATIO)
 
 @app.route(settings["api"]["values"] + '/<path:key>', methods = ['GET', 'POST'])
 def values(key):
@@ -114,51 +118,37 @@ def cfs_recieve_blank():
 @app.route(settings["api"]["recieve_url"] + '/', methods = ['GET', 'POST'])
 @app.route(settings["api"]["recieve_url"] + '/<path:url_key>', methods = ['GET', 'POST'])
 def cfs_recieve(url_key = ""):
+  global MEMORY_BYTE_RATIO, GLOBAL_DATA_DICT, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, UPDATE_EVENTS
   process = psutil.Process(os.getpid())
   
   memory_in_bytes = process.memory_info().rss
-  if memory_in_bytes > (0.95 * MAX_MEMORY): # if we are over the soft limit
-    # collect garbage
-    for i in range(3): # multiple times to improve efficiency
-      gc.collect()
   
-  def tidy_up():
-    oldest_key = GLOBAL_KEY_DEQUEUE.pop() # get oldest xml key
-    if oldest_key in GLOBAL_DATA_DICT:
-      oldest_data = GLOBAL_DATA_DICT.pop(oldest_key) # delete oldest xml keys
-      del oldest_data
-    if oldest_key in GLOBAL_UPDATED_DICT:
-      oldest_updated = GLOBAL_UPDATED_DICT.pop(oldest_key) 
-      del oldest_updated
-    send_data.delete_coprocessor(oldest_key)
-    
+  if memory_in_bytes > MAX_MEMORY:
+    total_xml_size = 0
+    for tmp_key in GLOBAL_DATA_DICT:
+      total_xml_size += GLOBAL_DATA_SIZE_DICT[tmp_key]
+
+    if MEMORY_BYTE_RATIO < 0:
+      # we need to calculate the ratio:
+      MEMORY_BYTE_RATIO = memory_in_bytes / total_xml_size
+
+    xml_size_to_reduce = total_xml_size - (MAX_MEMORY / MEMORY_BYTE_RATIO) # size in bytes of xml
+
+    while xml_size_to_reduce > 0:
+      oldest_key = GLOBAL_KEY_DEQUEUE.pop() # get oldest xml key
+      if oldest_key in GLOBAL_DATA_DICT:
+        oldest_data = GLOBAL_DATA_DICT.pop(oldest_key) # delete oldest xml keys
+        xml_size_to_reduce -= GLOBAL_DATA_SIZE_DICT.pop(oldest_key)
+        del oldest_data
+      if oldest_key in GLOBAL_UPDATED_DICT:
+        oldest_updated = GLOBAL_UPDATED_DICT.pop(oldest_key) 
+        del oldest_updated
+      send_data.delete_coprocessor(oldest_key)
+      
     # collect garbage
     gc.collect()
 
-  process = psutil.Process(os.getpid())
-  memory_in_bytes = process.memory_info().rss
-  if memory_in_bytes > (0.99 * MAX_MEMORY): # we are reaching our limit
-    print('reaching soft limit #1')
-    tidy_up()
-  
-  if memory_in_bytes > (1.05 * MAX_MEMORY): # now we really need to delete stuff
-    print('reaching soft limit #2')
-    for i in range(10):
-      tidy_up()
-      process = psutil.Process(os.getpid())
-      memory_in_bytes = process.memory_info().rss
-      if memory_in_bytes < (0.95 * MAX_MEMORY):
-        break;
-  
-  if memory_in_bytes > (1.1 * MAX_MEMORY): # now we really really need to delete stuff
-    print('reaching hard limit!')
-    for i in range(50):
-      tidy_up()
-      process = psutil.Process(os.getpid())
-      memory_in_bytes = process.memory_info().rss
-      if memory_in_bytes < (0.90 * MAX_MEMORY):
-        break;
-  
+
   data = ""
   
   # read the data from input stream directly
@@ -192,6 +182,7 @@ def cfs_recieve(url_key = ""):
       GLOBAL_KEY_DEQUEUE.appendleft(key)
 
     GLOBAL_DATA_DICT[key] = xml
+    GLOBAL_DATA_SIZE_DICT[key] = len(data)
     
     GLOBAL_UPDATED_DICT[key] = str(datetime.datetime.now())
     

@@ -75,7 +75,7 @@ def render_menu(GLOBAL_DATA_DICT, current_site):
   ret_string += '</div>'
   return ret_string
 
-def render_status(GLOBAL_DATA_DICT, max_memory_in_bytes):
+def render_status(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO):
   retdata = html_raw_data
   retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'status'))
   
@@ -87,6 +87,7 @@ def render_status(GLOBAL_DATA_DICT, max_memory_in_bytes):
   body_data += get_human_readable_bytes(memory_in_bytes) + '<br />'
   
   body_data += 'maximum memory: ' + get_human_readable_bytes(max_memory_in_bytes) + '<br />'
+  body_data += 'byte ratio: ' + str(MEMORY_BYTE_RATIO) + '<br />'
 
   retdata = retdata.replace(settings['html_template']['key_content'], body_data)
   return retdata
