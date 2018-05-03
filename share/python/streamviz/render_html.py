@@ -8,11 +8,28 @@ from audioop import reverse
 import datetime
 import os
 import psutil
+import objgraph
+import random, string
+import base64
 
 #The html file with marker; see strings.py for all marker definitions 
 html_raw_data = "html file not loaded"
 with open('template_html/index.html', 'r') as myfile:
   html_raw_data = myfile.read()
+
+def randomword(length):
+   letters = string.ascii_lowercase
+   return ''.join(random.choice(letters) for i in range(length))
+
+def get_human_readable_bytes(memory_in_bytes):
+  if memory_in_bytes > 1024*1024*1024:
+    return ("%.3f" % (memory_in_bytes/(1024*1024*1024))) + ' GByte'
+  elif memory_in_bytes > 1024*1024:
+    return ("%.3f" % (memory_in_bytes/(1024*1024))) + ' MByte'
+  elif memory_in_bytes > 1024:
+    return ("%.3f" % (memory_in_bytes/1024)) + ' KByte'
+  else:
+    return str(memory_in_bytes) + ' Byte'
 
 #reder the selection menu
 def render_menu(GLOBAL_DATA_DICT, current_site):
@@ -25,7 +42,11 @@ def render_menu(GLOBAL_DATA_DICT, current_site):
     ret_string += '<a class="nav-link text-white bg-primary" href="/status">status</a>'
   else:
     ret_string += '<a class="nav-link" href="/status">status</a>'
-  
+  if current_site == 'status_memory_pics':
+    ret_string += '<a class="nav-link text-white bg-primary" href="/status_memory_pics">memory status</a>'
+  if current_site == 'status_log':
+    ret_string += '<a class="nav-link text-white bg-primary" href="/status_log">log</a>'
+
   hosts = {}
   for key in GLOBAL_DATA_DICT:
     this_host = key[:key.index('/')]
@@ -75,19 +96,101 @@ def render_menu(GLOBAL_DATA_DICT, current_site):
   ret_string += '</div>'
   return ret_string
 
-def render_status(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO):
+def render_status(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app, GLOBAL_STAT_VARS):
   retdata = html_raw_data
   retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'status'))
   
   process = psutil.Process(os.getpid())
   
   memory_in_bytes = process.memory_info().rss
-  body_data = 'used memory: '
+  body_data = '<div>'
+  body_data += '<a class="nav-link" href="/status_memory_pics">memory status</a>'
+  body_data += '<a class="nav-link" href="/status_log">Receive log</a>'
+  body_data += 'used memory: '
   
   body_data += get_human_readable_bytes(memory_in_bytes) + '<br />'
   
   body_data += 'maximum memory: ' + get_human_readable_bytes(max_memory_in_bytes) + '<br />'
   body_data += 'byte ratio: ' + str(MEMORY_BYTE_RATIO) + '<br />'
+
+  body_data += 'total_problem_count: ' + str(GLOBAL_STAT_VARS['total_problem_count']) + '<br />'
+  body_data += 'total_iteration_count: ' + str(GLOBAL_STAT_VARS['total_iteration_count']) + '<br />'
+  body_data += 'total_bytes_received: ' + get_human_readable_bytes(GLOBAL_STAT_VARS['total_bytes_received']) + '<br />'
+  body_data += 'last_deleted: ' + GLOBAL_STAT_VARS['last_deleted'] + '<br />'
+  body_data += 'last_deleted_date: ' + GLOBAL_STAT_VARS['last_deleted_date'] + '<br />'
+  
+  body_data += '<br />size per problem:<br />' + "\n"
+  body_data += '<table class="table table-sm table-bordered"><thead><tr><th>key</th><th>size</th></tr></thead><tbody>' + "\n"
+  
+  for tmp_key in GLOBAL_DATA_SIZE_DICT:
+    body_data += '<tr><td>' + tmp_key + '</td><td>' + get_human_readable_bytes(GLOBAL_DATA_SIZE_DICT[tmp_key]) + '</td></tr>' + "\n"
+  
+  body_data += '</tbody></table>' + "\n"
+
+  body_data += '</div>'
+  retdata = retdata.replace(settings['html_template']['key_content'], body_data)
+  return retdata
+
+
+def render_status_log(GLOBAL_DATA_DICT, MEMLOG_RECEIVELOG):
+  retdata = html_raw_data
+  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'status_log'))
+  
+  process = psutil.Process(os.getpid())
+  
+  memory_in_bytes = process.memory_info().rss
+  body_data = '<div><table class="table table-sm table-bordered"><thead><tr><th>key</th><th>last_updated</th><th>xml_size_in_byte</th>'
+  body_data += '<th>estimated_xml_size_in_byte</th><th>memory_before</th><th>memory_after</th><th>deleted_count</th></tr></thead><tbody>'
+
+  for log_entry in reversed(MEMLOG_RECEIVELOG):
+    body_data += '<tr>'
+    body_data += '<td>' + log_entry['key'] + '</td>'
+    body_data += '<td>' + log_entry['last_updated'] + '</td>'
+    body_data += '<td>' + get_human_readable_bytes(log_entry['xml_size_in_byte']) + '</td>'
+    body_data += '<td>' + get_human_readable_bytes(log_entry['estimated_xml_size_in_byte']) + '</td>'
+    body_data += '<td>' + get_human_readable_bytes(log_entry['memory_before']) + '</td>'
+    body_data += '<td>' + get_human_readable_bytes(log_entry['memory_after']) + '</td>'
+    body_data += '<td>' + str(log_entry['deleted_count']) + '</td>'
+    body_data += '</tr>'
+
+  body_data += '</tbody></table></div>'
+  retdata = retdata.replace(settings['html_template']['key_content'], body_data)
+  return retdata
+
+def render_status_memory_pics(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app):
+  retdata = html_raw_data
+  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'status_memory_pics'))
+  
+  seed = str(randomword(16))
+
+  objgraph.show_refs([GLOBAL_DATA_DICT], filename=(seed + "-GLOBAL_DATA_DICT.png"))
+  objgraph.show_refs([GLOBAL_DATA_SIZE_DICT], filename=(seed + "-GLOBAL_DATA_SIZE_DICT.png"))
+  objgraph.show_refs([GLOBAL_UPDATED_DICT], filename=(seed + "-GLOBAL_UPDATED_DICT.png"))
+  objgraph.show_refs([GLOBAL_KEY_DEQUEUE], filename=(seed + "-GLOBAL_KEY_DEQUEUE.png"))
+  objgraph.show_refs([app], filename=(seed + "-app.png"))
+  
+  body_data = 'memory graphs for streamviz: <br />'
+  
+  data_uri = base64.b64encode(open(seed + "-GLOBAL_DATA_DICT.png", 'rb').read()).decode('utf-8')
+  body_data += '<img src="data:image/png;base64,{0}">'.format(data_uri) + '<br />'
+
+  data_uri = base64.b64encode(open(seed + "-GLOBAL_DATA_SIZE_DICT.png", 'rb').read()).decode('utf-8')
+  body_data += '<img src="data:image/png;base64,{0}">'.format(data_uri) + '<br />'
+
+  data_uri = base64.b64encode(open(seed + "-GLOBAL_UPDATED_DICT.png", 'rb').read()).decode('utf-8')
+  body_data += '<img src="data:image/png;base64,{0}">'.format(data_uri) + '<br />'
+
+  data_uri = base64.b64encode(open(seed + "-GLOBAL_KEY_DEQUEUE.png", 'rb').read()).decode('utf-8')
+  body_data += '<img src="data:image/png;base64,{0}">'.format(data_uri) + '<br />'
+
+  data_uri = base64.b64encode(open(seed + "-app.png", 'rb').read()).decode('utf-8')
+  body_data += '<img src="data:image/png;base64,{0}">'.format(data_uri) + '<br />'
+
+  os.remove(seed + "-GLOBAL_DATA_DICT.png")
+  os.remove(seed + "-GLOBAL_DATA_SIZE_DICT.png")
+  os.remove(seed + "-GLOBAL_UPDATED_DICT.png")
+  os.remove(seed + "-GLOBAL_KEY_DEQUEUE.png")
+  os.remove(seed + "-app.png")
 
   retdata = retdata.replace(settings['html_template']['key_content'], body_data)
   return retdata
@@ -221,16 +324,6 @@ def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request):
 
   retdata = retdata.replace(settings['html_template']['key_content'], body_data)
   return retdata
-
-def get_human_readable_bytes(memory_in_bytes):
-  if memory_in_bytes > 1024*1024*1024:
-    return ("%.3f" % (memory_in_bytes/(1024*1024*1024))) + ' GByte'
-  elif memory_in_bytes > 1024*1024:
-    return ("%.3f" % (memory_in_bytes/(1024*1024))) + ' MByte'
-  elif memory_in_bytes > 1024:
-    return ("%.3f" % (memory_in_bytes/1024)) + ' KByte'
-  else:
-    return str(memory_in_bytes) + ' Byte'
 
 #creates a human readable time format
 def get_dd_hh_mm_ss_fromsecs(td):

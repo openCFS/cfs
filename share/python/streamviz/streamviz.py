@@ -32,9 +32,19 @@ import psutil
 # for sending data to catalyst
 import send_data
 
+#for threading.lock
+import threading
+
 from flask.wrappers import Request
 
 app = Flask(__name__)
+
+MEMLOG_FILENAME = "streamviz_memlog_" + str(datetime.datetime.now()) + ".log"
+MEMLOG_LOCK = threading.Lock()
+with open(MEMLOG_FILENAME, "a") as myfile:
+  myfile.write("#key last_updated xml_size_in_byte(6) estimated_xml_size_in_byte(7) memory_before memory_after deleted_count\n")
+
+MEMLOG_RECEIVELOG = []
 
 # global data dict always contains the latest xml file (in parsed version)
 GLOBAL_DATA_DICT = {}
@@ -66,6 +76,14 @@ MAX_MEMORY = 2*1024*1024*1024 # = 2 GByte
 # ration <bytes used reported by os> divided by <sum of sizes of saved xml strings>
 MEMORY_BYTE_RATIO = -1
 
+# status vars
+GLOBAL_STAT_VARS = {}
+GLOBAL_STAT_VARS['total_problem_count'] = 0
+GLOBAL_STAT_VARS['total_iteration_count'] = 0
+GLOBAL_STAT_VARS['last_deleted'] = ""
+GLOBAL_STAT_VARS['last_deleted_date'] = ""
+GLOBAL_STAT_VARS['total_bytes_received'] = 0
+
 @app.route('/', methods = ['GET'])
 def index():
   if request.method == 'GET':
@@ -75,7 +93,15 @@ def index():
 
 @app.route('/status', methods = ['GET'])
 def status():
-    return render_html.render_status(GLOBAL_DATA_DICT, MAX_MEMORY, MEMORY_BYTE_RATIO)
+    return render_html.render_status(GLOBAL_DATA_DICT, MAX_MEMORY, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app, GLOBAL_STAT_VARS)
+
+@app.route('/status_log', methods = ['GET'])
+def status_log():
+    return render_html.render_status_log(GLOBAL_DATA_DICT, MEMLOG_RECEIVELOG)
+
+@app.route('/status_memory_pics', methods = ['GET'])
+def status_memory_pics():
+    return render_html.render_status_memory_pics(GLOBAL_DATA_DICT, MAX_MEMORY, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app)
 
 @app.route(settings["api"]["values"] + '/<path:key>', methods = ['GET', 'POST'])
 def values(key):
@@ -118,16 +144,19 @@ def cfs_recieve_blank():
 @app.route(settings["api"]["recieve_url"] + '/', methods = ['GET', 'POST'])
 @app.route(settings["api"]["recieve_url"] + '/<path:url_key>', methods = ['GET', 'POST'])
 def cfs_recieve(url_key = ""):
-  global MEMORY_BYTE_RATIO, GLOBAL_DATA_DICT, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, UPDATE_EVENTS
+  global MEMORY_BYTE_RATIO, GLOBAL_DATA_DICT, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, UPDATE_EVENTS, GLOBAL_STAT_VARS
   process = psutil.Process(os.getpid())
   
   memory_in_bytes = process.memory_info().rss
   
-  if memory_in_bytes > MAX_MEMORY:
-    total_xml_size = 0
-    for tmp_key in GLOBAL_DATA_DICT:
-      total_xml_size += GLOBAL_DATA_SIZE_DICT[tmp_key]
+  total_xml_size = 0
+  deleted_count = 0
+  for tmp_key in GLOBAL_DATA_DICT:
+    total_xml_size += GLOBAL_DATA_SIZE_DICT[tmp_key]
 
+  GLOBAL_STAT_VARS['total_bytes_received'] += total_xml_size
+
+  if memory_in_bytes > MAX_MEMORY:
     if MEMORY_BYTE_RATIO < 0:
       # we need to calculate the ratio:
       MEMORY_BYTE_RATIO = memory_in_bytes / total_xml_size
@@ -143,7 +172,16 @@ def cfs_recieve(url_key = ""):
       if oldest_key in GLOBAL_UPDATED_DICT:
         oldest_updated = GLOBAL_UPDATED_DICT.pop(oldest_key) 
         del oldest_updated
+      if oldest_key in UPDATE_EVENTS:
+        oldest_update_event = UPDATE_EVENTS[oldest_key].pop()
+        oldest_update_event.set()
+        del oldest_update_event
+
+      deleted_count += 1
       send_data.delete_coprocessor(oldest_key)
+
+      GLOBAL_STAT_VARS['last_deleted'] = oldest_key
+      GLOBAL_STAT_VARS['last_deleted_date'] = str(datetime.datetime.now())
       
     # collect garbage
     gc.collect()
@@ -180,6 +218,7 @@ def cfs_recieve(url_key = ""):
 
     if not key in GLOBAL_DATA_DICT: # only add key if not already in
       GLOBAL_KEY_DEQUEUE.appendleft(key)
+      GLOBAL_STAT_VARS['total_problem_count'] += 1
 
     GLOBAL_DATA_DICT[key] = xml
     GLOBAL_DATA_SIZE_DICT[key] = len(data)
@@ -191,6 +230,25 @@ def cfs_recieve(url_key = ""):
     # into GLOBAL_DATA_DICT
     if key in UPDATE_EVENTS:
       UPDATE_EVENTS[key].set()
+
+    memory_in_bytes_after_adding = psutil.Process(os.getpid()).memory_info().rss
+
+    with MEMLOG_LOCK:
+      with open(MEMLOG_FILENAME, "a") as myfile:
+        myfile.write(key + " " + GLOBAL_UPDATED_DICT[key] + " " + str(total_xml_size) + " " + str(MEMORY_BYTE_RATIO*total_xml_size) + " " + str(memory_in_bytes) + " " + str(memory_in_bytes_after_adding) + " " + str(deleted_count) + "\n")
+
+      log_entry = {}
+      log_entry['key'] = key
+      log_entry['last_updated'] = GLOBAL_UPDATED_DICT[key]
+      log_entry['xml_size_in_byte'] = total_xml_size
+      log_entry['estimated_xml_size_in_byte'] = MEMORY_BYTE_RATIO*total_xml_size
+      log_entry['memory_before'] = memory_in_bytes
+      log_entry['memory_after'] = memory_in_bytes_after_adding
+      log_entry['deleted_count'] = deleted_count
+      
+      MEMLOG_RECEIVELOG.append(log_entry)
+
+    GLOBAL_STAT_VARS['total_iteration_count'] += 1
 
     print("recieved data!\n")
     return 'data recieved!\n'
