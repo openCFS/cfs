@@ -93,7 +93,23 @@ def index():
 
 @app.route('/status', methods = ['GET'])
 def status():
-    return render_html.render_status(GLOBAL_DATA_DICT, MAX_MEMORY, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app, GLOBAL_STAT_VARS)
+  key_to_delete = request.args.get('delete', '')
+  if key_to_delete != '':
+    if key_to_delete in GLOBAL_DATA_DICT:
+      oldest_data = GLOBAL_DATA_DICT.pop(key_to_delete) # delete oldest xml keys
+      del oldest_data
+    if key_to_delete in GLOBAL_UPDATED_DICT:
+      oldest_updated = GLOBAL_UPDATED_DICT.pop(key_to_delete) 
+      del oldest_updated
+    if key_to_delete in UPDATE_EVENTS:
+      oldest_update_event = UPDATE_EVENTS.pop(key_to_delete)
+      oldest_update_event.set()
+      del oldest_update_event
+
+    send_data.delete_coprocessor(key_to_delete)
+    gc.collect()
+  
+  return render_html.render_status(GLOBAL_DATA_DICT, MAX_MEMORY, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app, GLOBAL_STAT_VARS)
 
 @app.route('/status_log', methods = ['GET'])
 def status_log():
@@ -173,7 +189,7 @@ def cfs_recieve(url_key = ""):
         oldest_updated = GLOBAL_UPDATED_DICT.pop(oldest_key) 
         del oldest_updated
       if oldest_key in UPDATE_EVENTS:
-        oldest_update_event = UPDATE_EVENTS[oldest_key].pop()
+        oldest_update_event = UPDATE_EVENTS.pop(oldest_key)
         oldest_update_event.set()
         del oldest_update_event
 

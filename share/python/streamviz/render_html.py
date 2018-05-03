@@ -11,6 +11,7 @@ import psutil
 import objgraph
 import random, string
 import base64
+import cgi
 
 #The html file with marker; see strings.py for all marker definitions 
 html_raw_data = "html file not loaded"
@@ -120,10 +121,14 @@ def render_status(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO, GLOB
   body_data += 'last_deleted_date: ' + GLOBAL_STAT_VARS['last_deleted_date'] + '<br />'
   
   body_data += '<br />size per problem:<br />' + "\n"
-  body_data += '<table class="table table-sm table-bordered"><thead><tr><th>key</th><th>size</th></tr></thead><tbody>' + "\n"
+  body_data += '<table class="table table-sm table-bordered"><thead><tr><th>key</th><th>size</th><th>delete</th></tr></thead><tbody>' + "\n"
   
   for tmp_key in GLOBAL_DATA_SIZE_DICT:
-    body_data += '<tr><td>' + tmp_key + '</td><td>' + get_human_readable_bytes(GLOBAL_DATA_SIZE_DICT[tmp_key]) + '</td></tr>' + "\n"
+    body_data += '<tr><td>' + tmp_key + '</td><td>' + get_human_readable_bytes(GLOBAL_DATA_SIZE_DICT[tmp_key]) + '</td>'
+    if tmp_key in GLOBAL_DATA_DICT:
+      body_data += '<td><a href="/status?delete=' + cgi.escape(tmp_key) + '">x</a></td></tr>' + "\n"
+    else:
+      body_data += '<td></td></tr>' + "\n"
   
   body_data += '</tbody></table>' + "\n"
 
