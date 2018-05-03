@@ -24,6 +24,7 @@ except:
   
 # similar to create_3d_cross_ip; # without rotation and shearing
 def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,nondes=None):
+  from skimage import measure
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
   # min_bb/max_bb: bounding box of design regions
@@ -44,8 +45,8 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 
   # order: min_x,min_y,min_z,max_x,max_y,max_z
   design_bounds = np.ones(6) * (-1)
-  design_bounds[0:3] = min_bb[0:3]
-  design_bounds[3:6] = max_bb[0:3]
+  design_bounds[0:3] = min_bb
+  design_bounds[3:6] = max_bb
   
   # 0:xmin,1:ymin,2:zmin,3:xmax,4:ymax,5:zmax  
   h_des = (abs(design_bounds[3] - design_bounds[0]), abs(design_bounds[4] - design_bounds[1]), abs(design_bounds[5] - design_bounds[2]))
@@ -101,13 +102,15 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   bounds[0:3] = np.minimum(np.asarray(min_bb),np.asarray(nondes_min))
   bounds[3:6] = np.maximum(np.asarray(max_bb),np.asarray(nondes_max))
   width = [bounds[3]-bounds[0],bounds[4]-bounds[1],bounds[5]-bounds[2]]
-  print("\nmin_bb design:",min_bb)
-  print("max_bb design:",max_bb)
-  print("min:",bounds[0:3])
-  print("max:",bounds[3:6])
+#   print("\nmin_bb design:",min_bb)
+#   print("max_bb design:",max_bb)
+#   print("min:",bounds[0:3])
+#   print("max:",bounds[3:6])
   
   my_mpi_grid.init_data_grid(samples, args.bc_res, bounds)
   my_mpi_grid.to_info()
+  
+  # master treats cells on boundary on voxel level to ensure connectivity to skin 
   
   local_id = 0
   for k in range(samples[2]):
@@ -166,6 +169,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
         local_id += 1
     
   eps = 1e-6
+  
+#   verts, faces, _, _ = measure.marching_cubes(my_mpi_grid.grid.data,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False)
+#   verts, faces = draw_profile_functions.collapse_short_edges(verts,faces)
+#   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
+#   matviz_vtk.show_write_vtk(pd, 10, "marching"+str(my_mpi_grid.rank)+".vtp")
+#   
+#   sys.exit()
 
   if nondes:
     hx = (my_mpi_grid.bounds[3]-my_mpi_grid.bounds[0])/my_mpi_grid.grid.nx
@@ -175,13 +185,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     #y = np.arange(my_mpi_grid.bounds[1],my_mpi_grid.bounds[4]+hy-eps,hy)
     #z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+hz-eps,hz)
     
-    tmp = np.zeros_like(my_mpi_grid.grid.data,dtype=bool)
-    draw_non_design(design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
-    my_mpi_grid.grid.data *= tmp
-    
-    design_elems = None
-    draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
-    draw_non_design(holes, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
+#     tmp = np.zeros_like(my_mpi_grid.grid.data,dtype=bool)
+#     draw_non_design(design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
+#     my_mpi_grid.grid.data *= tmp
+#     
+#     design_elems = None
+#     draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
+#     draw_non_design(holes, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
   #   x = np.arange(0,my_mpi_grid.grid.data.shape[0]+1,1)
   #   y = np.arange(0,my_mpi_grid.grid.data.shape[1]+1,1)
   #   z = np.arange(0,my_mpi_grid.grid.data.shape[2]+1,1)
@@ -192,24 +202,31 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     holes = None
     
   borders = my_mpi_grid.communicate_edges()
-      
+  
+  helper = None    
   # binary helper array
   shape = np.asarray(my_mpi_grid.grid.data.shape[0:3]) + np.array((2,2,2))
-  helper = np.zeros(shape,dtype=bool)
-  helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = my_mpi_grid.grid.data
-  
+  if 0 < my_mpi_grid.rank:
+    shape = np.asarray(my_mpi_grid.grid.data.shape[0:3]) + np.array((1,2,2))
+    helper = np.zeros(shape,dtype=bool)
+    helper[0:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = my_mpi_grid.grid.data
+  elif my_mpi_grid.rank == 0:
+    helper = np.zeros(shape,dtype=bool)
+    helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = my_mpi_grid.grid.data
   # hope for python's garbage collector to delete voxel array
-  my_mpi_grid.grid.data = None
+#   my_mpi_grid.grid.data = None
   
+  print("len(borders):",len(borders))
   for b in borders:
     # b[0] stores direction oft cartesian comm
     if b[0] > my_mpi_grid.rank:
       assert(b[1] is not None)
       helper[shape[0]-1,1:shape[1]-1,1:shape[2]-1] = b[1] 
-    else:
-      assert(b[0] < my_mpi_grid.rank)
-      assert(b[1] is not None)
-      helper[0,1:shape[1]-1,1:shape[2]-1] = b[1]
+#       helper = np.concatenate((helper,b[1].reshape(1,b[1].shape[0],b[1].shape[1])))
+#     else:
+#       assert(b[0] < my_mpi_grid.rank)
+#       assert(b[1] is not None)
+#       helper[0,1:shape[1]-1,1:shape[2]-1] = b[1]
   
   print("hx,hy,hz:",my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
   hx = my_mpi_grid.grid.hx
@@ -217,17 +234,21 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   hz = my_mpi_grid.grid.hz
  
   #print(helper.shape,np.sum(helper))
-  from skimage import measure
+  
   # coords of vertices lie in [0,1-h]
   verts, faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False)
   # translate from (0,0,0) to correct position
   # and marching cubes shift everything by 0.5 * hx/hy/hz
-  shift = np.asarray(my_mpi_grid.bounds[0:3]) - np.asarray((my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0))
-  print("shift:",shift)
+  shift = None
+  if my_mpi_grid.rank > 0:
+    shift = np.asarray(my_mpi_grid.bounds[0:3]) - np.asarray((my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0))
+  else:
+    shift = np.asarray(my_mpi_grid.bounds[0:3]) - np.asarray((my_mpi_grid.grid.hx*1.5,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0))  
   verts = [p+shift for p in verts]
   
-  # hope for python's garbage collector to delete voxel array
-  helper = None
+  verts, faces = draw_profile_functions.collapse_short_edges(verts,faces)
+  
+  my_mpi_grid.grid.data = None
   
   pd = matviz_vtk.fill_vtk_polydata(verts, faces)
   matviz_vtk.show_write_vtk(pd, 10, "marching"+str(my_mpi_grid.rank)+".vtp")
@@ -281,17 +302,20 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 #   zmin = min(my_mpi_grid.vertices, key=lambda t: t[2])[2]
   zmax = max(my_mpi_grid.vertices, key=lambda t: t[2])[2]
   
-  # do parallel smoothing here
-  mpi_taubin_smoothing(my_mpi_grid,(xmin,ymin,0,xmax,ymax,zmax),niter=args.bc_smooth)
+  if args.bc_smooth > 0:
+    # do parallel smoothing here
+    mpi_taubin_smoothing(my_mpi_grid,(xmin,ymin,0,xmax,ymax,zmax),niter=args.bc_smooth)
   
-  # send smoothed data to root
-  my_mpi_grid.gather_data(append=False, root=0)
+    # send smoothed data to root
+    my_mpi_grid.gather_data(append=False, root=0)
   
-  if my_mpi_grid.rank != 0:
-    sys.exit()
-  
+    if my_mpi_grid.rank != 0:
+      sys.exit()
+    
   pd = matviz_vtk.fill_vtk_polydata(my_mpi_grid.vertices,my_mpi_grid.faces)
-  matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(my_mpi_grid.rank)+".vtp")
+  
+  if args.bc_smooth > 0:
+    matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(my_mpi_grid.rank)+".vtp")
     
   return pd
 
@@ -605,3 +629,7 @@ def out_of_bounds(point,bounds):
   else:
     print("point ",point, " is out of bounds ",design_bounds)
     return True
+  
+# calc distance between two points
+def calc_distance(p1,p2):
+  return np.linalg.norm(np.asarray(p1)-np.asarray(p2))  

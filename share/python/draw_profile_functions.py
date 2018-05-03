@@ -801,10 +801,6 @@ def get_surface_point_candidate(profile,alpha,x):
  
   return point
 
-# calc distance between two points
-def calc_distance(p1,p2):
-  return np.linalg.norm(np.asarray(p1)-np.asarray(p2))
-
 # returns points and cells describing basecell 
 def generate_basecell(args,info):
   global res, res_surf_lines, interpolation
@@ -1539,12 +1535,13 @@ def calc_edge_lengths(mesh):
 def collapse_short_edges(verts,faces,abs_thresh=None):
   import pymesh
   mesh = pymesh.form_mesh(np.asarray(verts),np.asarray(faces))
-  minl,maxnl,avl = calc_edge_lengths(mesh)
   t = abs_thresh
   if abs_thresh is None:
+    minl,maxl,avl = calc_edge_lengths(mesh)
     t = 0.8*avl
+    #t = 1.2 * minl
   mesh, info = pymesh.collapse_short_edges(mesh, abs_threshold=t,preserve_feature=True)
   print("info:",info)
-  mesh, info = pymesh.remove_obtuse_triangles(mesh,130)
+  mesh, info = pymesh.remove_obtuse_triangles(mesh,120)
   print("info:",info)
   return mesh.vertices, mesh.faces
