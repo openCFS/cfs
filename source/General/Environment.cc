@@ -1550,6 +1550,20 @@ namespace CoupledField {
     SolutionTypeEnum.Add(LBM_PRESSURE, "LBMPressure");
     SolutionTypeEnum.Add(LBM_PHYSICAL_PSEUDO_DENSITY, "LBMPhysicalPseudoDensity");
 
+    //Geometry
+    SolutionTypeEnum.Add(NODE_NORMAL, "NodeNormal");
+    SolutionTypeEnum.Add(COOSY_X,"CooSy-default-x");
+    SolutionTypeEnum.Add(COOSY_Y,"CooSy-default-y");
+    SolutionTypeEnum.Add(SURFACE_NORMAL,"SurfaceNormal");
+    SolutionTypeEnum.Add(AREA,"area");
+    SolutionTypeEnum.Add(ETA, "eta");
+    SolutionTypeEnum.Add(XI, "xi");
+
+
+
+
+
+
     // ==== Initialization of Material Constants ====
     MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );
     MaterialTypeEnum.Add( MAGSTRICT_RELUCTIVITY,"Magstrict_reluctivity");
