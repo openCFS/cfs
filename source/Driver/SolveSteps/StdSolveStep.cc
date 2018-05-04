@@ -1374,6 +1374,10 @@ namespace CoupledField {
     // second boolean is if it's multiharmonic...which is is
     Double RhsLinL2Norm = SetLinRHS(loadFactor, false, true);
 
+    // Usually the RhsLinVal_ gets set in the constructor but
+    // not in the multiharmonic case. Therefore we set it here.
+    algsys_->GetFullMultiHarmRHSVal(RhsLinVal_);
+
     // Loop over every frequency and assemble the correct SBM blocks
     AssembleMH(N, M, true);
 
@@ -1417,8 +1421,6 @@ namespace CoupledField {
     this->EvaluateNonlinearity(ftRes, actSol);
 
 
-
-
     // =================================================================================
     //  2) Solve the full multiharmonic nonlinear system
     // =================================================================================
@@ -1443,27 +1445,6 @@ namespace CoupledField {
     // In our case this method does not do anything
     PDE_.UpdateToSolStrategy();
 
-SBM_Vector tmp1;
-tmp1.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
-algsys_->GetFullMultiHarmRHSVal(tmp1);
-std::cout<<"algsys_->GetFullMultiHarmRHSVal at pos 40, 4000, 4500 : "<<std::endl;
-for(UInt i = 0; i < tmp1.GetSize(); ++i){
-  std::cout<<tmp1.GetPointer(i)->GetComplexEntry(40)<<" , "<<
-             tmp1.GetPointer(i)->GetComplexEntry(4000)<<" , "<<
-             tmp1.GetPointer(i)->GetComplexEntry(4500)<<std::endl;
-}
-
-SBM_Vector tmp2;
-tmp2.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
-algsys_->GetFullMultiHarmRHSVal(tmp2);
-std::cout<<"algsys_->GetFullMultiHarmRHSVal at pos 40, 4000, 4500 : "<<std::endl;
-for(UInt i = 0; i < tmp2.GetSize(); ++i){
-  std::cout<<tmp2.GetPointer(i)->GetComplexEntry(40)<<" , "<<
-             tmp2.GetPointer(i)->GetComplexEntry(4000)<<" , "<<
-             tmp2.GetPointer(i)->GetComplexEntry(4500)<<std::endl;
-}
-
-
     // set iteration counter
     UInt iterationCounter = 0;
 
@@ -1484,8 +1465,23 @@ for(UInt i = 0; i < tmp2.GetSize(); ++i){
       }
 
 
-
       AssembleMH(N, M);
+
+      // Sets flag that matrix was already assembled. The method CheckNonLinearities re-does this
+      assemble_->PostAssemble();
+
+      // Calls method ApplyBC and ApplyLoads in FeFunction
+      //PDE_.SetBCs();
+
+      // compute effective matrix
+      std::map<FEMatrixType,Double> empty;
+      algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+
+
+      // set RHS: linear part
+      algsys_->InitRHS(RhsLinVal_ );
+      // and nonlinpart if any
+      assemble_->AssembleNonLinRHS();
 
       // This is done because we want to solve the deflect-system:
       // K(u^k) \cdot \Delta u^{k+1} = f - K(u^k) \cdot u^k
@@ -1494,23 +1490,6 @@ for(UInt i = 0; i < tmp2.GetSize(); ++i){
       // the boolean has no effect...
       algsys_->UpdateRHS_MultHarm(SYSTEM,solVecMH_,true);
       solVecMH_.ScalarMult(-1.0);
-
-
-SBM_Vector tmp3;
-tmp3.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
-algsys_->GetFullMultiHarmRHSVal(tmp3);
-std::cout<<"algsys_->GetFullMultiHarmRHSVal at pos 40, 4000, 4500 : "<<std::endl;
-for(UInt i = 0; i < tmp3.GetSize(); ++i){
-  std::cout<<tmp3.GetPointer(i)->GetComplexEntry(40)<<" , "<<
-             tmp3.GetPointer(i)->GetComplexEntry(4000)<<" , "<<
-             tmp3.GetPointer(i)->GetComplexEntry(4500)<<std::endl;
-}
-std::cout<<"solVecMH_ : "<< solVecMH_.ToString()<<std::endl;
-
-
-      // compute effective matrix
-      std::map<FEMatrixType,Double> empty;
-      algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
 
 
       // Incorporate Boundary conditions and recalc the preconditioner and solver
@@ -1526,14 +1505,30 @@ std::cout<<"solVecMH_ : "<< solVecMH_.ToString()<<std::endl;
       // Get the incremental solution (deflect vector), second argument is setIDBC
       algsys_->GetFullMultiHarmSolutionVal( solInc, false);
 
+
       // Initialize norms (residual and incremental ones)
       Double residualL2Norm = 0.0;
       Double etaLineSearch  = 1.0;
+
 
       // Perform line search to get the 'optimal' eta, which minimizes the residual-norm
       // Meaning: u^{k+1} = u^k + eta * \Delta u^{k+1} in order to minimize
       // the residual r^{k+1} = f - K(u^{k+1}) \cdot u^{k+1} is minimized
       residualL2Norm = LineSearchMultHarm(solInc, actSol, etaLineSearch, ftRes);
+
+
+
+
+
+
+      this->EvaluateNonlinearity(ftRes, actSol);
+
+
+
+
+
+
+
 
 
       // Store the new solution u^{k+1}
@@ -1577,7 +1572,8 @@ std::cout<<"solVecMH_ : "<< solVecMH_.ToString()<<std::endl;
 
       // boolean variable, holds condition if another iteration step is necessary
       performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-
+std::cout<<"========= incrementalErr = "<<incrementalErr<<std::endl;
+std::cout<<"========= residualErr = "<<residualErr<<std::endl;
       if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
         EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
             << "' in step no '" << 1
@@ -1658,9 +1654,15 @@ std::cout<<"solVecMH_ : "<< solVecMH_.ToString()<<std::endl;
         Integer h = -solStrat_->GetNumHarmN() + i;
         mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
         // which harmonic are we considering
-        if (std::abs(h) >= (Integer) (M) || h == 0) {
+        if (std::abs(h) > (Integer) (M) || h == 0) {
           continue;
         } else {
+//
+//          std::cout<<"=================================================================\n"
+//                     " ASSEMBLING MATRICES FOR HARMONIC"<< h<<"\n"
+//                     "=================================================================\n"<<std::endl;
+//
+//
           // assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
           assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
         }
@@ -1848,11 +1850,11 @@ std::cout<<"solVecMH_ : "<< solVecMH_.ToString()<<std::endl;
     
     for( UInt i=0; i<nrEtas; i++) {
       //std::cout << "Testing eta = " << eta[i] << std::endl;
-      // take care about the data types (we need complex type e.g. in multiharmonic analysis)
+      // take care about the data types
       if(actSol.GetEntryType() == BaseMatrix::DOUBLE) actSol.Add( 1.0, solOld, eta[i], solIncrement);
       else actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement);
 
-      //store new solution but take care for multiharmonic analysis
+      //store new solution
       solVec_ = actSol;
 
       // set RHS: linear part
@@ -1921,8 +1923,11 @@ std::cout<<"solVecMH_ : "<< solVecMH_.ToString()<<std::endl;
   Double StdSolveStep::LineSearchMultHarm(const SBM_Vector& solIncrement, SBM_Vector& actSol,
           Double& etaLineSearch, MHTimeFreqResult& ftRes)  {
 
-    SBM_Vector solOld(BaseMatrix::DOUBLE);
+    SBM_Vector solOld(BaseMatrix::COMPLEX);
     solOld = actSol;
+
+
+
     const UInt nrEtas = 4;
     const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
 
@@ -1936,38 +1941,36 @@ std::cout<<"solVecMH_ : "<< solVecMH_.ToString()<<std::endl;
       if(actSol.GetEntryType() == BaseMatrix::DOUBLE){
         EXCEPTION("StdSolveStep::LineSearchMultHarm Solution vector is real valued in multiharmonic analysis!");
       }else{
+        // Actually it's this actSol = solOld + eta[i] * solIncrement;
         actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement);
       }
 
       // Evaluate the nonlinearity (e.g. BH curve in electromagnetics)
       this->EvaluateNonlinearity(ftRes, actSol);
 
-SBM_Vector r(BaseMatrix::COMPLEX);
-algsys_->GetFullMultiHarmRHSVal(r);
-std::cout<<"algsys_->GetFullMultiHarmRHSVal : "<< r.ToString() <<std::endl;
-std::cout<<"RhsLinVal_ : "<< RhsLinVal_.ToString()<<std::endl;
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
       // and nonlinpart if any
       assemble_->AssembleNonLinRHS();
-      
+
       // setup the matrices
       assemble_->InitMultHarm();
       this->AssembleMH(solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
       assemble_->PostAssemble();
 
-      solVecMH_.ScalarMult(-1.0);
-      algsys_->UpdateRHS_MultHarm(SYSTEM,solVecMH_,true);
-      solVecMH_.ScalarMult(-1.0);
+      std::map<FEMatrixType,Double> empty;
+      algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
 
-      
+
+      actSol.ScalarMult(-1.0);
+      algsys_->UpdateRHS_MultHarm(SYSTEM,actSol,true);
+      actSol.ScalarMult(-1.0);
+
       // =====================================================================
       // calculation of error norms
       // =====================================================================
-      SBM_Vector actRHS(BaseMatrix::DOUBLE);
-      actRHS.ResetEntryType(BaseMatrix::COMPLEX);
+      SBM_Vector actRHS(BaseMatrix::COMPLEX);
       algsys_->GetFullMultiHarmRHSVal( actRHS );
-
       
       // calculation of residual error =======================================
       Double residualL2Norm = actRHS.NormL2();
@@ -1982,8 +1985,7 @@ std::cout<<"RhsLinVal_ : "<< RhsLinVal_.ToString()<<std::endl;
     etaLineSearch = etaOpt;
     
     // Set new solution
-    if(solStrat_->IsMultHarm()) actSol.Add( (Complex) 1.0, solOld, etaOpt, solIncrement );
-    else actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+    actSol.Add( (Complex)1.0, solOld, etaOpt, solIncrement );
     
     return residualL2NormOpt;
   }

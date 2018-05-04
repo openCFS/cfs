@@ -160,7 +160,7 @@ protected:
   //! Store how many times, the solution vector was read
   UInt updateIter_;
 
-  unsigned int maxInt_;
+  int maxInt_;
 
   //! Number of harmonics
   UInt N_;
@@ -174,7 +174,6 @@ protected:
   StdVector<HBRegionHelper> hbRegion_;
 
   //! Temporary vector nuFreqTmp_[i] contains the nu(timestep) of element nuFreqTmpELEM_[i]
-  Vector<UInt> nuFreqTmpELEM_;
   Vector<Double> nuFreqTmp_;
 
   //! Map for getting the position of a certain elemNum in the freqTimeRes_ construct

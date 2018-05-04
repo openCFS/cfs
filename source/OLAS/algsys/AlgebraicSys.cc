@@ -280,7 +280,7 @@ namespace CoupledField {
           id.rowInd = iRow;
           id.colInd = iRow;
           sbmPatternIds_[id] = NO_PATTERN_ID;
-          for( UInt iCol = iRow + 1; iCol < iRow + M ; ++iCol ) {
+          for( UInt iCol = iRow + 1; iCol < iRow + M + 1; ++iCol ) {
             if( iCol < 2 * N + 1){
               id.rowInd = iRow;
               id.colInd = iCol;
@@ -1611,7 +1611,7 @@ namespace CoupledField {
         // Fetch all SBM blocks, in which the current (rowFctId, colFctId) occurs.
         // In the multiharmonic case, give it all the non-zero (sbmRow, sbmCol) combinations
         for( UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
-          for( UInt sbmCol = sbmRow; sbmCol < sbmRow + M ; ++sbmCol ) {
+          for( UInt sbmCol = sbmRow; sbmCol < sbmRow + M + 1; ++sbmCol ) {
             if( sbmCol < 2 * N + 1){
               SubMatrixID sID;
               sID.rowInd = sbmRow;
@@ -1643,14 +1643,14 @@ namespace CoupledField {
     //    sub-graph that the graph manager stores
     // --------------------------------------------------------------------
     UInt nnzBlocks = 0; //number of nonzero blocks
-    if ( matrixTypes_.size() > 2 ) {
+    if ( matrixTypes_.size() > 3 ) {
       EXCEPTION("AlgebraicSys::GraphSetupDoneMH() more than two matrix type...not implemented yet \n"
                 "for the multiharmonic case!" );
     }
     else {
       SubMatrixID sID;
       for (  UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
-        for ( UInt sbmCol = sbmRow; sbmCol < sbmRow + M ; ++sbmCol ) {
+        for ( UInt sbmCol = sbmRow; sbmCol < sbmRow + M + 1; ++sbmCol ) {
           if( sbmCol < 2 * N + 1){
             ++nnzBlocks;
             if ( graphManager_->SubGraphExists( sbmRow, sbmCol ) == true ) {
@@ -1743,7 +1743,7 @@ namespace CoupledField {
     StdVector<UInt> newOrder;
 
     // Since all diagonal blocks have the same reordering and only the
-    // blockInfo_ with indix 0 is valid, we only have to perform the following
+    // blockInfo_ with index 0 is valid, we only have to perform the following
     // loop once. It is left as a loop for further implementations, where we
     // might apply different reorderings to the blocks
     for (  UInt sbmRow = 0; sbmRow < 1; ++sbmRow ) {
@@ -3450,7 +3450,7 @@ namespace CoupledField {
 
   void AlgebraicSys::GetFullMultiHarmSolutionVal(SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
     solVec.Resize( 2 * solStrat_->GetNumHarmN() + 1);
-    solVec.Init();
+    // solVec gets initialized in GetSolutionVal method
 
     // loop over all block vector and call specialized GetRHSVal method, the boolean
     // has no effect, it's just an identifier to call the correct method
@@ -3559,6 +3559,7 @@ namespace CoupledField {
 
   void AlgebraicSys::GetFullMultiHarmRHSVal(SBM_Vector& rhsVec ) {
     rhsVec.Resize( 2 * solStrat_->GetNumHarmN() + 1 );
+    rhsVec.Init();
 
     // loop over all block vector and call specialized GetRHSVal method, the boolean
     // has no effect, it's just an identifier to call the correct method
@@ -3620,7 +3621,7 @@ namespace CoupledField {
       UInt M = solStrat_->GetNumHarmM();
 
       for( UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
-        for( UInt sbmCol = sbmRow ; sbmCol < sbmRow + M ; ++sbmCol ) {
+        for( UInt sbmCol = sbmRow ; sbmCol < sbmRow + M + 1; ++sbmCol ) {
           if( sbmCol < 2 * N + 1){
             graph = graphManager_->GetGraph( sbmRow, sbmCol );
             // we only allow nonsymmetric storage scheme

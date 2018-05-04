@@ -51,7 +51,7 @@ namespace CoupledField
     mp_ = mp;
     isFirstTime_ = true;
     matrixUpdated_ = false;
-    printProgressBar_ = true;
+    printProgressBar_ = false;
     info_ = infoNode;
     lin_forms_given_ = false;
 
@@ -1018,6 +1018,12 @@ namespace CoupledField
                   diagInd.Init(0);
                   diagInd[0] =  sbmInd[iRow];
                   Double f = multHarmFreqVec[iRow];
+                  // For f = 0, we basically solve the static problem. If we really set the
+                  // mass part for harmonic 0 to zero, the solution becomes non-unique.
+                  // Therefore we replace here zero with a small relaxation parameter 1e-6
+                  if( std::fabs(f) <= 1e-10 ){
+                    f = 1.0e-6;
+                  }
                   LOG_DBG3(assemble) << "AM_Std: real CEM MASS  in "
                       "SBM block with index "<<diagInd[0]<<" -> "
                       << elemMatrix.ToString(2);

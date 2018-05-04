@@ -248,6 +248,8 @@ namespace CoupledField {
 
   private:
 
+    bool consoleConvergence_;
+
     //! Right-hand side vector of least-squares problem
 
     //! This auxilliary vector is used in the solution of the least squares

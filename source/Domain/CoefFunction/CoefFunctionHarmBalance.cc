@@ -64,7 +64,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
     regionRegistration_ = false;
 
-    maxInt_ = std::numeric_limits<unsigned int>::max();
+    maxInt_ = std::numeric_limits<int>::max();
 
     N_ = N;
 
@@ -78,7 +78,6 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
     numElems_ = 0;
 
-    nuFreqTmpELEM_.Resize(0);
     nuFreqTmp_.Resize(0);
 
     // For the callback mechanism
@@ -107,7 +106,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
     // Bind the handle to the correct expression
     mp_->SetExpr(harmonicHandle_,"harmonicHandle");
     // Flag for first time calculation
-    mp_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", -1);
+    mp_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", maxInt_);
 
 
     // Variables from CoefFunction base-class
@@ -203,7 +202,6 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
       LOG_DBG(coeffctharmbalance) << "Setting CoefFuncionHarmBalance-intern solution vector for nu(timestep)";
 
       // Now set the vector containing nu of elements
-      nuFreqTmpELEM_.Resize(numElems_, 0);
       nuFreqTmp_.Resize(numElems_, 0.0);
       UInt elemIterator = 0;
       EntityIterator it;
@@ -213,7 +211,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
         it = regStruc.elemListPerRegion->GetIterator();
         // Loop over every element in that region
         for(it.Begin(); !it.IsEnd(); it++){
-          nuFreqTmpELEM_[elemIterator] = it.GetElem()->elemNum;
+          positionOfElem_[it.GetElem()->elemNum] = elemIterator;
           ++elemIterator;
         }
       }
@@ -347,7 +345,9 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
     Double coefScalReal = 0.0;
 
     RegionIdType elemReg = lpm.ptEl->regionId;
-    if( this->mp_->Eval(harmonicHandle_) == -1 ){
+    int harmonic = this->mp_->Eval(harmonicHandle_);
+
+    if( harmonic == maxInt_ ){
       // For the initial multiharmonic iteration
       // loop over regions and get the region of the lpm
       for(auto reg : hbRegion_){
@@ -358,14 +358,62 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
         }
       }
     }else{
+// TODO Clean this up...we don't even need to perform the fft for the not-nonlinear regions...
 
-      int harmonic = this->mp_->Eval(harmonicHandle_);
+
       const Vector<Complex>& fR = freqTimeRes_.GetFreqResult(N_ + harmonic);
       coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ];
       // If harmonic is negative, we need conjugate ḩat{nu}
       if(harmonic < 0){
         std::conj(coefScal);
       }
+
+//      for(auto reg : hbRegion_){
+//          if( reg.region == elemReg){
+//            if(reg.isNonLin){
+//              const Vector<Complex>& fR = freqTimeRes_.GetFreqResult(N_ + harmonic);
+//              Complex tmp = fR[ positionOfElem_[lpm.ptEl->elemNum] ];
+//              if(std::fabs(tmp.real()) < 1.0e-4){
+//                coefScal = (Complex)0.0;
+//              }else{
+//                coefScal = tmp;
+//              }
+//
+//              // If harmonic is negative, we need conjugate ḩat{nu}
+//              if(harmonic < 0){
+//                std::conj(coefScal);
+//              }
+//              //std::cout<<coefScal<<std::endl;
+//              break;
+//            }else{
+//              if(harmonic == 0){
+//                reg.nonLinNuCoefMap->GetScalar(coefScalReal, lpm);
+//                break;
+//              }else{
+//                coefScal = (Complex)0.0;
+//              }
+//            }
+//          }
+//      }
+
+
+
+//        }else{
+//          for(auto reg : hbRegion_){
+//            if(harmonic == 0){
+//              if( reg.region == elemReg){
+//                reg.nonLinNuCoefMap->GetScalar(coefScalReal, lpm);
+//                coefScal = (Complex)coefScalReal;
+//                break;
+//              }
+//            }
+//          }
+//          coefScal = (Complex) 0.0;
+//        }
+
+
+
+
     }
   }
 

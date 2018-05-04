@@ -153,7 +153,7 @@ namespace CoupledField {
       // store the sbm-indices of the nnz sbm-blocks
       for( UInt iRow = 0; iRow < 2*N+1; ++iRow ) {
         sbmInd.Push_back( ComputeIndex(iRow, iRow) );
-        for( UInt iCol = iRow + 1; iCol < iRow + M ; ++iCol ) {
+        for( UInt iCol = iRow + 1; iCol < iRow + M + 1 ; ++iCol ) {
           if( iCol < 2 * N + 1){
             sbmInd.Push_back( ComputeIndex(iRow, iCol) );
           }

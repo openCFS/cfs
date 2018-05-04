@@ -713,6 +713,14 @@
           <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0"/>
           <xsd:element name="maxKrylovDim" type="xsd:positiveInteger" minOccurs="0"/>
           <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="consoleConvergence" type="DT_CFSBool" minOccurs="0" default="no">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                If consoleConvergence is set to true, then the absolute residual for every CG-step
+                will be displayed.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
