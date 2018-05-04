@@ -91,11 +91,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     # python2 config/configure.py  CC=$CC CXX=$CXX FC=$FC --prefix=/home/fwein/tmp/petsc-3.8.3/killme
     # CC, .. shall be mpicc to be verified in mpi.cmake. Unfortunately there is no assert() in cmake :(
     #Coudn't avoid copy paste for configure command as the configure command messes up things quotes
-    if(CMAKE_BUILD_TYPE MATCHES "DEBUG")
-     CONFIGURE_COMMAND ${PETSC_SOURCE}/./configure --with-cc=${CMAKE_C_COMPILER} --with-cxx=${CMAKE_CXX_COMPILER} --with-fc=${CMAKE_Fortran_COMPILER} --with-debugging=1 COPTFLAGS=-O3 CXXOPTFLAGS=-O3 FOPTFLAGS=-O3 --prefix=${PETSC_INSTALL} --with-valgrind=0 ${PETSC_BLAS}
-    else()
-     CONFIGURE_COMMAND ${PETSC_SOURCE}/./configure --with-cc=${CMAKE_C_COMPILER} --with-cxx=${CMAKE_CXX_COMPILER} --with-fc=${CMAKE_Fortran_COMPILER} --with-debugging=0 COPTFLAGS=-O3 CXXOPTFLAGS=-O3 FOPTFLAGS=-O3 --prefix=${PETSC_INSTALL} --with-valgrind=0 ${PETSC_BLAS}
-    endif()    
+    CONFIGURE_COMMAND  python2 ${PETSC_SOURCE}/configure --with-cc=${CMAKE_C_COMPILER} --with-cxx=${CMAKE_CXX_COMPILER} --with-fc=${CMAKE_Fortran_COMPILER} --with-debugging=0 COPTFLAGS=-O3 CXXOPTFLAGS=-O3 FOPTFLAGS=-O3 --prefix=${PETSC_INSTALL} --with-valgrind=0 --with-blas-lapack-dir=${MKL_ROOT_DIR}
     INSTALL_COMMAND ${CONFIGURE_MAKE_PROGRAM} install
     BUILD_BYPRODUCTS ${PETSC_LIBRARY}
     

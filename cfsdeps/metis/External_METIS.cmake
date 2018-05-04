@@ -84,7 +84,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 SET(METIS_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}metis${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}metis${CMAKE_STATIC_LIBRARY_SUFFIX};${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}metisomp${CMAKE_STATIC_LIBRARY_SUFFIX}"
   CACHE FILEPATH "METIS library.")
 MARK_AS_ADVANCED(METIS_LIBRARY)
 

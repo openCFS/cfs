@@ -15,16 +15,40 @@
 #include "Utils/StdVector.hh"
 #include "Ilupack.hh"
 
+extern "C"
+{
+  #include "reloj.h"
+  #include "InputOutput.h"
+  #include "ScalarVectors.h"
+  #include "SparseVectorsNew.h"
+  #include "SparseSymmetricNew.h"
+  #include "SparseHarwellBoeingNew.h"
+  #include "EliminationTree.h"
+  #include "TaskQueue.h"
+  #include "ToolsIlupack.h"
+  #include "ToolsOPENMP.h"
+  #include "SPDfactorOPENMP.h"
+  #include "SPDsolverOPENMP.h"
+
+}
+
+#ifdef _OPENMP
+  #include <omp.h>
+#endif
+
+
 DECLARE_LOG(ilupack)
 DEFINE_LOG(ilupack, "ilupack")
 
 namespace CoupledField
 {
 
-
 template<typename T>
 Ilupack<T>::Ilupack(PtrParamNode xml, PtrParamNode olasInfo, BaseMatrix::EntryType type)
 {
+
+
+
   // we work with out 
   xml_ = xml;
   infoNode_ = olasInfo->Get("ilupack");
@@ -41,13 +65,20 @@ Ilupack<T>::Ilupack(PtrParamNode xml, PtrParamNode olasInfo, BaseMatrix::EntryTy
 
   // init the enums
   SetEnums();
+
+
 }
 
 template<typename T>
 Ilupack<T>::~Ilupack()
 {
   LOG_TRACE(ilupack) <<  "~Ilupack()";
-  IlupackAMGDelete();
+  if(isParallel){
+    RemoveSparseMatrix (&spr);
+  }
+  else{
+    IlupackAMGDelete();
+  }
 }
 
 template<typename T>
@@ -157,6 +188,7 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   LOG_DBG2(ilupack) << "mat_.ia: " << StdVector<int>::ToString(mat.nr + 1, mat.ia);
   LOG_DBG2(ilupack) << "mat_.ja: " << StdVector<int>::ToString(elements, mat.ja);
   LOG_DBG2(ilupack) << "mat_.a: " << StdVector<double>::ToString(elements, mat.a);
+
 }
 
 template<typename T>
@@ -174,27 +206,41 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat)
   LOG_TRACE2(ilupack) <<  "Setup: matrix -> " << matrix.ToString(matrix_);
 
   // in case we already run release memory - it's save if first run
-  IlupackAMGDelete();
+//  IlupackAMGDelete();
 
   // set the ilupack matrix mat from the olas matrix - complex can be casted to double
   SetMatrix(sysMat);
 
   // gain and modify the default settings, does logging uses mat and sets param 
   InitParameters();
+}
+
+
+template<typename T>
+void Ilupack<T>::Solve(const BaseMatrix &base_mat, 
+    const BaseVector &base_rhs,  BaseVector &base_sol)
+{
+
+  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
+
+  auto parameter= reinterpret_cast<DILUPACKparam*>(&param);// for OMP template is not supported in the lib. So casting it manually to
+  int ierr;
+  ptr_IlupackFactor  vFact=nullptr ;
+
+  isParallel?ierr=IlupackFactorizationOMP(spr,index,*parameter,nleaves,mtmetis,&vFact):ierr=IlupackAMGFactor();
 
   // factorize the iLU preconditioner
   std::stringstream ss;
   ss << "Error factorizing Ilupack: ";
 
-  int ierr = IlupackAMGFactor();
-
   switch (ierr)
   {
-    case 0: 
+    case 0:
     // perfect:
     break;
 
-    case -1: 
+    case -1:
     ss << "Input matrix may be wrong at level " << precond.nlev;
     break;
 
@@ -220,47 +266,58 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat)
 
     case -7:
     ss << "Buffers are too small";
+    break;
 
     default:
       ss << "Zero pivot encountered at step number " << ierr << " of level " << precond.nlev;
   }
-  
+
   if(ierr != 0) throw Exception(ss.str());
- 
-  out->Get("levels")->SetValue(precond.nlev);
-  CalcFillIn(out);
-  PtrParamNode timing = out->Get("timing");
-  timing->Get("total_time")->SetValue(ILUPACK_secnds[7]);
-  timing->Get("initial_preprocessing")->SetValue(ILUPACK_secnds[0]);
-  timing->Get("reordering_remaining_levels")->SetValue(ILUPACK_secnds[1]);
-}
+
+  if (!isParallel){
+
+    out->Get("levels")->SetValue(precond.nlev);
+    CalcFillIn(out);
+    PtrParamNode timing = out->Get("timing");
+    timing->Get("total_time")->SetValue(ILUPACK_secnds[7]);
+    timing->Get("initial_preprocessing")->SetValue(ILUPACK_secnds[0]);
+    timing->Get("reordering_remaining_levels")->SetValue(ILUPACK_secnds[1]);
+  }
 
 
-template<typename T>
-void Ilupack<T>::Solve(const BaseMatrix &base_mat, 
-    const BaseVector &base_rhs,  BaseVector &base_sol)
-{
-  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
+
+
 
   // the preconditioner sets the ilupack matrix
   if (mat.a == NULL)
     throw Exception("Setup() not called before Solve()");
 
-  // we gain the solution pointer
-  T* sol_ptr = dynamic_cast<Vector<T>&> (base_sol).GetPointer();
 
-  // additionally remove the constness of the rhs, ilupack knows no const.
-  T* rhs_ptr =  const_cast<T*> (dynamic_cast<const Vector<T>&> (base_rhs).GetPointer());
 
-  LOG_TRACE2(ilupack) <<  "Solve: sol_ptr=" << sol_ptr << " rhs_ptr=" << rhs_ptr;
+  if (isParallel){
+    double *rhs, *sol;
+    // Create the vectors
+    CreateDoubles (&rhs, spr.dim1); CreateDoubles (&sol, spr.dim1);
 
-  std::stringstream ss;
-  ss << "Error solving Ilupack: ";
-  int ierr = IlupackAMGSolver(sol_ptr, rhs_ptr);
+    sol = dynamic_cast<Vector<double>&> (base_sol).GetPointer();
+    rhs =  const_cast<double*> (dynamic_cast<const Vector<double>&> (base_rhs).GetPointer());
+    InitDoubles (sol, spr.dim1, 0.01, 0.001);
+    InitRandDoubles (sol, spr.dim1, 0.0, 1.0);
+    IlupackSolverOMPG(spr, index, rhs, sol, vFact, *parameter, &parameter->maxit,&parameter->restol);
+  }
+  else{
+    // we gain the solution pointer
+     T* sol_ptr = dynamic_cast<Vector<T>&> (base_sol).GetPointer();
+     // additionally remove the constness of the rhs, ilupack knows no const.
+     T* rhs_ptr =  const_cast<T*> (dynamic_cast<const Vector<T>&> (base_rhs).GetPointer());
+     LOG_TRACE2(ilupack) <<  "Solve: sol_ptr=" << sol_ptr << " rhs_ptr=" << rhs_ptr;
+     ierr = IlupackAMGSolver(sol_ptr, rhs_ptr);
+  }
+
+  ss << "Error Solving Ilupack ";
 
   // why did the iterative solver stop?
-  switch (ierr) 
+  switch (ierr)
   {
     case  0:  // everything is fine
       break;
@@ -269,7 +326,7 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
       ss << "Maximum number of iteration steps has been exceeded.";
       break;
 
-    case -2: 
+    case -2:
       ss << "Not enough work space provided.";
       break;
 
@@ -277,12 +334,12 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
       ss << "Algorithm breaks down.";
       break;
 
-    default: 
+    default:
       ss << "Solver exited with error code: " << ierr << ".";
-  } 
+  }
 
   // why did the iterative solver stop?
-  switch (ierr) 
+  switch (ierr)
   {
     case  0:  // everything is fine
       break;
@@ -291,11 +348,10 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
       WARN(ss.str());
       break;
 
-    default: 
+    default:
       // stop if necessary
       throw Exception(ss.str());
-  } 
-
+  }
 
   out->Get("iterations")->SetValue(param.ipar[26]);
   PtrParamNode timing = out->Get("timing");
@@ -303,6 +359,8 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
   timing->Get("maxtrix_vector_mult")->SetValue(ILUPACK_secnds[6]);
   PtrParamNode norms = out->Get("norms");
   norms->Get("target")->SetValue(param.fpar[23]);
+
+
 }
 
 
@@ -313,10 +371,24 @@ void Ilupack<T>::InitParameters()
   LOG_TRACE2(ilupack) <<  "InitParameters";
 
   // initializes the parameter block with ilupacks default stuff
-  IlupackAMGInit();
-  
-  // dump the parameter block and overwrite
   PtrParamNode out = infoNode_->Get(ParamNode::HEADER)->Get("parameters");
+  bool disableParallel=false;
+
+
+  CheckParameter(out, &disableParallel, "disableParallel");
+  isParallel=!disableParallel;
+  if(isParallel){
+    if(isComplex_){
+      Exception("Parallel version of ilupack doesn't support complex matrix. Please set disable parallel bool");
+    }
+    else{
+      DSPDAMGinit(&mat, reinterpret_cast<DILUPACKparam*>(&param));
+    }
+   ConvertIlupackToMatrix (mat, &spr, index);
+  }
+  else{
+    IlupackAMGInit();
+  }
 
   CheckParameter(out, reinterpret_cast<bool*>(&param.matching), "matching");
   CheckParameter(out, &param.ordering, "ordering");
@@ -332,9 +404,12 @@ void Ilupack<T>::InitParameters()
   {
     CheckParameter(out, &param.nrestart, "iterativeSolver/nrestart");
   }
-  
+
+  CheckParameter(out, &nleaves, "nleaves");
   // TODO we currently ignore saddle point structures
   param.ind = NULL;
+  param.nthreads=std::atoi(getenv("OMP_NUM_THREADS"));
+
 }
 
 
@@ -422,7 +497,7 @@ int Ilupack<T>::IlupackAMGFactor()
               else return DSYMAMGfactor(&mat, &precond,  reinterpret_cast<DILUPACKparam*>(&param));
 
   case PD :
-    if(isComplex_) return ZHPDAMGfactor(reinterpret_cast<Zmat*>(&mat), 
+    if(isComplex_) return ZHPDAMGfactor(reinterpret_cast<Zmat*>(&mat),
                                         reinterpret_cast<ZAMGlevelmat*>(&precond), 
                                         reinterpret_cast<ZILUPACKparam*>(&param));
               else return DSPDAMGfactor(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param));

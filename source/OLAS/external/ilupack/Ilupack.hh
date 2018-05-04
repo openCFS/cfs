@@ -11,7 +11,10 @@
 // include the original ilupack header
 extern "C"
 {
-   #include <ilupack.h> 
+#include <ilupack.h>
+#include <SparseSymmetricNew.h>
+
+
 }
 
 
@@ -30,62 +33,75 @@ namespace CoupledField
   template<typename TYPE>
   struct TYPE_ILUPACKparam
   {
-     integer              ipar[ILUPACK_NIPAR];
-     doubleprecision      fpar[ILUPACK_NFPAR];
-     integer              type;
-     integer             *ibuff;
-     integer             *iaux;
-     TYPE                *dbuff;
-     TYPE                *daux;
-     integer             *ju;
-     integer             *jlu;
-     TYPE                *alu;
-     TYPE                *testvector;
-     size_t               nibuff, ndbuff, nju,njlu,nalu, ndaux,niaux,ntestvector;
-     integer              rcomflag, returnlabel;
-     TYPE                *tv;
-     integer             *ind;
-     integer              nindicator;
-     integer             *indicator;
-     Dmat                 A;
-     integer              istack[30], *pistack[20];
-     doubleprecision      rstack[30], *prstack[10];
-     TYPE                 fstack[30], *pfstack[10];
-     size_t               ststack[5], *pststack[5];
-     Dmat                 mstack[1];
-     DAMGlevelmat        *amglmstack[1];
-     integer            (*intfctstack[3])();
-     integer              matching;
-     char                *ordering;
-     doubleprecision      droptol;
-     doubleprecision      droptolS;
-     doubleprecision      condest;
-     doubleprecision      restol;
-     integer              maxit;
-     doubleprecision      elbow;
-     integer              lfil;
-     integer              lfilS;
-     char                *typetv;
-     char                *amg;
-     integer              npresmoothing;
-     integer              npostsmoothing;
-     integer              ncoarse;
-     char                *presmoother;
-     char                *postsmoother;
-     char                *FCpart;
-     char                *typecoarse;
-     integer              nrestart;
-     integer              flags;
-     char                *solver;
-     TYPE                 damping;
-     integer            (*perm0)();
-     integer            (*perm)();
-     integer            (*permf)();
-     integer            isreal;
-     integer            issingle;
+    integer          ipar[ILUPACK_NIPAR];
+    TYPE             fpar[ILUPACK_NFPAR];
+    integer          type;
+    integer          *ibuff;
+    integer          *iaux;
+    TYPE             *dbuff;
+    TYPE             *daux;
+    integer          *ju;
+    integer          *jlu;
+    TYPE             *alu;
+    TYPE             *testvector;
+    size_t           nibuff, ndbuff, nju,njlu,nalu, ndaux,niaux,ntestvector;
+    integer          rcomflag, returnlabel;
+    TYPE             *tv;
+    integer          *ind;
+    integer          nindicator;
+    integer          *indicator;
+    Dmat             A;
+    integer          istack[30], *pistack[20];
+    double           rstack[30], *prstack[10];
+    TYPE             fstack[30], *pfstack[10];
+    size_t           ststack[5], *pststack[5];
+    Dmat             mstack[1];
+    DAMGlevelmat     *amglmstack[1];
+    integer          (*intfctstack[3])();
+    integer          matching;
+    char             *ordering;
+    double  droptol;
+    double  droptolS;
+    double  droptolc;
+    double  condest;
+    double restol;
+    integer          maxit;
+    double  elbow;
+    integer          lfil;
+    integer          lfilS;
+    char             *typetv;
+    char             *amg;
+    integer          npresmoothing;
+    integer          npostsmoothing;
+    integer          ncoarse;
+    char             *presmoother;
+    char             *postsmoother;
+    char             *FCpart;
+    char             *typecoarse;
+    integer          nrestart;
+    integer          flags;
+    char             *solver;
+    TYPE  damping;
+    TYPE  contraction;
+    integer          mixedprecision;
+    integer          (*perm0)();
+    integer          (*perm)();
+    integer          (*permf)();
+    TYPE  shift0;
+    TYPE  shiftmax;
+    integer          nshifts;
+    TYPE  *shifts;
+    Dmat             *shiftmatrix;
+    integer          niter;
+    integer          nthreads;
+    integer          *indpartial;
+    integer          *indexpartial;
+    TYPE  *valpartial;
+    TYPE  *valuepartial;
+
   } ;
-  
-  
+
+
   template<typename T>
   class Ilupack : public BaseIterativeSolver 
   {
@@ -169,6 +185,13 @@ namespace CoupledField
     DAMGlevelmat precond;
 
 
+    SparseMatrix spr;
+
+    int index = 0;
+    int nleaves=1;
+    int mtmetis=0;
+    bool isParallel=false;
+    bool firstSetup=true;
   };
 
 } // end of namespace

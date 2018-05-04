@@ -128,9 +128,8 @@ void PETScCommon::SetupMGSolver(DM &da_nodes,PC &precond_){
 
   ierr=PCMGSetLevels(precond_,nlvls,NULL);CHKERRXX(ierr);
   ierr=PCMGSetType(precond_,PC_MG_FULL); CHKERRXX(ierr);// Default
-  ierr = PCMGSetCycleType(precond_,PC_MG_CYCLE_W);CHKERRXX(ierr);
+  ierr = PCMGSetCycleType(precond_,PC_MG_CYCLE_V);CHKERRXX(ierr);
   ierr=PCMGSetGalerkin(precond_,PC_MG_GALERKIN_BOTH);CHKERRXX(ierr);
-  PCGAMGSetUseParallelCoarseGridSolve(precond_, PETSC_TRUE);
 
   for (PetscInt k=1; k<nlvls; k++) {
     DMCreateInterpolation(da_list[k-1],da_list[k],&R,NULL);CHKERRXX(ierr);
@@ -248,6 +247,7 @@ void PETScCommon::CreateDMDA(DM & daNodes,Mat &sysMat,Vec &solVec,Vec &rhsVec,Ve
   }
   //Setup the DM which is used for Grid Management
   DMSetUp(daNodes);
+  DMSetMatrixPreallocateOnly(daNodes,PETSC_TRUE);
   DMCreateMatrix(daNodes,&sysMat);
   ierr=MatSetOption (sysMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);CHKERRXX(ierr);
 

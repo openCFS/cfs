@@ -99,109 +99,15 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 # Determine paths of ILUPACK libraries.
 #-----------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(ILUPACK_SHARE "${LD}/libclock.a;${LD}/libsparsenew.a;${LD}/libvector.a")  
+SET(ILUPACK_OPENMP "${LD}/libspdil.a;${LD}/libtools.a;${LD}/libbasic.a")  
+
 SET(ILUPACK_LIBRARY
-  "${LD}/libDilupack.a;${LD}/libZilupack.a;${LD}/libblaslike.a;${LD}/libsparspak.a;${AMD_LIBRARY}"
+  "${ILUPACK_OPENMP};${LD}/libilupack.a;${LD}/libamd.a;${LD}/libcamd.a;${LD}/libblaslike.a;${LD}/libmetis.a;${LD}/libmetisomp.a;${LD}/libmtmetis.a;${LD}/libmumps.a;${LD}/libsparspak.a;${ILUPACK_SHARE};"               
   CACHE FILEPATH "ILUPACK library.")
-set(ILUPACK_DOUBLE_LIBRARY "${LD}/libDilupack.a")
-set(ILUPACK_COMPLEX_LIBRARY "${LD}/libZilupack.a")
-set(ILUPACK_BLASLIKE_LIBRARY "${LD}/libblaslike.a")
-set(ILUPACK_SPARSPAK_LIBRARY "${LD}/libsparspak.a")
+  
 MARK_AS_ADVANCED(ILUPACK_LIBRARY)
 
-#-------------------------------------------------------------------------------
-# The ilupack external project
-#-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(ilupack-double
-    PREFIX "${ARPACK_prefix}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-  )
-  ExternalProject_Add(ilupack-complex
-    PREFIX "${ARPACK_prefix}"
-    DOWNLOAD_COMMAND ""
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-  )
-ELSE()
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project (double real)
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(ilupack-double
-    #DEPENDS ilupack_external_data lapack metis suitesparse
-    DEPENDS lapack metis suitesparse
-    PREFIX "${ilupack_prefix}"
-    SOURCE_DIR "${ilupack_source}"
-    URL ${LOCAL_FILE}
-    URL_MD5 ${ILUPACK_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    LIST_SEPARATOR "^"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-      -DFLOAT_TYPE:STRING=DOUBLE_REAL
-    BUILD_BYPRODUCTS ${ILUPACK_DOUBLE_LIBRARY} ${ILUPACK_BLASLIKE_LIBRARY} ${ILUPACK_SPARSPAK_LIBRARY} #${AMD_LIBRARY}
-  )
-  ExternalProject_Add(ilupack-complex
-    DEPENDS ilupack-double
-    PREFIX "${ilupack_prefix}"
-    SOURCE_DIR "${ilupack_source}"
-    DOWNLOAD_COMMAND ""
-    LIST_SEPARATOR "^"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-      -DFLOAT_TYPE:STRING=DOUBLE_COMPLEX
-    BUILD_BYPRODUCTS ${ILUPACK_COMPLEX_LIBRARY}
-  )
-  
-  
-  #-------------------------------------------------------------------------------
-  # Add custom download step to be able to download from a list of mirrors
-  # instead of just a single URL.
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(ilupack-double cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-    DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${ilupack_prefix}
-  )
-  ExternalProject_Add_Step(ilupack-complex cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-    DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${ilupack_prefix}
-  )
-  
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache. complex seems sufficient
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(ilupack-complex cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  ilupack-double
-  ilupack-complex
-)
 
 SET(ILUPACK_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 MARK_AS_ADVANCED(ILUPACK_INCLUDE_DIR)

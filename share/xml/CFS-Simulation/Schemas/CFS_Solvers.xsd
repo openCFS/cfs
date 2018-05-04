@@ -730,6 +730,9 @@
           </xsd:element>          
           
           <xsd:element name="matching" minOccurs="0" maxOccurs="1" type="xsd:boolean" default="true"/>
+          <xsd:element name="disableParallel" minOccurs="0" maxOccurs="1" type="xsd:boolean" default="false"/>
+          <xsd:element name="nleaves" minOccurs="0" maxOccurs="1" type="xsd:int" default="1"/>
+          
           
           <xsd:element name="amg" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -805,6 +808,7 @@
     
         </xsd:sequence>
         <xsd:attribute name="matrix" use="optional" type="DT_Ilupack_Matrix" />
+        
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType> <!-- end of DT_Ilupack -->
