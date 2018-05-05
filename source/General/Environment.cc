@@ -91,6 +91,10 @@ namespace CoupledField {
         return "Pa";
         break;
 
+      case WATER_POSITION:
+        return "m";
+        break;
+
       case ACOU_ACCELERATION:
         return "m/s^2";
         break;
@@ -1416,6 +1420,7 @@ namespace CoupledField {
 
     //water waves
     SolutionTypeEnum.Add(WATER_PRESSURE, "waterPressure");
+    SolutionTypeEnum.Add(WATER_POSITION, "waterPosition");
     SolutionTypeEnum.Add(WATER_PMLAUXVEC,"waterPmlAuxVec");
     SolutionTypeEnum.Add(WATER_PMLAUXSCALAR, "waterPmlAuxScalar");
     SolutionTypeEnum.Add(WATER_RHS_LOAD, "waterRhsLoad");
@@ -1506,7 +1511,7 @@ namespace CoupledField {
     // TEST PDE
     SolutionTypeEnum.Add(TEST_DOF, "testDof");
     SolutionTypeEnum.Add(TEST_FIELD, "testField");
-    SolutionTypeEnum.Add(TEST_RHS_LOAD, "testRhsLoad");
+    //SolutionTypeEnum.Add(TEST_RHS_LOAD, "testRhsLoad");// FixMe: this was commented because it causes an exception in Enum.hh:222
 
     // optimization
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");
