@@ -407,15 +407,19 @@ namespace CoupledField {
                 eigsRe_[i] = evals[i].real();
                 eigsIm_[i] = evals[i].imag();
             }
-            Eig2FreqDamp(evals,frequency_,dampingRatio_);
         }
         else {
             Vector<Double> evals,errs;
             sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
             eigsRe_.Resize(evals.GetSize());
             eigsRe_ = evals;
-            Eig2Freq(evals,frequency_);
+            eigsIm_.Resize(evals.GetSize(),0.0);
         }
+        Vector<Complex> ev(eigsRe_.GetSize());
+        for (int i=0;i<(int)eigsRe_.GetSize();i++) {
+          ev[i] = Complex( eigsRe_[i], eigsIm_[i] );
+        }
+        Eig2FreqDamp(ev,frequency_,dampingRatio_);
         // info output: ToDo: make this pretty
         std::cout << "eigsRe = " << eigsRe_.ToString() << "\n";
         std::cout << "eigsIm = " << eigsIm_.ToString() << "\n";
@@ -575,6 +579,7 @@ namespace CoupledField {
       {
         ptPDE_->GetSolveStep()->SetActStep(fi);
         ptPDE_->GetSolveStep()->SetActFreq(GetFrequency(modeOrder_[fi]));
+        ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", GetFrequency(modeOrder_[fi]) );
         ptPDE_->GetSolveStep()->GetEigenMode(modeOrder_[fi]); // this stores the eigen mode result in AlgSys's sol_
 
         // stupid paraview needs an increasing series of save_value :(

@@ -144,8 +144,8 @@ class SingleVector;
       //actFreq_ = stepVal;
 
       // Set current frequency value in the mathParser
-      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", stepNum );
-      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", stepVal );
+      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", stepVal );
+      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", stepNum );
 
     }
 
