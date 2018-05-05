@@ -132,6 +132,10 @@ namespace CoupledField {
         return "m/s";
         break;
 
+      case ACOU_POSITION:
+        return "m";
+        break;
+
       case ACOU_SURFINTENSITY:
         return "W/m^2";
         break;
@@ -1367,6 +1371,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_ACCELERATION, "acouAcceleration");
     SolutionTypeEnum.Add(ACOU_POTENTIAL, "acouPotential");
     SolutionTypeEnum.Add(ACOU_VELOCITY, "acouVelocity");
+    SolutionTypeEnum.Add(ACOU_POSITION, "acouPosition");
     SolutionTypeEnum.Add(ACOU_NORMAL_VELOCITY, "acouNormalVelocity");
     SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_1, "acouPressureD1");
     SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_2, "acouPressureD2");
