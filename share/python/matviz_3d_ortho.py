@@ -199,7 +199,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = my_mpi_grid.grid.data
   
   # hope for python's garbage collector to delete voxel array
-  my_mpi_grid.grid.data = None
+  #my_mpi_grid.grid.data = None
   
   for b in borders:
     # b[0] stores direction oft cartesian comm
@@ -215,7 +215,31 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   hx = my_mpi_grid.grid.hx
   hy = my_mpi_grid.grid.hy
   hz = my_mpi_grid.grid.hz
- 
+  
+  # send all voxel data to root
+  data = my_mpi_grid.comm.gather((my_mpi_grid.grid.data,(my_mpi_grid.start_x,my_mpi_grid.end_x)),root=0)
+  image = None
+  if my_mpi_grid.rank == 0:
+    image = np.zeros((samples[0]*args.bc_res,samples[1]*args.bc_res,samples[2]*args.bc_res,))
+    image[my_mpi_grid.start_x*args.bc_res:my_mpi_grid.end_x*args.bc_res,:,:] = my_mpi_grid.grid.data
+    for t in data:
+      start = t[1][0]
+      end = t[1][1]
+      image[start*args.bc_res:end*args.bc_res,:,:] = t[0]
+  
+    x = np.arange(bounds[0],bounds[3]+hx,hx)
+    y = np.arange(bounds[1],bounds[4]+hy,hy)
+    z = np.arange(bounds[2],bounds[5]+hz,hz)
+    
+    from pyevtk.hl import gridToVTK
+    gridToVTK("image",x,y,z,cellData={"image":image})
+    
+    import mesh_tool
+    mesh = mesh_tool.create_3d_mesh_from_array(image,False,width[0],width[1],width[2],bounds[0:3],bounds[3:6])
+    mesh = mesh_tool.add_bc_for_ppbox(mesh,bounds)
+    mesh_tool.write_gid_mesh(mesh,"ppbox.mesh")
+  
+  sys.exit()  
   #print(helper.shape,np.sum(helper))
   from skimage import measure
   # coords of vertices lie in [0,1-h]
