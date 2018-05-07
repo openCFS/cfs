@@ -10,6 +10,7 @@ import mesh_tool
 import cfs_utils
 import argparse
 import draw_profile_functions
+from draw_profile_functions import calc_distance
 import numpy as np
 from scipy import interpolate
 import matviz_vtk
@@ -441,7 +442,6 @@ class Basecell_Data():
     self.to_info_xml = False
     self.stiffness_as_diameter = False
     self.multiple_regions = False
-    self.simplify = True
     
     if not res_surf_lines:
       self.res_surf_lines = res
