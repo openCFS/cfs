@@ -51,9 +51,7 @@ namespace CoupledField
     tol_ = 1e-16;
     // restriction to halfspace not working well; better without
 		restrictToHalfspace_ = !true;
-    
-    isSymmetric_ = preisachWeights_.IsSymmetric(tol_);
-    
+     
     // get size of preisachWeights_
     UInt M = preisachWeights_.GetNumRows();
     UInt N = preisachWeights_.GetNumCols();
@@ -61,9 +59,22 @@ namespace CoupledField
     if(M != N){
       EXCEPTION("Matrix preisachWeight has dim " << M << " x " << N << " and thus is not symmetric!");
     }
-    
+   
     numRows_ = M;
     
+    isSymmetric_ = true;
+    // check symmetry w.r.t. alpha = -beta
+    for(UInt i = 0; i < numRows_; i++){
+      for(UInt k = 0; k < numRows_-i; k++){
+        // iterate over triangle -1 < alpha < 1; -1 < beta < -alpha
+        // in indices: 0 < i < numRows; 0 < k < numRows-i
+        if(abs(preisachWeights_[i][k]-preisachWeights_[numRows_-k-1][numRows_-i-1]) > tol_){
+          isSymmetric_ = false;
+          break;
+        }
+      }
+    }
+        
     // resolution of Preisach plane
     delta_ = 2.0/Double(numRows_);
     

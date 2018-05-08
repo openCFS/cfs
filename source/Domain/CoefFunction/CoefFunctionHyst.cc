@@ -906,13 +906,7 @@ namespace CoupledField {
           } else {
             // compute transformation of weights
             MAT_PreisachWeights_ = transformPreisachWeightsForIsotropicVectorCase();
-            // OPEN QUESTION: what about the anhysteretic parameter?
-            // if weights are constant, they are scaled by 0.75, therefore a similar
-            // scaling seems reasonable for anhysteretic parameter
-            MAT_anhysteretic_a_ *= 0.75;
-            MAT_anhysteretic_b_ *= 0.75;
-            MAT_anhysteretic_c_ *= 0.75;
-            
+
             // transformPreisachWeightsForIsotropicVectorCase does only compute
             // the upper triangle > mirror
             for(UInt i = 0; i < MAT_numRows_; i++){
@@ -925,6 +919,18 @@ namespace CoupledField {
             
             scalingRequired = true;
           } 
+          // check if weights are symmetric w.r.t. alpha = -beta
+          // this property derives from vector model (see "Mathematical Models of Hysteresis and their Applications" - Mayergoyz  p.164 eq(3.58) )
+          // make weights symmetric
+          std::cout << "Weights before forcing symmetry: " << MAT_PreisachWeights_.ToString() << std::endl;
+          for(UInt i = 0; i < MAT_numRows_; i++){
+            for(UInt k = 0; k < MAT_numRows_-i; k++){
+              // iterate over triangle -1 < alpha < 1; -1 < beta < -alpha
+              // in indices: 0 < i < numRows; 0 < k < numRows-i
+              MAT_PreisachWeights_[i][k] = MAT_PreisachWeights_[MAT_numRows_-k-1][MAT_numRows_-i-1];
+            }
+          }
+          std::cout << "Weights after forcing symmetry: " << MAT_PreisachWeights_.ToString() << std::endl;
         }
       }
       
