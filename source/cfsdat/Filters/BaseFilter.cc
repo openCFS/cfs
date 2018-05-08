@@ -270,6 +270,11 @@ uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, std::set<uuids:
 uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, Integer minOffset, 
                          Integer maxOffset, std::set<uuids::uuid> downStreamResultIds) {
   std::cout << "\t\t Requesting Result " << name << std::endl;
+  if (name == "NodeNormal"){
+	std::cout << "\t ===============================================\n"
+				 "\t  Result can not be shown in Paraview!\n"
+				 "\t ===============================================\n"<<std::endl;
+  }
   Integer downStreamMaxStepOffset = GetDownStreamMaxStepOffset(downStreamResultIds);
   uuids::uuid validDownStreamId = uuids::nil_uuid();
   std::set<uuids::uuid>::iterator dItr = downStreamResultIds.begin();
