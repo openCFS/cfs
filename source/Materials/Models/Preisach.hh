@@ -289,6 +289,9 @@ namespace CoupledField {
     UInt dim_;
     UInt numDirections_;
     
+    bool clipOutput_;
+    bool isIsotropic_;
+    
     Vector<Double>* singleDirections_;
     Preisach** singlePreisachOperators_;
     Matrix<Double> matrixForCoefComputation_;

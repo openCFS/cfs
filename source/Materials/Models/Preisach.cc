@@ -101,20 +101,37 @@ namespace CoupledField
 //		std::cout << tmpMatrix2.ToString() << std::endl;
 //		matrixForCoefComputation_ > inverse of tmpMatrix
 		
-    /*
-     * IMPORTANT REMARK:
-     *  > although we use scalar models here, we are not alloewed to directly apply the preisach parameter for
-     *     the scalar case (i.e. the weights, the anhyst parameter and so on)
-     *  > make sure that the passed parameter are already transformed correctly
-     *      > see CoefFunctionHyst
-     */
-    singlePreisachOperators_ = new Preisach*[numDirections];
-    for(UInt i = 0; i < numDirections_; i++){
-      singlePreisachOperators_[i] = new Preisach(numElem, xSat, ySat, preisachWeight, isVirgin,anhyst_A, anhyst_B, anhyst_C, anhystOnly);
+    clipOutput_ = true;
+    isIsotropic_ = true;
+    
+    if(isIsotropic_){
+      // add anhysteretic part directly to output and set saturation parameter accordingly
+      // the single scalar models will not have anhysteretic parts
+      XSaturated_ = xSat;
+      YSaturated_ = ySat;
+      anhyst_A_ = anhyst_A;
+      anhyst_B_ = anhyst_B;
+      anhyst_C_ = anhyst_C;
+      anhystOnly_ = anhystOnly;
+      
+      /*
+       * IMPORTANT REMARK:
+       *  > although we use scalar models here, we are not alloewed to directly apply the preisach parameter for
+       *     the scalar case (i.e. the weights, the anhyst parameter and so on)
+       *  > make sure that the passed parameter are already transformed correctly
+       *      > see CoefFunctionHyst
+       */
+      singlePreisachOperators_ = new Preisach*[numDirections];
+      for(UInt i = 0; i < numDirections_; i++){
+        singlePreisachOperators_[i] = new Preisach(numElem, xSat, ySat, preisachWeight, isVirgin,0.0, 0.0, 0.0, false);
+      }
+      
+    } else {
+      // in each single direction, we need specifiy values for
+      // xSat, ySat, preisachWeights, anhyst_A, anhyst_B, anhyst_C
+      // > unless we have a way to measure or compute these values, the anisotropic case is not available
+      EXCEPTION("Only isotropic case implemented.");
     }
-		
-		XSaturated_ = xSat;
-		YSaturated_ = ySat;
   }
   
   VectorPreisachMayergoyz::~VectorPreisachMayergoyz(){
@@ -216,9 +233,43 @@ namespace CoupledField
 			xValCapped.ScalarMult(XSaturated_/xVal.NormL2());
 		}
 
+    /*
+     * Remarks to capping/clipping:
+     * A) if input is only along one direction and the initial state is the virgin state,
+     *    or has only components in this particular direction
+     *    then, the output of the vector model will be equal to the scalar one for all input values
+     *    if amplitude of input is clipped to saturation as noted above
+     *    WITHOUT capping, equality only holds up to saturation as above saturation, more and more
+     *      scalar models reach saturation, too
+     * B) if input is only along one direction but during the past, different directions occured,
+     *    then, the output of the vector model will not be equal to the scalar one due to remanent
+     *    contributions of the old state
+     * C) if capping is applied, remanent contributions cannot be erased completely if mutually orthogonal
+     *    input is applied as due to the capping the input to the non-aligned directions will be scaled down
+     *    by cos(angle) and thus can never reach saturation;
+     *    WITHOUT capping, the remanent contribution can be erased if input goes above saturation
+     * 
+     * From "Mathematical models of hysteresis and their applications" - Mayergoyz:
+     * I) vector model should reduce to scalar model if input varies only in one direction; however, it is
+     *      not stated if this equality has to hold above saturation
+     * II) for mutually orthogonal input it MUST be possible to erase remamentn parts orthogonal to the current
+     *      input if input amplitude goes to infinity; this implies that NO capping is done by Mayergoyz in his
+     *      implementation;
+     * 
+     * Conclusions: 
+     *  1. no capping of input 
+     *      > remanent parts can be erased
+     *      > equality to scalar model only up to saturation
+     *  2. idea: clip output
+     *      > equaliy to scalar model beyond saturation but difference when leaving saturation again 
+     *        (as Preisach planes have been set inside the single scalar models)
+     */
+    
+    
+    
     for(UInt i = 0; i < numDirections_; i++){
       currentDir = singleDirections_[i];
-      currentDir.Inner(xValCapped,scalarInput);
+      currentDir.Inner(xVal,scalarInput);
 			
       scalarOutput = singlePreisachOperators_[i]->computeValueAndUpdate(scalarInput,idx,overwrite);
       output.Add(scalarOutput,currentDir);
@@ -231,6 +282,22 @@ namespace CoupledField
 		// Question: why do we average out in the first place?
     //output.ScalarMult(2.0/numDirections_);
 		output.ScalarMult(M_PI/numDirections_);
+    
+    if(clipOutput_){
+      if(output.NormL2() > YSaturated_){
+        output.ScalarMult(YSaturated_/output.NormL2());
+      }
+    }
+
+    if(isIsotropic_){
+      // for isotropic case, add anhystPart directly to output
+      // make sure that the scalar models return no anhystPart in this case
+      if(xVal.NormL2() != 0){
+        Double amplitude = YSaturated_*evalAnhystPart_normalized(xVal.NormL2()/XSaturated_);
+        output.Add(amplitude/xVal.NormL2(),xVal); 
+      } 
+    }
+    
     return output;
   }
     

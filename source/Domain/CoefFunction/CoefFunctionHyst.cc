@@ -4081,7 +4081,7 @@ namespace CoupledField {
     bool vector;
     bool isVirgin = true;
         
-    UInt numCases = 8;
+    UInt numCases = 9;
     UInt totalSteps;
     bool testAll = false;
 
@@ -4498,7 +4498,7 @@ namespace CoupledField {
         if(printStatistics){
           std::cout << "##### TEST CASE " << ca << " - Saturation in x, Drop to rem, Saturation in y, Drop to rem" << std::endl;
         }
-        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Forc";
+        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - SatX,SatY";
         testName = "SatX,SatY";
         totalSteps = 500;
 				
@@ -4527,14 +4527,70 @@ namespace CoupledField {
           xIn[i] = Vector<Double>(dim_);
           xIn[i].Init(0.0);
 					
-					//xIn[i][1] = maxAmplitude*(i-2*totalSteps/4)*increase;
+					xIn[i][1] = maxAmplitude*(i-2*totalSteps/4)*increase;
          }
 				for(UInt i = 3*totalSteps/4; i < totalSteps; i++){
 					// linearly decrease to 0
 					xIn[i] = Vector<Double>(dim_);
 					xIn[i].Init(0.0);
 					
-					//xIn[i][1] = maxAmplitude - maxAmplitude*(i-3*totalSteps/4)*increase;
+					xIn[i][1] = maxAmplitude - maxAmplitude*(i-3*totalSteps/4)*increase;
+				}
+				
+				
+      } else if( (ca == 9)&&( (testNumber == 9) ||(testAll)) ) {
+        if(printStatistics){
+          std::cout << "##### TEST CASE " << ca << " - exactly Saturation in x, Drop to rem, exactly Saturation in y, Drop to rem" << std::endl;
+        }
+        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - SatX,SatY clipped";
+        testName = "SatX,SatY clipped";
+        totalSteps = 500;
+				
+				Double increase = 4.0/totalSteps;
+				
+        xIn = new Vector<Double>[totalSteps]; 
+				Double maxAmplitude = 4.0*MAT_xSat_;
+        
+        for(UInt i = 0; i < totalSteps/4; i++){
+					// linearly increase in x up to n*saturation
+          xIn[i] = Vector<Double>(dim_);
+          xIn[i].Init(0.0);
+
+					xIn[i][0] = maxAmplitude*i*increase;
+          if(xIn[i][0] > MAT_xSat_){
+            xIn[i][0] = MAT_xSat_;
+          }
+         }
+				for(UInt i = totalSteps/4; i < 2*totalSteps/4; i++){
+					// linearly decrease to 0
+					xIn[i] = Vector<Double>(dim_);
+					xIn[i].Init(0.0);
+					      
+					xIn[i][0] = maxAmplitude - maxAmplitude*(i-totalSteps/4)*increase;
+          if(xIn[i][0] > MAT_xSat_){
+            xIn[i][0] = MAT_xSat_;
+          }
+				}
+				
+				for(UInt i = 2*totalSteps/4; i < 3*totalSteps/4; i++){
+					// linearly increase in y up to n*saturation
+          xIn[i] = Vector<Double>(dim_);
+          xIn[i].Init(0.0);
+          
+					xIn[i][1] = maxAmplitude*(i-2*totalSteps/4)*increase;
+          if(xIn[i][1] > MAT_xSat_){
+            xIn[i][1] = MAT_xSat_;
+          }
+         }
+				for(UInt i = 3*totalSteps/4; i < totalSteps; i++){
+					// linearly decrease to 0
+					xIn[i] = Vector<Double>(dim_);
+					xIn[i].Init(0.0);
+
+          xIn[i][1] = maxAmplitude - maxAmplitude*(i-3*totalSteps/4)*increase;
+          if(xIn[i][1] > MAT_xSat_){
+            xIn[i][1] = MAT_xSat_;
+          }
 				}
 				
 				
