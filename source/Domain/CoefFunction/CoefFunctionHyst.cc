@@ -686,6 +686,10 @@ namespace CoupledField {
 		tensorType_ = tensorType;
     hystHelper_ = NULL;
     
+    		// dim_ is the dim of the output retrieved by GetVector
+		// not tha same as Preisach_Dim that determines whether we use scalar or vector model
+		dim_ = dependency1->GetVecSize();
+    
     if(tensorType_ == AXI){
       EXCEPTION("Coef functions hyst does only support plane 2d and full 3d models (at the moment)")
     }
@@ -774,11 +778,165 @@ namespace CoupledField {
 		/*
      * set values for material dependent parameter
      */
+    weightType_ = "";
+    constWeight_ = 0.5;
+    muDat_A_ = 0.0;
+    muDat_sigma1_ = 0.0;
+    muDat_sigma2_ = 0.0;
+    muDat_h1_ = 0.0;
+    muDat_h2_ = 0.0;
+    muDat_eta_ = 1.0;
+    weightTensor_ = Matrix<Double>(1,1);
+    
+    material->GetScalar(usedHystModel_,HYST_MODEL);
+    
+    int numRows;
+    material->GetScalar(numRows, PREISACH_WEIGHTS_DIM);
+    MAT_numRows_ = UInt(numRows);
+    int weightTypeInt;
+    material->GetScalar(weightTypeInt, PREISACH_WEIGHTS_TYPE);
+    
+    if(weightTypeInt == 0){
+      weightType_ = "Constant";
+      material->GetScalar(constWeight_, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL);
+    } else if(weightTypeInt == 1){
+      weightType_ = "muDat";
+      material->GetScalar(muDat_A_, PREISACH_WEIGHTS_MUDAT_A, Global::REAL);
+      material->GetScalar(muDat_sigma1_, PREISACH_WEIGHTS_MUDAT_SIGMA, Global::REAL);
+      material->GetScalar(muDat_h1_, PREISACH_WEIGHTS_MUDAT_H, Global::REAL);
+      material->GetScalar(muDat_eta_, PREISACH_WEIGHTS_MUDAT_ETA, Global::REAL);
+    } else if(weightTypeInt == 2){
+      weightType_ = "muDatExtended";
+      //std::cout << "MuDatExtended" << std::endl;
+      material->GetScalar(muDat_A_, PREISACH_WEIGHTS_MUDATEXT_A, Global::REAL);
+      material->GetScalar(muDat_sigma1_, PREISACH_WEIGHTS_MUDATEXT_SIGMA1, Global::REAL);
+      material->GetScalar(muDat_sigma2_, PREISACH_WEIGHTS_MUDATEXT_SIGMA2, Global::REAL);
+      material->GetScalar(muDat_h1_, PREISACH_WEIGHTS_MUDATEXT_H1, Global::REAL);
+      material->GetScalar(muDat_h2_, PREISACH_WEIGHTS_MUDATEXT_H2, Global::REAL);
+      material->GetScalar(muDat_eta_, PREISACH_WEIGHTS_MUDATEXT_ETA, Global::REAL);
+    } else if(weightTypeInt == 3){
+      weightType_ = "givenTensor";
+      material->GetTensor(weightTensor_, PREISACH_WEIGHTS_TENSOR, Global::REAL);
+      //std::cout << "Found weights: " << weightTensor_.ToString() << std::endl;
+    } else {
+      EXCEPTION("Weight type unknown");
+    }
+
 		material->GetScalar(MAT_xSat_, X_SATURATION, Global::REAL);
 		material->GetScalar(MAT_ySat_, Y_SATURATION, Global::REAL);
-		material->GetTensor(MAT_PreisachWeights_, PREISACH_WEIGHTS, Global::REAL);
-		MAT_numRows_ = MAT_PreisachWeights_.GetNumRows();
     
+    // NEW: add additional anhysteretic curve to Preisach models
+    material->GetScalar(MAT_anhysteretic_a_ , PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+    material->GetScalar(MAT_anhysteretic_b_ , PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+    material->GetScalar(MAT_anhysteretic_c_ , PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
+    int anhystOnlyInt = 0;
+    material->GetScalar(anhystOnlyInt , PREISACH_WEIGHTS_ANHYST_ONLY);
+    if(anhystOnlyInt == 1){
+      anhystOnly_ = true;
+    } else {
+      anhystOnly_ = false;
+    }
+    
+    // compute preisach weights (for scalar and vector sutor case first; vector mayergoyz gets special treatment later)
+    MAT_PreisachWeights_ = evaluatePreisachWeights();
+    
+    /*
+     * Important note: ScalarPreisach model currently does not go over the triangle
+     * -1 <= beta <= alpha <= 1 but over the whole square
+     * -1 <= beta <= 1, -1 <= alpha <= 1 and divides the result by 2
+     * > if we just fill up the triangle part of the Preisach plane with weights, we
+     *    get wrong results
+     * > easy fix: mirror weights along diagonal alpha = beta
+     * > nicer fix: make sure that ScalarPreisach only uses the trianlge
+     *            > requires more work as one needs to make sure that subtraction for
+     *              partially overlapped elements still works
+     *            > use easy fix initially
+     */
+    for(UInt i = 0; i < MAT_numRows_; i++){
+      // note: diagonal element does not need mirroring
+      // >  k < i instead of k <= i
+      for(UInt k = 0; k < i; k++){
+        MAT_PreisachWeights_[k][i] = MAT_PreisachWeights_[i][k];
+      }
+    }
+    
+    // VERY IMPORTANT: make sure that \int_alpha,beta MAT_PreisachWeights_ = 1 
+    // NOTE: this is not true for mayergoyz adapted weights! for those, we have to calculate the
+    // intergal over the scalar weights and divide by this term (if possible!)
+    // NOTE2: for constant scalar weights, the transformed vector weights will all be 0.75* the scalar value (0f 0.5)
+    Double intOverWeights = 0.0;
+    for(UInt i = 0; i < MAT_numRows_; i++){
+      for(UInt k = 0; k < MAT_numRows_; k++){
+        intOverWeights += MAT_PreisachWeights_[i][k];
+      }
+    }
+    
+    if(intOverWeights == 0){
+      // special case: if all Preisach weights are 0, we solve only for the anhyst part
+      anhystOnly_ = true;
+    } else {
+      // problem: scaling to 1 does work for scalar model and vector model by sutor but
+      // not for mayergoyz model; here the integral over all weights must be smaller
+      // than one such that the sum over multiple directions adds up to correct values
+      // (for const. weight for example, the weights for the mayergoyz model will be 3/4 
+      // of that const. value > integral sum will only be 3/4, too)
+      //
+      // solution: determine scaling factor for standard weights, then apply this factor
+      // to the transformed weights
+      anhystOnly_ = false;
+      Double elemArea = 2.0/(MAT_numRows_)*2.0/(MAT_numRows_);
+      intOverWeights *= elemArea/2; // factor of 1/2 as we have to integrate over the triangle area
+      //std::cout << "intOverWeights = " << intOverWeights << std::endl;
+      bool scalingRequired = true;
+
+      if(usedHystModel_ == "vectorPreisach_Mayergoyz"){
+        int isIsotropic = 1;
+        material->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
+       
+        if( (dim_ != 2) || (isIsotropic == 0)){
+          EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
+        } else {
+          int weightsAlreadyAdapted = 0;
+          material->GetScalar(weightsAlreadyAdapted, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+          if(weightsAlreadyAdapted == 1){
+            // here we have to assume that the weights given via the material file
+            // already have been adapted (and scaled correctly)
+            // > take weights as they are and do not further scale them!
+            scalingRequired = false;
+          } else {
+            // compute transformation of weights
+            MAT_PreisachWeights_ = transformPreisachWeightsForIsotropicVectorCase();
+            // OPEN QUESTION: what about the anhysteretic parameter?
+            // if weights are constant, they are scaled by 0.75, therefore a similar
+            // scaling seems reasonable for anhysteretic parameter
+            MAT_anhysteretic_a_ *= 0.75;
+            MAT_anhysteretic_b_ *= 0.75;
+            MAT_anhysteretic_c_ *= 0.75;
+            
+            // transformPreisachWeightsForIsotropicVectorCase does only compute
+            // the upper triangle > mirror
+            for(UInt i = 0; i < MAT_numRows_; i++){
+              // note: diagonal element does not need mirroring
+              // >  k < i instead of k <= i
+              for(UInt k = 0; k < i; k++){
+                MAT_PreisachWeights_[k][i] = MAT_PreisachWeights_[i][k];
+              }
+            }
+            
+            scalingRequired = true;
+          } 
+        }
+      }
+      
+      if(scalingRequired){
+        for(UInt i = 0; i < MAT_numRows_; i++){
+          for(UInt k = 0; k < MAT_numRows_; k++){
+            MAT_PreisachWeights_[i][k] /= intOverWeights;
+          }
+        }
+      }
+    }
+
 		/*
      * get elements and integration points
      */
@@ -847,11 +1005,7 @@ namespace CoupledField {
 		//for(mapit=locPointIndices_.begin(); mapit!=locPointIndices_.end(); mapit++){
 		//  std::cout << mapit->first << "; " << mapit->second << std::endl;
 		//}
-    
-		// dim_ is the dim of the output retrieved by GetVector
-		// not tha same as Preisach_Dim that determines whether we use scalar or vector model
-		dim_ = dependCoef1_->GetVecSize();
-    
+
 		PtrCoefFct matCoef = material_->GetTensorCoefFnc(matType_, tensorType_,
             Global::REAL, false);
     
@@ -918,7 +1072,6 @@ namespace CoupledField {
       MAT_useStrainForm_ = false;
     }
     
-    
     //    std::cout << "StrainForm: " << strainForm << std::endl;
     //    std::cout << "MAT_useStrainForm_: " << MAT_useStrainForm_ << std::endl;
     //    
@@ -929,34 +1082,36 @@ namespace CoupledField {
     
 		delete timer_;
     
-		delete[] E_B_;
-		delete[] P_J_;
-		delete[] E_H_;
-    
-		delete[] E_B_lastIt_;
-		delete[] P_J_lastIt_;
-		delete[] E_H_lastIt_;
-    
-		delete[] E_B_lastTS_;
-		delete[] P_J_lastTS_;
-		delete[] E_H_lastTS_;
-    
-		delete[] deltaMat_;
-    delete[] deltaMatPrev_;
-    delete[] deltaMatStrain_;
-    delete[] deltaMatStrainPrev_;
-    delete[] matrixForInversion_;
-    delete[] matrixForInversionInverted_;
-    delete[] rotatedCouplingTensor_;
-    
-    delete[] requiresReeval_;
-    delete[] Si_requiresReeval_;
-    delete[] deltaMat_requiresReeval_;
-    delete[] deltaMatStrain_requiresReeval_;
-    delete[] rotatedCouplingTensor_requiresReeval_;
-        
-		delete[] MAT_initialOutput_;
-    delete[] takeEstimatedSlope_;
+    if(storageInitialized_){
+      delete[] E_B_;
+      delete[] P_J_;
+      delete[] E_H_;
+
+      delete[] E_B_lastIt_;
+      delete[] P_J_lastIt_;
+      delete[] E_H_lastIt_;
+
+      delete[] E_B_lastTS_;
+      delete[] P_J_lastTS_;
+      delete[] E_H_lastTS_;
+
+      delete[] deltaMat_;
+      delete[] deltaMatPrev_;
+      delete[] deltaMatStrain_;
+      delete[] deltaMatStrainPrev_;
+      delete[] matrixForInversion_;
+      delete[] matrixForInversionInverted_;
+      delete[] rotatedCouplingTensor_;
+
+      delete[] requiresReeval_;
+      delete[] Si_requiresReeval_;
+      delete[] deltaMat_requiresReeval_;
+      delete[] deltaMatStrain_requiresReeval_;
+      delete[] rotatedCouplingTensor_requiresReeval_;
+
+      delete[] MAT_initialOutput_;
+      delete[] takeEstimatedSlope_;
+    }
 	}
   
 	void CoefFunctionHyst::InitStorage() {
@@ -1033,7 +1188,7 @@ namespace CoupledField {
     MAT_rotRes_ = 1.0;
     MAT_angResistance_ = 0.0;
     MAT_angResolution_ = 1e-4;
-    MAT_angClipping_ = 1e-4;
+    MAT_angClipping_ = 0;
     MAT_vecPreisachImplementationVersion_ = 2;   
     isClassical_ = false;
     MAT_printOut_ = false;
@@ -1077,7 +1232,7 @@ namespace CoupledField {
         material_->GetScalar(MAT_angResistance_, ANG_DISTANCE, Global::REAL);
         
         hyst_ = new ExtendedPreisach(numHystOperators_, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, 
-                MAT_rotRes_, MAT_angResistance_, dim_, isVirgin);
+                MAT_rotRes_, MAT_angResistance_, dim_, isVirgin, MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_, anhystOnly_);
         
         // set initial direction
         MAT_initialInput_ = Vector<Double>(dim_);
@@ -1101,7 +1256,8 @@ namespace CoupledField {
           hyst_->UpdateRotationState(MAT_initialInput_,MAT_eps_mu_SmallSignal_,i);
         }
       } else {
-        hyst_ = new Preisach(numHystOperators_, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, isVirgin);
+        hyst_ = new Preisach(numHystOperators_, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, isVirgin, 
+                MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
       }
      
       hasInverseModel_ = false;
@@ -1116,7 +1272,9 @@ namespace CoupledField {
 				MAT_initialOutput_[k] = Vector<Double>(dim_);
 				MAT_initialOutput_[k].Init();
 			}
-		} else if (MAT_methodType_ == VECTOR) {
+      INV_resTolB_ = 1e-9;
+
+		} else if (usedHystModel_ == "vectorPreisach_Sutor") {
       hasInverseModel_ = false;
 			material_->GetScalar(MAT_rotRes_, ROT_RESISTANCE, Global::REAL);
 			material_->GetScalar(MAT_angResistance_, ANG_DISTANCE, Global::REAL);
@@ -1133,6 +1291,8 @@ namespace CoupledField {
         material_->GetScalar(useTikhonov, TIKHONOV_HYST_INV);
         INV_useTikhonov_ = (bool) useTikhonov;
         material_->GetScalar(INV_alphaLSStart_, ALPHA_LS_HYST_INV, Global::REAL);
+        material_->GetScalar(INV_alphaLSMin_, ALPHA_LS_MIN_HYST_INV, Global::REAL);
+        material_->GetScalar(INV_alphaLSMax_, ALPHA_LS_MAX_HYST_INV, Global::REAL);
       }
         
 			int printOut;
@@ -1162,25 +1322,25 @@ namespace CoupledField {
         
 				hyst_ = new VectorPreisachv10_ListApproach(numHystOperators_, MAT_xSat_, MAT_ySat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-                isClassical_, MAT_angResistance_,MAT_angResolution_);
+                isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 2) {
 				isClassical_ = false; // revised vector preisach model -> sutor2015
         
 				hyst_ = new VectorPreisachv10_ListApproach(numHystOperators_, MAT_xSat_, MAT_ySat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-                isClassical_, MAT_angResistance_,MAT_angResolution_);
+                isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 10) {
 				isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
         
 				hyst_ = new VectorPreisachv10_MatrixApproach(numHystOperators_, MAT_xSat_, MAT_ySat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-                isClassical_, MAT_angResistance_,MAT_angResolution_);
+                isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 20) {
 				isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
         
 				hyst_ = new VectorPreisachv10_MatrixApproach(numHystOperators_, MAT_xSat_, MAT_ySat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-                isClassical_, MAT_angResistance_,MAT_angResolution_);
+                isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else {
 				EXCEPTION("MAT_vecPreisachImplementationVersion_ has to be one of the following: \n "
                 "1: classical vector model (sutor2012) \n"
@@ -1190,7 +1350,7 @@ namespace CoupledField {
 			}
       if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
         hyst_->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
-            INV_useTikhonov_, INV_alphaLSStart_,MAT_angClipping_);   
+            INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_);   
       }
       
 			// initial input that shall be feeded to the vectorPreisach operator
@@ -1244,6 +1404,53 @@ namespace CoupledField {
 				}
 			}
 		}
+    else if (usedHystModel_ == "vectorPreisach_Mayergoyz") {
+      // basically a scalar model in multiple directions
+      // isotropic case: all scalar models are equal (same weights etc)
+      // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
+      
+      bool isVirgin = true;
+      int isIsotropic = 1;
+      material_->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
+      if( (dim_ != 2) || (isIsotropic == 0)){
+        EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
+      }
+      int numDirections = 0;
+      material_->GetScalar(numDirections, PREISACH_MAYERGOYZ_NUM_DIR);
+      
+    /*
+     * IMPORTANT REMARK:
+     *  > although the Mayergoyz model is based on the scalar models 
+     *     we are not alloewed to directly apply the preisach parameter for
+     *     the scalar case (i.e. the weights, the anhyst parameter and so on)
+     *  > make sure that the passed parameter are already transformed correctly
+     *      > see constructor above
+     */
+      
+      hyst_ = new VectorPreisachMayergoyz(numHystOperators_, numDirections, MAT_xSat_, MAT_ySat_, 
+              MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+           
+      hasInverseModel_ = false;
+      
+			/*
+       * currently we do not support initial input for Scalar model
+       */
+			MAT_initialInput_ = Vector<Double>(dim_);
+			MAT_initialInput_.Init();
+			MAT_initialOutput_ = new Vector<Double>[numStorageEntries_];
+			for (UInt k = 0; k < numStorageEntries_; k++) {
+				MAT_initialOutput_[k] = Vector<Double>(dim_);
+				MAT_initialOutput_[k].Init();
+			}
+      INV_resTolB_ = 1e-9;
+    
+      if(MAT_angClipping_ != 0){
+        WARN("Angular clipping currently not used; parameter will be ignored");
+      }
+    } else {
+      EXCEPTION("Unknown hyst model");
+    }
+    
 
 		/*
      * finally initialize storage
@@ -2590,7 +2797,24 @@ namespace CoupledField {
           
           retrievedInput.Init();
           retrievedInput.Add(scalOutput,MAT_dirP_);
-//          
+          
+          /*
+           * NEW:
+           *  as we use retrievedInput later to output H directly, we have to add the missing components
+           *  in the scalar case
+           * so far we have H in direction dirP; to get H perpendicular to that direction, we compute the
+           * following:
+           * 1) B_perpendicular = B - dirP*(dirP.inner(B)
+           * 2) H_perpendicular = nu*B_perpendicualr
+           * 3) add H_perpendicular to H
+           */
+          Vector<Double> curLPMSolution_perpendicular = Vector<Double>(dim_);
+          curLPMSolution_perpendicular.Init();
+          curLPMSolution_perpendicular.Add(1.0,curLPMSolution,-scalInput,MAT_dirP_);
+          Vector<Double> retrievedInput_perpendicular = Vector<Double>(dim_);
+          matrixForInversionInverted_[storageIdx].Mult(curLPMSolution_perpendicular,retrievedInput_perpendicular);
+          retrievedInput.Add(1.0,retrievedInput_perpendicular);
+          
 //          retrievedInput[MAT_dirP_] = hyst_->computeInputAndUpdate(curLPMSolution[MAT_dirP_], 
 //						muForInversion, operatorIdx, overwriteMemory);
         } else {
@@ -2915,6 +3139,11 @@ namespace CoupledField {
       hystHelper_->PrecomputeMaterialTensorForInverison();
     }
     
+    if(resetSolToZeroFirst){
+      for(UInt i = 0; i < numStorageEntries_; i++){
+         LOG_DBG(coeffcthyst) << "matrixForInversion_[ " << i << " ] = " << matrixForInversion_[i];
+      }
+    }
     /*
      * Evaluate all hyst operators at corresponding storage entries
      *  > standard evaluation: one hyst operator for each midpoint; evaluation only at midpoint
@@ -2922,6 +3151,14 @@ namespace CoupledField {
      *  > full evaluation: one hyst operator for each integration point + midpoint; evaluation at each integration point + midpoint
      */
     SetCurrentHystVals(overwriteMemory);
+    
+    if(resetSolToZeroFirst){
+      for(UInt i = 0; i < numStorageEntries_; i++){
+        LOG_DBG(coeffcthyst) << "E_H_[ " << i << " ] = " << E_H_[i];
+         LOG_DBG(coeffcthyst) << "E_B_[ " << i << " ] = " << E_B_[i];
+         LOG_DBG(coeffcthyst) << "P_J_[ " << i << " ] = " << P_J_[i];
+      }
+    }
     
 //    
 //#ifdef USE_OPENMP
@@ -3401,7 +3638,38 @@ namespace CoupledField {
     RUN_evaluationPurpose_ = RUN_evaluationPurpose_bak;
   }
   
-	void CoefFunctionHyst::SetPreviousHystVals(bool setLastTS, bool forceMemoryLock) {
+  void CoefFunctionHyst::SetPreviousHystVals(bool setLastTS) {
+    /*
+     * NEW: just copy values from current array to lastIT or lastTS array
+     */
+    std::map<UInt, std::map<UInt, bool> >::iterator itStart = operatorToStorage_.begin();
+    std::map<UInt, std::map<UInt, bool> >::iterator itEnd = operatorToStorage_.end();
+    std::map<UInt, std::map<UInt, bool> >::iterator it;
+    
+    for(it = itStart; it != itEnd; it++){
+      std::map<UInt, bool>::iterator innerIt;
+      for(innerIt = it->second.begin(); innerIt != it->second.end(); innerIt++){
+        UInt storageIdx = innerIt->first;
+        
+        if (setLastTS) {
+          E_B_lastTS_[storageIdx] = E_B_[storageIdx];
+          P_J_lastTS_[storageIdx] = P_J_[storageIdx];
+          E_H_lastTS_[storageIdx] = E_H_[storageIdx];
+        } else {
+          E_B_lastIt_[storageIdx] = E_B_[storageIdx];
+          P_J_lastIt_[storageIdx] = P_J_[storageIdx];
+          E_H_lastIt_[storageIdx] = E_H_[storageIdx];
+        }
+        deltaMatPrev_[storageIdx] = deltaMat_[storageIdx];
+        deltaMatStrainPrev_[storageIdx] = deltaMatStrain_[storageIdx];
+      }
+    }
+  }
+  
+  /*
+   * OLD VERSION
+   */
+	void CoefFunctionHyst::SetPreviousHystValsOLD(bool setLastTS, bool forceMemoryLock) {
     
     //		if(XML_textOutputLevel_ == 2){
     //      std::cout << "++ SetPreviousHystVals ++" << std::endl;
@@ -3642,7 +3910,10 @@ namespace CoupledField {
       
     } else if(flagName == "EvaluateHystOperators"){
       EvaluateHystOperatorsInt(intState);
-    } 
+    } else if(flagName == "SetPreviousHystValues"){
+      SetPreviousHystVals(bool (intState));
+    }
+
     /*
      * Flags that are to be set from xml file
      */
@@ -3757,6 +4028,8 @@ namespace CoupledField {
   
   void CoefFunctionHyst::TestInversion(UInt testNumber, bool abortAfterTests, bool printStatistics, bool writeResultsToFiles){
     
+    //std::cout << "MAT_PreisachWeights_: " << MAT_PreisachWeights_.ToString() << std::endl;
+    
     if((storageInitialized_ == false)||(testNumber == 0)){
       // memory has not been set yet > no tests possible
       return;
@@ -3808,7 +4081,7 @@ namespace CoupledField {
     bool vector;
     bool isVirgin = true;
         
-    UInt numCases = 6;
+    UInt numCases = 8;
     UInt totalSteps;
     bool testAll = false;
 
@@ -3850,7 +4123,7 @@ namespace CoupledField {
           material_->GetScalar(MAT_angResistance_, ANG_DISTANCE, Global::REAL);
           
           hystTMP = new ExtendedPreisach(1, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, 
-                  MAT_rotRes_, MAT_angResistance_, dim_, isVirgin);
+                  MAT_rotRes_, MAT_angResistance_, dim_, isVirgin, MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
           
           // set initial direction
           Vector<Double> initialInput = Vector<Double>(dim_);
@@ -3862,7 +4135,7 @@ namespace CoupledField {
           hystTMP->UpdateRotationState(initialInput,MAT_eps_mu_SmallSignal_,0);
 
         } else {
-          hystTMP = new Preisach(1, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, isVirgin);
+          hystTMP = new Preisach(1, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, isVirgin, MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
           //hyst_ = new Preisach(numHystOperators_, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, isVirgin);
         }
         
@@ -3870,7 +4143,7 @@ namespace CoupledField {
         
 				// normal preisach has worse resolution than vectorpreisach
 				// > check for smaller tolerance
-      } else {
+      } else if (usedHystModel_ == "vectorPreisach_Sutor") {
         vector = true;
         // create one temporary VectorPreisach operator with the same
         // parameter as the later used ones, except, we just need it to store
@@ -3880,25 +4153,25 @@ namespace CoupledField {
 
           hystTMP = new VectorPreisachv10_ListApproach(1, MAT_xSat_, MAT_ySat_,
                   MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-                  isClassical_, MAT_angResistance_,MAT_angResolution_);
+                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
         } else if (MAT_vecPreisachImplementationVersion_ == 2) {
           isClassical_ = false; // revised vector preisach model -> sutor2015
 
           hystTMP = new VectorPreisachv10_ListApproach(1, MAT_xSat_, MAT_ySat_,
                   MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-                  isClassical_, MAT_angResistance_,MAT_angResolution_);
+                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
         } else if (MAT_vecPreisachImplementationVersion_ == 10) {
           isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
 
           hystTMP = new VectorPreisachv10_MatrixApproach(1, MAT_xSat_, MAT_ySat_,
                   MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-                  isClassical_, MAT_angResistance_,MAT_angResolution_);
+                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
         } else if (MAT_vecPreisachImplementationVersion_ == 20) {
           isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
 
           hystTMP = new VectorPreisachv10_MatrixApproach(1, MAT_xSat_, MAT_ySat_,
                   MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-                  isClassical_, MAT_angResistance_,MAT_angResolution_);
+                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
         } else {
           EXCEPTION("MAT_vecPreisachImplementationVersion_ has to be one of the following: \n "
                   "1: classical vector model (sutor2012) \n"
@@ -3907,7 +4180,33 @@ namespace CoupledField {
                   "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
         }
         hystTMP->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
-          INV_useTikhonov_, INV_alphaLSStart_, MAT_angClipping_);   
+          INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_); 
+      } else if (usedHystModel_ == "vectorPreisach_Mayergoyz") {
+        vector = true;
+        // basically a scalar model in multiple directions
+        // isotropic case: all scalar models are equal (same weights etc)
+        // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
+        int isIsotropic = 1;
+        material_->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
+        if( (dim_ != 2) || (isIsotropic == 0)){
+          EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
+        }
+        int numDirections = 0;
+        material_->GetScalar(numDirections, PREISACH_MAYERGOYZ_NUM_DIR);
+        
+        /*
+         * IMPORTANT REMARK:
+         *  > although the Mayergoyz model is based on the scalar models 
+         *     we are not alloewed to directly apply the preisach parameter for
+         *     the scalar case (i.e. the weights, the anhyst parameter and so on)
+         *  > make sure that the passed parameter are already transformed correctly
+         *      > see constructor above
+         */
+        hystTMP = new VectorPreisachMayergoyz(1, numDirections, MAT_xSat_, MAT_ySat_, 
+                MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+
+      } else {
+        EXCEPTION("Invalid model selected for inversion test");
       }
       
       if( (ca == 1)&&( (testNumber == 1) ||(testAll)) ) {
@@ -3999,7 +4298,11 @@ namespace CoupledField {
           xIn[i] = Vector<Double>(dim_);
           xIn[i].Init();
           dir[0] = (Double) (totalSteps-i)/totalSteps;
-          dir[1] = (Double) i/totalSteps;
+          if(vector){
+            dir[1] = (Double) i/totalSteps;
+          } else {
+            dir[1] = 0.0;
+          }
           xIn[i].Add(MAT_xSat_*xScal[i],dir);
         }
         
@@ -4169,6 +4472,72 @@ namespace CoupledField {
             xIn[i][1] = -0.4*MAT_xSat_*increase*i * sin( 3*(2*M_PI*i)/stepsPerPeriod );
            }
          }
+      } else if( (ca == 7)&&( (testNumber == 7) ||(testAll)) ) {
+        if(printStatistics){
+          std::cout << "##### TEST CASE " << ca << " - Forc" << std::endl;
+        }
+        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Forc";
+        testName = "Forc";
+        totalSteps = 500;
+        Double numPeriods = 10;
+        Double stepsPerPeriod = totalSteps/numPeriods;
+        Double decrease = 1.0/totalSteps;
+        xIn = new Vector<Double>[totalSteps]; 
+        
+        for(UInt i = 0; i < totalSteps; i++){
+          xIn[i] = Vector<Double>(dim_);
+          xIn[i].Init(0.0);
+          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
+          xIn[i][0] = 1.2*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod ) - 1.2*MAT_xSat_*decrease*i;
+          if(vector){
+            // smaller amplitude, higher frequency
+            xIn[i][1] = 0.4*MAT_xSat_*(1.0 - decrease*i) * sin( 3*(2*M_PI*i)/stepsPerPeriod ) - 0.4*MAT_xSat_*decrease*i;
+           }
+         }
+      } else if( (ca == 8)&&( (testNumber == 8) ||(testAll)) ) {
+        if(printStatistics){
+          std::cout << "##### TEST CASE " << ca << " - Saturation in x, Drop to rem, Saturation in y, Drop to rem" << std::endl;
+        }
+        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Forc";
+        testName = "SatX,SatY";
+        totalSteps = 500;
+				
+				Double increase = 4.0/totalSteps;
+				
+        xIn = new Vector<Double>[totalSteps]; 
+				Double maxAmplitude = 4.0*MAT_xSat_;
+        
+        for(UInt i = 0; i < totalSteps/4; i++){
+					// linearly increase in x up to n*saturation
+          xIn[i] = Vector<Double>(dim_);
+          xIn[i].Init(0.0);
+					
+					xIn[i][0] = maxAmplitude*i*increase;
+         }
+				for(UInt i = totalSteps/4; i < 2*totalSteps/4; i++){
+					// linearly decrease to 0
+					xIn[i] = Vector<Double>(dim_);
+					xIn[i].Init(0.0);
+					
+					xIn[i][0] = maxAmplitude - maxAmplitude*(i-totalSteps/4)*increase;
+				}
+				
+				for(UInt i = 2*totalSteps/4; i < 3*totalSteps/4; i++){
+					// linearly increase in y up to n*saturation
+          xIn[i] = Vector<Double>(dim_);
+          xIn[i].Init(0.0);
+					
+					//xIn[i][1] = maxAmplitude*(i-2*totalSteps/4)*increase;
+         }
+				for(UInt i = 3*totalSteps/4; i < totalSteps; i++){
+					// linearly decrease to 0
+					xIn[i] = Vector<Double>(dim_);
+					xIn[i].Init(0.0);
+					
+					//xIn[i][1] = maxAmplitude - maxAmplitude*(i-3*totalSteps/4)*increase;
+				}
+				
+				
       } else {
         continue;
       }
@@ -4185,31 +4554,31 @@ namespace CoupledField {
       std::string filenameOutput = stringstream2.str();
       
       std::stringstream stringstream4;
-      stringstream4 << "INVERSION_TEST_hIn_" << ca;
+      stringstream4 << "INVERSION_TEST_xIn_hIn_" << ca;
       std::string filenameOutputHystIn = stringstream4.str();
       std::stringstream stringstream5;
-      stringstream5 << "INVERSION_TEST_hRet_" << ca;
+      stringstream5 << "INVERSION_TEST_xRet_hRet_" << ca;
       std::string filenameOutputHystRet = stringstream5.str();
       
       
-      std::ofstream testOutputSig;
-      if(writeResultsToFiles){
-        testOutputSig.open(filenameInput);
-        testOutputSig << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
-        testOutputSig << "# Number of steps: " << totalSteps << std::endl;
-        testOutputSig << "# eps_mu: " << eps_mu.ToString() << std::endl;
-        testOutputSig << "# xSat: " << MAT_xSat_ << std::endl;
-        testOutputSig << "# ySat: " << MAT_ySat_ << std::endl;
-        testOutputSig << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
-        testOutputSig << "# " << std::endl;
-        testOutputSig << "# Step    x_in[0]    x_in[1]" << std::endl;
-        for(UInt i = 0; i < totalSteps; i++){
-          testOutputSig << i << " " << xIn[i][0] << " " << xIn[i][1] << std::endl;
-        }
-        testOutputSig.close();
-      }
+//      std::ofstream testOutputSig;
+//      if(writeResultsToFiles){
+//        testOutputSig.open(filenameInput);
+//        testOutputSig << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
+//        testOutputSig << "# Number of steps: " << totalSteps << std::endl;
+//        testOutputSig << "# eps_mu: " << eps_mu.ToString() << std::endl;
+//        testOutputSig << "# xSat: " << MAT_xSat_ << std::endl;
+//        testOutputSig << "# ySat: " << MAT_ySat_ << std::endl;
+//        testOutputSig << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
+//        testOutputSig << "# " << std::endl;
+//        testOutputSig << "# Step    x_in[0]    x_in[1]" << std::endl;
+//        for(UInt i = 0; i < totalSteps; i++){
+//          testOutputSig << i << " " << xIn[i][0] << " " << xIn[i][1] << std::endl;
+//        }
+//        testOutputSig.close();
+//      }
       
-      
+      Vector<UInt> successCodeVector = Vector<UInt>(totalSteps);
       Vector<Double>* xRetrieved = new Vector<Double>[totalSteps];
       Vector<Double>* yRetrieved = new Vector<Double>[totalSteps];
       Vector<Double>* hIn= new Vector<Double>[totalSteps];
@@ -4218,24 +4587,24 @@ namespace CoupledField {
       Vector<Double>* xError = new Vector<Double>[totalSteps];
       Vector<Double>* yIn = new Vector<Double>[totalSteps]; 
       
-      std::ofstream testOutput2;
+      //std::ofstream testOutput2;
       std::ofstream testOutput3;
       std::ofstream testOutput4;
       
       if(writeResultsToFiles){
-        testOutput2.open(filenameOutput);
+        //testOutput2.open(filenameOutput);
         testOutput3.open(filenameOutputHystIn);
         testOutput4.open(filenameOutputHystRet);
         
-        testOutput2 << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
-        testOutput2 << "# Number of steps: " << totalSteps << std::endl;
-        testOutput2 << "# eps_mu: " << eps_mu.ToString() << std::endl;
-        testOutput2 << "# xSat: " << MAT_xSat_ << std::endl;
-        testOutput2 << "# ySat: " << MAT_ySat_ << std::endl;
-        testOutput2 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
-        testOutput2 << "# " << std::endl;
-        testOutput2 << "# Step    x_ret[0]    x_ret[1]" << std::endl;
-        
+//        testOutput2 << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
+//        testOutput2 << "# Number of steps: " << totalSteps << std::endl;
+//        testOutput2 << "# eps_mu: " << eps_mu.ToString() << std::endl;
+//        testOutput2 << "# xSat: " << MAT_xSat_ << std::endl;
+//        testOutput2 << "# ySat: " << MAT_ySat_ << std::endl;
+//        testOutput2 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
+//        testOutput2 << "# " << std::endl;
+//        testOutput2 << "# Step    x_ret[0]    x_ret[1]" << std::endl;
+//        
         testOutput3 << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
         testOutput3 << "# Number of steps: " << totalSteps << std::endl;
         testOutput3 << "# eps_mu: " << eps_mu.ToString() << std::endl;
@@ -4243,7 +4612,7 @@ namespace CoupledField {
         testOutput3 << "# ySat: " << MAT_ySat_ << std::endl;
         testOutput3 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
         testOutput3 << "# " << std::endl;
-        testOutput3 << "# Step    h_in[0]    h_in[1]" << std::endl;
+        testOutput3 << "# Step    x_in[0]    x_in[1]    h_in[0]    h_in[1]    y_in[0]    y_in[1]" << std::endl;
         
         testOutput4 << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
         testOutput4 << "# Number of steps: " << totalSteps << std::endl;
@@ -4252,7 +4621,7 @@ namespace CoupledField {
         testOutput4 << "# ySat: " << MAT_ySat_ << std::endl;
         testOutput4 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
         testOutput4 << "# " << std::endl;
-        testOutput4 << "# Step    h_ret[0]    h_ret[1]" << std::endl;
+        testOutput4 << "# Step    x_ret[0]    x_ret[1]    h_ret[0]    h_ret[1]    y_ret[0]    y_ret[1]" << std::endl;
       }
       
       
@@ -4340,11 +4709,15 @@ namespace CoupledField {
 			zeroVec.Init();
       
       if(vector){
-			  // new: we have to pass the previous solution (here: 0)
-				// new2: pass arguments by value!
-        xRetrieved[0] = hystTMP->computeInput_vec_withStatistics(yIn[0], zeroVec, zeroVec, zeroVec, 0, eps_mu,
-								overwriteDirection, numberOfLMIterations, numberOfLinesearchIterations, 
-                maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha);
+        if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+          xRetrieved[0] = hystTMP->computeInput_vec(yIn[0], 0, eps_mu,overwriteDirection);
+        } else {
+          // new: we have to pass the previous solution (here: 0)
+          // new2: pass arguments by value!
+          xRetrieved[0] = hystTMP->computeInput_vec_withStatistics(yIn[0], zeroVec, zeroVec, zeroVec, 0, eps_mu,
+                  overwriteDirection, numberOfLMIterations, numberOfLinesearchIterations, 
+                  maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha);
+        }
       } else {
 				overwriteMemory = false;
 //        xRetrieved[0][0] = hystTMP->computeInputAndUpdate(yIn[0][0], zeroVec[0], zeroVec[0],
@@ -4364,7 +4737,7 @@ namespace CoupledField {
         LMFails++;
       } else if(successCode == 1){
         totalReused++;
-      } else if(successCode == 2){
+      }else if((successCode == 2)||(successCode == 9)){
         totalSimple++;
       } else if(successCode == 3){
         totalRemanence++;
@@ -4400,7 +4773,11 @@ namespace CoupledField {
       
       overwriteMemory = true;
       if(vector){
-        hRetrieved[0] = hystTMP->computeValue_vec(xRetrieved[0], 0, overwriteMemory, overwriteDirection);
+				if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+					hRetrieved[0] = hystTMP->computeValue_vec(xIn[0], 0, overwriteMemory, overwriteDirection);
+				} else {
+					hRetrieved[0] = hystTMP->computeValue_vec(xRetrieved[0], 0, overwriteMemory, overwriteDirection);
+				}
       } else {
 				//hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, 0, overwriteMemory);
         hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, overwriteMemory);
@@ -4416,9 +4793,9 @@ namespace CoupledField {
       yError[0] -= yIn[0];
       
       if(writeResultsToFiles){
-        testOutput2 << std::setprecision(9) <<  "0   "<< xRetrieved[0][0] <<"    "<< xRetrieved[0][1]<<std::endl;
-        testOutput3 << std::setprecision(9) <<  "0   "<< hIn[0][0] <<"    "<< hIn[0][1]<<std::endl;
-        testOutput4 << std::setprecision(9) <<  "0   "<< hRetrieved[0][0] <<"    "<< hRetrieved[0][1]<<std::endl;
+        //testOutput2 << std::setprecision(9) <<  "0   "<< xRetrieved[0][0] <<"    "<< xRetrieved[0][1]<<std::endl;
+        testOutput3 << std::setprecision(9) <<  "0   "<< xIn[0][0] <<"    "<< xIn[0][1]<<"    " << hIn[0][0] <<"    "<< hIn[0][1]<<"    " << yIn[0][0] <<"    "<< yIn[0][1]<<std::endl;
+        testOutput4 << std::setprecision(9) <<  "0   "<< xRetrieved[0][0] <<"    "<< xRetrieved[0][1]<<"    " << yRetrieved[0][0] <<"    "<< yRetrieved[0][1]<<std::endl;
       }
       //    Double inc = 2*MAT_xSat_/( (Double) numTests);
       
@@ -4456,9 +4833,13 @@ namespace CoupledField {
         successCode = 0;
         
         if(vector){
-          xRetrieved[i] = hystTMP->computeInput_vec_withStatistics(yIn[i], yRetrieved[i-1], xRetrieved[i-1], hRetrieved[i-1], 
-								0, eps_mu, overwriteDirection, numberOfLMIterations, numberOfLinesearchIterations, 
-                maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha);			
+          if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+            xRetrieved[i] = hystTMP->computeInput_vec(yIn[i],0, eps_mu, overwriteDirection);
+          } else {
+            xRetrieved[i] = hystTMP->computeInput_vec_withStatistics(yIn[i], yRetrieved[i-1], xRetrieved[i-1], hRetrieved[i-1], 
+                  0, eps_mu, overwriteDirection, numberOfLMIterations, numberOfLinesearchIterations, 
+                  maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha);	
+          }
         } else {
 					overwriteMemory = false;
           xRetrieved[i] = Vector<Double>(dim_);
@@ -4466,13 +4847,14 @@ namespace CoupledField {
 //          xRetrieved[i][0] = hystTMP->computeInputAndUpdate(yIn[i][0], yRetrieved[i-1][0], xRetrieved[i-1][0],
 //						hRetrieved[i-1][0], 0, eps_mu[0][0], overwriteMemory);		
 					xRetrieved[i][0] = hystTMP->computeInputAndUpdate(yIn[i][0], eps_mu[0][0], 0, overwriteMemory);
+          successCode = 7;
         }
 			
         if(successCode == 0){
           LMFails++;
         } else if(successCode == 1){
           totalReused++;
-        } else if(successCode == 2){
+        } else if((successCode == 2)||(successCode == 9)){
           totalSimple++;
         } else if(successCode == 3){
           totalRemanence++;
@@ -4483,6 +4865,7 @@ namespace CoupledField {
         } else if(successCode == 6){
           totalPassedResTolY++;
         }
+        successCodeVector[i] = successCode;
         
         if(minAlpha < totalminAlpha){
           totalminAlpha = minAlpha;
@@ -4512,7 +4895,12 @@ namespace CoupledField {
  
         overwriteMemory = true;
         if(vector){
-          hRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection);
+					if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+						hRetrieved[i] = hystTMP->computeValue_vec(xIn[i], 0, overwriteMemory, overwriteDirection);
+					} else {
+						hRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection);
+					}
+          //hRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection);
         } else {
 					hRetrieved[i][0] = hystTMP->computeValueAndUpdate(xRetrieved[i][0], 0, overwriteMemory);
           //hRetrieved[i][0] = hystTMP->computeValueAndUpdate(xRetrieved[i][0], xRetrieved[i-1][0], 0, overwriteMemory);
@@ -4531,9 +4919,9 @@ namespace CoupledField {
         xError[i] -= xIn[i];
         
         if(writeResultsToFiles){
-          testOutput2 << i << std::setprecision(9) << "   "<< xRetrieved[i][0] <<"    "<< xRetrieved[i][1]<<std::endl;
-          testOutput3 << i << std::setprecision(9) << "   "<< hIn[i][0] <<"    "<< hIn[i][1]<<std::endl;
-          testOutput4 << i << std::setprecision(9) << "   "<< hRetrieved[i][0] <<"    "<< hRetrieved[i][1]<<std::endl;
+          //testOutput2 << i << std::setprecision(9) << "   "<< xRetrieved[i][0] <<"    "<< xRetrieved[i][1]<<std::endl;
+          testOutput3 << i << std::setprecision(9) << "   "<< xIn[i][0] <<"    "<< xIn[i][1]<< "   "<< hIn[i][0] <<"    "<< hIn[i][1]<< "   "<< yIn[i][0] <<"    "<< yIn[i][1]<<std::endl;
+          testOutput4 << i << std::setprecision(9) << "   "<< xRetrieved[i][0] <<"    "<< xRetrieved[i][1]<< "   "<< hRetrieved[i][0] <<"    "<< hRetrieved[i][1]<< "   "<< yRetrieved[i][0] <<"    "<< yRetrieved[i][1]<<std::endl;
         }
         
         LOG_TRACE(coeffcthyst) << "##### TARGET X-VECTOR #####";
@@ -4570,7 +4958,7 @@ namespace CoupledField {
       }
       
       if(writeResultsToFiles){
-        testOutput2.close();
+        //testOutput2.close();
         testOutput3.close();
         testOutput4.close();
       }
@@ -4579,7 +4967,7 @@ namespace CoupledField {
       statistics << std::endl;	
       statistics << "############################# " <<	std::endl;	
       statistics << "##### RESULTS FOR TEST CASE " << ca <<	std::endl;	
-      statistics << " " << totalSteps-numFails << " of " << totalSteps << " satisfied at least the failback criterion, i.e. |residual_Y| = |Y - mu_eps*X - P(X)| < " << INV_resTolH_<< std::endl;
+      statistics << " " << totalSteps-numFails << " of " << totalSteps << " satisfied at least the failback criterion, i.e. |residual_Y| = |Y - mu_eps*X - P(X)| < " << INV_resTolB_ << std::endl;
       statistics << " " << numFails << " of " << totalSteps << " failed to satisfy the failback criterion" << std::endl;
       if(numFails != 0){
         statistics << "## Detailed Statistics for failed tests: " << std::endl;
@@ -4589,8 +4977,11 @@ namespace CoupledField {
           statistics << " - Remaining |residual_Y|: " << mapIt->second << std::endl;
           statistics << " - Y_in: " << yIn[mapIt->first].ToString() << std::endl;
           statistics << " - Y_ret: " << yRetrieved[mapIt->first].ToString() << std::endl;
+          statistics << " - h_sol: " << hIn[mapIt->first].ToString() << std::endl;
+          statistics << " - h_ret: " << hRetrieved[mapIt->first].ToString() << std::endl;
           statistics << " - X_sol: " << xIn[mapIt->first].ToString() << std::endl;
           statistics << " - X_ret: " << xRetrieved[mapIt->first].ToString() << std::endl;
+          statistics << " - SuccessCode: " << successCodeVector[mapIt->first] << std::endl;
         }
       }
 
@@ -4605,7 +4996,7 @@ namespace CoupledField {
           statistics << " " << totalPassedErrorTol << " of " << LMcases << " tests passed due to error tolerance |JacT*Res| < " << INV_resTolH_ << std::endl;
           statistics << " " << totalPassedResTolX << " of " << LMcases << " tests passed due to |residual_X| = |X - mu_eps^-1*(Y - P(X)| < " << INV_resTolH_ << std::endl;
           statistics << " " << totalPassedResTolY << " of " << LMcases << " tests passed due to |residual_Y| = |Y - mu_eps*X - P(X)| < " << INV_resTolH_ << std::endl;
-          statistics << " " << LMFails << " of " << LMcases << " failed the failback criterion (|residual_Y| < " << INV_resTolH_ << ")" << std::endl;
+          statistics << " " << LMFails << " of " << LMcases << " failed the failback criterion (|residual_Y| < " << INV_resTolB_ << ")" << std::endl;
           statistics << " Total number of LM iterations: " << totalNumberOfLMIterations << std::endl;
           statistics << " Average number of LM iterations: " << (Double) totalNumberOfLMIterations/LMcases << std::endl;
           statistics << " Total number of Linesearch iterations: " << totalNumberOfLinesearchIterations << std::endl;

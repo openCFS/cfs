@@ -349,7 +349,8 @@ namespace CoupledField {
             /*
              * if lastEntryMin == true -> check if lastEntry < firstEntry and firstEntry = left boundary of bounding box
              */
-            if( (lastEntry < firstEntry) && (firstEntry == l) ){
+            // NEW 2018: <=
+            if( (lastEntry <= firstEntry) && (firstEntry == l) ){
               //std::cout << "Merged by new rule" << std::endl;
               return true;
             }
@@ -357,7 +358,7 @@ namespace CoupledField {
             /*
              * if lastEntryMin == false -> check if lastEntry > firstEntry and firstEntry = top boundary of bounding box
              */
-            if( (lastEntry > firstEntry) && (firstEntry == t) ){
+            if( (lastEntry >= firstEntry) && (firstEntry == t) ){
               //std::cout << "Merged by new rule" << std::endl;
               return true;
             }
@@ -660,25 +661,28 @@ namespace CoupledField {
   public:
     VectorPreisachv10(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, Double angularDistance, Double angResolution);
+      bool classical, Double angularDistance, Double angResolution, 
+      Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
     
     virtual ~VectorPreisachv10();
     
     //! this function gets called from outside and calculates the output of the Preisach operator
-    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection = true){
+    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection = true,bool debugOutput = false){
       EXCEPTION("Not implemented in base class");
     }
-    
-    void ClipDirection(Vector<Double>& targetVector);
+
+    //void ClipDirection(Vector<Double>& targetVector);
     
     void SetParamsForInversion(UInt maxIter, Double resTolH, Double resTolB, Double jacobiResolution,
-          bool useTikhonov, Double alphaLSStart, Double angClipping){
+         bool useTikhonov, Double alphaLSStart, Double alphaLSMin, Double alphaLSMax, Double angClipping){
       INV_maxIter_ = maxIter;
       INV_resTolH_ = resTolH;
       INV_resTolB_ = resTolB;
       INV_jacobiResolution_ = jacobiResolution;
       INV_useTikhonov_ = useTikhonov;
       INV_alphaLSStart_ = alphaLSStart;
+      INV_alphaLSMin_ = alphaLSMin;
+      INV_alphaLSMax_ = alphaLSMax;
       INV_angClipping_ = angClipping;
     }
     
@@ -816,6 +820,13 @@ namespace CoupledField {
     Double delta_; //! resolution of Preisach plane
     Double tol_; //! tolerance for all kind of comparisons
     
+//    /*
+//     * for optional anhysteretic parts
+//     */
+//    Double anhyst_A_;
+//    Double anhyst_B_;
+//    Double anhyst_C_;
+    
     bool classical_; //! switch between classical evaluation (2012 version of vector model) or revised evaluation (2015 version)
     bool restrictToHalfspace_;
     
@@ -838,6 +849,8 @@ namespace CoupledField {
     Double INV_jacobiResolution_;
     bool INV_useTikhonov_;
     Double INV_alphaLSStart_;
+    Double INV_alphaLSMin_;
+    Double INV_alphaLSMax_;
     Double INV_angClipping_;
         
     /*!
@@ -875,12 +888,13 @@ namespace CoupledField {
   public:
     VectorPreisachv10_MatrixApproach(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, Double angularDistance, Double angResolution);
+      bool classical, Double angularDistance, Double angResolution, 
+      Double anhystA=0.0, Double anhystB=0.0, Double anhystC=0.0, bool anhystOnly = false);
     
     ~VectorPreisachv10_MatrixApproach();
     
     //! this function gets called from outside and calculates the output of the Preisach operator
-    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true);
+    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true, bool debugOut=false);
     
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
     
@@ -922,12 +936,13 @@ namespace CoupledField {
   public:
     VectorPreisachv10_ListApproach(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, Double angularDistance, Double angResolution);
+      bool classical, Double angularDistance, Double angResolution, 
+      Double anhystA=0.0, Double anhystB=0.0, Double anhystC=0.0, bool anhystOnly = false);
     
     virtual ~VectorPreisachv10_ListApproach();
     
     //! this function gets called from outside and calculates the output of the Preisach operator
-    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true);
+    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true, bool debugOut=false);
     
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
     
@@ -938,7 +953,7 @@ namespace CoupledField {
     /*
      * for version 10 -> revised model
      */
-    void Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedRotationList,bool overwriteDirection=true);
+    void Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedRotationList,bool overwriteDirection=true,bool debutOutput = false);
     UInt Update_SwitchingList(std::list<ListEntryv10>& list, Double newEntry, Double lastXpar, Rectangle boundingBox, bool wasWipedOut, bool lastRotEntry);
     Double clipRectangleToElement(Rectangle& source, UInt idAlpha, UInt idBeta, Double delta = -1,bool isRotState = false);
     void getBoundingBoxFromRotEntry(std::list<RotListEntryv10>::iterator rotListIt, Rectangle& rect1, bool lastRotListEntryv10);
@@ -951,8 +966,8 @@ namespace CoupledField {
     Double getRectangleFromSwitchingList(std::list<ListEntryv10>& list,
     std::list<ListEntryv10>::iterator startIt, std::list<ListEntryv10>::iterator curIt, std::list<ListEntryv10>::iterator endIt,
     UInt idArea, Rectangle& rect, bool upperSplitSquare = false);
-    void Simplify_LocalSwitchingLists(std::list<RotListEntryv10>& usedRotationList);
-    void Simplify_GlobalRotationList(std::list<RotListEntryv10>& usedRotationList);
+    bool Simplify_LocalSwitchingLists(std::list<RotListEntryv10>& usedRotationList);
+    bool Simplify_GlobalRotationList(std::list<RotListEntryv10>& usedRotationList);
     void mapRectangleToHelperMatrix(Matrix<Double>& helper, Rectangle rect, Double factor, bool skipUpperDiagonal = false,bool isRotState = false);
     void Initialize_GlobalRotationList(std::list<RotListEntryv10>& usedRotationList);
     void Initialize_GlobalRotationListWithValues(std::list<RotListEntryv10>& usedList,Vector<Double>& initDir, Double initRotValue, Double initSwitchValue);

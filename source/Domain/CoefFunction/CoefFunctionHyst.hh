@@ -1035,13 +1035,7 @@ namespace CoupledField {
     }
     
     void GetVector(Vector<Double>& outputVector,const LocPointMapped& lpm){
-      //std::cout << "Coef Function Hyst RHS Load - Get Vector" << std::endl;
-      // return vector that can be put onto rhs of system; 
-      // the sign of term shall be such, that it can be added with + in the
-      // corresponding pdes
-      // Example: in piezo systems we have (among others) -int_Omega (BN)^T*P dOmega 
-      //          on rhs, so we would return -P here
-      
+
       int timeLevel = 0;
       Double baseSign = 1.0;
       //std::cout << "result " << resultName_ << " requested" << std::endl;
@@ -1128,6 +1122,363 @@ namespace CoupledField {
     MaterialType matType,
     shared_ptr<FeSpace> ptFeSpace);
     
+    /*
+     * New functions added April 2018
+     */
+    Double getWeight(Double alpha, Double beta, Double delta){
+      
+      if(weightType_ == "Constant"){
+        return constWeight_;
+      } else if(weightType_ == "muDat"){
+        return MuDat(muDat_A_, muDat_sigma1_, muDat_h1_, muDat_eta_, alpha, beta);
+      } else if(weightType_ == "muDatExtended"){
+        return MuDatExtended(muDat_A_, muDat_sigma1_, muDat_sigma2_, muDat_h1_, muDat_h2_, muDat_eta_, alpha, beta);
+      } else if(weightType_ == "givenTensor"){
+        // alpha = -1 shall be mapped to 0, alpha = 1.0 shall be mapped to maxNum
+        UInt idxAlpha = UInt(std::round((alpha+1.0)/delta));
+        UInt idxBeta = UInt(std::round((beta+1.0)/delta));
+        if( idxAlpha < 0 ){
+          idxAlpha = 0;
+        } else if (idxAlpha >= MAT_numRows_){
+          idxAlpha = MAT_numRows_-1;
+        }
+        if( idxBeta < 0 ){
+          idxBeta = 0;
+        } else if (idxBeta >= MAT_numRows_){
+          idxBeta = MAT_numRows_-1;
+        }
+        
+        return weightTensor_[idxAlpha][idxBeta];
+      } else {
+        return 0.0;
+      }
+    }
+    
+    Double getWeightDerivative(Double alpha, Double beta, Double delta, bool flipped){
+      
+      Double s, lambda;
+      if(flipped){
+        s = alpha;
+        lambda = beta/alpha;
+      } else {
+        s = beta;
+        lambda = alpha/beta;
+      }
+      
+      if(weightType_ == "Constant"){
+        return 0.0;
+      } else if(weightType_ == "muDat"){
+        return dMuDat_by_ds(muDat_A_, muDat_sigma1_, muDat_h1_, muDat_eta_,s,lambda,flipped);
+      } else if(weightType_ == "muDatExtended"){
+        return dMuDatExtended_by_ds(muDat_A_, muDat_sigma1_, muDat_sigma2_, muDat_h1_, muDat_h2_, muDat_eta_,s,lambda,flipped);
+      } else if(weightType_ == "givenTensor"){
+        Double s_low = s-delta/1e11;
+        if( s_low < -1.0){
+          s_low = -1.0;
+        }
+        Double s_up = s+delta/1e11;
+        if( s_up > 1.0){
+          s_up = 1.0;
+        }
+          
+        Double deltas = s_up - s_low;
+        Double wUp;
+        Double wLow;
+        if(flipped){
+            wUp = getWeight(lambda*s_up,s_up,delta);
+            wLow = getWeight(lambda*s_low,s_low,delta);
+        } else{
+            wUp = getWeight(s_up,lambda*s_up,delta);
+            wLow = getWeight(s_low,lambda*s_low,delta);
+        }
+        return (wUp-wLow)/deltas;
+      } else {
+        return 0.0;
+      }
+    }
+    
+    std::string weightType_;
+    Double constWeight_;
+    Double muDat_A_;
+    Double muDat_sigma1_;
+    Double muDat_sigma2_;
+    Double muDat_h1_;
+    Double muDat_h2_;
+    Double muDat_eta_;
+    Double MAT_anhysteretic_a_;
+    Double MAT_anhysteretic_b_;
+    Double MAT_anhysteretic_c_;
+    Matrix<Double> weightTensor_;
+    std::string usedHystModel_;
+    bool anhystOnly_;
+    
+    Double MuDat(Double A, Double sigma, Double h, Double eta, Double alpha, Double beta){
+      // MuDat function for evaluating Preisach Weights
+      // weights directly usable for 
+      //  > scalar Preisach model
+      //  > vector Preisach model (Sutor)
+      // after transformation, weights usable for
+      //  > vector Preisach model (Mayergoyz) ISOTROPIC materials
+      //
+      // Source: "A Preisach-based hysteresis model for magnetic and ferroelectric hysteresis" - A. Sutor 2010
+      return A/(1 + std::pow( std::pow((alpha+beta)*sigma,2) + std::pow((alpha-beta-h)*sigma,2),eta));
+    }
+    
+    Double MuDatExtended(Double A, Double sigma1, Double sigma2, Double h1, Double h2, Double eta, Double alpha, Double beta){
+      // extended MuDat function for evaluating Preisach Weights
+      // weights directly usable for 
+      //  > scalar Preisach model
+      //  > vector Preisach model (Sutor)
+      // after transformation, weights usable for
+      //  > vector Preisach model (Mayergoyz) ISOTROPIC materials
+      //
+      // Source: "Generalisiertes Preisach Modell für die Simulation und Kompensation der Hysterese piezokeramischer Aktoren" - F. Wolf 2014
+      return A/(1 + std::pow( std::pow((alpha+beta+h1)*sigma1,2) + std::pow((alpha-beta-h2)*sigma2,2),eta));
+    }
+    
+    Double dMuDat_by_ds(Double A, Double sigma, Double h, Double eta, Double s, Double lambda, bool flipped){
+      // Derivative of MuDat(s,lambda*s) by s 
+      // Used to transfer Preisach weights from scalar to vector model (Mayergoyz model, isotropic)
+      // (MuDat function with alpha = s, beta = lambda*s used)
+      // if flipped: alpha = lambda*s, beta = s
+      Double tmp; // tmp = (alpha-beta)/s
+      if(flipped){
+        tmp = lambda-1; 
+      } else {
+        tmp = 1-lambda;
+      }
+      Double tmp2 = lambda+1; // tmp2 = (alpha+beta)/s
+      
+      Double denominator = std::pow(1 + std::pow( std::pow(tmp2*s*sigma,2) + std::pow((tmp*s-h)*sigma,2),eta),2);
+      Double nominator1 = -A*eta;
+      Double nominator2 = std::pow( std::pow(tmp2*s*sigma,2) + std::pow((tmp*s-h)*sigma,2),eta-1);
+      Double nominator3 = 2*s*std::pow(tmp2*sigma,2) + 2*(tmp*s-h)*sigma*sigma*tmp;
+
+      return nominator1*nominator2*nominator3/denominator;
+    }
+    
+   Double dMuDatExtended_by_ds(Double A, Double sigma1, Double sigma2, Double h1, Double h2, Double eta, Double s, Double lambda, bool flipped){
+      // Derivative of MuDat(s,lambda*s) by s 
+      // Used to transfer Preisach weights from scalar to vector model (Mayergoyz model, isotropic)
+      // (MuDat function with alpha = s, beta = lambda*s used)
+      // if flipped: alpha = lambda*s, beta = s
+      Double tmp; // tmp = (alpha-beta)/s
+      if(flipped){
+        tmp = lambda-1; 
+      } else {
+        tmp = 1-lambda;
+      }
+      Double tmp2 = lambda+1; // tmp2 = (alpha+beta)/s
+      
+      Double denominator = std::pow(1 + std::pow( std::pow((tmp2*s+h1)*sigma1,2) + std::pow((tmp*s-h2)*sigma2,2),eta),2);
+      Double nominator1 = -A*eta;
+      Double nominator2 = std::pow( std::pow((tmp2*s+h1)*sigma1,2) + std::pow((tmp*s-h2)*sigma2,2),eta-1);
+      Double nominator3 = 2*(tmp2*s+h1)*sigma1*sigma1*tmp2 + 2*(tmp*s-h2)*sigma2*sigma2*tmp;
+       
+      return nominator1*nominator2*nominator3/denominator;
+    }
+
+    /*
+     * Functions needed for numerical integration with Gauss-Tschebyscheff
+     */
+    inline Double x_of_y(Double y,Double xMin,Double xMax){
+      return ( (1-y)*xMin/2 + (1+y)*xMax/2 );
+    }
+    
+    inline Double dx_by_dy(Double xMin, Double xMax){
+      return ( -xMin/2 + xMax/2 );
+    }
+    
+    Matrix<Double> getTschebyscheffPointsAndWeights(UInt numPoints){
+      Matrix<Double> pointsAndWeights = Matrix<Double>(numPoints,2);
+      
+      for(UInt i = 0; i < numPoints; i++){
+        pointsAndWeights[i][0] = cos( (2.0*i + 1.0)/(2.0*(numPoints))*M_PI);
+          // include weighting term sqrt(1-x_i^2) into stepping weight (pi/n)
+        pointsAndWeights[i][1] = M_PI/(numPoints)*sin( (2.0*i + 1.0)/(2.0*(numPoints))*M_PI);
+      }
+      return pointsAndWeights;
+    }
+    
+    Matrix<Double> evaluatePreisachWeights(){
+      Double alpha,beta;
+      Double delta = 2.0/MAT_numRows_;
+      Double dimHalf = MAT_numRows_/2.0;
+      
+      if(weightType_ == "givenTensor"){
+        return weightTensor_;
+      }
+      
+      Matrix<Double> weights = Matrix<Double>(MAT_numRows_,MAT_numRows_);
+      
+      for(UInt i = 0; i < MAT_numRows_; i++){
+        // note: we evaluated the weights always at the element center > add deltaS/2
+        alpha = (i - dimHalf)*delta + delta/2;
+        
+        for(UInt k = 0; k <= i; k++){
+          beta = (k - dimHalf)*delta + delta/2;
+          
+          // note: getWeight checks for weightType_; depending on that value
+          // we evaluate muDat, muDatExt, return a const or access the already given weights (in which case
+          // there is no need to call this function)
+          weights[i][k] = getWeight(alpha,beta,delta);
+        }
+      }
+      return weights;
+    }
+    
+    
+    Matrix<Double> transformPreisachWeightsForIsotropicVectorCase(){
+      // Transform Preisach weights from scalar case to vector case (isotropic, Mayergoyz model)
+      // Source: "Analysis of Isotropic Materials with Vector Hysteresis" - O. Bottauscio 1998
+      //
+      // p_vect(alpha,lambda*alpha) = \int_0^alpha (3*s*s*p_scalar(alpha,beta) + s*s*s*dp_scalar(alpha,beta)/ds  )/pi*alpha*alpha*sqrt(alpha*alpha - s*s) ds
+      // p_vect(0,0) = 3/4*p_scal(0,0)
+      //
+      // some notes: - ONLY FOR 2D
+      //             - p_vect = weights for scalar model inside the Mayergoyz vector model
+      //             - p_scal = weights for scalar model 
+      //             - lambda = beta/alpha
+      //             - if p_scal(0,0) = const > integral converges towards 3/4 (found out from numerical integration)
+      //             - due to denominator of pi*alpha*alpha*sqrt(alpha*alpha - s*s), perform numerical integration with
+      //                Gauss-Tschebyscheff (denominator cancels out with Tschebyscheff weights; much better accuracy as with std Gauss, tested!)
+      //             - formula generally valid for alpha in [alpaMin,alphaMax], beta in [-alpha,alpha]
+      //                > but: for alpha = 0; lambda = beta/alpha will not work
+      //                > setup Preisach plane in two parts:
+      //                      a) upper part: alpha in [0,alphaMax], beta in [-alpha,alpha]
+      //                      b) lower part: beta in [betaMin,0], alpha in [-beta,beta]
+      if(dim_ != 2){
+        EXCEPTION("Currently only 2D case of Preisach Weight transformation supported");
+        // 3d case starts from different formula > see "Mathematical Models of Hysteresis and their Application" - Mayergoyz 2003
+      }
+      Matrix<Double> vectorWeights = Matrix<Double>(MAT_numRows_,MAT_numRows_);
+      
+      Double dimHalf = MAT_numRows_/2.0;
+      UInt dimHalfInt = UInt(dimHalf);
+      Double alpha,beta,s,lambda;
+      Double delta = 2.0/MAT_numRows_;
+      
+      UInt numIntegrationPoints = 15;
+      Matrix<Double> integrationPoints = getTschebyscheffPointsAndWeights(numIntegrationPoints);
+
+      // upper part
+      for(UInt i = dimHalfInt; i < MAT_numRows_; i++){
+        // note: we evaluated the weights always at the element center > add deltaS/2
+        alpha = (i - dimHalf)*delta + 1e-6*delta; 
+        for(UInt k = MAT_numRows_-1-i; k <= i; k++){
+          beta = (k - dimHalf)*delta + 1e-6*delta;// + delta/2;
+          
+          if(alpha == 0){
+            vectorWeights[i][k] = 0.75*getWeight(alpha, beta, delta);
+          } else {
+            lambda = beta/alpha;
+            vectorWeights[i][k] = 0.0;
+            // numerically integrate from 0 to alpha
+            for(UInt pp = 0; pp < numIntegrationPoints; pp++){
+              Double curY = integrationPoints[pp][0];
+              Double curW = integrationPoints[pp][1];
+              
+              s = x_of_y(curY,0,alpha);
+              Double tmp = 3*s*s*getWeight(s,lambda*s,delta);
+              
+              bool flipped = false; // > s takes slot of alpha, lambda*s takes place of beta
+              Double tmp2 = s*s*s*getWeightDerivative(s,lambda*s,delta, flipped);
+              Double tmp3 = (tmp + tmp2)/(M_PI * alpha * alpha * std::sqrt(alpha*alpha - s*s));
+
+              vectorWeights[i][k] += dx_by_dy(std::min(0.0,alpha), std::max(0.0,alpha))*curW*tmp3;
+              //vectorWeights[i][k] += dx_by_dy(0.0,alpha)*curW*tmp3;
+            }
+          }
+        } 
+      }
+      
+//      std::cout << "weights so far: " << std::endl;
+//      std::cout << vectorWeights.ToString() << std::endl;
+//      
+      // lower part
+//      std::cout << "dimHalfInt = " << dimHalfInt << std::endl;
+      for(UInt k = 0; k < dimHalfInt; k++){
+//        std::cout << "k = " << k << std::endl;
+        // note: we evaluated the weights always at the element center > add deltaS/2
+        beta = (k - dimHalf)*delta + 1e-6*delta;// + delta/2;
+        
+        for(UInt i = k; i < MAT_numRows_-k-1; i++){
+//          std::cout << "MAT_numRows_-k-1 = " << MAT_numRows_-k-1 << std::endl;
+//          std::cout << "i = " << i << std::endl;
+          alpha = (i - dimHalf)*delta + 1e-6*delta;// + delta/2;
+          
+          if(beta == 0){
+            vectorWeights[i][k] = 0.75*getWeight(alpha, beta, delta);
+          } else {
+            // flipped case
+            lambda = alpha/beta;
+            vectorWeights[i][k] = 0.0;
+            // numerically integrate from 0 to beta > however, beta < 0 so we have to reverse the sign
+            // > done vis dx_by_dy
+            for(UInt pp = 0; pp < numIntegrationPoints; pp++){
+              Double curY = integrationPoints[pp][0];
+              Double curW = integrationPoints[pp][1];
+              
+              s = x_of_y(curY,0,beta);
+              Double tmp = 3*s*s*getWeight(lambda*s,s,delta);
+              
+              bool flipped = true; // > s takes slot of alpha, lambda*s takes place of beta
+              Double tmp2 = s*s*s*getWeightDerivative(lambda*s,s,delta, flipped);
+              
+              Double tmp3 = (tmp + tmp2)/(M_PI * beta * beta * std::sqrt(beta*beta - s*s));
+              vectorWeights[i][k] += dx_by_dy(std::min(0.0,beta), std::max(0.0,beta))*curW*tmp3;
+              //vectorWeights[i][k] += dx_by_dy(0.0,beta)*curW*tmp3;
+            }
+          }
+        } 
+      }
+      
+//      std::cout << "weights final: " << std::endl;
+//      std::cout << vectorWeights.ToString() << std::endl;
+      
+      bool checkWeights = !true;
+      if(checkWeights){
+        // according to "Analysis of Isotropic Materials with Vector Hysteresis" - O. Bottauscio 1998
+        // int_-pi/2^pi/2 cos(phi)^3 vectorWeights(alpha*cos(phi),beta*cos(phi) dphi != scalarWeight(alpha,beta)
+        // this can be checked
+        UInt numAngles = 101;
+        Double deltaPhi = M_PI/numAngles;
+        Double phi;
+        Double alpha,beta,c;
+        UInt numTests = 100;
+        for(UInt k = 0; k < numTests; k++){
+          alpha = 0 + k*0.01;
+          if(k > numTests/2){
+            beta = 0 - k*0.01; // some random values
+          } else {
+            beta = 0 + k*0.01; // some random values
+          }
+          
+          Double integral = 0.0;
+          Double target = getWeight(alpha, beta, delta);
+          for(UInt i = 0; i < numAngles; i++){
+            phi = -M_PI/2+i*deltaPhi;
+            c = std::cos(phi);
+            UInt idxAlpha = UInt(std::round((alpha*c+1.0)/delta));
+            UInt idxBeta = UInt(std::round((beta*c+1.0)/delta));
+            integral += c*c*c*vectorWeights[idxAlpha][idxBeta];
+          }
+          //Double deltaAngle = M_PI/numDirections_;
+          // Note: here we do not average out over the halfspace so not multiplication by 2/M_PI
+          integral *= M_PI/numAngles;
+
+          std::cout << "Alpha = " << alpha << std::endl;
+          std::cout << "Beta = " << beta << std::endl;
+          std::cout << "Scalar weight: " << target << std::endl;
+          std::cout << "int_-pi/2^pi/2 cos(phi)^3 vectorWeights(alpha*cos(phi),beta*cos(phi) dphi: " << integral << std::endl;
+          }
+        
+        EXCEPTION("End after check");
+      }
+
+      return vectorWeights;
+    }
+
     //! Destructor
     virtual ~CoefFunctionHyst();
     
@@ -1148,7 +1499,8 @@ namespace CoupledField {
     void SetFlag(std::string flagName, Integer intState);
     
     void SetCurrentHystVals(bool overwriteMemory);
-    void SetPreviousHystVals(bool setLastTS, bool forceMemoryLock = false);
+    void SetPreviousHystVals(bool setLastTS);
+    void SetPreviousHystValsOLD(bool setLastTS, bool forceMemoryLock = false);
     
     void GetScalar(Double& outputScalar, const LocPointMapped& lpm );
     
@@ -2257,6 +2609,8 @@ namespace CoupledField {
     Double INV_jacobiResolution_;
     bool INV_useTikhonov_;
     Double INV_alphaLSStart_;
+    Double INV_alphaLSMin_;
+    Double INV_alphaLSMax_;
     
     // when setting the system into remanence for the case of magnetics
     // we do this by forcing the input to the hystoperator to become 0;

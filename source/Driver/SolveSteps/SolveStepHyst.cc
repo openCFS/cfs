@@ -1437,21 +1437,28 @@ namespace CoupledField {
       //      otherwise delta in the denominator gets very small
 
       
-      /*
-       * for setup of RHS and deltaMat towards IT, the value stored in coefFctHyst
-       * will be used; if we want to have a delta over multiple iterations, we just 
-       * have to skip the setting of the previous hyst values; by this, the old it
-       * values will not be overwritten
-       */
-      if((iterationCounterLog-1)%numIterationsTillUpdateOfLastITValues == 0){
-        //if(gatheredSolInc.NormL2() > 1e-5){
-          LOG_TRACE(solvehyst) << "Set previous hyst values";
-          PDE_.SetPreviousHystVals(lastTS);
-//          gatheredSolInc.Init();
-//        } else {
-//          LOG_TRACE(solvehyst) << "Do not set previous hyst values as gathered solInc is yet too small";
-//        }
-      }
+      
+//      OLD VERSION: SetPreviousHystValues evaluated hyst operators and stored results
+//      accrodingly; this meant, that this step had to be done after assembly where the
+//      old values were still required and before the new solution was found
+//              > NEW VERSION: take the preevaluated values and copy them to the corresponding
+//              arrays; this has to be done before evaluating the final result for the iteration
+//      
+//      /*
+//       * for setup of RHS and deltaMat towards IT, the value stored in coefFctHyst
+//       * will be used; if we want to have a delta over multiple iterations, we just 
+//       * have to skip the setting of the previous hyst values; by this, the old it
+//       * values will not be overwritten
+//       */
+//      if((iterationCounterLog-1)%numIterationsTillUpdateOfLastITValues == 0){
+//        //if(gatheredSolInc.NormL2() > 1e-5){
+//          LOG_TRACE(solvehyst) << "Set previous hyst values";
+//          PDE_.SetPreviousHystVals(lastTS);
+////          gatheredSolInc.Init();
+////        } else {
+////          LOG_TRACE(solvehyst) << "Do not set previous hyst values as gathered solInc is yet too small";
+////        }
+//      }
      // } 
       
       /*
@@ -1560,6 +1567,15 @@ namespace CoupledField {
 			// unlock hyst operator (if locked)
 			PDE_.SetFlagInCoefFncHyst("lockHystOperator",0);
 			
+      // before we evaluate the hyst operator with the actual solution, 
+      // store its old value for next iteration
+      // > do this BEFORE linesearch as operators get evaluated during LS, too
+      if(lastTS){
+        PDE_.SetFlagInCoefFncHyst("SetPreviousHystValues",1);
+      } else {
+        PDE_.SetFlagInCoefFncHyst("SetPreviousHystValues",0);
+      }
+      
       //LOG_DBG(solvehyst) << "SetupRES/Perform LS";
       if( setIDBC || ( lineSearch_ == "none" ) ){
         /*
@@ -1706,9 +1722,16 @@ namespace CoupledField {
           PDE_.SetFlagInCoefFncHyst("allowSettingOfMatForLocalInversion",true);
           PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",2);
           
-          bool forceMemoryLock = true;
+          
           lastTS = steppingTowardsLastTS;
-          PDE_.SetPreviousHystVals(lastTS,forceMemoryLock);
+          
+          if(lastTS){
+            PDE_.SetFlagInCoefFncHyst("SetPreviousHystValues",1);
+          } else {
+            PDE_.SetFlagInCoefFncHyst("SetPreviousHystValues",0);
+          }
+          //bool forceMemoryLock = true;
+          //PDE_.SetPreviousHystVals(lastTS,forceMemoryLock);
           
           //PDE_.EstimateCurrentSlopeForHysteresis(steppingLength, scaling);
           //LOG_DBG(solvehyst) << "Iteration " << iterationCounter << " of timestep " << timestepCnt;
@@ -1848,7 +1871,14 @@ namespace CoupledField {
     //        the final state of solVec_; for this evaluation, the memory of
     //        the hysteresis operator will be unlocked, i.e. the evaluation will
     //        lead to irreversible changes
-    PDE_.SetPreviousHystVals(lastTS);
+    //PDE_.SetPreviousHystVals(lastTS);
+    // do this storing AFTER the final value was computed
+    if(lastTS){
+      PDE_.SetFlagInCoefFncHyst("SetPreviousHystValues",1);
+    } else {
+      PDE_.SetFlagInCoefFncHyst("SetPreviousHystValues",0);
+    }
+    
     
     /*
      * Store IDBC values from the current time step in form of its rhs representation

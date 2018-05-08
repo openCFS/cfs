@@ -19,8 +19,8 @@ namespace CoupledField
    */
   VectorPreisachv10::VectorPreisachv10(Integer numElem, Double xSat, Double ySat,
           Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-          bool classical, Double angularDistance, Double angResolution)
-  : Hysteresis(numElem)
+          bool classical, Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
+  : Hysteresis(numElem,xSat,ySat,anhystA,anhystB,anhystC,anhystOnly)
   {
     
     /*
@@ -48,7 +48,7 @@ namespace CoupledField
     
     preisachWeights_ = preisachWeight;
     
-    tol_ = 1e-15;
+    tol_ = 1e-16;
     // restriction to halfspace not working well; better without
 		restrictToHalfspace_ = !true;
     
@@ -73,6 +73,10 @@ namespace CoupledField
 		angResolution_ = angResolution;
 		
     classical_ = classical;
+    
+    anhyst_A_ = anhystA;
+    anhyst_B_ = anhystB;
+    anhyst_C_ = anhystC;
     
     if(classical_){
       LOG_TRACE(vecpreisach) << "VectorPreisach: Using classical vector model (Sutor2012)";
@@ -133,158 +137,158 @@ namespace CoupledField
     delete[] prevXVal_;
     delete[] prevHVal_;
   }
-  
-  void VectorPreisachv10::ClipDirection(Vector<Double>& targetVector){
-    
-    if(INV_angClipping_ <= 0.0){
-      return; // no clipping
-    }
-    
-    /*
-     * (Former name: clipNewRotationDirection, taken from VecPreisach)
-     * New purpose March/April 2018
-     * The general clipping idea might be ok, but it does not help to clip the rotation states
-     * directly
-     *  > reason: due to the weighting via the switching state, we still get a continuous
-     *            resolution, even if the single rotations states were clipped
-     *  > new purpose: instead of clipping the single rotation states, we clip the final output
-     *            of the hyst operator!
-     *  > further improvings/changes:
-     *      1. 3d case implemented
-     *      2. angularClipping is treated as resolution in DEGREE (not rad!)
-     * 
-		 * Addon: shifted to CoefFunctionHyst; both input and output of hyst operator
-		 *				can be clipped
-     * 
-     * New function April 2017
-     * Idea: Restrict the range of possible rotation directions to fixed angular steps
-     * (i.e. x rad)
-     * Reason: Due to numerical pollutions, we might encounter rotation directions like
-     * (1.00000000,-1e-9) or (0.99999999,1e-10). These deviations from the input direction
-     * (1.0,0) seem negligble but will lead to actual problems when evaluting deltaMatrices
-     * of the form deltaP/deltaE (as deltaE normally is similarly small). Due to this, the
-     * resulting deltaMatrices may have huge permittivities/permeabilites in direction where
-     * normally no value should be. This leads to serious convergence issues.
-     *
-     */
-        
-    /*
-     * The following two clipping steps will be applied: 
-     * 1. transform to circular/spherical coordinates; restrict angles (in deg) to angularClipping
-     * 2. check for special angles (90,180) degree and restrict vector further
-     *      (as e.g. sin(pi) != 0 due to numerics)
-     */
-//    LOG_TRACE(coeffcthyst) << "Clip direction of target vector to next full " << MAT_angClipping_ << " degree";
-//    LOG_DBG(coeffcthyst) << "Original vector: " << targetVector.ToString();
-    if(dim_ == 2){
-      /*
-       * use polar/circular coordinates
-       * x = r cos(alpha)
-       * y = r sin(alpha)
-       */
-      Double radius, tmp, alphaDeg;
-      radius = targetVector.NormL2();
-      
-      if(targetVector[0] == 0){
-        if(targetVector[1] > 0){
-          alphaDeg = 90.0; 
-        } else {
-          alphaDeg = -90.0;
-        }
-      } else if(targetVector[0] > 0){
-        tmp = atan2(targetVector[1],targetVector[0]);
-        alphaDeg = tmp*180/M_PI;
-      } else {
-        tmp = -asin(targetVector[1]/radius);
-        alphaDeg = tmp*180/M_PI + 180.0;
-      }
-//      LOG_DBG(coeffcthyst) << "Circular/Polar coordinates (r,alpha): " << radius << "," << alphaDeg;
-      
-      // apply clipping
-      tmp = alphaDeg/INV_angClipping_;
-      tmp = round(tmp);
-      alphaDeg = tmp*INV_angClipping_;
-      
-//      LOG_DBG(coeffcthyst) << "Circular/Polar coordinates after clipping (r,alpha): " << radius << "," << alphaDeg;
-      
-      // now rebuild output vector with clipped coordinates
-      targetVector[0] = radius*cos(alphaDeg/180*M_PI);
-      targetVector[1] = radius*sin(alphaDeg/180*M_PI);
-      
-//      LOG_DBG(coeffcthyst) << "Rebuild vector after clipping: " << targetVector.ToString();
-      
-      // finally check for special cases i.e. 90/180 deg (which can not perfectly be reproduced by computing cos()/sin()
-      if( abs(alphaDeg - 90) < INV_angClipping_/1000.0 ){
-        // alpha = 90 > positive y axis
-        targetVector[0] = 0.0;
-        targetVector[1] = radius;
-      } else if( abs(alphaDeg + 90) < INV_angClipping_/1000.0 ){
-        // alpha = -90 > negative y axis
-        targetVector[0] = 0.0;
-        targetVector[1] = -radius;
-      } else if( (abs(alphaDeg - 180) < INV_angClipping_/1000.0) || (abs(alphaDeg + 180) < INV_angClipping_/1000.0) ){
-        // alpha = +/- 180 deg > negative x axis
-        targetVector[0] = -radius;
-        targetVector[1] = 0.0;
-      }
-      
-//      LOG_DBG(coeffcthyst) << "Rebuild vector after further treatment: " << targetVector.ToString();
-    } else {
-      /*
-       * use spherical coordinates
-       * x = r sin(theta) cos(phi)
-       * y = r sin(theta) sin(phi)
-       * z = r cos(theta)
-       */
-      Double radius, tmp, phiDeg, thetaDeg;
-      radius = targetVector.NormL2();
-      
-      tmp = acos(targetVector[2]/radius);
-      thetaDeg = tmp*180/M_PI;
-      tmp = atan2(targetVector[1],targetVector[0]);
-      phiDeg = tmp*180/M_PI;
-      
-//      LOG_DBG(coeffcthyst) << "Spherical coordinates (r,theta,phi): " << radius << "," << thetaDeg << "," << phiDeg;
-      
-      // apply clipping
-      tmp = thetaDeg/INV_angClipping_;
-      tmp = round(tmp);
-      thetaDeg = tmp*INV_angClipping_;
-      
-      tmp = phiDeg/INV_angClipping_;
-      tmp = round(tmp);
-      phiDeg = tmp*INV_angClipping_;
-      
-//      LOG_DBG(coeffcthyst) << "Spherical coordinates after clipping (r,theta,phi): " << radius << "," << thetaDeg << "," << phiDeg;
-      
-      targetVector[0] = radius*sin(thetaDeg/180*M_PI)*cos(phiDeg/180*M_PI);
-      targetVector[1] = radius*sin(thetaDeg/180*M_PI)*sin(phiDeg/180*M_PI);
-      targetVector[2] = radius*cos(thetaDeg/180*M_PI);
-      
-//      LOG_DBG(coeffcthyst) << "Rebuild vector after clipping: " << targetVector.ToString();
-      
-      // finally check for special cases i.e. 90/180 deg (which can not perfectly be reproduced by computing cos()/sin()
-      if( (abs(thetaDeg - 90) < INV_angClipping_/1000.0 ) || (abs(thetaDeg + 90) < INV_angClipping_/1000.0 ) ){
-        // theta = +/- 90 > z = 0
-        targetVector[2] = 0.0;
-      } else if( (abs(thetaDeg - 180) < INV_angClipping_/1000.0) || (abs(thetaDeg + 180) < INV_angClipping_/1000.0) ){
-        // theta = +/- 180 deg > negative z-axis
-        targetVector[0] = 0.0;
-        targetVector[1] = 0.0;
-        targetVector[2] = -radius;
-      }
-      if( (abs(phiDeg - 90) < INV_angClipping_/1000.0 ) || (abs(phiDeg + 90) < INV_angClipping_/1000.0 ) ){
-        // phi = +/- 90 > x = 0
-        targetVector[0] = 0.0;
-      } else if( (abs(phiDeg - 180) < INV_angClipping_/1000.0) || (abs(phiDeg + 180) < INV_angClipping_/1000.0) ){
-        // phi = +/- 180 deg > y = 0
-        targetVector[1] = 0.0;
-      }
-
-//      LOG_DBG(coeffcthyst) << "Rebuild vector after further treatment: " << targetVector.ToString();
-      
-    }
-  }
+//  
+//  void VectorPreisachv10::ClipDirection(Vector<Double>& targetVector){
+//    
+//    if(INV_angClipping_ <= 0.0){
+//      return; // no clipping
+//    }
+//    
+//    /*
+//     * (Former name: clipNewRotationDirection, taken from VecPreisach)
+//     * New purpose March/April 2018
+//     * The general clipping idea might be ok, but it does not help to clip the rotation states
+//     * directly
+//     *  > reason: due to the weighting via the switching state, we still get a continuous
+//     *            resolution, even if the single rotations states were clipped
+//     *  > new purpose: instead of clipping the single rotation states, we clip the final output
+//     *            of the hyst operator!
+//     *  > further improvings/changes:
+//     *      1. 3d case implemented
+//     *      2. angularClipping is treated as resolution in DEGREE (not rad!)
+//     * 
+//		 * Addon: shifted to CoefFunctionHyst; both input and output of hyst operator
+//		 *				can be clipped
+//     * 
+//     * New function April 2017
+//     * Idea: Restrict the range of possible rotation directions to fixed angular steps
+//     * (i.e. x rad)
+//     * Reason: Due to numerical pollutions, we might encounter rotation directions like
+//     * (1.00000000,-1e-9) or (0.99999999,1e-10). These deviations from the input direction
+//     * (1.0,0) seem negligble but will lead to actual problems when evaluting deltaMatrices
+//     * of the form deltaP/deltaE (as deltaE normally is similarly small). Due to this, the
+//     * resulting deltaMatrices may have huge permittivities/permeabilites in direction where
+//     * normally no value should be. This leads to serious convergence issues.
+//     *
+//     */
+//        
+//    /*
+//     * The following two clipping steps will be applied: 
+//     * 1. transform to circular/spherical coordinates; restrict angles (in deg) to angularClipping
+//     * 2. check for special angles (90,180) degree and restrict vector further
+//     *      (as e.g. sin(pi) != 0 due to numerics)
+//     */
+////    LOG_TRACE(coeffcthyst) << "Clip direction of target vector to next full " << MAT_angClipping_ << " degree";
+////    LOG_DBG(coeffcthyst) << "Original vector: " << targetVector.ToString();
+//    if(dim_ == 2){
+//      /*
+//       * use polar/circular coordinates
+//       * x = r cos(alpha)
+//       * y = r sin(alpha)
+//       */
+//      Double radius, tmp, alphaDeg;
+//      radius = targetVector.NormL2();
+//      
+//      if(targetVector[0] == 0){
+//        if(targetVector[1] > 0){
+//          alphaDeg = 90.0; 
+//        } else {
+//          alphaDeg = -90.0;
+//        }
+//      } else if(targetVector[0] > 0){
+//        tmp = atan2(targetVector[1],targetVector[0]);
+//        alphaDeg = tmp*180/M_PI;
+//      } else {
+//        tmp = -asin(targetVector[1]/radius);
+//        alphaDeg = tmp*180/M_PI + 180.0;
+//      }
+////      LOG_DBG(coeffcthyst) << "Circular/Polar coordinates (r,alpha): " << radius << "," << alphaDeg;
+//      
+//      // apply clipping
+//      tmp = alphaDeg/INV_angClipping_;
+//      tmp = round(tmp);
+//      alphaDeg = tmp*INV_angClipping_;
+//      
+////      LOG_DBG(coeffcthyst) << "Circular/Polar coordinates after clipping (r,alpha): " << radius << "," << alphaDeg;
+//      
+//      // now rebuild output vector with clipped coordinates
+//      targetVector[0] = radius*cos(alphaDeg/180*M_PI);
+//      targetVector[1] = radius*sin(alphaDeg/180*M_PI);
+//      
+////      LOG_DBG(coeffcthyst) << "Rebuild vector after clipping: " << targetVector.ToString();
+//      
+//      // finally check for special cases i.e. 90/180 deg (which can not perfectly be reproduced by computing cos()/sin()
+//      if( abs(alphaDeg - 90) < INV_angClipping_/1000.0 ){
+//        // alpha = 90 > positive y axis
+//        targetVector[0] = 0.0;
+//        targetVector[1] = radius;
+//      } else if( abs(alphaDeg + 90) < INV_angClipping_/1000.0 ){
+//        // alpha = -90 > negative y axis
+//        targetVector[0] = 0.0;
+//        targetVector[1] = -radius;
+//      } else if( (abs(alphaDeg - 180) < INV_angClipping_/1000.0) || (abs(alphaDeg + 180) < INV_angClipping_/1000.0) ){
+//        // alpha = +/- 180 deg > negative x axis
+//        targetVector[0] = -radius;
+//        targetVector[1] = 0.0;
+//      }
+//      
+////      LOG_DBG(coeffcthyst) << "Rebuild vector after further treatment: " << targetVector.ToString();
+//    } else {
+//      /*
+//       * use spherical coordinates
+//       * x = r sin(theta) cos(phi)
+//       * y = r sin(theta) sin(phi)
+//       * z = r cos(theta)
+//       */
+//      Double radius, tmp, phiDeg, thetaDeg;
+//      radius = targetVector.NormL2();
+//      
+//      tmp = acos(targetVector[2]/radius);
+//      thetaDeg = tmp*180/M_PI;
+//      tmp = atan2(targetVector[1],targetVector[0]);
+//      phiDeg = tmp*180/M_PI;
+//      
+////      LOG_DBG(coeffcthyst) << "Spherical coordinates (r,theta,phi): " << radius << "," << thetaDeg << "," << phiDeg;
+//      
+//      // apply clipping
+//      tmp = thetaDeg/INV_angClipping_;
+//      tmp = round(tmp);
+//      thetaDeg = tmp*INV_angClipping_;
+//      
+//      tmp = phiDeg/INV_angClipping_;
+//      tmp = round(tmp);
+//      phiDeg = tmp*INV_angClipping_;
+//      
+////      LOG_DBG(coeffcthyst) << "Spherical coordinates after clipping (r,theta,phi): " << radius << "," << thetaDeg << "," << phiDeg;
+//      
+//      targetVector[0] = radius*sin(thetaDeg/180*M_PI)*cos(phiDeg/180*M_PI);
+//      targetVector[1] = radius*sin(thetaDeg/180*M_PI)*sin(phiDeg/180*M_PI);
+//      targetVector[2] = radius*cos(thetaDeg/180*M_PI);
+//      
+////      LOG_DBG(coeffcthyst) << "Rebuild vector after clipping: " << targetVector.ToString();
+//      
+//      // finally check for special cases i.e. 90/180 deg (which can not perfectly be reproduced by computing cos()/sin()
+//      if( (abs(thetaDeg - 90) < INV_angClipping_/1000.0 ) || (abs(thetaDeg + 90) < INV_angClipping_/1000.0 ) ){
+//        // theta = +/- 90 > z = 0
+//        targetVector[2] = 0.0;
+//      } else if( (abs(thetaDeg - 180) < INV_angClipping_/1000.0) || (abs(thetaDeg + 180) < INV_angClipping_/1000.0) ){
+//        // theta = +/- 180 deg > negative z-axis
+//        targetVector[0] = 0.0;
+//        targetVector[1] = 0.0;
+//        targetVector[2] = -radius;
+//      }
+//      if( (abs(phiDeg - 90) < INV_angClipping_/1000.0 ) || (abs(phiDeg + 90) < INV_angClipping_/1000.0 ) ){
+//        // phi = +/- 90 > x = 0
+//        targetVector[0] = 0.0;
+//      } else if( (abs(phiDeg - 180) < INV_angClipping_/1000.0) || (abs(phiDeg + 180) < INV_angClipping_/1000.0) ){
+//        // phi = +/- 180 deg > y = 0
+//        targetVector[1] = 0.0;
+//      }
+//
+////      LOG_DBG(coeffcthyst) << "Rebuild vector after further treatment: " << targetVector.ToString();
+//      
+//    }
+//  }
   
 	Vector<Double> VectorPreisachv10::restrictToHalfspace(Vector<Double>& e_u_new){
 		/*
@@ -579,6 +583,7 @@ namespace CoupledField
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
 					bool overwriteMemory, bool overwriteDirection) {
     
+    LOG_TRACE(vecpreisachInversion) << " --------- computeJacobianOfAbsResidualX --------- ";
     LOG_DBG(vecpreisach) << "VecPreisach::computeJacobianOfAbsResidualX";
     if(xVal.NormL2() >= XSaturated_){
       EXCEPTION("xVal.NormL2() >= XSaturated_");
@@ -619,6 +624,12 @@ namespace CoupledField
         }
         
         xShifted[i] += deltaX;
+        
+        Vector<Double> dXvec = xShifted;
+        dXvec.Add(-1.0,xVal);
+        LOG_TRACE(vecpreisachInversion) << " xVal " << xVal.ToString();
+        LOG_TRACE(vecpreisachInversion) << " xShifted " << xShifted.ToString(); 
+        LOG_TRACE(vecpreisachInversion) << " dXvec " << dXvec.ToString(); 
         hystShifted = computeValue_vec(xShifted, operatorIdx, overwriteMemory, overwriteDirection);
         /*
          * Compute Jacobian for residual wrt x
@@ -627,6 +638,21 @@ namespace CoupledField
          */   
         deltaHyst = hystShifted;
         deltaHyst.Add(-1.0,hystVal);
+        
+        LOG_TRACE(vecpreisachInversion) << " hystVal " << hystVal.ToString();
+        LOG_TRACE(vecpreisachInversion) << " hystShifted " << hystShifted.ToString();
+        LOG_TRACE(vecpreisachInversion) << " deltaHyst " << deltaHyst.ToString();
+//        Vector<Double> hystValRecomputed = computeValue_vec(xVal, operatorIdx, overwriteMemory, overwriteDirection);
+//        LOG_TRACE(vecpreisachInversion) << " hystValRecomputed " << hystValRecomputed.ToString();
+        
+//        Vector<Double> xOppShift = xShifted;
+//        xOppShift[i] -= 2*deltaX;
+//        dXvec = xOppShift;
+//        dXvec.Add(-1.0,xVal);
+//        LOG_TRACE(vecpreisachInversion) << " xOppShift " << xOppShift.ToString(); 
+//        LOG_TRACE(vecpreisachInversion) << " dXvec " << dXvec.ToString(); 
+//        Vector<Double> hystOppShifted = computeValue_vec(xOppShift, operatorIdx, overwriteMemory, overwriteDirection);
+//        LOG_TRACE(vecpreisachInversion) << " hystOppShifted " << hystOppShifted.ToString();
         
         Vector<Double> curCol = Vector<Double>(dim_);
         mu_inv.Mult(deltaHyst,curCol);
@@ -644,6 +670,84 @@ namespace CoupledField
           //          }
         }
       }
+      
+      LOG_TRACE(vecpreisachInversion) << " Jacobian " << jac.ToString();
+      Matrix<Double> jacT = Matrix<Double>(dim_,dim_);
+      jac.Transpose(jacT);
+      Matrix<Double> jacTjac = Matrix<Double>(dim_,dim_);
+      jacT.Mult(jac,jacTjac);
+      LOG_TRACE(vecpreisachInversion) << " jacTjac " << jacTjac.ToString();
+      
+      Double det;
+      jacTjac.Determinant(det);
+      LOG_TRACE(vecpreisachInversion) << " det(jacTjac) " << det;
+//      if(abs(det) < 1e-14){
+//        // repeat with debug output
+//        for(UInt i = 0; i < dim_; i++){
+//          xShifted = xVal;
+//          
+//          //        if( xVal[i] < 0 ){
+//          //          deltaX = sign*std::min( -scal*XSaturated_, -deltaXmin );
+//          //        } else {
+//          //          deltaX = sign*std::max( scal*XSaturated_, deltaXmin );
+//          //        }
+//          if( xVal[i] < 0 ){
+//            deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
+//          } else {
+//            deltaX = sign*std::max( scal*xVal[i], deltaXmin );
+//          }
+//          
+//          xShifted[i] += deltaX;
+//          
+//          Vector<Double> dXvec = xShifted;
+//          dXvec.Add(-1.0,xVal);
+//          LOG_TRACE(vecpreisachInversion) << " xVal " << xVal.ToString();
+//          LOG_TRACE(vecpreisachInversion) << " xShifted " << xShifted.ToString(); 
+//          LOG_TRACE(vecpreisachInversion) << " dXvec " << dXvec.ToString(); 
+//          hystShifted = computeValue_vec(xShifted, operatorIdx, overwriteMemory, overwriteDirection,true);
+//          /*
+//           * Compute Jacobian for residual wrt x
+//           * 
+//           * jac_ji = + delta_ji + mu_inv[j][:]*dhystVal/dxVal_i
+//           */   
+//          deltaHyst = hystShifted;
+//          deltaHyst.Add(-1.0,hystVal);
+//          
+//          LOG_TRACE(vecpreisachInversion) << " hystVal " << hystVal.ToString();
+//          LOG_TRACE(vecpreisachInversion) << " hystShifted " << hystShifted.ToString();
+//          LOG_TRACE(vecpreisachInversion) << " deltaHyst " << deltaHyst.ToString();
+//          Vector<Double> hystValRecomputed = computeValue_vec(xVal, operatorIdx, overwriteMemory, overwriteDirection,true);
+//          LOG_TRACE(vecpreisachInversion) << " hystValRecomputed " << hystValRecomputed.ToString();
+//          
+//          Vector<Double> xOppShift = xShifted;
+//          xOppShift[i] -= 2*deltaX;
+//          dXvec = xOppShift;
+//          dXvec.Add(-1.0,xVal);
+//          LOG_TRACE(vecpreisachInversion) << " xOppShift " << xOppShift.ToString(); 
+//          LOG_TRACE(vecpreisachInversion) << " dXvec " << dXvec.ToString(); 
+//          Vector<Double> hystOppShifted = computeValue_vec(xOppShift, operatorIdx, overwriteMemory, overwriteDirection,true);
+//          LOG_TRACE(vecpreisachInversion) << " hystOppShifted " << hystOppShifted.ToString();
+//          
+//          Vector<Double> curCol = Vector<Double>(dim_);
+//          mu_inv.Mult(deltaHyst,curCol);
+//          curCol.ScalarDiv(deltaX);
+//          
+//          jac[i][i] = 1.0;
+//          for(UInt j = 0; j < dim_; j++){
+//            jac[j][i] += curCol[j];
+//            
+//            //          //jac[j][i] += (hystShifted[j]-hyst[j])/deltaX/mu; 
+//            //          // assume matrix mu to be diagonal
+//            //          // > here we had an error by taking mu[i][i] instead of mu[j][j]
+//            //          if(mu[j][j]!=0){
+//            //            jac[j][i] += (hystShifted[j]-hystVal[j])/(xShifted[i]-xShifted_opp[i])/mu[j][j]; 
+//            //          }
+//          }
+//        }
+//        
+//      }
+      
+      
     } else if(implementation == 1){
       LOG_DBG(vecpreisach) << "Use central differences for approximation of Jacobian";
       /*
@@ -1119,6 +1223,7 @@ namespace CoupledField
 		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
 		Double& alpha, Double alphaMin, Double alphaMax, bool wrtX, bool relative, UInt& numberOfIterations,Vector<Double>& xStart){
     
+    LOG_TRACE(vecpreisachInversion) << " --------- START LINESEARCH --------- ";
     if(xVal.NormL2() >= XSaturated_){
       EXCEPTION("xInput to Linesearch already above saturation > must not be the case!");
     }
@@ -1156,13 +1261,36 @@ namespace CoupledField
       itCnt++;
 			// for statistics
 			numberOfIterations=itCnt;
-      
-      matToInvert = jacTjac;
-      for(UInt i = 0; i < dim_; i++){
-        matToInvert[i][i] += alpha*alpha;
+
+      Double detMatToInvert;
+      UInt cnt = 0;
+      while(true){
+        matToInvert = jacTjac;
+        LOG_TRACE(vecpreisachInversion) << " jacTjac =  " << jacTjac.ToString();
+        jacTjac.Determinant(detMatToInvert);
+        LOG_TRACE(vecpreisachInversion) << " det(jacTjac) =  " << detMatToInvert;
+        
+        for(UInt i = 0; i < dim_; i++){
+          matToInvert[i][i] += alpha*alpha;
+        }
+        matToInvert.Determinant(detMatToInvert);
+        if(detMatToInvert != 0){
+          break;
+        } else {
+          alpha = alpha*2;
+        }
+        cnt++;
+        if(cnt > 200){
+          EXCEPTION("Cannot get matrix for inversion that is invertible!");
+        }
       }
       
+      LOG_TRACE(vecpreisachInversion) << " alpha =  " << alpha;
+      LOG_TRACE(vecpreisachInversion) << " matToInvert =  " << matToInvert.ToString();
+      matToInvert.Determinant(detMatToInvert);
+      LOG_TRACE(vecpreisachInversion) << " det(matToInvert) =  " << detMatToInvert;
       matToInvert.Invert(matInverted);
+      LOG_TRACE(vecpreisachInversion) << " matInverted =  " << matInverted.ToString();
       
       if(INV_useTikhonov_){
         Vector<Double> tikhonovReg = Vector<Double>(dim_);
@@ -1173,12 +1301,24 @@ namespace CoupledField
       } else {
         matInverted.Mult(jacTres_neg,xUpdate);
       }
-      
+      assert(!xUpdate.ContainsNaN() && !xUpdate.ContainsInf());
       xNew.Init();
+      
+      if(xUpdate.NormL2() >= XSaturated_){
+        // too large update
+        // > set xNew back to saturation
+        // use only 1/2 of it
+        // > else oscilation between two near saturation states possible
+        LOG_DBG(vecpreisachInversion) << "xUpdate > Saturation > scale down";
+        LOG_DBG(vecpreisachInversion) <<  "xUpdate = " << xUpdate.ToString();
+        xUpdate.ScalarDiv(2.0);
+        LOG_DBG(vecpreisachInversion) <<  "xUpdate (after scaling down) = " << xUpdate.ToString();
+        alpha = alpha*16;
+      } 
       xNew.Add(1.0,xVal,1.0,xUpdate);
-       
+      
       if(xNew.NormL2() >= XSaturated_){
-        // to large update
+        // too large update
         // > set xNew back to saturation
         //LOG_TRACE(vecpreisachInversion) << "Reset xUpdate as x above saturation";
         xNew.ScalarMult(0.9*XSaturated_/xNew.NormL2());
@@ -1220,7 +1360,7 @@ namespace CoupledField
         }
       }
     }
-    
+
     return discard;
   }
   
@@ -1241,15 +1381,16 @@ namespace CoupledField
 	}
     
   Vector<Double> VectorPreisachv10::computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
-      Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, 
-      UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
-      UInt& maximalNumberOfLinesearchIterations, UInt& successCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha){
-	
+          Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
+          Matrix<Double> mu, bool overwriteDirection, 
+          UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
+          UInt& maximalNumberOfLinesearchIterations, UInt& successCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha){
+    
+    assert(!yVal.ContainsNaN() && !yVal.ContainsInf());
 		/*
-		 * IMPORTANT: do not pass yVal, prevYval, prevXval nor prevHystval as reference
-		 *						> we do not want to overwrite these values by accident!
-		 */
+     * IMPORTANT: do not pass yVal, prevYval, prevXval nor prevHystval as reference
+     *						> we do not want to overwrite these values by accident!
+     */
     LOG_TRACE(vecpreisachInversion) << " --------- START IVERSION --------- ";
     bool debug = true;
     std::stringstream traceMsg;
@@ -1268,9 +1409,11 @@ namespace CoupledField
       traceMsg << "INV_resTolB_: " << INV_resTolB_ << std::endl;
       traceMsg << "INV_jacobiResolution_: " << INV_jacobiResolution_ << std::endl;
       traceMsg << "INV_useTikhonov_: " << INV_useTikhonov_ << std::endl;
-      traceMsg << "INV_alphaLSStart_: " << INV_alphaLSStart_ << std::endl;      
+      traceMsg << "INV_alphaLSStart_: " << INV_alphaLSStart_ << std::endl;     
+      traceMsg << "INV_alphaLSMin_: " << INV_alphaLSMin_ << std::endl;  
+      traceMsg << "INV_alphaLSMax_: " << INV_alphaLSMax_ << std::endl;  
     }
-        
+    
     // for statistics
     successCode = 0; 
     // 0: no success
@@ -1280,6 +1423,7 @@ namespace CoupledField
     // 4: passed error tol
     // 5: passed res tol x
     // 6: passed res tol y
+    // 9: anhyst part only
     
     totalNumberOfLMIterations = 0;
 		totalNumberOfLinesearchIterations = 0;
@@ -1301,7 +1445,7 @@ namespace CoupledField
     Vector<Double> diff;
 		diff = yVal;
     diff -= prevYval;
-
+    
     if(diff.NormL2() < INV_resTolB_){
       traceMsg << "--A-- Inversion: Reuse old value" << std::endl;
       xVal = prevXval;
@@ -1309,416 +1453,459 @@ namespace CoupledField
       successCode = 1;
       return xVal;
     }
-
+		
     /*
      * Invert eps/mu for later usage
      */
     Matrix<Double> mu_inv = Matrix<Double>(dim_,dim_);
     Vector<Double> xTMP = Vector<Double>(dim_);
     mu.Invert(mu_inv);
+    Double yNorm = yVal.NormL2();
+    
+    Vector<Double> yDir = Vector<Double>(dim_);
+    yDir.Init();
+    if(yNorm > 0){
+      yDir = yVal;
+      yDir.ScalarDiv(yNorm);
+    } else {
+      yDir[0] = 1.0; // default > take x-direction
+      // only required to compute eps_mu
+    }
+    // get mu in current direction
+    Vector<Double> tmp = Vector<Double>(dim_);
+    Double eps_mu = 0.0;
+    mu.Mult(yDir,tmp);
+    yDir.Inner(tmp,eps_mu);
+
+    if(anhystOnly_ == true){
+      traceMsg << "--S-- Inversion: Special case, only anhysteretic part > solve by bisection" << std::endl;
+      successCode = 9;
+      xVal.Init();
+      if(yNorm == 0){
+        // anhyst part has no remanence
+        return xVal;
+      }
+      // 
+      Double tol = 1e-12;
+      Double Xup, Xdown, Poffset, xScal;
+      Xup = yNorm/eps_mu;
+      Xdown = 0;
+      Poffset = 0;
+      xScal = bisectForAnhyst(yNorm, Xdown, Xup, Poffset, eps_mu, tol); 
+      xVal.Add(xScal,yDir);
+      
+      return xVal;
+    }    
     
     /*
      * Check if yVal is beyond saturation > easy case
      */
-    Double yNorm = yVal.NormL2();
-	
-    // NOTE: it is not enough to compare yNorm >= YSaturated_ as at this point
-    // mu*xSat could already lead to a reasonable addition
-    // we can only use the simple case, if
-    // yNorm >= YSaturated_ + mu*XSaturated_ !
-    // Attention: this works only if mu is a scalar!
-    // > instead compute
-    //      yTMP = yVal - mu*yDir*XSaturated
-    // then check if yTMP.Norm >= YSaturated
-    Vector<Double> yTMP = Vector<Double>(dim_);
+    /*
+     * NOTE: when we are in saturation (or if we assume to be for checking)
+     * we have y and x aligned, i.e. we can check for this case the same way
+     * as we do for scalar problems
+     * However, we only have to check for positive saturation as we check the
+     * amplitude which always should be >= 0
+     */
     if(yNorm > 0){
-      Vector<Double> yTMP2;
-			yTMP2 = yVal;
-      // yTMP2 = yDir*XSaturated
-      yTMP2 *= XSaturated_/yNorm;
-      // yTMP = mu*yDir*XSaturated
-      mu.Mult(yTMP2,yTMP);
-      // yTMP = yDir*XSaturated - yVal
-      yTMP -= yVal;
-      yTMP.ScalarMult(-1.0);
-    } else {
-			yTMP.Init();
-		}
-    if(debug){
-      traceMsg << "yTMP = yIn - mu*yDir*XSaturated = " << yTMP.ToString() << std::endl;
-      traceMsg << "yTMP: Percentage of saturation (|yTMP|/YSaturated_): " << yTMP.NormL2()/YSaturated_ << std::endl;
-    }
-	//	UInt compCase;
-		
-    if(yTMP.NormL2() >= YSaturated_){
-      traceMsg << "--B-- Inversion: Use simple approach" << std::endl;
-      //std::cout << "Use simple approach" << std::endl;
-      // Important consequences:
-      // a) material is completely aligned with outer field (at least in Sutors model) and therefore x is also aligned with y
-      // b) mu (eps) adds an important contribution
-      // c) xVal = (yVal - ySat+xSat*mu)/mu + xSat
-      //         = (yVal - ySat)/mu
-      Vector<Double> ySat;
-			ySat = yVal;
-			// yNorm cannot be 0 here as otherwise yTMP.NormL2() would not be larger YSaturated_
-      ySat *= (YSaturated_/yNorm);
-      xTMP = yVal;
-      xTMP -= ySat;
+      Vector<Double> yDir = yVal;
+      yDir.ScalarDiv(yNorm);
       
-      //xVal /= mu;
-      mu_inv.Mult(xTMP,xVal);
-      //      for(UInt i = 0; i < dim_; i++){
-      //        if(mu[i][i]!=0){
-      //          xVal[i] = xVal[i]/mu[i][i];
-      //        }
-      //      }
-		//	compCase = 1; 
-      debug = false;
-      successCode = 2;
-    } 
+      // get mu in current direction
+      Vector<Double> tmp = Vector<Double>(dim_);
+      Double eps_mu = 0.0;
+      mu.Mult(yDir,tmp);
+      yDir.Inner(tmp,eps_mu);
+            
+      Double anhystPartPosSat = YSaturated_*evalAnhystPart_normalized(1.0);
+      if(yNorm >= (YSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat) ){
+        // saturation detected > solve like in 1d case via bisection
+        traceMsg << "--B-- Inversion: Saturation found" << std::endl;
+        Double xScal = 0.0;
+        
+        if(anhystPartPosSat == 0){
+          traceMsg << "--B1-- Inversion: Anhysteretic part zero > solve by simple division" << std::endl;
+          xScal = (yNorm - YSaturated_)/eps_mu;
+          xVal.Init();
+          xVal.Add(xScal,yDir);
+          successCode = 2;
+          return xVal;
+        } else {
+          traceMsg << "--B2-- Inversion: Anhysteretic non-zero > solve by bisection" << std::endl;
+          Double tol = 1e-12;
+          Double Xup, Xdown, Poffset;
+          Xup = (yNorm - YSaturated_)/eps_mu;
+          Xdown = XSaturated_;
+          Poffset = YSaturated_;
+          xScal = bisectForAnhyst(yNorm, Xdown, Xup, Poffset, eps_mu, tol);
+          xVal.Init();
+          xVal.Add(xScal,yDir);
+          successCode = 2;
+          return xVal;
+        }
+      }
+    }
+    
     /*
      * Use Levenberg-Marquart algorithm as presented in Dahmen&Reusken - Numerik partialler DFG
      */   
-    else { // LM
-      Vector<Double> hystVal;
-      Vector<Double> hystVal_rem;
+     // LM
+    Vector<Double> hystVal;
+    Vector<Double> hystVal_rem;
+    /*
+     * Check for remanence
+     * > apparently, LM seems to work fine except for the remanence case
+     * i.e. yval = hystval, xval = 0
+     * > check if xVal = 0 would be a proper solution
+     */
+    xTMP.Init();
+    hystVal_rem = computeValue_vec(xTMP, operatorIndex, overwriteMemory, overwriteDirection);
+    
+    diff.Init();
+    diff.Add(1.0,yVal,-1.0,hystVal_rem);
+    
+    LOG_DBG(vecpreisachInversion) << "Check difference between yVal and hystVal(0); remanence?";
+    LOG_DBG(vecpreisachInversion) << "Diff Vector: " << diff.ToString();
+    LOG_DBG(vecpreisachInversion) << "Norm of diff: " << diff.NormL2();
+    
+    if(diff.NormL2() < INV_resTolB_){
+      traceMsg << "--C-- Inversion: Remanence detected" << std::endl;
+      xVal = xTMP;
+      LOG_DBG(vecpreisachInversion) << "Set xVal to 0: " << xVal.ToString();
+      successCode = 3;
+      //	compCase = 2;
+    } else {
+      traceMsg << "--D-- Inversion: Use Levenberg Marquart" << std::endl;
+      
+      // tolerance wrt y > 1e-10 or 1e-12 seems good > takes 2-3 its
+      // only problem: y-x-loops look ugly as x can be quite off!
+      //Double tolError = 1e-11;  
+      // tolerance for reevalution
+      
+      UInt itCnt = 0;
+      Double alpha = INV_alphaLSStart_;
+      Double alphaMin = INV_alphaLSMin_;//1.0/256.0;
+      Double alphaMax = INV_alphaLSMax_;//8192;//512.0;
+      
       /*
-       * Check for remanence
-       * > apparently, LM seems to work fine except for the remanence case
-       * i.e. yval = hystval, xval = 0
-       * > check if xVal = 0 would be a proper solution
+       * only residual wrt X in abs form tested
        */
-      xTMP.Init();
-      hystVal_rem = computeValue_vec(xTMP, operatorIndex, overwriteMemory, overwriteDirection);
+      bool wrtX = true;
+      bool relError = !true;
       
-      diff.Init();
-      diff.Add(1.0,yVal,-1.0,hystVal_rem);
-      
-      LOG_DBG(vecpreisachInversion) << "Check difference between yVal and hystVal(0); remanence?";
-      LOG_DBG(vecpreisachInversion) << "Diff Vector: " << diff.ToString();
-      LOG_DBG(vecpreisachInversion) << "Norm of diff: " << diff.NormL2();
-      
-      if(diff.NormL2() < INV_resTolB_){
-        traceMsg << "--C-- Inversion: Remanence detected" << std::endl;
+      if (diff.NormL2() < INV_resTolB_){
+        // we are quite close to remanence, but have not yet reached it
+        // start from 0
+        traceMsg << "--D-- Inversion: Start at 0" << std::endl;
         xVal = xTMP;
-        LOG_DBG(vecpreisachInversion) << "Set xVal to 0: " << xVal.ToString();
-        successCode = 3;
-			//	compCase = 2;
-      } else {
-        traceMsg << "--D-- Inversion: Use Levenberg Marquart" << std::endl;
-        
-        // tolerance wrt y > 1e-10 or 1e-12 seems good > takes 2-3 its
-        // only problem: y-x-loops look ugly as x can be quite off!
-        //Double tolError = 1e-11;  
-        // tolerance for reevalution
- 
-        UInt itCnt = 0;
-        Double alpha = INV_alphaLSStart_;
-        Double alphaMin = 1.0/256.0;
-        Double alphaMax = 16.0;
-        
-        /*
-         * only residual wrt X in abs form tested
-         */
-        bool wrtX = true;
-        bool relError = !true;
-        
-        if (diff.NormL2() < INV_resTolB_){
-          // we are quite close to remanence, but have not yet reached it
-          // start from 0
-          traceMsg << "--D-- Inversion: Start at 0" << std::endl;
-          xVal = xTMP;
         //  startAtZero=true;
-				//	compCase = 3;
-        } else {
-				//	compCase = 4;
+        //	compCase = 3;
+      } else {
+        //	compCase = 4;
+        xVal = prevXval;
+        traceMsg << "--D-- Inversion: Start at previous X value = " << xVal.ToString() << std::endl;
+        // different approach:
+        // to this point we know:
+        // old and new Y value
+        // old X value
+        // old H value
+        // H value at 0 (H_rem)
+        // > by this we can check:
+        // a) newY > oldY > X should increase, too
+        // b) newY < oldY < X should decrease, too
+        //      b1) H_rem > newY > X = 0 is still too large but maybe good starting point
+        //      b2) H_rem < newY > X between old X value and 0
+        // > note: the steps above (sort of bisect) would work well for scalar model; for
+        //         vector model we might have a change in direction but at similiar amplitude
+        //         such that we do not match aboves cases
+        //         still, this ssems more reasonable than fp iteration that nearly always drives
+        //         x way above saturation due to large mu_inv
+        traceMsg << "Try to obtain better starting value" << std::endl;
+        if(yVal.NormL2() > prevYval.NormL2()){
+          traceMsg << "Y increased in norm > increase X ,too" << std::endl;
+          // increase X a bit (does not work if X is zero, though)
           xVal = prevXval;
-          traceMsg << "--D-- Inversion: Start at previous X value = " << xVal.ToString() << std::endl;
-          // different approach:
-          // to this point we know:
-          // old and new Y value
-          // old X value
-          // old H value
-          // H value at 0 (H_rem)
-          // > by this we can check:
-          // a) newY > oldY > X should increase, too
-          // b) newY < oldY < X should decrease, too
-          //      b1) H_rem > newY > X = 0 is still too large but maybe good starting point
-          //      b2) H_rem < newY > X between old X value and 0
-          // > note: the steps above (sort of bisect) would work well for scalar model; for
-          //         vector model we might have a change in direction but at similiar amplitude
-          //         such that we do not match aboves cases
-          //         still, this ssems more reasonable than fp iteration that nearly always drives
-          //         x way above saturation due to large mu_inv
-          traceMsg << "Try to obtain better starting value" << std::endl;
-          if(yVal.NormL2() > prevYval.NormL2()){
-            traceMsg << "Y increased in norm > increase X ,too" << std::endl;
-            // increase X a bit (does not work if X is zero, though)
-            xVal = prevXval;
-            
-            if(xVal.NormL2() != 0){
-              Double factor;
-              if(prevYval.NormL2() != 0){
-                factor = yVal.NormL2()/prevYval.NormL2();
-              } else {
-                factor = 1.15;
-              }
-              traceMsg << "Scale X by " << factor << std::endl;
-              xVal.ScalarMult(factor);
+          
+          if(xVal.NormL2() != 0){
+            Double factor;
+            if(prevYval.NormL2() != 0){
+              factor = yVal.NormL2()/prevYval.NormL2();
             } else {
-              traceMsg << "X is zero; scaling will not help; try a scaled version of yVal instead" << std::endl;
-              xVal = yVal;
-              xVal.ScalarMult(xVal.NormL2()*XSaturated_/YSaturated_);
+              factor = 1.15;
             }
+            traceMsg << "Scale X by " << factor << std::endl;
+            xVal.ScalarMult(factor);
           } else {
-            traceMsg << "Y decreased in norm > decrease X ,too" << std::endl;
-//            if(hystVal_rem.NormL2() > yVal.NormL2()){
-//              LOG_DBG(vecpreisach) << "Y smaller than remanence (norm-wise) > start at remanence";
-//              // start at 0
-//              xVal.Init();
-//            } else {
-//              LOG_DBG(vecpreisach) << "Y larger than remanence but smaller than current hyst-value (norm-wise) > start in between";
-              // take midpoint between remanence and currenc xval
-              xVal = prevXval;
-              xVal.ScalarMult(0.85);
-//            }
+            traceMsg << "X is zero; scaling will not help; try a scaled version of yVal instead" << std::endl;
+            xVal = yVal;
+            xVal.ScalarMult(xVal.NormL2()*XSaturated_/YSaturated_);
           }
-  
-        }
-        traceMsg << "starting Xval: " << xVal.ToString() << std::endl;
-        
-        /*
-         * In the followng, prev*val_ = value of previous iteration
-         *                      *val_ = current value
-         */
-        
-        // perform some initial steps with fp iteation
-        /*
-         * Note: one iteration seems fine; two might already move solution so
-         *       far off that it does not recover
-         * > 1 works ok; 
-         * (mostly due to bringing x into sat and then resetting it
-         */
-//        ClipDirection(xVal);
-        hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, overwriteDirection);
-        LOG_DBG(vecpreisachInversion) << "starting Hval: " << hystVal.ToString();
-        //hystVal = prevHystval_[idElem];
-                 
-        /*
-         * As y is not in saturation (that case was already ruled out, 
-         * the actual xVal cannot be in saturation neither
-         * > It seems that initial fp iteration only works due to the following capping;
-         * FP with the original mu nearly always put the system over saturation; the following
-         * reset will cap it below saturation and from this point on the LM method seems
-         * to converge much better than using the previous value of x
-         * TODOL
-         * > check if fp works better if xsat/ysat is used instead of mu
-         * > check if lm works better if reset is done to a smaller percentage of xsat (currently 0.9)
-         */
-        if(xVal.NormL2() >= XSaturated_){
-         traceMsg << "Reset xVal as its value is above Xsaturation" << std::endl;
-          // reduce amplitude to a value slightly below saturation
-          // remember: we may not take yVal directly as this might be larger than
-          // ysaturated (due to y = hyst + mu*x
-          // instead compare to yTMP (as above)
-          //Double percent = 0.9; //yTMP.NormL2()/YSaturated_;
-          
-          /*
-           * IDEA: take direction of new Y and scale it
-           */
-          xVal = yTMP;
-          xVal.ScalarMult(XSaturated_/YSaturated_);
-
-          //xVal.ScalarMult(percent*XSaturated_/xVal.NormL2());
-          // or reset to 0? > 0.9 works good; 
-          //xVal.Init();
-          //resetAfterSat=true;
-//          ClipDirection(xVal);
-          hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, overwriteDirection);
+        } else {
+          traceMsg << "Y decreased in norm > decrease X ,too" << std::endl;
+          //            if(hystVal_rem.NormL2() > yVal.NormL2()){
+          //              LOG_DBG(vecpreisach) << "Y smaller than remanence (norm-wise) > start at remanence";
+          //              // start at 0
+          //              xVal.Init();
+          //            } else {
+          //              LOG_DBG(vecpreisach) << "Y larger than remanence but smaller than current hyst-value (norm-wise) > start in between";
+          // take midpoint between remanence and currenc xval
+          xVal = prevXval;
+          xVal.ScalarMult(0.85);
+          //            }
         }
         
-        Vector<Double> xStart = xVal;
-        
-        Double sign = 1.0;
-        bool successError = false;
-        bool successX = false;
-        bool successY = false;
-        bool discardUpdate = false;
-
-        Vector<Double> xUpdate = Vector<Double>(dim_);
-        Vector<Double> res = Vector<Double>(dim_);
-        Matrix<Double> jac = Matrix<Double>(dim_,dim_);
-        Matrix<Double> jacT = Matrix<Double>(dim_,dim_);
-        
-        Double errorNorm;
-				Double errorNormResX;
-        Double errorNormResY;
-        UInt implementation = 0;
-        Vector<Double> bestSol = Vector<Double>(dim_);
-        Double bestErrorNorm = 1e16;
-				
-				Vector<Double> bestSolRes = Vector<Double>(dim_);
-        Double bestErrorNormRes = 1e16;
-        
-        /*
-         * Start actual LM iteration
-         */
-        while(true){ 
-          itCnt++;
-          totalNumberOfLMIterations++;
-          
-          if(debug){
-            traceMsg << "--OUTER ITERATION-- (" << itCnt << ")" << std::endl;
-            traceMsg << "Current solution: " << xVal.ToString() << std::endl;
-          }
-          // do not override hyst memory here
-//          ClipDirection(xVal);
-          hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, overwriteDirection);
-          
-          res = computeResidual(xVal,yVal,hystVal,mu,mu_inv,wrtX,relError);
-          jac = computeJacobian(xVal,yVal,hystVal,res,mu,mu_inv,operatorIndex,
-						sign,wrtX,relError,implementation,overwriteMemory,overwriteDirection);
-          jac.Transpose(jacT);
-          
-          if(debug){
-            traceMsg << "Current hystVal: " << hystVal.ToString() << std::endl;
-            traceMsg << "Current Residual (wrt x): " << res.ToString() << std::endl;
-            traceMsg << "Current startvalue for alpha_LS: " << alpha << std::endl;
-            traceMsg << "Current JacobiMatrix: " << jac.ToString() << std::endl;
-            
-            Vector<Double> jacTres = Vector<Double>(dim_);
-            jacT.Mult(res,jacTres);
-            traceMsg << "jacTres: " << jacTres.ToString() << std::endl;
-            traceMsg << "tolForErrorVector: " << INV_resTolH_ << std::endl;
-            traceMsg << "tolForResidual X: " << INV_resTolH_ << std::endl;
-            traceMsg << "tolForResidual Y: " << INV_resTolB_ << std::endl;
-          }
-          
-          successError = checkConvergence(res,jacT,errorNorm,INV_resTolH_);
-          errorNormResX = res.NormL2();
-          successX = (errorNormResX <= INV_resTolH_);
-          successY = checkInversionOutput(xVal, yVal, mu, INV_resTolB_, errorNormResY,
-							operatorIndex, overwriteMemory, overwriteDirection);
-          
-          if(successError){
-            // main criterion > would be best if this one could be satisfied
-            traceMsg << "Success! Error estimate |jacT*ResX| = " << errorNorm << " < " << INV_resTolH_ << std::endl;
-            successCode = 4;
-            break;
-          } else if(successX){
-            // failback; still top if this works
-            traceMsg << "Success! Residual norm wrt X = |ResX| = " << errorNormResX << " < " << INV_resTolH_ << std::endl;
-            successCode = 5;
-            break;
-          } else {
-            if( (totalNumberOfLMIterations%10 == 0)||(itCnt >= INV_maxIter_) ){
-              if(successY){
-                // failback; might still have large res error in x buz might be the best we can find
-                // check only each 10th iteration
-                traceMsg << "Success! Residual norm wrt Y = |ResY| = " << errorNormResY << " < " << INV_resTolB_ << std::endl;
-                successCode = 6;
-                break;
-              } else if (itCnt >= INV_maxIter_) {
-                if(debug){
-                  traceMsg << "Max number of iterations reached." << std::endl;
-                  traceMsg << "Last found solution xFound = " << xVal.ToString() << std::endl;
-                  traceMsg << "p(xFound) = " << hystVal.ToString() << std::endl;
-                  traceMsg << "Remaining residual wrt x-value (xFound - nu*(yIn - p(xFound)): " << res.ToString() << std::endl;
-                  traceMsg << "Remaining error norm |jacT*ResX|: " << errorNorm << std::endl;
-                  traceMsg << "Remaining residual-norm wrt x: " << errorNormResX << std::endl;
-                  traceMsg << "Remaining residual-norm wrt y: " << errorNormResY << std::endl;
-                }
-                break;
-              }
-            }
-          }
- 
-					if(errorNormResX < bestErrorNormRes){
-            bestErrorNormRes = errorNormResX;
-            bestSolRes = xVal;                
-          }
-
-          if(errorNorm < bestErrorNorm){
-            bestErrorNorm = errorNorm;
-            bestSol = xVal;                
-          }
-          
-          LOG_DBG(vecpreisachInversion) << "Solution not appropriate yet > Perform linesearch";
-          UInt numberOfIterations = 0;
-          					
-					discardUpdate = performLinesearch(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
-						operatorIndex, overwriteMemory, overwriteDirection, alpha, alphaMin, alphaMax, wrtX, relError, numberOfIterations,xStart);
-          
-          if(alpha < minAlpha){
-            minAlpha = alpha;
-          }
-          if(alpha > maxAlpha){
-            maxAlpha = alpha;
-          }
-          avgAlpha += alpha;
-          
-          traceMsg << "Computed update: " << xUpdate.ToString() << std::endl;
-          traceMsg << "Discard update? " << discardUpdate << std::endl;
-          
-					totalNumberOfLinesearchIterations += numberOfIterations;
-         
-          if(numberOfIterations > maximalNumberOfLinesearchIterations){
-            maximalNumberOfLinesearchIterations = numberOfIterations;
-          }
-          
-          /*
-           * New idea: start with tighter bounds for alpha but shift these limits
-           * after each 10 iterations
-           */
-          if(totalNumberOfLMIterations%10 == 0){
-            alphaMin = alphaMin/2.0;
-            alphaMax = alphaMax*2.0;
-            // for Tikhonov > set xStart to xVal
-            xStart = bestSol; // own test
-          } 
-          
-          LOG_DBG(vecpreisachInversion) << "Computed update: " << xUpdate.ToString();
-          if(!discardUpdate){
-            xVal = xVal+xUpdate;
-          } else {
-            LOG_DBG(vecpreisachInversion) << "Discard update";
-          }
-          sign = sign*(-1.0);
-        }
-        
-        avgAlpha /= totalNumberOfLMIterations;
-        
-        if(xVal.NormL2() >= XSaturated_){
-          EXCEPTION("LM lead xVal into saturation > must not be the case!");
-        }
       }
-    }  // end LM
-	
+      traceMsg << "starting Xval: " << xVal.ToString() << std::endl;
+      assert(!xVal.ContainsNaN() && !xVal.ContainsInf());
+      /*
+       * In the followng, prev*val_ = value of previous iteration
+       *                      *val_ = current value
+       */
+      
+      // perform some initial steps with fp iteation
+      /*
+       * Note: one iteration seems fine; two might already move solution so
+       *       far off that it does not recover
+       * > 1 works ok; 
+       * (mostly due to bringing x into sat and then resetting it
+       */
+      //        ClipDirection(xVal);
+      hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, overwriteDirection);
+      LOG_DBG(vecpreisachInversion) << "starting Hval: " << hystVal.ToString();
+      //hystVal = prevHystval_[idElem];
+      
+      /*
+       * As y is not in saturation (that case was already ruled out, 
+       * the actual xVal cannot be in saturation neither
+       * > It seems that initial fp iteration only works due to the following capping;
+       * FP with the original mu nearly always put the system over saturation; the following
+       * reset will cap it below saturation and from this point on the LM method seems
+       * to converge much better than using the previous value of x
+       * TODOL
+       * > check if fp works better if xsat/ysat is used instead of mu
+       * > check if lm works better if reset is done to a smaller percentage of xsat (currently 0.9)
+       */
+      if(xVal.NormL2() >= XSaturated_){
+        traceMsg << "Reset xVal as its value is above Xsaturation" << std::endl;
+        // reduce amplitude to a value slightly below saturation
+        // remember: we may not take yVal directly as this might be larger than
+        // ysaturated (due to y = hyst + mu*x
+        // instead compare to yTMP (as above)
+        //Double percent = 0.9; //yTMP.NormL2()/YSaturated_;
+        
+        /*
+         * IDEA: take direction of new Y and scale it
+         *  > only if y != 0!
+         *  if y == 0, take xDirecttion
+         * 
+         */
+        Vector<Double> dir = Vector<Double>(dim_);
+        if(yNorm > 0){
+          dir = yVal;
+          dir.ScalarDiv(yNorm);
+        } else {
+          dir = xVal;
+          dir.ScalarDiv(xVal.NormL2());
+        }
+
+        xVal = dir;
+        xVal.ScalarMult(0.90*XSaturated_);
+        
+        //xVal.ScalarMult(percent*XSaturated_/xVal.NormL2());
+        // or reset to 0? > 0.9 works good; 
+        //xVal.Init();
+        //resetAfterSat=true;
+        //          ClipDirection(xVal);
+        hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, overwriteDirection);
+      }
+      
+      Vector<Double> xStart = xVal;
+      
+      Double sign = 1.0;
+      bool successError = false;
+      bool successX = false;
+      bool successY = false;
+      bool discardUpdate = false;
+      
+      Vector<Double> xUpdate = Vector<Double>(dim_);
+      Vector<Double> res = Vector<Double>(dim_);
+      Matrix<Double> jac = Matrix<Double>(dim_,dim_);
+      Matrix<Double> jacT = Matrix<Double>(dim_,dim_);
+      
+      Double errorNorm;
+      Double errorNormResX;
+      Double errorNormResY;
+      UInt implementation = 0;
+      Vector<Double> bestSol = Vector<Double>(dim_);
+      Double bestErrorNorm = 1e16;
+      
+      Vector<Double> bestSolRes = Vector<Double>(dim_);
+      Double bestErrorNormRes = 1e16;
+      
+      /*
+       * Start actual LM iteration
+       */
+      while(true){ 
+        itCnt++;
+        totalNumberOfLMIterations++;
+        
+        if(debug){
+          traceMsg << "--OUTER ITERATION-- (" << itCnt << ")" << std::endl;
+          traceMsg << "Current solution: " << xVal.ToString() << std::endl;
+        }
+        // do not override hyst memory here
+        //          ClipDirection(xVal);
+        hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, overwriteDirection);
+        
+        res = computeResidual(xVal,yVal,hystVal,mu,mu_inv,wrtX,relError);
+        jac = computeJacobian(xVal,yVal,hystVal,res,mu,mu_inv,operatorIndex,
+                sign,wrtX,relError,implementation,overwriteMemory,overwriteDirection);
+        jac.Transpose(jacT);
+        
+        if(debug){
+          traceMsg << "Current hystVal: " << hystVal.ToString() << std::endl;
+          traceMsg << "Current Residual (wrt x): " << res.ToString() << std::endl;
+          traceMsg << "Current startvalue for alpha_LS: " << alpha << std::endl;
+          traceMsg << "Current JacobiMatrix: " << jac.ToString() << std::endl;
+          
+          Vector<Double> jacTres = Vector<Double>(dim_);
+          jacT.Mult(res,jacTres);
+          traceMsg << "jacTres: " << jacTres.ToString() << std::endl;
+          traceMsg << "tolForErrorVector: " << INV_resTolH_ << std::endl;
+          traceMsg << "tolForResidual X: " << INV_resTolH_ << std::endl;
+          traceMsg << "tolForResidual Y: " << INV_resTolB_ << std::endl;
+        }
+        
+        successError = checkConvergence(res,jacT,errorNorm,INV_resTolH_);
+        errorNormResX = res.NormL2();
+        successX = (errorNormResX <= INV_resTolH_);
+        successY = checkInversionOutput(xVal, yVal, mu, INV_resTolB_, errorNormResY,
+                operatorIndex, overwriteMemory, overwriteDirection);
+        
+        if(successError){
+          // main criterion > would be best if this one could be satisfied
+          traceMsg << "Success! Error estimate |jacT*ResX| = " << errorNorm << " < " << INV_resTolH_ << std::endl;
+          successCode = 4;
+          break;
+        } else if(successX){
+          // failback; still top if this works
+          traceMsg << "Success! Residual norm wrt X = |ResX| = " << errorNormResX << " < " << INV_resTolH_ << std::endl;
+          successCode = 5;
+          break;
+        } else {
+          if( (totalNumberOfLMIterations%10 == 0)||(itCnt >= INV_maxIter_) ){
+            if(successY){
+              // failback; might still have large res error in x buz might be the best we can find
+              // check only each 10th iteration
+              traceMsg << "Success! Residual norm wrt Y = |ResY| = " << errorNormResY << " < " << INV_resTolB_ << std::endl;
+              successCode = 6;
+              break;
+            } else if (itCnt >= INV_maxIter_) {
+              if(debug){
+                traceMsg << "Max number of iterations reached." << std::endl;
+                traceMsg << "Last found solution xFound = " << xVal.ToString() << std::endl;
+                traceMsg << "p(xFound) = " << hystVal.ToString() << std::endl;
+                traceMsg << "Remaining residual wrt x-value (xFound - nu*(yIn - p(xFound)): " << res.ToString() << std::endl;
+                traceMsg << "Remaining error norm |jacT*ResX|: " << errorNorm << std::endl;
+                traceMsg << "Remaining residual-norm wrt x: " << errorNormResX << std::endl;
+                traceMsg << "Remaining residual-norm wrt y: " << errorNormResY << std::endl;
+              }
+              //                  std::cout << "Remaining error norm |jacT*ResX|: " << errorNorm << std::endl;
+              //                  std::cout << "Remaining residual-norm wrt x: " << errorNormResX << std::endl;
+              //                  std::cout << "Remaining residual-norm wrt y: " << errorNormResY << std::endl;
+              successCode = 0;
+              
+              break;
+            }
+          }
+        }
+        
+        if(errorNormResX < bestErrorNormRes){
+          bestErrorNormRes = errorNormResX;
+          bestSolRes = xVal;                
+        }
+        
+        if(errorNorm < bestErrorNorm){
+          bestErrorNorm = errorNorm;
+          bestSol = xVal;                
+        }
+        
+        LOG_DBG(vecpreisachInversion) << "Solution not appropriate yet > Perform linesearch";
+        UInt numberOfIterations = 0;
+        
+        discardUpdate = performLinesearch(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
+                operatorIndex, overwriteMemory, overwriteDirection, alpha, alphaMin, alphaMax, wrtX, relError, numberOfIterations,xStart);
+        
+        if(alpha < minAlpha){
+          minAlpha = alpha;
+        }
+        if(alpha > maxAlpha){
+          maxAlpha = alpha;
+        }
+        avgAlpha += alpha;
+        
+        traceMsg << "Computed update: " << xUpdate.ToString() << std::endl;
+        traceMsg << "Discard update? " << discardUpdate << std::endl;
+        
+        totalNumberOfLinesearchIterations += numberOfIterations;
+        
+        if(numberOfIterations > maximalNumberOfLinesearchIterations){
+          maximalNumberOfLinesearchIterations = numberOfIterations;
+        }
+        
+        /*
+         * New idea: start with tighter bounds for alpha but shift these limits
+         * after each 10 iterations
+         */
+        if(totalNumberOfLMIterations%10 == 0){
+          alphaMin = alphaMin/2.0;
+          alphaMax = alphaMax*2.0;
+          // for Tikhonov > set xStart to xVal
+          xStart = bestSol; // own test
+        } 
+        
+        LOG_DBG(vecpreisachInversion) << "Computed update: " << xUpdate.ToString();
+        if(!discardUpdate){
+          xVal = xVal+xUpdate;
+        } else {
+          LOG_DBG(vecpreisachInversion) << "Discard update";
+        }
+        sign = sign*(-1.0);
+      }
+      
+      avgAlpha /= totalNumberOfLMIterations;
+      
+      if(xVal.NormL2() >= XSaturated_){
+        EXCEPTION("LM lead xVal into saturation > must not be the case!");
+      }
+    }
+    // end LM
+    
     /*
      * set values for next time
      */
     if(overwriteMemory == true){
       EXCEPTION("Memory should not be overridden here");
     }
-
-    if(debug){
+    
+    if(debug && successCode==0){
       Double resYNorm = 0.0;
       checkInversionOutput(xVal, yVal, mu, INV_resTolB_, resYNorm, operatorIndex, overwriteMemory, overwriteDirection,true);
       LOG_TRACE(vecpreisachInversion) << traceMsg.str();
     }
     
     LOG_TRACE(vecpreisachInversion) << " --------- END IVERSION --------- ";
-    				
+    
     return xVal;
   } 
   
 	// returns true, if yTarget can be reached by mu*xComputed + hyst(xComputed)
 	bool VectorPreisachv10::checkInversionOutput(Vector<Double>& xComputed, Vector<Double>& yTarget, 
-			Matrix<Double>& mu, Double tol, Double& resYNorm, Integer operatorIdx, bool overwriteMemory, bool overwriteDirection, bool output){
+          Matrix<Double>& mu, Double tol, Double& resYNorm, Integer operatorIdx, bool overwriteMemory, bool overwriteDirection, bool output){
 		
 		Vector<Double> yCheck = Vector<Double>(dim_);
     Vector<Double> hCheck = computeValue_vec(xComputed, operatorIdx, overwriteMemory, overwriteDirection);
-      
+    
 		mu.Mult(xComputed,yCheck);
 		yCheck.Add(hCheck);
 		
@@ -1749,10 +1936,10 @@ namespace CoupledField
    */
   VectorPreisachv10_MatrixApproach::VectorPreisachv10_MatrixApproach(Integer numElem, Double xSat, Double ySat,
           Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-          bool classical, Double angularDistance, Double angResolution)
+          bool classical, Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
   : VectorPreisachv10(numElem, xSat, ySat,
           preisachWeight, rotationalResistance , dim, isVirgin,
-          classical, angularDistance, angResolution)
+          classical, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
   {
     LOG_TRACE(vecpreisach) << "Using Matrix-based implementation";
     
@@ -1974,34 +2161,8 @@ namespace CoupledField
     }
   }
   
-  Vector<Double> VectorPreisachv10_MatrixApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite, bool overwriteDirection){
-    
-    Matrix<Double> switchingStatesSingleElemBAK;
-    Matrix<Double> rotationStateXSingleElemBAK;
-    Matrix<Double> rotationStateYSingleElemBAK;
-    Matrix<Double> rotationStateZSingleElemBAK;
-    
-    if(overwrite == false){
-      
-      if(performanceMeasurement_){
-        copyToTemporalStorageCounter_++;
-        copyToTemporalStorageTimer_->Start();
-      }
-      
-      /*
-       * get copies of the data structures
-       */
-      switchingStatesSingleElemBAK = switchingStates_[idElem];
-      rotationStateXSingleElemBAK = rotationStateX_[idElem];
-      rotationStateYSingleElemBAK = rotationStateY_[idElem];
-      rotationStateZSingleElemBAK = rotationStateZ_[idElem];
-      
-      if(performanceMeasurement_){
-        copyToTemporalStorageTimer_->Stop();
-      }
-      
-    }
-    
+  Vector<Double> VectorPreisachv10_MatrixApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite, bool overwriteDirection, bool debugOut){
+
     /*
      * Determine the current rotational threshold
      *
@@ -2036,26 +2197,11 @@ namespace CoupledField
       e_u.Init(0.0);
     }
     
-    if(performanceMeasurement_){
-      updateMatricesCounter_++;
-      updateMatricesTimer_->Start();
-    }
-    
-    /*
-     * Update rotation states
-     */
-    if(overwriteDirection){
-      UpdateRotationStates(X_thres, xVal, e_u, idElem);
-    }
-    
-    /*
-     * Update switching states
-     */
-    UpdateSwitchingStates(u_in, idElem);
-    
-    if(performanceMeasurement_){
-      updateMatricesTimer_->Stop();
-    }
+    // compute anhysteretic part first   
+    Double anhystPartScal = evalAnhystPart_normalized(xVal/XSaturated_);
+    Vector<Double> anhystPart = Vector<Double>(dim_);
+    anhystPart.Init();
+    anhystPart.Add(anhystPartScal,e_u);
     
     /*
      * Storage for return values
@@ -2063,77 +2209,135 @@ namespace CoupledField
     Vector<Double> retVec = Vector<Double>(dim_);
     retVec.Init();
     
-    /*
-     * Storage for element value
-     */
-    Double x = 0;
-    Double y = 0;
-    Double z = 0;
-    Double s = 0;
-    
-    if(performanceMeasurement_){
-      evaluateMatricesCounter_++;
-      evaluateMatricesTimer_->Start();
-    }
-    
-    /*
-     * iterate over matrices and multiply entries together
-     */
-    for(UInt i = 0; i < numRows_; i++){
+    if(anhystOnly_ == false){
+      Matrix<Double> switchingStatesSingleElemBAK;
+      Matrix<Double> rotationStateXSingleElemBAK;
+      Matrix<Double> rotationStateYSingleElemBAK;
+      Matrix<Double> rotationStateZSingleElemBAK;
       
-      for(UInt j = 0; j <= i; j++){
-        s = switchingStates_[idElem][i][j];
-        s *= preisachWeights_[i][j];
-        x += s*rotationStateX_[idElem][i][j];
-        y += s*rotationStateY_[idElem][i][j];
+      if(overwrite == false){
+        
+        if(performanceMeasurement_){
+          copyToTemporalStorageCounter_++;
+          copyToTemporalStorageTimer_->Start();
+        }
+        
+        /*
+         * get copies of the data structures
+         */
+        switchingStatesSingleElemBAK = switchingStates_[idElem];
+        rotationStateXSingleElemBAK = rotationStateX_[idElem];
+        rotationStateYSingleElemBAK = rotationStateY_[idElem];
+        rotationStateZSingleElemBAK = rotationStateZ_[idElem];
+        
+        if(performanceMeasurement_){
+          copyToTemporalStorageTimer_->Stop();
+        }
+        
       }
-    }
-    
-    retVec[0] = x;
-    retVec[1] = y;
-    
-    if(dim_ == 3){
+      
+      if(performanceMeasurement_){
+        updateMatricesCounter_++;
+        updateMatricesTimer_->Start();
+      }
+      
+      /*
+       * Update rotation states
+       */
+      if(overwriteDirection){
+        UpdateRotationStates(X_thres, xVal, e_u, idElem);
+      }
+      
+      /*
+       * Update switching states
+       */
+      UpdateSwitchingStates(u_in, idElem);
+      
+      if(performanceMeasurement_){
+        updateMatricesTimer_->Stop();
+      }
+  
+      /*
+       * Storage for element value
+       */
+      Double x = 0;
+      Double y = 0;
+      Double z = 0;
+      Double s = 0;
+      
+      if(performanceMeasurement_){
+        evaluateMatricesCounter_++;
+        evaluateMatricesTimer_->Start();
+      }
+      
+      /*
+       * iterate over matrices and multiply entries together
+       */
       for(UInt i = 0; i < numRows_; i++){
         
         for(UInt j = 0; j <= i; j++){
           s = switchingStates_[idElem][i][j];
           s *= preisachWeights_[i][j];
-          z += s*rotationStateZ_[idElem][i][j];
+          x += s*rotationStateX_[idElem][i][j];
+          y += s*rotationStateY_[idElem][i][j];
         }
       }
-      retVec[2] = z;
+      
+      retVec[0] = x;
+      retVec[1] = y;
+      
+      if(dim_ == 3){
+        for(UInt i = 0; i < numRows_; i++){
+          
+          for(UInt j = 0; j <= i; j++){
+            s = switchingStates_[idElem][i][j];
+            s *= preisachWeights_[i][j];
+            z += s*rotationStateZ_[idElem][i][j];
+          }
+        }
+        retVec[2] = z;
+      }
+      
+      if(performanceMeasurement_){
+        evaluateMatricesTimer_->Stop();
+      }
+      
+      /*
+       * scale retVec with delta_^2; then add anhyst part; finally scale with Ysaturated
+       */
+      retVec.ScalarMult(delta_*delta_);
+      
+      if(overwrite == false){
+        /*
+         * reload backup
+         */
+        if(performanceMeasurement_){
+          copyFromTemporalStorageTimer_->Start();
+        }
+        
+        switchingStates_[idElem] = switchingStatesSingleElemBAK;
+        rotationStateX_[idElem] = rotationStateXSingleElemBAK;
+        rotationStateY_[idElem] = rotationStateYSingleElemBAK;
+        rotationStateZ_[idElem] = rotationStateZSingleElemBAK;
+        
+        if(performanceMeasurement_){
+          copyFromTemporalStorageTimer_->Stop();
+        }
+      }
     }
     
-    if(performanceMeasurement_){
-      evaluateMatricesTimer_->Stop();
-    }
-    
+    retVec.Add(anhystPart);
+    retVec.ScalarMult(YSaturated_);
     
     if(overwrite == false){
       /*
        * store to tmp array
        */
-      preisachSumTmp_[idElem] = retVec*(YSaturated_*delta_*delta_);
-      
-      /*
-       * reload backup
-       */
-      if(performanceMeasurement_){
-        copyFromTemporalStorageTimer_->Start();
-      }
-      
-      switchingStates_[idElem] = switchingStatesSingleElemBAK;
-      rotationStateX_[idElem] = rotationStateXSingleElemBAK;
-      rotationStateY_[idElem] = rotationStateYSingleElemBAK;
-      rotationStateZ_[idElem] = rotationStateZSingleElemBAK;
-      
-      if(performanceMeasurement_){
-        copyFromTemporalStorageTimer_->Stop();
-      }
-            
+      preisachSumTmp_[idElem] = retVec;
+     
       return preisachSumTmp_[idElem];
     } else {
-      preisachSum_[idElem] = retVec*(YSaturated_*delta_*delta_);
+      preisachSum_[idElem] = retVec;
       
       prevXVal_[idElem] = u_in;
       prevHVal_[idElem] = preisachSum_[idElem];
@@ -2218,10 +2422,10 @@ namespace CoupledField
    */
   VectorPreisachv10_ListApproach::VectorPreisachv10_ListApproach(Integer numElem, Double xSat, Double ySat,
           Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-          bool classical, Double angularDistance, Double angResolution)
+          bool classical, Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
   : VectorPreisachv10(numElem, xSat, ySat,
           preisachWeight, rotationalResistance , dim, isVirgin,
-          classical, angularDistance, angResolution)
+          classical, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
   {
     
     LOG_TRACE(vecpreisach) << "Using List-based implementation";
@@ -2408,7 +2612,7 @@ namespace CoupledField
   }
   
   
-  void VectorPreisachv10_ListApproach::Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedList,bool overwriteDirection){
+  void VectorPreisachv10_ListApproach::Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedList,bool overwriteDirection,bool debugOut){
     /*
      * function for updating the global rotation list with an entry pair xThres,e_u
      * furthermore, the magnitude xVal of the original input vector u_in is passed to update the switching lists
@@ -2494,7 +2698,7 @@ namespace CoupledField
       updateRotListTimer_->Start();
       updateNestedListCounter_++;
     }
-    
+    bool listUpdated = false;
     int cntInner = 0;
     
     //	std::cout << "Overwrite direction? " << overwriteDirection << std::endl;
@@ -2572,6 +2776,7 @@ namespace CoupledField
           }
         } // xThres >= curVal
         if(posFound == true){
+          listUpdated = true;
           /*
            * we already have found a suitable position, i.e. all following entries would be
            * overwritten by the new entry; as we want to keep the switching list, we simply overwrite
@@ -2642,6 +2847,7 @@ namespace CoupledField
        * (i.e. if listIt = list.end() it will be inserted before the end)
        */
       if(needsInsert == true){
+        
         /*
          * Important notes:
          * 1. new entries inherit the switching list from the entry, which they (partially) overlay
@@ -2706,6 +2912,7 @@ namespace CoupledField
 				}
 				
         usedList.insert(insertPos,RotListEntryv10(xThres,lowerBound,e_phi,newList,lastXpar,false,false,wasWipedOut,startCnt));
+        listUpdated = true;
       }
     } // if overwriteDirection = true
     
@@ -2726,6 +2933,7 @@ namespace CoupledField
      */
     listEnd = --(usedList.end());
     
+    bool anySwitchingListUpdated = false;
     for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
       
       rotState = listIt->getVecReference();
@@ -2757,6 +2965,10 @@ namespace CoupledField
       getBoundingBoxFromRotEntry(listIt, bbox, isLastRotEntry);
       
       updated = Update_SwitchingList(listIt->getListReference(),xPar,listIt->getLastLocalXpar(), bbox, listIt->wasListWipedOut(),isLastRotEntry);
+      
+      if(updated != 0){
+        anySwitchingListUpdated = true;
+      }
       
       //      if(updated != 0){
       //        std::cout << "UPDATE of switching list!" << std::endl;
@@ -2810,10 +3022,30 @@ namespace CoupledField
       simplifyRotListTimer_->Start();
     }
     
+    if(debugOut){
+      LOG_TRACE(vecpreisachInversion) << "tmpList pre simplify of rotlist";
+      std::list<RotListEntryv10>::iterator listIt;
+      for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
+        LOG_TRACE(vecpreisachInversion) << listIt->ToString();
+      }
+      LOG_TRACE(vecpreisachInversion) << "##########################";
+    }	
+    
     /*
      * Step 3. Merge adjacent rotList entries
      */
-    Simplify_GlobalRotationList(usedList);
+    bool rotListSimplified  = false;
+    rotListSimplified = Simplify_GlobalRotationList(usedList);
+    
+    if(debugOut){
+      LOG_TRACE(vecpreisachInversion) << "tmpList post simplify of rotlist";
+      std::list<RotListEntryv10>::iterator listIt;
+      for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
+        LOG_TRACE(vecpreisachInversion) << listIt->ToString();
+      }
+      LOG_TRACE(vecpreisachInversion) << "##########################";
+    }	
+    
     
     if(performanceMeasurement_){
       simplifyRotListTimer_->Stop();
@@ -2823,11 +3055,29 @@ namespace CoupledField
     /*
      * Step 4. Simplify local switching lists
      */
-    Simplify_LocalSwitchingLists(usedList);
+    bool anySwitchingListSimplified = Simplify_LocalSwitchingLists(usedList);
+    
+    if(debugOut){
+      LOG_TRACE(vecpreisachInversion) << "tmpList post simplify of switchlist";
+      std::list<RotListEntryv10>::iterator listIt;
+      for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
+        LOG_TRACE(vecpreisachInversion) << listIt->ToString();
+      }
+      LOG_TRACE(vecpreisachInversion) << "##########################";
+    }	
+    
     
     if(performanceMeasurement_){
       simplifySwitchingListTimer_->Stop();
     }
+    
+    if(debugOut){
+      LOG_TRACE(vecpreisachInversion) << "GlobalRotlist updated? " << listUpdated;
+      LOG_TRACE(vecpreisachInversion) << "Any switching list udpdated? " << anySwitchingListUpdated;
+      LOG_TRACE(vecpreisachInversion) << "GlobalRotList simplified? " << rotListSimplified;
+      LOG_TRACE(vecpreisachInversion) << "Any switching list simplified? " << anySwitchingListSimplified;
+    }
+    
     
     //    static int cnt = 0;
     //
@@ -3326,7 +3576,7 @@ namespace CoupledField
     return 0;
   }
   
-  Vector<Double> VectorPreisachv10_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,bool overwriteDirection){
+  Vector<Double> VectorPreisachv10_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,bool overwriteDirection, bool debugOut){
     /*
      * Determine the current rotational threshold
      *
@@ -3338,6 +3588,7 @@ namespace CoupledField
      */
     Double X_thres;
     Double uNormTmp = u_in.NormL2();
+        
     if(uNormTmp >= XSaturated_){
       uNormTmp = 1.0;
     } else {
@@ -3367,6 +3618,12 @@ namespace CoupledField
       //e_u.Init(0.0);
     }
     
+    // compute anhysteretic part first
+    Double anhystPartScal = evalAnhystPart_normalized(xVal/XSaturated_);
+    Vector<Double> anhystPart = Vector<Double>(dim_);
+    anhystPart.Init();
+    anhystPart.Add(anhystPartScal,e_u);
+    
     // std::cout << "e_u: " << e_u.ToString() << std::endl;
     
     /*
@@ -3375,130 +3632,139 @@ namespace CoupledField
     if(overwriteDirection){
       lastEu_[idElem] = e_u;
     }
-    /*
-     * Storage for return values
-     */
-    Vector<Double> retVec = Vector<Double>(dim_);
-    retVec.Init();
-    
+      
     /*
      * Storage for element value
      */
     Vector<Double> Yout = Vector<Double>(dim_);
     Yout.Init(0.0);
     
-    /*
-     * Update and evaluate global rotation list
-     */
-    
-    //    /*
-    //     * check if copy works
-    //     */
-    //    std::cout << "GlobalRotationList pre updating " << std::endl;
-    //
-    //    std::list<RotListEntryv10>::iterator listIt;
-    //    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
-    //    std::cout << listIt->ToString() << std::endl;
-    //    }
-    //    std::cout << "##########################" << std::endl;
-    
-    
-    if(overwrite == true){
+    if(anhystOnly_ == false){
       /*
-       * work on std data structure
+       * Storage for return values
        */
-      // std::cout << "Work on permanent storage" << std::endl;
-      Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],overwriteDirection);
-      //Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],true);
+      Vector<Double> retVec = Vector<Double>(dim_);
+      retVec.Init();
       
       /*
-       * Evaluate_GlobalRotationList checks for each element if it was changed or not and
-       * reevaluates only the ones that did
+       * Update and evaluate global rotation list
        */
-      if(performanceMeasurement_){
-        evaluateNestedListCounter_++;
-        evaluateNestedListTimer_->Start();
-      }
       
-      Evaluate_GlobalRotationList(globRotList_[idElem], retVec);
-      
-      if(performanceMeasurement_){
-        evaluateNestedListTimer_->Stop();
-      }
-      
-    } else {
-      /*
-       * get copy of globRotList_[idElem]
-       */
-      // std::cout << "Working on temporal copy" << std::endl;
-      
-      if(performanceMeasurement_){
-        copyToTemporalStorageCounter_++;
-        copyToTemporalStorageTimer_->Start();
-      }
-      
-      std::list<RotListEntryv10> tmpList = globRotList_[idElem];
-      
-      if(performanceMeasurement_){
-        copyToTemporalStorageTimer_->Stop();
-      }
-      
-      //      std::cout << "tmpList pre updating " << std::endl;
-      //std::list<RotListEntryv10>::iterator listIt;
-      //      for(listIt = tmpList.begin(); listIt != tmpList.end(); listIt++){
-      //      std::cout << listIt->ToString() << std::endl;
-      //      }
-      //      std::cout << "##########################" << std::endl;
-      
-      /*
-       * then perform all updates on that temporal list only
-       */
-      //   std::cout << "Working only on temporal storage! " << std::endl;
-      //Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,true);
-      Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,overwriteDirection);
-      
-      if(performanceMeasurement_){
-        evaluateNestedListCounter_++;
-        evaluateNestedListTimer_->Start();
-      }
-      
-      Evaluate_GlobalRotationList(tmpList, retVec);
-      
-      if(performanceMeasurement_){
-        evaluateNestedListTimer_->Stop();
-      }
-      
-      //      std::cout << "retVec: " << retVec.ToString() << std::endl;
+      //    /*
+      //     * check if copy works
+      //     */
+      //    std::cout << "GlobalRotationList pre updating " << std::endl;
       //
-      //      std::cout << "tmpList post updating " << std::endl;
-      //
-      //      for(listIt = tmpList.begin(); listIt != tmpList.end(); listIt++){
-      //      std::cout << listIt->ToString() << std::endl;
-      //      }
-      //      std::cout << "##########################" << std::endl;
-      //			
+      //    std::list<RotListEntryv10>::iterator listIt;
+      //    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
+      //    std::cout << listIt->ToString() << std::endl;
+      //    }
+      //    std::cout << "##########################" << std::endl;
+      
+      
+      if(overwrite == true){
+        /*
+         * work on std data structure
+         */
+        if(debugOut){
+          LOG_TRACE(vecpreisachInversion) << "Work on permanent storage" ;
+        }
+        Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],overwriteDirection,debugOut);
+        //Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],true);
+        
+        /*
+         * Evaluate_GlobalRotationList checks for each element if it was changed or not and
+         * reevaluates only the ones that did
+         */
+        if(performanceMeasurement_){
+          evaluateNestedListCounter_++;
+          evaluateNestedListTimer_->Start();
+        }
+        
+        Evaluate_GlobalRotationList(globRotList_[idElem], retVec);
+        
+        if(performanceMeasurement_){
+          evaluateNestedListTimer_->Stop();
+        }
+        
+      } else {
+        /*
+         * get copy of globRotList_[idElem]
+         */
+        if(debugOut){
+          LOG_TRACE(vecpreisachInversion) << "Work on temporal storage" ;
+        }
+        
+        if(performanceMeasurement_){
+          copyToTemporalStorageCounter_++;
+          copyToTemporalStorageTimer_->Start();
+        }
+        
+        std::list<RotListEntryv10> tmpList = globRotList_[idElem];
+        
+        if(performanceMeasurement_){
+          copyToTemporalStorageTimer_->Stop();
+        }
+        if(debugOut){
+          LOG_TRACE(vecpreisachInversion) << "tmpList pre updating ";
+          std::list<RotListEntryv10>::iterator listIt;
+          for(listIt = tmpList.begin(); listIt != tmpList.end(); listIt++){
+            LOG_TRACE(vecpreisachInversion) << listIt->ToString();
+          }
+          LOG_TRACE(vecpreisachInversion) << "##########################";
+        }
+        /*
+         * then perform all updates on that temporal list only
+         */
+        //   std::cout << "Working only on temporal storage! " << std::endl;
+        //Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,true);
+        Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,overwriteDirection,debugOut);
+        
+        if(performanceMeasurement_){
+          evaluateNestedListCounter_++;
+          evaluateNestedListTimer_->Start();
+        }
+        
+        Evaluate_GlobalRotationList(tmpList, retVec);
+        
+        if(performanceMeasurement_){
+          evaluateNestedListTimer_->Stop();
+        }
+        
+        //      std::cout << "retVec: " << retVec.ToString() << std::endl;
+        if(debugOut){
+          LOG_TRACE(vecpreisachInversion) << "tmpList post updating ";
+          std::list<RotListEntryv10>::iterator listIt;
+          for(listIt = tmpList.begin(); listIt != tmpList.end(); listIt++){
+            LOG_TRACE(vecpreisachInversion) << listIt->ToString();
+          }
+          LOG_TRACE(vecpreisachInversion) << "##########################";
+        }		
+      }
+      
+      //    /*
+      //     * check if copy works
+      //     */
+      //    if(idElem == 0){
+      //    std::cout << "GlobalRotationList after updating and evaluation " << std::endl;
+      //    //std::list<RotListEntryv10>::iterator listIt;
+      //    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
+      //    std::cout << listIt->ToString() << std::endl;
+      //    }
+      //    std::cout << "##########################" << std::endl;
+      //    }
+      
+      Yout += retVec;
+      
+      if(classical_){
+        /*
+         * Add value of lower triangle
+         */
+        Yout += e_u * lowerTriangleValue_;
+      }
     }
-    
-    //    /*
-    //     * check if copy works
-    //     */
-    //    if(idElem == 0){
-    //    std::cout << "GlobalRotationList after updating and evaluation " << std::endl;
-    //    //std::list<RotListEntryv10>::iterator listIt;
-    //    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
-    //    std::cout << listIt->ToString() << std::endl;
-    //    }
-    //    std::cout << "##########################" << std::endl;
-    //    }
-    
-    Yout += retVec;
-    
-    if(classical_){
-      /*
-       * Add value of lower triangle
-       */
-      Yout += e_u * lowerTriangleValue_;
-    }
+    // add anhyst part
+    Yout += anhystPart;
     
     //  std::cout << "###YOUT###################" << std::endl;
     //  std::cout << std::setprecision(16) << std::scientific << Yout.ToString() << std::endl;
@@ -5419,7 +5685,7 @@ namespace CoupledField
     }
   }
   
-  void VectorPreisachv10_ListApproach::Simplify_LocalSwitchingLists(std::list<RotListEntryv10>& usedList){
+  bool VectorPreisachv10_ListApproach::Simplify_LocalSwitchingLists(std::list<RotListEntryv10>& usedList){
     /*
      * This function iterates over the globalRotation list and checks each entry in the corresponding
      * local switching list for overlap with the two possible rotation areas.
@@ -5441,6 +5707,7 @@ namespace CoupledField
     std::list<RotListEntryv10>::iterator rotListIt;
     std::list<RotListEntryv10>::iterator rotListEnd = --(usedList.end());
     
+    bool switchingListSimplified = false;
     bool twoAreas,lastRotListEntry;
     
     Rectangle rotRect1 = Rectangle(0,0,0,0);
@@ -5577,10 +5844,12 @@ namespace CoupledField
              */
             if(firstToKeep != ++(rotListIt->getListReference().begin())){
               rotListIt->getListReference().erase(++(rotListIt->getListReference().begin()),firstToKeep);
+              switchingListSimplified = true;
             }
           } else {
             rotListIt->setStartCnt(1);
             rotListIt->getListReference().erase(rotListIt->getListReference().begin(),firstToKeep);
+            switchingListSimplified = true;
           }
         } //else
         /*
@@ -5589,9 +5858,11 @@ namespace CoupledField
          */
       } // rot list has changed
     } // rot list
+    
+    return switchingListSimplified;
   }
   
-  void VectorPreisachv10_ListApproach::Simplify_GlobalRotationList(std::list<RotListEntryv10>& usedList){
+  bool VectorPreisachv10_ListApproach::Simplify_GlobalRotationList(std::list<RotListEntryv10>& usedList){
     /*
      * New merging rule (applicable for all versions)
      *
@@ -5667,12 +5938,12 @@ namespace CoupledField
      * This case can happen e.g. if an input overrides multiple older rotation areas at once and the
      * resulting value of xPar is large enough to overwrite the contained switching lists
      */
-    
+    bool rotListSimplified = false;
     if(usedList.size() < 2){
       /*
        * list has not enough entries to be merged together
        */
-      return;
+      return false;
     }
     
     std::list<RotListEntryv10>::iterator listIt;
@@ -5715,6 +5986,7 @@ namespace CoupledField
            * do not increase iterator
            * -> it might be, that the by now extended first entry matches also the next one
            */
+          rotListSimplified = true;
         } else {
           /*
            * increase iterator and check next pair
@@ -5725,6 +5997,8 @@ namespace CoupledField
         break;
       }
     }
+    
+    return rotListSimplified;
   }
   
   void VectorPreisachv10_ListApproach::mapRectangleToHelperMatrix(Matrix<Double>& helper, Rectangle rect, Double factor, bool skipUpperDiagonal, bool isRotState){

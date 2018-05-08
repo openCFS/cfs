@@ -315,10 +315,60 @@
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_MagHystModel">
     <xsd:choice>
-      <xsd:element name="preisach" type="DT_MagPreisachHystModel"/>
-      <xsd:element name="vectorPreisach" type="DT_MagVectorPreisachHystModel"/>
+      <xsd:element name="scalarPreisach" type="DT_MagPreisachHystModel"/>
+      <xsd:element name="vectorPreisach_Sutor" type="DT_MagVectorPreisachHystModel"/>
+      <xsd:element name="vectorPreisach_Mayergoyz" type="DT_MagVectorPreisachHystModelMayergoyz"/>
     </xsd:choice>
   </xsd:complexType>
+    
+  <xsd:complexType name="DT_MuDATParamsMag">
+    <xsd:sequence>
+      <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="eta" type="xsd:double" minOccurs="1"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+   <xsd:complexType name="DT_MuDATParamsExtendedMag">
+    <xsd:sequence>
+      <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="h2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="eta" type="xsd:double" minOccurs="1"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+   <xsd:complexType name="DT_AnhystereticParamsMag">
+     <xsd:sequence>
+       <xsd:element name="a" type="xsd:double" minOccurs="0" default="0"/>
+       <xsd:element name="b" type="xsd:double" minOccurs="0" default="0"/>
+       <xsd:element name="c" type="xsd:double" minOccurs="0" default="0"/>
+       <xsd:element name="onlyAnhyst" type="xsd:boolean" minOccurs="0" default="false"/>
+     </xsd:sequence>
+  </xsd:complexType>  
+    
+  <xsd:complexType name="DT_MagHystWeights">
+    <xsd:sequence>
+      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger" minOccurs="1"/>
+      <xsd:choice>
+          <xsd:element name="const" type="xsd:double" default="0.5"/>
+          <xsd:element name="muDat" type="DT_MuDATParamsMag" />
+          <xsd:element name="muDatExtended" type="DT_MuDATParamsExtendedMag" />
+          <xsd:element name="weightTensor">
+            <xsd:simpleType>
+              <xsd:restriction base="DT_DoubleList">
+                <xsd:maxLength value="100000000"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+      </xsd:choice>
+      <xsd:element name="anhystereticParameter" type="DT_AnhystereticParamsMag" minOccurs="0"/>
+      <xsd:element name="adaptedToMayergoyzVectorModel" type="xsd:boolean" minOccurs="0" default="false"/>
+    </xsd:sequence>
+  </xsd:complexType>   
     
   <xsd:complexType name="DT_MagHystVecLevenbergMarquardt">
     <xsd:sequence>
@@ -328,6 +378,8 @@
       <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-12"/>
       <xsd:element name="useTikhonov" type="xsd:boolean" minOccurs="0" default="false"/>
       <xsd:element name="alphaRegStart" type="xsd:double" minOccurs="0" default="0.25"/>
+      <xsd:element name="alphaRegMin" type="xsd:double" minOccurs="0" default="0.001953125"/>
+      <xsd:element name="alphaRegMax" type="xsd:double" minOccurs="0" default="8192.0"/>
     </xsd:sequence>
   </xsd:complexType>  
     
@@ -381,14 +433,15 @@
       </xsd:element> 
       <!--<xsd:element name="dirJ" type="DT_Direction"/>-->
       <xsd:element name="pseudoVectorExtension" type="DT_ScalPreisachExtension" minOccurs="0"/>
-      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger"/>
+      <xsd:element name="weights" type="DT_MagHystWeights" minOccurs="1"/>
+      <!--<xsd:element name="dim_weights"  type="xsd:nonNegativeInteger"/>
       <xsd:element name="weights">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
             <xsd:maxLength value="100000000"/>
           </xsd:restriction>
         </xsd:simpleType>
-      </xsd:element> 
+      </xsd:element> -->
       <xsd:element name="strainForm" type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
       <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="0" default="1"/>
       <xsd:element name="betaCoefs" minOccurs="0">
@@ -401,7 +454,22 @@
       </xsd:element> 
     </xsd:sequence>
   </xsd:complexType>
-  
+    
+  <xsd:complexType name="DT_MagVectorPreisachHystModelMayergoyz">
+    <xsd:sequence>
+      <xsd:element name="numDirections" type="xsd:nonNegativeInteger" minOccurs="1" default="11"/>
+      <xsd:choice>
+        <xsd:element name="isotropic" type="DT_MagPreisachHystModel" minOccurs="1" maxOccurs="1"/>
+        <!-- anIsotropic not yet supported; TODO: 1. implement in XML_MaterialHandler such that multiple directions, saturation values, weights, ... can be read in
+                                      2. find a way to compute weights for the anisotropic case
+        <xsd:element name="anIsotropic">
+          <xsd:element name="dataOfOneDirection" type="DT_ElecVectorPreisachHystModelMayergoyz_OneDirection" minOccurs="1" maxOccurs="100"/>
+        </xsd:element>  
+        -->
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+    
     <xsd:complexType name="DT_MagVectorPreisachHystModel">
    <!-- <xsd:documentation xml:lang="en">
      Vector Preisach model in magnetics is defined by
@@ -457,14 +525,15 @@
       <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0" default="2"/>
       <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0" default="1"/>
       <xsd:element name="angularDistance" type="xsd:double" minOccurs="0" default="0"/>
-      <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger" minOccurs="1"/>
+      <xsd:element name="weights" type="DT_MagHystWeights" minOccurs="1"/>
+    <!--  <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger" minOccurs="1"/>
      <xsd:element name="weights" minOccurs="1">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
             <xsd:maxLength value="100000000"/>
           </xsd:restriction>
         </xsd:simpleType>
-      </xsd:element> 
+      </xsd:element> -->
       <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
       <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
       <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-9"/>

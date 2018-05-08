@@ -18,6 +18,9 @@ namespace CoupledField {
     Preisach(Integer numElem, Double xSat, Double ySat, 
       Matrix<Double>& preisachWeight, bool isVirgin);
     
+    Preisach(Integer numElem, Double xSat, Double ySat, 
+      Matrix<Double>& preisachWeight, bool isVirgin, Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly);
+    
     //! default constructor
     Preisach();
     
@@ -65,10 +68,24 @@ namespace CoupledField {
     //! computes  the everett function (area-integration for x1, x2)
     Double everettPixel(Double x1, Double x2);
     
+//    inline Double evalAnhystPart_normalized(Double xNormalizedUnclipped){
+//      // returns normalized anhysteretic part
+//      return anhyst_A_*std::atan(anhyst_B_*xNormalizedUnclipped) + anhyst_C_*xNormalizedUnclipped;
+//    }
+    
+    //Double bisectForSaturation(Double Yin, Double eps_mu, Double tol, bool negSaturation);
+    
     Double bisect(Double dY,Double xMin,Double xMax, Double xFixed, Double eps_mu, Double tol);
     
     Double XSaturated_; //! saturation value for  input
     Double YSaturated_; //! saturation value for output
+    
+    /*
+     * for optional anhysteretic parts
+     */
+//    Double anhyst_A_;
+//    Double anhyst_B_;
+//    Double anhyst_C_;
     
     bool isVirgin_; //! yes, if starting at zero
     
@@ -207,7 +224,8 @@ namespace CoupledField {
   {
   public:
     ExtendedPreisach(Integer numElem, Double xSat, Double ySat, 
-      Matrix<Double>& preisachWeight, Double rotationalResistance , Double angularDistance, UInt dim, bool isVirgin);
+      Matrix<Double>& preisachWeight, Double rotationalResistance , Double angularDistance, UInt dim, bool isVirgin, 
+      Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly);
     
     virtual ~ExtendedPreisach();
     
@@ -241,6 +259,39 @@ namespace CoupledField {
     // > map can be used
     std::map<Double,Vector<Double> >* rotationStates_; 
     Vector<Double>* currentDirection_;
+    
+  };
+  
+  class VectorPreisachMayergoyz : public Hysteresis
+  {
+  public:
+    // general constructor for anisotropic case, i.e. in each spatial direction
+    // we have to specify xSaat,ySat as well as a set of fitting preisachWeights
+    // the number of directions is specified by the length of xSat, ySat, etc
+    VectorPreisachMayergoyz(Integer numElem, Vector<Double> xSat, Vector<Double> ySat, 
+          Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, bool anhystOnly);
+    
+    // constructor for isotropic case, i.e. same xSat, ySat and weights in all directions
+    VectorPreisachMayergoyz(Integer numElem, UInt numDirections, Double xSat, Double ySat, 
+          Matrix<Double>& preisachWeight, UInt dim, bool isVirgin,Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly);
+
+    virtual ~VectorPreisachMayergoyz();
+
+    Vector<Double> computeInput_vec(Vector<Double> Yin, Integer idx, Matrix<Double> eps_mu, bool overwriteDirection = true);
+    
+    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idx, bool overwrite = true,bool overwriteDirection = true,bool debugOutput = false);
+    
+    void setFlags(UInt performanceFlag){
+      ;
+    };
+    
+  private:
+    UInt dim_;
+    UInt numDirections_;
+    
+    Vector<Double>* singleDirections_;
+    Preisach** singlePreisachOperators_;
+    Matrix<Double> matrixForCoefComputation_;
     
   };
   

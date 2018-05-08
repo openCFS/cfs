@@ -852,12 +852,12 @@ namespace CoupledField {
     //read Preisach hysterese model
     if(elec->Has("hystModel"))
     {
-      if(elec->Get("hystModel")->Has("preisach"))
+      if(elec->Get("hystModel")->Has("scalarPreisach"))
       {
-        PtrParamNode p = elec->Get("hystModel")->Get("preisach");
+        PtrParamNode p = elec->Get("hystModel")->Get("scalarPreisach");
         
         // force name
-        material->SetScalar("preisach", HYST_MODEL);
+        material->SetScalar("scalarPreisach", HYST_MODEL);
         
         // read E saturation of Preisach hysterese model
         if(p->Has("eSat"))
@@ -950,17 +950,131 @@ namespace CoupledField {
         material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
         material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
                 
-        // read weight dimension of Preisach hysterese model for weights
-        int dim = -1;
-        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
-        
-        // read real permittivity tensor    
+        // new options for preisach weights
         if(p->Has("weights"))
         {
-          Matrix<Double> preisachWeightTensor(dim,dim);
-          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
-          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+          PtrParamNode pWeight = p->Get("weights");
+          int dim = -1;
+          if(pWeight->Has("dim_weights")) dim = pWeight->Get("dim_weights")->As<Integer>();
+          
+          material->SetScalar( dim, PREISACH_WEIGHTS_DIM);
+          int weightType = 0; // 0 = const, 1 = muDat, 2 = muDatExtended, 3 = givenTensor
+          if(pWeight->Has("const")){
+            weightType = 0;
+            Double constValue = pWeight->Get("const")->As<Double>();
+            material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("muDat")){
+            weightType = 1;
+            PtrParamNode muDat = pWeight->Get("muDat");
+            Double A = muDat->Get("A")->As<Double>();
+            Double h = muDat->Get("h")->As<Double>();
+            Double sigma = muDat->Get("sigma")->As<Double>();
+            Double eta = muDat->Get("eta")->As<Double>();
+            material->SetScalar(A, PREISACH_WEIGHTS_MUDAT_A, Global::REAL );
+            material->SetScalar(h, PREISACH_WEIGHTS_MUDAT_H, Global::REAL );
+            material->SetScalar(sigma, PREISACH_WEIGHTS_MUDAT_SIGMA, Global::REAL );
+            material->SetScalar(eta, PREISACH_WEIGHTS_MUDAT_ETA, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("muDatExtended")){
+            weightType = 2;
+            PtrParamNode muDatExt = pWeight->Get("muDatExtended");
+            Double A = muDatExt->Get("A")->As<Double>();
+            Double h1 = muDatExt->Get("h1")->As<Double>();
+            Double h2 = muDatExt->Get("h2")->As<Double>();
+            Double sigma1 = muDatExt->Get("sigma1")->As<Double>();
+            Double sigma2 = muDatExt->Get("sigma2")->As<Double>();
+            Double eta = muDatExt->Get("eta")->As<Double>();
+            material->SetScalar(A, PREISACH_WEIGHTS_MUDATEXT_A, Global::REAL );
+            material->SetScalar(h1, PREISACH_WEIGHTS_MUDATEXT_H1, Global::REAL );
+            material->SetScalar(h2, PREISACH_WEIGHTS_MUDATEXT_H2, Global::REAL );
+            material->SetScalar(sigma1, PREISACH_WEIGHTS_MUDATEXT_SIGMA1, Global::REAL );
+            material->SetScalar(sigma2, PREISACH_WEIGHTS_MUDATEXT_SIGMA2, Global::REAL );
+            material->SetScalar(eta, PREISACH_WEIGHTS_MUDATEXT_ETA, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("weightTensor")){
+            weightType = 3;
+            Matrix<Double> preisachWeightTensor(dim,dim);
+            ParamTools::AsTensor<double>(pWeight->Get("weightTensor"), dim, dim, preisachWeightTensor);
+            material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS_TENSOR, Global::REAL);
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } 
+          
+          Double a,b,c;
+          bool onlyanhyst;
+          if(pWeight->Has("anhystereticParameter")){
+            PtrParamNode anhystParams = pWeight->Get("anhystereticParameter");
+            if(anhystParams->Has("a")){
+              a = anhystParams->Get("a")->As<Double>();
+            } else {
+              a = 0.0;
+            }
+            if(anhystParams->Has("b")){
+              b = anhystParams->Get("b")->As<Double>();
+            } else {
+              b = 0.0;
+            }
+            if(anhystParams->Has("c")){
+              c = anhystParams->Get("c")->As<Double>();
+            } else {
+              c = 0.0;
+            }
+            if(anhystParams->Has("onlyAnhyst")){
+              c = anhystParams->Get("onlyAnhyst")->As<bool>();
+            } else {
+              onlyanhyst = false;
+            }
+          } else {
+            a = 0;
+            b = 0;
+            c = 0;
+            onlyanhyst = false;
+          }
+          material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+          material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+          material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
+          if(onlyanhyst){
+            material->SetScalar(1, PREISACH_WEIGHTS_ANHYST_ONLY);
+          } else {
+            material->SetScalar(0, PREISACH_WEIGHTS_ANHYST_ONLY);
+          }
+          
+          int adaptedToVectorCase = 0;
+          if(pWeight->Has("adaptedToMayergoyzVectorModel")){
+            bool adapted = pWeight->Get("adaptedToMayergoyzVectorModel")->As<bool>();
+            if(adapted){
+              adaptedToVectorCase = 1;
+            }
+          }
+          material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+          
+        } else {
+          int weightType = 0;
+          Double constValue = 0.5; // default; only constant that will work actually as int_preisachPlane weights != 1
+          material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+          material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          int adaptedToVectorCase = 0;
+          material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+          Double a = 0;
+          Double b = 0;
+          Double c = 0;
+          material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+          material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+          material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
         }
+ 
+//        
+//        // read weight dimension of Preisach hysterese model for weights
+//        int dim = -1;
+//        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+//        
+//        // read real permittivity tensor    
+//        if(p->Has("weights"))
+//        {
+//          Matrix<Double> preisachWeightTensor(dim,dim);
+//          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+//          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+//        }
         
         if(p->Has("strainForm")){
           material->SetScalar(p->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
@@ -988,12 +1102,259 @@ namespace CoupledField {
         }
                 
       }
-      else if (elec->Get("hystModel")->Has("vectorPreisach"))
+      else if(elec->Get("hystModel")->Has("vectorPreisach_Mayergoyz"))
       {
-        PtrParamNode p = elec->Get("hystModel")->Get("vectorPreisach");
+        PtrParamNode p = elec->Get("hystModel")->Get("vectorPreisach_Mayergoyz");
         
         // force name
-        material->SetScalar("vectorPreisach", HYST_MODEL);
+        material->SetScalar("vectorPreisach_Mayergoyz", HYST_MODEL);
+        
+        // read E saturation of Preisach hysterese model
+        if(p->Has("numDirections"))
+          material->SetScalar(p->Get("numDirections")->As<Integer>(), PREISACH_MAYERGOYZ_NUM_DIR ); 
+        else
+          material->SetScalar(11, PREISACH_MAYERGOYZ_NUM_DIR ); 
+        
+        if(p->Has("isotropic")){
+          PtrParamNode iso = p->Get("isotropic");
+          
+          material->SetScalar(1, PREISACH_MAYERGOYZ_ISOTROPIC ); 
+          
+          // for isotropic case we have to define a single scalar Preisach model
+          // read P saturation of Preisach hysterese model
+          if(iso->Has("eSat"))
+            material->SetScalar(iso->Get("eSat")->As<Double>(), X_SATURATION, Global::REAL ); 
+          
+          // read P saturation of Preisach hysterese model
+          if(iso->Has("pSat"))
+            material->SetScalar(iso->Get("pSat")->As<Double>(), Y_SATURATION, Global::REAL );
+          
+          // direction vector not used here as we create multiple of them either way
+//          Matrix<Double> directionVector;
+//          if(iso->Has("dirP"))
+//          {
+//            //std::cout << "InitialState found" << std::endl;
+//            ParamTools::AsTensor<double>(iso->Get("dirP"),1, 3, directionVector);
+//            //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+//          } else {
+//            //std::cout << "NO InitialState found" << std::endl;
+//            directionVector.Resize(1,3);
+//            directionVector.Init();
+//          }
+//          
+//          material->SetScalar( directionVector[0][0], P_DIRECTION_X, Global::REAL);
+//          material->SetScalar( directionVector[0][1], P_DIRECTION_Y, Global::REAL);
+//          material->SetScalar( directionVector[0][2], P_DIRECTION_Z, Global::REAL);
+
+          
+          material->SetScalar("VECTOR", PREISACH_DIM);
+          
+          // not ued here
+//          bool useExtension = false;
+//          Double rotResistance = 1;
+//          Double angularDistance = 0;
+//          Matrix<Double> initialStateTensor = Matrix<Double>(1,3);
+//          initialStateTensor.Init();
+//          
+//          if(p->Has("pseudoVectorExtension"))
+//          {
+//            PtrParamNode pExt = p->Get("pseudoVectorExtension");
+//            
+//            if(pExt->Has("useExtension"))
+//            {
+//              useExtension = pExt->Get("useExtension")->As<bool>();
+//            }
+//            
+//            if(pExt->Has("rotResistance"))
+//            {
+//              rotResistance = pExt->Get("rotResistance")->As<double>();
+//            }
+//            
+//            if(pExt->Has("angularDistance"))
+//            {
+//              angularDistance = pExt->Get("angularDistance")->As<double>();
+//            }
+//            
+//            if(pExt->Has("initialState"))
+//            {
+//              //std::cout << "InitialState found" << std::endl;
+//              ParamTools::AsTensor<double>(pExt->Get("initialState"),1, 3, initialStateTensor);
+//              //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+//            } 
+//          }
+//          int useExtensionInt = 0;
+//          if(useExtension){
+//            useExtensionInt = 1;
+//          }
+//          
+//          material->SetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
+//          material->SetScalar(rotResistance, ROT_RESISTANCE, Global::REAL);
+//          material->SetScalar(angularDistance, ANG_DISTANCE, Global::REAL);
+//          material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
+//          material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
+//          material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
+          
+          // new options for preisach weights
+          if(iso->Has("weights"))
+          {
+            PtrParamNode pWeight = iso->Get("weights");
+            int dim = -1;
+            if(pWeight->Has("dim_weights")) dim = pWeight->Get("dim_weights")->As<Integer>();
+            
+            material->SetScalar( dim, PREISACH_WEIGHTS_DIM);
+            int weightType = 0; // 0 = const, 1 = muDat, 2 = muDatExtended, 3 = givenTensor
+            if(pWeight->Has("const")){
+              weightType = 0;
+              Double constValue = pWeight->Get("const")->As<Double>();
+              material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+              material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+            } else if(pWeight->Has("muDat")){
+              weightType = 1;
+              PtrParamNode muDat = pWeight->Get("muDat");
+              Double A = muDat->Get("A")->As<Double>();
+              Double h = muDat->Get("h")->As<Double>();
+              Double sigma = muDat->Get("sigma")->As<Double>();
+              Double eta = muDat->Get("eta")->As<Double>();
+              material->SetScalar(A, PREISACH_WEIGHTS_MUDAT_A, Global::REAL );
+              material->SetScalar(h, PREISACH_WEIGHTS_MUDAT_H, Global::REAL );
+              material->SetScalar(sigma, PREISACH_WEIGHTS_MUDAT_SIGMA, Global::REAL );
+              material->SetScalar(eta, PREISACH_WEIGHTS_MUDAT_ETA, Global::REAL );
+              material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+            } else if(pWeight->Has("muDatExtended")){
+              weightType = 2;
+              PtrParamNode muDatExt = pWeight->Get("muDatExtended");
+              Double A = muDatExt->Get("A")->As<Double>();
+              Double h1 = muDatExt->Get("h1")->As<Double>();
+              Double h2 = muDatExt->Get("h2")->As<Double>();
+              Double sigma1 = muDatExt->Get("sigma1")->As<Double>();
+              Double sigma2 = muDatExt->Get("sigma2")->As<Double>();
+              Double eta = muDatExt->Get("eta")->As<Double>();
+              material->SetScalar(A, PREISACH_WEIGHTS_MUDATEXT_A, Global::REAL );
+              material->SetScalar(h1, PREISACH_WEIGHTS_MUDATEXT_H1, Global::REAL );
+              material->SetScalar(h2, PREISACH_WEIGHTS_MUDATEXT_H2, Global::REAL );
+              material->SetScalar(sigma1, PREISACH_WEIGHTS_MUDATEXT_SIGMA1, Global::REAL );
+              material->SetScalar(sigma2, PREISACH_WEIGHTS_MUDATEXT_SIGMA2, Global::REAL );
+              material->SetScalar(eta, PREISACH_WEIGHTS_MUDATEXT_ETA, Global::REAL );
+              material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+            } else if(pWeight->Has("weightTensor")){
+              weightType = 3;
+              Matrix<Double> preisachWeightTensor(dim,dim);
+              ParamTools::AsTensor<double>(pWeight->Get("weightTensor"), dim, dim, preisachWeightTensor);
+              material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS_TENSOR, Global::REAL);
+              material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+            } 
+            
+            Double a,b,c;
+            bool onlyanhyst;
+            if(pWeight->Has("anhystereticParameter")){
+              PtrParamNode anhystParams = pWeight->Get("anhystereticParameter");
+              if(anhystParams->Has("a")){
+                a = anhystParams->Get("a")->As<Double>();
+              } else {
+                a = 0.0;
+              }
+              if(anhystParams->Has("b")){
+                b = anhystParams->Get("b")->As<Double>();
+              } else {
+                b = 0.0;
+              }
+              if(anhystParams->Has("c")){
+                c = anhystParams->Get("c")->As<Double>();
+              } else {
+                c = 0.0;
+              }
+              if(anhystParams->Has("onlyAnhyst")){
+                c = anhystParams->Get("onlyAnhyst")->As<bool>();
+              } else {
+                onlyanhyst = false;
+              }
+            } else {
+              a = 0;
+              b = 0;
+              c = 0;
+              onlyanhyst = false;
+            }
+            material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+            material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+            material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
+            if(onlyanhyst){
+              material->SetScalar(1, PREISACH_WEIGHTS_ANHYST_ONLY);
+            } else {
+              material->SetScalar(0, PREISACH_WEIGHTS_ANHYST_ONLY);
+            }
+            
+            int adaptedToVectorCase = 0;
+            if(pWeight->Has("adaptedToMayergoyzVectorModel")){
+              bool adapted = pWeight->Get("adaptedToMayergoyzVectorModel")->As<bool>();
+              if(adapted){
+                adaptedToVectorCase = 1;
+              }
+            }
+            material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+            
+          } else {
+            int weightType = 0;
+            Double constValue = 0.5; // default; only constant that will work actually as int_preisachPlane weights != 1
+            material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+            int adaptedToVectorCase = 0;
+            material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+            Double a = 0;
+            Double b = 0;
+            Double c = 0;
+            material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+            material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+            material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
+          }
+          
+          //        
+          //        // read weight dimension of Preisach hysterese model for weights
+          //        int dim = -1;
+          //        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+          //        
+          //        // read real permittivity tensor    
+          //        if(p->Has("weights"))
+          //        {
+          //          Matrix<Double> preisachWeightTensor(dim,dim);
+          //          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          //          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+          //        }
+          
+          if(iso->Has("strainForm")){
+            material->SetScalar(iso->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
+          } else {
+            material->SetScalar(0, HYST_STRAIN_FORM);
+          }
+          
+          int coefdim = -1;
+          if(iso->Has("dim_betaCoefs")) coefdim = iso->Get("dim_betaCoefs")->As<Integer>();
+          material->SetScalar(coefdim, DIM_BETA_COEFS);
+          
+          Matrix<Double> betaCoef;
+          if(iso->Has("betaCoefs")&&(coefdim != -1))
+          {
+            //std::cout << "beta coefs found" << std::endl;
+            ParamTools::AsTensor<double>(iso->Get("betaCoefs"),1, coefdim, betaCoef);
+            //std::cout << "beta coefs: " << betaCoef.ToString() << std::endl;
+            material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
+          } else {
+            //std::cout << "NO betaCoef found" << std::endl;
+            betaCoef = Matrix<Double>(1,1);
+            betaCoef.Init();
+            //std::cout << "Beta coefs set to: " << betaCoef.ToString() << std::endl;
+            material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
+          }
+        } else {
+          EXCEPTION("Mayergoyz vector Preisach model currently only valid for isotropic materials");
+        }           
+      }
+      
+      else if (elec->Get("hystModel")->Has("vectorPreisach_Sutor"))
+      {
+        PtrParamNode p = elec->Get("hystModel")->Get("vectorPreisach_Sutor");
+        
+        // force name
+        material->SetScalar("vectorPreisach_Sutor", HYST_MODEL);
         
         // read E saturation of Preisach hysterese model
         if(p->Has("eSat"))
@@ -1046,18 +1407,131 @@ namespace CoupledField {
         } else {
           material->SetScalar(1e-9, AMP_RESOLUTION, Global::REAL);
         }
-				        
-        // read weight dimension of Preisach hysterese model for weights
-        int dim = -1;
-        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
-        
-        // read real permittivity tensor
+
+        // new options for preisach weights
         if(p->Has("weights"))
         {
-          Matrix<Double> preisachWeightTensor(dim,dim);
-          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
-          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+          PtrParamNode pWeight = p->Get("weights");
+          int dim = -1;
+          if(pWeight->Has("dim_weights")) dim = pWeight->Get("dim_weights")->As<Integer>();
+          
+          material->SetScalar( dim, PREISACH_WEIGHTS_DIM);
+          int weightType = 0; // 0 = const, 1 = muDat, 2 = muDatExtended, 3 = givenTensor
+          if(pWeight->Has("const")){
+            weightType = 0;
+            Double constValue = pWeight->Get("const")->As<Double>();
+            material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("muDat")){
+            weightType = 1;
+            PtrParamNode muDat = pWeight->Get("muDat");
+            Double A = muDat->Get("A")->As<Double>();
+            Double h = muDat->Get("h")->As<Double>();
+            Double sigma = muDat->Get("sigma")->As<Double>();
+            Double eta = muDat->Get("eta")->As<Double>();
+            material->SetScalar(A, PREISACH_WEIGHTS_MUDAT_A, Global::REAL );
+            material->SetScalar(h, PREISACH_WEIGHTS_MUDAT_H, Global::REAL );
+            material->SetScalar(sigma, PREISACH_WEIGHTS_MUDAT_SIGMA, Global::REAL );
+            material->SetScalar(eta, PREISACH_WEIGHTS_MUDAT_ETA, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("muDatExtended")){
+            weightType = 2;
+            PtrParamNode muDatExt = pWeight->Get("muDatExtended");
+            Double A = muDatExt->Get("A")->As<Double>();
+            Double h1 = muDatExt->Get("h1")->As<Double>();
+            Double h2 = muDatExt->Get("h2")->As<Double>();
+            Double sigma1 = muDatExt->Get("sigma1")->As<Double>();
+            Double sigma2 = muDatExt->Get("sigma2")->As<Double>();
+            Double eta = muDatExt->Get("eta")->As<Double>();
+            material->SetScalar(A, PREISACH_WEIGHTS_MUDATEXT_A, Global::REAL );
+            material->SetScalar(h1, PREISACH_WEIGHTS_MUDATEXT_H1, Global::REAL );
+            material->SetScalar(h2, PREISACH_WEIGHTS_MUDATEXT_H2, Global::REAL );
+            material->SetScalar(sigma1, PREISACH_WEIGHTS_MUDATEXT_SIGMA1, Global::REAL );
+            material->SetScalar(sigma2, PREISACH_WEIGHTS_MUDATEXT_SIGMA2, Global::REAL );
+            material->SetScalar(eta, PREISACH_WEIGHTS_MUDATEXT_ETA, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("weightTensor")){
+            weightType = 3;
+            Matrix<Double> preisachWeightTensor(dim,dim);
+            ParamTools::AsTensor<double>(pWeight->Get("weightTensor"), dim, dim, preisachWeightTensor);
+            material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS_TENSOR, Global::REAL);
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } 
+          
+          Double a,b,c;
+          bool onlyanhyst;
+          if(pWeight->Has("anhystereticParameter")){
+            PtrParamNode anhystParams = pWeight->Get("anhystereticParameter");
+            if(anhystParams->Has("a")){
+              a = anhystParams->Get("a")->As<Double>();
+            } else {
+              a = 0.0;
+            }
+            if(anhystParams->Has("b")){
+              b = anhystParams->Get("b")->As<Double>();
+            } else {
+              b = 0.0;
+            }
+            if(anhystParams->Has("c")){
+              c = anhystParams->Get("c")->As<Double>();
+            } else {
+              c = 0.0;
+            }
+            if(anhystParams->Has("onlyAnhyst")){
+              c = anhystParams->Get("onlyAnhyst")->As<bool>();
+            } else {
+              onlyanhyst = false;
+            }
+          } else {
+            a = 0;
+            b = 0;
+            c = 0;
+            onlyanhyst = false;
+          }
+          material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+          material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+          material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
+          if(onlyanhyst){
+            material->SetScalar(1, PREISACH_WEIGHTS_ANHYST_ONLY);
+          } else {
+            material->SetScalar(0, PREISACH_WEIGHTS_ANHYST_ONLY);
+          }
+          
+          int adaptedToVectorCase = 0;
+          if(pWeight->Has("adaptedToMayergoyzVectorModel")){
+            bool adapted = pWeight->Get("adaptedToMayergoyzVectorModel")->As<bool>();
+            if(adapted){
+              adaptedToVectorCase = 1;
+            }
+          }
+          material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+          
+        } else {
+          int weightType = 0;
+          Double constValue = 0.5; // default; only constant that will work actually as int_preisachPlane weights != 1
+          material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+          material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          int adaptedToVectorCase = 0;
+          material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+          Double a = 0;
+          Double b = 0;
+          Double c = 0;
+          material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+          material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+          material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
         }
+
+//        // read weight dimension of Preisach hysterese model for weights
+//        int dim = -1;
+//        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+//        
+//        // read real permittivity tensor
+//        if(p->Has("weights"))
+//        {
+//          Matrix<Double> preisachWeightTensor(dim,dim);
+//          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+//          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+//        }
         
         Matrix<Double> initialStateTensor;
         if(p->Has("initialState"))
@@ -1442,12 +1916,12 @@ namespace CoupledField {
     //read Preisach hysterese model
     if(mag->Has("hystModel"))
     {
-      if(mag->Get("hystModel")->Has("preisach"))
+      if(mag->Get("hystModel")->Has("scalarPreisach"))
       {
-        PtrParamNode p = mag->Get("hystModel")->Get("preisach");
+        PtrParamNode p = mag->Get("hystModel")->Get("scalarPreisach");
         
         // force name
-        material->SetScalar("preisach", HYST_MODEL);
+        material->SetScalar("scalarPreisach", HYST_MODEL);
         
         // read E saturation of Preisach hysterese model
         if(p->Has("hSat"))
@@ -1537,18 +2011,131 @@ namespace CoupledField {
         material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
         material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
         material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
-        
-        // read weight dimension of Preisach hysterese model for weights
-        int dim = -1;
-        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
-        
-        // read real permittivity tensor
+
+        // new options for preisach weights
         if(p->Has("weights"))
         {
-          Matrix<Double> preisachWeightTensor(dim,dim);
-          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
-          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+          PtrParamNode pWeight = p->Get("weights");
+          int dim = -1;
+          if(pWeight->Has("dim_weights")) dim = pWeight->Get("dim_weights")->As<Integer>();
+          
+          material->SetScalar( dim, PREISACH_WEIGHTS_DIM);
+          int weightType = 0; // 0 = const, 1 = muDat, 2 = muDatExtended, 3 = givenTensor
+          if(pWeight->Has("const")){
+            weightType = 0;
+            Double constValue = pWeight->Get("const")->As<Double>();
+            material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("muDat")){
+            weightType = 1;
+            PtrParamNode muDat = pWeight->Get("muDat");
+            Double A = muDat->Get("A")->As<Double>();
+            Double h = muDat->Get("h")->As<Double>();
+            Double sigma = muDat->Get("sigma")->As<Double>();
+            Double eta = muDat->Get("eta")->As<Double>();
+            material->SetScalar(A, PREISACH_WEIGHTS_MUDAT_A, Global::REAL );
+            material->SetScalar(h, PREISACH_WEIGHTS_MUDAT_H, Global::REAL );
+            material->SetScalar(sigma, PREISACH_WEIGHTS_MUDAT_SIGMA, Global::REAL );
+            material->SetScalar(eta, PREISACH_WEIGHTS_MUDAT_ETA, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("muDatExtended")){
+            weightType = 2;
+            PtrParamNode muDatExt = pWeight->Get("muDatExtended");
+            Double A = muDatExt->Get("A")->As<Double>();
+            Double h1 = muDatExt->Get("h1")->As<Double>();
+            Double h2 = muDatExt->Get("h2")->As<Double>();
+            Double sigma1 = muDatExt->Get("sigma1")->As<Double>();
+            Double sigma2 = muDatExt->Get("sigma2")->As<Double>();
+            Double eta = muDatExt->Get("eta")->As<Double>();
+            material->SetScalar(A, PREISACH_WEIGHTS_MUDATEXT_A, Global::REAL );
+            material->SetScalar(h1, PREISACH_WEIGHTS_MUDATEXT_H1, Global::REAL );
+            material->SetScalar(h2, PREISACH_WEIGHTS_MUDATEXT_H2, Global::REAL );
+            material->SetScalar(sigma1, PREISACH_WEIGHTS_MUDATEXT_SIGMA1, Global::REAL );
+            material->SetScalar(sigma2, PREISACH_WEIGHTS_MUDATEXT_SIGMA2, Global::REAL );
+            material->SetScalar(eta, PREISACH_WEIGHTS_MUDATEXT_ETA, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("weightTensor")){
+            weightType = 3;
+            Matrix<Double> preisachWeightTensor(dim,dim);
+            ParamTools::AsTensor<double>(pWeight->Get("weightTensor"), dim, dim, preisachWeightTensor);
+            material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS_TENSOR, Global::REAL);
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } 
+          
+          Double a,b,c;
+          bool onlyanhyst;
+          if(pWeight->Has("anhystereticParameter")){
+            PtrParamNode anhystParams = pWeight->Get("anhystereticParameter");
+            if(anhystParams->Has("a")){
+              a = anhystParams->Get("a")->As<Double>();
+            } else {
+              a = 0.0;
+            }
+            if(anhystParams->Has("b")){
+              b = anhystParams->Get("b")->As<Double>();
+            } else {
+              b = 0.0;
+            }
+            if(anhystParams->Has("c")){
+              c = anhystParams->Get("c")->As<Double>();
+            } else {
+              c = 0.0;
+            }
+            if(anhystParams->Has("onlyAnhyst")){
+              c = anhystParams->Get("onlyAnhyst")->As<bool>();
+            } else {
+              onlyanhyst = false;
+            }
+          } else {
+            a = 0;
+            b = 0;
+            c = 0;
+            onlyanhyst = false;
+          }
+          material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+          material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+          material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
+          if(onlyanhyst){
+            material->SetScalar(1, PREISACH_WEIGHTS_ANHYST_ONLY);
+          } else {
+            material->SetScalar(0, PREISACH_WEIGHTS_ANHYST_ONLY);
+          }
+          
+          int adaptedToVectorCase = 0;
+          if(pWeight->Has("adaptedToMayergoyzVectorModel")){
+            bool adapted = pWeight->Get("adaptedToMayergoyzVectorModel")->As<bool>();
+            if(adapted){
+              adaptedToVectorCase = 1;
+            }
+          }
+          material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+          
+        } else {
+          int weightType = 0;
+          Double constValue = 0.5; // default; only constant that will work actually as int_preisachPlane weights != 1
+          material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+          material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          int adaptedToVectorCase = 0;
+          material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+          Double a = 0;
+          Double b = 0;
+          Double c = 0;
+          material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+          material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+          material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
         }
+        
+//        // read weight dimension of Preisach hysterese model for weights
+//        int dim = -1;
+//        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+//        
+//        // read real permittivity tensor
+//        if(p->Has("weights"))
+//        {
+//          Matrix<Double> preisachWeightTensor(dim,dim);
+//          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+//          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+//        }
         
         if(p->Has("strainForm")){
           material->SetScalar(p->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
@@ -1575,13 +2162,259 @@ namespace CoupledField {
         }
         
       }
-      
-      else if (mag->Get("hystModel")->Has("vectorPreisach"))
+      else if(mag->Get("hystModel")->Has("vectorPreisach_Mayergoyz"))
       {
-        PtrParamNode p = mag->Get("hystModel")->Get("vectorPreisach");
+        PtrParamNode p = mag->Get("hystModel")->Get("vectorPreisach_Mayergoyz");
         
         // force name
-        material->SetScalar("vectorPreisach", HYST_MODEL);
+        material->SetScalar("vectorPreisach_Mayergoyz", HYST_MODEL);
+        
+        // read E saturation of Preisach hysterese model
+        if(p->Has("numDirections"))
+          material->SetScalar(p->Get("numDirections")->As<Integer>(), PREISACH_MAYERGOYZ_NUM_DIR ); 
+        else
+          material->SetScalar(11, PREISACH_MAYERGOYZ_NUM_DIR ); 
+        
+        if(p->Has("isotropic")){
+          PtrParamNode iso = p->Get("isotropic");
+          
+          material->SetScalar(1, PREISACH_MAYERGOYZ_ISOTROPIC ); 
+          
+          // for isotropic case we have to define a single scalar Preisach model
+          // read P saturation of Preisach hysterese model
+                  // read E saturation of Preisach hysterese model
+          if(iso->Has("hSat"))
+            material->SetScalar(iso->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
+          // read P saturation of Preisach hysterese model
+          if(iso->Has("jSat"))
+            material->SetScalar(iso->Get("jSat")->As<Double>(), Y_SATURATION, Global::REAL );
+
+          // direction vector not used here as we create multiple of them either way
+//          Matrix<Double> directionVector;
+//          if(iso->Has("dirP"))
+//          {
+//            //std::cout << "InitialState found" << std::endl;
+//            ParamTools::AsTensor<double>(iso->Get("dirP"),1, 3, directionVector);
+//            //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+//          } else {
+//            //std::cout << "NO InitialState found" << std::endl;
+//            directionVector.Resize(1,3);
+//            directionVector.Init();
+//          }
+//          
+//          material->SetScalar( directionVector[0][0], P_DIRECTION_X, Global::REAL);
+//          material->SetScalar( directionVector[0][1], P_DIRECTION_Y, Global::REAL);
+//          material->SetScalar( directionVector[0][2], P_DIRECTION_Z, Global::REAL);
+
+          
+          material->SetScalar("VECTOR", PREISACH_DIM);
+          
+          // not ued here
+//          bool useExtension = false;
+//          Double rotResistance = 1;
+//          Double angularDistance = 0;
+//          Matrix<Double> initialStateTensor = Matrix<Double>(1,3);
+//          initialStateTensor.Init();
+//          
+//          if(p->Has("pseudoVectorExtension"))
+//          {
+//            PtrParamNode pExt = p->Get("pseudoVectorExtension");
+//            
+//            if(pExt->Has("useExtension"))
+//            {
+//              useExtension = pExt->Get("useExtension")->As<bool>();
+//            }
+//            
+//            if(pExt->Has("rotResistance"))
+//            {
+//              rotResistance = pExt->Get("rotResistance")->As<double>();
+//            }
+//            
+//            if(pExt->Has("angularDistance"))
+//            {
+//              angularDistance = pExt->Get("angularDistance")->As<double>();
+//            }
+//            
+//            if(pExt->Has("initialState"))
+//            {
+//              //std::cout << "InitialState found" << std::endl;
+//              ParamTools::AsTensor<double>(pExt->Get("initialState"),1, 3, initialStateTensor);
+//              //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+//            } 
+//          }
+//          int useExtensionInt = 0;
+//          if(useExtension){
+//            useExtensionInt = 1;
+//          }
+//          
+//          material->SetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
+//          material->SetScalar(rotResistance, ROT_RESISTANCE, Global::REAL);
+//          material->SetScalar(angularDistance, ANG_DISTANCE, Global::REAL);
+//          material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
+//          material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
+//          material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
+          
+          // new options for preisach weights
+          if(iso->Has("weights"))
+          {
+            PtrParamNode pWeight = iso->Get("weights");
+            int dim = -1;
+            if(pWeight->Has("dim_weights")) dim = pWeight->Get("dim_weights")->As<Integer>();
+            
+            material->SetScalar( dim, PREISACH_WEIGHTS_DIM);
+            int weightType = 0; // 0 = const, 1 = muDat, 2 = muDatExtended, 3 = givenTensor
+            if(pWeight->Has("const")){
+              weightType = 0;
+              Double constValue = pWeight->Get("const")->As<Double>();
+              material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+              material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+            } else if(pWeight->Has("muDat")){
+              weightType = 1;
+              PtrParamNode muDat = pWeight->Get("muDat");
+              Double A = muDat->Get("A")->As<Double>();
+              Double h = muDat->Get("h")->As<Double>();
+              Double sigma = muDat->Get("sigma")->As<Double>();
+              Double eta = muDat->Get("eta")->As<Double>();
+              material->SetScalar(A, PREISACH_WEIGHTS_MUDAT_A, Global::REAL );
+              material->SetScalar(h, PREISACH_WEIGHTS_MUDAT_H, Global::REAL );
+              material->SetScalar(sigma, PREISACH_WEIGHTS_MUDAT_SIGMA, Global::REAL );
+              material->SetScalar(eta, PREISACH_WEIGHTS_MUDAT_ETA, Global::REAL );
+              material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+            } else if(pWeight->Has("muDatExtended")){
+              weightType = 2;
+              PtrParamNode muDatExt = pWeight->Get("muDatExtended");
+              Double A = muDatExt->Get("A")->As<Double>();
+              Double h1 = muDatExt->Get("h1")->As<Double>();
+              Double h2 = muDatExt->Get("h2")->As<Double>();
+              Double sigma1 = muDatExt->Get("sigma1")->As<Double>();
+              Double sigma2 = muDatExt->Get("sigma2")->As<Double>();
+              Double eta = muDatExt->Get("eta")->As<Double>();
+              material->SetScalar(A, PREISACH_WEIGHTS_MUDATEXT_A, Global::REAL );
+              material->SetScalar(h1, PREISACH_WEIGHTS_MUDATEXT_H1, Global::REAL );
+              material->SetScalar(h2, PREISACH_WEIGHTS_MUDATEXT_H2, Global::REAL );
+              material->SetScalar(sigma1, PREISACH_WEIGHTS_MUDATEXT_SIGMA1, Global::REAL );
+              material->SetScalar(sigma2, PREISACH_WEIGHTS_MUDATEXT_SIGMA2, Global::REAL );
+              material->SetScalar(eta, PREISACH_WEIGHTS_MUDATEXT_ETA, Global::REAL );
+              material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+            } else if(pWeight->Has("weightTensor")){
+              weightType = 3;
+              Matrix<Double> preisachWeightTensor(dim,dim);
+              ParamTools::AsTensor<double>(pWeight->Get("weightTensor"), dim, dim, preisachWeightTensor);
+              material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS_TENSOR, Global::REAL);
+              material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+            } 
+            
+            Double a,b,c;
+            bool onlyanhyst;
+            if(pWeight->Has("anhystereticParameter")){
+              PtrParamNode anhystParams = pWeight->Get("anhystereticParameter");
+              if(anhystParams->Has("a")){
+                a = anhystParams->Get("a")->As<Double>();
+              } else {
+                a = 0.0;
+              }
+              if(anhystParams->Has("b")){
+                b = anhystParams->Get("b")->As<Double>();
+              } else {
+                b = 0.0;
+              }
+              if(anhystParams->Has("c")){
+                c = anhystParams->Get("c")->As<Double>();
+              } else {
+                c = 0.0;
+              }
+              if(anhystParams->Has("onlyAnhyst")){
+                c = anhystParams->Get("onlyAnhyst")->As<bool>();
+              } else {
+                onlyanhyst = false;
+              }
+            } else {
+              a = 0;
+              b = 0;
+              c = 0;
+              onlyanhyst = false;
+            }
+            material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+            material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+            material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
+            if(onlyanhyst){
+              material->SetScalar(1, PREISACH_WEIGHTS_ANHYST_ONLY);
+            } else {
+              material->SetScalar(0, PREISACH_WEIGHTS_ANHYST_ONLY);
+            }
+            
+            int adaptedToVectorCase = 0;
+            if(pWeight->Has("adaptedToMayergoyzVectorModel")){
+              bool adapted = pWeight->Get("adaptedToMayergoyzVectorModel")->As<bool>();
+              if(adapted){
+                adaptedToVectorCase = 1;
+              }
+            }
+            material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+            
+          } else {
+            int weightType = 0;
+            Double constValue = 0.5; // default; only constant that will work actually as int_preisachPlane weights != 1
+            material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+            int adaptedToVectorCase = 0;
+            material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+            Double a = 0;
+            Double b = 0;
+            Double c = 0;
+            material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+            material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+            material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
+          }
+          
+          //        
+          //        // read weight dimension of Preisach hysterese model for weights
+          //        int dim = -1;
+          //        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+          //        
+          //        // read real permittivity tensor    
+          //        if(p->Has("weights"))
+          //        {
+          //          Matrix<Double> preisachWeightTensor(dim,dim);
+          //          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          //          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+          //        }
+          
+          if(iso->Has("strainForm")){
+            material->SetScalar(iso->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
+          } else {
+            material->SetScalar(0, HYST_STRAIN_FORM);
+          }
+          
+          int coefdim = -1;
+          if(iso->Has("dim_betaCoefs")) coefdim = iso->Get("dim_betaCoefs")->As<Integer>();
+          material->SetScalar(coefdim, DIM_BETA_COEFS);
+          
+          Matrix<Double> betaCoef;
+          if(iso->Has("betaCoefs")&&(coefdim != -1))
+          {
+            //std::cout << "beta coefs found" << std::endl;
+            ParamTools::AsTensor<double>(iso->Get("betaCoefs"),1, coefdim, betaCoef);
+            //std::cout << "beta coefs: " << betaCoef.ToString() << std::endl;
+            material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
+          } else {
+            //std::cout << "NO betaCoef found" << std::endl;
+            betaCoef = Matrix<Double>(1,1);
+            betaCoef.Init();
+            //std::cout << "Beta coefs set to: " << betaCoef.ToString() << std::endl;
+            material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
+          }
+        } else {
+          EXCEPTION("Mayergoyz vector Preisach model currently only valid for isotropic materials");
+        }           
+      }
+
+      else if (mag->Get("hystModel")->Has("vectorPreisach_Sutor"))
+      {
+        PtrParamNode p = mag->Get("hystModel")->Get("vectorPreisach_Sutor");
+        
+        // force name
+        material->SetScalar("vectorPreisach_Sutor", HYST_MODEL);
         
         // read E saturation of Preisach hysterese model
         if(p->Has("hSat"))
@@ -1635,17 +2468,130 @@ namespace CoupledField {
           material->SetScalar(1e-9, AMP_RESOLUTION, Global::REAL);
         }
 								
-        // read weight dimension of Preisach hysterese model for weights
-        int dim = -1;
-        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
-        
-        // read real permittivity tensor
+        // new options for preisach weights
         if(p->Has("weights"))
         {
-          Matrix<Double> preisachWeightTensor(dim,dim);
-          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
-          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+          PtrParamNode pWeight = p->Get("weights");
+          int dim = -1;
+          if(pWeight->Has("dim_weights")) dim = pWeight->Get("dim_weights")->As<Integer>();
+          
+          material->SetScalar( dim, PREISACH_WEIGHTS_DIM);
+          int weightType = 0; // 0 = const, 1 = muDat, 2 = muDatExtended, 3 = givenTensor
+          if(pWeight->Has("const")){
+            weightType = 0;
+            Double constValue = pWeight->Get("const")->As<Double>();
+            material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("muDat")){
+            weightType = 1;
+            PtrParamNode muDat = pWeight->Get("muDat");
+            Double A = muDat->Get("A")->As<Double>();
+            Double h = muDat->Get("h")->As<Double>();
+            Double sigma = muDat->Get("sigma")->As<Double>();
+            Double eta = muDat->Get("eta")->As<Double>();
+            material->SetScalar(A, PREISACH_WEIGHTS_MUDAT_A, Global::REAL );
+            material->SetScalar(h, PREISACH_WEIGHTS_MUDAT_H, Global::REAL );
+            material->SetScalar(sigma, PREISACH_WEIGHTS_MUDAT_SIGMA, Global::REAL );
+            material->SetScalar(eta, PREISACH_WEIGHTS_MUDAT_ETA, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("muDatExtended")){
+            weightType = 2;
+            PtrParamNode muDatExt = pWeight->Get("muDatExtended");
+            Double A = muDatExt->Get("A")->As<Double>();
+            Double h1 = muDatExt->Get("h1")->As<Double>();
+            Double h2 = muDatExt->Get("h2")->As<Double>();
+            Double sigma1 = muDatExt->Get("sigma1")->As<Double>();
+            Double sigma2 = muDatExt->Get("sigma2")->As<Double>();
+            Double eta = muDatExt->Get("eta")->As<Double>();
+            material->SetScalar(A, PREISACH_WEIGHTS_MUDATEXT_A, Global::REAL );
+            material->SetScalar(h1, PREISACH_WEIGHTS_MUDATEXT_H1, Global::REAL );
+            material->SetScalar(h2, PREISACH_WEIGHTS_MUDATEXT_H2, Global::REAL );
+            material->SetScalar(sigma1, PREISACH_WEIGHTS_MUDATEXT_SIGMA1, Global::REAL );
+            material->SetScalar(sigma2, PREISACH_WEIGHTS_MUDATEXT_SIGMA2, Global::REAL );
+            material->SetScalar(eta, PREISACH_WEIGHTS_MUDATEXT_ETA, Global::REAL );
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } else if(pWeight->Has("weightTensor")){
+            weightType = 3;
+            Matrix<Double> preisachWeightTensor(dim,dim);
+            ParamTools::AsTensor<double>(pWeight->Get("weightTensor"), dim, dim, preisachWeightTensor);
+            material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS_TENSOR, Global::REAL);
+            material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          } 
+          
+          Double a,b,c;
+          bool onlyanhyst;
+          if(pWeight->Has("anhystereticParameter")){
+            PtrParamNode anhystParams = pWeight->Get("anhystereticParameter");
+            if(anhystParams->Has("a")){
+              a = anhystParams->Get("a")->As<Double>();
+            } else {
+              a = 0.0;
+            }
+            if(anhystParams->Has("b")){
+              b = anhystParams->Get("b")->As<Double>();
+            } else {
+              b = 0.0;
+            }
+            if(anhystParams->Has("c")){
+              c = anhystParams->Get("c")->As<Double>();
+            } else {
+              c = 0.0;
+            }
+            if(anhystParams->Has("onlyAnhyst")){
+              c = anhystParams->Get("onlyAnhyst")->As<bool>();
+            } else {
+              onlyanhyst = false;
+            }
+          } else {
+            a = 0;
+            b = 0;
+            c = 0;
+            onlyanhyst = false;
+          }
+          material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+          material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+          material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
+          if(onlyanhyst){
+            material->SetScalar(1, PREISACH_WEIGHTS_ANHYST_ONLY);
+          } else {
+            material->SetScalar(0, PREISACH_WEIGHTS_ANHYST_ONLY);
+          }
+          
+          int adaptedToVectorCase = 0;
+          if(pWeight->Has("adaptedToMayergoyzVectorModel")){
+            bool adapted = pWeight->Get("adaptedToMayergoyzVectorModel")->As<bool>();
+            if(adapted){
+              adaptedToVectorCase = 1;
+            }
+          }
+          material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+          
+        } else {
+          int weightType = 0;
+          Double constValue = 0.5; // default; only constant that will work actually as int_preisachPlane weights != 1
+          material->SetScalar(constValue, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL );
+          material->SetScalar(weightType, PREISACH_WEIGHTS_TYPE);
+          int adaptedToVectorCase = 0;
+          material->SetScalar(adaptedToVectorCase, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+          Double a = 0;
+          Double b = 0;
+          Double c = 0;
+          material->SetScalar(a, PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+          material->SetScalar(b, PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+          material->SetScalar(c, PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
         }
+        
+//        // read weight dimension of Preisach hysterese model for weights
+//        int dim = -1;
+//        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
+//        
+//        // read real permittivity tensor
+//        if(p->Has("weights"))
+//        {
+//          Matrix<Double> preisachWeightTensor(dim,dim);
+//          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+//          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+//        }
         
         Matrix<Double> initialStateTensor;
         if(p->Has("initialState"))
@@ -1752,7 +2698,20 @@ namespace CoupledField {
             alphaLSStart = pInv->Get("alphaRegStart")->As<double>();
           }
           material->SetScalar(alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
-
+          
+          double alphaLSMin = 1/512.0;
+          if(pInv->Has("alphaRegMin"))
+          {
+            alphaLSMin = pInv->Get("alphaRegMin")->As<double>();
+          }
+          material->SetScalar(alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
+          
+          double alphaLSMax = 8192;
+          if(pInv->Has("alphaRegMax"))
+          {
+            alphaLSMax = pInv->Get("alphaRegMax")->As<double>();
+          }
+          material->SetScalar(alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);
         }
       }  
       

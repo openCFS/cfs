@@ -14,6 +14,8 @@ namespace CoupledField {
   {
   public:
     Hysteresis(Integer numElem);
+    
+    Hysteresis(Integer numElem, Double XSaturated, Double YSaturated, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
 
     ///
     virtual ~Hysteresis();
@@ -37,8 +39,8 @@ namespace CoupledField {
       return 0.0;
     };
 
-    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idxElem, bool overwrite = true,bool overwriteDirection= true) {
-      EXCEPTION( "computeValue not implemented in base-Class" );
+    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idxElem, bool overwrite = true,bool overwriteDirection= true,bool debugOut = false) {
+      EXCEPTION( "computeValue_vec not implemented in base-Class" );
       Vector<Double> Yout;
       return Yout;
     };
@@ -54,7 +56,7 @@ namespace CoupledField {
       UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
       UInt& maximalNumberOfLinesearchIterations, UInt& successCode, 
       Double& minAlpha, Double& maxAlpha, Double& avgAlpha ){
-      EXCEPTION("computeInput_vec not implemented in base-class");
+      EXCEPTION("computeInput_vec_withStatistics not implemented in base-class");
     }
         
     // do not overwrite memory per default
@@ -132,16 +134,31 @@ namespace CoupledField {
     };
     
     virtual void SetParamsForInversion(UInt maxIter, Double resTolH, Double resTolB, Double jacobiResolution,
-          bool useTikhonov, Double alphaLSStart, Double angClipping){
+          bool useTikhonov, Double alphaLSStart, Double alphaLSMin, Double alphaLSMax, Double angClipping){
       EXCEPTION( "Only implemented and required for VectorPreisach model");
     };
 
-
+    inline Double evalAnhystPart_normalized(Double xNormalizedUnclipped){
+      // returns normalized anhysteretic part
+      return anhyst_A_*std::atan(anhyst_B_*xNormalizedUnclipped) + anhyst_C_*xNormalizedUnclipped;
+    }
+    
+    Double bisectForAnhyst_normalized(Double Ytarget_normalized, 
+      Double Xdown_normalized, Double Xup_normalized, Double Poffset_normalized, Double eps_mu_normalized, Double tol);
+    
+    Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol);
+    
   protected:
-
+    Double anhyst_A_;
+    Double anhyst_B_;
+    Double anhyst_C_;
+    bool anhystOnly_;
+    Double XSaturated_;
+    Double YSaturated_;
   private:
 
     Integer numElements_;
+
   };
 
 
