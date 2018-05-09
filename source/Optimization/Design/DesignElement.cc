@@ -368,6 +368,7 @@ DesignElement::Type DesignElement::Default(const Context* ctxt)
   switch(ctxt->ToApp()) // will fail for piezo ?!
   {
   case App::MECH:
+  case App::MAG:
     return DENSITY;
   case App::ACOUSTIC:
     return ACOU_DENSITY;

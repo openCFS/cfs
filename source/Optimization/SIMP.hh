@@ -116,6 +116,9 @@ protected:
   /** Calculate the Stress gradient. The weight is always 1 as the stress needs to be per excitation */
   void CalcVonMisesStressGradient(Excitation& excite, Function* f,  TransferFunction* tf);
 
+  /** Calculate the magnetic flux density gradient. The weight is always 1 as the magnetic flux density needs to be per excitation */
+  void CalcMagFluxDensGradient(Excitation& excite, Function* f,  TransferFunction* tf);
+
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases include a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates.

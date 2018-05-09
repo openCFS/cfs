@@ -793,6 +793,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     Vector<T> mat_vec(u1[0]->GetSize());
     TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(tf->GetDesign(), rhs->app) : NULL;
 
+
+
     // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
     Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
 
@@ -837,11 +839,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         // u1^T (K' u2 - f') -> find "K'"
         SetElementK(f->ctxt, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
         LOG_DBG3(em) << "mat: " << mat.ToString();
+        //std::cout << "mat= " << mat.ToString() << std::endl;
+        //std::cout << "u2_vec= " << u2_vec.ToString() << std::endl;
+        //std::cout << "u1_vec= " << u1_vec.ToString() << std::endl;
+        //std::cout << "u2= " << u2.ToString() << std::endl;
+        //std::cout << "u1= " << u1.ToString() << std::endl;
 
         // We generally solve u1^T (K' u2 - f')
         // u1^T (K' u2 - f') -> calc "K' u2"
         mat_vec = mat * u2_vec;
         LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
+        //std::cout << "mat_vec= " << mat_vec.ToString() << std::endl;
 
         // u1^T (K' u2 - f') -> calc "- f'"
         assert(!(calcMode == CONJ_QUAD && rtf != NULL));// no sensitive rhs here!
@@ -880,6 +888,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         de->AddGradient(f, this_value);
 
         LOG_DBG3(em) << "CalcU1KU2: e=" << e << "->" << de->GetIndex() << " de=" << de->ToString() << " <l,K'*u-f'>  = " << sp << " -> " << this_value << " sum = " << de->GetPlainGradient(f);
+
+        std::cout << "CalcU1KU2: e=" << e << "->" << de->GetIndex() << " de=" << de->ToString() << " <l,K'*u-f'>  = " << sp << " -> " << this_value << " sum = " << de->GetPlainGradient(f) << std::endl;
 
         sum += this_value;
 
@@ -1158,6 +1168,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // for legacy reasions there is also the difference between Objective and Condition, to be replaced once
     Objective* c = f->IsObjective() ? dynamic_cast<Objective*>(f) : NULL;
     Condition* g = f->IsObjective() ? NULL : dynamic_cast<Condition*>(f);
+    //std::cout << "f= " << f << std::endl;
+    //std::cout << "c= " << c << std::endl;
     double result = 0.0;// stays  for the derivative
     switch(f->GetType())
     {
@@ -1826,33 +1838,42 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     if(f->region == ALL_REGIONS)
       throw Exception("For function " + f->ToString() + " the attribute 'region' is mandatory");
 
+    //std::cout << "Region= " << f->ToString() << std::endl;
+
     // get elements
     StdVector<Elem*> elems;
-
-    domain->GetGrid()->GetElems(elems, f->region);
+    domain->GetGrid()->GetElems(elems, 2);
     assert(!elems.IsEmpty());
+
     // annoying entity iterator got hold the elem
     ElemList el(elems[0],domain->GetGrid());
 
     // the stored element solution vector
     StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
 
-    double result = 0.0;
+    //double result = 0.0;
 
-    Matrix<double> b_mat; // this holds the curl-operator for the whole element. for 2D rect it shall be 2 rows, 4 columns
-
+    Matrix<double> b_mat; // this holds the curl-operator for the whole element. For 2D rectangular case it shall be 2 rows, 4 columns
+    Matrix<double> J;
     Vector<double> mag_flux_density;
+    Vector<double> res;
+    Vector<double> twoDim(2);
+    Vector<double> threeDim(3);
 
     for(unsigned int e = 0; e < elems.GetSize(); e++)
     {
       Elem* elem = elems[e];
       el.SetElement(elem);
-
-      assert(sol.GetSize() > elem->elemNum);
-      Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
+      //std::cout << "sol.GetSize " << sol.GetSize() << std::endl;
+      //std::cout << "elem " << elem->elemNum << std::endl;
+      assert(sol.GetSize() > e);
+      Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[e]);
+      //assert(sol.GetSize() > elem->elemNum);
+      //Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
       assert(vec != NULL);
-      Vector<double>& a = *vec;
-      assert(!(domain->GetGrid()->IsRegionRegular(f->region) && a.GetSize() != 4)); // for regular 2D grid!!!
+      Vector<double>& a = *vec; // a stands for the Vectorpotential in the element
+      //std::cout << "a= " <<a.ToString() << std::endl;
+      //assert(!(domain->GetGrid()->IsRegionRegular(f->region) && a.GetSize() != 4)); // for regular 2D grid!!!
       LOG_DBG2(em) << "CMDF: i=" << e << " e=" << elem->elemNum << " -> " << a.ToString();
 
       // we need a lot of similar stuff as in BDBInt::CalcElementMatrix().
@@ -1860,6 +1881,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator();
       BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
       assert(bdb != NULL);
+
       // get B-mat
       StdVector<LocPoint> intPoints; // Get integration Points
       LocPointMapped lp;
@@ -1879,7 +1901,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
       {
         // Calculate for each integration point the LocPointMapped
-
         lp.Set( intPoints[ip], esm, weights[ip] );
 
         // Call the CalcBMat()-method
@@ -1887,22 +1908,37 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         assert(b_mat.GetNumCols() == a.GetSize());
         assert(b_mat.GetNumRows() == domain->GetGrid()->GetDim());
 
+        // Initialize if the magnetic flux density is two or three dimensional
+        if (b_mat.GetNumRows() == 2)
+        {
+          mag_flux_density = twoDim;
+          res = twoDim;
+        }
+        else if (b_mat.GetNumRows() == 3)
+        {
+          mag_flux_density = threeDim;
+          res = threeDim;
+        }
+
+        // Calculation of the magnetic flux density B = sum(rot(A)) = sum(b_mat * a) over the integration points
+        // b_mat consists of the derivative of the shape function, a consists of the magnetic vector potential
         b_mat *= weights[ip];
-        Vector<double> res;
         b_mat.Mult(a, res);
         mag_flux_density += res;
-
+        std::cout << "res= " << res.ToString() << std::endl;
+        //std::cout << "b_mat= " << b_mat << std::endl;
+        //std::cout << "mfd " << mag_flux_density.ToString() << std::endl;
         LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " mfd=" << mag_flux_density.ToString() << " b_mat=" << b_mat.ToString(0, false);
       }
     } // end loop elems
 
     // normalize mfd
     mag_flux_density /= elems.GetSize();
+    //mag_flux_density *= (-1);
 
     assert(f->GetType() == Function::MAG_FLUX_DENS_X || f->GetType() == Function::MAG_FLUX_DENS_Y);
     return f->GetType() == Function::MAG_FLUX_DENS_X ? mag_flux_density[0] : mag_flux_density[1];
 
-    return result;
   }
 
 
@@ -2576,6 +2612,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     assert(out.GetSize() == 0); // if not, we can skip resizing
     const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
     out.Resize(stateSol.GetSize(),0.0);
+    std::cout << "out.getSize= " << out.GetSize() << std::endl;
 
     // loop over all elements in region f->region
     // get B and set it to the nodal positions via eqnMap from element nodes
@@ -2586,11 +2623,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // annoying entity iterator got hold the elem
     ElemList el(elems[0],domain->GetGrid());
 
-    Matrix<double> b_mat; // this holds the curl-operator for the whole element. for 2D rect it shall be 2 rows, 4 columns
+    Matrix<double> b_mat; // this holds the curl-operator for the whole element. for 2D rectangular it shall be 2 rows, 4 columns
     BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator();
 
     // this gets the equation numbers for the element
-    StdVector<int> eqns;
+    StdVector<int> eqn;
 
     // select first or second row of b_mat
     assert(f->GetType() == Function::MAG_FLUX_DENS_X || f->GetType() == Function::MAG_FLUX_DENS_Y);
@@ -2630,13 +2667,21 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         // Call the CalcBMat()-method
         bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
         LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " b_mat=" << b_mat.ToString(0, false);
+        b_mat *= (-1); // minus because of the formular for the lagrange multiplicator
+        std::cout << "b_mat= " << b_mat << std::endl;
 
         // traverse nodes
         form->GetFeSpace1()->GetElemEqns(eqn, elem);
         assert(eqn.GetSize() == elem->connect.GetSize());
         assert(b_mat.GetNumCols() == elem->connect.GetSize());
-        for(unsigned int n = 0; n < eqn.GetSize(); n++)
+        // sum the values for each node in the element
+        for(unsigned int n = 0; n < eqn.GetSize(); n++){
           out[eqn[n]] += 1.0/elems.GetSize() * weights[ip] * b_mat[x_comp ? 0 : 1][n];
+        //std::cout << "out[eqn[n]]= " << out[eqn[n]] << std::endl;
+        //std::cout << "out= " << out << std::endl;
+        //std::cout << "eqn= " << eqn.GetSize() << std::endl;
+
+        }
       }
     } // end loop elems
 
@@ -2644,7 +2689,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
 
 
-  }
+  //}
 
 
   double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
@@ -3672,6 +3717,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::STRESS:
       case Function::TEMP_TRACKING_AT_INTERFACE: // track boundary driven load
       case Function::STRESS_DENSITY:
+      case Function::MAG_FLUX_DENS_X:
+      case Function::MAG_FLUX_DENS_Y:
       {
         // these objectives need their adjoint problems for the calculation of the objective value
         // they are directly solved after the StateProblem
@@ -3806,6 +3853,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::MAG_FLUX_DENS_Y:
       case Function::MAG_FLUX_DENS_X:
         CalcMagFluxAdjRHS(excite, f, rhs);
+        //std::cout << "rhs=" << rhs.ToString() << std::endl;
         break;
 
       default:

@@ -180,7 +180,7 @@ namespace CoupledField {
       EXCEPTION("SingleVector::Inner(): Not implemented here");
     }   
     
-    
+
   protected:
 
     //! Length of the vector object

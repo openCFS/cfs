@@ -117,6 +117,7 @@ namespace CoupledField
   
   BiLinFormContext* Assemble::GetBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1, SinglePDE* pde2, bool silent)
   {
+    //std::cout << "pde1= " << pde1 << "pde2= " << pde2 << "silent= " << silent << std::endl;
     for(std::set<BiLinFormContext*>::iterator it = allBiLinForms_.begin(); it != allBiLinForms_.end(); ++it )
     {
       BiLinFormContext& context = **it;

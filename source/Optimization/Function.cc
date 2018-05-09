@@ -572,6 +572,8 @@ bool Function::IsAdjointBased() const {
   case STRESS:
   case STRESS_DENSITY:
   case TEMP_TRACKING_AT_INTERFACE:
+  case MAG_FLUX_DENS_X:
+  case MAG_FLUX_DENS_Y:
     return true;
 
   case COMPLIANCE: // only in the transient case
@@ -862,6 +864,8 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
       // this is a special case where the constraint does not act on the design space
       if(type_ != STRESS && type_ != STRESS_DENSITY)
       {
+        string a = grid->GetRegion().ToString(region);
+        std::cout << a;
         string msg = "region " + grid->GetRegion().ToString(region)
             + " of condition " + type.ToString(type_)
             + " not within design domain";

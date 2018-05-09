@@ -15,6 +15,8 @@
 #include "Driver/Assemble.hh"
 #include "Driver/FormsContexts.hh"
 #include "Forms/LinForms/LinearForm.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Forms/BiLinForms/BDBInt.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
@@ -91,24 +93,31 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
   assert(ctxt->mat != NULL);
   OptimizationMaterial* mat = ctxt->mat;
   Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
+  std::cout << "out= " << out.ToString() << std::endl;
 
-  assert(app != App::MAG); // shall be in MagSIMP.cc
+  //assert(app != App::MAG); // shall be in MagSIMP.cc
 
   switch(app)
   {
+  case App::MAG:
   case App::MECH:
   case App::ACOUSTIC:
   case App::HEAT:
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
+    //std::cout << "mm= " << mm << std::endl;
 
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mat->Stiffness(de->elem, false, mm)); // no bimaterial
+    //std::cout << "stifness= " << stiffness.ToString() << std::endl;
 
     // Find the transfer function for K (e.g. DENSITY, App::MECH)
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, false) : tf->Transform(de, DesignElement::SMART);// not the bimat case
 
+    //std::cout << "k_factor= " << k_factor << std::endl;
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, stiffness, k_factor); // out = k_factor * stiffness
+    //std::cout << "stiffness= " << stiffness << std::endl;
+    //std::cout << "out= " << out << std::endl;
     // This log is very expensive, it blows up inv_tensor in the debug mode
     // LOG_DBG3(simp) << "SetElementK: el=" << de->elem->elemNum << " di=" << de->GetIndex() << " mm=" << mm << " K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
 
@@ -193,6 +202,13 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
     TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true);
     CalcVonMisesStressGradient(excite, f, tf);
+    break;
+  }
+  case Function::MAG_FLUX_DENS_X:
+  case Function::MAG_FLUX_DENS_Y:
+  {
+    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true);
+    CalcMagFluxDensGradient(excite, f, tf);
     break;
   }
 
@@ -309,6 +325,223 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
     LOG_DBG2(simp) << "CVMSG: f=" << f->ToString() << " de=" << de.elem->elemNum << " idx=" << idx << " alpha="
                    << (idx != -1 ? alpha[i] : -1.0)  << "* app=" << (idx != -1 ? appendix[i] : -1.0) << " -> " << de.GetPlainGradient(f);
 	}
+}
+
+void SIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferFunction* tf)
+{
+
+  // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
+  Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
+
+  // the gradient is < lambda^T, K' * A > + < J^T, B A' >
+
+  bool derivative = true;
+  Vector<double> appendix;
+  assert(appendix.GetSize() == 0); // if not, we can skip resizing
+  const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  appendix.Resize(stateSol.GetSize(),0.0);
+
+  assert(excite.sequence == f->ctxt->sequence);
+
+  // the stored element solution vector
+  StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
+
+  DesignDependentRHS rhs;
+  // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
+  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], &rhs, 1.0, STANDARD, f);
+  //std::cout << f->ToString() << std::endl;
+
+  // add < J^T, B dA/drho  >
+  // loop over all elements in region f->region
+  // get B and set it to the nodal positions via eqnMap from element nodes
+
+  if(f->region == ALL_REGIONS)
+        throw Exception("For function " + f->ToString() + " the attribute 'region' is mandatory");
+
+      //std::cout << "Region= " << f->ToString() << std::endl;
+
+      // get elements
+      StdVector<Elem*> elems;
+      domain->GetGrid()->GetElems(elems, 2);
+      assert(!elems.IsEmpty());
+
+      // annoying entity iterator got hold the elem
+      ElemList el(elems[0],domain->GetGrid());
+
+      //double result = 0.0;
+
+      Matrix<double> b_mat; // this holds the curl-operator for the whole element. For 2D rectangular case it shall be 2 rows, 4 columns
+      Vector<double> mag_flux_density;
+      Vector<double> res;
+      Vector<double> twoDim(2);
+      Vector<double> threeDim(3);
+      double var;
+      double base = 0;
+
+      for(unsigned int e = 0; e < elems.GetSize(); e++)
+      {
+        Elem* elem = elems[e];
+        el.SetElement(elem);
+        DesignElement* org = &design->data[e + base];
+        DesignElement* de = design->ApplyTransformations(org, org, trans);
+        double k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, false) : tf->Transform(de, DesignElement::SMART);// not the bimat case
+        //std::cout << "k_factor= " << k_factor << std::endl;
+        //std::cout << "sol.GetSize " << sol.GetSize() << std::endl;
+        //std::cout << "elem " << elem->elemNum << std::endl;
+        assert(sol.GetSize() > e);
+        Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[e]);
+        //assert(sol.GetSize() > elem->elemNum);
+        //Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
+        assert(vec != NULL);
+        Vector<double>& a = *vec; // a stands for the Vectorpotential in the element
+        //std::cout << "a= " <<a.ToString() << std::endl;
+        Assign(a,a,k_factor); // a' = k_factor * a
+        //std::cout << "aNeu= " <<a.ToString() << std::endl;
+        //assert(!(domain->GetGrid()->IsRegionRegular(f->region) && a.GetSize() != 4)); // for regular 2D grid!!!
+        //LOG_DBG2(em) << "CMDF: i=" << e << " e=" << elem->elemNum << " -> " << a.ToString();
+
+        // we need a lot of similar stuff as in BDBInt::CalcElementMatrix().
+        // get the form first
+        BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator();
+        BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
+        assert(bdb != NULL);
+
+        // get B-mat
+        StdVector<LocPoint> intPoints; // Get integration Points
+        LocPointMapped lp;
+        StdVector<double> weights;
+        IntegOrder order;
+        IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+        BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
+        form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type), method, order, intPoints, weights );
+        //LOG_DBG2(em) << "CMFD i=" << e << " e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
+        assert(method != IntScheme::UNDEFINED);
+        assert(!intPoints.IsEmpty());
+
+        // Get shape map from grid
+        shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
+
+        // Loop over all integration points
+        for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
+        {
+          // Calculate for each integration point the LocPointMapped
+          lp.Set( intPoints[ip], esm, weights[ip] );
+
+          // Call the CalcBMat()-method
+          bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
+          assert(b_mat.GetNumCols() == a.GetSize());
+          assert(b_mat.GetNumRows() == domain->GetGrid()->GetDim());
+
+          // Initialize if the problem is two or three dimensional
+          if (b_mat.GetNumRows() == 2)
+          {
+            mag_flux_density = twoDim;
+            res = twoDim;
+          }
+          else if (b_mat.GetNumRows() == 3)
+          {
+            mag_flux_density = threeDim;
+            res = threeDim;
+          }
+
+          // Calculation of the magnetic flux density B = sum(rot(A)) = sum(b_mat * a) over the integration points
+          // b_mat consists of the derivative of the shape function, a consists of the magnetic vector potential
+          b_mat *= weights[ip];
+          b_mat.Mult(a, res);
+          std::cout << "res= " << res.ToString() << std::endl;
+
+          if(f->GetType() == Function::MAG_FLUX_DENS_X)
+          {
+            var = res[0];
+          }
+          else if (f->GetType() == Function::MAG_FLUX_DENS_Y)
+          {
+            var = res[1];
+          }
+          else
+          {
+            assert(false);
+          }
+          std::cout << "var= " << var << std::endl;
+          de->AddGradient(f, var);
+
+        } // end loop elems
+      }
+
+  /*
+  // ugly copy and paste from CalcMagFluxDensity()
+  StdVector<Elem*> elems;
+  domain->GetGrid()->GetElems(elems, f->region);
+  // annoying entity iterator got hold the elem
+  ElemList el(elems[0],domain->GetGrid());
+  Matrix<double> b_mat; // this holds the curl-operator for the whole element. for 2D rectangular it shall be 2 rows, 4 columns
+  BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator();
+
+  // this gets the equation numbers for the element
+  StdVector<int> eqn;
+
+  // select first or second row of b_mat
+  assert(f->GetType() == Function::MAG_FLUX_DENS_X || f->GetType() == Function::MAG_FLUX_DENS_Y);
+  bool x_comp = f->GetType() == Function::MAG_FLUX_DENS_X;
+
+  for(unsigned int e = 0; e < elems.GetSize(); e++)
+    {
+    Elem* elem = elems[e];
+    el.SetElement(elem);
+    DesignElement& de = design->data[e];
+
+    Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[e]);
+    //assert(sol.GetSize() > elem->elemNum);
+    //Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
+    assert(vec != NULL);
+    Vector<double>& a = *vec; // a stands for the Vectorpotential in the element
+
+    // we need a lot of similar stuff as in BDBInt::CalcElementMatrix().
+    // get the form first
+    BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
+    assert(bdb != NULL);
+    // get B-mat
+    StdVector<LocPoint> intPoints; // Get integration Points
+    LocPointMapped lp;
+    StdVector<double> weights;
+    IntegOrder order;
+    IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+    BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
+    form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type), method, order, intPoints, weights );
+    //LOG_DBG2(em) << "CMFD i=" << e << " e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
+    assert(method != IntScheme::UNDEFINED);
+    assert(!intPoints.IsEmpty());
+
+    // Get shape map from grid
+    shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
+
+    // Loop over all integration points
+    for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
+      {
+      // Calculate for each integration point the LocPointMapped
+
+      lp.Set( intPoints[ip], esm, weights[ip] );
+
+      // Call the CalcBMat()-method
+      bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
+      //LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " b_mat=" << b_mat.ToString(0, false);
+      //std::cout << "b_mat= " << b_mat << std::endl;
+
+      // traverse nodes
+      form->GetFeSpace1()->GetElemEqns(eqn, elem);
+      assert(eqn.GetSize() == elem->connect.GetSize());
+      assert(b_mat.GetNumCols() == elem->connect.GetSize());
+      for(unsigned int n = 0; n < eqn.GetSize(); n++)
+      {
+        appendix[eqn[n]] += b_mat[x_comp ? 0 : 1][n];
+        std::cout << "appendix= " << appendix[eqn[n]] << std::endl;
+        de.AddGradient(f, appendix[eqn[n]]); // is it correct???
+      }
+      }
+
+    } // end loop elems*/
+
+
 }
 
 DesignDependentRHS::DesignDependentRHS()

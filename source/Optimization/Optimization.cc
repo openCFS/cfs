@@ -795,6 +795,7 @@ void Optimization::SolveAdjointProblems(Excitation* excite)
   {
     Function* f = ff[i];
     assert(f != NULL);
+    std::cout << f->IsAdjointBased() << std::endl;
     if(f->IsAdjointBased() && f->DoEvaluate(excite))
       SolveAdjointProblem(excite, f); // virtual! calls ErsatzMaterial implementation
   }
