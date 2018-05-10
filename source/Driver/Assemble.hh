@@ -82,6 +82,7 @@ namespace CoupledField {
 
     //! Assemble matrices for multiharmonic analysis
     void AssembleMatrices_MultHarm(Integer harmonic, UInt N, UInt M,
+     const std::map<RegionIdType, StdVector<NonLinType> >& regionNonLinTypes,
      const StdVector<Double>& multHarmFreqVec = StdVector<Double>());
 
     //! Initialize matrices for multiharmonic analysis

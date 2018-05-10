@@ -781,7 +781,8 @@ namespace CoupledField
   }
 
   void Assemble::AssembleMatrices_MultHarm(Integer harmonic, UInt N, UInt M,
-                                  const StdVector<Double>& multHarmFreqVec) {
+             const std::map<RegionIdType, StdVector<NonLinType> >& regionNonLinTypes,
+             const StdVector<Double>& multHarmFreqVec) {
 
     LOG_DBG(assemble) << "AM_Std: AssembleMatricesMultHarm() enter sequence="
         << domain->GetDriver()->GetActSequenceStep() << " for harmonic N=" << harmonic;
@@ -809,47 +810,14 @@ namespace CoupledField
       EntityList& firstEntities = *(listIt->first.first);
       EntityList& secondEntities = *(listIt->first.second);
 
-
-      UInt size = std::max(firstEntities.GetSize(), secondEntities.GetSize());
-
-      // Total work: numElement x numForms
-      std::stringstream progStream;
-      boost::progress_display progress( size*forms.GetSize(), progStream );
-
-      // First loop over all integrators to check, if any of them
-      // gets re-assembled
-      // Loop over all bilinearforms
-      bool anyReassemble = false;
-
-
-
-      // In multiharmonic analysis we always reassemble!
-      for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
-
-        BiLinFormContext & actContext = *forms[iForm];
-
-        // get matrix destinations
-        FEMatrixType destMat = actContext.GetDestMat();
-        FEMatrixType secDestMat = actContext.GetSecDestMat();
-
-        // If assemble was already called and the current destination
-        // matrix must not be reassembled -> continue with next iterator
-        if( matReassemble_[destMat] == false ) {
-          if( matReassemble_[secDestMat] != NOTYPE ) {
-            if(  matReassemble_[secDestMat] == false ) {
-              continue;
-            }
-          } else  {
-            continue;
-          }
-        }
-        anyReassemble = true;
-      }
-      if( !anyReassemble ) {
+      // If the region is not nonlinear, we do not have to assemble
+      // off-diagonal blocks in the multiharmonic system matrix
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes.find(firstEntities.GetRegion())->second;
+      if(nonLinTypes.GetSize() == 0 && harmonic != 0){
         continue;
       }
 
-
+      UInt size = std::max(firstEntities.GetSize(), secondEntities.GetSize());
 
 #ifdef USE_OPENMP
 #pragma omp parallel num_threads(CFS_NUM_THREADS)
@@ -943,13 +911,6 @@ namespace CoupledField
           LOG_DBG2(assemble) << "AM_Std: bilinform " << form->GetName() << " context=" << actContext.ToString() << " complex=" << form->IsComplex();
 
           try {
-
-            // make only output if desired
-            if( printProgressBar_) {
-              ++progress;
-              std::cout << progStream.str();
-              progStream.str("");
-            }
 
             // Calc element matrix
             if ( form->IsComplex() ){

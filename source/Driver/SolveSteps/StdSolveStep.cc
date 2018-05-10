@@ -1642,9 +1642,12 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
 
     // Special treatment is needed for the diagonal blocks, due to the mass part,
     // therefore handle this case seperately
-    //mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", 0);
+    // Contrary to the usual assembling process, we have to pass regionNonLInTypes_
+    // because regions without a BH curve don't have to be assembled into off-diagonal
+    // blocks in the global system matrix...performance improvement
     assemble_->AssembleMatrices_MultHarm(0, solStrat_->GetNumHarmN(),
         solStrat_->GetNumHarmM(),
+        regionNonLinTypes_,
         multHarmFreqVec_);
 
     if(!onlyDiagBlocks){
@@ -1664,7 +1667,10 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
 //
 //
           // assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
-          assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
+          // Contrary to the usual assembling process, we have to pass regionNonLInTypes_
+          // because regions without a BH curve don't have to be assembled into off-diagonal
+          // blocks in the global system matrix...performance improvement
+          assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM(), regionNonLinTypes_);
         }
       }
     }

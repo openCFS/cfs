@@ -368,51 +368,6 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
         std::conj(coefScal);
       }
 
-//      for(auto reg : hbRegion_){
-//          if( reg.region == elemReg){
-//            if(reg.isNonLin){
-//              const Vector<Complex>& fR = freqTimeRes_.GetFreqResult(N_ + harmonic);
-//              Complex tmp = fR[ positionOfElem_[lpm.ptEl->elemNum] ];
-//              if(std::fabs(tmp.real()) < 1.0e-4){
-//                coefScal = (Complex)0.0;
-//              }else{
-//                coefScal = tmp;
-//              }
-//
-//              // If harmonic is negative, we need conjugate ḩat{nu}
-//              if(harmonic < 0){
-//                std::conj(coefScal);
-//              }
-//              //std::cout<<coefScal<<std::endl;
-//              break;
-//            }else{
-//              if(harmonic == 0){
-//                reg.nonLinNuCoefMap->GetScalar(coefScalReal, lpm);
-//                break;
-//              }else{
-//                coefScal = (Complex)0.0;
-//              }
-//            }
-//          }
-//      }
-
-
-
-//        }else{
-//          for(auto reg : hbRegion_){
-//            if(harmonic == 0){
-//              if( reg.region == elemReg){
-//                reg.nonLinNuCoefMap->GetScalar(coefScalReal, lpm);
-//                coefScal = (Complex)coefScalReal;
-//                break;
-//              }
-//            }
-//          }
-//          coefScal = (Complex) 0.0;
-//        }
-
-
-
 
     }
   }

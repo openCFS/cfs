@@ -145,7 +145,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
     // Create new harmonic balance coefficient function and register the regions and material
-    UInt baseFreq, N, M, nFFT;
+    UInt baseFreq=0, N, M, nFFT;
     if(analysistype_ == MULTIHARMONIC){
       baseFreq = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->baseFreq_;
       N = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_N_;
