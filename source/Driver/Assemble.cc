@@ -1043,7 +1043,7 @@ namespace CoupledField
     }// loop over entitylist pairs
 
 
-algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX_MARKET, N, sbmInd);
+//algsys_->GetMatrix(SYSTEM)->Export_MultHarm("sysFirstExport", BaseMatrix::MATRIX_MARKET, N, sbmInd);
 
 
   }
