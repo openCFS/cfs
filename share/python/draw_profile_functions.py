@@ -182,9 +182,23 @@ def cartesian_to_grid_coord(x,res,eps=1e-6):
   h = 1.0 / res # assume domain is 1m x 1m x 1m
   return int(round((x-h/2.0) / h+eps)) 
 
-def grid_to_cartesian_coords(i,res):
-  h = 1.0 / res # assume domain is 1m x 1m x 1m
-  return i * h + h/2.0
+def grid_to_cartesian_coords(voxel,res,h=None):
+  assert(len(voxel) == 3)
+  assert(res is None and not (h is None))
+  if h is None:
+    h = []
+    if type(res) is int:
+      for i in range(len(voxel)):
+        h.append(1.0 / res)
+    else:
+      for r in res:
+        h.append(1.0 / res) # assume domain is 1m x 1m x 1m
+  
+  p = np.zeros(len(voxel))  
+  for i,v in enumerate(voxel):
+    p[i] = v * h[i] + h[i]/2.0
+     
+  return p 
 
 # @param offset: value added to converted cartesian
 def polar_to_cartesian(radius,radians,offset=0.5):
@@ -866,7 +880,7 @@ def generate_basecell(args,info):
       
       plt.show()
       
-    if args.target == "volume_mesh" or args.target == "surface_mesh" or args.target == "marching_cubes":
+    if args.target == "volume_mesh" or args.target == "surface_mesh" or args.target == "marching_cubes" or args.target == "image":
       global symmetric
       # if basecell is symmetric, calculate only 1/8 and mirror the rest
       symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
@@ -1040,9 +1054,7 @@ def write_profile_to_array(array,profile,multiple_regions):
   for i in range(0,bound):
     for j in range(0,bound):
       for k in range(0,bound):
-        x = grid_to_cartesian_coords(i, res)
-        y = grid_to_cartesian_coords(j, res)
-        z = grid_to_cartesian_coords(k, res)
+        x, y, z = grid_to_cartesian_coords((i,j,k), res)
         valx = cartesian_to_polar(y, z, (0.5,0.5))
         
         phi = angle_to_center((y,z))

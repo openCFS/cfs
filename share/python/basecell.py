@@ -195,7 +195,7 @@ if __name__ == "__main__":
   parser.add_argument('--multiple_regions', help="create mesh with only one region", action='store_true', default=False)
   parser.add_argument('--verbose', help="show spline plots",choices=["off","all_bisecs","profile_map","polar_plot","interpolation","all_splines"], default="off")
   parser.add_argument('--plot_bisec', help="plot a bisec function {x,y,z}{0...8}, e.g. x7")
-  parser.add_argument('--target', help="what to generate",choices=["volume_mesh","3dlines","marching_cubes","surface_mesh"], required=True)
+  parser.add_argument('--target', help="what to generate",choices=["volume_mesh","3dlines","marching_cubes","surface_mesh","image"], required=True)
   parser.add_argument('--save', help="overwrite default target name")
   parser.add_argument('--save_vtp', help="write volume mesh data to .vtp file", action='store_true',default=False)
   parser.add_argument('--to_info_xml', help="writes information on profile funcs to .info.xml", action='store_true', default=False)
@@ -355,7 +355,20 @@ if __name__ == "__main__":
   if args.target == "surface_mesh":
     connectivity = getConnectivity(points,cells)
     print("smoothing with niter:",args.smooth_iter," and lambda=",args.smooth_lambda)
-    points = taubin_smoothing(points,connectivity,bounds=[0,0,0,1,1,1],niter=args.smooth_iter,lamb=float(args.smooth_lambda)) 
+    points = taubin_smoothing(points,connectivity,bounds=[0,0,0,1,1,1],niter=args.smooth_iter,lamb=float(args.smooth_lambda))
+  
+  if args.target == "image":  
+    x = np.arange(0,array.shape[0]+1,1)
+    y = np.arange(0,array.shape[1]+1,1)
+    z = np.arange(0,array.shape[1]+1,1)
+    
+    from pyevtk.hl import gridToVTK
+    gridToVTK("image",x,y,z,cellData={"array":array})
+  
+    from marching_cubes import marching_cubes
+    marching_cubes(array,(1/args.res,1/args.res,1/args.res))   
+      
+    sys.exit()  
   
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)
