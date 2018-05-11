@@ -15,7 +15,8 @@ namespace CoupledField
   DEFINE_LOG(scalpreisachInversion, "scalpreisachInversion")
   
   VectorPreisachMayergoyz::VectorPreisachMayergoyz(Integer numElem, Vector<Double> xSat, Vector<Double> ySat, 
-          Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, bool anhystOnly) : Hysteresis(numElem){
+          Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,
+          Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, bool anhystOnly, int clipOutput) : Hysteresis(numElem){
     
     EXCEPTION("Anisotropic case not yet implemented; Find way to compute weightings first!");
     
@@ -23,7 +24,7 @@ namespace CoupledField
   
   VectorPreisachMayergoyz::VectorPreisachMayergoyz(Integer numElem, UInt numDirections, Double xSat, Double ySat, 
           Matrix<Double>& preisachWeight, UInt dim, bool isVirgin, 
-          Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly) : Hysteresis(numElem){
+          Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly, int clipOutput) : Hysteresis(numElem){
     
     /*
      * Idea of Mayergoyz model: 
@@ -101,7 +102,7 @@ namespace CoupledField
 //		std::cout << tmpMatrix2.ToString() << std::endl;
 //		matrixForCoefComputation_ > inverse of tmpMatrix
 		
-    clipOutput_ = true;
+    clipOutput_ = clipOutput;
     isIsotropic_ = true;
     
     if(isIsotropic_){
@@ -132,81 +133,94 @@ namespace CoupledField
       // > unless we have a way to measure or compute these values, the anisotropic case is not available
       EXCEPTION("Only isotropic case implemented.");
     }
+    
+    prevXVal_ = new Vector<Double>[numElem];
+    prevHVal_ = new Vector<Double>[numElem];
+    for(int k = 0; k < numElem; k++){     
+      prevXVal_[k] = Vector<Double>(dim_);
+      prevXVal_[k].Init();
+      prevHVal_[k] = Vector<Double>(dim_);
+      prevHVal_[k].Init();  
+    }
+    
   }
   
   VectorPreisachMayergoyz::~VectorPreisachMayergoyz(){
     delete [] singlePreisachOperators_;
     delete [] singleDirections_;
-  }
-//    
-  Vector<Double> VectorPreisachMayergoyz::computeInput_vec(Vector<Double> Yin, Integer idx, Matrix<Double> eps_mu, bool overwriteDirectioncomputeValue){
-    /*
-     * TO FIND OUT: can we actually use the same scalar preisach models (i.e. with the same weights) for forward and backward computation?
-     * > not found so far in literatur
-     */
     
-    /*
-     * Vectorial output = integral/sum over scalar models
-     */
-    Vector<Double> yCheck = Vector<Double>(dim_);
-    yCheck.Init();
-		
-		return yCheck;
-//    Double yCheckScal;
-//    
-//    Vector<Double> output = Vector<Double>(dim_);
-//    output.Init();
-//    
-//    
-//    Vector<Double> currentDir;
-//    Vector<Double> tmp = Vector<Double>(dim_);
-//    Double scalarInput, scalarOutput, eps_mu_scal;
-//    bool overwrite = false; // never overwrite here // overwriteDirection stemming from VectorPreisach to get same function header
-//    for(UInt i = 0; i < numDirections_; i++){
-//      currentDir = singleDirections_[i];
-//      eps_mu.Mult(currentDir,tmp);
-//      currentDir.Inner(tmp,eps_mu_scal);
-//      
-//      currentDir.Inner(Yin,scalarInput);
-//      scalarOutput = singlePreisachOperators_[i]->computeInputAndUpdate(scalarInput,eps_mu_scal,idx,overwrite);
-//      
-//      yCheckScal = singlePreisachOperators_[i]->computeValueAndUpdate(scalarOutput,idx,false);
-//      yCheckScal += eps_mu_scal*scalarOutput;
-////      std::cout << "Direction #" << i << std::endl;
-////      std::cout << "yIn = " << scalarInput << std::endl;
-////      std::cout << "yRet = " << yCheckScal << std::endl;
-////      std::cout << "xRet = " << scalarOutput << std::endl;
-//      
-//      output.Add(scalarOutput,currentDir);
-//      yCheck.Add(yCheckScal,currentDir);
-//    }
-////    std::cout << "output = " << output.ToString() << std::endl;
-//    Vector<Double> tmpTest = Vector<Double>(dim_);
-//    tmpTest.Init();
-//    for(UInt i = 0; i < numDirections_; i++){
-////      std::cout << "xRet, extracted, dir " << i << " = " << singleDirections_[i].Inner(output) << std::endl;
-//      tmpTest.Add(singleDirections_[i].Inner(output),singleDirections_[i]);
-//    }
-////    std::cout << "tmpTest = " << tmpTest.ToString() << std::endl;
-//    tmpTest.ScalarMult(2.0/numDirections_);
-////    std::cout << "tmpTest = " << tmpTest.ToString() << std::endl;
-//    //Double deltaAngle = M_PI/numDirections_;
-//    // for numerical integration we have to multiply by deltaAngle
-//    // and to average out correctly over the halfspace we have to multiply by 2.0/Pi
-//    // > in total, multiply by 2/numDir
-//    output.ScalarMult(2.0/numDirections_);
-//    yCheck.ScalarMult(2.0/numDirections_);
-//
-////    std::cout << "yInVec = " << Yin.ToString() << std::endl;
-////    std::cout << "yRetVec = " << yCheck.ToString() << std::endl;
-////    std::cout << "output = " << output.ToString() << std::endl;
-////    
-//    yCheck = computeValue_vec(output, idx, false, false, false);
-////    std::cout << "yRetVec from computeValue_vec = " << yCheck.ToString() << std::endl;
-//    eps_mu.Mult(output,tmp);
-//    yCheck.Add(tmp);
-//    return output;
+    delete[] prevXVal_;
+    delete[] prevHVal_;
   }
+//    
+//  Vector<Double> VectorPreisachMayergoyz::computeInput_vec(Vector<Double> Yin, Integer idx, Matrix<Double> eps_mu, bool overwriteDirectioncomputeValue){
+//    /*
+//     * TO FIND OUT: can we actually use the same scalar preisach models (i.e. with the same weights) for forward and backward computation?
+//     * > not found so far in literatur
+//     */
+//    
+//    /*
+//     * Vectorial output = integral/sum over scalar models
+//     */
+//    Vector<Double> yCheck = Vector<Double>(dim_);
+//    yCheck.Init();
+//		
+//		return yCheck;
+////    Double yCheckScal;
+////    
+////    Vector<Double> output = Vector<Double>(dim_);
+////    output.Init();
+////    
+////    
+////    Vector<Double> currentDir;
+////    Vector<Double> tmp = Vector<Double>(dim_);
+////    Double scalarInput, scalarOutput, eps_mu_scal;
+////    bool overwrite = false; // never overwrite here // overwriteDirection stemming from VectorPreisach to get same function header
+////    for(UInt i = 0; i < numDirections_; i++){
+////      currentDir = singleDirections_[i];
+////      eps_mu.Mult(currentDir,tmp);
+////      currentDir.Inner(tmp,eps_mu_scal);
+////      
+////      currentDir.Inner(Yin,scalarInput);
+////      scalarOutput = singlePreisachOperators_[i]->computeInputAndUpdate(scalarInput,eps_mu_scal,idx,overwrite);
+////      
+////      yCheckScal = singlePreisachOperators_[i]->computeValueAndUpdate(scalarOutput,idx,false);
+////      yCheckScal += eps_mu_scal*scalarOutput;
+//////      std::cout << "Direction #" << i << std::endl;
+//////      std::cout << "yIn = " << scalarInput << std::endl;
+//////      std::cout << "yRet = " << yCheckScal << std::endl;
+//////      std::cout << "xRet = " << scalarOutput << std::endl;
+////      
+////      output.Add(scalarOutput,currentDir);
+////      yCheck.Add(yCheckScal,currentDir);
+////    }
+//////    std::cout << "output = " << output.ToString() << std::endl;
+////    Vector<Double> tmpTest = Vector<Double>(dim_);
+////    tmpTest.Init();
+////    for(UInt i = 0; i < numDirections_; i++){
+//////      std::cout << "xRet, extracted, dir " << i << " = " << singleDirections_[i].Inner(output) << std::endl;
+////      tmpTest.Add(singleDirections_[i].Inner(output),singleDirections_[i]);
+////    }
+//////    std::cout << "tmpTest = " << tmpTest.ToString() << std::endl;
+////    tmpTest.ScalarMult(2.0/numDirections_);
+//////    std::cout << "tmpTest = " << tmpTest.ToString() << std::endl;
+////    //Double deltaAngle = M_PI/numDirections_;
+////    // for numerical integration we have to multiply by deltaAngle
+////    // and to average out correctly over the halfspace we have to multiply by 2.0/Pi
+////    // > in total, multiply by 2/numDir
+////    output.ScalarMult(2.0/numDirections_);
+////    yCheck.ScalarMult(2.0/numDirections_);
+////
+//////    std::cout << "yInVec = " << Yin.ToString() << std::endl;
+//////    std::cout << "yRetVec = " << yCheck.ToString() << std::endl;
+//////    std::cout << "output = " << output.ToString() << std::endl;
+//////    
+////    yCheck = computeValue_vec(output, idx, false, false, false);
+//////    std::cout << "yRetVec from computeValue_vec = " << yCheck.ToString() << std::endl;
+////    eps_mu.Mult(output,tmp);
+////    yCheck.Add(tmp);
+////    return output;
+//  }
   
   Vector<Double> VectorPreisachMayergoyz::computeValue_vec(Vector<Double>& xVal, Integer idx, bool overwrite,bool overwriteDirection,bool debugOutput){
         /*
@@ -281,11 +295,31 @@ namespace CoupledField
     // > in total, multiply by 2/numDir
 		// Question: why do we average out in the first place?
     //output.ScalarMult(2.0/numDirections_);
+    // actually M_PI/numDirections works better ...
 		output.ScalarMult(M_PI/numDirections_);
     
-    if(clipOutput_){
+    Vector<Double> dirInput = Vector<Double>(dim_);
+    dirInput.Init();
+    if(xVal.NormL2() != 0){
+      dirInput.Add(1.0/xVal.NormL2(),xVal);
+    }
+    
+    if(clipOutput_ == 1){
+      // clip amplitude to saturation; works well if input only in 1d but
+      // not so well if remanent parts perpendicular to input exist as those
+      // will be scaled down, too
       if(output.NormL2() > YSaturated_){
         output.ScalarMult(YSaturated_/output.NormL2());
+      }
+    } else if(clipOutput_ == 2){
+      // > default
+      // clip amplitude to saturation, but such that remanent part is not
+      // affected; results seem to be more reasonable than unclipped and clipping 1
+      Double projection = output.Inner(dirInput);
+      if(abs(output.NormL2()) > YSaturated_){
+        output.Add(-projection,dirInput);
+        Double normRemaining = output.NormL2();
+        output.Add(std::sqrt(YSaturated_*YSaturated_-normRemaining*normRemaining),dirInput);
       }
     }
 
@@ -294,8 +328,17 @@ namespace CoupledField
       // make sure that the scalar models return no anhystPart in this case
       if(xVal.NormL2() != 0){
         Double amplitude = YSaturated_*evalAnhystPart_normalized(xVal.NormL2()/XSaturated_);
-        output.Add(amplitude/xVal.NormL2(),xVal); 
+        output.Add(amplitude,dirInput); 
       } 
+    }
+    
+    if(overwrite == true){
+      /*
+       * store to arrays > as in VectorPreisachv10
+       * include anhyst part!
+       */
+      prevXVal_[idx] = xVal;
+      prevHVal_[idx] = output;
     }
     
     return output;
@@ -676,7 +719,8 @@ namespace CoupledField
      *         piezokeramischer Aktoren" - Dissertation, Felix Wolf, p. 127ff
      */
     
-		LOG_DBG(scalpreisachInversion) << "Compute inverse of Preisach operator for Yin = " << Yin;
+		LOG_TRACE(scalpreisachInversion) << "Compute inverse of Preisach operator for Yin = " << Yin;
+    LOG_TRACE(scalpreisachInversion) << "Index = " << idx;
 		LOG_DBG(scalpreisachInversion) << "Compute inverse of Preisach operator for Yin_normalized = " << Yin/YSaturated_;
     /*
      * 0. Check if Input drives system into saturation
@@ -823,7 +867,7 @@ namespace CoupledField
 
   //     dY = dY - dX_to_dY*previousXval_[idx];
         //std::cout << "Y_normalized - P_old_normalized - dX_to_dY*previousXval_[idx]: " << dY << std::endl;
-        LOG_DBG(scalpreisachInversion) << "Starting value for dY: " << dY*YSaturated_;
+        LOG_TRACE(scalpreisachInversion) << "Starting value for dY: " << dY*YSaturated_;
         LOG_DBG(scalpreisachInversion) << "Starting value for dY (normalized): " << dY;
         Integer minmaxcur = 0.0;
         if(dY > 0){
@@ -838,10 +882,11 @@ namespace CoupledField
         /*
          * 2. Check if difference to previous value is relevant or not
          */
-        if(abs(dY) < tol){
+        if(abs(dY) < 1e-16){
           // difference is negligible
-          //std::cout << "take previous xvalue" << std::endl;
+          LOG_TRACE(scalpreisachInversion) << "take previous xvalue" << std::endl;
           invcase = 31;
+          // attention: previousXval_ is normalized by XSaturated_
           Xout = previousXval_[idx];
         } else{
           invcase = 32;
@@ -1049,52 +1094,51 @@ namespace CoupledField
            */
           Xout = bisect(dY,x1,x2,xfix,eps_mu,tol);
         } // reuse old value
-
-        // rescale to -xSat to +xSat
-        LOG_DBG(scalpreisachInversion) << "Found Xout (normalized): " << Xout;
-        Xout *= XSaturated_;
-        LOG_DBG(scalpreisachInversion) << "Found Xout: " << Xout;
       } // pos/neg/no saturation
+      // rescale to -xSat to +xSat
+      //LOG_TRACE(scalpreisachInversion) << "Found Xout (normalized): " << Xout;
+      Xout *= XSaturated_;
+      LOG_TRACE(scalpreisachInversion) << "Found Xout: " << Xout;
+      
     } // anhyst only
-		
+
 		/*
      * final step: if overwrite == true > compute forward step to
      *						 update the list (this was not done yet!)
      * 
      * > has to be done for ALL cases
      */	
-		//if(overwrite){
-      //computeValueAndUpdate( Xout, idx, overwrite );
-    
+    bool debug = true;
+    if(overwrite || debug){
+      LOG_DBG(scalpreisachInversion) << "overwrite? " << overwrite;   
       Double yRetrieved = computeValueAndUpdate( Xout, idx, overwrite );
       //std::cout << "Xout: " << Xout << std::endl;
       //std::cout << "pRetrieved: " << yRetrieved << std::endl;
 			LOG_DBG(scalpreisachInversion) << "Found Xout: " << Xout;
       yRetrieved+=Xout*eps_mu;
-      LOG_DBG(scalpreisachInversion) << "Found Yout: " << yRetrieved;
-      bool debug = true;
-      if(debug){
-        if(abs(yRetrieved-Yin) > 100*tol){
-        LOG_DBG(scalpreisachInversion) << "InversionCase: " << invcase;
-				LOG_DBG(scalpreisachInversion) << "SubCase: " << subcase;
-        LOG_DBG(scalpreisachInversion) << "yRequested: " << Yin;
-        LOG_DBG(scalpreisachInversion) << "Found Yout: " << yRetrieved;
-        LOG_DBG(scalpreisachInversion) << "Difference: " << yRetrieved-Yin;
-				
-				Double P_old_normalized = previousPval_[idx];
-				Double Y_old_normalized = P_old_normalized+dX_to_dY*previousXval_[idx];
-
-				LOG_DBG(scalpreisachInversion) << "yOld: " << Y_old_normalized*YSaturated_;
-				LOG_DBG(scalpreisachInversion) << "yRequested-yOld: " << Yin-Y_old_normalized*YSaturated_;
-				LOG_DBG(scalpreisachInversion) << "yRequested-yOld (normalized): " << Yin-Y_old_normalized;
-				LOG_DBG(scalpreisachInversion) << "x1, x2, xOut: " << x1 << ", " << x2 << ", " << Xout;
-        }
-      }
-      
-      //std::cout << "yRetrieved: " << yRetrieved << std::endl;
-      //std::cout << "yRequested: " << Yin << std::endl;
-		//}
-		
+      LOG_TRACE(scalpreisachInversion) << "yRequested: " << Yin;
+      LOG_TRACE(scalpreisachInversion) << "Found Yout: " << yRetrieved;
+      LOG_TRACE(scalpreisachInversion) << "InversionCase: " << invcase;
+      LOG_TRACE(scalpreisachInversion) << "SubCase: " << subcase;
+//      if(abs(yRetrieved-Yin) > tol){
+//        LOG_TRACE(scalpreisachInversion) << "Difference: " << yRetrieved-Yin;
+//        
+//        Double P_old_normalized = previousPval_[idx];
+//        Double Y_old_normalized = P_old_normalized+dX_to_dY*previousXval_[idx];
+//        
+//        LOG_TRACE(scalpreisachInversion) << "yOld: " << Y_old_normalized*YSaturated_;
+//        LOG_TRACE(scalpreisachInversion) << "yRequested-yOld: " << Yin-Y_old_normalized*YSaturated_;
+//        LOG_TRACE(scalpreisachInversion) << "yRequested-yOld (normalized): " << Yin-Y_old_normalized;
+//        LOG_TRACE(scalpreisachInversion) << "x1, x2, xOut: " << x1 << ", " << x2 << ", " << Xout;
+//      }
+    } else {
+      //store value for the case that we want to reuse it later
+      // only needed if computeValueAndUpdate is not exectued with overwrite = true
+      //NOTE: we must not execute this line before computeValueAndUpdate as this 
+      // function would return without overwriting the hyst memory
+      //previousXval_[idx] = Xout/XSaturated_;
+    }
+      		
 		return Xout;
 	}
   
@@ -1166,7 +1210,7 @@ namespace CoupledField
   Double Preisach::updateMinMaxList(Double Xin, Integer idx, 
           bool overwrite )
   {
-    
+    LOG_TRACE(scalpreisachInversion) << "UpdateMinMaxList - Input: " << Xin;
     //std::cout << "UpdateMinMaxList - Input: " << Xin << std::endl;
     Double newY;
     
@@ -1181,7 +1225,13 @@ namespace CoupledField
 		
 		// determine type of current input
 		// only relevant if overwrite is true
-		Double diff = newX - previousXval_[idx];
+    
+    // NOTE: previousXval_[idx] = Xin/XSaturated_;
+    // > previousXval_ is unclipped
+    // > compare with clipped version of previousXval (better for saturation
+    //    as > sat and >> sat will reuse max value
+    Double oldX = normalizeAndClipInput(previousXval_[idx]*XSaturated_);
+		Double diff = newX - oldX;
 		int minmaxcur = 0;
 		if(diff > 0){
 			// new input is larger than last one > leads to a maximum
@@ -1190,6 +1240,10 @@ namespace CoupledField
 			// new input is smaller than last one > leads to a minimum
 			minmaxcur = -1;
 		} else if(diff == 0){
+      // reuse old value but set previousXval anew
+      // reason: above we compare the clipped values, Xin might be different from prevX
+      LOG_TRACE(scalpreisachInversion) << "Reuse: " << preisachSum_[idx];
+      previousXval_[idx] = Xin/XSaturated_;
 			return preisachSum_[idx];
 		}
     
@@ -1365,6 +1419,7 @@ namespace CoupledField
       LOG_DBG(scalpreisachInversion) << "Eval Preisach - Add anhystPart " << evalAnhystPart_normalized(X_norm_unclipped);
       LOG_DBG(scalpreisachInversion) << "for X/norm = " << (X_norm_unclipped);
       newY += evalAnhystPart_normalized(X_norm_unclipped);
+      preisachSum_[idx] += evalAnhystPart_normalized(X_norm_unclipped);
       //newY += anhyst_A_*std::atan(anhyst_B_*X_norm_unclipped) + anhyst_C_*X_norm_unclipped;
       
 			// store values for next evaluation
@@ -1406,7 +1461,7 @@ namespace CoupledField
       
       //newY += anhyst_A_*std::atan(anhyst_B_*X_norm_unclipped) + anhyst_C_*X_norm_unclipped;
     }
-    
+    LOG_TRACE(scalpreisachInversion) << "Computed new value: " << newY;
     //std::cout << "UpdateMinMaxList - Output: " << newY << std::endl;
     return newY;
   }

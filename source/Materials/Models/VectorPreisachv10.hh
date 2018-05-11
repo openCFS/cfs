@@ -672,21 +672,7 @@ namespace CoupledField {
     }
 
     //void ClipDirection(Vector<Double>& targetVector);
-    
-    void SetParamsForInversion(UInt maxIter, Double resTolH, Double resTolB, Double jacobiResolution,
-         bool useTikhonov, Double alphaLSStart, Double alphaLSMin, Double alphaLSMax, Double angClipping){
-      INV_maxIter_ = maxIter;
-      INV_resTolH_ = resTolH;
-      INV_resTolB_ = resTolB;
-      INV_jacobiResolution_ = jacobiResolution;
-      INV_useTikhonov_ = useTikhonov;
-      INV_alphaLSStart_ = alphaLSStart;
-      INV_alphaLSMin_ = alphaLSMin;
-      INV_alphaLSMax_ = alphaLSMax;
-      INV_angClipping_ = angClipping;
-    }
-    
-    
+
     // 
     /*
      * get-function should no longer be used
@@ -712,37 +698,7 @@ namespace CoupledField {
 //      }
 //    }
     
-    bool checkInversionOutput(Vector<Double>& xComputed, Vector<Double>& yTarget, 
-			Matrix<Double>& mu, Double tol, Double& resYNorm, Integer operatorIdx, bool overwriteMemory, bool overwriteDirection, bool output = false);
-		
-    bool checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol);
     
-    Double computeRho(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-				Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac);
-    
-    Integer checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha);
-    
-    Integer checkIncrementOLD(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha);
-    
-    Vector<Double> computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
-    
-    Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu, Matrix<Double> mu_inv, 
-    bool wrtX, bool relative);
-    
-    Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
-          Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
-					bool overwriteMemory, bool overwriteDirection);
-    
-    Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
-          Matrix<Double> mu, Matrix<Double> mu_inv, Integer operatorIdx, Double sign, bool wrtX, bool relative, 
-					UInt implementation, bool overwriteMemory, bool overwriteDirection);
-    
-    bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
-		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
-		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
-		Double& alpha, Double alphaMin, Double alphaMax,  bool wrtX, bool relative, UInt& numberOfIterations, Vector<Double>& xStart);
     
     //! Try to compute input xVal to hyst operator, such that mu*xVal + H(xVal) = yVal
     // return usable input xVal
@@ -760,17 +716,7 @@ namespace CoupledField {
       return computeInput_vec_withPrevStates(yVal, prevYval,
         prevXVal_[operatorIndex], prevHVal_[operatorIndex], operatorIndex, mu, overwriteDirection);
     }
-    
-    Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
-      Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true);
-    
-    Vector<Double> computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
-      Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, 
-      UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
-      UInt& maximalNumberOfLinesearchIterations, UInt& succesCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha );
-        
+     
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false){
       EXCEPTION("Not implemented in base class");
     }
@@ -812,7 +758,7 @@ namespace CoupledField {
     bool isVirgin_; //! yes, if starting at zero; currently flag is unused
     bool isSymmetric_; //! states if Preisach weights are symmetric w.r.t alpha = -beta
     
-    UInt dim_; //! 2D or 3D (axi not tested at all!)
+//    UInt dim_; //! 2D or 3D (axi not tested at all!) // in bace class
     UInt numElem_; //! total number of FE elements
     UInt numRows_; //! number of rows of the Preisach plane
     
@@ -837,22 +783,7 @@ namespace CoupledField {
      */
     Vector<Double>* preisachSum_;
     Vector<Double>* preisachSumTmp_;
-    
-    // additional for inversion
-    Vector<Double>* prevXVal_;
-    Vector<Double>* prevHVal_;
-    
-    // For inversion via Levenberg Marquardt
-    UInt INV_maxIter_;
-    Double INV_resTolH_;
-    Double INV_resTolB_;
-    Double INV_jacobiResolution_;
-    bool INV_useTikhonov_;
-    Double INV_alphaLSStart_;
-    Double INV_alphaLSMin_;
-    Double INV_alphaLSMax_;
-    Double INV_angClipping_;
-        
+            
     /*!
      * Quantities needed by the revised approach (Sutor2015)
      */

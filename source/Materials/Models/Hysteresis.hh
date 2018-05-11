@@ -50,14 +50,14 @@ namespace CoupledField {
       EXCEPTION("computeInput_vec not implemented in base-class");
     }
     
-    virtual Vector<Double> computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
-      Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, 
-      UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
-      UInt& maximalNumberOfLinesearchIterations, UInt& successCode, 
-      Double& minAlpha, Double& maxAlpha, Double& avgAlpha ){
-      EXCEPTION("computeInput_vec_withStatistics not implemented in base-class");
-    }
+//    virtual Vector<Double> computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
+//      Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
+//      Matrix<Double> mu, bool overwriteDirection, 
+//      UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
+//      UInt& maximalNumberOfLinesearchIterations, UInt& successCode, 
+//      Double& minAlpha, Double& maxAlpha, Double& avgAlpha ){
+//      EXCEPTION("computeInput_vec_withStatistics not implemented in base-class");
+//    }
         
     // do not overwrite memory per default
     virtual Double computeInputAndUpdate(Double Yin, Double eps_mu, Integer operatorIndex, bool overwrite = false){
@@ -133,10 +133,10 @@ namespace CoupledField {
       EXCEPTION( "setFlag not inplemented in base-Class")
     };
     
-    virtual void SetParamsForInversion(UInt maxIter, Double resTolH, Double resTolB, Double jacobiResolution,
-          bool useTikhonov, Double alphaLSStart, Double alphaLSMin, Double alphaLSMax, Double angClipping){
-      EXCEPTION( "Only implemented and required for VectorPreisach model");
-    };
+//    virtual void SetParamsForInversion(UInt maxIter, Double resTolH, Double resTolB, Double jacobiResolution,
+//          bool useTikhonov, Double alphaLSStart, Double alphaLSMin, Double alphaLSMax, Double angClipping){
+//      EXCEPTION( "Only implemented and required for VectorPreisach model");
+//    };
 
     inline Double evalAnhystPart_normalized(Double xNormalizedUnclipped){
       // returns normalized anhysteretic part
@@ -148,6 +148,64 @@ namespace CoupledField {
     
     Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol);
     
+    // from VecPreisachv10 > put into baseclass to make it available for Mayergoyz model, too
+    void SetParamsForInversion(UInt maxIter, Double resTolH, Double resTolB, Double jacobiResolution,
+         bool useTikhonov, Double alphaLSStart, Double alphaLSMin, Double alphaLSMax, Double angClipping){
+      INV_maxIter_ = maxIter;
+      INV_resTolH_ = resTolH;
+      INV_resTolB_ = resTolB;
+      INV_jacobiResolution_ = jacobiResolution;
+      INV_useTikhonov_ = useTikhonov;
+      INV_alphaLSStart_ = alphaLSStart;
+      INV_alphaLSMin_ = alphaLSMin;
+      INV_alphaLSMax_ = alphaLSMax;
+      INV_angClipping_ = angClipping;
+    }
+
+    bool checkInversionOutput(Vector<Double>& xComputed, Vector<Double>& yTarget, 
+			Matrix<Double>& mu, Double tol, Double& resYNorm, Integer operatorIdx, bool overwriteMemory, bool overwriteDirection, bool output = false);
+		
+    bool checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol);
+    
+    Double computeRho(Vector<Double>& xNew, Vector<Double>& xUpdate, 
+				Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac);
+    
+    Integer checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, 
+		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha);
+    
+    Integer checkIncrementOLD(Vector<Double>& xNew, Vector<Double>& xUpdate, 
+		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha);
+    
+    Vector<Double> computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
+    
+    Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu, Matrix<Double> mu_inv, 
+    bool wrtX, bool relative);
+    
+    Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
+          Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
+					bool overwriteMemory, bool overwriteDirection);
+    
+    Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
+          Matrix<Double> mu, Matrix<Double> mu_inv, Integer operatorIdx, Double sign, bool wrtX, bool relative, 
+					UInt implementation, bool overwriteMemory, bool overwriteDirection);
+    
+    bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
+		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
+		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
+		Double& alpha, Double alphaMin, Double alphaMax,  bool wrtX, bool relative, UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat);
+
+    Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
+      Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
+      Matrix<Double> mu, bool overwriteDirection = true);
+    
+    Vector<Double> computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
+      Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
+      Matrix<Double> mu, bool overwriteDirection, 
+      UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
+      UInt& maximalNumberOfLinesearchIterations, UInt& succesCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha );
+       
+    
+    
   protected:
     Double anhyst_A_;
     Double anhyst_B_;
@@ -155,6 +213,22 @@ namespace CoupledField {
     bool anhystOnly_;
     Double XSaturated_;
     Double YSaturated_;
+    UInt dim_;
+    
+    // additional for inversion
+    Vector<Double>* prevXVal_;
+    Vector<Double>* prevHVal_;
+    
+    // For inversion via Levenberg Marquardt
+    UInt INV_maxIter_;
+    Double INV_resTolH_;
+    Double INV_resTolB_;
+    Double INV_jacobiResolution_;
+    bool INV_useTikhonov_;
+    Double INV_alphaLSStart_;
+    Double INV_alphaLSMin_;
+    Double INV_alphaLSMax_;
+    Double INV_angClipping_;
   private:
 
     Integer numElements_;

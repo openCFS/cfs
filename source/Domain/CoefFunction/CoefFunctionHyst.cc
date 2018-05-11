@@ -922,7 +922,7 @@ namespace CoupledField {
           // check if weights are symmetric w.r.t. alpha = -beta
           // this property derives from vector model (see "Mathematical Models of Hysteresis and their Applications" - Mayergoyz  p.164 eq(3.58) )
           // make weights symmetric
-          std::cout << "Weights before forcing symmetry: " << MAT_PreisachWeights_.ToString() << std::endl;
+          //std::cout << "Weights before forcing symmetry: " << MAT_PreisachWeights_.ToString() << std::endl;
           for(UInt i = 0; i < MAT_numRows_; i++){
             for(UInt k = 0; k < MAT_numRows_-i; k++){
               // iterate over triangle -1 < alpha < 1; -1 < beta < -alpha
@@ -930,7 +930,7 @@ namespace CoupledField {
               MAT_PreisachWeights_[i][k] = MAT_PreisachWeights_[MAT_numRows_-k-1][MAT_numRows_-i-1];
             }
           }
-          std::cout << "Weights after forcing symmetry: " << MAT_PreisachWeights_.ToString() << std::endl;
+          //std::cout << "Weights after forcing symmetry: " << MAT_PreisachWeights_.ToString() << std::endl;
         }
       }
       
@@ -1072,7 +1072,14 @@ namespace CoupledField {
     int strainForm;
 		material_->GetScalar(strainForm, HYST_STRAIN_FORM);
     
-    if(strainForm != 0){
+    /*
+     * -1 : not coupled at all
+     *  0 : coupled e-form/h-form (piezo/magstrict)
+     *  1 : coupled d-form (piezo)
+     *  2 : coupled g-form (magstrict)
+     */
+    MAT_strainForm_ = strainForm;
+    if(strainForm > 0){
       MAT_useStrainForm_ = true;
     } else {
       MAT_useStrainForm_ = false;
@@ -1287,19 +1294,6 @@ namespace CoupledField {
 			material_->GetScalar(MAT_angResolution_, ANG_RESOLUTION, Global::REAL);
 			material_->GetScalar(MAT_angClipping_, ANG_CLIPPING, Global::REAL);
 			material_->GetScalar(MAT_ampResolution_, AMP_RESOLUTION, Global::REAL);
-			if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
-        Integer invMat, useTikhonov;
-        material_->GetScalar(invMat, MAX_NUM_IT_HYST_INV);
-        INV_maxIter_ = (UInt) invMat;
-        material_->GetScalar(INV_resTolH_, RES_TOL_H_HYST_INV, Global::REAL);
-        material_->GetScalar(INV_resTolB_, RES_TOL_B_HYST_INV, Global::REAL);
-        material_->GetScalar(INV_jacobiResolution_, JAC_RESOLUTION_HYST_INV, Global::REAL);
-        material_->GetScalar(useTikhonov, TIKHONOV_HYST_INV);
-        INV_useTikhonov_ = (bool) useTikhonov;
-        material_->GetScalar(INV_alphaLSStart_, ALPHA_LS_HYST_INV, Global::REAL);
-        material_->GetScalar(INV_alphaLSMin_, ALPHA_LS_MIN_HYST_INV, Global::REAL);
-        material_->GetScalar(INV_alphaLSMax_, ALPHA_LS_MAX_HYST_INV, Global::REAL);
-      }
         
 			int printOut;
 			int bmpResolution;
@@ -1354,10 +1348,6 @@ namespace CoupledField {
                 "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
                 "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
 			}
-      if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
-        hyst_->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
-            INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_);   
-      }
       
 			// initial input that shall be feeded to the vectorPreisach operator
 			MAT_initialInput_ = Vector<Double>(dim_);
@@ -1421,6 +1411,10 @@ namespace CoupledField {
       if( (dim_ != 2) || (isIsotropic == 0)){
         EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
       }
+      
+      int clipOutput = 0;
+      material_->GetScalar(clipOutput, PREISACH_MAYERGOYZ_CLIPOUTPUT);
+      
       int numDirections = 0;
       material_->GetScalar(numDirections, PREISACH_MAYERGOYZ_NUM_DIR);
       
@@ -1434,7 +1428,7 @@ namespace CoupledField {
      */
       
       hyst_ = new VectorPreisachMayergoyz(numHystOperators_, numDirections, MAT_xSat_, MAT_ySat_, 
-              MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+              MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_,clipOutput);
            
       hasInverseModel_ = false;
       
@@ -1448,15 +1442,34 @@ namespace CoupledField {
 				MAT_initialOutput_[k] = Vector<Double>(dim_);
 				MAT_initialOutput_[k].Init();
 			}
-      INV_resTolB_ = 1e-9;
-    
-      if(MAT_angClipping_ != 0){
-        WARN("Angular clipping currently not used; parameter will be ignored");
-      }
+            
     } else {
       EXCEPTION("Unknown hyst model");
     }
     
+    if ( (usedHystModel_ == "vectorPreisach_Sutor") || (usedHystModel_ == "vectorPreisach_Mayergoyz") ){
+      // inversion via LM > set parameter
+      if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
+        Integer invMat, useTikhonov;
+        material_->GetScalar(invMat, MAX_NUM_IT_HYST_INV);
+        INV_maxIter_ = (UInt) invMat;
+        material_->GetScalar(INV_resTolH_, RES_TOL_H_HYST_INV, Global::REAL);
+        material_->GetScalar(INV_resTolB_, RES_TOL_B_HYST_INV, Global::REAL);
+        material_->GetScalar(INV_jacobiResolution_, JAC_RESOLUTION_HYST_INV, Global::REAL);
+        material_->GetScalar(useTikhonov, TIKHONOV_HYST_INV);
+        INV_useTikhonov_ = (bool) useTikhonov;
+        material_->GetScalar(INV_alphaLSStart_, ALPHA_LS_HYST_INV, Global::REAL);
+        material_->GetScalar(INV_alphaLSMin_, ALPHA_LS_MIN_HYST_INV, Global::REAL);
+        material_->GetScalar(INV_alphaLSMax_, ALPHA_LS_MAX_HYST_INV, Global::REAL);
+        
+        hyst_->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
+                INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_);   
+      }
+    }
+    
+    if(MAT_angClipping_ != 0){
+      WARN("Angular clipping currently not used; parameter will be ignored");
+    }
 
 		/*
      * finally initialize storage
@@ -4200,6 +4213,9 @@ namespace CoupledField {
         int numDirections = 0;
         material_->GetScalar(numDirections, PREISACH_MAYERGOYZ_NUM_DIR);
         
+        int clipOutput = 0;
+        material_->GetScalar(clipOutput, PREISACH_MAYERGOYZ_CLIPOUTPUT);
+        
         /*
          * IMPORTANT REMARK:
          *  > although the Mayergoyz model is based on the scalar models 
@@ -4209,8 +4225,10 @@ namespace CoupledField {
          *      > see constructor above
          */
         hystTMP = new VectorPreisachMayergoyz(1, numDirections, MAT_xSat_, MAT_ySat_, 
-                MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
-
+                MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_,clipOutput);
+        
+        hystTMP->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
+          INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_); 
       } else {
         EXCEPTION("Invalid model selected for inversion test");
       }
@@ -4690,7 +4708,7 @@ namespace CoupledField {
       /*
        * III. Start testing
        */
-            
+      std::cout << "Start!" << std::endl;
       // overwriteMemory: 
       // this was true all the time but I don't get why
       // when we evaluate the hyst operator we just want to know which value
@@ -4771,15 +4789,15 @@ namespace CoupledField {
 			zeroVec.Init();
       
       if(vector){
-        if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-          xRetrieved[0] = hystTMP->computeInput_vec(yIn[0], 0, eps_mu,overwriteDirection);
-        } else {
+//        if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+//          xRetrieved[0] = hystTMP->computeInput_vec(yIn[0], 0, eps_mu,overwriteDirection);
+//        } else {
           // new: we have to pass the previous solution (here: 0)
           // new2: pass arguments by value!
           xRetrieved[0] = hystTMP->computeInput_vec_withStatistics(yIn[0], zeroVec, zeroVec, zeroVec, 0, eps_mu,
                   overwriteDirection, numberOfLMIterations, numberOfLinesearchIterations, 
                   maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha);
-        }
+//        }
       } else {
 				overwriteMemory = false;
 //        xRetrieved[0][0] = hystTMP->computeInputAndUpdate(yIn[0][0], zeroVec[0], zeroVec[0],
@@ -4835,11 +4853,11 @@ namespace CoupledField {
       
       overwriteMemory = true;
       if(vector){
-				if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-					hRetrieved[0] = hystTMP->computeValue_vec(xIn[0], 0, overwriteMemory, overwriteDirection);
-				} else {
+//				if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+//					hRetrieved[0] = hystTMP->computeValue_vec(xIn[0], 0, overwriteMemory, overwriteDirection);
+//				} else {
 					hRetrieved[0] = hystTMP->computeValue_vec(xRetrieved[0], 0, overwriteMemory, overwriteDirection);
-				}
+//				}
       } else {
 				//hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, 0, overwriteMemory);
         hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, overwriteMemory);
@@ -4878,7 +4896,9 @@ namespace CoupledField {
         hIn[i] = Vector<Double>(dim_);
         hIn[i].Init(0.0);
         if(vector){
+          std::cout << "Start forward" << std::endl;
           hIn[i] = hystTMP->computeValue_vec(xIn[i], 0, overwriteMemory, overwriteDirection);
+          std::cout << "End forward" << std::endl;
         } else {  
 					hIn[i][0] = hystTMP->computeValueAndUpdate(xIn[i][0], 0, overwriteMemory);
           //hIn[i][0] = hystTMP->computeValueAndUpdate(xIn[i][0], xIn[i-1][0], 0, overwriteMemory);
@@ -4895,13 +4915,15 @@ namespace CoupledField {
         successCode = 0;
         
         if(vector){
-          if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-            xRetrieved[i] = hystTMP->computeInput_vec(yIn[i],0, eps_mu, overwriteDirection);
-          } else {
+          std::cout << "Start backward" << std::endl;
+//          if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+//            xRetrieved[i] = hystTMP->computeInput_vec(yIn[i],0, eps_mu, overwriteDirection);
+//          } else {
             xRetrieved[i] = hystTMP->computeInput_vec_withStatistics(yIn[i], yRetrieved[i-1], xRetrieved[i-1], hRetrieved[i-1], 
                   0, eps_mu, overwriteDirection, numberOfLMIterations, numberOfLinesearchIterations, 
                   maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha);	
-          }
+//          }
+            std::cout << "End backward" << std::endl;
         } else {
 					overwriteMemory = false;
           xRetrieved[i] = Vector<Double>(dim_);
@@ -4957,11 +4979,11 @@ namespace CoupledField {
  
         overwriteMemory = true;
         if(vector){
-					if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-						hRetrieved[i] = hystTMP->computeValue_vec(xIn[i], 0, overwriteMemory, overwriteDirection);
-					} else {
+//					if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+//						hRetrieved[i] = hystTMP->computeValue_vec(xIn[i], 0, overwriteMemory, overwriteDirection);
+//					} else {
 						hRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection);
-					}
+//					}
           //hRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection);
         } else {
 					hRetrieved[i][0] = hystTMP->computeValueAndUpdate(xRetrieved[i][0], 0, overwriteMemory);

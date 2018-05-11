@@ -47,27 +47,29 @@ namespace CoupledField {
         isCoupled_ = false;
       }
       
-      if(isCoupled_ == false){
-        // no coupling tensors at all
-        strainForm_ = -1;
-      } else {
-        bool useStrainForm = hystCoefFunction_->useStrainForm();
-        if(!useStrainForm){
-          // just take input tensors as they are, i.e. e-form or h-form
-          strainForm_ = 0;
-        }else{
-          std::string PDEName = hystCoefFunction_->getPDEName();
-          if(PDEName == "Electrostatic"){
-            // piezo case
-            // compute d-form as basis for coupling
-            strainForm_ = 1;
-          } else {
-            // magstrict case
-            // compute g-form 
-            strainForm_ = 2;
-          }
-        }
-      }
+      strainForm_ = CoefFncHyst->GetStrainForm();
+      
+//      if(isCoupled_ == false){
+//        // no coupling tensors at all
+//        strainForm_ = -1;
+//      } else {
+//        bool useStrainForm = hystCoefFunction_->useStrainForm();
+//        if(!useStrainForm){
+//          // just take input tensors as they are, i.e. e-form or h-form
+//          strainForm_ = 0;
+//        }else{
+//          std::string PDEName = hystCoefFunction_->getPDEName();
+//          if(PDEName == "Electrostatic"){
+//            // piezo case
+//            // compute d-form as basis for coupling
+//            strainForm_ = 1;
+//          } else {
+//            // magstrict case
+//            // compute g-form 
+//            strainForm_ = 2;
+//          }
+//        }
+//      }
       
       // !!! small material parameter are assumed to be constant over region !!!
       // i.e. for each region, just one linear material tensor of eac kind stored
@@ -1158,11 +1160,11 @@ namespace CoupledField {
       
       Double s, lambda;
       if(flipped){
-        s = alpha;
-        lambda = beta/alpha;
-      } else {
         s = beta;
         lambda = alpha/beta;
+      } else {
+        s = alpha;
+        lambda = beta/alpha;
       }
       
       if(weightType_ == "Constant"){
@@ -1249,11 +1251,11 @@ namespace CoupledField {
       }
       Double tmp2 = lambda+1; // tmp2 = (alpha+beta)/s
       
-      Double denominator = std::pow(1 + std::pow( std::pow(tmp2*s*sigma,2) + std::pow((tmp*s-h)*sigma,2),eta),2);
+      Double denominator = std::pow(1 + std::pow( std::pow(tmp2*s*sigma,2) + std::pow((tmp*s-h)*sigma,2),eta),2);     
       Double nominator1 = -A*eta;
       Double nominator2 = std::pow( std::pow(tmp2*s*sigma,2) + std::pow((tmp*s-h)*sigma,2),eta-1);
       Double nominator3 = 2*s*std::pow(tmp2*sigma,2) + 2*(tmp*s-h)*sigma*sigma*tmp;
-
+      
       return nominator1*nominator2*nominator3/denominator;
     }
     
@@ -1364,24 +1366,26 @@ namespace CoupledField {
       // upper part
       for(UInt i = dimHalfInt; i < MAT_numRows_; i++){
         // note: we evaluated the weights always at the element center > add deltaS/2
-        alpha = (i - dimHalf)*delta + 1e-6*delta; 
+        alpha = (i - dimHalf)*delta + delta/2;//+ 1e-6*delta; 
         for(UInt k = MAT_numRows_-1-i; k <= i; k++){
-          beta = (k - dimHalf)*delta + 1e-6*delta;// + delta/2;
+          beta = (k - dimHalf)*delta + delta/2;//+ 1e-6*delta;// + delta/2;
           
           if(alpha == 0){
-            vectorWeights[i][k] = 0.75*getWeight(alpha, beta, delta);
+            vectorWeights[i][k] = 0.75*getWeight(0, 0, delta);
           } else {
             lambda = beta/alpha;
+            
             vectorWeights[i][k] = 0.0;
             // numerically integrate from 0 to alpha
             for(UInt pp = 0; pp < numIntegrationPoints; pp++){
               Double curY = integrationPoints[pp][0];
               Double curW = integrationPoints[pp][1];
-              
+              //std::cout << "s / 3*s*s*getWeight / s*s*s*getWeightDerivative / (tmp + tmp2)/(M_PI * alpha * alpha * std::sqrt(alpha*alpha - s*s))" << std::endl;
               s = x_of_y(curY,0,alpha);
               Double tmp = 3*s*s*getWeight(s,lambda*s,delta);
               
               bool flipped = false; // > s takes slot of alpha, lambda*s takes place of beta
+                            
               Double tmp2 = s*s*s*getWeightDerivative(s,lambda*s,delta, flipped);
               Double tmp3 = (tmp + tmp2)/(M_PI * alpha * alpha * std::sqrt(alpha*alpha - s*s));
 
@@ -1400,12 +1404,12 @@ namespace CoupledField {
       for(UInt k = 0; k < dimHalfInt; k++){
 //        std::cout << "k = " << k << std::endl;
         // note: we evaluated the weights always at the element center > add deltaS/2
-        beta = (k - dimHalf)*delta + 1e-6*delta;// + delta/2;
+        beta = (k - dimHalf)*delta + delta/2; //+ 1e-6*delta;// + delta/2;
         
         for(UInt i = k; i < MAT_numRows_-k-1; i++){
 //          std::cout << "MAT_numRows_-k-1 = " << MAT_numRows_-k-1 << std::endl;
 //          std::cout << "i = " << i << std::endl;
-          alpha = (i - dimHalf)*delta + 1e-6*delta;// + delta/2;
+          alpha = (i - dimHalf)*delta + delta/2; //+ 1e-6*delta;// + delta/2;
           
           if(beta == 0){
             vectorWeights[i][k] = 0.75*getWeight(alpha, beta, delta);
@@ -1441,6 +1445,8 @@ namespace CoupledField {
         // according to "Analysis of Isotropic Materials with Vector Hysteresis" - O. Bottauscio 1998
         // int_-pi/2^pi/2 cos(phi)^3 vectorWeights(alpha*cos(phi),beta*cos(phi) dphi != scalarWeight(alpha,beta)
         // this can be checked
+        // due to discretization of vectorWeights, we will not get a perfect match (except for constant weights)
+        // however, we come pretty close if Preisach resolution is fine enough!
         UInt numAngles = 101;
         Double deltaPhi = M_PI/numAngles;
         Double phi;
@@ -1455,7 +1461,7 @@ namespace CoupledField {
           }
           
           Double integral = 0.0;
-          Double target = getWeight(alpha, beta, delta);
+          Double target = getWeight(alpha+delta/2, beta+delta/2, delta);
           for(UInt i = 0; i < numAngles; i++){
             phi = -M_PI/2+i*deltaPhi;
             c = std::cos(phi);
@@ -1750,6 +1756,10 @@ namespace CoupledField {
     
     bool useStrainForm(){
       return MAT_useStrainForm_;
+    }
+    
+    int GetStrainForm(){
+      return MAT_strainForm_;
     }
     
     bool deltaMatActive(){
@@ -2510,6 +2520,7 @@ namespace CoupledField {
     BaseMaterial* material_;
     
     bool MAT_useStrainForm_;
+    int MAT_strainForm_;
     int MAT_dim_beta_;
     Matrix<Double> MAT_betaCoefs_;
     

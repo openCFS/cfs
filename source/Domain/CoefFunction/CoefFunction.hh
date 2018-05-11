@@ -604,6 +604,10 @@ public:
     EXCEPTION("Not implemented in base class");
   }
   
+  virtual int GetStrainForm(){
+    EXCEPTION("Not implemented in base class");
+  }
+  
   virtual std::string getPDEName(){
     EXCEPTION("Not implemented in base class");
   }
