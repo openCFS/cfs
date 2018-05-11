@@ -1597,6 +1597,7 @@ namespace CoupledField {
     PtrParamNode pWeight = NULL;
     PtrParamNode pAnhyst = NULL;
     PtrParamNode pInversion = NULL;
+    PtrParamNode pStrainForm = NULL;
     
     if(hystNode->Has("scalarPreisach")){
       model = hystNode->Get("scalarPreisach");
@@ -1676,12 +1677,11 @@ namespace CoupledField {
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
       }
       
-      if(model->Has("strainForm")){
-        material->SetScalar(model->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
-      } else {
-        material->SetScalar(0, HYST_STRAIN_FORM);
+      if(model->Has("smallSignalForm")){
+        pStrainForm = model->Get("smallSignalForm");
+        // Read in weights separately below as they require the same steps for VectorHysteresis, too
       }
-      
+
       int coefdim = -1;
       if(model->Has("dim_betaCoefs")) coefdim = model->Get("dim_betaCoefs")->As<Integer>();
       material->SetScalar(coefdim, DIM_BETA_COEFS);
@@ -1718,12 +1718,24 @@ namespace CoupledField {
        *                10 -> classical vector model, matrix based
        *                20 -> revised model, matrix based
        */
+      int evalVersion = 2;
       if(model->Has("evalVersion")){
-        material->SetScalar(model->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
-      } else {
-        material->SetScalar(2, EVAL_VERSION);
+        if(model->Get("evalVersion")->Has("Classical_Version_2012__list_implementation")){
+          evalVersion = 1;
+        } 
+        if(model->Get("evalVersion")->Has("Revised_Version_2015__list_implementation")){
+          evalVersion = 2;
+        }
+        if(model->Get("evalVersion")->Has("Classical_Version_2012__matrix_implementation")){
+          evalVersion = 10;
+        }
+        if(model->Get("evalVersion")->Has("Revised_Version_2015__matrix_implementation")){
+          evalVersion = 20;
+        }
       }
       
+      material->SetScalar(evalVersion, EVAL_VERSION);
+            
       if(model->Has("rotResistance")){
         material->SetScalar(model->Get("rotResistance")->As<Double>(), ROT_RESISTANCE, Global::REAL);
       } else {
@@ -1796,10 +1808,9 @@ namespace CoupledField {
         material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
       }
       
-      if(model->Has("strainForm")){
-        material->SetScalar(model->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
-      } else {
-        material->SetScalar(0, HYST_STRAIN_FORM);
+      if(model->Has("smallSignalForm")){
+        pStrainForm = model->Get("smallSignalForm");
+        // Read in weights separately below as they require the same steps for VectorHysteresis, too
       }
       
       int coefdim = -1;
@@ -1844,7 +1855,7 @@ namespace CoupledField {
         }
         
         if(innerModel->Has("ScalarModel")){
-          singleModel = model->Get("ScalarModel");
+          singleModel = innerModel->Get("ScalarModel");
         } else {
           EXCEPTION("Single scalar Preisach model required for isotropic vector model");
         }
@@ -1877,12 +1888,11 @@ namespace CoupledField {
           // Read in weights separately below as they require the same steps for VectorHysteresis, too
         }
         
-        if(singleModel->Has("strainForm")){
-          material->SetScalar(singleModel->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
-        } else {
-          material->SetScalar(0, HYST_STRAIN_FORM);
+        if(model->Has("smallSignalForm")){
+          pStrainForm = model->Get("smallSignalForm");
+          // Read in weights separately below as they require the same steps for VectorHysteresis, too
         }
-        
+
         int coefdim = -1;
         if(singleModel->Has("dim_betaCoefs")) coefdim = singleModel->Get("dim_betaCoefs")->As<Integer>();
         material->SetScalar(coefdim, DIM_BETA_COEFS);
@@ -1906,16 +1916,21 @@ namespace CoupledField {
         EXCEPTION("Anisotropic Mayergoyz vector hysteresis model not yet supported");
       }
       
-      bool clipOutputToSat = false;
+      int clipOutput = 2;
       if(model->Has("clipOutputToSat")){
-        clipOutputToSat = model->Get("clipOutputToSat")->As<bool>();
+        if(model->Get("clipOutputToSat")->Has("noClipping")){
+          clipOutput = 0;
+        }
+        if(model->Get("clipOutputToSat")->Has("clipAmplitude")){
+          clipOutput = 1;
+        }
+        if(model->Get("clipOutputToSat")->Has("clipComponentParallelToInput")){
+          // leads to most reasonable results
+          clipOutput = 2;
+        }
       }
       
-      if(clipOutputToSat){
-        material->SetScalar(1, PREISACH_MAYERGOYZ_CLIPOUTPUT);
-      } else {
-        material->SetScalar(0, PREISACH_MAYERGOYZ_CLIPOUTPUT);
-      }
+      material->SetScalar(clipOutput, PREISACH_MAYERGOYZ_CLIPOUTPUT);
       
       if(model->Has("hystInversion")){
         pInversion = model->Get("hystInversion");
@@ -1926,6 +1941,33 @@ namespace CoupledField {
       material->SetScalar("none", HYST_MODEL);  
       return;
     }
+    
+    /*
+     * -1 : not coupled at all
+     *  0 : coupled e-form/h-form (piezo/magstrict)
+     *  1 : coupled d-form (piezo)
+     *  2 : coupled g-form (magstrict)
+     */
+    int strainForm = -1;
+    if(pStrainForm != NULL){
+        
+      if(pStrainForm->Has("uncoupled")){
+        strainForm = -1;
+      }
+      if(pStrainForm->Has("piezo_eform")){
+        strainForm = 0;
+      }
+      if(pStrainForm->Has("piezo_dform")){
+        strainForm = 1;
+      }
+      if(pStrainForm->Has("magstrict_hform")){
+        strainForm = 0;
+      }
+      if(pStrainForm->Has("magstrict_gform")){
+        strainForm = 2;
+      }
+    }
+    material->SetScalar(strainForm, HYST_STRAIN_FORM);
     
     if(pWeight != NULL){
       // Read in weights
@@ -2018,67 +2060,71 @@ namespace CoupledField {
       material->SetScalar(0, PREISACH_WEIGHTS_ANHYST_ONLY);
     }
     
+    int maxNumIts = 35;
+    double tolH = 1e-12;
+    double tolB = 1e-12;
+    double jacRes = 1e-12;
+    bool useTikhonov = false;
+    double alphaLSStart = 0.25;
+    double alphaLSMin = 1.0/512.0;
+    double alphaLSMax = 8192.0;
+    
     if(pInversion != NULL){
-      int maxNumIts = 35;
+      
       if(pInversion->Has("maxNumberIterations"))
       {
         maxNumIts = pInversion->Get("maxNumberIterations")->As<Integer>();
       }
-      material->SetScalar(maxNumIts, MAX_NUM_IT_HYST_INV);
-      
-      double tolH = 1e-12;
+
       if(pInversion->Has("residualTolH"))
       {
         tolH = pInversion->Get("residualTolH")->As<double>();
       }
-      material->SetScalar(tolH, RES_TOL_H_HYST_INV, Global::REAL);
       
-      double tolB = 1e-12;
       if(pInversion->Has("residualTolB"))
       {
         tolB = pInversion->Get("residualTolB")->As<double>();
       }
-      material->SetScalar(tolB, RES_TOL_B_HYST_INV, Global::REAL);
       
-      double jacRes = 1e-12;
       if(pInversion->Has("jacobiResolution"))
       {
         jacRes = pInversion->Get("jacobiResolution")->As<double>();
       }
-      material->SetScalar(jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
-      
-      bool useTikhonov = false;
+
       if(pInversion->Has("useTikhonov"))
       {
         useTikhonov = pInversion->Get("useTikhonov")->As<bool>();
       }
-      int useTikhonovInt = 0;
-      if(useTikhonov){
-        useTikhonovInt = 1;
-      }
-      material->SetScalar(useTikhonovInt, TIKHONOV_HYST_INV);
       
-      double alphaLSStart = 0.25;
       if(pInversion->Has("alphaRegStart"))
       {
         alphaLSStart = pInversion->Get("alphaRegStart")->As<double>();
       }
-      material->SetScalar(alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
       
-      double alphaLSMin = 1/512.0;
       if(pInversion->Has("alphaRegMin"))
       {
         alphaLSMin = pInversion->Get("alphaRegMin")->As<double>();
       }
-      material->SetScalar(alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
-      
-      double alphaLSMax = 8192;
+     
       if(pInversion->Has("alphaRegMax"))
       {
         alphaLSMax = pInversion->Get("alphaRegMax")->As<double>();
       }
-      material->SetScalar(alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);
     }
+    
+    material->SetScalar(maxNumIts, MAX_NUM_IT_HYST_INV);
+    material->SetScalar(tolH, RES_TOL_H_HYST_INV, Global::REAL);
+    material->SetScalar(tolB, RES_TOL_B_HYST_INV, Global::REAL);
+    material->SetScalar(jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
+    
+    int useTikhonovInt = 0;
+    if(useTikhonov){
+      useTikhonovInt = 1;
+    }
+    material->SetScalar(useTikhonovInt, TIKHONOV_HYST_INV);
+    material->SetScalar(alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
+    material->SetScalar(alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
+    material->SetScalar(alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);
   }
 
 

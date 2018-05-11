@@ -25,6 +25,16 @@
     </xsd:choice>
   </xsd:complexType>
     
+    <xsd:complexType name="DT_SmallSignalForm">
+    <xsd:choice>
+      <xsd:element name="uncoupled"/>
+      <xsd:element name="piezo_eform"/>
+      <xsd:element name="piezo_dform"/>
+      <xsd:element name="magstrict_hform"/>
+      <xsd:element name="magstrict_gform"/>
+    </xsd:choice>
+  </xsd:complexType>  
+    
   <xsd:complexType name="DT_MuDATParams">
     <xsd:sequence>
       <xsd:element name="A" type="xsd:double" minOccurs="1"/>
@@ -137,7 +147,7 @@
       <xsd:element name="pseudoVectorExtension" type="DT_ScalPreisachExtension" minOccurs="0"/>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="anhystereticParameter" type="DT_AnhystereticParams" minOccurs="0"/>
-      <xsd:element name="strainForm" type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
+      <xsd:element name="smallSignalForm" type="DT_SmallSignalForm" minOccurs="0"/>
       <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="0" default="1"/>
       <xsd:element name="betaCoefs" minOccurs="0">
         <xsd:simpleType>
@@ -157,7 +167,7 @@
     <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
     <xsd:element name="weightsAdaptedToMayergoyzVectorModel" type="xsd:boolean" minOccurs="0" default="false"/>
     <xsd:element name="anhystereticParameter" type="DT_AnhystereticParams" minOccurs="0"/>
-    <xsd:element name="strainForm" type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
+    <xsd:element name="smallSignalForm" type="DT_SmallSignalForm" minOccurs="0"/>
     <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="0" default="1"/>
     <xsd:element name="betaCoefs" minOccurs="0">
         <xsd:simpleType>
@@ -198,15 +208,32 @@
       </xsd:sequence>
   </xsd:complexType>   
   
+  <xsd:complexType name="DT_MayergoyzClipping">
+    <xsd:choice>
+      <xsd:element name="noClipping"/>
+      <xsd:element name="clipAmplitude"/>
+      <xsd:element name="clipComponentParallelToInput"/>
+    </xsd:choice>
+  </xsd:complexType>
+  
   <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz">    
     <xsd:sequence>
       <xsd:choice>
         <xsd:element name="isotropic" type="DT_VectorPreisachHystModelMayergoyz_Isotropic" minOccurs="1" maxOccurs="1"/>
         <xsd:element name="anIsotropic" type="DT_VectorPreisachHystModelMayergoyz_Anisotropic" minOccurs="1" maxOccurs="1"/>
       </xsd:choice>
-      <xsd:element name="clipOutputToSat" type="xsd:boolean" minOccurs="0" default="false"/>
-      <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="1"/>
+      <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
+      <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="0"/>
     </xsd:sequence>
+  </xsd:complexType>  
+       
+   <xsd:complexType name="DT_SutorModelVersion">
+    <xsd:choice>
+      <xsd:element name="Classical_Version_2012__list_implementation"/>
+      <xsd:element name="Revised_Version_2015__list_implementation"/>
+      <xsd:element name="Classical_Version_2012__matrix_implementation"/>
+      <xsd:element name="Revised_Version_2015__matrix_implementation"/>
+    </xsd:choice>
   </xsd:complexType>  
        
     <xsd:complexType name="DT_VectorPreisachHystModelSutor">
@@ -261,7 +288,7 @@
     <xsd:sequence>
       <xsd:element name="inputSat" type="xsd:double"/>
       <xsd:element name="outputSat" type="xsd:double"/>
-      <xsd:element name="evalVersion"  type="xsd:nonNegativeInteger" minOccurs="0" default="2"/>
+      <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="0"/>
       <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0" default="1"/>
       <xsd:element name="angularDistance" type="xsd:double" minOccurs="0" default="0"/>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
@@ -279,7 +306,7 @@
       </xsd:element> 
       <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
       <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
-      <xsd:element name="strainForm" type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
+      <xsd:element name="smallSignalForm" type="DT_SmallSignalForm" minOccurs="0"/>
       <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="0" default="1"/>
       <xsd:element name="betaCoefs" minOccurs="0">
         <xsd:simpleType>
@@ -289,7 +316,7 @@
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element> 
-      <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="1"/>
+      <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 

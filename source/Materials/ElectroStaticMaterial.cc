@@ -49,6 +49,7 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_C );
     isAllowed_.insert( PREISACH_MAYERGOYZ_NUM_DIR );
     isAllowed_.insert( PREISACH_MAYERGOYZ_ISOTROPIC );
+    isAllowed_.insert( PREISACH_MAYERGOYZ_CLIPOUTPUT );
     isAllowed_.insert( A_JILES );
     isAllowed_.insert( ALPHA_JILES );
     isAllowed_.insert( K_JILES );
