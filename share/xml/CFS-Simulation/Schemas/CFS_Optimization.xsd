@@ -276,6 +276,9 @@
             mechanical/static loads and multiple harmonic frequencies. 
             The corresponding element is optional -->
           <xsd:attribute name="multiple_excitation" type="xsd:boolean" use="optional" default="false" />
+          
+          <!-- Define the region -->
+          <xsd:attribute name="region" use="optional" default="all" type="xsd:token"/>
 
           <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
           <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
@@ -412,6 +415,10 @@
                 <!-- expression like value smaller alpha+/-slack to be extended via mathparser -->
                 <!-- heat energy -->
                 <xsd:enumeration value="heatEnergy"/>
+                <!-- magnetic flux density x component -->
+                <xsd:enumeration value="magFluxDensX"/>
+                <!-- magnetic flux density Y component -->
+                <xsd:enumeration value="magFluxDensY"/>
                 <!-- pressure drop of fluidic system -->
                 <xsd:enumeration value="pressureDrop"/>
                 <!-- requires the function attribute with details -->
@@ -1718,6 +1725,10 @@
       <!-- Heat energy for heat pde -->
       <xsd:enumeration value="heatEnergy"/>
       <xsd:enumeration value="multiObjective"/>
+      <!-- Magnetic flux density x component -->
+      <xsd:enumeration value="magFluxDensX"/>
+      <!-- Magnetic flux density Y component -->
+      <xsd:enumeration value="magFluxDensY"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>
       <!-- forwards to a more general slack function (values (s)lack and (a)lpha to be given in the attribute function -->

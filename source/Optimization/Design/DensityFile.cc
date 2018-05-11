@@ -291,14 +291,14 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
 
    LOG_TRACE(density) << "Create: regular=" << this->space_->IsRegular();
 
-   if(this->space_->IsRegular())
+   /*if(this->space_->IsRegular())
    {
      StdVector<unsigned int> grid = domain->GetGrid()->CalcRegulardGridDiscretization();
      PtrParamNode mesh = in_->Get("mesh");
      mesh->Get("x")->SetValue(grid[0]);
      mesh->Get("y")->SetValue(grid[1]);
      mesh->Get("z")->SetValue(grid[2]);
-   }
+   }*/
 
    in_->Get("designSpace/non_design_vicinity")->SetValue(non_desing_vicinity);
 
