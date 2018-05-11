@@ -128,6 +128,11 @@ Vec N_;//dirVector which consist of 0 when a eqnNr corresponds to HomDirBC ,all 
 StdVector<unsigned int> cfsEqnMap_;
 Vec dirNodeVecGlobal_=nullptr;
 
+//Info dumped to .info.xml
+PetscInt totalSolverIter=0; //This sums iterations from all the optimization iteration. Useful for understanding mg.
+PetscInt niter=0;
+
+
 
 };
 
@@ -182,7 +187,9 @@ std::string solverstring_;
 std::string precondstring_;
 Vec N_;
 Vec dirNodeVecGlobal_=nullptr;
+//Number of nodes in x y and z directions respectively in case of structured with hex elem it is always elemNum in one direction +1
 int nx=0,ny=0,nz=0,dimension=0;
+
 };
   
 }

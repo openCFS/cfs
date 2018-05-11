@@ -68,7 +68,7 @@ PetscInt nlvls=2;
 Assemble * assemble_=nullptr;
 bool disableParalleAssemby=true;
 
-private:
+protected:
 PetscErrorCode ierr=0;
 //Coarsegrid solver parameters
 PetscScalar coarse_rtol = 1.0e-8;

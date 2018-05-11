@@ -206,7 +206,7 @@ ENDIF(USE_GIDPOST)
 # Find Netlib BLAS/LAPACK library
 # MKL contains blas and lapack, OpenBLAS contains blas and somehow also lapack?!
 #-----------------------------------------------------------------------------
-IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
+IF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  )
     
   SET(LAPACK_URL "${CFS_DS_SOURCES_DIR}/lapack")
   SET(LAPACK_BASE "lapack")
@@ -216,7 +216,7 @@ IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
     
   INCLUDE("${CFSDEPS_DIR}/lapack/External_LAPACK.cmake")
     
-ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
+ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  )
 
 #-----------------------------------------------------------------------------
 # Find OpenBLAS/LAPACK library
@@ -276,7 +276,7 @@ ENDIF(USE_ARPACK)
 #-----------------------------------------------------------------------------
 # Find SuiteSparse/CholMod/UMFPACK/AMD library
 #-----------------------------------------------------------------------------
-IF(USE_SUITESPARSE OR USE_ILUPACK)
+IF(USE_SUITESPARSE)
   SET(SUITESPARSE_URL "${CFS_DS_SOURCES_DIR}/suitesparse")
   SET(SUITESPARSE_BASE "SuiteSparse")
   SET(SUITESPARSE_VER "4.2.1")
@@ -284,7 +284,7 @@ IF(USE_SUITESPARSE OR USE_ILUPACK)
   SET(SUITESPARSE_MD5 "4628df9eeae10ae5f0c486f1ac982fce")
 
   INCLUDE("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
-ENDIF(USE_SUITESPARSE OR USE_ILUPACK)
+ENDIF(USE_SUITESPARSE)
 
 #-----------------------------------------------------------------------------
 # Find ILUPACK library
@@ -294,8 +294,9 @@ IF(USE_ILUPACK)
   SET(ILUPACK_BASE "ilupack")
   SET(ILUPACK_VER "2.2.1")
   SET(ILUPACK_GZ "${ILUPACK_BASE}${ILUPACK_VER}_src.tgz")
-  SET(ILUPACK_MD5 "7cb6ba2e854e13d243218d9e9478d13c")
+  SET(ILUPACK_MD5 "ef1bee47b6feaaca66fac9820b3dcc6e")
   INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
+  ADD_DEPENDENCIES(ilupack metis)
 ENDIF(USE_ILUPACK)
 
 #  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")

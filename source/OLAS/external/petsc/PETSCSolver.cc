@@ -33,26 +33,28 @@ PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::Ent
   firstSetup_ = true;
   dirNodeVec_=nullptr;
   N_=nullptr;
-
-  infoNode_ =  olasInfo->Get("petsc");
   xml_ = pn;
-  maxIter_    = xml_->Has("maxIter") ? pn->Get("maxIter")->As<int>() : 10000;
+  infoNode_ =  olasInfo->Get("petsc");
 
-  tolerance_  = xml_->Has("tolerance") ? pn->Get("tolerance")->As<double>() : 1e-12;
-  minTol_     = xml_->Has("minimalTolerance") ? pn->Get("minimalTolerance")->As<double>() : 1e-11;
-  logging_    = xml_->Has("logging") ? pn->Get("logging")->As<bool>() : false;
+  maxIter_    = xml_->Get("maxIter")->As<int>();
+  tolerance_  =  xml_->Get("tolerance")->As<double>();
+  minTol_  =  xml_->Get("minimalTolerance")->As<double>();
+
+  solverstring_=xml_->Get("solver")->As<std::string>();
+  precondstring_=CreatePrecondString(xml_); //this fn also gets some values to be set for the multigrid if precond=mg
+
 
   PtrParamNode hdr = infoNode_->Get(ParamNode::HEADER);
   hdr->Get("maxIter")->SetValue(maxIter_);
   hdr->Get("tolerance")->SetValue(double(tolerance_));
-  hdr->Get("minimalTolerance")->SetValue(double(minTol_));
-
-  solverstring_=CreateSolverString(xml_);
-  precondstring_=CreatePrecondString(xml_); //this fn also gets some values to be set for the multigrid if precond=mg
+  hdr->Get("solver")->SetValue(solverstring_);
+  hdr->Get("precond")->SetValue(precondstring_);
   if (precondstring_=="mg"){
-    MG_FLAG=true;
-    GetCFSEqnMapMG(cfsEqnMap_); //This fn also sets the assemble class flag skipElemAssembly_.
-  }
+     MG_FLAG=true;
+     GetCFSEqnMapMG(cfsEqnMap_); //This fn also sets the assemble class flag skipElemAssembly_.
+     hdr->Get("innerSolver")->SetValue(innerSovler);
+     hdr->Get("coarse_maxits")->SetValue(coarse_maxits);
+   }
 
 
 
@@ -242,18 +244,27 @@ void PETSCSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVe
   VecNorm(b_,NORM_2,&RHSnorm);
   VecSet(b_,0.0);
   t2 = MPI_Wtime();
-  // Log the the norm and max iter
-  PtrParamNode curr = infoNode_->Get(ParamNode::PROCESS)->Get("solve", ParamNode::APPEND);
-  PetscInt niter=0;
-  PetscScalar rnorm=0.0;
+
+  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
+
+  PetscScalar rnorm =0.0 ;
 
   KSPGetIterationNumber(solver_,&niter);CHKERRXX(ierr);
   KSPGetResidualNorm(solver_,&rnorm);CHKERRXX(ierr);
-
+  totalSolverIter += niter;
   rnorm = rnorm/RHSnorm;
-  curr->Get("timing")->SetValue(t2-t1);
-  curr->Get("residualNorm")->SetValue(rnorm);
-  curr->Get("iterations")->SetValue(niter);
+  if (progOpts->DoDetailedInfo())
+    out->Get("timing")->SetValue(t2-t1);
+  out->Get("residualNorm")->SetValue(rnorm);
+  out->Get("iterationCurrentStep")->SetValue(niter);
+  out->Get("totalIterations")->SetValue(totalSolverIter+niter);
+
+
+  if( rnorm > tolerance_ && rnorm > minTol_){
+    EXCEPTION("Linear Solver has not converged, reducing the tolerance or increasing the iterations might work sometime");
+  }
+
   //Create a global vector and scatter context to collect the solution vector to master process
   SendWorkerCommand(GET_SOL);
   Vec x_global;
@@ -319,10 +330,11 @@ PETSCWorker::PETSCWorker(int argc,const char **argv){
   if(xml_->GetChild()->GetName()=="petsc"){
 
     xml_=xml_->Get("petsc");
-    maxIter_    = xml_->Has("maxIter") ? xml_->Get("maxIter")->As<int>() : 10000;
-    tolerance_  = xml_->Has("tolerance") ? xml_->Get("tolerance")->As<double>() : 1e-12;
-    minTol_     = xml_->Has("minimalTolerance") ? xml_->Get("minimalTolerance")->As<double>() : 1e-11;
-    solverstring_=CreateSolverString(xml_);
+    maxIter_    = xml_->Get("maxIter")->As<int>();
+    tolerance_  = xml_->Get("tolerance")->As<double>();
+    minTol_  = xml_->Get("minimalTolerance")->As<double>();
+
+    solverstring_=xml_->Get("solver")->As<std::string>();
     precondstring_=CreatePrecondString(xml_);
     if (precondstring_=="mg")
       MG_FLAG=true;
@@ -354,7 +366,7 @@ PETSCWorker::~PETSCWorker(){
 
 }
 
- 
+
 
 void PETSCWorker::run(){
 

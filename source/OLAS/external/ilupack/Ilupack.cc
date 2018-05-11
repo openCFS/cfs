@@ -228,6 +228,9 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
   int ierr;
   ptr_IlupackFactor  vFact=nullptr ;
 
+
+
+  WriteSparseMatrixHB("MyMat.rsa",spr,8,2,"MyMat",index);
   isParallel?ierr=IlupackFactorizationOMP(spr,index,*parameter,nleaves,mtmetis,&vFact):ierr=IlupackAMGFactor();
 
   // factorize the iLU preconditioner
@@ -382,9 +385,16 @@ void Ilupack<T>::InitParameters()
       Exception("Parallel version of ilupack doesn't support complex matrix. Please set disable parallel bool");
     }
     else{
-      DSPDAMGinit(&mat, reinterpret_cast<DILUPACKparam*>(&param));
+    ConvertIlupackToMatrix(mat, &spr, index);
+    CopyShiftInts (spr.vptr, spr.vptr, spr.dim1+1, -1);
+    CopyShiftInts (spr.vpos, spr.vpos, spr.vptr[spr.dim1], -1);
+    index = 0;
+//    ConvertMatrixToIlupack(spr,index,&mat);
+    DSPDAMGinit(&mat, reinterpret_cast<DILUPACKparam*>(&param));
     }
-   ConvertIlupackToMatrix (mat, &spr, index);
+
+
+
   }
   else{
     IlupackAMGInit();
