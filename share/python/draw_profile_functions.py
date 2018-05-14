@@ -909,7 +909,8 @@ def generate_basecell(args,info):
     # marching_cubes expect float values (not double)
     h = np.float32(1.0/args.res)
     # coords of vertices lie in [0,1-h]
-    verts, faces, normals, values = measure.marching_cubes(array,spacing=(h,h,h),allow_degenerate=False)
+#     verts, faces, normals, values = measure.marching_cubes(array,spacing=(h,h,h),allow_degenerate=False)
+    verts, faces = measure.marching_cubes_classic(array,spacing=(h,h,h))
     
     # marching_cubes returns float values
     verts = np.asarray(verts)

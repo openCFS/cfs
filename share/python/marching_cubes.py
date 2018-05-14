@@ -69,14 +69,14 @@ def marching_cubes(voxels,spacing,thresh = 0.5):
         
         # example: vertex 3 was below the isosurface, cubeindex would equal 0000 1000 or 8
         cube_idx = 0
-        cube_idx |= 1 if local_verts[0].value < thresh else 0
-        cube_idx |= 2 if local_verts[1].value < thresh else 0
-        cube_idx |= 4 if local_verts[2].value < thresh else 0
-        cube_idx |= 8 if local_verts[3].value < thresh else 0
-        cube_idx |= 16 if local_verts[4].value < thresh else 0
-        cube_idx |= 32 if local_verts[5].value < thresh else 0
-        cube_idx |= 64 if local_verts[6].value < thresh else 0
-        cube_idx |= 128 if local_verts[7].value < thresh else 0
+        cube_idx |= 1 if local_verts[0].value > thresh else 0
+        cube_idx |= 2 if local_verts[1].value > thresh else 0
+        cube_idx |= 4 if local_verts[2].value > thresh else 0
+        cube_idx |= 8 if local_verts[3].value > thresh else 0
+        cube_idx |= 16 if local_verts[4].value > thresh else 0
+        cube_idx |= 32 if local_verts[5].value > thresh else 0
+        cube_idx |= 64 if local_verts[6].value > thresh else 0
+        cube_idx |= 128 if local_verts[7].value > thresh else 0
         
         # list of interpolated vertices (vertices of new triangles)
         vertlist = [None] * 12
@@ -129,12 +129,13 @@ def marching_cubes(voxels,spacing,thresh = 0.5):
           ntriangles += 1
           t += 3 
           
-#         print("ntriangles:",ntriangles," i:",i)  
-          
-  import matviz_vtk
-  pd = matviz_vtk.fill_vtk_polydata(points,triangles)        
-  matviz_vtk.show_write_vtk(pd, 10, "marching_cubes.vtp")
-  print("ntriangles:",ntriangles)
+  import matviz_vtk, vtk
+  pd = matviz_vtk.fill_vtk_polydata(points,triangles)
+  clean = vtk.vtkCleanPolyData()
+  clean.SetInputData(pd)
+  clean.Update()        
+  matviz_vtk.show_write_vtk(clean.GetOutput(), 10, "marching_cubes.vtp")
+  
   return triangles
   # assume each voxel center is a lattice node
   # -> marching cubes grid is shifted by hx/2,hy/2,hz/2 and 1 elem smaller in each dim
@@ -440,6 +441,20 @@ def create_lookup():
   
   return edgeTable, triTable  
 
+def VertexInterp2(thresh,p1,p2):
+  valp1 = p1.value
+  valp2 = p2.value
+  if np.isclose(np.abs(thresh-valp1),0):
+    return p1
+  if np.isclose(np.abs(thresh-valp2),0):
+    return p2
+  if np.isclose(np.abs(valp1-valp2),0):
+    return p1
+  
+  mu = (thresh - valp1) / (valp2 - valp1)
+  ncoords = p1.coords + mu * (p2.coords-p1.coords)
+  
+  return ncoords
 
 # linearly interpolate intersection points with isovalue 'thresh'
 # p1 and p2 are vertices of an edge and v1 and v2 scalar values at respective vertex
@@ -447,7 +462,8 @@ def create_lookup():
 def VertexInterp(thresh,p1,p2):
   
   if smaller(p2,p1):
-    p1, p2 = swap(p1,p2)
+    # swap p1 and p2
+    p1, p2 = p2, p1
   
   valp1 = p1.value
   valp2 = p2.value
@@ -459,14 +475,6 @@ def VertexInterp(thresh,p1,p2):
   else:
     return p1 + (thresh - valp1) * (p2 - p1) / (valp2 - valp1)   
     
-# swapping to points
-def swap(p1,p2):
-  tmp = p1
-  p1 = p2
-  p2 = p1
-  
-  return p1, p2
-
 # kind of comparing point with descending priority for x to z 
 def smaller(p1,p2):
   p1 = p1.coords

@@ -362,14 +362,32 @@ if __name__ == "__main__":
     y = np.arange(0,array.shape[1]+1,1)
     z = np.arange(0,array.shape[1]+1,1)
     
+    coordsx = np.zeros((len(x)-1,len(y)-1,len(z)-1))
+    coordsy = np.zeros((len(x)-1,len(y)-1,len(z)-1))
+    coordsz = np.zeros((len(x)-1,len(y)-1,len(z)-1))
+    
+    for j in range(len(y)-1):
+      for k in range(len(z)-1):
+        for i in range(len(x)-1):
+          coordsx[i,j,k] = i
+    for i in range(len(x)-1):
+      for k in range(len(z)-1):
+        for j in range(len(y)-1):
+          coordsy[i,j,k] = j
+    for i in range(len(x)-1):
+      for j in range(len(y)-1):
+        for k in range(len(z)-1):
+          coordsz[i,j,k] = k
+    
+    coords = (coordsx,coordsy,coordsz)
+                
     from pyevtk.hl import gridToVTK
-    gridToVTK("image",x,y,z,cellData={"array":array})
+    gridToVTK("image",x,y,z,cellData={"array":array,"coords":coords})
   
     from marching_cubes import marching_cubes
     marching_cubes(array,(1/args.res,1/args.res,1/args.res))   
+    sys.exit()
       
-    sys.exit()  
-  
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)
   mesh = None
