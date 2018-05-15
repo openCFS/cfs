@@ -12,7 +12,10 @@ from numpy import ceil
 import scipy.spatial
 from special_mesh_tools import *
 import cfs_utils
-import matviz_vtk
+try:
+  import matviz_vtk
+except:
+  print("failed to import matviz_vtk in mesh_tools_py, hopefully we don't need it")
 
 try:
   import meshpy.triangle as triangle
