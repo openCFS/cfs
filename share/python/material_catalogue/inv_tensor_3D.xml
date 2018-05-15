@@ -3,7 +3,6 @@
   
   <fileFormats>
     <output>
-      <hdf5 />
       <info/>
     </output>
     <materialData file="mat.xml" format="xml" />
@@ -38,10 +37,7 @@
           <dirichletHom name="center" dof="y"/ -->
         </bcsAndLoads>
         
-        <storeResults>
-          <elemResult type="mechPseudoDensity">  <allRegions/> </elemResult>
-          <elemResult type="physicalPseudoDensity"> <allRegions/> </elemResult>
-        </storeResults>
+        <storeResults/>
       </mechanic>
     </pdeList>
     <linearSystems>

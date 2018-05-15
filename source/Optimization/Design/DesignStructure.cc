@@ -157,6 +157,10 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   contribution_ = pn->Get("contribution")->As<string>() == "linear" ? LINEAR : CONSTANT;
   value  = pn->Get("value")->As<double>();
 
+  // for unstructured grids only "radius" filter makes sense
+  if (!regular && filter_space_ != RADIUS)
+    throw Exception("For non-regular grids filter has to be set with neighborhood='radius'.");
+
   if(value <= 0.0)
     ref.SetType(Filter::NO_FILTERING);
 
@@ -248,10 +252,8 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
       assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
 
-      // independent of the filter type, radius determines the neighborhood
-      // via barycenter distance.
-      if(!regular)  // save calling if possible
-        radius = FindFilterRadius(filter_space_, de, value);
+      // for unstructured grids only "radius" filter makes sense
+      assert(regular || filter_space_ == RADIUS);
 
       // set the filter neighborhood which is determined by radius
       // recursively via element neighbors.

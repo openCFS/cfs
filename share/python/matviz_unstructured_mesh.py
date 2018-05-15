@@ -9,7 +9,13 @@ import scipy.interpolate as ip
 
 
 
-def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_support, st1, st2, st3, angles, ip_nx, ip_ny, ip_nz, grad, scale):
+def create_3d_mesh_unstructured(coords, nondes_coords, nodes_force, nodes_support, design, ip_nx, ip_ny, ip_nz, grad, scale):
+  
+  st1 = design['s1']
+  st2 = design['s2']
+  st3 = design['s3']
+  angle = design['angle']
+  
   mesh = Mesh()
   centers, min, max = coords[0:3]  # design nodes
   nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign nodes
@@ -293,7 +299,13 @@ def point_inside_polygon(point, poly):
   else:
     return False
 
-def write_node_design(name, mesh, coords, st1, st2, st3, angles):
+def write_node_design(name, mesh, coords, design):
+  
+  st1 = design['s1']
+  st2 = design['s2']
+  st3 = design['s3']
+  angles = design['angle']
+
   # maps element density to element corner nodes
   nodes_st1 = zeros((len(mesh.nodes), 1))
   nodes_st2 = zeros((len(mesh.nodes), 1))

@@ -1,4 +1,4 @@
-function [ file, volume, dimension ] = generateCross(point,filepath,nx,ny)
+function [ file, volume, dimension ] = generateCrossSparse(point,filepath,nx)
 % GENERATECROSS  -  Generates a vertical cross.
 %
 % @param:
@@ -6,8 +6,6 @@ function [ file, volume, dimension ] = generateCross(point,filepath,nx,ny)
 %       point(2)  thickness of vertical bar in [0,1]
 %       filepath  path to generated mesh file (optional)
 %       nx        resolution of mesh (optional)
-% 
-% 
 % 
 % 
 %                         s2
@@ -36,7 +34,6 @@ function [ file, volume, dimension ] = generateCross(point,filepath,nx,ny)
 
 if nargin < 3
     nx = 128;
-    ny = 128;
 end
 
 if nargin < 2
@@ -47,98 +44,35 @@ if length(point) ~= 2
     throw( MException( 'generateFramedCross:wrongParameterCount', 'point does not contain two parameters.' ));
 end
 
-if point(1) < 0 || point(1) > 1
-    throw( MException( 'generateFramedCross:parameterOutOfRange', sprintf('point(1) has to be in [0;1], but is %f.', point(1)) ));
-end
-if point(2) < 0 || point(2) > 1
-    throw( MException( 'generateFramedCross:parameterOutOfRange', sprintf('point(2) has to be in [0;1], but is %f.', point(3)) ));
-end
+density = zeros(nx);
 
-s1 = point(1);
-s2 = point(2);
-
-volume = s1 + s2 - s1*s2;
+s1 = round(point(1)*nx);
+s2 = round(point(2)*nx);
 
 dimension = 2;
 
-% Nodes
-% Nodes are separated into three parts:
-% 0 to remainder / remainder to remainder + s / remainder + s to 1
-% Thus the second part has excactly the width s.
-
-yremainder = (1-s1)/2;
-xremainder = (1-s2)/2;
-
-% Points in each part
-px1 = ceil(xremainder*nx)+1;
-px2 = ceil(s2*nx)+1;
-px3 = px1;
-py1 = ceil(yremainder*ny)+1;
-py2 = ceil(s1*ny)+1;
-py3 = py1;
-
-% Coordinates of points in each part
-x1 = linspace(0,xremainder,px1);
-x2 = linspace(x1(end),x1(end)+s2,px2);
-x3 = linspace(x2(end),1,px3);
-x = [x1,x2(2:end),x3(2:end)];
-
-y1 = linspace(0,yremainder,py1);
-y2 = linspace(y1(end),y1(end)+s1,py2);
-y3 = linspace(y2(end),1,py3);
-y = [y1,y2(2:end),y3(2:end)];
-
-% New number of elements
-npx = size(x,2);
-npy = size(y,2);
-nx = npx - 1;
-ny = npy - 1;
-numNodes = npx*npy;
-
-
-% Density matrix
-A = zeros(ny,nx);
-vertBar = numel(x1) : numel(x1)+numel(x2)-2;
-horzBar = numel(y1) : numel(y1)+numel(y2)-2;
-A(horzBar,:) = 1;
-A(:,vertBar) = 1;
-
-
-% Node coordinates
-xcoords = reshape(repmat(x,1,npy),1,numNodes);
-ycoords = reshape(repmat(y,npx,1),1,numNodes);
-nodes = [1:numNodes; xcoords; ycoords; zeros(1,numNodes)];
-
-% Boundary nodes
-bottom = 1:npx;
-top = numNodes-npx+1:numNodes;
-left = 1:npx:numNodes;
-right = npx:npx:numNodes;
-numNodeBC = numel(bottom) + numel(top) + numel(left) + numel(right);
-
-% Elements
-num2DElements = nx*ny;
-elems = zeros(4,num2DElements);
-
-for i=1:ny
-    z = 1:npx;
-    a = z+(i-1)*npx;
-    b = z+i*npx;
-
-    % Repeat inner node numbers
-    x = [a(1),reshape([a(2:end-1);a(2:end-1)],1,2*(nx-1)),a(end)];
-    y = [b(1),reshape([b(2:end-1);b(2:end-1)],1,2*(nx-1)),b(end)];
-
-    % Get element indeces
-    idx = (1:nx)+(i-1)*nx;
-    
-    % Get nodes of elements
-    elems(:,idx) = [reshape(x,2,[]);flipud(reshape(y,2,[]))];
+% To ensure periodic boundary conditions meshes are not allowed to have
+% one and only one void row or column (which would be located at the 
+% boundary). So if s1 or s2 would leave one and only one row or column
+% empty, we increase the value to its maximum.
+if s1 == nx - 1
+    s1 = nx;
 end
-elems = [1:num2DElements;elems];
+if s2 == nx - 1
+    s2 = nx;
+end
 
+nxhalf = (nx+1)/2;
 
-% Write mesh and density file
+% Cross
+horzBar = round( nxhalf - s1/2 + (1:s1) ) - 1;
+vertBar = round( nxhalf - s2/2 + (1:s2) ) - 1;
+density(horzBar,:) = 1;
+density(:,vertBar) = 1;
+
+volume = sum(sum(density))/nx^2;
+
+% Write mesh (and possible density) file
 [~,filename] = fileparts(tempname);
 
 % Get absolute path of mesh file
@@ -148,11 +82,68 @@ fullpath=pwd;
 cd(oldpath)
 filename = fullfile(fullpath,filename);
 
-file = [filename,'.dens'];
+% file = Homogenization.matrixToMeshAndDensity(density,filename);
+
 meshfile = [filename,'.mesh'];
 
-% Write density file
-Homogenization.matrixToDensity(A,file);
+A = flipud(density);
+[m,n] = size(A);
+hy = 1/m;
+hx = 1/n;
+
+shearingAngle = 0.0;
+
+% Get nodes
+nodes = zeros((m+1)*(n+1),5);
+nodeIdx = zeros(m+1,n+1);
+nodeNum = 1;
+for i = 1:m+1
+    for j = 1:n+1
+        % Check if a surrounding element has material
+        if A(min(i,m),min(j,n)) || A(min(i,m),max(j-1,1)) || A(max(i-1,1),min(j,n)) || A(max(i-1,1),max(j-1,1))
+            nodes(nodeNum,1:3) = [nodeNum,(j-1)*hx,(i-1)*hy];
+            % Shearing
+            nodes(nodeNum,2) = nodes(nodeNum,2) + (i-1) / m * tan(shearingAngle);
+            % Set boundary flags
+            if j == 1
+                % left
+                nodes(nodeNum,5) = 5;
+            elseif j == n+1
+                % right
+                nodes(nodeNum,5) = 6;
+            end
+            nodeIdx(i,j) = nodeNum;
+            nodeNum = nodeNum + 1;
+        end
+    end
+end
+numNodes = nodeNum - 1;
+nodes = nodes( nodes(:,1) ~= 0, : );
+
+% Boundary nodes
+bottom = nodes( nodes(:,3) == 0, 1 );
+top = nodes( nodes(:,3) == 1, 1 );
+left = nodes( nodes(:,5) == 5, 1 );
+right = nodes( nodes(:,5) == 6, 1 );
+numNodeBC = numel(left) + numel(right) + numel(bottom) + numel(top);
+
+% Get (quadratic) elements
+elems = zeros(m*n,4);
+c = 1;
+for i = 1:m
+    for j = 1:n
+        if A(i,j)
+            elems(c,:) = [nodeIdx(i,j),nodeIdx(i,j+1),nodeIdx(i+1,j+1),nodeIdx(i+1,j)];
+            c = c + 1;
+        end
+    end
+end
+num2DElements = c - 1;
+elems = elems( elems(:,1) ~= 0, : );
+
+nodes = nodes(:,1:4)';
+elems = elems';
+elems = [1:num2DElements;elems];
 
 % Write mesh file
 fid = fopen(meshfile,'wt');
@@ -213,12 +204,12 @@ fprintf(fid,'\n');
 fprintf(fid,'[Node BC]\n');
 fprintf(fid,'#NodeNr Level\n');
 if ~isempty(bottom)
-    fprintf(fid,'% 8d bottom\n',int32(bottom));
-    fprintf(fid,'% 8d up\n',int32(top));
+    fprintf(fid,'% 8d nodes3\n',int32(bottom));
+    fprintf(fid,'% 8d nodes4\n',int32(top));
 end
 if ~isempty(left)
-    fprintf(fid,'% 8d left\n',int32(left));
-    fprintf(fid,'% 8d right\n',int32(right));
+    fprintf(fid,'% 8d nodes5\n',int32(left));
+    fprintf(fid,'% 8d nodes6\n',int32(right));
 end
 fprintf(fid,'\n');
 
@@ -232,6 +223,3 @@ fprintf(fid,'\n');
 fprintf(fid,'\n');
 
 fclose(fid);
-
-end % function
-
