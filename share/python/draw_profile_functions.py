@@ -909,14 +909,27 @@ def generate_basecell(args,info):
     # marching_cubes expect float values (not double)
     h = np.float32(1.0/args.res)
     # coords of vertices lie in [0,1-h]
+    import time
+    start = time.time()
+    import marching_cubes
+#     for i in range(50):
 #     verts, faces, normals, values = measure.marching_cubes(array,spacing=(h,h,h),allow_degenerate=False)
-    verts, faces = measure.marching_cubes_classic(array,spacing=(h,h,h))
+    # verts, faces = measure.marching_cubes_classic(array,spacing=(h,h,h))
+    points = []
+    triangles = []
+    normals = []
+    marching_cubes.marching_cubes(array,(h,h,h),points,triangles,normals)
+    verts = points
+    faces = triangles
+    end = time.time()
+    print("time:",end - start)
+    sys.exit()
     
     # marching_cubes returns float values
     verts = np.asarray(verts)
     # scale structure to [0,1]^3
     # moves structure to [0,1]^3
-    verts += (h/2.0,h/2.0,h/2.0)
+    #verts += (h/2.0,h/2.0,h/2.0)
     points = verts
     cells = faces 
     # extract points on the boundary circles

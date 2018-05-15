@@ -1,4 +1,10 @@
 import numpy as np
+import matviz_vtk, vtk
+import pymesh
+import sys, math
+
+edgeTable = None
+triTable = None
   # the coordinate system is a left-hand sided coorddinate system with y pointing towards the viewer  
   # 
   #  z ^  
@@ -23,7 +29,7 @@ import numpy as np
   #   |/             |/
   #  3 -------------2/
   #         e2 
-def marching_cubes(voxels,spacing,thresh = 0.5):
+def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_size=4,bottom_NW=None,top_SE=None):
   from draw_profile_functions import grid_to_cartesian_coords
   hx = spacing[0]
   hy = spacing[1]
@@ -31,14 +37,34 @@ def marching_cubes(voxels,spacing,thresh = 0.5):
   nx, ny, nz = voxels.shape
   ntriangles = 0
   
-  edgeTable, triTable = create_lookup()
-  triangles = []
-  points = []
+  if bottom_NW is None:
+    bottom_NW = np.zeros(3)
+  if top_SE is None:
+    top_SE = voxels.shape  
+  
+  global edgeTable, triTable
+  #create lookup tables once
+  if edgeTable is None and triTable is None:
+    edgeTable, triTable = create_lookup()
+#   triangles = []
+#   points = []
+#   normals = []
+  
+  startx = int(bottom_NW[0])
+  starty = int(bottom_NW[1])
+  startz = int(bottom_NW[2])
+  endx = int(top_SE[0]-cube_size)
+  endy = int(top_SE[1]-cube_size)
+  endz = int(top_SE[2]-cube_size)
+  cube_size = int(cube_size)
+#   print("cube_size:",cube_size)
+#   
+#   print("start:",startx,starty,startz," end:",endx,endy,endz)
   
   assert (0 < hx and 0 < hy and 0 < hz)
-  for i in range(nx-1):
-    for j in range(ny-1):
-      for k in range(nz-1):
+  for i in range(startx,endx):
+    for j in range(starty,endy):
+      for k in range(startz,endz):
         
         # bottom/top face:
         # NW  ----------- NE  
@@ -49,99 +75,313 @@ def marching_cubes(voxels,spacing,thresh = 0.5):
         #  |              |   
         # SW  ----------- SE   
         bottom_NW = (i,j,k)
-        bottom_NE = (i+1,j,k)
-        bottom_SE = (i+1,j+1,k)
-        bottom_SW = (i,j+1,k)
-        top_NW = (i,j,k+1)
-        top_NE = (i+1,j,k+1)
-        top_SE = (i+1,j+1,k+1)
-        top_SW = (i,j+1,k+1)
+        bottom_NE = (i+cube_size,j,k)
+        bottom_SE = (i+cube_size,j+cube_size,k)
+        bottom_SW = (i,j+cube_size,k)
+        top_NW = (i,j,k+cube_size)
+        top_NE = (i+cube_size,j,k+cube_size)
+        top_SE = (i+cube_size,j+cube_size,k+cube_size)
+        top_SW = (i,j+cube_size,k+cube_size)
+        
+#         print(bottom_NW,bottom_NE,bottom_SE,bottom_SW)
         
         local_verts = []
-        local_verts.append(Vertex(0,grid_to_cartesian_coords(bottom_NW,None,(hx,hy,hz)),voxels[bottom_NW]))
-        local_verts.append(Vertex(1,grid_to_cartesian_coords(bottom_NE,None,(hx,hy,hz)),voxels[bottom_NE]))
-        local_verts.append(Vertex(2,grid_to_cartesian_coords(bottom_SE,None,(hx,hy,hz)),voxels[bottom_SE]))
-        local_verts.append(Vertex(3,grid_to_cartesian_coords(bottom_SW,None,(hx,hy,hz)),voxels[bottom_SW]))
-        local_verts.append(Vertex(4,grid_to_cartesian_coords(top_NW,None,(hx,hy,hz)),voxels[top_NW]))
-        local_verts.append(Vertex(5,grid_to_cartesian_coords(top_NE,None,(hx,hy,hz)),voxels[top_NE]))
-        local_verts.append(Vertex(6,grid_to_cartesian_coords(top_SE,None,(hx,hy,hz)),voxels[top_SE]))
-        local_verts.append(Vertex(7,grid_to_cartesian_coords(top_SW,None,(hx,hy,hz)),voxels[top_SW]))
+        local_verts.append(Vertex(0,bottom_NW,voxels[bottom_NW]))
+        local_verts.append(Vertex(1,bottom_NE,voxels[bottom_NE]))
+        local_verts.append(Vertex(2,bottom_SE,voxels[bottom_SE]))
+        local_verts.append(Vertex(3,bottom_SW,voxels[bottom_SW]))
+        local_verts.append(Vertex(4,top_NW,voxels[top_NW]))
+        local_verts.append(Vertex(5,top_NE,voxels[top_NE]))
+        local_verts.append(Vertex(6,top_SE,voxels[top_SE]))
+        local_verts.append(Vertex(7,top_SW,voxels[top_SW]))
         
-        # example: vertex 3 was below the isosurface, cubeindex would equal 0000 1000 or 8
-        cube_idx = 0
-        cube_idx |= 1 if local_verts[0].value > thresh else 0
-        cube_idx |= 2 if local_verts[1].value > thresh else 0
-        cube_idx |= 4 if local_verts[2].value > thresh else 0
-        cube_idx |= 8 if local_verts[3].value > thresh else 0
-        cube_idx |= 16 if local_verts[4].value > thresh else 0
-        cube_idx |= 32 if local_verts[5].value > thresh else 0
-        cube_idx |= 64 if local_verts[6].value > thresh else 0
-        cube_idx |= 128 if local_verts[7].value > thresh else 0
+        create_triangles(local_verts,thresh,points,triangles,normals,voxels,cube_size)
         
-        # list of interpolated vertices (vertices of new triangles)
-        vertlist = [None] * 12
-        # code binary number with 12 digits (for 12 edges)
-        # digit is 1 if triangle vertex lies on respective edge, else 0
-        # e.g. edges 2,3,11 : edge_idx = 1000 0000 1100 and  
-        edge_idx = edgeTable[cube_idx]
+#         if len(triangles) > 0:
+#           for i in range(len(points)):
+#             points[i] = grid_to_cartesian_coords(points[i],None,(hx,hy,hz))   
+#             normals[i] *= np.array([hx,hy,hz])
+#           print("points:",points)
+#           print("triangles:",triangles)
+#           print("normals:",normals)
+#           pd = matviz_vtk.fill_vtk_polydata(points,triangles)
+#           matviz_vtk.show_write_vtk(pd, 10, "marching_cubes.vtp")
+#           sys.exit()  
         
-        # we have 12 edges, find vertices where surface intersects marching cube
-        if edge_idx == 0:
-          continue
-        
-        # compare if of the total 12 binary digits the respective digit contains a "1"
-        # e.g. egde & 1 is True if 0000 0000 0001 and False if 1111 0000 0000 
-        if edge_idx & 1: #edge_idx0
-          vertlist[0] = (VertexInterp(thresh, local_verts[0], local_verts[1]))
-        if edge_idx & 2: #edge_idx1
-          vertlist[1] = (VertexInterp(thresh, local_verts[1], local_verts[2]))
-        if edge_idx & 4: #edge_idx2
-          vertlist[2] = (VertexInterp(thresh, local_verts[2], local_verts[3]))
-        if edge_idx & 8: #edge_idx3
-          vertlist[3] = (VertexInterp(thresh, local_verts[3], local_verts[0]))
-        if edge_idx & 16: #edge_idx4
-          vertlist[4] = (VertexInterp(thresh, local_verts[4], local_verts[5]))
-        if edge_idx & 32: #edge_idx5
-          vertlist[5] = (VertexInterp(thresh, local_verts[5], local_verts[6]))
-        if edge_idx & 64: #edge_idx6
-          vertlist[6] = (VertexInterp(thresh, local_verts[6], local_verts[7]))
-        if edge_idx & 128: #edge_idx7
-          vertlist[7] = (VertexInterp(thresh, local_verts[7], local_verts[4]))
-        if edge_idx & 256: #edge_idx8
-          vertlist[8] = (VertexInterp(thresh, local_verts[0], local_verts[4]))
-        if edge_idx & 512: #edge_idx9
-          vertlist[9] = (VertexInterp(thresh, local_verts[1], local_verts[5]))
-        if edge_idx & 1024: #edge_idx10
-          vertlist[10] = (VertexInterp(thresh, local_verts[2], local_verts[6]))               
-        if edge_idx & 2048: #edge_idx11
-          vertlist[11] = (VertexInterp(thresh, local_verts[3], local_verts[7]))
-        
-        t = 0
-        while (triTable[cube_idx][t] != -1):
-          id0 = len(points)
-          points.append(vertlist[triTable[cube_idx][t]])
-          id1 = len(points)
-          points.append(vertlist[triTable[cube_idx][t+1]])
-          id2 = len(points)
-          points.append(vertlist[triTable[cube_idx][t+2]])
-          triangles.append((id0,id1,id2))
-          
-          ntriangles += 1
-          t += 3 
-          
-  import matviz_vtk, vtk
-  pd = matviz_vtk.fill_vtk_polydata(points,triangles)
-  clean = vtk.vtkCleanPolyData()
-  clean.SetInputData(pd)
-  clean.Update()        
-  matviz_vtk.show_write_vtk(clean.GetOutput(), 10, "marching_cubes.vtp")
+#   for i in range(len(points)):
+#     points[i] = grid_to_cartesian_coords(points[i],None,(hx,hy,hz))   
+#     normals[i] *= np.array([hx,hy,hz])
   
-  return triangles
+#   print(triangles)
+#   mesh = pymesh.form_mesh(np.asarray(points),np.asarray(triangles))
+#   mesh, _ = pymesh.remove_duplicated_vertices(mesh)
+#   print("#points:",len(mesh.vertices)," #faces:",len(mesh.faces))
+#   print("normals:",normals)
+
+#   pd = matviz_vtk.fill_vtk_polydata(mesh.vertices,mesh.faces)
+#   matviz_vtk.show_write_vtk(pd, 10, "marching_cubes.vtp")
+  
+  return points, triangles
+#   return mesh.vertices, mesh.faces, compute_vertex_normals(mesh.vertices,mesh.faces)
+  #return 
   # assume each voxel center is a lattice node
   # -> marching cubes grid is shifted by hx/2,hy/2,hz/2 and 1 elem smaller in each dim
   # for each of the 8 lattice node, find out which ones belong to the structure
   # -> 8 bit code
 
+def VertexInterp2(thresh,valp1,valp2):
+  valp1 = p1.value
+  valp2 = p2.value
+  if np.isclose(np.abs(thresh-valp1),0):
+    return p1
+  if np.isclose(np.abs(thresh-valp2),0):
+    return p2
+  if np.isclose(np.abs(valp1-valp2),0):
+    return p1
+  
+  mu = (thresh - valp1) / (valp2 - valp1)
+  ncoords = p1.coords + mu * (p2.coords-p1.coords)
+  
+  return ncoords
+
+# for given (local) edge number, give (local) vertex ids defining this edge 
+def edgeToVertices(edge):
+  assert(type(edge) is int)
+  if edge == 0:
+    return 0,1
+  if edge == 1:
+    return 1,2 
+  if edge == 2:
+    return  2,3
+  if edge == 3:
+    return 3,0
+  if edge == 4:
+    return 4,5
+  if edge == 5:
+    return 5,6
+  if edge == 6:
+    return 6,7
+  if edge == 7:
+    return 7,4
+  if edge == 8:
+    return 0,4
+  if edge == 9:
+    return 1,5
+  if edge == 10:
+    return 2,6
+  if edge == 11:
+    return 3,7
+
+# linearly interpolate intersection points with isovalue 'thresh'
+# p1 and p2 are vertices of an edge and v1 and v2 scalar values at respective vertex
+# intersection point P = p1 + (thresh - v1) * (p2-p1) / (v2-v1)
+def VertexInterp(thresh,p1,p2):
+  
+  if smaller(p2,p1):
+    # swap p1 and p2
+    p1, p2 = p2, p1
+  
+  valp1 = p1.value
+  valp2 = p2.value
+  p1 = np.asarray(p1.coords)
+  p2 = np.asarray(p2.coords)  
+    
+  if np.isclose(valp2-valp1,0):
+    return p1
+  else:
+    mu = (thresh - valp1) / (valp2 - valp1)  
+    return p1 + mu * (p2 - p1), mu   
+    
+# kind of comparing point with descending priority for x to z 
+def smaller(p1,p2):
+  p1 = p1.coords
+  p2 = p2.coords
+  if p1[0] < p2[0]:
+    return True
+  elif p1[0] > p2[0]:
+    return False
+  
+  if p1[1] < p2[1]:
+    return True
+  elif p1[1] > p2[1]:
+    return False
+  
+  if p1[2] < p2[2]:
+    return True
+  elif p1[2] > p2[2]:
+    return False
+  
+  return False  
+
+def create_triangles(vertices,thresh,points,triangles,normals,voxels,cube_size):
+  hx = 1/voxels.shape[0]
+  hy = 1/voxels.shape[1]
+  hz = 1/voxels.shape[2]
+  # 8 vertices of the Marching cube
+  assert(len(vertices) == 8)
+  assert(edgeTable is not None and triTable is not None)
+  assert(cube_size > 0)
+  ntriangles = 0
+  
+  # example: vertex 3 was below the isosurface, cubeindex would equal 0000 1000 or 8
+  cube_idx = 0
+  cube_idx |= 1 if vertices[0].value > thresh else 0
+  cube_idx |= 2 if vertices[1].value > thresh else 0
+  cube_idx |= 4 if vertices[2].value > thresh else 0
+  cube_idx |= 8 if vertices[3].value > thresh else 0
+  cube_idx |= 16 if vertices[4].value > thresh else 0
+  cube_idx |= 32 if vertices[5].value > thresh else 0
+  cube_idx |= 64 if vertices[6].value > thresh else 0
+  cube_idx |= 128 if vertices[7].value > thresh else 0
+  
+  # list of interpolated vertices (vertices of new triangles)
+  vertlist = [None] * 12
+  # code binary number with 12 digits (for 12 edges)
+  # digit is 1 if triangle vertex lies on respective edge, else 0
+  # e.g. edges 2,3,11 : edge_idx = 1000 0000 1100 and  
+  edge_idx = edgeTable[cube_idx]
+  
+  # we have 12 edges, find vertices where surface intersects marching cube
+  if edge_idx == 0:
+    return
+  
+  Gx = Gy = Gz = 0
+
+  for c in range(12):
+    if edge_idx & 2**c:
+      edge0, edge1 = edgeToVertices(c)
+      interp, mu = VertexInterp(thresh,vertices[edge0],vertices[edge1])
+      
+      Gx0 = Gx1 = 0
+      e = np.array([1,0,0])
+      if vertices[edge0].coords[0] < voxels.shape[0]-1 and vertices[edge0].coords[0] > 0:
+        Gx0 = voxels[tuple(vertices[edge0].coords + e)] - voxels[tuple(vertices[edge0].coords - e)]
+      if vertices[edge1].coords[0] < voxels.shape[0]-1 and vertices[edge1].coords[0] > 0:
+        Gx1 = voxels[tuple(vertices[edge1].coords + e)] - voxels[tuple(vertices[edge1].coords - e)]
+      Gx = mu * Gx0 + (1-mu) * Gx1
+      
+      Gy0 = Gy1 = 0
+      e = np.array([0,1,0])
+      if vertices[edge0].coords[1] < voxels.shape[1]-1 and vertices[edge0].coords[1] > 0:
+        Gy0 = voxels[tuple(vertices[edge0].coords + e)] - voxels[tuple(vertices[edge0].coords - e)]
+      if vertices[edge1].coords[1] < voxels.shape[1]-1 and vertices[edge1].coords[1] > 0:
+        Gy1 = voxels[tuple(vertices[edge1].coords + e)] - voxels[tuple(vertices[edge1].coords - e)]
+      Gy = mu * Gy0 + (1-mu) * Gy1
+      
+      Gz0 = Gz1 = 0
+      e = np.array([0,0,1])
+      if vertices[edge0].coords[2] < voxels.shape[2]-1 and vertices[edge0].coords[2] > 0:
+        Gz0 = voxels[tuple(vertices[edge0].coords + e)] - voxels[tuple(vertices[edge0].coords - e)]
+      if vertices[edge1].coords[2] < voxels.shape[2]-1 and vertices[edge1].coords[2] > 0:
+        Gz1 = voxels[tuple(vertices[edge1].coords + e)] - voxels[tuple(vertices[edge1].coords - e)]
+      Gz = mu * Gz0 + (1-mu) * Gz1
+      
+      vertlist[c] = (interp,(Gx,Gy,Gz))
+      
+#       print("Gx0:",Gx0)
+#       print("Gx1:",Gx1)
+#       print("Gx:",Gx)
+#       print(vertlist[c][1])
+#       sys.exit()
+     
+  t = 0
+  while (triTable[cube_idx][t] != -1):
+    n0 = vertlist[triTable[cube_idx][t]][1] * np.array([hx,hy,hz])
+    n1 = vertlist[triTable[cube_idx][t+1]][1] * np.array([hx,hy,hz])
+    n2 = vertlist[triTable[cube_idx][t+2]][1] * np.array([hx,hy,hz])
+    
+    angle01, angle02, angle12 = 90, 90, 90
+    if not sameVector(n0, n1):
+      dot01 = np.dot(n0,n1)
+#       print("normals:",n0,n1)
+#       print("dot01:",dot01)
+#       print("normed:",np.linalg.norm(n0)*np.linalg.norm(n1))
+      angle01 = np.degrees(math.acos(dot01/(np.linalg.norm(n0)*np.linalg.norm(n1))))
+    if not sameVector(n0, n2):  
+      dot02 = np.dot(n0,n2)
+      angle02 = np.degrees(math.acos(dot02/(np.linalg.norm(n0)*np.linalg.norm(n2))))
+    if not sameVector(n1, n2):  
+      dot12 = np.dot(n1,n2)
+#       print("normals:",n1,n2)
+#       print("dot12:",dot12)
+#       print("normed:",np.linalg.norm(n1)*np.linalg.norm(n2))
+#       print("ratio:",dot12/(np.linalg.norm(n1)*np.linalg.norm(n2)))
+      angle12 = np.degrees(math.acos(dot12/(np.linalg.norm(n1)*np.linalg.norm(n2))))
+    
+    if cube_size == 1 or angle01 < 30 or angle02 < 30 or angle12 < 30:
+#       print("angles:",angle01,angle02,angle12)
+      id0 = len(points)
+      points.append(vertlist[triTable[cube_idx][t]][0])
+      normals.append(n0)
+      
+      id1 = len(points)
+      points.append(vertlist[triTable[cube_idx][t+1]][0])
+      normals.append(n1)
+      
+      id2 = len(points)
+      points.append(vertlist[triTable[cube_idx][t+2]][0])
+      normals.append(n2)
+      
+      triangles.append((id0,id1,id2))
+      
+      ntriangles += 1
+    else:
+      print("refining:",vertices[0]," size:",cube_size/2," ",vertices[6])
+      marching_cubes(voxels,(hx,hy,hz),points,triangles,normals,cube_size=cube_size/2,bottom_NW=vertices[0].coords,top_SE=vertices[6].coords+np.array([1,1,1]))
+    t += 3
+    
+    
+#     if ntriangles > 0:
+#       print("ntriangles:",ntriangles)
+#       return
+
+def compute_vertex_normals(verts,faces,linear_weights=False):
+  normals = np.zeros_like(verts)
+  weight = 1 # for weighted sum
+  for t in faces:
+    # compute surface normal for each face and add it to vertex normals
+    # vertex normal is weighted sum over normals of all adjacent faces
+    # use face area as weight
+    
+    # first edge of a triangle
+    v0 = verts[t[1]] - verts[t[0]]
+    v1 = verts[t[2]] - verts[t[0]]
+    n = np.cross(v0,v1)
+    
+    if not linear_weights:
+      weight = np.linalg.norm(n)
+      
+    normals[t[0]] += n * weight
+    normals[t[1]] += n * weight
+    normals[t[2]] += n * weight
+  
+  # normalize sum  
+  normals = [v/np.linalg.norm(v) for v in normals]
+  
+  return normals    
+
+def sameVector(v1,v2):
+  assert(len(v1) == len(v2))
+  for i in range(len(v1)):
+    if v1[i] != v2[i]:
+      return False
+  
+  return True   
+    
+class Vertex():
+  def __init__(self,id,coords,val):
+    self.id = id
+    self.coords = np.array(coords)
+    self.value = val
+    
+  def __str__(self):
+    return "vertex " + str(self.id) + ": coords=" + str(self.coords) + " val=" + str(self.value)  
+    
+class Edge():
+  def __init__(self,id,v1,v2):
+    self.id = id
+    self.vertices = [v1,v2]
+    
 # for each 8bit config, store edge configuration
 # e.g. 00000001 -> 1 means 1 lattice node is solid -> triangle has vertices on edges 0,3,8 
 def create_lookup():
@@ -439,72 +679,6 @@ def create_lookup():
     (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
   ]
   
-  return edgeTable, triTable  
-
-def VertexInterp2(thresh,p1,p2):
-  valp1 = p1.value
-  valp2 = p2.value
-  if np.isclose(np.abs(thresh-valp1),0):
-    return p1
-  if np.isclose(np.abs(thresh-valp2),0):
-    return p2
-  if np.isclose(np.abs(valp1-valp2),0):
-    return p1
-  
-  mu = (thresh - valp1) / (valp2 - valp1)
-  ncoords = p1.coords + mu * (p2.coords-p1.coords)
-  
-  return ncoords
-
-# linearly interpolate intersection points with isovalue 'thresh'
-# p1 and p2 are vertices of an edge and v1 and v2 scalar values at respective vertex
-# intersection point P = p1 + (thresh - v1) * (p2-p1) / (v2-v1)
-def VertexInterp(thresh,p1,p2):
-  
-  if smaller(p2,p1):
-    # swap p1 and p2
-    p1, p2 = p2, p1
-  
-  valp1 = p1.value
-  valp2 = p2.value
-  p1 = np.asarray(p1.coords)
-  p2 = np.asarray(p2.coords)  
-    
-  if np.isclose(valp2-valp1,0):
-    return p1
-  else:
-    return p1 + (thresh - valp1) * (p2 - p1) / (valp2 - valp1)   
-    
-# kind of comparing point with descending priority for x to z 
-def smaller(p1,p2):
-  p1 = p1.coords
-  p2 = p2.coords
-  if p1[0] < p2[0]:
-    return True
-  elif p1[0] > p2[0]:
-    return False
-  
-  if p1[1] < p2[1]:
-    return True
-  elif p1[1] > p2[1]:
-    return False
-  
-  if p1[2] < p2[2]:
-    return True
-  elif p1[2] > p2[2]:
-    return False
-  
-  return False  
-
-class Vertex():
-  def __init__(self,id,coords,val):
-    self.id = id
-    self.coords = coords
-    self.value = val
-    
-class Edge():
-  def __init__(self,id,v1,v2):
-    self.id = id
-    self.vertices = [v1,v2]
+  return edgeTable, triTable      
   
   

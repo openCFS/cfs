@@ -1187,10 +1187,11 @@ def vtk_polydata_to_numpy(polydata):
   from vtk.util.numpy_support import vtk_to_numpy
   # get point data
   points = vtk_to_numpy(polydata.GetPoints().GetData())
+#   print("number of points:",len(points))
   
   polys = polydata.GetPolys()
   ne = polys.GetNumberOfCells()
-  print("number of polys:",polydata.GetNumberOfPolys())
+#   print("number of polys:",polydata.GetNumberOfPolys())
   
   cells = numpy.zeros((ne,3),dtype=int)
   polys.InitTraversal()   
