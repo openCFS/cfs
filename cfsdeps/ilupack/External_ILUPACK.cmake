@@ -8,14 +8,6 @@ set(ilupack_install  "${ilupack_prefix}/tmp")
 
 
 #-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ilupack/ilupack-patch.cmake.in")
-SET(PFN "${ilupack_prefix}/ilupack-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-
-#-------------------------------------------------------------------------------
 # The ilupack source is closed source! It must not be redistributed!!
 # There is a copy at ${CFS_DS_WEBDAV}/ but it has certificate issuses, therefore there
 # is also a mirror by the FAU CFS optimization group.
