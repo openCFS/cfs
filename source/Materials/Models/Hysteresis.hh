@@ -46,7 +46,7 @@ namespace CoupledField {
     };
 
     virtual Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true){
+      Matrix<Double> mu, bool overwriteDirection = true,bool evalAboveSaturation = false){
       EXCEPTION("computeInput_vec not implemented in base-class");
     }
     
@@ -144,9 +144,15 @@ namespace CoupledField {
     }
     
     Double bisectForAnhyst_normalized(Double Ytarget_normalized, 
-      Double Xdown_normalized, Double Xup_normalized, Double Poffset_normalized, Double eps_mu_normalized, Double tol);
+      Double Xdown_normalized, Double Xup_normalized, Double Poffset_normalized, Double eps_mu_normalized, Double tol, Vector<Double> dir, UInt idx);
     
-    Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol);
+    Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol){
+      Vector<Double> zeroVec = Vector<Double>(dim_);
+      zeroVec.Init();
+      return bisectForAnhyst(Ytarget, Xdown, Xup, Poffset, eps_mu, tol, zeroVec, 0);
+    }
+    
+    Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol, Vector<Double> dir, UInt idx);
     
     // from VecPreisachv10 > put into baseclass to make it available for Mayergoyz model, too
     void SetParamsForInversion(UInt maxIter, Double resTolH, Double resTolB, Double jacobiResolution,
@@ -171,10 +177,10 @@ namespace CoupledField {
 				Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac);
     
     Integer checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha);
+		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, bool stayBelowSat);
     
     Integer checkIncrementOLD(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha);
+		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, bool stayBelowSat);
     
     Vector<Double> computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
     
@@ -183,24 +189,25 @@ namespace CoupledField {
     
     Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
-					bool overwriteMemory, bool overwriteDirection);
+					bool overwriteMemory, bool overwriteDirection, bool stayBelowSat);
     
     Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
           Matrix<Double> mu, Matrix<Double> mu_inv, Integer operatorIdx, Double sign, bool wrtX, bool relative, 
-					UInt implementation, bool overwriteMemory, bool overwriteDirection);
+					UInt implementation, bool overwriteMemory, bool overwriteDirection, bool stayBelowSat);
     
     bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
 		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
 		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
-		Double& alpha, Double alphaMin, Double alphaMax,  bool wrtX, bool relative, UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat);
+		Double& alpha, Double alphaMin, Double alphaMax,  bool wrtX, bool relative, 
+    UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat,bool stayBelowSat);
 
     Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true);
+      Matrix<Double> mu, bool overwriteDirection = true, bool useBisectAboveSat = true);
     
     Vector<Double> computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, 
+      Matrix<Double> mu, bool overwriteDirection, bool useBisectAboveSat,
       UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
       UInt& maximalNumberOfLinesearchIterations, UInt& succesCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha );
        

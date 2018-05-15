@@ -2320,6 +2320,12 @@ namespace CoupledField {
     UInt MAT_vecPreisachImplementationVersion_;
     
     /*
+     * evaluation of Hyst operator for inputs larger than Saturation
+     * > for Mayergoyz hyst model no bisection possible
+     */
+    bool useBisectAboveSat_;
+    
+    /*
      * Initial input to the vector hysteresis operator;
      * and output of the vector hysteresis operator to this input
      * Note: the value specified in the mat file is the INPUT to the hyst operator
