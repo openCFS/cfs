@@ -121,10 +121,10 @@ def render_status(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO, GLOB
   body_data += 'last_deleted_date: ' + GLOBAL_STAT_VARS['last_deleted_date'] + '<br />'
   
   body_data += '<br />size per problem:<br />' + "\n"
-  body_data += '<table class="table table-sm table-bordered"><thead><tr><th>key</th><th>size</th><th>delete</th></tr></thead><tbody>' + "\n"
+  body_data += '<table class="table table-sm table-bordered"><thead><tr><th>key</th><th>raw xml size</th><th>estimated ram size</th><th>delete</th></tr></thead><tbody>' + "\n"
   
   for tmp_key in GLOBAL_DATA_SIZE_DICT:
-    body_data += '<tr><td>' + tmp_key + '</td><td>' + get_human_readable_bytes(GLOBAL_DATA_SIZE_DICT[tmp_key]) + '</td>'
+    body_data += '<tr><td>' + tmp_key + '</td><td>' + get_human_readable_bytes(GLOBAL_DATA_SIZE_DICT[tmp_key]) + '</td><td>' + get_human_readable_bytes(MEMORY_BYTE_RATIO*GLOBAL_DATA_SIZE_DICT[tmp_key]) + '</td>'
     if tmp_key in GLOBAL_DATA_DICT:
       body_data += '<td><a href="/status?delete=' + cgi.escape(tmp_key) + '">x</a></td></tr>' + "\n"
     else:
@@ -397,9 +397,9 @@ def render_view(GLOBAL_DATA_DICT, key, client_ip):
   if int(xml.xpath('//grids/grid/@dimensions')[0]) == 2:
     close_result_list = True
     # we have a 2-Dimensional grid here. Therefore we offer to render it
-    settings_data += '    <li class="list-group-item">results:'
+    settings_data += '    <li class="list-group-item">results: <button id="disable_results">disable all</button>'
     settings_data += '    <table class="table table-sm" id="result">'
-    settings_data += '        <thead><td>view</td><td></td></thead><tbody>'
+    settings_data += '        <tbody>'
     
     for result in xml.xpath('//results/result'):
       if int(result.attrib['dofs']) == 1:
