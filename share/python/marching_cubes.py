@@ -62,9 +62,9 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_siz
 #   print("start:",startx,starty,startz," end:",endx,endy,endz)
   
   assert (0 < hx and 0 < hy and 0 < hz)
-  for i in range(startx,endx):
-    for j in range(starty,endy):
-      for k in range(startz,endz):
+  for i in range(startx,endx,cube_size):
+    for j in range(starty,endy,cube_size):
+      for k in range(startz,endz,cube_size):
         
         # bottom/top face:
         # NW  ----------- NE  
@@ -107,10 +107,24 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_siz
 #           pd = matviz_vtk.fill_vtk_polydata(points,triangles)
 #           matviz_vtk.show_write_vtk(pd, 10, "marching_cubes.vtp")
 #           sys.exit()  
-        
-#   for i in range(len(points)):
-#     points[i] = grid_to_cartesian_coords(points[i],None,(hx,hy,hz))   
-#     normals[i] *= np.array([hx,hy,hz])
+
+  for i in range(len(points)):
+    points[i] = grid_to_cartesian_coords(points[i],None,(hx,hy,hz))   
+#     #normals[i] *= np.array([hx,hy,hz])  
+  pd = matviz_vtk.fill_vtk_polydata(points,triangles)
+#   
+  pointNormalsArray = vtk.vtkDoubleArray()
+  pointNormalsArray.SetNumberOfComponents(3)
+  pointNormalsArray.SetName("normals")
+  #pointNormalsArray.SetNumberOfTuples(len(points))
+   
+  for n in normals:
+    pointNormalsArray.InsertNextTuple3(-n[0], -n[1], -n[2])
+   
+  pd.GetPointData().AddArray(pointNormalsArray)  
+  pd.GetPointData().SetActiveScalars("normals");
+  matviz_vtk.show_write_vtk(pd, 10, "marching_cubes.vtp")   
+#   
   
 #   print(triangles)
 #   mesh = pymesh.form_mesh(np.asarray(points),np.asarray(triangles))
@@ -293,41 +307,47 @@ def create_triangles(vertices,thresh,points,triangles,normals,voxels,cube_size):
     angle01, angle02, angle12 = 90, 90, 90
     if not sameVector(n0, n1):
       dot01 = np.dot(n0,n1)
+      normed = np.linalg.norm(n0)*np.linalg.norm(n1)
 #       print("normals:",n0,n1)
 #       print("dot01:",dot01)
-#       print("normed:",np.linalg.norm(n0)*np.linalg.norm(n1))
-      angle01 = np.degrees(math.acos(dot01/(np.linalg.norm(n0)*np.linalg.norm(n1))))
+#       print("normed:",normed)
+      if not np.isclose(normed, 0):
+        angle01 = np.degrees(math.acos(dot01/normed))
     if not sameVector(n0, n2):  
       dot02 = np.dot(n0,n2)
-      angle02 = np.degrees(math.acos(dot02/(np.linalg.norm(n0)*np.linalg.norm(n2))))
+      normed = np.linalg.norm(n0)*np.linalg.norm(n2)
+      if not np.isclose(normed, 0):
+        angle02 = np.degrees(math.acos(dot02/normed))
     if not sameVector(n1, n2):  
       dot12 = np.dot(n1,n2)
+      normed = np.linalg.norm(n1)*np.linalg.norm(n2)
 #       print("normals:",n1,n2)
 #       print("dot12:",dot12)
 #       print("normed:",np.linalg.norm(n1)*np.linalg.norm(n2))
 #       print("ratio:",dot12/(np.linalg.norm(n1)*np.linalg.norm(n2)))
-      angle12 = np.degrees(math.acos(dot12/(np.linalg.norm(n1)*np.linalg.norm(n2))))
+      if not np.isclose(normed, 0):
+        angle12 = np.degrees(math.acos(dot12/normed))
     
     if cube_size == 1 or angle01 < 30 or angle02 < 30 or angle12 < 30:
 #       print("angles:",angle01,angle02,angle12)
       id0 = len(points)
       points.append(vertlist[triTable[cube_idx][t]][0])
       normals.append(n0)
-      
+       
       id1 = len(points)
       points.append(vertlist[triTable[cube_idx][t+1]][0])
       normals.append(n1)
-      
+       
       id2 = len(points)
       points.append(vertlist[triTable[cube_idx][t+2]][0])
       normals.append(n2)
-      
+       
       triangles.append((id0,id1,id2))
-      
+       
       ntriangles += 1
     else:
       print("refining:",vertices[0]," size:",cube_size/2," ",vertices[6])
-      marching_cubes(voxels,(hx,hy,hz),points,triangles,normals,cube_size=cube_size/2,bottom_NW=vertices[0].coords,top_SE=vertices[6].coords+np.array([1,1,1]))
+#       marching_cubes(voxels,(hx,hy,hz),points,triangles,normals,cube_size=cube_size/2,bottom_NW=vertices[0].coords,top_SE=vertices[6].coords+np.array([1,1,1]))
     t += 3
     
     
