@@ -392,6 +392,8 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
     return std::pow(physical, 1.0/tf->GetParam());
   case TransferFunction::RAMP:
     return (physical + tf->GetParam() * physical ) / (1 + tf->GetParam() * physical);
+  case TransferFunction::HASHIN_SHTRIKMAN:
+    return 3.0 / (1/physical + 5);
   case TransferFunction::NO_TYPE:
   case TransferFunction::FULL:
   case TransferFunction::FIXED:

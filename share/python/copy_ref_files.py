@@ -8,11 +8,10 @@ import shutil
 # name.h5ref, name.ref.info.xml and if available name.ref.plot.dat and name.ref.density.xml
 def copy(source, target):
   if not os.path.exists(source):
-    print("cannot find '" + source + "' -> exit")
-    os.sys.exit()
-  
-  print("copy '" + source + "' to '" + target + "'")
-  shutil.copy(source, target)
+    print("cannot find '" + source + "' -> ignore ")
+  else:
+    print("copy '" + source + "' to '" + target + "'")
+    shutil.copy(source, target)
   
 
 
@@ -36,3 +35,4 @@ copy(name + '.plot.dat', name + '.ref.plot.dat')
 
 copy(name + '.density.xml', name + '.ref.density.xml')
 
+copy(name + '.bloch.dat', name + '.ref.bloch.dat')

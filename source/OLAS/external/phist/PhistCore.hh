@@ -27,14 +27,11 @@
 #include "OLAS/precond/generateprecond.hh"
 #include "OLAS/precond/BasePrecond.hh"
 #include "OLAS/solver/generatesolver.hh"
-#include "OLAS/solver/BaseSolver.hh"
-#include "OLAS/solver/BaseEigenSolver.hh"
 
 #include "Utils/Timer.hh"
 #include "Domain/Domain.hh"
 #include "Driver/BaseDriver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "phist_enums.h"
 #include "phist_config.h"
@@ -55,23 +52,35 @@ class Flags;
 class sparseMat_t; // phist matrix type
 class StdMatrix;
 
-class PhistCore{
+class PhistCore
+{
 public:
   PhistCore();
-  sparseMat_t* InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, double scale);
   ~PhistCore();
-  typedef struct {
+
+protected:
+
+  /** creates the matrix. If the space is already occupied (!= NULL) it is deleted first
+   * @param see it as referenece to the pointer we store the stuff to. It shall point to NULL in the beginning!
+   * @return new content of phist */
+  template<class TYPE>
+  sparseMat_t* InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, double scale);
+
+  template<class TYPE>
+  static int SparseMatRowFunc(ghost_gidx row, ghost_lidx* row_nnz, ghost_gidx* row_col, void* values, void* service_void);
+
+  typedef struct
+  {
     /** either stiff, mass, or damping */
     const StdMatrix* mat = NULL;
     /** scale value, e.g. to scale the B-Mat by 1/B[0,0]. Controlled by scale_mass*/
     double scale = 1.0;
-  }SparseMatRowFuncService;
-
+  } SparseMatRowFuncService;
 
 private:
 
+  // we dont't use the MPI features of phist and set it all to a minimum
   phist_comm_ptr comm_ = NULL;
-
 };
 
 } /* namespace CoupledField */

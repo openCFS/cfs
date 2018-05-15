@@ -1125,9 +1125,6 @@ PtrParamNode Optimization::CommitIteration()
   currentIteration++;
   problemWithinIteration = 0;
 
-  // write the current info file, if the writing frequency is not too high.
-  domain->GetInfoRoot()->ToFile();
-
   return iteration;
 }
 

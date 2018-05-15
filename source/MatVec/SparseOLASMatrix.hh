@@ -4,6 +4,7 @@
 #include "BaseMatrix.hh"
 #include "StdMatrix.hh"
 #include "Vector.hh"
+#include "MatVec/opdefs.hh"
 
 namespace CoupledField {
 
@@ -152,6 +153,27 @@ namespace CoupledField {
     //! Also for symmetric storage - GetNumEntries() give the right number of elements!
     virtual UInt GetNnz() const {
       return nnz_;
+    }
+
+    virtual T GetDiagEntry(unsigned int row) const = 0;
+
+    T GetTrace() const
+    {
+      assert(GetNumRows() == GetNumCols());
+      T res = 0;
+      for(unsigned int i = 0; i < GetNumRows(); i++)
+        res += GetDiagEntry(i);
+      return res;
+    }
+
+    T GetAvgDiag() const { return GetTrace() * (1./GetNumRows()); }
+
+    double GetMaxDiag() const
+    {
+      double maxDiag = -1e-70;
+      for(unsigned int i = 0; i < this->nrows_; ++i )
+        maxDiag = std::max(maxDiag, Abs<T>(GetDiagEntry(i)));
+      return maxDiag;
     }
 
     /** see the specific implementations */

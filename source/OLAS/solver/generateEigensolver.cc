@@ -5,9 +5,9 @@
 
 #include "MatVec/BaseMatrix.hh"
 #include "OLAS/algsys/SolStrategy.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "generateEigensolver.hh"
-
 
 #include "BaseEigenSolver.hh"
 #ifdef USE_ARPACK
@@ -23,6 +23,9 @@
 #endif
 
 namespace CoupledField {
+
+DECLARE_LOG(genEigSolver)
+DEFINE_LOG(genEigSolver, "genEigSolver")
 
   // *********************************
   //   Generate a EigenSolver object
@@ -40,39 +43,37 @@ namespace CoupledField {
     // to find eigenSolver in xml list.
     std::string eSolverId = strat->GetEigenSolverId();
     ParamNodeList sNodes =  eSolverList->GetChildren();
+    LOG_DBG(genEigSolver) << "GESO: id=" << eSolverId << " childs=" << sNodes.GetSize();
     PtrParamNode eSolverXML;
     for( UInt i = 0; i < sNodes.GetSize(); ++i ) {
+      LOG_DBG(genEigSolver) << "GESO: test " << sNodes[i]->Get("id")->As<std::string>();
       if( sNodes[i]->Get("id")->As<std::string>() == eSolverId ) {
         eSolverXML = sNodes[i]; 
       }
     }
 
-    if(! eSolverXML) {
+    if(!eSolverXML)
       EXCEPTION("Solver with id '" << eSolverId << "' was not found!");
-    }
-  
-      // Convert string to enum
-    EnumMap::iterator it, end;
-    it = BaseEigenSolver::eigenSolverType.map.begin();
-    end = BaseEigenSolver::eigenSolverType.map.end();
-  
+
+    // Convert string to enum
     std::string solverStr;
-    for( ; it != end; it++ ) {
-      if( eSolverXML->GetName() ==  it->second) {
+    for(auto it = BaseEigenSolver::eigenSolverType.map.begin(); it != BaseEigenSolver::eigenSolverType.map.end(); it++ )
+    {
+      if(eSolverXML->GetName() == it->second)
+      {
         if(solverStr != "")
-          EXCEPTION("Two eigensolvers have been specified: " << solverStr
-                    << " and " << (it->second))
-        
+          EXCEPTION("Two eigensolvers have been specified: " << solverStr << " and " << (it->second))
         solverStr = it->second;
       }
     }
   
-    if(solverStr == "") {
+    if(solverStr == "")
       EXCEPTION("Could not determine eigensolver!")
-    }
 
     BaseEigenSolver::EigenSolverType solver = BaseEigenSolver::NO_EIGENSOLVER;
     solver = BaseEigenSolver::eigenSolverType.Parse(solverStr);
+
+    LOG_DBG(genEigSolver) << "GESO: solver -> " << solverStr;
 
     // Branch depending on desired EigenSolver
     switch(solver)
