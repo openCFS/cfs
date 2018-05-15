@@ -33,16 +33,15 @@ namespace CoupledField
   public:
 
     //! Standard constructor
-    ProgramOptions( Integer argc,
-                    const char **argv );
+    ProgramOptions( Integer argc, const char **argv );
 
-    virtual ~ProgramOptions();
+    ~ProgramOptions();
 
     //! Gather information from commandline and environment
 
     //! This method triggers the reading of information from the command line
     //! and the environment.
-    virtual void ParseData();
+    void ParseData();
 
     // =======================================================================
     // QUERY METHODS FOR PARAMETERS
@@ -60,21 +59,21 @@ namespace CoupledField
     //! run, which may be something like e.g. plate3D. This name is used by
     //! CFS internally as basename for the generation of several (default)
     //! names for input and output files.
-    virtual std::string GetSimName() const;
+    std::string GetSimName() const;
 
     //! Return path to simulation files
 
     //! This method can be used to query the directory of the current,
     //! i.e. where the output files will be created.
-    virtual fs::path GetSimPath() const;
-    virtual std::string GetSimPathStr() const;
+    fs::path GetSimPath() const;
+    std::string GetSimPathStr() const;
 
     //! Return name of XML parameter file (including path)
 
     //! This method can be used to query the name of the parameter file in
     //! XML format that contains the steering parameters for the simulation.
-    virtual fs::path GetParamFile() const;
-    virtual std::string GetParamFileStr() const;
+    fs::path GetParamFile() const;
+    std::string GetParamFileStr() const;
 
     //! Return name of log configuration file
 
@@ -82,12 +81,12 @@ namespace CoupledField
     //! file, i.e. a xml file, which contains the module names, log levels
     //! and destination, where the log stream gets logged to. 
     //!  If no filename was provided an empty string is returned.
-    virtual fs::path GetLogConfFile() const;
-    virtual std::string GetLogConfFileStr() const;
+    fs::path GetLogConfFile() const;
+    std::string GetLogConfFileStr() const;
 
     /** Return the optional ersatz  material density file
      * @return "" if nothing given. */
-    virtual std::string GetErsatzMaterialStr() const;
+    std::string GetErsatzMaterialStr() const;
 
     //! Return path to XML schema file
 
@@ -99,15 +98,20 @@ namespace CoupledField
     //!   file itself. This must be called CFS.xsd!
     //! - This path is also used to locate the default XML-file that is
     //!   currently still needed by the XMLParamHandler.
-    virtual fs::path GetSchemaPath() const;
-    virtual std::string GetSchemaPathStr() const;
+    fs::path GetSchemaPath() const;
+    std::string GetSchemaPathStr() const;
 
     //! Return name of mesh file (including path)
 
     //! This method can be used to query the name of the mesh file containing
     //! the description of the FEM mesh for the simulation.
-    virtual fs::path GetMeshFile() const;
-    virtual std::string GetMeshFileStr() const;
+    fs::path GetMeshFile() const;
+    std::string GetMeshFileStr() const;
+
+    /** the value provided by --id to be written to the cfsInfo/header/@id in the info.xml.
+     * This way we can easily postproc a parameter study where only the mesh or material file content is changed */
+    std::string GetId() const;
+
 
     //! Return printGrid flag
 
@@ -116,11 +120,11 @@ namespace CoupledField
     //! perform an actual simulation, but to only import the grid and
     //! re-export it to an output file in the format specified in the XML
     //! parameter file.
-    virtual bool GetPrintGrid() const;
+    bool GetPrintGrid() const;
 
     /** exports the grid to the info.xml file.
      * Might get really big!! */
-    virtual bool DoExportGrid() const;
+    bool DoExportGrid() const;
 
     /** shall a .map be created using StdPDE::CreateEquationMapFile() */
     bool DoEquationMapping() const;
@@ -129,7 +133,7 @@ namespace CoupledField
 
     //! This method can be used to query the status of the restart flag.
     //! If this flag is true the simulation restarts from an previous state.
-    virtual bool GetRestart() const;
+    bool GetRestart() const;
 
     //! Return writeSkeleton flag
 
@@ -137,7 +141,7 @@ namespace CoupledField
     //! As a convenience for the CFS++ user it is possible to let the
     //! executable write a skeleton XML parameter file that must then be
     //! filled out by the user for a subsequent simulation run.
-    virtual bool GetWriteSkeleton() const;
+    bool GetWriteSkeleton() const;
 
     //! Returns license path
 
@@ -147,17 +151,17 @@ namespace CoupledField
     //! If this flag is set now exception will be thrown, but a segmentation
     //! fault will be forced instead, which enables one to use a debugger
     //! to get a stack trace.
-    virtual bool GetForceSegFault() const;
+    bool GetForceSegFault() const;
     //@}
 
     /** Also more detailed info.xml output as with DoListMapping */
-    virtual bool DoDetailedInfo() const;
+    bool DoDetailedInfo() const;
 
     /** Is cfs invoked with the quite flag to compress console output to just a minimu. */
-    virtual bool IsQuiet() const;
+    bool IsQuiet() const;
 
     /** Get number of threads for CFS supplied on the command line */
-    virtual UInt GetNumThreads() const;
+    UInt GetNumThreads() const;
 
     // =======================================================================
     // AUXILLIARY METHODS FOR OUTPUTTING INFORMATION
@@ -166,10 +170,10 @@ namespace CoupledField
     //@{ \name Auxilliary methods for outputting information
 
     //! Print help information to command line
-    virtual void PrintHelp( std::ostream &out );
+    void PrintHelp( std::ostream &out );
 
     /** Write the command line options to the info.xml file */
-    virtual void ToInfo(PtrParamNode in) const;
+    void ToInfo(PtrParamNode in) const;
 
     /** collects all available data to the string 
      *  It containts valuable information about the executable like the 
@@ -180,7 +184,7 @@ namespace CoupledField
     static void GetHistoryString(std::ostream& out);
     
     /** This gives the head line of CFS++ printed to cout */
-    virtual void GetHeaderString(std::ostream& out);
+    void GetHeaderString(std::ostream& out);
     
     // @}
 

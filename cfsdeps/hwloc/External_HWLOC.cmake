@@ -48,17 +48,14 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 if(HWLOC_SYSTEM_LIBS_DEFAULT)
   set(HWLOC_TMP ${HWLOC_SYSTEM_LIBS_DEFAULT})
 else()
-  set(HWLOC_TMP "-lpciacces;-ludev")
+  set(HWLOC_TMP "-lpciaccess;-ludev")
 endif()  
 
-SET(HWLOC_SYSTEM_LIBS ${HWLOC_TMP} CACHE STRING "Set system libs for hwloc, e.g. '-lpciacces;-ludev','-lpciacces;-lnuma','-lnuma;-lOpenCL'")
-
-message("HWLOC_SYSTEM_LIBS ${HWLOC_SYSTEM_LIBS}")
+SET(HWLOC_SYSTEM_LIBS ${HWLOC_TMP} CACHE STRING "Set system libs for hwloc, e.g. '-lpciaccess;-ludev','-lpciaccess;-lnuma','-lnuma;-lOpenCL'")
 
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 SET(HWLOC_LIBRARY  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}hwloc.a;${HWLOC_SYSTEM_LIBS}" CACHE FILEPATH "hwloc library, see HWLOC_SYSTEM_LIBS" FORCE)
 
-message("HWLOC_LIBRARY ${HWLOC_LIBRARY}")
 SET(HWLOC_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 
 MARK_AS_ADVANCED(HWLOC_LIBRARY)

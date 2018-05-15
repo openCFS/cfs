@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include <boost/filesystem.hpp>
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Domain/Domain.hh"
@@ -67,10 +68,15 @@ namespace CoupledField {
     if(isBloch_)
     {
       bloch_plot_.close();
-      if(!progOpts->DoDetailedInfo() && domain->GetOptimization())
+      if(domain->GetOptimization())
       {
-        string file = progOpts->GetSimName() + ".bloch.dat"; // See SetupBlochPlot()
-        std::rename(string(file + ".tmp").c_str(), file.c_str());
+        if(!progOpts->DoDetailedInfo())
+        {
+          string file = progOpts->GetSimName() + ".bloch.dat"; // See SetupBlochPlot()
+          std::rename(string(file + ".tmp").c_str(), file.c_str());
+        }
+        else
+          boost::filesystem::copy_file(bloch_name_, progOpts->GetSimName() + ".bloch.dat", boost::filesystem::copy_option::overwrite_if_exists);
       }
     }
 
@@ -109,20 +115,29 @@ namespace CoupledField {
   {
     bloch_plot_.close();
 
-    string file = progOpts->GetSimName(); // on change check destructor!
-    if(progOpts->DoDetailedInfo() && domain->GetOptimization())
-      file += "_iter_" + boost::lexical_cast<string>(domain->GetOptimization()->GetCurrentIteration());
-    file += ".bloch.dat";
-    // we write in .tmp the ongoing simulation and rename it when we are finished such that we have the last valid full bloch data for
-    // analysis of running optimization via find_band_gap.py
-    if(!progOpts->DoDetailedInfo() && domain->GetOptimization())
+    // non detailed run:
+    //    we write in .tmp the ongoing simulation and rename it when we are finished such that we have the last valid full bloch data for
+    //    analysis of running optimization via find_band_gap.py
+    // detailed run:
+    //    the bloch dat file has the iteration number, but we also copy the last one to .bloch.dat
+    if(domain->GetOptimization() && progOpts->DoDetailedInfo() && bloch_name_ != "")
+      boost::filesystem::copy_file(bloch_name_, progOpts->GetSimName() + ".bloch.dat", boost::filesystem::copy_option::overwrite_if_exists);
+
+    bloch_name_ = progOpts->GetSimName(); // on change check destructor!
+    if(domain->GetOptimization() && progOpts->DoDetailedInfo())
+      bloch_name_ += ".iter_" + boost::lexical_cast<string>(domain->GetOptimization()->GetCurrentIteration());
+    bloch_name_ += ".bloch.dat";
+
+    if(domain->GetOptimization() && !progOpts->DoDetailedInfo())
     {
-      std::rename(string(file + ".tmp").c_str(), file.c_str());
-      file += ".tmp";
+      // dosn't exist in the first wave_vector of iteration 0
+      std::rename(string(bloch_name_ + ".tmp").c_str(), bloch_name_.c_str());
+      bloch_name_ += ".tmp";
     }
+
     int dim = domain->GetGrid()->GetDim();
     int edges = boundary_ == HORIZONZAL ? 1 : boundary_ == SYMMETRIC ? dim + 1 : dim + 2; // copy & paste with FillWaveVector()
-    bloch_plot_.open(file.c_str() , std::ios::out);
+    bloch_plot_.open(bloch_name_.c_str() , std::ios::out);
     bloch_plot_ << "# <ibz dim=\"" << dim << "\" edges=\"" << edges << "\"/>\n";
     bloch_plot_ << "#step\tk_x\tk_y";
     if(domain->GetGrid()->GetDim() == 3)

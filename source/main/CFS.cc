@@ -436,8 +436,9 @@ void CFS::SetupIO(PtrParamNode rootNode )
   // Log command line parameters
   progOpts->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("progOpts"));
   
-  // log the optinal id/name/token/label from <cfsSimulation id="..">
-  infoNode->Get(ParamNode::HEADER)->Get("id")->SetValue(paramNode_->Get("id"));
+  // log the optional id/name/token/label from <cfsSimulation id="..">
+  std::string id = progOpts->GetId() != "" ? progOpts->GetId() : paramNode_->Get("id")->As<std::string>();
+  infoNode->Get(ParamNode::HEADER)->Get("id")->SetValue(id);
   
   // if requested give the problem file -> one can see the defaults then
   if(progOpts->DoDetailedInfo())

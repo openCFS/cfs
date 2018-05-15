@@ -975,7 +975,7 @@ if __name__ == '__main__':
   parser.add_argument('--resample', help="resample to this resolution", type=int)
   parser.add_argument('--repair', help="interpolate unsure data (when parsing from image)", action='store_true')
   parser.add_argument('--symmetrize', help="mirror on x-axis", action='store_true')
-  parser.add_argument('--transform', help="transforms 2D <-> 3D. 'sym' assues square/cubic symmetry", choices=['straight','sym'])
+  parser.add_argument('--transform', help="transforms 2D <-> 3D. 'sym' assumes square/cubic symmetry", choices=['straight','sym'])
   parser.add_argument('--export', help="write a density.xml file with shapeParam variables")
   parser.add_argument('--suppress_profile', help="do not export profile", action='store_true')
   parser.add_argument('--unbounded', help="do not restrict the visualization on a unit square", action='store_true')
@@ -989,7 +989,7 @@ if __name__ == '__main__':
     os.sys.exit()
   
   shapes = []
-  if args.input.endswith('.xml') or args.input.endswith('.plot'):
+  if args.input.endswith('.xml') or args.input.endswith('.xml.gz') or args.input.endswith('.plot'):
     shapes = read_file(args.input, args.set, args.profile)
     if args.resample:
       shapes = resample(shapes, args.resample)  
