@@ -203,13 +203,15 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
       y_node_coords = []
       if _2d_orientation == 'yz':
         x_node_coords = np.array(xml.xpath('//grid/nodeList/node/@y')).astype(np.float)
-        y_node_coords = np.array(xml.xpath('//grid/nodeList/node/@z')).astype(np.float)
+        tmparr = np.array(xml.xpath('//grid/nodeList/node/@z')).astype(np.float)
       elif _2d_orientation == 'xz':
         x_node_coords = np.array(xml.xpath('//grid/nodeList/node/@x')).astype(np.float)
-        y_node_coords = np.array(xml.xpath('//grid/nodeList/node/@z')).astype(np.float)
+        tmparr = np.array(xml.xpath('//grid/nodeList/node/@z')).astype(np.float)
       elif _2d_orientation == 'xy':
         x_node_coords = np.array(xml.xpath('//grid/nodeList/node/@x')).astype(np.float)
-        y_node_coords = np.array(xml.xpath('//grid/nodeList/node/@y')).astype(np.float)
+        tmparr = np.array(xml.xpath('//grid/nodeList/node/@y')).astype(np.float)
+
+      y_node_coords = np.full(len(tmparr), max(tmparr)) - tmparr
 
       imgdata = StringIO()
 
@@ -237,7 +239,16 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
             points.append(coord_tuple)
 
           color_value = (values[value_pos]-min_value) * value_factor
-          polygon = dwg.polygon(points=points, fill=svgwrite.rgb(color_value, 0, 255-color_value), stroke='black', stroke_width=0)
+
+          #def tri_func(value, center):
+          #  if value < center:
+          #    return max((center-value)*2, 0)
+          #  return max((value-center)*2, 0)
+
+          #tmp_color = svgwrite.rgb(tri_func(color_value, 0), tri_func(color_value, 255/2), tri_func(color_value, 255))
+          tmp_color = svgwrite.rgb(color_value, 0, 255-color_value)
+          
+          polygon = dwg.polygon(points=points, fill=tmp_color, stroke='black', stroke_width=0)
           dwg.add(polygon)
           
           value_pos += 1
