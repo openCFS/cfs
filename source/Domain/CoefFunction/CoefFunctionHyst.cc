@@ -4716,7 +4716,7 @@ namespace CoupledField {
       /*
        * III. Start testing
        */
-      std::cout << "Start!" << std::endl;
+  
       // overwriteMemory: 
       // this was true all the time but I don't get why
       // when we evaluate the hyst operator we just want to know which value
@@ -5071,8 +5071,10 @@ namespace CoupledField {
           statistics << " - Y_ret: " << yRetrieved[mapIt->first].ToString() << std::endl;
           statistics << " - h_sol: " << hIn[mapIt->first].ToString() << std::endl;
           statistics << " - h_ret: " << hRetrieved[mapIt->first].ToString() << std::endl;
-          statistics << " - X_sol: " << xIn[mapIt->first].ToString() << std::endl;
-          statistics << " - X_ret: " << xRetrieved[mapIt->first].ToString() << std::endl;
+          bool xsolabovesat = xIn[mapIt->first].NormL2()>MAT_xSat_;
+          bool xretabovesat = xRetrieved[mapIt->first].NormL2()>MAT_xSat_;
+          statistics << " - X_sol: " << xIn[mapIt->first].ToString()  << "; above sat? "<< xsolabovesat << std::endl;
+          statistics << " - X_ret: " << xRetrieved[mapIt->first].ToString() << "; above sat? "<< xretabovesat << std::endl;
           statistics << " - SuccessCode: " << successCodeVector[mapIt->first] << std::endl;
         }
       }

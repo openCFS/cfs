@@ -177,10 +177,10 @@ namespace CoupledField {
 				Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac);
     
     Integer checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, bool stayBelowSat);
+		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
     
     Integer checkIncrementOLD(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, bool stayBelowSat);
+		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
     
     Vector<Double> computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
     
@@ -189,17 +189,17 @@ namespace CoupledField {
     
     Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
-					bool overwriteMemory, bool overwriteDirection, bool stayBelowSat);
+					bool overwriteMemory, bool overwriteDirection, int stayBelowSat);
     
     Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
           Matrix<Double> mu, Matrix<Double> mu_inv, Integer operatorIdx, Double sign, bool wrtX, bool relative, 
-					UInt implementation, bool overwriteMemory, bool overwriteDirection, bool stayBelowSat);
+					UInt implementation, bool overwriteMemory, bool overwriteDirection, int stayBelowSat);
     
     bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
 		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
 		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
 		Double& alpha, Double alphaMin, Double alphaMax,  bool wrtX, bool relative, 
-    UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat,bool stayBelowSat);
+    UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat,int stayBelowSat);
 
     Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
