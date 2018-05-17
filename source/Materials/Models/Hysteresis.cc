@@ -910,6 +910,11 @@ namespace CoupledField
       assert(!xUpdate.ContainsNaN() && !xUpdate.ContainsInf());
       LOG_DBG(vecpreisachlinesearch) << "Computed xUpdate = " << xUpdate.ToString();
       
+      xNew.Init();
+      xNew.Add(1.0,xVal,1.0,xUpdate);
+      LOG_DBG(vecpreisachlinesearch) << "Computed xNew = " << xNew.ToString();
+      LOG_DBG(vecpreisachlinesearch) << "Actual solution = " << sol.ToString();
+      
       /*
        * New treatments
        * a) check if xUpdate.Norm > XSaturated
@@ -926,54 +931,26 @@ namespace CoupledField
        *    > if returned alpha > alphaMax or < alphaMin > stop
        *    > if check says increment is ok > stop
        *    > else go to next iteration
+       * 
+       * Problems:
+       *  1. the larger alpha gets, the smaller the updates will be up to the
+       *      point where we do not improve at all
+       *  2. if alpha is very large, we will not come back in a reasonable amount
+       *      of iterations
+       *  3. the larger alpha gets, the more the update will have the same direction
+       *      as the residual (as matrix gets more and more diagonal); this point
+       *      is especially critical as rotations of the solution vector (e.g. from
+       *      ex to ey) are highly depenedent on the non-diagonal entries
+       * 
+       * Conclusion:
+       *  1. check trust region first; if trust regions says update is ok use it!
+       *  2. if updated vector is out of bounds (i.e. going into sat althoug we
+       *      want to stay below), we cut down the NEW vector, not the update;
+       *      by doing so, we hopefully can retain the change in direction that
+       *      is caused by the update
+       *  
        */
-       
-      if((xUpdate.NormL2() >= XSaturated_)){//&&(stayBelowSat==true)){
-        // too large update
-        // > set xNew back to saturation
-        // use only 1/2 of it
-        // > else oscilation between two near saturation states possible
-        LOG_DBG(vecpreisachlinesearch) << "1: xUpdate.NormL2() > Saturation > no sucess; increase alpha";
-        alpha = alpha*2;
-        
-        if(alpha > alphaMax){
-          LOG_DBG(vecpreisachlinesearch) << "1: alpha > alphaMax; increase alphaMax, too";
-          alphaMax = alpha;
-        }
-        continue;
-      } 
-
-      xNew.Init();
-      xNew.Add(1.0,xVal,1.0,xUpdate);
-      LOG_DBG(vecpreisachlinesearch) << "Computed xNew = " << xNew.ToString();
-      LOG_DBG(vecpreisachlinesearch) << "Actual solution = " << sol.ToString();
-      
-      if((xNew.NormL2() > XSaturated_)&&(stayBelowSat==1)){
-        // too large update
-        // > set xNew back to saturation
-        LOG_DBG(vecpreisachlinesearch) << "2: xNew.NormL2() > Saturation but stayBelowSat = true > no sucess; increase alpha";
-        alpha = alpha*2;
-        
-        if(alpha > alphaMax){
-          LOG_DBG(vecpreisachlinesearch) << "2: alpha > alphaMax; increase alphaMax, too";
-          alphaMax = alpha;
-        }
-        continue;
-      }
-      
-      if((xNew.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
-        // too large update
-        // > set xNew back to saturation
-        LOG_DBG(vecpreisachlinesearch) << "3: xNew.NormL2() < Saturation but stayBelowSat = false > no sucess; increase alpha";
-        alpha = alpha*2;
-        
-        if(alpha > alphaMax){
-          LOG_DBG(vecpreisachlinesearch) << "3: alpha > alphaMax; increase alphaMax, too";
-          alphaMax = alpha;
-        }
-        continue;
-      }
-      
+            
       Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, overwriteDirection);
       Vector<Double> hystOld = computeValue_vec(xVal, operatorIdx, overwriteMemory, overwriteDirection);
       Vector<Double> resSol = computeResidual(sol,yVal,hystSol,mu,mu_inv,wrtX,relative);
@@ -987,23 +964,68 @@ namespace CoupledField
       LOG_DBG(vecpreisachlinesearch) << "Old res vector: " << res.ToString();
       LOG_DBG(vecpreisachlinesearch) << "New res vector: " << resNew.ToString();
       LOG_DBG(vecpreisachlinesearch) << "res vector for sol: " << resSol.ToString();
-      success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
-      LOG_DBG(vecpreisachlinesearch) << "Check trust region - return code: " << success;
+      // set stayBelowSat flag to 0 to disable checking
+      success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,0);
+      LOG_DBG(vecpreisachlinesearch) << "Check trust region - return code: " << success; 
       
-      // after trust region checking, we do not increase alphaMax or diecrease alphaMin
-      // any further
-      if(alpha > alphaMax){
-        alpha = alphaMax;
-        break;
-      }
-      if(alpha < alphaMinLocal){
-        alpha = alphaMinLocal;
-        break;
-      }
-	
       if(success >= 0){
-        LOG_TRACE(vecpreisachlinesearch) << "Linesearch was successful after " << itCnt << " iterations";
-        break;
+        LOG_DBG(vecpreisachlinesearch) << "Update ok according to trust region check; now check if resulting vector may be out of bounds";
+        bool wasCut = false;
+        if((xNew.NormL2() > XSaturated_)&&(stayBelowSat==1)){
+          // too large update
+          // > set xNew back to saturation
+          LOG_DBG(vecpreisachlinesearch) << "2: xNew.NormL2() > Saturation but stayBelowSat = +1 > cut down xNew";
+          
+          xNew.ScalarMult(0.95*XSaturated_/xNew.NormL2());
+          wasCut = true;
+        }
+        
+        if((xNew.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
+          // too large update
+          // > set xNew back to saturation
+          LOG_DBG(vecpreisachlinesearch) << "3: xNew.NormL2() < Saturation but stayBelowSat = -1 (i.e. stayAboveSat = true) > cut down xNew";
+          
+          xNew.ScalarMult(1.0/0.95*XSaturated_/xNew.NormL2());
+          wasCut = true;
+        }
+        
+        if(wasCut){
+          
+          // retrieve updated
+          xUpdate = xNew;
+          xUpdate -= xVal;
+          
+          // check again
+          hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, overwriteDirection);
+          resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
+          success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
+          LOG_DBG(vecpreisachlinesearch) << "xNew (after cut): " << xNew.ToString();
+          LOG_DBG(vecpreisachlinesearch) << "hystNew (after cut): " << hystNew.ToString();
+          LOG_DBG(vecpreisachlinesearch) << "New res vector (after cut): " << resNew.ToString();
+          LOG_DBG(vecpreisachlinesearch) << "Check trust region - return code (after cut): " << success; 
+          if(success >= 0){
+            LOG_DBG(vecpreisachlinesearch) << "Update still ok > take it";
+            break;
+          } else {
+            LOG_DBG(vecpreisachlinesearch) << "Update no longer ok > go to next iteration except alpha out of limits";
+            // any further
+            if(alpha > alphaMax){
+              LOG_TRACE(vecpreisachlinesearch) << "Alpha max reached; take update > stop";
+              alpha = alphaMax;
+              discard = false;
+              break;
+            }
+            if(alpha < alphaMinLocal){
+              LOG_TRACE(vecpreisachlinesearch) << "Alpha min reached; discard update > stop";
+              alpha = alphaMinLocal;
+              discard = true;
+              break;
+            }
+          }
+        } else {
+          LOG_DBG(vecpreisachlinesearch) << "Update not out of bounds > take it";
+          break;
+        }
       } else {
         if(itCnt >= maxIter){
           LOG_TRACE(vecpreisachlinesearch) << "Linesearch was not successful; Discard update.";
@@ -1011,10 +1033,248 @@ namespace CoupledField
           break;
         }
       }
+
+      // might be needed again
+//      if((xUpdate.NormL2() >= XSaturated_)){//&&(stayBelowSat==true)){
+//        // too large update
+//        // > set xNew back to saturation
+//        // use only 1/2 of it
+//        // > else oscilation between two near saturation states possible
+//        LOG_DBG(vecpreisachlinesearch) << "1: xUpdate.NormL2() > Saturation > no sucess; increase alpha";
+//        alpha = alpha*2;
+//        
+//        if(alpha > alphaMax){
+//          LOG_DBG(vecpreisachlinesearch) << "1: alpha > alphaMax; increase alphaMax, too";
+//          alphaMax = alpha;
+//        }
+//        continue;
+//      } 
     }
 
     return discard;
   }
+//  Initial; 17.05.2018
+//  bool Hysteresis::performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
+//		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
+//		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
+//		Double& alpha, Double alphaMin, Double alphaMax, bool wrtX, bool relative, 
+//    UInt& numberOfIterations,Vector<Double>& xStart, Double factorToSat, int stayBelowSat, Vector<Double> sol){
+//    
+//    LOG_TRACE(vecpreisachlinesearch) << " --------- START LINESEARCH --------- ";
+//    LOG_DBG(vecpreisachlinesearch) << "Starting xVal = " << xVal.ToString();
+//    LOG_DBG(vecpreisachlinesearch) << "Target yVal = " << yVal.ToString();
+//    LOG_DBG(vecpreisachlinesearch) << "alpha, alphaMin, alphaMax = " << alpha << ", " << alphaMin << ", " << alphaMax << std::endl;
+//    
+//    if((xVal.NormL2() > XSaturated_)&&(stayBelowSat==1)){
+//      EXCEPTION("xInput to Linesearch already above saturation > must not be the case!");
+//    }
+//    if((xVal.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
+//      EXCEPTION("xInput to Linesearch already below saturation > must not be the case!");
+//    }
+//
+//		UInt maxIter = 50;
+//    UInt itCnt = 0;
+//    
+//    Matrix<Double> matToInvert = Matrix<Double>(dim_,dim_);
+//    Matrix<Double> matInverted = Matrix<Double>(dim_,dim_);
+//    Matrix<Double> jacTjac = Matrix<Double>(dim_,dim_);
+//    jacT.Mult(jac,jacTjac);
+//    Vector<Double> jacTres_neg = Vector<Double>(dim_);
+//    Vector<Double> resNew = Vector<Double>(dim_);
+//    Vector<Double> xNew = Vector<Double>(dim_);
+//    Vector<Double> hystNew = Vector<Double>(dim_);
+//    
+//    jacT.Mult(res,jacTres_neg);
+//    jacTres_neg = jacTres_neg*(-1.0);
+//       
+//		/*
+//		 * new: success is now an integer
+//		 * <0 no success
+//		 * >0 success but alpha was too large
+//		 * =0 success alpha good
+//		 */
+//    Integer success = -1;
+//    bool discard = false;
+//    
+//    xNew.Init();
+//    xNew.Add(xVal);
+//    Double alphaMinLocal = alphaMin;
+//    Double detMatToInvert;
+//    UInt cnt = 0;
+//            
+//    LOG_DBG(vecpreisachlinesearch) << "Determine minimal alpha that allows inversion of jacTjac";
+//    LOG_DBG(vecpreisachlinesearch) << "Given alphaMin: " << alphaMin;        
+//            
+//    while(true){
+//      matToInvert = jacTjac;
+//      jacTjac.Determinant(detMatToInvert);
+//      LOG_DBG(vecpreisachlinesearch) << " det(jacTjac) =  " << detMatToInvert;
+//      
+//      for(UInt i = 0; i < dim_; i++){
+//        matToInvert[i][i] += alphaMinLocal*alphaMinLocal;
+//      }
+//      matToInvert.Determinant(detMatToInvert);
+//      if(detMatToInvert != 0){
+//        break;
+//      } else {
+//        alphaMinLocal = alphaMinLocal*2;
+//      }
+//      cnt++;
+//      if(cnt > 200){
+//        EXCEPTION("LM, Linesearch: Cannot find alpha, such that jacTjac becomes invertible!");
+//      }
+//    }
+//    LOG_DBG(vecpreisachlinesearch) << "Found alphaMinLocal: " << alphaMinLocal;
+//    
+//    if(alpha < alphaMinLocal){
+//      LOG_DBG(vecpreisachlinesearch) << "Starting alpha < alphaMinLocal";
+//      alpha = alphaMinLocal;
+//    }
+//    
+//    // now reset alpha to alphaMax (note: alphaMax is passed as copy, i.e. if we increase it further
+//    // below, the actual value of alphaMax is restored during next call
+//    if(alpha > alphaMax){
+//      LOG_DBG(vecpreisachlinesearch) << "Current alpha > alphaMax";
+//      alpha = alphaMax;
+//    }
+//
+//    while(true){
+//      itCnt++;
+//			// for statistics
+//			numberOfIterations=itCnt;
+//      
+//      LOG_DBG(vecpreisachlinesearch) << "Start Iteration " << itCnt << " with: ";
+//      LOG_DBG(vecpreisachlinesearch) << "xVal = " << xVal.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "last found x = " << xNew.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "alpha = " << alpha;
+//      
+//      for(UInt i = 0; i < dim_; i++){
+//        matToInvert[i][i] += alpha*alpha;
+//      }
+//      matToInvert.Determinant(detMatToInvert);
+//      assert(detMatToInvert != 0);
+//      matToInvert.Invert(matInverted);
+//      
+//      if(INV_useTikhonov_){
+//        Vector<Double> tikhonovReg = Vector<Double>(dim_);
+//        tikhonovReg.Init();
+//        tikhonovReg.Add(alpha*alpha,xStart,-alpha*alpha,xNew);
+//        tikhonovReg.Add(1.0,jacTres_neg);
+//        matInverted.Mult(tikhonovReg,xUpdate);
+//      } else {
+//        matInverted.Mult(jacTres_neg,xUpdate);
+//      }
+//      assert(!xUpdate.ContainsNaN() && !xUpdate.ContainsInf());
+//      LOG_DBG(vecpreisachlinesearch) << "Computed xUpdate = " << xUpdate.ToString();
+//      
+//      /*
+//       * New treatments
+//       * a) check if xUpdate.Norm > XSaturated
+//       *    > this will probably be an unusable update
+//       *    > increase alpha, go to next iteration
+//       *    > increase alphaMax if necessary
+//       * b) check if xNew = xOld + xUpdate stays above or below saturation
+//       *    > jumping between these two regimes leads to issues as slope
+//       *      of hyst operator is jumping here
+//       *    > if we move to another regime, xUpdate was too large
+//       *    > increase alpha, go to next iteration
+//       *    > increase alphaMax if necessary
+//       * c) check increment according to trust region method
+//       *    > if returned alpha > alphaMax or < alphaMin > stop
+//       *    > if check says increment is ok > stop
+//       *    > else go to next iteration
+//       */
+//       
+//      if((xUpdate.NormL2() >= XSaturated_)){//&&(stayBelowSat==true)){
+//        // too large update
+//        // > set xNew back to saturation
+//        // use only 1/2 of it
+//        // > else oscilation between two near saturation states possible
+//        LOG_DBG(vecpreisachlinesearch) << "1: xUpdate.NormL2() > Saturation > no sucess; increase alpha";
+//        alpha = alpha*2;
+//        
+//        if(alpha > alphaMax){
+//          LOG_DBG(vecpreisachlinesearch) << "1: alpha > alphaMax; increase alphaMax, too";
+//          alphaMax = alpha;
+//        }
+//        continue;
+//      } 
+//
+//      xNew.Init();
+//      xNew.Add(1.0,xVal,1.0,xUpdate);
+//      LOG_DBG(vecpreisachlinesearch) << "Computed xNew = " << xNew.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "Actual solution = " << sol.ToString();
+//      
+//      if((xNew.NormL2() > XSaturated_)&&(stayBelowSat==1)){
+//        // too large update
+//        // > set xNew back to saturation
+//        LOG_DBG(vecpreisachlinesearch) << "2: xNew.NormL2() > Saturation but stayBelowSat = true > no sucess; increase alpha";
+//        alpha = alpha*2;
+//        
+//        if(alpha > alphaMax){
+//          LOG_DBG(vecpreisachlinesearch) << "2: alpha > alphaMax; increase alphaMax, too";
+//          alphaMax = alpha;
+//        }
+//        continue;
+//      }
+//      
+//      if((xNew.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
+//        // too large update
+//        // > set xNew back to saturation
+//        LOG_DBG(vecpreisachlinesearch) << "3: xNew.NormL2() < Saturation but stayBelowSat = false > no sucess; increase alpha";
+//        alpha = alpha*2;
+//        
+//        if(alpha > alphaMax){
+//          LOG_DBG(vecpreisachlinesearch) << "3: alpha > alphaMax; increase alphaMax, too";
+//          alphaMax = alpha;
+//        }
+//        continue;
+//      }
+//      
+//      Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, overwriteDirection);
+//      Vector<Double> hystOld = computeValue_vec(xVal, operatorIdx, overwriteMemory, overwriteDirection);
+//      Vector<Double> resSol = computeResidual(sol,yVal,hystSol,mu,mu_inv,wrtX,relative);
+//      
+//      hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, overwriteDirection);
+//      resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
+//      
+//      LOG_DBG(vecpreisachlinesearch) << "hyst vector for sol: " << hystSol.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "hystNew: " << hystNew.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "hystOld: " << hystOld.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "Old res vector: " << res.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "New res vector: " << resNew.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "res vector for sol: " << resSol.ToString();
+//      success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
+//      LOG_DBG(vecpreisachlinesearch) << "Check trust region - return code: " << success;
+//      
+//      // after trust region checking, we do not increase alphaMax or diecrease alphaMin
+//      // any further
+//      if(alpha > alphaMax){
+//        alpha = alphaMax;
+//        break;
+//      }
+//      if(alpha < alphaMinLocal){
+//        alpha = alphaMinLocal;
+//        break;
+//      }
+//	
+//      if(success >= 0){
+//        LOG_TRACE(vecpreisachlinesearch) << "Linesearch was successful after " << itCnt << " iterations";
+//        break;
+//      } else {
+//        if(itCnt >= maxIter){
+//          LOG_TRACE(vecpreisachlinesearch) << "Linesearch was not successful; Discard update.";
+//          discard = true;
+//          break;
+//        }
+//      }
+//    }
+//
+//    return discard;
+//  }
+  
+  
+  
   
 //  
 //  bool Hysteresis::performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
