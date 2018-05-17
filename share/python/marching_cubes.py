@@ -29,7 +29,7 @@ triTable = None
   #   |/             |/
   #  3 -------------2/
   #         e2 
-def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_size=4,bottom_NW=None,top_SE=None):
+def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_size=4,bottom_NW=None,top_SE=None,offset=None):
   from draw_profile_functions import grid_to_cartesian_coords
   hx = spacing[0]
   hy = spacing[1]
@@ -95,8 +95,53 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_siz
         local_verts.append(Vertex(6,top_SE,voxels[top_SE]))
         local_verts.append(Vertex(7,top_SW,voxels[top_SW]))
         
-        create_triangles(local_verts,thresh,points,triangles,normals,voxels,cube_size)
+        # example: vertex 3 was below the isosurface, cubeindex would equal 0000 1000 or 8
+        cube_idx = 0
+        cube_idx |= 1 if local_verts[0].value > thresh else 0
+        cube_idx |= 2 if local_verts[1].value > thresh else 0
+        cube_idx |= 4 if local_verts[2].value > thresh else 0
+        cube_idx |= 8 if local_verts[3].value > thresh else 0
+        cube_idx |= 16 if local_verts[4].value > thresh else 0
+        cube_idx |= 32 if local_verts[5].value > thresh else 0
+        cube_idx |= 64 if local_verts[6].value > thresh else 0
+        cube_idx |= 128 if local_verts[7].value > thresh else 0
         
+        edge_idx = edgeTable[cube_idx]
+        
+        # we have 12 edges, find vertices where surface intersects marching cube
+        if cube_idx == 0 or cube_idx == 255:
+          continue
+        
+#         create_triangles(local_verts,thresh,points,triangles,normals,voxels,cube_size)
+        verts, faces, norms = create_triangles2(voxels[i:i+cube_size+1,j:j+cube_size+1,k:k+cube_size+1],(hx,hy,hz),cube_size)
+        
+        angles = []
+        for f in faces:
+          n0 = norms[f[0]]
+          n1 = norms[f[1]]
+          n2 = norms[f[2]]
+          
+          angles.append(calc_angle(n0, n1))
+          angles.append(calc_angle(n0, n2))
+          angles.append(calc_angle(n1, n2))
+        
+        offset_p = 0
+        if cube_size == 1 or np.any(np.array(angles) < 50):  
+          offset_p = grid_to_cartesian_coords((i,j,k),None,(hx,hy,hz))
+#           if offset is not None:
+#             offset_p += offset
+          offset_f = len(points)
+          verts = [v + np.array(offset_p) for v in verts]
+          points.extend(verts)
+          faces = [v + np.array(offset_f) for v in faces]
+          triangles.extend(faces)
+          normals.extend(norms)
+        else:
+          print("refining ", cube_size, " angles:",angles)
+          offset_p += grid_to_cartesian_coords((i,j,k),None,(hx,hy,hz))
+#           if offset is not None:
+#             offset_p += offset
+          marching_cubes(voxels[i:i+cube_size+1,j:j+cube_size+1,k:k+cube_size+1], spacing, points, triangles, normals, thresh, int(cube_size/2),offset=offset_p)
 #         if len(triangles) > 0:
 #           for i in range(len(points)):
 #             points[i] = grid_to_cartesian_coords(points[i],None,(hx,hy,hz))   
@@ -109,8 +154,8 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_siz
 #           sys.exit()  
 
   if cube_size == 4:
-    for i in range(len(points)):
-      points[i] = grid_to_cartesian_coords(points[i],None,(hx,hy,hz))   
+#     for i in range(len(points)):
+#       points[i] = grid_to_cartesian_coords(points[i],None,(hx,hy,hz))   
   #     #normals[i] *= np.array([hx,hy,hz])  
     pd = matviz_vtk.fill_vtk_polydata(points,triangles)
   #   
@@ -292,12 +337,6 @@ def create_triangles(vertices,thresh,points,triangles,normals,voxels,cube_size):
       
       vertlist[c] = (interp,(Gx,Gy,Gz))
       
-#       print("Gx0:",Gx0)
-#       print("Gx1:",Gx1)
-#       print("Gx:",Gx)
-#       print(vertlist[c][1])
-#       sys.exit()
-     
   t = 0
   tmp_triangles = []
   tmp_points = []
@@ -309,33 +348,9 @@ def create_triangles(vertices,thresh,points,triangles,normals,voxels,cube_size):
     n1 = vertlist[triTable[cube_idx][t+1]][1] * np.array([hx,hy,hz])
     n2 = vertlist[triTable[cube_idx][t+2]][1] * np.array([hx,hy,hz])
     
-    angle01, angle02, angle12 = 90, 90, 90
-    if not sameVector(n0, n1):
-      dot01 = np.dot(n0,n1)
-      normed = np.linalg.norm(n0)*np.linalg.norm(n1)
-#       print("normals:",n0,n1)
-#       print("dot01:",dot01)
-#       print("normed:",normed)
-      if not np.isclose(normed, 0):
-        angle01 = np.degrees(math.acos(dot01/normed))
-    if not sameVector(n0, n2):  
-      dot02 = np.dot(n0,n2)
-      normed = np.linalg.norm(n0)*np.linalg.norm(n2)
-      if not np.isclose(normed, 0):
-        angle02 = np.degrees(math.acos(dot02/normed))
-    if not sameVector(n1, n2):  
-      dot12 = np.dot(n1,n2)
-      normed = np.linalg.norm(n1)*np.linalg.norm(n2)
-#       print("normals:",n1,n2)
-#       print("dot12:",dot12)
-#       print("normed:",np.linalg.norm(n1)*np.linalg.norm(n2))
-#       print("ratio:",dot12/(np.linalg.norm(n1)*np.linalg.norm(n2)))
-      if not np.isclose(normed, 0):
-        angle12 = np.degrees(math.acos(dot12/normed))
-    
-    angles.append(angle01)
-    angles.append(angle02)
-    angles.append(angle12)
+    angles.append(calc_angle(n0, n1))
+    angles.append(calc_angle(n0, n2))
+    angles.append(calc_angle(n1, n2))
     id0 = len(points) + len(tmp_points)
     tmp_points.append(vertlist[triTable[cube_idx][t]][0])
     tmp_normals.append(n0)
@@ -359,6 +374,15 @@ def create_triangles(vertices,thresh,points,triangles,normals,voxels,cube_size):
   else:  
 #       print("refining:",vertices[0]," size:",cube_size/2," ",vertices[6])
     marching_cubes(voxels,(hx,hy,hz),points,triangles,normals,cube_size=cube_size/2,bottom_NW=vertices[0].coords,top_SE=vertices[6].coords+np.array([1,1,1]))    
+
+def calc_angle(n0,n1):
+  if not sameVector(n0, n1):
+    dot01 = np.dot(n0,n1)
+    normed = np.linalg.norm(n0)*np.linalg.norm(n1)
+    if not np.isclose(normed, 0):
+      return np.degrees(math.acos(dot01/normed))
+    
+  return 90
 
 def compute_vertex_normals(verts,faces,linear_weights=False):
   normals = np.zeros_like(verts)
@@ -704,6 +728,21 @@ def create_lookup():
     (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
   ]
   
-  return edgeTable, triTable      
+  return edgeTable, triTable  
+
+def write_vtp(points,cells,hx,hy,hz):    
+  from draw_profile_functions import grid_to_cartesian_coords
+  from matviz_vtk import show_write_vtk
+  tmp_points = np.copy(points)
+  for i in range(len(tmp_points)):
+    tmp_points[i] = grid_to_cartesian_coords(tmp_points[i],None,(hx,hy,hz))
+    
+  pd = matviz_vtk.fill_vtk_polydata(points,cells)
+  show_write_vtk(pd, 10, "marching_cubes.vtp")
   
+def create_triangles2(array,spacing,step):
   
+  from skimage import measure
+  verts, faces, normals, values = measure.marching_cubes(array,spacing=spacing,step_size=step,allow_degenerate=False)
+  
+  return verts, faces, normals
