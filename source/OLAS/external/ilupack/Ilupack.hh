@@ -187,7 +187,7 @@ namespace CoupledField
 
     SparseMatrix spr;
 
-    int index = 1;
+    int index = 0;
     int nleaves=1;
     int mtmetis=0;
     bool isParallel=false;

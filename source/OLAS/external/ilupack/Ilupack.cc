@@ -89,14 +89,6 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   LOG_TRACE2(ilupack) <<  "SetMatrix: SPARSE_SYM="  << (som.GetStorageType() == BaseMatrix::SPARSE_SYM)
                       << " mat_.a=" << mat.a << " .ia=" << mat.ia << ".ja=" << mat.ja;
 
-  // delete the old values before we allocate the new space - if could be faster! 
-  if(mat.a != NULL)
-  { delete[] mat.a; mat.a = NULL;}
-  if(mat.ia != NULL)
-  { delete[] mat.ia; mat.ia = NULL;}
-  if(mat.ja != NULL)
-  { delete[] mat.ja; mat.ja = NULL;}
-
   unsigned int elements = 0;
 
   // pointers will point to the first actual element    
@@ -125,69 +117,114 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
     val_ptr = crs.GetDataPointer();
   }
 
-  // allocate and copy the stuff - note, that we are 0-based in OLAS
-  // but 1-based in Ilupack!
+  // The parallel case requires a sparse matrix which is of zero based indexing and we dont't copy the cfs matrix
+  // but just move it
 
-  // rows are simple but we have to handle the tailing element
-  mat.ia = new int[som.GetNumRows() + 1]; // one plus due to CRS tail
-  std::copy(row_ptr, row_ptr + som.GetNumRows() + 1, mat.ia);
+  if (isParallel){
+    //Create the sparse matrix spr
+    CreateSparseMatrix(&spr,0,som.GetNumRows(),som.GetNumCols(),elements,0);
 
-  mat.ja = new int[elements];
-  std::copy(col_ptr, col_ptr + elements, mat.ja);
+    spr.dim1=som.GetNumRows();
+    spr.dim2=som.GetNumCols();
 
-  // values is brutal stuff, because binary the std::complex<double>* IS a double*!
-  mat.a = reinterpret_cast<double*>(new T[elements]);
-  T* val_src = reinterpret_cast<T*>(mat.a);
-  std::copy(val_ptr, val_ptr + elements, val_src);
+    std::copy(row_ptr,row_ptr+ som.GetNumRows()+1,spr.vptr);
+    std::copy(col_ptr, col_ptr + elements, spr.vpos);
 
-  // no adjust to 1-based!
-  for(unsigned int i = 0, numRows = som.GetNumRows(); i < numRows+1; i++)
-    mat.ia[i] += 1;
+    spr.vval = reinterpret_cast<double*>(new T[elements]);
+    T* val_src = reinterpret_cast<T*>(spr.vval);
+    std::copy(val_ptr, val_ptr + elements, val_src);
 
-  for(unsigned int i = 0; i < elements; i++)
-    mat.ja[i] += 1;
 
-  mat.nr = som.GetNumRows();
-  mat.nc = som.GetNumCols();
-  mat.nnz = elements;
+    Dmat A;
 
-  mat.issymmetric = 0;
-  mat.isdefinite = 0;
-  mat.ishermitian = 0;
-  mat.isskew = 0;
-  mat.isreal = !isComplex_;
-  mat.issingle = 0;
-  switch(matrix_)
-  {
-    case GNL:
-      break;
-    case PD:
-      mat.issymmetric = 1;
-      mat.isdefinite = 1;
-      if (isComplex_)
-      {
-        mat.ishermitian = 1;
-      }
-      break;
-    case SYM:
-      mat.issymmetric = 1;
-      break;
-    case HER:
-      mat.ishermitian = 1;
-      if (mat.isreal)
-      {
-        throw Exception("ilupack matrix is set to hermitian but not complex");
-      }
-      break;
-    default:
-      throw Exception("matrix type does not exist (SSM and SHR are not implemented yet)");
+    ConvertMatrixToIlupack(spr,index,&A);
+    A.issymmetric=1;
+    A.isreal=1;
+    A.isdefinite=1;
+    DSPDAMGinit(&A,reinterpret_cast<DILUPACKparam*>(&param));
+
+
+    ConvertIlupackToMatrix (A, &spr, index);
+//    WriteSparseMatrixHB("MatrixRead.rsa",spr,8,4,"MatrixRead",0);
+
+
   }
+  else {
+    // delete the old values before we allocate the new space - if could be faster!
+      if(mat.a != NULL)
+      { delete[] mat.a; mat.a = NULL;}
+      if(mat.ia != NULL)
+      { delete[] mat.ia; mat.ia = NULL;}
+      if(mat.ja != NULL)
+      { delete[] mat.ja; mat.ja = NULL;}
 
-  LOG_TRACE2(ilupack) << "SetMatrix: allocate: mat_.a<T>=" << elements << " .ia=" << (som.GetNumRows() + 1)
-                      << ".ia=" << elements << "; .nr=" << mat.nr << " .nc=" << mat.nc;
-  LOG_DBG2(ilupack) << "mat_.ia: " << StdVector<int>::ToString(mat.nr + 1, mat.ia);
-  LOG_DBG2(ilupack) << "mat_.ja: " << StdVector<int>::ToString(elements, mat.ja);
-  LOG_DBG2(ilupack) << "mat_.a: " << StdVector<double>::ToString(elements, mat.a);
+      // allocate and copy the stuff - note, that we are 0-based in OLAS
+      // but 1-based in Ilupack!
+
+      // rows are simple but we have to handle the tailing element
+      mat.ia = new int[som.GetNumRows() + 1]; // one plus due to CRS tail
+      std::copy(row_ptr, row_ptr + som.GetNumRows() + 1, mat.ia);
+
+      mat.ja = new int[elements];
+      std::copy(col_ptr, col_ptr + elements, mat.ja);
+
+      // values is brutal stuff, because binary the std::complex<double>* IS a double*!
+      mat.a = reinterpret_cast<double*>(new T[elements]);
+      T* val_src = reinterpret_cast<T*>(mat.a);
+      std::copy(val_ptr, val_ptr + elements, val_src);
+
+      // no adjust to 1-based!
+      for(unsigned int i = 0, numRows = som.GetNumRows(); i < numRows+1; i++)
+        mat.ia[i] += 1;
+
+      for(unsigned int i = 0; i < elements; i++)
+        mat.ja[i] += 1;
+
+      mat.nr = som.GetNumRows();
+      mat.nc = som.GetNumCols();
+      mat.nnz = elements;
+
+      mat.issymmetric = 0;
+      mat.isdefinite = 0;
+      mat.ishermitian = 0;
+      mat.isskew = 0;
+      mat.isreal = !isComplex_;
+      mat.issingle = 0;
+      switch(matrix_)
+      {
+        case GNL:
+          break;
+        case PD:
+          mat.issymmetric = 1;
+          mat.isdefinite = 1;
+          if (isComplex_)
+          {
+            mat.ishermitian = 1;
+          }
+          break;
+        case SYM:
+          mat.issymmetric = 1;
+          break;
+        case HER:
+          mat.ishermitian = 1;
+          if (mat.isreal)
+          {
+            throw Exception("ilupack matrix is set to hermitian but not complex");
+          }
+          break;
+        default:
+          throw Exception("matrix type does not exist (SSM and SHR are not implemented yet)");
+      }
+
+      LOG_TRACE2(ilupack) << "SetMatrix: allocate: mat_.a<T>=" << elements << " .ia=" << (som.GetNumRows() + 1)
+                          << ".ia=" << elements << "; .nr=" << mat.nr << " .nc=" << mat.nc;
+      LOG_DBG2(ilupack) << "mat_.ia: " << StdVector<int>::ToString(mat.nr + 1, mat.ia);
+      LOG_DBG2(ilupack) << "mat_.ja: " << StdVector<int>::ToString(elements, mat.ja);
+      LOG_DBG2(ilupack) << "mat_.a: " << StdVector<double>::ToString(elements, mat.a);
+
+
+
+  }
 
 }
 
@@ -200,8 +237,15 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat)
   // determine the matrix type. Symmetric/nonsymmetric, positive definite, ...
   // it is optional given in the xml file.
 
-  // GNL, SYM, PD, HER, ....
-  DetermineMatrixType(sysMat, out);
+
+  bool disableParallel=false;
+  CheckParameter(out, &disableParallel, "disableParallel");
+  isParallel=!disableParallel;
+
+
+  // GNL, SYM, PD, HER, .... The parallel version of ilupack operates on sparse matrix and this step is not required
+  if (!isParallel)
+    DetermineMatrixType(sysMat, out);
 
   LOG_TRACE2(ilupack) <<  "Setup: matrix -> " << matrix.ToString(matrix_);
 
@@ -210,6 +254,7 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat)
 
   // set the ilupack matrix mat from the olas matrix - complex can be casted to double
   SetMatrix(sysMat);
+
 
   // gain and modify the default settings, does logging uses mat and sets param 
   InitParameters();
@@ -228,9 +273,6 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
   int ierr;
   ptr_IlupackFactor  vFact=nullptr ;
 
-
-
-  WriteSparseMatrixHB("MyMat.rsa",spr,8,2,"MyMat",index);
   isParallel?ierr=IlupackFactorizationOMP(spr,index,*parameter,nleaves,mtmetis,&vFact):ierr=IlupackAMGFactor();
 
   // factorize the iLU preconditioner
@@ -292,20 +334,17 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
 
 
   // the preconditioner sets the ilupack matrix
-  if (mat.a == NULL)
+  if (mat.a == NULL && !isParallel)
     throw Exception("Setup() not called before Solve()");
 
 
 
   if (isParallel){
     double *rhs, *sol;
-    // Create the vectors
-    CreateDoubles (&rhs, spr.dim1); CreateDoubles (&sol, spr.dim1);
 
     sol = dynamic_cast<Vector<double>&> (base_sol).GetPointer();
     rhs =  const_cast<double*> (dynamic_cast<const Vector<double>&> (base_rhs).GetPointer());
-    InitDoubles (sol, spr.dim1, 0.01, 0.001);
-    InitRandDoubles (sol, spr.dim1, 0.0, 1.0);
+
     IlupackSolverOMPG(spr, index, rhs, sol, vFact, *parameter, &parameter->maxit,&parameter->restol);
   }
   else{
@@ -375,26 +414,9 @@ void Ilupack<T>::InitParameters()
 
   // initializes the parameter block with ilupacks default stuff
   PtrParamNode out = infoNode_->Get(ParamNode::HEADER)->Get("parameters");
-  bool disableParallel=false;
 
-
-  CheckParameter(out, &disableParallel, "disableParallel");
-  isParallel=!disableParallel;
-  if(isParallel){
-    if(isComplex_){
+  if(isParallel && isComplex_ ){
       Exception("Parallel version of ilupack doesn't support complex matrix. Please set disable parallel bool");
-    }
-    else{
-    ConvertIlupackToMatrix(mat, &spr, index);
-    CopyShiftInts (spr.vptr, spr.vptr, spr.dim1+1, -1);
-    CopyShiftInts (spr.vpos, spr.vpos, spr.vptr[spr.dim1], -1);
-    index = 0;
-//    ConvertMatrixToIlupack(spr,index,&mat);
-    DSPDAMGinit(&mat, reinterpret_cast<DILUPACKparam*>(&param));
-    }
-
-
-
   }
   else{
     IlupackAMGInit();
