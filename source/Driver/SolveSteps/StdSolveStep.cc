@@ -1359,7 +1359,6 @@ namespace CoupledField {
     }
 
     bool performOneMoreStep = true;
-
     // =================================================================================
     //  1) Solve the initial multiharmonic ''linear'' system
     // =================================================================================
@@ -1376,7 +1375,8 @@ namespace CoupledField {
 
     // Usually the RhsLinVal_ gets set in the constructor but
     // not in the multiharmonic case. Therefore we set it here.
-    algsys_->GetFullMultiHarmRHSVal(RhsLinVal_);
+    // Already done by SetLinRHS()
+    //algsys_->GetFullMultiHarmRHSVal(RhsLinVal_);
 
     // Loop over every frequency and assemble the correct SBM blocks
     AssembleMH(N, M, true);
@@ -1480,8 +1480,10 @@ namespace CoupledField {
 
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
+
       // and nonlinpart if any
-      assemble_->AssembleNonLinRHS();
+      //assemble_->AssembleNonLinRHS();
+
 
       // This is done because we want to solve the deflect-system:
       // K(u^k) \cdot \Delta u^{k+1} = f - K(u^k) \cdot u^k
@@ -1490,6 +1492,8 @@ namespace CoupledField {
       // the boolean has no effect...
       algsys_->UpdateRHS_MultHarm(SYSTEM,solVecMH_,true);
       solVecMH_.ScalarMult(-1.0);
+
+
 
 
       // Incorporate Boundary conditions and recalc the preconditioner and solver
@@ -1506,6 +1510,7 @@ namespace CoupledField {
       algsys_->GetFullMultiHarmSolutionVal( solInc, false);
 
 
+
       // Initialize norms (residual and incremental ones)
       Double residualL2Norm = 0.0;
       Double etaLineSearch  = 1.0;
@@ -1516,19 +1521,7 @@ namespace CoupledField {
       // the residual r^{k+1} = f - K(u^{k+1}) \cdot u^{k+1} is minimized
       residualL2Norm = LineSearchMultHarm(solInc, actSol, etaLineSearch, ftRes);
 
-
-
-
-
-
       this->EvaluateNonlinearity(ftRes, actSol);
-
-
-
-
-
-
-
 
 
       // Store the new solution u^{k+1}
@@ -1536,6 +1529,11 @@ namespace CoupledField {
       // solution vector, therefore we store it in the temporary multiharmonic
       // solution vector solVecMH
       solVecMH_ = actSol;
+
+
+      // That's a bit dirty but it's currently the only possible way I see
+      algsys_->InitSol(solVecMH_);
+
 
       // Calculation relative residual error
       Double residualErr;
@@ -1583,13 +1581,12 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
       }
     }while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
-
   }
 
   void StdSolveStep::EvaluateNonlinearity(MHTimeFreqResult& ftRes,
                                           const SBM_Vector& actSol){
 
-    // Register the multiharmonic solution at MHTimeFreqREsult
+    // Register the multiharmonic solution at MHTimeFreqResult
     ftRes.SetFrequencyResult(actSol);
     // and transform the solution into time-domain to be able
     // to evaluate the nonlinearity (e.g. BH curve in electromagnetics)
@@ -1868,6 +1865,7 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
       // and nonlinpart if any
       assemble_->AssembleNonLinRHS();
 
+
       // setup the matrices
       bool isNewton = false;
       assemble_->AssembleMatrices(isNewton);
@@ -1951,6 +1949,7 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
         actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement);
       }
 
+
       // Evaluate the nonlinearity (e.g. BH curve in electromagnetics)
       this->EvaluateNonlinearity(ftRes, actSol);
 
@@ -1958,6 +1957,7 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
       algsys_->InitRHS(RhsLinVal_ );
       // and nonlinpart if any
       assemble_->AssembleNonLinRHS();
+
 
       // setup the matrices
       assemble_->InitMultHarm();

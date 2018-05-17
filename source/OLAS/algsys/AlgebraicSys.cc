@@ -2221,7 +2221,29 @@ namespace CoupledField {
     }
 
     if(solStrat_->IsMultHarm() ){
-      *(rhs_) = newRHS;
+
+      // get all (blockId,index)-combinations for the current fctId
+      StdVector<UInt> blockNums, indices;
+      MapCompleteFctIdToIndex( 0, blockNums, indices);
+      UInt size = blockNums.GetSize();
+
+      for(UInt i = 0; i < newRHS.GetSize(); ++i ) {
+        // security check: ensure that sub-vector has the same size
+        // as the block indices
+        if( newRHS(i).GetSize() != indices.GetSize() && (domain->GetBasePDE()->GetName() != "LatticeBoltzmann")) {
+          EXCEPTION( "Number of entries of " << i << "-th sub-vector and number of indices do not match!");
+        }
+
+        Vector<Complex> & nRHS = dynamic_cast<Vector<Complex>&>( newRHS(i) );
+        for( UInt j = 0; j < size; ++j ) {
+          // omit entries for Dirichlet values
+          if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+            rhs_->GetPointer(i)->SetEntry(indices[j]-1, nRHS[j] );
+          }
+        }
+      }
+
+
       LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->ToString();
       return;
     }
@@ -2282,7 +2304,40 @@ namespace CoupledField {
   void AlgebraicSys::InitSol( const SBM_Vector& newSol ) {
     
     LOG_TRACE(algSys) << "Initializing solution with new vector";
-    REFACTOR;
+    // ensure that the solution vector to set consists of as many
+    // sub-vectors as the solution of the system
+    if( (newSol.GetSize() != numFcts_ && domain->GetBasePDE()->GetName() != "LatticeBoltzmann") && !solStrat_->IsMultHarm() ) {
+      EXCEPTION( "New rhs consists of " << newSol.GetSize() << " sub-vectors, the RHS of the algebraic system of " << rhs_->GetSize() << " entries." )
+    }
+
+    if(solStrat_->IsMultHarm() ){
+
+      // get all (blockId,index)-combinations for the current fctId
+      StdVector<UInt> blockNums, indices;
+      MapCompleteFctIdToIndex( 0, blockNums, indices);
+      UInt size = blockNums.GetSize();
+
+      for(UInt i = 0; i < newSol.GetSize(); ++i ) {
+        // security check: ensure that sub-vector has the same size
+        // as the block indices
+        if( newSol(i).GetSize() != indices.GetSize()) {
+          EXCEPTION( "Number of entries of " << i << "-th sub-vector and number of indices do not match!");
+        }
+
+        Vector<Complex> & nSol = dynamic_cast<Vector<Complex>&>( newSol(i) );
+        for( UInt j = 0; j < size; ++j ) {
+          // omit entries for Dirichlet values
+          if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+            sol_->GetPointer(i)->SetEntry(indices[j]-1, nSol[j] );
+          }
+        }
+      }
+    }else{
+      EXCEPTION("AlgebraicSys::InitSol currently only allowed in multiharmonic analysis!!!")
+    }
+
+    LOG_DBG(algSys) << "InitSol: Initilized solution with vector v=" << sol_->ToString();
+    return;
   }
   
   
@@ -3223,7 +3278,7 @@ namespace CoupledField {
         StdMatrix* massSub = mass->GetPointer(iRow, iRow);
         // multiply massSub with harmonic number and add it to system matrix
         //Integer fac = (iRow - solStrat_->GetNumHarmN() < 0)? -1 : 1;
-        Integer fac = 1;
+        Double fac = 1.0;
         sysSub->Add(fac, *massSub);
       }
     }else{

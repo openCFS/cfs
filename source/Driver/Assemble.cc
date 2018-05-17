@@ -809,7 +809,6 @@ namespace CoupledField
       StdVector<BiLinFormContext*> & forms = listIt->second;
       EntityList& firstEntities = *(listIt->first.first);
       EntityList& secondEntities = *(listIt->first.second);
-
       // If the region is not nonlinear, we do not have to assemble
       // off-diagonal blocks in the multiharmonic system matrix
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes.find(firstEntities.GetRegion())->second;
@@ -982,7 +981,7 @@ namespace CoupledField
                   // For f = 0, we basically solve the static problem. If we really set the
                   // mass part for harmonic 0 to zero, the solution becomes non-unique.
                   // Therefore we replace here zero with a small relaxation parameter 1e-6
-                  if( std::fabs(f) <= 1e-10 ){
+                  if( std::fabs(f) <= 1e-6 ){
                     f = 1.0e-6;
                   }
                   LOG_DBG3(assemble) << "AM_Std: real CEM MASS  in "
@@ -996,7 +995,6 @@ namespace CoupledField
                     InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2,
                         fctId1, fctId2, false, diagInd, f, true);
                   }
-
                 }
               }else{
                 // Pass element matrix to algebraic system (primary matrix)
@@ -1562,8 +1560,8 @@ namespace CoupledField
       LinearFormContext& actContext = **formsIt;
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
-      // For multiharmonic analysis, we always reassemble the RHS
-      if( (actContext.IsNonLin() != nonLin) && !algsys_->IsMultHarm() )
+      // For multiharmonic analysis, we don't reassemble the RHS
+      if( (actContext.IsNonLin() != nonLin) && algsys_->IsMultHarm() )
         continue; //TODO: uncomment this
 
       LinearForm* form = actContext.GetIntegrator();
