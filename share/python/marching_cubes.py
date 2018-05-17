@@ -108,23 +108,23 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_siz
 #           matviz_vtk.show_write_vtk(pd, 10, "marching_cubes.vtp")
 #           sys.exit()  
 
-  for i in range(len(points)):
-    points[i] = grid_to_cartesian_coords(points[i],None,(hx,hy,hz))   
-#     #normals[i] *= np.array([hx,hy,hz])  
-  pd = matviz_vtk.fill_vtk_polydata(points,triangles)
-#   
-  pointNormalsArray = vtk.vtkDoubleArray()
-  pointNormalsArray.SetNumberOfComponents(3)
-  pointNormalsArray.SetName("normals")
-  #pointNormalsArray.SetNumberOfTuples(len(points))
-   
-  for n in normals:
-    pointNormalsArray.InsertNextTuple3(-n[0], -n[1], -n[2])
-   
-  pd.GetPointData().AddArray(pointNormalsArray)  
-  pd.GetPointData().SetActiveScalars("normals");
-  matviz_vtk.show_write_vtk(pd, 10, "marching_cubes.vtp")   
-#   
+  if cube_size == 4:
+    for i in range(len(points)):
+      points[i] = grid_to_cartesian_coords(points[i],None,(hx,hy,hz))   
+  #     #normals[i] *= np.array([hx,hy,hz])  
+    pd = matviz_vtk.fill_vtk_polydata(points,triangles)
+  #   
+    pointNormalsArray = vtk.vtkDoubleArray()
+    pointNormalsArray.SetNumberOfComponents(3)
+    pointNormalsArray.SetName("normals")
+    #pointNormalsArray.SetNumberOfTuples(len(points))
+     
+    for n in normals:
+      pointNormalsArray.InsertNextTuple3(-n[0], -n[1], -n[2])
+     
+    pd.GetPointData().AddArray(pointNormalsArray)  
+    pd.GetPointData().SetActiveScalars("normals");
+    matviz_vtk.show_write_vtk(pd, 10, "marching_cubes.vtp")   
   
 #   print(triangles)
 #   mesh = pymesh.form_mesh(np.asarray(points),np.asarray(triangles))
@@ -143,7 +143,7 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_siz
   # for each of the 8 lattice node, find out which ones belong to the structure
   # -> 8 bit code
 
-def VertexInterp2(thresh,valp1,valp2):
+def VertexInterp2(thresh,p1,p2):
   valp1 = p1.value
   valp2 = p2.value
   if np.isclose(np.abs(thresh-valp1),0):
@@ -156,7 +156,7 @@ def VertexInterp2(thresh,valp1,valp2):
   mu = (thresh - valp1) / (valp2 - valp1)
   ncoords = p1.coords + mu * (p2.coords-p1.coords)
   
-  return ncoords
+  return ncoords, mu
 
 # for given (local) edge number, give (local) vertex ids defining this edge 
 def edgeToVertices(edge):
@@ -235,7 +235,7 @@ def create_triangles(vertices,thresh,points,triangles,normals,voxels,cube_size):
   assert(len(vertices) == 8)
   assert(edgeTable is not None and triTable is not None)
   assert(cube_size > 0)
-  ntriangles = 0
+  tmp_triangles = []
   
   # example: vertex 3 was below the isosurface, cubeindex would equal 0000 1000 or 8
   cube_idx = 0
@@ -299,6 +299,11 @@ def create_triangles(vertices,thresh,points,triangles,normals,voxels,cube_size):
 #       sys.exit()
      
   t = 0
+  tmp_triangles = []
+  tmp_points = []
+  tmp_normals = []
+  angles = []
+  not_refined = True
   while (triTable[cube_idx][t] != -1):
     n0 = vertlist[triTable[cube_idx][t]][1] * np.array([hx,hy,hz])
     n1 = vertlist[triTable[cube_idx][t+1]][1] * np.array([hx,hy,hz])
@@ -328,32 +333,32 @@ def create_triangles(vertices,thresh,points,triangles,normals,voxels,cube_size):
       if not np.isclose(normed, 0):
         angle12 = np.degrees(math.acos(dot12/normed))
     
-    if cube_size == 1 or angle01 < 30 or angle02 < 30 or angle12 < 30:
-#       print("angles:",angle01,angle02,angle12)
-      id0 = len(points)
-      points.append(vertlist[triTable[cube_idx][t]][0])
-      normals.append(n0)
-       
-      id1 = len(points)
-      points.append(vertlist[triTable[cube_idx][t+1]][0])
-      normals.append(n1)
-       
-      id2 = len(points)
-      points.append(vertlist[triTable[cube_idx][t+2]][0])
-      normals.append(n2)
-       
-      triangles.append((id0,id1,id2))
-       
-      ntriangles += 1
-    else:
-      print("refining:",vertices[0]," size:",cube_size/2," ",vertices[6])
-#       marching_cubes(voxels,(hx,hy,hz),points,triangles,normals,cube_size=cube_size/2,bottom_NW=vertices[0].coords,top_SE=vertices[6].coords+np.array([1,1,1]))
+    angles.append(angle01)
+    angles.append(angle02)
+    angles.append(angle12)
+    id0 = len(points) + len(tmp_points)
+    tmp_points.append(vertlist[triTable[cube_idx][t]][0])
+    tmp_normals.append(n0)
+     
+    id1 = id0 + 1
+    tmp_points.append(vertlist[triTable[cube_idx][t+1]][0])
+    tmp_normals.append(n1)
+     
+    id2 = id0 + 2
+    tmp_points.append(vertlist[triTable[cube_idx][t+2]][0])
+    tmp_normals.append(n2)
+    
+    tmp_triangles.append((id0,id1,id2))
+    
     t += 3
     
-    
-#     if ntriangles > 0:
-#       print("ntriangles:",ntriangles)
-#       return
+  if cube_size == 1 or np.any(np.array(angles) < 50):  
+    points.extend(tmp_points)
+    triangles.extend(tmp_triangles)
+    normals.extend(tmp_normals)
+  else:  
+#       print("refining:",vertices[0]," size:",cube_size/2," ",vertices[6])
+    marching_cubes(voxels,(hx,hy,hz),points,triangles,normals,cube_size=cube_size/2,bottom_NW=vertices[0].coords,top_SE=vertices[6].coords+np.array([1,1,1]))    
 
 def compute_vertex_normals(verts,faces,linear_weights=False):
   normals = np.zeros_like(verts)
