@@ -81,7 +81,7 @@ namespace CoupledField
     if(dir.NormL2() != 0){
       evalRequired = true;
     }
-    
+
     if(evalRequired){
       Pin.Init();
       Pin.Add(Xup_normalized*XSaturated_,dir);
@@ -274,6 +274,9 @@ namespace CoupledField
 		Double a = resNorm*resNorm - resShiftedNorm*resShiftedNorm;
 		Double b = resNorm*resNorm - tmpNorm*tmpNorm;
 		
+    LOG_TRACE(vecpreisachInversion) << "Compute rho: a = " << a;
+    LOG_TRACE(vecpreisachInversion) << "Compute rho: b = " << b;
+    
     computeRhoTrace << "Nominator: ||F(x)||^2 - ||F(x + increment)||^2 = " << a << std::endl;
     computeRhoTrace << "Denominator: ||F(x||^2 - ||F(x) + F'(x)*increment||^2 = " << b << std::endl;
     
@@ -291,7 +294,6 @@ namespace CoupledField
 		if(b != 0){
 			rho = a/b;
 		} else {
-      //LOG_DBG(vecpreisach) << "Compute rho: b = 0";
 			rho = a;
       if(a == 0){
         //LOG_DBG(vecpreisach) << "Compute rho: a = 0, too!";
@@ -380,15 +382,15 @@ namespace CoupledField
       // > discard update and try with different alpha again
       //LOG_DBG(vecpreisach) << "Intermediate solution (" << xNew.ToString() << ") has gone into saturation > discard!";
       alpha = alpha*factorUp;
-      success = -1;
+      success = -3;
     } else if((xNew.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
       alpha = alpha/factorUp;
-      success = -1;
+      success = -2;
     } else {
       //std::cout << "Safe case: " << std::endl;
       //std::cout << "Check increment according to residual" << std::endl;
       Double rho = computeRho(xNew, xUpdate, res, resShifted, jac);
-      
+      LOG_TRACE(vecpreisachInversion) << "rho: " << rho;
       if(rho < beta0){
         success = -1;
         alpha = alpha*factorUp;
@@ -527,7 +529,20 @@ namespace CoupledField
         }
         
         xShifted[i] += deltaX;
-        
+//        if((xShifted[i] > XSaturated_)&&(stayBelowSat==1)){
+//          xShifted[i] -= 2*abs(deltaX);
+//        } 
+//        if((xShifted[i] < -XSaturated_)&&(stayBelowSat==1)){
+//          xShifted[i] += 2*abs(deltaX);
+//        } 
+//        
+//        if((xShifted[i] < XSaturated_)&&(stayBelowSat==-1)){
+//          xShifted[i] += 2*abs(deltaX);
+//        } 
+//        if((xShifted[i] > -XSaturated_)&&(stayBelowSat==-1)){
+//          xShifted[i] = -XSaturated_-*abs(deltaX);
+//        } 
+          
         Vector<Double> dXvec = xShifted;
         dXvec.Add(-1.0,xVal);
         LOG_DBG(vecpreisachInversion) << " xVal " << xVal.ToString();
@@ -786,7 +801,7 @@ namespace CoupledField
 		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
 		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
 		Double& alpha, Double alphaMin, Double alphaMax, bool wrtX, bool relative, 
-    UInt& numberOfIterations,Vector<Double>& xStart, Double factorToSat, int stayBelowSat){
+    UInt& numberOfIterations,Vector<Double>& xStart, Double factorToSat, int stayBelowSat, Vector<Double> sol){
     
     LOG_TRACE(vecpreisachlinesearch) << " --------- START LINESEARCH --------- ";
     LOG_DBG(vecpreisachlinesearch) << "Starting xVal = " << xVal.ToString();
@@ -931,7 +946,8 @@ namespace CoupledField
       xNew.Init();
       xNew.Add(1.0,xVal,1.0,xUpdate);
       LOG_DBG(vecpreisachlinesearch) << "Computed xNew = " << xNew.ToString();
-
+      LOG_DBG(vecpreisachlinesearch) << "Actual solution = " << sol.ToString();
+      
       if((xNew.NormL2() > XSaturated_)&&(stayBelowSat==1)){
         // too large update
         // > set xNew back to saturation
@@ -957,10 +973,20 @@ namespace CoupledField
         }
         continue;
       }
-        
+      
+      Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, overwriteDirection);
+      Vector<Double> hystOld = computeValue_vec(xVal, operatorIdx, overwriteMemory, overwriteDirection);
+      Vector<Double> resSol = computeResidual(sol,yVal,hystSol,mu,mu_inv,wrtX,relative);
+      
       hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, overwriteDirection);
       resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
-        
+      
+      LOG_DBG(vecpreisachlinesearch) << "hyst vector for sol: " << hystSol.ToString();
+      LOG_DBG(vecpreisachlinesearch) << "hystNew: " << hystNew.ToString();
+      LOG_DBG(vecpreisachlinesearch) << "hystOld: " << hystOld.ToString();
+      LOG_DBG(vecpreisachlinesearch) << "Old res vector: " << res.ToString();
+      LOG_DBG(vecpreisachlinesearch) << "New res vector: " << resNew.ToString();
+      LOG_DBG(vecpreisachlinesearch) << "res vector for sol: " << resSol.ToString();
       success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
       LOG_DBG(vecpreisachlinesearch) << "Check trust region - return code: " << success;
       
@@ -1177,18 +1203,18 @@ namespace CoupledField
 		UInt maximalNumberOfLinesearchIterations=0;
 		UInt successCode=0;
     Double minAlpha,maxAlpha,avgAlpha;
-		
+		Vector<Double>sol = Vector<Double>(dim_);
 		return computeInput_vec_withStatistics(yVal, prevYval, prevXval, prevHystval, 
 			operatorIndex, mu, overwriteDirection, useBisectAboveSat,
       totalNumberOfLMIterations, totalNumberOfLinesearchIterations, 
-      maximalNumberOfLinesearchIterations, successCode, minAlpha,maxAlpha,avgAlpha);
+      maximalNumberOfLinesearchIterations, successCode, minAlpha,maxAlpha,avgAlpha,sol);
 	}
     
   Vector<Double> Hysteresis::computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
           Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
           Matrix<Double> mu, bool overwriteDirection, bool useBisectAboveSat,
           UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
-          UInt& maximalNumberOfLinesearchIterations, UInt& successCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha){
+          UInt& maximalNumberOfLinesearchIterations, UInt& successCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha, Vector<Double> sol){
     
     assert(!yVal.ContainsNaN() && !yVal.ContainsInf());
 		/*
@@ -1563,7 +1589,7 @@ namespace CoupledField
             if(prevYval.NormL2() != 0){
               factor = yVal.NormL2()/prevYval.NormL2();
             } else {
-              factor = 1.15;
+              factor = 1.05;
             }
             traceMsg << "Scale X by " << factor << std::endl;
             xVal.ScalarMult(factor);
@@ -1588,7 +1614,7 @@ namespace CoupledField
             if(prevYval.NormL2() != 0){
               factor = yVal.NormL2()/prevYval.NormL2();
             } else {
-              factor = 1.0/1.15;
+              factor = 1.0/1.05;
             }
             traceMsg << "Scale X by " << factor << std::endl;
             xVal.ScalarMult(factor);
@@ -1813,7 +1839,7 @@ namespace CoupledField
         Double factorToSat = 0.1*Double(itCnt-1)/Double(INV_maxIter_) + 0.9;
         
         discardUpdate = performLinesearch(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
-                operatorIndex, overwriteMemory, overwriteDirection, alpha, alphaMin, alphaMax, wrtX, relError, numberOfIterations,xStart,factorToSat,stayBelowSat);
+                operatorIndex, overwriteMemory, overwriteDirection, alpha, alphaMin, alphaMax, wrtX, relError, numberOfIterations,xStart,factorToSat,stayBelowSat,sol);
         
         if(alpha < minAlpha){
           minAlpha = alpha;

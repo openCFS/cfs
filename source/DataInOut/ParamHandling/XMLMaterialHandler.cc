@@ -853,7 +853,7 @@ namespace CoupledField {
     if(elec->Has("hystModel"))
     {
       PtrParamNode hystNode = elec->Get("hystModel");
-      ReadHysteresis(material, hystNode);
+      ReadHysteresis(material, hystNode, false);
     }
   }
   
@@ -1179,7 +1179,7 @@ namespace CoupledField {
     if(mag->Has("hystModel"))
     {
       PtrParamNode hystNode = mag->Get("hystModel");
-      ReadHysteresis(material, hystNode);
+      ReadHysteresis(material, hystNode, true);
     }
           
     //read real magmech coupling tensor
@@ -1591,7 +1591,7 @@ namespace CoupledField {
   //**********************************************************************
   //*************  READ HYSTERESIS****************************************
   //**********************************************************************
-  void XMLMaterialHandler::ReadHysteresis(BaseMaterial *material, PtrParamNode hystNode)
+  void XMLMaterialHandler::ReadHysteresis(BaseMaterial *material, PtrParamNode hystNode, bool setInversion)
   {
     PtrParamNode model;
     PtrParamNode pWeight = NULL;
@@ -2111,20 +2111,21 @@ namespace CoupledField {
         alphaLSMax = pInversion->Get("alphaRegMax")->As<double>();
       }
     }
-    
-    material->SetScalar(maxNumIts, MAX_NUM_IT_HYST_INV);
-    material->SetScalar(tolH, RES_TOL_H_HYST_INV, Global::REAL);
-    material->SetScalar(tolB, RES_TOL_B_HYST_INV, Global::REAL);
-    material->SetScalar(jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
-    
-    int useTikhonovInt = 0;
-    if(useTikhonov){
-      useTikhonovInt = 1;
+    if(setInversion){
+      material->SetScalar(maxNumIts, MAX_NUM_IT_HYST_INV);
+      material->SetScalar(tolH, RES_TOL_H_HYST_INV, Global::REAL);
+      material->SetScalar(tolB, RES_TOL_B_HYST_INV, Global::REAL);
+      material->SetScalar(jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
+
+      int useTikhonovInt = 0;
+      if(useTikhonov){
+        useTikhonovInt = 1;
+      }
+      material->SetScalar(useTikhonovInt, TIKHONOV_HYST_INV);
+      material->SetScalar(alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
+      material->SetScalar(alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
+      material->SetScalar(alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);
     }
-    material->SetScalar(useTikhonovInt, TIKHONOV_HYST_INV);
-    material->SetScalar(alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
-    material->SetScalar(alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
-    material->SetScalar(alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);
   }
 
 

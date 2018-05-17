@@ -130,6 +130,13 @@ namespace CoupledField
     
     // new failback tolerance that might also be ok if real criterion fails
     Double failBackCrit_;
+    
+    bool allowReset_;
+    UInt minNumberItTillReset_;
+    Double minResDecreaseTillReset_;
+    std::string nonLinMethodAfterReset_;
+    std::string lineSearchAfterReset_;
+    
   };
 
 

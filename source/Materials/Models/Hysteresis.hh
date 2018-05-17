@@ -199,7 +199,7 @@ namespace CoupledField {
 		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
 		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
 		Double& alpha, Double alphaMin, Double alphaMax,  bool wrtX, bool relative, 
-    UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat,int stayBelowSat);
+    UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat,int stayBelowSat,Vector<Double> sol);
 
     Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
@@ -209,7 +209,7 @@ namespace CoupledField {
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
       Matrix<Double> mu, bool overwriteDirection, bool useBisectAboveSat,
       UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
-      UInt& maximalNumberOfLinesearchIterations, UInt& succesCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha );
+      UInt& maximalNumberOfLinesearchIterations, UInt& succesCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha,Vector<Double> sol );
        
     
     

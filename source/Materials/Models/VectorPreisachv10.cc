@@ -415,7 +415,7 @@ namespace CoupledField
        * we do not have to rotate at all as the rotation states are nearly the same)
        */
       // take much larger tolerance here (should we really go up to 1e-15?!)
-      if(abs(alpha) < angResolution_){
+      if(abs(alpha) <= angResolution_){
         /*
          * take new state
          */
@@ -425,7 +425,7 @@ namespace CoupledField
       /*
        * 3. calculate new rotation direction depending on delta_phi and alpha
        */
-      if(delta_phi < angResolution_){
+      if(delta_phi <= angResolution_){
 				//        std::cout << "delta_phi < angleTol > return e_u_new" << std::endl;
         /*
          * no resistance to rotation

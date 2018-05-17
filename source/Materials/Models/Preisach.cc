@@ -1094,10 +1094,12 @@ namespace CoupledField
            */
           Xout = bisect(dY,x1,x2,xfix,eps_mu,tol);
         } // reuse old value
+        
+        std::cout << "scale Xout with Saturation" << std::endl;
+        Xout *= XSaturated_;
       } // pos/neg/no saturation
       // rescale to -xSat to +xSat
       //LOG_TRACE(scalpreisachInversion) << "Found Xout (normalized): " << Xout;
-      Xout *= XSaturated_;
       LOG_TRACE(scalpreisachInversion) << "Found Xout: " << Xout;
       
     } // anhyst only
@@ -1230,8 +1232,11 @@ namespace CoupledField
     // > previousXval_ is unclipped
     // > compare with clipped version of previousXval (better for saturation
     //    as > sat and >> sat will reuse max value
-    Double oldX = normalizeAndClipInput(previousXval_[idx]*XSaturated_);
-		Double diff = newX - oldX;
+//    Double oldX = normalizeAndClipInput(previousXval_[idx]*XSaturated_);
+//		Double diff = newX - oldX;
+    
+    
+    Double diff = Xin-previousXval_[idx]*XSaturated_;
 		int minmaxcur = 0;
 		if(diff > 0){
 			// new input is larger than last one > leads to a maximum

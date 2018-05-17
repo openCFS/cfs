@@ -53,9 +53,13 @@ namespace CoupledField {
       residualStopCrit_ = 1e-4;
       failBackCrit_ = -1.0;
       nonLinMaxIter_ = 35;
-    }
-    
-		if(nonLinNode){
+      
+      allowReset_ = true;
+      minNumberItTillReset_ = 5;
+      minResDecreaseTillReset_ = 1e-5;
+      nonLinMethodAfterReset_ = "HYST_deltaMat_IT";
+      lineSearchAfterReset_ = "HYST_minResidual";
+    } else {
       /*
        * method and linesearch already get read in base class
        * > here we only need to read in hyst specific paramater
@@ -91,6 +95,31 @@ namespace CoupledField {
         failBackCrit_ = -1.0;
       }
       
+      allowReset_ = true;
+      minNumberItTillReset_ = 5;
+      minResDecreaseTillReset_ = 1e-5;
+      nonLinMethodAfterReset_ = "HYST_deltaMat_IT";
+      lineSearchAfterReset_ = "HYST_minResidual";
+      
+      if( nonLinNode->Has("HYST_reset") ){
+        PtrParamNode resetNode = nonLinNode->Get("HYST_reset");
+        if(resetNode->Has("allowReset")){
+          resetNode->GetValue( "allowReset", allowReset_, ParamNode::PASS );
+        }
+        if(resetNode->Has("minNumberItTillReset")){
+          resetNode->GetValue( "minNumberItTillReset", minNumberItTillReset_, ParamNode::PASS );
+        }
+        if(resetNode->Has("minResDecreaseTillReset")){
+          resetNode->GetValue( "minResDecreaseTillReset", minResDecreaseTillReset_, ParamNode::PASS );
+        }
+        if(resetNode->Has("nonLinMethodAfterReset")){
+          resetNode->GetValue( "nonLinMethodAfterReset", nonLinMethodAfterReset_, ParamNode::PASS );
+        }
+        if(resetNode->Has("lineSearchAfterReset")){
+          resetNode->Get("lineSearchAfterReset")->GetValue( "type", lineSearchAfterReset_,ParamNode::PASS );
+        }
+      } 
+            
       bool stopAfterInversionTests = false;
       bool printStatistics = false;
       bool writeResultsToFiles = false;
@@ -1196,8 +1225,8 @@ namespace CoupledField {
     
     // keep track of residual; if it is not decreasing over several iterations > reset (see below)
     UInt numResets = 0;
-    std::deque<Double> resNormHistory(5, 50000);
-    
+    std::deque<Double> resNormHistory(minNumberItTillReset_, 50000);
+     
     /*
      * Reset flags
      * Note: 
@@ -1678,21 +1707,24 @@ namespace CoupledField {
                 << etaLinesearch << std::endl;
       }
       
-      Double minDecrease = 5e-5;
       // compare residual at front and back of deque; 
       // residual should have decreased (or not enough); otherwise try reset
-      if( (performOneMoreStep) && (resNormHistory.front()-minDecrease <= resNormHistory.back()) ){
+      if( (performOneMoreStep) && (resNormHistory.front()-minResDecreaseTillReset_ <= resNormHistory.back()) ){
 				//debugOutput_ = true;
-        if(numResets == 0){
+        if((numResets == 0)&&allowReset_){
 					//continue;
-          LOG_TRACE(solvehyst) << "Residual did not decrease using solution method " << nonLinMethod_; 
-          nonLinMethod_ = "HYST_deltaMat_IT";
-          lineSearch_ = "HYST_minResidual";
+          LOG_TRACE(solvehyst) << "Residual did not decrease by at least " << minResDecreaseTillReset_ << " using solution method " << nonLinMethod_; 
+          nonLinMethod_ = nonLinMethodAfterReset_;
+          lineSearch_ = lineSearchAfterReset_;
           numIterationsTillUpdateOfLastITValues = 1;
           LOG_TRACE(solvehyst) << "Switch to  " << nonLinMethod_ << " with LS " << lineSearch_; 
           LOG_TRACE(solvehyst) << "Additionally, compute deltaMat over " << numIterationsTillUpdateOfLastITValues << " itartions"; 
 
-          steppingTowardsLastTS = false;
+          if((nonLinMethod_ == "HYST_deltaMat_IT")||(nonLinMethod_ == "HYST_fixPoint_IT")){
+            steppingTowardsLastTS = false;
+          } else {
+            steppingTowardsLastTS = true;
+          }
           
           // reset to remanence is not so good as tests have shown; 
           bool goToRemanence = false;

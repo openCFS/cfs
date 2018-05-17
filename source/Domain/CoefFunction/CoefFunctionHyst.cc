@@ -943,6 +943,16 @@ namespace CoupledField {
       }
     }
 
+//    // check for negative weights
+//    for(UInt i = 0; i < MAT_numRows_; i++){
+//      for(UInt k = 0; k < MAT_numRows_; k++){
+//        if(MAT_PreisachWeights_[i][k] < 0){
+//          std::cout << "i,k: " << i << ", " << k << std::endl;
+//          std::cout << "weight[i][k]: " << MAT_PreisachWeights_[i][k] << std::endl;
+//        }
+//      }
+//    }
+    
 		/*
      * get elements and integration points
      */
@@ -4102,7 +4112,7 @@ namespace CoupledField {
     bool vector;
     bool isVirgin = true;
         
-    UInt numCases = 9;
+    UInt numCases = 10;
     UInt totalSteps;
     bool testAll = false;
 
@@ -4626,6 +4636,28 @@ namespace CoupledField {
 				}
 				
 				
+      } else if( (ca == 10)&&( (testNumber == 10) ||(testAll)) ) {
+        if(printStatistics){
+          std::cout << "##### TEST CASE " << ca << " - Forc, Short" << std::endl;
+        }
+        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Forc, Short";
+        testName = "Forc";
+        totalSteps = 80;
+        Double numPeriods = 2;
+        Double stepsPerPeriod = totalSteps/numPeriods;
+        Double decrease = 1.0/totalSteps;
+        xIn = new Vector<Double>[totalSteps]; 
+        
+        for(UInt i = 0; i < totalSteps; i++){
+          xIn[i] = Vector<Double>(dim_);
+          xIn[i].Init(0.0);
+          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
+          xIn[i][0] = 1.2*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod ) - 1.2*MAT_xSat_*decrease*i;
+          if(vector){
+            // smaller amplitude, higher frequency
+            xIn[i][1] = 0.4*MAT_xSat_*(1.0 - decrease*i) * sin( 3*(2*M_PI*i)/stepsPerPeriod ) - 0.4*MAT_xSat_*decrease*i;
+           }
+         }
       } else {
         continue;
       }
@@ -4804,7 +4836,7 @@ namespace CoupledField {
           // new2: pass arguments by value!
           xRetrieved[0] = hystTMP->computeInput_vec_withStatistics(yIn[0], zeroVec, zeroVec, zeroVec, 0, eps_mu,
                   overwriteDirection, useBisectAboveSat, numberOfLMIterations, numberOfLinesearchIterations, 
-                  maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha);
+                  maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha,xIn[0]);
 //        }
       } else {
 				overwriteMemory = false;
@@ -4929,7 +4961,7 @@ namespace CoupledField {
 //          } else {
             xRetrieved[i] = hystTMP->computeInput_vec_withStatistics(yIn[i], yRetrieved[i-1], xRetrieved[i-1], hRetrieved[i-1], 
                   0, eps_mu, overwriteDirection, useBisectAboveSat, numberOfLMIterations, numberOfLinesearchIterations, 
-                  maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha);	
+                  maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha,xIn[i]);	
 //          }
 //            std::cout << "End backward" << std::endl;
         } else {

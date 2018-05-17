@@ -266,6 +266,16 @@
     </xsd:complexContent> 
   </xsd:complexType>
   
+  <xsd:complexType name="DT_HYST_reset">
+    <xsd:sequence>
+        <xsd:element name="allowReset" type="DT_CFSBool" default="yes"/>
+        <xsd:element name="minNumberItTillReset" type="xsd:nonNegativeInteger" default="5"/>
+        <xsd:element name="minResDecreaseTillReset" type="xsd:float" default="1e-5"/>
+        <xsd:element name="nonLinMethodAfterReset" type="DT_NonLinSolver" default="HYST_deltaMat_IT"/>
+        <xsd:element name="lineSearchAfterReset" type="DT_LineSearch"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
   <xsd:complexType name="DT_NonLinParams">
     <xsd:sequence>
       <xsd:element name="lineSearch"  type="DT_LineSearch"/>
@@ -274,6 +284,7 @@
       <xsd:element name="maxNumIters" type="xsd:positiveInteger"/>
       <xsd:element name="abortOnMaxNumIters" type="DT_CFSBool" default="yes" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="stopOnLimit" type="DT_StopIter" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="HYST_reset" type="DT_HYST_reset" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="HYST_failBackTol" type="xsd:float" default="-1.0" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="HYST_evalDepth" type="xsd:nonNegativeInteger" default="2" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="HYST_testInversion" type="DT_testInversion" minOccurs="0" maxOccurs="1"/>
