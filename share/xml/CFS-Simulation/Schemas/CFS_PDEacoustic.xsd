@@ -663,6 +663,7 @@
       <xsd:enumeration value="acouIntensity"/>
       <xsd:enumeration value="acouSpeedOfSound"/>
       <xsd:enumeration value="acouVelocity"/>
+      <xsd:enumeration value="acouPosition"/>
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="pmlDampFactor"/>
       <xsd:enumeration value="divMeanFluidMechVelocity"/>
