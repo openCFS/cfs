@@ -78,7 +78,7 @@ namespace CoupledField {
     Double bisect(Double dY,Double xMin,Double xMax, Double xFixed, Double eps_mu, Double tol);
     
     Double XSaturated_; //! saturation value for  input
-    Double YSaturated_; //! saturation value for output
+    Double PSaturated_; //! saturation value for output
     
     /*
      * for optional anhysteretic parts
@@ -229,19 +229,11 @@ namespace CoupledField {
     
     virtual ~ExtendedPreisach();
     
-    void UpdateRotationState(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx);
-    
+    void UpdateRotationStateWithFluxDensity(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx);
+    void UpdateRotationStateWithFieldIntensity(Vector<Double> field_in, UInt idx);
+    void UpdateRotationState(Double normalizedAmplitude, Vector<Double> dir, UInt idx); 
     void EvaluateRotationState(UInt idx);
-    
-    Vector<Double> getRotationDirectionAndUpdate(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
-      
-      UpdateRotationState(flux_in, eps_mu, idx);
-      
-      EvaluateRotationState(idx);
-      
-      return currentDirection_[idx];
-    }
-    
+        
     Vector<Double> getRotationDirection(UInt idx){
       
       return currentDirection_[idx];
@@ -284,14 +276,14 @@ namespace CoupledField {
      * Exception: testInversion > here we use computeInput_vec_withStatistics
      */
     Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true){
+      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = false){
       
       Vector<Double> prevYval = Vector<Double>(dim_);
       mu.Mult(prevXVal_[operatorIndex],prevYval);
       prevYval.Add(1.0,prevHVal_[operatorIndex]);
       
       return computeInput_vec_withPrevStates(yVal, prevYval,
-        prevXVal_[operatorIndex], prevHVal_[operatorIndex], operatorIndex, mu, overwriteDirection);
+        prevXVal_[operatorIndex], prevHVal_[operatorIndex], operatorIndex, mu, overwriteDirection, fieldsAlignedAboveSat);
     }
     
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idx, bool overwrite = true,bool overwriteDirection = true,bool debugOutput = false);

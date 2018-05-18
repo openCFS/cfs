@@ -707,14 +707,14 @@ namespace CoupledField {
      * Exception: testInversion > here we use computeInput_vec_withStatistics
      */
     Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true){
+      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = true){
       
       Vector<Double> prevYval = Vector<Double>(dim_);
       mu.Mult(prevXVal_[operatorIndex],prevYval);
       prevYval.Add(1.0,prevHVal_[operatorIndex]);
       
       return computeInput_vec_withPrevStates(yVal, prevYval,
-        prevXVal_[operatorIndex], prevHVal_[operatorIndex], operatorIndex, mu, overwriteDirection);
+        prevXVal_[operatorIndex], prevHVal_[operatorIndex], operatorIndex, mu, overwriteDirection,fieldsAlignedAboveSat);
     }
      
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false){
@@ -750,7 +750,7 @@ namespace CoupledField {
      * Global quantities, i.e. the same for all FE elements of the same material
      */
     Double XSaturated_; //! saturation value for  input
-    Double YSaturated_; //! saturation value for output
+    Double PSaturated_; //! saturation value for output
     
     Matrix<Double> preisachWeights_; //! preisach weight function
     Double rotationalResistance_; //! parameter describing the resistance of the domains to rotation

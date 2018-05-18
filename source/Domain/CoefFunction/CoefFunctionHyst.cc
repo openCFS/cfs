@@ -167,6 +167,35 @@ namespace CoupledField {
     //std::cout << outputVector.ToString() << std::endl;
   }
   
+  void CoefFunctionHyst::EvaluateRotDirectionForVectorExtension(){
+    if(!MAT_useExtension_){
+      // this function only is relevant for scalar preisach model with vector extension
+      return;
+    }
+    /*
+     * Iterate over all scalar hyst operators and and evaluate the rotation direction
+     * with the latest value of the flux or field intensity (E_B_) (i.e. with element solution)
+     * note that the storageIdx = operatorIdx corresponds to the midpoint of the
+     * element if extended evaluation is used
+     */
+    if(MAT_setWithFlux_){
+    
+      Vector<Double> latestFlux;
+      for(UInt i = 0; i < numHystOperators_; i++){
+        latestFlux = E_B_[i];
+        hyst_->UpdateRotationStateWithFluxDensity(latestFlux,matrixForInversion_[i],i);
+        hyst_->EvaluateRotationState(i);
+      }
+    } else {
+      Vector<Double> latestField;
+      for(UInt i = 0; i < numHystOperators_; i++){
+        latestField = E_B_[i];
+        hyst_->UpdateRotationStateWithFieldIntensity(latestField,i);
+        hyst_->EvaluateRotationState(i);
+      }
+    }
+  }
+    
   void CoefFunctionHelper::PrecomputeMaterialTensorForInverison(){
     /*
      * Iterate over all integration points used/managed by the hyst operator and
@@ -823,7 +852,7 @@ namespace CoupledField {
     }
 
 		material->GetScalar(MAT_xSat_, X_SATURATION, Global::REAL);
-		material->GetScalar(MAT_ySat_, Y_SATURATION, Global::REAL);
+		material->GetScalar(MAT_pSat_, Y_SATURATION, Global::REAL);
     
     // NEW: add additional anhysteretic curve to Preisach models
     material->GetScalar(MAT_anhysteretic_a_ , PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
@@ -1031,6 +1060,7 @@ namespace CoupledField {
 		//matCoef->GetTensor(MAT_initialTensor_, lpm);
     
     needsInversion_ = false;
+    MAT_setWithFlux_ = false;
 		// to calculate differential material properties, we need to know e0 / nu0
 		if (material_->GetMaterialDatabaseName() == "Electrostatic") {
 			rev_mat_fac_ = 8.854187817e-12; //eps0
@@ -1050,7 +1080,7 @@ namespace CoupledField {
 			rev_mat_fac_ = 795774.7155; //nu0
 			PDEName_ = "Electromagnetics";
       needsInversion_ = true;
-      
+      MAT_setWithFlux_ = true; // only for scalar model with vecttor extension
       // no longer used > CoefFunctionHystMat, CoefFunctionHystOuptut etc have their own
       // values for this; 
       // however, value is used for TestInversion function
@@ -1256,7 +1286,7 @@ namespace CoupledField {
         material_->GetScalar(MAT_rotRes_, ROT_RESISTANCE, Global::REAL);
         material_->GetScalar(MAT_angResistance_, ANG_DISTANCE, Global::REAL);
         
-        hyst_ = new ExtendedPreisach(numHystOperators_, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, 
+        hyst_ = new ExtendedPreisach(numHystOperators_, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, 
                 MAT_rotRes_, MAT_angResistance_, dim_, isVirgin, MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_, anhystOnly_);
         
         // set initial direction
@@ -1268,20 +1298,40 @@ namespace CoupledField {
           material_->GetScalar(MAT_initialInput_[2], INITIAL_STATE_Z, Global::REAL);
         }
         
+        Vector<Double> initialInputForRotstate = MAT_initialInput_;
         // if no value is given for initial state, set it to dirP
-        if (MAT_initialInput_.NormL2() < 1e-16) {
-          MAT_eps_mu_SmallSignal_.Mult(MAT_dirP_,MAT_initialInput_);
-          MAT_initialInput_.ScalarMult(MAT_xSat_);
-          MAT_initialInput_.Add(MAT_ySat_,MAT_dirP_);
-          // MAT_initialInput_ = (MAT_ySat_*Identity + MAT_xSat_*MAT_eps_mu_SmallSignal_)*MAT_dirP_
-          // > flux with value just at saturation
+        if (initialInputForRotstate.NormL2() < 1e-16) {
+          initialInputForRotstate.Init();
+          if(MAT_setWithFlux_){
+            // update rotation states with flux quantity 
+            // MAT_initialInput_ = (MAT_pSat_*Identity + MAT_xSat_*MAT_eps_mu_SmallSignal_)*MAT_dirP_
+            // > flux with value just at saturation
+            // > but: saturation alone would not suffice! we need to consdier anhyst parts, too
+            MAT_eps_mu_SmallSignal_.Mult(MAT_dirP_,initialInputForRotstate);
+            initialInputForRotstate.ScalarMult(MAT_xSat_);
+            Double anhystPart = hyst_->evalAnhystPart_normalized(1.0);
+            initialInputForRotstate.Add((anhystPart+1.0)*MAT_pSat_,MAT_dirP_);
+          } else {
+            // update rotation states with field intensity
+            // > scaling with x saturation sufficient
+            initialInputForRotstate.Add(MAT_xSat_,MAT_dirP_);
+          }
         }
         
-        for(UInt i = 0; i < numHystOperators_; i++){
-          hyst_->UpdateRotationState(MAT_initialInput_,MAT_eps_mu_SmallSignal_,i);
+        if(MAT_setWithFlux_){
+          for(UInt i = 0; i < numHystOperators_; i++){
+            hyst_->UpdateRotationStateWithFluxDensity(initialInputForRotstate,MAT_eps_mu_SmallSignal_,i);
+            hyst_->EvaluateRotationState(i);
+          } 
+        } else {
+          for(UInt i = 0; i < numHystOperators_; i++){
+            hyst_->UpdateRotationStateWithFieldIntensity(MAT_initialInput_,i);
+            hyst_->EvaluateRotationState(i);
+          }
         }
+        
       } else {
-        hyst_ = new Preisach(numHystOperators_, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, isVirgin, 
+        hyst_ = new Preisach(numHystOperators_, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, isVirgin, 
                 MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
       }
      
@@ -1332,25 +1382,25 @@ namespace CoupledField {
 			if (MAT_vecPreisachImplementationVersion_ == 1) {
 				isClassical_ = true; // original vector preisach model -> sutor2012
         
-				hyst_ = new VectorPreisachv10_ListApproach(numHystOperators_, MAT_xSat_, MAT_ySat_,
+				hyst_ = new VectorPreisachv10_ListApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                 isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 2) {
 				isClassical_ = false; // revised vector preisach model -> sutor2015
         
-				hyst_ = new VectorPreisachv10_ListApproach(numHystOperators_, MAT_xSat_, MAT_ySat_,
+				hyst_ = new VectorPreisachv10_ListApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                 isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 10) {
 				isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
         
-				hyst_ = new VectorPreisachv10_MatrixApproach(numHystOperators_, MAT_xSat_, MAT_ySat_,
+				hyst_ = new VectorPreisachv10_MatrixApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                 isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 20) {
 				isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
         
-				hyst_ = new VectorPreisachv10_MatrixApproach(numHystOperators_, MAT_xSat_, MAT_ySat_,
+				hyst_ = new VectorPreisachv10_MatrixApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                 isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else {
@@ -1439,7 +1489,7 @@ namespace CoupledField {
      *      > see constructor above
      */
       
-      hyst_ = new VectorPreisachMayergoyz(numHystOperators_, numDirections, MAT_xSat_, MAT_ySat_, 
+      hyst_ = new VectorPreisachMayergoyz(numHystOperators_, numDirections, MAT_xSat_, MAT_pSat_, 
               MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_,clipOutput);
            
       hasInverseModel_ = false;
@@ -2428,7 +2478,7 @@ namespace CoupledField {
         Double satValue;
         if(PDEName_ == "Electromagnetics"){
           // will not  be exactly correct when taking the norm but gives beter estimate than skipping it
-          satValue = MAT_ySat_ + MAT_eps_mu_SmallSignal_.NormL2()*MAT_xSat_;
+          satValue = MAT_pSat_ + MAT_eps_mu_SmallSignal_.NormL2()*MAT_xSat_;
         } else {
           satValue = MAT_xSat_;
         }
@@ -3073,6 +3123,7 @@ namespace CoupledField {
     bool setMatForInversion = false;
     bool resetSolToZeroFirst = false;
     bool overwriteMemory = false;
+    bool setRotStateForVecExtension = false;
     
     if(abs(intFlag) >= 1){
       setMatForInversion = true;
@@ -3080,15 +3131,19 @@ namespace CoupledField {
     if(abs(intFlag) == 2){
       resetSolToZeroFirst = true;
     }
+    if(abs(intFlag) == 3){
+      setRotStateForVecExtension = true;
+    }
+    
     if(intFlag < 0){
       overwriteMemory = true;
     }
     
-    CoefFunctionHyst::EvaluateHystOperators(setMatForInversion, resetSolToZeroFirst, overwriteMemory);
+    CoefFunctionHyst::EvaluateHystOperators(setMatForInversion, resetSolToZeroFirst, overwriteMemory, setRotStateForVecExtension);
     
   }
   
-  void CoefFunctionHyst::EvaluateHystOperators(bool setMatForInversion, bool resetSolToZeroFirst, bool overwriteMemory){
+  void CoefFunctionHyst::EvaluateHystOperators(bool setMatForInversion, bool resetSolToZeroFirst, bool overwriteMemory, bool setRotStateForVecExtension){
 
     /*
      * NEW function added April 16th 2018
@@ -3168,6 +3223,10 @@ namespace CoupledField {
      */
     if(setMatForInversion){
       hystHelper_->PrecomputeMaterialTensorForInverison();
+    }
+    
+    if(setRotStateForVecExtension){
+      EvaluateRotDirectionForVectorExtension();
     }
     
     if(resetSolToZeroFirst){
@@ -3312,11 +3371,19 @@ namespace CoupledField {
       
 			outputOfHystOperator = Vector<Double>(dim_);
 			outputOfHystOperator.Init();
+      Vector<Double> curDir;
       
 			if (XML_performanceMeasurement_) {
 				timer_->Start();
 			}
       
+      if(MAT_useExtension_){
+        // get latest rotation state from extension
+        curDir = hyst_->getRotationDirection(operatorIdx);
+      } else {
+        curDir = MAT_dirP_;
+      }
+      //std::cout << "curDir: " << curDir.ToString() << std::endl;
       //std::cout << "Used input for SCALAR model: " << inputToHystOperator[MAT_dirP_] << std::endl;
 //      outputOfHystOperator[MAT_dirP_] = hyst_->computeValueAndUpdate(inputToHystOperator[MAT_dirP_], 
 //				E_H_[storageIdx][MAT_dirP_],operatorIdx, overwriteMemory);
@@ -3324,11 +3391,11 @@ namespace CoupledField {
       // NEW: MAT_dirP_ is a vector now
       // > to get the correct scalar input data, we have to project onto this direction vector
       Double scalInput;
-      MAT_dirP_.Inner(inputToHystOperator,scalInput);
+      curDir.Inner(inputToHystOperator,scalInput);
       Double scalOutput = hyst_->computeValueAndUpdate(scalInput,operatorIdx, overwriteMemory);
       
       outputOfHystOperator.Init();
-      outputOfHystOperator.Add(scalOutput,MAT_dirP_);
+      outputOfHystOperator.Add(scalOutput,curDir);
       
 			//outputOfHystOperator[MAT_dirP_] = hyst_->computeValueAndUpdate(inputToHystOperator[MAT_dirP_],operatorIdx, overwriteMemory);
 			
@@ -4076,7 +4143,7 @@ namespace CoupledField {
     generalInfo << std::endl;
     generalInfo << "## Used material parameter for all following tests: " << std::endl;
     generalInfo << "xSat: " << MAT_xSat_ << std::endl;
-    generalInfo << "ySat: " << MAT_ySat_ << std::endl;
+    generalInfo << "ySat: " << MAT_pSat_ << std::endl;
     generalInfo << "eps_mu: " << eps_mu.ToString() << std::endl;
     generalInfo << "## Error criteria: " << std::endl;
     if (MAT_methodType_ == VECTOR) {
@@ -4153,24 +4220,24 @@ namespace CoupledField {
           material_->GetScalar(MAT_rotRes_, ROT_RESISTANCE, Global::REAL);
           material_->GetScalar(MAT_angResistance_, ANG_DISTANCE, Global::REAL);
           
-          hystTMP = new ExtendedPreisach(1, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, 
+          hystTMP = new ExtendedPreisach(1, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, 
                   MAT_rotRes_, MAT_angResistance_, dim_, isVirgin, MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
           
           // set initial direction
           Vector<Double> initialInput = Vector<Double>(dim_);
           MAT_eps_mu_SmallSignal_.Mult(MAT_dirP_,initialInput);
           initialInput.ScalarMult(MAT_xSat_);
-          initialInput.Add(MAT_ySat_,MAT_dirP_);
-          // initialInput = (MAT_ySat_*Identity + MAT_xSat_*MAT_eps_mu_SmallSignal_)*MAT_dirP_
+          initialInput.Add(MAT_pSat_,MAT_dirP_);
+          // initialInput = (MAT_pSat_*Identity + MAT_xSat_*MAT_eps_mu_SmallSignal_)*MAT_dirP_
           // > flux with value just at saturation
           hystTMP->UpdateRotationState(initialInput,MAT_eps_mu_SmallSignal_,0);
 
         } else {
-          hystTMP = new Preisach(1, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, isVirgin, MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
-          //hyst_ = new Preisach(numHystOperators_, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, isVirgin);
+          hystTMP = new Preisach(1, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, isVirgin, MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+          //hyst_ = new Preisach(numHystOperators_, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, isVirgin);
         }
         
-        //hystTMP = new Preisach(1, MAT_xSat_, MAT_ySat_, MAT_PreisachWeights_, isVirgin);
+        //hystTMP = new Preisach(1, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, isVirgin);
         
 				// normal preisach has worse resolution than vectorpreisach
 				// > check for smaller tolerance
@@ -4182,25 +4249,25 @@ namespace CoupledField {
         if (MAT_vecPreisachImplementationVersion_ == 1) {
           isClassical_ = true; // original vector preisach model -> sutor2012
 
-          hystTMP = new VectorPreisachv10_ListApproach(1, MAT_xSat_, MAT_ySat_,
+          hystTMP = new VectorPreisachv10_ListApproach(1, MAT_xSat_, MAT_pSat_,
                   MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                   isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
         } else if (MAT_vecPreisachImplementationVersion_ == 2) {
           isClassical_ = false; // revised vector preisach model -> sutor2015
 
-          hystTMP = new VectorPreisachv10_ListApproach(1, MAT_xSat_, MAT_ySat_,
+          hystTMP = new VectorPreisachv10_ListApproach(1, MAT_xSat_, MAT_pSat_,
                   MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                   isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
         } else if (MAT_vecPreisachImplementationVersion_ == 10) {
           isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
 
-          hystTMP = new VectorPreisachv10_MatrixApproach(1, MAT_xSat_, MAT_ySat_,
+          hystTMP = new VectorPreisachv10_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
                   MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                   isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
         } else if (MAT_vecPreisachImplementationVersion_ == 20) {
           isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
 
-          hystTMP = new VectorPreisachv10_MatrixApproach(1, MAT_xSat_, MAT_ySat_,
+          hystTMP = new VectorPreisachv10_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
                   MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                   isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
         } else {
@@ -4236,7 +4303,7 @@ namespace CoupledField {
          *  > make sure that the passed parameter are already transformed correctly
          *      > see constructor above
          */
-        hystTMP = new VectorPreisachMayergoyz(1, numDirections, MAT_xSat_, MAT_ySat_, 
+        hystTMP = new VectorPreisachMayergoyz(1, numDirections, MAT_xSat_, MAT_pSat_, 
                 MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_,clipOutput);
         
         hystTMP->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
@@ -4688,7 +4755,7 @@ namespace CoupledField {
 //        testOutputSig << "# Number of steps: " << totalSteps << std::endl;
 //        testOutputSig << "# eps_mu: " << eps_mu.ToString() << std::endl;
 //        testOutputSig << "# xSat: " << MAT_xSat_ << std::endl;
-//        testOutputSig << "# ySat: " << MAT_ySat_ << std::endl;
+//        testOutputSig << "# ySat: " << MAT_pSat_ << std::endl;
 //        testOutputSig << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
 //        testOutputSig << "# " << std::endl;
 //        testOutputSig << "# Step    x_in[0]    x_in[1]" << std::endl;
@@ -4720,7 +4787,7 @@ namespace CoupledField {
 //        testOutput2 << "# Number of steps: " << totalSteps << std::endl;
 //        testOutput2 << "# eps_mu: " << eps_mu.ToString() << std::endl;
 //        testOutput2 << "# xSat: " << MAT_xSat_ << std::endl;
-//        testOutput2 << "# ySat: " << MAT_ySat_ << std::endl;
+//        testOutput2 << "# ySat: " << MAT_pSat_ << std::endl;
 //        testOutput2 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
 //        testOutput2 << "# " << std::endl;
 //        testOutput2 << "# Step    x_ret[0]    x_ret[1]" << std::endl;
@@ -4729,7 +4796,7 @@ namespace CoupledField {
         testOutput3 << "# Number of steps: " << totalSteps << std::endl;
         testOutput3 << "# eps_mu: " << eps_mu.ToString() << std::endl;
         testOutput3 << "# xSat: " << MAT_xSat_ << std::endl;
-        testOutput3 << "# ySat: " << MAT_ySat_ << std::endl;
+        testOutput3 << "# ySat: " << MAT_pSat_ << std::endl;
         testOutput3 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
         testOutput3 << "# " << std::endl;
         testOutput3 << "# Step    x_in[0]    x_in[1]    h_in[0]    h_in[1]    y_in[0]    y_in[1]" << std::endl;
@@ -4738,7 +4805,7 @@ namespace CoupledField {
         testOutput4 << "# Number of steps: " << totalSteps << std::endl;
         testOutput4 << "# eps_mu: " << eps_mu.ToString() << std::endl;
         testOutput4 << "# xSat: " << MAT_xSat_ << std::endl;
-        testOutput4 << "# ySat: " << MAT_ySat_ << std::endl;
+        testOutput4 << "# ySat: " << MAT_pSat_ << std::endl;
         testOutput4 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
         testOutput4 << "# " << std::endl;
         testOutput4 << "# Step    x_ret[0]    x_ret[1]    h_ret[0]    h_ret[1]    y_ret[0]    y_ret[1]" << std::endl;
@@ -5164,7 +5231,7 @@ namespace CoupledField {
               << "+ From material file: \n"
               << "  initial/smallfield tensor " << MAT_eps_mu_SmallSignal_.ToString() << "\n"
               << "  xSaturation " << MAT_xSat_ << "\n"
-              << "  ySaturation " << MAT_ySat_ << "\n";
+              << "  ySaturation " << MAT_pSat_ << "\n";
       
       if (MAT_methodType_ == SCALAR) {
         oss << "  dirP " << MAT_dirP_.ToString() << "\n";

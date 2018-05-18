@@ -1308,8 +1308,8 @@ namespace CoupledField {
      */
     // allow setting of matrices
     PDE_.SetFlagInCoefFncHyst("allowSettingOfMatForLocalInversion",true);
-    // EvaluateHystOperators; flag = 1 > set Matrix for Inverion, too
-    PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",1);
+    // EvaluateHystOperators; flag = 3 > set Matrix for Inverion and rotation states for possible vector extension of scalar model
+    PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",3);
     
     do {
 //      std::cout << "#### SolveStepHyst::Start of IT" << std::endl;

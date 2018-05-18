@@ -13,6 +13,8 @@ namespace CoupledField
   DEFINE_LOG(scalpreisach, "scalpreisach")
   DECLARE_LOG(scalpreisachInversion)
   DEFINE_LOG(scalpreisachInversion, "scalpreisachInversion")
+  DECLARE_LOG(scalpreisachVecExtension)
+  DEFINE_LOG(scalpreisachVecExtension, "scalpreisachVecExtension")
   
   VectorPreisachMayergoyz::VectorPreisachMayergoyz(Integer numElem, Vector<Double> xSat, Vector<Double> ySat, 
           Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,
@@ -52,8 +54,8 @@ namespace CoupledField
     
     // accroding to "Magnetic Field Analysis of Electric Machines Taking Ferromagnetic Hysteresis into Account" by J. Saitz, p. 38
     // we should use randomly distributed starting angle to make up for the missing symmetry property due to discretization
-    Double startingAngle = 0.0;
     Double deltaAngle = M_PI/numDirections;
+    Double startingAngle = deltaAngle/2.0;
     Double currentAngle;
     for(UInt i = 0; i < numDirections; i++){
       currentAngle = startingAngle + i*deltaAngle;
@@ -109,7 +111,7 @@ namespace CoupledField
       // add anhysteretic part directly to output and set saturation parameter accordingly
       // the single scalar models will not have anhysteretic parts
       XSaturated_ = xSat;
-      YSaturated_ = ySat;
+      PSaturated_ = ySat;
       anhyst_A_ = anhyst_A;
       anhyst_B_ = anhyst_B;
       anhyst_C_ = anhyst_C;
@@ -308,18 +310,18 @@ namespace CoupledField
       // clip amplitude to saturation; works well if input only in 1d but
       // not so well if remanent parts perpendicular to input exist as those
       // will be scaled down, too
-      if(output.NormL2() > YSaturated_){
-        output.ScalarMult(YSaturated_/output.NormL2());
+      if(output.NormL2() > PSaturated_){
+        output.ScalarMult(PSaturated_/output.NormL2());
       }
     } else if(clipOutput_ == 2){
       // > default
       // clip amplitude to saturation, but such that remanent part is not
       // affected; results seem to be more reasonable than unclipped and clipping 1
       Double projection = output.Inner(dirInput);
-      if(abs(output.NormL2()) > YSaturated_){
+      if(abs(output.NormL2()) > PSaturated_){
         output.Add(-projection,dirInput);
         Double normRemaining = output.NormL2();
-        output.Add(std::sqrt(YSaturated_*YSaturated_-normRemaining*normRemaining),dirInput);
+        output.Add(std::sqrt(PSaturated_*PSaturated_-normRemaining*normRemaining),dirInput);
       }
     }
 
@@ -327,7 +329,7 @@ namespace CoupledField
       // for isotropic case, add anhystPart directly to output
       // make sure that the scalar models return no anhystPart in this case
       if(xVal.NormL2() != 0){
-        Double amplitude = YSaturated_*evalAnhystPart_normalized(xVal.NormL2()/XSaturated_);
+        Double amplitude = PSaturated_*evalAnhystPart_normalized(xVal.NormL2()/XSaturated_);
         output.Add(amplitude,dirInput); 
       } 
     }
@@ -365,7 +367,9 @@ namespace CoupledField
     delete [] currentDirection_;
   }
   
-  void ExtendedPreisach::UpdateRotationState(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
+  void ExtendedPreisach::UpdateRotationStateWithFluxDensity(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
+    // use flux quantity as input
+    // > e.g. for magnetics
     
     /*
      * 1. Decompose flux_in into amplitude and direction
@@ -388,8 +392,11 @@ namespace CoupledField
     Vector<Double> satInCurDir = Vector<Double>(dim_);
     eps_mu.Mult(dir,satInCurDir);
     satInCurDir.ScalarMult(XSaturated_);
-    satInCurDir.Add(YSaturated_,dir);
-    // satInCurDir = (YSaturated_*Identity + XSaturated*eps_mu)*dir
+    
+    Double anhystPart = PSaturated_*evalAnhystPart_normalized(1.0);
+    satInCurDir.Add(PSaturated_+anhystPart,dir);
+    
+    // satInCurDir = (PSaturated_*Identity + XSaturated*eps_mu)*dir
     Double satValue = satInCurDir.NormL2();
     
     if(ampl >= satValue){
@@ -398,11 +405,64 @@ namespace CoupledField
       ampl = ampl/satValue;
     }
     
-    Double X_thres = ampl*rotResistance_;
+    UpdateRotationState(ampl, dir, idx);
+  }
+  
+  void ExtendedPreisach::UpdateRotationStateWithFieldIntensity(Vector<Double> field_in, UInt idx){
+    // use field strength as input
+    // > e.g. for electrostatics
+    
+    /*
+     * 1. Decompose field_in into amplitude and direction
+     */
+    Double ampl = field_in.NormL2();
+    if(ampl <= 0){
+      // nothing to update
+      return;
+    }
+    
+    Vector<Double> dir = field_in;
+    dir.ScalarDiv(ampl);
+    
+    /*
+     * 2. Compute actual setting value as for Vector Modell 2015er edition
+     */
+    // field intensity only has to be scaled by XSaturated_
+    Double satValue = XSaturated_;
+    
+    if(ampl >= satValue){
+      ampl = 1.0;
+    } else {
+      ampl = ampl/satValue;
+    }
+    UpdateRotationState(ampl, dir, idx);
+  }
+  
+  
+  void ExtendedPreisach::UpdateRotationState(Double normalizedAmplitude, Vector<Double> dir, UInt idx){
+        
+    Double X_thres = normalizedAmplitude*rotResistance_;
+    
     if(X_thres > 1.0){
       X_thres = 1.0;
     } else if (X_thres <= 0){
       return;
+    }
+    
+    LOG_DBG(scalpreisachVecExtension) << "idx, amplitude, dirExtion: ";
+    LOG_DBG(scalpreisachVecExtension) << idx;
+    LOG_DBG(scalpreisachVecExtension) << normalizedAmplitude;
+    LOG_DBG(scalpreisachVecExtension) << dir.ToString();
+    
+    
+    LOG_DBG(scalpreisachVecExtension) << "Rotation list pre update: ";
+    std::map<Double, Vector<Double> >::iterator it;
+    UInt cnt = 0;
+    for(it =  rotationStates_[idx].begin(); it != rotationStates_[idx].end(); it++){
+      cnt++;
+      LOG_DBG(scalpreisachVecExtension) << "# - Thres / Vec: " << cnt << " - "; 
+      LOG_DBG(scalpreisachVecExtension) << it->first;
+      LOG_DBG(scalpreisachVecExtension) << it->second.ToString();
     }
     
     /*
@@ -411,7 +471,7 @@ namespace CoupledField
     // special case: list empty
     if(rotationStates_[idx].empty()){
       // directly insert X_thres, dir
-      rotationStates_[idx][X_thres] = dir;
+      rotationStates_[idx].insert(std::pair<Double, Vector<Double> >(X_thres, dir));
     } else {
       std::map<Double, Vector<Double> >::iterator insertPos;
       std::pair<std::map<Double, Vector<Double> >::iterator,bool> retVal; 
@@ -432,8 +492,19 @@ namespace CoupledField
       //  this prevously inserted element
       
       std::map<Double, Vector<Double> >::iterator startPos = rotationStates_[idx].begin();
+      LOG_DBG(scalpreisachVecExtension) << "# InsertPos: " << insertPos->first;
+      LOG_DBG(scalpreisachVecExtension) << "# startPos: " << startPos->first;
       rotationStates_[idx].erase(startPos,insertPos); // insertPos is kept
       
+    }
+    
+    LOG_DBG(scalpreisachVecExtension) << "Rotation list after update: ";
+    cnt = 0;
+    for(it =  rotationStates_[idx].begin(); it != rotationStates_[idx].end(); it++){
+      cnt++;
+      LOG_DBG(scalpreisachVecExtension) << "# - Thres / Vec: " << cnt << " - "; 
+      LOG_DBG(scalpreisachVecExtension) << it->first;
+      LOG_DBG(scalpreisachVecExtension) << it->second.ToString();
     }
   }
   
@@ -445,13 +516,12 @@ namespace CoupledField
     Double curWeight;
     
     if(!rotationStates_[idx].empty()){
-
       Double curVal;
       Double nextVal;
     
       std::map<Double, Vector<Double> >::reverse_iterator curPos;
       for(curPos = rotationStates_[idx].rbegin(); curPos != rotationStates_[idx].rend(); curPos++){
-        if(curPos++ == rotationStates_[idx].rend()){
+        if(++curPos == rotationStates_[idx].rend()){
           // currently we are in the last entry 
           nextVal = 0.0;
         } else {
@@ -459,6 +529,7 @@ namespace CoupledField
         }
         curPos--;
         curVal = curPos->first;
+        
         
         // each rotation state is weighted with the actual area that is assigned
         // to it in the Preisach-like plane
@@ -490,11 +561,14 @@ namespace CoupledField
          *     |_ /
          *           T_L
          */
-        // Unlike the actual vector model, these states are not furtehr sub
+        // Unlike the actual vector model, these states are not further sub
         // divided so that the area computation is very simple
         // > take outersquare - innersquare, divide by 2 (for triangles), divide
         //  by 2 to value between 0 and 1 (preisach plane goes from -1 to +1)
-        curWeight = (curVal*curVal - nextVal*nextVal)/4.0;
+        // BUT: curVal is always >= 0 (as it scales with amplitude)
+        //      > we actually evaluate just a quarter going from 0,curVal x 0,curVal
+        //      > no division by 4 required
+        curWeight = (curVal*curVal - nextVal*nextVal);
         dirVector.Add(curWeight,curPos->second);
       }
     }
@@ -522,7 +596,7 @@ namespace CoupledField
       XSaturated_  = 1.0;
     }
        
-    YSaturated_  = ySat;
+    PSaturated_  = ySat;
     isVirgin_    = isVirgin;
     
     preisachWeights_ = preisachWeight;
@@ -573,7 +647,7 @@ namespace CoupledField
   
   Double Preisach::getValue( Integer idx ) 
   {
-    return ( preisachSum_[idx]*YSaturated_ );
+    return ( preisachSum_[idx]*PSaturated_ );
   }
   
     
@@ -602,7 +676,7 @@ namespace CoupledField
     Double xMiddle;
     Double diffMin, diffMiddle;
     Double everettMin, everettMiddle;
-    Double dX_to_dY = eps_mu*XSaturated_/YSaturated_;
+    Double dX_to_dY = eps_mu*XSaturated_/PSaturated_;
     Double dX = 0.0;
     Double dAnhyst = 0.0;
     
@@ -622,7 +696,7 @@ namespace CoupledField
         
         if(abs(diffMiddle) < tol){
 					LOG_DBG(scalpreisachInversion) << "Remaining diff (normalized): " << abs(diffMiddle);
-          LOG_DBG(scalpreisachInversion) << "Remaining diff: " << YSaturated_*abs(diffMiddle);
+          LOG_DBG(scalpreisachInversion) << "Remaining diff: " << PSaturated_*abs(diffMiddle);
           return xMiddle;
         }
         
@@ -649,7 +723,7 @@ namespace CoupledField
       }
       LOG_DBG(scalpreisachInversion) << "Maxnumber of iteations reached ( case: xFixed >= -1 )";
 			LOG_DBG(scalpreisachInversion) << "Remaining diff (normalized): " << abs(diffMiddle);
-      LOG_DBG(scalpreisachInversion) << "Remaining diff: " << YSaturated_*abs(diffMiddle);
+      LOG_DBG(scalpreisachInversion) << "Remaining diff: " << PSaturated_*abs(diffMiddle);
 			return xMiddle;
     } else {
       LOG_DBG(scalpreisachInversion) << "perform bisection without fixed edge";
@@ -673,7 +747,7 @@ namespace CoupledField
         
         if(abs(diffMiddle) < tol){
           LOG_DBG(scalpreisachInversion) << "Remaining diff (normalized): " << abs(diffMiddle);
-          LOG_DBG(scalpreisachInversion) << "Remaining diff: " << YSaturated_*abs(diffMiddle);
+          LOG_DBG(scalpreisachInversion) << "Remaining diff: " << PSaturated_*abs(diffMiddle);
           return xMiddle;
         }
         
@@ -704,7 +778,7 @@ namespace CoupledField
       }
       LOG_DBG(scalpreisachInversion) << "Maxnumber of iteations reached ( case: xFixed < -1 )";
 		  LOG_DBG(scalpreisachInversion) << "Remaining diff (normalized): " << abs(diffMiddle);
-      LOG_DBG(scalpreisachInversion) << "Remaining diff: " << YSaturated_*abs(diffMiddle);
+      LOG_DBG(scalpreisachInversion) << "Remaining diff: " << PSaturated_*abs(diffMiddle);
 			return xMiddle;
     }
   }
@@ -721,7 +795,7 @@ namespace CoupledField
     
 		LOG_TRACE(scalpreisachInversion) << "Compute inverse of Preisach operator for Yin = " << Yin;
     LOG_TRACE(scalpreisachInversion) << "Index = " << idx;
-		LOG_DBG(scalpreisachInversion) << "Compute inverse of Preisach operator for Yin_normalized = " << Yin/YSaturated_;
+		LOG_DBG(scalpreisachInversion) << "Compute inverse of Preisach operator for Yin_normalized = " << Yin/PSaturated_;
     /*
      * 0. Check if Input drives system into saturation
      *    > make sure to not only compare with YSaturated but also 
@@ -740,16 +814,16 @@ namespace CoupledField
     // a normalized dY
     // dY_norm = dY/YSaturated = eps_mu*dX/YSaturated = eps_mu*dX*XSaturated/XSaturated/YSaturated
     //         = eps_mu*XSaturated/YSaturated * dX_norm
-    Double dX_to_dY = eps_mu*XSaturated_/YSaturated_;
+    Double dX_to_dY = eps_mu*XSaturated_/PSaturated_;
     UInt invcase = 0;
 		UInt subcase = 0;
     //std::cout << "Inversion" << std::endl;
     //std::cout << "Yin: " << Yin << std::endl;
-    //std::cout << "YSaturated: " << YSaturated_ << std::endl;
+    //std::cout << "YSaturated: " << PSaturated_ << std::endl;
     //std::cout << "eps_mu: " << eps_mu << std::endl;
     // anhysteretic parameter are meant to be combined with saturated X > mult by 1.0 here
-    Double anhystPartPosSat = YSaturated_*evalAnhystPart_normalized(1.0);
-    Double anhystPartNegSat = YSaturated_*evalAnhystPart_normalized(-1.0);
+    Double anhystPartPosSat = PSaturated_*evalAnhystPart_normalized(1.0);
+    Double anhystPartNegSat = PSaturated_*evalAnhystPart_normalized(-1.0);
     
     if(anhystOnly_ == true){
       // actual hyst operator is 0; we just solve for the anhyst part via bisection
@@ -763,14 +837,14 @@ namespace CoupledField
     } else {
       // we just invert the actual hysteresis operator, i.e we have to subtract all anhyst and reversible parts
       //  before starting the inversion
-      if(Yin >= (YSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat) ){
+      if(Yin >= (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat) ){
         LOG_DBG(scalpreisachInversion) << "Pos saturation";
         //std::cout << "pos saturation" << std::endl;
         /*
          * System is actually in positive saturation
          * 
-         * yIn = Ysaturated_ + eps_mu*xOut + YSaturated_*(anhyst_A_*std::atan(anhyst_B_*xOut/Xsaturated_) + anhyst_C_*xOut/Xsaturated_)
-         *     >= YSaturated_ + eps_mu*XSaturated_ + YSaturated_*(anhyst_A_*std::atan(anhyst_B_) + anhyst_C_);
+         * yIn = Ysaturated_ + eps_mu*xOut + PSaturated_*(anhyst_A_*std::atan(anhyst_B_*xOut/Xsaturated_) + anhyst_C_*xOut/Xsaturated_)
+         *     >= PSaturated_ + eps_mu*XSaturated_ + PSaturated_*(anhyst_A_*std::atan(anhyst_B_) + anhyst_C_);
          * 
          * > inversion without anhysteretic part
          * xOut = (yIn - Ysaturated_)/eps_mu
@@ -778,18 +852,18 @@ namespace CoupledField
          * > with anhysteretic part, inversion more complicated!
          */
         if(anhystPartPosSat == 0){
-          Xout = (Yin - YSaturated_)/eps_mu;
+          Xout = (Yin - PSaturated_)/eps_mu;
           invcase = 1;
         } else {
           Double Xup, Xdown, Poffset;
-          Xup = (Yin - YSaturated_)/eps_mu;
+          Xup = (Yin - PSaturated_)/eps_mu;
           Xdown = XSaturated_;
-          Poffset = YSaturated_;
+          Poffset = PSaturated_;
           Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tol);
           //Xout = bisectForSaturation(Yin, eps_mu, tol, false);
           invcase = 11;
         }
-      } else if (Yin <= (-YSaturated_ - eps_mu*XSaturated_ + anhystPartNegSat) ){
+      } else if (Yin <= (-PSaturated_ - eps_mu*XSaturated_ + anhystPartNegSat) ){
         LOG_DBG(scalpreisachInversion) << "Neg saturation";
         //std::cout << "neg saturation" << std::endl;
         /*
@@ -800,13 +874,13 @@ namespace CoupledField
          * xOut = (yIn + Ysaturated_)/eps_mu
          */
         if(anhystPartPosSat == 0){
-          Xout = (Yin + YSaturated_)/eps_mu;
+          Xout = (Yin + PSaturated_)/eps_mu;
           invcase = 2;
         } else {
           Double Xup, Xdown, Poffset;
-          Xup = (Yin + YSaturated_)/eps_mu;
+          Xup = (Yin + PSaturated_)/eps_mu;
           Xdown = -XSaturated_;
-          Poffset = -YSaturated_;
+          Poffset = -PSaturated_;
           Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tol);
           //Xout = bisectForSaturation(Yin, eps_mu, tol, true);
           invcase = 21;
@@ -828,10 +902,10 @@ namespace CoupledField
         //  to +/- (1 + dX_to_dY*Xsaturated)
         // > reason: in the following we compute dY as the difference between oldthat can
         //           be represented by the Preisach plane is
-        //           2*YSaturated_ + 2*eps_mu*XSaturated_ 
+        //           2*PSaturated_ + 2*eps_mu*XSaturated_ 
         //           (considering the reversible part);
         //           If we start in saturation, however, we have a previous |Y| > YSaturated.
-        //           This leads to a dY that can be larger than 2*YSaturated_ + 2*eps_mu*XSaturated_.
+        //           This leads to a dY that can be larger than 2*PSaturated_ + 2*eps_mu*XSaturated_.
         //           Even if this is not the case, the later finesearch will try to compensate this
         //           dY by adapting the Preisach plane. This works quite well actually, but is wrong
         //           apparently as the finesearch computes dY from YSaturated+eps_mu*XSaturated and not from the actual
@@ -840,20 +914,20 @@ namespace CoupledField
         //          
 
         // OLD without capping > works well unless we come from a saturated state
-  //      Double Y_normalized = Yin/YSaturated_;
+  //      Double Y_normalized = Yin/PSaturated_;
   //      Double P_old_normalized = previousPval_[idx];    
   //      Double Y_old_normalized = P_old_normalized+dX_to_dY*previousXval_[idx];
-  //      LOG_DBG(scalpreisach) << "yOld: " << Y_old_normalized*YSaturated_;
+  //      LOG_DBG(scalpreisach) << "yOld: " << Y_old_normalized*PSaturated_;
   //      Double dY = Y_normalized - Y_old_normalized;
 
         // NEW with capping
         // NEW 25.4.2018 with anhyst part
-        Double Y_normalized = Yin/YSaturated_;
+        Double Y_normalized = Yin/PSaturated_;
         Double P_old_normalized = previousPval_[idx];    
         // IMPORTANT NOTE: previousXval_[idx] is normalized but NOT clipped > exactly what we need!
         // NOTE: previousPval_ contains already the anhysteretic part!
         Double Y_old_normalized = P_old_normalized + dX_to_dY*previousXval_[idx];// + evalAnhystPart_normalized(previousXval_[idx]);
-        LOG_DBG(scalpreisachInversion) << "Y_old: " << Y_old_normalized*YSaturated_;
+        LOG_DBG(scalpreisachInversion) << "Y_old: " << Y_old_normalized*PSaturated_;
         LOG_DBG(scalpreisachInversion) << "Y_old_normalized: " << Y_old_normalized;
         if(Y_old_normalized > (1 + dX_to_dY + evalAnhystPart_normalized(1.0))){
           Y_old_normalized = 1 + dX_to_dY + evalAnhystPart_normalized(1.0);
@@ -867,7 +941,7 @@ namespace CoupledField
 
   //     dY = dY - dX_to_dY*previousXval_[idx];
         //std::cout << "Y_normalized - P_old_normalized - dX_to_dY*previousXval_[idx]: " << dY << std::endl;
-        LOG_TRACE(scalpreisachInversion) << "Starting value for dY: " << dY*YSaturated_;
+        LOG_TRACE(scalpreisachInversion) << "Starting value for dY: " << dY*PSaturated_;
         LOG_DBG(scalpreisachInversion) << "Starting value for dY (normalized): " << dY;
         Integer minmaxcur = 0.0;
         if(dY > 0){
@@ -1128,8 +1202,8 @@ namespace CoupledField
 //        Double P_old_normalized = previousPval_[idx];
 //        Double Y_old_normalized = P_old_normalized+dX_to_dY*previousXval_[idx];
 //        
-//        LOG_TRACE(scalpreisachInversion) << "yOld: " << Y_old_normalized*YSaturated_;
-//        LOG_TRACE(scalpreisachInversion) << "yRequested-yOld: " << Yin-Y_old_normalized*YSaturated_;
+//        LOG_TRACE(scalpreisachInversion) << "yOld: " << Y_old_normalized*PSaturated_;
+//        LOG_TRACE(scalpreisachInversion) << "yRequested-yOld: " << Yin-Y_old_normalized*PSaturated_;
 //        LOG_TRACE(scalpreisachInversion) << "yRequested-yOld (normalized): " << Yin-Y_old_normalized;
 //        LOG_TRACE(scalpreisachInversion) << "x1, x2, xOut: " << x1 << ", " << x2 << ", " << Xout;
 //      }
@@ -1187,7 +1261,7 @@ namespace CoupledField
   //      }
   //    }
   //
-  //    return ( Yval*YSaturated_ );
+  //    return ( Yval*PSaturated_ );
   //  }
   
   Double Preisach::computeValueAndUpdate( Double Xin, Integer idx,
@@ -1205,7 +1279,7 @@ namespace CoupledField
       LOG_DBG(scalpreisachInversion) << "for X/norm = " << (X_norm_unclipped);
       newY += evalAnhystPart_normalized(X_norm_unclipped);
     }
-    return ( newY*YSaturated_ );
+    return ( newY*PSaturated_ );
   }
   
   

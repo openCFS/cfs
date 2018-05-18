@@ -31,7 +31,7 @@ namespace CoupledField
       XSaturated_  = 1.0;
     }
     
-    YSaturated_  = ySat;
+    PSaturated_  = ySat;
     
     isVirgin_    = isVirgin;
     
@@ -915,7 +915,7 @@ namespace CoupledField
     }
     
     retVec.Add(anhystPart);
-    retVec.ScalarMult(YSaturated_);
+    retVec.ScalarMult(PSaturated_);
     
     if(overwrite == false){
       /*
@@ -2364,14 +2364,14 @@ namespace CoupledField
      * for the evaluation of all three parts
      */
     if(overwrite == true){
-      preisachSum_[idElem] = Yout*YSaturated_;
+      preisachSum_[idElem] = Yout*PSaturated_;
 
       prevXVal_[idElem] = u_in;
       prevHVal_[idElem] = preisachSum_[idElem];
       
       return preisachSum_[idElem];
     } else {
-      preisachSumTmp_[idElem] = Yout*YSaturated_;
+      preisachSumTmp_[idElem] = Yout*PSaturated_;
 
       return preisachSumTmp_[idElem];
     }

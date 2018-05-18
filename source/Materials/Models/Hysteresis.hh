@@ -25,12 +25,19 @@ namespace CoupledField {
       EXCEPTION( "UpdateRotationState not implemented in base-Class" );
     }
     
+    virtual void UpdateRotationStateWithFluxDensity(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
+      EXCEPTION( "UpdateRotationStateWithFluxDensity not implemented in base-Class" );
+    }
+    virtual void UpdateRotationStateWithFieldIntensity(Vector<Double> field_in, UInt idx){
+      EXCEPTION( "UpdateRotationStateWithFieldIntensity not implemented in base-Class" );
+    }
+    
     virtual void EvaluateRotationState(UInt idx){
       EXCEPTION( "EvaluateRotationState not implemented in base-Class" );
     }
-    
-    virtual Vector<Double> getRotationDirectionAndUpdate(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
-      EXCEPTION( "getRotationDirectionAndUpdate not implemented in base-Class" );
+        
+    virtual Vector<Double> getRotationDirection(UInt idx){
+      EXCEPTION( "getRotationDirection not implemented in base-Class" );
     }
     
     //!
@@ -46,7 +53,7 @@ namespace CoupledField {
     };
 
     virtual Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true,bool evalAboveSaturation = false){
+      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = true){
       EXCEPTION("computeInput_vec not implemented in base-class");
     }
     
@@ -219,7 +226,7 @@ namespace CoupledField {
     Double anhyst_C_;
     bool anhystOnly_;
     Double XSaturated_;
-    Double YSaturated_;
+    Double PSaturated_;
     UInt dim_;
     
     // additional for inversion

@@ -1508,6 +1508,8 @@ namespace CoupledField {
     void SetPreviousHystVals(bool setLastTS);
     void SetPreviousHystValsOLD(bool setLastTS, bool forceMemoryLock = false);
     
+    void EvaluateRotDirectionForVectorExtension();
+    
     void GetScalar(Double& outputScalar, const LocPointMapped& lpm );
     
     void GetVector( Vector<Double>& outputVector,const LocPointMapped& lpm);
@@ -1556,7 +1558,7 @@ namespace CoupledField {
       Double satValue;
       if(PDEName_ == "Electromagnetics"){
         // will not  be exactly correct when taking the norm but gives beter estimate than skipping it
-        satValue = MAT_ySat_ + MAT_eps_mu_SmallSignal_.NormL2()*MAT_xSat_;
+        satValue = MAT_pSat_ + MAT_eps_mu_SmallSignal_.NormL2()*MAT_xSat_;
       } else {
         satValue = MAT_xSat_;
       }
@@ -1629,7 +1631,7 @@ namespace CoupledField {
     Vector<Double> RetrieveLPMSolution(LocPointMapped& actualLPM, UInt storageIdx, int timeLevel, bool onBoundary);
     
     Double GetOutputSaturation(){
-      return MAT_ySat_;
+      return MAT_pSat_;
     }
     
     PtrCoefFct GenerateMatCoefFnc(std::string tensorName){
@@ -1926,8 +1928,8 @@ namespace CoupledField {
         //      std::cout << "Current polarization vector " << P.ToString() << std::endl;
         //      
         // calculate scaling
-        assert(MAT_ySat_ != 0);
-        Double scaling = P.NormL2()/MAT_ySat_;
+        assert(MAT_pSat_ != 0);
+        Double scaling = P.NormL2()/MAT_pSat_;
         
         scaledCouplTensor = couplTensor* scaling;
         
@@ -2172,7 +2174,7 @@ namespace CoupledField {
     
 
     void EvaluateHystOperatorsInt(Integer intFlag);
-    void EvaluateHystOperators(bool setMatForInversion, bool resetSolToZeroFirst, bool overwriteMemory);
+    void EvaluateHystOperators(bool setMatForInversion, bool resetSolToZeroFirst, bool overwriteMemory, bool setRotStateForVecExtension);
     
     bool PreprocessLPM(const LocPointMapped& lpmInput, LocPointMapped& lpmOutput,
     UInt& operatorIdx, UInt& storageIdx, bool forceMidpoint = false);
@@ -2259,7 +2261,7 @@ namespace CoupledField {
      * hysteresis operator
      */
     Double MAT_xSat_;
-    Double MAT_ySat_;
+    Double MAT_pSat_;
     
     /*
      * determines whether the vector or the scalar model shall be used
@@ -2275,6 +2277,7 @@ namespace CoupledField {
      */
     Vector<Double> MAT_dirP_;
     bool MAT_useExtension_;
+    bool MAT_setWithFlux_;
     
     /*
      * Additional parameter for vector Preisach model
