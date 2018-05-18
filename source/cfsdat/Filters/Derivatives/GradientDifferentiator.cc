@@ -28,6 +28,9 @@ GradientDifferentiator::GradientDifferentiator(UInt numWorkers, CF::PtrParamNode
   this->filtStreamType_ = FIFO_FILTER;
 
   epsScal_ = params_->Get("RBF_Settings")->Get("epsilonScaling")->As<Double>();
+  betaScal_ = params_->Get("RBF_Settings")->Get("betaScaling")->As<Double>();
+  kScal_ = params_->Get("RBF_Settings")->Get("kScaling")->As<Double>();
+
   logEps_ = params_->Get("RBF_Settings")->Get("logEps")->As<bool>();
 
 }
@@ -156,7 +159,7 @@ void GradientDifferentiator::PrepareCalculation(){
           UInt numSrcPoints = srcDist.GetSize();
           CF::Matrix<CF::Double> tsF;
           while( !CalcLocGradient(tsF, trgCoord, maxd, srcDist, neighbourCoords, numSrcPoints,
-                               numEquPerEnt_, inGrid_, epsScal_, logEps_)){
+                               numEquPerEnt_, inGrid_, epsScal_, betaScal_, kScal_, logEps_)){
             // find furthest point
             Double d = 0.0;
             UInt maxId = 0;

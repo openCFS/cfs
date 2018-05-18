@@ -200,6 +200,8 @@ protected:
                       const UInt& numEquPerEnt,
                       Grid* grid,
                       const Double epsScal,
+					  const Double betaScal,
+					  const Double kScal,
                       const bool logEps);
 
 
@@ -212,6 +214,8 @@ protected:
                       const UInt& numEquPerEnt,
                       Grid* grid,
                       const Double epsScal,
+					  const Double betaScale,
+					  const Double kScale,
                       const bool logEps);
 
 
@@ -224,6 +228,8 @@ protected:
                       const UInt& numEquPerEnt,
                       Grid* grid,
                       const Double epsScal,
+					  const Double betaScal,
+					  const Double kScal,
                       const bool logEps);
 
 

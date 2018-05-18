@@ -94,6 +94,8 @@ Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<
   }
 
   epsScal_ = params_->Get("RBF_Settings")->Get("epsilonScaling")->As<Double>();
+  betaScal_ = params_->Get("RBF_Settings")->Get("betaScaling")->As<Double>();
+  kScal_ = params_->Get("RBF_Settings")->Get("kScaling")->As<Double>();
   logEps_ = false; //no logging for this class
   //logEps_ = params_->Get("RBF_Settings")->Get("logEps")->As<bool>();
 
@@ -437,7 +439,7 @@ void Lighthill::PrepareCalculation(){
         numSrcPoints = srcDist.GetSize();
         CF::Matrix<CF::Double> tsFDiv;
         while( !CalcLocDivergence(tsFDiv, trgCoord, maxd, srcDist, neighbourCoords,
-            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_, logEps_)){
+            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_, betaScal_, kScal_, logEps_)){
           // find furthest point
           Double d = 0.0;
           UInt maxId = 0;
@@ -477,7 +479,7 @@ void Lighthill::PrepareCalculation(){
         numSrcPoints = srcDist.GetSize();
         CF::Matrix<CF::Double> tsFGrad;
         while( !CalcLocGradient(tsFGrad, trgCoord, maxd, srcDist, neighbourCoords,
-            numSrcPoints, 1, inGrid_, epsScal_, logEps_)){
+            numSrcPoints, 1, inGrid_, epsScal_, betaScal_, kScal_, logEps_)){
           // find furthest point
           Double d = 0.0;
           UInt maxId = 0;
@@ -518,7 +520,7 @@ void Lighthill::PrepareCalculation(){
         numSrcPoints = srcDist.GetSize();
         CF::Matrix<CF::Double> tsFCurl;
         while( !CalcLocCurl(tsFCurl, trgCoord, maxd, srcDist, neighbourCoords,
-            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_, logEps_)){
+            numSrcPoints, numEquPerEnt_, inGrid_, epsScal_, betaScal_, kScal_, logEps_)){
           // find furthest point
           Double d = 0.0;
           UInt maxId = 0;

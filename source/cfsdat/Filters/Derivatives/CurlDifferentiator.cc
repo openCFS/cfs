@@ -27,6 +27,8 @@ CurlDifferentiator::CurlDifferentiator(UInt numWorkers, CF::PtrParamNode config,
   this->filtStreamType_ = FIFO_FILTER;
 
   epsScal_ = params_->Get("RBF_Settings")->Get("epsilonScaling")->As<Double>();
+  betaScal_ = params_->Get("RBF_Settings")->Get("betaScaling")->As<Double>();
+  kScal_ = params_->Get("RBF_Settings")->Get("kScaling")->As<Double>();
   logEps_ = params_->Get("RBF_Settings")->Get("logEps")->As<bool>();
 
 }
@@ -158,7 +160,7 @@ void CurlDifferentiator::PrepareCalculation(){
           UInt numSrcPoints = srcDist.GetSize();
           CF::Matrix<CF::Double> tsF;
           while( !CalcLocCurl(tsF, trgCoord, maxd, srcDist, neighbourCoords, numSrcPoints,
-                               numEquPerEnt_, inGrid_, epsScal_, logEps_)){
+                               numEquPerEnt_, inGrid_, epsScal_, betaScal_, kScal_, logEps_)){
             // find furthest point
             Double d = 0.0;
             UInt maxId = 0;
