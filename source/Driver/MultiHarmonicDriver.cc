@@ -129,40 +129,19 @@ namespace CoupledField
     // In multiharmonic analysis we speak in terms of multiples of base-harmonics.
     // The system matrices of the single harmonics get inserted into the global matrix
     // and then the system is solved.
-
     // Therefore we don't consider one frequency isolated from the others
     // because they are coupled
-
-
-
-    //===========================================================================================
-    //        WHAT ARE WE DOING WITH THE MATHPARSER EXPRESSIONS???
-    //===========================================================================================
-    // Set current frequency value in the mathParser
-    //mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
-    //mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
 
     // Perform steps for the solution
     ptPDE_->GetSolveStep()->SetMultHarmonicFreq( harmFreq_ );
 
-    //===========================================================================================
-    //        CONTINUE HERE
-    //===========================================================================================
-    // next step is to set a frequency loop, probably pass harmFreq_to
-    // SolveStepHarmonic(), since it also has a poiter to mathparser
-
     ptPDE_->GetSolveStep()->PreStepHarmonic();
-
     ptPDE_->GetSolveStep()->SolveStepHarmonic();
     ptPDE_->GetSolveStep()->PostStepHarmonic();
-
-
 
     for(UInt i = 0; i < harmFreq_.GetSize(); ++i  ){
       // current frequency
       Double actFreq = harmFreq_[i];
-      // which harmonic are we considering
-      Integer h = -numHarmonics_N_ + i;
 
       // the harmonics number h can be negative but the frequency step can't
       // therefore use the index i
@@ -187,34 +166,6 @@ namespace CoupledField
       handler_->FinishStep( );
     }
 
-
-
-/*
-    // write out re-start in case of aborted simulation or if all steps should be written
-    if(  actFreqStep_ == stopFreqStep_ || abortSimulation_  || writeAllSteps_ ) {
-      if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
-       simState_->WriteStep( actFreqStep_, actFreq_);
-    }
-
-    // leave loop, if simulation should be aborted
-    if ( abortSimulation_ ) {
-      break;
-    }
-
-    // perform runtime estimation
-    Double totalTime = timer_->GetWallTime();
-    timePerStep_ = totalTime / (Double) actFreqStep_;
-    Double remainingTime = (numFreq_ - actFreqStep_) * timePerStep_;
-    pt::ptime now = pt::second_clock::local_time();
-    now += pt::seconds(static_cast<long int>(remainingTime));
-
-    PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::HEADER)->Get("environment");
-    envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
-    envNode->Get("remainingTime")->SetValue(remainingTime);
-    envNode->Get("timePerStep")->SetValue(timePerStep_);
-*/
-
-
     handler_->FinishMultiSequenceStep();
     if( writeAllSteps_ )
       simState_->FinishMultiSequenceStep( !abortSimulation_ );
@@ -224,21 +175,5 @@ namespace CoupledField
       handler_->Finalize();
 
   }
-
-
-
-  /*
-  void MultiHarmonicDriver::StoreResults(UInt stepNum, double step_val)
-  {
-    assert(analysis_ == BasePDE::HARMONIC);
-
-    // Write results into output-file(s)
-    handler_->BeginStep(stepNum, step_val);
-    ptPDE_->WriteResultsInFile(stepNum, step_val);
-    handler_->FinishStep( );
-
-  }
-*/
-
   
 }

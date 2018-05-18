@@ -362,10 +362,10 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
 
       const Vector<Complex>& fR = freqTimeRes_.GetFreqResult(N_ + harmonic);
-      coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ];
+      coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ] * 0.5;
       // If harmonic is negative, we need conjugate ḩat{nu}
       if(harmonic < 0){
-        std::conj(coefScal);
+        std::conj(coefScal) * 0.5;
       }
 
 
