@@ -363,9 +363,12 @@ namespace CoupledField
      *  1 : keep update
      */
     Double beta0, betaLow, betaUp;
-    beta0 = 0.1;
-    betaLow = 0.25;
-    betaUp = 0.75;
+    beta0 = 0.15;
+//    betaLow = 0.25;
+//    betaUp = 0.75;
+    // best for mayergoyz so far
+    betaLow = 0.35;
+    betaUp = 0.85;
     Double factorUp = 2;
     Double factorDown = 0.5;
     
@@ -508,7 +511,7 @@ namespace CoupledField
     Vector<Double> deltaHyst;
     Matrix<Double> jac = Matrix<Double>(dim_,dim_);
     jac.Init();
-    
+
     if(implementation == 0){
 //      LOG_DBG(vecpreisach) << "Use forward/backward differences for approximation of Jacobian";
       /*
@@ -874,13 +877,16 @@ namespace CoupledField
       alpha = alphaMinLocal;
     }
     
-    // now reset alpha to alphaMax (note: alphaMax is passed as copy, i.e. if we increase it further
-    // below, the actual value of alphaMax is restored during next call
-    if(alpha > alphaMax){
-      LOG_DBG(vecpreisachlinesearch) << "Current alpha > alphaMax";
-      alpha = alphaMax;
-    }
+//    // now reset alpha to alphaMax (note: alphaMax is passed as copy, i.e. if we increase it further
+//    // below, the actual value of alphaMax is restored during next call
+//    if(alpha > alphaMax){
+//      LOG_DBG(vecpreisachlinesearch) << "Current alpha > alphaMax";
+//      alpha = alphaMax;
+//    }
 
+    // start at alphamin
+    alpha = alphaMinLocal;
+    
     while(true){
       itCnt++;
 			// for statistics
@@ -976,7 +982,10 @@ namespace CoupledField
           // > set xNew back to saturation
           LOG_DBG(vecpreisachlinesearch) << "2: xNew.NormL2() > Saturation but stayBelowSat = +1 > cut down xNew";
           
-          xNew.ScalarMult(0.95*XSaturated_/xNew.NormL2());
+          // restrict; take amplitude of Y into account
+          Double factor = 0.99999*yVal.NormL2()/YSaturated_;
+          //0.99999
+          xNew.ScalarMult(factor*XSaturated_/xNew.NormL2());
           wasCut = true;
         }
         
@@ -985,7 +994,9 @@ namespace CoupledField
           // > set xNew back to saturation
           LOG_DBG(vecpreisachlinesearch) << "3: xNew.NormL2() < Saturation but stayBelowSat = -1 (i.e. stayAboveSat = true) > cut down xNew";
           
-          xNew.ScalarMult(1.0/0.95*XSaturated_/xNew.NormL2());
+          Double factor = 1.0/0.99999*yVal.NormL2()/YSaturated_;
+          //1.0/0.99999
+          xNew.ScalarMult(factor*XSaturated_/xNew.NormL2());
           wasCut = true;
         }
         
@@ -994,7 +1005,7 @@ namespace CoupledField
           // retrieve updated
           xUpdate = xNew;
           xUpdate -= xVal;
-          
+          LOG_DBG(vecpreisachlinesearch) << "Cut down xUpdate = " << xUpdate.ToString();
           // check again
           hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, overwriteDirection);
           resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
@@ -1018,6 +1029,11 @@ namespace CoupledField
             if(alpha < alphaMinLocal){
               LOG_TRACE(vecpreisachlinesearch) << "Alpha min reached; discard update > stop";
               alpha = alphaMinLocal;
+              discard = true;
+              break;
+            }
+            if(itCnt >= maxIter){
+              LOG_TRACE(vecpreisachlinesearch) << "Linesearch was not successful; Discard update.";
               discard = true;
               break;
             }
@@ -1456,7 +1472,7 @@ namespace CoupledField
   
 	Vector<Double> Hysteresis::computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, bool useBisectAboveSat){
+      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat){
 		
 		UInt totalNumberOfLMIterations=0;
 		UInt totalNumberOfLinesearchIterations=0;
@@ -1465,14 +1481,14 @@ namespace CoupledField
     Double minAlpha,maxAlpha,avgAlpha;
 		Vector<Double>sol = Vector<Double>(dim_);
 		return computeInput_vec_withStatistics(yVal, prevYval, prevXval, prevHystval, 
-			operatorIndex, mu, overwriteDirection, useBisectAboveSat,
+			operatorIndex, mu, overwriteDirection, fieldsAlignedAboveSat,
       totalNumberOfLMIterations, totalNumberOfLinesearchIterations, 
       maximalNumberOfLinesearchIterations, successCode, minAlpha,maxAlpha,avgAlpha,sol);
 	}
     
   Vector<Double> Hysteresis::computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
           Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-          Matrix<Double> mu, bool overwriteDirection, bool useBisectAboveSat,
+          Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat,
           UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
           UInt& maximalNumberOfLinesearchIterations, UInt& successCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha, Vector<Double> sol){
     
@@ -1650,6 +1666,34 @@ namespace CoupledField
       
       // THESE CHECKS are not valid for Mayergoyz model as XDir != YDir
       // > this is also the reason why bisection is not possible > we simply do not know the actual direction of the output!
+      
+      // TODO:
+      // make use of triangle inequality
+      //  if |y| > |P(Xsat)| + |eps*(Xsat)| + |anhyst(XSat)| >= |P(Xsat) + eps*(Xsat) + anhyst(XSat)|, then y is in saturation
+      //    no matter what direction Xsat has; too bad, that we do not know the direction of X
+      // > therefore we cannot compute |P(Xsat)| + |eps*(Xsat)| + |anhyst(XSat)|
+      // but: we can compute |P(Xsat) + eps*(Xsat) + anhyst(XSat)| and check
+      //  if |y| < |P(Xsat) + eps*(Xsat) + anhyst(XSat)|; if this is the case, we are definitely below saturation
+      //
+      // in case of sutor mode, P(Xsat) will have direction of Xsat which is the direction of y
+      // in that case |P(Xsat)| + |eps*(Xsat)| + |anhyst(XSat)| = |P(Xsat) + eps*(Xsat) + anhyst(XSat)|
+      // ( assuming anhystPart and eps > 0 )
+      //
+      // if |y| > |ySat + eps_mu*xSat + anhystPart(xSat)| (i.e. anhystPart and hystPart are aligned)
+      //    x has to be above saturation  > stayBelowSat = false = -1
+      // if |y| < |ySat - eps_mu*xSat - anhystPart(xSat)| (i.e. anhystPart and hystPart are antiparallel)
+      //    x cannot be in saturation > stayBelowSat = true = 1
+      // if |ySat + eps_mu*xSat + anhystPart(xSat)| > |y| > |ySat - eps_mu*xSat - anhystPart(xSat)|
+      //    x could be above saturation or below > stayBelowSat = unknown = 0
+      //
+      // note: for sutor model, hystPart and anhystPart are always aligned above saturation
+      //        > only case 1 relevant for checking
+      //       for mayergoyz model, we have to check case 2 and 3, too
+      
+      
+      
+      
+      
       if(prevYval.NormL2() >= (YSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat)){
         previousStateAboveSat = true;
       }
@@ -1657,7 +1701,7 @@ namespace CoupledField
       if(yNorm >= (YSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat) ){
         currentStateAboveSat = true;
         
-        if(useBisectAboveSat == true){
+        if(fieldsAlignedAboveSat == true){
           // case 1: material goes to saturation; direction of saturation = direction of input
           // > Sutor vector model
           // get mu in current direction

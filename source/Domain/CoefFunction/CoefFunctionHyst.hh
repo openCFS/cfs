@@ -2323,7 +2323,7 @@ namespace CoupledField {
      * evaluation of Hyst operator for inputs larger than Saturation
      * > for Mayergoyz hyst model no bisection possible
      */
-    bool useBisectAboveSat_;
+    bool fieldsAlignedAboveSat_;
     
     /*
      * Initial input to the vector hysteresis operator;

@@ -203,7 +203,7 @@ namespace CoupledField {
 
     Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true, bool useBisectAboveSat = true);
+      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = true);
     
     Vector<Double> computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 

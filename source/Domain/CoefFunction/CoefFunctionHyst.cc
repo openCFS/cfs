@@ -1220,7 +1220,7 @@ namespace CoupledField {
     // USED FOR BOTH MODELS
     MAT_ampResolution_ = 1e-17;
         
-    useBisectAboveSat_ = true;
+    fieldsAlignedAboveSat_ = true;
     
 		if (MAT_methodType_ == SCALAR) {
 			//get direction
@@ -1416,7 +1416,7 @@ namespace CoupledField {
       // basically a scalar model in multiple directions
       // isotropic case: all scalar models are equal (same weights etc)
       // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
-      useBisectAboveSat_ = false;
+      fieldsAlignedAboveSat_ = false;
       bool isVirgin = true;
       int isIsotropic = 1;
       material_->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
@@ -2856,7 +2856,7 @@ namespace CoupledField {
 //					retrievedInput = hyst_->computeInput_vec(curLPMSolution, E_B_lastIt_[storageIdx], E_H_lastIt_[storageIdx],
 //						P_J_lastIt_[storageIdx],operatorIdx,MAT_eps_mu_SmallSignal_,RUN_overwriteDirection_);
 //          
-          	retrievedInput = hyst_->computeInput_vec(curLPMSolution,operatorIdx,matrixForInversion_[storageIdx],RUN_overwriteDirection_,useBisectAboveSat_);
+          	retrievedInput = hyst_->computeInput_vec(curLPMSolution,operatorIdx,matrixForInversion_[storageIdx],RUN_overwriteDirection_,fieldsAlignedAboveSat_);
 	
         }
         //std::cout << "Computed input: " << retrievedInput.ToString() << std::endl;
@@ -4245,9 +4245,9 @@ namespace CoupledField {
         EXCEPTION("Invalid model selected for inversion test");
       }
       
-      bool useBisectAboveSat = true;
+      bool fieldsAlignedAboveSat = true;
       if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-        useBisectAboveSat = false;
+        fieldsAlignedAboveSat = false;
       }
       
       
@@ -4835,7 +4835,7 @@ namespace CoupledField {
           // new: we have to pass the previous solution (here: 0)
           // new2: pass arguments by value!
           xRetrieved[0] = hystTMP->computeInput_vec_withStatistics(yIn[0], zeroVec, zeroVec, zeroVec, 0, eps_mu,
-                  overwriteDirection, useBisectAboveSat, numberOfLMIterations, numberOfLinesearchIterations, 
+                  overwriteDirection, fieldsAlignedAboveSat, numberOfLMIterations, numberOfLinesearchIterations, 
                   maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha,xIn[0]);
 //        }
       } else {
@@ -4960,7 +4960,7 @@ namespace CoupledField {
 //            xRetrieved[i] = hystTMP->computeInput_vec(yIn[i],0, eps_mu, overwriteDirection);
 //          } else {
             xRetrieved[i] = hystTMP->computeInput_vec_withStatistics(yIn[i], yRetrieved[i-1], xRetrieved[i-1], hRetrieved[i-1], 
-                  0, eps_mu, overwriteDirection, useBisectAboveSat, numberOfLMIterations, numberOfLinesearchIterations, 
+                  0, eps_mu, overwriteDirection, fieldsAlignedAboveSat, numberOfLMIterations, numberOfLinesearchIterations, 
                   maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha,xIn[i]);	
 //          }
 //            std::cout << "End backward" << std::endl;
