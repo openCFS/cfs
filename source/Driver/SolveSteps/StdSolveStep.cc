@@ -1949,6 +1949,8 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
         actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement);
       }
 
+      // We need to do this in order to evaluate at the correct result vector
+      algsys_->InitSol(actSol);
 
       // Evaluate the nonlinearity (e.g. BH curve in electromagnetics)
       this->EvaluateNonlinearity(ftRes, actSol);
@@ -1956,7 +1958,7 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
       // and nonlinpart if any
-      assemble_->AssembleNonLinRHS();
+      //assemble_->AssembleNonLinRHS();
 
 
       // setup the matrices

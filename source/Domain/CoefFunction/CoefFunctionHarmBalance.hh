@@ -100,6 +100,9 @@ protected:
     //! CoefFunction for nonlinear reluctivity evaluation
     PtrCoefFct nonLinNuCoefMap;
 
+    //! CoefFunction for linear reluctivity evaluation
+    PtrCoefFct linNuCoefMap;
+
     //! Region, the PDE is defined on. From StdPDE
     RegionIdType region;
 

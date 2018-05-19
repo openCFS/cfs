@@ -47,6 +47,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
       RegionIdType actRegion = regions[iRegion];
       st.material = materials[actRegion];
       st.nonLinNuCoefMap = NULL;
+      st.linNuCoefMap = NULL;
       st.region = regions[iRegion];
     }
 
@@ -160,14 +161,17 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
         shared_ptr<CoefFunction> BField = NULL;
         BField.reset(new CoefFunctionHarmBalanceEval<Double>(magFluxCoef_, ptGrid_));
 
-        //PtrCoefFct realThis = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_, BField, CoefXpr::OP_RE));
-
         regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, BField);
+        // for the initial solution we also need the linear nu
+        regStruc.linNuCoefMap = actMat->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL);
+
         dimType_ = SCALAR;
         ret = (PtrCoefFct)this;
       }else{
         regStruc.isNonLin = false;
         regStruc.nonLinNuCoefMap = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
+        //TODO Clean this up, it's the same as nonLinNuCoefMap for the linear material
+        regStruc.linNuCoefMap = actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
         ret = (PtrCoefFct)this;
       }
     return ret;
@@ -352,7 +356,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
       // loop over regions and get the region of the lpm
       for(auto reg : hbRegion_){
         if( reg.region == elemReg){
-          reg.nonLinNuCoefMap->GetScalar(coefScalReal, lpm);
+          reg.linNuCoefMap->GetScalar(coefScalReal, lpm);
           coefScal = (Complex)coefScalReal;
           break;
         }
