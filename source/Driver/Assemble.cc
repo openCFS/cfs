@@ -787,6 +787,10 @@ namespace CoupledField
     LOG_DBG(assemble) << "AM_Std: AssembleMatricesMultHarm() enter sequence="
         << domain->GetDriver()->GetActSequenceStep() << " for harmonic N=" << harmonic;
 
+    // The checking of nonlinearities and initializing the matrices,
+    // which have to be reassembled was already carried out in the
+    // StdSolveStep::AssembleMH method
+
     // same as ComputeIndex method in GraphManager, here with a lambda function
     auto ComputeIndex = [N](UInt a, UInt b ) { return (2*N+1) * a + b;};
 

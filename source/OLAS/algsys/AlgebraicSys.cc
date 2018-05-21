@@ -3163,8 +3163,6 @@ namespace CoupledField {
     MapCompleteFctIdToIndex( 0, blockNums, indices);
     UInt size = blockNums.GetSize();
 
-    // We only need to set index N_ - 1 and N_ + 1
-    // TODO this only works if we have excitation in the base harmonic
     for(UInt i = 0; i < 2 * solStrat_->GetNumHarmN() + 1 ; ++i ) {
       // security check: ensure that sub-vector has the same size
       // as the block indices

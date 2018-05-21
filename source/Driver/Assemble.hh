@@ -86,6 +86,8 @@ namespace CoupledField {
      const StdVector<Double>& multHarmFreqVec = StdVector<Double>());
 
     //! Initialize matrices for multiharmonic analysis
+    //! Usually this is done in the Assemble method but
+    //! for the multiharmonic analysis, we need to do it externally
     void InitMultHarm();
 
     //! Trigger assembly of all linear right hand side terms

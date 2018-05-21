@@ -1465,6 +1465,7 @@ namespace CoupledField {
       }
 
 
+
       AssembleMH(N, M);
 
       // Sets flag that matrix was already assembled. The method CheckNonLinearities re-does this
@@ -1962,7 +1963,6 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
 
 
       // setup the matrices
-      assemble_->InitMultHarm();
       this->AssembleMH(solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
       assemble_->PostAssemble();
 
@@ -1979,10 +1979,10 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
       // =====================================================================
       SBM_Vector actRHS(BaseMatrix::COMPLEX);
       algsys_->GetFullMultiHarmRHSVal( actRHS );
-      
+
       // calculation of residual error =======================================
       Double residualL2Norm = actRHS.NormL2();
-      
+
       if (residualL2Norm < residualL2NormOpt) {
         residualL2NormOpt = residualL2Norm;
         etaOpt = eta[i];
@@ -1991,7 +1991,7 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
     
     //std::cout << "Optimal eta = " << etaOpt << std::endl;
     etaLineSearch = etaOpt;
-    
+
     // Set new solution
     actSol.Add( (Complex)1.0, solOld, etaOpt, solIncrement );
     
