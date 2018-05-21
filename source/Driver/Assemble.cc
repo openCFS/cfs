@@ -1565,7 +1565,7 @@ namespace CoupledField
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
       // For multiharmonic analysis, we don't reassemble the RHS
-      if( (actContext.IsNonLin() != nonLin) && algsys_->IsMultHarm() )
+      if( (actContext.IsNonLin() != nonLin))
         continue; //TODO: uncomment this
 
       LinearForm* form = actContext.GetIntegrator();
