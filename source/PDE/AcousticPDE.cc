@@ -1794,6 +1794,26 @@ namespace CoupledField{
     res1->SetFeFunction(feFunctions_[formulation_]);
     DefineFieldResult( feFunctions_[formulation_], res1 );
     
+
+//    // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===
+//    shared_ptr<ResultInfo> deriv1(new ResultInfo);
+//    if( formulation_ == ACOU_POTENTIAL ) {
+//      deriv1->resultType = ACOU_POTENTIAL_DERIV_1;
+//      deriv1->dofNames = "";
+//      deriv1->unit = "m^2/s^2";
+//    } else {
+//      deriv1->resultType = ACOU_PRESSURE_DERIV_1;
+//      deriv1->dofNames = "";
+//      deriv1->unit = "Pa/s";
+//    }
+//    deriv1->entryType = ResultInfo::SCALAR;
+//    deriv1->definedOn = ResultInfo::NODE;
+//    feFunctions_[formulation_]->SetResultInfo(deriv1);
+//    results_.Push_back( deriv1 );
+//    deriv1->SetFeFunction(feFunctions_[formulation_]);
+//    DefineFieldResult( feFunctions_[formulation_], deriv1 );
+
+
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
