@@ -53,7 +53,8 @@ namespace CoupledField {
     };
 
     virtual Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = true){
+      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = true,
+      bool hystOutputRestrictedToSat = true){
       EXCEPTION("computeInput_vec not implemented in base-class");
     }
     
@@ -210,13 +211,14 @@ namespace CoupledField {
 
     Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = true);
+      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = true, bool hystOutputRestrictedToSat = true);
     
     Vector<Double> computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, bool useBisectAboveSat,
+      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
       UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
-      UInt& maximalNumberOfLinesearchIterations, UInt& succesCode, Double& minAlpha, Double& maxAlpha, Double& avgAlpha,Vector<Double> sol );
+      UInt& maximalNumberOfLinesearchIterations, UInt& succesCode, Double& minAlpha, 
+      Double& maxAlpha, Double& avgAlpha,Vector<Double> sol );
        
     
     

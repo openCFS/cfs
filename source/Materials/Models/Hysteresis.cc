@@ -1043,6 +1043,19 @@ namespace CoupledField
           break;
         }
       } else {
+				if(alpha > alphaMax){
+					LOG_TRACE(vecpreisachlinesearch) << "Alpha max reached; take update > stop";
+					alpha = alphaMax;
+					discard = true;
+					break;
+				}
+				if(alpha < alphaMinLocal){
+					LOG_TRACE(vecpreisachlinesearch) << "Alpha min reached; discard update > stop";
+					alpha = alphaMinLocal;
+					discard = true;
+					break;
+				}
+				
         if(itCnt >= maxIter){
           LOG_TRACE(vecpreisachlinesearch) << "Linesearch was not successful; Discard update.";
           discard = true;
@@ -1472,7 +1485,7 @@ namespace CoupledField
   
 	Vector<Double> Hysteresis::computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat){
+      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat){
 		
 		UInt totalNumberOfLMIterations=0;
 		UInt totalNumberOfLinesearchIterations=0;
@@ -1481,16 +1494,17 @@ namespace CoupledField
     Double minAlphaStatistics,maxAlphaStatistics,avgAlphaStatistics;
 		Vector<Double>sol = Vector<Double>(dim_);
 		return computeInput_vec_withStatistics(yVal, prevYval, prevXval, prevHystval, 
-			operatorIndex, mu, overwriteDirection, fieldsAlignedAboveSat,
+			operatorIndex, mu, overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat,
       totalNumberOfLMIterations, totalNumberOfLinesearchIterations, 
       maximalNumberOfLinesearchIterations, successCode, minAlphaStatistics,maxAlphaStatistics,avgAlphaStatistics,sol);
 	}
     
   Vector<Double> Hysteresis::computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
           Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-          Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat,
+          Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
           UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
-          UInt& maximalNumberOfLinesearchIterations, UInt& successCode, Double& minAlphaStatistics, Double& maxAlphaStatistics, Double& avgAlphaStatistics, Vector<Double> sol){
+          UInt& maximalNumberOfLinesearchIterations, UInt& successCode, Double& minAlphaStatistics, 
+					Double& maxAlphaStatistics, Double& avgAlphaStatistics, Vector<Double> sol){
     
     assert(!yVal.ContainsNaN() && !yVal.ContainsInf());
 		/*
@@ -1695,6 +1709,11 @@ namespace CoupledField
         if(fieldsAlignedAboveSat == true){
           useBisection = true;
         }
+				if(hystOutputRestrictedToSat == false){
+					// here we cannot actually say if input really has to be above saturation
+					// as yNorm might not suffice anymore
+					stayBelowSat = 0;
+				}
       } else if (yNorm <= (PSaturated_ - eps_mu*XSaturated_ - anhystPartPosSat)){
         traceMsg << "--I 2-- Inversion: Input below Saturation found" << std::endl;
         // |y| < |ySat - eps_mu*xSat - anhystPart(xSat)|
@@ -1780,7 +1799,7 @@ namespace CoupledField
       Double alpha = INV_alphaLSStart_;
       Double alphaMin = INV_alphaLSMin_;//1.0/256.0;
       Double alphaMax = INV_alphaLSMax_;//8192;//512.0;
-      
+      			
       /*
        * only residual wrt X in abs form tested
        */
@@ -2086,7 +2105,7 @@ namespace CoupledField
           maxAlphaStatistics = alpha;
         }
         avgAlphaStatistics += alpha;
-        
+	        
         traceMsg << "Computed update: " << xUpdate.ToString() << std::endl;
         traceMsg << "Discard update? " << discardUpdate << std::endl;
         
@@ -2100,18 +2119,52 @@ namespace CoupledField
          * New idea: start with tighter bounds for alpha but shift these limits
          * after each 10 iterations
          */
-        if(totalNumberOfLMIterations%10 == 0){
-          alphaMin = alphaMin/2.0;
-          alphaMax = alphaMax*2.0;
-          // for Tikhonov > set xStart to xVal
-          xStart = bestSol; // own test
-        } 
+//        if(totalNumberOfLMIterations%10 == 0){
+//          alphaMin = alphaMin/2.0;
+//          alphaMax = alphaMax*2.0;
+//          // for Tikhonov > set xStart to xVal
+//          xStart = bestSol; // own test
+//        } 
         
         LOG_DBG(vecpreisachInversion) << "Computed update: " << xUpdate.ToString();
         if(!discardUpdate){
           xVal = xVal+xUpdate;
         } else {
           LOG_DBG(vecpreisachInversion) << "Discard update";
+					//std::cout << "Discard update; reset to best solution so far" << std::endl;
+					alphaMin = alphaMin/2.0;
+          alphaMax = alphaMax*2.0;
+          // for Tikhonov > set xStart to xVal
+          //xVal = bestSol; // own test
+//					// reset solution
+//					if(stayBelowSat==1){
+//						std::cout << "Reset to 0" << std::endl;
+//						xVal.Init();
+//					} else if(stayBelowSat==-1){
+//						std::cout << "Reset to random direction*2*Xsaturation" << std::endl;
+//						xVal.Init();
+//						for(UInt i = 0; i < dim_; i++){
+//							xVal[i] = (rand()%200-100)/100.0;
+//						}
+//						if(xVal.NormL2() == 0){
+//							xVal[0] = 1;
+//						}
+//						xVal.ScalarMult(2.0*XSaturated_/xVal.NormL2());
+//						
+//						std::cout << "xVal: " << xVal.ToString() << std::endl;
+//					} else {
+//						std::cout << "Reset to random direction*Xsaturation" << std::endl;
+//						xVal.Init();
+//						for(UInt i = 0; i < dim_; i++){
+//							xVal[i] = (rand()%200-100)/100.0;
+//						}
+//						if(xVal.NormL2() == 0){
+//							xVal[0] = 1;
+//						}
+//						xVal.ScalarMult(1.0*XSaturated_/xVal.NormL2());
+//						
+//						std::cout << "xVal: " << xVal.ToString() << std::endl;
+//					}	
         }
         sign = sign*(-1.0);
       }

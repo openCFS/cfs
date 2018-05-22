@@ -1251,6 +1251,7 @@ namespace CoupledField {
     MAT_ampResolution_ = 1e-17;
         
     fieldsAlignedAboveSat_ = true;
+		hystOutputRestrictedToSat_ = true;
     
 		if (MAT_methodType_ == SCALAR) {
 			//get direction
@@ -1473,10 +1474,14 @@ namespace CoupledField {
       if( (dim_ != 2) || (isIsotropic == 0)){
         EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
       }
-      
+
       int clipOutput = 0;
       material_->GetScalar(clipOutput, PREISACH_MAYERGOYZ_CLIPOUTPUT);
       
+			if(clipOutput == 0){
+				hystOutputRestrictedToSat_ = false;
+			}
+			
       int numDirections = 0;
       material_->GetScalar(numDirections, PREISACH_MAYERGOYZ_NUM_DIR);
       
@@ -2906,7 +2911,8 @@ namespace CoupledField {
 //					retrievedInput = hyst_->computeInput_vec(curLPMSolution, E_B_lastIt_[storageIdx], E_H_lastIt_[storageIdx],
 //						P_J_lastIt_[storageIdx],operatorIdx,MAT_eps_mu_SmallSignal_,RUN_overwriteDirection_);
 //          
-          	retrievedInput = hyst_->computeInput_vec(curLPMSolution,operatorIdx,matrixForInversion_[storageIdx],RUN_overwriteDirection_,fieldsAlignedAboveSat_);
+          	retrievedInput = hyst_->computeInput_vec(curLPMSolution,operatorIdx,matrixForInversion_[storageIdx],
+							RUN_overwriteDirection_,fieldsAlignedAboveSat_,hystOutputRestrictedToSat_);
 	
         }
         //std::cout << "Computed input: " << retrievedInput.ToString() << std::endl;
@@ -4198,7 +4204,7 @@ namespace CoupledField {
 
     for(UInt ca = 1; ca <= numCases; ca++){
       std::string testName;
-      
+			bool hystOutputRestrictedToSat = true;
       /*
        * I. Create testsignel
        */
@@ -4295,6 +4301,10 @@ namespace CoupledField {
         int clipOutput = 0;
         material_->GetScalar(clipOutput, PREISACH_MAYERGOYZ_CLIPOUTPUT);
         
+				if(clipOutput == 0){
+					hystOutputRestrictedToSat = false;
+				}
+				
         /*
          * IMPORTANT REMARK:
          *  > although the Mayergoyz model is based on the scalar models 
@@ -4304,7 +4314,8 @@ namespace CoupledField {
          *      > see constructor above
          */
         hystTMP = new VectorPreisachMayergoyz(1, numDirections, MAT_xSat_, MAT_pSat_, 
-                MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_,clipOutput);
+                MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, 
+								MAT_anhysteretic_c_,anhystOnly_,clipOutput);
         
         hystTMP->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
           INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_); 
@@ -4902,7 +4913,7 @@ namespace CoupledField {
           // new: we have to pass the previous solution (here: 0)
           // new2: pass arguments by value!
           xRetrieved[0] = hystTMP->computeInput_vec_withStatistics(yIn[0], zeroVec, zeroVec, zeroVec, 0, eps_mu,
-                  overwriteDirection, fieldsAlignedAboveSat, numberOfLMIterations, numberOfLinesearchIterations, 
+                  overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat, numberOfLMIterations, numberOfLinesearchIterations, 
                   maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha,xIn[0]);
 //        }
       } else {
@@ -5027,7 +5038,8 @@ namespace CoupledField {
 //            xRetrieved[i] = hystTMP->computeInput_vec(yIn[i],0, eps_mu, overwriteDirection);
 //          } else {
             xRetrieved[i] = hystTMP->computeInput_vec_withStatistics(yIn[i], yRetrieved[i-1], xRetrieved[i-1], hRetrieved[i-1], 
-                  0, eps_mu, overwriteDirection, fieldsAlignedAboveSat, numberOfLMIterations, numberOfLinesearchIterations, 
+                  0, eps_mu, overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat,
+									numberOfLMIterations, numberOfLinesearchIterations, 
                   maxNumberOfLinesearchIterations,successCode,minAlpha, maxAlpha, avgAlpha,xIn[i]);	
 //          }
 //            std::cout << "End backward" << std::endl;

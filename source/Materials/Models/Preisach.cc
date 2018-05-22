@@ -55,7 +55,7 @@ namespace CoupledField
     // accroding to "Magnetic Field Analysis of Electric Machines Taking Ferromagnetic Hysteresis into Account" by J. Saitz, p. 38
     // we should use randomly distributed starting angle to make up for the missing symmetry property due to discretization
     Double deltaAngle = M_PI/numDirections;
-    Double startingAngle = deltaAngle/2.0;
+    Double startingAngle = -deltaAngle/2;
     Double currentAngle;
     for(UInt i = 0; i < numDirections; i++){
       currentAngle = startingAngle + i*deltaAngle;
@@ -235,20 +235,6 @@ namespace CoupledField
 //    Vector<Double> tmp = Vector<Double>(dim_);
     Double scalarInput, scalarOutput;
     
-		// idea: cap xVal to Xsat BEFORE feeding it into the scalar models
-		// background: inside each scalar model, we cap the scalar input to Xsat
-		// here, each model gets (depending on the direction) only the projection of Xval
-		// i.e. if Xval is above saturation, the projections will be capped which
-		// leads to some inpute being capped whereas others are not; by this, we
-		// grow above the point of saturation as due to the projection there will be
-		// some scalar models which are first capped if xval is way above saturation
-		Vector<Double> xValCapped = Vector<Double>(dim_);
-		xValCapped = xVal;
-		
-		if(xVal.NormL2() > XSaturated_){
-			xValCapped.ScalarMult(XSaturated_/xVal.NormL2());
-		}
-
     /*
      * Remarks to capping/clipping:
      * A) if input is only along one direction and the initial state is the virgin state,
@@ -280,9 +266,7 @@ namespace CoupledField
      *      > equaliy to scalar model beyond saturation but difference when leaving saturation again 
      *        (as Preisach planes have been set inside the single scalar models)
      */
-    
-    
-    
+
     for(UInt i = 0; i < numDirections_; i++){
       currentDir = singleDirections_[i];
       currentDir.Inner(xVal,scalarInput);

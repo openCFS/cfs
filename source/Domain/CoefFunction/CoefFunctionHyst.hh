@@ -2327,6 +2327,10 @@ namespace CoupledField {
      * > for Mayergoyz hyst model no bisection possible
      */
     bool fieldsAlignedAboveSat_;
+    // mayergoyz vector without clipping produces values above PSaturated_
+    // when input grows above XSaturated_ > set flag to false
+    // otherwise, flag = true
+    bool hystOutputRestrictedToSat_;
     
     /*
      * Initial input to the vector hysteresis operator;
