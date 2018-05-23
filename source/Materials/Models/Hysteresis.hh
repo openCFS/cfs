@@ -41,20 +41,21 @@ namespace CoupledField {
     }
     
     //!
-    virtual Double computeValue(Double& xVal, Integer idxElem, bool overwrite = true) {
+    virtual Double computeValue(Double& xVal, Integer idxElem, bool overwrite, int& successFlag) {
       EXCEPTION( "computeValue not implemented in base-Class" );
       return 0.0;
     };
 
-    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idxElem, bool overwrite = true,bool overwriteDirection= true,bool debugOut = false) {
+    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idxElem, bool overwrite,
+      bool overwriteDirection, bool debugOut, int& successFlag) {
       EXCEPTION( "computeValue_vec not implemented in base-Class" );
       Vector<Double> Yout;
       return Yout;
     };
 
     virtual Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = true,
-      bool hystOutputRestrictedToSat = true){
+      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat, 
+      int& successFlag){
       EXCEPTION("computeInput_vec not implemented in base-class");
     }
     
@@ -68,14 +69,15 @@ namespace CoupledField {
 //    }
         
     // do not overwrite memory per default
-    virtual Double computeInputAndUpdate(Double Yin, Double eps_mu, Integer operatorIndex, bool overwrite = false){
+    virtual Double computeInputAndUpdate(Double Yin, Double eps_mu, Integer operatorIndex, 
+      bool overwrite, int& successFlag){
       EXCEPTION( "computeInputAndUpdate not implemented in base-Class" );
       return 0.0;
     };
     
     //!
     virtual Double computeValueAndUpdate(Double xVal, Integer idxElem, 
-                                         bool overwrite = true ) {
+      bool overwrite, int& successFlag ) {
       EXCEPTION( "computeValueAndUpdate not implemented in base-Class" );
       return 0.0;
     };
@@ -109,7 +111,7 @@ namespace CoupledField {
 
     //!
     virtual Double updateMinMaxList(Double newX, Integer idxElem, 
-                                  bool overwrite) {
+      bool overwrite, int& successFlag) {
       EXCEPTION( "updateMinMaxList not implemented in base-Class" );
       return 0;
     };
@@ -151,8 +153,8 @@ namespace CoupledField {
       return anhyst_A_*std::atan(anhyst_B_*xNormalizedUnclipped) + anhyst_C_*xNormalizedUnclipped;
     }
     
-    Double bisectForAnhyst_normalized(Double Ytarget_normalized, 
-      Double Xdown_normalized, Double Xup_normalized, Double Poffset_normalized, Double eps_mu_normalized, Double tol, Vector<Double> dir, UInt idx);
+    Double bisectForAnhyst_normalized(Double Ytarget_normalized, Double Xdown_normalized, Double Xup_normalized, 
+      Double Poffset_normalized, Double eps_mu_normalized, Double tol, Vector<Double> dir, UInt idx);
     
     Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol){
       Vector<Double> zeroVec = Vector<Double>(dim_);
@@ -204,20 +206,20 @@ namespace CoupledField {
 					UInt implementation, bool overwriteMemory, bool overwriteDirection, int stayBelowSat);
     
     bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
-		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
-		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
-		Double& alpha, Double alphaMin, Double alphaMax,  bool wrtX, bool relative, 
-    UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat,int stayBelowSat,Vector<Double> sol);
+      Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
+      Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
+      Double& alpha, Double alphaMin, Double alphaMax,  bool wrtX, bool relative, 
+      UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat,int stayBelowSat,Vector<Double> sol);
 
     Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = true, bool hystOutputRestrictedToSat = true);
+      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat, int& successFlag);
     
     Vector<Double> computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
       Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
       UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
-      UInt& maximalNumberOfLinesearchIterations, UInt& succesCode, Double& minAlpha, 
+      UInt& maximalNumberOfLinesearchIterations, int& successFlag, Double& minAlpha, 
       Double& maxAlpha, Double& avgAlpha,Vector<Double> sol );
        
     

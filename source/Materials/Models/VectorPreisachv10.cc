@@ -749,8 +749,18 @@ namespace CoupledField
     }
   }
   
-  Vector<Double> VectorPreisachv10_MatrixApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite, bool overwriteDirection, bool debugOut){
+  Vector<Double> VectorPreisachv10_MatrixApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite, 
+          bool overwriteDirection, bool debugOut, int& successCode){
 
+    Vector<Double> diff = Vector<Double>(dim_);
+    diff.Init();
+    diff.Add(1.0,u_in,-1.0,prevXVal_[idElem]);
+    if(diff.NormL2() < 1e-16){
+      successCode = 0;
+      // reuse old value; 
+      return preisachSum_[idElem];
+    }
+    
     /*
      * Determine the current rotational threshold
      *
@@ -912,6 +922,15 @@ namespace CoupledField
           copyFromTemporalStorageTimer_->Stop();
         }
       }
+      
+      if(overwrite == true){
+        successCode = 2;
+      } else {
+        successCode = 3;
+      }
+      
+    } else {
+      successCode = 1;
     }
     
     retVec.Add(anhystPart);
@@ -922,11 +941,11 @@ namespace CoupledField
        * store to tmp array
        */
       preisachSumTmp_[idElem] = retVec;
-     
+      
       return preisachSumTmp_[idElem];
     } else {
       preisachSum_[idElem] = retVec;
-      
+
       prevXVal_[idElem] = u_in;
       prevHVal_[idElem] = preisachSum_[idElem];
       
@@ -1377,9 +1396,11 @@ namespace CoupledField
              * classical model knows no angular distance -> full rotation is performed
              */
 						if(restrictToHalfspace_){
-							e_phi = restrictToHalfspace(e_phi);
-						}
-            listIt->setVec(e_phi);
+							e_phi = restrictToHalfspace(e_u);
+              listIt->setVec(e_phi);
+						} else {
+              listIt->setVec(e_u);
+            }
           } else {
             /*
              * here we do not set the state to e_u directly but rotate it towards e_u;
@@ -2164,7 +2185,18 @@ namespace CoupledField
     return 0;
   }
   
-  Vector<Double> VectorPreisachv10_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,bool overwriteDirection, bool debugOut){
+  Vector<Double> VectorPreisachv10_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,
+          bool overwriteDirection, bool debugOut, int& successCode){
+    
+    Vector<Double> diff = Vector<Double>(dim_);
+    diff.Init();
+    diff.Add(1.0,u_in,-1.0,prevXVal_[idElem]);
+    if(diff.NormL2() < 1e-16){
+      successCode = 0;
+      // reuse old value; 
+      return preisachSum_[idElem];
+    }
+      
     /*
      * Determine the current rotational threshold
      *
@@ -2350,6 +2382,15 @@ namespace CoupledField
          */
         Yout += e_u * lowerTriangleValue_;
       }
+      
+      if(overwrite == true){
+        successCode = 2;
+      } else {
+        successCode = 3;
+      }
+      
+    } else {
+      successCode = 1;
     }
     // add anhyst part
     Yout += anhystPart;
@@ -5003,7 +5044,7 @@ namespace CoupledField
            * -> by setting the flag to true, the function will automatically assume that the area shall
            * be filled with +1 up to the splitting diagonal and -1 above it
            */
-          mapRectangleToHelperMatrix(helperMatrix,area0,0,true);
+          mapRectangleToHelperMatrix(helperMatrix,area0,0,true,false);
         } else {
           /*
            * in the revised version, area 0 has the same L-kind shape as the other rotation states;
@@ -5014,13 +5055,13 @@ namespace CoupledField
            *
            */
           Rectangle area0_square = Rectangle(-1.0,-upperBound,1.0,upperBound);
-          mapRectangleToHelperMatrix(helperMatrix,area0_square,0,true);
+          mapRectangleToHelperMatrix(helperMatrix,area0_square,0,true,false);
           
           Rectangle area0_left = Rectangle(-1.0,-upperBound,upperBound,-1.0);
-          mapRectangleToHelperMatrix(helperMatrix,area0_left,1.0,false);
+          mapRectangleToHelperMatrix(helperMatrix,area0_left,1.0,false,false);
           
           Rectangle area0_top = Rectangle(-upperBound,1.0,1.0,upperBound);
-          mapRectangleToHelperMatrix(helperMatrix,area0_top,-1.0,false);
+          mapRectangleToHelperMatrix(helperMatrix,area0_top,-1.0,false,false);
         }
         
         area0 = false;
@@ -5068,7 +5109,7 @@ namespace CoupledField
           /*
            *  clip overlap to HelperMatrix (factor holds the value +1 or -1 and indicates how the matrix shall be filled)
            */
-          mapRectangleToHelperMatrix(helperMatrix,overlapRect,factor);
+          mapRectangleToHelperMatrix(helperMatrix,overlapRect,factor,false,false);
         }
         
         if(twoAreas){
@@ -5081,7 +5122,7 @@ namespace CoupledField
             /*
              *  clip overlap to HelperMatrix (factor holds the value +1 or -1 and indicates how the matrix shall be filled)
              */
-            mapRectangleToHelperMatrix(helperMatrix,overlapRect,factor);
+            mapRectangleToHelperMatrix(helperMatrix,overlapRect,factor,false,false);
           }
         }
         
@@ -5135,7 +5176,7 @@ namespace CoupledField
                *  clip overlap to HelperMatrix (factor holds the value +1 or -1 and indicates how the matrix shall be filled)
                * -> NOTE: here we set the flag skipUpperDiagonal to true!
                */
-              mapRectangleToHelperMatrix(helperMatrix,overlapRect,factor,true);
+              mapRectangleToHelperMatrix(helperMatrix,overlapRect,factor,true,false);
             }
             
             if(twoAreas){
@@ -5149,7 +5190,7 @@ namespace CoupledField
                  *  clip overlap to HelperMatrix (factor holds the value +1 or -1 and indicates how the matrix shall be filled)
                  * -> NOTE: here we set the flag skipUpperDiagonal to true!
                  */
-                mapRectangleToHelperMatrix(helperMatrix,overlapRect,factor,true);
+                mapRectangleToHelperMatrix(helperMatrix,overlapRect,factor,true,false);
               }
             }
           }

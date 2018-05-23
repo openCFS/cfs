@@ -224,7 +224,9 @@ namespace CoupledField
 ////    return output;
 //  }
   
-  Vector<Double> VectorPreisachMayergoyz::computeValue_vec(Vector<Double>& xVal, Integer idx, bool overwrite,bool overwriteDirection,bool debugOutput){
+  Vector<Double> VectorPreisachMayergoyz::computeValue_vec(Vector<Double>& xVal, Integer idx, 
+          bool overwrite,bool overwriteDirection,bool debugOutput,int& successFlag){
+    
         /*
      * Vectorial output = integral/sum over scalar models
      */
@@ -267,12 +269,18 @@ namespace CoupledField
      *        (as Preisach planes have been set inside the single scalar models)
      */
 
+    int successFlagSingle = 0;
     for(UInt i = 0; i < numDirections_; i++){
       currentDir = singleDirections_[i];
       currentDir.Inner(xVal,scalarInput);
 			
-      scalarOutput = singlePreisachOperators_[i]->computeValueAndUpdate(scalarInput,idx,overwrite);
+      scalarOutput = singlePreisachOperators_[i]->computeValueAndUpdate(scalarInput,idx,overwrite,successFlagSingle);
       output.Add(scalarOutput,currentDir);
+      
+      // just check if at least one of the scalar models required reevaluation
+      if(successFlagSingle != 0){
+        successFlag = successFlagSingle;
+      }
     }
     
     //Double deltaAngle = M_PI/numDirections_;
@@ -767,7 +775,7 @@ namespace CoupledField
     }
   }
 
-  Double Preisach::computeInputAndUpdate(Double Yin, Double eps_mu, Integer idx, bool overwrite){
+  Double Preisach::computeInputAndUpdate(Double Yin, Double eps_mu, Integer idx, bool overwrite, int& successFlag){
     /*
      * NEW implementation; this shall replace class SimplePreisachInv that
      * apparently is not working
@@ -818,6 +826,7 @@ namespace CoupledField
       Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tol);
       //Xout = bisectForSaturation(Yin, eps_mu, tol, false);
       invcase = 9;
+      successFlag = 1;
     } else {
       // we just invert the actual hysteresis operator, i.e we have to subtract all anhyst and reversible parts
       //  before starting the inversion
@@ -847,6 +856,7 @@ namespace CoupledField
           //Xout = bisectForSaturation(Yin, eps_mu, tol, false);
           invcase = 11;
         }
+        successFlag = 2;
       } else if (Yin <= (-PSaturated_ - eps_mu*XSaturated_ + anhystPartNegSat) ){
         LOG_DBG(scalpreisachInversion) << "Neg saturation";
         //std::cout << "neg saturation" << std::endl;
@@ -869,6 +879,7 @@ namespace CoupledField
           //Xout = bisectForSaturation(Yin, eps_mu, tol, true);
           invcase = 21;
         }
+        successFlag = 2;
       } else {
         invcase = 3;
         /*
@@ -944,6 +955,7 @@ namespace CoupledField
           // difference is negligible
           LOG_TRACE(scalpreisachInversion) << "take previous xvalue" << std::endl;
           invcase = 31;
+          successFlag = 0;
           // attention: previousXval_ is normalized by XSaturated_
           Xout = previousXval_[idx];
         } else{
@@ -1153,7 +1165,6 @@ namespace CoupledField
           Xout = bisect(dY,x1,x2,xfix,eps_mu,tol);
         } // reuse old value
         
-        std::cout << "scale Xout with Saturation" << std::endl;
         Xout *= XSaturated_;
       } // pos/neg/no saturation
       // rescale to -xSat to +xSat
@@ -1168,10 +1179,12 @@ namespace CoupledField
      * 
      * > has to be done for ALL cases
      */	
-    bool debug = true;
+    bool debug = !true;
+    successFlag = 4;
     if(overwrite || debug){
       LOG_DBG(scalpreisachInversion) << "overwrite? " << overwrite;   
-      Double yRetrieved = computeValueAndUpdate( Xout, idx, overwrite );
+      int successFlagForward = 0;
+      Double yRetrieved = computeValueAndUpdate( Xout, idx, overwrite, successFlagForward );
       //std::cout << "Xout: " << Xout << std::endl;
       //std::cout << "pRetrieved: " << yRetrieved << std::endl;
 			LOG_DBG(scalpreisachInversion) << "Found Xout: " << Xout;
@@ -1180,7 +1193,9 @@ namespace CoupledField
       LOG_TRACE(scalpreisachInversion) << "Found Yout: " << yRetrieved;
       LOG_TRACE(scalpreisachInversion) << "InversionCase: " << invcase;
       LOG_TRACE(scalpreisachInversion) << "SubCase: " << subcase;
-//      if(abs(yRetrieved-Yin) > tol){
+      if(abs(yRetrieved-Yin) > tol){
+        successFlag = -1;
+      } 
 //        LOG_TRACE(scalpreisachInversion) << "Difference: " << yRetrieved-Yin;
 //        
 //        Double P_old_normalized = previousPval_[idx];
@@ -1249,26 +1264,27 @@ namespace CoupledField
   //  }
   
   Double Preisach::computeValueAndUpdate( Double Xin, Integer idx,
-          bool overwrite )  
+          bool overwrite, int& successFlag )  
   {
     
     //do the deletion
     Double newY = 0.0;
     if(anhystOnly_ == false){
       // update minmaxlist will add anhyst part 
-      newY += updateMinMaxList(Xin, idx, overwrite);
+      newY += updateMinMaxList(Xin, idx, overwrite, successFlag);
     } else  {
       Double X_norm_unclipped = Xin / XSaturated_;
       LOG_DBG(scalpreisachInversion) << "Eval Preisach - Add anhystPart " << evalAnhystPart_normalized(X_norm_unclipped);
       LOG_DBG(scalpreisachInversion) << "for X/norm = " << (X_norm_unclipped);
       newY += evalAnhystPart_normalized(X_norm_unclipped);
+      successFlag = 1; // anhyst Only
     }
     return ( newY*PSaturated_ );
   }
   
   
   Double Preisach::updateMinMaxList(Double Xin, Integer idx, 
-          bool overwrite )
+          bool overwrite, int& successFlag )
   {
     LOG_TRACE(scalpreisachInversion) << "UpdateMinMaxList - Input: " << Xin;
     //std::cout << "UpdateMinMaxList - Input: " << Xin << std::endl;
@@ -1306,6 +1322,7 @@ namespace CoupledField
       // reuse old value but set previousXval anew
       // reason: above we compare the clipped values, Xin might be different from prevX
       LOG_TRACE(scalpreisachInversion) << "Reuse: " << preisachSum_[idx];
+      successFlag = 0;
       previousXval_[idx] = Xin/XSaturated_;
 			return preisachSum_[idx];
 		}
@@ -1526,6 +1543,13 @@ namespace CoupledField
     }
     LOG_TRACE(scalpreisachInversion) << "Computed new value: " << newY;
     //std::cout << "UpdateMinMaxList - Output: " << newY << std::endl;
+    
+    if(overwrite){
+      successFlag = 2;
+    } else {
+      successFlag = 3;
+    }
+    
     return newY;
   }
   

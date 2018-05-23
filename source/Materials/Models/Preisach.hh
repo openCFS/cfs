@@ -18,8 +18,8 @@ namespace CoupledField {
     Preisach(Integer numElem, Double xSat, Double ySat, 
       Matrix<Double>& preisachWeight, bool isVirgin);
     
-    Preisach(Integer numElem, Double xSat, Double ySat, 
-      Matrix<Double>& preisachWeight, bool isVirgin, Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly);
+    Preisach(Integer numElem, Double xSat, Double ySat, Matrix<Double>& preisachWeight, 
+      bool isVirgin, Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly);
     
     //! default constructor
     Preisach();
@@ -30,11 +30,10 @@ namespace CoupledField {
     //! actually never used
     //Double computeValue(Double& xVal, Integer idxElem, bool overwrite = true);
     
-    Double computeInputAndUpdate(Double Yin, Double eps_mu, Integer idx, bool overwrite = true);
+    Double computeInputAndUpdate(Double Yin, Double eps_mu, Integer idx, bool overwrite, int& successFlag);
     
     //!computes for xVal a new output value and deletion rules are applied
-    Double computeValueAndUpdate(Double xVal, Integer idxElem, 
-    bool overwrite = true);
+    Double computeValueAndUpdate(Double xVal, Integer idxElem, bool overwrite, int& successFlag);
     
     //! returns the current output of the hyst-operator for element idxElem
     Double getValue(  Integer idxElem);
@@ -45,8 +44,7 @@ namespace CoupledField {
     };
     
     //! updates the list of minima and maxima due to new input
-    Double updateMinMaxList(Double newX, Integer idxElem, 
-    bool overwrite);
+    Double updateMinMaxList(Double newX, Integer idxElem, bool overwrite, int& successFlag);
     
     //!
     void SetTimeStepVal(Double dt) 
@@ -68,10 +66,10 @@ namespace CoupledField {
     //! computes  the everett function (area-integration for x1, x2)
     Double everettPixel(Double x1, Double x2);
     
-//    inline Double evalAnhystPart_normalized(Double xNormalizedUnclipped){
-//      // returns normalized anhysteretic part
-//      return anhyst_A_*std::atan(anhyst_B_*xNormalizedUnclipped) + anhyst_C_*xNormalizedUnclipped;
-//    }
+    //    inline Double evalAnhystPart_normalized(Double xNormalizedUnclipped){
+    //      // returns normalized anhysteretic part
+    //      return anhyst_A_*std::atan(anhyst_B_*xNormalizedUnclipped) + anhyst_C_*xNormalizedUnclipped;
+    //    }
     
     //Double bisectForSaturation(Double Yin, Double eps_mu, Double tol, bool negSaturation);
     
@@ -83,9 +81,9 @@ namespace CoupledField {
     /*
      * for optional anhysteretic parts
      */
-//    Double anhyst_A_;
-//    Double anhyst_B_;
-//    Double anhyst_C_;
+    //    Double anhyst_A_;
+    //    Double anhyst_B_;
+    //    Double anhyst_C_;
     
     bool isVirgin_; //! yes, if starting at zero
     
@@ -233,7 +231,7 @@ namespace CoupledField {
     void UpdateRotationStateWithFieldIntensity(Vector<Double> field_in, UInt idx);
     void UpdateRotationState(Double normalizedAmplitude, Vector<Double> dir, UInt idx); 
     void EvaluateRotationState(UInt idx);
-        
+    
     Vector<Double> getRotationDirection(UInt idx){
       
       return currentDirection_[idx];
@@ -261,14 +259,14 @@ namespace CoupledField {
     // we have to specify xSaat,ySat as well as a set of fitting preisachWeights
     // the number of directions is specified by the length of xSat, ySat, etc
     VectorPreisachMayergoyz(Integer numElem, Vector<Double> xSat, Vector<Double> ySat, 
-          Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, bool anhystOnly, int clipOutput);
+      Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, bool anhystOnly, int clipOutput);
     
     // constructor for isotropic case, i.e. same xSat, ySat and weights in all directions
     VectorPreisachMayergoyz(Integer numElem, UInt numDirections, Double xSat, Double ySat, 
-          Matrix<Double>& preisachWeight, UInt dim, bool isVirgin,Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly, int clipOutput);
-
+      Matrix<Double>& preisachWeight, UInt dim, bool isVirgin,Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly, int clipOutput);
+    
     virtual ~VectorPreisachMayergoyz();
-
+    
     //! Try to compute input xVal to hyst operator, such that mu*xVal + H(xVal) = yVal
     // return usable input xVal
     /*
@@ -276,17 +274,21 @@ namespace CoupledField {
      * Exception: testInversion > here we use computeInput_vec_withStatistics
      */
     Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = false){
+      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, 
+      bool hystOutputRestrictedToSat, int& successFlag){
       
       Vector<Double> prevYval = Vector<Double>(dim_);
       mu.Mult(prevXVal_[operatorIndex],prevYval);
       prevYval.Add(1.0,prevHVal_[operatorIndex]);
       
       return computeInput_vec_withPrevStates(yVal, prevYval,
-        prevXVal_[operatorIndex], prevHVal_[operatorIndex], operatorIndex, mu, overwriteDirection, fieldsAlignedAboveSat);
+        prevXVal_[operatorIndex], prevHVal_[operatorIndex], 
+        operatorIndex, mu, overwriteDirection, fieldsAlignedAboveSat, 
+        hystOutputRestrictedToSat, successFlag);
     }
     
-    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idx, bool overwrite = true,bool overwriteDirection = true,bool debugOutput = false);
+    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idx, bool overwrite,
+      bool overwriteDirection, bool debugOutput, int& successFlag);
     
     void setFlags(UInt performanceFlag){
       ;

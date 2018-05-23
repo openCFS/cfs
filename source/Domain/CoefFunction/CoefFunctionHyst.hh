@@ -2410,6 +2410,7 @@ namespace CoupledField {
      * 0: no measurement
      * 1: measuerment of evaluation time of hyst operator
      * 2: detailed measurement of evaluation time of hyst operator
+     * 3: measure performance ONLY during testInversion
      */
     Integer XML_performanceMeasurement_;
         

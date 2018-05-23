@@ -667,7 +667,8 @@ namespace CoupledField {
     virtual ~VectorPreisachv10();
     
     //! this function gets called from outside and calculates the output of the Preisach operator
-    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection = true,bool debugOutput = false){
+    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite,
+      bool overwriteDirection,bool debugOutput, int& successFlag){
       EXCEPTION("Not implemented in base class");
     }
 
@@ -707,23 +708,25 @@ namespace CoupledField {
      * Exception: testInversion > here we use computeInput_vec_withStatistics
      */
     Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection = true, bool fieldsAlignedAboveSat = true){
+      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
+      int& successFlag){
       
       Vector<Double> prevYval = Vector<Double>(dim_);
       mu.Mult(prevXVal_[operatorIndex],prevYval);
       prevYval.Add(1.0,prevHVal_[operatorIndex]);
       
       return computeInput_vec_withPrevStates(yVal, prevYval,
-        prevXVal_[operatorIndex], prevHVal_[operatorIndex], operatorIndex, mu, overwriteDirection,fieldsAlignedAboveSat);
+        prevXVal_[operatorIndex], prevHVal_[operatorIndex], operatorIndex, 
+        mu, overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat, successFlag);
     }
      
-    void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false){
+    void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState){
       EXCEPTION("Not implemented in base class");
     }
     
     void setFlags(UInt performanceFlag){
       
-      if(performanceFlag >= 2){
+      if(performanceFlag == 2){
         /*
          * start with 2
          * -> Reason: coefFunctionHyst uses performanceFlag with
@@ -820,14 +823,15 @@ namespace CoupledField {
     VectorPreisachv10_MatrixApproach(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
       bool classical, Double angularDistance, Double angResolution, 
-      Double anhystA=0.0, Double anhystB=0.0, Double anhystC=0.0, bool anhystOnly = false);
+      Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
     
     ~VectorPreisachv10_MatrixApproach();
     
     //! this function gets called from outside and calculates the output of the Preisach operator
-    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true, bool debugOut=false);
+    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite,
+      bool overwriteDirection, bool debugOut, int& successFlag);
     
-    void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
+    void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState);
     
     std::string runtimeToString();
     
@@ -873,9 +877,10 @@ namespace CoupledField {
     virtual ~VectorPreisachv10_ListApproach();
     
     //! this function gets called from outside and calculates the output of the Preisach operator
-    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true, bool debugOut=false);
+    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite,
+      bool overwriteDirection, bool debugOut, int& successFlag);
     
-    void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
+    void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState);
     
     std::string runtimeToString();
     
@@ -899,7 +904,7 @@ namespace CoupledField {
     UInt idArea, Rectangle& rect, bool upperSplitSquare = false);
     bool Simplify_LocalSwitchingLists(std::list<RotListEntryv10>& usedRotationList);
     bool Simplify_GlobalRotationList(std::list<RotListEntryv10>& usedRotationList);
-    void mapRectangleToHelperMatrix(Matrix<Double>& helper, Rectangle rect, Double factor, bool skipUpperDiagonal = false,bool isRotState = false);
+    void mapRectangleToHelperMatrix(Matrix<Double>& helper, Rectangle rect, Double factor, bool skipUpperDiagonal,bool isRotState);
     void Initialize_GlobalRotationList(std::list<RotListEntryv10>& usedRotationList);
     void Initialize_GlobalRotationListWithValues(std::list<RotListEntryv10>& usedList,Vector<Double>& initDir, Double initRotValue, Double initSwitchValue);
     
