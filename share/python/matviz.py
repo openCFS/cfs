@@ -399,8 +399,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
     angle_max = angle[numpy.argmax(numpy.abs(data))]
     angle_min = angle[numpy.argmin(numpy.abs(data))]
 
-    print(" largest stiffness: {:>13.6e}".format(numpy.max(numpy.abs(data))) + "  in direction " + str(to_vector(angle_max)))
-    print("smallest stiffness: {:>13.6e}".format(numpy.min(numpy.abs(data))) + "  in direction " + str(to_vector(angle_min)))
+    print(" largest entry: {:>13.6e}".format(numpy.max(numpy.abs(data))) + "  in direction " + str(to_vector(angle_max)))
+    print("smallest entry: {:>13.6e}".format(numpy.min(numpy.abs(data))) + "  in direction " + str(to_vector(angle_min)))
     if len(aux) > 0:
       print("largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux)))
     
