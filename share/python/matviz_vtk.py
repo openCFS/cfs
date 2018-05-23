@@ -217,7 +217,7 @@ def show_vtk(polydata, res, save, planes=[], show_edges=False, show_axes=False, 
       axes = vtk.vtkAxesActor()
       bounds = polydata.GetBounds()
       # Scale axes
-      scale *= 1.2
+      scale *= 1.5
       length = array([bounds[1]*scale, bounds[3]*scale, bounds[5]*scale])
       tipLength = axes.GetNormalizedTipLength() / length * length[argmin(length)]
       axes.SetTotalLength(length)
