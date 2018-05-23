@@ -236,19 +236,16 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
   void CoefFunctionHarmBalance<T>::
   FinishCash(){
     LOG_DBG(coeffctharmbalance) << "\t UpdateHarm()";
+
     // Just for the logging output give the index of solution vector to print
-    UInt index = 100;
+    UInt index = 1;
     if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
       freqTimeRes_.PrintTimeResults(index);
-      freqTimeRes_.PrintTimeVector();
     }
 
     // Perform FFT of time-signal
     freqTimeRes_.TimeToFourier();
 
-    // =========================================================================
-    // TODO Don't forget the conjugate for off-diagonals!!!
-    // =========================================================================
 
     if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
       freqTimeRes_.PrintFreqResults(index);
@@ -362,14 +359,12 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
         }
       }
     }else{
-// TODO Clean this up...we don't even need to perform the fft for the not-nonlinear regions...
-
 
       const Vector<Complex>& fR = freqTimeRes_.GetFreqResult(N_ + harmonic);
       coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ] * 0.5;
       // If harmonic is negative, we need conjugate ḩat{nu}
       if(harmonic < 0){
-        std::conj(coefScal) * 0.5;
+        std::conj(coefScal);
       }
 
 

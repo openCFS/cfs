@@ -1060,6 +1060,8 @@ namespace CoupledField {
      * Shall be called for each phase, set each time exactly one parameter to true */
     void ExportLinSys(bool setup, bool pre_solve, bool post_solve);
 
+    void ExportMHSys(int step);
+
     //! In multiharmonic analysis, set the nonzero sbm-blocks
     inline void SetNnzSBMInd(const StdVector<UInt>& sbmInd){ nnzSBMInd_ = sbmInd;};
     BaseEigenSolver* GetEigenSolver(){ return eigenSolver_; };

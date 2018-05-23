@@ -885,7 +885,7 @@ namespace CoupledField
           // IMPORTANT: In multiharmonic analysis, no off-diagonal
           //            sub mass matrices!
           //================================================================
-          if( harmonic != 0 && destMat == FEMatrixType::DAMPING){
+          if( harmonic != 0 && (destMat == FEMatrixType::DAMPING || secDestMat == FEMatrixType::DAMPING) ){
             continue;
           }
 
@@ -973,7 +973,7 @@ namespace CoupledField
             // we need to loop over every frequency and multiply the mass matrices corresponding to the
             // frequencies with different values, prevents such a ''clean'' solution
             if( harmonic == 0 && multHarmFreqVec.GetSize() != 0){
-              if( actContext.GetDestMat() == DAMPING ){
+              if( destMat == DAMPING ){
                 // Store the sbm-indices of the blocks, which correspond to harmonic 0
                 // in a vector with size 1 to pass it to InsertMatrix method.
                 // This is kind of a workaround
@@ -982,6 +982,7 @@ namespace CoupledField
                   diagInd.Init(0);
                   diagInd[0] =  sbmInd[iRow];
                   Double f = multHarmFreqVec[iRow];
+
                   // For f = 0, we basically solve the static problem. If we really set the
                   // mass part for harmonic 0 to zero, the solution becomes non-unique.
                   // Therefore we replace here zero with a small relaxation parameter 1e-6
@@ -994,7 +995,7 @@ namespace CoupledField
 
                   // Pass element matrix to algebraic system (primary matrix)
                   if ( form->IsComplex() ){
-                    EXCEPTION("Assembling of complex bilinear form in multiharmonic analysis not yet implemented!");
+                    EXCEPTION("Assembling of complex mass bilinear form in multiharmonic analysis not allowed!");
                   }else{
                     InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2,
                         fctId1, fctId2, false, diagInd, f, true);
@@ -1009,6 +1010,9 @@ namespace CoupledField
               }
 
             }else{
+              if(actContext.GetDestMat() == DAMPING ){
+                EXCEPTION("Assemble::AssembleMatrices_MultHarm: This should not happen");
+              }
               // Pass element matrix to algebraic system (primary matrix)
               if ( form->IsComplex() )
                 InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2, false, sbmInd);
@@ -1565,7 +1569,7 @@ namespace CoupledField
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
       // For multiharmonic analysis, we don't reassemble the RHS
-      if( (actContext.IsNonLin() != nonLin))
+      if( (actContext.IsNonLin() != nonLin) && !algsys_->IsMultHarm() )
         continue; //TODO: uncomment this
 
       LinearForm* form = actContext.GetIntegrator();

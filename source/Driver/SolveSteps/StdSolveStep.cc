@@ -1307,6 +1307,7 @@ namespace CoupledField {
     std::map<FEMatrixType,Double> empty;
     algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
     
+
     // Check if the AMG-framework is used (if so, we have
     // to gather some geometry information at this point)
     // needs only be built once, doesn't change over frequency
@@ -1373,6 +1374,8 @@ namespace CoupledField {
     // second boolean is if it's multiharmonic...which is is
     Double RhsLinL2Norm = SetLinRHS(loadFactor, false, true);
 
+    if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"Right Hand Side Linear "<<RhsLinVal_.ToString()<<std::endl;
+
     // Usually the RhsLinVal_ gets set in the constructor but
     // not in the multiharmonic case. Therefore we set it here.
     // Already done by SetLinRHS()
@@ -1405,6 +1408,8 @@ namespace CoupledField {
     // Get the solution of the initial (linear) multiharmonic system.
     solVecMH_.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
     algsys_->GetFullMultiHarmSolutionVal( solVecMH_, false);
+
+    if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION OF LINEAR SYSTEM"<<solVecMH_.ToString()<<std::endl;
 
 
     // Get actual solution. Usually it is done via actSol = solVec_;
@@ -1464,8 +1469,6 @@ namespace CoupledField {
             "RHSs yet!")
       }
 
-
-
       AssembleMH(N, M);
 
       // Sets flag that matrix was already assembled. The method CheckNonLinearities re-does this
@@ -1478,13 +1481,8 @@ namespace CoupledField {
       std::map<FEMatrixType,Double> empty;
       algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
 
-
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
-
-      // and nonlinpart if any
-      //assemble_->AssembleNonLinRHS();
-
 
       // This is done because we want to solve the deflect-system:
       // K(u^k) \cdot \Delta u^{k+1} = f - K(u^k) \cdot u^k
@@ -1494,8 +1492,11 @@ namespace CoupledField {
       algsys_->UpdateRHS_MultHarm(SYSTEM,solVecMH_,true);
       solVecMH_.ScalarMult(-1.0);
 
-
-
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) {
+        SBM_Vector resid(BaseMatrix::COMPLEX);
+        algsys_->GetFullMultiHarmRHSVal(resid);
+        std::cout<<"RESIDUAL VECTOR OF STEP "<<iterationCounter<<" = \n"<<resid.ToString()<<std::endl;
+      }
 
       // Incorporate Boundary conditions and recalc the preconditioner and solver
       algsys_->BuildInDirichlet();
@@ -1510,6 +1511,7 @@ namespace CoupledField {
       // Get the incremental solution (deflect vector), second argument is setIDBC
       algsys_->GetFullMultiHarmSolutionVal( solInc, false);
 
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION INCREMENT AT STEP "<<iterationCounter<<" = \n"<<solInc.ToString()<<std::endl;
 
 
       // Initialize norms (residual and incremental ones)
@@ -1524,6 +1526,7 @@ namespace CoupledField {
 
       this->EvaluateNonlinearity(ftRes, actSol);
 
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION VECTOR AT STEP "<<iterationCounter<<" = \n"<<actSol.ToString()<<std::endl;
 
       // Store the new solution u^{k+1}
       // Usually actSol is stored in solVec_ but this is not our full multiharmonic
@@ -1535,6 +1538,13 @@ namespace CoupledField {
       // That's a bit dirty but it's currently the only possible way I see
       algsys_->InitSol(solVecMH_);
 
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) {
+        ftRes.SetFrequencyResult(actSol);
+        ftRes.FourierToTime();
+        for(int i = 0; i < ftRes.GetNumTimeSteps(); ++i) {
+          std::cout<<"TIME RESULT "<<i<<" = "<<ftRes.GetTimeResult(i).ToString()<<std::endl;
+        }
+      }
 
       // Calculation relative residual error
       Double residualErr;
@@ -1648,6 +1658,7 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
         regionNonLinTypes_,
         multHarmFreqVec_);
 
+
     if(!onlyDiagBlocks){
       for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
         // set the frequency of the current harmonic
@@ -1658,12 +1669,6 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
         if (std::abs(h) > (Integer) (M) || h == 0) {
           continue;
         } else {
-//
-//          std::cout<<"=================================================================\n"
-//                     " ASSEMBLING MATRICES FOR HARMONIC"<< h<<"\n"
-//                     "=================================================================\n"<<std::endl;
-//
-//
           // assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
           // Contrary to the usual assembling process, we have to pass regionNonLInTypes_
           // because regions without a BH curve don't have to be assembled into off-diagonal
@@ -1959,7 +1964,7 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
       // and nonlinpart if any
-      //assemble_->AssembleNonLinRHS();
+      //assemble_->AssembleLinRHS();
 
 
       // setup the matrices
