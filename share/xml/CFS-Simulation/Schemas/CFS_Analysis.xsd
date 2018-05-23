@@ -212,7 +212,15 @@
               <xsd:element name="maxVal" type="xsd:token"/>
             </xsd:sequence>
           </xsd:choice>
-          <xsd:element name="writeModes" type="DT_CFSBool"/>
+          <xsd:element name="writeModes">
+            <xsd:complexType>
+              <xsd:simpleContent>
+                <xsd:extension base="DT_CFSBool">
+                  <xsd:attribute name="normalization" type="DT_ModeNormalization"/>
+                </xsd:extension>
+              </xsd:simpleContent>
+            </xsd:complexType>
+          </xsd:element>
           <!-- bloch band gap visualization on the IBZ -->
           <xsd:element name="bloch" minOccurs="0" maxOccurs="1">
             <xsd:complexType>

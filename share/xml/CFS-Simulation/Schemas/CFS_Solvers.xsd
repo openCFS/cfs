@@ -1451,7 +1451,7 @@
               <xsd:documentation>The number of contour points (see the description of FEAST algorithm). Must be one of {3,4,5,6,8,10,12,16,20,24,32,40,48}.</xsd:documentation>
 	          </xsd:annotation>
           </xsd:element>
-	        <xsd:element name="maxRefinmentLoops" type="xsd:nonNegativeInteger" minOccurs="0" default="20">
+	        <xsd:element name="maxRefinementLoops" type="xsd:nonNegativeInteger" minOccurs="0" default="20">
 	          <xsd:annotation>
 	            <xsd:documentation>Maximum number of Extended Eigensolver refinement loops allowed.</xsd:documentation>
             </xsd:annotation>         

@@ -970,7 +970,7 @@ namespace CoupledField {
        eigenSolver_->GetComplexEigenMode(numMode, solHelp);
     } else {
       Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
-      eigenSolver_->GetEigenMode(numMode, solHelp);
+      eigenSolver_->GetNormalizedEigenMode(numMode, solHelp);
     }
     LOG_DBG2(algSys) << "GEM -> " << sol_->ToString();
   }
