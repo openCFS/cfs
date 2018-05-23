@@ -105,6 +105,8 @@
               <xsd:enumeration value="mechAcceleration"/>
               <xsd:enumeration value="elecPower"/>
               <xsd:enumeration value="elecCurrent"/>
+              <xsd:enumeration value="magEnergy"/>
+              <xsd:enumeration value="magJouleLossPowerDensity"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>

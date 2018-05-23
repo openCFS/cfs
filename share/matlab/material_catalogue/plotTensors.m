@@ -1,8 +1,9 @@
-tensoridx = 7;
-dimstoplot = [1 3];
+tensoridx = 1;
+dimstoplot = [1 2];
 plotwithinterpolatedvalues = 0;
 onlyboundary = 0;
-cataloguefile = 'catalogues/detailed_stats_presets3D_65_bndry';
+% cataloguefile = 'catalogues/detailed_stats_presets3D_65_bndry';
+cataloguefile = 'catalogues/detailed_stats_presets2D_11';
 % cataloguefile2 = 'catalogues/detailed_stats_presets3D_L9';
 % intfile = 'interpolatedValues_128';
 
@@ -18,6 +19,7 @@ Rows = [
 ];
 
 Rows = linspace(0.01,0.99,9)';
+Rows = .5;
 
 % Rows = [
 % 1/np 1/np

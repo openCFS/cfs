@@ -33,11 +33,14 @@ SET(CFSDAT_SRCS
   Filters/Interpolators/Node2CellInterpolator.cc
   Filters/Interpolators/L2norm.cc
   Filters/SignalProcessing/FftFilter.cc
+  Filters/SignalProcessing/FIRFilter.cc
   Filters/SignalProcessing/TemporalBlendingFilter.cc
   Filters/SignalProcessing/TimeMeanFilter.cc
+  Filters/SynteticSources/BaseSNGR.cc
   Utils/EqnNumberingSimple.cc
   Utils/CFSDatProgramOptions.cc
   Utils/ResultManager.cc
+  Utils/ResultCache.cc
 #  Utils/KNNSearch.cc
 )
 
@@ -55,9 +58,4 @@ ENDIF(MKL_BLAS_LIB)
 
 TARGET_LINK_LIBRARIES(cfsdatbin ${TARGET_LL})
 
-SET(CFS_LINK_FLAGS "")
-
 SET_TARGET_PROPERTIES(cfsdatbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
-
-# Install the cfstool executable target to ${CMAKE_INSTALL_PREFIX}/bin
-#INSTALL_TARGETS(/bin cfsdat)

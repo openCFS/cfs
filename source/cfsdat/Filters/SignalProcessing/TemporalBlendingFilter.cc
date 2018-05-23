@@ -36,34 +36,15 @@ TemporalBlendFilter::~TemporalBlendFilter(){
   mp_ = NULL;
 }
 
-bool TemporalBlendFilter::Run(){
-  // we deactivate every result, except for our own
-  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
-  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
-
-  for(; aIter != activeResults.end(); ++aIter){
-    if(filterResIds.Find(*aIter) == -1){
-      WARN(" There are still active results when reaching the interpolation filter. This indicates an unexpected use of the pipeline.")
-    }
-    resultManager_->DeactivateResult(*aIter);
-  }
+bool TemporalBlendFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
+  /// this is the vector, which will be filled with the result
+  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
   Double aTF = resultManager_->GetStepValue(filterResIds[0]);
-  resultManager_->SetTimeValue(upResIds[0],aTF);
-  // now we deactivate our own result and activate the others
-  resultManager_->ActivateResult(upResIds[0]);
+  Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
 
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
-  }
+  // vector, containing the source data values
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
 
-  CF::StdVector<UInt> eqnNums;
-  Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
-  Vector<Double> inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
-
-  Double currentStep = resultManager_->GetStepValue(upResIds[0],0);
 
   MathParser::HandleType hand;
   hand = mp_->GetNewHandle();
@@ -74,32 +55,24 @@ bool TemporalBlendFilter::Run(){
   if(vars.GetSize() != 1 || vars[0] != "t"){
     EXCEPTION("Wrong variable in temporalBlending...only time dependent functions f(t) are allowed!!");
   }
-  mp_->SetValue(hand, "t", currentStep);
-  Double ev = mp_->Eval(hand);
+  mp_->SetValue(hand, "t", aTF);
+  const Double ev = mp_->Eval(hand);
   mp_->ReleaseHandle(hand);
-
-  inVec.ScalarMult(ev);
-  returnVec = inVec;
-
-  resultManager_->ActivateResult(filterResIds[0]);
-  //now deactivate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->DeactivateResult(upResIds[aRes]);
+  const UInt size = inVec.GetSize();
+  
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+  for (UInt i = 0; i < size; i++) {
+    returnVec[i] = inVec[i] * ev;
   }
+  
   return true;
 }
 
 
 ResultIdList TemporalBlendFilter::SetUpstreamResults(){
-  ResultIdList generated;
-  //we should only have one filter Result
-  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
-  outId = *aIt;
-  //we only have one filter result, add input result to manager
-  resId = resultManager_->AddResult(resName,this->filterTag_);
-  //set the timeline of upstream data if already set
-  resultManager_->SetTimeLine(resId,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-  generated.Push_back(resId);
+  ResultIdList generated = SetDefaultUpstreamResults();
+  resId = upResNameIds[*upResNames.begin()];
+  outId = filterResIds[0];
   return generated;
 }
 

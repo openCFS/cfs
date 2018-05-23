@@ -178,7 +178,6 @@
                 <xsd:choice maxOccurs="unbounded">
                   <xsd:element name="geometric" type="DT_PiezoDirectNonLinGeo"/>
                   <xsd:element name="hysteresis" type="DT_PiezoDirectNonLinHyst"/>
-                  <xsd:element name="hysteresis_fixpoint" type="DT_PiezoDirectNonLinHyst"/>
                   <xsd:element name="material" type="DT_PiezoDirectNonLinMat"/>
                   <xsd:element name="piezoMicroHF" type="DT_PiezoDirectNonLinHyst"/> 
                 </xsd:choice>

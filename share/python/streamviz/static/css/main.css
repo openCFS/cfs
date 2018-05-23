@@ -2,6 +2,19 @@ h4 {
 	padding: 5px;
 }
 
+/*svg {
+  max-width:100%;
+  max-height:100%;
+}*/
+
+#catalyst_ip {
+  width: 150px;
+}
+
+#catalyst_port {
+  width: 70px;
+}
+
 #simulation_id {
 	display: none;
 }
@@ -14,4 +27,40 @@ h4 {
 /* make the settings on the left less bulky */
 .list-group-item {
 	padding: 3px;
+}
+
+.objective {
+	display:none;
+}
+
+#status {
+	display:none;
+}
+
+/*.dropdown-menu.show {
+  display: inline-block;
+  width: 1000px;
+}
+
+.dropdown-menu.show .dropdown-item {
+	display: inline-block;
+  width: 100%;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+}*/
+
+.small * {
+	font-size: 100%;
+	line-height: 80%;
+}
+.container {
+  width: 100%;
+  max-width: 100%;
+}
+#settings {
+	max-width: 500px;
+}
+svg {
+	width: 100% !important;
 }

@@ -56,11 +56,19 @@ SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/vtk/${VTK_TAR}")
 SET(MD5_SUM ${VTK_MD5})
 
 SET(DLFN "${vtk_prefix}/vtk-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-  ) 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY) 
+
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "vtk" "${VTK_VERSION}") 
+
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${vtk_prefix}")
+
+SET(ZIPFROMCACHE "${vtk_prefix}/vtk-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${vtk_prefix}/vtk-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Set linking libraries, the exact order of .a files is of highest importance
@@ -117,50 +125,81 @@ SET(VTK_LIBRARY
   CACHE FILEPATH "VTK library.")
 MARK_AS_ADVANCED(VTK_LIBRARY)
 
-ExternalProject_Add(vtk
-  #BUILD_COMMAND make -j4
-  DEPENDS boost zlib 
-  PREFIX "${vtk_prefix}"
-  URL ${LOCAL_FILE}
-  URL_MD5 ${VTK_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DBUILD_SHARED_LIBS:BOOL=OFF
-    -DVTK_Group_Rendering:BOOL=OFF
-    -DVTK_Group_StandAlone:BOOL=OFF
-    -DModule_vtkFiltersParallel:BOOL=ON
-    -DModule_vtkFiltersSMP:BOOL=ON
-#if we add more file reader we should make this optional depending on USE_ENSIGHT
-    -DModule_vtkIOEnSight:BOOL=ON
-    -DModule_vtkIOParallel:BOOL=ON
-    -DModule_vtkIOXML:BOOL=ON
-    -DVTK_SMP_IMPLEMENTATION_TYPE:STRING="TBB"
-   BUILD_BYPRODUCTS ${VTK_LIBRARY}
-#-DVTK_INSTALL_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include/vtk
-#    -DVTK_INSTALL_LIBRARY_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/vtk
-#    -DVTK_INSTALL_ARCHIVE_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/vtk
-)
+#-------------------------------------------------------------------------------
+# The VTK external project
+#-------------------------------------------------------------------------------
 
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(vtk cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${vtk_prefix}
-)
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(vtk
+    PREFIX "${vtk_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE()
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(vtk
+    #BUILD_COMMAND make -j4
+    DEPENDS boost zlib 
+    PREFIX "${vtk_prefix}"
+    URL ${LOCAL_FILE}
+    URL_MD5 ${VTK_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+      -DBUILD_SHARED_LIBS:BOOL=OFF
+      -DVTK_Group_Rendering:BOOL=OFF
+      -DVTK_Group_StandAlone:BOOL=OFF
+      -DModule_vtkFiltersParallel:BOOL=ON
+      -DModule_vtkFiltersSMP:BOOL=ON
+  #if we add more file reader we should make this optional depending on USE_ENSIGHT
+      -DModule_vtkIOEnSight:BOOL=ON
+      -DModule_vtkIOParallel:BOOL=ON
+      -DModule_vtkIOXML:BOOL=ON
+      -DVTK_SMP_IMPLEMENTATION_TYPE:STRING="TBB"
+     BUILD_BYPRODUCTS ${VTK_LIBRARY}
+  #-DVTK_INSTALL_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include/vtk
+  #    -DVTK_INSTALL_LIBRARY_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/vtk
+  #    -DVTK_INSTALL_ARCHIVE_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/vtk
+  )
+  
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(vtk cfsdeps_download
+     COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+     DEPENDERS download
+     DEPENDS "${DLFN}"
+     WORKING_DIRECTORY ${vtk_prefix}
+  )
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(vtk cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF()
 
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  vtk 
-)
+SET(CFSDEPS ${CFSDEPS} vtk)
 
 SET(VTK_INCLUDE_DIR "${vtk_install}/include/vtk-${VTK_VERSION}" CACHE FILEPATH "VTK include directory.")
 MARK_AS_ADVANCED(VTK_INCLUDE_DIR)

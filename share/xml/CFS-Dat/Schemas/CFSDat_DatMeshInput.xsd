@@ -13,6 +13,7 @@
   
   <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
   <xsd:include schemaLocation="CFSDat_GridType.xsd"/>
+  <xsd:include schemaLocation="CFSDat_TimeType.xsd"/>
   <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_Misc.xsd"/>
   <xsd:include schemaLocation="../CFS_Dat.xsd"/>
   
@@ -41,6 +42,7 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="timeType"  type="DT_TimeType" default="transient"></xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

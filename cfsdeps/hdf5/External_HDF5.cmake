@@ -5,9 +5,13 @@ set(hdf5_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/hdf5")
 set(hdf5_install  "${CMAKE_CURRENT_BINARY_DIR}")
 set(hdf5_source  "${hdf5_prefix}/src/hdf5")
 
-#SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/hdf5/hdf5-patch.cmake.in")
-#SET(PFN "${hdf5_prefix}/hdf5-patch.cmake")
-#CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+# intel compiler 2018 are not compatible with glibc 2.27, see
+# https://software.intel.com/en-us/forums/intel-c-compiler/topic/777003
+set(hdf5_c_flags "${CFSDEPS_C_FLAGS}")
+if(CFS_CXX_COMPILER_NAME STREQUAL "ICC") 
+  set(hdf5_c_flags "-D_Float32=float -D_Float64='long double' -D_Float32x=double -D_Float64x='long double' ${hdf5_c_flags}")
+endif()
+
 
 #-------------------------------------------------------------------------------
 # Set common CMake arguments
@@ -25,7 +29,7 @@ SET(CMAKE_ARGS
   -DHDF5_INSTALL_BIN_DIR:PATH=bin/${CFS_ARCH_STR}
   -DHDF5_INSTALL_LIB_DIR:PATH=${LIB_SUFFIX}/${CFS_ARCH_STR}
   # We do not want to see warning messages from external projects
-  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
+  -DCMAKE_C_FLAGS:STRING=${hdf5_c_flags}
   -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
 )

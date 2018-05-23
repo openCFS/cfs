@@ -3,6 +3,7 @@
 
 #include "SingleDriver.hh"
 #include <fstream>
+#include <iterator>
 
 namespace CoupledField {
 
@@ -59,6 +60,45 @@ class SingleVector;
     /** we need to store current_wave_vector, find the index :(. Not very fast! */
     unsigned int GetCurrentWaveVectorIndex() const;
 
+    void Eig2Freq(Vector<Double>& eigRe, Vector<Double> & freq ) {
+        freq.Resize( eigRe.GetSize() );
+        Double twoPi = 8.0*atan(1.0);
+        for (UInt i=0; i < eigRe.GetSize(); i++) {
+            freq[i] = sqrt(eigRe[i])/twoPi;
+        }
+    }
+    void Eig2FreqDamp(Vector<Double>& eigRe, Vector<Double>& eigIm, Vector<Double> & freq, Vector<Double> & damp ) {
+        assert( eigRe.GetSize() == eigIm.GetSize() );
+        freq.Resize( eigRe.GetSize() );
+        damp.Resize( eigRe.GetSize() );
+        Double twoPi = 8.0*atan(1.0);
+        for (UInt i=0; i < eigRe.GetSize(); i++) {
+            double eigRatio = eigIm[i]/eigRe[i];
+            damp[i] = sqrt( 1.0/(1.0-eigRatio*eigRatio) );
+            freq[i] = eigRe[i]/damp[i]/twoPi;
+        }
+    }
+    void Eig2FreqDamp(Vector<Complex>& eig, Vector<Double> & freq, Vector<Double> & damp ) {
+        //assert( eigRe.GetSize() == eigIm.GetSize() );
+        freq.Resize( eig.GetSize() );
+        damp.Resize( eig.GetSize() );
+        Double twoPi = 8.0*atan(1.0);
+        for (UInt i=0; i < eig.GetSize(); i++) {
+            // no idea if this is correct in general ...
+            double omega = sqrt(eig[i].real());
+            damp[i] = eig[i].imag()/omega;
+            freq[i] = omega/twoPi;
+        }
+    }
+    void SortModes(){
+        modeOrder_.Resize(frequency_.GetSize());
+        std::size_t n(0);
+        // allocate modeOrder_
+        std::generate(std::begin(modeOrder_), std::end(modeOrder_), [&]{ return n++; });
+        // sort it by requency
+        std::sort(std::begin(modeOrder_),std::end(modeOrder_),[&](int i1, int i2) { return frequency_[i1] < frequency_[i2]; } );
+    }
+
     /** Return the number of eigenfrequencies to be calculated. Not the number of wave_vectors!!
      * @see BaseDriver::GetNumSteps() */
     unsigned int GetNumSteps() { return numFreq_; }
@@ -89,11 +129,21 @@ class SingleVector;
     static bool DoBloch(PtrParamNode node) { return node->Has("bloch"); }
 
     /** the resent calculated eigenvalues. Might be complex, @see GetFrequency(). Corresponds with errBounds_ */
-    SingleVector* eigenFreqs;
+    SingleVector* eigenFreqs; //ToDo: remove due to new structure -> frequency_
+
+    //! the recent calculated eigen values, might be complex
+    SingleVector* eigenVals_;
+
+    Vector<Double> frequency_; // frequency
+    Vector<Double> dampingRatio_; // damping ratio
+    Vector<Double> eigsRe_; // real part
+    Vector<Double> eigsIm_; // imag part
 
     /** this is the list of wave vectors we have to process.
      * Obtained arbitrary */
     StdVector<Vector<double> > wave_vectors;
+
+    StdVector<int> modeOrder_; // for sorting the obtained modes
 
   private:
 
@@ -133,6 +183,12 @@ class SingleVector;
     //! Shift for eigenvalues
     Double freqShift_;
 
+    //! minimum Eigenvalue (to define search interval for feast)
+    Double minVal_;
+
+    //! maximum Eigenvalue (to define search interval for feast)
+    Double maxVal_;
+
     //! Flag for writing the eigenmods into the file
     bool writeModes_;
 
@@ -143,6 +199,9 @@ class SingleVector;
     /** here we output the bloch mode data for direct plotting */
     std::ofstream bloch_plot_;
 
+    /** the filename for bloch_plot_ */
+    std::string bloch_name_;
+
     /** do we do ibz? Then bloch.plot will repeat the first step as final step. */
     bool ibz_;
 
@@ -151,6 +210,8 @@ class SingleVector;
 
     /** the step number is complicated with bloch and or optimization. Count by ourselves here! */
     unsigned int save_step_;
+
+    bool eigenValuesAreReal_;
 
   };
 

@@ -15,10 +15,11 @@ Timer::Timer(const std::string& name, bool sub) :
 }
 
 
-void Timer::Start()
+bool Timer::Start()
 {
   // Return immediately if the timer is already running
-  if (running) return;
+  if(running)
+    return false;
 
   calls_++;
 
@@ -29,11 +30,13 @@ void Timer::Start()
   // https://stackoverflow.com/questions/6734375/get-current-time-in-milliseconds-using-c-and-boost
   start_time_ = boost::posix_time::microsec_clock::local_time();
 
+  return true;
 }
 
-void Timer::ResetStart()
+bool Timer::ResetStart()
 {
   // Set timer status to running, reset accumulated time, and set start time
+  bool was_running = running;
   running = true;
 
   start_clock = clock();
@@ -43,20 +46,21 @@ void Timer::ResetStart()
   sum_time_ =   0;
 
   calls_ = 1;
+  return !was_running;
 }
 
-void Timer::Stop()
+bool Timer::Stop()
 {
+  if(!running)
+    return false;
   // Compute accumulated running time and set timer status to not running
-  if(running)
-  {
-    sum_clock += clock() - start_clock;
+  sum_clock += clock() - start_clock;
 
-    boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
-    boost::posix_time::time_duration delta_t = now - start_time_;
-    sum_time_ += delta_t.total_milliseconds() / 1000.0;
-  }
+  boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+  boost::posix_time::time_duration delta_t = now - start_time_;
+  sum_time_ += delta_t.total_milliseconds() / 1000.0;
   running = false;
+  return true;
 }
 
 
@@ -84,6 +88,7 @@ string Timer::ToXMLFormat(const string& name) const
   os << "<" << name;
   if (label_ != "")
     os << " label=\""<< label_ << "\"";
+  os << " wall-clock=\"" << GetTimeString(GetWallTime()) << "\"";
   os << " wall=\"" << GetWallTime() << "\"";
   os << " cpu=\"" << GetCPUTime() << "\"";
   os << " calls=\"" << calls_ << "\"";
@@ -122,6 +127,22 @@ const string Timer::GetTimeString(const boost::posix_time::time_duration period)
     suffix = " s";
   }
   return time_output.substr(0, max_length) + suffix; // cut off microseconds
+}
+
+const std::string Timer::GetTimeString(double seconds)
+{
+  int h = (int) (seconds/3600);
+  int m = (int) ((seconds - (h*3600))/60);
+  double s = seconds - (h*3600) - (m*60);
+
+  std::stringstream ss;
+  if(h > 0)
+    ss << h << "h ";
+  if(m > 0)
+    ss << m << "m ";
+  ss.precision(4);
+  ss << s << "s";
+  return ss.str();
 }
 
 void Timer::PrintTime(std::ostream & stream){

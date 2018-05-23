@@ -1129,26 +1129,40 @@
                       </xsd:annotation>
                       <xsd:complexType>
                         <xsd:sequence>
+                          <!-- this is the center node node, a subset of the original 2D node -->
                           <xsd:element name="node" minOccurs="2" maxOccurs="2">
                             <xsd:complexType>
                               <xsd:attribute name="dof" use="required" type="DT_Axis" />
-                              <!-- lower, uppde and initial go together or fixed. We apply the mathparser to all of them! -->
+                              
+                              <!-- lower, upper and initial go together or fixed or slave! We apply the mathparser to all of them! -->
                               <xsd:attribute name="initial" type="xsd:token" use="optional" />
                               <xsd:attribute name="lower" type="xsd:token" use="optional" />
                               <xsd:attribute name="upper" type="xsd:token" use="optional" />
                               <xsd:attribute name="fixed" type="xsd:token" use="optional" />
+                              
+                              <!-- slave is for cubical symmetry (all center symmetries on, here the two dofs of a center node reduce to one.
+                                   Therefore one of the nodes has slave and dof but must not have initial, lower, upper, fixed -->
+                              <xsd:attribute name="slave" type="xsd:boolean" use="optional" default="false" />
+
+                              <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1" />
                            </xsd:complexType>
                           </xsd:element>
                         </xsd:sequence>
                         <!-- the center attributes -->
-                        <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1" />
+
+                        <!-- symmetry along the x-axis - y-axis or xy-plane -->
                         <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" />
+                        <!-- symmetry along the y-axis - x-axis or xz-plane -->
                         <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" />
-                        <!-- induces shape with other dof -->
+                        <!-- symmetry along the z-axis - xy-plane -->
+                        <xsd:attribute name="front_back_sym" use="optional" type="DT_Symmetry" default="none" />
+                        <!-- induces shape with dof and orientation flipped. 
+                             For the center case we do this for all diagonals concurrently, this makes a three bar cross out of one bar. -->
                         <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" />
                       </xsd:complexType>
                    </xsd:element>
 
+                   <!-- this is the 2D node, the node within center is smaller und defined above -->
                    <xsd:element name="node" minOccurs="0" maxOccurs="unbounded">
                      <xsd:annotation>
                        <xsd:documentation>In 2D mandatory. With dof=x for every y a x is the variable.</xsd:documentation>
@@ -1561,6 +1575,9 @@
           <xsd:enumeration value="heaviside"/>
           <!-- f(rho) =  1 - 1/(exp(2*beta*(x-param)) + 1); param defines the switching point (0.1...0.9). For stress constraints -->
           <xsd:enumeration value="tanh"/>
+          <!-- f(rho) = x/(3-2*x) as in (7) in Bendsoe, Sigmund; Material interpolation schemes ...
+               Upper Hashin-Shtrikman bound for 2D with Poisson's ratio 0.3 -->
+          <xsd:enumeration value="hashin_shtrikman"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

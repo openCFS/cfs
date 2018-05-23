@@ -49,14 +49,16 @@ namespace CoupledField{
     temp[0] = loc[0] * std::cos(loc[1]/180*M_PI);
     temp[1] = loc[0] * std::sin(loc[1]/180*M_PI);
     temp[2] = loc[2];
+
     
     // rotate local cartesian coordinate system to global one
     glob.Resize(3);
     invRotationMat_.Mult(temp,glob);
 
+
     // add global coordinate midpoint
     glob += origin_;
-    
+
   }
   
   void CylCoordSystem::Global2LocalCoord( Vector<Double> & loc, 
@@ -195,8 +197,9 @@ namespace CoupledField{
     //        z'-Axis
     //    y': implicitly given by cross product of z' and  x' (right hand rule)
     //z = hAxis_ - origin_;
-    z = zAxis_ - origin_;
+    z = zAxis_;
     z /= z.NormL2();
+
 
 
     //Vector<Double> temp;
@@ -207,12 +210,14 @@ namespace CoupledField{
 //                  << name_ << "'!" );
 //     }
     
-    x = rAxis_ - origin_;
+    x = rAxis_;
     x /= x.NormL2();
+
 
     y[0] = z[1]*x[2] - z[2]*x[1];
     y[1] = z[2]*x[0] - z[0]*x[2];
     y[2] = z[0]*x[1] - z[1]*x[0];
+
 
     // Check if there were coincident points for defining the different axes
     if (x.NormL2() < EPS ||
@@ -245,6 +250,7 @@ namespace CoupledField{
 
     // Perform on check on rotation matrix
     CheckRotationMat( rotationMat_ );
+
     
     // 3) Calculate transposed inverse rotation matrix, which defines 
     //    mapping from  local to global cartesian coordinate system
@@ -311,7 +317,7 @@ namespace CoupledField{
     originNode->Get("x")->SetValue(origin_[0]);
     originNode->Get("y")->SetValue(origin_[1]);
     originNode->Get("z")->SetValue(origin_[2]);
-    
+
     PtrParamNode rNode = in->Get("rAxis");
     rNode->Get("x")->SetValue(rAxis_[0]);
     rNode->Get("y")->SetValue(rAxis_[1]);
@@ -321,6 +327,7 @@ namespace CoupledField{
     zNode->Get("x")->SetValue(zAxis_[0]);
     zNode->Get("y")->SetValue(zAxis_[1]);
     zNode->Get("z")->SetValue(zAxis_[2]);
+
     
 //    PtrParamNode rotNode = in->Get("rotationAngles");
 //    rotNode->Get("alpha")->SetValue(Rad2Grad(rotationAng_[0]));

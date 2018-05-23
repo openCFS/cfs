@@ -52,7 +52,7 @@ numPoints = size(pointsCoords,1);
 
 % Check if catalogue fits to meshgenerationfunc by calling the function once
 try
-    [meshfile, dimension] = meshgenerationfunc(pointsCoords(1,:), '.');
+    [meshfile, ~, dimension] = meshgenerationfunc(pointsCoords(1,:), '.');
     [meshfilepath, meshfilename] = fileparts(meshfile);
     densfile = sprintf('%s/%s.dens', meshfilepath, meshfilename);
     if exist( densfile, 'file' )
@@ -107,6 +107,7 @@ for i=1:numPoints
 %         volume = vec(end);
 %     else
         [Eh, volume, meshfilename] = Homogenization.getElasticityTensorOfMicroCell(point, meshgenerationfunc, Efull, cfsworkingdirectory);
+        disp(Eh)
 %     end
     if ~isempty(Eh)
         if givenByLevelAndIndex

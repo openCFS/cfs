@@ -32,6 +32,7 @@
 //Dat
 #include "cfsdat/Utils/Defines.hh"
 #include "cfsdat/Utils/DataStructs.hh"
+#include "cfsdat/Utils/ResultCache.hh"
 #include "EqnNumberingSimple.hh"
 
 #define DEBUG
@@ -52,73 +53,88 @@ public:
 
   typedef str1::shared_ptr<const ExtendedResultInfo> ConstInfoPtr;
 
-  typedef str1::shared_ptr<GenericResultAdapter> ResPtr;
+  typedef str1::shared_ptr<GenericResultCache> ResPtr;
 
-  typedef str1::shared_ptr<const GenericResultAdapter> ConstResPtr;
+  typedef str1::shared_ptr<const GenericResultCache> ConstResPtr;
 
   ResultManager();
 
   ~ResultManager();
 
-  uuids::uuid AddResult(std::string name, uuids::uuid filterTag, CF::StdVector<Integer> timeCacheSteps= CF::StdVector<Integer>());
+  uuids::uuid AddResult(std::string name, uuids::uuid filterTag);
+  
+  uuids::uuid AddResult(std::string name, uuids::uuid filterTag, 
+         Integer minStepOffset, Integer maxStepOffset);
+  
+  void CombineResults(uuids::uuid resultIdA, uuids::uuid resultIdB);
+  
+  uuids::uuid GetMasterResult(uuids::uuid resultId);
 
   // =======================================================================
   // Results Access
   // =======================================================================
   //@{ \name Result(Adapter/Vector) Access
 
+  //! Sets the index of the actual step value for the given id
+  //! Results get marked as invalid if the new value does not match any cached result.
+  //! \param (in) requestedId unique id of result
+  //! \param (in) value new step number
+  void SetStepIndex(uuids::uuid requestedId, Integer value);
+  
+  //! Obtain index of the actual step value
+  //! \param (in) requestedId  unique id of result
+  //! \return UInt index of the step
+  UInt GetStepIndex(uuids::uuid requestedId);
+
+  //! Sets the step value of the given id
+  //! Results get marked as invalid if the new value does not match any cached result.
+  //! \param (in) requestedId unique id of result
+  //! \param (in) value new step value
+  void SetStepValue(uuids::uuid requestedId, Double value);
+  
   //! Obtain step value of given result
   //! \param (in) requestedId  unique id of result
-  //! \param (in) offsetStep timestep offset for future/past results
-  //! \return Double value of step
-  Double GetStepValue(uuids::uuid requestedId, Integer offsetStep=0);
-
+  //! \return Double value of the step
+  Double GetStepValue(uuids::uuid requestedId);
+  
   //! Check if the given result is already updated
   //! \param (in) requestedId  unique id of result
   //! \param (in) offsetStep time/frequency step offset for future/past results
   //! \return Bool flag, true if result is valid
-  bool IsResultVecUpToDate(uuids::uuid requestedId, Integer offsetStep=0);
+  bool IsResultVecUpToDate(uuids::uuid requestedId);
+
+  void SetResultVecUpToDate(uuids::uuid requestedId, bool upToDate=true);
+  
+  //! Direct access to solution vector, real valued version
+  //! \param (in) requestedId  unique id of result
+  //! \param (out) eqnNumbers vector of equation numbers in case the result vector is defined globally
+  //! \return  reference to result vector
+  template<typename T>
+  Vector<T>&  GetResultVector(uuids::uuid requestedId, CF::StdVector<UInt>& eqnNumbers);
 
   //! Direct access to solution vector, real valued version
   //! \param (in) requestedId  unique id of result
   //! \param (out) eqnNumbers vector of equation numbers in case the result vector is defined globally
-  //! \param (in)  timeStepOffset offset for future/past results
   //! \return  reference to result vector
   template<typename T>
-  Vector<T>&  GetResultVector(uuids::uuid requestedId,
-                              CF::StdVector<UInt>& eqnNumbers,
-                              Integer timeStepOffset = 0);
+  Vector<T>&  GetResultVector(uuids::uuid requestedId);
 
 //  //! Direct access to solution vector, complex valued version
 //  //! \param (in) requestedId  unique id of result
 //  //! \param (out) eqnNumbers vector of equation numbers in case the result vector is defined globally
-//  //! \param (in)  timeStepOffset offset for future/past results
 //  //! \return reference to result vector
-//  Vector<Complex>& GetResultVector(uuids::uuid requestedId,
-//                                   CF::StdVector<UInt>& eqnNumbers,
-//                                   Integer timeStepOffset = 0);
+//  Vector<Complex>& GetResultVector(uuids::uuid requestedId, CF::StdVector<UInt>& eqnNumbers);
+
+  //! Return the equation map of a result
+  //! \param (in) requestedId  unique id of result
+  //! \return shared pointer to equation map
+  str1::shared_ptr<EqnMapSimple> GetEqnMap(uuids::uuid requestedId);
 
   //! Return reference to BaseResult vector of result adapter. Used e.g. in output filters
   //! to copy the values in SimOut conformal matter
   //! \param (in) requestedId  unique id of result
-  //! \param (in)  timeStepOffset offset for future/past results
   //! \return reference to Result objects (e.g. in case multiple regions)
-  CF::StdVector<shared_ptr<BaseResult> >& GetBaseResultVector(uuids::uuid requestedId, Integer timeStepOffset=0);
-
-  //! give read only definition of the ResultAdapter for a given result
-  //! gives e.g. access to equation numbering
-  //! \param (in) requestedId  unique id of result
-  //! \param (in)  timeStepOffset offset for future/past results
-  //! \return read only Result adaptor pointer
-  ConstResPtr GetResultAdapter(uuids::uuid requestedId, Integer timeStepOffset=0);
-
-  //! Sets the timevalue for the given id
-  //! here we do not need a offset result values as associated results are adapted on the fly.
-  //! Results get marked as invalid if the new value does not match the old one.
-  //! \param (in) requestedId unique id of result
-  //! \param (in) value new time value
-  void SetTimeValue(uuids::uuid requestedId, Double value);
-  //@}
+  CF::StdVector<shared_ptr<BaseResult> >& GetBaseResultVector(uuids::uuid requestedId);
 
   // =======================================================================
   // Extended Result Info Access
@@ -144,6 +160,11 @@ public:
   //! \return Vector of time step values (copied)
   CF::StdVector<Double> GetTimeLine(uuids::uuid resId);
 
+  //! Returns true if a result is constant in time
+  //! \param (in) resId unique id of Result
+  //! \return true if a result is constant in time
+  bool IsConstant(uuids::uuid resId);
+  
   //! Set the time step value vector of the given result
   //!   - Replace if vector has already been set
   //!   - Only valid during initialization phase.
@@ -328,9 +349,6 @@ public:
   //! \params (in) isMeshResult for volume results (e.g. to hdf5)
   void SetAsOutputResult(uuids::uuid requestedId, bool isMeshResult){
     checkNotFinalized();
-    if(checkResultDef(requestedId)){
-      EXCEPTION("trying to set master result as output result. This is not supported.")
-    }
     resultMap_[requestedId].first->isOutput = true;
     resultMap_[requestedId].first->isMeshResult = isMeshResult;
   }
@@ -356,46 +374,18 @@ public:
 
   void ActivateResult(uuids::uuid toActive){
     if(resultMap_.find(toActive) == resultMap_.end()){
-      //assume master result
-      if(masterResMap_.find(toActive) != masterResMap_.end()){
-        std::map<Integer,uuids::uuid>::iterator sIds = masterResMap_[toActive].begin();
-        for(;sIds != masterResMap_[toActive].end();++sIds){
-          if(resultMap_[sIds->second].first->timeCacheMasterId == toActive){
-            if(isFinalized_){
-              //never activate results with negative step values during run
-              if(resultMap_[sIds->second].second->stepValue >= 0){
-                activeIds_.insert(sIds->second);
-              }
-            }else{
-              activeIds_.insert(sIds->second);
-            }
-          }
-        }
-      }else{
-        EXCEPTION("Trying to activate a result which is not generated! Make sure every call "
-                        "to ResultManager provides valid resultIds.");
-      }
-    }else{
-      activeIds_.insert(toActive);
+      EXCEPTION("Trying to activate a result which is not generated! Make sure every call "
+                      "to ResultManager provides valid resultIds.");
     }
+    activeIds_.insert(toActive);
   }
 
   void DeactivateResult(uuids::uuid toSleep){
     if(resultMap_.find(toSleep) == resultMap_.end()){
-      //assume master result
-      if(masterResMap_.find(toSleep) != masterResMap_.end()){
-        std::map<Integer,uuids::uuid>::iterator sIds = masterResMap_[toSleep].begin();
-        for(;sIds != masterResMap_[toSleep].end();++sIds){
-          if(resultMap_[sIds->second].first->timeCacheMasterId == toSleep)
-            activeIds_.erase(sIds->second);
-        }
-      }else{
-        EXCEPTION("Trying to deactivate a result which is not generated! Make sure every call " <<
-                        "to ResultManager provides valid resultIds.");
-      }
-    }else{
-      activeIds_.erase(toSleep);
+      EXCEPTION("Trying to deactivate a result which is not generated! Make sure every call " <<
+                      "to ResultManager provides valid resultIds.");
     }
+    activeIds_.erase(toSleep);
   }
 
 private:
@@ -445,54 +435,18 @@ private:
     return isSimilar;
   }
 
-  inline uuids::uuid remapMasterResults(uuids::uuid origId, Integer stepOff){
-    uuids::uuid remappedId = origId;
-    if( checkResultDef(origId)){
-      if(masterResMap_[origId].find(stepOff) == masterResMap_[origId].end())
-        EXCEPTION("Requested vector of master result with no time offset. this is not valid")
-      else
-        remappedId = masterResMap_[origId][stepOff];
-    }
-    return remappedId;
-  }
-
-  void CreateResultVector(InfoPtr cInfo, ResPtr cRes);
+  void SetResultVectorSize(InfoPtr cInfo, ResPtr cRes);
 
   void CreateEqnMapping(InfoPtr cInfo, ResPtr cRes);
-
-  //! Check if the result ID is a valid master ID
-  //! \param (in) result Requested result id
-  //! \return true
-  inline bool checkResultDef(uuids::uuid result){
-    if(resultMap_.find(result) == resultMap_.end()){
-      //try to look within the master results
-      if(masterInfos_.find(result) != masterInfos_.end()){
-        return true;
-      }
-      EXCEPTION("Requested Id which is not generated! Make sure every call " << \
-                    "to ResultManager provides valid resultIds.");
-      return false;
-    }else{
-      return false;
-    }
-  }
 
 
   bool isFinalized_;
 
   typedef boost::unordered_map<uuids::uuid,std::pair<InfoPtr,ResPtr> > UuidMap;
-  typedef boost::unordered_map<uuids::uuid,std::map<Integer, uuids::uuid> > MasterUuidMap;
 
   //map storing for each result id a pair of infos and the actual result
   //will get changed during result compression
   UuidMap resultMap_;
-
-  //map storing association between master Results and offset results
-  //note: a master id can also occure in the resultMap_ as
-  //the master id points to the baseTime result if specified
-  MasterUuidMap masterResMap_;
-
-  std::map<uuids::uuid,InfoPtr > masterInfos_;
 
   //set of Ids to be activated
   std::set<uuids::uuid> activeIds_;

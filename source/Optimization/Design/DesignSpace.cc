@@ -272,7 +272,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             double initial = -1;
 
             MathParser* mp = domain->GetMathParser();
-            MathParser::HandleType mHandle = -1;
+            MathParser::HandleType mHandle = 4711;
             std::string expr = curr_design_pn->Get("initial")->As<std::string>();
             bool initDependsOnSpace = CoefFunction::ExprDependsOnSpace(mp,expr);
             if (initDependsOnSpace) {
@@ -322,6 +322,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
                 elemToDesign[de.elem->elemNum].second = true; // real designs here!
               }
             }
+            if(mHandle != 4711)
+              mp->ReleaseHandle(mHandle);
           }
         }
       }
@@ -390,6 +392,8 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
     return std::pow(physical, 1.0/tf->GetParam());
   case TransferFunction::RAMP:
     return (physical + tf->GetParam() * physical ) / (1 + tf->GetParam() * physical);
+  case TransferFunction::HASHIN_SHTRIKMAN:
+    return 3.0 / (1/physical + 5);
   case TransferFunction::NO_TYPE:
   case TransferFunction::FULL:
   case TransferFunction::FIXED:
@@ -547,7 +551,7 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
     domain->GetGrid()->GetElems(elems, region);
     StdVector<DesignElement> tmp;
     // the Push_back must not resize!!!!
-    assert(pseudoDesigns_.Capacity() >= pseudoDesigns_.GetSize() + 1);
+    assert(pseudoDesigns_.GetCapacity() >= pseudoDesigns_.GetSize() + 1);
     pseudoDesigns_.Push_back(tmp);
     StdVector<DesignElement>& vec = pseudoDesigns_.Last();
     // construct pseudo design elements
@@ -1477,8 +1481,8 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
 }
 void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
-  unsigned int start = design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE ? 0 : FindDesign(design) * elements;
-  unsigned int end   = design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE ? data.GetSize() : start + elements;
+  unsigned int start = (design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE) ? 0 : FindDesign(design) * elements;
+  unsigned int end   = (design == DesignElement::DEFAULT || design == DesignElement::MECH_TRACE) ? data.GetSize() : start + elements;
   LOG_DBG3(designSpace) << "Reset: vs=" << DesignElement::valueSpecifier.ToString(vs) << " design="
                         << DesignElement::type.ToString(design) << " from " << start << " to " << end;
 

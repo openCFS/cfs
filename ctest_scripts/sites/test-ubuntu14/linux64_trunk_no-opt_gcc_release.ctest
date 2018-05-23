@@ -1,6 +1,6 @@
 # This is a single test case to be called via nightly_test.cmake.
 #
-# You may test this script alone via ctest -T <test>.ctest
+# You may test this script alone via ctest -S <test>.ctest
 #
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 #

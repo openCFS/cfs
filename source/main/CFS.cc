@@ -111,15 +111,12 @@ int main(int argc, const char **argv)
 void PrintWarning(CoupledField::Exception& ex ) {
   
   // Print warning on command line
- std::string msg = ex.GetMsg();
- std::string fileName = ex.GetFileName();
- UInt lineNum = ex.GetLineNum();
+  std::string msg = ex.GetMsg();
+  std::string fileName = ex.GetFileName();
+  UInt lineNum = ex.GetLineNum();
  
-  std::cerr << "\n "
-      << fg_blue << "WARNING:" << fg_reset << "\n "
-      << msg << endl;
-  std::cerr << "\n(" << fileName << ", Line " 
-            << lineNum  << ")\n\n";
+  std::cerr << "\n " << fg_blue << "WARNING:" << fg_reset << "\n " << msg << endl;
+  std::cerr << "\n(" << fileName << ", Line " << lineNum  << ")\n\n";
   
   // Print warning also to info xml
   PtrParamNode warn = infoNode->Get("warning",ParamNode::INSERT);
@@ -266,32 +263,11 @@ int CFS::Run()
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
 
     timer->Stop();
-    if(!progOpts->IsQuiet())
-      cout << endl; // conditional empty line
     
-    cout << ">> Total time: wall clock: '";
-    
-    int walltime = (int) timer->GetWallTime();
-    double cputime = timer->GetCPUTime();
-
-    if(walltime > 120) 
-    {
-      int wallmin((int) (walltime / 60.0));
-      int cpumin((int) (cputime / 60.0));
-      if(wallmin > 60)
-        cout << wallmin / 60 << "h " << (wallmin % 60) << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'";
-      else
-        cout << wallmin << "m " << (walltime % 60) << "s' CPU time: '" << cpumin << "m " << ((int) cputime % 60) << "s'";
-    }
-    else
-    {
-      cout << walltime << "s' CPU time: '" << cputime << "s'";
-    }
-    if(progOpts->IsQuiet())
-      cout << " at " << to_simple_string(second_clock::local_time()) << endl;
-
-    
-    cout << endl << endl;
+    cout << endl;
+    cout << ">> Total wall-clock time: '" << Timer::GetTimeString(timer->GetWallTime())
+         << "' cpu time: '" << Timer::GetTimeString(timer->GetCPUTime())
+         << "' at " << to_simple_string(second_clock::local_time()) << endl << endl;
       
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
@@ -358,7 +334,8 @@ void CFS::PrintGrid()
 
 void CFS::SolveProblem()
 {
-  // Set up Problem
+
+ // Set up Problem
  domain->PostInit();
 
  // Solves the driver or optimization problem
@@ -382,13 +359,11 @@ void CFS::WriteXMLSkeleton()
   string simName = progOpts->GetSimName();
   if(meshFile == "")
     meshFile = simName + ".mesh";
-  SimInput * ptInputfile = new SimInputMESH(meshFile, PtrParamNode(), infoNode);
-  ptInputfile->InitModule();
+  SimInputMESH input(meshFile, PtrParamNode(), infoNode);
+  input.InitModule();
   // class writing log-information
-  SkeletonConf *ptskel = new SkeletonConf(ptInputfile);
-  ptskel->WriteConf();
-  delete ptskel;
-  delete ptInputfile;
+  SkeletonConf skeleton(dynamic_cast<SimInput*>(&input));
+  skeleton.WriteConf();
 }
 
 
@@ -461,8 +436,9 @@ void CFS::SetupIO(PtrParamNode rootNode )
   // Log command line parameters
   progOpts->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("progOpts"));
   
-  // log the optinal id/name/token/label from <cfsSimulation id="..">
-  infoNode->Get(ParamNode::HEADER)->Get("id")->SetValue(paramNode_->Get("id"));
+  // log the optional id/name/token/label from <cfsSimulation id="..">
+  std::string id = progOpts->GetId() != "" ? progOpts->GetId() : paramNode_->Get("id")->As<std::string>();
+  infoNode->Get(ParamNode::HEADER)->Get("id")->SetValue(id);
   
   // if requested give the problem file -> one can see the defaults then
   if(progOpts->DoDetailedInfo())

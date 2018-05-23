@@ -26,6 +26,7 @@
   <xsd:include schemaLocation="Schemas/CFSDat_DatMeshInput.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_DatMeshOutput.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_TDeriv1.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFSDat_FIRFilter.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_RotSubstantialTimeDeriv.xsd"/> 
   <xsd:include schemaLocation="Schemas/CFSDat_Interpolation.xsd"/>  
   <xsd:include schemaLocation="Schemas/CFSDat_BinOpFilt.xsd"/>
@@ -34,6 +35,7 @@
   <xsd:include schemaLocation="Schemas/CFSDat_TemporalBlending.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_TMean.xsd"/>
   <xsd:include schemaLocation="Schemas/CFSDat_FilterList.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFSDat_SNGR.xsd"/>
 
 
   <xsd:group name="FilterGroup">
@@ -41,6 +43,7 @@
       <xsd:element name="meshInput" type="DT_DatMeshInput"/>
       <xsd:element name="meshOutput" type="DT_DatMeshOutput"/>
       <xsd:element name="timeDeriv1" type="DT_TDeriv1"/>
+      <xsd:element name="fir" type="DT_FIRFilter"/>
       <xsd:element name="substantialDeriv" type="DT_RotSTDeriv"/>
       <xsd:element name="interpolation" type="DT_Interpolation"/>
       <xsd:element name="differentiation" type="DT_Differentiation"/>
@@ -54,6 +57,7 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
+      <xsd:element name="syntheticTurbulence_SNGR" type="DT_SNGR"/>
       <xsd:element name="fft" type="DT_FFT"/>
       <xsd:element name="timeMean" type="DT_TMean">
         <xsd:annotation>

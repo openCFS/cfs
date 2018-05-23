@@ -20,7 +20,6 @@
 #include <def_use_gmsh.hh>
 #include <def_use_cgns.hh>
 #include <def_use_ccmio.hh>
-#include <def_use_lapack.hh>
 #include <def_use_cgal.hh>
 #include <def_use_libfbi.hh>
 #include <def_use_flann.hh>
@@ -233,6 +232,9 @@ namespace CoupledField {
       ( "quiet,q",
         "more compressed console output (env CFS_QUIET)")
 
+      ( "id", po::value<string>(),
+        "set the provided value in info.xml as cfsInfo/header/@id")
+
       ( "noColor",
         "turn off colored output")
       ;
@@ -420,6 +422,11 @@ namespace CoupledField {
     fs::path filePath = GetLogConfFile();
 
     return filePath.string();
+  }
+
+  string ProgramOptions::GetId() const
+  {
+    return varMap_.count("id") != 0 ? varMap_["id"].as<string>() : "";
   }
 
   string ProgramOptions::GetErsatzMaterialStr() const

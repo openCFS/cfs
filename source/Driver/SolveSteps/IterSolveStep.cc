@@ -181,6 +181,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   : ConvCriterion(type, value) {
     actNorm_ = 0.0;
     oldNorm_ = 0.0;
+    SetNormFlag(true);
   }
   
   ConvCriterionDisplacement::~ConvCriterionDisplacement() {
@@ -356,11 +357,13 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     nonLinLogging_ = false;
     stopOnDivergence_ =  false;
     maxiter_ = 0;
+    actAnalysisType_ = BasePDE::NO_ANALYSIS;
     // for mechPDE if only the norm shall converge, but no geometry change shall be executed
     justNorm_ = false;
     
     // Initialize solution map
     solutionMap_[MAG_FORCE_LORENTZ_DENSITY] = MAG_FORCE_LORENTZ;
+    solutionMap_[MAG_FORCE_MAXWELL_DENSITY] = MAG_FORCE_MAXWELL;
     solutionMap_[ELEC_POWER_DENSITY] = ELEC_POWER;
   }
   

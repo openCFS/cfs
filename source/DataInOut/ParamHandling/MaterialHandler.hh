@@ -8,6 +8,7 @@
 
 #include "General/Environment.hh"
 #include "Materials/BaseMaterial.hh"
+#include "Materials/MechanicMaterial.hh"
 #include "Domain/Domain.hh"
 #define bufLength 200
 

@@ -1104,7 +1104,7 @@ PtrParamNode Optimization::CommitIteration()
     *log.file << endl;
 
   // this writes the most current solved forward problem via the driver to gid or whatever
-  bool store = currentIteration == 0 || commitStride == 1 || (commitStride > 0 && currentIteration % commitStride == 0);
+  bool store = currentIteration == 0 || commitStride == 1 || ((commitStride > 0) && currentIteration % commitStride == 0);
   LOG_TRACE2(opt) << "CI: " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
   if(store)
   {
@@ -1124,9 +1124,6 @@ PtrParamNode Optimization::CommitIteration()
 
   currentIteration++;
   problemWithinIteration = 0;
-
-  // write the current info file, if the writing frequency is not too high.
-  domain->GetInfoRoot()->ToFile();
 
   return iteration;
 }

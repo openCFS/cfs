@@ -64,7 +64,10 @@ class TimeSchemeGLM : public BaseTimeScheme{
     //This function is pretty messy right now and we need to reconsider
     // mainly because of the many if clauses to realize a optional predictor scheme...
     //! \copydoc BaseTimeScheme::ComputeStageRHS(UInt,Integer,SingleVector*,Integer)
-    virtual void ComputeStageRHS(UInt actStage, Integer derivId, SingleVector* rhsVec, Integer subIdx=-1);
+    virtual void ComputeStageRHS(UInt actStage, Integer derivId, SingleVector* rhsVec, Integer subIdx=-1, bool skipIncremental=false);
+
+    virtual void UpdateStageRHSWithVector(UInt actStage, Integer derivId, SingleVector* rhsVec,
+                                            SingleVector* UpdateVector, Double factor, bool forceReset = false);
 
     /// Update the GLM Vectors according to new solution
     virtual void FinishStep( );
@@ -103,6 +106,18 @@ class TimeSchemeGLM : public BaseTimeScheme{
     virtual void InitStage(UInt aStage,Double aTime,Domain* domain){
       curScheme_->PrepareStage(aStage,aTime, domain);
     };
+    
+    bool isIncremental(){
+      if(nLinType_ == INCREMENTAL){
+        return true;
+      } else {
+        return false;
+      }
+    }
+    
+    void forceIncremental(){
+      nLinType_ = INCREMENTAL;
+    }
 
   protected:
 

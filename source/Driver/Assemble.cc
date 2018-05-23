@@ -203,7 +203,7 @@ namespace CoupledField
     // Otherwise we issue an error
     if( (biLinContext->GetEntryType() == Global::IMAG ||
          biLinContext->GetEntryType() == Global::COMPLEX )
-        && analysisType_ != BasePDE::HARMONIC ) {
+        && analysisType_ != BasePDE::HARMONIC && analysisType_ != BasePDE::INVERSESOURCE) {
       EXCEPTION( "Can not add integrator '"
                  << biLinContext->GetIntegrator()->GetName()
                  << "' with complex/imaginary entries for a "
@@ -1246,7 +1246,7 @@ namespace CoupledField
         std::stringstream progStream;
         boost::progress_display progress( size, progStream );
 
-        if ( analysisType_ == BasePDE::HARMONIC ) {
+        if ( analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE ) {
 
           Vector<Complex> elemVec;
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
@@ -1282,7 +1282,14 @@ namespace CoupledField
             }
 
             // Calculate real valued element vector
-            form->CalcElemVector(elemVec, entIt);
+            // check if only the real part of a complex value shall be considered
+            if( form->IsExtractReal()  ){
+            	Vector<Complex> tmp;
+            	form->CalcElemVector(tmp, entIt);
+            	elemVec = tmp.GetPart(Global::REAL);
+            }else{
+            	form->CalcElemVector(elemVec, entIt);
+            }
             LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " elemVec=" << elemVec.ToString();
 
             // Map equation numbers
@@ -1474,7 +1481,9 @@ namespace CoupledField
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC
+    		  || analysisType_ ==BasePDE::INVERSESOURCE
+			  || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
         
         matReassemble_[actContext.GetDestMat()] = true;
@@ -1664,6 +1673,14 @@ namespace CoupledField
       matrixMap_[MASS_UPDATE]      = SYSTEM;
       break;
 
+    case BasePDE::INVERSESOURCE:
+       matrixMap_[SYSTEM]    = SYSTEM;
+       matrixMap_[STIFFNESS] = SYSTEM;
+       matrixMap_[DAMPING]   = SYSTEM;
+       matrixMap_[MASS]      = SYSTEM;
+       matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
+       break;
+
     case BasePDE::EIGENFREQUENCY:
       matrixMap_[SYSTEM]    = NOTYPE;
       matrixMap_[STIFFNESS] = STIFFNESS;
@@ -1742,7 +1759,7 @@ namespace CoupledField
     
     bool isComplex = false;
     if (actCt->GetIntegrator()->IsComplex() || 
-        analysisType_ == BasePDE::HARMONIC ) { 
+        analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE) {
       isComplex = true;
     }
     return isComplex;
@@ -1775,13 +1792,16 @@ namespace CoupledField
     
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 
-    if( analysisType_ == BasePDE::TRANSIENT
-        || analysisType_ == BasePDE::STATIC
-        || analysisType_ == BasePDE::EIGENFREQUENCY) {
-      algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
-
+    if( analysisType_ == BasePDE::TRANSIENT || analysisType_ == BasePDE::STATIC || analysisType_ == BasePDE::EIGENFREQUENCY) {
+      if ( (analysisType_ == BasePDE::EIGENFREQUENCY) && (algsys_->IsMatrixComplex()) ) {
+        // we have an eigenvalue problem with complex system matrices (e.g. mechanics with complex stiffness tensor)
+        Matrix2Harmonic( harmMat, elemMat, STIFFNESS, context.GetEntryType(), 1.0 ); // elemMat -> harmMat with omega=1 and STIFFNESS will convert REAL->COMPLEX
+        algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
+      } else {
+        algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
+      }
     } else {
-      assert(analysisType_ == BasePDE::HARMONIC);
+      assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE);
 
       Double omega = mp_->Eval( mHandle_ );
 
@@ -1809,16 +1829,18 @@ namespace CoupledField
 
     assert(mappedDest != NOTYPE);
     // bloch mode analysis is complex
-    assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::EIGENFREQUENCY);
+    assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE
+    		|| analysisType_ == BasePDE::EIGENFREQUENCY);
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
     Double omega = mp_->Eval( mHandle_ );
 
     // for bloch mode we need special handling. The mass matrix needs to be complex but
     // Matrix2Harmonic wourl use omega=0 as we have no actFreq.
-    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || omega == 0.0);
+    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE
+    		|| omega == 0.0);
 
-    if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC)
+    if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE)
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
     else
       harmMat = elemMat;

@@ -554,8 +554,9 @@ bool DesignMaterial::CollectMaterialParametersForElement(DesignSpace* space, con
   for(unsigned int index = base; index < space->data.GetSize(); index += space->elements)
   {
     DesignElement* de = &space->data[index];
+    assert(de->elem->elemNum == elem->elemNum);
     double val = de->GetDesign(DesignElement::SMART);
-    LOG_DBG2(dm) << "CMPFE e=" << elem->elemNum << " de=" << de->ToString() << " v=" << val;
+    LOG_DBG2(dm) << "CMPFE e=" << elem->elemNum << " de=" << de->ToString() << " v=" << val; // << " thread:" << omp_get_thread_num();
     SetParameter(de->GetType(), val, false); // not global element data
   }
   current_elem = elem;
@@ -564,11 +565,11 @@ bool DesignMaterial::CollectMaterialParametersForElement(DesignSpace* space, con
 
 void DesignMaterial::SetParameter(const DesignElement::Type key, const double value, bool global)
 {
-  if(!global)
-    params_.Mine()[key] = value;
-  else
+  if(global)
     for(unsigned int i = 0; i < params_.GetNumSlots(); i++)
       params_.Mine(i)[key] = value;
+  else
+    params_.Mine()[key] = value;
 }
 
 double DesignMaterial::GetParameter(const std::map<DesignElement::Type, double>& map, const DesignElement::Type p)
@@ -592,15 +593,6 @@ const std::map<DesignElement::Type, double>& DesignMaterial::GetParameters() con
 {
   return params_.ConstMine();
 }
-
-bool DesignMaterial::ValidateParameters() const
-{
-  for(unsigned int i = 1; i < params_.GetNumSlots(); i++)
-    assert(params_.Mine(i).size() == params_.Mine(0).size());
-  return true;
-}
-
-
 
 unsigned int DesignMaterial::RequiredParameters( OptimizationMaterial::System material)
 {
@@ -1650,7 +1642,6 @@ void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>&
 
 void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     DesignElement::Type direction, SubTensorType subTensor) const {
-  PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
   // length of the discretized design interval
   int m = hom_rect_a_.GetNumRows();
   int n = hom_rect_b_.GetNumRows();
@@ -1763,7 +1754,6 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
 
 void DesignMaterial::ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p,
     DesignElement::Type direction, SubTensorType subTensor) const {
-  PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
   // length of the discretized design interval
   int m = hom_rect_a_.GetNumRows();
   // grid size of the discretized design interval, works only for uniform grids
@@ -2637,7 +2627,6 @@ bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
 }
 
 int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point) const {
-  PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
   int nRows = interval.GetNumRows();
   double h = interval[1][0] - interval[0][0];
   int idx = -1;
@@ -2649,17 +2638,24 @@ int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point
     idx = nRows - 2;
     point = 1.;
     if (point > 1.01) {
-      inf_warn->SetWarning(
-          "Interpolation of Hom_RectC1 tensor failed. Design Variable "
-              + lexical_cast<string>(point) + " out of bounds ");
+      #pragma omp critical
+      {
+        PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/progress");
+        inf_warn->SetWarning("Interpolation of Hom_RectC1 tensor failed. Design Variable "
+            + lexical_cast<string>(point) + " out of bounds ");
+      }
     }
   } else if (point < interval[0][0]) {
     idx = 0;
     point = interval[0][0];
     if (point < interval[0][0]-0.01) {
-      inf_warn->SetWarning(
+      #pragma omp critical
+      {
+        PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/progress");
+        inf_warn->SetWarning(
           "Interpolation of Hom_RectC1 tensor failed. Design Variable "
               + lexical_cast<string>(point) + " out of bounds ");
+      }
     }
   }
   assert(idx != -1);
@@ -2929,9 +2925,47 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
 //    SetOrthotropicTensor(t, subTensor, a*1.91761363636+ma*1.54548810664, a*0.745738636364+ma*0.529863106641,
 //        a*0.745738636364+ma*0.622605363985, a*1.91761363636+ma*1.54548810664, a*0.745738636364+ma*0.622605363985,
 //        a*1.91761363636+ma*2.87356321839, a*0.5859375+ma*0.57, a*0.5859375+ma*0.57, a*0.5859375+ma*0.5078125);
-    SetOrthotropicTensor(t, subTensor, a*1.91761363636+ma*(1.54548810664-E/5), a*0.745738636364+ma*0.529863106641,
-        a*0.745738636364+ma*0.622605363985, a*1.91761363636+ma*(1.54548810664-E/5), a*0.745738636364+ma*0.622605363985,
-        a*1.91761363636+ma*(2.87356321839+E), a*0.5859375+ma*(0.57-E/10), a*0.5859375+ma*(0.57-E/10), a*0.5859375+ma*(0.5078125-E/10));
+//    SetOrthotropicTensor(t, subTensor, a*1.91761363636+ma*(1.54548810664-E/5), a*0.745738636364+ma*0.529863106641,
+//        a*0.745738636364+ma*0.622605363985, a*1.91761363636+ma*(1.54548810664-E/5), a*0.745738636364+ma*0.622605363985,
+//        a*1.91761363636+ma*(2.87356321839+E), a*0.5859375+ma*(0.57-E/10), a*0.5859375+ma*(0.57-E/10), a*0.5859375+ma*(0.5078125-E/10));
+    // a*VoronoiCS + (1-a)*VoronoiNoCS
+    t[0][0] = a*260.910 +ma*257.89 +E-E; //add zero to avoid -Wunused-variable
+    t[0][1] = a*122.880 +ma*125.21;
+    t[0][2] = a*147.040 +ma*147.49;
+    t[0][3] = a*-0.0011639 +ma*0.064781;
+    t[0][4] = a*0.0015323 +ma*-0.014303;
+    t[0][5] = a*-0.14353 +ma*0.22157;
+    t[1][0] = t[0][1];
+    t[1][1] = a*260.910 +ma*257.91;
+    t[1][2] = a*147.040 +ma*147.48;
+    t[1][3] = a*0.040643 +ma*-0.0021714;
+    t[1][4] = a*0.000039308 +ma*-0.00072162;
+    t[1][5] = a*0.18457 +ma*-0.24112;
+    t[2][0] = t[0][2];
+    t[2][1] = t[1][2];
+    t[2][2] = a*236.720 +ma*235.19;
+    t[2][3] = a*0.00024251 +ma*-0.45645;
+    t[2][4] = a*-0.00068456 +ma*0.00069223;
+    t[2][5] = a*-0.010199 +ma*-0.00041267;
+    t[3][0] = t[0][3];
+    t[3][1] = t[1][3];
+    t[3][2] = t[2][3];
+    t[3][3] = a*105.770 +ma*106.68;
+    t[3][4] = a*-0.052229 +ma*-0.0017872;
+    t[3][5] = a*0.1147 +ma*-0.10683;
+    t[4][0] = t[0][4];
+    t[4][1] = t[1][4];
+    t[4][2] = t[2][4];
+    t[4][3] = t[3][4];
+    t[4][4] = a*105.840 +ma*107.01;
+    t[4][5] = a*-0.00092836 +ma*0.00061316;
+    t[5][0] = t[0][5];
+    t[5][1] = t[1][5];
+    t[5][2] = t[2][5];
+    t[5][3] = t[3][5];
+    t[5][4] = t[4][5];
+    t[5][5] = a*68.952 +ma*67.691;
+    t *= 1000;
     break;
   case PLANE_STRAIN:
   case PLANE_STRESS:

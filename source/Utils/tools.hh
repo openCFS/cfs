@@ -65,6 +65,7 @@ namespace CoupledField {
   inline std::string Bracket( const std::string& xpr ) {
     return "("+xpr+")";
   }
+
     //@}
 
   // =========================================================================

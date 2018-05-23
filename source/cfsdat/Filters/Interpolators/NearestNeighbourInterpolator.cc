@@ -54,7 +54,8 @@ NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::
   p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
   numNeighbors_ = config->Get("scheme")->Get("numNeighbours")->As<UInt>();
 
-
+  useElemAsTarget_ = false;
+  if(params_->Has("useElemAsTarget")){useElemAsTarget_ = params_->Get("useElemAsTarget")->As<bool>();}
   mCheck_ = false;
 }
 
@@ -62,40 +63,13 @@ NearestNeighbourInterpolator::~NearestNeighbourInterpolator(){
 
 }
 
-bool NearestNeighbourInterpolator::Run(){
-  // we deactivate every result, except for our own
-  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
-  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
-
-  for(; aIter != activeResults.end(); ++aIter){
-    if(filterResIds.Find(*aIter) == -1){
-      WARN(" There are still active results when reaching the interpolation filter. This indicates an unexpected use of the pipeline.")
-    }
-    resultManager_->DeactivateResult(*aIter);
-  }
-  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
-  resultManager_->SetTimeValue(upResIds[0],aTF);
-  // now we deactivate our own result and activate the others
-  resultManager_->ActivateResult(upResIds[0]);
-
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
-  }
-
-
-
-
-
-  CF::StdVector<UInt> eqnNums;
-  /// this is the vector, which will be filled with the interpolation result
-  Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
-  returnVec.Init();
+bool NearestNeighbourInterpolator::UpdateResults(std::set<uuids::uuid>& upResults){
+  /// this is the vector, which will be filled with the result
+  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
+  Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
 
   // vector, containing the source data values
-  Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
   
   // TODO matrix interpolation here
   Matrix& matrix = matrices_[matrixIndex_];
@@ -103,36 +77,8 @@ bool NearestNeighbourInterpolator::Run(){
   StdVector<CF::UInt>& targetSourceIndex = matrix.targetSourceIndex;
   StdVector<CF::UInt>& targetSource = matrix.targetSource;
   StdVector<CF::Double>& targetSourceFactor = matrix.targetSourceFactor;
-
   
   NearestNeighbourInterpolation(returnVec, inVec, numEquPerEnt_, targetSource, targetSourceIndex, numNeighbors_, targetSourceFactor, maxNumTrgEntities);
-
-
-  resultManager_->ActivateResult(filterResIds[0]);
-
-
-  // TODO make a XML input that triggers the quality evaluation
-  if(mCheck_ == true){
-    /*
-    Vector<Double> testVec;
-    testVec.Resize(inVec.GetSize());
-    vec.Clear(false);
-    str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdapter(upResIds[0])->mapping;
-
-    scatteredData.Clear(false);
-    scatteredData.Resize(targetCoords_.GetSize());
-
-    this->FillScatteredDataVec(scatteredData, vec, returnVec, targetCoords_);
-    this->Interpolation(testVec, scatteredData, vec, upMap, targetCoords_, sourceCoords_, interpolDataSrc_, inGrid_);
-
-    this->CheckFilterResults(inVec, testVec);
-    */
-  }
-
-  //now deactivate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->DeactivateResult(upResIds[aRes]);
-  }
 
   return true;
 }
@@ -359,7 +305,7 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
   uuids::uuid upRes = upResIds[0];
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
-  scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
+  scrMap_ = resultManager_->GetEqnMap(upRes);
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
   bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
   
@@ -371,7 +317,7 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
     numNeighbors_ = numSrcEntities;
   }
   
-  trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
+  trgMap_ = resultManager_->GetEqnMap(filterResIds[0]);
   /*
   // checking, if interpolation matrix need to be created
   for (UInt i = 0; i < interpolators_.GetSize(); i++) {
@@ -446,7 +392,11 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
       CF::Vector<Double> pCoord;
-      trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
+      if(useElemAsTarget_){
+        trgGrid_->GetElemCentroid(pCoord, globEntityNumber,true);
+      } else {
+        trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
+      }
       Point_3 query(pCoord[0],pCoord[1],pCoord[2]);
       Distance tr_dist;
       K_neighbor_search search(tree, query, numNeighbors_);
@@ -503,21 +453,7 @@ void NearestNeighbourInterpolator::PrepareCalculation(){
 
 
 ResultIdList NearestNeighbourInterpolator::SetUpstreamResults(){
-  ResultIdList generated;
-  //we should only have one filter Result
-  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
-  std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
-
-  //add input result to manager
-  std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
-  uuids::uuid newId = resultManager_->AddResult(inRes,this->filterTag_);
-
-  //set the timeline of upstream data if already set
-  resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-  generated.Push_back(newId);
-
-  return generated;
-
+  return SetDefaultUpstreamResults();
 }
 
 void NearestNeighbourInterpolator::AdaptFilterResults(){
@@ -541,7 +477,11 @@ void NearestNeighbourInterpolator::AdaptFilterResults(){
   resultManager_->SetRegionNames(filterResIds[0],this->trgRegions_);
   //after this filter we have nodal values on different regions
   //on a different grid
-  resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  if(useElemAsTarget_){
+    resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::ELEMENT);
+  } else {
+    resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  }
   resultManager_->SetGrid(filterResIds[0],this->trgGrid_);
   resultManager_->SetMeshResult(filterResIds[0],true);
 

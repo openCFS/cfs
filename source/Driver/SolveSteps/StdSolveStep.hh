@@ -118,40 +118,21 @@ namespace CoupledField
     UInt CalcEigenFrequencies( Vector<Complex> & frequencies, Vector<Double> & errBounds,
                                UInt numFreq, double shift, bool sort, bool bloch);
 
+    //! Calculate the Eigenfrequencies in an interval [minVal,maxVal]
+    UInt CalcEigenFrequencies( Vector<Double>& frequencies, Vector<Double>& errBounds, Double minVal, Double maxVal);
+
+    void CalcEigenValues(BaseVector &sol, BaseVector &err, Double minVal, Double maxVal );
+
     //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
     //! Therefore, previously CalcEigenFrequencies() has to be called.
     void GetEigenMode( UInt numMode );
-    
-    //----------------------- HYSTERESIS -------------------------------------
-    //! solves for one nonlinear transient step
-    //! consideres hystreresis nonlinearities in direct coupled PDEs
-    virtual void StepTransNonLinHysteresis();
-    virtual void StepTransNonLinHysteresisTotal();
-    /*!
-     * Helper funciton for setting up the equation system during
-     *            StepTransNonLinHysteresis()
-     * Background: During the solve step, the matrices and the rhs have to be
-     *  assembled multiple times during linesearch, for the calculation of the
-     *  residual error and of course to get a system to be solved;
-     *  for simplification, encapsulate that sequence of function calls
-     *  in a separate function
-     */
-    /*
-     * for residual computation we need a slightly different version -> see .cc file
-     */
-    virtual void CalcResidualAndConfigSystemForHysteresis(SBM_Vector& oldSolution,SBM_Vector& solIncrement,Double usedEta, UInt stage, UInt callingCnt, UInt evalVersion, bool trans);
-
-    virtual void ConfigureSystemForHysteresisResidual(SBM_Vector& oldSolution,SBM_Vector& solIncrement,Double usedEta,UInt stage, bool trans);
-
-    virtual void ConfigureSystemForHysteresis(UInt stage,bool trans, bool firstTime = false);
-    //! does a line search and returns the optimal residual norm
-    Double LineSearchHyst(SBM_Vector& solIncrement, Double& etaLineSearch, UInt evalVersion, UInt callingCnt,
-                      bool trans=false, bool performLineSearch=true);
     
     //----------------------- helpfull methods--------------------------------------
 
     /** The Assemle opject contains the bilinear forms */
     Assemble* GetAssemble() { return assemble_; } 
+
+    AlgebraicSys * GetAlgSys() { return algsys_; }
 
     //! Set the current time step
     void SetTimeStep( Double dt );
@@ -175,14 +156,6 @@ namespace CoupledField
                               SBM_Vector& actSol, 
                               Double& etaLineSearch, Double& RHSLin2Norm,
                               bool trans=false);
-
-
-    //! returns the hysteresis operator
-    Hysteresis * GetHystOperator(UInt iSD) {
-      return hyst_[iSD];
-    };
-    
-
 
   protected:
     
@@ -275,12 +248,6 @@ namespace CoupledField
     //! Vector containing rhs
     SBM_Vector rhsVec_;
 
-    //! Vector containing residual
-    SBM_Vector resVec_;
-
-    //! nonLinRHS
-    SBM_Vector nonLinRHS_;
-
     //! Vector containing the rhs for the current stage based on the scheme
     //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system
     SBM_Vector stageRHS_;
@@ -290,8 +257,6 @@ namespace CoupledField
     
     //! Map Storing FeSpaces for each solution type of PDE
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
-    //hysteresis operator;    
-    StdVector<Hysteresis *> hyst_;
 
 
     std::ofstream logFile_;

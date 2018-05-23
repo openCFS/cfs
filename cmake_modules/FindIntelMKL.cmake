@@ -426,6 +426,8 @@ ELSE(WIN32)
       USES_TERMINAL)
 
   ELSE()
+    MESSAGE("executing ${COMPILE_MKL_TEST_DIR}/compile_mkl_test.sh in ${COMPILE_MKL_TEST_DIR} failed")
+    MESSAGE("RETVAL=${RETVAL} and MKL_INFO=${MKL_INFO}")
     MESSAGE(SEND_ERROR "A problem occurred during determination of MKL linker
                         flags. Please run ${CFS_BINARY_DIR}/tmp/mkl_test/compile_mkl_test.sh
                         by hand to investigate the problem. Script output was\n ${MKL_INFO}")
@@ -478,6 +480,10 @@ ENDIF() # MINGW OR MSVC
 #-------------------------------------------------------------------------------
 # Set BLAS, LAPACK and PARDISO libraries depending on the MKL version.
 #-------------------------------------------------------------------------------
+
+# see also External_OpenBLAS and External_LAPACK, where the setting is quite different:
+# e.g. BLAS_LIBRARY=-Wl,--start-group;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_intel_lp64.a;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_gnu_thread.a;/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/lib/intel64/libmkl_core.a;-Wl,--end-group;-L/opt/intel/compilers_and_libraries_2018.0.128/linux/mkl/../compiler/lib/intel64;-liomp5;-lpthread;-lm;-ldl
+# e.g. LAPACK_LIBRARY=
 IF(CFS_BLAS_LAPACK STREQUAL "MKL")
   SET(BLAS_LIBRARY "${MKL_BLAS_LIB}")
   IF(MKL_MAJOR_VERSION LESS 10)

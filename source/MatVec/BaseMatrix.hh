@@ -177,7 +177,6 @@ namespace CoupledField {
     //! level of the entries on the main diagonal of the matrix.
     virtual Double GetMaxDiag() const = 0;
 
-
     // **** Matrix Data and Structure information ****
 
 
@@ -186,6 +185,10 @@ namespace CoupledField {
     //! The method returns the structural type of the matrix. This is encoded
     //! as a value of the enumeration data type StructureType.
     virtual BaseMatrix::StructureType GetStructureType() const = 0;
+
+    //! The method returns the storage type of the matrix. This is encoded
+    //! as a value of the enumeration data type StorageType.
+    virtual BaseMatrix::StorageType GetStorageType() const = 0;
 
     //! Return the Entry type of the matrix
 

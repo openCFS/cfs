@@ -380,7 +380,7 @@ string Function::ToString() const
     return Local::phase.ToString(local->GetPhase()) + "_" + type.ToString(type_);
 
   if(IsPhysical())
-    return "physical_ " + type.ToString(type_);
+    return "physical_" + type.ToString(type_);
 
   return type.ToString(type_);
 }
@@ -864,7 +864,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
     }
   }
   // empty elements for shape mapping!
-  //  assert(elements.GetSize() == elements.Capacity());
+  //  assert(elements.GetSize() == elements.GetCapacity());
 }
 
 void Function::SetDenseSparsityPattern(DesignSpace* space) {

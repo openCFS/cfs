@@ -33,7 +33,7 @@ void PhistLinearSolver::Setup(BaseMatrix &sysmat){
   setup_phistMatrix->SetSub();
   setup_phistMatrix->Start();
 
-  phistMat_ = (phist::types<double>::sparseMat_ptr) InitMatrix(sysmat, &A_, 1.0);
+  phistMat_ = (phist::types<double>::sparseMat_ptr) InitMatrix<double>(sysmat, &A_, 1.0);
 
   setup_phistMatrix->Stop();
   if (firstSetup_){

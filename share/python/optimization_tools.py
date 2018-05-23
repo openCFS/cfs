@@ -1,4 +1,5 @@
 # This collects some tool routines for optimization
+from cfs_utils import *
 
 import numpy
 import numpy.linalg
@@ -8,7 +9,7 @@ import sys
 import scipy.io
 from lxml import etree
 from PIL import Image
-from cfs_utils import *
+
 
 # dump some information about a density file
 def print_design_info(filename, attribute, set = None, fill = None):
@@ -470,7 +471,7 @@ def threshold_filter(data, threshold, min, max):
 
 # # threshold towards a given final volume
 # @param data original 2d/3d data
-# @param min niminum final density in the result, ignores penalty, max = 1
+# @param min minimal final density in the result, ignores penalty, max = 1
 # @param target volume fraction to be reached
 # @param material_penalty penalty to interpret original data
 # @return: the new data array as first value and the threshold as second value

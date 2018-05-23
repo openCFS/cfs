@@ -4,93 +4,94 @@
 #include "MatVec/Vector.hh"
 #include "MatVec/Matrix.hh"
 #include "Hysteresis.hh"
+#include "Utils/Timer.hh"
 //#include "Preisach.hh"
 
 namespace CoupledField {
 
-class Rectangle
-{
-public:
-
-  Rectangle(){
-    l_ = 0.0;
-    r_ = 0.0;
-    t_ = 0.0;
-    b_ = 0.0;
-  }
-
-  Rectangle(Double left, Double right, Double top, Double bot){
-    l_ = left;
-    r_ = right;
-    t_ = top;
-    b_ = bot;
-  }
-
-  void setBounds(Double left, Double right, Double top, Double bot){
-    l_ = left;
-    r_ = right;
-    t_ = top;
-    b_ = bot;
-  }
-
-  void getBounds(Double& left, Double& right, Double& top, Double& bot){
-    left = l_;
-    right = r_;
-    top = t_;
-    bot = b_;
-  }
-
-  std::string ToString() const {
-
-    std::ostringstream os;
-
-    os << "Left / Right: " << l_ << " / " << r_ << '\n';
-    os << "Top / Bottom: " << t_ << " / " << b_ << '\n';
-
-    return os.str();
-  }
-
-
-  bool clipRectangles(Rectangle& source, Rectangle& target){
-    Double l,r,t,b;
-
-    if( (this->t_ <= source.b_)||(source.t_ <= this->b_) ) {
-      /*
-       * top edge of one rectangle is smaller lies below or on top of the bottom edge of the other rectangle
-       * -> no overlap area possible
-       */
-      return false;
-    }
-    if( (this->r_ <= source.l_)||(source.r_ <= this->l_) ){
-      /*
-       * right edge lies left or on top of the left edge of the other element
-       * -> no overlap area possible
-       */
-      return false;
-    }
-
-    t = std::min(this->t_,source.t_);
-    b = std::max(this->b_,source.b_);
-    l = std::max(this->l_,source.l_);
-    r = std::min(this->r_,source.r_);
-
-    target = Rectangle(l,r,t,b);
-    return true;
-  }
-
-  Double l_,r_,t_,b_;
-
-};
-
-
-class ListEntryv10
+  class Rectangle
   {
-  /*
-   * New version of ListEntryv10
-   * as ListEntryv10 is only used for the switching list, it does not have to store vectors anymore
-   */
   public:
-
+    
+    Rectangle(){
+      l_ = 0.0;
+      r_ = 0.0;
+      t_ = 0.0;
+      b_ = 0.0;
+    }
+    
+    Rectangle(Double left, Double right, Double top, Double bot){
+      l_ = left;
+      r_ = right;
+      t_ = top;
+      b_ = bot;
+    }
+    
+    void setBounds(Double left, Double right, Double top, Double bot){
+      l_ = left;
+      r_ = right;
+      t_ = top;
+      b_ = bot;
+    }
+    
+    void getBounds(Double& left, Double& right, Double& top, Double& bot){
+      left = l_;
+      right = r_;
+      top = t_;
+      bot = b_;
+    }
+    
+    std::string ToString() const {
+      
+      std::ostringstream os;
+      
+      os << "Left / Right: " << l_ << " / " << r_ << '\n';
+      os << "Top / Bottom: " << t_ << " / " << b_ << '\n';
+      
+      return os.str();
+    }
+    
+    
+    bool clipRectangles(Rectangle& source, Rectangle& target){
+      Double l,r,t,b;
+      
+      if( (this->t_ <= source.b_)||(source.t_ <= this->b_) ) {
+        /*
+         * top edge of one rectangle is smaller lies below or on top of the bottom edge of the other rectangle
+         * -> no overlap area possible
+         */
+        return false;
+      }
+      if( (this->r_ <= source.l_)||(source.r_ <= this->l_) ){
+        /*
+         * right edge lies left or on top of the left edge of the other element
+         * -> no overlap area possible
+         */
+        return false;
+      }
+      
+      t = std::min(this->t_,source.t_);
+      b = std::max(this->b_,source.b_);
+      l = std::max(this->l_,source.l_);
+      r = std::min(this->r_,source.r_);
+      
+      target = Rectangle(l,r,t,b);
+      return true;
+    }
+    
+    Double l_,r_,t_,b_;
+    
+  };
+  
+  
+  class ListEntryv10
+  {
+    /*
+     * New version of ListEntryv10
+     * as ListEntryv10 is only used for the switching list, it does not have to store vectors anymore
+     */
+  public:
+    
     ListEntryv10(Double value, bool isMin, bool isDummy = false,bool hasChanged = true){
       val_ = value;
       isMin_ = isMin;
@@ -99,106 +100,106 @@ class ListEntryv10
     }
     ~ListEntryv10(){
     }
-
+    
     bool isMin(){
       return isMin_;
     }
-
+    
     bool isMinConst() const{
       return isMin_;
     }
-
+    
     bool isDummy(){
       return isDummy_;
     }
-
+    
     void toggleMin(){
       isMin_ = !isMin_;
     }
-
+    
     void setVal(Double newValue){
       if(newValue != val_){
         hasChanged_ = true;
       }
       val_ = newValue;
     }
-
+    
     Double getVal(){
       return val_;
     }
-
+    
     Double getValConst() const{
       return val_;
     }
-
+    
     bool operator==(ListEntryv10 x) const{
       Double tol = 1e-16;
-
+      
       if(abs(val_ - x.getVal()) > tol){
         //std::cout << "Diffval: " << abs(val_ - x.getVal()) << std::endl;
         return false;
       }
-//      if(val_ != x.getVal()){
-//        return false;
-//      }
+      //      if(val_ != x.getVal()){
+      //        return false;
+      //      }
       if(isMin_ != x.isMin()){
         return false;
       }
       return true;
     }
-
+    
     std::string ToString() const {
-
+      
       std::ostringstream os;
-
+      
       os << "Value: " << val_ << '\n';
       os << "IsMin?: " << bool(isMin_) << '\n';
-
+      
       return os.str();
     }
-
+    
     void setHasChanged(bool state){
       hasChanged_ = state;
     }
-
+    
     bool hasChanged(){
       return hasChanged_;
     }
-
+    
   protected:
-
+    
     Double val_;
     bool isMin_;
     bool isDummy_;
-
+    
     /*
      * marks if this entry has changed;
      * hasChanged_ becomes true, if the switching list gets updated;
      */
     bool hasChanged_;
-
+    
   };
-
-
-class RotListEntryv10 : public ListEntryv10
+  
+  
+  class RotListEntryv10 : public ListEntryv10
   {
-  /*
-   * Extension to normal list entries
-   *
-   * Each entry of the rotation list has to store a list of std ListEntries which are used to reconstruct the
-   * switching state
-   */
+    /*
+     * Extension to normal list entries
+     *
+     * Each entry of the rotation list has to store a list of std ListEntries which are used to reconstruct the
+     * switching state
+     */
   public:
-
-      /*
-       * upperValue corresponds to the value of xThres which is used to set the entry
-       * lowerValue is the value of the next entry (and thus needs to be updated)
-       * -> using these two values, we can directly decide, if the area of the rotation state has changed or not
-       * -> if the area did not change and the switching list did not change either, we do not have to recalculate
-       *    the rotation state but only have to multiply with the rotation vector
-       */
-      RotListEntryv10(Double upperValue, Double lowerValue, Vector<Double> vector, std::list<ListEntryv10> switchingList, Double lastLocalXpar= 0.0,
-                   bool isMin = false, bool isDummy = false, bool wasWipedOut=false, UInt startCnt = 0)
+    
+    /*
+     * upperValue corresponds to the value of xThres which is used to set the entry
+     * lowerValue is the value of the next entry (and thus needs to be updated)
+     * -> using these two values, we can directly decide, if the area of the rotation state has changed or not
+     * -> if the area did not change and the switching list did not change either, we do not have to recalculate
+     *    the rotation state but only have to multiply with the rotation vector
+     */
+    RotListEntryv10(Double upperValue, Double lowerValue, Vector<Double> vector, std::list<ListEntryv10> switchingList, Double lastLocalXpar= 0.0,
+      bool isMin = false, bool isDummy = false, bool wasWipedOut=false, UInt startCnt = 0)
       : ListEntryv10(upperValue, isMin, isDummy)
       {
         // create empty list
@@ -211,10 +212,10 @@ class RotListEntryv10 : public ListEntryv10
         wipedOut_ = wasWipedOut;
         startCnt_ = startCnt;
       }
-
+      
       ~RotListEntryv10(){
       }
-
+      
       /*
        * To keep the later rotation list as short as possible, we try to merge adjacent rotListEntries.
        * This is possible, if
@@ -224,17 +225,17 @@ class RotListEntryv10 : public ListEntryv10
        *     but also set resulted in an xPar which overwrote the switching list)
        */
       bool canBeMergedWith(RotListEntryv10& rotEntry){
-
+        
         Double tol = 1e-15;
         Vector<Double> tmp = rotEntry.getVecCopy();
-
+        
         for(UInt i = 0; i< vec_.GetSize();i++){
           if(abs(vec_[i]-tmp[i])>tol){
             //std::cout << "Diffvec " << abs(vec_[i]-tmp[i]) << std::endl;
             return false;
           }
         }
-
+        
         if(startCnt_ != rotEntry.getStartCnt()){
           /*
            * even though the switching lists may be the same,
@@ -244,18 +245,18 @@ class RotListEntryv10 : public ListEntryv10
            */
           return false;
         }
-
-//        if(!(vec_ == rotEntry.getVecCopy())){
-//          return false;
-//        }
-
+        
+        //        if(!(vec_ == rotEntry.getVecCopy())){
+        //          return false;
+        //        }
+        
         if(switchingList_ != rotEntry.getListReference()){
           return false;
         }
-
+        
         return true;
       }
-
+      
       /*
        * To keep the later rotation list as short as possible, we try to merge adjacent rotListEntries.
        * New merging rule:
@@ -275,15 +276,15 @@ class RotListEntryv10 : public ListEntryv10
        *
        */
       bool canBeMergedWith_v2(RotListEntryv10& rotEntry, bool classical){
-
+        
         /*
          * this = current entry
          * rotEntry = next entry
          */
-
+        
         Double tol = 1e-15;
         Vector<Double> tmp = rotEntry.getVecCopy();
-
+        
         for(UInt i = 0; i< vec_.GetSize();i++){
           if(abs(vec_[i]-tmp[i])>tol){
             /*
@@ -292,7 +293,7 @@ class RotListEntryv10 : public ListEntryv10
             return false;
           }
         }
-
+        
         /*
          * new check for the new merging rule, which requires the second list to only contain one entry
          */
@@ -305,22 +306,22 @@ class RotListEntryv10 : public ListEntryv10
            * states are extending to the outer bounds at the left and top side so that overstanding entries are
            * not clipped down as it is the case for the revised model.
            */
-
+          
           /*
            * check if current lists ends where the next list starts
            */
           Double lastEntry,firstEntry;
           bool lastEntryMin,firstEntryMin;
-
+          
           lastEntry = switchingList_.back().getVal();
           lastEntryMin = switchingList_.back().isMin();
           firstEntry = rotEntry.getListReference().front().getVal();
           firstEntryMin = rotEntry.getListReference().front().isMin();
-
+          
           if( lastEntryMin != firstEntryMin ){
             return false;
           }
-
+          
           /*
            * switching list of current entry ends with same type of extremum as switching list of next entry begins
            */
@@ -331,7 +332,7 @@ class RotListEntryv10 : public ListEntryv10
             //std::cout << "Merged by new rule" << std::endl;
             return true;
           }
-
+          
           /*
            * get left and top boundary of next rot entry
            */
@@ -343,7 +344,7 @@ class RotListEntryv10 : public ListEntryv10
             l = -rotEntry.getVal();
             t = rotEntry.getVal();
           }
-
+          
           if(lastEntryMin){
             /*
              * if lastEntryMin == true -> check if lastEntry < firstEntry and firstEntry = left boundary of bounding box
@@ -361,44 +362,44 @@ class RotListEntryv10 : public ListEntryv10
               return true;
             }
           }
-
+          
         } else {
           /*
            * check the old merging rule (maybe we have identical lists, so why not merge?
            */
           if(switchingList_ == rotEntry.getListReference()){
             if(startCnt_ == rotEntry.getStartCnt()){
-               /*
-                * even though the switching lists may be the same,
-                * one rotEntry starts evaluation at 0 the other one at >= 1.
-                * But >= 1 means that the real first entry was deleted from the list
-                * and thus the list wouldn't be equal
-                */
-               //std::cout << "Merged by old rule" << std::endl;
-               return true;
-             }
+              /*
+               * even though the switching lists may be the same,
+               * one rotEntry starts evaluation at 0 the other one at >= 1.
+               * But >= 1 means that the real first entry was deleted from the list
+               * and thus the list wouldn't be equal
+               */
+              //std::cout << "Merged by old rule" << std::endl;
+              return true;
+            }
           }
         }
-
+        
         return false;
       }
-
+      
       std::list<ListEntryv10>& getListReference(){
         return switchingList_;
       }
-
+      
       std::list<ListEntryv10> getListCopy(){
         return switchingList_;
       }
-
+      
       void setList(std::list<ListEntryv10> switchingList){
         switchingList_ = switchingList;
       }
-
+      
       std::string ToString() const {
-
+        
         std::ostringstream os;
-
+        
         os << "RotationEntry: " << '\n';
         os << "Upper/Lower Value: " << val_ << " / " << lowerVal_ << '\n';
         if(vec_.GetSize() == 3){
@@ -409,18 +410,18 @@ class RotListEntryv10 : public ListEntryv10
         //os << "IsMin?: " << bool(isMin_) << '\n'; // is always 0
         os << "List of SwitchingEntries: " << '\n';
         os << "Value (isMin?): " << '\n';
-
+        
         std::list<ListEntryv10>::const_iterator listIt;
         UInt cnt = 1;
-
+        
         for(listIt = switchingList_.begin(); listIt != switchingList_.end(); listIt++){
           os << listIt->getValConst() << " (" << listIt->isMinConst() << ") -/- ";
           cnt++;
         }
-
+        
         return os.str();
       }
-
+      
       void setLowerVal(Double newValue){
         if(lowerVal_ != newValue){
           hasChanged_ = true;
@@ -460,12 +461,12 @@ class RotListEntryv10 : public ListEntryv10
         if(newValue == 0){
           hasChanged_ = true;
         }
-
+        
         lowerVal_ = newValue;
       }
-
+      
       void setVec(Vector<Double> newVector){
-
+        
         Double tol = 1e-15;
         for(UInt i = 0; i< vec_.GetSize();i++){
           if(abs(vec_[i]-newVector[i])>tol){
@@ -473,33 +474,33 @@ class RotListEntryv10 : public ListEntryv10
             break;
           }
         }
-
+        
         vec_ = newVector;
       }
-
+      
       Vector<Double>& getVecReference(){
         return vec_;
       }
-
+      
       Vector<Double> getVecCopy(){
         return vec_;
       }
-
+      
       Double getLowerVal(){
         return lowerVal_;
       }
-
+      
       Double getLastLocalXpar(){
         return lastLocalXpar_;
       }
-
+      
       void setLastLocalXpar(Double newLastLocalXpar){
         if(newLastLocalXpar != lastLocalXpar_){
           hasChanged_ = true;
         }
         lastLocalXpar_ = newLastLocalXpar;
       }
-
+      
       void setToUnchanged(){
         /*
          * sets the value hasChanged_ of the element and of
@@ -509,23 +510,23 @@ class RotListEntryv10 : public ListEntryv10
          *    till next time
          */
         hasChanged_ = false;
-
+        
         std::list<ListEntryv10>::iterator listIt;
-
-         /*
-          * Note that we can detect overall changes to the switchingList by checking its content!
-          * Reason: the list changes if elements get
-          *  - values changes -> setVal sets flag hasChanged_ to true
-          *  - entries are deleted/overwritten by new ones -> new entries have automatically hasChanged_ = true
-          *  - entries get appended to the list -> new entries have automatically hasChanged_ = true
-          *
-          *  -> the loop can only be passed, if the number of elements and their content remained the same
-          */
-         for(listIt = switchingList_.begin(); listIt != switchingList_.end(); listIt++){
-           listIt->setHasChanged(false);
-         }
+        
+        /*
+         * Note that we can detect overall changes to the switchingList by checking its content!
+         * Reason: the list changes if elements get
+         *  - values changes -> setVal sets flag hasChanged_ to true
+         *  - entries are deleted/overwritten by new ones -> new entries have automatically hasChanged_ = true
+         *  - entries get appended to the list -> new entries have automatically hasChanged_ = true
+         *
+         *  -> the loop can only be passed, if the number of elements and their content remained the same
+         */
+        for(listIt = switchingList_.begin(); listIt != switchingList_.end(); listIt++){
+          listIt->setHasChanged(false);
+        }
       }
-
+      
       bool hasChanged(){
         /*
          * check if either the rotation state entry has
@@ -540,9 +541,9 @@ class RotListEntryv10 : public ListEntryv10
         if(hasChanged_ == true){
           return true;
         }
-
+        
         std::list<ListEntryv10>::iterator listIt;
-
+        
         /*
          * Note that we can detect overall changes to the switchingList by checking its content!
          * Reason: the list changes if elements get
@@ -557,33 +558,33 @@ class RotListEntryv10 : public ListEntryv10
             return true;
           }
         }
-
+        
         return false;
       }
-
+      
       bool wasListWipedOut(){
         return wipedOut_;
       }
-
+      
       void setWipedOut(bool state){
         if(state != wipedOut_){
           hasChanged_ = true;
         }
         wipedOut_ = state;
       }
-
+      
       Double getLastEvalState(){
         return evaluatedVal_;
       }
-
+      
       void setLastEvalState(Double newState){
         evaluatedVal_ = newState;
       }
-
+      
       UInt getStartCnt(){
         return startCnt_;
       }
-
+      
       void setStartCnt(UInt newVal){
         /*
          * Note: we do not set flag hasChanged to true here
@@ -598,176 +599,285 @@ class RotListEntryv10 : public ListEntryv10
          */
         startCnt_ = newVal;
       }
-
+      
   private:
-      std::list<ListEntryv10> switchingList_;
-
-      /*
-       * When evaluating the switching list we must iterate over the list and call the function
-       * getRectangleBounds with a cnt specifying the area id (as there is a special treatment for
-       * area with id = 0). However, to simplify and shorten the list, it can and will happen, that the
-       * entries corresponding to area with id=0 get deleted. Therefore the cnt in the loop should not
-       * start at 0 as this would lead to wrong results.
-       * Therefore, add a start counter which is either 0 (meaning the value corresponding to area 0 is
-       * still in the list) or 1 (meaning the value is no longer in the list).
-       * This value should be reset to 0 each time the switching list got completely overwritten, i.e.
-       * the first element of the list got replaced.
-       */
-      UInt startCnt_;
-
-      /*
-       * marks if this the rotation state has changed;
-       */
-      bool rotHasChanged_;
-
-      /*
-       * lower value defining the area
-       * upper value is stored in val_
-       */
-      Double lowerVal_;
-
-      /*
-       * stores the evaluated state resulting from
-       * overlapping switching list with rotation area and Preisach weights
-       * the overall evaluated state results from this value * rotationState (= vec_)
-       * -> this value needs only be recalculated if hasChanged_ == true
-       */
-      Double evaluatedVal_;
-
-      /*
-       * rotation state corresponding to this entry
-       */
-      Vector<Double> vec_;
-
-      /*
-       * stores the last value of xPar which was used to set the locally stored switching list
-       */
-      Double lastLocalXpar_;
-
-      /*
-       * this flag states, if the stored switching list reached the absolute min (beta = -1) or absolute max (alpha = +1)
-       * if that is the case, the resulting switching areas do not have a subarea around alpha = -beta which is still split
-       * along this diagonal;
-       */
-      bool wipedOut_;
+    std::list<ListEntryv10> switchingList_;
+    
+    /*
+     * When evaluating the switching list we must iterate over the list and call the function
+     * getRectangleBounds with a cnt specifying the area id (as there is a special treatment for
+     * area with id = 0). However, to simplify and shorten the list, it can and will happen, that the
+     * entries corresponding to area with id=0 get deleted. Therefore the cnt in the loop should not
+     * start at 0 as this would lead to wrong results.
+     * Therefore, add a start counter which is either 0 (meaning the value corresponding to area 0 is
+     * still in the list) or 1 (meaning the value is no longer in the list).
+     * This value should be reset to 0 each time the switching list got completely overwritten, i.e.
+     * the first element of the list got replaced.
+     */
+    UInt startCnt_;
+    
+    /*
+     * marks if this the rotation state has changed;
+     */
+    bool rotHasChanged_;
+    
+    /*
+     * lower value defining the area
+     * upper value is stored in val_
+     */
+    Double lowerVal_;
+    
+    /*
+     * stores the evaluated state resulting from
+     * overlapping switching list with rotation area and Preisach weights
+     * the overall evaluated state results from this value * rotationState (= vec_)
+     * -> this value needs only be recalculated if hasChanged_ == true
+     */
+    Double evaluatedVal_;
+    
+    /*
+     * rotation state corresponding to this entry
+     */
+    Vector<Double> vec_;
+    
+    /*
+     * stores the last value of xPar which was used to set the locally stored switching list
+     */
+    Double lastLocalXpar_;
+    
+    /*
+     * this flag states, if the stored switching list reached the absolute min (beta = -1) or absolute max (alpha = +1)
+     * if that is the case, the resulting switching areas do not have a subarea around alpha = -beta which is still split
+     * along this diagonal;
+     */
+    bool wipedOut_;
   };
-
-
-class VectorPreisachv10 : public Hysteresis
-{
-
-public:
-  VectorPreisachv10(Integer numElem, Double xSat, Double ySat,
-       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-       bool classical, Double angularDistance);
-
-  virtual ~VectorPreisachv10();
-
-  //! this function gets called from outside and calculates the output of the Preisach operator
-  virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection = true){
-    EXCEPTION("Not implemented in base class");
-  }
-
-  //! returns the current output of the hyst-operator for element idxElem
-  Vector<Double> getValue_vec( Integer idElem, bool overwrite = true )
+  
+  
+  class VectorPreisachv10 : public Hysteresis
   {
-    if(overwrite == false){
-      return (preisachSumTmp_[idElem]);
-    } else {
-      return ( preisachSum_[idElem] );
-    }
-  }
-
-  void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false){
-    EXCEPTION("Not implemented in base class");
-  }
-
-
-protected:
-  Vector<Double> evaluateNewRotationDirection(Vector<Double>& e_u_new, Vector<Double>& e_u_old, Double xVal);
-
-  /*!
-   * Global quantities, i.e. the same for all FE elements of the same material
-   */
-  Double Xsaturated_; //! saturation value for  input
-  Double YSaturated_; //! saturation value for output
-
-  Matrix<Double> preisachWeights_; //! preisach weight function
-  Double rotationalResistance_; //! parameter describing the resistance of the domains to rotation
-
-  bool isVirgin_; //! yes, if starting at zero; currently flag is unused
-  bool isSymmetric_; //! states if Preisach weights are symmetric w.r.t alpha = -beta
-
-  UInt dim_; //! 2D or 3D (axi not tested at all!)
-  UInt numElem_; //! total number of FE elements
-  UInt numRows_; //! number of rows of the Preisach plane
-
-  Double delta_; //! resolution of Preisach plane
-  Double tol_; //! tolerance for all kind of comparisons
-
-  bool classical_; //! switch between classical evaluation (2012 version of vector model) or revised evaluation (2015 version)
-
-
-  /*!
-   * Local quantities, i.e. one for each FE elements of the same material
-   */
-  Vector<Double>* preisachSum_;
-  Vector<Double>* preisachSumTmp_;
-
-  /*!
-   * Quantities needed by the revised approach (Sutor2015)
-   */
-  Double angularDistance_; //! angular distance between old rotation state and new input direction which remains for small fields
-
-};
-
-class VectorPreisachv10_MatrixApproach : public VectorPreisachv10
-{
-public:
-  VectorPreisachv10_MatrixApproach(Integer numElem, Double xSat, Double ySat,
-         Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-         bool classical, Double angularDistance);
-
-  ~VectorPreisachv10_MatrixApproach();
-
-  //! this function gets called from outside and calculates the output of the Preisach operator
-  Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true);
-
-  void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
-
-private:
-
-  void InitializeSwitchingState(UInt idElem); //! initial splitting of Preisach plane into +1 and -1 part
-
-  //! update function for rotation state
-  void UpdateRotationStates(Double XThres, Double xVal, Vector<Double>& e_u_new, UInt idElem);
-
-  //! update function for switching state
-  void UpdateSwitchingStates(Vector<Double>& u_in, UInt idElem);
-
-  Matrix<Double>* switchingStates_; //! stores the current switching state
-  Matrix<Double>* rotationStateX_; //! stores the current rotation state in x
-  Matrix<Double>* rotationStateY_; //! stores the current rotation state in y
-  Matrix<Double>* rotationStateZ_; //! stores the current rotation state in z
-};
-
-class VectorPreisachv10_ListApproach : public VectorPreisachv10
-  {
-
+    
   public:
-  VectorPreisachv10_ListApproach(Integer numElem, Double xSat, Double ySat,
-       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-       bool classical, Double angularDistance);
-
-    virtual ~VectorPreisachv10_ListApproach();
-
+    VectorPreisachv10(Integer numElem, Double xSat, Double ySat,
+      Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+      bool classical, Double angularDistance, Double angularClipping);
+    
+    virtual ~VectorPreisachv10();
+    
+    //! this function gets called from outside and calculates the output of the Preisach operator
+    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection = true){
+      EXCEPTION("Not implemented in base class");
+    }
+    
+    //! returns the current output of the hyst-operator for element idxElem
+    Vector<Double> getValue_vec( Integer idElem, bool overwrite = true )
+    {
+      if(overwrite == false){
+        return (preisachSumTmp_[idElem]);
+      } else {
+        return ( preisachSum_[idElem] );
+      }
+    }
+    
+    //! returns the current input of the hyst-operator for element idxElem
+    Vector<Double> getInput_vec( Integer idElem )
+    {
+      // prevXval is the input vector that was computed last
+      return prevXval_[idElem];
+    }
+    
+    bool checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol);
+    
+    bool checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, Vector<Double>& res, Vector<Double>& resShifted, 
+          Matrix<Double>& jac, Double& alpha);
+    
+    Vector<Double> computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
+    
+    Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu, Matrix<Double> mu_inv, 
+    bool wrtX, bool relative);
+    
+    Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hyst, 
+          Matrix<Double> mu_inv, Integer idElem, Double sign, UInt implementation);
+    
+    Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
+          Matrix<Double> mu, Matrix<Double> mu_inv, Integer idElem, Double sign, bool wrtX, bool relative, UInt implementation);
+    
+    bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, Vector<Double>& xUpdate,
+    Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, Integer idElem,Double& alpha, 
+    bool wrtX, bool relative);
+    
+    //! Try to compute input xVal to hyst operator, such that mu*xVal + H(xVal) = yVal
+    // return usable input xVal
+    Vector<Double> computeInput_vec(Vector<Double>& yVal, Integer idElem, Matrix<Double> mu, Double& alpha, 
+    bool overwrite = true,bool overwriteDirection = true);
+    
+    void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false){
+      EXCEPTION("Not implemented in base class");
+    }
+    
+    void setFlags(UInt performanceFlag){
+      
+      if(performanceFlag >= 2){
+        /*
+         * start with 2
+         * -> Reason: coefFunctionHyst uses performanceFlag with
+         *      0 > no measurement
+         *      1 > measurement but only in coefFunctionHyst
+         *      2 > measurement also in Preisach operator
+         */
+        performanceMeasurement_ = true;
+      } else {
+        performanceMeasurement_ = false;
+      }
+    }
+    
+    std::string runtimeToString(){
+      EXCEPTION("Not implemented in base class");
+    }
+    
+  protected:
+    Vector<Double> evaluateNewRotationDirection(Vector<Double>& e_u_new, Vector<Double>& e_u_old, Double xVal);
+    
+    Vector<Double> clipNewRotationDirection(Vector<Double>& e_u_new);
+    
+    /*!
+     * Global quantities, i.e. the same for all FE elements of the same material
+     */
+    Double XSaturated_; //! saturation value for  input
+    Double YSaturated_; //! saturation value for output
+    
+    Matrix<Double> preisachWeights_; //! preisach weight function
+    Double rotationalResistance_; //! parameter describing the resistance of the domains to rotation
+    
+    bool isVirgin_; //! yes, if starting at zero; currently flag is unused
+    bool isSymmetric_; //! states if Preisach weights are symmetric w.r.t alpha = -beta
+    
+    UInt dim_; //! 2D or 3D (axi not tested at all!)
+    UInt numElem_; //! total number of FE elements
+    UInt numRows_; //! number of rows of the Preisach plane
+    
+    Double delta_; //! resolution of Preisach plane
+    Double tol_; //! tolerance for all kind of comparisons
+    
+    bool classical_; //! switch between classical evaluation (2012 version of vector model) or revised evaluation (2015 version)
+    
+    
+    /*!
+     * Local quantities, i.e. one for each FE elements of the same material
+     */
+    Vector<Double>* preisachSum_;
+    Vector<Double>* preisachSumTmp_;
+    
+    /*
+     * for inversion 
+     */
+    Vector<Double>* prevXval_;
+    Vector<Double>* prevYval_;
+    Vector<Double>* prevHystval_;
+    
+    /*!
+     * Quantities needed by the revised approach (Sutor2015)
+     */
+    Double angularDistance_; //! angular distance between old rotation state and new input direction which remains for small fields
+    
+    /*
+     * The input direction gets clipped to discrete angles inside the used coordinate system;
+     * angularClipping = 0 -> no clipping
+     * angularClipping > 0 -> minimal angular step that gets resolved; value in rad
+     */
+    Double angularClipping_;
+    
+    
+    /*
+     * runtime measurement
+     */
+    bool performanceMeasurement_;
+    
+    /*
+     * can be used for output
+     * O = no output
+     * 1 = info
+     * 2 = debug
+     */
+    UInt textOutputLevel_;
+    
+    
+    /*
+     * allows to switch between new and old mapping function
+     * (mapRectangelTo...)
+     *
+     * 0 = old version
+     * 1 = new version (default)
+     */
+    UInt mappingVersion_;
+    
+  };
+  
+  class VectorPreisachv10_MatrixApproach : public VectorPreisachv10
+  {
+  public:
+    VectorPreisachv10_MatrixApproach(Integer numElem, Double xSat, Double ySat,
+      Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+      bool classical, Double angularDistance, Double angularClipping);
+    
+    ~VectorPreisachv10_MatrixApproach();
+    
     //! this function gets called from outside and calculates the output of the Preisach operator
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true);
-
+    
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
-
+    
+    std::string runtimeToString();
+    
   private:
-
+    
+    void InitializeSwitchingState(UInt idElem); //! initial splitting of Preisach plane into +1 and -1 part
+    
+    //! update function for rotation state
+    void UpdateRotationStates(Double XThres, Double xVal, Vector<Double>& e_u_new, UInt idElem);
+    
+    //! update function for switching state
+    void UpdateSwitchingStates(Vector<Double>& u_in, UInt idElem);
+    
+    Matrix<Double>* switchingStates_; //! stores the current switching state
+    Matrix<Double>* rotationStateX_; //! stores the current rotation state in x
+    Matrix<Double>* rotationStateY_; //! stores the current rotation state in y
+    Matrix<Double>* rotationStateZ_; //! stores the current rotation state in z
+    
+    /*
+     * Timer and counter
+     */
+    UInt updateMatricesCounter_;
+    Timer* updateMatricesTimer_;
+    
+    UInt evaluateMatricesCounter_;
+    Timer* evaluateMatricesTimer_;
+    
+    UInt copyToTemporalStorageCounter_;
+    Timer* copyToTemporalStorageTimer_;
+    Timer* copyFromTemporalStorageTimer_;
+    
+  };
+  
+  class VectorPreisachv10_ListApproach : public VectorPreisachv10
+  {
+    
+  public:
+    VectorPreisachv10_ListApproach(Integer numElem, Double xSat, Double ySat,
+      Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+      bool classical, Double angularDistance, Double angularClipping);
+    
+    virtual ~VectorPreisachv10_ListApproach();
+    
+    //! this function gets called from outside and calculates the output of the Preisach operator
+    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite = true,bool overwriteDirection=true);
+    
+    void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState = false);
+    
+    std::string runtimeToString();
+    
+  private:
+    
     /*
      * for version 10 -> revised model
      */
@@ -778,27 +888,47 @@ class VectorPreisachv10_ListApproach : public VectorPreisachv10
     bool getRectanglesFromRotEntry(std::list<RotListEntryv10>::iterator rotListIt, Rectangle& rect1, Rectangle& rect2, bool lastRotListEntryv10);
     void Evaluate_GlobalRotationList(std::list<RotListEntryv10>& usedRotationList, Vector<Double>& retVec);
     void Evaluate_LowerTriangle();
+    Double mapRectangleToPreisachWeightsOLD(Rectangle& rect, bool skipUpperDiagonal = false);
+    Double mapRectangleToPreisachWeightsNEW(Rectangle& rect, bool skipUpperDiagonal = false);
     Double mapRectangleToPreisachWeights(Rectangle& rect, bool skipUpperDiagonal = false);
     Double getRectangleFromSwitchingList(std::list<ListEntryv10>& list,
-           std::list<ListEntryv10>::iterator startIt, std::list<ListEntryv10>::iterator curIt, std::list<ListEntryv10>::iterator endIt,
-           UInt idArea, Rectangle& rect, bool upperSplitSquare = false);
+    std::list<ListEntryv10>::iterator startIt, std::list<ListEntryv10>::iterator curIt, std::list<ListEntryv10>::iterator endIt,
+    UInt idArea, Rectangle& rect, bool upperSplitSquare = false);
     void Simplify_LocalSwitchingLists(std::list<RotListEntryv10>& usedRotationList);
     void Simplify_GlobalRotationList(std::list<RotListEntryv10>& usedRotationList);
     void mapRectangleToHelperMatrix(Matrix<Double>& helper, Rectangle rect, Double factor, bool skipUpperDiagonal = false,bool isRotState = false);
     void Initialize_GlobalRotationList(std::list<RotListEntryv10>& usedRotationList);
-
+    void Initialize_GlobalRotationListWithValues(std::list<RotListEntryv10>& usedList,Vector<Double>& initDir, Double initRotValue, Double initSwitchValue);
+    
+    
     /*!
      * Local quantities, i.e. one for each FE elements of the same material
      */
     std::list<RotListEntryv10>* globRotList_; //! outer list from which rotation and switching state get computed
-
+    
     /*!
      * Quantities needed by the classical_ approach (Sutor2012)
      */
     Vector<Double>* lastEu_; //! last rotation state; only used in output function rotationStateToBmp
-
+    
     Double lowerTriangleValue_; //! Integral over the Preisach weights in the lower triangular region
-
+    
+    /*
+     * Timer and counter
+     */
+    UInt updateNestedListCounter_;
+    Timer* updateRotListTimer_;
+    Timer* updateSwitchingListTimer_;
+    Timer* simplifyRotListTimer_;
+    Timer* simplifySwitchingListTimer_;
+    
+    UInt evaluateNestedListCounter_;
+    Timer* evaluateNestedListTimer_;
+    
+    UInt copyToTemporalStorageCounter_;
+    Timer* copyToTemporalStorageTimer_;
+    
+    
   };
 } // end of namespace
 

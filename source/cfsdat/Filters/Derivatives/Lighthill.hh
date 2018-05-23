@@ -49,32 +49,35 @@ public:
 
   virtual ~Lighthill();
 
-  virtual bool Run();
-
-
 
 protected:
 
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
+  
   virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();
 
-  std::string res1Name;
-  uuids::uuid res1Id;
+  std::string resVelocityName;
+  uuids::uuid resVelocityId;
 
-  std::string res2Name;
-  uuids::uuid res2Id;
+  std::string resVorticityName;
+  uuids::uuid resVorticityId;
 
+  std::string resDensityName;
+  uuids::uuid resDensityId;
 
 private:
 
   void LambVector(Vector<Double>& tempRetVec);
 
+  void LighthillTensor(Vector<Double>& tempRetVec);
+
   void LighthillSourceVector(Vector<Double>& tempRetVec);
 
-  void LighthillSourceTerm(Vector<Double>& tempRetVec);
+  void LighthillSourceTerm(Vector<Double>& tempRetVec, bool isTensorForm);
 
 
   Grid* inGrid_;
@@ -96,6 +99,10 @@ private:
   //! Scaling of epsilon-parameter for RBF-basis function
   Double epsScal_;
 
+  //! if true, a console output of [minimal distance, maximal distance, optimized epsilon]
+  //! will be performed
+  bool logEps_;
+
   //! index in the static matrices vector to use
   UInt matrixIndex_;
 
@@ -106,15 +113,20 @@ private:
   static CF::StdVector<Matrix> matrices_;
 
   //! Density, if not specified in xml-scheme it is automatically set to one
-  Double density_;
+  Double density_ = 1.0;
 
   //! String if the full Lighthill or only the Lamb-vector is computed
   std::string Form_;
 
-  //! Boolean if an extern vorticity-input is provided of if we have to compute it
+  //! Boolean if an extern vorticity-input is provided or if we have to compute it
   bool externVorticity_;
 
+  //! Boolean if an extern density-input is provided when we have a variable density field (e. compressible flow)
+  bool externDensity_;
+
   bool checkSum_;
+  
+  Integer stepIndex_;
 
 };
 

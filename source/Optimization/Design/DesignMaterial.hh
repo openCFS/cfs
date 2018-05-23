@@ -91,10 +91,9 @@ class TransferFunction;
     /** retrieve damping parameters for element or derivative */
     bool GetMaterialDamping(double& alpha, double& beta, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
-    /** Get a parameter of the parametric material optimization. Takes if from the thread local storage. */
+    /** Get a parameter of the parametric material optimization. Takes it from the thread local storage. */
     double GetParameter(const DesignElement::Type p) {
       assert(HasParameter(p));
-      assert(ValidateParameters());
       return params_.Mine()[p];
     }
 
@@ -156,11 +155,6 @@ class TransferFunction;
 
     /** for debugging */
     void DumpParams();
-
-
-    /** service function for debug mode to validadate that the parameter maps for all threads have
-     * the same number of values. If this is not the case a SetParameter() was not called as global */
-    bool ValidateParameters() const;
 
     /** this are the design variables for the current element!
      * It is filled with default and optimization variables.

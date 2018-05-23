@@ -50,10 +50,6 @@ Enum<DesignElement::Detail>         DesignElement::detail;
 Enum<ShapeParamElement::Dof>        ShapeParamElement::dof;
 
 Enum<ShapeMapDesign::Type>          ShapeMapDesign::type;
-Enum<ShapeMapDesign::Symmetry>      ShapeMapDesign::symmetry;
-
-
-
 
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
@@ -296,7 +292,7 @@ ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesign
 std::string ShapeParamElement::ToString() const
 {
   std::stringstream ss;
-  ss << "(idx=" << index_ << " opt_idx=" << opt_index_ << " t=" << type.ToString(type_) << " d=" << dof.ToString(dof_) << " v=" << design << ")";
+  ss << "(idx=" << index_ << " opt_idx=" << ((int) opt_index_) << " t=" << type.ToString(type_) << " d=" << dof.ToString(dof_) << " v=" << design << ")";
   return ss.str();
 }
 
@@ -564,9 +560,12 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
   // validate first:
   switch(sp)
   {
-  case DESIGN:                return design;
+  case DESIGN:
+    return design;
 
-  case COST_GRADIENT:         return SumObjectiveGradient();
+  case COST_GRADIENT:
+    return SumObjectiveGradient();
+
   case WEIGHT:
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->DetermineFilter().weight;
@@ -721,11 +720,6 @@ void DesignElement::SetEnums()
   ShapeMapDesign::type.Add(ShapeMapDesign::CENTER, "center");
   ShapeMapDesign::type.Add(ShapeMapDesign::NODE, "node");
   ShapeMapDesign::type.Add(ShapeMapDesign::PROFILE, "profile");
-
-  ShapeMapDesign::symmetry.SetName("ShapeMapDesign::Symmetry");
-  ShapeMapDesign::symmetry.Add(ShapeMapDesign::NONE, "none");
-  ShapeMapDesign::symmetry.Add(ShapeMapDesign::MIRROR, "mirror");
-
 
   ShapeParamElement::dof.SetName("ShapeParamElement::Dof");
   ShapeParamElement::dof.Add(ShapeParamElement::NOT_SET, "not_set");
