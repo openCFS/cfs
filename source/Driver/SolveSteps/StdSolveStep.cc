@@ -1541,7 +1541,7 @@ namespace CoupledField {
       if (IS_LOG_ENABLED(stdsolvestep, dbg3)) {
         ftRes.SetFrequencyResult(actSol);
         ftRes.FourierToTime();
-        for(int i = 0; i < ftRes.GetNumTimeSteps(); ++i) {
+        for(UInt i = 0; i < ftRes.GetNumTimeSteps(); ++i) {
           std::cout<<"TIME RESULT "<<i<<" = "<<ftRes.GetTimeResult(i).ToString()<<std::endl;
         }
       }
