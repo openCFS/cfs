@@ -48,6 +48,7 @@ MEMLOG_RECEIVELOG = []
 
 # global data dict always contains the latest xml file (in parsed version)
 GLOBAL_DATA_DICT = {}
+GLOBAL_RAW_DATA_DICT = {}
 GLOBAL_DATA_SIZE_DICT = {}
 
 # contains the last update
@@ -156,7 +157,11 @@ def send_data_func(key):
 @app.route(settings["api"]["recieve_url"], methods = ['GET', 'POST'])
 def cfs_recieve_blank():
   return cfs_recieve("")
-  
+
+@app.route('/download_xml/<path:key>')
+def download_xml(key):
+  return GLOBAL_RAW_DATA_DICT[key]
+
 @app.route(settings["api"]["recieve_url"] + '/', methods = ['GET', 'POST'])
 @app.route(settings["api"]["recieve_url"] + '/<path:url_key>', methods = ['GET', 'POST'])
 def cfs_recieve(url_key = ""):
@@ -237,6 +242,7 @@ def cfs_recieve(url_key = ""):
       GLOBAL_STAT_VARS['total_problem_count'] += 1
 
     GLOBAL_DATA_DICT[key] = xml
+    GLOBAL_RAW_DATA_DICT[key] = data
     GLOBAL_DATA_SIZE_DICT[key] = len(data)
     
     GLOBAL_UPDATED_DICT[key] = str(datetime.datetime.now())
