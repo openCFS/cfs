@@ -1113,9 +1113,9 @@ PtrParamNode Optimization::CommitIteration()
     // see FinalizeStoreResults() !
   }
   else {
-    context->GetDriver()->getHandler()->streamOnly = true;
+    context->GetDriver()->GetResultHandler()->streamOnly = true;
     StoreResults();
-    context->GetDriver()->getHandler()->streamOnly = false;
+    context->GetDriver()->GetResultHandler()->streamOnly = false;
   }
 
   // IPOPT does own logging -> otherwise show the user we are alive
