@@ -4,7 +4,7 @@ import scipy.interpolate as ip
 import time
 import vtk
 from os.path import splitext
-
+import vtk.util.numpy_support
 #from vtk.util.colors import *
 
 # # creates 3D data to vtkPolyData
@@ -217,7 +217,7 @@ def show_vtk(polydata, res, save, planes=[], show_edges=False, show_axes=False, 
       axes = vtk.vtkAxesActor()
       bounds = polydata.GetBounds()
       # Scale axes
-      scale *= 1.2
+      scale *= 1.5
       length = array([bounds[1]*scale, bounds[3]*scale, bounds[5]*scale])
       tipLength = axes.GetNormalizedTipLength() / length * length[argmin(length)]
       axes.SetTotalLength(length)
@@ -1204,7 +1204,7 @@ def show_write_vtk(poly, res, save, actors=[], show_axes=False, camera_settings=
     #writer.SetDataModeToAscii()
     writer.SetFileName(save)
     writer.Write()
-    print("saved polydata to file", save)
+    print("saved polydata to '" + save + "'")
   else:
     show_vtk(poly, res, save, actors, show_axes=show_axes, camera_settings=camera_settings)  
     

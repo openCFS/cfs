@@ -172,8 +172,8 @@ namespace CoupledField {
     //@}
 
     //! Stored information about the storage type and entry type of the matrix
-    BaseMatrix::StorageType stype;
-    BaseMatrix::EntryType etype;
+    BaseMatrix::StorageType stype = BaseMatrix::NOSTORAGETYPE;
+    BaseMatrix::EntryType etype = BaseMatrix::NOENTRYTYPE;
 
     //! A working array for the Pardiso-Routines
 
@@ -190,11 +190,11 @@ namespace CoupledField {
     StdVector<int> iparm_;
 
     //! The type of the matrix in a special encoding used by Pardiso
-    int mType_;
+    int mType_ = -1;
 
     //! The type of the solver used by Pardiso. Possible values are zero for 
     //! sparse direct solver (0) or one for multi-recursive iterative solver (1).
-    int mSolver_;
+    int mSolver_ = -1;
 
     //! This double array is used to communicate parameters to and from
     //! Pardiso. It has been introduced in Pardiso 4.0. Instead of 
@@ -203,18 +203,18 @@ namespace CoupledField {
     
     //! Maximal number of factors with identical nonzero-structure Pardiso
     //! should keep in memory at the same time.
-    int maxfct_;
+    int maxfct_ = -1;
 
     //! The number of the matrix (out of the maxfct ones) that should be used
     //! for the solution process
-    int mnum_;
+    int mnum_ = -1;
 
     //! Dimension of the linear system
-    int probDim_;
+    int probDim_ = -1;
 
     //! The number of right hand sides Pardiso should solve the system for
     //! at one pass
-    int nrhs_;
+    int nrhs_ = -1;
 
     //! Specifies verbosity of Pardiso itself
 
@@ -236,7 +236,7 @@ namespace CoupledField {
     //! This array contains the entries of the problem matrix of the linear
     //! system that is to be solved. We imnplicitely assume that a Complex can
     //! directly be cast into an array of two Doubles.
-    Double *theMatrix_;
+    Double* theMatrix_ = NULL;
 
     //! A flag specifying if Setup is being called for the first time
     bool firstCall_;
@@ -250,13 +250,13 @@ namespace CoupledField {
     //! an identity re-ordering. The latter is used to force Pardiso to use
     //! the original matrix pattern, in the case that NOREORDERING is specified
     //! by the user via the PARDISO_ordering parameter.
-    int *idPerm_;
+    int* idPerm_ = NULL;
 
     //! Size of identity permutation array
-    int idPermSize_;
+    int idPermSize_ = -1;
 
     //! number of non zero entries
-    UInt nnz_;
+    UInt nnz_ = 0;
 
     //! Timer objects
     Timer tNumfact_, tSymfact_;

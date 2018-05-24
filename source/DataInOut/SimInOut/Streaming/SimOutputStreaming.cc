@@ -147,7 +147,9 @@ void SimOutputStreaming::Transmit(std::ostream& out)
   Grid* grid = domain->GetGrid();
 
   // add the complete info.xml treee
-  content_->Get("cfsInfo")->SetValue(domain->GetInfoRoot(), false); // use own name and make sure we are not seed as stupid boost::any
+  // use own name and make sure we are not seed as stupid boost::any
+  // also don't write warnings againt to cerr
+  content_->Get("cfsInfo")->SetValue(domain->GetInfoRoot(), false, false);
 
   // add mesh if it is new
   if(send_mesh_ && !content_->Has("grid"))

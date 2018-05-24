@@ -440,6 +440,82 @@ void ErsatzMaterial::StoreResults(double step_val)
 }
 
 
+void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
+{
+  // first the basic stuff to have iteration and such stuff first
+  Optimization::LogFileLine(out, iteration);
+
+  // now the stuff prepared in ErsatzMaterial::CommitIteration()
+  // in case of bloch_info
+  for(unsigned int i = 0; i < log.bloch_info.GetSize(); i++)
+    iteration->Get(boost::get<0>(log.bloch_info[i]))->SetValue(boost::get<1>(log.bloch_info[i]));
+
+  // add our multiple excitation stuff here (only in info.xml, this would be to complex for dat
+  if(me->IsEnabled())
+  {
+    for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+    {
+      Excitation& excite = me->excitations[e];
+      PtrParamNode info = iteration->Get("excitation", ParamNode::APPEND);
+      info->Get("index")->SetValue(excite.index);
+      info->Get("objective")->SetValue(excite.cost);
+      info->Get("objective_weight")->SetValue(excite.normalized_weight);
+      for(unsigned int c = 0; c < constraints.all.GetSize(); c++)
+      {
+        Condition* g = constraints.all[c];
+        if(g->IsExcitationSensitive() && g->DoEvaluate(&excite))
+        {
+          info->Get(g->ToString())->SetValue(g->GetValue());
+          if(g->GetType() == Function::EIGENFREQUENCY && g->GetExcitation()->DoBloch() && !g->DoFullBloch()) {
+            string label = "ef_" + lexical_cast<string>(g->GetEigenValueID()) + "_wv";
+            info->Get(label)->SetValue(g->bloch.col);
+          }
+        }
+      }
+    }
+  }
+
+  for(unsigned int ci = 0; ci < manager.context.GetSize(); ci++)
+  {
+    Context* ctxt = &(manager.context[ci]);
+
+    if(ctxt->homogenization)
+    {
+      for(unsigned int t = 0; t < homogenizedTensor.GetSize(); t++)
+      {
+        PtrParamNode in = iteration->Get("homogenizedTensor", ParamNode::APPEND);
+
+        // assert(!(context->DoMultiSequence() && me->DoMetaExcitation(ctxt))); // check the base_index below!
+        if(me->DoMetaExcitation(ctxt))
+          in->Get("case")->SetValue(ctxt->GetExcitation(0, t)->GetMetaLabel());
+
+        Matrix<double>& ht = homogenizedTensor[t];
+
+        in->Get("norm_L2")->SetValue(ht.NormL2());
+        in->Get("trace")->SetValue(ht.Trace());
+
+        PtrParamNode iso = in->Get("isotropy");
+        StdVector<std::pair<string, double> > isop = MechanicMaterial::CalcIsotropicProperties(ht, ctxt->stt);
+        for(unsigned int p = 0; p < isop.GetSize(); p++)
+          iso->Get(isop[p].first)->SetValue(isop[p].second);
+
+        PtrParamNode orth = in->Get("orthotropy");
+        // for the orthotropic case we need the design. This might be excitation dependent on the robust case
+        assert(me->DoMetaExcitation(ctxt) || (ctxt->excitations.GetSize() == 3 || ctxt->excitations.GetSize() == 6)); // no robust!
+        Excitation* ex = ctxt->GetExcitation(0, t);
+        LOG_DBG2(em) << "CI hom t=" << t << " ex=" << ex->GetFullLabel() << " ht=" << ht.ToString();
+        StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(ht, ex);
+        for(unsigned int p = 0; p < ortho.GetSize(); p++)
+          orth->Get(ortho[p].first)->SetValue(ortho[p].second);
+
+        LOG_DBG(em) << "CI t=" << t << " ortho:" << ortho[0].first << "=" << ortho[0].second << " ht=" << ht.ToString();
+
+        in->Get("tensor")->SetValue(ht);
+      }
+    }
+  }
+}
+
 PtrParamNode ErsatzMaterial::CommitIteration()
 {
 
@@ -495,77 +571,13 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   }
 
   // will write the cfs results and the log file using possibly set log.bloch_info
+  // by calling virtual LogFileLine()
   PtrParamNode iter = Optimization::CommitIteration();
 
-  // in case of bloch_info
-  for(unsigned int i = 0; i < log.bloch_info.GetSize(); i++)
-    iter->Get(boost::get<0>(log.bloch_info[i]))->SetValue(boost::get<1>(log.bloch_info[i]));
-
-  // add our multiple excitation stuff here (only in info.xml, this would be to complex for dat
-  if(me->IsEnabled())
-  {
-    for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
-    {
-      Excitation& excite = me->excitations[e];
-      PtrParamNode info = iter->Get("excitation", ParamNode::APPEND);
-      info->Get("index")->SetValue(excite.index);
-      info->Get("objective")->SetValue(excite.cost);
-      info->Get("objective_weight")->SetValue(excite.normalized_weight);
-      for(unsigned int c = 0; c < constraints.all.GetSize(); c++)
-      {
-        Condition* g = constraints.all[c];
-        if(g->IsExcitationSensitive() && g->DoEvaluate(&excite))
-        {
-          info->Get(g->ToString())->SetValue(g->GetValue());
-          if(g->GetType() == Function::EIGENFREQUENCY && g->GetExcitation()->DoBloch() && !g->DoFullBloch()) {
-            string label = "ef_" + lexical_cast<string>(g->GetEigenValueID()) + "_wv";
-            info->Get(label)->SetValue(g->bloch.col);
-          }
-        }
-      }
-    }
-  }
 
 
-  for(unsigned int ci = 0; ci < manager.context.GetSize(); ci++)
-  {
-    Context* ctxt = &(manager.context[ci]);
-
-    if(ctxt->homogenization)
-    {
-      for(unsigned int t = 0; t < homogenizedTensor.GetSize(); t++)
-      {
-        PtrParamNode in = iter->Get("homogenizedTensor", ParamNode::APPEND);
-
-        // assert(!(context->DoMultiSequence() && me->DoMetaExcitation(ctxt))); // check the base_index below!
-        if(me->DoMetaExcitation(ctxt))
-          in->Get("case")->SetValue(ctxt->GetExcitation(0, t)->GetMetaLabel());
-
-        Matrix<double>& ht = homogenizedTensor[t];
-
-        in->Get("norm_L2")->SetValue(ht.NormL2());
-        in->Get("trace")->SetValue(ht.Trace());
-
-        PtrParamNode iso = in->Get("isotropy");
-        StdVector<std::pair<string, double> > isop = MechanicMaterial::CalcIsotropicProperties(ht, ctxt->stt);
-        for(unsigned int p = 0; p < isop.GetSize(); p++)
-          iso->Get(isop[p].first)->SetValue(isop[p].second);
-
-        PtrParamNode orth = in->Get("orthotropy");
-        // for the orthotropic case we need the design. This might be excitation dependent on the robust case
-        assert(me->DoMetaExcitation(ctxt) || (ctxt->excitations.GetSize() == 3 || ctxt->excitations.GetSize() == 6)); // no robust!
-        Excitation* ex = ctxt->GetExcitation(0, t);
-        LOG_DBG2(em) << "CI hom t=" << t << " ex=" << ex->GetFullLabel() << " ht=" << ht.ToString();
-        StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(ht, ex);
-        for(unsigned int p = 0; p < ortho.GetSize(); p++)
-          orth->Get(ortho[p].first)->SetValue(ortho[p].second);
-
-        LOG_DBG(em) << "CI t=" << t << " ortho:" << ortho[0].first << "=" << ortho[0].second << " ht=" << ht.ToString();
-
-        in->Get("tensor")->SetValue(ht);
-      }
-    }
-  }
+  // write the current info file, if the writing frequency is not too high.
+  domain->GetInfoRoot()->ToFile();
 
   if(densityFile != NULL)
     densityFile->SetAndWriteCurrent(currentIteration - 1); // already written in DesignSpace::ReadDesignFromExtern()

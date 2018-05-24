@@ -199,6 +199,9 @@ class SingleVector;
     /** here we output the bloch mode data for direct plotting */
     std::ofstream bloch_plot_;
 
+    /** the filename for bloch_plot_ */
+    std::string bloch_name_;
+
     /** do we do ibz? Then bloch.plot will repeat the first step as final step. */
     bool ibz_;
 

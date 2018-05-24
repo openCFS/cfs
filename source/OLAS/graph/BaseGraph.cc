@@ -1,3 +1,4 @@
+#include "General/defs.hh"
 #include <iostream>
 #include <cmath>
 #include <vector>
@@ -20,7 +21,6 @@ using namespace boost::accumulators;
 extern "C"{
 #include "metis.h"
 }
-
 #endif
 
 #include "DataInOut/Logging/LogConfigurator.hh"

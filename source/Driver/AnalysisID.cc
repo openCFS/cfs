@@ -1,6 +1,8 @@
 #include "Driver/AnalysisID.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "Utils/tools.hh"
+#include "Domain/Domain.hh"
+#include "Driver/EigenFrequencyDriver.hh"
 
 namespace CoupledField
 {
@@ -40,6 +42,11 @@ std::string AnalysisID::ToString(bool filename) const
 
   if(excite != "")
     ss << (ss.rdbuf()->in_avail() ? "_" : "")  << "excite" << assign << (filename ? ConvertToFilename(excite) : excite);
+
+  // can be empty in the non-optimization case
+  if(ss.str().size() == 0)
+    if(domain->GetSingleDriver() != NULL && domain->GetSingleDriver()->DoBlochModeEigenfrequency())
+      ss << "wv_(" << dynamic_cast<EigenFrequencyDriver*>(domain->GetSingleDriver())->GetCurrentWaveVector().ToString(0,',') << ")";
 
   return ss.str();
 }

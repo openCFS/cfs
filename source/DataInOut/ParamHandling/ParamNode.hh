@@ -131,7 +131,7 @@ namespace CoupledField
     
     /** Set a valid value (native type, Timer* and Matrix and Vector instances and pointers.
      * Any other type which has no special SetValue() implementation is lost!! */
-    void SetValue(const boost::any& value);
+    void SetValue(const boost::any& value, bool cerr_warning = true);
 
     /** a string is a string :) */
     void SetValue(const char* value);
@@ -140,8 +140,9 @@ namespace CoupledField
     void SetValue(const double, const int precision);
 
     /** Set a ParamNode to an expandable InfoNode. Works recursively
-     * @param overwrite_name if the the name of the parent node should be used */
-    void SetValue(PtrParamNode node, bool overwrite_name);
+     * @param overwrite_name if the the name of the parent node should be used
+     * @param cerr_warning shall a warning be written to cerr */
+    void SetValue(PtrParamNode node, bool overwrite_name, bool cerr_warning = true);
 
     /** Creates a sub-node with the content */
     void SetComment(const std::string& string);

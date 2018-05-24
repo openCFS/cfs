@@ -72,19 +72,4 @@ ENDIF()
 # Target link libraries for CFS++ executable target.
 TARGET_LINK_LIBRARIES(cfsbin ${TARGET_LL})
 
-# Prevents undefined reference to `pci_system_init', ...
-# Prevents undefined reference to `pci_system_init', ...
-# required by hwloc. Strange that this is not already necessary for USE_GHOST. 
-
-
-if(USE_PHIST_EV OR USE_PHIST_CG)
-  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess -ludev")
-endif()
-
-
-
-
-
-
-
 SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

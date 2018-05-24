@@ -1,4 +1,5 @@
 # This collects some tool routines for optimization
+from cfs_utils import *
 
 import numpy
 import numpy.linalg
@@ -8,7 +9,7 @@ import sys
 import scipy.io
 from lxml import etree
 from PIL import Image
-from cfs_utils import *
+
 
 # dump some information about a density file
 def print_design_info(filename, attribute, set = None, fill = None):

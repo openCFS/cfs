@@ -165,7 +165,7 @@ namespace CoupledField
         int GetCurrentIteration() { return currentIteration; }
 
         /** External optimizers will solve more state problems than doing
-         * iterations -> e.g. for doing a line search. With this it is signalled,
+         * iterations -> e.g. for doing a line search. With this it is signaled,
          * that the last SolveStateProblem() was actually an iteration.
          * <p>Normally, this will increment the iteration counter and trigger any output
          * stuff (CFS-output-writing, console log, log-file, density xml file)</p>
