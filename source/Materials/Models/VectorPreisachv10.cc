@@ -5,6 +5,7 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "Utils/Timer.hh"
 /* See VectorPreisachv10_ListApproach.hh for detailed description */
 
 namespace CoupledField
@@ -83,10 +84,6 @@ namespace CoupledField
 		
     classical_ = classical;
     
-    anhyst_A_ = anhystA;
-    anhyst_B_ = anhystB;
-    anhyst_C_ = anhystC;
-    
     if(classical_){
       LOG_TRACE(vecpreisach) << "VectorPreisach: Using classical vector model (Sutor2012)";
     } else {
@@ -137,6 +134,10 @@ namespace CoupledField
     INV_alphaLSStart_ = 0.25;
     INV_angClipping_ = -1.0;
         
+    anhyst_A_ = anhystA;
+    anhyst_B_ = anhystB;
+    anhyst_C_ = anhystC;
+    
   }
   
   VectorPreisachv10::~VectorPreisachv10(){
@@ -564,6 +565,47 @@ namespace CoupledField
       InitializeSwitchingState(k);
     }
     
+    // NEW 24.05.2018
+    //  the combination of revised model and rotationalResistance < 1 leads to
+    //  an uncomplete usage of the Preisach plane; if rotationalResistance = r < 1
+    //  the maximal setting value for the Preisach plane is r*||Xin.NormL2/XSaturated||
+    //  if Xin.NormL2 > XSaturated, we could set the whole Preisach plane (upper limit 1)
+    //  but if I understood the model correctly, we have to restrict Xin.NormL2 to XSaturated
+    //  if it is larger;
+    // This leads to the following consequence:
+    //  a) if input is at or above saturation, the output will be smaller than PSaturated
+    //  b) if inversion via LM is to be used, the value for the actual maximal output amplitude needs to be known
+    // Idea: determine the actual maximal output by evaluating the model right at the beginning with XSaturated*randomDirection
+    //  (do this only on temporal storage to avoid messing up the actual storage); as the output will completely align
+    //  with the input, the direction does not matter here; before computing the output, make sure to set the anhysteretic components to 0
+    //  as we just want the max of the Preisach model here
+    Vector<Double> satInput = Vector<Double>(dim_);
+    satInput.Init();
+    satInput[0] = XSaturated_;
+    
+    anhyst_A_ = 0.0;
+    anhyst_B_ = 0.0;
+    anhyst_C_ = 0.0;
+    bool overwrite = false;
+    bool overwriteDir = true; // we need to set the rotational operator
+    bool debugOut = false;
+    int successCode = 0;
+    maxOutputVal_ = PSaturated_; // we need this value in order to call computeValue_vec
+    
+    Vector<Double> satOutput = computeValue_vec(satInput, 0, overwrite, overwriteDir, debugOut, successCode);
+    
+    maxOutputVal_ = satOutput.NormL2();
+    
+    // now we know the maximal output amplitude; we now have to options: 
+    // a) accept that the output of the model is not PSaturated_ and consider this during inversion
+    // b) scale output of hyst operator by PSaturated_/maxOutputVal_ to go up to saturation 
+    //
+    // > currently b) is used!
+     
+    anhyst_A_ = anhystA;
+    anhyst_B_ = anhystB;
+    anhyst_C_ = anhystC;
+    
   }
   
   VectorPreisachv10_MatrixApproach::~VectorPreisachv10_MatrixApproach(){
@@ -933,6 +975,11 @@ namespace CoupledField
       successCode = 1;
     }
     
+    // scale for the case of revised model and rotres < 1
+    // in that case the output of the hyst operator is not PSaturated if input is XSaturated
+    // as the rotational operator is limited to rotRes (instead of +1)
+    retVec.ScalarMult(PSaturated_/maxOutputVal_);
+    
     retVec.Add(anhystPart);
     retVec.ScalarMult(PSaturated_);
     
@@ -1080,6 +1127,47 @@ namespace CoupledField
     simplifySwitchingListTimer_ = new Timer();
     evaluateNestedListTimer_ = new Timer();
     copyToTemporalStorageTimer_ = new Timer();
+    
+    // NEW 24.05.2018
+    //  the combination of revised model and rotationalResistance < 1 leads to
+    //  an uncomplete usage of the Preisach plane; if rotationalResistance = r < 1
+    //  the maximal setting value for the Preisach plane is r*||Xin.NormL2/XSaturated||
+    //  if Xin.NormL2 > XSaturated, we could set the whole Preisach plane (upper limit 1)
+    //  but if I understood the model correctly, we have to restrict Xin.NormL2 to XSaturated
+    //  if it is larger;
+    // This leads to the following consequence:
+    //  a) if input is at or above saturation, the output will be smaller than PSaturated
+    //  b) if inversion via LM is to be used, the value for the actual maximal output amplitude needs to be known
+    // Idea: determine the actual maximal output by evaluating the model right at the beginning with XSaturated*randomDirection
+    //  (do this only on temporal storage to avoid messing up the actual storage); as the output will completely align
+    //  with the input, the direction does not matter here; before computing the output, make sure to set the anhysteretic components to 0
+    //  as we just want the max of the Preisach model here
+    Vector<Double> satInput = Vector<Double>(dim_);
+    satInput.Init();
+    satInput[0] = XSaturated_;
+    
+    anhyst_A_ = 0.0;
+    anhyst_B_ = 0.0;
+    anhyst_C_ = 0.0;
+    bool overwrite = false;
+    bool overwriteDir = true; // we need to set the rotational operator
+    bool debugOut = false;
+    int successCode = 0;
+    maxOutputVal_ = PSaturated_; // we need this value in order to call computeValue_vec
+    
+    Vector<Double> satOutput = computeValue_vec(satInput, 0, overwrite, overwriteDir, debugOut, successCode);
+    
+    maxOutputVal_ = satOutput.NormL2();
+    
+    // now we know the maximal output amplitude; we now have to options: 
+    // a) accept that the output of the model is not PSaturated_ and consider this during inversion
+    // b) scale output of hyst operator by PSaturated_/maxOutputVal_ to go up to saturation 
+    //
+    // > currently b) is used!
+    
+    anhyst_A_ = anhystA;
+    anhyst_B_ = anhystB;
+    anhyst_C_ = anhystC;
     
   }
   
@@ -2185,6 +2273,24 @@ namespace CoupledField
     return 0;
   }
   
+  Vector<Double> VectorPreisachv10_ListApproach::computeValue_vecMeasure(Vector<Double>& u_in, Integer idElem, bool overwrite,
+          bool overwriteDirection, bool debugOut, int& successCode, Double& time){
+    
+    Timer* timer = new Timer();
+    Double startTime = timer->GetCPUTime();
+    timer->Start();
+    
+    Vector<Double> Yvec = computeValue_vec(u_in, idElem, overwrite, overwriteDirection, debugOut, successCode);
+    
+    timer->Stop();
+    Double endTime = timer->GetCPUTime();  
+    time = endTime-startTime;
+    
+    return Yvec;
+    
+  }  
+  
+  
   Vector<Double> VectorPreisachv10_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,
           bool overwriteDirection, bool debugOut, int& successCode){
     
@@ -2392,6 +2498,12 @@ namespace CoupledField
     } else {
       successCode = 1;
     }
+    
+    // scale for the case of revised model and rotres < 1
+    // in that case the output of the hyst operator is not PSaturated if input is XSaturated
+    // as the rotational operator is limited to rotRes (instead of +1)
+    Yout.ScalarMult(PSaturated_/maxOutputVal_);
+    
     // add anhyst part
     Yout += anhystPart;
     

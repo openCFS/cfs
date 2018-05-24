@@ -754,6 +754,8 @@ namespace CoupledField {
      */
     Double XSaturated_; //! saturation value for  input
     Double PSaturated_; //! saturation value for output
+    Double maxOutputVal_; // actual maximial output if input is in or above saturation
+    // usually = PSaturated, but not for rotResistance < 1 and revised model
     
     Matrix<Double> preisachWeights_; //! preisach weight function
     Double rotationalResistance_; //! parameter describing the resistance of the domains to rotation
@@ -879,6 +881,9 @@ namespace CoupledField {
     //! this function gets called from outside and calculates the output of the Preisach operator
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite,
       bool overwriteDirection, bool debugOut, int& successFlag);
+    
+    Vector<Double> computeValue_vecMeasure(Vector<Double>& u_in, Integer idElem, bool overwrite,
+          bool overwriteDirection, bool debugOut, int& successCode, Double& time);
     
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState);
     

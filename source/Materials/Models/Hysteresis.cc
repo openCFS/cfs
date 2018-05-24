@@ -1704,6 +1704,12 @@ namespace CoupledField
       // note 22.05.2018: in case of sutor model, PSaturated might be unreachable if rotRes < 0 (for revised model)
       //                  > compute actual value at XSaturated instead of using PSaturated;
       //                  > by this, we also do not need to add anhystPartPosSat anymore, as this is done by evaluating the hyst operator
+      // note 24.05.2018: the treatment as described in note from 22.05. helps a lot; nevertheless some inversion fails
+      //                  most probably as we further down (and during subfunctions) also assume that the maximal output is PSaturated
+      //                  > two options possible
+      //                    a) search all these spots and replace PSaturated+anhystPartPosSat with satInput.NormL2()
+      //                    b) add scaling to vector model, such that PSaturated is actually reached at saturation
+      //                  > currently option b) is used!
       int tmp = 0; 
       Vector<Double> satInput = Vector<Double>(dim_);
       satInput.Init();

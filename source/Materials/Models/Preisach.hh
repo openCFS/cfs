@@ -35,6 +35,9 @@ namespace CoupledField {
     //!computes for xVal a new output value and deletion rules are applied
     Double computeValueAndUpdate(Double xVal, Integer idxElem, bool overwrite, int& successFlag);
     
+    Double computeValueAndUpdateMeasure( Double Xin, Integer idx,
+          bool overwrite, int& successFlag, Double& time );  
+    
     //! returns the current output of the hyst-operator for element idxElem
     Double getValue(  Integer idxElem);
     
@@ -289,6 +292,9 @@ namespace CoupledField {
     
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idx, bool overwrite,
       bool overwriteDirection, bool debugOutput, int& successFlag);
+    
+    Vector<Double> computeValue_vecMeasure(Vector<Double>& xVal, Integer idx, bool overwrite,
+      bool overwriteDirection, bool debugOutput, int& successFlag, Double& time);
     
     void setFlags(UInt performanceFlag){
       ;

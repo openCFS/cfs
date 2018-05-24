@@ -52,6 +52,13 @@ namespace CoupledField {
       Vector<Double> Yout;
       return Yout;
     };
+    
+    virtual Vector<Double> computeValue_vecMeasure(Vector<Double>& xVal, Integer idxElem, bool overwrite,
+      bool overwriteDirection, bool debugOut, int& successFlag, Double& time) {
+      EXCEPTION( "computeValue_vec not implemented in base-Class" );
+      Vector<Double> Yout;
+      return Yout;
+    };
 
     virtual Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
       Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat, 
@@ -78,6 +85,12 @@ namespace CoupledField {
     //!
     virtual Double computeValueAndUpdate(Double xVal, Integer idxElem, 
       bool overwrite, int& successFlag ) {
+      EXCEPTION( "computeValueAndUpdate not implemented in base-Class" );
+      return 0.0;
+    };
+    
+    virtual Double computeValueAndUpdateMeasure( Double Xin, Integer idx,
+          bool overwrite, int& successFlag, Double& time ){
       EXCEPTION( "computeValueAndUpdate not implemented in base-Class" );
       return 0.0;
     };

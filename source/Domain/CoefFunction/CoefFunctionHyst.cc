@@ -4979,10 +4979,10 @@ namespace CoupledField {
       //  6 = passed due to tolerance wrt y
       
       if (XML_performanceMeasurement_ == 3) {
-				forwardTimer->Start();
         startTime = forwardTimer->GetCPUTime();
+				forwardTimer->Start();
 			}
-      
+
       // Get polarization P
       bool debugOut = false;
       if(vector){
@@ -5007,7 +5007,7 @@ namespace CoupledField {
           forwardTotalEvalTime += evalTime;
         }
 			}
-      
+
       if(successFlagForward == -1){
         forwardFails++;
       } else if(successFlagForward == 0){
@@ -5040,8 +5040,9 @@ namespace CoupledField {
 			zeroVec.Init();
       
       if (XML_performanceMeasurement_ == 3) {
-        backwardTimer->Start();
+        
         startTime = backwardTimer->GetCPUTime();
+        backwardTimer->Start();
       }
       
       if(vector){
@@ -5126,8 +5127,9 @@ namespace CoupledField {
       
       successFlagForward = -1;
       if (XML_performanceMeasurement_ == 3) {
-				forwardTimer->Start();
+				
         startTime = forwardTimer->GetCPUTime();
+        forwardTimer->Start();
 			}
       
       overwriteMemory = true;
@@ -5205,19 +5207,24 @@ namespace CoupledField {
         
         successFlagForward = -1;
         if (XML_performanceMeasurement_ == 3) {
-          forwardTimer->Start();
           startTime = forwardTimer->GetCPUTime();
+          forwardTimer->Start();
+          
         }
-        
+        evalTime = 0.0;
+        Double innerTime = 0.0;
+
+        //std::cout << "Forward" << std::endl;
         if(vector){
           //          std::cout << "Start forward" << std::endl;
-          hIn[i] = hystTMP->computeValue_vec(xIn[i], 0, overwriteMemory, overwriteDirection, debugOut, successFlagForward);
+          hIn[i] = hystTMP->computeValue_vecMeasure(xIn[i], 0, overwriteMemory, overwriteDirection, debugOut, successFlagForward, innerTime);
           //          std::cout << "End forward" << std::endl;
         } else {  
-					hIn[i][0] = hystTMP->computeValueAndUpdate(xIn[i][0], 0, overwriteMemory, successFlagForward);
+					hIn[i][0] = hystTMP->computeValueAndUpdateMeasure(xIn[i][0], 0, overwriteMemory, successFlagForward, innerTime);
           //hIn[i][0] = hystTMP->computeValueAndUpdate(xIn[i][0], xIn[i-1][0], 0, overwriteMemory);
+          std::cout << ", x=" << xIn[i][0] << ", flag="<< successFlagForward << ", time=" << innerTime << std::endl;
         }
-        
+
         if (XML_performanceMeasurement_ == 3){
           forwardTimer->Stop();
           
@@ -5233,6 +5240,14 @@ namespace CoupledField {
             forwardTotalEvalTime += evalTime;
           }
         }
+     
+//        std::cout << "Success Flag: " << successFlagForward << std::endl;
+        std::cout << "evalTime: " << evalTime << std::endl;
+        std::cout << "innerTime: " << innerTime << std::endl;
+//        std::cout << "forwardTotalEvalTime: " << forwardTotalEvalTime << std::endl;
+//        
+//        if(i == 10)
+//          EXCEPTION("stop here");
         
         if(successFlagForward == -1){
           forwardFails++;
@@ -5255,10 +5270,15 @@ namespace CoupledField {
 				numberOfLinesearchIterations = 0;
 				maxNumberOfLinesearchIterations = 0;
         
+        overwriteMemory = false;
+        xRetrieved[i] = Vector<Double>(dim_);
+        xRetrieved[i].Init(0.0);
+        
         successFlagBackward = -1;
         if (XML_performanceMeasurement_ == 3) {
-          backwardTimer->Start();
           startTime = backwardTimer->GetCPUTime();
+          backwardTimer->Start();
+          
         }
         
         if(vector){
@@ -5273,14 +5293,13 @@ namespace CoupledField {
           //          }
           //            std::cout << "End backward" << std::endl;
         } else {
-					overwriteMemory = false;
-          xRetrieved[i] = Vector<Double>(dim_);
-          xRetrieved[i].Init(0.0);
           //          xRetrieved[i][0] = hystTMP->computeInputAndUpdate(yIn[i][0], yRetrieved[i-1][0], xRetrieved[i-1][0],
           //						hRetrieved[i-1][0], 0, eps_mu[0][0], overwriteMemory);		
 					xRetrieved[i][0] = hystTMP->computeInputAndUpdate(yIn[i][0], eps_mu[0][0], 0, overwriteMemory,successFlagBackward);
 //          successFlagBackward = 7;
         }
+        // debugging
+        //xRetrieved[i] = xIn[i];
         
         if (XML_performanceMeasurement_ == 3){
           backwardTimer->Stop();
@@ -5347,22 +5366,25 @@ namespace CoupledField {
         
         successFlagForward = -1;
         if (XML_performanceMeasurement_ == 3) {
-          forwardTimer->Start();
           startTime = forwardTimer->GetCPUTime();
+          forwardTimer->Start();
+          
         }
-        
+
         if(vector){
           //					if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
           //						hRetrieved[i] = hystTMP->computeValue_vec(xIn[i], 0, overwriteMemory, overwriteDirection);
           //					} else {
           hRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection, debugOut, successFlagForward);
+          
           //					}
           //hRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection);
         } else {
-					hRetrieved[i][0] = hystTMP->computeValueAndUpdate(xRetrieved[i][0], 0, overwriteMemory, successFlagForward);
+          hRetrieved[i][0] = hystTMP->computeValueAndUpdate(xRetrieved[i][0], 0, overwriteMemory, successFlagForward);
+          
           //hRetrieved[i][0] = hystTMP->computeValueAndUpdate(xRetrieved[i][0], xRetrieved[i-1][0], 0, overwriteMemory);
         }
-        
+
         if (XML_performanceMeasurement_ == 3){
           forwardTimer->Stop();
           
@@ -5519,6 +5541,8 @@ namespace CoupledField {
         statistics << "Total time for backward evaluations: " << backwardTotalEvalTime << std::endl;
         statistics << "Average time for backward evaluations: " << backwardAvgEvalTime << std::endl;
         statistics << "Maximal time for backward evaluations: " << backwardMaxEvalTime << std::endl;
+        //statistics << "TOGREP: " << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << forwardTotalEvalTime << " " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << " " << backwardTotalEvalTime << " " << numFails << std::endl;
+        statistics << "TOGREP: \t\t" << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << "\t " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << "\t " << numFails << std::endl;
 			}
       statistics << "############################# " <<	std::endl;	
       statistics << std::endl;	

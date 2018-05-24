@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include "DataInOut/Logging/LogConfigurator.hh"
-
+#include "Utils/Timer.hh"
 
 namespace CoupledField
 { 
@@ -223,7 +223,24 @@ namespace CoupledField
 ////    yCheck.Add(tmp);
 ////    return output;
 //  }
-  
+  Vector<Double> VectorPreisachMayergoyz::computeValue_vecMeasure(Vector<Double>& xVal, Integer idx, 
+          bool overwrite,bool overwriteDirection,bool debugOutput,int& successFlag, Double& time){
+    
+    Timer* timer = new Timer();
+    Double startTime = timer->GetCPUTime();
+    timer->Start();
+    
+    Vector<Double> Yvec = computeValue_vec(xVal, idx, overwrite, overwriteDirection, debugOutput, successFlag);
+    
+    timer->Stop();
+    Double endTime = timer->GetCPUTime();  
+    time = endTime-startTime;
+    
+    return Yvec;
+    
+  }  
+    
+    
   Vector<Double> VectorPreisachMayergoyz::computeValue_vec(Vector<Double>& xVal, Integer idx, 
           bool overwrite,bool overwriteDirection,bool debugOutput,int& successFlag){
     
@@ -269,14 +286,13 @@ namespace CoupledField
      *        (as Preisach planes have been set inside the single scalar models)
      */
 
+    successFlag = 0;
     int successFlagSingle = 0;
     for(UInt i = 0; i < numDirections_; i++){
       currentDir = singleDirections_[i];
       currentDir.Inner(xVal,scalarInput);
-			
       scalarOutput = singlePreisachOperators_[i]->computeValueAndUpdate(scalarInput,idx,overwrite,successFlagSingle);
       output.Add(scalarOutput,currentDir);
-      
       // just check if at least one of the scalar models required reevaluation
       if(successFlagSingle != 0){
         successFlag = successFlagSingle;
@@ -1265,8 +1281,7 @@ namespace CoupledField
   
   Double Preisach::computeValueAndUpdate( Double Xin, Integer idx,
           bool overwrite, int& successFlag )  
-  {
-    
+  {    
     //do the deletion
     Double newY = 0.0;
     if(anhystOnly_ == false){
@@ -1281,6 +1296,23 @@ namespace CoupledField
     }
     return ( newY*PSaturated_ );
   }
+  
+  Double Preisach::computeValueAndUpdateMeasure( Double Xin, Integer idx,
+          bool overwrite, int& successFlag, Double& time )  
+  {    
+    Timer* timer = new Timer();
+    Double startTime = timer->GetCPUTime();
+    timer->Start();
+
+    Double newY = computeValueAndUpdate( Xin, idx,overwrite, successFlag );
+
+    timer->Stop();
+    Double endTime = timer->GetCPUTime();  
+    time = endTime-startTime;
+    
+    return newY;
+  }
+  
   
   
   Double Preisach::updateMinMaxList(Double Xin, Integer idx, 
@@ -1323,7 +1355,9 @@ namespace CoupledField
       // reason: above we compare the clipped values, Xin might be different from prevX
       LOG_TRACE(scalpreisachInversion) << "Reuse: " << preisachSum_[idx];
       successFlag = 0;
-      previousXval_[idx] = Xin/XSaturated_;
+      if(overwrite){
+        previousXval_[idx] = Xin/XSaturated_;
+      }
 			return preisachSum_[idx];
 		}
     
@@ -1344,6 +1378,8 @@ namespace CoupledField
     //    std::cout << "#############" << std::endl;
     
     if ( abs(newX) > abs(abs(stringEl[0]) - tol_) || stringLength == 0 ) {
+      // reset
+      successFlag = 4;
       stringLength = 1;
       if ( overwrite ){
 				stringEl[0]  = newX;
@@ -1364,7 +1400,10 @@ namespace CoupledField
 			}
     }
     else { 
+      // check difference to last entry of list
       if ( abs( newX - stringEl[stringLength-1] ) > tol_ ) {
+        // list modified
+        successFlag = 5;
         helpStringEl[0] = -stringEl[0];
         for ( UInt i=1; i<=stringLength; i++ ) {
           helpStringEl[i] = stringEl[i-1];
@@ -1416,8 +1455,7 @@ namespace CoupledField
 					// we only have to store the minmax type of the newly added entry
 					// the others are already set (or will be overwritten)
 					minmaxtype_[idx][stringLength-1] = minmaxcur;
-        }
-        else {
+        } else {
           
           //          std::cout << "Print out entries of helper min/max list before resorting" << std::endl;
           //
@@ -1442,17 +1480,19 @@ namespace CoupledField
         }
       }
       else {
+        // append
+        successFlag = 6;
         /*
          * Note: We check if a new input is large/small enough to modify the
          * actual storage stringEl;
          * if this is the case, we update
-         * either stringEl (if update = true) or helpStringEl (if update = false)
+         * either stringEl (if overwrite = true) or helpStringEl (if overwrite = false)
          * and everything works just fine
          *
          * if this is not the case, we do neither change stringEl nor helpStringEl
-         * if update = true, this is no problem, as we evaluate stringEl which is
+         * if overwrite = true, this is no problem, as we evaluate stringEl which is
          * up to date (otherwise an update would have been needed)
-         * if update = false, we evaluate helpStringEl. This can be a serious problem
+         * if overwrite = false, we evaluate helpStringEl. This can be a serious problem
          * if helpStringEl is not stringEL
          * -> if no update of list was performed, copy stringEl (which is up to date)
          * to helpStringEl
@@ -1491,16 +1531,19 @@ namespace CoupledField
 				evaluatedEverettPixel_[idx][i+1] = pixelToAdd;
         preisachSum_[idx] += pixelToAdd;   
       }
-      newY = preisachSum_[idx]; 
+     
 			
       // add optional anhysteretic part
       // > see e.g. "A preisach-based hysteresis model for magnetic and ferroelectric hysteresis" - A. Sutor 2010
       Double X_norm_unclipped = Xin / XSaturated_;
       LOG_DBG(scalpreisachInversion) << "Eval Preisach - Add anhystPart " << evalAnhystPart_normalized(X_norm_unclipped);
       LOG_DBG(scalpreisachInversion) << "for X/norm = " << (X_norm_unclipped);
-      newY += evalAnhystPart_normalized(X_norm_unclipped);
+      
+      //newY = preisachSum_[idx];
+      //newY += evalAnhystPart_normalized(X_norm_unclipped);
       preisachSum_[idx] += evalAnhystPart_normalized(X_norm_unclipped);
       //newY += anhyst_A_*std::atan(anhyst_B_*X_norm_unclipped) + anhyst_C_*X_norm_unclipped;
+      newY = preisachSum_[idx]; 
       
 			// store values for next evaluation
 			// ONLY in case of overwrite
@@ -1544,12 +1587,12 @@ namespace CoupledField
     LOG_TRACE(scalpreisachInversion) << "Computed new value: " << newY;
     //std::cout << "UpdateMinMaxList - Output: " << newY << std::endl;
     
-    if(overwrite){
-      successFlag = 2;
-    } else {
-      successFlag = 3;
-    }
-    
+//    if(overwrite){
+//      successFlag = 2;
+//    } else {
+//      successFlag = 3;
+//    }
+
     return newY;
   }
   
