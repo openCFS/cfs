@@ -38,6 +38,7 @@ namespace CoupledField {
       EXCEPTION( "Not implemented" );
     }
     
+    bool streamOnly = false;
     
   protected:
   

@@ -1107,11 +1107,15 @@ PtrParamNode Optimization::CommitIteration()
   // keep "commitStride == 1 || " for readability!
   bool store = currentIteration == 0 || commitStride == 1 || ((commitStride > 0) && currentIteration % commitStride == 0);
   LOG_TRACE2(opt) << "CI: " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
-  if(store)
-  {
+  if(store) {
     StoreResults();
     lastStoredResult_ = currentIteration;
     // see FinalizeStoreResults() !
+  }
+  else {
+    context->GetDriver()->getHandler()->streamOnly = true;
+    StoreResults();
+    context->GetDriver()->getHandler()->streamOnly = false;
   }
 
   // IPOPT does own logging -> otherwise show the user we are alive

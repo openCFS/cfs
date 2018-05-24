@@ -89,6 +89,8 @@ namespace CoupledField
     PtrParamNode GetInfo() { return info_; }
 
     PtrParamNode GetParam() { return param_; }
+
+    ResultHandler* getHandler() { return handler_; }
   protected:
     
     //! type of analysis
