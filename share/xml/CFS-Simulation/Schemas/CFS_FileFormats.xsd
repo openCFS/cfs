@@ -933,8 +933,6 @@
     </xsd:attribute>
     <!-- shall also the grid be transmitted -->
     <xsd:attribute name="sendMesh" type="xsd:boolean" use="optional" default="false" />
-    <!-- compress is not zipped but no identation and no redundand 'id' attribute for element results -->
-    <xsd:attribute name="compressed" type="xsd:boolean" use="optional" default="true" />
     <!-- if not silent prints on which port a connectiont is attempted to -->
     <xsd:attribute name="silent" type="xsd:boolean" use="optional"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>    

@@ -1104,6 +1104,7 @@ PtrParamNode Optimization::CommitIteration()
     *log.file << endl;
 
   // this writes the most current solved forward problem via the driver to gid or whatever
+  // keep "commitStride == 1 || " for readability!
   bool store = currentIteration == 0 || commitStride == 1 || ((commitStride > 0) && currentIteration % commitStride == 0);
   LOG_TRACE2(opt) << "CI: " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
   if(store)

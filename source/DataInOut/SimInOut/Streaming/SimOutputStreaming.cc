@@ -33,7 +33,6 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode, PtrParamNode inf
   port_ = outputNode->Get("port")->As<string>();
   path_ = outputNode->Get("path")->As<string>();
   send_mesh_ = outputNode->Get("sendMesh")->As<bool>();
-  compressed_ = outputNode->Get("compressed")->As<bool>();
   silent_ = outputNode->Has("silent") ? outputNode->Get("silent")->As<bool>() : false;
   content_ = PtrParamNode(new ParamNode(ParamNode::INSERT));
   content_->SetName("cfsStreaming");
@@ -131,8 +130,7 @@ void SimOutputStreaming::TransmitData(bool force) {
   }
 }
 
-UInt SimOutputStreaming::GetContentLength()
-{
+UInt SimOutputStreaming::GetContentLength() {
   UInt v = 40;
   for(UInt r = 0, s = results_.GetSize(); r < s; ++r){
     if(results_[r]->GetResultInfo()->resultName != "physicalPseudoDensity")
@@ -231,7 +229,7 @@ void SimOutputStreaming::Transmit(std::ostream& out)
     }
   }
   // write the stuff
-  content_->ToXML(out, compressed_ ? -99 : 0, true); // adjust element type!
+  content_->ToXML(out, -99, true); // adjust element type!
 }
 
 void SimOutputStreaming::io_service_runner(void) {
