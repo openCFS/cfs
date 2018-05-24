@@ -187,9 +187,11 @@ namespace CoupledField
 
     SparseMatrix spr;
 
-    int index = 0;
+    //The OpenMP version of ILUPACK creates a task dependency tree to parallelize the computation and nleaves describes number
+    // of tasks to create.
     int nleaves=1;
-    int mtmetis=0;
+    int index = 0;// This indicates the index used for the sparse matrix which is required in parallel ilupack
+    int mtmetis=1; //the number of threads for the multithreaded metis
     bool isParallel=false;
     bool firstSetup=true;
   };

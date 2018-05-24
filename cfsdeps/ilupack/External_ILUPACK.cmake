@@ -19,7 +19,7 @@ set(ilupack_install  "${ilupack_prefix}/tmp")
   
 #SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ilupack/${ILUPACK_GZ}") 
 
-SET(LOCAL_FILE "/home/sri/code/Ilupack_Task_OPENMP/Ilupack_Task_OPENMP.tgz")
+SET(LOCAL_FILE "~/code/tmp/Ilupack_Task_OPENMP.tgz") # need to set the actual source later
 
 #SET(MD5_SUM ${ILUPACK_MD5})
 SET(MD5_SUM 17b39bb3fedd5264cacca5a4d7e23d43)
@@ -59,12 +59,18 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-----------------------------------------------------------------------------
 # Determine paths of ILUPACK libraries.
 #-----------------------------------------------------------------------------
+# The parallel version of ilupack requires the latest runtime library to work properly. If one
+# doesn't have mkl version >= 2018 it will simply give weird runtime errors. The alternative is
+# to use the latest gcc compiler >=6 with -libgomp which will also work. Currently CFS automatically
+# sets the runtime openmp library to -libiomp (The intel openmp runtime lib) if mkl is found in system.
+# So its highly recommended to use mkl version 2018 or greater. 
+
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 SET(ILUPACK_SHARE "${LD}/libclock.a;${LD}/libsparsenew.a;${LD}/libvector.a")  
 SET(ILUPACK_OPENMP "${LD}/libspdil.a;${LD}/libtools.a;${LD}/libbasic.a")  
 
 SET(ILUPACK_LIBRARY
-  "${ILUPACK_OPENMP};${LD}/libilupack.a;${LD}/libamd.a;${LD}/libcamd.a;${LD}/libblaslike.a;${LD}/libmetis.a;${LD}/libmetisomp.a;${LD}/libmtmetis.a;${LD}/libmumps.a;${LD}/libsparspak.a;${ILUPACK_SHARE};"  
+  "${ILUPACK_OPENMP};${LD}/libilupack.a;${LD}/libamd.a;${LD}/libcamd.a;${LD}/libblaslike.a;${LD}/libmetis.a;${LD}/libmetisomp.a;${LD}/libmtmetis.a;${LD}/libmumps.a;${LD}/libsparspak.a;${ILUPACK_SHARE};"               
   CACHE FILEPATH "ILUPACK library.")
   
 MARK_AS_ADVANCED(ILUPACK_LIBRARY)
@@ -99,7 +105,7 @@ ELSE()
     PREFIX "${ilupack_prefix}"
     SOURCE_DIR "${ilupack_source}"
     URL ${LOCAL_FILE}
-#    URL_MD5 ${ILUPACK_MD5}
+#    URL_MD5 ${ILUPACK_MD5} enable this when ilupack is added to a server and source file is fixed
     BUILD_IN_SOURCE 1
     PATCH_COMMAND ""
     CONFIGURE_COMMAND ./COMPILE_ALL.sh "${MAKE_PLATFORM}"
@@ -142,7 +148,4 @@ SET(CFSDEPS
 
 SET(ILUPACK_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 MARK_AS_ADVANCED(ILUPACK_INCLUDE_DIR)
-
-
-
 
