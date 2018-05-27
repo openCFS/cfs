@@ -1792,7 +1792,16 @@ namespace CoupledField {
       }
     }
     
-    void TestInversion(UInt testNumber, bool stopAfterTests, bool printStatistics, bool writeResultsToFiles);
+    void TestInversion(PtrParamNode testNode);
+    
+    void CreatePeriodicTestSignal(std::string name, Double amplitudeScaling, Double numPeriods, UInt stepsPerPeriods, Vector<Double>& xVals, Vector<Double>& yVals);
+  
+    void CreateNonPeriodicTestSignal(std::string name, Double amplitudeScaling, UInt numberOfSteps, Vector<Double>& xVals, Vector<Double>& yVals);
+          
+    void TestHystOperatorWithSignal(std::string name, Vector<Double> xVals, Vector<Double> yVals, 
+          bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, bool test1D);
+    
+    void WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals);
     
     void SetElastAndCouplTensor(PtrCoefFct elastTensor, PtrCoefFct couplTensor){
       //std::cout << "Elast and Coupl tensor were passed by coupled pde!" << std::endl;

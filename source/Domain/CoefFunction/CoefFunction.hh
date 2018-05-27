@@ -592,7 +592,7 @@ public:
 	  EXCEPTION("SetPreviousHystVals not available");
   }
 
-  virtual void TestInversion(UInt testNumber, bool stopAfterTests, bool printStatistics, bool writeResultsToFiles){
+  virtual void TestInversion(PtrParamNode testNode){
     EXCEPTION( "Not implemented in base class");
   }
   

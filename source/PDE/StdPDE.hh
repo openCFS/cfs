@@ -189,7 +189,7 @@ namespace CoupledField {
           return feFunctions_[st]->GetResultInfo()->dofNames;
         }
         
-        void TestInversionOfHystOperator(UInt testNumber, bool stopAfterTests, bool printStatistics, bool writeResultsToFiles);
+        void TestInversionOfHystOperator(PtrParamNode testNode);
         
         void EstimateCurrentSlopeForHysteresis(Double steppingLength, Double scaling);
         

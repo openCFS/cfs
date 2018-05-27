@@ -14,6 +14,7 @@
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+
 //#include "MatVec/SingleVector.hh"
 
 namespace CoupledField {
@@ -120,18 +121,11 @@ namespace CoupledField {
         }
       } 
             
-      bool stopAfterInversionTests = false;
-      bool printStatistics = false;
-      bool writeResultsToFiles = false;
-      if( nonLinNode->Has("HYST_testInversion") ) {
-        nonLinNode->Get( "HYST_testInversion")->GetValue( "Testnumber", testInvesion_, ParamNode::PASS );
-        nonLinNode->Get( "HYST_testInversion")->GetValue( "StopAfterTests", stopAfterInversionTests, ParamNode::PASS );
-        nonLinNode->Get( "HYST_testInversion")->GetValue( "PrintStatistics", printStatistics, ParamNode::PASS );
-        nonLinNode->Get( "HYST_testInversion")->GetValue( "WriteResultsToFiles", writeResultsToFiles, ParamNode::PASS );
-      } else {
-        testInvesion_ = 0;
+      if( nonLinNode->Has("HYST_testOperator") ) {
+        PtrParamNode testNode = nonLinNode->Get("HYST_testOperator");
+        PDE_.TestInversionOfHystOperator(testNode);
       }
-      
+
       /*
        * Important: evaluationDepth has to be set first as it triggers the
        * initializstion of the storage
@@ -152,11 +146,6 @@ namespace CoupledField {
       PDE_.SetFlagInCoefFncHyst("deltaForm",deltaForm);
       
       PDE_.SetFlagInCoefFncHyst("measurePerformance",measurePerformance_);
-      
-      if(testInvesion_ != 0){
-        PDE_.TestInversionOfHystOperator(testInvesion_, stopAfterInversionTests, printStatistics, writeResultsToFiles);
-      }
-      
 		}
     
     LOG_DBG(solvehyst) << "The following parameter were retrieved from .xml file:";

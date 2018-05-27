@@ -495,7 +495,7 @@ namespace CoupledField {
     }
   }
   
-  void StdPDE::TestInversionOfHystOperator(UInt testNumber, bool stopAfterTests, bool printStatistics, bool writeResultsToFiles){
+  void StdPDE::TestInversionOfHystOperator(PtrParamNode testNode){
     if ( isHysteresis_ ){
         //set current values to previous values for hysteresis operator
         //needed for the next time step
@@ -507,7 +507,7 @@ namespace CoupledField {
             /*
              * Note: If locked = true, overwrite = false
              */
-            it->second->TestInversion(testNumber, stopAfterTests, printStatistics, writeResultsToFiles);
+            it->second->TestInversion(testNode);
           }
      } 
   }

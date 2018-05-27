@@ -10,6 +10,7 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include <cmath>
+#include "Utils/Interpolate1D.hh"
 #include "Utils/Timer.hh"
 
 namespace CoupledField {
@@ -4136,8 +4137,492 @@ namespace CoupledField {
 		}
     
 	}
+    
+  void CoefFunctionHyst::CreatePeriodicTestSignal(std::string name, Double amplitudeScaling, Double numPeriods, UInt stepsPerPeriod, Vector<Double>& xVals, Vector<Double>& yVals){
+    std::cout << "Create periodic signal" << std::endl;
+    
+    UInt totalSteps = UInt(stepsPerPeriod*numPeriods);
+    xVals.Resize(totalSteps);
+    yVals.Resize(totalSteps);
+    xVals.Init();
+    yVals.Init();
+    
+    if(name == "DecreasingSawtooth"){
+      /*
+       * Testcase: Put material into full saturation in y-direction; from that state on
+       * apply a decreasing triangular signal in x-direction; for initial period hold
+       * signla in y-direction; during first real period decrease to 1/2 of value;
+       * then to 1/4 then to 1/8 and finally to 0
+       */
+      UInt numStepsFirstIncrease = stepsPerPeriod;
+      Double incr = MAT_xSat_/((Double) numStepsFirstIncrease-1);
+      
+      yVals[0] = -MAT_xSat_;
+      for(UInt i = 1; i < numStepsFirstIncrease; i++){
+        xVals[i] = xVals[i-1] + incr; 
+        yVals[i] = -MAT_xSat_;
+      }
+      
+      UInt cnt = numStepsFirstIncrease;
+      UInt remainingSteps = totalSteps - numStepsFirstIncrease;
+      UInt numFullPeriods = UInt(remainingSteps/stepsPerPeriod);
+      remainingSteps = remainingSteps%stepsPerPeriod;
+      
+      incr = 2*MAT_xSat_/((Double)(stepsPerPeriod-1));
+      Double sign = -1.0;
+      Double decrFactor = 1.0 - 1.0/((Double) numFullPeriods);
+      
+      for(UInt j = 0; j < numFullPeriods; j++){
+        for(UInt i = 0; i < stepsPerPeriod; i++){
+          xVals[cnt] = xVals[cnt-1] + sign*incr;
+          
+          if(j==0){
+            yVals[cnt] = -MAT_xSat_/2.0;
+          } else if(j==1){
+            yVals[cnt] = -MAT_xSat_/4.0;
+          } else if(j==2){
+            yVals[cnt] = -MAT_xSat_/8.0;
+          }
+          cnt++;
+        }
+        sign = -1.0*sign;
+        incr = incr*decrFactor;
+      }
+      for(UInt i = 0; i < remainingSteps; i++){
+        xVals[cnt] = xVals[cnt-1] + sign*incr;
+        cnt++;
+      }
+    } else if(name == "DecreasingSine"){
+        Double decrease = 1.0/totalSteps;
+
+        for(UInt i = 0; i < totalSteps; i++){
+          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
+          xVals[i] = MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod );
+          
+          if(i >= 3*stepsPerPeriod){
+            yVals[i] = -MAT_xSat_/8.0;
+          } else if(i >= 2*stepsPerPeriod){
+            yVals[i] = -MAT_xSat_/4.0;
+          } else if(i >= stepsPerPeriod){
+            yVals[i] = -MAT_xSat_/2.0;
+          } else if(i >= 0){
+            yVals[i] = -MAT_xSat_;
+          }
+        }
+    } else if(name == "Sine"){
+      for(UInt i = 0; i < totalSteps; i++){
+        xVals[i] = MAT_xSat_*sin( (2*M_PI*i)/stepsPerPeriod );
+        yVals[i] = MAT_xSat_*0.25;
+      }
+    } else if(name == "Rotation"){
+      for(UInt i = 0; i < totalSteps; i++){
+        xVals[i] = MAT_xSat_*sin( (2*M_PI*i)/stepsPerPeriod );
+        yVals[i] = MAT_xSat_*cos( (2*M_PI*i)/stepsPerPeriod );
+      }
+    } else if(name == "Forc"){
+      Double decrease = 1.0/totalSteps;
+      
+      for(UInt i = 0; i < totalSteps; i++){
+        //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
+        xVals[i] = 1*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod ) - 1*MAT_xSat_*decrease*i;
+        yVals[i] = 0.3*MAT_xSat_*(1.0 - decrease*i) * sin( 3*(2*M_PI*i)/stepsPerPeriod ) - 0.3*MAT_xSat_*decrease*i;
+      }
+    } else {
+      EXCEPTION("Signal not implemented yet");
+    }
+    
+    xVals.ScalarMult(amplitudeScaling);
+    yVals.ScalarMult(amplitudeScaling);
+  }
   
-  void CoefFunctionHyst::TestInversion(UInt testNumber, bool abortAfterTests, bool printStatistics, bool writeResultsToFiles){
+  void CoefFunctionHyst::CreateNonPeriodicTestSignal(std::string name, Double amplitudeScaling, UInt numberOfSteps, Vector<Double>& xVals, Vector<Double>& yVals){
+    std::cout << "Create non-periodic signal" << std::endl;
+    
+    if(name == "SelfDesigned"){
+      UInt steps1,steps2,steps3,steps4,steps5,steps6,steps7;
+      steps1=50;
+      steps2=50;
+      steps3=50;
+      steps4=50;
+      steps5=50;
+      steps6=50;
+      steps7=10;
+      UInt totalSteps=steps1+steps2+steps3+steps4+steps5+steps6+steps7;
+      
+      xVals.Resize(totalSteps);
+      xVals.Init();
+      yVals.Resize(totalSteps);
+      yVals.Init();
+      Vector<Double> xScal = Vector<Double>(totalSteps);
+      xScal.Init();
+      Double delta;
+      
+      // 1. expontential increase from [10^-15 to 10^0[
+      delta = 15.0/steps1;
+      
+      for(UInt i = 0; i < steps1; i++){
+        xScal[i] = std::pow(10,-15.0+i*delta);
+      }
+      // 2. cos decrease towards -0.5[
+      delta = -std::acos(-0.5)/steps2;
+      
+      for(UInt i = 0; i < steps2; i++){
+        xScal[steps1+i] = std::cos(i*delta);
+      }
+      // 3. linear increase to 0.4
+      delta = 0.9/steps3;
+      
+      for(UInt i = 0; i < steps3; i++){
+        xScal[steps1+steps2+i] = -0.5+i*delta;
+      }
+      // 4. 1/x decrease towards -0.3
+      Double Xstart = 1.0/(0.7 + 1.0/steps4);
+      delta = (steps4 - Xstart)/steps4;
+      
+      for(UInt i = 0; i < steps4; i++){
+        xScal[steps1+steps2+steps3+i] = 1.0/(Xstart+i*delta)-1.0/steps4-0.3;
+      }
+      // 5. logarithmic increase towards 0.2
+      Xstart = std::exp(-3);
+      Double Xend = std::exp(2);
+      delta = (Xend-Xstart)/steps5;
+      
+      for(UInt i = 0; i < steps5; i++){
+        xScal[steps1+steps2+steps3+steps4+i] = 0.1*std::log(Xstart+i*delta);
+      }
+      // 6. x^3 increase to 0.8
+      Double denom = std::pow(steps6-1,3);
+      for(UInt i = 0; i < steps6; i++){
+        xScal[steps1+steps2+steps3+steps4+steps5+i] = 0.6*std::pow(i,3)/denom + 0.2;
+      }
+      
+      // 7. hold signal at value 0.8
+      for(UInt i = 0; i < steps7; i++){
+        xScal[steps1+steps2+steps3+steps4+steps5+steps6+i] = 0.8;
+      }
+      
+      //        std::ofstream testOutput;
+      //        testOutput.open("GeneratedInput");
+      //        for(UInt i = 0; i < totalSteps; i++){
+      //          testOutput << i << " " << xScal[i] << std::endl;
+      //        }
+      //        testOutput.close();
+      Vector<Double> dir = Vector<Double>(dim_);
+      dir[0] = 1.0;
+      dir[1] = 0.0;
+      for(UInt i = 0; i < totalSteps; i++){
+        dir[0] = (Double) (totalSteps-i)/totalSteps;
+        dir[1] = (Double) i/totalSteps;
+        
+        xVals[i] = MAT_xSat_*xScal[i]*dir[0];
+        yVals[i] = MAT_xSat_*xScal[i]*dir[1];
+      }
+    } else if(name == "SatX-RemX-SatY"){
+      if(numberOfSteps < 8){
+        numberOfSteps = 8;
+      }
+      if(numberOfSteps%4 != 0){
+        numberOfSteps += numberOfSteps%4; 
+      }
+      
+      Double increase = 4.0/numberOfSteps;
+      
+      xVals.Resize(numberOfSteps);
+      yVals.Resize(numberOfSteps);
+      xVals.Init();
+      yVals.Init();
+      
+      Double maxAmplitude = MAT_xSat_;
+      
+      for(UInt i = 0; i < numberOfSteps/4; i++){
+        xVals[i] = maxAmplitude*i*increase;
+      }
+      for(UInt i = numberOfSteps/4; i < 2*numberOfSteps/4; i++){          
+        xVals[i] = maxAmplitude - maxAmplitude*(i-numberOfSteps/4)*increase;
+      }
+      
+      for(UInt i = 2*numberOfSteps/4; i < 3*numberOfSteps/4; i++){
+        // linearly increase in y up to n*saturation
+        yVals[i] = maxAmplitude*(i-2*numberOfSteps/4)*increase;
+      }
+      for(UInt i = 3*numberOfSteps/4; i < numberOfSteps; i++){
+        // linearly decrease to 0
+        yVals[i] = maxAmplitude - maxAmplitude*(i-3*numberOfSteps/4)*increase;
+      }
+    } else {
+      EXCEPTION("Signal not implemented yet");
+    }
+    
+    xVals.ScalarMult(amplitudeScaling);
+    yVals.ScalarMult(amplitudeScaling);
+    
+  }
+          
+  void CoefFunctionHyst::WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals){
+    std::ofstream output;
+    output.open(name);
+    UInt totalSteps = xVals.size();
+    output << "# Step    x    y" << std::endl;
+    for(UInt i = 0; i < totalSteps; i++){
+      output << i << " " << xVals[i] << " " << yVals[i] << std::endl;
+    }
+    output.close();
+  }
+  
+  void CoefFunctionHyst::TestHystOperatorWithSignal(std::string name, Vector<Double> xVals, Vector<Double> yVals, 
+          bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, bool test1D){
+    std::cout << "Test signal" << std::endl;
+  }
+
+  void CoefFunctionHyst::TestInversion(PtrParamNode testNode){
+    
+    if(testNode == NULL){
+      EXCEPTION("No input to inversion test provided");
+    }
+    
+    bool testInversion = false;
+    if(testNode->Has("TestInversion")){
+      testNode->GetValue("TestInversion",testInversion,ParamNode::PASS);
+    }
+    bool test1D = false;
+    if(testNode->Has("Test1D")){
+      testNode->GetValue("Test1D",test1D,ParamNode::PASS);
+    }
+    bool stopAfterTests = false;
+    if(testNode->Has("StopAfterTests")){
+      testNode->GetValue("StopAfterTests",stopAfterTests,ParamNode::PASS);
+    }
+    bool printStatistics = false;
+    if(testNode->Has("PrintStatistics")){
+      testNode->GetValue("PrintStatistics",printStatistics,ParamNode::PASS);
+    }
+    bool writeResultsToFile = false;
+    if(testNode->Has("WriteResultsToFile")){
+      testNode->GetValue("WriteResultsToFile",writeResultsToFile,ParamNode::PASS);
+    }
+    bool writeInputToFile = false;
+    if(testNode->Has("WriteInputToFile")){
+      testNode->GetValue("WriteInputToFile",writeInputToFile,ParamNode::PASS);
+    }
+    bool measurePerformance = false;
+    if(testNode->Has("MeasurePerformance")){
+      testNode->GetValue("MeasurePerformance",measurePerformance,ParamNode::PASS);
+    }
+
+    std::cout << "testInversion? " << testInversion << std::endl;
+    std::cout << "test1D? " << test1D << std::endl;
+    std::cout << "StopAfterTests? " << stopAfterTests << std::endl;
+    std::cout << "printStatistics? " << printStatistics << std::endl;
+    std::cout << "writeInputToFile? " << writeInputToFile << std::endl;
+    std::cout << "writeResultsToFile? " << writeResultsToFile << std::endl;
+    std::cout << "measurePerformance? " << measurePerformance << std::endl;
+    
+    PtrParamNode InputSignals = testNode->Get("InputSignals");
+    
+    Vector<Double> xVals = Vector<Double>(1);
+    Vector<Double> yVals = Vector<Double>(1);
+    
+    Double amplitudeScaling = 1.0;
+    Double numPeriods = 5.0;
+    UInt stepsPerPeriod = 20;
+    UInt numberOfSteps = 100;
+    if(InputSignals->Has("Sine")){
+      if(InputSignals->Get("Sine")->Has("AmplitudeScaling")){
+        InputSignals->Get("Sine")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
+      }
+      if(InputSignals->Get("Sine")->Has("NumPeriods")){
+        InputSignals->Get("Sine")->GetValue("NumPeriods",numPeriods,ParamNode::PASS);
+      }
+      if(InputSignals->Get("Sine")->Has("StepsPerPeriod")){
+        InputSignals->Get("Sine")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
+      }
+      CreatePeriodicTestSignal("Sine",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
+      TestHystOperatorWithSignal("Sine",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      if(writeInputToFile){
+        WriteSignalToFile("Sine_input",xVals,yVals);
+      }
+    }
+    if(InputSignals->Has("Rotation")){
+      if(InputSignals->Get("Rotation")->Has("AmplitudeScaling")){
+        InputSignals->Get("Rotation")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
+      }
+      if(InputSignals->Get("Rotation")->Has("NumPeriods")){
+        InputSignals->Get("Rotation")->GetValue("NumPeriods",numPeriods,ParamNode::PASS);
+      }
+      if(InputSignals->Get("Rotation")->Has("StepsPerPeriod")){
+        InputSignals->Get("Rotation")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
+      }
+      CreatePeriodicTestSignal("Rotation",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
+      TestHystOperatorWithSignal("Rotation",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+            if(writeInputToFile){
+        WriteSignalToFile("Rotation_input",xVals,yVals);
+      }
+    }
+    if(InputSignals->Has("DecreasingSine")){
+      if(InputSignals->Get("DecreasingSine")->Has("AmplitudeScaling")){
+        InputSignals->Get("DecreasingSine")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
+      }
+      if(InputSignals->Get("DecreasingSine")->Has("NumPeriods")){
+        InputSignals->Get("DecreasingSine")->GetValue("NumPeriods",numPeriods,ParamNode::PASS);
+      }
+      if(InputSignals->Get("DecreasingSine")->Has("StepsPerPeriod")){
+        InputSignals->Get("DecreasingSine")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
+      }
+      CreatePeriodicTestSignal("DecreasingSine",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
+      TestHystOperatorWithSignal("DecreasingSine",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+                  if(writeInputToFile){
+        WriteSignalToFile("DecreasingSine_input",xVals,yVals);
+      }
+    }
+    if(InputSignals->Has("DecreasingSawtooth")){
+      if(InputSignals->Get("DecreasingSawtooth")->Has("AmplitudeScaling")){
+        InputSignals->Get("DecreasingSawtooth")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
+      }
+      if(InputSignals->Get("DecreasingSawtooth")->Has("NumPeriods")){
+        InputSignals->Get("DecreasingSawtooth")->GetValue("NumPeriods",numPeriods,ParamNode::PASS);
+      }
+      if(InputSignals->Get("DecreasingSawtooth")->Has("StepsPerPeriod")){
+        InputSignals->Get("DecreasingSawtooth")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
+      }
+      CreatePeriodicTestSignal("DecreasingSawtooth",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
+      TestHystOperatorWithSignal("DecreasingSawtooth",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      if(writeInputToFile){
+        WriteSignalToFile("DecreasingSawtooth_input",xVals,yVals);
+      }
+    }
+    if(InputSignals->Has("Forc")){
+      if(InputSignals->Get("Forc")->Has("AmplitudeScaling")){
+        InputSignals->Get("Forc")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
+      }
+      if(InputSignals->Get("Forc")->Has("NumPeriods")){
+        InputSignals->Get("Forc")->GetValue("NumPeriods",numPeriods,ParamNode::PASS);
+      }
+      if(InputSignals->Get("Forc")->Has("StepsPerPeriod")){
+        InputSignals->Get("Forc")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
+      }
+      CreatePeriodicTestSignal("Forc",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
+      TestHystOperatorWithSignal("Forc",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      if(writeInputToFile){
+        WriteSignalToFile("Forc_input",xVals,yVals);
+      }
+    }
+    if(InputSignals->Has("SelfDesigned")){
+      if(InputSignals->Get("SelfDesigned")->Has("AmplitudeScaling")){
+        InputSignals->Get("SelfDesigned")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
+      }
+      if(InputSignals->Get("SelfDesigned")->Has("NumSteps")){
+        InputSignals->Get("SelfDesigned")->GetValue("NumSteps",numberOfSteps,ParamNode::PASS);
+      }
+      CreateNonPeriodicTestSignal("SelfDesigned",amplitudeScaling,numberOfSteps,xVals,yVals);
+      TestHystOperatorWithSignal("SelfDesigned",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      if(writeInputToFile){
+        WriteSignalToFile("SelfDesigned_input",xVals,yVals);
+      }
+    }
+    if(InputSignals->Has("SatX-RemX-SatY")){
+      if(InputSignals->Get("SatX-RemX-SatY")->Has("AmplitudeScaling")){
+        InputSignals->Get("SatX-RemX-SatY")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
+      }
+      if(InputSignals->Get("SatX-RemX-SatY")->Has("NumSteps")){
+        InputSignals->Get("SatX-RemX-SatY")->GetValue("NumSteps",numberOfSteps,ParamNode::PASS);
+      }
+      CreateNonPeriodicTestSignal("SatX-RemX-SatY",amplitudeScaling,numberOfSteps,xVals,yVals);
+      TestHystOperatorWithSignal("SatX-RemX-SatY",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      if(writeInputToFile){
+        WriteSignalToFile("SatX-RemX-SatY_input",xVals,yVals);
+      }
+    }
+    if(InputSignals->Has("ReadFromFile")){
+      if(InputSignals->Get("ReadFromFile")->Has("AmplitudeScaling")){
+        InputSignals->Get("ReadFromFile")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
+      }
+      std::string fileNameX = "None";
+      if(InputSignals->Get("ReadFromFile")->Has("FileContaining_x_over_steps")){
+        InputSignals->Get("ReadFromFile")->GetValue("FileContaining_x_over_steps",fileNameX,ParamNode::PASS);
+      }
+      std::string fileNameY = "None";
+      if(InputSignals->Get("ReadFromFile")->Has("FileContaining_y_over_steps")){
+        InputSignals->Get("ReadFromFile")->GetValue("FileContaining_y_over_steps",fileNameY,ParamNode::PASS);
+      }
+      Vector<Double> steps = Vector<Double>(1);
+      Vector<Double> xVals = Vector<Double>(1);
+      Vector<Double> yVals = Vector<Double>(1);
+      std::stringstream combinedname;
+      combinedname << "Test-";
+      if(fileNameX != "None"){
+        Interpolate1D reader = Interpolate1D();
+        reader.ReadFile(fileNameX.c_str(),steps,xVals);
+        combinedname << fileNameX;
+      }
+      combinedname << "-";
+      if(fileNameY != "None"){
+        Interpolate1D reader = Interpolate1D();
+        reader.ReadFile(fileNameY.c_str(),steps,yVals);
+        combinedname << fileNameY;
+      }
+
+      TestHystOperatorWithSignal(combinedname.str(),xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      
+      combinedname << "_input";
+      if(writeInputToFile){
+        WriteSignalToFile(combinedname.str(),xVals,yVals);
+      }
+    }
+        
+    if(stopAfterTests){
+      EXCEPTION("Stop after testing");
+    }
+    
+    EXCEPTION("stop");
+    
+//              <xsd:element name="Sine" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+//              <xsd:element name="DecreasingSine" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+//              <xsd:element name="DecreasingSawtooth" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+//              <xsd:element name="Forc" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+//              <xsd:element name="SelfDesigned" type="DT_testInputNonPeriodic" minOccurs="0" maxOccurs="1"/>
+//              <xsd:element name="SatX-RemX-SatY" type="DT_testInputNonPeriodic" minOccurs="0" maxOccurs="1"/>
+//              <xsd:element name="ReadFromFile" type="DT_testInputFile" minOccurs="0" maxOccurs="1"/>
+//    
+    
+    
+    
+    
+    
+    
+//     bool stopAfterInversionTests = false;
+//      bool printStatistics = false;
+//      bool writeResultsToFiles = false;
+//      std::string testFile;
+//      if( nonLinNode->Has("HYST_testInversion") ) {
+//        nonLinNode->Get( "HYST_testInversion")->GetValue( "Testnumber", testInvesion_, ParamNode::PASS );
+//        nonLinNode->Get( "HYST_testInversion")->GetValue( "StopAfterTests", stopAfterInversionTests, ParamNode::PASS );
+//        nonLinNode->Get( "HYST_testInversion")->GetValue( "PrintStatistics", printStatistics, ParamNode::PASS );
+//        nonLinNode->Get( "HYST_testInversion")->GetValue( "WriteResultsToFiles", writeResultsToFiles, ParamNode::PASS );
+//        nonLinNode->Get( "HYST_testInversion")->GetValue( "FileToRead", testFile, ParamNode::PASS );
+//        std::cout << "testFile: " << testFile << std::endl;
+//      } else {
+//        testInvesion_ = 0;
+//      }
+//      
+//      if(testFile != "none"){
+//        Vector<Double> xVals = Vector<Double>(1);
+//        Vector<Double> yVals = Vector<Double>(1);
+//        Interpolate1D reader = Interpolate1D();
+//        reader.ReadFile(testFile.c_str(),xVals,yVals);
+//        std::cout << "Read in data: " << std::endl;
+//        std::cout << xVals.ToString() << std::endl;
+//        std::cout << yVals.ToString() << std::endl;
+//      }
+
+    
+    
+    
+  UInt testNumber = 0;
+  bool abortAfterTests = false;
+//  bool printStatistics = false;
+  bool writeResultsToFiles = false;
+//  bool testForwardOnly = false;
+  //void CoefFunctionHyst::TestInversion(UInt testNumber, bool abortAfterTests, bool printStatistics, bool writeResultsToFiles, bool testForwardOnly){
     
     //std::cout << "MAT_PreisachWeights_: " << MAT_PreisachWeights_.ToString() << std::endl;
     
@@ -4978,218 +5463,222 @@ namespace CoupledField {
       //  5 = passed due to tolerance wrt x
       //  6 = passed due to tolerance wrt y
       
-      if (XML_performanceMeasurement_ == 3) {
-        startTime = forwardTimer->GetCPUTime();
-				forwardTimer->Start();
-			}
-
-      // Get polarization P
       bool debugOut = false;
-      if(vector){
-        hIn[0] = hystTMP->computeValue_vec(xIn[0], 0, overwriteMemory, overwriteDirection,debugOut,successFlagForward);
-      } else {
-				//hIn[0][0] = hystTMP->computeValueAndUpdate(xIn[0][0], 0, 0, overwriteMemory);
-        hIn[0][0] = hystTMP->computeValueAndUpdate(xIn[0][0], 0, overwriteMemory,successFlagForward);
-      }
       
-      if (XML_performanceMeasurement_ == 3){
-        forwardTimer->Stop();
+//      if (XML_performanceMeasurement_ == 3) {
+//        startTime = forwardTimer->GetCPUTime();
+//				forwardTimer->Start();
+//			}
+//
+//      // Get polarization P
+//      
+//      if(vector){
+//        hIn[0] = hystTMP->computeValue_vec(xIn[0], 0, overwriteMemory, overwriteDirection,debugOut,successFlagForward);
+//      } else {
+//				//hIn[0][0] = hystTMP->computeValueAndUpdate(xIn[0][0], 0, 0, overwriteMemory);
+//        hIn[0][0] = hystTMP->computeValueAndUpdate(xIn[0][0], 0, overwriteMemory,successFlagForward);
+//      }
+//      
+//      if (XML_performanceMeasurement_ == 3){
+//        forwardTimer->Stop();
+//      
+//        // only count actual computations; if value gets reused, this should not count
+//        if(successFlagForward != 0) {
+//          forwardEvalCounter++;
+//				
+//          endTime = forwardTimer->GetCPUTime();
+//          evalTime = endTime-startTime;
+//          if(evalTime > forwardMaxEvalTime){
+//            forwardMaxEvalTime = evalTime;
+//          }
+//          forwardTotalEvalTime += evalTime;
+//        }
+//			}
+//
+//      if(successFlagForward == -1){
+//        forwardFails++;
+//      } else if(successFlagForward == 0){
+//        forwardReused++;
+//      } else if(successFlagForward == 1){
+//        forwardAnhystOnly++;
+//      } else if(successFlagForward == 2){
+//        forwardOverwrite++;
+//      } else if(successFlagForward == 3){
+//        forwardTMP++; 
+//      }
+//      
+//      //      if(MAT_angClipping_ > 0){
+//      //        /*
+//      //         * clip input to hyst operator; clip output of it
+//      //         */
+//      //        ClipDirection(hIn[0]);
+//      //      }
+//      
+//      // D = eps*E + P
+//      yIn[0].Add(1.0,hIn[0]);
+//      for(UInt j = 0; j < dim_; j++){
+//        yIn[0][j] += eps_mu[j][j]*xIn[0][j];
+//      }
+//      
+//      xRetrieved[0] = Vector<Double>(dim_);
+//      xRetrieved[0].Init(0.0);
+//      
+//			Vector<Double> zeroVec = Vector<Double>(dim_);
+//			zeroVec.Init();
+//      
+//      if (XML_performanceMeasurement_ == 3) {
+//        
+//        startTime = backwardTimer->GetCPUTime();
+//        backwardTimer->Start();
+//      }
+//      
+//      if(vector){
+//        //        if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+//        //          xRetrieved[0] = hystTMP->computeInput_vec(yIn[0], 0, eps_mu,overwriteDirection);
+//        //        } else {
+//        // new: we have to pass the previous solution (here: 0)
+//        // new2: pass arguments by value!
+//        xRetrieved[0] = hystTMP->computeInput_vec_withStatistics(yIn[0], zeroVec, zeroVec, zeroVec, 0, eps_mu,
+//                overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat, numberOfLMIterations, numberOfLinesearchIterations, 
+//                maxNumberOfLinesearchIterations,successFlagBackward,minAlpha, maxAlpha, avgAlpha,xIn[0]);
+//        //        }
+//      } else {
+//				overwriteMemory = false;
+//        //        xRetrieved[0][0] = hystTMP->computeInputAndUpdate(yIn[0][0], zeroVec[0], zeroVec[0],
+//        //						zeroVec[0], 0, eps_mu[0][0], overwriteMemory);
+//				xRetrieved[0][0] = hystTMP->computeInputAndUpdate(yIn[0][0], eps_mu[0][0], 0, overwriteMemory,successFlagBackward);
+//			}
+//      
+//      if (XML_performanceMeasurement_ == 3){
+//        backwardTimer->Stop();
+//      
+//        // only count actual computations; if value gets reused, this should not count
+//        if(successFlagBackward != 0) {
+//          backwardEvalCounter++;
+//				
+//          endTime = backwardTimer->GetCPUTime();
+//          evalTime = endTime-startTime;
+//          if(evalTime > backwardMaxEvalTime){
+//            backwardMaxEvalTime = evalTime;
+//          }
+//          backwardTotalEvalTime += evalTime;
+//        }
+//			}
+//			
+//      if(minAlpha < totalminAlpha){
+//        totalminAlpha = minAlpha;
+//      }
+//      if(maxAlpha > totalmaxAlpha){
+//        totalmaxAlpha = maxAlpha;
+//      }
+//      totalavgAlpha += avgAlpha;
+//      
+//      if(successFlagBackward == -1){
+//        LMFails++;
+//      } else if(successFlagBackward == 0){
+//        totalReused++;
+//      } else if(successFlagBackward == 1){
+//        totalAnhystOnly++;
+//      } else if(successFlagBackward == 2){
+//        totalBisection++;
+//      } else if(successFlagBackward == 3){
+//        totalRemanence++;
+//      } else if(successFlagBackward == 4){
+//        totalPassedErrorTol++;
+//      } else if(successFlagBackward == 5){
+//        totalPassedResTolX++;
+//      } else if(successFlagBackward == 6){
+//        totalPassedResTolY++;
+//      }
+//      
+//			totalNumberOfLMIterations += numberOfLMIterations;
+//			totalNumberOfLinesearchIterations += numberOfLinesearchIterations;
+//			if(maxNumberOfLinesearchIterations > absmaxNumberOfLinesearchIterations){
+//				absmaxNumberOfLinesearchIterations = maxNumberOfLinesearchIterations;
+//			}
+//			
+//      // evaluate Preisach OP to get the actual output; DO NOT OVERWRITE MEMORY
+//      yRetrieved[0] = Vector<Double>(dim_);
+//      yRetrieved[0].Init(0.0);
+//      hRetrieved[0] = Vector<Double>(dim_);
+//      hRetrieved[0].Init(0.0);
+//      
+//      xError[0] = Vector<Double>(dim_);
+//      xError[0].Init(0.0);
+//      
+//      xError[0] = xRetrieved[0];
+//      xError[0] -= xIn[0];
+//      
+//      yError[0] = Vector<Double>(dim_);
+//      yError[0].Init(0.0);
+//      
+//      successFlagForward = -1;
+//      if (XML_performanceMeasurement_ == 3) {
+//				
+//        startTime = forwardTimer->GetCPUTime();
+//        forwardTimer->Start();
+//			}
+//      
+//      overwriteMemory = true;
+//      if(vector){
+//        //				if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+//        //					hRetrieved[0] = hystTMP->computeValue_vec(xIn[0], 0, overwriteMemory, overwriteDirection);
+//        //				} else {
+//        hRetrieved[0] = hystTMP->computeValue_vec(xRetrieved[0], 0, overwriteMemory, overwriteDirection, debugOut,successFlagForward);
+//        //				}
+//      } else {
+//				//hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, 0, overwriteMemory);
+//        hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, overwriteMemory,successFlagForward);
+//      }
+//      
+//      if (XML_performanceMeasurement_ == 3){
+//        forwardTimer->Stop();
+//      
+//        // only count actual computations; if value gets reused, this should not count
+//        if(successFlagForward != 0) {
+//          forwardEvalCounter++;
+//				
+//          endTime = forwardTimer->GetCPUTime();
+//          evalTime = endTime-startTime;
+//          if(evalTime > forwardMaxEvalTime){
+//            forwardMaxEvalTime = evalTime;
+//          }
+//          forwardTotalEvalTime += evalTime;
+//        }
+//			}
+//      
+//      if(successFlagForward == -1){
+//        forwardFails++;
+//      } else if(successFlagForward == 0){
+//        forwardReused++;
+//      } else if(successFlagForward == 1){
+//        forwardAnhystOnly++;
+//      } else if(successFlagForward == 2){
+//        forwardOverwrite++;
+//      } else if(successFlagForward == 3){
+//        forwardTMP++; 
+//      }
+//      
+//      // D = eps*E + P
+//      yRetrieved[0].Add(1.0,hRetrieved[0]);
+//      for(UInt j = 0; j < dim_; j++){
+//        yRetrieved[0][j] += eps_mu[j][j]*xRetrieved[0][j];
+//      }
+//      
+//      yError[0] = yRetrieved[0];
+//      yError[0] -= yIn[0];
+//      
+//      if(writeResultsToFiles){
+//        //testOutput2 << std::setprecision(9) <<  "0   "<< xRetrieved[0][0] <<"    "<< xRetrieved[0][1]<<std::endl;
+//        testOutput3 << std::setprecision(9) <<  "0   "<< xIn[0][0] <<"    "<< xIn[0][1]<<"    " << hIn[0][0] <<"    "<< hIn[0][1]<<"    " << yIn[0][0] <<"    "<< yIn[0][1]<<std::endl;
+//        testOutput4 << std::setprecision(9) <<  "0   "<< xRetrieved[0][0] <<"    "<< xRetrieved[0][1]<<"    " << yRetrieved[0][0] <<"    "<< yRetrieved[0][1]<<std::endl;
+//      }
+//      //    Double inc = 2*MAT_xSat_/( (Double) numTests);
+//      
       
-        // only count actual computations; if value gets reused, this should not count
-        if(successFlagForward != 0) {
-          forwardEvalCounter++;
-				
-          endTime = forwardTimer->GetCPUTime();
-          evalTime = endTime-startTime;
-          if(evalTime > forwardMaxEvalTime){
-            forwardMaxEvalTime = evalTime;
-          }
-          forwardTotalEvalTime += evalTime;
-        }
-			}
-
-      if(successFlagForward == -1){
-        forwardFails++;
-      } else if(successFlagForward == 0){
-        forwardReused++;
-      } else if(successFlagForward == 1){
-        forwardAnhystOnly++;
-      } else if(successFlagForward == 2){
-        forwardOverwrite++;
-      } else if(successFlagForward == 3){
-        forwardTMP++; 
-      }
-      
-      //      if(MAT_angClipping_ > 0){
-      //        /*
-      //         * clip input to hyst operator; clip output of it
-      //         */
-      //        ClipDirection(hIn[0]);
-      //      }
-      
-      // D = eps*E + P
-      yIn[0].Add(1.0,hIn[0]);
-      for(UInt j = 0; j < dim_; j++){
-        yIn[0][j] += eps_mu[j][j]*xIn[0][j];
-      }
-      
-      xRetrieved[0] = Vector<Double>(dim_);
-      xRetrieved[0].Init(0.0);
-      
-			Vector<Double> zeroVec = Vector<Double>(dim_);
-			zeroVec.Init();
-      
-      if (XML_performanceMeasurement_ == 3) {
-        
-        startTime = backwardTimer->GetCPUTime();
-        backwardTimer->Start();
-      }
-      
-      if(vector){
-        //        if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-        //          xRetrieved[0] = hystTMP->computeInput_vec(yIn[0], 0, eps_mu,overwriteDirection);
-        //        } else {
-        // new: we have to pass the previous solution (here: 0)
-        // new2: pass arguments by value!
-        xRetrieved[0] = hystTMP->computeInput_vec_withStatistics(yIn[0], zeroVec, zeroVec, zeroVec, 0, eps_mu,
-                overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat, numberOfLMIterations, numberOfLinesearchIterations, 
-                maxNumberOfLinesearchIterations,successFlagBackward,minAlpha, maxAlpha, avgAlpha,xIn[0]);
-        //        }
-      } else {
-				overwriteMemory = false;
-        //        xRetrieved[0][0] = hystTMP->computeInputAndUpdate(yIn[0][0], zeroVec[0], zeroVec[0],
-        //						zeroVec[0], 0, eps_mu[0][0], overwriteMemory);
-				xRetrieved[0][0] = hystTMP->computeInputAndUpdate(yIn[0][0], eps_mu[0][0], 0, overwriteMemory,successFlagBackward);
-			}
-      
-      if (XML_performanceMeasurement_ == 3){
-        backwardTimer->Stop();
-      
-        // only count actual computations; if value gets reused, this should not count
-        if(successFlagBackward != 0) {
-          backwardEvalCounter++;
-				
-          endTime = backwardTimer->GetCPUTime();
-          evalTime = endTime-startTime;
-          if(evalTime > backwardMaxEvalTime){
-            backwardMaxEvalTime = evalTime;
-          }
-          backwardTotalEvalTime += evalTime;
-        }
-			}
-			
-      if(minAlpha < totalminAlpha){
-        totalminAlpha = minAlpha;
-      }
-      if(maxAlpha > totalmaxAlpha){
-        totalmaxAlpha = maxAlpha;
-      }
-      totalavgAlpha += avgAlpha;
-      
-      if(successFlagBackward == -1){
-        LMFails++;
-      } else if(successFlagBackward == 0){
-        totalReused++;
-      } else if(successFlagBackward == 1){
-        totalAnhystOnly++;
-      } else if(successFlagBackward == 2){
-        totalBisection++;
-      } else if(successFlagBackward == 3){
-        totalRemanence++;
-      } else if(successFlagBackward == 4){
-        totalPassedErrorTol++;
-      } else if(successFlagBackward == 5){
-        totalPassedResTolX++;
-      } else if(successFlagBackward == 6){
-        totalPassedResTolY++;
-      }
-      
-			totalNumberOfLMIterations += numberOfLMIterations;
-			totalNumberOfLinesearchIterations += numberOfLinesearchIterations;
-			if(maxNumberOfLinesearchIterations > absmaxNumberOfLinesearchIterations){
-				absmaxNumberOfLinesearchIterations = maxNumberOfLinesearchIterations;
-			}
-			
-      // evaluate Preisach OP to get the actual output; DO NOT OVERWRITE MEMORY
-      yRetrieved[0] = Vector<Double>(dim_);
-      yRetrieved[0].Init(0.0);
-      hRetrieved[0] = Vector<Double>(dim_);
-      hRetrieved[0].Init(0.0);
-      
-      xError[0] = Vector<Double>(dim_);
-      xError[0].Init(0.0);
-      
-      xError[0] = xRetrieved[0];
-      xError[0] -= xIn[0];
-      
-      yError[0] = Vector<Double>(dim_);
-      yError[0].Init(0.0);
-      
-      successFlagForward = -1;
-      if (XML_performanceMeasurement_ == 3) {
-				
-        startTime = forwardTimer->GetCPUTime();
-        forwardTimer->Start();
-			}
-      
-      overwriteMemory = true;
-      if(vector){
-        //				if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-        //					hRetrieved[0] = hystTMP->computeValue_vec(xIn[0], 0, overwriteMemory, overwriteDirection);
-        //				} else {
-        hRetrieved[0] = hystTMP->computeValue_vec(xRetrieved[0], 0, overwriteMemory, overwriteDirection, debugOut,successFlagForward);
-        //				}
-      } else {
-				//hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, 0, overwriteMemory);
-        hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, overwriteMemory,successFlagForward);
-      }
-      
-      if (XML_performanceMeasurement_ == 3){
-        forwardTimer->Stop();
-      
-        // only count actual computations; if value gets reused, this should not count
-        if(successFlagForward != 0) {
-          forwardEvalCounter++;
-				
-          endTime = forwardTimer->GetCPUTime();
-          evalTime = endTime-startTime;
-          if(evalTime > forwardMaxEvalTime){
-            forwardMaxEvalTime = evalTime;
-          }
-          forwardTotalEvalTime += evalTime;
-        }
-			}
-      
-      if(successFlagForward == -1){
-        forwardFails++;
-      } else if(successFlagForward == 0){
-        forwardReused++;
-      } else if(successFlagForward == 1){
-        forwardAnhystOnly++;
-      } else if(successFlagForward == 2){
-        forwardOverwrite++;
-      } else if(successFlagForward == 3){
-        forwardTMP++; 
-      }
-      
-      // D = eps*E + P
-      yRetrieved[0].Add(1.0,hRetrieved[0]);
-      for(UInt j = 0; j < dim_; j++){
-        yRetrieved[0][j] += eps_mu[j][j]*xRetrieved[0][j];
-      }
-      
-      yError[0] = yRetrieved[0];
-      yError[0] -= yIn[0];
-      
-      if(writeResultsToFiles){
-        //testOutput2 << std::setprecision(9) <<  "0   "<< xRetrieved[0][0] <<"    "<< xRetrieved[0][1]<<std::endl;
-        testOutput3 << std::setprecision(9) <<  "0   "<< xIn[0][0] <<"    "<< xIn[0][1]<<"    " << hIn[0][0] <<"    "<< hIn[0][1]<<"    " << yIn[0][0] <<"    "<< yIn[0][1]<<std::endl;
-        testOutput4 << std::setprecision(9) <<  "0   "<< xRetrieved[0][0] <<"    "<< xRetrieved[0][1]<<"    " << yRetrieved[0][0] <<"    "<< yRetrieved[0][1]<<std::endl;
-      }
-      //    Double inc = 2*MAT_xSat_/( (Double) numTests);
       
       UInt numFails = 0;
-      for(UInt i = 1; i < totalSteps; i++){
+      for(UInt i = 0; i < totalSteps; i++){
         if( (i%10 == 0)&&(printStatistics) ){
           std::cout << "##### CASE " << ca << "; TEST NR " << i << "#####" << std::endl;
         }
@@ -5222,7 +5711,7 @@ namespace CoupledField {
         } else {  
 					hIn[i][0] = hystTMP->computeValueAndUpdateMeasure(xIn[i][0], 0, overwriteMemory, successFlagForward, innerTime);
           //hIn[i][0] = hystTMP->computeValueAndUpdate(xIn[i][0], xIn[i-1][0], 0, overwriteMemory);
-          std::cout << ", x=" << xIn[i][0] << ", flag="<< successFlagForward << ", time=" << innerTime << std::endl;
+          //std::cout << ", x=" << xIn[i][0] << ", flag="<< successFlagForward << ", time=" << innerTime << std::endl;
         }
 
         if (XML_performanceMeasurement_ == 3){
@@ -5242,8 +5731,8 @@ namespace CoupledField {
         }
      
 //        std::cout << "Success Flag: " << successFlagForward << std::endl;
-        std::cout << "evalTime: " << evalTime << std::endl;
-        std::cout << "innerTime: " << innerTime << std::endl;
+//        std::cout << "evalTime: " << evalTime << std::endl;
+//        std::cout << "innerTime: " << innerTime << std::endl;
 //        std::cout << "forwardTotalEvalTime: " << forwardTotalEvalTime << std::endl;
 //        
 //        if(i == 10)
