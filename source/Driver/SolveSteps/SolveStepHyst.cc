@@ -49,7 +49,7 @@ namespace CoupledField {
       lineSearch_ = "None";
       evalDepth_ = 2;
       measurePerformance_ = false;
-      testInvesion_ = 0;
+      testInversion_ = 0;
       incStopCrit_ = 1e-4;
       residualStopCrit_ = 1e-4;
       failBackCrit_ = -1.0;
@@ -120,10 +120,11 @@ namespace CoupledField {
           resetNode->Get("lineSearchAfterReset")->GetValue( "type", lineSearchAfterReset_,ParamNode::PASS );
         }
       } 
-            
+          
+			testNode_ = NULL;
       if( nonLinNode->Has("HYST_testOperator") ) {
-        PtrParamNode testNode = nonLinNode->Get("HYST_testOperator");
-        PDE_.TestInversionOfHystOperator(testNode);
+				testInversion_ = 1;
+        testNode_ = nonLinNode->Get("HYST_testOperator");
       }
 
       /*
@@ -153,7 +154,7 @@ namespace CoupledField {
     LOG_DBG(solvehyst) << "lineSearch_: " << lineSearch_;
     LOG_DBG(solvehyst) << "evalDepth_: " << evalDepth_;
     LOG_DBG(solvehyst) << "measurePerformance_: " << measurePerformance_;
-    LOG_DBG(solvehyst) << "testInvesion_: " << testInvesion_;
+    LOG_DBG(solvehyst) << "testInversion_: " << testInversion_;
     LOG_DBG(solvehyst) << "incStopCrit_: " << incStopCrit_;
     LOG_DBG(solvehyst) << "residualStopCrit_: " << residualStopCrit_;
     LOG_DBG(solvehyst) << "nonLinMaxIter_: " << nonLinMaxIter_;    
@@ -1112,6 +1113,13 @@ namespace CoupledField {
 			flagsInitialized_ = true;
       materialTensorsHystDepenedent_ = PDE_.MaterialTensorsHystDependent();
 		}
+		
+		if(testInversion_ == 1){
+			PDE_.TestInversionOfHystOperator(testNode_);
+			testInversion_ = 0;
+		}
+			        
+		
 		//obtain the number of stages
     UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
     if ( numStages > 1 ){

@@ -108,7 +108,8 @@ namespace CoupledField
      */
     UInt evalDepth_;
     UInt measurePerformance_;
-    UInt testInvesion_;
+    UInt testInversion_;
+    PtrParamNode testNode_;
 
     // + solVec which is defined above
 

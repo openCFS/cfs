@@ -236,7 +236,6 @@ namespace CoupledField {
     void EvaluateRotationState(UInt idx);
     
     Vector<Double> getRotationDirection(UInt idx){
-      
       return currentDirection_[idx];
     }
     
