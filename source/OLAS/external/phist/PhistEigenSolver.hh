@@ -25,6 +25,18 @@ namespace CoupledField {
     virtual ~PhistEigenSolver();
 
 
+    /** @see BaseEigenSolver */
+    virtual void Setup(const BaseMatrix & A, bool isHermitian=false)
+    {
+      std::cout << "PistEigenSolver::Setup(A)\n";
+    }
+
+    /** @see BaseEigenSolver */
+    virtual void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false)
+    {
+      std::cout << "PistEigenSolver::Setup(A, B)\n";
+    }
+
     //! Setup routine for standard eigenvalue problem
 
     //! Setup routine for various initialization tasks of a standard
@@ -63,6 +75,19 @@ namespace CoupledField {
                UInt numFreq, double freqShift, bool sort );
 
 
+    /** @see BaseEigenSolver */
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, double minVal, double maxVal)
+    {
+      std::cout << "PhistEigenSolver::CalcEigenValues(minVal)\n";
+    }
+
+    /** @see BaseEigenSolver */
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, unsigned int N, double shiftPoint)
+    {
+      std::cout << "PhistEigenSolver::CalcEigenValues(N)\n";
+    }
+
+
     //! Solve the linear generalized eigenvalue problem
     
     //! This method triggers the calculation of the eigenvalue problem.
@@ -76,11 +101,10 @@ namespace CoupledField {
     //! It calculates a given eigenmode and stores in a use supplied vector.
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eigenmode
-    void GetEigenMode(unsigned int modeNr, Vector<Complex> & mode);
+    void GetEigenMode(unsigned int modeNr, Vector<Complex> & mode, bool right = true);
     void GetComplexEigenMode(unsigned int modeNr, Vector<Complex> & mode) {
       GetEigenMode(modeNr, mode);
     }
-
 
     //! Calculate condition number
 
