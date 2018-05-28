@@ -216,38 +216,10 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   hy = my_mpi_grid.grid.hy
   hz = my_mpi_grid.grid.hz
   
-  # send all voxel data to root
-#   if my_mpi_grid.rank == 0:
-#     image = np.zeros((samples[0]*args.bc_res,samples[1]*args.bc_res,samples[2]*args.bc_res,))
-#     image[my_mpi_grid.start_x*args.bc_res:my_mpi_grid.end_x*args.bc_res,:,:] = my_mpi_grid.grid.data
-#     for t in data:
-#       start = t[1][0]
-#       end = t[1][1]
-#       image[start*args.bc_res:end*args.bc_res,:,:] = t[0]
-#   
-#     x = np.arange(bounds[0],bounds[3]+hx,hx)
-#     y = np.arange(bounds[1],bounds[4]+hy,hy)
-#     z = np.arange(bounds[2],bounds[5]+hz,hz)
-#     
-#     from pyevtk.hl import gridToVTK
-#     gridToVTK("image",x,y,z,cellData={"image":image})
-#     
-#     image = image.astype('uint8')
-#     #image *= 255
-#     print("unique:",np.unique(image))
-#     image.tofile("img.raw")
-#     
-#     sys.exit()
-    
-#     import mesh_tool
-#     mesh = mesh_tool.create_3d_mesh_from_array(image,False,width[0],width[1],width[2],bounds[0:3],bounds[3:6])
-#     mesh = mesh_tool.add_bc_for_ppbox(mesh,bounds)
-#     mesh_tool.write_gid_mesh(mesh,"ppbox.mesh")
-
   #print(helper.shape,np.sum(helper))
   from skimage import measure
   # coords of vertices lie in [0,1-h]
-  verts, faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False)
+  verts, faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False,step_size=1)
   # translate from (0,0,0) to correct position
   # and marching cubes shift everything by 0.5 * hx/hy/hz
   shift = np.asarray(my_mpi_grid.bounds[0:3]) - np.asarray((my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0))
@@ -266,31 +238,33 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   
   my_mpi_grid.gather_data(append=True)
   
+  print("after gather data rank:",my_mpi_grid.rank)
+  sys.stdout.flush()
   data = None
   if my_mpi_grid.rank == 0:
     import pymesh
     print("before reducing: len(verts):",len(my_mpi_grid.vertices)," len(faces):",len(my_mpi_grid.faces))
+    sys.stdout.flush()
+    
     verts = np.asarray(my_mpi_grid.vertices)
     faces = np.asarray(my_mpi_grid.faces)
+    
     verts, faces, info = pymesh.remove_duplicated_vertices_raw(verts,faces,1e-4) 
     verts, faces, info = pymesh.remove_duplicated_faces_raw(verts,faces)
     print("after reducing: len(verts):",len(verts)," len(faces):",len(faces))
+    sys.stdout.flush()
     
     pd = matviz_vtk.fill_vtk_polydata(verts, faces)
-    clean = vtk.vtkCleanPolyData()
-    clean.SetInputData(pd)
-    clean.Update()
     normals = vtk.vtkPolyDataNormals()
     normals.SetInputData(pd)
     normals.SetConsistency(1)
     normals.SetAutoOrientNormals(1)
     normals.Update()
-    matviz_vtk.show_write_vtk(normals.GetOutput(), 10, "marching_all.vtp")
+    sys.stdout.flush()
+    matviz_vtk.show_write_vtk(pd, 10, "marching_all.vtp")
     
     data = (verts,faces)
     
-#   sys.exit()  
-  
   # broadcast all verts to all ranks
   data = my_mpi_grid.comm.bcast(data,root=0)
   my_mpi_grid.set_vertices_and_faces(data[0],data[1])
@@ -553,17 +527,43 @@ class MPI_Grid():
   # if append == False, update data coming from other ranks 
   def gather_data(self,append,root=0):
     if append:
-      data = self.comm.gather((self.vertices, self.faces),root=root)
+      # find out number of vertices from each rank
+      vertscount = self.comm.gather(3*len(self.vertices),root=root)
+      facescount = self.comm.gather(3*len(self.faces),root=root)
+     
+      vertsbuf = None
+      facesbuf = None
       if self.rank == root:
-        for d in data:
-          offset = len(self.vertices)
-          self.vertices.extend(d[0])
-          self.faces.extend(list(np.asarray(d[1])+offset))
+        vertsbuf = np.empty(int(np.sum(vertscount)))
+        facesbuf = np.empty(int(np.sum(facescount)),dtype=int)
+      self.comm.Gatherv(sendbuf=np.array(self.vertices),recvbuf=(vertsbuf,vertscount),root=root)
+      self.comm.Gatherv(sendbuf=np.array(self.faces),recvbuf=(facesbuf,facescount),root=root)
+      if self.rank == root:
+        self.vertices = np.reshape(vertsbuf,(int(np.sum(vertscount)/3),3))
+        self.faces = np.reshape(facesbuf,(int(np.sum(facescount)/3),3))
+        # add offset
+        offset = 0
+        # cumulative sum
+        cumsum_verts = [0]
+        cumsum_verts.extend(np.cumsum(np.array(vertscount)/3.0))
+        cumsum_verts = [int(id) for id in cumsum_verts]
+        
+        cumsum_faces = [0]
+        cumsum_faces.extend(np.cumsum(np.array(facescount)/3.0))
+        cumsum_faces = [int(id) for id in cumsum_faces]
+          
+        for r in range(len(cumsum_faces)-1):
+          self.faces[cumsum_faces[r]:cumsum_faces[r+1]] += cumsum_verts[r]
+        sys.stdout.flush()
     else: # update
-      data = self.comm.gather((self.start_verts_idx, self.end_verts_idx,self.vertices[self.start_verts_idx:self.end_verts_idx]),root=root)
-      #print("rank:", self.rank," len(vertices):", len(self.vertices))
+      sendbuf = self.vertices[self.start_verts_idx:self.end_verts_idx]
+      numverts = self.comm.gather(3*len(sendbuf),root=root)
+      recvbuf = None
       if self.rank == root:
-        self.update_vertices(data)
+        recvbuf = np.empty(int(np.sum(numverts)))
+      self.comm.Gatherv(sendbuf=np.array(sendbuf),recvbuf=(recvbuf,numverts),root=root)
+      if self.rank == root:
+        self.vertices = np.reshape(recvbuf,(int(np.sum(numverts)/3),3))  
         
   def update_vertices(self,recv):
     for r in recv:
