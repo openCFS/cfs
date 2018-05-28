@@ -620,10 +620,22 @@ else:
   centers, min_bb, max_bb, elem_dim, _, _, _ = centered_elements(f, args.h5_region)
   if args.mesh:
     if args.h5_nondes != "None":
-#       nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=True)
-      if (MPI.COMM_WORLD.Get_rank()==0): 
-        nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=False)
+      if (MPI.COMM_WORLD.Get_rank()==0):
+        nondes_regs = args.h5_nondes
+        # in case we have more than 1 non-design solid region
+        if "," in args.h5_nondes:
+          nondes_regs = args.h5_nondes.split(",")
+        nondes_centers = []
+        nondes_min = 999999
+        nondes_max = -999999  
+        for nr in list(nondes_regs):  
+          tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=False)
+          nondes_centers.extend(tmp_nondes_centers)
+          nondes_min = numpy.min(tmp_nondes_min,nondes_min)
+          nondes_max = numpy.max(tmp_nondes_max,nondes_max)
+          
         _, design_elems_min, design_elems_max, _, _, _, design_elems = centered_elements(f, args.h5_region,centered=False)
+            
     if args.h5_nondes_void != "None":
       if (MPI.COMM_WORLD.Get_rank()==0): 
         nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements = centered_elements(f, args.h5_nondes_void,centered=False)
