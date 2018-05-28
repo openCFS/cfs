@@ -626,13 +626,14 @@ else:
         if "," in args.h5_nondes:
           nondes_regs = args.h5_nondes.split(",")
         nondes_centers = []
+        nondes_elements = []
         nondes_min = 999999
         nondes_max = -999999  
-        for nr in list(nondes_regs):  
-          tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, nondes_elements = centered_elements(f, args.h5_nondes,centered=False)
-          nondes_centers.extend(tmp_nondes_centers)
-          nondes_min = numpy.min(tmp_nondes_min,nondes_min)
-          nondes_max = numpy.max(tmp_nondes_max,nondes_max)
+        for nr in list(nondes_regs):
+          tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements = centered_elements(f, nr,centered=False)
+          nondes_elements.extend(tmp_nondes_elements)
+          nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
+          nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
           
         _, design_elems_min, design_elems_max, _, _, _, design_elems = centered_elements(f, args.h5_region,centered=False)
             
