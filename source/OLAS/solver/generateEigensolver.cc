@@ -90,7 +90,7 @@ DEFINE_LOG(genEigSolver, "genEigSolver")
       #ifdef USE_PHIST_EV
         retSolver = new PhistEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
       #else
-        EXCEPTION( "compiled without Phist!" );
+        EXCEPTION( "compiled without PHIST_EV: set USE_PHIST_EV=ON to use the PHIST_EV solver" );
       #endif
       break;
 
