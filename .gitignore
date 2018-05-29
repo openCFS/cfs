@@ -18,3 +18,5 @@ share/doc/developer/makedoc.sh
 share/doc/user/makedoc.sh
 share/scripts/IdentifyFortranCompiler.s
 /valgrind
+streamviz_memlog*
+__pycache__/
