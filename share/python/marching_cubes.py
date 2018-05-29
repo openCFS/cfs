@@ -29,44 +29,28 @@ triTable = None
   #   |/             |/
   #  3 -------------2/
   #         e2 
-def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_size=2,bottom_NW=None,top_SE=None,offset=None,top_left=None):
+def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_size=2,offset=None):
   from draw_profile_functions import grid_to_cartesian_coords
-  hx = spacing[0]
-  hy = spacing[1]
-  hz = spacing[2]
-  ntriangles = 0
-  
+  hx, hy, hz = spacing
+  nx, ny, nz = voxels.shape
   print("\ncube_size:",cube_size)
   print("hx,hy,hz:",hx,hy,hz)
   
-  if bottom_NW is None:
-    bottom_NW = np.zeros(3)
-  if top_SE is None:
-    top_SE = voxels.shape  
+  if offset is None:
+    offset = np.array([0,0,0])
   
   global edgeTable, triTable
   #create lookup tables once
   if edgeTable is None and triTable is None:
     edgeTable, triTable = create_lookup()
-#   triangles = []
-#   points = []
-#   normals = []
   
-  startx = int(bottom_NW[0])
-  starty = int(bottom_NW[1])
-  startz = int(bottom_NW[2])
-  endx = int(top_SE[0]-cube_size)
-  endy = int(top_SE[1]-cube_size)
-  endz = int(top_SE[2]-cube_size)
   cube_size = int(cube_size)
 #   print("cube_size:",cube_size)
 #   
-  print("start:",startx,starty,startz," end:",endx,endy,endz)
-  
   assert (0 < hx and 0 < hy and 0 < hz)
-  for i in range(startx,endx,cube_size):
-    for j in range(starty,endy,cube_size):
-      for k in range(startz,endz,cube_size):
+  for i in range(0,nx-cube_size,cube_size):
+    for j in range(0,ny-cube_size,cube_size):
+      for k in range(0,nz-cube_size,cube_size):
         
         # bottom/top face:
         # NW  ----------- NE  
@@ -127,12 +111,10 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_siz
           angles.append(calc_angle(n0, n2))
           angles.append(calc_angle(n1, n2))
         
-        offset_p = grid_to_cartesian_coords((i,j,k),None,(hx,hy,hz))
-        if top_left is not None:
-          offset_p = grid_to_cartesian_coords(top_left,None,(hx,hy,hz))
-#         if offset is not None:
-#             offset_p += offset
-        if cube_size == 1 or np.any(np.array(angles) < 50):  
+        if cube_size == 1 or np.any(np.array(angles) < 50):
+          offset_p = grid_to_cartesian_coords((i+offset[0],j+offset[1],k+offset[2]),None,(hx,hy,hz))
+          if cube_size == 1:
+            offset_p -= np.array([0,hy/2,0])  
           offset_f = len(points)
           verts = [v + np.array(offset_p) for v in verts]
           points.extend(verts)
@@ -141,17 +123,7 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_siz
           normals.extend(norms)
         else:
 #           print("refining ", cube_size, " angles:",angles)
-          marching_cubes(voxels[i:i+cube_size+1,j:j+cube_size+1,k:k+cube_size+1], (hx,hy,hz), points, triangles, normals, thresh, int(cube_size/2),offset=offset_p,top_left=(i,j,k))
-#         if len(triangles) > 0:
-#           for i in range(len(points)):
-#             points[i] = grid_to_cartesian_coords(points[i],None,(hx,hy,hz))   
-#             normals[i] *= np.array([hx,hy,hz])
-#           print("points:",points)
-#           print("triangles:",triangles)
-#           print("normals:",normals)
-#           pd = matviz_vtk.fill_vtk_polydata(points,triangles)
-#           matviz_vtk.show_write_vtk(pd, 10, "marching_cubes.vtp")
-#           sys.exit()  
+          marching_cubes(voxels[i:i+cube_size+1,j:j+cube_size+1,k:k+cube_size+1], (hx,hy,hz), points, triangles, normals, thresh, int(cube_size/2),offset=(i,j,k))
 
   if cube_size == 2:
 #     for i in range(len(points)):
@@ -168,7 +140,7 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_siz
       pointNormalsArray.InsertNextTuple3(-n[0], -n[1], -n[2])
      
     pd.GetPointData().AddArray(pointNormalsArray)  
-    pd.GetPointData().SetActiveScalars("normals");
+    pd.GetPointData().SetActiveScalars("normals")
     matviz_vtk.show_write_vtk(pd, 10, "marching_cubes.vtp")   
   
 #   print(triangles)

@@ -219,23 +219,22 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   #print(helper.shape,np.sum(helper))
   from skimage import measure
   # coords of vertices lie in [0,1-h]
-  verts, faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False,step_size=1)
+  my_mpi_grid.vertices, my_mpi_grid.faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False,step_size=1)
   # translate from (0,0,0) to correct position
   # and marching cubes shift everything by 0.5 * hx/hy/hz
   shift = np.asarray(my_mpi_grid.bounds[0:3]) - np.asarray((my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0))
   print("shift:",shift)
-  verts = [p+shift for p in verts]
+  my_mpi_grid.vertices = [p+shift for p in my_mpi_grid.vertices]
   
   # hope for python's garbage collector to delete voxel array
   helper = None
   
-  pd = matviz_vtk.fill_vtk_polydata(verts, faces)
+  pd = matviz_vtk.fill_vtk_polydata(my_mpi_grid.vertices, my_mpi_grid.faces)
   matviz_vtk.show_write_vtk(pd, 10, "marching"+str(my_mpi_grid.rank)+".vtp")
   
   pd = None
   
-  my_mpi_grid.set_vertices_and_faces(list(verts),list(faces))
-  
+  # communicate all pieces to root for global vertices list
   my_mpi_grid.gather_data(append=True)
   
   print("after gather data rank:",my_mpi_grid.rank)
@@ -254,6 +253,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     print("after reducing: len(verts):",len(verts)," len(faces):",len(faces))
     sys.stdout.flush()
     
+    # add vertex id to list of vertices, need it later on when scattering
+    # data for smoothing
+    
     pd = matviz_vtk.fill_vtk_polydata(verts, faces)
     normals = vtk.vtkPolyDataNormals()
     normals.SetInputData(pd)
@@ -263,25 +265,95 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     sys.stdout.flush()
     matviz_vtk.show_write_vtk(pd, 10, "marching_all.vtp")
     
-    data = (verts,faces)
+#     data = (verts,faces)
+#   sys.exit()  
+# #   # broadcast all verts to all ranks
+#   data = my_mpi_grid.comm.bcast(data,root=0)
+#   my_mpi_grid.set_vertices_and_faces(data[0],data[1])
+  overlap_offsets = None
+  # on which chunks each rank should work on
+  chunks = None
+  offsets = None
+  # how many elements each rank gets
+  rankcounts = None
+  displ = None
+  recvbuf = None
+  
+  if my_mpi_grid.rank == 0:
+    my_mpi_grid.update_connectivity_verts_faces()
     
-  # broadcast all verts to all ranks
-  data = my_mpi_grid.comm.bcast(data,root=0)
-  my_mpi_grid.set_vertices_and_faces(data[0],data[1])
+    chunks, offsets = my_mpi_grid.calc_vertices_chunks()
+    print("\t rank 0 offsets:",offsets)
+    new_v = []
+    for i,v in enumerate(my_mpi_grid.vertices):
+      new_v.append((v[0],v[1],v[2],i))
+      
+    # create dict to make vertex id independent from list index
+    my_mpi_grid.vertices = np.array(new_v)
+     
+#     print("\n offsets")
+#     for p in range(my_mpi_grid.size):
+#       print("rank: start=",vertices_offsets[p][0], " end=",vertices_offsets[p][1])
+    # broadcast chunks of vertices to ranks
+    # make sure ranks overlap to ensure smoothing at the rank boundaries
+    # add number of voxels of two voxel layers in +x/-x direction to chunks
+    # e.g. one voxel layer has 1 x 14 x 9 = 126 voxels, add 126 vertices from each side
+    # (left and right) to the rank's chunk
+    
+    add = 4 * samples[1] * samples[2] * args.bc_res**2
+    rankcounts = [None] * len(chunks)
+    displ = []
+    for p in range(my_mpi_grid.size):
+      # first is start_idx, second is end_idx
+      start = offsets[p][0]
+      end =  offsets[p][1]
+      if  p != 0:
+        start -= add
+        assert(start >= 0)
+      if p != my_mpi_grid.size - 1:
+        end += add
+        assert(end < len(my_mpi_grid.vertices))
+      
+      displ.append(start)
+      rankcounts[p] = end-start  
+#       print("\noverlapping offsets:")
+#       print(" rank ", p, ": start=",start," end=",end)
+    
+    # need to flatten array with vertices for communication
+    displ = np.array(displ,dtype=int) * 4
+    rankcounts = np.array(rankcounts,dtype=int) * 4
+    
+    print("displ:",np.array(displ)/4)
+  
+  # stuff we're working on
+  offsets = my_mpi_grid.comm.bcast(offsets,root=0)
+  chunks = my_mpi_grid.comm.bcast(chunks,root=0)
+  
+  # extended stuff that we need to work
+  displ = my_mpi_grid.comm.bcast(displ,root=0)
+  rankcounts = my_mpi_grid.comm.bcast(rankcounts,root=0)
+  
+  recvbuf = np.empty(int(rankcounts[my_mpi_grid.rank]))
+  my_mpi_grid.comm.Scatterv(sendbuf=[my_mpi_grid.vertices,rankcounts,displ,MPI.DOUBLE],recvbuf=recvbuf,root=0)
+  my_mpi_grid.connectivity = my_mpi_grid.comm.bcast(my_mpi_grid.connectivity,root=0)
+  
+  # convert to dict with vertex id as key and coordinates as value
+  my_mpi_grid.vertices = convert_verts_list_to_dict(np.reshape(recvbuf, (int(rankcounts[my_mpi_grid.rank]/4),4)))
+  my_mpi_grid.start_verts_idx = int(offsets[my_mpi_grid.rank][0])
+  my_mpi_grid.end_verts_idx = int(offsets[my_mpi_grid.rank][1])
+  
+  print("\nrank ", my_mpi_grid.rank, " recieved ", len(my_mpi_grid.vertices), " start=",displ[my_mpi_grid.rank]/4," end=",displ[my_mpi_grid.rank]/4+rankcounts[my_mpi_grid.rank]/4)
   
   for v in my_mpi_grid.vertices:
     assert(v is not None)
   assert(np.amax(my_mpi_grid.faces) < len(my_mpi_grid.vertices))
   
-  # update after changing vertices and faces
-  my_mpi_grid.update_connectivity_verts_faces()
-  
-  xmin = min(my_mpi_grid.vertices, key=lambda t: t[0])[0]
-  xmax = max(my_mpi_grid.vertices, key=lambda t: t[0])[0]
-  ymin = min(my_mpi_grid.vertices, key=lambda t: t[1])[1]
-  ymax = max(my_mpi_grid.vertices, key=lambda t: t[1])[1]
+  xmin = min(my_mpi_grid.vertices.values(), key=lambda t: t[0])[0]
+  xmax = max(my_mpi_grid.vertices.values(), key=lambda t: t[0])[0]
+  ymin = min(my_mpi_grid.vertices.values(), key=lambda t: t[1])[1]
+  ymax = max(my_mpi_grid.vertices.values(), key=lambda t: t[1])[1]
 #   zmin = min(my_mpi_grid.vertices, key=lambda t: t[2])[2]
-  zmax = max(my_mpi_grid.vertices, key=lambda t: t[2])[2]
+  zmax = max(my_mpi_grid.vertices.values(), key=lambda t: t[2])[2]
   
   # do parallel smoothing here
   mpi_taubin_smoothing(my_mpi_grid,(xmin,ymin,0,xmax,ymax,zmax),niter=args.bc_smooth)
@@ -420,6 +492,9 @@ class MPI_Grid():
     self.rank, self.size = comm.Get_rank(), comm.Get_size()
     self.cart = comm.Create_cart(dims=(1,self.size))
     self.coords = self.cart.Get_coords(self.rank)
+    self.connectivity = None
+    self.start_verts_idx = None
+    self.end_verts_idx = None
   
   # total_samples: list with number of total samples in 3 directions
   # bc_res: resolution of one base cell (usually 40)
@@ -437,14 +512,6 @@ class MPI_Grid():
     self.bounds[3] = self.end_x * (bounds[3]-bounds[0]) / total_samples[0] + bounds[0]
     self.grid = RectGrid(int(self.chunks*bc_res),int(total_samples[1]*bc_res),int(total_samples[2]*bc_res), self.bounds)
     
-  def set_vertices_and_faces(self,verts,faces):
-    # contains ALL vertices
-    self.vertices = verts
-    self.faces = faces
-    self.update_connectivity_verts_faces()
-    self.chunks_vertices, self.start_verts_idx, self.end_verts_idx = self.calc_num_vertices()
-    print("rank ",self.rank," start:",self.start_verts_idx," end:",self.end_verts_idx," chunks:",self.chunks_vertices," total:",len(self.vertices))
-  
   def update_connectivity_verts_faces(self):
     self.connectivity = basecell.getConnectivity(self.vertices, self.faces)
     
@@ -460,15 +527,21 @@ class MPI_Grid():
     
     return chunks[self.rank], start_slice, end_slice
   
-  def calc_num_vertices(self):
+  # compute which rank gets how many vertices for smoothing
+  # and what the offset of the global vertices array is
+  def calc_vertices_chunks(self):
+    assert(self.rank == 0)
     assert(self.vertices is not None and len(self.vertices) > 0)
     num_verts = len(self.vertices)
     chunks = [int(num_verts/self.size) + (1 if p < num_verts%self.size else 0) for p in range(0,self.size)]
-    # start idx of 'vertices' list
-    start_idx = int(np.sum(chunks[0:self.rank]))
-    end_idx = int(start_idx + chunks[self.rank])
+    offsets = []
+    for p in range(self.size):
+      # start idx of 'vertices' list
+      start_idx = int(np.sum(chunks[0:p]))
+      end_idx = int(start_idx + chunks[p])
+      offsets.append((start_idx,end_idx))
     
-    return chunks[self.rank], start_idx, end_idx
+    return chunks, offsets
     
   def to_info(self):
     print("---- mpi distr grid ----")  
@@ -505,22 +578,26 @@ class MPI_Grid():
   
   def communicate_vertices(self):
     assert(self.vertices is not None)
-    recv = []
+    recvkey = []
+    recvval = []
     for direction in [-1,1]:
       # coordinate dimension of shift is always 1, because we only have one dimension
       # coordinate dimension 1-based
       source, dest = self.cart.Shift(1,direction)
       
-      sendbuf = (self.start_verts_idx, self.end_verts_idx,np.copy(self.vertices[self.start_verts_idx:self.end_verts_idx]))
+      key = list(self.vertices.keys()) # vertex ids
+      values = list(self.vertices.values()) # vertex coords
       
-      tmp = self.cart.sendrecv(sendbuf,dest=dest,source=source)
+      tmp_key = self.cart.sendrecv(key,dest=dest,source=source)
+      tmp_values = self.cart.sendrecv(values,dest=dest,source=source)
 #       print("rank:",self.rank," got data from ",source)
       
       if source != MPI.PROC_NULL:
-        recv.append(tmp)
+        recvkey.extend(tmp_key)
+        recvval.extend(tmp_values)
     
 #     print("rank:",self.rank," got ",len(recv)," data chunks")  
-    return recv
+    return [recvkey,recvval]
       
   # collect all points and cells on a single rank (0)
   # if append==True, append data coming from other ranks
@@ -566,12 +643,10 @@ class MPI_Grid():
         self.vertices = np.reshape(recvbuf,(int(np.sum(numverts)/3),3))  
         
   def update_vertices(self,recv):
-    for r in recv:
-      if r is not None:
-        start = r[0]
-        end = r[1]
-        assert(r[2] is not None and r[2] is not None)
-        self.vertices[start:end] = r[2]
+    key, values = recv
+    for i,k in enumerate(key):
+      if k in self.vertices:
+        self.vertices[k] = values[i]
         
 class RectGrid():
   def __init__(self,nx,ny,nz,bounds):
@@ -603,17 +678,21 @@ def mpi_taubin_smoothing(mpi_grid,bounds=None,niter=None):
   start = mpi_grid.start_verts_idx
   end = mpi_grid.end_verts_idx
   #while res > 1e-2:
+  
+#   print("rank ", mpi_grid.rank," keys:",mpi_grid.vertices.keys())
+#   sys.exit()
+  
   while iter < niter:
     sys.stdout.flush()
     old_points = mpi_grid.vertices.copy()
     assert(max(max(mpi_grid.connectivity)) < len(mpi_grid.vertices))
     # shrink
-    mpi_grid.vertices = basecell.laplacian_smoothing(mpi_grid.vertices,mpi_grid.connectivity,lamb,start=start,end=end,rank=mpi_grid.rank,bounds=bounds)
+    mpi_grid.vertices = laplacian_smoothing_dict(mpi_grid.vertices,mpi_grid.connectivity,lamb,start=start,end=end,rank=mpi_grid.rank)
     # communicate smoothed vertices to other ranks
     mpi_grid.update_vertices(mpi_grid.communicate_vertices())
     
     # expand
-    mpi_grid.vertices = basecell.laplacian_smoothing(mpi_grid.vertices,mpi_grid.connectivity,-lamb-0.04,start=start,end=end,rank=mpi_grid.rank,bounds=bounds)
+    mpi_grid.vertices = laplacian_smoothing_dict(mpi_grid.vertices,mpi_grid.connectivity,-lamb-0.04,start=start,end=end,rank=mpi_grid.rank,bounds=bounds)
     assert(mpi_grid.vertices is not None)
     # communicate smoothed vertices to other ranks
     mpi_grid.update_vertices(mpi_grid.communicate_vertices())
@@ -633,3 +712,68 @@ def out_of_bounds(point,bounds):
   else:
     print("point ",point, " is out of bounds ",design_bounds)
     return True
+  
+# convert list to dict with list idx as key and list content as values
+def convert_verts_list_to_dict(ls):  
+  return {int(v[3]): v[0:3] for v in ls}
+
+# same as laplacian_smoothing from basecell.py, but vertices are stored in a dict
+# and vertex ids are not contiguous
+# laplacian smoothing: p_i = p_i + \lambda * L(p_i)
+# using weighted average: L(p_i) = (w_ij*p_j + w_ik*p_k) / (w_ik+w_ik) - p_i, assuming neighbors are p_j,p_k
+# bounds: tuple/list with 6 entries - points on these boundaries are not smoothed   
+# bounds order: xmin,ymin,zmin,xmax,ymax,zmax
+def laplacian_smoothing_dict(points,connectivity,lamb,start=0,end=None,bounds=None,rank=None):
+  if end == None:
+    end = len(points)
+  new_points = dict()
+  if bounds is None:
+    bounds = [-9999,-9999,-9999,9999,9999,9999] # default unit cube
+    
+  #print("rank:",rank," smoothing start:",start," end:",end, " lambda:",lamb)
+  for id, coords in points.items():
+    if id < start or id >= end:
+      continue  
+    p = coords
+    if np.isclose(p[0], bounds[0]) or np.isclose(p[1], bounds[1]) or np.isclose(p[2], bounds[2]) or np.isclose(p[0], bounds[3]) or np.isclose(p[1], bounds[4]) or np.isclose(p[2], bounds[5]):
+      new_points[id] = p
+      assert(new_points[i] is not None)
+    else:
+      # calculate L(p_i)
+      # w_ij*p_j + w_ik*p_k
+      L = 0
+      # nid is id of a neighbor node
+      neighborhood = connectivity[id]
+      #print("neighborhood: ",neighborhood)
+      for nid in neighborhood:
+        if nid not in points:
+          print("rank :",rank, " point ", id, " has neighbors ", neighborhood, " vertex with id ",nid, " is not in points list!\n")#keys:",points.keys())
+          if rank == 1:
+            print(points)
+          sys.exit()
+        
+        # n are coords of neighbor with id nid
+        n = np.asarray(points[nid])
+        assert(n is not None)
+        # distance between neighbor and this node
+        w = 1.0 / np.linalg.norm(len(neighborhood))
+        assert(p is not None)
+        L += w * (n-p)
+        #print("w:",w," n:",n," p:",p)
+        #print("n-p:",n-p," w*(n-p):",w*(n-p)," L:",L)
+        
+      new_points[id] = p + lamb * L   
+      #print(p,"+",lamb,"*",L)
+      #print("old:",points[i]," new:",new_points[i])
+      assert(new_points[i] is not None)
+      
+  assert(len(new_points) == len(points))
+#   for i,p in enumerate(new_points):
+#     if p is None:
+#       print("Rank:",rank," i:",i, " has None")
+#     assert(p is not None)
+    
+  #for i in range(len(points)):
+  #  print("old:",points[i]," new:",new_points[i])
+  
+  return new_points  
