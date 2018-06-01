@@ -1213,6 +1213,7 @@ namespace CoupledField {
     Matrix<Double> weightTensor_;
     std::string usedHystModel_;
     bool anhystOnly_;
+    int weightsAlreadyAdapted_; // for Mayergoyz case
     
     Double MuDat(Double A, Double sigma, Double h, Double eta, Double alpha, Double beta){
       // MuDat function for evaluating Preisach Weights

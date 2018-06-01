@@ -261,6 +261,7 @@
         <xsd:attribute name="AmplitudeScaling" type="xsd:float" use="optional" default="1"/>
         <xsd:attribute name="NumPeriods" type="xsd:float" use="optional" default="5"/>
         <xsd:attribute name="StepsPerPeriod" type="xsd:nonNegativeInteger" use="optional" default="20"/>
+        <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
       </xsd:restriction>
     </xsd:complexContent> 
   </xsd:complexType>    
@@ -271,6 +272,7 @@
         <xsd:attribute name="AmplitudeScaling" type="xsd:float" use="optional" default="1"/>
         <xsd:attribute name="FileContaining_x_over_steps" type="xsd:token" use="required"/>
         <xsd:attribute name="FileContaining_y_over_steps" type="xsd:token" use="optional"/>
+        <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
       </xsd:restriction>
     </xsd:complexContent> 
   </xsd:complexType>   
@@ -280,9 +282,11 @@
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="AmplitudeScaling" type="xsd:float" use="optional" default="1"/>
         <xsd:attribute name="NumSteps" type="xsd:nonNegativeInteger" use="optional" default="100"/>
+        <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
       </xsd:restriction>
     </xsd:complexContent> 
   </xsd:complexType>  
+  
   <xsd:complexType name="DT_testOperator">
     <xsd:sequence>
         <xsd:element name="InputSignals" minOccurs="1" maxOccurs="unbounded">
@@ -290,6 +294,8 @@
             <xsd:choice maxOccurs="unbounded">
               <xsd:element name="Sine" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
               <xsd:element name="Rotation" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="IncreasingRotation" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="DecreasingRotation" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
               <xsd:element name="DecreasingSine" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
               <xsd:element name="DecreasingSawtooth" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
               <xsd:element name="Forc" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
@@ -300,7 +306,6 @@
           </xsd:complexType>
         </xsd:element>
         <xsd:element name="TestInversion" type="DT_CFSBool" default="yes"/>
-        <xsd:element name="Test1D" type="DT_CFSBool" default="no"/>
         <xsd:element name="StopAfterTests" type="DT_CFSBool" default="no"/>
         <xsd:element name="PrintStatistics" type="DT_CFSBool" default="yes"/>
         <xsd:element name="WriteInputToFile" type="DT_CFSBool" default="no"/>

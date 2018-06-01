@@ -926,9 +926,9 @@ namespace CoupledField {
         if( (dim_ != 2) || (isIsotropic == 0)){
           EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
         } else {
-          int weightsAlreadyAdapted = 0;
-          material->GetScalar(weightsAlreadyAdapted, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
-          if(weightsAlreadyAdapted == 1){
+          weightsAlreadyAdapted_ = 0;
+          material->GetScalar(weightsAlreadyAdapted_, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
+          if(weightsAlreadyAdapted_ == 1){
             // here we have to assume that the weights given via the material file
             // already have been adapted (and scaled correctly)
             // > take weights as they are and do not further scale them!
@@ -4138,8 +4138,7 @@ namespace CoupledField {
 	}
     
   void CoefFunctionHyst::CreatePeriodicTestSignal(std::string name, Double amplitudeScaling, Double numPeriods, UInt stepsPerPeriod, Vector<Double>& xVals, Vector<Double>& yVals){
-    std::cout << "Create periodic signal" << std::endl;
-    
+     
     UInt totalSteps = UInt(stepsPerPeriod*numPeriods);
     xVals.Resize(totalSteps);
     yVals.Resize(totalSteps);
@@ -4208,6 +4207,20 @@ namespace CoupledField {
             yVals[i] = -MAT_xSat_;
           }
         }
+    } else if(name == "DecreasingRotation"){
+        Double decrease = 1.0/totalSteps;
+
+        for(UInt i = 0; i < totalSteps; i++){
+          xVals[i] = MAT_xSat_*(1.0 - decrease*i)*sin( (2*M_PI*i)/stepsPerPeriod );
+          yVals[i] = MAT_xSat_*(1.0 - decrease*i)*cos( (2*M_PI*i)/stepsPerPeriod );
+        }
+    } else if(name == "IncreasingRotation"){
+        Double increase = 1.0/totalSteps;
+
+        for(UInt i = 0; i < totalSteps; i++){
+          xVals[i] = MAT_xSat_*increase*i*sin( (2*M_PI*i)/stepsPerPeriod );
+          yVals[i] = MAT_xSat_*increase*i*cos( (2*M_PI*i)/stepsPerPeriod );
+        }
     } else if(name == "Sine"){
       for(UInt i = 0; i < totalSteps; i++){
         xVals[i] = MAT_xSat_*sin( (2*M_PI*i)/stepsPerPeriod );
@@ -4235,7 +4248,6 @@ namespace CoupledField {
   }
   
   void CoefFunctionHyst::CreateNonPeriodicTestSignal(std::string name, Double amplitudeScaling, UInt numberOfSteps, Vector<Double>& xVals, Vector<Double>& yVals){
-    std::cout << "Create non-periodic signal" << std::endl;
     
     if(name == "SelfDesigned"){
       UInt steps1,steps2,steps3,steps4,steps5,steps6,steps7;
@@ -4375,20 +4387,45 @@ namespace CoupledField {
 		 * 0. Declare variables (there are alot)
 		 */
 		std::ofstream statistics;
-		std::ofstream results;
+		std::ofstream results_x;
+    std::ofstream results_p;
+    std::ofstream results_y;
+    std::ofstream angularResults_x;
+    std::ofstream angularResults_p;
+    std::ofstream angularResults_y;
 		std::ofstream performance;
 		
 		std::stringstream statistics_name;
 		statistics_name << name << "_statistics";
 		
-		std::stringstream results_name;
-		results_name << name << "_results";		   
+		std::stringstream results_name_x;
+		results_name_x << name << "_results_x";		   
+    
+    std::stringstream results_name_p;
+		results_name_p << name << "_results_p";		
+    
+    std::stringstream results_name_y;
+		results_name_y << name << "_results_y";		
 		
+    std::stringstream angularResults_name_x;
+		angularResults_name_x << name << "_angularResults_x";		   
+    
+    std::stringstream angularResults_name_p;
+		angularResults_name_p << name << "_angularResults_p";		
+    
+    std::stringstream angularResults_name_y;
+		angularResults_name_y << name << "_angularResults_y";		
+    
 		std::stringstream performance_name;
 		performance_name << name << "_performance";		  
 		
 		if(writeResultsToFile){
-			results.open(results_name.str());
+			results_x.open(results_name_x.str());
+      results_p.open(results_name_p.str());
+      results_y.open(results_name_y.str());
+      angularResults_x.open(angularResults_name_x.str());
+      angularResults_p.open(angularResults_name_p.str());
+      angularResults_y.open(angularResults_name_y.str());
 		}
 		if(printStatistics){
 			statistics.open(statistics_name.str());
@@ -4487,7 +4524,7 @@ namespace CoupledField {
 		Timer* backwardTimer;
 		
 		if(printStatistics){
-			statistics << "+++ STATISTICS +++" << name << std::endl;
+			statistics << "+++ STATISTICS +++" << std::endl;
 			statistics << "TEST: " << name << std::endl;
 			statistics << "MODEL: " << usedHystModel_ << std::endl;
 		}
@@ -4638,8 +4675,36 @@ namespace CoupledField {
 			statistics << "- anhyst b: " << MAT_anhysteretic_b_ << std::endl;
 			statistics << "- anhyst c: " << MAT_anhysteretic_c_ << std::endl;
 			statistics << "- only anhyst? " << anhystOnly_ << std::endl;
-			statistics << "- Preisach weights: " << std::endl;
-			statistics << MAT_PreisachWeights_.ToString() << std::endl;
+			statistics << "PREISACH WEIGHTS: " << std::endl;
+      
+      if(weightType_ == "Constant"){
+        statistics << "> constant = " << constWeight_ << std::endl;
+      } else if(weightType_ == "muDat"){
+        statistics << "> muDat with " << std::endl;
+        statistics << "- A = " << muDat_A_ << std::endl;
+        statistics << "- sigma = " << muDat_sigma1_ << std::endl;
+        statistics << "- h = " << muDat_h1_ << std::endl;
+        statistics << "- eta = " << muDat_eta_ << std::endl;
+      } else if(weightType_ == "muDat"){
+        statistics << "> extended muDat with " << std::endl;
+        statistics << "- A = " << muDat_A_ << std::endl;
+        statistics << "- sigma1 = " << muDat_sigma1_ << std::endl;
+        statistics << "- sigma2 = " << muDat_sigma2_ << std::endl;
+        statistics << "- h1 = " << muDat_h1_ << std::endl;
+        statistics << "- h2 = " << muDat_h2_ << std::endl;
+        statistics << "- eta = " << muDat_eta_ << std::endl;
+      } else if(weightType_ == "givenTensor"){
+        statistics << "> given tensor = " << std::endl;
+        statistics << weightTensor_.ToString() << std::endl;
+      }
+      if (usedHystModel_ == "vectorPreisach_Mayergoyz") {
+        if(weightsAlreadyAdapted_ == 1){
+          statistics << "> weights directly used for Mayergoyz model" << std::endl;
+        } else {
+          statistics << "> weights were transferred for usage in Mayergoyz model" << std::endl;
+        }
+      }
+      
 			
 			if ( (usedHystModel_ == "vectorPreisach_Sutor")||(usedHystModel_ == "vectorPreisach_Mayergoyz") ) {
 				statistics << "LEVENBERG-MARQUARDT: " << std::endl;
@@ -4663,7 +4728,7 @@ namespace CoupledField {
 		if (measurePerformance) {
 			forwardTimer = new Timer();
 			backwardTimer = new Timer();
-			performance << "+++ RUNTIMES +++" << name << std::endl;
+			performance << "+++ RUNTIMES +++" << std::endl;
 			performance << "TEST: " << name << std::endl;
 			performance << "MODEL: " << usedHystModel_ << std::endl;
 			if (usedHystModel_ == "vectorPreisach_Sutor") {
@@ -4679,9 +4744,10 @@ namespace CoupledField {
 			}
 			performance << "SINGLE TESTS: " << std::endl;
 		}
-		
+		    
 		if(writeResultsToFile){
-			results << "# +++ RESULTS +++" << name << std::endl;
+      std::stringstream results;
+			results << "# +++ RESULTS +++" << std::endl;
 			results << "# TEST: " << name << std::endl;
 			results << "# MODEL: " << usedHystModel_ << std::endl;
 			if (usedHystModel_ == "vectorPreisach_Sutor") {
@@ -4696,16 +4762,56 @@ namespace CoupledField {
 				}
 			}
 			
+      results_x << results.str();
+      results_p << results.str();
+      results_y << results.str();
+      angularResults_x << results.str();
+      angularResults_p << results.str();
+      angularResults_y << results.str();
+      
 			if(testInversion){
-				results << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
-				results << "# > yIn[0],yIn[1] = x and y components of output of hyst operator to xIn; used as input for inversion" << std::endl;
-				results << "# > xOut[0],xOut[1] = x and y components of inversion output" << std::endl;
-				results << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;
-				results << "# Number \t xIn[0] \t xIn[1] \t yIn[0] \t yIn[1] \t xOut[0] \t xOut[1] \t yOut[0] \t yOut[1]" << std::endl;
+				results_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
+        results_x << "# > xOut[0],xOut[1] = x and y components of inversion output" << std::endl;
+        results_x << "# Number  xIn[0]  xIn[1]  xOut[0]  xOut[1]" << std::endl;
+        
+        results_p << "# > pIn[0],pIn[1] = x and y components of hyst operator computed from xIn" << std::endl;
+        results_p << "# > pOut[0],pOut[1] = x and y components of hyst operator computed from xOut" << std::endl;
+        results_p << "# Number  pIn[0]  pIn[1]  pOut[0]  pOut[1]" << std::endl;
+        
+				results_y << "# > yIn[0],yIn[1] = x and y components of output of hyst operator to xIn; used as input for inversion" << std::endl;
+        results_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;
+        results_y << "# Number  yIn[0]  yIn[1]  yOut[0]  yOut[1]" << std::endl;
+        
+        angularResults_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
+        angularResults_x << "# > xOut[0],xOut[1] = x and y components of inversion output" << std::endl;
+        angularResults_x << "# Number  abs(xIn)  atan2(xIn[1]/xIn[0])*180/pi  abs(xOut)  atan2(xOut[1]/xOut[0])*180/pi" << std::endl;
+        
+        angularResults_p << "# > pIn[0],pIn[1] = x and y components of hyst operator computed from xIn" << std::endl;
+        angularResults_p << "# > pOut[0],pOut[1] = x and y components of hyst operator computed from xOut" << std::endl;
+        angularResults_p << "# Number  abs(pIn)  atan2(pIn[1]/pIn[0])*180/pi  abs(pOut)  atan2(pOut[1]/pOut[0])*180/pi" << std::endl;
+        
+        angularResults_y << "# > yIn[0],yIn[1] = x and y components of output of hyst operator to xIn; used as input for inversion" << std::endl;
+        angularResults_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;
+        angularResults_y << "# Number  abs(yIn)  atan2(yIn[1]/yIn[0])*180/pi  abs(yOut)  atan2(yOut[1]/yOut[0])*180/pi" << std::endl;
+        
 			} else {
-				results << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
-				results << "# > yOut[0],yOut[1] = x and y components of output of hyst operator to xIn" << std::endl;
-				results << "# Number \t xIn[0] \t xIn[1] \t yOut[0] \t yOut[1]" << std::endl;
+        results_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
+        results_x << "# Number  xIn[0]  xIn[1]" << std::endl;
+        
+        results_p << "# > pOut[0],pOut[1] = x and y components of hyst operator computed from xOut" << std::endl;
+        results_p << "# Number  pOut[0]  pOut[1]" << std::endl;
+        
+        results_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;
+        results_y << "# Number  yOut[0]  yOut[1]" << std::endl;
+        
+        angularResults_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
+        angularResults_x << "# Number  abs(xIn)  atan2(xIn[1]/xIn[0])*180/pi" << std::endl;
+        
+        angularResults_p << "# > pOut[0],pOut[1] = x and y components of hyst operator computed from xOut" << std::endl;
+        angularResults_p << "# Number  abs(pOut)  atan2(pOut[1]/pOut[0])*180/pi" << std::endl;
+        
+        angularResults_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;
+        angularResults_y << "# Number  abs(yOut)  atan2(yOut[1]/yOut[0])*180/pi" << std::endl;
 			}
 			
 		}
@@ -4723,6 +4829,7 @@ namespace CoupledField {
 			if( (i%10 == 0)&&(printStatistics) ){
 				std::cout << "STEP NR " << i+1 << "/" << totalSteps << " #####" << std::endl;
 			}
+      performance << "Test " << i+1 << std::endl;
 			
 			// set previous state
 			if(i > 0){
@@ -4737,9 +4844,9 @@ namespace CoupledField {
 			
 			xIn.Init();
 			xIn[0] = xVals[i];
-			if(test1D == true){
+			if(test1D == false){
 				xIn[1] = yVals[i];
-			}	
+			}
 			
 			if(testInversion){
 				/*
@@ -4804,9 +4911,9 @@ namespace CoupledField {
             }
             backwardTotalEvalTime += evalTime;
 						
-						performance << "(" << i+1 <<") - backward: " << evalTime << std::endl;
+						performance << "- backward: " << evalTime << std::endl;
           } else {
-						performance << "(" << i+1 <<") - backward - reuse";
+            performance << "- backward: " << evalTime << "(reused)" << std::endl;
 					}
         }
 				
@@ -4886,9 +4993,9 @@ namespace CoupledField {
 					}
 					forwardTotalEvalTime += evalTime;
 					
-					performance << "(" << i+1 <<") - forward: " << evalTime << std::endl;
+					performance << "- forward: " << evalTime << std::endl;
 				} else {
-					performance << "(" << i+1 <<") - forward - reuse";
+					performance << "- forward: " << evalTime << "(reused)" << std::endl;
 				}
 			}
 			
@@ -4948,13 +5055,48 @@ namespace CoupledField {
 			 * 5. Output and statistics
 			 */
 			if(writeResultsToFile){
+        Double angle1 = 0;
+        Double ampl1 = 0;
+        Double angle2 = 0;
+        Double ampl2 = 0;
 				if(testInversion){
 					//results << "# Number \t xIn[0] \t xIn[1] \t yIn[0] \t yIn[1] \t xOut[0] \t xOut[1] \t yOut[0] \t yOut[1]" << std::endl;
-					results << i+1 << std::setprecision(9) << "\t" << xIn[0] << "\t" << xIn[1] << "\t" << yIn[0] << "\t" << yIn[1] 
-						<< "\t" << xOut[0] << "\t" << xOut[1] << "\t" << yOut[0] << "\t" << yOut[1] << std::endl;
+					results_x << i+1 << std::setprecision(9) << "\t" << xIn[0] << "\t" << xIn[1] << "\t" << xOut[0] << "\t" << xOut[1] << std::endl;
+          ampl1 = xIn.NormL2();
+          angle1 = atan2(xIn[1],xIn[0])*180.0/M_PI;
+          ampl2 = xOut.NormL2();
+          angle2 = atan2(xOut[1],xOut[0])*180.0/M_PI;
+          angularResults_x << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << "\t" << ampl2 << "\t" << angle2 << std::endl;
+          
+          results_p << i+1 << std::setprecision(9) << "\t" << hIn[0] << "\t" << hIn[1] << "\t" << hOut[0] << "\t" << hOut[1] << std::endl;
+          ampl1 = hIn.NormL2();
+          angle1 = atan2(hIn[1],hIn[0])*180.0/M_PI;
+          ampl2 = hOut.NormL2();
+          angle2 = atan2(hOut[1],hOut[0])*180.0/M_PI;
+          angularResults_p << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << "\t" << ampl2 << "\t" << angle2 << std::endl;
+          
+          results_y << i+1 << std::setprecision(9) << "\t" << yIn[0] << "\t" << yIn[1] << "\t" << yOut[0] << "\t" << yOut[1] << std::endl;
+          ampl1 = yIn.NormL2();
+          angle1 = atan2(yIn[1],yIn[0])*180.0/M_PI;
+          ampl2 = yOut.NormL2();
+          angle2 = atan2(yOut[1],yOut[0])*180.0/M_PI;
+          angularResults_y << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << "\t" << ampl2 << "\t" << angle2 << std::endl;
 				} else {
 					//					results << "# Number \t xIn[0] \t xIn[1] \t yOut[0] \t yOut[1]" << std::endl;
-					results << i+1 << std::setprecision(9) << "\t" << xIn[0] << "\t" << xIn[1] << "\t" << yOut[0] << "\t" << yOut[1] << std::endl;
+          results_x << i+1 << std::setprecision(9) << "\t" << xIn[0] << "\t" << xIn[1] << std::endl;
+          ampl1 = xIn.NormL2();
+          angle1 = atan2(xIn[1],xIn[0])*180.0/M_PI;
+          angularResults_x << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << std::endl;
+          
+          results_p << i+1 << std::setprecision(9) << "\t" << hOut[0] << "\t" << hOut[1] << std::endl;
+          ampl1 = hOut.NormL2();
+          angle1 = atan2(hOut[1],hOut[0])*180.0/M_PI;
+          angularResults_p << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << std::endl;
+          
+          results_y << i+1 << std::setprecision(9) << "\t" << yOut[0] << "\t" << yOut[1] << std::endl; 
+          ampl1 = yOut.NormL2();
+          angle1 = atan2(yOut[1],yOut[0])*180.0/M_PI;
+          angularResults_y << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << std::endl;
 				}
 			}
 			
@@ -5045,7 +5187,7 @@ namespace CoupledField {
 				statistics << " " << totalRemanence << " of " << totalSteps << " cases were in remanence" << std::endl;
 				statistics << " " << LMcases << " of " << totalSteps << " were solved using Levenberg-Marquardt" << std::endl;
 				if(LMcases != 0){
-					statistics << "## Detailed Statistics Levenberg-Marquardt Statistics: " << std::endl;
+					statistics << "## Detailed Statistics for Levenberg-Marquardt: " << std::endl;
 					statistics << " " << totalPassedErrorTol << " of " << LMcases << " tests passed due to error tolerance |JacT*Res| < " << INV_resTolH_ << std::endl;
 					statistics << " " << totalPassedResTolX << " of " << LMcases << " tests passed due to |residual_X| = |X - mu_eps^-1*(Y - P(X)| < " << INV_resTolH_ << std::endl;
 					statistics << " " << totalPassedResTolY << " of " << LMcases << " tests passed due to |residual_Y| = |Y - mu_eps*X - P(X)| < " << INV_resTolH_ << std::endl;
@@ -5068,26 +5210,48 @@ namespace CoupledField {
 		if (measurePerformance){
 			Double forwardAvgEvalTime = forwardTotalEvalTime/forwardEvalCounter;
 			performance << "## Runtime information: " << std::endl;
-			performance << "Total number of forward evaluations (excluding those inside LM): " << forwardEvalCounter << std::endl;
-			performance << "Total time for forward evaluations (excluding those inside LM): " << forwardTotalEvalTime << std::endl;
-			performance << "Average time for forward evaluations (excluding those inside LM): " << forwardAvgEvalTime << std::endl;
-			performance << "Maximal time for forward evaluations (excluding those inside LM): " << forwardMaxEvalTime << std::endl;
+      performance << "# Runtime information for forward evaluations: " << std::endl;
+			performance << "Total number of forward evaluations: " << forwardEvalCounter << std::endl;
+			performance << "Total time for forward evaluations: " << forwardTotalEvalTime << std::endl;
+			performance << "Average time for forward evaluations: " << forwardAvgEvalTime << std::endl;
+			performance << "Maximal time for forward evaluations: " << forwardMaxEvalTime << std::endl;
+      performance << "> Note: only evaluations on permanent storage counted, " << std::endl;
+      performance << "   i.e. no reused values and no evaluations on temporal storage (as e.g. inside LM)" << std::endl;
 			if(testInversion){	
 				Double backwardAvgEvalTime = backwardTotalEvalTime/backwardEvalCounter;
+        performance << "# Runtime information for backward evaluations: " << std::endl;
 				performance << "Total number of backward evaluations: " << backwardEvalCounter << std::endl;
 				performance << "Total time for backward evaluations: " << backwardTotalEvalTime << std::endl;
 				performance << "Average time for backward evaluations: " << backwardAvgEvalTime << std::endl;
 				performance << "Maximal time for backward evaluations: " << backwardMaxEvalTime << std::endl;
-				performance << "TOGREP: \t\t" << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << "\t " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << "\t " << numFails << std::endl;
-			} 
-			//statistics << "TOGREP: " << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << forwardTotalEvalTime << " " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << " " << backwardTotalEvalTime << " " << numFails << std::endl;
-			performance << "TOGREP: \t\t" << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << std::endl;
-			performance << "############################# " <<	std::endl;	
+        performance << "# Results for grepping: " << std::endl;
+//        performance << "Flag for grep \t forwardAvgEvalTime (#evals) \t backwardAvgEvalTime (#evals) \t  numFails "<< std::endl;
+//				performance << "TOGREP: \t\t" << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << "\t " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << "\t " << numFails << std::endl;
+        /*
+         * NOTE: we do measure forward time when computing inversion, too, but the results will be much different
+         *        from the results without inversion; inversion seems to affect forward evaluation time, even though no storage will be overwritten
+         *        by LM (or should not) and when inspecting the return flag of forward evaluation it is not 0, i.e. result is not reused;
+         *        nevertheless the forward runtime will be as short as if results had been reused
+         *      > not sure why this is the case but as a consequence, we measure forward time and backward time during separate runs
+         */
+        performance << "Flag for grep \t backwardAvgEvalTime (#evals) \t  numFails "<< std::endl;
+				performance << "TOGREP: \t\t" << "\t " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << "\t " << numFails << std::endl;
+			} else {
+        performance << "# Results for grepping: " << std::endl;
+        performance << "Flag for grep \t forwardAvgEvalTime (forwardEvalCounter) " << std::endl;
+        performance << "TOGREP: \t\t" << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << std::endl;
+      }
+			//statistics << "TOGREP: " << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << forwardTotalEvalTime << " " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << " " << backwardTotalEvalTime << " " << numFails << std::endl;			performance << "############################# " <<	std::endl;	
       performance << std::endl;	
 		}
-		
+		    
 		if(writeResultsToFile){
-			results.close();
+			results_x.close();
+      results_p.close();
+      results_y.close();
+      angularResults_x.close();
+      angularResults_p.close();
+      angularResults_y.close();
 		}
 		if(printStatistics){
 			statistics.close();
@@ -5112,10 +5276,6 @@ namespace CoupledField {
     if(testNode->Has("TestInversion")){
       testNode->GetValue("TestInversion",testInversion,ParamNode::PASS);
     }
-    bool test1D = false;
-    if(testNode->Has("Test1D")){
-      testNode->GetValue("Test1D",test1D,ParamNode::PASS);
-    }
     bool stopAfterTests = false;
     if(testNode->Has("StopAfterTests")){
       testNode->GetValue("StopAfterTests",stopAfterTests,ParamNode::PASS);
@@ -5137,13 +5297,13 @@ namespace CoupledField {
       testNode->GetValue("MeasurePerformance",measurePerformance,ParamNode::PASS);
     }
 
-    std::cout << "testInversion? " << testInversion << std::endl;
-    std::cout << "test1D? " << test1D << std::endl;
-    std::cout << "StopAfterTests? " << stopAfterTests << std::endl;
-    std::cout << "printStatistics? " << printStatistics << std::endl;
-    std::cout << "writeInputToFile? " << writeInputToFile << std::endl;
-    std::cout << "writeResultsToFile? " << writeResultsToFile << std::endl;
-    std::cout << "measurePerformance? " << measurePerformance << std::endl;
+//    std::cout << "testInversion? " << testInversion << std::endl;
+//    std::cout << "test1D? " << test1D << std::endl;
+//    std::cout << "StopAfterTests? " << stopAfterTests << std::endl;
+//    std::cout << "printStatistics? " << printStatistics << std::endl;
+//    std::cout << "writeInputToFile? " << writeInputToFile << std::endl;
+//    std::cout << "writeResultsToFile? " << writeResultsToFile << std::endl;
+//    std::cout << "measurePerformance? " << measurePerformance << std::endl;
     
     PtrParamNode InputSignals = testNode->Get("InputSignals");
     
@@ -5164,6 +5324,11 @@ namespace CoupledField {
       if(InputSignals->Get("Sine")->Has("StepsPerPeriod")){
         InputSignals->Get("Sine")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
       }
+      bool test1D = false;
+      if(InputSignals->Get("Sine")->Has("Test1D")){
+        InputSignals->Get("Sine")->GetValue("Test1D",test1D,ParamNode::PASS);
+      }
+      
       CreatePeriodicTestSignal("Sine",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal("Sine",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
       if(writeInputToFile){
@@ -5180,12 +5345,60 @@ namespace CoupledField {
       if(InputSignals->Get("Rotation")->Has("StepsPerPeriod")){
         InputSignals->Get("Rotation")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
       }
+      bool test1D = false;
+      if(InputSignals->Get("Rotation")->Has("Test1D")){
+        InputSignals->Get("Rotation")->GetValue("Test1D",test1D,ParamNode::PASS);
+      }
+      
       CreatePeriodicTestSignal("Rotation",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal("Rotation",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
             if(writeInputToFile){
         WriteSignalToFile("Rotation_input",xVals,yVals);
       }
     }
+    if(InputSignals->Has("DecreasingRotation")){
+      if(InputSignals->Get("DecreasingRotation")->Has("AmplitudeScaling")){
+        InputSignals->Get("DecreasingRotation")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
+      }
+      if(InputSignals->Get("DecreasingRotation")->Has("NumPeriods")){
+        InputSignals->Get("DecreasingRotation")->GetValue("NumPeriods",numPeriods,ParamNode::PASS);
+      }
+      if(InputSignals->Get("DecreasingRotation")->Has("StepsPerPeriod")){
+        InputSignals->Get("DecreasingRotation")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
+      }
+      bool test1D = false;
+      if(InputSignals->Get("DecreasingRotation")->Has("Test1D")){
+        InputSignals->Get("DecreasingRotation")->GetValue("Test1D",test1D,ParamNode::PASS);
+      }
+      
+      CreatePeriodicTestSignal("DecreasingRotation",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
+      TestHystOperatorWithSignal("DecreasingRotation",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      if(writeInputToFile){
+        WriteSignalToFile("DecreasingRotation_input",xVals,yVals);
+      }
+    }
+    if(InputSignals->Has("IncreasingRotation")){
+      if(InputSignals->Get("IncreasingRotation")->Has("AmplitudeScaling")){
+        InputSignals->Get("IncreasingRotation")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
+      }
+      if(InputSignals->Get("IncreasingRotation")->Has("NumPeriods")){
+        InputSignals->Get("IncreasingRotation")->GetValue("NumPeriods",numPeriods,ParamNode::PASS);
+      }
+      if(InputSignals->Get("IncreasingRotation")->Has("StepsPerPeriod")){
+        InputSignals->Get("IncreasingRotation")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
+      }
+      bool test1D = false;
+      if(InputSignals->Get("IncreasingRotation")->Has("Test1D")){
+        InputSignals->Get("IncreasingRotation")->GetValue("Test1D",test1D,ParamNode::PASS);
+      }
+      
+      CreatePeriodicTestSignal("IncreasingRotation",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
+      TestHystOperatorWithSignal("IncreasingRotation",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      if(writeInputToFile){
+        WriteSignalToFile("IncreasingRotation_input",xVals,yVals);
+      }
+    }
+    
     if(InputSignals->Has("DecreasingSine")){
       if(InputSignals->Get("DecreasingSine")->Has("AmplitudeScaling")){
         InputSignals->Get("DecreasingSine")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
@@ -5196,6 +5409,11 @@ namespace CoupledField {
       if(InputSignals->Get("DecreasingSine")->Has("StepsPerPeriod")){
         InputSignals->Get("DecreasingSine")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
       }
+      bool test1D = false;
+      if(InputSignals->Get("DecreasingSine")->Has("Test1D")){
+        InputSignals->Get("DecreasingSine")->GetValue("Test1D",test1D,ParamNode::PASS);
+      }
+      
       CreatePeriodicTestSignal("DecreasingSine",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal("DecreasingSine",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
                   if(writeInputToFile){
@@ -5212,6 +5430,11 @@ namespace CoupledField {
       if(InputSignals->Get("DecreasingSawtooth")->Has("StepsPerPeriod")){
         InputSignals->Get("DecreasingSawtooth")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
       }
+      bool test1D = false;
+      if(InputSignals->Get("DecreasingSawtooth")->Has("Test1D")){
+        InputSignals->Get("DecreasingSawtooth")->GetValue("Test1D",test1D,ParamNode::PASS);
+      }
+      
       CreatePeriodicTestSignal("DecreasingSawtooth",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal("DecreasingSawtooth",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
       if(writeInputToFile){
@@ -5228,6 +5451,11 @@ namespace CoupledField {
       if(InputSignals->Get("Forc")->Has("StepsPerPeriod")){
         InputSignals->Get("Forc")->GetValue("StepsPerPeriod",stepsPerPeriod,ParamNode::PASS);
       }
+      bool test1D = false;
+      if(InputSignals->Get("Forc")->Has("Test1D")){
+        InputSignals->Get("Forc")->GetValue("Test1D",test1D,ParamNode::PASS);
+      }
+      
       CreatePeriodicTestSignal("Forc",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal("Forc",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
       if(writeInputToFile){
@@ -5241,6 +5469,11 @@ namespace CoupledField {
       if(InputSignals->Get("SelfDesigned")->Has("NumSteps")){
         InputSignals->Get("SelfDesigned")->GetValue("NumSteps",numberOfSteps,ParamNode::PASS);
       }
+      bool test1D = false;
+      if(InputSignals->Get("SelfDesigned")->Has("Test1D")){
+        InputSignals->Get("SelfDesigned")->GetValue("Test1D",test1D,ParamNode::PASS);
+      }
+      
       CreateNonPeriodicTestSignal("SelfDesigned",amplitudeScaling,numberOfSteps,xVals,yVals);
       TestHystOperatorWithSignal("SelfDesigned",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
       if(writeInputToFile){
@@ -5254,6 +5487,11 @@ namespace CoupledField {
       if(InputSignals->Get("SatX-RemX-SatY")->Has("NumSteps")){
         InputSignals->Get("SatX-RemX-SatY")->GetValue("NumSteps",numberOfSteps,ParamNode::PASS);
       }
+      bool test1D = false;
+      if(InputSignals->Get("SatX-RemX-SatY")->Has("Test1D")){
+        InputSignals->Get("SatX-RemX-SatY")->GetValue("Test1D",test1D,ParamNode::PASS);
+      }
+      
       CreateNonPeriodicTestSignal("SatX-RemX-SatY",amplitudeScaling,numberOfSteps,xVals,yVals);
       TestHystOperatorWithSignal("SatX-RemX-SatY",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
       if(writeInputToFile){
@@ -5272,23 +5510,45 @@ namespace CoupledField {
       if(InputSignals->Get("ReadFromFile")->Has("FileContaining_y_over_steps")){
         InputSignals->Get("ReadFromFile")->GetValue("FileContaining_y_over_steps",fileNameY,ParamNode::PASS);
       }
+      bool test1D = false;
+      if(InputSignals->Get("ReadFromFile")->Has("Test1D")){
+        InputSignals->Get("ReadFromFile")->GetValue("Test1D",test1D,ParamNode::PASS);
+      }
+      
       Vector<Double> steps = Vector<Double>(1);
       Vector<Double> xVals = Vector<Double>(1);
       Vector<Double> yVals = Vector<Double>(1);
       std::stringstream combinedname;
       combinedname << "Test-";
+      Interpolate1D reader = Interpolate1D();
+      UInt maxSize = 1;
       if(fileNameX != "None"){
-        Interpolate1D reader = Interpolate1D();
         reader.ReadFile(fileNameX.c_str(),steps,xVals);
-        combinedname << fileNameX;
+        if(xVals.GetSize() > maxSize){
+          maxSize = xVals.GetSize();
+        }
       }
+      combinedname << fileNameX;
       combinedname << "-";
       if(fileNameY != "None"){
-        Interpolate1D reader = Interpolate1D();
         reader.ReadFile(fileNameY.c_str(),steps,yVals);
         combinedname << fileNameY;
+        if(yVals.GetSize() > maxSize){
+          maxSize = yVals.GetSize();
+        }
+      } 
+      combinedname << fileNameY;
+      
+      if(xVals.GetSize() < maxSize){
+        xVals.Resize(maxSize);
       }
-
+      if(yVals.GetSize() < maxSize){
+        yVals.Resize(maxSize);
+      }
+      
+      xVals.ScalarMult(amplitudeScaling);
+      yVals.ScalarMult(amplitudeScaling);
+      
       TestHystOperatorWithSignal(combinedname.str(),xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
       
       combinedname << "_input";
