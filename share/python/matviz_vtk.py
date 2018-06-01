@@ -184,7 +184,7 @@ def generate_outline_box(size = [1,1,1], offset = [0,0,0]):
   
 # show the data on the screen
 # @planes list of vtk actors containing symmetry planes 
-def show_vtk(polydata, res, save, planes=[], show_edges=False, show_axes=False, camera_settings=None):
+def show_vtk(polydata, res, save = None, planes=[], show_edges=False, show_axes=False, camera_settings=None):
   # Create a mapper and actor
   mapper = vtk.vtkPolyDataMapper()
   if vtk.VTK_MAJOR_VERSION <= 5:
