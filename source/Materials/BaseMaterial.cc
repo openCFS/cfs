@@ -14,7 +14,8 @@
 #include "Materials/Models/Preisach.hh"
 //#include "Materials/Models/VectorPreisach.hh"
 //#include "Materials/Models/VectorPreisachv7.hh"
-#include "Materials/Models/VectorPreisachv10.hh"
+#include "Materials/Models/VectorPreisachMayergoyz.hh"
+#include "Materials/Models/VectorPreisachSutor.hh"
 #include "Materials/Models/SimplePreisachInv.hh"
 #include "Materials/Models/PiezoMicroModelHF.hh"
 #include "Materials/Models/PiezoMicroModelBK.hh"
@@ -730,8 +731,8 @@ namespace CoupledField
     // just make dummy calls for linker
     Matrix<Double> weights = Matrix<Double>(1,1);
     hyst_ = new Preisach(numElemSD, 1, 1, weights, false);
-    hyst_ = new VectorPreisachv10_ListApproach(numElemSD, 1, 1, weights, 1, dim_, false, false, 0, 0, 0, 0, 0, false);
-    
+    hyst_ = new VectorPreisachSutor_ListApproach(numElemSD, 1, 1, weights, 1, dim_, false, false, 0, 0, 0, 0, 0, false);
+    hyst_ = new VectorPreisachMayergoyz(numElemSD, 2, 1, 1, weights, dim_, false, 0, 0, 0, false, 0);
     EXCEPTION( "BaseMaterial::InitHyst should not be used anymore" );
 //    
 //    isHystInverse_      = isInverse;
@@ -782,25 +783,25 @@ namespace CoupledField
 ////      if(evalVersion == 1){
 ////        classical = true; // original vector preisach model -> sutor2012
 ////
-////        hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
+////        hyst_ = new VectorPreisachSutor_ListApproach(numElemSD, Xsat, Ysat,
 ////                                                   weights, rotationalResistance, dim_, isVirgin,
 ////                                                   classical, angDistance, 0, 0, 0, 0, false);
 ////      } else if(evalVersion == 2){
 ////        classical = false; // revised vector preisach model -> sutor2015
 ////
-////        hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
+////        hyst_ = new VectorPreisachSutor_ListApproach(numElemSD, Xsat, Ysat,
 ////                                                   weights, rotationalResistance, dim_, isVirgin,
 ////                                                   classical, angDistance, 0, 0, 0, 0, false);
 ////      } else if(evalVersion == 10){
 ////        classical = true; // original vector preisach model -> sutor2015; matrix based implementation
 ////
-////        hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
+////        hyst_ = new VectorPreisachSutor_MatrixApproach(numElemSD, Xsat, Ysat,
 ////                                                   weights, rotationalResistance, dim_, isVirgin,
 ////                                                   classical, angDistance, 0, 0, 0, 0, false);
 ////      } else if(evalVersion == 20){
 ////        classical = false; // revised vector preisach model -> sutor2015; matrix based implementation
 ////
-////        hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
+////        hyst_ = new VectorPreisachSutor_MatrixApproach(numElemSD, Xsat, Ysat,
 ////                                                   weights, rotationalResistance, dim_, isVirgin,
 ////                                                   classical, angDistance, 0, 0, 0, 0, false);
 ////      } else {
@@ -816,7 +817,7 @@ namespace CoupledField
 //////        } else if((evalVersion == 9)||(evalVersion == 10)){
 //////		  Vector<Double> easyAxis = Vector<Double>(dim_);
 //////		  Double phaseLag = 0.0;
-//////		  hyst_ = new VectorPreisachv10(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion,phaseLag,easyAxis);
+//////		  hyst_ = new VectorPreisachSutor(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion,phaseLag,easyAxis);
 //////        } else {
 //////          hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin, isTesting!=0, (UInt) evalVersion);
 //////        }

@@ -655,16 +655,16 @@ namespace CoupledField {
   };
   
   
-  class VectorPreisachv10 : public Hysteresis
+  class VectorPreisachSutor : public Hysteresis
   {
     
   public:
-    VectorPreisachv10(Integer numElem, Double xSat, Double ySat,
+    VectorPreisachSutor(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
       bool classical, Double angularDistance, Double angResolution, 
       Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
     
-    virtual ~VectorPreisachv10();
+    virtual ~VectorPreisachSutor();
     
     //! this function gets called from outside and calculates the output of the Preisach operator
     virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite,
@@ -819,15 +819,15 @@ namespace CoupledField {
     
   };
   
-  class VectorPreisachv10_MatrixApproach : public VectorPreisachv10
+  class VectorPreisachSutor_MatrixApproach : public VectorPreisachSutor
   {
   public:
-    VectorPreisachv10_MatrixApproach(Integer numElem, Double xSat, Double ySat,
+    VectorPreisachSutor_MatrixApproach(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
       bool classical, Double angularDistance, Double angResolution, 
       Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
     
-    ~VectorPreisachv10_MatrixApproach();
+    ~VectorPreisachSutor_MatrixApproach();
     
     //! this function gets called from outside and calculates the output of the Preisach operator
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite,
@@ -867,16 +867,16 @@ namespace CoupledField {
     
   };
   
-  class VectorPreisachv10_ListApproach : public VectorPreisachv10
+  class VectorPreisachSutor_ListApproach : public VectorPreisachSutor
   {
     
   public:
-    VectorPreisachv10_ListApproach(Integer numElem, Double xSat, Double ySat,
+    VectorPreisachSutor_ListApproach(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
       bool classical, Double angularDistance, Double angResolution, 
       Double anhystA=0.0, Double anhystB=0.0, Double anhystC=0.0, bool anhystOnly = false);
     
-    virtual ~VectorPreisachv10_ListApproach();
+    virtual ~VectorPreisachSutor_ListApproach();
     
     //! this function gets called from outside and calculates the output of the Preisach operator
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite,

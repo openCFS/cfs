@@ -1,4 +1,4 @@
-#include "VectorPreisachv10.hh"
+#include "VectorPreisachSutor.hh"
 
 #include <fstream>
 #include <iostream>
@@ -6,7 +6,7 @@
 #include <boost/algorithm/string.hpp>
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Utils/Timer.hh"
-/* See VectorPreisachv10_ListApproach.hh for detailed description */
+/* See VectorPreisachSutor_ListApproach.hh for detailed description */
 
 namespace CoupledField
 { 
@@ -16,7 +16,7 @@ namespace CoupledField
   /*
    * BASE CLASS FUNCTIONS
    */
-  VectorPreisachv10::VectorPreisachv10(Integer numElem, Double xSat, Double ySat,
+  VectorPreisachSutor::VectorPreisachSutor(Integer numElem, Double xSat, Double ySat,
           Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
           bool classical, Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
   : Hysteresis(numElem,xSat,ySat,anhystA,anhystB,anhystC,anhystOnly)
@@ -140,7 +140,7 @@ namespace CoupledField
     
   }
   
-  VectorPreisachv10::~VectorPreisachv10(){
+  VectorPreisachSutor::~VectorPreisachSutor(){
     delete[] preisachSum_;
     delete[] preisachSumTmp_;
     
@@ -148,7 +148,7 @@ namespace CoupledField
     delete[] prevHVal_;
   }
 //  
-//  void VectorPreisachv10::ClipDirection(Vector<Double>& targetVector){
+//  void VectorPreisachSutor::ClipDirection(Vector<Double>& targetVector){
 //    
 //    if(INV_angClipping_ <= 0.0){
 //      return; // no clipping
@@ -300,7 +300,7 @@ namespace CoupledField
 //    }
 //  }
   
-	Vector<Double> VectorPreisachv10::restrictToHalfspace(Vector<Double>& e_u_new){
+	Vector<Double> VectorPreisachSutor::restrictToHalfspace(Vector<Double>& e_u_new){
 		/*
 		 * Idea: restrict e_u to halfspace y>0; inputs that point into the lower
 		 *				halfspace y<0 are then represented by negative xPar values
@@ -338,7 +338,7 @@ namespace CoupledField
 		
 	}
 	  
-  Vector<Double> VectorPreisachv10::evaluateNewRotationDirection(Vector<Double>& e_u_new, Vector<Double>& e_u_old, Double xVal){
+  Vector<Double> VectorPreisachSutor::evaluateNewRotationDirection(Vector<Double>& e_u_new, Vector<Double>& e_u_old, Double xVal){
     /*
      * calculates the new rotation direction for overwritten rotation states according to the
      * revised vector model from 2015
@@ -523,10 +523,10 @@ namespace CoupledField
   /*
    * MATRIX BASED IMPLEMENTATION
    */
-  VectorPreisachv10_MatrixApproach::VectorPreisachv10_MatrixApproach(Integer numElem, Double xSat, Double ySat,
+  VectorPreisachSutor_MatrixApproach::VectorPreisachSutor_MatrixApproach(Integer numElem, Double xSat, Double ySat,
           Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
           bool classical, Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
-  : VectorPreisachv10(numElem, xSat, ySat,
+  : VectorPreisachSutor(numElem, xSat, ySat,
           preisachWeight, rotationalResistance , dim, isVirgin,
           classical, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
   {
@@ -608,7 +608,7 @@ namespace CoupledField
     
   }
   
-  VectorPreisachv10_MatrixApproach::~VectorPreisachv10_MatrixApproach(){
+  VectorPreisachSutor_MatrixApproach::~VectorPreisachSutor_MatrixApproach(){
     delete[] switchingStates_;
     delete[] rotationStateX_;
     delete[] rotationStateY_;
@@ -620,7 +620,7 @@ namespace CoupledField
     delete copyFromTemporalStorageTimer_;
   }
   
-  void VectorPreisachv10_MatrixApproach::InitializeSwitchingState(UInt idElem){
+  void VectorPreisachSutor_MatrixApproach::InitializeSwitchingState(UInt idElem){
     
     /*
      * split Preisach plane along diagonal alpha=-beta in a +1 and -1 part
@@ -646,7 +646,7 @@ namespace CoupledField
     }
   }
   
-  std::string VectorPreisachv10_MatrixApproach::runtimeToString(){
+  std::string VectorPreisachSutor_MatrixApproach::runtimeToString(){
     std::ostringstream oss;
     oss << "--- VectorPreisach MatrixApproach ---\n";
     if(performanceMeasurement_){
@@ -669,7 +669,7 @@ namespace CoupledField
     return oss.str();
   }
   
-  void VectorPreisachv10_MatrixApproach::UpdateSwitchingStates(Vector<Double>& u_in, UInt idElem){
+  void VectorPreisachSutor_MatrixApproach::UpdateSwitchingStates(Vector<Double>& u_in, UInt idElem){
     /*
      * Update switching states from current input u_in; update only for FE element with index idElem
      * -> has to be called AFTER UpdateRotationStates
@@ -719,7 +719,7 @@ namespace CoupledField
     }
   }
   
-  void VectorPreisachv10_MatrixApproach::UpdateRotationStates(Double XThres, Double xVal, Vector<Double>& e_u_new, UInt idElem){
+  void VectorPreisachSutor_MatrixApproach::UpdateRotationStates(Double XThres, Double xVal, Vector<Double>& e_u_new, UInt idElem){
     /*
      * Update rotation states from current input u_in = xVal * e_u_new; change of rotation state indicated by xThres
      * Update only for FE element with index idElem
@@ -791,7 +791,7 @@ namespace CoupledField
     }
   }
   
-  Vector<Double> VectorPreisachv10_MatrixApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite, 
+  Vector<Double> VectorPreisachSutor_MatrixApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite, 
           bool overwriteDirection, bool debugOut, int& successCode){
 
     Vector<Double> diff = Vector<Double>(dim_);
@@ -1000,7 +1000,7 @@ namespace CoupledField
     }
   }
   
-  void VectorPreisachv10_MatrixApproach::switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState)
+  void VectorPreisachSutor_MatrixApproach::switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState)
   {
     /*
      * NEW: rotation state is evaluated along with the switching states if overLayWithRotState is true
@@ -1074,10 +1074,10 @@ namespace CoupledField
   /*
    * LIST BASED IMPLEMENTATIONl
    */
-  VectorPreisachv10_ListApproach::VectorPreisachv10_ListApproach(Integer numElem, Double xSat, Double ySat,
+  VectorPreisachSutor_ListApproach::VectorPreisachSutor_ListApproach(Integer numElem, Double xSat, Double ySat,
           Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
           bool classical, Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
-  : VectorPreisachv10(numElem, xSat, ySat,
+  : VectorPreisachSutor(numElem, xSat, ySat,
           preisachWeight, rotationalResistance , dim, isVirgin,
           classical, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
   {
@@ -1171,7 +1171,7 @@ namespace CoupledField
     
   }
   
-  VectorPreisachv10_ListApproach::~VectorPreisachv10_ListApproach(){
+  VectorPreisachSutor_ListApproach::~VectorPreisachSutor_ListApproach(){
     delete[] globRotList_;
     delete[] lastEu_;
     
@@ -1183,7 +1183,7 @@ namespace CoupledField
     delete evaluateNestedListTimer_;
   }
   
-  std::string VectorPreisachv10_ListApproach::runtimeToString(){
+  std::string VectorPreisachSutor_ListApproach::runtimeToString(){
     std::ostringstream oss;
     oss << "--- VectorPreisach ListApproach ---\n";
     if(performanceMeasurement_){
@@ -1216,7 +1216,7 @@ namespace CoupledField
   }
   
   
-  void VectorPreisachv10_ListApproach::Initialize_GlobalRotationList(std::list<RotListEntryv10>& usedList){
+  void VectorPreisachSutor_ListApproach::Initialize_GlobalRotationList(std::list<RotListEntryv10>& usedList){
     /*
      * Make sure that list is empty
      */
@@ -1247,7 +1247,7 @@ namespace CoupledField
     //lastXpar_[idElem] = 0.0;
   }
   
-  void VectorPreisachv10_ListApproach::Initialize_GlobalRotationListWithValues(std::list<RotListEntryv10>& usedList,Vector<Double>& initDir, Double initRotValue, Double initSwitchValue){
+  void VectorPreisachSutor_ListApproach::Initialize_GlobalRotationListWithValues(std::list<RotListEntryv10>& usedList,Vector<Double>& initDir, Double initRotValue, Double initSwitchValue){
     /*
      * Make sure that list is empty
      */
@@ -1307,7 +1307,7 @@ namespace CoupledField
   }
   
   
-  void VectorPreisachv10_ListApproach::Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedList,bool overwriteDirection,bool debugOut){
+  void VectorPreisachSutor_ListApproach::Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedList,bool overwriteDirection,bool debugOut){
     /*
      * function for updating the global rotation list with an entry pair xThres,e_u
      * furthermore, the magnitude xVal of the original input vector u_in is passed to update the switching lists
@@ -1787,7 +1787,7 @@ namespace CoupledField
     
   }
   
-  UInt VectorPreisachv10_ListApproach::Update_SwitchingList(std::list<ListEntryv10>& list, Double newEntry, Double lastXpar, Rectangle boundingBox, bool wasWipedOut, bool lastRotEntry){
+  UInt VectorPreisachSutor_ListApproach::Update_SwitchingList(std::list<ListEntryv10>& list, Double newEntry, Double lastXpar, Rectangle boundingBox, bool wasWipedOut, bool lastRotEntry){
     /*
      * This function is used to update both the globalSwitching list as well as the
      * local switching list stored in each entry of the rotation list
@@ -2273,7 +2273,7 @@ namespace CoupledField
     return 0;
   }
   
-  Vector<Double> VectorPreisachv10_ListApproach::computeValue_vecMeasure(Vector<Double>& u_in, Integer idElem, bool overwrite,
+  Vector<Double> VectorPreisachSutor_ListApproach::computeValue_vecMeasure(Vector<Double>& u_in, Integer idElem, bool overwrite,
           bool overwriteDirection, bool debugOut, int& successCode, Double& time){
     
     Timer* timer = new Timer();
@@ -2291,7 +2291,7 @@ namespace CoupledField
   }  
   
   
-  Vector<Double> VectorPreisachv10_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,
+  Vector<Double> VectorPreisachSutor_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,
           bool overwriteDirection, bool debugOut, int& successCode){
     
     Vector<Double> diff = Vector<Double>(dim_);
@@ -2530,7 +2530,7 @@ namespace CoupledField
     }
   }
   
-  Double VectorPreisachv10_ListApproach::clipRectangleToElement(Rectangle& source, UInt idAlpha, UInt idBeta, Double delta, bool isRotState){
+  Double VectorPreisachSutor_ListApproach::clipRectangleToElement(Rectangle& source, UInt idAlpha, UInt idBeta, Double delta, bool isRotState){
     /*
      * Calculates the overlapping area of a rectangle (rectT,rectB,rectL,rectR) with the element defined by alphaId, betaId
      * This calculation does the following steps:
@@ -2634,7 +2634,7 @@ namespace CoupledField
     return area;
   }
   
-  void VectorPreisachv10_ListApproach::getBoundingBoxFromRotEntry(std::list<RotListEntryv10>::iterator rotListIt, Rectangle& rect, bool lastRotListEntryv10){
+  void VectorPreisachSutor_ListApproach::getBoundingBoxFromRotEntry(std::list<RotListEntryv10>::iterator rotListIt, Rectangle& rect, bool lastRotListEntryv10){
     /*
      * helper function returning a bounding box including all rotation areas which belong to a given rotListEntryv10
      *
@@ -2736,7 +2736,7 @@ namespace CoupledField
   }
   
   
-  bool VectorPreisachv10_ListApproach::getRectanglesFromRotEntry(std::list<RotListEntryv10>::iterator rotListIt, Rectangle& rect1, Rectangle& rect2, bool lastRotListEntryv10){
+  bool VectorPreisachSutor_ListApproach::getRectanglesFromRotEntry(std::list<RotListEntryv10>::iterator rotListIt, Rectangle& rect1, Rectangle& rect2, bool lastRotListEntryv10){
     /*
      * -encapsulate the determination of rectangular rotation areas from a rot list entry
      * -return true if two non-zero rectangles are created; false otherwise
@@ -2898,7 +2898,7 @@ namespace CoupledField
     return twoAreas;
   }
   
-  void VectorPreisachv10_ListApproach::Evaluate_GlobalRotationList(std::list<RotListEntryv10>& usedList, Vector<Double>& retVec){
+  void VectorPreisachSutor_ListApproach::Evaluate_GlobalRotationList(std::list<RotListEntryv10>& usedList, Vector<Double>& retVec){
     /*
      * Evaluates the weighted rotation state of
      *  a) upper square S_U and upper triangle T_U (classic)
@@ -3191,7 +3191,7 @@ namespace CoupledField
     } // rot list
   }
   
-  void VectorPreisachv10_ListApproach::Evaluate_LowerTriangle(){
+  void VectorPreisachSutor_ListApproach::Evaluate_LowerTriangle(){
     /*
      * This function calculates the overall switching state of the lower triangle;
      * This value has to be multiplied with current rotation state e_u in each iteration to get
@@ -3209,7 +3209,7 @@ namespace CoupledField
     lowerTriangleValue_ = mapRectangleToPreisachWeights(rect);
   }
   
-  Double VectorPreisachv10_ListApproach::mapRectangleToPreisachWeights(Rectangle& rect, bool skipUpperDiagonal){
+  Double VectorPreisachSutor_ListApproach::mapRectangleToPreisachWeights(Rectangle& rect, bool skipUpperDiagonal){
     
     if(mappingVersion_ == 0){
       //if(textOutputLevel_ == 2){
@@ -3223,7 +3223,7 @@ namespace CoupledField
       return mapRectangleToPreisachWeightsNEW(rect, skipUpperDiagonal);
     }
   }
-  Double VectorPreisachv10_ListApproach::mapRectangleToPreisachWeightsOLD(Rectangle& rect, bool skipUpperDiagonal){
+  Double VectorPreisachSutor_ListApproach::mapRectangleToPreisachWeightsOLD(Rectangle& rect, bool skipUpperDiagonal){
     /*
      * Input: rectangle area described by its top (t), bottom (b), left (l) and right (r) boundary
      * Output: Sum over all PreisachWeights overlapped by the rectangle (partially overlapped elements
@@ -3533,7 +3533,7 @@ namespace CoupledField
   }
   
   //NEW
-  Double VectorPreisachv10_ListApproach::mapRectangleToPreisachWeightsNEW(Rectangle& rect, bool skipUpperDiagonal){
+  Double VectorPreisachSutor_ListApproach::mapRectangleToPreisachWeightsNEW(Rectangle& rect, bool skipUpperDiagonal){
     /*
      * Input: rectangle area described by its top (t), bottom (b), left (l) and right (r) boundary
      * Output: Sum over all PreisachWeights overlapped by the rectangle (partially overlapped elements
@@ -4064,7 +4064,7 @@ namespace CoupledField
     return sum;
   }
   
-  Double VectorPreisachv10_ListApproach::getRectangleFromSwitchingList(std::list<ListEntryv10>& list,
+  Double VectorPreisachSutor_ListApproach::getRectangleFromSwitchingList(std::list<ListEntryv10>& list,
           std::list<ListEntryv10>::iterator startIt, std::list<ListEntryv10>::iterator curIt, std::list<ListEntryv10>::iterator endIt,
           UInt idArea, Rectangle& rect, bool upperSplitSquare){
     /*
@@ -4426,7 +4426,7 @@ namespace CoupledField
     }
   }
   
-  bool VectorPreisachv10_ListApproach::Simplify_LocalSwitchingLists(std::list<RotListEntryv10>& usedList){
+  bool VectorPreisachSutor_ListApproach::Simplify_LocalSwitchingLists(std::list<RotListEntryv10>& usedList){
     /*
      * This function iterates over the globalRotation list and checks each entry in the corresponding
      * local switching list for overlap with the two possible rotation areas.
@@ -4603,7 +4603,7 @@ namespace CoupledField
     return switchingListSimplified;
   }
   
-  bool VectorPreisachv10_ListApproach::Simplify_GlobalRotationList(std::list<RotListEntryv10>& usedList){
+  bool VectorPreisachSutor_ListApproach::Simplify_GlobalRotationList(std::list<RotListEntryv10>& usedList){
     /*
      * New merging rule (applicable for all versions)
      *
@@ -4742,7 +4742,7 @@ namespace CoupledField
     return rotListSimplified;
   }
   
-  void VectorPreisachv10_ListApproach::mapRectangleToHelperMatrix(Matrix<Double>& helper, Rectangle rect, Double factor, bool skipUpperDiagonal, bool isRotState){
+  void VectorPreisachSutor_ListApproach::mapRectangleToHelperMatrix(Matrix<Double>& helper, Rectangle rect, Double factor, bool skipUpperDiagonal, bool isRotState){
     /*
      * similar function to mapRectangleToPreisachWeights
      * instead of summing up the Preisach weights, we set the entries in the helper matrix
@@ -5002,7 +5002,7 @@ namespace CoupledField
   }
   
   
-  void VectorPreisachv10_ListApproach::switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState)
+  void VectorPreisachSutor_ListApproach::switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState)
   {
     /*
      * NEW: rotation state is evaluated along with the switching states if overLayWithRotState is true

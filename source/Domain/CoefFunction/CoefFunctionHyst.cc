@@ -2,8 +2,8 @@
 
 // classes for function / spline approximation
 #include "Materials/Models/Preisach.hh"
-#include "Materials/Models/SimplePreisachInv.hh"
-#include "Materials/Models/VectorPreisachv10.hh"
+#include "Materials/Models/VectorPreisachSutor.hh"
+#include "Materials/Models/VectorPreisachMayergoyz.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "FeBasis/FeSpace.hh"
 #include "Forms/Operators/BaseBOperator.hh"
@@ -1384,25 +1384,25 @@ namespace CoupledField {
 			if (MAT_vecPreisachImplementationVersion_ == 1) {
 				isClassical_ = true; // original vector preisach model -> sutor2012
         
-				hyst_ = new VectorPreisachv10_ListApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
+				hyst_ = new VectorPreisachSutor_ListApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                 isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 2) {
 				isClassical_ = false; // revised vector preisach model -> sutor2015
         
-				hyst_ = new VectorPreisachv10_ListApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
+				hyst_ = new VectorPreisachSutor_ListApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                 isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 10) {
 				isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
         
-				hyst_ = new VectorPreisachv10_MatrixApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
+				hyst_ = new VectorPreisachSutor_MatrixApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                 isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 20) {
 				isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
         
-				hyst_ = new VectorPreisachv10_MatrixApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
+				hyst_ = new VectorPreisachSutor_MatrixApproach(numHystOperators_, MAT_xSat_, MAT_pSat_,
                 MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
                 isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else {
@@ -4590,28 +4590,28 @@ namespace CoupledField {
 			if (MAT_vecPreisachImplementationVersion_ == 1) {
 				isClassical_ = true; // original vector preisach model -> sutor2012
 				
-				hystTMP = new VectorPreisachv10_ListApproach(1, MAT_xSat_, MAT_pSat_,
+				hystTMP = new VectorPreisachSutor_ListApproach(1, MAT_xSat_, MAT_pSat_,
 					MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
 					isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
 					MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 2) {
 				isClassical_ = false; // revised vector preisach model -> sutor2015
 				
-				hystTMP = new VectorPreisachv10_ListApproach(1, MAT_xSat_, MAT_pSat_,
+				hystTMP = new VectorPreisachSutor_ListApproach(1, MAT_xSat_, MAT_pSat_,
 					MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
 					isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
 					MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 10) {
 				isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
 				
-				hystTMP = new VectorPreisachv10_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
+				hystTMP = new VectorPreisachSutor_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
 					MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
 					isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
 					MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 20) {
 				isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
 				
-				hystTMP = new VectorPreisachv10_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
+				hystTMP = new VectorPreisachSutor_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
 					MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
 					isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
 					MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
@@ -5717,25 +5717,25 @@ namespace CoupledField {
 //        if (MAT_vecPreisachImplementationVersion_ == 1) {
 //          isClassical_ = true; // original vector preisach model -> sutor2012
 //          
-//          hystTMP = new VectorPreisachv10_ListApproach(1, MAT_xSat_, MAT_pSat_,
+//          hystTMP = new VectorPreisachSutor_ListApproach(1, MAT_xSat_, MAT_pSat_,
 //                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
 //                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 //        } else if (MAT_vecPreisachImplementationVersion_ == 2) {
 //          isClassical_ = false; // revised vector preisach model -> sutor2015
 //          
-//          hystTMP = new VectorPreisachv10_ListApproach(1, MAT_xSat_, MAT_pSat_,
+//          hystTMP = new VectorPreisachSutor_ListApproach(1, MAT_xSat_, MAT_pSat_,
 //                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
 //                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 //        } else if (MAT_vecPreisachImplementationVersion_ == 10) {
 //          isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
 //          
-//          hystTMP = new VectorPreisachv10_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
+//          hystTMP = new VectorPreisachSutor_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
 //                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
 //                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 //        } else if (MAT_vecPreisachImplementationVersion_ == 20) {
 //          isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
 //          
-//          hystTMP = new VectorPreisachv10_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
+//          hystTMP = new VectorPreisachSutor_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
 //                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
 //                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 //        } else {

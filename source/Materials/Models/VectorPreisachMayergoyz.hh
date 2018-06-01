@@ -1,0 +1,76 @@
+#ifndef FILE_VECPREISACH_M_2018
+#define FILE_VECPREISACH_M_2018
+
+#include "Hysteresis.hh"
+#include "Preisach.hh"
+
+#include <list>
+
+#include "MatVec/Vector.hh"
+#include "MatVec/Matrix.hh"
+
+
+namespace CoupledField {
+  
+  class VectorPreisachMayergoyz : public Hysteresis
+  {
+  public:
+    // general constructor for anisotropic case, i.e. in each spatial direction
+    // we have to specify xSaat,ySat as well as a set of fitting preisachWeights
+    // the number of directions is specified by the length of xSat, ySat, etc
+    VectorPreisachMayergoyz(Integer numElem, Vector<Double> xSat, Vector<Double> ySat, 
+      Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, bool anhystOnly, int clipOutput);
+    
+    // constructor for isotropic case, i.e. same xSat, ySat and weights in all directions
+    VectorPreisachMayergoyz(Integer numElem, UInt numDirections, Double xSat, Double ySat, 
+      Matrix<Double>& preisachWeight, UInt dim, bool isVirgin,Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly, int clipOutput);
+    
+    virtual ~VectorPreisachMayergoyz();
+    
+    //! Try to compute input xVal to hyst operator, such that mu*xVal + H(xVal) = yVal
+    // return usable input xVal
+    /*
+     * computeInput_vec is the one to be called in coefFunctionHyst
+     * Exception: testInversion > here we use computeInput_vec_withStatistics
+     */
+    Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
+      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, 
+      bool hystOutputRestrictedToSat, int& successFlag){
+      
+      Vector<Double> prevYval = Vector<Double>(dim_);
+      mu.Mult(prevXVal_[operatorIndex],prevYval);
+      prevYval.Add(1.0,prevHVal_[operatorIndex]);
+      
+      return computeInput_vec_withPrevStates(yVal, prevYval,
+        prevXVal_[operatorIndex], prevHVal_[operatorIndex], 
+        operatorIndex, mu, overwriteDirection, fieldsAlignedAboveSat, 
+        hystOutputRestrictedToSat, successFlag);
+    }
+    
+    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idx, bool overwrite,
+      bool overwriteDirection, bool debugOutput, int& successFlag);
+    
+    Vector<Double> computeValue_vecMeasure(Vector<Double>& xVal, Integer idx, bool overwrite,
+      bool overwriteDirection, bool debugOutput, int& successFlag, Double& time);
+    
+    void setFlags(UInt performanceFlag){
+      ;
+    };
+    
+  private:
+    UInt numDirections_;
+    
+    int clipOutput_;
+    bool isIsotropic_;
+    
+    Vector<Double>* singleDirections_;
+    Preisach** singlePreisachOperators_;
+    Matrix<Double> matrixForCoefComputation_;
+    
+  };
+  
+} //end of namespace
+
+
+#endif
+
