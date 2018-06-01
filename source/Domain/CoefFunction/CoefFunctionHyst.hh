@@ -2435,8 +2435,9 @@ namespace CoupledField {
      * may be set to false to lock the rotation state of the hysteresis operator
      * changes in put will thus only affect the amplitude
      * > does not work if false; set it to true and leave it true
+     * REMOVED 1.6.2018
      */
-    bool RUN_overwriteDirection_;
+//    bool RUN_overwriteDirection_;
     
     /*
      * evaluationPurpose_ (to be changed during the iterative solve step)

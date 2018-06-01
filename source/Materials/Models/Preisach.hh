@@ -251,7 +251,6 @@ namespace CoupledField {
     // > map can be used
     std::map<Double,Vector<Double> >* rotationStates_; 
     Vector<Double>* currentDirection_;
-    
   };  
 } //end of namespace
 

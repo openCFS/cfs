@@ -587,12 +587,12 @@ namespace CoupledField
     anhyst_B_ = 0.0;
     anhyst_C_ = 0.0;
     bool overwrite = false;
-    bool overwriteDir = true; // we need to set the rotational operator
+//    bool overwriteDir = true; // we need to set the rotational operator
     bool debugOut = false;
     int successCode = 0;
     maxOutputVal_ = PSaturated_; // we need this value in order to call computeValue_vec
     
-    Vector<Double> satOutput = computeValue_vec(satInput, 0, overwrite, overwriteDir, debugOut, successCode);
+    Vector<Double> satOutput = computeValue_vec(satInput, 0, overwrite, debugOut, successCode);
     
     maxOutputVal_ = satOutput.NormL2();
     
@@ -792,7 +792,7 @@ namespace CoupledField
   }
   
   Vector<Double> VectorPreisachSutor_MatrixApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite, 
-          bool overwriteDirection, bool debugOut, int& successCode){
+          bool debugOut, int& successCode){
 
     Vector<Double> diff = Vector<Double>(dim_);
     diff.Init();
@@ -883,10 +883,11 @@ namespace CoupledField
       
       /*
        * Update rotation states
+       * > has always to be done; skipping it will not help at convergence issues but will lead to complete failure
        */
-      if(overwriteDirection){
+//      if(overwriteDirection){
         UpdateRotationStates(X_thres, xVal, e_u, idElem);
-      }
+//      }
       
       /*
        * Update switching states
@@ -1150,12 +1151,12 @@ namespace CoupledField
     anhyst_B_ = 0.0;
     anhyst_C_ = 0.0;
     bool overwrite = false;
-    bool overwriteDir = true; // we need to set the rotational operator
+//    bool overwriteDir = true; // we need to set the rotational operator
     bool debugOut = false;
     int successCode = 0;
     maxOutputVal_ = PSaturated_; // we need this value in order to call computeValue_vec
     
-    Vector<Double> satOutput = computeValue_vec(satInput, 0, overwrite, overwriteDir, debugOut, successCode);
+    Vector<Double> satOutput = computeValue_vec(satInput, 0, overwrite, debugOut, successCode);
     
     maxOutputVal_ = satOutput.NormL2();
     
@@ -1307,7 +1308,7 @@ namespace CoupledField
   }
   
   
-  void VectorPreisachSutor_ListApproach::Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedList,bool overwriteDirection,bool debugOut){
+  void VectorPreisachSutor_ListApproach::Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedList,bool debugOut){
     /*
      * function for updating the global rotation list with an entry pair xThres,e_u
      * furthermore, the magnitude xVal of the original input vector u_in is passed to update the switching lists
@@ -1397,7 +1398,8 @@ namespace CoupledField
     int cntInner = 0;
     
     //	std::cout << "Overwrite direction? " << overwriteDirection << std::endl;
-    if((overwriteDirection)&&(needsInsert == true)){
+//    if((overwriteDirection)&&(needsInsert == true)){
+    if(needsInsert == true){
       /*
        * Update rotation states
        */
@@ -2274,13 +2276,13 @@ namespace CoupledField
   }
   
   Vector<Double> VectorPreisachSutor_ListApproach::computeValue_vecMeasure(Vector<Double>& u_in, Integer idElem, bool overwrite,
-          bool overwriteDirection, bool debugOut, int& successCode, Double& time){
+          bool debugOut, int& successCode, Double& time){
     
     Timer* timer = new Timer();
     Double startTime = timer->GetCPUTime();
     timer->Start();
     
-    Vector<Double> Yvec = computeValue_vec(u_in, idElem, overwrite, overwriteDirection, debugOut, successCode);
+    Vector<Double> Yvec = computeValue_vec(u_in, idElem, overwrite, debugOut, successCode);
     
     timer->Stop();
     Double endTime = timer->GetCPUTime();  
@@ -2292,7 +2294,7 @@ namespace CoupledField
   
   
   Vector<Double> VectorPreisachSutor_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,
-          bool overwriteDirection, bool debugOut, int& successCode){
+          bool debugOut, int& successCode){
     
     Vector<Double> diff = Vector<Double>(dim_);
     diff.Init();
@@ -2355,9 +2357,9 @@ namespace CoupledField
     /*
      * set value of lastEu_ (only needed for classical_ model to get the rotation information for the lowerTriangle_)
      */
-    if(overwriteDirection){
+//    if(overwriteDirection){
       lastEu_[idElem] = e_u;
-    }
+//    }
       
     /*
      * Storage for element value
@@ -2395,7 +2397,7 @@ namespace CoupledField
         if(debugOut){
           LOG_TRACE(vecpreisach) << "Work on permanent storage" ;
         }
-        Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],overwriteDirection,debugOut);
+        Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],debugOut);
         //Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],true);
         
         /*
@@ -2444,7 +2446,7 @@ namespace CoupledField
          */
         //   std::cout << "Working only on temporal storage! " << std::endl;
         //Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,true);
-        Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,overwriteDirection,debugOut);
+        Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,debugOut);
         
         if(performanceMeasurement_){
           evaluateNestedListCounter_++;

@@ -668,7 +668,7 @@ namespace CoupledField {
     
     //! this function gets called from outside and calculates the output of the Preisach operator
     virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite,
-      bool overwriteDirection,bool debugOutput, int& successFlag){
+      bool debugOutput, int& successFlag){
       EXCEPTION("Not implemented in base class");
     }
 
@@ -708,7 +708,7 @@ namespace CoupledField {
      * Exception: testInversion > here we use computeInput_vec_withStatistics
      */
     Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
+      Matrix<Double> mu, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
       int& successFlag){
       
       Vector<Double> prevYval = Vector<Double>(dim_);
@@ -717,7 +717,7 @@ namespace CoupledField {
       
       return computeInput_vec_withPrevStates(yVal, prevYval,
         prevXVal_[operatorIndex], prevHVal_[operatorIndex], operatorIndex, 
-        mu, overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat, successFlag);
+        mu, fieldsAlignedAboveSat, hystOutputRestrictedToSat, successFlag);
     }
      
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState){
@@ -831,7 +831,7 @@ namespace CoupledField {
     
     //! this function gets called from outside and calculates the output of the Preisach operator
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite,
-      bool overwriteDirection, bool debugOut, int& successFlag);
+      bool debugOut, int& successFlag);
     
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState);
     
@@ -880,10 +880,10 @@ namespace CoupledField {
     
     //! this function gets called from outside and calculates the output of the Preisach operator
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite,
-      bool overwriteDirection, bool debugOut, int& successFlag);
+      bool debugOut, int& successFlag);
     
     Vector<Double> computeValue_vecMeasure(Vector<Double>& u_in, Integer idElem, bool overwrite,
-          bool overwriteDirection, bool debugOut, int& successCode, Double& time);
+          bool debugOut, int& successCode, Double& time);
     
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState);
     
@@ -894,7 +894,7 @@ namespace CoupledField {
     /*
      * for version 10 -> revised model
      */
-    void Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedRotationList,bool overwriteDirection=true,bool debutOutput = false);
+    void Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedRotationList,bool debutOutput = false);
     UInt Update_SwitchingList(std::list<ListEntryv10>& list, Double newEntry, Double lastXpar, Rectangle boundingBox, bool wasWipedOut, bool lastRotEntry);
     Double clipRectangleToElement(Rectangle& source, UInt idAlpha, UInt idBeta, Double delta = -1,bool isRotState = false);
     void getBoundingBoxFromRotEntry(std::list<RotListEntryv10>::iterator rotListIt, Rectangle& rect1, bool lastRotListEntryv10);

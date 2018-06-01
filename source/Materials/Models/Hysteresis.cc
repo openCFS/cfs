@@ -86,7 +86,7 @@ namespace CoupledField
     if(evalRequired){
       Pin.Init();
       Pin.Add(Xup_normalized*XSaturated_,dir);
-      Pout = computeValue_vec(Pin, idx, false, true, debugOut, successFlag);
+      Pout = computeValue_vec(Pin, idx, false, debugOut, successFlag);
       Pout.Inner(dir,Poffset_normalized);
       Poffset_normalized /= PSaturated_;
       // as computeValue_vec already contains anhyst part, we do not have to add it
@@ -102,7 +102,7 @@ namespace CoupledField
     if(evalRequired){
       Pin.Init();
       Pin.Add(Xdown_normalized*XSaturated_,dir);
-      Pout = computeValue_vec(Pin, idx, false, true, debugOut, successFlag);
+      Pout = computeValue_vec(Pin, idx, false, debugOut, successFlag);
       Pout.Inner(dir,Poffset_normalized);
       Poffset_normalized /= PSaturated_;
       
@@ -139,7 +139,7 @@ namespace CoupledField
         if(evalRequired){
           Pin.Init();
           Pin.Add(Xmid_normalized*XSaturated_,dir);
-          Pout = computeValue_vec(Pin, idx, false, true, debugOut, successFlag);
+          Pout = computeValue_vec(Pin, idx, false, debugOut, successFlag);
           Pout.Inner(dir,Poffset_normalized);
           Poffset_normalized /= PSaturated_;
           
@@ -487,7 +487,7 @@ namespace CoupledField
   
   Matrix<Double> Hysteresis::computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
-					bool overwriteMemory, bool overwriteDirection, int stayBelowSat) {
+					bool overwriteMemory, int stayBelowSat) {
     
     LOG_DBG(vecpreisachInversion) << " --------- computeJacobianOfAbsResidualX --------- ";
 //    LOG_DBG(vecpreisach) << "VecPreisach::computeJacobianOfAbsResidualX";
@@ -554,7 +554,7 @@ namespace CoupledField
         LOG_TRACE(vecpreisachInversion) << " dXvec " << dXvec.ToString(); 
         int successFlag = 0;
         bool debugOut = false;
-        hystShifted = computeValue_vec(xShifted, operatorIdx, overwriteMemory, overwriteDirection, debugOut, successFlag);
+        hystShifted = computeValue_vec(xShifted, operatorIdx, overwriteMemory, debugOut, successFlag);
         /*
          * Compute Jacobian for residual wrt x
          * 
@@ -696,10 +696,10 @@ namespace CoupledField
         int successFlag = 0;
         bool debugOut = false;
         xShifted[i] += deltaX;
-        hystShifted = computeValue_vec(xShifted, operatorIdx, overwriteMemory, overwriteDirection, debugOut, successFlag); 
+        hystShifted = computeValue_vec(xShifted, operatorIdx, overwriteMemory, debugOut, successFlag); 
         xShifted_opp = xVal;
         xShifted_opp[i] -= deltaX;
-        hystShifted_opp = computeValue_vec(xShifted_opp, operatorIdx, overwriteMemory, overwriteDirection, debugOut, successFlag);
+        hystShifted_opp = computeValue_vec(xShifted_opp, operatorIdx, overwriteMemory, debugOut, successFlag);
         
         /*
          * Compute Jacobian for residual wrt x
@@ -733,10 +733,10 @@ namespace CoupledField
   
   Matrix<Double> Hysteresis::computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
           Matrix<Double> mu, Matrix<Double> mu_inv, Integer operatorIdx, Double sign, bool wrtX, bool relative, 
-					UInt implementation, bool overwriteMemory, bool overwriteDirection, int stayBelowSat){
+					UInt implementation, bool overwriteMemory, int stayBelowSat){
 
     Matrix<Double> jac = computeJacobianOfAbsResidualX(xVal, hyst, mu_inv, 
-												operatorIdx, sign, implementation, overwriteMemory, overwriteDirection, stayBelowSat);
+												operatorIdx, sign, implementation, overwriteMemory, stayBelowSat);
     
     if(wrtX){
       /*
@@ -807,7 +807,7 @@ namespace CoupledField
   
   bool Hysteresis::performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
 		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
-		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
+		Integer operatorIdx, bool overwriteMemory,
 		Double& alpha, Double alphaMin, Double alphaMax, bool wrtX, bool relative, 
     UInt& numberOfIterations,Vector<Double>& xStart, Double factorToSat, int stayBelowSat, Vector<Double> sol){
     
@@ -964,11 +964,11 @@ namespace CoupledField
             
       int successFlag = 0;
       bool debugOut = false;
-      Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, overwriteDirection, debugOut, successFlag);
-      Vector<Double> hystOld = computeValue_vec(xVal, operatorIdx, overwriteMemory, overwriteDirection, debugOut, successFlag);
+      Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, debugOut, successFlag);
+      Vector<Double> hystOld = computeValue_vec(xVal, operatorIdx, overwriteMemory, debugOut, successFlag);
       Vector<Double> resSol = computeResidual(sol,yVal,hystSol,mu,mu_inv,wrtX,relative);
       
-      hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, overwriteDirection, debugOut, successFlag);
+      hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, debugOut, successFlag);
       resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
       
       LOG_DBG(vecpreisachlinesearch) << "hyst vector for sol: " << hystSol.ToString();
@@ -1014,7 +1014,7 @@ namespace CoupledField
           xUpdate -= xVal;
           LOG_DBG(vecpreisachlinesearch) << "Cut down xUpdate = " << xUpdate.ToString();
           // check again
-          hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, overwriteDirection, debugOut, successFlag);
+          hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, debugOut, successFlag);
           resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
           success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
           LOG_DBG(vecpreisachlinesearch) << "xNew (after cut): " << xNew.ToString();
@@ -1492,7 +1492,7 @@ namespace CoupledField
   
 	Vector<Double> Hysteresis::computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, 
+      Matrix<Double> mu, bool fieldsAlignedAboveSat, 
       bool hystOutputRestrictedToSat, int& successFlag){
 		
 		UInt totalNumberOfLMIterations=0;
@@ -1502,14 +1502,14 @@ namespace CoupledField
 		Vector<Double>sol = Vector<Double>(dim_);
     
 		return computeInput_vec_withStatistics(yVal, prevYval, prevXval, prevHystval, 
-			operatorIndex, mu, overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat,
+			operatorIndex, mu, fieldsAlignedAboveSat, hystOutputRestrictedToSat,
       totalNumberOfLMIterations, totalNumberOfLinesearchIterations, 
       maximalNumberOfLinesearchIterations, successFlag, minAlphaStatistics,maxAlphaStatistics,avgAlphaStatistics,sol);
 	}
     
   Vector<Double> Hysteresis::computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
           Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-          Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
+          Matrix<Double> mu, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
           UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
           UInt& maximalNumberOfLinesearchIterations, int& successFlag, Double& minAlphaStatistics, 
 					Double& maxAlphaStatistics, Double& avgAlphaStatistics, Vector<Double> sol){
@@ -1714,7 +1714,7 @@ namespace CoupledField
       Vector<Double> satInput = Vector<Double>(dim_);
       satInput.Init();
       satInput.Add(XSaturated_,yDir);
-      Vector<Double> hystValAtXSat = computeValue_vec(satInput, operatorIndex, false, true, false, tmp);
+      Vector<Double> hystValAtXSat = computeValue_vec(satInput, operatorIndex, false, false, tmp);
       
       // check saturation in direction of yIn might solve system
       //Double diffSat = yNorm - (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);
@@ -1806,7 +1806,7 @@ namespace CoupledField
      */
     xTMP.Init();
     bool debugOut = false;
-    hystVal_rem = computeValue_vec(xTMP, operatorIndex, overwriteMemory, overwriteDirection, debugOut, successFlagForward);
+    hystVal_rem = computeValue_vec(xTMP, operatorIndex, overwriteMemory, debugOut, successFlagForward);
     
     diff.Init();
     diff.Add(1.0,yVal,-1.0,hystVal_rem);
@@ -1939,7 +1939,7 @@ namespace CoupledField
        * (mostly due to bringing x into sat and then resetting it
        */
       //        ClipDirection(xVal);
-      hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, overwriteDirection, debugOut, successFlagForward);
+      hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
       LOG_DBG(vecpreisachInversion) << "starting Hval: " << hystVal.ToString();
       //hystVal = prevHystval_[idElem];
       
@@ -1982,7 +1982,7 @@ namespace CoupledField
         //xVal.Init();
         //resetAfterSat=true;
         //          ClipDirection(xVal);
-        hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, overwriteDirection, debugOut, successFlagForward);
+        hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
       } 
       
       if((xVal.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
@@ -1996,7 +1996,7 @@ namespace CoupledField
         //xVal.Init();
         //resetAfterSat=true;
         //          ClipDirection(xVal);
-        hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, overwriteDirection, debugOut, successFlagForward);
+        hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
       } 
 
       Vector<Double> xStart = xVal;
@@ -2035,11 +2035,11 @@ namespace CoupledField
         }
         // do not override hyst memory here
         //          ClipDirection(xVal);
-        hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, overwriteDirection, debugOut, successFlagForward);
+        hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
         
         res = computeResidual(xVal,yVal,hystVal,mu,mu_inv,wrtX,relError);
         jac = computeJacobian(xVal,yVal,hystVal,res,mu,mu_inv,operatorIndex,
-                sign,wrtX,relError,implementation,overwriteMemory,overwriteDirection,stayBelowSat);
+                sign,wrtX,relError,implementation,overwriteMemory,stayBelowSat);
         jac.Transpose(jacT);
         
         if(debug){
@@ -2060,7 +2060,7 @@ namespace CoupledField
         errorNormResX = res.NormL2();
         successX = (errorNormResX <= INV_resTolH_);
         successY = checkInversionOutput(xVal, yVal, mu, INV_resTolB_, errorNormResY,
-                operatorIndex, overwriteMemory, overwriteDirection);
+                operatorIndex, overwriteMemory);
         
         if(successError){
           // main criterion > would be best if this one could be satisfied
@@ -2130,7 +2130,7 @@ namespace CoupledField
         Double factorToSat = 0.1*Double(itCnt-1)/Double(INV_maxIter_) + 0.9;
         
         discardUpdate = performLinesearch(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
-                operatorIndex, overwriteMemory, overwriteDirection, alpha, alphaMin, alphaMax, wrtX, 
+                operatorIndex, overwriteMemory, alpha, alphaMin, alphaMax, wrtX, 
                 relError, numberOfIterations,xStart,factorToSat,stayBelowSat,sol);
         
         if(alpha < minAlphaStatistics){
@@ -2225,7 +2225,7 @@ namespace CoupledField
     
     if(debug && successFlag==0){
       Double resYNorm = 0.0;
-      checkInversionOutput(xVal, yVal, mu, INV_resTolB_, resYNorm, operatorIndex, overwriteMemory, overwriteDirection,true);
+      checkInversionOutput(xVal, yVal, mu, INV_resTolB_, resYNorm, operatorIndex, overwriteMemory,true);
       LOG_TRACE(vecpreisachInversion) << traceMsg.str();
     }
     
@@ -2236,12 +2236,12 @@ namespace CoupledField
   
 	// returns true, if yTarget can be reached by mu*xComputed + hyst(xComputed)
 	bool Hysteresis::checkInversionOutput(Vector<Double>& xComputed, Vector<Double>& yTarget, 
-          Matrix<Double>& mu, Double tol, Double& resYNorm, Integer operatorIdx, bool overwriteMemory, bool overwriteDirection, bool output){
+          Matrix<Double>& mu, Double tol, Double& resYNorm, Integer operatorIdx, bool overwriteMemory, bool output){
 		
 		Vector<Double> yCheck = Vector<Double>(dim_);
     bool debugOut = false;
     int successCode = 0;
-    Vector<Double> hCheck = computeValue_vec(xComputed, operatorIdx, overwriteMemory, overwriteDirection, debugOut, successCode);
+    Vector<Double> hCheck = computeValue_vec(xComputed, operatorIdx, overwriteMemory, debugOut, successCode);
     
 		mu.Mult(xComputed,yCheck);
 		yCheck.Add(hCheck);

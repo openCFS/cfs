@@ -791,7 +791,8 @@ namespace CoupledField {
 		// > at least during the first inputs, this flag should be true so that the
 		//   rotation list gets initialized properly
 		// > tests showed that this flag should always be true
-		RUN_overwriteDirection_ = true;
+    // 1.6.2018 removed as it actually always had to be true
+//		RUN_overwriteDirection_ = true;
 		
 		/*
      * set temporary values for xml dependent parameter
@@ -1442,7 +1443,7 @@ namespace CoupledField {
 					Vector<Double> tmp = Vector<Double>(dim_);
           int successCode = 0;
           bool debugOut = false;
-					tmp = hyst_->computeValue_vec(MAT_initialInput_, k, true, true, debugOut, successCode);
+					tmp = hyst_->computeValue_vec(MAT_initialInput_, k, true, debugOut, successCode);
           
 					if (numHystOperators_ != numStorageEntries_) {
 						// for standard and extended evaluation, we use one hyst operator for multiple
@@ -2916,7 +2917,7 @@ namespace CoupledField {
           //          
           int successFlag = 0;
           retrievedInput = hyst_->computeInput_vec(curLPMSolution,operatorIdx,matrixForInversion_[storageIdx],
-                  RUN_overwriteDirection_,fieldsAlignedAboveSat_,hystOutputRestrictedToSat_,successFlag);
+                  fieldsAlignedAboveSat_,hystOutputRestrictedToSat_,successFlag);
           
         }
         //std::cout << "Computed input: " << retrievedInput.ToString() << std::endl;
@@ -3427,7 +3428,7 @@ namespace CoupledField {
 			//std::cout << "OperatorIdx: " << operatorIdx << std::endl;
       int successFlag = 0;
 			outputOfHystOperator = hyst_->computeValue_vec(inputToHystOperator, operatorIdx, overwriteMemory, 
-              RUN_overwriteDirection_, fieldsAlignedAboveSat_, successFlag);
+              fieldsAlignedAboveSat_, successFlag);
       //std::cout << "Output: " << outputOfHystOperator.ToString(2) << std::endl;
 			if (XML_performanceMeasurement_ == 1) {
 				timer_->Stop();
@@ -4819,7 +4820,7 @@ namespace CoupledField {
 		
 		bool overwriteMemory = false;
 		// always overwrite Direction; deprecated flag; remove in future
-		bool overwriteDirection = true;
+//		bool overwriteDirection = true;
 		
 		if( (printStatistics) ){
 			std::cout << "##### STARTING TEST " << name << " #####" << std::endl;
@@ -4864,7 +4865,7 @@ namespace CoupledField {
 				successFlagForward = -1;
 				hIn.Init();
 				if(vector){
-          hIn = hystTMP->computeValue_vec(xIn, 0, overwriteMemory, overwriteDirection, debugOut, successFlagForward);
+          hIn = hystTMP->computeValue_vec(xIn, 0, overwriteMemory, debugOut, successFlagForward);
         } else {  
 					hIn[0] = hystTMP->computeValueAndUpdate(xIn[0], 0, overwriteMemory, successFlagForward);
         }
@@ -4889,7 +4890,7 @@ namespace CoupledField {
 				
         if(vector){
           xOut = hystTMP->computeInput_vec_withStatistics(yIn, yPrev, xPrev, hPrev, 
-						0, MAT_eps_mu_SmallSignal_, overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat,
+						0, MAT_eps_mu_SmallSignal_, fieldsAlignedAboveSat, hystOutputRestrictedToSat,
 						numberOfLMIterations, numberOfLinesearchIterations, maxNumberOfLinesearchIterations,
 						successFlagBackward, minAlpha, maxAlpha, avgAlpha, xIn);	
         } else {	
@@ -4974,7 +4975,7 @@ namespace CoupledField {
 			}
 			
 			if(vector){
-				hOut = hystTMP->computeValue_vec(xIn, 0, overwriteMemory, overwriteDirection, debugOut, successFlagForward);
+				hOut = hystTMP->computeValue_vec(xIn, 0, overwriteMemory, debugOut, successFlagForward);
 			} else {  
 				hOut[0] = hystTMP->computeValueAndUpdate(xIn[0], 0, overwriteMemory, successFlagForward);
 			}

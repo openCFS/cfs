@@ -220,13 +220,13 @@ namespace CoupledField
 ////    return output;
 //  }
   Vector<Double> VectorPreisachMayergoyz::computeValue_vecMeasure(Vector<Double>& xVal, Integer idx, 
-          bool overwrite,bool overwriteDirection,bool debugOutput,int& successFlag, Double& time){
+          bool overwrite,bool debugOutput,int& successFlag, Double& time){
     
     Timer* timer = new Timer();
     Double startTime = timer->GetCPUTime();
     timer->Start();
     
-    Vector<Double> Yvec = computeValue_vec(xVal, idx, overwrite, overwriteDirection, debugOutput, successFlag);
+    Vector<Double> Yvec = computeValue_vec(xVal, idx, overwrite, debugOutput, successFlag);
     
     timer->Stop();
     Double endTime = timer->GetCPUTime();  
@@ -238,7 +238,7 @@ namespace CoupledField
     
     
   Vector<Double> VectorPreisachMayergoyz::computeValue_vec(Vector<Double>& xVal, Integer idx, 
-          bool overwrite,bool overwriteDirection,bool debugOutput,int& successFlag){
+          bool overwrite,bool debugOutput,int& successFlag){
     
         /*
      * Vectorial output = integral/sum over scalar models

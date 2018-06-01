@@ -47,21 +47,21 @@ namespace CoupledField {
     };
 
     virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idxElem, bool overwrite,
-      bool overwriteDirection, bool debugOut, int& successFlag) {
+      bool debugOut, int& successFlag) {
       EXCEPTION( "computeValue_vec not implemented in base-Class" );
       Vector<Double> Yout;
       return Yout;
     };
     
     virtual Vector<Double> computeValue_vecMeasure(Vector<Double>& xVal, Integer idxElem, bool overwrite,
-      bool overwriteDirection, bool debugOut, int& successFlag, Double& time) {
+      bool debugOut, int& successFlag, Double& time) {
       EXCEPTION( "computeValue_vec not implemented in base-Class" );
       Vector<Double> Yout;
       return Yout;
     };
 
     virtual Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat, 
+      Matrix<Double> mu, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat, 
       int& successFlag){
       EXCEPTION("computeInput_vec not implemented in base-class");
     }
@@ -192,7 +192,7 @@ namespace CoupledField {
     }
 
     bool checkInversionOutput(Vector<Double>& xComputed, Vector<Double>& yTarget, 
-			Matrix<Double>& mu, Double tol, Double& resYNorm, Integer operatorIdx, bool overwriteMemory, bool overwriteDirection, bool output = false);
+			Matrix<Double>& mu, Double tol, Double& resYNorm, Integer operatorIdx, bool overwriteMemory, bool output = false);
 		
     bool checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol);
     
@@ -212,25 +212,25 @@ namespace CoupledField {
     
     Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
-					bool overwriteMemory, bool overwriteDirection, int stayBelowSat);
+					bool overwriteMemory, int stayBelowSat);
     
     Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
           Matrix<Double> mu, Matrix<Double> mu_inv, Integer operatorIdx, Double sign, bool wrtX, bool relative, 
-					UInt implementation, bool overwriteMemory, bool overwriteDirection, int stayBelowSat);
+					UInt implementation, bool overwriteMemory, int stayBelowSat);
     
     bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
-      Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
+      Integer operatorIdx, bool overwriteMemory,
       Double& alpha, Double alphaMin, Double alphaMax,  bool wrtX, bool relative, 
       UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat,int stayBelowSat,Vector<Double> sol);
 
     Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat, int& successFlag);
+      Matrix<Double> mu, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat, int& successFlag);
     
     Vector<Double> computeInput_vec_withStatistics(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
+      Matrix<Double> mu, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat,
       UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
       UInt& maximalNumberOfLinesearchIterations, int& successFlag, Double& minAlpha, 
       Double& maxAlpha, Double& avgAlpha,Vector<Double> sol );

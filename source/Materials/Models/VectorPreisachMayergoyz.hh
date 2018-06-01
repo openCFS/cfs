@@ -34,7 +34,7 @@ namespace CoupledField {
      * Exception: testInversion > here we use computeInput_vec_withStatistics
      */
     Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
-      Matrix<Double> mu, bool overwriteDirection, bool fieldsAlignedAboveSat, 
+      Matrix<Double> mu, bool fieldsAlignedAboveSat, 
       bool hystOutputRestrictedToSat, int& successFlag){
       
       Vector<Double> prevYval = Vector<Double>(dim_);
@@ -43,15 +43,15 @@ namespace CoupledField {
       
       return computeInput_vec_withPrevStates(yVal, prevYval,
         prevXVal_[operatorIndex], prevHVal_[operatorIndex], 
-        operatorIndex, mu, overwriteDirection, fieldsAlignedAboveSat, 
+        operatorIndex, mu, fieldsAlignedAboveSat, 
         hystOutputRestrictedToSat, successFlag);
     }
     
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idx, bool overwrite,
-      bool overwriteDirection, bool debugOutput, int& successFlag);
+      bool debugOutput, int& successFlag);
     
     Vector<Double> computeValue_vecMeasure(Vector<Double>& xVal, Integer idx, bool overwrite,
-      bool overwriteDirection, bool debugOutput, int& successFlag, Double& time);
+      bool debugOutput, int& successFlag, Double& time);
     
     void setFlags(UInt performanceFlag){
       ;
