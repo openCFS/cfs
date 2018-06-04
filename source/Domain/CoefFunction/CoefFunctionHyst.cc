@@ -84,14 +84,23 @@ namespace CoupledField {
       
       outputVector.ScalarMult(specificSign*baseSign);
       
-    } else if (vectorName == "PiezoLoadForMechPDE"){
-      //      std::cout << "PiezoLoadForMechPDE was requested" << std::endl;
-      //TODO: implement correct vector function; at the moment, return simply zero
-      //      std::cout << couplTensor_->ToString() << std::endl;
+    } else if (vectorName == "IrrStrainForMechPDE"){
+      //std::cout << "IrrStrainForMechPDE was requested" << std::endl;
+      // v = mech testfunction
+      // on rhs:  - int_Volume (Bv)T[c]S_irr dOmega
+      // > basically what is left when S = Bu is decomposed into S_r + S_irr
+      //    -div(sigma) > -div([c]S_r) > -div([c](Bu - S_irr)) > +div([c]S_irr)  on rhs
+      //      but due to integration by parts > -div(v)[c]S_irr
+      specificSign = -1.0;
+      Vector<Double> S_irr = hystCoefFunction_->GetIrreversibleStrains(lpm, timeLevel);
+      // c is not solution dependet here > take it directly
       outputVector = Vector<Double>(GetVecSize());
       outputVector.Init();
+      elastTensor_.Mult(S_irr,outputVector);
+      
+      outputVector.ScalarMult(specificSign*baseSign);
       //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
-    } else if (vectorName == "PiezoLoadForElecPDE"){
+    } else if (vectorName == "IrrStrainForElecPDE"){
       //      std::cout << "PiezoLoadForElecPDE was requested" << std::endl;
       //TODO: implement correct vector function; at the moment, return simply zero
       //      std::cout << couplTensor_->ToString() << std::endl;
@@ -2584,6 +2593,21 @@ namespace CoupledField {
 		}
     
     // computation required
+    // get polarizaton / output of hyst operator first
+    Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(Originallpm, timeLevel);
+
+    Vector<Double> S_irr = ComputeIrreversibleStrains(P);
+    
+    // flag gets reset at end of each iteration (so the stored value can beu
+    // used during one iteration by several terms/function calls)
+    Si_requiresReeval_[storageIdx] = false;
+    Si_[storageIdx] = S_irr;
+    
+    return S_irr;
+  }
+  
+  Vector<Double> CoefFunctionHyst::ComputeIrreversibleStrains(Vector<Double> P) {
+  
     // setup storage
     Matrix<Double> Si_tensor = Matrix<Double>(dim_,dim_);
     Si_tensor.Init();
@@ -2608,10 +2632,7 @@ namespace CoupledField {
     for(UInt i = 0; i < dim_; i++){
       negeye[i][i] = -1.0;
     }
-    
-    // get polarizaton / output of hyst operator first
-    Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(Originallpm, timeLevel);
-    
+        
     // Si = 3/2*(beta0 + beta1*|P| + beta2*|P|^2 + ... + betan*|P|^n)*(dirP*dirP^T - 1/3[I])
     Double normP = P.NormL2();
     
@@ -2651,15 +2672,8 @@ namespace CoupledField {
       Si_voigt[5] = Si_tensor[0][1];
     }
     
-    // flag gets reset at end of each iteration (so the stored value can beu
-    // used during one iteration by several terms/function calls)
-    Si_requiresReeval_[storageIdx] = false;
-    Si_[storageIdx] = Si_voigt;
-    return Si_voigt;
-    
+    return Si_voigt;   
   }
-  
-  
   
 	Vector<Double> CoefFunctionHyst::GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel) {
     LOG_TRACE(coeffcthyst) << "GetPrecomputedOutputOfHysteresisOperator for timelevel " << timeLevel;
@@ -2702,8 +2716,7 @@ namespace CoupledField {
      std::cout << "storageIdx: " << storageIdx << std::endl;
      std::cout << "size of arrays: " << P_J_lastTS_->GetSize() << std::endl;
      */
-    
-		/*
+    /*
      * 2. check time level and need for evaluation
      */
 		if(timeLevel == -2){
@@ -4382,7 +4395,7 @@ namespace CoupledField {
   }
   
   void CoefFunctionHyst::TestHystOperatorWithSignal(std::string name, Vector<Double> xVals, Vector<Double> yVals, 
-		bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, bool test1D){
+		bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, bool test1D, bool outputIrrStrains){
     
 		/*
 		 * 0. Declare variables (there are alot)
@@ -4390,6 +4403,7 @@ namespace CoupledField {
 		std::ofstream statistics;
 		std::ofstream results_x;
     std::ofstream results_p;
+    std::ofstream results_s;
     std::ofstream results_y;
     std::ofstream angularResults_x;
     std::ofstream angularResults_p;
@@ -4404,6 +4418,9 @@ namespace CoupledField {
     
     std::stringstream results_name_p;
 		results_name_p << name << "_results_p";		
+    
+    std::stringstream results_name_s;
+		results_name_p << name << "_results_s";		
     
     std::stringstream results_name_y;
 		results_name_y << name << "_results_y";		
@@ -4428,6 +4445,11 @@ namespace CoupledField {
       angularResults_p.open(angularResults_name_p.str());
       angularResults_y.open(angularResults_name_y.str());
 		}
+    if(outputIrrStrains){
+      results_s.open(results_name_s.str());
+      results_s << "Step\t\tS_irr_xx\tS_irr_yy\tS_irr_xy" << std::endl;
+    }
+    
 		if(printStatistics){
 			statistics.open(statistics_name.str());
 		}
@@ -4769,7 +4791,7 @@ namespace CoupledField {
       angularResults_x << results.str();
       angularResults_p << results.str();
       angularResults_y << results.str();
-      
+
 			if(testInversion){
 				results_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
         results_x << "# > xOut[0],xOut[1] = x and y components of inversion output" << std::endl;
@@ -4794,7 +4816,6 @@ namespace CoupledField {
         angularResults_y << "# > yIn[0],yIn[1] = x and y components of output of hyst operator to xIn; used as input for inversion" << std::endl;
         angularResults_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;
         angularResults_y << "# Number  abs(yIn)  atan2(yIn[1]/yIn[0])*180/pi  abs(yOut)  atan2(yOut[1]/yOut[0])*180/pi" << std::endl;
-        
 			} else {
         results_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
         results_x << "# Number  xIn[0]  xIn[1]" << std::endl;
@@ -5019,6 +5040,11 @@ namespace CoupledField {
 				yOut[j] += MAT_eps_mu_SmallSignal_[j][j]*xIn[j];
 			}
 			
+      if(outputIrrStrains){
+        Vector<Double> S_irr = ComputeIrreversibleStrains(hOut);
+        results_s << i+1 << std::setprecision(9) << S_irr.ToString() << std::endl;
+      }
+      
 			/*
 			 * 4. Check result
 			 * > only for inversion test; for forward test, we do not have a
@@ -5254,6 +5280,10 @@ namespace CoupledField {
       angularResults_p.close();
       angularResults_y.close();
 		}
+    if(outputIrrStrains){
+      results_s.close();
+    }
+    
 		if(printStatistics){
 			statistics.close();
 		} 
@@ -5297,6 +5327,10 @@ namespace CoupledField {
     if(testNode->Has("MeasurePerformance")){
       testNode->GetValue("MeasurePerformance",measurePerformance,ParamNode::PASS);
     }
+    bool outputIrrStrains = false;
+    if(testNode->Has("OutputIrrStrains")){
+      testNode->GetValue("OutputIrrStrains",outputIrrStrains,ParamNode::PASS);
+    }
 
 //    std::cout << "testInversion? " << testInversion << std::endl;
 //    std::cout << "test1D? " << test1D << std::endl;
@@ -5331,7 +5365,7 @@ namespace CoupledField {
       }
       
       CreatePeriodicTestSignal("Sine",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
-      TestHystOperatorWithSignal("Sine",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      TestHystOperatorWithSignal("Sine",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
       if(writeInputToFile){
         WriteSignalToFile("Sine_input",xVals,yVals);
       }
@@ -5352,7 +5386,7 @@ namespace CoupledField {
       }
       
       CreatePeriodicTestSignal("Rotation",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
-      TestHystOperatorWithSignal("Rotation",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      TestHystOperatorWithSignal("Rotation",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
             if(writeInputToFile){
         WriteSignalToFile("Rotation_input",xVals,yVals);
       }
@@ -5373,7 +5407,7 @@ namespace CoupledField {
       }
       
       CreatePeriodicTestSignal("DecreasingRotation",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
-      TestHystOperatorWithSignal("DecreasingRotation",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      TestHystOperatorWithSignal("DecreasingRotation",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
       if(writeInputToFile){
         WriteSignalToFile("DecreasingRotation_input",xVals,yVals);
       }
@@ -5394,7 +5428,7 @@ namespace CoupledField {
       }
       
       CreatePeriodicTestSignal("IncreasingRotation",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
-      TestHystOperatorWithSignal("IncreasingRotation",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      TestHystOperatorWithSignal("IncreasingRotation",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
       if(writeInputToFile){
         WriteSignalToFile("IncreasingRotation_input",xVals,yVals);
       }
@@ -5416,7 +5450,7 @@ namespace CoupledField {
       }
       
       CreatePeriodicTestSignal("DecreasingSine",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
-      TestHystOperatorWithSignal("DecreasingSine",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      TestHystOperatorWithSignal("DecreasingSine",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
                   if(writeInputToFile){
         WriteSignalToFile("DecreasingSine_input",xVals,yVals);
       }
@@ -5437,7 +5471,7 @@ namespace CoupledField {
       }
       
       CreatePeriodicTestSignal("DecreasingSawtooth",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
-      TestHystOperatorWithSignal("DecreasingSawtooth",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      TestHystOperatorWithSignal("DecreasingSawtooth",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
       if(writeInputToFile){
         WriteSignalToFile("DecreasingSawtooth_input",xVals,yVals);
       }
@@ -5458,7 +5492,7 @@ namespace CoupledField {
       }
       
       CreatePeriodicTestSignal("Forc",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
-      TestHystOperatorWithSignal("Forc",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      TestHystOperatorWithSignal("Forc",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
       if(writeInputToFile){
         WriteSignalToFile("Forc_input",xVals,yVals);
       }
@@ -5476,7 +5510,7 @@ namespace CoupledField {
       }
       
       CreateNonPeriodicTestSignal("SelfDesigned",amplitudeScaling,numberOfSteps,xVals,yVals);
-      TestHystOperatorWithSignal("SelfDesigned",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      TestHystOperatorWithSignal("SelfDesigned",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
       if(writeInputToFile){
         WriteSignalToFile("SelfDesigned_input",xVals,yVals);
       }
@@ -5494,7 +5528,7 @@ namespace CoupledField {
       }
       
       CreateNonPeriodicTestSignal("SatX-RemX-SatY",amplitudeScaling,numberOfSteps,xVals,yVals);
-      TestHystOperatorWithSignal("SatX-RemX-SatY",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      TestHystOperatorWithSignal("SatX-RemX-SatY",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
       if(writeInputToFile){
         WriteSignalToFile("SatX-RemX-SatY_input",xVals,yVals);
       }
@@ -5550,7 +5584,7 @@ namespace CoupledField {
       xVals.ScalarMult(amplitudeScaling);
       yVals.ScalarMult(amplitudeScaling);
       
-      TestHystOperatorWithSignal(combinedname.str(),xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D);
+      TestHystOperatorWithSignal(combinedname.str(),xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
       
       combinedname << "_input";
       if(writeInputToFile){

@@ -310,6 +310,7 @@
         <xsd:element name="PrintStatistics" type="DT_CFSBool" default="yes"/>
         <xsd:element name="WriteInputToFile" type="DT_CFSBool" default="no"/>
         <xsd:element name="WriteResultsToFile" type="DT_CFSBool" default="no"/>
+        <xsd:element name="OutputIrrStrains" type="DT_CFSBool" default="no"/>
         <xsd:element name="MeasurePerformance" type="DT_CFSBool" default="no"/>
     </xsd:sequence>
   </xsd:complexType>

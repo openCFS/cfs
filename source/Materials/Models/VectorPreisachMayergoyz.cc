@@ -306,10 +306,10 @@ namespace CoupledField
     
     Vector<Double> dirInput = Vector<Double>(dim_);
     dirInput.Init();
-    if(xVal.NormL2() != 0){
+    if((xVal.NormL2() != 0)&&(clipOutput_ == 2)){
       dirInput.Add(1.0/xVal.NormL2(),xVal);
     }
-    
+        
     if(clipOutput_ == 1){
       // clip amplitude to saturation; works well if input only in 1d but
       // not so well if remanent parts perpendicular to input exist as those
@@ -320,15 +320,14 @@ namespace CoupledField
     } else if(clipOutput_ == 2){
       // > default
       // clip amplitude to saturation, but such that remanent part is not
-      // affected; results seem to be more reasonable than unclipped and clipping 1
+      // affected; results seem to be more reasonable than unclipped and clipping 1  
       Double projection = output.Inner(dirInput);
-      if(abs(output.NormL2()) > PSaturated_){
+      if((abs(output.NormL2()) > PSaturated_)&&(dirInput.NormL2() != 0)){
         output.Add(-projection,dirInput);
         Double normRemaining = output.NormL2();
         output.Add(std::sqrt(PSaturated_*PSaturated_-normRemaining*normRemaining),dirInput);
       }
-    }
-
+    } 
     if(isIsotropic_){
       // for isotropic case, add anhystPart directly to output
       // make sure that the scalar models return no anhystPart in this case

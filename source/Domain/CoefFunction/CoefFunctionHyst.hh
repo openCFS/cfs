@@ -1622,10 +1622,12 @@ namespace CoupledField {
     Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel1, int timelevel2, bool useStrains, bool useAbs, std::string implementationVersion );
     
     Vector<Double> GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel);
+    Vector<Double> GetIrreversibleStrains(UInt storageIdx, int timeLevel);
     
     Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
 
     Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
+    Vector<Double> ComputeIrreversibleStrains(Vector<Double> P);
     
     Vector<Double> RetrieveInputToHysteresisOperator(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary);
     
@@ -1800,7 +1802,7 @@ namespace CoupledField {
     void CreateNonPeriodicTestSignal(std::string name, Double amplitudeScaling, UInt numberOfSteps, Vector<Double>& xVals, Vector<Double>& yVals);
           
     void TestHystOperatorWithSignal(std::string name, Vector<Double> xVals, Vector<Double> yVals, 
-          bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, bool test1D);
+          bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, bool test1D, bool outputIrrStrains);
     
     void WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals);
     
