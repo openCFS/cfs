@@ -94,8 +94,17 @@ Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<
   }
 
   epsScal_ = params_->Get("RBF_Settings")->Get("epsilonScaling")->As<Double>();
-  betaScal_ = params_->Get("RBF_Settings")->Get("betaScaling")->As<Double>();
-  kScal_ = params_->Get("RBF_Settings")->Get("kScaling")->As<Double>();
+  if( params_->Get("RBF_Settings")->Has("betaScaling") ){
+	  betaScal_ = params_->Get("RBF_Settings")->Get("betaScaling")->As<Double>();
+  }else{
+	  betaScal_ = 0.0;
+  }
+
+  if( params_->Get("RBF_Settings")->Has("betaScaling") ){
+	  kScal_ = params_->Get("RBF_Settings")->Get("kScaling")->As<Double>();
+  }else{
+	  kScal_ = 0.0;
+  }
   logEps_ = false; //no logging for this class
   //logEps_ = params_->Get("RBF_Settings")->Get("logEps")->As<bool>();
 

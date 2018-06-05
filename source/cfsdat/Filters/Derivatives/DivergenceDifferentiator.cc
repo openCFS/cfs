@@ -29,8 +29,18 @@ DivergenceDifferentiator::DivergenceDifferentiator(UInt numWorkers, CF::PtrParam
   this->filtStreamType_ = FIFO_FILTER;
 
   epsScal_ = params_->Get("RBF_Settings")->Get("epsilonScaling")->As<Double>();
-  betaScal_ = params_->Get("RBF_Settings")->Get("betaScaling")->As<Double>();
-  kScal_ = params_->Get("RBF_Settings")->Get("kScaling")->As<Double>();
+
+  if( params_->Get("RBF_Settings")->Has("betaScaling") ){
+	  betaScal_ = params_->Get("RBF_Settings")->Get("betaScaling")->As<Double>();
+  }else{
+	  betaScal_ = 0.0;
+  }
+
+  if( params_->Get("RBF_Settings")->Has("kScaling") ){
+	  kScal_ = params_->Get("RBF_Settings")->Get("kScaling")->As<Double>();
+  }else{
+	  kScal_ = 0.0;
+  }
   logEps_ = params_->Get("RBF_Settings")->Get("logEps")->As<bool>();
 
 }
