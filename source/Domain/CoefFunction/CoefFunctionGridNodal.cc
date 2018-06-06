@@ -20,7 +20,6 @@
 #include "FeBasis/FeSpace.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include <boost/lexical_cast.hpp>
-#include <boost/tr1/type_traits.hpp>
 #include <set>
 #include <string>
 #include <limits>
@@ -77,7 +76,7 @@ template<class DATA_TYPE>
     // get the solution quantity
     solName_ = configNode->Get("quantity")->As<std::string>();
     solType_ = SolutionTypeEnum.Parse(solName_);
-    isComplex_ =  std::tr1::is_same<DATA_TYPE,Complex>::value;
+    isComplex_ =  std::is_same<DATA_TYPE,Complex>::value;
     this->numEqns_ = 0;
     
     mp_ = domain_->GetMathParser();

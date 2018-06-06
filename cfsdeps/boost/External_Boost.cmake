@@ -11,8 +11,7 @@
 #-------------------------------------------------------------------------------
 set(BOOST_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/boost")
 set(BOOST_source  "${BOOST_prefix}/src/boost")
-set(BOOST_install  "${CMAKE_CURRENT_BINARY_DIR}")
-set(BOOST_tmp_install "${BOOST_prefix}/install")
+set(BOOST_install "${BOOST_prefix}/install")
 
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${BOOST_install}
@@ -52,8 +51,6 @@ ENDIF()
 #-------------------------------------------------------------------------------
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/boost/${BOOST_GZ}")
 
-PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "boost" "${BOOST_VER}") 
-
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
 SET(TMP_DIR "${BOOST_prefix}")
@@ -66,7 +63,27 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 
 SET(MIRRORS
   "https://dl.bintray.com/boostorg/release/${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}.0/source/${BOOST_GZ}"
+  "${CFS_DS_SOURCES_DIR}/boost/${BOOST_ZIP}"
 )
+
+SET(MD5_SUM ${BOOST_MD5})
+
+SET(DLFN "${BOOST_prefix}/boost-download.cmake") 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
+
+# After the installation we copy to cfs
+set(PI "${BOOST_prefix}/boost-post_install.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/boost/boost-post_install.cmake.in" "${PI}" @ONLY) 
+
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "boost" "${BOOST_VER}")
+ 
+set(TMP_DIR "${BOOST_install}")
+
+set(ZIPFROMCACHE "${BOOST_prefix}/boost-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+set(ZIPTOCACHE "${BOOST_prefix}/boost-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # Determine paths of BOOST libraries.
@@ -92,20 +109,20 @@ ENDIF(MINGW)
 
 
 SET(BOOST_DATE_TIME_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_date_time${BOOST_LIB_SUFFIX}")
-SET(BOOST_FILESYSTEM_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_filesystem${BOOST_LIB_SUFFIX")
-SET(BOOST_IOSTREAMS_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_iostreams${BOOST_LIB_SUFFIX")
-SET(BOOST_PRG_EXEC_MONITOR_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_prg_exec_monitor${BOOST_LIB_SUFFIX")
-SET(BOOST_PROGRAM_OPTIONS_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_program_options${BOOST_LIB_SUFFIX")
-SET(BOOST_PYTHON_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_python${BOOST_LIB_SUFFIX")
-SET(BOOST_REGEX_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_regex${BOOST_LIB_SUFFIX")
-SET(BOOST_SERIALIZATION_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_serialization${BOOST_LIB_SUFFIX")
-SET(BOOST_SERIALIZATION_HDF5_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_serialization_hdf5${BOOST_LIB_SUFFIX")
-SET(BOOST_SIGNALS_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_signals${BOOST_LIB_SUFFIX")
-SET(BOOST_SYSTEM_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_system${BOOST_LIB_SUFFIX")
-SET(BOOST_TEST_EXEC_MONITOR_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_test_exec_monitor${BOOST_LIB_SUFFIX")
-SET(BOOST_THREAD_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_thread${BOOST_LIB_SUFFIX")
-SET(BOOST_UNIT_TEST_FRAMEWORK_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_unit_test_framework${BOOST_LIB_SUFFIX")
-SET(BOOST_WSERIALIZATION_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_wserialization${BOOST_LIB_SUFFIX")
+SET(BOOST_FILESYSTEM_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_filesystem${BOOST_LIB_SUFFIX}")
+SET(BOOST_IOSTREAMS_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_iostreams${BOOST_LIB_SUFFIX}")
+SET(BOOST_PRG_EXEC_MONITOR_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_prg_exec_monitor${BOOST_LIB_SUFFIX}")
+SET(BOOST_PROGRAM_OPTIONS_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_program_options${BOOST_LIB_SUFFIX}")
+SET(BOOST_PYTHON_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_python${BOOST_LIB_SUFFIX}")
+SET(BOOST_REGEX_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_regex${BOOST_LIB_SUFFIX}")
+SET(BOOST_SERIALIZATION_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_serialization${BOOST_LIB_SUFFIX}")
+SET(BOOST_SERIALIZATION_HDF5_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_serialization_hdf5${BOOST_LIB_SUFFIX}")
+SET(BOOST_SIGNALS_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_signals${BOOST_LIB_SUFFIX}")
+SET(BOOST_SYSTEM_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_system${BOOST_LIB_SUFFIX}")
+SET(BOOST_TEST_EXEC_MONITOR_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_test_exec_monitor${BOOST_LIB_SUFFIX}")
+SET(BOOST_THREAD_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_thread${BOOST_LIB_SUFFIX}")
+SET(BOOST_UNIT_TEST_FRAMEWORK_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_unit_test_framework${BOOST_LIB_SUFFIX}")
+SET(BOOST_WSERIALIZATION_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_wserialization${BOOST_LIB_SUFFIX}")
 
 #-------------------------------------------------------------------------------
 # The BOOST external project
@@ -130,11 +147,11 @@ ELSE()
   #-------------------------------------------------------------------------------
   ExternalProject_Add(boost
     PREFIX "${BOOST_prefix}"
-    URL "https://dl.bintray.com/boostorg/release/${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}.0/source/${BOOST_GZ}"
-    URL_MD5 "${BOOST_MD5}"
+    URL ${LOCAL_FILE}
     CONFIGURE_COMMAND ""
+    PATCH_COMMAND ""
     BINARY_DIR ${BOOST_source}
-    BUILD_COMMAND ./bootstrap.sh --without-libraries=python --prefix=${BOOST_tmp_install}
+    BUILD_COMMAND ./bootstrap.sh --without-libraries=python --prefix=${BOOST_install}
     INSTALL_COMMAND ./b2 threading=multi install
   )
 
@@ -142,12 +159,16 @@ ELSE()
   # Add custom download step to be able to download from a list of mirrors
   # instead of just a single URL.
   #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(bzip2-static cfsdeps_download
+  ExternalProject_Add_Step(boost cfsdeps_download
     COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-     DEPENDERS download
+    DEPENDERS download
     DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${bzip2_prefix}
+    WORKING_DIRECTORY ${BOOST_prefix}
   )
+  
+  ExternalProject_Add_Step(boost post_install
+    COMMAND ${CMAKE_COMMAND} -P "${PI}"
+    DEPENDEES install )
   
   IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------

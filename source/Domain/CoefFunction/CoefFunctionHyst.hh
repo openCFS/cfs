@@ -1,7 +1,6 @@
 #ifndef FILE_COEFFUNCTION_HYST_HH
 #define FILE_COEFFUNCTION_HYST_HH
 
-#include <boost/tr1/type_traits.hpp>
 #include "General/Environment.hh"
 #include "CoefFunction.hh"
 #include "Materials/BaseMaterial.hh"

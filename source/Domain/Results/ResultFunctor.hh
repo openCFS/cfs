@@ -1,7 +1,6 @@
 #ifndef CFS_RESULT_FUNCTOR_HH
 #define CFS_RESULT_FUNCTOR_HH
 
-#include <boost/tr1/type_traits.hpp>
 
 #include "Domain/Results/BaseResults.hh"
 #include "General/Environment.hh"

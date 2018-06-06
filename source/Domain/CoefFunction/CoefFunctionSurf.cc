@@ -1,6 +1,5 @@
 #include "CoefFunctionSurf.hh"
 
-#include <boost/tr1/type_traits.hpp>
 
 #include "Domain/Results/ResultInfo.hh"
 namespace CoupledField {
