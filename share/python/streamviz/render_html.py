@@ -12,6 +12,7 @@ import objgraph
 import random, string
 import base64
 import cgi
+from lxml import etree
 
 #The html file with marker; see strings.py for all marker definitions 
 html_raw_data = "html file not loaded"
@@ -33,7 +34,7 @@ def get_human_readable_bytes(memory_in_bytes):
     return str(memory_in_bytes) + ' Byte'
 
 #reder the selection menu
-def render_menu(GLOBAL_DATA_DICT, current_site):
+def render_menu(GLOBAL_RAW_DATA_DICT, current_site):
   ret_string  = '<div class="btn-group">'
   if current_site == 'index':
     ret_string += '<a class="nav-link text-white bg-primary" href="/">overview</a>'
@@ -49,7 +50,7 @@ def render_menu(GLOBAL_DATA_DICT, current_site):
     ret_string += '<a class="nav-link text-white bg-primary" href="/status_log">log</a>'
 
   hosts = {}
-  for key in GLOBAL_DATA_DICT:
+  for key in GLOBAL_RAW_DATA_DICT:
     this_host = key[:key.index('/')]
     
     if not this_host in hosts:
@@ -75,8 +76,9 @@ def render_menu(GLOBAL_DATA_DICT, current_site):
     for this_problem in hosts[this_host]:
       if len(hosts[this_host][this_problem]) == 1:
         this_timekey = list(hosts[this_host][this_problem].keys())[0]
+        xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[hosts[this_host][this_problem][this_timekey]])
         ret_string += '<a class="dropdown-item" href="/view/' + hosts[this_host][this_problem][this_timekey] + '">'
-        ret_string += '[' + GLOBAL_DATA_DICT[hosts[this_host][this_problem][this_timekey]].xpath('//cfsInfo/@status')[0] + '] '
+        ret_string += '[' + xml.xpath('//cfsInfo/@status')[0] + '] '
         ret_string += this_problem + '/' + this_timekey + '</a>' + "\n"
         
       else:
@@ -86,8 +88,9 @@ def render_menu(GLOBAL_DATA_DICT, current_site):
         ret_string += this_problem + '</button> <div class="dropdown-menu" aria-labelledby="dropdownMenuButton_' + this_host + '_' + this_problem + '">' + "\n"
       
         for this_timekey in hosts[this_host][this_problem]:
+          xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[hosts[this_host][this_problem][this_timekey]])
           ret_string += '<a class="dropdown-item" href="/view/' + hosts[this_host][this_problem][this_timekey] + '">'
-          ret_string += '[' + GLOBAL_DATA_DICT[hosts[this_host][this_problem][this_timekey]].xpath('//cfsInfo/@status')[0] + '] '
+          ret_string += '[' + xml.xpath('//cfsInfo/@status')[0] + '] '
           ret_string += this_timekey + '</a>' + "\n"
       
         ret_string += '</div></div>' + "\n"
@@ -97,9 +100,9 @@ def render_menu(GLOBAL_DATA_DICT, current_site):
   ret_string += '</div>'
   return ret_string
 
-def render_status(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app, GLOBAL_STAT_VARS):
+def render_status(GLOBAL_RAW_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app, GLOBAL_STAT_VARS):
   retdata = html_raw_data
-  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'status'))
+  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_RAW_DATA_DICT, 'status'))
   
   process = psutil.Process(os.getpid())
   
@@ -125,7 +128,7 @@ def render_status(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO, GLOB
   
   for tmp_key in GLOBAL_DATA_SIZE_DICT:
     body_data += '<tr><td>' + tmp_key + '</td><td>' + get_human_readable_bytes(GLOBAL_DATA_SIZE_DICT[tmp_key]) + '</td><td>' + get_human_readable_bytes(MEMORY_BYTE_RATIO*GLOBAL_DATA_SIZE_DICT[tmp_key]) + '</td>'
-    if tmp_key in GLOBAL_DATA_DICT:
+    if tmp_key in GLOBAL_RAW_DATA_DICT:
       body_data += '<td><a href="/status?delete=' + cgi.escape(tmp_key) + '">x</a></td>'
     else:
       body_data += '<td></td>'
@@ -139,9 +142,9 @@ def render_status(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO, GLOB
   return retdata
 
 
-def render_status_log(GLOBAL_DATA_DICT, MEMLOG_RECEIVELOG):
+def render_status_log(GLOBAL_RAW_DATA_DICT, MEMLOG_RECEIVELOG):
   retdata = html_raw_data
-  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'status_log'))
+  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_RAW_DATA_DICT, 'status_log'))
   
   process = psutil.Process(os.getpid())
   
@@ -164,13 +167,13 @@ def render_status_log(GLOBAL_DATA_DICT, MEMLOG_RECEIVELOG):
   retdata = retdata.replace(settings['html_template']['key_content'], body_data)
   return retdata
 
-def render_status_memory_pics(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app):
+def render_status_memory_pics(GLOBAL_RAW_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app):
   retdata = html_raw_data
-  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'status_memory_pics'))
+  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_RAW_DATA_DICT, 'status_memory_pics'))
   
   seed = str(randomword(16))
 
-  objgraph.show_refs([GLOBAL_DATA_DICT], filename=(seed + "-GLOBAL_DATA_DICT.png"))
+  objgraph.show_refs([GLOBAL_RAW_DATA_DICT], filename=(seed + "-GLOBAL_RAW_DATA_DICT.png"))
   objgraph.show_refs([GLOBAL_DATA_SIZE_DICT], filename=(seed + "-GLOBAL_DATA_SIZE_DICT.png"))
   objgraph.show_refs([GLOBAL_UPDATED_DICT], filename=(seed + "-GLOBAL_UPDATED_DICT.png"))
   objgraph.show_refs([GLOBAL_KEY_DEQUEUE], filename=(seed + "-GLOBAL_KEY_DEQUEUE.png"))
@@ -178,7 +181,7 @@ def render_status_memory_pics(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE
   
   body_data = 'memory graphs for streamviz: <br />'
   
-  data_uri = base64.b64encode(open(seed + "-GLOBAL_DATA_DICT.png", 'rb').read()).decode('utf-8')
+  data_uri = base64.b64encode(open(seed + "-GLOBAL_RAW_DATA_DICT.png", 'rb').read()).decode('utf-8')
   body_data += '<img src="data:image/png;base64,{0}">'.format(data_uri) + '<br />'
 
   data_uri = base64.b64encode(open(seed + "-GLOBAL_DATA_SIZE_DICT.png", 'rb').read()).decode('utf-8')
@@ -193,7 +196,7 @@ def render_status_memory_pics(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE
   data_uri = base64.b64encode(open(seed + "-app.png", 'rb').read()).decode('utf-8')
   body_data += '<img src="data:image/png;base64,{0}">'.format(data_uri) + '<br />'
 
-  os.remove(seed + "-GLOBAL_DATA_DICT.png")
+  os.remove(seed + "-GLOBAL_RAW_DATA_DICT.png")
   os.remove(seed + "-GLOBAL_DATA_SIZE_DICT.png")
   os.remove(seed + "-GLOBAL_UPDATED_DICT.png")
   os.remove(seed + "-GLOBAL_KEY_DEQUEUE.png")
@@ -203,9 +206,9 @@ def render_status_memory_pics(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE
   return retdata
 
 #render main page
-def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, GLOBAL_OBJECTIVE_DICT, request):
+def render_index(GLOBAL_RAW_DATA_DICT, GLOBAL_UPDATED_DICT, GLOBAL_OBJECTIVE_DICT, request):
   retdata = html_raw_data
-  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'index'))
+  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_RAW_DATA_DICT, 'index'))
   
   TABLE_DATA = []
   
@@ -219,10 +222,10 @@ def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, GLOBAL_OBJECTIVE_DICT, r
     if key.find("restrict_") != -1:
       restricted_conditions[key[9:]] = request.args[key] 
 
-  for key in GLOBAL_DATA_DICT:
+  for key in GLOBAL_RAW_DATA_DICT:
     this_table_data = {}
     
-    xml = GLOBAL_DATA_DICT[key]
+    xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
     
     this_host = key[:key.index('/')]    
     project_time_rest = key[key.index('/')+1:]
@@ -356,15 +359,15 @@ def get_dd_hh_mm_ss_fromsecs(td):
     return ret_string
 
 #render view of one simulation
-def render_view(GLOBAL_DATA_DICT, key, client_ip):
+def render_view(GLOBAL_RAW_DATA_DICT, key, client_ip):
   retdata = html_raw_data
-  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'view'))
+  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_RAW_DATA_DICT, 'view'))
   
-  if not key in GLOBAL_DATA_DICT:
+  if not key in GLOBAL_RAW_DATA_DICT:
     retdata = retdata.replace(settings['html_template']['key_content'], "simulation not found!")
     return retdata
   
-  xml = GLOBAL_DATA_DICT[key]
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
   
   settings_data = '<div class="col-sm-4" id="settings"><h4></h4>'
   settings_data += '<div id="simulation_id">' + key + '</div>'

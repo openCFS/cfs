@@ -7,12 +7,13 @@ import threading
 import json
 import svgwrite
 import time
+from lxml import etree
 
 # get the latest values
-def get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
+def get_values(GLOBAL_RAW_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
   data = {}
   
-  xml = GLOBAL_DATA_DICT[key]
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
   
   # iteration_num is the latest iteration that was shown by the GUI
   # we will wait for a new data to arrive f 
@@ -48,7 +49,7 @@ def get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
   else:
     time.sleep(2)
 
-  xml = GLOBAL_DATA_DICT[key] # load xml again in case there is a new one available
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key]) # load xml again in case there is a new one available
 
   data['results'] = {}
 
@@ -74,12 +75,12 @@ def get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
 
 
 # returns html with embedded svg OR error code 
-def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names, y1_res_names, y2_res_names, \
+def plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, x_name, y1_it_names, y2_it_names, y1_res_names, y2_res_names, \
          iteration_num, logscale_y1, logscale_y2, result_view_arr, show_bloch):
   
   data = ""
   
-  xml = GLOBAL_DATA_DICT[key]
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
   
   # iteration_num is the latest iteration that was shown by the GUI
   # we will wait for a new data to arrive f
@@ -116,7 +117,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
   else:
     time.sleep(2)
 
-  xml = GLOBAL_DATA_DICT[key] # load xml again in case there is a new one available
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key]) # load xml again in case there is a new one available
 
   if show_bloch:
     
