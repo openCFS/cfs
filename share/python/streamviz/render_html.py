@@ -203,13 +203,13 @@ def render_status_memory_pics(GLOBAL_DATA_DICT, max_memory_in_bytes, MEMORY_BYTE
   return retdata
 
 #render main page
-def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request):
+def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, GLOBAL_OBJECTIVE_DICT, request):
   retdata = html_raw_data
   retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_DATA_DICT, 'index'))
   
   TABLE_DATA = []
   
-  columns = ['host', 'status', 'problem', 'started', 'updated', 'iterations']
+  columns = ['host', 'status', 'problem', 'started', 'updated', 'objective', 'iterations']
   
   restricted_conditions = {}
 
@@ -235,6 +235,7 @@ def render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request):
     this_table_data['problem'] = this_problem
     this_table_data['started'] = this_started
     this_table_data['updated'] = GLOBAL_UPDATED_DICT[key]
+    this_table_data['objective'] = GLOBAL_OBJECTIVE_DICT[key]
     
     iteration_num_array = xml.xpath('//process/iteration[last()]/@number')
     

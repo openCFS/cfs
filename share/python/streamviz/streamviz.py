@@ -53,6 +53,7 @@ GLOBAL_DATA_SIZE_DICT = {}
 
 # contains the last update
 GLOBAL_UPDATED_DICT = {}
+GLOBAL_OBJECTIVE_DICT = {}
 
 GLOBAL_KEY_DEQUEUE = deque([])
 
@@ -88,7 +89,7 @@ GLOBAL_STAT_VARS['total_bytes_received'] = 0
 @app.route('/', methods = ['GET'])
 def index():
   if request.method == 'GET':
-    return render_html.render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request)
+    return render_html.render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, GLOBAL_OBJECTIVE_DICT, request)
   else:
     return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
@@ -106,6 +107,9 @@ def status():
       oldest_update_event = UPDATE_EVENTS.pop(key_to_delete)
       oldest_update_event.set()
       del oldest_update_event
+    if key_to_delete in GLOBAL_OBJECTIVE_DICT:
+      oldest_updated = GLOBAL_OBJECTIVE_DICT.pop(key_to_delete) 
+      del oldest_updated
 
     send_data.delete_coprocessor(key_to_delete)
     gc.collect()
@@ -197,6 +201,9 @@ def cfs_recieve(url_key = ""):
         oldest_update_event = UPDATE_EVENTS.pop(oldest_key)
         oldest_update_event.set()
         del oldest_update_event
+      if oldest_key in GLOBAL_OBJECTIVE_DICT:
+        oldest_updated = GLOBAL_OBJECTIVE_DICT.pop(oldest_key) 
+        del oldest_updated
 
       deleted_count += 1
       send_data.delete_coprocessor(oldest_key)
@@ -235,7 +242,7 @@ def cfs_recieve(url_key = ""):
       if not url_key == '':
         key += url_key
 
-    key += '/' + xml.xpath('//header/environment/@started')[0]
+    key += '/' + xml.xpath('//header/environment/@started')[0][5:]
 
     if not key in GLOBAL_DATA_DICT: # only add key if not already in
       GLOBAL_KEY_DEQUEUE.appendleft(key)
@@ -245,7 +252,16 @@ def cfs_recieve(url_key = ""):
     GLOBAL_RAW_DATA_DICT[key] = data
     GLOBAL_DATA_SIZE_DICT[key] = len(data)
     
-    GLOBAL_UPDATED_DICT[key] = str(datetime.datetime.now())
+    objective_string = "" # empty on default, if simulation then it will be "compliance: <value>"
+    
+    try:
+      objective_string = "compliance: " + str(xml.xpath("//process/iteration/@compliance[last()]")[0])
+    except Exception as e:
+      pass
+    
+    GLOBAL_OBJECTIVE_DICT[key] = objective_string
+    
+    GLOBAL_UPDATED_DICT[key] = str(datetime.datetime.now())[5:-7]
     
     # set the event to trigger sending of the new xml data
     # make sure to set the event AFTER putting the new xml
