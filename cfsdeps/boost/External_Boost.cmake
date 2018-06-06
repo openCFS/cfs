@@ -12,6 +12,7 @@
 set(BOOST_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/boost")
 set(BOOST_source  "${BOOST_prefix}/src/boost")
 set(BOOST_install  "${CMAKE_CURRENT_BINARY_DIR}")
+set(BOOST_tmp_install "${BOOST_prefix}/install")
 
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${BOOST_install}
@@ -60,13 +61,51 @@ SET(TMP_DIR "${BOOST_prefix}")
 SET(ZIPFROMCACHE "${BOOST_prefix}/boost-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
 
-SET(ZIPTOCACHE "${ARPACK_prefix}/boost-zipToCache.cmake")
+SET(ZIPTOCACHE "${BOOST_prefix}/boost-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
+SET(MIRRORS
+  "https://dl.bintray.com/boostorg/release/${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}.0/source/${BOOST_GZ}"
+)
 
 #-------------------------------------------------------------------------------
 # Determine paths of BOOST libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+
+SET(Boost_LIBRARY_DIR "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}" CACHE PATH "Boost library dir.")
+
+IF(UNIX)
+  SET(BOOST_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
+ENDIF(UNIX)
+
+IF(MINGW)
+  SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
+
+  STRING(REPLACE "." ";" COMPVER "${CFS_CXX_COMPILER_VER}")
+  LIST(GET COMPVER 0 COMPVER_MAJOR)
+  LIST(GET COMPVER 1 COMPVER_MINOR)
+
+  SET(BOOST_LIB_SUFFIX "-gcc${COMPVER_MAJOR}${COMPVER_MINOR}-mt-${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+ENDIF(MINGW)
+
+
+SET(BOOST_DATE_TIME_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_date_time${BOOST_LIB_SUFFIX}")
+SET(BOOST_FILESYSTEM_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_filesystem${BOOST_LIB_SUFFIX")
+SET(BOOST_IOSTREAMS_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_iostreams${BOOST_LIB_SUFFIX")
+SET(BOOST_PRG_EXEC_MONITOR_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_prg_exec_monitor${BOOST_LIB_SUFFIX")
+SET(BOOST_PROGRAM_OPTIONS_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_program_options${BOOST_LIB_SUFFIX")
+SET(BOOST_PYTHON_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_python${BOOST_LIB_SUFFIX")
+SET(BOOST_REGEX_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_regex${BOOST_LIB_SUFFIX")
+SET(BOOST_SERIALIZATION_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_serialization${BOOST_LIB_SUFFIX")
+SET(BOOST_SERIALIZATION_HDF5_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_serialization_hdf5${BOOST_LIB_SUFFIX")
+SET(BOOST_SIGNALS_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_signals${BOOST_LIB_SUFFIX")
+SET(BOOST_SYSTEM_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_system${BOOST_LIB_SUFFIX")
+SET(BOOST_TEST_EXEC_MONITOR_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_test_exec_monitor${BOOST_LIB_SUFFIX")
+SET(BOOST_THREAD_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_thread${BOOST_LIB_SUFFIX")
+SET(BOOST_UNIT_TEST_FRAMEWORK_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_unit_test_framework${BOOST_LIB_SUFFIX")
+SET(BOOST_WSERIALIZATION_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_wserialization${BOOST_LIB_SUFFIX")
 
 #-------------------------------------------------------------------------------
 # The BOOST external project
@@ -95,10 +134,21 @@ ELSE()
     URL_MD5 "${BOOST_MD5}"
     CONFIGURE_COMMAND ""
     BINARY_DIR ${BOOST_source}
-    BUILD_COMMAND ./bootstrap.sh --prefix=${BOOST_install}
-    INSTALL_COMMAND ./b2 install
+    BUILD_COMMAND ./bootstrap.sh --without-libraries=python --prefix=${BOOST_tmp_install}
+    INSTALL_COMMAND ./b2 threading=multi install
   )
 
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(bzip2-static cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+     DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${bzip2_prefix}
+  )
+  
   IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------
     # Add custom step to zip a precompiled package to the cache.
