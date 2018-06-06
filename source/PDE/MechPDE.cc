@@ -1586,7 +1586,7 @@ namespace CoupledField {
     // ===============
     LOG_DBG(mechpde) << "Reading mechanical pressure";
     StdVector<std::string> empty;
-    ReadRhsExcitation("pressure", empty, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
+    ReadRhsExcitation("pressure", empty, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo, input);
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
