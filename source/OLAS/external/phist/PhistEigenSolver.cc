@@ -418,9 +418,10 @@ namespace CoupledField {
 
   }
 
-  void PhistEigenSolver::GetEigenMode(unsigned int modeNr, Vector<Complex>& mode)
+  void PhistEigenSolver::GetEigenMode(unsigned int modeNr, Vector<Complex>& mode, bool right)
   {
-    LOG_DBG(pes) << "GEM: modeNr=" << modeNr;
+    assert(right == true); // no idea what this means ?!
+    LOG_DBG(pes) << "GEM: modeNr=" << modeNr << " right=";
     assert(mode_.GetNumRows() > 0 && mode_.GetNumCols() > 0);
     if(modeNr >= mode_.GetNumRows())
       EXCEPTION("request mode " << (modeNr+1) << " (1-based) not available");

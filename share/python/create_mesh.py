@@ -1,13 +1,12 @@
 #!/usr/bin/env python
-from mesh_tool import *
-#from special_mesh_tools import *
-import argparse
-
 # this is to prevent annoying  
 # /usr/lib64/python3.6/site-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
 #  from ._conv import register_converters as _register_converters
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+from mesh_tool import *
+import argparse
 
 # for inclusion_opverlapp finds inclusion_size for create_2d_mesh via bisection
 def find_inclusion_overlap(args):

@@ -16,12 +16,13 @@ from matplotlib import pyplot as plt
 def print_gnuplot(offset, args, segments, max_mode, max_freq):
   if args.maxfrequency:
     print('set yrange [0:' + str(args.maxfrequency) + ']')
+    max_freq = min(max_freq, args.maxfrequency)
   elif args.commonsymbol:
     print('set yrange [0:*]')
   else:
     print('set yrange [0:' + str(max_freq * 1.2) + ']') # leave space for the labels
   if args.horizontal:
-    print('set xrange [0:' + str(segments[-1]) + ']')
+    print('set xrange [0:' + str(segments[-1]-1) + ']')
   else:
     for s in range(0, len(segments) - 1):
       print('set arrow ' + str(s + 1) + '  from ' + str(segments[s]) + ',0 to ' + str(segments[s]) + ',' + str(max_freq) + ' nohead lt rgb "gray" lw 2')
@@ -31,8 +32,11 @@ def print_gnuplot(offset, args, segments, max_mode, max_freq):
     print('set xlabel "wave vector (' + ('horizontal ' if args.horizontal else '') + 'IBZ)"')
     symbols = ['"{/Symbol G}"', '"X"', '"{/Symbol M}"', '"R"']
     xtics = 'set xtics (' + symbols[0] + ' 0'
-    for i in range(len(segments)):
-      xtics += ', ' + symbols[i + 1 if i < len(segments) - 1 else 0] + ' ' + str(segments[i])
+    if not args.horizontal:
+      for i in range(len(segments)):
+        xtics += ', ' + symbols[i + 1 if i < len(segments) - 1 else 0] + ' ' + str(segments[i])
+    else:
+      xtics += ',' + symbols[1] + ' ' + str(segments[-1]-1)    
     
     print(xtics + ')')
   else:
@@ -172,7 +176,6 @@ def get_segments(args, data, dim):
       
   # segment = data.shape[0]/offset # number of k for G->X = X->M = M -> G
   # Y = org.shape[0] + 1 # one over the top
-
   return result    
   
 parser = argparse.ArgumentParser()
