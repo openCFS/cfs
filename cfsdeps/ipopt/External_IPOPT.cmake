@@ -128,9 +128,9 @@ SET(CFSDEPS ${CFSDEPS} ipopt)
 # Determine paths of IPOPT libraries. We have only libs include/coin
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 IF(USE_ILUPACK)
-  SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a;${LD}/libmetis.a;${LD}/libmetisomp.a;" CACHE FILEPATH "IPOPT library.")
+  SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a;${LD}/libmetis_ilu.a;${LD}/libmetisomp.a;" CACHE FILEPATH "IPOPT library.")
 ELSE()
-  SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a;" CACHE FILEPATH "IPOPT library.")
+  SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a;${LD}/libmetis.a" CACHE FILEPATH "IPOPT library.")
 ENDIF()  
 
 SET(IPOPT_INCLUDE_DIR "${CFS_BINARY_DIR}/include" CACHE FILEPATH "IPOPT library.")

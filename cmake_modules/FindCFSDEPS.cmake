@@ -612,8 +612,8 @@ endif(BUILD_GHOST)
 
 # phist provides a ghost (=cuda if available) based EV-solver
 if(USE_PHIST_EV OR USE_PHIST_CG)
-  set(PHIST_REV "a8500d503b33") 
-  set(PHIST_MD5 "ef9e9fb1a1aa3ded577f8b7386ddd67b")
+  set(PHIST_REV "853be38a7078") 
+  set(PHIST_MD5 "a07fcc37d45a49d5e2e8fc2b31f334a7")
   set(PHIST_ZIP "${PHIST_REV}.zip")
   set(PHIST_BB_USER "essex")
   set(PHIST_BB_PROJECT "phist")

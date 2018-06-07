@@ -168,6 +168,9 @@ void PETScCommon::SetupMGSolver(DM &da_nodes,PC &precond_){
 }
 
 void PETScCommon::CheckLevels(int nx,int ny,int nz){
+ //nx, ny, nz are node numbers in x,y and z direction.
+
+
 
   PetscScalar divisor = PetscPowScalar(2.0,(PetscScalar)nlvls-1.0);
   if ( std::floor((PetscScalar)(nx-1)/divisor) != (nx-1.0)/((PetscInt)divisor)

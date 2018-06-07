@@ -440,7 +440,11 @@ void Ilupack<T>::InitParameters()
   CheckParameter(out, &nleaves, "nleaves");
   // TODO we currently ignore saddle point structures
   param.ind = NULL;
-  param.nthreads=std::atoi(getenv("OMP_NUM_THREADS"));
+  if (getenv("OMP_NUM_THREADS"))
+    param.nthreads= std::atoi(getenv("OMP_NUM_THREADS"));
+  else
+    param.nthreads=1;
+  //set to 1 for nthreads if env variable is not set
 
 }
 

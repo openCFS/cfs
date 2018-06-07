@@ -79,7 +79,7 @@ void PhistLinearSolver::Solve(const BaseMatrix &sysmat, const BaseVector &rhs, B
 
 // phist::krylov<double>::restartedBlockedGMRES(A_op_,P_op_,rhs_,sol_,nrhs_,&maxIter_,&tolerance_,blockSize_,maxBlockSize,&iflag_);
 // phist::krylov<double>::restartedGMRES(A_op_,P_op_,rhs_,sol_,&maxIter_,tolerance_,0,&iflag_);
- phist::krylov<double>::BiCGStab(A_op_,P_op_,rhs_,sol_,&maxIter_,tolerance_,&iflag_);
+ phist::krylov<double>::BiCGStab(A_op_,NULL,rhs_,sol_,&maxIter_,tolerance_,&iflag_);
 // phist::krylov<double>::blockedPCG(A_op_,P_op_,rhs_,sol_,1,&maxIter_,tolerance_,&iflag_);
  assert(iflag_==0);
 

@@ -261,9 +261,9 @@ void PETSCSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVe
   out->Get("totalIterations")->SetValue(totalSolverIter+niter);
 
 
-  if( rnorm > tolerance_ && rnorm > minTol_){
-    EXCEPTION("Linear Solver has not converged, reducing the tolerance or increasing the iterations might work sometime");
-  }
+//  if( rnorm > tolerance_ && rnorm > minTol_){
+//    EXCEPTION("Linear Solver has not converged, reducing the tolerance or increasing the iterations might work sometime");
+//  }
 
   //Create a global vector and scatter context to collect the solution vector to master process
   SendWorkerCommand(GET_SOL);

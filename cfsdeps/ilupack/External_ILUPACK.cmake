@@ -19,10 +19,10 @@ set(ilupack_install  "${ilupack_prefix}/tmp")
   
 #SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ilupack/${ILUPACK_GZ}") 
 
-SET(LOCAL_FILE "~/code/tmp/Ilupack_Task_OPENMP.tgz") # need to set the actual source later
+SET(LOCAL_FILE "/home/sri/code/tmp/Ilupack_Task_OPENMP.tgz") # need to set the actual source later
 
 #SET(MD5_SUM ${ILUPACK_MD5})
-SET(MD5_SUM 17b39bb3fedd5264cacca5a4d7e23d43)
+#SET(MD5_SUM 17b39bb3fedd5264cacca5a4d7e23d43)
 
 #SET(DLFN "${ilupack_prefix}/ilupack-download.cmake")
 #CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
@@ -70,7 +70,7 @@ SET(ILUPACK_SHARE "${LD}/libclock.a;${LD}/libsparsenew.a;${LD}/libvector.a")
 SET(ILUPACK_OPENMP "${LD}/libspdil.a;${LD}/libtools.a;${LD}/libbasic.a")  
 
 SET(ILUPACK_LIBRARY
-  "${ILUPACK_OPENMP};${LD}/libilupack.a;${LD}/libamd.a;${LD}/libcamd.a;${LD}/libblaslike.a;${LD}/libmetis.a;${LD}/libmetisomp.a;${LD}/libmtmetis.a;${LD}/libmumps.a;${LD}/libsparspak.a;${ILUPACK_SHARE};"               
+  "${ILUPACK_OPENMP};${LD}/libilupack.a;${LD}/libamd.a;${LD}/libcamd.a;${LD}/libblaslike.a;${LD}/libmetis_ilu.a;${LD}/libmetisomp.a;${LD}/libmtmetis.a;${LD}/libmumps.a;${LD}/libsparspak.a;${ILUPACK_SHARE};"               
   CACHE FILEPATH "ILUPACK library.")
   
 MARK_AS_ADVANCED(ILUPACK_LIBRARY)

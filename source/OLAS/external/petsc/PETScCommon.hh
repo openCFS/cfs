@@ -9,6 +9,7 @@
  *
  */
 
+
 #ifndef OLAS_EXTERNAL_PETSC_PETSCCOMMON_HH_
 #define OLAS_EXTERNAL_PETSC_PETSCCOMMON_HH_
 
@@ -23,6 +24,7 @@
 #include "General/Enum.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
+
 // include the original PETSC header
 #include "petsc.h"
 #include "Forms/LinForms/LinearForm.hh"
@@ -40,6 +42,7 @@ class PETScCommon
 protected:
 
 PETScCommon();
+~PETScCommon();
 void SetupMatrix();
 void CheckLevels(int nx,int ny,int nz);
 void AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsVec,Vec &dirNodeVec,Vec &dirVec,int nx,int ny,int nz);
@@ -58,15 +61,19 @@ void CacluateElementStiffnessMatrix(EntityIterator &firstEntIt, EntityIterator &
     int &nen , BiLinearForm * form ,  int &elem,PetscScalar KE[]);
 void CalculateDirNodesAndEdof(Vec &dirVec,PetscInt edof[],const int &nen,const PetscScalar * dirArray,
     const StdVector<int> &globalNodeNum,const int &elem);
-~PETScCommon();
+
+
 std::string CreateSolverString(PtrParamNode);
 std::string CreatePrecondString(PtrParamNode);
+
 int rank_=0;
 int size_=0;
 PetscInt nlvls=2;
 //Assemble context
 Assemble * assemble_=nullptr;
 bool disableParalleAssemby=true;
+
+
 
 protected:
 PetscErrorCode ierr=0;
