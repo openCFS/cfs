@@ -64,6 +64,9 @@ namespace CoupledField
      * @param out here the data has to be written, the wrapping is done by Client */
     void Transmit(std::ostream& out);
 
+    /** overwrites virtual function */
+    bool IsStreaming() {return true;}
+
   private:
 
     /** accumulated results by AddMeshResult() to be written and released by FinishStep() */
@@ -133,9 +136,6 @@ namespace CoupledField
 
     /** add the mesh ? */
     bool send_mesh_;
-
-    /** compression is not zipped but no identation and no 'nr' in result/data/item */
-    bool compressed_;
 
     /** should we output more information to the command line? */
     bool silent_;

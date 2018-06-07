@@ -21,6 +21,7 @@ namespace CoupledField {
     actStep_ = 0;
     actStepVal_ = 0.0;
     actMSStep_ = 0;
+    ptGrid_ = NULL;
   }
 
   SimOutput::~SimOutput() {

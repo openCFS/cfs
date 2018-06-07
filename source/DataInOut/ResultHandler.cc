@@ -112,15 +112,19 @@ namespace CoupledField {
       for( UInt i = 0; i < newDest.GetSize(); i++ ) {
         
         // check, if output is registered
-        if( outFiles_.find( newDest[i] ) == outFiles_.end() )
+        if( simOutputHandlers_.find( newDest[i] ) == simOutputHandlers_.end() )
           EXCEPTION( "Output writer '" << newDest[i] << "' was not registered yet!" );
 
         LOG_DBG(resHandler) << "Registering output '" << newDest[i] << "' with result '" << actDof.resultName;
 
         actContext->outputIds.Push_back( newDest[i] );
-        
+
+        // skip if only streaming is set and this is no streamingHandler
+        if (streamOnly && !simOutputHandlers_[newDest[i]]->IsStreaming())
+          continue;
+
         // register results also at the output writer class
-        outFiles_[newDest[i]]->RegisterResult( sol, saveBegin,
+        simOutputHandlers_[newDest[i]]->RegisterResult( sol, saveBegin,
                                                saveInc, saveEnd,
                                                actContext->isHistory );
       }
@@ -151,9 +155,13 @@ namespace CoupledField {
     // Iterate over all outfiles to notify them about a new
     // multisequence step
     std::map<std::string, shared_ptr<SimOutput> >::iterator it;
-    it = outFiles_.begin();
+    it = simOutputHandlers_.begin();
 
-    for( ; it != outFiles_.end(); it++ ) {
+    for( ; it != simOutputHandlers_.end(); it++ ) {
+      // skip if only streaming is set and this is no streamingHandler
+      if (streamOnly && !it->second->IsStreaming())
+        continue;
+
       it->second->BeginMultiSequenceStep( step, type, numSteps );
     }
   }
@@ -180,8 +188,13 @@ namespace CoupledField {
     }
     
     // Trigger function for all output files
-    for(auto it = outFiles_.begin(); it != outFiles_.end(); it++ )
+    for(auto it = simOutputHandlers_.begin(); it != simOutputHandlers_.end(); it++ ) {
+      // skip if only streaming is set and this is no streamingHandler
+      if (streamOnly && !it->second->IsStreaming())
+        continue;
+
       it->second->BeginStep(stepNum, stepVal);
+    }
     
     LOG_DBG(resHandler) << "Finished beginning of new step" << std::endl;
   }
@@ -259,7 +272,10 @@ namespace CoupledField {
       if( actContext.writeResult && (!actContext.isFinal ) ) {
         // iterate over all outputs
         for(UInt iOut = 0; iOut < actContext.outputIds.GetSize(); iOut++) {
-          
+          // skip if only streaming is set and this is no streamingHandler
+          if (streamOnly && !simOutputHandlers_[actContext.outputIds[iOut]]->IsStreaming())
+            continue;
+
           std::string outId = actContext.outputIds[iOut];
           // =================================================
           // Check, if output writer "lives" on the same grid.
@@ -281,16 +297,16 @@ namespace CoupledField {
             
             // perform interpolation
             InterpolateRes( actContext, destGrid, res );
-            outFiles_[actContext.outputIds[iOut]]->AddResult( res);
+            simOutputHandlers_[actContext.outputIds[iOut]]->AddResult( res);
          
           } else {
             // Standard case, no interpolation necessary
             
             // Add current result to given output file
-            outFiles_[actContext.outputIds[iOut]]->AddResult( actContext.result );
+            simOutputHandlers_[actContext.outputIds[iOut]]->AddResult( actContext.result );
             LOG_DBG(resHandler) << "Adding result '" << actResult.GetResultInfo()->resultName
                 << "' on '" << actResult.GetEntityList()->GetName() << "' to '"
-                << outFiles_[actContext.outputIds[iOut]]->GetName() << "'";
+                << simOutputHandlers_[actContext.outputIds[iOut]]->GetName() << "'";
           }
         }
       }
@@ -299,7 +315,11 @@ namespace CoupledField {
     }
 
   // Trigger writing of all output writers
-  for(auto fileIt = outFiles_.begin(); fileIt != outFiles_.end(); fileIt++ ) {
+  for(auto fileIt = simOutputHandlers_.begin(); fileIt != simOutputHandlers_.end(); fileIt++ ) {
+    // skip if only streaming is set and this is no streamingHandler
+    if (streamOnly && !fileIt->second->IsStreaming())
+      continue;
+
     LOG_DBG(resHandler) << "Finishing step for output '" << fileIt->second->GetName() << "'";
     fileIt->second->FinishStep();
   }    
@@ -326,8 +346,12 @@ namespace CoupledField {
       std::string type;
       // Trigger new step at all output writers
       
-      for( fileIt = outFiles_.begin(); 
-      fileIt != outFiles_.end(); fileIt++ ) {
+      for( fileIt = simOutputHandlers_.begin(); 
+      fileIt != simOutputHandlers_.end(); fileIt++ ) {
+        // skip if only streaming is set and this is no streamingHandler
+        if (streamOnly && !fileIt->second->IsStreaming())
+          continue;
+
         fileIt->second->BeginStep( actStep_, actStepVal_);
       }    
 
@@ -348,11 +372,15 @@ namespace CoupledField {
           // iterate over all outputs
           for( UInt iOut = 0; iOut < actContext.outputIds.GetSize(); iOut++ )
           {
+            // skip if only streaming is set and this is no streamingHandler
+            if (streamOnly && !simOutputHandlers_[actContext.outputIds[iOut]]->IsStreaming())
+              continue;
+
             // Add current result to given output file
-            outFiles_[actContext.outputIds[iOut]]->AddResult( actContext.result );
+            simOutputHandlers_[actContext.outputIds[iOut]]->AddResult( actContext.result );
             LOG_DBG(resHandler) << "Adding final result '" << type << "' on '"
             << actResult.GetEntityList()->GetName()
-            << "' to '" << outFiles_[actContext.outputIds[iOut]]->GetName()
+            << "' to '" << simOutputHandlers_[actContext.outputIds[iOut]]->GetName()
             << "'";
           }
         }
@@ -361,15 +389,25 @@ namespace CoupledField {
         FinishMultiSequenceStepRec( actContext );
       }
       // Finish newly created step
-      for(fileIt = outFiles_.begin(); fileIt != outFiles_.end(); fileIt++)
+      for(fileIt = simOutputHandlers_.begin(); fileIt != simOutputHandlers_.end(); fileIt++) {
+        // skip if only streaming is set and this is no streamingHandler
+        if (streamOnly && !fileIt->second->IsStreaming())
+          continue;
+
         fileIt->second->FinishStep();
+      }
     }
     
     
     // Iterate over all outfiles to notify them about the end of a
     // multisequence step
-    for(auto it = outFiles_.begin(); it != outFiles_.end(); it++)
+    for(auto it = simOutputHandlers_.begin(); it != simOutputHandlers_.end(); it++) {
+      // skip if only streaming is set and this is no streamingHandler
+      if (streamOnly && !fileIt->second->IsStreaming())
+        continue;
+
       it->second->FinishMultiSequenceStep( );
+    }
 
     // Delete all results, as they are registered newly for each
     // sequence step
@@ -474,14 +512,18 @@ namespace CoupledField {
 
       for(UInt iOut = 0; iOut < outDest.GetSize(); iOut++)
       {
-        if( outFiles_.find( outDest[iOut] ) == outFiles_.end() )
+        // skip if only streaming is set and this is no streamingHandler
+        if (streamOnly && !simOutputHandlers_[outDest[iOut]]->IsStreaming())
+          continue;
+
+        if( simOutputHandlers_.find( outDest[iOut] ) == simOutputHandlers_.end() )
           EXCEPTION( "Output writer '" << outDest[i] << "' was not registered yet!" );
         
         nextContext->outputIds.Push_back( outDest[iOut] );
       
         // register results also at the output writer class
         if( nextContext->writeResult ) {
-          outFiles_[outDest[iOut]]->RegisterResult(postProcs[i]->GetOutputResult(),
+          simOutputHandlers_[outDest[iOut]]->RegisterResult(postProcs[i]->GetOutputResult(),
                            nextContext->saveBegin, nextContext->saveInc,
                            nextContext->saveEnd, nextContext->isHistory );
         }
@@ -516,13 +558,17 @@ namespace CoupledField {
         
         // iterate over all outputs
         for( UInt iOut = 0; iOut < next.outputIds.GetSize(); iOut++ ) {
-          
+
+          // skip if only streaming is set and this is no streamingHandler
+          if (streamOnly && !simOutputHandlers_[next.outputIds[iOut]]->IsStreaming())
+            continue;
+
           // Add current result to given output file
-          outFiles_[next.outputIds[iOut]]->AddResult( next.result );
+          simOutputHandlers_[next.outputIds[iOut]]->AddResult( next.result );
           BaseResult & nextResult  = *(next.result);
           LOG_DBG(resHandler) << "Adding result '" << nextResult.GetResultInfo()->resultName
                               << "' on '" << nextResult.GetEntityList()->GetName()
-                              << "' to '" << outFiles_[next.outputIds[iOut]]->GetName() << "'";
+                              << "' to '" << simOutputHandlers_[next.outputIds[iOut]]->GetName() << "'";
         }
       }
 
@@ -566,15 +612,19 @@ namespace CoupledField {
   void ResultHandler::AddOutputDest(shared_ptr<SimOutput> out, const std::string& id, const std::string& gridId )
   {
     LOG_DBG(resHandler) << "Adding output writer with id '" << id << "', on grid with id '" << gridId << "'";
-    outFiles_[id] = out;
+    simOutputHandlers_[id] = out;
     outGridIds_[id] = gridId;
   }
 
   void ResultHandler::Init(std::map<std::string, Grid* >& gridMap, bool printGridOnly ) {
     
     // Trigger function with all output files
-    for(auto it = outFiles_.begin(); it != outFiles_.end(); it++ )
+    for(auto it = simOutputHandlers_.begin(); it != simOutputHandlers_.end(); it++ )
     {
+      // skip if only streaming is set and this is no streamingHandler
+      if (streamOnly && !it->second->IsStreaming())
+        continue;
+
       // get gridId for this output writer
       std::string gridId = outGridIds_[it->first];
       
@@ -592,8 +642,12 @@ namespace CoupledField {
     LOG_DBG(resHandler) << "Starting to Finalize";
     
     // Trigger writing and finalizing of all output writers
-    for(auto fileIt = outFiles_.begin();
-    fileIt != outFiles_.end(); fileIt++ ) {
+    for(auto fileIt = simOutputHandlers_.begin();
+    fileIt != simOutputHandlers_.end(); fileIt++ ) {
+      // skip if only streaming is set and this is no streamingHandler
+      if (streamOnly && !fileIt->second->IsStreaming())
+        continue;
+
       LOG_DBG(resHandler) << "Finalizing result for output '" << fileIt->second->GetName() << "'";
       fileIt->second->Finalize( );
     }    
@@ -625,13 +679,17 @@ namespace CoupledField {
 
           // iterate over all outputs
           for( UInt iOut = 0; iOut < next.outputIds.GetSize(); iOut++ ) {
-            
+
+            // skip if only streaming is set and this is no streamingHandler
+            if (streamOnly && !simOutputHandlers_[next.outputIds[iOut]]->IsStreaming())
+              continue;
+
             // Add current result to given output file
-            outFiles_[next.outputIds[iOut]]->AddResult( next.result );
+            simOutputHandlers_[next.outputIds[iOut]]->AddResult( next.result );
             BaseResult & nextResult  = *(next.result);
             LOG_DBG(resHandler) << "Adding final result '" << nextResult.GetResultInfo()->resultName
                                 << "' on '" << nextResult.GetEntityList()->GetName()
-                                << "' to '" << outFiles_[next.outputIds[iOut]]->GetName() << "'";
+                                << "' to '" << simOutputHandlers_[next.outputIds[iOut]]->GetName() << "'";
           }
         }
         
@@ -700,7 +758,7 @@ namespace CoupledField {
     }
     
     // Check all defined output writers for the searched capability
-    for(auto it = outFiles_.begin(); it != outFiles_.end(); it++)
+    for(auto it = simOutputHandlers_.begin(); it != simOutputHandlers_.end(); it++)
       if(it->second->GetCapabilities().find(neededCap) != it->second->GetCapabilities().end())
         out.Push_back(it->first);
     
@@ -724,7 +782,7 @@ namespace CoupledField {
           = shared_ptr<SimOutput>(new SimOutputText( simName, PtrParamNode(), 
                                                      PtrParamNode(), restart ) );
         textOut->Init(  domain->GetGrid(), false );
-        outFiles_["histDefault"] = textOut;
+        simOutputHandlers_["histDefault"] = textOut;
         outGridIds_["histDefault"] = "default";
         out.Push_back( "histDefault" );
         
