@@ -93,7 +93,7 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
   assert(ctxt->mat != NULL);
   OptimizationMaterial* mat = ctxt->mat;
   Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
-  std::cout << "out= " << out.ToString() << std::endl;
+  //std::cout << "out= " << out.ToString() << std::endl;
 
   //assert(app != App::MAG); // shall be in MagSIMP.cc
 
@@ -116,7 +116,7 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
     //std::cout << "k_factor= " << k_factor << std::endl;
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, stiffness, k_factor); // out = k_factor * stiffness
-    //std::cout << "stiffness= " << stiffness << std::endl;
+    std::cout << "stiffness= " << stiffness << std::endl;
     //std::cout << "out= " << out << std::endl;
     // This log is very expensive, it blows up inv_tensor in the debug mode
     // LOG_DBG3(simp) << "SetElementK: el=" << de->elem->elemNum << " di=" << de->GetIndex() << " mm=" << mm << " K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
@@ -333,7 +333,7 @@ void SIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferFunc
   // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
   Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
 
-  // the gradient is < lambda^T, K' * A > + < J^T, B A' >
+  // the gradient is < lambda^T, K' * A >
 
   bool derivative = true;
   Vector<double> appendix;
@@ -349,8 +349,8 @@ void SIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferFunc
   DesignDependentRHS rhs;
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], &rhs, 1.0, STANDARD, f);
-  //std::cout << f->ToString() << std::endl;
 
+/*
   // add < J^T, B dA/drho  >
   // loop over all elements in region f->region
   // get B and set it to the nodal positions via eqnMap from element nodes
@@ -468,107 +468,7 @@ void SIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferFunc
     std::cout << "var= " << var << std::endl;
 
     de->AddGradient(f, var[e]);
-  }
-  /*for(unsigned int i = 0; i < design->data.GetSize(); i++)
-        {
-          DesignElement& de = design->data[i];
-          // Three cases:
-          // a) stress is defined on whole design domain (one or more regions)
-          // b) stress region is defined on one of two or more design regions
-          // c) stress region is not in any of the design regions.
-
-          int idx = -1; // case c) an sometimes b) never a)
-
-
-
-          // case b)
-          if(design->Contains(f->region)  )
-          {
-            // we are at a design element and have to find it within stress
-            // TODO make it faster
-            for(unsigned int e = 0; idx != -1 && e < f->elements.GetSize(); e++)
-              if(de.elem->elemNum == f->elements[e]->elem->elemNum)
-                idx = e;
-          }
-          // case c): idx is already -1
-          if(idx != -1){
-
-          }
-        }*/
-
-  /*
-  // ugly copy and paste from CalcMagFluxDensity()
-  StdVector<Elem*> elems;
-  domain->GetGrid()->GetElems(elems, f->region);
-  // annoying entity iterator got hold the elem
-  ElemList el(elems[0],domain->GetGrid());
-  Matrix<double> b_mat; // this holds the curl-operator for the whole element. for 2D rectangular it shall be 2 rows, 4 columns
-  BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator();
-
-  // this gets the equation numbers for the element
-  StdVector<int> eqn;
-
-  // select first or second row of b_mat
-  assert(f->GetType() == Function::MAG_FLUX_DENS_X || f->GetType() == Function::MAG_FLUX_DENS_Y);
-  bool x_comp = f->GetType() == Function::MAG_FLUX_DENS_X;
-
-  for(unsigned int e = 0; e < elems.GetSize(); e++)
-    {
-    Elem* elem = elems[e];
-    el.SetElement(elem);
-    DesignElement& de = design->data[e];
-
-    Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[e]);
-    //assert(sol.GetSize() > elem->elemNum);
-    //Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
-    assert(vec != NULL);
-    Vector<double>& a = *vec; // a stands for the Vectorpotential in the element
-
-    // we need a lot of similar stuff as in BDBInt::CalcElementMatrix().
-    // get the form first
-    BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
-    assert(bdb != NULL);
-    // get B-mat
-    StdVector<LocPoint> intPoints; // Get integration Points
-    LocPointMapped lp;
-    StdVector<double> weights;
-    IntegOrder order;
-    IntScheme::IntegMethod method = IntScheme::UNDEFINED;
-    BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
-    form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type), method, order, intPoints, weights );
-    //LOG_DBG2(em) << "CMFD i=" << e << " e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
-    assert(method != IntScheme::UNDEFINED);
-    assert(!intPoints.IsEmpty());
-
-    // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
-
-    // Loop over all integration points
-    for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
-      {
-      // Calculate for each integration point the LocPointMapped
-
-      lp.Set( intPoints[ip], esm, weights[ip] );
-
-      // Call the CalcBMat()-method
-      bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
-      //LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " b_mat=" << b_mat.ToString(0, false);
-      //std::cout << "b_mat= " << b_mat << std::endl;
-
-      // traverse nodes
-      form->GetFeSpace1()->GetElemEqns(eqn, elem);
-      assert(eqn.GetSize() == elem->connect.GetSize());
-      assert(b_mat.GetNumCols() == elem->connect.GetSize());
-      for(unsigned int n = 0; n < eqn.GetSize(); n++)
-      {
-        appendix[eqn[n]] += b_mat[x_comp ? 0 : 1][n];
-        std::cout << "appendix= " << appendix[eqn[n]] << std::endl;
-        de.AddGradient(f, appendix[eqn[n]]); // is it correct???
-      }
-      }
-
-    } // end loop elems*/
-
+  }*/
 
 }
 

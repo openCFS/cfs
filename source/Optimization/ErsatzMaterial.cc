@@ -852,17 +852,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         // u1^T (K' u2 - f') -> find "K'"
         SetElementK(f->ctxt, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
         LOG_DBG3(em) << "mat: " << mat.ToString();
-        //std::cout << "mat= " << mat.ToString() << std::endl;
-        //std::cout << "u2_vec= " << u2_vec.ToString() << std::endl;
-        //std::cout << "u1_vec= " << u1_vec.ToString() << std::endl;
-        //std::cout << "u2= " << u2.ToString() << std::endl;
-        //std::cout << "u1= " << u1.ToString() << std::endl;
+        std::cout << "mat= " << mat.ToString() << std::endl;
+        std::cout << "u2_vec= " << u2_vec.ToString() << std::endl;
+        std::cout << "u1_vec= " << u1_vec.ToString() << std::endl;
+        std::cout << "u2= " << u2.ToString() << std::endl;
+        std::cout << "u1= " << u1.ToString() << std::endl;
 
         // We generally solve u1^T (K' u2 - f')
         // u1^T (K' u2 - f') -> calc "K' u2"
         mat_vec = mat * u2_vec;
         LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
-        //std::cout << "mat_vec= " << mat_vec.ToString() << std::endl;
+        std::cout << "mat_vec= " << mat_vec.ToString() << std::endl;
 
         // u1^T (K' u2 - f') -> calc "- f'"
         assert(!(calcMode == CONJ_QUAD && rtf != NULL));// no sensitive rhs here!
@@ -1862,22 +1862,30 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // the stored element solution vector
     StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
 
+    int elPosition;
+    elPosition = sol.GetSize() - elems.GetSize();
+
     //double result = 0.0;
 
     Matrix<double> b_mat; // this holds the curl-operator for the whole element. For 2D rectangular case it shall be 2 rows, 4 columns
     Vector<double> mag_flux_density;
-    Vector<double> res;
+    Vector<double> res(2);
+    Vector<double> Quadrat;
     Vector<double> twoDim(2);
     Vector<double> threeDim(3);
+    Vector<double> D(2);
+    unsigned int *IntegrationPoint;
+    double mag_flux_dens_square;
+    double mag_flux_dens_square_out;
 
     for(unsigned int e = 0; e < elems.GetSize(); e++)
     {
       Elem* elem = elems[e];
       el.SetElement(elem);
       //assert(sol.GetSize() > e);
-      //Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[e]);
-      //assert(sol.GetSize() > el->elemNum); von Fabian
-      Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
+      Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elPosition]);
+      //assert(sol.GetSize() > elem->elemNum);// von Fabian
+      //Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
       assert(vec != NULL);
       Vector<double>& a = *vec; // a stands for the Vectorpotential in the element
       //std::cout << "a= " <<a.ToString() << std::endl;
@@ -1906,8 +1914,12 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
 
       // Loop over all integration points
+      Matrix<double> B_mat(2,4);
+      std::cout << "B_mat " << B_mat << std::endl;
+
       for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
       {
+
         // Calculate for each integration point the LocPointMapped
         lp.Set( intPoints[ip], esm, weights[ip] );
 
@@ -1916,40 +1928,35 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         assert(b_mat.GetNumCols() == a.GetSize());
         assert(b_mat.GetNumRows() == domain->GetGrid()->GetDim());
 
-        // Initialize if the magnetic flux density is two or three dimensional
-        if (b_mat.GetNumRows() == 2 && ip == 0)
-        {
-          mag_flux_density = twoDim;
-          res = twoDim;
-        }
-        else if (b_mat.GetNumRows() == 3)
-        {
-          mag_flux_density = threeDim;
-          res = threeDim;
-        }
-
-        // Calculation of the magnetic flux density B = sum(rot(A)) = sum(b_mat * a) over the integration points
-        // b_mat consists of the derivative of the shape function, a consists of the magnetic vector potential
+        // Calculation of the B Matrix (2x4) over the integration points
         b_mat *= weights[ip];
-        b_mat.Mult(a, res);
-        mag_flux_density += res;
-        if (ip+1 == intPoints.GetSize())
-        {
-          mag_flux_density /= intPoints.GetSize();
-        }
-        std::cout << "res= " << res.ToString() << std::endl;
-        //std::cout << "b_mat= " << b_mat << std::endl;
-        std::cout << "mfd " << mag_flux_density.ToString() << std::endl;
-        LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " mfd=" << mag_flux_density.ToString() << " b_mat=" << b_mat.ToString(0, false);
+        std::cout << "b_mat= " << b_mat << std::endl;
+        B_mat += b_mat;
+        //LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " mfd=" << mag_flux_density.ToString() << " b_mat=" << b_mat.ToString(0, false);
       }
+      // Calculation of the square from magnetic flux density  B^2 = sum(rot(A)^2) = sum((b_mat * a)^2) over the integration points
+      // b_mat consists of the derivative of the shape function, a consists of the magnetic vector potential
+      B_mat /= intPoints.GetSize();
+      B_mat.Mult(a,res);
+      res /= elems.GetSize();
+
+      // Optimization of x or y direction
+      if (f->GetType() == Function::MAG_FLUX_DENS_X){
+        D[0] = 1;
+      }
+      else {
+        D[1] = 1;
+      }
+      std::cout << "res " << res << std::endl;
+      mag_flux_dens_square = res.Inner(D);
+      std::cout << "mag_flux_dens_square " << mag_flux_dens_square << std::endl;
+      //mag_flux_dens_square *= mag_flux_dens_square;
+      std::cout << "mag_flux_dens_square " << mag_flux_dens_square << std::endl;
+
     } // end loop elems
-
-    // normalize mfd
-    mag_flux_density /= elems.GetSize();
-    //mag_flux_density *= (-1);
-
-    assert(f->GetType() == Function::MAG_FLUX_DENS_X || f->GetType() == Function::MAG_FLUX_DENS_Y);
-    return f->GetType() == Function::MAG_FLUX_DENS_X ? mag_flux_density[0] : mag_flux_density[1];
+    //assert(f->GetType() == Function::MAG_FLUX_DENS_X || f->GetType() == Function::MAG_FLUX_DENS_Y);
+    //return f->GetType() == Function::MAG_FLUX_DENS_X ? mag_flux_density[0] : mag_flux_density[1];
+    return mag_flux_dens_square;
 
   }
 
@@ -2616,15 +2623,24 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   void ErsatzMaterial::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
   {
-    // J = 1/N * sum<J,B*A> = sum (J^T(B*A)), see CalcMagFluxDensity() where J=[1,0] or [0,1]
-    // B = 2 rows, 4 columns, A = 4 rows, 1 column, J = 2 row, 1 col
-    // d(<J,B*A>)/dA = d((B*A)^T J)/dA = B^T J -> 4 rows, 1 col
+    // J = 1/N * sum<B*A,D*B*A> = sum ((B*A)(D*B*A)), see CalcMagFluxDensity() where J=[1,0] or [0,1]
+    // B = 2 rows, 4 columns, A = 4 rows, 1 column, D = 2 row, 2 col, D is the selection vector for x or y component [0 0; 0 1] or [1 0; 0 0]
+    // d(<B*A,B*A>*D)/dA = 2*(B^T*D*B)*A -> 4 rows, 1 col
     // do this for all elements A and add with factor 1/N to rhs
-    // B^T J is either the first or second row of the 2x4 B matrix
     assert(out.GetSize() == 0); // if not, we can skip resizing
     const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
     out.Resize(stateSol.GetSize(),0.0);
-    //std::cout << "out.getSize= " << out.GetSize() << std::endl;
+
+    Matrix<double> D(2,2);
+    Matrix<double> Db;
+    Matrix<double> bDb;
+
+    if (f->GetType() == Function::MAG_FLUX_DENS_X){
+      D[0][0] = 1;
+    }
+    else {
+      D[1][1] = 1;
+    }
 
     // loop over all elements in region f->region
     // get B and set it to the nodal positions via eqnMap from element nodes
@@ -2641,26 +2657,57 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // this gets the equation numbers for the element
     StdVector<int> eqn;
 
+    // the stored element solution vector
+    StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
+
+    int elPosition;
+    elPosition = sol.GetSize() - elems.GetSize();
+
     // select first or second row of b_mat
-    assert(f->GetType() == Function::MAG_FLUX_DENS_X || f->GetType() == Function::MAG_FLUX_DENS_Y);
-    bool x_comp = f->GetType() == Function::MAG_FLUX_DENS_X;
+    //assert(f->GetType() == Function::MAG_FLUX_DENS_X || f->GetType() == Function::MAG_FLUX_DENS_Y);
+    //bool x_comp = f->GetType() == Function::MAG_FLUX_DENS_X;
+
+    Vector<double> count(out.GetSize()); // vector who counts the writing into node position
 
     for(unsigned int e = 0; e < elems.GetSize(); e++)
     {
+      Vector<double> bDba(4,1);
+      Vector<double> BB(4,1);
+
+      for(unsigned int i = 0; i < 4; i++){
+        BB[i] = 0;
+        bDba[i] = 0;
+      }
+
       Elem* elem = elems[e];
       el.SetElement(elem);
+
+      Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elPosition]);
+      //assert(sol.GetSize() > elem->elemNum);// von Fabian
+      //Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
+      assert(vec != NULL);
+      Vector<double>& a = *vec; // a stands for the Vectorpotential in the element
+      //std::cout << "a= " <<a.ToString() << std::endl;
+      assert(!(domain->GetGrid()->IsRegionRegular(f->region) && a.GetSize() != 4)); // for regular 2D grid!!!
+      LOG_DBG2(em) << "CMDF: i=" << e << " e=" << elem->elemNum << " -> " << a.ToString();
+
 
       // we need a lot of similar stuff as in BDBInt::CalcElementMatrix().
       // get the form first
       BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
       assert(bdb != NULL);
+
       // get B-mat
       StdVector<LocPoint> intPoints; // Get integration Points
-      LocPointMapped lp;
+      LocPointMapped lp; // Geometry related information about the element
       StdVector<double> weights;
+
+      // Obtain FE element from feSpace and integration scheme
       IntegOrder order;
       IntScheme::IntegMethod method = IntScheme::UNDEFINED;
       BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
+
+      // Get integration points
       form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type), method, order, intPoints, weights );
       LOG_DBG2(em) << "CMFD i=" << e << " e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
       assert(method != IntScheme::UNDEFINED);
@@ -2668,6 +2715,12 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       // Get shape map from grid
       shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
+
+      Matrix<double> B_mat(2,4);
+      std::cout << "B_mat " << B_mat << std::endl;
+      Vector<double> B_vec(4);
+      std::cout << "B_vec " << B_vec << std::endl;
+      Matrix<double> BDB(4,4);
 
       // Loop over all integration points
       for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
@@ -2679,24 +2732,67 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         // Call the CalcBMat()-method
         bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
         LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " b_mat=" << b_mat.ToString(0, false);
-        //b_mat *= (-1); // minus because of the formular for the lagrange multiplicator
         std::cout << "b_mat= " << b_mat << std::endl;
+        std::cout << "weights[ip]= " << weights[ip] << std::endl;
 
-        // traverse nodes
-        form->GetFeSpace1()->GetElemEqns(eqn, elem);
-        assert(eqn.GetSize() == elem->connect.GetSize());
-        assert(b_mat.GetNumCols() == elem->connect.GetSize());
-        // sum the values for each node in the element
-        for(unsigned int n = 0; n < eqn.GetSize(); n++){
-          out[eqn[n]] += 1.0/elems.GetSize() * weights[ip] * b_mat[x_comp ? 0 : 1][n];
-        std::cout << "out[eqn[n]]= " << out[eqn[n]] << std::endl;
-        std::cout << "out= " << out << std::endl;
-        std::cout << "eqn= " << eqn.GetSize() << std::endl;
+        B_mat += b_mat;
+/*
+        // B*B, but the formular is not correct
+        Db = D * b_mat;
+        std::cout << "Db= " << Db << std::endl;
+        bDb = Transpose(b_mat) * Db;
+        std::cout << "bDb= " << bDb << std::endl;
+        //bDb.Mult(a,bDba);
+        //std::cout << "bDba= " << bDba << std::endl;
+        //B_vec += bDba;
+        BDB += bDb;
+        std::cout << "BDB " << BDB << std::endl;
+*/
 
+        //B_mat += b_mat;
+      }
+      //BDB /= 4;
+      //B_vec /= intPoints.GetSize();
+      //std::cout << "B_vec " << B_vec << std::endl;
+
+      //BDB.Mult(a,bDba);
+      for(int i = 0; i < B_mat.GetNumCols(); i++){
+        if (f->GetType() == Function::MAG_FLUX_DENS_Y){
+          bDba[i] = B_mat[1][i];
+        }
+        else {
+          bDba[i] = B_mat[i][1];
         }
       }
-    } // end loop elems
+      std::cout << "bDba= " << bDba << std::endl;
+      bDba *= (-2);
+      std::cout << "bDba= " << bDba << std::endl;
 
+/*      // calculate (B^T*D*B)*A
+      std::cout << "B_mat " << B_mat << std::endl;
+      B_mat /= intPoints.GetSize();
+      std::cout << "B_mat " << B_mat << std::endl;
+      Db = D * B_mat;
+      std::cout << "Db= " << Db << std::endl;
+      bDb = Transpose(B_mat) * Db;
+      std::cout << "bDb= " << bDb << std::endl;
+      bDb.Mult(a,bDba);
+      std::cout << "bDba= " << bDba << std::endl;
+      std::cout << "a= " << a << std::endl;
+*/
+      // traverse nodes
+      form->GetFeSpace1()->GetElemEqns(eqn, elem);
+      assert(eqn.GetSize() == elem->connect.GetSize());
+      assert(b_mat.GetNumCols() == elem->connect.GetSize());
+
+      for(unsigned int n = 0; n < eqn.GetSize(); n++){
+        out[eqn[n]] = 1.0/elems.GetSize() * bDba[n];
+        std::cout << "eqn[n]= " << eqn[n] << std::endl;
+        std::cout << "out[eqn[n]]= " << out[eqn[n]] << std::endl;
+      }
+      std::cout << "out= " << out << std::endl;
+    }
+     // end loop elems
   }
 
 

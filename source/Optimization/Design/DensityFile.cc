@@ -300,6 +300,16 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
      mesh->Get("z")->SetValue(grid[2]);
    }*/
 
+   // design space can be regular, but grid is probably not
+   StdVector<unsigned int> grid = domain->GetGrid()->CalcRegulardGridDiscretization();
+   if(!grid.IsEmpty())
+   {
+     PtrParamNode mesh = in_->Get("mesh");
+     mesh->Get("x")->SetValue(grid[0]);
+     mesh->Get("y")->SetValue(grid[1]);
+     mesh->Get("z")->SetValue(grid[2]);
+   }
+
    in_->Get("designSpace/non_design_vicinity")->SetValue(non_desing_vicinity);
 
    for(unsigned int i = 0, s = des.GetSize(); i < s; ++i)
