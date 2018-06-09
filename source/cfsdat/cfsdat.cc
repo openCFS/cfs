@@ -141,7 +141,18 @@ int main(int argc, const char** argv)
   std::set<CFSDat::FilterPtr> outputs;
   for(UInt i=0;i<filters.GetSize();++i){
     CFSDat::FilterPtr newFilt = CFSDat::BaseFilter::Generate(filters[i],resMan);
+
+    // Two differentiation filters right after each other are not allowed because
+    // these filters always need node results as input and write their
+    // differentiation result onto elements
     if(newFilt){
+      if(i<filters.GetSize()-1){
+          std::string cache_filter = filters[i+1]->GetName();
+    	  if(cache_filter==filters[i]->GetName()){
+    		  EXCEPTION("NOTE: Differentiation only working from node to elements")
+    	  }
+      }
+
       std::cout << "\t---> Adding Filter type \"" << filters[i]->GetName() << "\" with ID \"" << newFilt->GetId() << "\"" << std::endl;
       allFilters[newFilt->GetId()] = newFilt;
       if(newFilt->IsOutput()){
