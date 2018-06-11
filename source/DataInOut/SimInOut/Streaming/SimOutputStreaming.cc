@@ -339,37 +339,37 @@ void SimOutputStreaming::Client::handle_write_request(const boost::system::error
 
 void SimOutputStreaming::Client::handle_read_status_line(const boost::system::error_code& err)
 {
-    if (!err)
+  string msg = "Streaming to " + host_ + ":" + port_ + " results in ";
+  if(!err)
+  {
+    // Check that response is OK.
+    std::istream response_stream(&response_);
+    std::string http_version;
+    response_stream >> http_version;
+    unsigned int status_code;
+    response_stream >> status_code;
+    std::string status_message;
+    std::getline(response_stream, status_message);
+    if (!response_stream || http_version.substr(0, 5) != "HTTP/")
     {
-      // Check that response is OK.
-      std::istream response_stream(&response_);
-      std::string http_version;
-      response_stream >> http_version;
-      unsigned int status_code;
-      response_stream >> status_code;
-      std::string status_message;
-      std::getline(response_stream, status_message);
-      if (!response_stream || http_version.substr(0, 5) != "HTTP/")
-      {
-        std::cout << "Invalid response\n";
-        return;
-      }
-      if (status_code != 200)
-      {
-        std::cout << "Response returned with status code ";
-        std::cout << status_code << "\n";
-        return;
-      }
+      std::cout << msg + "invalid response\n";
+      return;
+    }
+    if (status_code != 200)
+    {
+      std::cout << msg + "status code " << status_code << "\n";
+      return;
+    }
 
-      // Read the response headers, which are terminated by a blank line.
-      boost::asio::async_read_until(socket_, response_, "\r\n\r\n",
-          boost::bind(&Client::handle_read_headers, this,
+    // Read the response headers, which are terminated by a blank line.
+    boost::asio::async_read_until(socket_, response_, "\r\n\r\n",
+        boost::bind(&Client::handle_read_headers, this,
             boost::asio::placeholders::error));
-    }
-    else
-    {
-      std::cout << "Error: " << err << "\n";
-    }
+  }
+  else
+  {
+    std::cout << msg + "error: " << err << "\n";
+  }
 }
 
 void SimOutputStreaming::Client::handle_read_headers(const boost::system::error_code& err)

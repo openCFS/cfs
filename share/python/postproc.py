@@ -46,6 +46,8 @@ def read_selected_opt(xml, dic):
   assert(len(tmp) == 1)
   for c in tmp[0]:
     name = c.get('name').replace(' ','') # there was a bug with 'pyhsical_ volume'
+    if '(' in name: # skip 'slope_(node)'
+      continue
     if name:
       add_key(last_iter[-1], dic, '@' + name)
 
@@ -71,6 +73,7 @@ parser.add_argument("--query", help="xpath query, e.g. //transferFunction/@param
 parser.add_argument("--alliter", help="read all attributes from iteration", action='store_true')
 parser.add_argument("--sort", help="sort for the key")
 parser.add_argument("--revsort", help="sort reversly for the key")
+parser.add_argument("--extract", help="extract only a single column. With sort, two columns are written")
 parser.add_argument('--failsafe', help="continue on errors", action='store_true')
 parser.add_argument('--silentfailsafe', help="continue on errors w/o message", action='store_true')
 args = parser.parse_args()
@@ -78,6 +81,9 @@ args = parser.parse_args()
 input = args.input if len(args.input) > 0 else glob.glob("*.info.xml")   
 # tuples name without .info.xml and larges relative band gap by ev_x_max and ev_(x+1)_min, the two values and the lower ev
 res = []
+
+do_sort = True if args.sort or args.revsort else False 
+sort_key = None if not do_sort else (args.sort if args.sort else args.revsort)
 
 for f in input:
   problem = f[0:-len(".info.xml")]
@@ -119,29 +125,41 @@ for dic in res:
     if not k in dic:
       dic[k] = 0
 
-if args.sort or args.revsort:
-  res = sorted(res, key=lambda x: x[args.sort if args.sort else args.revsort], reverse=True if args.revsort else False)
-# print header
-if args.query:
-  print('#query: ' + args.query)
-print('#',end='')
-for idx, k in enumerate(keys):
-  s = '{:>' + str(size[k]) + '}'
+if do_sort:
+  res = sorted(res, key=lambda x: x[sort_key], reverse=True if args.revsort else False)
 
-  print(s.format('(' + str(idx+1) + ')') + ' ',end='')
-print()
-print('#',end='')
-for k in keys:
-  s = '{:>' + str(size[k]) + '}'
-  print(s.format(k) + ' ',end='')
-print()
+# print header for gnuplot output
+if args.extract:
+  if do_sort:
+    print('#' + sort_key + ' ' + args.extract)
+  else:
+    print('#' + args.extract)
+else:    
+  if args.query:
+    print('#query: ' + args.query)
+  print('#',end='')
+  for idx, k in enumerate(keys):
+    s = '{:>' + str(size[k]) + '}'
 
-# print res
-for dic in res:
-  print(' ',end='')
+    print(s.format('(' + str(idx+1) + ')') + ' ',end='')
+  print()
+  print('#',end='')
   for k in keys:
     s = '{:>' + str(size[k]) + '}'
-    print(s.format(dic[k]) + ' ',end='')
+    print(s.format(k) + ' ',end='')
   print()
+
+# print result
+for dic in res:
+  if args.extract:
+    if do_sort:
+      print(str(dic[sort_key]) + " ", end='')
+    print(str(dic[args.extract]))
+  else:    
+    print(' ',end='')
+    for k in keys:
+      s = '{:>' + str(size[k]) + '}'
+      print(s.format(dic[k]) + ' ',end='')
+    print()
     
 
