@@ -78,7 +78,7 @@ namespace CoupledField {
     
     //! Always use total Lagrangian formulation 
     updatedGeo_        = false;
-    
+        
     // ****************************
     // DETERMINE GEOMETRY
     // ****************************
@@ -1503,7 +1503,7 @@ namespace CoupledField {
       myFct->AddEntityList(ent[i]);
       
     } // for
-    
+        
     // ==================
     //  THERMAL STRAIN
     // ==================
@@ -2177,6 +2177,9 @@ namespace CoupledField {
   }
   
   void MechPDE::DefinePostProcResults() {
+    
+    std::cout << "MechPDE - DefinePostProcResults" << std::endl;
+    
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     StdVector<std::string> stressComponents;
     if( subType_ == "3d" || subType_ == "2.5d") {

@@ -222,8 +222,6 @@ namespace CoupledField {
       actFct->SetFctId(fctId);
       fncIt++;
     }
-    
- 
 
     //define primary results (possible new unknowns!)
     DefinePrimaryResults();

@@ -1015,7 +1015,8 @@ namespace CoupledField {
     
     CoefFunctionHystOutput(CoefFunctionHelper* hystHelper ,std::string ResultName):CoefFunction(){
       
-      if( (ResultName == "DeltaPermeability")||(ResultName == "DeltaPermittivity") ){
+      if( (ResultName == "DeltaPermeability")||(ResultName == "DeltaPermittivity")
+        ||(ResultName == "IrrStressesPiezo_TensorForm")||(ResultName == "IrrStrainsPiezo_TensorForm") ){
         dimType_ = TENSOR;
       } else {
         dimType_ = VECTOR;
@@ -1067,7 +1068,7 @@ namespace CoupledField {
         outputTensor.Resize(numRows,numCols);
         outputTensor.Init();
       } else {
-        EXCEPTION("Unknown result")
+        hystHelper_->ComputeTensor(outputTensor,lpm, 0, resultName_, "None", false, false, false, false );
       }
     }
     
@@ -1077,7 +1078,14 @@ namespace CoupledField {
     
     //! Return row and columns size of tensor if coefficient function is a tensor
     virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-      hystHelper_->GetTensorSize(numRows,numCols);
+      
+      if((resultName_ == "IrrStressesPiezo_TensorForm")||(resultName_ == "IrrStrainsPiezo_TensorForm")){
+        UInt vecSize = GetVecSize();
+        numRows = vecSize;
+        numCols = vecSize;
+      } else {
+        hystHelper_->GetTensorSize(numRows,numCols);
+      }
     }
     
     std::string ToString() const {
@@ -1622,6 +1630,7 @@ namespace CoupledField {
     Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel1, int timelevel2, bool useStrains, bool useAbs, std::string implementationVersion );
     
     Vector<Double> GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel);
+    Matrix<Double> GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel);
     Vector<Double> GetIrreversibleStrains(UInt storageIdx, int timeLevel);
     
     Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
@@ -1638,7 +1647,7 @@ namespace CoupledField {
     }
     
     PtrCoefFct GenerateMatCoefFnc(std::string tensorName){
-      
+      std::cout << "Generate mat coef function " << tensorName << std::endl;
       PtrCoefFct ret;
       if((tensorName == "Permittivity")||(tensorName == "CouplingMechToElec")||(tensorName == "CouplingElecToMech")){
         // Note: for Piezo we need two different coupling functions
@@ -1684,8 +1693,9 @@ namespace CoupledField {
     }
     
     PtrCoefFct GenerateRHSCoefFnc(std::string vectorName, bool onBoundary = false ){
+      std::cout << "Generate rhs coef function " << vectorName << std::endl;
       PtrCoefFct ret;
-      if( (vectorName == "ElecPolarization") || (vectorName == "PiezoLoadForMechPDE") || (vectorName == "PiezoLoadForElecPDE")){
+      if( (vectorName == "ElecPolarization") || (vectorName == "IrrStrainForMechPDE") || (vectorName == "IrrStrainForElecPDE")){
         PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
         
         if(hystHelper_ == NULL){
@@ -1694,14 +1704,16 @@ namespace CoupledField {
         }
         
         bool transposed = false;
-        if(vectorName == "PiezoLoadForMechPDE"){
-          // in mech PDE we need h^T or g^T
-          transposed = true;
-        }
+        // NOTE: for mechPDE we do not need the coupling tensor when we apply the strains > no transpose needed
+        // note further, that only the irr-strains are put to both rhs; polarization only in elec pde
+//        if(vectorName == "IrrStrainForMechPDE"){
+//          // in mech PDE we need h^T or g^T
+//          transposed = true;
+//        }
         shared_ptr<CoefFunctionHystRHSLoad> c(new CoefFunctionHystRHSLoad(hystHelper_,vectorName,transposed,onBoundary));
         
         ret = c;
-      } else if( (vectorName == "MagMagnetization") || (vectorName == "MagStrictLoadForMechPDE") || (vectorName == "PMagStrictLoadForMagPDE")){
+      } else if( (vectorName == "MagMagnetization") || (vectorName == "MagStrictLoadForMechPDE") || (vectorName == "MagStrictLoadForMagPDE")){
         PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY,tensorType_,Global::REAL);
         
         if(hystHelper_ == NULL){
@@ -1726,10 +1738,10 @@ namespace CoupledField {
     }
     
     PtrCoefFct GenerateOutputCoefFnc(std::string ResultName){
-      
+      std::cout << "Generate output coef function " << ResultName << std::endl;
       PtrCoefFct ret;
       
-      if(ResultName == "ElecPolarization") {
+      if( (ResultName == "ElecPolarization") || (ResultName == "IrrStressesPiezo_TensorForm") || (ResultName == "IrrStrainsPiezo_TensorForm") ){
         PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
         
         if(hystHelper_ == NULL){
@@ -1749,6 +1761,7 @@ namespace CoupledField {
         
         shared_ptr<CoefFunctionHystOutput> c(new CoefFunctionHystOutput(hystHelper_,ResultName));
         ret = c;
+        
       } else {
         EXCEPTION("Result not implemented");
       }    
@@ -1916,7 +1929,7 @@ namespace CoupledField {
       
       PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx);
       
-      if(rotatedCouplingTensor_requiresReeval_[storageIdx] == false){
+      if( (rotatedCouplingTensor_requiresReeval_[storageIdx] == false) && (timeLevel == lastUsedTimeLevelForRotation_[storageIdx]) ){
         //      std::cout << "Coupling Tensor already rotated > no reeval performed" << std::endl;
         rotatedCouplTensor = rotatedCouplingTensor_[storageIdx];
       } else {
@@ -2032,7 +2045,7 @@ namespace CoupledField {
         
         rotatedCouplingTensor_requiresReeval_[storageIdx] = false;
         rotatedCouplingTensor_[storageIdx] = rotatedCouplTensor;
-        
+        lastUsedTimeLevelForRotation_[storageIdx] = timeLevel;
       }
     }
     
@@ -2235,6 +2248,7 @@ namespace CoupledField {
     
     Matrix<Double>* rotatedCouplingTensor_;
     bool* rotatedCouplingTensor_requiresReeval_;
+    Vector<int> lastUsedTimeLevelForRotation_;
     
     // for inversion
     bool performInversionTest_;

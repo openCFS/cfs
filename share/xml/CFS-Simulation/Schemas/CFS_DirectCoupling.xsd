@@ -473,7 +473,8 @@
   <xsd:simpleType name="DT_PiezoElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechStrain"/>
-      <xsd:enumeration value="mechStrainIrr"/>
+      <xsd:enumeration value="mechIrrStrain"/>
+      <xsd:enumeration value="mechIrrStress"/>
       <xsd:enumeration value="mechStress"/>
       <xsd:enumeration value="vonMisesStress"/>
       <xsd:enumeration value="elecPolarization"/> 

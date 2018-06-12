@@ -651,6 +651,10 @@ public:
     EXCEPTION( "Not implemented in base class");
   }
   
+  virtual Matrix<Double> GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
   virtual Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel){
     EXCEPTION( "Not implemented in base class");
   }

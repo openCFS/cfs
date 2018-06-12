@@ -23,6 +23,7 @@ namespace CoupledField {
   
   void CoefFunctionHelper::ComputeVector(Vector<Double>& outputVector,const LocPointMapped& lpm, int timeLevel, int baseSign, 
           std::string vectorName, bool onBoundary ){
+    LOG_DBG(coeffcthysthelper) << "+++++ Coef Function Hyst Vector - Get " << vectorName <<" ++++++";
     //std::cout << "Coef Function Hyst RHS Load - Get Vector" << std::endl;
     // return vector that can be put onto rhs of system; 
     // the sign of term shall be such, that it can be added with + in the
@@ -84,28 +85,63 @@ namespace CoupledField {
       
       outputVector.ScalarMult(specificSign*baseSign);
       
-    } else if (vectorName == "IrrStrainForMechPDE"){
+    } else if ( (vectorName == "IrrStrainForMechPDE") || (vectorName == "IrrStressesPiezo_VectorForm") ){
       //std::cout << "IrrStrainForMechPDE was requested" << std::endl;
       // v = mech testfunction
       // on rhs:  - int_Volume (Bv)T[c]S_irr dOmega
       // > basically what is left when S = Bu is decomposed into S_r + S_irr
       //    -div(sigma) > -div([c]S_r) > -div([c](Bu - S_irr)) > +div([c]S_irr)  on rhs
       //      but due to integration by parts > -div(v)[c]S_irr
-      specificSign = -1.0;
+      // NOTE: we actually compute the irreversible part of the stress tensor here
+      // > we can use this for output, too
+      // > in the output case, we need +1 sign however
+      if(vectorName == "IrrStrainForMechPDE"){
+        specificSign = -1.0;
+      } else {
+        specificSign = 1.0;
+      }
+      
+      Vector<Double> S_irr = hystCoefFunction_->GetIrreversibleStrains(lpm, timeLevel);
+      // c is not solution dependet here > take it directly
+      outputVector = Vector<Double>(S_irr.GetSize());
+      outputVector.Init();
+      LOG_DBG(coeffcthysthelper) << "S_irr " << S_irr.ToString();
+      LOG_DBG(coeffcthysthelper) << "elastTensor_: " << elastTensor_.ToString();
+      elastTensor_.Mult(S_irr,outputVector);
+      LOG_DBG(coeffcthysthelper) << "elastTensor_: " << elastTensor_.ToString();
+      LOG_DBG(coeffcthysthelper) << "elastTensor_.Mult(S_irr,outputVector): " << outputVector.ToString();
+      outputVector.ScalarMult(specificSign*baseSign);
+      //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
+    } else if(vectorName == "IrrStressesPiezo_VectorForm"){
+      // output of Strains
+      // return pure irreversible strains with + sign
+      outputVector = hystCoefFunction_->GetIrreversibleStrains(lpm, timeLevel);
+    } else if (vectorName == "IrrStrainForElecPDE"){
+      //std::cout << "IrrStrainForElecPDE was requested" << std::endl;
+      // w = elec testfunction
+      // on rhs:  + int_Volume (Bw)T[e]S_irr dOmega
+      // note that e might be a function of P itself > uce correct timelevel > current
+      specificSign = 1.0;
+      Matrix<Double> couplTensor = Matrix<Double>(1,1); // will be resized in compute tensor function
+      int timeLevel_to_diff = 0; // no deltaMat!
+      std::string implementationVersion = "none"; // no deltaMat!
+      std::string tensorName = "CouplingMechToElec";
+      bool transposed = false; // we need e not e^T
+      bool rotate = true; // allow rotation if directtion of P changed
+      bool useAbs = false; // only for deltaMat
+      bool lockPrecomputationAndDeltaMat = false; //!! if true we use old value, but we want current value (timelevel = 0)!
+                
+      ComputeTensor(couplTensor, lpm, timeLevel_to_diff, 
+          tensorName, implementationVersion, transposed, rotate, useAbs, lockPrecomputationAndDeltaMat );
+      
       Vector<Double> S_irr = hystCoefFunction_->GetIrreversibleStrains(lpm, timeLevel);
       // c is not solution dependet here > take it directly
       outputVector = Vector<Double>(GetVecSize());
       outputVector.Init();
-      elastTensor_.Mult(S_irr,outputVector);
+      couplTensor.Mult(S_irr,outputVector);
       
       outputVector.ScalarMult(specificSign*baseSign);
-      //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
-    } else if (vectorName == "IrrStrainForElecPDE"){
-      //      std::cout << "PiezoLoadForElecPDE was requested" << std::endl;
-      //TODO: implement correct vector function; at the moment, return simply zero
-      //      std::cout << couplTensor_->ToString() << std::endl;
-      outputVector = Vector<Double>(GetVecSize());
-      outputVector.Init();
+
       //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
     } else if(vectorName == "MagPolarization"){
       //      if(hystCoefFunction_->matrixForLocalInversionRequiresComputation(lpm)){
@@ -207,6 +243,8 @@ namespace CoupledField {
   }
   
   void CoefFunctionHelper::PrecomputeMaterialTensorForInverison(){
+    LOG_DBG(coeffcthysthelper) << "CoefFunctionHelper::PrecomputeMaterialTensorForInverison()";
+    
     /*
      * Iterate over all integration points used/managed by the hyst operator and
      * for each of these LPM set the matrix for iversion, i.e. mu/nu in magnetic case
@@ -329,8 +367,8 @@ namespace CoupledField {
   
   void CoefFunctionHelper::ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm, int timeLevel_to_diff, 
           std::string tensorName, std::string implementationVersion, bool transposed, bool rotate, bool useAbs, bool lockPrecomputationAndDeltaMat ){
-    //std::cout << "+++++ Coef Function Hyst Mat - Get Tensor ++++++" << std::endl;
-    
+    LOG_DBG(coeffcthysthelper) << "+++++ Coef Function Hyst Mat - Get " << tensorName <<" ++++++";
+    std::cout << "+++++ Coef Function Hyst Mat - Get " << tensorName <<" ++++++" << std::endl;
     /*
      * IMPORTANT NOTE TO SIGN CONVENTION:
      *  all tensors will be returned with a "+" sign in front of the actual base tensor
@@ -376,7 +414,7 @@ namespace CoupledField {
     
     outputTensor.Resize(numRows,numCols);
     outputTensor.Init();
-    
+    bool alreadyTransposed = false;
     /*
      * THE NEXT TWO FUNCTIONS LEAD TO ISSUES WITH RACE CONDITIONS
      */
@@ -429,7 +467,17 @@ namespace CoupledField {
       timelevel_cur = 0; // current value
     }
     
-    if(tensorName == "Permittivity"){
+    if(tensorName == "IrrStressesPiezo_TensorForm"){
+      Matrix<Double> Si_tensor = GetIrreversibleStrainTensor(lpm, 0);
+
+      LOG_DBG(coeffcthysthelper) << "Si_tensor " << Si_tensor.ToString();
+      LOG_DBG(coeffcthysthelper) << "elastTensor_: " << elastTensor_.ToString();
+      elastTensor_.Mult(Si_tensor,outputTensor);      
+    } else if(tensorName == "IrrStrainsPiezo_TensorForm"){
+      // always compute the current timelevel > 0
+      // > tensor form is only used for output; otherwise use vector form
+      outputTensor = GetIrreversibleStrainTensor(lpm, 0);
+    } else if(tensorName == "Permittivity"){
       //        std::cout << "Get Permittivity" << std::endl;
       /*
        * The following cases are possible:
@@ -447,7 +495,7 @@ namespace CoupledField {
       // in case of e-form, fieldTensor is seens (and set to be) epsS which needs
       // no further treatment
       Matrix<Double> e_scaled;
-      Matrix<Double> tmp2;
+      Matrix<Double> tmp2 = Matrix<Double>(numRows,numCols);
       if(strainForm_ == 1){
         //std::cout << "Get Permittivity - Compute epsS from epsT" << std::endl;
         // d-form shall be used as basis; fieldTensor such represents epsT
@@ -459,7 +507,12 @@ namespace CoupledField {
         hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,d_scaled,timelevel_cur,rotate);
         
         // e = d*c
+        UInt numRows,numCols;
+        numRows = d_scaled.GetNumRows();
+        numCols = d_scaled.GetNumCols();
+        e_scaled = Matrix<Double>(numRows,numCols);
         d_scaled.Mult(elastTensor_,e_scaled);
+        d_scaled_transposed = Matrix<Double>(numCols,numRows);
         d_scaled.Transpose(d_scaled_transposed);
         // tmp2 = e*d^T = dcd^T
         e_scaled.Mult(d_scaled_transposed,tmp2);
@@ -475,7 +528,12 @@ namespace CoupledField {
         // uncoupled case or e-form
         // just take epsS directly
         tmp = fieldTensor_;
+        // also get e in case we use deltaMat for strains, too
+        hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,e_scaled,timelevel_cur,rotate);  
       }
+      
+      std::cout << "eps = " << tmp.ToString() << std::endl;
+      std::cout << "e_scaled = " << e_scaled.ToString() << std::endl;
       
       // check if deltaMat shall be added
       // here we have two flags:
@@ -491,7 +549,7 @@ namespace CoupledField {
         // deltaMat will be computed using the current value (timelevel_cur = 0)
         // and the value at timelevel (-1 > last ts; +1 > last iteration)
         Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
-        
+        std::cout << "deltaMat elec = " << deltaMat.ToString() << std::endl;
         tmp.Add(1.0,deltaMat);
         //std::cout << "DeltaMat: " << deltaMat.ToString() << std::endl;
         if(strainForm_ != -1){
@@ -500,6 +558,7 @@ namespace CoupledField {
           // here we have to add -e*dS/dE in addition
           useStrains = true;
           Matrix<Double> deltaMat_strains = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
+          std::cout << "deltaMat strains = " << deltaMat_strains.ToString() << std::endl;
           e_scaled.Mult(deltaMat_strains,tmp2);
           
           tmp.Add(-1.0,tmp2);
@@ -533,8 +592,7 @@ namespace CoupledField {
       
     } else if ((tensorName == "CouplingElecToMech")||(tensorName == "CouplingMagToMech")){ 
       // this is basically the same tensor as mechToElec except for the case of
-      // deltaFormulation; in the later case, we have to add c*dS/dE
-      
+      // deltaFormulation; in the later case, we have to add c*dS/dE    
       //      std::cout << "ComputeElecToMech" << std::endl;
       Matrix<Double> rotatedCouplTensor;
       
@@ -552,26 +610,54 @@ namespace CoupledField {
         tmp = rotatedCouplTensor;
       }
       
+      std::cout << "strainForm_ " << strainForm_ << std::endl;
+      std::cout << "rotatedCouplTensor " << rotatedCouplTensor.ToString() << std::endl;
+      std::cout << "tmp " << tmp.ToString() << std::endl;
+      
       if(deltaFormActive_ && (deltaForm_ != 0) && (lockPrecomputationAndDeltaMat == false) ) {
+        LOG_DBG(coeffcthysthelper) << "Compute DeltaMatrix";
         //        std::cout << "Compute DeltaMatrix" << std::endl;
         bool useStrains = true;
         
         // deltaMat will be computed using the current value (timelevel_cur = 0)
         // and the value at timelevel (-1 > last ts; +1 > last iteration)
+        std::cout << "try to get deltaMat " << std::endl;
         Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
-        Matrix<Double> tmp2;
+        std::cout << "deltaMat " << deltaMat.ToString() << std::endl;
+        UInt numRows,numCols;
+        numRows = tmp.GetNumRows();
+        numCols = tmp.GetNumCols();
+        Matrix<Double> tmp2 = Matrix<Double>(numCols,numRows);
         // tmp2 = dS/dE*c / dS/dB*c
-        deltaMat.Mult(elastTensor_,tmp2);
+        // > sollte eigentlich c*dS/dx sein
+        //deltaMat.Mult(elastTensor_,tmp2);
+        elastTensor_.Mult(deltaMat,tmp2);
         
         // tmp = e_scaled_rotated + dS/dE*c / -dS/dB*c
+        // > does not work! e is 2x3 / 3x6 but c*dS/dE is 3x2 / 6x3
+        // > reason: in pde we need e^T + c*dS/dE instead of (e + c*dS/dE)^T
+        // > transpose first, then add deltaMat
+        // > transpose directly into outputTensor
+        if(transposed){
+          //std::cout << "Perform transpose" << std::endl;
+          tmp.Transpose(outputTensor);
+          //std::cout << "Transposed tensor: " << tmp.ToString() << std::endl;
+        } else {
+          EXCEPTION("We should require transpose here!");
+        }
+                
         if(tensorName == "CouplingMagToMech"){
           // NOTE: we need +dS/dB on lhs exactly like in piezo-case; however,
           // the coupling term here gets multiplied by -1 in the magnetostrictive case
           // as we need -h + dS/dB*c; therewith dS/dB has to be subtracted here to get the correct +1 sign later
-          tmp.Add(-1.0,tmp2);
+          outputTensor.Add(-1.0,tmp2);
         } else {
-          tmp.Add(1.0,tmp2);
+          outputTensor.Add(1.0,tmp2);
         }
+        
+        std::cout << "tmp2 " << tmp2.ToString() << std::endl;
+        std::cout << "outputTensor " << outputTensor.ToString() << std::endl;
+        
       }    
     } else if(tensorName == "Reluctivity"){
       //std::cout << "Get Reluctivity" << std::endl;
@@ -673,13 +759,17 @@ namespace CoupledField {
       EXCEPTION("Tensor not implemented yet");
     }
     
-    if(transposed){
-      //std::cout << "Perform transpose" << std::endl;
-      tmp.Transpose(outputTensor);
-      //std::cout << "Transposed tensor: " << tmp.ToString() << std::endl;
-    } else {
-      outputTensor = tmp;
+    if(alreadyTransposed == false){
+      if(transposed){
+        //std::cout << "Perform transpose" << std::endl;
+        tmp.Transpose(outputTensor);
+        //std::cout << "Transposed tensor: " << tmp.ToString() << std::endl;
+      } else {
+        outputTensor = tmp;
+      }
     }
+    
+
     LOG_DBG(coeffcthysthelper) << "Computed material tensor:" << outputTensor.ToString();
     //      std::cout << "+++++ Coef Function Hyst Mat - Compute Tensor END ++++++" << std::endl;
     //std::cout << "Return the following tensor: " << outputTensor.ToString() << std::endl;
@@ -1159,6 +1249,10 @@ namespace CoupledField {
       delete[] P_J_lastTS_;
       delete[] E_H_lastTS_;
       
+      delete[] Si_;
+      delete[] Si_lastTS_;
+      delete[] Si_lastIt_;
+      
       delete[] deltaMat_;
       delete[] deltaMatPrev_;
       delete[] deltaMatStrain_;
@@ -1560,6 +1654,13 @@ namespace CoupledField {
      */
 		Vector<Double> zeroVec = Vector<Double>(dim_);
 		zeroVec.Init();
+    // axi case not supported!
+    UInt strainDim = 3;
+    if(dim_ == 3){
+      strainDim = 6;
+    }
+    Vector<Double> zeroStrainVec = Vector<Double>(strainDim);
+		zeroStrainVec.Init();
 
 		E_B_ = new Vector<Double>[numStorageEntries_];
 		P_J_ = new Vector<Double>[numStorageEntries_];
@@ -1572,6 +1673,10 @@ namespace CoupledField {
 		E_B_lastTS_ = new Vector<Double>[numStorageEntries_];
 		P_J_lastTS_ = new Vector<Double>[numStorageEntries_];
 		E_H_lastTS_ = new Vector<Double>[numStorageEntries_];
+    
+    Si_ = new Vector<Double>[numStorageEntries_];
+    Si_lastTS_ = new Vector<Double>[numStorageEntries_];
+    Si_lastIt_ = new Vector<Double>[numStorageEntries_];
     
 		deltaMat_ = new Matrix<Double>[numStorageEntries_];
     deltaMatPrev_ = new Matrix<Double>[numStorageEntries_];
@@ -1590,6 +1695,7 @@ namespace CoupledField {
     
 		rotatedCouplingTensor_ = new Matrix<Double>[numStorageEntries_];
 		rotatedCouplingTensor_requiresReeval_ = new bool[numStorageEntries_];
+    lastUsedTimeLevelForRotation_ = Vector<int>(numStorageEntries_);
     
     takeEstimatedSlope_ = new bool[numStorageEntries_];
 		//TODO: coupling tensor einlesen und rotatedCouplingTensor entsprechend initialisieren
@@ -1603,6 +1709,7 @@ namespace CoupledField {
       deltaMat_requiresReeval_[k] = true;
       deltaMatStrain_requiresReeval_[k] = true;
       rotatedCouplingTensor_requiresReeval_[k] = true;
+      lastUsedTimeLevelForRotation_[k] = -1;
       takeEstimatedSlope_[k] = false;
       // create with wrong size first; during first evaluation, set correct size
       rotatedCouplingTensor_[k] = Matrix<Double>(1,1);
@@ -1652,6 +1759,10 @@ namespace CoupledField {
 			//std::cout << "P_J_[k]: " << P_J_[k].ToString() << std::endl;
 			P_J_lastIt_[k] = zeroVec;
 			P_J_lastTS_[k] = zeroVec;
+      
+      Si_lastTS_[k] = zeroStrainVec;
+      Si_lastIt_[k] = zeroStrainVec;
+      Si_[k] = zeroStrainVec;
       
       deltaMat_[k] = Matrix<Double>(dim_,dim_);
       deltaMat_[k].Init();// = MAT_initialTensor_;
@@ -2036,6 +2147,7 @@ namespace CoupledField {
   }
   
   Matrix<Double> CoefFunctionHyst::CalcDeltaMat(Vector<Double> E_B_diff, Vector<Double> P_J_diff, bool useAbs,std::string implementationVersion, Double cuttingTol){
+    std::cout << "CalcDeltaMat" << std::endl;
     Matrix<Double> deltaMat;
     UInt numCols = dim_;
     UInt numRows = dim_;
@@ -2180,8 +2292,9 @@ namespace CoupledField {
     return deltaMat;
   };
   
-  Matrix<Double> CoefFunctionHyst::CalcDeltaMatStrains(Vector<Double> E_B_diff, Vector<Double> S_diff, bool useAbs,std::string implementationVersion, Double cuttingTol){
+  Matrix<Double> CoefFunctionHyst::CalcDeltaMatStrains(Vector<Double> E_B_diff, Vector<Double> S_diff, bool useAbs, std::string implementationVersion, Double cuttingTol){
     
+    std::cout << "CalcDeltaMatStrains" << std::endl;
     Matrix<Double> deltaMat;
     UInt numCols = dim_;
     UInt numRows;
@@ -2202,6 +2315,7 @@ namespace CoupledField {
     Double E_B_diff_norm = E_B_diff.NormL2();
     
     if(E_B_diff_norm <= absTol){
+      std::cout << "E_B_diff_norm <= absTol" << std::endl;
       // variation of solution is very small
       // return zero matrix
       return deltaMat;
@@ -2217,6 +2331,7 @@ namespace CoupledField {
     }
     
     if(implementationVersion == "Division"){
+      std::cout << "Division" << std::endl;
       if(dim_ == 2){
         
         if(abs(E_B_diff[0])/E_B_diff_norm > relTol){
@@ -2244,8 +2359,8 @@ namespace CoupledField {
         //            // leave entry zero
         //          }
         Double sum,diff;
-        sum = E_B_diff[1]+E_B_diff[2];
-        diff = E_B_diff[1]-E_B_diff[2];
+        sum = E_B_diff[0]+E_B_diff[1];
+        diff = E_B_diff[0]-E_B_diff[1];
         
         if(abs(sum)/E_B_diff_norm > relTol) {
           // distribute entry to non-diagonal entries
@@ -2394,10 +2509,14 @@ namespace CoupledField {
     if(tensorType_ == AXI){
       EXCEPTION("GetDeltaMat only implemented for 2d plane and full 3d setups");
     }
-    
+        
     Matrix<Double> deltaMat;
     UInt numCols = dim_;
     UInt numRows;
+    
+    if(timelevel_new == timelevel_old){
+      WARN("DeltaMat was requested with timelevel_new = timelevel_old, i.e. delta would be 0; this should not happen"); 
+    }
     
     UInt operatorIdx, storageIdx;
 		LocPointMapped actualLPM;
@@ -2416,8 +2535,9 @@ namespace CoupledField {
     
     
     if(useStrains){
-      
+      std::cout << "GetDeltaMat - for strains" << std::endl;
       if(deltaMatStrain_requiresReeval_[storageIdx] == false){
+        std::cout << "NO reeval" << std::endl;
         return deltaMatStrain_[storageIdx];
       }
       
@@ -2547,9 +2667,41 @@ namespace CoupledField {
       deltaMat_requiresReeval_[storageIdx] = false;
       
     }
-    LOG_DBG(coeffcthystdeltamat) << "Compute deltaMat for storageIDX " << storageIdx << ": " << deltaMat.ToString();
+    LOG_DBG(coeffcthystdeltamat) << "Computed deltaMat for storageIDX " << storageIdx << ": " << deltaMat.ToString();
     return deltaMat;
     
+  }
+  
+  
+  Matrix<Double> CoefFunctionHyst::GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel) {
+    
+    Vector<Double> Si_voigt = GetIrreversibleStrains(Originallpm, timeLevel);
+    Matrix<Double> Si_tensor;
+    if(Si_voigt.GetSize() == 3){
+      Si_tensor = Matrix<Double>(2,2);
+    } else {
+      Si_tensor = Matrix<Double>(3,3);
+    }
+    // transform voigt notation to tensor
+    // TODO: check implementation of [c]
+    //      > do we have Si = sxx,syy,szz,2szy,2sxz,2sxy or do we have Si = sxx,syy,szz,szy,sxz,sxy ?
+    if(dim_ == 2){
+      Si_tensor[0][0] = Si_voigt[0];
+      Si_tensor[1][1] = Si_voigt[1];
+      Si_tensor[0][1] = Si_voigt[2];
+      Si_tensor[1][0] = Si_voigt[2];
+    } else {
+      Si_tensor[0][0] = Si_voigt[0];
+      Si_tensor[1][1] = Si_voigt[1];
+      Si_tensor[2][2] = Si_voigt[2];
+      Si_tensor[1][2] = Si_voigt[3];
+      Si_tensor[2][1] = Si_voigt[3];
+      Si_tensor[0][2] = Si_voigt[4];
+      Si_tensor[2][0] = Si_voigt[4];
+      Si_tensor[0][1] = Si_voigt[5];
+      Si_tensor[1][0] = Si_voigt[5];
+    }
+    return Si_tensor;
   }
   
   // compute irreversible strains Si
@@ -2626,6 +2778,8 @@ namespace CoupledField {
     if(MAT_dim_beta_ <= 0){
       WARN("No beta coefficients were defined. Cannot approximate Si; return empty vector");
       return Si_voigt;
+    } else {
+      std::cout << "use betaCoefs: " << MAT_betaCoefs_.ToString() << std::endl;
     }
     
     Matrix<Double> negeye = Matrix<Double>(dim_,dim_);
@@ -2652,13 +2806,15 @@ namespace CoupledField {
       // use Horner scheme
       // start with beta n
       Double poly = MAT_betaCoefs_[0][MAT_dim_beta_-1];
-      for(UInt i = MAT_dim_beta_-2; i >= 0; i--){
+      for(int i = MAT_dim_beta_-2; i >= 0; i--){
         poly = poly*normP + MAT_betaCoefs_[0][i];
       }
       Si_tensor.Add(1.5*poly,dyadic);
     }
     
     // transform matrix to voigt notation
+    // TODO: check implementation of [c]
+    //      > do we have Si = sxx,syy,szz,2szy,2sxz,2sxy or do we have Si = sxx,syy,szz,szy,sxz,sxy ?
     if(dim_ == 2){
       Si_voigt[0] = Si_tensor[0][0];
       Si_voigt[1] = Si_tensor[1][1];
@@ -2671,7 +2827,7 @@ namespace CoupledField {
       Si_voigt[4] = Si_tensor[0][2];
       Si_voigt[5] = Si_tensor[0][1];
     }
-    
+    std::cout << "Si_voigt = " << Si_voigt.ToString() << std::endl;
     return Si_voigt;   
   }
   
@@ -3245,7 +3401,7 @@ namespace CoupledField {
      * that the matrix depends on it (only for coupled case where nu can
      * be dependent on h which depends on hysteresis output)
      */
-    if(setMatForInversion){
+    if((setMatForInversion)&&(needsInversion_)){
       hystHelper_->PrecomputeMaterialTensorForInverison();
     }
     
@@ -4022,7 +4178,7 @@ namespace CoupledField {
         deltaMat_requiresReeval_[i] = true;
         deltaMatStrain_requiresReeval_[i] = true;
         rotatedCouplingTensor_requiresReeval_[i] = true;
-        
+        lastUsedTimeLevelForRotation_[i] = -10; 
       }
     }
     else if(flagName == "allowSettingOfMatForLocalInversion"){
@@ -4420,7 +4576,7 @@ namespace CoupledField {
 		results_name_p << name << "_results_p";		
     
     std::stringstream results_name_s;
-		results_name_p << name << "_results_s";		
+		results_name_s << name << "_results_s";		
     
     std::stringstream results_name_y;
 		results_name_y << name << "_results_y";		
@@ -4445,10 +4601,6 @@ namespace CoupledField {
       angularResults_p.open(angularResults_name_p.str());
       angularResults_y.open(angularResults_name_y.str());
 		}
-    if(outputIrrStrains){
-      results_s.open(results_name_s.str());
-      results_s << "Step\t\tS_irr_xx\tS_irr_yy\tS_irr_xy" << std::endl;
-    }
     
 		if(printStatistics){
 			statistics.open(statistics_name.str());
@@ -4690,6 +4842,11 @@ namespace CoupledField {
 			EXCEPTION("Invalid model selected for inversion test");
 		}
 		
+    if(outputIrrStrains){
+      results_s.open(results_name_s.str());
+      results_s << "#Number S_irr_xx S_irr_yy S_irr_xy" << std::endl;
+    }
+    
 		if(printStatistics){
 			statistics << "PARAMETER: " << std::endl;
 			statistics << "- xSAT: " << MAT_xSat_ << std::endl;
@@ -4769,71 +4926,71 @@ namespace CoupledField {
 		}
 		    
 		if(writeResultsToFile){
-      std::stringstream results;
-			results << "# +++ RESULTS +++" << std::endl;
-			results << "# TEST: " << name << std::endl;
-			results << "# MODEL: " << usedHystModel_ << std::endl;
-			if (usedHystModel_ == "vectorPreisach_Sutor") {
-				if (MAT_vecPreisachImplementationVersion_ == 1) {
-					results << "# - classical model, list based implementation" << std::endl;
-				} else if (MAT_vecPreisachImplementationVersion_ == 2) {
-					results << "# - revised model, list based implementation" << std::endl;
-				} else if (MAT_vecPreisachImplementationVersion_ == 10) {
-					results << "# - classical model, matrix based implementation" << std::endl;
-				} else if (MAT_vecPreisachImplementationVersion_ == 20) {
-					results << "# - revised model, matrix based implementation" << std::endl;
-				}
-			}
-			
-      results_x << results.str();
-      results_p << results.str();
-      results_y << results.str();
-      angularResults_x << results.str();
-      angularResults_p << results.str();
-      angularResults_y << results.str();
+//      std::stringstream results;
+//			results << "# +++ RESULTS +++" << std::endl;
+//			results << "# TEST: " << name << std::endl;
+//			results << "# MODEL: " << usedHystModel_ << std::endl;
+//			if (usedHystModel_ == "vectorPreisach_Sutor") {
+//				if (MAT_vecPreisachImplementationVersion_ == 1) {
+//					results << "# - classical model, list based implementation" << std::endl;
+//				} else if (MAT_vecPreisachImplementationVersion_ == 2) {
+//					results << "# - revised model, list based implementation" << std::endl;
+//				} else if (MAT_vecPreisachImplementationVersion_ == 10) {
+//					results << "# - classical model, matrix based implementation" << std::endl;
+//				} else if (MAT_vecPreisachImplementationVersion_ == 20) {
+//					results << "# - revised model, matrix based implementation" << std::endl;
+//				}
+//			}
+//			
+//      results_x << results.str();
+//      results_p << results.str();
+//      results_y << results.str();
+//      angularResults_x << results.str();
+//      angularResults_p << results.str();
+//      angularResults_y << results.str();
 
 			if(testInversion){
-				results_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
+        results_x << "#Number xIn[0] xIn[1] xOut[0] xOut[1]" << std::endl;
+        results_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
         results_x << "# > xOut[0],xOut[1] = x and y components of inversion output" << std::endl;
-        results_x << "# Number  xIn[0]  xIn[1]  xOut[0]  xOut[1]" << std::endl;
         
+        results_p << "#Number pIn[0] pIn[1] pOut[0] pOut[1]" << std::endl;
         results_p << "# > pIn[0],pIn[1] = x and y components of hyst operator computed from xIn" << std::endl;
         results_p << "# > pOut[0],pOut[1] = x and y components of hyst operator computed from xOut" << std::endl;
-        results_p << "# Number  pIn[0]  pIn[1]  pOut[0]  pOut[1]" << std::endl;
         
+        results_y << "#Number yIn[0] yIn[1] yOut[0] yOut[1]" << std::endl;
 				results_y << "# > yIn[0],yIn[1] = x and y components of output of hyst operator to xIn; used as input for inversion" << std::endl;
         results_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;
-        results_y << "# Number  yIn[0]  yIn[1]  yOut[0]  yOut[1]" << std::endl;
         
+        angularResults_x << "#Number abs(xIn) atan2(xIn[1]/xIn[0])*180/pi abs(xOut) atan2(xOut[1]/xOut[0])*180/pi" << std::endl;
         angularResults_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
         angularResults_x << "# > xOut[0],xOut[1] = x and y components of inversion output" << std::endl;
-        angularResults_x << "# Number  abs(xIn)  atan2(xIn[1]/xIn[0])*180/pi  abs(xOut)  atan2(xOut[1]/xOut[0])*180/pi" << std::endl;
         
+        angularResults_p << "#Number abs(pIn) atan2(pIn[1]/pIn[0])*180/pi abs(pOut) atan2(pOut[1]/pOut[0])*180/pi" << std::endl;
         angularResults_p << "# > pIn[0],pIn[1] = x and y components of hyst operator computed from xIn" << std::endl;
         angularResults_p << "# > pOut[0],pOut[1] = x and y components of hyst operator computed from xOut" << std::endl;
-        angularResults_p << "# Number  abs(pIn)  atan2(pIn[1]/pIn[0])*180/pi  abs(pOut)  atan2(pOut[1]/pOut[0])*180/pi" << std::endl;
         
+        angularResults_y << "#Number abs(yIn) atan2(yIn[1]/yIn[0])*180/pi abs(yOut) atan2(yOut[1]/yOut[0])*180/pi" << std::endl;
         angularResults_y << "# > yIn[0],yIn[1] = x and y components of output of hyst operator to xIn; used as input for inversion" << std::endl;
         angularResults_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;
-        angularResults_y << "# Number  abs(yIn)  atan2(yIn[1]/yIn[0])*180/pi  abs(yOut)  atan2(yOut[1]/yOut[0])*180/pi" << std::endl;
 			} else {
+        results_x << "#Number xIn[0] xIn[1]" << std::endl;
         results_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
-        results_x << "# Number  xIn[0]  xIn[1]" << std::endl;
         
+        results_p << "#Number pOut[0] pOut[1]" << std::endl;
         results_p << "# > pOut[0],pOut[1] = x and y components of hyst operator computed from xOut" << std::endl;
-        results_p << "# Number  pOut[0]  pOut[1]" << std::endl;
         
+        results_y << "#Number yOut[0] yOut[1]" << std::endl;
         results_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;
-        results_y << "# Number  yOut[0]  yOut[1]" << std::endl;
         
+        angularResults_x << "#Number abs(xIn) atan2(xIn[1]/xIn[0])*180/pi" << std::endl;
         angularResults_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
-        angularResults_x << "# Number  abs(xIn)  atan2(xIn[1]/xIn[0])*180/pi" << std::endl;
         
+        angularResults_p << "#Number abs(pOut) atan2(pOut[1]/pOut[0])*180/pi" << std::endl;
         angularResults_p << "# > pOut[0],pOut[1] = x and y components of hyst operator computed from xOut" << std::endl;
-        angularResults_p << "# Number  abs(pOut)  atan2(pOut[1]/pOut[0])*180/pi" << std::endl;
         
-        angularResults_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;
-        angularResults_y << "# Number  abs(yOut)  atan2(yOut[1]/yOut[0])*180/pi" << std::endl;
+        angularResults_y << "#Number abs(yOut) atan2(yOut[1]/yOut[0])*180/pi" << std::endl;
+        angularResults_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;  
 			}
 			
 		}
@@ -5042,7 +5199,7 @@ namespace CoupledField {
 			
       if(outputIrrStrains){
         Vector<Double> S_irr = ComputeIrreversibleStrains(hOut);
-        results_s << i+1 << std::setprecision(9) << S_irr.ToString() << std::endl;
+        results_s << i+1 << " " << std::setprecision(9) << S_irr.ToString() << std::endl;
       }
       
 			/*
@@ -5081,6 +5238,7 @@ namespace CoupledField {
 			/*
 			 * 5. Output and statistics
 			 */
+      std::string delimiter = " ";
 			if(writeResultsToFile){
         Double angle1 = 0;
         Double ampl1 = 0;
@@ -5088,42 +5246,42 @@ namespace CoupledField {
         Double ampl2 = 0;
 				if(testInversion){
 					//results << "# Number \t xIn[0] \t xIn[1] \t yIn[0] \t yIn[1] \t xOut[0] \t xOut[1] \t yOut[0] \t yOut[1]" << std::endl;
-					results_x << i+1 << std::setprecision(9) << "\t" << xIn[0] << "\t" << xIn[1] << "\t" << xOut[0] << "\t" << xOut[1] << std::endl;
+					results_x << i+1 << std::setprecision(9) << delimiter << xIn[0] << delimiter << xIn[1] << delimiter << xOut[0] << delimiter << xOut[1] << std::endl;
           ampl1 = xIn.NormL2();
           angle1 = atan2(xIn[1],xIn[0])*180.0/M_PI;
           ampl2 = xOut.NormL2();
           angle2 = atan2(xOut[1],xOut[0])*180.0/M_PI;
-          angularResults_x << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << "\t" << ampl2 << "\t" << angle2 << std::endl;
+          angularResults_x << i+1 << std::setprecision(9) << delimiter << ampl1 << delimiter << angle1 << delimiter << ampl2 << delimiter << angle2 << std::endl;
           
-          results_p << i+1 << std::setprecision(9) << "\t" << hIn[0] << "\t" << hIn[1] << "\t" << hOut[0] << "\t" << hOut[1] << std::endl;
+          results_p << i+1 << std::setprecision(9) << delimiter << hIn[0] << delimiter << hIn[1] << delimiter << hOut[0] << delimiter << hOut[1] << std::endl;
           ampl1 = hIn.NormL2();
           angle1 = atan2(hIn[1],hIn[0])*180.0/M_PI;
           ampl2 = hOut.NormL2();
           angle2 = atan2(hOut[1],hOut[0])*180.0/M_PI;
-          angularResults_p << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << "\t" << ampl2 << "\t" << angle2 << std::endl;
+          angularResults_p << i+1 << std::setprecision(9) << delimiter << ampl1 << delimiter << angle1 << delimiter << ampl2 << delimiter << angle2 << std::endl;
           
-          results_y << i+1 << std::setprecision(9) << "\t" << yIn[0] << "\t" << yIn[1] << "\t" << yOut[0] << "\t" << yOut[1] << std::endl;
+          results_y << i+1 << std::setprecision(9) << delimiter << yIn[0] << delimiter << yIn[1] << delimiter << yOut[0] << delimiter << yOut[1] << std::endl;
           ampl1 = yIn.NormL2();
           angle1 = atan2(yIn[1],yIn[0])*180.0/M_PI;
           ampl2 = yOut.NormL2();
           angle2 = atan2(yOut[1],yOut[0])*180.0/M_PI;
-          angularResults_y << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << "\t" << ampl2 << "\t" << angle2 << std::endl;
+          angularResults_y << i+1 << std::setprecision(9) << delimiter << ampl1 << delimiter << angle1 << delimiter << ampl2 << delimiter << angle2 << std::endl;
 				} else {
 					//					results << "# Number \t xIn[0] \t xIn[1] \t yOut[0] \t yOut[1]" << std::endl;
-          results_x << i+1 << std::setprecision(9) << "\t" << xIn[0] << "\t" << xIn[1] << std::endl;
+          results_x << i+1 << std::setprecision(9) << delimiter << xIn[0] << delimiter << xIn[1] << std::endl;
           ampl1 = xIn.NormL2();
           angle1 = atan2(xIn[1],xIn[0])*180.0/M_PI;
-          angularResults_x << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << std::endl;
+          angularResults_x << i+1 << std::setprecision(9) << delimiter << ampl1 << delimiter << angle1 << std::endl;
           
-          results_p << i+1 << std::setprecision(9) << "\t" << hOut[0] << "\t" << hOut[1] << std::endl;
+          results_p << i+1 << std::setprecision(9) << delimiter << hOut[0] << delimiter << hOut[1] << std::endl;
           ampl1 = hOut.NormL2();
           angle1 = atan2(hOut[1],hOut[0])*180.0/M_PI;
-          angularResults_p << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << std::endl;
+          angularResults_p << i+1 << std::setprecision(9) << delimiter << ampl1 << delimiter << angle1 << std::endl;
           
-          results_y << i+1 << std::setprecision(9) << "\t" << yOut[0] << "\t" << yOut[1] << std::endl; 
+          results_y << i+1 << std::setprecision(9) << delimiter << yOut[0] << delimiter << yOut[1] << std::endl; 
           ampl1 = yOut.NormL2();
           angle1 = atan2(yOut[1],yOut[0])*180.0/M_PI;
-          angularResults_y << i+1 << std::setprecision(9) << "\t" << ampl1 << "\t" << angle1 << std::endl;
+          angularResults_y << i+1 << std::setprecision(9) << delimiter << ampl1 << delimiter << angle1 << std::endl;
 				}
 			}
 			

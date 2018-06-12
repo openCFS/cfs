@@ -112,7 +112,7 @@ namespace CoupledField {
       MECH_TOTAL_ENERGY_DENS, MECH_NORMAL_STRESS, MECH_THERMAL_STRESS,
       MECH_DYADIC_STRAIN, MECH_QUAD_DISP,
       MECH_NORMAL_DISPLACEMENT,
-      
+ 
       // -- integrated quantities --
       MECH_KIN_ENERGY, MECH_DEFORM_ENERGY, MECH_TOTAL_ENERGY,
       MECH_POWER, MECH_DEF_SURF_VOLUME, MECH_WEIGHT, MECH_DYADIC_STRAIN_SUM, MECH_QUAD_DISP_SUM,
@@ -242,8 +242,11 @@ namespace CoupledField {
 
       // === NonFEM LBM results ===
       LBM_PROBABILITY_DISTRIBUTION, LBM_VELOCITY, LBM_DENSITY,
-      LBM_PRESSURE, LBM_PHYSICAL_PSEUDO_DENSITY
+      LBM_PRESSURE, LBM_PHYSICAL_PSEUDO_DENSITY, 
 
+      // for hysteresis  
+      MECH_IRR_STRESS, MECH_IRR_STRAIN
+        
     } SolutionType;
 
     extern Enum<SolutionType> SolutionTypeEnum;

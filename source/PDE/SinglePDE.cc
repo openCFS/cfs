@@ -480,7 +480,7 @@ namespace CoupledField {
   //  Initialize Nonlinearities
   // ****************************
   void SinglePDE::InitNonLin() {
-
+    std::cout << "SinglePDE::InitNonLin()" << std::endl;
     nonLin_ = false;
 
     // Check, if "nonLinList" is present

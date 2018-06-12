@@ -735,6 +735,8 @@ namespace CoupledField {
      *              > specify this in xml file
      */ 
     if( isHysteresis_ ){
+      // TODO: add terms for piezo coupling!
+      
       std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
       ParamNodeList fpNodeList = bcNode->GetList( "fieldParallel" );
       std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
@@ -1042,7 +1044,7 @@ namespace CoupledField {
           SubTensorType tensorType,
           RegionIdType regionId ) {
     
-    //std::cout << "GetStiffIntegrator" << std::endl;
+//    std::cout << "ElecPDE::GetStiffIntegrator" << std::endl;
     BaseBDBInt * integ = NULL;
     bool isComplex = complexMatData_[regionId];
     
@@ -1269,9 +1271,7 @@ namespace CoupledField {
   
   void ElecPDE::SetPiezoCoupling()
   {
-    
     isPiezoCoupled_ = true;
-    
   }
   
   void ElecPDE::DefinePrimaryResults() {
@@ -1380,6 +1380,8 @@ namespace CoupledField {
   
   void ElecPDE::DefinePostProcResults() {
     
+    std::cout << "ElecPDE - DefinePostProcResults" << std::endl;
+    
     shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_POTENTIAL];
     bool is2p5 = (subType_ == "2.5d");
     
@@ -1440,7 +1442,6 @@ namespace CoupledField {
       // therefore, this helper functions is used to create the hystCoefFunctions
       //	before the call to DefineIntegrators
       InitHystCoefs();
-      
     }
     
     // === ELECTRIC FLUX DENSITY ===

@@ -492,6 +492,7 @@ namespace CoupledField {
         break;
 
       case MECH_STRESS:
+      case MECH_IRR_STRESS:
         return "N/m^2";
         break;
 
@@ -510,6 +511,7 @@ namespace CoupledField {
         break;
 
       case MECH_STRAIN:
+      case MECH_IRR_STRAIN:
         return "";
         break;
 
@@ -1289,6 +1291,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_STRESS, "mechStress");
     SolutionTypeEnum.Add(MECH_THERMAL_STRESS, "mechThermalStress");
     SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
+    SolutionTypeEnum.Add(MECH_IRR_STRAIN, "mechIrrStrain");
+    SolutionTypeEnum.Add(MECH_IRR_STRESS, "mechIrrStress");
     SolutionTypeEnum.Add(MECH_THERMAL_STRAIN, "mechThermalStrain");
     SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
     SolutionTypeEnum.Add(MECH_NORMAL_STRUCT_INTENSITY, "mechNormalStructIntensity");

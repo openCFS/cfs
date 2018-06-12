@@ -60,19 +60,14 @@ namespace CoupledField {
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
-    //nonLin_ = false;
-		nonLin_ = pde1_->IsNonLin() || pde2_->IsNonLin();
-        // check if elec pde is hysteretic
+    // at this point, the single pdes are not set up yet
+    // > we cannot find out if something is nonlinear or not
+    // > postpone to definePostProcResults
+    nonLin_ = false;
     isHyst_ = false;
-    if(pde1_->IsHysteresis()){
-      EXCEPTION("Currently only the elec PDE may be hysteretic");
-    } else if(pde2_->IsHysteresis()){
-      isHyst_ = true;
-    }
-    
+ 
     // Initialize nonlinearities
-    InitNonLin();
-    
+    InitNonLin();   
   }
 
   // **************
@@ -86,8 +81,21 @@ namespace CoupledField {
   //   DefineIntegrators
   // *********************
   void PiezoCoupling::DefineIntegrators() {
-
-//		std::cout << "PiezoCoupling - DefineIntegrators" << std::endl;
+		std::cout << "PiezoCoupling - DefineIntegrators" << std::endl;
+    
+    // at this point, the single PDEs have been set up and we can no check
+    // if we are nonlinear or hysteretic
+    nonLin_ = pde1_->IsNonLin() || pde2_->IsNonLin();
+    // check if elec pde is hysteretic
+    isHyst_ = false;
+    if(pde1_->IsHysteresis()){
+      EXCEPTION("Currently only the elec PDE may be hysteretic");
+    } else if(pde2_->IsHysteresis()){
+      isHyst_ = true;
+    }
+    
+    std::cout << "isHyst_? " << isHyst_ << std::endl;
+ 
     // get hold of both feFunctions
     shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
     shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
@@ -478,9 +486,8 @@ namespace CoupledField {
   }
   
   void PiezoCoupling::DefinePostProcResults() {
-    
-//		std::cout << "PiezoCoupling - DefinePostProcResults" << std::endl;
-		
+		std::cout << "PiezoCoupling - DefinePostProcResults" << std::endl;
+
     shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
     shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
@@ -508,7 +515,7 @@ namespace CoupledField {
     
     // The electric flux density in the coupled case calculates as 
     // D = [e]*S + [eps]*E
-    // a) electric part -> take from electrostatic PDE
+    // a) electric part -> take from electrostatic PDE (should contain contributions from hysteresis, too)
     PtrCoefFct coefElecD = pde2_->GetCoefFct( ELEC_FLUX_DENSITY);
     
     // b) coupling part -> use own ADB-form
@@ -537,7 +544,36 @@ namespace CoupledField {
                                       CoefXpr::OP_ADD) );
     DefineFieldResult( coefFlux, flux );
 
-
+    // === irrevesible strains and stresses ===
+    // check if at least one region has hysteretic behavior
+    if ( isHyst_){
+      // Note: in elecPDE we have to setup storage for hyst output in definePostProcResults
+      // as this function is called prior to DefineIntegrators
+      // in pizeoCase, the postprocresults will be defined after the integrators, so
+      // here we have to setup the storage earlier in GetStiffIntegratorHyst
+//      irrStrains_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, numStrainEntries,1,isComplex_));
+//      irrStresses_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, numStrainEntries,1,isComplex_));
+      std::cout << "Define hyst results" << std::endl;
+      shared_ptr<ResultInfo> irrStrainInfo(new ResultInfo);
+      irrStrainInfo->resultType = MECH_IRR_STRAIN;
+      irrStrainInfo->dofNames = stressComponents;
+      irrStrainInfo->unit =  "";
+      irrStrainInfo->entryType = ResultInfo::TENSOR;
+      // strains retruns them in voigt vector
+      irrStrainInfo->definedOn = ResultInfo::ELEMENT;
+      DefineFieldResult( irrStrains_, irrStrainInfo );
+      availResults_.insert( irrStrainInfo );
+      shared_ptr<ResultInfo> irrStressInfo(new ResultInfo);
+      irrStressInfo->resultType = MECH_IRR_STRESS;
+      irrStressInfo->dofNames = stressComponents;
+      irrStressInfo->unit =  "N/m^2";
+      irrStressInfo->entryType = ResultInfo::TENSOR;
+      // strains retruns them in voigt vector
+      irrStressInfo->definedOn = ResultInfo::ELEMENT;
+      DefineFieldResult( irrStresses_, irrStressInfo );
+      availResults_.insert( irrStressInfo );
+    }
+      
     // ==== Mechanic Stress ===
     shared_ptr<ResultInfo> stress(new ResultInfo);
     stress->resultType = MECH_STRESS;
@@ -564,10 +600,25 @@ namespace CoupledField {
       stressCplFunc.reset(new CoefFunctionFlux<Complex>(elecFct, stress, stressCplFactor));
     } else {
       stressCplFunc.reset(new CoefFunctionFlux<Double>(elecFct, stress, stressCplFactor));
+    }   
+    // in case of hysteresis, stresses are computed via
+    // [sigma] = [c]*S_revesible - [e]*E
+    // > from mech PDE we get [sigma] = [c]*Bu = [c]*S_total = [c]*(S_reversible + S_irreversible)
+    // > subtract [c]*S_irreversible
+    PtrCoefFct coefStress;
+    if ( isHyst_){
+      PtrCoefFct coefStress_full = CoefFunction::Generate(mp,part,
+              CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
+              CoefXpr::OP_ADD) );
+      coefStress = CoefFunction::Generate(mp,part,
+              CoefXprBinOp(mp,coefStress_full, irrStresses_, 
+              CoefXpr::OP_SUB) );
+    } else {
+      coefStress = CoefFunction::Generate(mp,part,
+              CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
+              CoefXpr::OP_ADD) ); 
     }
-    PtrCoefFct coefStress = CoefFunction::Generate(mp,part,
-                                                   CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
-                                                                CoefXpr::OP_ADD) ); 
+    
     DefineFieldResult(coefStress, stress);
 
 
@@ -727,7 +778,7 @@ namespace CoupledField {
         regionHystOperator->SetElastAndCouplTensor(stiffCoef, couplingCoef);
 				
 				// mech RHS
-				shared_ptr<CoefFunction> mechRHS = regionHystOperator->GenerateRHSCoefFnc("PiezoLoadForMechPDE");
+				shared_ptr<CoefFunction> mechRHS = regionHystOperator->GenerateRHSCoefFnc("IrrStrainForMechPDE");
 				
 				if ( isComplex_ ) {
 					if( subType_ == "axi" ) {
@@ -776,7 +827,7 @@ namespace CoupledField {
 					}
 				}
 
-        lin->SetName("PiezoLoadForMechPDE");
+        lin->SetName("IrrStrainForMechPDE");
         lin->SetSolDependent();
         LinearFormContext *ctx = new LinearFormContext( lin );
         ctx->SetEntities( actSDList );
@@ -786,8 +837,12 @@ namespace CoupledField {
         // Add entity list will add nothing, if entities were already assigned
         dispFct->AddEntityList(actSDList);
 				
+        // ++++++++
 				// elec RHS
-				shared_ptr<CoefFunction> elecRHS = regionHystOperator->GenerateRHSCoefFnc("PiezoLoadForElecPDE");
+        // > note: elecPDE will get multiplied by -1 in case of piezo coupling
+        // > rhs term will also switch sign
+        factor = -1.0;
+				shared_ptr<CoefFunction> elecRHS = regionHystOperator->GenerateRHSCoefFnc("IrrStrainForElecPDE");
 				
         if(isComplex_) {
           if( dim_ == 2 ) {
@@ -809,7 +864,7 @@ namespace CoupledField {
           }
         }
 
-        linElec->SetName("PiezoLoadForElecPDE");
+        linElec->SetName("IrrStrainForElecPDE");
         linElec->SetSolDependent();
         LinearFormContext *ctxElec = new LinearFormContext( linElec );
         ctxElec->SetEntities( actSDList );
@@ -827,16 +882,29 @@ namespace CoupledField {
                                      RegionIdType regionId, bool isComplex,
 																		 BaseBDBInt** elecToMechInt, BaseBDBInt** mechToElecInt) {
     
+    std::cout << "PiezoCoupling::GetStiffIntegratorHyst" << std::endl;
+    
     SubTensorType tensorType = NO_TENSOR;
+    UInt numStrainEntries = 3;
     if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
       tensorType = PLANE_STRAIN;
     } else if( subType_ == "axi" ){
       tensorType = AXI;
+      numStrainEntries = 4;
     } else if (subType_ == "3d" || subType_ == "2.5d"){
       tensorType = FULL;
+      numStrainEntries = 6;
     } else {
       EXCEPTION( "Unknown subtype '" << subType_ << "'" );
     }
+    
+    // setup arrays for output > has to be done here as we insert further below
+    // in elecPDE this step is done in definePostProcResults, but in case of piezoCoupling
+    // GetStiffIntegratorHyst is called prior to definePostProcResults
+    irrStrains_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, numStrainEntries,1,isComplex_));
+    irrStresses_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, numStrainEntries,1,isComplex_));
+    
+    
     // ------------------------
     //  Obtain linear material
     // ------------------------		
@@ -971,6 +1039,13 @@ namespace CoupledField {
 					EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
 				}
 			}
+      
+      // 5.6.2018: create output coef function at this point, too > compare to elecPDE
+      PtrCoefFct irrStrains = hystOperator->GenerateOutputCoefFnc("IrrStrainsPiezo_TensorForm");
+      irrStrains_->AddRegion( regionId, irrStrains);
+      PtrCoefFct irrStresses = hystOperator->GenerateOutputCoefFnc("IrrStressesPiezo_TensorForm");
+      irrStresses_->AddRegion( regionId, irrStresses);
+
 			return true;
 		} else {
 			// NON-HYST CASE 
@@ -1197,7 +1272,7 @@ namespace CoupledField {
   }
 
   void PiezoCoupling::InitTimeStepping(){
-
+    std::cout << "PiezoCoupling::InitTimeStepping()" << std::endl;
     if ( analysisType_ == BasePDE::TRANSIENT ) {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())
