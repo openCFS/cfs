@@ -62,6 +62,7 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_MAYERGOYZ_CLIPOUTPUT );
     isAllowed_.insert( X_SATURATION );
     isAllowed_.insert( Y_SATURATION );
+    isAllowed_.insert( S_SATURATION );
     isAllowed_.insert( Y_REMANENCE );
     isAllowed_.insert( A_JILES );
     isAllowed_.insert( ALPHA_JILES );

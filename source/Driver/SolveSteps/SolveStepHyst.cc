@@ -871,7 +871,90 @@ namespace CoupledField {
     solBak = solVec_;
     PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",0);
     
-    if(lineSearch_ == "HYST_minResidual"){
+    if(lineSearch_ == "HYST_quadApprox"){
+      /*
+       * Approximate resiudal by quadratic equation 
+       * > take minimum of approximation
+       * 
+       * res(eta) = a0 + a1*eta + a2*eta^2
+       * 
+       * res(0) = a0
+       * res(0.5) = a0 + a1/2 + a2/4
+       * res(1) = a0 + a1 + a2
+       * 
+       * > a0 = res(0)
+       * > a1 = -3 res(0) + 4 res(0.5) - res(1)
+       * > a2 = 2 res(0) - 4 res(0.5) + 2 res(1)
+       * 
+       */
+      Double a0,a1,a2;
+      Double res0,res05,res1;
+      
+      SBM_Vector tmpSol;
+      tmpSol = currentSol;
+      tmpSol.Add(0,solIncrement);
+        
+      solVec_ = tmpSol;
+      // set solution vector to tmp solution, then evaluate hyst operators
+      // do not reevaluate matrices for inversion > flag = 0
+      PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",0);
+        
+      // SetupRes will write the residual directly to resVec_
+      // It will also reassemble the system! > we have to call this function 
+      // again after the linesearch to get the curret system set up!
+      SetupRES(tmpSol,tmpSol,tmpSol,iterationCounter);
+      res0 = resVec_.NormL2();
+      
+      tmpSol = currentSol;
+      tmpSol.Add(0.5,solIncrement);
+      solVec_ = tmpSol;
+      PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",0);
+     
+      SetupRES(tmpSol,tmpSol,tmpSol,iterationCounter);
+      res05 = resVec_.NormL2();
+      
+      tmpSol = currentSol;
+      tmpSol.Add(1.0,solIncrement);
+      solVec_ = tmpSol;
+      PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",0);
+     
+      SetupRES(tmpSol,tmpSol,tmpSol,iterationCounter);
+      res1 = resVec_.NormL2();
+      
+      // restore solution vector
+      solVec_ = solBak;
+      
+      a0 = res0;
+      a1 = -3*res0 + 4*res05 - res1;
+      a2 = 2*res0 - 4*res05 +2*res1;
+
+      Double eta1,etaSol;
+      UInt solCase = 0;
+      if(a1*a1 - 4*a0*a2 < 0){
+        // no real value solution for eta
+        // > take eta with minimal res from eta = 0.5 and eta = 1
+        if(res1 < res05){
+          etaSol = 1;
+          solCase = 1;
+        } else {
+          etaSol = 0.5;
+          solCase = 2;
+        }
+      } else {
+        eta1 = (-a1 + sqrt(a1*a1 - 4*a0*a2))/(2*a2);
+        // check for minimum
+        if(a1 + 2*a2*eta1 >= 0){
+          etaSol = eta1;
+          solCase = 3;
+        } else {
+          etaSol = (-a1 - sqrt(a1*a1 - 4*a0*a2))/(2*a2);
+          solCase = 4;
+        }       
+      }
+      std::cout << "Solution case: " << solCase << std::endl;
+      std::cout << "Found eta: " << etaSol << std::endl;
+      return etaSol;
+    } else if(lineSearch_ == "HYST_minResidual"){
       /*
        * Search for eta by trial and error;
        * take eta that leads to smallest residual norm

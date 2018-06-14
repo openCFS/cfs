@@ -96,6 +96,7 @@ class BiLinearForm;
     
   private:
     bool isHyst_;
+    bool irrStrainsSet_;
     shared_ptr<CoefFunctionMulti> irrStrains_;
     shared_ptr<CoefFunctionMulti> irrStresses_;
   };

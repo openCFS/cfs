@@ -651,6 +651,10 @@ public:
     EXCEPTION( "Not implemented in base class");
   }
   
+  virtual Matrix<Double> ConvertFromVoigtToTensor(Vector<Double> Si_voigt){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
   virtual Matrix<Double> GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel){
     EXCEPTION( "Not implemented in base class");
   }

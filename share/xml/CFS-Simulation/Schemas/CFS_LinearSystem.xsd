@@ -220,13 +220,14 @@
       <xsd:enumeration value="HYST_deltaMat_TS"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+    
   <xsd:complexType name="DT_LineSearch">
     <xsd:attribute name="type" use="optional" default="none">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="none"/>
           <xsd:enumeration value="minEnergy"/>
+          <xsd:enumeration value="HYST_quadApprox"/>
           <xsd:enumeration value="HYST_minResidual"/>
           <xsd:enumeration value="HYST_bisect"/>
           <xsd:enumeration value="HYST_overRelaxation"/>

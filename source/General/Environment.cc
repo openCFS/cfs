@@ -1640,6 +1640,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MEAN_TEMPERATURE, "meanTemperature" ); 
     MaterialTypeEnum.Add( X_SATURATION, "Xsaturation" ); 
     MaterialTypeEnum.Add( Y_SATURATION, "Ysaturation" ); 
+    MaterialTypeEnum.Add( S_SATURATION, "Ssaturation" ); 
     MaterialTypeEnum.Add( Y_REMANENCE, "Yremanence" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS, "preisachWeights" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_DIM, "preisachWeights_dim" ); 

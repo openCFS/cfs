@@ -96,8 +96,16 @@ namespace CoupledField {
       return hystCoefFunction_->GetVecSize();
     }
     
-    void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+    void GetTensorSize( UInt& numRows, UInt& numCols, std::string tensorName ) const {
       hystCoefFunction_->GetTensorSize(numRows, numCols);
+      // get tensor size gets dimensions of eps/mu > 2x2 or 3x3
+//      if( (tensorName == "IrrStressesPiezo_TensorForm")||(tensorName == "IrrStressesPiezo_TensorForm") ){
+//        if(numRows == 2){
+//          numRows = 3;
+//        } else if(numRows == 3){
+//          numRows = 6;
+//        }
+//      }
     }
     
     void GetCouplTensorSize( UInt& numRows, UInt& numCols ) const {
@@ -304,7 +312,7 @@ namespace CoupledField {
     //! Return row and columns size of tensor if coefficient function is a tensor
     virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
       if( (tensorName_ == "Permittivity") || (tensorName_ == "Reluctivity")){
-        hystHelper_->GetTensorSize(numRows,numCols);
+        hystHelper_->GetTensorSize(numRows,numCols,tensorName_);
       } else if ( (tensorName_ == "CouplingMechToElec") || (tensorName_ == "CouplingElecToMech") 
         || (tensorName_ == "CouplingMechToMag") || (tensorName_ == "ComputeMagToMech") ){
         hystHelper_->GetCouplTensorSize(numRows,numCols);
@@ -387,7 +395,7 @@ namespace CoupledField {
       
       UInt numRows,numCols;
       if( (vectorName_ == "ElecPolarization") || (vectorName_ == "MagPolarization") || (vectorName_ == "MagMagnetization")){
-        hystHelper_->GetTensorSize(numRows,numCols);
+        hystHelper_->GetTensorSize(numRows,numCols,vectorName_);
       } else if ( (vectorName_ == "PiezoLoadForMechPDE") || (vectorName_ == "PiezoLoadForElecPDE") 
         || (vectorName_ == "MagStrictLoadForMechPDE") || (vectorName_ == "MagStrictLoadForMagPDE") ){
         hystHelper_->GetCouplTensorSize(numRows,numCols);
@@ -408,7 +416,7 @@ namespace CoupledField {
     
     // NEW: needed when CoefFunctionHelper::PrecomputeMaterialTensorForInverison() is called by this class
     virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-      hystHelper_->GetTensorSize(numRows,numCols);
+      hystHelper_->GetTensorSize(numRows,numCols,"None");
     }
     
     std::string ToString() const {
@@ -1015,12 +1023,15 @@ namespace CoupledField {
     
     CoefFunctionHystOutput(CoefFunctionHelper* hystHelper ,std::string ResultName):CoefFunction(){
       
+//      std::cout << "HystOutput -Generate " << ResultName << std::endl;
       if( (ResultName == "DeltaPermeability")||(ResultName == "DeltaPermittivity")
+//        ||(ResultName == "IrrStressesPiezo")||(ResultName == "IrrStrainsPiezo") ){
         ||(ResultName == "IrrStressesPiezo_TensorForm")||(ResultName == "IrrStrainsPiezo_TensorForm") ){
         dimType_ = TENSOR;
       } else {
         dimType_ = VECTOR;
       }
+//      std::cout << "dimType_ = " << dimType_ << std::endl;
       
       isAnalytic_ = false;
       isComplex_  = false;
@@ -1038,7 +1049,7 @@ namespace CoupledField {
     }
     
     void GetVector(Vector<Double>& outputVector,const LocPointMapped& lpm){
-
+//      std::cout << "HystOutput -getVector " << resultName_ << std::endl;
       int timeLevel = 0;
       Double baseSign = 1.0;
       //std::cout << "result " << resultName_ << " requested" << std::endl;
@@ -1061,10 +1072,11 @@ namespace CoupledField {
     //    }
     
     void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm ){
+//      std::cout << "HystOutput -getTensor " << resultName_ << std::endl;
       if( (resultName_ == "DeltaPermeability")||(resultName_ == "DeltaPermittivity") ){
         //TODO: estimate permeability or permittivity around current working point
         UInt numCols,numRows;
-        hystHelper_->GetTensorSize(numRows,numCols);
+        hystHelper_->GetTensorSize(numRows,numCols,resultName_);
         outputTensor.Resize(numRows,numCols);
         outputTensor.Init();
       } else {
@@ -1078,14 +1090,7 @@ namespace CoupledField {
     
     //! Return row and columns size of tensor if coefficient function is a tensor
     virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-      
-      if((resultName_ == "IrrStressesPiezo_TensorForm")||(resultName_ == "IrrStrainsPiezo_TensorForm")){
-        UInt vecSize = GetVecSize();
-        numRows = vecSize;
-        numCols = vecSize;
-      } else {
-        hystHelper_->GetTensorSize(numRows,numCols);
-      }
+      hystHelper_->GetTensorSize(numRows,numCols,resultName_);
     }
     
     std::string ToString() const {
@@ -1630,13 +1635,14 @@ namespace CoupledField {
     Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel1, int timelevel2, bool useStrains, bool useAbs, std::string implementationVersion );
     
     Vector<Double> GetIrreversibleStrains(const LocPointMapped& Originallpm, int timeLevel);
+    Matrix<Double> ConvertFromVoigtToTensor(Vector<Double> Si_voigt);
     Matrix<Double> GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel);
     Vector<Double> GetIrreversibleStrains(UInt storageIdx, int timeLevel);
     
     Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
 
     Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
-    Vector<Double> ComputeIrreversibleStrains(Vector<Double> P);
+    Vector<Double> ComputeIrreversibleStrains(Vector<Double> P,Vector<Double> Pold);
     
     Vector<Double> RetrieveInputToHysteresisOperator(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary);
     
@@ -1647,7 +1653,7 @@ namespace CoupledField {
     }
     
     PtrCoefFct GenerateMatCoefFnc(std::string tensorName){
-      std::cout << "Generate mat coef function " << tensorName << std::endl;
+//      std::cout << "Generate mat coef function " << tensorName << std::endl;
       PtrCoefFct ret;
       if((tensorName == "Permittivity")||(tensorName == "CouplingMechToElec")||(tensorName == "CouplingElecToMech")){
         // Note: for Piezo we need two different coupling functions
@@ -1693,7 +1699,7 @@ namespace CoupledField {
     }
     
     PtrCoefFct GenerateRHSCoefFnc(std::string vectorName, bool onBoundary = false ){
-      std::cout << "Generate rhs coef function " << vectorName << std::endl;
+//      std::cout << "Generate rhs coef function " << vectorName << std::endl;
       PtrCoefFct ret;
       if( (vectorName == "ElecPolarization") || (vectorName == "IrrStrainForMechPDE") || (vectorName == "IrrStrainForElecPDE")){
         PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
@@ -1738,7 +1744,7 @@ namespace CoupledField {
     }
     
     PtrCoefFct GenerateOutputCoefFnc(std::string ResultName){
-      std::cout << "Generate output coef function " << ResultName << std::endl;
+//      std::cout << "Generate output coef function " << ResultName << std::endl;
       PtrCoefFct ret;
       
       if( (ResultName == "ElecPolarization") || (ResultName == "IrrStressesPiezo_TensorForm") || (ResultName == "IrrStrainsPiezo_TensorForm") ){
@@ -2288,6 +2294,7 @@ namespace CoupledField {
      */
     Double MAT_xSat_;
     Double MAT_pSat_;
+    Double MAT_sSat_; // new strain in saturation 
     
     /*
      * determines whether the vector or the scalar model shall be used

@@ -368,7 +368,7 @@ namespace CoupledField {
   void CoefFunctionHelper::ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm, int timeLevel_to_diff, 
           std::string tensorName, std::string implementationVersion, bool transposed, bool rotate, bool useAbs, bool lockPrecomputationAndDeltaMat ){
     LOG_DBG(coeffcthysthelper) << "+++++ Coef Function Hyst Mat - Get " << tensorName <<" ++++++";
-    std::cout << "+++++ Coef Function Hyst Mat - Get " << tensorName <<" ++++++" << std::endl;
+
     /*
      * IMPORTANT NOTE TO SIGN CONVENTION:
      *  all tensors will be returned with a "+" sign in front of the actual base tensor
@@ -409,7 +409,7 @@ namespace CoupledField {
     //        and thus from CoefFunctionRHSload, CoefFunctionOutput and so on
     //        therewith, getTensor size of these functions will be called which lead to errors as this was not 
     //        meant to happen
-    GetTensorSize(numRows,numCols);
+    GetTensorSize(numRows,numCols,tensorName);
     Matrix<Double> tmp;
     
     outputTensor.Resize(numRows,numCols);
@@ -468,15 +468,15 @@ namespace CoupledField {
     }
     
     if(tensorName == "IrrStressesPiezo_TensorForm"){
-      Matrix<Double> Si_tensor = GetIrreversibleStrainTensor(lpm, 0);
-
-      LOG_DBG(coeffcthysthelper) << "Si_tensor " << Si_tensor.ToString();
-      LOG_DBG(coeffcthysthelper) << "elastTensor_: " << elastTensor_.ToString();
-      elastTensor_.Mult(Si_tensor,outputTensor);      
+      Vector<Double> Si_vector = hystCoefFunction_->GetIrreversibleStrains(lpm, 0);
+      Vector<Double> tmpVector = Vector<Double>(Si_vector.GetSize());
+      elastTensor_.Mult(Si_vector,tmpVector);      
+      tmp = hystCoefFunction_->ConvertFromVoigtToTensor(tmpVector);
+            
     } else if(tensorName == "IrrStrainsPiezo_TensorForm"){
       // always compute the current timelevel > 0
       // > tensor form is only used for output; otherwise use vector form
-      outputTensor = GetIrreversibleStrainTensor(lpm, 0);
+      tmp = hystCoefFunction_->GetIrreversibleStrainTensor(lpm, 0);
     } else if(tensorName == "Permittivity"){
       //        std::cout << "Get Permittivity" << std::endl;
       /*
@@ -530,11 +530,7 @@ namespace CoupledField {
         tmp = fieldTensor_;
         // also get e in case we use deltaMat for strains, too
         hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,e_scaled,timelevel_cur,rotate);  
-      }
-      
-      std::cout << "eps = " << tmp.ToString() << std::endl;
-      std::cout << "e_scaled = " << e_scaled.ToString() << std::endl;
-      
+      }      
       // check if deltaMat shall be added
       // here we have two flags:
       //  deltaForm_ is used to indicate if we are using a delta formulation in general
@@ -609,11 +605,7 @@ namespace CoupledField {
         hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
         tmp = rotatedCouplTensor;
       }
-      
-      std::cout << "strainForm_ " << strainForm_ << std::endl;
-      std::cout << "rotatedCouplTensor " << rotatedCouplTensor.ToString() << std::endl;
-      std::cout << "tmp " << tmp.ToString() << std::endl;
-      
+            
       if(deltaFormActive_ && (deltaForm_ != 0) && (lockPrecomputationAndDeltaMat == false) ) {
         LOG_DBG(coeffcthysthelper) << "Compute DeltaMatrix";
         //        std::cout << "Compute DeltaMatrix" << std::endl;
@@ -621,7 +613,6 @@ namespace CoupledField {
         
         // deltaMat will be computed using the current value (timelevel_cur = 0)
         // and the value at timelevel (-1 > last ts; +1 > last iteration)
-        std::cout << "try to get deltaMat " << std::endl;
         Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
         std::cout << "deltaMat " << deltaMat.ToString() << std::endl;
         UInt numRows,numCols;
@@ -641,6 +632,7 @@ namespace CoupledField {
         if(transposed){
           //std::cout << "Perform transpose" << std::endl;
           tmp.Transpose(outputTensor);
+          alreadyTransposed = true;
           //std::cout << "Transposed tensor: " << tmp.ToString() << std::endl;
         } else {
           EXCEPTION("We should require transpose here!");
@@ -654,10 +646,6 @@ namespace CoupledField {
         } else {
           outputTensor.Add(1.0,tmp2);
         }
-        
-        std::cout << "tmp2 " << tmp2.ToString() << std::endl;
-        std::cout << "outputTensor " << outputTensor.ToString() << std::endl;
-        
       }    
     } else if(tensorName == "Reluctivity"){
       //std::cout << "Get Reluctivity" << std::endl;
@@ -764,15 +752,16 @@ namespace CoupledField {
         //std::cout << "Perform transpose" << std::endl;
         tmp.Transpose(outputTensor);
         //std::cout << "Transposed tensor: " << tmp.ToString() << std::endl;
-      } else {
+      } else {        
         outputTensor = tmp;
       }
-    }
+    } 
     
-
     LOG_DBG(coeffcthysthelper) << "Computed material tensor:" << outputTensor.ToString();
     //      std::cout << "+++++ Coef Function Hyst Mat - Compute Tensor END ++++++" << std::endl;
     //std::cout << "Return the following tensor: " << outputTensor.ToString() << std::endl;
+    std::cout << "Computed tensor - " << tensorName << " - " << std::endl;
+    std::cout << outputTensor.ToString() << std::endl;        
   }
   
   
@@ -954,6 +943,7 @@ namespace CoupledField {
     
 		material->GetScalar(MAT_xSat_, X_SATURATION, Global::REAL);
 		material->GetScalar(MAT_pSat_, Y_SATURATION, Global::REAL);
+    material->GetScalar(MAT_sSat_, S_SATURATION, Global::REAL);
     
     // NEW: add additional anhysteretic curve to Preisach models
     material->GetScalar(MAT_anhysteretic_a_ , PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
@@ -2671,11 +2661,13 @@ namespace CoupledField {
     return deltaMat;
     
   }
-  
-  
+ 
   Matrix<Double> CoefFunctionHyst::GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel) {
     
     Vector<Double> Si_voigt = GetIrreversibleStrains(Originallpm, timeLevel);
+    return ConvertFromVoigtToTensor(Si_voigt);
+  }
+  Matrix<Double> CoefFunctionHyst::ConvertFromVoigtToTensor(Vector<Double> Si_voigt){
     Matrix<Double> Si_tensor;
     if(Si_voigt.GetSize() == 3){
       Si_tensor = Matrix<Double>(2,2);
@@ -2747,8 +2739,11 @@ namespace CoupledField {
     // computation required
     // get polarizaton / output of hyst operator first
     Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(Originallpm, timeLevel);
-
-    Vector<Double> S_irr = ComputeIrreversibleStrains(P);
+    // for case that P is zero, we also obtain the last value in order to compute the last known direction of P
+    // if this one is 0, too then dir = zeroVec
+    Vector<Double> Pold = GetPrecomputedOutputOfHysteresisOperator(Originallpm, -1);
+    
+    Vector<Double> S_irr = ComputeIrreversibleStrains(P,Pold);
     
     // flag gets reset at end of each iteration (so the stored value can beu
     // used during one iteration by several terms/function calls)
@@ -2758,7 +2753,7 @@ namespace CoupledField {
     return S_irr;
   }
   
-  Vector<Double> CoefFunctionHyst::ComputeIrreversibleStrains(Vector<Double> P) {
+  Vector<Double> CoefFunctionHyst::ComputeIrreversibleStrains(Vector<Double> P, Vector<Double> Pold) {
   
     // setup storage
     Matrix<Double> Si_tensor = Matrix<Double>(dim_,dim_);
@@ -2778,40 +2773,57 @@ namespace CoupledField {
     if(MAT_dim_beta_ <= 0){
       WARN("No beta coefficients were defined. Cannot approximate Si; return empty vector");
       return Si_voigt;
-    } else {
-      std::cout << "use betaCoefs: " << MAT_betaCoefs_.ToString() << std::endl;
-    }
+    } 
+//    else {
+//      std::cout << "use betaCoefs: " << MAT_betaCoefs_.ToString() << std::endl;
+//    }
     
     Matrix<Double> negeye = Matrix<Double>(dim_,dim_);
     for(UInt i = 0; i < dim_; i++){
       negeye[i][i] = -1.0;
     }
         
+//    std::cout << "P for strain: " << P.ToString() << std::endl;
+//    std::cout << "Norm of P: " << P.NormL2() << std::endl;
+//    
+    Vector<Double>dirP = Vector<Double>(dim_);
+    dirP.Init();
+    if(P.NormL2() != 0){
+      dirP.Add(1.0/P.NormL2(),P);
+    } else if (Pold.NormL2() != 0){
+      dirP.Add(1.0/Pold.NormL2(),Pold);
+    }
+    // else: current and previous state are both 0 > 0 direction
+    Matrix<Double>dyadic = Matrix<Double>(dim_,dim_);
+    dyadic.DyadicMult(dirP);
+    dyadic.Add(1.0/3.0,negeye);
+      
+//      std::cout << "dirP*dirP^T - 1/3[I] = " << dyadic.ToString() << std::endl;
+//  
+    // ORIGINAL approach
     // Si = 3/2*(beta0 + beta1*|P| + beta2*|P|^2 + ... + betan*|P|^n)*(dirP*dirP^T - 1/3[I])
     Double normP = P.NormL2();
     
-    if(P.NormL2() == 0){
-      // only constant offset 
-      // as we do not have dirP neither, just return
-      // -3/2*beta0*1/3[I] = -1/2*beta0*[I]
-      Si_tensor.Add(0.5*MAT_betaCoefs_[0][0],negeye);
-    } else {
-      // get dirP
-      Vector<Double>dirP = P;
-      dirP = dirP/normP;
-      Matrix<Double>dyadic = Matrix<Double>(dim_,dim_);
-      dyadic.DyadicMult(dirP);
-      dyadic.Add(1.0/3.0,negeye);
-      
-      // use Horner scheme
-      // start with beta n
-      Double poly = MAT_betaCoefs_[0][MAT_dim_beta_-1];
-      for(int i = MAT_dim_beta_-2; i >= 0; i--){
-        poly = poly*normP + MAT_betaCoefs_[0][i];
-      }
-      Si_tensor.Add(1.5*poly,dyadic);
-    }
+    // NEW approach: compute Si via
+    // Si = Ssat*3/2*(beta0_ + beta1_*|P|/Psat + beta2_*(|P|/Psat)^2 + ... + betan_*(|P|/Psat)^n)*(dirP*dirP^T - 1/3[I])/sumOfBetas
+    // Ssat is a new parameter 
+    // betai_ = beta/Psat^i will be read from input instead of beta
+    // sumOfBetas = (beta0_ + beta1_ + beta2_ + ... + betan_)
+    // why the change? to allow for easier adaption to amplitude Ssat
+    normP = normP/MAT_pSat_;  
     
+    // use Horner scheme
+    // start with beta n
+    Double poly = MAT_betaCoefs_[0][MAT_dim_beta_-1];
+    Double betaSum = MAT_betaCoefs_[0][MAT_dim_beta_-1];
+    for(int i = MAT_dim_beta_-2; i >= 0; i--){
+      poly = poly*normP + MAT_betaCoefs_[0][i];
+      betaSum += MAT_betaCoefs_[0][i];
+    }
+    if(betaSum != 0){
+      Si_tensor.Add(1.5*poly/betaSum*MAT_sSat_,dyadic);
+    }
+
     // transform matrix to voigt notation
     // TODO: check implementation of [c]
     //      > do we have Si = sxx,syy,szz,2szy,2sxz,2sxy or do we have Si = sxx,syy,szz,szy,sxz,sxy ?
@@ -2827,7 +2839,7 @@ namespace CoupledField {
       Si_voigt[4] = Si_tensor[0][2];
       Si_voigt[5] = Si_tensor[0][1];
     }
-    std::cout << "Si_voigt = " << Si_voigt.ToString() << std::endl;
+//    std::cout << "Si_voigt = " << Si_voigt.ToString() << std::endl;
     return Si_voigt;   
   }
   
@@ -4642,7 +4654,8 @@ namespace CoupledField {
 		Vector<Double> xOut = Vector<Double>(dim_);
 		Vector<Double> hOut = Vector<Double>(dim_);
 		Vector<Double> yOut = Vector<Double>(dim_);
-		
+		Vector<Double> hOutOld = Vector<Double>(dim_);
+    
 		Vector<Double> xErr = Vector<Double>(dim_);
 		Vector<Double> yErr = Vector<Double>(dim_);
 		
@@ -5003,7 +5016,7 @@ namespace CoupledField {
 		if( (printStatistics) ){
 			std::cout << "##### STARTING TEST " << name << " #####" << std::endl;
 		}
-		
+		hOutOld.Init();
 		for(UInt i = 0; i < totalSteps; i++){
 			if( (i%10 == 0)&&(printStatistics) ){
 				std::cout << "STEP NR " << i+1 << "/" << totalSteps << " #####" << std::endl;
@@ -5027,7 +5040,7 @@ namespace CoupledField {
 				xIn[1] = yVals[i];
 			}
 			
-			if(testInversion){
+      if(testInversion){
 				/*
 				 * Inversion test:
 				 *	1. evaluate forward hyst operator with given input; overwrite memory = false
@@ -5198,7 +5211,7 @@ namespace CoupledField {
 			}
 			
       if(outputIrrStrains){
-        Vector<Double> S_irr = ComputeIrreversibleStrains(hOut);
+        Vector<Double> S_irr = ComputeIrreversibleStrains(hOut,hOutOld);
         results_s << i+1 << " " << std::setprecision(9) << S_irr.ToString() << std::endl;
       }
       
@@ -5302,7 +5315,7 @@ namespace CoupledField {
 				LOG_TRACE(coeffcthyst) << "##### ERROR VECTOR wrt Y #####";
 				LOG_TRACE(coeffcthyst) << yErr.ToString();
 			}
-			
+			hOutOld = hOut;
 		}
 		
 		UInt LMcases = totalSteps-totalReused-totalBisection-totalAnhystOnly-totalRemanence;

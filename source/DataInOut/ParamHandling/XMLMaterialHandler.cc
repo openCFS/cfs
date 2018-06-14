@@ -1682,6 +1682,13 @@ namespace CoupledField {
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
       }
 
+      Double strainSaturation = 0.0;
+      if(model->Has("strainSat")){
+        strainSaturation = model->Get("strainSat")->As<Double>();
+      }
+      
+      material->SetScalar(strainSaturation, S_SATURATION, Global::REAL ); 
+
       int coefdim = -1;
       if(model->Has("dim_betaCoefs")) coefdim = model->Get("dim_betaCoefs")->As<Integer>();
       material->SetScalar(coefdim, DIM_BETA_COEFS);
@@ -1813,6 +1820,13 @@ namespace CoupledField {
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
       }
       
+           Double strainSaturation = 0.0;
+      if(model->Has("strainSat")){
+        strainSaturation = model->Get("strainSat")->As<Double>();
+      }
+      
+      material->SetScalar(strainSaturation, S_SATURATION, Global::REAL ); 
+      
       int coefdim = -1;
       if(model->Has("dim_betaCoefs")) coefdim = model->Get("dim_betaCoefs")->As<Integer>();
       material->SetScalar(coefdim, DIM_BETA_COEFS);
@@ -1893,6 +1907,13 @@ namespace CoupledField {
           // Read in weights separately below as they require the same steps for VectorHysteresis, too
         }
 
+        Double strainSaturation = 0.0;
+        if(singleModel->Has("strainSat")){
+          strainSaturation = singleModel->Get("strainSat")->As<Double>();
+        }
+        
+        material->SetScalar(strainSaturation, S_SATURATION, Global::REAL ); 
+        
         int coefdim = -1;
         if(singleModel->Has("dim_betaCoefs")) coefdim = singleModel->Get("dim_betaCoefs")->As<Integer>();
         material->SetScalar(coefdim, DIM_BETA_COEFS);

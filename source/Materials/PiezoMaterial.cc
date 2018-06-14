@@ -29,6 +29,7 @@ namespace CoupledField
     isAllowed_.insert( PIEZO_TENSOR );
     isAllowed_.insert( X_SATURATION );
     isAllowed_.insert( Y_SATURATION );
+    isAllowed_.insert( S_SATURATION );
     isAllowed_.insert( A_JILES );
     isAllowed_.insert( ALPHA_JILES );
     isAllowed_.insert( K_JILES );
