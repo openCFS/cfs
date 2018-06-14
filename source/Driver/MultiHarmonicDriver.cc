@@ -151,6 +151,12 @@ namespace CoupledField
       analysis_id_.step = actFreqStep;
       analysis_id_.freq = actFreq;
 
+      Integer h = -numHarmonics_N_ + i;
+      // We need to activate the correct harmonic results in CoefFunctionHarmBalance
+      mathParser_->SetValue(MathParser::GLOB_HANDLER, "f", actFreq);
+      mathParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
+
+
       // Now we need to set the actual solution and rhs vector (depending on
       // the current harmonic). This basically stores the solution and rhs back to
       // the PDE itself

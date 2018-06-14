@@ -1347,20 +1347,16 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // === H field ===
     // assemble coefficient function field intensity = reluctivity * (flux density - remanence)
     // the remanence is the RHS load flux density
-    shared_ptr<CoefFunctionMulti> hCoef =
-        dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
+    shared_ptr<CoefFunctionMulti> hCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
     regIt = regions_.Begin();
     for( ; regIt != regions_.End(); ++regIt ){
       if( bRHSRegions_.find( *regIt ) != bRHSRegions_.end() ){
-        PtrCoefFct bPM = CoefFunction::Generate( mp_, part,
-            CoefXprBinOp( mp_, GetCoefFct(MAG_FLUX_DENSITY),
+        PtrCoefFct bPM = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, this->GetCoefFct(MAG_FLUX_DENSITY),
                 bRHSRegions_[*regIt], CoefXpr::OP_SUB ) );
-        PtrCoefFct hPM = CoefFunction::Generate( mp_, part,
-            CoefXprVecScalOp( mp_, bPM, reluc_, CoefXpr::OP_MULT ) );
+        PtrCoefFct hPM = CoefFunction::Generate( mp_, part, CoefXprVecScalOp( mp_, bPM, reluc_, CoefXpr::OP_MULT ) );
         hCoef->AddRegion(*regIt,hPM);
       } else {
-        PtrCoefFct h = CoefFunction::Generate( mp_, part,
-            CoefXprBinOp( mp_, reluc_, GetCoefFct(MAG_FLUX_DENSITY), CoefXpr::OP_MULT ) );
+        PtrCoefFct h = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, reluc_, this->GetCoefFct(MAG_FLUX_DENSITY), CoefXpr::OP_MULT ) );
         hCoef->AddRegion(*regIt,h);
       }
     }
@@ -1418,15 +1414,13 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 // get an error in AddRegion, due to the multiplication of a real- and a complex-valued
 // coefficient function. CHECK THIS !!!
     if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
-		shared_ptr<CoefFunctionMulti> cldCoef =
-			dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS_DENSITY]);
+		shared_ptr<CoefFunctionMulti> cldCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS_DENSITY]);
 		BaseMaterial* actMat = NULL;
 		regIt = regions_.Begin();
 		for( ; regIt != regions_.End(); ++regIt ) {
 		  RegionIdType actRegion = *regIt;
 		  actMat = materials_[actRegion];
-		  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL,
-			  GetCoefFct(MAG_FLUX_DENSITY) );
+		  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
 		  cldCoef->AddRegion(actRegion, coreLossFct);
 		}
 
@@ -1441,12 +1435,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 		  RegionIdType actRegion = *regIt;
 		  actMat = materials_[actRegion];
 		  // core loss density in W/kg
-		  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL,
-			  GetCoefFct(MAG_FLUX_DENSITY) );
+		  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
 		  // core loss density in W/m^3, which deserves to be called density
 		  PtrCoefFct densFct = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
-		  PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, part,
-			  CoefXprBinOp( mp_, coreLossFct, densFct, CoefXpr::OP_MULT ));
+		  PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, coreLossFct, densFct, CoefXpr::OP_MULT ));
 		  clCoef->AddRegion( actRegion, coreLossDensCoef );
 		}
     }
@@ -1458,45 +1450,50 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
      * \hat{\overbar{A}} is the conjugate complex of \hat{A}
      */
     if( (analysistype_ == HARMONIC) || (analysistype_ == MULTIHARMONIC) ){
-		shared_ptr<CoefFunctionMulti> eddyLossCoef =
-				dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
-		regIt = regions_.Begin();
-		for( ; regIt != regions_.End(); ++regIt ) {
-		  RegionIdType actRegion = *regIt;
-		  // first part : \gamma \omega^2 ||\hat{A}||^2
-		  PtrCoefFct normA = CoefFunction::Generate( mp_, part,
-				  CoefXprUnaryOp( mp_, GetCoefFct(MAG_POTENTIAL), CoefXpr::OP_NORM) );
-		  PtrCoefFct squareNormA = CoefFunction::Generate( mp_, part,
-				  CoefXprBinOp( mp_, normA, normA, CoefXpr::OP_MULT ) );
-		  PtrCoefFct tmp = CoefFunction::Generate( mp_, part,
-				  CoefXprBinOp( mp_, squareNormA, "0.5*2*pi*f*2*pi*f", CoefXpr::OP_MULT ) );
-		  PtrCoefFct part1 = CoefFunction::Generate( mp_, part,
-		                      CoefXprBinOp( mp_, materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL),
-		                    		  tmp, CoefXpr::OP_MULT ) );
+      shared_ptr<CoefFunctionMulti> eddyLossCoef =
+          dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
+      regIt = regions_.Begin();
+      for( ; regIt != regions_.End(); ++regIt ) {
+        RegionIdType actRegion = *regIt;
+        // first part : \gamma \omega^2 ||\hat{A}||^2
+        PtrCoefFct normA = CoefFunction::Generate( mp_, part, CoefXprUnaryOp( mp_, GetCoefFct(MAG_POTENTIAL), CoefXpr::OP_NORM) );
+        PtrCoefFct squareNormA = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, normA, normA, CoefXpr::OP_MULT ) );
+        PtrCoefFct tmp = NULL;
+        if(analysistype_ == MULTIHARMONIC){
+          tmp = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, squareNormA, "pi*f*pi*f", CoefXpr::OP_MULT ) );
+        }else{
+          tmp = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, squareNormA, "0.5*2*pi*f*2*pi*f", CoefXpr::OP_MULT ) );
+        }
+        PtrCoefFct part1 = CoefFunction::Generate( mp_, part,
+                            CoefXprBinOp( mp_, materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL),
+                                tmp, CoefXpr::OP_MULT ) );
 
-		  PtrCoefFct  part2 = NULL;
-	      if( coilCurrentDens_.find(actRegion) != coilCurrentDens_.end() ) {
-	          // region is a coil
-			  // second part : \omega Im{ \hat{J}_i \hat{\overbar{A}} }
-			  PtrCoefFct part2Tmp = CoefFunction::Generate( mp_, part,
-					  CoefXprBinOp( mp_, GetCoefFct(MAG_POTENTIAL), GetCoefFct(MAG_COIL_CURRENT_DENSITY), CoefXpr::OP_MULT_CONJ ) );
-			  PtrCoefFct part2TmpIM = CoefFunction::Generate( mp_, part,
-					  CoefXprUnaryOp( mp_, part2Tmp, CoefXpr::OP_IM ) );
-			  part2 = CoefFunction::Generate( mp_, part,
-					  CoefXprBinOp( mp_, part2TmpIM, "pi*f", CoefXpr::OP_MULT ) );
 
-	      }else{
-	    	  part2 = CoefFunction::Generate( mp_, part, "0.0");
-	      }
+        PtrCoefFct  part2 = NULL;
+        if( coilCurrentDens_.find(actRegion) != coilCurrentDens_.end() ) {
+          // Coil region (region of impressed current density)
+          if(analysistype_ == MULTIHARMONIC){
+            // Nonlinear Multiharmonic
+            WARN("For a multiharmonic analysis, Joule losses in coils are not implemented and set to ZERO!\n"
+                      "Only for the linear harmonic case!!!");
+            part2 = CoefFunction::Generate( mp_, part, "0.0");
+          }else{
+            // Linear harmonic
+            // second part : \omega Im{ \hat{J}_i \hat{\overbar{A}} }
+            PtrCoefFct part2Tmp = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, GetCoefFct(MAG_POTENTIAL), GetCoefFct(MAG_COIL_CURRENT_DENSITY), CoefXpr::OP_MULT_CONJ ) );
+            PtrCoefFct part2TmpIM = CoefFunction::Generate( mp_, part, CoefXprUnaryOp( mp_, part2Tmp, CoefXpr::OP_IM ) );
+            part2 = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, part2TmpIM, "pi*f", CoefXpr::OP_MULT ) );
+          }
+        }else{
+          part2 = CoefFunction::Generate( mp_, part, "0.0");
+        }
 
-		  // add both parts
-		  PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part,
-				  CoefXprBinOp( mp_, part1, part2, CoefXpr::OP_ADD) );
-		  // the division by the period length is already incorporated
-  		  //PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part,
-		  //				  CoefXprBinOp( mp_, partAddTmp, "1.0", CoefXpr::OP_DIV) );
-		  eddyLossCoef->AddRegion(actRegion, partAdd);
-		}
+        // add both parts
+        PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, part1, part2, CoefXpr::OP_ADD) );
+        // the division by the period length is already incorporated
+        //PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, partAddTmp, "1.0", CoefXpr::OP_DIV) );
+        eddyLossCoef->AddRegion(actRegion, partAdd);
+      }
     }
 
     if( analysistype_ == TRANSIENT){

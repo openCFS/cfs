@@ -367,6 +367,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
         std::conj(coefScal);
       }
 
+      LOG_DBG(coeffctharmbalance) <<"nu for region " << ptGrid_->GetRegionName(elemReg)<<" in harmonic "<< harmonic <<" = " <<coefScal;
 
     }
   }
