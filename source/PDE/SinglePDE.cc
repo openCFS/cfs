@@ -486,7 +486,7 @@ namespace CoupledField {
     // Check, if "nonLinList" is present
     PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinListNode ) { 
-      //std::cout << "NonLinListFound" << std::endl;
+      std::cout << "NonLinListFound" << std::endl;
       // Get nonlinear types
       ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
@@ -567,16 +567,20 @@ namespace CoupledField {
         }
       }
 
-      // Here we need in addition the nonLinMethod_ for the definition
-      // of the integrators
-      nonLinMethod_ = FIXEDPOINT;
-      PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
-      // NEW: additionally check if nonLinearity is used at all for some region
-      // otherwise we do not have to search for nonlinear methods
-      if(( nonLinNode ) && (nonLin_ == true)) {
-        std::string methodString;
-        nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
-        nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
+      if(isHysteresis_ == false){
+        // Here we need in addition the nonLinMethod_ for the definition
+        // of the integrators
+        nonLinMethod_ = FIXEDPOINT;
+        PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
+        // NEW: additionally check if nonLinearity is used at all for some region
+        // otherwise we do not have to search for nonlinear methods
+        if(( nonLinNode ) && (nonLin_ == true)) {
+          std::string methodString;
+          nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
+          nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
+        }
+      } else {
+        // > read in during solveStep hyst
       }
     }
   }

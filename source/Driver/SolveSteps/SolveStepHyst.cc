@@ -38,11 +38,11 @@ namespace CoupledField {
   
 	void SolveStepHyst::ReadNonLinDataHyst(){
     
-		PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
+		PtrParamNode hystNode = solStrat_->GetHystNode();
     
     // Check, if any nonlinear node was found
     Integer deltaForm;
-    if( !nonLinNode ) {
+    if( !hystNode ) {
       WARN("Taking default parameters for nonlinear data" );
       nonLinMethod_ = "HYST_deltaMat_TS";
       deltaForm = -1;
@@ -62,35 +62,100 @@ namespace CoupledField {
       lineSearchAfterReset_ = "HYST_minResidual";
     } else {
       /*
-       * method and linesearch already get read in base class
-       * > here we only need to read in hyst specific paramater
+       * New: after introducing a new hysteresis node, we have to read in parameter from that
+       * node instead of from the nonlin node
+       * > thus we also have to read in linesearch, method, tolerance criteria and so on
        */
-      if(nonLinMethod_ == "fixPoint"){
-        std::stringstream except;
-        except << "Nonlinear solution method fixPoint not directly implemented for Hysteresis.";
-        except << "Please select HYST_fixPoint_TS or HYST_fixPoint_IT instead.";
-        EXCEPTION(except.str())    
-      } else if(nonLinMethod_ == "newton"){
-        std::stringstream except;
-        except << "Newton method not applicable to Hysteresis.";
-        except << "Try HYST_deltaMat_TS or HYST_deltaMat_IT instead.";
-        EXCEPTION(except.str())    
+      
+      // solution method
+      // type of line search
+      if( hystNode->Has("method") ) {
+        hystNode->GetValue( "method", nonLinMethod_,ParamNode::PASS );
+      }
+
+      // perform logging?
+      hystNode->GetValue( "logging", nonLinLogging_, ParamNode::PASS );
+      
+      // type of line search
+      if( hystNode->Has("lineSearch") ) {
+        hystNode->Get( "lineSearch")->GetValue( "type", lineSearch_,ParamNode::PASS );
       }
       
-      if( nonLinNode->Has("HYST_evalDepth") ) {
-        nonLinNode->GetValue( "HYST_evalDepth", evalDepth_, ParamNode::INSERT );
+      // incremental stopping criterion
+      hystNode->GetValue( "incStopCrit", incStopCrit_, ParamNode::PASS );
+      
+      // residual stopping criterion
+      hystNode->GetValue( "resStopCrit", residualStopCrit_, 
+              ParamNode::PASS );
+      
+      //TODO: add defaultValue to xmlSchema!!!!!
+      
+      //      nonLinNode->GetValue( "evalVersion", evalVersion_, ParamNode::INSERT );
+      //   //   std::cout << "evalVersion: " << evalVersion_ << std::endl;
+      //      nonLinNode->GetValue( "forceResidualReevaluation", forceReevaluation_, ParamNode::INSERT );
+      //   //   std::cout << "forceReevaluation_: " << forceReevaluation_ << std::endl;
+      
+      // maximal number of NL-iterations
+      hystNode->GetValue( "maxNumIters", nonLinMaxIter_, ParamNode::PASS );
+      
+      // abort if max number of iterations is reached?
+      hystNode->GetValue("abortOnMaxNumIters",abortOnMaxIter_,ParamNode::INSERT);
+      
+//      LOG_TRACE(stdsolvestep) << "Nonlinear convergence criteria were read:";
+//      LOG_DBG3(stdsolvestep) << "\tincremental Stopping Criterion: " << incStopCrit_;
+//      LOG_DBG3(stdsolvestep) << "\tresidual Stopping Criterion: " << residualStopCrit_;
+//      LOG_DBG3(stdsolvestep) << "\tmaxNumIters: " << nonLinMaxIter_;
+      if( hystNode->Has("stopOnLimit") ) {
+        std::string solutionString;
+        // quantity
+        solutionString = hystNode->Get( "stopOnLimit")
+                ->Get( "quantity" )->As<std::string>();
+        solutionLimit_ = SolutionTypeEnum.Parse(solutionString);
+        if (feFunctions_.find(solutionLimit_) == feFunctions_.end() ) 
+          EXCEPTION("ERROR: Solution type '" << solutionString << "' is not part of PDE '" << pdename_ << 
+                  "' and cannot serve as stopping limit criterion");
+        // minimum value
+        hystNode->Get( "stopOnLimit")
+        ->GetValue( "min", minValidValue_, ParamNode::PASS );
+        // maximum value
+        hystNode->Get( "stopOnLimit")
+        ->GetValue( "max", maxValidValue_, ParamNode::PASS );
+        // region
+        std::string solutionRegion;
+        solutionRegion = hystNode->Get( "stopOnLimit")
+                ->Get( "region" )->As<std::string>();
+        solutionLimitReg_ = ptgrid_->GetRegion().Parse(solutionRegion);
+        if (solutionLimitReg_ != ALL_REGIONS) {
+          if( subdoms_.Find(solutionLimitReg_) == -1 ) 
+            EXCEPTION("ERROR: Region '" << solutionRegion <<"' is not part of PDE '" << pdename_ << 
+                    "' and cannot serve as stopping limit region");
+          
+          // don't know how to implement region checking as we only have the solution as vector (glmvector_[0])
+          EXCEPTION("checking limits in a region is not implemented (and I don't know how) (SE). " 
+                  << "Just remove the 'region=XXX' tag");
+        }
+//        LOG_DBG3(stdsolvestep) << "\tStop on Limit: " << solutionString;
+//        LOG_DBG3(stdsolvestep) << "\t\tmin:     " << minValidValue_;
+//        LOG_DBG3(stdsolvestep) << "\t\tmax:     " << maxValidValue_;
+//        LOG_DBG3(stdsolvestep) << "\t\tin Region:     " << solutionRegion;
+//        LOG_DBG3(stdsolvestep) << "\t\tRegionID:     " << solutionLimitReg_;
+      }
+ 
+      
+      if( hystNode->Has("HYST_evalDepth") ) {
+        hystNode->GetValue( "HYST_evalDepth", evalDepth_, ParamNode::INSERT );
       } else {
         evalDepth_ = 2; // extended
       }
       
-      if( nonLinNode->Has("HYST_measurePerformance") ) {
-        nonLinNode->GetValue( "HYST_measurePerformance", measurePerformance_, ParamNode::INSERT );
+      if( hystNode->Has("HYST_measurePerformance") ) {
+        hystNode->GetValue( "HYST_measurePerformance", measurePerformance_, ParamNode::INSERT );
       } else {
         measurePerformance_ = 0;
       }
       
-      if( nonLinNode->Has("HYST_failBackTol") ) {
-        nonLinNode->GetValue( "HYST_failBackTol", failBackCrit_, ParamNode::INSERT );
+      if( hystNode->Has("HYST_failBackTol") ) {
+        hystNode->GetValue( "HYST_failBackTol", failBackCrit_, ParamNode::INSERT );
       } else {
         // negative norm not possible > failback will not trigger
         failBackCrit_ = -1.0;
@@ -102,8 +167,8 @@ namespace CoupledField {
       nonLinMethodAfterReset_ = "HYST_deltaMat_IT";
       lineSearchAfterReset_ = "HYST_minResidual";
       
-      if( nonLinNode->Has("HYST_reset") ){
-        PtrParamNode resetNode = nonLinNode->Get("HYST_reset");
+      if( hystNode->Has("HYST_reset") ){
+        PtrParamNode resetNode = hystNode->Get("HYST_reset");
         if(resetNode->Has("allowReset")){
           resetNode->GetValue( "allowReset", allowReset_, ParamNode::PASS );
         }
@@ -122,9 +187,9 @@ namespace CoupledField {
       } 
           
 			testNode_ = NULL;
-      if( nonLinNode->Has("HYST_testOperator") ) {
+      if( hystNode->Has("HYST_testOperator") ) {
 				testInversion_ = 1;
-        testNode_ = nonLinNode->Get("HYST_testOperator");
+        testNode_ = hystNode->Get("HYST_testOperator");
       }
 
       /*
