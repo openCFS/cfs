@@ -339,7 +339,8 @@ void SimOutputStreaming::Client::handle_write_request(const boost::system::error
 
 void SimOutputStreaming::Client::handle_read_status_line(const boost::system::error_code& err)
 {
-  string msg = "Streaming to " + host_ + ":" + port_ + " results in ";
+  string msg = "FIX ME";
+//  string msg = "Streaming to " + host_ + ":" + port_ + " results in "; //TODO FIX ME
   if(!err)
   {
     // Check that response is OK.
