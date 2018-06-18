@@ -253,7 +253,8 @@ def cfs_recieve(url_key = ""):
     objective_string = "" # empty on default, if simulation then it will be "compliance: <value>"
     
     try:
-      objective_string = "compliance: " + str(xml.xpath("(//process/iteration/@compliance)[last()]")[0])
+      objective_name = str(xml.xpath("//header/objective/@name")[0])
+      objective_string = objective_name + ": " + str(xml.xpath("(//process/iteration/@" + objective_name + ")[last()]")[0])
     except Exception as e:
       pass
     

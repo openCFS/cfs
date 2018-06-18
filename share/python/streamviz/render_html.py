@@ -49,6 +49,9 @@ def render_menu(GLOBAL_RAW_DATA_DICT, current_site):
   if current_site == 'status_log':
     ret_string += '<a class="nav-link text-white bg-primary" href="/status_log">log</a>'
 
+  ret_string += '</div>'
+  return ret_string # menu is too slow to render and useless anyway
+
   hosts = {}
   for key in GLOBAL_RAW_DATA_DICT:
     this_host = key[:key.index('/')]
