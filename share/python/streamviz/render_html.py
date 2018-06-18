@@ -209,9 +209,9 @@ def render_status_memory_pics(GLOBAL_RAW_DATA_DICT, max_memory_in_bytes, MEMORY_
   return retdata
 
 #render main page
-def render_index(GLOBAL_RAW_DATA_DICT, GLOBAL_UPDATED_DICT, GLOBAL_OBJECTIVE_DICT, request):
+def render_index(GLOBAL_METADATA_DICT, request):
   retdata = html_raw_data
-  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(GLOBAL_RAW_DATA_DICT, 'index'))
+  retdata = retdata.replace(settings['html_template']['key_menu'], render_menu(0, 'index'))
   
   TABLE_DATA = []
   
@@ -225,31 +225,9 @@ def render_index(GLOBAL_RAW_DATA_DICT, GLOBAL_UPDATED_DICT, GLOBAL_OBJECTIVE_DIC
     if key.find("restrict_") != -1:
       restricted_conditions[key[9:]] = request.args[key] 
 
-  for key in GLOBAL_RAW_DATA_DICT:
-    this_table_data = {}
-    
-    xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
-    
-    this_host = key[:key.index('/')]    
-    project_time_rest = key[key.index('/')+1:]
-    this_problem = project_time_rest[:project_time_rest.index('/')]
-    this_started = project_time_rest[project_time_rest.index('/')+1:]
-    
-    this_table_data['key'] = key
-    this_table_data['host'] = this_host
-    this_table_data['status'] = xml.xpath('//cfsInfo/@status')[0]
-    this_table_data['problem'] = this_problem
-    this_table_data['started'] = this_started
-    this_table_data['updated'] = GLOBAL_UPDATED_DICT[key]
-    this_table_data['objective'] = GLOBAL_OBJECTIVE_DICT[key]
-    
-    iteration_num_array = xml.xpath('//process/iteration[last()]/@number')
-    
-    if len(iteration_num_array) > 0:
-      this_table_data['iterations'] = int(iteration_num_array[0])
-    else:
-      this_table_data['iterations'] = -1
-    
+  for key in GLOBAL_METADATA_DICT:
+    this_table_data = GLOBAL_METADATA_DICT[key]
+
     add_this_element = True # assume we can add this element
     
     for key in restricted_conditions:

@@ -54,6 +54,8 @@ GLOBAL_DATA_SIZE_DICT = {}
 GLOBAL_UPDATED_DICT = {}
 GLOBAL_OBJECTIVE_DICT = {}
 
+GLOBAL_METADATA_DICT = {} # will be copied into array before sorting
+
 GLOBAL_KEY_DEQUEUE = deque([])
 
 # ajax functions will wait for an even aka new data
@@ -88,7 +90,7 @@ GLOBAL_STAT_VARS['total_bytes_received'] = 0
 @app.route('/', methods = ['GET'])
 def index():
   if request.method == 'GET':
-    return render_html.render_index(GLOBAL_RAW_DATA_DICT, GLOBAL_UPDATED_DICT, GLOBAL_OBJECTIVE_DICT, request)
+    return render_html.render_index(GLOBAL_METADATA_DICT, request)
   else:
     return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
@@ -109,6 +111,9 @@ def status():
     if key_to_delete in GLOBAL_OBJECTIVE_DICT:
       oldest_updated = GLOBAL_OBJECTIVE_DICT.pop(key_to_delete) 
       del oldest_updated
+    if key_to_delete in GLOBAL_METADATA_DICT:
+      oldest_entry = GLOBAL_METADATA_DICT.pop(key_to_delete)
+      del oldest_entry
 
     send_data.delete_coprocessor(key_to_delete)
     gc.collect()
@@ -203,6 +208,9 @@ def cfs_recieve(url_key = ""):
       if oldest_key in GLOBAL_OBJECTIVE_DICT:
         oldest_updated = GLOBAL_OBJECTIVE_DICT.pop(oldest_key) 
         del oldest_updated
+      if oldest_key in GLOBAL_METADATA_DICT:
+        oldest_entry = GLOBAL_METADATA_DICT.pop(oldest_keys)
+        del oldest_entry
 
       deleted_count += 1
       send_data.delete_coprocessor(oldest_key)
@@ -250,6 +258,8 @@ def cfs_recieve(url_key = ""):
     GLOBAL_RAW_DATA_DICT[key] = data
     GLOBAL_DATA_SIZE_DICT[key] = len(data)
     
+    GLOBAL_UPDATED_DICT[key] = str(datetime.datetime.now())[5:-7]
+
     objective_string = "" # empty on default, if simulation then it will be "compliance: <value>"
     
     try:
@@ -260,7 +270,30 @@ def cfs_recieve(url_key = ""):
     
     GLOBAL_OBJECTIVE_DICT[key] = objective_string
     
-    GLOBAL_UPDATED_DICT[key] = str(datetime.datetime.now())[5:-7]
+    metadata_dict = {}
+    
+    this_host = key[:key.index('/')]    
+    project_time_rest = key[key.index('/')+1:]
+    this_problem = project_time_rest[:project_time_rest.index('/')]
+    this_started = project_time_rest[project_time_rest.index('/')+1:]
+    
+    this_table_data = {}
+    this_table_data['key'] = key
+    this_table_data['host'] = this_host
+    this_table_data['status'] = xml.xpath('//cfsInfo/@status')[0]
+    this_table_data['problem'] = this_problem
+    this_table_data['started'] = this_started
+    this_table_data['updated'] = GLOBAL_UPDATED_DICT[key]
+    this_table_data['objective'] = GLOBAL_OBJECTIVE_DICT[key]
+    
+    iteration_num_array = xml.xpath('//process/iteration[last()]/@number')
+    
+    if len(iteration_num_array) > 0:
+      this_table_data['iterations'] = int(iteration_num_array[0])
+    else:
+      this_table_data['iterations'] = -1
+    
+    GLOBAL_METADATA_DICT[key] = this_table_data
     
     # set the event to trigger sending of the new xml data
     # make sure to set the event AFTER putting the new xml
