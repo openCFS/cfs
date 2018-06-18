@@ -49,27 +49,27 @@ namespace CoupledField {
       
       strainForm_ = CoefFncHyst->GetStrainForm();
       
-//      if(isCoupled_ == false){
-//        // no coupling tensors at all
-//        strainForm_ = -1;
-//      } else {
-//        bool useStrainForm = hystCoefFunction_->useStrainForm();
-//        if(!useStrainForm){
-//          // just take input tensors as they are, i.e. e-form or h-form
-//          strainForm_ = 0;
-//        }else{
-//          std::string PDEName = hystCoefFunction_->getPDEName();
-//          if(PDEName == "Electrostatic"){
-//            // piezo case
-//            // compute d-form as basis for coupling
-//            strainForm_ = 1;
-//          } else {
-//            // magstrict case
-//            // compute g-form 
-//            strainForm_ = 2;
-//          }
-//        }
-//      }
+      //      if(isCoupled_ == false){
+      //        // no coupling tensors at all
+      //        strainForm_ = -1;
+      //      } else {
+      //        bool useStrainForm = hystCoefFunction_->useStrainForm();
+      //        if(!useStrainForm){
+      //          // just take input tensors as they are, i.e. e-form or h-form
+      //          strainForm_ = 0;
+      //        }else{
+      //          std::string PDEName = hystCoefFunction_->getPDEName();
+      //          if(PDEName == "Electrostatic"){
+      //            // piezo case
+      //            // compute d-form as basis for coupling
+      //            strainForm_ = 1;
+      //          } else {
+      //            // magstrict case
+      //            // compute g-form 
+      //            strainForm_ = 2;
+      //          }
+      //        }
+      //      }
       
       // !!! small material parameter are assumed to be constant over region !!!
       // i.e. for each region, just one linear material tensor of eac kind stored
@@ -92,6 +92,13 @@ namespace CoupledField {
       EXCEPTION("CoefFunctionHelper returns no tensors")
     }
     
+    Matrix<Double> GetBaseCouplingTensor(){
+      if(tensorsInitialized_ == false){
+        EXCEPTION("Coupling tensor not initialized yet");
+      }
+      return couplTensor_;
+    }
+    
     UInt GetVecSize() const {
       return hystCoefFunction_->GetVecSize();
     }
@@ -99,13 +106,13 @@ namespace CoupledField {
     void GetTensorSize( UInt& numRows, UInt& numCols, std::string tensorName ) const {
       hystCoefFunction_->GetTensorSize(numRows, numCols);
       // get tensor size gets dimensions of eps/mu > 2x2 or 3x3
-//      if( (tensorName == "IrrStressesPiezo_TensorForm")||(tensorName == "IrrStressesPiezo_TensorForm") ){
-//        if(numRows == 2){
-//          numRows = 3;
-//        } else if(numRows == 3){
-//          numRows = 6;
-//        }
-//      }
+      //      if( (tensorName == "IrrStressesPiezo_TensorForm")||(tensorName == "IrrStressesPiezo_TensorForm") ){
+      //        if(numRows == 2){
+      //          numRows = 3;
+      //        } else if(numRows == 3){
+      //          numRows = 6;
+      //        }
+      //      }
     }
     
     void GetCouplTensorSize( UInt& numRows, UInt& numCols ) const {
@@ -119,12 +126,11 @@ namespace CoupledField {
     std::string ToString() const {
       return "Dummy string";
     }
-        
-    void PrecomputeMaterialTensorForInverison();
     
-    void ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm, int timeLevel_to_diff, 
-      std::string tensorName, std::string implementationVersion, bool transposed, bool rotate, bool useAbs, bool lockPrecomputationAndDeltaMat=false );
+    void PrecomputeMaterialTensorForInverison();
         
+    void ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm, std::string tensorName, std::string implementationVersion, bool transposed, bool rotate, bool useAbs, bool lockPrecomputationAndDeltaMat=false );
+    
     void ComputeVector(Vector<Double>& outputVector,const LocPointMapped& lpm, int timeLevel, int baseSign, std::string vectorName, bool onBoundary );
     
     void InitLinearTensors(const LocPointMapped& lpm){
@@ -264,11 +270,11 @@ namespace CoupledField {
     // note: coupling tensor has to be in non-transposed form (i.e. 3x6 or 2x3, 2x4)
     CoefFunctionHystMatTensor(CoefFunctionHelper* hystHelper, std::string tensorName, bool transposed)
     :CoefFunction(){
-          
+      
       isAnalytic_ = false;
       isComplex_  = false;
       dependType_ = SOLUTION;
-        
+      
       // HystMat specific
       hystHelper_ = hystHelper;
       dimType_ = TENSOR;      
@@ -292,7 +298,7 @@ namespace CoupledField {
     
     void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm ){
       //std::cout << "Coef Function Hyst Mat - Get Tensor" << std::endl;
-//      std::cout << "GET TENSOR - 1" << std::endl;
+      //      std::cout << "GET TENSOR - 1" << std::endl;
       bool rotate = true;
       bool useAbs = false;
       std::string implementationVersion = "Division";
@@ -303,10 +309,11 @@ namespace CoupledField {
        * the tensors returned by this functions should normally be on the current
        * time level, i.e. timelevel should be 0
        */
-      int timeLevel_to_diff = hystHelper_->GetTimeLevel("DeltaMat"); 
+      //      int timeLevel_to_diff = hystHelper_->GetTimeLevel("DeltaMat"); 
+      // > moved inside computeTensor as there are different timeLevels for diff now
       
-      hystHelper_->ComputeTensor(outputTensor, lpm, timeLevel_to_diff, tensorName_, implementationVersion, transposed_, rotate, useAbs );
-//      std::cout << "GET TENSOR - 2" << std::endl;
+      hystHelper_->ComputeTensor(outputTensor, lpm, tensorName_, implementationVersion, transposed_, rotate, useAbs );
+      //      std::cout << "GET TENSOR - 2" << std::endl;
     }
     
     //! Return row and columns size of tensor if coefficient function is a tensor
@@ -348,7 +355,7 @@ namespace CoupledField {
       isAnalytic_ = false;
       isComplex_  = false;
       dependType_ = SOLUTION;
-        
+      
       // HystRHSLoad specific
       hystHelper_ = hystHelper;
       dimType_ = VECTOR;            
@@ -1023,15 +1030,15 @@ namespace CoupledField {
     
     CoefFunctionHystOutput(CoefFunctionHelper* hystHelper ,std::string ResultName):CoefFunction(){
       
-//      std::cout << "HystOutput -Generate " << ResultName << std::endl;
+      //      std::cout << "HystOutput -Generate " << ResultName << std::endl;
       if( (ResultName == "DeltaPermeability")||(ResultName == "DeltaPermittivity")
-//        ||(ResultName == "IrrStressesPiezo")||(ResultName == "IrrStrainsPiezo") ){
+        //        ||(ResultName == "IrrStressesPiezo")||(ResultName == "IrrStrainsPiezo") ){
         ||(ResultName == "IrrStressesPiezo_TensorForm")||(ResultName == "IrrStrainsPiezo_TensorForm") ){
         dimType_ = TENSOR;
       } else {
         dimType_ = VECTOR;
       }
-//      std::cout << "dimType_ = " << dimType_ << std::endl;
+      //      std::cout << "dimType_ = " << dimType_ << std::endl;
       
       isAnalytic_ = false;
       isComplex_  = false;
@@ -1049,7 +1056,7 @@ namespace CoupledField {
     }
     
     void GetVector(Vector<Double>& outputVector,const LocPointMapped& lpm){
-//      std::cout << "HystOutput -getVector " << resultName_ << std::endl;
+      //      std::cout << "HystOutput -getVector " << resultName_ << std::endl;
       int timeLevel = 0;
       Double baseSign = 1.0;
       //std::cout << "result " << resultName_ << " requested" << std::endl;
@@ -1072,7 +1079,7 @@ namespace CoupledField {
     //    }
     
     void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm ){
-//      std::cout << "HystOutput -getTensor " << resultName_ << std::endl;
+      //      std::cout << "HystOutput -getTensor " << resultName_ << std::endl;
       if( (resultName_ == "DeltaPermeability")||(resultName_ == "DeltaPermittivity") ){
         //TODO: estimate permeability or permittivity around current working point
         UInt numCols,numRows;
@@ -1080,7 +1087,7 @@ namespace CoupledField {
         outputTensor.Resize(numRows,numCols);
         outputTensor.Init();
       } else {
-        hystHelper_->ComputeTensor(outputTensor,lpm, 0, resultName_, "None", false, false, false, false );
+        hystHelper_->ComputeTensor(outputTensor,lpm, resultName_, "None", false, false, false, false );
       }
     }
     
@@ -1195,16 +1202,16 @@ namespace CoupledField {
         if( s_up > 1.0){
           s_up = 1.0;
         }
-          
+        
         Double deltas = s_up - s_low;
         Double wUp;
         Double wLow;
         if(flipped){
-            wUp = getWeight(lambda*s_up,s_up,delta);
-            wLow = getWeight(lambda*s_low,s_low,delta);
+          wUp = getWeight(lambda*s_up,s_up,delta);
+          wLow = getWeight(lambda*s_low,s_low,delta);
         } else{
-            wUp = getWeight(s_up,lambda*s_up,delta);
-            wLow = getWeight(s_low,lambda*s_low,delta);
+          wUp = getWeight(s_up,lambda*s_up,delta);
+          wLow = getWeight(s_low,lambda*s_low,delta);
         }
         return (wUp-wLow)/deltas;
       } else {
@@ -1273,7 +1280,7 @@ namespace CoupledField {
       return nominator1*nominator2*nominator3/denominator;
     }
     
-   Double dMuDatExtended_by_ds(Double A, Double sigma1, Double sigma2, Double h1, Double h2, Double eta, Double s, Double lambda, bool flipped){
+    Double dMuDatExtended_by_ds(Double A, Double sigma1, Double sigma2, Double h1, Double h2, Double eta, Double s, Double lambda, bool flipped){
       // Derivative of MuDat(s,lambda*s) by s 
       // Used to transfer Preisach weights from scalar to vector model (Mayergoyz model, isotropic)
       // (MuDat function with alpha = s, beta = lambda*s used)
@@ -1290,10 +1297,10 @@ namespace CoupledField {
       Double nominator1 = -A*eta;
       Double nominator2 = std::pow( std::pow((tmp2*s+h1)*sigma1,2) + std::pow((tmp*s-h2)*sigma2,2),eta-1);
       Double nominator3 = 2*(tmp2*s+h1)*sigma1*sigma1*tmp2 + 2*(tmp*s-h2)*sigma2*sigma2*tmp;
-       
+      
       return nominator1*nominator2*nominator3/denominator;
     }
-
+    
     /*
      * Functions needed for numerical integration with Gauss-Tschebyscheff
      */
@@ -1310,7 +1317,7 @@ namespace CoupledField {
       
       for(UInt i = 0; i < numPoints; i++){
         pointsAndWeights[i][0] = cos( (2.0*i + 1.0)/(2.0*(numPoints))*M_PI);
-          // include weighting term sqrt(1-x_i^2) into stepping weight (pi/n)
+        // include weighting term sqrt(1-x_i^2) into stepping weight (pi/n)
         pointsAndWeights[i][1] = M_PI/(numPoints)*sin( (2.0*i + 1.0)/(2.0*(numPoints))*M_PI);
       }
       return pointsAndWeights;
@@ -1376,7 +1383,7 @@ namespace CoupledField {
       
       UInt numIntegrationPoints = 15;
       Matrix<Double> integrationPoints = getTschebyscheffPointsAndWeights(numIntegrationPoints);
-
+      
       // upper part
       for(UInt i = dimHalfInt; i < MAT_numRows_; i++){
         // note: we evaluated the weights always at the element center > add deltaS/2
@@ -1399,10 +1406,10 @@ namespace CoupledField {
               Double tmp = 3*s*s*getWeight(s,lambda*s,delta);
               
               bool flipped = false; // > s takes slot of alpha, lambda*s takes place of beta
-                            
+              
               Double tmp2 = s*s*s*getWeightDerivative(s,lambda*s,delta, flipped);
               Double tmp3 = (tmp + tmp2)/(M_PI * alpha * alpha * std::sqrt(alpha*alpha - s*s));
-
+              
               vectorWeights[i][k] += dx_by_dy(std::min(0.0,alpha), std::max(0.0,alpha))*curW*tmp3;
               //vectorWeights[i][k] += dx_by_dy(0.0,alpha)*curW*tmp3;
             }
@@ -1410,19 +1417,19 @@ namespace CoupledField {
         } 
       }
       
-//      std::cout << "weights so far: " << std::endl;
-//      std::cout << vectorWeights.ToString() << std::endl;
-//      
+      //      std::cout << "weights so far: " << std::endl;
+      //      std::cout << vectorWeights.ToString() << std::endl;
+      //      
       // lower part
-//      std::cout << "dimHalfInt = " << dimHalfInt << std::endl;
+      //      std::cout << "dimHalfInt = " << dimHalfInt << std::endl;
       for(UInt k = 0; k < dimHalfInt; k++){
-//        std::cout << "k = " << k << std::endl;
+        //        std::cout << "k = " << k << std::endl;
         // note: we evaluated the weights always at the element center > add deltaS/2
         beta = (k - dimHalf)*delta + delta/2; //+ 1e-6*delta;// + delta/2;
         
         for(UInt i = k; i < MAT_numRows_-k-1; i++){
-//          std::cout << "MAT_numRows_-k-1 = " << MAT_numRows_-k-1 << std::endl;
-//          std::cout << "i = " << i << std::endl;
+          //          std::cout << "MAT_numRows_-k-1 = " << MAT_numRows_-k-1 << std::endl;
+          //          std::cout << "i = " << i << std::endl;
           alpha = (i - dimHalf)*delta + delta/2; //+ 1e-6*delta;// + delta/2;
           
           if(beta == 0){
@@ -1451,8 +1458,8 @@ namespace CoupledField {
         } 
       }
       
-//      std::cout << "weights final: " << std::endl;
-//      std::cout << vectorWeights.ToString() << std::endl;
+      //      std::cout << "weights final: " << std::endl;
+      //      std::cout << vectorWeights.ToString() << std::endl;
       
       bool checkWeights = !true;
       if(checkWeights){
@@ -1486,19 +1493,19 @@ namespace CoupledField {
           //Double deltaAngle = M_PI/numDirections_;
           // Note: here we do not average out over the halfspace so not multiplication by 2/M_PI
           integral *= M_PI/numAngles;
-
+          
           std::cout << "Alpha = " << alpha << std::endl;
           std::cout << "Beta = " << beta << std::endl;
           std::cout << "Scalar weight: " << target << std::endl;
           std::cout << "int_-pi/2^pi/2 cos(phi)^3 vectorWeights(alpha*cos(phi),beta*cos(phi) dphi: " << integral << std::endl;
-          }
+        }
         
         EXCEPTION("End after check");
       }
-
+      
       return vectorWeights;
     }
-
+    
     //! Destructor
     virtual ~CoefFunctionHyst();
     
@@ -1518,7 +1525,7 @@ namespace CoupledField {
     
     void SetFlag(std::string flagName, Integer intState);
     
-    void SetCurrentHystVals(bool overwriteMemory);
+    void PrecomputePolarization(bool overwriteMemory);
     void SetPreviousHystVals(bool setLastTS);
     void SetPreviousHystValsOLD(bool setLastTS, bool forceMemoryLock = false);
     
@@ -1531,7 +1538,7 @@ namespace CoupledField {
     void GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm );
     
     void checkSaturationStateAllElements(Double& lastTSSatAvg, Double& lastItSatAvg, Double& curItSatAvg,
-      Double& oppositeDirAsTSAvg, Double& oppositeDirAsItAvg){
+    Double& oppositeDirAsTSAvg, Double& oppositeDirAsItAvg){
       
       // go over all elements and check for saturation; 
       // Note: here we return Double values in order to give a percentage over the number of saturated elements
@@ -1558,7 +1565,7 @@ namespace CoupledField {
     }
     
     void checkSaturationState(UInt operatorIdx, UInt& lastTSSat, UInt& lastItSat, UInt& curItSat,
-      UInt& oppositeDirAsTS, UInt& oppositeDirAsIt){
+    UInt& oppositeDirAsTS, UInt& oppositeDirAsIt){
       
       /*
        * Little helper function checking if element solution was/is in saturation
@@ -1625,9 +1632,9 @@ namespace CoupledField {
         }
       }
     }
-
+    
     Matrix<Double> EstimateSlope(const LocPointMapped& Originallpm, bool includeStrains, bool useAbs, std::string implementationVersion,
-        Double steppingLength=1e-10, Double scaling=1.0);
+    Double steppingLength=1e-10, Double scaling=1.0);
     
     Matrix<Double> CalcDeltaMat(Vector<Double> E_B_diff, Vector<Double> P_J_diff, bool useAbs,std::string implementationVersion, Double cuttingTol = -1.0);
     Matrix<Double> CalcDeltaMatStrains(Vector<Double> E_B_diff, Vector<Double> S_diff, bool useAbs,std::string implementationVersion, Double cuttingTol = -1.0);
@@ -1640,8 +1647,11 @@ namespace CoupledField {
     Vector<Double> GetIrreversibleStrains(UInt storageIdx, int timeLevel);
     
     Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
-
+    
     Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
+    
+    void PrecomputeScaledAndRotatedCouplingTensor(Matrix<Double> baseTensor, bool rotate);
+    
     Vector<Double> ComputeIrreversibleStrains(Vector<Double> P,Vector<Double> Pold);
     
     Vector<Double> RetrieveInputToHysteresisOperator(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary);
@@ -1653,7 +1663,7 @@ namespace CoupledField {
     }
     
     PtrCoefFct GenerateMatCoefFnc(std::string tensorName){
-//      std::cout << "Generate mat coef function " << tensorName << std::endl;
+      //      std::cout << "Generate mat coef function " << tensorName << std::endl;
       PtrCoefFct ret;
       if((tensorName == "Permittivity")||(tensorName == "CouplingMechToElec")||(tensorName == "CouplingElecToMech")){
         // Note: for Piezo we need two different coupling functions
@@ -1664,7 +1674,7 @@ namespace CoupledField {
         
         if(hystHelper_ == NULL){
           hystHelper_ = new CoefFunctionHelper(eps,elastTensorFct_,
-          couplTensorFct_, hystItself_);
+            couplTensorFct_, hystItself_);
         }
         
         bool transposed = false;
@@ -1680,7 +1690,7 @@ namespace CoupledField {
         
         if(hystHelper_ == NULL){
           hystHelper_ = new CoefFunctionHelper(nu,elastTensorFct_,
-          couplTensorFct_, hystItself_);
+            couplTensorFct_, hystItself_);
         }
         
         bool transposed = false;
@@ -1699,23 +1709,23 @@ namespace CoupledField {
     }
     
     PtrCoefFct GenerateRHSCoefFnc(std::string vectorName, bool onBoundary = false ){
-//      std::cout << "Generate rhs coef function " << vectorName << std::endl;
+      //      std::cout << "Generate rhs coef function " << vectorName << std::endl;
       PtrCoefFct ret;
       if( (vectorName == "ElecPolarization") || (vectorName == "IrrStrainForMechPDE") || (vectorName == "IrrStrainForElecPDE")){
         PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
         
         if(hystHelper_ == NULL){
           hystHelper_ = new CoefFunctionHelper(eps,elastTensorFct_,
-          couplTensorFct_, hystItself_);
+            couplTensorFct_, hystItself_);
         }
         
         bool transposed = false;
         // NOTE: for mechPDE we do not need the coupling tensor when we apply the strains > no transpose needed
         // note further, that only the irr-strains are put to both rhs; polarization only in elec pde
-//        if(vectorName == "IrrStrainForMechPDE"){
-//          // in mech PDE we need h^T or g^T
-//          transposed = true;
-//        }
+        //        if(vectorName == "IrrStrainForMechPDE"){
+        //          // in mech PDE we need h^T or g^T
+        //          transposed = true;
+        //        }
         shared_ptr<CoefFunctionHystRHSLoad> c(new CoefFunctionHystRHSLoad(hystHelper_,vectorName,transposed,onBoundary));
         
         ret = c;
@@ -1724,7 +1734,7 @@ namespace CoupledField {
         
         if(hystHelper_ == NULL){
           hystHelper_ = new CoefFunctionHelper(nu,elastTensorFct_,
-          couplTensorFct_, hystItself_);
+            couplTensorFct_, hystItself_);
         }
         
         bool transposed = false;
@@ -1744,7 +1754,7 @@ namespace CoupledField {
     }
     
     PtrCoefFct GenerateOutputCoefFnc(std::string ResultName){
-//      std::cout << "Generate output coef function " << ResultName << std::endl;
+      //      std::cout << "Generate output coef function " << ResultName << std::endl;
       PtrCoefFct ret;
       
       if( (ResultName == "ElecPolarization") || (ResultName == "IrrStressesPiezo_TensorForm") || (ResultName == "IrrStrainsPiezo_TensorForm") ){
@@ -1752,7 +1762,7 @@ namespace CoupledField {
         
         if(hystHelper_ == NULL){
           hystHelper_ = new CoefFunctionHelper(eps,elastTensorFct_,
-          couplTensorFct_, hystItself_);
+            couplTensorFct_, hystItself_);
         }
         
         shared_ptr<CoefFunctionHystOutput> c(new CoefFunctionHystOutput(hystHelper_,ResultName));
@@ -1762,7 +1772,7 @@ namespace CoupledField {
         
         if(hystHelper_ == NULL){
           hystHelper_ = new CoefFunctionHelper(nu,elastTensorFct_,
-          couplTensorFct_, hystItself_);
+            couplTensorFct_, hystItself_);
         }
         
         shared_ptr<CoefFunctionHystOutput> c(new CoefFunctionHystOutput(hystHelper_,ResultName));
@@ -1798,30 +1808,54 @@ namespace CoupledField {
       if(forceCurrentTS_){
         return 0; 
       }
+      // keep old names until all new ones are implemented
       if(Type == "Material"){
-        return timeLevel_Material_;
+        return timeLevel_Mat_;
       } else if (Type == "DeltaMat"){
-        return timeLevel_DeltaMat_;
+        return timeLevel_deltaMatPol_;
+      } else if (Type == "DeltaMatPol"){
+        return timeLevel_deltaMatPol_;
+      } else if (Type == "DeltaMatStrain"){
+        return timeLevel_deltaMatStrain_;
+      } else if (Type == "DeltaMatCoupling"){
+        return timeLevel_deltaMatCoupling_;
       } else if (Type == "RHS"){
-        return timeLevel_RHS_;
+        return timeLevel_rhsPol_;
+      } else if (Type == "RHSPol"){
+        return timeLevel_rhsPol_;
+      } else if (Type == "RHSStrain"){
+        return timeLevel_rhsStrain_;
+      } else if (Type == "RHSCoupling"){
+        return timeLevel_rhsCoupling_;
       } else if (Type == "BC"){
-        return timeLevel_BC_;
+        return timeLevel_boundaryTerms_;
       } else if (Type == "Output"){
-        return timeLevel_Output_;
+        return timeLevel_results_;
       } else {
         EXCEPTION("Type not known");
         return -2;
       }
     }
+    //    
+    //    Integer timeLevel_Mat_;
+    //    Integer timeLevel_rhsPol_;
+    //    Integer timeLevel_rhsStrain_; // piezo / magstrict only
+    //    Integer timeLevel_rhsCoupling_; // piezo / magstrict only
+    //    Integer timeLevel_deltaMatPol_;
+    //    Integer timeLevel_deltaMatStrain_;
+    //    Integer timeLevel_deltaMatCoupling_;
+    //    Integer timeLevel_results_;
+    //    Integer timeLevel_boundaryTerms_;
+    
     
     void TestInversion(PtrParamNode testNode);
     
     void CreatePeriodicTestSignal(std::string name, Double amplitudeScaling, Double numPeriods, UInt stepsPerPeriods, Vector<Double>& xVals, Vector<Double>& yVals);
-  
+    
     void CreateNonPeriodicTestSignal(std::string name, Double amplitudeScaling, UInt numberOfSteps, Vector<Double>& xVals, Vector<Double>& yVals);
-          
+    
     void TestHystOperatorWithSignal(std::string name, Vector<Double> xVals, Vector<Double> yVals, 
-          bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, bool test1D, bool outputIrrStrains);
+    bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, bool test1D, bool outputIrrStrains);
     
     void WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals);
     
@@ -1917,11 +1951,11 @@ namespace CoupledField {
         } 
       }
     }
-     
+    
     void ClipDirection(Vector<Double>& targetVector);
     
     void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor,int timeLevel,
-      bool rotate = true){
+    bool rotate = true){
       // compare to Kaltenbacher "Numerical Simulation ..." 3rd Edition p. 387
       //
       // scaling:
@@ -1929,7 +1963,7 @@ namespace CoupledField {
       //
       // for vector model, an additional rotation towards P could be reasonable
       
-      // get actual indices for storage array to find out if we need to reevaluated or not
+      // get actual indices for storage array to find out if we need to reevaluate or not
       UInt operatorIdx, storageIdx;
       LocPointMapped actualLPM;
       
@@ -2056,9 +2090,9 @@ namespace CoupledField {
     }
     
     CoefFunctionHelper* hystHelper_;
-  
+    
   private:
-        
+    
     // helper functions for computation of rhs loads and lhs tensors
     //  
     //	Matrix<Double> ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, bool invert, bool scaleOnly){
@@ -2203,9 +2237,11 @@ namespace CoupledField {
       return R;
     }
     
-
+    
     void EvaluateHystOperatorsInt(Integer intFlag);
     void EvaluateHystOperators(bool setMatForInversion, bool resetSolToZeroFirst, bool overwriteMemory, bool setRotStateForVecExtension);
+    
+    void PrecomputeIrrStrains();
     
     bool PreprocessLPM(const LocPointMapped& lpmInput, LocPointMapped& lpmOutput,
     UInt& operatorIdx, UInt& storageIdx, bool forceMidpoint = false);
@@ -2222,7 +2258,7 @@ namespace CoupledField {
     
     void ExtractSolutionAndInputForHystOperator(Vector<Double>& extractedSolution, Vector<Double>& extractedInput, UInt& operatorIndex,
     UInt& storageIndex, const LocPointMapped& lpm, bool midpointOnly);
-        
+    
     bool EvaluateAtMidpointOnly();
     bool OverwriteHystMemory();
     
@@ -2232,13 +2268,18 @@ namespace CoupledField {
     // independent of the actual value of timeLevel_xxx_
     bool forceCurrentTS_;
     int RUN_deltaForm_;
-    Integer timeLevel_Material_;
-    Integer timeLevel_DeltaMat_;
-    Integer timeLevel_RHS_;
-    Integer timeLevel_BC_;
-    Integer timeLevel_Output_;
-    PtrCoefFct hystItself_;
     
+    // NEW timelevel to allow for more flexibility
+    Integer timeLevel_Mat_;
+    Integer timeLevel_rhsPol_;
+    Integer timeLevel_rhsStrain_; // piezo / magstrict only
+    Integer timeLevel_rhsCoupling_; // piezo / magstrict only
+    Integer timeLevel_deltaMatPol_;
+    Integer timeLevel_deltaMatStrain_;
+    Integer timeLevel_deltaMatCoupling_;
+    Integer timeLevel_results_;
+    Integer timeLevel_boundaryTerms_;
+    PtrCoefFct hystItself_;
     
     IntegOrder IntegOrder_;
 		IntScheme::IntegMethod IntegMethod_;
@@ -2446,7 +2487,7 @@ namespace CoupledField {
      * 3: measure performance ONLY during testInversion
      */
     Integer XML_performanceMeasurement_;
-        
+    
     /*
      * #########################################################################
      * ### Parameters the will/might change during execution of StdSolveStep ###
@@ -2460,7 +2501,7 @@ namespace CoupledField {
      * > does not work if false; set it to true and leave it true
      * REMOVED 1.6.2018
      */
-//    bool RUN_overwriteDirection_;
+    //    bool RUN_overwriteDirection_;
     
     /*
      * evaluationPurpose_ (to be changed during the iterative solve step)
@@ -2572,7 +2613,7 @@ namespace CoupledField {
     int MAT_dim_beta_;
     Matrix<Double> MAT_betaCoefs_;
     
-     /*
+    /*
      * ###############
      * ### Storage ###
      * ###############
@@ -2611,7 +2652,7 @@ namespace CoupledField {
     Vector<Double>* P_J_lastIt_;
     Vector<Double>* E_H_lastIt_;
     Vector<Double>* Si_lastIt_;
-        
+    
     /*
      * Storage vectors for quantites of the last timestep;
      * these values will ONLY be set during the FIRST iteration of each time step
@@ -2645,7 +2686,7 @@ namespace CoupledField {
     Matrix<Double>* deltaMatStrain_;
     Matrix<Double>* deltaMatStrainPrev_;
     bool* deltaMatStrain_requiresReeval_;
-      
+    
     Double includeOldDelta_;
     
     Matrix<Double>* matrixForInversion_; // used for local inversion of preisach operator > eps/mu; might depend on P itself

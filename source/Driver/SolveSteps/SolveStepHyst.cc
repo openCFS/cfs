@@ -44,6 +44,9 @@ namespace CoupledField {
     Integer deltaForm;
     if( !hystNode ) {
       WARN("Taking default parameters for nonlinear data" );
+      towardsLastIteration_ = true;
+      deltaMatCoupling_ = false;
+      deltaMatStrain_ = false;
       nonLinMethod_ = "HYST_deltaMat_TS";
       deltaForm = -1;
       lineSearch_ = "None";
@@ -59,6 +62,9 @@ namespace CoupledField {
       minNumberItTillReset_ = 5;
       minResDecreaseTillReset_ = 1e-5;
       nonLinMethodAfterReset_ = "HYST_deltaMat_IT";
+      towardsLastIterationReset_ = true;
+      deltaMatCouplingReset_ = false;
+      deltaMatStrainReset_ = false;
       lineSearchAfterReset_ = "HYST_minResidual";
     } else {
       /*
@@ -69,10 +75,53 @@ namespace CoupledField {
       
       // solution method
       // type of line search
+      towardsLastIteration_ = true;
+      deltaMatCoupling_ = false;
+      deltaMatStrain_ = false;
+      nonLinMethod_ = "HYST_deltaMat_IT";
+      
       if( hystNode->Has("method") ) {
-        hystNode->GetValue( "method", nonLinMethod_,ParamNode::PASS );
+        PtrParamNode methodNode = hystNode->Get("method");
+        
+        if(methodNode->Has("debug")){
+          nonLinMethod_ = "HYST_debug";
+        } else if(methodNode->Has("fixpoint")){
+          if(methodNode->Get("fixpoint")->Has("towardsLastIteration")){
+            methodNode->Get("fixpoint")->GetValue( "towardsLastIteration", towardsLastIteration_, ParamNode::PASS );
+          }
+          if(towardsLastIteration_){
+            nonLinMethod_ = "HYST_fixPoint_IT";
+          } else {
+            nonLinMethod_ = "HYST_fixPoint_TS";
+          }
+        } else if(methodNode->Has("deltaMat")){
+          if(methodNode->Get("deltaMat")->Has("towardsLastIteration")){
+            std::cout << "towardsLastIteration found" << std::endl;
+            methodNode->Get("deltaMat")->GetValue( "towardsLastIteration", towardsLastIteration_, ParamNode::PASS );
+          }
+          if(methodNode->Get("deltaMat")->Has("deltaMatCoupling")){
+            std::cout << "deltaMatCoupling found" << std::endl;
+            methodNode->Get("deltaMat")->GetValue( "deltaMatCoupling", deltaMatCoupling_, ParamNode::PASS );
+          }
+          if(methodNode->Get("deltaMat")->Has("deltaMatStrain")){
+            std::cout << "deltaMatStrain found" << std::endl;
+            methodNode->Get("deltaMat")->GetValue( "deltaMatStrain", deltaMatStrain_, ParamNode::PASS );
+          }
+          
+          if(towardsLastIteration_){
+            nonLinMethod_ = "HYST_deltaMat_IT";
+          } else {
+            nonLinMethod_ = "HYST_deltaMat_TS";
+          }
+        }
       }
-
+      
+      std::cout << "Read in parameter: " << std::endl;
+      std::cout << "nonLinMethod_ = " << nonLinMethod_ << std::endl;
+      std::cout << "towardsLastIteration = " << towardsLastIteration_ << std::endl;
+      std::cout << "deltaMatCoupling = " << deltaMatCoupling_ << std::endl;
+      std::cout << "deltaMatStrain = " << deltaMatStrain_ << std::endl;
+      
       // perform logging?
       hystNode->GetValue( "logging", nonLinLogging_, ParamNode::PASS );
       
@@ -101,10 +150,10 @@ namespace CoupledField {
       // abort if max number of iterations is reached?
       hystNode->GetValue("abortOnMaxNumIters",abortOnMaxIter_,ParamNode::INSERT);
       
-//      LOG_TRACE(stdsolvestep) << "Nonlinear convergence criteria were read:";
-//      LOG_DBG3(stdsolvestep) << "\tincremental Stopping Criterion: " << incStopCrit_;
-//      LOG_DBG3(stdsolvestep) << "\tresidual Stopping Criterion: " << residualStopCrit_;
-//      LOG_DBG3(stdsolvestep) << "\tmaxNumIters: " << nonLinMaxIter_;
+      //      LOG_TRACE(stdsolvestep) << "Nonlinear convergence criteria were read:";
+      //      LOG_DBG3(stdsolvestep) << "\tincremental Stopping Criterion: " << incStopCrit_;
+      //      LOG_DBG3(stdsolvestep) << "\tresidual Stopping Criterion: " << residualStopCrit_;
+      //      LOG_DBG3(stdsolvestep) << "\tmaxNumIters: " << nonLinMaxIter_;
       if( hystNode->Has("stopOnLimit") ) {
         std::string solutionString;
         // quantity
@@ -134,13 +183,13 @@ namespace CoupledField {
           EXCEPTION("checking limits in a region is not implemented (and I don't know how) (SE). " 
                   << "Just remove the 'region=XXX' tag");
         }
-//        LOG_DBG3(stdsolvestep) << "\tStop on Limit: " << solutionString;
-//        LOG_DBG3(stdsolvestep) << "\t\tmin:     " << minValidValue_;
-//        LOG_DBG3(stdsolvestep) << "\t\tmax:     " << maxValidValue_;
-//        LOG_DBG3(stdsolvestep) << "\t\tin Region:     " << solutionRegion;
-//        LOG_DBG3(stdsolvestep) << "\t\tRegionID:     " << solutionLimitReg_;
+        //        LOG_DBG3(stdsolvestep) << "\tStop on Limit: " << solutionString;
+        //        LOG_DBG3(stdsolvestep) << "\t\tmin:     " << minValidValue_;
+        //        LOG_DBG3(stdsolvestep) << "\t\tmax:     " << maxValidValue_;
+        //        LOG_DBG3(stdsolvestep) << "\t\tin Region:     " << solutionRegion;
+        //        LOG_DBG3(stdsolvestep) << "\t\tRegionID:     " << solutionLimitReg_;
       }
- 
+      
       
       if( hystNode->Has("HYST_evalDepth") ) {
         hystNode->GetValue( "HYST_evalDepth", evalDepth_, ParamNode::INSERT );
@@ -179,19 +228,53 @@ namespace CoupledField {
           resetNode->GetValue( "minResDecreaseTillReset", minResDecreaseTillReset_, ParamNode::PASS );
         }
         if(resetNode->Has("nonLinMethodAfterReset")){
-          resetNode->GetValue( "nonLinMethodAfterReset", nonLinMethodAfterReset_, ParamNode::PASS );
+          
+          PtrParamNode methodNode = resetNode->Get("nonLinMethodAfterReset");
+          
+          if(methodNode->Has("debug")){
+            nonLinMethodAfterReset_ = "HYST_debug";
+          } else if(methodNode->Has("fixpoint")){
+            if(methodNode->Get("fixpoint")->Has("towardsLastIteration")){
+              methodNode->Get("fixpoint")->GetValue( "towardsLastIteration", towardsLastIterationReset_, ParamNode::PASS );
+            }
+            if(towardsLastIterationReset_){
+              nonLinMethodAfterReset_ = "HYST_fixPoint_IT";
+            } else {
+              nonLinMethodAfterReset_ = "HYST_fixPoint_TS";
+            }
+          } else if(methodNode->Has("deltaMat")){
+            if(methodNode->Get("deltaMat")->Has("towardsLastIteration")){
+              std::cout << "towardsLastIteration found" << std::endl;
+              methodNode->Get("deltaMat")->GetValue( "towardsLastIteration", towardsLastIterationReset_, ParamNode::PASS );
+            }
+            if(methodNode->Get("deltaMat")->Has("deltaMatCoupling")){
+              std::cout << "deltaMatCoupling found" << std::endl;
+              methodNode->Get("deltaMat")->GetValue( "deltaMatCoupling", deltaMatCouplingReset_, ParamNode::PASS );
+            }
+            if(methodNode->Get("deltaMat")->Has("deltaMatStrain")){
+              std::cout << "deltaMatStrain found" << std::endl;
+              methodNode->Get("deltaMat")->GetValue( "deltaMatStrain", deltaMatStrainReset_, ParamNode::PASS );
+            }
+            if(towardsLastIterationReset_){
+              nonLinMethodAfterReset_ = "HYST_deltaMat_IT";
+            } else {
+              nonLinMethodAfterReset_ = "HYST_deltaMat_TS";
+            }
+          }
         }
+//          resetNode->GetValue( "nonLinMethodAfterReset", nonLinMethodAfterReset_, ParamNode::PASS );
+//        }
         if(resetNode->Has("lineSearchAfterReset")){
           resetNode->Get("lineSearchAfterReset")->GetValue( "type", lineSearchAfterReset_,ParamNode::PASS );
         }
       } 
-          
+      
 			testNode_ = NULL;
       if( hystNode->Has("HYST_testOperator") ) {
 				testInversion_ = 1;
         testNode_ = hystNode->Get("HYST_testOperator");
       }
-
+      
       /*
        * Important: evaluationDepth has to be set first as it triggers the
        * initializstion of the storage
@@ -254,7 +337,7 @@ namespace CoupledField {
       
 			predictorCorrectorUpdate_.SetSubVector(new Vector<Double>(),id);
       predictorCorrectorUpdate_.GetPointer(id)->Resize(rhsSize);
-      						
+      
 			resVec_.SetSubVector(new Vector<Double>(),id);
       resVec_.GetPointer(id)->Resize(rhsSize);
 			
@@ -276,9 +359,15 @@ namespace CoupledField {
      *  in each case)
      */
     timeLevelMaterialCurrent_ = -10;
-	  timeLevelDeltaMatCurrent_ = -10;
-    timeLevelRHSHystCurrent_ = -10;
-
+    timeLevelDeltaMatPolCurrent_ = -10;
+    timeLevelDeltaMatStrainCurrent_ = -10;
+    timeLevelDeltaMatCouplingCurrent_ = -10;
+    //	  timeLevelDeltaMatCurrent_ = -10;
+    timeLevelRHSPolCurrent_ = -10;
+    timeLevelRHSStrainCurrent_ = -10;
+    timeLevelRHSCouplingCurrent_ = -10;
+    //    timeLevelRHSHystCurrent_ = -10;
+    
     debugOutput_ = false;
   }
 	
@@ -321,7 +410,11 @@ namespace CoupledField {
      *  1: delta matrix formulation with delta towards previous it (k-1)
      *			e.g. deltaP = P_k - P_k-1
      */
-		Integer timeLevelDeltaMat; 
+//		Integer timeLevelDeltaMat; 
+    Integer timeLevelDeltaMatPol;
+    Integer timeLevelDeltaMatStrain;
+    Integer timeLevelDeltaMatCoupling;
+    
 		/*
      * timeLevelRHSHyst
      * -2: hyst operator will not be added to rhs
@@ -329,7 +422,10 @@ namespace CoupledField {
      *  0: current output of hyst operator (k) will be added to rhs
      *  1: output of hyst operator from last it (k-1) will be added to rhs
      */
-		Integer timeLevelRHSHyst;
+//		Integer timeLevelRHSHyst;
+    Integer timeLevelRHSPol;
+    Integer timeLevelRHSStrain;
+    Integer timeLevelRHSCoupling;
 		/*
      * solutionForUpdate
      *  solutionForUpdate = solVec_ = u_k
@@ -350,10 +446,20 @@ namespace CoupledField {
      */
 		//solutionForUpdate = solVec_;
 		timeLevelMaterial = 0;
-		timeLevelDeltaMat = -2;
-		timeLevelRHSHyst = 0;
-		
-		SetupRESorRHS(timeLevelMaterial, timeLevelDeltaMat, timeLevelRHSHyst, solutionForUpdate, solutionForMatrixAssembly, solutionForRHSAssembly, resVec_);
+    
+//		timeLevelDeltaMat = -2; > no deltaMat for residual computation > always full evaluation
+    timeLevelDeltaMatPol = -2;
+    timeLevelDeltaMatStrain = -2;
+    timeLevelDeltaMatCoupling = -2;
+    
+//		timeLevelRHSHyst = 0;
+    timeLevelRHSPol = 0;
+    timeLevelRHSStrain = 0;
+    timeLevelRHSCoupling = 0;
+
+		SetupRESorRHS(timeLevelMaterial, timeLevelDeltaMatPol, timeLevelDeltaMatStrain, timeLevelDeltaMatCoupling,
+            timeLevelRHSPol, timeLevelRHSStrain, timeLevelRHSCoupling, 
+            solutionForUpdate, solutionForMatrixAssembly, solutionForRHSAssembly, resVec_);
 	}
 	
 	void SolveStepHyst::SetupRHS(SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, SBM_Vector& solutionForRHSAssembly, UInt iterationCounter){
@@ -386,7 +492,10 @@ namespace CoupledField {
      *  1: delta matrix formulation with delta towards previous it (k-1)
      *			e.g. deltaP = P_k - P_k-1
      */
-		Integer timeLevelDeltaMat; 
+//		Integer timeLevelDeltaMat; 
+    Integer timeLevelDeltaMatPol;
+    Integer timeLevelDeltaMatStrain;
+    Integer timeLevelDeltaMatCoupling;
 		/*
      * timeLevelRHSHyst
      * -2: hyst operator will not be added to rhs
@@ -394,7 +503,10 @@ namespace CoupledField {
      *  0: current output of hyst operator (k) will be added to rhs
      *  1: output of hyst operator from last it (k-1) will be added to rhs
      */
-		Integer timeLevelRHSHyst;
+//		Integer timeLevelRHSHyst;
+    Integer timeLevelRHSPol;
+    Integer timeLevelRHSStrain;
+    Integer timeLevelRHSCoupling;
 		/*
      * solutionForUpdate
      *  solutionForUpdate = solVec_ = u_k
@@ -424,8 +536,15 @@ namespace CoupledField {
        */
 			//solutionForUpdate = solVec_;
 			timeLevelMaterial = -2;
-			timeLevelDeltaMat = -2;
-			timeLevelRHSHyst = -2;
+//			timeLevelDeltaMat = -2;
+//			timeLevelRHSHyst = -2;
+      timeLevelDeltaMatPol = -2;
+      timeLevelDeltaMatStrain = -2;
+      timeLevelDeltaMatCoupling = -2;
+      timeLevelRHSPol = -2;
+      timeLevelRHSStrain = -2;
+      timeLevelRHSCoupling = -2;
+      
 		} else if(nonLinMethod_ == "HYST_fixPoint_IT"){
 			/*
        * 1) fixpoint iteration towards last iteration k:
@@ -436,8 +555,14 @@ namespace CoupledField {
        */
 			//solutionForUpdate = solVec_;
 			timeLevelMaterial = 0;
-			timeLevelDeltaMat = -2;
-			timeLevelRHSHyst = 0; 
+      timeLevelDeltaMatPol = -2;
+      timeLevelDeltaMatStrain = -2;
+      timeLevelDeltaMatCoupling = -2;
+//			timeLevelDeltaMat = -2;
+//			timeLevelRHSHyst = 0; 
+      timeLevelRHSPol = 0;
+      timeLevelRHSStrain = 0;
+      timeLevelRHSCoupling = 0;
 		} else if(nonLinMethod_ == "HYST_fixPoint_TS"){
 			/*
        * 2) fixpoint iteration towards last timestep n:
@@ -448,8 +573,14 @@ namespace CoupledField {
        */
 			//solutionForUpdate = solVecLastTS_;
 			timeLevelMaterial = 0;
-			timeLevelDeltaMat = -2;
-			timeLevelRHSHyst = -1;
+      timeLevelDeltaMatPol = -2;
+      timeLevelDeltaMatStrain = -2;
+      timeLevelDeltaMatCoupling = -2;
+//			timeLevelDeltaMat = -2;
+//			timeLevelRHSHyst = -1;
+      timeLevelRHSPol = -1;
+      timeLevelRHSStrain = -1;
+      timeLevelRHSCoupling = -1;
 		} else if(nonLinMethod_ == "HYST_deltaMat_IT"){
 			/*
        * 3) deltaMat computation towards last iteration k:
@@ -460,8 +591,14 @@ namespace CoupledField {
        */
 			//solutionForUpdate = solVec_;
 			timeLevelMaterial = 0;
-			timeLevelDeltaMat = -2;
-			timeLevelRHSHyst = 0;//1; actually k-1 (i.e. timeLevelRHSHyst = 1) would be 
+      
+      // no delta mat for rhs!
+      timeLevelDeltaMatPol = -2;
+      timeLevelDeltaMatStrain = -2;
+      timeLevelDeltaMatCoupling = -2;
+//			timeLevelDeltaMat = -2;
+      
+      int timeLevelRHSHyst = 0;//1; actually k-1 (i.e. timeLevelRHSHyst = 1) would be 
       // correct according to formulas; however, according to formula we would get
       // for the case that deltaU_k+1 approx deltaU_k
       //  deltaP_k/deltaU_k * deltaU_k+1 approx deltaP_k
@@ -476,6 +613,22 @@ namespace CoupledField {
       //                > during third iteration, we will get new solution, but as the first two resulted
       //                    in the same solution, so will the stored hyst values be the same
       //                > game repeats ...)
+      timeLevelRHSPol = timeLevelRHSHyst;
+      
+      if(deltaMatStrain_){
+        timeLevelRHSStrain = timeLevelRHSHyst;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelRHSStrain = 0;
+      }
+      
+      if(deltaMatCoupling_){
+        timeLevelRHSCoupling = timeLevelRHSHyst;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelRHSCoupling = 0;
+      }
+//			
 		} else if(nonLinMethod_ == "HYST_deltaMat_TS"){
 			/*
        * 4) deltaMat computation towards last timestep n:
@@ -487,21 +640,64 @@ namespace CoupledField {
        */
 			//solutionForUpdate = solVecLastTS_;
 			timeLevelMaterial = 0;
-			timeLevelDeltaMat = -2;
-			timeLevelRHSHyst = -1;
+      timeLevelDeltaMatPol = -2;
+      timeLevelDeltaMatStrain = -2;
+      timeLevelDeltaMatCoupling = -2;
+//			timeLevelDeltaMat = -2;
+//			timeLevelRHSHyst = -1;
+      int timeLevelRHSHyst = -1; // lastTS
+      timeLevelRHSPol = timeLevelRHSHyst;
+      
+      if(deltaMatStrain_){
+        timeLevelRHSStrain = timeLevelRHSHyst;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelRHSStrain = 0;
+      }
+      
+      if(deltaMatCoupling_){
+        timeLevelRHSCoupling = timeLevelRHSHyst;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelRHSCoupling = 0;
+      }
+
 		} else if(nonLinMethod_ == "HYST_deltaMat_mix"){
-     /*
+      /*
        * 5) HYST_deltaMat_mix
        *    1. iteration: estimateSlope, no deltaMat, hystLastTS on rhs
        *    2. iteration: deltaMat_TS, hystLastTS on rhs
        *    3+ iteration: deltaMat_IT, hystLastIt on rhs (actual k-1, see comment above)
        */
       timeLevelMaterial = 0;
-			timeLevelDeltaMat = -2;
+      timeLevelDeltaMatPol = -2;
+      timeLevelDeltaMatStrain = -2;
+      timeLevelDeltaMatCoupling = -2;
+      //			timeLevelDeltaMat = -2;
+      int timeLevelRHSHyst = 0;
       if(iterationCounter < 2){
-        timeLevelRHSHyst = -1;
+        
+        //			timeLevelRHSHyst = -1;
+        timeLevelRHSHyst = -1; // lastTS
       } else {
-        timeLevelRHSHyst = 1; // not 0
+        //        timeLevelRHSHyst = 1; // not 0
+        timeLevelRHSHyst = 1; // lastIT
+      }
+      
+      timeLevelRHSPol = timeLevelRHSHyst;
+      
+      if(deltaMatStrain_){
+        timeLevelRHSStrain = timeLevelRHSHyst;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelRHSStrain = 0;
+      }
+      
+      if(deltaMatCoupling_){
+        timeLevelRHSCoupling = timeLevelRHSHyst;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelRHSCoupling = 0;
       }
 
     } else {
@@ -509,8 +705,11 @@ namespace CoupledField {
       except << "Nonlinear method " << nonLinMethod_ << " not implemented for hysteresis.";
 			EXCEPTION(except.str())
 		}
-		
-		SetupRESorRHS(timeLevelMaterial, timeLevelDeltaMat, timeLevelRHSHyst, solutionForUpdate, solutionForMatrixAssembly, solutionForRHSAssembly,  rhsVec_);
+    
+    SetupRESorRHS(timeLevelMaterial, timeLevelDeltaMatPol, timeLevelDeltaMatStrain, timeLevelDeltaMatCoupling,
+            timeLevelRHSPol, timeLevelRHSStrain, timeLevelRHSCoupling, 
+            solutionForUpdate, solutionForMatrixAssembly, solutionForRHSAssembly, rhsVec_);
+    //		SetupRESorRHS(timeLevelMaterial, timeLevelDeltaMat, timeLevelRHSHyst, solutionForUpdate, solutionForMatrixAssembly, solutionForRHSAssembly,  rhsVec_);
 		algsys_->InitRHS(rhsVec_);
 	}
 	
@@ -538,7 +737,11 @@ namespace CoupledField {
      *			e.g. deltaP = P_k - P_k-1
      */
 		Integer timeLevelDeltaMat; 
+    Integer timeLevelDeltaMatPol;
+    Integer timeLevelDeltaMatStrain;
+    Integer timeLevelDeltaMatCoupling;
     
+    std::cout << "nonLinMethod_: " << nonLinMethod_ << std::endl;
     if(nonLinMethod_ == "HYST_debug"){
 			/*
        * 0) debug mode = fixpoint iteration without considering hysteresis at all;
@@ -561,6 +764,22 @@ namespace CoupledField {
        */
 			timeLevelMaterial = 0;
 			timeLevelDeltaMat = 1;
+
+      timeLevelDeltaMatPol = timeLevelDeltaMat;
+      if(deltaMatStrain_){
+        timeLevelDeltaMatStrain = timeLevelDeltaMat;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelDeltaMatStrain = 0;
+      }
+      
+      if(deltaMatCoupling_){
+        timeLevelDeltaMatCoupling = timeLevelDeltaMat;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelDeltaMatCoupling = 0;
+      }
+      
 		} else if(nonLinMethod_ == "HYST_deltaMat_TS"){
 			/*
        * 4) deltaMat computation towards last timestep n:
@@ -568,9 +787,25 @@ namespace CoupledField {
        *    > delta mat to be evaluated with respect to last timestep (n)
        */
 			timeLevelMaterial = 0;
-			timeLevelDeltaMat = -1;
+//			timeLevelDeltaMat = -1;
+      timeLevelDeltaMat = -1;
+
+      timeLevelDeltaMatPol = timeLevelDeltaMat;
+      if(deltaMatStrain_){
+        timeLevelDeltaMatStrain = timeLevelDeltaMat;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelDeltaMatStrain = 0;
+      }
+      
+      if(deltaMatCoupling_){
+        timeLevelDeltaMatCoupling = timeLevelDeltaMat;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelDeltaMatCoupling = 0;
+      }
 		} else if(nonLinMethod_ == "HYST_deltaMat_mix"){
-     /*
+      /*
        * 5) HYST_deltaMat_mix
        *    1. iteration: estimateSlope, no deltaMat, hystLastTS on rhs
        *    2. iteration: deltaMat_TS, hystLastTS on rhs
@@ -590,22 +825,41 @@ namespace CoupledField {
         timeLevelDeltaMat = 1;
       }
 
+      timeLevelDeltaMatPol = timeLevelDeltaMat;
+      if(deltaMatStrain_){
+        timeLevelDeltaMatStrain = timeLevelDeltaMat;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelDeltaMatStrain = 0;
+      }
+      
+      if(deltaMatCoupling_){
+        timeLevelDeltaMatCoupling = timeLevelDeltaMat;
+      } else {
+        // no deltaMat for strains > take current value
+        timeLevelDeltaMatCoupling = 0;
+      }
+      
     } else {
       std::stringstream except;
       except << "Nonlinear method " << nonLinMethod_ << " not implemented for hysteresis.";
 			EXCEPTION(except.str())
 		}
-    
-    AssembleSystem(timeLevelMaterial, timeLevelDeltaMat, solutionForMatrixAssembly);
-    
+        
+    //    AssembleSystem(timeLevelMaterial, timeLevelDeltaMat, solutionForMatrixAssembly);
+    AssembleSystem(timeLevelMaterial, timeLevelDeltaMatPol,timeLevelDeltaMatStrain,timeLevelDeltaMatCoupling , solutionForMatrixAssembly);
   }
   
-  void SolveStepHyst::AssembleSystem(Integer timeLevelMaterial, Integer timeLevelDeltaMat, SBM_Vector& solutionForMatrixAssembly){
-//    std::cout << "#### AssembleSystem - 1" << std::endl;
+  void SolveStepHyst::AssembleSystem(Integer timeLevelMaterial, Integer timeLevelDeltaMatPol, Integer timeLevelDeltaMatStrain, Integer timeLevelDeltaMatCoupling, 
+          SBM_Vector& solutionForMatrixAssembly){
+    //    std::cout << "#### AssembleSystem - 1" << std::endl;
+    
+    // TODO: remove timeLevelDeltaMat
+    int timeLevelDeltaMat = timeLevelDeltaMatPol;
 		if(debugOutput_){
 			LOG_DBG(solvehyst) << "AssembleSystem";
 			LOG_DBG(solvehyst) << "timeLevelMaterial (-2 = deactivated; -1 = lastTS; 0 = curIT; +1 = lastIT): " << timeLevelMaterial; 
-			LOG_DBG(solvehyst) << "timeLevelDeltaMat (-2 = deactivated; -1 = lastTS; 0 = INVALID; +1 = lastIT): " << timeLevelDeltaMat; 
+      //	  LOG_DBG(solvehyst) << "timeLevelDeltaMat (-2 = deactivated; -1 = lastTS; 0 = INVALID; +1 = lastIT): " << timeLevelDeltaMat; 
 			LOG_DBG(solvehyst) << "solutionForAssembly: " << solutionForMatrixAssembly.ToString();
 			LOG_DBG(solvehyst) << "solVec_: " << solVec_.ToString();
 		}
@@ -617,22 +871,25 @@ namespace CoupledField {
     SBM_Vector diff;
     diff = lastUpdateVecForMatrices_;
     diff.Add(-1.0,solutionForMatrixAssembly);
-//    std::cout << "#### AssembleSystem - 2" << std::endl;
+    //    std::cout << "#### AssembleSystem - 2" << std::endl;
     bool solutionChanged = (diff.NormL2() > 1e-16);
-    bool deltaMatStatusChanged = (timeLevelDeltaMat != timeLevelDeltaMatCurrent_);
+    bool deltaMatStatusChanged = ( (timeLevelDeltaMatPol != timeLevelDeltaMatPolCurrent_) ||
+    (timeLevelDeltaMatStrain != timeLevelDeltaMatStrainCurrent_) ||
+    (timeLevelDeltaMatCoupling != timeLevelDeltaMatCouplingCurrent_) );
+    
     bool materialStatusChanged = (timeLevelMaterial != timeLevelMaterialCurrent_);
-//    std::cout << "#### AssembleSystem - 2.1" << std::endl;
+    //    std::cout << "#### AssembleSystem - 2.1" << std::endl;
     // system depends on solution, if
     // a) the material tensors depend on hysteresis (e.g. the coupling tensors)
     // b) we have a deltaMatrix formulation (timeLevelDeltaMat == -1 or +1)
     bool systemSolutionDependent = ( materialTensorsHystDepenedent_ || (abs(timeLevelDeltaMat) == 1) );
 		//if(debugOutput_){
-			LOG_DBG(solvehyst) << "Assemble matrices - solutionChanged? " << solutionChanged;
-			LOG_DBG(solvehyst) << "Assemble matrices - deltaMatStatusChanged? " << deltaMatStatusChanged;
-			LOG_DBG(solvehyst) << "Assemble matrices - materialStatusChanged? " << materialStatusChanged;
-			LOG_DBG(solvehyst) << "Assemble matrices - systemSolutionDependent? " << systemSolutionDependent;
+    LOG_DBG(solvehyst) << "Assemble matrices - solutionChanged? " << solutionChanged;
+    LOG_DBG(solvehyst) << "Assemble matrices - deltaMatStatusChanged? " << deltaMatStatusChanged;
+    LOG_DBG(solvehyst) << "Assemble matrices - materialStatusChanged? " << materialStatusChanged;
+    LOG_DBG(solvehyst) << "Assemble matrices - systemSolutionDependent? " << systemSolutionDependent;
 		//}
-//      std::cout << "#### AssembleSystem - 2.2" << std::endl;
+    //      std::cout << "#### AssembleSystem - 2.2" << std::endl;
 		// we need to reassemble, if
     // a) we switched deltaMat status, i.e. from non-delta to delta form
     // b) if material status changed, i.e. from non-dependent to depenedent (should normally not occur)
@@ -645,16 +902,21 @@ namespace CoupledField {
       //				(timeLevelMaterial != timeLevelMaterialCurrent_) ||
       //				(systemRequiresReassembly == true) ) {
       //			LOG_TRACE(solvehyst) << "SolveStepHyst::Assemble matrices";
-//      std::cout << "#### AssembleSystem - 2.3" << std::endl;
+      //      std::cout << "#### AssembleSystem - 2.3" << std::endl;
       // evalPurpose 1 > assemble
       UInt evaluationPurpose = 1;
       PDE_.SetFlagInCoefFncHyst("evaluationPurpose",evaluationPurpose); // set variable directly
 			PDE_.SetFlagInCoefFncHyst("SetTimeLevelMaterial",timeLevelMaterial);
-			PDE_.SetFlagInCoefFncHyst("SetTimeLevelDeltaMat",timeLevelDeltaMat);
+      //			PDE_.SetFlagInCoefFncHyst("SetTimeLevelDeltaMat",timeLevelDeltaMat);
+      
+      PDE_.SetFlagInCoefFncHyst("SetTimeLevelDeltaMatPol",timeLevelDeltaMatPol);
+      PDE_.SetFlagInCoefFncHyst("SetTimeLevelDeltaMatStrain",timeLevelDeltaMatStrain);
+      PDE_.SetFlagInCoefFncHyst("SetTimeLevelDeltaMatCoupling",timeLevelDeltaMatCoupling);
+      
       // important: allow reevaluation of hyst operator > might have changed
-//      std::cout << "#### AssembleSystem - 2.4" << std::endl;
+      //      std::cout << "#### AssembleSystem - 2.4" << std::endl;
       PDE_.SetFlagInCoefFncHyst("resetReeval",true);
-//			std::cout << "#### AssembleSystem - 3" << std::endl;
+      //			std::cout << "#### AssembleSystem - 3" << std::endl;
       debugOutput_ = false;
 			if(debugOutput_){
 				// NEVER assign directly! SBM_Vector diff = solVec_ will assign a reference!
@@ -670,27 +932,34 @@ namespace CoupledField {
 			
 			SBM_Vector solBackup;
 			solBackup = solVec_;
-//      std::cout << "#### AssembleSystem - 3.1" << std::endl;
+      //      std::cout << "#### AssembleSystem - 3.1" << std::endl;
 			solVec_ = solutionForMatrixAssembly;
 			// AssembleMatrices accesses solVec_ for assembly > set solVec_ accordingly
-//      std::cout << "#### AssembleSystem - 3.2" << std::endl;
+      //      std::cout << "#### AssembleSystem - 3.2" << std::endl;
       assemble_->AssembleMatrices(false); 
 			//algsys_->GetRHSVal( NonLinrhsVec_ );
 			// reset solVec_
-//      std::cout << "#### AssembleSystem - 3.3" << std::endl;
+      //      std::cout << "#### AssembleSystem - 3.3" << std::endl;
 			solVec_ = solBackup;
-//      std::cout << "#### AssembleSystem - 4" << std::endl;
+      //      std::cout << "#### AssembleSystem - 4" << std::endl;
 			timeLevelMaterialCurrent_ = timeLevelMaterial;
-			timeLevelDeltaMatCurrent_ = timeLevelDeltaMat;
+			timeLevelDeltaMatPolCurrent_ = timeLevelDeltaMatPol;
+      timeLevelDeltaMatStrainCurrent_ = timeLevelDeltaMatStrain;
+      timeLevelDeltaMatCouplingCurrent_ = timeLevelDeltaMatCoupling;
       lastUpdateVecForMatrices_ = solutionForMatrixAssembly;
 		}
-//      std::cout << "#### AssembleSystem - END" << std::endl;
+    //      std::cout << "#### AssembleSystem - END" << std::endl;
   }
   
-	void SolveStepHyst::SetupRESorRHS(Integer timeLevelMaterial, Integer timeLevelDeltaMat, 
-          Integer timeLevelRHSHyst, SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, SBM_Vector& solutionForRHSAssembly, 
+	void SolveStepHyst::SetupRESorRHS(Integer timeLevelMaterial, Integer timeLevelDeltaMatPol, Integer timeLevelDeltaMatStrain, Integer timeLevelDeltaMatCoupling, 
+          Integer timeLevelRHSPol, Integer timeLevelRHSStrain, Integer timeLevelRHSCoupling, 
+          SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, SBM_Vector& solutionForRHSAssembly, 
           SBM_Vector& returnVector){
 		
+    // TODO: remove this flag
+    int timeLevelRHSHyst = timeLevelRHSPol;
+    int timeLevelDeltaMat = timeLevelDeltaMatPol;
+    
 		if(debugOutput_){
 			LOG_DBG(solvehyst) << "SetupRESorRHS";
 			LOG_DBG(solvehyst) << "timeLevelMaterial (-2 = deactivated; -1 = lastTS; 0 = curIT; +1 = lastIT): " << timeLevelMaterial; 
@@ -700,7 +969,7 @@ namespace CoupledField {
       LOG_DBG(solvehyst) << "solutionForRHSAssembly: " << solutionForRHSAssembly.ToString();
 			LOG_DBG(solvehyst) << "solVec_: " << solVec_.ToString();
 		}
-//    std::cout << "#### SetupRESorRHS::IT - 1" << std::endl;
+    //    std::cout << "#### SetupRESorRHS::IT - 1" << std::endl;
 		/*
      * 0. Init returnVector
      */
@@ -711,9 +980,9 @@ namespace CoupledField {
      * > here we have to use the version with prescribed timelevels as those
      *   might differ from the ones that are required by nonLinMethod
      */
-//    std::cout << "#### SetupRESorRHS::IT - 1-2" << std::endl;
-    AssembleSystem(timeLevelMaterial, timeLevelDeltaMat, solutionForMatrixAssembly);
-//    std::cout << "#### SetupRESorRHS::IT - 2" << std::endl;
+    //    std::cout << "#### SetupRESorRHS::IT - 1-2" << std::endl;
+    AssembleSystem(timeLevelMaterial, timeLevelDeltaMatPol, timeLevelDeltaMatStrain, timeLevelDeltaMatCoupling, solutionForMatrixAssembly);
+    //    std::cout << "#### SetupRESorRHS::IT - 2" << std::endl;
 		/*
      * 2. Setup Linear part and predictor corrector update
      */
@@ -731,7 +1000,7 @@ namespace CoupledField {
 			LinRHSRequiresAssembly_ = false;
 		}
 		returnVector.Add(1.0,LinRhsVec_);
-//    std::cout << "#### SetupRESorRHS::IT - 3" << std::endl;
+    //    std::cout << "#### SetupRESorRHS::IT - 3" << std::endl;
 		if(debugOutput_){
 			LOG_DBG(solvehyst) << "Return vector - linearRHS: " << returnVector.ToString();
 		}
@@ -776,7 +1045,7 @@ namespace CoupledField {
 			PredictorCorrectorRequiresAssembly_ = false;
 		}
 		returnVector.Add(1.0,predictorCorrectorUpdate_);
-//    std::cout << "#### SetupRESorRHS::IT - 4" << std::endl;
+    //    std::cout << "#### SetupRESorRHS::IT - 4" << std::endl;
 		if(debugOutput_){
 			LOG_DBG(solvehyst) << "Return vector - linearRHS+predictorCorrector: " << returnVector.ToString();
 		}
@@ -793,14 +1062,14 @@ namespace CoupledField {
     bool NonLinRHSRequiresReassembly = (diff.NormL2() > 1e-16);
 		
 		//if(debugOutput_){
-			LOG_DBG(solvehyst) << "NonLinRHSRequiresReassembly?" << NonLinRHSRequiresReassembly;
-      LOG_DBG(solvehyst) << "CurrentSolution for RHS assembly: " << solutionForRHSAssembly.ToString();
-      LOG_DBG(solvehyst) << "LastUsedSolution for assembly: " << lastUpdateVecForNonLinRHS_.ToString();
-      LOG_DBG(solvehyst) << "Diff input: " << diff.ToString();
-      LOG_DBG(solvehyst) << "NonLinRhsVec_ pre recomputation: " << NonLinRhsVec_.ToString();
+    LOG_DBG(solvehyst) << "NonLinRHSRequiresReassembly?" << NonLinRHSRequiresReassembly;
+    LOG_DBG(solvehyst) << "CurrentSolution for RHS assembly: " << solutionForRHSAssembly.ToString();
+    LOG_DBG(solvehyst) << "LastUsedSolution for assembly: " << lastUpdateVecForNonLinRHS_.ToString();
+    LOG_DBG(solvehyst) << "Diff input: " << diff.ToString();
+    LOG_DBG(solvehyst) << "NonLinRhsVec_ pre recomputation: " << NonLinRhsVec_.ToString();
 		//}		
     diff = NonLinRhsVec_;
-//    std::cout << "#### SetupRESorRHS::IT - 5" << std::endl;
+    //    std::cout << "#### SetupRESorRHS::IT - 5" << std::endl;
     /*
      * NOTE: assembleNonLinRHS has its own check if solution did change or not
      *      > in case that the solution vector is the same, no reassembly is done
@@ -820,13 +1089,16 @@ namespace CoupledField {
      *                             to be loaded)
      *                 
      */
-    bool forceHystReassembly = false;
-    LOG_DBG(solvehyst) << "Requested Timelevel of RHSHyst: "<<timeLevelRHSHyst;
-    LOG_DBG(solvehyst) << "Last Used Timelevel of RHSHyst: "<<timeLevelRHSHystCurrent_;
-		if(timeLevelRHSHyst != timeLevelRHSHystCurrent_) {
-      forceHystReassembly = true;
-      LOG_DBG(solvehyst) << "Force reassembly as we need different hysteresis state.";
-    }
+    bool forceHystReassembly = ( (timeLevelRHSPol != timeLevelRHSPolCurrent_) ||
+    (timeLevelRHSStrain != timeLevelRHSStrainCurrent_) ||
+    (timeLevelRHSCoupling != timeLevelRHSCouplingCurrent_) );
+    
+    //    LOG_DBG(solvehyst) << "Requested Timelevel of RHSHyst: "<<timeLevelRHSHyst;
+    //    LOG_DBG(solvehyst) << "Last Used Timelevel of RHSHyst: "<<timeLevelRHSHystCurrent_;
+    //		if(timeLevelRHSHyst != timeLevelRHSHystCurrent_) {
+    //      forceHystReassembly = true;
+    //      LOG_DBG(solvehyst) << "Force reassembly as we need different hysteresis state.";
+    //    }
     if( NonLinRHSRequiresReassembly || forceHystReassembly ){
       //	LOG_DBG(solvehyst) << "SolveStepHyst::Assemble non-linear RHS/RES";
       
@@ -835,7 +1107,12 @@ namespace CoupledField {
       // evalPurpose 1 > assemble
       UInt evaluationPurpose = 1;
       PDE_.SetFlagInCoefFncHyst("evaluationPurpose",evaluationPurpose); // set variable directly
-			PDE_.SetFlagInCoefFncHyst("SetTimeLevelRHSHyst",timeLevelRHSHyst);	
+      //			PDE_.SetFlagInCoefFncHyst("SetTimeLevelRHSHyst",timeLevelRHSHyst);	
+      
+      PDE_.SetFlagInCoefFncHyst("SetTimeLevelRHSPol",timeLevelRHSPol);
+      PDE_.SetFlagInCoefFncHyst("SetTimeLevelRHSStrain",timeLevelRHSStrain);
+      PDE_.SetFlagInCoefFncHyst("SetTimeLevelRHSCoupling",timeLevelRHSCoupling);
+      
       // important: allow reevaluation of hyst operator > might have changed
       PDE_.SetFlagInCoefFncHyst("resetReeval",true);
 			
@@ -850,11 +1127,14 @@ namespace CoupledField {
 			// reset solVec_
 			solVec_ = solBackup;
       
-			timeLevelRHSHystCurrent_ = timeLevelRHSHyst;
+      timeLevelRHSPolCurrent_ = timeLevelRHSPol;
+      timeLevelRHSStrainCurrent_ = timeLevelRHSStrain;
+      timeLevelRHSCouplingCurrent_ = timeLevelRHSCoupling;
+      //			timeLevelRHSHystCurrent_ = timeLevelRHSHyst;
       lastUpdateVecForNonLinRHS_ = solutionForRHSAssembly;
 		}
 		returnVector.Add(1.0,NonLinRhsVec_);
-//		std::cout << "#### SetupRESorRHS::IT - 6" << std::endl;
+    //		std::cout << "#### SetupRESorRHS::IT - 6" << std::endl;
     LOG_DBG(solvehyst) << "NonLinRhsVec_ after recomputation: " << NonLinRhsVec_.ToString();
     diff.Add(-1.0,NonLinRhsVec_);
     LOG_DBG(solvehyst) << "Diff NonLinRhsVec_: " << diff.ToString();
@@ -871,7 +1151,7 @@ namespace CoupledField {
     // note: compute KeffTimesSolution does not assemble system! it takes the current system
     // as assembled above
     ComputeKeffTimesSolution(solutionForUpdate, systemUpdate);
-//    std::cout << "#### SetupRESorRHS::IT - 7" << std::endl;
+    //    std::cout << "#### SetupRESorRHS::IT - 7" << std::endl;
     returnVector.Add(-1.0,systemUpdate);
     //    
     //		// load returnVector into algsys; then update for incremental formulation
@@ -925,7 +1205,7 @@ namespace CoupledField {
 		if(debugOutput_){
 			LOG_DBG(solvehyst) << "Return vector - linearRHS,predictorCorrector,nonLinRHS,solUpdate(full): " << returnVector.ToString();
 		}
-//		std::cout << "#### SetupRESorRHS::END" << std::endl;
+    //		std::cout << "#### SetupRESorRHS::END" << std::endl;
     //	LOG_DBG(solvehyst) << "returnVector: " << returnVector.ToString(); 
 	}
   
@@ -958,12 +1238,12 @@ namespace CoupledField {
       SBM_Vector tmpSol;
       tmpSol = currentSol;
       tmpSol.Add(0,solIncrement);
-        
+      
       solVec_ = tmpSol;
       // set solution vector to tmp solution, then evaluate hyst operators
       // do not reevaluate matrices for inversion > flag = 0
       PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",0);
-        
+      
       // SetupRes will write the residual directly to resVec_
       // It will also reassemble the system! > we have to call this function 
       // again after the linesearch to get the curret system set up!
@@ -974,7 +1254,7 @@ namespace CoupledField {
       tmpSol.Add(0.5,solIncrement);
       solVec_ = tmpSol;
       PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",0);
-     
+      
       SetupRES(tmpSol,tmpSol,tmpSol,iterationCounter);
       res05 = resVec_.NormL2();
       
@@ -982,7 +1262,7 @@ namespace CoupledField {
       tmpSol.Add(1.0,solIncrement);
       solVec_ = tmpSol;
       PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",0);
-     
+      
       SetupRES(tmpSol,tmpSol,tmpSol,iterationCounter);
       res1 = resVec_.NormL2();
       
@@ -992,7 +1272,7 @@ namespace CoupledField {
       a0 = res0;
       a1 = -3*res0 + 4*res05 - res1;
       a2 = 2*res0 - 4*res05 +2*res1;
-
+      
       Double eta1,etaSol;
       UInt solCase = 0;
       if(a1*a1 - 4*a0*a2 < 0){
@@ -1252,7 +1532,7 @@ namespace CoupledField {
 		LOG_TRACE(solvehyst) << "#### SolveStepHyst::Begin of timestep " << timestepCnt;
 		LOG_DBG(solvehyst) << "SolVec_ at start of timestep: " << solVec_.ToString(); 
 		LOG_DBG(solvehyst) << "resVec_ at start of timestep: " << resVec_.ToString(); 
-//		std::cout << "#### SolveStepHyst::Start of timestep" << std::endl;
+    //		std::cout << "#### SolveStepHyst::Start of timestep" << std::endl;
 		/*
      * Initial checks
      */
@@ -1266,7 +1546,7 @@ namespace CoupledField {
 			PDE_.TestInversionOfHystOperator(testNode_);
 			testInversion_ = 0;
 		}
-			        
+    
 		
 		//obtain the number of stages
     UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
@@ -1371,7 +1651,7 @@ namespace CoupledField {
     // keep track of residual; if it is not decreasing over several iterations > reset (see below)
     UInt numResets = 0;
     std::deque<Double> resNormHistory(minNumberItTillReset_, 50000);
-     
+    
     /*
      * Reset flags
      * Note: 
@@ -1412,6 +1692,9 @@ namespace CoupledField {
     bool lastTS = false;
     std::string nonLinBackup = nonLinMethod_;
     std::string lineSearchBackup = lineSearch_;
+    bool towardsLastIterationBackup = towardsLastIteration_;
+    bool deltaMatCouplingBackup = deltaMatCoupling_;
+    bool deltaMatStrainBackup = deltaMatStrain_;
     
     /*
      *  Begin iterations
@@ -1432,12 +1715,12 @@ namespace CoupledField {
      * 
      */
     // note: steppingLength will be multiplied with xSaturated during calculation
-   // Double steppingLength = 1e-18;
-   // Double scaling = 1;
+    // Double steppingLength = 1e-18;
+    // Double scaling = 1;
     // Estimated slope will only be used if timeLevelDeltaMat = -1 or 1, i.e. even for FP iteration, we have
     // to set this to -1 or 1 for the first iteration if we want to use the estimated slope
     //PDE_.EstimateCurrentSlopeForHysteresis(steppingLength, scaling);
-        
+    
     //LOG_TRACE(solvehyst) << "Set previous hyst values for deltaIT prior to first iteration to current value";
     // first deltaMat will be 0, though
     //PDE_.SetPreviousHystVals(lastTS);
@@ -1445,7 +1728,7 @@ namespace CoupledField {
     // the following variable indicates towards which previous state the deltaMatrix shall be computed
     // (only in case of deltaMatrix and deltaMat towards Iteration of course)
     UInt numIterationsTillUpdateOfLastITValues = 1;
-
+    
     /*
      * For magnetic PDE, we have the problem, that the matrix that is used
      * to compute H (i.e. mu/nu) might depend on H/M itself
@@ -1457,11 +1740,11 @@ namespace CoupledField {
     PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",3);
     
     do {
-//      std::cout << "#### SolveStepHyst::Start of IT" << std::endl;
+      //      std::cout << "#### SolveStepHyst::Start of IT" << std::endl;
       
       if(debugOutput_){
         PDE_.CheckSaturationOfHystOperators(lastTSSatAvg, lastItSatAvg, curItSatAvg, oppositeDirAsTSAvg, oppositeDirAsItAvg);
-
+        
         LOG_DBG(solvehyst) << "Saturation information: ";
         LOG_DBG(solvehyst) << lastTSSatAvg*100.0 << " percent of elements were saturated during last timestep";
         LOG_DBG(solvehyst) << lastItSatAvg*100.0 << " percent of elements were saturated during last iteration";
@@ -1505,11 +1788,11 @@ namespace CoupledField {
       } else {
         // DOES NOT WORK IF COMMENTED OUT, reasons not clear yet
         //if((iterationCounterLog-1)%numIterationsTillUpdateOfLastITValues == 0){
-          solVecForUpdate_ = solVec_; // solVecLastIT_; < solVecLastIT is actually the solution from two iterations ago
-                                             // i.e. during iteration k+1, solVec = sol_k and solVecLastIT = sol_k-1
+        solVecForUpdate_ = solVec_; // solVecLastIT_; < solVecLastIT is actually the solution from two iterations ago
+        // i.e. during iteration k+1, solVec = sol_k and solVecLastIT = sol_k-1
         //}
       }
-
+      
 			if(debugOutput_){
 				LOG_DBG(solvehyst) << "Solution vectors at start of iteration: ";
 				LOG_DBG(solvehyst) << "solVec_: " << solVec_.ToString(); 
@@ -1517,7 +1800,7 @@ namespace CoupledField {
 				LOG_DBG(solvehyst) << "solVecLastIT_: " << solVecLastIT_.ToString(); 
 				LOG_DBG(solvehyst) << "solVecForUpdate_: " << solVecForUpdate_.ToString(); 
 			}
-//      std::cout << "#### SolveStepHyst::IT - 1" << std::endl;
+      //      std::cout << "#### SolveStepHyst::IT - 1" << std::endl;
       //      
       //      LOG_DBG(solvehyst) << "Try following nonlin method: " << nonLinMethod_;
       //      LOG_DBG(solvehyst) << "Flags: ";
@@ -1530,7 +1813,7 @@ namespace CoupledField {
       //debugOutput_ = true;
       LOG_TRACE(solvehyst) << "SetupRHS";
       SetupRHS(solVecForUpdate_,solVec_,solVec_,iterationCounter);
-//      std::cout << "#### SolveStepHyst::IT - 1-2" << std::endl;
+      //      std::cout << "#### SolveStepHyst::IT - 1-2" << std::endl;
       //debugOutput_ = false;
       LOG_DBG(solvehyst) << "RHS to solve for: : " << rhsVec_.ToString(); 
       
@@ -1541,7 +1824,7 @@ namespace CoupledField {
        */
       // LOG_DBG(solvehyst) << "AssembleSystem";
 			AssembleSystem(solVec_, iterationCounter);
-//      std::cout << "#### SolveStepHyst::IT - 2" << std::endl;
+      //      std::cout << "#### SolveStepHyst::IT - 2" << std::endl;
       /*
        * Step 3: setup system, including boundary conditions, solver, etc.
        */
@@ -1599,48 +1882,48 @@ namespace CoupledField {
        * > only needed for computation of incremental error
        */
       solVecLastIT_ = solVec_;
-//      std::cout << "#### SolveStepHyst::IT - 3" << std::endl;
+      //      std::cout << "#### SolveStepHyst::IT - 3" << std::endl;
       lastTS = false;
       // Note: by calling SetPreviousHystVals with flag lastTS = false,
       //        coefFncHyst will evaluate the hysteresis operator with
       //        the current state of solVec_; for this evaluation, the memory of
       //        the hysteresis operator will be locked, i.e. the evaluation will
       //        lead to reversible changes
-     
+      
       // NEW: set previous hyst values only, if solution did change significantly
       //      otherwise delta in the denominator gets very small
-
       
       
-//      OLD VERSION: SetPreviousHystValues evaluated hyst operators and stored results
-//      accrodingly; this meant, that this step had to be done after assembly where the
-//      old values were still required and before the new solution was found
-//              > NEW VERSION: take the preevaluated values and copy them to the corresponding
-//              arrays; this has to be done before evaluating the final result for the iteration
-//      
-//      /*
-//       * for setup of RHS and deltaMat towards IT, the value stored in coefFctHyst
-//       * will be used; if we want to have a delta over multiple iterations, we just 
-//       * have to skip the setting of the previous hyst values; by this, the old it
-//       * values will not be overwritten
-//       */
-//      if((iterationCounterLog-1)%numIterationsTillUpdateOfLastITValues == 0){
-//        //if(gatheredSolInc.NormL2() > 1e-5){
-//          LOG_TRACE(solvehyst) << "Set previous hyst values";
-//          PDE_.SetPreviousHystVals(lastTS);
-////          gatheredSolInc.Init();
-////        } else {
-////          LOG_TRACE(solvehyst) << "Do not set previous hyst values as gathered solInc is yet too small";
-////        }
-//      }
-     // } 
+      
+      //      OLD VERSION: SetPreviousHystValues evaluated hyst operators and stored results
+      //      accrodingly; this meant, that this step had to be done after assembly where the
+      //      old values were still required and before the new solution was found
+      //              > NEW VERSION: take the preevaluated values and copy them to the corresponding
+      //              arrays; this has to be done before evaluating the final result for the iteration
+      //      
+      //      /*
+      //       * for setup of RHS and deltaMat towards IT, the value stored in coefFctHyst
+      //       * will be used; if we want to have a delta over multiple iterations, we just 
+      //       * have to skip the setting of the previous hyst values; by this, the old it
+      //       * values will not be overwritten
+      //       */
+      //      if((iterationCounterLog-1)%numIterationsTillUpdateOfLastITValues == 0){
+      //        //if(gatheredSolInc.NormL2() > 1e-5){
+      //          LOG_TRACE(solvehyst) << "Set previous hyst values";
+      //          PDE_.SetPreviousHystVals(lastTS);
+      ////          gatheredSolInc.Init();
+      ////        } else {
+      ////          LOG_TRACE(solvehyst) << "Do not set previous hyst values as gathered solInc is yet too small";
+      ////        }
+      //      }
+      // } 
       
       /*
        * Step 4: solve system and retrieve the solution (-update)
        */
       //LOG_DBG(solvehyst) << "Solve";
       algsys_->Solve(setIDBC,deltaIDBC);
-//      std::cout << "#### SolveStepHyst::IT - 4" << std::endl;
+      //      std::cout << "#### SolveStepHyst::IT - 4" << std::endl;
       /*
        *  RETRIEVE SOLUTION INCREMENT
        *  - nonLinMethod_ = "HYST_debug","HYST_fixPoint_IT","HYST_deltaMat_IT" > increment towards last iteration
@@ -1648,81 +1931,81 @@ namespace CoupledField {
        *  - steppingTowardsZero > increment towards 0 > full step
        */
       algsys_->GetSolutionVal(solInc, setIDBC, deltaIDBC );
-//      std::cout << "#### SolveStepHyst::IT - 5" << std::endl;
-      /*
-       * Short check of solution:
-       *  > without reassembly anything, the found vector solInc should
-       *    reduce the vector
-       *      rhs - Keff*solInc to 0
-       *  > check this
-       * 
-       * > DOES somehow change the result > why?
-       */
-      if(debugOutput_){
-        LOG_TRACE(solvehyst) << "Check actual solution vector against system";
-        SBM_Vector rhsBackup;
-        SBM_Vector tmpVector;
-        rhsBackup = rhsVec_;
-        if( (nonLinMethod_ == "HYST_deltaMat_IT")||(nonLinMethod_ == "HYST_deltaMat_TS") ){
-          LOG_TRACE(solvehyst) << " Current solution strategy used deltaMatrix, i.e. we solved ";
-          LOG_TRACE(solvehyst) << "  K_eff_delta_k * deltaU_k+1 = rhs_k - rhs_hyst_k - K_eff_k * U_k ";
-          LOG_TRACE(solvehyst) << "1. Check if:  rhs_k - rhs_hyst_k - K_eff_k * U_k - K_eff_delta_k * deltaU_k+1 approx 0 ";
-          // note: according to math, we should have rhs_hyst_k-1 on rhs but see SetupRHS for more details why k is used
-          tmpVector = rhsVec_; // get copy just to obtain correct size
-          tmpVector.Init();
-          // note: Keff is K_eff_delta_k at this point
-          ComputeKeffTimesSolution(solInc, tmpVector);
-          // note: rhsVec_ = rhs_k - rhs_hyst_k - K_eff_k * U_k at this point
-          
-          tmpVector.Add(-1.0,rhsBackup);
-          LOG_TRACE(solvehyst) << " > result:  rhs_k - rhs_hyst_k - K_eff_k * U_k - K_eff_delta_k * deltaU_k+1 = " << tmpVector.ToString();
-          LOG_TRACE(solvehyst) << " > result:  |rhs_k - rhs_hyst_k - K_eff_k * U_k - K_eff_delta_k * deltaU_k+1| = " << tmpVector.NormL2();
-          
-          // for our solution process we have hyst_k-1 on rhs as the difference to hyst_k is hidden in deltaMatrix;
-          // if we entangle the deltaMatrix to the standard matrix without delta, we have to move that difference to hyst_k-1, i.e. turning it
-          // to rhs_hyst_k
-          LOG_TRACE(solvehyst) << "2. Check if:  rhs_k - rhs_hyst_k - K_eff_k * U_k+1 approx 0 ";
-          tmpVector.Init();
-         
-          SBM_Vector solForAssemblyTMP;
-          SBM_Vector solForRHSTMP;
-          SBM_Vector solForUpdateTMP;
-          // we want to assemble matrix and rhs with u_k as solution; at this point solVec_ is already overwritten
-          // by system due to solution process
-          // > take backup from start of iteration
-          solForAssemblyTMP = solVecForUpdate_;
-          solForRHSTMP = solVecForUpdate_;
-          // to compute K_eff_k*U_k+1 we set solForUpdateTMP to U_k+1
-          solForUpdateTMP = solVecForUpdate_;
-          solForUpdateTMP.Add(1.0,solInc);
-          
-          // 0 > evaluate with given solution vector solutionForAssembly; -2 deactivate deltaMat
-          Integer TL_Mat = 0;
-          Integer TL_DeltaMat = -2;
-          Integer TL_RHSHyst = 0;
-          SetupRESorRHS(TL_Mat, TL_DeltaMat, TL_RHSHyst, solForUpdateTMP, solForAssemblyTMP, solForRHSTMP, tmpVector);
-          
-          LOG_TRACE(solvehyst) << " > result:  rhs_k - rhs_hyst_k - K_eff_k * U_k+1 = " << tmpVector.ToString();
-          LOG_TRACE(solvehyst) << " > result:  |rhs_k - rhs_hyst_k - K_eff_k * U_k+1| = " << tmpVector.NormL2();
-          
-          LOG_TRACE(solvehyst) << "3. Compute actual residual (full evaluation, no linesearch), i.e.:";
-          LOG_TRACE(solvehyst) << "  res_k+1 = rhs_k+1 - rhs_hyst_k+1 - K_eff_k+1 * U_k+1";
-          tmpVector.Init();
-         
-          solForUpdateTMP = solVecForUpdate_;
-          solForUpdateTMP.Add(1.0,solInc);
-          solForAssemblyTMP = solForUpdateTMP;
-          // 0 > evaluate with given solution vector solutionForAssembly; -2 deactivate deltaMat
-          TL_Mat = 0;
-          TL_DeltaMat = -2;
-          TL_RHSHyst = 0;
-          SetupRESorRHS(TL_Mat, TL_DeltaMat, TL_RHSHyst, solForUpdateTMP, solForAssemblyTMP, solForAssemblyTMP, tmpVector);
-          
-          LOG_TRACE(solvehyst) << " > result:  res_k+1 = rhs_k+1 - rhs_hyst_k+1 - K_eff_k+1 * U_k+1 = " << tmpVector.ToString();
-          LOG_TRACE(solvehyst) << " > result:  |res_k+1| = |rhs_k+1 - rhs_hyst_k+1 - K_eff_k+1 * U_k+1| = " << tmpVector.NormL2();
-        }
-       rhsVec_ = rhsBackup;
-      }
+      ////      std::cout << "#### SolveStepHyst::IT - 5" << std::endl;
+      //      /*
+      //       * Short check of solution:
+      //       *  > without reassembly anything, the found vector solInc should
+      //       *    reduce the vector
+      //       *      rhs - Keff*solInc to 0
+      //       *  > check this
+      //       * 
+      //       * > DOES somehow change the result > why?
+      //       */
+      //      if(debugOutput_){
+      //        LOG_TRACE(solvehyst) << "Check actual solution vector against system";
+      //        SBM_Vector rhsBackup;
+      //        SBM_Vector tmpVector;
+      //        rhsBackup = rhsVec_;
+      //        if( (nonLinMethod_ == "HYST_deltaMat_IT")||(nonLinMethod_ == "HYST_deltaMat_TS") ){
+      //          LOG_TRACE(solvehyst) << " Current solution strategy used deltaMatrix, i.e. we solved ";
+      //          LOG_TRACE(solvehyst) << "  K_eff_delta_k * deltaU_k+1 = rhs_k - rhs_hyst_k - K_eff_k * U_k ";
+      //          LOG_TRACE(solvehyst) << "1. Check if:  rhs_k - rhs_hyst_k - K_eff_k * U_k - K_eff_delta_k * deltaU_k+1 approx 0 ";
+      //          // note: according to math, we should have rhs_hyst_k-1 on rhs but see SetupRHS for more details why k is used
+      //          tmpVector = rhsVec_; // get copy just to obtain correct size
+      //          tmpVector.Init();
+      //          // note: Keff is K_eff_delta_k at this point
+      //          ComputeKeffTimesSolution(solInc, tmpVector);
+      //          // note: rhsVec_ = rhs_k - rhs_hyst_k - K_eff_k * U_k at this point
+      //          
+      //          tmpVector.Add(-1.0,rhsBackup);
+      //          LOG_TRACE(solvehyst) << " > result:  rhs_k - rhs_hyst_k - K_eff_k * U_k - K_eff_delta_k * deltaU_k+1 = " << tmpVector.ToString();
+      //          LOG_TRACE(solvehyst) << " > result:  |rhs_k - rhs_hyst_k - K_eff_k * U_k - K_eff_delta_k * deltaU_k+1| = " << tmpVector.NormL2();
+      //          
+      //          // for our solution process we have hyst_k-1 on rhs as the difference to hyst_k is hidden in deltaMatrix;
+      //          // if we entangle the deltaMatrix to the standard matrix without delta, we have to move that difference to hyst_k-1, i.e. turning it
+      //          // to rhs_hyst_k
+      //          LOG_TRACE(solvehyst) << "2. Check if:  rhs_k - rhs_hyst_k - K_eff_k * U_k+1 approx 0 ";
+      //          tmpVector.Init();
+      //         
+      //          SBM_Vector solForAssemblyTMP;
+      //          SBM_Vector solForRHSTMP;
+      //          SBM_Vector solForUpdateTMP;
+      //          // we want to assemble matrix and rhs with u_k as solution; at this point solVec_ is already overwritten
+      //          // by system due to solution process
+      //          // > take backup from start of iteration
+      //          solForAssemblyTMP = solVecForUpdate_;
+      //          solForRHSTMP = solVecForUpdate_;
+      //          // to compute K_eff_k*U_k+1 we set solForUpdateTMP to U_k+1
+      //          solForUpdateTMP = solVecForUpdate_;
+      //          solForUpdateTMP.Add(1.0,solInc);
+      //          
+      //          // 0 > evaluate with given solution vector solutionForAssembly; -2 deactivate deltaMat
+      //          Integer TL_Mat = 0;
+      //          Integer TL_DeltaMat = -2;
+      //          Integer TL_RHSHyst = 0;
+      //          SetupRESorRHS(TL_Mat, TL_DeltaMat,  TL_RHSHyst, solForUpdateTMP, solForAssemblyTMP, solForRHSTMP, tmpVector);
+      //          
+      //          LOG_TRACE(solvehyst) << " > result:  rhs_k - rhs_hyst_k - K_eff_k * U_k+1 = " << tmpVector.ToString();
+      //          LOG_TRACE(solvehyst) << " > result:  |rhs_k - rhs_hyst_k - K_eff_k * U_k+1| = " << tmpVector.NormL2();
+      //          
+      //          LOG_TRACE(solvehyst) << "3. Compute actual residual (full evaluation, no linesearch), i.e.:";
+      //          LOG_TRACE(solvehyst) << "  res_k+1 = rhs_k+1 - rhs_hyst_k+1 - K_eff_k+1 * U_k+1";
+      //          tmpVector.Init();
+      //         
+      //          solForUpdateTMP = solVecForUpdate_;
+      //          solForUpdateTMP.Add(1.0,solInc);
+      //          solForAssemblyTMP = solForUpdateTMP;
+      //          // 0 > evaluate with given solution vector solutionForAssembly; -2 deactivate deltaMat
+      //          TL_Mat = 0;
+      //          TL_DeltaMat = -2;
+      //          TL_RHSHyst = 0;
+      //          SetupRESorRHS(TL_Mat, TL_DeltaMat, TL_RHSHyst, solForUpdateTMP, solForAssemblyTMP, solForAssemblyTMP, tmpVector);
+      //          
+      //          LOG_TRACE(solvehyst) << " > result:  res_k+1 = rhs_k+1 - rhs_hyst_k+1 - K_eff_k+1 * U_k+1 = " << tmpVector.ToString();
+      //          LOG_TRACE(solvehyst) << " > result:  |res_k+1| = |rhs_k+1 - rhs_hyst_k+1 - K_eff_k+1 * U_k+1| = " << tmpVector.NormL2();
+      //        }
+      //       rhsVec_ = rhsBackup;
+      //      }
       //LOG_DBG(solvehyst) << "solInc (computed): " << solInc.ToString();
       
       /*
@@ -1730,7 +2013,7 @@ namespace CoupledField {
        * i.e. the new solVec will be solVecForUpdate + eta*solInc
        */
       solVec_ = solVecForUpdate_;
-//      std::cout << "#### SolveStepHyst::IT - 6" << std::endl;
+      //      std::cout << "#### SolveStepHyst::IT - 6" << std::endl;
       /*
        * Step 5: check solution by evaluating residual and increment
        */
@@ -1775,7 +2058,7 @@ namespace CoupledField {
       PDE_.SetFlagInCoefFncHyst("allowSettingOfMatForLocalInversion",true);
       // EvaluateHystOperators; flag = 1 > set Matrix for Inverion, too
       PDE_.SetFlagInCoefFncHyst("EvaluateHystOperators",1);
-            
+      
       //LOG_DBG(solvehyst) << "Updated solution: " << solVec_.ToString();
       // although LineSearchHyst will setup the residual, we have to
       // call this function once more with the actual best eta to ensure
@@ -1801,7 +2084,7 @@ namespace CoupledField {
         bestResNorm = residualErr;
         bestSol = solVec_;
       }
-//      std::cout << "#### SolveStepHyst::IT - 7" << std::endl;
+      //      std::cout << "#### SolveStepHyst::IT - 7" << std::endl;
       resNormHistory.push_back(residualErr);
       resNormHistory.pop_front();
       
@@ -1832,8 +2115,8 @@ namespace CoupledField {
       
       performOneMoreStep =
               (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-//      std::cout << "#### SolveStepHyst::IT - 8" << std::endl;
-  
+      //      std::cout << "#### SolveStepHyst::IT - 8" << std::endl;
+      
       // output of norms and data to info.xml
       if ( nonLinLogging_ == true ) {
         // get current step
@@ -1860,11 +2143,14 @@ namespace CoupledField {
 					//continue;
           LOG_TRACE(solvehyst) << "Residual did not decrease by at least " << minResDecreaseTillReset_ << " using solution method " << nonLinMethod_; 
           nonLinMethod_ = nonLinMethodAfterReset_;
+          towardsLastIteration_ = towardsLastIterationReset_;
+          deltaMatCoupling_ = deltaMatCouplingReset_;
+          deltaMatStrain_ = deltaMatStrainReset_;
           lineSearch_ = lineSearchAfterReset_;
           numIterationsTillUpdateOfLastITValues = 1;
           LOG_TRACE(solvehyst) << "Switch to  " << nonLinMethod_ << " with LS " << lineSearch_; 
           LOG_TRACE(solvehyst) << "Additionally, compute deltaMat over " << numIterationsTillUpdateOfLastITValues << " itartions"; 
-
+          
           if((nonLinMethod_ == "HYST_deltaMat_IT")||(nonLinMethod_ == "HYST_fixPoint_IT")){
             steppingTowardsLastTS = false;
           } else {
@@ -1920,7 +2206,7 @@ namespace CoupledField {
           steppingTowardsZero = true;
           numResets++;
           iterationCounterLog = 0;
-
+          
           if ( nonLinLogging_ == true ) {
             // get current step
             UInt actStep = PDE_.GetSolveStep()->GetActStep();
@@ -1963,14 +2249,14 @@ namespace CoupledField {
                       << incrementalErr << "\t"
                       << etaLinesearch << std::endl;
             }
-
+            
             performOneMoreStep = false;
             break;
           } else {
             // compute new deltaMatrices using a percentage of the previous one too
             LOG_TRACE(solvehyst) << "failBackCriterion not satisfied (yet); try to improve by including old deltaMatrices in computation";
             UInt percentage = 0; // 35;
-	    // does not work so well yet
+            // does not work so well yet
             PDE_.SetFlagInCoefFncHyst("includeOldDeltaInPercent",percentage);            
           }
         }
@@ -1981,7 +2267,7 @@ namespace CoupledField {
       //      LOG_DBG(solvehyst) << "solVecLastTS_: " << solVecLastTS_.ToString(); 
       //      LOG_DBG(solvehyst) << "solVecForUpdate_: " << solVecLastTS_.ToString(); 
       //  
-//      std::cout << "#### SolveStepHyst::End of IT" << std::endl;
+      //      std::cout << "#### SolveStepHyst::End of IT" << std::endl;
     } while(performOneMoreStep && (iterationCounter < nonLinMaxIter_));
     
     abortOnMaxIter_ = true;
@@ -2026,6 +2312,9 @@ namespace CoupledField {
     
     // recover solution strategy
     nonLinMethod_ = nonLinBackup;
+    towardsLastIteration_ = towardsLastIterationBackup;
+    deltaMatCoupling_ = deltaMatCouplingBackup;
+    deltaMatStrain_ = deltaMatStrainBackup;
     lineSearch_ = lineSearchBackup;
     
     // reset percentage of old deltaMat participation
@@ -2084,7 +2373,7 @@ namespace CoupledField {
     //    LOG_DBG(solvehyst) << "solVec_: " << solVec_.ToString(); 
     //    LOG_DBG(solvehyst) << "solVecLastTS_: " << solVecLastTS_.ToString(); 
     // 
-//    std::cout << "#### SolveStepHyst::End of timestep" << std::endl;
+    //    std::cout << "#### SolveStepHyst::End of timestep" << std::endl;
   }
   
   

@@ -123,16 +123,14 @@ namespace CoupledField {
       // note that e might be a function of P itself > uce correct timelevel > current
       specificSign = 1.0;
       Matrix<Double> couplTensor = Matrix<Double>(1,1); // will be resized in compute tensor function
-      int timeLevel_to_diff = 0; // no deltaMat!
       std::string implementationVersion = "none"; // no deltaMat!
       std::string tensorName = "CouplingMechToElec";
       bool transposed = false; // we need e not e^T
       bool rotate = true; // allow rotation if directtion of P changed
       bool useAbs = false; // only for deltaMat
       bool lockPrecomputationAndDeltaMat = false; //!! if true we use old value, but we want current value (timelevel = 0)!
-                
-      ComputeTensor(couplTensor, lpm, timeLevel_to_diff, 
-          tensorName, implementationVersion, transposed, rotate, useAbs, lockPrecomputationAndDeltaMat );
+      
+      ComputeTensor(couplTensor, lpm, tensorName, implementationVersion, transposed, rotate, useAbs, lockPrecomputationAndDeltaMat );
       
       Vector<Double> S_irr = hystCoefFunction_->GetIrreversibleStrains(lpm, timeLevel);
       // c is not solution dependet here > take it directly
@@ -141,7 +139,7 @@ namespace CoupledField {
       couplTensor.Mult(S_irr,outputVector);
       
       outputVector.ScalarMult(specificSign*baseSign);
-
+      
       //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
     } else if(vectorName == "MagPolarization"){
       //      if(hystCoefFunction_->matrixForLocalInversionRequiresComputation(lpm)){
@@ -305,8 +303,8 @@ namespace CoupledField {
           //    a) no delta Matrix
           //    b) no call to this function (would otherwise end in endless recursion)
           //    c) evaluate all tensors at last iteration
-          ComputeTensor(nu, LPMit->second, 0, "Reluctivity", "none", false, true, false, lockPrecomputationAndDeltaMat);
-          //ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm, int timeLevel_to_diff, 
+          ComputeTensor(nu, LPMit->second, "Reluctivity", "none", false, true, false, lockPrecomputationAndDeltaMat);
+          //ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm, , 
           //std::string tensorName, std::string implementationVersion, bool transposed, bool rotate, bool useAbs, bool lockPrecomputationAndDeltaMat )
           
           // now we have nu but for inversion we use mu > compute inverse
@@ -348,7 +346,7 @@ namespace CoupledField {
           //    a) no delta Matrix
           //    b) no call to this function (would otherwise end in endless recursion)
           //    c) evaluate all tensors at last iteration
-          ComputeTensor(nu, LPMit->second, 0, "Reluctivity", "none", false, true, false, lockPrecomputationAndDeltaMat);
+          ComputeTensor(nu, LPMit->second, "Reluctivity", "none", false, true, false, lockPrecomputationAndDeltaMat);
           //ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm, int timeLevel_to_diff, 
           //std::string tensorName, std::string implementationVersion, bool transposed, bool rotate, bool useAbs, bool lockPrecomputationAndDeltaMat )
           
@@ -365,10 +363,10 @@ namespace CoupledField {
     materialTensorsSetOnce_ = true;
   }
   
-  void CoefFunctionHelper::ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm, int timeLevel_to_diff, 
+  void CoefFunctionHelper::ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm, 
           std::string tensorName, std::string implementationVersion, bool transposed, bool rotate, bool useAbs, bool lockPrecomputationAndDeltaMat ){
     LOG_DBG(coeffcthysthelper) << "+++++ Coef Function Hyst Mat - Get " << tensorName <<" ++++++";
-
+    
     /*
      * IMPORTANT NOTE TO SIGN CONVENTION:
      *  all tensors will be returned with a "+" sign in front of the actual base tensor
@@ -453,7 +451,7 @@ namespace CoupledField {
     
     int deltaForm_ = hystCoefFunction_->GetDeltaForm();
     bool deltaFormActive_ = hystCoefFunction_->deltaMatActive();
-    if(implementationVersion == "none"){
+    if( (implementationVersion == "none") || (lockPrecomputationAndDeltaMat == true) ){
       deltaFormActive_ = false;
     }
     //      std::cout << "+++++ Coef Function Hyst Mat - Compute Tensor 4 ++++++" << std::endl;
@@ -466,13 +464,33 @@ namespace CoupledField {
     } else {
       timelevel_cur = 0; // current value
     }
+    int timeLevel_to_diff = GetTimeLevel("DeltaMat");
+    
+    // new flags
+    bool deltaMat_Pol_active = true;
+    bool deltaMat_Strain_active = true;
+    bool deltaMat_Coupling_active = true;
+    
+    int timeLevelDeltaMat_Pol = GetTimeLevel("DeltaMatPol");
+    int timeLevelDeltaMat_Strain = GetTimeLevel("DeltaMatStrain");
+    int timeLevelDeltaMat_Coupling = GetTimeLevel("DeltaMatCoupling");
+    
+    if( (timeLevelDeltaMat_Pol == 0)||(deltaFormActive_==false) ){
+      deltaMat_Pol_active = false;
+    }
+    if( (timeLevelDeltaMat_Strain == 0)||(deltaFormActive_==false) ){
+      deltaMat_Strain_active = false;
+    }
+    if( (timeLevelDeltaMat_Coupling == 0)||(deltaFormActive_==false) ){
+      deltaMat_Coupling_active = false;
+    }
     
     if(tensorName == "IrrStressesPiezo_TensorForm"){
       Vector<Double> Si_vector = hystCoefFunction_->GetIrreversibleStrains(lpm, 0);
       Vector<Double> tmpVector = Vector<Double>(Si_vector.GetSize());
       elastTensor_.Mult(Si_vector,tmpVector);      
       tmp = hystCoefFunction_->ConvertFromVoigtToTensor(tmpVector);
-            
+      
     } else if(tensorName == "IrrStrainsPiezo_TensorForm"){
       // always compute the current timelevel > 0
       // > tensor form is only used for output; otherwise use vector form
@@ -537,23 +555,24 @@ namespace CoupledField {
       //  deltaFormActive_ indicates if we actually need this deltaMatrix for the current
       //    evaluation (the issue is, that we need a deltaMatrix on the lhs and a non-deltaMatrix
       //    on the rhs
-      if(deltaFormActive_ && (deltaForm_ != 0) && (lockPrecomputationAndDeltaMat == false) ) {
+      //      if(deltaFormActive_ && (deltaForm_ != 0) && (lockPrecomputationAndDeltaMat == false) ) {
+      if(deltaMat_Pol_active){
         // std::cout << "Get Permittivity - Compute DeltaMatrix" << std::endl;
         //        std::cout << "Compute DeltaMatrix" << std::endl;
         bool useStrains = false;
         
         // deltaMat will be computed using the current value (timelevel_cur = 0)
         // and the value at timelevel (-1 > last ts; +1 > last iteration)
-        Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
+        Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Pol, useStrains, useAbs,implementationVersion);
         std::cout << "deltaMat elec = " << deltaMat.ToString() << std::endl;
         tmp.Add(1.0,deltaMat);
         //std::cout << "DeltaMat: " << deltaMat.ToString() << std::endl;
-        if(strainForm_ != -1){
+        if( (strainForm_ != -1) && (deltaMat_Strain_active) ){
           //std::cout << "Get Permittivity - Add dS/dE" << std::endl;
           // coupled case
           // here we have to add -e*dS/dE in addition
           useStrains = true;
-          Matrix<Double> deltaMat_strains = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
+          Matrix<Double> deltaMat_strains = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Strain, useStrains, useAbs,implementationVersion);
           std::cout << "deltaMat strains = " << deltaMat_strains.ToString() << std::endl;
           e_scaled.Mult(deltaMat_strains,tmp2);
           
@@ -605,15 +624,16 @@ namespace CoupledField {
         hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
         tmp = rotatedCouplTensor;
       }
-            
-      if(deltaFormActive_ && (deltaForm_ != 0) && (lockPrecomputationAndDeltaMat == false) ) {
+      
+      //      if(deltaFormActive_ && (deltaForm_ != 0) && (lockPrecomputationAndDeltaMat == false) ) {
+      if(deltaMat_Coupling_active){
         LOG_DBG(coeffcthysthelper) << "Compute DeltaMatrix";
         //        std::cout << "Compute DeltaMatrix" << std::endl;
         bool useStrains = true;
         
         // deltaMat will be computed using the current value (timelevel_cur = 0)
         // and the value at timelevel (-1 > last ts; +1 > last iteration)
-        Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
+        Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Coupling, useStrains, useAbs,implementationVersion);
         std::cout << "deltaMat " << deltaMat.ToString() << std::endl;
         UInt numRows,numCols;
         numRows = tmp.GetNumRows();
@@ -637,7 +657,7 @@ namespace CoupledField {
         } else {
           EXCEPTION("We should require transpose here!");
         }
-                
+        
         if(tensorName == "CouplingMagToMech"){
           // NOTE: we need +dS/dB on lhs exactly like in piezo-case; however,
           // the coupling term here gets multiplied by -1 in the magnetostrictive case
@@ -702,14 +722,15 @@ namespace CoupledField {
       //  deltaFormActive_ indicates if we actually need this deltaMatrix for the current
       //    evaluation (the issue is, that we need a deltaMatrix on the lhs and a non-deltaMatrix
       //    on the rhs
-      if(deltaFormActive_ && (deltaForm_ != 0) && (lockPrecomputationAndDeltaMat == false) ) {
+      if(deltaMat_Pol_active){
+        //      if(deltaFormActive_ && (deltaForm_ != 0) && (lockPrecomputationAndDeltaMat == false) ) {
         //std::cout << "Get Reluctivity - Compute DeltaMatrix" << std::endl;
         //        std::cout << "Compute DeltaMatrix" << std::endl;
         bool useStrains = false;
         
         // deltaMat will be computed using the current value (timelevel_cur = 0)
         // and the value at timelevel (-1 > last ts; +1 > last iteration)
-        Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
+        Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Pol, useStrains, useAbs,implementationVersion);
         
         // note: deltaMat will compute dP/dB, but we want to have -dM/dB
         // i.e. add -nu*deltaMat to tmp
@@ -723,13 +744,13 @@ namespace CoupledField {
         
         //tmp.Add(-795774.7155,deltaMat);
         //std::cout << "DeltaMat (dP/dB): " << deltaMat.ToString() << std::endl;
-        
-        if(strainForm_ != -1){
+        if( (strainForm_ != -1) && (deltaMat_Strain_active) ){
+          //        if(strainForm_ != -1){
           //std::cout << "Get Reluctivity - Add dS/dB" << std::endl;
           // coupled case
           // here we have to add +g[c] dS/dB in addition
           useStrains = true;
-          Matrix<Double> deltaMat_strains = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevel_to_diff, useStrains, useAbs,implementationVersion);
+          Matrix<Double> deltaMat_strains = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Strain, useStrains, useAbs,implementationVersion);
           h_scaled.Mult(deltaMat_strains,tmp2);
           
           tmp.Add(1.0,tmp2);
@@ -852,11 +873,16 @@ namespace CoupledField {
      * > output on current value (0)
      */
     RUN_deltaForm_ = -1;
-		timeLevel_Material_ = 0; // i.e. time step for which to evaluate material tensors (eps, nu, ...)
-		timeLevel_DeltaMat_ = -1; // timestep to which delta is computed
-		timeLevel_RHS_ = -1; // rhs term has to be last ts value as delta is towards that value
-		timeLevel_BC_ = 0; // BC term has to use the last known, i.e. current value
-		timeLevel_Output_ = 0; // output should always be the current value
+		timeLevel_Mat_ = 0; // i.e. time step for which to evaluate material tensors (eps, nu, ...)
+		timeLevel_deltaMatPol_ = -1; // timestep to which delta is computed
+    timeLevel_deltaMatStrain_ = 0; // no deltaMat for strain (deltaS/deltaE)
+		timeLevel_deltaMatCoupling_ = 0; // no deltaMat for coupling ([e]*deltaS/deltaE)
+    
+		timeLevel_rhsPol_ = -1; // rhs term has to be last ts value as delta is towards that value
+    timeLevel_rhsStrain_ = 0; // current value of S_irr
+    timeLevel_rhsCoupling_ = 0;  // current value of [e]S_irr
+		timeLevel_boundaryTerms_ = 0; // BC term has to use the last known, i.e. current value
+		timeLevel_results_ = 0; // output should always be the current value
     forceCurrentTS_ = false;
     includeOldDelta_ = 0.0;
     
@@ -880,7 +906,7 @@ namespace CoupledField {
 		//   rotation list gets initialized properly
 		// > tests showed that this flag should always be true
     // 1.6.2018 removed as it actually always had to be true
-//		RUN_overwriteDirection_ = true;
+    //		RUN_overwriteDirection_ = true;
 		
 		/*
      * set temporary values for xml dependent parameter
@@ -1651,7 +1677,7 @@ namespace CoupledField {
     }
     Vector<Double> zeroStrainVec = Vector<Double>(strainDim);
 		zeroStrainVec.Init();
-
+    
 		E_B_ = new Vector<Double>[numStorageEntries_];
 		P_J_ = new Vector<Double>[numStorageEntries_];
 		E_H_ = new Vector<Double>[numStorageEntries_];
@@ -2499,7 +2525,7 @@ namespace CoupledField {
     if(tensorType_ == AXI){
       EXCEPTION("GetDeltaMat only implemented for 2d plane and full 3d setups");
     }
-        
+    
     Matrix<Double> deltaMat;
     UInt numCols = dim_;
     UInt numRows;
@@ -2661,7 +2687,7 @@ namespace CoupledField {
     return deltaMat;
     
   }
- 
+  
   Matrix<Double> CoefFunctionHyst::GetIrreversibleStrainTensor(const LocPointMapped& Originallpm, int timeLevel) {
     
     Vector<Double> Si_voigt = GetIrreversibleStrains(Originallpm, timeLevel);
@@ -2754,7 +2780,7 @@ namespace CoupledField {
   }
   
   Vector<Double> CoefFunctionHyst::ComputeIrreversibleStrains(Vector<Double> P, Vector<Double> Pold) {
-  
+    
     // setup storage
     Matrix<Double> Si_tensor = Matrix<Double>(dim_,dim_);
     Si_tensor.Init();
@@ -2774,18 +2800,18 @@ namespace CoupledField {
       WARN("No beta coefficients were defined. Cannot approximate Si; return empty vector");
       return Si_voigt;
     } 
-//    else {
-//      std::cout << "use betaCoefs: " << MAT_betaCoefs_.ToString() << std::endl;
-//    }
+    //    else {
+    //      std::cout << "use betaCoefs: " << MAT_betaCoefs_.ToString() << std::endl;
+    //    }
     
     Matrix<Double> negeye = Matrix<Double>(dim_,dim_);
     for(UInt i = 0; i < dim_; i++){
       negeye[i][i] = -1.0;
     }
-        
-//    std::cout << "P for strain: " << P.ToString() << std::endl;
-//    std::cout << "Norm of P: " << P.NormL2() << std::endl;
-//    
+    
+    //    std::cout << "P for strain: " << P.ToString() << std::endl;
+    //    std::cout << "Norm of P: " << P.NormL2() << std::endl;
+    //    
     Vector<Double>dirP = Vector<Double>(dim_);
     dirP.Init();
     if(P.NormL2() != 0){
@@ -2797,9 +2823,9 @@ namespace CoupledField {
     Matrix<Double>dyadic = Matrix<Double>(dim_,dim_);
     dyadic.DyadicMult(dirP);
     dyadic.Add(1.0/3.0,negeye);
-      
-//      std::cout << "dirP*dirP^T - 1/3[I] = " << dyadic.ToString() << std::endl;
-//  
+    
+    //      std::cout << "dirP*dirP^T - 1/3[I] = " << dyadic.ToString() << std::endl;
+    //  
     // ORIGINAL approach
     // Si = 3/2*(beta0 + beta1*|P| + beta2*|P|^2 + ... + betan*|P|^n)*(dirP*dirP^T - 1/3[I])
     Double normP = P.NormL2();
@@ -2823,7 +2849,7 @@ namespace CoupledField {
     if(betaSum != 0){
       Si_tensor.Add(1.5*poly/betaSum*MAT_sSat_,dyadic);
     }
-
+    
     // transform matrix to voigt notation
     // TODO: check implementation of [c]
     //      > do we have Si = sxx,syy,szz,2szy,2sxz,2sxy or do we have Si = sxx,syy,szz,szy,sxz,sxy ?
@@ -2839,7 +2865,7 @@ namespace CoupledField {
       Si_voigt[4] = Si_tensor[0][2];
       Si_voigt[5] = Si_tensor[0][1];
     }
-//    std::cout << "Si_voigt = " << Si_voigt.ToString() << std::endl;
+    //    std::cout << "Si_voigt = " << Si_voigt.ToString() << std::endl;
     return Si_voigt;   
   }
   
@@ -3432,7 +3458,7 @@ namespace CoupledField {
      *  > extended evaluation: one hyst operator for each midpoint; evaluation at each integration point + midpoint
      *  > full evaluation: one hyst operator for each integration point + midpoint; evaluation at each integration point + midpoint
      */
-    SetCurrentHystVals(overwriteMemory);
+    PrecomputePolarization(overwriteMemory);
     
     if(resetSolToZeroFirst){
       for(UInt i = 0; i < numStorageEntries_; i++){
@@ -3441,7 +3467,19 @@ namespace CoupledField {
         LOG_DBG(coeffcthyst) << "P_J_[ " << i << " ] = " << P_J_[i];
       }
     }
-    
+    /*
+     * -1 : not coupled at all
+     *  0 : coupled e-form/h-form (piezo/magstrict)
+     *  1 : coupled d-form (piezo)
+     *  2 : coupled g-form (magstrict)
+     */
+    if(MAT_strainForm_ != -1){
+      PrecomputeIrrStrains();
+      bool rotate = true;
+      Matrix<Double> baseTensor = hystHelper_->GetBaseCouplingTensor();
+      PrecomputeScaledAndRotatedCouplingTensor(baseTensor,rotate);
+    }
+ 
     //    
     //#ifdef USE_OPENMP
     //#pragma omp parallel num_threads(CFS_NUM_THREADS)
@@ -3502,6 +3540,346 @@ namespace CoupledField {
     //#endif
   }
   
+  void CoefFunctionHyst::PrecomputeIrrStrains(){
+  LOG_DBG(coeffcthyst) << "CoefFunctionHyst::PrecomputeIrrStrains()";
+  /*
+   * Iterate over all lpm
+   * for each lpm extract the precomputed values of P (current), P (lastTimestep)
+   * use those values to calculate the irreversible strains and store them
+   */
+
+    UInt size = allLPMmap_.size();
+    UInt strainSize = 3;
+    if(dim_ == 3){
+      strainSize = 6;
+    }
+    
+#ifdef USE_OPENMP
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
+    {     
+      Vector<Double> P = Vector<Double>(dim_);
+      Vector<Double> Pold = Vector<Double>(dim_);
+      Vector<Double> S_irr = Vector<Double>(strainSize);
+      //std::cout << "Running parallel" << std::endl;
+      UInt numT = CFS_NUM_THREADS;
+      UInt aThread = omp_get_thread_num();
+      //std::cout << "My number: " << aThread << std::endl;
+      UInt chunksize = std::floor(size/numT);
+      
+      std::map<UInt, LocPointMapped >::iterator LPMit;
+      std::map<UInt, LocPointMapped >::iterator LPMitStart = allLPMmap_.begin();
+      std::map<UInt, LocPointMapped >::iterator LPMitEnd;
+      
+      std::advance(LPMitStart, aThread*chunksize);
+      
+      if(aThread == numT-1){
+        LPMitEnd = allLPMmap_.end();
+      } else {
+        LPMitEnd = LPMitStart;
+        std::advance(LPMitEnd, chunksize);
+      }  
+      
+#pragma omp barrier
+      for(LPMit = LPMitStart; LPMit != LPMitEnd; LPMit++){
+        // computation required
+        // get current polarizaton / output of hyst operator (timelevel = 0)
+        P = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, 0);
+        // for case that P is zero, we also obtain the last value in order to compute the last known direction of P
+        // if this one is 0, too then dir = zeroVec
+        Pold = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, -1);
+        
+        S_irr = ComputeIrreversibleStrains(P,Pold);
+        
+        // flag gets reset at end of each iteration (so the stored value can beu
+        // used during one iteration by several terms/function calls)
+        Si_requiresReeval_[LPMit->first] = false;
+        Si_[LPMit->first] = S_irr;
+      }
+#pragma omp barrier
+    }
+#else
+    {
+      Vector<Double> P = Vector<Double>(dim_);
+      Vector<Double> Pold = Vector<Double>(dim_);
+      Vector<Double> S_irr = Vector<Double>(strainSize);
+      //std::cout << "Running serial" << std::endl;
+            
+      std::map<UInt, LocPointMapped >::iterator LPMit;
+      
+      for(LPMit = allLPMmap_.begin(); LPMit != allLPMmap_.end(); LPMit++){
+        // computation required
+        // get current polarizaton / output of hyst operator (timelevel = 0)
+        P = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, 0);
+        // for case that P is zero, we also obtain the last value in order to compute the last known direction of P
+        // if this one is 0, too then dir = zeroVec
+        Pold = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, -1);
+        
+        S_irr = ComputeIrreversibleStrains(P,Pold);
+        
+        // flag gets reset at end of each iteration (so the stored value can beu
+        // used during one iteration by several terms/function calls)
+        Si_requiresReeval_[LPMit->first] = false;
+        Si_[LPMit->first] = S_irr;
+      }
+    }
+#endif
+  };
+  
+  void CoefFunctionHyst::PrecomputeScaledAndRotatedCouplingTensor(Matrix<Double> baseTensor, bool rotate){
+    LOG_DBG(coeffcthysthelper) << "CoefFunctionHelper::PrecomputeScaledAndRotatedCouplingTensor()";
+    
+    /*
+     * Iterate over all integration points used/managed by the hyst operator and
+     * for each of these LPM set the matrix for iversion, i.e. mu/nu in magnetic case
+     */    
+ 
+    UInt size = allLPMmap_.size();
+
+    // obtain correct sizes first
+    UInt numRows, numCols;
+    numCols = baseTensor.GetNumCols();
+    numRows = baseTensor.GetNumRows();
+
+    if(numCols == 4){
+      // axi case: 2x4 matrix
+      WARN("Rotation for axi case not implemented yet. No rotation will be peformed");
+      rotate = false;
+    }
+    
+#ifdef USE_OPENMP
+#pragma omp parallel num_threads(CFS_NUM_THREADS)
+    {
+      Matrix<Double> scaledCouplTensor = Matrix<Double>(numRows,numCols);
+      Matrix<Double> rotatedCouplTensor = Matrix<Double>(numRows,numCols);
+      Matrix<Double> R;
+      Matrix<Double> RT;
+      
+      Vector<Double> P = Vector<Double>(dim_);
+      
+      // get current polarization (elec or mag)
+      Vector<Double> dirP = Vector<Double>(dim_);
+      Double alpha, beta, gamma, scaling;
+      //      std::cout << "Current polarization vector " << P.ToString() << std::endl;
+      //      
+      // calculate scaling
+      
+      //std::cout << "Running parallel" << std::endl;
+      UInt numT = CFS_NUM_THREADS;
+      UInt aThread = omp_get_thread_num();
+      //std::cout << "My number: " << aThread << std::endl;
+      UInt chunksize = std::floor(size/numT);
+      
+      std::map<UInt, LocPointMapped >::iterator LPMit;
+      std::map<UInt, LocPointMapped >::iterator LPMitStart = allLPMmap_.begin();
+      std::map<UInt, LocPointMapped >::iterator LPMitEnd;
+      
+      std::advance(LPMitStart, aThread*chunksize);
+      
+      if(aThread == numT-1){
+        LPMitEnd = allLPMmap_.end();
+      } else {
+        LPMitEnd = LPMitStart;
+        std::advance(LPMitEnd, chunksize);
+      }  
+      
+#pragma omp barrier
+      for(LPMit = LPMitStart; LPMit != LPMitEnd; LPMit++){
+        
+        // get current value of P
+        Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, 0);
+        scaling = P.NormL2()/MAT_pSat_;
+        
+        scaledCouplTensor = baseTensor*scaling;
+        
+        //      std::cout << "Scalaed coupling tensor " << scaledCouplTensor.ToString() << std::endl;
+        //      
+        if(rotate == true){
+          if(P.NormL2() == 0){
+            //        std::cout << "Polarization is zero > perform no rotation" << std::endl;
+            rotatedCouplTensor = scaledCouplTensor;
+            
+          } else {
+            dirP = P / P.NormL2();
+            
+            if (numCols == 6){
+              // 3d plane case
+              // Idea: Create rotation matrix, that maps the current direction of P onto z-axis
+              //       as the z-axis is the default polarization axis in the mat file
+              //       To obtained the desired behavior, we have to rotate the z-axis onto P however.
+              //       This can be done by taking the transposed rotation matrix.
+              
+              // 1. rotate around z-axis by angle gamma such that P lies in z-y plane
+              // gamma = angle between z-y plane and dirP
+              gamma = std::atan2(dirP[0],dirP[1]);
+              
+              // 2. rotate around x-axis by angle alpha such that P lies on top of z-axis
+              // alpha = angle between x-y plane and z
+              alpha = std::atan2(std::sqrt(dirP[1]*dirP[1]+dirP[0]*dirP[0]),dirP[2]);
+              
+              // no rotation arouind y-axis needed > beta = 0
+              // WARNING: this whole procedure is only valid if coupling tensor is at least
+              // transverse isotropic! Otherwise we have to figure out on which axis to rotate
+              // the transverse directions
+              beta = 0.0;
+              R = Compute3DRotationMatrix(alpha, beta, gamma);
+              
+              // take transpose matrix to revert rotation (i.e. rotate z-axis onto dirP)
+              RT.Resize(3,3);
+              R.Transpose(RT);
+              
+              //              assert(rotatedCouplTensor.GetNumRows() == 3);
+              //              assert(rotatedCouplTensor.GetNumCols() == 6);
+              
+              scaledCouplTensor.PerformRotation(RT,rotatedCouplTensor);
+              
+            } else {
+              // 2d plane strain or plane stress case
+              // Important remark:
+              //  for 2d plane strain and stress (and somehow also for axi) the coupling tensor
+              //  will be rotated by default by alpha = -90 and gamma = -90.
+              //  This results in the following mapping of the coordinate axis:
+              //    z > y, y > x, x > z
+              //  I.e. the material is rotated such that the default polarization is in +y direction.
+              //  We thus have two possibilities to align the material tensor to the 2d polarization
+              //  direction:
+              //  a) get original 3x6 tensor and rotate that tensor according to the 3d version above
+              //      then cut out subtensor
+              //  b) take cut out subtensor and perform rotation directly in 2d
+              //      > Version b done in the following
+              
+              // std::atan2(dirP[0],dirP[1]) would rotate towards the y-axis
+              // we want however the y-axis to rotate, so that we take -gamma instead
+              gamma = -std::atan2(dirP[0],dirP[1]);
+              
+              R = Compute2DRotationMatrix(gamma);
+              
+              //              assert(rotatedCouplTensor.GetNumRows() == 2);
+              //              assert(rotatedCouplTensor.GetNumCols() == 3);
+              scaledCouplTensor.PerformRotation(R,rotatedCouplTensor);
+            }
+          }
+        } else {
+          // no rotation > take scale tensor
+          rotatedCouplTensor = scaledCouplTensor;
+        }
+        
+        rotatedCouplingTensor_requiresReeval_[LPMit->first] = false;
+        rotatedCouplingTensor_[LPMit->first] = rotatedCouplTensor;
+        //        lastUsedTimeLevelForRotation_[storageIdx] = timeLevel;
+      }
+#pragma omp barrier
+    }
+#else
+    {
+      Matrix<Double> scaledCouplTensor = Matrix<Double>(numRows,numCols);
+      Matrix<Double> rotatedCouplTensor = Matrix<Double>(numRows,numCols);
+      Matrix<Double> R;
+      Matrix<Double> RT;
+      
+      Vector<Double> P = Vector<Double>(dim);
+      
+      // get current polarization (elec or mag)
+      Vector<Double> dirP = Vector<Double>(dim);
+      Double alpha, beta, gamma, scaling;
+      //      std::cout << "Current polarization vector " << P.ToString() << std::endl;
+      //      
+      // calculate scaling
+      
+      //std::cout << "Running serial" << std::endl;      
+      std::map<UInt, LocPointMapped >::iterator LPMit;
+      std::map<UInt, LocPointMapped >::iterator LPMitStart = allLPMmap_.begin();
+      std::map<UInt, LocPointMapped >::iterator LPMitEnd = allLPMmap_.end();
+
+#pragma omp barrier
+      for(LPMit = LPMitStart; LPMit != LPMitEnd; LPMit++){
+        
+        // get current value of P
+        Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, 0);
+        scaling = P.NormL2()/MAT_pSat_;
+        
+        scaledCouplTensor = baseTensor*scaling;
+        
+        //      std::cout << "Scalaed coupling tensor " << scaledCouplTensor.ToString() << std::endl;
+        //      
+        if(rotate == true){
+          if(P.NormL2() == 0){
+            //        std::cout << "Polarization is zero > perform no rotation" << std::endl;
+            rotatedCouplTensor = scaledCouplTensor;
+            
+          } else {
+            dirP = P / P.NormL2();
+            
+            if (numCols == 6){
+              // 3d plane case
+              // Idea: Create rotation matrix, that maps the current direction of P onto z-axis
+              //       as the z-axis is the default polarization axis in the mat file
+              //       To obtained the desired behavior, we have to rotate the z-axis onto P however.
+              //       This can be done by taking the transposed rotation matrix.
+              
+              // 1. rotate around z-axis by angle gamma such that P lies in z-y plane
+              // gamma = angle between z-y plane and dirP
+              gamma = std::atan2(dirP[0],dirP[1]);
+              
+              // 2. rotate around x-axis by angle alpha such that P lies on top of z-axis
+              // alpha = angle between x-y plane and z
+              alpha = std::atan2(std::sqrt(dirP[1]*dirP[1]+dirP[0]*dirP[0]),dirP[2]);
+              
+              // no rotation arouind y-axis needed > beta = 0
+              // WARNING: this whole procedure is only valid if coupling tensor is at least
+              // transverse isotropic! Otherwise we have to figure out on which axis to rotate
+              // the transverse directions
+              beta = 0.0;
+              R = Compute3DRotationMatrix(alpha, beta, gamma);
+              
+              // take transpose matrix to revert rotation (i.e. rotate z-axis onto dirP)
+              RT.Resize(3,3);
+              R.Transpose(RT);
+              
+              //              assert(rotatedCouplTensor.GetNumRows() == 3);
+              //              assert(rotatedCouplTensor.GetNumCols() == 6);
+              
+              scaledCouplTensor.PerformRotation(RT,rotatedCouplTensor);
+              
+            } else {
+              // 2d plane strain or plane stress case
+              // Important remark:
+              //  for 2d plane strain and stress (and somehow also for axi) the coupling tensor
+              //  will be rotated by default by alpha = -90 and gamma = -90.
+              //  This results in the following mapping of the coordinate axis:
+              //    z > y, y > x, x > z
+              //  I.e. the material is rotated such that the default polarization is in +y direction.
+              //  We thus have two possibilities to align the material tensor to the 2d polarization
+              //  direction:
+              //  a) get original 3x6 tensor and rotate that tensor according to the 3d version above
+              //      then cut out subtensor
+              //  b) take cut out subtensor and perform rotation directly in 2d
+              //      > Version b done in the following
+              
+              // std::atan2(dirP[0],dirP[1]) would rotate towards the y-axis
+              // we want however the y-axis to rotate, so that we take -gamma instead
+              gamma = -std::atan2(dirP[0],dirP[1]);
+              
+              R = Compute2DRotationMatrix(gamma);
+              
+              //              assert(rotatedCouplTensor.GetNumRows() == 2);
+              //              assert(rotatedCouplTensor.GetNumCols() == 3);
+              scaledCouplTensor.PerformRotation(R,rotatedCouplTensor);
+            }
+          }
+        } else {
+          // no rotation > take scale tensor
+          rotatedCouplTensor = scaledCouplTensor;
+        }
+        
+        rotatedCouplingTensor_requiresReeval_[LPMit->first] = false;
+        rotatedCouplingTensor_[LPMit->first] = rotatedCouplTensor;
+        //        lastUsedTimeLevelForRotation_[storageIdx] = timeLevel;
+      }
+#pragma omp barrier
+    }
+#endif
+
+  };
 	
 	Vector<Double> CoefFunctionHyst::CalcOutputOfHysteresisOperator(Vector<Double> inputToHystOperator, UInt operatorIdx, UInt storageIdx, 
           bool forceMemoryLock, bool forceMemoryWrite) {
@@ -3739,7 +4117,7 @@ namespace CoupledField {
   //    
   //  }
   
-  void CoefFunctionHyst::SetCurrentHystVals(bool overwriteMemory){
+  void CoefFunctionHyst::PrecomputePolarization(bool overwriteMemory){
     
     UInt RUN_evaluationPurpose_bak = RUN_evaluationPurpose_;
     RUN_evaluationPurpose_ = 1;
@@ -4168,15 +4546,37 @@ namespace CoupledField {
     else if(flagName == "forceCurrentTS"){
       forceCurrentTS_ = bool(intState);
     } 
-    else if(flagName == "SetTimeLevelRHSHyst"){
-      timeLevel_RHS_ = intState;
+    else if( (flagName == "SetTimeLevelRHSHyst") || (flagName == "SetTimeLevelRHSPol") ){
+      timeLevel_rhsPol_ = intState;
+    }
+    else if( flagName == "SetTimeLevelRHSStrain"){
+      timeLevel_rhsStrain_ = intState;
+    }
+    else if( flagName == "SetTimeLevelRHSCoupling"){
+      timeLevel_rhsCoupling_ = intState;
     }
     else if(flagName == "SetTimeLevelMaterial"){
-      timeLevel_Material_ = intState;
+      timeLevel_Mat_ = intState;
     }
-    else if(flagName == "SetTimeLevelDeltaMat"){
-      timeLevel_DeltaMat_ = intState;
-      if(timeLevel_DeltaMat_ == -2){
+    else if( (flagName == "SetTimeLevelDeltaMat") || (flagName == "SetTimeLevelDeltaMatPol") ){
+      timeLevel_deltaMatPol_ = intState;
+      if(timeLevel_deltaMatPol_ == -2){
+        deltaMatActive_ = false;
+      } else {
+        deltaMatActive_ = true;
+      }
+    }
+    else if(flagName == "SetTimeLevelDeltaMatStrain"){
+      timeLevel_deltaMatStrain_ = intState;
+      if(timeLevel_deltaMatStrain_ == -2){
+        deltaMatActive_ = false;
+      } else {
+        deltaMatActive_ = true;
+      }
+    }
+    else if(flagName == "SetTimeLevelDeltaMatCoupling"){
+      timeLevel_deltaMatCoupling_ = intState;
+      if(timeLevel_deltaMatCoupling_ == -2){
         deltaMatActive_ = false;
       } else {
         deltaMatActive_ = true;
@@ -4318,9 +4718,9 @@ namespace CoupledField {
 		}
     
 	}
-    
+  
   void CoefFunctionHyst::CreatePeriodicTestSignal(std::string name, Double amplitudeScaling, Double numPeriods, UInt stepsPerPeriod, Vector<Double>& xVals, Vector<Double>& yVals){
-     
+    
     UInt totalSteps = UInt(stepsPerPeriod*numPeriods);
     xVals.Resize(totalSteps);
     yVals.Resize(totalSteps);
@@ -4373,36 +4773,36 @@ namespace CoupledField {
         cnt++;
       }
     } else if(name == "DecreasingSine"){
-        Double decrease = 1.0/totalSteps;
-
-        for(UInt i = 0; i < totalSteps; i++){
-          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
-          xVals[i] = MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod );
-          
-          if(i >= 3*stepsPerPeriod){
-            yVals[i] = -MAT_xSat_/8.0;
-          } else if(i >= 2*stepsPerPeriod){
-            yVals[i] = -MAT_xSat_/4.0;
-          } else if(i >= stepsPerPeriod){
-            yVals[i] = -MAT_xSat_/2.0;
-          } else if(i >= 0){
-            yVals[i] = -MAT_xSat_;
-          }
+      Double decrease = 1.0/totalSteps;
+      
+      for(UInt i = 0; i < totalSteps; i++){
+        //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
+        xVals[i] = MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod );
+        
+        if(i >= 3*stepsPerPeriod){
+          yVals[i] = -MAT_xSat_/8.0;
+        } else if(i >= 2*stepsPerPeriod){
+          yVals[i] = -MAT_xSat_/4.0;
+        } else if(i >= stepsPerPeriod){
+          yVals[i] = -MAT_xSat_/2.0;
+        } else if(i >= 0){
+          yVals[i] = -MAT_xSat_;
         }
+      }
     } else if(name == "DecreasingRotation"){
-        Double decrease = 1.0/totalSteps;
-
-        for(UInt i = 0; i < totalSteps; i++){
-          xVals[i] = MAT_xSat_*(1.0 - decrease*i)*sin( (2*M_PI*i)/stepsPerPeriod );
-          yVals[i] = MAT_xSat_*(1.0 - decrease*i)*cos( (2*M_PI*i)/stepsPerPeriod );
-        }
+      Double decrease = 1.0/totalSteps;
+      
+      for(UInt i = 0; i < totalSteps; i++){
+        xVals[i] = MAT_xSat_*(1.0 - decrease*i)*sin( (2*M_PI*i)/stepsPerPeriod );
+        yVals[i] = MAT_xSat_*(1.0 - decrease*i)*cos( (2*M_PI*i)/stepsPerPeriod );
+      }
     } else if(name == "IncreasingRotation"){
-        Double increase = 1.0/totalSteps;
-
-        for(UInt i = 0; i < totalSteps; i++){
-          xVals[i] = MAT_xSat_*increase*i*sin( (2*M_PI*i)/stepsPerPeriod );
-          yVals[i] = MAT_xSat_*increase*i*cos( (2*M_PI*i)/stepsPerPeriod );
-        }
+      Double increase = 1.0/totalSteps;
+      
+      for(UInt i = 0; i < totalSteps; i++){
+        xVals[i] = MAT_xSat_*increase*i*sin( (2*M_PI*i)/stepsPerPeriod );
+        yVals[i] = MAT_xSat_*increase*i*cos( (2*M_PI*i)/stepsPerPeriod );
+      }
     } else if(name == "Sine"){
       for(UInt i = 0; i < totalSteps; i++){
         xVals[i] = MAT_xSat_*sin( (2*M_PI*i)/stepsPerPeriod );
@@ -4550,7 +4950,7 @@ namespace CoupledField {
     yVals.ScalarMult(amplitudeScaling);
     
   }
-          
+  
   void CoefFunctionHyst::WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals){
     std::ofstream output;
     output.open(name);
@@ -4563,11 +4963,11 @@ namespace CoupledField {
   }
   
   void CoefFunctionHyst::TestHystOperatorWithSignal(std::string name, Vector<Double> xVals, Vector<Double> yVals, 
-		bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, bool test1D, bool outputIrrStrains){
+          bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, bool test1D, bool outputIrrStrains){
     
 		/*
-		 * 0. Declare variables (there are alot)
-		 */
+     * 0. Declare variables (there are alot)
+     */
 		std::ofstream statistics;
 		std::ofstream results_x;
     std::ofstream results_p;
@@ -4718,9 +5118,9 @@ namespace CoupledField {
 		}
 		
 		/*
-		 * 1. Create temporal hyst operator; this should be done for each test to ensure 
-		 *		that operator is in initial state
-		 */
+     * 1. Create temporal hyst operator; this should be done for each test to ensure 
+     *		that operator is in initial state
+     */
 		bool fieldsAlignedAboveSat = true;
 		bool hystOutputRestrictedToSat = true;
 		bool isVirgin = true;
@@ -4740,8 +5140,8 @@ namespace CoupledField {
 				material_->GetScalar(MAT_angResistance_, ANG_DISTANCE, Global::REAL);
 				
 				hystTMP = new ExtendedPreisach(1, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, 
-					MAT_rotRes_, MAT_angResistance_, dim_, isVirgin, MAT_anhysteretic_a_, 
-					MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+                MAT_rotRes_, MAT_angResistance_, dim_, isVirgin, MAT_anhysteretic_a_, 
+                MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 				
 				// set initial direction
 				Vector<Double> initialInput = Vector<Double>(dim_);
@@ -4755,7 +5155,7 @@ namespace CoupledField {
 			} else {
 				vector = false;
 				hystTMP = new Preisach(1, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, isVirgin, 
-					MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+                MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			}
 		} else if (usedHystModel_ == "vectorPreisach_Sutor") {
 			if(printStatistics){
@@ -4779,39 +5179,39 @@ namespace CoupledField {
 				isClassical_ = true; // original vector preisach model -> sutor2012
 				
 				hystTMP = new VectorPreisachSutor_ListApproach(1, MAT_xSat_, MAT_pSat_,
-					MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-					isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
-					MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+                MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
+                isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
+                MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 2) {
 				isClassical_ = false; // revised vector preisach model -> sutor2015
 				
 				hystTMP = new VectorPreisachSutor_ListApproach(1, MAT_xSat_, MAT_pSat_,
-					MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-					isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
-					MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+                MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
+                isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
+                MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 10) {
 				isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
 				
 				hystTMP = new VectorPreisachSutor_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
-					MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-					isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
-					MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+                MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
+                isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
+                MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else if (MAT_vecPreisachImplementationVersion_ == 20) {
 				isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
 				
 				hystTMP = new VectorPreisachSutor_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
-					MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-					isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
-					MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+                MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
+                isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, 
+                MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
 			} else {
 				EXCEPTION("MAT_vecPreisachImplementationVersion_ has to be one of the following: \n "
-					"1: classical vector model (sutor2012) \n"
-					"2: revised vector model (sutor2015) [DEFAULT] \n"
-					"10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
-					"20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
+                "1: classical vector model (sutor2012) \n"
+                "2: revised vector model (sutor2015) [DEFAULT] \n"
+                "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
+                "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
 			}
 			hystTMP->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
-				INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_); 
+              INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_); 
 			
 		} else if (usedHystModel_ == "vectorPreisach_Mayergoyz") {
 			fieldsAlignedAboveSat = false;
@@ -4838,19 +5238,19 @@ namespace CoupledField {
 			statistics << "and output clipping mode = " << clipOutput << std::endl;
 			
 			/*
-			 * IMPORTANT REMARK:
-			 *  > although the Mayergoyz model is based on the scalar models 
-			 *     we are not allowed to directly apply the Preisach parameter for
-			 *     the scalar case (i.e. the weights, the anhyst parameter and so on)
-			 *  > make sure that the passed parameter are already transformed correctly
-			 *      > see constructor above
-			 */
+       * IMPORTANT REMARK:
+       *  > although the Mayergoyz model is based on the scalar models 
+       *     we are not allowed to directly apply the Preisach parameter for
+       *     the scalar case (i.e. the weights, the anhyst parameter and so on)
+       *  > make sure that the passed parameter are already transformed correctly
+       *      > see constructor above
+       */
 			hystTMP = new VectorPreisachMayergoyz(1, numDirections, MAT_xSat_, MAT_pSat_, 
-				MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, 
-				MAT_anhysteretic_c_,anhystOnly_,clipOutput);
+              MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, 
+              MAT_anhysteretic_c_,anhystOnly_,clipOutput);
 			
 			hystTMP->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
-				INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_); 
+              INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_); 
 		} else {
 			EXCEPTION("Invalid model selected for inversion test");
 		}
@@ -4914,8 +5314,8 @@ namespace CoupledField {
 		}
 		
 		/*
-		 * 2. Perform tests
-		 */
+     * 2. Perform tests
+     */
 		forwardTimer = NULL;
 		backwardTimer = NULL;
 		if (measurePerformance) {
@@ -4937,31 +5337,31 @@ namespace CoupledField {
 			}
 			performance << "SINGLE TESTS: " << std::endl;
 		}
-		    
+    
 		if(writeResultsToFile){
-//      std::stringstream results;
-//			results << "# +++ RESULTS +++" << std::endl;
-//			results << "# TEST: " << name << std::endl;
-//			results << "# MODEL: " << usedHystModel_ << std::endl;
-//			if (usedHystModel_ == "vectorPreisach_Sutor") {
-//				if (MAT_vecPreisachImplementationVersion_ == 1) {
-//					results << "# - classical model, list based implementation" << std::endl;
-//				} else if (MAT_vecPreisachImplementationVersion_ == 2) {
-//					results << "# - revised model, list based implementation" << std::endl;
-//				} else if (MAT_vecPreisachImplementationVersion_ == 10) {
-//					results << "# - classical model, matrix based implementation" << std::endl;
-//				} else if (MAT_vecPreisachImplementationVersion_ == 20) {
-//					results << "# - revised model, matrix based implementation" << std::endl;
-//				}
-//			}
-//			
-//      results_x << results.str();
-//      results_p << results.str();
-//      results_y << results.str();
-//      angularResults_x << results.str();
-//      angularResults_p << results.str();
-//      angularResults_y << results.str();
-
+      //      std::stringstream results;
+      //			results << "# +++ RESULTS +++" << std::endl;
+      //			results << "# TEST: " << name << std::endl;
+      //			results << "# MODEL: " << usedHystModel_ << std::endl;
+      //			if (usedHystModel_ == "vectorPreisach_Sutor") {
+      //				if (MAT_vecPreisachImplementationVersion_ == 1) {
+      //					results << "# - classical model, list based implementation" << std::endl;
+      //				} else if (MAT_vecPreisachImplementationVersion_ == 2) {
+      //					results << "# - revised model, list based implementation" << std::endl;
+      //				} else if (MAT_vecPreisachImplementationVersion_ == 10) {
+      //					results << "# - classical model, matrix based implementation" << std::endl;
+      //				} else if (MAT_vecPreisachImplementationVersion_ == 20) {
+      //					results << "# - revised model, matrix based implementation" << std::endl;
+      //				}
+      //			}
+      //			
+      //      results_x << results.str();
+      //      results_p << results.str();
+      //      results_y << results.str();
+      //      angularResults_x << results.str();
+      //      angularResults_p << results.str();
+      //      angularResults_y << results.str();
+      
 			if(testInversion){
         results_x << "#Number xIn[0] xIn[1] xOut[0] xOut[1]" << std::endl;
         results_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
@@ -5011,7 +5411,7 @@ namespace CoupledField {
 		
 		bool overwriteMemory = false;
 		// always overwrite Direction; deprecated flag; remove in future
-//		bool overwriteDirection = true;
+    //		bool overwriteDirection = true;
 		
 		if( (printStatistics) ){
 			std::cout << "##### STARTING TEST " << name << " #####" << std::endl;
@@ -5042,13 +5442,13 @@ namespace CoupledField {
 			
       if(testInversion){
 				/*
-				 * Inversion test:
-				 *	1. evaluate forward hyst operator with given input; overwrite memory = false
-				 *  2. retrieve input by passing result of 2 to inverse hyst operator
-				 *			> measure backward
-				 *  3. pass retrieved input to forward hyst operator; overwrite memroy = true
-				 *			> measure forward time
-				 */
+         * Inversion test:
+         *	1. evaluate forward hyst operator with given input; overwrite memory = false
+         *  2. retrieve input by passing result of 2 to inverse hyst operator
+         *			> measure backward
+         *  3. pass retrieved input to forward hyst operator; overwrite memroy = true
+         *			> measure forward time
+         */
 				
 				// 1. forward; do not overwrite
 				overwriteMemory = false;
@@ -5081,12 +5481,12 @@ namespace CoupledField {
 				
         if(vector){
           xOut = hystTMP->computeInput_vec_withStatistics(yIn, yPrev, xPrev, hPrev, 
-						0, MAT_eps_mu_SmallSignal_, fieldsAlignedAboveSat, hystOutputRestrictedToSat,
-						numberOfLMIterations, numberOfLinesearchIterations, maxNumberOfLinesearchIterations,
-						successFlagBackward, minAlpha, maxAlpha, avgAlpha, xIn);	
+                  0, MAT_eps_mu_SmallSignal_, fieldsAlignedAboveSat, hystOutputRestrictedToSat,
+                  numberOfLMIterations, numberOfLinesearchIterations, maxNumberOfLinesearchIterations,
+                  successFlagBackward, minAlpha, maxAlpha, avgAlpha, xIn);	
         } else {	
 					xOut[0] = hystTMP->computeInputAndUpdate(yIn[0], MAT_eps_mu_SmallSignal_[0][0], 
-						0, overwriteMemory, successFlagBackward);
+                  0, overwriteMemory, successFlagBackward);
         }
 				
         if (measurePerformance) {
@@ -5143,15 +5543,15 @@ namespace CoupledField {
 				}
 				
 				/*
-				 * Check result
-				 */
+         * Check result
+         */
 				xErr.Init();
 				xErr.Add(-1.0,xIn,1.0,xOut);
 				// check below after eval of step 3
 				
 				// set xIn to xOut, so that during forward evaluation, xOut is used
 				xIn = xOut;
-					
+        
 			} // testInversion
 			
 			// 3. forward; overwrite this time and measure performance
@@ -5216,10 +5616,10 @@ namespace CoupledField {
       }
       
 			/*
-			 * 4. Check result
-			 * > only for inversion test; for forward test, we do not have a
-			 *		value for comparison
-			 */
+       * 4. Check result
+       * > only for inversion test; for forward test, we do not have a
+       *		value for comparison
+       */
 			bool failWRTX = false;
 			bool failWRTY = false;
 			if(testInversion){
@@ -5249,8 +5649,8 @@ namespace CoupledField {
 			}
 			
 			/*
-			 * 5. Output and statistics
-			 */
+       * 5. Output and statistics
+       */
       std::string delimiter = " ";
 			if(writeResultsToFile){
         Double angle1 = 0;
@@ -5423,8 +5823,8 @@ namespace CoupledField {
 				performance << "Average time for backward evaluations: " << backwardAvgEvalTime << std::endl;
 				performance << "Maximal time for backward evaluations: " << backwardMaxEvalTime << std::endl;
         performance << "# Results for grepping: " << std::endl;
-//        performance << "Flag for grep \t forwardAvgEvalTime (#evals) \t backwardAvgEvalTime (#evals) \t  numFails "<< std::endl;
-//				performance << "TOGREP: \t\t" << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << "\t " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << "\t " << numFails << std::endl;
+        //        performance << "Flag for grep \t forwardAvgEvalTime (#evals) \t backwardAvgEvalTime (#evals) \t  numFails "<< std::endl;
+        //				performance << "TOGREP: \t\t" << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << "\t " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << "\t " << numFails << std::endl;
         /*
          * NOTE: we do measure forward time when computing inversion, too, but the results will be much different
          *        from the results without inversion; inversion seems to affect forward evaluation time, even though no storage will be overwritten
@@ -5442,7 +5842,7 @@ namespace CoupledField {
 			//statistics << "TOGREP: " << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << forwardTotalEvalTime << " " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << " " << backwardTotalEvalTime << " " << numFails << std::endl;			performance << "############################# " <<	std::endl;	
       performance << std::endl;	
 		}
-		    
+    
 		if(writeResultsToFile){
 			results_x.close();
       results_p.close();
@@ -5463,7 +5863,7 @@ namespace CoupledField {
 		}
 		
   }
-
+  
   void CoefFunctionHyst::TestInversion(PtrParamNode testNode){
     
     if(testNode == NULL){
@@ -5473,7 +5873,7 @@ namespace CoupledField {
       // memory has not been set yet > no tests possible
 			EXCEPTION("Memory has not been initialized yet");
     } 
-
+    
     bool testInversion = false;
     if(testNode->Has("TestInversion")){
       testNode->GetValue("TestInversion",testInversion,ParamNode::PASS);
@@ -5502,14 +5902,14 @@ namespace CoupledField {
     if(testNode->Has("OutputIrrStrains")){
       testNode->GetValue("OutputIrrStrains",outputIrrStrains,ParamNode::PASS);
     }
-
-//    std::cout << "testInversion? " << testInversion << std::endl;
-//    std::cout << "test1D? " << test1D << std::endl;
-//    std::cout << "StopAfterTests? " << stopAfterTests << std::endl;
-//    std::cout << "printStatistics? " << printStatistics << std::endl;
-//    std::cout << "writeInputToFile? " << writeInputToFile << std::endl;
-//    std::cout << "writeResultsToFile? " << writeResultsToFile << std::endl;
-//    std::cout << "measurePerformance? " << measurePerformance << std::endl;
+    
+    //    std::cout << "testInversion? " << testInversion << std::endl;
+    //    std::cout << "test1D? " << test1D << std::endl;
+    //    std::cout << "StopAfterTests? " << stopAfterTests << std::endl;
+    //    std::cout << "printStatistics? " << printStatistics << std::endl;
+    //    std::cout << "writeInputToFile? " << writeInputToFile << std::endl;
+    //    std::cout << "writeResultsToFile? " << writeResultsToFile << std::endl;
+    //    std::cout << "measurePerformance? " << measurePerformance << std::endl;
     
     PtrParamNode InputSignals = testNode->Get("InputSignals");
     
@@ -5558,7 +5958,7 @@ namespace CoupledField {
       
       CreatePeriodicTestSignal("Rotation",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal("Rotation",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
-            if(writeInputToFile){
+      if(writeInputToFile){
         WriteSignalToFile("Rotation_input",xVals,yVals);
       }
     }
@@ -5622,7 +6022,7 @@ namespace CoupledField {
       
       CreatePeriodicTestSignal("DecreasingSine",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal("DecreasingSine",xVals,yVals,testInversion,printStatistics,writeResultsToFile,measurePerformance,test1D,outputIrrStrains);
-                  if(writeInputToFile){
+      if(writeInputToFile){
         WriteSignalToFile("DecreasingSine_input",xVals,yVals);
       }
     }
@@ -5762,1477 +6162,1477 @@ namespace CoupledField {
         WriteSignalToFile(combinedname.str(),xVals,yVals);
       }
     }
-        
+    
     if(stopAfterTests){
       EXCEPTION("Stop after testing");
     }
-
-
-//     bool stopAfterInversionTests = false;
-//      bool printStatistics = false;
-//      bool writeResultsToFiles = false;
-//      std::string testFile;
-//      if( nonLinNode->Has("HYST_testInversion") ) {
-//        nonLinNode->Get( "HYST_testInversion")->GetValue( "Testnumber", testInvesion_, ParamNode::PASS );
-//        nonLinNode->Get( "HYST_testInversion")->GetValue( "StopAfterTests", stopAfterInversionTests, ParamNode::PASS );
-//        nonLinNode->Get( "HYST_testInversion")->GetValue( "PrintStatistics", printStatistics, ParamNode::PASS );
-//        nonLinNode->Get( "HYST_testInversion")->GetValue( "WriteResultsToFiles", writeResultsToFiles, ParamNode::PASS );
-//        nonLinNode->Get( "HYST_testInversion")->GetValue( "FileToRead", testFile, ParamNode::PASS );
-//        std::cout << "testFile: " << testFile << std::endl;
-//      } else {
-//        testInvesion_ = 0;
-//      }
-//      
-//      if(testFile != "none"){
-//        Vector<Double> xVals = Vector<Double>(1);
-//        Vector<Double> yVals = Vector<Double>(1);
-//        Interpolate1D reader = Interpolate1D();
-//        reader.ReadFile(testFile.c_str(),xVals,yVals);
-//        std::cout << "Read in data: " << std::endl;
-//        std::cout << xVals.ToString() << std::endl;
-//        std::cout << yVals.ToString() << std::endl;
-//      }
-
-//    
-//    OLD
-//    
-//  UInt testNumber = 0;
-//  bool abortAfterTests = false;
-////  bool printStatistics = false;
-//  bool writeResultsToFiles = false;
-////  bool testForwardOnly = false;
-//  //void CoefFunctionHyst::TestInversion(UInt testNumber, bool abortAfterTests, bool printStatistics, bool writeResultsToFiles, bool testForwardOnly){
-//    
-//    //std::cout << "MAT_PreisachWeights_: " << MAT_PreisachWeights_.ToString() << std::endl;
-//    
-//
-//    
-//    Matrix<Double> eps_mu = MAT_eps_mu_SmallSignal_;
-//    
-//    std::stringstream generalInfo;
-//    generalInfo << std::endl;
-//    generalInfo << "############################" <<std::endl;
-//    generalInfo << "#### - INVERSION TEST - ####" <<std::endl;
-//    generalInfo << "############################" <<std::endl;
-//    generalInfo << std::endl;
-//    generalInfo << "## Used material parameter for all following tests: " << std::endl;
-//    generalInfo << "xSat: " << MAT_xSat_ << std::endl;
-//    generalInfo << "ySat: " << MAT_pSat_ << std::endl;
-//    generalInfo << "eps_mu: " << eps_mu.ToString() << std::endl;
-//    generalInfo << "## Error criteria: " << std::endl;
-//    if (MAT_methodType_ == VECTOR) {
-//      generalInfo << "residual tolerance wrt x: " << INV_resTolH_ << std::endl;
-//    }
-//    generalInfo << "residual tolerance wrt y: " << INV_resTolB_ << std::endl;
-//    generalInfo << std::endl;
-//    if (MAT_methodType_ == VECTOR) {
-//      generalInfo << "## Levenberg-Marquardt parameter set for inversion process: " << std::endl;
-//      generalInfo << "maximal number of iterations: " << INV_maxIter_ << std::endl;
-//      generalInfo << "resolution for Jacobian: " << INV_jacobiResolution_ << std::endl;
-//      if(INV_useTikhonov_){
-//        generalInfo << "Tikhonov regularization applied" << std::endl;
-//      } else {
-//        generalInfo << "No Tikhonov regularization applied" << std::endl;
-//      }
-//      generalInfo << std::endl;
-//    }
-//    
-//    if(printStatistics){
-//      std::cout << generalInfo.str();
-//    } 
-//    
-//    LOG_TRACE(coeffcthyst) << generalInfo.str();
-//    
-//    // Tests inversion of VECTORPreisach Operator and returns 
-//    //  estimation for alpha (linesearch stepping paramater) that can be used
-//    //  for later computation
-//    // > can be used in actual simulations to setup an appropriate linesearch factor alpha
-//    //   to accelerate the actual computations later on!
-//    
-//    Vector<Double>* xIn;
-//    bool vector;
-//    bool isVirgin = true;
-//    
-//    UInt numCases = 11;
-//    UInt totalSteps;
-//    bool testAll = false;
-//    
-//    if(testNumber > numCases){
-//      testAll = true;
-//      LOG_TRACE(coeffcthyst) << "PERFORM ALL TESTS";
-//      if(printStatistics){
-//        std::cout << "PERFORM ALL TESTS" << std::endl;
-//      }
-//    } else {
-//      LOG_TRACE(coeffcthyst) << "PERFORM TEST #" << abs(testNumber);
-//      if(printStatistics){
-//        std::cout << "PERFORM TESTS #" << abs(testNumber) << std::endl;
-//      } 
-//    }
-//    
-//    for(UInt ca = 1; ca <= numCases; ca++){
-//      std::string testName;
-//			bool hystOutputRestrictedToSat = true;
-//      /*
-//       * I. Create testsignel
-//       */
-//      
-//      // recreate the hyst operator in each iteration!
-//      if (MAT_methodType_ == SCALAR) {
-//        vector = false;
-//        
-//        // create one temoporary ScaparPreisach operator with the same
-//        // paramter as the later used ones, except, we just need one entry   
-//        
-//        MAT_useExtension_ = false;
-//        int useExtensionInt;
-//        material_->GetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
-//        if(useExtensionInt == 1){
-//          MAT_useExtension_ = true;
-//        }
-//        if(MAT_useExtension_){
-//          material_->GetScalar(MAT_rotRes_, ROT_RESISTANCE, Global::REAL);
-//          material_->GetScalar(MAT_angResistance_, ANG_DISTANCE, Global::REAL);
-//          
-//          hystTMP = new ExtendedPreisach(1, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, 
-//                  MAT_rotRes_, MAT_angResistance_, dim_, isVirgin, MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
-//          
-//          // set initial direction
-//          Vector<Double> initialInput = Vector<Double>(dim_);
-//          MAT_eps_mu_SmallSignal_.Mult(MAT_dirP_,initialInput);
-//          initialInput.ScalarMult(MAT_xSat_);
-//          initialInput.Add(MAT_pSat_,MAT_dirP_);
-//          // initialInput = (MAT_pSat_*Identity + MAT_xSat_*MAT_eps_mu_SmallSignal_)*MAT_dirP_
-//          // > flux with value just at saturation
-//          hystTMP->UpdateRotationState(initialInput,MAT_eps_mu_SmallSignal_,0);
-//          
-//        } else {
-//          hystTMP = new Preisach(1, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, isVirgin, MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
-//          //hyst_ = new Preisach(numHystOperators_, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, isVirgin);
-//        }
-//        
-//        //hystTMP = new Preisach(1, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, isVirgin);
-//        
-//				// normal preisach has worse resolution than vectorpreisach
-//				// > check for smaller tolerance
-//      } else if (usedHystModel_ == "vectorPreisach_Sutor") {
-//        vector = true;
-//        // create one temporary VectorPreisach operator with the same
-//        // parameter as the later used ones, except, we just need it to store
-//        // entries for one single element / point
-//        if (MAT_vecPreisachImplementationVersion_ == 1) {
-//          isClassical_ = true; // original vector preisach model -> sutor2012
-//          
-//          hystTMP = new VectorPreisachSutor_ListApproach(1, MAT_xSat_, MAT_pSat_,
-//                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-//                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
-//        } else if (MAT_vecPreisachImplementationVersion_ == 2) {
-//          isClassical_ = false; // revised vector preisach model -> sutor2015
-//          
-//          hystTMP = new VectorPreisachSutor_ListApproach(1, MAT_xSat_, MAT_pSat_,
-//                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-//                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
-//        } else if (MAT_vecPreisachImplementationVersion_ == 10) {
-//          isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
-//          
-//          hystTMP = new VectorPreisachSutor_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
-//                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-//                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
-//        } else if (MAT_vecPreisachImplementationVersion_ == 20) {
-//          isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
-//          
-//          hystTMP = new VectorPreisachSutor_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
-//                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
-//                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
-//        } else {
-//          EXCEPTION("MAT_vecPreisachImplementationVersion_ has to be one of the following: \n "
-//                  "1: classical vector model (sutor2012) \n"
-//                  "2: revised vector model (sutor2015) [DEFAULT] \n"
-//                  "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
-//                  "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
-//        }
-//        hystTMP->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
-//                INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_); 
-//      } else if (usedHystModel_ == "vectorPreisach_Mayergoyz") {
-//        vector = true;
-//        // basically a scalar model in multiple directions
-//        // isotropic case: all scalar models are equal (same weights etc)
-//        // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
-//        int isIsotropic = 1;
-//        material_->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
-//        if( (dim_ != 2) || (isIsotropic == 0)){
-//          EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
-//        }
-//        int numDirections = 0;
-//        material_->GetScalar(numDirections, PREISACH_MAYERGOYZ_NUM_DIR);
-//        
-//        int clipOutput = 0;
-//        material_->GetScalar(clipOutput, PREISACH_MAYERGOYZ_CLIPOUTPUT);
-//        
-//				if(clipOutput == 0){
-//					hystOutputRestrictedToSat = false;
-//				}
-//				
-//        /*
-//         * IMPORTANT REMARK:
-//         *  > although the Mayergoyz model is based on the scalar models 
-//         *     we are not alloewed to directly apply the preisach parameter for
-//         *     the scalar case (i.e. the weights, the anhyst parameter and so on)
-//         *  > make sure that the passed parameter are already transformed correctly
-//         *      > see constructor above
-//         */
-//        hystTMP = new VectorPreisachMayergoyz(1, numDirections, MAT_xSat_, MAT_pSat_, 
-//                MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, 
-//								MAT_anhysteretic_c_,anhystOnly_,clipOutput);
-//        
-//        hystTMP->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
-//                INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_); 
-//      } else {
-//        EXCEPTION("Invalid model selected for inversion test");
-//      }
-//      
-//      bool fieldsAlignedAboveSat = true;
-//      if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-//        fieldsAlignedAboveSat = false;
-//      }
-//      
-//      
-//      if( (ca == 1)&&( (testNumber == 1) ||(testAll)) ) {
-//        if(printStatistics){
-//          std::cout << "##### TEST CASE " << ca << " - Self designed test signal" << std::endl;
-//        }
-//        testName = "Self designed test signal";
-//        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Self designed test signal";
-//        /*
-//         * Testcase 1 --- (self-designed) benchmark signal
-//         * 
-//         * 1d-Signal shape:
-//         *  exp-increase, cos decrease, linear increase, 1/x decrease, log increase, x^3 increase, hold state
-//         * 
-//         * 2d/3d-Signal shape:
-//         *  Multiply 1d-Signal with chaning direction vector
-//         * 
-//         */
-//        
-//        UInt steps1,steps2,steps3,steps4,steps5,steps6,steps7;
-//        steps1=50;
-//        steps2=50;
-//        steps3=50;
-//        steps4=50;
-//        steps5=50;
-//        steps6=50;
-//        steps7=10;
-//        totalSteps=steps1+steps2+steps3+steps4+steps5+steps6+steps7;
-//        
-//        xIn = new Vector<Double>[totalSteps]; 
-//        Vector<Double> xScal = Vector<Double>(totalSteps);
-//        xScal.Init();
-//        Double delta;
-//        
-//        // 1. expontential increase from [10^-15 to 10^0[
-//        delta = 15.0/steps1;
-//        
-//        for(UInt i = 0; i < steps1; i++){
-//          xScal[i] = std::pow(10,-15.0+i*delta);
-//        }
-//        // 2. cos decrease towards -0.5[
-//        delta = -std::acos(-0.5)/steps2;
-//        
-//        for(UInt i = 0; i < steps2; i++){
-//          xScal[steps1+i] = std::cos(i*delta);
-//        }
-//        // 3. linear increase to 0.4
-//        delta = 0.9/steps3;
-//        
-//        for(UInt i = 0; i < steps3; i++){
-//          xScal[steps1+steps2+i] = -0.5+i*delta;
-//        }
-//        // 4. 1/x decrease towards -0.3
-//        Double Xstart = 1.0/(0.7 + 1.0/steps4);
-//        delta = (steps4 - Xstart)/steps4;
-//        
-//        for(UInt i = 0; i < steps4; i++){
-//          xScal[steps1+steps2+steps3+i] = 1.0/(Xstart+i*delta)-1.0/steps4-0.3;
-//        }
-//        // 5. logarithmic increase towards 0.2
-//        Xstart = std::exp(-3);
-//        Double Xend = std::exp(2);
-//        delta = (Xend-Xstart)/steps5;
-//        
-//        for(UInt i = 0; i < steps5; i++){
-//          xScal[steps1+steps2+steps3+steps4+i] = 0.1*std::log(Xstart+i*delta);
-//        }
-//        // 6. x^3 increase to 0.8
-//        Double denom = std::pow(steps6-1,3);
-//        for(UInt i = 0; i < steps6; i++){
-//          xScal[steps1+steps2+steps3+steps4+steps5+i] = 0.6*std::pow(i,3)/denom + 0.2;
-//        }
-//        
-//        // 7. hold signal at value 0.8
-//        for(UInt i = 0; i < steps7; i++){
-//          xScal[steps1+steps2+steps3+steps4+steps5+steps6+i] = 0.8;
-//        }
-//        
-//        //        std::ofstream testOutput;
-//        //        testOutput.open("GeneratedInput");
-//        //        for(UInt i = 0; i < totalSteps; i++){
-//        //          testOutput << i << " " << xScal[i] << std::endl;
-//        //        }
-//        //        testOutput.close();
-//        Vector<Double> dir = Vector<Double>(dim_);
-//        dir[0] = 1.0;
-//        dir[1] = 0.0;
-//        for(UInt i = 0; i < totalSteps; i++){
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init();
-//          dir[0] = (Double) (totalSteps-i)/totalSteps;
-//          if(vector){
-//            dir[1] = (Double) i/totalSteps;
-//          } else {
-//            dir[1] = 0.0;
-//          }
-//          xIn[i].Add(MAT_xSat_*xScal[i],dir);
-//        }
-//        
-//      } else if( (ca == 2)&&( (testNumber == 2) ||(testAll)) ) {
-//        if(printStatistics){
-//          std::cout << "##### TEST CASE " << ca << " - Decreasing Sawtooth" << std::endl;
-//        }
-//        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Decreasing Sawtooth";
-//        testName = "Decreasing Sawtooth";
-//        totalSteps = 200;
-//        xIn = new Vector<Double>[totalSteps]; 
-//        /*
-//         * Testcase: Put material into full saturation in y-direction; from that state on
-//         * apply a decreasing triangular signal in x-direction; for initial period hold
-//         * signla in y-direction; during first real period decrease to 1/2 of value;
-//         * then to 1/4 and finally to 0
-//         */
-//        xIn[0] = Vector<Double>(dim_);
-//        xIn[0].Init(0.0);
-//        xIn[0][1] = -MAT_xSat_;
-//        
-//        UInt numStepsFirstIncrease = (UInt) ( (Double)totalSteps/8.0 ) +1;
-//        Double incr = MAT_xSat_/((Double) numStepsFirstIncrease-1);
-//        
-//        for(UInt i = 1; i < numStepsFirstIncrease; i++){
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//          xIn[i][0] = xIn[i-1][0] + incr; 
-//          if(vector){
-//            xIn[i][1] = -MAT_xSat_;
-//          }
-//        }
-//        
-//        UInt cnt = numStepsFirstIncrease;
-//        
-//        UInt remainingSteps = totalSteps - numStepsFirstIncrease;
-//        UInt stepsPerPeriod = 20;
-//        UInt numPeriods = remainingSteps/stepsPerPeriod;
-//        remainingSteps = remainingSteps%stepsPerPeriod;
-//        
-//        incr = 2*MAT_xSat_/((Double)(stepsPerPeriod-1));
-//        Double sign = -1.0;
-//        Double decrFactor = 1.0 - 1.0/((Double) numPeriods);
-//        
-//        for(UInt j = 0; j < numPeriods; j++){
-//          for(UInt i = 0; i < stepsPerPeriod; i++){
-//            xIn[cnt] = Vector<Double>(dim_);
-//            xIn[cnt].Init(0.0);
-//            xIn[cnt][0] = xIn[cnt-1][0] + sign*incr;
-//            
-//            if(vector){
-//              if(j==0){
-//                xIn[cnt][1] = -MAT_xSat_/2.0;
-//              } else if(j==1){
-//                xIn[cnt][1] = -MAT_xSat_/4.0;
-//              }
-//            }
-//            
-//            cnt++;
-//          }
-//          sign = -1.0*sign;
-//          incr = incr*decrFactor;
-//        }
-//        for(UInt i = 0; i < remainingSteps; i++){
-//          xIn[cnt] = Vector<Double>(dim_);
-//          xIn[cnt].Init(0.0);
-//          xIn[cnt][0] = xIn[cnt-1][0] + sign*incr;
-//          cnt++;
-//        }
-//      } else if( (ca == 3)&&( (testNumber == 3) ||(testAll)) ) {
-//        if(printStatistics){
-//          std::cout << "##### TEST CASE " << ca << " - Decreasing Sin" << std::endl;
-//        }
-//        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Decreasing Sin";
-//        testName = "Decreasing Sin";
-//        totalSteps = 200;
-//        Double numPeriods = 4;
-//        Double stepsPerPeriod = totalSteps/numPeriods;
-//        Double decrease = 1.0/totalSteps;
-//        xIn = new Vector<Double>[totalSteps]; 
-//        
-//        
-//        for(UInt i = 0; i < totalSteps; i++){
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
-//          xIn[i][0] = 1.2*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod );
-//          
-//          if(vector){
-//            if(i >= 3*stepsPerPeriod){
-//              xIn[i][1] = -MAT_xSat_/8.0;
-//            } else if(i >= 2*stepsPerPeriod){
-//              xIn[i][1] = -MAT_xSat_/4.0;
-//            } else if(i >= stepsPerPeriod){
-//              xIn[i][1] = -MAT_xSat_/2.0;
-//            } else if(i >= 0){
-//              xIn[i][1] = -MAT_xSat_;
-//            }
-//          }
-//        }
-//      } else if( (ca == 4)&&( (testNumber == 4) ||(testAll)) ) {
-//        if(printStatistics){
-//          std::cout << "##### TEST CASE " << ca << " - Decreasing Sin - extended" << std::endl;
-//        }
-//        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Decreasing Sin - extended";
-//        testName = "Decreasing Sin - Extended";
-//        totalSteps = 500;
-//        Double numPeriods = 10;
-//        Double stepsPerPeriod = totalSteps/numPeriods;
-//        Double decrease = 1.0/totalSteps;
-//        xIn = new Vector<Double>[totalSteps]; 
-//        
-//        
-//        for(UInt i = 0; i < totalSteps; i++){
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
-//          xIn[i][0] = 0.6*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod );
-//          if(vector){
-//            // smaller amplitude, higher frequency
-//            xIn[i][1] = -0.4*MAT_xSat_*(1.0 - decrease*i) * sin( 3*(2*M_PI*i)/stepsPerPeriod );
-//          }
-//        }
-//      } else if( (ca == 5)&&( (testNumber == 5) ||(testAll)) ) {
-//        if(printStatistics){
-//          std::cout << "##### TEST CASE " << ca << " - Decreasing Sin - extended, scaled down" << std::endl;
-//        }
-//        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Decreasing Sin - extended, scaled down";
-//        testName = "Decreasing Sin - Extended";
-//        totalSteps = 500;
-//        Double numPeriods = 10;
-//        Double stepsPerPeriod = totalSteps/numPeriods;
-//        Double decrease = 1.0/totalSteps;
-//        xIn = new Vector<Double>[totalSteps]; 
-//        
-//        
-//        for(UInt i = 0; i < totalSteps; i++){
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
-//          xIn[i][0] = 0.006*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod );
-//          if(vector){
-//            // smaller amplitude, higher frequency
-//            xIn[i][1] = -0.004*MAT_xSat_*(1.0 - decrease*i) * sin( 3*(2*M_PI*i)/stepsPerPeriod );
-//          }
-//        }
-//      } else if( (ca == 6)&&( (testNumber == 6) ||(testAll)) ) {
-//        if(printStatistics){
-//          std::cout << "##### TEST CASE " << ca << " - Decreasing Sin - extended, reverse" << std::endl;
-//        }
-//        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Decreasing Sin - extended, reverse";
-//        testName = "Decreasing Sin - Extended";
-//        totalSteps = 500;
-//        Double numPeriods = 10;
-//        Double stepsPerPeriod = totalSteps/numPeriods;
-//        Double increase = 1.0/totalSteps;
-//        xIn = new Vector<Double>[totalSteps]; 
-//        
-//        
-//        for(UInt i = 0; i < totalSteps; i++){
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
-//          xIn[i][0] = 0.6*MAT_xSat_*increase*i * sin( (2*M_PI*i)/stepsPerPeriod );
-//          if(vector){
-//            // smaller amplitude, higher frequency
-//            xIn[i][1] = -0.4*MAT_xSat_*increase*i * sin( 3*(2*M_PI*i)/stepsPerPeriod );
-//          }
-//        }
-//      } else if( (ca == 7)&&( (testNumber == 7) ||(testAll)) ) {
-//        if(printStatistics){
-//          std::cout << "##### TEST CASE " << ca << " - Forc" << std::endl;
-//        }
-//        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Forc";
-//        testName = "Forc";
-//        totalSteps = 500;
-//        Double numPeriods = 10;
-//        Double stepsPerPeriod = totalSteps/numPeriods;
-//        Double decrease = 1.0/totalSteps;
-//        xIn = new Vector<Double>[totalSteps]; 
-//        
-//        for(UInt i = 0; i < totalSteps; i++){
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
-//          xIn[i][0] = 1.2*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod ) - 1.2*MAT_xSat_*decrease*i;
-//          if(vector){
-//            // smaller amplitude, higher frequency
-//            xIn[i][1] = 0.4*MAT_xSat_*(1.0 - decrease*i) * sin( 3*(2*M_PI*i)/stepsPerPeriod ) - 0.4*MAT_xSat_*decrease*i;
-//          }
-//        }
-//      } else if( (ca == 8)&&( (testNumber == 8) ||(testAll)) ) {
-//        if(printStatistics){
-//          std::cout << "##### TEST CASE " << ca << " - Saturation in x, Drop to rem, Saturation in y, Drop to rem" << std::endl;
-//        }
-//        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - SatX,SatY";
-//        testName = "SatX,SatY";
-//        totalSteps = 500;
-//				
-//				Double increase = 4.0/totalSteps;
-//				
-//        xIn = new Vector<Double>[totalSteps]; 
-//				Double maxAmplitude = 4.0*MAT_xSat_;
-//        
-//        for(UInt i = 0; i < totalSteps/4; i++){
-//					// linearly increase in x up to n*saturation
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//					
-//					xIn[i][0] = maxAmplitude*i*increase;
-//        }
-//				for(UInt i = totalSteps/4; i < 2*totalSteps/4; i++){
-//					// linearly decrease to 0
-//					xIn[i] = Vector<Double>(dim_);
-//					xIn[i].Init(0.0);
-//					
-//					xIn[i][0] = maxAmplitude - maxAmplitude*(i-totalSteps/4)*increase;
-//				}
-//				
-//				for(UInt i = 2*totalSteps/4; i < 3*totalSteps/4; i++){
-//					// linearly increase in y up to n*saturation
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//					if(vector){
-//            xIn[i][1] = maxAmplitude*(i-2*totalSteps/4)*increase;
-//          }
-//        }
-//				for(UInt i = 3*totalSteps/4; i < totalSteps; i++){
-//					// linearly decrease to 0
-//					xIn[i] = Vector<Double>(dim_);
-//					xIn[i].Init(0.0);
-//					if(vector){
-//            xIn[i][1] = maxAmplitude - maxAmplitude*(i-3*totalSteps/4)*increase;
-//          }
-//				}
-//				
-//				
-//      } else if( (ca == 9)&&( (testNumber == 9) ||(testAll)) ) {
-//        if(printStatistics){
-//          std::cout << "##### TEST CASE " << ca << " - exactly Saturation in x, Drop to rem, exactly Saturation in y, Drop to rem" << std::endl;
-//        }
-//        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - SatX,SatY clipped";
-//        testName = "SatX,SatY clipped";
-//        totalSteps = 500;
-//				
-//				Double increase = 4.0/totalSteps;
-//				
-//        xIn = new Vector<Double>[totalSteps]; 
-//				Double maxAmplitude = 4.0*MAT_xSat_;
-//        
-//        for(UInt i = 0; i < totalSteps/4; i++){
-//					// linearly increase in x up to n*saturation
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//          
-//					xIn[i][0] = maxAmplitude*i*increase;
-//          if(xIn[i][0] > MAT_xSat_){
-//            xIn[i][0] = MAT_xSat_;
-//          }
-//        }
-//				for(UInt i = totalSteps/4; i < 2*totalSteps/4; i++){
-//					// linearly decrease to 0
-//					xIn[i] = Vector<Double>(dim_);
-//					xIn[i].Init(0.0);
-//          
-//					xIn[i][0] = maxAmplitude - maxAmplitude*(i-totalSteps/4)*increase;
-//          if(xIn[i][0] > MAT_xSat_){
-//            xIn[i][0] = MAT_xSat_;
-//          }
-//				}
-//				
-//				for(UInt i = 2*totalSteps/4; i < 3*totalSteps/4; i++){
-//					// linearly increase in y up to n*saturation
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//          
-//          if(vector){
-//            xIn[i][1] = maxAmplitude*(i-2*totalSteps/4)*increase;
-//          }
-//          if(xIn[i][1] > MAT_xSat_){
-//            xIn[i][1] = MAT_xSat_;
-//          }
-//        }
-//				for(UInt i = 3*totalSteps/4; i < totalSteps; i++){
-//					// linearly decrease to 0
-//					xIn[i] = Vector<Double>(dim_);
-//					xIn[i].Init(0.0);
-//          
-//          if(vector){
-//            xIn[i][1] = maxAmplitude - maxAmplitude*(i-3*totalSteps/4)*increase;
-//          }
-//          if(xIn[i][1] > MAT_xSat_){
-//            xIn[i][1] = MAT_xSat_;
-//          }
-//				}
-//        
-//      } else if( (ca == 10)&&( (testNumber == 10) ||(testAll)) ) {
-//        if(printStatistics){
-//          std::cout << "##### TEST CASE " << ca << " - Forc, Short" << std::endl;
-//        }
-//        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Forc, Short";
-//        testName = "Forc";
-//        totalSteps = 80;
-//        Double numPeriods = 2;
-//        Double stepsPerPeriod = totalSteps/numPeriods;
-//        Double decrease = 1.0/totalSteps;
-//        xIn = new Vector<Double>[totalSteps]; 
-//        
-//        for(UInt i = 0; i < totalSteps; i++){
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
-//          xIn[i][0] = 1.2*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod ) - 1.2*MAT_xSat_*decrease*i;
-//          if(vector){
-//            // smaller amplitude, higher frequency
-//            xIn[i][1] = 0.4*MAT_xSat_*(1.0 - decrease*i) * sin( 3*(2*M_PI*i)/stepsPerPeriod ) - 0.4*MAT_xSat_*decrease*i;
-//          }
-//        }
-//      } else if( (ca == 11)&&( (testNumber == 11) ||(testAll)) ) {
-//        if(printStatistics){
-//          std::cout << "##### TEST CASE " << ca << " - 1.5*Saturation in x, Drop to rem, 1.5*Saturation in y, Drop to rem" << std::endl;
-//        }
-//        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - 1.5*SatX,1.5*SatY";
-//        testName = "1.5*SatX,1.5*SatY";
-//        totalSteps = 200;
-//				
-//				Double increase = 4.0/totalSteps;
-//				
-//        xIn = new Vector<Double>[totalSteps]; 
-//				Double maxAmplitude = 1.5*MAT_xSat_;
-//        
-//        for(UInt i = 0; i < totalSteps/4; i++){
-//					// linearly increase in x up to n*saturation
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//					
-//					xIn[i][0] = maxAmplitude*i*increase;
-//        }
-//				for(UInt i = totalSteps/4; i < 2*totalSteps/4; i++){
-//					// linearly decrease to 0
-//					xIn[i] = Vector<Double>(dim_);
-//					xIn[i].Init(0.0);
-//					
-//					xIn[i][0] = maxAmplitude - maxAmplitude*(i-totalSteps/4)*increase;
-//				}
-//				
-//				for(UInt i = 2*totalSteps/4; i < 3*totalSteps/4; i++){
-//					// linearly increase in y up to n*saturation
-//          xIn[i] = Vector<Double>(dim_);
-//          xIn[i].Init(0.0);
-//					if(vector){
-//            xIn[i][1] = maxAmplitude*(i-2*totalSteps/4)*increase;
-//          }
-//        }
-//				for(UInt i = 3*totalSteps/4; i < totalSteps; i++){
-//					// linearly decrease to 0
-//					xIn[i] = Vector<Double>(dim_);
-//					xIn[i].Init(0.0);
-//					if(vector){
-//            xIn[i][1] = maxAmplitude - maxAmplitude*(i-3*totalSteps/4)*increase;
-//          }
-//				}
-//				
-//				
-//      } else {
-//        continue;
-//      }
-//      
-//			
-//			
-//			
-//			
-//			
-//			
-//      /*
-//       * II. Setup output streams
-//       */
-//      
-//      std::stringstream stringstream1;
-//      stringstream1 << "INVERSION_TEST_xIn_" << ca;
-//      std::string filenameInput = stringstream1.str();
-//      std::stringstream stringstream2;
-//      stringstream2 << "INVERSION_TEST_xRet_" << ca;
-//      std::string filenameOutput = stringstream2.str();
-//      
-//      std::stringstream stringstream4;
-//      stringstream4 << "INVERSION_TEST_xIn_hIn_" << ca;
-//      std::string filenameOutputHystIn = stringstream4.str();
-//      std::stringstream stringstream5;
-//      stringstream5 << "INVERSION_TEST_xRet_hRet_" << ca;
-//      std::string filenameOutputHystRet = stringstream5.str();
-//      
-//      std::stringstream stringstream6;
-//      stringstream6 << "LOG_" << ca;
-//      std::string filenameLog = stringstream6.str();
-//      
-//      
-//      //      std::ofstream testOutputSig;
-//      //      if(writeResultsToFiles){
-//      //        testOutputSig.open(filenameInput);
-//      //        testOutputSig << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
-//      //        testOutputSig << "# Number of steps: " << totalSteps << std::endl;
-//      //        testOutputSig << "# eps_mu: " << eps_mu.ToString() << std::endl;
-//      //        testOutputSig << "# xSat: " << MAT_xSat_ << std::endl;
-//      //        testOutputSig << "# ySat: " << MAT_pSat_ << std::endl;
-//      //        testOutputSig << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
-//      //        testOutputSig << "# " << std::endl;
-//      //        testOutputSig << "# Step    x_in[0]    x_in[1]" << std::endl;
-//      //        for(UInt i = 0; i < totalSteps; i++){
-//      //          testOutputSig << i << " " << xIn[i][0] << " " << xIn[i][1] << std::endl;
-//      //        }
-//      //        testOutputSig.close();
-//      //      }
-//      
-//      Vector<int> successCodeVector = Vector<int>(totalSteps);
-//      Vector<Double>* xRetrieved = new Vector<Double>[totalSteps];
-//      Vector<Double>* yRetrieved = new Vector<Double>[totalSteps];
-//      Vector<Double>* hIn= new Vector<Double>[totalSteps];
-//      Vector<Double>* hRetrieved = new Vector<Double>[totalSteps];
-//      Vector<Double>* yError = new Vector<Double>[totalSteps];
-//      Vector<Double>* xError = new Vector<Double>[totalSteps];
-//      Vector<Double>* yIn = new Vector<Double>[totalSteps]; 
-//      
-//      //std::ofstream testOutput2;
-//      std::ofstream testOutput3;
-//      std::ofstream testOutput4;
-//      std::ofstream testOutput5;
-//      
-//      if(writeResultsToFiles){
-//        //testOutput2.open(filenameOutput);
-//        testOutput3.open(filenameOutputHystIn);
-//        testOutput4.open(filenameOutputHystRet);
-//        
-//        //        testOutput2 << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
-//        //        testOutput2 << "# Number of steps: " << totalSteps << std::endl;
-//        //        testOutput2 << "# eps_mu: " << eps_mu.ToString() << std::endl;
-//        //        testOutput2 << "# xSat: " << MAT_xSat_ << std::endl;
-//        //        testOutput2 << "# ySat: " << MAT_pSat_ << std::endl;
-//        //        testOutput2 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
-//        //        testOutput2 << "# " << std::endl;
-//        //        testOutput2 << "# Step    x_ret[0]    x_ret[1]" << std::endl;
-//        //        
-//        testOutput3 << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
-//        testOutput3 << "# Number of steps: " << totalSteps << std::endl;
-//        testOutput3 << "# eps_mu: " << eps_mu.ToString() << std::endl;
-//        testOutput3 << "# xSat: " << MAT_xSat_ << std::endl;
-//        testOutput3 << "# ySat: " << MAT_pSat_ << std::endl;
-//        testOutput3 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
-//        testOutput3 << "# " << std::endl;
-//        testOutput3 << "# Step    x_in[0]    x_in[1]    h_in[0]    h_in[1]    y_in[0]    y_in[1]" << std::endl;
-//        
-//        testOutput4 << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
-//        testOutput4 << "# Number of steps: " << totalSteps << std::endl;
-//        testOutput4 << "# eps_mu: " << eps_mu.ToString() << std::endl;
-//        testOutput4 << "# xSat: " << MAT_xSat_ << std::endl;
-//        testOutput4 << "# ySat: " << MAT_pSat_ << std::endl;
-//        testOutput4 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
-//        testOutput4 << "# " << std::endl;
-//        testOutput4 << "# Step    x_ret[0]    x_ret[1]    h_ret[0]    h_ret[1]    y_ret[0]    y_ret[1]" << std::endl;
-//      }
-//      
-//      
-//      /*
-//       * III. Start testing
-//       */
-//      
-//      std::map<UInt, Double> failedTests;
-//      
-//      Double minAlpha = 0;
-//      Double maxAlpha = 0;
-//      Double avgAlpha = 0;
-//      Double totalminAlpha = 1e10;
-//      Double totalmaxAlpha = -1e10;
-//      Double totalavgAlpha = 0;
-//      
-//			UInt numberOfLMIterations = 0;
-//			UInt numberOfLinesearchIterations = 0;
-//			UInt maxNumberOfLinesearchIterations = 0;
-//      
-//      // counter for forward evaluation
-//      UInt forwardFails = 0;
-//      UInt forwardReused = 0;
-//      UInt forwardAnhystOnly = 0;
-//      UInt forwardOverwrite = 0;
-//      UInt forwardTMP = 0;
-//
-//      // counter for backward evaluation / inversion
-//      UInt LMFails = 0;
-//      UInt totalReused = 0;
-//      UInt totalAnhystOnly = 0;
-//      UInt totalBisection = 0;
-//      UInt totalRemanence = 0;
-//      UInt totalPassedErrorTol = 0;
-//      UInt totalPassedResTolX = 0;
-//      UInt totalPassedResTolY = 0;
-//			UInt totalNumberOfLMIterations = 0;
-//			UInt totalNumberOfLinesearchIterations = 0;
-//			UInt absmaxNumberOfLinesearchIterations = 0;
-//
-//      // overwriteMemory: 
-//      // this was true all the time but I don't get why
-//      // when we evaluate the hyst operator we just want to know which value
-//      // of y we have to solve for but we do not want to set the material already
-//      // if we would do so, the material would already have the solution inside
-//      bool overwriteMemory = false;
-//      bool overwriteDirection = true;
-//      
-//      yIn[0] = Vector<Double>(dim_);
-//      yIn[0].Init(0.0);
-//      hIn[0] = Vector<Double>(dim_);
-//      hIn[0].Init(0.0);
-//      
-//      //      if(MAT_angClipping_ > 0){
-//      //        /*
-//      //         * clip input to hyst operator; clip output of it
-//      //         */
-//      //        ClipDirection(xIn[0]);
-//      //      }
-//      
-//      Timer* forwardTimer = new Timer();
-//      Double forwardMaxEvalTime = 0;
-//      Double forwardAvgEvalTime = 0;
-//      Double forwardTotalEvalTime = 0;
-//      UInt forwardEvalCounter = 0;
-//      
-//      Timer* backwardTimer = new Timer();
-//      Double backwardMaxEvalTime = 0;
-//      Double backwardAvgEvalTime = 0;
-//      Double backwardTotalEvalTime = 0;
-//      UInt backwardEvalCounter = 0;
-//      Double startTime = 0;
-//      Double endTime = 0;
-//      Double evalTime = 0;
-//        
-//      int successFlagForward = -1;
-//      // forward:
-//      // -1 = fail
-//      //  0 = reuse value
-//      //  1 = anhyst only
-//      //  2 = eval on permanent storage
-//      //  3 = eval on temporal storage
-//      
-//      int successFlagBackward = -1;
-//      // backward:
-//      // -1 = fail
-//      //  0 = reuse value
-//      //  1 = anhyst only
-//      //  2 = bisection
-//      //  3-6 only for vector implementation using Levenberg Marquardt
-//      //  3 = reamnence
-//      //  4 = passed dut to error tolerance
-//      //  5 = passed due to tolerance wrt x
-//      //  6 = passed due to tolerance wrt y
-//      
-//      bool debugOut = false;
-//      
-////      if (XML_performanceMeasurement_ == 3) {
-////        startTime = forwardTimer->GetCPUTime();
-////				forwardTimer->Start();
-////			}
-////
-////      // Get polarization P
-////      
-////      if(vector){
-////        hIn[0] = hystTMP->computeValue_vec(xIn[0], 0, overwriteMemory, overwriteDirection,debugOut,successFlagForward);
-////      } else {
-////				//hIn[0][0] = hystTMP->computeValueAndUpdate(xIn[0][0], 0, 0, overwriteMemory);
-////        hIn[0][0] = hystTMP->computeValueAndUpdate(xIn[0][0], 0, overwriteMemory,successFlagForward);
-////      }
-////      
-////      if (XML_performanceMeasurement_ == 3){
-////        forwardTimer->Stop();
-////      
-////        // only count actual computations; if value gets reused, this should not count
-////        if(successFlagForward != 0) {
-////          forwardEvalCounter++;
-////				
-////          endTime = forwardTimer->GetCPUTime();
-////          evalTime = endTime-startTime;
-////          if(evalTime > forwardMaxEvalTime){
-////            forwardMaxEvalTime = evalTime;
-////          }
-////          forwardTotalEvalTime += evalTime;
-////        }
-////			}
-////
-////      if(successFlagForward == -1){
-////        forwardFails++;
-////      } else if(successFlagForward == 0){
-////        forwardReused++;
-////      } else if(successFlagForward == 1){
-////        forwardAnhystOnly++;
-////      } else if(successFlagForward == 2){
-////        forwardOverwrite++;
-////      } else if(successFlagForward == 3){
-////        forwardTMP++; 
-////      }
-////      
-////      //      if(MAT_angClipping_ > 0){
-////      //        /*
-////      //         * clip input to hyst operator; clip output of it
-////      //         */
-////      //        ClipDirection(hIn[0]);
-////      //      }
-////      
-////      // D = eps*E + P
-////      yIn[0].Add(1.0,hIn[0]);
-////      for(UInt j = 0; j < dim_; j++){
-////        yIn[0][j] += eps_mu[j][j]*xIn[0][j];
-////      }
-////      
-////      xRetrieved[0] = Vector<Double>(dim_);
-////      xRetrieved[0].Init(0.0);
-////      
-////			Vector<Double> zeroVec = Vector<Double>(dim_);
-////			zeroVec.Init();
-////      
-////      if (XML_performanceMeasurement_ == 3) {
-////        
-////        startTime = backwardTimer->GetCPUTime();
-////        backwardTimer->Start();
-////      }
-////      
-////      if(vector){
-////        //        if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-////        //          xRetrieved[0] = hystTMP->computeInput_vec(yIn[0], 0, eps_mu,overwriteDirection);
-////        //        } else {
-////        // new: we have to pass the previous solution (here: 0)
-////        // new2: pass arguments by value!
-////        xRetrieved[0] = hystTMP->computeInput_vec_withStatistics(yIn[0], zeroVec, zeroVec, zeroVec, 0, eps_mu,
-////                overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat, numberOfLMIterations, numberOfLinesearchIterations, 
-////                maxNumberOfLinesearchIterations,successFlagBackward,minAlpha, maxAlpha, avgAlpha,xIn[0]);
-////        //        }
-////      } else {
-////				overwriteMemory = false;
-////        //        xRetrieved[0][0] = hystTMP->computeInputAndUpdate(yIn[0][0], zeroVec[0], zeroVec[0],
-////        //						zeroVec[0], 0, eps_mu[0][0], overwriteMemory);
-////				xRetrieved[0][0] = hystTMP->computeInputAndUpdate(yIn[0][0], eps_mu[0][0], 0, overwriteMemory,successFlagBackward);
-////			}
-////      
-////      if (XML_performanceMeasurement_ == 3){
-////        backwardTimer->Stop();
-////      
-////        // only count actual computations; if value gets reused, this should not count
-////        if(successFlagBackward != 0) {
-////          backwardEvalCounter++;
-////				
-////          endTime = backwardTimer->GetCPUTime();
-////          evalTime = endTime-startTime;
-////          if(evalTime > backwardMaxEvalTime){
-////            backwardMaxEvalTime = evalTime;
-////          }
-////          backwardTotalEvalTime += evalTime;
-////        }
-////			}
-////			
-////      if(minAlpha < totalminAlpha){
-////        totalminAlpha = minAlpha;
-////      }
-////      if(maxAlpha > totalmaxAlpha){
-////        totalmaxAlpha = maxAlpha;
-////      }
-////      totalavgAlpha += avgAlpha;
-////      
-////      if(successFlagBackward == -1){
-////        LMFails++;
-////      } else if(successFlagBackward == 0){
-////        totalReused++;
-////      } else if(successFlagBackward == 1){
-////        totalAnhystOnly++;
-////      } else if(successFlagBackward == 2){
-////        totalBisection++;
-////      } else if(successFlagBackward == 3){
-////        totalRemanence++;
-////      } else if(successFlagBackward == 4){
-////        totalPassedErrorTol++;
-////      } else if(successFlagBackward == 5){
-////        totalPassedResTolX++;
-////      } else if(successFlagBackward == 6){
-////        totalPassedResTolY++;
-////      }
-////      
-////			totalNumberOfLMIterations += numberOfLMIterations;
-////			totalNumberOfLinesearchIterations += numberOfLinesearchIterations;
-////			if(maxNumberOfLinesearchIterations > absmaxNumberOfLinesearchIterations){
-////				absmaxNumberOfLinesearchIterations = maxNumberOfLinesearchIterations;
-////			}
-////			
-////      // evaluate Preisach OP to get the actual output; DO NOT OVERWRITE MEMORY
-////      yRetrieved[0] = Vector<Double>(dim_);
-////      yRetrieved[0].Init(0.0);
-////      hRetrieved[0] = Vector<Double>(dim_);
-////      hRetrieved[0].Init(0.0);
-////      
-////      xError[0] = Vector<Double>(dim_);
-////      xError[0].Init(0.0);
-////      
-////      xError[0] = xRetrieved[0];
-////      xError[0] -= xIn[0];
-////      
-////      yError[0] = Vector<Double>(dim_);
-////      yError[0].Init(0.0);
-////      
-////      successFlagForward = -1;
-////      if (XML_performanceMeasurement_ == 3) {
-////				
-////        startTime = forwardTimer->GetCPUTime();
-////        forwardTimer->Start();
-////			}
-////      
-////      overwriteMemory = true;
-////      if(vector){
-////        //				if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-////        //					hRetrieved[0] = hystTMP->computeValue_vec(xIn[0], 0, overwriteMemory, overwriteDirection);
-////        //				} else {
-////        hRetrieved[0] = hystTMP->computeValue_vec(xRetrieved[0], 0, overwriteMemory, overwriteDirection, debugOut,successFlagForward);
-////        //				}
-////      } else {
-////				//hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, 0, overwriteMemory);
-////        hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, overwriteMemory,successFlagForward);
-////      }
-////      
-////      if (XML_performanceMeasurement_ == 3){
-////        forwardTimer->Stop();
-////      
-////        // only count actual computations; if value gets reused, this should not count
-////        if(successFlagForward != 0) {
-////          forwardEvalCounter++;
-////				
-////          endTime = forwardTimer->GetCPUTime();
-////          evalTime = endTime-startTime;
-////          if(evalTime > forwardMaxEvalTime){
-////            forwardMaxEvalTime = evalTime;
-////          }
-////          forwardTotalEvalTime += evalTime;
-////        }
-////			}
-////      
-////      if(successFlagForward == -1){
-////        forwardFails++;
-////      } else if(successFlagForward == 0){
-////        forwardReused++;
-////      } else if(successFlagForward == 1){
-////        forwardAnhystOnly++;
-////      } else if(successFlagForward == 2){
-////        forwardOverwrite++;
-////      } else if(successFlagForward == 3){
-////        forwardTMP++; 
-////      }
-////      
-////      // D = eps*E + P
-////      yRetrieved[0].Add(1.0,hRetrieved[0]);
-////      for(UInt j = 0; j < dim_; j++){
-////        yRetrieved[0][j] += eps_mu[j][j]*xRetrieved[0][j];
-////      }
-////      
-////      yError[0] = yRetrieved[0];
-////      yError[0] -= yIn[0];
-////      
-////      if(writeResultsToFiles){
-////        //testOutput2 << std::setprecision(9) <<  "0   "<< xRetrieved[0][0] <<"    "<< xRetrieved[0][1]<<std::endl;
-////        testOutput3 << std::setprecision(9) <<  "0   "<< xIn[0][0] <<"    "<< xIn[0][1]<<"    " << hIn[0][0] <<"    "<< hIn[0][1]<<"    " << yIn[0][0] <<"    "<< yIn[0][1]<<std::endl;
-////        testOutput4 << std::setprecision(9) <<  "0   "<< xRetrieved[0][0] <<"    "<< xRetrieved[0][1]<<"    " << yRetrieved[0][0] <<"    "<< yRetrieved[0][1]<<std::endl;
-////      }
-////      //    Double inc = 2*MAT_xSat_/( (Double) numTests);
-////      
-//      
-//      
-//      UInt numFails = 0;
-//      for(UInt i = 0; i < totalSteps; i++){
-//        if( (i%10 == 0)&&(printStatistics) ){
-//          std::cout << "##### CASE " << ca << "; TEST NR " << i << "#####" << std::endl;
-//        }
-//        
-//        LOG_TRACE(coeffcthyst) << "##### CASE " << ca << "; TEST NR " << i << "#####";
-//        //      xIn[i] = Vector<Double>(dim_);
-//        //      xIn[i][0] = xIn[i-1][0] + inc;
-//        //      xIn[i][1] = xIn[i-1][0] + inc/2;
-//        overwriteMemory = false;
-//        
-//        yIn[i] = Vector<Double>(dim_);
-//        yIn[i].Init(0.0);
-//        hIn[i] = Vector<Double>(dim_);
-//        hIn[i].Init(0.0);
-//        
-//        successFlagForward = -1;
-//        if (XML_performanceMeasurement_ == 3) {
-//          startTime = forwardTimer->GetCPUTime();
-//          forwardTimer->Start();
-//          
-//        }
-//        evalTime = 0.0;
-//        Double innerTime = 0.0;
-//
-//        //std::cout << "Forward" << std::endl;
-//        if(vector){
-//          //          std::cout << "Start forward" << std::endl;
-//          hIn[i] = hystTMP->computeValue_vecMeasure(xIn[i], 0, overwriteMemory, overwriteDirection, debugOut, successFlagForward, innerTime);
-//          //          std::cout << "End forward" << std::endl;
-//        } else {  
-//					hIn[i][0] = hystTMP->computeValueAndUpdateMeasure(xIn[i][0], 0, overwriteMemory, successFlagForward, innerTime);
-//          //hIn[i][0] = hystTMP->computeValueAndUpdate(xIn[i][0], xIn[i-1][0], 0, overwriteMemory);
-//          //std::cout << ", x=" << xIn[i][0] << ", flag="<< successFlagForward << ", time=" << innerTime << std::endl;
-//        }
-//
-//        if (XML_performanceMeasurement_ == 3){
-//          forwardTimer->Stop();
-//          
-//          // only count actual computations; if value gets reused, this should not count
-//          if(successFlagForward != 0) {
-//            forwardEvalCounter++;
-//            
-//            endTime = forwardTimer->GetCPUTime();
-//            evalTime = endTime-startTime;
-//            if(evalTime > forwardMaxEvalTime){
-//              forwardMaxEvalTime = evalTime;
-//            }
-//            forwardTotalEvalTime += evalTime;
-//          }
-//        }
-//     
-////        std::cout << "Success Flag: " << successFlagForward << std::endl;
-////        std::cout << "evalTime: " << evalTime << std::endl;
-////        std::cout << "innerTime: " << innerTime << std::endl;
-////        std::cout << "forwardTotalEvalTime: " << forwardTotalEvalTime << std::endl;
-////        
-////        if(i == 10)
-////          EXCEPTION("stop here");
-//        
-//        if(successFlagForward == -1){
-//          forwardFails++;
-//        } else if(successFlagForward == 0){
-//          forwardReused++;
-//        } else if(successFlagForward == 1){
-//          forwardAnhystOnly++;
-//        } else if(successFlagForward == 2){
-//          forwardOverwrite++;
-//        } else if(successFlagForward == 3){
-//          forwardTMP++; 
-//        }
-//        
-//        yIn[i].Add(1.0,hIn[i]);
-//        for(UInt j = 0; j < dim_; j++){
-//          yIn[i][j] += eps_mu[j][j]*xIn[i][j];
-//        }
-//        
-//				numberOfLMIterations = 0;
-//				numberOfLinesearchIterations = 0;
-//				maxNumberOfLinesearchIterations = 0;
-//        
-//        overwriteMemory = false;
-//        xRetrieved[i] = Vector<Double>(dim_);
-//        xRetrieved[i].Init(0.0);
-//        
-//        successFlagBackward = -1;
-//        if (XML_performanceMeasurement_ == 3) {
-//          startTime = backwardTimer->GetCPUTime();
-//          backwardTimer->Start();
-//          
-//        }
-//        
-//        if(vector){
-//          //          std::cout << "Start backward" << std::endl;          
-//          //          if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-//          //            xRetrieved[i] = hystTMP->computeInput_vec(yIn[i],0, eps_mu, overwriteDirection);
-//          //          } else {
-//          xRetrieved[i] = hystTMP->computeInput_vec_withStatistics(yIn[i], yRetrieved[i-1], xRetrieved[i-1], hRetrieved[i-1], 
-//                  0, eps_mu, overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat,
-//									numberOfLMIterations, numberOfLinesearchIterations, 
-//                  maxNumberOfLinesearchIterations,successFlagBackward,minAlpha, maxAlpha, avgAlpha,xIn[i]);	
-//          //          }
-//          //            std::cout << "End backward" << std::endl;
-//        } else {
-//          //          xRetrieved[i][0] = hystTMP->computeInputAndUpdate(yIn[i][0], yRetrieved[i-1][0], xRetrieved[i-1][0],
-//          //						hRetrieved[i-1][0], 0, eps_mu[0][0], overwriteMemory);		
-//					xRetrieved[i][0] = hystTMP->computeInputAndUpdate(yIn[i][0], eps_mu[0][0], 0, overwriteMemory,successFlagBackward);
-////          successFlagBackward = 7;
-//        }
-//        // debugging
-//        //xRetrieved[i] = xIn[i];
-//        
-//        if (XML_performanceMeasurement_ == 3){
-//          backwardTimer->Stop();
-//          
-//          // only count actual computations; if value gets reused, this should not count
-//          if(successFlagBackward != 0) {
-//            backwardEvalCounter++;
-//            
-//            endTime = backwardTimer->GetCPUTime();
-//            evalTime = endTime-startTime;
-//            if(evalTime > backwardMaxEvalTime){
-//              backwardMaxEvalTime = evalTime;
-//            }
-//            backwardTotalEvalTime += evalTime;
-//          }
-//        }
-//        
-//        if(successFlagBackward == -1){
-//          LMFails++;
-//        } else if(successFlagBackward == 0){
-//          totalReused++;
-//        } else if(successFlagBackward == 1){
-//          totalAnhystOnly++;
-//        } else if(successFlagBackward == 2){
-//          totalBisection++;
-//        } else if(successFlagBackward == 3){
-//          totalRemanence++;
-//        } else if(successFlagBackward == 4){
-//          totalPassedErrorTol++;
-//        } else if(successFlagBackward == 5){
-//          totalPassedResTolX++;
-//        } else if(successFlagBackward == 6){
-//          totalPassedResTolY++;
-//        }
-//								
-//        successCodeVector[i] = successFlagBackward;
-//        
-//        if(minAlpha < totalminAlpha){
-//          totalminAlpha = minAlpha;
-//        }
-//        if(maxAlpha > totalmaxAlpha){
-//          totalmaxAlpha = maxAlpha;
-//        }
-//        totalavgAlpha += avgAlpha;
-//        
-//				totalNumberOfLMIterations += numberOfLMIterations;
-//				totalNumberOfLinesearchIterations += numberOfLinesearchIterations;
-//				if(maxNumberOfLinesearchIterations > absmaxNumberOfLinesearchIterations){
-//          //	std::cout << "maxNumberOfLinesearchIterations: " << maxNumberOfLinesearchIterations << std::endl;
-//          //	std::cout << "absmaxNumberOfLinesearchIterations: " << absmaxNumberOfLinesearchIterations << std::endl;
-//					absmaxNumberOfLinesearchIterations = maxNumberOfLinesearchIterations;
-//				}
-//        
-//        
-//        yError[i] = Vector<Double>(dim_);
-//        yError[i].Init(0.0);
-//        
-//        yRetrieved[i] = Vector<Double>(dim_);
-//        yRetrieved[i].Init(0.0);
-//        
-//        hRetrieved[i] = Vector<Double>(dim_);
-//        hRetrieved[i].Init(0.0);
-//        
-//        overwriteMemory = true;
-//        
-//        successFlagForward = -1;
-//        if (XML_performanceMeasurement_ == 3) {
-//          startTime = forwardTimer->GetCPUTime();
-//          forwardTimer->Start();
-//          
-//        }
-//
-//        if(vector){
-//          //					if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
-//          //						hRetrieved[i] = hystTMP->computeValue_vec(xIn[i], 0, overwriteMemory, overwriteDirection);
-//          //					} else {
-//          hRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection, debugOut, successFlagForward);
-//          
-//          //					}
-//          //hRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection);
-//        } else {
-//          hRetrieved[i][0] = hystTMP->computeValueAndUpdate(xRetrieved[i][0], 0, overwriteMemory, successFlagForward);
-//          
-//          //hRetrieved[i][0] = hystTMP->computeValueAndUpdate(xRetrieved[i][0], xRetrieved[i-1][0], 0, overwriteMemory);
-//        }
-//
-//        if (XML_performanceMeasurement_ == 3){
-//          forwardTimer->Stop();
-//          
-//          // only count actual computations; if value gets reused, this should not count
-//          if(successFlagForward != 0) {
-//            forwardEvalCounter++;
-//            
-//            endTime = forwardTimer->GetCPUTime();
-//            evalTime = endTime-startTime;
-//            if(evalTime > forwardMaxEvalTime){
-//              forwardMaxEvalTime = evalTime;
-//            }
-//            forwardTotalEvalTime += evalTime;
-//          }
-//        }
-//        
-//        if(successFlagForward == -1){
-//          forwardFails++;
-//        } else if(successFlagForward == 0){
-//          forwardReused++;
-//        } else if(successFlagForward == 1){
-//          forwardAnhystOnly++;
-//        } else if(successFlagForward == 2){
-//          forwardOverwrite++;
-//        } else if(successFlagForward == 3){
-//          forwardTMP++; 
-//        }
-//        
-//        eps_mu.Mult(xRetrieved[i],yRetrieved[i]);
-//        yRetrieved[i].Add(hRetrieved[i]);
-//        
-//        yError[i] = yRetrieved[i];
-//        yError[i].Add(-1.0,yIn[i]);
-//        
-//        xError[i] = Vector<Double>(dim_);
-//        xError[i].Init(0.0);
-//        
-//        xError[i] = xRetrieved[i];
-//        xError[i] -= xIn[i];
-//        
-//        if(writeResultsToFiles){
-//          //testOutput2 << i << std::setprecision(9) << "   "<< xRetrieved[i][0] <<"    "<< xRetrieved[i][1]<<std::endl;
-//          testOutput3 << i << std::setprecision(9) << "   "<< xIn[i][0] <<"    "<< xIn[i][1]<< "   "<< hIn[i][0] <<"    "<< hIn[i][1]<< "   "<< yIn[i][0] <<"    "<< yIn[i][1]<<std::endl;
-//          testOutput4 << i << std::setprecision(9) << "   "<< xRetrieved[i][0] <<"    "<< xRetrieved[i][1]<< "   "<< hRetrieved[i][0] <<"    "<< hRetrieved[i][1]<< "   "<< yRetrieved[i][0] <<"    "<< yRetrieved[i][1]<<std::endl;
-//        }
-//        
-//        LOG_TRACE(coeffcthyst) << "##### TARGET X-VECTOR #####";
-//        LOG_TRACE(coeffcthyst) << xIn[i].ToString();
-//        LOG_TRACE(coeffcthyst) << "##### RETRIEVED X-VECTOR #####";
-//        LOG_TRACE(coeffcthyst) << xRetrieved[i].ToString();
-//        
-//        LOG_TRACE(coeffcthyst) << "##### ERROR VECTOR wrt X #####";
-//        LOG_TRACE(coeffcthyst) << xError[i].ToString();
-//        
-//        LOG_TRACE(coeffcthyst) << "##### HYST_OP EVALUATED WITH TARGET X-VECTOR #####";
-//        LOG_TRACE(coeffcthyst) << hIn[i].ToString();
-//        
-//        LOG_TRACE(coeffcthyst) << "##### HYST_OP EVALUATED WITH RETRIEVED X-VECTOR #####";
-//        LOG_TRACE(coeffcthyst) << hRetrieved[i].ToString();
-//        
-//        LOG_TRACE(coeffcthyst) << "##### TARGET Y-VECTOR #####";
-//        LOG_TRACE(coeffcthyst) << yIn[i].ToString();
-//        LOG_TRACE(coeffcthyst) << "##### RETRIEVED Y-VECTOR #####";
-//        LOG_TRACE(coeffcthyst) << yRetrieved[i].ToString();
-//        
-//        LOG_TRACE(coeffcthyst) << "##### ERROR VECTOR wrt Y #####";
-//        LOG_TRACE(coeffcthyst) << yError[i].ToString();
-//        
-//        if(yError[i].NormL2() > INV_resTolB_){
-//          numFails++;
-//          failedTests[i] = yError[i].NormL2();
-//        } 
-//      }
-//      
-//      UInt LMcases = totalSteps-totalReused-totalBisection-totalAnhystOnly-totalRemanence;
-//      if(LMcases != 0){
-//        totalavgAlpha /= (Double) LMcases;
-//      }
-//      
-//      if(writeResultsToFiles){
-//        //testOutput2.close();
-//        testOutput3.close();
-//        testOutput4.close();
-//      }
-//      
-//      std::stringstream statistics;
-//      statistics << std::endl;	
-//      statistics << "############################# " <<	std::endl;	
-//      statistics << "##### RESULTS FOR TEST CASE " << ca <<	std::endl;	
-//      statistics << " " << totalSteps-numFails << " of " << totalSteps << " satisfied at least the failback criterion, i.e. |residual_Y| = |Y - mu_eps*X - P(X)| < " << INV_resTolB_ << std::endl;
-//      statistics << " " << numFails << " of " << totalSteps << " failed to satisfy the failback criterion" << std::endl;
-//      if(numFails != 0){
-//        statistics << "## Detailed Statistics for failed tests: " << std::endl;
-//        std::map<UInt, Double>::iterator mapIt;
-//        for(mapIt = failedTests.begin(); mapIt != failedTests.end(); mapIt++){
-//          statistics << " Test Nr " << mapIt->first << std::endl;
-//          statistics << " - Remaining |residual_Y|: " << mapIt->second << std::endl;
-//          statistics << " - Y_in: " << yIn[mapIt->first].ToString() << std::endl;
-//          statistics << " - Y_ret: " << yRetrieved[mapIt->first].ToString() << std::endl;
-//          statistics << " - h_sol: " << hIn[mapIt->first].ToString() << std::endl;
-//          statistics << " - h_ret: " << hRetrieved[mapIt->first].ToString() << std::endl;
-//          bool xsolabovesat = xIn[mapIt->first].NormL2()>MAT_xSat_;
-//          bool xretabovesat = xRetrieved[mapIt->first].NormL2()>MAT_xSat_;
-//          statistics << " - X_sol: " << xIn[mapIt->first].ToString()  << "; above sat? "<< xsolabovesat << std::endl;
-//          statistics << " - X_ret: " << xRetrieved[mapIt->first].ToString() << "; above sat? "<< xretabovesat << std::endl;
-//          statistics << " - SuccessCode: " << successCodeVector[mapIt->first] << std::endl;
-//        }
-//      }
-//      
-//      statistics << "## Detailed Statistics on forward evaluations (excluding those inside of LM/during inversion): " << std::endl;
-//      statistics << " " << forwardReused << " of " << 2*totalSteps << " reused old output as input change was below tolerance" << std::endl;
-//      statistics << " " << forwardAnhystOnly << " of " << 2*totalSteps << " featured only anhysteretic parts" << std::endl;
-//      statistics << " " << forwardOverwrite << " of " << 2*totalSteps << " evaluations were performed on permanent storage" << std::endl;
-//      statistics << " " << forwardTMP << " of " << 2*totalSteps << " evaluations were performed on temporal storage" << std::endl;
-//      
-//      statistics << "## Detailed Statistics on inversion: " << std::endl;
-//      statistics << " " << totalReused << " of " << totalSteps << " reused old solution as DeltaY < " << INV_resTolB_ << std::endl;
-//      statistics << " " << totalAnhystOnly << " of " << totalSteps << " were solved using bisection for pure anhysteretic case" << std::endl;
-//      statistics << " " << totalBisection << " of " << totalSteps << " were solved using bisection / simple division" << std::endl;
-//      if(!vector){
-//        statistics << " " << totalPassedErrorTol << " of " << totalSteps << " tests passed due to error tolerance" << std::endl;
-//      }
-//      
-//      if(vector){
-//        statistics << " " << totalRemanence << " of " << totalSteps << " cases were in remanence" << std::endl;
-//        statistics << " " << LMcases << " of " << totalSteps << " were solved using Levenberg-Marquardt" << std::endl;
-//        if(LMcases != 0){
-//          statistics << "## Detailed Statistics Levenberg-Marquardt Statistics: " << std::endl;
-//          statistics << " " << totalPassedErrorTol << " of " << LMcases << " tests passed due to error tolerance |JacT*Res| < " << INV_resTolH_ << std::endl;
-//          statistics << " " << totalPassedResTolX << " of " << LMcases << " tests passed due to |residual_X| = |X - mu_eps^-1*(Y - P(X)| < " << INV_resTolH_ << std::endl;
-//          statistics << " " << totalPassedResTolY << " of " << LMcases << " tests passed due to |residual_Y| = |Y - mu_eps*X - P(X)| < " << INV_resTolH_ << std::endl;
-//          statistics << " " << LMFails << " of " << LMcases << " failed the failback criterion (|residual_Y| < " << INV_resTolB_ << ")" << std::endl;
-//          statistics << " Total number of LM iterations: " << totalNumberOfLMIterations << std::endl;
-//          statistics << " Average number of LM iterations: " << (Double) totalNumberOfLMIterations/LMcases << std::endl;
-//          statistics << " Total number of Linesearch iterations: " << totalNumberOfLinesearchIterations << std::endl;
-//          statistics << " Average number of Linesearch iterations (per LM Iteration): " << (Double) totalNumberOfLinesearchIterations/totalNumberOfLMIterations << std::endl;
-//          statistics << " Maximal number of Linesearch iterations: " << absmaxNumberOfLinesearchIterations << std::endl;
-//          statistics << " Minimal alphaLS: " << totalminAlpha << std::endl;
-//          statistics << " Maximal alphaLS: " << totalmaxAlpha << std::endl;
-//          statistics << " Average alphaLS: " << totalavgAlpha << std::endl;
-//        }
-//      }
-//      
-//      if (XML_performanceMeasurement_ == 3) {
-//        
-//        backwardAvgEvalTime = backwardTotalEvalTime/backwardEvalCounter;
-//        forwardAvgEvalTime = forwardTotalEvalTime/forwardEvalCounter;
-//        statistics << "## Runtime information: " << std::endl;
-//        statistics << "Total number of forward evaluations (excluding those inside LM): " << forwardEvalCounter << std::endl;
-//        statistics << "Total time for forward evaluations (excluding those inside LM): " << forwardTotalEvalTime << std::endl;
-//        statistics << "Average time for forward evaluations (excluding those inside LM): " << forwardAvgEvalTime << std::endl;
-//        statistics << "Maximal time for forward evaluations (excluding those inside LM): " << forwardMaxEvalTime << std::endl;
-//        statistics << "Total number of backward evaluations: " << backwardEvalCounter << std::endl;
-//        statistics << "Total time for backward evaluations: " << backwardTotalEvalTime << std::endl;
-//        statistics << "Average time for backward evaluations: " << backwardAvgEvalTime << std::endl;
-//        statistics << "Maximal time for backward evaluations: " << backwardMaxEvalTime << std::endl;
-//        //statistics << "TOGREP: " << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << forwardTotalEvalTime << " " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << " " << backwardTotalEvalTime << " " << numFails << std::endl;
-//        statistics << "TOGREP: \t\t" << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << "\t " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << "\t " << numFails << std::endl;
-//			}
-//      statistics << "############################# " <<	std::endl;	
-//      statistics << std::endl;	
-//      if(printStatistics){
-//        std::cout << statistics.str();
-//			}
-//      if(writeResultsToFiles){
-//        testOutput5.open(filenameLog);
-//        testOutput5 << statistics.str();
-//        testOutput5.close();
-//      }
-//			
-//      LOG_TRACE(coeffcthyst) << statistics.str();
-//      
-//    }
-//    if(abortAfterTests){
-//      EXCEPTION("STOP AFTER TESTS");
-//    }
+    
+    
+    //     bool stopAfterInversionTests = false;
+    //      bool printStatistics = false;
+    //      bool writeResultsToFiles = false;
+    //      std::string testFile;
+    //      if( nonLinNode->Has("HYST_testInversion") ) {
+    //        nonLinNode->Get( "HYST_testInversion")->GetValue( "Testnumber", testInvesion_, ParamNode::PASS );
+    //        nonLinNode->Get( "HYST_testInversion")->GetValue( "StopAfterTests", stopAfterInversionTests, ParamNode::PASS );
+    //        nonLinNode->Get( "HYST_testInversion")->GetValue( "PrintStatistics", printStatistics, ParamNode::PASS );
+    //        nonLinNode->Get( "HYST_testInversion")->GetValue( "WriteResultsToFiles", writeResultsToFiles, ParamNode::PASS );
+    //        nonLinNode->Get( "HYST_testInversion")->GetValue( "FileToRead", testFile, ParamNode::PASS );
+    //        std::cout << "testFile: " << testFile << std::endl;
+    //      } else {
+    //        testInvesion_ = 0;
+    //      }
+    //      
+    //      if(testFile != "none"){
+    //        Vector<Double> xVals = Vector<Double>(1);
+    //        Vector<Double> yVals = Vector<Double>(1);
+    //        Interpolate1D reader = Interpolate1D();
+    //        reader.ReadFile(testFile.c_str(),xVals,yVals);
+    //        std::cout << "Read in data: " << std::endl;
+    //        std::cout << xVals.ToString() << std::endl;
+    //        std::cout << yVals.ToString() << std::endl;
+    //      }
+    
+    //    
+    //    OLD
+    //    
+    //  UInt testNumber = 0;
+    //  bool abortAfterTests = false;
+    ////  bool printStatistics = false;
+    //  bool writeResultsToFiles = false;
+    ////  bool testForwardOnly = false;
+    //  //void CoefFunctionHyst::TestInversion(UInt testNumber, bool abortAfterTests, bool printStatistics, bool writeResultsToFiles, bool testForwardOnly){
+    //    
+    //    //std::cout << "MAT_PreisachWeights_: " << MAT_PreisachWeights_.ToString() << std::endl;
+    //    
+    //
+    //    
+    //    Matrix<Double> eps_mu = MAT_eps_mu_SmallSignal_;
+    //    
+    //    std::stringstream generalInfo;
+    //    generalInfo << std::endl;
+    //    generalInfo << "############################" <<std::endl;
+    //    generalInfo << "#### - INVERSION TEST - ####" <<std::endl;
+    //    generalInfo << "############################" <<std::endl;
+    //    generalInfo << std::endl;
+    //    generalInfo << "## Used material parameter for all following tests: " << std::endl;
+    //    generalInfo << "xSat: " << MAT_xSat_ << std::endl;
+    //    generalInfo << "ySat: " << MAT_pSat_ << std::endl;
+    //    generalInfo << "eps_mu: " << eps_mu.ToString() << std::endl;
+    //    generalInfo << "## Error criteria: " << std::endl;
+    //    if (MAT_methodType_ == VECTOR) {
+    //      generalInfo << "residual tolerance wrt x: " << INV_resTolH_ << std::endl;
+    //    }
+    //    generalInfo << "residual tolerance wrt y: " << INV_resTolB_ << std::endl;
+    //    generalInfo << std::endl;
+    //    if (MAT_methodType_ == VECTOR) {
+    //      generalInfo << "## Levenberg-Marquardt parameter set for inversion process: " << std::endl;
+    //      generalInfo << "maximal number of iterations: " << INV_maxIter_ << std::endl;
+    //      generalInfo << "resolution for Jacobian: " << INV_jacobiResolution_ << std::endl;
+    //      if(INV_useTikhonov_){
+    //        generalInfo << "Tikhonov regularization applied" << std::endl;
+    //      } else {
+    //        generalInfo << "No Tikhonov regularization applied" << std::endl;
+    //      }
+    //      generalInfo << std::endl;
+    //    }
+    //    
+    //    if(printStatistics){
+    //      std::cout << generalInfo.str();
+    //    } 
+    //    
+    //    LOG_TRACE(coeffcthyst) << generalInfo.str();
+    //    
+    //    // Tests inversion of VECTORPreisach Operator and returns 
+    //    //  estimation for alpha (linesearch stepping paramater) that can be used
+    //    //  for later computation
+    //    // > can be used in actual simulations to setup an appropriate linesearch factor alpha
+    //    //   to accelerate the actual computations later on!
+    //    
+    //    Vector<Double>* xIn;
+    //    bool vector;
+    //    bool isVirgin = true;
+    //    
+    //    UInt numCases = 11;
+    //    UInt totalSteps;
+    //    bool testAll = false;
+    //    
+    //    if(testNumber > numCases){
+    //      testAll = true;
+    //      LOG_TRACE(coeffcthyst) << "PERFORM ALL TESTS";
+    //      if(printStatistics){
+    //        std::cout << "PERFORM ALL TESTS" << std::endl;
+    //      }
+    //    } else {
+    //      LOG_TRACE(coeffcthyst) << "PERFORM TEST #" << abs(testNumber);
+    //      if(printStatistics){
+    //        std::cout << "PERFORM TESTS #" << abs(testNumber) << std::endl;
+    //      } 
+    //    }
+    //    
+    //    for(UInt ca = 1; ca <= numCases; ca++){
+    //      std::string testName;
+    //			bool hystOutputRestrictedToSat = true;
+    //      /*
+    //       * I. Create testsignel
+    //       */
+    //      
+    //      // recreate the hyst operator in each iteration!
+    //      if (MAT_methodType_ == SCALAR) {
+    //        vector = false;
+    //        
+    //        // create one temoporary ScaparPreisach operator with the same
+    //        // paramter as the later used ones, except, we just need one entry   
+    //        
+    //        MAT_useExtension_ = false;
+    //        int useExtensionInt;
+    //        material_->GetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
+    //        if(useExtensionInt == 1){
+    //          MAT_useExtension_ = true;
+    //        }
+    //        if(MAT_useExtension_){
+    //          material_->GetScalar(MAT_rotRes_, ROT_RESISTANCE, Global::REAL);
+    //          material_->GetScalar(MAT_angResistance_, ANG_DISTANCE, Global::REAL);
+    //          
+    //          hystTMP = new ExtendedPreisach(1, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, 
+    //                  MAT_rotRes_, MAT_angResistance_, dim_, isVirgin, MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+    //          
+    //          // set initial direction
+    //          Vector<Double> initialInput = Vector<Double>(dim_);
+    //          MAT_eps_mu_SmallSignal_.Mult(MAT_dirP_,initialInput);
+    //          initialInput.ScalarMult(MAT_xSat_);
+    //          initialInput.Add(MAT_pSat_,MAT_dirP_);
+    //          // initialInput = (MAT_pSat_*Identity + MAT_xSat_*MAT_eps_mu_SmallSignal_)*MAT_dirP_
+    //          // > flux with value just at saturation
+    //          hystTMP->UpdateRotationState(initialInput,MAT_eps_mu_SmallSignal_,0);
+    //          
+    //        } else {
+    //          hystTMP = new Preisach(1, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, isVirgin, MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+    //          //hyst_ = new Preisach(numHystOperators_, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, isVirgin);
+    //        }
+    //        
+    //        //hystTMP = new Preisach(1, MAT_xSat_, MAT_pSat_, MAT_PreisachWeights_, isVirgin);
+    //        
+    //				// normal preisach has worse resolution than vectorpreisach
+    //				// > check for smaller tolerance
+    //      } else if (usedHystModel_ == "vectorPreisach_Sutor") {
+    //        vector = true;
+    //        // create one temporary VectorPreisach operator with the same
+    //        // parameter as the later used ones, except, we just need it to store
+    //        // entries for one single element / point
+    //        if (MAT_vecPreisachImplementationVersion_ == 1) {
+    //          isClassical_ = true; // original vector preisach model -> sutor2012
+    //          
+    //          hystTMP = new VectorPreisachSutor_ListApproach(1, MAT_xSat_, MAT_pSat_,
+    //                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
+    //                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+    //        } else if (MAT_vecPreisachImplementationVersion_ == 2) {
+    //          isClassical_ = false; // revised vector preisach model -> sutor2015
+    //          
+    //          hystTMP = new VectorPreisachSutor_ListApproach(1, MAT_xSat_, MAT_pSat_,
+    //                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
+    //                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+    //        } else if (MAT_vecPreisachImplementationVersion_ == 10) {
+    //          isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
+    //          
+    //          hystTMP = new VectorPreisachSutor_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
+    //                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
+    //                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+    //        } else if (MAT_vecPreisachImplementationVersion_ == 20) {
+    //          isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
+    //          
+    //          hystTMP = new VectorPreisachSutor_MatrixApproach(1, MAT_xSat_, MAT_pSat_,
+    //                  MAT_PreisachWeights_, MAT_rotRes_, dim_, isVirgin,
+    //                  isClassical_, MAT_angResistance_,MAT_angResolution_,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_);
+    //        } else {
+    //          EXCEPTION("MAT_vecPreisachImplementationVersion_ has to be one of the following: \n "
+    //                  "1: classical vector model (sutor2012) \n"
+    //                  "2: revised vector model (sutor2015) [DEFAULT] \n"
+    //                  "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
+    //                  "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
+    //        }
+    //        hystTMP->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
+    //                INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_); 
+    //      } else if (usedHystModel_ == "vectorPreisach_Mayergoyz") {
+    //        vector = true;
+    //        // basically a scalar model in multiple directions
+    //        // isotropic case: all scalar models are equal (same weights etc)
+    //        // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
+    //        int isIsotropic = 1;
+    //        material_->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
+    //        if( (dim_ != 2) || (isIsotropic == 0)){
+    //          EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
+    //        }
+    //        int numDirections = 0;
+    //        material_->GetScalar(numDirections, PREISACH_MAYERGOYZ_NUM_DIR);
+    //        
+    //        int clipOutput = 0;
+    //        material_->GetScalar(clipOutput, PREISACH_MAYERGOYZ_CLIPOUTPUT);
+    //        
+    //				if(clipOutput == 0){
+    //					hystOutputRestrictedToSat = false;
+    //				}
+    //				
+    //        /*
+    //         * IMPORTANT REMARK:
+    //         *  > although the Mayergoyz model is based on the scalar models 
+    //         *     we are not alloewed to directly apply the preisach parameter for
+    //         *     the scalar case (i.e. the weights, the anhyst parameter and so on)
+    //         *  > make sure that the passed parameter are already transformed correctly
+    //         *      > see constructor above
+    //         */
+    //        hystTMP = new VectorPreisachMayergoyz(1, numDirections, MAT_xSat_, MAT_pSat_, 
+    //                MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, 
+    //								MAT_anhysteretic_c_,anhystOnly_,clipOutput);
+    //        
+    //        hystTMP->SetParamsForInversion(INV_maxIter_, INV_resTolH_, INV_resTolB_, INV_jacobiResolution_,
+    //                INV_useTikhonov_, INV_alphaLSStart_,INV_alphaLSMin_,INV_alphaLSMax_,MAT_angClipping_); 
+    //      } else {
+    //        EXCEPTION("Invalid model selected for inversion test");
+    //      }
+    //      
+    //      bool fieldsAlignedAboveSat = true;
+    //      if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+    //        fieldsAlignedAboveSat = false;
+    //      }
+    //      
+    //      
+    //      if( (ca == 1)&&( (testNumber == 1) ||(testAll)) ) {
+    //        if(printStatistics){
+    //          std::cout << "##### TEST CASE " << ca << " - Self designed test signal" << std::endl;
+    //        }
+    //        testName = "Self designed test signal";
+    //        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Self designed test signal";
+    //        /*
+    //         * Testcase 1 --- (self-designed) benchmark signal
+    //         * 
+    //         * 1d-Signal shape:
+    //         *  exp-increase, cos decrease, linear increase, 1/x decrease, log increase, x^3 increase, hold state
+    //         * 
+    //         * 2d/3d-Signal shape:
+    //         *  Multiply 1d-Signal with chaning direction vector
+    //         * 
+    //         */
+    //        
+    //        UInt steps1,steps2,steps3,steps4,steps5,steps6,steps7;
+    //        steps1=50;
+    //        steps2=50;
+    //        steps3=50;
+    //        steps4=50;
+    //        steps5=50;
+    //        steps6=50;
+    //        steps7=10;
+    //        totalSteps=steps1+steps2+steps3+steps4+steps5+steps6+steps7;
+    //        
+    //        xIn = new Vector<Double>[totalSteps]; 
+    //        Vector<Double> xScal = Vector<Double>(totalSteps);
+    //        xScal.Init();
+    //        Double delta;
+    //        
+    //        // 1. expontential increase from [10^-15 to 10^0[
+    //        delta = 15.0/steps1;
+    //        
+    //        for(UInt i = 0; i < steps1; i++){
+    //          xScal[i] = std::pow(10,-15.0+i*delta);
+    //        }
+    //        // 2. cos decrease towards -0.5[
+    //        delta = -std::acos(-0.5)/steps2;
+    //        
+    //        for(UInt i = 0; i < steps2; i++){
+    //          xScal[steps1+i] = std::cos(i*delta);
+    //        }
+    //        // 3. linear increase to 0.4
+    //        delta = 0.9/steps3;
+    //        
+    //        for(UInt i = 0; i < steps3; i++){
+    //          xScal[steps1+steps2+i] = -0.5+i*delta;
+    //        }
+    //        // 4. 1/x decrease towards -0.3
+    //        Double Xstart = 1.0/(0.7 + 1.0/steps4);
+    //        delta = (steps4 - Xstart)/steps4;
+    //        
+    //        for(UInt i = 0; i < steps4; i++){
+    //          xScal[steps1+steps2+steps3+i] = 1.0/(Xstart+i*delta)-1.0/steps4-0.3;
+    //        }
+    //        // 5. logarithmic increase towards 0.2
+    //        Xstart = std::exp(-3);
+    //        Double Xend = std::exp(2);
+    //        delta = (Xend-Xstart)/steps5;
+    //        
+    //        for(UInt i = 0; i < steps5; i++){
+    //          xScal[steps1+steps2+steps3+steps4+i] = 0.1*std::log(Xstart+i*delta);
+    //        }
+    //        // 6. x^3 increase to 0.8
+    //        Double denom = std::pow(steps6-1,3);
+    //        for(UInt i = 0; i < steps6; i++){
+    //          xScal[steps1+steps2+steps3+steps4+steps5+i] = 0.6*std::pow(i,3)/denom + 0.2;
+    //        }
+    //        
+    //        // 7. hold signal at value 0.8
+    //        for(UInt i = 0; i < steps7; i++){
+    //          xScal[steps1+steps2+steps3+steps4+steps5+steps6+i] = 0.8;
+    //        }
+    //        
+    //        //        std::ofstream testOutput;
+    //        //        testOutput.open("GeneratedInput");
+    //        //        for(UInt i = 0; i < totalSteps; i++){
+    //        //          testOutput << i << " " << xScal[i] << std::endl;
+    //        //        }
+    //        //        testOutput.close();
+    //        Vector<Double> dir = Vector<Double>(dim_);
+    //        dir[0] = 1.0;
+    //        dir[1] = 0.0;
+    //        for(UInt i = 0; i < totalSteps; i++){
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init();
+    //          dir[0] = (Double) (totalSteps-i)/totalSteps;
+    //          if(vector){
+    //            dir[1] = (Double) i/totalSteps;
+    //          } else {
+    //            dir[1] = 0.0;
+    //          }
+    //          xIn[i].Add(MAT_xSat_*xScal[i],dir);
+    //        }
+    //        
+    //      } else if( (ca == 2)&&( (testNumber == 2) ||(testAll)) ) {
+    //        if(printStatistics){
+    //          std::cout << "##### TEST CASE " << ca << " - Decreasing Sawtooth" << std::endl;
+    //        }
+    //        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Decreasing Sawtooth";
+    //        testName = "Decreasing Sawtooth";
+    //        totalSteps = 200;
+    //        xIn = new Vector<Double>[totalSteps]; 
+    //        /*
+    //         * Testcase: Put material into full saturation in y-direction; from that state on
+    //         * apply a decreasing triangular signal in x-direction; for initial period hold
+    //         * signla in y-direction; during first real period decrease to 1/2 of value;
+    //         * then to 1/4 and finally to 0
+    //         */
+    //        xIn[0] = Vector<Double>(dim_);
+    //        xIn[0].Init(0.0);
+    //        xIn[0][1] = -MAT_xSat_;
+    //        
+    //        UInt numStepsFirstIncrease = (UInt) ( (Double)totalSteps/8.0 ) +1;
+    //        Double incr = MAT_xSat_/((Double) numStepsFirstIncrease-1);
+    //        
+    //        for(UInt i = 1; i < numStepsFirstIncrease; i++){
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //          xIn[i][0] = xIn[i-1][0] + incr; 
+    //          if(vector){
+    //            xIn[i][1] = -MAT_xSat_;
+    //          }
+    //        }
+    //        
+    //        UInt cnt = numStepsFirstIncrease;
+    //        
+    //        UInt remainingSteps = totalSteps - numStepsFirstIncrease;
+    //        UInt stepsPerPeriod = 20;
+    //        UInt numPeriods = remainingSteps/stepsPerPeriod;
+    //        remainingSteps = remainingSteps%stepsPerPeriod;
+    //        
+    //        incr = 2*MAT_xSat_/((Double)(stepsPerPeriod-1));
+    //        Double sign = -1.0;
+    //        Double decrFactor = 1.0 - 1.0/((Double) numPeriods);
+    //        
+    //        for(UInt j = 0; j < numPeriods; j++){
+    //          for(UInt i = 0; i < stepsPerPeriod; i++){
+    //            xIn[cnt] = Vector<Double>(dim_);
+    //            xIn[cnt].Init(0.0);
+    //            xIn[cnt][0] = xIn[cnt-1][0] + sign*incr;
+    //            
+    //            if(vector){
+    //              if(j==0){
+    //                xIn[cnt][1] = -MAT_xSat_/2.0;
+    //              } else if(j==1){
+    //                xIn[cnt][1] = -MAT_xSat_/4.0;
+    //              }
+    //            }
+    //            
+    //            cnt++;
+    //          }
+    //          sign = -1.0*sign;
+    //          incr = incr*decrFactor;
+    //        }
+    //        for(UInt i = 0; i < remainingSteps; i++){
+    //          xIn[cnt] = Vector<Double>(dim_);
+    //          xIn[cnt].Init(0.0);
+    //          xIn[cnt][0] = xIn[cnt-1][0] + sign*incr;
+    //          cnt++;
+    //        }
+    //      } else if( (ca == 3)&&( (testNumber == 3) ||(testAll)) ) {
+    //        if(printStatistics){
+    //          std::cout << "##### TEST CASE " << ca << " - Decreasing Sin" << std::endl;
+    //        }
+    //        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Decreasing Sin";
+    //        testName = "Decreasing Sin";
+    //        totalSteps = 200;
+    //        Double numPeriods = 4;
+    //        Double stepsPerPeriod = totalSteps/numPeriods;
+    //        Double decrease = 1.0/totalSteps;
+    //        xIn = new Vector<Double>[totalSteps]; 
+    //        
+    //        
+    //        for(UInt i = 0; i < totalSteps; i++){
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
+    //          xIn[i][0] = 1.2*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod );
+    //          
+    //          if(vector){
+    //            if(i >= 3*stepsPerPeriod){
+    //              xIn[i][1] = -MAT_xSat_/8.0;
+    //            } else if(i >= 2*stepsPerPeriod){
+    //              xIn[i][1] = -MAT_xSat_/4.0;
+    //            } else if(i >= stepsPerPeriod){
+    //              xIn[i][1] = -MAT_xSat_/2.0;
+    //            } else if(i >= 0){
+    //              xIn[i][1] = -MAT_xSat_;
+    //            }
+    //          }
+    //        }
+    //      } else if( (ca == 4)&&( (testNumber == 4) ||(testAll)) ) {
+    //        if(printStatistics){
+    //          std::cout << "##### TEST CASE " << ca << " - Decreasing Sin - extended" << std::endl;
+    //        }
+    //        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Decreasing Sin - extended";
+    //        testName = "Decreasing Sin - Extended";
+    //        totalSteps = 500;
+    //        Double numPeriods = 10;
+    //        Double stepsPerPeriod = totalSteps/numPeriods;
+    //        Double decrease = 1.0/totalSteps;
+    //        xIn = new Vector<Double>[totalSteps]; 
+    //        
+    //        
+    //        for(UInt i = 0; i < totalSteps; i++){
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
+    //          xIn[i][0] = 0.6*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod );
+    //          if(vector){
+    //            // smaller amplitude, higher frequency
+    //            xIn[i][1] = -0.4*MAT_xSat_*(1.0 - decrease*i) * sin( 3*(2*M_PI*i)/stepsPerPeriod );
+    //          }
+    //        }
+    //      } else if( (ca == 5)&&( (testNumber == 5) ||(testAll)) ) {
+    //        if(printStatistics){
+    //          std::cout << "##### TEST CASE " << ca << " - Decreasing Sin - extended, scaled down" << std::endl;
+    //        }
+    //        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Decreasing Sin - extended, scaled down";
+    //        testName = "Decreasing Sin - Extended";
+    //        totalSteps = 500;
+    //        Double numPeriods = 10;
+    //        Double stepsPerPeriod = totalSteps/numPeriods;
+    //        Double decrease = 1.0/totalSteps;
+    //        xIn = new Vector<Double>[totalSteps]; 
+    //        
+    //        
+    //        for(UInt i = 0; i < totalSteps; i++){
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
+    //          xIn[i][0] = 0.006*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod );
+    //          if(vector){
+    //            // smaller amplitude, higher frequency
+    //            xIn[i][1] = -0.004*MAT_xSat_*(1.0 - decrease*i) * sin( 3*(2*M_PI*i)/stepsPerPeriod );
+    //          }
+    //        }
+    //      } else if( (ca == 6)&&( (testNumber == 6) ||(testAll)) ) {
+    //        if(printStatistics){
+    //          std::cout << "##### TEST CASE " << ca << " - Decreasing Sin - extended, reverse" << std::endl;
+    //        }
+    //        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Decreasing Sin - extended, reverse";
+    //        testName = "Decreasing Sin - Extended";
+    //        totalSteps = 500;
+    //        Double numPeriods = 10;
+    //        Double stepsPerPeriod = totalSteps/numPeriods;
+    //        Double increase = 1.0/totalSteps;
+    //        xIn = new Vector<Double>[totalSteps]; 
+    //        
+    //        
+    //        for(UInt i = 0; i < totalSteps; i++){
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
+    //          xIn[i][0] = 0.6*MAT_xSat_*increase*i * sin( (2*M_PI*i)/stepsPerPeriod );
+    //          if(vector){
+    //            // smaller amplitude, higher frequency
+    //            xIn[i][1] = -0.4*MAT_xSat_*increase*i * sin( 3*(2*M_PI*i)/stepsPerPeriod );
+    //          }
+    //        }
+    //      } else if( (ca == 7)&&( (testNumber == 7) ||(testAll)) ) {
+    //        if(printStatistics){
+    //          std::cout << "##### TEST CASE " << ca << " - Forc" << std::endl;
+    //        }
+    //        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Forc";
+    //        testName = "Forc";
+    //        totalSteps = 500;
+    //        Double numPeriods = 10;
+    //        Double stepsPerPeriod = totalSteps/numPeriods;
+    //        Double decrease = 1.0/totalSteps;
+    //        xIn = new Vector<Double>[totalSteps]; 
+    //        
+    //        for(UInt i = 0; i < totalSteps; i++){
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
+    //          xIn[i][0] = 1.2*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod ) - 1.2*MAT_xSat_*decrease*i;
+    //          if(vector){
+    //            // smaller amplitude, higher frequency
+    //            xIn[i][1] = 0.4*MAT_xSat_*(1.0 - decrease*i) * sin( 3*(2*M_PI*i)/stepsPerPeriod ) - 0.4*MAT_xSat_*decrease*i;
+    //          }
+    //        }
+    //      } else if( (ca == 8)&&( (testNumber == 8) ||(testAll)) ) {
+    //        if(printStatistics){
+    //          std::cout << "##### TEST CASE " << ca << " - Saturation in x, Drop to rem, Saturation in y, Drop to rem" << std::endl;
+    //        }
+    //        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - SatX,SatY";
+    //        testName = "SatX,SatY";
+    //        totalSteps = 500;
+    //				
+    //				Double increase = 4.0/totalSteps;
+    //				
+    //        xIn = new Vector<Double>[totalSteps]; 
+    //				Double maxAmplitude = 4.0*MAT_xSat_;
+    //        
+    //        for(UInt i = 0; i < totalSteps/4; i++){
+    //					// linearly increase in x up to n*saturation
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //					
+    //					xIn[i][0] = maxAmplitude*i*increase;
+    //        }
+    //				for(UInt i = totalSteps/4; i < 2*totalSteps/4; i++){
+    //					// linearly decrease to 0
+    //					xIn[i] = Vector<Double>(dim_);
+    //					xIn[i].Init(0.0);
+    //					
+    //					xIn[i][0] = maxAmplitude - maxAmplitude*(i-totalSteps/4)*increase;
+    //				}
+    //				
+    //				for(UInt i = 2*totalSteps/4; i < 3*totalSteps/4; i++){
+    //					// linearly increase in y up to n*saturation
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //					if(vector){
+    //            xIn[i][1] = maxAmplitude*(i-2*totalSteps/4)*increase;
+    //          }
+    //        }
+    //				for(UInt i = 3*totalSteps/4; i < totalSteps; i++){
+    //					// linearly decrease to 0
+    //					xIn[i] = Vector<Double>(dim_);
+    //					xIn[i].Init(0.0);
+    //					if(vector){
+    //            xIn[i][1] = maxAmplitude - maxAmplitude*(i-3*totalSteps/4)*increase;
+    //          }
+    //				}
+    //				
+    //				
+    //      } else if( (ca == 9)&&( (testNumber == 9) ||(testAll)) ) {
+    //        if(printStatistics){
+    //          std::cout << "##### TEST CASE " << ca << " - exactly Saturation in x, Drop to rem, exactly Saturation in y, Drop to rem" << std::endl;
+    //        }
+    //        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - SatX,SatY clipped";
+    //        testName = "SatX,SatY clipped";
+    //        totalSteps = 500;
+    //				
+    //				Double increase = 4.0/totalSteps;
+    //				
+    //        xIn = new Vector<Double>[totalSteps]; 
+    //				Double maxAmplitude = 4.0*MAT_xSat_;
+    //        
+    //        for(UInt i = 0; i < totalSteps/4; i++){
+    //					// linearly increase in x up to n*saturation
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //          
+    //					xIn[i][0] = maxAmplitude*i*increase;
+    //          if(xIn[i][0] > MAT_xSat_){
+    //            xIn[i][0] = MAT_xSat_;
+    //          }
+    //        }
+    //				for(UInt i = totalSteps/4; i < 2*totalSteps/4; i++){
+    //					// linearly decrease to 0
+    //					xIn[i] = Vector<Double>(dim_);
+    //					xIn[i].Init(0.0);
+    //          
+    //					xIn[i][0] = maxAmplitude - maxAmplitude*(i-totalSteps/4)*increase;
+    //          if(xIn[i][0] > MAT_xSat_){
+    //            xIn[i][0] = MAT_xSat_;
+    //          }
+    //				}
+    //				
+    //				for(UInt i = 2*totalSteps/4; i < 3*totalSteps/4; i++){
+    //					// linearly increase in y up to n*saturation
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //          
+    //          if(vector){
+    //            xIn[i][1] = maxAmplitude*(i-2*totalSteps/4)*increase;
+    //          }
+    //          if(xIn[i][1] > MAT_xSat_){
+    //            xIn[i][1] = MAT_xSat_;
+    //          }
+    //        }
+    //				for(UInt i = 3*totalSteps/4; i < totalSteps; i++){
+    //					// linearly decrease to 0
+    //					xIn[i] = Vector<Double>(dim_);
+    //					xIn[i].Init(0.0);
+    //          
+    //          if(vector){
+    //            xIn[i][1] = maxAmplitude - maxAmplitude*(i-3*totalSteps/4)*increase;
+    //          }
+    //          if(xIn[i][1] > MAT_xSat_){
+    //            xIn[i][1] = MAT_xSat_;
+    //          }
+    //				}
+    //        
+    //      } else if( (ca == 10)&&( (testNumber == 10) ||(testAll)) ) {
+    //        if(printStatistics){
+    //          std::cout << "##### TEST CASE " << ca << " - Forc, Short" << std::endl;
+    //        }
+    //        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - Forc, Short";
+    //        testName = "Forc";
+    //        totalSteps = 80;
+    //        Double numPeriods = 2;
+    //        Double stepsPerPeriod = totalSteps/numPeriods;
+    //        Double decrease = 1.0/totalSteps;
+    //        xIn = new Vector<Double>[totalSteps]; 
+    //        
+    //        for(UInt i = 0; i < totalSteps; i++){
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //          //xIn[i][0] = sin( (2*M_PI*i)/stepsPerPeriod );
+    //          xIn[i][0] = 1.2*MAT_xSat_*(1.0 - decrease*i) * sin( (2*M_PI*i)/stepsPerPeriod ) - 1.2*MAT_xSat_*decrease*i;
+    //          if(vector){
+    //            // smaller amplitude, higher frequency
+    //            xIn[i][1] = 0.4*MAT_xSat_*(1.0 - decrease*i) * sin( 3*(2*M_PI*i)/stepsPerPeriod ) - 0.4*MAT_xSat_*decrease*i;
+    //          }
+    //        }
+    //      } else if( (ca == 11)&&( (testNumber == 11) ||(testAll)) ) {
+    //        if(printStatistics){
+    //          std::cout << "##### TEST CASE " << ca << " - 1.5*Saturation in x, Drop to rem, 1.5*Saturation in y, Drop to rem" << std::endl;
+    //        }
+    //        LOG_TRACE(coeffcthyst) << "##### TEST CASE " << ca << " - 1.5*SatX,1.5*SatY";
+    //        testName = "1.5*SatX,1.5*SatY";
+    //        totalSteps = 200;
+    //				
+    //				Double increase = 4.0/totalSteps;
+    //				
+    //        xIn = new Vector<Double>[totalSteps]; 
+    //				Double maxAmplitude = 1.5*MAT_xSat_;
+    //        
+    //        for(UInt i = 0; i < totalSteps/4; i++){
+    //					// linearly increase in x up to n*saturation
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //					
+    //					xIn[i][0] = maxAmplitude*i*increase;
+    //        }
+    //				for(UInt i = totalSteps/4; i < 2*totalSteps/4; i++){
+    //					// linearly decrease to 0
+    //					xIn[i] = Vector<Double>(dim_);
+    //					xIn[i].Init(0.0);
+    //					
+    //					xIn[i][0] = maxAmplitude - maxAmplitude*(i-totalSteps/4)*increase;
+    //				}
+    //				
+    //				for(UInt i = 2*totalSteps/4; i < 3*totalSteps/4; i++){
+    //					// linearly increase in y up to n*saturation
+    //          xIn[i] = Vector<Double>(dim_);
+    //          xIn[i].Init(0.0);
+    //					if(vector){
+    //            xIn[i][1] = maxAmplitude*(i-2*totalSteps/4)*increase;
+    //          }
+    //        }
+    //				for(UInt i = 3*totalSteps/4; i < totalSteps; i++){
+    //					// linearly decrease to 0
+    //					xIn[i] = Vector<Double>(dim_);
+    //					xIn[i].Init(0.0);
+    //					if(vector){
+    //            xIn[i][1] = maxAmplitude - maxAmplitude*(i-3*totalSteps/4)*increase;
+    //          }
+    //				}
+    //				
+    //				
+    //      } else {
+    //        continue;
+    //      }
+    //      
+    //			
+    //			
+    //			
+    //			
+    //			
+    //			
+    //      /*
+    //       * II. Setup output streams
+    //       */
+    //      
+    //      std::stringstream stringstream1;
+    //      stringstream1 << "INVERSION_TEST_xIn_" << ca;
+    //      std::string filenameInput = stringstream1.str();
+    //      std::stringstream stringstream2;
+    //      stringstream2 << "INVERSION_TEST_xRet_" << ca;
+    //      std::string filenameOutput = stringstream2.str();
+    //      
+    //      std::stringstream stringstream4;
+    //      stringstream4 << "INVERSION_TEST_xIn_hIn_" << ca;
+    //      std::string filenameOutputHystIn = stringstream4.str();
+    //      std::stringstream stringstream5;
+    //      stringstream5 << "INVERSION_TEST_xRet_hRet_" << ca;
+    //      std::string filenameOutputHystRet = stringstream5.str();
+    //      
+    //      std::stringstream stringstream6;
+    //      stringstream6 << "LOG_" << ca;
+    //      std::string filenameLog = stringstream6.str();
+    //      
+    //      
+    //      //      std::ofstream testOutputSig;
+    //      //      if(writeResultsToFiles){
+    //      //        testOutputSig.open(filenameInput);
+    //      //        testOutputSig << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
+    //      //        testOutputSig << "# Number of steps: " << totalSteps << std::endl;
+    //      //        testOutputSig << "# eps_mu: " << eps_mu.ToString() << std::endl;
+    //      //        testOutputSig << "# xSat: " << MAT_xSat_ << std::endl;
+    //      //        testOutputSig << "# ySat: " << MAT_pSat_ << std::endl;
+    //      //        testOutputSig << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
+    //      //        testOutputSig << "# " << std::endl;
+    //      //        testOutputSig << "# Step    x_in[0]    x_in[1]" << std::endl;
+    //      //        for(UInt i = 0; i < totalSteps; i++){
+    //      //          testOutputSig << i << " " << xIn[i][0] << " " << xIn[i][1] << std::endl;
+    //      //        }
+    //      //        testOutputSig.close();
+    //      //      }
+    //      
+    //      Vector<int> successCodeVector = Vector<int>(totalSteps);
+    //      Vector<Double>* xRetrieved = new Vector<Double>[totalSteps];
+    //      Vector<Double>* yRetrieved = new Vector<Double>[totalSteps];
+    //      Vector<Double>* hIn= new Vector<Double>[totalSteps];
+    //      Vector<Double>* hRetrieved = new Vector<Double>[totalSteps];
+    //      Vector<Double>* yError = new Vector<Double>[totalSteps];
+    //      Vector<Double>* xError = new Vector<Double>[totalSteps];
+    //      Vector<Double>* yIn = new Vector<Double>[totalSteps]; 
+    //      
+    //      //std::ofstream testOutput2;
+    //      std::ofstream testOutput3;
+    //      std::ofstream testOutput4;
+    //      std::ofstream testOutput5;
+    //      
+    //      if(writeResultsToFiles){
+    //        //testOutput2.open(filenameOutput);
+    //        testOutput3.open(filenameOutputHystIn);
+    //        testOutput4.open(filenameOutputHystRet);
+    //        
+    //        //        testOutput2 << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
+    //        //        testOutput2 << "# Number of steps: " << totalSteps << std::endl;
+    //        //        testOutput2 << "# eps_mu: " << eps_mu.ToString() << std::endl;
+    //        //        testOutput2 << "# xSat: " << MAT_xSat_ << std::endl;
+    //        //        testOutput2 << "# ySat: " << MAT_pSat_ << std::endl;
+    //        //        testOutput2 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
+    //        //        testOutput2 << "# " << std::endl;
+    //        //        testOutput2 << "# Step    x_ret[0]    x_ret[1]" << std::endl;
+    //        //        
+    //        testOutput3 << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
+    //        testOutput3 << "# Number of steps: " << totalSteps << std::endl;
+    //        testOutput3 << "# eps_mu: " << eps_mu.ToString() << std::endl;
+    //        testOutput3 << "# xSat: " << MAT_xSat_ << std::endl;
+    //        testOutput3 << "# ySat: " << MAT_pSat_ << std::endl;
+    //        testOutput3 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
+    //        testOutput3 << "# " << std::endl;
+    //        testOutput3 << "# Step    x_in[0]    x_in[1]    h_in[0]    h_in[1]    y_in[0]    y_in[1]" << std::endl;
+    //        
+    //        testOutput4 << "## Results of TestInversion for test signal " << ca << " - " << testName << std::endl; 
+    //        testOutput4 << "# Number of steps: " << totalSteps << std::endl;
+    //        testOutput4 << "# eps_mu: " << eps_mu.ToString() << std::endl;
+    //        testOutput4 << "# xSat: " << MAT_xSat_ << std::endl;
+    //        testOutput4 << "# ySat: " << MAT_pSat_ << std::endl;
+    //        testOutput4 << "# Starting value of inversion " << xIn[0][0] << " " << xIn[0][1] << std::endl;
+    //        testOutput4 << "# " << std::endl;
+    //        testOutput4 << "# Step    x_ret[0]    x_ret[1]    h_ret[0]    h_ret[1]    y_ret[0]    y_ret[1]" << std::endl;
+    //      }
+    //      
+    //      
+    //      /*
+    //       * III. Start testing
+    //       */
+    //      
+    //      std::map<UInt, Double> failedTests;
+    //      
+    //      Double minAlpha = 0;
+    //      Double maxAlpha = 0;
+    //      Double avgAlpha = 0;
+    //      Double totalminAlpha = 1e10;
+    //      Double totalmaxAlpha = -1e10;
+    //      Double totalavgAlpha = 0;
+    //      
+    //			UInt numberOfLMIterations = 0;
+    //			UInt numberOfLinesearchIterations = 0;
+    //			UInt maxNumberOfLinesearchIterations = 0;
+    //      
+    //      // counter for forward evaluation
+    //      UInt forwardFails = 0;
+    //      UInt forwardReused = 0;
+    //      UInt forwardAnhystOnly = 0;
+    //      UInt forwardOverwrite = 0;
+    //      UInt forwardTMP = 0;
+    //
+    //      // counter for backward evaluation / inversion
+    //      UInt LMFails = 0;
+    //      UInt totalReused = 0;
+    //      UInt totalAnhystOnly = 0;
+    //      UInt totalBisection = 0;
+    //      UInt totalRemanence = 0;
+    //      UInt totalPassedErrorTol = 0;
+    //      UInt totalPassedResTolX = 0;
+    //      UInt totalPassedResTolY = 0;
+    //			UInt totalNumberOfLMIterations = 0;
+    //			UInt totalNumberOfLinesearchIterations = 0;
+    //			UInt absmaxNumberOfLinesearchIterations = 0;
+    //
+    //      // overwriteMemory: 
+    //      // this was true all the time but I don't get why
+    //      // when we evaluate the hyst operator we just want to know which value
+    //      // of y we have to solve for but we do not want to set the material already
+    //      // if we would do so, the material would already have the solution inside
+    //      bool overwriteMemory = false;
+    //      bool overwriteDirection = true;
+    //      
+    //      yIn[0] = Vector<Double>(dim_);
+    //      yIn[0].Init(0.0);
+    //      hIn[0] = Vector<Double>(dim_);
+    //      hIn[0].Init(0.0);
+    //      
+    //      //      if(MAT_angClipping_ > 0){
+    //      //        /*
+    //      //         * clip input to hyst operator; clip output of it
+    //      //         */
+    //      //        ClipDirection(xIn[0]);
+    //      //      }
+    //      
+    //      Timer* forwardTimer = new Timer();
+    //      Double forwardMaxEvalTime = 0;
+    //      Double forwardAvgEvalTime = 0;
+    //      Double forwardTotalEvalTime = 0;
+    //      UInt forwardEvalCounter = 0;
+    //      
+    //      Timer* backwardTimer = new Timer();
+    //      Double backwardMaxEvalTime = 0;
+    //      Double backwardAvgEvalTime = 0;
+    //      Double backwardTotalEvalTime = 0;
+    //      UInt backwardEvalCounter = 0;
+    //      Double startTime = 0;
+    //      Double endTime = 0;
+    //      Double evalTime = 0;
+    //        
+    //      int successFlagForward = -1;
+    //      // forward:
+    //      // -1 = fail
+    //      //  0 = reuse value
+    //      //  1 = anhyst only
+    //      //  2 = eval on permanent storage
+    //      //  3 = eval on temporal storage
+    //      
+    //      int successFlagBackward = -1;
+    //      // backward:
+    //      // -1 = fail
+    //      //  0 = reuse value
+    //      //  1 = anhyst only
+    //      //  2 = bisection
+    //      //  3-6 only for vector implementation using Levenberg Marquardt
+    //      //  3 = reamnence
+    //      //  4 = passed dut to error tolerance
+    //      //  5 = passed due to tolerance wrt x
+    //      //  6 = passed due to tolerance wrt y
+    //      
+    //      bool debugOut = false;
+    //      
+    ////      if (XML_performanceMeasurement_ == 3) {
+    ////        startTime = forwardTimer->GetCPUTime();
+    ////				forwardTimer->Start();
+    ////			}
+    ////
+    ////      // Get polarization P
+    ////      
+    ////      if(vector){
+    ////        hIn[0] = hystTMP->computeValue_vec(xIn[0], 0, overwriteMemory, overwriteDirection,debugOut,successFlagForward);
+    ////      } else {
+    ////				//hIn[0][0] = hystTMP->computeValueAndUpdate(xIn[0][0], 0, 0, overwriteMemory);
+    ////        hIn[0][0] = hystTMP->computeValueAndUpdate(xIn[0][0], 0, overwriteMemory,successFlagForward);
+    ////      }
+    ////      
+    ////      if (XML_performanceMeasurement_ == 3){
+    ////        forwardTimer->Stop();
+    ////      
+    ////        // only count actual computations; if value gets reused, this should not count
+    ////        if(successFlagForward != 0) {
+    ////          forwardEvalCounter++;
+    ////				
+    ////          endTime = forwardTimer->GetCPUTime();
+    ////          evalTime = endTime-startTime;
+    ////          if(evalTime > forwardMaxEvalTime){
+    ////            forwardMaxEvalTime = evalTime;
+    ////          }
+    ////          forwardTotalEvalTime += evalTime;
+    ////        }
+    ////			}
+    ////
+    ////      if(successFlagForward == -1){
+    ////        forwardFails++;
+    ////      } else if(successFlagForward == 0){
+    ////        forwardReused++;
+    ////      } else if(successFlagForward == 1){
+    ////        forwardAnhystOnly++;
+    ////      } else if(successFlagForward == 2){
+    ////        forwardOverwrite++;
+    ////      } else if(successFlagForward == 3){
+    ////        forwardTMP++; 
+    ////      }
+    ////      
+    ////      //      if(MAT_angClipping_ > 0){
+    ////      //        /*
+    ////      //         * clip input to hyst operator; clip output of it
+    ////      //         */
+    ////      //        ClipDirection(hIn[0]);
+    ////      //      }
+    ////      
+    ////      // D = eps*E + P
+    ////      yIn[0].Add(1.0,hIn[0]);
+    ////      for(UInt j = 0; j < dim_; j++){
+    ////        yIn[0][j] += eps_mu[j][j]*xIn[0][j];
+    ////      }
+    ////      
+    ////      xRetrieved[0] = Vector<Double>(dim_);
+    ////      xRetrieved[0].Init(0.0);
+    ////      
+    ////			Vector<Double> zeroVec = Vector<Double>(dim_);
+    ////			zeroVec.Init();
+    ////      
+    ////      if (XML_performanceMeasurement_ == 3) {
+    ////        
+    ////        startTime = backwardTimer->GetCPUTime();
+    ////        backwardTimer->Start();
+    ////      }
+    ////      
+    ////      if(vector){
+    ////        //        if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+    ////        //          xRetrieved[0] = hystTMP->computeInput_vec(yIn[0], 0, eps_mu,overwriteDirection);
+    ////        //        } else {
+    ////        // new: we have to pass the previous solution (here: 0)
+    ////        // new2: pass arguments by value!
+    ////        xRetrieved[0] = hystTMP->computeInput_vec_withStatistics(yIn[0], zeroVec, zeroVec, zeroVec, 0, eps_mu,
+    ////                overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat, numberOfLMIterations, numberOfLinesearchIterations, 
+    ////                maxNumberOfLinesearchIterations,successFlagBackward,minAlpha, maxAlpha, avgAlpha,xIn[0]);
+    ////        //        }
+    ////      } else {
+    ////				overwriteMemory = false;
+    ////        //        xRetrieved[0][0] = hystTMP->computeInputAndUpdate(yIn[0][0], zeroVec[0], zeroVec[0],
+    ////        //						zeroVec[0], 0, eps_mu[0][0], overwriteMemory);
+    ////				xRetrieved[0][0] = hystTMP->computeInputAndUpdate(yIn[0][0], eps_mu[0][0], 0, overwriteMemory,successFlagBackward);
+    ////			}
+    ////      
+    ////      if (XML_performanceMeasurement_ == 3){
+    ////        backwardTimer->Stop();
+    ////      
+    ////        // only count actual computations; if value gets reused, this should not count
+    ////        if(successFlagBackward != 0) {
+    ////          backwardEvalCounter++;
+    ////				
+    ////          endTime = backwardTimer->GetCPUTime();
+    ////          evalTime = endTime-startTime;
+    ////          if(evalTime > backwardMaxEvalTime){
+    ////            backwardMaxEvalTime = evalTime;
+    ////          }
+    ////          backwardTotalEvalTime += evalTime;
+    ////        }
+    ////			}
+    ////			
+    ////      if(minAlpha < totalminAlpha){
+    ////        totalminAlpha = minAlpha;
+    ////      }
+    ////      if(maxAlpha > totalmaxAlpha){
+    ////        totalmaxAlpha = maxAlpha;
+    ////      }
+    ////      totalavgAlpha += avgAlpha;
+    ////      
+    ////      if(successFlagBackward == -1){
+    ////        LMFails++;
+    ////      } else if(successFlagBackward == 0){
+    ////        totalReused++;
+    ////      } else if(successFlagBackward == 1){
+    ////        totalAnhystOnly++;
+    ////      } else if(successFlagBackward == 2){
+    ////        totalBisection++;
+    ////      } else if(successFlagBackward == 3){
+    ////        totalRemanence++;
+    ////      } else if(successFlagBackward == 4){
+    ////        totalPassedErrorTol++;
+    ////      } else if(successFlagBackward == 5){
+    ////        totalPassedResTolX++;
+    ////      } else if(successFlagBackward == 6){
+    ////        totalPassedResTolY++;
+    ////      }
+    ////      
+    ////			totalNumberOfLMIterations += numberOfLMIterations;
+    ////			totalNumberOfLinesearchIterations += numberOfLinesearchIterations;
+    ////			if(maxNumberOfLinesearchIterations > absmaxNumberOfLinesearchIterations){
+    ////				absmaxNumberOfLinesearchIterations = maxNumberOfLinesearchIterations;
+    ////			}
+    ////			
+    ////      // evaluate Preisach OP to get the actual output; DO NOT OVERWRITE MEMORY
+    ////      yRetrieved[0] = Vector<Double>(dim_);
+    ////      yRetrieved[0].Init(0.0);
+    ////      hRetrieved[0] = Vector<Double>(dim_);
+    ////      hRetrieved[0].Init(0.0);
+    ////      
+    ////      xError[0] = Vector<Double>(dim_);
+    ////      xError[0].Init(0.0);
+    ////      
+    ////      xError[0] = xRetrieved[0];
+    ////      xError[0] -= xIn[0];
+    ////      
+    ////      yError[0] = Vector<Double>(dim_);
+    ////      yError[0].Init(0.0);
+    ////      
+    ////      successFlagForward = -1;
+    ////      if (XML_performanceMeasurement_ == 3) {
+    ////				
+    ////        startTime = forwardTimer->GetCPUTime();
+    ////        forwardTimer->Start();
+    ////			}
+    ////      
+    ////      overwriteMemory = true;
+    ////      if(vector){
+    ////        //				if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+    ////        //					hRetrieved[0] = hystTMP->computeValue_vec(xIn[0], 0, overwriteMemory, overwriteDirection);
+    ////        //				} else {
+    ////        hRetrieved[0] = hystTMP->computeValue_vec(xRetrieved[0], 0, overwriteMemory, overwriteDirection, debugOut,successFlagForward);
+    ////        //				}
+    ////      } else {
+    ////				//hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, 0, overwriteMemory);
+    ////        hRetrieved[0][0] = hystTMP->computeValueAndUpdate(xRetrieved[0][0], 0, overwriteMemory,successFlagForward);
+    ////      }
+    ////      
+    ////      if (XML_performanceMeasurement_ == 3){
+    ////        forwardTimer->Stop();
+    ////      
+    ////        // only count actual computations; if value gets reused, this should not count
+    ////        if(successFlagForward != 0) {
+    ////          forwardEvalCounter++;
+    ////				
+    ////          endTime = forwardTimer->GetCPUTime();
+    ////          evalTime = endTime-startTime;
+    ////          if(evalTime > forwardMaxEvalTime){
+    ////            forwardMaxEvalTime = evalTime;
+    ////          }
+    ////          forwardTotalEvalTime += evalTime;
+    ////        }
+    ////			}
+    ////      
+    ////      if(successFlagForward == -1){
+    ////        forwardFails++;
+    ////      } else if(successFlagForward == 0){
+    ////        forwardReused++;
+    ////      } else if(successFlagForward == 1){
+    ////        forwardAnhystOnly++;
+    ////      } else if(successFlagForward == 2){
+    ////        forwardOverwrite++;
+    ////      } else if(successFlagForward == 3){
+    ////        forwardTMP++; 
+    ////      }
+    ////      
+    ////      // D = eps*E + P
+    ////      yRetrieved[0].Add(1.0,hRetrieved[0]);
+    ////      for(UInt j = 0; j < dim_; j++){
+    ////        yRetrieved[0][j] += eps_mu[j][j]*xRetrieved[0][j];
+    ////      }
+    ////      
+    ////      yError[0] = yRetrieved[0];
+    ////      yError[0] -= yIn[0];
+    ////      
+    ////      if(writeResultsToFiles){
+    ////        //testOutput2 << std::setprecision(9) <<  "0   "<< xRetrieved[0][0] <<"    "<< xRetrieved[0][1]<<std::endl;
+    ////        testOutput3 << std::setprecision(9) <<  "0   "<< xIn[0][0] <<"    "<< xIn[0][1]<<"    " << hIn[0][0] <<"    "<< hIn[0][1]<<"    " << yIn[0][0] <<"    "<< yIn[0][1]<<std::endl;
+    ////        testOutput4 << std::setprecision(9) <<  "0   "<< xRetrieved[0][0] <<"    "<< xRetrieved[0][1]<<"    " << yRetrieved[0][0] <<"    "<< yRetrieved[0][1]<<std::endl;
+    ////      }
+    ////      //    Double inc = 2*MAT_xSat_/( (Double) numTests);
+    ////      
+    //      
+    //      
+    //      UInt numFails = 0;
+    //      for(UInt i = 0; i < totalSteps; i++){
+    //        if( (i%10 == 0)&&(printStatistics) ){
+    //          std::cout << "##### CASE " << ca << "; TEST NR " << i << "#####" << std::endl;
+    //        }
+    //        
+    //        LOG_TRACE(coeffcthyst) << "##### CASE " << ca << "; TEST NR " << i << "#####";
+    //        //      xIn[i] = Vector<Double>(dim_);
+    //        //      xIn[i][0] = xIn[i-1][0] + inc;
+    //        //      xIn[i][1] = xIn[i-1][0] + inc/2;
+    //        overwriteMemory = false;
+    //        
+    //        yIn[i] = Vector<Double>(dim_);
+    //        yIn[i].Init(0.0);
+    //        hIn[i] = Vector<Double>(dim_);
+    //        hIn[i].Init(0.0);
+    //        
+    //        successFlagForward = -1;
+    //        if (XML_performanceMeasurement_ == 3) {
+    //          startTime = forwardTimer->GetCPUTime();
+    //          forwardTimer->Start();
+    //          
+    //        }
+    //        evalTime = 0.0;
+    //        Double innerTime = 0.0;
+    //
+    //        //std::cout << "Forward" << std::endl;
+    //        if(vector){
+    //          //          std::cout << "Start forward" << std::endl;
+    //          hIn[i] = hystTMP->computeValue_vecMeasure(xIn[i], 0, overwriteMemory, overwriteDirection, debugOut, successFlagForward, innerTime);
+    //          //          std::cout << "End forward" << std::endl;
+    //        } else {  
+    //					hIn[i][0] = hystTMP->computeValueAndUpdateMeasure(xIn[i][0], 0, overwriteMemory, successFlagForward, innerTime);
+    //          //hIn[i][0] = hystTMP->computeValueAndUpdate(xIn[i][0], xIn[i-1][0], 0, overwriteMemory);
+    //          //std::cout << ", x=" << xIn[i][0] << ", flag="<< successFlagForward << ", time=" << innerTime << std::endl;
+    //        }
+    //
+    //        if (XML_performanceMeasurement_ == 3){
+    //          forwardTimer->Stop();
+    //          
+    //          // only count actual computations; if value gets reused, this should not count
+    //          if(successFlagForward != 0) {
+    //            forwardEvalCounter++;
+    //            
+    //            endTime = forwardTimer->GetCPUTime();
+    //            evalTime = endTime-startTime;
+    //            if(evalTime > forwardMaxEvalTime){
+    //              forwardMaxEvalTime = evalTime;
+    //            }
+    //            forwardTotalEvalTime += evalTime;
+    //          }
+    //        }
+    //     
+    ////        std::cout << "Success Flag: " << successFlagForward << std::endl;
+    ////        std::cout << "evalTime: " << evalTime << std::endl;
+    ////        std::cout << "innerTime: " << innerTime << std::endl;
+    ////        std::cout << "forwardTotalEvalTime: " << forwardTotalEvalTime << std::endl;
+    ////        
+    ////        if(i == 10)
+    ////          EXCEPTION("stop here");
+    //        
+    //        if(successFlagForward == -1){
+    //          forwardFails++;
+    //        } else if(successFlagForward == 0){
+    //          forwardReused++;
+    //        } else if(successFlagForward == 1){
+    //          forwardAnhystOnly++;
+    //        } else if(successFlagForward == 2){
+    //          forwardOverwrite++;
+    //        } else if(successFlagForward == 3){
+    //          forwardTMP++; 
+    //        }
+    //        
+    //        yIn[i].Add(1.0,hIn[i]);
+    //        for(UInt j = 0; j < dim_; j++){
+    //          yIn[i][j] += eps_mu[j][j]*xIn[i][j];
+    //        }
+    //        
+    //				numberOfLMIterations = 0;
+    //				numberOfLinesearchIterations = 0;
+    //				maxNumberOfLinesearchIterations = 0;
+    //        
+    //        overwriteMemory = false;
+    //        xRetrieved[i] = Vector<Double>(dim_);
+    //        xRetrieved[i].Init(0.0);
+    //        
+    //        successFlagBackward = -1;
+    //        if (XML_performanceMeasurement_ == 3) {
+    //          startTime = backwardTimer->GetCPUTime();
+    //          backwardTimer->Start();
+    //          
+    //        }
+    //        
+    //        if(vector){
+    //          //          std::cout << "Start backward" << std::endl;          
+    //          //          if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+    //          //            xRetrieved[i] = hystTMP->computeInput_vec(yIn[i],0, eps_mu, overwriteDirection);
+    //          //          } else {
+    //          xRetrieved[i] = hystTMP->computeInput_vec_withStatistics(yIn[i], yRetrieved[i-1], xRetrieved[i-1], hRetrieved[i-1], 
+    //                  0, eps_mu, overwriteDirection, fieldsAlignedAboveSat, hystOutputRestrictedToSat,
+    //									numberOfLMIterations, numberOfLinesearchIterations, 
+    //                  maxNumberOfLinesearchIterations,successFlagBackward,minAlpha, maxAlpha, avgAlpha,xIn[i]);	
+    //          //          }
+    //          //            std::cout << "End backward" << std::endl;
+    //        } else {
+    //          //          xRetrieved[i][0] = hystTMP->computeInputAndUpdate(yIn[i][0], yRetrieved[i-1][0], xRetrieved[i-1][0],
+    //          //						hRetrieved[i-1][0], 0, eps_mu[0][0], overwriteMemory);		
+    //					xRetrieved[i][0] = hystTMP->computeInputAndUpdate(yIn[i][0], eps_mu[0][0], 0, overwriteMemory,successFlagBackward);
+    ////          successFlagBackward = 7;
+    //        }
+    //        // debugging
+    //        //xRetrieved[i] = xIn[i];
+    //        
+    //        if (XML_performanceMeasurement_ == 3){
+    //          backwardTimer->Stop();
+    //          
+    //          // only count actual computations; if value gets reused, this should not count
+    //          if(successFlagBackward != 0) {
+    //            backwardEvalCounter++;
+    //            
+    //            endTime = backwardTimer->GetCPUTime();
+    //            evalTime = endTime-startTime;
+    //            if(evalTime > backwardMaxEvalTime){
+    //              backwardMaxEvalTime = evalTime;
+    //            }
+    //            backwardTotalEvalTime += evalTime;
+    //          }
+    //        }
+    //        
+    //        if(successFlagBackward == -1){
+    //          LMFails++;
+    //        } else if(successFlagBackward == 0){
+    //          totalReused++;
+    //        } else if(successFlagBackward == 1){
+    //          totalAnhystOnly++;
+    //        } else if(successFlagBackward == 2){
+    //          totalBisection++;
+    //        } else if(successFlagBackward == 3){
+    //          totalRemanence++;
+    //        } else if(successFlagBackward == 4){
+    //          totalPassedErrorTol++;
+    //        } else if(successFlagBackward == 5){
+    //          totalPassedResTolX++;
+    //        } else if(successFlagBackward == 6){
+    //          totalPassedResTolY++;
+    //        }
+    //								
+    //        successCodeVector[i] = successFlagBackward;
+    //        
+    //        if(minAlpha < totalminAlpha){
+    //          totalminAlpha = minAlpha;
+    //        }
+    //        if(maxAlpha > totalmaxAlpha){
+    //          totalmaxAlpha = maxAlpha;
+    //        }
+    //        totalavgAlpha += avgAlpha;
+    //        
+    //				totalNumberOfLMIterations += numberOfLMIterations;
+    //				totalNumberOfLinesearchIterations += numberOfLinesearchIterations;
+    //				if(maxNumberOfLinesearchIterations > absmaxNumberOfLinesearchIterations){
+    //          //	std::cout << "maxNumberOfLinesearchIterations: " << maxNumberOfLinesearchIterations << std::endl;
+    //          //	std::cout << "absmaxNumberOfLinesearchIterations: " << absmaxNumberOfLinesearchIterations << std::endl;
+    //					absmaxNumberOfLinesearchIterations = maxNumberOfLinesearchIterations;
+    //				}
+    //        
+    //        
+    //        yError[i] = Vector<Double>(dim_);
+    //        yError[i].Init(0.0);
+    //        
+    //        yRetrieved[i] = Vector<Double>(dim_);
+    //        yRetrieved[i].Init(0.0);
+    //        
+    //        hRetrieved[i] = Vector<Double>(dim_);
+    //        hRetrieved[i].Init(0.0);
+    //        
+    //        overwriteMemory = true;
+    //        
+    //        successFlagForward = -1;
+    //        if (XML_performanceMeasurement_ == 3) {
+    //          startTime = forwardTimer->GetCPUTime();
+    //          forwardTimer->Start();
+    //          
+    //        }
+    //
+    //        if(vector){
+    //          //					if (usedHystModel_ == "vectorPreisach_Mayergoyz"){
+    //          //						hRetrieved[i] = hystTMP->computeValue_vec(xIn[i], 0, overwriteMemory, overwriteDirection);
+    //          //					} else {
+    //          hRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection, debugOut, successFlagForward);
+    //          
+    //          //					}
+    //          //hRetrieved[i] = hystTMP->computeValue_vec(xRetrieved[i], 0, overwriteMemory, overwriteDirection);
+    //        } else {
+    //          hRetrieved[i][0] = hystTMP->computeValueAndUpdate(xRetrieved[i][0], 0, overwriteMemory, successFlagForward);
+    //          
+    //          //hRetrieved[i][0] = hystTMP->computeValueAndUpdate(xRetrieved[i][0], xRetrieved[i-1][0], 0, overwriteMemory);
+    //        }
+    //
+    //        if (XML_performanceMeasurement_ == 3){
+    //          forwardTimer->Stop();
+    //          
+    //          // only count actual computations; if value gets reused, this should not count
+    //          if(successFlagForward != 0) {
+    //            forwardEvalCounter++;
+    //            
+    //            endTime = forwardTimer->GetCPUTime();
+    //            evalTime = endTime-startTime;
+    //            if(evalTime > forwardMaxEvalTime){
+    //              forwardMaxEvalTime = evalTime;
+    //            }
+    //            forwardTotalEvalTime += evalTime;
+    //          }
+    //        }
+    //        
+    //        if(successFlagForward == -1){
+    //          forwardFails++;
+    //        } else if(successFlagForward == 0){
+    //          forwardReused++;
+    //        } else if(successFlagForward == 1){
+    //          forwardAnhystOnly++;
+    //        } else if(successFlagForward == 2){
+    //          forwardOverwrite++;
+    //        } else if(successFlagForward == 3){
+    //          forwardTMP++; 
+    //        }
+    //        
+    //        eps_mu.Mult(xRetrieved[i],yRetrieved[i]);
+    //        yRetrieved[i].Add(hRetrieved[i]);
+    //        
+    //        yError[i] = yRetrieved[i];
+    //        yError[i].Add(-1.0,yIn[i]);
+    //        
+    //        xError[i] = Vector<Double>(dim_);
+    //        xError[i].Init(0.0);
+    //        
+    //        xError[i] = xRetrieved[i];
+    //        xError[i] -= xIn[i];
+    //        
+    //        if(writeResultsToFiles){
+    //          //testOutput2 << i << std::setprecision(9) << "   "<< xRetrieved[i][0] <<"    "<< xRetrieved[i][1]<<std::endl;
+    //          testOutput3 << i << std::setprecision(9) << "   "<< xIn[i][0] <<"    "<< xIn[i][1]<< "   "<< hIn[i][0] <<"    "<< hIn[i][1]<< "   "<< yIn[i][0] <<"    "<< yIn[i][1]<<std::endl;
+    //          testOutput4 << i << std::setprecision(9) << "   "<< xRetrieved[i][0] <<"    "<< xRetrieved[i][1]<< "   "<< hRetrieved[i][0] <<"    "<< hRetrieved[i][1]<< "   "<< yRetrieved[i][0] <<"    "<< yRetrieved[i][1]<<std::endl;
+    //        }
+    //        
+    //        LOG_TRACE(coeffcthyst) << "##### TARGET X-VECTOR #####";
+    //        LOG_TRACE(coeffcthyst) << xIn[i].ToString();
+    //        LOG_TRACE(coeffcthyst) << "##### RETRIEVED X-VECTOR #####";
+    //        LOG_TRACE(coeffcthyst) << xRetrieved[i].ToString();
+    //        
+    //        LOG_TRACE(coeffcthyst) << "##### ERROR VECTOR wrt X #####";
+    //        LOG_TRACE(coeffcthyst) << xError[i].ToString();
+    //        
+    //        LOG_TRACE(coeffcthyst) << "##### HYST_OP EVALUATED WITH TARGET X-VECTOR #####";
+    //        LOG_TRACE(coeffcthyst) << hIn[i].ToString();
+    //        
+    //        LOG_TRACE(coeffcthyst) << "##### HYST_OP EVALUATED WITH RETRIEVED X-VECTOR #####";
+    //        LOG_TRACE(coeffcthyst) << hRetrieved[i].ToString();
+    //        
+    //        LOG_TRACE(coeffcthyst) << "##### TARGET Y-VECTOR #####";
+    //        LOG_TRACE(coeffcthyst) << yIn[i].ToString();
+    //        LOG_TRACE(coeffcthyst) << "##### RETRIEVED Y-VECTOR #####";
+    //        LOG_TRACE(coeffcthyst) << yRetrieved[i].ToString();
+    //        
+    //        LOG_TRACE(coeffcthyst) << "##### ERROR VECTOR wrt Y #####";
+    //        LOG_TRACE(coeffcthyst) << yError[i].ToString();
+    //        
+    //        if(yError[i].NormL2() > INV_resTolB_){
+    //          numFails++;
+    //          failedTests[i] = yError[i].NormL2();
+    //        } 
+    //      }
+    //      
+    //      UInt LMcases = totalSteps-totalReused-totalBisection-totalAnhystOnly-totalRemanence;
+    //      if(LMcases != 0){
+    //        totalavgAlpha /= (Double) LMcases;
+    //      }
+    //      
+    //      if(writeResultsToFiles){
+    //        //testOutput2.close();
+    //        testOutput3.close();
+    //        testOutput4.close();
+    //      }
+    //      
+    //      std::stringstream statistics;
+    //      statistics << std::endl;	
+    //      statistics << "############################# " <<	std::endl;	
+    //      statistics << "##### RESULTS FOR TEST CASE " << ca <<	std::endl;	
+    //      statistics << " " << totalSteps-numFails << " of " << totalSteps << " satisfied at least the failback criterion, i.e. |residual_Y| = |Y - mu_eps*X - P(X)| < " << INV_resTolB_ << std::endl;
+    //      statistics << " " << numFails << " of " << totalSteps << " failed to satisfy the failback criterion" << std::endl;
+    //      if(numFails != 0){
+    //        statistics << "## Detailed Statistics for failed tests: " << std::endl;
+    //        std::map<UInt, Double>::iterator mapIt;
+    //        for(mapIt = failedTests.begin(); mapIt != failedTests.end(); mapIt++){
+    //          statistics << " Test Nr " << mapIt->first << std::endl;
+    //          statistics << " - Remaining |residual_Y|: " << mapIt->second << std::endl;
+    //          statistics << " - Y_in: " << yIn[mapIt->first].ToString() << std::endl;
+    //          statistics << " - Y_ret: " << yRetrieved[mapIt->first].ToString() << std::endl;
+    //          statistics << " - h_sol: " << hIn[mapIt->first].ToString() << std::endl;
+    //          statistics << " - h_ret: " << hRetrieved[mapIt->first].ToString() << std::endl;
+    //          bool xsolabovesat = xIn[mapIt->first].NormL2()>MAT_xSat_;
+    //          bool xretabovesat = xRetrieved[mapIt->first].NormL2()>MAT_xSat_;
+    //          statistics << " - X_sol: " << xIn[mapIt->first].ToString()  << "; above sat? "<< xsolabovesat << std::endl;
+    //          statistics << " - X_ret: " << xRetrieved[mapIt->first].ToString() << "; above sat? "<< xretabovesat << std::endl;
+    //          statistics << " - SuccessCode: " << successCodeVector[mapIt->first] << std::endl;
+    //        }
+    //      }
+    //      
+    //      statistics << "## Detailed Statistics on forward evaluations (excluding those inside of LM/during inversion): " << std::endl;
+    //      statistics << " " << forwardReused << " of " << 2*totalSteps << " reused old output as input change was below tolerance" << std::endl;
+    //      statistics << " " << forwardAnhystOnly << " of " << 2*totalSteps << " featured only anhysteretic parts" << std::endl;
+    //      statistics << " " << forwardOverwrite << " of " << 2*totalSteps << " evaluations were performed on permanent storage" << std::endl;
+    //      statistics << " " << forwardTMP << " of " << 2*totalSteps << " evaluations were performed on temporal storage" << std::endl;
+    //      
+    //      statistics << "## Detailed Statistics on inversion: " << std::endl;
+    //      statistics << " " << totalReused << " of " << totalSteps << " reused old solution as DeltaY < " << INV_resTolB_ << std::endl;
+    //      statistics << " " << totalAnhystOnly << " of " << totalSteps << " were solved using bisection for pure anhysteretic case" << std::endl;
+    //      statistics << " " << totalBisection << " of " << totalSteps << " were solved using bisection / simple division" << std::endl;
+    //      if(!vector){
+    //        statistics << " " << totalPassedErrorTol << " of " << totalSteps << " tests passed due to error tolerance" << std::endl;
+    //      }
+    //      
+    //      if(vector){
+    //        statistics << " " << totalRemanence << " of " << totalSteps << " cases were in remanence" << std::endl;
+    //        statistics << " " << LMcases << " of " << totalSteps << " were solved using Levenberg-Marquardt" << std::endl;
+    //        if(LMcases != 0){
+    //          statistics << "## Detailed Statistics Levenberg-Marquardt Statistics: " << std::endl;
+    //          statistics << " " << totalPassedErrorTol << " of " << LMcases << " tests passed due to error tolerance |JacT*Res| < " << INV_resTolH_ << std::endl;
+    //          statistics << " " << totalPassedResTolX << " of " << LMcases << " tests passed due to |residual_X| = |X - mu_eps^-1*(Y - P(X)| < " << INV_resTolH_ << std::endl;
+    //          statistics << " " << totalPassedResTolY << " of " << LMcases << " tests passed due to |residual_Y| = |Y - mu_eps*X - P(X)| < " << INV_resTolH_ << std::endl;
+    //          statistics << " " << LMFails << " of " << LMcases << " failed the failback criterion (|residual_Y| < " << INV_resTolB_ << ")" << std::endl;
+    //          statistics << " Total number of LM iterations: " << totalNumberOfLMIterations << std::endl;
+    //          statistics << " Average number of LM iterations: " << (Double) totalNumberOfLMIterations/LMcases << std::endl;
+    //          statistics << " Total number of Linesearch iterations: " << totalNumberOfLinesearchIterations << std::endl;
+    //          statistics << " Average number of Linesearch iterations (per LM Iteration): " << (Double) totalNumberOfLinesearchIterations/totalNumberOfLMIterations << std::endl;
+    //          statistics << " Maximal number of Linesearch iterations: " << absmaxNumberOfLinesearchIterations << std::endl;
+    //          statistics << " Minimal alphaLS: " << totalminAlpha << std::endl;
+    //          statistics << " Maximal alphaLS: " << totalmaxAlpha << std::endl;
+    //          statistics << " Average alphaLS: " << totalavgAlpha << std::endl;
+    //        }
+    //      }
+    //      
+    //      if (XML_performanceMeasurement_ == 3) {
+    //        
+    //        backwardAvgEvalTime = backwardTotalEvalTime/backwardEvalCounter;
+    //        forwardAvgEvalTime = forwardTotalEvalTime/forwardEvalCounter;
+    //        statistics << "## Runtime information: " << std::endl;
+    //        statistics << "Total number of forward evaluations (excluding those inside LM): " << forwardEvalCounter << std::endl;
+    //        statistics << "Total time for forward evaluations (excluding those inside LM): " << forwardTotalEvalTime << std::endl;
+    //        statistics << "Average time for forward evaluations (excluding those inside LM): " << forwardAvgEvalTime << std::endl;
+    //        statistics << "Maximal time for forward evaluations (excluding those inside LM): " << forwardMaxEvalTime << std::endl;
+    //        statistics << "Total number of backward evaluations: " << backwardEvalCounter << std::endl;
+    //        statistics << "Total time for backward evaluations: " << backwardTotalEvalTime << std::endl;
+    //        statistics << "Average time for backward evaluations: " << backwardAvgEvalTime << std::endl;
+    //        statistics << "Maximal time for backward evaluations: " << backwardMaxEvalTime << std::endl;
+    //        //statistics << "TOGREP: " << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << forwardTotalEvalTime << " " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << " " << backwardTotalEvalTime << " " << numFails << std::endl;
+    //        statistics << "TOGREP: \t\t" << forwardAvgEvalTime << " (" << forwardEvalCounter << ") " << "\t " << backwardAvgEvalTime << " (" << backwardEvalCounter << ") " << "\t " << numFails << std::endl;
+    //			}
+    //      statistics << "############################# " <<	std::endl;	
+    //      statistics << std::endl;	
+    //      if(printStatistics){
+    //        std::cout << statistics.str();
+    //			}
+    //      if(writeResultsToFiles){
+    //        testOutput5.open(filenameLog);
+    //        testOutput5 << statistics.str();
+    //        testOutput5.close();
+    //      }
+    //			
+    //      LOG_TRACE(coeffcthyst) << statistics.str();
+    //      
+    //    }
+    //    if(abortAfterTests){
+    //      EXCEPTION("STOP AFTER TESTS");
+    //    }
   }
   
   

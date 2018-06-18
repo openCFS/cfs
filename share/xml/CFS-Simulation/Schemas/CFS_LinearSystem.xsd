@@ -215,16 +215,45 @@
       <xsd:enumeration value="fixPoint"/>
     </xsd:restriction>
   </xsd:simpleType>
-    
-  <xsd:simpleType name="DT_HystereticSolver">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="HYST_debug"/>
-      <xsd:enumeration value="HYST_fixPoint_IT"/>
-      <xsd:enumeration value="HYST_fixPoint_TS"/>
-      <xsd:enumeration value="HYST_deltaMat_IT"/>
-      <xsd:enumeration value="HYST_deltaMat_TS"/>
-    </xsd:restriction>
-  </xsd:simpleType>
+  
+   <xsd:complexType name="DT_HystFixpoint">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="towardsLastIteration" type="DT_CFSBool" use="optional" default="yes"/>
+      </xsd:restriction>
+    </xsd:complexContent> 
+  </xsd:complexType>
+  
+   <xsd:complexType name="DT_HystDeltaMat">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="towardsLastIteration" type="DT_CFSBool" use="optional" default="yes"/>
+        <xsd:attribute name="deltaMatStrain" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="deltaMatCoupling" type="DT_CFSBool" use="optional" default="no"/>
+      </xsd:restriction>
+    </xsd:complexContent> 
+  </xsd:complexType>
+              
+  <xsd:complexType name="DT_HystereticSolver">
+     <xsd:choice>
+      <xsd:element name="debug"/>
+      <xsd:element name="fixpoint" type="DT_HystFixpoint"/>
+      <xsd:element name="deltaMat" type="DT_HystDeltaMat"/>
+    </xsd:choice>
+  </xsd:complexType>    
+      
+<!--  <xsd:complexType name="DT_HystereticSolver">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:choice 
+      </xsd:restriction>
+      <xsd:element name="debug"/>
+      <xsd:element name="fixpoint">
+      </xsd:element>
+      <xsd:element name="deltaMat">
+      </xsd:element>
+    </xsd:complexContent>
+  </xsd:complexType>-->
     
   <xsd:complexType name="DT_LineSearch">
     <xsd:attribute name="type" use="optional" default="none">
@@ -336,7 +365,7 @@
         <xsd:element name="allowReset" type="DT_CFSBool" default="yes"/>
         <xsd:element name="minNumberItTillReset" type="xsd:nonNegativeInteger" default="5"/>
         <xsd:element name="minResDecreaseTillReset" type="xsd:float" default="1e-5"/>
-        <xsd:element name="nonLinMethodAfterReset" type="DT_HystereticSolver" default="HYST_deltaMat_IT"/>
+        <xsd:element name="nonLinMethodAfterReset" type="DT_HystereticSolver"/>
         <xsd:element name="lineSearchAfterReset" type="DT_LineSearch"/>
     </xsd:sequence>
   </xsd:complexType>

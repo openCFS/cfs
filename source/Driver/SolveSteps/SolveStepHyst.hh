@@ -24,30 +24,31 @@ namespace CoupledField
   class BaseIDBC_Handler;
   class FeSpace;
   class SolStrategy;
-
+  
   //  class Domain;
   
   //! Derived class for step-wise solving of StdPDEs
   class SolveStepHyst : public StdSolveStep {
-
+    
   public:
-
+    
     //! Constructor
     SolveStepHyst(StdPDE& apde);
-
+    
     //! Destructor
     virtual ~SolveStepHyst();
-
-    void SetupRESorRHS(Integer timeLevelMaterial, Integer timeLevelDeltaMat, 
-          Integer timeLevelRHSHyst, SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, 
-          SBM_Vector& solutionForRHSAssembly, SBM_Vector& returnVector);
+    
+    void SetupRESorRHS(Integer timeLevelMaterial, Integer timeLevelDeltaMatPol, Integer timeLevelDeltaMatStrain, Integer timeLevelDeltaMatCoupling,
+    Integer timeLevelRHSPol, Integer timeLevelRHSStrain, Integer timeLevelRHSCouling, SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, 
+    SBM_Vector& solutionForRHSAssembly, SBM_Vector& returnVector);
     
     void SetupRHS(SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, SBM_Vector& solutionForRHSAssembly, UInt iterationCounter);
     void SetupRES(SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, SBM_Vector& solutionForRHSAssembly, UInt iterationCounter);
     void ComputeKeffTimesSolution(SBM_Vector& solution, SBM_Vector& returnVector);
     
     void AssembleSystem(SBM_Vector& solutionForAssembly, UInt iterationCounter);
-    void AssembleSystem(Integer timeLevelMaterial, Integer timeLevelDeltaMat, SBM_Vector& solutionForAssembly);
+    void AssembleSystem(Integer timeLevelMaterial, Integer timeLevelDeltaMatPol, Integer timeLevelDeltaMatStrain,
+    Integer timeLevelDeltaMatCoupling, SBM_Vector& solutionForAssembly);
     
     void InitTimeStepping();
     void SolveStepTrans();
@@ -56,25 +57,25 @@ namespace CoupledField
     virtual void StepTransNonLinHysteresis();
     
     void WriteHystIterToInfoXML(const std::string& pdeName,
-          const std::string& nonLinSolveMethod,
-          const UInt coupledIterStep,
-          const UInt solStep,
-          const UInt iterationCounter,
-          const UInt iterationCounterTotal,
-          const Double residualErr, 
-          const Double incrementalErr, double etaLineSearch);
+    const std::string& nonLinSolveMethod,
+    const UInt coupledIterStep,
+    const UInt solStep,
+    const UInt iterationCounter,
+    const UInt iterationCounterTotal,
+    const Double residualErr, 
+    const Double incrementalErr, double etaLineSearch);
     
     void WriteHystIterToInfoXML(const std::string& pdeName,
-          const std::string& nonLinSolveMethod,
-          const UInt solStep,
-          const UInt iterationCounter,
-          const UInt iterationCounterTotal,
-          const Double residualErr, 
-          const Double incrementalErr, double etaLineSearch);
+    const std::string& nonLinSolveMethod,
+    const UInt solStep,
+    const UInt iterationCounter,
+    const UInt iterationCounterTotal,
+    const Double residualErr, 
+    const Double incrementalErr, double etaLineSearch);
     
     //! does a line search and returns the optimal residual norm
     Double LineSearchHyst(SBM_Vector& currentSol, SBM_Vector& solIncrement, UInt iterationCounter);
-        
+    
   private:
     // new flag indicating if material tensors (mu,eps,e,d,...) depend on hysteresis or not
     // if not and deltaMat == false > system matrix needs no reassembly!
@@ -85,14 +86,22 @@ namespace CoupledField
     bool LinRHSRequiresAssembly_;
     bool PredictorCorrectorRequiresAssembly_;
     
-    Integer timeLevelRHSHystCurrent_;
     Integer timeLevelMaterialCurrent_;
-    Integer timeLevelDeltaMatCurrent_;
+    Integer timeLevelRHSPolCurrent_;
+    Integer timeLevelRHSStrainCurrent_;
+    Integer timeLevelRHSCouplingCurrent_;
+    
+    Integer timeLevelDeltaMatPolCurrent_;
+    Integer timeLevelDeltaMatStrainCurrent_;
+    Integer timeLevelDeltaMatCouplingCurrent_;
+    
+    //    Integer timeLevelRHSHystCurrent_;
+    //    Integer timeLevelDeltaMatCurrent_;
     
     SBM_Vector LinRhsVec_;
     SBM_Vector NonLinRhsVec_;
     SBM_Vector predictorCorrectorUpdate_;
-
+    
     SBM_Vector resVec_;
     
     SBM_Vector stageRHSUpdate_;
@@ -110,21 +119,21 @@ namespace CoupledField
     UInt measurePerformance_;
     UInt testInversion_;
     PtrParamNode testNode_;
-
+    
     // + solVec which is defined above
-
+    
     // oldTS > values after last iteration of previous TS
     // to be stored after iteration suceeded
     //SBM_Vector oldTSLinRhsVec_;
     //SBM_Vector oldTSNonLinRhsVec_;
     //SBM_Vector oldTSSolVec_;
-
+    
     // oldIt > values of the current TS but from previous It
     // during first iterartion of a new TS, these vectors contain the values
     // after the last iteration of the previous TS (similar as oldTS...)
     //SBM_Vector oldItNonLinRhsVec_;
     //SBM_Vector oldItResVec_;
-
+    
     //! Additional flags and parameter for hyst
     bool forceReevaluation_;
     bool debugOutput_;
@@ -137,11 +146,17 @@ namespace CoupledField
     Double minResDecreaseTillReset_;
     std::string nonLinMethodAfterReset_;
     std::string lineSearchAfterReset_;
+    bool towardsLastIterationReset_;
+    bool deltaMatCouplingReset_;
+    bool deltaMatStrainReset_;
     
+    bool towardsLastIteration_;
+    bool deltaMatCoupling_;
+    bool deltaMatStrain_;
   };
-
-
-    
+  
+  
+  
   
 } // end of namespace
 
