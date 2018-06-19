@@ -683,7 +683,7 @@ public:
     EXCEPTION( "Not implemented in base class");
   }
   
-  virtual void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor, int timeLevel,
+  virtual void GetScaledAndRotatedCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor, int timeLevel,
   bool rotate=true){
     EXCEPTION( "Not implemented in base class");
   }

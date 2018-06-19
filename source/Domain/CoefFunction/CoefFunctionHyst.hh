@@ -683,7 +683,7 @@ namespace CoupledField {
   //          // where d(P) is the scaled and rotated coupling tensor in d-form
   //          Matrix<Double> d_scaled, d_scaled_transposed;
   //          
-  //          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,d_scaled,timelevel_cur,rotate);
+  //          hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,d_scaled,timelevel_cur,rotate);
   //
   //          // e = d*c
   //          d_scaled.Mult(elastTensor_,e_scaled);
@@ -746,14 +746,14 @@ namespace CoupledField {
   //        if(strainForm_ == 1){
   //          // use d-form as basis, i.e. the followings steps have to be applied
   //          // 1. scale and rotate d
-  //          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+  //          hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
   //          // 2. compute e from d
   //          // e = d*c
   //          rotatedCouplTensor.Mult(elastTensor_,tmp);
   //        } else {
   //          // use e-form as basis, i.e. the following step has to be done
   //          // 1. acale and rotate e
-  //          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+  //          hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
   //          tmp = rotatedCouplTensor;
   //        }
   //        
@@ -767,14 +767,14 @@ namespace CoupledField {
   //        if(strainForm_ == 1){
   //          // use d-form as basis, i.e. the followings steps have to be applied
   //          // 1. scale and rotate d
-  //          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+  //          hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
   //          // 2. compute e from d
   //          // e = d*c
   //          rotatedCouplTensor.Mult(elastTensor_,tmp);
   //        } else {
   //          // use e-form as basis, i.e. the following step has to be done
   //          // 1. acale and rotate e
-  //          hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+  //          hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
   //          tmp = rotatedCouplTensor;
   //        }
   //        
@@ -1954,7 +1954,7 @@ namespace CoupledField {
     
     void ClipDirection(Vector<Double>& targetVector);
     
-    void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor,int timeLevel,
+    void GetScaledAndRotatedCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor,int timeLevel,
     bool rotate = true){
       // compare to Kaltenbacher "Numerical Simulation ..." 3rd Edition p. 387
       //
@@ -1969,124 +1969,126 @@ namespace CoupledField {
       
       PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx);
       
-      if( (rotatedCouplingTensor_requiresReeval_[storageIdx] == false) && (timeLevel == lastUsedTimeLevelForRotation_[storageIdx]) ){
-        //      std::cout << "Coupling Tensor already rotated > no reeval performed" << std::endl;
-        rotatedCouplTensor = rotatedCouplingTensor_[storageIdx];
-      } else {
-        
-        // obtain coupling tensor first
-        UInt numRows, numCols;
-        numCols = couplTensor.GetNumCols();
-        numRows = couplTensor.GetNumRows();
-        //couplTensorCoefFnc->GetTensorSize(numRows,numCols);
-        //Matrix<Double> couplTensor = Matrix<Double>(numRows,numCols);
-        //couplTensorCoefFnc->GetTensor(couplTensor,actualLPM);
-        
-        //      std::cout << "Retrieved coupling tensor: " << couplTensor.ToString() << std::endl;
-        //      std::cout << "Rotate coupling tensor" << std::endl;
-        rotatedCouplTensor.Resize(numRows,numCols);
-        Matrix<Double> scaledCouplTensor = Matrix<Double>(numRows,numCols);
-        
-        // get current polarization (elec or mag)
-        Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(lpm, timeLevel);
-        
-        //      std::cout << "Current polarization vector " << P.ToString() << std::endl;
-        //      
-        // calculate scaling
-        assert(MAT_pSat_ != 0);
-        Double scaling = P.NormL2()/MAT_pSat_;
-        
-        scaledCouplTensor = couplTensor* scaling;
-        
-        //      std::cout << "Scalaed coupling tensor " << scaledCouplTensor.ToString() << std::endl;
-        //      
-        if(rotate == true){
-          if(P.NormL2() == 0){
-            //        std::cout << "Polarization is zero > perform no rotation" << std::endl;
-            rotatedCouplTensor = scaledCouplTensor;
-            
-          } else {
-            Vector<Double> dirP = Vector<Double>(P.GetSize());
-            dirP = P / P.NormL2();
-            
-            // calculate rotation matrix
-            if(numCols == 4){
-              // axi case: 2x4 matrix
-              WARN("Rotation for axi case not implemented yet. No rotation was peformed");
-              rotatedCouplTensor = scaledCouplTensor;
-              
-            } else if (numCols == 6){
-              // 3d plane case
-              // Idea: Create rotation matrix, that maps the current direction of P onto z-axis
-              //       as the z-axis is the default polarization axis in the mat file
-              //       To obtained the desired behavior, we have to rotate the z-axis onto P however.
-              //       This can be done by taking the transposed rotation matrix.
-              
-              Double alpha, beta, gamma;
-              
-              // 1. rotate around z-axis by angle gamma such that P lies in z-y plane
-              // gamma = angle between z-y plane and dirP
-              gamma = std::atan2(dirP[0],dirP[1]);
-              
-              // 2. rotate around x-axis by angle alpha such that P lies on top of z-axis
-              // alpha = angle between x-y plane and z
-              alpha = std::atan2(std::sqrt(dirP[1]*dirP[1]+dirP[0]*dirP[0]),dirP[2]);
-              
-              // no rotation arouind y-axis needed > beta = 0
-              // WARNING: this whole procedure is only valid if coupling tensor is at least
-              // transverse isotropic! Otherwise we have to figure out on which axis to rotate
-              // the transverse directions
-              beta = 0.0;
-              Matrix<Double> R = Compute3DRotationMatrix(alpha, beta, gamma);
-              
-              // take transpose matrix to revert rotation (i.e. rotate z-axis onto dirP)
-              Matrix<Double> RT;
-              RT.Resize(3,3);
-              R.Transpose(RT);
-              
-              assert(rotatedCouplTensor.GetNumRows() == 3);
-              assert(rotatedCouplTensor.GetNumCols() == 6);
-              
-              scaledCouplTensor.PerformRotation(RT,rotatedCouplTensor);
-              
-            } else {
-              // 2d plane strain or plane stress case
-              // Important remark:
-              //  for 2d plane strain and stress (and somehow also for axi) the coupling tensor
-              //  will be rotated by default by alpha = -90 and gamma = -90.
-              //  This results in the following mapping of the coordinate axis:
-              //    z > y, y > x, x > z
-              //  I.e. the material is rotated such that the default polarization is in +y direction.
-              //  We thus have two possibilities to align the material tensor to the 2d polarization
-              //  direction:
-              //  a) get original 3x6 tensor and rotate that tensor according to the 3d version above
-              //      then cut out subtensor
-              //  b) take cut out subtensor and perform rotation directly in 2d
-              //      > Version b done in the following
-              Double gamma;
-              
-              // std::atan2(dirP[0],dirP[1]) would rotate towards the y-axis
-              // we want however the y-axis to rotate, so that we take -gamma instead
-              gamma = -std::atan2(dirP[0],dirP[1]);
-              
-              Matrix<Double> R = Compute2DRotationMatrix(gamma);
-              
-              assert(rotatedCouplTensor.GetNumRows() == 2);
-              assert(rotatedCouplTensor.GetNumCols() == 3);
-              
-              scaledCouplTensor.PerformRotation(R,rotatedCouplTensor);
-              
-            }
-          }
-        } else {
-          // no rotation > take scale tensor
-          rotatedCouplTensor = scaledCouplTensor;
-        }
-        
-        rotatedCouplingTensor_requiresReeval_[storageIdx] = false;
-        rotatedCouplingTensor_[storageIdx] = rotatedCouplTensor;
-        lastUsedTimeLevelForRotation_[storageIdx] = timeLevel;
-      }
+      rotatedCouplTensor = rotatedCouplingTensor_[storageIdx];
+//      
+//      if( (rotatedCouplingTensor_requiresReeval_[storageIdx] == false) && (timeLevel == lastUsedTimeLevelForRotation_[storageIdx]) ){
+//        //      std::cout << "Coupling Tensor already rotated > no reeval performed" << std::endl;
+//        rotatedCouplTensor = rotatedCouplingTensor_[storageIdx];
+//      } else {
+//        
+//        // obtain coupling tensor first
+//        UInt numRows, numCols;
+//        numCols = couplTensor.GetNumCols();
+//        numRows = couplTensor.GetNumRows();
+//        //couplTensorCoefFnc->GetTensorSize(numRows,numCols);
+//        //Matrix<Double> couplTensor = Matrix<Double>(numRows,numCols);
+//        //couplTensorCoefFnc->GetTensor(couplTensor,actualLPM);
+//        
+//        //      std::cout << "Retrieved coupling tensor: " << couplTensor.ToString() << std::endl;
+//        //      std::cout << "Rotate coupling tensor" << std::endl;
+//        rotatedCouplTensor.Resize(numRows,numCols);
+//        Matrix<Double> scaledCouplTensor = Matrix<Double>(numRows,numCols);
+//        
+//        // get current polarization (elec or mag)
+//        Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(lpm, timeLevel);
+//        
+//        //      std::cout << "Current polarization vector " << P.ToString() << std::endl;
+//        //      
+//        // calculate scaling
+//        assert(MAT_pSat_ != 0);
+//        Double scaling = P.NormL2()/MAT_pSat_;
+//        
+//        scaledCouplTensor = couplTensor* scaling;
+//        
+//        //      std::cout << "Scalaed coupling tensor " << scaledCouplTensor.ToString() << std::endl;
+//        //      
+//        if(rotate == true){
+//          if(P.NormL2() == 0){
+//            //        std::cout << "Polarization is zero > perform no rotation" << std::endl;
+//            rotatedCouplTensor = scaledCouplTensor;
+//            
+//          } else {
+//            Vector<Double> dirP = Vector<Double>(P.GetSize());
+//            dirP = P / P.NormL2();
+//            
+//            // calculate rotation matrix
+//            if(numCols == 4){
+//              // axi case: 2x4 matrix
+//              WARN("Rotation for axi case not implemented yet. No rotation was peformed");
+//              rotatedCouplTensor = scaledCouplTensor;
+//              
+//            } else if (numCols == 6){
+//              // 3d plane case
+//              // Idea: Create rotation matrix, that maps the current direction of P onto z-axis
+//              //       as the z-axis is the default polarization axis in the mat file
+//              //       To obtained the desired behavior, we have to rotate the z-axis onto P however.
+//              //       This can be done by taking the transposed rotation matrix.
+//              
+//              Double alpha, beta, gamma;
+//              
+//              // 1. rotate around z-axis by angle gamma such that P lies in z-y plane
+//              // gamma = angle between z-y plane and dirP
+//              gamma = std::atan2(dirP[0],dirP[1]);
+//              
+//              // 2. rotate around x-axis by angle alpha such that P lies on top of z-axis
+//              // alpha = angle between x-y plane and z
+//              alpha = std::atan2(std::sqrt(dirP[1]*dirP[1]+dirP[0]*dirP[0]),dirP[2]);
+//              
+//              // no rotation arouind y-axis needed > beta = 0
+//              // WARNING: this whole procedure is only valid if coupling tensor is at least
+//              // transverse isotropic! Otherwise we have to figure out on which axis to rotate
+//              // the transverse directions
+//              beta = 0.0;
+//              Matrix<Double> R = Compute3DRotationMatrix(alpha, beta, gamma);
+//              
+//              // take transpose matrix to revert rotation (i.e. rotate z-axis onto dirP)
+//              Matrix<Double> RT;
+//              RT.Resize(3,3);
+//              R.Transpose(RT);
+//              
+//              assert(rotatedCouplTensor.GetNumRows() == 3);
+//              assert(rotatedCouplTensor.GetNumCols() == 6);
+//              
+//              scaledCouplTensor.PerformRotation(RT,rotatedCouplTensor);
+//              
+//            } else {
+//              // 2d plane strain or plane stress case
+//              // Important remark:
+//              //  for 2d plane strain and stress (and somehow also for axi) the coupling tensor
+//              //  will be rotated by default by alpha = -90 and gamma = -90.
+//              //  This results in the following mapping of the coordinate axis:
+//              //    z > y, y > x, x > z
+//              //  I.e. the material is rotated such that the default polarization is in +y direction.
+//              //  We thus have two possibilities to align the material tensor to the 2d polarization
+//              //  direction:
+//              //  a) get original 3x6 tensor and rotate that tensor according to the 3d version above
+//              //      then cut out subtensor
+//              //  b) take cut out subtensor and perform rotation directly in 2d
+//              //      > Version b done in the following
+//              Double gamma;
+//              
+//              // std::atan2(dirP[0],dirP[1]) would rotate towards the y-axis
+//              // we want however the y-axis to rotate, so that we take -gamma instead
+//              gamma = -std::atan2(dirP[0],dirP[1]);
+//              
+//              Matrix<Double> R = Compute2DRotationMatrix(gamma);
+//              
+//              assert(rotatedCouplTensor.GetNumRows() == 2);
+//              assert(rotatedCouplTensor.GetNumCols() == 3);
+//              
+//              scaledCouplTensor.PerformRotation(R,rotatedCouplTensor);
+//              
+//            }
+//          }
+//        } else {
+//          // no rotation > take scale tensor
+//          rotatedCouplTensor = scaledCouplTensor;
+//        }
+//        
+//        rotatedCouplingTensor_requiresReeval_[storageIdx] = false;
+//        rotatedCouplingTensor_[storageIdx] = rotatedCouplTensor;
+//        lastUsedTimeLevelForRotation_[storageIdx] = timeLevel;
+//      }
     }
     
     CoefFunctionHelper* hystHelper_;
@@ -2095,7 +2097,7 @@ namespace CoupledField {
     
     // helper functions for computation of rhs loads and lhs tensors
     //  
-    //	Matrix<Double> ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, bool invert, bool scaleOnly){
+    //	Matrix<Double> GetScaledAndRotatedCouplingTensor(const LocPointMapped& lpm, bool invert, bool scaleOnly){
     //	  // compare to Kaltenbacher "Numerical Simulation ..." 3rd Edition p. 387
     //	  //
     //	  // scaling:
@@ -2413,7 +2415,6 @@ namespace CoupledField {
      *        not the actual polarization/magnetization state
      */
     Vector<Double> MAT_initialInput_;
-    Vector<Double>* MAT_initialOutput_;
     
     /*
      * enables output of overlapped switching and rotation state in form of bmp

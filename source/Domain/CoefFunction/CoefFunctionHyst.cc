@@ -522,7 +522,7 @@ namespace CoupledField {
         // where d(P) is the scaled and rotated coupling tensor in d-form
         Matrix<Double> d_scaled, d_scaled_transposed;
         
-        hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,d_scaled,timelevel_cur,rotate);
+        hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,d_scaled,timelevel_cur,rotate);
         
         // e = d*c
         UInt numRows,numCols;
@@ -547,7 +547,7 @@ namespace CoupledField {
         // just take epsS directly
         tmp = fieldTensor_;
         // also get e in case we use deltaMat for strains, too
-        hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,e_scaled,timelevel_cur,rotate);  
+        hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,e_scaled,timelevel_cur,rotate);  
       }      
       // check if deltaMat shall be added
       // here we have two flags:
@@ -594,14 +594,14 @@ namespace CoupledField {
       if(strainForm_ == 1){
         // use d-form/g-form as basis, i.e. the followings steps have to be applied
         // 1. scale and rotate d/g
-        hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+        hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
         // 2. compute e/h from d/g
         // e = d*c ; h = g*c
         rotatedCouplTensor.Mult(elastTensor_,tmp);
       } else {
         // use e-form/h-form as basis, i.e. the following step has to be done
         // 1. acale and rotate e
-        hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+        hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
         tmp = rotatedCouplTensor;
       }
       
@@ -614,14 +614,14 @@ namespace CoupledField {
       if(strainForm_ == 1){
         // use d-form as basis, i.e. the followings steps have to be applied
         // 1. scale and rotate d/g
-        hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+        hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
         // 2. compute e/h from d/g
         // e = d*c ; h = g*c
         rotatedCouplTensor.Mult(elastTensor_,tmp);
       } else {
         // use e-form/h-form as basis, i.e. the following step has to be done
         // 1. acale and rotate e/h
-        hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
+        hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
         tmp = rotatedCouplTensor;
       }
       
@@ -695,7 +695,7 @@ namespace CoupledField {
         // where g(P) is the scaled and rotated coupling tensor in g-form
         Matrix<Double> g_scaled, g_scaled_transposed;
         
-        hystCoefFunction_->ScaleAndRotateCouplingTensor(lpm,couplTensor_,g_scaled,timelevel_cur,rotate);
+        hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,g_scaled,timelevel_cur,rotate);
         
         // h = g*c
         g_scaled.Mult(elastTensor_,h_scaled);
@@ -1283,7 +1283,6 @@ namespace CoupledField {
       delete[] deltaMatStrain_requiresReeval_;
       delete[] rotatedCouplingTensor_requiresReeval_;
       
-      delete[] MAT_initialOutput_;
       delete[] takeEstimatedSlope_;
     }
 	}
@@ -1459,16 +1458,6 @@ namespace CoupledField {
       
       hasInverseModel_ = false;
       
-			/*
-       * currently we do not support initial input for Scalar model
-       */
-			MAT_initialInput_ = Vector<Double>(dim_);
-			MAT_initialInput_.Init();
-			MAT_initialOutput_ = new Vector<Double>[numStorageEntries_];
-			for (UInt k = 0; k < numStorageEntries_; k++) {
-				MAT_initialOutput_[k] = Vector<Double>(dim_);
-				MAT_initialOutput_[k].Init();
-			}
       INV_resTolB_ = 1e-9;
       
 		} else if (usedHystModel_ == "vectorPreisach_Sutor") {
@@ -1532,59 +1521,6 @@ namespace CoupledField {
                 "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
                 "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
 			}
-      
-			// initial input that shall be feeded to the vectorPreisach operator
-			MAT_initialInput_ = Vector<Double>(dim_);
-      
-			material_->GetScalar(MAT_initialInput_[0], INITIAL_STATE_X, Global::REAL);
-			material_->GetScalar(MAT_initialInput_[1], INITIAL_STATE_Y, Global::REAL);
-			if (dim_ == 3) {
-				material_->GetScalar(MAT_initialInput_[2], INITIAL_STATE_Z, Global::REAL);
-			}
-      
-			if (MAT_initialInput_.NormL2() > 1e-16) {
-				WARN("Currently the treatment of initial states is not working properly! \n"
-                "Depending on the selected evaluation approach, the initial state of \n"
-                "the hysteresis operator will act as an excitation from the first iteration on or not. \n"
-                "Furthermore, the initial state has to fit to the boundary condition \n"
-                "(i.e. fluxParallel with initial state standing perpendicular on the boundary will not work).\n"
-                "The only save usage is in context of the debugging fixPoint iteration \n"
-                "(i.e. output of hysteresis operator does not couple back).")
-			}
-			MAT_initialOutput_ = new Vector<Double>[numStorageEntries_];
-      
-			if (MAT_initialInput_.NormL2() > 1e-16) {
-				for (UInt k = 0; k < numHystOperators_; k++) {
-					/*
-           * although all hyst operators should produce the same output, we have to
-           * call the evaluation for each one of them to get its internal memory set
-           */
-					Vector<Double> tmp = Vector<Double>(dim_);
-          int successCode = 0;
-          bool debugOut = false;
-					tmp = hyst_->computeValue_vec(MAT_initialInput_, k, true, debugOut, successCode);
-          
-					if (numHystOperators_ != numStorageEntries_) {
-						// for standard and extended evaluation, we use one hyst operator for multiple
-						// intregration points but for extended evalutation, each integration point
-						// has its own storage
-						for (UInt i = 0; i < numIntegrationPoints_ + 1; i++) {
-							MAT_initialOutput_[k * (numIntegrationPoints_ + 1) + i] = tmp;
-						}
-					} else {
-						// for standard evaluation, we have one hyst operator and one storage per element
-						// (numHystOperators = numStorageEntries) and for full evaluation
-						// we have one hyst operator and one storage for each integration point (+midpoint)
-						// (numHystOperators = numStorageEntries)
-						MAT_initialOutput_[k] = tmp;
-					}
-				}
-			} else {
-				for (UInt k = 0; k < numStorageEntries_; k++) {
-					MAT_initialOutput_[k] = Vector<Double>(dim_);
-					MAT_initialOutput_[k].Init();
-				}
-			}
 		}
     else if (usedHystModel_ == "vectorPreisach_Mayergoyz") {
       // basically a scalar model in multiple directions
@@ -1620,19 +1556,7 @@ namespace CoupledField {
       hyst_ = new VectorPreisachMayergoyz(numHystOperators_, numDirections, MAT_xSat_, MAT_pSat_, 
               MAT_PreisachWeights_,dim_,isVirgin,MAT_anhysteretic_a_, MAT_anhysteretic_b_, MAT_anhysteretic_c_,anhystOnly_,clipOutput);
       
-      hasInverseModel_ = false;
-      
-			/*
-       * currently we do not support initial input for Scalar model
-       */
-			MAT_initialInput_ = Vector<Double>(dim_);
-			MAT_initialInput_.Init();
-			MAT_initialOutput_ = new Vector<Double>[numStorageEntries_];
-			for (UInt k = 0; k < numStorageEntries_; k++) {
-				MAT_initialOutput_[k] = Vector<Double>(dim_);
-				MAT_initialOutput_[k].Init();
-			}
-      
+      hasInverseModel_ = false;      
     } else {
       EXCEPTION("Unknown hyst model");
     }
@@ -1661,6 +1585,114 @@ namespace CoupledField {
       WARN("Angular clipping currently not used; parameter will be ignored");
     }
     
+    
+    /*
+     * Initial state
+     */
+    // initial input that shall be feeded to the vectorPreisach operator
+    MAT_initialInput_ = Vector<Double>(dim_);
+    
+    material_->GetScalar(MAT_initialInput_[0], INITIAL_STATE_X, Global::REAL);
+    material_->GetScalar(MAT_initialInput_[1], INITIAL_STATE_Y, Global::REAL);
+    if (dim_ == 3) {
+      material_->GetScalar(MAT_initialInput_[2], INITIAL_STATE_Z, Global::REAL);
+    }
+    
+    bool scaleBySaturation = false;
+    int scaleBySaturationInt = 0;
+    material_->GetScalar(scaleBySaturationInt, PREISACH_SCALEINITIALSTATE);
+    if(scaleBySaturationInt != 0){
+      scaleBySaturation = true;
+    }
+    
+    bool prescribeOutput = false;
+    int prescribeOutputInt = 0;
+    material_->GetScalar(prescribeOutputInt, PREISACH_PRESCRIBEOUTPUT);
+    if(prescribeOutputInt != 0){
+      prescribeOutput = true;
+    }
+    
+    if(prescribeOutput && scaleBySaturation){
+      MAT_initialInput_.ScalarMult(MAT_pSat_);
+    } else if(!prescribeOutput && scaleBySaturation){
+      MAT_initialInput_.ScalarMult(MAT_xSat_);
+    }
+
+    Vector<Double> initial_E_H = Vector<Double>(dim_);
+    initial_E_H.Init();
+    Vector<Double> initial_E_B = Vector<Double>(dim_);
+    initial_E_B.Init();
+    Vector<Double> initial_P_J = Vector<Double>(dim_);
+    initial_P_J.Init();
+    
+    if (MAT_initialInput_.NormL2() > 1e-16) {
+      WARN("Currently the treatment of initial states is not working properly! \n"
+                "Depending on the selected evaluation approach, the initial state of \n"
+                "the hysteresis operator will act as an excitation from the first iteration on or not. \n"
+                "Furthermore, the initial state has to fit to the boundary condition \n"
+                "(i.e. fluxParallel with initial state standing perpendicular on the boundary will not work).\n"
+                "The only save usage is in context of the debugging fixPoint iteration \n"
+                "(i.e. output of hysteresis operator does not couple back).")
+      
+      if(prescribeOutput == false){
+        // directly feed given input to hyst operator
+        initial_E_H = MAT_initialInput_;
+      } else {
+        // output is prescribed (better said the total flux quantity is given, i.e.
+        // irreversible + reversible + anhyst parts shall in sum be equal to the given vector
+        // > feed this vector to inversion and retrieve actual input
+        // > note: at the very start of the program, all hyst operators will be in virgin state
+        // thus it suffices to compute the input just for one hyst operator
+        initial_E_B = MAT_initialInput_;
+        int successCode = 0;
+        bool overwrite = false;
+        UInt operatorIdx = 0;
+        if (MAT_methodType_ == SCALAR) {       
+          Double muForInversion;
+          Vector<Double> tmp = Vector<Double>(dim_);
+          MAT_eps_mu_SmallSignal_.Mult(MAT_dirP_,tmp);
+          MAT_dirP_.Inner(tmp,muForInversion);
+          
+          Double scalInput;
+          MAT_dirP_.Inner(initial_E_B,scalInput);
+          Double scalOutput = hyst_->computeInputAndUpdate(scalInput,muForInversion, operatorIdx, overwrite, successCode);
+          
+          initial_E_H.Init();
+          initial_E_H.Add(scalOutput,MAT_dirP_);
+        } else {
+          initial_E_H = hyst_->computeInput_vec(initial_E_B,operatorIdx,MAT_eps_mu_SmallSignal_,
+                  fieldsAlignedAboveSat_,hystOutputRestrictedToSat_,successCode);
+        }
+      }
+      
+      // now iterate over ALL hyst operator and evaluate them using initial_E_H_ to get initial_P_J_ AND
+      // to set the initial memory accordingly
+      bool overwrite = true;
+      int successCode = 0;
+      bool debugOut = false;
+      for (UInt k = 0; k < numHystOperators_; k++) {
+        /*
+         * although all hyst operators should produce the same output, we have to
+         * call the evaluation for each one of them to get its internal memory set
+         */
+        if (MAT_methodType_ == SCALAR) {    
+          Double scalInput;
+          MAT_dirP_.Inner(initial_E_H,scalInput);
+          
+          Double scalOutput = hyst_->computeValueAndUpdate(scalInput,k, overwrite,successCode);
+          
+          initial_P_J.Init();
+          initial_P_J.Add(scalOutput,MAT_dirP_);
+        } else {
+          initial_P_J = hyst_->computeValue_vec(initial_E_H, k, overwrite, debugOut, successCode);
+        }
+      }
+    }
+        
+    Vector<Double> zeroVec = Vector<Double>(dim_);
+    zeroVec.Init();
+    Vector<Double> initial_Si = ComputeIrreversibleStrains(initial_P_J, zeroVec);
+    
 		/*
      * finally initialize storage
      * NEW: use same storage for vector and scalar model
@@ -1668,8 +1700,6 @@ namespace CoupledField {
      * NEW: create storage for each hystOperator or for each integration point
      * depending on evaluation depth
      */
-		Vector<Double> zeroVec = Vector<Double>(dim_);
-		zeroVec.Init();
     // axi case not supported!
     UInt strainDim = 3;
     if(dim_ == 3){
@@ -1729,56 +1759,23 @@ namespace CoupledField {
       takeEstimatedSlope_[k] = false;
       // create with wrong size first; during first evaluation, set correct size
       rotatedCouplingTensor_[k] = Matrix<Double>(1,1);
-      
-      
-			/*
-       * General note:
-       *  We assume that our material was in virgin state, i.e.
-       *    all _lastIt_ and _lastTS_ vectors are zeroVec
-       *    and the _lastIt_ and _lastTS_ matrices are MAT_InitialTensor
-       *  The possible initial input provided from the matrial file shall
-       *    be treated as if it was an evaluation before the first actual iteration
-       *    i.e. the arrays for the current values (E_H_, E_B_ and P_J_) store
-       *    the initial input and output
-       */
-      
-			// E_B_ stores (as the name says) E for electrostatics and B for magnetics
-			// E acts as both, the element solution and the input to the hysteresis operator
-			//  in case of electrostatics
-			// B acts as solution in magnetics, but not as input
-			//  i.e. we cannot set E_B_ to MAT_initialInput_ in that case
-			//  as MAT_initialInput_ = H
-			if (PDEName_ == "Electromagnetics") {
-				// here we have to estimate the initial solution first from H (MAT_initialInput_)
-				// and M (MAT_initialOutput_
-        // TODO: replace by inversion!
-				E_B_[k] = MAT_initialInput_ + MAT_initialOutput_[k]; //H+M
-				E_B_[k] = E_B_[k] / rev_mat_fac_; //B = (H+M)/nu
-			} else {
-				E_B_[k] = MAT_initialInput_;
-			}
+       
+      P_J_[k] = initial_P_J;
+      E_B_[k] = initial_E_B;
+      E_H_[k] = initial_E_H;
+
 			E_B_lastIt_[k] = zeroVec;
 			E_B_lastTS_[k] = zeroVec;
       
-			// E_H_ stores E for electrostatics and H for magnetics
-			// -> both are the input to the hyst operator, so simply initialize these
-			//    arrays with MAT_initialInput_
-			E_H_[k] = MAT_initialInput_;
 			E_H_lastIt_[k] = zeroVec;
 			E_H_lastTS_[k] = zeroVec;
       
-			// P_J_ stores P for electrostatics and M for magnetics
-			// -> both are the output of the hyst operator, so simply initialize those
-			//    arrays with MAT_initialOutput_[k]
-			P_J_[k] = MAT_initialOutput_[k];
-			//std::cout << "k: " << k << std::endl;
-			//std::cout << "P_J_[k]: " << P_J_[k].ToString() << std::endl;
 			P_J_lastIt_[k] = zeroVec;
 			P_J_lastTS_[k] = zeroVec;
       
       Si_lastTS_[k] = zeroStrainVec;
       Si_lastIt_[k] = zeroStrainVec;
-      Si_[k] = zeroStrainVec;
+      Si_[k] = initial_Si;
       
       deltaMat_[k] = Matrix<Double>(dim_,dim_);
       deltaMat_[k].Init();// = MAT_initialTensor_;
@@ -2755,28 +2752,28 @@ namespace CoupledField {
 		} else {
 			// get current state; here we have to check if a reevaluation is needed
 			// note: requiresReeval_ has one entry for each storage, not for each operator 
-			if (false == Si_requiresReeval_[storageIdx]) {
+//			if (false == Si_requiresReeval_[storageIdx]) {
         //				std::cout << "no reeval needed as flag is false!" << std::endl;
 				// return current value
 				return Si_[storageIdx];
-			}
+//			}
 		}
-    
-    // computation required
-    // get polarizaton / output of hyst operator first
-    Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(Originallpm, timeLevel);
-    // for case that P is zero, we also obtain the last value in order to compute the last known direction of P
-    // if this one is 0, too then dir = zeroVec
-    Vector<Double> Pold = GetPrecomputedOutputOfHysteresisOperator(Originallpm, -1);
-    
-    Vector<Double> S_irr = ComputeIrreversibleStrains(P,Pold);
-    
-    // flag gets reset at end of each iteration (so the stored value can beu
-    // used during one iteration by several terms/function calls)
-    Si_requiresReeval_[storageIdx] = false;
-    Si_[storageIdx] = S_irr;
-    
-    return S_irr;
+//    
+//    // computation required
+//    // get polarizaton / output of hyst operator first
+//    Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(Originallpm, timeLevel);
+//    // for case that P is zero, we also obtain the last value in order to compute the last known direction of P
+//    // if this one is 0, too then dir = zeroVec
+//    Vector<Double> Pold = GetPrecomputedOutputOfHysteresisOperator(Originallpm, -1);
+//    
+//    Vector<Double> S_irr = ComputeIrreversibleStrains(P,Pold);
+//    
+//    // flag gets reset at end of each iteration (so the stored value can beu
+//    // used during one iteration by several terms/function calls)
+//    Si_requiresReeval_[storageIdx] = false;
+//    Si_[storageIdx] = S_irr;
+//    
+//    return S_irr;
   }
   
   Vector<Double> CoefFunctionHyst::ComputeIrreversibleStrains(Vector<Double> P, Vector<Double> Pold) {
@@ -4326,10 +4323,12 @@ namespace CoupledField {
           E_B_lastTS_[storageIdx] = E_B_[storageIdx];
           P_J_lastTS_[storageIdx] = P_J_[storageIdx];
           E_H_lastTS_[storageIdx] = E_H_[storageIdx];
+          Si_lastTS_[storageIdx] = Si_[storageIdx];
         } else {
           E_B_lastIt_[storageIdx] = E_B_[storageIdx];
           P_J_lastIt_[storageIdx] = P_J_[storageIdx];
           E_H_lastIt_[storageIdx] = E_H_[storageIdx];
+          Si_lastIt_[storageIdx] = Si_[storageIdx];
         }
         deltaMatPrev_[storageIdx] = deltaMat_[storageIdx];
         deltaMatStrainPrev_[storageIdx] = deltaMatStrain_[storageIdx];
@@ -7664,7 +7663,7 @@ namespace CoupledField {
                 << "  amplitudeResolution " << MAT_ampResolution_ << "\n"
                 << "  evalVersion " << MAT_vecPreisachImplementationVersion_ << "\n";
         oss << "  initial input to hyst operator " << MAT_initialInput_.ToString() << "\n";
-        oss << "  initial output of hyst operator (exemplary for element 0) " << MAT_initialOutput_[0].ToString() << "\n";
+//        oss << "  initial output of hyst operator (exemplary for element 0) " << MAT_initialOutput_[0].ToString() << "\n";
         oss << "  printOut " << MAT_printOut_ << "\n";
         if (MAT_printOut_) {
           oss << "  bmpResolution " << MAT_bmpResolution_ << "\n";

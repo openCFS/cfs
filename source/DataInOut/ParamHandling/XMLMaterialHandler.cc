@@ -1598,6 +1598,7 @@ namespace CoupledField {
     PtrParamNode pAnhyst = NULL;
     PtrParamNode pInversion = NULL;
     PtrParamNode pStrainForm = NULL;
+    PtrParamNode initialState = NULL;
     
     if(hystNode->Has("scalarPreisach")){
       model = hystNode->Get("scalarPreisach");
@@ -1630,10 +1631,7 @@ namespace CoupledField {
       
       bool useExtension = false;
       Double rotResistance = 1;
-      Double angularDistance = 0;
-      Matrix<Double> initialStateTensor = Matrix<Double>(1,3);
-      initialStateTensor.Init();
-      
+      Double angularDistance = 0;      
       if(model->Has("pseudoVectorExtension")){
         PtrParamNode pExt = model->Get("pseudoVectorExtension");
         
@@ -1649,24 +1647,21 @@ namespace CoupledField {
           angularDistance = pExt->Get("angularDistance")->As<double>();
         }
         
-        if(pExt->Has("initialState")){
-          //std::cout << "InitialState found" << std::endl;
-          ParamTools::AsTensor<double>(pExt->Get("initialState"),1, 3, initialStateTensor);
-          //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
-        } 
+//        if(pExt->Has("initialState")){
+//          //std::cout << "InitialState found" << std::endl;
+//          ParamTools::AsTensor<double>(pExt->Get("initialState"),1, 3, initialStateTensor);
+//          //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+//        } 
       }
       int useExtensionInt = 0;
       if(useExtension){
         useExtensionInt = 1;
       }
-      
+            
       material->SetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
       material->SetScalar(rotResistance, ROT_RESISTANCE, Global::REAL);
       material->SetScalar(angularDistance, ANG_DISTANCE, Global::REAL);
-      material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
-      material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
-      material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
-      
+
       if(model->Has("weights")){
         pWeight = model->Get("weights");
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
@@ -1677,6 +1672,10 @@ namespace CoupledField {
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
       }
       
+      if(model->Has("initialState")){
+        initialState = model->Get("initialState");
+      }
+
       if(model->Has("smallSignalForm")){
         pStrainForm = model->Get("smallSignalForm");
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
@@ -1765,6 +1764,10 @@ namespace CoupledField {
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
       }
       
+      if(model->Has("initialState")){
+        initialState = model->Get("initialState");
+      }
+      
       if(model->Has("angularClipping")){
         material->SetScalar(model->Get("angularClipping")->As<Double>(), ANG_CLIPPING, Global::REAL);
       } else {
@@ -1782,23 +1785,7 @@ namespace CoupledField {
       } else {
         material->SetScalar(1e-16, AMP_RESOLUTION, Global::REAL);
       }
-      
-      Matrix<Double> initialStateTensor;
-      if(model->Has("initialState"))
-      {
-        //std::cout << "InitialState found" << std::endl;
-        ParamTools::AsTensor<double>(model->Get("initialState"),1, 3, initialStateTensor);
-        //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
-      } else {
-        //std::cout << "NO InitialState found" << std::endl;
-        initialStateTensor.Resize(1,3);
-        initialStateTensor.Init();
-      }
-      
-      material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
-      material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
-      material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
-      
+     
       /*
        * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
        * written to a bmp file of resolution bmpResolution
@@ -1956,7 +1943,10 @@ namespace CoupledField {
       if(model->Has("hystInversion")){
         pInversion = model->Get("hystInversion");
       }
-      
+
+      if(model->Has("initialState")){
+        initialState = model->Get("initialState");
+      }      
     }
     else {
       material->SetScalar("none", HYST_MODEL);  
@@ -2080,6 +2070,50 @@ namespace CoupledField {
     } else {
       material->SetScalar(0, PREISACH_WEIGHTS_ANHYST_ONLY);
     }
+    
+    Matrix<Double> initialStateTensor = Matrix<Double>(1,3);
+    initialStateTensor.Init();
+    bool prescribeOutput = false;
+    bool scaleBySaturation = false;
+    
+    if(initialState != NULL){
+      PtrParamNode InOutState = NULL;
+      if(initialState->Has("initialOutput")){
+        InOutState = initialState->Get("initialOutput");
+        prescribeOutput = true;
+      } else if(initialState->Has("initialInput")){
+        InOutState = initialState->Get("initialInput");
+        prescribeOutput = false;
+      } else {
+        EXCEPTION("Either input or output must be given at this point");
+      }
+      if(InOutState != NULL){
+        if(InOutState->Has("Vector")){
+          //std::cout << "InitialState found" << std::endl;
+          ParamTools::AsTensor<double>(InOutState->Get("Vector"),1, 3, initialStateTensor);
+          //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+        }
+        if(InOutState->Has("scaleVectorBySaturation")){
+          scaleBySaturation = InOutState->Get("scaleVectorBySaturation")->As<bool>();
+        } 
+      }
+    }
+     
+    material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
+    material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
+    material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
+    if(scaleBySaturation){
+      material->SetScalar(1, PREISACH_SCALEINITIALSTATE);
+    } else {
+      material->SetScalar(0, PREISACH_SCALEINITIALSTATE);
+    }
+    
+    if(prescribeOutput){
+      material->SetScalar(1, PREISACH_PRESCRIBEOUTPUT);
+    } else {
+      material->SetScalar(0, PREISACH_PRESCRIBEOUTPUT);
+    }
+    
     
     int maxNumIts = 35;
     double tolH = 1e-12;

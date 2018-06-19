@@ -366,7 +366,7 @@
         <xsd:element name="minNumberItTillReset" type="xsd:nonNegativeInteger" default="5"/>
         <xsd:element name="minResDecreaseTillReset" type="xsd:float" default="1e-5"/>
         <xsd:element name="nonLinMethodAfterReset" type="DT_HystereticSolver"/>
-        <xsd:element name="lineSearchAfterReset" type="DT_LineSearch"/>
+        <xsd:element name="lineSearchAfterReset" type="DT_HystLineSearch"/>
     </xsd:sequence>
   </xsd:complexType>
   

@@ -748,14 +748,18 @@ namespace CoupledField {
        *    > linear system has to be assembled
        */
 			timeLevelMaterial = -2;
-			timeLevelDeltaMat = -2;
+			timeLevelDeltaMatPol = -2;
+      timeLevelDeltaMatStrain = -2;
+      timeLevelDeltaMatCoupling = -2;
 		} else if( (nonLinMethod_ == "HYST_fixPoint_IT")||(nonLinMethod_ == "HYST_fixPoint_TS") ){
 			/*
        * 1,2) fixpoint iteration towards last iteration k or last ts n:
        *    > nonlinear system (mat tensors depend on hysteresis) but no delta
        */
 			timeLevelMaterial = 0;
-			timeLevelDeltaMat = -2;
+			timeLevelDeltaMatPol = -2;
+      timeLevelDeltaMatStrain = -2;
+      timeLevelDeltaMatCoupling = -2;
 		} else if(nonLinMethod_ == "HYST_deltaMat_IT"){
 			/*
        * 3) deltaMat computation towards last iteration k:

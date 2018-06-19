@@ -95,12 +95,18 @@
     </xsd:sequence>
   </xsd:complexType>  
     
-  <xsd:complexType name="DT_ScalPreisachExtension">
-    <xsd:sequence>
-      <xsd:element name="useExtension" type="xsd:boolean" minOccurs="0" default="false"/>
-      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0" default="1"/>
-      <xsd:element name="angularDistance" type="xsd:double" minOccurs="0" default="0"/>
-      <xsd:element name="initialState" minOccurs="0">
+    <xsd:complexType name="DT_initialInOutState">
+      <xsd:sequence>
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+            (B): output > given vector will be fed into inversion method for hyst operator;
+                          this means, that the actual output of the hyst operator will be
+                          equal to the given vector MINUS reversible and anhysteretic parts   
+          </xsd:documentation>
+        </xsd:annotation>
+      <xsd:element name="Vector">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
             <xsd:minLength value="3"/> 
@@ -108,8 +114,17 @@
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element>
+      <xsd:element name="scaleVectorBySaturation" type="xsd:boolean" minOccurs="0" default="true"/>
+      </xsd:sequence>
+    </xsd:complexType> 
+    
+ <!-- <xsd:complexType name="DT_ScalPreisachExtension">
+    <xsd:sequence>
+      <xsd:element name="useExtension" type="xsd:boolean" minOccurs="0" default="false"/>
+      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0" default="1"/>
+      <xsd:element name="angularDistance" type="xsd:double" minOccurs="0" default="0"/>
     </xsd:sequence>
-  </xsd:complexType> 
+  </xsd:complexType> -->
     
   <xsd:complexType name="DT_ScalarPreisachHystModel">
  <!--  <xsd:documentation xml:lang="en">
@@ -144,9 +159,19 @@
         </xsd:simpleType>
       </xsd:element> 
       <!--<xsd:element name="dirJ" type="DT_Direction"/>-->
-      <xsd:element name="pseudoVectorExtension" type="DT_ScalPreisachExtension" minOccurs="0"/>
+      <!--<xsd:element name="pseudoVectorExtension" type="DT_ScalPreisachExtension" minOccurs="0"/>-->
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="anhystereticParameter" type="DT_AnhystereticParams" minOccurs="0"/>
+      <xsd:element name="initialState" minOccurs="0">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="initialOutput" type="DT_initialInOutState">
+            </xsd:element> 
+            <xsd:element name="initialInput" type="DT_initialInOutState">
+            </xsd:element> 
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element> 
       <xsd:element name="smallSignalForm" type="DT_SmallSignalForm" minOccurs="0"/>
       <xsd:element name="strainSat" type="xsd:double" minOccurs="0"/>
       <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="0" default="1"/>
@@ -226,9 +251,19 @@
       </xsd:choice>
       <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
       <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="0"/>
+      <xsd:element name="initialState" minOccurs="0">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="initialOutput" type="DT_initialInOutState">
+            </xsd:element> 
+            <xsd:element name="initialInput" type="DT_initialInOutState">
+            </xsd:element> 
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element> 
     </xsd:sequence>
   </xsd:complexType>  
-       
+         
    <xsd:complexType name="DT_SutorModelVersion">
     <xsd:choice>
       <xsd:element name="Classical_Version_2012__list_implementation"/>
@@ -273,20 +308,20 @@
                    to a bmp file (FOR EACH ELEMENT!) for each Xth time step
      y) bmpResolution > resolution of the bmp images (only used if printOut != 0
        
-     For the magnetostrictive case:
-     -) strainForm > if set to 1, the magnetostrictive g-form will be assumed as basis
-                    > if set to 0, the magnetostrictive h-form will be assumed as basis
-      Note that in both cases, [c^B], [h] and [nu^S] are provided as small signal parameter.
-      In case of g-form, those will be transformed to the [s^B], [g] and [nu^T] at the beginning of the simulation
-        and then during each iteration transformed back to [c^B], [h] and [nu^S].
-      Idea behind g-form: as [h]/[g] depends on Jp/M, [nu^S] = [nu^T] + [g][c^B][g]^t will do in case that
-                           [nu^T] is taken as basis
-      -) betaCoef > the irreversible strains are computed via a polynomial sum of the
-           the polarization, i.e.
-           S^i = beta_0 + beta_1*J + beta_2*J^2 + beta_3*J^3 ... beta_n*J^n
-        > specify vector of n+1 doubles representing beta_n to beta_0 (from left to right)
-        > length of vector defined by dimCoefs
-   </xsd:documentation>-->
+      For the magnetostrictive case:
+      -) strainForm > if set to 1, the magnetostrictive g-form will be assumed as basis
+                     > if set to 0, the magnetostrictive h-form will be assumed as basis
+       Note that in both cases, [c^B], [h] and [nu^S] are provided as small signal parameter.
+       In case of g-form, those will be transformed to the [s^B], [g] and [nu^T] at the beginning of the simulation
+         and then during each iteration transformed back to [c^B], [h] and [nu^S].
+       Idea behind g-form: as [h]/[g] depends on Jp/M, [nu^S] = [nu^T] + [g][c^B][g]^t will do in case that
+                            [nu^T] is taken as basis
+       -) betaCoef > the irreversible strains are computed via a polynomial sum of the
+            the polarization, i.e.
+            S^i = beta_0 + beta_1*J + beta_2*J^2 + beta_3*J^3 ... beta_n*J^n
+         > specify vector of n+1 doubles representing beta_n to beta_0 (from left to right)
+         > length of vector defined by dimCoefs
+    </xsd:documentation>-->
     <xsd:sequence>
       <xsd:element name="inputSat" type="xsd:double"/>
       <xsd:element name="outputSat" type="xsd:double"/>
@@ -295,17 +330,19 @@
       <xsd:element name="angularDistance" type="xsd:double" minOccurs="0" default="0"/>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="anhystereticParameter" type="DT_AnhystereticParams" minOccurs="0"/>
+      <xsd:element name="initialState" minOccurs="0">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="initialOutput" type="DT_initialInOutState">
+            </xsd:element> 
+            <xsd:element name="initialInput" type="DT_initialInOutState">
+            </xsd:element> 
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element> 
       <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
       <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
       <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
-      <xsd:element name="initialState" minOccurs="0">
-        <xsd:simpleType>
-          <xsd:restriction base="DT_DoubleList">
-              <xsd:minLength value="3"/> 
-            <xsd:maxLength value="3"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-      </xsd:element> 
       <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
       <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
       <xsd:element name="smallSignalForm" type="DT_SmallSignalForm" minOccurs="0"/>
@@ -314,7 +351,7 @@
       <xsd:element name="betaCoefs" minOccurs="0">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
-          <xsd:minLength value="1"/> 
+            <xsd:minLength value="1"/> 
             <xsd:maxLength value="11"/>
           </xsd:restriction>
         </xsd:simpleType>
