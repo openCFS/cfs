@@ -1226,6 +1226,9 @@ namespace CoupledField {
        * > take minimum of approximation
        * 
        * res(eta) = a0 + a1*eta + a2*eta^2
+       * dres/deta = a1 + 2a2*eta
+       * > etaExtremum = -a1/2a2
+       * > etaExtremum is min if 2a2 > 0
        * 
        * res(0) = a0
        * res(0.5) = a0 + a1/2 + a2/4
@@ -1277,29 +1280,24 @@ namespace CoupledField {
       a1 = -3*res0 + 4*res05 - res1;
       a2 = 2*res0 - 4*res05 +2*res1;
       
-      Double eta1,etaSol;
       UInt solCase = 0;
-      if(a1*a1 - 4*a0*a2 < 0){
-        // no real value solution for eta
-        // > take eta with minimal res from eta = 0.5 and eta = 1
-        if(res1 < res05){
-          etaSol = 1;
-          solCase = 1;
-        } else {
-          etaSol = 0.5;
-          solCase = 2;
-        }
+      Double etaSol = 1;
+      if(a2 > 0){
+        // minimum
+        solCase = 1;
+        etaSol = -a1/(2*a2);
       } else {
-        eta1 = (-a1 + sqrt(a1*a1 - 4*a0*a2))/(2*a2);
-        // check for minimum
-        if(a1 + 2*a2*eta1 >= 0){
-          etaSol = eta1;
-          solCase = 3;
+        // either a2 == 0 or a2 < 0 i.e. extremum would be a maximum
+        // take minimum of res05 and res1
+        if(res05 < res1){
+          solCase = 2;
+          etaSol = 0.5;
         } else {
-          etaSol = (-a1 - sqrt(a1*a1 - 4*a0*a2))/(2*a2);
-          solCase = 4;
-        }       
+          solCase = 3;
+          etaSol = 1.0;
+        }
       }
+      
       std::cout << "Solution case: " << solCase << std::endl;
       std::cout << "Found eta: " << etaSol << std::endl;
       return etaSol;
