@@ -8,11 +8,20 @@ MACRO(GENERATE_TEST_NAME_LIST TEST_NAME_LIST)
      # linux64_simon_intel_debug
      )
   ELSE()
-    SET(${TEST_NAME_LIST}
-     # linux64_shared_opt_gcc_release
-     # linux64_shared_opt_gcc_debug
-     # linux64_shared_opt_intel_release
-     # linux64_shared_opt_intel_debug
-     )
+    IF(SITE_DIR MATCHES "boost")
+      SET(${TEST_NAME_LIST}
+       # linux64_boost_gcc_release
+       # linux64_boost_gcc_debug
+       # linux64_boost_intel_release
+       # linux64_boost_intel_debug
+       )
+    ELSE()
+      SET(${TEST_NAME_LIST}
+       # linux64_shared_opt_gcc_release
+       # linux64_shared_opt_gcc_debug
+       # linux64_shared_opt_intel_release
+       # linux64_shared_opt_intel_debug
+       )
+     ENDIF()
   ENDIF()  
 ENDMACRO()
