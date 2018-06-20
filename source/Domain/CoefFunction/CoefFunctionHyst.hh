@@ -1889,7 +1889,7 @@ namespace CoupledField {
      * > needed to add storage space for surface elements
      * > has to be executed before storage was initialized!
      */
-    void AddAdditionalSDList(shared_ptr<EntityList> actSDList, bool isSurface);
+    void AddAdditionalSDList(shared_ptr<EntityList> actSDList, RegionIdType volReg, bool isSurface);
     
     /*
      * Helper function; creates mapping between operators and their corresponding
@@ -2560,6 +2560,9 @@ namespace CoupledField {
      * Parameter passed from FE context
      */
     std::string PDEName_;
+    
+    // volume regions
+    std::set<RegionIdType> volRegions_;
     
     //! global element to local element numbering
     std::map<UInt, UInt> globalElem2Local_;

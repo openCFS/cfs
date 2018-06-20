@@ -802,7 +802,7 @@ namespace CoupledField {
           // IMPORTANT: add surface elements to hyst operator such that it gets
           // storage space assigned
 					bool onBoundary = true;
-          regionCoefs[volReg]->AddAdditionalSDList(actSDList,onBoundary);
+          regionCoefs[volReg]->AddAdditionalSDList(actSDList,volReg,onBoundary);
         }
       }
     }

@@ -701,7 +701,7 @@ public:
     EXCEPTION( "Not implemented in base class");
   }
   
-  virtual void AddAdditionalSDList(shared_ptr<EntityList> actSDList, bool onSurface){
+  virtual void AddAdditionalSDList(shared_ptr<EntityList> actSDList, RegionIdType volReg, bool onSurface){
     EXCEPTION( "Not implemented in base class");
   }
   

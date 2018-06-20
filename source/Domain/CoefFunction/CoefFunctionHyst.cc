@@ -1816,13 +1816,14 @@ namespace CoupledField {
 	}
   
 	
-	void CoefFunctionHyst::AddAdditionalSDList(shared_ptr<EntityList> actSDList, bool isSurface){
+	void CoefFunctionHyst::AddAdditionalSDList(shared_ptr<EntityList> actSDList, RegionIdType volReg, bool isSurface){
 		if(storageInitialized_ == true){
 			EXCEPTION("Storage was already initialized! Cannot add further SDLists");
 		}
 		//std::cout << "Add additional SD list to HystOperator" << std::endl;
 		SDList_List_.push_back(actSDList);
-		
+		volRegions_.insert(volReg);
+    
 		EntityIterator it = actSDList->GetIterator();
 		
 		UInt globalElNr;
@@ -1840,7 +1841,6 @@ namespace CoupledField {
 		// same material) and extract midpoint
 		it.Begin();
 		const Elem * el = it.GetElem();
-		
 		
 		//std::cout << "Elem Type: " << el->type << std::endl;
 		LocPoint lp = Elem::shapes[el->type].midPointCoord;
@@ -2052,6 +2052,21 @@ namespace CoupledField {
 		UInt idxElem = globalElem2Local_[el->elemNum];
     
 		bool onBoundary = globalElemOnSurf_[el->elemNum];
+    
+    if(onBoundary){
+      // set surface information for lpm
+      lpmOutput.SetSurfInfo( volRegions_ );
+    }
+    
+    if(onBoundary){
+      std::cout << "LPM on boundary" << std::endl;
+      
+      std::cout << "lpmInput.isSurface: " << lpmInput.isSurface << std::endl;
+      std::cout << "lpmInput.normal.ToString(): " << lpmInput.normal.ToString() << std::endl;
+      std::cout << "lpmOutput.isSurface: " << lpmOutput.isSurface << std::endl;
+      std::cout << "lpmOutput.normal.ToString(): " << lpmOutput.normal.ToString() << std::endl;
+    }
+    
 		UInt idxPoint = locPointIndices_[lpmOutput.lp.number];
     //std::cout << "Global Indices: " << std::endl;
     //std::cout << "ElementI Number: " << el->elemNum << std::endl;
@@ -2978,14 +2993,19 @@ namespace CoupledField {
 				
 				// for fieldParallel boundary conditions, En should be zero, Pn not
 				// (En should be zero due to NeumannBC but this does not seem to work, so 
-				// we subtract might have to subtract normal part)
+				// we might have to subtract normal part)
 				bool forceTangential = true;
         
         if(forceTangential){
-          std::cout << "Stored normal vector: " << actualLPM.normal.ToString() << std::endl;
+          
+          Vector<Double> normalDirection = actualLPM.normal;
+          std::cout << "Stored normal vector: " << normalDirection.ToString() << std::endl;
+          Double normalProjection = LPMSolution.Inner(normalDirection);
+          std::cout << "LPMSolution from system: " << LPMSolution.ToString() << std::endl;
+          LPMSolution.Add(-normalProjection,normalDirection);
+          std::cout << "LPMSolution after cutting normal direction: " << LPMSolution.ToString() << std::endl;
         }
-        
-				
+        				
 			} else {
 				LPMSolution = Vector<Double>(dependCoef1_->GetVecSize());
 				dependCoef1_->GetVector(LPMSolution, actualLPM);
