@@ -14,9 +14,9 @@ matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 
 def print_gnuplot(offset, args, segments, max_mode, max_freq):
-  if args.maxfrequency:
-    print('set yrange [0:' + str(args.maxfrequency) + ']')
-    max_freq = min(max_freq, args.maxfrequency)
+  if args.maxfreq:
+    print('set yrange [0:' + str(args.maxfreq) + ']')
+    max_freq = min(max_freq, args.maxfreq)
   elif args.commonsymbol:
     print('set yrange [0:*]')
   else:
@@ -42,7 +42,8 @@ def print_gnuplot(offset, args, segments, max_mode, max_freq):
   else:
     print('unset ylabel')
     print('unset xlabel')
-  wl = '' if args.nolines else ' with linespoints lw 2 ' if not args.commonsymbol else ' with lines lw 2'
+  lw = " 4 " if args.talk else " 2 "  
+  wl = '' if args.nolines else (' with linespoints lw ' + lw) if not args.commonsymbol else (' with lines lw ' + lw)
   lc = ' lc black ' if args.paper or args.commonsymbol else ''
   for i in range(offset, max_mode): # 1-based
     title = ' notitle ' if args.commonsymbol or not args.title else ' t "' + str(i - offset + 1) + '. mode" '
@@ -87,6 +88,7 @@ def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
   mi = min(data[range_start:range_end+1,test_col])
   ma = max(data[range_start:range_end+1,test_col-1])
   rel = (mi - ma)/((ma+mi)/2.0)
+  norm = (mi-ma)/ma
   
   #print 'check_gap tm=' + str(test_col) + ' rs=' + str(range_start) + ' re=' + str(range_end) + ' -> mi=' + str(mi) + ' ma=' + str(ma) + ' rel=' + str(rel) 
     
@@ -105,7 +107,7 @@ def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
         node.attrib["rel_size"] = str(rel)
         node.attrib["count"] = str(gap_count)
       else:
-        print(mytype + ' band gap between ' + str(ma) + ' and ' + str(mi) + ' within ' + str(range_start) + ' -> ' + str(range_end) + ' between modes ' + str(test_col-offset) + ' and ' + str(test_col-offset+1) + ' size: ' + str(mi - ma) + ' rel.size: ' + str(rel))
+        print(mytype + ' band gap between ' + str(ma) + ' and ' + str(mi) + ' within ' + str(range_start) + ' -> ' + str(range_end) + ' between modes ' + str(test_col-offset) + ' and ' + str(test_col-offset+1) + ' size: ' + str(mi - ma) + ' rel: ' + str(rel) + ' norm: ' + str(norm))
 
 
 # return the feader of bloch.dat or "" if none
@@ -184,7 +186,7 @@ parser.add_argument("--dim", help="2 or 3 dimensions, for old .bloch.dat files w
 parser.add_argument('--mingap', help="minimal absolute (partial) band gap size (default 0.0 = all gaps)", default=0.0)
 parser.add_argument('--nopartial', action='store_true', help='handle only full band gaps')
 parser.add_argument('--maxmode', help="maximal mode number to be considered", default=9999, type=int)
-parser.add_argument('--maxfrequency', help="maximal frequency", type=float)
+parser.add_argument('--maxfreq', help="maximal frequency", type=float)
 parser.add_argument('--info', action='store_true', help='show range for all modes')
 parser.add_argument('--xml', help='export info as xml to the given filename')
 parser.add_argument('--show', help='pop-up a matplotlib figure', action='store_true')
@@ -193,6 +195,7 @@ parser.add_argument('--gnuplot', help='create gnuplot output, specify the type',
 parser.add_argument('--nolines', action='store_true', help='gnuplot: do not concatenate points by lines')
 parser.add_argument('--commonsymbol', action='store_true', help='gnuplot: use the same line symbol for all lines')
 parser.add_argument('--paper', action='store_true', help="tune for paper publishing (e.g. gray)")
+parser.add_argument('--talk', action='store_true', help="tune for conference presentation (e.g. line with)")
 parser.add_argument('--fontsize', type=int, help="gnuplot font size")
 parser.add_argument('--title', action='store_true', help="gnuplot: add title, off by default")
 parser.add_argument('--nicelabel', action='store_true', help='gnuplot: use nice labels')
@@ -297,7 +300,10 @@ if args.show or args.save:
 
 if args.xml:
   root.find("gaps").attrib["count"]=str(gap_count)
-  file = open(args.xml, "w")
-  file.write(etree.tostring(root, pretty_print=True))
-  file.close()
+  tree = etree.ElementTree(root)
+  tree.write(args.xml)
+  
+  #file = open(args.xml, "w")
+  #file.write(str(etree.tostring(root, pretty_print=True)))
+  #file.close()
           

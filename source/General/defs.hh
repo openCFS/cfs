@@ -63,7 +63,7 @@ if (!name) EXCEPTION("memory allocation failed"); \
 #define NEWARRAY(name,type,size) {\
 try{\
 name = new type[(size)];\
-}catch (std::bad_alloc exception){\
+}catch (std::bad_alloc& exception){\
 EXCEPTION("Memory allocation for array failed\n size = " << (size));\
 }\
 }

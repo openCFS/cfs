@@ -628,7 +628,6 @@ void FeastEigenSolver::CalcEigenFrequencies(BaseVector& bvs, BaseVector& err)
       // convert eigenvalues e = omega^2 to frequency
       double twoPi = 8.0*atan(1.0);
       for (uint i=0; i<e.GetSize(); i++) e[i] = sqrt(e[i])/twoPi;
-
     }
 
 
