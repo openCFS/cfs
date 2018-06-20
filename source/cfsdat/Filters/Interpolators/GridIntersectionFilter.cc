@@ -30,6 +30,12 @@ GridIntersectionFilter::GridIntersectionFilter(UInt numWorkers, CF::PtrParamNode
 
   this->filtStreamType_ = FIFO_FILTER;
 
+  if(config->Has("scheme") == true){
+	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
+  }else{
+	  globalFactor_ = 1.0;
+  }
+
 }
 
 GridIntersectionFilter::~GridIntersectionFilter(){
@@ -47,6 +53,8 @@ bool GridIntersectionFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
   returnVec.Init(0.0);
 
   this->InterpolationMatrix->MultAdd(inVec,returnVec);
+
+  returnVec.ScalarMult(globalFactor_);
 
   return true;
 }
