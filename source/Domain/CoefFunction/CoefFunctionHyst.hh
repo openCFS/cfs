@@ -149,6 +149,13 @@ namespace CoupledField {
       Matrix<Double> epsS_nuS = Matrix<Double>(numRows,numCols);
       ptrFieldTensor_->GetTensor(epsS_nuS,lpm);
       
+      if(ptrCouplTensor_ == NULL){
+        std::cout << "StrainForm = " << strainForm_ << "(due to material file)" << std::endl;
+        std::cout << "However, no coupling was defined in .xml file." << std::endl;
+        strainForm_ = -1;
+        hystCoefFunction_->SetStrainForm(-1);
+      }
+      
       if(strainForm_ == -1){
         //std::cout << "Single field case" << std::endl;
         /*
@@ -1794,6 +1801,10 @@ namespace CoupledField {
     
     int GetStrainForm(){
       return MAT_strainForm_;
+    }
+    
+    void SetStrainForm(int strainForm){
+      MAT_strainForm_ = strainForm;
     }
     
     bool deltaMatActive(){

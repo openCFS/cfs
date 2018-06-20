@@ -3440,9 +3440,9 @@ namespace CoupledField {
       hystHelper_->PrecomputeMaterialTensorForInverison();
     }
     
-    if(setRotStateForVecExtension){
-      EvaluateRotDirectionForVectorExtension();
-    }
+//    if(setRotStateForVecExtension){
+//      EvaluateRotDirectionForVectorExtension();
+//    }
     
     if(resetSolToZeroFirst){
       for(UInt i = 0; i < numStorageEntries_; i++){

@@ -608,6 +608,10 @@ public:
     EXCEPTION("Not implemented in base class");
   }
   
+  virtual void SetStrainForm(int intState){
+    EXCEPTION("Not implemented in base class");
+  }
+  
   virtual std::string getPDEName(){
     EXCEPTION("Not implemented in base class");
   }
