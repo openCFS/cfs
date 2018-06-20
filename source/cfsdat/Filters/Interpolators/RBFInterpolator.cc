@@ -37,13 +37,13 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
 
   this->filtStreamType_ = FIFO_FILTER;
 
-  if(config->Has("scheme") == true){
-	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
-  }else{
-	  globalFactor_ = 1.0;
+
+  if(config->Has("scheme") == false){
+	  EXCEPTION("Scheme tag required for RBF interpolation")
   }
 
 
+  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
   inDim_ = 0;
   p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
 
