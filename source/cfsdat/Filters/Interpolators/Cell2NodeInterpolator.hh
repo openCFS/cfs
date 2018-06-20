@@ -49,6 +49,9 @@ private:
   std::vector<QuantityStruct> interpolData_;
   StdVector<UInt> nodeNeighbours_;
 
+  //! Global Factor for scaling the result
+  Double globalFactor_;
+
 };
 
 }

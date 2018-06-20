@@ -36,6 +36,14 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
 :MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
+
+  if(config->Has("scheme") == true){
+	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
+  }else{
+	  globalFactor_ = 1.0;
+  }
+
+
   inDim_ = 0;
   p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
 
@@ -71,6 +79,7 @@ bool RBFInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
 
 
   RBFInterpolation(returnVec, inVec, numEquPerEnt_, targetSource, targetSourceIndex, targetRBFInv, targetSourceFactor, targetSourceFactor2, maxNumTrgEntities);
+  returnVec.ScalarMult(globalFactor_);
 
   return true;
 }
