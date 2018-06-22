@@ -897,7 +897,8 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
       bdb->GetBOp()->CalcOpMat(bmat,lp,ptFe); // bmat (2x4)
       std::cout << "bmat= " << bmat << std::endl;
       Matrix <T> DB(bmat.GetNumRows(),bmat.GetNumCols());
-      DB = (dmat * bmat) * fac;
+      DB = (dmat * bmat);
+      DB *= fac;
       std::cout << "DB= " << DB << std::endl;
       Matrix <T> BDB(retMat.GetNumRows(),retMat.GetNumCols());
       BDB = Transpose(bmat) * DB;

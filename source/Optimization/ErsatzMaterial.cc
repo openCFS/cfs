@@ -929,7 +929,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
             std::cout << "dmat - nu0= " << dmat << std::endl;
             dmat /= val;
             std::cout << "dmat - nu0/rho= " << dmat << std::endl;
-            dB = (dmat * b_mat) * fac;
+            dB = (dmat * b_mat);
+            dB *= fac;
             std::cout << "dB= " << dB << std::endl;
             std::cout << "mat-vorher= " << mat << std::endl;
             MAT += Transpose(b_mat) * dB;
