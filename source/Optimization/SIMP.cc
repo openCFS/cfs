@@ -99,7 +99,6 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
 
   switch(app)
   {
-  case App::MAG:
   case App::MECH:
   case App::ACOUSTIC:
   case App::HEAT:

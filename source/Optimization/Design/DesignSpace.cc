@@ -856,7 +856,61 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
 
   App::Type app = (App::Type) applicationForm.Parse(form->GetName());
   double factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
-  retMat *= factor;
+
+  if(app == App::MAG)
+  {
+    // get elements
+    StdVector<Elem*> elems;
+    domain->GetGrid()->GetElems(elems,elem->regionId);
+    assert(!elems.IsEmpty());
+
+    // annoying entity iterator got hold the element
+    ElemList el(elems[0],domain->GetGrid());
+    el.SetElement(elem);
+
+    LocPointMapped lp;
+    StdVector<LocPoint> intPoints; // Get integration Points
+    StdVector <double> weights;
+    IntegOrder order;
+    IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+    BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(),method,order);
+
+    form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type),method, order, intPoints, weights);
+    // Get shape map from grid
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
+
+    Matrix <T> dmat;
+    Matrix <T> bmat;
+
+    for(unsigned int ip = 0; ip < intPoints.GetSize();ip++)
+    {
+      // Calculate for each integration point the LocPointMapped
+      lp.Set(intPoints[ip],esm,weights[ip]);
+
+      double fac = lp.jacDet;
+
+      // get nu = nu0 * nuR, for air nuR = 1 (2x2)
+      bdb->GetCoef()->GetTensor(dmat,lp);
+      std::cout << "dmat-vorher= " << dmat << std::endl;
+
+      // calculate BDB (4x4)
+      bdb->GetBOp()->CalcOpMat(bmat,lp,ptFe); // bmat (2x4)
+      std::cout << "bmat= " << bmat << std::endl;
+      Matrix <T> DB(bmat.GetNumRows(),bmat.GetNumCols());
+      DB = (dmat * bmat) * fac;
+      std::cout << "DB= " << DB << std::endl;
+      Matrix <T> BDB(retMat.GetNumRows(),retMat.GetNumCols());
+      BDB = Transpose(bmat) * DB;
+
+      std::cout << "retMat-vorher= " << retMat << std::endl;
+      retMat += BDB;
+      std::cout << "retMat " << retMat << std::endl;
+    }
+  }
+  else
+  {
+    retMat *= factor;
+  }
 
   // check bimat : TODO handle multimaterial
   DesignRegion* dr = GetRegion(elem->regionId);
@@ -910,28 +964,26 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   if(app == App::MAG)
   {
+    std::cout << "retMat= " << retMat << std::endl;
     // retMat = nu_0 * nu_r
-
     // we assume the org mat to be a dim x dim diagonal matrix
     assert(retMat.GetNumRows() == domain->GetGrid()->GetDim());
     assert(retMat.GetNumCols() == retMat.GetNumRows());
     assert(retMat[0][1] == 0.0); // shall be a diagonal matrix
     assert(retMat.IsSymmetric());
 
-    Matrix<T> nu_0(retMat.GetNumRows(), retMat.GetNumCols());
-    for(unsigned int i = 0; i < retMat.GetNumRows(); i++)
-       nu_0[i][i] = 1/(4*M_PI*1e-7);
+    Matrix<T> nu_0(retMat.GetNumRows(),retMat.GetNumCols());
+
+    // calculate nu0 (2x2)
+    //nu_0(dmat.GetNumRows(),dmat.GetNumCols());
+    for(unsigned int i = 0; i < 2; i++)
+      nu_0[i][i] = 1/(4*M_PI*1e-7);
     assert(nu_0[0][1] == 0.0);
 
-    LOG_DBG3(designSpace) << "APD<Matrix> mag: nu_0=" << nu_0.ToString(-1,false) << " nu_0*nu_r=" << retMat.ToString(-1,false);
-
-    // result = nu_0 + nu_0*nu_r*x - nu_0*x where is is the pseudo density scalar
-    // result = nu_0*nu_r*x + (1-x)*nu_0
-    // currently we have in retMat=nu_0*nu_r
+    //calculate nu (2x2)
     retMat *= factor;
-    retMat.Add(1-factor, nu_0);
-    LOG_DBG3(designSpace) << "APD<Matrix> mag: x=" << factor << " -> " <<  retMat.ToString(-1,false);
-    assert(((Complex) retMat[0][0]).real() > 0.0);
+    retMat.Add(1-factor,nu_0); //retMat = nu
+    std::cout << "nu= " << retMat << std::endl;
   }
   else
   {

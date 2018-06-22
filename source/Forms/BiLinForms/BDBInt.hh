@@ -66,7 +66,7 @@ public:
   virtual BaseBOperator* GetBOp() = 0;
   
   //! Obtain coefficient function
-  virtual PtrCoefFct GetCoef() = 0; 
+  virtual PtrCoefFct GetCoef() = 0;
   
   //@{
   //! Apply / multiply element matrix to vector
