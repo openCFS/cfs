@@ -100,13 +100,6 @@ def find_procs(mesh_size, levels=None,max_procs=100,):
                 # print("The max procs to be used are " + str(procs))
                 max_procs = procs
                 break
-    
-    else:
-        for procs in reversed(range(max_procs + 1)):
-            if ((coarse_mesh / procs) >= 1.0):
-                # print("The max procs to be used are " + str(procs))
-                max_procs = procs
-                break
         
     return max_procs
 
@@ -122,11 +115,11 @@ def ideal_parameters(mesh_size,max_procs=100,env=None,flexible_mesh_size=True):
     if flexible_mesh_size:
         if env == "cluster":
             # Since we want to run in cluster we assume more procs are required
-            levels,mesh_size = find_ideal_mesh(mesh_size,0,20)
-            levels = int(levels-1)
+            levels,mesh_size = find_ideal_mesh(mesh_size,10,10)
+            levels = int(levels-3)
 
         else:
-            levels,mesh_size = find_ideal_mesh(mesh_size,0,10)
+            levels,mesh_size = find_ideal_mesh(mesh_size,10,10)
 
     procs = find_procs(mesh_size, levels, max_procs)
 
@@ -135,7 +128,8 @@ def ideal_parameters(mesh_size,max_procs=100,env=None,flexible_mesh_size=True):
 if __name__ == '__main__':
     # levels = plot_mesh_levels(121)
     # plot_mesh_procs(121)
+    
 
 
-    print(ideal_parameters(60,20,"cluster",False))
-    print(ideal_parameters(60,20,"None",True))
+    print(ideal_parameters(64,60,"cluster",True))
+

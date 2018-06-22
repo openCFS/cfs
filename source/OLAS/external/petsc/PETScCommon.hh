@@ -67,7 +67,7 @@ std::string CreateSolverString(PtrParamNode);
 std::string CreatePrecondString(PtrParamNode);
 
 int rank_=0;
-int size_=0;
+int size_=0; // The total number of procs
 PetscInt nlvls=2;
 //Assemble context
 Assemble * assemble_=nullptr;

@@ -127,12 +127,12 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
     spr.dim1=som.GetNumRows();
     spr.dim2=som.GetNumCols();
 
-    std::copy(row_ptr,row_ptr+ som.GetNumRows()+1,spr.vptr);
-    std::copy(col_ptr, col_ptr + elements, spr.vpos);
+    std::move(row_ptr,row_ptr+ som.GetNumRows()+1,spr.vptr);
+    std::move(col_ptr, col_ptr + elements, spr.vpos);
 
     spr.vval = reinterpret_cast<double*>(new T[elements]);
     T* val_src = reinterpret_cast<T*>(spr.vval);
-    std::copy(val_ptr, val_ptr + elements, val_src);
+    std::move(val_ptr, val_ptr + elements, val_src);
 
 
     Dmat A;
