@@ -37,6 +37,11 @@ AbstractInterpolator::AbstractInterpolator(UInt numWorkers, CF::PtrParamNode con
   useElemAsTarget_ = false;
   if(params_->Has("useElemAsTarget")){useElemAsTarget_ = params_->Get("useElemAsTarget")->As<bool>();}
   verboseSum_ = false;
+  if(config->Has("scheme") == true){
+	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
+  }else{
+	  globalFactor_ = 1.0;
+  }
 }
 
 AbstractInterpolator::~AbstractInterpolator(){
@@ -54,6 +59,7 @@ bool AbstractInterpolator::UpdateResults(std::set<uuids::uuid>& upResults){
   Double* out = &returnVec[0];
   Double* in = &inVec[0];
   matrix_.Interpolate(out, in, numEquPerEnt_);
+  returnVec.ScalarMult(globalFactor_);
   
   if (verboseSum_) {
     VerboseSum(upResIds[0]);
