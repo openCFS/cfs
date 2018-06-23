@@ -213,6 +213,8 @@ namespace CoupledField
 
     virtual void GetElemRegion(UInt ielem, RegionIdType & region);
 
+    virtual RegionIdType GetElemRegion(UInt ielem);
+
     //! Get list of elements (surface / volumes)
     
     //! Returns all elems for a given surface / volume region. If the desired 
@@ -292,11 +294,24 @@ namespace CoupledField
     //!                         are needed
     //! \param regionIds (in) identifiers for the regions, where the 
     //!                          neihgbouring elements are searched in
-    void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
+    void GetElemsNextToNodes( StdVector<const Elem*> & elemList, 
                               const StdVector<UInt> & nodeList,
-                              const StdVector<RegionIdType> 
-                              & regionIds);
+                              const StdVector<RegionIdType> & regionIds);
 
+    //! Get elements associated with given node
+
+    //! Returns a list of elements, which have one or more of the given
+    //! common. The elements are taken out of a given list of regions.
+    //! \param elemList (out) elements which have one or more nodes of 
+    //!                          nodeList
+    //! \param node (in) node for which neighbouring elements
+    //!                      are needed
+    //! \param regionIds (in) identifiers for the regions, where the 
+    //!                          neihgbouring elements are searched in
+    void GetElemsNextToNode( StdVector<const Elem*> & elemList,
+                               const UInt & node,
+                               const StdVector<RegionIdType>& regionIds);
+    
     //! Get number of elements associated with given nodes
 
     //! Returns the number of elements, which have one or more of the given
@@ -313,6 +328,7 @@ namespace CoupledField
         const UInt & node,
         const StdVector<RegionIdType>& regionIds);
 
+    void ClearNodeToElemConnectivity();
 
 
     //! Get volume elements lying next to given surface elements
@@ -530,10 +546,10 @@ namespace CoupledField
     };
 
     //! helper struct for storing the number of neighbour-elements for every node
-    struct NodeNeighbourElems{
-      boost::unordered_map<UInt, StdVector<Elem*> > nodeNeighElems;
-      RegionIdType regID;
-    };
+   // struct NodeNeighbourElems{
+   //  boost::unordered_map<UInt, StdVector<Elem*> > nodeNeighElems;
+   //   RegionIdType regID;
+   // };
 
 
 
@@ -669,6 +685,8 @@ namespace CoupledField
 
 
     //! Maps from a node number to all neighbor elements
+    StdVector<UInt> nodeElemMapIndices_;
+    StdVector<UInt> nodeElemMap_;
     StdVector<StdVector<Elem*> > mapNodeToElems_;
 
     //! Flag to ensure that mapNodeToElems_ and mapNodeToElemsNew_ is only set up once

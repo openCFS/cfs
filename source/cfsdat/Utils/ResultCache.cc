@@ -17,9 +17,10 @@
 
 namespace CFSDat {
 
-GenericResultCache::GenericResultCache(UInt cacheSize) {
+GenericResultCache::GenericResultCache(UInt cacheSize, bool isStatic) {
   vectorSize_ = 0;
-  cacheSize_ = cacheSize;
+  isStatic_ = isStatic;
+  cacheSize_ = isStatic ? 1 : cacheSize;
   noCache_ = cacheSize_ == 1;
   isInit_ = false;
 }
@@ -30,6 +31,7 @@ GenericResultCache::~GenericResultCache() {
 
 void GenericResultCache::SetVectorSize(UInt vectorSize) {
   vectorSize_ = vectorSize;
+  isInit_ = false;
 }
 
 UInt GenericResultCache::GetVectorSize() {
@@ -46,7 +48,9 @@ void GenericResultCache::SetStepIndex(UInt stepIndex) {
   // only one cached value exists, so it is overwritten
   if (noCache_) {
     actualAdapter_->stepIndex = stepIndex;
-    actualAdapter_->isUpToDate = false;
+    if (!isStatic_) {
+      actualAdapter_->isUpToDate = false;
+    }
     return;
   }
 
