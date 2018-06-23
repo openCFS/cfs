@@ -16,20 +16,53 @@
   <!-- ******************************************************************** -->
   <!-- Data type for binary operations -->
   <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_BinOpFilt">
+  <xsd:complexType name="DT_TensorFilter">
     <xsd:complexContent mixed="true">
       <xsd:extension base="DT_BaseFilter">
         <xsd:all>
           <xsd:element name="quantity1" maxOccurs="1" minOccurs="1">
             <xsd:complexType>
               <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
-              <xsd:attribute name="value" type="xsd:double" use="optional"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="quantity2" maxOccurs="1" minOccurs="1">
             <xsd:complexType>
               <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
-              <xsd:attribute name="value" type="xsd:double" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity3" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity4" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity5" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity6" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity7" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity8" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity9" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="output" maxOccurs="1" minOccurs="1">
@@ -38,34 +71,6 @@
             </xsd:complexType>
           </xsd:element>
         </xsd:all>
-        <xsd:attribute name="opType" use="required">
-          <xsd:simpleType>
-            <xsd:restriction  base="xsd:string">
-              <xsd:enumeration value="plus"/>
-              <xsd:enumeration value="minus"/>
-              <xsd:enumeration value="div"/>
-              <xsd:enumeration value="mult"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute> 
-        <xsd:attribute name="multType" use="optional" default="default">
-          <xsd:simpleType>
-            <xsd:restriction  base="xsd:string">
-              <xsd:enumeration value="default"/>
-              <xsd:enumeration value="inner"/>
-              <xsd:enumeration value="dot"/>
-              <xsd:enumeration value="scalar"/>
-              <xsd:enumeration value="entrywise"/>
-              <xsd:enumeration value="Hadamard"/>
-              <xsd:enumeration value="Schur"/>
-              <xsd:enumeration value="matrix"/>
-              <xsd:enumeration value="matrixvector"/>
-              <xsd:enumeration value="cross"/>
-              <xsd:enumeration value="outer"/>
-              <xsd:enumeration value="dyadic"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute> 
         <xsd:attribute name="inputFilterIds" use="required" type="xsd:token">
           <xsd:annotation>
             <xsd:documentation> Space separated Ids for the input filter. Creates a connection between

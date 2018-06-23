@@ -15,7 +15,7 @@
 #include "ResultManager.hh"
 #include "MatVec/Vector.hh"
 #include <set>
-#include <algorithm>
+// #include <algorithm>
 #include <cmath>
 
 namespace CFSDat{
@@ -90,7 +90,6 @@ bool ResultManager::IsResultVecUpToDate(uuids::uuid requestedId){
 
 void ResultManager::SetResultVecUpToDate(uuids::uuid requestedId, bool upToDate) {
   checkFinalized();
-  std::cout << " set result vec up to date " << GetResultName(requestedId) << std::endl;
   resultMap_[requestedId].second->SetUpToDate(upToDate);
 }
 
@@ -152,7 +151,7 @@ void ResultManager::SetStepIndex(uuids::uuid requestedId, Integer stepIndex){
   const CF::StdVector<Double>& timeLine = *resultMap_[requestedId].first->timeLine.get();
   UInt setStepIndex = std::min<UInt>(std::max<Integer>(0,stepIndex)
                                      ,timeLine.GetSize() - 1);
-  return resultMap_[requestedId].second->SetStepIndex(setStepIndex);
+  resultMap_[requestedId].second->SetStepIndex(setStepIndex);
 }
 
 Double ResultManager::GetStepValue(uuids::uuid requestedId){
@@ -285,8 +284,12 @@ CF::StdVector<Double> ResultManager::GetTimeLine(uuids::uuid resId){
   RESULT_MANAGER_OBTAIN_SH_PTR_FIELD(resId,timeLine)
 }
 
-bool ResultManager::IsConstant(uuids::uuid resId) {
-  return resultMap_[resId].first->timeLine->GetSize() <= 1;
+bool ResultManager::IsStatic(uuids::uuid resId) {
+  return resultMap_[resId].first->isStatic;
+}
+
+void ResultManager::SetStatic(uuids::uuid resId, bool isStatic) {
+  resultMap_[resId].first->isStatic = isStatic;
 }
 
 void ResultManager::SetTimeLine(uuids::uuid resId, CF::StdVector<Double> tVec){
@@ -464,9 +467,9 @@ void ResultManager::Finalize(){
     if (cInfo->masterId == uuidIter->first) {
       UInt cacheSteps = 1 + cInfo->maxStepOffset - cInfo->minStepOffset;
       if(cInfo->dType == ExtendedResultInfo::COMPLEX){
-        uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Complex>(cacheSteps));
+        uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Complex>(cacheSteps, cInfo->isStatic));
       } else if(cInfo->dType == ExtendedResultInfo::DOUBLE){
-        uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Double>(cacheSteps));
+        uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Double>(cacheSteps, cInfo->isStatic));
       }else{
         EXCEPTION("Only Complex and Double results supported yet")
       }
@@ -545,8 +548,6 @@ void ResultManager::Finalize(){
       continue;
     }
 
-    std::cout << " Preparing output " << std::endl;
-    
     //no offset results here...
     StdVector< str1::shared_ptr<CF::BaseResult> >& resVec = cRes->baseResultVector;
 
@@ -592,7 +593,6 @@ void ResultManager::Finalize(){
 
 }
 void ResultManager::CreateEqnMapping(InfoPtr cInfo, ResPtr cRes){
-  std::cout << " Create result map " << cInfo->resultName << std::endl;
   if(cInfo->entryType == CF::ResultInfo::SCALAR){
     cRes->mapping.reset(new EqnMapSimple(cInfo->definedOn, cInfo->ptGrid));
   }else{

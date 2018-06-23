@@ -7,27 +7,26 @@
  *       \file     BinOpFilter.hh
  *       \brief    <Description>
  *
- *       \date     Mai 13, 2018
- *       \author   mtautz
+ *       \date     Apr 13, 2016
+ *       \author   ahueppe
  */
 //================================================================================================
 
-#ifndef SOURCE_CFSDAT_FILTERS_ARITHMETIC_BINOPFILTER_HH_
-#define SOURCE_CFSDAT_FILTERS_ARITHMETIC_BINOPFILTER_HH_
+#ifndef SOURCE_CFSDAT_FILTERS_TENSOR_HH_
+#define SOURCE_CFSDAT_FILTERS_TENSOR_HH_
 
 #include "cfsdat/Filters/BaseFilter.hh"
-#include "BinOpFunctions.hh"
 #include <boost/bimap.hpp>
 
 namespace CFSDat{
 
-class BinOpFilter : public BaseFilter{
+class TensorFilter : public BaseFilter{
   
 public:
 
-  BinOpFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  TensorFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
 
-  virtual ~BinOpFilter();
+  virtual ~TensorFilter();
 
 protected:
 
@@ -39,27 +38,16 @@ protected:
   
   virtual void PrepareCalculation();
   
-  std::string opType;
-  std::string multType;
-
-  std::string resAName;
-  uuids::uuid resAId;
-  bool isConstantA;
-  Vector<Double> constantA;
-
-  std::string resBName;
-  uuids::uuid resBId;
-  bool isConstantB;
-  Vector<Double> constantB;
+  StdVector<std::string> resNames;
+  StdVector<uuids::uuid> resIds;
 
   std::string outName;
   uuids::uuid outId;
   
-  BinOpFunctions::BinOpFctStruct<Double>::BinOpFctPtr applyFctPtr;
   UInt size;
 
 };
 
 }
 
-#endif /* SOURCE_CFSDAT_FILTERS_ARITHMETIC_BINOPFILTER_HH_ */
+#endif /* SOURCE_CFSDAT_FILTERS_TENSOR_HH_ */

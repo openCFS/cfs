@@ -39,10 +39,11 @@ EqnMapSimple::EqnMapSimple(CF::ResultInfo::EntityUnknownType type,
  zeroOne_ = (isOneBased)? 1 : 0;
 
  maxNumEqns_ = numEntries;
- entityEquations_.Resize(numEntries);
- for(CF::UInt i=0;i<numEntries;i++){
-   entityEquations_[i] = 0;
- }
+ UInt vecSize = (isOneBased) ? maxNumEqns_ : maxNumEqns_+1;
+ entityEquations_.Resize(vecSize);
+ entityEquations_.Init(0);
+ usedEntity_.clear();
+ usedEntity_.resize(vecSize, false);
 }
 
 void EqnMapSimple::Finalize(){
@@ -56,7 +57,6 @@ void EqnMapSimple::Finalize(){
   boost::shared_ptr<CF::EntityList> currentList;
   CF::StdVector<CF::UInt> regEntities;
   
-  std::vector<bool> setEntity(maxNumEqns_, false);
   for(CF::UInt aReg = 0; aReg < numRegions; aReg++){
 
     std::string regName = ptGrid_->GetRegion().ToString(regions_[aReg]);
@@ -68,8 +68,8 @@ void EqnMapSimple::Finalize(){
 
     for(CF::UInt i=0 ; i < regEntities.GetSize() ; i++){
       CF::UInt aENum = regEntities[i];
-      if(!setEntity[aENum-zeroOne_]){
-        setEntity[aENum-zeroOne_] = true;
+      if(!usedEntity_[aENum-zeroOne_]){
+        usedEntity_[aENum-zeroOne_] = true;
         entityEquations_[aENum-zeroOne_] = numEqns_;
         numEqns_+=eqnPerEnt_;
       }
@@ -105,6 +105,10 @@ CF::UInt EqnMapSimple::GetEntityIndex(const CF::UInt globalEntNum) const {
   return entityEquations_[globalEntNum-zeroOne_] / eqnPerEnt_;
 }
 
+bool EqnMapSimple::IsEntityUsed(const UInt globalEntNum) const {
+  return usedEntity_[globalEntNum-zeroOne_];  
+}
+
 void EqnMapSimple::GetRegionEquations(CF::StdVector<CF::UInt> & eqns, CF::RegionIdType region) const {
   assert(mapType_==CF::ResultInfo::ELEMENT || mapType_==CF::ResultInfo::NODE);
 
@@ -120,7 +124,7 @@ void EqnMapSimple::GetRegionEquations(CF::StdVector<CF::UInt> & eqns, CF::Region
   }
 
   eqns.Resize(regEntities.GetSize() * eqnPerEnt_);
-  eqns.Init(99999999);
+  eqns.Init(2000000000);
   for(CF::UInt aEnt = 0 ; aEnt < regEntities.GetSize() ; aEnt++){
     aEntNum = regEntities[aEnt];
     start = entityEquations_[aEntNum-zeroOne_];
@@ -130,6 +134,7 @@ void EqnMapSimple::GetRegionEquations(CF::StdVector<CF::UInt> & eqns, CF::Region
     }
   }
 }
+
 void EqnMapSimple::GetSubsetEquations(CF::StdVector<UInt> & eqns, CF::StdVector<UInt> & globalEntNumbers) const{
   UInt aEntNum = 0;
   UInt start = 0;
@@ -141,6 +146,20 @@ void EqnMapSimple::GetSubsetEquations(CF::StdVector<UInt> & eqns, CF::StdVector<
 
     for(CF::UInt aDof = 0;aDof < eqnPerEnt_;aDof++){
       eqns[aEnt+aDof] = start+aDof;
+    }
+  }
+}
+
+void EqnMapSimple::GetReverseEntityMap(CF::StdVector<UInt>& revMap) const {
+  revMap.Resize(GetNumEntities());
+  UInt used = 0;
+  UInt notUsed = 0;
+  for (UInt i = 1; i <= maxNumEqns_; i++) {
+    if (IsEntityUsed(i)) {
+      revMap[GetEntityIndex(i)] = i;
+      used++;
+    } else {
+      notUsed++;
     }
   }
 }

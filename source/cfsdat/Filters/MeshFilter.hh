@@ -69,9 +69,6 @@ public:
     delete trgGrid_;
   }
 
-  virtual void FinishInit();
-
-
 
 protected:
 
@@ -86,12 +83,6 @@ protected:
                              const std::set<std::string>& regions,
                              Grid* grid);
 
-
-  virtual void PrepareCalculation() = 0;
-
-  virtual ResultIdList SetUpstreamResults()=0;
-
-  virtual void AdaptFilterResults()=0;
 
   //TODO for now copy paste code from inputfilter... not very nice
   void CreateDummyCfsParamNode();
@@ -144,18 +135,6 @@ protected:
                   const Vector<Double>& inVec,
                   const std::vector<QuantityStruct>& interpolData,
                   const StdVector<UInt>& nodeNeighbours);
-
-
-  //! Nearest neighbour interpolation
-  void NearestNeighbourInterpolation(Vector<Double>& returnVec,
-      const Vector<Double>& inVec,
-      const UInt& numEquPerEnt,
-      const StdVector<CF::UInt>& targetSource,
-      const StdVector<CF::UInt>& targetSourceIndex,
-      const UInt& numNN,
-      const StdVector<CF::Double>& targetSourceFactor,
-      const UInt& maxNumTrgEntities);
-
 
   //! Perform interpolation, based on a local radial basis functions (RBF)-approach
   //! Performs good, if the source mesh is not significantly bigger than the target
