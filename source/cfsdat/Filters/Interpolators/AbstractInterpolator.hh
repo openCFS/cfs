@@ -78,6 +78,9 @@ protected:
   
   virtual void PutIntoMatrix(UInt out, UInt in, Double factor);
   
+  //! Global Factor for scaling the result
+  Double globalFactor_;
+
 };
 
 }
