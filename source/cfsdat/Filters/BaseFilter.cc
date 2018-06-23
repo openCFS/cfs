@@ -16,11 +16,14 @@
 
 #include "BaseFilter.hh"
 #include "Filters/Arithmetic/BinOpFilter.hh"
+#include "Filters/Arithmetic/TensorFilter.hh"
 #include "Filters/Input/InputFilter.hh"
 #include "Filters/Output/OutputFilter.hh"
 #include "Filters/Derivatives/RotatingSubstDt.hh"
 #include "Filters/Derivatives/TimeDerivFilter.hh"
 #include "Filters/Derivatives/PostLighthillSource.hh"
+#include "Filters/Derivatives/GaussDerivative.hh"
+#include "Filters/Utils/VolumeMultiplication.hh"
 #include "SignalProcessing/FftFilter.hh"
 #include "SignalProcessing/FIRFilter.hh"
 #include "SignalProcessing/TimeMeanFilter.hh"
@@ -61,16 +64,25 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
     newPtr = BaseMeshFilterType::Generate(filtNode,resMana);
   }
   else if (filtNode->GetName() == "binaryOperation") {
-    newPtr = BinOpFilter::GenerateOperator(filtNode,resMana);
+    newPtr.reset(new CFSDat::BinOpFilter(0, filtNode, resMana));
+  }
+  else if (filtNode->GetName() == "tensorFilter") {
+    newPtr.reset(new CFSDat::TensorFilter(0, filtNode, resMana));
   }
   else if (filtNode->GetName() == "fft") {
     newPtr.reset(new FftFilter(0, filtNode, resMana));
   }
   else if (filtNode->GetName() == "temporalBlending") {
       newPtr.reset(new CFSDat::TemporalBlendFilter(0, filtNode, resMana));
-    }
+  }
   else if (filtNode->GetName() == "timeMean") {
     newPtr = FilterPtr(new CFSDat::TimeMeanFilter1(0,filtNode,resMana));
+  } 
+  else if (filtNode->GetName() == "gaussDerivative") {
+    newPtr = FilterPtr(new CFSDat::GaussDerivative(0,filtNode,resMana));
+  }
+  else if (filtNode->GetName() == "volumeMultiplication") {
+    newPtr = FilterPtr(new CFSDat::VolumeMultiplication(0,filtNode,resMana));
   }
   return newPtr;
 }
@@ -108,20 +120,26 @@ BaseFilter::BaseFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
   if(stepNode->Has("startStop")){
     PtrParamNode stNode = stepNode->Get("startStop");
     UInt start    = stNode->Get("startStep")->Get("value")->As<UInt>();
+    //if (start == 0) { // this seems for old data
+    //  start = 1;
+    //}
     UInt numSteps = stNode->Get("numSteps")->Get("value")->As<UInt>();
     Double starttime    = stNode->Get("startTime")->Get("value")->As<Double>();
     Double delta    = stNode->Get("delta")->Get("value")->As<Double>();
-    string rOffset = stNode->Get("deleteOffset")->Get("value")->As<string>();
+    bool deleteOffset = stNode->Get("deleteOffset")->Get("value")->As<bool>();
+    
     //first step is always 1...
-    if(rOffset == "yes")
+    if(deleteOffset)
       startTime_ = starttime - delta;
     for(UInt i=0;i<numSteps;++i){
         globalStepValueMap_[start+i+1] = (starttime-startTime_) + (start+i)*delta;
     }
+    
   }
   // initializing fields for initialization of results
   initSourceResults_ = 0;
   initSinkResults_ = 0;
+  finishInitSinkResults_ = 0;
 }
 
 
@@ -190,6 +208,32 @@ void BaseFilter::InitResultsUpstream(){
   }
 }
 
+void BaseFilter::VerboseSum(uuids::uuid verbResId) {
+  CF::StdVector<std::string> dofNames = resultManager_->GetDofNames(verbResId);
+  const UInt numDofs = dofNames.GetSize();
+  
+  Vector<Double>& resVec = resultManager_->GetResultVector<Double>(verbResId);
+  const UInt vecSize = resVec.GetSize();
+  std::cout << "   Computing sum of " << resultManager_->GetResultName(verbResId) << ": ";
+  if (numDofs == 1) {
+    Double sum = 0;
+    #pragma omp parallel for reduction(+:sum) num_threads(CFS_NUM_THREADS) 
+    for (UInt i = 0; i < vecSize; i++) {
+      sum += resVec[i];
+    }
+    std::cout << sum << std::endl;
+  } else {
+    std::cout << std::endl;
+    for (UInt d = 0; d < numDofs; d++) {
+      Double sum = 0;
+      #pragma omp parallel for reduction(+:sum) num_threads(CFS_NUM_THREADS) 
+      for (UInt i = d; i < vecSize; i += numDofs) {
+        sum += resVec[i];
+      }
+      std::cout << "            " << dofNames[d] << ": " << sum << std::endl; 
+    }
+  }
+}
 
 void BaseFilter::ExtractFilterResults(){
   std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
@@ -225,6 +269,29 @@ void BaseFilter::ExtractFilterResults(){
   }
 }
 
+void BaseFilter::FinishInit() {
+  UInt numSinks = sinks_.GetSize();
+  if (numSinks > 0) {
+    finishInitSinkResults_++;
+    if (finishInitSinkResults_ < numSinks) {
+      // here we wait for all requested results to be initialized
+      return;
+    } else if (finishInitSinkResults_ > numSinks) {
+      EXCEPTION("Function InitResultsUpstream() called too often, should not exceed number of downstream filters, maybe a circular dependency occurred");
+    }
+  }
+  
+  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
+  for(; srcIter != sources_.End() ; srcIter++){
+    // should we check here anything for success?
+    (*srcIter)->FinishInit();
+  }
+  
+  PrepareCalculation();
+}
+
+void BaseFilter::PrepareCalculation() {
+}
 
 bool BaseFilter::CheckNeeded() {
   if (filterResIds.GetSize() == 0){
@@ -322,8 +389,6 @@ Integer BaseFilter::GetDownStreamMaxStepOffset(std::set<uuids::uuid> downStreamR
 
 
 void BaseFilter::InitResultsDownstream(){
-  std::cout << "\t---> Initializing Filter id " << this->filterId_ << " Downstream " << std::endl;
-  
   UInt numSources = sources_.GetSize();
   if (numSources > 0) {
     initSourceResults_++;
@@ -333,6 +398,7 @@ void BaseFilter::InitResultsDownstream(){
       EXCEPTION("Function InitResultsDownstream() called too often, should not exceed number of upstream filters");
     }
   }
+  std::cout << "\t---> Initializing Filter id " << this->filterId_ << " Downstream " << std::endl;
   //now as all upstream filters have arrived, we go further downstream
 
   //adapt the filter results according to the upstream data

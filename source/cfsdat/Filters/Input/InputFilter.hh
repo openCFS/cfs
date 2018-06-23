@@ -33,9 +33,6 @@ public:
 
   virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
 
-  virtual void FinishInit(){
-
-  }
 
 protected:
   virtual void AddInput(str1::shared_ptr<BaseFilter> filt){
@@ -65,6 +62,8 @@ protected:
   std::set<std::string> surfRegions;
 private:
   bool ranAlready_;
+  
+  bool staticTimeType_;
 };
 
 }
