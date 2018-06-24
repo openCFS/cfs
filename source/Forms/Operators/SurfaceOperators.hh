@@ -829,11 +829,14 @@ void SurfaceNormalOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
   feHC->GetShFnc( v, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem());
 
 
+
+
   Vector<Double> tmp, curl;
+  Vector<Double> transNormal ;
   for(UInt sh = 0; sh < numFncs ; sh ++){
-    Vector<Double> s;
     v.GetCol(tmp, sh);
-    tmp.CrossProduct( lp.normal ,curl);
+    transNormal = lp.normal;
+    tmp.CrossProduct( transNormal ,curl);
     for(UInt d = 0; d < 3; d ++){
       bMat[d][sh] = curl[d];
     }

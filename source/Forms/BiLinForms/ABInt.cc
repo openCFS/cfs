@@ -298,26 +298,44 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     BaseFE* SFe1 = this->ptFeSpace1_->GetFe(mSe->ptMaster->elemNum);
     BaseFE* SFe2 = this->ptFeSpace1_->GetFe(mSe->ptSlave->elemNum);
 
+
+
     MAT_DATA_TYPE tmp(2.0);
     Double min,max;
     esm1T->GetMaxMinEdgeLength(min,max);
+    esm2T->GetMaxMinEdgeLength(min,max);
     UInt order1 = SFe1->GetIsoOrder();
+    UInt order2 = SFe2->GetIsoOrder();
+
     if(order1 == 0){
       StdVector<UInt> aIsoOrder;
       SFe1->GetAnisoOrder(aIsoOrder);
       for(UInt i=0;i<aIsoOrder.GetSize();i++)
         order1 = (aIsoOrder[i]>order1)? aIsoOrder[i] : order1;
+
+        if(order1 == 0 && this->ptFeSpace1_->GetSpaceType() == this->ptFeSpace1_->HCURL){
+          // that's a bit dirty because zero order Nedelec elements are neither zero nor first order...
+          // but here we set it to first, otherwise we divide by zero
+          order1 = 1;
+        }
     }
     MAT_DATA_TYPE surface1(min/(Double)order1);
-    esm2T->GetMaxMinEdgeLength(min,max);
-    UInt order2 = SFe2->GetIsoOrder();
+
     if(order2 == 0){
       StdVector<UInt> aIsoOrder;
       SFe2->GetAnisoOrder(aIsoOrder);
       for(UInt i=0;i<aIsoOrder.GetSize();i++)
         order2 = (aIsoOrder[i]>order2)? aIsoOrder[i] : order2;
+
+      if(order2 == 0 && this->ptFeSpace1_->GetSpaceType() == this->ptFeSpace1_->HCURL){
+        // that's a bit dirty because zero order Nedelec elements are neither zero nor first order...
+        // but here we set it to first, otherwise we divide by zero
+        order2 = 1;
+      }
     }
     MAT_DATA_TYPE surface2(min/(Double)order2);
+
+
     myFactor *= tmp/(surface1+surface2);
   }
 
