@@ -3775,8 +3775,8 @@ namespace CoupledField {
     else  {
       if(pdename_ == "magneticEdge"){
         penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
-            new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
+          ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
               factor, beta, curcpl, updatedGeo_, true, true);
       }else{
         penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
@@ -3804,8 +3804,8 @@ namespace CoupledField {
     	else {
     	  if(pdename_ == "magneticEdge"){
     	    flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-           ( new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
-             new SurfaceNormalOperator<FeHCurl,DIM,D_DOF>(),
+           ( new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
+             new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
              factor, -1.0, curcpl, updatedGeo_, true);
           }else{
             flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
@@ -3833,8 +3833,8 @@ namespace CoupledField {
     	else {
         if(pdename_ == "magneticEdge"){
           flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
-            (  new SurfaceNormalOperator<FeHCurl,DIM,D_DOF>(),
-               new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
+            (  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+               new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
                factor, -1.0, curcpl, updatedGeo_, true);
           }else{
             flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
@@ -3857,8 +3857,8 @@ namespace CoupledField {
     else {
         if(pdename_ == "magneticEdge"){
           penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-                          (new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
-                           new SurfaceNormalOperator<FeHCurl,DIM,D_DOF>(),
+                          (new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                           new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
                 factor, beta * -1.0, curcpl, updatedGeo_, true, true);
         }else{
           penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
@@ -3887,8 +3887,8 @@ namespace CoupledField {
 
         if(pdename_ == "magneticEdge"){
           flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-                 (new SurfaceNormalOperator<FeHCurl,DIM,D_DOF>(),
-                  new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
+                 (new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
+                  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
                   factor, 1.0, curcpl, updatedGeo_, true);
         }else{
           flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
@@ -3911,8 +3911,8 @@ namespace CoupledField {
 
       if(pdename_ == "magneticEdge"){
         penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-                        ( new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
-                          new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
+                        ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                          new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
                           factor, beta, curcpl, updatedGeo_, true, true);
       }else{
         penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
@@ -3960,8 +3960,8 @@ namespace CoupledField {
         curcpl = BiLinearForm::MASTER_MASTER;
         if(pdename_ == "magneticEdge"){
           penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
-              ( new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
-                new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
+              ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
                 factor, betaDamp, curcpl, updatedGeo_, true, true);
         }else{
           penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
@@ -3975,8 +3975,8 @@ namespace CoupledField {
         curcpl = BiLinearForm::SLAVE_SLAVE;
         if(pdename_ == "magneticEdge"){
           penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
-              ( new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
-                new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
+              ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
                 factor, betaDamp, curcpl, updatedGeo_, true, true);
         }else{
           penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
@@ -3990,8 +3990,8 @@ namespace CoupledField {
         curcpl = BiLinearForm::MASTER_SLAVE;
         if(pdename_ == "magneticEdge"){
           penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
-              ( new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
-                new SurfaceCurlOperator<FeHCurl,DIM,D_DOF>(),
+              ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
                 factor, betaDamp * -1.0, curcpl, updatedGeo_, true, true);
         }else{
           penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
