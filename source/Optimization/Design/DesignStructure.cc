@@ -280,14 +280,14 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
           neighbors[j].weight /= weight_sum;
       }
 
-
       // save neighborhood by copy constructor
       de->simp->filter.Last().neighborhood = neighbors;
 
       avg_radius += radius;
       avg_neighbours += neighbors.GetSize();
       if(done && neighbors.GetSize() > 1000) {
-        in->SetWarning("Filter radius too large. Neighborhood is bigger than 1000!");
+        #pragma omp critical
+        in->SetWarning("Filter radius too large. Neighborhood for some elements is bigger than 1000!");
         done = false;
       }
       LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
