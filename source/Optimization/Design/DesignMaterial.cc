@@ -2633,7 +2633,8 @@ int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point
   double h = interval[1][0] - interval[0][0];
   assert(h > -eps);
   int idx = -1;
-  if (interval[0][0] - eps < point && point-eps < interval[nRows - 1][0]) {
+  // set index for values close to boundaries manually
+  if (interval[0][0] < point + eps && point < interval[nRows-1][0] - eps) {
     idx = (int) ( (point - interval[0][0]) / h);
   } else if (close(point, interval[nRows - 1][0])) {
     idx = nRows - 2;
