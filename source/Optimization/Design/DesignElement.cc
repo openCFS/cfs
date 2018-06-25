@@ -382,12 +382,12 @@ DesignElement::Type DesignElement::Default(const Context* ctxt)
 const Point* DesignElement::GetLocation()
 {
   if(location_ != NULL) return location_;
-  
+
   // calc location
   location_ = new Point();
   // check for ghost elements
   if(elem == NULL) EXCEPTION("location_ not set but elem is NULL");
-    
+
   domain->GetGrid()->GetElemShapeMap(elem, false)->CalcBarycenter(*location_);
 
   LOG_DBG3(desel) << "DesignElement::GetLocation() find " << location_->ToString() << " for " << ToString();
@@ -478,7 +478,14 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == PROJECTION
       || rd.value == SHAPE_MAP_GRAD
       || rd.value == SHAPE_MAP_ORDER
-      || rd.value == SHAPE_MAP_CORNER)
+      || rd.value == SHAPE_MAP_CORNER
+      || rd.value == MMA_ASYMPTOTE
+      || rd.value == MMA_LOWER_VAL
+      || rd.value == MMA_UPPER_VAL
+      || rd.value == MMA_OBJ_GRADIANT
+      || rd.value == MMA_CON_GRADIANT_1
+      || rd.value == MMA_CON_GRADIANT_2
+      )
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -570,7 +577,7 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->DetermineFilter().weight;
 
-  case NUM_NEIGHBOURS:       
+  case NUM_NEIGHBOURS:
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->DetermineFilter().neighborhood.GetSize();
 
@@ -660,7 +667,7 @@ std::string DesignElement::ToString(const DesignElement* de, bool barycenter)
     else
       ss << " t=" << type.ToString(de->type_);
   }
-  
+
   return ss.str();
 }
 
@@ -818,6 +825,12 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(LEVEL_SET_GRAD_ZN, "levelSetGradZN");
   valueSpecifier.Add(HEAT_NODAL_TRACK_VAL, "heatNodalTrackValue");
   valueSpecifier.Add(TEMP_AT_INTERFACE, "tempAtInterface");
+  valueSpecifier.Add(MMA_ASYMPTOTE, "mmaAsymptote");
+  valueSpecifier.Add(MMA_LOWER_VAL, "mmaLowerVal");
+  valueSpecifier.Add(MMA_UPPER_VAL, "mmaUpperVal");
+  valueSpecifier.Add(MMA_OBJ_GRADIANT, "mmaGradiant_0");
+  valueSpecifier.Add(MMA_CON_GRADIANT_1, "mmaGradiant_1");
+  valueSpecifier.Add(MMA_CON_GRADIANT_2, "mmaGradiant_2");
 
   detail.SetName("DesignElement::Detail");
   detail.Add(NONE, "none");
@@ -1294,7 +1307,7 @@ VicinityElement::Neighbour VicinityElement::FindRelativeNeighborLocation(Point& 
     else
       res = diff[2] < 0 ? Z_P : Z_N;
   }
-  
+
   LOG_DBG2(desel) << "VE:FRNL ref =" << ref.ToString() << " other=" << other.ToString() << " -> " << res;
 
   if(res == NONE)

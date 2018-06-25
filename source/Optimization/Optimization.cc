@@ -49,7 +49,7 @@
 #include "def_use_scpip.hh"
 #include "def_use_snopt.hh"
 #include "Optimization/Optimizer/SGP.hh"
-
+#include "Optimization/Optimizer/MMA.hh"
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
   #include "Optimization/Optimizer/IPOPTHolder.hh"
@@ -101,7 +101,7 @@ Optimization::Optimization()
   optInfoNode = domain->GetInfoRoot()->Get("optimization");   // store our info results here
   PtrParamNode header = optInfoNode->Get(ParamNode::HEADER);
   optParamNode = domain->GetParamRoot()->Get("optimization"); // read our parameters from the xml file
-  
+
   // in transient optimization one can specify the initial value as a solution to a static problem and a weight for it (just in tracking)
   firstStepStatic = optParamNode->Has("firstStepStatic");
   if(firstStepStatic)
@@ -141,7 +141,7 @@ Optimization::Optimization()
   this->commitStride = optParamNode->Has("commit") ? optParamNode->Get("commit/stride")->As<Integer>() : 1;
   optInfoNode->Get("commit/mode")->SetValue(cm);
   optInfoNode->Get("commit/stride")->SetValue(commitStride);
-  
+
   // write the HALTOPT file, helps to memorize how to write the file
   optInfoNode->Get("haltopt_file")->SetValue(fs::current_path().string() + "/HALTOPT");
 
@@ -249,6 +249,10 @@ void Optimization::PostInitSecond()
          #endif
          break;
 
+    case MMA_SOLVER:
+         baseOptimizer_ = new MMA(this, opt);
+         break;
+
     case SNOPT_SOLVER:
          #ifdef USE_SNOPT
            baseOptimizer_ = new SnOpt(this, opt);
@@ -280,7 +284,7 @@ void Optimization::PostInitSecond()
     case EVALUATE_INITIAL_DESIGN:
          baseOptimizer_ = new EvaluateOnly(this, opt);
          break;
-         
+
     case GRADIENT_CHECK:
          baseOptimizer_ = new GradientCheck(this, opt);
          break;
@@ -457,6 +461,7 @@ void Optimization::SetEnums()
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
   optimizer.Add(FEAS_PP_SOLVER, "feasPP");
+  optimizer.Add(MMA_SOLVER, "mma");
   optimizer.Add(SGP_SOLVER, "sgp");
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
@@ -471,7 +476,7 @@ void Optimization::SetEnums()
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_OPT, "shapeOpt");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_PARAM_MAT, "shapeParamMat");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_MAP, "shapeMap");
-  
+
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::EACH_FORWARD, "each_forward");
@@ -547,7 +552,7 @@ bool Optimization::DoStopOptimization()
     in->Get("reason/msg")->SetValue(user_break_reason);
     return true;
   }
-  
+
   ObjectiveContainer::StoppingRule& stop = objectives.stop;
 
   // check for too long?!
@@ -627,9 +632,9 @@ Optimization* Optimization::CreateInstance()
 
   ErsatzMaterial::Method method = ErsatzMaterial::method.Parse(em->Get("method")->As<string>());
   OptimizationMaterial::System material = ParseSystem();
-  
+
   Optimization* opt = NULL;
-  
+
   switch(method)
   {
   case ErsatzMaterial::SIMP_METHOD:
@@ -642,7 +647,7 @@ Optimization* Optimization::CreateInstance()
     case OptimizationMaterial::LBM:
       opt = new SIMP(); // generally single PDE!
       break;
-      
+
     case OptimizationMaterial::PIEZOCOUPLING:
       opt = new PiezoSIMP();
       break;
@@ -652,7 +657,7 @@ Optimization* Optimization::CreateInstance()
       break;
     }
     break;
-    
+
   // FMO, ShapeGrad, ...
   case ErsatzMaterial::PARAM_MAT:
     if(material == OptimizationMaterial::PIEZOCOUPLING)
@@ -672,10 +677,10 @@ Optimization* Optimization::CreateInstance()
     break;
   default: throw Exception("Optimization not implemented");
   }
-  
+
   // we have to do this, as PostInitSecond does already run CalcObjective/Gradient
   domain->SetOptimization(opt);
-  
+
   return opt;
 }
 
@@ -683,7 +688,7 @@ void Optimization::SolveProblem()
 {
   // one driver is one multisequence step. We do this stuff here
   // and call the driver->StoreResults() multiple times f
-  
+
   ResultHandler* rh = NULL;
 
   if(!IsTransient()){ // transient optimization saves results in a different way
@@ -745,7 +750,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
 
   id.excite = me->IsEnabled() ? excite->GetFullLabel() : "";
   id.adjoint = false;
-  
+
   if(IsTransient() && problemSolvedCounter > 0){ // transient optimization always has a mech pde
     SinglePDE* mech = context->ToPDE(App::MECH);
     assert(false);
@@ -754,7 +759,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
     assert(false);
     // FIXME mech->GetSolveStep()->ReInit();
   }
-                                         
+
   // Do not store the results. This is to be done in CommitIteration
   if(context->IsHarmonic() && excite != NULL)
   {
@@ -1255,7 +1260,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       *out << " \t" << d[i];
     }
   }
-  
+
   if(out && log.designGradient){
     StdVector<double> d;
     d.Resize(design->GetNumberOfVariables());
@@ -1265,7 +1270,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       *out << " \t" << d[i];
     }
   }
-  
+
   if(out && log.designConstraintGradients)
   {
     for(unsigned int i = 0; i < constraints.all.GetSize(); i++)

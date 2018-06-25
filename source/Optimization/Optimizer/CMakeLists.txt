@@ -5,6 +5,7 @@ SET(OPTIMIZER_SRCS
   EvaluateOnly.cc
   GradientCheck.cc
   SGP.cc
+  MMA.cc
 )
 
 SET(TARGET_LL
@@ -32,9 +33,9 @@ IF(USE_KNITRO)
 
    #SET(TARGET_LL ${TARGET_LL} ${KNITRO_LIBRARY})
    SET(TARGET_LL ${TARGET_LL} knitro700)
-   
+
    INCLUDE_DIRECTORIES(${KNITRO_INCLUDE_DIR})
-   
+
    SET(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} KNITRO.cc)
 ENDIF(USE_KNITRO)
 
@@ -42,9 +43,9 @@ IF(USE_SCPIP)
    SET(TARGET_LL ${TARGET_LL} ${SCPIP_LIBRARY} ${DEPENDS})
    # message("${CFS_FORTRAN_LIBS}")
    # SCPIPBase is also the open source project C++SCPIP.
-   # With this definition the file lives in both worlds! 
+   # With this definition the file lives in both worlds!
    ADD_DEFINITIONS(-DUSE_4_CFS)
-   
+
    SET(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SCPIP.cc SCPIPBase.cc)
 ENDIF(USE_SCPIP)
 

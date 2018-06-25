@@ -228,7 +228,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
           domain->GetGrid()->GetElems(elems, reg_data[r]);
           unsigned int n = elems.GetSize();
           std::string reg = regNames[reg_data[r]];
-	
+
           bool design_all = design_reg == "all";
           if(design_all || design_reg == reg)
           {
@@ -380,7 +380,7 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
       throw Exception("In 'design' give 'lower' or 'pyhical_lower'");
     return pn->Get("lower")->As<double>();
   }
-     
+
   // we have to find the lower bound by the transfer function.
   assert(tf != NULL);
 
@@ -1378,6 +1378,17 @@ int DesignSpace::WriteDesignToExtern(Vector<double>& space_out, bool scaling) co
   return WriteDesignToExtern(space_out.GetPointer(), scaling);
 }
 
+void DesignSpace::WriteBoundsToExtern(StdVector<double>& x_l, StdVector<double>& x_u) const
+{
+  x_l.Resize(GetNumberOfVariables());
+  x_u.Resize(GetNumberOfVariables());
+  // TODO remove the ugly pointer variant!
+  WriteBoundsToExtern(x_l.GetPointer(), x_u.GetPointer());
+}
+
+
+
+
 void DesignSpace::WriteBoundsToExtern(double* x_l, double* x_u) const {
   const unsigned int nd = design.GetSize();
   const unsigned int nr = regions[0].GetSize();
@@ -1411,7 +1422,7 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   // had to weaken this condition for DESIGN_TRACKING in debug mode
   assert((regions[0].GetSize() == 1) || (f->GetType() != Function::DESIGN_TRACKING));
   assert(f != NULL); // only constraints can have sparse Jacobians
-  
+
   unsigned int data_size = DesignSpace::GetNumberOfVariables(); // do not take aux variables
 
   StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
@@ -1620,7 +1631,7 @@ void DesignSpace::EnableTransferFunctions()
   for(unsigned int i = 0; i < transfer.GetSize(); i++) transfer[i].Enable(true);
 }
 
-unsigned int DesignSpace::GetNumberOfVariables() const 
+unsigned int DesignSpace::GetNumberOfVariables() const
 {
   const unsigned int nd = design.GetSize();
   const unsigned int nr = regions.GetSize() > 0 ? regions[0].GetSize() : 0; // e.g. for pure shape optimization
@@ -1629,10 +1640,10 @@ unsigned int DesignSpace::GetNumberOfVariables() const
     for(unsigned int r = 0; r < nr; r++){
       const DesignRegion& cur_reg = regions[des][r];
       switch(cur_reg.constant){
-      case VARIABLE: 
+      case VARIABLE:
         n += cur_reg.elements;
         break;
-      case CONSTANT_PER_REGION: 
+      case CONSTANT_PER_REGION:
         n++;
         break;
       case CONSTANT_ON_ALL_REGIONS:

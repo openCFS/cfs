@@ -151,7 +151,13 @@ public:
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN,
     SHAPE_MAP_GRAD, /* the sum of all dtanh_da over all ip for a rho element for shape mapping */
     SHAPE_MAP_ORDER, /* the number of integration points for this element */
-    SHAPE_MAP_CORNER /* the difference between the minimal and maximal corner values (min and max for all shapes) Makes only sense for 1 shape!*/
+    SHAPE_MAP_CORNER, /* the difference between the minimal and maximal corner values (min and max for all shapes) Makes only sense for 1 shape!*/
+    MMA_ASYMPTOTE, /* element and function wise MMA asymptotes for own MMA implementation */
+    MMA_LOWER_VAL ,/* own MMA implementation lower bound for design variable */
+    MMA_UPPER_VAL, /* own MMA implementation lower bound for design variable */
+    MMA_OBJ_GRADIANT, /* own MMA implementation gradiant of objective */
+    MMA_CON_GRADIANT_1, /* own MMA implementation gradiant of constraint */
+    MMA_CON_GRADIANT_2 /* own MMA implementation gradiant of constraint */
   } ValueSpecifier;
 
     /** The type of this design element, influences the Get*Bound() methods.
@@ -426,7 +432,7 @@ public:
 
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
-    
+
     /** Write key values as attributes
      * @param tf if given prints the physical lower bound */
     void ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial* em) const;
@@ -436,7 +442,7 @@ public:
 
     /** makes a short dump, handles NULL */
     static std::string ToString(const DesignElement* de, bool barycenter = false);
-    
+
     /** helper for LOG output */
     static std::string ToString(const StdVector<DesignElement*>& vec, bool print_type = false);
     static std::string ToString(const StdVector<DesignElement>& vec, bool print_val = false, bool print_type = false);
@@ -482,7 +488,7 @@ public:
 
     /** The level-set element, will be destroyed by LevelSet */
     LevelSetElement* lse_;
-    
+
     /** The topgrad element, will be destroyed by TopGrad */
     TopGradElement *tge;
 

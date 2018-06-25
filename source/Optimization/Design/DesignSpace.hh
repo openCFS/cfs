@@ -45,7 +45,7 @@ namespace CoupledField
      DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      virtual ~DesignSpace();
-    
+
      /** Creates the corresponding DesignSpace object depending on the method */
      static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
@@ -139,7 +139,7 @@ namespace CoupledField
      /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
      //bool HasErsatzMaterialDamping() { return(designMaterial != NULL && designMaterial->DampingIsDesign()); }
 
-     
+
      /** Calculates the corresponding ErsatzElementMatrix for the given element
       * @param t holds the resulting Element Matrix
       * @param elem Elem pointer
@@ -154,7 +154,7 @@ namespace CoupledField
       * @param direction if given return derivative in that direction
       * @return whether DampingParameters are optimized at all  */
      //bool GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
-     
+
      /** Get the correct Damping parameter, alpha for Mass, beta for Stiffness */
      //bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* integrator, */double& param);
 
@@ -213,15 +213,15 @@ namespace CoupledField
       * @return the design_id which is the old one if space_in did not change the design. */
      virtual int ReadDesignFromExtern(const double* space_in);
      int ReadDesignFromExtern(const StdVector<double>& space);
-     
+
      /** Compare the design with the present. Does not change anything!
       * @return true if the designs are equal and ReadDesignFromExtern() would give the old design id */
      virtual bool CompareDesign(const double* space_in);
-           
-     /** gives the initial guess (for the design space) 
+
+     /** gives the initial guess (for the design space)
       * @param space_out to this array of GetDesignSpaceSize() the initial guess is written to.
-      * @param scaling false to return the unscaled design variables (for logging), 
-      * true to return the variables as scaled for the optimizer 
+      * @param scaling false to return the unscaled design variables (for logging),
+      * true to return the variables as scaled for the optimizer
       * @return the internal design_id as calculated by ReadDesignFromExtern()
       * @see SetDesignSpace() */
      virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;
@@ -244,13 +244,15 @@ namespace CoupledField
      }
 
      /** provide the upper and lower bounds on the design variables to the optimizer */
+     virtual void WriteBoundsToExtern(StdVector<double>& x_l, StdVector<double>& x_u) const;
+
      virtual void WriteBoundsToExtern(double* x_l, double* x_u) const;
-     
+
      /** Sets the value of the described design element to 0
       * @param vs what values to set. Not all make sense -> exception
       * @param design with design elements to set, DEFAULT applies for all design types */
      virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
-     
+
      /** creates a gnuplot file for the current iteration. To be triggered by cfs -d and only implemented in shape map design */
      virtual void WriteGradientFile() {} ;
 
@@ -338,10 +340,10 @@ namespace CoupledField
      /** this is the number of ersatz material variables. Only below GetNumberOfVariables()
       * if AuxDesign or ShapeDesign is used*/
      unsigned int GetNumberOfErsatzMaterialVariables() const { return DesignSpace::GetNumberOfVariables(); }
-     
+
      /** this is the number of Aux/Shape variables */
      virtual int GetNumberOfAuxParameters() const { return 0; }
-     
+
      /** this is the number of shape mapping param variables. > 0 means we do shape mapping */
      virtual int GetNumberOfShapeMappingVariables() const { return 0; }
 
@@ -374,7 +376,7 @@ namespace CoupledField
      /** Our tranformations */
      StdVector<Transform> transform;
 
-     /** Here we store the designs we have. Check with Find() for the element. 
+     /** Here we store the designs we have. Check with Find() for the element.
       * Note, that multimaterial_density is not unique here! */
      StdVector<DesignID> design;
 
@@ -393,7 +395,7 @@ namespace CoupledField
      /** Might be nonsense if our constructor is no simp or ersatz material one! */
      int GetRegionId() const
      {
-       // in the case of homTracking with shape optimization we do not have a 
+       // in the case of homTracking with shape optimization we do not have a
        // design region, but GetRegionId is still called
        // so we cannot assert regions.GetSize() == 1 as before
        if(regions.GetSize() == 0) return -1;
@@ -422,14 +424,14 @@ namespace CoupledField
      /** Writes summary information about design variables and transfer functions into the node
       * @param em might be NULL if called from read ersatz material */
      virtual void ToInfo(ErsatzMaterial* em);
-     
+
      typedef enum { VARIABLE, CONSTANT_PER_REGION, CONSTANT_ON_ALL_REGIONS, FIXED } DesignConstant;
-     
+
      static Enum<DesignConstant> designConstant;
 
      /** This holds information about a region, valid for one design.
-      * save parameters for scaling the design to [0..1] in the optimizer: 
-      * our design = scaling * optimizer_design + translation 
+      * save parameters for scaling the design to [0..1] in the optimizer:
+      * our design = scaling * optimizer_design + translation
       * given for every design, for every region */
      class DesignRegion
      {
@@ -473,7 +475,7 @@ namespace CoupledField
        /** the label for the info.xml */
        std::string bimaterial_;
      };
-     
+
      /** Get DesignRegion.  */
      DesignRegion* GetRegion(RegionIdType id, DesignElement::Type dt = DesignElement::NO_TYPE, int multimaterial_index = -1, bool throw_exception = true);
 
@@ -574,7 +576,7 @@ namespace CoupledField
 
      /** Here we store the multimaterial data */
      StdVector<MultiMaterial> multimaterial;
-     
+
      /** We afford a large element number to design index mapping.
       * sorted by the elemNum the design index is stored.
       * For real designs, only for the first design design (index < elements) the index is stored. @see Find()!!
@@ -583,7 +585,7 @@ namespace CoupledField
       * -1 for element numbers with no associated design */
      StdVector<std::pair<int, bool> > elemToDesign;
 
-     /** This transforms FormName (Integrator) to App::Type -> so the enum is actually App::Type 
+     /** This transforms FormName (Integrator) to App::Type -> so the enum is actually App::Type
       * but here int because of circular includes :( */
      Enum<int> applicationForm;
 
@@ -657,4 +659,3 @@ namespace CoupledField
 } // end of namespace
 
 #endif /*DESIGN_SPACE_HH_*/
-
