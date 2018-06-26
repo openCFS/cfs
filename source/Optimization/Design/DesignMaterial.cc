@@ -2627,38 +2627,29 @@ bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
 }
 
 int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point) const {
+  double eps = 1e-6;
   int nRows = interval.GetNumRows();
+  assert(nRows > 0);
   double h = interval[1][0] - interval[0][0];
+  assert(h > -eps);
   int idx = -1;
-  if (interval[0][0] <= point && point < interval[nRows - 1][0]) {
+  // set index for values close to boundaries manually
+  if (interval[0][0] < point + eps && point < interval[nRows-1][0] - eps) {
     idx = (int) ( (point - interval[0][0]) / h);
-  } else if (point == interval[nRows - 1][0]) {
+  } else if (close(point, interval[nRows - 1][0])) {
     idx = nRows - 2;
-  } else if (point > interval[nRows - 1][0]) {
+  } else if (point + eps > interval[nRows - 1][0]) {
     idx = nRows - 2;
     point = 1.;
-    if (point > 1.01) {
-      #pragma omp critical
-      {
-        PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/progress");
-        inf_warn->SetWarning("Interpolation of Hom_RectC1 tensor failed. Design Variable "
-            + lexical_cast<string>(point) + " out of bounds ");
-      }
-    }
-  } else if (point < interval[0][0]) {
+  } else if (point < interval[0][0] + eps) {
     idx = 0;
     point = interval[0][0];
-    if (point < interval[0][0]-0.01) {
-      #pragma omp critical
-      {
-        PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/progress");
-        inf_warn->SetWarning(
-          "Interpolation of Hom_RectC1 tensor failed. Design Variable "
-              + lexical_cast<string>(point) + " out of bounds ");
-      }
-    }
   }
-  assert(idx != -1);
+  assert(idx >= 0);
+  assert(idx < nRows - 1);
+  assert(point + eps > interval[0][0]);
+  assert(point - eps < interval[1][0]);
+
   return idx;
 }
 
@@ -2672,9 +2663,9 @@ double DesignMaterial::EvaluateC1Interpolation_3D(Vector<double>& p,
   double v=(p[2]-hom_rect_c_[l][0])/dc;
   LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<" v= "<<v;
   double res = 0;
-  for (int ii = 0;ii<4;ii++) {
-    for (int jj=0;jj<4;jj++) {
-      for (int kk=0;kk<4;kk++) {
+  for (int ii = 0; ii<4; ii++) {
+    for (int jj=0; jj<4; jj++) {
+      for (int kk=0; kk<4; kk++) {
         res += coeff[(n-1)*(o-1)*j+(o-1)*k+l][ii+4*jj+16*kk]*pow(t,ii)*pow(u,jj)*pow(v,kk);
       }
     }
