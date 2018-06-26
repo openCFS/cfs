@@ -2645,10 +2645,10 @@ int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point
     idx = 0;
     point = interval[0][0];
   }
-  assert(idx >= 0);
-  assert(idx < nRows - 1);
+  assert(idx > -1);
+  assert(idx < nRows-1);
   assert(point + eps > interval[0][0]);
-  assert(point - eps < interval[1][0]);
+  assert(point - eps < interval[nRows-1][0]);
 
   return idx;
 }
