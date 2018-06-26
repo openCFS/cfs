@@ -1061,7 +1061,8 @@ void Optimization::StoreResults(double step_val)
     else
       context->GetDriver()->StoreResults(writeCounter_, step_val);
 
-    writeCounter_++;
+    if (!context->GetDriver()->GetResultHandler()->streamOnly)
+      writeCounter_++;
   }
 }
 
@@ -1070,7 +1071,7 @@ void Optimization::FinalizeStoreResults()
   // after the last CommitIteration the iteration counter was incremented
   bool store = (int) currentIteration-1 != lastStoredResult_ && currentIteration > 1;
   LOG_DBG(opt) << "CheckFinalStoreResults: currentIteration=" << currentIteration << " lastStoredResult="
-               << lastStoredResult_ << " store=" << store;
+               << lastStoredResult_ << " store=" << store << " writeCounter:" << writeCounter_;
   if(store)
     StoreResults(currentIteration-1);
 }
