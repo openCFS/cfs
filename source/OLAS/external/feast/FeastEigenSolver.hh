@@ -49,9 +49,7 @@ namespace CoupledField {
 
     /** Solve the linear generalized eigenvalue problem
      * @see BaseEigenSolver::CalcEigenFrequencies() */
-    void CalcEigenFrequencies(BaseVector& sol, BaseVector& err){
-        EXCEPTION("obsolete - should be removed from interface");
-    }
+    void CalcEigenFrequencies(BaseVector& sol, BaseVector& err); //removed EXCEPTION due to compiler Error. of duplicate function in .cc
 
     /**Calculate a particular eigenmode as a postprocessing solution
      * @see BaseEigenSolver::GetEigenMode() */
