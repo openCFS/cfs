@@ -687,6 +687,7 @@
                 <xsd:attribute name="asym_dec" default="0.7" use="optional" type="xsd:float"/>
                 <xsd:attribute name="asym_inc" default="1.2" use="optional" type="xsd:float"/>
                 <xsd:attribute name="robust_asymptote" default="false" use="optional" type="xsd:boolean" />
+                <xsd:attribute name="constraint_modification" default="false" use="optional" type="xsd:boolean" />
               </xsd:complexType>
             </xsd:element>
  
