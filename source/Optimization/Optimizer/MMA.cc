@@ -22,17 +22,24 @@ using std::string;
 
 MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimization::MMA_SOLVER)
 {
-  n = 0; // number of design variables
-  m = 0; // number of oncstrains
+
   PostInitScale(1.0);
   if(this_opt_pn_ != NULL)
   {
+    /** max sub problem iteration */
     max_sub_iter = this_opt_pn_->Get("max_sub_iter")->As<unsigned int>();
+
+    /** Determines how aggresively the asymptotes are moved
+     * asymptotes initialization and increase/decrease
+     * these values are used in MMA::GenreteSubProblem() to update low and upp */
     asyminit = this_opt_pn_->Get("asym_init")->As<double>();
     asymdec = this_opt_pn_->Get("asym_dec")->As<double>();
     asyminc = this_opt_pn_->Get("asym_inc")->As<double>();
+
+    constraintModification = this_opt_pn_->Get("constraint_modification")->As<bool>();
     robustAsymptotes = this_opt_pn_->Get("robust_asymptote")->As<bool>();
     fixedAsymptotes = this_opt_pn_->Has("fixed_asymptotes") && this_opt_pn_->Get("fixed_asymptotes/enable")->As<bool>();
+
     if(fixedAsymptotes) {
       asym_fixed_lower = this_opt_pn_->Get("fixed_asymptotes/lower")->As<double>();
       asym_fixed_upper = this_opt_pn_->Get("fixed_asymptotes/upper")->As<double>();
@@ -96,8 +103,12 @@ void MMA::PostInit()
   //MMA related initilization
   low.Resize(n,0.0); //cdev important to set it to zero
   upp.Resize(n,0.0); //cdev important to set it to zero
-  xold1 = xval;
-  xold2 = xval;
+
+  if(!fixedAsymptotes) {
+    xold1 = xval;
+    xold2 = xval;
+  }
+
   alpha.Resize(n);
   beta.Resize(n);
   change.Resize(n);
@@ -175,7 +186,6 @@ void MMA::ComputeObjectiveConstraintsSensitivities()
       }
   }
 
-
   LOG_DBG3(mmaTopOpt) << "COCS: compliance=" << compliance;
   LOG_DBG3(mmaTopOpt) << "COCS: obj_scale=" << obj_scale;
   LOG_DBG3(mmaTopOpt) << "COCS: grad_compliance=" << grad_compliance.ToString(0);
@@ -188,20 +198,19 @@ void MMA::SolveProblem()
 {
   if(optimization->GetMaxIterations() == 0)
   {
-    std::cout << std::endl << "maximum number of iterations is 0 " << std::endl;
+    throw Exception("maximum number of iterations is 0 ");
     return;
   }
   ComputeObjectiveConstraintsSensitivities();
 
   assert(optimization->GetCurrentIteration() == 0);
 
-  //while(!optimization->DoStopOptimization() && optimization->GetCurrentIteration() <= optimization->GetMaxIterations())
   int maxit = optimization->GetMaxIterations();
 
+  /** ok is used to check if the sub problem was solvable*/
   bool ok = true;
   while(!optimization->DoStopOptimization() && optimization->GetCurrentIteration() <= maxit && ok)
   {
-    //  StupidTest(); return ;
     AdjustMoveLimits();
     ok = SolveMMA();
 
@@ -216,16 +225,16 @@ void MMA::SolveProblem()
 
   if(!ok)
    summary->SetWarning(mma_error_);
-
 }
 
-void MMA::AdjustMoveLimits() // cdev: Tested no errors
+/** Based on TopOpt implementation */
+void MMA::AdjustMoveLimits()
 {
-
   assert(xmin.GetSize() >= n);
   assert(xval.GetSize() >= n);
   assert(xmax.GetSize() >= n);
 
+  /** to visualize the lower and upper asymptotes*/
   DesignSpace* space = optimization->GetDesign();
   int res_idx_l = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MMA_LOWER_VAL);
   int res_idx_u = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MMA_UPPER_VAL);
@@ -255,15 +264,17 @@ void MMA::AdjustMoveLimits() // cdev: Tested no errors
 
 bool MMA::SolveMMA()
 {
+  /** Generate subproblem */
   gsp_timer_->Start();
-  // Generate subproblem
-  GenreteSubProblem();
-
+    GenreteSubProblem();// Generate subproblem
   gsp_timer_->Stop();
 
-  // Copy old design values
-  xold2 = xold1;
-  xold1 = xval;
+  /** Copy old design values
+   *  will be used to modify asymptotes, so useless when we have fixed asymptotes*/
+  if(!fixedAsymptotes) {
+    xold2 = xold1;
+    xold1 = xval;
+  }
 
   // Solve the MMA subproblem dual with interior point method
   sps_timer_->Start();
@@ -272,12 +283,14 @@ bool MMA::SolveMMA()
   return ok;
 }
 
-void MMA::GenreteSubProblem() // cdev: Tested decimal errors in low and upp and subsequently in alpha and beta, may be dude to reding files
+/** According to K.Svanberg's DCAMM lecture notes section 4.
+ * can also refer to TopOpt code which is based on K.Svanberg's DCAMM lecture notes */
+void MMA::GenreteSubProblem()
 {
   double sign_change = 0.0;
   double gamma = 0.0;
 
-  // For visualization
+// For visualization
 //  DesignSpace* space = optimization->GetDesign();
 //  int res_idx = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MMA_ASYMPTOTE);
 
@@ -286,8 +299,8 @@ void MMA::GenreteSubProblem() // cdev: Tested decimal errors in low and upp and 
     if(fixedAsymptotes){
       for(unsigned int i =0; i < n; ++i)
       {
-        low[i] = -0.1;
-        upp[i] = 10.0*xmax[i];
+        low[i] = asym_fixed_lower;
+        upp[i] = asym_fixed_upper*xmax[i];
       }
     }
     else {
@@ -302,20 +315,23 @@ void MMA::GenreteSubProblem() // cdev: Tested decimal errors in low and upp and 
   {
     for(unsigned int i =0; i< n; ++i)
     {
-      sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
-      if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
-      else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
-      else gamma = 1.0; // there is no design change
-      low[i] = xval[i] - gamma*(xold1[i] - low[i]);
-      upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
-      double x_min_tmp = max(1.0e-5, xmax[i] - xmin[i]);
-      double x_max_tmp = 0.0;
 
       if(fixedAsymptotes) {
-          low[i] = 0.0;
-          upp[i] = 10.0*xmax[i];
+        low[i] = asym_fixed_lower;
+        upp[i] = asym_fixed_upper*xmax[i];
       }
+      /** implementation of robust asymptote based on TopOpt code
+       * refer function GenSub(...) in MMA.c */
       else if(robustAsymptotes) {
+        sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
+        if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
+        else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
+        else gamma = 1.0; // there is no design change
+        low[i] = xval[i] - gamma*(xold1[i] - low[i]);
+        upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
+        double x_min_tmp = max(1.0e-5, xmax[i] - xmin[i]);
+        double x_max_tmp = 0.0;
+
         //Robust Asymptotes
         low[i]=max(low[i],xval[i]-100.0*x_min_tmp);
         low[i]=min(low[i],xval[i]-0.01*x_min_tmp);
@@ -336,7 +352,16 @@ void MMA::GenreteSubProblem() // cdev: Tested decimal errors in low and upp and 
           upp[i] = xval[i] + (xval[i] - x_min_tmp)/0.9;
         }
       }
+      /** implementation of robust asymptote based on TopOpt code
+       * refer function GenSub(...) in MMA.c */
       else {
+        sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
+        if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
+        else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
+        else gamma = 1.0; // there is no design change
+        low[i] = xval[i] - gamma*(xold1[i] - low[i]);
+        upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
+        double x_min_tmp = max(1.0e-5, xmax[i] - xmin[i]);
         low[i]=max(low[i],xval[i]-10.0*x_min_tmp);
         low[i]=min(low[i],xval[i]-1.0e-4*x_min_tmp);
         upp[i]=max(upp[i],xval[i]+1.0e-4*x_min_tmp);
@@ -346,13 +371,15 @@ void MMA::GenreteSubProblem() // cdev: Tested decimal errors in low and upp and 
   }
 
   // Formation of pij and qij
-
   double dfdx_pos, dfdx_neg, extra;
   double feps = 1.0e-6;
   for(unsigned int ni=0; ni < n; ++ni)
   {
+    /** explained in K.Svanberg's paper section 3. equation 8.
+     * this is chosen to avoid division by zero */
     alpha[ni] = max(xmin[ni], 0.9*low[ni]+0.1*xval[ni]);
     beta[ni] = min(xmax[ni], 0.9*upp[ni]+0.1*xval[ni]);
+
     dfdx_pos = max(0.0, grad_compliance[ni]);
     dfdx_neg = max(0.0, -1.0*grad_compliance[ni]);
     extra = 0.001*Abs(grad_compliance[ni]) + 0.5*feps/(upp[ni] - low[ni]);
@@ -361,25 +388,25 @@ void MMA::GenreteSubProblem() // cdev: Tested decimal errors in low and upp and 
 
     for(unsigned int mj =0; mj<m ; ++mj)
     {
-      if(mj == 0) // constrain modification version from topopt code
+      dfdx_pos = max(0.0, grad_constrains[mj*n + ni]);
+      dfdx_neg = max(0.0, -1*grad_constrains[mj*n + ni]);
+      /** when constraintModification = true p_ij and q_ij are formed according to
+       * description povided in K.Svanberg's DCAMM lecture notes section 4*/
+      if(constraintModification)
       {
-        dfdx_pos = max(0.0, grad_constrains[mj*n + ni]);
-        dfdx_neg = max(0.0, -1*grad_constrains[mj*n + ni]);
-
         extra = 0.001*Abs(grad_constrains[mj*n + ni]) + 0.5*feps/(upp[ni] - low[ni]);
         p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra) ;
         q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra) ;
       }
+      /** When constraintModification = false p_ij and q_ij are formed according to original K.Svanberg's paper*/
       else
       {
-        dfdx_pos = max(0.0, grad_constrains[mj*n + ni]);
-        dfdx_neg = max(0.0, -1*grad_constrains[mj*n + ni]);
         p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * dfdx_pos ;
         q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * dfdx_neg ;
       }
     }
   }
-  // Calculation of the MMA approximation function
+  // Calculation of RHS of the constrains in subproblem
   for(unsigned int j =0; j<m; ++j)
   {
     b[j] = 0.0;
@@ -530,14 +557,17 @@ bool MMA::SolveSubProblem()
 
 void MMA::PrimalVarFromDualVar()
 {
+
   double lamda_x_a = 0.0;
-  for(unsigned int j=0; j < m; ++j)
+  for(unsigned int mj=0; mj < m; ++mj)
   {
-    if(lamda[j] < 0.0) lamda[j] = 0.0;
-    y[j] = max(0.0, lamda[j] - c[j]);
-    lamda_x_a += lamda[j]*a[j];
+    if(lamda[mj] < 0.0) lamda[mj] = 0.0;
+    y[mj] = max(0.0, lamda[mj] - c[mj]);
+    lamda_x_a += lamda[mj]*a[mj];
   }
   z = max(0.0, 10.0*(lamda_x_a - 1.0));
+
+  /** update of xval[] according to K.Svanberg's paper section 4. equation 17-19.*/
   double pj_x_lamda = 0.0;
   double qj_x_lamda = 0.0;
   for(unsigned int i = 0; i < n; ++i)
@@ -791,6 +821,8 @@ void MMA::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   }
 }
 
+
+/*
 // Used for debugging, Helper function to read files used in InitilizeFromFile()
 bool MMA::is_number(const std::string& s)
 {
@@ -804,10 +836,11 @@ bool MMA::is_number(const std::string& s)
     }
     return true;
 }
-
+*/
 /**
  * Used for debugging, will read the data from PETSC output file produced by topopt and inilitize.
  * */
+/*
 void MMA::InitilizeFromFile(std::string filename, double *dp){
   std::ifstream input(filename);
     if (input) {
@@ -823,12 +856,13 @@ void MMA::InitilizeFromFile(std::string filename, double *dp){
         }
   }
 }
-
+*/
 /** Used for debugging, content of the function modified based on the function being chceked
  * 1. We initilize all the data used by the function
  * 2. Call the function
  * 3. Output the data you want to check
  */
+/*
 void MMA::StupidTest()
 {
 
@@ -860,7 +894,7 @@ void MMA::StupidTest()
   LOG_DBG3(mmaTopOpt) << "StupidTest: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ " ;
   assert (true && "Stupid test done");
 }
-
+*/
 //
 //void MMA::StupidTest()
 //{
