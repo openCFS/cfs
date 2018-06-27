@@ -65,6 +65,10 @@ namespace CoupledField
     isAllowed_.insert( HYST_STRAIN_FORM );
     isAllowed_.insert( HYST_BETA_COEFS );
     isAllowed_.insert( DIM_BETA_COEFS );
+    isAllowed_.insert( HYST_IRRSTRAINS );
+    isAllowed_.insert( HYST_IRRSTRAIN_C1 );
+    isAllowed_.insert( HYST_IRRSTRAIN_C2 );
+    isAllowed_.insert( HYST_IRRSTRAIN_C3 );
     isAllowed_.insert( ROT_RESISTANCE );
     isAllowed_.insert( EVAL_VERSION );
     isAllowed_.insert( PRINT_PREISACH );

@@ -931,7 +931,7 @@ namespace CoupledField
 
       //helpMat   = (*this) * QT;
       //retMat = Q * helpMat;
-      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
+//      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
 
     } else if( (rowSize == 3 && colSize == 6) ||
              (rowSize == 6 && rowSize == 6 ) ) {

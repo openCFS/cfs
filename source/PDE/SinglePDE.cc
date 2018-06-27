@@ -480,13 +480,13 @@ namespace CoupledField {
   //  Initialize Nonlinearities
   // ****************************
   void SinglePDE::InitNonLin() {
-    std::cout << "SinglePDE::InitNonLin()" << std::endl;
+//    std::cout << "SinglePDE::InitNonLin()" << std::endl;
     nonLin_ = false;
 
     // Check, if "nonLinList" is present
     PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinListNode ) { 
-      std::cout << "NonLinListFound" << std::endl;
+//      std::cout << "NonLinListFound" << std::endl;
       // Get nonlinear types
       ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {

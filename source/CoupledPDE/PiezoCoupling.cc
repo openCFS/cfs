@@ -538,7 +538,18 @@ namespace CoupledField {
     PtrCoefFct coefFlux = CoefFunction::Generate(mp,part,
                          CoefXprBinOp(mp,coefElecD, cplFunc,
                                       CoefXpr::OP_ADD) );
-    DefineFieldResult( coefFlux, flux );
+    // in hyst case, we have to subtract [e]S_irr!
+    if( !isHyst_){
+      DefineFieldResult( coefFlux, flux );
+    } else {
+      if(irrStrainsSet_ == false){
+        EXCEPTION("Hyst coef functions not initialized yet");
+      }
+      PtrCoefFct coefFlux_full = CoefFunction::Generate(mp,part,
+              CoefXprBinOp(mp,coefFlux, coupledIrrStrains_, 
+              CoefXpr::OP_SUB) );
+      DefineFieldResult( coefFlux_full, flux );
+    }
 
     // === irrevesible strains and stresses ===
     // check if at least one region has hysteretic behavior
@@ -601,18 +612,18 @@ namespace CoupledField {
     // > from mech PDE we get [sigma] = [c]*Bu = [c]*S_total = [c]*(S_reversible + S_irreversible)
     // > subtract [c]*S_irreversible
     PtrCoefFct coefStress;
-//    if ( isHyst_){
-//      PtrCoefFct coefStress_full = CoefFunction::Generate(mp,part,
-//              CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
-//              CoefXpr::OP_ADD) );
-//      coefStress = CoefFunction::Generate(mp,part,
-//              CoefXprBinOp(mp,coefStress_full, irrStresses_, 
-//              CoefXpr::OP_SUB) );
-//    } else {
+    if ( isHyst_ ){
+      PtrCoefFct coefStress_full = CoefFunction::Generate(mp,part,
+              CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
+              CoefXpr::OP_ADD) );
+      coefStress = CoefFunction::Generate(mp,part,
+              CoefXprBinOp(mp,coefStress_full, irrStressesVector_, 
+              CoefXpr::OP_SUB) );
+    } else {
       coefStress = CoefFunction::Generate(mp,part,
               CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
               CoefXpr::OP_ADD) ); 
-//    }
+    }
     
     DefineFieldResult(coefStress, stress);
 
@@ -773,7 +784,7 @@ namespace CoupledField {
         regionHystOperator->SetElastAndCouplTensor(stiffCoef, couplingCoef);
 				
 				// mech RHS
-				shared_ptr<CoefFunction> mechRHS = regionHystOperator->GenerateRHSCoefFnc("IrrStrainForMechPDE");
+				shared_ptr<CoefFunction> mechRHS = regionHystOperator->GenerateRHSCoefFnc("IrrStressForMechPDE");
 				
 				if ( isComplex_ ) {
 					if( subType_ == "axi" ) {
@@ -822,7 +833,7 @@ namespace CoupledField {
 					}
 				}
 
-        lin->SetName("IrrStrainForMechPDE");
+        lin->SetName("IrrStressForMechPDE");
         lin->SetSolDependent();
         LinearFormContext *ctx = new LinearFormContext( lin );
         ctx->SetEntities( actSDList );
@@ -837,7 +848,7 @@ namespace CoupledField {
         // > note: elecPDE will get multiplied by -1 in case of piezo coupling
         // > rhs term will also switch sign
         factor = -1.0;
-				shared_ptr<CoefFunction> elecRHS = regionHystOperator->GenerateRHSCoefFnc("IrrStrainForElecPDE");
+				shared_ptr<CoefFunction> elecRHS = regionHystOperator->GenerateRHSCoefFnc("CoupledIrrStrainForElecPDE");
 				
         if(isComplex_) {
           if( dim_ == 2 ) {
@@ -859,7 +870,7 @@ namespace CoupledField {
           }
         }
 
-        linElec->SetName("IrrStrainForElecPDE");
+        linElec->SetName("CoupledIrrStrainForElecPDE");
         linElec->SetSolDependent();
         LinearFormContext *ctxElec = new LinearFormContext( linElec );
         ctxElec->SetEntities( actSDList );
@@ -878,15 +889,15 @@ namespace CoupledField {
 																		 BaseBDBInt** elecToMechInt, BaseBDBInt** mechToElecInt) {
     
     SubTensorType tensorType = NO_TENSOR;
-//    UInt numStrainEntries = 3;
+    UInt numStrainEntries = 3;
     if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
       tensorType = PLANE_STRAIN;
     } else if( subType_ == "axi" ){
       tensorType = AXI;
-//      numStrainEntries = 4;
+      numStrainEntries = 4;
     } else if (subType_ == "3d" || subType_ == "2.5d"){
       tensorType = FULL;
-//      numStrainEntries = 6;
+      numStrainEntries = 6;
     } else {
       EXCEPTION( "Unknown subtype '" << subType_ << "'" );
     }
@@ -905,6 +916,8 @@ namespace CoupledField {
     if(!irrStrainsSet_){
       irrStrains_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_,dim_,isComplex_));
       irrStresses_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_,dim_,isComplex_));
+      irrStressesVector_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, numStrainEntries,1,isComplex_));
+      coupledIrrStrains_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
       irrStrainsSet_ = true;
     }
     
@@ -1052,9 +1065,13 @@ namespace CoupledField {
 //      irrStresses_->AddRegion( regionId, irrStresses);
       PtrCoefFct irrStrains = hystOperator->GenerateOutputCoefFnc("IrrStrainsPiezo_TensorForm");
       irrStrains_->AddRegion( regionId, irrStrains);
+      PtrCoefFct irrStressesVec = hystOperator->GenerateOutputCoefFnc("IrrStressesPiezo_VectorForm");
+      irrStressesVector_->AddRegion( regionId, irrStressesVec);
       PtrCoefFct irrStresses = hystOperator->GenerateOutputCoefFnc("IrrStressesPiezo_TensorForm");
       irrStresses_->AddRegion( regionId, irrStresses);
-
+      PtrCoefFct coupledIrrStrains = hystOperator->GenerateOutputCoefFnc("CoupledIrrStrainsPiezo");
+      coupledIrrStrains_->AddRegion( regionId, coupledIrrStrains);
+      
 			return true;
 		} else {
 			// NON-HYST CASE 

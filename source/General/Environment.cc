@@ -1681,6 +1681,10 @@ namespace CoupledField {
     MaterialTypeEnum.Add( HYST_STRAIN_FORM, "strainForm" );
     MaterialTypeEnum.Add( HYST_BETA_COEFS, "betaCoefs" );
     MaterialTypeEnum.Add( DIM_BETA_COEFS, "dim_betaCoefs" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAINS, "irrStrainForm" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_C1, "irrStrainMuDatC1" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_C2, "irrStrainMuDatC2" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_C3, "irrStrainMuDatC3" );
     MaterialTypeEnum.Add( ROT_RESISTANCE, "RotResistance" );
     MaterialTypeEnum.Add( PRINT_PREISACH, "printOut" );
     MaterialTypeEnum.Add( PRINT_PREISACH_RESOLUTION, "bmpResolution" );

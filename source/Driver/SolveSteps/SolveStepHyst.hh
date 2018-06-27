@@ -38,12 +38,12 @@ namespace CoupledField
     //! Destructor
     virtual ~SolveStepHyst();
     
-    void SetupRESorRHS(Integer timeLevelMaterial, Integer timeLevelDeltaMatPol, Integer timeLevelDeltaMatStrain, Integer timeLevelDeltaMatCoupling,
+    Double SetupRESorRHS(Integer timeLevelMaterial, Integer timeLevelDeltaMatPol, Integer timeLevelDeltaMatStrain, Integer timeLevelDeltaMatCoupling,
     Integer timeLevelRHSPol, Integer timeLevelRHSStrain, Integer timeLevelRHSCouling, SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, 
     SBM_Vector& solutionForRHSAssembly, SBM_Vector& returnVector);
     
-    void SetupRHS(SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, SBM_Vector& solutionForRHSAssembly, UInt iterationCounter);
-    void SetupRES(SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, SBM_Vector& solutionForRHSAssembly, UInt iterationCounter);
+    Double SetupRHS(SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, SBM_Vector& solutionForRHSAssembly, UInt iterationCounter);
+    Double SetupRES(SBM_Vector& solutionForUpdate, SBM_Vector& solutionForMatrixAssembly, SBM_Vector& solutionForRHSAssembly, UInt iterationCounter);
     void ComputeKeffTimesSolution(SBM_Vector& solution, SBM_Vector& returnVector);
     
     void AssembleSystem(SBM_Vector& solutionForAssembly, UInt iterationCounter);
@@ -72,6 +72,17 @@ namespace CoupledField
     const UInt iterationCounterTotal,
     const Double residualErr, 
     const Double incrementalErr, double etaLineSearch);
+    
+    void WriteHystIterToInfoXML(const std::string& pdeName,
+          const std::string& nonLinSolveMethod,
+          const std::string& linesearchMethod,
+          const UInt coupledIterStep,
+          const UInt solStep,
+          const UInt iterationCounter,
+          const UInt iterationCounterTotal,
+          const Double residualErr, const Double residualErrRel, bool useRelativeRelErr, 
+          const Double incrementalErr, const Double incrementalErrRel, bool useRelativeIncErr,
+          double etaLineSearch, bool reset, bool failback);
     
     //! does a line search and returns the optimal residual norm
     Double LineSearchHyst(SBM_Vector& currentSol, SBM_Vector& solIncrement, UInt iterationCounter);
@@ -153,6 +164,10 @@ namespace CoupledField
     bool towardsLastIteration_;
     bool deltaMatCoupling_;
     bool deltaMatStrain_;
+    
+    bool useRelativeNormForRes_;
+    bool useRelativeNormForInc_;
+    bool useRelativeNormForResetCheck_;
   };
   
   

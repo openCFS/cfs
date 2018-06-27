@@ -150,8 +150,8 @@ namespace CoupledField {
       ptrFieldTensor_->GetTensor(epsS_nuS,lpm);
       
       if(ptrCouplTensor_ == NULL){
-        std::cout << "StrainForm = " << strainForm_ << "(due to material file)" << std::endl;
-        std::cout << "However, no coupling was defined in .xml file." << std::endl;
+//        std::cout << "StrainForm = " << strainForm_ << "(due to material file)" << std::endl;
+//        std::cout << "However, no coupling was defined in .xml file." << std::endl;
         strainForm_ = -1;
         hystCoefFunction_->SetStrainForm(-1);
       }
@@ -1099,7 +1099,16 @@ namespace CoupledField {
     }
     
     virtual UInt GetVecSize() const {
-      return hystHelper_->GetVecSize();
+      UInt vecSize = hystHelper_->GetVecSize();
+      if(resultName_ == "IrrStressesPiezo_VectorForm"){
+        if(vecSize == 2){
+          return 3;
+        } else {
+          return 6;
+        }
+      } else {
+        return vecSize;
+      }
     }
     
     //! Return row and columns size of tensor if coefficient function is a tensor
@@ -1659,7 +1668,7 @@ namespace CoupledField {
     
     void PrecomputeScaledAndRotatedCouplingTensor(Matrix<Double> baseTensor, bool rotate);
     
-    Vector<Double> ComputeIrreversibleStrains(Vector<Double> P,Vector<Double> Pold);
+    Vector<Double> ComputeIrreversibleStrains(Vector<Double> P,Vector<Double> E_H,Vector<Double> Pold);
     
     Vector<Double> RetrieveInputToHysteresisOperator(LocPointMapped& actualLPM, UInt operatorIdx, UInt storageIdx, bool onBoundary);
     
@@ -1718,7 +1727,7 @@ namespace CoupledField {
     PtrCoefFct GenerateRHSCoefFnc(std::string vectorName, bool onBoundary = false ){
       //      std::cout << "Generate rhs coef function " << vectorName << std::endl;
       PtrCoefFct ret;
-      if( (vectorName == "ElecPolarization") || (vectorName == "IrrStrainForMechPDE") || (vectorName == "IrrStrainForElecPDE")){
+      if( (vectorName == "ElecPolarization") || (vectorName == "IrrStressForMechPDE") || (vectorName == "CoupledIrrStrainForElecPDE")){
         PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
         
         if(hystHelper_ == NULL){
@@ -1764,7 +1773,9 @@ namespace CoupledField {
       //      std::cout << "Generate output coef function " << ResultName << std::endl;
       PtrCoefFct ret;
       
-      if( (ResultName == "ElecPolarization") || (ResultName == "IrrStressesPiezo_TensorForm") || (ResultName == "IrrStrainsPiezo_TensorForm") ){
+      if( (ResultName == "ElecPolarization") || (ResultName == "IrrStressesPiezo_TensorForm") 
+        || (ResultName == "IrrStressesPiezo_VectorForm") 
+        || (ResultName == "IrrStrainsPiezo_TensorForm") || (ResultName == "CoupledIrrStrainsPiezo") ){
         PtrCoefFct eps = material_->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType_,Global::REAL);
         
         if(hystHelper_ == NULL){
@@ -2627,6 +2638,11 @@ namespace CoupledField {
     int MAT_strainForm_;
     int MAT_dim_beta_;
     Matrix<Double> MAT_betaCoefs_;
+    Double MAT_irrStrain_c1_;
+    Double MAT_irrStrain_c2_;
+    Double MAT_irrStrain_c3_;
+    int MAT_irrStrainForm_;
+    
     
     /*
      * ###############

@@ -261,7 +261,7 @@ namespace CoupledField {
   {
     //    std::cout << "ReadMechanics" << std::endl;
     bool     flagElasticitySet=false;
-
+    
     // bool     flagElastTensorImag=false;
     
     
@@ -662,7 +662,7 @@ namespace CoupledField {
     vals[35] = mu;
     return vals;
   }
-
+  
   
   //**********************************************************************
   //*************  READ ACOUSTICS ****************************************
@@ -1181,7 +1181,7 @@ namespace CoupledField {
       PtrParamNode hystNode = mag->Get("hystModel");
       ReadHysteresis(material, hystNode, true);
     }
-          
+    
     //read real magmech coupling tensor
     if(mag->Has("magnetoStrictionTensor_h_mag"))
     {
@@ -1591,14 +1591,14 @@ namespace CoupledField {
   //**********************************************************************
   //*************  READ HYSTERESIS****************************************
   //**********************************************************************
-  void XMLMaterialHandler::ReadHysteresis(BaseMaterial *material, PtrParamNode hystNode, bool setInversion)
-  {
+  void XMLMaterialHandler::ReadHysteresis(BaseMaterial *material, PtrParamNode hystNode, bool setInversion){
     PtrParamNode model;
     PtrParamNode pWeight = NULL;
     PtrParamNode pAnhyst = NULL;
     PtrParamNode pInversion = NULL;
     PtrParamNode pStrainForm = NULL;
     PtrParamNode initialState = NULL;
+    PtrParamNode irrStrainNode = NULL;
     
     if(hystNode->Has("scalarPreisach")){
       model = hystNode->Get("scalarPreisach");
@@ -1647,21 +1647,21 @@ namespace CoupledField {
           angularDistance = pExt->Get("angularDistance")->As<double>();
         }
         
-//        if(pExt->Has("initialState")){
-//          //std::cout << "InitialState found" << std::endl;
-//          ParamTools::AsTensor<double>(pExt->Get("initialState"),1, 3, initialStateTensor);
-//          //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
-//        } 
+        //        if(pExt->Has("initialState")){
+        //          //std::cout << "InitialState found" << std::endl;
+        //          ParamTools::AsTensor<double>(pExt->Get("initialState"),1, 3, initialStateTensor);
+        //          //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+        //        } 
       }
       int useExtensionInt = 0;
       if(useExtension){
         useExtensionInt = 1;
       }
-            
+      
       material->SetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
       material->SetScalar(rotResistance, ROT_RESISTANCE, Global::REAL);
       material->SetScalar(angularDistance, ANG_DISTANCE, Global::REAL);
-
+      
       if(model->Has("weights")){
         pWeight = model->Get("weights");
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
@@ -1675,35 +1675,15 @@ namespace CoupledField {
       if(model->Has("initialState")){
         initialState = model->Get("initialState");
       }
-
+      
       if(model->Has("smallSignalForm")){
         pStrainForm = model->Get("smallSignalForm");
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
       }
-
-      Double strainSaturation = 0.0;
-      if(model->Has("strainSat")){
-        strainSaturation = model->Get("strainSat")->As<Double>();
-      }
       
-      material->SetScalar(strainSaturation, S_SATURATION, Global::REAL ); 
-
-      int coefdim = -1;
-      if(model->Has("dim_betaCoefs")) coefdim = model->Get("dim_betaCoefs")->As<Integer>();
-      material->SetScalar(coefdim, DIM_BETA_COEFS);
-      
-      Matrix<Double> betaCoef;
-      if(model->Has("betaCoefs")&&(coefdim != -1)){
-        //std::cout << "beta coefs found" << std::endl;
-        ParamTools::AsTensor<double>(model->Get("betaCoefs"),1, coefdim, betaCoef);
-        //std::cout << "beta coefs: " << betaCoef.ToString() << std::endl;
-        material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-      } else {
-        //std::cout << "NO betaCoef found" << std::endl;
-        betaCoef = Matrix<Double>(1,1);
-        betaCoef.Init();
-        //std::cout << "Beta coefs set to: " << betaCoef.ToString() << std::endl;
-        material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
+      if(model->Has("irrStrains")){
+        irrStrainNode = model->Get("irrStrains");
+        // Read in weights separately below as they require the same steps for VectorHysteresis, too
       }
     }
     else if(hystNode->Has("vectorPreisach_Sutor")){
@@ -1741,7 +1721,7 @@ namespace CoupledField {
       }
       
       material->SetScalar(evalVersion, EVAL_VERSION);
-            
+      
       if(model->Has("rotResistance")){
         material->SetScalar(model->Get("rotResistance")->As<Double>(), ROT_RESISTANCE, Global::REAL);
       } else {
@@ -1785,7 +1765,7 @@ namespace CoupledField {
       } else {
         material->SetScalar(1e-16, AMP_RESOLUTION, Global::REAL);
       }
-     
+      
       /*
        * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
        * written to a bmp file of resolution bmpResolution
@@ -1807,29 +1787,9 @@ namespace CoupledField {
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
       }
       
-           Double strainSaturation = 0.0;
-      if(model->Has("strainSat")){
-        strainSaturation = model->Get("strainSat")->As<Double>();
-      }
-      
-      material->SetScalar(strainSaturation, S_SATURATION, Global::REAL ); 
-      
-      int coefdim = -1;
-      if(model->Has("dim_betaCoefs")) coefdim = model->Get("dim_betaCoefs")->As<Integer>();
-      material->SetScalar(coefdim, DIM_BETA_COEFS);
-      
-      Matrix<Double> betaCoef;
-      if(model->Has("betaCoefs")&&(coefdim != -1))
-      {
-        //std::cout << "beta coefs found" << std::endl;
-        ParamTools::AsTensor<double>(model->Get("betaCoefs"),1, coefdim, betaCoef);
-        //std::cout << "beta coefs: " << betaCoef.ToString() << std::endl;
-        material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-      } else {
-        //std::cout << "NO betaCoef found" << std::endl;
-        betaCoef = Matrix<Double>(1,1);
-        betaCoef.Init();
-        material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
+      if(model->Has("irrStrains")){
+        irrStrainNode = model->Get("irrStrains");
+        // Read in weights separately below as they require the same steps for VectorHysteresis, too
       }
       
       if(model->Has("hystInversion")){
@@ -1893,32 +1853,11 @@ namespace CoupledField {
           pStrainForm = model->Get("smallSignalForm");
           // Read in weights separately below as they require the same steps for VectorHysteresis, too
         }
-
-        Double strainSaturation = 0.0;
-        if(singleModel->Has("strainSat")){
-          strainSaturation = singleModel->Get("strainSat")->As<Double>();
+        
+        if(model->Has("irrStrains")){
+          irrStrainNode = model->Get("irrStrains");
+          // Read in weights separately below as they require the same steps for VectorHysteresis, too
         }
-        
-        material->SetScalar(strainSaturation, S_SATURATION, Global::REAL ); 
-        
-        int coefdim = -1;
-        if(singleModel->Has("dim_betaCoefs")) coefdim = singleModel->Get("dim_betaCoefs")->As<Integer>();
-        material->SetScalar(coefdim, DIM_BETA_COEFS);
-        
-        Matrix<Double> betaCoef;
-        if(singleModel->Has("betaCoefs")&&(coefdim != -1)){
-          //std::cout << "beta coefs found" << std::endl;
-          ParamTools::AsTensor<double>(singleModel->Get("betaCoefs"),1, coefdim, betaCoef);
-          //std::cout << "beta coefs: " << betaCoef.ToString() << std::endl;
-          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-        } else {
-          //std::cout << "NO betaCoef found" << std::endl;
-          betaCoef = Matrix<Double>(1,1);
-          betaCoef.Init();
-          //std::cout << "Beta coefs set to: " << betaCoef.ToString() << std::endl;
-          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-        }
-        
         
       } else if(model->Has("anIsotropic")){
         EXCEPTION("Anisotropic Mayergoyz vector hysteresis model not yet supported");
@@ -1943,7 +1882,7 @@ namespace CoupledField {
       if(model->Has("hystInversion")){
         pInversion = model->Get("hystInversion");
       }
-
+      
       if(model->Has("initialState")){
         initialState = model->Get("initialState");
       }      
@@ -1961,7 +1900,7 @@ namespace CoupledField {
      */
     int strainForm = -1;
     if(pStrainForm != NULL){
-        
+      
       if(pStrainForm->Has("uncoupled")){
         strainForm = -1;
       }
@@ -2098,7 +2037,7 @@ namespace CoupledField {
         } 
       }
     }
-     
+    
     material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
     material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
     material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
@@ -2113,7 +2052,6 @@ namespace CoupledField {
     } else {
       material->SetScalar(0, PREISACH_PRESCRIBEOUTPUT);
     }
-    
     
     int maxNumIts = 35;
     double tolH = 1e-12;
@@ -2130,7 +2068,7 @@ namespace CoupledField {
       {
         maxNumIts = pInversion->Get("maxNumberIterations")->As<Integer>();
       }
-
+      
       if(pInversion->Has("residualTolH"))
       {
         tolH = pInversion->Get("residualTolH")->As<double>();
@@ -2145,7 +2083,7 @@ namespace CoupledField {
       {
         jacRes = pInversion->Get("jacobiResolution")->As<double>();
       }
-
+      
       if(pInversion->Has("useTikhonov"))
       {
         useTikhonov = pInversion->Get("useTikhonov")->As<bool>();
@@ -2160,7 +2098,7 @@ namespace CoupledField {
       {
         alphaLSMin = pInversion->Get("alphaRegMin")->As<double>();
       }
-     
+      
       if(pInversion->Has("alphaRegMax"))
       {
         alphaLSMax = pInversion->Get("alphaRegMax")->As<double>();
@@ -2171,7 +2109,7 @@ namespace CoupledField {
       material->SetScalar(tolH, RES_TOL_H_HYST_INV, Global::REAL);
       material->SetScalar(tolB, RES_TOL_B_HYST_INV, Global::REAL);
       material->SetScalar(jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
-
+      
       int useTikhonovInt = 0;
       if(useTikhonov){
         useTikhonovInt = 1;
@@ -2181,7 +2119,83 @@ namespace CoupledField {
       material->SetScalar(alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
       material->SetScalar(alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);
     }
+    
+    int irrStrainImplementation = -1;
+    Double strainSat = 0.0;
+    Double irrStrains_c1 = 0.0;
+    Double irrStrains_c2 = 0.0;
+    Double irrStrains_c3 = 0.0;
+    int coefdim = 1;
+    Matrix<Double> betaCoefs = Matrix<Double>(1,1);
+    ;
+    //        isAllowed_.insert( HYST_BETA_COEFS );
+    //    isAllowed_.insert( DIM_BETA_COEFS );
+    //    isAllowed_.insert( HYST_IRRSTRAINS );
+    //    isAllowed_.insert( HYST_IRRSTRAIN_C1 );
+    //    isAllowed_.insert( HYST_IRRSTRAIN_C2 );
+    //    isAllowed_.insert( HYST_IRRSTRAIN_C3 );
+    //    
+    
+    if(irrStrainNode != NULL){
+      PtrParamNode innerNode = NULL;
+      if(irrStrainNode->Has("muDatRelated")){
+        irrStrainImplementation = 0;
+        innerNode = irrStrainNode->Get("muDatRelated");
+        
+        strainSat = innerNode->Get("strainSat")->As<Double>();
+        irrStrains_c1 = innerNode->Get("c1")->As<Double>();
+        irrStrains_c2 = innerNode->Get("c2")->As<Double>();
+        irrStrains_c3 = innerNode->Get("c3")->As<Double>();
+      } else if(irrStrainNode->Has("higherOrderPolynomial")){
+        irrStrainImplementation = 1;
+        strainSat = innerNode->Get("strainSat")->As<Double>();
+        coefdim = innerNode->Get("dim_betaCoefs")->As<Integer>();
+        betaCoefs.Resize(1,coefdim);
+        ParamTools::AsTensor<double>(innerNode->Get("betaCoefs"),1, coefdim, betaCoefs);
+      }
+    }
+    
+    material->SetScalar(strainSat, S_SATURATION, Global::REAL ); 
+    material->SetScalar(irrStrainImplementation, HYST_IRRSTRAINS);
+    material->SetScalar(irrStrains_c1, HYST_IRRSTRAIN_C1, Global::REAL);
+    material->SetScalar(irrStrains_c2, HYST_IRRSTRAIN_C2, Global::REAL);
+    material->SetScalar(irrStrains_c3, HYST_IRRSTRAIN_C3, Global::REAL);
+    material->SetScalar(coefdim, DIM_BETA_COEFS);
+    material->SetTensor(betaCoefs, HYST_BETA_COEFS, Global::REAL);
+    
+//    std::cout << "irrStrain parameter:" << std::endl;
+//    std::cout << "irrStrainImplementation:" << irrStrainImplementation << std::endl;
+//    std::cout << "strainSat:" << strainSat << std::endl;
+//    std::cout << "irrStrains_c1:" << irrStrains_c1 << std::endl;
+//    std::cout << "irrStrains_c2:" << irrStrains_c2 << std::endl;
+//    std::cout << "irrStrains_c3:" << irrStrains_c3 << std::endl;
+//    std::cout << "dim_betaCoefs:" << coefdim << std::endl;
+//    std::cout << "betaCoefs:" << betaCoefs.ToString() << std::endl;
+//    
+    
+    //        if(singleModel->Has("strainSat")){
+    //          strainSaturation = singleModel->Get("strainSat")->As<Double>();
+    //        }
+    //        
+    //        material->SetScalar(strainSaturation, S_SATURATION, Global::REAL ); 
+    //        
+    //        int coefdim = -1;
+    //        if(singleModel->Has("dim_betaCoefs")) coefdim = singleModel->Get("dim_betaCoefs")->As<Integer>();
+    //        material->SetScalar(coefdim, DIM_BETA_COEFS);
+    //        
+    //        Matrix<Double> betaCoef;
+    //        if(singleModel->Has("betaCoefs")&&(coefdim != -1)){
+    //          //std::cout << "beta coefs found" << std::endl;
+    //          ParamTools::AsTensor<double>(singleModel->Get("betaCoefs"),1, coefdim, betaCoef);
+    //          //std::cout << "beta coefs: " << betaCoef.ToString() << std::endl;
+    //          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
+    //        } else {
+    //          //std::cout << "NO betaCoef found" << std::endl;
+    //          betaCoef = Matrix<Double>(1,1);
+    //          betaCoef.Init();
+    //          //std::cout << "Beta coefs set to: " << betaCoef.ToString() << std::endl;
+    //          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
+    //        
   }
-
 
 } // end of namespace

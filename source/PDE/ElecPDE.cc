@@ -761,8 +761,10 @@ namespace CoupledField {
         
         // check if volReg has hyst material behaviour
         if(regionCoefs.find(volReg) == regionCoefs.end()){
-          std::cout << "Volume region " << volRegName << "has NO hysteretic material assigned." << std::endl;
-          std::cout << "Field parallel BC will thus act as default flux parallel BC." << std::endl;
+          std::stringstream warnmsg;
+          warnmsg << "Volume region " << volRegName << "has NO hysteretic material assigned." << std::endl;
+          warnmsg << "Field parallel BC will thus act as default flux parallel BC." << std::endl;
+          WARN(warnmsg.str());
         } else {
           //std::cout << "Volume region " << volRegName << " has hysteretic material assigned. fieldParallel BC added" << std::endl;
           // create coef fnc delivering the boundary term (here just polarization)
@@ -1380,7 +1382,7 @@ namespace CoupledField {
   
   void ElecPDE::DefinePostProcResults() {
     
-    std::cout << "ElecPDE - DefinePostProcResults" << std::endl;
+//    std::cout << "ElecPDE - DefinePostProcResults" << std::endl;
     
     shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_POTENTIAL];
     bool is2p5 = (subType_ == "2.5d");

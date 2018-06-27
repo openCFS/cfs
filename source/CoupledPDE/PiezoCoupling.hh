@@ -98,7 +98,9 @@ class BiLinearForm;
     bool isHyst_;
     bool irrStrainsSet_;
     shared_ptr<CoefFunctionMulti> irrStrains_;
+    shared_ptr<CoefFunctionMulti> coupledIrrStrains_; // for elec pde: [e]S_irr
     shared_ptr<CoefFunctionMulti> irrStresses_;
+    shared_ptr<CoefFunctionMulti> irrStressesVector_;
   };
 
 

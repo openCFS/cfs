@@ -85,18 +85,18 @@ namespace CoupledField {
       
       outputVector.ScalarMult(specificSign*baseSign);
       
-    } else if ( (vectorName == "IrrStrainForMechPDE") || (vectorName == "IrrStressesPiezo_VectorForm") ){
-      //std::cout << "IrrStrainForMechPDE was requested" << std::endl;
+    } else if ((vectorName == "IrrStressForMechPDE") || (vectorName == "IrrStressesPiezo_VectorForm")){
+//      std::cout << vectorName << " was requested" << std::endl;
       // v = mech testfunction
       // on rhs:  - int_Volume (Bv)T[c]S_irr dOmega
       // > basically what is left when S = Bu is decomposed into S_r + S_irr
-      //    -div(sigma) > -div([c]S_r) > -div([c](Bu - S_irr)) > +div([c]S_irr)  on rhs
-      //      but due to integration by parts > -div(v)[c]S_irr
+      //    -div(sigma) > -div([c]S_r) > -div([c](Bu - S_irr)) > -div([c]S_irr) on rhs
+      //      but due to integration by parts > div(v)[c]S_irr
       // NOTE: we actually compute the irreversible part of the stress tensor here
       // > we can use this for output, too
       // > in the output case, we need +1 sign however
-      if(vectorName == "IrrStrainForMechPDE"){
-        specificSign = -1.0;
+      if(vectorName == "IrrStressForMechPDE"){
+        specificSign = 1.0;
       } else {
         specificSign = 1.0;
       }
@@ -112,14 +112,14 @@ namespace CoupledField {
       LOG_DBG(coeffcthysthelper) << "elastTensor_.Mult(S_irr,outputVector): " << outputVector.ToString();
       outputVector.ScalarMult(specificSign*baseSign);
       //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
-    } else if(vectorName == "IrrStressesPiezo_VectorForm"){
-      // output of Strains
-      // return pure irreversible strains with + sign
-      outputVector = hystCoefFunction_->GetIrreversibleStrains(lpm, timeLevel);
-    } else if (vectorName == "IrrStrainForElecPDE"){
-      //std::cout << "IrrStrainForElecPDE was requested" << std::endl;
+    } else if ((vectorName == "CoupledIrrStrainForElecPDE")||("CoupledIrrStrainsPiezo")){
+//      std::cout << vectorName << " was requested" << std::endl;
       // w = elec testfunction
-      // on rhs:  + int_Volume (Bw)T[e]S_irr dOmega
+      // on lhs: div( [e](Bu - S_irr ) > -(Bw)T [e] Bu + (Bw)T S_irr
+      //  x -1 to get symmetry of coupling matrix
+      // (Bw)T [e] Bu - (Bw)T S_irr
+      // on rhs:  +(Bw)T[e]S_irr
+      // > return [e]S_irr * specific sign
       // note that e might be a function of P itself > uce correct timelevel > current
       specificSign = 1.0;
       Matrix<Double> couplTensor = Matrix<Double>(1,1); // will be resized in compute tensor function
@@ -464,7 +464,7 @@ namespace CoupledField {
     } else {
       timelevel_cur = 0; // current value
     }
-    int timeLevel_to_diff = GetTimeLevel("DeltaMat");
+//    int timeLevel_to_diff = GetTimeLevel("DeltaMat");
     
     // new flags
     bool deltaMat_Pol_active = true;
@@ -564,7 +564,7 @@ namespace CoupledField {
         // deltaMat will be computed using the current value (timelevel_cur = 0)
         // and the value at timelevel (-1 > last ts; +1 > last iteration)
         Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Pol, useStrains, useAbs,implementationVersion);
-        std::cout << "deltaMat elec = " << deltaMat.ToString() << std::endl;
+//        std::cout << "deltaMat elec = " << deltaMat.ToString() << std::endl;
         tmp.Add(1.0,deltaMat);
         //std::cout << "DeltaMat: " << deltaMat.ToString() << std::endl;
         if( (strainForm_ != -1) && (deltaMat_Strain_active) ){
@@ -573,7 +573,7 @@ namespace CoupledField {
           // here we have to add -e*dS/dE in addition
           useStrains = true;
           Matrix<Double> deltaMat_strains = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Strain, useStrains, useAbs,implementationVersion);
-          std::cout << "deltaMat strains = " << deltaMat_strains.ToString() << std::endl;
+//          std::cout << "deltaMat strains = " << deltaMat_strains.ToString() << std::endl;
           e_scaled.Mult(deltaMat_strains,tmp2);
           
           tmp.Add(-1.0,tmp2);
@@ -634,7 +634,7 @@ namespace CoupledField {
         // deltaMat will be computed using the current value (timelevel_cur = 0)
         // and the value at timelevel (-1 > last ts; +1 > last iteration)
         Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Coupling, useStrains, useAbs,implementationVersion);
-        std::cout << "deltaMat " << deltaMat.ToString() << std::endl;
+//        std::cout << "deltaMat " << deltaMat.ToString() << std::endl;
         UInt numRows,numCols;
         numRows = tmp.GetNumRows();
         numCols = tmp.GetNumCols();
@@ -781,8 +781,8 @@ namespace CoupledField {
     LOG_DBG(coeffcthysthelper) << "Computed material tensor:" << outputTensor.ToString();
     //      std::cout << "+++++ Coef Function Hyst Mat - Compute Tensor END ++++++" << std::endl;
     //std::cout << "Return the following tensor: " << outputTensor.ToString() << std::endl;
-    std::cout << "Computed tensor - " << tensorName << " - " << std::endl;
-    std::cout << outputTensor.ToString() << std::endl;        
+//    std::cout << "Computed tensor - " << tensorName << " - " << std::endl;
+//    std::cout << outputTensor.ToString() << std::endl;        
   }
   
   
@@ -803,7 +803,7 @@ namespace CoupledField {
           SubTensorType tensorType, MaterialType matType, shared_ptr<FeSpace> ptFeSpace) 
   : CoefFunction() {
     
-		WARN("Currently we support only single-input hysteresis operators! The second dependency is only allowed if it is the surface version of the original dependency!")
+//		WARN("Currently we support only single-input hysteresis operators! The second dependency is only allowed if it is the surface version of the original dependency!")
 		dependCoef1Surf_ = dependCoef1Surf;
 		Init(material, actSDList, dependency1, tensorType, matType, ptFeSpace);
 	}
@@ -1333,6 +1333,10 @@ namespace CoupledField {
      */   
 		material_->GetScalar(MAT_dim_beta_, DIM_BETA_COEFS);
     material_->GetTensor(MAT_betaCoefs_, HYST_BETA_COEFS, Global::REAL);
+    material_->GetScalar(MAT_irrStrain_c1_, HYST_IRRSTRAIN_C1, Global::REAL);
+    material_->GetScalar(MAT_irrStrain_c2_, HYST_IRRSTRAIN_C2, Global::REAL);
+    material_->GetScalar(MAT_irrStrain_c3_, HYST_IRRSTRAIN_C3, Global::REAL);
+    material_->GetScalar(MAT_irrStrainForm_, HYST_IRRSTRAINS);
     
 		/*
      * setup hysteresis operator
@@ -1626,13 +1630,13 @@ namespace CoupledField {
     initial_P_J.Init();
     
     if (MAT_initialInput_.NormL2() > 1e-16) {
-      WARN("Currently the treatment of initial states is not working properly! \n"
-                "Depending on the selected evaluation approach, the initial state of \n"
-                "the hysteresis operator will act as an excitation from the first iteration on or not. \n"
-                "Furthermore, the initial state has to fit to the boundary condition \n"
-                "(i.e. fluxParallel with initial state standing perpendicular on the boundary will not work).\n"
-                "The only save usage is in context of the debugging fixPoint iteration \n"
-                "(i.e. output of hysteresis operator does not couple back).")
+//      WARN("Currently the treatment of initial states is not working properly! \n"
+//                "Depending on the selected evaluation approach, the initial state of \n"
+//                "the hysteresis operator will act as an excitation from the first iteration on or not. \n"
+//                "Furthermore, the initial state has to fit to the boundary condition \n"
+//                "(i.e. fluxParallel with initial state standing perpendicular on the boundary will not work).\n"
+//                "The only save usage is in context of the debugging fixPoint iteration \n"
+//                "(i.e. output of hysteresis operator does not couple back).")
       
       if(prescribeOutput == false){
         // directly feed given input to hyst operator
@@ -1691,7 +1695,7 @@ namespace CoupledField {
         
     Vector<Double> zeroVec = Vector<Double>(dim_);
     zeroVec.Init();
-    Vector<Double> initial_Si = ComputeIrreversibleStrains(initial_P_J, zeroVec);
+    Vector<Double> initial_Si = ComputeIrreversibleStrains(initial_P_J, initial_E_H, zeroVec);
     
 		/*
      * finally initialize storage
@@ -2058,14 +2062,14 @@ namespace CoupledField {
       lpmOutput.SetSurfInfo( volRegions_ );
     }
     
-    if(onBoundary){
-      std::cout << "LPM on boundary" << std::endl;
-      
-      std::cout << "lpmInput.isSurface: " << lpmInput.isSurface << std::endl;
-      std::cout << "lpmInput.normal.ToString(): " << lpmInput.normal.ToString() << std::endl;
-      std::cout << "lpmOutput.isSurface: " << lpmOutput.isSurface << std::endl;
-      std::cout << "lpmOutput.normal.ToString(): " << lpmOutput.normal.ToString() << std::endl;
-    }
+//    if(onBoundary){
+//      std::cout << "LPM on boundary" << std::endl;
+//      
+//      std::cout << "lpmInput.isSurface: " << lpmInput.isSurface << std::endl;
+//      std::cout << "lpmInput.normal.ToString(): " << lpmInput.normal.ToString() << std::endl;
+//      std::cout << "lpmOutput.isSurface: " << lpmOutput.isSurface << std::endl;
+//      std::cout << "lpmOutput.normal.ToString(): " << lpmOutput.normal.ToString() << std::endl;
+//    }
     
 		UInt idxPoint = locPointIndices_[lpmOutput.lp.number];
     //std::cout << "Global Indices: " << std::endl;
@@ -2175,7 +2179,7 @@ namespace CoupledField {
   }
   
   Matrix<Double> CoefFunctionHyst::CalcDeltaMat(Vector<Double> E_B_diff, Vector<Double> P_J_diff, bool useAbs,std::string implementationVersion, Double cuttingTol){
-    std::cout << "CalcDeltaMat" << std::endl;
+//    std::cout << "CalcDeltaMat" << std::endl;
     Matrix<Double> deltaMat;
     UInt numCols = dim_;
     UInt numRows = dim_;
@@ -2322,7 +2326,7 @@ namespace CoupledField {
   
   Matrix<Double> CoefFunctionHyst::CalcDeltaMatStrains(Vector<Double> E_B_diff, Vector<Double> S_diff, bool useAbs, std::string implementationVersion, Double cuttingTol){
     
-    std::cout << "CalcDeltaMatStrains" << std::endl;
+//    std::cout << "CalcDeltaMatStrains" << std::endl;
     Matrix<Double> deltaMat;
     UInt numCols = dim_;
     UInt numRows;
@@ -2343,7 +2347,7 @@ namespace CoupledField {
     Double E_B_diff_norm = E_B_diff.NormL2();
     
     if(E_B_diff_norm <= absTol){
-      std::cout << "E_B_diff_norm <= absTol" << std::endl;
+//      std::cout << "E_B_diff_norm <= absTol" << std::endl;
       // variation of solution is very small
       // return zero matrix
       return deltaMat;
@@ -2359,7 +2363,7 @@ namespace CoupledField {
     }
     
     if(implementationVersion == "Division"){
-      std::cout << "Division" << std::endl;
+//      std::cout << "Division" << std::endl;
       if(dim_ == 2){
         
         if(abs(E_B_diff[0])/E_B_diff_norm > relTol){
@@ -2563,9 +2567,9 @@ namespace CoupledField {
     
     
     if(useStrains){
-      std::cout << "GetDeltaMat - for strains" << std::endl;
+//      std::cout << "GetDeltaMat - for strains" << std::endl;
       if(deltaMatStrain_requiresReeval_[storageIdx] == false){
-        std::cout << "NO reeval" << std::endl;
+//        std::cout << "NO reeval" << std::endl;
         return deltaMatStrain_[storageIdx];
       }
       
@@ -2791,7 +2795,7 @@ namespace CoupledField {
 //    return S_irr;
   }
   
-  Vector<Double> CoefFunctionHyst::ComputeIrreversibleStrains(Vector<Double> P, Vector<Double> Pold) {
+  Vector<Double> CoefFunctionHyst::ComputeIrreversibleStrains(Vector<Double> P, Vector<Double> E_H, Vector<Double> Pold) {
     
     // setup storage
     Matrix<Double> Si_tensor = Matrix<Double>(dim_,dim_);
@@ -2807,19 +2811,7 @@ namespace CoupledField {
     
     Vector<Double> Si_voigt = Vector<Double>(sizeVoigt);
     Si_voigt.Init(0.0);
-    
-    if(MAT_dim_beta_ <= 0){
-      WARN("No beta coefficients were defined. Cannot approximate Si; return empty vector");
-      return Si_voigt;
-    } 
-    //    else {
-    //      std::cout << "use betaCoefs: " << MAT_betaCoefs_.ToString() << std::endl;
-    //    }
-    
-    Matrix<Double> negeye = Matrix<Double>(dim_,dim_);
-    for(UInt i = 0; i < dim_; i++){
-      negeye[i][i] = -1.0;
-    }
+    Double scalarStrain = 0.0;
     
     //    std::cout << "P for strain: " << P.ToString() << std::endl;
     //    std::cout << "Norm of P: " << P.NormL2() << std::endl;
@@ -2832,35 +2824,62 @@ namespace CoupledField {
       dirP.Add(1.0/Pold.NormL2(),Pold);
     }
     // else: current and previous state are both 0 > 0 direction
+    
+    if (MAT_irrStrainForm_ == 0){
+      // Model strains as discribed in "Generalisiertes Preisach-Modell für die Simulation und Kompensation
+      // der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf
+      // Original form:
+      //   S = c1 + abs( Hyst(E) + c2) + (E - ESat)/ESat * c3
+      // Modified and used form:
+      //   S = strainSat*(c1 + abs( P(E).NormL2()/Psat + c2) + (inner(E,dirP) - ESat)/ESat * c3) (1D case)
+      // for 2D and 3D extend similar as in case of polynomial approximation
+      // i.e.,
+      // [S] = 3/2*S*(dirP dirP^T - 1/3[I])
+      scalarStrain = MAT_irrStrain_c1_ + abs(P.NormL2()/MAT_pSat_ + MAT_irrStrain_c2_)
+                    + MAT_irrStrain_c3_*(E_H.Inner(dirP) - MAT_xSat_)/MAT_xSat_;
+      scalarStrain *= MAT_sSat_;
+    } else if (MAT_irrStrainForm_ == 1){
+      // Model strains (similar) as discribed in "Numerical Simulation of Mechatronic Sensors and Actuators"
+      // Original form:
+      //  [S] = 3/2*(beta0 + beta1*|P| + beta2*|P|^2 + ... + betan*|P|^n)*(dirP*dirP^T - 1/3[I])
+      // Modified and used form:
+      //   S = strainSat*(beta0 + beta1 * P(E)/Psat + beta2 * (P(E)/Psat)^2 + beta3 * (P(E)/Psat)^3 ...)/sum(beta_i)  (1D case)
+      //  [S] = 3/2*S*(dirP dirP^T - 1/3[I])
+      Double normP = P.NormL2();
+      
+      // NEW approach: compute Si via
+      // Si = Ssat*3/2*(beta0_ + beta1_*|P|/Psat + beta2_*(|P|/Psat)^2 + ... + betan_*(|P|/Psat)^n)*(dirP*dirP^T - 1/3[I])/sumOfBetas
+      // Ssat is a new parameter 
+      // betai_ = beta/Psat^i will be read from input instead of beta
+      // sumOfBetas = (beta0_ + beta1_ + beta2_ + ... + betan_)
+      // why the change? to allow for easier adaption to amplitude Ssat
+      normP = normP/MAT_pSat_;  
+      // use Horner scheme
+      // start with beta n
+      scalarStrain = MAT_betaCoefs_[0][MAT_dim_beta_-1];
+      Double betaSum = MAT_betaCoefs_[0][MAT_dim_beta_-1];
+      for(int i = MAT_dim_beta_-2; i >= 0; i--){
+        scalarStrain = scalarStrain*normP + MAT_betaCoefs_[0][i];
+        betaSum += MAT_betaCoefs_[0][i];
+      }
+      if(betaSum != 0){
+        scalarStrain = MAT_sSat_*scalarStrain/betaSum;
+      }
+    } else {
+      return Si_voigt;
+    }
+    
+    // bring to 2D/3D form
+    Matrix<Double> negeye = Matrix<Double>(dim_,dim_);
+    for(UInt i = 0; i < dim_; i++){
+      negeye[i][i] = -1.0;
+    }
+    
     Matrix<Double>dyadic = Matrix<Double>(dim_,dim_);
     dyadic.DyadicMult(dirP);
     dyadic.Add(1.0/3.0,negeye);
     
-    //      std::cout << "dirP*dirP^T - 1/3[I] = " << dyadic.ToString() << std::endl;
-    //  
-    // ORIGINAL approach
-    // Si = 3/2*(beta0 + beta1*|P| + beta2*|P|^2 + ... + betan*|P|^n)*(dirP*dirP^T - 1/3[I])
-    Double normP = P.NormL2();
-    
-    // NEW approach: compute Si via
-    // Si = Ssat*3/2*(beta0_ + beta1_*|P|/Psat + beta2_*(|P|/Psat)^2 + ... + betan_*(|P|/Psat)^n)*(dirP*dirP^T - 1/3[I])/sumOfBetas
-    // Ssat is a new parameter 
-    // betai_ = beta/Psat^i will be read from input instead of beta
-    // sumOfBetas = (beta0_ + beta1_ + beta2_ + ... + betan_)
-    // why the change? to allow for easier adaption to amplitude Ssat
-    normP = normP/MAT_pSat_;  
-    
-    // use Horner scheme
-    // start with beta n
-    Double poly = MAT_betaCoefs_[0][MAT_dim_beta_-1];
-    Double betaSum = MAT_betaCoefs_[0][MAT_dim_beta_-1];
-    for(int i = MAT_dim_beta_-2; i >= 0; i--){
-      poly = poly*normP + MAT_betaCoefs_[0][i];
-      betaSum += MAT_betaCoefs_[0][i];
-    }
-    if(betaSum != 0){
-      Si_tensor.Add(1.5*poly/betaSum*MAT_sSat_,dyadic);
-    }
+    Si_tensor.Add(1.5*scalarStrain,dyadic);
     
     // transform matrix to voigt notation
     // TODO: check implementation of [c]
@@ -2877,7 +2896,8 @@ namespace CoupledField {
       Si_voigt[4] = Si_tensor[0][2];
       Si_voigt[5] = Si_tensor[0][1];
     }
-    //    std::cout << "Si_voigt = " << Si_voigt.ToString() << std::endl;
+//    std::cout << "Si_voigt = " << Si_voigt.ToString() << std::endl;
+   
     return Si_voigt;   
   }
   
@@ -2999,11 +3019,11 @@ namespace CoupledField {
         if(forceTangential){
           
           Vector<Double> normalDirection = actualLPM.normal;
-          std::cout << "Stored normal vector: " << normalDirection.ToString() << std::endl;
+//          std::cout << "Stored normal vector: " << normalDirection.ToString() << std::endl;
           Double normalProjection = LPMSolution.Inner(normalDirection);
-          std::cout << "LPMSolution from system: " << LPMSolution.ToString() << std::endl;
+//          std::cout << "LPMSolution from system: " << LPMSolution.ToString() << std::endl;
           LPMSolution.Add(-normalProjection,normalDirection);
-          std::cout << "LPMSolution after cutting normal direction: " << LPMSolution.ToString() << std::endl;
+//          std::cout << "LPMSolution after cutting normal direction: " << LPMSolution.ToString() << std::endl;
         }
         				
 			} else {
@@ -3575,6 +3595,7 @@ namespace CoupledField {
 #pragma omp parallel num_threads(CFS_NUM_THREADS)
     {     
       Vector<Double> P = Vector<Double>(dim_);
+      Vector<Double> E_H = Vector<Double>(dim_);
       Vector<Double> Pold = Vector<Double>(dim_);
       Vector<Double> S_irr = Vector<Double>(strainSize);
       //std::cout << "Running parallel" << std::endl;
@@ -3605,7 +3626,9 @@ namespace CoupledField {
         // if this one is 0, too then dir = zeroVec
         Pold = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, -1);
         
-        S_irr = ComputeIrreversibleStrains(P,Pold);
+        E_H = GetPrecomputedInputToHysteresisOperator(LPMit->second, 0);
+        
+        S_irr = ComputeIrreversibleStrains(P,E_H,Pold);
         
         // flag gets reset at end of each iteration (so the stored value can beu
         // used during one iteration by several terms/function calls)
@@ -3617,6 +3640,7 @@ namespace CoupledField {
 #else
     {
       Vector<Double> P = Vector<Double>(dim_);
+      Vector<Double> E_H = Vector<Double>(dim_);
       Vector<Double> Pold = Vector<Double>(dim_);
       Vector<Double> S_irr = Vector<Double>(strainSize);
       //std::cout << "Running serial" << std::endl;
@@ -3631,7 +3655,9 @@ namespace CoupledField {
         // if this one is 0, too then dir = zeroVec
         Pold = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, -1);
         
-        S_irr = ComputeIrreversibleStrains(P,Pold);
+        E_H = GetPrecomputedInputToHysteresisOperator(LPMit->second, 0);
+        
+        S_irr = ComputeIrreversibleStrains(P,E_H,Pold);
         
         // flag gets reset at end of each iteration (so the stored value can beu
         // used during one iteration by several terms/function calls)
@@ -4991,6 +5017,7 @@ namespace CoupledField {
 		std::ofstream results_x;
     std::ofstream results_p;
     std::ofstream results_s;
+    std::ofstream results_xps;
     std::ofstream results_y;
     std::ofstream angularResults_x;
     std::ofstream angularResults_p;
@@ -5012,6 +5039,9 @@ namespace CoupledField {
     std::stringstream results_name_y;
 		results_name_y << name << "_results_y";		
 		
+    std::stringstream results_name_xps;
+		results_name_xps << name << "_results_xps";	
+    
     std::stringstream angularResults_name_x;
 		angularResults_name_x << name << "_angularResults_x";		   
     
@@ -5277,6 +5307,9 @@ namespace CoupledField {
     if(outputIrrStrains){
       results_s.open(results_name_s.str());
       results_s << "#Number S_irr_xx S_irr_yy S_irr_xy" << std::endl;
+
+      results_xps.open(results_name_xps.str());
+      results_xps << "#Number xIn yIn Px Py S_irr_xx S_irr_yy S_irr_xy" << std::endl;
     }
     
 		if(printStatistics){
@@ -5630,8 +5663,9 @@ namespace CoupledField {
 			}
 			
       if(outputIrrStrains){
-        Vector<Double> S_irr = ComputeIrreversibleStrains(hOut,hOutOld);
+        Vector<Double> S_irr = ComputeIrreversibleStrains(hOut,xIn,hOutOld);
         results_s << i+1 << " " << std::setprecision(9) << S_irr.ToString() << std::endl;
+        results_xps << i+1 << " " << std::setprecision(9) << xIn.ToString() << " " << hOut.ToString() << " " << S_irr.ToString() << std::endl;
       }
       
 			/*
