@@ -26,7 +26,6 @@ namespace CoupledField
     isAllowed_.insert( ELEC_PERMITTIVITY );
     isAllowed_.insert( X_SATURATION );
     isAllowed_.insert( Y_SATURATION );
-    isAllowed_.insert( S_SATURATION );
     isAllowed_.insert( Y_REMANENCE );
     isAllowed_.insert( PREISACH_WEIGHTS );
     isAllowed_.insert( PREISACH_WEIGHTS_DIM );
@@ -74,7 +73,6 @@ namespace CoupledField
     isAllowed_.insert( PRINT_PREISACH );
     isAllowed_.insert( PRINT_PREISACH_RESOLUTION );
     isAllowed_.insert( IS_TESTING );
-    isAllowed_.insert( SCALPREISACH_USE_EXT );
     isAllowed_.insert( ANG_DISTANCE );
     isAllowed_.insert( ANG_CLIPPING );
     isAllowed_.insert( ANG_RESOLUTION );
@@ -83,12 +81,51 @@ namespace CoupledField
     isAllowed_.insert( INITIAL_STATE_X );
     isAllowed_.insert( INITIAL_STATE_Y );
     isAllowed_.insert( INITIAL_STATE_Z );
+    isAllowed_.insert( HYST_COUPLING_DEFINED );
+    isAllowed_.insert( X_SATURATION_STRAIN );
+    isAllowed_.insert( Y_SATURATION_STRAIN );
+    isAllowed_.insert( S_SATURATION );
+    isAllowed_.insert( PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_TENSOR_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDATEXT_ETA_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDATEXT_SIGMA2_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDATEXT_SIGMA1_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDATEXT_H2_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDATEXT_H1_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDATEXT_A_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_ETA_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_SIGMA_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_H_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_A_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_TYPE_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_CONSTVALUE_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_DIM_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_STRAIN );
+    isAllowed_.insert( ANG_DISTANCE_STRAIN );
+    isAllowed_.insert( EVAL_VERSION_STRAIN );
+    isAllowed_.insert( ROT_RESISTANCE_STRAIN );
+    isAllowed_.insert( PREISACH_DIM_STRAIN );
+    isAllowed_.insert( HYST_MODEL_STRAIN );
+    isAllowed_.insert( S_DIRECTION_Z );
+    isAllowed_.insert( S_DIRECTION_Y );
+    isAllowed_.insert( S_DIRECTION_X );
+    isAllowed_.insert( S_DIRECTION );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_ONLY_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_C_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_B_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_A_STRAIN );
+    isAllowed_.insert( ANG_CLIPPING_STRAIN );
+    isAllowed_.insert( ANG_RESOLUTION_STRAIN );
+    isAllowed_.insert( AMP_RESOLUTION_STRAIN );
+    isAllowed_.insert( PREISACH_MAYERGOYZ_NUM_DIR_STRAIN );
+    isAllowed_.insert( PREISACH_MAYERGOYZ_ISOTROPIC_STRAIN );
+    isAllowed_.insert( PREISACH_MAYERGOYZ_CLIPOUTPUT_STRAIN );
+    isAllowed_.insert( IRRSTRAIN_REUSE_P );
+
     isAllowed_.insert( NONLIN_COEFFICIENT );
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
     isAllowed_.insert( NONLIN_DATA_NAME );
-
-
   }
 
   ElectroStaticMaterial::~ElectroStaticMaterial() {

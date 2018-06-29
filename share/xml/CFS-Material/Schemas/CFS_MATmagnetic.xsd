@@ -23,7 +23,7 @@
       <xsd:element name="electricConductivity" type="DT_elecConductivity"/>
       <xsd:element name="magneticReluctivity_MagStrict" type="DT_MagstrictReluctivity" minOccurs="0"/>
       <xsd:element name="magneticPermeability" type="DT_MagnPermeability"/>
-      <xsd:element name="hystModel" type="DT_HystModel" minOccurs="0"/>
+      <xsd:element name="hystModel" type="DT_HystModelMag" minOccurs="0"/>
       <xsd:element name="magnetoStrictionTensor_h_mag" type="DT_MagStrictTensor_mag" minOccurs="0"/>
       <xsd:element name="density" type="xsd:token" minOccurs="0"/>
       <xsd:element name="coreLoss" type="DT_CoreLoss" minOccurs="0"/>

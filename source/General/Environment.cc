@@ -1675,7 +1675,6 @@ namespace CoupledField {
     MaterialTypeEnum.Add( P_DIRECTION_X, "PdirectionX" ); 
     MaterialTypeEnum.Add( P_DIRECTION_Y, "PdirectionY" ); 
     MaterialTypeEnum.Add( P_DIRECTION_Z, "PdirectionZ" ); 
-    MaterialTypeEnum.Add( SCALPREISACH_USE_EXT, "useExtension" );
     MaterialTypeEnum.Add( HYST_MODEL, "hystModel" ); 
     MaterialTypeEnum.Add( PREISACH_DIM, "PreisachDim" );
     MaterialTypeEnum.Add( HYST_STRAIN_FORM, "strainForm" );
@@ -1707,6 +1706,49 @@ namespace CoupledField {
     MaterialTypeEnum.Add( INITIAL_STATE_X, "initialStatesX" );
     MaterialTypeEnum.Add( INITIAL_STATE_Y, "initialStatesY" );
     MaterialTypeEnum.Add( INITIAL_STATE_Z, "initialStatesZ" );
+        
+    MaterialTypeEnum.Add( X_SATURATION_STRAIN, "XsaturationStrain" );
+    MaterialTypeEnum.Add( Y_SATURATION_STRAIN, "YsaturationStrain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_STRAIN, "preisachWeights_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_DIM_STRAIN, "preisachWeights_dim_strain" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_CONSTVALUE_STRAIN, "preisachWeights_constValue_strain" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_TYPE_STRAIN, "preisachWeights_type_strain" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_A_STRAIN, "preisachWeights_mudatA_strain" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_H_STRAIN, "preisachWeights_mudath_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_SIGMA_STRAIN, "preisachWeights_mudatsigma_strain" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_ETA_STRAIN, "preisachWeights_mudateta_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_A_STRAIN, "preisachWeights_mudatextA_strain" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_H1_STRAIN, "preisachWeights_mudatexth1_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_H2_STRAIN, "preisachWeights_mudatexth2_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_SIGMA1_STRAIN, "preisachWeights_mudatextsigma1_strain" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_SIGMA2_STRAIN, "preisachWeights_mudatextsigma2_strain" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_ETA_STRAIN, "preisachWeights_mudatexteta_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR_STRAIN, "preisachWeights_forMayergoyzVector_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_TENSOR_STRAIN, "preisachWeights_givenTensor_strain" );
+    
+    MaterialTypeEnum.Add( S_DIRECTION, "Sdirection" ); 
+    MaterialTypeEnum.Add( S_DIRECTION_X, "SdirectionX" ); 
+    MaterialTypeEnum.Add( S_DIRECTION_Y, "SdirectionY" ); 
+    MaterialTypeEnum.Add( S_DIRECTION_Z, "SdirectionZ" ); 
+    MaterialTypeEnum.Add( HYST_MODEL_STRAIN, "hystModel_strain" ); 
+    MaterialTypeEnum.Add( PREISACH_DIM_STRAIN, "PreisachDim_strain" );
+    MaterialTypeEnum.Add( ROT_RESISTANCE_STRAIN, "RotResistance_strain" );
+    MaterialTypeEnum.Add( EVAL_VERSION_STRAIN, "evalVersion_strain" );
+    MaterialTypeEnum.Add( ANG_DISTANCE_STRAIN, "angularDistance_strain" );
+    MaterialTypeEnum.Add( ANG_CLIPPING_STRAIN, "angularClipping_strain" );
+    MaterialTypeEnum.Add( ANG_RESOLUTION_STRAIN, "angularResolution_strain" );
+    MaterialTypeEnum.Add( AMP_RESOLUTION_STRAIN, "amplitudeResolution_strain" );
+    MaterialTypeEnum.Add( IRRSTRAIN_REUSE_P, "reusePolarizationForStrain" );
+
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_ONLY_STRAIN, "preisachWeights_anhyst_ONLY_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_A_STRAIN, "preisachWeights_anhystA_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_B_STRAIN, "preisachWeights_anhystB_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_C_STRAIN, "preisachWeights_anhystC_strain" );
+    
+    MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_NUM_DIR_STRAIN, "preisach_mayergoyz_num_dir_strain" );
+    MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_ISOTROPIC_STRAIN, "preisach_mayergoyz_isotropic_strain" );
+    MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_CLIPOUTPUT_STRAIN, "preisach_mayergoyz_clip_output_strain" );
+    MaterialTypeEnum.Add( HYST_COUPLING_DEFINED, "hystCouplingDefined" );
     MaterialTypeEnum.Add( NONLIN_COEFFICIENT, "nonLinCoefficient" ); 
     MaterialTypeEnum.Add( NONLIN_DEPENDENCY, "nonLinDependency" );
     MaterialTypeEnum.Add( NONLIN_APPROXIMATION_TYPE, "nonLinApproximationType" );

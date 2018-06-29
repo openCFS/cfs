@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
-  elementFormDefault="qualified">
+            targetNamespace="http://www.cfs++.org"
+            xmlns="http://www.cfs++.org"
+            xmlns:cfs="http://www.cfs++.org"
+            elementFormDefault="qualified">
 
   <xsd:include schemaLocation="CFS_Misc.xsd"/>
   
@@ -17,24 +17,249 @@
   <!-- ******************************************************************* -->
   <!--   Definition of hysterese model                                     -->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_HystModel">
-    <xsd:choice>
-      <xsd:element name="scalarPreisach" type="DT_ScalarPreisachHystModel"/>
-      <xsd:element name="vectorPreisach_Sutor" type="DT_VectorPreisachHystModelSutor"/>
-      <xsd:element name="vectorPreisach_Mayergoyz" type="DT_VectorPreisachHystModelMayergoyz"/>
-    </xsd:choice>
+  <xsd:complexType name="DT_HystModelElec">
+    <xsd:sequence>
+      <xsd:element name="elecPolarization" minOccurs="1">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="scalarPreisach" type="DT_ScalarPreisachHystModelElec"/>
+            <xsd:element name="vectorPreisach_Sutor" type="DT_VectorPreisachHystModelSutorElec"/>
+            <xsd:element name="vectorPreisach_Mayergoyz" type="DT_VectorPreisachHystModelMayergoyzElec"/>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="piezoCouplingAndStrains" minOccurs="0">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="strainModeling" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="muDatRelated" type="DT_MuDATStrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Model strains as discribed in "Generalisiertes Preisach-Modell für die Simulation und Kompensation
+                        der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf
+                        i.e.,
+                        S = c1 + abs( strainSat*H(E)/Hsat + c2) + (E - ESat)/ESat * c3 (1D case)
+                        with H(E) being the hyst operator which can be the same as for polarization or a separate one;
+                        Hsat is the output saturation of H(E)
+                        for 2D and 3D extend similar as in case of polynomial approximation
+                        i.e.,
+                        [S] = 3/2*S*(dirH dirH^T - 1/3[I])
+                        with dirH being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="higherOrderPolynomial" type="DT_StrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Model strains (similar) as discribed in "Numerical Simulation of Mechatronic Sensors and Actuators"
+                        i.e.,
+                        S = strainSat*(beta0 + beta1 * H(E)/Hsat + beta2 * (H(E)/Hsat)^2 + beta3 * (H(E)/Hsat)^3 ...)
+                        /sum(beta_i)(1D case)
+                        with H(E) being the hyst operator which can be the same as for polarization or a separate one;
+                        Hsat is the output saturation of H(E)
+                        for 2D and 3D extend in the following way
+                        [S] = 3/2*S*(dirH dirH^T - 1/3[I])
+                        with dirH being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="hystOperatorForStrains" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="usePolarization">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Use already computed polarization to model irr. strains.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="separateHystOperator">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Use separate hyst operator to model irr. strains; requires additional computation effort;
+                      </xsd:documentation>
+                    </xsd:annotation>
+                    <xsd:complexType>
+                      <xsd:choice> 
+                        <xsd:element name="scalarPreisach" type="DT_ScalarPreisachHystModelStrain"/>
+                        <xsd:element name="vectorPreisach_Sutor" type="DT_VectorPreisachHystModelSutorStrain"/>
+                        <xsd:element name="vectorPreisach_Mayergoyz" type="DT_VectorPreisachHystModelMayergoyzStrain"/>
+                      </xsd:choice>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="smallSignalForm" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="noSmallSignalCoupling">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Coupling between elec. and mech. PDE only via Irr. Strains; small signal
+                        coupling tensor will be set to 0
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="piezo_eform">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Use small signal coupling tensor as defined under piezo parameter for 
+                        additional coupling as described in "Numerical Simulation of Mechatronic Sensors and Actuators";
+                        coupling tensor as well as reluctivity tensor are assumed for e-form, i.e.
+                        given coupling tensor = e
+                        given reluctivity = eps^S
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="piezo_dform">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Use small signal coupling tensor as defined under piezo parameter for 
+                        additional coupling as described in "Numerical Simulation of Mechatronic Sensors and Actuators";
+                        coupling tensor as well as reluctivity tensor are assumed for d-form, i.e.
+                        given coupling tensor = d
+                        given reluctivity = eps^T
+                        > internally e and eps^S will be computed from e and eps^T
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>         
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
   </xsd:complexType>
-    
-    <xsd:complexType name="DT_SmallSignalForm">
-    <xsd:choice>
-      <xsd:element name="uncoupled"/>
-      <xsd:element name="piezo_eform"/>
-      <xsd:element name="piezo_dform"/>
-      <xsd:element name="magstrict_hform"/>
-      <xsd:element name="magstrict_gform"/>
-    </xsd:choice>
-  </xsd:complexType>  
-    
+          
+  <xsd:complexType name="DT_HystModelMag">
+    <xsd:sequence>
+      <xsd:element name="magPolarization" minOccurs="1">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="scalarPreisach" type="DT_ScalarPreisachHystModelMag"/>
+            <xsd:element name="vectorPreisach_Sutor" type="DT_VectorPreisachHystModelSutorMag"/>
+            <xsd:element name="vectorPreisach_Mayergoyz" type="DT_VectorPreisachHystModelMayergoyzMag"/>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="magstrictCouplingAndStrains" minOccurs="0">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="strainModeling" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="muDatRelated" type="DT_MuDATStrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Model strains as discribed in "Generalisiertes Preisach-Modell für die Simulation und Kompensation
+                        der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf
+                        i.e.,
+                        S = c1 + abs( strainSat*H(E)/Hsat + c2) + (E - ESat)/ESat * c3 (1D case)
+                        with H(E) being the hyst operator which can be the same as for polarization or a separate one;
+                        Hsat is the output saturation of H(E)
+                        for 2D and 3D extend similar as in case of polynomial approximation
+                        i.e.,
+                        [S] = 3/2*S*(dirH dirH^T - 1/3[I])
+                        with dirH being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="higherOrderPolynomial" type="DT_StrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Model strains (similar) as discribed in "Numerical Simulation of Mechatronic Sensors and Actuators"
+                        i.e.,
+                        S = strainSat*(beta0 + beta1 * H(E)/Hsat + beta2 * (H(E)/Hsat)^2 + beta3 * (H(E)/Hsat)^3 ...)
+                        /sum(beta_i)(1D case)
+                        with H(E) being the hyst operator which can be the same as for polarization or a separate one;
+                        Hsat is the output saturation of H(E)
+                        for 2D and 3D extend in the following way
+                        [S] = 3/2*S*(dirH dirH^T - 1/3[I])
+                        with dirH being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="hystOperatorForStrains" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="usePolarization">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Use already computed polarization to model irr. strains.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="separateHystOperator">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Use separate hyst operator to model irr. strains; requires additional computation effort;
+                        this additional operator will only operate in forward mode, i.e. no inversion will be done
+                      </xsd:documentation>
+                    </xsd:annotation>
+                    <xsd:complexType>
+                      <xsd:choice> 
+                        <xsd:element name="scalarPreisach" type="DT_ScalarPreisachHystModelStrain"/>
+                        <xsd:element name="vectorPreisach_Sutor" type="DT_VectorPreisachHystModelSutorStrain"/>
+                        <xsd:element name="vectorPreisach_Mayergoyz" type="DT_VectorPreisachHystModelMayergoyzStrain"/>
+                      </xsd:choice>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="smallSignalForm" minOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="noSmallSignalCoupling">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Coupling between mag. and mech. PDE only via Irr. Strains; small signal
+                        coupling tensor will be set to 0
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="magstrict_hform">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Use small signal coupling tensor as defined under magstrict parameter for 
+                        additional coupling as described in "Numerical Simulation of Mechatronic Sensors and Actuators";
+                        coupling tensor as well as reluctivity tensor are assumed for h-form, i.e.
+                        given coupling tensor = h
+                        given reluctivity = nu^S
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="magstrict_gform">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">   
+                        Use small signal coupling tensor as defined under magstrict parameter for 
+                        additional coupling as described in "Numerical Simulation of Mechatronic Sensors and Actuators";
+                        coupling tensor as well as reluctivity tensor are assumed for g-form, i.e.
+                        given coupling tensor = g
+                        given reluctivity = nu^T
+                        > internally h and nu^S will be computed from g and nu^T
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>         
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>        
+              
   <xsd:complexType name="DT_MuDATParams">
     <xsd:sequence>
       <xsd:element name="A" type="xsd:double" minOccurs="1"/>
@@ -44,7 +269,7 @@
     </xsd:sequence>
   </xsd:complexType>
   
-   <xsd:complexType name="DT_MuDATExtendedParams">
+  <xsd:complexType name="DT_MuDATExtendedParams">
     <xsd:sequence>
       <xsd:element name="A" type="xsd:double" minOccurs="1"/>
       <xsd:element name="h1" type="xsd:double" minOccurs="1"/>
@@ -55,19 +280,8 @@
     </xsd:sequence>
   </xsd:complexType>
   
-   <xsd:complexType name="DT_MuDATStrainParams">
+  <xsd:complexType name="DT_MuDATStrainParams">
     <xsd:sequence>
-      <xsd:annotation>
-          <xsd:documentation xml:lang="en">   
-            Model strains as discribed in "Generalisiertes Preisach-Modell für die Simulation und Kompensation
-            der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf
-            i.e.,
-            S = c1 + abs( strainSat*P(E)/Psat + c2) + (E - ESat)/ESat * c3 (1D case)
-            for 2D and 3D extend similar as in case of polynomial approximation
-            i.e.,
-            [S] = 3/2*S*(dirP dirP^T - 1/3[I])
-          </xsd:documentation>
-      </xsd:annotation>
       <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="c1" type="xsd:double" minOccurs="1"/>
       <xsd:element name="c2" type="xsd:double" minOccurs="1"/>
@@ -75,23 +289,14 @@
     </xsd:sequence>
   </xsd:complexType>
   
-   <xsd:complexType name="DT_StrainParams">
+  <xsd:complexType name="DT_StrainParams">
     <xsd:sequence>
-      <xsd:annotation>
-          <xsd:documentation xml:lang="en">   
-            Model strains (similar) as discribed in "Numerical Simulation of Mechatronic Sensors and Actuators"
-            i.e.,
-            S = strainSat*(beta0 + beta1 * P(E)/Psat + beta2 * (P(E)/Psat)^2 + beta3 * (P(E)/Psat)^3 ...)/sum(beta_i)(1D case)
-            for 2D and 3D extend in the following way
-            [S] = 3/2*S*(dirP dirP^T - 1/3[I])
-          </xsd:documentation>
-      </xsd:annotation>
       <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="1" default="1"/>
       <xsd:element name="betaCoefs" minOccurs="1">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
-          <xsd:minLength value="1"/> 
+            <xsd:minLength value="1"/> 
             <xsd:maxLength value="11"/>
           </xsd:restriction>
         </xsd:simpleType>
@@ -99,31 +304,35 @@
     </xsd:sequence>
   </xsd:complexType>
   
-  
-   <xsd:complexType name="DT_AnhystereticParams">
-     <xsd:sequence>
-       <xsd:element name="a" type="xsd:double" minOccurs="0" default="0"/>
-       <xsd:element name="b" type="xsd:double" minOccurs="0" default="0"/>
-       <xsd:element name="c" type="xsd:double" minOccurs="0" default="0"/>
-       <xsd:element name="onlyAnhyst" type="xsd:boolean" minOccurs="0" default="false"/>
-     </xsd:sequence>
+  <xsd:complexType name="DT_AnhystereticParams">
+    <xsd:sequence>
+      <xsd:element name="a" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="b" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="c" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="onlyAnhyst" type="xsd:boolean" minOccurs="1" default="false"/>
+    </xsd:sequence>
   </xsd:complexType>  
     
   <xsd:complexType name="DT_HystWeights">
     <xsd:sequence>
       <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger" minOccurs="1"/>
-      <xsd:choice>
-          <xsd:element name="const" type="xsd:double" default="0.5"/>
-          <xsd:element name="muDat" type="DT_MuDATParams" />
-          <xsd:element name="muDatExtended" type="DT_MuDATExtendedParams" />
-          <xsd:element name="weightTensor">
-            <xsd:simpleType>
-              <xsd:restriction base="DT_DoubleList">
-                <xsd:maxLength value="100000000"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
-      </xsd:choice>
+      <xsd:element name="weightType" minOccurs="1">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="const" type="xsd:double" default="0.5"/>
+            <xsd:element name="muDat" type="DT_MuDATParams" />
+            <xsd:element name="muDatExtended" type="DT_MuDATExtendedParams"/>
+            <xsd:element name="weightTensor">
+              <xsd:simpleType>
+                <xsd:restriction base="DT_DoubleList">
+                  <xsd:maxLength value="100000000"/>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="anhystereticParameter" type="DT_AnhystereticParams" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>   
     
@@ -139,31 +348,22 @@
       <xsd:element name="alphaRegMax" type="xsd:double" minOccurs="0" default="8192.0"/>
     </xsd:sequence>
   </xsd:complexType>  
-    
-     <xsd:complexType name="DT_irreversibleStrains">
-      <xsd:sequence>
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">   
-          </xsd:documentation>
-        </xsd:annotation>
-        <xsd:choice>
-          <xsd:element name="muDatRelated" type="DT_MuDATStrainParams"/>
-          <xsd:element name="higherOrderPolynomial" type="DT_StrainParams"/>
-        </xsd:choice>
-      </xsd:sequence>
-    </xsd:complexType> 
-    
-    <xsd:complexType name="DT_initialInOutState">
-      <xsd:sequence>
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-            Define initial state of hyst operator
-            (A): input > given vector will be fed into forward hyst operator
-            (B): output > given vector will be fed into inversion method for hyst operator;
-                          this means, that the actual output of the hyst operator will be
-                          equal to the given vector MINUS reversible and anhysteretic parts   
-          </xsd:documentation>
-        </xsd:annotation>
+        
+  <xsd:complexType name="DT_initialElec">
+    <xsd:choice>
+      <xsd:element name="initialInput" type="DT_initialInOutState"/>
+    </xsd:choice>
+  </xsd:complexType>      
+        
+  <xsd:complexType name="DT_initialMag">
+    <xsd:choice>
+      <xsd:element name="initialOutput" type="DT_initialInOutState"/>
+      <xsd:element name="initialInput" type="DT_initialInOutState"/>
+    </xsd:choice>
+  </xsd:complexType>
+     
+  <xsd:complexType name="DT_initialInOutState">
+    <xsd:sequence>
       <xsd:element name="Vector">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
@@ -172,108 +372,163 @@
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element>
-      <xsd:element name="scaleVectorBySaturation" type="xsd:boolean" minOccurs="0" default="true"/>
-      </xsd:sequence>
-    </xsd:complexType> 
-    
- <!-- <xsd:complexType name="DT_ScalPreisachExtension">
-    <xsd:sequence>
-      <xsd:element name="useExtension" type="xsd:boolean" minOccurs="0" default="false"/>
-      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="0" default="1"/>
-      <xsd:element name="angularDistance" type="xsd:double" minOccurs="0" default="0"/>
+      <xsd:element name="scaleVectorBySaturation" type="xsd:boolean" minOccurs="1" default="true"/>
     </xsd:sequence>
-  </xsd:complexType> -->
-    
-  <xsd:complexType name="DT_ScalarPreisachHystModel">
- <!--  <xsd:documentation xml:lang="en">
-    Scalar Preisach model in magnetics is defined by
-     i) hSat / jSat = Saturation values for H-Field and Polarization Jp = mu_0*M (with M = magnetization)
-     ii) dirJ       = direction of Jp = direction of M
-     iii) a set of Preisach weights (the number of rows has to be specified by parameter dim_weights)
-    
-     For the magnetostrictive case
-     -) strainForm > if set to 1, the magnetostrictive g-form will be assumed as basis
-                    > if set to 0, the magnetostrictive h-form will be assumed as basis (DEFAULT)
-      Note that in both cases, [c^B], [h] and [nu^S] are provided as small signal parameter.
-      In case of g-form, those will be transformed to the [s^B], [g] and [nu^T] at the beginning of the simulation
-        and then during each iteration transformed back to [c^B], [h] and [nu^S].
-      Idea behind g-form: as [h]/[g] depends on Jp/M, [nu^S] = [nu^T] + [g][c^B][g]^t will do in case that
-                           [nu^T] is taken as basis
-    -) betaCoef > the irreversible strains are computed via a polynomial sum of the
-               the polarization, i.e.
-               S^i = beta_0 + beta_1*J + beta_2*J^2 + beta_3*J^3 ... beta_n*J^n
-            > specify vector of n+1 doubles representing beta_n to beta_0 (from left to right)
-            > length of vector defined by dimCoefs 
-   </xsd:documentation>-->
+  </xsd:complexType> 
+
+<xsd:complexType name="DT_ScalarPreisachHystModelElec">
     <xsd:sequence>
       <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="dirPolarization" minOccurs="1">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
-          <xsd:minLength value="3"/> 
+            <xsd:minLength value="3"/> 
             <xsd:maxLength value="3"/>
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element> 
-      <!--<xsd:element name="dirJ" type="DT_Direction"/>-->
-      <!--<xsd:element name="pseudoVectorExtension" type="DT_ScalPreisachExtension" minOccurs="0"/>-->
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
-      <xsd:element name="anhystereticParameter" type="DT_AnhystereticParams" minOccurs="0"/>
-      <xsd:element name="initialState" minOccurs="0">
-        <xsd:complexType>
-          <xsd:choice>
-            <xsd:element name="initialOutput" type="DT_initialInOutState">
-            </xsd:element> 
-            <xsd:element name="initialInput" type="DT_initialInOutState">
-            </xsd:element> 
-          </xsd:choice>
-        </xsd:complexType>
-      </xsd:element> 
-      <xsd:element name="smallSignalForm" type="DT_SmallSignalForm" minOccurs="0"/>
-      <xsd:element name="irrStrains" type="DT_irreversibleStrains" minOccurs="0"/>
+      <xsd:element name="initialState" type="DT_initialElec" minOccurs="0">
+        <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Define initial state of hyst operator
+          (A): input > given vector will be fed into forward hyst operator
+        </xsd:documentation>
+      </xsd:annotation>
+      </xsd:element>
     </xsd:sequence>
   </xsd:complexType>
-    
-  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz_Base">
+
+  <xsd:complexType name="DT_ScalarPreisachHystModelMag">
     <xsd:sequence>
-    <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
-    <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
-    <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
-    <xsd:element name="weightsAdaptedToMayergoyzVectorModel" type="xsd:boolean" minOccurs="0" default="false"/>
-    <xsd:element name="anhystereticParameter" type="DT_AnhystereticParams" minOccurs="0"/>
-    <xsd:element name="smallSignalForm" type="DT_SmallSignalForm" minOccurs="0"/>
-    <xsd:element name="irrStrains" type="DT_irreversibleStrains" minOccurs="0"/>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="dirPolarization" minOccurs="1">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:minLength value="3"/> 
+            <xsd:maxLength value="3"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+      <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
+        <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Define initial state of hyst operator
+          (A): input > given vector will be fed into forward hyst operator
+          (B): output > given vector will be fed into inversion method for hyst operator;
+          this means, that the actual output of the hyst operator will be
+          equal to the given vector MINUS reversible and anhysteretic parts   
+        </xsd:documentation>
+      </xsd:annotation>
+      </xsd:element>
     </xsd:sequence>
-  </xsd:complexType> 
+  </xsd:complexType>
   
+  <xsd:complexType name="DT_ScalarPreisachHystModelStrain">
+    <xsd:sequence>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="dirPolarization" minOccurs="1">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:minLength value="3"/> 
+            <xsd:maxLength value="3"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyzElec">    
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="isotropic" type="DT_VectorPreisachHystModelMayergoyz_Isotropic" minOccurs="1" maxOccurs="1"/>
+        <xsd:element name="anIsotropic" type="DT_VectorPreisachHystModelMayergoyz_Anisotropic" minOccurs="1" maxOccurs="1"/>
+      </xsd:choice>
+      <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
+      <xsd:element name="initialState" type="DT_initialElec" minOccurs="0">
+        <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Define initial state of hyst operator
+          (A): input > given vector will be fed into forward hyst operator
+        </xsd:documentation>
+      </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>    
+  
+  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyzMag">    
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="isotropic" type="DT_VectorPreisachHystModelMayergoyz_Isotropic" minOccurs="1" maxOccurs="1"/>
+        <xsd:element name="anIsotropic" type="DT_VectorPreisachHystModelMayergoyz_Anisotropic" minOccurs="1" maxOccurs="1"/>
+      </xsd:choice>
+      <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="1"/>
+      <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
+      <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
+        <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Define initial state of hyst operator
+          (A): input > given vector will be fed into forward hyst operator
+          (B): output > given vector will be fed into inversion method for hyst operator;
+          this means, that the actual output of the hyst operator will be
+          equal to the given vector MINUS reversible and anhysteretic parts   
+        </xsd:documentation>
+      </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>    
+    
+  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyzStrain">    
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="isotropic" type="DT_VectorPreisachHystModelMayergoyz_Isotropic" minOccurs="1" maxOccurs="1"/>
+        <xsd:element name="anIsotropic" type="DT_VectorPreisachHystModelMayergoyz_Anisotropic" minOccurs="1" maxOccurs="1"/>
+      </xsd:choice>
+      <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>  
+    
   <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz_Isotropic">
     <xsd:sequence>
-    <xsd:element name="numDirections" type="xsd:nonNegativeInteger" minOccurs="1" default="11"/>
-    <xsd:element name="ScalarModel" type="DT_VectorPreisachHystModelMayergoyz_Base" minOccurs="1"/>
+      <xsd:element name="numDirections" type="xsd:nonNegativeInteger" minOccurs="1" default="11"/>
+      <xsd:element name="ScalarModel" type="DT_VectorPreisachHystModelMayergoyz_Base" minOccurs="1"/>
     </xsd:sequence>
   </xsd:complexType> 
   
   <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz_Anisotropic">
     <xsd:sequence>
-    <xsd:element name="ScalarModelsForSingleDirection" minOccurs="1" maxOccurs="unbounded">
-      <xsd:complexType>
-        <xsd:sequence>
-          <xsd:element name="ScalarModel" type="DT_VectorPreisachHystModelMayergoyz_Base" minOccurs="1"/>
-          <xsd:element name="direction" minOccurs="1">
-            <xsd:simpleType>
-              <xsd:restriction base="DT_DoubleList">
-                <xsd:minLength value="3"/> 
-                <xsd:maxLength value="3"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
-        </xsd:sequence>
-        <xsd:attribute name="nameTag" type="xsd:token"/>
-      </xsd:complexType>
+      <xsd:element name="ScalarModelsForSingleDirection" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="ScalarModel" type="DT_VectorPreisachHystModelMayergoyz_Base" minOccurs="1"/>
+            <xsd:element name="direction" minOccurs="1">
+              <xsd:simpleType>
+                <xsd:restriction base="DT_DoubleList">
+                  <xsd:minLength value="3"/> 
+                  <xsd:maxLength value="3"/>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+          </xsd:sequence>
+          <xsd:attribute name="nameTag" type="xsd:token"/>
+        </xsd:complexType>
       </xsd:element> 
-      </xsd:sequence>
+    </xsd:sequence>
   </xsd:complexType>   
+  
+  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz_Base">
+    <xsd:sequence>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+      <xsd:element name="weightsAdaptedToMayergoyzVectorModel" type="xsd:boolean" minOccurs="1" default="false"/>
+    </xsd:sequence>
+  </xsd:complexType> 
   
   <xsd:complexType name="DT_MayergoyzClipping">
     <xsd:choice>
@@ -282,86 +537,8 @@
       <xsd:element name="clipComponentParallelToInput"/>
     </xsd:choice>
   </xsd:complexType>
-  
-  <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz">    
-    <xsd:sequence>
-      <xsd:choice>
-        <xsd:element name="isotropic" type="DT_VectorPreisachHystModelMayergoyz_Isotropic" minOccurs="1" maxOccurs="1"/>
-        <xsd:element name="anIsotropic" type="DT_VectorPreisachHystModelMayergoyz_Anisotropic" minOccurs="1" maxOccurs="1"/>
-      </xsd:choice>
-      <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
-      <xsd:element name="initialState" minOccurs="0">
-        <xsd:complexType>
-          <xsd:choice>
-            <xsd:element name="initialOutput" type="DT_initialInOutState">
-            </xsd:element> 
-            <xsd:element name="initialInput" type="DT_initialInOutState">
-            </xsd:element> 
-          </xsd:choice>
-        </xsd:complexType>
-      </xsd:element> 
-      <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="0"/>
-    </xsd:sequence>
-  </xsd:complexType>  
-         
-   <xsd:complexType name="DT_SutorModelVersion">
-    <xsd:choice>
-      <xsd:element name="Classical_Version_2012__list_implementation"/>
-      <xsd:element name="Revised_Version_2015__list_implementation"/>
-      <xsd:element name="Classical_Version_2012__matrix_implementation"/>
-      <xsd:element name="Revised_Version_2015__matrix_implementation"/>
-    </xsd:choice>
-  </xsd:complexType>  
-       
-    <xsd:complexType name="DT_VectorPreisachHystModelSutor">
-   <!-- <xsd:documentation xml:lang="en">
-     Vector Preisach model in magnetics is defined by
-     i) hSat / jSat = Saturation values for H-Field and Polarization Jp = mu_0*M (with M = magnetization)
-     ii) evalVersion    = type of model and implementation that shall be used
-                        1: classical model (Sutor2012), list based implementation
-                        2: revised model (Sutor2015), list based implementation (DEFAULT)
-                        10: classical model (Sutor2012), matrix based implementation
-                        20: revised model (Sutor2015), matrix based implementation
-     iii) rotResistance > parameter needed for classical and revised model
-                        > spcifies how strong the direction of the polarization changes in relation to the
-                          amplitude
-                        > classical model: xthres = |x_in|^k
-                        > revised model: xthres = k*|x_in|
-     iv)  angularDistance > parameter needed only for revised model
-                          > maximal angle that might remain inside the material between polarization and
-                              outer field; gets applied each time when rotation states change direction;
-                              angular distance decreases to 0 for amplitudes going towards saturation                        
-     v) a set of Preisach weights (the number of rows has to be specified by parameter dim_weights)
-    
-     Optional parameter:
-     a) angularClipping > if set to a value != 0, all stored direction vectors are clipped to multiples of this angular value (in rad)
-     b) angularResolution,amplitudeResolution > changes in rotation angle/input amplitude below these thresholds
-                                                are not resolved; old state remains unchanged
-     c) initialState > vector providing an initial input to the hyst operator that shall be applied before the
-                        actual simulation starts; can be used to simulate a material which starts in saturation
-                        (for that purpose, the initial input has to have an amplitude >= hSat of course)
-                       Attention: this has to be conform with boundary conditions, i.e. if you specify initial state
-                                  to be (hSat,0,0), the polarization must be allowed to point into x direction at the boundary
-                                  
-     Debug parameter:
-     x) printOut > if set to X!=0, the overlaid switching and rotation state (i.e. the Preisach plane) will be outputted
-                   to a bmp file (FOR EACH ELEMENT!) for each Xth time step
-     y) bmpResolution > resolution of the bmp images (only used if printOut != 0
-       
-      For the magnetostrictive case:
-      -) strainForm > if set to 1, the magnetostrictive g-form will be assumed as basis
-                     > if set to 0, the magnetostrictive h-form will be assumed as basis
-       Note that in both cases, [c^B], [h] and [nu^S] are provided as small signal parameter.
-       In case of g-form, those will be transformed to the [s^B], [g] and [nu^T] at the beginning of the simulation
-         and then during each iteration transformed back to [c^B], [h] and [nu^S].
-       Idea behind g-form: as [h]/[g] depends on Jp/M, [nu^S] = [nu^T] + [g][c^B][g]^t will do in case that
-                            [nu^T] is taken as basis
-       -) betaCoef > the irreversible strains are computed via a polynomial sum of the
-            the polarization, i.e.
-            S^i = beta_0 + beta_1*J + beta_2*J^2 + beta_3*J^3 ... beta_n*J^n
-         > specify vector of n+1 doubles representing beta_n to beta_0 (from left to right)
-         > length of vector defined by dimCoefs
-    </xsd:documentation>-->
+           
+  <xsd:complexType name="DT_VectorPreisachHystModelSutorMag">
     <xsd:sequence>
       <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
@@ -369,26 +546,90 @@
       <xsd:element name="rotResistance"  type="xsd:double" minOccurs="1" default="1"/>
       <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
-      <xsd:element name="anhystereticParameter" type="DT_AnhystereticParams" minOccurs="0"/>
-      <xsd:element name="initialState" minOccurs="0">
+      <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="1"/>
+      <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
+        <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Define initial state of hyst operator
+          (A): input > given vector will be fed into forward hyst operator
+          (B): output > given vector will be fed into inversion method for hyst operator;
+          this means, that the actual output of the hyst operator will be
+          equal to the given vector MINUS reversible and anhysteretic parts   
+        </xsd:documentation>
+      </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="debuggingParameter" minOccurs="0">
         <xsd:complexType>
-          <xsd:choice>
-            <xsd:element name="initialOutput" type="DT_initialInOutState">
-            </xsd:element> 
-            <xsd:element name="initialInput" type="DT_initialInOutState">
-            </xsd:element> 
-          </xsd:choice>
+          <xsd:sequence>
+            <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
+            <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
+            <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
+            <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
+            <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+          </xsd:sequence>
         </xsd:complexType>
-      </xsd:element> 
-      <xsd:element name="smallSignalForm" type="DT_SmallSignalForm" minOccurs="0"/>
-      <xsd:element name="irrStrains" type="DT_irreversibleStrains" minOccurs="0"/>
-      <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="0"/>
-      <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
-      <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
-      <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
-      <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
-      <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+      </xsd:element>
     </xsd:sequence>
-  </xsd:complexType>
+  </xsd:complexType>         
+ 
+  <xsd:complexType name="DT_VectorPreisachHystModelSutorElec">
+    <xsd:sequence>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="1"/>
+      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="1" default="1"/>
+      <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+      <xsd:element name="initialState" type="DT_initialElec" minOccurs="0">
+        <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Define initial state of hyst operator
+          (A): input > given vector will be fed into forward hyst operator
+        </xsd:documentation>
+      </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="debuggingParameter" minOccurs="0">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
+            <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
+            <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
+            <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
+            <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>      
+  
+  <xsd:complexType name="DT_VectorPreisachHystModelSutorStrain">
+    <xsd:sequence>
+      <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="1"/>
+      <xsd:element name="rotResistance"  type="xsd:double" minOccurs="1" default="1"/>
+      <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+      <xsd:element name="debuggingParameter" minOccurs="0">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
+            <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
+            <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>            
+                            
+                               
+  <xsd:complexType name="DT_SutorModelVersion">
+    <xsd:choice>
+      <xsd:element name="Classical_Version_2012__list_implementation"/>
+      <xsd:element name="Revised_Version_2015__list_implementation"/>
+      <xsd:element name="Classical_Version_2012__matrix_implementation"/>
+      <xsd:element name="Revised_Version_2015__matrix_implementation"/>
+    </xsd:choice>
+  </xsd:complexType>  
 
 </xsd:schema>

@@ -1163,36 +1163,64 @@ namespace CoupledField {
     /*
      * New functions added April 2018
      */
-    Double getWeight(Double alpha, Double beta, Double delta){
+    Double getWeight(Double alpha, Double beta, Double delta, bool weightForStrains){
       
-      if(weightType_ == "Constant"){
-        return constWeight_;
-      } else if(weightType_ == "muDat"){
-        return MuDat(muDat_A_, muDat_sigma1_, muDat_h1_, muDat_eta_, alpha, beta);
-      } else if(weightType_ == "muDatExtended"){
-        return MuDatExtended(muDat_A_, muDat_sigma1_, muDat_sigma2_, muDat_h1_, muDat_h2_, muDat_eta_, alpha, beta);
-      } else if(weightType_ == "givenTensor"){
-        // alpha = -1 shall be mapped to 0, alpha = 1.0 shall be mapped to maxNum
-        UInt idxAlpha = UInt(std::round((alpha+1.0)/delta));
-        UInt idxBeta = UInt(std::round((beta+1.0)/delta));
-        if( idxAlpha < 0 ){
-          idxAlpha = 0;
-        } else if (idxAlpha >= MAT_numRows_){
-          idxAlpha = MAT_numRows_-1;
+      if(weightForStrains){
+        if(weightTypeStrain_ == "Constant"){
+          return constWeightStrain_;
+        } else if(weightTypeStrain_ == "muDat"){
+          return MuDat(muDatStrain_A_, muDatStrain_sigma1_, muDatStrain_h1_, muDatStrain_eta_, alpha, beta);
+        } else if(weightTypeStrain_ == "muDatExtended"){
+          return MuDatExtended(muDatStrain_A_, muDatStrain_sigma1_, muDatStrain_sigma2_, muDatStrain_h1_, muDatStrain_h2_, muDatStrain_eta_, alpha, beta);
+        } else if(weightTypeStrain_ == "givenTensor"){
+          // alpha = -1 shall be mapped to 0, alpha = 1.0 shall be mapped to maxNum
+          UInt idxAlpha = UInt(std::round((alpha+1.0)/delta));
+          UInt idxBeta = UInt(std::round((beta+1.0)/delta));
+          if( idxAlpha < 0 ){
+            idxAlpha = 0;
+          } else if (idxAlpha >= MAT_numRowsStrain_){
+            idxAlpha = MAT_numRowsStrain_-1;
+          }
+          if( idxBeta < 0 ){
+            idxBeta = 0;
+          } else if (idxBeta >= MAT_numRowsStrain_){
+            idxBeta = MAT_numRowsStrain_-1;
+          }
+          
+          return weightTensorStrain_[idxAlpha][idxBeta];
+        } else {
+          return 0.0;
         }
-        if( idxBeta < 0 ){
-          idxBeta = 0;
-        } else if (idxBeta >= MAT_numRows_){
-          idxBeta = MAT_numRows_-1;
-        }
-        
-        return weightTensor_[idxAlpha][idxBeta];
       } else {
-        return 0.0;
+        if(weightType_ == "Constant"){
+          return constWeight_;
+        } else if(weightType_ == "muDat"){
+          return MuDat(muDat_A_, muDat_sigma1_, muDat_h1_, muDat_eta_, alpha, beta);
+        } else if(weightType_ == "muDatExtended"){
+          return MuDatExtended(muDat_A_, muDat_sigma1_, muDat_sigma2_, muDat_h1_, muDat_h2_, muDat_eta_, alpha, beta);
+        } else if(weightType_ == "givenTensor"){
+          // alpha = -1 shall be mapped to 0, alpha = 1.0 shall be mapped to maxNum
+          UInt idxAlpha = UInt(std::round((alpha+1.0)/delta));
+          UInt idxBeta = UInt(std::round((beta+1.0)/delta));
+          if( idxAlpha < 0 ){
+            idxAlpha = 0;
+          } else if (idxAlpha >= MAT_numRows_){
+            idxAlpha = MAT_numRows_-1;
+          }
+          if( idxBeta < 0 ){
+            idxBeta = 0;
+          } else if (idxBeta >= MAT_numRows_){
+            idxBeta = MAT_numRows_-1;
+          }
+          
+          return weightTensor_[idxAlpha][idxBeta];
+        } else {
+          return 0.0;
+        }
       }
     }
     
-    Double getWeightDerivative(Double alpha, Double beta, Double delta, bool flipped){
+    Double getWeightDerivative(Double alpha, Double beta, Double delta, bool flipped, bool weightForStrains){
       
       Double s, lambda;
       if(flipped){
@@ -1203,7 +1231,39 @@ namespace CoupledField {
         lambda = beta/alpha;
       }
       
-      if(weightType_ == "Constant"){
+      if(weightForStrains){
+        if(weightTypeStrain_ == "Constant"){
+        return 0.0;
+      } else if(weightTypeStrain_ == "muDat"){
+        return dMuDat_by_ds(muDatStrain_A_, muDatStrain_sigma1_, muDatStrain_h1_, muDatStrain_eta_,s,lambda,flipped);
+      } else if(weightTypeStrain_ == "muDatExtended"){
+        return dMuDatExtended_by_ds(muDatStrain_A_, muDatStrain_sigma1_, muDatStrain_sigma2_, muDatStrain_h1_, muDatStrain_h2_, muDatStrain_eta_,s,lambda,flipped);
+      } else if(weightTypeStrain_ == "givenTensor"){
+        Double s_low = s-delta/1e11;
+        if( s_low < -1.0){
+          s_low = -1.0;
+        }
+        Double s_up = s+delta/1e11;
+        if( s_up > 1.0){
+          s_up = 1.0;
+        }
+        
+        Double deltas = s_up - s_low;
+        Double wUp;
+        Double wLow;
+        if(flipped){
+          wUp = getWeight(lambda*s_up,s_up,delta,weightForStrains);
+          wLow = getWeight(lambda*s_low,s_low,delta,weightForStrains);
+        } else{
+          wUp = getWeight(s_up,lambda*s_up,delta,weightForStrains);
+          wLow = getWeight(s_low,lambda*s_low,delta,weightForStrains);
+        }
+        return (wUp-wLow)/deltas;
+      } else {
+        return 0.0;
+      }
+      } else {
+        if(weightType_ == "Constant"){
         return 0.0;
       } else if(weightType_ == "muDat"){
         return dMuDat_by_ds(muDat_A_, muDat_sigma1_, muDat_h1_, muDat_eta_,s,lambda,flipped);
@@ -1223,15 +1283,16 @@ namespace CoupledField {
         Double wUp;
         Double wLow;
         if(flipped){
-          wUp = getWeight(lambda*s_up,s_up,delta);
-          wLow = getWeight(lambda*s_low,s_low,delta);
+          wUp = getWeight(lambda*s_up,s_up,delta,false);
+          wLow = getWeight(lambda*s_low,s_low,delta,false);
         } else{
-          wUp = getWeight(s_up,lambda*s_up,delta);
-          wLow = getWeight(s_low,lambda*s_low,delta);
+          wUp = getWeight(s_up,lambda*s_up,delta,false);
+          wLow = getWeight(s_low,lambda*s_low,delta,false);
         }
         return (wUp-wLow)/deltas;
       } else {
         return 0.0;
+      }
       }
     }
     
@@ -1250,6 +1311,23 @@ namespace CoupledField {
     std::string usedHystModel_;
     bool anhystOnly_;
     int weightsAlreadyAdapted_; // for Mayergoyz case
+    
+    std::string weightTypeStrain_;
+    Double constWeightStrain_;
+    Double muDatStrain_A_;
+    Double muDatStrain_sigma1_;
+    Double muDatStrain_sigma2_;
+    Double muDatStrain_h1_;
+    Double muDatStrain_h2_;
+    Double muDatStrain_eta_;
+    Double MAT_anhystereticStrain_a_;
+    Double MAT_anhystereticStrain_b_;
+    Double MAT_anhystereticStrain_c_;
+    Matrix<Double> weightTensorStrain_;
+    std::string usedHystModelStrain_;
+    bool anhystOnlyStrain_;
+    int weightsAlreadyAdaptedStrain_; // for Mayergoyz case
+    
     
     Double MuDat(Double A, Double sigma, Double h, Double eta, Double alpha, Double beta){
       // MuDat function for evaluating Preisach Weights
@@ -1339,7 +1417,7 @@ namespace CoupledField {
       return pointsAndWeights;
     }
     
-    Matrix<Double> evaluatePreisachWeights(){
+    Matrix<Double> evaluatePreisachWeights(bool useStrains){
       Double alpha,beta;
       Double delta = 2.0/MAT_numRows_;
       Double dimHalf = MAT_numRows_/2.0;
@@ -1360,14 +1438,14 @@ namespace CoupledField {
           // note: getWeight checks for weightType_; depending on that value
           // we evaluate muDat, muDatExt, return a const or access the already given weights (in which case
           // there is no need to call this function)
-          weights[i][k] = getWeight(alpha,beta,delta);
+          weights[i][k] = getWeight(alpha,beta,delta,useStrains);
         }
       }
       return weights;
     }
     
     
-    Matrix<Double> transformPreisachWeightsForIsotropicVectorCase(){
+    Matrix<Double> transformPreisachWeightsForIsotropicVectorCase(bool forStrain){
       // Transform Preisach weights from scalar case to vector case (isotropic, Mayergoyz model)
       // Source: "Analysis of Isotropic Materials with Vector Hysteresis" - O. Bottauscio 1998
       //
@@ -1390,25 +1468,33 @@ namespace CoupledField {
         EXCEPTION("Currently only 2D case of Preisach Weight transformation supported");
         // 3d case starts from different formula > see "Mathematical Models of Hysteresis and their Application" - Mayergoyz 2003
       }
-      Matrix<Double> vectorWeights = Matrix<Double>(MAT_numRows_,MAT_numRows_);
       
-      Double dimHalf = MAT_numRows_/2.0;
+      UInt numRows;
+      if(forStrain){
+        numRows = MAT_numRowsStrain_;
+      } else {
+        numRows = MAT_numRows_;
+      }
+      
+      Matrix<Double> vectorWeights = Matrix<Double>(numRows,numRows);
+      
+      Double dimHalf = numRows/2.0;
       UInt dimHalfInt = UInt(dimHalf);
       Double alpha,beta,s,lambda;
-      Double delta = 2.0/MAT_numRows_;
+      Double delta = 2.0/numRows;
       
       UInt numIntegrationPoints = 15;
       Matrix<Double> integrationPoints = getTschebyscheffPointsAndWeights(numIntegrationPoints);
       
       // upper part
-      for(UInt i = dimHalfInt; i < MAT_numRows_; i++){
+      for(UInt i = dimHalfInt; i < numRows; i++){
         // note: we evaluated the weights always at the element center > add deltaS/2
         alpha = (i - dimHalf)*delta + delta/2;//+ 1e-6*delta; 
-        for(UInt k = MAT_numRows_-1-i; k <= i; k++){
+        for(UInt k = numRows-1-i; k <= i; k++){
           beta = (k - dimHalf)*delta + delta/2;//+ 1e-6*delta;// + delta/2;
           
           if(alpha == 0){
-            vectorWeights[i][k] = 0.75*getWeight(0, 0, delta);
+            vectorWeights[i][k] = 0.75*getWeight(0, 0, delta, forStrain);
           } else {
             lambda = beta/alpha;
             
@@ -1419,11 +1505,11 @@ namespace CoupledField {
               Double curW = integrationPoints[pp][1];
               //std::cout << "s / 3*s*s*getWeight / s*s*s*getWeightDerivative / (tmp + tmp2)/(M_PI * alpha * alpha * std::sqrt(alpha*alpha - s*s))" << std::endl;
               s = x_of_y(curY,0,alpha);
-              Double tmp = 3*s*s*getWeight(s,lambda*s,delta);
+              Double tmp = 3*s*s*getWeight(s,lambda*s,delta,forStrain);
               
               bool flipped = false; // > s takes slot of alpha, lambda*s takes place of beta
               
-              Double tmp2 = s*s*s*getWeightDerivative(s,lambda*s,delta, flipped);
+              Double tmp2 = s*s*s*getWeightDerivative(s,lambda*s,delta, flipped,forStrain);
               Double tmp3 = (tmp + tmp2)/(M_PI * alpha * alpha * std::sqrt(alpha*alpha - s*s));
               
               vectorWeights[i][k] += dx_by_dy(std::min(0.0,alpha), std::max(0.0,alpha))*curW*tmp3;
@@ -1443,13 +1529,13 @@ namespace CoupledField {
         // note: we evaluated the weights always at the element center > add deltaS/2
         beta = (k - dimHalf)*delta + delta/2; //+ 1e-6*delta;// + delta/2;
         
-        for(UInt i = k; i < MAT_numRows_-k-1; i++){
+        for(UInt i = k; i < numRows-k-1; i++){
           //          std::cout << "MAT_numRows_-k-1 = " << MAT_numRows_-k-1 << std::endl;
           //          std::cout << "i = " << i << std::endl;
           alpha = (i - dimHalf)*delta + delta/2; //+ 1e-6*delta;// + delta/2;
           
           if(beta == 0){
-            vectorWeights[i][k] = 0.75*getWeight(alpha, beta, delta);
+            vectorWeights[i][k] = 0.75*getWeight(alpha, beta, delta,forStrain);
           } else {
             // flipped case
             lambda = alpha/beta;
@@ -1461,10 +1547,10 @@ namespace CoupledField {
               Double curW = integrationPoints[pp][1];
               
               s = x_of_y(curY,0,beta);
-              Double tmp = 3*s*s*getWeight(lambda*s,s,delta);
+              Double tmp = 3*s*s*getWeight(lambda*s,s,delta,forStrain);
               
               bool flipped = true; // > s takes slot of alpha, lambda*s takes place of beta
-              Double tmp2 = s*s*s*getWeightDerivative(lambda*s,s,delta, flipped);
+              Double tmp2 = s*s*s*getWeightDerivative(lambda*s,s,delta, flipped,forStrain);
               
               Double tmp3 = (tmp + tmp2)/(M_PI * beta * beta * std::sqrt(beta*beta - s*s));
               vectorWeights[i][k] += dx_by_dy(std::min(0.0,beta), std::max(0.0,beta))*curW*tmp3;
@@ -1498,7 +1584,7 @@ namespace CoupledField {
           }
           
           Double integral = 0.0;
-          Double target = getWeight(alpha+delta/2, beta+delta/2, delta);
+          Double target = getWeight(alpha+delta/2, beta+delta/2, delta,forStrain);
           for(UInt i = 0; i < numAngles; i++){
             phi = -M_PI/2+i*deltaPhi;
             c = std::cos(phi);
@@ -1521,6 +1607,8 @@ namespace CoupledField {
       
       return vectorWeights;
     }
+    
+    void ReadInMaterial(BaseMaterial * const material);
     
     //! Destructor
     virtual ~CoefFunctionHyst();
@@ -2351,7 +2439,9 @@ namespace CoupledField {
      * Preisach weights and its size in form of the number of rows
      */
     Matrix<Double> MAT_PreisachWeights_;
+    Matrix<Double> MAT_PreisachWeightsStrains_;
     UInt MAT_numRows_;
+    UInt MAT_numRowsStrain_;
     
     /* 
      * Saturation values for input (x, E/H) and output (y, P/M) of
@@ -2429,6 +2519,8 @@ namespace CoupledField {
     // when input grows above XSaturated_ > set flag to false
     // otherwise, flag = true
     bool hystOutputRestrictedToSat_;
+    int MAT_Mayergoyz_numDirections_;
+    int MAT_Mayergoyz_clipOutput_;
     
     /*
      * Initial input to the vector hysteresis operator;
@@ -2437,6 +2529,7 @@ namespace CoupledField {
      *        not the actual polarization/magnetization state
      */
     Vector<Double> MAT_initialInput_;
+    bool MAT_prescribeInitialOutput_;
     
     /*
      * enables output of overlapped switching and rotation state in form of bmp

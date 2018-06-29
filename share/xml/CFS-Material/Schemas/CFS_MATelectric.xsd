@@ -21,10 +21,8 @@
   <xsd:complexType name="DT_MatElectric">
     <xsd:sequence>
       <xsd:element name="permittivity" type="DT_ElecPermittivity"/>
-      <xsd:element name="permittivityCoefficient"
-        type="DT_ElecNonLinPerm" minOccurs="0"/>
-      <xsd:element name="hystModel"
-        type="DT_HystModel" minOccurs="0"/>
+      <xsd:element name="permittivityCoefficient" type="DT_ElecNonLinPerm" minOccurs="0"/>
+      <xsd:element name="hystModel" type="DT_HystModelElec" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 
