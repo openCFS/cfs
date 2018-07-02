@@ -1697,6 +1697,23 @@ namespace CoupledField {
     PtrParamNode initialState = NULL;
     PtrParamNode irrStrainNode = NULL;
     
+    /*
+     * Instead of setting each parameter twice in the form
+     *    if(setStrains){
+     *      material->SetScalar(model->Get("inputSat")->As<Double>(), X_SATURATION_STRAIN, Global::REAL ); 
+     *    } else {
+     *      material->SetScalar(model->Get("inputSat")->As<Double>(), X_SATURATION, Global::REAL ); 
+     *    }
+     * 
+     * we define the enums for strains like X_SATURATION_STRAIN with a fixed offset towards the equivalent 
+     * parameter for polarization X_SATURATION
+     * > see Environment.hh
+     */
+    int enumOffset = 0;
+    if(setStrains){
+      enumOffset = 100;
+    }
+    
     if(operatorNode->Has("scalarPreisach")){
       model = operatorNode->Get("scalarPreisach");
       if(setStrains){
@@ -1706,22 +1723,25 @@ namespace CoupledField {
         material->SetScalar("scalarPreisach", HYST_MODEL);
         material->SetScalar("SCALAR", PREISACH_DIM);
       }
+      
+      material->SetScalar(model->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL ); 
+      material->SetScalar(model->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL ); 
       // read input saturation of Preisach hysterese model (E,H)
-      if(model->Has("inputSat")){
-        if(setStrains){
-          material->SetScalar(model->Get("inputSat")->As<Double>(), X_SATURATION_STRAIN, Global::REAL ); 
-        } else {
-          material->SetScalar(model->Get("inputSat")->As<Double>(), X_SATURATION, Global::REAL ); 
-        }
-      }
+//      if(model->Has("inputSat")){
+//        if(setStrains){
+//          material->SetScalar(model->Get("inputSat")->As<Double>(), X_SATURATION_STRAIN, Global::REAL ); 
+//        } else {
+//          material->SetScalar(model->Get("inputSat")->As<Double>(), X_SATURATION, Global::REAL ); 
+//        }
+//      }
       // read P saturation of Preisach hysterese model
-      if(model->Has("outputSat")){
-        if(setStrains){
-          material->SetScalar(model->Get("outputSat")->As<Double>(), Y_SATURATION_STRAIN, Global::REAL ); 
-        } else {
-          material->SetScalar(model->Get("outputSat")->As<Double>(), Y_SATURATION, Global::REAL ); 
-        }
-      }
+//      if(model->Has("outputSat")){
+//        if(setStrains){
+//          material->SetScalar(model->Get("outputSat")->As<Double>(), Y_SATURATION_STRAIN, Global::REAL ); 
+//        } else {
+//          material->SetScalar(model->Get("outputSat")->As<Double>(), Y_SATURATION, Global::REAL ); 
+//        }
+//      }
       
       Matrix<Double> directionVector;
       if(model->Has("dirPolarization"))
