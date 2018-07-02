@@ -184,7 +184,6 @@ def cartesian_to_grid_coord(x,res,eps=1e-6):
 
 def grid_to_cartesian_coords(voxel,res,h=None):
   assert(len(voxel) == 3)
-  assert(res is None and not (h is None))
   if h is None:
     h = []
     if type(res) is int:
@@ -912,24 +911,27 @@ def generate_basecell(args,info):
     import time
     start = time.time()
     import marching_cubes
-#     for i in range(50):
-#     verts, faces, normals, values = measure.marching_cubes(array,spacing=(h,h,h),allow_degenerate=False)
-    # verts, faces = measure.marching_cubes_classic(array,spacing=(h,h,h))
+#     verts, faces, normals, values = measure.marching_cubes_lewiner(array,spacing=(h,h,h),allow_degenerate=False,step_size=1)
+#     marching_cubes.write_vtp(verts,faces,(h,h,h),"mc.vtp")
+#     verts, faces = measure.marching_cubes_classic(array,spacing=(h,h,h))
     points = []
     triangles = []
     normals = []
-    marching_cubes.marching_cubes(array,(h,h,h),points,triangles,normals)
+    #marching_cubes.marching_cubes(array,(h,h,h),points,triangles,normals)
+    marching_cubes.marching_cubes(array,(h,h,h),points,triangles)
+    
     verts = points
     faces = triangles
     end = time.time()
     print("time:",end - start)
+    import sys
     sys.exit()
     
     # marching_cubes returns float values
     verts = np.asarray(verts)
     # scale structure to [0,1]^3
     # moves structure to [0,1]^3
-    #verts += (h/2.0,h/2.0,h/2.0)
+    verts += (h/2.0,h/2.0,h/2.0)
     points = verts
     cells = faces 
     # extract points on the boundary circles

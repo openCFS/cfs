@@ -1801,7 +1801,7 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   xmin,ymin,zmin,xmax,ymax,zmax = calc_bounding_box(mesh)
 #   print("xmin,ymin,zmin,xmax,ymax,zmax:",xmin,ymin,zmin,xmax,ymax,zmax)
   
-#   mesh = add_bc_for_ppbox(mesh,(xmin,xmax,ymin,ymax,zmin,zmax))
+  mesh = add_bc_for_ppbox(mesh,(xmin,xmax,ymin,ymax,zmin,zmax))
   mesh = name_bb_faces(mesh,xmin,ymin,zmin,xmax,ymax,zmax)
 
 #  mesh = add_nodes_for_periodic_bc(mesh)
@@ -2734,8 +2734,12 @@ def create_volume_mesh_with_gmsh(stlName):
   
 def add_bc_for_ppbox(mesh,bounds):
   xmin,xmax,ymin,ymax,zmin,zmax = bounds
-  big_cylinder = [206,48.1375,-106,254,91.849,-62]
-  small_clinder = [116,49,-41,164,71,-19]
+#   big_cylinder = [206,48.1375,-106,254,91.849,-62]
+#   small_clinder = [116,49,-41,164,71,-19]
+  
+  big_cylinder = [51.5,12.0,-26.24,63.5,22.96,-15.36]
+  small_clinder = [29,12.336,-9.919,41,17.668,-4.4313]
+  
   eps = 1e-6
   load = []
   support = []

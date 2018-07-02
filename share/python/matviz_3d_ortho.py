@@ -245,18 +245,15 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
     print("before reducing: len(verts):",len(my_mpi_grid.vertices)," len(faces):",len(my_mpi_grid.faces))
     sys.stdout.flush()
     
-    verts = np.asarray(my_mpi_grid.vertices)
-    faces = np.asarray(my_mpi_grid.faces)
-    
-    verts, faces, info = pymesh.remove_duplicated_vertices_raw(verts,faces,1e-4) 
-    verts, faces, info = pymesh.remove_duplicated_faces_raw(verts,faces)
-    print("after reducing: len(verts):",len(verts)," len(faces):",len(faces))
+    my_mpi_grid.vertices, my_mpi_grid.faces, info = pymesh.remove_duplicated_vertices_raw(np.asarray(my_mpi_grid.vertices),np.asarray(my_mpi_grid.faces),1e-4) 
+    my_mpi_grid.vertices, my_mpi_grid.faces, info = pymesh.remove_duplicated_faces_raw(np.asarray(my_mpi_grid.vertices),np.asarray(my_mpi_grid.faces))
+    print("after reducing: len(verts):",len(my_mpi_grid.vertices)," len(faces):",len(my_mpi_grid.faces))
     sys.stdout.flush()
     
     # add vertex id to list of vertices, need it later on when scattering
     # data for smoothing
     
-    pd = matviz_vtk.fill_vtk_polydata(verts, faces)
+    pd = matviz_vtk.fill_vtk_polydata(my_mpi_grid.vertices, my_mpi_grid.faces)
     normals = vtk.vtkPolyDataNormals()
     normals.SetInputData(pd)
     normals.SetConsistency(1)
@@ -336,13 +333,19 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   recvbuf = np.empty(int(rankcounts[my_mpi_grid.rank]))
   my_mpi_grid.comm.Scatterv(sendbuf=[my_mpi_grid.vertices,rankcounts,displ,MPI.DOUBLE],recvbuf=recvbuf,root=0)
   my_mpi_grid.connectivity = my_mpi_grid.comm.bcast(my_mpi_grid.connectivity,root=0)
+
   
   # convert to dict with vertex id as key and coordinates as value
   my_mpi_grid.vertices = convert_verts_list_to_dict(np.reshape(recvbuf, (int(rankcounts[my_mpi_grid.rank]/4),4)))
+  #if my_mpi_grid.rank == 1:
+    #print("rank ", my_mpi_grid.rank, " verts:",np.reshape(recvbuf, (int(rankcounts[my_mpi_grid.rank]/4),4)))
+    #print(len(recvbuf)/4)  
+    #print("verts:",my_mpi_grid.vertices)
+  #sys.exit()
   my_mpi_grid.start_verts_idx = int(offsets[my_mpi_grid.rank][0])
   my_mpi_grid.end_verts_idx = int(offsets[my_mpi_grid.rank][1])
   
-  print("\nrank ", my_mpi_grid.rank, " recieved ", len(my_mpi_grid.vertices), " start=",displ[my_mpi_grid.rank]/4," end=",displ[my_mpi_grid.rank]/4+rankcounts[my_mpi_grid.rank]/4)
+  print("\nrank ", my_mpi_grid.rank, " recieved ", len(my_mpi_grid.vertices)," overlapping data from id ", displ[my_mpi_grid.rank]/4," to" , displ[my_mpi_grid.rank]/4+rankcounts[my_mpi_grid.rank]/4, " working on data starting at", offsets[my_mpi_grid.rank], " chunks:",chunks)
   
   for v in my_mpi_grid.vertices:
     assert(v is not None)
@@ -364,7 +367,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   if my_mpi_grid.rank != 0:
     sys.exit()
   
-  pd = matviz_vtk.fill_vtk_polydata(my_mpi_grid.vertices,my_mpi_grid.faces)
+  pd = matviz_vtk.fill_vtk_polydata(list(my_mpi_grid.vertices.values()),my_mpi_grid.faces,pointIds=list(my_mpi_grid.vertices.keys()))
   matviz_vtk.show_write_vtk(pd, 10, "smoothed_marching"+str(my_mpi_grid.rank)+".vtp")
     
   return pd
@@ -633,14 +636,40 @@ class MPI_Grid():
           self.faces[cumsum_faces[r]:cumsum_faces[r+1]] += cumsum_verts[r]
         sys.stdout.flush()
     else: # update
-      sendbuf = self.vertices[self.start_verts_idx:self.end_verts_idx]
-      numverts = self.comm.gather(3*len(sendbuf),root=root)
-      recvbuf = None
+      keysbuf = None
+      coordsbuf = None
+      keys = list(self.vertices.keys())
+      coords = list(self.vertices.values())
+      # find out where to truncate the list
+      start_key_idx = keys.index(self.start_verts_idx)
+      keys = keys[start_key_idx:]
+      coords = coords[start_key_idx:]
+      
+      print("rank ",self.rank," sends ", len(keys), " vertices to root")
+      lenkeys = self.comm.gather(len(keys),root=root)
+      lencoords = self.comm.gather(len(coords)*3,root=root)
+      
       if self.rank == root:
-        recvbuf = np.empty(int(np.sum(numverts)))
-      self.comm.Gatherv(sendbuf=np.array(sendbuf),recvbuf=(recvbuf,numverts),root=root)
+        keysbuf = np.empty(int(np.sum(lenkeys)),dtype=int)
+        coordsbuf = np.empty(int(np.sum(lencoords)))
+        
+      self.comm.Gatherv(sendbuf=np.array(keys),recvbuf=(keysbuf,lenkeys),root=root)
+      self.comm.Gatherv(sendbuf=np.array(coords),recvbuf=(coordsbuf,lencoords),root=root)  
+      
       if self.rank == root:
-        self.vertices = np.reshape(recvbuf,(int(np.sum(numverts)/3),3))  
+        print("lenkeys:",lenkeys)
+        print("lencoords:",lencoords)
+        print("int(np.sum(lencoords)/3):",int(np.sum(lencoords)/3))
+        coordsbuf = np.reshape(coordsbuf,(int(np.sum(lencoords)/3),3))
+        print("root recieved ", np.sum(lenkeys)," vertex ids")
+        if coordsbuf.shape[0] != np.sum(lenkeys):
+          print("coordsbuf.shape[0] != np.sum(lenkeys)")
+          print(coordsbuf.shape[0], np.sum(lenkeys))
+          print("lenkeys:",lenkeys)
+          sys.exit()
+      
+        for i,k in enumerate(keysbuf):
+          self.vertices[k] = coordsbuf[i]
         
   def update_vertices(self,recv):
     key, values = recv
@@ -686,6 +715,8 @@ def mpi_taubin_smoothing(mpi_grid,bounds=None,niter=None):
     sys.stdout.flush()
     old_points = mpi_grid.vertices.copy()
     assert(max(max(mpi_grid.connectivity)) < len(mpi_grid.vertices))
+    #if mpi_grid.rank == 1:
+      #print("\n before smooth verts:",mpi_grid.vertices)
     # shrink
     mpi_grid.vertices = laplacian_smoothing_dict(mpi_grid.vertices,mpi_grid.connectivity,lamb,start=start,end=end,rank=mpi_grid.rank)
     # communicate smoothed vertices to other ranks
@@ -697,8 +728,9 @@ def mpi_taubin_smoothing(mpi_grid,bounds=None,niter=None):
     # communicate smoothed vertices to other ranks
     mpi_grid.update_vertices(mpi_grid.communicate_vertices())
     
-    res = basecell.residual(old_points[start:end], mpi_grid.vertices[start:end])
-    print("rank:", mpi_grid.rank, " iter:", iter, " residual:", res)
+    #res = basecell.residual(old_points[start:end], mpi_grid.vertices[start:end])
+    #print("rank:", mpi_grid.rank, " iter:", iter, " residual:", res)
+    print("rank:", mpi_grid.rank, " iter:", iter)
     iter += 1
     
   print("Taubin smoothing with ", iter, " iterations and res=",res)  
@@ -732,9 +764,11 @@ def laplacian_smoothing_dict(points,connectivity,lamb,start=0,end=None,bounds=No
     
   #print("rank:",rank," smoothing start:",start," end:",end, " lambda:",lamb)
   for id, coords in points.items():
-    if id < start or id >= end:
-      continue  
     p = coords
+    
+    if id < start or id >= end:
+      new_points[id] = p
+      continue
     if np.isclose(p[0], bounds[0]) or np.isclose(p[1], bounds[1]) or np.isclose(p[2], bounds[2]) or np.isclose(p[0], bounds[3]) or np.isclose(p[1], bounds[4]) or np.isclose(p[2], bounds[5]):
       new_points[id] = p
       assert(new_points[i] is not None)
@@ -749,6 +783,7 @@ def laplacian_smoothing_dict(points,connectivity,lamb,start=0,end=None,bounds=No
         if nid not in points:
           print("rank :",rank, " point ", id, " has neighbors ", neighborhood, " vertex with id ",nid, " is not in points list!\n")#keys:",points.keys())
           if rank == 1:
+            print("number of verts:",len(points))
             print(points)
           sys.exit()
         

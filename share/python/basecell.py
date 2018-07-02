@@ -383,10 +383,24 @@ if __name__ == "__main__":
                 
     from pyevtk.hl import gridToVTK
     gridToVTK("image",x,y,z,cellData={"array":array,"coords":coords})
+    
+    # find out which skimage version we have
+    # for versions < 0.14.0 calling mc via measure.marching_cubes
+    # for versions >= 0.14.0 calling mc via measure.marching_cubes_lewiner
+    from distutils.version import LooseVersion
+    import skimage
+    if LooseVersion(skimage.__version__) < LooseVersion("0.14.0"):
+      from skimage import measure
+      points, cells, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False,step_size=1)
+    else:
+      assert(LooseVersion(skimage.__version__) > LooseVersion("0.14.0"))
+      from skimage import measure
+      points, cells, _, _ = measure.marching_cubes_lewiner(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False,step_size=1)
   
-    from marching_cubes import marching_cubes
-    marching_cubes(array,(1/args.res,1/args.res,1/args.res))   
-    sys.exit()
+#     from marching_cubes import marching_cubes
+#     marching_cubes(array,(1/args.res,1/args.res,1/args.res))   
+#     sys.exit()
+    
       
   ############### writing files ############################################
   #mesh = create_mesh_with_profiles(args,infoXml,log)
