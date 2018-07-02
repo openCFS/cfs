@@ -53,10 +53,10 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
   assert(!(robustAsymptotes && fixedAsymptotes)); // cannot have both the asymptotes
 
 
-  gsp_timer_ = info_->Get(ParamNode::SUMMARY)->Get("GenreteSubProblem/timer")->AsTimer().get();
+  gsp_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_generate_sub_prob/timer")->AsTimer().get();
   gsp_timer_->SetSub();
 
-  sps_timer_ = info_->Get(ParamNode::SUMMARY)->Get("SolveSubProblem/timer")->AsTimer().get();
+  sps_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_solve_sub_prob/timer")->AsTimer().get();
   sps_timer_->SetSub();
 
 }
