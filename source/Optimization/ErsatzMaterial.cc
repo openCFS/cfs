@@ -1951,6 +1951,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
     // the stored element solution vector
     StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
+    std::cout << "sol.GetSize()" << sol.GetSize() << std::endl;
 
     int elPosition;
     elPosition = sol.GetSize() - elems.GetSize();
@@ -1958,6 +1959,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     Matrix<double> b_mat; // this holds the curl-operator for the whole element. For 2D rectangular case it shall be 2 rows, 4 columns
     Vector<double> D(2);
     double mag_flux_dens_square;
+
+    // Loop over all integration points
+    Vector <double> Bges(2);
 
     for(unsigned int e = 0; e < elems.GetSize(); e++)
     {
@@ -1995,7 +1999,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       // Get shape map from grid
       shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
 
-      // Loop over all integration points
       Vector <double> B(2);
 
       for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
@@ -2016,28 +2019,36 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         std::cout << "b_mat*weights[ip]= " << b_mat << std::endl;
 
         B += b_mat * a;
-        std::cout << "B= " << B << std::endl;
-
         //LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " mfd=" << mag_flux_density.ToString() << " b_mat=" << b_mat.ToString(0, false);
       }
-      // Calculation of the square from magnetic flux density  B^2 = sum(rot(A)^2) = sum((b_mat * a)^2) over the integration points
-      // b_mat = the derivative of the shape function, a = the magnetic vector potential
-      // Optimization of x or y direction
-      B /= intPoints.GetSize();
-      B /= elems.GetSize();
       std::cout << "B= " << B << std::endl;
-      if (f->GetType() == Function::MAG_FLUX_DENS_X){
-        D[0] = 1;
-      }
-      else {
-        D[1] = 1;
-      }
-      std::cout << "B " << B << std::endl;
-      mag_flux_dens_square = B.Inner(D);
-      std::cout << "mag_flux_dens_square-vorher= " << mag_flux_dens_square << std::endl;
-      mag_flux_dens_square *= mag_flux_dens_square;
-      std::cout << "mag_flux_dens_square= " << mag_flux_dens_square << std::endl;
+      std::cout << "intPoints.GetSize()= " << intPoints.GetSize() << std::endl;
+      B /= intPoints.GetSize();
+      std::cout << "Bges= " << Bges << std::endl;
+      Bges += B;
+      std::cout << "Bges= " << Bges << std::endl;
+      elPosition ++;
     } // end loop elems
+    // Calculation of the square from magnetic flux density  B^2 = sum(rot(A)^2) = sum((b_mat * a)^2) over the integration points
+    // b_mat = the derivative of the shape function, a = the magnetic vector potential
+    // Optimization of x or y direction
+    std::cout << "LaengeVek= " << elems.GetSize() << std::endl;
+
+
+    Bges /= elems.GetSize();
+    std::cout << "Bges= " << Bges << std::endl;
+    if (f->GetType() == Function::MAG_FLUX_DENS_X){
+      D[0] = 1;
+    }
+    else {
+      D[1] = 1;
+    }
+    std::cout << "Bges " << Bges << std::endl;
+    mag_flux_dens_square = Bges.Inner(D);
+    std::cout << "mag_flux_dens_square-vorher= " << mag_flux_dens_square << std::endl;
+    mag_flux_dens_square *= mag_flux_dens_square;
+    std::cout << "mag_flux_dens_square= " << mag_flux_dens_square << std::endl;
+
     return mag_flux_dens_square;
   }
 
@@ -2746,6 +2757,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
     elPosition = sol.GetSize() - elems.GetSize();
 
+    Vector <double> calc(out.GetSize());
+
     for(unsigned int e = 0; e < elems.GetSize(); e++)
     {
       Vector<double> bDba(4);
@@ -2794,6 +2807,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       Matrix <double> BADB(1,4);
 
+      // traverse nodes
+      form->GetFeSpace1()->GetElemEqns(eqn, elem);
+      assert(eqn.GetSize() == elem->connect.GetSize());
+      assert(b_mat.GetNumCols() == elem->connect.GetSize());
+
       // Loop over all integration points
       for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
       {
@@ -2822,22 +2840,49 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         BADB += BAD * b_mat * weights[ip];
         std::cout << "BADB= " << BADB << std::endl;
       }
-      BADB *= (-2);
+      //BADB *= (-2);
       std::cout << "BADB= " << BADB << std::endl;
-
-      // traverse nodes
-      form->GetFeSpace1()->GetElemEqns(eqn, elem);
-      assert(eqn.GetSize() == elem->connect.GetSize());
-      assert(b_mat.GetNumCols() == elem->connect.GetSize());
 
       for(unsigned int n = 0; n < eqn.GetSize(); n++){
         out[eqn[n]] = 1.0/elems.GetSize() * BADB[0][n];
         std::cout << "eqn[n]= " << eqn[n] << std::endl;
-        std::cout << "out[eqn[n]]= " << out[eqn[n]] << std::endl;
+        std::cout << "out[eqn[n]]-vorher= " << out[eqn[n]] << std::endl;
+        calc[eqn[n]] ++;
+        std::cout << "calc[eqn[n]]= " << calc[eqn[n]] << std::endl;
       }
-      std::cout << "out= " << out << std::endl;
+      //std::cout << "out= " << out << std::endl;
+      //std::cout << "calc= " << calc << std::endl;
+
+      // Ist das notwendig? Mittelung wie oft auf eqn Number geschrieben wurde
+      if ((e+1) == elems.GetSize())
+      {
+        for(unsigned int eNeu = 0; eNeu < elems.GetSize(); eNeu++){
+          Elem* elemNeu = elems[eNeu];
+
+          // this gets the equation numbers for the element
+          StdVector<int> eqnNeu;
+
+          // traverse nodes
+          form->GetFeSpace1()->GetElemEqns(eqnNeu, elemNeu);
+
+          for(unsigned int p=0; p < eqnNeu.GetSize(); p++){
+            std::cout << "out[eqn[p]]-vorher= " << out[eqnNeu[p]] << std::endl;
+            std::cout << "calc[eqnNeu[p]]= " << calc[eqnNeu[p]] << std::endl;
+            if(calc[eqnNeu[p]] > 0){
+              out[eqnNeu[p]] /= calc[eqnNeu[p]];
+              calc[eqnNeu[p]] --;
+            }
+            std::cout << "out[eqnNeu[p]]= " << out[eqnNeu[p]] << std::endl;
+          }
+        }
+      }
+      elPosition ++;
     }
      // end loop elems
+    std::cout << "Size_out= " << out.GetSize() << std::endl;
+    std::cout << "Size_calc= " << calc.GetSize() << std::endl;
+
+    out *= (-2);
   }
 
   double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
