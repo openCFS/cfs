@@ -1127,6 +1127,97 @@ namespace CoupledField {
     bool onBoundary_;
   };
   
+  struct InitialInput {
+    bool useInitialInput;
+    bool prescribeOutput;
+    bool scaleBySaturation;
+    Vector<Double> inputVector;
+  };
+  
+  struct ParameterLevenbergMarquardtInversion {
+    int maxNumIts;
+    Double tolH;
+    Double tolB;
+    Double jacRes;
+    bool useTikhonov;
+    Double alphaLSStart;
+    Double alphaLSMin;
+    Double alphaLSMax;
+  };
+    
+  struct ParameterPreisachWeights {
+    UInt numRows_;
+    std::string weightType_;
+    // weightType = 0 > use constant weight
+    Double constWeight_;
+    // weightType = 1 > muDat
+    Double muDat_A_;
+    Double muDat_h1_;
+    Double muDat_sigma1_;
+    Double muDat_eta_;
+    // weightType = 2 > extended muDat (use muDat parameter in addition)
+    Double muDat_h2_;
+    Double muDat_sigma2_;
+    // weightType = 3 > tensor given
+    Matrix<Double> weightTensor_;
+    
+    // anhysteretic parameter
+    Double anhysteretic_a_;
+    Double anhysteretic_b_;
+    Double anhysteretic_c_;
+    bool anhystOnly_;
+  };
+  
+//   ParameterPreisachWeights POL_weightParams_;
+//  ParameterPreisachWeights STRAIN_weightParams_;
+//    
+//  ParameterPreisachOperators POL_operatorParams_;
+//  ParameterPreisachOperators STRAIN_operatorParams_;
+//  
+//  ParameterLevenbergMarquardtInversion LM_inversion_;
+//  InitialInput POL_initial_;
+  
+  struct ParameterPreisachOperators {
+    
+    CoefFunction::CoefDimType methodType_; // SCALAR or VECTOR
+    std::string methodName_; // scalarPreisach, vectorPreisach_Sutor, vectorPreisach_Mayergoyz
+    /*
+     * common for all implemented operators
+     * (scalar, vector sutor, vector mayergoyz isotropic)
+     */
+    Double inputSat_;
+    Double outputSat_; // saturation of Polarization or Strains but not of flux!
+    bool fieldsAlignedAboveSat_;
+    bool hystOutputRestrictedToSat_;
+    bool hasInverseModel_;
+    
+    /*
+     * scalar model
+     */
+    Vector<Double> fixDirection_;
+    
+    /*
+     * vector model sutor
+     */
+    UInt evalVersion_;
+    Double rotResistance_;
+    Double angularDistance_;
+    Double angularResolution_;
+    Double amplitudeResolution_;
+    Double angularClipping_;
+    UInt printOut_;
+    UInt bmpResolution_;
+    bool isClassical_;
+    
+    /*
+     * vector model mayergoyz (isotropic!)
+     */
+    bool isIsotropic_;
+    int numDirections_;
+    int outputClipping_;
+  };
+  
+  
   
   // ============================================================================
   //  Hysteresis
@@ -1163,64 +1254,40 @@ namespace CoupledField {
     /*
      * New functions added April 2018
      */
-    Double getWeight(Double alpha, Double beta, Double delta, bool weightForStrains){
+    Double getWeight(ParameterPreisachWeights* weightParams, Double alpha, Double beta, Double delta){
       
-      if(weightForStrains){
-        if(STRAIN_weightType_ == "Constant"){
-          return STRAIN_constWeight_;
-        } else if(STRAIN_weightType_ == "muDat"){
-          return MuDat(STRAIN_muDat_A_, STRAIN_muDat_sigma1_, STRAIN_muDat_h1_, STRAIN_muDat_eta_, alpha, beta);
-        } else if(STRAIN_weightType_ == "muDatExtended"){
-          return MuDatExtended(STRAIN_muDat_A_, STRAIN_muDat_sigma1_, STRAIN_muDat_sigma2_, STRAIN_muDat_h1_, STRAIN_muDat_h2_, STRAIN_muDat_eta_, alpha, beta);
-        } else if(STRAIN_weightType_ == "givenTensor"){
-          // alpha = -1 shall be mapped to 0, alpha = 1.0 shall be mapped to maxNum
-          UInt idxAlpha = UInt(std::round((alpha+1.0)/delta));
-          UInt idxBeta = UInt(std::round((beta+1.0)/delta));
-          if( idxAlpha < 0 ){
-            idxAlpha = 0;
-          } else if (idxAlpha >= POL_numRowsStrain_){
-            idxAlpha = POL_numRowsStrain_-1;
-          }
-          if( idxBeta < 0 ){
-            idxBeta = 0;
-          } else if (idxBeta >= POL_numRowsStrain_){
-            idxBeta = POL_numRowsStrain_-1;
-          }
-          
-          return STRAIN_weightTensor_[idxAlpha][idxBeta];
-        } else {
-          return 0.0;
+      std::string weightType = weightParams->weightType_;
+      UInt numRows = weightParams->numRows_;
+      
+      if(weightType == "Constant"){
+        return weightParams->constWeight_;
+      } else if(weightType == "muDat"){
+        return MuDat(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_h1_, weightParams->muDat_eta_, alpha, beta);
+      } else if(weightType == "muDatExtended"){
+        return MuDatExtended(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_sigma2_,
+          weightParams->muDat_h1_, weightParams->muDat_h2_, weightParams->muDat_eta_, alpha, beta);
+      } else if(weightType == "givenTensor"){
+        // alpha = -1 shall be mapped to 0, alpha = 1.0 shall be mapped to maxNum
+        UInt idxAlpha = UInt(std::round((alpha+1.0)/delta));
+        UInt idxBeta = UInt(std::round((beta+1.0)/delta));
+        if( idxAlpha < 0 ){
+          idxAlpha = 0;
+        } else if (idxAlpha >= numRows){
+          idxAlpha = numRows-1;
         }
+        if( idxBeta < 0 ){
+          idxBeta = 0;
+        } else if (idxBeta >= numRows){
+          idxBeta = numRows-1;
+        }
+        
+        return weightParams->weightTensor_[idxAlpha][idxBeta];
       } else {
-        if(weightType_ == "Constant"){
-          return POL_constWeight_;
-        } else if(weightType_ == "muDat"){
-          return MuDat(POL_muDat_A_, POL_muDat_sigma1_, POL_muDat_h1_, POL_muDat_eta_, alpha, beta);
-        } else if(weightType_ == "muDatExtended"){
-          return MuDatExtended(POL_muDat_A_, POL_muDat_sigma1_, POL_muDat_sigma2_, POL_muDat_h1_, POL_muDat_h2_, POL_muDat_eta_, alpha, beta);
-        } else if(weightType_ == "givenTensor"){
-          // alpha = -1 shall be mapped to 0, alpha = 1.0 shall be mapped to maxNum
-          UInt idxAlpha = UInt(std::round((alpha+1.0)/delta));
-          UInt idxBeta = UInt(std::round((beta+1.0)/delta));
-          if( idxAlpha < 0 ){
-            idxAlpha = 0;
-          } else if (idxAlpha >= POL_numRows_){
-            idxAlpha = POL_numRows_-1;
-          }
-          if( idxBeta < 0 ){
-            idxBeta = 0;
-          } else if (idxBeta >= POL_numRows_){
-            idxBeta = POL_numRows_-1;
-          }
-          
-          return POL_weightTensor_[idxAlpha][idxBeta];
-        } else {
-          return 0.0;
-        }
+        return 0.0;
       }
     }
     
-    Double getWeightDerivative(Double alpha, Double beta, Double delta, bool flipped, bool weightForStrains){
+    Double getWeightDerivative(ParameterPreisachWeights* weightParams, Double alpha, Double beta, Double delta, bool flipped){
       
       Double s, lambda;
       if(flipped){
@@ -1231,14 +1298,16 @@ namespace CoupledField {
         lambda = beta/alpha;
       }
       
-      if(weightForStrains){
-        if(STRAIN_weightType_ == "Constant"){
+      std::string weightType = weightParams->weightType_;
+      
+      if(weightType == "Constant"){
         return 0.0;
-      } else if(STRAIN_weightType_ == "muDat"){
-        return dMuDat_by_ds(STRAIN_muDat_A_, STRAIN_muDat_sigma1_, STRAIN_muDat_h1_, STRAIN_muDat_eta_,s,lambda,flipped);
-      } else if(STRAIN_weightType_ == "muDatExtended"){
-        return dMuDatExtended_by_ds(STRAIN_muDat_A_, STRAIN_muDat_sigma1_, STRAIN_muDat_sigma2_, STRAIN_muDat_h1_, STRAIN_muDat_h2_, STRAIN_muDat_eta_,s,lambda,flipped);
-      } else if(STRAIN_weightType_ == "givenTensor"){
+      } else if(weightType == "muDat"){
+        return dMuDat_by_ds(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_h1_, weightParams->muDat_eta_,s,lambda,flipped);
+      } else if(weightType == "muDatExtended"){
+        return dMuDatExtended_by_ds(weightParams->muDat_A_, weightParams->muDat_sigma1_, weightParams->muDat_sigma2_, 
+          weightParams->muDat_h1_, weightParams->muDat_h2_, weightParams->muDat_eta_,s,lambda,flipped);
+      } else if(weightType == "givenTensor"){
         Double s_low = s-delta/1e11;
         if( s_low < -1.0){
           s_low = -1.0;
@@ -1252,90 +1321,27 @@ namespace CoupledField {
         Double wUp;
         Double wLow;
         if(flipped){
-          wUp = getWeight(lambda*s_up,s_up,delta,weightForStrains);
-          wLow = getWeight(lambda*s_low,s_low,delta,weightForStrains);
+          wUp = getWeight(weightParams,lambda*s_up,s_up,delta);
+          wLow = getWeight(weightParams,lambda*s_low,s_low,delta);
         } else{
-          wUp = getWeight(s_up,lambda*s_up,delta,weightForStrains);
-          wLow = getWeight(s_low,lambda*s_low,delta,weightForStrains);
+          wUp = getWeight(weightParams,s_up,lambda*s_up,delta);
+          wLow = getWeight(weightParams,s_low,lambda*s_low,delta);
         }
         return (wUp-wLow)/deltas;
       } else {
         return 0.0;
-      }
-      } else {
-        if(weightType_ == "Constant"){
-        return 0.0;
-      } else if(weightType_ == "muDat"){
-        return dMuDat_by_ds(POL_muDat_A_, POL_muDat_sigma1_, POL_muDat_h1_, POL_muDat_eta_,s,lambda,flipped);
-      } else if(weightType_ == "muDatExtended"){
-        return dMuDatExtended_by_ds(POL_muDat_A_, POL_muDat_sigma1_, POL_muDat_sigma2_, POL_muDat_h1_, POL_muDat_h2_, POL_muDat_eta_,s,lambda,flipped);
-      } else if(weightType_ == "givenTensor"){
-        Double s_low = s-delta/1e11;
-        if( s_low < -1.0){
-          s_low = -1.0;
-        }
-        Double s_up = s+delta/1e11;
-        if( s_up > 1.0){
-          s_up = 1.0;
-        }
-        
-        Double deltas = s_up - s_low;
-        Double wUp;
-        Double wLow;
-        if(flipped){
-          wUp = getWeight(lambda*s_up,s_up,delta,false);
-          wLow = getWeight(lambda*s_low,s_low,delta,false);
-        } else{
-          wUp = getWeight(s_up,lambda*s_up,delta,false);
-          wLow = getWeight(s_low,lambda*s_low,delta,false);
-        }
-        return (wUp-wLow)/deltas;
-      } else {
-        return 0.0;
-      }
       }
     }
-    
-  struct ParameterPreisachWeights {
-    UInt numRows_;
-    std::string weightType_;
-    // weightType = 0 > use constant weight
-    Double constWeight_;
-    // weightType = 1 > muDat
-    Double muDat_A_;
-    Double muDat_h1_;
-    Double muDat_sigma1_;
-    Double muDat_eta_;
-    // weightType = 2 > extended muDat (use muDat parameter in addition)
-    Double muDat_h2_;
-    Double muDat_sigma2_;
-    // weightType = 3 > tensor given
-    Matrix<Double> weightTensor_;
-    
-    // anhysteretic parameter
-    Double anhysteretic_a_;
-    Double anhysteretic_b_;
-    Double anhysteretic_c_;
-    bool anhystOnly_;
-  };
     
   ParameterPreisachWeights POL_weightParams_;
   ParameterPreisachWeights STRAIN_weightParams_;
     
-    std::string weightType_;
-    Double POL_constWeight_;
-    Double POL_muDat_A_;
-    Double POL_muDat_sigma1_;
-    Double POL_muDat_sigma2_;
-    Double POL_muDat_h1_;
-    Double POL_muDat_h2_;
-    Double POL_muDat_eta_;
-    Double POL_anhysteretic_a_;
-    Double POL_anhysteretic_b_;
-    Double POL_anhysteretic_c_;
-    Matrix<Double> POL_weightTensor_;
-    std::string POL_usedHystModel_;
-    bool POL_anhystOnly_;
+  ParameterPreisachOperators POL_operatorParams_;
+  ParameterPreisachOperators STRAIN_operatorParams_;
+  
+  ParameterLevenbergMarquardtInversion LM_inversion_;
+  InitialInput POL_initial_;
+  
     int POL_weightsAlreadyAdapted_; // for Mayergoyz case
     
     std::string STRAIN_weightType_;
@@ -1443,35 +1449,35 @@ namespace CoupledField {
       return pointsAndWeights;
     }
     
-    Matrix<Double> evaluatePreisachWeights(bool useStrains){
+    Matrix<Double> evaluatePreisachWeights(ParameterPreisachWeights* weightParams){
       Double alpha,beta;
-      Double delta = 2.0/POL_numRows_;
-      Double dimHalf = POL_numRows_/2.0;
+      Double delta = 2.0/weightParams->numRows_;
+      Double dimHalf = weightParams->numRows_/2.0;
       
-      if(weightType_ == "givenTensor"){
-        return POL_weightTensor_;
+      if(weightParams->weightType_ == "givenTensor"){
+        return weightParams->weightTensor_;
       }
       
-      Matrix<Double> weights = Matrix<Double>(POL_numRows_,POL_numRows_);
+      Matrix<Double> weights = Matrix<Double>(weightParams->numRows_,weightParams->numRows_);
       
-      for(UInt i = 0; i < POL_numRows_; i++){
+      for(UInt i = 0; i < weightParams->numRows_; i++){
         // note: we evaluated the weights always at the element center > add deltaS/2
         alpha = (i - dimHalf)*delta + delta/2;
         
         for(UInt k = 0; k <= i; k++){
           beta = (k - dimHalf)*delta + delta/2;
           
-          // note: getWeight checks for weightType_; depending on that value
+          // note: getWeight checks for POL_weightParams_.weightType_; depending on that value
           // we evaluate muDat, muDatExt, return a const or access the already given weights (in which case
           // there is no need to call this function)
-          weights[i][k] = getWeight(alpha,beta,delta,useStrains);
+          weights[i][k] = getWeight(weightParams,alpha,beta,delta);
         }
       }
       return weights;
     }
     
     
-    Matrix<Double> transformPreisachWeightsForIsotropicVectorCase(bool forStrain){
+    Matrix<Double> transformPreisachWeightsForIsotropicVectorCase(ParameterPreisachWeights* paramSet){
       // Transform Preisach weights from scalar case to vector case (isotropic, Mayergoyz model)
       // Source: "Analysis of Isotropic Materials with Vector Hysteresis" - O. Bottauscio 1998
       //
@@ -1495,12 +1501,7 @@ namespace CoupledField {
         // 3d case starts from different formula > see "Mathematical Models of Hysteresis and their Application" - Mayergoyz 2003
       }
       
-      UInt numRows;
-      if(forStrain){
-        numRows = POL_numRowsStrain_;
-      } else {
-        numRows = POL_numRows_;
-      }
+      UInt numRows = paramSet->numRows_;
       
       Matrix<Double> vectorWeights = Matrix<Double>(numRows,numRows);
       
@@ -1520,7 +1521,7 @@ namespace CoupledField {
           beta = (k - dimHalf)*delta + delta/2;//+ 1e-6*delta;// + delta/2;
           
           if(alpha == 0){
-            vectorWeights[i][k] = 0.75*getWeight(0, 0, delta, forStrain);
+            vectorWeights[i][k] = 0.75*getWeight(paramSet, 0, 0, delta);
           } else {
             lambda = beta/alpha;
             
@@ -1531,11 +1532,11 @@ namespace CoupledField {
               Double curW = integrationPoints[pp][1];
               //std::cout << "s / 3*s*s*getWeight / s*s*s*getWeightDerivative / (tmp + tmp2)/(M_PI * alpha * alpha * std::sqrt(alpha*alpha - s*s))" << std::endl;
               s = x_of_y(curY,0,alpha);
-              Double tmp = 3*s*s*getWeight(s,lambda*s,delta,forStrain);
+              Double tmp = 3*s*s*getWeight(paramSet, s,lambda*s,delta);
               
               bool flipped = false; // > s takes slot of alpha, lambda*s takes place of beta
               
-              Double tmp2 = s*s*s*getWeightDerivative(s,lambda*s,delta, flipped,forStrain);
+              Double tmp2 = s*s*s*getWeightDerivative(paramSet, s,lambda*s,delta, flipped);
               Double tmp3 = (tmp + tmp2)/(M_PI * alpha * alpha * std::sqrt(alpha*alpha - s*s));
               
               vectorWeights[i][k] += dx_by_dy(std::min(0.0,alpha), std::max(0.0,alpha))*curW*tmp3;
@@ -1561,7 +1562,7 @@ namespace CoupledField {
           alpha = (i - dimHalf)*delta + delta/2; //+ 1e-6*delta;// + delta/2;
           
           if(beta == 0){
-            vectorWeights[i][k] = 0.75*getWeight(alpha, beta, delta,forStrain);
+            vectorWeights[i][k] = 0.75*getWeight(paramSet,alpha, beta, delta);
           } else {
             // flipped case
             lambda = alpha/beta;
@@ -1573,10 +1574,10 @@ namespace CoupledField {
               Double curW = integrationPoints[pp][1];
               
               s = x_of_y(curY,0,beta);
-              Double tmp = 3*s*s*getWeight(lambda*s,s,delta,forStrain);
+              Double tmp = 3*s*s*getWeight(paramSet,lambda*s,s,delta);
               
               bool flipped = true; // > s takes slot of alpha, lambda*s takes place of beta
-              Double tmp2 = s*s*s*getWeightDerivative(lambda*s,s,delta, flipped,forStrain);
+              Double tmp2 = s*s*s*getWeightDerivative(paramSet,lambda*s,s,delta, flipped);
               
               Double tmp3 = (tmp + tmp2)/(M_PI * beta * beta * std::sqrt(beta*beta - s*s));
               vectorWeights[i][k] += dx_by_dy(std::min(0.0,beta), std::max(0.0,beta))*curW*tmp3;
@@ -1610,7 +1611,7 @@ namespace CoupledField {
           }
           
           Double integral = 0.0;
-          Double target = getWeight(alpha+delta/2, beta+delta/2, delta,forStrain);
+          Double target = getWeight(paramSet,alpha+delta/2, beta+delta/2, delta);
           for(UInt i = 0; i < numAngles; i++){
             phi = -M_PI/2+i*deltaPhi;
             c = std::cos(phi);
@@ -1638,7 +1639,7 @@ namespace CoupledField {
     
     void ReadAndSetParamsForHystOperator(BaseMaterial * const material, bool setForStrains);
     
-    void ReadAndSetWeights(BaseMaterial * const material, std::string usedHystModel, bool setForStrains);
+    void ReadAndSetWeights(BaseMaterial * const material, bool setForStrains);
     
     //! Destructor
     virtual ~CoefFunctionHyst();
@@ -1713,9 +1714,9 @@ namespace CoupledField {
       Double satValue;
       if(PDEName_ == "Electromagnetics"){
         // will not  be exactly correct when taking the norm but gives beter estimate than skipping it
-        satValue = POL_pSat_ + POL_eps_mu_SmallSignal_.NormL2()*POL_xSat_;
+        satValue = POL_operatorParams_.outputSat_ + POL_eps_mu_SmallSignal_.NormL2()*POL_operatorParams_.inputSat_;
       } else {
-        satValue = POL_xSat_;
+        satValue = POL_operatorParams_.inputSat_;
       }
       
       if(E_B_lastTS_[operatorIdx].NormL2() >= satValue){
@@ -1793,7 +1794,7 @@ namespace CoupledField {
     Vector<Double> RetrieveLPMSolution(LocPointMapped& actualLPM, UInt storageIdx, int timeLevel, bool onBoundary);
     
     Double GetOutputSaturation(){
-      return POL_pSat_;
+      return POL_operatorParams_.outputSat_;
     }
     
     PtrCoefFct GenerateMatCoefFnc(std::string tensorName){
@@ -2135,8 +2136,8 @@ namespace CoupledField {
 //        //      std::cout << "Current polarization vector " << P.ToString() << std::endl;
 //        //      
 //        // calculate scaling
-//        assert(POL_pSat_ != 0);
-//        Double scaling = P.NormL2()/POL_pSat_;
+//        assert(POL_operatorParams_.outputSat_ != 0);
+//        Double scaling = P.NormL2()/POL_operatorParams_.outputSat_;
 //        
 //        scaledCouplTensor = couplTensor* scaling;
 //        
@@ -2468,7 +2469,7 @@ namespace CoupledField {
     /*
      * Preisach weights and its size in form of the number of rows
      */
-    Matrix<Double> POL_PreisachWeights_;
+//    Matrix<Double> POL_weightParams_.weightTensor_;
     Matrix<Double> POL_PreisachWeightsStrains_;
     UInt POL_numRows_;
     UInt POL_numRowsStrain_;
@@ -2477,14 +2478,14 @@ namespace CoupledField {
      * Saturation values for input (x, E/H) and output (y, P/M) of
      * hysteresis operator
      */
-    Double POL_xSat_;
-    Double POL_pSat_;
+//    Double POL_operatorParams_.inputSat_;
+//    Double POL_operatorParams_.outputSat_;
     Double POL_sSat_; // new strain in saturation 
     
     /*
      * determines whether the vector or the scalar model shall be used
      */
-    CoefDimType POL_methodType_;
+//    CoefDimType POL_operatorParams_.methodType_;
     
     /*
      * Additional parameter for scalar Preisach model
@@ -2493,7 +2494,7 @@ namespace CoupledField {
      * Direction (x,y,z) in which Polarization of material points
      * NEW: instead of specifying only x,y,z we allow to specify a direction in the mat.xml file
      */
-    Vector<Double> POL_dirP_;
+//    Vector<Double> POL_operatorParams_.fixDirection_;
     bool POL_useExtension_;
     bool POL_setWithFlux_;
     
@@ -2502,19 +2503,18 @@ namespace CoupledField {
      */
     // determines wheter the vector model from 2012 (classical) or the one from#
     // 2015 (revised) is used
-    bool isClassical_;
+//    bool POL_operatorParams_.isClassical_;
     
     /*
      * see VectorPreisach10 for more details
      */
-    Double POL_rotRes_;
-    Double POL_angResistance_;
+//    Double POL_operatorParams_.angularDistance_;
     
     /*
      * if != 0, the rotation states of the vector preisach model will be clipped
      * to the provided precision (in rad)
      */
-    Double POL_angClipping_;
+//    Double POL_operatorParams_.angularClipping_;
     
     /*
      *  new parameter added 03.07.2017
@@ -2526,31 +2526,31 @@ namespace CoupledField {
      *  b) against the previous input
      *
      *  both times, it will be checked if
-     *    (currentInput - oldInput).L2Norm() < POL_ampResolution_
-     *    std::acos(currentInput.Inner(oldInput)) < POL_angResolution_
+     *    (currentInput - oldInput).L2Norm() < POL_operatorParams_.amplitudeResolution_
+     *    std::acos(currentInput.Inner(oldInput)) < POL_operatorParams_.angularResolution_
      *
      *  if both criteria are true, the old value is taken and no reevaluation is done
      */
-    Double POL_angResolution_;
-    Double POL_ampResolution_;
-    
+//    Double POL_operatorParams_.angularResolution_;
+//    Double POL_operatorParams_.amplitudeResolution_;
+//    
     /*
      * 1,2 nested-list implementation of classical and revised vector hyst. model
      * 10,20 matrix based implementation of classical and revised vector hyst. model
      */
-    UInt POL_vecPreisachImplementationVersion_;
-    
+//    UInt POL_operatorParams_.evalVersion_;
+//    
     /*
      * evaluation of Hyst operator for inputs larger than Saturation
      * > for Mayergoyz hyst model no bisection possible
      */
-    bool fieldsAlignedAboveSat_;
+//    bool POL_operatorParams_.fieldsAlignedAboveSat_;
     // mayergoyz vector without clipping produces values above PSaturated_
     // when input grows above XSaturated_ > set flag to false
     // otherwise, flag = true
-    bool hystOutputRestrictedToSat_;
-    int POL_Mayergoyz_numDirections_;
-    int POL_Mayergoyz_clipOutput_;
+//    bool POL_operatorParams_.hystOutputRestrictedToSat_;
+//    int POL_operatorParams_.numDirections_;
+//    int POL_operatorParams_.outputClipping_;
     
     /*
      * Initial input to the vector hysteresis operator;
@@ -2566,7 +2566,7 @@ namespace CoupledField {
      * images
      */
     UInt POL_bmpResolution_;
-    UInt POL_printOut_;
+//    UInt POL_operatorParams_.printOut_;
     
     bool storageInitialized_;
     /*
@@ -2855,16 +2855,16 @@ namespace CoupledField {
     // flags indicating if we need inversion (for e.g. for magnetics)
     // and if we have an inverse model for that
     bool needsInversion_;
-    bool hasInverseModel_;
+//    bool POL_operatorParams_.hasInverseModel_;
     // For inversion via Levenberg Marquardt
-    UInt INV_maxIter_;
-    Double INV_resTolH_;
-    Double INV_resTolB_;
-    Double INV_jacobiResolution_;
-    bool INV_useTikhonov_;
-    Double INV_alphaLSStart_;
-    Double INV_alphaLSMin_;
-    Double INV_alphaLSMax_;
+//    UInt LM_inversion_.maxNumIts;
+//    Double LM_inversion_.tolH;
+//    Double LM_inversion_.tolB;
+//    Double LM_inversion_.jacRes;
+//    bool LM_inversion_.useTikhonov;
+//    Double LM_inversion_.alphaLSStart;
+//    Double LM_inversion_.alphaLSMin;
+//    Double LM_inversion_.alphaLSMax;
     
     // when setting the system into remanence for the case of magnetics
     // we do this by forcing the input to the hystoperator to become 0;
