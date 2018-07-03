@@ -34,7 +34,7 @@ regularVertexData = None
 # for each of the 8 lattice node, find out which ones belong to the structure
 # -> 8 bit code           
 def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cubeSize=2,offset=None):
-  from draw_profile_functions import grid_to_cartesian_coords
+  from draw_profile_functions import grid_to_cartesian_coords, cartesian_to_voxel_coords
   hx = spacing[0]
   hy = spacing[1]
   hz = spacing[2]
@@ -78,17 +78,17 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cubeSize
         cornerIndizes = [bottom_SW,bottom_SE,bottom_NW,bottom_NE,top_SW,top_SE,top_NW,top_NE]
         
         local_verts = []
-        local_verts.append(Vertex(0,grid_to_cartesian_coords(bottom_SW,None,(hx,hy,hz)),voxels[bottom_SW]))
-        local_verts.append(Vertex(1,grid_to_cartesian_coords(bottom_SE,None,(hx,hy,hz)),voxels[bottom_SE]))
-        local_verts.append(Vertex(2,grid_to_cartesian_coords(bottom_NW,None,(hx,hy,hz)),voxels[bottom_NW]))
-        local_verts.append(Vertex(3,grid_to_cartesian_coords(bottom_NE,None,(hx,hy,hz)),voxels[bottom_NE]))
-        local_verts.append(Vertex(4,grid_to_cartesian_coords(top_SW,None,(hx,hy,hz)),voxels[top_SW]))
-        local_verts.append(Vertex(5,grid_to_cartesian_coords(top_SE,None,(hx,hy,hz)),voxels[top_SE]))
-        local_verts.append(Vertex(6,grid_to_cartesian_coords(top_NW,None,(hx,hy,hz)),voxels[top_NW]))
-        local_verts.append(Vertex(7,grid_to_cartesian_coords(top_NE,None,(hx,hy,hz)),voxels[top_NE]))
+        local_verts.append(Vertex(grid_to_cartesian_coords(bottom_SW,None,(hx,hy,hz)),voxels[bottom_SW]))
+        local_verts.append(Vertex(grid_to_cartesian_coords(bottom_SE,None,(hx,hy,hz)),voxels[bottom_SE]))
+        local_verts.append(Vertex(grid_to_cartesian_coords(bottom_NW,None,(hx,hy,hz)),voxels[bottom_NW]))
+        local_verts.append(Vertex(grid_to_cartesian_coords(bottom_NE,None,(hx,hy,hz)),voxels[bottom_NE]))
+        local_verts.append(Vertex(grid_to_cartesian_coords(top_SW,None,(hx,hy,hz)),voxels[top_SW]))
+        local_verts.append(Vertex(grid_to_cartesian_coords(top_SE,None,(hx,hy,hz)),voxels[top_SE]))
+        local_verts.append(Vertex(grid_to_cartesian_coords(top_NW,None,(hx,hy,hz)),voxels[top_NW]))
+        local_verts.append(Vertex(grid_to_cartesian_coords(top_NE,None,(hx,hy,hz)),voxels[top_NE]))
         
         for l in range(len(local_verts)):
-          local_verts[l].coords += grid_to_cartesian_coords(offset,None,(hx,hy,hz))
+          local_verts[l].coords += grid_to_cartesian_coords(offset,None,(hx,hy,hz)) - np.array([hx/2,hy/2,hz/2])
         
         # example: vertex 3 was below the isosurface, cubeindex would equal 0000 1000 or 8
         caseCode = 0
@@ -127,8 +127,41 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cubeSize
           v0 = (vertexLocations[vc] >> 4) & 0x0F #First Corner Index
           v1 = (vertexLocations[vc]) & 0x0F # Second Corner Index
           
-          offset_p = grid_to_cartesian_coords(offset,None,(hx,hy,hz))
-          vert, mu = VertexInterp(thresh,local_verts[v0],local_verts[v1])
+          import copy 
+          left = copy.deepcopy(local_verts[v0])
+          right = copy.deepcopy(local_verts[v1])
+          print("type(local_verts[v0]):",local_verts[v0])
+          print("type(local_verts[v1]):",local_verts[v1])
+          print("type(left):",type(left))
+          print("type(right):",type(right))
+          print("right:",right,type(right))
+          if cubeSize > 1:
+            # check voxel value of midpoint of current edge spanned by v0 and v1
+            mid = local_verts[v0].coords + (local_verts[v1].coords - local_verts[v0].coords) * 0.5
+            li,lj,lk = cartesian_to_voxel_coords(mid,0,0,0,hx,hy,hz)
+             
+            print("v1:",local_verts[v1].coords,local_verts[v1].value,cornerIndizes[v1])
+            print(cartesian_to_voxel_coords(local_verts[v1].coords,0,0,0,hx,hy,hz))
+            print("v0:",local_verts[v0].coords,local_verts[v0].value,cornerIndizes[v0])
+            print(cartesian_to_voxel_coords(local_verts[v0].coords,0,0,0,hx,hy,hz))
+            print("mid:",mid)
+            print("li,lj,lk:",li,lj,lk)
+            print("voxels[li,lj,lk]:",voxels[li,lj,lk])
+             
+            if local_verts[v0].value == 1:
+              if voxels[li,lj,lk] == 0:
+                right = Vertex(mid, 0)
+              else:
+                left = Vertex(mid, 1)
+            else: #local_verts[v0].value == 0
+              if voxels[li,lj,lk] == 0:
+                left = Vertex(mid, 0)
+              else:
+                right = Vertex(mid, 1)   
+          
+#           print("left:",left.coords)
+#           print("right:",right.coords)
+          vert, mu = VertexInterp(thresh,left,right)
           tmp_points.append(vert)
           normal = cornerNormals[int(v0)] * (1-mu) + mu * cornerNormals[int(v1)]
           tmp_normals.append(normal)
@@ -160,12 +193,11 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cubeSize
 #           print("angle between ",n1,n2," is ",calcAngle(n1, n2))
           
         assert(len(angles) > 0)
-        if cubeSize == 1 or np.any(np.array(angles) < 30):
+        if cubeSize == 1 or np.all(np.array(angles) < 30):
           points.extend(tmp_points)
           triangles.extend(tmp_triangles)
           normals.extend(tmp_normals)
         else:
-          print(angles)
           marching_cubes(voxels[i:i+cubeSize+1,j:j+cubeSize+1,k:k+cubeSize+1], (hx,hy,hz), points, triangles, normals, thresh, int(cubeSize/2),offset=(i,j,k))
             
   
@@ -218,8 +250,7 @@ def smaller(p1,p2):
   return False  
 
 class Vertex():
-  def __init__(self,id,coords,val):
-    self.id = id
+  def __init__(self,coords,val):
     self.coords = coords
     self.value = val
     
@@ -326,6 +357,26 @@ def calcAngle(n0,n1):
   
   assert(np.isclose(np.linalg.norm(n0-n1),0))  
   return 0
+
+def cartesian_to_grid_coords(coords,res,h=None):
+  eps = 1e-6
+  assert(len(coords) == 3)
+  if h is None:
+    h = []
+    if type(res) is int:
+      for i in range(len(coords)):
+        h.append(1.0 / res)
+    else:
+      for r in res:
+        h.append(1.0 / res) # assume domain is 1m x 1m x 1m
+  
+  voxel = np.zeros(len(coords),dtype=int)
+    
+  for i,x in enumerate(coords):
+    voxel[i] = int(round((x-h[i]/2.0) / h[i]+eps))
+     
+  return voxel
+
 # for each 8bit config, store edge configuration
 # e.g. 00000001 -> 1 means 1 lattice node is solid -> triangle has vertices on edges 0,3,8 
 def create_transvoxel_tables():
