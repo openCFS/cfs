@@ -925,7 +925,7 @@ def generate_basecell(args,info):
     faces = triangles
     end = time.time()
     print("time:",end - start)
-    sys.exit()
+#     sys.exit()
     
     # marching_cubes returns float values
     verts = np.asarray(verts)
