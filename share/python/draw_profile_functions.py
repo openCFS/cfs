@@ -911,20 +911,20 @@ def generate_basecell(args,info):
     import time
     start = time.time()
     import marching_cubes
-#     verts, faces, normals, values = measure.marching_cubes_lewiner(array,spacing=(h,h,h),allow_degenerate=False,step_size=1)
-#     marching_cubes.write_vtp(verts,faces,(h,h,h),"mc.vtp")
+#     verts, faces, normals, values = measure.marching_cubes_lewiner(array,spacing=(h,h,h),allow_degenerate=False,step_size=2)
+#     marching_cubes.write_vtp(verts,faces,(h,h,h),name="mc_lewiner.vtp",normals=normals)
+#     sys.exit()
 #     verts, faces = measure.marching_cubes_classic(array,spacing=(h,h,h))
     points = []
     triangles = []
     normals = []
     #marching_cubes.marching_cubes(array,(h,h,h),points,triangles,normals)
-    marching_cubes.marching_cubes(array,(h,h,h),points,triangles)
-    
+    marching_cubes.marching_cubes(array,(h,h,h),points,triangles,normals)
+
     verts = points
     faces = triangles
     end = time.time()
     print("time:",end - start)
-    import sys
     sys.exit()
     
     # marching_cubes returns float values

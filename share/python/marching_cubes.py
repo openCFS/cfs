@@ -32,21 +32,30 @@ regularVertexData = None
 # -> marching cubes grid is shifted by hx/2,hy/2,hz/2 and 1 elem smaller in each dim
 # for each of the 8 lattice node, find out which ones belong to the structure
 # -> 8 bit code           
-def marching_cubes(voxels,spacing,points,triangles,thresh = 0.5):
+def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_size=1,offset=None):
   from draw_profile_functions import grid_to_cartesian_coords
   hx = spacing[0]
   hy = spacing[1]
   hz = spacing[2]
   nx, ny, nz = voxels.shape
   ntriangles = 0
+  print("cubesize:",cube_size)
   
   #edgeTable, triTable = create_lookup()
-  create_transvoxel_tables()
+  if regularCellClass is None:
+    create_transvoxel_tables()
+    
+  if offset is None:
+    offset = np.array([0,0,0])
+    
+  assert(regularCellClass is not None)
+  assert(regularCellData is not None)
+  assert(regularVertexData is not None)    
   
   assert (0 < hx and 0 < hy and 0 < hz)
-  for i in reversed(range(nx-1)):
-    for j in reversed(range(ny-1)):
-      for k in reversed(range(nz-1)):
+  for i in range(0,int(nx-cube_size),cube_size):
+    for j in range(0,int(ny-cube_size),cube_size):
+      for k in range(0,int(nz-cube_size),cube_size):
         
         # bottom/top face:
         # NW  ----------- NE  
@@ -64,6 +73,8 @@ def marching_cubes(voxels,spacing,points,triangles,thresh = 0.5):
         top_SE = (i+1,j,k+1)
         top_NW = (i,j+1,k+1)
         top_NE = (i+1,j+1,k+1)
+        
+        cornerIndizes = [bottom_SW,bottom_SE,bottom_NW,bottom_NE,top_SW,top_SE,top_NW,top_NE]
         
         local_verts = []
         local_verts.append(Vertex(0,grid_to_cartesian_coords(bottom_SW,None,(hx,hy,hz)),voxels[bottom_SW]))
@@ -88,6 +99,8 @@ def marching_cubes(voxels,spacing,points,triangles,thresh = 0.5):
         
         if caseCode == 0 or caseCode == 255: # in cases 00000000 and 11111111 we have no triangulation
           continue
+        
+        cornerNormals = calcCornerNormals(voxels, cornerIndizes)
         
         cellClass = regularCellClass[caseCode] # 16 cell classes for MC
         #16-bit number, ignore high nibble
@@ -118,8 +131,11 @@ def marching_cubes(voxels,spacing,points,triangles,thresh = 0.5):
           v0 = (vertexLocations[vc] >> 4) & 0x0F #First Corner Index
           v1 = (vertexLocations[vc]) & 0x0F # Second Corner Index
           
-          vert = VertexInterp(thresh,local_verts[v0],local_verts[v1])
+          vert, mu = VertexInterp(thresh,local_verts[v0],local_verts[v1])
           points.append(vert)
+          normal = (cornerNormals[int(v0)] * (1-mu) + mu * cornerNormals[int(v1)]) * np.array([hx,hy,hz])
+          normal /= np.array([hx,hy,hz])
+          normals.append(normal)
           
           mappedIndizes[vc] = len(points)-1
         for t in range(triangleCount):
@@ -130,10 +146,9 @@ def marching_cubes(voxels,spacing,points,triangles,thresh = 0.5):
   
   print("points:",len(points))
   print("triangles:",len(triangles))      
-  write_vtp(points, triangles, (hx,hy,hz))
+  write_vtp(points, triangles, (hx,hy,hz),normals=normals)
   
   sys.exit()
-  
   return points, triangles
   
 # linearly interpolate intersection points with isovalue 'thresh'
@@ -153,7 +168,8 @@ def VertexInterp(thresh,p1,p2):
   if np.isclose(valp2-valp1,0):
     return p1
   else:
-    return p1 + (thresh - valp1) * (p2 - p1) / (valp2 - valp1)   
+    mu = (thresh - valp1) / (valp2 - valp1)  
+    return p1 + mu * (p2 - p1), mu  
     
 # kind of comparing point with descending priority for x to z 
 def smaller(p1,p2):
@@ -482,33 +498,86 @@ def create_transvoxel_tables():
     []
   ]  
 
-def write_vtp(points,cells,h,name=None):
+def write_vtp(points,cells,h,name=None,normals=None):
   import vtk    
   from draw_profile_functions import grid_to_cartesian_coords
   from matviz_vtk import show_write_vtk,fill_vtk_polydata
     
   pd = fill_vtk_polydata(points,cells)
+  
+  if normals is not None:
+    pointNormalsArray = vtk.vtkDoubleArray()
+    pointNormalsArray.SetNumberOfComponents(3)
+    pointNormalsArray.SetName("normals")
+    for n in normals:
+      pointNormalsArray.InsertNextTuple3(-n[0], -n[1], -n[2])
+    
+    pd.GetPointData().AddArray(pointNormalsArray)  
+    pd.GetPointData().SetActiveScalars("normals")
+      
   clean = vtk.vtkCleanPolyData()
   clean.SetInputData(pd)
   clean.Update()
   pd = clean.GetOutput()
+  
   if name is not None:
     show_write_vtk(pd, 10, name)
   else:  
     show_write_vtk(pd, 10, "marching_cubes_debug.vtp")
     
-# def VertexInterp2(thresh,p1,p2):
-#   valp1 = p1.value
-#   valp2 = p2.value
-#   if np.isclose(np.abs(thresh-valp1),0):
-#     return p1
-#   if np.isclose(np.abs(thresh-valp2),0):
-#     return p2
-#   if np.isclose(np.abs(valp1-valp2),0):
-#     return p1
-#   
-#   mu = (thresh - valp1) / (valp2 - valp1)
-#   ncoords = p1.coords + mu * (p2.coords-p1.coords)
-#   
-#   return ncoords
+def calcCornerNormals(voxels,cornerIndizes):
+  ncorners = 8
+  nx, ny, nz = voxels.shape
+  normals = [None] * ncorners
+  unitx = np.array((1,0,0))
+  unity = np.array((0,1,0))
+  unitz = np.array((0,0,1))
+  
+#   print("cornerIndizes:",cornerIndizes)
+  
+  for i in range(ncorners):
+    cornerIdx = np.array(cornerIndizes[i])
+    # central differences to calculate normal at 8 corners of marching cube
+    # use one sided differences at boundary
+    normalx = normaly = normalz = None
+
+    right = cornerIdx + unitx
+    left = cornerIdx - unitx    
+    if right[0] < nx and left[0] > 0:
+      normalx = (voxels[tuple(right)] - voxels[tuple(left)])/ 2.0
+    elif right[0] < nx: 
+      normalx = (voxels[tuple(right)] - voxels[tuple(cornerIdx)])/ 2.0
+    else: # left[0] > 0
+      normalx = (voxels[tuple(cornerIdx)] - voxels[tuple(left)])/ 2.0
+      
+    top = cornerIdx+unity
+    bottom = cornerIdx-unity
+    if top[1] < ny and bottom[1] > 0:
+      normaly = (voxels[tuple(top)] - voxels[tuple(bottom)])/ 2.0
+    elif top[1] < ny:
+      normaly = (voxels[tuple(top)] - voxels[tuple(cornerIdx)])/ 2.0  
+    else: #bottom[1] > 0
+      normaly = (voxels[tuple(cornerIdx)] - voxels[tuple(bottom)])/ 2.0 
+      
+    front = cornerIdx+unitz
+    back = cornerIdx-unitz
     
+    if front[2] < nz and back[2] > 0:
+      normalz = (voxels[tuple(front)] - voxels[tuple(back)])/ 2.0
+    elif front[2] < nz:
+      normalz = (voxels[tuple(front)] - voxels[tuple(cornerIdx)])/ 2.0  
+    else: #back[2] > 0
+      normalz = (voxels[tuple(cornerIdx)] - voxels[tuple(back)])/ 2.0
+      
+    assert(normalx is not None)
+    assert(normaly is not None)
+    assert(normalz is not None)
+    
+    normals[i] = np.array((normalx,normaly,normalz))
+    norm = np.linalg.norm(normals[i])
+    if not np.isclose(norm, 0):
+      normals[i] = normals[i] / norm 
+  
+  return normals    
+      
+       
