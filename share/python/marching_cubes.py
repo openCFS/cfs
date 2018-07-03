@@ -32,14 +32,14 @@ regularVertexData = None
 # -> marching cubes grid is shifted by hx/2,hy/2,hz/2 and 1 elem smaller in each dim
 # for each of the 8 lattice node, find out which ones belong to the structure
 # -> 8 bit code           
-def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_size=1,offset=None):
+def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cubeSize=4,offset=None):
   from draw_profile_functions import grid_to_cartesian_coords
   hx = spacing[0]
   hy = spacing[1]
   hz = spacing[2]
   nx, ny, nz = voxels.shape
   ntriangles = 0
-  print("cubesize:",cube_size)
+  print("cubesize:",cubeSize)
   
   #edgeTable, triTable = create_lookup()
   if regularCellClass is None:
@@ -53,9 +53,9 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_siz
   assert(regularVertexData is not None)    
   
   assert (0 < hx and 0 < hy and 0 < hz)
-  for i in range(0,int(nx-cube_size),cube_size):
-    for j in range(0,int(ny-cube_size),cube_size):
-      for k in range(0,int(nz-cube_size),cube_size):
+  for i in range(0,int(nx-cubeSize),cubeSize):
+    for j in range(0,int(ny-cubeSize),cubeSize):
+      for k in range(0,int(nz-cubeSize),cubeSize):
         
         # bottom/top face:
         # NW  ----------- NE  
@@ -66,13 +66,13 @@ def marching_cubes(voxels,spacing,points,triangles,normals,thresh = 0.5,cube_siz
         #  |              |   ------>i
         # SW  ----------- SE   
         bottom_SW = (i,j,k)
-        bottom_SE = (i+1,j,k)
-        bottom_NW = (i,j+1,k)
-        bottom_NE = (i+1,j+1,k)
-        top_SW = (i,j,k+1)
-        top_SE = (i+1,j,k+1)
-        top_NW = (i,j+1,k+1)
-        top_NE = (i+1,j+1,k+1)
+        bottom_SE = (i+cubeSize,j,k)
+        bottom_NW = (i,j+cubeSize,k)
+        bottom_NE = (i+cubeSize,j+cubeSize,k)
+        top_SW = (i,j,k+cubeSize)
+        top_SE = (i+cubeSize,j,k+cubeSize)
+        top_NW = (i,j+cubeSize,k+cubeSize)
+        top_NE = (i+cubeSize,j+cubeSize,k+cubeSize)
         
         cornerIndizes = [bottom_SW,bottom_SE,bottom_NW,bottom_NE,top_SW,top_SE,top_NW,top_NE]
         
