@@ -5,9 +5,6 @@
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
 #
-#-----------------------------------------------------------------------------
-# Set source and binary directories on the machine
-#-----------------------------------------------------------------------------
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/boost")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/boost_gcc_debug")
 
@@ -37,6 +34,7 @@ SET(CTEST_INITIAL_CACHE
    DEBUG:BOOL=ON
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
    TESTSUITE_DIR:STRING=$ENV{HOME}/code/cfs-test
+   PERF_TESTS:BOOL=OFF
    PYTHON_TESTS:BOOL=OFF
    CFS_DEPS_PRECOMPILED:BOOL=ON
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/cfsdepscache
@@ -56,7 +54,7 @@ SET(CTEST_INITIAL_CACHE
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
    BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
-find_program(CTEST_SVN_COMMAND NAMES git) 
+find_program(CTEST_GIT_COMMAND NAMES git) 
 set(CTEST_UPDATE_TYPE "git")
 
 DO_TESTING()
