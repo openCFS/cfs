@@ -577,7 +577,63 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       } // if: current / voltage driven
     } // loop: coils
 
+    /*
+      // ============================
+      // PERMANENT MAGNETS
+      // ============================
+      //
+      // check, if this subdomain is a permanent magnet
+      for ( UInt perm = 0; perm < magnetsDomain_.GetSize(); perm++ ) {
+        if ( actRegion == magnetsDomain_[perm] ) {
+          EXCEPTION("Currently magnetic 3D with edge elements do not support permanent magnets");
+
+          Vector<Double> magnetization(dim_);
+          magnetization[0] = magnetsOriX_[perm];
+          magnetization[1] = magnetsOriY_[perm];
+          magnetization[2] = magnetsOriZ_[perm];
+
+          // Get reluctivity for this domain and perform consistency check
+          Double reluctivity;
+          actMat->GetScalar(reluctivity,MAG_RELUCTIVITY,Global::REAL);
+
+          std::string fncname = "none";
+          LinearForm *permSource =
+            new MagPerm3DInt(magnetization, reluctivity,
+                             isaxi_, upLagrangeForm );
+
+          LinearFormContext * permContext =
+            new LinearFormContext( permSource );
+          permContext->SetPtPde( this );
+          permContext->SetResult( results_[0], actSDList );
+          assemble_->AddLinearForm( permContext );
+        }
+      }*/
+
   } // end DefineIntegrators
+
+  
+  void MagEdgePDE::DefineNcIntegrators() {
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+            endIt = ncInterfaces_.End();
+
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+        case NC_MORTAR:
+          EXCEPTION("No Mortar nonconforming interface for magnetic PDE with edge elements.\n"
+                    "Try using H1 nodal elements in MagneticPDE")
+          break;
+        case NC_NITSCHE:
+          if (dim_ == 2)
+            EXCEPTION("MagEdgePDE only works for 3D geometry!")
+          else
+            DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt );
+          break;
+        default:
+          EXCEPTION("Unknown type of ncInterface");
+          break;
+      }
+    }
+  }
 
 
   void MagEdgePDE::DefineRhsLoadIntegrators() {

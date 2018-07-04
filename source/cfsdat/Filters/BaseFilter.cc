@@ -52,7 +52,7 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
   else if (filtNode->GetName() == "postLighthill") {
     newPtr = FilterPtr(new CFSDat::PostLighthillSource(0, filtNode, resMana));
   }
-  else if (filtNode->GetName() == "syntheticTurbulence_SNGR") {
+  else if (filtNode->GetName() == "syntheticTurbulence") {
     newPtr = FilterPtr(new CFSDat::SNGRFilter(0, filtNode, resMana));
   }
   else if ((filtNode->GetName() == "interpolation") ||

@@ -3652,8 +3652,7 @@ namespace CoupledField {
   void SinglePDE::DefineNitscheCoupling( SolutionType solType,
                                          NcInterfaceInfo &iface )
   {
-    shared_ptr<BaseNcInterface> ncIf =
-        ptGrid_->GetNcInterface(iface.interfaceId);
+    shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(iface.interfaceId);
     MortarInterface * nitscheIf = dynamic_cast<MortarInterface*>(ncIf.get());
     assert(nitscheIf);
     
@@ -3675,56 +3674,23 @@ namespace CoupledField {
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
     if ( solType == HEAT_TEMPERATURE ) {
-      factor = materials_[nitscheIf->GetMasterVolRegion()]
-                       ->GetScalCoefFnc( HEAT_CONDUCTIVITY, Global::REAL );
-
-      //not necessary, since coef "factor" is also provided to the jump-bilinear form
-
-//      //get the value of the conductivity and scale the penalty term
-//      StdVector<Vector<Double> > points(1);
-//      Vector<Double> p1(DIM);
-//      p1.Init();
-//      points[0]= p1;
-//      StdVector<Double> ergVec;
-//      factor->GetScalarValuesAtCoords(points,ergVec,this->ptGrid_);
-//      beta *= ergVec[0];
+      factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( HEAT_CONDUCTIVITY, Global::REAL );
     }
     else if ( solType == ELEC_POTENTIAL ) {
-      factor = materials_[nitscheIf->GetMasterVolRegion()]
-                       ->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
+      factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
     }
     else if ( solType == MAG_POTENTIAL) {
       PtrCoefFct permability;
       PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 
-      permability = materials_[nitscheIf->GetMasterVolRegion()]
-                             ->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
-//      nu2 = materials_[nitscheIf->GetSlaveVolRegion()]
-//                                   ->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL );
-      factor = CoefFunction::Generate( mp_, Global::REAL,
-                             CoefXprBinOp(mp_, constOne, permability, CoefXpr::OP_DIV));
-//      factor = nu2;
-//      factor = CoefFunction::Generate( mp_, Global::REAL,
-//                         CoefXprBinOp(mp_, factor, oneHalf, CoefXpr::OP_MULT));
-
-//      //get correct scaling of penalty term
-//      StdVector<Vector<Double> > points(1);
-//      Vector<Double> p1(DIM);
-//      p1.Init();
-//      points[0]= p1;
-//      StdVector<Double> values;
-//      nu1->GetScalarValuesAtCoords(points,values,this->ptGrid_);
-//      std::cout << "Nu1: " << values[0] << std::endl;
-//      nu2->GetScalarValuesAtCoords(points,values,this->ptGrid_);
-//      std::cout << "Nu2: " << values[0] << std::endl;
+      permability = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
+      factor = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permability, CoefXpr::OP_DIV));
     }
     else if ( solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL ) {
        factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
        if ( isMaterialComplex_ ) {
-    	   PtrCoefFct dens = materials_[nitscheIf->GetMasterVolRegion()]
-    	                                ->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
-    	   factor = CoefFunction::Generate( mp_, Global::COMPLEX,
- 				                  CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV ) );
+    	   PtrCoefFct dens = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( ACOU_DENSITY_COMPLEX, Global::COMPLEX );
+    	   factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV ) );
        }
     }
     else
@@ -3734,14 +3700,12 @@ namespace CoupledField {
     //notation> assume the test function is called v
     BiLinearForm *penalty_u1_v1 = NULL;
     BiLinearForm *penalty_u1_v2 = NULL;
-//    BiLinearForm *penalty_u2_v1 = NULL;
     BiLinearForm *penalty_u2_v2 = NULL;
     //now bilinear forms related to the normal derivatives
     //du1 refers to the normal derivative directing from 1 to 2
     BiLinearForm *flux_du1_v1 = NULL;
     BiLinearForm *flux_du1_v2 = NULL;
     BiLinearForm *flux_u1_dv1 = NULL;
-//    BiLinearForm *flux_u2_dv1 = NULL;
     BiLinearForm::CouplingDirection curcpl;
 
      // in case of mechanical PDE, we need the material tensor
@@ -3765,8 +3729,7 @@ namespace CoupledField {
       points[0]= p1;
 
       if ( isMaterialComplex_ ) {
-        coefMech = materials_[nitscheIf->GetMasterVolRegion()]
-          ->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::COMPLEX);
+        coefMech = materials_[nitscheIf->GetMasterVolRegion()]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::COMPLEX);
 
         StdVector< Matrix<Complex> > mat;
         coefMech->GetTensorValuesAtCoords(points, mat, this->ptGrid_);
@@ -3778,8 +3741,7 @@ namespace CoupledField {
         matVal /= (Double) mat[0].GetNumRows();
       }
       else {
-        coefMech = materials_[nitscheIf->GetMasterVolRegion()]
-          ->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::REAL);
+        coefMech = materials_[nitscheIf->GetMasterVolRegion()]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::REAL);
 
         StdVector< Matrix<Double> > mat;
         coefMech->GetTensorValuesAtCoords(points, mat, this->ptGrid_);
@@ -3804,6 +3766,12 @@ namespace CoupledField {
     // not symmetric. Nitsche formulation is basically sym due to the
     // set counterpart directive for the context.
 
+    // NOTE: when using edge elements, we overwrite the D_DOF, when handing it
+    // over to the surface-operator because edge elements have vectorial shape
+    // functions BUT scalar DOF's!! Therefore we treat it here as a vector valued
+    // DOF and perform the scalar multiplication later on in the CalcElemMatrix of
+    // the integrator
+
     if ( isMaterialComplex_) {
     	penalty_u1_v1 = new SurfaceNitscheABInt<Complex,Complex>
         	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -3811,10 +3779,18 @@ namespace CoupledField {
               factor, beta, curcpl, updatedGeo_, true, true);
     }
     else  {
-    	penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-        	( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-        	  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+      if(pdename_ == "magneticEdge"){
+        penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
               factor, beta, curcpl, updatedGeo_, true, true);
+      }else{
+        penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, beta, curcpl, updatedGeo_, true, true);
+      }
+
     }
 
     if ( solType == MECH_DISPLACEMENT ) {
@@ -3832,10 +3808,17 @@ namespace CoupledField {
     		               factor, -1.0, curcpl, updatedGeo_, true);
     	}
     	else {
-    		flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-                         ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-                           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                           factor, -1.0, curcpl, updatedGeo_, true);
+    	  if(pdename_ == "magneticEdge"){
+    	    flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+           ( new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
+             new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+             factor, -1.0, curcpl, updatedGeo_, true);
+          }else{
+            flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+                 ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                   new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                   factor, -1.0, curcpl, updatedGeo_, true);
+          }
     	}
     }
 
@@ -3854,10 +3837,17 @@ namespace CoupledField {
                            factor, -1.0, curcpl, updatedGeo_, true);
     	}
     	else {
-    		flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
-                        (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                           new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-                           factor, -1.0, curcpl, updatedGeo_, true);
+        if(pdename_ == "magneticEdge"){
+          flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+            (  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+               new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
+               factor, -1.0, curcpl, updatedGeo_, true);
+          }else{
+            flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+                (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                   new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                   factor, -1.0, curcpl, updatedGeo_, true);
+          }
     	}
     }
 
@@ -3871,10 +3861,18 @@ namespace CoupledField {
                         factor, beta * -1.0, curcpl, updatedGeo_, true, true);
     }
     else {
-    	penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                        factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+        if(pdename_ == "magneticEdge"){
+          penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+                          (new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                           new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+        }else{
+          penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+                ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                  factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+        }
+
     }
     
     if ( solType == MECH_DISPLACEMENT ) {
@@ -3892,10 +3890,18 @@ namespace CoupledField {
                           factor, 1.0, curcpl, updatedGeo_, true);
     	}
     	else {
-    		flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-                         (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-                          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                          factor, 1.0, curcpl, updatedGeo_, true);
+
+        if(pdename_ == "magneticEdge"){
+          flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+                 (new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
+                  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  factor, 1.0, curcpl, updatedGeo_, true);
+        }else{
+          flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+             (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, 1.0, curcpl, updatedGeo_, true);
+        }
     	}
     }
 
@@ -3908,20 +3914,20 @@ namespace CoupledField {
                         factor, beta, curcpl, updatedGeo_, true, true);
     }
     else {
-    	penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-                      ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                        factor, beta, curcpl, updatedGeo_, true, true);
-    }
 
-//    if ( nonLin_ ) {
-//    	penalty_u2_v2->SetSolDependent(true);
-//    	penalty_u1_v2->SetSolDependent(true);
-//    	penalty_u1_v1->SetSolDependent(true);
-//    	flux_du1_v1->SetSolDependent(true);
-//    	flux_u1_dv1->SetSolDependent(true);
-//    	flux_du1_v2->SetSolDependent(true);
-//    }
+      if(pdename_ == "magneticEdge"){
+        penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+                        ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                          new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                          factor, beta, curcpl, updatedGeo_, true, true);
+      }else{
+        penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+                ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                  factor, beta, curcpl, updatedGeo_, true, true);
+      }
+
+    }
 
     SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v1_Context   = NULL;
@@ -3947,6 +3953,7 @@ namespace CoupledField {
     curcpl = BiLinearForm::SLAVE_MASTER;
 
     if (isMoving) {
+      //if(pdename_ == "magneticEdge") EXCEPTION("No moving region in MagEdgePDE possible...yet!");
       if(changeForms){
         Double betaDamp = iface.nitscheFactorDamp;
         BiLinearForm *penalty_u1_v1_M = NULL;
@@ -3957,24 +3964,48 @@ namespace CoupledField {
         SurfaceBiLinFormContext *penalty_u1_v1_M_Context = NULL;
 
         curcpl = BiLinearForm::MASTER_MASTER;
-        penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
-            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              factor, betaDamp, curcpl, updatedGeo_, true, true);
+        if(pdename_ == "magneticEdge"){
+          penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
+              ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                factor, betaDamp, curcpl, updatedGeo_, true, true);
+        }else{
+          penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
+              ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, betaDamp, curcpl, updatedGeo_, true, true);
+        }
+
         penalty_u1_v1_M_Context = new SurfaceBiLinFormContext(penalty_u1_v1_M, DAMPING, curcpl);
 
         curcpl = BiLinearForm::SLAVE_SLAVE;
-        penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
-            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              factor, betaDamp, curcpl, updatedGeo_, true, true);
+        if(pdename_ == "magneticEdge"){
+          penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
+              ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                factor, betaDamp, curcpl, updatedGeo_, true, true);
+        }else{
+          penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
+              ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, betaDamp, curcpl, updatedGeo_, true, true);
+        }
+
         penalty_u2_v2_M_Context = new SurfaceBiLinFormContext(penalty_u2_v2_M, DAMPING, curcpl);
 
         curcpl = BiLinearForm::MASTER_SLAVE;
-        penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
-            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              factor, betaDamp * -1.0, curcpl, updatedGeo_, true, true);
+        if(pdename_ == "magneticEdge"){
+          penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
+              ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                factor, betaDamp * -1.0, curcpl, updatedGeo_, true, true);
+        }else{
+          penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
+              ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, betaDamp * -1.0, curcpl, updatedGeo_, true, true);
+        }
+
         penalty_u1_v2_M_Context = new SurfaceBiLinFormContext(penalty_u1_v2_M, DAMPING, curcpl);
 
 
@@ -3988,12 +4019,9 @@ namespace CoupledField {
         penalty_u1_v1_M_Context->SetEntities(actSDList,actSDList);
         penalty_u2_v2_M_Context->SetEntities(actSDList,actSDList);
         penalty_u1_v2_M_Context->SetEntities(actSDList,actSDList);
-        penalty_u1_v1_M_Context->SetFeFunctions( feFunctions_[solType],
-                                               feFunctions_[solType] );
-        penalty_u2_v2_M_Context->SetFeFunctions( feFunctions_[solType],
-                                               feFunctions_[solType] );
-        penalty_u1_v2_M_Context->SetFeFunctions( feFunctions_[solType],
-                                               feFunctions_[solType] );
+        penalty_u1_v1_M_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
+        penalty_u2_v2_M_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
+        penalty_u1_v2_M_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
         penalty_u1_v2_M_Context->SetCounterPart(true);
         assemble_->AddBiLinearForm( penalty_u1_v1_M_Context );
         assemble_->AddBiLinearForm( penalty_u2_v2_M_Context );
@@ -4024,18 +4052,12 @@ namespace CoupledField {
     flux_u1_dv1_Context->SetEntities(actSDList,actSDList);
     flux_du1_v2_Context->SetEntities(actSDList,actSDList);
 
-    penalty_u1_v1_Context->SetFeFunctions( feFunctions_[solType],
-                                           feFunctions_[solType] );
-    penalty_u2_v2_Context->SetFeFunctions( feFunctions_[solType],
-                                           feFunctions_[solType] );
-    penalty_u1_v2_Context->SetFeFunctions( feFunctions_[solType],
-                                           feFunctions_[solType] );
-    flux_du1_v1_Context->SetFeFunctions( feFunctions_[solType],
-                                         feFunctions_[solType] );
-    flux_u1_dv1_Context->SetFeFunctions( feFunctions_[solType],
-                                         feFunctions_[solType] );
-    flux_du1_v2_Context->SetFeFunctions( feFunctions_[solType],
-                                         feFunctions_[solType] );
+    penalty_u1_v1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
+    penalty_u2_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
+    penalty_u1_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
+    flux_du1_v1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
+    flux_u1_dv1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
+    flux_du1_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
 
     penalty_u1_v2_Context->SetCounterPart(true);
     flux_du1_v2_Context->SetCounterPart(true);

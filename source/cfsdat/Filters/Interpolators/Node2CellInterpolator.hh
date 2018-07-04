@@ -47,6 +47,9 @@ private:
     //! Vector containing target-informations
     std::vector<QuantityStruct> interpolData_;
 
+    //! Global Factor for scaling the result
+    Double globalFactor_;
+
 };
 
 }

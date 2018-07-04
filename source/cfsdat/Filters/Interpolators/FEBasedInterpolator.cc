@@ -25,6 +25,13 @@ namespace CFSDat{
 FEBasedInterpolator::FEBasedInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
                      :MeshFilter(numWorkers,config,resMan){
   this->filtStreamType_ = FIFO_FILTER;
+
+  if(config->Has("scheme") == true){
+	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
+  }else{
+	  globalFactor_ = 1.0;
+  }
+
 }
 
 FEBasedInterpolator::~FEBasedInterpolator(){
@@ -80,6 +87,7 @@ bool FEBasedInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
       }
     }
   }
+  returnVec.ScalarMult(globalFactor_);
 
   return true;
 }

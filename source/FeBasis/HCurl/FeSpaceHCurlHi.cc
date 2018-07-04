@@ -620,13 +620,21 @@ namespace CoupledField{
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
     const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum); 
-    RegionIdType eRegion = ptElem->regionId;
     
+    // Note: if the element is a surface element, we must omit the regionId
+    // and look for the neigbor
+    RegionIdType eRegion = GetVolElem(ptElem)->regionId;
+    //RegionIdType eRegion = ptElem->regionId;
+
+    std::string regionName = ptGrid_->GetRegion().ToString(eRegion);
+
+
 
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
       eRegion = ALL_REGIONS;
     }
+
 
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
       EXCEPTION("FeSpaceHCurlHi::getfe( const entityiterator): requested fetype which is noch supported by space");

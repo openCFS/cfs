@@ -50,6 +50,8 @@ private:
   //! Number of neighbor points to include in interpolation.
   std::vector<QuantityStruct> interpolData_;
 
+  //! Global Factor for scaling the result
+  Double globalFactor_;
 
 };
 
