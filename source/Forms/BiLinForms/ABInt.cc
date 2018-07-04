@@ -288,9 +288,7 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     MAT_DATA_TYPE tmp(2.0);
     Double min,max;
     esm1T->GetMaxMinEdgeLength(min,max);
-    esm2T->GetMaxMinEdgeLength(min,max);
     UInt order1 = SFe1->GetIsoOrder();
-    UInt order2 = SFe2->GetIsoOrder();
 
     if(order1 == 0){
       StdVector<UInt> aIsoOrder;
@@ -305,6 +303,9 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
         }
     }
     MAT_DATA_TYPE surface1(min/(Double)order1);
+
+    esm2T->GetMaxMinEdgeLength(min,max);
+    UInt order2 = SFe2->GetIsoOrder();
 
     if(order2 == 0){
       StdVector<UInt> aIsoOrder;
