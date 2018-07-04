@@ -61,6 +61,15 @@
 	<xsd:element name="cfsSimulation">
 		<xsd:complexType>
 			<xsd:sequence>
+      
+        <!-- Allows to provide arbitrary info which is copied to .info.xml - similar to "id" attribute  -->     
+        <xsd:element name="info" minOccurs="0">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:any minOccurs="0" namespace="##any" processContents="skip"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
 
         <!-- Tags for documenting simulations (required just for test suite)-->
         <xsd:element name="documentation" type="DT_Documentation" minOccurs="0"/>
@@ -188,11 +197,9 @@
 
         <!-- Parameters for specifying an optimization (optional) -->
         <xsd:element name="optimization" type="DT_Optimization" minOccurs="0"/>
-
 			</xsd:sequence>
 			<!-- The simulation can be given an id/token/label/name that is written to info.xml if present. -->
-			<xsd:attribute name="id" type="xsd:token" default=""
-				use="optional" />
+			<xsd:attribute name="id" type="xsd:token" default="" use="optional" />
 		</xsd:complexType>
 
 		<!-- ***************************************************************** -->
