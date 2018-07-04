@@ -39,7 +39,7 @@ namespace CoupledField {
   template<typename T>
   void SSORPrecond<T>::Setup( CRS_Matrix<T> &sysmat) {
     for ( UInt i=1; i<=size_; i++ ) {
-      diagInv_[i] = OpType<T>::invert(sysmat.GetDiag(i));
+      diagInv_[i] = OpType<T>::invert(sysmat.GetDiagEntry(i));
     }
   }
 

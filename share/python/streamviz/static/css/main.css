@@ -54,3 +54,13 @@ h4 {
 	font-size: 100%;
 	line-height: 80%;
 }
+.container {
+  width: 100%;
+  max-width: 100%;
+}
+#settings {
+	max-width: 500px;
+}
+svg {
+	width: 100% !important;
+}

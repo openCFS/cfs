@@ -560,9 +560,12 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
   // validate first:
   switch(sp)
   {
-  case DESIGN:                return design;
+  case DESIGN:
+    return design;
 
-  case COST_GRADIENT:         return SumObjectiveGradient();
+  case COST_GRADIENT:
+    return SumObjectiveGradient();
+
   case WEIGHT:
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->DetermineFilter().weight;

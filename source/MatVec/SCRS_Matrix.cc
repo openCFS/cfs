@@ -989,30 +989,6 @@ inline void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v )
     EXCEPTION("Implement me");
   }
 
-
-  // **************
-  //   GetMaxDiag
-  // **************
-  template<typename T>
-  Double SCRS_Matrix<T>::GetMaxDiag() const {
-
-
-    double maxDiag = 0;
-    double current = 0;
-    UInt i;
-
-    for ( i = 0; i < this->nrows_; i++ ) {
-
-      // use an opType to ensure that tiny matrices
-      // are treated correctly
-      current = OpType<T>::MaxDiag( data_[ rowPtr_[i] ] );
-      maxDiag = maxDiag > current ? maxDiag : current;
-    }
-
-    return maxDiag;
-  }
-
-
   // ************************
   //   Add (another matrix)
   // ************************

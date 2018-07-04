@@ -77,7 +77,7 @@ namespace CoupledField {
 
 #pragma omp parallel for 
     for ( UInt i = 0; i < size_; i++ ) {
-      diagInv_[i] = OpType<T>::invert( sysmat.GetDiag(i) );
+      diagInv_[i] = OpType<T>::invert( sysmat.GetDiagEntry(i) );
     }
 
 #ifdef DEBUG_JACPRECOND

@@ -37,8 +37,7 @@ namespace CoupledField {
     virtual void SetToStepValue(UInt stepNum, Double stepVal ) {
       EXCEPTION( "Not implemented" );
     }
-    
-    
+
   protected:
   
     //! Initialize PDEs

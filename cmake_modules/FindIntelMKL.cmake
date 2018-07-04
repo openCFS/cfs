@@ -426,6 +426,8 @@ ELSE(WIN32)
       USES_TERMINAL)
 
   ELSE()
+    MESSAGE("executing ${COMPILE_MKL_TEST_DIR}/compile_mkl_test.sh in ${COMPILE_MKL_TEST_DIR} failed")
+    MESSAGE("RETVAL=${RETVAL} and MKL_INFO=${MKL_INFO}")
     MESSAGE(SEND_ERROR "A problem occurred during determination of MKL linker
                         flags. Please run ${CFS_BINARY_DIR}/tmp/mkl_test/compile_mkl_test.sh
                         by hand to investigate the problem. Script output was\n ${MKL_INFO}")

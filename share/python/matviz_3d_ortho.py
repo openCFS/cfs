@@ -23,14 +23,18 @@ except:
   print("Warning: Could not load basecell and draw_profile_functions!")
   
 # similar to create_3d_cross_ip; # without rotation and shearing
-def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,nondes=None):
+def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,samples,grad,nondes=None):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
-  # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
+  # coords, design, angles: element center coordinates and design values s1,s2,s3,angle per finite element
   # min_bb/max_bb: bounding box of design regions
   # scale: parameter for scaling the cell size if necessary
   # nondes: store info on solid and void nondesign regions, has 2 entries: 0 -> solid non-design, 1 -> void non_design
   # nondes[0]: solid nondesign -> (centers, min_bb, max_bb, elem_dim)
   # nondes[0][centers]: list of elements (corner vertices) that define non-design regions
+  
+  s1 = design['s1']
+  s2 = design['s2']
+  s3 = design['s3']
   
   # MPI_Init() or MPI_Init_thread() is actually called when you import the MPI
   # use the standard communicator
@@ -219,7 +223,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   #print(helper.shape,np.sum(helper))
   from skimage import measure
   # coords of vertices lie in [0,1-h]
-  my_mpi_grid.vertices, my_mpi_grid.faces, _, _ = measure.marching_cubes(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False,step_size=1)
+  my_mpi_grid.vertices, my_mpi_grid.faces, _, _ = measure.marching_cubes_lewiner(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False,step_size=1)
   # translate from (0,0,0) to correct position
   # and marching cubes shift everything by 0.5 * hx/hy/hz
   shift = np.asarray(my_mpi_grid.bounds[0:3]) - np.asarray((my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0))

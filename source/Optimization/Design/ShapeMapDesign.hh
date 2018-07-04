@@ -220,11 +220,12 @@ public:
      * single profile partner. The Profile partner points back to the first center node only. */
     ShapeParam* partner = NULL;
 
-    /** the dof of this shape. Note that this shape might be part of a center shape
+    /** the dof of this shape. Note that this shape might be part of a center shape, where only the nodal shapes have dofs
+     * A profile has no dof!
      * @see Flip() */
     ShapeParamElement::Dof dof = ShapeParamElement::NOT_SET;
 
-    /** For a dof x the orientation is y. For 3D center pairs X and Y it is Z. */
+    /** For a dof x the orientation is y. For 3D center pairs X and Y it is Z. A profile inherits the orientation */
     ShapeParamElement::Dof orientation = ShapeParamElement::NOT_SET;
 
     std::string lower; // to be math parsed with coordinates xi to be used as xi/nx
