@@ -24,6 +24,14 @@ namespace CFSDat{
 Cell2NodeInterpolator::Cell2NodeInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
                      :MeshFilter(numWorkers,config,resMan){
   this->filtStreamType_ = FIFO_FILTER;
+
+  if(config->Has("scheme") == true){
+	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
+  }else{
+	  globalFactor_ = 1.0;
+  }
+
+
 }
 
 Cell2NodeInterpolator::~Cell2NodeInterpolator(){
@@ -39,6 +47,9 @@ bool Cell2NodeInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
   Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
   
   Cell2Node(returnVec,filterResIds[0], inVec, interpolData_, nodeNeighbours_);
+
+  returnVec.ScalarMult(globalFactor_);
+
 
   return true;
 }

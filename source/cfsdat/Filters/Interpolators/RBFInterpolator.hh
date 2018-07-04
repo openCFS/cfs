@@ -67,6 +67,8 @@ private:
     UInt numNN_;
     UInt numNW_;
 
+    //! Global Factor for scaling the result
+    Double globalFactor_;
 
     //! number of euqations per entity
     UInt numEquPerEnt_;

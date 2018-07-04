@@ -28,6 +28,7 @@
     <xsd:attribute name="numNeighbours" type="xsd:integer" default="20" use="optional"/>
 <!--    <xsd:attribute name="globalFactor" type="xsd:double" default="1.0" use="optional"/>-->
     <xsd:attribute name="useCGAL4RBF" type="xsd:boolean" default="true" use="optional"/>
+    <xsd:attribute name="globalFactor" type="xsd:double" default="1.0" use="optional"/>
   </xsd:complexType>
   
 </xsd:schema>
