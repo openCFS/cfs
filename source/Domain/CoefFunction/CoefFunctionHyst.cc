@@ -1041,7 +1041,7 @@ namespace CoupledField {
     //    
 	}
   
-  void CoefFunctionHyst::ReadAndSetWeights(BaseMaterial * const material, bool setForStrains){
+  void CoefFunctionHyst::ReadAndSetWeights(BaseMaterial* const material, bool setForStrains){
     
     ParameterPreisachWeights paramSet = ParameterPreisachWeights(); 
 
@@ -1402,7 +1402,7 @@ namespace CoupledField {
      * > find out why!
      */
     
-    POL_weightParams_ = ParameterPreisachWeights(); 
+//    POL_weightParams_ = ParameterPreisachWeights(); 
     
     /*
      * Common parameter for all models
@@ -1410,67 +1410,76 @@ namespace CoupledField {
      * > saturation
      * > initial states
      */  
-    POL_weightParams_.weightType_ = "";
-    POL_weightParams_.constWeight_ = 0.5;
-    POL_weightParams_.muDat_A_ = 0.0;
-    POL_weightParams_.muDat_sigma1_ = 0.0;
-    POL_weightParams_.muDat_sigma2_ = 0.0;
-    POL_weightParams_.muDat_h1_ = 0.0;
-    POL_weightParams_.muDat_h2_ = 0.0;
-    POL_weightParams_.muDat_eta_ = 1.0;
-    POL_weightParams_.weightTensor_ = Matrix<Double>(1,1);
+//    POL_weightParams_.weightType_ = "";
+//    POL_weightParams_.constWeight_ = 0.5;
+//    POL_weightParams_.muDat_A_ = 0.0;
+//    POL_weightParams_.muDat_sigma1_ = 0.0;
+//    POL_weightParams_.muDat_sigma2_ = 0.0;
+//    POL_weightParams_.muDat_h1_ = 0.0;
+//    POL_weightParams_.muDat_h2_ = 0.0;
+//    POL_weightParams_.muDat_eta_ = 1.0;
+//    POL_weightParams_.weightTensor_ = Matrix<Double>(1,1);
     
-    material->GetScalar(POL_operatorParams_.methodName_,HYST_MODEL);
     
-    int numRows;
-    material->GetScalar(numRows, PREISACH_WEIGHTS_DIM);
-    POL_numRows_ = UInt(numRows);
-    int weightTypeInt;
-    material->GetScalar(weightTypeInt, PREISACH_WEIGHTS_TYPE);
     
-    POL_weightParams_.numRows_ = UInt(numRows);
-    
-    if(weightTypeInt == 0){
-      POL_weightParams_.weightType_ = "Constant";
-      material->GetScalar(POL_weightParams_.constWeight_, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL);
-    } else if(weightTypeInt == 1){
-      POL_weightParams_.weightType_ = "muDat";
-      material->GetScalar(POL_weightParams_.muDat_A_, PREISACH_WEIGHTS_MUDAT_A, Global::REAL);
-      material->GetScalar(POL_weightParams_.muDat_sigma1_, PREISACH_WEIGHTS_MUDAT_SIGMA, Global::REAL);
-      material->GetScalar(POL_weightParams_.muDat_h1_, PREISACH_WEIGHTS_MUDAT_H, Global::REAL);
-      material->GetScalar(POL_weightParams_.muDat_eta_, PREISACH_WEIGHTS_MUDAT_ETA, Global::REAL);
-    } else if(weightTypeInt == 2){
-      POL_weightParams_.weightType_ = "muDatExtended";
-      //std::cout << "MuDatExtended" << std::endl;
-      material->GetScalar(POL_weightParams_.muDat_A_, PREISACH_WEIGHTS_MUDATEXT_A, Global::REAL);
-      material->GetScalar(POL_weightParams_.muDat_sigma1_, PREISACH_WEIGHTS_MUDATEXT_SIGMA1, Global::REAL);
-      material->GetScalar(POL_weightParams_.muDat_sigma2_, PREISACH_WEIGHTS_MUDATEXT_SIGMA2, Global::REAL);
-      material->GetScalar(POL_weightParams_.muDat_h1_, PREISACH_WEIGHTS_MUDATEXT_H1, Global::REAL);
-      material->GetScalar(POL_weightParams_.muDat_h2_, PREISACH_WEIGHTS_MUDATEXT_H2, Global::REAL);
-      material->GetScalar(POL_weightParams_.muDat_eta_, PREISACH_WEIGHTS_MUDATEXT_ETA, Global::REAL);
-    } else if(weightTypeInt == 3){
-      POL_weightParams_.weightType_ = "givenTensor";
-      material->GetTensor(POL_weightParams_.weightTensor_, PREISACH_WEIGHTS_TENSOR, Global::REAL);
-      //std::cout << "Found weights: " << POL_weightParams_.weightTensor_.ToString() << std::endl;
-    } else {
-      EXCEPTION("Weight type unknown");
-    }
-      
-		material->GetScalar(POL_operatorParams_.inputSat_, X_SATURATION, Global::REAL);
-		material->GetScalar(POL_operatorParams_.outputSat_, Y_SATURATION, Global::REAL);
+//    material->GetScalar(POL_operatorParams_.methodName_,HYST_MODEL);
+//    
+//    int numRows;
+//    material->GetScalar(numRows, PREISACH_WEIGHTS_DIM);
+//    POL_numRows_ = UInt(numRows);
+//    int weightTypeInt;
+//    material->GetScalar(weightTypeInt, PREISACH_WEIGHTS_TYPE);
+//    
+//    POL_weightParams_.numRows_ = UInt(numRows);
 
     
-    // NEW: add additional anhysteretic curve to Preisach models
-    material->GetScalar(POL_weightParams_.anhysteretic_a_ , PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
-    material->GetScalar(POL_weightParams_.anhysteretic_b_ , PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
-    material->GetScalar(POL_weightParams_.anhysteretic_c_ , PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
-    int anhystOnlyInt = 0;
-    material->GetScalar(anhystOnlyInt , PREISACH_WEIGHTS_ANHYST_ONLY);
-    if(anhystOnlyInt == 1){
-      POL_weightParams_.anhystOnly_ = true;
-    } else {
-      POL_weightParams_.anhystOnly_ = false;
-    }
+    
+    
+//    
+//    if(weightTypeInt == 0){
+//      POL_weightParams_.weightType_ = "Constant";
+//      material->GetScalar(POL_weightParams_.constWeight_, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL);
+//    } else if(weightTypeInt == 1){
+//      POL_weightParams_.weightType_ = "muDat";
+//      material->GetScalar(POL_weightParams_.muDat_A_, PREISACH_WEIGHTS_MUDAT_A, Global::REAL);
+//      material->GetScalar(POL_weightParams_.muDat_sigma1_, PREISACH_WEIGHTS_MUDAT_SIGMA, Global::REAL);
+//      material->GetScalar(POL_weightParams_.muDat_h1_, PREISACH_WEIGHTS_MUDAT_H, Global::REAL);
+//      material->GetScalar(POL_weightParams_.muDat_eta_, PREISACH_WEIGHTS_MUDAT_ETA, Global::REAL);
+//    } else if(weightTypeInt == 2){
+//      POL_weightParams_.weightType_ = "muDatExtended";
+//      //std::cout << "MuDatExtended" << std::endl;
+//      material->GetScalar(POL_weightParams_.muDat_A_, PREISACH_WEIGHTS_MUDATEXT_A, Global::REAL);
+//      material->GetScalar(POL_weightParams_.muDat_sigma1_, PREISACH_WEIGHTS_MUDATEXT_SIGMA1, Global::REAL);
+//      material->GetScalar(POL_weightParams_.muDat_sigma2_, PREISACH_WEIGHTS_MUDATEXT_SIGMA2, Global::REAL);
+//      material->GetScalar(POL_weightParams_.muDat_h1_, PREISACH_WEIGHTS_MUDATEXT_H1, Global::REAL);
+//      material->GetScalar(POL_weightParams_.muDat_h2_, PREISACH_WEIGHTS_MUDATEXT_H2, Global::REAL);
+//      material->GetScalar(POL_weightParams_.muDat_eta_, PREISACH_WEIGHTS_MUDATEXT_ETA, Global::REAL);
+//    } else if(weightTypeInt == 3){
+//      POL_weightParams_.weightType_ = "givenTensor";
+//      material->GetTensor(POL_weightParams_.weightTensor_, PREISACH_WEIGHTS_TENSOR, Global::REAL);
+//      //std::cout << "Found weights: " << POL_weightParams_.weightTensor_.ToString() << std::endl;
+//    } else {
+//      EXCEPTION("Weight type unknown");
+//    }
+      
+    /*
+     * das muss gemacht werden!!
+     */
+//		material->GetScalar(POL_operatorParams_.inputSat_, X_SATURATION, Global::REAL);
+//		material->GetScalar(POL_operatorParams_.outputSat_, Y_SATURATION, Global::REAL);
+
+    
+//    // NEW: add additional anhysteretic curve to Preisach models
+//    material->GetScalar(POL_weightParams_.anhysteretic_a_ , PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
+//    material->GetScalar(POL_weightParams_.anhysteretic_b_ , PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
+//    material->GetScalar(POL_weightParams_.anhysteretic_c_ , PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
+//    int anhystOnlyInt = 0;
+//    material->GetScalar(anhystOnlyInt , PREISACH_WEIGHTS_ANHYST_ONLY);
+//    if(anhystOnlyInt == 1){
+//      POL_weightParams_.anhystOnly_ = true;
+//    } else {
+//      POL_weightParams_.anhystOnly_ = false;
+//    }
     
     // compute preisach weights (for scalar and vector sutor case first; vector mayergoyz gets special treatment later)
 //    POL_weightParams_.weightTensor_ = evaluatePreisachWeights(&POL_weightParams_);
@@ -1604,6 +1613,9 @@ namespace CoupledField {
     std::cout << "POL_weightParams_: " << std::endl;
     ReadAndSetWeights(material, forStrain);
 
+//        ReadAndSetWeights(material, false);
+    ReadAndSetParamsForHystOperator(material, false);
+    
     // check
     std::cout << "POL_weightParams_: " << std::endl;
     std::cout << "POL_weightParams_.weightType_ " << POL_weightParams_.weightType_ << std::endl;
@@ -1818,8 +1830,7 @@ namespace CoupledField {
       }
       
     }
-    ReadAndSetWeights(material, false);
-    ReadAndSetParamsForHystOperator(material, false);
+
 //    EXCEPTION("Stop here");
   }
   
