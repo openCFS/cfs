@@ -6,7 +6,7 @@ message("SITE_DIR=${SITE_DIR}")
 # for the master we test the master at TU-Wien and the copy at group_stingl
 if(SITE_DIR MATCHES "master_wien")
   set(MASTER "master_wien")
-if(SITE_DIR MATCHES "master_wien")
+elseif(SITE_DIR MATCHES "master_wien")
   set(MASTER "master_stingl")
 endif()
 
