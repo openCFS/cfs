@@ -89,6 +89,10 @@ namespace CoupledField{
   std::map<SolutionType, shared_ptr<FeSpace> > AcousticPDE::CreateFeSpaces( const std::string&  formulation,
                   PtrParamNode infoNode ){
 
+    if(this->analysistype_ == STATIC){
+      EXCEPTION("No STATIC analysis in AcousticPDE");
+    }
+
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H1"){
       std::string form = SolutionTypeEnum.ToString(formulation_);
@@ -1358,10 +1362,8 @@ namespace CoupledField{
         			CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
         }
         else {
-        	PtrCoefFct tmp2 = CoefFunction::Generate( mp_, part,
-                    			CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
-        	exValue = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, tmp2,surfDens,
-                                                     CoefXpr::OP_MULT) );
+          PtrCoefFct tmp2 = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
+          exValue = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, surfDens, tmp2, CoefXpr::OP_MULT) );
         }
 
         if( dim_ == 2) {
@@ -1790,6 +1792,7 @@ namespace CoupledField{
     res1->SetFeFunction(feFunctions_[formulation_]);
     DefineFieldResult( feFunctions_[formulation_], res1 );
     
+
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
@@ -2018,12 +2021,13 @@ namespace CoupledField{
     }
     
     
-    shared_ptr<ResultInfo> vel, velNormal, intensity, surfIntensity, intensNormal,
-	                       power, pres;
-    PtrCoefFct intensFct, velFct, velFctPW;
+    shared_ptr<ResultInfo> pos, vel, velNormal, intensity, surfIntensity, intensNormal, power, pres;
+    PtrCoefFct intensFct, velFct, velFctPW, posFct;
     shared_ptr<CoefFunctionSurf> sNormIntens, sIntens, velFctNormal, sNormIntensPW;
     shared_ptr<CoefFunctionFormBased>  presGradFct, velFctPot;
     shared_ptr<ResultFunctor> powerFct;
+
+    PtrCoefFct one = CoefFunction::Generate( mp_, Global::REAL, "1.0");
     
     // some results are only available in potential and / or
     // harmonic simulation
@@ -2044,6 +2048,14 @@ namespace CoupledField{
       vel->entryType = ResultInfo::VECTOR;
       vel->definedOn = ResultInfo::ELEMENT;
       
+      // === ACOU_POSITION ===
+      pos.reset(new ResultInfo);
+      pos->resultType = ACOU_POSITION;
+      pos->dofNames = vecDofNames;
+      pos->unit = "m";
+      pos->entryType = ResultInfo::VECTOR;
+      pos->definedOn = ResultInfo::ELEMENT;
+
       // === ACOU_NORMAL_VELOCITY ===
       velNormal.reset(new ResultInfo);
       velNormal->resultType = ACOU_NORMAL_VELOCITY;
@@ -2163,6 +2175,15 @@ namespace CoupledField{
           CoefFunction::Generate( mp_,  part,
                                   CoefXprBinOp( mp_, factor2, presGradFct, CoefXpr::OP_MULT ) );
       DefineFieldResult( velFct, vel );
+
+      // === ACOU Particle Position ===
+      // u = 1/(rho*omega^2) * grad(p)
+      PtrCoefFct oneOverOmega2rho = CoefFunction::Generate( mp_, part,
+          CoefXprBinOp( mp_, one,
+            CoefXprBinOp(mp_,CoefFunction::Generate( mp_, Global::REAL, "4*pi*pi*f*f"), densFct, CoefXpr::OP_MULT ),
+          CoefXpr::OP_DIV ));
+      posFct = CoefFunction::Generate( mp_,  part, CoefXprBinOp( mp_, oneOverOmega2rho, presGradFct, CoefXpr::OP_MULT ) );
+      DefineFieldResult( posFct, pos );
 
       // === ACOU_NORMAL_VELOCITY ===
       velFctNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));

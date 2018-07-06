@@ -12,6 +12,14 @@
 set(boost_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/boost")
 set(boost_source  "${boost_prefix}/src/boost")
 
+# old boost needs old policy - remove when updating, we DO NOT need it for CFS
+IF(COMMAND CMAKE_POLICY)
+  IF(POLICY CMP0045)
+    CMAKE_POLICY(SET CMP0045 OLD)
+  ENDIF(POLICY CMP0045)
+ENDIF(COMMAND CMAKE_POLICY)
+
+
 #-------------------------------------------------------------------------------
 # Set arguments to Boost CMake according to current configuration 
 #-------------------------------------------------------------------------------

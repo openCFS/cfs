@@ -91,6 +91,10 @@ namespace CoupledField {
         return "Pa";
         break;
 
+      case WATER_POSITION:
+        return "m";
+        break;
+
       case ACOU_ACCELERATION:
         return "m/s^2";
         break;
@@ -130,6 +134,10 @@ namespace CoupledField {
 
       case ACOU_VELOCITY:
         return "m/s";
+        break;
+
+      case ACOU_POSITION:
+        return "m";
         break;
 
       case ACOU_SURFINTENSITY:
@@ -1367,6 +1375,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_ACCELERATION, "acouAcceleration");
     SolutionTypeEnum.Add(ACOU_POTENTIAL, "acouPotential");
     SolutionTypeEnum.Add(ACOU_VELOCITY, "acouVelocity");
+    SolutionTypeEnum.Add(ACOU_POSITION, "acouPosition");
     SolutionTypeEnum.Add(ACOU_NORMAL_VELOCITY, "acouNormalVelocity");
     SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_1, "acouPressureD1");
     SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_2, "acouPressureD2");
@@ -1411,6 +1420,7 @@ namespace CoupledField {
 
     //water waves
     SolutionTypeEnum.Add(WATER_PRESSURE, "waterPressure");
+    SolutionTypeEnum.Add(WATER_POSITION, "waterPosition");
     SolutionTypeEnum.Add(WATER_PMLAUXVEC,"waterPmlAuxVec");
     SolutionTypeEnum.Add(WATER_PMLAUXSCALAR, "waterPmlAuxScalar");
     SolutionTypeEnum.Add(WATER_RHS_LOAD, "waterRhsLoad");
@@ -1501,7 +1511,7 @@ namespace CoupledField {
     // TEST PDE
     SolutionTypeEnum.Add(TEST_DOF, "testDof");
     SolutionTypeEnum.Add(TEST_FIELD, "testField");
-    SolutionTypeEnum.Add(TEST_RHS_LOAD, "testRhsLoad");
+    //SolutionTypeEnum.Add(TEST_RHS_LOAD, "testRhsLoad");// FixMe: this was commented because it causes an exception in Enum.hh:222
 
     // optimization
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");
@@ -1549,6 +1559,20 @@ namespace CoupledField {
     SolutionTypeEnum.Add(LBM_DENSITY, "LBMDensity");
     SolutionTypeEnum.Add(LBM_PRESSURE, "LBMPressure");
     SolutionTypeEnum.Add(LBM_PHYSICAL_PSEUDO_DENSITY, "LBMPhysicalPseudoDensity");
+
+    //Geometry
+    SolutionTypeEnum.Add(NODE_NORMAL, "NodeNormal");
+    SolutionTypeEnum.Add(COOSY_X,"CooSy-default-x");
+    SolutionTypeEnum.Add(COOSY_Y,"CooSy-default-y");
+    SolutionTypeEnum.Add(SURFACE_NORMAL,"SurfaceNormal");
+    SolutionTypeEnum.Add(AREA,"area");
+    SolutionTypeEnum.Add(ETA, "eta");
+    SolutionTypeEnum.Add(XI, "xi");
+
+
+
+
+
 
     // ==== Initialization of Material Constants ====
     MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );

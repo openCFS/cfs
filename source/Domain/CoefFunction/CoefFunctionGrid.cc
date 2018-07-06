@@ -88,7 +88,6 @@
 #include "CoefFunctionGridNodalInterp.hh"
 #include "CoefFunctionGridNodalDefault.hh"
 #include "CoefFunctionGridNodalSource.hh"
-#include "CoefFunctionGridElementDefault.hh"
 //#include "CoefFunctionGridHigherDefault.hh"
 //#include "CoefFunctionGridHigherInterp.hh"
 #include "Driver/BaseDriver.hh"
@@ -104,9 +103,7 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                                        shared_ptr<RegionList> regions){
   shared_ptr<CoefFunctionGrid> ret;
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
-//todo #1 CHECK Hier sollte die element coeffunction angelegt werden, Quelle sind elemente (Kann auch eine neue XML option werden!)
-  // Struktur: CoeffunctionGridElementDefault und davon CoeffunctionGridElement ableiten.
-  //
+
   if(configNode->Has("defaultGrid")) {
 	  std::string dependString;
 	  PtrParamNode tmpNodeType  =  configNode->Get("defaultGrid");
@@ -116,43 +113,20 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
 		  if(format == Global::COMPLEX){
 			  ret.reset(new CoefFunctionGridNodalSource<Complex>(ptDomain,
 					  configNode->Get("defaultGrid"), tmpNode, regions));
-		  }
+		    }
 		  else{
 			  EXCEPTION("CoefFunctionGridNodalSource can just be complex");
 		  }
 	  }
 	  else {
-		  std::string quantString;
-		  tmpNodeType->GetValue("quantity", quantString);
-		  // for splitRhsLoad we need new element coef function
-		  if(quantString == "splitRhsLoad" || "fluidMechVorticity"){
-			  WARN("======================================================= \n"
-			       "              Take care, this function in \n "
-			       "              CoefFunctionGrid::Generate is totally \n"
-			       "              untested and hardcore-beta!! \n"
-                               "              It only works correctly, if\n "
-                               "              the volume elements in the mesh-file \n"
-                               "              are numbered before the surface elements!\n"
-			       "=======================================================");
-			  if (format == Global::COMPLEX) {
-				  ret.reset(new CoefFunctionGridElementDefault<Complex>(ptDomain,
-						  configNode->Get("defaultGrid"), tmpNode, regions));
-			  }
-			  else {
-				  ret.reset(new CoefFunctionGridElementDefault<Double>(ptDomain,
-						  configNode->Get("defaultGrid"), tmpNode, regions));
-			  }
-		  }else{
-			  if (format == Global::COMPLEX) {
-				  ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
-						  configNode->Get("defaultGrid"), tmpNode, regions));
-			  }
-			  else {
-				  ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
-						  configNode->Get("defaultGrid"), tmpNode, regions));
-			  }
-		  }
-
+		  if (format == Global::COMPLEX) {
+			  ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
+					    configNode->Get("defaultGrid"), tmpNode, regions));
+		      }
+		  	  else {
+		  		  ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
+		                    configNode->Get("defaultGrid"), tmpNode, regions));
+		  	  }
 	  }
 
   }
