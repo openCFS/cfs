@@ -808,6 +808,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             // take the read values and normalise to a length of 1
             PtrCoefFct unitDir;
             if ( normalise ) {
+                cplx = Global::REAL;
                 CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mp_, regCurrDens, CoefXpr::OP_NORM );
                 PtrCoefFct dirAbs = CoefFunction::Generate( mp_, cplx, dirAbsOp );
                 CoefXprVecScalOp unitOp = CoefXprVecScalOp( mp_, regCurrDens, dirAbs, CoefXpr::OP_DIV );
