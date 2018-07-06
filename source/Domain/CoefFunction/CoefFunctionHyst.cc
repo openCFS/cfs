@@ -79,7 +79,7 @@ namespace CoupledField {
       
       outputVector = Vector<Double>(GetVecSize());
       outputVector.Init();
-      outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel);
+      outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel, false);
       
       //std::cout << "BaseSign = " << baseSign << std::endl;
       
@@ -157,7 +157,7 @@ namespace CoupledField {
       outputVector.Init();
       // note: getOutputOfHystOperator requires the material tensor for inversion to be set
       // therefore, PrecomputeMaterialTensorForInverison is triggered when MagPolarization is requested
-      outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel);
+      outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel,false);
       
       outputVector.ScalarMult(specificSign*baseSign);
     } else if(vectorName == "MagFieldIntensityHyst"){
@@ -182,7 +182,7 @@ namespace CoupledField {
       outputVector = Vector<Double>(GetVecSize());
       outputVector.Init();
       // get polarization J_pol
-      outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel);
+      outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel,false);
       //std::cout << "Output of hyst operator: " << outputVector.ToString() << std::endl;
       
       // get the matrix that was used to compute P from B to scale P to M
@@ -1370,8 +1370,8 @@ namespace CoupledField {
   
   void CoefFunctionHyst::ReadInMaterial(BaseMaterial* const material){
     
-     bool forStrain = false;
-
+    bool forStrain = false;
+    
     /*
      * Get weights first, then operator parameters
      */
@@ -1480,7 +1480,7 @@ namespace CoupledField {
       material->GetScalar(reusePolarizationForStrains, IRRSTRAIN_REUSE_P);
       
       if(reusePolarizationForStrains == 0){
-        COUPLED_reuseHystOperatorForStrains_ = true;
+        COUPLED_ownOperatorForStrains_ = true;
         /*
          * Read in separate hyst operator for strains
          */
@@ -1492,7 +1492,7 @@ namespace CoupledField {
         ReadAndSetWeights(material, forStrain);
         ReadAndSetParamsForHystOperator(material, forStrain);
       } else {
-        COUPLED_reuseHystOperatorForStrains_ = false;
+        COUPLED_ownOperatorForStrains_ = false;
       }
       
     } else {
@@ -1733,13 +1733,94 @@ namespace CoupledField {
       WARN("Angular clipping currently not used; parameter will be ignored");
     }
     
-    if(COUPLED_reuseHystOperatorForStrains_){
-      std::cout << "Reuse pol to compute strain" << std::endl;
-    } else {
+    if(COUPLED_ownOperatorForStrains_){
       std::cout << "Use own hyst operator for strain" << std::endl;
+      bool isVirgin = true;
+      
+      if (STRAIN_operatorParams_.methodType_ == SCALAR) {
+        
+        hystStrain_ = new Preisach(numHystOperators_, STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_, 
+                STRAIN_weightParams_.weightTensor_, isVirgin, 
+                STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, STRAIN_weightParams_.anhysteretic_c_,
+                STRAIN_weightParams_.anhystOnly_);
+        
+      } else if (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor") {
+        
+        if (STRAIN_operatorParams_.evalVersion_ == 1) {
+          STRAIN_operatorParams_.isClassical_ = true; // original vector preisach model -> sutor2012
+          
+          hystStrain_ = new VectorPreisachSutor_ListApproach(numHystOperators_, 
+                  STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
+                  STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.angularDistance_,
+                  STRAIN_operatorParams_.angularResolution_,
+                  STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, 
+                  STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
+        } else if (STRAIN_operatorParams_.evalVersion_ == 2) {
+          STRAIN_operatorParams_.isClassical_ = false; // revised vector preisach model -> sutor2015
+          
+          hystStrain_ = new VectorPreisachSutor_ListApproach(numHystOperators_, 
+                  STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
+                  STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.angularDistance_,
+                  STRAIN_operatorParams_.angularResolution_,
+                  STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, 
+                  STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
+        } else if (STRAIN_operatorParams_.evalVersion_ == 10) {
+          STRAIN_operatorParams_.isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
+          
+          hystStrain_ = new VectorPreisachSutor_MatrixApproach(numHystOperators_, 
+                  STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
+                  STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.angularDistance_,
+                  STRAIN_operatorParams_.angularResolution_,
+                  STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, 
+                  STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
+        } else if (STRAIN_operatorParams_.evalVersion_ == 20) {
+          STRAIN_operatorParams_.isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
+          
+          hystStrain_ = new VectorPreisachSutor_MatrixApproach(numHystOperators_, 
+                  STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
+                  STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.angularDistance_,
+                  STRAIN_operatorParams_.angularResolution_,
+                  STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, 
+                  STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
+        } else {
+          EXCEPTION("STRAIN_operatorParams_.evalVersion_ has to be one of the following: \n "
+                  "1: classical vector model (sutor2012) \n"
+                  "2: revised vector model (sutor2015) [DEFAULT] \n"
+                  "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
+                  "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
+        }
+      }
+      else if (STRAIN_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") {
+        // basically a scalar model in multiple directions
+        // isotropic case: all scalar models are equal (same weights etc)
+        // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
+        STRAIN_operatorParams_.fieldsAlignedAboveSat_ = false;
+        
+        /*
+         * IMPORTANT REMARK:
+         *  > although the Mayergoyz model is based on the scalar models 
+         *     we are not alloewed to directly apply the preisach parameter for
+         *     the scalar case (i.e. the weights, the anhyst parameter and so on)
+         *  > make sure that the passed parameter are already transformed correctly
+         *      > see constructor above
+         */
+        hystStrain_ = new VectorPreisachMayergoyz(numHystOperators_, STRAIN_operatorParams_.numDirections_, 
+                STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_, 
+                STRAIN_weightParams_.weightTensor_,dim_,isVirgin,
+                STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, STRAIN_weightParams_.anhysteretic_c_,
+                STRAIN_weightParams_.anhystOnly_,STRAIN_operatorParams_.outputClipping_);
+        
+      } else {
+        EXCEPTION("Unknown hyst model");
+      }
+      
+    } else {
+      std::cout << "Reuse pol to compute strain" << std::endl;
     }
-    
-    
     
     /*
      * Initial state
@@ -1752,6 +1833,8 @@ namespace CoupledField {
     initial_E_B.Init();
     Vector<Double> initial_P_J = Vector<Double>(dim_);
     initial_P_J.Init();
+    Vector<Double> P_J_forStrains = Vector<Double>(dim_);
+    P_J_forStrains.Init();
     
     if (POL_initialInput_.NormL2() > 1e-16) {
       //      WARN("Currently the treatment of initial states is not working properly! \n"
@@ -1811,15 +1894,30 @@ namespace CoupledField {
           
           initial_P_J.Init();
           initial_P_J.Add(scalOutput,POL_operatorParams_.fixDirection_);
+          
+          if(COUPLED_ownOperatorForStrains_){
+            Double scalOutputForStrain = hystStrain_->computeValueAndUpdate(scalInput,k, overwrite,successCode);
+            P_J_forStrains.Init();
+            P_J_forStrains.Add(scalOutputForStrain,STRAIN_operatorParams_.fixDirection_);
+          } else {
+            P_J_forStrains = initial_P_J;
+          }
+          
         } else {
           initial_P_J = hyst_->computeValue_vec(initial_E_H, k, overwrite, debugOut, successCode);
+          
+          if(COUPLED_ownOperatorForStrains_){
+            P_J_forStrains = hystStrain_->computeValue_vec(initial_E_H, k, overwrite, debugOut, successCode);
+          } else {
+            P_J_forStrains = initial_P_J;
+          }
         }
       }
     }
     
     Vector<Double> zeroVec = Vector<Double>(dim_);
     zeroVec.Init();
-    Vector<Double> initial_Si = ComputeIrreversibleStrains(initial_P_J, initial_E_H, zeroVec);
+    Vector<Double> initial_Si = ComputeIrreversibleStrains(P_J_forStrains, initial_E_H, zeroVec);
     
 		/*
      * finally initialize storage
@@ -1838,6 +1936,7 @@ namespace CoupledField {
     
 		E_B_ = new Vector<Double>[numStorageEntries_];
 		P_J_ = new Vector<Double>[numStorageEntries_];
+    P_J_forStrains_ = new Vector<Double>[numStorageEntries_];
 		E_H_ = new Vector<Double>[numStorageEntries_];
     
 		E_B_lastIt_ = new Vector<Double>[numStorageEntries_];
@@ -1846,6 +1945,7 @@ namespace CoupledField {
     
 		E_B_lastTS_ = new Vector<Double>[numStorageEntries_];
 		P_J_lastTS_ = new Vector<Double>[numStorageEntries_];
+    P_J_forStrains_lastTS_ = new Vector<Double>[numStorageEntries_];
 		E_H_lastTS_ = new Vector<Double>[numStorageEntries_];
     
     Si_ = new Vector<Double>[numStorageEntries_];
@@ -1889,6 +1989,7 @@ namespace CoupledField {
       rotatedCouplingTensor_[k] = Matrix<Double>(1,1);
       
       P_J_[k] = initial_P_J;
+      P_J_forStrains_[k] = P_J_forStrains;
       E_B_[k] = initial_E_B;
       E_H_[k] = initial_E_H;
       
@@ -1900,6 +2001,7 @@ namespace CoupledField {
       
 			P_J_lastIt_[k] = zeroVec;
 			P_J_lastTS_[k] = zeroVec;
+      P_J_forStrains_lastTS_[k] = zeroVec;
       
       Si_lastTS_[k] = zeroStrainVec;
       Si_lastIt_[k] = zeroStrainVec;
@@ -2264,10 +2366,10 @@ namespace CoupledField {
     E_B_diff.Init();
     E_B_diff.Add(1.0,E_B_stepping,-1.0,E_B_current);
     
-    Vector<Double> P_J_current = GetPrecomputedOutputOfHysteresisOperator(Originallpm,currentTimelevel);
+    Vector<Double> P_J_current = GetPrecomputedOutputOfHysteresisOperator(Originallpm,currentTimelevel,false);
     bool forceMemoryLock = true;
     bool forceMemoryWrite = false;
-    Vector<Double> P_J_stepping = CalcOutputOfHysteresisOperator(E_B_stepping,operatorIdx,storageIdx,forceMemoryLock,forceMemoryWrite);
+    Vector<Double> P_J_stepping = CalcOutputOfHysteresisOperator(E_B_stepping,operatorIdx,storageIdx,forceMemoryLock,forceMemoryWrite,false);
     
     Vector<Double> P_J_diff = Vector<Double>(dim_);
     P_J_diff.Init();
@@ -2796,8 +2898,8 @@ namespace CoupledField {
       Vector<Double> E_B_diff = E_B_new;
       E_B_diff -= E_B_old;
       
-      Vector<Double> P_J_new = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_new);
-      Vector<Double> P_J_old = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_old);
+      Vector<Double> P_J_new = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_new,false);
+      Vector<Double> P_J_old = GetPrecomputedOutputOfHysteresisOperator(Originallpm,timelevel_old,false);
       
       LOG_DBG(coeffcthystdeltamat) << "Old output of hyst operator: " << P_J_old.ToString();
       LOG_DBG(coeffcthystdeltamat) << "Current output of hyst operator: " << P_J_new.ToString();
@@ -3025,7 +3127,8 @@ namespace CoupledField {
     return Si_voigt;   
   }
   
-	Vector<Double> CoefFunctionHyst::GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel) {
+	Vector<Double> CoefFunctionHyst::GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, 
+          int timeLevel, bool forStrain) {
     LOG_TRACE(coeffcthyst) << "GetPrecomputedOutputOfHysteresisOperator for timelevel " << timeLevel;
     //std::cout << "Get Output of Hyst Operator" << std::endl;
     //std::cout << "Timelevel: " << timeLevel << " (0 = current, -1 = lastTS, +1 = lastIt)" << std::endl;
@@ -3077,13 +3180,25 @@ namespace CoupledField {
 			LOG_TRACE(coeffcthyst) << "> prevTS value";
       // return value from last time step
       //std::cout << "Get value from last TS: " << P_J_lastTS_[storageIdx].ToString() << std::endl;
-			return P_J_lastTS_[storageIdx];
+      if(forStrain){
+        return P_J_forStrains_lastTS_[storageIdx];
+      } else {
+        return P_J_lastTS_[storageIdx];
+      }
 		} else if (timeLevel == 1) {
       LOG_TRACE(coeffcthyst) << "> prevIt value";
 			// return value from last iteration
-			return P_J_lastIt_[storageIdx];
+      if(forStrain){
+        EXCEPTION("Polarization for strains for last iteration should not be called");
+      } else {
+        return P_J_lastIt_[storageIdx];
+      }
 		} else {
-      return P_J_[storageIdx];
+      if(forStrain){
+        return P_J_forStrains_[storageIdx];
+      } else {
+        return P_J_[storageIdx];
+      }
       
       //      OLD
       //      
@@ -3709,6 +3824,7 @@ namespace CoupledField {
      * use those values to calculate the irreversible strains and store them
      */
     
+    bool forStrain = true;
     UInt size = allLPMmap_.size();
     UInt strainSize = 3;
     if(dim_ == 3){
@@ -3745,10 +3861,10 @@ namespace CoupledField {
       for(LPMit = LPMitStart; LPMit != LPMitEnd; LPMit++){
         // computation required
         // get current polarizaton / output of hyst operator (timelevel = 0)
-        P = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, 0);
+        P = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, 0, forStrain);
         // for case that P is zero, we also obtain the last value in order to compute the last known direction of P
         // if this one is 0, too then dir = zeroVec
-        Pold = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, -1);
+        Pold = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, -1, forStrain);
         
         E_H = GetPrecomputedInputToHysteresisOperator(LPMit->second, 0);
         
@@ -3774,10 +3890,10 @@ namespace CoupledField {
       for(LPMit = allLPMmap_.begin(); LPMit != allLPMmap_.end(); LPMit++){
         // computation required
         // get current polarizaton / output of hyst operator (timelevel = 0)
-        P = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, 0);
+        P = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, 0, forStrain);
         // for case that P is zero, we also obtain the last value in order to compute the last known direction of P
         // if this one is 0, too then dir = zeroVec
-        Pold = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, -1);
+        Pold = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, -1, forStrain);
         
         E_H = GetPrecomputedInputToHysteresisOperator(LPMit->second, 0);
         
@@ -3853,7 +3969,7 @@ namespace CoupledField {
       for(LPMit = LPMitStart; LPMit != LPMitEnd; LPMit++){
         
         // get current value of P
-        Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, 0);
+        Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(LPMit->second, 0, false);
         scaling = P.NormL2()/POL_operatorParams_.outputSat_;
         
         scaledCouplTensor = baseTensor*scaling;
@@ -4049,7 +4165,7 @@ namespace CoupledField {
   };
 	
 	Vector<Double> CoefFunctionHyst::CalcOutputOfHysteresisOperator(Vector<Double> inputToHystOperator, UInt operatorIdx, UInt storageIdx, 
-          bool forceMemoryLock, bool forceMemoryWrite) {
+          bool forceMemoryLock, bool forceMemoryWrite, bool useOperatorForStrain) {
     
     //std::cout << "CalcOutputOfHysteresisOperator" << std::endl;
     //std::cout << "InputToHystOperator: " << inputToHystOperator.ToString() << std::endl;
@@ -4085,7 +4201,11 @@ namespace CoupledField {
       // no evaluation > return current state
 			LOG_TRACE(coeffcthyst) << "Calc output: hystOperatorLocked_ locked";
       //			std::cout << "hystOperatorLocked_ locked" << std::endl;
-      return P_J_[storageIdx];
+      if(useOperatorForStrain){
+        return P_J_forStrains_[storageIdx];
+      } else {
+        return P_J_[storageIdx];
+      }
     }
     
 		if ((diff.NormL2() < POL_operatorParams_.amplitudeResolution_)&&(overwriteMemory == false)) {
@@ -4096,7 +4216,11 @@ namespace CoupledField {
       //std::cout << "Apmplitude resolution: " << POL_operatorParams_.amplitudeResolution_ << std::endl;
       //	}
       //std::cout << "return P_J_[storageIdx]: " << P_J_[storageIdx].ToString() << std::endl;
-			return P_J_[storageIdx];
+      if(useOperatorForStrain){
+        return P_J_forStrains_[storageIdx];
+      } else {
+        return P_J_[storageIdx];
+      }
 		}
     //std::cout << "Evaluate Hysteresis operator" << std::endl;
 		/*
@@ -4104,7 +4228,14 @@ namespace CoupledField {
      */
 		totalEvaluationCounter_++;
     
-		if (POL_operatorParams_.methodType_ == SCALAR) {
+    ParameterPreisachOperators operatorParams;
+    if(useOperatorForStrain){
+      operatorParams = STRAIN_operatorParams_;
+    } else {
+      operatorParams = POL_operatorParams_;
+    }
+    
+		if (operatorParams.methodType_ == SCALAR) {
       
 			outputOfHystOperator = Vector<Double>(dim_);
 			outputOfHystOperator.Init();
@@ -4114,12 +4245,12 @@ namespace CoupledField {
 				timer_->Start();
 			}
       
-      if(POL_useExtension_){
-        // get latest rotation state from extension
-        curDir = hyst_->getRotationDirection(operatorIdx);
-      } else {
-        curDir = POL_operatorParams_.fixDirection_;
-      }
+      //      if(POL_useExtension_){
+      //        // get latest rotation state from extension
+      //        curDir = hyst_->getRotationDirection(operatorIdx);
+      //      } else {
+      curDir = operatorParams.fixDirection_;
+      //      }
       //std::cout << "curDir: " << curDir.ToString() << std::endl;
       //std::cout << "Used input for SCALAR model: " << inputToHystOperator[POL_operatorParams_.fixDirection_] << std::endl;
       //      outputOfHystOperator[POL_operatorParams_.fixDirection_] = hyst_->computeValueAndUpdate(inputToHystOperator[POL_operatorParams_.fixDirection_], 
@@ -4128,9 +4259,15 @@ namespace CoupledField {
       // NEW: POL_operatorParams_.fixDirection_ is a vector now
       // > to get the correct scalar input data, we have to project onto this direction vector
       Double scalInput;
+      Double scalOutput;
       curDir.Inner(inputToHystOperator,scalInput);
       int successFlag = 0;
-      Double scalOutput = hyst_->computeValueAndUpdate(scalInput,operatorIdx, overwriteMemory,successFlag);
+      
+      if(useOperatorForStrain){
+        scalOutput = hystStrain_->computeValueAndUpdate(scalInput,operatorIdx, overwriteMemory,successFlag);
+      } else {
+        scalOutput = hyst_->computeValueAndUpdate(scalInput,operatorIdx, overwriteMemory,successFlag);
+      }
       
       outputOfHystOperator.Init();
       outputOfHystOperator.Add(scalOutput,curDir);
@@ -4153,8 +4290,15 @@ namespace CoupledField {
       //std::cout << "Comput hyst output using Vector model " << std::endl;
 			//std::cout << "OperatorIdx: " << operatorIdx << std::endl;
       int successFlag = 0;
-			outputOfHystOperator = hyst_->computeValue_vec(inputToHystOperator, operatorIdx, overwriteMemory, 
-              POL_operatorParams_.fieldsAlignedAboveSat_, successFlag);
+      
+      if(useOperatorForStrain){
+        outputOfHystOperator = hyst_->computeValue_vec(inputToHystOperator, operatorIdx, overwriteMemory, 
+                STRAIN_operatorParams_.fieldsAlignedAboveSat_, successFlag);
+      } else {
+        outputOfHystOperator = hyst_->computeValue_vec(inputToHystOperator, operatorIdx, overwriteMemory, 
+                POL_operatorParams_.fieldsAlignedAboveSat_, successFlag);
+      }
+      
       //std::cout << "Output: " << outputOfHystOperator.ToString(2) << std::endl;
 			if (XML_performanceMeasurement_ == 1) {
 				timer_->Stop();
@@ -4174,24 +4318,26 @@ namespace CoupledField {
 			static UInt cnt = 0;
 			static UInt firstIdx = 1;
       
-			if ((POL_operatorParams_.printOut_ > 0) && (RUN_allowBMP_ == true)) {
-				if ((cnt % POL_operatorParams_.printOut_ == 0)&&(operatorIdx == firstIdx)) {
-					//std::cout << "Outputting bmp" << std::endl;
-					std::stringstream filenamebuf;
-					filenamebuf << "Switch_Elem" << firstIdx << "_Step" << std::setfill('0') << std::setw(5) << cnt << "_v" << POL_operatorParams_.evalVersion_ << "_numRows" << POL_numRows_ << ".bmp";
-					hyst_->switchingStateToBmp(POL_operatorParams_.bmpResolution_, filenamebuf.str(), operatorIdx, true);
-				}
-        
-				if (operatorIdx == firstIdx) {
-					cnt++;
-					/*
-           * disable output until reset
-           * -> otherwise we would get two images for each timestep if P and D are computed
-           */
-					RUN_allowBMP_ = false;
-				}
-			}
-		}
+      if(!useOperatorForStrain){
+        if ((POL_operatorParams_.printOut_ > 0) && (RUN_allowBMP_ == true)) {
+          if ((cnt % POL_operatorParams_.printOut_ == 0)&&(operatorIdx == firstIdx)) {
+            //std::cout << "Outputting bmp" << std::endl;
+            std::stringstream filenamebuf;
+            filenamebuf << "Switch_Elem" << firstIdx << "_Step" << std::setfill('0') << std::setw(5) << cnt << "_v" << POL_operatorParams_.evalVersion_ << "_numRows" << POL_numRows_ << ".bmp";
+            hyst_->switchingStateToBmp(POL_operatorParams_.bmpResolution_, filenamebuf.str(), operatorIdx, true);
+          }
+          
+          if (operatorIdx == firstIdx) {
+            cnt++;
+            /*
+             * disable output until reset
+             * -> otherwise we would get two images for each timestep if P and D are computed
+             */
+            RUN_allowBMP_ = false;
+          }
+        }
+      }
+    }
     //    
     //		if(POL_operatorParams_.angularClipping_ > 0){
     //			/*
@@ -4200,10 +4346,14 @@ namespace CoupledField {
     //			ClipDirection(outputOfHystOperator);
     //		}
 		
-    //std::cout << "Store input/output combination for later usage" << std::endl;
-		E_H_[storageIdx] = inputToHystOperator;
-    //std::cout << "P_J_[storageIdx] before setting: " << P_J_[storageIdx].ToString() << std::endl;
-		P_J_[storageIdx] = outputOfHystOperator;
+    if(useOperatorForStrain){
+      P_J_forStrains_[storageIdx] = outputOfHystOperator;
+    } else {
+      //std::cout << "Store input/output combination for later usage" << std::endl;
+      E_H_[storageIdx] = inputToHystOperator;
+      //std::cout << "P_J_[storageIdx] before setting: " << P_J_[storageIdx].ToString() << std::endl;
+      P_J_[storageIdx] = outputOfHystOperator;
+    }
     //std::cout << "P_J_[storageIdx] after setting: " << P_J_[storageIdx].ToString() << std::endl;
     
     //std::cout << "Computed output: " << outputOfHystOperator.ToString() << std::endl;
@@ -4381,8 +4531,17 @@ namespace CoupledField {
           input = RetrieveInputToHysteresisOperator(actualLPM, operatorIdx, storageIdx,onBoundary);
           // RetrieveInputToHysteresisOperator will store the actual solution directly to E_B_
           
+          // compute additional hyst operator for strains first
+          // reason: CalcOutputOfHysteresisOperator sets E_H_ if last flag is false; 
+          //  during the next call input will be compared to E_H_
+          // > if output is computed for standard hyst operator first, the call for the strain operator will
+          //  not evaluate anything as E_H_ == input
+          if(COUPLED_ownOperatorForStrains_){
+            output = CalcOutputOfHysteresisOperator(input, operatorIdx, storageIdx, forceMemoryLock, forceMemoryWrite, true); 
+          }
+          
           // then compute output
-          output = CalcOutputOfHysteresisOperator(input, operatorIdx, storageIdx, forceMemoryLock, forceMemoryWrite);  
+          output = CalcOutputOfHysteresisOperator(input, operatorIdx, storageIdx, forceMemoryLock, forceMemoryWrite, false);  
         }
       }
 #pragma omp barrier 
@@ -4467,8 +4626,17 @@ namespace CoupledField {
         input = RetrieveInputToHysteresisOperator(actualLPM, operatorIdx, storageIdx,onBoundary);
         // RetrieveInputToHysteresisOperator will store the actual solution directly to E_B_
         
+        // compute additional hyst operator for strains first
+        // reason: CalcOutputOfHysteresisOperator sets E_H_ if last flag is false; 
+        //  during the next call input will be compared to E_H_
+        // > if output is computed for standard hyst operator first, the call for the strain operator will
+        //  not evaluate anything as E_H_ == input
+        if(COUPLED_ownOperatorForStrains_){
+          output = CalcOutputOfHysteresisOperator(input, operatorIdx, storageIdx, forceMemoryLock, forceMemoryWrite, true); 
+        }
+        
         // then compute output
-        output = CalcOutputOfHysteresisOperator(input, operatorIdx, storageIdx, forceMemoryLock, forceMemoryWrite);  
+        output = CalcOutputOfHysteresisOperator(input, operatorIdx, storageIdx, forceMemoryLock, forceMemoryWrite, false); 
       }
     }
 #endif
@@ -4492,6 +4660,7 @@ namespace CoupledField {
         if (setLastTS) {
           E_B_lastTS_[storageIdx] = E_B_[storageIdx];
           P_J_lastTS_[storageIdx] = P_J_[storageIdx];
+          P_J_forStrains_lastTS_[storageIdx] = P_J_forStrains_[storageIdx];
           E_H_lastTS_[storageIdx] = E_H_[storageIdx];
           Si_lastTS_[storageIdx] = Si_[storageIdx];
         } else {
@@ -4685,7 +4854,7 @@ namespace CoupledField {
     
 		// return current state of hyst operator
 		UInt timeLevel = 0;
-		outputVector = GetPrecomputedOutputOfHysteresisOperator(lpm, timeLevel);
+		outputVector = GetPrecomputedOutputOfHysteresisOperator(lpm, timeLevel, false);
 	}
   
 	void CoefFunctionHyst::GetTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm) {

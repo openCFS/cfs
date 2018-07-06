@@ -1783,7 +1783,7 @@ namespace CoupledField {
     
     Vector<Double> GetPrecomputedInputToHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
     
-    Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel);
+    Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& Originallpm, int timeLevel, bool forStrain);
     
     void PrecomputeScaledAndRotatedCouplingTensor(Matrix<Double> baseTensor, bool rotate);
     
@@ -2390,7 +2390,7 @@ namespace CoupledField {
     UInt& operatorIdx, UInt& storageIdx, bool forceMidpoint = false);
     
     Vector<Double> CalcOutputOfHysteresisOperator(Vector<Double> inpute, UInt operatorIdx, UInt storageIdx,
-    bool forceMemoryLock = false, bool forceMemoryWrite = false);
+    bool forceMemoryLock = false, bool forceMemoryWrite = false, bool useOperatorForStrain = false);
     
     void ForceRemanence();
     void InitStorage();
@@ -2461,7 +2461,7 @@ namespace CoupledField {
      */
     bool COUPLED_inXMLFile_;
     bool COUPLED_inMatFile_;
-    bool COUPLED_reuseHystOperatorForStrains_;
+    bool COUPLED_ownOperatorForStrains_;
     
     /*
      * Initial/small signal material tensor (permittivity / reluctivity)
@@ -2799,6 +2799,7 @@ namespace CoupledField {
      */
     Vector<Double>* E_B_;
     Vector<Double>* P_J_;
+    Vector<Double>* P_J_forStrains_;
     Vector<Double>* E_H_;
     Vector<Double>* Si_;
     
@@ -2822,6 +2823,7 @@ namespace CoupledField {
      */
     Vector<Double>* E_B_lastTS_;
     Vector<Double>* P_J_lastTS_;
+    Vector<Double>* P_J_forStrains_lastTS_;
     Vector<Double>* E_H_lastTS_;
     Vector<Double>* Si_lastTS_;
     bool* requiresReeval_;

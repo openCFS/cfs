@@ -663,7 +663,7 @@ public:
     EXCEPTION( "Not implemented in base class");
   }
   
-  virtual Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel){
+  virtual Vector<Double> GetPrecomputedOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel, bool forStrain){
     EXCEPTION( "Not implemented in base class");
   }
 

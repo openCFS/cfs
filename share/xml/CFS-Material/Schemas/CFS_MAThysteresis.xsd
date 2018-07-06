@@ -430,7 +430,7 @@
   <xsd:complexType name="DT_ScalarPreisachHystModelStrain">
     <xsd:sequence>
       <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="dirPolarization" minOccurs="1">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
