@@ -1926,15 +1926,15 @@ namespace CoupledField {
     }
     
     bool useStrainForm(){
-      return POL_useStrainForm_;
+      return COUPLED_useStrainForm_;
     }
     
     int GetStrainForm(){
-      return POL_strainForm_;
+      return COUPLED_strainForm_;
     }
     
     void SetStrainForm(int strainForm){
-      POL_strainForm_ = strainForm;
+      COUPLED_strainForm_ = strainForm;
     }
     
     bool deltaMatActive(){
@@ -2459,6 +2459,10 @@ namespace CoupledField {
      * ### Parameters extracted from material file ###
      * ###############################################
      */
+    bool COUPLED_inXMLFile_;
+    bool COUPLED_inMatFile_;
+    bool COUPLED_reuseHystOperatorForStrains_;
+    
     /*
      * Initial/small signal material tensor (permittivity / reluctivity)
      */
@@ -2480,7 +2484,7 @@ namespace CoupledField {
      */
 //    Double POL_operatorParams_.inputSat_;
 //    Double POL_operatorParams_.outputSat_;
-    Double POL_sSat_; // new strain in saturation 
+    Double COUPLED_sSat_; // new strain in saturation 
     
     /*
      * determines whether the vector or the scalar model shall be used
@@ -2754,17 +2758,20 @@ namespace CoupledField {
     Hysteresis* hyst_;
     Hysteresis* hystTMP;
     
+    Hysteresis* hystStrain_;
+    Hysteresis* hystStrainTMP;
+    
     //! material object
     BaseMaterial* material_;
     
-    bool POL_useStrainForm_;
-    int POL_strainForm_;
-    int POL_dim_beta_;
-    Matrix<Double> POL_betaCoefs_;
-    Double POL_irrStrain_c1_;
-    Double POL_irrStrain_c2_;
-    Double POL_irrStrain_c3_;
-    int POL_irrStrainForm_;
+    bool COUPLED_useStrainForm_;
+    int COUPLED_strainForm_;
+    int COUPLED_dim_beta_;
+    Matrix<Double> COUPLED_betaCoefs_;
+    Double COUPLED_irrStrain_c1_;
+    Double COUPLED_irrStrain_c2_;
+    Double COUPLED_irrStrain_c3_;
+    int COUPLED_irrStrainForm_;
     
     
     /*

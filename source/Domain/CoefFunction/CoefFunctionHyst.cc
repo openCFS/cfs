@@ -86,7 +86,7 @@ namespace CoupledField {
       outputVector.ScalarMult(specificSign*baseSign);
       
     } else if ((vectorName == "IrrStressForMechPDE") || (vectorName == "IrrStressesPiezo_VectorForm")){
-//      std::cout << vectorName << " was requested" << std::endl;
+      //      std::cout << vectorName << " was requested" << std::endl;
       // v = mech testfunction
       // on rhs:  - int_Volume (Bv)T[c]S_irr dOmega
       // > basically what is left when S = Bu is decomposed into S_r + S_irr
@@ -113,7 +113,7 @@ namespace CoupledField {
       outputVector.ScalarMult(specificSign*baseSign);
       //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
     } else if ((vectorName == "CoupledIrrStrainForElecPDE")||("CoupledIrrStrainsPiezo")){
-//      std::cout << vectorName << " was requested" << std::endl;
+      //      std::cout << vectorName << " was requested" << std::endl;
       // w = elec testfunction
       // on lhs: div( [e](Bu - S_irr ) > -(Bw)T [e] Bu + (Bw)T S_irr
       //  x -1 to get symmetry of coupling matrix
@@ -464,7 +464,7 @@ namespace CoupledField {
     } else {
       timelevel_cur = 0; // current value
     }
-//    int timeLevel_to_diff = GetTimeLevel("DeltaMat");
+    //    int timeLevel_to_diff = GetTimeLevel("DeltaMat");
     
     // new flags
     bool deltaMat_Pol_active = true;
@@ -564,7 +564,7 @@ namespace CoupledField {
         // deltaMat will be computed using the current value (timelevel_cur = 0)
         // and the value at timelevel (-1 > last ts; +1 > last iteration)
         Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Pol, useStrains, useAbs,implementationVersion);
-//        std::cout << "deltaMat elec = " << deltaMat.ToString() << std::endl;
+        //        std::cout << "deltaMat elec = " << deltaMat.ToString() << std::endl;
         tmp.Add(1.0,deltaMat);
         //std::cout << "DeltaMat: " << deltaMat.ToString() << std::endl;
         if( (strainForm_ != -1) && (deltaMat_Strain_active) ){
@@ -573,7 +573,7 @@ namespace CoupledField {
           // here we have to add -e*dS/dE in addition
           useStrains = true;
           Matrix<Double> deltaMat_strains = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Strain, useStrains, useAbs,implementationVersion);
-//          std::cout << "deltaMat strains = " << deltaMat_strains.ToString() << std::endl;
+          //          std::cout << "deltaMat strains = " << deltaMat_strains.ToString() << std::endl;
           e_scaled.Mult(deltaMat_strains,tmp2);
           
           tmp.Add(-1.0,tmp2);
@@ -634,7 +634,7 @@ namespace CoupledField {
         // deltaMat will be computed using the current value (timelevel_cur = 0)
         // and the value at timelevel (-1 > last ts; +1 > last iteration)
         Matrix<Double> deltaMat = hystCoefFunction_->GetDeltaMat(lpm, timelevel_cur, timeLevelDeltaMat_Coupling, useStrains, useAbs,implementationVersion);
-//        std::cout << "deltaMat " << deltaMat.ToString() << std::endl;
+        //        std::cout << "deltaMat " << deltaMat.ToString() << std::endl;
         UInt numRows,numCols;
         numRows = tmp.GetNumRows();
         numCols = tmp.GetNumCols();
@@ -781,8 +781,8 @@ namespace CoupledField {
     LOG_DBG(coeffcthysthelper) << "Computed material tensor:" << outputTensor.ToString();
     //      std::cout << "+++++ Coef Function Hyst Mat - Compute Tensor END ++++++" << std::endl;
     //std::cout << "Return the following tensor: " << outputTensor.ToString() << std::endl;
-//    std::cout << "Computed tensor - " << tensorName << " - " << std::endl;
-//    std::cout << outputTensor.ToString() << std::endl;        
+    //    std::cout << "Computed tensor - " << tensorName << " - " << std::endl;
+    //    std::cout << outputTensor.ToString() << std::endl;        
   }
   
   
@@ -803,7 +803,7 @@ namespace CoupledField {
           SubTensorType tensorType, MaterialType matType, shared_ptr<FeSpace> ptFeSpace) 
   : CoefFunction() {
     
-//		WARN("Currently we support only single-input hysteresis operators! The second dependency is only allowed if it is the surface version of the original dependency!")
+    //		WARN("Currently we support only single-input hysteresis operators! The second dependency is only allowed if it is the surface version of the original dependency!")
 		dependCoef1Surf_ = dependCoef1Surf;
 		Init(material, actSDList, dependency1, tensorType, matType, ptFeSpace);
 	}
@@ -921,7 +921,7 @@ namespace CoupledField {
     
 		XML_EvaluationDepth_ = 0;
 		XML_performanceMeasurement_ = 0;
-        
+    
 		/*
      * get elements and integration points
      */
@@ -1036,7 +1036,7 @@ namespace CoupledField {
 		}
     
     //    std::cout << "StrainForm: " << strainForm << std::endl;
-    //    std::cout << "POL_useStrainForm_: " << POL_useStrainForm_ << std::endl;
+    //    std::cout << "COUPLED_useStrainForm_: " << COUPLED_useStrainForm_ << std::endl;
     //    
     //    
 	}
@@ -1044,7 +1044,7 @@ namespace CoupledField {
   void CoefFunctionHyst::ReadAndSetWeights(BaseMaterial* const material, bool setForStrains){
     
     ParameterPreisachWeights paramSet = ParameterPreisachWeights(); 
-
+    
     // use same offset as in XMLMaterialHandler.cc
     int enumOffset = 0;
     if(setForStrains){
@@ -1085,10 +1085,6 @@ namespace CoupledField {
     } else {
       EXCEPTION("Weight type unknown");
     }
-
-//		material->GetScalar(paramSet.xSat_, X_SATURATION, Global::REAL);
-//		material->GetScalar(paramSet.pSat_, Y_SATURATION, Global::REAL);
-//    material->GetScalar(paramSet.sSat_, S_SATURATION, Global::REAL);
     
     // NEW: add additional anhysteretic curve to Preisach models
     material->GetScalar(paramSet.anhysteretic_a_ , MaterialType(PREISACH_WEIGHTS_ANHYST_A+enumOffset), Global::REAL);
@@ -1217,7 +1213,7 @@ namespace CoupledField {
     //        }
     //      }
     //    }
-        
+    
     //		/*
     //     * paramSet.freeFieldTensor_ is the tensor to be returned, when
     //     * RUN_tensorToReturn_ = 2
@@ -1236,11 +1232,11 @@ namespace CoupledField {
       POL_weightParams_ = paramSet;
     }
   }
-
+  
   void CoefFunctionHyst::ReadAndSetParamsForHystOperator(BaseMaterial* const material, bool setForStrains){
     
     ParameterPreisachOperators paramSet = ParameterPreisachOperators(); 
-
+    
     // use same offset as in XMLMaterialHandler.cc
     int enumOffset = 0;
     if(setForStrains){
@@ -1286,7 +1282,7 @@ namespace CoupledField {
     paramSet.fieldsAlignedAboveSat_ = true;
 		paramSet.hystOutputRestrictedToSat_ = true;
     paramSet.hasInverseModel_ = true;
-     
+    
     material->GetScalar(paramSet.inputSat_, MaterialType(X_SATURATION+enumOffset), Global::REAL);
     material->GetScalar(paramSet.outputSat_, MaterialType(Y_SATURATION+enumOffset), Global::REAL);
     
@@ -1331,12 +1327,12 @@ namespace CoupledField {
         paramSet.printOut_ = (UInt) printOut;
         paramSet.bmpResolution_ = (UInt) bmpResolution;
       }
-
+      
 			int eval;
 			material->GetScalar(eval, MaterialType(EVAL_VERSION+enumOffset));
       
 			paramSet.evalVersion_ = (UInt) eval;
-
+      
     } else if(paramSet.methodName_ == "vectorPreisach_Mayergoyz"){
       int isIsotropic = 1;
       material->GetScalar(isIsotropic, MaterialType(PREISACH_MAYERGOYZ_ISOTROPIC+enumOffset));
@@ -1356,7 +1352,7 @@ namespace CoupledField {
 			
       paramSet.numDirections_ = 0;
       material->GetScalar(paramSet.numDirections_, MaterialType(PREISACH_MAYERGOYZ_NUM_DIR+enumOffset));
- 
+      
     } else {
       std::stringstream exceptionMSG;
       exceptionMSG << paramSet.methodName_ << " is not available as hysteresis model";
@@ -1374,368 +1370,18 @@ namespace CoupledField {
   
   void CoefFunctionHyst::ReadInMaterial(BaseMaterial* const material){
     
-    /*
-     * General parameter
-     */
-    std::string materialTypeName = material->GetMaterialDatabaseName(); // electrostatics or electromagnetics
-    /*
-     * Get parameter for primary hyst operator (the one which is used to model
-     * elec or mag polarization/magnetization)
-     */
-		std::string dimTypeStr;
-		material_->GetScalar(dimTypeStr, PREISACH_DIM);
-    
-		// use variable POL_operatorParams_.methodType_ to distinguish between scalar and vector model
-		// do not confuse this with dimType_ !
-		if (dimTypeStr == "SCALAR") {
-			POL_operatorParams_.methodType_ = SCALAR;
-		} else if (dimTypeStr == "VECTOR") {
-			POL_operatorParams_.methodType_ = VECTOR;
-		}
-    
-    std::string methodName_Pol; // scalarPreisach, vectorPreisach_Sutor, vectorPreisach_Mayergoyz
-   material->GetScalar(methodName_Pol, HYST_MODEL);
-    bool forStrain = false;
+     bool forStrain = false;
 
     /*
-     * somehow this upper part is still required
-     * > find out why!
+     * Get weights first, then operator parameters
      */
-    
-//    POL_weightParams_ = ParameterPreisachWeights(); 
-    
-    /*
-     * Common parameter for all models
-     * > weights
-     * > saturation
-     * > initial states
-     */  
-//    POL_weightParams_.weightType_ = "";
-//    POL_weightParams_.constWeight_ = 0.5;
-//    POL_weightParams_.muDat_A_ = 0.0;
-//    POL_weightParams_.muDat_sigma1_ = 0.0;
-//    POL_weightParams_.muDat_sigma2_ = 0.0;
-//    POL_weightParams_.muDat_h1_ = 0.0;
-//    POL_weightParams_.muDat_h2_ = 0.0;
-//    POL_weightParams_.muDat_eta_ = 1.0;
-//    POL_weightParams_.weightTensor_ = Matrix<Double>(1,1);
-    
-    
-    
-//    material->GetScalar(POL_operatorParams_.methodName_,HYST_MODEL);
-//    
-//    int numRows;
-//    material->GetScalar(numRows, PREISACH_WEIGHTS_DIM);
-//    POL_numRows_ = UInt(numRows);
-//    int weightTypeInt;
-//    material->GetScalar(weightTypeInt, PREISACH_WEIGHTS_TYPE);
-//    
-//    POL_weightParams_.numRows_ = UInt(numRows);
-
-    
-    
-    
-//    
-//    if(weightTypeInt == 0){
-//      POL_weightParams_.weightType_ = "Constant";
-//      material->GetScalar(POL_weightParams_.constWeight_, PREISACH_WEIGHTS_CONSTVALUE, Global::REAL);
-//    } else if(weightTypeInt == 1){
-//      POL_weightParams_.weightType_ = "muDat";
-//      material->GetScalar(POL_weightParams_.muDat_A_, PREISACH_WEIGHTS_MUDAT_A, Global::REAL);
-//      material->GetScalar(POL_weightParams_.muDat_sigma1_, PREISACH_WEIGHTS_MUDAT_SIGMA, Global::REAL);
-//      material->GetScalar(POL_weightParams_.muDat_h1_, PREISACH_WEIGHTS_MUDAT_H, Global::REAL);
-//      material->GetScalar(POL_weightParams_.muDat_eta_, PREISACH_WEIGHTS_MUDAT_ETA, Global::REAL);
-//    } else if(weightTypeInt == 2){
-//      POL_weightParams_.weightType_ = "muDatExtended";
-//      //std::cout << "MuDatExtended" << std::endl;
-//      material->GetScalar(POL_weightParams_.muDat_A_, PREISACH_WEIGHTS_MUDATEXT_A, Global::REAL);
-//      material->GetScalar(POL_weightParams_.muDat_sigma1_, PREISACH_WEIGHTS_MUDATEXT_SIGMA1, Global::REAL);
-//      material->GetScalar(POL_weightParams_.muDat_sigma2_, PREISACH_WEIGHTS_MUDATEXT_SIGMA2, Global::REAL);
-//      material->GetScalar(POL_weightParams_.muDat_h1_, PREISACH_WEIGHTS_MUDATEXT_H1, Global::REAL);
-//      material->GetScalar(POL_weightParams_.muDat_h2_, PREISACH_WEIGHTS_MUDATEXT_H2, Global::REAL);
-//      material->GetScalar(POL_weightParams_.muDat_eta_, PREISACH_WEIGHTS_MUDATEXT_ETA, Global::REAL);
-//    } else if(weightTypeInt == 3){
-//      POL_weightParams_.weightType_ = "givenTensor";
-//      material->GetTensor(POL_weightParams_.weightTensor_, PREISACH_WEIGHTS_TENSOR, Global::REAL);
-//      //std::cout << "Found weights: " << POL_weightParams_.weightTensor_.ToString() << std::endl;
-//    } else {
-//      EXCEPTION("Weight type unknown");
-//    }
-      
-    /*
-     * das muss gemacht werden!!
-     */
-//		material->GetScalar(POL_operatorParams_.inputSat_, X_SATURATION, Global::REAL);
-//		material->GetScalar(POL_operatorParams_.outputSat_, Y_SATURATION, Global::REAL);
-
-    
-//    // NEW: add additional anhysteretic curve to Preisach models
-//    material->GetScalar(POL_weightParams_.anhysteretic_a_ , PREISACH_WEIGHTS_ANHYST_A, Global::REAL);
-//    material->GetScalar(POL_weightParams_.anhysteretic_b_ , PREISACH_WEIGHTS_ANHYST_B, Global::REAL);
-//    material->GetScalar(POL_weightParams_.anhysteretic_c_ , PREISACH_WEIGHTS_ANHYST_C, Global::REAL);
-//    int anhystOnlyInt = 0;
-//    material->GetScalar(anhystOnlyInt , PREISACH_WEIGHTS_ANHYST_ONLY);
-//    if(anhystOnlyInt == 1){
-//      POL_weightParams_.anhystOnly_ = true;
-//    } else {
-//      POL_weightParams_.anhystOnly_ = false;
-//    }
-    
-    // compute preisach weights (for scalar and vector sutor case first; vector mayergoyz gets special treatment later)
-//    POL_weightParams_.weightTensor_ = evaluatePreisachWeights(&POL_weightParams_);
-//    
-//    /*
-//     * Important note: ScalarPreisach model currently does not go over the triangle
-//     * -1 <= beta <= alpha <= 1 but over the whole square
-//     * -1 <= beta <= 1, -1 <= alpha <= 1 and divides the result by 2
-//     * > if we just fill up the triangle part of the Preisach plane with weights, we
-//     *    get wrong results
-//     * > easy fix: mirror weights along diagonal alpha = beta
-//     * > nicer fix: make sure that ScalarPreisach only uses the trianlge
-//     *            > requires more work as one needs to make sure that subtraction for
-//     *              partially overlapped elements still works
-//     *            > use easy fix initially
-//     */
-//    for(UInt i = 0; i < POL_numRows_; i++){
-//      // note: diagonal element does not need mirroring
-//      // >  k < i instead of k <= i
-//      for(UInt k = 0; k < i; k++){
-//        POL_weightParams_.weightTensor_[k][i] = POL_weightParams_.weightTensor_[i][k];
-//      }
-//    }
-//    
-//    // VERY IMPORTANT: make sure that \int_alpha,beta POL_weightParams_.weightTensor_ = 1 
-//    // NOTE: this is not true for mayergoyz adapted weights! for those, we have to calculate the
-//    // intergal over the scalar weights and divide by this term (if possible!)
-//    // NOTE2: for constant scalar weights, the transformed vector weights will all be 0.75* the scalar value (0f 0.5)
-//    Double intOverWeights = 0.0;
-//    for(UInt i = 0; i < POL_numRows_; i++){
-//      for(UInt k = 0; k < POL_numRows_; k++){
-//        intOverWeights += POL_weightParams_.weightTensor_[i][k];
-//      }
-//    }
-//    
-//    if(intOverWeights == 0){
-//      // special case: if all Preisach weights are 0, we solve only for the anhyst part
-//      POL_weightParams_.anhystOnly_ = true;
-//    } else {
-//      // problem: scaling to 1 does work for scalar model and vector model by sutor but
-//      // not for mayergoyz model; here the integral over all weights must be smaller
-//      // than one such that the sum over multiple directions adds up to correct values
-//      // (for const. weight for example, the weights for the mayergoyz model will be 3/4 
-//      // of that const. value > integral sum will only be 3/4, too)
-//      //
-//      // solution: determine scaling factor for standard weights, then apply this factor
-//      // to the transformed weights
-//      POL_weightParams_.anhystOnly_ = false;
-//      Double elemArea = 2.0/(POL_numRows_)*2.0/(POL_numRows_);
-//      intOverWeights *= elemArea/2; // factor of 1/2 as we have to integrate over the triangle area
-//      //std::cout << "intOverWeights = " << intOverWeights << std::endl;
-//      bool scalingRequired = true;
-//      
-//      if(POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz"){
-//        int isIsotropic = 1;
-//        material->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
-//        
-//        if( (dim_ != 2) || (isIsotropic == 0)){
-//          EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
-//        } else {
-//          POL_weightsAlreadyAdapted_ = 0;
-//          material->GetScalar(POL_weightsAlreadyAdapted_, PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR);
-//          if(POL_weightsAlreadyAdapted_ == 1){
-//            // here we have to assume that the weights given via the material file
-//            // already have been adapted (and scaled correctly)
-//            // > take weights as they are and do not further scale them!
-//            scalingRequired = false;
-//          } else {
-//            // compute transformation of weights
-//            POL_weightParams_.weightTensor_ = transformPreisachWeightsForIsotropicVectorCase(&POL_weightParams_);
-//            
-//            // transformPreisachWeightsForIsotropicVectorCase does only compute
-//            // the upper triangle > mirror
-//            for(UInt i = 0; i < POL_numRows_; i++){
-//              // note: diagonal element does not need mirroring
-//              // >  k < i instead of k <= i
-//              for(UInt k = 0; k < i; k++){
-//                POL_weightParams_.weightTensor_[k][i] = POL_weightParams_.weightTensor_[i][k];
-//              }
-//            }
-//            
-//            scalingRequired = true;
-//          } 
-//          // check if weights are symmetric w.r.t. alpha = -beta
-//          // this property derives from vector model (see "Mathematical Models of Hysteresis and their Applications" - Mayergoyz  p.164 eq(3.58) )
-//          // make weights symmetric
-//          //std::cout << "Weights before forcing symmetry: " << POL_weightParams_.weightTensor_.ToString() << std::endl;
-//          for(UInt i = 0; i < POL_numRows_; i++){
-//            for(UInt k = 0; k < POL_numRows_-i; k++){
-//              // iterate over triangle -1 < alpha < 1; -1 < beta < -alpha
-//              // in indices: 0 < i < numRows; 0 < k < numRows-i
-//              POL_weightParams_.weightTensor_[i][k] = POL_weightParams_.weightTensor_[POL_numRows_-k-1][POL_numRows_-i-1];
-//            }
-//          }
-//          //std::cout << "Weights after forcing symmetry: " << POL_weightParams_.weightTensor_.ToString() << std::endl;
-//        }
-//      }
-//      
-//      if(scalingRequired){
-//        for(UInt i = 0; i < POL_numRows_; i++){
-//          for(UInt k = 0; k < POL_numRows_; k++){
-//            POL_weightParams_.weightTensor_[i][k] /= intOverWeights;
-//          }
-//        }
-//      }
-//    }
-    
-    //    // check for negative weights
-    //    for(UInt i = 0; i < POL_numRows_; i++){
-    //      for(UInt k = 0; k < POL_numRows_; k++){
-    //        if(POL_weightParams_.weightTensor_[i][k] < 0){
-    //          std::cout << "i,k: " << i << ", " << k << std::endl;
-    //          std::cout << "weight[i][k]: " << POL_weightParams_.weightTensor_[i][k] << std::endl;
-    //        }
-    //      }
-    //    }
-        
-//    /*
-//     * POL_freeFieldTensor_ is the tensor to be returned, when
-//     * RUN_tensorToReturn_ = 2
-//     * and the tensor to be added to deltaMat if
-//     * RUN_tensorToAdd_ = 2
-//     * (only ONE needed per PDE)
-//     */
-//    POL_freeFieldTensor_ = Matrix<Double>(dim_, dim_);
-//    POL_freeFieldTensor_.Init();
-//    for (UInt i = 0; i < dim_; i++) {
-//      POL_freeFieldTensor_[i][i] = rev_mat_fac_;
-//    }
-//    
-    std::cout << "POL_weightParams_: " << std::endl;
     ReadAndSetWeights(material, forStrain);
-
-//        ReadAndSetWeights(material, false);
-    ReadAndSetParamsForHystOperator(material, false);
-    
-    // check
-    std::cout << "POL_weightParams_: " << std::endl;
-    std::cout << "POL_weightParams_.weightType_ " << POL_weightParams_.weightType_ << std::endl;
-    std::cout << "POL_weightParams_.weightTensor_ " << POL_weightParams_.weightTensor_.ToString() << std::endl;
-   
-    
-    
-    // for piezoelectric / magnetostrictive coupling
-    int strainForm;
-		material->GetScalar(strainForm, HYST_STRAIN_FORM);
+    ReadAndSetParamsForHystOperator(material, forStrain);
     
     /*
-     * -1 : not coupled at all
-     *  0 : coupled e-form/h-form (piezo/magstrict)
-     *  1 : coupled d-form (piezo)
-     *  2 : coupled g-form (magstrict)
-     */
-    POL_strainForm_ = strainForm;
-    if(strainForm > 0){
-      POL_useStrainForm_ = true;
-    } else {
-      POL_useStrainForm_ = false;
-    }
-    
-//    /*
-//     * Get model specific paramter
-//     */
-//    // initialize parameter for vector and scalar model just to make sure that
-//    // no random values from heap are used (even if some parameter are only needed
-//    // in scalar case and some only in vector case)
-//    // SCALAR ONLY
-//    POL_operatorParams_.fixDirection_ = Vector<Double>(dim_);
-//    POL_operatorParams_.fixDirection_.Init();
-//    POL_operatorParams_.fixDirection_[0] = 1.0;
-//    
-//    // VECTOR ONLY
-//    POL_operatorParams_.rotResistance_ = 1.0;
-//    POL_operatorParams_.angularDistance_ = 0.0;
-//    POL_operatorParams_.angularResolution_ = 1e-4;
-//    POL_operatorParams_.angularClipping_ = 0;
-//    POL_operatorParams_.evalVersion_ = 2;   
-//    POL_operatorParams_.isClassical_ = false;
-//    POL_operatorParams_.printOut_ = false;
-//    POL_operatorParams_.bmpResolution_ = 1000;
-//    
-//    // USED FOR BOTH MODELS
-//    POL_operatorParams_.amplitudeResolution_ = 1e-17;
-//    
-//    POL_operatorParams_.fieldsAlignedAboveSat_ = true;
-//		POL_operatorParams_.hystOutputRestrictedToSat_ = true;
-//    
-//    if(methodName_Pol == "scalarPreisach"){
-//			//get direction
-//      // NEW: allow arbitrary direction
-//      POL_operatorParams_.fixDirection_ = Vector<Double>(dim_);
-//      POL_operatorParams_.fixDirection_.Init();
-//      
-//			material->GetScalar(POL_operatorParams_.fixDirection_[0], P_DIRECTION_X, Global::REAL);
-//			material->GetScalar(POL_operatorParams_.fixDirection_[1], P_DIRECTION_Y, Global::REAL);
-//			if (dim_ == 3) {
-//				material->GetScalar(POL_operatorParams_.fixDirection_[2], P_DIRECTION_Z, Global::REAL);
-//			}
-//      
-//      if(POL_operatorParams_.fixDirection_.NormL2() == 0){
-//        WARN("Zero direction specified; taking default = x-direction");
-//        POL_operatorParams_.fixDirection_[0] = 1.0;
-//      } else {
-//        POL_operatorParams_.fixDirection_[0]/=POL_operatorParams_.fixDirection_.NormL2();
-//        POL_operatorParams_.fixDirection_[1]/=POL_operatorParams_.fixDirection_.NormL2();
-//        if (dim_ == 3) {
-//          POL_operatorParams_.fixDirection_[2]/=POL_operatorParams_.fixDirection_.NormL2();
-//        }
-//      }
-//    } else if(methodName_Pol == "vectorPreisach_Sutor"){
-////      material->GetScalar(POL_operatorParams_.rotResistance_, ROT_RESISTANCE, Global::REAL);
-//			material->GetScalar(POL_operatorParams_.angularDistance_, ANG_DISTANCE, Global::REAL);
-//			material->GetScalar(POL_operatorParams_.angularResolution_, ANG_RESOLUTION, Global::REAL);
-//			material->GetScalar(POL_operatorParams_.angularClipping_, ANG_CLIPPING, Global::REAL);
-//			material->GetScalar(POL_operatorParams_.amplitudeResolution_, AMP_RESOLUTION, Global::REAL);
-//      
-//			int printOut;
-//			int bmpResolution;
-//			material->GetScalar(printOut, PRINT_PREISACH);
-//			material->GetScalar(bmpResolution, PRINT_PREISACH_RESOLUTION);
-//      
-//			/*
-//       * if printOut > 0 -> activate output of overlaid switching and rotation state; output every printOut timestep
-//       * bmpResolution -> number of pixels (std = 1000)
-//       */
-//			POL_operatorParams_.printOut_ = (UInt) printOut;
-//			POL_operatorParams_.bmpResolution_ = (UInt) bmpResolution;
-//      
-//			int eval;
-//			material->GetScalar(eval, EVAL_VERSION);
-//      
-//			POL_operatorParams_.evalVersion_ = (UInt) eval;
-//
-//    } else if(methodName_Pol == "vectorPreisach_Mayergoyz"){
-//      int isIsotropic = 1;
-//      material->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
-//      if( (dim_ != 2) || (isIsotropic == 0)){
-//        EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
-//      }
-//      
-//      POL_operatorParams_.outputClipping_ = 0;
-//      material->GetScalar(POL_operatorParams_.outputClipping_, PREISACH_MAYERGOYZ_CLIPOUTPUT);
-//      
-//			if(POL_operatorParams_.outputClipping_ == 0){
-//				POL_operatorParams_.hystOutputRestrictedToSat_ = false;
-//			}
-//			
-//      POL_operatorParams_.numDirections_ = 0;
-//      material->GetScalar(POL_operatorParams_.numDirections_, PREISACH_MAYERGOYZ_NUM_DIR);
-// 
-//    } else {
-//      std::stringstream exceptionMSG;
-//      exceptionMSG << methodName_Pol << " is not available as hysteresis model";
-//      EXCEPTION(exceptionMSG.str());
-//    }
-    
+     * Set inversion for vector models
+     * > only needed for polarization 
+     */    
     if ( (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor") || (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") ){
       // inversion via LM > set parameter
       if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
@@ -1752,18 +1398,11 @@ namespace CoupledField {
         material->GetScalar(LM_inversion_.alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);  
       }
     }
-//    LM_inversion_.alphaLSMax = LM_inversion_.alphaLSMax;
-//    LM_inversion_.alphaLSMin = LM_inversion_.alphaLSMin;
-//    LM_inversion_.alphaLSStart = LM_inversion_.alphaLSStart;
-//    LM_inversion_.jacRes = LM_inversion_.jacRes;
-//    LM_inversion_.maxNumIts = LM_inversion_.maxNumIts;
-//    LM_inversion_.tolB = LM_inversion_.tolB;
-//    LM_inversion_.tolH = LM_inversion_.tolH;
-//    LM_inversion_.useTikhonov = LM_inversion_.useTikhonov;
-    
     
     /*
-     * Read in initial input
+     * Read in initial input > has to be done AFTER operator for polarization
+     * has been read in; initial state only given for polarization!
+     * > input however will be applied to strain operator, too!
      */
     POL_initialInput_ = Vector<Double>(dim_);
     
@@ -1801,37 +1440,66 @@ namespace CoupledField {
       POL_initial_.useInitialInput = false;
     }
     POL_initial_.scaleBySaturation = scaleBySaturation;
-      
-      
+    
+    
     int isCoupled = 0;
     int reusePolarizationForStrains = 1;
-    
     material->GetScalar(isCoupled, HYST_COUPLING_DEFINED);
     if(isCoupled == 1){
+      COUPLED_inMatFile_ = true; 
+      /*
+       * Get additional operators for coupling case
+       */
+      int strainForm;
+      material->GetScalar(strainForm, HYST_STRAIN_FORM);
+      
+      /*
+       * -1 : not coupled at all
+       *  0 : coupled e-form/h-form (piezo/magstrict)
+       *  1 : coupled d-form (piezo)
+       *  2 : coupled g-form (magstrict)
+       */
+      COUPLED_strainForm_ = strainForm;
+      if(strainForm > 0){
+        COUPLED_useStrainForm_ = true;
+      } else {
+        COUPLED_useStrainForm_ = false;
+      }
+      
       /*
        * Input for piezoelectric / magnetostrictive setups
        */   
-      material->GetScalar(POL_dim_beta_, DIM_BETA_COEFS);
-      material->GetTensor(POL_betaCoefs_, HYST_BETA_COEFS, Global::REAL);
-      material->GetScalar(POL_irrStrain_c1_, HYST_IRRSTRAIN_C1, Global::REAL);
-      material->GetScalar(POL_irrStrain_c2_, HYST_IRRSTRAIN_C2, Global::REAL);
-      material->GetScalar(POL_irrStrain_c3_, HYST_IRRSTRAIN_C3, Global::REAL);
-      material->GetScalar(POL_irrStrainForm_, HYST_IRRSTRAINS);
-      material->GetScalar(POL_sSat_, S_SATURATION, Global::REAL);
+      material->GetScalar(COUPLED_dim_beta_, DIM_BETA_COEFS);
+      material->GetTensor(COUPLED_betaCoefs_, HYST_BETA_COEFS, Global::REAL);
+      material->GetScalar(COUPLED_irrStrain_c1_, HYST_IRRSTRAIN_C1, Global::REAL);
+      material->GetScalar(COUPLED_irrStrain_c2_, HYST_IRRSTRAIN_C2, Global::REAL);
+      material->GetScalar(COUPLED_irrStrain_c3_, HYST_IRRSTRAIN_C3, Global::REAL);
+      material->GetScalar(COUPLED_irrStrainForm_, HYST_IRRSTRAINS);
+      material->GetScalar(COUPLED_sSat_, S_SATURATION, Global::REAL);
       
       material->GetScalar(reusePolarizationForStrains, IRRSTRAIN_REUSE_P);
       
       if(reusePolarizationForStrains == 0){
+        COUPLED_reuseHystOperatorForStrains_ = true;
         /*
          * Read in separate hyst operator for strains
          */
-        std::string methodType_Strain; // SCALAR or VECTOR
-        std::string methodName_Strain; // ScalarPreisach, VectorPreisachSutor, VectorPreisachMayergoyz
+        forStrain = true;
+        
+        /*
+         * Get weights first, then operator parameters
+         */
+        ReadAndSetWeights(material, forStrain);
+        ReadAndSetParamsForHystOperator(material, forStrain);
+      } else {
+        COUPLED_reuseHystOperatorForStrains_ = false;
       }
       
+    } else {
+      COUPLED_inMatFile_ = false;
     }
-
-//    EXCEPTION("Stop here");
+    
+    //    EXCEPTION("Stop here");
   }
   
   
@@ -1915,63 +1583,62 @@ namespace CoupledField {
     //		std::cout << "numStorageEntries_: " << numStorageEntries_ << std::endl;
     //		std::cout << "numHystOperators_: " << numHystOperators_ << std::endl;
 		if (POL_operatorParams_.methodType_ == SCALAR) {
-
       
       bool isVirgin = true;
       POL_useExtension_ = false;
-//      int useExtensionInt;
-//      material_->GetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
-//      if(useExtensionInt == 1){
-//        POL_useExtension_ = true;
-//      }
+      //      int useExtensionInt;
+      //      material_->GetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
+      //      if(useExtensionInt == 1){
+      //        POL_useExtension_ = true;
+      //      }
       if(POL_useExtension_){
         EXCEPTION("No longer available");
-//        material_->GetScalar(POL_operatorParams_.rotResistance_, ROT_RESISTANCE, Global::REAL);
-//        material_->GetScalar(POL_operatorParams_.angularDistance_, ANG_DISTANCE, Global::REAL);
-//        
-//        hyst_ = new ExtendedPreisach(numHystOperators_, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_, POL_weightParams_.weightTensor_, 
-//                POL_operatorParams_.rotResistance_, POL_operatorParams_.angularDistance_, dim_, isVirgin, POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_, POL_weightParams_.anhystOnly_);
-//        
-//        // set initial direction
-//        POL_initialInput_ = Vector<Double>(dim_);
-//        
-//        material_->GetScalar(POL_initialInput_[0], INITIAL_STATE_X, Global::REAL);
-//        material_->GetScalar(POL_initialInput_[1], INITIAL_STATE_Y, Global::REAL);
-//        if (dim_ == 3) {
-//          material_->GetScalar(POL_initialInput_[2], INITIAL_STATE_Z, Global::REAL);
-//        }
-//        
-//        Vector<Double> initialInputForRotstate = POL_initialInput_;
-//        // if no value is given for initial state, set it to dirP
-//        if (initialInputForRotstate.NormL2() < 1e-16) {
-//          initialInputForRotstate.Init();
-//          if(POL_setWithFlux_){
-//            // update rotation states with flux quantity 
-//            // POL_initialInput_ = (POL_operatorParams_.outputSat_*Identity + POL_operatorParams_.inputSat_*POL_eps_mu_SmallSignal_)*POL_operatorParams_.fixDirection_
-//            // > flux with value just at saturation
-//            // > but: saturation alone would not suffice! we need to consdier anhyst parts, too
-//            POL_eps_mu_SmallSignal_.Mult(POL_operatorParams_.fixDirection_,initialInputForRotstate);
-//            initialInputForRotstate.ScalarMult(POL_operatorParams_.inputSat_);
-//            Double anhystPart = hyst_->evalAnhystPart_normalized(1.0);
-//            initialInputForRotstate.Add((anhystPart+1.0)*POL_operatorParams_.outputSat_,POL_operatorParams_.fixDirection_);
-//          } else {
-//            // update rotation states with field intensity
-//            // > scaling with x saturation sufficient
-//            initialInputForRotstate.Add(POL_operatorParams_.inputSat_,POL_operatorParams_.fixDirection_);
-//          }
-//        }
-//        
-//        if(POL_setWithFlux_){
-//          for(UInt i = 0; i < numHystOperators_; i++){
-//            hyst_->UpdateRotationStateWithFluxDensity(initialInputForRotstate,POL_eps_mu_SmallSignal_,i);
-//            hyst_->EvaluateRotationState(i);
-//          } 
-//        } else {
-//          for(UInt i = 0; i < numHystOperators_; i++){
-//            hyst_->UpdateRotationStateWithFieldIntensity(POL_initialInput_,i);
-//            hyst_->EvaluateRotationState(i);
-//          }
-//        }
+        //        material_->GetScalar(POL_operatorParams_.rotResistance_, ROT_RESISTANCE, Global::REAL);
+        //        material_->GetScalar(POL_operatorParams_.angularDistance_, ANG_DISTANCE, Global::REAL);
+        //        
+        //        hyst_ = new ExtendedPreisach(numHystOperators_, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_, POL_weightParams_.weightTensor_, 
+        //                POL_operatorParams_.rotResistance_, POL_operatorParams_.angularDistance_, dim_, isVirgin, POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_, POL_weightParams_.anhystOnly_);
+        //        
+        //        // set initial direction
+        //        POL_initialInput_ = Vector<Double>(dim_);
+        //        
+        //        material_->GetScalar(POL_initialInput_[0], INITIAL_STATE_X, Global::REAL);
+        //        material_->GetScalar(POL_initialInput_[1], INITIAL_STATE_Y, Global::REAL);
+        //        if (dim_ == 3) {
+        //          material_->GetScalar(POL_initialInput_[2], INITIAL_STATE_Z, Global::REAL);
+        //        }
+        //        
+        //        Vector<Double> initialInputForRotstate = POL_initialInput_;
+        //        // if no value is given for initial state, set it to dirP
+        //        if (initialInputForRotstate.NormL2() < 1e-16) {
+        //          initialInputForRotstate.Init();
+        //          if(POL_setWithFlux_){
+        //            // update rotation states with flux quantity 
+        //            // POL_initialInput_ = (POL_operatorParams_.outputSat_*Identity + POL_operatorParams_.inputSat_*POL_eps_mu_SmallSignal_)*POL_operatorParams_.fixDirection_
+        //            // > flux with value just at saturation
+        //            // > but: saturation alone would not suffice! we need to consdier anhyst parts, too
+        //            POL_eps_mu_SmallSignal_.Mult(POL_operatorParams_.fixDirection_,initialInputForRotstate);
+        //            initialInputForRotstate.ScalarMult(POL_operatorParams_.inputSat_);
+        //            Double anhystPart = hyst_->evalAnhystPart_normalized(1.0);
+        //            initialInputForRotstate.Add((anhystPart+1.0)*POL_operatorParams_.outputSat_,POL_operatorParams_.fixDirection_);
+        //          } else {
+        //            // update rotation states with field intensity
+        //            // > scaling with x saturation sufficient
+        //            initialInputForRotstate.Add(POL_operatorParams_.inputSat_,POL_operatorParams_.fixDirection_);
+        //          }
+        //        }
+        //        
+        //        if(POL_setWithFlux_){
+        //          for(UInt i = 0; i < numHystOperators_; i++){
+        //            hyst_->UpdateRotationStateWithFluxDensity(initialInputForRotstate,POL_eps_mu_SmallSignal_,i);
+        //            hyst_->EvaluateRotationState(i);
+        //          } 
+        //        } else {
+        //          for(UInt i = 0; i < numHystOperators_; i++){
+        //            hyst_->UpdateRotationStateWithFieldIntensity(POL_initialInput_,i);
+        //            hyst_->EvaluateRotationState(i);
+        //          }
+        //        }
         
       } else {
         hyst_ = new Preisach(numHystOperators_, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_, POL_weightParams_.weightTensor_, isVirgin, 
@@ -1979,7 +1646,7 @@ namespace CoupledField {
       }
       
       POL_operatorParams_.hasInverseModel_ = false;
-      
+      // used during testing of hyst operator so it is set here
       LM_inversion_.tolB = 1e-9;
       
 		} else if (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor") {
@@ -2036,7 +1703,7 @@ namespace CoupledField {
       // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
       POL_operatorParams_.fieldsAlignedAboveSat_ = false;
       bool isVirgin = true;
-            
+      
       /*
        * IMPORTANT REMARK:
        *  > although the Mayergoyz model is based on the scalar models 
@@ -2066,6 +1733,13 @@ namespace CoupledField {
       WARN("Angular clipping currently not used; parameter will be ignored");
     }
     
+    if(COUPLED_reuseHystOperatorForStrains_){
+      std::cout << "Reuse pol to compute strain" << std::endl;
+    } else {
+      std::cout << "Use own hyst operator for strain" << std::endl;
+    }
+    
+    
     
     /*
      * Initial state
@@ -2080,13 +1754,13 @@ namespace CoupledField {
     initial_P_J.Init();
     
     if (POL_initialInput_.NormL2() > 1e-16) {
-//      WARN("Currently the treatment of initial states is not working properly! \n"
-//                "Depending on the selected evaluation approach, the initial state of \n"
-//                "the hysteresis operator will act as an excitation from the first iteration on or not. \n"
-//                "Furthermore, the initial state has to fit to the boundary condition \n"
-//                "(i.e. fluxParallel with initial state standing perpendicular on the boundary will not work).\n"
-//                "The only save usage is in context of the debugging fixPoint iteration \n"
-//                "(i.e. output of hysteresis operator does not couple back).")
+      //      WARN("Currently the treatment of initial states is not working properly! \n"
+      //                "Depending on the selected evaluation approach, the initial state of \n"
+      //                "the hysteresis operator will act as an excitation from the first iteration on or not. \n"
+      //                "Furthermore, the initial state has to fit to the boundary condition \n"
+      //                "(i.e. fluxParallel with initial state standing perpendicular on the boundary will not work).\n"
+      //                "The only save usage is in context of the debugging fixPoint iteration \n"
+      //                "(i.e. output of hysteresis operator does not couple back).")
       
       if(POL_prescribeInitialOutput_ == false){
         // directly feed given input to hyst operator
@@ -2142,7 +1816,7 @@ namespace CoupledField {
         }
       }
     }
-        
+    
     Vector<Double> zeroVec = Vector<Double>(dim_);
     zeroVec.Init();
     Vector<Double> initial_Si = ComputeIrreversibleStrains(initial_P_J, initial_E_H, zeroVec);
@@ -2213,11 +1887,11 @@ namespace CoupledField {
       takeEstimatedSlope_[k] = false;
       // create with wrong size first; during first evaluation, set correct size
       rotatedCouplingTensor_[k] = Matrix<Double>(1,1);
-       
+      
       P_J_[k] = initial_P_J;
       E_B_[k] = initial_E_B;
       E_H_[k] = initial_E_H;
-
+      
 			E_B_lastIt_[k] = zeroVec;
 			E_B_lastTS_[k] = zeroVec;
       
@@ -2512,14 +2186,14 @@ namespace CoupledField {
       lpmOutput.SetSurfInfo( volRegions_ );
     }
     
-//    if(onBoundary){
-//      std::cout << "LPM on boundary" << std::endl;
-//      
-//      std::cout << "lpmInput.isSurface: " << lpmInput.isSurface << std::endl;
-//      std::cout << "lpmInput.normal.ToString(): " << lpmInput.normal.ToString() << std::endl;
-//      std::cout << "lpmOutput.isSurface: " << lpmOutput.isSurface << std::endl;
-//      std::cout << "lpmOutput.normal.ToString(): " << lpmOutput.normal.ToString() << std::endl;
-//    }
+    //    if(onBoundary){
+    //      std::cout << "LPM on boundary" << std::endl;
+    //      
+    //      std::cout << "lpmInput.isSurface: " << lpmInput.isSurface << std::endl;
+    //      std::cout << "lpmInput.normal.ToString(): " << lpmInput.normal.ToString() << std::endl;
+    //      std::cout << "lpmOutput.isSurface: " << lpmOutput.isSurface << std::endl;
+    //      std::cout << "lpmOutput.normal.ToString(): " << lpmOutput.normal.ToString() << std::endl;
+    //    }
     
 		UInt idxPoint = locPointIndices_[lpmOutput.lp.number];
     //std::cout << "Global Indices: " << std::endl;
@@ -2629,7 +2303,7 @@ namespace CoupledField {
   }
   
   Matrix<Double> CoefFunctionHyst::CalcDeltaMat(Vector<Double> E_B_diff, Vector<Double> P_J_diff, bool useAbs,std::string implementationVersion, Double cuttingTol){
-//    std::cout << "CalcDeltaMat" << std::endl;
+    //    std::cout << "CalcDeltaMat" << std::endl;
     Matrix<Double> deltaMat;
     UInt numCols = dim_;
     UInt numRows = dim_;
@@ -2776,7 +2450,7 @@ namespace CoupledField {
   
   Matrix<Double> CoefFunctionHyst::CalcDeltaMatStrains(Vector<Double> E_B_diff, Vector<Double> S_diff, bool useAbs, std::string implementationVersion, Double cuttingTol){
     
-//    std::cout << "CalcDeltaMatStrains" << std::endl;
+    //    std::cout << "CalcDeltaMatStrains" << std::endl;
     Matrix<Double> deltaMat;
     UInt numCols = dim_;
     UInt numRows;
@@ -2797,7 +2471,7 @@ namespace CoupledField {
     Double E_B_diff_norm = E_B_diff.NormL2();
     
     if(E_B_diff_norm <= absTol){
-//      std::cout << "E_B_diff_norm <= absTol" << std::endl;
+      //      std::cout << "E_B_diff_norm <= absTol" << std::endl;
       // variation of solution is very small
       // return zero matrix
       return deltaMat;
@@ -2813,7 +2487,7 @@ namespace CoupledField {
     }
     
     if(implementationVersion == "Division"){
-//      std::cout << "Division" << std::endl;
+      //      std::cout << "Division" << std::endl;
       if(dim_ == 2){
         
         if(abs(E_B_diff[0])/E_B_diff_norm > relTol){
@@ -3017,9 +2691,9 @@ namespace CoupledField {
     
     
     if(useStrains){
-//      std::cout << "GetDeltaMat - for strains" << std::endl;
+      //      std::cout << "GetDeltaMat - for strains" << std::endl;
       if(deltaMatStrain_requiresReeval_[storageIdx] == false){
-//        std::cout << "NO reeval" << std::endl;
+        //        std::cout << "NO reeval" << std::endl;
         return deltaMatStrain_[storageIdx];
       }
       
@@ -3221,28 +2895,28 @@ namespace CoupledField {
 		} else {
 			// get current state; here we have to check if a reevaluation is needed
 			// note: requiresReeval_ has one entry for each storage, not for each operator 
-//			if (false == Si_requiresReeval_[storageIdx]) {
-        //				std::cout << "no reeval needed as flag is false!" << std::endl;
-				// return current value
-				return Si_[storageIdx];
-//			}
+      //			if (false == Si_requiresReeval_[storageIdx]) {
+      //				std::cout << "no reeval needed as flag is false!" << std::endl;
+      // return current value
+      return Si_[storageIdx];
+      //			}
 		}
-//    
-//    // computation required
-//    // get polarizaton / output of hyst operator first
-//    Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(Originallpm, timeLevel);
-//    // for case that P is zero, we also obtain the last value in order to compute the last known direction of P
-//    // if this one is 0, too then dir = zeroVec
-//    Vector<Double> Pold = GetPrecomputedOutputOfHysteresisOperator(Originallpm, -1);
-//    
-//    Vector<Double> S_irr = ComputeIrreversibleStrains(P,Pold);
-//    
-//    // flag gets reset at end of each iteration (so the stored value can beu
-//    // used during one iteration by several terms/function calls)
-//    Si_requiresReeval_[storageIdx] = false;
-//    Si_[storageIdx] = S_irr;
-//    
-//    return S_irr;
+    //    
+    //    // computation required
+    //    // get polarizaton / output of hyst operator first
+    //    Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(Originallpm, timeLevel);
+    //    // for case that P is zero, we also obtain the last value in order to compute the last known direction of P
+    //    // if this one is 0, too then dir = zeroVec
+    //    Vector<Double> Pold = GetPrecomputedOutputOfHysteresisOperator(Originallpm, -1);
+    //    
+    //    Vector<Double> S_irr = ComputeIrreversibleStrains(P,Pold);
+    //    
+    //    // flag gets reset at end of each iteration (so the stored value can beu
+    //    // used during one iteration by several terms/function calls)
+    //    Si_requiresReeval_[storageIdx] = false;
+    //    Si_[storageIdx] = S_irr;
+    //    
+    //    return S_irr;
   }
   
   Vector<Double> CoefFunctionHyst::ComputeIrreversibleStrains(Vector<Double> P, Vector<Double> E_H, Vector<Double> Pold) {
@@ -3275,7 +2949,7 @@ namespace CoupledField {
     }
     // else: current and previous state are both 0 > 0 direction
     
-    if (POL_irrStrainForm_ == 0){
+    if (COUPLED_irrStrainForm_ == 0){
       // Model strains as discribed in "Generalisiertes Preisach-Modell für die Simulation und Kompensation
       // der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf
       // Original form:
@@ -3285,10 +2959,10 @@ namespace CoupledField {
       // for 2D and 3D extend similar as in case of polynomial approximation
       // i.e.,
       // [S] = 3/2*S*(dirP dirP^T - 1/3[I])
-      scalarStrain = POL_irrStrain_c1_ + abs(P.NormL2()/POL_operatorParams_.outputSat_ + POL_irrStrain_c2_)
-                    + POL_irrStrain_c3_*(E_H.Inner(dirP) - POL_operatorParams_.inputSat_)/POL_operatorParams_.inputSat_;
-      scalarStrain *= POL_sSat_;
-    } else if (POL_irrStrainForm_ == 1){
+      scalarStrain = COUPLED_irrStrain_c1_ + abs(P.NormL2()/POL_operatorParams_.outputSat_ + COUPLED_irrStrain_c2_)
+              + COUPLED_irrStrain_c3_*(E_H.Inner(dirP) - POL_operatorParams_.inputSat_)/POL_operatorParams_.inputSat_;
+      scalarStrain *= COUPLED_sSat_;
+    } else if (COUPLED_irrStrainForm_ == 1){
       // Model strains (similar) as discribed in "Numerical Simulation of Mechatronic Sensors and Actuators"
       // Original form:
       //  [S] = 3/2*(beta0 + beta1*|P| + beta2*|P|^2 + ... + betan*|P|^n)*(dirP*dirP^T - 1/3[I])
@@ -3306,14 +2980,14 @@ namespace CoupledField {
       normP = normP/POL_operatorParams_.outputSat_;  
       // use Horner scheme
       // start with beta n
-      scalarStrain = POL_betaCoefs_[0][POL_dim_beta_-1];
-      Double betaSum = POL_betaCoefs_[0][POL_dim_beta_-1];
-      for(int i = POL_dim_beta_-2; i >= 0; i--){
-        scalarStrain = scalarStrain*normP + POL_betaCoefs_[0][i];
-        betaSum += POL_betaCoefs_[0][i];
+      scalarStrain = COUPLED_betaCoefs_[0][COUPLED_dim_beta_-1];
+      Double betaSum = COUPLED_betaCoefs_[0][COUPLED_dim_beta_-1];
+      for(int i = COUPLED_dim_beta_-2; i >= 0; i--){
+        scalarStrain = scalarStrain*normP + COUPLED_betaCoefs_[0][i];
+        betaSum += COUPLED_betaCoefs_[0][i];
       }
       if(betaSum != 0){
-        scalarStrain = POL_sSat_*scalarStrain/betaSum;
+        scalarStrain = COUPLED_sSat_*scalarStrain/betaSum;
       }
     } else {
       return Si_voigt;
@@ -3346,8 +3020,8 @@ namespace CoupledField {
       Si_voigt[4] = Si_tensor[0][2];
       Si_voigt[5] = Si_tensor[0][1];
     }
-//    std::cout << "Si_voigt = " << Si_voigt.ToString() << std::endl;
-   
+    //    std::cout << "Si_voigt = " << Si_voigt.ToString() << std::endl;
+    
     return Si_voigt;   
   }
   
@@ -3469,13 +3143,13 @@ namespace CoupledField {
         if(forceTangential){
           
           Vector<Double> normalDirection = actualLPM.normal;
-//          std::cout << "Stored normal vector: " << normalDirection.ToString() << std::endl;
+          //          std::cout << "Stored normal vector: " << normalDirection.ToString() << std::endl;
           Double normalProjection = LPMSolution.Inner(normalDirection);
-//          std::cout << "LPMSolution from system: " << LPMSolution.ToString() << std::endl;
+          //          std::cout << "LPMSolution from system: " << LPMSolution.ToString() << std::endl;
           LPMSolution.Add(-normalProjection,normalDirection);
-//          std::cout << "LPMSolution after cutting normal direction: " << LPMSolution.ToString() << std::endl;
+          //          std::cout << "LPMSolution after cutting normal direction: " << LPMSolution.ToString() << std::endl;
         }
-        				
+        
 			} else {
 				LPMSolution = Vector<Double>(dependCoef1_->GetVecSize());
 				dependCoef1_->GetVector(LPMSolution, actualLPM);
@@ -3930,9 +3604,9 @@ namespace CoupledField {
       hystHelper_->PrecomputeMaterialTensorForInverison();
     }
     
-//    if(setRotStateForVecExtension){
-//      EvaluateRotDirectionForVectorExtension();
-//    }
+    //    if(setRotStateForVecExtension){
+    //      EvaluateRotDirectionForVectorExtension();
+    //    }
     
     if(resetSolToZeroFirst){
       for(UInt i = 0; i < numStorageEntries_; i++){
@@ -3960,13 +3634,13 @@ namespace CoupledField {
      *  1 : coupled d-form (piezo)
      *  2 : coupled g-form (magstrict)
      */
-    if(POL_strainForm_ != -1){
+    if(COUPLED_strainForm_ != -1){
       PrecomputeIrrStrains();
       bool rotate = true;
       Matrix<Double> baseTensor = hystHelper_->GetBaseCouplingTensor();
       PrecomputeScaledAndRotatedCouplingTensor(baseTensor,rotate);
     }
- 
+    
     //    
     //#ifdef USE_OPENMP
     //#pragma omp parallel num_threads(CFS_NUM_THREADS)
@@ -4028,13 +3702,13 @@ namespace CoupledField {
   }
   
   void CoefFunctionHyst::PrecomputeIrrStrains(){
-  LOG_DBG(coeffcthyst) << "CoefFunctionHyst::PrecomputeIrrStrains()";
-  /*
-   * Iterate over all lpm
-   * for each lpm extract the precomputed values of P (current), P (lastTimestep)
-   * use those values to calculate the irreversible strains and store them
-   */
-
+    LOG_DBG(coeffcthyst) << "CoefFunctionHyst::PrecomputeIrrStrains()";
+    /*
+     * Iterate over all lpm
+     * for each lpm extract the precomputed values of P (current), P (lastTimestep)
+     * use those values to calculate the irreversible strains and store them
+     */
+    
     UInt size = allLPMmap_.size();
     UInt strainSize = 3;
     if(dim_ == 3){
@@ -4086,7 +3760,7 @@ namespace CoupledField {
         Si_[LPMit->first] = S_irr;
       }
 #pragma omp barrier
-    }
+         }
 #else
     {
       Vector<Double> P = Vector<Double>(dim_);
@@ -4094,7 +3768,7 @@ namespace CoupledField {
       Vector<Double> Pold = Vector<Double>(dim_);
       Vector<Double> S_irr = Vector<Double>(strainSize);
       //std::cout << "Running serial" << std::endl;
-            
+      
       std::map<UInt, LocPointMapped >::iterator LPMit;
       
       for(LPMit = allLPMmap_.begin(); LPMit != allLPMmap_.end(); LPMit++){
@@ -4125,14 +3799,14 @@ namespace CoupledField {
      * Iterate over all integration points used/managed by the hyst operator and
      * for each of these LPM set the matrix for iversion, i.e. mu/nu in magnetic case
      */    
- 
+    
     UInt size = allLPMmap_.size();
-
+    
     // obtain correct sizes first
     UInt numRows, numCols;
     numCols = baseTensor.GetNumCols();
     numRows = baseTensor.GetNumRows();
-
+    
     if(numCols == 4){
       // axi case: 2x4 matrix
       WARN("Rotation for axi case not implemented yet. No rotation will be peformed");
@@ -4282,7 +3956,7 @@ namespace CoupledField {
       std::map<UInt, LocPointMapped >::iterator LPMit;
       std::map<UInt, LocPointMapped >::iterator LPMitStart = allLPMmap_.begin();
       std::map<UInt, LocPointMapped >::iterator LPMitEnd = allLPMmap_.end();
-
+      
 #pragma omp barrier
       for(LPMit = LPMitStart; LPMit != LPMitEnd; LPMit++){
         
@@ -4371,7 +4045,7 @@ namespace CoupledField {
 #pragma omp barrier
     }
 #endif
-
+    
   };
 	
 	Vector<Double> CoefFunctionHyst::CalcOutputOfHysteresisOperator(Vector<Double> inputToHystOperator, UInt operatorIdx, UInt storageIdx, 
@@ -5629,8 +5303,8 @@ namespace CoupledField {
 		if (POL_operatorParams_.methodName_ == "scalarPreisach") {
 			
 			POL_useExtension_ = false;
-//			int useExtensionInt;
-//			material_->GetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
+      //			int useExtensionInt;
+      //			material_->GetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
 			if(POL_useExtension_){
 				EXCEPTION("Extension not implemented for tests; remove completely as not working");
 				POL_useExtension_ = true;
@@ -5757,7 +5431,7 @@ namespace CoupledField {
     if(outputIrrStrains){
       results_s.open(results_name_s.str());
       results_s << "#Number S_irr_xx S_irr_yy S_irr_xy" << std::endl;
-
+      
       results_xps.open(results_name_xps.str());
       results_xps << "#Number xIn yIn Px Py S_irr_xx S_irr_yy S_irr_xy" << std::endl;
     }
@@ -8167,7 +7841,7 @@ namespace CoupledField {
                 << "  amplitudeResolution " << POL_operatorParams_.amplitudeResolution_ << "\n"
                 << "  evalVersion " << POL_operatorParams_.evalVersion_ << "\n";
         oss << "  initial input to hyst operator " << POL_initialInput_.ToString() << "\n";
-//        oss << "  initial output of hyst operator (exemplary for element 0) " << POL_initialOutput_[0].ToString() << "\n";
+        //        oss << "  initial output of hyst operator (exemplary for element 0) " << POL_initialOutput_[0].ToString() << "\n";
         oss << "  printOut " << POL_operatorParams_.printOut_ << "\n";
         if (POL_operatorParams_.printOut_) {
           oss << "  bmpResolution " << POL_operatorParams_.bmpResolution_ << "\n";
