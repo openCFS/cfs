@@ -5,7 +5,8 @@
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
 #
-message("run trunk_intel_release with MASTER=${MASTER}")
+GET_FILENAME_COMPONENT(CTEST_SCRIPTS_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include("${CTEST_SCRIPTS_DIR}/site_specific_vars.cmake")
 
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/${MASTER}")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/${MASTER}_intel_release")

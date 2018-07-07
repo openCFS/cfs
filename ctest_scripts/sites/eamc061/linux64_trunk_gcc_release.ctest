@@ -4,8 +4,10 @@
 #
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
-#
-message("run trunk_gcc_release with MASTER=${MASTER}")
+
+# this this test is run by ctest, we cannot expect any variables to be set!
+GET_FILENAME_COMPONENT(CTEST_SCRIPTS_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include("${CTEST_SCRIPTS_DIR}/site_specific_vars.cmake")
 
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/${MASTER}")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/${MASTER}_gcc_release")
