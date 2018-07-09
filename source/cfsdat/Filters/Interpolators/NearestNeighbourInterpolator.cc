@@ -54,6 +54,13 @@ NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::
   p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
   numNeighbors_ = config->Get("scheme")->Get("numNeighbours")->As<UInt>();
 
+  if(config->Has("scheme") == true){
+	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
+  }else{
+	  globalFactor_ = 1.0;
+  }
+
+
   useElemAsTarget_ = false;
   if(params_->Has("useElemAsTarget")){useElemAsTarget_ = params_->Get("useElemAsTarget")->As<bool>();}
   mCheck_ = false;
@@ -78,7 +85,10 @@ bool NearestNeighbourInterpolator::UpdateResults(std::set<uuids::uuid>& upResult
   StdVector<CF::UInt>& targetSource = matrix.targetSource;
   StdVector<CF::Double>& targetSourceFactor = matrix.targetSourceFactor;
   
+
   NearestNeighbourInterpolation(returnVec, inVec, numEquPerEnt_, targetSource, targetSourceIndex, numNeighbors_, targetSourceFactor, maxNumTrgEntities);
+
+  returnVec.ScalarMult(globalFactor_);
 
   return true;
 }

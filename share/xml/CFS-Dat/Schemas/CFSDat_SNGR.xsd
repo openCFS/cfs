@@ -71,7 +71,7 @@
 	  </xsd:element>
 	  <xsd:element name="frequencyBounds" minOccurs="1" maxOccurs="1">
 	    <xsd:complexType>
-	      <xsd:attribute name="minFreq" type="xsd:positiveInteger" use="optional" default="800"/>
+	          <xsd:attribute name="minFreq" type="xsd:positiveInteger" use="optional" default="800"/>
      	      <xsd:attribute name="maxFreq" type="xsd:positiveInteger" use="optional" default="10000"/>
             </xsd:complexType>
 	  </xsd:element>
@@ -90,6 +90,14 @@
 	      angularFreqFactor should either be 0 or 1, this is to turn the use of angular frequency on and off 
             </xsd:documentation>
           </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="method" use="optional" default="BaillySNGR">
+          <xsd:simpleType>
+            <xsd:restriction  base="xsd:string">
+              <xsd:enumeration value="BaillySNGR"/> <!-- Bailly & Juve, 1999: A Stochastic Approach To Compute Subsonic Noise Using Linearized Euler's Equations -->
+              <xsd:enumeration value="BillsonSNGR"/> <!-- Billson, Eriksson & Davidson, 2003: Jet Noise Prediction Using Stochastic Turbulence Modeling -->
+            </xsd:restriction>
+          </xsd:simpleType>
         </xsd:attribute>
         <!--xsd:attribute name="opType" use="required">
           <xsd:simpleType>

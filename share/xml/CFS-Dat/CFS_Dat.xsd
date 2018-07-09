@@ -57,7 +57,7 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="syntheticTurbulence_SNGR" type="DT_SNGR"/>
+      <xsd:element name="syntheticTurbulence" type="DT_SNGR"/>
       <xsd:element name="fft" type="DT_FFT"/>
       <xsd:element name="timeMean" type="DT_TMean">
         <xsd:annotation>

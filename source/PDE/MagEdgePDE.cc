@@ -593,6 +593,33 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   } // end DefineIntegrators
   
   
+  void MagEdgePDE::DefineNcIntegrators() {
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+            endIt = ncInterfaces_.End();
+
+    for ( ; ncIt != endIt; ++ncIt ) {
+      if( analysistype_ == STATIC ){
+        EXCEPTION("Nitsche interface not yet tested for static analysis!\n"
+                  "You only have to delete this exception and verify the results");
+      }
+      switch (ncIt->type) {
+        case NC_MORTAR:
+          EXCEPTION("No Mortar nonconforming interface for magnetic PDE with edge elements.\n"
+                    "Try using H1 nodal elements in MagneticPDE")
+          break;
+        case NC_NITSCHE:
+          if (dim_ == 2)
+            EXCEPTION("MagEdgePDE only works for 3D geometry!")
+          else
+            DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt );
+          break;
+        default:
+          EXCEPTION("Unknown type of ncInterface");
+          break;
+      }
+    }
+  }
+
   void MagEdgePDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(magEdgePde) << "Defining rhs load integrators for magEdgePDE";
        
@@ -781,6 +808,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             // take the read values and normalise to a length of 1
             PtrCoefFct unitDir;
             if ( normalise ) {
+                cplx = Global::REAL;
                 CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mp_, regCurrDens, CoefXpr::OP_NORM );
                 PtrCoefFct dirAbs = CoefFunction::Generate( mp_, cplx, dirAbsOp );
                 CoefXprVecScalOp unitOp = CoefXprVecScalOp( mp_, regCurrDens, dirAbs, CoefXpr::OP_DIV );
@@ -1286,15 +1314,16 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
 
     // === JOULE LOSS Power DENSITY INTEGRATED OVER PERIOD	 ===
-    shared_ptr<ResultInfo> jld(new ResultInfo);
-    jld->resultType = MAG_JOULE_LOSS_POWER_DENSITY;
-    jld->dofNames = "";
-    jld->unit = "W/m^3";
-    jld->definedOn = ResultInfo::ELEMENT;
-    jld->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
-    DefineFieldResult( jldCoef, jld );
-
+    if( analysistype_ != STATIC ){
+      shared_ptr<ResultInfo> jld(new ResultInfo);
+      jld->resultType = MAG_JOULE_LOSS_POWER_DENSITY;
+      jld->dofNames = "";
+      jld->unit = "W/m^3";
+      jld->definedOn = ResultInfo::ELEMENT;
+      jld->entryType = ResultInfo::SCALAR;
+      shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
+      DefineFieldResult( jldCoef, jld );
+    }
   }
 
   void MagEdgePDE::FinalizePostProcResults() {

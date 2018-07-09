@@ -89,10 +89,10 @@ bool InputFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
       CF::StdVector<UInt> eqnVec;
       Vector<Double>& fullVec =  resultManager_->GetResultVector<Double>(*aIter,eqnVec);
 
-      Double reqValue = resultManager_->GetStepValue(*aIter);
       UInt stepNumber = 1;
 
       if(params_->Get("timeType",ParamNode::EX)->As<std::string>() != "static"){
+        Double reqValue = resultManager_->GetStepValue(*aIter);
         CF::StdVector<Double>::iterator val= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+reqValue, 1E-6) );
 
         if(val == fileResult.timeLine->End()){

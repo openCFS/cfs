@@ -500,20 +500,6 @@ bool MeshFilter::CalcLocCurl(CF::Matrix<Double>& derivCoefVec,
         }
         switch( numEquPerEnt ){
         case 1:
-          if (grid->GetDim() == 2){
-            derivVec.Resize(numNeighbors,2);
-            if (l2Distances[i] == 0) {
-              derivVec[i][0] = 0.0;
-              derivVec[i][1] = 0.0;
-            }else{
-              derivVec[i][0] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[0] - neighbors[i][0]));
-              derivVec[i][1] =  exp(-(eps*eps * l2Distances[i] * l2Distances[i])) * (-2.0 * eps*eps * (globPoint[1] - neighbors[i][1]));
-            }
-          }else{
-            EXCEPTION("2D mesh and 3D-values!")
-          }
-
-          break;
         case 2:
           if (grid->GetDim() == 2){
             derivVec.Resize(numNeighbors,2);
