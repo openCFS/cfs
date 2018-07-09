@@ -45,8 +45,7 @@ ENDIF()
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://pkgs.fedoraproject.org/repo/pkgs/muParser/${MUPARSER_ZIP}/${MUPARSER_MD5}/${MUPARSER_ZIP}"
-  "ftp://ftp.jp.netbsd.org/pub/pkgsrc/distfiles/${MUPARSER_ZIP}"
+  "https://src.fedoraproject.org/repo/pkgs/muParser/${MUPARSER_BASE}-${MUPARSER_VER}.tar.gz/sha512/${MUPARSER_SHA512}/${MUPARSER_BASE}-${MUPARSER_VER}.tar.gz"
   "${MUPARSER_URL}/${MUPARSER_ZIP}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/muparser/${MUPARSER_ZIP}")
