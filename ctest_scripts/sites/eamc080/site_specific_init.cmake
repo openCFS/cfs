@@ -30,8 +30,8 @@ MESSAGE("\n---------------------------------------------------")
 MESSAGE("Update testsuite ${CTEST_SOURCE_DIRECTORY} ...")
 MESSAGE("---------------------------------------------------\n")
 
-FIND_PROGRAM(CTEST_SVN_COMMAND NAMES svn)
-SET(CTEST_UPDATE_TYPE "svn")
+FIND_PROGRAM(CTEST_GIT_COMMAND NAMES git)
+SET(CTEST_UPDATE_TYPE "git")
 
 CTEST_START(Nightly)
 CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
