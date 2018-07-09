@@ -440,8 +440,11 @@ void CFS::SetupIO(PtrParamNode rootNode )
   std::string id = progOpts->GetId() != "" ? progOpts->GetId() : paramNode_->Get("id")->As<std::string>();
   infoNode->Get(ParamNode::HEADER)->Get("id")->SetValue(id);
   
+  // additional log for all kind of information
+  if (paramNode_->Has("info"))
+    infoNode->Get(ParamNode::HEADER)->Get("info")->SetValue(paramNode_->Get("info"),false);
   // if requested give the problem file -> one can see the defaults then
   if(progOpts->DoDetailedInfo())
-    infoNode->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(paramNode_);
+    infoNode->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(paramNode_,false);
 }
 
