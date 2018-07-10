@@ -891,21 +891,17 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
 
       // get nu = nu0 * nuR, for air nuR = 1 (2x2)
       bdb->GetCoef()->GetTensor(dmat,lp);
-      std::cout << "dmat-vorher= " << dmat << std::endl;
 
       // calculate BDB (4x4)
       bdb->GetBOp()->CalcOpMat(bmat,lp,ptFe); // bmat (2x4)
-      std::cout << "bmat= " << bmat << std::endl;
       Matrix <T> DB(bmat.GetNumRows(),bmat.GetNumCols());
       DB = (dmat * bmat);
       DB *= fac;
-      std::cout << "DB= " << DB << std::endl;
       Matrix <T> BDB(retMat.GetNumRows(),retMat.GetNumCols());
       BDB = Transpose(bmat) * DB;
 
-      std::cout << "retMat-vorher= " << retMat << std::endl;
       retMat += BDB;
-      std::cout << "retMat " << retMat << std::endl;
+      LOG_DBG2(designSpace) << "APDEM retMat="  << retMat << "DB= " << DB << "bmat= " << bmat;
     }
   }
   else
@@ -965,7 +961,6 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   if(app == App::MAG)
   {
-    std::cout << "retMat= " << retMat << std::endl;
     // retMat = nu_0 * nu_r
     // we assume the org mat to be a dim x dim diagonal matrix
     assert(retMat.GetNumRows() == domain->GetGrid()->GetDim());
@@ -984,7 +979,8 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     //calculate nu (2x2)
     retMat *= factor;
     retMat.Add(1-factor,nu_0); //retMat = nu
-    std::cout << "nu= " << retMat << std::endl;
+    LOG_DBG2(designSpace) << "APDEM nu= " << retMat;
+
   }
   else
   {
@@ -1038,13 +1034,13 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 
   if(app == App::MAG)
   {
-	double mu_0 = 4*M_PI*1e-7;
+	/*double mu_0 = 4*M_PI*1e-7;
 	double mu_0mu_r = ((Complex) retScal).real();
-	retScal = mu_0*(1+(mu_0mu_r-1)*factor);
+	retScal = mu_0*(1+(mu_0mu_r-1)*factor);*/
   }
   else
   {
-	retScal *= factor;
+    retScal *= factor;
   }
 
   DesignRegion* dr = GetRegion(lpm->ptEl->regionId);

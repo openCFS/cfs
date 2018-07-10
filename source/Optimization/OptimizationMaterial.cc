@@ -166,7 +166,9 @@ const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, cons
   if(direction != DesignElement::NO_DERIVATIVE && direction != DesignElement::NO_MULTIMATERIAL)
     coef->SetToMaterialDerivative(direction);
 
+  // let CFS do the hard stuff
   c->GetIntegrator()->CalcElementMatrix(out, it, it);
+
   coef->SetToOptimization(); // removes the shadow material and direction
 
   return out;

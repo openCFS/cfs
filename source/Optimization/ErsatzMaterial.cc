@@ -695,8 +695,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         // loop over all elements
         DesignElement* de = &design->data[base + e];
         bool notDampingElement = de->GetType() != DesignElement::DAMPINGALPHA && de->GetType() != DesignElement::DAMPINGBETA;
-        SetElementK(f->ctxt, de, ktf, App::MECH, dynamic_cast<DenseMatrix*>(&dK), notDampingElement);
-        SetElementK(f->ctxt, de, mtf, App::MASS, dynamic_cast<DenseMatrix*>(&dM), notDampingElement);
+        SetElementK(f, de, ktf, App::MECH, dynamic_cast<DenseMatrix*>(&dK), notDampingElement);
+        SetElementK(f, de, mtf, App::MASS, dynamic_cast<DenseMatrix*>(&dM), notDampingElement);
         // The damping matrix is alpha * Mass + beta * Stiffness, so it's derivative is also alpha * dMass + beta * dStiffness
         // We need to get alpha and beta, from the integrators
         // if we get Damping Information from the DesignSpace, we use that, else we use the "traditional" one
@@ -848,111 +848,15 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         LOG_DBG3(em) << "u2:" << e << ": " << u2_vec.ToString();
 
         // u1^T (K' u2 - f') -> find "K'"
-        if (App::MAG)
-        {
-          Matrix <T> MAT(mat.GetNumRows(),mat.GetNumRows());
-
-          StdVector<Elem*> elems;
-          domain->GetGrid()->GetElems(elems, f->region);
-
-          // annoying entity iterator got hold the elem
-          ElemList el(elems[0],domain->GetGrid());
-
-          Elem* elem = elems[e];
-          el.SetElement(elem);
-
-          // Getting the ErsatzMaterial factor
-          DesignSpace* space = domain->GetDesign();
-          int idx = space->Find(elem, true);
-          double val = space->GetErsatzMaterialFactor(idx, App::MAG);
-
-          Matrix<T> b_mat; // this holds the curl-operator for the whole element. for 2D rectangular it shall be 2 rows, 4 columns
-          BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator();
-
-          // this gets the equation numbers for the element
-          StdVector<int> eqn;
-
-          // get the form first
-          BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
-          assert(bdb != NULL);
-
-          // get B-mat
-          StdVector<LocPoint> intPoints; // Get integration Points
-          LocPointMapped lp; // Geometry related information about the element
-          StdVector<double> weights;
-
-          // Obtain FE element from feSpace and integration scheme
-          IntegOrder order;
-          IntScheme::IntegMethod method = IntScheme::UNDEFINED;
-          BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
-
-          // Get integration points
-          form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type), method, order, intPoints, weights );
-          LOG_DBG2(em) << "CMFD i=" << e << " e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
-          assert(method != IntScheme::UNDEFINED);
-          assert(!intPoints.IsEmpty());
-
-          // Get shape map from grid
-          shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
-
-          // Loop over all integration points
-          for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
-          {
-            // Calculate for each integration point the LocPointMapped
-            lp.Set( intPoints[ip], esm, weights[ip] );
-
-            double fac = lp.jacDet; // is needed for surface info
-
-            // Call the CalcBMat()-method
-            bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
-            LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " b_mat=" << b_mat.ToString(0, false);
-            std::cout << "b_mat= " << b_mat << std::endl;
-            std::cout << "weights[ip]= " << weights[ip] << std::endl;
-            b_mat *= weights[ip];
-            std::cout << "b_mat*weights[ip]= " << b_mat << std::endl;
-
-            // get nu = nu0 * nuR, for air nuR = 1 (2x2), dmat = nu
-            Matrix <T> dmat;
-            bdb->GetCoef()->GetTensor(dmat,lp);
-            std::cout << "dmat= " << dmat << std::endl;
-
-            // calculate nu0 (2x2) in 2D case
-            //nu_0(dmat.GetNumRows(),dmat.GetNumCols());
-            Matrix<T> nu_0(2,2);
-            for(unsigned int i = 0; i < dmat.GetNumCols(); i++)
-              nu_0[i][i] = 1/(4*M_PI*1e-7);
-            assert(nu_0[0][1] == 0.0);
-
-            // calculate dK/drho = (nu0 * nuR - nu0) * K, (K = b_mat^T * b_mat)
-            Matrix <T> dB;
-            dmat -= nu_0;
-            std::cout << "dmat - nu0= " << dmat << std::endl;
-            dmat /= val;
-            std::cout << "dmat - nu0/rho= " << dmat << std::endl;
-            dB = (dmat * b_mat);
-            dB *= fac;
-            std::cout << "dB= " << dB << std::endl;
-            std::cout << "mat-vorher= " << mat << std::endl;
-            MAT += Transpose(b_mat) * dB;
-            std::cout << "mat= " << mat << std::endl;
-          }
-          mat = MAT;
-        }
-        else
-        {
-          SetElementK(f->ctxt, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
-        }
+        SetElementK(f, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
 
         LOG_DBG3(em) << "mat: " << mat.ToString();
-        std::cout << "mat= " << mat.ToString() << std::endl;
-        std::cout << "u2_vec= " << u2_vec.ToString() << std::endl;
-        std::cout << "u1_vec= " << u1_vec.ToString() << std::endl;
+        LOG_DBG2(em) << "mat=" << mat << "u2_vec=" << u2_vec << "u1_vec= " << u1_vec.ToString();
 
         // We generally solve u1^T (K' u2 - f')
         // u1^T (K' u2 - f') -> calc "K' u2"
         mat_vec = mat * u2_vec;
         LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
-        std::cout << "mat_vec= " << mat_vec.ToString() << std::endl;
 
         // u1^T (K' u2 - f') -> calc "- f'"
         assert(!(calcMode == CONJ_QUAD && rtf != NULL));// no sensitive rhs here!
@@ -991,8 +895,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         de->AddGradient(f, this_value);
 
         LOG_DBG3(em) << "CalcU1KU2: e=" << e << "->" << de->GetIndex() << " de=" << de->ToString() << " <l,K'*u-f'>  = " << sp << " -> " << this_value << " sum = " << de->GetPlainGradient(f);
-
-        std::cout << "CalcU1KU2: e=" << e << "->" << de->GetIndex() << " de=" << de->ToString() << " <l,K'*u-f'>  = " << sp << " -> " << this_value << " sum = " << de->GetPlainGradient(f) << std::endl;
 
         sum += this_value;
 
@@ -1222,7 +1124,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     {
       // if there s no "coord" set it is only meant for evaluate for forward homogenization
       StdVector<double> tmp;
-      CalcHomogenizedTensorEntry(f->ctxt, c->coord, true, tmp, f->GetExcitation()->meta_index);
+      CalcHomogenizedTensorEntry(f, c->coord, true, tmp, f->GetExcitation()->meta_index);
       for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
       design->data[e].AddGradient(c, NULL, tmp[e]);
       return 0.0;
@@ -1951,7 +1853,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
     // the stored element solution vector
     StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
-    std::cout << "sol.GetSize()" << sol.GetSize() << std::endl;
+    //std::cout << "sol.GetSize()" << sol.GetSize() << std::endl;
 
     int elPosition;
     elPosition = sol.GetSize() - elems.GetSize();
@@ -1974,7 +1876,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       //Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
       assert(vec != NULL);
       Vector<double>& a = *vec; // a stands for the Vectorpotential in the element
-      std::cout << "a= " <<a.ToString() << std::endl;
+      //std::cout << "a= " <<a.ToString() << std::endl;
+      LOG_DBG2(em) << "CMDF: i=" << e << " e=" << elem->elemNum << " A= " << a.ToString();
       assert(!(domain->GetGrid()->IsRegionRegular(f->region) && a.GetSize() != 4)); // for regular 2D grid!!!
       LOG_DBG2(em) << "CMDF: i=" << e << " e=" << elem->elemNum << " -> " << a.ToString();
 
@@ -2016,38 +1919,39 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
         // Calculation of the B Matrix (2x4) over the integration points
         b_mat *= weights[ip]; // Do I need here a multiplication with fac????
-        std::cout << "b_mat*weights[ip]= " << b_mat << std::endl;
+        //std::cout << "b_mat*weights[ip]= " << b_mat << std::endl;
+        LOG_DBG2(em) << "CMDF: b_mat=" << b_mat;
 
         B += b_mat * a;
         //LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " mfd=" << mag_flux_density.ToString() << " b_mat=" << b_mat.ToString(0, false);
       }
-      std::cout << "B= " << B << std::endl;
-      std::cout << "intPoints.GetSize()= " << intPoints.GetSize() << std::endl;
+      //std::cout << "B= " << B << std::endl;
+      //std::cout << "intPoints.GetSize()= " << intPoints.GetSize() << std::endl;
       B /= intPoints.GetSize();
-      std::cout << "Bges= " << Bges << std::endl;
+      //std::cout << "Bges= " << Bges << std::endl;
       Bges += B;
-      std::cout << "Bges= " << Bges << std::endl;
+      //std::cout << "Bges= " << Bges << std::endl;
+      LOG_DBG2(em) << "CMDF: Bges=" << Bges << " intPoints=" << intPoints.GetSize();
       elPosition ++;
     } // end loop elems
     // Calculation of the square from magnetic flux density  B^2 = sum(rot(A)^2) = sum((b_mat * a)^2) over the integration points
     // b_mat = the derivative of the shape function, a = the magnetic vector potential
     // Optimization of x or y direction
-    std::cout << "LaengeVek= " << elems.GetSize() << std::endl;
-
 
     Bges /= elems.GetSize();
-    std::cout << "Bges= " << Bges << std::endl;
+    //std::cout << "Bges= " << Bges << std::endl;
     if (f->GetType() == Function::MAG_FLUX_DENS_X){
       D[0] = 1;
     }
     else {
       D[1] = 1;
     }
-    std::cout << "Bges " << Bges << std::endl;
+    //std::cout << "Bges " << Bges << std::endl;
     mag_flux_dens_square = Bges.Inner(D);
-    std::cout << "mag_flux_dens_square-vorher= " << mag_flux_dens_square << std::endl;
+    //std::cout << "mag_flux_dens_square-vorher= " << mag_flux_dens_square << std::endl;
     mag_flux_dens_square *= mag_flux_dens_square;
-    std::cout << "mag_flux_dens_square= " << mag_flux_dens_square << std::endl;
+    //std::cout << "mag_flux_dens_square= " << mag_flux_dens_square << std::endl;
+    LOG_DBG2(em) << "CMDF: mag_flux_dens_square=" << mag_flux_dens_square;
 
     return mag_flux_dens_square;
   }
@@ -2777,7 +2681,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       assert(vec != NULL);
       Vector<double>& a = *vec; // a = the Vectorpotential in the element
 
-      std::cout << "a= " << a.ToString() << std::endl;
+      //std::cout << "a= " << a.ToString() << std::endl;
       assert(!(domain->GetGrid()->IsRegionRegular(f->region) && a.GetSize() != 4)); // for regular 2D grid!!!
       LOG_DBG2(em) << "CMDF: i=" << e << " e=" << elem->elemNum << " -> " << a.ToString();
 
@@ -2810,7 +2714,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       // traverse nodes
       form->GetFeSpace1()->GetElemEqns(eqn, elem);
       assert(eqn.GetSize() == elem->connect.GetSize());
-      assert(b_mat.GetNumCols() == elem->connect.GetSize());
+      //assert(b_mat.GetNumCols() == elem->connect.GetSize());
 
       // Loop over all integration points
       for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
@@ -2823,38 +2727,40 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         // Call the CalcBMat()-method
         bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
         LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " b_mat=" << b_mat.ToString(0, false);
-        std::cout << "b_mat= " << b_mat << std::endl;
-        std::cout << "weights[ip]= " << weights[ip] << std::endl;
+        //std::cout << "b_mat= " << b_mat << std::endl;
+        //std::cout << "weights[ip]= " << weights[ip] << std::endl;
         b_mat *= weights[ip];
-        std::cout << "b_mat*weights[ip]= " << b_mat << std::endl;
+        //std::cout << "b_mat*weights[ip]= " << b_mat << std::endl;
 
         Vector <double> ba;
         ba = b_mat * a;
         Matrix <double> BA(b_mat.GetNumRows(),1);
         for(unsigned int u = 0; u < ba.GetSize();u++)
           BA[u][0] = ba[u];
-        std::cout << "BA= " << BA << std::endl;
+        //std::cout << "BA= " << BA << std::endl;
         Matrix <double> BAD(1,b_mat.GetNumRows());
         BAD = Transpose(BA) * D ; // Do I need here a multiplication with fac????
-        std::cout << "BAD= " << BAD << std::endl;
+        //std::cout << "BAD= " << BAD << std::endl;
         BADB += BAD * b_mat * weights[ip];
-        std::cout << "BADB= " << BADB << std::endl;
+        //std::cout << "BADB= " << BADB << std::endl;
+        LOG_DBG2(em) << "CMDF: BA=" << BA << " BAD=" << BAD << " BADB-> " << BADB;
       }
-      //BADB *= (-2);
-      std::cout << "BADB= " << BADB << std::endl;
+      BADB *= (-2);
+      //std::cout << "BADB= " << BADB << std::endl;
 
       for(unsigned int n = 0; n < eqn.GetSize(); n++){
         out[eqn[n]] = 1.0/elems.GetSize() * BADB[0][n];
-        std::cout << "eqn[n]= " << eqn[n] << std::endl;
-        std::cout << "out[eqn[n]]-vorher= " << out[eqn[n]] << std::endl;
+        //std::cout << "eqn[n]= " << eqn[n] << std::endl;
+        //std::cout << "out[eqn[n]]-vorher= " << out[eqn[n]] << std::endl;
         calc[eqn[n]] ++;
-        std::cout << "calc[eqn[n]]= " << calc[eqn[n]] << std::endl;
+        //std::cout << "calc[eqn[n]]= " << calc[eqn[n]] << std::endl;
+        LOG_DBG2(em) << "CMDF: eqn[n]=" << eqn[n] << " out[eqn[n]]=" << out[eqn[n]];
       }
       //std::cout << "out= " << out << std::endl;
       //std::cout << "calc= " << calc << std::endl;
 
       // Ist das notwendig? Mittelung wie oft auf eqn Number geschrieben wurde
-      if ((e+1) == elems.GetSize())
+ /*     if ((e+1) == elems.GetSize())
       {
         for(unsigned int eNeu = 0; eNeu < elems.GetSize(); eNeu++){
           Elem* elemNeu = elems[eNeu];
@@ -2875,14 +2781,13 @@ PtrParamNode ErsatzMaterial::CommitIteration()
             std::cout << "out[eqnNeu[p]]= " << out[eqnNeu[p]] << std::endl;
           }
         }
-      }
+      }*/
       elPosition ++;
     }
      // end loop elems
-    std::cout << "Size_out= " << out.GetSize() << std::endl;
-    std::cout << "Size_calc= " << calc.GetSize() << std::endl;
-
-    out *= (-2);
+    //std::cout << "Size_out= " << out.GetSize() << std::endl;
+    //std::cout << "Size_calc= " << calc.GetSize() << std::endl;
+    //out *= (-2);
   }
 
   double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
@@ -2992,11 +2897,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       // PLANE_STRESS: E = E11 * (1-v^2)
 
       StdVector<double> dE11;
-      CalcHomogenizedTensorEntry(f->ctxt, boost::make_tuple(1,1,1.0), true, dE11, f->GetExcitation()->meta_index);
+      CalcHomogenizedTensorEntry(f, boost::make_tuple(1,1,1.0), true, dE11, f->GetExcitation()->meta_index);
       StdVector<double> dE12;
-      CalcHomogenizedTensorEntry(f->ctxt, boost::make_tuple(1,2,1.0), true, dE12, f->GetExcitation()->meta_index);
+      CalcHomogenizedTensorEntry(f, boost::make_tuple(1,2,1.0), true, dE12, f->GetExcitation()->meta_index);
       StdVector<double> dE22;
-      CalcHomogenizedTensorEntry(f->ctxt, boost::make_tuple(2,2,1.0), true, dE22, f->GetExcitation()->meta_index);
+      CalcHomogenizedTensorEntry(f, boost::make_tuple(2,2,1.0), true, dE22, f->GetExcitation()->meta_index);
 
       double grad(0.0);
 
@@ -3142,7 +3047,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
           LOG_DBG3(em) << "CHT f=" << f->ToString() << " ij=" << ij << " kl=" << kl << " e=" << e << " u2=" << u2_vec.ToString();
 
           // transformed de
-          double p = CalcHomogenizedElementProduct(this, f->ctxt, de, false, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
+          double p = CalcHomogenizedElementProduct(this, f, de, false, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
 
           assert(p < 1e100);
 
@@ -3202,7 +3107,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
           StdVector<SingleVector*>& u2 = forward.Get(ctxt->GetExcitation(kl, f))->elem[App::MECH]; // equal to \chi^{kl}
           Vector<double>& u2_vec = dynamic_cast<Vector<double>&>(*u2[e]);
           // prepare for calculation
-          double p = CalcHomogenizedElementProduct(this, f->ctxt, de, true, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
+          double p = CalcHomogenizedElementProduct(this, f, de, true, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
           hom_tensor_deriv[ij][kl] = p / cube_vol;// normalize for volume
         } // end of kl loop
 
@@ -3229,7 +3134,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       {
         boost::tuple<int,int,double> entry = boost::make_tuple(x + 1, y + 1, 0.0);
         tmp_grad_out.Init(0.0);
-        CalcHomogenizedTensorEntry(f->ctxt, entry, true, tmp_grad_out, meta);
+        CalcHomogenizedTensorEntry(f, entry, true, tmp_grad_out, meta);
         double d_ij = par[y][x];
         for (int e = 0, ne = design->GetNumberOfElements();e < ne;++e)
         {
@@ -3256,7 +3161,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     for(unsigned int i = 0; i < g->coords.GetSize(); i++)
     {
       boost::tuple<int, int, double>& entry = g->coords[i];
-      double t = CalcHomogenizedTensorEntry(g->ctxt, entry, derivative, grad, meta);
+      double t = CalcHomogenizedTensorEntry(g, entry, derivative, grad, meta);
       double factor = boost::get<2>(entry);
 
       if(derivative)
@@ -3287,9 +3192,10 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     return result;
   }
 
-  double ErsatzMaterial::CalcHomogenizedTensorEntry(Context* ctxt, const boost::tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta)
+  double ErsatzMaterial::CalcHomogenizedTensorEntry(Function* f, const boost::tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta)
   {
     const double cube_vol = grid->CalcHullVolume();
+    Context* ctxt = f->ctxt;
 
     assert((dim == 2 && ctxt->excitations.GetSize() >= 3) || (dim == 3 && ctxt->excitations.GetSize() >= 6)); // for meta exctiations it is more
     Matrix<double> test_strain_matrix_ij(dim, dim);
@@ -3325,7 +3231,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       DesignElement* de = design->ApplyTransformations(&design->data[e], &design->data[e], trans);
 
       // prepare for calculation
-      double p = CalcHomogenizedElementProduct(this, ctxt, de, derivative, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
+      double p = CalcHomogenizedElementProduct(this, f, de, derivative, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
       result += p / cube_vol;// normalize for volume
 
       LOG_DBG2(em) << "CHTE ij=" << ij << " kl=" << kl << " der=" << derivative << " meta=" << meta << " e=" << e << "de=" << de->ToString() << " p=" << p << " re=" << result;
@@ -3341,7 +3247,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   }
 
 
-  double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Context* ctxt, DesignElement* de, bool derivative, Vector<double>& u1_vec, Vector<double>& u2_vec, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl)
+  double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Function* f, DesignElement* de, bool derivative, Vector<double>& u1_vec, Vector<double>& u2_vec, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl)
   {
     assert(u1_vec.NormL2() > 0);
     assert(u2_vec.NormL2() > 0);
@@ -3390,7 +3296,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // reuse tmp_mat as elementK-Matrix
     // Matrix<double> k_mat;
     TransferFunction* tf = obj->design->GetTransferFunction(DesignElement::DENSITY, App::MECH);
-    obj->SetElementK(ctxt, de, tf, App::MECH, &tmp_mat, derivative);
+    obj->SetElementK(f, de, tf, App::MECH, &tmp_mat, derivative);
 
     assert(tmp_mat.GetNumRows() == tmp_mat.GetNumCols() && tmp_mat.GetNumCols() == u1_0.GetSize());
 

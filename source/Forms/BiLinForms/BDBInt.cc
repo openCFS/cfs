@@ -111,14 +111,14 @@ namespace CoupledField{
 
       // Call the CalcBMat()-method
       bOperator_->CalcOpMat( bMat_, lp, ptFe);
-      std::cout << "bMat_= " << bMat_ << std::endl;
+      //std::cout << "bMat_= " << bMat_ << std::endl;
 
       // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
 
       // Calculate D-Mat
    //   std::cout << "Integration point " << i << " of " << numIntPts << std::endl;
       dData_->GetTensor(dMat_,lp);
-      std::cout << "dMat_= " << dMat_ << std::endl;
+      //std::cout << "dMat_= " << dMat_ << std::endl;
       assert(dMat_.IsSymmetric(1e-8));
       // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " dMat=" << dMat_.ToString(2);
 
@@ -133,10 +133,11 @@ namespace CoupledField{
       bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0, true); // conjugate complex; elemMat = factor_*fac * bMat_^H * dbMat_ + 1.0 * elemMat
 #else
       dbMat_ = (dMat_ * bMat_) * fac;
-      std::cout << "elemMat_vorher= " << elemMat << std::endl;
+      //std::cout << "elemMat_vorher= " << elemMat << std::endl;
       elemMat += TransposeConjugate(bMat_) * dbMat_ * factor_;
-      std::cout << "dbMat_= " << dbMat_ << std::endl;
-      std::cout << "elemMat= " << elemMat << std::endl;
+      //std::cout << "dbMat_= " << dbMat_ << std::endl;
+      //std::cout << "elemMat= " << elemMat << std::endl;
+      LOG_DBG3(bdbint) << "CEM dbMat_= " << dbMat_ << " elemMat= " << elemMat;
 #endif
 
       // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " elemMat=" << elemMat.ToString(2);

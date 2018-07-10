@@ -709,7 +709,7 @@ class Function
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
 
-    /** If condition supports constriction to one region. Currently ALL_REGIONS for objectives */
+    /** If condition supports restriction to one region. Currently ALL_REGIONS for objectives */
     RegionIdType region;
 
     /** real or pseudo design elements defined by the region.

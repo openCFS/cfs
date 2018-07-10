@@ -143,7 +143,7 @@ void ObjectiveContainer::PostProc(DesignSpace* space, DesignStructure* structure
     assert(data[i]->HasDenseJacobian());
     data[i]->SetDenseSparsityPattern(space);
 
-    data[i]->SetElements(space, ALL_REGIONS); // before Function::PostProc() !
+    data[i]->SetElements(space, data[i]->region); // before Function::PostProc() !
     data[i]->PostProc(space, structure);
     data[i]->SetExcitation(me);
   }

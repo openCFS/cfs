@@ -852,11 +852,12 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
           DesignElement* de = &(space->data[i]);
           elements.Push_back(de);
         }
-      } else {
-        for (unsigned int i = 0; i < space->data.GetSize(); i++) {
+      } else
+      {
+        for(unsigned int i = 0; i < space->data.GetSize(); i++)
+        {
           DesignElement* de = &(space->data[i]);
-          if(DesignElement::IsCompatible(design_, de->GetType())
-             && (region == ALL_REGIONS || de->elem->regionId == region))
+          if(DesignElement::IsCompatible(design_, de->GetType()) && (region == ALL_REGIONS || de->elem->regionId == region))
             elements.Push_back(de);
         }
       }

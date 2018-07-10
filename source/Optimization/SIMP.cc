@@ -74,24 +74,24 @@ void SIMP::PostInit()
                       else mechRHS.Init<double>(design, App::PRESSURE);
 }
 
-void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)
+void SIMP::SetElementK( Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)
 {
-  if(ctxt->IsComplex())
+  if(f->ctxt->IsComplex())
   {
-    if(ctxt->mat->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
-      SetElementK<Complex, Complex >(ctxt, de, tf, app, out, derivative, calcMode, ev);
+    if(f->ctxt->mat->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
+      SetElementK<Complex, Complex >( f, de, tf, app, out, derivative, calcMode, ev);
     else
-      SetElementK<Complex, double >(ctxt, de, tf, app, out, derivative, calcMode, ev);
+      SetElementK<Complex, double >( f, de, tf, app, out, derivative, calcMode, ev);
   }
   else
-    SetElementK<double,double>(ctxt, de, tf, app, out, derivative, calcMode, ev);
+    SetElementK<double,double>( f, de, tf, app, out, derivative, calcMode, ev);
 }
 
 template <class T1, class T2>
-void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
+void SIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
-  assert(ctxt->mat != NULL);
-  OptimizationMaterial* mat = ctxt->mat;
+  assert(f->ctxt->mat != NULL);
+  OptimizationMaterial* mat = f->ctxt->mat;
   Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
   //std::cout << "out= " << out.ToString() << std::endl;
 
@@ -106,6 +106,7 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
     //std::cout << "mm= " << mm << std::endl;
 
+    // element matrix with org material, might be cached -> local_element_cache
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mat->Stiffness(de->elem, false, mm)); // no bimaterial
     //std::cout << "stifness= " << stiffness.ToString() << std::endl;
 
@@ -115,7 +116,7 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
     //std::cout << "k_factor= " << k_factor << std::endl;
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, stiffness, k_factor); // out = k_factor * stiffness
-    std::cout << "stiffness= " << stiffness << std::endl;
+    //std::cout << "stiffness= " << stiffness << std::endl;
     //std::cout << "out= " << out << std::endl;
     // This log is very expensive, it blows up inv_tensor in the debug mode
     // LOG_DBG3(simp) << "SetElementK: el=" << de->elem->elemNum << " di=" << de->GetIndex() << " mm=" << mm << " K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
@@ -131,17 +132,17 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
       // LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
     }
 
-    if(ctxt->IsComplex())
+    if(f->ctxt->IsComplex())
     {
       tf = design->GetTransferFunction(de->GetType(), App::MASS);
-      AddMassToStiffness(ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, false, calcMode, ev); // no bimaterial
+      AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, false, calcMode, ev); // no bimaterial
 
       // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
-        AddMassToStiffness(ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, true, calcMode, ev); // bimaterial
+        AddMassToStiffness(f->ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, true, calcMode, ev); // bimaterial
 
         // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
       }
@@ -157,7 +158,7 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
     // copy from ElecStiffness to out and factor the derivative
-    if (ctxt->IsComplex())
+    if(f->ctxt->IsComplex())
       Assign(out, dynamic_cast<const Matrix<T1>& >(stiffness), k_factor);
     else
       Assign(out, stiffness.GetPart(Global::REAL), k_factor);
@@ -170,11 +171,95 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
       const Matrix<std::complex<double> >& bimat = dynamic_cast<ElecMat *>(mat)->ElecStiffness(de->elem, true); // yes, bimaterial
       // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
       k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, true) : tf->Transform(de, DesignElement::SMART, true);
-      if(ctxt->IsComplex())
+      if(f->ctxt->IsComplex())
         Add(out, k_factor, dynamic_cast<const Matrix<T1>& >(bimat));
       else
         Add(out, k_factor, bimat.GetPart(Global::REAL));
       // LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
+    }
+    break;
+  }
+
+  // u1^T (K' u2 - f') -> find "K'"
+  case App::MAG:
+  {
+    Elem* elem = de->elem;
+
+    // Getting the ErsatzMaterial factor
+    DesignSpace* space = domain->GetDesign();
+    double val = de->GetDesign(DesignElement::SMART);
+
+    Matrix<T2> b_mat; // this holds the curl-operator for the whole element. for 2D rectangular it shall be 2 rows, 4 columns
+    BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", de->elem->regionId, context->pde)->GetIntegrator();
+
+    // this gets the equation numbers for the element
+    StdVector<int> eqn;
+
+    // get the form first
+    BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
+    assert(bdb != NULL);
+
+    // get B-mat
+    StdVector<LocPoint> intPoints; // Get integration Points
+    LocPointMapped lp; // Geometry related information about the element
+    StdVector<double> weights;
+
+    // Obtain FE element from feSpace and integration scheme
+    IntegOrder order;
+    IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+    BaseFE* ptFe = form->GetFeSpace1()->GetFe(elem->elemNum);
+    //BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
+
+    // Get integration points
+    form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type), method, order, intPoints, weights );
+    //LOG_DBG2(simp) << "CMFD e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
+
+    // Get shape map from grid
+    shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
+
+    // we sum up within the looop
+    out.Init();
+
+    // Loop over all integration points
+    for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
+    {
+      // Calculate for each integration point the LocPointMapped
+      lp.Set( intPoints[ip], esm, weights[ip] );
+
+      double fac = lp.jacDet; // is needed for surface info
+
+      // Call the CalcBMat()-method
+      bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
+      LOG_DBG3(simp) << "CMDF: ip=" << ip << " w=" << weights[ip] << " b_mat=" << b_mat.ToString(0, false);
+      b_mat *= weights[ip];
+
+      // get nu = nu0 * nuR, for air nuR = 1 (2x2), dmat = nu
+      Matrix<T1> dmat;
+      bdb->GetCoef()->GetTensor(dmat,lp);
+      double mu;
+      bdb->GetCoef()->GetScalar(mu,lp);
+      //std::cout << "dmat= " << dmat << std::endl;
+      LOG_DBG2(simp) << "CMFD dmat=" << dmat << " b_mat=" << b_mat ;
+
+      // calculate nu0 (2x2) in 2D case
+      //nu_0(dmat.GetNumRows(),dmat.GetNumCols());
+      Matrix<T1> nu_0(2,2);
+      for(unsigned int i = 0; i < dmat.GetNumCols(); i++)
+        nu_0[i][i] = 1/(4*M_PI*1e-7);
+      assert(nu_0[0][1] == 0.0);
+
+      // calculate dK/drho = (nu0 * nuR - nu0) * K, (K = b_mat^T * b_mat)
+      Matrix<T1> dB;
+      dmat /= val;
+      dmat -= nu_0;
+
+      LOG_DBG2(simp) << "CMFD dmat - nu0/rho=" << dmat;
+      dB = (dmat * b_mat);
+      dB *= fac;
+      //std::cout << "dB= " << dB << std::endl;
+      //std::cout << "mat-vorher= " << mat << std::endl;
+      out += Transpose(b_mat) * dB;
+      LOG_DBG2(simp) << "dB=" << dB << "mat-vorher=" << mat;
     }
     break;
   }
@@ -330,11 +415,11 @@ void SIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferFunc
 {
 
   // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
-  Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
+  //Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
 
   // the gradient is < lambda^T, K' * A >
 
-  bool derivative = true;
+  // bool derivative = true;
   Vector<double> appendix;
   assert(appendix.GetSize() == 0); // if not, we can skip resizing
   const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
@@ -343,7 +428,7 @@ void SIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferFunc
   assert(excite.sequence == f->ctxt->sequence);
 
   // the stored element solution vector
-  StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
+  //StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
 
   DesignDependentRHS rhs;
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
@@ -393,7 +478,7 @@ void SIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferFunc
     Assign(a,a,k_factor); // a' = k_factor * a
     //std::cout << "aNeu= " <<a.ToString() << std::endl;
     //assert(!(domain->GetGrid()->IsRegionRegular(f->region) && a.GetSize() != 4)); // for regular 2D grid!!!
-    //LOG_DBG2(em) << "CMDF: i=" << e << " e=" << elem->elemNum << " -> " << a.ToString();
+    //LOG_DBG2(simp) << "CMDF: i=" << e << " e=" << elem->elemNum << " -> " << a.ToString();
 
     // we need a lot of similar stuff as in BDBInt::CalcElementMatrix().
     // get the form first
@@ -409,7 +494,7 @@ void SIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferFunc
     IntScheme::IntegMethod method = IntScheme::UNDEFINED;
     BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
     form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type), method, order, intPoints, weights );
-    //LOG_DBG2(em) << "CMFD i=" << e << " e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
+    //LOG_DBG2(simp) << "CMFD i=" << e << " e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
     assert(method != IntScheme::UNDEFINED);
     assert(!intPoints.IsEmpty());
 

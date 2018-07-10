@@ -123,7 +123,7 @@ protected:
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates.
    * @param tf for heat and acoustic we canot uniquely identify the transfer function by app therefore give it. */
-  virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
+  virtual void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
 
   /** the mechanical element rhs, complex or real */
   DesignDependentRHS mechRHS;
@@ -134,7 +134,7 @@ private:
    * T1 is the out matrix type
    * T2 is the element matrix type */
   template <class T1, class T2>
-  void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0);
+  void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0);
 
 };
 
