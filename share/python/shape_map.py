@@ -364,7 +364,7 @@ def read_legacy_xml(filename, set, profile):
       d = dof(el.get('dof'))
       node = el.get('type') == 'node' or el.get('type') == None
       if node: 
-        shapes.append(Shape(id = len(shapes), dof=d))
+        shapes.append(Shape(id = len(shapes), dof=d, ref = len(shapes)))
         curr = shapes[-1]
       else:
         # we have a profile, hence search the corresponding shape
@@ -398,7 +398,8 @@ def read_xml(xml, set, profile):
   shapes = []
   sq = 'last()' if not set else '@id="' + str(set) + '"'
   ref = 0 # the current ref id to read the shape from, incremented at end of loop
-  list = xml.xpath('//set[' + sq + ']/shapeParamElement[@ref="' + str(ref) + '"]') 
+  query = '//set[' + sq + ']/shapeParamElement[@ref="' + str(ref) + '"]'
+  list = xml.xpath(query) 
   while list:
     # we do not know yet if we are 2D or 3D. For 3D center nodes, the there are two nodes dof the the shape dof is the third by definition
     first_dof = dof(list[0].get('dof')) # might change

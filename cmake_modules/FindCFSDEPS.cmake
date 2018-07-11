@@ -348,12 +348,12 @@ ENDIF(USE_SUPERLU)
 #-------------------------------------------------------------------------------
 SET(BOOST_BASE "boost")
 SET(BOOST_MAJOR_VER 1)
-SET(BOOST_MINOR_VER 58)
+SET(BOOST_MINOR_VER 66)
+SET(BOOST_VER "${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}")
 SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
 SET(BOOST_GZ "${BOOST_BASE}_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2")
-SET(BOOST_MD5 "b8839650e61e9c1c0a89f371dd475546") # 1.58
-#SET(BOOST_MD5 "65a840e1a0b13a558ff19eeb2c4f0cbe") # 1.60
-#SET(BOOST_MD5 "6095876341956f65f9d35939ccea1a9f") # 1.61
+SET(BOOST_MD5 "b2dfbd6c717be4a7bb2d88018eaccf75") #1.66
+#SET(BOOST_MD5 "ced776cb19428ab8488774e1415535ab") # 1.67
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------
@@ -361,9 +361,13 @@ INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 #-------------------------------------------------------------------------------
 SET(MUPARSER_URL "${CFS_DS_SOURCES_DIR}/muparser")
 SET(MUPARSER_BASE "muparser")
-SET(MUPARSER_VER "v2_2_2")
-SET(MUPARSER_ZIP "${MUPARSER_BASE}_${MUPARSER_VER}.zip")
-SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
+SET(MUPARSER_VER "2.2.5")
+#SET(MUPARSER_VER "v2_2_2")
+SET(MUPARSER_ZIP "${MUPARSER_BASE}-${MUPARSER_VER}.tar.gz")
+#SET(MUPARSER_ZIP "${MUPARSER_BASE}_${MUPARSER_VER}.zip") # v2_2_2
+SET(MUPARSER_MD5 "02dae671aa5ad955fdcbcd3fee313fb7") # 2.2.5
+#SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a") #v2_2_2
+SET(MUPARSER_SHA512 "d89380ebdc0ce91d0ea38fe43419ab6ed06c47d352b9ee20e1edcce48337b464366153493e0241c373ba2880a8b419fb9541e56cda0d14915daf9b98136ee682") # needed for URL
 
 INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 

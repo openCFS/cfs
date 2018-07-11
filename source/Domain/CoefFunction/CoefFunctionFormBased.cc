@@ -71,7 +71,7 @@ CoefFunctionBOp( shared_ptr<BaseFeFunction> feFct,
   factor_ = factor;
   feSpace_ = feFct->GetFeSpace();
   
-  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+  isComplex_ =  std::is_same<TYPE,Complex>::value;
   
   // set inherited attributes
   //This is not very nice. Because another operator can turn
@@ -207,7 +207,7 @@ CoefFunctionFlux( shared_ptr<BaseFeFunction> feFct,
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
   res_ = info;
   factor_ = factor;
-  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+  isComplex_ =  std::is_same<TYPE,Complex>::value;
 
   // set inherited attributes
   dimType_ = CoefFunction::VECTOR;
@@ -476,7 +476,7 @@ CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
   factor_ = factor;
   
-  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+  isComplex_ =  std::is_same<TYPE,Complex>::value;
 
   // set inherited attributes
   this->dimType_ = CoefFunction::SCALAR;
@@ -523,7 +523,7 @@ template<class TYPE> CoefFunctionDyadicStrain<TYPE>::CoefFunctionDyadicStrain(sh
 
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
 
-  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+  isComplex_ =  std::is_same<TYPE,Complex>::value;
 
   // set inherited attributes
   this->dimType_ = CoefFunction::TENSOR;
@@ -585,7 +585,7 @@ template<class TYPE> CoefFunctionQuadSol<TYPE>::CoefFunctionQuadSol(shared_ptr<B
 {
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
 
-  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+  isComplex_ =  std::is_same<TYPE,Complex>::value;
 
   // set inherited attributes
   this->dimType_ = CoefFunction::SCALAR;
@@ -691,7 +691,7 @@ template<class TYPE> CoefFunctionStiffness<TYPE>::CoefFunctionStiffness(shared_p
 
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
 
-  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+  isComplex_ =  std::is_same<TYPE,Complex>::value;
 
   notation_ = notation;
 

@@ -12,7 +12,6 @@
 #ifndef FILE_COEFFUNCTION_STABPARAMS_HH
 #define FILE_COEFFUNCTION_STABPARAMS_HH
 
-#include <boost/tr1/type_traits.hpp>
 #include "CoefFunction.hh"
 #include "CoefFunctionMulti.hh"
 #include "FeBasis/FeFunctions.hh"

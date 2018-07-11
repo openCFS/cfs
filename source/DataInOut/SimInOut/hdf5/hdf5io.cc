@@ -1638,7 +1638,7 @@ hsize_t H5IO::maxChunkSize_= 100;
      H5::Group tmp = loc.openGroup(name);
      ret = true;
      tmp.close();
-   } catch(H5::Exception) {
+   } catch(H5::Exception&) {
      // nothing to do
    }
    return ret;
@@ -1651,7 +1651,7 @@ hsize_t H5IO::maxChunkSize_= 100;
        H5::DataSet tmp = loc.openDataSet(name);
        ret = true;
        tmp.close();
-     } catch(H5::Exception) {
+     } catch(H5::Exception&) {
        // nothing to do
      }
      return ret;
@@ -1664,7 +1664,7 @@ hsize_t H5IO::maxChunkSize_= 100;
        H5::Attribute tmp = obj.openAttribute(name);
        ret = true;
        tmp.close();
-     } catch(H5::Exception) {
+     } catch(H5::Exception&) {
        // nothing to do
      }
      return ret;

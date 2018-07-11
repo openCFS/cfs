@@ -40,7 +40,7 @@ set(PI "${PHIST_PREFIX}/phist-post_install.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/phist/phist-post_install.cmake.in" "${PI}" @ONLY) 
 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "phist" "${PHIST_REV}")
-  
+
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
 set(TMP_DIR "${PHIST_INSTALL}")
