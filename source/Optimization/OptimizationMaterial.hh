@@ -240,10 +240,28 @@ public:
   HeatMat(ErsatzMaterial* em, Context* ctxt);
 };
 
+
 class MagMat : public OptimizationMaterial
 {
 public:
   MagMat(ErsatzMaterial* em, Context* ctxt);
+
+  /** to be called by DesignSpace::ApplyPhysicalDesignElementMatrix() when nu_r[reg] is not set yet */
+  void SetRelactivity(CoefFunctionOpt* coef, RegionIdType reg_id);
+
+  /** material data from region_ids we touch, uninitialized is -1.
+   * Set by GetMatCoef() which is called by Stiffness() */
+  StdVector<double> nu_r;
+
+  /** material constant for convenience */
+  double nu_0;
+
+
+
+protected:
+  /** overwrite base version to extract the material parameters */
+  shared_ptr<CoefFunctionOpt> GetMatCoef(const std::string& integrator, BiLinFormContext* context = NULL, RegionIdType reg_id = NO_REGION_ID);
+
 };
 
 

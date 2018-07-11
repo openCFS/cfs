@@ -2448,7 +2448,7 @@ namespace CoupledField {
         }
       }
     }
-    LOG_DBG(gridcfs) << "GetElems returning '" << elems.GetSize() <<"' elements";
+    LOG_DBG(gridcfs) << "GetElems returning '" << elems.GetSize() <<"' elements: " << Elem::ToString(elems);
   }
 
 

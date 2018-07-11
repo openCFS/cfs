@@ -122,13 +122,15 @@ namespace CoupledField
     //@{ \name Helper Methods
 
     //! Overloading operator =
-    Elem & operator=(const Elem& t);
+    Elem& operator=(const Elem& t);
 
     // Fix problems due to negative Jacobian determinants
     void CorrectConnectivity( const Grid& grid );
 
     //! Obtain string representation
     std::string ToString() const;
+
+    static std::string ToString(const StdVector<Elem*>& vec);
 
     //! Return for given FEtype the corresponding ShapeType
     static Elem::ShapeType GetShapeType( Elem::FEType type );
@@ -156,6 +158,9 @@ namespace CoupledField
     //! Global collection of reference element shape
     static std::map<Elem::FEType,ElemShape> shapes;
   };
+
+
+  std::ostream& operator<< ( std::ostream& os , const Elem& elem);
 
   struct ExtendedElementInfo{
 

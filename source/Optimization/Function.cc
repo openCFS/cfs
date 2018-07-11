@@ -868,8 +868,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
         string a = grid->GetRegion().ToString(region);
         std::cout << a;
         string msg = "region " + grid->GetRegion().ToString(region)
-            + " of condition " + type.ToString(type_)
-            + " not within design domain";
+            + " of function " + type.ToString(type_) + " not within design domain";
         info_->SetWarning(msg);
       }
 

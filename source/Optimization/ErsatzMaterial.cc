@@ -1870,9 +1870,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       Elem* elem = elems[e];
       el.SetElement(elem);
 
-      //assert(sol.GetSize() > e);
       Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elPosition]);
-      //assert(sol.GetSize() > elem->elemNum);// von Fabian
       //Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
       assert(vec != NULL);
       Vector<double>& a = *vec; // a stands for the Vectorpotential in the element
@@ -1919,18 +1917,12 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
         // Calculation of the B Matrix (2x4) over the integration points
         b_mat *= weights[ip]; // Do I need here a multiplication with fac????
-        //std::cout << "b_mat*weights[ip]= " << b_mat << std::endl;
-        LOG_DBG2(em) << "CMDF: b_mat=" << b_mat;
 
         B += b_mat * a;
-        //LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " mfd=" << mag_flux_density.ToString() << " b_mat=" << b_mat.ToString(0, false);
+        LOG_DBG3(em) << "CMFD: e= " << e << "a= " << a.ToString(2) << "b_mat=" << b_mat.ToString(2) << "B= " << B.ToString(2);
       }
-      //std::cout << "B= " << B << std::endl;
-      //std::cout << "intPoints.GetSize()= " << intPoints.GetSize() << std::endl;
       B /= intPoints.GetSize();
-      //std::cout << "Bges= " << Bges << std::endl;
       Bges += B;
-      //std::cout << "Bges= " << Bges << std::endl;
       LOG_DBG2(em) << "CMDF: Bges=" << Bges << " intPoints=" << intPoints.GetSize();
       elPosition ++;
     } // end loop elems
@@ -1939,19 +1931,15 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // Optimization of x or y direction
 
     Bges /= elems.GetSize();
-    //std::cout << "Bges= " << Bges << std::endl;
     if (f->GetType() == Function::MAG_FLUX_DENS_X){
       D[0] = 1;
     }
     else {
       D[1] = 1;
     }
-    //std::cout << "Bges " << Bges << std::endl;
     mag_flux_dens_square = Bges.Inner(D);
-    //std::cout << "mag_flux_dens_square-vorher= " << mag_flux_dens_square << std::endl;
     mag_flux_dens_square *= mag_flux_dens_square;
-    //std::cout << "mag_flux_dens_square= " << mag_flux_dens_square << std::endl;
-    LOG_DBG2(em) << "CMDF: mag_flux_dens_square=" << mag_flux_dens_square;
+    LOG_DBG2(em) << "ersatzMaterial: mag_flux_dens_square=" << mag_flux_dens_square;
 
     return mag_flux_dens_square;
   }
@@ -2619,7 +2607,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
   void ErsatzMaterial::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
   {
-    // J = 1/N * sum<B*A,D*B*A> = sum ((B*A)(D*B*A)), see CalcMagFluxDensity() where J=[1,0] or [0,1]
     // B = 2 rows, 4 columns, A = 4 rows, 1 column, D = 2 row, 2 col, D is the selection vector for x or y component [0 0; 0 1] or [1 0; 0 0]
     // d(<B*A,D*B*A>)/dA = 2*(B^T*D*B)*A -> 4 rows, 1 col
     // do this for all elements A and add with factor 1/N to rhs
@@ -2681,7 +2668,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       assert(vec != NULL);
       Vector<double>& a = *vec; // a = the Vectorpotential in the element
 
-      //std::cout << "a= " << a.ToString() << std::endl;
       assert(!(domain->GetGrid()->IsRegionRegular(f->region) && a.GetSize() != 4)); // for regular 2D grid!!!
       LOG_DBG2(em) << "CMDF: i=" << e << " e=" << elem->elemNum << " -> " << a.ToString();
 
@@ -2727,37 +2713,26 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         // Call the CalcBMat()-method
         bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
         LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " b_mat=" << b_mat.ToString(0, false);
-        //std::cout << "b_mat= " << b_mat << std::endl;
-        //std::cout << "weights[ip]= " << weights[ip] << std::endl;
         b_mat *= weights[ip];
-        //std::cout << "b_mat*weights[ip]= " << b_mat << std::endl;
 
         Vector <double> ba;
         ba = b_mat * a;
         Matrix <double> BA(b_mat.GetNumRows(),1);
         for(unsigned int u = 0; u < ba.GetSize();u++)
           BA[u][0] = ba[u];
-        //std::cout << "BA= " << BA << std::endl;
         Matrix <double> BAD(1,b_mat.GetNumRows());
-        BAD = Transpose(BA) * D ; // Do I need here a multiplication with fac????
-        //std::cout << "BAD= " << BAD << std::endl;
+        BAD = Transpose(BA) * D ;
         BADB += BAD * b_mat * weights[ip];
-        //std::cout << "BADB= " << BADB << std::endl;
         LOG_DBG2(em) << "CMDF: BA=" << BA << " BAD=" << BAD << " BADB-> " << BADB;
       }
       BADB *= (-2);
-      //std::cout << "BADB= " << BADB << std::endl;
+      LOG_DBG2(em) << "CMDF: BADB" << BADB.ToString(2) << " A=" << a.ToString(2);
 
       for(unsigned int n = 0; n < eqn.GetSize(); n++){
         out[eqn[n]] = 1.0/elems.GetSize() * BADB[0][n];
-        //std::cout << "eqn[n]= " << eqn[n] << std::endl;
-        //std::cout << "out[eqn[n]]-vorher= " << out[eqn[n]] << std::endl;
         calc[eqn[n]] ++;
-        //std::cout << "calc[eqn[n]]= " << calc[eqn[n]] << std::endl;
         LOG_DBG2(em) << "CMDF: eqn[n]=" << eqn[n] << " out[eqn[n]]=" << out[eqn[n]];
       }
-      //std::cout << "out= " << out << std::endl;
-      //std::cout << "calc= " << calc << std::endl;
 
       // Ist das notwendig? Mittelung wie oft auf eqn Number geschrieben wurde
  /*     if ((e+1) == elems.GetSize())
@@ -2785,8 +2760,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       elPosition ++;
     }
      // end loop elems
-    //std::cout << "Size_out= " << out.GetSize() << std::endl;
-    //std::cout << "Size_calc= " << calc.GetSize() << std::endl;
     //out *= (-2);
   }
 

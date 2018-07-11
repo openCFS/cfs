@@ -466,7 +466,36 @@ MagMat::MagMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctx
   stiff_.integrator = "CurlCurlIntegrator";
   stiff_.mc = ELECTROMAGNETIC;
   stiff_.mt = MAG_RELUCTIVITY;
+
+  nu_0 = 1.0/(4 * M_PI * 1e-7);
+  nu_r.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
+
+  assert(nu_r.GetSize() > 0);
+
   // mass does not apply yet
+}
+
+void MagMat::SetRelactivity(CoefFunctionOpt* coef, RegionIdType reg_id)
+{
+  assert(nu_r[reg_id] < 0); // no harm, but makes no sense to to again
+
+  LocPointMapped lpm; // TODO, is of no use!! Add GetSacalar() w/o attribute to CoefFunctionConst !!!!
+  Matrix<double> nu_0_nu_r;
+  coef->orgMat->GetTensor(nu_0_nu_r, lpm);
+  assert(close(nu_0_nu_r[1][1],nu_0_nu_r[0][0]));
+  nu_r[reg_id] = nu_0_nu_r[0][0] / nu_0;
+}
+
+shared_ptr<CoefFunctionOpt> MagMat::GetMatCoef(const std::string& integrator, BiLinFormContext* context, RegionIdType reg_id)
+{
+  // we just plug in here to gain nu_r
+  shared_ptr<CoefFunctionOpt> coef = OptimizationMaterial::GetMatCoef(integrator, context, reg_id);
+
+  assert((int) reg_id < (int) nu_r.GetSize()-1);
+  if(nu_r[reg_id] < 0)
+    SetRelactivity(coef.get(), reg_id);
+
+  return coef;
 }
 
 ElecMat::ElecMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)

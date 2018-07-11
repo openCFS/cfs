@@ -394,6 +394,7 @@ const Matrix<double>& LocalElementCache::CachedElement<double>(const string& int
   assert(data->type == type);
   assert(!data->isComplex);
 
+  // TODO: bug if we cache not optimization data for simulation!!
   if(regular_)
     return data->region_real[elem->regionId];
   else

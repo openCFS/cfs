@@ -832,7 +832,7 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
   if(elementCache == NULL)
     return false;
 
-  // load the element matrix to apply optimization to it.
+  // load the element matrix to apply optimization to it. If true, retMat is set with org material local element matrix
   if(!elementCache->CachedOrgElement<T>(retMat, form, elem))
     return false;
 
@@ -844,7 +844,7 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
   // pressure) but the design variable comes from elements one dimension higher
   int idx = Find(elem->elemNum, false); // This is very fast, just a lookup in an array
   if(idx == -1)
-    return true; // we have the material but cannot proceed
+    return true; // we have the material but cannot proceed, hence retMat contains already the material for simulation, set in CachedOrgElement()
 
   // just validate that we have indeed the optimization case
   BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);
@@ -859,55 +859,25 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
 
   if(app == App::MAG)
   {
-    // get elements
-    StdVector<Elem*> elems;
-    domain->GetGrid()->GetElems(elems,elem->regionId);
-    assert(!elems.IsEmpty());
+    // in the mag case we cannot simply multiply the K_0 with f(rho).
+    // K_0 contains v_0*v_r as material, we need v_0*(1+v_r*f(rho)-f(rho)).
+    // This is done by multiplying K_0 in the non-grad case by v_0*(1+v_r*f(rho)-f(rho))/(v_0*v_r)
+    // see SIMP::SetElementK() for the derivative (only done there)
+    MagMat* mag = dynamic_cast<MagMat*>(Optimization::context->mat);
+    assert(mag);
+    if(mag->nu_r[elem->regionId] < 0)
+      mag->SetRelactivity(coef.get(), elem->regionId);
 
-    // annoying entity iterator got hold the element
-    ElemList el(elems[0],domain->GetGrid());
-    el.SetElement(elem);
+    double nu_r = mag->nu_r[elem->regionId];
+    double nu_0 = mag->nu_0;
+    assert(nu_r > 0 && nu_0 > 0);
 
-    LocPointMapped lp;
-    StdVector<LocPoint> intPoints; // Get integration Points
-    StdVector <double> weights;
-    IntegOrder order;
-    IntScheme::IntegMethod method = IntScheme::UNDEFINED;
-    BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(),method,order);
-
-    form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type),method, order, intPoints, weights);
-    // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
-
-    Matrix <T> dmat;
-    Matrix <T> bmat;
-
-    for(unsigned int ip = 0; ip < intPoints.GetSize();ip++)
-    {
-      // Calculate for each integration point the LocPointMapped
-      lp.Set(intPoints[ip],esm,weights[ip]);
-
-      double fac = lp.jacDet;
-
-      // get nu = nu0 * nuR, for air nuR = 1 (2x2)
-      bdb->GetCoef()->GetTensor(dmat,lp);
-
-      // calculate BDB (4x4)
-      bdb->GetBOp()->CalcOpMat(bmat,lp,ptFe); // bmat (2x4)
-      Matrix <T> DB(bmat.GetNumRows(),bmat.GetNumCols());
-      DB = (dmat * bmat);
-      DB *= fac;
-      Matrix <T> BDB(retMat.GetNumRows(),retMat.GetNumCols());
-      BDB = Transpose(bmat) * DB;
-
-      retMat += BDB;
-      LOG_DBG2(designSpace) << "APDEM retMat="  << retMat << "DB= " << DB << "bmat= " << bmat;
-    }
+    double f_rho = factor; // penalized rho
+    factor = nu_0*(1+nu_r*f_rho-f_rho)/(nu_0*nu_r);
+    LOG_DBG2(designSpace) << "APDEM el="  << elem->elemNum << " mag reg=" << elem->regionId << " nu_r=" << nu_r << " nu_0=" << nu_0 << " f_rho=" << f_rho << " -> " << factor;
   }
-  else
-  {
-    retMat *= factor;
-  }
+
+  retMat *= factor;
 
   // check bimat : TODO handle multimaterial
   DesignRegion* dr = GetRegion(elem->regionId);
@@ -921,7 +891,7 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
 
 
   LOG_DBG2(designSpace) << "APDEM el="  << elem->elemNum << " f=" << factor << " bf=" << bimat_factor;
-  //LOG_DBG3(designSpace) << "APDEM el="  << elem->elemNum << " -> " << retMat.ToString(2);
+  LOG_DBG3(designSpace) << "APDEM el="  << elem->elemNum << " -> " << retMat.ToString(2);
   return true;
 }
 
@@ -968,19 +938,10 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     assert(retMat[0][1] == 0.0); // shall be a diagonal matrix
     assert(retMat.IsSymmetric());
 
-    Matrix<T> nu_0(retMat.GetNumRows(),retMat.GetNumCols());
+    const double nu_0 = 1/(4*M_PI*1e-7);
 
-    // calculate nu0 (2x2)
-    //nu_0(dmat.GetNumRows(),dmat.GetNumCols());
-    for(unsigned int i = 0; i < 2; i++)
-      nu_0[i][i] = 1/(4*M_PI*1e-7);
-    assert(nu_0[0][1] == 0.0);
-
-    //calculate nu (2x2)
-    retMat *= factor;
-    retMat.Add(1-factor,nu_0); //retMat = nu
-    LOG_DBG2(designSpace) << "APDEM nu= " << retMat;
-
+    for(unsigned int i = 0; i < retMat.GetNumRows(); i++)
+      retMat[i][i] = (retMat[i][i] * factor) + (1-factor) * nu_0;
   }
   else
   {

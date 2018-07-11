@@ -104,20 +104,15 @@ void SIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* t
   case App::HEAT:
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
-    //std::cout << "mm= " << mm << std::endl;
 
     // element matrix with org material, might be cached -> local_element_cache
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mat->Stiffness(de->elem, false, mm)); // no bimaterial
-    //std::cout << "stifness= " << stiffness.ToString() << std::endl;
 
     // Find the transfer function for K (e.g. DENSITY, App::MECH)
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, false) : tf->Transform(de, DesignElement::SMART);// not the bimat case
 
-    //std::cout << "k_factor= " << k_factor << std::endl;
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, stiffness, k_factor); // out = k_factor * stiffness
-    //std::cout << "stiffness= " << stiffness << std::endl;
-    //std::cout << "out= " << out << std::endl;
     // This log is very expensive, it blows up inv_tensor in the debug mode
     // LOG_DBG3(simp) << "SetElementK: el=" << de->elem->elemNum << " di=" << de->GetIndex() << " mm=" << mm << " K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
 
@@ -183,84 +178,36 @@ void SIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* t
   // u1^T (K' u2 - f') -> find "K'"
   case App::MAG:
   {
-    Elem* elem = de->elem;
+    MagMat* mag = dynamic_cast<MagMat*>(mat);
+    assert(mag != NULL);
 
-    // Getting the ErsatzMaterial factor
-    DesignSpace* space = domain->GetDesign();
-    double val = de->GetDesign(DesignElement::SMART);
+    assert(derivative);
+    double d_rho = tf->Derivative(de, DesignElement::SMART, false);
 
-    Matrix<T2> b_mat; // this holds the curl-operator for the whole element. for 2D rectangular it shall be 2 rows, 4 columns
-    BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", de->elem->regionId, context->pde)->GetIntegrator();
+    // element matrix with org material, might be cached -> local_element_cache
+    const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mag->Stiffness(de->elem));
+    LOG_DBG3(simp) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
 
-    // this gets the equation numbers for the element
-    StdVector<int> eqn;
+    double nu_r = mag->nu_r[de->elem->regionId];
+    double nu_0 = mag->nu_0;
 
-    // get the form first
-    BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
-    assert(bdb != NULL);
+    //assert(nu_r > 0);
+    //assert(mag->nu_0 > 0);
 
-    // get B-mat
-    StdVector<LocPoint> intPoints; // Get integration Points
-    LocPointMapped lp; // Geometry related information about the element
-    StdVector<double> weights;
+    // simulation: BDB with D=(d 0; 0 d) with d = nu_0*nu_r
+    // optimization: d = nu_0 * nu_r * f(rho) - nu_0 * f(rho) + nu_0
+    // derivative: d = nu_0 * nu_r * f'(rho) - nu_0 * f'(rho)
 
-    // Obtain FE element from feSpace and integration scheme
-    IntegOrder order;
-    IntScheme::IntegMethod method = IntScheme::UNDEFINED;
-    BaseFE* ptFe = form->GetFeSpace1()->GetFe(elem->elemNum);
-    //BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
+    // in difference to elasticity where K' = my(rho)'*K_0
+    // we have K' = alpha * K_0 where alpha = (nu_0*nu_r - nu_0) / (nu_0 * nu_r)
 
-    // Get integration points
-    form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type), method, order, intPoints, weights );
-    //LOG_DBG2(simp) << "CMFD e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
+    double alpha = (nu_0*nu_r*d_rho - nu_0) / (nu_0 * nu_r);
+    LOG_DBG3(simp) << "e=" << de->elem->elemNum << " "
+        "nu_0=" << nu_0 << " nu_r=" << nu_r << " rho=" << de->GetDesign(DesignElement::SMART) << " d_rho=" << d_rho << " alpha=" << alpha;
 
-    // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
+    Assign(out, stiffness, alpha); // out = alpha * stiffness
 
-    // we sum up within the looop
-    out.Init();
-
-    // Loop over all integration points
-    for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
-    {
-      // Calculate for each integration point the LocPointMapped
-      lp.Set( intPoints[ip], esm, weights[ip] );
-
-      double fac = lp.jacDet; // is needed for surface info
-
-      // Call the CalcBMat()-method
-      bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
-      LOG_DBG3(simp) << "CMDF: ip=" << ip << " w=" << weights[ip] << " b_mat=" << b_mat.ToString(0, false);
-      b_mat *= weights[ip];
-
-      // get nu = nu0 * nuR, for air nuR = 1 (2x2), dmat = nu
-      Matrix<T1> dmat;
-      bdb->GetCoef()->GetTensor(dmat,lp);
-      double mu;
-      bdb->GetCoef()->GetScalar(mu,lp);
-      //std::cout << "dmat= " << dmat << std::endl;
-      LOG_DBG2(simp) << "CMFD dmat=" << dmat << " b_mat=" << b_mat ;
-
-      // calculate nu0 (2x2) in 2D case
-      //nu_0(dmat.GetNumRows(),dmat.GetNumCols());
-      Matrix<T1> nu_0(2,2);
-      for(unsigned int i = 0; i < dmat.GetNumCols(); i++)
-        nu_0[i][i] = 1/(4*M_PI*1e-7);
-      assert(nu_0[0][1] == 0.0);
-
-      // calculate dK/drho = (nu0 * nuR - nu0) * K, (K = b_mat^T * b_mat)
-      Matrix<T1> dB;
-      dmat /= val;
-      dmat -= nu_0;
-
-      LOG_DBG2(simp) << "CMFD dmat - nu0/rho=" << dmat;
-      dB = (dmat * b_mat);
-      dB *= fac;
-      //std::cout << "dB= " << dB << std::endl;
-      //std::cout << "mat-vorher= " << mat << std::endl;
-      out += Transpose(b_mat) * dB;
-      LOG_DBG2(simp) << "dB=" << dB << "mat-vorher=" << mat;
-    }
+    LOG_DBG3(simp) << "out=" << out.ToString(2);
     break;
   }
 

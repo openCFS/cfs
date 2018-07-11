@@ -347,6 +347,7 @@ namespace CoupledField {
 				  //  Standard Linear CASE (2D AND 3D)
 				  // ====================================================================
 				  curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType, Global::REAL );
+
 				  // for postprocessing
 				  PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL);
 			      if(domain->HasDesign())
