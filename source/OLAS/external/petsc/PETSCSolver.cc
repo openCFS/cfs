@@ -128,14 +128,9 @@ void PETSCSolver::Setup(BaseMatrix &sysmat){
         ierr=MPI_Send(&ny,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
         ierr=MPI_Send(&nz,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
         ierr=MPI_Send(&dimension,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
-        ierr=MPI_Send(&nnzr[0], sizeof(int)*dim,MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
-
       }
       CreateDMDA(da_nodes,A_,x_,b_,dirNodeVec_,nx,ny,nz,dimension);
       CheckLevels(nx,ny,nz);
-      ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);CHKERRXX(ierr);
-      ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);CHKERRXX(ierr);
-      MatMPISBAIJSetPreallocation(A_,PetscInt(1),0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);
       GetHomDirNodes(dirNodeVec_);
       SendWorkerCommand(SET_HOM_DIR_VEC);
       VecDuplicate(b_,&N_);
@@ -443,20 +438,8 @@ void PETSCWorker::InitPetscWorker(){
     MPI_Recv(&ny,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
     MPI_Recv(&nz,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
     MPI_Recv(&dimension,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
-    int size;
-    MPI_Probe(0,DATA,PETSC_COMM_WORLD,&status);
-    MPI_Get_count(&status,MPI_INT,&size);
-    int dim=size/sizeof(int);
-    UInt *nnzr = new UInt[dim];
-    MPI_Recv(nnzr,dim,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);
-
     CreateDMDA(da_nodes,A_,x_,b_,dirNodeVec_,nx,ny,nz,dimension);
     CheckLevels(nx,ny,nz);
-
-    ierr=MatSeqAIJSetPreallocation(A_,0,(PetscInt *)nnzr);CHKERRXX(ierr);
-    ierr=MatMPIAIJSetPreallocation(A_,0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);CHKERRXX(ierr);
-    MatMPISBAIJSetPreallocation(A_,PetscInt(1),0,(PetscInt *)nnzr,0,(PetscInt *)nnzr);
-
 //    assemble_=domain->GetBasePDE()->GetAssemble();
   }
   else {
