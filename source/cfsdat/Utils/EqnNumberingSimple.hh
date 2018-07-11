@@ -53,19 +53,19 @@ public:
 
   virtual void Finalize();
 
-  virtual CoupledField::UInt GetNumEquations(){
+  virtual CoupledField::UInt GetNumEquations() const {
     return numEqns_;
   }
   
-  virtual CoupledField::UInt GetNumEntities() {
+  virtual CoupledField::UInt GetNumEntities() const {
     return numEqns_ / eqnPerEnt_;
   }
   
-  virtual CoupledField::UInt GetNumEqnPerEnt() {
+  virtual CoupledField::UInt GetNumEqnPerEnt() const {
     return eqnPerEnt_;
   }
   
-  CF::ResultInfo::EntityUnknownType GetMapType() {
+  CF::ResultInfo::EntityUnknownType GetMapType() const {
     return mapType_;
   }
   
@@ -82,15 +82,22 @@ public:
                            CF::ResultInfo::EntityUnknownType type) const;
 
   virtual CoupledField::UInt GetEntityIndex(const UInt globalEntNum) const;
+  
+  virtual bool IsEntityUsed(const UInt globalEntNum) const;
                            
   void GetRegionEquations(CF::StdVector<UInt> & eqns, CF::RegionIdType region) const;
 
   void GetSubsetEquations(CF::StdVector<UInt> & eqns, CF::StdVector<UInt> & globalEntNumbers) const;
   
+  void GetReverseEntityMap(CF::StdVector<UInt>& revMap) const;
+  
   
 protected:
   //! equation indices
   CF::StdVector<CF::UInt> entityEquations_;
+  
+  //! stores if entity is used/mapped by this map
+  std::vector<bool> usedEntity_;
 
   //! Array of regions managed by the eqnMap
   CF::StdVector<CF::RegionIdType> regions_;

@@ -4,62 +4,57 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     BinOpFilter.hh
+ *       \file     VolumeMultiplication.hh
  *       \brief    <Description>
  *
- *       \date     Mai 13, 2018
+ *       \date     Apr 23, 2018
  *       \author   mtautz
  */
 //================================================================================================
 
-#ifndef SOURCE_CFSDAT_FILTERS_ARITHMETIC_BINOPFILTER_HH_
-#define SOURCE_CFSDAT_FILTERS_ARITHMETIC_BINOPFILTER_HH_
+#ifndef VOLUMEMULTIPLICATION_HH_
+#define VOLUMEMULTIPLICATION_HH_
 
 #include "cfsdat/Filters/BaseFilter.hh"
-#include "BinOpFunctions.hh"
+
 #include <boost/bimap.hpp>
+#include <set>
 
 namespace CFSDat{
-
-class BinOpFilter : public BaseFilter{
-  
+class VolumeMultiplication : public BaseFilter{
 public:
 
-  BinOpFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
 
-  virtual ~BinOpFilter();
+  //!  Constructor.
+  VolumeMultiplication(UInt numWorkers, PtrParamNode config, PtrResultManager resMan);
+
+  virtual ~VolumeMultiplication();
+
 
 protected:
 
+  virtual void PrepareCalculation();
+  
   virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
 
+  //! Setup of Results of the filter
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();
-  
-  virtual void PrepareCalculation();
-  
-  std::string opType;
-  std::string multType;
 
-  std::string resAName;
-  uuids::uuid resAId;
-  bool isConstantA;
-  Vector<Double> constantA;
+  uuids::uuid resId;
 
-  std::string resBName;
-  uuids::uuid resBId;
-  bool isConstantB;
-  Vector<Double> constantB;
-
+  std::string resName;
   std::string outName;
   uuids::uuid outId;
-  
-  BinOpFunctions::BinOpFctStruct<Double>::BinOpFctPtr applyFctPtr;
-  UInt size;
 
+private:
+
+  UInt usedElems_;
+  UInt numDofs_;
+  StdVector<Double> volume_;
+  
 };
 
 }
-
-#endif /* SOURCE_CFSDAT_FILTERS_ARITHMETIC_BINOPFILTER_HH_ */
+#endif /* VOLUMEMULTIPLICATION_HH_ */

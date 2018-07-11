@@ -15,6 +15,7 @@ namespace CoupledField {
     entryType = UNKNOWN;
     definedOn = FREE;
     fromOptimization = false;
+    isStatic = false;
   }
 
 
@@ -75,6 +76,7 @@ namespace CoupledField {
     resultName = data.resultName;
     dofNames = data.dofNames;
     unit = data.unit;
+    isStatic = data.isStatic;
     complexFormat = data.complexFormat;
     entryType = data.entryType;
     definedOn = data.definedOn;
