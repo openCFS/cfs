@@ -911,21 +911,17 @@ def generate_basecell(args,info):
     import time
     start = time.time()
     import marching_cubes
-#     verts, faces, normals, values = measure.marching_cubes_lewiner(array,spacing=(h,h,h),allow_degenerate=False,step_size=2)
+    verts = []
+    faces = []
+    normals = []
+#     verts, faces, normals, values = measure.marching_cubes_lewiner(array,spacing=(h,h,h),allow_degenerate=False,step_size=1)
 #     marching_cubes.write_vtp(verts,faces,(h,h,h),name="mc_lewiner.vtp",normals=normals)
 #     sys.exit()
 #     verts, faces = measure.marching_cubes_classic(array,spacing=(h,h,h))
-    points = []
-    triangles = []
-    normals = []
-    #marching_cubes.marching_cubes(array,(h,h,h),points,triangles,normals)
-    marching_cubes.marching_cubes(array,(h,h,h),points,triangles,normals)
-
-    verts = points
-    faces = triangles
+    marching_cubes.marching_cubes(array,(h,h,h),verts,faces,normals)
     end = time.time()
     print("time:",end - start)
-#     sys.exit()
+    sys.exit()
     
     # marching_cubes returns float values
     verts = np.asarray(verts)
@@ -1534,7 +1530,7 @@ def voxel_to_cartesian_coords(voxel,lbounds,h):
   y = voxel[1] * h[1] + lbounds[1] + 1e-6
   z = voxel[2] * h[2] + lbounds[2] + 1e-6
   
-  return x,y,z
+  return np.array([x,y,z])
 
 def calc_edge_lengths(mesh):
   import pymesh
