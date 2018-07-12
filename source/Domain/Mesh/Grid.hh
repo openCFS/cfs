@@ -178,20 +178,16 @@ namespace CoupledField
                                       const UInt inode,
                                       bool updated = false ) const = 0;
 
-    //! Get elements associated with given nodes
+    //! Get elements associated with given node
 
     //! Returns a list of elements, which have one or more of the given in
     //! common. The elements are taken out of a given list of regions.
     //! \param elemList (out) elements which have one or more nodes
     //!                          of nodeList
-    //! \param nodeList (in) list of nodes for which neighbouring elements
+    //! \param node  (in) node for which neighbouring elements
     //!                      are needed
-    //! \param regionIds (in) identifiers for the regions, where the
-    //!                       neihgbouring elements are searched in
-    virtual void GetElemsNextToNodes( StdVector<const Elem*> & elemList,
-                                      const StdVector<UInt> & nodeList,
-                                      const StdVector<RegionIdType>
-                                      & regionIds) = 0;
+    virtual void GetElemsNextToNode( StdVector<const Elem*> & elemList,
+                                      const UInt & node) = 0;
 
     //! Get elements associated with given node
 
@@ -205,6 +201,21 @@ namespace CoupledField
     //!                       neihgbouring elements are searched in
     virtual void GetElemsNextToNode( StdVector<const Elem*> & elemList,
                                       const UInt & node,
+                                      const StdVector<RegionIdType>
+                                      & regionIds) = 0;
+
+    //! Get elements associated with given nodes
+
+    //! Returns a list of elements, which have one or more of the given in
+    //! common. The elements are taken out of a given list of regions.
+    //! \param elemList (out) elements which have one or more nodes
+    //!                          of nodeList
+    //! \param nodeList (in) list of nodes for which neighbouring elements
+    //!                      are needed
+    //! \param regionIds (in) identifiers for the regions, where the
+    //!                       neihgbouring elements are searched in
+    virtual void GetElemsNextToNodes( StdVector<const Elem*> & elemList,
+                                      const StdVector<UInt> & nodeList,
                                       const StdVector<RegionIdType>
                                       & regionIds) = 0;
 
@@ -657,9 +668,6 @@ namespace CoupledField
     //! Get list of elements by their name
     virtual void GetElemsByName( StdVector<Elem*> & elems,
                                  const std::string & elemsName ) = 0;
-
-    //! Get all elem neighbors for given node id
-    virtual const StdVector<Elem*>& GetElemsByNode(UInt node) = 0;
 
     /** To be called when all regions are added.
      * Sets the internal element and region structures. */

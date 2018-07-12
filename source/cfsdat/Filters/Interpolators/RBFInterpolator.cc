@@ -348,8 +348,10 @@ void RBFInterpolator::PreparePATCH(){
         srcElements.Insert(0,curE);
         inGrid_->GetNodesOfElemList(listN,srcElements,false);
         StdVector<const Elem*> gotElements;
+	StdVector<const Elem*> tmp;
         for(UInt bNode =0;bNode < listN.GetSize(); ++bNode){
-          StdVector<Elem*> const & tmp = inGrid_->GetElemsByNode(listN[bNode]);
+          inGrid_->GetElemsNextToNode(tmp,listN[bNode]);
+          //StdVector<const Elem*> const & tmp = inGrid_->GetElemsByNode(listN[bNode]);
           for(UInt bElemN =0;bElemN < tmp.GetSize(); ++bElemN){
             //if(!gotElements.Contains(inGrid_->GetElem(tmp[bElemN]->elemNum)))  gotElements.Push_back(inGrid_->GetElem(tmp[bElemN]->elemNum));
             if(!gotElements.Contains(tmp[bElemN]))  gotElements.Push_back(tmp[bElemN]);

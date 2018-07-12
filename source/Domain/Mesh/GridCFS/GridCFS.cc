@@ -40,7 +40,6 @@ namespace CoupledField {
     edgesMapped_ = false;
     facesMapped_ = false;
     maxNumElemNodes_ = 0;
-    mapNodeToElems_.Resize(0);
     buildExtendedElemInfo_ = buildExtend;
   }
 
@@ -2704,6 +2703,19 @@ namespace CoupledField {
   }
 
   void GridCFS::GetElemsNextToNode( StdVector<const Elem*> & elemList,
+                                     const UInt & node) {
+    SetNodesToElemsMap();
+    
+    const UInt maxIdx = nodeElemMapIndices_[node + 1];
+    elemList.Clear();
+    
+    for (UInt idx = nodeElemMapIndices_[node]; idx < maxIdx; idx++) {
+      const Elem* elem = GetElem(nodeElemMap_[idx]);
+      elemList.Push_back(elem);
+    }
+  }
+
+  void GridCFS::GetElemsNextToNode( StdVector<const Elem*> & elemList,
                                      const UInt & node,
                                      const StdVector<RegionIdType>& regionIds) {
     SetNodesToElemsMap();
@@ -2843,38 +2855,37 @@ namespace CoupledField {
   
   void GridCFS::SetNodesToElemsMap()
   {
-    if(mappedNodeToElems_)
-      return;
-
     #pragma omp critical (CoefFunctionAccumulator)
     {
-      nodeElemMapIndices_.Resize(GetNumNodes()+2);
-      nodeElemMapIndices_.Init(0);
-      for (UInt e = 0; e < numElems_; e++) {
-        Elem* elem = orderedElems_[e];
-        for (UInt n = 0; n < elem->connect.GetSize(); n++) {
-          nodeElemMapIndices_[elem->connect[n]]++;
+      if(!mappedNodeToElems_) {
+	nodeElemMapIndices_.Resize(GetNumNodes()+2);
+        nodeElemMapIndices_.Init(0);
+        for (UInt e = 0; e < numElems_; e++) {
+          Elem* elem = orderedElems_[e];
+          for (UInt n = 0; n < elem->connect.GetSize(); n++) {
+            nodeElemMapIndices_[elem->connect[n]]++;
+          }
         }
-      }
-      UInt idx = 0;
-      for (UInt n = 1; n < GetNumNodes() + 2; n++) {
-        UInt add = nodeElemMapIndices_[n];
-        nodeElemMapIndices_[n] = idx;
-        idx += add;
-      }
-      UInt dummy = GetNumElems() + 2;
-      nodeElemMap_.Resize(idx);
-      nodeElemMap_.Init(dummy);
-      for (UInt e = 0; e < numElems_; e++) {
-        Elem* elem = orderedElems_[e];
-        for (UInt n = 0; n < elem->connect.GetSize(); n++) {
-          UInt node = elem->connect[n];
-          UInt sIdx;
-          for (sIdx = nodeElemMapIndices_[node]; nodeElemMap_[sIdx] != dummy; sIdx++) {}
-          nodeElemMap_[sIdx] = e + 1;
+        UInt idx = 0;
+        for (UInt n = 1; n < GetNumNodes() + 2; n++) {
+          UInt add = nodeElemMapIndices_[n];
+          nodeElemMapIndices_[n] = idx;
+          idx += add;
         }
+        UInt dummy = GetNumElems() + 2;
+        nodeElemMap_.Resize(idx);
+        nodeElemMap_.Init(dummy);
+        for (UInt e = 0; e < numElems_; e++) {
+          Elem* elem = orderedElems_[e];
+          for (UInt n = 0; n < elem->connect.GetSize(); n++) {
+            UInt node = elem->connect[n];
+            UInt sIdx;
+            for (sIdx = nodeElemMapIndices_[node]; nodeElemMap_[sIdx] != dummy; sIdx++) {}
+            nodeElemMap_[sIdx] = e + 1;
+          }
+        }
+        mappedNodeToElems_ = true;
       }
-      mappedNodeToElems_ = true;
     }
   }
 
