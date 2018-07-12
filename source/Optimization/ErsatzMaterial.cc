@@ -1874,7 +1874,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       //Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
       assert(vec != NULL);
       Vector<double>& a = *vec; // a stands for the Vectorpotential in the element
-      //std::cout << "a= " <<a.ToString() << std::endl;
       LOG_DBG2(em) << "CMDF: i=" << e << " e=" << elem->elemNum << " A= " << a.ToString();
       assert(!(domain->GetGrid()->IsRegionRegular(f->region) && a.GetSize() != 4)); // for regular 2D grid!!!
       LOG_DBG2(em) << "CMDF: i=" << e << " e=" << elem->elemNum << " -> " << a.ToString();
@@ -2608,9 +2607,125 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   void ErsatzMaterial::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
   {
     // B = 2 rows, 4 columns, A = 4 rows, 1 column, D = 2 row, 2 col, D is the selection vector for x or y component [0 0; 0 1] or [1 0; 0 0]
-    // d(<B*A,D*B*A>)/dA = 2*(B^T*D*B)*A -> 4 rows, 1 col
+    // d(<B*A,D*B*A>)/dA = -2*(B^T*D*B)*A = -2*M_tilde*A -> 4 rows, 1 col
     // do this for all elements A and add with factor 1/N to rhs
-    assert(out.GetSize() == 0); // if not, we can skip resizing
+    assert(out.GetSize() == 0);
+    const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+    out.Resize(stateSol.GetSize(),0.0);
+    Matrix<double> b_mat; // this holds the curl-operator for the whole element. for 2D rectangular it shall be 2 rows, 4 columns
+
+
+    // ugly copy and paste from CalcMagFluxDensity
+
+    // annoying entity iterator got hold the elem
+    ElemList el(f->elements[0]->elem,domain->GetGrid());
+
+    // get the form
+    BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator();
+
+    // the stored element solution vector
+    StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
+
+
+    // this gets the equation numbers for the element
+    StdVector<int> eqn;
+    Vector<double> rhs;
+    rhs.Init();
+    Matrix<double> M_tilde;
+    Vector<double> rhs_el;
+
+    for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+    {
+      DesignElement* de = f->elements[e];
+      el.SetElement(de->elem);
+      Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[de->GetElementSolutionIndex()]);
+      LOG_DBG3(em) << "CMFAR e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex() << " nodal values=" << vec->ToString(2);
+      assert(vec != NULL);
+      const Vector<double>& a = *vec; // a = the Vectorpotential in the element
+
+      // get the form
+      BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
+      assert(bdb != NULL);
+
+      // get B-mat
+      StdVector<LocPoint> intPoints; // Get integration Points
+      LocPointMapped lp; // Geometry related information about the element
+      StdVector<double> weights;
+
+      // Obtain FE element from feSpace and integration scheme
+      IntegOrder order;
+      IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+      BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
+
+      // Get integration points
+      form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(de->elem->type), method, order, intPoints, weights );
+      LOG_DBG2(em) << "CMFD i=" << e << " e=" << de->elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
+      assert(method != IntScheme::UNDEFINED);
+      assert(!intPoints.IsEmpty());
+
+      // Get shape map from grid
+      shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(de->elem);
+
+      // traverse nodes
+      form->GetFeSpace1()->GetElemEqns(eqn, de->elem);
+      assert(eqn.GetSize() == de->elem->connect.GetSize());
+
+      // Loop over all integration points
+      for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
+      {
+        // Calculate for each integration point the LocPointMapped
+        lp.Set( intPoints[ip], esm, weights[ip] );
+
+        // Call the CalcBMat()-method
+        bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
+        LOG_DBG3(em) << "CMDF: ip=" << ip << " w=" << weights[ip] << " jacDet=" << lp.jacDet << " b_mat=" << b_mat.ToString(0, false);
+
+        Matrix<double> D(b_mat.GetNumRows(),b_mat.GetNumRows());
+        D.Init();
+
+        // Define D Matrix, optimizing x or y component
+        if (f->GetType() == Function::MAG_FLUX_DENS_X)
+        {
+          D[0][0] = 1;
+        }
+        else
+        {
+          assert(f->GetType() == Function::MAG_FLUX_DENS_Y);
+          D[1][1] = 1;
+        }
+
+        // Calculate M_tilde = b_mat^T * D * b_mat
+        D.Mult(b_mat,M_tilde);
+        b_mat.MultT(M_tilde,M_tilde); // TODO conjugate for complex!!!
+
+        // Calculate the RHS, the RHS looks like rhs_el = -2 * M_tilde * A
+        M_tilde.Mult(a,rhs_el);
+        rhs_el *= -2.0 * weights[ip] * lp.jacDet;
+        rhs += rhs_el;
+      }
+      // hier RHS /= intpoints.GetSize??? brauche ich fac (BDBint) auch?
+
+      for(unsigned int n = 0; n < eqn.GetSize(); n++)
+      {
+        out[eqn[n]] = 1.0/elems.GetSize() * rhs[n];
+        LOG_DBG2(em) << "CMDF: eqn[n]=" << eqn[n] << " out[eqn[n]]=" << out[eqn[n]];
+      }
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+   assert(out.GetSize() == 0); // if not, we can skip resizing
     const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
     out.Resize(stateSol.GetSize(),0.0);
 
@@ -2728,7 +2843,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       BADB *= (-2);
       LOG_DBG2(em) << "CMDF: BADB" << BADB.ToString(2) << " A=" << a.ToString(2);
 
-      for(unsigned int n = 0; n < eqn.GetSize(); n++){
+      for(unsigned int n = 0; n < eqn.GetSize(); n++)
+      {
         out[eqn[n]] = 1.0/elems.GetSize() * BADB[0][n];
         calc[eqn[n]] ++;
         LOG_DBG2(em) << "CMDF: eqn[n]=" << eqn[n] << " out[eqn[n]]=" << out[eqn[n]];
