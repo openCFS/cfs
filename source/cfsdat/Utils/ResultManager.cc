@@ -471,7 +471,7 @@ void ResultManager::Finalize(){
       } else if(cInfo->dType == ExtendedResultInfo::DOUBLE){
         uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Double>(cacheSteps, cInfo->isStatic));
       }else{
-        EXCEPTION("Only Complex and Double results supported yet")
+        EXCEPTION("Only Complex and Double results supported yet. Result: " << cInfo->resultName)
       }
     }
   }
