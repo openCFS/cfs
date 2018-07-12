@@ -1667,6 +1667,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_CLIPOUTPUT, "preisach_mayergoyz_clip_output" );
     MaterialTypeEnum.Add( PREISACH_PRESCRIBEOUTPUT, "preisach_prescribe_output" );    
     MaterialTypeEnum.Add( PREISACH_SCALEINITIALSTATE, "preisach_scale_initial_state" );    
+    MaterialTypeEnum.Add( SCALETOSAT, "preisach_scaletosat" );    
+    MaterialTypeEnum.Add( SCALETOSAT_STRAIN, "preisach_scaletosat_strain" );  
     MaterialTypeEnum.Add( A_JILES, "aJiles" ); 
     MaterialTypeEnum.Add( ALPHA_JILES, "alphaJiles" ); 
     MaterialTypeEnum.Add( K_JILES, "kJiles" );

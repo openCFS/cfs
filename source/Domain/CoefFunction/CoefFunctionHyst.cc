@@ -1234,7 +1234,7 @@ namespace CoupledField {
   }
   
   void CoefFunctionHyst::ReadAndSetParamsForHystOperator(BaseMaterial* const material, bool setForStrains){
-    
+//    std::cout << "ReadAndSetParamsForHystOperator" << std::endl;
     ParameterPreisachOperators paramSet = ParameterPreisachOperators(); 
     
     // use same offset as in XMLMaterialHandler.cc
@@ -1253,7 +1253,7 @@ namespace CoupledField {
 		}
     
     material->GetScalar(paramSet.methodName_, MaterialType(HYST_MODEL+enumOffset));
-    std::cout << "paramSet.methodName_: " << paramSet.methodName_ << std::endl;
+//    std::cout << "paramSet.methodName_: " << paramSet.methodName_ << std::endl;
     /*
      * Get model specific paramter
      */
@@ -1273,6 +1273,7 @@ namespace CoupledField {
     paramSet.angularClipping_ = 0;
     paramSet.evalVersion_ = 2;   
     paramSet.isClassical_ = false;
+    paramSet.scaleUpToSaturation_ = true;
     paramSet.printOut_ = false;
     paramSet.bmpResolution_ = 1000;
     paramSet.numDirections_ = 11;
@@ -1333,6 +1334,19 @@ namespace CoupledField {
       
 			paramSet.evalVersion_ = (UInt) eval;
       
+//      std::cout << "blub" << std::endl;
+      
+      int scaleToSat = 1;
+      material->GetScalar(scaleToSat, MaterialType(SCALETOSAT+enumOffset));
+      
+      std::cout << "Scale to Sat: " << scaleToSat << std::endl;
+      
+      if(scaleToSat == 1){
+        paramSet.scaleUpToSaturation_ = true;
+      } else {
+        paramSet.scaleUpToSaturation_ = false;
+      }
+      
     } else if(paramSet.methodName_ == "vectorPreisach_Mayergoyz"){
       int isIsotropic = 1;
       material->GetScalar(isIsotropic, MaterialType(PREISACH_MAYERGOYZ_ISOTROPIC+enumOffset));
@@ -1364,7 +1378,7 @@ namespace CoupledField {
     } else {
       POL_operatorParams_ = paramSet;
     }
-    std::cout << "POL_operatorParams_.methodName_: " << POL_operatorParams_.methodName_ << std::endl;  
+//    std::cout << "POL_operatorParams_.methodName_: " << POL_operatorParams_.methodName_ << std::endl;  
   }
   
   
@@ -1381,10 +1395,12 @@ namespace CoupledField {
     /*
      * Set inversion for vector models
      * > only needed for polarization 
-     */    
+     */  
+    inversionSet_ = false;
     if ( (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor") || (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") ){
       // inversion via LM > set parameter
       if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
+        inversionSet_ = true;
         Integer invMat, useTikhonov;
         material->GetScalar(invMat, MAX_NUM_IT_HYST_INV);
         LM_inversion_.maxNumIts = (UInt) invMat;
@@ -1396,7 +1412,7 @@ namespace CoupledField {
         material->GetScalar(LM_inversion_.alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
         material->GetScalar(LM_inversion_.alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
         material->GetScalar(LM_inversion_.alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);  
-      }
+      } 
     }
     
     /*
@@ -1411,6 +1427,8 @@ namespace CoupledField {
     if (dim_ == 3) {
       material->GetScalar(POL_initialInput_[2], INITIAL_STATE_Z, Global::REAL);
     }
+    
+    std::cout << "Initial Input: " << POL_initialInput_.ToString() << std::endl;
     
     bool scaleBySaturation = false;
     int scaleBySaturationInt = 0;
@@ -1431,6 +1449,8 @@ namespace CoupledField {
     } else if(!POL_prescribeInitialOutput_ && scaleBySaturation){
       POL_initialInput_.ScalarMult(POL_operatorParams_.inputSat_);
     }
+    
+    std::cout << "Initial Input after scaling: " << POL_initialInput_.ToString() << std::endl;
     
     POL_initial_.inputVector = POL_initialInput_;
     POL_initial_.prescribeOutput = POL_prescribeInitialOutput_;
@@ -1662,7 +1682,8 @@ namespace CoupledField {
         
 				hyst_ = new VectorPreisachSutor_ListApproach(numHystOperators_, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_,
                 POL_weightParams_.weightTensor_, POL_operatorParams_.rotResistance_, dim_, isVirgin,
-                POL_operatorParams_.isClassical_, POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,
+                POL_operatorParams_.isClassical_, POL_operatorParams_.scaleUpToSaturation_,
+                POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,
                 POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, 
                 POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_);
 			} else if (POL_operatorParams_.evalVersion_ == 2) {
@@ -1670,7 +1691,8 @@ namespace CoupledField {
         
 				hyst_ = new VectorPreisachSutor_ListApproach(numHystOperators_, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_,
                 POL_weightParams_.weightTensor_, POL_operatorParams_.rotResistance_, dim_, isVirgin,
-                POL_operatorParams_.isClassical_, POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,
+                POL_operatorParams_.isClassical_, POL_operatorParams_.scaleUpToSaturation_,
+                POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,
                 POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, 
                 POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_);
 			} else if (POL_operatorParams_.evalVersion_ == 10) {
@@ -1678,7 +1700,8 @@ namespace CoupledField {
         
 				hyst_ = new VectorPreisachSutor_MatrixApproach(numHystOperators_, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_,
                 POL_weightParams_.weightTensor_, POL_operatorParams_.rotResistance_, dim_, isVirgin,
-                POL_operatorParams_.isClassical_, POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,
+                POL_operatorParams_.isClassical_, POL_operatorParams_.scaleUpToSaturation_,
+                POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,
                 POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, 
                 POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_);
 			} else if (POL_operatorParams_.evalVersion_ == 20) {
@@ -1686,7 +1709,8 @@ namespace CoupledField {
         
 				hyst_ = new VectorPreisachSutor_MatrixApproach(numHystOperators_, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_,
                 POL_weightParams_.weightTensor_, POL_operatorParams_.rotResistance_, dim_, isVirgin,
-                POL_operatorParams_.isClassical_, POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,
+                POL_operatorParams_.isClassical_, POL_operatorParams_.scaleUpToSaturation_,
+                POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,
                 POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, 
                 POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_);
 			} else {
@@ -1696,6 +1720,11 @@ namespace CoupledField {
                 "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
                 "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
 			}
+      
+      if( (POL_operatorParams_.scaleUpToSaturation_ == false)&&(POL_operatorParams_.isClassical_ == false) ){
+        POL_operatorParams_.fieldsAlignedAboveSat_ = false;
+      } 
+      
 		}
     else if (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") {
       // basically a scalar model in multiple directions
@@ -1734,7 +1763,7 @@ namespace CoupledField {
     }
     
     if(COUPLED_ownOperatorForStrains_){
-      std::cout << "Use own hyst operator for strain" << std::endl;
+//      std::cout << "Use own hyst operator for strain" << std::endl;
       bool isVirgin = true;
       
       if (STRAIN_operatorParams_.methodType_ == SCALAR) {
@@ -1752,7 +1781,8 @@ namespace CoupledField {
           hystStrain_ = new VectorPreisachSutor_ListApproach(numHystOperators_, 
                   STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
                   STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
-                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.angularDistance_,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.scaleUpToSaturation_,
+                  STRAIN_operatorParams_.angularDistance_,
                   STRAIN_operatorParams_.angularResolution_,
                   STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, 
                   STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
@@ -1762,7 +1792,8 @@ namespace CoupledField {
           hystStrain_ = new VectorPreisachSutor_ListApproach(numHystOperators_, 
                   STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
                   STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
-                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.angularDistance_,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.scaleUpToSaturation_,
+                  STRAIN_operatorParams_.angularDistance_,
                   STRAIN_operatorParams_.angularResolution_,
                   STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, 
                   STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
@@ -1772,7 +1803,8 @@ namespace CoupledField {
           hystStrain_ = new VectorPreisachSutor_MatrixApproach(numHystOperators_, 
                   STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
                   STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
-                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.angularDistance_,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.scaleUpToSaturation_,
+                  STRAIN_operatorParams_.angularDistance_,
                   STRAIN_operatorParams_.angularResolution_,
                   STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, 
                   STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
@@ -1782,7 +1814,8 @@ namespace CoupledField {
           hystStrain_ = new VectorPreisachSutor_MatrixApproach(numHystOperators_, 
                   STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
                   STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
-                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.angularDistance_,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.scaleUpToSaturation_,
+                  STRAIN_operatorParams_.angularDistance_,
                   STRAIN_operatorParams_.angularResolution_,
                   STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, 
                   STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
@@ -1793,6 +1826,9 @@ namespace CoupledField {
                   "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
                   "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
         }
+        if( (STRAIN_operatorParams_.scaleUpToSaturation_ == false)&&(STRAIN_operatorParams_.isClassical_ == false) ){
+          STRAIN_operatorParams_.fieldsAlignedAboveSat_ = false;
+        }  
       }
       else if (STRAIN_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") {
         // basically a scalar model in multiple directions
@@ -1818,9 +1854,10 @@ namespace CoupledField {
         EXCEPTION("Unknown hyst model");
       }
       
-    } else {
-      std::cout << "Reuse pol to compute strain" << std::endl;
-    }
+    } 
+//    else {
+//      std::cout << "Reuse pol to compute strain" << std::endl;
+//    }
     
     /*
      * Initial state
@@ -1836,7 +1873,7 @@ namespace CoupledField {
     Vector<Double> P_J_forStrains = Vector<Double>(dim_);
     P_J_forStrains.Init();
     
-    if (POL_initialInput_.NormL2() > 1e-16) {
+    if(POL_initial_.useInitialInput == true){
       //      WARN("Currently the treatment of initial states is not working properly! \n"
       //                "Depending on the selected evaluation approach, the initial state of \n"
       //                "the hysteresis operator will act as an excitation from the first iteration on or not. \n"
@@ -1845,16 +1882,16 @@ namespace CoupledField {
       //                "The only save usage is in context of the debugging fixPoint iteration \n"
       //                "(i.e. output of hysteresis operator does not couple back).")
       
-      if(POL_prescribeInitialOutput_ == false){
+      if(POL_initial_.prescribeOutput == false){
         // directly feed given input to hyst operator
         initial_E_H = POL_initialInput_;
-      } else {
+      } else {       
         // output is prescribed (better said the total flux quantity is given, i.e.
         // irreversible + reversible + anhyst parts shall in sum be equal to the given vector
         // > feed this vector to inversion and retrieve actual input
         // > note: at the very start of the program, all hyst operators will be in virgin state
         // thus it suffices to compute the input just for one hyst operator
-        initial_E_B = POL_initialInput_;
+        initial_E_B = POL_initial_.inputVector;
         int successCode = 0;
         bool overwrite = false;
         UInt operatorIdx = 0;
@@ -1888,6 +1925,7 @@ namespace CoupledField {
          */
         if (POL_operatorParams_.methodType_ == SCALAR) {    
           Double scalInput;
+
           POL_operatorParams_.fixDirection_.Inner(initial_E_H,scalInput);
           
           Double scalOutput = hyst_->computeValueAndUpdate(scalInput,k, overwrite,successCode);
@@ -1915,10 +1953,13 @@ namespace CoupledField {
       }
     }
     
+    std::cout << "Initial output polarization: " << initial_P_J.ToString() << std::endl;
+    
     Vector<Double> zeroVec = Vector<Double>(dim_);
     zeroVec.Init();
     Vector<Double> initial_Si = ComputeIrreversibleStrains(P_J_forStrains, initial_E_H, zeroVec);
     
+    std::cout << "Initial output strain: " << initial_Si.ToString() << std::endl;
 		/*
      * finally initialize storage
      * NEW: use same storage for vector and scalar model
@@ -3750,6 +3791,7 @@ namespace CoupledField {
      *  2 : coupled g-form (magstrict)
      */
     if(COUPLED_strainForm_ != -1){
+//      std::cout << "Coupled" << std::endl;
       PrecomputeIrrStrains();
       bool rotate = true;
       Matrix<Double> baseTensor = hystHelper_->GetBaseCouplingTensor();
@@ -4536,7 +4578,7 @@ namespace CoupledField {
           //  during the next call input will be compared to E_H_
           // > if output is computed for standard hyst operator first, the call for the strain operator will
           //  not evaluate anything as E_H_ == input
-          if(COUPLED_ownOperatorForStrains_){
+          if(COUPLED_ownOperatorForStrains_ && COUPLED_inXMLFile_ ){
             output = CalcOutputOfHysteresisOperator(input, operatorIdx, storageIdx, forceMemoryLock, forceMemoryWrite, true); 
           }
           
@@ -4631,7 +4673,7 @@ namespace CoupledField {
         //  during the next call input will be compared to E_H_
         // > if output is computed for standard hyst operator first, the call for the strain operator will
         //  not evaluate anything as E_H_ == input
-        if(COUPLED_ownOperatorForStrains_){
+        if(COUPLED_ownOperatorForStrains_ && COUPLED_inXMLFile_ ){
           output = CalcOutputOfHysteresisOperator(input, operatorIdx, storageIdx, forceMemoryLock, forceMemoryWrite, true); 
         }
         
@@ -5310,6 +5352,7 @@ namespace CoupledField {
 		std::ofstream results_x;
     std::ofstream results_p;
     std::ofstream results_s;
+    std::ofstream results_xp;
     std::ofstream results_xps;
     std::ofstream results_y;
     std::ofstream angularResults_x;
@@ -5332,6 +5375,9 @@ namespace CoupledField {
     std::stringstream results_name_y;
 		results_name_y << name << "_results_y";		
 		
+    std::stringstream results_name_xp;
+		results_name_xp << name << "_results_xp";	
+    
     std::stringstream results_name_xps;
 		results_name_xps << name << "_results_xps";	
     
@@ -5349,6 +5395,7 @@ namespace CoupledField {
 		
 		if(writeResultsToFile){
 			results_x.open(results_name_x.str());
+      results_xp.open(results_name_xp.str());
       results_p.open(results_name_p.str());
       results_y.open(results_name_y.str());
       angularResults_x.open(angularResults_name_x.str());
@@ -5395,8 +5442,10 @@ namespace CoupledField {
 		
 		Vector<Double> xOut = Vector<Double>(dim_);
 		Vector<Double> hOut = Vector<Double>(dim_);
+    Vector<Double> hOutForStrains = Vector<Double>(dim_);
 		Vector<Double> yOut = Vector<Double>(dim_);
 		Vector<Double> hOutOld = Vector<Double>(dim_);
+    Vector<Double> hOutOldForStrains = Vector<Double>(dim_);
     
 		Vector<Double> xErr = Vector<Double>(dim_);
 		Vector<Double> yErr = Vector<Double>(dim_);
@@ -5442,7 +5491,9 @@ namespace CoupledField {
 		UInt totalNumberOfLinesearchIterations = 0;
 		UInt absmaxNumberOfLinesearchIterations = 0;
 		
-		Double startTime, endTime, evalTime;
+		Double startTime = 0.0;
+    Double endTime = 0.0;
+    Double evalTime = 0.0;
 		Double backwardMaxEvalTime = -1.0;
 		Double backwardTotalEvalTime = 0.0;
 		Double forwardMaxEvalTime = -1.0;
@@ -5463,8 +5514,6 @@ namespace CoupledField {
      * 1. Create temporal hyst operator; this should be done for each test to ensure 
      *		that operator is in initial state
      */
-		bool fieldsAlignedAboveSat = true;
-		bool hystOutputRestrictedToSat = true;
 		bool isVirgin = true;
 		bool vector = true;
 		bool debugOut = false;
@@ -5476,29 +5525,31 @@ namespace CoupledField {
       //			material_->GetScalar(useExtensionInt, SCALPREISACH_USE_EXT);
 			if(POL_useExtension_){
 				EXCEPTION("Extension not implemented for tests; remove completely as not working");
-				POL_useExtension_ = true;
-				
-				material_->GetScalar(POL_operatorParams_.rotResistance_, ROT_RESISTANCE, Global::REAL);
-				material_->GetScalar(POL_operatorParams_.angularDistance_, ANG_DISTANCE, Global::REAL);
-				
-				hystTMP = new ExtendedPreisach(1, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_, POL_weightParams_.weightTensor_, 
-                POL_operatorParams_.rotResistance_, POL_operatorParams_.angularDistance_, dim_, isVirgin, POL_weightParams_.anhysteretic_a_, 
-                POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_);
-				
-				// set initial direction
-				Vector<Double> initialInput = Vector<Double>(dim_);
-				POL_eps_mu_SmallSignal_.Mult(POL_operatorParams_.fixDirection_,initialInput);
-				initialInput.ScalarMult(POL_operatorParams_.inputSat_);
-				initialInput.Add(POL_operatorParams_.outputSat_,POL_operatorParams_.fixDirection_);
-				// initialInput = (POL_operatorParams_.outputSat_*Identity + POL_operatorParams_.inputSat_*POL_eps_mu_SmallSignal_)*POL_operatorParams_.fixDirection_
-				// > flux with value just at saturation
-				hystTMP->UpdateRotationState(initialInput,POL_eps_mu_SmallSignal_,0);
-				
+//				POL_useExtension_ = true;
+//				
+//				material_->GetScalar(POL_operatorParams_.rotResistance_, ROT_RESISTANCE, Global::REAL);
+//				material_->GetScalar(POL_operatorParams_.angularDistance_, ANG_DISTANCE, Global::REAL);
+//				
+//				hystTMP = new ExtendedPreisach(1, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_, POL_weightParams_.weightTensor_, 
+//                POL_operatorParams_.rotResistance_, POL_operatorParams_.angularDistance_, dim_, isVirgin, POL_weightParams_.anhysteretic_a_, 
+//                POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_);
+//				
+//				// set initial direction
+//				Vector<Double> initialInput = Vector<Double>(dim_);
+//				POL_eps_mu_SmallSignal_.Mult(POL_operatorParams_.fixDirection_,initialInput);
+//				initialInput.ScalarMult(POL_operatorParams_.inputSat_);
+//				initialInput.Add(POL_operatorParams_.outputSat_,POL_operatorParams_.fixDirection_);
+//				// initialInput = (POL_operatorParams_.outputSat_*Identity + POL_operatorParams_.inputSat_*POL_eps_mu_SmallSignal_)*POL_operatorParams_.fixDirection_
+//				// > flux with value just at saturation
+//				hystTMP->UpdateRotationState(initialInput,POL_eps_mu_SmallSignal_,0);
+//				
 			} else {
 				vector = false;
-				hystTMP = new Preisach(1, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_, POL_weightParams_.weightTensor_, isVirgin, 
-                POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_);
-			}
+				hystTMP = new Preisach(1, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_, 
+                POL_weightParams_.weightTensor_, isVirgin, 
+                POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,
+                POL_weightParams_.anhystOnly_);
+      }
 		} else if (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor") {
 			if(printStatistics){
 				if (POL_operatorParams_.evalVersion_ == 1) {
@@ -5522,28 +5573,32 @@ namespace CoupledField {
 				
 				hystTMP = new VectorPreisachSutor_ListApproach(1, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_,
                 POL_weightParams_.weightTensor_, POL_operatorParams_.rotResistance_, dim_, isVirgin,
-                POL_operatorParams_.isClassical_, POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,POL_weightParams_.anhysteretic_a_, 
+                POL_operatorParams_.isClassical_, POL_operatorParams_.scaleUpToSaturation_,
+                POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,POL_weightParams_.anhysteretic_a_, 
                 POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_);
 			} else if (POL_operatorParams_.evalVersion_ == 2) {
 				POL_operatorParams_.isClassical_ = false; // revised vector preisach model -> sutor2015
 				
 				hystTMP = new VectorPreisachSutor_ListApproach(1, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_,
                 POL_weightParams_.weightTensor_, POL_operatorParams_.rotResistance_, dim_, isVirgin,
-                POL_operatorParams_.isClassical_, POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,POL_weightParams_.anhysteretic_a_, 
+                POL_operatorParams_.isClassical_, POL_operatorParams_.scaleUpToSaturation_,
+                POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,POL_weightParams_.anhysteretic_a_, 
                 POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_);
 			} else if (POL_operatorParams_.evalVersion_ == 10) {
 				POL_operatorParams_.isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
 				
 				hystTMP = new VectorPreisachSutor_MatrixApproach(1, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_,
                 POL_weightParams_.weightTensor_, POL_operatorParams_.rotResistance_, dim_, isVirgin,
-                POL_operatorParams_.isClassical_, POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,POL_weightParams_.anhysteretic_a_, 
+                POL_operatorParams_.isClassical_, POL_operatorParams_.scaleUpToSaturation_,
+                POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,POL_weightParams_.anhysteretic_a_, 
                 POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_);
 			} else if (POL_operatorParams_.evalVersion_ == 20) {
 				POL_operatorParams_.isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
 				
 				hystTMP = new VectorPreisachSutor_MatrixApproach(1, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_,
                 POL_weightParams_.weightTensor_, POL_operatorParams_.rotResistance_, dim_, isVirgin,
-                POL_operatorParams_.isClassical_, POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,POL_weightParams_.anhysteretic_a_, 
+                POL_operatorParams_.isClassical_, POL_operatorParams_.scaleUpToSaturation_,
+                POL_operatorParams_.angularDistance_,POL_operatorParams_.angularResolution_,POL_weightParams_.anhysteretic_a_, 
                 POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_);
 			} else {
 				EXCEPTION("POL_operatorParams_.evalVersion_ has to be one of the following: \n "
@@ -5554,32 +5609,21 @@ namespace CoupledField {
 			}
 			hystTMP->SetParamsForInversion(LM_inversion_.maxNumIts, LM_inversion_.tolH, LM_inversion_.tolB, LM_inversion_.jacRes,
               LM_inversion_.useTikhonov, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,POL_operatorParams_.angularClipping_); 
-			
-		} else if (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") {
-			fieldsAlignedAboveSat = false;
-			
-			// basically a scalar model in multiple directions
-			// isotropic case: all scalar models are equal (same weights etc)
-			// anisotropic case: each model different; choice of directions matters; weights are harder to obtain
-			int isIsotropic = 1;
-			material_->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
-			if( (dim_ != 2) || (isIsotropic == 0)){
-				EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
-			}
-			int numDirections = 0;
-			material_->GetScalar(numDirections, PREISACH_MAYERGOYZ_NUM_DIR);
-			
-			int clipOutput = 0;
-			material_->GetScalar(clipOutput, PREISACH_MAYERGOYZ_CLIPOUTPUT);
-			
-			if(clipOutput == 0){
-				hystOutputRestrictedToSat = false;
-			}
-			
-			statistics << "with num directions = " << numDirections << std::endl;
-			statistics << "and output clipping mode = " << clipOutput << std::endl;
-			
-			/*
+			      
+		} else if (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") {			
+      // basically a scalar model in multiple directions
+      // isotropic case: all scalar models are equal (same weights etc)
+      // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
+      int isIsotropic = 1;
+      material_->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
+      if( (dim_ != 2) || (isIsotropic == 0)){
+        EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
+      }
+      
+      statistics << "with num directions = " << POL_operatorParams_.numDirections_ << std::endl;
+      statistics << "and output clipping mode = " << POL_operatorParams_.outputClipping_ << std::endl;
+      
+      /*
        * IMPORTANT REMARK:
        *  > although the Mayergoyz model is based on the scalar models 
        *     we are not allowed to directly apply the Preisach parameter for
@@ -5587,9 +5631,10 @@ namespace CoupledField {
        *  > make sure that the passed parameter are already transformed correctly
        *      > see constructor above
        */
-			hystTMP = new VectorPreisachMayergoyz(1, numDirections, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_, 
-              POL_weightParams_.weightTensor_,dim_,isVirgin,POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, 
-              POL_weightParams_.anhysteretic_c_,POL_weightParams_.anhystOnly_,clipOutput);
+      hystTMP = new VectorPreisachMayergoyz(1, POL_operatorParams_.numDirections_, POL_operatorParams_.inputSat_, POL_operatorParams_.outputSat_, 
+              POL_weightParams_.weightTensor_,dim_,isVirgin,
+              POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,
+              POL_weightParams_.anhystOnly_,POL_operatorParams_.outputClipping_);
 			
 			hystTMP->SetParamsForInversion(LM_inversion_.maxNumIts, LM_inversion_.tolH, LM_inversion_.tolB, LM_inversion_.jacRes,
               LM_inversion_.useTikhonov, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,POL_operatorParams_.angularClipping_); 
@@ -5597,6 +5642,63 @@ namespace CoupledField {
 			EXCEPTION("Invalid model selected for inversion test");
 		}
 		
+    if(COUPLED_ownOperatorForStrains_){
+      if (STRAIN_operatorParams_.methodName_ == "scalarPreisach") {
+        hystStrainTMP = new Preisach(1, STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_, 
+                STRAIN_weightParams_.weightTensor_, isVirgin, 
+                STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, STRAIN_weightParams_.anhysteretic_c_,
+                STRAIN_weightParams_.anhystOnly_);
+        
+      } else if (STRAIN_operatorParams_.methodName_ == "vectorPreisach_Sutor") {
+        if (STRAIN_operatorParams_.evalVersion_ == 1) {
+          STRAIN_operatorParams_.isClassical_ = true; // original vector preisach model -> sutor2012
+          
+          hystStrainTMP = new VectorPreisachSutor_ListApproach(1, STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
+                  STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.scaleUpToSaturation_,
+                  STRAIN_operatorParams_.angularDistance_,STRAIN_operatorParams_.angularResolution_,
+                  STRAIN_weightParams_.anhysteretic_a_, 
+                  STRAIN_weightParams_.anhysteretic_b_, STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
+        } else if (STRAIN_operatorParams_.evalVersion_ == 2) {
+          STRAIN_operatorParams_.isClassical_ = false; // revised vector preisach model -> sutor2015
+          
+          hystStrainTMP = new VectorPreisachSutor_ListApproach(1, STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
+                  STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.scaleUpToSaturation_,
+                  STRAIN_operatorParams_.angularDistance_,STRAIN_operatorParams_.angularResolution_,
+                  STRAIN_weightParams_.anhysteretic_a_, 
+                  STRAIN_weightParams_.anhysteretic_b_, STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
+        } else if (STRAIN_operatorParams_.evalVersion_ == 10) {
+          STRAIN_operatorParams_.isClassical_ = true; // original vector preisach model -> sutor2015; matrix based implementation
+          
+          hystStrainTMP = new VectorPreisachSutor_MatrixApproach(1, STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
+                  STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.scaleUpToSaturation_,
+                  STRAIN_operatorParams_.angularDistance_,STRAIN_operatorParams_.angularResolution_,
+                  STRAIN_weightParams_.anhysteretic_a_, 
+                  STRAIN_weightParams_.anhysteretic_b_, STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
+        } else if (STRAIN_operatorParams_.evalVersion_ == 20) {
+          STRAIN_operatorParams_.isClassical_ = false; // revised vector preisach model -> sutor2015; matrix based implementation
+          
+          hystStrainTMP = new VectorPreisachSutor_MatrixApproach(1, STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_,
+                  STRAIN_weightParams_.weightTensor_, STRAIN_operatorParams_.rotResistance_, dim_, isVirgin,
+                  STRAIN_operatorParams_.isClassical_, STRAIN_operatorParams_.scaleUpToSaturation_,
+                  STRAIN_operatorParams_.angularDistance_,STRAIN_operatorParams_.angularResolution_,
+                  STRAIN_weightParams_.anhysteretic_a_, 
+                  STRAIN_weightParams_.anhysteretic_b_, STRAIN_weightParams_.anhysteretic_c_,STRAIN_weightParams_.anhystOnly_);
+        }
+      } else if (STRAIN_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") {
+        
+          hystStrainTMP = new VectorPreisachMayergoyz(1, STRAIN_operatorParams_.numDirections_, 
+                STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_, 
+                STRAIN_weightParams_.weightTensor_,dim_,isVirgin,
+                STRAIN_weightParams_.anhysteretic_a_, STRAIN_weightParams_.anhysteretic_b_, STRAIN_weightParams_.anhysteretic_c_,
+                STRAIN_weightParams_.anhystOnly_,STRAIN_operatorParams_.outputClipping_);
+                
+      }
+    }
+    
+    
     if(outputIrrStrains){
       results_s.open(results_name_s.str());
       results_s << "#Number S_irr_xx S_irr_yy S_irr_xy" << std::endl;
@@ -5762,6 +5864,8 @@ namespace CoupledField {
 			std::cout << "##### STARTING TEST " << name << " #####" << std::endl;
 		}
 		hOutOld.Init();
+    hOutOldForStrains.Init();
+    
 		for(UInt i = 0; i < totalSteps; i++){
 			if( (i%10 == 0)&&(printStatistics) ){
 				std::cout << "STEP NR " << i+1 << "/" << totalSteps << " #####" << std::endl;
@@ -5826,7 +5930,7 @@ namespace CoupledField {
 				
         if(vector){
           xOut = hystTMP->computeInput_vec_withStatistics(yIn, yPrev, xPrev, hPrev, 
-                  0, POL_eps_mu_SmallSignal_, fieldsAlignedAboveSat, hystOutputRestrictedToSat,
+                  0, POL_eps_mu_SmallSignal_, POL_operatorParams_.fieldsAlignedAboveSat_, POL_operatorParams_.hystOutputRestrictedToSat_,
                   numberOfLMIterations, numberOfLinesearchIterations, maxNumberOfLinesearchIterations,
                   successFlagBackward, minAlpha, maxAlpha, avgAlpha, xIn);	
         } else {	
@@ -5904,6 +6008,7 @@ namespace CoupledField {
 			
 			successFlagForward = -1;
 			hOut.Init();
+      hOutForStrains.Init();
 			
 			if (measurePerformance) {
 				forwardTimer->Start();
@@ -5916,6 +6021,16 @@ namespace CoupledField {
 				hOut[0] = hystTMP->computeValueAndUpdate(xIn[0], 0, overwriteMemory, successFlagForward);
 			}
 			
+      if(COUPLED_ownOperatorForStrains_){
+        if(vector){
+          hOutForStrains = hystStrainTMP->computeValue_vec(xIn, 0, overwriteMemory, debugOut, successFlagForward);
+        } else {  
+          hOutForStrains[0] = hystStrainTMP->computeValueAndUpdate(xIn[0], 0, overwriteMemory, successFlagForward);
+        }
+      } else {
+        hOutForStrains = hOut;
+      }
+      
 			if (measurePerformance) {
 				forwardTimer->Stop();
 				
@@ -5956,10 +6071,11 @@ namespace CoupledField {
 			}
 			
       if(outputIrrStrains){
-        Vector<Double> S_irr = ComputeIrreversibleStrains(hOut,xIn,hOutOld);
+        Vector<Double> S_irr = ComputeIrreversibleStrains(hOutForStrains,xIn,hOutOldForStrains);
         results_s << i+1 << " " << std::setprecision(9) << S_irr.ToString() << std::endl;
-        results_xps << i+1 << " " << std::setprecision(9) << xIn.ToString() << " " << hOut.ToString() << " " << S_irr.ToString() << std::endl;
+        results_xps << i+1 << " " << std::setprecision(9) << xIn.ToString() << " " << hOutForStrains.ToString() << " " << S_irr.ToString() << std::endl;
       }
+      results_xp << i+1 << " " << std::setprecision(9) << xIn.ToString() << " " << hOut.ToString() << std::endl;
       
 			/*
        * 4. Check result
@@ -6062,6 +6178,7 @@ namespace CoupledField {
 				LOG_TRACE(coeffcthyst) << yErr.ToString();
 			}
 			hOutOld = hOut;
+      hOutOldForStrains = hOutForStrains;
 		}
 		
 		UInt LMcases = totalSteps-totalReused-totalBisection-totalAnhystOnly-totalRemanence;
@@ -6191,6 +6308,7 @@ namespace CoupledField {
     
 		if(writeResultsToFile){
 			results_x.close();
+      results_xp.close();
       results_p.close();
       results_y.close();
       angularResults_x.close();
@@ -6224,6 +6342,12 @@ namespace CoupledField {
     if(testNode->Has("TestInversion")){
       testNode->GetValue("TestInversion",testInversion,ParamNode::PASS);
     }
+    
+    if( (testInversion == true)&&(inversionSet_ == false) ){
+      WARN("Test of inversion demanded but no inversion parameter for current material. Skip inversion test.");
+      testInversion = false;      
+    }
+    
     bool stopAfterTests = false;
     if(testNode->Has("StopAfterTests")){
       testNode->GetValue("StopAfterTests",stopAfterTests,ParamNode::PASS);

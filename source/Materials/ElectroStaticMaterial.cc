@@ -52,6 +52,8 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_MAYERGOYZ_CLIPOUTPUT );
     isAllowed_.insert( PREISACH_PRESCRIBEOUTPUT );
     isAllowed_.insert( PREISACH_SCALEINITIALSTATE );
+    isAllowed_.insert( SCALETOSAT );
+    isAllowed_.insert( SCALETOSAT_STRAIN );
     isAllowed_.insert( A_JILES );
     isAllowed_.insert( ALPHA_JILES );
     isAllowed_.insert( K_JILES );

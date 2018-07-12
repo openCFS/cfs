@@ -1691,7 +1691,7 @@ namespace CoupledField {
   }
   
   void XMLMaterialHandler::ReadHystOperator(BaseMaterial *material, PtrParamNode operatorNode, bool setStrains){
-    
+//    std::cout << "ReadHystOperator" << std::endl;
     PtrParamNode model;
     PtrParamNode pWeight = NULL;
     PtrParamNode pAnhyst = NULL;
@@ -1757,10 +1757,11 @@ namespace CoupledField {
       }
     }
     else if(operatorNode->Has("vectorPreisach_Sutor")){
+//      std::cout << "vectorPreisach_Sutor" << std::endl;
       model = operatorNode->Get("vectorPreisach_Sutor");
       
-      material->SetScalar("vectorPreisach_Sutor", MaterialType(HYST_MODEL_STRAIN+enumOffset));
-      material->SetScalar("VECTOR", MaterialType(PREISACH_DIM_STRAIN+enumOffset));
+      material->SetScalar("vectorPreisach_Sutor", MaterialType(HYST_MODEL+enumOffset));
+      material->SetScalar("VECTOR", MaterialType(PREISACH_DIM+enumOffset));
       
       // read input/output saturation of Preisach hysterese model
       material->SetScalar(model->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL ); 
@@ -1774,6 +1775,7 @@ namespace CoupledField {
        */
       int evalVersion = 2;
       if(model->Has("evalVersion")){
+//        std::cout << "evalVersion" << std::endl;
         if(model->Get("evalVersion")->Has("Classical_Version_2012__list_implementation")){
           evalVersion = 1;
         } 
@@ -1792,18 +1794,32 @@ namespace CoupledField {
       
       Double rotResistance = 1.0;
       Double angularDistance = 0.0;
+      bool enforceSatOutputAtSatInput = true;
       if(model->Has("rotResistance")){
+//        std::cout << "rotResistance" << std::endl;
         rotResistance = model->Get("rotResistance")->As<Double>();
       } 
       
       material->SetScalar(rotResistance, MaterialType(ROT_RESISTANCE+enumOffset), Global::REAL);
       
       if(model->Has("angularDistance")){
+//                std::cout << "angularDistance" << std::endl;
         angularDistance = model->Get("angularDistance")->As<Double>();
       } 
       
       material->SetScalar(angularDistance, MaterialType(ANG_DISTANCE+enumOffset), Global::REAL);
       
+      if(model->Has("enforceSatOutputAtSatInput")){
+//        std::cout << "enforceSatOutputAtSatInput" << std::endl;
+        enforceSatOutputAtSatInput = model->Get("enforceSatOutputAtSatInput")->As<bool>();
+      } 
+      
+      if(enforceSatOutputAtSatInput){
+        material->SetScalar(1, MaterialType(SCALETOSAT+enumOffset));
+      } else {
+        material->SetScalar(0, MaterialType(SCALETOSAT+enumOffset));
+      }
+
       if(model->Has("weights")){
         pWeight = model->Get("weights");
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
@@ -2162,6 +2178,7 @@ namespace CoupledField {
       material->SetScalar(alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
       material->SetScalar(alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);
     }
+//    std::cout << "ReadHystOperator - done" << std::endl;
   }
   
 } // end of namespace

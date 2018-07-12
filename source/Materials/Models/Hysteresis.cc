@@ -1707,9 +1707,17 @@ namespace CoupledField
       // note 24.05.2018: the treatment as described in note from 22.05. helps a lot; nevertheless some inversion fails
       //                  most probably as we further down (and during subfunctions) also assume that the maximal output is PSaturated
       //                  > two options possible
-      //                    a) search all these spots and replace PSaturated+anhystPartPosSat with satInput.NormL2()
+      //                    a) search all these spots and replace PSaturated+anhystPartPosSat with hystValAtXSat.NormL2()
       //                    b) add scaling to vector model, such that PSaturated is actually reached at saturation
       //                  > currently option b) is used!
+      // note 9.7.2018: if option b) is used, the parameter rotRes has a much smaller influence as expected; 
+      //                  the actual determination of rotRes from measurement data is harder compared to allowing
+      //                  the rotation state to change AFTER saturation by first computing rotRes*inputNorm and then
+      //                  cutting it down to 1;
+      //                this treatment has the severe consequence, that input and output might no longer be aligned at
+      //                saturation because parts of the rotational state get overwritten by values beyond saturation
+      //                > sutor model must be treated similar to Mayergoyz model, i.e. fieldsAlignedAboveSat = false
+      //                > but: sutor model will never exceed saturtion, i.e. hystOutputRestrictedToSat = false
       int tmp = 0; 
       Vector<Double> satInput = Vector<Double>(dim_);
       satInput.Init();

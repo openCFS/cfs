@@ -18,7 +18,8 @@ namespace CoupledField
    */
   VectorPreisachSutor::VectorPreisachSutor(Integer numElem, Double xSat, Double ySat,
           Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-          bool classical, Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
+          bool classical, bool scaleUpToSaturation,
+          Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
   : Hysteresis(numElem,xSat,ySat,anhystA,anhystB,anhystC,anhystOnly)
   {
     
@@ -137,6 +138,8 @@ namespace CoupledField
     anhyst_A_ = anhystA;
     anhyst_B_ = anhystB;
     anhyst_C_ = anhystC;
+    
+    scaleUpToSaturation_ = scaleUpToSaturation;
     
   }
   
@@ -525,10 +528,11 @@ namespace CoupledField
    */
   VectorPreisachSutor_MatrixApproach::VectorPreisachSutor_MatrixApproach(Integer numElem, Double xSat, Double ySat,
           Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-          bool classical, Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
+          bool classical, bool scaleUpToSaturation,
+          Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
   : VectorPreisachSutor(numElem, xSat, ySat,
           preisachWeight, rotationalResistance , dim, isVirgin,
-          classical, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
+          classical, scaleUpToSaturation, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
   {
     LOG_TRACE(vecpreisach) << "Using Matrix-based implementation";
     
@@ -802,28 +806,43 @@ namespace CoupledField
       // reuse old value; 
       return preisachSum_[idElem];
     }
-    
+        
     /*
      * Determine the current rotational threshold
-     *
-     * Note: u_in is no longer normalized, i.e. u_in.NormL2 > Xsaturated is possible!
-     * in that case, we have to cap u_in.NormL2 to Xsaturated BEFORE computing X_thres
-     * Otherwise, the Preisach plane may be filled further than it is intended by the model
-     * (e.g. for k = 0.5 and the revised model, the maximal filling state of the Preisach plane
-     * is 0.5, not 1)
      */
     Double X_thres;
     Double uNormTmp = u_in.NormL2();
-    if(uNormTmp >= XSaturated_){
-      uNormTmp = 1.0;
+        
+    if(classical_ || scaleUpToSaturation_){
+      // scaleUpToSaturation_: 
+      // restrict norm to 1 first, then compute xThres
+      // > Preisach plane is not fully filled for u_in.NormL2 = Xsaturated if rotRes < 1
+      // > Preisach plane will not get fully filled even for u_in.NormL2 > Xsaturated if rotRes < 1
+      // > to reach output saturation, divide output by maximal achievable output
+      if(uNormTmp >= XSaturated_){
+        uNormTmp = 1.0;
+      } else {
+        uNormTmp = uNormTmp/XSaturated_;
+      }
+      if(classical_){
+        X_thres = std::pow(uNormTmp,rotationalResistance_);
+      } else {
+        X_thres = uNormTmp*rotationalResistance_;
+      }
     } else {
-      uNormTmp = uNormTmp/XSaturated_;
-    }
-    if(classical_){
-      X_thres = std::pow(uNormTmp,rotationalResistance_);
-    } else {
-      X_thres = uNormTmp*rotationalResistance_;
-    }
+      // !scaleUpToSaturation_:
+      // multiply norm with rotres first, then restrict to +1 if necessary
+      // > Preisach plane is not fully filled for u_in.NormL2 = Xsaturated if rotRes < 1
+      // > BUT Preisach plane will get fully filled if u_in.NormL2 > Xsaturated if rotRes < 1
+      // Advantage: no scaling needed
+      // Disadvantage: output saturation is not reached if input saturation is reached!
+      //                and fields might not be aligned at saturation > needs special treatment
+      //                during inversion
+      X_thres = uNormTmp*rotationalResistance_/XSaturated_;
+      if(X_thres > 1){
+        X_thres = 1;
+      }
+    } 
     
     /*
      * Get current direction
@@ -1077,10 +1096,11 @@ namespace CoupledField
    */
   VectorPreisachSutor_ListApproach::VectorPreisachSutor_ListApproach(Integer numElem, Double xSat, Double ySat,
           Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-          bool classical, Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
+          bool classical, bool scaleUpToSaturation, 
+          Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
   : VectorPreisachSutor(numElem, xSat, ySat,
           preisachWeight, rotationalResistance , dim, isVirgin,
-          classical, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
+          classical, scaleUpToSaturation, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
   {
     
     LOG_TRACE(vecpreisach) << "Using List-based implementation";
@@ -2292,7 +2312,6 @@ namespace CoupledField
     
   }  
   
-  
   Vector<Double> VectorPreisachSutor_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,
           bool debugOut, int& successCode){
     
@@ -2307,26 +2326,42 @@ namespace CoupledField
       
     /*
      * Determine the current rotational threshold
-     *
-     * Note: u_in is no longer normalized, i.e. u_in.NormL2 > Xsaturated is possible!
-     * in that case, we have to cap u_in.NormL2 to Xsaturated BEFORE computing X_thres
-     * Otherwise, the Preisach plane may be filled further than it is intended by the model
-     * (e.g. for k = 0.5 and the revised model, the maximal filling state of the Preisach plane
-     * is 0.5, not 1)
      */
     Double X_thres;
     Double uNormTmp = u_in.NormL2();
         
-    if(uNormTmp >= XSaturated_){
-      uNormTmp = 1.0;
+    if(classical_ || scaleUpToSaturation_){
+//      std::cout << "Old version" << std::endl;
+      // scaleUpToSaturation_: 
+      // restrict norm to 1 first, then compute xThres
+      // > Preisach plane is not fully filled for u_in.NormL2 = Xsaturated if rotRes < 1
+      // > Preisach plane will not get fully filled even for u_in.NormL2 > Xsaturated if rotRes < 1
+      // > to reach output saturation, divide output by maximal achievable output
+      if(uNormTmp >= XSaturated_){
+        uNormTmp = 1.0;
+      } else {
+        uNormTmp = uNormTmp/XSaturated_;
+      }
+      if(classical_){
+        X_thres = std::pow(uNormTmp,rotationalResistance_);
+      } else {
+        X_thres = uNormTmp*rotationalResistance_;
+      }
     } else {
-      uNormTmp = uNormTmp/XSaturated_;
-    }
-    if(classical_){
-      X_thres = std::pow(uNormTmp,rotationalResistance_);
-    } else {
-      X_thres = uNormTmp*rotationalResistance_;
-    }
+//      std::cout << "New version" << std::endl;
+      // !scaleUpToSaturation_:
+      // multiply norm with rotres first, then restrict to +1 if necessary
+      // > Preisach plane is not fully filled for u_in.NormL2 = Xsaturated if rotRes < 1
+      // > BUT Preisach plane will get fully filled if u_in.NormL2 > Xsaturated if rotRes < 1
+      // Advantage: no scaling needed
+      // Disadvantage: output saturation is not reached if input saturation is reached!
+      //                and fields might not be aligned at saturation > needs special treatment
+      //                during inversion
+      X_thres = uNormTmp*rotationalResistance_/XSaturated_;
+      if(X_thres > 1){
+        X_thres = 1;
+      }
+    } 
     
     /*
      * Get current direction

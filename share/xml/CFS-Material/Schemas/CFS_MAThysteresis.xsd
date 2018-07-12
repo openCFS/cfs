@@ -545,6 +545,21 @@
       <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="1"/>
       <xsd:element name="rotResistance"  type="xsd:double" minOccurs="1" default="1"/>
       <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="enforceSatOutputAtSatInput" type="xsd:boolean" minOccurs="1" default="true">
+        <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          enforceSatOutputAtSatInput: 
+            + only relevant for revised model and if rotResistance smaller 1
+            + if rotResistance smaller 1, the Preisach plane for the rotstate is not fully filled
+              if input reaches saturation; in that case we have to options:
+                a) allow further filling of Preisach plane for inputs larger than saturation
+                    > enforceSatOutputAtSatInput = false
+                b) restrict output to the value that is reached at input saturation, then scale
+                    resulting output up such that output is in saturation, too
+                    > enforceSatOutputAtSatInput = true
+        </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="1"/>
       <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
@@ -579,6 +594,21 @@
       <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="1"/>
       <xsd:element name="rotResistance"  type="xsd:double" minOccurs="1" default="1"/>
       <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="enforceSatOutputAtSatInput" type="xsd:boolean" minOccurs="1" default="true">
+        <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          enforceSatOutputAtSatInput: 
+            + only relevant for revised model and if rotResistance smaller 1
+            + if rotResistance smaller 1, the Preisach plane for the rotstate is not fully filled
+              if input reaches saturation; in that case we have to options:
+                a) allow further filling of Preisach plane for inputs larger than saturation
+                    > enforceSatOutputAtSatInput = false
+                b) restrict output to the value that is reached at input saturation, then scale
+                    resulting output up such that output is in saturation, too
+                    > enforceSatOutputAtSatInput = true
+        </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="initialState" type="DT_initialElec" minOccurs="0">
         <xsd:annotation>
@@ -609,6 +639,21 @@
       <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="1"/>
       <xsd:element name="rotResistance"  type="xsd:double" minOccurs="1" default="1"/>
       <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
+      <xsd:element name="enforceSatOutputAtSatInput" type="xsd:boolean" minOccurs="1" default="true">
+        <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          enforceSatOutputAtSatInput: 
+            + only relevant for revised model and if rotResistance smaller 1
+            + if rotResistance smaller 1, the Preisach plane for the rotstate is not fully filled
+              if input reaches saturation; in that case we have to options:
+                a) allow further filling of Preisach plane for inputs larger than saturation
+                    > enforceSatOutputAtSatInput = false
+                b) restrict output to the value that is reached at input saturation, then scale
+                    resulting output up such that output is in saturation, too
+                    > enforceSatOutputAtSatInput = true
+        </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="debuggingParameter" minOccurs="0">
         <xsd:complexType>

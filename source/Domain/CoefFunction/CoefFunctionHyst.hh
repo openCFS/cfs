@@ -1208,6 +1208,7 @@ namespace CoupledField {
     UInt printOut_;
     UInt bmpResolution_;
     bool isClassical_;
+    bool scaleUpToSaturation_;
     
     /*
      * vector model mayergoyz (isotropic!)
@@ -1339,6 +1340,7 @@ namespace CoupledField {
   ParameterPreisachOperators POL_operatorParams_;
   ParameterPreisachOperators STRAIN_operatorParams_;
   
+  bool inversionSet_;
   ParameterLevenbergMarquardtInversion LM_inversion_;
   InitialInput POL_initial_;
   
@@ -2004,6 +2006,7 @@ namespace CoupledField {
       //std::cout << "Elast and Coupl tensor were passed by coupled pde!" << std::endl;
       elastTensorFct_ = elastTensor;
       couplTensorFct_ = couplTensor;
+      COUPLED_inXMLFile_ = true;
     }
     
     bool couplingTensorSet(){

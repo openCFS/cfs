@@ -661,7 +661,7 @@ namespace CoupledField {
   public:
     VectorPreisachSutor(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, Double angularDistance, Double angResolution, 
+      bool classical, bool scaleUpToSaturation, Double angularDistance, Double angResolution, 
       Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
     
     virtual ~VectorPreisachSutor();
@@ -780,6 +780,7 @@ namespace CoupledField {
     
     bool classical_; //! switch between classical evaluation (2012 version of vector model) or revised evaluation (2015 version)
     bool restrictToHalfspace_;
+    bool scaleUpToSaturation_; // see computeValue_vec for details
     
     /*!
      * Local quantities, i.e. one for each FE elements of the same material
@@ -824,7 +825,7 @@ namespace CoupledField {
   public:
     VectorPreisachSutor_MatrixApproach(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, Double angularDistance, Double angResolution, 
+      bool classical, bool scaleUpToSaturation, Double angularDistance, Double angResolution, 
       Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
     
     ~VectorPreisachSutor_MatrixApproach();
@@ -873,7 +874,7 @@ namespace CoupledField {
   public:
     VectorPreisachSutor_ListApproach(Integer numElem, Double xSat, Double ySat,
       Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, Double angularDistance, Double angResolution, 
+      bool classical, bool scaleUpToSaturation, Double angularDistance, Double angResolution, 
       Double anhystA=0.0, Double anhystB=0.0, Double anhystC=0.0, bool anhystOnly = false);
     
     virtual ~VectorPreisachSutor_ListApproach();
