@@ -190,6 +190,8 @@ void RBFInterpolator::PrepareCalculation(){
 void RBFInterpolator::PreparePATCH(){
   std::cout << "\t ---> RBFInterpolator preparing for interpolation" << std::endl;
 
+
+
   std::cout << "\t\t 1/4 Obtaining source entities " << std::endl;
   uuids::uuid upRes = upResIds[0];
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
@@ -197,6 +199,12 @@ void RBFInterpolator::PreparePATCH(){
   scrMap_ = resultManager_->GetEqnMap(upRes);
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
   bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
+
+  if ( inElems ){
+	  EXCEPTION("Element to Node interpolation using RBF currently not possible");
+  }
+
+
 
   const CF::UInt maxNumSrcEntities = scrMap_->GetNumEntities();
   StdVector<CF::UInt> globSrcEntity;
