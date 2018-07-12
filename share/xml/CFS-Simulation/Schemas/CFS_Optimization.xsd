@@ -415,10 +415,10 @@
                 <!-- expression like value smaller alpha+/-slack to be extended via mathparser -->
                 <!-- heat energy -->
                 <xsd:enumeration value="heatEnergy"/>
-                <!-- magnetic flux density x component -->
-                <xsd:enumeration value="magFluxDensX"/>
-                <!-- magnetic flux density Y component -->
-                <xsd:enumeration value="magFluxDensY"/>
+                <!-- squared magnetic flux density x component -->
+                <xsd:enumeration value="sqrMagFluxDensX"/>
+                <!-- squared magnetic flux density Y component -->
+                <xsd:enumeration value="sqrMagFluxDensY"/>
                 <!-- pressure drop of fluidic system -->
                 <xsd:enumeration value="pressureDrop"/>
                 <!-- requires the function attribute with details -->
@@ -1725,10 +1725,10 @@
       <!-- Heat energy for heat pde -->
       <xsd:enumeration value="heatEnergy"/>
       <xsd:enumeration value="multiObjective"/>
-      <!-- Magnetic flux density x component -->
-      <xsd:enumeration value="magFluxDensX"/>
-      <!-- Magnetic flux density Y component -->
-      <xsd:enumeration value="magFluxDensY"/>
+      <!-- normed (by number of elments) squared magnetic flux density x component -->
+      <xsd:enumeration value="sqrMagFluxDensX"/>
+      <!-- normed (by number of elments) squared magnetic flux density Y component -->
+      <xsd:enumeration value="sqrMagFluxDensY"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>
       <!-- forwards to a more general slack function (values (s)lack and (a)lpha to be given in the attribute function -->

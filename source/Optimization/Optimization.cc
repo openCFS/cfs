@@ -394,8 +394,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
   Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
-  Function::type.Add(Function::MAG_FLUX_DENS_X, "magFluxDensX");
-  Function::type.Add(Function::MAG_FLUX_DENS_Y,"magFluxDensY");
+  Function::type.Add(Function::SQR_MAG_FLUX_DENS_X, "sqrMagFluxDensX");
+  Function::type.Add(Function::SQR_MAG_FLUX_DENS_Y,"sqrMagFluxDensY");
 
   Function::slackFnct.SetName("Function::SlackFnct");
   Function::slackFnct.Add(Function::NO_FUNCTION, "no_function");

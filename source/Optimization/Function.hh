@@ -90,10 +90,10 @@ class Function
       YOUNGS_MODULUS_E1,         /*!< Young's Modulus (E1) within orthotrope homogenization */
       YOUNGS_MODULUS_E2,         /*!< Young's Modulus (E2) within orthotrope homogenization */
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
-      TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
+      TEMPERATURE,               /*!< for optimization of Poisson and heat conduction pde */
       HEAT_ENEGRY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity*/
-      MAG_FLUX_DENS_X,           /*!< for optimization in magnetics Bx component*/
-      MAG_FLUX_DENS_Y,           /*!< for optimization in magnetics By component*/
+      SQR_MAG_FLUX_DENS_X,       /*!< for optimization in squared magnetics Bx component*/
+      SQR_MAG_FLUX_DENS_Y,       /*!< for optimization in squared magnetics By component*/
       TEMP_TRACKING_AT_INTERFACE,/*!< tracking temperature at interfaces between solid and void elements */
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_MOLE,               /*!< see mole */

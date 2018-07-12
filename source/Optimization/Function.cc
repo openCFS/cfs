@@ -458,8 +458,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case SHAPE_INF:
   case PRESSURE_DROP:
   case HEAT_ENEGRY:
-  case MAG_FLUX_DENS_Y:
-  case MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_X:
   case TEMP_TRACKING_AT_INTERFACE:
   case MULTIMATERIAL_SUM:
   case SLACK:
@@ -572,8 +572,8 @@ bool Function::IsAdjointBased() const {
   case STRESS:
   case STRESS_DENSITY:
   case TEMP_TRACKING_AT_INTERFACE:
-  case MAG_FLUX_DENS_X:
-  case MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_Y:
     return true;
 
   case COMPLIANCE: // only in the transient case
@@ -744,8 +744,8 @@ bool Function::ForSensitivityFiltering() const {
   case STRESS_DENSITY:
   case PRESSURE_DROP:
   case HEAT_ENEGRY:
-  case MAG_FLUX_DENS_Y:
-  case MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_X:
   case EIGENFREQUENCY:
   case BANDGAP:
   case FILTERING_GAP:

@@ -235,8 +235,8 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     CalcVonMisesStressGradient(excite, f, tf);
     break;
   }
-  case Function::MAG_FLUX_DENS_X:
-  case Function::MAG_FLUX_DENS_Y:
+  case Function::SQR_MAG_FLUX_DENS_X:
+  case Function::SQR_MAG_FLUX_DENS_Y:
   {
     TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true);
     CalcMagFluxDensGradient(excite, f, tf);
@@ -365,141 +365,11 @@ void SIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferFunc
   //Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
 
   // the gradient is < lambda^T, K' * A >
-
-  // bool derivative = true;
-  Vector<double> appendix;
-  assert(appendix.GetSize() == 0); // if not, we can skip resizing
-  const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-  appendix.Resize(stateSol.GetSize(),0.0);
-
   assert(excite.sequence == f->ctxt->sequence);
-
-  // the stored element solution vector
-  //StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
 
   DesignDependentRHS rhs;
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], &rhs, 1.0, STANDARD, f);
-
-/*
-  // add < J^T, B dA/drho  >
-  // loop over all elements in region f->region
-  // get B and set it to the nodal positions via eqnMap from element nodes
-
-  // get elements
-  //int elems = design->GetNumberOfElements();
-  StdVector<Elem*> elems;
-  domain->GetGrid()->GetElems(elems, design->GetRegionId());
-  assert(!elems.IsEmpty());
-
-  // annoying entity iterator got hold the elem
-  ElemList el(elems[0],domain->GetGrid());
-
-  Matrix<double> b_mat; // this holds the curl-operator for the whole element. For 2D rectangular case it shall be 2 rows, 4 columns
-  Vector<double> mag_flux_density;
-  Vector<double> res; // in relation to the integration point
-  Vector<double> resElem; // in relation to the element
-  Vector<double> twoDim(2);
-  Vector<double> threeDim(3);
-  Vector<double> var(elems.GetSize());
-  int Lauf = 0;
-  double base = 0;
-
-  for(unsigned int e = 0; e < elems.GetSize(); e++)
-  {
-    Elem* elem = elems[e];
-    el.SetElement(elem);
-    DesignElement* org = &design->data[e + base];
-    DesignElement* de = design->ApplyTransformations(org, org, trans);
-    double k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, false) : tf->Transform(de, DesignElement::SMART);// not the bimat case
-    //std::cout << "k_factor= " << k_factor << std::endl;
-    //std::cout << "sol.GetSize " << sol.GetSize() << std::endl;
-    //std::cout << "elem " << elem->elemNum << std::endl;
-    assert(sol.GetSize() > e);
-    Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[e]);
-    //assert(sol.GetSize() > elem->elemNum);
-    //Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[elem->elemNum]); // or -1 for 0-based???
-    assert(vec != NULL);
-    Vector<double>& a = *vec; // a stands for the Vectorpotential in the element
-    //std::cout << "a= " <<a.ToString() << std::endl;
-    Assign(a,a,k_factor); // a' = k_factor * a
-    //std::cout << "aNeu= " <<a.ToString() << std::endl;
-    //assert(!(domain->GetGrid()->IsRegionRegular(f->region) && a.GetSize() != 4)); // for regular 2D grid!!!
-    //LOG_DBG2(simp) << "CMDF: i=" << e << " e=" << elem->elemNum << " -> " << a.ToString();
-
-    // we need a lot of similar stuff as in BDBInt::CalcElementMatrix().
-    // get the form first
-    BiLinearForm* form = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator();
-    BDBInt<>* bdb = dynamic_cast<BDBInt<>*>(form);
-    assert(bdb != NULL);
-
-    // get B-mat
-    StdVector<LocPoint> intPoints; // Get integration Points
-    LocPointMapped lp;
-    StdVector<double> weights;
-    IntegOrder order;
-    IntScheme::IntegMethod method = IntScheme::UNDEFINED;
-    BaseFE* ptFe = form->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
-    form->GetIntScheme()->GetIntPoints(Elem::GetShapeType(elem->type), method, order, intPoints, weights );
-    //LOG_DBG2(simp) << "CMFD i=" << e << " e=" << elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
-    assert(method != IntScheme::UNDEFINED);
-    assert(!intPoints.IsEmpty());
-
-    // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm =domain->GetGrid()->GetElemShapeMap(elem);
-
-    // Loop over all integration points
-    for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
-    {
-      // Calculate for each integration point the LocPointMapped
-      lp.Set( intPoints[ip], esm, weights[ip] );
-
-      // Call the CalcBMat()-method
-      bdb->GetBOp()->CalcOpMat(b_mat, lp, ptFe);
-      assert(b_mat.GetNumCols() == a.GetSize());
-      assert(b_mat.GetNumRows() == domain->GetGrid()->GetDim());
-
-      // Initialize if the problem is two or three dimensional
-      if (b_mat.GetNumRows() == 2 && ip == 0)
-      {
-        res = twoDim;
-        resElem = twoDim;
-      }
-      else if (b_mat.GetNumRows() == 3)
-      {
-        res = threeDim;
-        resElem = threeDim;
-      }
-
-      // Calculation of (B * dA/drho) over the integration points
-      // b_mat consists of the derivative of the shape function, a consists of the magnetic vector potential
-      b_mat *= weights[ip];
-      b_mat.Mult(a, res);
-      std::cout << "res= " << res.ToString() << std::endl;
-      resElem += res;
-      std::cout << "resElem= " << resElem.ToString() << std::endl;
-      if (ip+1 == intPoints.GetSize())
-      {
-        resElem /= intPoints.GetSize();
-      }
-    } // end loop elems
-    if(f->GetType() == Function::MAG_FLUX_DENS_X)
-    {
-      var[Lauf] = resElem[0];
-    }
-    else if (f->GetType() == Function::MAG_FLUX_DENS_Y)
-    {
-      var[Lauf] = resElem[1];
-    }
-    else
-    {
-      assert(false);
-    }
-    Lauf ++;
-    std::cout << "var= " << var << std::endl;
-
-    de->AddGradient(f, var[e]);
-  }*/
 
 }
 
