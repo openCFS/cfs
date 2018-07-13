@@ -255,7 +255,7 @@ namespace CoupledField {
 			  PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
 			  PtrCoefFct nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef);
 
-        if(domain->HasDesign() && domain->GetDesign()->Contains(actRegion))
+        if(domain->HasDesign())
         {
           cfo = new CoefFunctionOpt(domain->GetDesign(), nuNl, this);
           nuNl.reset(cfo);
@@ -362,7 +362,7 @@ namespace CoupledField {
 
 				  // for postprocessing
 				  PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL);
-			    if(domain->HasDesign() && domain->GetDesign()->Contains(actRegion))
+			    if(domain->HasDesign())
 			    {
 			      cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
 			      curCoef.reset(cfo);

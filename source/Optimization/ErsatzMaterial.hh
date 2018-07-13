@@ -38,7 +38,6 @@ class DensityFile;
 class DesignDependentRHS;
 class DesignStructure;
 class OptimizationMaterial;
-class SinglePDE;
 class TransferFunction;
 struct SurfElem;
 

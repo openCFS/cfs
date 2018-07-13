@@ -38,12 +38,38 @@ MagSIMP::MagSIMP()
   sel_y_.Resize(domain->GetGrid()->GetDim(), domain->GetGrid()->GetDim());
   sel_y_.Init();
   sel_y_[1][1] = 1;
-}
 
+}
 
 
 MagSIMP::~MagSIMP()
 {
+}
+
+void MagSIMP::PostInit()
+{
+  SIMP::PostInit();
+
+  assert(manager.context.GetSize() == 1);
+
+  nonlin.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
+
+  PtrParamNode pn = optInfoNode->Get(ParamNode::HEADER)->Get("magOptRegions");
+
+  for(unsigned int i = 0; i < nonlin.GetSize(); i++)
+  {
+    nonlin[i] = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator-NL", i, NULL, NULL, true) != NULL;
+    bool opt = design->Contains(i, true); // with pseudo-design
+    bool pseudo = opt && !design->Contains(i, false);
+    if(opt)
+    {
+      PtrParamNode pnr = pn->Get("region", ParamNode::APPEND);
+      pnr->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(i));
+      pnr->Get("id")->SetValue(i);
+      pnr->Get("analysis")->SetValue(nonlin[i] ? "nonlinear" : "linear");
+      pnr->Get("pseudo_design")->SetValue(pseudo);
+    }
+  }
 }
 
 double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)

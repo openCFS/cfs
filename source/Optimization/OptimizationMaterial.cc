@@ -528,6 +528,7 @@ shared_ptr<CoefFunctionOpt> MagMat::GetMatCoef(const std::string& integrator, Bi
 {
   // we just plug in here to gain nu_r
   shared_ptr<CoefFunctionOpt> coef = OptimizationMaterial::GetMatCoef(integrator, context, reg_id);
+  assert(coef);
 
   assert((int) reg_id < (int) nu_r.GetSize()-1);
   if(nu_r[reg_id] < 0)

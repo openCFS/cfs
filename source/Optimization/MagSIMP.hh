@@ -24,12 +24,18 @@ public:
 
 protected:
 
+  /** @see Optimization::PostInit() */
+  virtual void PostInit();
+
   /** overloads SIMP::CalcFunction()
    * @see ErsatzMaterial::CalcFunction */
   double CalcFunction(Excitation& excite, Function* f, bool derivative);
 
   /** [1 0; 0 0] or [0 0; 0 1] for SQR_MAG_FLUX_DENS_X/Y */
   const Matrix<double>& GetSelectionMatrix(const Function* f) const;
+
+  /** array by index regiond-id which says true for nonlinear regions (here CurlCulrIntegrator-NL) */
+  StdVector<bool> nonlin;
 
 protected:
   
