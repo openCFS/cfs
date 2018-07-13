@@ -158,17 +158,48 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
         
         assert(len(angles) > 0)
         if cubeSize == 1 or np.all(np.array(angles) < 30):
+          print("extend point list by ",len(tmp_points)," points")
           points.extend(tmp_points)
           triangles.extend(tmp_triangles)
           normals.extend(tmp_normals)
         else:
-          # in total we have 6 transition faces
-          transitionList.append(TransitionCell(voxels, h, offset, cubeSize, (i,j,k), 1))
-          transitionList.append(TransitionCell(voxels, h, offset, cubeSize, (i+cubeSize,j,k), 0))
-          transitionList.append(TransitionCell(voxels, h, offset, cubeSize, (i+cubeSize,j+cubeSize,k), 1))
-          transitionList.append(TransitionCell(voxels, h, offset, cubeSize, (i,j+cubeSize,k), 0))
-          transitionList.append(TransitionCell(voxels, h, offset, cubeSize, (i,j,k), 2))
-          transitionList.append(TransitionCell(voxels, h, offset, cubeSize, (i,j,k+cubeSize), 2))
+#           # assume high-res cell is always bounded by low-res cells:
+#           # in total we have 6 transition faces
+#           faces = [(i,j,k),(i+cubeSize,j,k),(i+cubeSize,j+cubeSize,k),(i,j+cubeSize,k),(i,j,k),(i,j,k+cubeSize)]
+#           print("faces:",faces)
+#           print("offset:",offset)
+#           directions = [1,0,1,0,2,2]
+#           for fi in range(6):
+#             if not transition_cell_in_list(faces[fi], transitionList):
+#               dir = directions[fi]
+#               mdir1, mdir2 = give_normal_plane_axes(dir)
+#               # make sure we are not at the boundary
+#               if faces[fi][mdir1] < voxels.shape[mdir1]-cubeSize and faces[fi][mdir2] < voxels.shape[mdir2]-cubeSize:
+#                 # check if this transition cell already exists
+#                 transitionList.append(TransitionCell(voxels, h, offset,cubeSize,faces[fi], dir))
+          # shift vertices of previous MC that are close to adjacent face by half a cell
+          # last 4 points
+          for n in range(4):
+            v = np.array(points[-n])
+            cart = voxel_to_cartesian_coords((i,j,k),(0,0,0),h)
+            # v is close to transition face -> shift it
+            if np.isclose(v[2], cart[2]):
+#               print("shift ",points[-n])
+              points[-n] += np.cross(normals[-n],0.5*np.array(h))
+#               print("to ",points[-n]," with normal ",normals[-n])
+              shift_normal = normals[-n]
+          # need a transition cell 
+          tc = TransitionCellz(voxels,h,(0,0,0),0,(i,j,k),2)
+          tmpp, tmpt, _, _ = triangulate(voxels, h, cubeSize, tc.caseCode, tc.corners, len(points)-1, regular=False,shift_normal=shift_normal)
+#           print("tmpp:",tmpp)
+#           print("tmpt:",tmpt)
+          points.extend(tmpp)
+          triangles.extend(tmpt)
+#           print("\npoints:",points)
+#           print("\ntriangles:",triangles)
+          write_vtp(points, triangles,h,name="debug.vtp")
+          if len(points) > 10:
+            sys.exit()  
           marching_cubes(voxels[i:i+cubeSize+1,j:j+cubeSize+1,k:k+cubeSize+1], h, points, triangles, normals, thresh, int(cubeSize/2),offset=(i,j,k),transitionList=transitionList)
             
   
@@ -194,8 +225,6 @@ def VertexInterp(thresh,p1,p2):
   p1 = np.asarray(p1.gcoords)
   p2 = np.asarray(p2.gcoords)  
   
-  print("p1:",p1," p2:",p2)
-    
   if np.isclose(valp2-valp1,0):
     return p1, 0
   else:
@@ -237,6 +266,16 @@ class Vertex():
     # shifted/global
     self.gidx = np.array(idx) + np.array(offset)
     self.gcoords = voxel_to_cartesian_coords(self.gidx,(0,0,0),h)
+#     # near is a 6-bit value indicating at which of the 6 cells faces
+#     # a transition takes place 
+#     self.near = calc_near_faces()
+#     
+#   # returns 6-bit value  
+#   def calc_near_faces(self):
+#     # byte 1 and 2: -x,+x
+#     # byte 3 and 4: -y,+y
+#     # byte 5 and 6: -z,+z 
+      
     
 class TransitionCell():
   # voxels: voxel field
@@ -245,7 +284,7 @@ class TransitionCell():
   # length: edge length of transition cell
   # SW: 2D pixel coords (lower left) of high-res transition face
   # dir: direction in which transition takes place (0 for x, 1 for y, 2 for z)
-  def __init__(self,voxels,h,offset,length,SW,dir):
+  def __init__(self,voxels,h,offset,length,SW,dir,low_res_corners):
     assert(dir == 0 or dir == 1 or dir ==2)
     assert(len(h) == 3)
     # number of nodes on high-res face
@@ -254,6 +293,7 @@ class TransitionCell():
     low_nn = 4
     nn = 13
     self.length = length
+    self.SW = SW
     self.corners = [None] * nn
     #### node numbering #####
     #   high-res face          low-res face
@@ -272,18 +312,20 @@ class TransitionCell():
     mdir_1, mdir_2 = give_normal_plane_axes(dir)
     
     SW_2D = (SW[mdir_1],SW[mdir_2])
-    cornerIndices = [SW_2D] * high_nn
+    cornerIndizes = [SW_2D] * high_nn
+    print("cornerIndizes before shift:",cornerIndizes)
     shifts = [(0,0), (1,0), (2,0), (0,1), (1,1), (2,1), (0,2), (1,2), (2,2)]
-    assert(len(cornerIndices) == len(shifts) == high_nn)
-    cornerIndices = [tuple(np.array(cornerIndices[i]) + shifts[i]) for i in range(high_nn)]
+    assert(len(cornerIndizes) == len(shifts) == high_nn)
+    cornerIndizes = [tuple(np.array(cornerIndizes[i]) + shifts[i]) for i in range(high_nn)]
     
+    print("cornerIndizes:",cornerIndizes)
     # first 9 corners belong to high-res faces
     # last 4 corners belong to low-res faces
     for i in range(high_nn):
       # map back to 3d
       tmp = np.zeros(3,dtype=int)
-      tmp[mdir_1] = cornerIndices[i][0]
-      tmp[mdir_2] = cornerIndices[i][1]
+      tmp[mdir_1] = cornerIndizes[i][0]
+      tmp[mdir_2] = cornerIndizes[i][1]
       tmp[dir] = SW[dir] 
       self.corners[i] = Vertex(voxels,tuple(tmp),h,offset)
       
@@ -293,13 +335,69 @@ class TransitionCell():
     self.corners[11] = Vertex(voxels,self.corners[6].lidx,h,offset)
     self.corners[12] = Vertex(voxels,self.corners[8].lidx,h,offset) 
     
-    fact = np.zeros(3)
-    fact[dir] = 1
-          
-    # shift these 4 nodes by a fraction (0.25) of the cube length
-    for i in range(high_nn,low_nn):
-      samples[i].gcoords += 0.25 * fact * np.array(h)  
     
+class TransitionCellz():
+  # voxels: voxel field
+  # h: lattice spacing in 3 directions
+  # offset: offset in voxel coords
+  # length: edge length of transition cell
+  # SW: 2D pixel coords (lower left) of high-res transition face
+  # dir: direction in which transition takes place (0 for x, 1 for y, 2 for z)
+  def __init__(self,voxels,h,offset,length,SW,dir):
+    assert(dir == 0 or dir == 1 or dir ==2)
+    assert(len(h) == 3)
+    # number of nodes on high-res face
+    high_nn = 9
+    # number of nodes on low-res face
+    low_nn = 4
+    nn = 13
+    self.length = length
+    self.SW = SW
+    self.corners = [None] * nn
+    #### node numbering #####
+    #   high-res face          low-res face
+    #    6----- 7 -----8        11------------12
+    #    |      |      |        |            |
+    #    |      |      |        |            |
+    #    |      |      |        |            |
+    #    3----- 4 -----5        |            |
+    #    |      |      |        |            |
+    # ^y |      |      |        |            |
+    # |  |      |      |        |            |
+    # |  0----- 1 -----2        9------------10
+    # --->x
+    
+    # need this for mapping from 2D to 3D
+    mdir_1, mdir_2 = give_normal_plane_axes(dir)
+    
+    SW_2D = (SW[mdir_1],SW[mdir_2])
+    cornerIndizes = [SW_2D] * high_nn
+    cornerIndizes3d = []
+#     print("cornerIndizes before shift:",cornerIndizes)
+    shifts = [(0,0), (1,0), (2,0), (0,1), (1,1), (2,1), (0,2), (1,2), (2,2)]
+    assert(len(cornerIndizes) == len(shifts) == high_nn)
+    cornerIndizes = [tuple(np.array(cornerIndizes[i]) + shifts[i]) for i in range(high_nn)]
+    
+#     print("cornerIndizes:",cornerIndizes)
+    # first 9 corners belong to high-res faces
+    # last 4 corners belong to low-res faces
+    for i in range(high_nn):
+      # map back to 3d
+      tmp = np.zeros(3,dtype=int)
+      tmp[mdir_1] = cornerIndizes[i][0]
+      tmp[mdir_2] = cornerIndizes[i][1]
+      tmp[dir] = SW[dir] 
+      self.corners[i] = Vertex(voxels,tuple(tmp),h,offset)
+      cornerIndizes3d.append(tuple(tmp))
+      
+    # 4 nodes on half resolution face - copy 4 corner nodes of full face and shift them
+    self.corners[9] = Vertex(voxels,self.corners[0].lidx,h,offset)
+    self.corners[10] = Vertex(voxels,self.corners[2].lidx,h,offset)
+    self.corners[11] = Vertex(voxels,self.corners[6].lidx,h,offset)
+    self.corners[12] = Vertex(voxels,self.corners[8].lidx,h,offset) 
+      
+    self.caseCode = calc_case_code_transition(voxels, cornerIndizes3d)
+          
 def write_vtp(points,cells,h,name=None,normals=None):
   import vtk    
   from draw_profile_functions import grid_to_cartesian_coords
@@ -408,7 +506,7 @@ def calc_angle(n0,n1):
 # @param caseCode: in which equivalence class are we?
 # @param regular: regular cell or transition cell?
 # @param last_point_id: last valid point id, need this to shift indices of new triangles
-def triangulate(voxels,h,cubeSize,caseCode,corners,last_point_id,regular=True,thresh=0.5):
+def triangulate(voxels,h,cubeSize,caseCode,corners,last_point_id,regular=True,thresh=0.5,shift_normal=None):
   assert(len(corners) == 8 or len(corners) == 13)
   assert(cubeSize > 0)
   cellClassTable = None
@@ -426,9 +524,9 @@ def triangulate(voxels,h,cubeSize,caseCode,corners,last_point_id,regular=True,th
     cornerNormals = calc_corner_normals(voxels, cornerIndizes)
   else:
     print("transition")
-    print("corners")
-    for c in corners:
-      print(c.gcoords,c.value)
+#     print("corners")
+#     for c in corners:
+#       print(c.gcoords,c.value)
     cellClassTable = transitionCellClass
     vertexLocationsTable = transitionVertexData
     cellDataTable = transitionCellData
@@ -437,9 +535,9 @@ def triangulate(voxels,h,cubeSize,caseCode,corners,last_point_id,regular=True,th
   assert(vertexLocationsTable is not None)
   assert(cellDataTable is not None)
   
-  print("caseCode:",caseCode)
+#   print("caseCode:",caseCode)
   cellClass = cellClassTable[caseCode] # 16 cell classes for regular MC
-  print("cellClass:",cellClass & 0x0F)
+#   print("cellClass:",cellClass & 0x0F)
   print(len(cellDataTable))
   #16-bit number, ignore high nibble
   #The low byte contains the indexes for the two endpoints of the edge on which the vertex lies
@@ -457,7 +555,7 @@ def triangulate(voxels,h,cubeSize,caseCode,corners,last_point_id,regular=True,th
   tmp_triangles = []
   tmp_normals = []
   mappedIndizes = [None] * len(indices) # map from point id to real id
-  print("vertexCount:",vertexCount)
+#   print("vertexCount:",vertexCount)
   for vc in range(vertexCount):
     v0 = (vertexLocations[vc] >> 4) & 0x0F # First Corner Index
     v1 = (vertexLocations[vc]) & 0x0F # Second Corner Index
@@ -470,9 +568,16 @@ def triangulate(voxels,h,cubeSize,caseCode,corners,last_point_id,regular=True,th
       first, second = calc_shifted_corner_verts(v0, v1, corners, voxels, h)
       
     vert, mu = VertexInterp(thresh,first,second)
-    print("v0:",v0," v1:",v1)
-    print("vert:",vert," mu:",mu)
+#     print("v0:",v0," v1:",v1)
+#     print("vert:",vert," mu:",mu)
+    
+    if not regular and (v0 > 8 or v1 > 8) :
+#       print("\nneed to shift:",vert, " by ",np.cross(shift_normal,0.5*np.array(h)))
+      vert += np.cross(shift_normal,0.5*np.array(h))
+#       print("to:",vert)
+      
     tmp_points.append(vert)
+#     print("tmp_points:",tmp_points)
     if regular:
       normal = cornerNormals[int(v0)] * (1-mu) + mu * cornerNormals[int(v1)]
       tmp_normals.append(normal)
@@ -508,7 +613,6 @@ def triangulate(voxels,h,cubeSize,caseCode,corners,last_point_id,regular=True,th
 #           print("\nangle between ",n0,n1," is ",calc_angle(n0, n1))
 #           print("angle between ",n0,n2," is ",calc_angle(n0, n2))
 #           print("angle between ",n1,n2," is ",calc_angle(n1, n2))
-  
   
   return tmp_points, tmp_triangles, tmp_normals, angles
 # in MC a triangle vertex lies on an edge between two cube corners
@@ -549,6 +653,37 @@ def calc_shifted_corner_verts(c0,c1,corners,voxels,h):
       second = v   
   
   return first, second
+
+# idx: index (i,j,k) of a transition cell of type TransitionCell()
+# tc_list: list with all current transition cells
+def transition_cell_in_list(idx,tc_list):
+  for c in tc_list:
+    if c.SW == idx:
+      return True
+    
+  return False
+
+# calculate offsets for secondary vertex positions resulting
+# from a regular cell, see Lengyel's diss equation 4.2
+# p: cart. coords of a vertex of a low-res MC
+def calc_transition_offsets(p,cubeSize):
+  return 0.5 * cubeSize * np.array([hx,hy,hz])
+
+def calc_case_code_transition(voxels,cornerIndizes,thresh=0.5):
+  print("cornerIndizes:",cornerIndizes)
+  caseCode = 0
+  caseCode |= 1 if voxels[cornerIndizes[0]] > thresh else 0
+  caseCode |= 2 if voxels[cornerIndizes[1]] > thresh else 0
+  caseCode |= 4 if voxels[cornerIndizes[2]] > thresh else 0
+  caseCode |= 8 if voxels[cornerIndizes[5]] > thresh else 0
+  caseCode |= 16 if voxels[cornerIndizes[8]] > thresh else 0
+  caseCode |= 32 if voxels[cornerIndizes[7]] > thresh else 0
+  caseCode |= 64 if voxels[cornerIndizes[6]] > thresh else 0
+  caseCode |= 128 if voxels[cornerIndizes[3]] > thresh else 0
+  caseCode |= 256 if voxels[cornerIndizes[4]] > thresh else 0
+
+  return caseCode
+  
 
 # tables take from Eric Lengyel Transvoxel algorithm
 # see http://transvoxel.org/ or Lengyel's dissertation for details
