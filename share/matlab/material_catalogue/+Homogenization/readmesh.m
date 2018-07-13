@@ -71,13 +71,42 @@ if strcmp(ext,'.mesh')
     end
 
     % Jump to BC section
-    while isempty(strfind(line,'[Node BC]')) && ~feof(fid)
+    while isempty( strfind(line,'[Node BC]')) && ~feof(fid)
         line = fgetl(fid);
     end
-    fgetl(fid);
-
+    
     % Read BCs
+    % bcs may be decoded in numbers or named like in bc_strings
+    bc_strings = {'border','controlpoints','bottom','up','left','right','front','back'};
+    
+    pos_bc = ftell(fid);
+    % node names: 1 border, 2 controlpoints, 3 bottom, 4 top, 5 left, 6 right
+    fgetl(fid);
     BCs = fscanf(fid,'%8d nodes%d\n',[2,numNodeBC]);
+    
+    % : bottom, up, left, right, front, back
+    if size(BCs,2) ~= numNodeBC
+        BCs = [];
+        for ii=1:length(bc_strings)
+            fseek(fid,pos_bc,'bof');
+            pos = ftell(fid);
+            line = fgetl(fid);
+            while isempty( strfind(line, bc_strings{ii})) && ~feof(fid)
+                pos = ftell(fid);
+                line = fgetl(fid);
+            end
+            fseek(fid,pos,'bof');
+            [bc_nodes, count] = fscanf(fid,['%8d ',bc_strings{ii},'\n']);
+            % Check if we read too far
+            line = fgetl(fid);
+            if any( strcmp(bc_strings, line))
+                bc_nodes = bc_nodes(1:end-1);
+                count = count - 1;
+            end
+            bc_nodes = [bc_nodes'; ii*ones(1,count)];
+            BCs = [BCs, bc_nodes];
+        end
+    end
     BCs = BCs';
     
     fclose(fid);

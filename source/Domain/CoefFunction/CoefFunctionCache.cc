@@ -5,7 +5,6 @@
 #include "PDE/StdPDE.hh"
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
-#include <boost/tr1/type_traits.hpp>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -32,7 +31,7 @@ template<class TYPE> CoefFunctionCache<TYPE>::CoefFunctionCache(
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
   res_ = info;
   dimType_ = cached_coefFct_->GetDimType();
-  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+  isComplex_ =  std::is_same<TYPE,Complex>::value;
 
   mp_ = domain->GetMathParser();
   mHandleTime_ = mp_->GetNewHandle(true);

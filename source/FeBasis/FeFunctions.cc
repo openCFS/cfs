@@ -1,7 +1,6 @@
 #include "FeFunctions.hh"
 
 #include <boost/bind.hpp>
-#include <boost/tr1/type_traits.hpp>
 #include <def_expl_templ_inst.hh>
 
 #include "PDE/SinglePDE.hh"
@@ -261,7 +260,7 @@ DECLARE_LOG(fefunc)
     factor_ = 1.0;
     timeDerivOrder_ = 0;
     idOp_ = NULL;
-    isComplex_ = std::tr1::is_same<T,Complex>::value;
+    isComplex_ = std::is_same<T,Complex>::value;
     
     
     if( mp_ ) {
@@ -571,7 +570,7 @@ DECLARE_LOG(fefunc)
     BiLinearForm *massInt = NULL;
     FeSpace::SpaceType curType = feSpace_->GetSpaceType();
     PtrCoefFct unity;
-    if ( std::tr1::is_same<T,Complex>::value ) { 
+    if ( std::is_same<T,Complex>::value ) { 
       unity = CoefFunction::Generate(mp_, Global::COMPLEX, "1.0");
     } else {
       unity = CoefFunction::Generate(mp_, Global::REAL, "1.0");
@@ -1058,7 +1057,7 @@ DECLARE_LOG(fefunc)
     //feFct->entities_
     //
 
-    bool convertDoubleToComplex = (std::tr1::is_same<T,Complex>::value && !feFct->IsComplex());
+    bool convertDoubleToComplex = (std::is_same<T,Complex>::value && !feFct->IsComplex());
 
     StdVector<shared_ptr<EntityList> > intersect;
     EntityList::Intersect( this->entities_, feFct->GetEntityList(), intersect );

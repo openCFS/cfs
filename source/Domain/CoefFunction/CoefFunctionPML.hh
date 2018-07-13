@@ -19,7 +19,6 @@
 #include <cmath>
 
 #include "CoefFunction.hh"
-#include <boost/tr1/type_traits.hpp>
 #include "Utils/mathParser/mathParser.hh"
 
 
@@ -262,7 +261,7 @@ public:
   }
 
   virtual bool IsComplex(){
-    return std::tr1::is_same<T,Complex>::value;
+    return std::is_same<T,Complex>::value;
   }
 
   std::string ToString() const {

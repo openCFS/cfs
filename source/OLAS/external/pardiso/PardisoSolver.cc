@@ -118,10 +118,8 @@ extern "C" {
   //   Constructor
   // ***************
   template<typename T>
-  PardisoSolver<T>::PardisoSolver( PtrParamNode solverNode,
-                                   PtrParamNode olasInfo ) {
-
-
+  PardisoSolver<T>::PardisoSolver(PtrParamNode solverNode, PtrParamNode olasInfo)
+  {
     // Set pointers to communication objects
     xml_ = solverNode;
     infoNode_ = olasInfo->Get("pardiso", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
@@ -238,8 +236,8 @@ extern "C" {
   //   Setup
   // *********
   template<typename T>
-  void PardisoSolver<T>::Setup( BaseMatrix &sysMat) {
-
+  void PardisoSolver<T>::Setup( BaseMatrix &sysMat)
+  {
     // Flag for check Pardiso's return status
     int errorFlag = 0;
 
@@ -704,16 +702,14 @@ extern "C" {
     for (UInt i=0; i< nnz_; i++ )
       colPtr_[i] -= 1;
 
-  }
-
-
+  } // end of Setup()
 
   // *************************
   //   Solve linear system
   // *************************
   template<typename T>
-  void PardisoSolver<T>::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol) {
-
+  void PardisoSolver<T>::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
+  {
     LOG_TRACE(pardisoSolver) << " -----------------------------------------"
                              << "-------------------------------------";
     LOG_TRACE(pardisoSolver) << " Solving linear system ...";
@@ -807,20 +803,12 @@ extern "C" {
       LOG_TRACE(pardisoSolver) << " Relative Residual Reduction: " << dparm_[1];
       LOG_TRACE(pardisoSolver) << " Relative residual after Krylov-Subspace convergence: " << dparm_[33];
     }
-    LOG_TRACE(pardisoSolver) << " -------------------------------------------------------"
-                             << "-----------------------";
-
-    // Create Report (no sensible things to write for direct solvers yet)
-    ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
-    out->Get("numIter")->SetValue(-1);
-    out->Get("finalNorm")->SetValue(-1.0);
   }
+
 
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class PardisoSolver<Double>;
   template class PardisoSolver<Complex>;
 #endif
-
 }

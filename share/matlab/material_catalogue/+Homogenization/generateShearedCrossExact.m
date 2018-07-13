@@ -77,22 +77,23 @@ yremainder = (1-s1)/2;
 xremainder = (1-s2)/2;
 
 % Points in each part
-py1 = ceil(yremainder*ny)+1;
-py2 = ceil(s1*ny)+1;
-py3 = ceil(yremainder*ny)+1;
 px1 = ceil(xremainder*nx)+1;
 px2 = ceil(s2*nx)+1;
-px3 = ceil(xremainder*nx)+1;
+px3 = px1;
+py1 = ceil(yremainder*ny)+1;
+py2 = ceil(s1*ny)+1;
+py3 = py1;
 
 % Coordinates of points in each part
-y1 = linspace(0,yremainder,py1);
-y2 = linspace(y1(end),y1(end)+s1,py2);
-y3 = linspace(y2(end),1,py3);
-y = [y1,y2(2:end),y3(2:end)];
 x1 = linspace(0,xremainder,px1);
 x2 = linspace(x1(end),x1(end)+s2,px2);
 x3 = linspace(x2(end),1,px3);
 x = [x1,x2(2:end),x3(2:end)];
+
+y1 = linspace(0,yremainder,py1);
+y2 = linspace(y1(end),y1(end)+s1,py2);
+y3 = linspace(y2(end),1,py3);
+y = [y1,y2(2:end),y3(2:end)];
 
 % New number of elements
 npx = size(x,2);
@@ -104,8 +105,8 @@ numNodes = npx*npy;
 
 % Density matrix
 A = zeros(ny,nx);
-horzBar = numel(y1):numel(y1)+numel(y2)-2;
 vertBar = numel(x1):numel(x1)+numel(x2)-2;
+horzBar = numel(y1):numel(y1)+numel(y2)-2;
 A(horzBar,:) = 1;
 A(:,vertBar) = 1;
 

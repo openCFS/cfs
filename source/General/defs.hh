@@ -32,7 +32,6 @@ typedef std::complex<Double> Complex;
 //! Auxiliary macro needed by MACRO2STRING
 #define QUOTEMACRO(a) #a
 
-
 // Some compilers, e.g. SGI's CC, seem to have problems with undefined
 // parameterised macros. They do not evaluate them to 0 as for
 // non-parameterised undefined macros. So to be on the safe side
@@ -64,7 +63,7 @@ if (!name) EXCEPTION("memory allocation failed"); \
 #define NEWARRAY(name,type,size) {\
 try{\
 name = new type[(size)];\
-}catch (std::bad_alloc exception){\
+}catch (std::bad_alloc& exception){\
 EXCEPTION("Memory allocation for array failed\n size = " << (size));\
 }\
 }

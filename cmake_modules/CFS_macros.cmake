@@ -370,6 +370,7 @@ ENDMACRO()
 # Generate a package name for the precompiled zip file. 
 # Names the compiler. If C/C++ and Fortan are different, both are named. Otherwise it would
 # lead to issues with clang which needs either gfortran or ifort as companion
+# Also check PRECOMPILED_ZIP_NOBUILD, it might be more appropriate
 # ------------------------------------------------------------------------------
 MACRO(PRECOMPILED_ZIP RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
   # there is complex issue with ifort. On Thumbeweed we have

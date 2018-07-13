@@ -5,8 +5,8 @@
 # see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
 # enable highlighting in kate via Tools->Highlighting->Other->CMake
 #
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfs-trunk")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/release-trunk")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfs-master_stingl")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/release-master_stingl")
 
 include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
@@ -22,7 +22,7 @@ file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 SET_COMPILER_ENV("GCC")
 
 SET(BUILDTYPE "RELEASE")
-SET(CTEST_BUILD_NAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(CTEST_BUILD_NAME "master_stingl ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 set(CTEST_SITE "${HOSTNAME}") 
 
 # will generate CTestConfig.cmake using our sites variant
@@ -57,7 +57,7 @@ SET(CTEST_INITIAL_CACHE
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
    BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
-find_program(CTEST_SVN_COMMAND NAMES svn) 
-set(CTEST_UPDATE_TYPE "svn")
+find_program(CTEST_GIT_COMMAND NAMES git)
+set(CTEST_UPDATE_TYPE "git")
 
 DO_TESTING()

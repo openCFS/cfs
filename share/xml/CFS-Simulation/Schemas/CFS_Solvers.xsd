@@ -1306,6 +1306,7 @@
 	     
         <xsd:attribute name="convTol" type="xsd:float" use="optional" default="1e-8"/>
         <xsd:attribute name="maxIter" type="xsd:nonNegativeInteger" use="optional" default="150"/>
+        <xsd:attribute name="maxBas" type="xsd:nonNegativeInteger" use="optional" default="60"/>
         <xsd:attribute name="blockSize" use="optional" default="4">
           <xsd:simpleType>
             <xsd:restriction base="xsd:int">

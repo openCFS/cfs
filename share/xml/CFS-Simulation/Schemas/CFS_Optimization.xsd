@@ -1583,6 +1583,9 @@
           <xsd:enumeration value="heaviside"/>
           <!-- f(rho) =  1 - 1/(exp(2*beta*(x-param)) + 1); param defines the switching point (0.1...0.9). For stress constraints -->
           <xsd:enumeration value="tanh"/>
+          <!-- f(rho) = x/(3-2*x) as in (7) in Bendsoe, Sigmund; Material interpolation schemes ...
+               Upper Hashin-Shtrikman bound for 2D with Poisson's ratio 0.3 -->
+          <xsd:enumeration value="hashin_shtrikman"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

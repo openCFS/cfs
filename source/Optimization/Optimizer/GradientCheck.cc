@@ -90,24 +90,24 @@ void GradientCheck::SolveProblem()
 
     // expensive!!
     // store only the latest so progress can ge checked
-    PtrParamNode in = info_->Get(ParamNode::PROCESS)->Get("current");
-    in->Get("pos")->SetValue(i+1);
+    PtrParamNode in = info_->Get(ParamNode::PROCESS)->Get("gradientCheck");
     in->Get("total")->SetValue(design->data.GetSize());
-    PtrParamNode cg = in->Get("costGradient");
+    PtrParamNode cg = in->Get("costGradient", ParamNode::APPEND);
+    cg->Get("id")->SetValue(i+1);
+
 
     finite[i] = PerformFiniteDifferenceEval(de, curr_obj, cg);
-    analytical[i] = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN);
-    error[i] = finite[i] != 0.0 ? ((finite[i] - analytical[i]) / finite[i])
-        : std::numeric_limits<double>::max();
+    analytical[i] = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
+    error[i] = finite[i] != 0.0 ? ((finite[i] - analytical[i]) / finite[i]) : std::numeric_limits<double>::max();
 
     cg->Get("grad")->SetValue(analytical[i]);
     cg->Get("fd_grad")->SetValue(finite[i]);
     cg->Get("diff")->SetValue(finite[i] - analytical[i]);
     if (finite[i] != 0.0) {
-      cg->Get("error")->SetValue((finite[i] - analytical[i]) / finite[i]);
+      cg->Get("rel_error")->SetValue((finite[i] - analytical[i]) / finite[i]);
       cg->Get("factor")->SetValue(analytical[i] / finite[i]);
     } else {
-      cg->Get("error")->SetValue("finite difference is zero");
+      cg->Get("rel_error")->SetValue("finite difference is zero");
       cg->Get("factor")->SetValue("finite difference is zero");
     }
   }

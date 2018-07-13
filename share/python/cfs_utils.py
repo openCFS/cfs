@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 
+
+# this is to prevent annoying  
+# /usr/lib64/python3.6/site-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+#  from ._conv import register_converters as _register_converters
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 # libxml2 is not available for python3. lxml is available on python2 and python3 and is a successor of libxml2
 # lxml is technically based on the libxml2 C-code bat hat the nicer python interface
 import lxml
@@ -9,6 +16,7 @@ import math
 import os
 import string
 import numpy
+
 
 
 ## trivial helper which only helps to avoid lxml.etree stuff
@@ -131,6 +139,15 @@ def digits(value, decimal_place):
   string = format % value
   return float(string) 
 
+## the python function isdigit() checks only for 0...9, hence -3 and 3.2 are no digits
+def isfloat(string):
+  try:
+    float(string)
+    return True
+  except ValueError:
+    return False
+  
+  
 # get the real part of a complex number string of type '(r,i)' as float
 def getReal(complex_string):
   assert(complex_string[0] == '(')

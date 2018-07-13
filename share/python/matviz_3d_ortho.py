@@ -23,13 +23,17 @@ try:
 except:
   print("Warning: Couldn not load basecell and draw_profile_functions!")  
   
-def create_3d_interpretation_ortho_new(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,thresh):
+def create_3d_interpretation_ortho_new(args, coords, min_bb, max_bb, design, scale, samples, grad, thresh):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
   # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
   # grad: type of interpolation ('linear', 'nearest')
   # scale: parameter for scaling the cell size if necessary
   # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
+  
+  s1 = design['s1']
+  s2 = design['s2']
+  s3 = design['s3']
   
   # MPI_Init() or MPI_Init_thread() is actually called when you import the MPI
   # use the standard communicator
@@ -222,7 +226,7 @@ def create_3d_interpretation_ortho_new(args,coords,min_bb,max_bb,s1,s2,s3,scale,
 
 
 # similar to create_3d_cross_ip; # without rotation and shearing
-def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samples,grad,thresh):
+def create_3d_interpretation_ortho(args, coords, min_bb, max_bb, design, scale, samples, grad, thresh):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
   # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
@@ -230,6 +234,11 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
   # scale: parameter for scaling the cell size if necessary
   # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
   
+  s1 = design['s1']
+  s2 = design['s2']
+  s3 = design['s3']
+
+
   # MPI_Init() or MPI_Init_thread() is actually called when you import the MPI
   # use the standard communicator
   comm = MPI.COMM_WORLD
@@ -423,7 +432,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,s1,s2,s3,scale,samp
 # @param array: return element of array at position idx if exist
 # if out of range, return None 
 # @param fallback for array, if array elem at idx has value -1      
-def get_interp_3darray_elem(array,fallback,idx):
+def get_interp_3darray_elem(array, fallback, idx):
   # must be a ndarray so that indexing with tuples works
   assert(type(array) == np.ndarray)
   assert(type(fallback) == np.ndarray)
@@ -440,19 +449,19 @@ def get_interp_3darray_elem(array,fallback,idx):
 
 # @param id: idx in 1D array (row major)
 # @return i,j,k: indices of equivalent 3D array
-def get_3d_grid_coords(index,nx,ny,nz):
+def get_3d_grid_coords(index, nx, ny, nz):
   i = index % nx
   j = (index - i)/nx % ny
   k = ((index - i)/nx-j)/ny
   
-  return int(i),int(j),int(k)
+  return int(i), int(j), int(k)
 
 # returns list of coordinates for given boundary 'bound'
 # using order {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
 # @param bc_bounds: minimum/maximum coordinate value of interpretation domain
 # order: min_x,min_y,min_z,max_x,max_y,max_z
 # @param cc_3d: basecell center; has also to be projected onto right plane
-def extract_2d_bc_boundary_coords(coords,bound,bc_bounds,cc_3d):
+def extract_2d_bc_boundary_coords(coords, bound, bc_bounds, cc_3d):
   result = []
   # depending on boundary flag, determine which coordinate component to compare
   # 0 -> 0; 1 -> 1; 2 -> 2; 3 -> 0; 4 -> 2; 5 -> 3
@@ -470,7 +479,7 @@ def extract_2d_bc_boundary_coords(coords,bound,bc_bounds,cc_3d):
 # flages is a list with 6 entries, each indicating whether a basecell face should be meshed or not
 # bounds order: min_x,min_y,min_z,max_x,max_y,max_z
 # @param: basecell center, need this for sorting points in circle order
-def mesh_basecell_boundaries(flags,basecell,bounds,cell_center):
+def mesh_basecell_boundaries(flags, basecell, bounds, cell_center):
   list = []
   # order: {0:"x_left", 1:"y_left", 2:"z_left", 3:"x_right", 4:"y_right", 5:"z_right"}
   # save which boundaries we are going to mesh
@@ -483,7 +492,7 @@ def mesh_basecell_boundaries(flags,basecell,bounds,cell_center):
   return list
 
 # here we only deal with 3 dimensions
-def mesh_basecell_boundary(coords_2d,bound,bc_bounds,cell_center):
+def mesh_basecell_boundary(coords_2d, bound, bc_bounds, cell_center):
   assert(len(cell_center) == 2)
   # need this for mapping between planar and space coordinate
   major_dir = bound%3
@@ -604,9 +613,9 @@ def detect_boundary_edges(polydata):
 #       print(boundaryPts[t[0]])
 #     print("len:",len(l))
     
-  return boundaryPts,edgeLoops 
+  return boundaryPts, edgeLoops 
 
-def fill_boundary_loops(points,loops):
+def fill_boundary_loops(points, loops):
   appendPd = vtk.vtkAppendPolyData()
   # each loop consists of a chain of polygons, e.g. (0,1),(1,3),(3,0)
   for i,l in enumerate(loops):

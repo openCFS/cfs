@@ -2,6 +2,8 @@
 #define OLAS_Phist_EIGENSOLVER_HH
 
 #include "PhistCore.hh"
+#include "OLAS/solver/BaseSolver.hh"
+#include "OLAS/solver/BaseEigenSolver.hh"
 
 namespace CoupledField {
   
@@ -21,6 +23,19 @@ namespace CoupledField {
     
     //! Default Destructor
     virtual ~PhistEigenSolver();
+
+
+    /** @see BaseEigenSolver */
+    virtual void Setup(const BaseMatrix & A, bool isHermitian=false)
+    {
+      std::cout << "PistEigenSolver::Setup(A)\n";
+    }
+
+    /** @see BaseEigenSolver */
+    virtual void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false)
+    {
+      std::cout << "PistEigenSolver::Setup(A, B)\n";
+    }
 
     //! Setup routine for standard eigenvalue problem
 
@@ -60,6 +75,19 @@ namespace CoupledField {
                UInt numFreq, double freqShift, bool sort );
 
 
+    /** @see BaseEigenSolver */
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, double minVal, double maxVal)
+    {
+      std::cout << "PhistEigenSolver::CalcEigenValues(minVal)\n";
+    }
+
+    /** @see BaseEigenSolver */
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, unsigned int N, double shiftPoint)
+    {
+      std::cout << "PhistEigenSolver::CalcEigenValues(N)\n";
+    }
+
+
     //! Solve the linear generalized eigenvalue problem
     
     //! This method triggers the calculation of the eigenvalue problem.
@@ -73,11 +101,10 @@ namespace CoupledField {
     //! It calculates a given eigenmode and stores in a use supplied vector.
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eigenmode
-    void GetEigenMode(unsigned int modeNr, Vector<Complex> & mode);
+    void GetEigenMode(unsigned int modeNr, Vector<Complex> & mode, bool right = true);
     void GetComplexEigenMode(unsigned int modeNr, Vector<Complex> & mode) {
       GetEigenMode(modeNr, mode);
     }
-
 
     //! Calculate condition number
 
@@ -98,20 +125,25 @@ namespace CoupledField {
     } SparseMatRowFuncService;
 
   private:
+
+    /** templated instance of the overwritten Setup() */
+    template<class TYPE>
+    void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false);
+
+    /** templated instance of the overwritten CalcEigenValues() */
+    template<class TYPE>
+    void CalcEigenValues(BaseVector &sol, BaseVector &err, unsigned int N, double shiftPoint);
+
     /** print setup information */
     void ToInfo();
 
-    void SetupCommon(bool sym, unsigned int numFreq, double freqShift, bool sort, bool bloch);
-
-    /** provide A_ or B_ not as pointer value but as pointer itself as the pointer value is NULL prior init
-     * @param scale to scale the B-matrix. 1.0 else
-     * @return the value we set phist to (redundant to phist**) */
-//    sparseMat_t* InitMatrix(const BaseMatrix& cfs, sparseMat_t** phist, double scale);
+    void SetupCommon(unsigned int numFreq, double freqShift);
 
     /** little helper */
     bool IsSymmetric(const BaseMatrix& cfs) const;
 
-    void SaveModes(phist::types<double>::mvec_ptr X, int nEig);
+    template<class TYPE>
+    void SaveModes(typename phist::types<TYPE>::mvec_ptr X, int nEig);
 
     phist_jadaOpts opts_;
 
@@ -143,7 +175,39 @@ namespace CoupledField {
     /** shall we scale the mass matrix as suggested by Jonas? */
     bool scale_mass_;
 
-    // we do not use solver and preconditioners from CFS for Phist
+    /** in case we have scale_mass_, this is the value */
+    double scale_mass_val_ = 1.0;
+
+    /** is this a Hermitian system */
+    bool hermitian_ = false;
+
+    /** to know which type we use. Not all complex need to be hermitian! */
+    bool complex_ = false;
+
+    /** remove when switching to new interface, we then have eigenProblemType_ */
+    bool sym_ = false;
+
+    /** from the last ev the iterations */
+    int last_iter_ = -1;
+    int sum_iter_ = 0;
+    int count_iter_ = 0;
+
+    /** sorts the eigenfrequencies and sets the sort_idx_ permutation. */
+    void SetupSortIdx(const StdVector<double>& freq); // TODO: move to BaseEigenSolver
+
+    /** for SetupSortIdx */
+    typedef std::pair<double, unsigned int> ev_idx;  // TODO: move to BaseEigenSolver
+
+    /** for SetupIndex */
+    static bool comperator(const ev_idx& one, const ev_idx& two)  // TODO: move to BaseEigenSolver
+    {
+      return one.first < two.first;
+    }
+
+    /** this is the permutation matrix which allows sorting. Always used
+     * and in the non-sorting case set to 0,1,2, ... */
+    StdVector<unsigned int> sort_idx_; // TODO: move to BaseEigenSolver
+
   };
 }
 

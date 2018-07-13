@@ -387,7 +387,7 @@ string Function::ToString() const
     return Local::phase.ToString(local->GetPhase()) + "_" + type.ToString(type_);
 
   if(IsPhysical())
-    return "physical_ " + type.ToString(type_);
+    return "physical_" + type.ToString(type_);
 
   return type.ToString(type_);
 }
@@ -3044,30 +3044,26 @@ int Function::Local::Identifier::GetInterpolationIndex(Matrix<double> interval, 
   PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
   int sz = interval.GetNumRows();
   double h = interval[1][0] - interval[0][0];
+  double eps = 1e-6;
+  assert(h > -eps);
 
   int idx = -1;
-  if (interval[0][0] <= val && val < interval[sz - 1][0]) {
+  if (interval[0][0] <= val + eps && val < interval[sz - 1][0] - eps) {
     idx = (int) ( (val - interval[0][0]) / h);
-  } else if (val == interval[sz - 1][0]) {
+  } else if (close(val,interval[sz - 1][0])) {
     idx = sz - 2;
-  } else if (val > interval[sz - 1][0]) {
+  } else if (val+eps > interval[sz - 1][0]) {
     idx = sz - 2;
     val = 1.;
-    if (val > 1.01) {
-      inf_warn->SetWarning(
-          "Interpolation of Hom_RectC1 tensor failed. Design Variable "
-              + lexical_cast<string>(val) + " out of bounds ");
-    }
-  } else if (val < 0.) {
+  } else if (val < eps) {
     idx = 0;
     val = 0.;
-    if (val < -0.01) {
-      inf_warn->SetWarning(
-          "Interpolation of Hom_RectC1 tensor failed. Design Variable "
-              + lexical_cast<string>(val) + " out of bounds ");
-    }
   }
-  assert(idx != -1);
+  assert(idx > -1);
+  assert(idx < sz-1);
+  assert(val + eps > 0);
+  assert(val - eps < interval[sz - 1][0]);
+
   return idx;
 }
 

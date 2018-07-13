@@ -1,7 +1,6 @@
 #ifndef COEFFUNCTIONCONST_HH
 #define COEFFUNCTIONCONST_HH
 
-#include <boost/tr1/type_traits.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "CoefFunction.hh"
@@ -23,7 +22,7 @@ public:
     // this type of coefficient is always constant
     dependType_ = CONSTANT;
     isAnalytic_ = true;
-    isComplex_ = std::tr1::is_same<T,Complex>::value;
+    isComplex_ = std::is_same<T,Complex>::value;
     supportDerivative_ = true;
   }
 

@@ -572,21 +572,6 @@ namespace CoupledField {
         lp_sol[i] *= col_scalings_[i];
       }
     }
-
-    // ===================
-    //   Generate Report
-    // ===================
-
-    // Now this currently is of dubious value, since the two things queried
-    // from olasReport are actually meaningless in the context of a direct
-    // solver.
-    // PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
-    // out->Get("numIter")->SetValue(-1);
-    // out->Get("finalNorm")->SetValue(-1.0);
-
-    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
-    out->Get("numIter")->SetValue(-1);
-    out->Get("finalNorm")->SetValue(-1.0);
   }
 
 
@@ -747,20 +732,6 @@ namespace CoupledField {
         lp_sol[i] *= col_scalings_[i];
       }
     }
-
-    // ===================
-    //   Generate Report
-    // ===================
-
-    // Now this currently is of dubious value, since the two things queried
-    // from olasReport are actually meaningless in the context of a direct
-    // solver. Nevertheless we supply some values for consistency
-    /* FIXME this pollutes the xml file and needs to be updated to provide more information
-    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
-    out->Get("numIter")->SetValue(-1);
-    out->Get("finalNorm")->SetValue(-1.0);
-    */
-
   }
 
 }

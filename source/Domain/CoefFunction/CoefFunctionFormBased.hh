@@ -6,9 +6,6 @@
 #ifndef COEF_FUNCTION_FORM_BASED_HH
 #define COEF_FUNCTION_FORM_BASED_HH
 
-#include <boost/tr1/type_traits.hpp>
-
-
 #include "CoefFunction.hh"
 #include "FeBasis/BaseFE.hh"
 #include "FeBasis/FeFunctions.hh"

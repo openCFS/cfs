@@ -14,7 +14,6 @@
 
 #pragma once
 
-#include <boost/tr1/type_traits.hpp>
 #include <def_use_cgal.hh>
 #include <def_use_flann.hh>
 #include <cfsdat/Utils/Point.hh>
