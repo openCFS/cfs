@@ -122,7 +122,8 @@ namespace CoupledField
     {
       BiLinFormContext& context = **it;
 
-      if(context.GetIntegrator()->GetName() != integrator)
+      // makes only a starts-with comparison!
+      if(context.GetIntegrator()->GetName().rfind(integrator, 0) == string::npos)
         continue;
 
       if(context.GetFirstEntities()->GetRegion() != regionId)

@@ -110,6 +110,7 @@ namespace CoupledField {
     void ToInfo(PtrParamNode in);
 
     /** search for an integrator.
+     * @param integrator name where we do only a startswith, hence "curlCurlIntegrator" returns also a "curlCurlIntegrator-NL"
      * @param pde2 the second pde, note the order -> see debug file.
      * @param pde1/pde2 this is the first and second pde. If NULL not compared.
      * @param silent if false no NULL can be returned

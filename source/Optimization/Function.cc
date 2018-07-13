@@ -863,10 +863,9 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
       }
     } else {
       // this is a special case where the constraint does not act on the design space
-      if(type_ != STRESS && type_ != STRESS_DENSITY)
+      if(type_ != STRESS && type_ != STRESS_DENSITY && type_ != SQR_MAG_FLUX_DENS_X && type_ != SQR_MAG_FLUX_DENS_Y)
       {
         string a = grid->GetRegion().ToString(region);
-        std::cout << a;
         string msg = "region " + grid->GetRegion().ToString(region)
             + " of function " + type.ToString(type_) + " not within design domain";
         info_->SetWarning(msg);

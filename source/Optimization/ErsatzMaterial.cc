@@ -802,17 +802,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
     int elements;
     int base_upper;
-    /*if (App::MAG)
-    {
-      StdVector<Elem*> elems;
-      domain->GetGrid()->GetElems(elems, f->region);
-      assert(!elems.IsEmpty());
-      elements = elems.GetSize();
-    }
-    else
-    {
-      elements = design->GetNumberOfElements();
-    }*/
+
     elements = design->GetNumberOfElements();
     int base_lower = 0;
     base_upper = design->data.GetSize(); // ErsatzMatzerialTensor and MultiMaterial

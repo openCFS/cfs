@@ -251,8 +251,15 @@ namespace CoupledField {
 		  //  NONLINEAR BH RELATION (NON-HYSTERETIC)
 		  // ====================================================================
 		  if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
+		    CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
 			  PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
 			  PtrCoefFct nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef);
+
+        if(domain->HasDesign() && domain->GetDesign()->Contains(actRegion))
+        {
+          cfo = new CoefFunctionOpt(domain->GetDesign(), nuNl, this);
+          nuNl.reset(cfo);
+        }
         
 			  PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 			  PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL,
@@ -278,6 +285,11 @@ namespace CoupledField {
 			  stiffContext->SetEntities( actSDList, actSDList );
 			  stiffContext->SetFeFunctions( myFct, myFct );
 			  assemble_->AddBiLinearForm( stiffContext );
+
+        // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+        if(cfo)
+          cfo->SetForm(stiffInt);
+
 			  // Important: Add bdb-integrator to global list, as we need them later
 			  // for calculation of postprocessing results
 			  bdbInts_[actRegion] = stiffInt;
@@ -292,7 +304,7 @@ namespace CoupledField {
 			  if( nonLinMethod_ == NEWTON ) {
 				  PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, tensorType,
                   Global::REAL, magFluxCoef );
-          
+
 				  //create stiffness integrator
 				  BiLinearForm* stiff2 = NULL;
 				  //stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
@@ -350,11 +362,11 @@ namespace CoupledField {
 
 				  // for postprocessing
 				  PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL);
-			      if(domain->HasDesign())
-			      {
-			        cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
-			        curCoef.reset(cfo);
-			      }
+			    if(domain->HasDesign() && domain->GetDesign()->Contains(actRegion))
+			    {
+			      cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
+			      curCoef.reset(cfo);
+			    }
 				  matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
 			  }
         

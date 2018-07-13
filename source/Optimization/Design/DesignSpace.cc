@@ -90,6 +90,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   applicationForm.Add(App::MECH, "PiezoStressStrain", false);
   applicationForm.Add(App::HEAT, "HeatConductivity", false);
   applicationForm.Add(App::MAG, "CurlCurlIntegrator", false);
+  applicationForm.Add(App::MAG, "CurlCurlIntegrator-NL", false);
   applicationForm.Add(App::PIEZO_COUPLING, "linPiezoCoupling");
   applicationForm.Add(App::CHARGE_DENSITY, "LinNeumannInt");
   applicationForm.Add(App::PRESSURE, "PressureLinForm");
@@ -985,6 +986,9 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 
   double bimat_factor = -1.0;
 
+  std::cout << coef << "\n";
+  std::cout << coef->GetForm() << "\n";
+  std::cout << coef->GetForm()->GetName() << "\n";
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   // factor is the pseudo density case, in case it has the penalty parameter applied
