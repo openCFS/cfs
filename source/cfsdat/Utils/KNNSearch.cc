@@ -13,7 +13,6 @@
 //================================================================================================
 
 #include "KNNSearch.hh"
-#include <boost/tr1/type_traits.hpp>
 #include <def_use_cgal.hh>
 #include <cfsdat/Utils/Point.hh>
 #include "MatVec/Vector.hh"

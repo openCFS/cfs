@@ -12,7 +12,10 @@ from numpy import ceil
 import scipy.spatial
 from special_mesh_tools import *
 import cfs_utils
-import matviz_vtk
+try:
+  import matviz_vtk
+except:
+  print("failed to import matviz_vtk in mesh_tools_py, hopefully we don't need it")
 
 try:
   import meshpy.triangle as triangle
@@ -700,6 +703,7 @@ def validate_periodicity(mesh):
   return countLeft, countRight, countFront, countBack, countTop, countBottom
   
 ## creates a 2D mesh of predefined geometry
+   #create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
   
   assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper') or type == 'mbb')
@@ -713,8 +717,8 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   
   # buld2d case
   ny = y_res if y_res != None else x_res
-  width = width if width != None else 1. 
-  height = float(ny)/nx if opt_height is None else opt_height 
+  width = 1.0 if width is None else width 
+  height = width*(float(ny)/nx) if opt_height is None else opt_height 
    
   offx = 0.
   offy = 0.

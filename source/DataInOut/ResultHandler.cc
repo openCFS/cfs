@@ -112,15 +112,19 @@ namespace CoupledField {
       for( UInt i = 0; i < newDest.GetSize(); i++ ) {
         
         // check, if output is registered
-        if( outFiles_.find( newDest[i] ) == outFiles_.end() )
+        if( simOutputHandlers_.find( newDest[i] ) == simOutputHandlers_.end() )
           EXCEPTION( "Output writer '" << newDest[i] << "' was not registered yet!" );
 
         LOG_DBG(resHandler) << "Registering output '" << newDest[i] << "' with result '" << actDof.resultName;
 
         actContext->outputIds.Push_back( newDest[i] );
-        
+
+        // skip if only streaming is set and this is no streamingHandler
+        if (streamOnly && !simOutputHandlers_[newDest[i]]->IsStreaming())
+          continue;
+
         // register results also at the output writer class
-        outFiles_[newDest[i]]->RegisterResult( sol, saveBegin,
+        simOutputHandlers_[newDest[i]]->RegisterResult( sol, saveBegin,
                                                saveInc, saveEnd,
                                                actContext->isHistory );
       }
@@ -151,9 +155,13 @@ namespace CoupledField {
     // Iterate over all outfiles to notify them about a new
     // multisequence step
     std::map<std::string, shared_ptr<SimOutput> >::iterator it;
-    it = outFiles_.begin();
+    it = simOutputHandlers_.begin();
 
-    for( ; it != outFiles_.end(); it++ ) {
+    for( ; it != simOutputHandlers_.end(); it++ ) {
+      // skip if only streaming is set and this is no streamingHandler
+      if (streamOnly && !it->second->IsStreaming())
+        continue;
+
       it->second->BeginMultiSequenceStep( step, type, numSteps );
     }
   }
@@ -170,24 +178,22 @@ namespace CoupledField {
     // (determined by saveBegin, saveEnd and saveInc )
     isNeeded_.clear();
     isUpdated_.clear();
-    std::set<shared_ptr<ResultContext> >::iterator contextIt;
-    contextIt = contexts_.begin();
-    for( ; contextIt != contexts_.end(); contextIt++ ) {
-      BaseResult & actResult  = *((*contextIt)->result);
-      LOG_DBG(resHandler) << "IsNeeded for '" 
-                          << actResult.GetResultInfo()->resultName 
-                          << "' on '"
-                          << actResult.GetEntityList()->GetName() << "' is '" 
+    for(auto contextIt = contexts_.begin(); contextIt != contexts_.end(); contextIt++) {
+      BaseResult& actResult  = *((*contextIt)->result);
+      LOG_DBG(resHandler) << "IsNeeded for '" << actResult.GetResultInfo()->resultName
+                          << "' on '"<< actResult.GetEntityList()->GetName() << "' is '"
                           << (IsOutput( **contextIt ) == true ? "true" : "false");
-      if( IsOutput( **contextIt ) ) {
-        isNeeded_.insert( (*contextIt)->result );
-      }
+      if(IsOutput( **contextIt))
+        isNeeded_.insert((*contextIt)->result);
     }
     
     // Trigger function for all output files
-    std::map<std::string, shared_ptr<SimOutput> >::iterator it;
-    for( it = outFiles_.begin(); it != outFiles_.end(); it++ ) {
-      it->second->BeginStep( stepNum, stepVal );
+    for(auto it = simOutputHandlers_.begin(); it != simOutputHandlers_.end(); it++ ) {
+      // skip if only streaming is set and this is no streamingHandler
+      if (streamOnly && !it->second->IsStreaming())
+        continue;
+
+      it->second->BeginStep(stepNum, stepVal);
     }
     
     LOG_DBG(resHandler) << "Finished beginning of new step" << std::endl;
@@ -220,11 +226,11 @@ namespace CoupledField {
     LOG_DBG(resHandler) << "UR: needed=" << isNeeded_.size();
 
     // iterate over all results, which are needed
-    for(std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin(); it != isNeeded_.end(); it++)
+    for(auto it = isNeeded_.begin(); it != isNeeded_.end(); it++)
     {
       ResultContext& actContext = *(resultContexts_[*it]);
 
-      if( actContext.functor ) {
+      if(actContext.functor) {
         LOG_DBG(resHandler) << "Evaluating result '" << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType )
                             << "' on '" << actContext.result->GetEntityList()->GetName() << "'";
 
@@ -234,8 +240,8 @@ namespace CoupledField {
     }
   }
 
-  void ResultHandler::FinishStep( ) {
-    
+  void ResultHandler::FinishStep( )
+  {
     LOG_DBG(resHandler) << "FinishStep " << actStep_ << " enter";
 
     // -----------------------
@@ -248,35 +254,28 @@ namespace CoupledField {
 
     // === Primary results ===
     // iterate over all results, which are needed
-    std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin();
-    for( ; it != isNeeded_.end(); it++ ) {
-
+    for(auto it = isNeeded_.begin(); it != isNeeded_.end(); it++ )
+    {
       // store context
       ResultContext & actContext = *(resultContexts_[*it]);
       BaseResult & actResult  = *(actContext.result);
                    
-      LOG_DBG(resHandler) << "Checking result '"
-                          << actResult.GetResultInfo()->resultName
-                          << "' on '"
-                          << actResult.GetEntityList()->GetName()
-                          << "' for writing out";
+      LOG_DBG(resHandler) << "Checking result '"<< actResult.GetResultInfo()->resultName
+                          << "' on '" << actResult.GetEntityList()->GetName() << "' for writing out";
 
       // Check, if result was updated at all
-      if( isUpdated_.find(*it) == isUpdated_.end() ) {
-        WARN("Result '" 
-             << actResult.GetResultInfo()->resultName 
-             << "' on '" 
-             << (*it)->GetEntityList()->GetName()
-             << "' was not provided in step " << actStep_);
-      }
-
+      if(isUpdated_.find(*it) == isUpdated_.end())
+        WARN("Result '" << actResult.GetResultInfo()->resultName << "' on '"
+          << (*it)->GetEntityList()->GetName() << "' was not provided in step " << actStep_);
 
       // check, if result is to be written 
       if( actContext.writeResult && (!actContext.isFinal ) ) {
-
         // iterate over all outputs
-        for( UInt iOut = 0; iOut < actContext.outputIds.GetSize(); iOut++ ) {
-          
+        for(UInt iOut = 0; iOut < actContext.outputIds.GetSize(); iOut++) {
+          // skip if only streaming is set and this is no streamingHandler
+          if (streamOnly && !simOutputHandlers_[actContext.outputIds[iOut]]->IsStreaming())
+            continue;
+
           std::string outId = actContext.outputIds[iOut];
           // =================================================
           // Check, if output writer "lives" on the same grid.
@@ -298,20 +297,16 @@ namespace CoupledField {
             
             // perform interpolation
             InterpolateRes( actContext, destGrid, res );
-            outFiles_[actContext.outputIds[iOut]]->AddResult( res);
+            simOutputHandlers_[actContext.outputIds[iOut]]->AddResult( res);
          
           } else {
             // Standard case, no interpolation necessary
             
             // Add current result to given output file
-            outFiles_[actContext.outputIds[iOut]]->AddResult( actContext.result );
-            LOG_DBG(resHandler) << "Adding result '" 
-                << actResult.GetResultInfo()->resultName 
-                << "' on '"
-                << actResult.GetEntityList()->GetName()
-                << "' to '" 
-                << outFiles_[actContext.outputIds[iOut]]->GetName()
-                << "'";
+            simOutputHandlers_[actContext.outputIds[iOut]]->AddResult( actContext.result );
+            LOG_DBG(resHandler) << "Adding result '" << actResult.GetResultInfo()->resultName
+                << "' on '" << actResult.GetEntityList()->GetName() << "' to '"
+                << simOutputHandlers_[actContext.outputIds[iOut]]->GetName() << "'";
           }
         }
       }
@@ -320,8 +315,11 @@ namespace CoupledField {
     }
 
   // Trigger writing of all output writers
-  std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
-  for( fileIt = outFiles_.begin(); fileIt != outFiles_.end(); fileIt++ ) {
+  for(auto fileIt = simOutputHandlers_.begin(); fileIt != simOutputHandlers_.end(); fileIt++ ) {
+    // skip if only streaming is set and this is no streamingHandler
+    if (streamOnly && !fileIt->second->IsStreaming())
+      continue;
+
     LOG_DBG(resHandler) << "Finishing step for output '" << fileIt->second->GetName() << "'";
     fileIt->second->FinishStep();
   }    
@@ -348,16 +346,19 @@ namespace CoupledField {
       std::string type;
       // Trigger new step at all output writers
       
-      for( fileIt = outFiles_.begin(); 
-      fileIt != outFiles_.end(); fileIt++ ) {
+      for( fileIt = simOutputHandlers_.begin(); 
+      fileIt != simOutputHandlers_.end(); fileIt++ ) {
+        // skip if only streaming is set and this is no streamingHandler
+        if (streamOnly && !fileIt->second->IsStreaming())
+          continue;
+
         fileIt->second->BeginStep( actStep_, actStepVal_);
       }    
 
       // === Primary results ===
       // iterate over all results, which are needed
-      std::set<shared_ptr<ResultContext> >::iterator it = contexts_.begin();
-      for( ; it != contexts_.end(); it++ ) {
-
+      for(auto it = contexts_.begin(); it != contexts_.end(); it++ )
+      {
         // store context
         ResultContext & actContext = **it;
         BaseResult & actResult  = *(actContext.result);
@@ -366,16 +367,20 @@ namespace CoupledField {
         << actResult.GetEntityList()->GetName()
         << "'";
         // check, if result is to be written 
-        if( actContext.writeResult &&  actContext.isFinal )  {
-
+        if( actContext.writeResult &&  actContext.isFinal )
+        {
           // iterate over all outputs
-          for( UInt iOut = 0; iOut < actContext.outputIds.GetSize(); iOut++ ) {
+          for( UInt iOut = 0; iOut < actContext.outputIds.GetSize(); iOut++ )
+          {
+            // skip if only streaming is set and this is no streamingHandler
+            if (streamOnly && !simOutputHandlers_[actContext.outputIds[iOut]]->IsStreaming())
+              continue;
 
             // Add current result to given output file
-            outFiles_[actContext.outputIds[iOut]]->AddResult( actContext.result );
+            simOutputHandlers_[actContext.outputIds[iOut]]->AddResult( actContext.result );
             LOG_DBG(resHandler) << "Adding final result '" << type << "' on '"
             << actResult.GetEntityList()->GetName()
-            << "' to '" << outFiles_[actContext.outputIds[iOut]]->GetName()
+            << "' to '" << simOutputHandlers_[actContext.outputIds[iOut]]->GetName()
             << "'";
           }
         }
@@ -384,18 +389,23 @@ namespace CoupledField {
         FinishMultiSequenceStepRec( actContext );
       }
       // Finish newly created step
-      for( fileIt = outFiles_.begin(); 
-      fileIt != outFiles_.end(); fileIt++ ) {
+      for(fileIt = simOutputHandlers_.begin(); fileIt != simOutputHandlers_.end(); fileIt++) {
+        // skip if only streaming is set and this is no streamingHandler
+        if (streamOnly && !fileIt->second->IsStreaming())
+          continue;
+
         fileIt->second->FinishStep();
-      }    
+      }
     }
     
     
     // Iterate over all outfiles to notify them about the end of a
     // multisequence step
-    std::map<std::string, shared_ptr<SimOutput> >::iterator it;
-    it = outFiles_.begin();
-    for( ; it != outFiles_.end(); it++ ) {
+    for(auto it = simOutputHandlers_.begin(); it != simOutputHandlers_.end(); it++) {
+      // skip if only streaming is set and this is no streamingHandler
+      if (streamOnly && !fileIt->second->IsStreaming())
+        continue;
+
       it->second->FinishMultiSequenceStep( );
     }
 
@@ -407,16 +417,13 @@ namespace CoupledField {
     isUpdated_.clear();
   }
 
-  void ResultHandler::RegisterResultRec( ResultContext& actContext, 
-                                         const std::string& postProcName ) {
-
-    LOG_DBG(resHandler) << "Registering (recursively) result of postProc '" 
-                        << postProcName << "'";
+  void ResultHandler::RegisterResultRec( ResultContext& actContext, const std::string& postProcName )
+  {
+    LOG_DBG(resHandler) << "Registering (recursively) result of postProc '" << postProcName << "'";
 
     // if no postProcName is set, just leave
-    if( postProcName == "" ) {
+    if( postProcName == "" )
       return;
-    }
 
     // Hack: As there might be times for a sequence step with index 0
     // (e.g. grid results etc.) we look for a suitable sequence step for
@@ -429,46 +436,40 @@ namespace CoupledField {
     }
     PtrParamNode postProcNode, ppListNode;
     PtrParamNode seqNode = param_->GetByVal("sequenceStep", "index", seqStep);
-    if( seqNode )
+    if(seqNode)
       ppListNode = seqNode->Get("postProcList");
       
-    if( ppListNode )
+    if(ppListNode)
       postProcNode = ppListNode->GetByVal("postProc", "id", postProcName);
     
-    if( !postProcNode ) {
-      EXCEPTION( "A Postprocessing section for '" << postProcName
-                 << "' does not exist" );
-    }
+    if(!postProcNode)
+      EXCEPTION( "A Postprocessing section for '" << postProcName << "' does not exist" );
 
     // Fetch postprocs
     StdVector<shared_ptr<PostProc> > postProcs;
-    PostProc::CreatePostProc( postProcNode,  domain->GetGrid(),
-                              postProcs );
+    PostProc::CreatePostProc(postProcNode,  domain->GetGrid(), postProcs);
                               
     // iterate over all postprocs 
-    for( UInt i = 0; i < postProcs.GetSize(); i++ ) {
-
+    for( UInt i = 0; i < postProcs.GetSize(); i++ )
+    {
       // register current solution with new object
       postProcs[i]->SetResult( actContext.result );
 
       // create new resultcontext and link it to current one
-      shared_ptr<ResultContext> nextContext = 
-        shared_ptr<ResultContext>( new ResultContext() );
+      shared_ptr<ResultContext> nextContext = shared_ptr<ResultContext>(new ResultContext());
       nextContext->result = postProcs[i]->GetOutputResult();
       nextContext->functor = actContext.functor;
       nextContext->sequenceStep = actContext.sequenceStep;
       nextContext->saveBegin = actContext.saveBegin;
       nextContext->saveEnd = actContext.saveEnd;
       nextContext->saveInc = actContext.saveInc;
-      if( postProcs[i]->IsHistory() ||
-          actContext.isHistory ) {
+      if( postProcs[i]->IsHistory() || actContext.isHistory )
         nextContext->isHistory = true;
-      } else {
+      else
         nextContext->isHistory = false;
-      }
+
       nextContext->writeResult = postProcs[i]->IsWriteResult();
-      if( postProcs[i]->GetReductionType() == PostProc::TIME_FREQ ||
-          actContext.isFinal ) {
+      if(postProcs[i]->GetReductionType() == PostProc::TIME_FREQ || actContext.isFinal) {
         nextContext->isFinal = true;
         finalResultExists_ = true;
       } else {
@@ -478,10 +479,8 @@ namespace CoupledField {
       // fetch suitable output class
       StdVector<std::string> oldDest, outDest;
       postProcs[i]->GetOutDestNames( oldDest );
-      LOG_DBG(resHandler) << "outputDest of " << postProcName << " is '" 
-                          << oldDest.Serialize() << "'";
-      LOG_DBG(resHandler) << "size of outputDest is " << outDest.GetSize() 
-                          << std::endl;
+      LOG_DBG(resHandler) << "outputDest of " << postProcName << " is '" << oldDest.Serialize() << "'";
+      LOG_DBG(resHandler) << "size of outputDest is " << outDest.GetSize() << std::endl;
       if( oldDest.GetSize() == 1 ) {
         if( oldDest[0] == "" ) {
           GetDefaultOutputs( nextContext->result, outDest );
@@ -511,21 +510,22 @@ namespace CoupledField {
       LOG_DBG(resHandler) << "postProcName: " 
                           << postProcs[i]->GetNextPostProcName() << std::endl;
 
-      for( UInt iOut = 0; iOut < outDest.GetSize(); iOut++ ) {
-        if( outFiles_.find( outDest[iOut] ) == outFiles_.end() ) {
-          EXCEPTION( "Output writer '" << outDest[i] 
-                     << "' was not registered yet!" );
-        }
+      for(UInt iOut = 0; iOut < outDest.GetSize(); iOut++)
+      {
+        // skip if only streaming is set and this is no streamingHandler
+        if (streamOnly && !simOutputHandlers_[outDest[iOut]]->IsStreaming())
+          continue;
+
+        if( simOutputHandlers_.find( outDest[iOut] ) == simOutputHandlers_.end() )
+          EXCEPTION( "Output writer '" << outDest[i] << "' was not registered yet!" );
         
         nextContext->outputIds.Push_back( outDest[iOut] );
       
         // register results also at the output writer class
         if( nextContext->writeResult ) {
-          outFiles_[outDest[iOut]]->
-          RegisterResult(  postProcs[i]->GetOutputResult(),
+          simOutputHandlers_[outDest[iOut]]->RegisterResult(postProcs[i]->GetOutputResult(),
                            nextContext->saveBegin, nextContext->saveInc,
-                           nextContext->saveEnd,
-                           nextContext->isHistory );
+                           nextContext->saveEnd, nextContext->isHistory );
         }
       }
       
@@ -534,47 +534,41 @@ namespace CoupledField {
       actContext.postProcs.Push_back( postProcs[i] );
       
       // call method iteratively
-      if( postProcs[i]->GetNextPostProcName() != "" ) {
-        RegisterResultRec( *nextContext, 
-                           postProcs[i]->GetNextPostProcName() );
-      }
+      if(postProcs[i]->GetNextPostProcName() != "")
+        RegisterResultRec(*nextContext, postProcs[i]->GetNextPostProcName());
     }
-    LOG_DBG(resHandler) << "Finished registering result of postProc '"
-                        << postProcName << "'";
+    LOG_DBG(resHandler) << "Finished registering result of postProc '" << postProcName << "'";
   }
     
   void ResultHandler::FinishStepRec( ResultContext& actContext ) {
     
     // ensure that we have for each postprocessing method
     // also the related result context
-    assert( actContext.postProcs.GetSize() ==
-            actContext.nextContexts.GetSize() );
+    assert(actContext.postProcs.GetSize() == actContext.nextContexts.GetSize());
 
     // iterate over all contexts
     for( UInt i = 0; i < actContext.nextContexts.GetSize(); i++ ) {
 
       ResultContext & next = *(actContext.nextContexts[i]);
-      LOG_DBG(resHandler) << "Checking result '"
-                          << next.result->GetResultInfo()->resultName
-                          << "' on '"
-                          << next.result->GetEntityList()->GetName()
-                          << "' for writing out";
+      LOG_DBG(resHandler) << "Checking result '" << next.result->GetResultInfo()->resultName
+                          << "' on '" << next.result->GetEntityList()->GetName() << "' for writing out";
 
       // Check, if next result is only to be computed in final stage
       if( next.writeResult != false  && next.isFinal != true) {
         
         // iterate over all outputs
         for( UInt iOut = 0; iOut < next.outputIds.GetSize(); iOut++ ) {
-          
+
+          // skip if only streaming is set and this is no streamingHandler
+          if (streamOnly && !simOutputHandlers_[next.outputIds[iOut]]->IsStreaming())
+            continue;
+
           // Add current result to given output file
-          outFiles_[next.outputIds[iOut]]->AddResult( next.result );
+          simOutputHandlers_[next.outputIds[iOut]]->AddResult( next.result );
           BaseResult & nextResult  = *(next.result);
-          LOG_DBG(resHandler) << "Adding result '" 
-                              << nextResult.GetResultInfo()->resultName
-                              << "' on '"
-                              << nextResult.GetEntityList()->GetName()
-                              << "' to '" << outFiles_[next.outputIds[iOut]]->GetName()
-                              << "'";
+          LOG_DBG(resHandler) << "Adding result '" << nextResult.GetResultInfo()->resultName
+                              << "' on '" << nextResult.GetEntityList()->GetName()
+                              << "' to '" << simOutputHandlers_[next.outputIds[iOut]]->GetName() << "'";
         }
       }
 
@@ -582,25 +576,20 @@ namespace CoupledField {
       // Note: We only may write the result, if it is not a "final" result,
       // i.e. it is written only once at the end. In this case, the result
       // is written via the method FinalizeRec()
-      if( !next.isFinal ) {
-        FinishStepRec( next );
-      }
+      if(!next.isFinal)
+        FinishStepRec(next);
     }
   }
   
 
   void ResultHandler::UpdateResultRec( ResultContext& actContext ) {
 
-    assert( actContext.postProcs.GetSize() ==
-            actContext.nextContexts.GetSize() );
+    assert( actContext.postProcs.GetSize() == actContext.nextContexts.GetSize() );
 
     // iterate over all postprocs 
     for( UInt i = 0; i < actContext.postProcs.GetSize(); i++ ) {
-      LOG_DBG(resHandler) << "Applying postProc '" 
-                          << actContext.postProcs[i]->GetName() 
-                          << "' on '" 
-                          << actContext.nextContexts[i]->result
-        ->GetEntityList()->GetName();
+      LOG_DBG(resHandler) << "Applying postProc '" << actContext.postProcs[i]->GetName()
+                          << "' on '" << actContext.nextContexts[i]->result->GetEntityList()->GetName();
                 
       actContext.postProcs[i]->Apply();
 
@@ -620,24 +609,22 @@ namespace CoupledField {
   }
 
 
-  void ResultHandler:: AddOutputDest( shared_ptr<SimOutput> out, 
-                                      const std::string& id,
-                                      const std::string& gridId ) {
-
-    LOG_DBG(resHandler) << "Adding output writer with id '"
-        << id << "', on grid with id '" << gridId << "'";
-    outFiles_[id] = out;
+  void ResultHandler::AddOutputDest(shared_ptr<SimOutput> out, const std::string& id, const std::string& gridId )
+  {
+    LOG_DBG(resHandler) << "Adding output writer with id '" << id << "', on grid with id '" << gridId << "'";
+    simOutputHandlers_[id] = out;
     outGridIds_[id] = gridId;
-
   }
 
-  void ResultHandler::Init( std::map<std::string, Grid* >& gridMap,
-                            bool printGridOnly ) {
+  void ResultHandler::Init(std::map<std::string, Grid* >& gridMap, bool printGridOnly ) {
     
     // Trigger function with all output files
-    std::map<std::string, shared_ptr<SimOutput> >::iterator it;
-    for( it = outFiles_.begin(); it != outFiles_.end(); it++ ) {
-      
+    for(auto it = simOutputHandlers_.begin(); it != simOutputHandlers_.end(); it++ )
+    {
+      // skip if only streaming is set and this is no streamingHandler
+      if (streamOnly && !it->second->IsStreaming())
+        continue;
+
       // get gridId for this output writer
       std::string gridId = outGridIds_[it->first];
       
@@ -655,9 +642,12 @@ namespace CoupledField {
     LOG_DBG(resHandler) << "Starting to Finalize";
     
     // Trigger writing and finalizing of all output writers
-    std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
-    for( fileIt = outFiles_.begin(); 
-    fileIt != outFiles_.end(); fileIt++ ) {
+    for(auto fileIt = simOutputHandlers_.begin();
+    fileIt != simOutputHandlers_.end(); fileIt++ ) {
+      // skip if only streaming is set and this is no streamingHandler
+      if (streamOnly && !fileIt->second->IsStreaming())
+        continue;
+
       LOG_DBG(resHandler) << "Finalizing result for output '" << fileIt->second->GetName() << "'";
       fileIt->second->Finalize( );
     }    
@@ -668,16 +658,13 @@ namespace CoupledField {
   void ResultHandler::FinishMultiSequenceStepRec( ResultContext& actContext ) {
 
     LOG_DBG(resHandler) << "Starting to finish MsStep  recursively";
-    assert( actContext.postProcs.GetSize() ==
-            actContext.nextContexts.GetSize() );
+    assert( actContext.postProcs.GetSize() == actContext.nextContexts.GetSize() );
     
     std::string type;
 
     // iterate over all postProcs and trigger finalization
-    for( UInt i = 0 ; i < actContext.postProcs.GetSize(); i++ ) {
+    for(UInt i = 0 ; i < actContext.postProcs.GetSize(); i++)
       actContext.postProcs[i]->Finalize();
-      
-    }
 
     // iterate over all contexts
     for( UInt i = 0; i < actContext.nextContexts.GetSize(); i++ ) {
@@ -692,16 +679,17 @@ namespace CoupledField {
 
           // iterate over all outputs
           for( UInt iOut = 0; iOut < next.outputIds.GetSize(); iOut++ ) {
-            
+
+            // skip if only streaming is set and this is no streamingHandler
+            if (streamOnly && !simOutputHandlers_[next.outputIds[iOut]]->IsStreaming())
+              continue;
+
             // Add current result to given output file
-            outFiles_[next.outputIds[iOut]]->AddResult( next.result );
+            simOutputHandlers_[next.outputIds[iOut]]->AddResult( next.result );
             BaseResult & nextResult  = *(next.result);
-            LOG_DBG(resHandler) << "Adding final result '" 
-                                << nextResult.GetResultInfo()->resultName
-                                << "' on '"
-                                << nextResult.GetEntityList()->GetName()
-                                << "' to '" << outFiles_[next.outputIds[iOut]]->GetName()
-                                << "'";
+            LOG_DBG(resHandler) << "Adding final result '" << nextResult.GetResultInfo()->resultName
+                                << "' on '" << nextResult.GetEntityList()->GetName()
+                                << "' to '" << simOutputHandlers_[next.outputIds[iOut]]->GetName() << "'";
           }
         }
         
@@ -714,9 +702,9 @@ namespace CoupledField {
   }
   
 
-  bool ResultHandler::IsOutput(  ResultContext& context ) {
-    if( actStep_ < context.saveBegin||
-        actStep_ > context.saveEnd ) 
+  bool ResultHandler::IsOutput(  ResultContext& context )
+  {
+    if( actStep_ < context.saveBegin|| actStep_ > context.saveEnd )
       return false;
 
     if( ((actStep_-context.saveBegin) % context.saveInc) == 0 ) {
@@ -770,23 +758,17 @@ namespace CoupledField {
     }
     
     // Check all defined output writers for the searched capability
-    std::map<std::string, shared_ptr<SimOutput> >::iterator it;
-    it = outFiles_.begin();
-    for( ; it != outFiles_.end(); it++ ) {
-      if( it->second->GetCapabilities().find( neededCap ) 
-          != it->second->GetCapabilities().end() ) {
-        out.Push_back( it->first );
-      }
-    }
+    for(auto it = simOutputHandlers_.begin(); it != simOutputHandlers_.end(); it++)
+      if(it->second->GetCapabilities().find(neededCap) != it->second->GetCapabilities().end())
+        out.Push_back(it->first);
     
     // Check, if any suitable output class could be found
-    if( out.GetSize() == 0 ) {
-
+    if( out.GetSize() == 0 )
+    {
       // If no writer with capability MESH_RESULTS is found: error
       if( neededCap == SimOutput::MESH_RESULTS ) {
         EXCEPTION( "No output class was specified, which is capable of "
-                   << "writing mesh results. Please specify one within the "
-                   << "output section!" );
+                   << "writing mesh results. Please specify one within the output section!" );
       }
 
       // If no writer with capability HISTORY_RESULT is found: 
@@ -800,7 +782,7 @@ namespace CoupledField {
           = shared_ptr<SimOutput>(new SimOutputText( simName, PtrParamNode(), 
                                                      PtrParamNode(), restart ) );
         textOut->Init(  domain->GetGrid(), false );
-        outFiles_["histDefault"] = textOut;
+        simOutputHandlers_["histDefault"] = textOut;
         outGridIds_["histDefault"] = "default";
         out.Push_back( "histDefault" );
         
@@ -864,92 +846,57 @@ namespace CoupledField {
                                         infos, isHistory );
   }
     
-  void ResultHandler::
-  GetStepValues( const std::string& readerId,
-                 UInt sequenceStep,
-                 shared_ptr<ResultInfo> info,
-                 std::map<UInt, Double>& steps,
-                 bool isHistory ) {
+  void ResultHandler::GetStepValues(const std::string& readerId, UInt sequenceStep,
+                                    shared_ptr<ResultInfo> info, std::map<UInt, Double>& steps, bool isHistory)
+  {
     // check, if input reader exists
-    if( inFiles_.find(readerId) == inFiles_.end() ) {
-      EXCEPTION( "Input reader with id '" << readerId 
-          << "' is not registered yet" );
-    }
+    if(inFiles_.find(readerId) == inFiles_.end())
+      EXCEPTION( "Input reader with id '" << readerId<< "' is not registered yet" );
     
-    inFiles_[readerId]->GetStepValues( sequenceStep, info,
-                                       steps, isHistory );
+    inFiles_[readerId]->GetStepValues(sequenceStep, info, steps, isHistory);
   }
   
-  void ResultHandler::
-  GetResultEntities( const std::string& readerId,
-                     UInt sequenceStep,
-                     shared_ptr<ResultInfo> info,
-                     StdVector<shared_ptr<EntityList> >& list,
-                     bool isHistory ) {
+  void ResultHandler::GetResultEntities(const std::string& readerId, UInt sequenceStep, shared_ptr<ResultInfo> info,
+                                       StdVector<shared_ptr<EntityList> >& list, bool isHistory)
+  {
     // check, if input reader exists
-    if( inFiles_.find(readerId) == inFiles_.end() ) {
-      EXCEPTION( "Input reader with id '" << readerId 
-                 << "' is not registered yet" );
-    }
+    if(inFiles_.find(readerId) == inFiles_.end())
+      EXCEPTION( "Input reader with id '" << readerId << "' is not registered yet" );
 
-    inFiles_[readerId]
-      ->GetResultEntities( sequenceStep, info, list, isHistory );
+    inFiles_[readerId]->GetResultEntities( sequenceStep, info, list, isHistory);
   }
 
-  void ResultHandler::
-  GetResult( const std::string& readerId,
-             UInt sequenceStep,
-             UInt stepValue,
-             shared_ptr<BaseResult> result,
-             bool isHistory ) {
-
+  void ResultHandler::GetResult(const std::string& readerId, UInt sequenceStep, UInt stepValue,
+                                shared_ptr<BaseResult> result, bool isHistory)
+  {
     // check, if input reader exists
-    if( inFiles_.find(readerId) == inFiles_.end() ) {
-      EXCEPTION( "Input reader with id '" << readerId 
-                 << "' is not registered yet" );
-    }
+    if(inFiles_.find(readerId) == inFiles_.end())
+      EXCEPTION("Input reader with id '" << readerId << "' is not registered yet");
     
-    inFiles_[readerId]->GetResult( sequenceStep, stepValue, 
-                                   result, isHistory );
+    inFiles_[readerId]->GetResult(sequenceStep, stepValue, result, isHistory);
   }
  
-  shared_ptr<BaseResult> ResultHandler::
-  GetResult( const std::string& readerId,
-             UInt sequenceStep,
-             UInt stepValue,
-             SolutionType solType,
-             const std::string& regionName ) {
-
+  shared_ptr<BaseResult> ResultHandler::GetResult(const std::string& readerId, UInt sequenceStep,
+                                                  UInt stepValue, SolutionType solType, const std::string& regionName)
+  {
     shared_ptr<BaseResult> result;
 
-    result = inFiles_[readerId]->GetResult(sequenceStep,
-                                           stepValue,
-                                           solType,
-                                           regionName );
+    result = inFiles_[readerId]->GetResult(sequenceStep, stepValue, solType, regionName);
     return result;
   }
   
   
   template<typename TYPE>
-  shared_ptr<FeFunction<TYPE> >
-  ResultHandler::GetFeFunction( const std::string& readerId,
-                                UInt sequenceStep,
-                                UInt stepValue,
-                                SolutionType solType,
-                                std::set<std::string> & regionNames,
-                                PtrParamNode rootNode) {
-    return inFiles_[readerId]->GetFeFunction<TYPE>(sequenceStep,
-                                                   stepValue,
-                                                   solType,
-                                                   regionNames );
+  shared_ptr<FeFunction<TYPE> > ResultHandler::GetFeFunction(const std::string& readerId, UInt sequenceStep, UInt stepValue,
+                                     SolutionType solType, std::set<std::string> & regionNames, PtrParamNode rootNode)
+  {
+    return inFiles_[readerId]->GetFeFunction<TYPE>(sequenceStep, stepValue, solType, regionNames);
   }
   
   
   
-  void ResultHandler::InterpolateRes( ResultContext& actContext,
-                                      Grid* destGrid,
-                                      shared_ptr<BaseResult>& res ) {
-    
+  void ResultHandler::InterpolateRes( ResultContext& actContext, Grid* destGrid, shared_ptr<BaseResult>& res)
+  {
     Grid* srcGrid = domain->GetGrid( "default" );
     std::string entListName = actContext.result->GetEntityList()->GetName();
     EntityList::ListType lType = actContext.result->GetEntityList()->GetType();
@@ -999,11 +946,10 @@ namespace CoupledField {
 
       PtrCoefFct coef;
       // try to get the coefficient function
-      if( typeid(*fct) == typeid(FieldCoefFunctor<Double>)){
+      if( typeid(*fct) == typeid(FieldCoefFunctor<Double>))
         coef = (dynamic_pointer_cast<FieldCoefFunctor<Double> >(fct))->GetCoefFct();
-      } else {
+      else
         EXCEPTION( "Can not interpolate values, not defined on a field");
-      }
 
       res.reset(new Result<Double>());
       Vector<Double> & vals = dynamic_cast<Vector<Double>& >(*res->GetSingleVector());
@@ -1051,11 +997,10 @@ namespace CoupledField {
     }  else {
       PtrCoefFct coef;
       // try to get the coefficient function
-      if( typeid(*fct) == typeid(FieldCoefFunctor<Complex>)){
+      if( typeid(*fct) == typeid(FieldCoefFunctor<Complex>))
         coef = (dynamic_pointer_cast<FieldCoefFunctor<Complex> >(fct))->GetCoefFct();
-      } else {
-        EXCEPTION( "Can not interpolate values, not defined on a field");
-      }
+      else
+        EXCEPTION("Can not interpolate values, not defined on a field");
 
       res.reset(new Result<Complex>());
       Vector<Complex> & vals = dynamic_cast<Vector<Complex>& >(*res->GetSingleVector());

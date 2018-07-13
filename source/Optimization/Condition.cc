@@ -256,7 +256,7 @@ void Condition::AddOutputConstraints(PtrParamNode pn, StdVector<Condition*>& lis
   PtrParamNode xml = elems[0];
   //std::string entName = xml->Get("name")->As<std::string>();
   entName.assign(entName + boost::lexical_cast<std::string>(i));
-  xml ->Get("name")->SetValue(entName);
+  xml->Get("name")->SetValue(entName);
 }
 
 

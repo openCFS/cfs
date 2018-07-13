@@ -447,7 +447,7 @@ void ShapeMapDesign::InduceCenterSymmetryNodes(ShapeParam& first, ShapeParam& se
        nodal->partner = prof;
        prof->partner = nodal;
        prof->ParseAndInit(profile, nodal); // one profile for each node shape, give reverence to node to copy sym and orientation
-       prof->dof = nodal->orientation; // we need a dof for export as density.xml. There the dof is orthogonal to orientation, which is true for 2D and 3D
+       prof->dof = ShapeParamElement::NOT_SET;
        assert(prof->other_center == NULL); // we don't have this in profile
 
        // handle the induced stuff
@@ -1286,7 +1286,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
 
     double val = pn->Get("design")->As<double>();
     BaseDesignElement::Type dt = BaseDesignElement::type.Parse(pn->Get("type")->As<string>());
-    LOG_DBG2(SMD) << "RDX i=" << i << " dt=" << dt << " dof=" << pn->Get("dof")->As<string>() << " val=" << val << " spe=" << spe.ToString();
+    LOG_DBG2(SMD) << "RDX i=" << i << " dt=" << dt << " dof=" << (pn->Has("dof") ? pn->Get("dof")->As<string>() : "-") << " val=" << val << " spe=" << spe.ToString();
 
     // a profile has no dof
     if(dt != spe.GetType())
@@ -1330,7 +1330,7 @@ void ShapeMapDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, d
       spe.SetUpperBound(std::min(spe.GetUpperBound(), std::max(val + rb, spe.GetLowerBound())));
       spe.SetLowerBound(std::max(spe.GetLowerBound(), std::min(val - rb, spe.GetUpperBound())));
     }
-    LOG_DBG2(SMD) << "RDX: e=" << i << spe.ToString() << "  v=" << val << " rb=" << rb << " lb = " << spe.GetLowerBound() << " ub=" << spe.GetUpperBound();
+    LOG_DBG2(SMD) << "RDX: e=" << i << spe.ToString() << " v=" << val << " rb=" << rb << " lb=" << spe.GetLowerBound() << " ub=" << spe.GetUpperBound();
     assert(spe.GetLowerBound() <= spe.GetUpperBound());
   }
 
@@ -3112,6 +3112,8 @@ void ShapeMapDesign::ShapeParam::CopyProperties(const ShapeParam* ref, bool copy
     type = ref->type;
   if(!copy_master_data)
     dof = ref->dof;
+  if(type == PROFILE)
+    dof = ShapeParamElement::NOT_SET;
   orientation = ref->orientation;
   lower = ref->lower;
   upper = ref->upper;
@@ -3394,7 +3396,8 @@ inline void ShapeMapDesign::ElementSymmetry::ApplyDesign()
     assert(!(vir.reciprocal && vir.elem->GetType() != DesignElement::NODE));
     double val = vir.reciprocal ? (vir.shape->max - base->GetPlainDesignValue()) : base->GetPlainDesignValue();
     vir.elem->SetDesign(val);
-    LOG_DBG2(SMD) << "ES:AD base=" << base->GetIndex() << "/" << base->dof_ << " vir=" << vir.elem->GetIndex() << "/" << vir.elem->dof_ << " -> " << val;
+    LOG_DBG2(SMD) << "ES:AD base=" << base->GetIndex() << "/" << base->dof_ << " vir=" << vir.elem->GetIndex() << "/" << vir.elem->dof_
+                  << " r=" << vir.reciprocal << " t=" << vir.elem->GetType() << " o=" << base->GetPlainDesignValue() << " -> " << val;
   }
 }
 

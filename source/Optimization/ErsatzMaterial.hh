@@ -114,6 +114,9 @@ public:
 
 protected:
   
+  /** overwrites the Optimization version. To be called within Optimization::CommitIteration() */
+  virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
+
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
   virtual void StoreResults(double step_val);
 

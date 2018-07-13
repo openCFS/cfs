@@ -436,7 +436,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       LOG_DBG(genSolver) << " GenerateSolver: Generated PETSC solver";
     }
   #else
-    EXCEPTION("Compile with USE_PHIST to enable interface to PHIST.");
+    EXCEPTION("Compile with USE_PHIST_CG to enable interface to PHIST_CG.");
   #endif
     break;
 

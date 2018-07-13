@@ -16,7 +16,6 @@
 //Definition of a point for kd-search-tree CGAL of FLANN
 
 #include "cfsdat/Utils/Defines.hh"
-#include <boost/tr1/type_traits.hpp>
 #include <def_use_cgal.hh>
 #include <def_use_flann.hh>
 #include <CGAL/Simple_cartesian.h>
