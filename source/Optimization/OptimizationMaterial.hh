@@ -258,10 +258,6 @@ public:
   /** to be called by DesignSpace::ApplyPhysicalDesignElementMatrix() when nu_r[reg] is not set yet */
   void SetRelactivity(CoefFunctionOpt* coef, RegionIdType reg_id);
 
-  /** [1 0; 0 0] or [0 0; 0 1] for SQR_MAG_FLUX_DENS_X/Y
-   * TODO make reference when moving to MagSIMP */
-  static Matrix<double> GetSelectionMatrix(Function* f);
-
   /** material data from region_ids we touch, uninitialized is -1.
    * Set by GetMatCoef() which is called by Stiffness() */
   StdVector<double> nu_r;

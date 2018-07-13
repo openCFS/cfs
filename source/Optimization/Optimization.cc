@@ -34,6 +34,7 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
+#include "Optimization/MagSIMP.hh"
 #include "Optimization/PiezoParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
@@ -642,7 +643,6 @@ Optimization* Optimization::CreateInstance()
     case OptimizationMaterial::MECH:
     case OptimizationMaterial::ACOUSTIC:
     case OptimizationMaterial::HEAT:
-    case OptimizationMaterial::MAG:
     case OptimizationMaterial::ELEC:
     case OptimizationMaterial::LBM:
       opt = new SIMP(); // generally single PDE!
@@ -650,6 +650,10 @@ Optimization* Optimization::CreateInstance()
       
     case OptimizationMaterial::PIEZOCOUPLING:
       opt = new PiezoSIMP();
+      break;
+
+    case OptimizationMaterial::MAG:
+      opt = new MagSIMP();
       break;
 
     default:

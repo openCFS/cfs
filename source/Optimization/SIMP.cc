@@ -175,42 +175,6 @@ void SIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* t
     break;
   }
 
-  // u1^T (K' u2 - f') -> find "K'"
-  case App::MAG:
-  {
-    MagMat* mag = dynamic_cast<MagMat*>(mat);
-    assert(mag != NULL);
-
-    assert(derivative);
-    double d_rho = tf->Derivative(de, DesignElement::SMART, false);
-
-    // element matrix with org material, might be cached -> local_element_cache
-    const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mag->Stiffness(de->elem));
-    LOG_DBG3(simp) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
-
-    double nu_r = mag->nu_r[de->elem->regionId];
-    double nu_0 = mag->nu_0;
-
-    //assert(nu_r > 0);
-    //assert(mag->nu_0 > 0);
-
-    // simulation: BDB with D=(d 0; 0 d) with d = nu_0*nu_r
-    // optimization: d = nu_0 * nu_r * f(rho) - nu_0 * f(rho) + nu_0
-    // derivative: d = nu_0 * nu_r * f'(rho) - nu_0 * f'(rho)
-
-    // in difference to elasticity where K' = my(rho)'*K_0
-    // we have K' = alpha * K_0 where alpha = (nu_0*nu_r - nu_0) / (nu_0 * nu_r)
-
-    double alpha = (nu_0*nu_r*d_rho - nu_0) / (nu_0 * nu_r);
-    LOG_DBG3(simp) << "e=" << de->elem->elemNum << " "
-        "nu_0=" << nu_0 << " nu_r=" << nu_r << " rho=" << de->GetDesign(DesignElement::SMART) << " d_rho=" << d_rho << " alpha=" << alpha;
-
-    Assign(out, stiffness, alpha); // out = alpha * stiffness
-
-    LOG_DBG3(simp) << "out=" << out.ToString(2);
-    break;
-  }
-
   default:
     assert(false); // other cases should be handled in PiezoSIMP
   } // end switch
@@ -233,13 +197,6 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
     TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true);
     CalcVonMisesStressGradient(excite, f, tf);
-    break;
-  }
-  case Function::SQR_MAG_FLUX_DENS_X:
-  case Function::SQR_MAG_FLUX_DENS_Y:
-  {
-    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true);
-    CalcMagFluxDensGradient(excite, f, tf);
     break;
   }
 
@@ -358,20 +315,6 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
 	}
 }
 
-void SIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferFunction* tf)
-{
-
-  // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
-  //Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
-
-  // the gradient is < lambda^T, K' * A >
-  assert(excite.sequence == f->ctxt->sequence);
-
-  DesignDependentRHS rhs;
-  // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
-  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], &rhs, 1.0, STANDARD, f);
-
-}
 
 DesignDependentRHS::DesignDependentRHS()
 {

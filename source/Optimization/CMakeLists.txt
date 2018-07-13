@@ -13,6 +13,7 @@ SET(OPTIMIZATION_SRCS
   StateSolution.cc
   SIMP.cc
   PiezoSIMP.cc
+  MagSIMP.cc
   PiezoParamMat.cc
   ShapeGrad.cc
   TransferFunction.cc

@@ -246,11 +246,6 @@ protected:
   /** Calculates heat energy as an equivalence to compliance in lin elasticity */
   virtual double CalcHeatEnergy(Excitation& excite, Objective* f, Condition* g, bool derivative);
 
-  /** calc magnetic flux density as 1/N * sum<J,B*A> where B is the BOp from the BDBInt (here the curl operator) and A is the
-   * element solution vector (scalar) and J is either [1,0] or [0,1] to select the horizontal or vertical part and N averages over
-   * the sum of the N elements of f->region. The scalar product is evaluates over the integration points */
-  double CalcMagFluxDensity(Excitation& excite, Function* f, bool derivative);
-
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
   template<class T>
   double CalcOutput(Excitation& excite, Function* f);
@@ -380,6 +375,14 @@ protected:
   /** Helper that gives the physical material tensor considers bi-material */
   void GetPhysicalMaterial(BiLinForm* form, const DesignElement* de, const TransferFunction* tf, bool derivative, Matrix<double>& out);
 
+  /** This is a helper for SetElementK() which adds for App::MECH in the harmonic case damping and mass
+   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
+  void AddMassToStiffness(Context* ctxt, const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
+
+  /** For derived optimization to fill their contribution to ErsatzMaterial::ConstructReadAdjointRHS()
+   * @return true if functions is handled */
+  virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs) { return false; }
+
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
   StateContainer forward;
 
@@ -392,9 +395,6 @@ protected:
   /** cache the 1.0 / complete volume of the domain */
   double volume_fraction_;
 
-  /** This is a helper for SetElementK() which adds for App::MECH in the harmonic case damping and mass
-   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
-  void AddMassToStiffness(Context* ctxt, const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
@@ -473,7 +473,8 @@ private:
 
   /** In ErsatzMaterial: Saves the original loads and sets the output nodes as adjoint pde rhs
    * Has distinct implementations for complex and real part.
-   * @see virtual ConstructAdjointRHS() */
+   * @see virtual ConstructAdjointRHS()
+   * @see FillReadAdjointRHS() ! */
   void ConstructRealAdjointRHS(Excitation& excite, Function* f);
   void ConstructComplexAdjointRHS(Excitation& excite, Function* f);
 

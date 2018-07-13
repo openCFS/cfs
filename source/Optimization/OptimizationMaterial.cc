@@ -500,7 +500,7 @@ MagMat::MagMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctx
 {
   system_ = MAG;
 
-  stiff.integrator = "CurlCurlIntegrator";
+  stiff.integrator = "CurlCurlIntegrator"; // or -NL!!
   stiff.mc = ELECTROMAGNETIC;
   stiff.mt = MAG_RELUCTIVITY;
 
@@ -512,21 +512,6 @@ MagMat::MagMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctx
   // mass does not apply yet
 }
 
-Matrix<double> MagMat::GetSelectionMatrix(Function* f)
-{
-  // this selects the orientation, similar to the dmat in BDBInt but w/o material
-  Matrix<double> S(domain->GetGrid()->GetDim(), domain->GetGrid()->GetDim());
-  S.Init();
-  assert(f->GetType() == Function::SQR_MAG_FLUX_DENS_X || f->GetType() == Function::SQR_MAG_FLUX_DENS_Y);
-
-  // Define D Matrix, optimizing x or y component
-  if (f->GetType() == Function::SQR_MAG_FLUX_DENS_X)
-    S[0][0] = 1;
-  else
-    S[1][1] = 1;
-
-  return S;
-}
 
 void MagMat::SetRelactivity(CoefFunctionOpt* coef, RegionIdType reg_id)
 {
