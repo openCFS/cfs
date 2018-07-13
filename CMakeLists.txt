@@ -378,9 +378,9 @@ OPTION(BUILD_CFSTOOL "Build CFS++ converter tool (cfstool)."  ${BUILD_CFSTOOL_DE
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})
 OPTION(UNIT_TESTS "Build CFS++ unit tests (cfstest)."  ${UNIT_TESTS_DEFAULT})
 
-# Since CFSDAT depends on the CGAL library, we need to force USE_CGAL to ON.
-IF(CFSDAT)
-    SET(USE_CGAL ON CACHE BOOL "Activate fast element mapping using CGAL library." FORCE)
+# CFSDAT depends on the CGAL library ...
+IF(CFSDAT AND NOT USE_CGAL)
+  MESSAGE(FATAL_ERROR "CFSDAT requires USE_CGAL=ON, correct your configuration.")
 ENDIF()
   
 #-----------------------------------------------------------------------------
