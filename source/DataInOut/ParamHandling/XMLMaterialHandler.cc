@@ -1648,8 +1648,7 @@ namespace CoupledField {
       material->SetScalar(irrStrains_c3, HYST_IRRSTRAIN_C3, Global::REAL);
       material->SetScalar(coefdim, DIM_BETA_COEFS);
       material->SetTensor(betaCoefs, HYST_BETA_COEFS, Global::REAL);
-      material->SetScalar(couplingDefined, HYST_COUPLING_DEFINED ); 
-      
+            
       PtrParamNode strainOperatorNode = couplingNode->Get("hystOperatorForStrains");
       if(strainOperatorNode->Has("usePolarization")){
         usePolarization = 1;
@@ -1686,8 +1685,8 @@ namespace CoupledField {
         }
       }
       material->SetScalar(strainForm, HYST_STRAIN_FORM);
-      
     }
+    material->SetScalar(couplingDefined, HYST_COUPLING_DEFINED ); 
   }
   
   void XMLMaterialHandler::ReadHystOperator(BaseMaterial *material, PtrParamNode operatorNode, bool setStrains){

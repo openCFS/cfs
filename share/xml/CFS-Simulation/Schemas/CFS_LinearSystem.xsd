@@ -273,6 +273,7 @@
           <xsd:enumeration value="none"/>
           <xsd:enumeration value="HYST_quadApprox"/>
           <xsd:enumeration value="HYST_minResidual"/>
+          <xsd:enumeration value="HYST_minResidual_largerValues"/>
           <xsd:enumeration value="HYST_bisect"/>
           <xsd:enumeration value="HYST_overRelaxation"/>
         </xsd:restriction>
@@ -364,12 +365,7 @@
     <xsd:sequence>
         <xsd:element name="allowReset" type="DT_CFSBool" default="yes"/>
         <xsd:element name="minNumberItTillReset" type="xsd:nonNegativeInteger" default="5"/>
-        <xsd:element name="minResDecreaseTillReset">
-        <xsd:complexType>
-          <xsd:attribute name="value" type="DT_PosFloat" default="1e-3"/>
-          <xsd:attribute name="relative" type="DT_CFSBool" default="yes"/>
-        </xsd:complexType>
-        </xsd:element>
+        <xsd:element name="minResDecreaseTillReset" type="DT_PosFloat" default="1e-3"/>
         <xsd:element name="nonLinMethodAfterReset" type="DT_HystereticSolver"/>
         <xsd:element name="lineSearchAfterReset" type="DT_HystLineSearch"/>
     </xsd:sequence>

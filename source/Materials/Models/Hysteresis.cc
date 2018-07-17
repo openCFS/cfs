@@ -116,14 +116,14 @@ namespace CoupledField
 		}
     
     if(resUp*resDown > 0){
-      std::cout << "resUp: " << resUp << std::endl;
-      std::cout << "resDown: " << resDown << std::endl;
-      
-      std::cout << "Xup_normalized: " << Xup_normalized << std::endl;
-      std::cout << "Xdown_normalized: " << Xdown_normalized << std::endl;
-      
-      std::cout << "Ytarget_normalized: " << Ytarget_normalized << std::endl;
-      
+//      std::cout << "resUp: " << resUp << std::endl;
+//      std::cout << "resDown: " << resDown << std::endl;
+//      
+//      std::cout << "Xup_normalized: " << Xup_normalized << std::endl;
+//      std::cout << "Xdown_normalized: " << Xdown_normalized << std::endl;
+//      
+//      std::cout << "Ytarget_normalized: " << Ytarget_normalized << std::endl;
+//      
       EXCEPTION("Solution not in expected interval!");
     }
     if(abs(resUp) < tol){
@@ -855,7 +855,8 @@ namespace CoupledField
             
     LOG_DBG(vecpreisachlinesearch) << "Determine minimal alpha that allows inversion of jacTjac";
     LOG_DBG(vecpreisachlinesearch) << "Given alphaMin: " << alphaMin;        
-            
+    Double minDeterminant = 1e-12;  
+    Double incrFactor = sqrt(2.0);
     while(true){
       matToInvert = jacTjac;
       jacTjac.Determinant(detMatToInvert);
@@ -865,10 +866,11 @@ namespace CoupledField
         matToInvert[i][i] += alphaMinLocal*alphaMinLocal;
       }
       matToInvert.Determinant(detMatToInvert);
-      if(detMatToInvert != 0){
+      if(abs(detMatToInvert)>=minDeterminant){
+//      if(detMatToInvert != 0){
         break;
       } else {
-        alphaMinLocal = alphaMinLocal*2;
+        alphaMinLocal = alphaMinLocal*incrFactor;
       }
       cnt++;
       if(cnt > 200){
@@ -906,6 +908,39 @@ namespace CoupledField
         matToInvert[i][i] += alpha*alpha;
       }
       matToInvert.Determinant(detMatToInvert);
+      
+      if(abs(detMatToInvert)<minDeterminant){
+//      if(detMatToInvert == 0){
+//        std::cout << "Matrix not invertible! " << std::endl;
+//        std::cout << "matToInvert: " << matToInvert.ToString() << std::endl;
+//        std::cout << "Min alpha for inversion: " << alphaMinLocal << std::endl;
+//        std::cout << "Current alpha: " << alpha << std::endl;
+//        std::cout << "Try to find alpha that works again" << std::endl;
+        while(true){
+          matToInvert = jacTjac;
+          jacTjac.Determinant(detMatToInvert);
+          LOG_DBG(vecpreisachlinesearch) << " det(jacTjac) =  " << detMatToInvert;
+          
+          for(UInt i = 0; i < dim_; i++){
+            matToInvert[i][i] += alpha*alpha;
+          }
+          matToInvert.Determinant(detMatToInvert);
+          if(abs(detMatToInvert)>=minDeterminant){
+            //      if(detMatToInvert != 0){
+            break;
+          } else {
+            alpha = alpha*incrFactor;
+          }
+          cnt++;
+          if(cnt > 200){
+            EXCEPTION("LM, Linesearch: Cannot find alpha, such that jacTjac becomes invertible!");
+          }
+        }
+        alphaMinLocal = alpha;
+//        std::cout << "New alpha: " << alpha << std::endl;
+        
+      }
+      
       assert(detMatToInvert != 0);
       matToInvert.Invert(matInverted);
       
@@ -1584,9 +1619,12 @@ namespace CoupledField
       xVal = prevXval;
       LOG_TRACE(vecpreisachInversion) << "Reused value xVal: " << xVal.ToString();
       successFlag = 0;
+//      std::cout << "Reuse old value: " << xVal.ToString() << std::endl;
       return xVal;
     }
 		
+//    std::cout << "yVal: " << yVal << std::endl;
+    
     /*
      * Invert eps/mu for later usage
      */
@@ -1722,11 +1760,19 @@ namespace CoupledField
       Vector<Double> satInput = Vector<Double>(dim_);
       satInput.Init();
       satInput.Add(XSaturated_,yDir);
+//      std::cout << "satInput: " << satInput.ToString() << std::endl;
       Vector<Double> hystValAtXSat = computeValue_vec(satInput, operatorIndex, false, false, tmp);
-      
+//      std::cout << "yNorm: " << yNorm << std::endl;
+//      std::cout << "hystValAtXSat: " << hystValAtXSat << std::endl;
+//      std::cout << "XSaturated_: " << XSaturated_ << std::endl;
+//      std::cout << "PSaturated_: " << PSaturated_ << std::endl;
+//      std::cout << "eps_mu: " << eps_mu << std::endl;
+//      
       // check saturation in direction of yIn might solve system
       //Double diffSat = yNorm - (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);
       Double diffSat = yNorm - (hystValAtXSat.NormL2() + eps_mu*XSaturated_);
+//      std::cout << "diffSat: " << diffSat << std::endl;
+              
       if(abs(diffSat) < INV_resTolB_){
         traceMsg << "--B Special-- Inversion: Exact Saturation found" << std::endl;
 //        xVal.Init();
@@ -1800,6 +1846,9 @@ namespace CoupledField
       }
     } // yNorm == 0?
         
+//    std::cout << "stay below sat? " << stayBelowSat << std::endl;
+    
+    
     /*
      * Use Levenberg-Marquart algorithm as presented in Dahmen&Reusken - Numerik partialler DFG
      */   
@@ -2105,7 +2154,7 @@ namespace CoupledField
               //                  std::cout << "Remaining error norm |jacT*ResX|: " << errorNorm << std::endl;
               //                  std::cout << "Remaining residual-norm wrt x: " << errorNormResX << std::endl;
               //                  std::cout << "Remaining residual-norm wrt y: " << errorNormResY << std::endl;
-              successFlag = 0;
+              successFlag = -1;
               
 //              std::cout << "previousStateAboveSat? " << previousStateAboveSat << std::endl;
 //              std::cout << "currentStateAboveSat? " << currentStateAboveSat << std::endl;
@@ -2212,6 +2261,9 @@ namespace CoupledField
         sign = sign*(-1.0);
       }
       
+//      std::cout << "xVal.NormL2(): " << xVal.NormL2() << std::endl;
+//      std::cout << "XSaturated_: " << XSaturated_ << std::endl;
+//      
       avgAlphaStatistics /= totalNumberOfLMIterations;
       
       if((xVal.NormL2() > XSaturated_)&&(stayBelowSat==1)){

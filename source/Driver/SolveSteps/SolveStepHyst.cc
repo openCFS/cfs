@@ -68,7 +68,6 @@ namespace CoupledField {
       lineSearchAfterReset_ = "HYST_minResidual";
       useRelativeNormForRes_ = true;
       useRelativeNormForInc_ = true;
-      useRelativeNormForResetCheck_ = true;
     } else {
       /*
        * New: after introducing a new hysteresis node, we have to read in parameter from that
@@ -99,15 +98,15 @@ namespace CoupledField {
           }
         } else if(methodNode->Has("deltaMat")){
           if(methodNode->Get("deltaMat")->Has("towardsLastIteration")){
-//            std::cout << "towardsLastIteration found" << std::endl;
+            //            std::cout << "towardsLastIteration found" << std::endl;
             methodNode->Get("deltaMat")->GetValue( "towardsLastIteration", towardsLastIteration_, ParamNode::PASS );
           }
           if(methodNode->Get("deltaMat")->Has("deltaMatCoupling")){
-//            std::cout << "deltaMatCoupling found" << std::endl;
+            //            std::cout << "deltaMatCoupling found" << std::endl;
             methodNode->Get("deltaMat")->GetValue( "deltaMatCoupling", deltaMatCoupling_, ParamNode::PASS );
           }
           if(methodNode->Get("deltaMat")->Has("deltaMatStrain")){
-//            std::cout << "deltaMatStrain found" << std::endl;
+            //            std::cout << "deltaMatStrain found" << std::endl;
             methodNode->Get("deltaMat")->GetValue( "deltaMatStrain", deltaMatStrain_, ParamNode::PASS );
           }
           
@@ -119,12 +118,12 @@ namespace CoupledField {
         }
       }
       
-//      std::cout << "Read in parameter: " << std::endl;
-//      std::cout << "nonLinMethod_ = " << nonLinMethod_ << std::endl;
-//      std::cout << "towardsLastIteration = " << towardsLastIteration_ << std::endl;
-//      std::cout << "deltaMatCoupling = " << deltaMatCoupling_ << std::endl;
-//      std::cout << "deltaMatStrain = " << deltaMatStrain_ << std::endl;
-//      
+      //      std::cout << "Read in parameter: " << std::endl;
+      //      std::cout << "nonLinMethod_ = " << nonLinMethod_ << std::endl;
+      //      std::cout << "towardsLastIteration = " << towardsLastIteration_ << std::endl;
+      //      std::cout << "deltaMatCoupling = " << deltaMatCoupling_ << std::endl;
+      //      std::cout << "deltaMatStrain = " << deltaMatStrain_ << std::endl;
+      //      
       // perform logging?
       hystNode->GetValue( "logging", nonLinLogging_, ParamNode::PASS );
       
@@ -136,12 +135,12 @@ namespace CoupledField {
       // incremental stopping criterion
       hystNode->Get("incStopCrit")->GetValue("value",incStopCrit_, ParamNode::PASS);
       hystNode->Get("incStopCrit")->GetValue("relative",useRelativeNormForInc_, ParamNode::PASS);
-//      hystNode->GetValue( "incStopCrit", incStopCrit_, ParamNode::PASS );
+      //      hystNode->GetValue( "incStopCrit", incStopCrit_, ParamNode::PASS );
       
       // residual stopping criterion
       hystNode->Get("resStopCrit")->GetValue("value",residualStopCrit_, ParamNode::PASS);
       hystNode->Get("resStopCrit")->GetValue("relative",useRelativeNormForRes_, ParamNode::PASS);
-//      hystNode->GetValue( "resStopCrit", residualStopCrit_, ParamNode::PASS );
+      //      hystNode->GetValue( "resStopCrit", residualStopCrit_, ParamNode::PASS );
       
       //TODO: add defaultValue to xmlSchema!!!!!
       
@@ -231,9 +230,7 @@ namespace CoupledField {
           resetNode->GetValue( "minNumberItTillReset", minNumberItTillReset_, ParamNode::PASS );
         }
         if(resetNode->Has("minResDecreaseTillReset")){
-          resetNode->Get("minResDecreaseTillReset")->GetValue("value",minResDecreaseTillReset_, ParamNode::PASS);
-          resetNode->Get("minResDecreaseTillReset")->GetValue("relative",useRelativeNormForResetCheck_, ParamNode::PASS);
-//          resetNode->GetValue( "minResDecreaseTillReset", minResDecreaseTillReset_, ParamNode::PASS );
+          resetNode->GetValue("minResDecreaseTillReset",minResDecreaseTillReset_, ParamNode::PASS);
         }
         if(resetNode->Has("nonLinMethodAfterReset")){
           
@@ -252,15 +249,15 @@ namespace CoupledField {
             }
           } else if(methodNode->Has("deltaMat")){
             if(methodNode->Get("deltaMat")->Has("towardsLastIteration")){
-//              std::cout << "towardsLastIteration found" << std::endl;
+              //              std::cout << "towardsLastIteration found" << std::endl;
               methodNode->Get("deltaMat")->GetValue( "towardsLastIteration", towardsLastIterationReset_, ParamNode::PASS );
             }
             if(methodNode->Get("deltaMat")->Has("deltaMatCoupling")){
-//              std::cout << "deltaMatCoupling found" << std::endl;
+              //              std::cout << "deltaMatCoupling found" << std::endl;
               methodNode->Get("deltaMat")->GetValue( "deltaMatCoupling", deltaMatCouplingReset_, ParamNode::PASS );
             }
             if(methodNode->Get("deltaMat")->Has("deltaMatStrain")){
-//              std::cout << "deltaMatStrain found" << std::endl;
+              //              std::cout << "deltaMatStrain found" << std::endl;
               methodNode->Get("deltaMat")->GetValue( "deltaMatStrain", deltaMatStrainReset_, ParamNode::PASS );
             }
             if(towardsLastIterationReset_){
@@ -270,8 +267,8 @@ namespace CoupledField {
             }
           }
         }
-//          resetNode->GetValue( "nonLinMethodAfterReset", nonLinMethodAfterReset_, ParamNode::PASS );
-//        }
+        //          resetNode->GetValue( "nonLinMethodAfterReset", nonLinMethodAfterReset_, ParamNode::PASS );
+        //        }
         if(resetNode->Has("lineSearchAfterReset")){
           resetNode->Get("lineSearchAfterReset")->GetValue( "type", lineSearchAfterReset_,ParamNode::PASS );
         }
@@ -281,6 +278,8 @@ namespace CoupledField {
       if( hystNode->Has("HYST_testOperator") ) {
 				testInversion_ = 1;
         testNode_ = hystNode->Get("HYST_testOperator");
+      } else {
+        testInversion_ = 0;
       }
       
       /*
@@ -384,7 +383,7 @@ namespace CoupledField {
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
     for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt ){
       if( fncIt->second->GetTimeScheme()->isIncremental() == false){
-//        WARN("SolveStepHyst: Incremental stepping will be enforced");
+        //        WARN("SolveStepHyst: Incremental stepping will be enforced");
         fncIt->second->GetTimeScheme()->forceIncremental();
       }
     } 		
@@ -418,7 +417,7 @@ namespace CoupledField {
      *  1: delta matrix formulation with delta towards previous it (k-1)
      *			e.g. deltaP = P_k - P_k-1
      */
-//		Integer timeLevelDeltaMat; 
+    //		Integer timeLevelDeltaMat; 
     Integer timeLevelDeltaMatPol;
     Integer timeLevelDeltaMatStrain;
     Integer timeLevelDeltaMatCoupling;
@@ -430,7 +429,7 @@ namespace CoupledField {
      *  0: current output of hyst operator (k) will be added to rhs
      *  1: output of hyst operator from last it (k-1) will be added to rhs
      */
-//		Integer timeLevelRHSHyst;
+    //		Integer timeLevelRHSHyst;
     Integer timeLevelRHSPol;
     Integer timeLevelRHSStrain;
     Integer timeLevelRHSCoupling;
@@ -455,16 +454,16 @@ namespace CoupledField {
 		//solutionForUpdate = solVec_;
 		timeLevelMaterial = 0;
     
-//		timeLevelDeltaMat = -2; > no deltaMat for residual computation > always full evaluation
+    //		timeLevelDeltaMat = -2; > no deltaMat for residual computation > always full evaluation
     timeLevelDeltaMatPol = -2;
     timeLevelDeltaMatStrain = -2;
     timeLevelDeltaMatCoupling = -2;
     
-//		timeLevelRHSHyst = 0;
+    //		timeLevelRHSHyst = 0;
     timeLevelRHSPol = 0;
     timeLevelRHSStrain = 0;
     timeLevelRHSCoupling = 0;
-
+    
 		return SetupRESorRHS(timeLevelMaterial, timeLevelDeltaMatPol, timeLevelDeltaMatStrain, timeLevelDeltaMatCoupling,
             timeLevelRHSPol, timeLevelRHSStrain, timeLevelRHSCoupling, 
             solutionForUpdate, solutionForMatrixAssembly, solutionForRHSAssembly, resVec_);
@@ -500,7 +499,7 @@ namespace CoupledField {
      *  1: delta matrix formulation with delta towards previous it (k-1)
      *			e.g. deltaP = P_k - P_k-1
      */
-//		Integer timeLevelDeltaMat; 
+    //		Integer timeLevelDeltaMat; 
     Integer timeLevelDeltaMatPol;
     Integer timeLevelDeltaMatStrain;
     Integer timeLevelDeltaMatCoupling;
@@ -511,7 +510,7 @@ namespace CoupledField {
      *  0: current output of hyst operator (k) will be added to rhs
      *  1: output of hyst operator from last it (k-1) will be added to rhs
      */
-//		Integer timeLevelRHSHyst;
+    //		Integer timeLevelRHSHyst;
     Integer timeLevelRHSPol;
     Integer timeLevelRHSStrain;
     Integer timeLevelRHSCoupling;
@@ -544,8 +543,8 @@ namespace CoupledField {
        */
 			//solutionForUpdate = solVec_;
 			timeLevelMaterial = -2;
-//			timeLevelDeltaMat = -2;
-//			timeLevelRHSHyst = -2;
+      //			timeLevelDeltaMat = -2;
+      //			timeLevelRHSHyst = -2;
       timeLevelDeltaMatPol = -2;
       timeLevelDeltaMatStrain = -2;
       timeLevelDeltaMatCoupling = -2;
@@ -566,8 +565,8 @@ namespace CoupledField {
       timeLevelDeltaMatPol = -2;
       timeLevelDeltaMatStrain = -2;
       timeLevelDeltaMatCoupling = -2;
-//			timeLevelDeltaMat = -2;
-//			timeLevelRHSHyst = 0; 
+      //			timeLevelDeltaMat = -2;
+      //			timeLevelRHSHyst = 0; 
       timeLevelRHSPol = 0;
       timeLevelRHSStrain = 0;
       timeLevelRHSCoupling = 0;
@@ -584,8 +583,8 @@ namespace CoupledField {
       timeLevelDeltaMatPol = -2;
       timeLevelDeltaMatStrain = -2;
       timeLevelDeltaMatCoupling = -2;
-//			timeLevelDeltaMat = -2;
-//			timeLevelRHSHyst = -1;
+      //			timeLevelDeltaMat = -2;
+      //			timeLevelRHSHyst = -1;
       timeLevelRHSPol = -1;
       timeLevelRHSStrain = -1;
       timeLevelRHSCoupling = -1;
@@ -604,7 +603,7 @@ namespace CoupledField {
       timeLevelDeltaMatPol = -2;
       timeLevelDeltaMatStrain = -2;
       timeLevelDeltaMatCoupling = -2;
-//			timeLevelDeltaMat = -2;
+      //			timeLevelDeltaMat = -2;
       
       int timeLevelRHSHyst = 0;//1; actually k-1 (i.e. timeLevelRHSHyst = 1) would be 
       // correct according to formulas; however, according to formula we would get
@@ -636,7 +635,7 @@ namespace CoupledField {
         // no deltaMat for strains > take current value
         timeLevelRHSCoupling = 0;
       }
-//			
+      //			
 		} else if(nonLinMethod_ == "HYST_deltaMat_TS"){
 			/*
        * 4) deltaMat computation towards last timestep n:
@@ -651,8 +650,8 @@ namespace CoupledField {
       timeLevelDeltaMatPol = -2;
       timeLevelDeltaMatStrain = -2;
       timeLevelDeltaMatCoupling = -2;
-//			timeLevelDeltaMat = -2;
-//			timeLevelRHSHyst = -1;
+      //			timeLevelDeltaMat = -2;
+      //			timeLevelRHSHyst = -1;
       int timeLevelRHSHyst = -1; // lastTS
       timeLevelRHSPol = timeLevelRHSHyst;
       
@@ -669,7 +668,7 @@ namespace CoupledField {
         // no deltaMat for strains > take current value
         timeLevelRHSCoupling = 0;
       }
-
+      
 		} else if(nonLinMethod_ == "HYST_deltaMat_mix"){
       /*
        * 5) HYST_deltaMat_mix
@@ -707,7 +706,7 @@ namespace CoupledField {
         // no deltaMat for strains > take current value
         timeLevelRHSCoupling = 0;
       }
-
+      
     } else {
       std::stringstream except;
       except << "Nonlinear method " << nonLinMethod_ << " not implemented for hysteresis.";
@@ -750,7 +749,7 @@ namespace CoupledField {
     Integer timeLevelDeltaMatStrain;
     Integer timeLevelDeltaMatCoupling;
     
-//    std::cout << "nonLinMethod_: " << nonLinMethod_ << std::endl;
+    //    std::cout << "nonLinMethod_: " << nonLinMethod_ << std::endl;
     if(nonLinMethod_ == "HYST_debug"){
 			/*
        * 0) debug mode = fixpoint iteration without considering hysteresis at all;
@@ -777,7 +776,7 @@ namespace CoupledField {
        */
 			timeLevelMaterial = 0;
 			timeLevelDeltaMat = 1;
-
+      
       timeLevelDeltaMatPol = timeLevelDeltaMat;
       if(deltaMatStrain_){
         timeLevelDeltaMatStrain = timeLevelDeltaMat;
@@ -800,9 +799,9 @@ namespace CoupledField {
        *    > delta mat to be evaluated with respect to last timestep (n)
        */
 			timeLevelMaterial = 0;
-//			timeLevelDeltaMat = -1;
+      //			timeLevelDeltaMat = -1;
       timeLevelDeltaMat = -1;
-
+      
       timeLevelDeltaMatPol = timeLevelDeltaMat;
       if(deltaMatStrain_){
         timeLevelDeltaMatStrain = timeLevelDeltaMat;
@@ -837,7 +836,7 @@ namespace CoupledField {
       } else {
         timeLevelDeltaMat = 1;
       }
-
+      
       timeLevelDeltaMatPol = timeLevelDeltaMat;
       if(deltaMatStrain_){
         timeLevelDeltaMatStrain = timeLevelDeltaMat;
@@ -858,7 +857,7 @@ namespace CoupledField {
       except << "Nonlinear method " << nonLinMethod_ << " not implemented for hysteresis.";
 			EXCEPTION(except.str())
 		}
-        
+    
     //    AssembleSystem(timeLevelMaterial, timeLevelDeltaMat, solutionForMatrixAssembly);
     AssembleSystem(timeLevelMaterial, timeLevelDeltaMatPol,timeLevelDeltaMatStrain,timeLevelDeltaMatCoupling , solutionForMatrixAssembly);
   }
@@ -970,7 +969,7 @@ namespace CoupledField {
           SBM_Vector& returnVector){
 		
     // TODO: remove this flag
-//    int timeLevelRHSHyst = timeLevelRHSPol;
+    //    int timeLevelRHSHyst = timeLevelRHSPol;
     int timeLevelDeltaMat = timeLevelDeltaMatPol;
     
 		if(debugOutput_){
@@ -1287,38 +1286,53 @@ namespace CoupledField {
       // restore solution vector
       solVec_ = solBak;
       
-//      a0 = res0;
+      //      a0 = res0;
       a1 = -3*res0 + 4*res05 - res1;
       a2 = 2*res0 - 4*res05 +2*res1;
       
-//      UInt solCase = 0;
+      //      UInt solCase = 0;
       Double etaSol = 1;
       if(a2 > 0){
         // minimum
-//        solCase = 1;
+        //        solCase = 1;
         etaSol = -a1/(2*a2);
       } else {
         // either a2 == 0 or a2 < 0 i.e. extremum would be a maximum
         // take minimum of res05 and res1
         if(res05 < res1){
-//          solCase = 2;
+          //          solCase = 2;
           etaSol = 0.5;
         } else {
-//          solCase = 3;
+          //          solCase = 3;
           etaSol = 1.0;
         }
       }
       
-//      std::cout << "Solution case: " << solCase << std::endl;
-//      std::cout << "Found eta: " << etaSol << std::endl;
+      //      std::cout << "Solution case: " << solCase << std::endl;
+      //      std::cout << "Found eta: " << etaSol << std::endl;
       return etaSol;
-    } else if(lineSearch_ == "HYST_minResidual"){
+    } else if( ( lineSearch_ == "HYST_minResidual") || (lineSearch_ == "HYST_minResidual_largerValues") ){
       /*
        * Search for eta by trial and error;
        * take eta that leads to smallest residual norm
        */
       const UInt nrEtas = 5;
-      Double eta[nrEtas] = {1.0,0.9,0.7,0.3,0.1};
+      Double eta[nrEtas];
+      if(lineSearch_ == "HYST_minResidual"){
+        eta[0] = 1.0;
+        eta[1] = 0.9;
+        eta[2] = 0.7;
+        eta[3] = 0.3;
+        eta[4] = 0.1;
+        //        Double eta[nrEtas] = {1.0,0.9,0.7,0.3,0.1};
+      } else {
+        eta[0] = 1.0;
+        eta[1] = 0.9;
+        eta[2] = 0.75;
+        eta[3] = 0.5;
+        eta[4] = 0.25;
+      }
+      
       Double bestNorm = 1e16;
       Double bestEta = 1.0;
       Double resNorm = 0.0;
@@ -1603,8 +1617,8 @@ namespace CoupledField {
     algsys_->InitRHS(rhsVec_);
     
     // setup right hand side
-//    Double loadFactor = 1.0;
-//    Double RhsLinL2Norm = SetLinRHS(loadFactor);
+    //    Double loadFactor = 1.0;
+    //    Double RhsLinL2Norm = SetLinRHS(loadFactor);
     Double normOfSystem; // norm of K_eff(u_k+1)u_k+1
     /*
      * Init time stepping
@@ -1660,6 +1674,8 @@ namespace CoupledField {
     Double solL2Norm;
     Double residualErr;
     Double incrementalErr;
+    Double residualErrRel;  
+    Double incrementalErrRel; 
     
     // keep track of residual; if it is not decreasing over several iterations > reset (see below)
     UInt numResets = 0;
@@ -2087,22 +2103,24 @@ namespace CoupledField {
       // > is actSol needed at all?
 			// actSol = solVec_;
       
-//      std::cout << "residualNorm: " << resVec_.NormL2() << std::endl;
-//      std::cout << "normOfSystem: " << normOfSystem << std::endl;
-//            
+      //      std::cout << "residualNorm: " << resVec_.NormL2() << std::endl;
+      //      std::cout << "normOfSystem: " << normOfSystem << std::endl;
+      //            
       residualL2Norm = resVec_.NormL2();
-//      if ( RhsLinL2Norm > 1.0 ){
-//        residualErr = residualL2Norm / RhsLinL2Norm;
-//      } else {
-        residualErr = residualL2Norm;
-//      }
-      if(residualErr < bestResNorm){
-        bestResNorm = residualErr;
-        bestSol = solVec_;
+      //      if ( RhsLinL2Norm > 1.0 ){
+      //        residualErr = residualL2Norm / RhsLinL2Norm;
+      //      } else {
+      residualErr = residualL2Norm;
+      //      }
+      
+      if ( normOfSystem > 0.0 ){
+        residualErrRel = residualErr/normOfSystem;
+      } else {
+        std::cout << "normOfSystem = 0!" << std::endl;
+        residualErrRel = residualErr;
       }
       
-      Double residualErrRel = residualErr/normOfSystem;
-//      std::cout << "relError: " << residualErrRel << std::endl;
+      //      std::cout << "relError: " << residualErrRel << std::endl;
       
       /*
        * For incremental error checking, compute the actual update between
@@ -2123,12 +2141,18 @@ namespace CoupledField {
       incrementL2Norm = solInc.NormL2();
       solL2Norm  = solVec_.NormL2();
       
-//      if ( solL2Norm > 1.0 ){
-//        incrementalErr = incrementL2Norm / solL2Norm;
-//      } else {
-        incrementalErr = incrementL2Norm;
-//      }
-      Double incrementalErrRel = incrementalErr/solL2Norm;
+      //      if ( solL2Norm > 1.0 ){
+      //        incrementalErr = incrementL2Norm / solL2Norm;
+      //      } else {
+      incrementalErr = incrementL2Norm;
+      //      }
+      
+      if ( solL2Norm > 0.0 ){
+        incrementalErrRel = incrementalErr/solL2Norm;
+      } else {
+        //        std::cout << "solVec = 0!" << std::endl;
+        incrementalErrRel = incrementalErr;
+      }
       Double incrementalErrCheck;
       Double residualErrCheck;
       
@@ -2137,26 +2161,33 @@ namespace CoupledField {
       } else {
         residualErrCheck = residualErr;
       }
-            if(useRelativeNormForInc_){
+      
+      if(residualErrCheck < bestResNorm){
+        bestResNorm = residualErrCheck;
+        bestSol = solVec_;
+      }
+      
+      resNormHistory.push_back(residualErrCheck);
+      resNormHistory.pop_front();
+      
+      if(useRelativeNormForInc_){
         incrementalErrCheck = incrementalErrRel;
       } else {
         incrementalErrCheck = incrementalErr;
       }
-      
-      //      std::cout << "#### SolveStepHyst::IT - 7" << std::endl;
-      if(useRelativeNormForResetCheck_){
-        resNormHistory.push_back(residualErrRel);
-      } else {
-        resNormHistory.push_back(residualErr);
-      }
-      resNormHistory.pop_front();
-      
-//      std::cout << "Use useRelativeNormForResetCheck_? " << useRelativeNormForResetCheck_ << std::endl;
-//      std::cout << "Use useRelativeNormForRes_? " << useRelativeNormForRes_ << std::endl;
-//      std::cout << "Use useRelativeNormForInc_? " << useRelativeNormForInc_ << std::endl;     
-//      
+           
+      //      std::cout << "Use useRelativeNormForResetCheck_? " << useRelativeNormForResetCheck_ << std::endl;
+      //      std::cout << "Use useRelativeNormForRes_? " << useRelativeNormForRes_ << std::endl;
+      //      std::cout << "Use useRelativeNormForInc_? " << useRelativeNormForInc_ << std::endl;     
+      //      
       performOneMoreStep =
               (incrementalErrCheck > incStopCrit_) || (residualErrCheck > residualStopCrit_);
+      
+      //      std::cout << "incrementalErr: " << incrementalErr << std::endl;
+      //      std::cout << "incrementalErr < crit: " << (incrementalErr < incStopCrit_) << std::endl;
+      //      std::cout << "incrementalErrRel: " << incrementalErrRel << std::endl;
+      //      std::cout << "incrementalErrRel < crit: " << (incrementalErrRel < incStopCrit_) << std::endl;
+      //      
       //      std::cout << "#### SolveStepHyst::IT - 8" << std::endl;
       
       // output of norms and data to info.xml
@@ -2169,26 +2200,26 @@ namespace CoupledField {
         }
         
         WriteHystIterToInfoXML(pdename_,
-          nonLinMethod_,
-          lineSearch_,
-          couplingIter_,
-          actStep,
-          iterationCounterLog,
-          iterationCounter,
-          residualErr, residualErrRel, useRelativeNormForRes_, 
-          incrementalErr, incrementalErrRel, useRelativeNormForInc_,
-          etaLinesearch, false, false);
-
-//        if (PDE_.IsIterCoupled()) {
-//          WriteHystIterToInfoXML(pdename_,nonLinMethod_, couplingIter_, actStep,iterationCounterLog,iterationCounter, residualErrCheck, incrementalErrCheck, etaLinesearch);
-//          WriteHystIterToInfoXML("relErrors","->", couplingIter_,actStep,iterationCounterLog,iterationCounter, residualErrRel, incrementalErrRel, etaLinesearch);
-//          WriteHystIterToInfoXML("absErrors","->", couplingIter_,actStep,iterationCounterLog,iterationCounter, residualErr, incrementalErr, etaLinesearch);
-//        } else {
-//          //WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErrABS, etaLineSearch);
-//          WriteHystIterToInfoXML(pdename_,nonLinMethod_, actStep,iterationCounterLog,iterationCounter, residualErrCheck, incrementalErrCheck, etaLinesearch);
-//          WriteHystIterToInfoXML("relErrors","->", actStep,iterationCounterLog,iterationCounter, residualErrRel, incrementalErrRel, etaLinesearch);
-//          WriteHystIterToInfoXML("absErrors","->", actStep,iterationCounterLog,iterationCounter, residualErr, incrementalErr, etaLinesearch);
-//        }
+                nonLinMethod_,
+                lineSearch_,
+                couplingIter_,
+                actStep,
+                iterationCounterLog,
+                iterationCounter,
+                residualErr, residualErrRel, useRelativeNormForRes_, 
+                incrementalErr, incrementalErrRel, useRelativeNormForInc_,
+                etaLinesearch, false, false);
+        
+        //        if (PDE_.IsIterCoupled()) {
+        //          WriteHystIterToInfoXML(pdename_,nonLinMethod_, couplingIter_, actStep,iterationCounterLog,iterationCounter, residualErrCheck, incrementalErrCheck, etaLinesearch);
+        //          WriteHystIterToInfoXML("relErrors","->", couplingIter_,actStep,iterationCounterLog,iterationCounter, residualErrRel, incrementalErrRel, etaLinesearch);
+        //          WriteHystIterToInfoXML("absErrors","->", couplingIter_,actStep,iterationCounterLog,iterationCounter, residualErr, incrementalErr, etaLinesearch);
+        //        } else {
+        //          //WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErrABS, etaLineSearch);
+        //          WriteHystIterToInfoXML(pdename_,nonLinMethod_, actStep,iterationCounterLog,iterationCounter, residualErrCheck, incrementalErrCheck, etaLinesearch);
+        //          WriteHystIterToInfoXML("relErrors","->", actStep,iterationCounterLog,iterationCounter, residualErrRel, incrementalErrRel, etaLinesearch);
+        //          WriteHystIterToInfoXML("absErrors","->", actStep,iterationCounterLog,iterationCounter, residualErr, incrementalErr, etaLinesearch);
+        //        }
         // write norm to file
         logFile_ <<  iterationCounterLog << "\t"
                 << residualErr << "\t"
@@ -2197,7 +2228,7 @@ namespace CoupledField {
       }
       
       // compare residual at front and back of deque; 
-      // residual should have decreased (or not enough); otherwise try reset
+      // residual should have decreased (at least a bit); otherwise try reset
       if( (performOneMoreStep) && (resNormHistory.front()-minResDecreaseTillReset_ <= resNormHistory.back()) ){
 				//debugOutput_ = true;
         if((numResets == 0)&&allowReset_){
@@ -2272,12 +2303,12 @@ namespace CoupledField {
             // get current step
             UInt actStep = PDE_.GetSolveStep()->GetActStep();
             
-//            if (PDE_.IsIterCoupled()) {
-//              WriteHystIterToInfoXML(pdename_,"Reset", couplingIter_, actStep,0,0, -1.0, -1.0, 0);
-//            } else {
-//              //WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErrABS, etaLineSearch);
-//              WriteHystIterToInfoXML(pdename_,"Reset", actStep,0,0, -1.0, -1.0, 0);
-//            }
+            //            if (PDE_.IsIterCoupled()) {
+            //              WriteHystIterToInfoXML(pdename_,"Reset", couplingIter_, actStep,0,0, -1.0, -1.0, 0);
+            //            } else {
+            //              //WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErrABS, etaLineSearch);
+            //              WriteHystIterToInfoXML(pdename_,"Reset", actStep,0,0, -1.0, -1.0, 0);
+            //            }
             
             WriteHystIterToInfoXML(pdename_,
                     nonLinMethod_,
@@ -2310,12 +2341,12 @@ namespace CoupledField {
               // get current step
               UInt actStep = PDE_.GetSolveStep()->GetActStep();
               
-//              if (PDE_.IsIterCoupled()) {
-//                WriteHystIterToInfoXML(pdename_,"Failback", couplingIter_, actStep,0,0, residualErrCheck, -1.0, 0);
-//              } else {
-//                //WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErrABS, etaLineSearch);
-//                WriteHystIterToInfoXML(pdename_,"Failback", actStep,0,0, residualErrCheck, -1.0, 0);
-//              }
+              //              if (PDE_.IsIterCoupled()) {
+              //                WriteHystIterToInfoXML(pdename_,"Failback", couplingIter_, actStep,0,0, residualErrCheck, -1.0, 0);
+              //              } else {
+              //                //WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErrABS, etaLineSearch);
+              //                WriteHystIterToInfoXML(pdename_,"Failback", actStep,0,0, residualErrCheck, -1.0, 0);
+              //              }
               
               WriteHystIterToInfoXML(pdename_,
                       nonLinMethod_,
@@ -2334,7 +2365,6 @@ namespace CoupledField {
                       << incrementalErr << "\t"
                       << etaLinesearch << std::endl;
             }
-            
             performOneMoreStep = false;
             break;
           } else {
@@ -2353,6 +2383,7 @@ namespace CoupledField {
       //      LOG_DBG(solvehyst) << "solVecForUpdate_: " << solVecLastTS_.ToString(); 
       //  
       //      std::cout << "#### SolveStepHyst::End of IT" << std::endl;
+      
     } while(performOneMoreStep && (iterationCounter < nonLinMaxIter_));
     
     abortOnMaxIter_ = true;
@@ -2360,8 +2391,10 @@ namespace CoupledField {
       EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
               << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
               << "' at iteration '" << iterationCounter
-              << "'.\n ==> incremental error: " << incrementalErr
-              << "\n ==> residual error: " << residualErr);
+              << "'.\n ==> incremental error (abs): " << incrementalErr
+              << "'.\n ==> incremental error (rel): " << incrementalErrRel
+              << "\n ==> residual error (abs): " << residualErr
+              << "\n ==> residual error (rel): " << residualErrRel);
     }
     
     // check solution
@@ -2479,7 +2512,7 @@ namespace CoupledField {
       PtrParamNode coupledIteration = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT)->Get("coupledIt",ParamNode::APPEND);
       iteration = coupledIteration->GetByVal("outerIt","value",coupledIterStep,ParamNode::INSERT);
     } else {
-//      iteration = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT)->Get("it",ParamNode::APPEND);
+      //      iteration = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT)->Get("it",ParamNode::APPEND);
       iteration = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT);
     }
     PtrParamNode info = iteration->GetByVal("it","value",iterationCounterTotal,ParamNode::INSERT)->Get("info",ParamNode::APPEND);

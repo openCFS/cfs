@@ -167,7 +167,6 @@ namespace CoupledField
     
     bool useRelativeNormForRes_;
     bool useRelativeNormForInc_;
-    bool useRelativeNormForResetCheck_;
   };
   
   

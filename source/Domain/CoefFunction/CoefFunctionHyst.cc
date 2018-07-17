@@ -85,7 +85,13 @@ namespace CoupledField {
       
       outputVector.ScalarMult(specificSign*baseSign);
       
-    } else if ((vectorName == "IrrStressForMechPDE") || (vectorName == "IrrStressesPiezo_VectorForm")){
+    } else if ((vectorName == "IrrStressForMechPDE") || (vectorName == "IrrStressesPiezo_VectorForm")
+            || (vectorName == "IrrStressesMagstrict_VectorForm")){
+      /*
+       * IrrStressForMechPDE should be the same for piezo and magstrict case
+       * piezo: sigma = cS - eE
+       * magstrict: sigma = cS - hB
+       */
       //      std::cout << vectorName << " was requested" << std::endl;
       // v = mech testfunction
       // on rhs:  - int_Volume (Bv)T[c]S_irr dOmega
@@ -112,20 +118,50 @@ namespace CoupledField {
       LOG_DBG(coeffcthysthelper) << "elastTensor_.Mult(S_irr,outputVector): " << outputVector.ToString();
       outputVector.ScalarMult(specificSign*baseSign);
       //      std::cout << "outputVector: " << outputVector.ToString() << std::endl;
-    } else if ((vectorName == "CoupledIrrStrainForElecPDE")||("CoupledIrrStrainsPiezo")){
+    } else if ((vectorName == "CoupledIrrStrainForElecPDE")||(vectorName == "CoupledIrrStrainsPiezo")){
       //      std::cout << vectorName << " was requested" << std::endl;
       // w = elec testfunction
-      // on lhs: div( [e](Bu - S_irr ) > -(Bw)T [e] Bu + (Bw)T S_irr
+      // on lhs: div( [e](Bu - S_irr ) > -(Bw)T [e] Bu + (Bw)T [e] S_irr
       //  x -1 to get symmetry of coupling matrix
-      // (Bw)T [e] Bu - (Bw)T S_irr
+      // (Bw)T [e] Bu - (Bw)T [e] S_irr
       // on rhs:  +(Bw)T[e]S_irr
       // > return [e]S_irr * specific sign
-      // note that e might be a function of P itself > uce correct timelevel > current
+      // note that e might be a function of P itself > use correct timelevel > current
       specificSign = 1.0;
       Matrix<Double> couplTensor = Matrix<Double>(1,1); // will be resized in compute tensor function
       std::string implementationVersion = "none"; // no deltaMat!
       std::string tensorName = "CouplingMechToElec";
       bool transposed = false; // we need e not e^T
+      bool rotate = true; // allow rotation if directtion of P changed
+      bool useAbs = false; // only for deltaMat
+      bool lockPrecomputationAndDeltaMat = false; //!! if true we use old value, but we want current value (timelevel = 0)!
+      
+      ComputeTensor(couplTensor, lpm, tensorName, implementationVersion, transposed, rotate, useAbs, lockPrecomputationAndDeltaMat );
+      
+      Vector<Double> S_irr = hystCoefFunction_->GetIrreversibleStrains(lpm, timeLevel);
+      // c is not solution dependet here > take it directly
+      outputVector = Vector<Double>(GetVecSize());
+      outputVector.Init();
+      couplTensor.Mult(S_irr,outputVector);
+      
+      outputVector.ScalarMult(specificSign*baseSign);
+     
+    } else if ((vectorName == "CoupledIrrStrainForMagPDE")||(vectorName == "CoupledIrrStrainsMagstrict")){
+      //      std::cout << vectorName << " was requested" << std::endl;
+      // w = mag testfunction
+      // on lhs: rot( -[h](Bu - S_irr) > -(rot w)T [h]Bu + (rot w)T [h]S_irr
+      // > note: Greens identity for rot does not lead to change in sign in front of
+      //          volume term
+      //  x -1 to get symmetry of coupling matrix (done in mag PDE)
+      // (rot w)T [h] Bu - (rot w)T [h]S_irr
+      // on rhs:  +(rot w)T [h]S_irr
+      // > return [h]S_irr * specific sign
+      // note that h might be a function of P itself > use correct timelevel > current
+      specificSign = 1.0;
+      Matrix<Double> couplTensor = Matrix<Double>(1,1); // will be resized in compute tensor function
+      std::string implementationVersion = "none"; // no deltaMat!
+      std::string tensorName = "CouplingMechToMag";
+      bool transposed = false; // we need h not h^T
       bool rotate = true; // allow rotation if directtion of P changed
       bool useAbs = false; // only for deltaMat
       bool lockPrecomputationAndDeltaMat = false; //!! if true we use old value, but we want current value (timelevel = 0)!
@@ -160,6 +196,7 @@ namespace CoupledField {
       outputVector = hystCoefFunction_->GetPrecomputedOutputOfHysteresisOperator(lpm,timeLevel,false);
       
       outputVector.ScalarMult(specificSign*baseSign);
+//      std::cout << "MagPolarization: " << outputVector.ToString() << std::endl;
     } else if(vectorName == "MagFieldIntensityHyst"){
       //std::cout << "MagMagnetization was requested" << std::endl;
       // rhs (magnetics, w = testfunction): 
@@ -288,13 +325,18 @@ namespace CoupledField {
       
 #pragma omp barrier
       for(LPMit = LPMitStart; LPMit != LPMitEnd; LPMit++){
-        if((strainForm_ == -1 )&&(materialTensorsSetOnce_)){
-          LOG_DBG(coeffcthysthelper) << "Pure magnetic case detected; mu/nu independent on M/P; reuse same value";
+        if((isCoupled_ == false)&&(materialTensorsSetOnce_)){
+          LOG_DBG(coeffcthysthelper) << "Single field case > small signal tensor cannot depend on coupling";
           reuse = true;
           // calling setMatrixForLocalInversion with reuse = true will simply set the flag
           // matrixForInversionWasSet_ to true
           hystCoefFunction_->setMatrixForLocalInversion(mu, nu, LPMit->first, reuse);
-          
+        } else if((strainForm_ == -1 )&&(materialTensorsSetOnce_)){
+          LOG_DBG(coeffcthysthelper) << "Small signal tensor shall not be used; mu/nu independent on M/P; reuse same value";
+          reuse = true;
+          // calling setMatrixForLocalInversion with reuse = true will simply set the flag
+          // matrixForInversionWasSet_ to true
+          hystCoefFunction_->setMatrixForLocalInversion(mu, nu, LPMit->first, reuse);
         } else {
           LOG_DBG(coeffcthysthelper) << "Pre-Compute material tensor for local inversion";
           // now we basically compute the reluctivity at each LPM but not with the
@@ -331,13 +373,18 @@ namespace CoupledField {
       //std::cout << "Running serial" << std::endl;
       std::map<UInt, LocPointMapped >::iterator LPMit;
       for(LPMit = allLPM.begin(); LPMit != allLPM.end(); LPMit++){
-        if((strainForm_ == -1 )&&(materialTensorsSetOnce_)){
-          LOG_DBG(coeffcthysthelper) << "Pure magnetic case detected; mu/nu independent on M/P; reuse same value";
+        if((COUPLED_inXMLFile_ == false)&&(materialTensorsSetOnce_)){
+          LOG_DBG(coeffcthysthelper) << "Single field case > small signal tensor cannot depend on coupling";
           reuse = true;
           // calling setMatrixForLocalInversion with reuse = true will simply set the flag
           // matrixForInversionWasSet_ to true
           hystCoefFunction_->setMatrixForLocalInversion(mu, nu, LPMit->first, reuse);
-          
+        } else if((strainForm_ == -1 )&&(materialTensorsSetOnce_)){
+          LOG_DBG(coeffcthysthelper) << "Small signal tensor shall not be used; mu/nu independent on M/P; reuse same value";
+          reuse = true;
+          // calling setMatrixForLocalInversion with reuse = true will simply set the flag
+          // matrixForInversionWasSet_ to true
+          hystCoefFunction_->setMatrixForLocalInversion(mu, nu, LPMit->first, reuse);
         } else {
           LOG_DBG(coeffcthysthelper) << "Pre-Compute material tensor for local inversion";
           // now we basically compute the reluctivity at each LPM but not with the
@@ -485,13 +532,13 @@ namespace CoupledField {
       deltaMat_Coupling_active = false;
     }
     
-    if(tensorName == "IrrStressesPiezo_TensorForm"){
+    if( (tensorName == "IrrStressesPiezo_TensorForm")||(tensorName == "IrrStressesMagstrict_TensorForm") ){
       Vector<Double> Si_vector = hystCoefFunction_->GetIrreversibleStrains(lpm, 0);
       Vector<Double> tmpVector = Vector<Double>(Si_vector.GetSize());
       elastTensor_.Mult(Si_vector,tmpVector);      
       tmp = hystCoefFunction_->ConvertFromVoigtToTensor(tmpVector);
       
-    } else if(tensorName == "IrrStrainsPiezo_TensorForm"){
+    } else if((tensorName == "IrrStrainsPiezo_TensorForm")||(tensorName == "IrrStrainsMagstrict_TensorForm")){
       // always compute the current timelevel > 0
       // > tensor form is only used for output; otherwise use vector form
       tmp = hystCoefFunction_->GetIrreversibleStrainTensor(lpm, 0);
@@ -591,7 +638,11 @@ namespace CoupledField {
       //      std::cout << "ComputeMechToElec" << std::endl;
       Matrix<Double> rotatedCouplTensor;
       
-      if(strainForm_ == 1){
+      if(strainForm_ == -1){
+        // small signal tensor defined, but shall not be used > return empty matrix/vector
+        rotatedCouplTensor.Init();
+        tmp = rotatedCouplTensor;
+      } else if(strainForm_ == 1){
         // use d-form/g-form as basis, i.e. the followings steps have to be applied
         // 1. scale and rotate d/g
         hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
@@ -611,7 +662,11 @@ namespace CoupledField {
       //      std::cout << "ComputeElecToMech" << std::endl;
       Matrix<Double> rotatedCouplTensor;
       
-      if(strainForm_ == 1){
+      if(strainForm_ == -1){
+        // small signal tensor defined, but shall not be used > return empty matrix/vector
+        rotatedCouplTensor.Init();
+        tmp = rotatedCouplTensor;
+      } else if(strainForm_ == 1){
         // use d-form as basis, i.e. the followings steps have to be applied
         // 1. scale and rotate d/g
         hystCoefFunction_->GetScaledAndRotatedCouplingTensor(lpm,couplTensor_,rotatedCouplTensor,timelevel_cur,rotate);
@@ -626,7 +681,7 @@ namespace CoupledField {
       }
       
       //      if(deltaFormActive_ && (deltaForm_ != 0) && (lockPrecomputationAndDeltaMat == false) ) {
-      if(deltaMat_Coupling_active){
+      if( (deltaMat_Coupling_active)&&(strainForm_ != -1) ){
         LOG_DBG(coeffcthysthelper) << "Compute DeltaMatrix";
         //        std::cout << "Compute DeltaMatrix" << std::endl;
         bool useStrains = true;
@@ -666,7 +721,7 @@ namespace CoupledField {
         } else {
           outputTensor.Add(1.0,tmp2);
         }
-      }    
+      }  
     } else if(tensorName == "Reluctivity"){
       //std::cout << "Get Reluctivity" << std::endl;
       /*
@@ -784,8 +839,6 @@ namespace CoupledField {
     //    std::cout << "Computed tensor - " << tensorName << " - " << std::endl;
     //    std::cout << outputTensor.ToString() << std::endl;        
   }
-  
-  
   
 	CoefFunctionHyst::CoefFunctionHyst(BaseMaterial * const material,
           shared_ptr<ElemList> actSDList,
@@ -1339,7 +1392,7 @@ namespace CoupledField {
       int scaleToSat = 1;
       material->GetScalar(scaleToSat, MaterialType(SCALETOSAT+enumOffset));
       
-      std::cout << "Scale to Sat: " << scaleToSat << std::endl;
+//      std::cout << "Scale to Sat: " << scaleToSat << std::endl;
       
       if(scaleToSat == 1){
         paramSet.scaleUpToSaturation_ = true;
@@ -1428,7 +1481,7 @@ namespace CoupledField {
       material->GetScalar(POL_initialInput_[2], INITIAL_STATE_Z, Global::REAL);
     }
     
-    std::cout << "Initial Input: " << POL_initialInput_.ToString() << std::endl;
+//    std::cout << "Initial Input: " << POL_initialInput_.ToString() << std::endl;
     
     bool scaleBySaturation = false;
     int scaleBySaturationInt = 0;
@@ -1450,7 +1503,7 @@ namespace CoupledField {
       POL_initialInput_.ScalarMult(POL_operatorParams_.inputSat_);
     }
     
-    std::cout << "Initial Input after scaling: " << POL_initialInput_.ToString() << std::endl;
+//    std::cout << "Initial Input after scaling: " << POL_initialInput_.ToString() << std::endl;
     
     POL_initial_.inputVector = POL_initialInput_;
     POL_initial_.prescribeOutput = POL_prescribeInitialOutput_;
@@ -1516,6 +1569,7 @@ namespace CoupledField {
       }
       
     } else {
+      COUPLED_ownOperatorForStrains_ = false;
       COUPLED_inMatFile_ = false;
     }
     
@@ -1762,7 +1816,7 @@ namespace CoupledField {
       WARN("Angular clipping currently not used; parameter will be ignored");
     }
     
-    if(COUPLED_ownOperatorForStrains_){
+    if(COUPLED_ownOperatorForStrains_ && COUPLED_inMatFile_){
 //      std::cout << "Use own hyst operator for strain" << std::endl;
       bool isVirgin = true;
       
@@ -1953,13 +2007,13 @@ namespace CoupledField {
       }
     }
     
-    std::cout << "Initial output polarization: " << initial_P_J.ToString() << std::endl;
+//    std::cout << "Initial output polarization: " << initial_P_J.ToString() << std::endl;
     
     Vector<Double> zeroVec = Vector<Double>(dim_);
     zeroVec.Init();
     Vector<Double> initial_Si = ComputeIrreversibleStrains(P_J_forStrains, initial_E_H, zeroVec);
     
-    std::cout << "Initial output strain: " << initial_Si.ToString() << std::endl;
+//    std::cout << "Initial output strain: " << initial_Si.ToString() << std::endl;
 		/*
      * finally initialize storage
      * NEW: use same storage for vector and scalar model
@@ -3212,7 +3266,7 @@ namespace CoupledField {
      */
     /*
      * 2. check time level and need for evaluation
-     */
+     */    
 		if(timeLevel == -2){
       Vector<Double> zeroVec = Vector<Double>(dim_);
 			zeroVec.Init();
@@ -3354,7 +3408,7 @@ namespace CoupledField {
     
 		UInt timeLevel = 0;
 		Vector<Double> curLPMSolution = RetrieveLPMSolution(actualLPM, storageIdx, timeLevel, onBoundary);
-    
+//    std::cout << "curLPMSolution: " << curLPMSolution.ToString() << std::endl;
 		if (needsInversion_ && (POL_operatorParams_.hasInverseModel_ == false) ) {
       LOG_TRACE(coeffcthyst) << "Inversion needed";
       //std::cout << "Inversion needed" << std::endl;
@@ -3440,6 +3494,7 @@ namespace CoupledField {
           //						P_J_lastIt_[storageIdx],operatorIdx,POL_eps_mu_SmallSignal_,RUN_overwriteDirection_);
           //          
           int successFlag = 0;
+
           retrievedInput = hyst_->computeInput_vec(curLPMSolution,operatorIdx,matrixForInversion_[storageIdx],
                   POL_operatorParams_.fieldsAlignedAboveSat_,POL_operatorParams_.hystOutputRestrictedToSat_,successFlag);
           
@@ -4340,8 +4395,7 @@ namespace CoupledField {
         outputOfHystOperator = hyst_->computeValue_vec(inputToHystOperator, operatorIdx, overwriteMemory, 
                 POL_operatorParams_.fieldsAlignedAboveSat_, successFlag);
       }
-      
-      //std::cout << "Output: " << outputOfHystOperator.ToString(2) << std::endl;
+
 			if (XML_performanceMeasurement_ == 1) {
 				timer_->Stop();
 				//        std::cout << "Vector Preisach operator" << std::endl;
@@ -5412,6 +5466,7 @@ namespace CoupledField {
 		
 		UInt totalSteps = xVals.GetSize();
 		UInt numFails = 0;
+    UInt numHalfFails = 0; // fail error crit but pass residual crit
 		int successFlagForward = -1;
 		// forward:
 		// -1 = fail
@@ -5447,6 +5502,7 @@ namespace CoupledField {
 		Vector<Double> hOutOld = Vector<Double>(dim_);
     Vector<Double> hOutOldForStrains = Vector<Double>(dim_);
     
+    Vector<Double> xInBak = Vector<Double>(dim_);
 		Vector<Double> xErr = Vector<Double>(dim_);
 		Vector<Double> yErr = Vector<Double>(dim_);
 		
@@ -5642,7 +5698,7 @@ namespace CoupledField {
 			EXCEPTION("Invalid model selected for inversion test");
 		}
 		
-    if(COUPLED_ownOperatorForStrains_){
+    if(COUPLED_ownOperatorForStrains_ && COUPLED_inMatFile_){
       if (STRAIN_operatorParams_.methodName_ == "scalarPreisach") {
         hystStrainTMP = new Preisach(1, STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_, 
                 STRAIN_weightParams_.weightTensor_, isVirgin, 
@@ -5889,6 +5945,8 @@ namespace CoupledField {
 				xIn[1] = yVals[i];
 			}
 			
+      xInBak = xIn;
+      
       if(testInversion){
 				/*
          * Inversion test:
@@ -6090,7 +6148,7 @@ namespace CoupledField {
 				
 				if(xErr.NormL2() > LM_inversion_.tolH){
 					failWRTX = true;
-					failedTests_xIn[i] = xIn;
+					failedTests_xIn[i] = xInBak;
 					failedTests_xOut[i] = xOut;
 					failedTests_yIn[i] = yIn;
 					failedTests_yOut[i] = yOut;
@@ -6098,7 +6156,7 @@ namespace CoupledField {
 				
 				if(yErr.NormL2() > LM_inversion_.tolB){
 					failWRTY = true;
-					failedTests_xIn[i] = xIn;
+					failedTests_xIn[i] = xInBak;
 					failedTests_xOut[i] = xOut;
 					failedTests_yIn[i] = yIn;
 					failedTests_yOut[i] = yOut;
@@ -6108,6 +6166,14 @@ namespace CoupledField {
 					failedTests_wrtX[i] = std::pair< bool, Double >(failWRTX, xErr.NormL2());
 					failedTests_wrtY[i] = std::pair< bool, Double >(failWRTY, yErr.NormL2());
 				}
+        
+        if( failWRTX && !failWRTY ){
+          numHalfFails++;
+        }
+        
+        if( failWRTX && failWRTY ){
+          numFails++;
+        }
 			}
 			
 			/*
@@ -6121,9 +6187,9 @@ namespace CoupledField {
         Double ampl2 = 0;
 				if(testInversion){
 					//results << "# Number \t xIn[0] \t xIn[1] \t yIn[0] \t yIn[1] \t xOut[0] \t xOut[1] \t yOut[0] \t yOut[1]" << std::endl;
-					results_x << i+1 << std::setprecision(9) << delimiter << xIn[0] << delimiter << xIn[1] << delimiter << xOut[0] << delimiter << xOut[1] << std::endl;
+					results_x << i+1 << std::setprecision(9) << delimiter << xInBak[0] << delimiter << xInBak[1] << delimiter << xOut[0] << delimiter << xOut[1] << std::endl;
           ampl1 = xIn.NormL2();
-          angle1 = atan2(xIn[1],xIn[0])*180.0/M_PI;
+          angle1 = atan2(xInBak[1],xInBak[0])*180.0/M_PI;
           ampl2 = xOut.NormL2();
           angle2 = atan2(xOut[1],xOut[0])*180.0/M_PI;
           angularResults_x << i+1 << std::setprecision(9) << delimiter << ampl1 << delimiter << angle1 << delimiter << ampl2 << delimiter << angle2 << std::endl;
@@ -6143,9 +6209,9 @@ namespace CoupledField {
           angularResults_y << i+1 << std::setprecision(9) << delimiter << ampl1 << delimiter << angle1 << delimiter << ampl2 << delimiter << angle2 << std::endl;
 				} else {
 					//					results << "# Number \t xIn[0] \t xIn[1] \t yOut[0] \t yOut[1]" << std::endl;
-          results_x << i+1 << std::setprecision(9) << delimiter << xIn[0] << delimiter << xIn[1] << std::endl;
+          results_x << i+1 << std::setprecision(9) << delimiter << xInBak[0] << delimiter << xInBak[1] << std::endl;
           ampl1 = xIn.NormL2();
-          angle1 = atan2(xIn[1],xIn[0])*180.0/M_PI;
+          angle1 = atan2(xInBak[1],xInBak[0])*180.0/M_PI;
           angularResults_x << i+1 << std::setprecision(9) << delimiter << ampl1 << delimiter << angle1 << std::endl;
           
           results_p << i+1 << std::setprecision(9) << delimiter << hOut[0] << delimiter << hOut[1] << std::endl;
@@ -6161,7 +6227,7 @@ namespace CoupledField {
 			}
 			
 			LOG_TRACE(coeffcthyst) << "##### TARGET X-VECTOR #####";
-			LOG_TRACE(coeffcthyst) << xIn.ToString();
+			LOG_TRACE(coeffcthyst) << xInBak.ToString();
 			if(testInversion){
 				LOG_TRACE(coeffcthyst) << "##### RETRIEVED X-VECTOR #####";
 				LOG_TRACE(coeffcthyst) << xOut.ToString();
@@ -6191,22 +6257,25 @@ namespace CoupledField {
 			majorResults << "############################# " <<	std::endl;	
 			majorResults << "##### RESULTS FOR TEST " << name <<	std::endl;	
 			majorResults << " " << totalSteps-numFails << " of " << totalSteps << " satisfied at least the failback criterion, i.e. |residual_Y| = |Y - mu_eps*X - P(X)| < " << LM_inversion_.tolB << std::endl;
-			majorResults << " " << numFails << " of " << totalSteps << " failed to satisfy the failback criterion" << std::endl;
+			majorResults << " " << numHalfFails << " of " << totalSteps << " failed error criterion but passed due to failback criterion" << std::endl;
+      majorResults << " " << numFails << " of " << totalSteps << " failed to satisfy even the failback criterion" << std::endl;
 			
 			// print major results to stdout
 			std::cout << majorResults.str() << std::endl;
 			
 			statistics << majorResults.str() << std::endl;
-			if(numFails != 0){
+			if( (numFails > 0)||(numHalfFails > 0) ){
 				statistics << "## Detailed Statistics for failed tests: " << std::endl;
 				
 				std::map< UInt, std::pair< bool, Double > >::iterator mapItX;
-				std::map< UInt, std::pair< bool, Double > >::iterator mapItY;
+				std::map< UInt, std::pair< bool, Double > >::iterator mapItY = failedTests_wrtY.begin();
 				bool failX, failY;
 				for(mapItX = failedTests_wrtX.begin(); mapItX != failedTests_wrtX.end(); mapItX++,mapItY++){
+//          std::cout << "1" << std::endl;
 					statistics << " Test Nr " << mapItX->first << std::endl;
 					failX = mapItX->second.first;
 					failY = mapItY->second.first;
+//          std::cout << "2" << std::endl;
 					bool xsolabovesat = failedTests_xIn[mapItX->first].NormL2()>POL_operatorParams_.inputSat_;
 					bool xretabovesat = failedTests_xOut[mapItX->first].NormL2()>POL_operatorParams_.inputSat_;
 					statistics << " > X_in: " << failedTests_xIn[mapItX->first].ToString()  << "; above sat? "<< xsolabovesat << std::endl;
@@ -6216,7 +6285,7 @@ namespace CoupledField {
 					} else {
 						statistics << " > SUCCESS - remaining error wrt X  " << mapItX->second.second << std::endl;
 					}
-					
+//					std::cout << "3" << std::endl;
 					statistics << " > Y_in: " << failedTests_yIn[mapItX->first].ToString() << std::endl;
 					statistics << " > Y_out: " << failedTests_yOut[mapItX->first].ToString() << std::endl;
 					if(failY){
@@ -6224,7 +6293,7 @@ namespace CoupledField {
 					} else {
 						statistics << " > SUCCESS - remaining error wrt Y  " << mapItY->second.second << std::endl;
 					}
-					
+//					std::cout << "4" << std::endl;
 					statistics << " - SuccessCode (forward): " << successCodeVectorForward[mapItX->first] << std::endl;
 					statistics << " - SuccessCode (backward): " << successCodeVectorBackward[mapItX->first] << std::endl;
 				}

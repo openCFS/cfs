@@ -12,7 +12,7 @@ namespace CoupledField
 { 
   DECLARE_LOG(vecpreisach)
   DEFINE_LOG(vecpreisach, "vecpreisach")
-
+  
   /*
    * BASE CLASS FUNCTIONS
    */
@@ -51,7 +51,7 @@ namespace CoupledField
     tol_ = 1e-16;
     // restriction to halfspace not working well; better without
 		restrictToHalfspace_ = !true;
-     
+    
     // get size of preisachWeights_
     UInt M = preisachWeights_.GetNumRows();
     UInt N = preisachWeights_.GetNumCols();
@@ -59,7 +59,7 @@ namespace CoupledField
     if(M != N){
       EXCEPTION("Matrix preisachWeight has dim " << M << " x " << N << " and thus is not symmetric!");
     }
-   
+    
     numRows_ = M;
     
     isSymmetric_ = true;
@@ -74,7 +74,7 @@ namespace CoupledField
         }
       }
     }
-        
+    
     // resolution of Preisach plane
     delta_ = 2.0/Double(numRows_);
     
@@ -98,7 +98,7 @@ namespace CoupledField
      * > may only be written by compueValue_vec and only if overwrite = true
      */
     preisachSum_ = new Vector<Double>[numElem_];
-
+    
     prevXVal_ = new Vector<Double>[numElem_];
     prevHVal_ = new Vector<Double>[numElem_];
     for(UInt k = 0; k < numElem_; k++){
@@ -110,7 +110,7 @@ namespace CoupledField
       prevHVal_[k] = Vector<Double>(dim_);
       prevHVal_[k].Init();  
     }
-
+    
     /*
      * Needed in context of the linesearch algorithm:
      * there we have to evaluate the hysteresis operator
@@ -134,7 +134,7 @@ namespace CoupledField
     INV_useTikhonov_ = false;
     INV_alphaLSStart_ = 0.25;
     INV_angClipping_ = -1.0;
-        
+    
     anhyst_A_ = anhystA;
     anhyst_B_ = anhystB;
     anhyst_C_ = anhystC;
@@ -150,167 +150,167 @@ namespace CoupledField
     delete[] prevXVal_;
     delete[] prevHVal_;
   }
-//  
-//  void VectorPreisachSutor::ClipDirection(Vector<Double>& targetVector){
-//    
-//    if(INV_angClipping_ <= 0.0){
-//      return; // no clipping
-//    }
-//    
-//    /*
-//     * (Former name: clipNewRotationDirection, taken from VecPreisach)
-//     * New purpose March/April 2018
-//     * The general clipping idea might be ok, but it does not help to clip the rotation states
-//     * directly
-//     *  > reason: due to the weighting via the switching state, we still get a continuous
-//     *            resolution, even if the single rotations states were clipped
-//     *  > new purpose: instead of clipping the single rotation states, we clip the final output
-//     *            of the hyst operator!
-//     *  > further improvings/changes:
-//     *      1. 3d case implemented
-//     *      2. angularClipping is treated as resolution in DEGREE (not rad!)
-//     * 
-//		 * Addon: shifted to CoefFunctionHyst; both input and output of hyst operator
-//		 *				can be clipped
-//     * 
-//     * New function April 2017
-//     * Idea: Restrict the range of possible rotation directions to fixed angular steps
-//     * (i.e. x rad)
-//     * Reason: Due to numerical pollutions, we might encounter rotation directions like
-//     * (1.00000000,-1e-9) or (0.99999999,1e-10). These deviations from the input direction
-//     * (1.0,0) seem negligble but will lead to actual problems when evaluting deltaMatrices
-//     * of the form deltaP/deltaE (as deltaE normally is similarly small). Due to this, the
-//     * resulting deltaMatrices may have huge permittivities/permeabilites in direction where
-//     * normally no value should be. This leads to serious convergence issues.
-//     *
-//     */
-//        
-//    /*
-//     * The following two clipping steps will be applied: 
-//     * 1. transform to circular/spherical coordinates; restrict angles (in deg) to angularClipping
-//     * 2. check for special angles (90,180) degree and restrict vector further
-//     *      (as e.g. sin(pi) != 0 due to numerics)
-//     */
-////    LOG_TRACE(coeffcthyst) << "Clip direction of target vector to next full " << MAT_angClipping_ << " degree";
-////    LOG_DBG(coeffcthyst) << "Original vector: " << targetVector.ToString();
-//    if(dim_ == 2){
-//      /*
-//       * use polar/circular coordinates
-//       * x = r cos(alpha)
-//       * y = r sin(alpha)
-//       */
-//      Double radius, tmp, alphaDeg;
-//      radius = targetVector.NormL2();
-//      
-//      if(targetVector[0] == 0){
-//        if(targetVector[1] > 0){
-//          alphaDeg = 90.0; 
-//        } else {
-//          alphaDeg = -90.0;
-//        }
-//      } else if(targetVector[0] > 0){
-//        tmp = atan2(targetVector[1],targetVector[0]);
-//        alphaDeg = tmp*180/M_PI;
-//      } else {
-//        tmp = -asin(targetVector[1]/radius);
-//        alphaDeg = tmp*180/M_PI + 180.0;
-//      }
-////      LOG_DBG(coeffcthyst) << "Circular/Polar coordinates (r,alpha): " << radius << "," << alphaDeg;
-//      
-//      // apply clipping
-//      tmp = alphaDeg/INV_angClipping_;
-//      tmp = round(tmp);
-//      alphaDeg = tmp*INV_angClipping_;
-//      
-////      LOG_DBG(coeffcthyst) << "Circular/Polar coordinates after clipping (r,alpha): " << radius << "," << alphaDeg;
-//      
-//      // now rebuild output vector with clipped coordinates
-//      targetVector[0] = radius*cos(alphaDeg/180*M_PI);
-//      targetVector[1] = radius*sin(alphaDeg/180*M_PI);
-//      
-////      LOG_DBG(coeffcthyst) << "Rebuild vector after clipping: " << targetVector.ToString();
-//      
-//      // finally check for special cases i.e. 90/180 deg (which can not perfectly be reproduced by computing cos()/sin()
-//      if( abs(alphaDeg - 90) < INV_angClipping_/1000.0 ){
-//        // alpha = 90 > positive y axis
-//        targetVector[0] = 0.0;
-//        targetVector[1] = radius;
-//      } else if( abs(alphaDeg + 90) < INV_angClipping_/1000.0 ){
-//        // alpha = -90 > negative y axis
-//        targetVector[0] = 0.0;
-//        targetVector[1] = -radius;
-//      } else if( (abs(alphaDeg - 180) < INV_angClipping_/1000.0) || (abs(alphaDeg + 180) < INV_angClipping_/1000.0) ){
-//        // alpha = +/- 180 deg > negative x axis
-//        targetVector[0] = -radius;
-//        targetVector[1] = 0.0;
-//      }
-//      
-////      LOG_DBG(coeffcthyst) << "Rebuild vector after further treatment: " << targetVector.ToString();
-//    } else {
-//      /*
-//       * use spherical coordinates
-//       * x = r sin(theta) cos(phi)
-//       * y = r sin(theta) sin(phi)
-//       * z = r cos(theta)
-//       */
-//      Double radius, tmp, phiDeg, thetaDeg;
-//      radius = targetVector.NormL2();
-//      
-//      tmp = acos(targetVector[2]/radius);
-//      thetaDeg = tmp*180/M_PI;
-//      tmp = atan2(targetVector[1],targetVector[0]);
-//      phiDeg = tmp*180/M_PI;
-//      
-////      LOG_DBG(coeffcthyst) << "Spherical coordinates (r,theta,phi): " << radius << "," << thetaDeg << "," << phiDeg;
-//      
-//      // apply clipping
-//      tmp = thetaDeg/INV_angClipping_;
-//      tmp = round(tmp);
-//      thetaDeg = tmp*INV_angClipping_;
-//      
-//      tmp = phiDeg/INV_angClipping_;
-//      tmp = round(tmp);
-//      phiDeg = tmp*INV_angClipping_;
-//      
-////      LOG_DBG(coeffcthyst) << "Spherical coordinates after clipping (r,theta,phi): " << radius << "," << thetaDeg << "," << phiDeg;
-//      
-//      targetVector[0] = radius*sin(thetaDeg/180*M_PI)*cos(phiDeg/180*M_PI);
-//      targetVector[1] = radius*sin(thetaDeg/180*M_PI)*sin(phiDeg/180*M_PI);
-//      targetVector[2] = radius*cos(thetaDeg/180*M_PI);
-//      
-////      LOG_DBG(coeffcthyst) << "Rebuild vector after clipping: " << targetVector.ToString();
-//      
-//      // finally check for special cases i.e. 90/180 deg (which can not perfectly be reproduced by computing cos()/sin()
-//      if( (abs(thetaDeg - 90) < INV_angClipping_/1000.0 ) || (abs(thetaDeg + 90) < INV_angClipping_/1000.0 ) ){
-//        // theta = +/- 90 > z = 0
-//        targetVector[2] = 0.0;
-//      } else if( (abs(thetaDeg - 180) < INV_angClipping_/1000.0) || (abs(thetaDeg + 180) < INV_angClipping_/1000.0) ){
-//        // theta = +/- 180 deg > negative z-axis
-//        targetVector[0] = 0.0;
-//        targetVector[1] = 0.0;
-//        targetVector[2] = -radius;
-//      }
-//      if( (abs(phiDeg - 90) < INV_angClipping_/1000.0 ) || (abs(phiDeg + 90) < INV_angClipping_/1000.0 ) ){
-//        // phi = +/- 90 > x = 0
-//        targetVector[0] = 0.0;
-//      } else if( (abs(phiDeg - 180) < INV_angClipping_/1000.0) || (abs(phiDeg + 180) < INV_angClipping_/1000.0) ){
-//        // phi = +/- 180 deg > y = 0
-//        targetVector[1] = 0.0;
-//      }
-//
-////      LOG_DBG(coeffcthyst) << "Rebuild vector after further treatment: " << targetVector.ToString();
-//      
-//    }
-//  }
+  //  
+  //  void VectorPreisachSutor::ClipDirection(Vector<Double>& targetVector){
+  //    
+  //    if(INV_angClipping_ <= 0.0){
+  //      return; // no clipping
+  //    }
+  //    
+  //    /*
+  //     * (Former name: clipNewRotationDirection, taken from VecPreisach)
+  //     * New purpose March/April 2018
+  //     * The general clipping idea might be ok, but it does not help to clip the rotation states
+  //     * directly
+  //     *  > reason: due to the weighting via the switching state, we still get a continuous
+  //     *            resolution, even if the single rotations states were clipped
+  //     *  > new purpose: instead of clipping the single rotation states, we clip the final output
+  //     *            of the hyst operator!
+  //     *  > further improvings/changes:
+  //     *      1. 3d case implemented
+  //     *      2. angularClipping is treated as resolution in DEGREE (not rad!)
+  //     * 
+  //		 * Addon: shifted to CoefFunctionHyst; both input and output of hyst operator
+  //		 *				can be clipped
+  //     * 
+  //     * New function April 2017
+  //     * Idea: Restrict the range of possible rotation directions to fixed angular steps
+  //     * (i.e. x rad)
+  //     * Reason: Due to numerical pollutions, we might encounter rotation directions like
+  //     * (1.00000000,-1e-9) or (0.99999999,1e-10). These deviations from the input direction
+  //     * (1.0,0) seem negligble but will lead to actual problems when evaluting deltaMatrices
+  //     * of the form deltaP/deltaE (as deltaE normally is similarly small). Due to this, the
+  //     * resulting deltaMatrices may have huge permittivities/permeabilites in direction where
+  //     * normally no value should be. This leads to serious convergence issues.
+  //     *
+  //     */
+  //        
+  //    /*
+  //     * The following two clipping steps will be applied: 
+  //     * 1. transform to circular/spherical coordinates; restrict angles (in deg) to angularClipping
+  //     * 2. check for special angles (90,180) degree and restrict vector further
+  //     *      (as e.g. sin(pi) != 0 due to numerics)
+  //     */
+  ////    LOG_TRACE(coeffcthyst) << "Clip direction of target vector to next full " << MAT_angClipping_ << " degree";
+  ////    LOG_DBG(coeffcthyst) << "Original vector: " << targetVector.ToString();
+  //    if(dim_ == 2){
+  //      /*
+  //       * use polar/circular coordinates
+  //       * x = r cos(alpha)
+  //       * y = r sin(alpha)
+  //       */
+  //      Double radius, tmp, alphaDeg;
+  //      radius = targetVector.NormL2();
+  //      
+  //      if(targetVector[0] == 0){
+  //        if(targetVector[1] > 0){
+  //          alphaDeg = 90.0; 
+  //        } else {
+  //          alphaDeg = -90.0;
+  //        }
+  //      } else if(targetVector[0] > 0){
+  //        tmp = atan2(targetVector[1],targetVector[0]);
+  //        alphaDeg = tmp*180/M_PI;
+  //      } else {
+  //        tmp = -asin(targetVector[1]/radius);
+  //        alphaDeg = tmp*180/M_PI + 180.0;
+  //      }
+  ////      LOG_DBG(coeffcthyst) << "Circular/Polar coordinates (r,alpha): " << radius << "," << alphaDeg;
+  //      
+  //      // apply clipping
+  //      tmp = alphaDeg/INV_angClipping_;
+  //      tmp = round(tmp);
+  //      alphaDeg = tmp*INV_angClipping_;
+  //      
+  ////      LOG_DBG(coeffcthyst) << "Circular/Polar coordinates after clipping (r,alpha): " << radius << "," << alphaDeg;
+  //      
+  //      // now rebuild output vector with clipped coordinates
+  //      targetVector[0] = radius*cos(alphaDeg/180*M_PI);
+  //      targetVector[1] = radius*sin(alphaDeg/180*M_PI);
+  //      
+  ////      LOG_DBG(coeffcthyst) << "Rebuild vector after clipping: " << targetVector.ToString();
+  //      
+  //      // finally check for special cases i.e. 90/180 deg (which can not perfectly be reproduced by computing cos()/sin()
+  //      if( abs(alphaDeg - 90) < INV_angClipping_/1000.0 ){
+  //        // alpha = 90 > positive y axis
+  //        targetVector[0] = 0.0;
+  //        targetVector[1] = radius;
+  //      } else if( abs(alphaDeg + 90) < INV_angClipping_/1000.0 ){
+  //        // alpha = -90 > negative y axis
+  //        targetVector[0] = 0.0;
+  //        targetVector[1] = -radius;
+  //      } else if( (abs(alphaDeg - 180) < INV_angClipping_/1000.0) || (abs(alphaDeg + 180) < INV_angClipping_/1000.0) ){
+  //        // alpha = +/- 180 deg > negative x axis
+  //        targetVector[0] = -radius;
+  //        targetVector[1] = 0.0;
+  //      }
+  //      
+  ////      LOG_DBG(coeffcthyst) << "Rebuild vector after further treatment: " << targetVector.ToString();
+  //    } else {
+  //      /*
+  //       * use spherical coordinates
+  //       * x = r sin(theta) cos(phi)
+  //       * y = r sin(theta) sin(phi)
+  //       * z = r cos(theta)
+  //       */
+  //      Double radius, tmp, phiDeg, thetaDeg;
+  //      radius = targetVector.NormL2();
+  //      
+  //      tmp = acos(targetVector[2]/radius);
+  //      thetaDeg = tmp*180/M_PI;
+  //      tmp = atan2(targetVector[1],targetVector[0]);
+  //      phiDeg = tmp*180/M_PI;
+  //      
+  ////      LOG_DBG(coeffcthyst) << "Spherical coordinates (r,theta,phi): " << radius << "," << thetaDeg << "," << phiDeg;
+  //      
+  //      // apply clipping
+  //      tmp = thetaDeg/INV_angClipping_;
+  //      tmp = round(tmp);
+  //      thetaDeg = tmp*INV_angClipping_;
+  //      
+  //      tmp = phiDeg/INV_angClipping_;
+  //      tmp = round(tmp);
+  //      phiDeg = tmp*INV_angClipping_;
+  //      
+  ////      LOG_DBG(coeffcthyst) << "Spherical coordinates after clipping (r,theta,phi): " << radius << "," << thetaDeg << "," << phiDeg;
+  //      
+  //      targetVector[0] = radius*sin(thetaDeg/180*M_PI)*cos(phiDeg/180*M_PI);
+  //      targetVector[1] = radius*sin(thetaDeg/180*M_PI)*sin(phiDeg/180*M_PI);
+  //      targetVector[2] = radius*cos(thetaDeg/180*M_PI);
+  //      
+  ////      LOG_DBG(coeffcthyst) << "Rebuild vector after clipping: " << targetVector.ToString();
+  //      
+  //      // finally check for special cases i.e. 90/180 deg (which can not perfectly be reproduced by computing cos()/sin()
+  //      if( (abs(thetaDeg - 90) < INV_angClipping_/1000.0 ) || (abs(thetaDeg + 90) < INV_angClipping_/1000.0 ) ){
+  //        // theta = +/- 90 > z = 0
+  //        targetVector[2] = 0.0;
+  //      } else if( (abs(thetaDeg - 180) < INV_angClipping_/1000.0) || (abs(thetaDeg + 180) < INV_angClipping_/1000.0) ){
+  //        // theta = +/- 180 deg > negative z-axis
+  //        targetVector[0] = 0.0;
+  //        targetVector[1] = 0.0;
+  //        targetVector[2] = -radius;
+  //      }
+  //      if( (abs(phiDeg - 90) < INV_angClipping_/1000.0 ) || (abs(phiDeg + 90) < INV_angClipping_/1000.0 ) ){
+  //        // phi = +/- 90 > x = 0
+  //        targetVector[0] = 0.0;
+  //      } else if( (abs(phiDeg - 180) < INV_angClipping_/1000.0) || (abs(phiDeg + 180) < INV_angClipping_/1000.0) ){
+  //        // phi = +/- 180 deg > y = 0
+  //        targetVector[1] = 0.0;
+  //      }
+  //
+  ////      LOG_DBG(coeffcthyst) << "Rebuild vector after further treatment: " << targetVector.ToString();
+  //      
+  //    }
+  //  }
   
 	Vector<Double> VectorPreisachSutor::restrictToHalfspace(Vector<Double>& e_u_new){
 		/*
-		 * Idea: restrict e_u to halfspace y>0; inputs that point into the lower
-		 *				halfspace y<0 are then represented by negative xPar values
-		 *	> this might reduce the amount of rotation states in case of the field
-		 *		switching direcion along an axis (e.g. from -x to x)
-		 *			
-		 */
+     * Idea: restrict e_u to halfspace y>0; inputs that point into the lower
+     *				halfspace y<0 are then represented by negative xPar values
+     *	> this might reduce the amount of rotation states in case of the field
+     *		switching direcion along an axis (e.g. from -x to x)
+     *			
+     */
 		Vector<Double> e_restricted = Vector<Double>(dim_);
 		e_restricted = e_u_new;
 		if(e_u_new[1] < 0){
@@ -340,7 +340,7 @@ namespace CoupledField
 		return e_restricted;
 		
 	}
-	  
+  
   Vector<Double> VectorPreisachSutor::evaluateNewRotationDirection(Vector<Double>& e_u_new, Vector<Double>& e_u_old, Double xVal){
     /*
      * calculates the new rotation direction for overwritten rotation states according to the
@@ -591,7 +591,7 @@ namespace CoupledField
     anhyst_B_ = 0.0;
     anhyst_C_ = 0.0;
     bool overwrite = false;
-//    bool overwriteDir = true; // we need to set the rotational operator
+    //    bool overwriteDir = true; // we need to set the rotational operator
     bool debugOut = false;
     int successCode = 0;
     maxOutputVal_ = PSaturated_; // we need this value in order to call computeValue_vec
@@ -605,7 +605,7 @@ namespace CoupledField
     // b) scale output of hyst operator by PSaturated_/maxOutputVal_ to go up to saturation 
     //
     // > currently b) is used!
-     
+    
     anhyst_A_ = anhystA;
     anhyst_B_ = anhystB;
     anhyst_C_ = anhystC;
@@ -797,7 +797,7 @@ namespace CoupledField
   
   Vector<Double> VectorPreisachSutor_MatrixApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite, 
           bool debugOut, int& successCode){
-
+    
     Vector<Double> diff = Vector<Double>(dim_);
     diff.Init();
     diff.Add(1.0,u_in,-1.0,prevXVal_[idElem]);
@@ -806,13 +806,13 @@ namespace CoupledField
       // reuse old value; 
       return preisachSum_[idElem];
     }
-        
+    
     /*
      * Determine the current rotational threshold
      */
     Double X_thres;
     Double uNormTmp = u_in.NormL2();
-        
+    
     if(classical_ || scaleUpToSaturation_){
       // scaleUpToSaturation_: 
       // restrict norm to 1 first, then compute xThres
@@ -904,9 +904,9 @@ namespace CoupledField
        * Update rotation states
        * > has always to be done; skipping it will not help at convergence issues but will lead to complete failure
        */
-//      if(overwriteDirection){
-        UpdateRotationStates(X_thres, xVal, e_u, idElem);
-//      }
+      //      if(overwriteDirection){
+      UpdateRotationStates(X_thres, xVal, e_u, idElem);
+      //      }
       
       /*
        * Update switching states
@@ -916,7 +916,7 @@ namespace CoupledField
       if(performanceMeasurement_){
         updateMatricesTimer_->Stop();
       }
-  
+      
       /*
        * Storage for element value
        */
@@ -1012,7 +1012,7 @@ namespace CoupledField
       return preisachSumTmp_[idElem];
     } else {
       preisachSum_[idElem] = retVec;
-
+      
       prevXVal_[idElem] = u_in;
       prevHVal_[idElem] = preisachSum_[idElem];
       
@@ -1165,27 +1165,44 @@ namespace CoupledField
     //  as we just want the max of the Preisach model here
     Vector<Double> satInput = Vector<Double>(dim_);
     satInput.Init();
-    satInput[0] = XSaturated_;
     
     anhyst_A_ = 0.0;
     anhyst_B_ = 0.0;
     anhyst_C_ = 0.0;
     bool overwrite = false;
-//    bool overwriteDir = true; // we need to set the rotational operator
+    //    bool overwriteDir = true; // we need to set the rotational operator
     bool debugOut = false;
     int successCode = 0;
     maxOutputVal_ = PSaturated_; // we need this value in order to call computeValue_vec
     
+    Vector<Double> zeroOutput = computeValue_vec(satInput, 0, overwrite, debugOut, successCode);
+    //    std::cout << "Output to zeroVec in initial state: " << zeroOutput.ToString() << std::endl;
+    
+    satInput[0] = XSaturated_;
+    
     Vector<Double> satOutput = computeValue_vec(satInput, 0, overwrite, debugOut, successCode);
+    //    std::cout << "Output to saturation in X in initial state: " << satOutput.ToString() << std::endl;
     
     maxOutputVal_ = satOutput.NormL2();
+    
+    bool testForRemanence = !true;
+    if(testForRemanence){
+      satOutput = computeValue_vec(satInput, 0, true, debugOut, successCode);
+      satInput.Init();
+      Vector<Double> remOutput = computeValue_vec(satInput, 0, true, debugOut, successCode);
+      //      std::cout << "Remanence: " << remOutput.ToString() << std::endl;
+      EXCEPTION("Memory changed; stop after test");
+    }
+    maxOutputVal_ = satOutput.NormL2();
+    
     
     // now we know the maximal output amplitude; we now have to options: 
     // a) accept that the output of the model is not PSaturated_ and consider this during inversion
     // b) scale output of hyst operator by PSaturated_/maxOutputVal_ to go up to saturation 
     //
     // > currently b) is used!
-    
+    //    std::cout << "maxOutputVal_: " << maxOutputVal_ <<std::endl;
+    //    std::cout << "maxOutputVal_-PSaturated_: " << maxOutputVal_-PSaturated_ <<std::endl;
     anhyst_A_ = anhystA;
     anhyst_B_ = anhystB;
     anhyst_C_ = anhystC;
@@ -1397,7 +1414,9 @@ namespace CoupledField
     // -> already done during Initialize_GlobalRotationList -> no further insert needed
     if(xThres <= 0.0){
       xThres = 0.0;
-      needsInsert = false;
+      if(!classical_){
+        needsInsert = false;
+      }
     }
     
     //    std::cout << "XThres: " << xThres << std::endl;
@@ -1418,7 +1437,14 @@ namespace CoupledField
     int cntInner = 0;
     
     //	std::cout << "Overwrite direction? " << overwriteDirection << std::endl;
-//    if((overwriteDirection)&&(needsInsert == true)){
+    //    if((overwriteDirection)&&(needsInsert == true)){
+    /*
+     * Do we really need no insert if xThres = 0?
+     * for revised model this is clear as we would only set the rotation state of the 0-point
+     * but for the classical model, we would set the rotation state of both the upper
+     * triangle and the lower triangle!
+     * > check this!!!!
+     */
     if(needsInsert == true){
       /*
        * Update rotation states
@@ -1455,7 +1481,7 @@ namespace CoupledField
               listIt--;
               prevState = listIt->getVecReference();
               listIt++;
-
+              
               needsInsert = false;
               /*
                * check if previous state has the same (or nearly) the same rotation state
@@ -1633,7 +1659,7 @@ namespace CoupledField
         usedList.insert(insertPos,RotListEntryv10(xThres,lowerBound,e_phi,newList,lastXpar,false,false,wasWipedOut,startCnt));
         listUpdated = true;
       }
-    } // if overwriteDirection = true
+    } // if needsInsert = true
     
     if(performanceMeasurement_){
       updateRotListTimer_->Stop();
@@ -1664,9 +1690,9 @@ namespace CoupledField
       xPar /= XSaturated_;
       // do not set to zero!
       // this will lead to wrong results
-//      if( abs(xPar) < 1e-15 ){
-//        xPar = 0.0;
-//      }
+      //      if( abs(xPar) < 1e-15 ){
+      //        xPar = 0.0;
+      //      }
       
       /*
        * we need to pass lastXpar to list
@@ -2323,15 +2349,15 @@ namespace CoupledField
       // reuse old value; 
       return preisachSum_[idElem];
     }
-      
+    
     /*
      * Determine the current rotational threshold
      */
     Double X_thres;
     Double uNormTmp = u_in.NormL2();
-        
+    
     if(classical_ || scaleUpToSaturation_){
-//      std::cout << "Old version" << std::endl;
+      //      std::cout << "Old version" << std::endl;
       // scaleUpToSaturation_: 
       // restrict norm to 1 first, then compute xThres
       // > Preisach plane is not fully filled for u_in.NormL2 = Xsaturated if rotRes < 1
@@ -2347,8 +2373,11 @@ namespace CoupledField
       } else {
         X_thres = uNormTmp*rotationalResistance_;
       }
+      //      if(X_thres > 1){
+      //        EXCEPTION("X_thres > 1");
+      //      }
     } else {
-//      std::cout << "New version" << std::endl;
+      //      std::cout << "New version" << std::endl;
       // !scaleUpToSaturation_:
       // multiply norm with rotres first, then restrict to +1 if necessary
       // > Preisach plane is not fully filled for u_in.NormL2 = Xsaturated if rotRes < 1
@@ -2373,12 +2402,31 @@ namespace CoupledField
     //	std::cout << "OverwriteDirection? " << overwriteDirection << std::endl;
     
     //if(xVal > tol_) //another tolerance?!
+//    bool zeroInput = false;
     if(xVal != 0){
       e_u = u_in/xVal;
     } else {
+//      zeroInput = true;
+      //      std::cout << "reuse old dir" << std::endl;
       // reuse old direction
-      e_u = lastEu_[idElem];
-      //e_u.Init(0.0);
+      // it should be the same that was used to set the upper triangle
+      // in that case, lower and upper triangle cancel out
+      // e_u = lastEu_[idElem];
+      // works better if we set to 0 however
+      // > why? 
+      
+//      if(globRotList_[idElem].empty()){
+        e_u.Init(0.0);
+//      } else {
+//        std::list<RotListEntryv10>::reverse_iterator lastRotEntry = globRotList_[idElem].rbegin();
+//        e_u = lastRotEntry->getVecCopy();
+//        // > actually lastEu_ holds the value of the last rot entry which should be correct
+//        // > nevertheless the inversion works better if we set this vector to 0 instead
+//        //        
+//        std::cout << "Compare: " << std::endl;
+//        std::cout << "lastEu_[idElem] = " << lastEu_[idElem].ToString() << std::endl;
+//        std::cout << "lastRotEntry->getVecCopy() = " << e_u.ToString() << std::endl;
+//      }
     }
     
     // compute anhysteretic part first
@@ -2392,10 +2440,12 @@ namespace CoupledField
     /*
      * set value of lastEu_ (only needed for classical_ model to get the rotation information for the lowerTriangle_)
      */
-//    if(overwriteDirection){
+    //    if(overwriteDirection){
+    if(overwrite){
       lastEu_[idElem] = e_u;
-//    }
-      
+    }
+    //    }
+    
     /*
      * Storage for element value
      */
@@ -2434,6 +2484,16 @@ namespace CoupledField
         }
         Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],debugOut);
         //Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],true);
+        
+//        if(zeroInput){
+//          // > actually lastEu_ holds the value of the last rot entry which should be correct
+//          // > nevertheless the inversion works better if we set this vector to 0 instead
+//          //        
+//          //        std::cout << "Compare: " << std::endl;
+//          //        std::cout << "lastEu_[idElem] = " << lastEu_[idElem].ToString() << std::endl;
+//          std::list<RotListEntryv10>::reverse_iterator lastRotEntry = globRotList_[idElem].rbegin();
+//          std::cout << "afterlistupdate - lastRotEntry->getVecCopy() = " << lastRotEntry->getVecCopy().ToString() << std::endl;
+//        }
         
         /*
          * Evaluate_GlobalRotationList checks for each element if it was changed or not and
@@ -2482,6 +2542,16 @@ namespace CoupledField
         //   std::cout << "Working only on temporal storage! " << std::endl;
         //Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,true);
         Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,debugOut);
+        
+//        if(zeroInput){
+//          // > actually lastEu_ holds the value of the last rot entry which should be correct
+//          // > nevertheless the inversion works better if we set this vector to 0 instead
+//          //        
+//          //        std::cout << "Compare: " << std::endl;
+//          //        std::cout << "lastEu_[idElem] = " << lastEu_[idElem].ToString() << std::endl;
+//          std::list<RotListEntryv10>::reverse_iterator lastRotEntry = tmpList.rbegin();
+//          std::cout << "afterlistupdate - lastRotEntry->getVecCopy() = " << lastRotEntry->getVecCopy().ToString() << std::endl;
+//        }
         
         if(performanceMeasurement_){
           evaluateNestedListCounter_++;
@@ -2555,14 +2625,14 @@ namespace CoupledField
      */
     if(overwrite == true){
       preisachSum_[idElem] = Yout*PSaturated_;
-
+      
       prevXVal_[idElem] = u_in;
       prevHVal_[idElem] = preisachSum_[idElem];
       
       return preisachSum_[idElem];
     } else {
       preisachSumTmp_[idElem] = Yout*PSaturated_;
-
+      
       return preisachSumTmp_[idElem];
     }
   }
