@@ -170,67 +170,6 @@ namespace CoupledField
     return Xout_normalized;
 
 	}
-//	
-//	
-//	
-//  Double Hysteresis::bisectForSaturation(Double Yin, Double eps_mu, Double tol, bool negSaturation){
-////    if(negSaturation){
-////      LOG_DBG(scalpreisachInversion) << "perform bisection for negative saturation case";
-////    } else {
-////      LOG_DBG(scalpreisachInversion) << "perform bisection for postive saturation case";
-////    }
-//    // solve
-//    // yIn = Ysaturated_ + eps_mu*xOut + PSaturated_*(anhyst_A_*std::atan(anhyst_B_*xOut/Xsaturated_) + anhyst_C_*xOut/Xsaturated_)
-//    // for xOut
-//    // > solution should be between XSaturated (lower bound) and Xout = (Yin - PSaturated_)/eps_mu (upper bound)
-//    // > use bisection
-//    Double resUp, resDown, resMid;
-//    Double Xup,Xdown,Xmid,Xout;
-//    Double factor;
-//    if(negSaturation){
-//      Xup = (Yin + PSaturated_)/eps_mu;
-//      Xdown = -XSaturated_;
-//      factor = -1.0;
-//    } else {
-//      Xup = (Yin - PSaturated_)/eps_mu;
-//      Xdown = XSaturated_;
-//      factor = 1.0;
-//    }
-//
-//    resUp = factor*PSaturated_ + eps_mu*Xup + PSaturated_*evalAnhystPart_normalized(Xup/XSaturated_) - Yin;
-//    // PSaturated_*(anhyst_A_*std::atan(anhyst_B_*Xup/XSaturated_) + anhyst_C_*Xup/XSaturated_) - Yin;
-//    resDown = factor*PSaturated_ + eps_mu*Xdown + PSaturated_*evalAnhystPart_normalized(Xdown/XSaturated_) - Yin;
-//    // PSaturated_*(anhyst_A_*std::atan(anhyst_B_*Xdown/XSaturated_) + anhyst_C_*Xdown/XSaturated_) - Yin;
-//    if(resUp*resDown > 0){
-//      EXCEPTION("Solution not in expected interval!");
-//    }
-//    if(abs(resUp) < tol){
-//      Xout = Xup;
-//    } else if(abs(resDown) < tol){
-//      Xout = Xdown;
-//    } else {
-//      UInt maxIter = 50;
-//      Xmid = 0;
-//      for(UInt i = 0; i < maxIter; i++){
-//        Xmid = (Xup + Xdown)/2.0;
-//        resMid = factor*PSaturated_ + eps_mu*Xmid + PSaturated_*evalAnhystPart_normalized(Xmid/XSaturated_) - Yin;
-//        
-//        if(abs(resMid) < tol){
-//          break;
-//        }
-//        if(resMid*resDown > 0){
-//          Xdown = Xmid;
-//          resDown = resMid;
-//        } else {
-//          Xup = Xmid;
-//          resUp = resMid;
-//        }
-//      }
-//      Xout = Xmid;
-////      LOG_DBG(scalpreisachInversion) << "bisection failed; reamining residual: " << resMid;
-//    }
-//    return Xout;
-//  }
   
   bool Hysteresis::checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol){
     // According to Dahmen&Reusken - Numerik partieller DFG
@@ -424,15 +363,7 @@ namespace CoupledField
     tmp.Add(-1.0,yVal);
     mu_inv.Mult(tmp,res);
     res.Add(1.0,xVal);
-    
-    //    for(UInt i = 0; i < dim_; i++){
-    //      // assume that mu is diagonal and has entries != 0
-    //      if(mu[i][i] != 0){
-    //        res[i] += 1.0/mu[i][i]*hystVal[i];
-    //        res[i] += -1.0/mu[i][i]*yVal[i];
-    //      }
-    //    }
-    
+       
     return res;
   }
   
@@ -455,8 +386,6 @@ namespace CoupledField
    
 //		Double deltaXmin = 1e-8*XSaturated_; 
 //    Double scal = 1e-8;//1e-5;
-//    
-//		
 //    bool overwriteMemory = false;
     Vector<Double> xShifted;
     Vector<Double> hystShifted;
@@ -536,93 +465,8 @@ namespace CoupledField
         jac[i][i] = 1.0;
         for(UInt j = 0; j < dim_; j++){
           jac[j][i] += curCol[j];
-          
-          //          //jac[j][i] += (hystShifted[j]-hyst[j])/deltaX/mu; 
-          //          // assume matrix mu to be diagonal
-          //          // > here we had an error by taking mu[i][i] instead of mu[j][j]
-          //          if(mu[j][j]!=0){
-          //            jac[j][i] += (hystShifted[j]-hystVal[j])/(xShifted[i]-xShifted_opp[i])/mu[j][j]; 
-          //          }
         }
-      }
-      
-//      LOG_DBG(vecpreisachInversion) << " Jacobian " << jac.ToString();
-//      Matrix<Double> jacT = Matrix<Double>(dim_,dim_);
-//      jac.Transpose(jacT);
-//      Matrix<Double> jacTjac = Matrix<Double>(dim_,dim_);
-//      jacT.Mult(jac,jacTjac);
-//      LOG_DBG(vecpreisachInversion) << " jacTjac " << jacTjac.ToString();
-//      
-//      Double det;
-//      jacTjac.Determinant(det);
-//      LOG_DBG(vecpreisachInversion) << " det(jacTjac) " << det;
-      
-//      if(abs(det) < 1e-14){
-//        // repeat with debug output
-//        for(UInt i = 0; i < dim_; i++){
-//          xShifted = xVal;
-//          
-//          //        if( xVal[i] < 0 ){
-//          //          deltaX = sign*std::min( -scal*XSaturated_, -deltaXmin );
-//          //        } else {
-//          //          deltaX = sign*std::max( scal*XSaturated_, deltaXmin );
-//          //        }
-//          if( xVal[i] < 0 ){
-//            deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
-//          } else {
-//            deltaX = sign*std::max( scal*xVal[i], deltaXmin );
-//          }
-//          
-//          xShifted[i] += deltaX;
-//          
-//          Vector<Double> dXvec = xShifted;
-//          dXvec.Add(-1.0,xVal);
-//          LOG_TRACE(vecpreisachInversion) << " xVal " << xVal.ToString();
-//          LOG_TRACE(vecpreisachInversion) << " xShifted " << xShifted.ToString(); 
-//          LOG_TRACE(vecpreisachInversion) << " dXvec " << dXvec.ToString(); 
-//          hystShifted = computeValue_vec(xShifted, operatorIdx, overwriteMemory, overwriteDirection,true);
-//          /*
-//           * Compute Jacobian for residual wrt x
-//           * 
-//           * jac_ji = + delta_ji + mu_inv[j][:]*dhystVal/dxVal_i
-//           */   
-//          deltaHyst = hystShifted;
-//          deltaHyst.Add(-1.0,hystVal);
-//          
-//          LOG_TRACE(vecpreisachInversion) << " hystVal " << hystVal.ToString();
-//          LOG_TRACE(vecpreisachInversion) << " hystShifted " << hystShifted.ToString();
-//          LOG_TRACE(vecpreisachInversion) << " deltaHyst " << deltaHyst.ToString();
-//          Vector<Double> hystValRecomputed = computeValue_vec(xVal, operatorIdx, overwriteMemory, overwriteDirection,true);
-//          LOG_TRACE(vecpreisachInversion) << " hystValRecomputed " << hystValRecomputed.ToString();
-//          
-//          Vector<Double> xOppShift = xShifted;
-//          xOppShift[i] -= 2*deltaX;
-//          dXvec = xOppShift;
-//          dXvec.Add(-1.0,xVal);
-//          LOG_TRACE(vecpreisachInversion) << " xOppShift " << xOppShift.ToString(); 
-//          LOG_TRACE(vecpreisachInversion) << " dXvec " << dXvec.ToString(); 
-//          Vector<Double> hystOppShifted = computeValue_vec(xOppShift, operatorIdx, overwriteMemory, overwriteDirection,true);
-//          LOG_TRACE(vecpreisachInversion) << " hystOppShifted " << hystOppShifted.ToString();
-//          
-//          Vector<Double> curCol = Vector<Double>(dim_);
-//          mu_inv.Mult(deltaHyst,curCol);
-//          curCol.ScalarDiv(deltaX);
-//          
-//          jac[i][i] = 1.0;
-//          for(UInt j = 0; j < dim_; j++){
-//            jac[j][i] += curCol[j];
-//            
-//            //          //jac[j][i] += (hystShifted[j]-hyst[j])/deltaX/mu; 
-//            //          // assume matrix mu to be diagonal
-//            //          // > here we had an error by taking mu[i][i] instead of mu[j][j]
-//            //          if(mu[j][j]!=0){
-//            //            jac[j][i] += (hystShifted[j]-hystVal[j])/(xShifted[i]-xShifted_opp[i])/mu[j][j]; 
-//            //          }
-//          }
-//        }
-//        
-//      }
-      
+      }      
     } else if(implementation == 1){
 //      LOG_DBG(vecpreisach) << "Use central differences for approximation of Jacobian";
       /*
@@ -668,13 +512,6 @@ namespace CoupledField
         jac[i][i] = 1.0;
         for(UInt j = 0; j < dim_; j++){
           jac[j][i] += curCol[j];
-          
-          //          //jac[j][i] += (hystShifted[j]-hyst[j])/deltaX/mu; 
-          //          // assume matrix mu to be diagonal
-          //          // > here we had an error by taking mu[i][i] instead of mu[j][j]
-          //          if(mu[j][j]!=0){
-          //            jac[j][i] += (hystShifted[j]-hystVal[j])/(xShifted[i]-xShifted_opp[i])/mu[j][j]; 
-          //          }
         }
       }
     } 
@@ -734,7 +571,7 @@ namespace CoupledField
     LOG_DBG(vecpreisachlinesearch) << "Determine minimal alpha that allows inversion of jacTjac";
     LOG_DBG(vecpreisachlinesearch) << "Given alphaMin: " << alphaMin;        
     Double minDeterminant = 1e-12;  
-    Double incrFactor = sqrt(2.0);
+    Double incrFactor = std::sqrt(2.0);
     while(true){
       matToInvert = jacTjac;
       jacTjac.Determinant(detMatToInvert);
@@ -998,406 +835,6 @@ namespace CoupledField
 
     return discard;
   }
-//  Initial; 17.05.2018
-//  bool Hysteresis::performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
-//		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
-//		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
-//		Double& alpha, Double alphaMin, Double alphaMax, bool wrtX, bool relative, 
-//    UInt& numberOfIterations,Vector<Double>& xStart, Double factorToSat, int stayBelowSat, Vector<Double> sol){
-//    
-//    LOG_TRACE(vecpreisachlinesearch) << " --------- START LINESEARCH --------- ";
-//    LOG_DBG(vecpreisachlinesearch) << "Starting xVal = " << xVal.ToString();
-//    LOG_DBG(vecpreisachlinesearch) << "Target yVal = " << yVal.ToString();
-//    LOG_DBG(vecpreisachlinesearch) << "alpha, alphaMin, alphaMax = " << alpha << ", " << alphaMin << ", " << alphaMax << std::endl;
-//    
-//    if((xVal.NormL2() > XSaturated_)&&(stayBelowSat==1)){
-//      EXCEPTION("xInput to Linesearch already above saturation > must not be the case!");
-//    }
-//    if((xVal.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
-//      EXCEPTION("xInput to Linesearch already below saturation > must not be the case!");
-//    }
-//
-//		UInt maxIter = 50;
-//    UInt itCnt = 0;
-//    
-//    Matrix<Double> matToInvert = Matrix<Double>(dim_,dim_);
-//    Matrix<Double> matInverted = Matrix<Double>(dim_,dim_);
-//    Matrix<Double> jacTjac = Matrix<Double>(dim_,dim_);
-//    jacT.Mult(jac,jacTjac);
-//    Vector<Double> jacTres_neg = Vector<Double>(dim_);
-//    Vector<Double> resNew = Vector<Double>(dim_);
-//    Vector<Double> xNew = Vector<Double>(dim_);
-//    Vector<Double> hystNew = Vector<Double>(dim_);
-//    
-//    jacT.Mult(res,jacTres_neg);
-//    jacTres_neg = jacTres_neg*(-1.0);
-//       
-//		/*
-//		 * new: success is now an integer
-//		 * <0 no success
-//		 * >0 success but alpha was too large
-//		 * =0 success alpha good
-//		 */
-//    Integer success = -1;
-//    bool discard = false;
-//    
-//    xNew.Init();
-//    xNew.Add(xVal);
-//    Double alphaMinLocal = alphaMin;
-//    Double detMatToInvert;
-//    UInt cnt = 0;
-//            
-//    LOG_DBG(vecpreisachlinesearch) << "Determine minimal alpha that allows inversion of jacTjac";
-//    LOG_DBG(vecpreisachlinesearch) << "Given alphaMin: " << alphaMin;        
-//            
-//    while(true){
-//      matToInvert = jacTjac;
-//      jacTjac.Determinant(detMatToInvert);
-//      LOG_DBG(vecpreisachlinesearch) << " det(jacTjac) =  " << detMatToInvert;
-//      
-//      for(UInt i = 0; i < dim_; i++){
-//        matToInvert[i][i] += alphaMinLocal*alphaMinLocal;
-//      }
-//      matToInvert.Determinant(detMatToInvert);
-//      if(detMatToInvert != 0){
-//        break;
-//      } else {
-//        alphaMinLocal = alphaMinLocal*2;
-//      }
-//      cnt++;
-//      if(cnt > 200){
-//        EXCEPTION("LM, Linesearch: Cannot find alpha, such that jacTjac becomes invertible!");
-//      }
-//    }
-//    LOG_DBG(vecpreisachlinesearch) << "Found alphaMinLocal: " << alphaMinLocal;
-//    
-//    if(alpha < alphaMinLocal){
-//      LOG_DBG(vecpreisachlinesearch) << "Starting alpha < alphaMinLocal";
-//      alpha = alphaMinLocal;
-//    }
-//    
-//    // now reset alpha to alphaMax (note: alphaMax is passed as copy, i.e. if we increase it further
-//    // below, the actual value of alphaMax is restored during next call
-//    if(alpha > alphaMax){
-//      LOG_DBG(vecpreisachlinesearch) << "Current alpha > alphaMax";
-//      alpha = alphaMax;
-//    }
-//
-//    while(true){
-//      itCnt++;
-//			// for statistics
-//			numberOfIterations=itCnt;
-//      
-//      LOG_DBG(vecpreisachlinesearch) << "Start Iteration " << itCnt << " with: ";
-//      LOG_DBG(vecpreisachlinesearch) << "xVal = " << xVal.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "last found x = " << xNew.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "alpha = " << alpha;
-//      
-//      for(UInt i = 0; i < dim_; i++){
-//        matToInvert[i][i] += alpha*alpha;
-//      }
-//      matToInvert.Determinant(detMatToInvert);
-//      assert(detMatToInvert != 0);
-//      matToInvert.Invert(matInverted);
-//      
-//      if(INV_useTikhonov_){
-//        Vector<Double> tikhonovReg = Vector<Double>(dim_);
-//        tikhonovReg.Init();
-//        tikhonovReg.Add(alpha*alpha,xStart,-alpha*alpha,xNew);
-//        tikhonovReg.Add(1.0,jacTres_neg);
-//        matInverted.Mult(tikhonovReg,xUpdate);
-//      } else {
-//        matInverted.Mult(jacTres_neg,xUpdate);
-//      }
-//      assert(!xUpdate.ContainsNaN() && !xUpdate.ContainsInf());
-//      LOG_DBG(vecpreisachlinesearch) << "Computed xUpdate = " << xUpdate.ToString();
-//      
-//      /*
-//       * New treatments
-//       * a) check if xUpdate.Norm > XSaturated
-//       *    > this will probably be an unusable update
-//       *    > increase alpha, go to next iteration
-//       *    > increase alphaMax if necessary
-//       * b) check if xNew = xOld + xUpdate stays above or below saturation
-//       *    > jumping between these two regimes leads to issues as slope
-//       *      of hyst operator is jumping here
-//       *    > if we move to another regime, xUpdate was too large
-//       *    > increase alpha, go to next iteration
-//       *    > increase alphaMax if necessary
-//       * c) check increment according to trust region method
-//       *    > if returned alpha > alphaMax or < alphaMin > stop
-//       *    > if check says increment is ok > stop
-//       *    > else go to next iteration
-//       */
-//       
-//      if((xUpdate.NormL2() >= XSaturated_)){//&&(stayBelowSat==true)){
-//        // too large update
-//        // > set xNew back to saturation
-//        // use only 1/2 of it
-//        // > else oscilation between two near saturation states possible
-//        LOG_DBG(vecpreisachlinesearch) << "1: xUpdate.NormL2() > Saturation > no sucess; increase alpha";
-//        alpha = alpha*2;
-//        
-//        if(alpha > alphaMax){
-//          LOG_DBG(vecpreisachlinesearch) << "1: alpha > alphaMax; increase alphaMax, too";
-//          alphaMax = alpha;
-//        }
-//        continue;
-//      } 
-//
-//      xNew.Init();
-//      xNew.Add(1.0,xVal,1.0,xUpdate);
-//      LOG_DBG(vecpreisachlinesearch) << "Computed xNew = " << xNew.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "Actual solution = " << sol.ToString();
-//      
-//      if((xNew.NormL2() > XSaturated_)&&(stayBelowSat==1)){
-//        // too large update
-//        // > set xNew back to saturation
-//        LOG_DBG(vecpreisachlinesearch) << "2: xNew.NormL2() > Saturation but stayBelowSat = true > no sucess; increase alpha";
-//        alpha = alpha*2;
-//        
-//        if(alpha > alphaMax){
-//          LOG_DBG(vecpreisachlinesearch) << "2: alpha > alphaMax; increase alphaMax, too";
-//          alphaMax = alpha;
-//        }
-//        continue;
-//      }
-//      
-//      if((xNew.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
-//        // too large update
-//        // > set xNew back to saturation
-//        LOG_DBG(vecpreisachlinesearch) << "3: xNew.NormL2() < Saturation but stayBelowSat = false > no sucess; increase alpha";
-//        alpha = alpha*2;
-//        
-//        if(alpha > alphaMax){
-//          LOG_DBG(vecpreisachlinesearch) << "3: alpha > alphaMax; increase alphaMax, too";
-//          alphaMax = alpha;
-//        }
-//        continue;
-//      }
-//      
-//      Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, overwriteDirection);
-//      Vector<Double> hystOld = computeValue_vec(xVal, operatorIdx, overwriteMemory, overwriteDirection);
-//      Vector<Double> resSol = computeResidual(sol,yVal,hystSol,mu,mu_inv,wrtX,relative);
-//      
-//      hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, overwriteDirection);
-//      resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
-//      
-//      LOG_DBG(vecpreisachlinesearch) << "hyst vector for sol: " << hystSol.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "hystNew: " << hystNew.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "hystOld: " << hystOld.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "Old res vector: " << res.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "New res vector: " << resNew.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "res vector for sol: " << resSol.ToString();
-//      success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
-//      LOG_DBG(vecpreisachlinesearch) << "Check trust region - return code: " << success;
-//      
-//      // after trust region checking, we do not increase alphaMax or diecrease alphaMin
-//      // any further
-//      if(alpha > alphaMax){
-//        alpha = alphaMax;
-//        break;
-//      }
-//      if(alpha < alphaMinLocal){
-//        alpha = alphaMinLocal;
-//        break;
-//      }
-//	
-//      if(success >= 0){
-//        LOG_TRACE(vecpreisachlinesearch) << "Linesearch was successful after " << itCnt << " iterations";
-//        break;
-//      } else {
-//        if(itCnt >= maxIter){
-//          LOG_TRACE(vecpreisachlinesearch) << "Linesearch was not successful; Discard update.";
-//          discard = true;
-//          break;
-//        }
-//      }
-//    }
-//
-//    return discard;
-//  }
-  
-  
-  
-  
-//  
-//  bool Hysteresis::performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
-//		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
-//		Integer operatorIdx, bool overwriteMemory, bool overwriteDirection,
-//		Double& alpha, Double alphaMin, Double alphaMax, bool wrtX, bool relative, 
-//    UInt& numberOfIterations,Vector<Double>& xStart, Double factorToSat, bool stayBelowSat){
-//    
-//    LOG_DBG(vecpreisachInversion) << " --------- START LINESEARCH --------- ";
-//    if((xVal.NormL2() >= XSaturated_)&&(stayBelowSat==true)){
-//      EXCEPTION("xInput to Linesearch already above saturation > must not be the case!");
-//    }
-//    if((xVal.NormL2() < XSaturated_)&&(stayBelowSat==false)){
-//      EXCEPTION("xInput to Linesearch already below saturation > must not be the case!");
-//    }
-//    
-//    LOG_TRACE(vecpreisachInversion) << "Start Linesearch with xVal = " << xVal.ToString();
-//    
-//		//LOG_DBG(vecpreisach) << "Old alpha " << alpha;
-//		
-//		UInt maxIter = 25;
-//    UInt itCnt = 0;
-//    
-//    Matrix<Double> matToInvert = Matrix<Double>(dim_,dim_);
-//    Matrix<Double> matInverted = Matrix<Double>(dim_,dim_);
-//    Matrix<Double> jacTjac = Matrix<Double>(dim_,dim_);
-//    jacT.Mult(jac,jacTjac);
-//    Vector<Double> jacTres_neg = Vector<Double>(dim_);
-//    Vector<Double> resNew = Vector<Double>(dim_);
-//    Vector<Double> xNew = Vector<Double>(dim_);
-//    Vector<Double> hystNew = Vector<Double>(dim_);
-//    
-//    jacT.Mult(res,jacTres_neg);
-//    jacTres_neg = jacTres_neg*(-1.0);
-//    
-////    Double alphaMax = 256.0; //1e0;//1e1;//e10;
-////    // too small not working, too large not working either e-18,e-12,e-4 > no; e-14,e-15 ok
-////    Double alphaMin = 1.0/1024; //1e-10;//15; 
-//    
-//		/*
-//		 * new: success is now an integer
-//		 * <0 no success
-//		 * >0 success but alpha was too large
-//		 * =0 success alpha good
-//		 */
-//    Integer success = -1;
-//    bool discard = false;
-//    
-//    while(true){
-//      LOG_TRACE(vecpreisachInversion) << "Start Iteration with xVal = " << xVal.ToString();
-//      itCnt++;
-//			// for statistics
-//			numberOfIterations=itCnt;
-//
-//      Double detMatToInvert;
-//      UInt cnt = 0;
-//      while(true){
-//        matToInvert = jacTjac;
-//        LOG_DBG(vecpreisachInversion) << " jacTjac =  " << jacTjac.ToString();
-//        jacTjac.Determinant(detMatToInvert);
-//        LOG_DBG(vecpreisachInversion) << " det(jacTjac) =  " << detMatToInvert;
-//        
-//        for(UInt i = 0; i < dim_; i++){
-//          matToInvert[i][i] += alpha*alpha;
-//        }
-//        matToInvert.Determinant(detMatToInvert);
-//        if(detMatToInvert != 0){
-//          break;
-//        } else {
-//          alpha = alpha*2;
-//        }
-//        cnt++;
-//        if(cnt > 200){
-//          EXCEPTION("Cannot get matrix for inversion that is invertible!");
-//        }
-//      }
-//      
-//      LOG_TRACE(vecpreisachInversion) << " alpha =  " << alpha;
-//      LOG_DBG(vecpreisachInversion) << " matToInvert =  " << matToInvert.ToString();
-//      matToInvert.Determinant(detMatToInvert);
-//      LOG_DBG(vecpreisachInversion) << " det(matToInvert) =  " << detMatToInvert;
-//      matToInvert.Invert(matInverted);
-//      LOG_DBG(vecpreisachInversion) << " matInverted =  " << matInverted.ToString();
-//      
-//      if(INV_useTikhonov_){
-//        Vector<Double> tikhonovReg = Vector<Double>(dim_);
-//        tikhonovReg.Init();
-//        tikhonovReg.Add(alpha*alpha,xStart,-alpha*alpha,xVal);
-//        tikhonovReg.Add(1.0,jacTres_neg);
-//        matInverted.Mult(tikhonovReg,xUpdate);
-//      } else {
-//        matInverted.Mult(jacTres_neg,xUpdate);
-//      }
-//      assert(!xUpdate.ContainsNaN() && !xUpdate.ContainsInf());
-//      xNew.Init();
-//      
-//      if((xUpdate.NormL2() >= XSaturated_)){//&&(stayBelowSat==true)){
-//        // too large update
-//        // > set xNew back to saturation
-//        // use only 1/2 of it
-//        // > else oscilation between two near saturation states possible
-//        LOG_TRACE(vecpreisachInversion) << "xUpdate > Saturation > scale down";
-//        LOG_DBG(vecpreisachInversion) <<  "xUpdate = " << xUpdate.ToString();
-//        xUpdate.ScalarDiv(2.0);
-//        LOG_DBG(vecpreisachInversion) <<  "xUpdate (after scaling down) = " << xUpdate.ToString();
-//        alpha = alpha*16;
-//      } 
-//      LOG_TRACE(vecpreisachInversion) << "xUpdate = " << xUpdate.ToString();
-//
-//      xNew.Add(1.0,xVal,1.0,xUpdate);
-//      LOG_TRACE(vecpreisachInversion) << "xNew = " << xNew.ToString();
-//      if((xNew.NormL2() >= XSaturated_)&&(stayBelowSat==true)){
-//        // too large update
-//        // > set xNew back to saturation
-//        LOG_TRACE(vecpreisachInversion) << "Reset xUpdate as x above saturation";
-//        // go closer and closer to saturation
-//        xNew.ScalarMult(factorToSat*XSaturated_/xNew.NormL2());
-//        LOG_TRACE(vecpreisachInversion) << "Set solution to " << factorToSat << " times Saturation = " << xNew.ToString();
-//        xUpdate = xNew;
-//        xUpdate -= xVal;
-//        alpha = alpha*2.0;
-//        LOG_TRACE(vecpreisachInversion) << "new alpha " << alpha;
-////        if(alpha >= alphaMax){
-////          LOG_TRACE(vecpreisachInversion) << "alpha > alphaMax";
-////          //        LOG_DBG(vecpreisach) << "Maximal alpha reached > stop";
-////          // maximal alpha used; stop here (regardless of success)
-////          alphaMax*=2;
-//////          break;
-////        }
-//      }
-//      if((xNew.NormL2() < XSaturated_)&&(stayBelowSat==false)){
-//        LOG_TRACE(vecpreisachInversion) << "Reset xUpdate as x below saturation";
-//        // go closer and closer to saturation
-//        xNew.ScalarMult(1.0/factorToSat*XSaturated_/xNew.NormL2());
-//        LOG_TRACE(vecpreisachInversion) << "Set solution to " << 1.0/factorToSat << " times Saturation = " << xNew.ToString();
-//        xUpdate = xNew;
-//        xUpdate -= xVal;
-//        alpha = alpha*2;
-//        LOG_TRACE(vecpreisachInversion) << "new alpha " << alpha;
-//      }
-//      
-//  
-//      hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, overwriteDirection);
-//      resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
-//        
-//      //std::cout << "Current iteration: " << itCnt << std::endl;
-//      //std::cout << "Alpha pre: " << alpha << std::endl;
-//      success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
-//      //std::cout << "Alpha post: " << alpha << std::endl;
-////      LOG_DBG(vecpreisach) << "New alpha " << alpha;
-////      LOG_DBG(vecpreisach) << "Success? " << success;
-//      if(alpha > alphaMax){
-////        LOG_DBG(vecpreisach) << "Maximal alpha reached > stop";
-//        // maximal alpha used; stop here (regardless of success)
-//        alpha = alphaMax;
-//        break;
-//      }
-//      if(alpha < alphaMin){
-////        LOG_DBG(vecpreisach) << "Minimal alpha reached > stop";
-//        // minimal alpha used; stop here
-//        alpha = alphaMin;
-//        break;
-//      }
-//	
-//      if(success >= 0){
-////        LOG_DBG(vecpreisach) << "Linesearch was successful after " << itCnt << " iterations";
-//        break;
-//      } else {
-//        if(itCnt >= maxIter){
-////          LOG_DBG(vecpreisach) << "Linesearch was not successful; Discard update.";
-//          discard = true;
-//          break;
-//        }
-//      }
-//    }
-//
-//    return discard;
-//  }
   
 	Vector<Double> Hysteresis::computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
@@ -1493,12 +930,10 @@ namespace CoupledField
       xVal = prevXval;
       LOG_TRACE(vecpreisachInversion) << "Reused value xVal: " << xVal.ToString();
       successFlag = 0;
-//      std::cout << "Reuse old value: " << xVal.ToString() << std::endl;
+
       return xVal;
     }
 		
-//    std::cout << "yVal: " << yVal << std::endl;
-    
     /*
      * Invert eps/mu for later usage
      */
@@ -1579,14 +1014,12 @@ namespace CoupledField
     LOG_TRACE(vecpreisachInversion) << "yNorm: " << yNorm;
     if(yNorm == 0){
       stayBelowSat = 1;
-    } else {
-         
+    } else {   
       Double anhystPartPosSat = PSaturated_*evalAnhystPart_normalized(1.0);
       LOG_TRACE(vecpreisachInversion) << "anhystPartPosSat: " << anhystPartPosSat;
       LOG_TRACE(vecpreisachInversion) << "(PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat): " << (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);
       LOG_TRACE(vecpreisachInversion) << "yNorm - (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat): " << yNorm - (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);
-      
-      
+
       // THESE CHECKS are not valid for Mayergoyz model as XDir != YDir
       // > this is also the reason why bisection is not possible > we simply do not know the actual direction of the output!
       
@@ -1645,12 +1078,9 @@ namespace CoupledField
       // check saturation in direction of yIn might solve system
       //Double diffSat = yNorm - (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);
       Double diffSat = yNorm - (hystValAtXSat.NormL2() + eps_mu*XSaturated_);
-//      std::cout << "diffSat: " << diffSat << std::endl;
               
       if(abs(diffSat) < INV_resTolB_){
         traceMsg << "--B Special-- Inversion: Exact Saturation found" << std::endl;
-//        xVal.Init();
-//        xVal.Add(XSaturated_,yDir);
         successFlag = 2;
         return satInput;
       }
@@ -1690,7 +1120,6 @@ namespace CoupledField
       }
       
       if(useBisection){
-//        std::cout << "UseBisection" << std::endl;
         Double xScal = 0.0;
         
         if(anhystPartPosSat == 0){
@@ -1705,11 +1134,10 @@ namespace CoupledField
           traceMsg << "--B2-- Inversion: Anhysteretic non-zero > solve by bisection" << std::endl;
           Double tol = 1e-12;
           Double Xup, Xdown, Poffset;
-//          Xup = (yNorm - PSaturated_)/eps_mu;
-//          Xdown = XSaturated_;
-//          Poffset = PSaturated_;
+          //Xup = (yNorm - PSaturated_)/eps_mu;
+          //Poffset = PSaturated_;
           Xup = (yNorm - hystValAtXSat.NormL2())/eps_mu;
-          Xdown = hystValAtXSat.NormL2();
+          Xdown = XSaturated_;
           Poffset = hystValAtXSat.NormL2();
           xScal = bisectForAnhyst(yNorm, Xdown, Xup, Poffset, eps_mu, tol);
           xVal.Init();
@@ -1719,10 +1147,7 @@ namespace CoupledField
         }
       }
     } // yNorm == 0?
-        
-//    std::cout << "stay below sat? " << stayBelowSat << std::endl;
-    
-    
+
     /*
      * Use Levenberg-Marquart algorithm as presented in Dahmen&Reusken - Numerik partialler DFG
      */   
