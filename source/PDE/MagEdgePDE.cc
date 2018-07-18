@@ -613,9 +613,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
   
   void MagEdgePDE::DefineNcIntegrators() {
-    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
-            endIt = ncInterfaces_.End();
-
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(), endIt = ncInterfaces_.End();
     for ( ; ncIt != endIt; ++ncIt ) {
       if( analysistype_ == STATIC ){
         EXCEPTION("Nitsche interface not yet tested for static analysis!\n"
@@ -630,7 +628,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           if (dim_ == 2)
             EXCEPTION("MagEdgePDE only works for 3D geometry!")
           else
-            DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt );
+            if(analysistype_ == MULTIHARMONIC){
+              DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt, multiHarmCoef_ );
+            }else{
+              DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt );
+            }
           break;
         default:
           EXCEPTION("Unknown type of ncInterface");

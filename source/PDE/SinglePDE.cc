@@ -3650,7 +3650,8 @@ namespace CoupledField {
   
   template<UInt DIM, UInt D_DOF>
   void SinglePDE::DefineNitscheCoupling( SolutionType solType,
-                                         NcInterfaceInfo &iface )
+                                         NcInterfaceInfo &iface,
+                                         shared_ptr<CoefFunction> additionalCoef )
   {
     shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(iface.interfaceId);
     MortarInterface * nitscheIf = dynamic_cast<MortarInterface*>(ncIf.get());
@@ -3683,8 +3684,13 @@ namespace CoupledField {
       PtrCoefFct permability;
       PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 
-      permability = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
-      factor = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permability, CoefXpr::OP_DIV));
+      if(additionalCoef){
+        factor = additionalCoef;
+      }else{
+        permability = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
+        factor = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permability, CoefXpr::OP_DIV));
+      }
+
     }
     else if ( solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL ) {
        factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
@@ -3780,10 +3786,18 @@ namespace CoupledField {
     }
     else  {
       if(pdename_ == "magneticEdge"){
-        penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-              factor, beta, curcpl, updatedGeo_, true, true);
+        if(additionalCoef){
+          // multiharmonic case
+          penalty_u1_v1 = new SurfaceNitscheABInt<Complex,Complex>
+            ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                factor, beta, curcpl, updatedGeo_, true, true);
+        }else{
+          penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+            ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                factor, beta, curcpl, updatedGeo_, true, true);
+        }
       }else{
         penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -3809,10 +3823,19 @@ namespace CoupledField {
     	}
     	else {
     	  if(pdename_ == "magneticEdge"){
-    	    flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-           ( new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
-             new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-             factor, -1.0, curcpl, updatedGeo_, true);
+    	    if(additionalCoef){
+    	      // multiharmonic case
+    	      flux_du1_v1 = new SurfaceNitscheABInt<Complex,Complex>
+               ( new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
+                 new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                 factor, -1.0, curcpl, updatedGeo_, true);
+    	    }else{
+    	      flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+             ( new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
+               new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+               factor, -1.0, curcpl, updatedGeo_, true);
+    	    }
+
           }else{
             flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
                  ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
@@ -3838,10 +3861,19 @@ namespace CoupledField {
     	}
     	else {
         if(pdename_ == "magneticEdge"){
-          flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
-            (  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-               new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
-               factor, -1.0, curcpl, updatedGeo_, true);
+          if(additionalCoef){
+            // multiharmonic case
+            flux_u1_dv1 = new SurfaceNitscheABInt<Complex,Complex>
+              (  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                 new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
+                 factor, -1.0, curcpl, updatedGeo_, true);
+          }else{
+            flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+              (  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                 new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
+                 factor, -1.0, curcpl, updatedGeo_, true);
+          }
+
           }else{
             flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
                 (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -3862,10 +3894,19 @@ namespace CoupledField {
     }
     else {
         if(pdename_ == "magneticEdge"){
-          penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-                          (new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-                           new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-                factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+          if(additionalCoef){
+            // multiharmonic case
+            penalty_u1_v2 = new SurfaceNitscheABInt<Complex,Complex>
+                            (new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                             new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+          }else{
+            penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+                            (new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                             new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+          }
+
         }else{
           penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
                 ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -3892,10 +3933,19 @@ namespace CoupledField {
     	else {
 
         if(pdename_ == "magneticEdge"){
-          flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-                 (new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
-                  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-                  factor, 1.0, curcpl, updatedGeo_, true);
+          if(additionalCoef){
+            // multiharmonic case
+            flux_du1_v2 = new SurfaceNitscheABInt<Complex,Complex>
+                   (new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
+                    new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                    factor, 1.0, curcpl, updatedGeo_, true);
+          }else{
+            flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+                   (new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
+                    new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                    factor, 1.0, curcpl, updatedGeo_, true);
+          }
+
         }else{
           flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
              (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
@@ -3916,10 +3966,19 @@ namespace CoupledField {
     else {
 
       if(pdename_ == "magneticEdge"){
-        penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-                        ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-                          new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-                          factor, beta, curcpl, updatedGeo_, true, true);
+        if(additionalCoef){
+          // multiharmonic case
+          penalty_u2_v2 = new SurfaceNitscheABInt<Complex,Complex>
+              ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                factor, beta, curcpl, updatedGeo_, true, true);
+        }else{
+          penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+              ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                factor, beta, curcpl, updatedGeo_, true, true);
+        }
+
       }else{
         penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
                 ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -3965,10 +4024,19 @@ namespace CoupledField {
 
         curcpl = BiLinearForm::MASTER_MASTER;
         if(pdename_ == "magneticEdge"){
-          penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
-              ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-                new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-                factor, betaDamp, curcpl, updatedGeo_, true, true);
+          if(additionalCoef){
+            // multiharmonic case
+            penalty_u1_v1_M = new SurfaceNitscheABInt<Complex,Complex>
+                ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  factor, betaDamp, curcpl, updatedGeo_, true, true);
+          }else{
+            penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
+                ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  factor, betaDamp, curcpl, updatedGeo_, true, true);
+          }
+
         }else{
           penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
               ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -3980,10 +4048,19 @@ namespace CoupledField {
 
         curcpl = BiLinearForm::SLAVE_SLAVE;
         if(pdename_ == "magneticEdge"){
-          penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
-              ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-                new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-                factor, betaDamp, curcpl, updatedGeo_, true, true);
+          if(additionalCoef){
+            // multiharmonic case
+            penalty_u2_v2_M = new SurfaceNitscheABInt<Complex,Complex>
+                ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  factor, betaDamp, curcpl, updatedGeo_, true, true);
+          }else{
+            penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
+                ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  factor, betaDamp, curcpl, updatedGeo_, true, true);
+          }
+
         }else{
           penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
               ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -3995,10 +4072,19 @@ namespace CoupledField {
 
         curcpl = BiLinearForm::MASTER_SLAVE;
         if(pdename_ == "magneticEdge"){
-          penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
-              ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-                new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
-                factor, betaDamp * -1.0, curcpl, updatedGeo_, true, true);
+          if(additionalCoef){
+            // multiharmonic case
+            penalty_u1_v2_M = new SurfaceNitscheABInt<Complex,Complex>
+                ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  factor, betaDamp * -1.0, curcpl, updatedGeo_, true, true);
+          }else{
+            penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
+                ( new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                  factor, betaDamp * -1.0, curcpl, updatedGeo_, true, true);
+          }
+
         }else{
           penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
               ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -4082,10 +4168,10 @@ namespace CoupledField {
   template void SinglePDE::DefineMortarCoupling<2,2>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<3,1>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<3,3>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&, shared_ptr<CoefFunction> additionalCoef);
+  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&, shared_ptr<CoefFunction> additionalCoef);
+  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&, shared_ptr<CoefFunction> additionalCoef);
+  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&, shared_ptr<CoefFunction> additionalCoef);
 #endif
 
 } // end of namespace

@@ -356,9 +356,6 @@ namespace CoupledField
 
 
             if (ncContext && full) {
-              if( analysisType_ == BasePDE::MULTIHARMONIC ){
-                EXCEPTION("Assemble::AddLinearForm nonconforming case in multiharmonic analysis not yet implemented!");
-              }
 
               // Just get all equations, so we out a dense block in the graph
               ncContext->GetEqns(eqnVec1, eqnVec2, id1, id2);
@@ -815,8 +812,14 @@ namespace CoupledField
       EntityList& secondEntities = *(listIt->first.second);
       // If the region is not nonlinear, we do not have to assemble
       // off-diagonal blocks in the multiharmonic system matrix
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes.find(firstEntities.GetRegion())->second;
-      if(nonLinTypes.GetSize() == 0 && harmonic != 0){
+      StdVector<NonLinType> nonLinTypes(0);
+      bool isSurf = false;
+      if( firstEntities.GetType() != 2 && secondEntities.GetType() != 2 ){
+        nonLinTypes = regionNonLinTypes.find(firstEntities.GetRegion())->second;
+      }else{
+        isSurf = true;
+      }
+      if( (nonLinTypes.GetSize() == 0 && harmonic != 0) ){
         continue;
       }
 
