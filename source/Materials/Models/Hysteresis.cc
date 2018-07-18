@@ -116,14 +116,6 @@ namespace CoupledField
 		}
     
     if(resUp*resDown > 0){
-//      std::cout << "resUp: " << resUp << std::endl;
-//      std::cout << "resDown: " << resDown << std::endl;
-//      
-//      std::cout << "Xup_normalized: " << Xup_normalized << std::endl;
-//      std::cout << "Xdown_normalized: " << Xdown_normalized << std::endl;
-//      
-//      std::cout << "Ytarget_normalized: " << Ytarget_normalized << std::endl;
-//      
       EXCEPTION("Solution not in expected interval!");
     }
     if(abs(resUp) < tol){
@@ -401,11 +393,6 @@ namespace CoupledField
       for(UInt i = 0; i < dim_; i++){
         xShifted = xVal;
         
-        //        if( xVal[i] < 0 ){
-        //          deltaX = sign*std::min( -scal*XSaturated_, -deltaXmin );
-        //        } else {
-        //          deltaX = sign*std::max( scal*XSaturated_, deltaXmin );
-        //        }
         if( xVal[i] < 0 ){
           deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
         } else {
@@ -446,17 +433,6 @@ namespace CoupledField
         LOG_DBG(vecpreisachInversion) << " hystVal " << hystVal.ToString();
         LOG_DBG(vecpreisachInversion) << " hystShifted " << hystShifted.ToString();
         LOG_TRACE(vecpreisachInversion) << " deltaHyst " << deltaHyst.ToString();
-//        Vector<Double> hystValRecomputed = computeValue_vec(xVal, operatorIdx, overwriteMemory, overwriteDirection);
-//        LOG_TRACE(vecpreisachInversion) << " hystValRecomputed " << hystValRecomputed.ToString();
-        
-//        Vector<Double> xOppShift = xShifted;
-//        xOppShift[i] -= 2*deltaX;
-//        dXvec = xOppShift;
-//        dXvec.Add(-1.0,xVal);
-//        LOG_TRACE(vecpreisachInversion) << " xOppShift " << xOppShift.ToString(); 
-//        LOG_TRACE(vecpreisachInversion) << " dXvec " << dXvec.ToString(); 
-//        Vector<Double> hystOppShifted = computeValue_vec(xOppShift, operatorIdx, overwriteMemory, overwriteDirection);
-//        LOG_TRACE(vecpreisachInversion) << " hystOppShifted " << hystOppShifted.ToString();
         
         Vector<Double> curCol = Vector<Double>(dim_);
         mu_inv.Mult(deltaHyst,curCol);
@@ -477,7 +453,6 @@ namespace CoupledField
       
       for(UInt i = 0; i < dim_; i++){
         xShifted = xVal;
-        
         //        if( xVal[i] < 0 ){
         //          deltaX = sign*std::min( -scal*XSaturated_, -deltaXmin );
         //        } else {
@@ -515,8 +490,7 @@ namespace CoupledField
         }
       }
     } 
-    
-//    LOG_DBG(vecpreisach) << "Retrieved Jacobian: " << jac.ToString();
+    //    LOG_DBG(vecpreisach) << "Retrieved Jacobian: " << jac.ToString();
     return jac;
   }
     
@@ -652,10 +626,7 @@ namespace CoupledField
           }
         }
         alphaMinLocal = alpha;
-//        std::cout << "New alpha: " << alpha << std::endl;
-        
       }
-      
       assert(detMatToInvert != 0);
       matToInvert.Invert(matInverted);
       
@@ -703,8 +674,7 @@ namespace CoupledField
        *      by doing so, we hopefully can retain the change in direction that
        *      is caused by the update
        *  
-       */
-            
+       */     
       int successFlag = 0;
       bool debugOut = false;
       Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, debugOut, successFlag);
@@ -753,7 +723,6 @@ namespace CoupledField
         }
         
         if(wasCut){
-          
           // retrieve updated
           xUpdate = xNew;
           xUpdate -= xVal;
@@ -815,22 +784,6 @@ namespace CoupledField
           break;
         }
       }
-
-      // might be needed again
-//      if((xUpdate.NormL2() >= XSaturated_)){//&&(stayBelowSat==true)){
-//        // too large update
-//        // > set xNew back to saturation
-//        // use only 1/2 of it
-//        // > else oscilation between two near saturation states possible
-//        LOG_DBG(vecpreisachlinesearch) << "1: xUpdate.NormL2() > Saturation > no sucess; increase alpha";
-//        alpha = alpha*2;
-//        
-//        if(alpha > alphaMax){
-//          LOG_DBG(vecpreisachlinesearch) << "1: alpha > alphaMax; increase alphaMax, too";
-//          alphaMax = alpha;
-//        }
-//        continue;
-//      } 
     }
 
     return discard;
@@ -1223,8 +1176,6 @@ namespace CoupledField
         //         such that we do not match aboves cases
         //         still, this ssems more reasonable than fp iteration that nearly always drives
         //         x way above saturation due to large mu_inv
-        
-        
         traceMsg << "Try to obtain better starting value" << std::endl;
         if(yVal.NormL2() > prevYval.NormL2()){
           traceMsg << "Y increased in norm > increase X ,too" << std::endl;
@@ -1393,12 +1344,10 @@ namespace CoupledField
         //          ClipDirection(xVal);
         hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
         
-//        res = computeResidual(xVal,yVal,hystVal,mu,mu_inv,wrtX,relError);
         res = computeAbsResidualX(xVal,yVal,hystVal,mu_inv);
         jac = computeJacobianOfAbsResidualX(xVal,hystVal, mu_inv, 
 												operatorIndex, sign, implementation, overwriteMemory, stayBelowSat);
-//        jac = computeJacobian(xVal,yVal,hystVal,res,mu,mu_inv,operatorIndex,
-//                sign,wrtX,relError,implementation,overwriteMemory,stayBelowSat);
+
         jac.Transpose(jacT);
         
         if(debug){
@@ -1453,17 +1402,7 @@ namespace CoupledField
                 traceMsg << "Remaining residual-norm wrt x: " << errorNormResX << std::endl;
                 traceMsg << "Remaining residual-norm wrt y: " << errorNormResY << std::endl;
               }
-              //                  std::cout << "Remaining error norm |jacT*ResX|: " << errorNorm << std::endl;
-              //                  std::cout << "Remaining residual-norm wrt x: " << errorNormResX << std::endl;
-              //                  std::cout << "Remaining residual-norm wrt y: " << errorNormResY << std::endl;
               successFlag = -1;
-              
-//              std::cout << "previousStateAboveSat? " << previousStateAboveSat << std::endl;
-//              std::cout << "currentStateAboveSat? " << currentStateAboveSat << std::endl;
-//              
-//              if(previousStateAboveSat != currentStateAboveSat){
-//                successCode = 10;
-//              }
               
               break;
             }
@@ -1508,18 +1447,7 @@ namespace CoupledField
         if(numberOfIterations > maximalNumberOfLinesearchIterations){
           maximalNumberOfLinesearchIterations = numberOfIterations;
         }
-        
-        /*
-         * New idea: start with tighter bounds for alpha but shift these limits
-         * after each 10 iterations
-         */
-//        if(totalNumberOfLMIterations%10 == 0){
-//          alphaMin = alphaMin/2.0;
-//          alphaMax = alphaMax*2.0;
-//          // for Tikhonov > set xStart to xVal
-//          xStart = bestSol; // own test
-//        } 
-        
+                
         LOG_DBG(vecpreisachInversion) << "Computed update: " << xUpdate.ToString();
         if(!discardUpdate){
           xVal = xVal+xUpdate;
@@ -1528,37 +1456,6 @@ namespace CoupledField
 					//std::cout << "Discard update; reset to best solution so far" << std::endl;
 					alphaMin = alphaMin/2.0;
           alphaMax = alphaMax*2.0;
-          // for Tikhonov > set xStart to xVal
-          //xVal = bestSol; // own test
-//					// reset solution
-//					if(stayBelowSat==1){
-//						std::cout << "Reset to 0" << std::endl;
-//						xVal.Init();
-//					} else if(stayBelowSat==-1){
-//						std::cout << "Reset to random direction*2*Xsaturation" << std::endl;
-//						xVal.Init();
-//						for(UInt i = 0; i < dim_; i++){
-//							xVal[i] = (rand()%200-100)/100.0;
-//						}
-//						if(xVal.NormL2() == 0){
-//							xVal[0] = 1;
-//						}
-//						xVal.ScalarMult(2.0*XSaturated_/xVal.NormL2());
-//						
-//						std::cout << "xVal: " << xVal.ToString() << std::endl;
-//					} else {
-//						std::cout << "Reset to random direction*Xsaturation" << std::endl;
-//						xVal.Init();
-//						for(UInt i = 0; i < dim_; i++){
-//							xVal[i] = (rand()%200-100)/100.0;
-//						}
-//						if(xVal.NormL2() == 0){
-//							xVal[0] = 1;
-//						}
-//						xVal.ScalarMult(1.0*XSaturated_/xVal.NormL2());
-//						
-//						std::cout << "xVal: " << xVal.ToString() << std::endl;
-//					}	
         }
         sign = sign*(-1.0);
       }
