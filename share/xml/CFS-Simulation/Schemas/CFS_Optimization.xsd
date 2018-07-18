@@ -13,7 +13,7 @@
   </xsd:annotation>
   
   
-    <!-- works with eclips but not with xerces :( xsd:include schemaLocation="CFS_PDEbasic.xsd" -->
+  <!-- works with eclipse but not with xerces :( xsd:include schemaLocation="CFS_PDEbasic.xsd" -->
     
   <!-- ******************************************************************** -->
   <!--   Definition of an optimization problem at all                       -->

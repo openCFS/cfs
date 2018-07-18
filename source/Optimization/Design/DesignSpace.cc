@@ -35,6 +35,7 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/TransferFunction.hh"
 #include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/MagSIMP.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Context.hh"
 #include "PDE/SinglePDE.hh"
@@ -866,13 +867,11 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
     // K_0 contains v_0*v_r as material, we need v_0*(1+v_r*f(rho)-f(rho)).
     // This is done by multiplying K_0 in the non-grad case by v_0*(1+v_r*f(rho)-f(rho))/(v_0*v_r)
     // see SIMP::SetElementK() for the derivative (only done there)
-    MagMat* mag = dynamic_cast<MagMat*>(Optimization::context->mat);
-    assert(mag);
-    if(mag->nu_r[elem->regionId] < 0)
-      mag->SetRelactivity(coef.get(), elem->regionId);
 
-    double nu_r = mag->nu_r[elem->regionId];
-    double nu_0 = mag->nu_0;
+    // in the Optimization case nu_r is cached in the linear case. Here we do the general nonlinear case
+    MagSIMP* ms = domain->GetOptimization() != NULL ? dynamic_cast<MagSIMP*>(domain->GetOptimization()) : NULL;
+    double nu_r = ms != NULL ? ms->GetRelactivity(elem) : MagSIMP::ExtractRelactivity(coef->orgMat.get());
+    double nu_0 = MagSIMP::nu_0;
     assert(nu_r > 0 && nu_0 > 0);
 
     double f_rho = factor; // penalized rho

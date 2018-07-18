@@ -15,7 +15,7 @@
 #include "DataInOut/Logging/log.hpp"
 #include "Driver/Assemble.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
-
+#include "Utils/tools.hh"
 #include "Domain/Domain.hh"
 
 namespace CoupledField {
@@ -27,18 +27,21 @@ using namespace CoupledField;
 DECLARE_LOG(ms)
 DEFINE_LOG(ms, "MagSimp")
 
+double MagSIMP::nu_0 = 1.0/(4 * M_PI * 1e-7);
+
 MagSIMP::MagSIMP()
 {
-  nu_0 = 1.0/(4 * M_PI * 1e-7);
+  assert(close(nu_0,1.0/(4 * M_PI * 1e-7)));
 
   sel_x_.Resize(domain->GetGrid()->GetDim(), domain->GetGrid()->GetDim());
   sel_x_.Init();
   sel_x_[0][0] = 1;
 
-  sel_y_.Resize(domain->GetGrid()->GetDim(), domain->GetGrid()->GetDim());
+  sel_y_.Resize(sel_x_.GetNumRows(), sel_x_.GetNumCols());
   sel_y_.Init();
   sel_y_[1][1] = 1;
 
+  lin_nu_r_.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
 }
 
 
@@ -52,13 +55,13 @@ void MagSIMP::PostInit()
 
   assert(manager.context.GetSize() == 1);
 
-  nonlin.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
+  nonlin_.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
 
   PtrParamNode pn = optInfoNode->Get(ParamNode::HEADER)->Get("magOptRegions");
 
-  for(unsigned int i = 0; i < nonlin.GetSize(); i++)
+  for(unsigned int i = 0; i < nonlin_.GetSize(); i++)
   {
-    nonlin[i] = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator-NL", i, NULL, NULL, true) != NULL;
+    nonlin_[i] = context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator-NL", i, NULL, NULL, true) != NULL;
     bool opt = design->Contains(i, true); // with pseudo-design
     bool pseudo = opt && !design->Contains(i, false);
     if(opt)
@@ -66,11 +69,57 @@ void MagSIMP::PostInit()
       PtrParamNode pnr = pn->Get("region", ParamNode::APPEND);
       pnr->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(i));
       pnr->Get("id")->SetValue(i);
-      pnr->Get("analysis")->SetValue(nonlin[i] ? "nonlinear" : "linear");
+      pnr->Get("analysis")->SetValue(nonlin_[i] ? "nonlinear" : "linear");
       pnr->Get("pseudo_design")->SetValue(pseudo);
     }
   }
 }
+
+inline double MagSIMP::GetRelactivity(const Elem* elem)
+{
+  // linear or nonlinear case?
+  if(nonlin_[elem->regionId])
+    return CalcRelactivity(elem);
+  else
+  {
+    if(lin_nu_r_[elem->regionId] < 0);
+      lin_nu_r_[elem->regionId] = CalcRelactivity(elem);
+    return lin_nu_r_[elem->regionId];
+  }
+}
+
+double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem)
+{
+  Matrix<double> nu_0_nu_r;
+
+  if(elem == NULL)
+  {
+    CoefFunctionConst<double>* cfc = dynamic_cast<CoefFunctionConst<double>*>(org_mat);
+    assert(cfc);
+    nu_0_nu_r = cfc->GetTensor(); // copy constructor :(
+  }
+  else
+  {
+    LocPointMapped lpm;
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
+    LocPoint lp;
+    lpm.Set(lp, esm); // element constant we need no weight
+    org_mat->GetTensor(nu_0_nu_r, lpm);
+  }
+  assert(close(nu_0_nu_r[1][1],nu_0_nu_r[0][0]));
+  double nu_r = nu_0_nu_r[0][0] / nu_0;
+  return nu_r;
+}
+
+double MagSIMP::CalcRelactivity(const Elem* elem)
+{
+  assert(manager.context.GetSize() == 1); // otherwise we would need it
+  OptimizationMaterial* mat = context->mat;
+  CoefFunctionOpt* coef = mat->GetMatCoef(mat->stiff, elem->regionId);
+
+  return ExtractRelactivity(coef->orgMat.get(), nonlin_[elem->regionId] ? elem : NULL);
+}
+
 
 double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
@@ -290,8 +339,7 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mag->Stiffness(de->elem));
     LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
 
-    double nu_r = mag->nu_r[de->elem->regionId];
-    double nu_0 = mag->nu_0;
+    double nu_r = GetRelactivity(de->elem);
 
     //assert(nu_r > 0);
     //assert(mag->nu_0 > 0);

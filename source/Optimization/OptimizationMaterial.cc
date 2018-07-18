@@ -93,16 +93,24 @@ OptimizationMaterial* OptimizationMaterial::CreateInstance(System sys, ErsatzMat
   }
 }
 
-shared_ptr<CoefFunctionOpt> OptimizationMaterial::GetMatCoef(const std::string& integrator, BiLinFormContext* context, RegionIdType reg_id)
+inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(BiLinFormContext* context)
 {
   assert(context != NULL);
   BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->GetIntegrator());
   assert(bdb != NULL);
   assert(bdb->GetCoef());
   // LOG_DBG3(om) << "GMC int=" << integrator << " coef=" << bdb->GetCoef()->ToString();
-  return dynamic_pointer_cast<CoefFunctionOpt>(bdb->GetCoef());
+  return dynamic_cast<CoefFunctionOpt*>(bdb->GetCoef().get());
 }
 
+CoefFunctionOpt* OptimizationMaterial::GetMatCoef(const string& integrator, RegionIdType reg_id)
+{
+  SinglePDE* pde = ctxt_->pde;
+  assert(pde != NULL);
+
+  BiLinFormContext* c = pde->GetAssemble()->GetBiLinForm(integrator, reg_id, pde, pde, false);
+  return GetMatCoef(c);
+}
 
 template <class T>
 const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, const FormID& form_id, const Elem* elem, shared_ptr<CoefFunction> shadow)
@@ -121,7 +129,7 @@ const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, cons
   elemList.SetElement(elem);
   EntityIterator it = elemList.GetIterator();
 
-  shared_ptr<CoefFunctionOpt> coef = GetMatCoef(form_id.integrator, c, elem->regionId);
+  CoefFunctionOpt* coef = GetMatCoef(c);
   assert(!(coef == NULL));
 
   CoefFunctionOpt::State old_state = coef->GetState();
@@ -159,7 +167,7 @@ const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, cons
   elemList.SetElement(elem);
   EntityIterator it = elemList.GetIterator();
 
-  shared_ptr<CoefFunctionOpt> coef = GetMatCoef(integrator, c, elem->regionId);
+  CoefFunctionOpt* coef = GetMatCoef(c);
   assert(!(coef == NULL));
 
   // we temporarily switch the coef to one of three states and after evaluating the element matrix switch it back to optimization
@@ -504,37 +512,7 @@ MagMat::MagMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctx
   stiff.mc = ELECTROMAGNETIC;
   stiff.mt = MAG_RELUCTIVITY;
 
-  nu_0 = 1.0/(4 * M_PI * 1e-7);
-  nu_r.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
-
-  assert(nu_r.GetSize() > 0);
-
   // mass does not apply yet
-}
-
-
-void MagMat::SetRelactivity(CoefFunctionOpt* coef, RegionIdType reg_id)
-{
-  assert(nu_r[reg_id] < 0); // no harm, but makes no sense to to again
-
-  LocPointMapped lpm; // TODO, is of no use!! Add GetSacalar() w/o attribute to CoefFunctionConst !!!!
-  Matrix<double> nu_0_nu_r;
-  coef->orgMat->GetTensor(nu_0_nu_r, lpm);
-  assert(close(nu_0_nu_r[1][1],nu_0_nu_r[0][0]));
-  nu_r[reg_id] = nu_0_nu_r[0][0] / nu_0;
-}
-
-shared_ptr<CoefFunctionOpt> MagMat::GetMatCoef(const std::string& integrator, BiLinFormContext* context, RegionIdType reg_id)
-{
-  // we just plug in here to gain nu_r
-  shared_ptr<CoefFunctionOpt> coef = OptimizationMaterial::GetMatCoef(integrator, context, reg_id);
-  assert(coef);
-
-  assert((int) reg_id < (int) nu_r.GetSize()-1);
-  if(nu_r[reg_id] < 0)
-    SetRelactivity(coef.get(), reg_id);
-
-  return coef;
 }
 
 ElecMat::ElecMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)

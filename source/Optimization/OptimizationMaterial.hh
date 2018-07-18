@@ -96,7 +96,14 @@ public:
   /** determines if we have a complex element matrix. This is the case for damped material or Bloch mode analysis with complex BOp*/
   bool ComplexElementMatrix(RegionIdType reg = NO_REGION_ID) const;
 
-  virtual shared_ptr<CoefFunctionOpt> GetMatCoef(const std::string& integrator, BiLinFormContext* context = NULL, RegionIdType reg_id = NO_REGION_ID);
+  CoefFunctionOpt* GetMatCoef(BiLinFormContext* context);
+
+  CoefFunctionOpt* GetMatCoef(const string& integrator, RegionIdType reg_id);
+
+  CoefFunctionOpt* GetMatCoef(const FormID& form_id, RegionIdType reg_id) {
+    return GetMatCoef(form_id.integrator, reg_id);
+  }
+
 
   FormID stiff;
   FormID mass;
@@ -254,20 +261,6 @@ class MagMat : public OptimizationMaterial
 {
 public:
   MagMat(ErsatzMaterial* em, Context* ctxt);
-
-  /** to be called by DesignSpace::ApplyPhysicalDesignElementMatrix() when nu_r[reg] is not set yet */
-  void SetRelactivity(CoefFunctionOpt* coef, RegionIdType reg_id);
-
-  /** material data from region_ids we touch, uninitialized is -1.
-   * Set by GetMatCoef() which is called by Stiffness() */
-  StdVector<double> nu_r;
-
-  /** material constant for convenience */
-  double nu_0;
-
-  /** overwrite base version to extract the material parameters */
-  shared_ptr<CoefFunctionOpt> GetMatCoef(const std::string& integrator, BiLinFormContext* context = NULL, RegionIdType reg_id = NO_REGION_ID);
-
 };
 
 

@@ -17,15 +17,27 @@ public:
 
   /** the relactivity nu_r is part of the material property nu_0 * nu_r. In the linear case this is region constant,
    * in the nonlinear case this is element specific. */
-  void GetRelactivity(Elem* elem);
+  double GetRelactivity(const Elem* elem);
 
   /** material constant for convenience */
-  double nu_0;
+  static double nu_0;
+
+  /** also needed in DesignSpace::ApplyPhysicalDesign*().
+   * Extracts nu_r from the material coefficient. In the linear case this is a material constant, in the nonlinear case
+   * this is element specific
+   * @param elem if NULL we assume linear */
+  static double ExtractRelactivity(CoefFunction* org_mat, const Elem* elem = NULL);
 
 protected:
 
+
   /** @see Optimization::PostInit() */
   virtual void PostInit();
+
+  /** Get's linear or nonlinear nu_r from the elements material property */
+  double CalcRelactivity(const Elem* elem);
+
+
 
   /** overloads SIMP::CalcFunction()
    * @see ErsatzMaterial::CalcFunction */
@@ -34,11 +46,8 @@ protected:
   /** [1 0; 0 0] or [0 0; 0 1] for SQR_MAG_FLUX_DENS_X/Y */
   const Matrix<double>& GetSelectionMatrix(const Function* f) const;
 
-  /** array by index regiond-id which says true for nonlinear regions (here CurlCulrIntegrator-NL) */
-  StdVector<bool> nonlin;
 
-protected:
-  
+
   /** @see ErsatzMaterial::FillRealAdjointRHS() */
   virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs)
   {
@@ -75,9 +84,14 @@ private:
   /** Calculate the magnetic flux density gradient. The weight is always 1 as the magnetic flux density needs to be per excitation */
   void CalcMagFluxDensGradient(Excitation& excite, Function* f,  TransferFunction* tf);
 
+  /** array by index region-id which says true for nonlinear regions (here CurlCulrIntegrator-NL) */
+  StdVector<bool> nonlin_;
+
+  /** cache for region constant nu_r in the linear case. Indexed by region-id. -1.0 is uninitialized */
+  StdVector<double> lin_nu_r_;
+
   Matrix<double> sel_x_;
   Matrix<double> sel_y_;
-
 };
 
 } // end of namespace
