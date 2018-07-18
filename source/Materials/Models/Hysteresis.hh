@@ -206,18 +206,11 @@ namespace CoupledField {
 		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
     
     Vector<Double> computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
-    
-    Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu, Matrix<Double> mu_inv, 
-    bool wrtX, bool relative);
-    
+        
     Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
 					bool overwriteMemory, int stayBelowSat);
-    
-    Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
-          Matrix<Double> mu, Matrix<Double> mu_inv, Integer operatorIdx, Double sign, bool wrtX, bool relative, 
-					UInt implementation, bool overwriteMemory, int stayBelowSat);
-    
+
     bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
       Integer operatorIdx, bool overwriteMemory,

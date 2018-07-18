@@ -436,55 +436,6 @@ namespace CoupledField
     return res;
   }
   
-  Vector<Double> Hysteresis::computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, 
-          Matrix<Double> mu, Matrix<Double> mu_inv, bool wrtX, bool relative){
-    
-    Vector<Double> ret = computeAbsResidualX(xVal, yVal, hystVal, mu_inv);
-    if(wrtX){
-      /*
-       * wrtX = true
-       * 
-       * > resAbsX = xVal - yVal/mu + hystVal/mu
-       * > resRelX = resAbsX/xVal.NormL2()
-       */
-      if(relative){
-        Double xValNorm = xVal.NormL2();
-        if(xValNorm != 0){
-          ret.ScalarDiv(xValNorm);
-        } else {
-          WARN("relative residual wrt x requested, but xValNorm == 0; return abs value instead");
-        }
-      }
-    } else {
-      /*
-       *  wrtX = false
-       * 
-       * > resAbsY = yVal - hystVal - mu*xVal = -mu*resAbsX
-       * > resRelY = reaAbsY/yVal.NormL2()
-       * 
-       */
-      Vector<Double> tmp = Vector<Double>(dim_);
-      //ret = ret*(-mu);
-      mu.Mult(ret,tmp);
-      tmp.ScalarMult(-1.0);
-      ret = tmp;
-      //      for(UInt i = 0; i < dim_; i++){
-      //        ret[i] = -1.0*ret[i]*mu[i][i];
-      //      }
-      
-      if(relative){
-        Double yValNorm = yVal.NormL2();
-        if(yValNorm != 0){
-          ret.ScalarDiv(yValNorm);
-        } else {
-          WARN("relative residual wrt y requested, but yValNorm == 0; return abs value instead");
-        }
-      }
-    }
-    
-    return ret;
-  }
-  
   Matrix<Double> Hysteresis::computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
 					bool overwriteMemory, int stayBelowSat) {
@@ -595,16 +546,17 @@ namespace CoupledField
         }
       }
       
-      LOG_DBG(vecpreisachInversion) << " Jacobian " << jac.ToString();
-      Matrix<Double> jacT = Matrix<Double>(dim_,dim_);
-      jac.Transpose(jacT);
-      Matrix<Double> jacTjac = Matrix<Double>(dim_,dim_);
-      jacT.Mult(jac,jacTjac);
-      LOG_DBG(vecpreisachInversion) << " jacTjac " << jacTjac.ToString();
+//      LOG_DBG(vecpreisachInversion) << " Jacobian " << jac.ToString();
+//      Matrix<Double> jacT = Matrix<Double>(dim_,dim_);
+//      jac.Transpose(jacT);
+//      Matrix<Double> jacTjac = Matrix<Double>(dim_,dim_);
+//      jacT.Mult(jac,jacTjac);
+//      LOG_DBG(vecpreisachInversion) << " jacTjac " << jacTjac.ToString();
+//      
+//      Double det;
+//      jacTjac.Determinant(det);
+//      LOG_DBG(vecpreisachInversion) << " det(jacTjac) " << det;
       
-      Double det;
-      jacTjac.Determinant(det);
-      LOG_DBG(vecpreisachInversion) << " det(jacTjac) " << det;
 //      if(abs(det) < 1e-14){
 //        // repeat with debug output
 //        for(UInt i = 0; i < dim_; i++){
@@ -730,81 +682,7 @@ namespace CoupledField
 //    LOG_DBG(vecpreisach) << "Retrieved Jacobian: " << jac.ToString();
     return jac;
   }
-  
-  Matrix<Double> Hysteresis::computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
-          Matrix<Double> mu, Matrix<Double> mu_inv, Integer operatorIdx, Double sign, bool wrtX, bool relative, 
-					UInt implementation, bool overwriteMemory, int stayBelowSat){
-
-    Matrix<Double> jac = computeJacobianOfAbsResidualX(xVal, hyst, mu_inv, 
-												operatorIdx, sign, implementation, overwriteMemory, stayBelowSat);
     
-    if(wrtX){
-      /*
-       * wrtX = true
-       * 
-       * jacAbsX_ij = d resAbsX_i / d x_j
-       *            = d ( x_i - y_i/mu + hyst_i/mu ) / d x_j
-       *            ~ delta_ij + 1/mu (hyst(x+Dx_j*e_j) - hyst(x))_i / Dx_j 
-       *            > computeJacobianOfAbsResidualX(xVal, hyst, mu, idElem, sign);
-       * 
-       * jacRelX_ij = d resRelX_i / d x_j
-       *            
-       *            = d (reaAbsX_i / xVal.NormL2()) / d x_j
-       * 
-       *            = ( xVal.NormL2()* d resAbsX_i / d x_j - resAbsX_i* d xVal.NormL2() / d x_j ) * (1/xVal.NormL2()^2)
-       * 
-       *            = jacAbsX_ij / xVal.NormL2() - resAbsX_i * xVal_j / (xVal.NormL2()^3) 
-       * 
-       *            = jacAbsX_ij / xVal.NormL2() - resRelX_i * xVal_j / (xVal.NormL2()^2) 
-       * 
-       */
-      if(relative){
-        Double xValNorm = xVal.NormL2();
-        if(xValNorm != 0){
-          jac = jac*(1.0/xValNorm);
-          
-          Double xValNormQuad = xValNorm*xValNorm;
-          for(UInt i = 0; i < dim_; i++){
-            for(UInt j = 0; j < dim_; j++){
-              // resX has to be relative wrt x, too!
-              jac[i][j] -= (resX[i]*xVal[j])/xValNormQuad;
-            }
-          }
-        } else {
-          WARN("Jacobian of relative residual wrt x requested, but xValNorm == 0; return Jacobian of abs value instead");
-        }
-      }
-    } else {
-      /*
-       * wrtX = false
-       * 
-       * jacAbsY_ij = d resAbsY_i / d x_j
-       *            = d (-mu*resAbsX_i) / d x_j
-       *            = -mu * jacAbsX_ij
-       * 
-       * jacRelY_ij = d resRelY_i / d x_j
-       *            = 1/yVal.normL2() * jacAbsY_ij
-       *            
-       */
-      //jac = jac*(-mu);
-      Matrix<Double> tmp = Matrix<Double>(dim_,dim_);
-      tmp = jac;
-      mu.Mult(tmp,jac);
-      jac = jac*(-1.0);
-      
-      if(relative){
-        Double yValNorm = yVal.NormL2();
-        if(yValNorm != 0){
-          jac = jac*(1.0/yValNorm);
-        } else {
-          WARN("relative residual wrt y requested, but yValNorm == 0; return abs value instead");
-        }
-      }
-    }
-    
-    return jac;
-  }
-  
   bool Hysteresis::performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
 		Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
 		Integer operatorIdx, bool overwriteMemory,
@@ -944,15 +822,8 @@ namespace CoupledField
       assert(detMatToInvert != 0);
       matToInvert.Invert(matInverted);
       
-      if(INV_useTikhonov_){
-        Vector<Double> tikhonovReg = Vector<Double>(dim_);
-        tikhonovReg.Init();
-        tikhonovReg.Add(alpha*alpha,xStart,-alpha*alpha,xNew);
-        tikhonovReg.Add(1.0,jacTres_neg);
-        matInverted.Mult(tikhonovReg,xUpdate);
-      } else {
-        matInverted.Mult(jacTres_neg,xUpdate);
-      }
+      matInverted.Mult(jacTres_neg,xUpdate);
+
       assert(!xUpdate.ContainsNaN() && !xUpdate.ContainsInf());
       LOG_DBG(vecpreisachlinesearch) << "Computed xUpdate = " << xUpdate.ToString();
       
@@ -1001,10 +872,12 @@ namespace CoupledField
       bool debugOut = false;
       Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, debugOut, successFlag);
       Vector<Double> hystOld = computeValue_vec(xVal, operatorIdx, overwriteMemory, debugOut, successFlag);
-      Vector<Double> resSol = computeResidual(sol,yVal,hystSol,mu,mu_inv,wrtX,relative);
+      Vector<Double> resSol = computeAbsResidualX(sol,yVal,hystSol, mu_inv);
+//      Vector<Double> resSol = computeResidual(sol,yVal,hystSol,mu,mu_inv,wrtX,relative);
       
       hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, debugOut, successFlag);
-      resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
+      resNew = computeAbsResidualX(xNew,yVal,hystNew,mu_inv);
+//      resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
       
       LOG_DBG(vecpreisachlinesearch) << "hyst vector for sol: " << hystSol.ToString();
       LOG_DBG(vecpreisachlinesearch) << "hystNew: " << hystNew.ToString();
@@ -1050,7 +923,8 @@ namespace CoupledField
           LOG_DBG(vecpreisachlinesearch) << "Cut down xUpdate = " << xUpdate.ToString();
           // check again
           hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, debugOut, successFlag);
-          resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
+          resNew = computeAbsResidualX(xVal,yVal,hystNew,mu_inv);
+//          resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
           success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
           LOG_DBG(vecpreisachlinesearch) << "xNew (after cut): " << xNew.ToString();
           LOG_DBG(vecpreisachlinesearch) << "hystNew (after cut): " << hystNew.ToString();
@@ -1895,7 +1769,7 @@ namespace CoupledField
        * only residual wrt X in abs form tested
        */
       bool wrtX = true;
-      bool relError = !true;
+      bool relError = false;
       
       if (diff.NormL2() < INV_resTolB_){
         // we are quite close to remanence, but have not yet reached it
@@ -2094,9 +1968,12 @@ namespace CoupledField
         //          ClipDirection(xVal);
         hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
         
-        res = computeResidual(xVal,yVal,hystVal,mu,mu_inv,wrtX,relError);
-        jac = computeJacobian(xVal,yVal,hystVal,res,mu,mu_inv,operatorIndex,
-                sign,wrtX,relError,implementation,overwriteMemory,stayBelowSat);
+//        res = computeResidual(xVal,yVal,hystVal,mu,mu_inv,wrtX,relError);
+        res = computeAbsResidualX(xVal,yVal,hystVal,mu_inv);
+        jac = computeJacobianOfAbsResidualX(xVal,hystVal, mu_inv, 
+												operatorIndex, sign, implementation, overwriteMemory, stayBelowSat);
+//        jac = computeJacobian(xVal,yVal,hystVal,res,mu,mu_inv,operatorIndex,
+//                sign,wrtX,relError,implementation,overwriteMemory,stayBelowSat);
         jac.Transpose(jacT);
         
         if(debug){
