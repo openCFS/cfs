@@ -273,7 +273,7 @@ public:
     protected:
 
       //! Differential operator
-      BaseBOperator * bOperator_;
+      BaseBOperator* bOperator_;
       
       //! set a constant factor for multiplication with the element matrix
       MAT_DATA_TYPE factor_;

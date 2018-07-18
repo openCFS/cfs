@@ -154,8 +154,10 @@ class BiLinearForm : public CfsCopyable{
       }
 
       IntScheme* GetIntScheme() { return intScheme_.get(); }
+      shared_ptr<IntScheme> GetPtrIntScheme() { return intScheme_; }
 
       FeSpace* GetFeSpace1() { return ptFeSpace1_.get(); }
+      shared_ptr<FeSpace> GetPtrFeSpace1() { return ptFeSpace1_; }
 
     protected:
 

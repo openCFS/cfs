@@ -25,7 +25,7 @@ class DenseMatrix;
 using namespace CoupledField;
 
 DECLARE_LOG(ms)
-DEFINE_LOG(ms, "MagSimp")
+DEFINE_LOG(ms, "magSimp")
 
 double MagSIMP::nu_0 = 1.0/(4 * M_PI * 1e-7);
 
@@ -158,6 +158,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
   // get the form first
   BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator());
   assert(bdb != NULL);
+  LOG_DBG2(ms) << "CMFD enter: bdb=" << bdb->GetName();
 
   // annoying entity iterator got hold the elem
   ElemList el(domain->GetGrid());
@@ -188,7 +189,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
     Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[de->GetElementSolutionIndex()]);
     assert(vec != NULL);
     const Vector<double>& a = *vec; // a = the vector potential in the element
-    LOG_DBG3(ms) << "CMFAR e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex() << " a=" << a.ToString(2);
+    LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex() << " a=" << a.ToString(2);
 
     // prepare to get the curl operator
     el.SetElement(de->elem);
@@ -210,6 +211,8 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
       lp.Set(intPoints[ip], esm, weights[ip]);
 
       // Call the CalcBMat()-method
+      assert(bdb->GetBOp());
+      // std::cout << "bdb->B " << bdb->GetBOp()->GetName() << "\n";
       bdb->GetBOp()->CalcOpMat(M, lp, ptFe);
       assert(M.GetNumCols() == a.GetSize());
       assert(M.GetNumRows() == domain->GetGrid()->GetDim());
@@ -235,7 +238,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
   } // end loop elems
 
   result /= f->elements.GetSize();
-
+  LOG_DBG(ms) << "CMFD: exit -> " << result;
   return result;
 }
 
@@ -257,9 +260,12 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
 
 void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
 {
-  // B = 2 rows, 4 columns, A = 4 rows, 1 column, D = 2 row, 2 col, D is the selection vector for x or y component [0 0; 0 1] or [1 0; 0 0]
+  // B = 2 rows, 4 columns, A = 4 rows, 1 column, D = 2 row, 2 col,
+  // D is the selection vector for x or y component [0 0; 0 1] or [1 0; 0 0]
   // d(<B*A,D*B*A>)/dA = -2*(B^T*D*B)*A = -2*M*A -> 4 rows, 1 col
   // do this for all elements A and add with factor 1/N to rhs
+
+
   assert(out.GetSize() == 0);
   const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
   out.Resize(stateSol.GetSize(),0.0);
@@ -267,14 +273,22 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   MagMat* mag = dynamic_cast<MagMat*>(f->ctxt->mat);
   SinglePDE* pde = f->ctxt->pde;
 
+  // We use BDBInt to compute M, but in the nonlinear case we have only BBInt stored in assemble
+  // therefore we construct a own one
+    // new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef,factor, updatedGeo_); in MagneticPDE.cc
+  // take the curl operator from the BDBInt/BBInt for our region
+  assert(f->region != ALL_REGIONS);
+  BiLinFormContext* c = pde->GetAssemble()->GetBiLinForm(mag->stiff.integrator, f->region);
+  BaseBDBInt* c_bdb = dynamic_cast<BaseBDBInt*>(c->GetIntegrator());
+  assert(c_bdb);
+
   // this selects the orientation, similar to the dmat in BDBInt but w/o material
   const Matrix<double>& S =GetSelectionMatrix(f);
   shared_ptr<CoefFunctionConst<double> > coef_S(new CoefFunctionConst<double>());
   coef_S->SetTensor(S);
 
-  assert(f->region != ALL_REGIONS);
-  BiLinFormContext* c = pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, pde, pde, false);
-  shared_ptr<CoefFunctionOpt> coef = dynamic_pointer_cast<CoefFunctionOpt>(dynamic_cast<BaseBDBInt*>(c->GetIntegrator())->GetCoef());
+  BaseBDBInt* bdb = new BDBInt<double>(c_bdb->GetBOp()->Clone(), coef_S, 1.0, c_bdb->IsCoordUpdate());
+  bdb->SetFeSpace(c_bdb->GetPtrFeSpace1());
 
   // the stored element solution vector
   StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
@@ -284,12 +298,17 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   Matrix<double> M;
   Vector<double> rhs_el;
 
+  ElemList elemList(domain->GetGrid());
+  EntityIterator it = elemList.GetIterator();
+
   for(unsigned int e = 0; e < f->elements.GetSize(); e++)
   {
     DesignElement* de = f->elements[e];
+    elemList.SetElement(de->elem);
+
     // M = B^T S B as in BDBInt::CalcElementMatrix, just S from above instead of D with material and density
-    mag->ComputeElementMatrix(M, mag->stiff, de->elem, coef_S);
-    LOG_DBG2(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum<< "coef_S= " << coef_S->GetTensor().ToString(2) << " M=" << M.ToString(2);
+    bdb->CalcElementMatrix(M, it, it);
+    LOG_DBG2(ms) << "CMFAR e=" << e << " el=" << de->elem->elemNum<< "coef_S= " << coef_S->GetTensor().ToString(2) << " M=" << M.ToString(2);
 
     // now the part -2 * M * A
     Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[de->GetElementSolutionIndex()]);
@@ -310,9 +329,10 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
     for(unsigned int n = 0; n < eqn.GetSize(); n++)
     {
       out[eqn[n]] += (1.0/f->elements.GetSize()) * rhs_el[n]; // we norm the function by number of elements
-      LOG_DBG2(ms) << "CMDF: n=" << n << " eqn[n]=" << eqn[n] << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn[n]]=" << out[eqn[n]];
+      LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn[n]=" << eqn[n] << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn[n]]=" << out[eqn[n]];
     }
   } // end loop elements
+  delete bdb;
 }
 
 template <class T1, class T2>
