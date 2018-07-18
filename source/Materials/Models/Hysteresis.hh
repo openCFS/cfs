@@ -214,7 +214,7 @@ namespace CoupledField {
     bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
       Integer operatorIdx, bool overwriteMemory,
-      Double& alpha, Double alphaMin, Double alphaMax,  bool wrtX, bool relative, 
+      Double& alpha, Double alphaMin, Double alphaMax,  
       UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat,int stayBelowSat,Vector<Double> sol);
 
     Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
@@ -227,8 +227,9 @@ namespace CoupledField {
       UInt& totalNumberOfLMIterations, UInt& totalNumberOfLinesearchIterations, 
       UInt& maximalNumberOfLinesearchIterations, int& successFlag, Double& minAlpha, 
       Double& maxAlpha, Double& avgAlpha,Vector<Double> sol );
-       
     
+    Vector<Double> obtainStartVector(Vector<Double> previousXVector, Vector<Double> previousYVector,
+      Vector<Double> currentYVector, Double YdiffToRemancence, Double YdiffToSaturation, int stayBelowSat);
     
   protected:
     Double anhyst_A_;

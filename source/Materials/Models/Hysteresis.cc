@@ -359,6 +359,90 @@ namespace CoupledField
     return res;
   }
   
+  Vector<Double> Hysteresis::obtainStartVector(Vector<Double> previousXVector, Vector<Double> previousYVector,
+          Vector<Double> currentYVector, Double YdiffToRemancence, Double YdiffToSaturation, int stayBelowSat){
+    
+    UInt size = previousXVector.GetSize();
+    Vector<Double> startXVector = Vector<Double>(size);
+    
+    if (YdiffToRemancence < INV_resTolB_){
+      // we are quite close to remanence, but have not yet reached it
+      // start from 0
+      startXVector.Init();
+      //  startAtZero=true;
+      //	compCase = 3;
+//    } else if (YdiffToSaturation < 100*INV_resTolB_){
+//      startXVector.Init();
+//      
+//      Double yNorm = currentYVector.NormL2();
+//      Vector<Double> directionYVector = Vector<Double>(size);
+//      directionYVector.Init();
+//      
+//      if(yNorm == 0){
+//        yNorm = previousYVector.NormL2();
+//        if(yNorm == 0){
+//          yNorm = 1.0;
+//        }
+//        directionYVector.Add(1.0/yNorm,previousYVector); 
+//      } else {
+//        directionYVector.Add(1.0/yNorm,currentYVector); 
+//      }
+//      
+//      startXVector.Add( (1.0-YdiffToSaturation)*XSaturated_, directionYVector);
+    } else {
+      //	compCase = 4;
+      Double factor;
+      if(startXVector.NormL2() != 0){
+        startXVector = previousXVector;
+        
+        if(previousYVector.NormL2() != 0){
+          factor = currentYVector.NormL2()/previousYVector.NormL2();
+        } else {
+          if(currentYVector.NormL2() > previousYVector.NormL2()){
+            factor = 1.05;
+          } else {
+            factor = 1.0/1.05;
+          }
+        }
+        startXVector.ScalarMult(factor);
+      } else {
+        //            traceMsg << "X is zero; scaling will not help; try a scaled version of yVal instead" << std::endl;
+        startXVector = currentYVector;
+        startXVector.ScalarMult(startXVector.NormL2()*XSaturated_/PSaturated_);
+      }
+    }
+    //      traceMsg << "starting Xval: " << xVal.ToString() << std::endl;
+    assert(!xVal.ContainsNaN() && !xVal.ContainsInf());
+    
+    Vector<Double> dir = Vector<Double>(dim_);
+    dir.Init();
+    if(startXVector.NormL2() != 0){
+      dir.Add(1.0/startXVector.NormL2(),startXVector);
+    } else if(currentYVector.NormL2() != 0){
+      dir.Add(1.0/currentYVector.NormL2(),currentYVector);
+    } 
+    
+//    std::cout << "startXVector.NormL2(): " << startXVector.NormL2() << std::endl;
+//    std::cout << "currentYVector.NormL2(): " << currentYVector.NormL2() << std::endl;
+//    std::cout << "dir: " << dir.ToString() << std::endl;
+//    std::cout << "XSaturated_: " << XSaturated_ << std::endl;
+    if((startXVector.NormL2() >= XSaturated_)&&(stayBelowSat==1)){
+      //        traceMsg << "Reset xVal as its value is above Xsaturation but yVal is not" << std::endl;
+//      std::cout << "scale down" << std::endl;
+      startXVector = dir;
+      startXVector.ScalarMult(1.0/1.2*XSaturated_);
+    } 
+    
+    if((startXVector.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
+      //        traceMsg << "Reset xVal as its value is below Xsaturation but yVal is above" << std::endl;
+//      std::cout << "scale up" << std::endl;
+      startXVector = dir;
+      startXVector.ScalarMult(1.2*XSaturated_);        
+    }
+//    std::cout << "startXVector.NormL2(): " << startXVector.NormL2() << std::endl;
+    return startXVector;
+  }
+  
   Matrix<Double> Hysteresis::computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
 					bool overwriteMemory, int stayBelowSat) {
@@ -497,7 +581,7 @@ namespace CoupledField
   bool Hysteresis::performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
           Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
           Integer operatorIdx, bool overwriteMemory,
-          Double& alpha, Double alphaMin, Double alphaMax, bool wrtX, bool relative, 
+          Double& alpha, Double alphaMin, Double alphaMax,
           UInt& numberOfIterations,Vector<Double>& xStart, Double factorToSat, int stayBelowSat, Vector<Double> sol){
     
     LOG_TRACE(vecpreisachlinesearch) << " --------- START LINESEARCH --------- ";
@@ -964,74 +1048,69 @@ namespace CoupledField
     // -1: stay above
     int stayBelowSat = 0;
     
+    // THESE CHECKS are not valid for Mayergoyz model as XDir != YDir
+    // > this is also the reason why bisection is not possible > we simply do not know the actual direction of the output!
+    
+    // TODO:
+    // make use of triangle inequality
+    //  if |y| > |P(Xsat)| + |eps*(Xsat)| + |anhyst(XSat)| >= |P(Xsat) + eps*(Xsat) + anhyst(XSat)|, then y is in saturation
+    //    no matter what direction Xsat has; too bad, that we do not know the direction of X
+    // > therefore we cannot compute |P(Xsat)| + |eps*(Xsat)| + |anhyst(XSat)|
+    // but: we can compute |P(Xsat) + eps*(Xsat) + anhyst(XSat)| and check
+    //  if |y| < |P(Xsat) + eps*(Xsat) + anhyst(XSat)|; if this is the case, we are definitely below saturation
+    //
+    // in case of sutor mode, P(Xsat) will have direction of Xsat which is the direction of y
+    // in that case |P(Xsat)| + |eps*(Xsat)| + |anhyst(XSat)| = |P(Xsat) + eps*(Xsat) + anhyst(XSat)|
+    // ( assuming anhystPart and eps > 0 )
+    //
+    // if |y| > |ySat + eps_mu*xSat + anhystPart(xSat)| (i.e. anhystPart and hystPart are aligned)
+    //    x has to be above saturation  > stayBelowSat = false = -1
+    // if |y| < |ySat - eps_mu*xSat - anhystPart(xSat)| (i.e. anhystPart and hystPart are antiparallel)
+    //    x cannot be in saturation > stayBelowSat = true = 1
+    // if |ySat + eps_mu*xSat + anhystPart(xSat)| > |y| > |ySat - eps_mu*xSat - anhystPart(xSat)|
+    //    x could be above saturation or below > stayBelowSat = unknown = 0
+    //
+    // note: for sutor model, hystPart and anhystPart are always aligned above saturation
+    //        > only case 1 relevant for checking
+    //       for mayergoyz model, we have to check case 2 and 3, too
+    //
+    // note 22.05.2018: in case of sutor model, PSaturated might be unreachable if rotRes < 0 (for revised model)
+    //                  > compute actual value at XSaturated instead of using PSaturated;
+    //                  > by this, we also do not need to add anhystPartPosSat anymore, as this is done by evaluating the hyst operator
+    // note 24.05.2018: the treatment as described in note from 22.05. helps a lot; nevertheless some inversion fails
+    //                  most probably as we further down (and during subfunctions) also assume that the maximal output is PSaturated
+    //                  > two options possible
+    //                    a) search all these spots and replace PSaturated+anhystPartPosSat with hystValAtXSat.NormL2()
+    //                    b) add scaling to vector model, such that PSaturated is actually reached at saturation
+    //                  > currently option b) is used!
+    // note 9.7.2018: if option b) is used, the parameter rotRes has a much smaller influence as expected; 
+    //                  the actual determination of rotRes from measurement data is harder compared to allowing
+    //                  the rotation state to change AFTER saturation by first computing rotRes*inputNorm and then
+    //                  cutting it down to 1;
+    //                this treatment has the severe consequence, that input and output might no longer be aligned at
+    //                saturation because parts of the rotational state get overwritten by values beyond saturation
+    //                > sutor model must be treated similar to Mayergoyz model, i.e. fieldsAlignedAboveSat = false
+    //                > but: sutor model will never exceed saturtion, i.e. hystOutputRestrictedToSat = false
+    Vector<Double> satInput = Vector<Double>(dim_);
+    satInput.Init();
+    satInput.Add(XSaturated_,yDir);
+    int successCodeTmp = 0;
+    Vector<Double> hystValAtXSat = computeValue_vec(satInput, operatorIndex, false, false, successCodeTmp);
+    Double anhystPartPosSat = PSaturated_*evalAnhystPart_normalized(1.0);
+    //      std::cout << "yNorm: " << yNorm << std::endl;
+    //      std::cout << "hystValAtXSat: " << hystValAtXSat << std::endl;
+    //      std::cout << "XSaturated_: " << XSaturated_ << std::endl;
+    //      std::cout << "PSaturated_: " << PSaturated_ << std::endl;
+    //      std::cout << "eps_mu: " << eps_mu << std::endl;
+    //      
+    // check saturation in direction of yIn might solve system
+    //Double diffSat = yNorm - (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);
+    Double diffSat = yNorm - (hystValAtXSat.NormL2() + eps_mu*XSaturated_);
+    
     LOG_TRACE(vecpreisachInversion) << "yNorm: " << yNorm;
     if(yNorm == 0){
       stayBelowSat = 1;
     } else {   
-      Double anhystPartPosSat = PSaturated_*evalAnhystPart_normalized(1.0);
-      LOG_TRACE(vecpreisachInversion) << "anhystPartPosSat: " << anhystPartPosSat;
-      LOG_TRACE(vecpreisachInversion) << "(PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat): " << (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);
-      LOG_TRACE(vecpreisachInversion) << "yNorm - (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat): " << yNorm - (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);
-      
-      // THESE CHECKS are not valid for Mayergoyz model as XDir != YDir
-      // > this is also the reason why bisection is not possible > we simply do not know the actual direction of the output!
-      
-      // TODO:
-      // make use of triangle inequality
-      //  if |y| > |P(Xsat)| + |eps*(Xsat)| + |anhyst(XSat)| >= |P(Xsat) + eps*(Xsat) + anhyst(XSat)|, then y is in saturation
-      //    no matter what direction Xsat has; too bad, that we do not know the direction of X
-      // > therefore we cannot compute |P(Xsat)| + |eps*(Xsat)| + |anhyst(XSat)|
-      // but: we can compute |P(Xsat) + eps*(Xsat) + anhyst(XSat)| and check
-      //  if |y| < |P(Xsat) + eps*(Xsat) + anhyst(XSat)|; if this is the case, we are definitely below saturation
-      //
-      // in case of sutor mode, P(Xsat) will have direction of Xsat which is the direction of y
-      // in that case |P(Xsat)| + |eps*(Xsat)| + |anhyst(XSat)| = |P(Xsat) + eps*(Xsat) + anhyst(XSat)|
-      // ( assuming anhystPart and eps > 0 )
-      //
-      // if |y| > |ySat + eps_mu*xSat + anhystPart(xSat)| (i.e. anhystPart and hystPart are aligned)
-      //    x has to be above saturation  > stayBelowSat = false = -1
-      // if |y| < |ySat - eps_mu*xSat - anhystPart(xSat)| (i.e. anhystPart and hystPart are antiparallel)
-      //    x cannot be in saturation > stayBelowSat = true = 1
-      // if |ySat + eps_mu*xSat + anhystPart(xSat)| > |y| > |ySat - eps_mu*xSat - anhystPart(xSat)|
-      //    x could be above saturation or below > stayBelowSat = unknown = 0
-      //
-      // note: for sutor model, hystPart and anhystPart are always aligned above saturation
-      //        > only case 1 relevant for checking
-      //       for mayergoyz model, we have to check case 2 and 3, too
-      //
-      // note 22.05.2018: in case of sutor model, PSaturated might be unreachable if rotRes < 0 (for revised model)
-      //                  > compute actual value at XSaturated instead of using PSaturated;
-      //                  > by this, we also do not need to add anhystPartPosSat anymore, as this is done by evaluating the hyst operator
-      // note 24.05.2018: the treatment as described in note from 22.05. helps a lot; nevertheless some inversion fails
-      //                  most probably as we further down (and during subfunctions) also assume that the maximal output is PSaturated
-      //                  > two options possible
-      //                    a) search all these spots and replace PSaturated+anhystPartPosSat with hystValAtXSat.NormL2()
-      //                    b) add scaling to vector model, such that PSaturated is actually reached at saturation
-      //                  > currently option b) is used!
-      // note 9.7.2018: if option b) is used, the parameter rotRes has a much smaller influence as expected; 
-      //                  the actual determination of rotRes from measurement data is harder compared to allowing
-      //                  the rotation state to change AFTER saturation by first computing rotRes*inputNorm and then
-      //                  cutting it down to 1;
-      //                this treatment has the severe consequence, that input and output might no longer be aligned at
-      //                saturation because parts of the rotational state get overwritten by values beyond saturation
-      //                > sutor model must be treated similar to Mayergoyz model, i.e. fieldsAlignedAboveSat = false
-      //                > but: sutor model will never exceed saturtion, i.e. hystOutputRestrictedToSat = false
-      int tmp = 0; 
-      Vector<Double> satInput = Vector<Double>(dim_);
-      satInput.Init();
-      satInput.Add(XSaturated_,yDir);
-      //      std::cout << "satInput: " << satInput.ToString() << std::endl;
-      Vector<Double> hystValAtXSat = computeValue_vec(satInput, operatorIndex, false, false, tmp);
-      //      std::cout << "yNorm: " << yNorm << std::endl;
-      //      std::cout << "hystValAtXSat: " << hystValAtXSat << std::endl;
-      //      std::cout << "XSaturated_: " << XSaturated_ << std::endl;
-      //      std::cout << "PSaturated_: " << PSaturated_ << std::endl;
-      //      std::cout << "eps_mu: " << eps_mu << std::endl;
-      //      
-      // check saturation in direction of yIn might solve system
-      //Double diffSat = yNorm - (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);
-      Double diffSat = yNorm - (hystValAtXSat.NormL2() + eps_mu*XSaturated_);
-      
       if(abs(diffSat) < INV_resTolB_){
         traceMsg << "--B Special-- Inversion: Exact Saturation found" << std::endl;
         successFlag = 2;
@@ -1107,7 +1186,6 @@ namespace CoupledField
      * i.e. yval = hystval, xval = 0
      * > check if xVal = 0 would be a proper solution
      */
-    
     Vector<Double> hystVal_rem;
     xTMP.Init();
     bool debugOut = false;
@@ -1129,7 +1207,7 @@ namespace CoupledField
       //	compCase = 2;
     } 
     
-    
+    Double diffRem = diff.NormL2();
     
     /*
      * Solve nonlinear problem with help of Newton-based scheme
@@ -1152,22 +1230,6 @@ namespace CoupledField
      * >> pure Newton not working as Jacobian cannot be computed exactly
      * >> approximated Jacobian might cause convergence issues
      * 
-     * Levenberg-Marquardt:
-     *  > as Newton, but with approximated Jacobian
-     *  > try to compensate issues with Jacobian by regularization
-     * 
-     *  > while()
-     *    > solve:
-     *       (Jac(xVal)^T Jac(xVal) + alpha^2 I) deltaX = -Jac(xVal)^T F(xVal)
-     *    > check deltaX by trust region method
-     *    > deltaX ok > stop
-     *    > deltaX not ok > adept alpha
-     *  > update:
-     *      xNew = xVal + deltaX
-     * 
-     * >> works in many cases but still has issues due to approximation of Jac
-     * >> adaption of alpha might require various iterations
-     * 
      * Jacobian-Free-Newton-Krylov:
      *  > as Newton, but update constructed from Krylov subspace
      *  
@@ -1184,17 +1246,29 @@ namespace CoupledField
      *  > update:
      *      xNew = xVal + s deltaX
      * 
+     * >> big advantage: Jac is not required directly but only Jac*someVector
+     * 
+     * Levenberg-Marquardt:
+     *  > try to compensate issues with Jacobian by regularization
+     *  > no linesearch, instead optimize alpha
+     * 
+     *  > while()
+     *    > solve:
+     *       (Jac(xVal)^T Jac(xVal) + alpha^2 I) deltaX = -Jac(xVal)^T F(xVal)
+     *    > check deltaX by trust region method
+     *    > deltaX ok > stop
+     *    > deltaX not ok > adept alpha
+     *  > update:
+     *      xNew = xVal + deltaX
+     * 
+     * >> works in many cases but still has issues due to approximation of Jac
+     * >> adaption of alpha might require various iterations
      */
-    
-    
-    
-    
-    
+   
     /*
-     * Use Levenberg-Marquart algorithm as presented in Dahmen&Reusken - Numerik partialler DFG
-     */   
-    // LM
-    Vector<Double> hystVal;
+     * obtain start value
+     */
+    Vector<Double> xStart = obtainStartVector(prevXval, prevYval, yVal, diffRem, diffSat, stayBelowSat);
     
     traceMsg << "--D-- Inversion: Use Levenberg Marquart" << std::endl;
     
@@ -1207,171 +1281,9 @@ namespace CoupledField
     Double alpha = INV_alphaLSStart_;
     Double alphaMin = INV_alphaLSMin_;//1.0/256.0;
     Double alphaMax = INV_alphaLSMax_;//8192;//512.0;
-    
-    /*
-     * only residual wrt X in abs form tested
-     */
-    bool wrtX = true;
-    bool relError = false;
-    
-    if (diff.NormL2() < INV_resTolB_){
-      // we are quite close to remanence, but have not yet reached it
-      // start from 0
-      traceMsg << "--D-- Inversion: Start at 0" << std::endl;
-      xVal = xTMP;
-      //  startAtZero=true;
-      //	compCase = 3;
-    } else {
-      //	compCase = 4;
-      xVal = prevXval;
-      traceMsg << "--D-- Inversion: Start at previous X value = " << xVal.ToString() << std::endl;
-      // different approach:
-      // to this point we know:
-      // old and new Y value
-      // old X value
-      // old H value
-      // H value at 0 (H_rem)
-      // > by this we can check:
-      // a) newY > oldY > X should increase, too
-      // b) newY < oldY < X should decrease, too
-      //      b1) H_rem > newY > X = 0 is still too large but maybe good starting point
-      //      b2) H_rem < newY > X between old X value and 0
-      // > note: the steps above (sort of bisect) would work well for scalar model; for
-      //         vector model we might have a change in direction but at similiar amplitude
-      //         such that we do not match aboves cases
-      //         still, this ssems more reasonable than fp iteration that nearly always drives
-      //         x way above saturation due to large mu_inv
-      traceMsg << "Try to obtain better starting value" << std::endl;
-      if(yVal.NormL2() > prevYval.NormL2()){
-        traceMsg << "Y increased in norm > increase X ,too" << std::endl;
-        // increase X a bit (does not work if X is zero, though)
-        xVal = prevXval;
-        
-        if(xVal.NormL2() != 0){
-          Double factor;
-          if(prevYval.NormL2() != 0){
-            factor = yVal.NormL2()/prevYval.NormL2();
-          } else {
-            factor = 1.05;
-          }
-          traceMsg << "Scale X by " << factor << std::endl;
-          xVal.ScalarMult(factor);
-        } else {
-          traceMsg << "X is zero; scaling will not help; try a scaled version of yVal instead" << std::endl;
-          xVal = yVal;
-          xVal.ScalarMult(xVal.NormL2()*XSaturated_/PSaturated_);
-        }
-      } else {
-        traceMsg << "Y decreased in norm > decrease X ,too" << std::endl;
-        //            if(hystVal_rem.NormL2() > yVal.NormL2()){
-        //              LOG_DBG(vecpreisach) << "Y smaller than remanence (norm-wise) > start at remanence";
-        //              // start at 0
-        //              xVal.Init();
-        //            } else {
-        //              LOG_DBG(vecpreisach) << "Y larger than remanence but smaller than current hyst-value (norm-wise) > start in between";
-        // take midpoint between remanence and currenc xval
-        xVal = prevXval;
-        
-        if(xVal.NormL2() != 0){
-          Double factor;
-          if(prevYval.NormL2() != 0){
-            factor = yVal.NormL2()/prevYval.NormL2();
-          } else {
-            factor = 1.0/1.05;
-          }
-          traceMsg << "Scale X by " << factor << std::endl;
-          xVal.ScalarMult(factor);
-        } else {
-          traceMsg << "X is zero; scaling will not help; try a scaled version of yVal instead" << std::endl;
-          xVal = yVal;
-          xVal.ScalarMult(xVal.NormL2()*XSaturated_/PSaturated_);
-        }
-        
-        //xVal.ScalarMult(0.85);
-        //xVal.Init();
-        //            }
-      }
-      
-    }
-    
-    //xVal.Init();
-    
-    traceMsg << "starting Xval: " << xVal.ToString() << std::endl;
-    assert(!xVal.ContainsNaN() && !xVal.ContainsInf());
-    /*
-     * In the followng, prev*val_ = value of previous iteration
-     *                      *val_ = current value
-     */
-    
-    // perform some initial steps with fp iteation
-    /*
-     * Note: one iteration seems fine; two might already move solution so
-     *       far off that it does not recover
-     * > 1 works ok; 
-     * (mostly due to bringing x into sat and then resetting it
-     */
-    //        ClipDirection(xVal);
-    hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
-    LOG_DBG(vecpreisachInversion) << "starting Hval: " << hystVal.ToString();
-    //hystVal = prevHystval_[idElem];
-    
-    /*
-     * As y is not in saturation (that case was already ruled out, 
-     * the actual xVal cannot be in saturation neither
-     * > It seems that initial fp iteration only works due to the following capping;
-     * FP with the original mu nearly always put the system over saturation; the following
-     * reset will cap it below saturation and from this point on the LM method seems
-     * to converge much better than using the previous value of x
-     * TODOL
-     * > check if fp works better if xsat/ysat is used instead of mu
-     * > check if lm works better if reset is done to a smaller percentage of xsat (currently 0.9)
-     */
-    /*
-     * IDEA: take direction of new Y and scale it
-     *  > only if y != 0!
-     *  if y == 0, take xDirecttion
-     * 
-     */
-    Vector<Double> dirX = Vector<Double>(dim_);
-    if(xVal.NormL2() != 0){
-      dirX = xVal;
-      dirX.ScalarDiv(xVal.NormL2());
-    } else if(yNorm > 0){
-      dirX = yVal;
-      dirX.ScalarDiv(yNorm);
-    } else {
-      dirX.Init();
-    }
-    
-    if((xVal.NormL2() >= XSaturated_)&&(stayBelowSat==1)){
-      traceMsg << "Reset xVal as its value is above Xsaturation but yVal is not" << std::endl;
-      
-      xVal = dirX;
-      xVal.ScalarMult(1.0/1.2*XSaturated_);
-      
-      //xVal.ScalarMult(percent*XSaturated_/xVal.NormL2());
-      // or reset to 0? > 0.9 works good; 
-      //xVal.Init();
-      //resetAfterSat=true;
-      //          ClipDirection(xVal);
-      hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
-    } 
-    
-    if((xVal.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
-      traceMsg << "Reset xVal as its value is below Xsaturation but yVal is above" << std::endl;
-      
-      xVal = dirX;
-      xVal.ScalarMult(1.2*XSaturated_);
-      
-      //xVal.ScalarMult(percent*XSaturated_/xVal.NormL2());
-      // or reset to 0? > 0.9 works good; 
-      //xVal.Init();
-      //resetAfterSat=true;
-      //          ClipDirection(xVal);
-      hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
-    } 
-    
-    Vector<Double> xStart = xVal;
+       
+    Vector<Double> hystVal = computeValue_vec(xStart, operatorIndex, overwriteMemory, debugOut, successFlagForward);
+    xVal = xStart;
     
     Double sign = 1.0;
     bool successError = false;
@@ -1397,10 +1309,11 @@ namespace CoupledField
     /*
      * Start actual LM iteration
      */
+//    std::cout << "stayBelowSat: " << stayBelowSat << std::endl;
     while(true){ 
       itCnt++;
       totalNumberOfLMIterations++;
-      
+//      std::cout << "itCnt: " << itCnt << std::endl;
       if(debug){
         traceMsg << "--OUTER ITERATION-- (" << itCnt << ")" << std::endl;
         traceMsg << "Current solution: " << xVal.ToString() << std::endl;
@@ -1493,8 +1406,8 @@ namespace CoupledField
       Double factorToSat = 0.1*Double(itCnt-1)/Double(INV_maxIter_) + 0.9;
       
       discardUpdate = performLinesearch(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
-              operatorIndex, overwriteMemory, alpha, alphaMin, alphaMax, wrtX, 
-              relError, numberOfIterations,xStart,factorToSat,stayBelowSat,sol);
+              operatorIndex, overwriteMemory, alpha, alphaMin, alphaMax, 
+              numberOfIterations,xStart,factorToSat,stayBelowSat,sol);
       
       if(alpha < minAlphaStatistics){
         minAlphaStatistics = alpha;
