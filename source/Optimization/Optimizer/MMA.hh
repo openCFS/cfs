@@ -125,7 +125,7 @@ protected:
 
   /** sub problem move limits
    * according to K.Svanberg's DCAMM lecture notes section 4.
-   * this is chosen to avoid division by zero, according to K.Svanberg's paper section 3. equation 8
+   * this is chosen to avoid division by zero in sub problem, refer K.Svanberg's paper section 3. equation 8
    * values updated in MMA::GenreteSubProblem()
    * values used in MMA::PrimalVarFromDualVar()*/
   StdVector<double> alpha, beta;
@@ -142,6 +142,11 @@ protected:
    * used in MMA::GenreteSubProblem() */
   bool robustAsymptotes = false;
   bool fixedAsymptotes = false;
+  /** For fixed asymptotes in MMA::GenreteSubProblem()
+   * the upper asymptotes can be set by multiplying a constant(asym_fixed_upper) to the current design value
+   * or can just be a costant number, this is controlled by this bool, if true we are multplying by a constant  */
+  bool upperMultiplier = true;
+  bool lowerMultiplier = true;
 
   /** When constraintModification = false p_ij and q_ij are formed according to
    * K.Svanberg's DCAMM lecture notes section 4

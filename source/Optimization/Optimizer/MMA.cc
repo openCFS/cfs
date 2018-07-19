@@ -43,6 +43,8 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
     if(fixedAsymptotes) {
       asym_fixed_lower = this_opt_pn_->Get("fixed_asymptotes/lower")->As<double>();
       asym_fixed_upper = this_opt_pn_->Get("fixed_asymptotes/upper")->As<double>();
+      upperMultiplier = this_opt_pn_->Get("fixed_asymptotes/upper_multiplier")->As<bool>();
+      lowerMultiplier = this_opt_pn_->Get("fixed_asymptotes/lower_multiplier")->As<bool>();
       if(asym_fixed_upper <= asym_fixed_lower)
         throw Exception("upper fixed MMA asymptote needs to be larger than lower one");
     }
@@ -290,84 +292,89 @@ void MMA::GenreteSubProblem()
   double sign_change = 0.0;
   double gamma = 0.0;
 
-// For visualization
-//  DesignSpace* space = optimization->GetDesign();
-//  int res_idx = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MMA_ASYMPTOTE);
-
+  DesignSpace* space = optimization->GetDesign();
   if(optimization->GetCurrentIteration() < 3)
   {
+    // We have to define the low and upp only once for fixed asymptotes.
     if(fixedAsymptotes){
-      for(unsigned int i =0; i < n; ++i)
+      for(unsigned int in =0; in < n; ++in)
       {
-        low[i] = asym_fixed_lower;
-        upp[i] = asym_fixed_upper*xmax[i];
+        BaseDesignElement* de = space->GetDesignElement(in);
+
+        if(lowerMultiplier)
+          upp[in] = asym_fixed_lower*de->GetLowerBound();
+        else
+          low[in] = asym_fixed_lower;
+
+        if(upperMultiplier)
+          upp[in] = asym_fixed_upper*de->GetUpperBound();
+        else
+          upp[in] = asym_fixed_upper;
+
+        low[in] = min(de->GetLowerBound(), low[in]);
+        upp[in] = max(de->GetUpperBound(), upp[in]);
       }
     }
     else {
-        for(unsigned int i =0; i < n; ++i)
+        for(unsigned int in =0; in < n; ++in)
         {
-          low[i] += xval[i] -  asyminit*(xmax[i] - xmin[i]);
-          upp[i] += xval[i] +  asyminit*(xmax[i] - xmin[i]);
+          low[in] += xval[in] -  asyminit*(xmax[in] - xmin[in]);
+          upp[in] += xval[in] +  asyminit*(xmax[in] - xmin[in]);
         }
     }
   }
-  if(optimization->GetCurrentIteration() > 2)
+  if(optimization->GetCurrentIteration() > 2 && !fixedAsymptotes)
   {
-    for(unsigned int i =0; i< n; ++i)
-    {
+      for(unsigned int i =0; i< n; ++i)
+      {
+        /** implementation of robust asymptote based on TopOpt code
+         * refer function GenSub(...) in MMA.c */
+        if(robustAsymptotes) {
+          sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
+          if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
+          else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
+          else gamma = 1.0; // there is no design change
+          low[i] = xval[i] - gamma*(xold1[i] - low[i]);
+          upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
+          double x_min_tmp = max(1.0e-5, xmax[i] - xmin[i]);
+          double x_max_tmp = 0.0;
 
-      if(fixedAsymptotes) {
-        low[i] = asym_fixed_lower;
-        upp[i] = asym_fixed_upper*xmax[i];
-      }
-      /** implementation of robust asymptote based on TopOpt code
-       * refer function GenSub(...) in MMA.c */
-      else if(robustAsymptotes) {
-        sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
-        if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
-        else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
-        else gamma = 1.0; // there is no design change
-        low[i] = xval[i] - gamma*(xold1[i] - low[i]);
-        upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
-        double x_min_tmp = max(1.0e-5, xmax[i] - xmin[i]);
-        double x_max_tmp = 0.0;
-
-        //Robust Asymptotes
-        low[i]=max(low[i],xval[i]-100.0*x_min_tmp);
-        low[i]=min(low[i],xval[i]-0.01*x_min_tmp);
-        upp[i]=max(upp[i],xval[i]+0.01*x_min_tmp);
-        upp[i]=min(upp[i],xval[i]+100.0*x_min_tmp);
-        low[i] = min(max(low[i], xval[i] - 100.0*x_min_tmp ),xval[i] - 1.0e-4*x_min_tmp);
-        upp[i] = min(max(upp[i], xval[i] + 1.0e-4*x_min_tmp ),xval[i] + 100.0*x_min_tmp);
-        x_min_tmp = xmin[i] - 1.0e-5;
-        x_max_tmp = xmax[i] + 1.0e-5;
-        if(xval[i] < x_min_tmp)
-        {
-          low[i] = xval[i] - (x_max_tmp - xval[i])/0.9;
-          upp[i] = xval[i] + (x_max_tmp - xval[i])/0.9;
+          //Robust Asymptotes
+          low[i]=max(low[i],xval[i]-100.0*x_min_tmp);
+          low[i]=min(low[i],xval[i]-0.01*x_min_tmp);
+          upp[i]=max(upp[i],xval[i]+0.01*x_min_tmp);
+          upp[i]=min(upp[i],xval[i]+100.0*x_min_tmp);
+          low[i] = min(max(low[i], xval[i] - 100.0*x_min_tmp ),xval[i] - 1.0e-4*x_min_tmp);
+          upp[i] = min(max(upp[i], xval[i] + 1.0e-4*x_min_tmp ),xval[i] + 100.0*x_min_tmp);
+          x_min_tmp = xmin[i] - 1.0e-5;
+          x_max_tmp = xmax[i] + 1.0e-5;
+          if(xval[i] < x_min_tmp)
+          {
+            low[i] = xval[i] - (x_max_tmp - xval[i])/0.9;
+            upp[i] = xval[i] + (x_max_tmp - xval[i])/0.9;
+          }
+          if(xval[i] > x_max_tmp)
+          {
+            low[i] = xval[i] - (xval[i] - x_min_tmp)/0.9;
+            upp[i] = xval[i] + (xval[i] - x_min_tmp)/0.9;
+          }
         }
-        if(xval[i] > x_max_tmp)
-        {
-          low[i] = xval[i] - (xval[i] - x_min_tmp)/0.9;
-          upp[i] = xval[i] + (xval[i] - x_min_tmp)/0.9;
+        /** implementation of robust asymptote based on TopOpt code
+         * refer function GenSub(...) in MMA.c */
+        else {
+          sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
+          if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
+          else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
+          else gamma = 1.0; // there is no design change
+          low[i] = xval[i] - gamma*(xold1[i] - low[i]);
+          upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
+          double x_max_min = max(1.0e-5, xmax[i] - xmin[i]);
+          low[i]=max(low[i],xval[i]-10.0*x_max_min);
+          low[i]=min(low[i],xval[i]-1.0e-4*x_max_min);
+          upp[i]=max(upp[i],xval[i]+1.0e-4*x_max_min);
+          upp[i]=min(upp[i],xval[i]+10.0*x_max_min);
         }
       }
-      /** implementation of robust asymptote based on TopOpt code
-       * refer function GenSub(...) in MMA.c */
-      else {
-        sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
-        if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
-        else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
-        else gamma = 1.0; // there is no design change
-        low[i] = xval[i] - gamma*(xold1[i] - low[i]);
-        upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
-        double x_min_tmp = max(1.0e-5, xmax[i] - xmin[i]);
-        low[i]=max(low[i],xval[i]-10.0*x_min_tmp);
-        low[i]=min(low[i],xval[i]-1.0e-4*x_min_tmp);
-        upp[i]=max(upp[i],xval[i]+1.0e-4*x_min_tmp);
-        upp[i]=min(upp[i],xval[i]+10.0*x_min_tmp);
-      }
-    }
   }
 
   // Formation of pij and qij
@@ -376,7 +383,7 @@ void MMA::GenreteSubProblem()
   for(unsigned int ni=0; ni < n; ++ni)
   {
     /** explained in K.Svanberg's paper section 3. equation 8.
-     * this is chosen to avoid division by zero */
+     * this is chosen to avoid division by zero in subproblem*/
     alpha[ni] = max(xmin[ni], 0.9*low[ni]+0.1*xval[ni]);
     beta[ni] = min(xmax[ni], 0.9*upp[ni]+0.1*xval[ni]);
 
@@ -584,23 +591,25 @@ void MMA::PrimalVarFromDualVar()
     if(xval[i] > beta[i]) xval[i] = beta[i];
   }
 }
-
+/** according to N.Aage paper equation 15*/
 void MMA::GradientOfDual()
 {
-  for(unsigned int j = 0; j < m; ++j)
+  for(unsigned int jm = 0; jm < m; ++jm)
   {
-    dual_gradient[j] = 0.0;
-    for(unsigned int i =0; i<n; ++i)
+    dual_gradient[jm] = 0.0;
+    for(unsigned int in =0; in<n; ++in)
     {
-      dual_gradient[j] += p_ij[j][i] / (upp[i] - xval[i]) + q_ij[j][i] / (xval[i] - low[i]);
+      dual_gradient[jm] += p_ij[jm][in] / (upp[in] - xval[in]) + q_ij[jm][in] / (xval[in] - low[in]);
     }
   }
-for(unsigned int j=0; j<m; ++j)
+  for(unsigned int jm=0; jm<m; ++jm)
   {
-    dual_gradient[j] += -b[j] - a[j]*z - y[j];
-  }
-}
+    dual_gradient[jm] += -b[jm] - a[jm]*z - y[jm];
 
+  }
+
+}
+/** according to N.Aage paper section 3.3*/
 void MMA::HessianOfDual()
 {
   StdVector<double> pij_qij(n*m); // ( Pij/(Uj - xj)^2 + Qij/(xj - Lj)^2 )
@@ -705,10 +714,17 @@ void MMA::Solve(StdVector<double> &K, StdVector<double> &x, const int nn)
     x[i] = a/K[i*nn+i];
   }
 }
-
+/** according to N.Aage paper section 3.2*/
 void MMA::DualLineSearch()
 {
   double theta=1.005;
+  /*
+  for (unsigned int i=0;i<m;i++) {
+    theta = max(theta, -1.01*s[i]/lamda[i]);
+    theta = max(theta, -1.01*s[i+m]/mu[i]);
+  }
+ */
+
   for (unsigned int i=0;i<m;i++){
     if (theta < -1.01*s[i]/lamda[i]){
       theta = -1.01*s[i]/lamda[i];
