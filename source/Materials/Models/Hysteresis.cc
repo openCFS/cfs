@@ -199,6 +199,8 @@ namespace CoupledField
 		Double resNorm = res.NormL2();
 		Double resShiftedNorm = resShifted.NormL2();
 		Vector<Double> tmp = Vector<Double>(dim_);
+//    tmp = computeJacobianTimesVector(x, Vector<Double>& v, 
+//          Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx)
 		jac.Mult(xUpdate,tmp);
 		
 		tmp = tmp + res;
@@ -343,7 +345,7 @@ namespace CoupledField
     return success;
   }
   
-  Vector<Double> Hysteresis::computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv){
+  Vector<Double> Hysteresis::computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv){
     /*
      *    yVal = mu*xVal + hystVal(xVal)
      * 
@@ -412,7 +414,7 @@ namespace CoupledField
       }
     }
     //      traceMsg << "starting Xval: " << xVal.ToString() << std::endl;
-    assert(!xVal.ContainsNaN() && !xVal.ContainsInf());
+    assert(!startXVector.ContainsNaN() && !startXVector.ContainsInf());
     
     Vector<Double> dir = Vector<Double>(dim_);
     dir.Init();
@@ -443,12 +445,275 @@ namespace CoupledField
     return startXVector;
   }
   
-  Matrix<Double> Hysteresis::computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
+  Vector<Double> Hysteresis::computeUpdate_Newton(Vector<Double>& x, Vector<Double>& y, 
+      Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx){
+    
+    /*
+     * Jac*dX = -res
+     * > solve directly
+     */
+    Matrix<Double> jac = computeJacobian(x, hyst_x, 
+          mu_inv, operatorIdx, 1.0, 0, false, 0); 
+    UInt vecSize = x.GetSize();
+    Matrix<Double> jacInv = Matrix<Double>(vecSize,vecSize);
+    jac.Invert(jacInv);
+    
+    Vector<Double> res = computeResidual(x,y,hyst_x,mu_inv);
+    Vector<Double> dx = Vector<Double>(vecSize);
+    jacInv.Mult(res,dx);
+    
+    dx.ScalarMult(-1.0);
+    return dx;
+  }
+    
+  Vector<Double> Hysteresis::computeUpdate_Krylov(Vector<Double>& x, Vector<Double>& y, 
+      Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx){
+    
+      /*
+       * Jac*dX = -res
+       * > solve iteratively by Krylov space method
+       * 
+       * Compute update for Newton-type iteration using a Krylov-space approach
+       * > source: 
+       *  "Jacobian-free Newton-Krylov methods: a survey of approaches and applications"
+       * > i.e. use GMRES
+       * x = current solution
+       * deltaX_0 = initial guess 
+       * r0 = -res(x) - Jac(x) deltaX_0
+       * deltaX_j = deltaX_0 + sum_i=0^j-1 beta_i Jac^i r_0
+       *  > continue till deltaX_j is ok
+       *  > beta_i might be found via linesearch
+       * xNew = x + deltaX_j
+       */
+    
+    /*
+     * GMRES solver taken from Wikipedia
+     */
+    
+    Double tol = 1e-15;
+    // Solve 
+    //  Jac*dX = -res 
+    //  A*x = b
+    // r0 = b - A*x = -res - Jac*dX
+    Vector<Double> dx = Vector<Double>(dim_);
+    dx.Init();
+    Vector<Double> res = computeResidual(x,y,hyst_x,mu_inv);
+    Vector<Double> jacdx = computeJacobianTimesVector(x, dx, y, hyst_x, mu_inv, operatorIdx);
+    
+    Vector<Double> r0 = Vector<Double>(dim_);
+    r0.Add(-1.0,res,-1.0,jacdx);
+    
+    if(r0.NormL2() < tol){
+      return dx;
+    }
+    UInt n = dim_;
+    
+    Vector<Double>* vArray = new Vector<Double>[n+1];
+    Vector<Double>* wArray = new Vector<Double>[n];
+    Matrix<Double> h = Matrix<Double>(n+1,n);
+    Vector<Double> gamma = Vector<Double>(n+1);
+    Vector<Double> coefs = Vector<Double>(n);
+    
+    vArray[0] = Vector<Double>(n);
+    vArray[0].Init();
+    vArray[0].Add(1.0/r0.NormL2(),r0);
+        
+    gamma[0] = r0.NormL2();
+        
+    Vector<Double> q = Vector<Double>(n);
+    Vector<Double> c = Vector<Double>(n+1);
+    Vector<Double> s = Vector<Double>(n+1);
+    Double tmp1,tmp2,beta;
+    UInt j;
+    for(j = 0; j < n; j++ ){
+
+      // q = Av_j = Jac*v_j
+      q = computeJacobianTimesVector(x, vArray[j], y, hyst_x, mu_inv, operatorIdx);
+//      std::cout << "q: " << q.ToString() << std::endl;
+      for(UInt i = 0; i <= j; i++){
+        h[i][j] = vArray[i].Inner(q);
+        q.Add(-h[i][j],vArray[i]);
+      }
+//      std::cout << "q: " << q.ToString() << std::endl;
+//      std::cout << "h: " << h.ToString() << std::endl;
+//      std::cout << "vArray["<<j<<"]: " << vArray[j].ToString() << std::endl;
+//      std::cout << "2" << std::endl;
+      wArray[j] = Vector<Double>(n);
+      wArray[j] = q;
+//      for(UInt i = 0; i <= j; i++){
+//        wArray[j].Add(-h[i][j],vArray[i]);
+//      }
+//      std::cout << "wArray["<<j<<"]: " << wArray[j].ToString() << std::endl;
+      h[j+1][j] = wArray[j].NormL2();
+//      std::cout << "3" << std::endl;
+      for(UInt i = 0; i < j; i++){
+        tmp1 = c[i+1]*h[i][j] + s[i+1]*h[i+1][j];
+        tmp2 = -s[i+1]*h[i][j] + c[i+1]*h[i+1][j];
+        h[i][j] = tmp1;
+        h[i+1][j] = tmp2;
+      }
+//      std::cout << "4" << std::endl;
+      beta = std::sqrt(h[j][j]*h[j][j] + h[j+1][j]*h[j+1][j]);
+      s[j+1] = h[j+1][j]/beta;
+      c[j+1] = h[j][j]/beta;
+      h[j][j] = beta;
+//      std::cout << "5" << std::endl;
+      gamma[j+1] = -s[j+1]*gamma[j];
+      gamma[j] = c[j+1]*gamma[j];
+//      std::cout << "6" << std::endl;
+//      std::cout << "gamma[" << j+1 << "]: " << gamma[j+1] << std::endl;
+      if(abs(gamma[j+1]) >= tol){
+        vArray[j+1] = Vector<Double>(n);
+        vArray[j+1].Init();
+        vArray[j+1].Add(1.0/h[j+1][j],wArray[j]);
+      } 
+      else {
+        break;
+      }
+    }
+//    std::cout << "7" << std::endl;
+//    std::cout << "j " << j << std::endl;
+    for(int i = (int) j; i >= 0; i--){
+//      std::cout << "i " << i << std::endl;
+      coefs[i] = gamma[i];
+      for(UInt k = i+1; k <= j; k++){
+//        std::cout << "k " << k << std::endl;
+        coefs[i] -= h[i][k]*coefs[k];
+      }
+//      std::cout << "h["<<i<<"]["<<i<<"]: " << h[i][i] << std::endl;
+//      std::cout << "coefs["<<i<<"]: " << coefs[i] << std::endl;
+      if(abs(h[i][i])<1e-19){
+        coefs[i] = 0.0;
+      } else {
+        coefs[i] /= h[i][i];
+      }
+    }
+//    std::cout << "8" << std::endl;
+    for(UInt i = 0; i <= j; i++){
+      dx.Add(coefs[i],vArray[i]);
+    }
+    return dx;
+  }
+
+    
+//    
+//    
+//    
+//    
+//    
+//    
+//    
+//    
+//    
+//      UInt maxSteps = 4;
+//      UInt vecSize = x.GetSize();
+//      Vector<Double> deltaX = Vector<Double>(vecSize);
+//      // deltaX_0 usually can be set to 0
+//      deltaX.Init();
+//      
+//      Vector<Double> r = Vector<Double>(vecSize);
+//      r.Init();
+//      Vector<Double> res_x = computeResidual(x,y,hyst_x,mu_inv);
+//      Vector<Double> jacv = computeJacobianTimesVector(x, deltaX, y, hyst_x, mu_inv, operatorIdx);
+//      r.Add(-1.0,res_x,-1.0,jacv);
+//      
+//      /*
+//       * 1. step; Jac^0 = Identity
+//       */
+//      Double beta = 1.0;
+//      deltaX.Add(beta,r);
+//      
+//      /*
+//       * remaining steps > use recursing approach
+//       *  deltaX_j = deltaX_0 + sum_i=0^j-1 beta_i Jac^i r_0
+//       *           = deltaX_j-1 + beta_j-1 Jac^j-1 r_0
+//       *           = deltaX_j-1 + beta_j-1 Jac r_j-1
+//       *           = deltaX_j-1 + beta_j-1 r_j
+//       */
+//      Vector<Double> tmp = Vector<Double>(vecSize);
+//      for(UInt i = 2; i < maxSteps; i++){
+//        // compute r_j = Jac*r_j-1
+//        tmp = computeJacobianTimesVector(x, r, y, hyst_x, mu_inv, operatorIdx);
+//        r = tmp;
+//        
+//        deltaX.Add(beta,r);
+//        if(r.NormL2() < 1e-16){
+//          break;
+//        }
+//      }
+//      return deltaX;
+//    };
+  
+  Vector<Double> Hysteresis::computeJacobianTimesVector(Vector<Double>& x, Vector<Double>& v, 
+          Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx){
+    
+    /*
+     * Function for Jacobian-Free-Newton-Krylov
+     * Instead of computing/approximating the Jacobian and then compute
+     * Jacobian*vecForMultiplication
+     * we instead approximate
+     * Jacobian*vecForMultiplication directly via
+     * 
+     *  Jac*v \approx [F(x + eps*v) - F(x)]/eps
+     * 
+     * with 
+     *  F(x) = residual wrt x = x + mu_inv( hyst_x/mu - y )
+     *  x = current solution
+     *  v = vector for multiplication
+     *  hyst_x = Hystoperator evaluated at x
+     *  y = target vector
+     */
+    Double eps;
+    if(v.NormL2() != 0){
+      eps = std::sqrt((1.0 + x.NormL2())*1e-15)/v.NormL2();
+    } else {
+      eps = 1e-16;
+    }
+//    std::cout << "--- eps: " << eps << std::endl;
+    UInt vecSize = x.GetSize();
+    Vector<Double> res_x = computeResidual(x,y,hyst_x,mu_inv);
+    Vector<Double> xv = Vector<Double>(vecSize);
+    xv.Init();
+    xv.Add(1.0,x,eps,v);
+    
+    bool overwriteMem = false;
+    bool debugOut = false;
+    int successFlag = 0;
+    Vector<Double> hyst_xv = computeValue_vec(xv, operatorIdx, overwriteMem, debugOut, successFlag);
+    Vector<Double> res_xv = computeResidual(xv,y,hyst_xv,mu_inv);
+    Vector<Double> jacv = Vector<Double>(vecSize);
+    jacv.Init();
+    jacv.Add(1.0/eps,res_xv,-1.0/eps,res_x);
+    
+    /*
+     * for testing:
+     * compute Jacobian and multiply by v
+     */
+    bool testing = false;
+    if(testing){
+      Matrix<Double> jac = computeJacobian(x, hyst_x, 
+            mu_inv, operatorIdx, 1.0, 0, false, 0); 
+
+      Vector<Double>tmp = Vector<Double>(vecSize);
+      jac.Mult(v,tmp);
+      Vector<Double>jacv2 = Vector<Double>(vecSize);
+      jacv2 = tmp;
+
+      tmp.Add(-1.0,jacv);
+      std::cout << "--- jac*v - jacv = " << tmp.ToString() << std::endl;
+
+      return jacv2;
+    }
+    
+    return jacv;
+  }
+  
+  Matrix<Double> Hysteresis::computeJacobian(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
 					bool overwriteMemory, int stayBelowSat) {
     
-    LOG_DBG(vecpreisachInversion) << " --------- computeJacobianOfAbsResidualX --------- ";
-    //    LOG_DBG(vecpreisach) << "VecPreisach::computeJacobianOfAbsResidualX";
+    LOG_DBG(vecpreisachInversion) << " --------- computeJacobian --------- ";
+    //    LOG_DBG(vecpreisach) << "VecPreisach::computeJacobian";
     if((xVal.NormL2() > XSaturated_)&&(stayBelowSat==1)){
       EXCEPTION("xVal.NormL2() > XSaturated_");
     }
@@ -763,11 +1028,11 @@ namespace CoupledField
       bool debugOut = false;
       Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, debugOut, successFlag);
       Vector<Double> hystOld = computeValue_vec(xVal, operatorIdx, overwriteMemory, debugOut, successFlag);
-      Vector<Double> resSol = computeAbsResidualX(sol,yVal,hystSol, mu_inv);
+      Vector<Double> resSol = computeResidual(sol,yVal,hystSol, mu_inv);
       //      Vector<Double> resSol = computeResidual(sol,yVal,hystSol,mu,mu_inv,wrtX,relative);
       
       hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, debugOut, successFlag);
-      resNew = computeAbsResidualX(xNew,yVal,hystNew,mu_inv);
+      resNew = computeResidual(xNew,yVal,hystNew,mu_inv);
       //      resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
       
       LOG_DBG(vecpreisachlinesearch) << "hyst vector for sol: " << hystSol.ToString();
@@ -813,7 +1078,7 @@ namespace CoupledField
           LOG_DBG(vecpreisachlinesearch) << "Cut down xUpdate = " << xUpdate.ToString();
           // check again
           hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, debugOut, successFlag);
-          resNew = computeAbsResidualX(xVal,yVal,hystNew,mu_inv);
+          resNew = computeResidual(xVal,yVal,hystNew,mu_inv);
           //          resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
           success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
           LOG_DBG(vecpreisachlinesearch) << "xNew (after cut): " << xNew.ToString();
@@ -1247,6 +1512,8 @@ namespace CoupledField
      *      xNew = xVal + s deltaX
      * 
      * >> big advantage: Jac is not required directly but only Jac*someVector
+     * >> alternative:
+     *    move linesearch to computation of deltaX to determine beta_i
      * 
      * Levenberg-Marquardt:
      *  > try to compensate issues with Jacobian by regularization
@@ -1310,6 +1577,8 @@ namespace CoupledField
      * Start actual LM iteration
      */
 //    std::cout << "stayBelowSat: " << stayBelowSat << std::endl;
+    Vector<Double> xVal_krylov = Vector<Double>(dim_);
+    xVal_krylov = xVal;
     while(true){ 
       itCnt++;
       totalNumberOfLMIterations++;
@@ -1322,8 +1591,8 @@ namespace CoupledField
       //          ClipDirection(xVal);
       hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
       
-      res = computeAbsResidualX(xVal,yVal,hystVal,mu_inv);
-      jac = computeJacobianOfAbsResidualX(xVal,hystVal, mu_inv, 
+      res = computeResidual(xVal,yVal,hystVal,mu_inv);
+      jac = computeJacobian(xVal,hystVal, mu_inv, 
               operatorIndex, sign, implementation, overwriteMemory, stayBelowSat);
       
       jac.Transpose(jacT);
@@ -1409,6 +1678,13 @@ namespace CoupledField
               operatorIndex, overwriteMemory, alpha, alphaMin, alphaMax, 
               numberOfIterations,xStart,factorToSat,stayBelowSat,sol);
       
+      Vector<Double> xUpdate_Krylov = computeUpdate_Krylov(xVal, yVal, hystVal, mu_inv, operatorIndex);
+      Vector<Double> xUpdate_Newton = computeUpdate_Newton(xVal, yVal, hystVal, mu_inv, operatorIndex);
+      std::cout << "-- xUpdate - LM: " << xUpdate.ToString() << std::endl;
+      std::cout << "-- xUpdate - Krylov: " << xUpdate_Krylov.ToString() << std::endl;
+      std::cout << "-- xUpdate - Newton: " << xUpdate_Newton.ToString() << std::endl;
+      xVal_krylov.Add(xUpdate_Krylov);
+      
       if(alpha < minAlphaStatistics){
         minAlphaStatistics = alpha;
       }
@@ -1437,6 +1713,9 @@ namespace CoupledField
       }
       sign = sign*(-1.0);
     }
+    std::cout << "xVal - LM: " << xVal.ToString() << std::endl;
+    std::cout << "xVal - Krylov: " << xVal_krylov.ToString() << std::endl;
+    
     
     //      std::cout << "xVal.NormL2(): " << xVal.NormL2() << std::endl;
     //      std::cout << "XSaturated_: " << XSaturated_ << std::endl;

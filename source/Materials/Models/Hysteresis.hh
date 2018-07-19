@@ -205,12 +205,21 @@ namespace CoupledField {
     Integer checkIncrementOLD(Vector<Double>& xNew, Vector<Double>& xUpdate, 
 		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
     
-    Vector<Double> computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
+    Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
         
-    Matrix<Double> computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
+    Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
 					bool overwriteMemory, int stayBelowSat);
-
+    
+    Vector<Double> computeUpdate_Newton(Vector<Double>& x, Vector<Double>& y, 
+      Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
+    
+    Vector<Double> computeUpdate_Krylov(Vector<Double>& x, Vector<Double>& y, 
+      Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
+    
+    Vector<Double> computeJacobianTimesVector(Vector<Double>& x, Vector<Double>& v, 
+      Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
+      
     bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
       Integer operatorIdx, bool overwriteMemory,
