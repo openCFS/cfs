@@ -1,7 +1,8 @@
 import numpy as np
 import math
 import sys
-from anytree import Node
+import copy # for deep copy
+from anytree import Node, find_by_attr, findall_by_attr
 from draw_profile_functions import cartesian_to_voxel_coords, voxel_to_cartesian_coords, give_normal_plane_axes
 
 regularCellClass = None
@@ -14,8 +15,6 @@ transitionVertexData = None
 # use tree to store connectivity between marching cubes
 root = None
 tree_nodes = None
-
-
 
   # the coordinate system is a left-hand sided coorddinate system with y pointing into the screen  
   # 
@@ -82,10 +81,9 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
           continue
         
         # non-trivial configuration -> add this marching cube to tree
-        tree_nodes[i,j,k] = Node(mc.global_blf,parent=parent,mc=mc)
-        
+        tree_nodes[i,j,k] = Node(str(tuple(mc.global_blb)),parent=parent,mc=mc)
         # triangulate Marching Cubes
-        mc.triangulate(voxels,h)
+        mc.triangulate(voxels)
         
         assert(len(mc.angles) > 0)
         if cubeSize > 1 and not np.all(np.array(mc.angles) < 30):
@@ -98,21 +96,38 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
     triangles = []
     normals = []
     # search for all tree leaves
-    leaf_keys = []
-    count = 0
     for node in PreOrderIter(root):
       if node.is_leaf:
         mc = node.mc
         off = len(points)-1
-        points.extend(mc.points)
-        normals.extend(mc.normals)
+        # depth: number of levels to root
+        if node.depth - root.height != 0: # low-res level
+          # check if there is a transition to a high-res MC at one of the 6 faces
+          size = mc.size
+          neighbor_inds = neighbor_face_indices(mc.global_blb,mc.size)
+          assert(len(neighbor_inds) == 6)
+          for nid in neighbor_inds:
+            # check if neighbor exists
+            neighbor = find_by_attr(root,str(tuple(nid)),maxlevel=2)
+            if neighbor and len(neighbor.children) > 0:
+              children = neighbor.children
+              # we have a transition!
+              print("transition from ", mc.global_blb, " to ", neighbor.mc.global_blb)
+              points.extend(mc.verts_cands[0])
+              normals.extend(mc.norms_cands[0])
+              tmp_triangles = [(t[0]+off,t[1]+off,t[2]+off) for t in mc.triangle_cands[0]]
+              triangles.extend(tmp_triangles)
+              write_vtp(points, triangles, h,normals=normals)
+              sys.exit()
+        else:  
+          points.extend(mc.verts_cands[0])
+          normals.extend(mc.norms_cands[0])
 #         print("off:",off)
 #         if count == 10:
 #           break
-        tmp_triangles = [(t[0]+off,t[1]+off,t[2]+off) for t in mc.triangles]
+        tmp_triangles = [(t[0]+off,t[1]+off,t[2]+off) for t in mc.triangle_cands[0]]
 #         print(tmp_triangles)
         triangles.extend(tmp_triangles)
-        count += 1
         
 #     print("leaf keys:",leaf_keys)
     write_vtp(points, triangles, h,normals=normals)
@@ -386,12 +401,6 @@ def calc_shifted_corner_verts(c0,c1,corners,voxels,h):
 #     
 #   return False
 # 
-# # calculate offsets for secondary vertex positions resulting
-# # from a regular cell, see Lengyel's diss equation 4.2
-# # p: cart. coords of a vertex of a low-res MC
-# def calc_transition_offsets(p,cubeSize):
-#   return 0.5 * cubeSize * np.array([hx,hy,hz])
-# 
 # def calc_case_code_transition(voxels,cornerIndizes,thresh=0.5):
 # #   print("cornerIndizes:",cornerIndizes)
 #   caseCode = 0
@@ -408,17 +417,17 @@ def calc_shifted_corner_verts(c0,c1,corners,voxels,h):
 #   return caseCode
 
 class Marching_Cube():
-  def __init__(self,voxels,h,blf,size,offset,regular=True):
+  def __init__(self,voxels,h,blb,size,offset,regular=True):
     self.regular = True
     self.size = size # edge length in one dimension
     self.h = h
     assert(size > 0)
-    self.blf = blf # bottom-left-front (bottom-south-west) voxel coordinate  
-    assert(len(blf) == 3)
+    self.blb = blb # bottom-left-back (bottom-south-west) voxel coordinate  
+    assert(len(blb) == 3)
     ncorners = 8
     self.corners = [None] * ncorners
     self.offset = offset if offset is not None else (0,0,0)
-    self.global_blf = np.array(self.blf) + np.array(self.offset)
+    self.global_blb = np.array(self.blb) + np.array(self.offset)
     # bottom/top face:
     # NW  ----------- NE  
     #  |              |   ^ 
@@ -428,9 +437,9 @@ class Marching_Cube():
     #  |              |   ------>i
     # SW  ----------- SE
     
-    i = blf[0]
-    j = blf[1]
-    k = blf[2]
+    i = blb[0]
+    j = blb[1]
+    k = blb[2]
     bottom_SW = (i,j,k)
     bottom_SE = (i+size,j,k)
     bottom_NW = (i,j+size,k)
@@ -463,7 +472,36 @@ class Marching_Cube():
   
     return caseCode  
   
-  def triangulate(self,voxels,h):
+  def triangulate(self,voxels):
+    self.verts_cands = []
+    self.triangle_cands = []
+    self.norms_cands = []
+    # calculate 6 other scenarios for transition case
+    # using 'scale' to determine which face to scale
+    # scale order: 0: no scale,  1: right face (+x), 2: back face (+y), 3: top face (+z)
+    # 4: left face (-x), 5: front face (-y), 6: bottom face (-z)  
+    for scale in range(7):
+      p, t, n, a = self.triangulate_scaled(voxels, scale)
+      if scale == 0:
+        self.angles = a
+        
+      self.verts_cands.append(p)
+      self.triangle_cands.append(t)
+      self.norms_cands.append(n)
+      
+  def triangulate_scaled(self,voxels,scale=0):
+    ncorners = len(self.corners)
+    # scaling factor
+    fact = np.ones(3)
+    anchor = self.corners[0].coords
+    if 0 < scale < 4: # +x, +y or +z 
+      fact[scale-1] = 0.25 * self.size
+    elif 3 < scale < 7:
+      anchor = self.corners[ncorners-1].coords
+      fact[scale-4] = 0.25 * self.size
+    else:
+      assert(scale == 0)  
+      
     assert(len(self.corners) == 8 )
     assert(self.size > 0)
     cellClassTable = None
@@ -471,6 +509,21 @@ class Marching_Cube():
     cellDataTable = None
     
     cornerNormals = calc_corner_normals(voxels, self.cornerIndizes,self.size)
+    
+    # scale corners
+    corners = copy.deepcopy(self.corners)
+    for i in range(ncorners):
+      # move to origin/anchor to scale, then move back
+      corners[i].coords = fact * (np.array(corners[i].coords) - anchor) + anchor
+    
+#     if fact[0] < 1 or fact[1] < 1 or fact[2] < 1:  
+#       print("\nscaled box with corners with factor ",fact, " and dir ", scale)
+#       for c in self.corners:
+#         print(c.coords)
+#         
+#       print(" to ")
+#       for c in corners:
+#         print(c.coords)       
     
     if self.regular:
       cellClassTable = regularCellClass
@@ -504,18 +557,16 @@ class Marching_Cube():
     tmp_triangles = []
     tmp_normals = []
     mappedIndizes = [None] * len(indices) # map from point id to real id
-    corners = self.corners
     # run over all number of vertices in triangulation
     # and add right vertex and respective normal to points/normals list
     for vc in range(vertexCount):
       v0 = (vertexLocations[vc] >> 4) & 0x0F # First Corner Index
       v1 = (vertexLocations[vc]) & 0x0F # Second Corner Index
       
-      import copy 
       first = copy.deepcopy(corners[v0])
       second = copy.deepcopy(corners[v1])
       if self.size > 1 and not sameVector(corners[v0].coords, corners[v1].coords):
-        first, second = calc_shifted_corner_verts(v0, v1, corners, voxels, h)
+        first, second = calc_shifted_corner_verts(v0, v1, corners, voxels, self.h)
         
       vert, mu = VertexInterp(0.5,first,second)
         
@@ -555,12 +606,21 @@ class Marching_Cube():
         angles.append(calc_angle(n0, n2))
         angles.append(calc_angle(n1, n2))    
     
-    self.points = tmp_points
-    self.triangles = tmp_triangles
-    self.normals = tmp_normals
-    self.angles = angles
-    assert(len(points) == len(normals))
-    
+    assert(len(tmp_points) == len(tmp_normals))
+  
+    return tmp_points, tmp_triangles, tmp_normals, angles
+  
+# for a given voxel coordinate tuple (i,j,k),
+# return a list with bottom-left-back coordinates of the (6) adjacent cubes
+# size: size of MC or step length to next cube
+def neighbor_face_indices(idx,size):  
+  inds = [None] * 6
+  i = idx[0]
+  j = idx[1]
+  k = idx[2]
+  # order: left, right, back, front, bottom, top
+  return [(i-size,j,k),(i+size,j,k),(i,j-size,k),(i,j+size,k),(i,j,k-size),(i,j,k+size)]
+
 # tables take from Eric Lengyel Transvoxel algorithm
 # see http://transvoxel.org/ or Lengyel's dissertation for details
 def create_transvoxel_tables():
