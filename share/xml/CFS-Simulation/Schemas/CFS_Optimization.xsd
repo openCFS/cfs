@@ -677,6 +677,8 @@
                   <xsd:element name="fixed_asymptotes" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <xsd:attribute name="enable" use="required" type="xsd:boolean"/>
+                      <xsd:attribute name="upper_multiplier" default="true" use="optional" type="xsd:boolean"/>
+                      <xsd:attribute name="lower_multiplier" default="true" use="optional" type="xsd:boolean"/>
                       <xsd:attribute name="lower" use="optional" type="xsd:float" default="0"/>
                       <xsd:attribute name="upper" use="optional" type="xsd:float" default="10"/>
                     </xsd:complexType>
