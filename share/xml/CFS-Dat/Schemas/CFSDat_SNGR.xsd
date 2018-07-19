@@ -50,7 +50,7 @@
               <xsd:attribute name="resultName" type="xsd:token" use="required"/>
             </xsd:complexType>
           </xsd:element>
-          <xsd:element name="intermediateResult" maxOccurs="1" minOccurs="1">
+          <xsd:element name="intermediateResult" maxOccurs="1" minOccurs="0">
             <xsd:complexType>
               <xsd:attribute name="resultName" type="xsd:token" use="required"/>
             </xsd:complexType>

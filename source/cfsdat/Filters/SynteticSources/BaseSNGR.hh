@@ -37,7 +37,7 @@ public:
 
 protected:
 
-  virtual void FinishInit();
+  virtual void PrepareCalculation();
 
   virtual ResultIdList SetUpstreamResults();
 
@@ -45,20 +45,27 @@ protected:
 
 // utility functions
   virtual void GetTkeThreshold();
-  virtual void SetRandVectors(UInt k, UInt j);
-  virtual void SetVelocityAmplitude(UInt k, UInt j);
+  virtual void SetRandVectors(UInt k, UInt j, Double rmsOfVelFluct, Vector<Double> kn);
+  virtual void SetVelocityAmplitude(UInt k, UInt j, Double peakWN, Double deltaWN,
+      Double kolmogorovWN, Double rmsOfVelFluct, Vector<Double> kn);
+  virtual void PrepareMethod();
+  virtual void SetRandVectorsBillson();
 
 // method blocks
-  virtual void PrepareMethodBailly();
+  // Bailly & Juvé, 1999
+  virtual void InitArraysBailly();
+  virtual void InitResultMethodBailly();
+  virtual void SetTimelineMethodBailly(UInt k);
 
-  virtual void UpdateResultMethodBailly();
+  // Billson, Eriksson & Davidson, 2003
+  virtual void InitArraysBillson();
+  virtual void UpdateResultBillson();
+  virtual void InitTimelineBillsonSNGR(UInt i);
+  //virtual void FinalTimelineMethodBillsonSNGR();
 
-  virtual void SetTimelineMethodBailly();
-
-  //virtual void PrepareMethodBillsonSNGR(); //BillsonSNGR, weil es gibt noch BillsonSAT
-
-//  virtual void InitTimelineBillsonSNGR(UInt i);
-//virtual void FinalTimelineMethodBillsonSNGR();
+  // Lafitte, Le Garrec, Bailly & Laurendeau, 2014
+  virtual void InitArraysLafitte();
+  virtual void UpdateResultLafitte();
 
   //! for the mesh-check this mesh also needs to be stored, trgGrid_ is
   //! stored in MeshFilter
@@ -98,18 +105,16 @@ protected:
   Double TKEcrit_;
   Double minTKE_;
   Double sigLength_;
-  Double fL_;
-  Double ft_;
+  Double fL_; // length scale factor
+  Double ft_; // time scale factor
   Double fa_;
   Double maxWN_;
   Double minWN_;
   Double c_mu_ = 0.09; // constand of k-epsilon model
   Double A_ = 1.452762;   // constand of SNGR
+  Double C_k_ = 0.5;      // 'universal' Kolmogorov constant, not so universal as it may seem.
   Double deltaT_;
-  Double deltaWN_; // wave number step in energy spectrum TODO see line 111 dWN_
-  Double rmsOfVelFluct_;
-  Double kolmogorovWN_;
-  Double peakWN_;
+
   UInt maxFreq_;
   UInt minFreq_;
   UInt numModes_;
@@ -118,6 +123,19 @@ protected:
   UInt numNodes_;
   UInt tkeFAIL_ = 0;     // counter for nodes for which the deviation of reconstructed and read TKE is not small enough.
   UInt perpFAIL_ = 0;    // counter for nodes for which waveVec and dirVec are not sufficiently perpendicular to one another
+
+// for Billson method
+  Vector<Double> waveNumIncrements_;
+  Vector<Double> initVelocity_;
+
+// for Lafitte method
+  Vector<Double> peakWNLafitte_;
+  Vector<Double> cutOffWNLafitte_;
+  Vector<UInt> numLargeScaleModes_;
+  Vector<Double> timeScale_;
+  Double aveTDR_;
+  Double numModesBackup_ = numModes_;
+
 //  UInt flg_=0; // counter for number of nodes the TKE-Criterion is met
   Vector<Double> idsNodesToProcess_;
   Vector<Double> waveVec_; // wave vector
@@ -130,7 +148,7 @@ protected:
   Vector<Double> turbReconstVelocity_;
   Vector<Double> stepValues_; // time step values of calculated time line
   Vector<Double> phase_;
-  Vector<Double> kn_;  // array of all wave number values
+
   Vector<Double> randAngles_; // array of theta and phi for defining wave vector in space
   //INPUT from RANS solution
   Vector<Double> TKE_;
