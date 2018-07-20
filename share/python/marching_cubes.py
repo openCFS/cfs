@@ -49,11 +49,6 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
   # a regular marching cube (MC) has 8 corners/vertices
   num_mc_corners = 8
   nx, ny, nz = voxels.shape
-  
-  if cubeSize == 1:
-    assert(transitionList is not None)
-  else:
-    transitionList = []
 
   #edgeTable, triTable = create_lookup()
   if regularCellClass is None:
@@ -95,11 +90,15 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
     points = []
     triangles = []
     normals = []
+    count = 0
     # search for all tree leaves
     for node in PreOrderIter(root):
       if node.is_leaf:
         mc = node.mc
         off = len(points)-1
+        tmp_points = tmp_triangles = tmp_normals = None
+        transition = False
+        trans_dir = np.zeros(7)
         # depth: number of levels to root
         if node.depth - root.height != 0: # low-res level
           # check if there is a transition to a high-res MC at one of the 6 faces
@@ -110,26 +109,34 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
             # check if neighbor exists
             neighbor = find_by_attr(root,str(tuple(nid)),maxlevel=2)
             if neighbor and len(neighbor.children) > 0:
-              children = neighbor.children
               # we have a transition!
-              print("transition from ", mc.global_blb, " to ", neighbor.mc.global_blb)
-              points.extend(mc.verts_cands[0])
-              normals.extend(mc.norms_cands[0])
-              tmp_triangles = [(t[0]+off,t[1]+off,t[2]+off) for t in mc.triangle_cands[0]]
-              triangles.extend(tmp_triangles)
-              write_vtp(points, triangles, h,normals=normals)
-              sys.exit()
-        else:  
-          points.extend(mc.verts_cands[0])
-          normals.extend(mc.norms_cands[0])
-#         print("off:",off)
-#         if count == 10:
-#           break
-        tmp_triangles = [(t[0]+off,t[1]+off,t[2]+off) for t in mc.triangle_cands[0]]
-#         print(tmp_triangles)
+              transition = True
+              trans_dir += calc_transition_flags(mc.global_blb, neighbor.mc.global_blb)
+              
+#               write_vtp(points, triangles, h,normals=normals)
+#               sys.exit()
+              count += 1
+          
+#           print("trans_dir:",trans_dir)
+          tmp_points, tmp_triangles, tmp_normals, _ = mc.triangulate_scaled(voxels,scale=trans_dir)    
+
+        if not transition: 
+          assert(mc.points)
+          assert(mc.normals)
+          assert(mc.triangles)
+          tmp_points = mc.points
+          tmp_normals = mc.normals
+          tmp_triangles = mc.triangles
+          
+        points.extend(tmp_points)
+        normals.extend(tmp_normals)
+        tmp_triangles = [(t[0]+off,t[1]+off,t[2]+off) for t in tmp_triangles]
         triangles.extend(tmp_triangles)
+      
+#       if count > 1:
+#         write_vtp(points, triangles, h,normals=normals)
+#         sys.exit()
         
-#     print("leaf keys:",leaf_keys)
     write_vtp(points, triangles, h,normals=normals)
 #     from anytree.exporter import DotExporter
 #     DotExporter(root).to_picture("test.png")
@@ -177,6 +184,46 @@ def smaller(p1,p2):
   
   return False  
 
+# returns list with 7 entries with flags (0 or 1) for which cube face transition from low-res to
+# high-res cell takes place - entries are of type Cube_faces/ints
+# neglect first entry as it stand for no transition at all
+# input: bottom-left-back coord of low-res cell and high-res cell
+def calc_transition_flags(lowres,highres):
+  print("transition from ", lowres, " to ", highres)
+  diff = np.array(highres) - np.array(lowres)
+  signs = [np.sign(d) if d != 0 else 0 for i,d in enumerate(diff.astype(int))]
+  print("signs:", signs)
+  
+  if not np.any(signs):
+    print("here should be a transition but none found!")
+    sys.exit()
+  
+  res = np.zeros(7)
+  if signs[0] > 0:
+    res[Cube_face.right] = 1
+  elif signs[0] < 0:
+    res[Cube_face.left] = 1
+  
+  if signs[1] > 0:
+    res[Cube_face.back] = 1   
+  elif signs[1] < 0:
+    res[Cube_face.front] = 1
+  
+  if signs[2] > 0:
+    res[Cube_face.top] = 1   
+  elif signs[2] < 0:
+    res[Cube_face.bottom] = 1
+    
+  print("res:",res)  
+  
+  return res  
+
+# enum for faces of a cube, need this to set transition direction in triangulate_scaled()
+# scale order: 0: no scale,  1: right face (+x), 2: back face (+y), 3: top face (+z)
+# 4: left face (-x), 5: front face (-y), 6: bottom face (-z)   
+class Cube_face:
+  center, right, back, top, left, front, bottom = range(7) 
+ 
 class Vertex():
   # voxel_coords: (i,j,k) of this vertex in voxel world
   # h: lattice spacing in 3 directions
@@ -184,6 +231,7 @@ class Vertex():
   def __init__(self,value,coords):
     self.value = value
     self.coords = coords
+    
 class TransitionCellz():
   # voxels: voxel field
   # h: lattice spacing in 3 directions
@@ -473,34 +521,34 @@ class Marching_Cube():
     return caseCode  
   
   def triangulate(self,voxels):
-    self.verts_cands = []
-    self.triangle_cands = []
-    self.norms_cands = []
-    # calculate 6 other scenarios for transition case
-    # using 'scale' to determine which face to scale
-    # scale order: 0: no scale,  1: right face (+x), 2: back face (+y), 3: top face (+z)
-    # 4: left face (-x), 5: front face (-y), 6: bottom face (-z)  
-    for scale in range(7):
-      p, t, n, a = self.triangulate_scaled(voxels, scale)
-      if scale == 0:
-        self.angles = a
-        
-      self.verts_cands.append(p)
-      self.triangle_cands.append(t)
-      self.norms_cands.append(n)
-      
+    # regular case
+    self.points, self.triangles, self.normals, self.angles = self.triangulate_scaled(voxels,scale=0)
+  
+  # calculate 6 other scenarios for transition case
+  # using 'scale' to determine which face to scale
+  # scale order: 0: no scale,  1: right face (+x), 2: back face (+y), 3: top face (+z)
+  # 4: left face (-x), 5: front face (-y), 6: bottom face (-z)    
   def triangulate_scaled(self,voxels,scale=0):
     ncorners = len(self.corners)
     # scaling factor
     fact = np.ones(3)
     anchor = self.corners[0].coords
-    if 0 < scale < 4: # +x, +y or +z 
-      fact[scale-1] = 0.25 * self.size
-    elif 3 < scale < 7:
-      anchor = self.corners[ncorners-1].coords
-      fact[scale-4] = 0.25 * self.size
-    else:
-      assert(scale == 0)  
+    if np.isscalar(scale):
+      scale = [scale]
+    scale = np.array(scale).astype(int)
+    
+    for i,s in enumerate(scale):
+      if s != 0:
+        if 0 < i < 4: # +x, +y or +z 
+          fact[i-1] = 0.25 * self.size
+        elif 3 < i < 7:
+          anchor = self.corners[ncorners-1].coords
+          fact[i-4] = 0.25 * self.size
+        else:
+          assert(i == 0)  
+    
+    if scale[0] != 0:
+      print("fact:",fact)
       
     assert(len(self.corners) == 8 )
     assert(self.size > 0)
