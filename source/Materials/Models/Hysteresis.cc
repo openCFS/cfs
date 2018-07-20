@@ -1011,6 +1011,18 @@ namespace CoupledField
       EXCEPTION("xInput to Linesearch already below saturation > must not be the case!");
     }
     
+    UInt mode = 0;
+    /*
+     * mode:
+     * 0 = LevenbergMarquardt
+     * 1 = Newton, direct solve
+     * 2 = Newton, Krylov space solution
+     */
+    if(mode != 0){
+      alphaMax = 1.0;
+      alphaMin = 0.01;
+    }
+    
 		UInt maxIter = 150;
     UInt itCnt = 0;
     
@@ -1038,125 +1050,54 @@ namespace CoupledField
     xNew.Init();
     xNew.Add(xVal);
     Double alphaMinLocal = alphaMin;
- 
-//    
-//    
-//    LOG_DBG(vecpreisachlinesearch) << "Determine minimal alpha that allows inversion of jacTjac";
-//    LOG_DBG(vecpreisachlinesearch) << "Given alphaMin: " << alphaMin;        
-//    Double minDeterminant = 1e-12;  
-//    Double incrFactor = std::sqrt(2.0);
-//    while(true){
-//      matToInvert = jacTjac;
-//      jacTjac.Determinant(detMatToInvert);
-//      LOG_DBG(vecpreisachlinesearch) << " det(jacTjac) =  " << detMatToInvert;
-//      
-//      for(UInt i = 0; i < dim_; i++){
-//        matToInvert[i][i] += alphaMinLocal*alphaMinLocal;
-//      }
-//      matToInvert.Determinant(detMatToInvert);
-//      if(abs(detMatToInvert)>=minDeterminant){
-//        //      if(detMatToInvert != 0){
-//        break;
-//      } else {
-//        alphaMinLocal = alphaMinLocal*incrFactor;
-//      }
-//      cnt++;
-//      if(cnt > 200){
-//        EXCEPTION("LM, Linesearch: Cannot find alpha, such that jacTjac becomes invertible!");
-//      }
-//    }
-//    LOG_DBG(vecpreisachlinesearch) << "Found alphaMinLocal: " << alphaMinLocal;
-//    
-//    if(alpha < alphaMinLocal){
-//      LOG_DBG(vecpreisachlinesearch) << "Starting alpha < alphaMinLocal";
-//      alpha = alphaMinLocal;
-//    }
-    
-    
-    
-    
-    //    // now reset alpha to alphaMax (note: alphaMax is passed as copy, i.e. if we increase it further
-    //    // below, the actual value of alphaMax is restored during next call
-    //    if(alpha > alphaMax){
-    //      LOG_DBG(vecpreisachlinesearch) << "Current alpha > alphaMax";
-    //      alpha = alphaMax;
-    //    }
-    
-    // start at alphamin
-    alpha = alphaMinLocal;
+
+    // start at alphamin for LM
+    if(mode == 0){
+      alpha = alphaMinLocal;
+    } else {
+      // for Newton, we perform only linesearch; start at middle value between min and max
+      alpha = (alphaMax + alphaMin)/2.0;
+    }
+
     Double alphaAcc = alpha*alpha;
+
+    /*
+     * Newton and Newton-Krylov compute update only once, then use
+     * alpha for stepping
+     */
+    int successFlag = 0;
+    bool debugOut = false;
+    Vector<Double> hystVal = computeValue_vec(xVal,operatorIdx , overwriteMemory, debugOut, successFlag);
+    Vector<Double> xUpdateStart = Vector<Double>(dim_);
+    if(mode == 1){
+      xUpdateStart = computeUpdate_Newton(xVal, yVal, hystVal, mu_inv, operatorIdx);
+    } else if(mode == 2){
+      xUpdateStart = computeUpdate_Krylov(xVal, yVal, hystVal, mu_inv, operatorIdx);
+    }
+    
     while(true){
       itCnt++;
 			// for statistics
 			numberOfIterations=itCnt;
+
+      if(mode == 0){
+        /*
+         * LM computes new update in every iteration as it depends on alpha
+         */
+        xUpdate = computeUpdate_LM(jacTres_neg, 
+                jacTjac, alpha, alphaAcc, alphaMinLocal, 1e16);
+      } else {
+        /*
+         * Newton and Newton-Krylov use alpha as linesearch parameter
+         * > just scale update and check
+         */
+        xUpdate = xUpdateStart;
+        xUpdate.ScalarMult(alphaAcc);
+      }
       
-      LOG_DBG(vecpreisachlinesearch) << "Start Iteration " << itCnt << " with: ";
-      LOG_DBG(vecpreisachlinesearch) << "xVal = " << xVal.ToString();
-      LOG_DBG(vecpreisachlinesearch) << "last found x = " << xNew.ToString();
-      LOG_DBG(vecpreisachlinesearch) << "alpha = " << alpha;
-      
-      
-//      
-//      matToInvert = jacTjac;
-//      // do not reset alphaAcc here > with accumulated alpha it works better
-//      //alphaAcc = 0;
-//      alphaAcc += alpha*alpha;
-//      for(UInt i = 0; i < dim_; i++){
-//        matToInvert[i][i] += alphaAcc;
-//      }
-//      matToInvert.Determinant(detMatToInvert);
-//      
-//      if(abs(detMatToInvert)<minDeterminant){
-//        //      if(detMatToInvert == 0){
-//        //        std::cout << "Matrix not invertible! " << std::endl;
-//        //        std::cout << "matToInvert: " << matToInvert.ToString() << std::endl;
-//        //        std::cout << "Min alpha for inversion: " << alphaMinLocal << std::endl;
-//        //        std::cout << "Current alpha: " << alpha << std::endl;
-//        //        std::cout << "Try to find alpha that works again" << std::endl;
-//        while(true){
-//          matToInvert = jacTjac;
-//          alphaAcc = 0;
-//          alphaAcc += alpha*alpha;
-//          jacTjac.Determinant(detMatToInvert);
-//          LOG_DBG(vecpreisachlinesearch) << " det(jacTjac) =  " << detMatToInvert;
-//          
-//          for(UInt i = 0; i < dim_; i++){
-//            matToInvert[i][i] += alphaAcc;
-//          }
-//          matToInvert.Determinant(detMatToInvert);
-//          if(abs(detMatToInvert)>=minDeterminant){
-//            //      if(detMatToInvert != 0){
-//            break;
-//          } else {
-//            alpha = alpha*incrFactor;
-//          }
-//          cnt++;
-//          if(cnt > 200){
-//            EXCEPTION("LM, Linesearch: Cannot find alpha, such that jacTjac becomes invertible!");
-//          }
-//        }
-//        alphaMinLocal = alpha;
-//      }
-//      assert(detMatToInvert != 0);
-//      matToInvert.Invert(matInverted);
-//      
-//      matInverted.Mult(jacTres_neg,xUpdate);
-//      
-//      assert(!xUpdate.ContainsNaN() && !xUpdate.ContainsInf());
-//      LOG_DBG(vecpreisachlinesearch) << "Computed xUpdate = " << xUpdate.ToString();
-//      
-      
-      
-      
-      
-      xUpdate = computeUpdate_LM(jacTres_neg, 
-          jacTjac, alpha, alphaAcc, alphaMinLocal, 1e16);
-//      
       xNew.Init();
       xNew.Add(1.0,xVal,1.0,xUpdate);
-      LOG_DBG(vecpreisachlinesearch) << "Computed xNew = " << xNew.ToString();
-      LOG_DBG(vecpreisachlinesearch) << "Actual solution = " << sol.ToString();
-      
+
       /*
        * New treatments
        * a) check if xUpdate.Norm > XSaturated
@@ -1192,24 +1133,8 @@ namespace CoupledField
        *      is caused by the update
        *  
        */     
-      int successFlag = 0;
-      bool debugOut = false;
-//      Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, debugOut, successFlag);
-//      Vector<Double> hystOld = computeValue_vec(xVal, operatorIdx, overwriteMemory, debugOut, successFlag);
-//      Vector<Double> resSol = computeResidual(sol,yVal,hystSol, mu_inv);
-      //      Vector<Double> resSol = computeResidual(sol,yVal,hystSol,mu,mu_inv,wrtX,relative);
-      
       hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, debugOut, successFlag);
       resNew = computeResidual(xNew,yVal,hystNew,mu_inv);
-      //      resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
-      
-//      LOG_DBG(vecpreisachlinesearch) << "hyst vector for sol: " << hystSol.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "hystNew: " << hystNew.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "hystOld: " << hystOld.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "Old res vector: " << res.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "New res vector: " << resNew.ToString();
-//      LOG_DBG(vecpreisachlinesearch) << "res vector for sol: " << resSol.ToString();
-      // set stayBelowSat flag to 0 to disable checking
       
       Vector<Double> jac_dx = Vector<Double>(dim_);
       jac.Mult(xUpdate,jac_dx);
@@ -1310,11 +1235,7 @@ namespace CoupledField
         }
       }
     }
-    
-//    std::cout << "alpha: " << alpha << std::endl;
-//    std::cout << "alphaMax: " << alphaMax << std::endl;
-//    std::cout << "alphaAcc: " << std::sqrt(alphaAcc) << std::endl;
-    
+
     return discard;
   }
   
@@ -1757,8 +1678,6 @@ namespace CoupledField
      * Start actual LM iteration
      */
     //    std::cout << "stayBelowSat: " << stayBelowSat << std::endl;
-    Vector<Double> xVal_krylov = Vector<Double>(dim_);
-    xVal_krylov = xVal;
     while(true){ 
       itCnt++;
       totalNumberOfLMIterations++;
@@ -1857,14 +1776,7 @@ namespace CoupledField
       discardUpdate = computeUpdate_LM_full(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
               operatorIndex, overwriteMemory, alpha, alphaMin, alphaMax, 
               numberOfIterations,xStart,factorToSat,stayBelowSat,sol);
-      
-      Vector<Double> xUpdate_Krylov = computeUpdate_Krylov(xVal, yVal, hystVal, mu_inv, operatorIndex);
-      Vector<Double> xUpdate_Newton = computeUpdate_Newton(xVal, yVal, hystVal, mu_inv, operatorIndex);
-      //      std::cout << "-- xUpdate - LM: " << xUpdate.ToString() << std::endl;
-      //      std::cout << "-- xUpdate - Krylov: " << xUpdate_Krylov.ToString() << std::endl;
-      //      std::cout << "-- xUpdate - Newton: " << xUpdate_Newton.ToString() << std::endl;
-      xVal_krylov.Add(xUpdate_Krylov);
-      
+            
       if(alpha < minAlphaStatistics){
         minAlphaStatistics = alpha;
       }
