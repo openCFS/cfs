@@ -184,6 +184,118 @@ namespace CoupledField
     
   }
   
+  Integer Hysteresis::checkIncrementTrustRegion(Vector<Double>& x_new, 
+          Vector<Double>& res_cur, Vector<Double>& res_new,
+          Vector<Double>& jac_dx, Double& alpha, int stayBelowSat){
+    /*
+     * Trust region method with four regions for rho
+     * 
+     * rho = (||F(x)||^2 - ||F(x + increment)||^2) /
+     *       (||F(x||^2 - ||F(x) + F'(x)*increment||^2)
+     * 
+     * rho < beta0 : discard update; increase alpha
+     * beta0 <= rho < betaLow : accept update; increase alpha
+     * betaLow <= rho < betaUp : accept update; keep alpha
+     * betaUp <= rho : accept update; decrease alpha
+     * 
+     * Return value:
+     * <0 : dicard update
+     * =0 : keep update
+     * =1 : keep update
+     * 
+     * Input:
+     *  x_new = current x + increment dx
+     *  res_cur = F(x) > residual evaluated at current x
+     *  res_new = F(x + increment) > residual evaluated at new x
+     *  jac_dx = jacobian evaluated at current x times increment
+     *  alpha = stepping value that was used in increment
+     *          > Levenberg Marquardt: alpha from regularization
+     *          > Newton, Krylov-Newton: alpha from linesearch
+     *  stayBelowSat = extra flag for narrowing down acceptable 
+     *                ´+1 -> discard update if x_new > sat
+     *                 -1 -> discard update if x_new < sat
+     *                  0 -> do not check x_new
+     */
+    Double beta0, betaLow, betaUp;
+    beta0 = 0.15;
+    betaLow = 0.35;
+    betaUp = 0.85;
+    Double factorUp = 2;
+    Double factorDown = 0.5;
+    
+    Integer success = 0;
+    if((x_new.NormL2() > XSaturated_)&&(stayBelowSat==1)){
+      // input yVal is not in saturation (otherwise we would not be here but
+      // use the simple case)
+      // > new value cannot be in saturation either
+      // > current update will definitely not match
+      // > problem here: if xNew is in saturation, further comvergence using
+      //    the jacobian will not work as the slope will be such that we 
+      //    cannot leave this (wrongly obtained) saturation
+      // > discard update and try with different alpha again
+      //LOG_DBG(vecpreisach) << "Intermediate solution (" << xNew.ToString() << ") has gone into saturation > discard!";
+      alpha = alpha*factorUp;
+      success = -3;
+    } else if((x_new.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
+      alpha = alpha/factorUp;
+      success = -2;
+    } else {
+      /*
+       * rho = (||F(x)||^2 - ||F(x + increment)||^2) /
+       *       (||F(x||^2 - ||F(x) + F'(x)*increment||^2)
+       */
+      Vector<Double> res_jac_dx = Vector<Double>(dim_);
+      res_jac_dx.Add(1.0,res_cur,1.0,jac_dx);
+      Double res_cur_square = res_cur.NormL2_squared();
+      
+      Double nominator = res_cur_square - res_new.NormL2_squared();
+      Double denominator = res_cur_square - res_jac_dx.NormL2_squared();
+      
+      LOG_TRACE(vecpreisachInversion) << "Nominator: ||F(x)||^2 - ||F(x + increment)||^2 = " << nominator;
+      LOG_TRACE(vecpreisachInversion) << "Denominator: ||F(x||^2 - ||F(x) + F'(x)*increment||^2 = " << denominator;
+      
+      /*
+       * Note: during various tests, rho reached values between
+       *       -200 to 2
+       * > if stepping is too small: rho << 0
+       * > if stepping is too large: rho ~ 1-2
+       * > consider this for creating an appropriate adation of alpha
+       * 
+       * > EDIT: according to Dahmen Reusken, rho < 0 is never acceptable
+       *          and b should always be >= 0
+       */
+      Double rho;
+      if(denominator != 0){
+        rho = nominator/denominator;
+      } else {
+        rho = nominator;
+        if(nominator == 0){
+          //LOG_DBG(vecpreisach) << "Compute rho: a = 0, too!";
+          // rho is actually undefined here (as increment is basically 0)
+          // > alpha seems to be way too large (otherwise increment would not be 0)
+          // > return rho >= 1 in order to trigger a much smaller alpha
+          // > rho >= 10 > reset alpha
+          rho = 10.0;
+        }
+      }
+      
+      if(rho < beta0){
+        success = -1;
+        alpha = alpha*factorUp;
+      } else if(rho < betaLow){
+        success = 0;
+        alpha = alpha*factorUp;
+      } else if(rho < betaUp){
+        success = 0;
+      } else {
+        success = 1;
+        alpha = alpha*factorDown;
+      }
+    }
+    
+    return success;
+  }
+  
 	Double Hysteresis::computeRho(Vector<Double>& xNew, Vector<Double>& xUpdate, 
           Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac){
 		
@@ -196,17 +308,17 @@ namespace CoupledField
 		//
 		// F = residual
 		// F' = Jacobian
-		Double resNorm = res.NormL2();
-		Double resShiftedNorm = resShifted.NormL2();
+		Double resNorm = res.NormL2_squared();
+		Double resShiftedNorm = resShifted.NormL2_squared();
 		Vector<Double> tmp = Vector<Double>(dim_);
-//    tmp = computeJacobianTimesVector(x, Vector<Double>& v, 
-//          Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx)
+    //    tmp = computeJacobianTimesVector(x, Vector<Double>& v, 
+    //          Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx)
 		jac.Mult(xUpdate,tmp);
 		
 		tmp = tmp + res;
-		Double tmpNorm = tmp.NormL2();
-		Double a = resNorm*resNorm - resShiftedNorm*resShiftedNorm;
-		Double b = resNorm*resNorm - tmpNorm*tmpNorm;
+		Double tmpNorm = tmp.NormL2_squared();
+		Double a = resNorm - resShiftedNorm;
+		Double b = resNorm - tmpNorm;
 		
     LOG_TRACE(vecpreisachInversion) << "Compute rho: a = " << a;
     LOG_TRACE(vecpreisachInversion) << "Compute rho: b = " << b;
@@ -373,24 +485,24 @@ namespace CoupledField
       startXVector.Init();
       //  startAtZero=true;
       //	compCase = 3;
-//    } else if (YdiffToSaturation < 100*INV_resTolB_){
-//      startXVector.Init();
-//      
-//      Double yNorm = currentYVector.NormL2();
-//      Vector<Double> directionYVector = Vector<Double>(size);
-//      directionYVector.Init();
-//      
-//      if(yNorm == 0){
-//        yNorm = previousYVector.NormL2();
-//        if(yNorm == 0){
-//          yNorm = 1.0;
-//        }
-//        directionYVector.Add(1.0/yNorm,previousYVector); 
-//      } else {
-//        directionYVector.Add(1.0/yNorm,currentYVector); 
-//      }
-//      
-//      startXVector.Add( (1.0-YdiffToSaturation)*XSaturated_, directionYVector);
+      //    } else if (YdiffToSaturation < 100*INV_resTolB_){
+      //      startXVector.Init();
+      //      
+      //      Double yNorm = currentYVector.NormL2();
+      //      Vector<Double> directionYVector = Vector<Double>(size);
+      //      directionYVector.Init();
+      //      
+      //      if(yNorm == 0){
+      //        yNorm = previousYVector.NormL2();
+      //        if(yNorm == 0){
+      //          yNorm = 1.0;
+      //        }
+      //        directionYVector.Add(1.0/yNorm,previousYVector); 
+      //      } else {
+      //        directionYVector.Add(1.0/yNorm,currentYVector); 
+      //      }
+      //      
+      //      startXVector.Add( (1.0-YdiffToSaturation)*XSaturated_, directionYVector);
     } else {
       //	compCase = 4;
       Double factor;
@@ -424,36 +536,61 @@ namespace CoupledField
       dir.Add(1.0/currentYVector.NormL2(),currentYVector);
     } 
     
-//    std::cout << "startXVector.NormL2(): " << startXVector.NormL2() << std::endl;
-//    std::cout << "currentYVector.NormL2(): " << currentYVector.NormL2() << std::endl;
-//    std::cout << "dir: " << dir.ToString() << std::endl;
-//    std::cout << "XSaturated_: " << XSaturated_ << std::endl;
+    //    std::cout << "startXVector.NormL2(): " << startXVector.NormL2() << std::endl;
+    //    std::cout << "currentYVector.NormL2(): " << currentYVector.NormL2() << std::endl;
+    //    std::cout << "dir: " << dir.ToString() << std::endl;
+    //    std::cout << "XSaturated_: " << XSaturated_ << std::endl;
     if((startXVector.NormL2() >= XSaturated_)&&(stayBelowSat==1)){
       //        traceMsg << "Reset xVal as its value is above Xsaturation but yVal is not" << std::endl;
-//      std::cout << "scale down" << std::endl;
+      //      std::cout << "scale down" << std::endl;
       startXVector = dir;
       startXVector.ScalarMult(1.0/1.2*XSaturated_);
     } 
     
     if((startXVector.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
       //        traceMsg << "Reset xVal as its value is below Xsaturation but yVal is above" << std::endl;
-//      std::cout << "scale up" << std::endl;
+      //      std::cout << "scale up" << std::endl;
       startXVector = dir;
       startXVector.ScalarMult(1.2*XSaturated_);        
     }
-//    std::cout << "startXVector.NormL2(): " << startXVector.NormL2() << std::endl;
+    //    std::cout << "startXVector.NormL2(): " << startXVector.NormL2() << std::endl;
     return startXVector;
   }
   
+//  Hysteresis::performLinesearch(){
+//    
+//    /*
+//     * Two cases:
+//     *  A) Newton/Krylov-Newton:
+//     *    1. compute update dx
+//     *    2. while()
+//     *       2.1. get scaled update dx_scal = alpha*dx
+//     *       2.2. check dx_scal using trustregion
+//     *          2.2.1. update ok > take dx_scal and leave
+//     *          2.2.2. update not ok > take new alpha and try again
+//     *          2.2.3. update has to be discarded > problem!
+//     * 
+//     *  B) Levenberg-Marquardt
+//     *    1. while()
+//     *       1.1. compute update dx_alpha via regualirzed system depending on alpha
+//     *       1.2. check dx_alpha using trustregion
+//     *          1.2.1. update ok > take dx_alpha and leave
+//     *          1.2.2. update not ok > take new alpha and try again
+//     *          1.2.3. update has to be discarded > problem!
+//     */       
+//    
+//  }
+//  
+  
   Vector<Double> Hysteresis::computeUpdate_Newton(Vector<Double>& x, Vector<Double>& y, 
-      Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx){
+          Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx){
     
     /*
      * Jac*dX = -res
      * > solve directly
      */
     Matrix<Double> jac = computeJacobian(x, hyst_x, 
-          mu_inv, operatorIdx, 1.0, 0, false, 0); 
+            mu_inv, operatorIdx, 1.0, 0, false, 0); 
     UInt vecSize = x.GetSize();
     Matrix<Double> jacInv = Matrix<Double>(vecSize,vecSize);
     jac.Invert(jacInv);
@@ -465,29 +602,30 @@ namespace CoupledField
     dx.ScalarMult(-1.0);
     return dx;
   }
-    
+  
   Vector<Double> Hysteresis::computeUpdate_Krylov(Vector<Double>& x, Vector<Double>& y, 
-      Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx){
+          Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx){
     
-      /*
-       * Jac*dX = -res
-       * > solve iteratively by Krylov space method
-       * 
-       * Compute update for Newton-type iteration using a Krylov-space approach
-       * > source: 
-       *  "Jacobian-free Newton-Krylov methods: a survey of approaches and applications"
-       * > i.e. use GMRES
-       * x = current solution
-       * deltaX_0 = initial guess 
-       * r0 = -res(x) - Jac(x) deltaX_0
-       * deltaX_j = deltaX_0 + sum_i=0^j-1 beta_i Jac^i r_0
-       *  > continue till deltaX_j is ok
-       *  > beta_i might be found via linesearch
-       * xNew = x + deltaX_j
-       */
+    /*
+     * Jac*dX = -res
+     * > solve iteratively by Krylov space method
+     * 
+     * Compute update for Newton-type iteration using a Krylov-space approach
+     * > source: 
+     *  "Jacobian-free Newton-Krylov methods: a survey of approaches and applications"
+     * > i.e. use GMRES
+     * x = current solution
+     * deltaX_0 = initial guess 
+     * r0 = -res(x) - Jac(x) deltaX_0
+     * deltaX_j = deltaX_0 + sum_i=0^j-1 beta_i Jac^i r_0
+     *  > continue till deltaX_j is ok
+     *  > beta_i might be found via linesearch
+     * xNew = x + deltaX_j
+     */
     
     /*
      * GMRES solver taken from Wikipedia
+     * https://en.wikipedia.org/wiki/Generalized_minimal_residual_method
      */
     
     Double tol = 1e-15;
@@ -517,51 +655,50 @@ namespace CoupledField
     vArray[0] = Vector<Double>(n);
     vArray[0].Init();
     vArray[0].Add(1.0/r0.NormL2(),r0);
-        
+    
     gamma[0] = r0.NormL2();
-        
+    
     Vector<Double> q = Vector<Double>(n);
     Vector<Double> c = Vector<Double>(n+1);
     Vector<Double> s = Vector<Double>(n+1);
     Double tmp1,tmp2,beta;
     UInt j;
     for(j = 0; j < n; j++ ){
-
+      
       // q = Av_j = Jac*v_j
       q = computeJacobianTimesVector(x, vArray[j], y, hyst_x, mu_inv, operatorIdx);
-//      std::cout << "q: " << q.ToString() << std::endl;
+      
+      /*
+       * Setup Arnoldi space
+       */
       for(UInt i = 0; i <= j; i++){
         h[i][j] = vArray[i].Inner(q);
         q.Add(-h[i][j],vArray[i]);
       }
-//      std::cout << "q: " << q.ToString() << std::endl;
-//      std::cout << "h: " << h.ToString() << std::endl;
-//      std::cout << "vArray["<<j<<"]: " << vArray[j].ToString() << std::endl;
-//      std::cout << "2" << std::endl;
+      
       wArray[j] = Vector<Double>(n);
       wArray[j] = q;
-//      for(UInt i = 0; i <= j; i++){
-//        wArray[j].Add(-h[i][j],vArray[i]);
-//      }
-//      std::cout << "wArray["<<j<<"]: " << wArray[j].ToString() << std::endl;
+      
       h[j+1][j] = wArray[j].NormL2();
-//      std::cout << "3" << std::endl;
+      
       for(UInt i = 0; i < j; i++){
         tmp1 = c[i+1]*h[i][j] + s[i+1]*h[i+1][j];
         tmp2 = -s[i+1]*h[i][j] + c[i+1]*h[i+1][j];
         h[i][j] = tmp1;
         h[i+1][j] = tmp2;
       }
-//      std::cout << "4" << std::endl;
+      
+      /*
+       * Givens rotation
+       */
       beta = std::sqrt(h[j][j]*h[j][j] + h[j+1][j]*h[j+1][j]);
       s[j+1] = h[j+1][j]/beta;
       c[j+1] = h[j][j]/beta;
       h[j][j] = beta;
-//      std::cout << "5" << std::endl;
+      
       gamma[j+1] = -s[j+1]*gamma[j];
       gamma[j] = c[j+1]*gamma[j];
-//      std::cout << "6" << std::endl;
-//      std::cout << "gamma[" << j+1 << "]: " << gamma[j+1] << std::endl;
+      
       if(abs(gamma[j+1]) >= tol){
         vArray[j+1] = Vector<Double>(n);
         vArray[j+1].Init();
@@ -571,78 +708,26 @@ namespace CoupledField
         break;
       }
     }
-//    std::cout << "7" << std::endl;
-//    std::cout << "j " << j << std::endl;
+    
+    /*
+     * construct update
+     */
     for(int i = (int) j; i >= 0; i--){
-//      std::cout << "i " << i << std::endl;
       coefs[i] = gamma[i];
       for(UInt k = i+1; k <= j; k++){
-//        std::cout << "k " << k << std::endl;
         coefs[i] -= h[i][k]*coefs[k];
       }
-//      std::cout << "h["<<i<<"]["<<i<<"]: " << h[i][i] << std::endl;
-//      std::cout << "coefs["<<i<<"]: " << coefs[i] << std::endl;
       if(abs(h[i][i])<1e-19){
         coefs[i] = 0.0;
       } else {
         coefs[i] /= h[i][i];
       }
     }
-//    std::cout << "8" << std::endl;
     for(UInt i = 0; i <= j; i++){
       dx.Add(coefs[i],vArray[i]);
     }
     return dx;
   }
-
-    
-//    
-//    
-//    
-//    
-//    
-//    
-//    
-//    
-//    
-//      UInt maxSteps = 4;
-//      UInt vecSize = x.GetSize();
-//      Vector<Double> deltaX = Vector<Double>(vecSize);
-//      // deltaX_0 usually can be set to 0
-//      deltaX.Init();
-//      
-//      Vector<Double> r = Vector<Double>(vecSize);
-//      r.Init();
-//      Vector<Double> res_x = computeResidual(x,y,hyst_x,mu_inv);
-//      Vector<Double> jacv = computeJacobianTimesVector(x, deltaX, y, hyst_x, mu_inv, operatorIdx);
-//      r.Add(-1.0,res_x,-1.0,jacv);
-//      
-//      /*
-//       * 1. step; Jac^0 = Identity
-//       */
-//      Double beta = 1.0;
-//      deltaX.Add(beta,r);
-//      
-//      /*
-//       * remaining steps > use recursing approach
-//       *  deltaX_j = deltaX_0 + sum_i=0^j-1 beta_i Jac^i r_0
-//       *           = deltaX_j-1 + beta_j-1 Jac^j-1 r_0
-//       *           = deltaX_j-1 + beta_j-1 Jac r_j-1
-//       *           = deltaX_j-1 + beta_j-1 r_j
-//       */
-//      Vector<Double> tmp = Vector<Double>(vecSize);
-//      for(UInt i = 2; i < maxSteps; i++){
-//        // compute r_j = Jac*r_j-1
-//        tmp = computeJacobianTimesVector(x, r, y, hyst_x, mu_inv, operatorIdx);
-//        r = tmp;
-//        
-//        deltaX.Add(beta,r);
-//        if(r.NormL2() < 1e-16){
-//          break;
-//        }
-//      }
-//      return deltaX;
-//    };
   
   Vector<Double> Hysteresis::computeJacobianTimesVector(Vector<Double>& x, Vector<Double>& v, 
           Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx){
@@ -669,7 +754,7 @@ namespace CoupledField
     } else {
       eps = 1e-16;
     }
-//    std::cout << "--- eps: " << eps << std::endl;
+    //    std::cout << "--- eps: " << eps << std::endl;
     UInt vecSize = x.GetSize();
     Vector<Double> res_x = computeResidual(x,y,hyst_x,mu_inv);
     Vector<Double> xv = Vector<Double>(vecSize);
@@ -692,16 +777,16 @@ namespace CoupledField
     bool testing = false;
     if(testing){
       Matrix<Double> jac = computeJacobian(x, hyst_x, 
-            mu_inv, operatorIdx, 1.0, 0, false, 0); 
-
+              mu_inv, operatorIdx, 1.0, 0, false, 0); 
+      
       Vector<Double>tmp = Vector<Double>(vecSize);
       jac.Mult(v,tmp);
       Vector<Double>jacv2 = Vector<Double>(vecSize);
       jacv2 = tmp;
-
+      
       tmp.Add(-1.0,jacv);
-      std::cout << "--- jac*v - jacv = " << tmp.ToString() << std::endl;
-
+      //      std::cout << "--- jac*v - jacv = " << tmp.ToString() << std::endl;
+      
       return jacv2;
     }
     
@@ -843,7 +928,7 @@ namespace CoupledField
     return jac;
   }
   
-  bool Hysteresis::performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
+  bool Hysteresis::computeUpdate_LM(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
           Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
           Integer operatorIdx, bool overwriteMemory,
           Double& alpha, Double alphaMin, Double alphaMax,
@@ -1042,7 +1127,12 @@ namespace CoupledField
       LOG_DBG(vecpreisachlinesearch) << "New res vector: " << resNew.ToString();
       LOG_DBG(vecpreisachlinesearch) << "res vector for sol: " << resSol.ToString();
       // set stayBelowSat flag to 0 to disable checking
-      success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,0);
+      
+      Vector<Double> jac_dx = Vector<Double>(dim_);
+      jac.Mult(xUpdate,jac_dx);
+      success = checkIncrementTrustRegion(xNew, res, resNew, jac_dx, alpha, stayBelowSat); 
+      
+      //      success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,0);
       LOG_DBG(vecpreisachlinesearch) << "Check trust region - return code: " << success; 
       
       if(success >= 0){
@@ -1531,7 +1621,7 @@ namespace CoupledField
      * >> works in many cases but still has issues due to approximation of Jac
      * >> adaption of alpha might require various iterations
      */
-   
+    
     /*
      * obtain start value
      */
@@ -1548,7 +1638,7 @@ namespace CoupledField
     Double alpha = INV_alphaLSStart_;
     Double alphaMin = INV_alphaLSMin_;//1.0/256.0;
     Double alphaMax = INV_alphaLSMax_;//8192;//512.0;
-       
+    
     Vector<Double> hystVal = computeValue_vec(xStart, operatorIndex, overwriteMemory, debugOut, successFlagForward);
     xVal = xStart;
     
@@ -1576,13 +1666,13 @@ namespace CoupledField
     /*
      * Start actual LM iteration
      */
-//    std::cout << "stayBelowSat: " << stayBelowSat << std::endl;
+    //    std::cout << "stayBelowSat: " << stayBelowSat << std::endl;
     Vector<Double> xVal_krylov = Vector<Double>(dim_);
     xVal_krylov = xVal;
     while(true){ 
       itCnt++;
       totalNumberOfLMIterations++;
-//      std::cout << "itCnt: " << itCnt << std::endl;
+      //      std::cout << "itCnt: " << itCnt << std::endl;
       if(debug){
         traceMsg << "--OUTER ITERATION-- (" << itCnt << ")" << std::endl;
         traceMsg << "Current solution: " << xVal.ToString() << std::endl;
@@ -1674,15 +1764,15 @@ namespace CoupledField
       // if we step back to the same value each time, we will never come forward, however
       Double factorToSat = 0.1*Double(itCnt-1)/Double(INV_maxIter_) + 0.9;
       
-      discardUpdate = performLinesearch(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
+      discardUpdate = computeUpdate_LM(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
               operatorIndex, overwriteMemory, alpha, alphaMin, alphaMax, 
               numberOfIterations,xStart,factorToSat,stayBelowSat,sol);
       
       Vector<Double> xUpdate_Krylov = computeUpdate_Krylov(xVal, yVal, hystVal, mu_inv, operatorIndex);
       Vector<Double> xUpdate_Newton = computeUpdate_Newton(xVal, yVal, hystVal, mu_inv, operatorIndex);
-      std::cout << "-- xUpdate - LM: " << xUpdate.ToString() << std::endl;
-      std::cout << "-- xUpdate - Krylov: " << xUpdate_Krylov.ToString() << std::endl;
-      std::cout << "-- xUpdate - Newton: " << xUpdate_Newton.ToString() << std::endl;
+      //      std::cout << "-- xUpdate - LM: " << xUpdate.ToString() << std::endl;
+      //      std::cout << "-- xUpdate - Krylov: " << xUpdate_Krylov.ToString() << std::endl;
+      //      std::cout << "-- xUpdate - Newton: " << xUpdate_Newton.ToString() << std::endl;
       xVal_krylov.Add(xUpdate_Krylov);
       
       if(alpha < minAlphaStatistics){
@@ -1713,8 +1803,8 @@ namespace CoupledField
       }
       sign = sign*(-1.0);
     }
-    std::cout << "xVal - LM: " << xVal.ToString() << std::endl;
-    std::cout << "xVal - Krylov: " << xVal_krylov.ToString() << std::endl;
+    //    std::cout << "xVal - LM: " << xVal.ToString() << std::endl;
+    //    std::cout << "xVal - Krylov: " << xVal_krylov.ToString() << std::endl;
     
     
     //      std::cout << "xVal.NormL2(): " << xVal.NormL2() << std::endl;

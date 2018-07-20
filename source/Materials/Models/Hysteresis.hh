@@ -202,6 +202,10 @@ namespace CoupledField {
     Integer checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, 
 		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
     
+    Integer checkIncrementTrustRegion(Vector<Double>& x_new, 
+          Vector<Double>& res_cur, Vector<Double>& res_new,
+          Vector<Double>& jac_dx, Double& alpha, int stayBelowSat);
+    
     Integer checkIncrementOLD(Vector<Double>& xNew, Vector<Double>& xUpdate, 
 		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
     
@@ -220,7 +224,7 @@ namespace CoupledField {
     Vector<Double> computeJacobianTimesVector(Vector<Double>& x, Vector<Double>& v, 
       Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
       
-    bool performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
+    bool computeUpdate_LM(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
       Integer operatorIdx, bool overwriteMemory,
       Double& alpha, Double alphaMin, Double alphaMax,  
