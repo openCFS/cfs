@@ -221,10 +221,13 @@ namespace CoupledField {
     Vector<Double> computeUpdate_Krylov(Vector<Double>& x, Vector<Double>& y, 
       Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
     
+    Vector<Double> computeUpdate_LM(Vector<Double> jacTres_neg, 
+          Matrix<Double>& jacTjac, Double& alphaIn, Double& alphaAcc, Double& alphaMinReq, Double alphaMax);
+    
     Vector<Double> computeJacobianTimesVector(Vector<Double>& x, Vector<Double>& v, 
       Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
       
-    bool computeUpdate_LM(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
+    bool computeUpdate_LM_full(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
       Integer operatorIdx, bool overwriteMemory,
       Double& alpha, Double alphaMin, Double alphaMax,  

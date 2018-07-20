@@ -220,6 +220,11 @@ namespace CoupledField
     beta0 = 0.15;
     betaLow = 0.35;
     betaUp = 0.85;
+    
+//    beta0 = 0.2;
+//    betaLow = 0.4;
+//    betaUp = 0.8;
+    
     Double factorUp = 2;
     Double factorDown = 0.5;
     
@@ -928,7 +933,67 @@ namespace CoupledField
     return jac;
   }
   
-  bool Hysteresis::computeUpdate_LM(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
+  Vector<Double> Hysteresis::computeUpdate_LM(Vector<Double> jacTres_neg, 
+          Matrix<Double>& jacTjac, Double& alpha, Double& alphaAcc, Double& alphaMinReq, Double alphaMax){
+    
+    Matrix<Double> matToInvert = Matrix<Double>(dim_,dim_);
+    Matrix<Double> matInverted = Matrix<Double>(dim_,dim_);
+    Vector<Double> dx = Vector<Double>(dim_);
+    
+    Double minDeterminant = 1e-12;  
+    Double incrFactor = std::sqrt(2.0);
+    Double detMatToInvert;
+    UInt cnt = 0;
+    
+    matToInvert = jacTjac;
+    
+    /*
+     * Add regularization
+     * > note: it works better if alpha is accumulated for some reason
+     */
+    alphaAcc += alpha*alpha;
+    for(UInt i = 0; i < dim_; i++){
+      matToInvert[i][i] += alphaAcc;
+    }
+    matToInvert.Determinant(detMatToInvert);
+    
+    if(abs(detMatToInvert)<minDeterminant){
+      /*
+       * current alpha will not work
+       * > reset alphaAcc and find out minimal alpha
+       */
+      while(true){
+        matToInvert = jacTjac;
+        // no += here; here we actually reset alphaAcc
+        alphaAcc = alpha*alpha;
+        
+        for(UInt i = 0; i < dim_; i++){
+          matToInvert[i][i] += alphaAcc;
+        }
+        matToInvert.Determinant(detMatToInvert);
+        
+        if(abs(detMatToInvert)>=minDeterminant){
+          break;
+        } else {
+          alpha = alpha*incrFactor;
+        }
+        cnt++;
+        if( (cnt > 200)||(alpha > alphaMax) ){
+          EXCEPTION("LM: Cannot find alpha, such that jacTjac becomes invertible!");
+        }
+      }
+    }
+    
+    alphaMinReq = alpha;
+    matToInvert.Invert(matInverted);
+    matInverted.Mult(jacTres_neg,dx);
+    
+    assert(!dx.ContainsNaN() && !dx.ContainsInf());
+    
+    return dx;
+  }
+  
+  bool Hysteresis::computeUpdate_LM_full(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
           Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
           Integer operatorIdx, bool overwriteMemory,
           Double& alpha, Double alphaMin, Double alphaMax,
@@ -946,7 +1011,7 @@ namespace CoupledField
       EXCEPTION("xInput to Linesearch already below saturation > must not be the case!");
     }
     
-		UInt maxIter = 50;
+		UInt maxIter = 150;
     UInt itCnt = 0;
     
     Matrix<Double> matToInvert = Matrix<Double>(dim_,dim_);
@@ -1016,7 +1081,7 @@ namespace CoupledField
     
     // start at alphamin
     alpha = alphaMinLocal;
-    
+    Double alphaAcc = alpha*alpha;
     while(true){
       itCnt++;
 			// for statistics
@@ -1027,48 +1092,63 @@ namespace CoupledField
       LOG_DBG(vecpreisachlinesearch) << "last found x = " << xNew.ToString();
       LOG_DBG(vecpreisachlinesearch) << "alpha = " << alpha;
       
-      for(UInt i = 0; i < dim_; i++){
-        matToInvert[i][i] += alpha*alpha;
-      }
-      matToInvert.Determinant(detMatToInvert);
       
-      if(abs(detMatToInvert)<minDeterminant){
-        //      if(detMatToInvert == 0){
-        //        std::cout << "Matrix not invertible! " << std::endl;
-        //        std::cout << "matToInvert: " << matToInvert.ToString() << std::endl;
-        //        std::cout << "Min alpha for inversion: " << alphaMinLocal << std::endl;
-        //        std::cout << "Current alpha: " << alpha << std::endl;
-        //        std::cout << "Try to find alpha that works again" << std::endl;
-        while(true){
-          matToInvert = jacTjac;
-          jacTjac.Determinant(detMatToInvert);
-          LOG_DBG(vecpreisachlinesearch) << " det(jacTjac) =  " << detMatToInvert;
-          
-          for(UInt i = 0; i < dim_; i++){
-            matToInvert[i][i] += alpha*alpha;
-          }
-          matToInvert.Determinant(detMatToInvert);
-          if(abs(detMatToInvert)>=minDeterminant){
-            //      if(detMatToInvert != 0){
-            break;
-          } else {
-            alpha = alpha*incrFactor;
-          }
-          cnt++;
-          if(cnt > 200){
-            EXCEPTION("LM, Linesearch: Cannot find alpha, such that jacTjac becomes invertible!");
-          }
-        }
-        alphaMinLocal = alpha;
-      }
-      assert(detMatToInvert != 0);
-      matToInvert.Invert(matInverted);
+//      
+//      matToInvert = jacTjac;
+//      // do not reset alphaAcc here > with accumulated alpha it works better
+//      //alphaAcc = 0;
+//      alphaAcc += alpha*alpha;
+//      for(UInt i = 0; i < dim_; i++){
+//        matToInvert[i][i] += alphaAcc;
+//      }
+//      matToInvert.Determinant(detMatToInvert);
+//      
+//      if(abs(detMatToInvert)<minDeterminant){
+//        //      if(detMatToInvert == 0){
+//        //        std::cout << "Matrix not invertible! " << std::endl;
+//        //        std::cout << "matToInvert: " << matToInvert.ToString() << std::endl;
+//        //        std::cout << "Min alpha for inversion: " << alphaMinLocal << std::endl;
+//        //        std::cout << "Current alpha: " << alpha << std::endl;
+//        //        std::cout << "Try to find alpha that works again" << std::endl;
+//        while(true){
+//          matToInvert = jacTjac;
+//          alphaAcc = 0;
+//          alphaAcc += alpha*alpha;
+//          jacTjac.Determinant(detMatToInvert);
+//          LOG_DBG(vecpreisachlinesearch) << " det(jacTjac) =  " << detMatToInvert;
+//          
+//          for(UInt i = 0; i < dim_; i++){
+//            matToInvert[i][i] += alphaAcc;
+//          }
+//          matToInvert.Determinant(detMatToInvert);
+//          if(abs(detMatToInvert)>=minDeterminant){
+//            //      if(detMatToInvert != 0){
+//            break;
+//          } else {
+//            alpha = alpha*incrFactor;
+//          }
+//          cnt++;
+//          if(cnt > 200){
+//            EXCEPTION("LM, Linesearch: Cannot find alpha, such that jacTjac becomes invertible!");
+//          }
+//        }
+//        alphaMinLocal = alpha;
+//      }
+//      assert(detMatToInvert != 0);
+//      matToInvert.Invert(matInverted);
+//      
+//      matInverted.Mult(jacTres_neg,xUpdate);
+//      
+//      assert(!xUpdate.ContainsNaN() && !xUpdate.ContainsInf());
+//      LOG_DBG(vecpreisachlinesearch) << "Computed xUpdate = " << xUpdate.ToString();
+//      
       
-      matInverted.Mult(jacTres_neg,xUpdate);
       
-      assert(!xUpdate.ContainsNaN() && !xUpdate.ContainsInf());
-      LOG_DBG(vecpreisachlinesearch) << "Computed xUpdate = " << xUpdate.ToString();
       
+      
+      xUpdate = computeUpdate_LM(jacTres_neg, 
+          jacTjac, alpha, alphaAcc, alphaMinLocal, 1e16);
+//      
       xNew.Init();
       xNew.Add(1.0,xVal,1.0,xUpdate);
       LOG_DBG(vecpreisachlinesearch) << "Computed xNew = " << xNew.ToString();
@@ -1205,12 +1285,14 @@ namespace CoupledField
         }
       } else {
 				if(alpha > alphaMax){
+//          std::cout << "Alpha max reached" << std::endl;
 					LOG_TRACE(vecpreisachlinesearch) << "Alpha max reached; take update > stop";
 					alpha = alphaMax;
 					discard = true;
 					break;
 				}
 				if(alpha < alphaMinLocal){
+//          std::cout << "Alpha min reached" << std::endl;
 					LOG_TRACE(vecpreisachlinesearch) << "Alpha min reached; discard update > stop";
 					alpha = alphaMinLocal;
 					discard = true;
@@ -1218,12 +1300,17 @@ namespace CoupledField
 				}
 				
         if(itCnt >= maxIter){
+//          std::cout << "Max number of iterations used" << std::endl;
           LOG_TRACE(vecpreisachlinesearch) << "Linesearch was not successful; Discard update.";
           discard = true;
           break;
         }
       }
     }
+    
+//    std::cout << "alpha: " << alpha << std::endl;
+//    std::cout << "alphaMax: " << alphaMax << std::endl;
+//    std::cout << "alphaAcc: " << std::sqrt(alphaAcc) << std::endl;
     
     return discard;
   }
@@ -1764,7 +1851,7 @@ namespace CoupledField
       // if we step back to the same value each time, we will never come forward, however
       Double factorToSat = 0.1*Double(itCnt-1)/Double(INV_maxIter_) + 0.9;
       
-      discardUpdate = computeUpdate_LM(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
+      discardUpdate = computeUpdate_LM_full(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
               operatorIndex, overwriteMemory, alpha, alphaMin, alphaMax, 
               numberOfIterations,xStart,factorToSat,stayBelowSat,sol);
       
