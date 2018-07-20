@@ -74,7 +74,7 @@ class GenericResultCache {
 
 public:
 
-  GenericResultCache(UInt cacheSize=1);
+  GenericResultCache(UInt cacheSize=1, bool isStatic=false);
 
   virtual ~GenericResultCache();
 
@@ -108,7 +108,9 @@ protected:
   UInt cacheSize_;
   
   UInt vectorSize_;
-
+  
+  bool isStatic_;
+  
 private:
 
   bool noCache_;
@@ -124,8 +126,8 @@ class ResultCache : public GenericResultCache {
 
 public:  
 
-  ResultCache(UInt cacheSize=1):
-    GenericResultCache(cacheSize) {
+  ResultCache(UInt cacheSize=1, bool isStatic=false):
+    GenericResultCache(cacheSize,isStatic) {
   }
 
   virtual ~ResultCache() {

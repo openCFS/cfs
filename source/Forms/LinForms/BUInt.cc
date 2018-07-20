@@ -159,7 +159,9 @@ BUIntegrator(BaseBOperator * bOp,
              TF = JacT * lp.jac;
              TF.Invert(TFinv);
 
+             // Transformation of a function in curl space (see Zaglmayer Lemma 4.15)
              cVec = (TFinv * JacT) * pt2;
+             fac *= lp.lpmVol->jacDet;
            }
          }
        }

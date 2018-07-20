@@ -63,20 +63,10 @@ public:
   //! \return success of the computation
   virtual bool Run();
   
-  virtual void FinishInit(){
-    CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-    for(; srcIter != sources_.End() ; srcIter++){
-      // should we check here anything for success?
-      (*srcIter)->FinishInit();
-    }
-  }
-
+  void FinishInit();
+  
   void InitResults();
   
-  void InitResultsUpstream();
-  
-  void InitResultsDownstream();
-
   bool IsOutput(){
     return filtStreamType_ == OUTPUT_FILTER;
   }
@@ -98,6 +88,12 @@ protected:
   virtual void AddOutput(str1::shared_ptr<BaseFilter> filt){
     this->sinks_.Push_back(filt);
   }
+
+  virtual void PrepareCalculation();
+
+  void InitResultsUpstream();
+  
+  void InitResultsDownstream();
 
   //=================================================================
   // Helper Functions for Upstream Result Initialization
@@ -178,6 +174,8 @@ protected:
   //! Extracts the active/needed results which require recomputation
   //! \return set of results which need recomputation
   virtual std::set<uuids::uuid> ExtractObsoleteResults();
+  
+  void VerboseSum(uuids::uuid verbResId);
   
   
   //! Returns the result vector of a result computed by this filter
@@ -433,7 +431,9 @@ protected:
 
   /// counter for InitResults function, should not exceed the number of sinks
   UInt initSinkResults_;
-
+  
+  /// counter for FinishInit function, should not exceed the number of sinks
+  UInt finishInitSinkResults_;
 
   UInt numWorkers_;
 
