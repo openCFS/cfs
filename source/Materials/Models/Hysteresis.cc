@@ -1038,11 +1038,7 @@ namespace CoupledField
     xNew.Init();
     xNew.Add(xVal);
     Double alphaMinLocal = alphaMin;
-    Double detMatToInvert;
-    UInt cnt = 0;
-    
-    
-    
+ 
 //    
 //    
 //    LOG_DBG(vecpreisachlinesearch) << "Determine minimal alpha that allows inversion of jacTjac";
@@ -1198,21 +1194,21 @@ namespace CoupledField
        */     
       int successFlag = 0;
       bool debugOut = false;
-      Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, debugOut, successFlag);
-      Vector<Double> hystOld = computeValue_vec(xVal, operatorIdx, overwriteMemory, debugOut, successFlag);
-      Vector<Double> resSol = computeResidual(sol,yVal,hystSol, mu_inv);
+//      Vector<Double> hystSol = computeValue_vec(sol, operatorIdx, overwriteMemory, debugOut, successFlag);
+//      Vector<Double> hystOld = computeValue_vec(xVal, operatorIdx, overwriteMemory, debugOut, successFlag);
+//      Vector<Double> resSol = computeResidual(sol,yVal,hystSol, mu_inv);
       //      Vector<Double> resSol = computeResidual(sol,yVal,hystSol,mu,mu_inv,wrtX,relative);
       
       hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, debugOut, successFlag);
       resNew = computeResidual(xNew,yVal,hystNew,mu_inv);
       //      resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
       
-      LOG_DBG(vecpreisachlinesearch) << "hyst vector for sol: " << hystSol.ToString();
-      LOG_DBG(vecpreisachlinesearch) << "hystNew: " << hystNew.ToString();
-      LOG_DBG(vecpreisachlinesearch) << "hystOld: " << hystOld.ToString();
-      LOG_DBG(vecpreisachlinesearch) << "Old res vector: " << res.ToString();
-      LOG_DBG(vecpreisachlinesearch) << "New res vector: " << resNew.ToString();
-      LOG_DBG(vecpreisachlinesearch) << "res vector for sol: " << resSol.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "hyst vector for sol: " << hystSol.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "hystNew: " << hystNew.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "hystOld: " << hystOld.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "Old res vector: " << res.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "New res vector: " << resNew.ToString();
+//      LOG_DBG(vecpreisachlinesearch) << "res vector for sol: " << resSol.ToString();
       // set stayBelowSat flag to 0 to disable checking
       
       Vector<Double> jac_dx = Vector<Double>(dim_);
