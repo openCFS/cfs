@@ -39,7 +39,7 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
     constraintModification = this_opt_pn_->Get("constraint_modification")->As<bool>();
     robustAsymptotes = this_opt_pn_->Get("robust_asymptote")->As<bool>();
     fixedAsymptotes = this_opt_pn_->Has("fixed_asymptotes") && this_opt_pn_->Get("fixed_asymptotes/enable")->As<bool>();
-
+    moveLimits = this_opt_pn_->Get("move_limit")->As<bool>();
     if(fixedAsymptotes) {
       asym_fixed_lower = this_opt_pn_->Get("fixed_asymptotes/lower")->As<double>();
       asym_fixed_upper = this_opt_pn_->Get("fixed_asymptotes/upper")->As<double>();
@@ -213,7 +213,8 @@ void MMA::SolveProblem()
   bool ok = true;
   while(!optimization->DoStopOptimization() && optimization->GetCurrentIteration() <= maxit && ok)
   {
-    AdjustMoveLimits();
+    if(moveLimits)
+      AdjustMoveLimits();
     ok = SolveMMA();
 
     // new design is stored, also the correspoding function values. Increments iteration
@@ -246,8 +247,8 @@ void MMA::AdjustMoveLimits()
     BaseDesignElement* de = space->GetDesignElement(i);
 
     if(!fixedAsymptotes){
-      xmin[i] = max(de->GetLowerBound(), xval[i]-move_limits);
-      xmax[i] = min(de->GetUpperBound(), xval[i]+move_limits);
+      xmin[i] = max(de->GetLowerBound(), xval[i]-move);
+      xmax[i] = min(de->GetUpperBound(), xval[i]+move);
     }
 
     if(res_idx_l >= 0 || res_idx_u >=0)
@@ -302,17 +303,26 @@ void MMA::GenreteSubProblem()
         BaseDesignElement* de = space->GetDesignElement(in);
 
         if(lowerMultiplier)
-          upp[in] = asym_fixed_lower*de->GetLowerBound();
+        {
+          low[in] = asym_fixed_lower*xmin[in];
+          low[in] = min(xmin[in], low[in]);
+        }
         else
+        {
           low[in] = asym_fixed_lower;
+          low[in] = min(de->GetLowerBound(), low[in]);
+        }
 
         if(upperMultiplier)
-          upp[in] = asym_fixed_upper*de->GetUpperBound();
+        {
+          upp[in] = asym_fixed_upper*xmax[in];
+          upp[in] = max(xmax[in], upp[in]);
+        }
         else
+        {
           upp[in] = asym_fixed_upper;
-
-        low[in] = min(de->GetLowerBound(), low[in]);
-        upp[in] = max(de->GetUpperBound(), upp[in]);
+          upp[in] = max(de->GetUpperBound(), upp[in]);
+        }
       }
     }
     else {

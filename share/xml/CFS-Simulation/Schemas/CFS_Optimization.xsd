@@ -690,6 +690,8 @@
                 <xsd:attribute name="asym_inc" default="1.2" use="optional" type="xsd:float"/>
                 <xsd:attribute name="robust_asymptote" default="false" use="optional" type="xsd:boolean" />
                 <xsd:attribute name="constraint_modification" default="false" use="optional" type="xsd:boolean" />
+                <!-- move_limit is to ensure xmin and xmax are close to xval, if false they are not varied -->
+                <xsd:attribute name="move_limit" default="false" use="optional" type="xsd:boolean" />
               </xsd:complexType>
             </xsd:element>
  

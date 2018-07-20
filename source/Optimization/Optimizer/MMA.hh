@@ -110,7 +110,8 @@ protected:
 
   /** controls the seed at which outer limits are update
    * used in MMA::AdjustMoveLimits() */
-  double move_limits = 0.2;
+  double move = 0.2;
+  bool moveLimits = true;
 
   /** for fixed asymptotes only
   * according to K.Svanberg's paper section 3. equation 10.
