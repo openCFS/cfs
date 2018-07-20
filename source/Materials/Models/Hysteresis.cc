@@ -1041,36 +1041,43 @@ namespace CoupledField
     Double detMatToInvert;
     UInt cnt = 0;
     
-    LOG_DBG(vecpreisachlinesearch) << "Determine minimal alpha that allows inversion of jacTjac";
-    LOG_DBG(vecpreisachlinesearch) << "Given alphaMin: " << alphaMin;        
-    Double minDeterminant = 1e-12;  
-    Double incrFactor = std::sqrt(2.0);
-    while(true){
-      matToInvert = jacTjac;
-      jacTjac.Determinant(detMatToInvert);
-      LOG_DBG(vecpreisachlinesearch) << " det(jacTjac) =  " << detMatToInvert;
-      
-      for(UInt i = 0; i < dim_; i++){
-        matToInvert[i][i] += alphaMinLocal*alphaMinLocal;
-      }
-      matToInvert.Determinant(detMatToInvert);
-      if(abs(detMatToInvert)>=minDeterminant){
-        //      if(detMatToInvert != 0){
-        break;
-      } else {
-        alphaMinLocal = alphaMinLocal*incrFactor;
-      }
-      cnt++;
-      if(cnt > 200){
-        EXCEPTION("LM, Linesearch: Cannot find alpha, such that jacTjac becomes invertible!");
-      }
-    }
-    LOG_DBG(vecpreisachlinesearch) << "Found alphaMinLocal: " << alphaMinLocal;
     
-    if(alpha < alphaMinLocal){
-      LOG_DBG(vecpreisachlinesearch) << "Starting alpha < alphaMinLocal";
-      alpha = alphaMinLocal;
-    }
+    
+//    
+//    
+//    LOG_DBG(vecpreisachlinesearch) << "Determine minimal alpha that allows inversion of jacTjac";
+//    LOG_DBG(vecpreisachlinesearch) << "Given alphaMin: " << alphaMin;        
+//    Double minDeterminant = 1e-12;  
+//    Double incrFactor = std::sqrt(2.0);
+//    while(true){
+//      matToInvert = jacTjac;
+//      jacTjac.Determinant(detMatToInvert);
+//      LOG_DBG(vecpreisachlinesearch) << " det(jacTjac) =  " << detMatToInvert;
+//      
+//      for(UInt i = 0; i < dim_; i++){
+//        matToInvert[i][i] += alphaMinLocal*alphaMinLocal;
+//      }
+//      matToInvert.Determinant(detMatToInvert);
+//      if(abs(detMatToInvert)>=minDeterminant){
+//        //      if(detMatToInvert != 0){
+//        break;
+//      } else {
+//        alphaMinLocal = alphaMinLocal*incrFactor;
+//      }
+//      cnt++;
+//      if(cnt > 200){
+//        EXCEPTION("LM, Linesearch: Cannot find alpha, such that jacTjac becomes invertible!");
+//      }
+//    }
+//    LOG_DBG(vecpreisachlinesearch) << "Found alphaMinLocal: " << alphaMinLocal;
+//    
+//    if(alpha < alphaMinLocal){
+//      LOG_DBG(vecpreisachlinesearch) << "Starting alpha < alphaMinLocal";
+//      alpha = alphaMinLocal;
+//    }
+    
+    
+    
     
     //    // now reset alpha to alphaMax (note: alphaMax is passed as copy, i.e. if we increase it further
     //    // below, the actual value of alphaMax is restored during next call
