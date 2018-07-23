@@ -194,7 +194,7 @@ namespace CoupledField {
     bool checkInversionOutput(Vector<Double>& xComputed, Vector<Double>& yTarget, 
 			Matrix<Double>& mu, Double tol, Double& resYNorm, Integer operatorIdx, bool overwriteMemory, bool output = false);
 		
-    bool checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol);
+    bool checkConvergence(Vector<Double>& jacTres, Double& errorNorm, Double tol);
      
     Integer checkIncrementTrustRegion(Vector<Double>& x_new, 
           Vector<Double>& res_cur, Vector<Double>& res_new,

@@ -163,18 +163,11 @@ namespace CoupledField
     
 	}
   
-  bool Hysteresis::checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol){
+  bool Hysteresis::checkConvergence(Vector<Double>& jacTres, Double& errorNorm, Double tol){
     // According to Dahmen&Reusken - Numerik partieller DFG
     // the residual is a non-sufficient condition
     // instead we have to check the norm of jacT*res
-    Vector<Double> errorVec = Vector<Double>(dim_);
-    jacT.Mult(res,errorVec); 
-    errorNorm = errorVec.NormL2();
-    
-    //std::cout << "CheckConvergence" << std::endl;
-    //std::cout << "resIn: " << res.ToString() << std::endl;
-    //std::cout << "jacT: " << jacT.ToString() << std::endl;
-    //std::cout << "ErrorVec: " << errorVec.ToString() << std::endl;
+    errorNorm = jacTres.NormL2();
     
     if(errorNorm <= tol){
       return true;
@@ -1593,21 +1586,10 @@ namespace CoupledField
       
       jac.Transpose(jacT);
       
-      if(debug){
-        traceMsg << "Current hystVal: " << hystVal.ToString() << std::endl;
-        traceMsg << "Current Residual (wrt x): " << res.ToString() << std::endl;
-        traceMsg << "Current startvalue for alpha_LS: " << alpha << std::endl;
-        traceMsg << "Current JacobiMatrix: " << jac.ToString() << std::endl;
-        
-        Vector<Double> jacTres = Vector<Double>(dim_);
-        jacT.Mult(res,jacTres);
-        traceMsg << "jacTres: " << jacTres.ToString() << std::endl;
-        traceMsg << "tolForErrorVector: " << INV_resTolH_ << std::endl;
-        traceMsg << "tolForResidual X: " << INV_resTolH_ << std::endl;
-        traceMsg << "tolForResidual Y: " << INV_resTolB_ << std::endl;
-      }
+      Vector<Double> jacTres = computeJacobianTimesVector(xVal, res, 
+          yVal, hystVal, mu_inv, operatorIndex);
       
-      successError = checkConvergence(res,jacT,errorNorm,INV_resTolH_);
+      successError = checkConvergence(jacTres,errorNorm,INV_resTolH_);
       errorNormResX = res.NormL2();
       successX = (errorNormResX <= INV_resTolH_);
       successY = checkInversionOutput(xVal, yVal, mu, INV_resTolB_, errorNormResY,
