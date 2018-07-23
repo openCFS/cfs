@@ -1526,9 +1526,9 @@ def cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz):
   return i,j,k
 
 def voxel_to_cartesian_coords(voxel,lbounds,h):
-  x = voxel[0] * h[0] + lbounds[0] + 1e-6
-  y = voxel[1] * h[1] + lbounds[1] + 1e-6
-  z = voxel[2] * h[2] + lbounds[2] + 1e-6
+  x = voxel[0] * h[0] + lbounds[0]# + 1e-6
+  y = voxel[1] * h[1] + lbounds[1]# + 1e-6
+  z = voxel[2] * h[2] + lbounds[2]# + 1e-6
   
   return np.array([x,y,z])
 
