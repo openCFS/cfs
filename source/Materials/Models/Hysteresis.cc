@@ -825,7 +825,7 @@ namespace CoupledField
     return dx;
   }
   
-  bool Hysteresis::computeUpdate_LM_full(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
+  bool Hysteresis::computeUpdate(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
           Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
           Integer operatorIdx, bool overwriteMemory,
           Double& alpha, Double alphaMin, Double alphaMax,
@@ -1622,11 +1622,19 @@ namespace CoupledField
           yVal, hystVal, mu_inv, operatorIndex);
       }
       
+      /*
+       * Determine three error criteria:
+       * 1. jacT*residual < tolerance
+       *    > hardest to satisfy
+       * 2. residual wrt x, i.e. x + muInv*(hyst - y) < tolerance
+       *    > should be main criterion
+       * 3. residual wrt y, i.e. y - hyst - mu*x < tolerance
+       *    > some sort of failback criterion
+       */
       successError = checkConvergence(jacTres,errorNorm,INV_resTolH_);
       errorNormResX = res.NormL2();
       successX = (errorNormResX <= INV_resTolH_);
-      successY = checkInversionOutput(xVal, yVal, mu, INV_resTolB_, errorNormResY,
-              operatorIndex, overwriteMemory);
+      successY = checkInversionOutput(xVal, yVal, mu, INV_resTolB_, errorNormResY,operatorIndex, overwriteMemory);
       
       if(successError){
         // main criterion > would be best if this one could be satisfied
@@ -1680,15 +1688,27 @@ namespace CoupledField
       LOG_DBG(vecpreisachInversion) << "Solution not appropriate yet > Perform linesearch";
       UInt numberOfIterations = 0;
       
-      // we have troubles if we come close to saturation
-      // in that case we often shoot over saturation and have to step back
-      // if we step back to the same value each time, we will never come forward, however
-//      Double factorToSat = 0.1*Double(itCnt-1)/Double(INV_maxIter_) + 0.9;
-      
-      discardUpdate = computeUpdate_LM_full(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
+      /*
+       * Compute new update
+       */
+      discardUpdate = computeUpdate(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, 
               operatorIndex, overwriteMemory, alpha, alphaMin, alphaMax, 
               numberOfIterations,xStart,stayBelowSat,sol);
             
+      LOG_DBG(vecpreisachInversion) << "Computed update: " << xUpdate.ToString();
+      if(!discardUpdate){
+        xVal = xVal+xUpdate;
+      } else {
+        LOG_DBG(vecpreisachInversion) << "Discard update";
+        //std::cout << "Discard update; reset to best solution so far" << std::endl;
+        alphaMin = alphaMin/2.0;
+        alphaMax = alphaMax*2.0;
+      }
+      sign = sign*(-1.0);
+      
+      /*
+       * Collect some statistics
+       */
       if(alpha < minAlphaStatistics){
         minAlphaStatistics = alpha;
       }
@@ -1705,27 +1725,13 @@ namespace CoupledField
       if(numberOfIterations > maximalNumberOfLinesearchIterations){
         maximalNumberOfLinesearchIterations = numberOfIterations;
       }
-      
-      LOG_DBG(vecpreisachInversion) << "Computed update: " << xUpdate.ToString();
-      if(!discardUpdate){
-        xVal = xVal+xUpdate;
-      } else {
-        LOG_DBG(vecpreisachInversion) << "Discard update";
-        //std::cout << "Discard update; reset to best solution so far" << std::endl;
-        alphaMin = alphaMin/2.0;
-        alphaMax = alphaMax*2.0;
-      }
-      sign = sign*(-1.0);
     }
-    //    std::cout << "xVal - LM: " << xVal.ToString() << std::endl;
-    //    std::cout << "xVal - Krylov: " << xVal_krylov.ToString() << std::endl;
-    
-    
-    //      std::cout << "xVal.NormL2(): " << xVal.NormL2() << std::endl;
-    //      std::cout << "XSaturated_: " << XSaturated_ << std::endl;
-    //      
+
     avgAlphaStatistics /= totalNumberOfLMIterations;
     
+    /*
+     * Final checks
+     */
     if((xVal.NormL2() > XSaturated_)&&(stayBelowSat==1)){
       EXCEPTION("LM lead xVal into saturation although input is below > must not be the case!");
     }
@@ -1734,19 +1740,20 @@ namespace CoupledField
       EXCEPTION("LM lead xVal below saturation although input is above> must not be the case!");
     }
     
-    // end LM
-    
-    /*
-     * set values for next time
-     */
-    if(overwriteMemory == true){
-      EXCEPTION("Memory should not be overridden here");
-    }
-    
-    if(debug && successFlag==0){
+    bool performFinalCheck = false;
+    bool abortOnFail = false;
+    if(performFinalCheck){
       Double resYNorm = 0.0;
-      checkInversionOutput(xVal, yVal, mu, INV_resTolB_, resYNorm, operatorIndex, overwriteMemory,true);
-      LOG_TRACE(vecpreisachInversion) << traceMsg.str();
+      bool finalCheckPassed = checkInversionOutput(xVal, yVal, mu, INV_resTolB_, resYNorm, operatorIndex, false,true);
+      if(!finalCheckPassed){
+        std::stringstream exceptionmsg;
+        exceptionmsg << "Inversion failed final test; remaining residual norm wrt y: " << resYNorm;
+        if(abortOnFail){
+          EXCEPTION(exceptionmsg.str());
+        } else {
+          WARN(exceptionmsg.str());
+        }
+      } 
     }
     
     LOG_TRACE(vecpreisachInversion) << " --------- END IVERSION --------- ";

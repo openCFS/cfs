@@ -218,7 +218,7 @@ namespace CoupledField {
     Vector<Double> computeUpdate_LM(Vector<Double> jacTres_neg, 
           Matrix<Double>& jacTjac, Double& alphaIn, Double& alphaAcc, Double& alphaMinReq, Double alphaMax);
     
-    bool computeUpdate_LM_full(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
+    bool computeUpdate(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
       Integer operatorIdx, bool overwriteMemory,
       Double& alpha, Double alphaMin, Double alphaMax,  
