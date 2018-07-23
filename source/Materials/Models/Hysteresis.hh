@@ -195,26 +195,20 @@ namespace CoupledField {
 			Matrix<Double>& mu, Double tol, Double& resYNorm, Integer operatorIdx, bool overwriteMemory, bool output = false);
 		
     bool checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol);
-    
-//    Double computeRho(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-//				Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac);
-//    
-//    Integer checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-//		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
-//    
+     
     Integer checkIncrementTrustRegion(Vector<Double>& x_new, 
           Vector<Double>& res_cur, Vector<Double>& res_new,
           Vector<Double>& jac_dx, Double& alpha, int stayBelowSat);
     
-//    Integer checkIncrementOLD(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-//		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
-//    
     Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
         
     Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
 					bool overwriteMemory, int stayBelowSat);
     
+    Vector<Double> computeJacobianTimesVector(Vector<Double>& x, Vector<Double>& v, 
+    Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
+        
     Vector<Double> computeUpdate_Newton(Vector<Double>& x, Vector<Double>& y, 
       Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
     
@@ -224,14 +218,11 @@ namespace CoupledField {
     Vector<Double> computeUpdate_LM(Vector<Double> jacTres_neg, 
           Matrix<Double>& jacTjac, Double& alphaIn, Double& alphaAcc, Double& alphaMinReq, Double alphaMax);
     
-    Vector<Double> computeJacobianTimesVector(Vector<Double>& x, Vector<Double>& v, 
-      Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
-      
     bool computeUpdate_LM_full(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
       Integer operatorIdx, bool overwriteMemory,
       Double& alpha, Double alphaMin, Double alphaMax,  
-      UInt& numberOfIterations, Vector<Double>& xStart, Double factorToSat,int stayBelowSat,Vector<Double> sol);
+      UInt& numberOfIterations, Vector<Double>& xStart,int stayBelowSat,Vector<Double> sol);
 
     Vector<Double> computeInput_vec_withPrevStates(Vector<Double> yVal, Vector<Double> prevYval,
       Vector<Double> prevXval, Vector<Double> prevHystval, Integer operatorIndex, 
