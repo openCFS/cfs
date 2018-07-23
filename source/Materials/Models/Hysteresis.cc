@@ -631,7 +631,7 @@ namespace CoupledField
   }
   
   Matrix<Double> Hysteresis::computeJacobian(Vector<Double>& xVal, Vector<Double>& hystVal, 
-          Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
+          Matrix<Double> mu_inv, Integer operatorIdx, Double sign, int jacobianImplementation, 
 					bool overwriteMemory, int stayBelowSat) {
     
     LOG_DBG(vecpreisachInversion) << " --------- computeJacobian --------- ";
@@ -656,7 +656,7 @@ namespace CoupledField
     Matrix<Double> jac = Matrix<Double>(dim_,dim_);
     jac.Init();
     
-    if(implementation == 0){
+    if(jacobianImplementation == 0){
       //      LOG_DBG(vecpreisach) << "Use forward/backward differences for approximation of Jacobian";
       /*
        * Full Jacobian using forward/backward differences
@@ -714,7 +714,7 @@ namespace CoupledField
           jac[j][i] += curCol[j];
         }
       }      
-    } else if(implementation == 1){
+    } else if(jacobianImplementation == 1){
       //      LOG_DBG(vecpreisach) << "Use central differences for approximation of Jacobian";
       /*
        * Full Jacobian using central differences
@@ -1190,7 +1190,7 @@ namespace CoupledField
     //  0 = reuse value
     //  1 = anhyst only
     //  2 = bisection
-    //  3-6 only for vector implementation using Levenberg Marquardt
+    //  3-6 only for vector jacobianImplementation using Levenberg Marquardt
     //  3 = reamnence
     //  4 = passed dut to error tolerance
     //  5 = passed due to tolerance wrt x
@@ -1553,11 +1553,33 @@ namespace CoupledField
     Vector<Double> res = Vector<Double>(dim_);
     Matrix<Double> jac = Matrix<Double>(dim_,dim_);
     Matrix<Double> jacT = Matrix<Double>(dim_,dim_);
+    Vector<Double> jacTres = Vector<Double>(dim_);
     
     Double errorNorm;
     Double errorNormResX;
     Double errorNormResY;
-    UInt implementation = 0;
+    
+    /*
+     * updateImplementation
+     * 
+     * 0: Levenberg Marquardt
+     * 1: Standard Newton
+     * 2: Jacobian-Free-Newton-Krylov
+     */
+    UInt updateImplementation = 0;
+    
+    /*
+     * jacobianImplementation
+     * 
+     * -1: jacobian free > only possible in combination with NewtonKrylov
+     * 0: switching between forward/backward differences
+     * 1: central differences
+     */
+    int jacobianImplementation = 0;
+    if(updateImplementation == 2){
+      jacobianImplementation = -1;
+    }
+    
     Vector<Double> bestSol = Vector<Double>(dim_);
     Double bestErrorNorm = 1e16;
     
@@ -1579,15 +1601,26 @@ namespace CoupledField
       // do not override hyst memory here
       //          ClipDirection(xVal);
       hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
-      
       res = computeResidual(xVal,yVal,hystVal,mu_inv);
-      jac = computeJacobian(xVal,hystVal, mu_inv, 
-              operatorIndex, sign, implementation, overwriteMemory, stayBelowSat);
       
-      jac.Transpose(jacT);
-      
-      Vector<Double> jacTres = computeJacobianTimesVector(xVal, res, 
+      if(jacobianImplementation != -1){
+        /*
+         * Compute Jacobian and its transpose
+         */
+        jac = computeJacobian(xVal,hystVal, mu_inv, 
+              operatorIndex, sign, jacobianImplementation, overwriteMemory, stayBelowSat);
+        jac.Transpose(jacT);
+        /*
+         * Compute actual error criterion (Jacobian*residual) from Jacobain
+         */
+        jacT.Mult(res,jacTres);
+      } else {
+        /*
+         * Compute jacTres without setting up the actual Jacobian
+         */
+        jacTres = computeJacobianTimesVector(xVal, res, 
           yVal, hystVal, mu_inv, operatorIndex);
+      }
       
       successError = checkConvergence(jacTres,errorNorm,INV_resTolH_);
       errorNormResX = res.NormL2();

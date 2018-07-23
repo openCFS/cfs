@@ -203,7 +203,7 @@ namespace CoupledField {
     Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
         
     Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& hystVal, 
-          Matrix<Double> mu_inv, Integer operatorIdx, Double sign, UInt implementation, 
+          Matrix<Double> mu_inv, Integer operatorIdx, Double sign, int jacobianImplementation, 
 					bool overwriteMemory, int stayBelowSat);
     
     Vector<Double> computeJacobianTimesVector(Vector<Double>& x, Vector<Double>& v, 
