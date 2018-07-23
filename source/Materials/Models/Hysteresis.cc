@@ -1014,16 +1014,15 @@ namespace CoupledField
     UInt mode = 0;
     /*
      * mode:
-     * 0 = LevenbergMarquardt
+     * 0 = LevenbergMarquardt > only one which is working proper at the moment
      * 1 = Newton, direct solve
      * 2 = Newton, Krylov space solution
      */
     
     if(mode != 0){
-      alphaMax = 1.0;
-      alphaMin = 0.01;
-    } else {
-    }
+      alphaMax = 2048.0;
+      alphaMin = 1.0/2048.0;
+    } 
     UInt maxIter = 150;
     UInt itCnt = 0;
     
@@ -1057,7 +1056,7 @@ namespace CoupledField
       alpha = alphaMinLocal;
     } else {
       // for Newton, we perform only linesearch; start at middle value between min and max
-      alpha = 1.0;//(alphaMax + alphaMin)/2.0;
+      alpha = 1.0/8.0;
     }
 
     Double alphaAcc = alpha*alpha;
@@ -1093,7 +1092,7 @@ namespace CoupledField
          * > just scale update and check
          */
         xUpdate = xUpdateStart;
-        xUpdate.ScalarMult(alphaAcc);
+        xUpdate.ScalarMult(alpha);
       }
       
       xNew.Init();
@@ -1191,16 +1190,42 @@ namespace CoupledField
             LOG_DBG(vecpreisachlinesearch) << "Update no longer ok > go to next iteration except alpha out of limits";
             // any further
             // works better with alphaAcc > alphaMax instead of alpha > alphaMax
-            if(alphaAcc > alphaMax){
+            Double alphaCrit;
+            if(mode == 0){
+              alphaCrit = alphaAcc;
+            } else {
+              alphaCrit = alpha;
+            }
+            
+            if(alphaCrit > alphaMax){
               LOG_TRACE(vecpreisachlinesearch) << "Alpha max reached; take update > stop";
-              alphaAcc = alphaMax;
-              discard = false;
+              alphaCrit = alphaMax;
+              if(mode == 0){
+                // LM: large alpha > small update; adding it might not hurt to much > discard = false
+                discard = false;
+              } else {
+                // Newton, Krylov-Newton: large alpha > large update (due to "normal" linesearch); better discard
+                discard = true;
+              }
+              
+              if(mode == 0){
+                alphaAcc = alphaCrit;
+              } else {
+                alpha = alphaCrit;
+              }
               break;
             }
+            
             if(alpha < alphaMinLocal){
               LOG_TRACE(vecpreisachlinesearch) << "Alpha min reached; discard update > stop";
               alpha = alphaMinLocal;
-              discard = true;
+              if(mode == 0){
+                // LM: small alpha > large update; might be risky > discard
+                discard = true;
+              } else {
+                // Newton, Krylov-Newton: small alpha > small update (due to "normal" linesearch); could be ok
+                discard = false;
+              }
               break;
             }
             if(itCnt >= maxIter){
@@ -1215,20 +1240,44 @@ namespace CoupledField
         }
       } else {
         // works better with alphaAcc > alphaMax instead of alpha > alphaMax
-				if(alphaAcc > alphaMax){
-//          std::cout << "Alpha max reached" << std::endl;
-					LOG_TRACE(vecpreisachlinesearch) << "Alpha max reached; take update > stop";
-					alphaAcc = alphaMax;
-					discard = true;
-					break;
-				}
-				if(alpha < alphaMinLocal){
-//          std::cout << "Alpha min reached" << std::endl;
-					LOG_TRACE(vecpreisachlinesearch) << "Alpha min reached; discard update > stop";
-					alpha = alphaMinLocal;
-					discard = true;
-					break;
-				}
+        Double alphaCrit;
+        if(mode == 0){
+          alphaCrit = alphaAcc;
+        } else {
+          alphaCrit = alpha;
+        }
+                    
+        if(alphaCrit > alphaMax){
+          LOG_TRACE(vecpreisachlinesearch) << "Alpha max reached; take update > stop";
+          alphaCrit = alphaMax;
+          if(mode == 0){
+            // LM: large alpha > small update; BUT: here it might still be too much > discard, too
+            discard = true;
+          } else {
+            // Newton, Krylov-Newton: large alpha > large update (due to "normal" linesearch); better discard
+            discard = true;
+          }
+          
+          if(mode == 0){
+            alphaAcc = alphaCrit;
+          } else {
+            alpha = alphaCrit;
+          }
+          break;
+        }
+        
+        if(alpha < alphaMinLocal){
+          LOG_TRACE(vecpreisachlinesearch) << "Alpha min reached; discard update > stop";
+          alpha = alphaMinLocal;
+          if(mode == 0){
+            // LM: small alpha > large update; might be risky > discard
+            discard = true;
+          } else {
+            // Newton, Krylov-Newton: small alpha > small update (due to "normal" linesearch); could be ok
+            discard = false;
+          }
+          break;
+        }
 				
         if(itCnt >= maxIter){
 //          std::cout << "Max number of iterations used" << std::endl;
