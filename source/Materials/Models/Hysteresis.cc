@@ -1018,12 +1018,13 @@ namespace CoupledField
      * 1 = Newton, direct solve
      * 2 = Newton, Krylov space solution
      */
+    
     if(mode != 0){
       alphaMax = 1.0;
       alphaMin = 0.01;
+    } else {
     }
-    
-		UInt maxIter = 150;
+    UInt maxIter = 150;
     UInt itCnt = 0;
     
     Matrix<Double> matToInvert = Matrix<Double>(dim_,dim_);
@@ -1056,7 +1057,7 @@ namespace CoupledField
       alpha = alphaMinLocal;
     } else {
       // for Newton, we perform only linesearch; start at middle value between min and max
-      alpha = (alphaMax + alphaMin)/2.0;
+      alpha = 1.0;//(alphaMax + alphaMin)/2.0;
     }
 
     Double alphaAcc = alpha*alpha;
@@ -1189,9 +1190,10 @@ namespace CoupledField
           } else {
             LOG_DBG(vecpreisachlinesearch) << "Update no longer ok > go to next iteration except alpha out of limits";
             // any further
-            if(alpha > alphaMax){
+            // works better with alphaAcc > alphaMax instead of alpha > alphaMax
+            if(alphaAcc > alphaMax){
               LOG_TRACE(vecpreisachlinesearch) << "Alpha max reached; take update > stop";
-              alpha = alphaMax;
+              alphaAcc = alphaMax;
               discard = false;
               break;
             }
@@ -1212,10 +1214,11 @@ namespace CoupledField
           break;
         }
       } else {
-				if(alpha > alphaMax){
+        // works better with alphaAcc > alphaMax instead of alpha > alphaMax
+				if(alphaAcc > alphaMax){
 //          std::cout << "Alpha max reached" << std::endl;
 					LOG_TRACE(vecpreisachlinesearch) << "Alpha max reached; take update > stop";
-					alpha = alphaMax;
+					alphaAcc = alphaMax;
 					discard = true;
 					break;
 				}
