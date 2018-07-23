@@ -301,166 +301,166 @@ namespace CoupledField
     return success;
   }
   
-	Double Hysteresis::computeRho(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-          Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac){
-		
-    std::stringstream computeRhoTrace;
-		// According to Dahmen & Reusken, we have to check
-		// our increment by computing
-		// 
-		// rho = (||F(x)||^2 - ||F(x + increment)||^2) /
-		//       (||F(x||^2 - ||F(x) + F'(x)*increment||^2)
-		//
-		// F = residual
-		// F' = Jacobian
-		Double resNorm = res.NormL2_squared();
-		Double resShiftedNorm = resShifted.NormL2_squared();
-		Vector<Double> tmp = Vector<Double>(dim_);
-    //    tmp = computeJacobianTimesVector(x, Vector<Double>& v, 
-    //          Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx)
-		jac.Mult(xUpdate,tmp);
-		
-		tmp = tmp + res;
-		Double tmpNorm = tmp.NormL2_squared();
-		Double a = resNorm - resShiftedNorm;
-		Double b = resNorm - tmpNorm;
-		
-    LOG_TRACE(vecpreisachInversion) << "Compute rho: a = " << a;
-    LOG_TRACE(vecpreisachInversion) << "Compute rho: b = " << b;
-    
-    computeRhoTrace << "Nominator: ||F(x)||^2 - ||F(x + increment)||^2 = " << a << std::endl;
-    computeRhoTrace << "Denominator: ||F(x||^2 - ||F(x) + F'(x)*increment||^2 = " << b << std::endl;
-    
-		/*
-     * Note: during various tests, rho reached values between
-     *       -200 to 2
-     * > if stepping is too small: rho << 0
-     * > if stepping is too large: rho ~ 1-2
-     * > consider this for creating an appropriate adation of alpha
-     * 
-     * > EDIT: according to Dahmen Reusken, rho < 0 is never acceptable
-     *          and b should always be >= 0
-     */
-		Double rho;
-		if(b != 0){
-			rho = a/b;
-		} else {
-			rho = a;
-      if(a == 0){
-        //LOG_DBG(vecpreisach) << "Compute rho: a = 0, too!";
-        // rho is actually undefined here (as increment is basically 0)
-        // > alpha seems to be way too large (otherwise increment would not be 0)
-        // > return rho >= 1 in order to trigger a much smaller alpha
-        // > rho >= 10 > reset alpha
-        rho = 10.0;
-      }
-		}
-    bool output = false;
-    //    /*
-    //     * NEW: check if increment does lead to a usable change in residual at all
-    //     *      (a/b might be ok, but the actual change in residual (b) might be so small
-    //     *      that we do not step forward)
-    //     * 
-    //     */
-    //    if(b < 1e-25){
-    //      b = 0;
-    //    }
-    //    
-    //    if((b/(resNorm*resNorm) < 1e-12)&&(b != 0)){
-    //      computeRhoTrace << "b/(resNorm*resNorm) = " << b  <<"/"<< (resNorm*resNorm) << " = " << b/(resNorm*resNorm) << " < 1e-12" << std::endl; 
-    //      computeRhoTrace << " > residual did not really decrease > reset alpha to 1.0" << std::endl; 
-    //      rho = 10.0;
-    //      output = true;
-    //    }
-    //    
-    //    
-    
-    if(b < 0){
-      // due to the model itsel, b should always be > 0 (which is the case except when it is 0 an numerical noise comes into play (< 1e-34)
-      // however, during linesearch we force the solution to be below saturation; this forcing of the update might actually lead to b < 0
-      computeRhoTrace << "b < 0 > SHOULD not happen" << std::endl; 
-      output = !true;
-    }
-    if( (b == 0)&&(a != 0) ){
-      computeRhoTrace << "b == 0 > a is taken directly, correct?" << std::endl; 
-      output = true;
-    }
-    if(output == true){
-      LOG_TRACE(vecpreisachInversion) << computeRhoTrace.str();
-    }
-    
-		//LOG_DBG(vecpreisach) << "Computed rho: " << rho;
-		return rho;
-	}
+//	Double Hysteresis::computeRho(Vector<Double>& xNew, Vector<Double>& xUpdate, 
+//          Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac){
+//		
+//    std::stringstream computeRhoTrace;
+//		// According to Dahmen & Reusken, we have to check
+//		// our increment by computing
+//		// 
+//		// rho = (||F(x)||^2 - ||F(x + increment)||^2) /
+//		//       (||F(x||^2 - ||F(x) + F'(x)*increment||^2)
+//		//
+//		// F = residual
+//		// F' = Jacobian
+//		Double resNorm = res.NormL2_squared();
+//		Double resShiftedNorm = resShifted.NormL2_squared();
+//		Vector<Double> tmp = Vector<Double>(dim_);
+//    //    tmp = computeJacobianTimesVector(x, Vector<Double>& v, 
+//    //          Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx)
+//		jac.Mult(xUpdate,tmp);
+//		
+//		tmp = tmp + res;
+//		Double tmpNorm = tmp.NormL2_squared();
+//		Double a = resNorm - resShiftedNorm;
+//		Double b = resNorm - tmpNorm;
+//		
+//    LOG_TRACE(vecpreisachInversion) << "Compute rho: a = " << a;
+//    LOG_TRACE(vecpreisachInversion) << "Compute rho: b = " << b;
+//    
+//    computeRhoTrace << "Nominator: ||F(x)||^2 - ||F(x + increment)||^2 = " << a << std::endl;
+//    computeRhoTrace << "Denominator: ||F(x||^2 - ||F(x) + F'(x)*increment||^2 = " << b << std::endl;
+//    
+//		/*
+//     * Note: during various tests, rho reached values between
+//     *       -200 to 2
+//     * > if stepping is too small: rho << 0
+//     * > if stepping is too large: rho ~ 1-2
+//     * > consider this for creating an appropriate adation of alpha
+//     * 
+//     * > EDIT: according to Dahmen Reusken, rho < 0 is never acceptable
+//     *          and b should always be >= 0
+//     */
+//		Double rho;
+//		if(b != 0){
+//			rho = a/b;
+//		} else {
+//			rho = a;
+//      if(a == 0){
+//        //LOG_DBG(vecpreisach) << "Compute rho: a = 0, too!";
+//        // rho is actually undefined here (as increment is basically 0)
+//        // > alpha seems to be way too large (otherwise increment would not be 0)
+//        // > return rho >= 1 in order to trigger a much smaller alpha
+//        // > rho >= 10 > reset alpha
+//        rho = 10.0;
+//      }
+//		}
+//    bool output = false;
+//    //    /*
+//    //     * NEW: check if increment does lead to a usable change in residual at all
+//    //     *      (a/b might be ok, but the actual change in residual (b) might be so small
+//    //     *      that we do not step forward)
+//    //     * 
+//    //     */
+//    //    if(b < 1e-25){
+//    //      b = 0;
+//    //    }
+//    //    
+//    //    if((b/(resNorm*resNorm) < 1e-12)&&(b != 0)){
+//    //      computeRhoTrace << "b/(resNorm*resNorm) = " << b  <<"/"<< (resNorm*resNorm) << " = " << b/(resNorm*resNorm) << " < 1e-12" << std::endl; 
+//    //      computeRhoTrace << " > residual did not really decrease > reset alpha to 1.0" << std::endl; 
+//    //      rho = 10.0;
+//    //      output = true;
+//    //    }
+//    //    
+//    //    
+//    
+//    if(b < 0){
+//      // due to the model itsel, b should always be > 0 (which is the case except when it is 0 an numerical noise comes into play (< 1e-34)
+//      // however, during linesearch we force the solution to be below saturation; this forcing of the update might actually lead to b < 0
+//      computeRhoTrace << "b < 0 > SHOULD not happen" << std::endl; 
+//      output = !true;
+//    }
+//    if( (b == 0)&&(a != 0) ){
+//      computeRhoTrace << "b == 0 > a is taken directly, correct?" << std::endl; 
+//      output = true;
+//    }
+//    if(output == true){
+//      LOG_TRACE(vecpreisachInversion) << computeRhoTrace.str();
+//    }
+//    
+//		//LOG_DBG(vecpreisach) << "Computed rho: " << rho;
+//		return rho;
+//	}
   
-  Integer Hysteresis::checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-          Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat){
-    /*
-     * Inspired by "Levenberg-Marquart iteative regularization for th epulse-type impact-force reconstruction"
-     * 
-     * Trust region method with four regions for rho
-     * 
-     * rho = (||F(x)||^2 - ||F(x + increment)||^2) /
-     *       (||F(x||^2 - ||F(x) + F'(x)*increment||^2)
-     * 
-     * rho < beta0 : discard update; increase alpha
-     * beta0 <= rho < betaLow : accept update; increase alpha
-     * betaLow <= rho < betaUp : accept update; keep alpha
-     * betaUp <= rho : accept update; decrease alpha
-     * 
-     * Return value:
-     * -1 : dicard update
-     *  0 : keep update
-     *  1 : keep update
-     */
-    Double beta0, betaLow, betaUp;
-    beta0 = 0.15;
-    //    betaLow = 0.25;
-    //    betaUp = 0.75;
-    // best for mayergoyz so far
-    betaLow = 0.35;
-    betaUp = 0.85;
-    Double factorUp = 2;
-    Double factorDown = 0.5;
-    
-    //LOG_DBG(vecpreisach) << "Check increment";
-    Integer success = 0;
-    if((xNew.NormL2() > XSaturated_)&&(stayBelowSat==1)){
-      // input yVal is not in saturation (otherwise we would not be here but
-      // use the simple case)
-      // > new value cannot be in saturation either
-      // > current update will definitely not match
-      // > problem here: if xNew is in saturation, further comvergence using
-      //    the jacobian will not work as the slope will be such that we 
-      //    cannot leave this (wrongly obtained) saturation
-      // > discard update and try with different alpha again
-      //LOG_DBG(vecpreisach) << "Intermediate solution (" << xNew.ToString() << ") has gone into saturation > discard!";
-      alpha = alpha*factorUp;
-      success = -3;
-    } else if((xNew.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
-      alpha = alpha/factorUp;
-      success = -2;
-    } else {
-      //std::cout << "Safe case: " << std::endl;
-      //std::cout << "Check increment according to residual" << std::endl;
-      Double rho = computeRho(xNew, xUpdate, res, resShifted, jac);
-      LOG_TRACE(vecpreisachInversion) << "rho: " << rho;
-      if(rho < beta0){
-        success = -1;
-        alpha = alpha*factorUp;
-      } else if(rho < betaLow){
-        success = 0;
-        alpha = alpha*factorUp;
-      } else if(rho < betaUp){
-        success = 0;
-      } else {
-        success = 1;
-        alpha = alpha*factorDown;
-      }
-    }
-    
-    return success;
-  }
+//  Integer Hysteresis::checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, 
+//          Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat){
+//    /*
+//     * Inspired by "Levenberg-Marquart iteative regularization for th epulse-type impact-force reconstruction"
+//     * 
+//     * Trust region method with four regions for rho
+//     * 
+//     * rho = (||F(x)||^2 - ||F(x + increment)||^2) /
+//     *       (||F(x||^2 - ||F(x) + F'(x)*increment||^2)
+//     * 
+//     * rho < beta0 : discard update; increase alpha
+//     * beta0 <= rho < betaLow : accept update; increase alpha
+//     * betaLow <= rho < betaUp : accept update; keep alpha
+//     * betaUp <= rho : accept update; decrease alpha
+//     * 
+//     * Return value:
+//     * -1 : dicard update
+//     *  0 : keep update
+//     *  1 : keep update
+//     */
+//    Double beta0, betaLow, betaUp;
+//    beta0 = 0.15;
+//    //    betaLow = 0.25;
+//    //    betaUp = 0.75;
+//    // best for mayergoyz so far
+//    betaLow = 0.35;
+//    betaUp = 0.85;
+//    Double factorUp = 2;
+//    Double factorDown = 0.5;
+//    
+//    //LOG_DBG(vecpreisach) << "Check increment";
+//    Integer success = 0;
+//    if((xNew.NormL2() > XSaturated_)&&(stayBelowSat==1)){
+//      // input yVal is not in saturation (otherwise we would not be here but
+//      // use the simple case)
+//      // > new value cannot be in saturation either
+//      // > current update will definitely not match
+//      // > problem here: if xNew is in saturation, further comvergence using
+//      //    the jacobian will not work as the slope will be such that we 
+//      //    cannot leave this (wrongly obtained) saturation
+//      // > discard update and try with different alpha again
+//      //LOG_DBG(vecpreisach) << "Intermediate solution (" << xNew.ToString() << ") has gone into saturation > discard!";
+//      alpha = alpha*factorUp;
+//      success = -3;
+//    } else if((xNew.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
+//      alpha = alpha/factorUp;
+//      success = -2;
+//    } else {
+//      //std::cout << "Safe case: " << std::endl;
+//      //std::cout << "Check increment according to residual" << std::endl;
+//      Double rho = computeRho(xNew, xUpdate, res, resShifted, jac);
+//      LOG_TRACE(vecpreisachInversion) << "rho: " << rho;
+//      if(rho < beta0){
+//        success = -1;
+//        alpha = alpha*factorUp;
+//      } else if(rho < betaLow){
+//        success = 0;
+//        alpha = alpha*factorUp;
+//      } else if(rho < betaUp){
+//        success = 0;
+//      } else {
+//        success = 1;
+//        alpha = alpha*factorDown;
+//      }
+//    }
+//    
+//    return success;
+//  }
   
   Vector<Double> Hysteresis::computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv){
     /*
@@ -1178,7 +1178,12 @@ namespace CoupledField
           hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, debugOut, successFlag);
           resNew = computeResidual(xVal,yVal,hystNew,mu_inv);
           //          resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
-          success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
+
+          Vector<Double> jac_dx = Vector<Double>(dim_);
+          jac.Mult(xUpdate,jac_dx);
+          success = checkIncrementTrustRegion(xNew, res, resNew, jac_dx, alpha, stayBelowSat); 
+          
+//          success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
           LOG_DBG(vecpreisachlinesearch) << "xNew (after cut): " << xNew.ToString();
           LOG_DBG(vecpreisachlinesearch) << "hystNew (after cut): " << hystNew.ToString();
           LOG_DBG(vecpreisachlinesearch) << "New res vector (after cut): " << resNew.ToString();

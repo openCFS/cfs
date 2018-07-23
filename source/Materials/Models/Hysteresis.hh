@@ -196,19 +196,19 @@ namespace CoupledField {
 		
     bool checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol);
     
-    Double computeRho(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-				Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac);
-    
-    Integer checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
-    
+//    Double computeRho(Vector<Double>& xNew, Vector<Double>& xUpdate, 
+//				Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac);
+//    
+//    Integer checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, 
+//		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
+//    
     Integer checkIncrementTrustRegion(Vector<Double>& x_new, 
           Vector<Double>& res_cur, Vector<Double>& res_new,
           Vector<Double>& jac_dx, Double& alpha, int stayBelowSat);
     
-    Integer checkIncrementOLD(Vector<Double>& xNew, Vector<Double>& xUpdate, 
-		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
-    
+//    Integer checkIncrementOLD(Vector<Double>& xNew, Vector<Double>& xUpdate, 
+//		Vector<Double>& res, Vector<Double>& resShifted, Matrix<Double>& jac, Double& alpha, int stayBelowSat);
+//    
     Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
         
     Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& hystVal, 
