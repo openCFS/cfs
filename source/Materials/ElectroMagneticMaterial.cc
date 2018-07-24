@@ -89,7 +89,8 @@ namespace CoupledField
     isAllowed_.insert( RES_TOL_B_HYST_INV );
     isAllowed_.insert( MAX_NUM_IT_HYST_INV );
     isAllowed_.insert( JAC_RESOLUTION_HYST_INV );
-    isAllowed_.insert( TIKHONOV_HYST_INV );
+    isAllowed_.insert( MAX_NUM_LS_IT_HYST_INV );
+    isAllowed_.insert( VEC_HYST_INV_METHOD );
     isAllowed_.insert( ALPHA_LS_HYST_INV );
     isAllowed_.insert( ALPHA_LS_MIN_HYST_INV );
     isAllowed_.insert( ALPHA_LS_MAX_HYST_INV );

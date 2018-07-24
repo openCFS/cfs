@@ -1454,14 +1454,16 @@ namespace CoupledField {
       // inversion via LM > set parameter
       if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
         inversionSet_ = true;
-        Integer invMat, useTikhonov;
+        Integer invMat, invLSIt, invMethod;
         material->GetScalar(invMat, MAX_NUM_IT_HYST_INV);
         LM_inversion_.maxNumIts = (UInt) invMat;
+        material->GetScalar(invLSIt, MAX_NUM_LS_IT_HYST_INV);
+        LM_inversion_.maxNumLSIts = (UInt) invLSIt;
+        material->GetScalar(invMethod, VEC_HYST_INV_METHOD);
+        LM_inversion_.inversionMethod = (UInt) invMethod;
         material->GetScalar(LM_inversion_.tolH, RES_TOL_H_HYST_INV, Global::REAL);
         material->GetScalar(LM_inversion_.tolB, RES_TOL_B_HYST_INV, Global::REAL);
         material->GetScalar(LM_inversion_.jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
-        material->GetScalar(useTikhonov, TIKHONOV_HYST_INV);
-        LM_inversion_.useTikhonov = (bool) useTikhonov;
         material->GetScalar(LM_inversion_.alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
         material->GetScalar(LM_inversion_.alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
         material->GetScalar(LM_inversion_.alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);  
@@ -1807,8 +1809,10 @@ namespace CoupledField {
     if ( (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor") || (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") ){
       // inversion via LM > set parameter
       if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
-        hyst_->SetParamsForInversion(LM_inversion_.maxNumIts, LM_inversion_.tolH, LM_inversion_.tolB, LM_inversion_.jacRes,
-                LM_inversion_.useTikhonov, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,POL_operatorParams_.angularClipping_);   
+        hyst_->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
+                LM_inversion_.tolH, LM_inversion_.tolB, 
+                LM_inversion_.jacRes, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,
+                POL_operatorParams_.angularClipping_);   
       }
     }
     
@@ -5663,9 +5667,11 @@ namespace CoupledField {
                 "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
                 "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
 			}
-			hystTMP->SetParamsForInversion(LM_inversion_.maxNumIts, LM_inversion_.tolH, LM_inversion_.tolB, LM_inversion_.jacRes,
-              LM_inversion_.useTikhonov, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,POL_operatorParams_.angularClipping_); 
-			      
+			hystTMP->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
+                LM_inversion_.tolH, LM_inversion_.tolB, 
+                LM_inversion_.jacRes, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,
+                POL_operatorParams_.angularClipping_);   
+      
 		} else if (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") {			
       // basically a scalar model in multiple directions
       // isotropic case: all scalar models are equal (same weights etc)
@@ -5692,8 +5698,10 @@ namespace CoupledField {
               POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,
               POL_weightParams_.anhystOnly_,POL_operatorParams_.outputClipping_);
 			
-			hystTMP->SetParamsForInversion(LM_inversion_.maxNumIts, LM_inversion_.tolH, LM_inversion_.tolB, LM_inversion_.jacRes,
-              LM_inversion_.useTikhonov, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,POL_operatorParams_.angularClipping_); 
+			hystTMP->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
+                LM_inversion_.tolH, LM_inversion_.tolB, 
+                LM_inversion_.jacRes, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,
+                POL_operatorParams_.angularClipping_);   
 		} else {
 			EXCEPTION("Invalid model selected for inversion test");
 		}
@@ -5809,7 +5817,6 @@ namespace CoupledField {
 				statistics << "- tolerance wrt y: " << LM_inversion_.tolB << std::endl;
 				statistics << "- FD-resolution for Jacobian: " << LM_inversion_.jacRes << std::endl;
 				statistics << "LINESEARCH: " << std::endl;
-				statistics << "- use Tikhonov? " << LM_inversion_.useTikhonov << std::endl;
 				statistics << "- alpha start: " << LM_inversion_.alphaLSStart << std::endl;
 				statistics << "- alpha min: " << LM_inversion_.alphaLSMin << std::endl;
 				statistics << "- alpha max: " << LM_inversion_.alphaLSMax << std::endl;		

@@ -1700,7 +1700,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( RES_TOL_H_HYST_INV, "residualTolH" );
     MaterialTypeEnum.Add( RES_TOL_B_HYST_INV, "residualTolB" );
     MaterialTypeEnum.Add( JAC_RESOLUTION_HYST_INV, "jacobiResolution" );
-    MaterialTypeEnum.Add( TIKHONOV_HYST_INV, "useTikhonov" );
+    MaterialTypeEnum.Add( MAX_NUM_LS_IT_HYST_INV, "maxNumberLSIterations" );
+    MaterialTypeEnum.Add( VEC_HYST_INV_METHOD, "hystInversionMethod" );
     MaterialTypeEnum.Add( ALPHA_LS_HYST_INV, "alphaRegStart" );
     MaterialTypeEnum.Add( ALPHA_LS_MIN_HYST_INV, "alphaRegMin" );
     MaterialTypeEnum.Add( ALPHA_LS_MAX_HYST_INV, "alphaRegMax" );

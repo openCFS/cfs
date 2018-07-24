@@ -829,7 +829,7 @@ namespace CoupledField
           Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
           Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
           int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
-          Double& alpha, Double& alphaMin, Double& alphaMax, UInt numAlphas){
+          Double& alpha, Double& alphaMin, Double& alphaMax){
     
     /*
      * Initial checks
@@ -845,6 +845,7 @@ namespace CoupledField
      * Compute update using trial and error linesearch
      * > use alpha that minimizes jacT*res
      */
+    UInt numAlphas = INV_maxLSIter_;
     Double optAlpha = 1.0;
     Double deltaAlpha = (alphaMax-alphaMin)/(numAlphas-1);
     Double curAlpha;
@@ -853,7 +854,12 @@ namespace CoupledField
     int successFlag = 0;
     bool debugOut = false;
     bool overwriteMemory = false;
-    Double minErrorNorm = 1e16;
+    /*
+     * much faster but does not work perfectly all the time
+     */
+    bool assumeQuadraticBehavior = true;
+    
+    Double minErrorNorm = 1e18;
     
     Vector<Double> xUpdateStart = computeUpdate_Newton(xCurrent, yTarget, hystCurrent, mu_inv, operatorIdx);
     Vector<Double> hystNew;
@@ -894,6 +900,15 @@ namespace CoupledField
       if(jacTresNew.NormL2() < minErrorNorm){
         minErrorNorm = jacTresNew.NormL2();
         optAlpha = curAlpha;
+      } else {
+        /*
+         * if we assume that residual behaves somehow quadratically
+         * an increase in error means, that optimal alpha has already been passed
+         * > break
+         */
+        if((assumeQuadraticBehavior)&&(jacTresNew.NormL2() > 1.01*minErrorNorm)){
+          break;
+        }
       }
     }
     
@@ -924,7 +939,7 @@ namespace CoupledField
       EXCEPTION("xInput to Linesearch already below saturation > must not be the case!");
     }
     
-    UInt maxIter = 150;
+    UInt maxIter = INV_maxLSIter_;
     UInt itCnt = 0;
     Double alphaMinLocal = alphaMin;
     
@@ -1575,8 +1590,7 @@ namespace CoupledField
      * 1: Standard Newton
      * 2: Jacobian-Free-Newton-Krylov
      */
-    UInt updateImplementation = 1;
-    
+    UInt updateImplementation = INV_inversionMethod_;
     
     std::stringstream traceMsg;
     if(debug){
@@ -1594,7 +1608,6 @@ namespace CoupledField
       traceMsg << "INV_resTolH_: " << INV_resTolH_ << std::endl;
       traceMsg << "INV_resTolB_: " << INV_resTolB_ << std::endl;
       traceMsg << "INV_jacobiResolution_: " << INV_jacobiResolution_ << std::endl;
-      traceMsg << "INV_useTikhonov_: " << INV_useTikhonov_ << std::endl;
       traceMsg << "INV_alphaLSStart_: " << INV_alphaLSStart_ << std::endl;     
       traceMsg << "INV_alphaLSMin_: " << INV_alphaLSMin_ << std::endl;  
       traceMsg << "INV_alphaLSMax_: " << INV_alphaLSMax_ << std::endl;  
@@ -1944,7 +1957,19 @@ namespace CoupledField
      */
     Vector<Double> xStart = obtainStartVector(prevXval, prevYval, yVal, diffRem, diffSat, stayBelowSat);
     
-    traceMsg << "--D-- Inversion: Use Levenberg Marquart" << std::endl;
+    if(INV_inversionMethod_ == 0){
+      traceMsg << "--D-- Inversion: Use Levenberg Marquardt" << std::endl;
+//      std::cout << "--D-- Inversion: Use Levenberg Marquardt" << std::endl;
+    } 
+    if(INV_inversionMethod_ == 1){
+      traceMsg << "--D-- Inversion: Use Newton" << std::endl;
+//      std::cout << "--D-- Inversion: Use Newton" << std::endl;
+    }
+    if(INV_inversionMethod_ == 2){
+      traceMsg << "--D-- Inversion: Use JacobiFreeNewtonKrylov" << std::endl;
+//      std::cout << "--D-- Inversion: Use JacobiFreeNewtonKrylov" << std::endl;
+    }
+    
     
     // tolerance wrt y > 1e-10 or 1e-12 seems good > takes 2-3 its
     // only problem: y-x-loops look ugly as x can be quite off!
@@ -1952,19 +1977,12 @@ namespace CoupledField
     // tolerance for reevalution
     
     UInt itCnt = 0;
-    UInt numAlphas = 20;
     Double alpha;
     Double alphaMin;
     Double alphaMax;
-    if(updateImplementation == 0){
-      alpha = INV_alphaLSStart_;
-      alphaMin = INV_alphaLSMin_;//1.0/256.0;
-      alphaMax = INV_alphaLSMax_;//8192;//512.0;
-    } else {
-      alpha = 1.0;
-      alphaMin = 0.01;
-      alphaMax = 1.0;
-    }
+    alpha = INV_alphaLSStart_;
+    alphaMin = INV_alphaLSMin_;//1.0/256.0;
+    alphaMax = INV_alphaLSMax_;//8192;//512.0;
 
     //    Vector<Double> hystVal = computeValue_vec(xStart, operatorIndex, overwriteMemory, debugOut, successFlagForward);
     xVal = xStart;
@@ -2121,7 +2139,7 @@ namespace CoupledField
       } else {
         discardUpdate = computeUpdateLinesearch(xStart, xVal, xUpdate, hystVal, res, yVal, mu_inv,
                 jac, jacTres, operatorIndex, stayBelowSat, updateImplementation, jacobiImplementation,
-                alpha, alphaMin, alphaMax, numAlphas);
+                alpha, alphaMin, alphaMax);
       }
 
       LOG_DBG(vecpreisachInversion) << "Computed update: " << xUpdate.ToString();

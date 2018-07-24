@@ -336,19 +336,28 @@
     </xsd:sequence>
   </xsd:complexType>   
     
-  <xsd:complexType name="DT_HystVecLevenbergMarquardt">
+  <xsd:complexType name="DT_VecInversionParams">
     <xsd:sequence>
-      <xsd:element name="maxNumberIterations" type="xsd:nonNegativeInteger" minOccurs="0" default="35"/>
+      <xsd:element name="InversionMethod" minOccurs="0">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="LevenbergMarquardt"/>
+            <xsd:element name="Newton"/>
+            <xsd:element name="JacobianFreeNewtonKrylov"/>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="maxNumberOuterIterations" type="xsd:nonNegativeInteger" minOccurs="0" default="35"/>
       <xsd:element name="residualTolH" type="xsd:double" minOccurs="0" default="1e-12"/>
       <xsd:element name="residualTolB" type="xsd:double" minOccurs="0" default="1e-12"/>
       <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-12"/>
-      <xsd:element name="useTikhonov" type="xsd:boolean" minOccurs="0" default="false"/>
+      <xsd:element name="maxNumberLinesearchIterations" type="xsd:nonNegativeInteger" minOccurs="0" default="100"/>
       <xsd:element name="alphaRegStart" type="xsd:double" minOccurs="0" default="0.25"/>
       <xsd:element name="alphaRegMin" type="xsd:double" minOccurs="0" default="0.001953125"/>
       <xsd:element name="alphaRegMax" type="xsd:double" minOccurs="0" default="8192.0"/>
     </xsd:sequence>
   </xsd:complexType>  
-        
+         
   <xsd:complexType name="DT_initialElec">
     <xsd:choice>
       <xsd:element name="initialInput" type="DT_initialInOutState"/>
@@ -467,7 +476,7 @@
         <xsd:element name="isotropic" type="DT_VectorPreisachHystModelMayergoyz_Isotropic" minOccurs="1" maxOccurs="1"/>
         <xsd:element name="anIsotropic" type="DT_VectorPreisachHystModelMayergoyz_Anisotropic" minOccurs="1" maxOccurs="1"/>
       </xsd:choice>
-      <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="1"/>
+      <xsd:element name="hystInversion" type="DT_VecInversionParams" minOccurs="1"/>
       <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
       <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
         <xsd:annotation>
@@ -561,7 +570,7 @@
         </xsd:annotation>
       </xsd:element>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
-      <xsd:element name="hystInversion" type="DT_HystVecLevenbergMarquardt" minOccurs="1"/>
+      <xsd:element name="hystInversion" type="DT_VecInversionParams" minOccurs="1"/>
       <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
         <xsd:annotation>
         <xsd:documentation xml:lang="en">

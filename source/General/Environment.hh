@@ -343,7 +343,7 @@ namespace CoupledField {
       PRINT_PREISACH,PRINT_PREISACH_RESOLUTION,IS_TESTING,
       // Levenberg Marquardt inversion (hyst operator for strain will only be used in forward mode!)
       HYST_INVERSION, MAX_NUM_IT_HYST_INV, RES_TOL_H_HYST_INV, RES_TOL_B_HYST_INV, JAC_RESOLUTION_HYST_INV,   
-      TIKHONOV_HYST_INV, ALPHA_LS_HYST_INV, ALPHA_LS_MIN_HYST_INV, ALPHA_LS_MAX_HYST_INV
+      VEC_HYST_INV_METHOD, MAX_NUM_LS_IT_HYST_INV, ALPHA_LS_HYST_INV, ALPHA_LS_MIN_HYST_INV, ALPHA_LS_MAX_HYST_INV
 
     } MaterialType;
     extern Enum<MaterialType> MaterialTypeEnum;

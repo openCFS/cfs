@@ -2110,20 +2110,32 @@ namespace CoupledField {
         material->SetScalar(0, PREISACH_PRESCRIBEOUTPUT);
       }
     }
+    int inversionMethod = 0;
     int maxNumIts = 35;
+    int maxNumLSIts = 100;
     double tolH = 1e-12;
     double tolB = 1e-12;
     double jacRes = 1e-12;
-    bool useTikhonov = false;
     double alphaLSStart = 0.25;
     double alphaLSMin = 1.0/512.0;
     double alphaLSMax = 8192.0;
     bool setInversion = false;
     if(pInversion != NULL){
       setInversion = true;
-      if(pInversion->Has("maxNumberIterations"))
+      if(pInversion->Has("InversionMethod"))
       {
-        maxNumIts = pInversion->Get("maxNumberIterations")->As<Integer>();
+        if(pInversion->Get("InversionMethod")->Has("LevenbergMarquardt")){
+          inversionMethod = 0;
+        } else if(pInversion->Get("InversionMethod")->Has("Newton")){
+          inversionMethod = 1;
+        } else if(pInversion->Get("InversionMethod")->Has("JacobianFreeNewtonKrylov")){
+          inversionMethod = 2;
+        }
+      }
+
+      if(pInversion->Has("maxNumberOuterIterations"))
+      {
+        maxNumIts = pInversion->Get("maxNumberOuterIterations")->As<Integer>();
       }
       
       if(pInversion->Has("residualTolH"))
@@ -2141,11 +2153,11 @@ namespace CoupledField {
         jacRes = pInversion->Get("jacobiResolution")->As<double>();
       }
       
-      if(pInversion->Has("useTikhonov"))
+      if(pInversion->Has("maxNumberLinesearchIterations"))
       {
-        useTikhonov = pInversion->Get("useTikhonov")->As<bool>();
+        maxNumLSIts = pInversion->Get("maxNumberLinesearchIterations")->As<Integer>();
       }
-      
+            
       if(pInversion->Has("alphaRegStart"))
       {
         alphaLSStart = pInversion->Get("alphaRegStart")->As<double>();
@@ -2167,12 +2179,8 @@ namespace CoupledField {
       material->SetScalar(tolH, RES_TOL_H_HYST_INV, Global::REAL);
       material->SetScalar(tolB, RES_TOL_B_HYST_INV, Global::REAL);
       material->SetScalar(jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
-      
-      int useTikhonovInt = 0;
-      if(useTikhonov){
-        useTikhonovInt = 1;
-      }
-      material->SetScalar(useTikhonovInt, TIKHONOV_HYST_INV);
+      material->SetScalar(inversionMethod, VEC_HYST_INV_METHOD);
+      material->SetScalar(maxNumLSIts, MAX_NUM_LS_IT_HYST_INV);
       material->SetScalar(alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
       material->SetScalar(alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
       material->SetScalar(alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);

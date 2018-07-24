@@ -1135,11 +1135,12 @@ namespace CoupledField {
   };
   
   struct ParameterLevenbergMarquardtInversion {
-    int maxNumIts;
+    UInt inversionMethod;
+    UInt maxNumIts;
+    UInt maxNumLSIts;
     Double tolH;
     Double tolB;
     Double jacRes;
-    bool useTikhonov;
     Double alphaLSStart;
     Double alphaLSMin;
     Double alphaLSMax;

@@ -178,13 +178,14 @@ namespace CoupledField {
     Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol, Vector<Double> dir, UInt idx);
     
     // from VecPreisachv10 > put into baseclass to make it available for Mayergoyz model, too
-    void SetParamsForInversion(UInt maxIter, Double resTolH, Double resTolB, Double jacobiResolution,
-         bool useTikhonov, Double alphaLSStart, Double alphaLSMin, Double alphaLSMax, Double angClipping){
+    void SetParamsForInversion(UInt inversionMethod, UInt maxIter, UInt maxLSIter, Double resTolH, Double resTolB, Double jacobiResolution,
+         Double alphaLSStart, Double alphaLSMin, Double alphaLSMax, Double angClipping){
+      INV_inversionMethod_ = inversionMethod;
       INV_maxIter_ = maxIter;
+      INV_maxLSIter_ = maxLSIter;
       INV_resTolH_ = resTolH;
       INV_resTolB_ = resTolB;
       INV_jacobiResolution_ = jacobiResolution;
-      INV_useTikhonov_ = useTikhonov;
       INV_alphaLSStart_ = alphaLSStart;
       INV_alphaLSMin_ = alphaLSMin;
       INV_alphaLSMax_ = alphaLSMax;
@@ -228,7 +229,7 @@ namespace CoupledField {
       Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
       Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
       int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
-      Double& alpha, Double& alphaMin, Double& alphaMax, UInt numAlphas);
+      Double& alpha, Double& alphaMin, Double& alphaMax);
   
     bool computeUpdate(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
@@ -263,12 +264,13 @@ namespace CoupledField {
     Vector<Double>* prevXVal_;
     Vector<Double>* prevHVal_;
     
-    // For inversion via Levenberg Marquardt
+    // For vector inversion
+    UInt INV_inversionMethod_;
     UInt INV_maxIter_;
+    UInt INV_maxLSIter_;
     Double INV_resTolH_;
     Double INV_resTolB_;
     Double INV_jacobiResolution_;
-    bool INV_useTikhonov_;
     Double INV_alphaLSStart_;
     Double INV_alphaLSMin_;
     Double INV_alphaLSMax_;

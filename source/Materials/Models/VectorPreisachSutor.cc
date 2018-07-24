@@ -131,7 +131,6 @@ namespace CoupledField
     INV_resTolH_ = 1e-12;
     INV_resTolB_ = 1e-12;
     INV_jacobiResolution_ = 1e-12;
-    INV_useTikhonov_ = false;
     INV_alphaLSStart_ = 0.25;
     INV_angClipping_ = -1.0;
     
