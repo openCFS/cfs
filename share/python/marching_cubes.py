@@ -125,31 +125,33 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
           # add transition cells
           for ctd,td in enumerate(trans_dir):
 #             if False:
-            if ctd == 4:  
+            if td != 0:
+              # calc which plane and corners to consider for face td
+              tcid = transition_corner_ids(ctd)
+              assert(len(tcid) == 4)
+              print("transition_corner_ids:",transition_corner_ids)
 #             if td != 0:
 #               corns = [shifted_corners[3],shifted_corners[1],shifted_corners[7],shifted_corners[5]]
-              corns = [shifted_corners[0],shifted_corners[4],shifted_corners[2],shifted_corners[6]]
-              out = open("lowres.csv","w")
-              print("low-res corners:")
-              for c in corns: 
-                print(c.coords)
-                out.write(str(c.coords[0])+","+str(c.coords[1])+","+str(c.coords[2])+"\n")
-              out.close()  
-#               tc = TransitionCell(voxels,h,(0,0,0),mc.size,mc.cornerIndizes[1],corns,0)
+              lowres_corns = [None] * len(tcid)
               # 4 corners that define high-res face - take care of node order/numbering!
               # in tc: id 0, 2, 6, 8
-              tc_corns = [mc.cornerIndizes[0],mc.cornerIndizes[4],mc.cornerIndizes[2],mc.cornerIndizes[6]]
+              tc_corns = [None] * len(tcid)
+              
+              for count,id in enumerate(tcid):
+                # shifted corners of low-res cell
+                lowres_corns[count] = shifted_corners[id]
+                # mc is high-res cell
+                tc_corns[count] = mc.cornerIndizes[id]
+              print("low-res corns:")  
+              for c in lowres_corns: 
+                print(c.coords)
+#               tc = TransitionCell(voxels,h,(0,0,0),mc.size,mc.cornerIndizes[1],corns,0)
+              
               print("high-res 4 corns:")
               for tcc in tc_corns:
                 print(tcc,voxel_to_cartesian_coords(tcc,(0,0,0),h))
-              tc = TransitionCell(voxels,h,(0,0,0),int(mc.size*0.5),tc_corns,corns,0)
+              tc = TransitionCell(voxels,h,(0,0,0),int(mc.size*0.5),tc_corns,lowres_corns,0)
               tc.triangulate(voxels)
-              print("size:",tc.size)
-              print("points:",tc.points)
-              print("triangles:",tc.triangles)
-              tmp_points = tc.points
-              tmp_normals = tc.normals
-              tmp_triangles = tc.triangles
               add_local_to_global_mesh(tmp_points, tmp_triangles, tmp_normals, tc.points, tc.triangles, tc.normals)
         else: 
           assert(mc.points)
@@ -161,17 +163,17 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
         
         add_local_to_global_mesh(points, triangles, normals, tmp_points, tmp_triangles, tmp_normals)
         
-        if transition:
-          write_vtp(points, triangles, h, normals=normals)
-          sys.exit()  
+#         if transition:
+#           write_vtp(points, triangles, h, normals=normals)
+#           sys.exit()  
 #         points.extend(tmp_points)
 #         normals.extend(tmp_normals)
 #         tmp_triangles = [(t[0]+off,t[1]+off,t[2]+off) for t in tmp_triangles]
 #         triangles.extend(tmp_triangles)
       
-      if count > 0:
-        write_vtp(points, triangles, h,normals=normals)
-        sys.exit()
+#       if count > 0:
+#         write_vtp(points, triangles, h,normals=normals)
+#         sys.exit()
         
     write_vtp(points, triangles, h,normals=normals)
 #     from anytree.exporter import DotExporter
@@ -473,6 +475,26 @@ def calc_corner_normals(voxels,cornerIndizes,cubeSize):
   
   return normals    
 
+# for given Cube_face, return (correct order of) global indices of low-res and high-res corners
+# e.g. Cube_face = left (-x) - order:  0,4,2,6
+def transition_corner_ids(flag):
+  assert(0 < flag <= 6)
+  if flag == Cube_face.left:
+    return (0,4,2,6)
+  elif flag == Cube_face.right:
+    return (1,5,3,7)
+  elif flag == Cube_face.back:
+    return (2,3,6,7)
+  elif flag == Cube_face.front:
+    return (0,1,4,5)
+  elif flag == Cube_face.top:
+    return (4,6,5,7)
+  elif flag == Cube_face.bottom:
+    return (0,2,1,3)
+  else:
+    print("tcid: cube face ",flag," not defined!")
+    sys.exit()
+
 def sameVector(v1,v2):
   assert(len(v1) == len(v2))
   for i in range(len(v1)):
@@ -616,8 +638,8 @@ def triangulate_scaled(voxels,mc,scale=0):
     
     first = copy.deepcopy(tmp_corners[v0])
     second = copy.deepcopy(tmp_corners[v1])
-    print("\nfirst:",v0," ",first.coords,first.value)
-    print("second:",v1," ",second.coords,second.value)
+#     print("\nfirst:",v0," ",first.coords,first.value)
+#     print("second:",v1," ",second.coords,second.value)
 #     if cubeSize > 1 and not sameVector(tmp_corners[v0].coords, tmp_corners[v1].coords):
     if cubeSize > 1 and not sameVector(tmp_corners[v0].coords, tmp_corners[v1].coords):
       first, second = calc_shifted_corner_verts(v0, v1, tmp_corners, voxels, mc.h)
@@ -627,10 +649,10 @@ def triangulate_scaled(voxels,mc,scale=0):
       
     vert, mu = VertexInterp(0.5,first,second)
     
-    print("vert:",vert)
-    print("mu:",mu)
-    print("first:",v0," ",first.coords,first.value)
-    print("second:",v1," ",second.coords,second.value)
+#     print("vert:",vert)
+#     print("mu:",mu)
+#     print("first:",v0," ",first.coords,first.value)
+#     print("second:",v1," ",second.coords,second.value)
       
     tmp_points.append(vert)
     
