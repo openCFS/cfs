@@ -198,7 +198,7 @@ namespace CoupledField {
      
     Integer checkIncrementTrustRegion(Vector<Double>& x_new, 
           Vector<Double>& res_cur, Vector<Double>& res_new,
-          Vector<Double>& jac_dx, Double& alpha, int stayBelowSat);
+          Vector<Double>& jac_dx, Double& alpha, Double alphaStepUp, Double alphaStepDown, int stayBelowSat);
     
     Vector<Double> computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv);
         
@@ -218,6 +218,18 @@ namespace CoupledField {
     Vector<Double> computeUpdate_LM(Vector<Double> jacTres_neg, 
           Matrix<Double>& jacTjac, Double& alphaIn, Double& alphaAcc, Double& alphaMinReq, Double alphaMax);
     
+  bool computeUpdateTrustRegion(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
+      Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
+      Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
+      int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
+      Double& alpha, Double alphaMin, Double alphaMax, UInt& numberOfIterations);
+
+    bool computeUpdateLinesearch(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
+      Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
+      Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
+      int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
+      Double& alpha);
+  
     bool computeUpdate(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
       Integer operatorIdx, bool overwriteMemory,
