@@ -829,7 +829,7 @@ namespace CoupledField
           Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
           Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
           int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
-          Double& alpha){
+          Double& alpha, Double& alphaMin, Double& alphaMax, UInt numAlphas){
     
     /*
      * Initial checks
@@ -845,9 +845,6 @@ namespace CoupledField
      * Compute update using trial and error linesearch
      * > use alpha that minimizes jacT*res
      */
-    UInt numAlphas = 20;
-    Double alphaMax = 1.0;
-    Double alphaMin = 0.01;
     Double optAlpha = 1.0;
     Double deltaAlpha = (alphaMax-alphaMin)/(numAlphas-1);
     Double curAlpha;
@@ -1955,10 +1952,20 @@ namespace CoupledField
     // tolerance for reevalution
     
     UInt itCnt = 0;
-    Double alpha = INV_alphaLSStart_;
-    Double alphaMin = INV_alphaLSMin_;//1.0/256.0;
-    Double alphaMax = INV_alphaLSMax_;//8192;//512.0;
-    
+    UInt numAlphas = 20;
+    Double alpha;
+    Double alphaMin;
+    Double alphaMax;
+    if(updateImplementation == 0){
+      alpha = INV_alphaLSStart_;
+      alphaMin = INV_alphaLSMin_;//1.0/256.0;
+      alphaMax = INV_alphaLSMax_;//8192;//512.0;
+    } else {
+      alpha = 1.0;
+      alphaMin = 0.01;
+      alphaMax = 1.0;
+    }
+
     //    Vector<Double> hystVal = computeValue_vec(xStart, operatorIndex, overwriteMemory, debugOut, successFlagForward);
     xVal = xStart;
     
@@ -2114,7 +2121,7 @@ namespace CoupledField
       } else {
         discardUpdate = computeUpdateLinesearch(xStart, xVal, xUpdate, hystVal, res, yVal, mu_inv,
                 jac, jacTres, operatorIndex, stayBelowSat, updateImplementation, jacobiImplementation,
-                alpha);
+                alpha, alphaMin, alphaMax, numAlphas);
       }
 
       LOG_DBG(vecpreisachInversion) << "Computed update: " << xUpdate.ToString();

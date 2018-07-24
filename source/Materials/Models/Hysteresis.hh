@@ -228,7 +228,7 @@ namespace CoupledField {
       Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
       Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
       int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
-      Double& alpha);
+      Double& alpha, Double& alphaMin, Double& alphaMax, UInt numAlphas);
   
     bool computeUpdate(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 
