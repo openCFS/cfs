@@ -76,7 +76,8 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
           continue
         
         # non-trivial configuration -> add this marching cube to tree
-        tree_nodes[i,j,k] = Node(str(tuple(mc.global_blb)),parent=parent,mc=mc)
+        idx = tuple(mc.global_blb)
+        tree_nodes[idx] = Node(str(idx),parent=parent,mc=mc)
         # triangulate Marching Cubes
         mc.triangulate(voxels)
         
@@ -90,7 +91,6 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
     points = []
     triangles = []
     normals = []
-    count = 0
     # search for all tree leaves
     for node in PreOrderIter(root):
       if node.is_leaf:
@@ -112,32 +112,42 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
               # we have a transition!
               trans_dir += calc_transition_flags(mc.global_blb, neighbor.mc.global_blb)
               transition = True
-              
+          
+#         if False:    
         if transition:
-          count += 1
+          if mc.global_blb[0] == 22 and mc.global_blb[1] == 16 and mc.global_blb[2] == 0:
+            trans_dir = [0,0,0,0,0,0,0]
           print("trans_dir:",trans_dir)  
           print("number of transitions:",np.count_nonzero(np.array(trans_dir)))
           tmp_points, tmp_triangles, tmp_normals, _, shifted_corners = triangulate_scaled(voxels,mc,scale=trans_dir)
+          
+          if mc.global_blb[0] == 16 and mc.global_blb[1] == 16 and mc.global_blb[2] == 0:
+#             print("here2")
+            for i,tmpp in enumerate(tmp_points):
+              n = mc.normals[i]
+              # point p on projection plane
+              p = mc.points[i]
+              q = tmp_points[i]
+              tmp_points[i] = q + np.dot(n,p-q) / np.linalg.norm(n)**2 * n  
 #           print("\nshifted corners:")
 #           for s in shifted_corners:
 #             print(s.coords)
 #           sys.exit()  
           # add transition cells
           for ctd,td in enumerate(trans_dir):
-#             if False:
             if td != 0:
               # calc which plane and corners to consider for face td
-              tcid = transition_corner_ids(ctd)
-              assert(len(tcid) == 4)
-              print("transition_corner_ids:",transition_corner_ids)
+              tcids = transition_corner_ids(ctd)
+              assert(len(tcids) == 4)
+              print("transition_corner_ids:",tcids)
 #             if td != 0:
 #               corns = [shifted_corners[3],shifted_corners[1],shifted_corners[7],shifted_corners[5]]
-              lowres_corns = [None] * len(tcid)
+              lowres_corns = [None] * len(tcids)
               # 4 corners that define high-res face - take care of node order/numbering!
               # in tc: id 0, 2, 6, 8
-              tc_corns = [None] * len(tcid)
+              tc_corns = [None] * len(tcids)
               
-              for count,id in enumerate(tcid):
+              for count,id in enumerate(tcids):
                 # shifted corners of low-res cell
                 lowres_corns[count] = shifted_corners[id]
                 # mc is high-res cell
@@ -153,6 +163,22 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
               tc = TransitionCell(voxels,h,(0,0,0),int(mc.size*0.5),tc_corns,lowres_corns,0)
               tc.triangulate(voxels)
               add_local_to_global_mesh(tmp_points, tmp_triangles, tmp_normals, tc.points, tc.triangles, tc.normals)
+              print("before merge:")
+              print(tmp_points)
+              print(tmp_triangles)
+              tmp_points, map_to_unique = merge_points(tmp_points)
+              for i in range(len(tmp_triangles)):
+                new_t = [0,0,0]
+                for j in range(3):
+                  new_t[j] = int(map_to_unique[tmp_triangles[i][j]])
+                
+                tmp_triangles[i] = new_t  
+              print("after merge:")    
+              print("unique map:",map_to_unique)
+              print(tmp_points)
+              print(tmp_triangles)  
+              sys.exit()  
+                  
         else: 
           assert(mc.points)
           assert(mc.normals)
@@ -166,14 +192,11 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
 #         if transition:
 #           write_vtp(points, triangles, h, normals=normals)
 #           sys.exit()  
-#         points.extend(tmp_points)
-#         normals.extend(tmp_normals)
-#         tmp_triangles = [(t[0]+off,t[1]+off,t[2]+off) for t in tmp_triangles]
-#         triangles.extend(tmp_triangles)
       
-#       if count > 0:
-#         write_vtp(points, triangles, h,normals=normals)
-#         sys.exit()
+      if len(triangles) > 37:
+#         print()
+        write_vtp(points, triangles, h,normals=normals)
+        sys.exit()
         
     write_vtp(points, triangles, h,normals=normals)
 #     from anytree.exporter import DotExporter
@@ -546,7 +569,6 @@ def calc_shifted_corner_verts(c0,c1,corners,voxels,h):
     else:
       second = v   
   
-  print("shifted") 
   return first, second
 
 
@@ -575,7 +597,7 @@ def triangulate_scaled(voxels,mc,scale=0):
       if 0 < i < 4: # +x, +y or +z
         anchor = tmp_corners[0].coords
         fact = np.ones(3) 
-        fact[i-1] = 0.25 * cubeSize
+        fact[i-1] = 1.0 - (0.125 * cubeSize)
         
         for i in range(ncorners):
           # move to origin/anchor to scale, then move back
@@ -583,7 +605,7 @@ def triangulate_scaled(voxels,mc,scale=0):
       elif 3 < i < 7:
         anchor = tmp_corners[ncorners-1].coords
         fact = np.ones(3)
-        fact[i-4] = 0.25 * cubeSize
+        fact[i-4] = 1.0 - (0.125 * cubeSize)
         for i in range(ncorners):
           # move to origin/anchor to scale, then move back
           tmp_corners[i].coords = fact * (np.array(tmp_corners[i].coords) - anchor) + anchor
@@ -667,7 +689,6 @@ def triangulate_scaled(voxels,mc,scale=0):
     normal = cornerNormals[int(v0)] * mu + (1-mu) * cornerNormals[int(v1)]
     tmp_normals.append(normal)
     
-    print("vc:",vc,":",len(tmp_points))
     mappedIndizes[vc] = len(tmp_points)-1
   
   ######### create triangles by connecting vertices
@@ -769,6 +790,34 @@ def neighbor_face_indices(idx,size):
   # order: left, right, back, front, bottom, top
   return [(i-size,j,k),(i+size,j,k),(i,j-size,k),(i,j+size,k),(i,j,k-size),(i,j,k+size)]
 
+# remove duplicated points by merging them
+# costly function (O(n^2)), don't use it when list is too long
+def merge_points(points):
+  if len(points) > 20:
+    print("too many points to merge!")
+    sys.exit()
+  
+  map_to_unique_points = np.empty(len(points))
+  new_points = []
+  new_id = 0
+  for i,p in enumerate(points):
+    inList, id = point_in_list(p, new_points)
+    if inList:
+      map_to_unique_points[i] = id
+    else:
+      new_points.append(p)
+      map_to_unique_points[i] = new_id
+      new_id += 1 
+        
+  return new_points, map_to_unique_points
+
+def point_in_list(point,list):
+  for i,p in enumerate(list):
+    if sameVector(p, point):
+      return True, i 
+    
+  return False, -1         
+    
 # tables take from Eric Lengyel Transvoxel algorithm
 # see http://transvoxel.org/ or Lengyel's dissertation for details
 def create_transvoxel_tables():
