@@ -1,5 +1,8 @@
 # move the include directory include/libxml2/libxml to include/libxml
-# FILE(COPY "@BOOST_install@/lib/*" DESTINATION "@BOOST_install@/lib64/@CFS_ARCH_STR@/")
+FILE(GLOB ALL_BOOST_LIBRARIES
+  "@BOOST_install@/lib/*"
+)
+FILE(COPY ${ALL_BOOST_LIBRARIES} DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/lib64/@CFS_ARCH_STR@")
 
 # copy data from install dir to the target (lib64 and include)
 file(COPY "@BOOST_install@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")
