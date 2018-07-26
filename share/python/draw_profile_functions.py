@@ -1512,13 +1512,25 @@ def mesh_basecell_boundary(points,cells,coords_2d,bound):
     
   return points,cells
 
-# returns voxel coordinates (i,j,k) for given cartesian coords (x,y,z)
-# @param point described in cartesian coords
-# @param minx: smallest x value of domain
-# @param miny: smallest y value of domain
-# @param minz: smallest z value of domain
-# @param hx,hy,hz: lattice spacing
+
 def cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz):
+  """
+    Returns voxel coordinates (i,j,k) for given cartesian coords (x,y,z)
+    @param point described in cartesian coords
+    @param minx: smallest x value of domain
+    @param miny: smallest y value of domain
+    @param minz: smallest z value of domain
+    @param hx,hy,hz: lattice spacing
+    
+    >>> cartesian_to_voxel_coords((0.0,0.0,0.0),0.0,0.0,0.0,1,1,1)
+    (0, 0, 0)
+    
+    >>> cartesian_to_voxel_coords((0.4,0.4,0.4),0.0,0.0,0.0,0.1,0.1,0.1)
+    (4, 4, 4)
+    
+    >>> cartesian_to_voxel_coords((0.4,0.4,0.4),-2.0,5.0,0.4,0.1,0.1,0.1)
+    (23, -45, 0)
+  """
   i = int((point[0]-minx) / hx)#-1e-6)
   j = int((point[1]-miny) / hy)#-1e-6)
   k = int((point[2]-minz) / hz)#-1e-6)
@@ -1526,6 +1538,16 @@ def cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz):
   return i,j,k
 
 def voxel_to_cartesian_coords(voxel,lbounds,h):
+  """ 
+    Returns cartesian coordinates (x,y,z) for given voxel coords (i,j,k)
+    @param voxel: (i,j,k)
+    @param lbounds: lower bounds (3 values) of domain
+    @param h: lattice spacings for the 3 coordinate directions
+    
+    >>>   
+  """
+  
+  assert(len(lbounds) == len(h))
   x = voxel[0] * h[0] + lbounds[0]# + 1e-6
   y = voxel[1] * h[1] + lbounds[1]# + 1e-6
   z = voxel[2] * h[2] + lbounds[2]# + 1e-6

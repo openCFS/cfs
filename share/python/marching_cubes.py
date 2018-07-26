@@ -85,7 +85,6 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
         if cubeSize > 1 and not np.all(np.array(mc.angles) < 30):
           marching_cubes(voxels[i:i+cubeSize+1,j:j+cubeSize+1,k:k+cubeSize+1], h, points, triangles, normals, thresh, int(cubeSize/2),offset=(i,j,k),parent=tree_nodes[i,j,k])
           
-          
   if cubeSize == 2:
     from anytree import PreOrderIter 
     points = []
@@ -114,17 +113,23 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
               trans_dir += calc_transition_flags(mc.global_blb, neighbor.mc.global_blb)
               transition = True
           
-#         if False:    
-        if transition:
+        if False:    
+#         if transition:
 #           print("trans_dir:",trans_dir)  
 #           print("number of transitions:",np.count_nonzero(np.array(trans_dir)))
           tmp_points, tmp_triangles, tmp_normals, _, shifted_corners = triangulate_scaled(voxels,mc,scale=trans_dir)
           
-          projection = None
+          projection = [None] * len(tmp_points)
+          for i,tmpp in enumerate(tmp_points):
+            n = mc.normals[i]
+            # point p on projection plane
+            p = mc.points[i]
+            q = tmp_points[i]
+            projection[i] = q + np.dot(n,p-q) / np.linalg.norm(n)**2 * n  
           # add transition cells
           for ctd,td in enumerate(trans_dir):
-#             if False:
-            if td != 0:
+            if False:
+#             if td != 0:
               # calc which plane and corners to consider for face td
               tcids = transition_corner_ids(ctd)
               assert(len(tcids) == 4)
@@ -149,7 +154,7 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
 #               for tcc in tc_corns:
 #                 print(tcc,voxel_to_cartesian_coords(tcc,(0,0,0),h))
                 
-              tc = TransitionCell(voxels,h,(0,0,0),int(mc.size*0.5),tc_corns,lowres_corns,0)
+              tc = Transition_Cell(voxels,h,(0,0,0),int(mc.size*0.5),tc_corns,lowres_corns,0)
               tc.triangulate(voxels)
               add_local_to_global_mesh(tmp_points, tmp_triangles, tmp_normals, tc.points, tc.triangles, tc.normals)
               
@@ -178,9 +183,9 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
 #           write_vtp(points, triangles, h, normals=normals)
 #           sys.exit()  
       
-#       if len(triangles) > 82:
-#         write_vtp(points, triangles, h,normals=normals)
-#         sys.exit()
+      if len(triangles) > 20:
+        write_vtp(points, triangles, h,normals=normals)
+        sys.exit()
         
     write_vtp(points, triangles, h,normals=normals)
 #     from anytree.exporter import DotExporter
@@ -274,7 +279,7 @@ class Vertex():
     self.value = value
     self.coords = coords
     
-class TransitionCell():
+class Transition_Cell():
   # voxels: voxel field
   # h: lattice spacing in 3 directions
   # offset: offset in voxel coords
@@ -408,9 +413,9 @@ def calc_corner_normals(voxels,cornerIndizes,cubeSize):
   ncorners = len(cornerIndizes)
   nx, ny, nz = voxels.shape
   normals = [None] * ncorners
-  unitx = np.array((1,0,0))#*cubeSize
-  unity = np.array((0,1,0))#*cubeSize
-  unitz = np.array((0,0,1))#*cubeSize
+  unitx = np.array((1,0,0))
+  unity = np.array((0,1,0))
+  unitz = np.array((0,0,1))
   
 #   print("cornerIndizes:",cornerIndizes)
 #   for i in range(ncorners):
@@ -490,23 +495,48 @@ def transition_corner_ids(flag):
     print("tcid: cube face ",flag," not defined!")
     sys.exit()
 
-def sameVector(v1,v2):
+def same_vector(v1,v2):
+  """ Return if two vectors have numerically the same values
+    
+  >>> vec1 = [1.3,5.6,87.4]
+  >>> vec2 = [1.4,5.6,87.4]  
+  >>> same_vector(vec1,vec2)
+  False
+  
+  >>> vec3 = [1.3,5.6,87.4]
+  >>> same_vector(vec1,vec3)
+  True
+  """
   assert(len(v1) == len(v2))
   for i in range(len(v1)):
-    if v1[i] != v2[i]:
+    if not np.isclose(v1[i],v2[i],1e-6):
       return False
   
   return True  
 
 # calc angle between two vectors (normals)
 def calc_angle(n0,n1):
-  if not sameVector(n0, n1):
+  """
+    Return angle between two vectors in degrees
+    >>> v0 = [1.0,1.0,0]
+    >>> v1 = [0,1.0,0]
+    >>> int(calc_angle(v0,v1))
+    45
+    >>> v2 = [-1.0,1.0,0]
+    >>> int((calc_angle(v0,v2)))
+    90
+  """
+  if not same_vector(n0, n1):
     dot01 = np.dot(n0,n1)
     normed = np.linalg.norm(n0)*np.linalg.norm(n1)
     if not np.isclose(normed, 0):
       return np.degrees(math.acos(dot01/normed))
-    else:
-      return 90
+    else: # 
+      print("one of vectors ",n0,n1," is close to 0!")
+      sys.exit()
+      
+    if np.isclose(dot01,0):
+      return 90  
   
   assert(np.isclose(np.linalg.norm(n0-n1),0))  
   return 0
@@ -521,7 +551,6 @@ def calc_shifted_corner_verts(c0,c1,corners,voxels,h):
   # local voxel coords
   li,lj,lk = cartesian_to_voxel_coords(mid,0,0,0,h[0],h[1],h[2])
   v = Vertex(voxels[li,lj,lk],mid)
-  
  
   # to avoid mismatch of vertices between two levels, check on finest level 
   # on which subedge to interpolate new triangle vertex
@@ -634,7 +663,7 @@ def triangulate_scaled(voxels,mc,scale=0):
     first = copy.deepcopy(tmp_corners[v0])
     second = copy.deepcopy(tmp_corners[v1])
     
-    if cubeSize > 1 and not sameVector(tmp_corners[v0].coords, tmp_corners[v1].coords):
+    if cubeSize > 1 and not same_vector(tmp_corners[v0].coords, tmp_corners[v1].coords):
       first, second = calc_shifted_corner_verts(v0, v1, tmp_corners, voxels, mc.h)
       
     if not regular and 8 < v0 < 13 and 8 < v1 < 13:   
@@ -650,11 +679,11 @@ def triangulate_scaled(voxels,mc,scale=0):
     tmp_points.append(vert)
     
 #     if cubeSize > 1:
-#       if sameVector(first.coords, tmp_corners[v0].coords):
+#       if same_vector(first.coords, tmp_corners[v0].coords):
 #         # second was shifted, thus shift mu from 0.5 to 0.25
 #         mu = 0.25
 #       else:
-#         assert(sameVector(second.coords, tmp_corners[v1].coords))
+#         assert(same_vector(second.coords, tmp_corners[v1].coords))
 #         mu = 0.75
           
     normal = cornerNormals[int(v0)] * mu + (1-mu) * cornerNormals[int(v1)]
@@ -736,6 +765,13 @@ class Marching_Cube():
     self.caseCode = self.calc_case_code_regular(voxels)  
     
   def calc_case_code_regular(self,voxels,thresh=0.5):
+    """ Return case code for transition cell for given configuration
+    >>> t = Marching_Cube(np.zeros((3,3,3)),(0,0,0),(0,0,0),1,np.zeros(3))
+    >>> t.cornerIndizes = range(8)
+    >>> voxels = [0,1,1,0,1,0,0,1]
+    >>> t.calc_case_code_regular(voxels)
+    150
+    """
     caseCode = 0
     caseCode |= 1 if voxels[self.cornerIndizes[0]] > thresh else 0
     caseCode |= 2 if voxels[self.cornerIndizes[1]] > thresh else 0
@@ -752,10 +788,15 @@ class Marching_Cube():
     # regular case
     self.points, self.triangles, self.normals, self.angles, _ = triangulate_scaled(voxels,self,scale=0)
   
-# for a given voxel coordinate tuple (i,j,k),
-# return a list with bottom-left-back coordinates of the (6) adjacent cubes
-# size: size of MC or step length to next cube
+
 def neighbor_face_indices(idx,size):  
+  """
+    For a given voxel coordinate tuple (i,j,k),
+    return a list with bottom-left-back coordinates of the (6) adjacent cubes
+    size: size of MC or step length to next cube
+    >>> str(neighbor_face_indices((25,6,4),2))
+    '[(23, 6, 4), (27, 6, 4), (25, 4, 4), (25, 8, 4), (25, 6, 2), (25, 6, 6)]'
+  """
   inds = [None] * 6
   i = idx[0]
   j = idx[1]
@@ -763,13 +804,29 @@ def neighbor_face_indices(idx,size):
   # order: left, right, back, front, bottom, top
   return [(i-size,j,k),(i+size,j,k),(i,j-size,k),(i,j+size,k),(i,j,k-size),(i,j,k+size)]
 
-# remove duplicated points by merging them
-# costly function (O(n^2)), don't use it when list is too long
 def merge_points(points,normals):
+  """
+    Remove duplicated points by merging them
+    Costly function (O(n^2)), exits it when list is too long
+    >>> p = [(0.25,0.33,4),(14,76,45),(99,96,0.43),(0.3,4.3,33)]
+    >>> np, nn, mtup = merge_points(p,p)
+    >>> str(np)
+    '[(0.25, 0.33, 4), (14, 76, 45), (99, 96, 0.43), (0.3, 4.3, 33)]'
+    >>> str(nn)
+    '[(0.25, 0.33, 4), (14, 76, 45), (99, 96, 0.43), (0.3, 4.3, 33)]'
+    >>> str(mtup)
+    '[0. 1. 2. 3.]'
+    >>> p.append(p[0]); p[1] = p[-2]
+    >>> np, nn, mtup = merge_points(p,p) 
+    >>> str(np)
+    '[(0.25, 0.33, 4), (0.3, 4.3, 33), (99, 96, 0.43)]'
+    >>> str(mtup)
+    '[0. 1. 2. 1. 0.]'
+  """
   if len(points) > 20:
     print("too many points to merge!")
     sys.exit()
-  
+    
   assert(len(points) == len(normals))
   map_to_unique_points = np.empty(len(points))
   new_points = []
@@ -788,8 +845,21 @@ def merge_points(points,normals):
   return new_points, new_normals, map_to_unique_points
 
 def point_in_list(point,list):
+  """
+    Returns if given point is in list (numerical comparison)
+    >>> l = [(0.25,0.33,4),(14,76,45),(99,96,0.43),(0.3,4.3,33)]
+    >>> point_in_list((0.24,0.33,4.0),l)
+    (False, -1)
+    >>> point_in_list((2.4,0.63,5.0),l)
+    (False, -1)
+    >>> point_in_list((14,76,45),l)
+    (True, 1)
+    >>> point_in_list((0.3,4.3,33),l)
+    (True, 3)
+  """
+  
   for i,p in enumerate(list):
-    if sameVector(p, point):
+    if same_vector(p, point):
       return True, i 
     
   return False, -1         
