@@ -810,15 +810,12 @@ namespace CoupledField
       StdVector<BiLinFormContext*> & forms = listIt->second;
       EntityList& firstEntities = *(listIt->first.first);
       EntityList& secondEntities = *(listIt->first.second);
-      // If the region is not nonlinear, we do not have to assemble
-      // off-diagonal blocks in the multiharmonic system matrix
       StdVector<NonLinType> nonLinTypes(0);
-      bool isSurf = false;
       if( firstEntities.GetType() != 2 && secondEntities.GetType() != 2 ){
         nonLinTypes = regionNonLinTypes.find(firstEntities.GetRegion())->second;
-      }else{
-        isSurf = true;
       }
+      // If the region is not nonlinear, we do not have to assemble
+      // off-diagonal blocks in the multiharmonic system matrix
       if( (nonLinTypes.GetSize() == 0 && harmonic != 0) ){
         continue;
       }
