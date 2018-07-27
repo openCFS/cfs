@@ -1467,6 +1467,13 @@ namespace CoupledField {
         material->GetScalar(LM_inversion_.alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
         material->GetScalar(LM_inversion_.alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
         material->GetScalar(LM_inversion_.alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);  
+        int stopLSAtLocalMin = 0;
+        material->GetScalar(stopLSAtLocalMin, STOP_INV_LS_AT_LOCAL_MIN); 
+        if(stopLSAtLocalMin == 1){
+          LM_inversion_.stopLineSearchAtLocalMin = true;
+        } else {
+          LM_inversion_.stopLineSearchAtLocalMin = false;
+        }
       } 
     }
     
@@ -1812,6 +1819,7 @@ namespace CoupledField {
         hyst_->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
                 LM_inversion_.tolH, LM_inversion_.tolB, 
                 LM_inversion_.jacRes, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,
+                LM_inversion_.stopLineSearchAtLocalMin,
                 POL_operatorParams_.angularClipping_);   
       }
     }
@@ -5670,6 +5678,7 @@ namespace CoupledField {
 			hystTMP->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
                 LM_inversion_.tolH, LM_inversion_.tolB, 
                 LM_inversion_.jacRes, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,
+                LM_inversion_.stopLineSearchAtLocalMin,
                 POL_operatorParams_.angularClipping_);   
       
 		} else if (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") {			
@@ -5701,6 +5710,7 @@ namespace CoupledField {
 			hystTMP->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
                 LM_inversion_.tolH, LM_inversion_.tolB, 
                 LM_inversion_.jacRes, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,
+                LM_inversion_.stopLineSearchAtLocalMin,
                 POL_operatorParams_.angularClipping_);   
 		} else {
 			EXCEPTION("Invalid model selected for inversion test");

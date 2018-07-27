@@ -1697,6 +1697,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( AMP_RESOLUTION, "amplitudeResolution" );
     MaterialTypeEnum.Add( HYST_INVERSION, "hystInversion" );
     MaterialTypeEnum.Add( MAX_NUM_IT_HYST_INV, "maxNumberIterations" );
+    MaterialTypeEnum.Add( STOP_INV_LS_AT_LOCAL_MIN, "stopInvLineSearchAtLocalMin" );
     MaterialTypeEnum.Add( RES_TOL_H_HYST_INV, "residualTolH" );
     MaterialTypeEnum.Add( RES_TOL_B_HYST_INV, "residualTolB" );
     MaterialTypeEnum.Add( JAC_RESOLUTION_HYST_INV, "jacobiResolution" );

@@ -342,8 +342,16 @@
         <xsd:complexType>
           <xsd:choice>
             <xsd:element name="LevenbergMarquardt"/>
-            <xsd:element name="Newton"/>
-            <xsd:element name="JacobianFreeNewtonKrylov"/>
+            <xsd:element name="Newton">
+              <xsd:complexType>
+                <xsd:attribute name="stopLineSearchAtLocalMin" type="xsd:boolean" default="false"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="JacobianFreeNewtonKrylov">
+              <xsd:complexType>
+                <xsd:attribute name="stopLineSearchAtLocalMin" type="xsd:boolean" default="false"/>
+              </xsd:complexType>
+            </xsd:element>
           </xsd:choice>
         </xsd:complexType>
       </xsd:element>

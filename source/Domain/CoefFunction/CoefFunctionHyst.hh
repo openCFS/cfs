@@ -1144,6 +1144,7 @@ namespace CoupledField {
     Double alphaLSStart;
     Double alphaLSMin;
     Double alphaLSMax;
+    bool stopLineSearchAtLocalMin;
   };
     
   struct ParameterPreisachWeights {

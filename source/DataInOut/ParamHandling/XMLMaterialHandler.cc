@@ -2120,6 +2120,8 @@ namespace CoupledField {
     double alphaLSMin = 1.0/512.0;
     double alphaLSMax = 8192.0;
     bool setInversion = false;
+    bool stopLineSearchAtLocalMin = false;
+    
     if(pInversion != NULL){
       setInversion = true;
       if(pInversion->Has("InversionMethod"))
@@ -2128,7 +2130,15 @@ namespace CoupledField {
           inversionMethod = 0;
         } else if(pInversion->Get("InversionMethod")->Has("Newton")){
           inversionMethod = 1;
+          if(pInversion->Get("InversionMethod")->Get("Newton")->Has("stopLineSearchAtLocalMin")){
+            stopLineSearchAtLocalMin = pInversion->Get("InversionMethod")
+                    ->Get("Newton")->Get("stopLineSearchAtLocalMin")->As<bool>();
+          }
         } else if(pInversion->Get("InversionMethod")->Has("JacobianFreeNewtonKrylov")){
+          if(pInversion->Get("InversionMethod")->Get("JacobianFreeNewtonKrylov")->Has("stopLineSearchAtLocalMin")){
+            stopLineSearchAtLocalMin = pInversion->Get("InversionMethod")
+                    ->Get("JacobianFreeNewtonKrylov")->Get("stopLineSearchAtLocalMin")->As<bool>();
+          }
           inversionMethod = 2;
         }
       }
@@ -2184,6 +2194,12 @@ namespace CoupledField {
       material->SetScalar(alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
       material->SetScalar(alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
       material->SetScalar(alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);
+      
+      if(stopLineSearchAtLocalMin == true){
+        material->SetScalar(1, STOP_INV_LS_AT_LOCAL_MIN);
+      } else {
+        material->SetScalar(0, STOP_INV_LS_AT_LOCAL_MIN);
+      }
     }
 //    std::cout << "ReadHystOperator - done" << std::endl;
   }

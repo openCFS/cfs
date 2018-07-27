@@ -854,10 +854,6 @@ namespace CoupledField
     int successFlag = 0;
     bool debugOut = false;
     bool overwriteMemory = false;
-    /*
-     * much faster but does not work perfectly all the time
-     */
-    bool assumeQuadraticBehavior = true;
     
     Double minErrorNorm = 1e18;
     
@@ -906,7 +902,11 @@ namespace CoupledField
          * an increase in error means, that optimal alpha has already been passed
          * > break
          */
-        if((assumeQuadraticBehavior)&&(jacTresNew.NormL2() > 1.01*minErrorNorm)){
+        if((INV_stopLineSearchAtLocalMin_)&&(jacTresNew.NormL2() > 1.01*minErrorNorm)){
+          /*
+           * much faster but does not work perfectly all the time
+           */
+//          std::cout << "Stop Linesearch at local min" << std::endl;
           break;
         }
       }

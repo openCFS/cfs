@@ -179,7 +179,7 @@ namespace CoupledField {
     
     // from VecPreisachv10 > put into baseclass to make it available for Mayergoyz model, too
     void SetParamsForInversion(UInt inversionMethod, UInt maxIter, UInt maxLSIter, Double resTolH, Double resTolB, Double jacobiResolution,
-         Double alphaLSStart, Double alphaLSMin, Double alphaLSMax, Double angClipping){
+         Double alphaLSStart, Double alphaLSMin, Double alphaLSMax, bool stopLineSearchAtLocalMin, Double angClipping){
       INV_inversionMethod_ = inversionMethod;
       INV_maxIter_ = maxIter;
       INV_maxLSIter_ = maxLSIter;
@@ -190,6 +190,7 @@ namespace CoupledField {
       INV_alphaLSMin_ = alphaLSMin;
       INV_alphaLSMax_ = alphaLSMax;
       INV_angClipping_ = angClipping;
+      INV_stopLineSearchAtLocalMin_ = stopLineSearchAtLocalMin;
     }
 
     bool checkInversionOutput(Vector<Double>& xComputed, Vector<Double>& yTarget, 
@@ -275,6 +276,7 @@ namespace CoupledField {
     Double INV_alphaLSMin_;
     Double INV_alphaLSMax_;
     Double INV_angClipping_;
+    bool INV_stopLineSearchAtLocalMin_;
   private:
 
     Integer numElements_;
