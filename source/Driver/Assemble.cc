@@ -789,21 +789,25 @@ namespace CoupledField
     // StdSolveStep::AssembleMH method
 
     // same as ComputeIndex method in GraphManager, here with a lambda function
-    auto ComputeIndex = [N](UInt a, UInt b ) { return (2*N+1) * a + b;};
+    auto ComputeIndex = [N](UInt a, UInt b ) { return (3+(N-1)) * a + b;};
 
     // store the sbm-indices of the blocks, which correspond to harmonic
     StdVector<UInt> sbmInd(0);
-    for( UInt iRow = 0; iRow < 2*N+1; ++iRow ) {
+    for( UInt iRow = 0; iRow < 3+(N-1); ++iRow ) {
       if(harmonic == 0){
         // sbm-blocks on the main diagonal
         sbmInd.Push_back( ComputeIndex(iRow, iRow) );
       }else{
         // off-diagonal sbm-blocks
         Integer col = iRow + harmonic;
-        if( col < 2 * (Integer)N + 1 && col >= 0) sbmInd.Push_back( ComputeIndex(iRow, col) );
+        if( col < 3 + ((Integer)N - 1) && col >= 0){
+          std::cout<<"iRow = "<<iRow<<std::endl;
+          std::cout<<"iCol = "<<col<<std::endl;
+          sbmInd.Push_back( ComputeIndex(iRow, col) );
+        }
       }
     }
-
+std::cout<<"sbmInd = "<<sbmInd.ToString()<<std::endl;
     // iterate over all entitylist-pairs and
     BiLinContextListType::iterator listIt = biLinForms_.begin();
     for ( ; listIt != biLinForms_.end(); ++listIt) {
@@ -978,7 +982,7 @@ namespace CoupledField
                 // in a vector with size 1 to pass it to InsertMatrix method.
                 // This is kind of a workaround
                 StdVector<UInt> diagInd(1);
-                for( UInt iRow = 0; iRow < 2*N+1; ++iRow ) {
+                for( UInt iRow = 0; iRow < 3+(N-1); ++iRow ) {
                   diagInd.Init(0);
                   diagInd[0] =  sbmInd[iRow];
                   Double f = multHarmFreqVec[iRow];

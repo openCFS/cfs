@@ -1496,6 +1496,7 @@ namespace CoupledField {
         SBM_Vector resid(BaseMatrix::COMPLEX);
         algsys_->GetFullMultiHarmRHSVal(resid);
         std::cout<<"RESIDUAL VECTOR OF STEP "<<iterationCounter<<" = \n"<<resid.ToString()<<std::endl;
+        std::cout<<"MHSOLVEC VECTOR OF STEP "<<iterationCounter<<" = \n"<<solVecMH_.ToString()<<std::endl;
       }
 
       // Incorporate Boundary conditions and recalc the preconditioner and solver
@@ -1507,12 +1508,14 @@ namespace CoupledField {
       // for the deflect-vector \Delta u^{k+1}
       // TODO DO WE NEED TO CALL IT WITH SETIDBC?
       algsys_->Solve();
-
+algsys_->ExportMHSys(0);
       // Get the incremental solution (deflect vector), second argument is setIDBC
       algsys_->GetFullMultiHarmSolutionVal( solInc, false);
 
       if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION INCREMENT AT STEP "<<iterationCounter<<" = \n"<<solInc.ToString()<<std::endl;
-
+for(UInt i = 0; i < solInc.GetSize(); ++i){
+  std::cout<<solInc.GetPointer(i)->ToString()<<std::endl;
+}
 
       // Initialize norms (residual and incremental ones)
       Double residualL2Norm = 0.0;
@@ -1599,6 +1602,9 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
 
     // Register the multiharmonic solution at MHTimeFreqResult
     ftRes.SetFrequencyResult(actSol);
+for(UInt i = 0; i < actSol.GetSize(); ++i){
+  std::cout<<"actSol["<<i<<"] = "<<actSol.GetPointer(i)->ToString()<<std::endl;
+}
     // and transform the solution into time-domain to be able
     // to evaluate the nonlinearity (e.g. BH curve in electromagnetics)
     ftRes.FourierToTime();
@@ -1663,7 +1669,7 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
       for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
         // set the frequency of the current harmonic
         mParser_->SetValue(MathParser::GLOB_HANDLER, "f", multHarmFreqVec_[i]);
-        Integer h = -solStrat_->GetNumHarmN() + i;
+        Integer h = -(UInt)((solStrat_->GetNumHarmN()+1)/2) + i;
         mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
         // which harmonic are we considering
         if (std::abs(h) > (Integer) (M) || h == 0) {

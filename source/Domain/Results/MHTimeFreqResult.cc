@@ -134,7 +134,7 @@ namespace CoupledField {
     UInt numFreq = freqRes.GetSize();
 
     // Sanity check
-    if(numFreq != 2 * N_ + 1){
+    if(numFreq != 3 + (N_ - 1)){
       EXCEPTION("MHTimeFreqResult::SetFrequencyResult This should not happen!");
     }
 
@@ -193,7 +193,7 @@ namespace CoupledField {
     // MKL overwrites the provided time array with frequency results,
     // therefore copy the timeResult into freqResult and perform the
     // FFT on freqResult_
-    freqResult_.Resize(timeResult_.GetNumRows(), 2 * N_ + 1);
+    freqResult_.Resize(timeResult_.GetNumRows(), 3 + (N_ - 1));
     freqResult_.Init();
 
     deleteMeResult_.Resize(timeResult_.GetNumRows(), timeResult_.GetNumCols());
@@ -323,7 +323,7 @@ namespace CoupledField {
     // First of all, check if we have the number of spatial dof's
     if(spatialSize_ == 0) EXCEPTION("MHTimeFreqResult::FourierToTime no result was set!!")
 
-    if( freqResult_.GetNumCols() != 2 * N_ + 1){
+    if( freqResult_.GetNumCols() != 3 + (N_ - 1)){
       EXCEPTION("MHTimeFreqResult::FourierToTime There are " << freqResult_.GetNumCols()
           << " frequencies given but \n  the number of harmonics is N_ = " << N_);
     }
@@ -341,11 +341,12 @@ namespace CoupledField {
     int h = 0;
     for(UInt i = 0; i < timeVec_.GetSize(); ++i ){
       t = timeVec_[i];
-      for(UInt k = 0; k < 2 * N_ + 1; ++k){
+      for(UInt k = 0; k < 3 + (N_ - 1); ++k){
         // harmonic number
-        h = k - N_;
+        h = k - (Integer)(N_+1)/2;
         for(UInt j = 0; j < spatialSize_; ++j){
           // multiplication with 0.5 due to double sided spectrum
+          wir müssten die fft auch dementsprechend anpassen, da wir ja jetzt nur mehr ungerade harmonische haben...
           timeResult_[j][i] += freqResult_[j][k] * (cos(h * omega0_ * t) + Complex(0.0,1.0)*sin(h * omega0_ *t)) * 0.5;
         }
       }

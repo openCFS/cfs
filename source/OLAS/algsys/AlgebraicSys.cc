@@ -276,12 +276,12 @@ namespace CoupledField {
         UInt M = solStrat_->GetNumHarmM();
 
         SubMatrixID id;
-        for( UInt iRow = 0; iRow < 2*N+1; ++iRow ) {
+        for( UInt iRow = 0; iRow < 3+(N-1); ++iRow ) {
           id.rowInd = iRow;
           id.colInd = iRow;
           sbmPatternIds_[id] = NO_PATTERN_ID;
           for( UInt iCol = iRow + 1; iCol < iRow + M + 1; ++iCol ) {
-            if( iCol < 2 * N + 1){
+            if( iCol < 3 + (N - 1)){
               id.rowInd = iRow;
               id.colInd = iCol;
               sbmPatternIds_[id] = NO_PATTERN_ID;
@@ -355,7 +355,7 @@ namespace CoupledField {
     StdMatrix *stdMat = NULL;
     BaseVector *bVec = NULL;
     SingleVector *sVec = NULL;
-    UInt nB = (isMultHarm_)? 2*solStrat_->GetNumHarmN()+1 : numBlocks_;
+    UInt nB = (isMultHarm_)? 3+(solStrat_->GetNumHarmN()-1)/2 : numBlocks_;
     for ( UInt k = 0; k < nB; k++ ) {
       // Get diag matrix for vector generation
       stdMat = sysMat_[SYSTEM]->GetPointer( k, k );
@@ -1619,9 +1619,9 @@ namespace CoupledField {
       //for( auto & sbmIt : sbmSet ) {
         // Fetch all SBM blocks, in which the current (rowFctId, colFctId) occurs.
         // In the multiharmonic case, give it all the non-zero (sbmRow, sbmCol) combinations
-        for( UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
+        for( UInt sbmRow = 0; sbmRow < 3 + (N - 1); ++sbmRow ) {
           for( UInt sbmCol = sbmRow; sbmCol < sbmRow + M + 1; ++sbmCol ) {
-            if( sbmCol < 2 * N + 1){
+            if( sbmCol < 3 + (N - 1)){
               SubMatrixID sID;
               sID.rowInd = sbmRow;
               sID.colInd = sbmCol;
@@ -1658,9 +1658,9 @@ namespace CoupledField {
     }
     else {
       SubMatrixID sID;
-      for (  UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
+      for (  UInt sbmRow = 0; sbmRow < 3 + (N - 1); ++sbmRow ) {
         for ( UInt sbmCol = sbmRow; sbmCol < sbmRow + M + 1; ++sbmCol ) {
-          if( sbmCol < 2 * N + 1){
+          if( sbmCol < 3 + (N - 1)){
             ++nnzBlocks;
             if ( graphManager_->SubGraphExists( sbmRow, sbmCol ) == true ) {
               sID.rowInd = sbmRow;
@@ -1690,7 +1690,7 @@ namespace CoupledField {
     for( UInt i = 0; i < nnzBlocks; i++ ) {
       size_ += blockInfo_[0]->size;
     }
-    StdVector< StdVector<UInt> > toBeCopied((2 * N + 1) * (2 * N + 1));
+    StdVector< StdVector<UInt> > toBeCopied((3 + (N - 1)) * (3 + (N - 1)));
     rowIndList1_.Set(toBeCopied);
     rowList1_.Set(toBeCopied);
     rowIndList2_.Set(toBeCopied);
@@ -1809,7 +1809,7 @@ namespace CoupledField {
       UInt N = solStrat_->GetNumHarmN();
       UInt M = solStrat_->GetNumHarmM();
 
-      UInt numSBMRows = 2 * N + 1;
+      UInt numSBMRows = 3 + (N - 1);
       graphManager_->SetupInit( numSBMRows, distinctMatGraphs_, true, N, M );
 
       // In the multiharmonic case, we have only one set of equations
@@ -2735,7 +2735,7 @@ namespace CoupledField {
     // lambda for converting flattened sbm-index to (row, col) tuple
     UInt N = solStrat_->GetNumHarmN();
     //UInt M = solStrat_->GetNumHarmM();
-    auto DeflattenIndex = [N](UInt ind) { std::vector<UInt> a = {ind / (2*N+1), ind % (2*N+1)}; return a;};
+    auto DeflattenIndex = [N](UInt ind) { std::vector<UInt> a = {ind / (3+(N-1)), ind % (3+(N-1))}; return a;};
     //auto FlattenIndex = [N](UInt row, UInt col) { return N * row + col;};
 
     std::string t;
@@ -2981,8 +2981,8 @@ namespace CoupledField {
       // index:     [  0     1     2  ... N-1  N    N+1   N+2 ...  2N ]
       // harmonic:  [ -N   -N+1  -N+2 ... -1   0     1     2  ...   N ]
       if( isMultHarm_ ){
-        SingleVector &vecP = (*rhs_)(solStrat_->GetNumHarmN() + 1);
-        SingleVector &vecN = (*rhs_)(solStrat_->GetNumHarmN() - 1);
+        SingleVector &vecP = (*rhs_)( (solStrat_->GetNumHarmN() + 1)/2 + 1);
+        SingleVector &vecN = (*rhs_)( (solStrat_->GetNumHarmN() + 1)/2 - 1);
         if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
           if ( rowNum <= lastFreeRowIndex ) {
             vecP.AddToEntry( rowNum-1, elemRHS[iRow]);
@@ -3172,7 +3172,7 @@ namespace CoupledField {
     MapCompleteFctIdToIndex( 0, blockNums, indices);
     UInt size = blockNums.GetSize();
 
-    for(UInt i = 0; i < 2 * solStrat_->GetNumHarmN() + 1 ; ++i ) {
+    for(UInt i = 0; i < 3 + (solStrat_->GetNumHarmN() - 1) ; ++i ) {
       // security check: ensure that sub-vector has the same size
       // as the block indices
       if( fup(i).GetSize() != indices.GetSize() ) {
@@ -3280,7 +3280,7 @@ namespace CoupledField {
     // In multiharmonic analysis, we have to adapt the mass part
     if(isMultHarm){
       SBM_Matrix *mass = sysMat_[DAMPING];
-      for(UInt iRow = 0; iRow < 2 * solStrat_->GetNumHarmN() +1; ++iRow){
+      for(UInt iRow = 0; iRow < 3 + (solStrat_->GetNumHarmN() - 1); ++iRow){
         StdMatrix* sysSub = sys->GetPointer(iRow, iRow);
         StdMatrix* massSub = mass->GetPointer(iRow, iRow);
         // multiply massSub with harmonic number and add it to system matrix
@@ -3511,7 +3511,7 @@ namespace CoupledField {
   
 
   void AlgebraicSys::GetFullMultiHarmSolutionVal(SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
-    solVec.Resize( 2 * solStrat_->GetNumHarmN() + 1);
+    solVec.Resize( 3 + (solStrat_->GetNumHarmN() - 1));
     // solVec gets initialized in GetSolutionVal method
 
     // loop over all block vector and call specialized GetRHSVal method, the boolean
@@ -3620,7 +3620,7 @@ namespace CoupledField {
   
 
   void AlgebraicSys::GetFullMultiHarmRHSVal(SBM_Vector& rhsVec ) {
-    rhsVec.Resize( 2 * solStrat_->GetNumHarmN() + 1 );
+    rhsVec.Resize( 3 + (solStrat_->GetNumHarmN() - 1) );
     rhsVec.Init();
 
     // loop over all block vector and call specialized GetRHSVal method, the boolean
@@ -3643,13 +3643,13 @@ namespace CoupledField {
 
 
     /* Strategy for multiharmonic system:
-     * Generate 2N+1 times 2N+1 sbm matrix but only populate the
+     * Generate 3+(N-1) times 3+(N-1) sbm matrix but only populate the
      * nonzero blocks, the sbm class should recognize that ...
      */
     if( isMultHarm_ ){
-      UInt s = 2 * solStrat_->GetNumHarmN() + 1; //size
+      UInt s = 3 + (solStrat_->GetNumHarmN() - 1); //size
 
-      // Multiharmonic system matrix has size [(2N+1),(2N+1)]
+      // Multiharmonic system matrix has size [(3+(N-1)),(3+(N-1))]
       bool sysMatSym = false; //system matrix is not symmetric
       retMat = new SBM_Matrix( s, s, sysMatSym );
     }else{
@@ -3682,9 +3682,9 @@ namespace CoupledField {
       UInt N = solStrat_->GetNumHarmN();
       UInt M = solStrat_->GetNumHarmM();
 
-      for( UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
+      for( UInt sbmRow = 0; sbmRow < 3+(N-1); ++sbmRow ) {
         for( UInt sbmCol = sbmRow ; sbmCol < sbmRow + M + 1; ++sbmCol ) {
-          if( sbmCol < 2 * N + 1){
+          if( sbmCol < 3 + (N - 1)){
             graph = graphManager_->GetGraph( sbmRow, sbmCol );
             // we only allow nonsymmetric storage scheme
             BaseMatrix::StorageType sT = BaseMatrix::SPARSE_NONSYM;
@@ -3746,7 +3746,7 @@ namespace CoupledField {
 
 
 
-          } // endif sbmCol < 2 * N + 1
+          } // endif sbmCol < 3 + (N - 1)
         } // loop over sbmCols
       } // loop over sbmRows
 

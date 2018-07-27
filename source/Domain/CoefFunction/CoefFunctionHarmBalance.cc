@@ -360,7 +360,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
       }
     }else{
 
-      const Vector<Complex>& fR = freqTimeRes_.GetFreqResult(N_ + harmonic);
+      const Vector<Complex>& fR = freqTimeRes_.GetFreqResult( (N_+1)/2 + harmonic);
       coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ] * 0.5;
       // If harmonic is negative, we need conjugate ḩat{nu}
       if(harmonic < 0){

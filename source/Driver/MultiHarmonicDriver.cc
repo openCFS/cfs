@@ -61,10 +61,16 @@ namespace CoupledField
     baseFreq_ = param_->Get("baseFreq")->MathParse<Double>();
 
     numHarmonics_N_ = param_->Get("numHarmonics_N")->MathParse<Double>();
+    if(numHarmonics_N_ %2 == 0){
+      EXCEPTION("Please provide an odd number of harmonics N")
+    }
     
     // default for numHarmonics_M is numHarmonics_N
     numHarmonics_M_ = ( param_->Has("numHarmonics_M") ) ?  param_->Get("numHarmonics_M")->MathParse<Double>() : numHarmonics_N_;
-    
+    if(numHarmonics_M_ > numHarmonics_N_){
+      EXCEPTION("Number of harmonics M is larger than number of harmonics N !!")
+    }
+
     numFFT_ = param_->Get("numFFTPoints")->MathParse<Double>();
 
     // read flag if all results should get written to database file section
@@ -73,17 +79,21 @@ namespace CoupledField
 
     actHarm_ = 0;
 
-    harmFreq_.Resize(2 * numHarmonics_N_ + 1);
+    harmFreq_.Resize(3 + (numHarmonics_N_ - 1) );
     // static harmonic (zero frequency) at position numHarmonics_N_
-    harmFreq_[numHarmonics_N_] = 0.0;
+    harmFreq_[ (numHarmonics_N_ + 1)/2 ] = 0.0;
     Double dummy = -1;
-    for(UInt i = 0; i < numHarmonics_N_; ++i  ){
+    // handle first postive and negative harmonic manually
+    harmFreq_[(numHarmonics_N_ + 1)/2 - 1] = dummy * baseFreq_;
+    harmFreq_[(numHarmonics_N_ + 1)/2 + 1] = baseFreq_;
+    // insert the other frequencies in the loop (now in the optimized version, we
+    // only insert odd harmonics)
+    for(UInt i = 1; i < (numHarmonics_N_ + 1)/2; ++i  ){
       // negative frequencies at the beginning
-      harmFreq_[numHarmonics_N_ - 1 - i] = dummy * (i+1) * baseFreq_;
+      harmFreq_[(numHarmonics_N_ + 1)/2 - 1 - i] = dummy * (2*i+1) * baseFreq_;
       // positive frequencies starting at numHarmonics_N_ + 1
-      harmFreq_[numHarmonics_N_ + 1 + i] = (i + 1) * baseFreq_;
+      harmFreq_[(numHarmonics_N_ + 1)/2 + 1 + i] = (2*i + 1) * baseFreq_;
     }
-
     // Set the flag for the harmonic callback mechanism
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "finishCash", 0 );
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "harmonicHandle", -1 );
@@ -119,7 +129,7 @@ namespace CoupledField
 
     ptPDE_->WriteGeneralPDEdefines();
     
-    UInt numFreq = 2 * numHarmonics_N_ + 1;
+    UInt numFreq = 3 + (numHarmonics_N_ - 1);
     handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq );
 
     if( writeAllSteps_ )
@@ -151,7 +161,7 @@ namespace CoupledField
       analysis_id_.step = actFreqStep;
       analysis_id_.freq = actFreq;
 
-      Integer h = -numHarmonics_N_ + i;
+      Integer h = -(numHarmonics_N_+1)/2 + i;
       // We need to activate the correct harmonic results in CoefFunctionHarmBalance
       mathParser_->SetValue(MathParser::GLOB_HANDLER, "f", actFreq);
       mathParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);

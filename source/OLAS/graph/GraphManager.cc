@@ -230,7 +230,7 @@ namespace CoupledField {
     // ----------------------------------
     //   D I A G O N A L    B L O C K S
     // ----------------------------------
-    for (  UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
+    for (  UInt sbmRow = 0; sbmRow < 3 + (N - 1); ++sbmRow ) {
       UInt idx = ComputeIndex( sbmRow, sbmRow );
 
       // Finalize assembly of graph
@@ -264,9 +264,9 @@ namespace CoupledField {
     // -------------------------------------------
     //   O F F  - D I A G O N A L    B L O C K S
     // -------------------------------------------
-    for (  UInt sbmRow = 0; sbmRow < 2*N+1; ++sbmRow ) {
+    for (  UInt sbmRow = 0; sbmRow < 3 + (N - 1); ++sbmRow ) {
       for ( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + M + 1; ++sbmCol ) {
-        if( sbmCol < 2 * N + 1){
+        if( sbmCol < 3 + (N - 1)){
           UInt idx = ComputeIndex( sbmRow, sbmCol );
 
           //  Finalize assembly of graph (sorting, re-ordering, conversion to
@@ -413,9 +413,9 @@ namespace CoupledField {
     blockInfoMH_ = blockInfo;
 
     // now generate the graph objects
-    for (  UInt sbmRow = 0; sbmRow < 2*N_+1; ++sbmRow ) {
+    for (  UInt sbmRow = 0; sbmRow < 3 + (N_ - 1); ++sbmRow ) {
       for ( UInt sbmCol = sbmRow ; sbmCol < sbmRow + M_ + 1; ++sbmCol ) {
-        if( sbmCol < 2 * N_ + 1){
+        if( sbmCol < 3 + (N_ - 1)){
           UInt idx = ComputeIndex( sbmRow, sbmCol );
           // Generate graph object for this block
           graph_[idx] = new BaseGraph( blockInfo->numLastFreeIndex,
@@ -555,7 +555,7 @@ namespace CoupledField {
       //===================================================================
       for (  UInt sbmRow = 0; sbmRow < 2*N_+1; ++sbmRow ) {
         for ( UInt sbmCol = sbmRow ; sbmCol < sbmRow + M_ + 1; ++sbmCol ) {
-          if( sbmCol < 2 * N_ + 1){
+          if( sbmCol < 3 + (N_ - 1)){
 
             // Compute index of graph in graph pointer matrix
             UInt idx = ComputeIndex( sbmRow, sbmCol );
