@@ -1425,7 +1425,6 @@ namespace CoupledField {
     // transform the nu(t) back to frequency domain nu(harmonic)
     this->EvaluateNonlinearity(ftRes, actSol);
 
-
     // =================================================================================
     //  2) Solve the full multiharmonic nonlinear system
     // =================================================================================
@@ -1508,14 +1507,11 @@ namespace CoupledField {
       // for the deflect-vector \Delta u^{k+1}
       // TODO DO WE NEED TO CALL IT WITH SETIDBC?
       algsys_->Solve();
-algsys_->ExportMHSys(0);
       // Get the incremental solution (deflect vector), second argument is setIDBC
       algsys_->GetFullMultiHarmSolutionVal( solInc, false);
 
       if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION INCREMENT AT STEP "<<iterationCounter<<" = \n"<<solInc.ToString()<<std::endl;
-for(UInt i = 0; i < solInc.GetSize(); ++i){
-  std::cout<<solInc.GetPointer(i)->ToString()<<std::endl;
-}
+
 
       // Initialize norms (residual and incremental ones)
       Double residualL2Norm = 0.0;
@@ -1666,19 +1662,25 @@ for(UInt i = 0; i < actSol.GetSize(); ++i){
 
 
     if(!onlyDiagBlocks){
+      UInt ind = 0;
       for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
         // set the frequency of the current harmonic
         mParser_->SetValue(MathParser::GLOB_HANDLER, "f", multHarmFreqVec_[i]);
-        Integer h = -(UInt)((solStrat_->GetNumHarmN()+1)/2) + i;
+
+        Integer h = (multHarmFreqVec_[i] == 0.0)? 0 : -solStrat_->GetNumHarmN() + 2*ind;
+std::cout<<"harmonic "<<h<<", f = "<<multHarmFreqVec_[i]<<std::endl;
+        if(h < 0) ind = i + 1;
+        else ind = i;
         mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
         // which harmonic are we considering
         if (std::abs(h) > (Integer) (M) || h == 0) {
           continue;
         } else {
-          // assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
+          // Assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
           // Contrary to the usual assembling process, we have to pass regionNonLInTypes_
           // because regions without a BH curve don't have to be assembled into off-diagonal
           // blocks in the global system matrix...performance improvement
+          // NOTE: In the new optimized version, only odd harmonics are considered
           assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM(), regionNonLinTypes_);
         }
       }

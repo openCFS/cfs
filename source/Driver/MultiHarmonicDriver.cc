@@ -157,11 +157,16 @@ namespace CoupledField
       // therefore use the index i
       // i = [  0     1     2  ...   N    N+1   N+2 ...  2N ]
       // h = [ -N   -N+1  -N+2 ...   0     1     2  ...   N ]
+      // NOTE: In the new (performance optimized) version, we use
+      // only odd harmonics and therefore the above mapping looks like
+      // i = [  0     1     2  ...   N    N+1   N+2 ...  2N ]
+      // h = [ -N   -N+2  -N+4 ...   -3   -1   0     1     3  ...   N ]
+
       UInt actFreqStep = i;
       analysis_id_.step = actFreqStep;
       analysis_id_.freq = actFreq;
 
-      Integer h = -(numHarmonics_N_+1)/2 + i;
+      Integer h = (actFreq == 0.0)? 0 : -numHarmonics_N_ + 2*i;
       // We need to activate the correct harmonic results in CoefFunctionHarmBalance
       mathParser_->SetValue(MathParser::GLOB_HANDLER, "f", actFreq);
       mathParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);

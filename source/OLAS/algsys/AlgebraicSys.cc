@@ -355,7 +355,7 @@ namespace CoupledField {
     StdMatrix *stdMat = NULL;
     BaseVector *bVec = NULL;
     SingleVector *sVec = NULL;
-    UInt nB = (isMultHarm_)? 3+(solStrat_->GetNumHarmN()-1)/2 : numBlocks_;
+    UInt nB = (isMultHarm_)? 3+(solStrat_->GetNumHarmN()-1) : numBlocks_;
     for ( UInt k = 0; k < nB; k++ ) {
       // Get diag matrix for vector generation
       stdMat = sysMat_[SYSTEM]->GetPointer( k, k );

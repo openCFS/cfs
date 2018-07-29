@@ -792,6 +792,8 @@ namespace CoupledField
     auto ComputeIndex = [N](UInt a, UInt b ) { return (3+(N-1)) * a + b;};
 
     // store the sbm-indices of the blocks, which correspond to harmonic
+    // NOTE: We now use the optimized version, where we only consider odd harmonics,
+    // therefore the column isn't anymore iRow+harmonic !!!
     StdVector<UInt> sbmInd(0);
     for( UInt iRow = 0; iRow < 3+(N-1); ++iRow ) {
       if(harmonic == 0){
@@ -799,15 +801,14 @@ namespace CoupledField
         sbmInd.Push_back( ComputeIndex(iRow, iRow) );
       }else{
         // off-diagonal sbm-blocks
-        Integer col = iRow + harmonic;
+        // "signum" function
+        Integer sgn_h = std::fabs(harmonic) / harmonic;
+        Integer col = ( std::abs(harmonic) == 0) ? iRow : iRow + (harmonic + sgn_h)/(-2.0);
         if( col < 3 + ((Integer)N - 1) && col >= 0){
-          std::cout<<"iRow = "<<iRow<<std::endl;
-          std::cout<<"iCol = "<<col<<std::endl;
           sbmInd.Push_back( ComputeIndex(iRow, col) );
         }
       }
     }
-std::cout<<"sbmInd = "<<sbmInd.ToString()<<std::endl;
     // iterate over all entitylist-pairs and
     BiLinContextListType::iterator listIt = biLinForms_.begin();
     for ( ; listIt != biLinForms_.end(); ++listIt) {
