@@ -173,11 +173,11 @@ namespace CoupledField {
     }
 
 
-    for(UInt i = 0; i < freqResult_.GetNumCols(); ++i){
-      Vector<Complex> tmp;
-      freqResult_.GetCol(tmp, i);
-      std::cout<<"Initial freqResult_["<<i<<"] = "<< freqResult_[10][i]<<std::endl;
-    }
+//    for(UInt i = 0; i < freqResult_.GetNumCols(); ++i){
+//      Vector<Complex> tmp;
+//      freqResult_.GetCol(tmp, i);
+//      std::cout<<"Initial freqResult_["<<i<<"] = "<< freqResult_[10][i]<<std::endl;
+//    }
 
   }
 

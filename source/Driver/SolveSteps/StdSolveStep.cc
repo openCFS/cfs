@@ -1425,6 +1425,8 @@ namespace CoupledField {
     // transform the nu(t) back to frequency domain nu(harmonic)
     this->EvaluateNonlinearity(ftRes, actSol);
 
+std::cout<<"actSol = "<<actSol.ToString()<<std::endl;
+
     // =================================================================================
     //  2) Solve the full multiharmonic nonlinear system
     // =================================================================================
@@ -1479,7 +1481,12 @@ namespace CoupledField {
       // compute effective matrix
       std::map<FEMatrixType,Double> empty;
       algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+whsl wird die nullte harmonische (lösungsvektor) nicht mit dem system matrix sbm entry multipliziert...nochmal aufschreiben
+es müsste der lösungseintrag mit irgendwas verschwindenden multipliziert werden...
 
+=============== WARUM BEHALTEN WIR ÜBERHAUPT DIE NULLTE HARMONISCHE??? BRÄUCHTEN WIR DOCH GAR NICHT ODER?? =============
+
+algsys_->ExportMHSys(0);
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
 
@@ -1510,8 +1517,8 @@ namespace CoupledField {
       // Get the incremental solution (deflect vector), second argument is setIDBC
       algsys_->GetFullMultiHarmSolutionVal( solInc, false);
 
-      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION INCREMENT AT STEP "<<iterationCounter<<" = \n"<<solInc.ToString()<<std::endl;
 
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION INCREMENT AT STEP "<<iterationCounter<<" = \n"<<solInc.ToString()<<std::endl;
 
       // Initialize norms (residual and incremental ones)
       Double residualL2Norm = 0.0;
@@ -1533,6 +1540,7 @@ namespace CoupledField {
       // solution vector solVecMH
       solVecMH_ = actSol;
 
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION AT STEP "<<iterationCounter<<" = \n"<<actSol.ToString()<<std::endl;
 
       // That's a bit dirty but it's currently the only possible way I see
       algsys_->InitSol(solVecMH_);
@@ -1598,9 +1606,7 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
 
     // Register the multiharmonic solution at MHTimeFreqResult
     ftRes.SetFrequencyResult(actSol);
-for(UInt i = 0; i < actSol.GetSize(); ++i){
-  std::cout<<"actSol["<<i<<"] = "<<actSol.GetPointer(i)->ToString()<<std::endl;
-}
+
     // and transform the solution into time-domain to be able
     // to evaluate the nonlinearity (e.g. BH curve in electromagnetics)
     ftRes.FourierToTime();
@@ -1668,12 +1674,14 @@ for(UInt i = 0; i < actSol.GetSize(); ++i){
         mParser_->SetValue(MathParser::GLOB_HANDLER, "f", multHarmFreqVec_[i]);
 
         Integer h = (multHarmFreqVec_[i] == 0.0)? 0 : -solStrat_->GetNumHarmN() + 2*ind;
-std::cout<<"harmonic "<<h<<", f = "<<multHarmFreqVec_[i]<<std::endl;
         if(h < 0) ind = i + 1;
         else ind = i;
+
+        std::cout<<"harmonic = "<<h<<", frequency = "<<multHarmFreqVec_[i]<<std::endl;
+
         mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
         // which harmonic are we considering
-        if (std::abs(h) > (Integer) (M) || h == 0) {
+        if (std::abs(h) > (Integer) (M) - 1 || h == 0) {
           continue;
         } else {
           // Assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)

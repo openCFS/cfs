@@ -360,6 +360,9 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
       }
     }else{
 
+      if(harmonic < 0) harmonic = harmonic - 1;
+      if(harmonic > 0) harmonic = harmonic + 1;
+std::cout<<"harmonic in CoefFunctionHarmBalance = "<<harmonic<<std::endl;
       const Vector<Complex>& fR = freqTimeRes_.GetFreqResult( N_ + harmonic);
       coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ] * 0.5;
       // If harmonic is negative, we need conjugate ḩat{nu}
