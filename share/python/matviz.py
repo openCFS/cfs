@@ -355,7 +355,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   assert(me is not None)  
                   write_gid_mesh(me, "validation_mesh.mesh", scale)      
               else:
-                viz = create_3d_frame_ip(coords, design, samples, args.hom_grad, scale, valid_position, args.thres)
+                viz = create_3d_cross_ip(coords, design, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
           if args.show == 'simp':
             viz = create_block(coords, design, scale, args.thres, elems_in_regions)
