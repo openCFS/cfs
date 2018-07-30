@@ -111,25 +111,67 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
             if neighbor and len(neighbor.children) > 0:
               # we have a transition!
               trans_dir += calc_transition_flags(mc.global_blb, neighbor.mc.global_blb)
+              print("i,j,k:",mc.global_blb," neighbor:",neighbor.mc.global_blb,voxels[tuple(neighbor.mc.global_blb)])
+              print("trans_dir:",trans_dir)
+#               for nc in neighbor.children:
+#                 print("child ",nc.mc.global_blb)
+#                 for count,ncc in enumerate(nc.mc.cornerIndizes):
+#                   if nc.mc.corners[count].value > 0:
+#                     print("corner:",count, "i,j,k:", ncc," coords:", nc.mc.corners[count].coords," val:", nc.mc.corners[count].value)
               transition = True
+              
+        if transition:
+#           trans_dir = [0,1,0,0,0,0,1]
+          print("trans_dir:",trans_dir)  
+          print("number of transitions:",np.count_nonzero(np.array(trans_dir)))
+#           tmp_points, tmp_triangles, tmp_normals, _, shifted_corners = triangulate_scaled(voxels,mc,scale=trans_dir)
+          _, _, _, _, shifted_corners = triangulate_scaled(voxels,mc,scale=trans_dir)
+          tmp_points = mc.points
+          tmp_triangles = mc.triangles
+          tmp_normals = mc.normals
+          # scale points at transition face by linear transformation
+          for cs,s in enumerate(trans_dir):
+            dir = -1
+            fact = 0.25
+            comp = None
+            if s != 0:
+              if 0 < cs < 4: # +x, +y or +z
+                dir = cs-1
+                comp = mc.corners[7].coords
+              else:
+                assert(3 < cs < 7)
+                dir = cs-4
+                comp = mc.corners[0].coords
+                
+              for count in range(len(tmp_points)):
+                if np.isclose(tmp_points[count][dir],comp[dir]):
+                  tmp_points[count][dir] -= fact*np.array(tmp_points[count][dir])
           
-        if False:    
-#         if transition:
-#           print("trans_dir:",trans_dir)  
-#           print("number of transitions:",np.count_nonzero(np.array(trans_dir)))
-          tmp_points, tmp_triangles, tmp_normals, _, shifted_corners = triangulate_scaled(voxels,mc,scale=trans_dir)
+          print("tmp_points:",tmp_points)          
+#           print("corners:")
+#           for c in mc.corners:
+#             print(c.coords)
+#           
+#           print("\n shifted corners:")
+#           for sc in shifted_corners:
+#             print(sc.coords)
+#             
+#           print("\nshifted points:")
+#           for sp in tmp_points:
+#             print(sp)  
           
           projection = [None] * len(tmp_points)
-          for i,tmpp in enumerate(tmp_points):
-            n = mc.normals[i]
+#           print("calc projection")
+          for it,tmpp in enumerate(tmp_points):
+            n = mc.normals[it]
             # point p on projection plane
-            p = mc.points[i]
-            q = tmp_points[i]
-            projection[i] = q + np.dot(n,p-q) / np.linalg.norm(n)**2 * n  
+            p = mc.points[it]
+            q = tmp_points[it]
+            projection[it] = q + np.dot(n,p-q) / np.linalg.norm(n)**2 * n  
           # add transition cells
           for ctd,td in enumerate(trans_dir):
-            if False:
-#             if td != 0:
+#             if False:
+            if td != 0:
               # calc which plane and corners to consider for face td
               tcids = transition_corner_ids(ctd)
               assert(len(tcids) == 4)
@@ -147,15 +189,21 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
                 # mc is high-res cell
                 tc_corns[count] = mc.cornerIndizes[id]
 
-#               print("low-res corns:")  
+#               print("low-res corns:")
 #               for c in lowres_corns: 
 #                 print(c.coords)
 #               print("high-res 4 corns:")
 #               for tcc in tc_corns:
 #                 print(tcc,voxel_to_cartesian_coords(tcc,(0,0,0),h))
-                
+              
               tc = Transition_Cell(voxels,h,(0,0,0),int(mc.size*0.5),tc_corns,lowres_corns,0)
               tc.triangulate(voxels)
+#               print("tc:",len(tc.points),len(tc.triangles))
+#               print(tc.points)
+#               print("tc.triangles:",tc.triangles)
+#               sys.exit()
+ 
+              print("tmp_points:",tmp_points)    
               add_local_to_global_mesh(tmp_points, tmp_triangles, tmp_normals, tc.points, tc.triangles, tc.normals)
               
               tmp_points, tmp_normals, map_to_unique = merge_points(tmp_points, tmp_normals)
@@ -163,12 +211,43 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
                 new_t = [0,0,0]
                 for j in range(3):
                   new_t[j] = int(map_to_unique[tmp_triangles[i][j]])
-
+  
                 tmp_triangles[i] = new_t  
           
-          if projection:      
-            for i,p in enumerate(projection):
-              tmp_points[i] = p      
+          #           replace old points only when they're near the scaled face
+#           for debug: assume trans_dir = [0,1,0,1,0,0,0]
+#           for td in range(len(trans_dir)):
+#               if trans_dir[td] > 0:
+#                 comp = None
+#                 dir = -1
+#                 if 0 < td < 4:
+#                   comp = mc.corners[7]
+#                   dir = td-1
+#                 else:
+#                   assert(3 < td < 7)
+#                   comp = mc.corners[0]
+#                   dir = td-4
+#                 
+#                 for itmpp in range(len(mc.points)):
+#                   if not np.isclose(mc.points[itmpp][dir],comp.coords[dir]):
+#                     tmp_points[itmpp][dir] = mc.points[itmpp][dir]
+                  
+                  
+#             print("\nmc.points[itmpp]:",mc.points[itmpp])
+#             print(mc.points[itmpp][0]," close to ",mc.corners[7].coords[0],"?",np.isclose(mc.points[itmpp][0],mc.corners[7].coords[0]))
+#             print(mc.points[itmpp][2]," close to ",mc.corners[7].coords[2],"?",np.isclose(mc.points[itmpp][2],mc.corners[7].coords[2]))
+#             if not np.isclose(mc.points[itmpp][0],mc.corners[7].coords[0]):
+#               print("replace ",tmp_points[itmpp][0], " with ",mc.points[itmpp][0])
+#               tmp_points[itmpp][0] = mc.points[itmpp][0]
+#               
+#             if not np.isclose(mc.points[itmpp][2],mc.corners[7].coords[2]):
+#               print("replace ",tmp_points[itmpp][2], " with ",mc.points[itmpp][2])
+#               tmp_points[itmpp][2] = mc.points[itmpp][2]
+          
+#           if projection:      
+#             for i,p in enumerate(projection):
+#               tmp_points[i] = p      
+              
         else: 
           assert(mc.points)
           assert(mc.normals)
@@ -176,16 +255,25 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
           tmp_points = mc.points
           tmp_normals = mc.normals
           tmp_triangles = mc.triangles
+          
+#           print("mc.corners:")
+#           for mcc in mc.corners:
+#             print(mcc.coords)
+#           print("mc.points:",mc.points)  
         
         add_local_to_global_mesh(points, triangles, normals, tmp_points, tmp_triangles, tmp_normals)
         
+        
+        if len(triangles) > 10:
+          write_vtp(points, triangles, h,normals=normals)
+          sys.exit()
+#         write_vtp(points, triangles, h, normals=normals,name="debug.vtp")
+#         sys.exit()
 #         if transition:
 #           write_vtp(points, triangles, h, normals=normals)
 #           sys.exit()  
       
-      if len(triangles) > 20:
-        write_vtp(points, triangles, h,normals=normals)
-        sys.exit()
+      
         
     write_vtp(points, triangles, h,normals=normals)
 #     from anytree.exporter import DotExporter
@@ -371,6 +459,7 @@ class Transition_Cell():
 
 def add_local_to_global_mesh(gverts,gtris,gnorms,lverts,ltris,lnorms):
   assert(type(gverts) == list)
+  print("gtris",gtris)
   assert(type(gtris) == list)
   assert(type(gnorms) == list)
   
@@ -599,18 +688,26 @@ def triangulate_scaled(voxels,mc,scale=0):
       if 0 < i < 4: # +x, +y or +z
         anchor = tmp_corners[0].coords
         fact = np.ones(3) 
-        fact[i-1] = 1.0 - (0.125 * cubeSize)
+        fact[i-1] = 1.0 - (1/16. * cubeSize)
         
-        for i in range(ncorners):
+#         print("\nbefore scale with :",fact)
+#         for tmpc in tmp_corners:
+#           print(tmpc.coords)
+        for ci in range(ncorners):
           # move to origin/anchor to scale, then move back
-          tmp_corners[i].coords = fact * (np.array(tmp_corners[i].coords) - anchor) + anchor
+          tmp_corners[ci].coords = fact * (np.array(tmp_corners[ci].coords) - anchor) + anchor
+          
+#         print("\after scale with :",fact)
+#         for tmpc in tmp_corners:
+#           print(tmpc.coords)
       elif 3 < i < 7:
         anchor = tmp_corners[ncorners-1].coords
         fact = np.ones(3)
         fact[i-4] = 1.0 - (0.125 * cubeSize)
-        for i in range(ncorners):
+        
+        for ci in range(ncorners):
           # move to origin/anchor to scale, then move back
-          tmp_corners[i].coords = fact * (np.array(tmp_corners[i].coords) - anchor) + anchor
+          tmp_corners[ci].coords = fact * (np.array(tmp_corners[ci].coords) - anchor) + anchor
       else:
         assert(i == 0)
           
@@ -665,7 +762,7 @@ def triangulate_scaled(voxels,mc,scale=0):
     
     if cubeSize > 1 and not same_vector(tmp_corners[v0].coords, tmp_corners[v1].coords):
       first, second = calc_shifted_corner_verts(v0, v1, tmp_corners, voxels, mc.h)
-      
+        
     if not regular and 8 < v0 < 13 and 8 < v1 < 13:   
       first, second = calc_shifted_corner_verts(v0, v1, tmp_corners, voxels, mc.h)
 
@@ -675,8 +772,9 @@ def triangulate_scaled(voxels,mc,scale=0):
 #     print("mu:",mu)
 #     print("first:",v0," ",first.coords,first.value)
 #     print("second:",v1," ",second.coords,second.value)
-      
+  
     tmp_points.append(vert)
+    
     
 #     if cubeSize > 1:
 #       if same_vector(first.coords, tmp_corners[v0].coords):

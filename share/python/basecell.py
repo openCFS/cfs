@@ -173,10 +173,9 @@ def calc_radius(stiff):
   return val 
 
 if __name__ == "__main__":
-  import doctest, marching_cubes, draw_profile_functions
-#   doctest.testmod(marching_cubes,raise_on_error=True,verbose=True)
-  doctest.testmod(marching_cubes,verbose=True)
-  doctest.testmod(draw_profile_functions,verbose=True)
+#   import doctest, marching_cubes, draw_profile_functions
+#   doctest.testmod(marching_cubes,verbose=True,raise_on_error=False)
+#   doctest.testmod(draw_profile_functions,verbose=True)
   
   parser = argparse.ArgumentParser()
   parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True)
