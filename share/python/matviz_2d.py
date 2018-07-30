@@ -891,10 +891,8 @@ def draw_thick_circle(draw, center, radius):
   
 # # visualize the orientational stiffness
 # @return the image
-def orientational_stiffness(coords, design, data, nx, scale=-1.0):
+def orientational_stiffness(coords, angle, data, nx, scale=-1.0):
   
-  angle = design['angle']
-
   centers, min, max, elem = coords
 
   max_val = numpy.max(data[:])

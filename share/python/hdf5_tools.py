@@ -100,7 +100,7 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
     for i in range(len(nodes[:,0])):
       result.append([nodes[i,0],nodes[i,1],nodes[i,2]])
       
-  return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support 
+  return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support, reg_elements
                 
 # # find minimal and maximal coordinate
 # @param coordinates as from centered_elements

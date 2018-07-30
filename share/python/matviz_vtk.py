@@ -461,7 +461,7 @@ def create_centered_bar(cells, points, center, dim, angle=None, not_drawn = None
 
   return points_list, cells_list
 
-def create_block(coords, design, scale, thres = 0.0):
+def create_block(coords, design, scale, thres = 0.0, elems_in_regions = None):
   
   s1 = design['s1']
 
@@ -489,11 +489,27 @@ def create_block(coords, design, scale, thres = 0.0):
   colors = vtk.vtkUnsignedCharArray()
   colors.SetNumberOfComponents(3)
   colors.SetName("color")
-  nc = vtk.vtkNamedColors().GetColor3d('black')
-  for c in s1:
-    colors.InsertNextTuple3(nc[0], nc[1], nc[2])
+  if not elems_in_regions:
+    # only one color
+    nc = vtk.vtkNamedColors().GetColor3d('black')
+    for _ in s1:
+      colors.InsertNextTuple3(nc[0], nc[1], nc[2])
+  else:
+    # one color for each region
+    # generate list of RGB colors
+    n_regions = size(elems_in_regions)
+    n_color = int(ceil(pow(n_regions,1./3.)))
+    color1D = numpy.linspace(0, 255, n_color)
+    nc = numpy.array(numpy.meshgrid(color1D, color1D, color1D)).T.reshape(-1,3)
+    for index, s in enumerate(s1):
+      for ri, elems in enumerate(elems_in_regions):
+        if index+1 in elems: # elems are 1 based
+          regindex = ri
+          break       
+      if s > thres:
+        colors.InsertNextTuple3(nc[regindex][0], nc[regindex][1], nc[regindex][2])
   
-#  polydata.GetCellData().SetScalars(colors)
+    polydata.GetCellData().SetScalars(colors)
   
   return polydata
 
@@ -818,7 +834,7 @@ def create_3d_frame_ip(coords, design, ip, grad, scale, valid_position, thres=0.
   s1 = design['s1']
   s2 = design['s2']
   s3 = design['s3']
-  angles = design['angles']
+  angles = design['angle']
     
   # point coordinates from h5 file
   centers, min, max = coords[0:3] 
@@ -981,7 +997,7 @@ def create_3d_cross_ip(coords, design, ip_nx, grad, scale, valid_position, thres
   s1 = design['s1']
   s2 = design['s2']
   s3 = design['s3']
-  angles = design['angles']
+  angles = design['angle']
     
   # point coordinates from h5 file
   centers, min, max = coords[0:3] 
