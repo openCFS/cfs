@@ -2988,7 +2988,7 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
     LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
     // RotateTensor needs Hill Mandel matrix
     t.VoigtToHillMandel();
-    RotateTensor(t, direction,VOIGT,CCW);
+    RotateTensor(t, direction, VOIGT, CCW);
     LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
   }
 }
