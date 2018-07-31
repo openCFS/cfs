@@ -1192,7 +1192,7 @@ namespace CoupledField
       //      std::cout << "Remanence: " << remOutput.ToString() << std::endl;
       EXCEPTION("Memory changed; stop after test");
     }
-    maxOutputVal_ = satOutput.NormL2();
+//    maxOutputVal_ = satOutput.NormL2();
     
     
     // now we know the maximal output amplitude; we now have to options: 

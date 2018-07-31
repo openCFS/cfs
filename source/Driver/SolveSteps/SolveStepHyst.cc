@@ -2375,6 +2375,47 @@ namespace CoupledField {
             PDE_.SetFlagInCoefFncHyst("includeOldDeltaInPercent",percentage);            
           }
         }
+      } else if((numResets != 0)&&allowReset_){
+        // after first reset, check every Nth step for failback tolerance
+        // N is the number of steps to reset from inputfile
+        if(iterationCounter%minNumberItTillReset_ == 0){
+          if(bestResNorm < failBackCrit_){
+            LOG_TRACE(solvehyst) << "Best found solution so far passes failBack > take it";
+            solVec_ = bestSol;
+            residualErr = bestResNorm;
+            // output of norms and data to info.xml
+            if ( nonLinLogging_ == true ) {
+              // get current step
+              UInt actStep = PDE_.GetSolveStep()->GetActStep();
+              
+              //              if (PDE_.IsIterCoupled()) {
+              //                WriteHystIterToInfoXML(pdename_,"Failback", couplingIter_, actStep,0,0, residualErrCheck, -1.0, 0);
+              //              } else {
+              //                //WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErrABS, etaLineSearch);
+              //                WriteHystIterToInfoXML(pdename_,"Failback", actStep,0,0, residualErrCheck, -1.0, 0);
+              //              }
+              
+              WriteHystIterToInfoXML(pdename_,
+                      nonLinMethod_,
+                      lineSearch_,
+                      couplingIter_,
+                      actStep,
+                      iterationCounterLog,
+                      iterationCounter,
+                      residualErr, residualErrRel, useRelativeNormForRes_, 
+                      incrementalErr, incrementalErrRel, useRelativeNormForInc_,
+                      etaLinesearch, false, true);
+              
+              // write norm to file
+              logFile_ <<  iterationCounterLog << "\t"
+                      << residualErr << "\t"
+                      << incrementalErr << "\t"
+                      << etaLinesearch << std::endl;
+            }
+            performOneMoreStep = false;
+            break;
+          }
+        }
       }
       //      
       //      LOG_DBG(solvehyst) << "Solution vectors at end of iteration: ";

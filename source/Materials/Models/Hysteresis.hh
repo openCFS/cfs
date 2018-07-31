@@ -223,14 +223,14 @@ namespace CoupledField {
   bool computeUpdateTrustRegion(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
       Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
       Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
-      int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
+      int operatorIdx, int stayBelowSat, 
       Double& alpha, Double alphaMin, Double alphaMax, UInt& numberOfIterations);
 
     bool computeUpdateLinesearch(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
       Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
       Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
       int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
-      Double& alpha, Double& alphaMin, Double& alphaMax);
+      Double& alpha, Double& alphaMin, Double& alphaMax, bool stopLineSearchAtLocalMin);
   
     bool computeUpdate(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 

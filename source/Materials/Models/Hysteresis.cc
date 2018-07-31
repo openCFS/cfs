@@ -350,9 +350,9 @@ namespace CoupledField
           factor = currentYVector.NormL2()/previousYVector.NormL2();
         } else {
           if(currentYVector.NormL2() > previousYVector.NormL2()){
-            factor = 1.05;
+            factor = 1.25;
           } else {
-            factor = 1.0/1.05;
+            factor = 1.0/1.25;
           }
         }
         startXVector.ScalarMult(factor);
@@ -381,14 +381,14 @@ namespace CoupledField
       //        traceMsg << "Reset xVal as its value is above Xsaturation but yVal is not" << std::endl;
       //      std::cout << "scale down" << std::endl;
       startXVector = dir;
-      startXVector.ScalarMult(1.0/1.2*XSaturated_);
+      startXVector.ScalarMult(1.0/1.5*XSaturated_);
     } 
     
     if((startXVector.NormL2() < XSaturated_)&&(stayBelowSat==-1)){
       //        traceMsg << "Reset xVal as its value is below Xsaturation but yVal is above" << std::endl;
       //      std::cout << "scale up" << std::endl;
       startXVector = dir;
-      startXVector.ScalarMult(1.2*XSaturated_);        
+      startXVector.ScalarMult(1.5*XSaturated_);        
     }
     //    std::cout << "startXVector.NormL2(): " << startXVector.NormL2() << std::endl;
     return startXVector;
@@ -829,7 +829,7 @@ namespace CoupledField
           Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
           Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
           int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
-          Double& alpha, Double& alphaMin, Double& alphaMax){
+          Double& alpha, Double& alphaMin, Double& alphaMax, bool stopLineSearchAtLocalMin){
     
     /*
      * Initial checks
@@ -902,7 +902,7 @@ namespace CoupledField
          * an increase in error means, that optimal alpha has already been passed
          * > break
          */
-        if((INV_stopLineSearchAtLocalMin_)&&(jacTresNew.NormL2() > 1.01*minErrorNorm)){
+        if((stopLineSearchAtLocalMin)&&(jacTresNew.NormL2() > 1.01*minErrorNorm)){
           /*
            * much faster but does not work perfectly all the time
            */
@@ -926,8 +926,7 @@ namespace CoupledField
   bool Hysteresis::computeUpdateTrustRegion(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
           Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
           Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
-          int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
-          Double& alpha, Double alphaMin, Double alphaMax, UInt& numberOfIterations){
+          int operatorIdx, int stayBelowSat, Double& alpha, Double alphaMin, Double alphaMax, UInt& numberOfIterations){
     
     /*
      * Initial checks
@@ -965,26 +964,16 @@ namespace CoupledField
     Vector<Double> jacTres_neg = Vector<Double>(dim_);
     
     Double alphaStepUp, alphaStepDown;
-    if(updateImplementation != 0){
-      /*
-       * alphaMin and Max set fix
-       */
-      alphaMax = 2.0;
-      alphaMin = 0.01;
-      alpha = 1.0;  
-      alphaStepUp = 1.125;
-      alphaStepDown = 1.0/1.125;
-    } else {
-      /*
-       * alphaMin and Max are taken from input
-       */
-      alpha = alphaMinLocal;
-      jacCurrent.MultT(jacCurrent,jacTjac);
-      jacTres_neg.Init();
-      jacTres_neg.Add(-1.0,jacTresCurrent);
-      alphaStepUp = 2.0;
-      alphaStepDown = 0.5;
-    }
+
+    /*
+     * alphaMin and Max are taken from input
+     */
+    alpha = alphaMinLocal;
+    jacCurrent.MultT(jacCurrent,jacTjac);
+    jacTres_neg.Init();
+    jacTres_neg.Add(-1.0,jacTresCurrent);
+    alphaStepUp = 2.0;
+    alphaStepDown = 0.5;
     
     /*
      * Accumulated alpha
@@ -1003,32 +992,17 @@ namespace CoupledField
     Vector<Double> hystNew = Vector<Double>(dim_);
     Vector<Double> resNew = Vector<Double>(dim_);
     Vector<Double> jac_dx = Vector<Double>(dim_);
-    
-    if(updateImplementation == 1){
-      xUpdateStart = computeUpdate_Newton(xCurrent, yTarget, hystCurrent, mu_inv, operatorIdx);
-    } else if(updateImplementation == 2){
-      xUpdateStart = computeUpdate_Krylov(xCurrent, yTarget, hystCurrent, mu_inv, operatorIdx);
-    }
-    
+        
     while(true){
       itCnt++;
 			// for statistics
 			numberOfIterations=itCnt;
       
-      if(updateImplementation == 0){
-        /*
-         * LM computes new update in every iteration as it depends on alpha
-         */
-        xUpdate = computeUpdate_LM(jacTres_neg, 
-                jacTjac, alpha, alphaAcc, alphaMinLocal, 1e16);
-      } else {
-        /*
-         * Newton and Newton-Krylov use alpha as linesearch parameter
-         * > just scale update and check
-         */
-        xUpdate = xUpdateStart;
-        xUpdate.ScalarMult(alpha);
-      }
+      /*
+       * LM computes new update in every iteration as it depends on alpha
+       */
+      xUpdate = computeUpdate_LM(jacTres_neg, 
+              jacTjac, alpha, alphaAcc, alphaMinLocal, 1e16);
       
       xNew.Init();
       xNew.Add(1.0,xCurrent,1.0,xUpdate);
@@ -1073,14 +1047,8 @@ namespace CoupledField
       
       Vector<Double> jac_dx = Vector<Double>(dim_);
       
-      if(jacobiImplementation == -1){
-        /*
-         * compute jac_dx without setting up jacobian; needs current x and current hyst values NOT the new ones!
-         */
-        jac_dx = computeJacobianTimesVector(xCurrent, xUpdate, yTarget, hystCurrent, mu_inv, operatorIdx); 
-      } else {
-        jacCurrent.Mult(xUpdate,jac_dx);
-      }
+      jacCurrent.Mult(xUpdate,jac_dx);
+      
       success = checkIncrementTrustRegion(xNew, resCurrent, resNew, jac_dx, alpha, alphaStepUp, alphaStepDown, stayBelowSat); 
       
       //      success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,0);
@@ -1121,16 +1089,8 @@ namespace CoupledField
           hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, debugOut, successFlag);
           resNew = computeResidual(xCurrent,yTarget,hystNew,mu_inv);
           //          resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
-          
-          if(jacobiImplementation == -1){
-            /*
-             * compute jac_dx without setting up jacobian; needs current x and current hyst values NOT the new ones!
-             */
-            jac_dx = computeJacobianTimesVector(xCurrent, xUpdate, yTarget, hystCurrent, mu_inv, operatorIdx); 
-          } else {
-            jacCurrent.Mult(xUpdate,jac_dx);
-          }
-          
+          jacCurrent.Mult(xUpdate,jac_dx);
+
           success = checkIncrementTrustRegion(xNew, resCurrent, resNew, jac_dx, alpha, alphaStepUp, alphaStepDown, stayBelowSat); 
           
           //          success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha,stayBelowSat);
@@ -1146,41 +1106,24 @@ namespace CoupledField
             // any further
             // works better with alphaAcc > alphaMax instead of alpha > alphaMax
             Double alphaCrit;
-            if(updateImplementation == 0){
-              alphaCrit = alphaAcc;
-            } else {
-              alphaCrit = alpha;
-            }
-            
+            alphaCrit = alphaAcc;
+
             if(alphaCrit > alphaMax){
               LOG_TRACE(vecpreisachlinesearch) << "Alpha max reached; take update > stop";
               alphaCrit = alphaMax;
-              if(updateImplementation == 0){
-                // LM: large alpha > small update; adding it might not hurt to much > discard = false
-                discard = false;
-              } else {
-                // Newton, Krylov-Newton: large alpha > large update (due to "normal" linesearch); better discard
-                discard = true;
-              }
-              
-              if(updateImplementation == 0){
-                alphaAcc = alphaCrit;
-              } else {
-                alpha = alphaCrit;
-              }
+              // LM: large alpha > small update; adding it might not hurt to much > discard = false
+              discard = false;
+              alphaAcc = alphaCrit;
+
               break;
             }
             
             if(alpha < alphaMinLocal){
               LOG_TRACE(vecpreisachlinesearch) << "Alpha min reached; discard update > stop";
               alpha = alphaMinLocal;
-              if(updateImplementation == 0){
-                // LM: small alpha > large update; might be risky > discard
-                discard = true;
-              } else {
-                // Newton, Krylov-Newton: small alpha > small update (due to "normal" linesearch); could be ok
-                discard = false;
-              }
+              // LM: small alpha > large update; might be risky > discard
+              discard = true;
+
               break;
             }
             if(itCnt >= maxIter){
@@ -1196,41 +1139,24 @@ namespace CoupledField
       } else {
         // works better with alphaAcc > alphaMax instead of alpha > alphaMax
         Double alphaCrit;
-        if(updateImplementation == 0){
-          alphaCrit = alphaAcc;
-        } else {
-          alphaCrit = alpha;
-        }
+        alphaCrit = alphaAcc;
         
         if(alphaCrit > alphaMax){
           LOG_TRACE(vecpreisachlinesearch) << "Alpha max reached; take update > stop";
           alphaCrit = alphaMax;
-          if(updateImplementation == 0){
-            // LM: large alpha > small update; BUT: here it might still be too much > discard, too
-            discard = true;
-          } else {
-            // Newton, Krylov-Newton: large alpha > large update (due to "normal" linesearch); better discard
-            discard = true;
-          }
+          // LM: large alpha > small update; BUT: here it might still be too much > discard, too
+          discard = true;
           
-          if(updateImplementation == 0){
-            alphaAcc = alphaCrit;
-          } else {
-            alpha = alphaCrit;
-          }
+          alphaAcc = alphaCrit;
+
           break;
         }
         
         if(alpha < alphaMinLocal){
           LOG_TRACE(vecpreisachlinesearch) << "Alpha min reached; discard update > stop";
           alpha = alphaMinLocal;
-          if(updateImplementation == 0){
-            // LM: small alpha > large update; might be risky > discard
-            discard = true;
-          } else {
-            // Newton, Krylov-Newton: small alpha > small update (due to "normal" linesearch); could be ok
-            discard = false;
-          }
+          // LM: small alpha > large update; might be risky > discard
+          discard = true;
           break;
         }
 				
@@ -1591,6 +1517,7 @@ namespace CoupledField
      * 2: Jacobian-Free-Newton-Krylov
      */
     UInt updateImplementation = INV_inversionMethod_;
+    bool stopLineSearchAtLocalMin = INV_stopLineSearchAtLocalMin_;
     
     std::stringstream traceMsg;
     if(debug){
@@ -1658,6 +1585,16 @@ namespace CoupledField
 		
     /*
      * Invert eps/mu for later usage
+     * 
+     * Remark regarding mu:
+     *  According to B = mu_0*H + J we should always use mu_0 as mu.
+     *  However, the more dominant J_sat/H_sat becomes compared to mu_0
+     *  the worse the inversion will get. 
+     *  Tests showed for example, that J_sat = 1.07, H_sat = 110e3 does
+     *  have troubles with mu_0 but works very well with 100*mu_0. If
+     *  J_sat = 0.107 and H_sat = 110e3, mu_0 works fine.
+     * > how to fix this?
+     * 
      */
     Matrix<Double> mu_inv = Matrix<Double>(dim_,dim_);
     Vector<Double> xTMP = Vector<Double>(dim_);
@@ -2004,17 +1941,6 @@ namespace CoupledField
     Double errorNormResX;
     Double errorNormResY;
     
-    /*
-     * jacobianImplementation
-     * 
-     * -1: jacobian free > only possible in combination with NewtonKrylov
-     * 0: switching between forward/backward differences
-     * 1: central differences
-     */
-    int jacobiImplementation = 0;
-    if(updateImplementation == 2){
-      jacobiImplementation = -1;
-    }
     //    INV_maxIter_ *= 10;
     
     Vector<Double> bestSol = Vector<Double>(dim_);
@@ -2027,7 +1953,20 @@ namespace CoupledField
      * Start actual LM iteration
      */
     //    std::cout << "stayBelowSat: " << stayBelowSat << std::endl;
+    UInt discardCnt = 0;
     while(true){ 
+      /*
+       * jacobianImplementation
+       * 
+       * -1: jacobian free > only possible in combination with NewtonKrylov
+       * 0: switching between forward/backward differences
+       * 1: central differences
+       */
+      int jacobiImplementation = 0;
+      if(updateImplementation == 2){
+        jacobiImplementation = -1;
+      }
+      
       itCnt++;
       totalNumberOfLMIterations++;
       //      std::cout << "itCnt: " << itCnt << std::endl;
@@ -2134,22 +2073,38 @@ namespace CoupledField
       //            
       if(updateImplementation == 0){
         discardUpdate = computeUpdateTrustRegion(xStart, xVal, xUpdate, hystVal, res, yVal, mu_inv,
-                jac, jacTres, operatorIndex, stayBelowSat, updateImplementation, jacobiImplementation,
+                jac, jacTres, operatorIndex, stayBelowSat,
                 alpha, alphaMin, alphaMax, numberOfIterations);
       } else {
         discardUpdate = computeUpdateLinesearch(xStart, xVal, xUpdate, hystVal, res, yVal, mu_inv,
                 jac, jacTres, operatorIndex, stayBelowSat, updateImplementation, jacobiImplementation,
-                alpha, alphaMin, alphaMax);
+                alpha, alphaMin, alphaMax, stopLineSearchAtLocalMin);
       }
 
       LOG_DBG(vecpreisachInversion) << "Computed update: " << xUpdate.ToString();
       if(!discardUpdate){
         xVal = xVal+xUpdate;
       } else {
+        discardCnt++;
         LOG_DBG(vecpreisachInversion) << "Discard update";
-        //std::cout << "Discard update; reset to best solution so far" << std::endl;
-        alphaMin = alphaMin/2.0;
-        alphaMax = alphaMax*2.0;
+        bool useFailback = false;
+        if(useFailback){
+          //std::cout << "Discard update; reset to best solution so far" << std::endl;
+  //        std::cout << "Update not usable: use failback inversion method = Newton" << std::endl;
+          updateImplementation = 1; 
+          stopLineSearchAtLocalMin = false;
+          alpha = 1;
+          alphaMin = 0.00025;
+          alphaMax = 1;
+          if(discardCnt!=1){
+  //          std::cout << "Still no success: change alpha min and alpha max" << std::endl;
+            alphaMin = alphaMin/2.0;
+            alphaMax = alphaMax*2.0;
+          }
+        } else {
+          alphaMin = alphaMin/2.0;
+          alphaMax = alphaMax*2.0;
+        }
       }
       sign = sign*(-1.0);
       

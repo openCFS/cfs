@@ -638,9 +638,9 @@
       <xsd:element name="debuggingParameter" minOccurs="0">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
-            <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
-            <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
+            <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="-1"/>
+            <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-15"/>
+            <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-15"/>
             <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
             <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
           </xsd:sequence>
