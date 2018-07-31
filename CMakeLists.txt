@@ -654,6 +654,10 @@ IF(BUILD_TESTING)
   set(NIGHTLY_START_TIME "00:00:00 CET")
   set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}" CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
+  # set the test timeout
+  set(TESTSUITE_TEST_TIMEOUT 300 CACHE STRING "timeout in s for each test in the testsuite (sets DART_TESTING_TIMEOUT)")
+  set(DART_TESTING_TIMEOUT "${TESTSUITE_TEST_TIMEOUT}" CACHE INTERNAL "=TESTSUITE_TEST_TIMEOUT") # see https://cmake.org/cmake/help/v3.3/manual/ctest.1.html#ctest-test-step
+  mark_as_advanced(TESTSUITE_TEST_TIMEOUT)
   if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
     # get the build host
     execute_process(COMMAND ${CFS_BINARY_DIR}/bin/cfs --version --noColor
