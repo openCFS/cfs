@@ -1004,6 +1004,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];
 
+  assert(dynamic_cast<Condition*>(func) != NULL);
+  Condition* g = static_cast<Condition*>(func);
+
   assert(f.GetType() == Filter::DENSITY);
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
   assert((func == NULL || (func->IsObjective() && sp == DesignElement::COST_GRADIENT)) || (func == NULL || (!func->IsObjective() && sp == DesignElement::CONSTRAINT_GRADIENT)) || (func == NULL || (func->IsObjective())));
@@ -1028,7 +1031,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
       const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
 
-      double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(func)); // d f/d P_i
+      double v = de->GetPlainValue(sp, g); // d f/d P_i
 
       double w = i == -1 ? f.weight : ne->weight;
 
