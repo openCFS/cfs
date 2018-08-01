@@ -206,13 +206,13 @@ namespace CoupledField {
         
     Matrix<Double> computeJacobian(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, int jacobianImplementation, 
-					bool overwriteMemory, int stayBelowSat);
+					bool overwriteMemory, int stayBelowSat, Double scalingForJacDiagonal);
     
     Vector<Double> computeJacobianTimesVector(Vector<Double>& x, Vector<Double>& v, 
     Vector<Double>& y, Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
         
     Vector<Double> computeUpdate_Newton(Vector<Double>& x, Vector<Double>& y, 
-      Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
+      Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx, Double scalingForJacDiagonal);
     
     Vector<Double> computeUpdate_Krylov(Vector<Double>& x, Vector<Double>& y, 
       Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
@@ -230,7 +230,7 @@ namespace CoupledField {
       Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
       Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
       int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
-      Double& alpha, Double& alphaMin, Double& alphaMax, bool stopLineSearchAtLocalMin);
+      Double& alpha, Double& alphaMin, Double& alphaMax, bool stopLineSearchAtLocalMin, Double scalingForJacDiagonal);
   
     bool computeUpdate(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, 
       Vector<Double>& xUpdate, Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, 

@@ -420,14 +420,14 @@ namespace CoupledField
   //  
   
   Vector<Double> Hysteresis::computeUpdate_Newton(Vector<Double>& x, Vector<Double>& y, 
-          Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx){
+          Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx, Double scalingForJacDiagonal){
     
     /*
      * Jac*dX = -res
      * > solve directly
      */
     Matrix<Double> jac = computeJacobian(x, hyst_x, 
-            mu_inv, operatorIdx, 1.0, 0, false, 0); 
+            mu_inv, operatorIdx, 1.0, 0, false, 0, scalingForJacDiagonal); 
     UInt vecSize = x.GetSize();
     Matrix<Double> jacInv = Matrix<Double>(vecSize,vecSize);
     jac.Invert(jacInv);
@@ -614,7 +614,7 @@ namespace CoupledField
     bool testing = false;
     if(testing){
       Matrix<Double> jac = computeJacobian(x, hyst_x, 
-              mu_inv, operatorIdx, 1.0, 0, false, 0); 
+              mu_inv, operatorIdx, 1.0, 0, false, 0, 1.0); 
       
       Vector<Double>tmp = Vector<Double>(vecSize);
       jac.Mult(v,tmp);
@@ -632,7 +632,7 @@ namespace CoupledField
   
   Matrix<Double> Hysteresis::computeJacobian(Vector<Double>& xVal, Vector<Double>& hystVal, 
           Matrix<Double> mu_inv, Integer operatorIdx, Double sign, int jacobianImplementation, 
-					bool overwriteMemory, int stayBelowSat) {
+					bool overwriteMemory, int stayBelowSat, Double scalingForJacDiagonal) {
     
     LOG_DBG(vecpreisachInversion) << " --------- computeJacobian --------- ";
     //    LOG_DBG(vecpreisach) << "VecPreisach::computeJacobian";
@@ -655,8 +655,49 @@ namespace CoupledField
     Vector<Double> deltaHyst;
     Matrix<Double> jac = Matrix<Double>(dim_,dim_);
     jac.Init();
+    jacobianImplementation = 2;
+    if(jacobianImplementation == 2){
+      /*
+       * Full Jacobian using forward/backward differences
+       * BUT different approach on scaling factor
+       * > taken from "Jacobian-free Newton-Krylov methods: a survey ..." - Knoll
+       * > J_ij = ( F_i(u + eps_j*e_j) - F_i(u) )/eps_j
+       * > eps_j = b*u_j + b with b approx sqrt(machine precision) 
+       */
+      Double b = std::sqrt(INV_jacobiResolution_);
+      Double eps;       
+      for(UInt j = 0; j < dim_; j++){
+        eps = sign*(b*abs(xVal[j]) + b);
+        
+        xShifted = xVal;
+                
+        xShifted[j] += eps;
+          
+        int successFlag = 0;
+        bool debugOut = false;
+        hystShifted = computeValue_vec(xShifted, operatorIdx, overwriteMemory, debugOut, successFlag);
+        /*
+         * Compute Jacobian for residual wrt x
+         * 
+         * jac_ij = + delta_ij + mu_inv[i][:]*dhystVal/dxVal_j
+         */   
+        deltaHyst = hystShifted;
+        deltaHyst.Add(-1.0,hystVal);
+        
+        Vector<Double> curCol = Vector<Double>(dim_);
+        mu_inv.Mult(deltaHyst,curCol);
+        curCol.ScalarDiv(eps);
+        
+        // should be 1 (due to eps*1/eps, but apparently a higher value helps sometimes
+        // idea: try to solve with 1, if this does not work increase step by step
+        // > some sort of regularization
+        jac[j][j] = scalingForJacDiagonal;
+        for(UInt i = 0; i < dim_; i++){
+          jac[i][j] += curCol[i];
+        }
+      } 
     
-    if(jacobianImplementation == 0){
+    } else if(jacobianImplementation == 0){
       //      LOG_DBG(vecpreisach) << "Use forward/backward differences for approximation of Jacobian";
       /*
        * Full Jacobian using forward/backward differences
@@ -829,7 +870,7 @@ namespace CoupledField
           Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
           Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
           int operatorIdx, int stayBelowSat, int updateImplementation, int jacobiImplementation,
-          Double& alpha, Double& alphaMin, Double& alphaMax, bool stopLineSearchAtLocalMin){
+          Double& alpha, Double& alphaMin, Double& alphaMax, bool stopLineSearchAtLocalMin, Double scalingForJacDiagonal){
     
     /*
      * Initial checks
@@ -856,8 +897,15 @@ namespace CoupledField
     bool overwriteMemory = false;
     
     Double minErrorNorm = 1e18;
+    Vector<Double> xUpdateStart;
     
-    Vector<Double> xUpdateStart = computeUpdate_Newton(xCurrent, yTarget, hystCurrent, mu_inv, operatorIdx);
+    if(updateImplementation == 1){
+      xUpdateStart = computeUpdate_Newton(xCurrent, yTarget, hystCurrent, mu_inv, operatorIdx, scalingForJacDiagonal);
+    } else if(updateImplementation == 2){
+      xUpdateStart = computeUpdate_Krylov(xCurrent, yTarget, hystCurrent, mu_inv, operatorIdx);
+    } else {
+      EXCEPTION("UpdateImplementation must be 1 or 2 for std. linesearch");
+    }
     Vector<Double> hystNew;
     Vector<Double> resNew;
     Vector<Double> xNew = Vector<Double>(dim_);
@@ -1950,10 +1998,15 @@ namespace CoupledField
     Double bestErrorNormRes = 1e16;
     
     /*
-     * Start actual LM iteration
+     * Start outer iteration of inversion
      */
     //    std::cout << "stayBelowSat: " << stayBelowSat << std::endl;
     UInt discardCnt = 0;
+    
+//    xVal.Init();
+    Vector<Double> startSol = Vector<Double>(dim_);
+    startSol = xVal;
+    Double scalingForJacDiagonal = 1.0;
     while(true){ 
       /*
        * jacobianImplementation
@@ -1984,7 +2037,7 @@ namespace CoupledField
          * Compute Jacobian and its transpose
          */
         jac = computeJacobian(xVal,hystVal, mu_inv, 
-                operatorIndex, sign, jacobiImplementation, overwriteMemory, stayBelowSat);
+                operatorIndex, sign, jacobiImplementation, overwriteMemory, stayBelowSat,scalingForJacDiagonal);
         jac.Transpose(jacT);
         /*
          * Compute actual error criterion (Jacobian*residual) from Jacobain
@@ -2012,6 +2065,16 @@ namespace CoupledField
       successX = (errorNormResX <= INV_resTolH_);
       successY = checkInversionOutput(xVal, yVal, mu, INV_resTolB_, errorNormResY,operatorIndex, overwriteMemory);
       
+      if(errorNormResX < bestErrorNormRes){
+        bestErrorNormRes = errorNormResX;
+        bestSolRes = xVal;                
+      }
+      
+      if(errorNorm < bestErrorNorm){
+        bestErrorNorm = errorNorm;
+        bestSol = xVal;                
+      }
+
       if(successError){
         // main criterion > would be best if this one could be satisfied
         traceMsg << "Success! Error estimate |jacT*ResX| = " << errorNorm << " < " << INV_resTolH_ << std::endl;
@@ -2025,6 +2088,29 @@ namespace CoupledField
         LOG_TRACE(vecpreisachInversion) << "Success! Residual norm wrt X = |ResX| = " << errorNormResX << " < " << INV_resTolH_ << std::endl;
         break;
       } else {
+        scalingForJacDiagonal = 1.0;
+        if( itCnt > 0.3*INV_maxIter_){
+          // no solution has been found yet; try larger scalingForJacDiagonal
+          scalingForJacDiagonal = 1.5;
+        }
+        if( itCnt > 0.45*INV_maxIter_){
+          // no solution has been found yet; try larger scalingForJacDiagonal
+          scalingForJacDiagonal = 2.0;
+        }
+        if( itCnt > 0.6*INV_maxIter_){
+          // no solution has been found yet; try larger scalingForJacDiagonal
+          scalingForJacDiagonal = 4.0;
+        }
+        if( itCnt > 0.75*INV_maxIter_){
+          // no solution has been found yet; try larger scalingForJacDiagonal
+          scalingForJacDiagonal = 8.0;
+        }
+        if( itCnt > 0.9*INV_maxIter_){
+          // no solution has been found yet; try larger scalingForJacDiagonal
+          scalingForJacDiagonal = 16.0;
+        }
+//        std::cout << "INV_maxIter_: " << INV_maxIter_ << std::endl;
+//        std::cout << "Current scaling: " << scalingForJacDiagonal << std::endl;
         if( (totalNumberOfLMIterations%10 == 0)||(itCnt >= INV_maxIter_) ){
           if(successY){
             // failback; might still have large res error in x buz might be the best we can find
@@ -2045,22 +2131,19 @@ namespace CoupledField
               traceMsg << "Remaining residual-norm wrt y: " << errorNormResY << std::endl;
             }
             successFlag = -1;
-            
+//            std::cout << "start Sol: " << startSol.ToString() << std::endl;
+//            std::cout << "last found Sol: " << xVal.ToString() << std::endl;
+//            std::cout << "best found Sol wrt error Norm: " << bestSol.ToString() << std::endl;
+//            std::cout << "best found Sol wrt residual Norm: " << bestSolRes.ToString() << std::endl;
+//            std::cout << "actual Sol: " << sol.ToString() << std::endl;
+//            std::cout << "|jacT*ResX|: " << errorNorm << std::endl;
+//            std::cout << "errorNormResX: " << errorNormResX << std::endl;
+//            std::cout << "errorNormResY: " << errorNormResY << std::endl;
             break;
           }
         }
       }
-      
-      if(errorNormResX < bestErrorNormRes){
-        bestErrorNormRes = errorNormResX;
-        bestSolRes = xVal;                
-      }
-      
-      if(errorNorm < bestErrorNorm){
-        bestErrorNorm = errorNorm;
-        bestSol = xVal;                
-      }
-      
+
       LOG_DBG(vecpreisachInversion) << "Solution not appropriate yet > Perform linesearch";
       UInt numberOfIterations = 0;
       
@@ -2078,9 +2161,9 @@ namespace CoupledField
       } else {
         discardUpdate = computeUpdateLinesearch(xStart, xVal, xUpdate, hystVal, res, yVal, mu_inv,
                 jac, jacTres, operatorIndex, stayBelowSat, updateImplementation, jacobiImplementation,
-                alpha, alphaMin, alphaMax, stopLineSearchAtLocalMin);
+                alpha, alphaMin, alphaMax, stopLineSearchAtLocalMin,scalingForJacDiagonal);
       }
-
+      
       LOG_DBG(vecpreisachInversion) << "Computed update: " << xUpdate.ToString();
       if(!discardUpdate){
         xVal = xVal+xUpdate;
@@ -2090,14 +2173,14 @@ namespace CoupledField
         bool useFailback = false;
         if(useFailback){
           //std::cout << "Discard update; reset to best solution so far" << std::endl;
-  //        std::cout << "Update not usable: use failback inversion method = Newton" << std::endl;
+          //        std::cout << "Update not usable: use failback inversion method = Newton" << std::endl;
           updateImplementation = 1; 
           stopLineSearchAtLocalMin = false;
           alpha = 1;
           alphaMin = 0.00025;
           alphaMax = 1;
           if(discardCnt!=1){
-  //          std::cout << "Still no success: change alpha min and alpha max" << std::endl;
+            //          std::cout << "Still no success: change alpha min and alpha max" << std::endl;
             alphaMin = alphaMin/2.0;
             alphaMax = alphaMax*2.0;
           }
