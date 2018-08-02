@@ -1425,7 +1425,9 @@ namespace CoupledField {
     // transform the nu(t) back to frequency domain nu(harmonic)
     this->EvaluateNonlinearity(ftRes, actSol);
 
-std::cout<<"actSol = "<<actSol.ToString()<<std::endl;
+    if (IS_LOG_ENABLED(stdsolvestep, dbg3)){
+      std::cout<<"actSol = "<<actSol.ToString()<<std::endl;
+    }
 
     // =================================================================================
     //  2) Solve the full multiharmonic nonlinear system
@@ -1481,14 +1483,18 @@ std::cout<<"actSol = "<<actSol.ToString()<<std::endl;
       // compute effective matrix
       std::map<FEMatrixType,Double> empty;
       algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
-whsl wird die nullte harmonische (lösungsvektor) nicht mit dem system matrix sbm entry multipliziert...nochmal aufschreiben
-es müsste der lösungseintrag mit irgendwas verschwindenden multipliziert werden...
 
-=============== WARUM BEHALTEN WIR ÜBERHAUPT DIE NULLTE HARMONISCHE??? BRÄUCHTEN WIR DOCH GAR NICHT ODER?? =============
-
-algsys_->ExportMHSys(0);
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
+
+
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) {
+        SBM_Vector resid(BaseMatrix::COMPLEX);
+        algsys_->GetFullMultiHarmRHSVal(resid);
+        std::cout<<"RHSLINVAL OF STEP "<<iterationCounter<<" = \n"<<RhsLinVal_.ToString()<<std::endl;
+        std::cout<<"RESIDUAL VECTOR OF STEP "<<iterationCounter<<" = \n"<<resid.ToString()<<std::endl;
+        std::cout<<"MHSOLVEC VECTOR OF STEP "<<iterationCounter<<" = \n"<<solVecMH_.ToString()<<std::endl;
+      }
 
       // This is done because we want to solve the deflect-system:
       // K(u^k) \cdot \Delta u^{k+1} = f - K(u^k) \cdot u^k
@@ -1588,8 +1594,8 @@ algsys_->ExportMHSys(0);
 
       // boolean variable, holds condition if another iteration step is necessary
       performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-std::cout<<"========= incrementalErr = "<<incrementalErr<<std::endl;
-std::cout<<"========= residualErr = "<<residualErr<<std::endl;
+      std::cout<<"========= incrementalErr = "<<incrementalErr<<std::endl;
+      std::cout<<"========= residualErr = "<<residualErr<<std::endl;
       if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
         EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
             << "' in step no '" << 1
@@ -1658,7 +1664,7 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
 
     // Special treatment is needed for the diagonal blocks, due to the mass part,
     // therefore handle this case seperately
-    // Contrary to the usual assembling process, we have to pass regionNonLInTypes_
+    // Contrary to the usual assembling process, we have to pass regionNonLinTypes_
     // because regions without a BH curve don't have to be assembled into off-diagonal
     // blocks in the global system matrix...performance improvement
     assemble_->AssembleMatrices_MultHarm(0, solStrat_->GetNumHarmN(),
@@ -1668,24 +1674,28 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
 
 
     if(!onlyDiagBlocks){
-      UInt ind = 0;
       for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
-        // set the frequency of the current harmonic
-        mParser_->SetValue(MathParser::GLOB_HANDLER, "f", multHarmFreqVec_[i]);
 
-        Integer h = (multHarmFreqVec_[i] == 0.0)? 0 : -solStrat_->GetNumHarmN() + 2*ind;
-        if(h < 0) ind = i + 1;
-        else ind = i;
-
-        std::cout<<"harmonic = "<<h<<", frequency = "<<multHarmFreqVec_[i]<<std::endl;
-
+        // Ok, now it gets confusing because in the performance-optimized
+        // version, we draw a border between the harmonics of the system matrix
+        // and the solution vector
+        Integer tmpH = -solStrat_->GetNumHarmN() + 2 * i;
+        Integer h = (tmpH < 0)? tmpH - 1 : tmpH + 1;
         mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
-        // which harmonic are we considering
-        if (std::abs(h) > (Integer) (M) - 1 || h == 0) {
+
+        // And set the corresponding frequency
+        Double tmpf = (Double)solStrat_->GetBaseFreq();
+        Double freq = tmpf * h;
+        mParser_->SetValue(MathParser::GLOB_HANDLER, "f", freq);
+
+        if (IS_LOG_ENABLED(stdsolvestep, dbg3)) {
+          std::cout<<"harmonic = "<<h<<", frequency = "<<freq<<std::endl;
+        }
+        if (std::abs(h) > (Integer)M || h == 0) {
           continue;
         } else {
           // Assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
-          // Contrary to the usual assembling process, we have to pass regionNonLInTypes_
+          // Contrary to the usual assembling process, we have to pass regionNonLinTypes_
           // because regions without a BH curve don't have to be assembled into off-diagonal
           // blocks in the global system matrix...performance improvement
           // NOTE: In the new optimized version, only odd harmonics are considered
@@ -2007,7 +2017,11 @@ std::cout<<"========= residualErr = "<<residualErr<<std::endl;
       if (residualL2Norm < residualL2NormOpt) {
         residualL2NormOpt = residualL2Norm;
         etaOpt = eta[i];
+      }else if(residualL2Norm > residualL2NormOpt){
+        continue;
+        //TODO Proof Theory that  the first lokal minimum is the global minimum of all residuals as well.
       }
+
     }
     
     //std::cout << "Optimal eta = " << etaOpt << std::endl;

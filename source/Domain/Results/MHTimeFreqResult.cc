@@ -134,7 +134,7 @@ namespace CoupledField {
     UInt numFreq = freqRes.GetSize();
 
     // Sanity check
-    if(numFreq != 3 + (N_ - 1)){
+    if(numFreq != N_ + 1){
       EXCEPTION("MHTimeFreqResult::SetFrequencyResult This should not happen!");
     }
 
@@ -143,42 +143,24 @@ namespace CoupledField {
     freqResult_.InitValue(in);
     Integer h;
     UInt ind;
-    // Handle harmonics -N to -1
-    for(UInt i = 0; i < (N_+1)/2; ++i){
-      // which harmonic are we considering (in the optimized version=
+    // Handle harmonics
+    for(UInt i = 0; i < N_ + 1; ++i){
+      // which harmonic are we considering (in the optimized version)
       h = -N_ + 2 * i;
       // where is this harmonic in the full harmonics vector (including
       // all harmonics, also the even ones)
       ind = N_ + h;
+      // insert it
       for(UInt j = 0; j < spatialSize_; ++j){
         freqRes(i).GetEntry(j, freqResult_[j][ind]);
       }
     }
-    // Handle the static harmonic
-    h = 0;
-    ind = N_ + h;
-    for(UInt j = 0; j < spatialSize_; ++j){
-      freqRes((N_+1)/2).GetEntry(j, freqResult_[j][ind]);
-    }
-    // Handle harmonics 1 to N
-    for(UInt i = (N_+1)/2 ; i < numFreq - 1; ++i){
-      // which harmonic are we considering (in the optimized version=
-      h = -N_ + 2 * i;
-      // where is this harmonic in the full harmonics vector (including
-      // all harmonics, also the even ones)
-      ind = N_ + h;
-      for(UInt j = 0; j < spatialSize_; ++j){
-        freqRes(i).GetEntry(j, freqResult_[j][ind]);
-      }
-    }
-
 
 //    for(UInt i = 0; i < freqResult_.GetNumCols(); ++i){
 //      Vector<Complex> tmp;
 //      freqResult_.GetCol(tmp, i);
-//      std::cout<<"Initial freqResult_["<<i<<"] = "<< freqResult_[10][i]<<std::endl;
+//      std::cout<<"Initial freqResult_["<<i<<"] = "<< freqResult_[5][i]<<std::endl;
 //    }
-
   }
 
   void MHTimeFreqResult::SetTimeResult(const Vector<Double>& timeRes,
@@ -206,12 +188,9 @@ namespace CoupledField {
       timeRes.GetEntry(j, t);
       timeResult_[j][i] = (Complex)t;
     }
-
-
     //Vector<Complex>tmp;
     //timeResult_.GetCol(tmp,timeStep);
     //std::cout<<"timeResult_ row "<< timeStep<< " : "<<tmp.ToString()<<std::endl;
-
   }
 
 

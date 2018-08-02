@@ -79,20 +79,15 @@ namespace CoupledField
 
     actHarm_ = 0;
 
-    harmFreq_.Resize(3 + (numHarmonics_N_ - 1) );
-    // static harmonic (zero frequency) at position numHarmonics_N_
-    harmFreq_[ (numHarmonics_N_ + 1)/2 ] = 0.0;
+    harmFreq_.Resize(numHarmonics_N_ + 1 );
     Double dummy = -1;
-    // handle first postive and negative harmonic manually
-    harmFreq_[(numHarmonics_N_ + 1)/2 - 1] = dummy * baseFreq_;
-    harmFreq_[(numHarmonics_N_ + 1)/2 + 1] = baseFreq_;
-    // insert the other frequencies in the loop (now in the optimized version, we
+    // Insert frequencies in the loop (now in the optimized version, we
     // only insert odd harmonics)
-    for(UInt i = 1; i < (numHarmonics_N_ + 1)/2; ++i  ){
+    for(UInt i = 0; i < (numHarmonics_N_ + 1)/2; ++i  ){
       // negative frequencies at the beginning
-      harmFreq_[(numHarmonics_N_ + 1)/2 - 1 - i] = dummy * (2*i+1) * baseFreq_;
+      harmFreq_[(numHarmonics_N_ - 1)/2 - i] = dummy * (2*i+1) * baseFreq_;
       // positive frequencies starting at numHarmonics_N_ + 1
-      harmFreq_[(numHarmonics_N_ + 1)/2 + 1 + i] = (2*i + 1) * baseFreq_;
+      harmFreq_[(numHarmonics_N_ + 1)/2 + i] = (2*i + 1) * baseFreq_;
     }
     // Set the flag for the harmonic callback mechanism
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "finishCash", 0 );
@@ -126,16 +121,14 @@ namespace CoupledField
   // ****************
   void MultiHarmonicDriver::SolveProblem()
   {
-
     ptPDE_->WriteGeneralPDEdefines();
     
-    UInt numFreq = 3 + (numHarmonics_N_ - 1);
+    UInt numFreq = numHarmonics_N_ + 1;
     handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq );
 
     if( writeAllSteps_ )
       simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
     
-
     // In multiharmonic analysis we speak in terms of multiples of base-harmonics.
     // The system matrices of the single harmonics get inserted into the global matrix
     // and then the system is solved.
@@ -159,18 +152,17 @@ namespace CoupledField
       // h = [ -N   -N+1  -N+2 ...   0     1     2  ...   N ]
       // NOTE: In the new (performance optimized) version, we use
       // only odd harmonics and therefore the above mapping looks like
-      // i = [  0     1     2  ...   N    N+1   N+2 ...  2N ]
-      // h = [ -N   -N+2  -N+4 ...   -3   -1   0     1     3  ...   N ]
+      // index:     [  0     1     2  ... (N-1)/2   (N+1)/2   (N-1)/2+2   ...  N+1 ]
+      // harmonic:  [ -N   -N+2  -N+4 ...    -1        1           3      ...   N ]
 
       UInt actFreqStep = i;
       analysis_id_.step = actFreqStep;
       analysis_id_.freq = actFreq;
 
-      Integer h = (actFreq == 0.0)? 0 : -numHarmonics_N_ + 2*i;
+      Integer h = -numHarmonics_N_ + 2*i;
       // We need to activate the correct harmonic results in CoefFunctionHarmBalance
       mathParser_->SetValue(MathParser::GLOB_HANDLER, "f", actFreq);
       mathParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
-
 
       // Now we need to set the actual solution and rhs vector (depending on
       // the current harmonic). This basically stores the solution and rhs back to
@@ -178,7 +170,6 @@ namespace CoupledField
       // Usually this is done in the StdSolveStep when algsys_->GetSolutionVal(solVec_)
       // is called but in the multiharmonic case this must be done here.
       //TODO do we even need this ?!
-
       ptPDE_->GetSolveStep()->GetRHSValMultHarm(i);
       ptPDE_->GetSolveStep()->GetSolutionValMultHarm(i);
 
@@ -194,7 +185,6 @@ namespace CoupledField
     // Perform finalization only if not part of sequence
     if(!isPartOfSequence_) 
       handler_->Finalize();
-
   }
   
 }

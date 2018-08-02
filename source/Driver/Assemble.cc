@@ -777,38 +777,42 @@ namespace CoupledField
     matReassemble_.clear();
   }
 
-  void Assemble::AssembleMatrices_MultHarm(Integer harmonic, UInt N, UInt M,
+  void Assemble::AssembleMatrices_MultHarm(Integer harm, UInt N, UInt M,
              const std::map<RegionIdType, StdVector<NonLinType> >& regionNonLinTypes,
              const StdVector<Double>& multHarmFreqVec) {
 
     LOG_DBG(assemble) << "AM_Std: AssembleMatricesMultHarm() enter sequence="
-        << domain->GetDriver()->GetActSequenceStep() << " for harmonic N=" << harmonic;
+        << domain->GetDriver()->GetActSequenceStep() <<" for nu-harmonic " << harm<<std::endl;
 
     // The checking of nonlinearities and initializing the matrices,
     // which have to be reassembled was already carried out in the
     // StdSolveStep::AssembleMH method
 
     // same as ComputeIndex method in GraphManager, here with a lambda function
-    auto ComputeIndex = [N](UInt a, UInt b ) { return (3+(N-1)) * a + b;};
+    auto ComputeIndex = [N](UInt a, UInt b ) { return (N + 1) * a + b;};
 
-    // store the sbm-indices of the blocks, which correspond to harmonic
+    // store the sbm-indices of the blocks, which have to be assembled
     // NOTE: We now use the optimized version, where we only consider odd harmonics,
     // therefore the column isn't anymore iRow+harmonic !!!
+    // =========== This is difficult to describe here, see notes (K.Roppert 2018) =====
     StdVector<UInt> sbmInd(0);
-    for( UInt iRow = 0; iRow < 3+(N-1); ++iRow ) {
-      if(harmonic == 0){
+    for( UInt iRow = 0; iRow < N + 1; ++iRow ) {
+      if(harm == 0){
         // sbm-blocks on the main diagonal
         sbmInd.Push_back( ComputeIndex(iRow, iRow) );
       }else{
-        // off-diagonal sbm-blocks
-        // "signum" function
-        Integer sgn_h = std::fabs(harmonic) / harmonic;
-        Integer col = ( std::abs(harmonic) == 0) ? iRow : iRow + (harmonic + sgn_h)/(-2.0);
-        if( col < 3 + ((Integer)N - 1) && col >= 0){
-          sbmInd.Push_back( ComputeIndex(iRow, col) );
+        Integer col = iRow - harm/2;
+        if( col < (Integer)N + 1 && col >= 0){
+          // change row/columns
+          sbmInd.Push_back( ComputeIndex(col, iRow) );
         }
       }
     }
+
+    if (IS_LOG_ENABLED(assemble, dbg3)) {
+      std::cout<<"================= sbmInd = "<<sbmInd.ToString()<<std::endl;
+    }
+
     // iterate over all entitylist-pairs and
     BiLinContextListType::iterator listIt = biLinForms_.begin();
     for ( ; listIt != biLinForms_.end(); ++listIt) {
@@ -821,7 +825,7 @@ namespace CoupledField
       }
       // If the region is not nonlinear, we do not have to assemble
       // off-diagonal blocks in the multiharmonic system matrix
-      if( (nonLinTypes.GetSize() == 0 && harmonic != 0) ){
+      if( (nonLinTypes.GetSize() == 0 && harm != 0) ){
         continue;
       }
 
@@ -890,7 +894,7 @@ namespace CoupledField
           // IMPORTANT: In multiharmonic analysis, no off-diagonal
           //            sub mass matrices!
           //================================================================
-          if( harmonic != 0 && (destMat == FEMatrixType::DAMPING || secDestMat == FEMatrixType::DAMPING) ){
+          if( harm != 0 && (destMat == FEMatrixType::DAMPING || secDestMat == FEMatrixType::DAMPING) ){
             continue;
           }
 
@@ -977,13 +981,13 @@ namespace CoupledField
             // or after the assembling in algsys_->ConstructEffectiveMatrix but the fact that
             // we need to loop over every frequency and multiply the mass matrices corresponding to the
             // frequencies with different values, prevents such a ''clean'' solution
-            if( harmonic == 0 && multHarmFreqVec.GetSize() != 0){
+            if( harm == 0 && multHarmFreqVec.GetSize() != 0){
               if( destMat == DAMPING ){
                 // Store the sbm-indices of the blocks, which correspond to harmonic 0
                 // in a vector with size 1 to pass it to InsertMatrix method.
                 // This is kind of a workaround
                 StdVector<UInt> diagInd(1);
-                for( UInt iRow = 0; iRow < 3+(N-1); ++iRow ) {
+                for( UInt iRow = 0; iRow < N + 1; ++iRow ) {
                   diagInd.Init(0);
                   diagInd[0] =  sbmInd[iRow];
                   Double f = multHarmFreqVec[iRow];

@@ -148,13 +148,13 @@ namespace CoupledField {
       UInt N = algsys_->GetSolStrategy()->GetNumHarmN();
       UInt M = algsys_->GetSolStrategy()->GetNumHarmM();
       // same as ComputeIndex method in GraphManager, here with a lambda function
-      auto ComputeIndex = [N](UInt a, UInt b ) { return (3+(N-1)) * a + b;};
+      auto ComputeIndex = [N](UInt a, UInt b ) { return (N + 1) * a + b;};
 
       // store the sbm-indices of the nnz sbm-blocks
-      for( UInt iRow = 0; iRow < 3 + (N-1); ++iRow ) {
+      for( UInt iRow = 0; iRow < N + 1; ++iRow ) {
         sbmInd.Push_back( ComputeIndex(iRow, iRow) );
-        for( UInt iCol = iRow + 1; iCol < iRow + M + 1 ; ++iCol ) {
-          if( iCol < 3 + (N - 1)){
+        for( UInt iCol = iRow + 1; iCol < iRow + (M-1)/2 + 1 ; ++iCol ) {
+          if( iCol < N + 1){
             sbmInd.Push_back( ComputeIndex(iRow, iCol) );
           }
         }
