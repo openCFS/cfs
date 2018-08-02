@@ -98,6 +98,8 @@ private:
 
     //! if true, then all nodes on region "wall" will have 0.0 as return-vector entry
     bool noSlip_;
+    //! boundary set
+    StdVector<UInt> boundary_;
 
     //! if true, then element values are the interpolation target
     bool useElemAsTarget_;

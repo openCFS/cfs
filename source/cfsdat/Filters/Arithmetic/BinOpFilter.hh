@@ -7,8 +7,8 @@
  *       \file     BinOpFilter.hh
  *       \brief    <Description>
  *
- *       \date     Apr 13, 2016
- *       \author   ahueppe
+ *       \date     Mai 13, 2018
+ *       \author   mtautz
  */
 //================================================================================================
 
@@ -16,77 +16,18 @@
 #define SOURCE_CFSDAT_FILTERS_ARITHMETIC_BINOPFILTER_HH_
 
 #include "cfsdat/Filters/BaseFilter.hh"
+#include "BinOpFunctions.hh"
 #include <boost/bimap.hpp>
 
 namespace CFSDat{
 
 class BinOpFilter : public BaseFilter{
+  
 public:
 
-  static FilterPtr GenerateOperator(PtrParamNode interpolNode, PtrResultManager resMana);
+  BinOpFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
 
-  BinOpFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
-    :BaseFilter(numWorkers,config,resMan){
-
-  }
-
-
-  virtual ~BinOpFilter(){
-
-  }
-
-protected:
-
-  struct  PlusOp{
-    static inline Double Apply(Double a1,Double a2){
-      return a1+a2;
-    }
-  };
-
-  struct  MultOp{
-    static inline Double Apply(Double a1,Double a2){
-      return a1*a2;
-    }
-  };
-
-  struct  DivOp{
-    static inline Double Apply(Double a1,Double a2){
-      return a1/a2;
-    }
-  };
-
-  struct  MinusOp{
-    static inline Double Apply(Double a1,Double a2){
-      return a1-a2;
-    }
-  };
-
-
-  virtual ResultIdList SetUpstreamResults()=0;
-
-  virtual void AdaptFilterResults()=0;
-
-  std::string res1Name;
-  uuids::uuid res1Id;
-
-  std::string res2Name;
-  uuids::uuid res2Id;
-
-  std::string outName;
-  uuids::uuid outId;
-
-};
-
-template<class Operator>
-class GenericBinOpFilter : public BinOpFilter{
-
-public:
-
-  GenericBinOpFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
-
-  virtual ~GenericBinOpFilter(){
-
-  }
+  virtual ~BinOpFilter();
 
 protected:
 
@@ -95,8 +36,27 @@ protected:
   virtual ResultIdList SetUpstreamResults();
 
   virtual void AdaptFilterResults();
+  
+  virtual void PrepareCalculation();
+  
+  std::string opType;
+  std::string multType;
 
-private:
+  std::string resAName;
+  uuids::uuid resAId;
+  bool isConstantA;
+  Vector<Double> constantA;
+
+  std::string resBName;
+  uuids::uuid resBId;
+  bool isConstantB;
+  Vector<Double> constantB;
+
+  std::string outName;
+  uuids::uuid outId;
+  
+  BinOpFunctions::BinOpFctStruct<Double>::BinOpFctPtr applyFctPtr;
+  UInt size;
 
 };
 

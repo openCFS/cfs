@@ -73,12 +73,15 @@ bool OutputFilter::Run(){
         CF::StdVector<UInt> eqnVec;
 
         outFile_->BeginStep(aStepIter_->first,aStepIter_->second); //Add step values and time line in output file
-
         if(resultManager_->GetExtInfo(*rIter)->dType == ExtendedResultInfo::COMPLEX){
           Vector<Complex> & fullVec = GetUpstreamResultVector<Complex>(*rIter,aStepIter_->second,eqnVec);
           if (!resultManager_->IsResultVecUpToDate(*rIter)) {
-            break;
+            resultManager_->DeactivateResult(*rIter);
+            std::cout << "      Error writing field " << resultManager_->GetResultName(*rIter) << " was not up to date " << std::endl; 
+            continue;
           }
+          std::cout << "      Writing field " << resultManager_->GetResultName(*rIter) << std::endl; 
+          
           //now we loop over the result array and copy the values according to
           for(UInt aRe = 0; aRe < cResVec.GetSize(); ++aRe){
 
@@ -103,8 +106,12 @@ bool OutputFilter::Run(){
         }else{
           Vector<Double> & fullVec = GetUpstreamResultVector<Double>(*rIter,aStepIter_->second,eqnVec);
           if (!resultManager_->IsResultVecUpToDate(*rIter)) {
-            break;
+            resultManager_->DeactivateResult(*rIter);
+            std::cout << "      Error writing field " << resultManager_->GetResultName(*rIter) << " was not up to date " << std::endl; 
+            continue;
           }
+          std::cout << "      Writing field " << resultManager_->GetResultName(*rIter) << std::endl; 
+
           //now we loop over the result array and copy the values according to
           for(UInt aRe = 0; aRe < cResVec.GetSize(); ++aRe){
 
@@ -130,6 +137,9 @@ bool OutputFilter::Run(){
 
         outFile_->FinishStep();
 
+        //now deactivate own upstream results
+        DeactivateUpstreamResults();
+        
         resultManager_->SetValid(*rIter);
 
       }else{
@@ -137,9 +147,6 @@ bool OutputFilter::Run(){
       }
 
   }
-  
-  //now deactivate own upstream results
-  DeactivateUpstreamResults();
 
   ++aStepIter_;
   //check for last step
@@ -246,17 +253,7 @@ void OutputFilter::AdaptFilterResults(){
   aStepIter_ = globalStepValueMap_.begin();
 }
 
-void OutputFilter::FinishInit(){
-  if(!resultManager_->IsFinalized()){
-    EXCEPTION("The filter cannot finish Init if ResultManager is not finalized.")
-  }
-
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->FinishInit();
-  }
-
+void OutputFilter::PrepareCalculation(){
   //now we register our results
   ResultIdList::iterator iter = upResIds.Begin();
   outFile_->Init(resultManager_->GetExtInfo(*iter)->ptGrid, false);
