@@ -106,7 +106,8 @@ void SimOutputStreaming::TransmitData(bool force) {
     if (force) {
       int i=0;
       while(current_client != NULL) {
-        usleep(10000); // kindof busy sleep because this will only be executed at the very end
+        // kindof busy sleep because this will only be executed at the very end
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         i++;
         if (i>200) {
           // if this takes longer than 2 seconds, orphan the running client:

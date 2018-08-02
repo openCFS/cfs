@@ -55,6 +55,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->enforce_bounds_ = pn->Get("shapeMap/enforce_bounds")->As<bool>();
   this->relative_node_bound_ = pn->Get("shapeMap/relative_node_bound")->As<double>();
   this->relative_profile_bound_ = pn->Get("shapeMap/relative_profile_bound")->As<double>();
+  this->export_leveset_ = pn->Has("shapeMap/export") ? pn->Get("shapeMap/export/enable")->As<bool>() : false;
 
   this->dim_ = domain->GetGrid()->GetDim();
   this->exoprt_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
@@ -1129,6 +1130,10 @@ int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scale) const
   AuxDesign::WriteDesignToExtern(space_out, scale);
 
   LOG_DBG(SMD) << "WDTE: di -> " << design_id;
+
+  if(export_leveset_)
+    ExportLevelSet();
+
   return design_id;
 }
 
@@ -2204,6 +2209,54 @@ int ShapeMapDesign::NumInt::FindOrder(double x1, double x2, double pos, double a
    }
    out.close();
  }
+
+
+void ShapeMapDesign::ExportLevelSet() const
+{
+  // this is still a dump implementation
+  assert(export_leveset_);
+
+  std::ofstream out;
+  string name = progOpts->GetSimName() + ".leveset.vtk";
+  out.open(name.c_str());
+  out.precision(8);
+  out.flags(std::ios::scientific);
+
+  out << "# vtk DataFile Version 3.0\n";
+  out << "Para0\n";
+  out << "ASCII\n";
+  out << "DATASET RECTILINEAR_GRID\n";
+  assert(dim_ == 2);
+  out << "DIMENSIONS " << (nx_+1) << " " << (ny_+1) << " 1\n";
+  out << "X_COORDINATES " << (nx_+1) << " int\n";
+  for(unsigned int i = 0; i <= nx_; i++)
+    out << i << " ";
+  out << "\nY_COORDINATES " << (ny_+1) << " int\n";
+  for(unsigned int i = 0; i <= ny_; i++)
+    out << i << " ";
+  out << "\nZ_COORDINATES 1 int\n0\n\n";
+  out << "POINT_DATA " << ((nx_+1) * (ny_+1) * 1) << "\n";
+  out << "SCALARS lsf_0 float 1\n";
+  out << "LOOKUP_TABLE default\n";
+  // first shot simply takes the density, cooler options are nodes and Gaussian points
+  // write the upper right corner with special handling for -1
+  // lowest y-line first
+  out << DensityToLevelSet(0,0) << std::endl;
+  for(int x = 0; x < (int) nx_; x++)
+    out << DensityToLevelSet(x,0) << std::endl;
+  for(int y = 0; y < (int) ny_; y++)
+  {
+    out << DensityToLevelSet(0,y) << std::endl;
+    for(int x = 0; x < (int) nx_; x++)
+      out << DensityToLevelSet(x,y) << std::endl;
+  }
+  out.close();
+}
+
+inline double ShapeMapDesign::DensityToLevelSet(int x, int y) const
+{
+  return 2.0 * map_[DensityIdx(x,y)].rho->GetPlainDesignValue() - 1.0;
+}
 
 void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
  {

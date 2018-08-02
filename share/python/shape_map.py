@@ -48,51 +48,62 @@ def dof(val):
   assert(False)
 
 # 'x' and 'y' -> 'z' 
-def flip_dof(dof1, dof2):
-  
-  if dof1 == 0:
-    assert(dof2 == 1 or dof2 == 2)
-    if dof2 == 1:
-      return 2
-    else:
-      return 1
-
-  if dof1 == 1:
-    assert(dof2 == 0 or dof2 == 2)
-    if dof2 == 2:
-      return 0
-    else:
-      return 2
-
-  if dof1 == 2:
-    assert(dof2 == 0 or dof2 == 1)
-    if dof2 == 0:
-      return 1
-    else:
-      return 0
-  
-  if dof1 == 'x':
-    assert(dof2 == 'y' or dof2 == 'z')
-    if dof2 == 'y':
-      return 'z'
-    else:
+def flip_dof(dof1, dof2 = None):
+  if dof2 == None:
+    if dof1 == 'x':
       return 'y'
-
-  if dof1 == 'y':
-    assert(dof2 == 'x' or dof2 == 'z')
-    if dof2 == 'z':
+    if dof1 == 'y':
       return 'x'
-    else:
-      return 'z'
-
-  if dof1 == 'z':
-    assert(dof2 == 'x' or dof2 == 'y')
-    if dof2 == 'x':
-      return 'y'
-    else:
-      return 'x'
-
-  assert(False)
+    if dof1 == 0:
+      return 1
+    if dof1 == 1:
+      return 0
+    assert False
+  else:
+    
+    if dof1 == 0:
+      assert(dof2 == 1 or dof2 == 2)
+      if dof2 == 1:
+        return 2
+      else:
+        return 1
+  
+    if dof1 == 1:
+      assert(dof2 == 0 or dof2 == 2)
+      if dof2 == 2:
+        return 0
+      else:
+        return 2
+  
+    if dof1 == 2:
+      assert(dof2 == 0 or dof2 == 1)
+      if dof2 == 0:
+        return 1
+      else:
+        return 0
+    
+    if dof1 == 'x':
+      assert(dof2 == 'y' or dof2 == 'z')
+      if dof2 == 'y':
+        return 'z'
+      else:
+        return 'y'
+  
+    if dof1 == 'y':
+      assert(dof2 == 'x' or dof2 == 'z')
+      if dof2 == 'z':
+        return 'x'
+      else:
+        return 'z'
+  
+    if dof1 == 'z':
+      assert(dof2 == 'x' or dof2 == 'y')
+      if dof2 == 'x':
+        return 'y'
+      else:
+        return 'x'
+  
+    assert(False)
 
 # for 3D gives the third dof
 def missing_dof(dof1, dof2):
@@ -170,6 +181,8 @@ class Shape:
     self.a = []
     # 3D center nodes case
     self.b = []
+    # for 2D this is the running variable (0, .1, .2, .3, ...)
+    self.running = []
     self.profile = []
     self.valid = [] # only necessary for image import
     # the color is in matplotlib code ('b', ...) transform for vtk
@@ -183,6 +196,12 @@ class Shape:
   # shape info for a given index
   def to_string(self, idx):
     return "shape=" + str(self.id) + " dof=" + str(self.dof) + " color=" + str(self.color) + " idx=" + str(idx) + " val=" + str(self.a[idx]) + " profile=" + str(self.profile[idx]) + " valid=" + str(self.valid[idx]) + ""
+   
+  # returns the running (flipped dof of the shape) 
+  # returns always an index 0,1,2
+  def running_dof(self):
+    rd = flip_dof(self.dof, self.dof_b) if self.dof_b else flip_dof(self.dof)
+    return dof(rd) if rd in ['x', 'y', 'z'] else rd
    
   #@return x, y for center point a
   def get_center(self, idx):   
@@ -387,6 +406,9 @@ def read_legacy_xml(filename, set, profile):
          shape.profile = [profile] * len(shape.el)
          shape.valid   = [True] * len(shape.el)
   
+  for s in shapes:
+    add_running(s)
+  
   return shapes              
 
 # reads 2D and 3D s
@@ -405,7 +427,7 @@ def read_xml(xml, set, profile):
     first_dof = dof(list[0].get('dof')) # might change
     first_shape = int(list[0].get('shape'))
     shape = Shape(id = len(shapes), dof = first_dof, scale = scale, ref = ref)
-    for el in list:
+    for idx, el in enumerate(list):
       nr = int(el.get('nr'))
       v  = float(el.get('design'))
       s  = int(el.get('shape'))
@@ -414,6 +436,7 @@ def read_xml(xml, set, profile):
       if s == first_shape:
         shape.a.append(v)
         shape.el.append(nr)
+        
       else:
         if t == 'node':
           d  = dof(el.get('dof'))
@@ -428,6 +451,9 @@ def read_xml(xml, set, profile):
     assert(len(shape.a) == len(shape.profile))
     assert(len(shape.b) == 0 or len(shape.b) == len(shape.a)) # 3D case
     assert((len(shape.b) == 0 and shape.dof_b is None) or (len(shape.b) > 0 and shape.dof_b is not None))
+
+    add_running(shape)
+    
     shapes.append(shape)
     
     ref += 1 if len(shape.b) == 0 else 2 
@@ -435,6 +461,19 @@ def read_xml(xml, set, profile):
 
   return shapes   
 
+## add the running variable for a read shape
+def add_running(shape):
+  assert len(shape.running) == 0
+  
+  n = len(shape.el)
+  rd = shape.running_dof()
+  assert rd < n
+  
+  # we have no absolute coordinates. Therefore we assume the longest side to be 1.
+  # the dof stuff is not tested, it might be mixed
+  for i in range(n):
+    v = i/(n-1)
+    shape.running.append(shape.scale[rd] * v)
 
 # resamples given shapes. ignores valid
 def resample(shapes, resample):
@@ -881,7 +920,45 @@ def export(shapes, filename, suppress_profile):
   out.write('  </set>\n')
   out.write(' </cfsErsatzMaterial>\n')
   print("saved '" + filename + "'")
+
+
+##see also sketch_tool.py  
+def abaqus(shapes, filename):
   
+  out = open(filename, 'w')
+  
+  for shape in shapes:
+    n = len(shape.a)
+    assert len(shape.profile) == n
+    assert len(shape.running) == n
+    assert len(shape.b) == 0 # 2D only
+    
+    for i in range(n-1):
+      a1 = shape.a[i] 
+      a2 = shape.a[i+1]
+      r1 = shape.running[i]
+      r2 = shape.running[i+1]
+      w1 = shape.profile[i]
+      w2 = shape.profile[i+1]
+      
+      assert shape.dof == 0 or shape.dof == 1
+      #s.Line(point1=(0.000000, 0.000000), point2=(0.020000, 0.000000))
+      if shape.dof == 0:
+        out.write('s.Line(point1=(' + str(a1-w1) + ',' + str(r1) +'), point2=(' + str(a2-w2) + ',' + str(r2) +'))\n')
+        out.write('s.Line(point1=(' + str(a1+w1) + ',' + str(r1) +'), point2=(' + str(a2+w2) + ',' + str(r2) +'))\n')
+        if i == 0: # close start of beam
+          out.write('s.Line(point1=(' + str(a1+w1) + ',' + str(r1) +'), point2=(' + str(a1-w1) + ',' + str(r1) +'))\n')
+        if i == n-2: # close end line  
+          out.write('s.Line(point1=(' + str(a2+w2) + ',' + str(r2) +'), point2=(' + str(a2-w2) + ',' + str(r2) +'))\n')        
+      else:
+        out.write('s.Line(point1=(' + str(r1) + ',' + str(a1-w1) +'), point2=(' + str(r2) + ',' + str(a2-w2) +'))\n')
+        out.write('s.Line(point1=(' + str(r1) + ',' + str(a1+w1) +'), point2=(' + str(r2) + ',' + str(a2+w2) +'))\n')
+        if i == 0: # close start of beam
+          out.write('s.Line(point1=(' + str(r1) + ',' + str(a1+w1) +'), point2=(' + str(r1) + ',' + str(a1-w1) +'))\n')
+        if i == n-2: # close end line  
+          out.write('s.Line(point1=(' + str(r2) + ',' + str(a2+w2) +'), point2=(' + str(r2) + ',' + str(a2-w2) +'))\n')        
+  
+  out.close()        
 
 # small permutation helper
 #@param pm the indices define from where to take the value
@@ -981,6 +1058,7 @@ if __name__ == '__main__':
   parser.add_argument('--suppress_profile', help="do not export profile", action='store_true')
   parser.add_argument('--unbounded', help="do not restrict the visualization on a unit square", action='store_true')
   parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps, vtp")
+  parser.add_argument('--abaqus', help="write 2D data as abaqus sketch python script fragment to given filename")
   parser.add_argument('--noshow', help="don't show the image", action='store_true')
   parser.add_argument('--nooutline', help="don't show outline of the design domain for 3D", action='store_true')
   args = parser.parse_args()
@@ -1017,6 +1095,13 @@ if __name__ == '__main__':
 
   # do we do 3d? 
   d3 = len(shapes[0].b) > 0
+  
+  if args.abaqus:
+    if d3:
+      print('abaqus export only for 2D')
+      os.sys.exit(1)
+    abaqus(shapes, args.abaqus)   
+  
   # vtp generation exclusivly triggerd by saving an vtp file
   if d3 or (args.save and args.save.endswith('.vtp')):
     poly = None
@@ -1043,6 +1128,8 @@ if __name__ == '__main__':
     if not args.noshow:
       fig.show()
       input("Press Enter to terminate.")
+      
+      
 else:
   #f = 'shape_map_3d.density.xmp'
   #print(f)
