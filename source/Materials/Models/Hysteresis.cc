@@ -210,9 +210,9 @@ namespace CoupledField
      *                  0 -> do not check x_new
      */
     Double beta0, betaLow, betaUp;
-    beta0 = INV_trustLow_;
-    betaLow = INV_trustMid_;
-    betaUp = INV_trustHigh_;
+    beta0 = INV_params_.trustLow;
+    betaLow = INV_params_.trustMid;
+    betaUp = INV_params_.trustHigh;
     
     //    beta0 = 0.2;
     //    betaLow = 0.4;
@@ -316,13 +316,13 @@ namespace CoupledField
     UInt size = previousXVector.GetSize();
     Vector<Double> startXVector = Vector<Double>(size);
     
-    if (YdiffToRemancence < INV_resTolB_){
+    if (YdiffToRemancence < INV_params_.tolB){
       // we are quite close to remanence, but have not yet reached it
       // start from 0
       startXVector.Init();
       //  startAtZero=true;
       //	compCase = 3;
-      //    } else if (YdiffToSaturation < 100*INV_resTolB_){
+      //    } else if (YdiffToSaturation < 100*INV_params_.tolB){
       //      startXVector.Init();
       //      
       //      Double yNorm = currentYVector.NormL2();
@@ -644,7 +644,7 @@ namespace CoupledField
     }
     
     Double deltaX = 0.0;
-		Double scal = INV_jacobiResolution_;
+		Double scal = INV_params_.jacRes;
     Double deltaXmin = scal*XSaturated_; 
     
     //		Double deltaXmin = 1e-8*XSaturated_; 
@@ -656,7 +656,7 @@ namespace CoupledField
     Matrix<Double> jac = Matrix<Double>(dim_,dim_);
     jac.Init();
 
-    if(INV_jacobiImplementation_ == 2){
+    if(INV_params_.jacImplementation == 2){
       /*
        * Full Jacobian using forward/backward differences
        * BUT different approach on scaling factor
@@ -664,7 +664,7 @@ namespace CoupledField
        * > J_ij = ( F_i(u + eps_j*e_j) - F_i(u) )/eps_j
        * > eps_j = b*u_j + b with b approx sqrt(machine precision) 
        */
-      Double b = std::sqrt(INV_jacobiResolution_);
+      Double b = std::sqrt(INV_params_.jacRes);
       Double eps;       
       for(UInt j = 0; j < dim_; j++){
         eps = sign*(b*abs(xVal[j]) + b);
@@ -699,8 +699,8 @@ namespace CoupledField
     
       // for testing of jacobianTimesVector, we can compute the Jacobian and multiply it by the vector 
       // and compare; use std forward/backward differences for comparison
-      // note: INV_jacobiImplementation_ = -1 if jacobianTimesVector should be used
-    } else if(INV_jacobiImplementation_ <= 0){
+      // note: INV_params_.jacImplementation = -1 if jacobianTimesVector should be used
+    } else if(INV_params_.jacImplementation <= 0){
       //      LOG_DBG(vecpreisach) << "Use forward/backward differences for approximation of Jacobian";
       /*
        * Full Jacobian using forward/backward differences
@@ -758,7 +758,7 @@ namespace CoupledField
           jac[j][i] += curCol[j];
         }
       }      
-    } else if(INV_jacobiImplementation_ == 1){
+    } else if(INV_params_.jacImplementation == 1){
       //      LOG_DBG(vecpreisach) << "Use central differences for approximation of Jacobian";
       /*
        * Full Jacobian using central differences
@@ -809,9 +809,60 @@ namespace CoupledField
     return jac;
   }
   
-  Vector<Double> Hysteresis::computeUpdate_LM(Vector<Double> jacTres_neg, 
-          Matrix<Double>& jacTjac, Double& alpha, Double& alphaAcc, Double& alphaMinReq, Double alphaMax){
+  Vector<Double> Hysteresis::computeUpdate_LM_withFixedAlpha(Vector<Double> jacTres_neg, 
+          Matrix<Double>& jacTjac, Vector<Double>& res, Double alphaFix){
     
+    /*
+     * Compute update dx by solving
+     * 
+     *  [Jac^T(x_k)*Jac(x_k) + alpha_k*Identity] * dx = -Jac^T(x_k)*res(x_k)
+     * 
+     * with alpha_k = alpha*||res(x_k)||
+     * 
+     */
+    Matrix<Double> matToInvert = Matrix<Double>(dim_,dim_);
+    Matrix<Double> matInverted = Matrix<Double>(dim_,dim_);
+    Vector<Double> dx = Vector<Double>(dim_);
+    
+    Double alpha = alphaFix*res.NormL2();
+    Double minDeterminant = 1e-12;
+    Double detMatToInvert;
+    
+    matToInvert = jacTjac;
+    /*
+     * Add regularization
+     */
+    for(UInt i = 0; i < dim_; i++){
+      matToInvert[i][i] += alpha;
+    }
+
+    matToInvert.Determinant(detMatToInvert);
+    
+    if(abs(detMatToInvert)<minDeterminant){
+      EXCEPTION("LM with fixed alpha: Alpha*||res|| not sufficient to make matrix invertible!");       
+    }
+    
+    matToInvert.Invert(matInverted);
+    matInverted.Mult(jacTres_neg,dx);
+    
+    assert(!dx.ContainsNaN() && !dx.ContainsInf());
+    
+    return dx;
+  }
+  
+  Vector<Double> Hysteresis::computeUpdate_LM(Vector<Double> jacTres_neg, 
+          Matrix<Double>& jacTjac, Double& alpha, Double& alphaAcc, Double& alphaMinReg, Double alphaMaxReg){
+    
+    /*
+     * Compute update s_k by solving
+     * 
+     *  [Jac^T(x_k)*Jac(x_k) + alpha_k*Identity] * s_k = -Jac^T(x_k)*res(x_k)
+     * 
+     * with alpha_k in [alphaMinReg, alphaMaxReg]
+     * alpha_k is iteratively increased until [Jac^T(x_k)*Jac(x_k) + alpha_k*Identity]
+     * becomes invertible
+     * 
+     */
     Matrix<Double> matToInvert = Matrix<Double>(dim_,dim_);
     Matrix<Double> matInverted = Matrix<Double>(dim_,dim_);
     Vector<Double> dx = Vector<Double>(dim_);
@@ -854,13 +905,13 @@ namespace CoupledField
           alpha = alpha*incrFactor;
         }
         cnt++;
-        if( (cnt > 200)||(alpha > alphaMax) ){
+        if( (cnt > 200)||(alpha > alphaMaxReg) ){
           EXCEPTION("LM: Cannot find alpha, such that jacTjac becomes invertible!");
         }
       }
     }
     
-    alphaMinReq = alpha;
+    alphaMinReg = alpha;
     matToInvert.Invert(matInverted);
     matInverted.Mult(jacTres_neg,dx);
     
@@ -869,7 +920,7 @@ namespace CoupledField
     return dx;
   }
   
-  bool Hysteresis::computeUpdateLinesearch(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
+  bool Hysteresis::computeUpdateNewton_Linesearch(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
           Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
           Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
           int operatorIdx, int stayBelowSat,
@@ -890,7 +941,7 @@ namespace CoupledField
      * Compute update using trial and error linesearch
      * > use alpha that minimizes jacT*res
      */
-    UInt numAlphas = INV_maxLSIter_;
+    UInt numAlphas = INV_params_.maxNumLSIts;
     Double optAlpha = 1.0;
     Double deltaAlpha = (alphaMax-alphaMin)/(numAlphas-1);
     Double curAlpha;
@@ -903,9 +954,9 @@ namespace CoupledField
     Double minErrorNorm = 1e18;
     Vector<Double> xUpdateStart;
     
-    if(INV_inversionMethod_ == 1){
+    if(INV_params_.inversionMethod == 1){
       xUpdateStart = computeUpdate_Newton(xCurrent, yTarget, hystCurrent, mu_inv, operatorIdx, scalingForJacDiagonal);
-    } else if(INV_inversionMethod_ == 2){
+    } else if(INV_params_.inversionMethod == 2){
       xUpdateStart = computeUpdate_Krylov(xCurrent, yTarget, hystCurrent, mu_inv, operatorIdx);
     } else {
       EXCEPTION("UpdateImplementation must be 1 or 2 for std. linesearch");
@@ -936,7 +987,7 @@ namespace CoupledField
       hystNew = computeValue_vec(xNew, operatorIdx, overwriteMemory, debugOut, successFlag);
       resNew = computeResidual(xNew,yTarget,hystNew,mu_inv);
       
-      if(INV_jacobiImplementation_ == -1){
+      if(INV_params_.jacImplementation == -1){
         /*
          * compute jac_dx without setting up jacobian; needs current x and current hyst values NOT the new ones!
          */
@@ -975,7 +1026,317 @@ namespace CoupledField
     
   }
   
-  bool Hysteresis::computeUpdateTrustRegion(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
+  Vector<Double> Hysteresis::projectToSolutionSpace(Vector<Double> x, int stayBelowSat){
+    // stayBelowSat: 
+    //  1  => X = [0, XSaturated]*arbitrary direction
+    // -1  => X = [XSaturated,infty]*arbitrary direction
+    //  0  => X = R^2 / R^3
+    Vector<Double> xProjected = Vector<Double>(dim_);
+    xProjected = x;
+    
+    Double factor = 0.99999999995;
+    if(stayBelowSat == 1){
+      // cut length of vector down
+      if(x.NormL2() >= XSaturated_){
+        xProjected.ScalarMult(factor*XSaturated_/x.NormL2());
+      }
+    } else if(stayBelowSat == -1){
+      if(x.NormL2() <= XSaturated_){
+        xProjected.ScalarMult(XSaturated_/x.NormL2()/factor);
+      }
+    }
+    return xProjected;
+  }
+  
+  bool Hysteresis::computeUpdateLM_Projected(Vector<Double>& xk, Vector<Double>& resk, Vector<Double>& y,
+    Matrix<Double>& mu_inv, Matrix<Double>& jac, Vector<Double>& jacTres,
+    Vector<Double>& dx, UInt operatorIdx, int stayBelowSat){
+    
+    /*
+     * Based on 
+     * "Levenberg-Marquardt methods for constrained nonlinear equations with strong local convergence properties"
+     * -Kanzow,Yamashita,Fukushima
+     * Algorithm 3.12 + modification as described in section 4 (use of Armijo-type linesearch)
+     */
+    // todo: make the following parameter accesible from mat file
+    // mu, rho > 0
+    Double mu = INV_params_.projLM_mu;
+    Double rho = INV_params_.projLM_rho;
+            
+    // beta,sigma,gamma,tau,c in (0,1)
+    Double beta = INV_params_.projLM_beta;
+    Double sigma = INV_params_.projLM_sigma; 
+    Double gamma = INV_params_.projLM_gamma;  
+    Double tau = INV_params_.projLM_tau; 
+    Double c = INV_params_.projLM_c; 
+    
+    // p > 1
+    Double p = INV_params_.projLM_p;   
+    
+    // parameter common to other linesearch methods
+    Double alphaStart = INV_params_.alphaLSMax; // > 0
+    Double alphaMin = INV_params_.alphaLSMin;
+    UInt maxkk = INV_params_.maxNumLSIts;
+    UInt maxjj = INV_params_.maxNumLSIts;
+
+    /*
+     * Note: no loop here! Actual outer loop can be found in computedInput_vec
+     * 
+     * this function evaluates steps S.1, S.2, S.3 and S.4 for a given k
+     */
+     /*
+      * S.1 > check residual
+      * 
+      * ||F(x_k)|| == 0 ?
+      * 
+      * F(x_k) = current residual
+      */
+    if(resk.NormL2() == 0){
+      dx.Init();
+      // this function returns true if update shall be discarded
+      // and false if it is accepted
+      return false;
+    }
+    
+    /*
+     * S.2 > Compute dx by solving regularized system
+     * 
+     * (H_k^T H_k) + mu_k I) dx = -H_k^T F(x_k)
+     * 
+     * H_k = current Jacobian
+     * F(x_k) = current residual
+     * mu_k = mu*||F(x_k)||
+     */
+    Matrix<Double> jacTjac = Matrix<Double>(dim_,dim_);
+    Vector<Double> jacTres_neg = Vector<Double>(dim_);
+
+    jac.MultT(jac,jacTjac);
+    jacTres_neg.Init();
+    jacTres_neg.Add(-1.0,jacTres);
+    
+    dx = computeUpdate_LM_withFixedAlpha(jacTres_neg, jacTjac, resk, mu); 
+
+    /*
+     * S.3 > check if update is ok
+     * 
+     * ||F( P(x_k + dx) )|| <= gamma ||F(x_k)||
+     * 
+     * P(x) = projection of x to allowd solution space X
+     */
+    /*
+     * substep 1: compute projection
+     */
+    Vector<Double> xNew = Vector<Double>(dim_);
+    xNew.Add(1.0,xk,1.0,dx);
+    
+    Vector<Double> xProjected = projectToSolutionSpace(xNew, stayBelowSat);
+
+    /*
+     * substep 2: compute residual of projected value
+     */
+    bool overwriteMemory = false;
+    bool debugOut = false;
+    int successFlag = 0;
+    Vector<Double> hystNew = computeValue_vec(xProjected, operatorIdx, overwriteMemory, debugOut, successFlag);
+    Vector<Double> resNew = computeResidual(xProjected,y,hystNew,mu_inv);
+    /*
+     * substep 3: ||F( P(x_k + dx) )|| <= gamma ||F(x_k)|| ?
+     */
+    if(resNew.NormL2() <= gamma*resk.NormL2()){
+//      std::cout << "---------" << std::endl;
+//      std::cout << "LM step: " << std::endl;
+//      std::cout << "resNew.NormL2(): " << resNew.NormL2() << std::endl;
+//      std::cout << "gamma*resk.NormL2(): " << gamma*resk.NormL2() << std::endl;
+      // update appropriate > leave function with discardUpdate = false
+      // but: as we projected xNew (and therewith our opdate), we have to retrieve it from
+      // dx = xProjected-xk
+      dx.Init();
+      dx.Add(1.0,xProjected,-1.0,xk);
+      
+      // this function returns true if update shall be discarded
+      // and false if it is accepted
+      return false;
+    } 
+    
+    /*
+     * Additional step as described in section 4
+     * 
+     * > check if 
+     *        s_k = P(x_k + dx) - x_k 
+     *   is a valied descent direction, i.e.
+     *        grad f(x_k)^T s_k <= -rho||s_k||^p
+     * 
+     *   with f(x_k) = ||F(x_k)||^2
+     *    > grad f(x_k) = 2*H_k^T F(x_k)
+     *    H_k = current Jacobian
+     *    F(x_k) = current residual
+     * 
+     *   if true:
+     *      > perform Armijo-type linesearch
+     *   if false:
+     *      > perform S.4
+     */
+    /*
+     * substep 1: compute s_k
+     */
+    Vector<Double> sk = Vector<Double>(dim_);
+    sk.Add(1.0,xProjected,-1.0,xk);
+    /*
+     * substep 2: compute grad f(x_k)^T s_k
+     * 
+     * Note: grad f(x_k) = 2*H_k^T F(x_k) 
+     *                   = 2*Jac^T * res = -2*jacTres_neg
+     */
+    Double gradfTsk;
+    jacTres_neg.Inner(sk,gradfTsk);
+    gradfTsk *= -2.0;
+
+    /*
+     * substep 3: grad f(x_k)^T s_k <= -rho||s_k||^p ?
+     */
+    Double rhs = -rho*std::pow(sk.NormL2(),p);
+    if(gradfTsk <= rhs){
+//      std::cout << "---------" << std::endl;
+//      std::cout << "LS step: " << std::endl;
+//      std::cout << "sk: " << sk.ToString() << std::endl;
+//      std::cout << "sk.NormL2(): " << sk.NormL2() << std::endl;
+      /*
+       * Perform Armijo-type linesearch
+       * > see e.g. https://en.wikipedia.org/wiki/Backtracking_line_search
+       * 
+       * optimize for f(x) = ||F(x)||^2
+       * > p^T grad f(x) = gradfTsk from previous computation
+       */
+      Double criterion;
+      Double t = -c*gradfTsk;
+      Double alphakk = alphaStart;
+      Vector<Double> hystkk;
+      Vector<Double> reskk;
+      Vector<Double> xkk = Vector<Double>(dim_);
+      Vector<Double> xProjected_kk;
+      
+      bool successArmijo = false;
+      for(UInt kk = 0; kk < maxkk; kk++){
+        if(alphakk < alphaMin){
+//          std::cout << "alpha < alphaMin" << std::endl;
+          break;
+        }
+        xkk.Init();
+        xkk.Add(1.0,xk,alphakk,sk);
+        
+        xProjected_kk = projectToSolutionSpace(xkk, stayBelowSat);
+        
+        hystkk = computeValue_vec(xProjected_kk, operatorIdx, overwriteMemory, debugOut, successFlag);
+        reskk = computeResidual(xProjected_kk,y,hystkk,mu_inv);
+        
+        criterion = alphakk*t;
+        if((resk.NormL2_squared() - reskk.NormL2_squared()) >= criterion ){
+          successArmijo = true;
+          break;
+        }
+        alphakk *= tau;
+      }
+      if(successArmijo){
+//        std::cout << "resk.NormL2_squared(): " << resk.NormL2_squared() << std::endl;
+//        std::cout << "reskk.NormL2_squared(): " << reskk.NormL2_squared() << std::endl;
+//        std::cout << "alphakk: " << alphakk << std::endl;
+//        std::cout << "alphakk*t: " << alphakk*t << std::endl;
+//        
+        // update appropriate > leave function with discardUpdate = false
+        // but: as we projected xNew (and therewith our opdate), we have to retrieve it from
+        // dx = xProjected-xk
+        dx.Init();
+        dx.Add(1.0,xProjected_kk,-1.0,xk);
+        // this function returns true if update shall be discarded
+        // and false if it is accepted
+//        std::cout << "dx: " << dx.ToString() << std::endl;
+        return false;
+      } else {
+//        std::cout << "resk.NormL2_squared(): " << resk.NormL2_squared() << std::endl;
+//        std::cout << "reskk.NormL2_squared(): " << reskk.NormL2_squared() << std::endl;
+//        std::cout << "alphakk: " << alphakk << std::endl;
+//        std::cout << "alphakk*t: " << alphakk*t << std::endl;
+//        
+        dx.Init();
+        dx.Add(1.0,xProjected_kk,-1.0,xk);
+        // this function returns true if update shall be discarded
+        // and false if it is accepted
+//        std::cout << "dx: " << dx.ToString() << std::endl;
+        
+//        WARN("Armijo linsearch was not successful!");
+      }
+            
+    } else {
+      /*
+       * Proceed with step S.4 from algorithm 3.12
+       * > in fact very similar to Armijo-type linsearch above
+       * > Difference:
+       *    Armijo: f(x + alpha sk) <= f(x) + alpha*c*gradf(x)*sk
+       *          with sk = P(x + dx) - x
+       *    > f(x + alpha (P(x + dx) - x)) <= f(x) + alpha*c*gradf(x)^T*(P(x + dx) - x)
+       * 
+       *    Here: f(x_t) <= f(x) + sigma*gradf(x)^T (x_t - x)
+       *          with x_t = P(x - t*gradf(x))
+       *    > f( P(x - t*gradf(x)) ) <= f(x) + sigma*gradf(x)^T(P(x - t*gradf(x))-x)
+       */ 
+      Double criterion;
+      Double lStart = 0;
+      Double l = lStart;
+      Double t;
+      Vector<Double> gradf = Vector<Double>(dim_);
+      Vector<Double> xjj = Vector<Double>(dim_);
+      Vector<Double> xProjected_jj = Vector<Double>(dim_);
+      Vector<Double> hystjj;
+      Vector<Double> resjj;
+      Vector<Double> dx_jj = Vector<Double>(dim_);
+      gradf.Init();
+      gradf.Add(-1.0,jacTres_neg);
+
+      bool successProjectedIt = false;
+      for(UInt jj = 0; jj < maxjj; jj++){
+        
+        t = std::pow(beta,l);
+        
+        xjj.Init();
+        xjj.Add(1.0,xk,-t,gradf);
+        
+        // xProjected_jj = x_t from above description
+        xProjected_jj = projectToSolutionSpace(xjj, stayBelowSat);
+        
+        hystjj = computeValue_vec(xProjected_jj, operatorIdx, overwriteMemory, debugOut, successFlag);
+        resjj = computeResidual(xProjected_jj,y,hystjj,mu_inv);
+        
+        dx_jj.Init();
+        dx_jj.Add(1.0,xProjected_jj,-1.0,xk);
+        
+        gradf.Inner(dx_jj,criterion);
+        criterion*=sigma;
+
+        if((resk.NormL2_squared() - resjj.NormL2_squared()) >= criterion ){
+          successProjectedIt = true;
+          break;
+        }
+        l++;
+      }
+      if(successProjectedIt){
+        // update appropriate > leave function with discardUpdate = false
+        // but: as we projected xNew (and therewith our opdate), we have to retrieve it from
+        // dx = xProjected-xk
+        dx.Init();
+        dx.Add(1.0,xProjected_jj,-1.0,xk);
+        // this function returns true if update shall be discarded
+        // and false if it is accepted
+        return false;
+      } else {
+        EXCEPTION("Projected linsearch was not successful!");
+      }
+      
+    }
+    // if we end up here (something went probably wrong)
+    return true;
+  }
+  
+  bool Hysteresis::computeUpdateLM_TrustRegion(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
           Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
           Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
           int operatorIdx, int stayBelowSat, Double& alpha, Double alphaMin, Double alphaMax, UInt& numberOfIterations){
@@ -990,7 +1351,7 @@ namespace CoupledField
       EXCEPTION("xInput to Linesearch already below saturation > must not be the case!");
     }
     
-    UInt maxIter = INV_maxRegIter_;
+    UInt maxIter = INV_params_.maxNumRegIts;
     UInt itCnt = 0;
     Double alphaMinLocal = alphaMin;
     
@@ -1263,9 +1624,10 @@ namespace CoupledField
      * 0: Levenberg Marquardt
      * 1: Standard Newton
      * 2: Jacobian-Free-Newton-Krylov
+     * 3: projected LM
      */
-    UInt updateImplementation = INV_inversionMethod_;
-    bool stopLineSearchAtLocalMin = INV_stopLineSearchAtLocalMin_;
+    UInt updateImplementation = INV_params_.inversionMethod;
+    bool stopLineSearchAtLocalMin = INV_params_.stopLineSearchAtLocalMin;
     
     std::stringstream traceMsg;
     if(debug){
@@ -1279,9 +1641,9 @@ namespace CoupledField
       traceMsg << "Material Tensor: " << mu.ToString() << std::endl;
       traceMsg << "ySat: " << PSaturated_ << std::endl;
       traceMsg << "xSat: " << XSaturated_ << std::endl;
-      traceMsg << "INV_maxIter_: " << INV_maxIter_ << std::endl;
-      traceMsg << "INV_resTolH_: " << INV_resTolH_ << std::endl;
-      traceMsg << "INV_resTolB_: " << INV_resTolB_ << std::endl;
+      traceMsg << "INV_params_.maxNumIts: " << INV_params_.maxNumIts << std::endl;
+      traceMsg << "INV_params_.tolH: " << INV_params_.tolH << std::endl;
+      traceMsg << "INV_params_.tolB: " << INV_params_.tolB << std::endl;
     }
     
     // for statistics
@@ -1318,7 +1680,7 @@ namespace CoupledField
 		diff = yVal;
     diff -= prevYval;
     
-    if(diff.NormL2() < INV_resTolB_){
+    if(diff.NormL2() < INV_params_.tolB){
       traceMsg << "--A-- Inversion: Reuse old value" << std::endl;
       xVal = prevXval;
       LOG_TRACE(vecpreisachInversion) << "Reused value xVal: " << xVal.ToString();
@@ -1369,7 +1731,7 @@ namespace CoupledField
         return xVal;
       }
       // 
-      Double tol = INV_resTolB_; //1e-12;
+      Double tol = INV_params_.tolB; //1e-12;
       Double Xup, Xdown, Poffset, xScal;
       Xup = yNorm/eps_mu;
       Xdown = 0;
@@ -1477,7 +1839,7 @@ namespace CoupledField
     if(yNorm == 0){
       stayBelowSat = 1;
     } else {   
-      if(abs(diffSat) < INV_resTolB_){
+      if(abs(diffSat) < INV_params_.tolB){
         traceMsg << "--B Special-- Inversion: Exact Saturation found" << std::endl;
         successFlag = 2;
         return satInput;
@@ -1564,7 +1926,7 @@ namespace CoupledField
     LOG_DBG(vecpreisachInversion) << "Diff Vector: " << diff.ToString();
     LOG_DBG(vecpreisachInversion) << "Norm of diff: " << diff.NormL2();
     
-    if(diff.NormL2() < INV_resTolB_){
+    if(diff.NormL2() < INV_params_.tolB){
       traceMsg << "--C-- Inversion: Remanence detected" << std::endl;
       xVal = xTMP;
       LOG_DBG(vecpreisachInversion) << "Set xVal to 0: " << xVal.ToString();
@@ -1638,15 +2000,15 @@ namespace CoupledField
      */
     Vector<Double> xStart = obtainStartVector(prevXval, prevYval, yVal, diffRem, diffSat, stayBelowSat);
     
-    if(INV_inversionMethod_ == 0){
+    if(INV_params_.inversionMethod == 0){
       traceMsg << "--D-- Inversion: Use Levenberg Marquardt" << std::endl;
 //      std::cout << "--D-- Inversion: Use Levenberg Marquardt" << std::endl;
     } 
-    if(INV_inversionMethod_ == 1){
+    if(INV_params_.inversionMethod == 1){
       traceMsg << "--D-- Inversion: Use Newton" << std::endl;
 //      std::cout << "--D-- Inversion: Use Newton" << std::endl;
     }
-    if(INV_inversionMethod_ == 2){
+    if(INV_params_.inversionMethod == 2){
       traceMsg << "--D-- Inversion: Use JacobiFreeNewtonKrylov" << std::endl;
 //      std::cout << "--D-- Inversion: Use JacobiFreeNewtonKrylov" << std::endl;
     }
@@ -1662,14 +2024,14 @@ namespace CoupledField
     Double alphaMin;
     Double alphaMax;
     
-    if(INV_inversionMethod_ == 0){
-      alpha = INV_alphaRegStart_;
-      alphaMin = INV_alphaRegMin_;
-      alphaMax = INV_alphaRegMax_;
+    if(INV_params_.inversionMethod == 0){
+      alpha = INV_params_.alphaRegStart;
+      alphaMin = INV_params_.alphaRegMin;
+      alphaMax = INV_params_.alphaRegMax;
     } else {
       alpha = 1.0;
-      alphaMin = INV_alphaLSMin_;
-      alphaMax = INV_alphaLSMax_;
+      alphaMin = INV_params_.alphaLSMin;
+      alphaMax = INV_params_.alphaLSMax;
     }
     
     //    Vector<Double> hystVal = computeValue_vec(xStart, operatorIndex, overwriteMemory, debugOut, successFlagForward);
@@ -1692,7 +2054,7 @@ namespace CoupledField
     Double errorNormResX;
     Double errorNormResY;
     
-    //    INV_maxIter_ *= 10;
+    //    INV_params_.maxNumIts *= 10;
     
     Vector<Double> bestSol = Vector<Double>(dim_);
     Double bestErrorNorm = 1e16;
@@ -1710,6 +2072,10 @@ namespace CoupledField
     Vector<Double> startSol = Vector<Double>(dim_);
     startSol = xVal;
     Double scalingForJacDiagonal = 1.0;
+    
+//    std::cout << "---------------------" << std::endl;
+//    std::cout << "Start outer iteration" << std::endl;
+//    std::cout << "---------------------" << std::endl;
     while(true){ 
       
       itCnt++;
@@ -1724,7 +2090,7 @@ namespace CoupledField
       hystVal = computeValue_vec(xVal, operatorIndex, overwriteMemory, debugOut, successFlagForward);
       res = computeResidual(xVal,yVal,hystVal,mu_inv);
       
-      if(INV_jacobiImplementation_ != -1){
+      if(INV_params_.jacImplementation != -1){
         /*
          * Compute Jacobian and its transpose
          */
@@ -1752,10 +2118,10 @@ namespace CoupledField
        * 3. residual wrt y, i.e. y - hyst - mu*x < tolerance
        *    > some sort of failback criterion
        */
-      successError = checkConvergence(jacTres,errorNorm,INV_resTolH_);
+      successError = checkConvergence(jacTres,errorNorm,INV_params_.tolH);
       errorNormResX = res.NormL2();
-      successX = (errorNormResX <= INV_resTolH_);
-      successY = checkInversionOutput(xVal, yVal, mu, INV_resTolB_, errorNormResY,operatorIndex, overwriteMemory);
+      successX = (errorNormResX <= INV_params_.tolH);
+      successY = checkInversionOutput(xVal, yVal, mu, INV_params_.tolB, errorNormResY,operatorIndex, overwriteMemory);
       
       if(errorNormResX < bestErrorNormRes){
         bestErrorNormRes = errorNormResX;
@@ -1769,46 +2135,46 @@ namespace CoupledField
 
       if(successError){
         // main criterion > would be best if this one could be satisfied
-        traceMsg << "Success! Error estimate |jacT*ResX| = " << errorNorm << " < " << INV_resTolH_ << std::endl;
+        traceMsg << "Success! Error estimate |jacT*ResX| = " << errorNorm << " < " << INV_params_.tolH << std::endl;
         successFlag = 4;
-        LOG_TRACE(vecpreisachInversion) << "Success! Error estimate |jacT*ResX| = " << errorNorm << " < " << INV_resTolH_ << std::endl;
+        LOG_TRACE(vecpreisachInversion) << "Success! Error estimate |jacT*ResX| = " << errorNorm << " < " << INV_params_.tolH << std::endl;
         break;
       } else if(successX){
         // failback; still top if this works
-        traceMsg << "Success! Residual norm wrt X = |ResX| = " << errorNormResX << " < " << INV_resTolH_ << std::endl;
+        traceMsg << "Success! Residual norm wrt X = |ResX| = " << errorNormResX << " < " << INV_params_.tolH << std::endl;
         successFlag = 5;
-        LOG_TRACE(vecpreisachInversion) << "Success! Residual norm wrt X = |ResX| = " << errorNormResX << " < " << INV_resTolH_ << std::endl;
+        LOG_TRACE(vecpreisachInversion) << "Success! Residual norm wrt X = |ResX| = " << errorNormResX << " < " << INV_params_.tolH << std::endl;
         break;
       } else {
         scalingForJacDiagonal = 1.0;
-        if( itCnt > 0.3*INV_maxIter_){
+        if( itCnt > 0.3*INV_params_.maxNumIts){
           // no solution has been found yet; try larger scalingForJacDiagonal
           scalingForJacDiagonal = 1.5;
         }
-        if( itCnt > 0.45*INV_maxIter_){
+        if( itCnt > 0.45*INV_params_.maxNumIts){
           // no solution has been found yet; try larger scalingForJacDiagonal
           scalingForJacDiagonal = 2.0;
         }
-        if( itCnt > 0.6*INV_maxIter_){
+        if( itCnt > 0.6*INV_params_.maxNumIts){
           // no solution has been found yet; try larger scalingForJacDiagonal
           scalingForJacDiagonal = 4.0;
         }
-        if( itCnt > 0.75*INV_maxIter_){
+        if( itCnt > 0.75*INV_params_.maxNumIts){
           // no solution has been found yet; try larger scalingForJacDiagonal
           scalingForJacDiagonal = 8.0;
         }
-        if( itCnt > 0.9*INV_maxIter_){
+        if( itCnt > 0.9*INV_params_.maxNumIts){
           // no solution has been found yet; try larger scalingForJacDiagonal
           scalingForJacDiagonal = 16.0;
         }
-//        std::cout << "INV_maxIter_: " << INV_maxIter_ << std::endl;
+//        std::cout << "INV_params_.maxNumIts: " << INV_params_.maxNumIts << std::endl;
 //        std::cout << "Current scaling: " << scalingForJacDiagonal << std::endl;
-        if( (totalNumberOfLMIterations%10 == 0)||(itCnt >= INV_maxIter_) ){
+        if( (totalNumberOfLMIterations%10 == 0)||(itCnt >= INV_params_.maxNumIts) ){
           if(successY){
             // failback; might still have large res error in x buz might be the best we can find
             // check only each 10th iteration
-            LOG_TRACE(vecpreisachInversion) << "Success! Residual norm wrt Y = |ResY| = " << errorNormResY << " < " << INV_resTolB_ << std::endl;
-            traceMsg << "Success! Residual norm wrt Y = |ResY| = " << errorNormResY << " < " << INV_resTolB_ << std::endl;
+            LOG_TRACE(vecpreisachInversion) << "Success! Residual norm wrt Y = |ResY| = " << errorNormResY << " < " << INV_params_.tolB << std::endl;
+            traceMsg << "Success! Residual norm wrt Y = |ResY| = " << errorNormResY << " < " << INV_params_.tolB << std::endl;
             
 //            int code = 0;
 //            Vector<Double> hSol = computeValue_vec(sol, operatorIndex, false, false, code);
@@ -1833,8 +2199,8 @@ namespace CoupledField
 //            
             successFlag = 6;
             break;
-          } else if (itCnt >= INV_maxIter_) {
-            LOG_TRACE(vecpreisachInversion) << "NO Success! Remaining residual norm wrt Y = |ResY| = " << errorNormResY << " < " << INV_resTolB_ << std::endl;
+          } else if (itCnt >= INV_params_.maxNumIts) {
+            LOG_TRACE(vecpreisachInversion) << "NO Success! Remaining residual norm wrt Y = |ResY| = " << errorNormResY << " < " << INV_params_.tolB << std::endl;
             if(debug){
               traceMsg << "Max number of iterations reached." << std::endl;
               traceMsg << "Last found solution xFound = " << xVal.ToString() << std::endl;
@@ -1869,11 +2235,13 @@ namespace CoupledField
       //              numberOfIterations,xStart,stayBelowSat,sol);
       //            
       if(updateImplementation == 0){
-        discardUpdate = computeUpdateTrustRegion(xStart, xVal, xUpdate, hystVal, res, yVal, mu_inv,
+        discardUpdate = computeUpdateLM_TrustRegion(xStart, xVal, xUpdate, hystVal, res, yVal, mu_inv,
                 jac, jacTres, operatorIndex, stayBelowSat,
                 alpha, alphaMin, alphaMax, numberOfIterations);
+      } else if(updateImplementation == 3){ 
+        discardUpdate = computeUpdateLM_Projected(xVal, res, yVal, mu_inv, jac, jacTres, xUpdate, operatorIndex, stayBelowSat);
       } else {
-        discardUpdate = computeUpdateLinesearch(xStart, xVal, xUpdate, hystVal, res, yVal, mu_inv,
+        discardUpdate = computeUpdateNewton_Linesearch(xStart, xVal, xUpdate, hystVal, res, yVal, mu_inv,
                 jac, jacTres, operatorIndex, stayBelowSat, 
                 alpha, alphaMin, alphaMax, stopLineSearchAtLocalMin, scalingForJacDiagonal);
       }
@@ -1943,7 +2311,7 @@ namespace CoupledField
     bool abortOnFail = false;
     if(performFinalCheck){
       Double resYNorm = 0.0;
-      bool finalCheckPassed = checkInversionOutput(xVal, yVal, mu, INV_resTolB_, resYNorm, operatorIndex, false,true);
+      bool finalCheckPassed = checkInversionOutput(xVal, yVal, mu, INV_params_.tolB, resYNorm, operatorIndex, false,true);
       if(!finalCheckPassed){
         std::stringstream exceptionmsg;
         exceptionmsg << "Inversion failed final test; remaining residual norm wrt y: " << resYNorm;

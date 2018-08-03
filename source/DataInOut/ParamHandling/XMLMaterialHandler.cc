@@ -2116,7 +2116,7 @@ namespace CoupledField {
     double tolH = 1e-12;
     double tolB = 1e-12;
     
-    // 0 = LM, 1 = Newton, 2 = JacobiFreeNewtonKrylov
+    // 0 = LM, 1 = Newton, 2 = JacobiFreeNewtonKrylov, 3 = projected LM
     int inversionMethod = 1;
     
     // LM parameter
@@ -2144,15 +2144,40 @@ namespace CoupledField {
     // JacobiFreeKrylovNewton
     // > no extra parameter compared with Newton
     
+    // parameter for projected Levenberg-Marquardt
+    // > "Levenberg-Marquardt methods for constrained nonlinear equations with strong local convergence properties"
+    //     -Kanzow,Yamashita,Fukushima
+    // > values used by authors in section 4
+    Double projLM_rho = 1e-8;
+    Double projLM_beta = 0.9;
+    Double projLM_sigma = 1e-4;
+    Double projLM_gamma = 0.99995;
+    Double projLM_p = 2.1;
+    
+    // parameters not given clearly in article; 
+    // mu, tau, c
+    // > tau and c are from Armijo type linsearch taken from
+    // > https://en.wikipedia.org/wiki/Backtracking_line_search
+    // only ranges are known:
+    //  mu > 0
+    //  tau, c in (0,1)
+    // 
+    Double projLM_mu = 1.0;
+    Double projLM_tau = 0.8;
+    Double projLM_c = 0.8;
+    
+    
     // important: for electrostatics, we need no inversion and should not set the
     // parameter above
     bool setInversion = false;
     
     if(pInversion != NULL){
+
       setInversion = true;
       if(pInversion->Has("InversionMethod"))
       {
         if(pInversion->Get("InversionMethod")->Has("LevenbergMarquardtWithTrustregion")){
+//          std::cout << "LevenbergMarquardtWithTrustregion" << std::endl;
           inversionMethod = 0;
           PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("LevenbergMarquardtWithTrustregion");
           
@@ -2195,6 +2220,7 @@ namespace CoupledField {
           }
           
         } else if(pInversion->Get("InversionMethod")->Has("NewtonWithLinesearch")){
+//          std::cout << "NewtonWithLinesearch" << std::endl;
           inversionMethod = 1;
           PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("NewtonWithLinesearch");
           
@@ -2229,6 +2255,7 @@ namespace CoupledField {
           }
           
         } else if(pInversion->Get("InversionMethod")->Has("JacobianFreeNewtonKrylovWithLinesearch")){
+//          std::cout << "JacobianFreeNewtonKrylovWithLinesearch" << std::endl;
           inversionMethod = 2;
           PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("JacobianFreeNewtonKrylovWithLinesearch");
           
@@ -2249,24 +2276,81 @@ namespace CoupledField {
           
           jacImplementation = -1;
                     
+        } else if(pInversion->Get("InversionMethod")->Has("ProjectedLMWithLinesearch")){
+//          std::cout << "ProjectedLMWithLinesearch" << std::endl;
+          inversionMethod = 3;
+          PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("ProjectedLMWithLinesearch");
+
+          if(invMethod->Has("numberOfLinesearchSteps")){
+            maxNumberLinesearchIterations = invMethod->Get("numberOfLinesearchSteps")->As<Integer>();
+          }
+
+          if(invMethod->Has("alphaLSMin")){
+            alphaLSMin = invMethod->Get("alphaLSMin")->As<double>();
+          }
+          if(invMethod->Has("alphaLSMax")){
+            alphaLSMax = invMethod->Get("alphaLSMax")->As<double>();
+          }
+
+          if(invMethod->Has("jacobiResolution")){
+            jacRes = invMethod->Get("jacobiResolution")->As<double>();
+          }
+          if(invMethod->Has("jacobiImplementation")){
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardDifferences")){
+              jacImplementation = 0;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("CentralDifferences")){
+              jacImplementation = 1;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardWithScaledDiagonal")){
+              jacImplementation = 2;
+            }
+          }
+
+          if(invMethod->Has("rho")){
+            projLM_rho = invMethod->Get("rho")->As<double>();
+          }
+          if(invMethod->Has("beta")){
+            projLM_beta = invMethod->Get("beta")->As<double>();
+          }
+          if(invMethod->Has("sigma")){
+            projLM_sigma = invMethod->Get("sigma")->As<double>();
+          }
+          if(invMethod->Has("gamma")){
+            projLM_gamma = invMethod->Get("gamma")->As<double>();
+          }
+          if(invMethod->Has("p")){
+            projLM_p = invMethod->Get("p")->As<double>();
+          }
+          if(invMethod->Has("mu")){
+            projLM_mu = invMethod->Get("mu")->As<double>();
+          }
+          if(invMethod->Has("tau")){
+            projLM_tau = invMethod->Get("tau")->As<double>();
+          }
+          if(invMethod->Has("c")){
+            projLM_c = invMethod->Get("c")->As<double>();
+          }
+        } else {
+          EXCEPTION("No valid method selected");
+        }
+        
+        if(pInversion->Has("maxNumberOuterIterations"))
+        {
+          maxNumOuterIts = pInversion->Get("maxNumberOuterIterations")->As<Integer>();
+        }
+        
+        if(pInversion->Has("residualTolH"))
+        {
+          tolH = pInversion->Get("residualTolH")->As<double>();
+        }
+        
+        if(pInversion->Has("residualTolB"))
+        {
+          tolB = pInversion->Get("residualTolB")->As<double>();
         }
       }
-
-      if(pInversion->Has("maxNumberOuterIterations"))
-      {
-        maxNumOuterIts = pInversion->Get("maxNumberOuterIterations")->As<Integer>();
-      }
-      
-      if(pInversion->Has("residualTolH"))
-      {
-        tolH = pInversion->Get("residualTolH")->As<double>();
-      }
-      
-      if(pInversion->Has("residualTolB"))
-      {
-        tolB = pInversion->Get("residualTolB")->As<double>();
-      }
-    }
+    } 
     //Hyst operator for strains does not use inversion! Only forward mode used
     if((setInversion==true) && (setStrains==false)){
       material->SetScalar(maxNumOuterIts, MAX_NUM_IT_HYST_INV);
@@ -2295,7 +2379,16 @@ namespace CoupledField {
       } else {
         material->SetScalar(0, STOP_INV_LS_AT_LOCAL_MIN);
       }
-      
+            
+      material->SetScalar(projLM_mu, HYST_INV_PROJLM_MU, Global::REAL);
+      material->SetScalar(projLM_rho, HYST_INV_PROJLM_RHO, Global::REAL);
+      material->SetScalar(projLM_beta, HYST_INV_PROJLM_BETA, Global::REAL);
+      material->SetScalar(projLM_sigma, HYST_INV_PROJLM_SIGMA, Global::REAL);
+      material->SetScalar(projLM_gamma, HYST_INV_PROJLM_GAMMA, Global::REAL);
+      material->SetScalar(projLM_tau, HYST_INV_PROJLM_TAU, Global::REAL);
+      material->SetScalar(projLM_c, HYST_INV_PROJLM_C, Global::REAL);
+      material->SetScalar(projLM_p, HYST_INV_PROJLM_P, Global::REAL);
+  
     }
 //    std::cout << "ReadHystOperator - done" << std::endl;
   }

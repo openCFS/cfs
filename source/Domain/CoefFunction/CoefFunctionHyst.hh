@@ -7,6 +7,7 @@
 #include "Materials/BaseMaterial.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "Utils/Timer.hh"
+#include "Utils/helperStructs.hh"
 //#include "Materials/Models/Preisach.hh"
 
 namespace CoupledField {
@@ -1126,112 +1127,7 @@ namespace CoupledField {
     std::string resultName_;
     bool onBoundary_;
   };
-  
-  struct InitialInput {
-    bool useInitialInput;
-    bool prescribeOutput;
-    bool scaleBySaturation;
-    Vector<Double> inputVector;
-  };
-  
-  struct ParameterInversion {
-    // common parameter for inversion methods
-    UInt inversionMethod;
-    UInt maxNumIts;
-    Double tolH;
-    Double tolB;
-    // trust region regularization > for LM only
-    UInt maxNumRegIts;
-    Double alphaRegStart;
-    Double alphaRegMin;
-    Double alphaRegMax;
-    Double trustLow;
-    Double trustMid;
-    Double trustHigh;
-    // linesearch parameter > for Newton and KrylovNewton
-    UInt maxNumLSIts;    
-    Double alphaLSMin;
-    Double alphaLSMax;
-    
-    Double jacRes;
-    int jacImplementation;
-    bool stopLineSearchAtLocalMin;
-  };
-   
-  struct ParameterPreisachWeights {
-    UInt numRows_;
-    std::string weightType_;
-    // weightType = 0 > use constant weight
-    Double constWeight_;
-    // weightType = 1 > muDat
-    Double muDat_A_;
-    Double muDat_h1_;
-    Double muDat_sigma1_;
-    Double muDat_eta_;
-    // weightType = 2 > extended muDat (use muDat parameter in addition)
-    Double muDat_h2_;
-    Double muDat_sigma2_;
-    // weightType = 3 > tensor given
-    Matrix<Double> weightTensor_;
-    
-    // anhysteretic parameter
-    Double anhysteretic_a_;
-    Double anhysteretic_b_;
-    Double anhysteretic_c_;
-    bool anhystOnly_;
-  };
-  
-//   ParameterPreisachWeights POL_weightParams_;
-//  ParameterPreisachWeights STRAIN_weightParams_;
-//    
-//  ParameterPreisachOperators POL_operatorParams_;
-//  ParameterPreisachOperators STRAIN_operatorParams_;
-//  
-//  ParameterInversion LM_inversion_;
-//  InitialInput POL_initial_;
-  
-  struct ParameterPreisachOperators {
-    
-    CoefFunction::CoefDimType methodType_; // SCALAR or VECTOR
-    std::string methodName_; // scalarPreisach, vectorPreisach_Sutor, vectorPreisach_Mayergoyz
-    /*
-     * common for all implemented operators
-     * (scalar, vector sutor, vector mayergoyz isotropic)
-     */
-    Double inputSat_;
-    Double outputSat_; // saturation of Polarization or Strains but not of flux!
-    bool fieldsAlignedAboveSat_;
-    bool hystOutputRestrictedToSat_;
-    bool hasInverseModel_;
-    
-    /*
-     * scalar model
-     */
-    Vector<Double> fixDirection_;
-    
-    /*
-     * vector model sutor
-     */
-    UInt evalVersion_;
-    Double rotResistance_;
-    Double angularDistance_;
-    Double angularResolution_;
-    Double amplitudeResolution_;
-    Double angularClipping_;
-    UInt printOut_;
-    UInt bmpResolution_;
-    bool isClassical_;
-    bool scaleUpToSaturation_;
-    
-    /*
-     * vector model mayergoyz (isotropic!)
-     */
-    bool isIsotropic_;
-    int numDirections_;
-    int outputClipping_;
-  };
-  
-  
+
   
   // ============================================================================
   //  Hysteresis

@@ -1714,6 +1714,15 @@ namespace CoupledField {
     MaterialTypeEnum.Add( TRUST_MID_HYST_INV, "trustRegionMid" );
     MaterialTypeEnum.Add( TRUST_HIGH_HYST_INV, "trustRegionHigh" );
 
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_MU, "hystInv_MU" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_RHO, "hystInv_RHO" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_BETA, "hystInv_BETA" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_SIGMA, "hystInv_SIGMA" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_GAMMA, "hystInv_GAMMA" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_TAU, "hystInv_TAU" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_C, "hystInv_C" );
+    MaterialTypeEnum.Add( HYST_INV_PROJLM_P, "hystInv_P" );
+     
     MaterialTypeEnum.Add( INITIAL_STATE, "initialStates" );
     MaterialTypeEnum.Add( INITIAL_STATE_X, "initialStatesX" );
     MaterialTypeEnum.Add( INITIAL_STATE_Y, "initialStatesY" );

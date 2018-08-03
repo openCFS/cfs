@@ -394,6 +394,42 @@
                 </xsd:all>
               </xsd:complexType>
             </xsd:element>
+            <xsd:element name="ProjectedLMWithLinesearch">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">   
+                  Projected Levenberg Marquardt algorithm taken from
+                  "Levenberg-Marquardt methods for constrained nonlinear equations with strong local convergence properties"
+                    -Kanzow,Yamashita,Fukushima
+                  with Armijo-type linesearch taken from 
+                  https://en.wikipedia.org/wiki/Backtracking_line_search
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="numberOfLinesearchSteps" type="xsd:nonNegativeInteger" minOccurs="0" default="50"/>
+                  <xsd:element name="alphaLSMin" type="xsd:double" minOccurs="0" default="0.001"/>
+                  <xsd:element name="alphaLSMax" type="xsd:double" minOccurs="0" default="1.0"/>
+                  <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-12"/>
+                  <xsd:element name="jacobiImplementation">
+                    <xsd:complexType>
+                      <xsd:choice>
+                        <xsd:element name="ForwardBackwardDifferences"></xsd:element>
+                        <xsd:element name="CentralDifferences"></xsd:element>
+                        <xsd:element name="ForwardBackwardWithScaledDiagonal"></xsd:element>
+                      </xsd:choice>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <xsd:element name="rho" type="xsd:double" minOccurs="0" default="1e-8"/>
+                  <xsd:element name="beta" type="xsd:double" minOccurs="0" default="0.9"/>
+                  <xsd:element name="sigma" type="xsd:double" minOccurs="0" default="1e-4"/>
+                  <xsd:element name="gamma" type="xsd:double" minOccurs="0" default="0.99995"/>
+                  <xsd:element name="p" type="xsd:double" minOccurs="0" default="2.1"/>
+                  <xsd:element name="mu" type="xsd:double" minOccurs="0" default="1.0"/>
+                  <xsd:element name="tau" type="xsd:double" minOccurs="0" default="0.8"/>
+                  <xsd:element name="c" type="xsd:double" minOccurs="0" default="0.8"/>
+                </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
           </xsd:choice>
         </xsd:complexType>
       </xsd:element>

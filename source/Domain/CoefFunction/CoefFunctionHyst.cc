@@ -1300,9 +1300,9 @@ namespace CoupledField {
 		material->GetScalar(dimTypeStr, MaterialType(PREISACH_DIM+enumOffset));
     
     if (dimTypeStr == "SCALAR") {
-			paramSet.methodType_ = SCALAR;
+			paramSet.methodType_ = 0;
 		} else if (dimTypeStr == "VECTOR") {
-			paramSet.methodType_ = VECTOR;
+			paramSet.methodType_ = 1;
 		}
     
     material->GetScalar(paramSet.methodName_, MaterialType(HYST_MODEL+enumOffset));
@@ -1489,6 +1489,16 @@ namespace CoupledField {
         } else {
           LM_inversion_.stopLineSearchAtLocalMin = false;
         }
+        
+        material->GetScalar(LM_inversion_.projLM_mu, HYST_INV_PROJLM_MU, Global::REAL);
+        material->GetScalar(LM_inversion_.projLM_rho, HYST_INV_PROJLM_RHO, Global::REAL);
+        material->GetScalar(LM_inversion_.projLM_beta, HYST_INV_PROJLM_BETA, Global::REAL);
+        material->GetScalar(LM_inversion_.projLM_sigma, HYST_INV_PROJLM_SIGMA, Global::REAL);
+        material->GetScalar(LM_inversion_.projLM_gamma, HYST_INV_PROJLM_GAMMA, Global::REAL);
+        material->GetScalar(LM_inversion_.projLM_tau, HYST_INV_PROJLM_TAU, Global::REAL);
+        material->GetScalar(LM_inversion_.projLM_c, HYST_INV_PROJLM_C, Global::REAL);
+        material->GetScalar(LM_inversion_.projLM_p, HYST_INV_PROJLM_P, Global::REAL);
+        
       } 
     }
     
@@ -1680,7 +1690,8 @@ namespace CoupledField {
     //		std::cout << "numIntegrationPoints_: " << numIntegrationPoints_ << std::endl;
     //		std::cout << "numStorageEntries_: " << numStorageEntries_ << std::endl;
     //		std::cout << "numHystOperators_: " << numHystOperators_ << std::endl;
-		if (POL_operatorParams_.methodType_ == SCALAR) {
+//    std::cout << "CoefFunction::CoefDimType(POL_operatorParams_.methodType_): " << CoefFunction::CoefDimType(POL_operatorParams_.methodType_) << std::endl;
+		if (POL_operatorParams_.methodType_ == 0) {
       
       bool isVirgin = true;
       POL_useExtension_ = false;
@@ -1831,25 +1842,7 @@ namespace CoupledField {
     if ( (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor") || (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") ){
       // inversion via LM > set parameter
       if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
-        hyst_->SetParamsForInversion(
-          LM_inversion_.inversionMethod,
-          LM_inversion_.maxNumIts,
-          LM_inversion_.tolH,
-          LM_inversion_.tolB,
-          LM_inversion_.maxNumRegIts,
-          LM_inversion_.alphaRegStart,
-          LM_inversion_.alphaRegMin,
-          LM_inversion_.alphaRegMax,
-          LM_inversion_.trustLow,
-          LM_inversion_.trustMid,
-          LM_inversion_.trustHigh,
-          LM_inversion_.maxNumLSIts,
-          LM_inversion_.alphaLSMin,
-          LM_inversion_.alphaLSMax,
-          LM_inversion_.jacRes,
-          LM_inversion_.jacImplementation,
-          LM_inversion_.stopLineSearchAtLocalMin,
-          POL_operatorParams_.angularClipping_);   
+        hyst_->SetParamsForInversion(LM_inversion_);
       }
     }
     
@@ -1861,7 +1854,7 @@ namespace CoupledField {
 //      std::cout << "Use own hyst operator for strain" << std::endl;
       bool isVirgin = true;
       
-      if (STRAIN_operatorParams_.methodType_ == SCALAR) {
+      if (STRAIN_operatorParams_.methodType_ == 0) {
         
         hystStrain_ = new Preisach(numHystOperators_, STRAIN_operatorParams_.inputSat_, STRAIN_operatorParams_.outputSat_, 
                 STRAIN_weightParams_.weightTensor_, isVirgin, 
@@ -1990,7 +1983,8 @@ namespace CoupledField {
         int successCode = 0;
         bool overwrite = false;
         UInt operatorIdx = 0;
-        if (POL_operatorParams_.methodType_ == SCALAR) {       
+
+        if (POL_operatorParams_.methodType_ == 0) {       
           Double muForInversion;
           Vector<Double> tmp = Vector<Double>(dim_);
           POL_eps_mu_SmallSignal_.Mult(POL_operatorParams_.fixDirection_,tmp);
@@ -3486,7 +3480,7 @@ namespace CoupledField {
         } else {
           LOG_TRACE(coeffcthyst) << "Matrix for inversion (storage="<<storageIdx<<"): "<<matrixForInversion_[storageIdx].ToString();
         }
-        if(POL_operatorParams_.methodType_ == SCALAR){
+        if(POL_operatorParams_.methodType_ == 0){
           retrievedInput = Vector<Double>(dim_);
 					
           //					retrievedInput[POL_operatorParams_.fixDirection_] = hyst_->computeInputAndUpdate(curLPMSolution[POL_operatorParams_.fixDirection_], 
@@ -4373,7 +4367,7 @@ namespace CoupledField {
       operatorParams = POL_operatorParams_;
     }
     
-		if (operatorParams.methodType_ == SCALAR) {
+		if (operatorParams.methodType_ == 0) {
       
 			outputOfHystOperator = Vector<Double>(dim_);
 			outputOfHystOperator.Init();
@@ -5704,25 +5698,7 @@ namespace CoupledField {
                 "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
                 "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
 			}
-      hystTMP->SetParamsForInversion(
-          LM_inversion_.inversionMethod,
-          LM_inversion_.maxNumIts,
-          LM_inversion_.tolH,
-          LM_inversion_.tolB,
-          LM_inversion_.maxNumRegIts,
-          LM_inversion_.alphaRegStart,
-          LM_inversion_.alphaRegMin,
-          LM_inversion_.alphaRegMax,
-          LM_inversion_.trustLow,
-          LM_inversion_.trustMid,
-          LM_inversion_.trustHigh,
-          LM_inversion_.maxNumLSIts,
-          LM_inversion_.alphaLSMin,
-          LM_inversion_.alphaLSMax,
-          LM_inversion_.jacRes,
-          LM_inversion_.jacImplementation,
-          LM_inversion_.stopLineSearchAtLocalMin,
-          POL_operatorParams_.angularClipping_); 
+      hystTMP->SetParamsForInversion(LM_inversion_); 
       
 //			hystTMP->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
 //                LM_inversion_.tolH, LM_inversion_.tolB, 
@@ -5756,25 +5732,7 @@ namespace CoupledField {
               POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,
               POL_weightParams_.anhystOnly_,POL_operatorParams_.outputClipping_);
 			
-      hystTMP->SetParamsForInversion(
-          LM_inversion_.inversionMethod,
-          LM_inversion_.maxNumIts,
-          LM_inversion_.tolH,
-          LM_inversion_.tolB,
-          LM_inversion_.maxNumRegIts,
-          LM_inversion_.alphaRegStart,
-          LM_inversion_.alphaRegMin,
-          LM_inversion_.alphaRegMax,
-          LM_inversion_.trustLow,
-          LM_inversion_.trustMid,
-          LM_inversion_.trustHigh,
-          LM_inversion_.maxNumLSIts,
-          LM_inversion_.alphaLSMin,
-          LM_inversion_.alphaLSMax,
-          LM_inversion_.jacRes,
-          LM_inversion_.jacImplementation,
-          LM_inversion_.stopLineSearchAtLocalMin,
-          POL_operatorParams_.angularClipping_); 
+      hystTMP->SetParamsForInversion(LM_inversion_);
       
 //			hystTMP->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
 //                LM_inversion_.tolH, LM_inversion_.tolB, 
@@ -8280,7 +8238,7 @@ namespace CoupledField {
               << "  xSaturation " << POL_operatorParams_.inputSat_ << "\n"
               << "  ySaturation " << POL_operatorParams_.outputSat_ << "\n";
       
-      if (POL_operatorParams_.methodType_ == SCALAR) {
+      if (POL_operatorParams_.methodType_ == 0) {
         oss << "  dirP " << POL_operatorParams_.fixDirection_.ToString() << "\n";
       } else {
         oss << "  rotRes " << POL_operatorParams_.rotResistance_ << "\n"

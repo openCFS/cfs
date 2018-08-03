@@ -7,6 +7,7 @@
 #include "MatVec/Matrix.hh"
 #include "General/Exception.hh"
 #include "Utils/tools.hh"
+#include "Utils/helperStructs.hh"
 
 namespace CoupledField {
 
@@ -178,52 +179,35 @@ namespace CoupledField {
     Double bisectForAnhyst(Double Ytarget, Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol, Vector<Double> dir, UInt idx);
     
     // from VecPreisachv10 > put into baseclass to make it available for Mayergoyz model, too
-    void SetParamsForInversion(UInt inversionMethod, UInt maxNumOuterIts, Double resTolH, Double resTolB,
-    UInt maxNumRegIts, Double alphaRegStart, Double alphaRegMin, Double alphaRegMax,
-    Double trustLow, Double trustMid, Double trustHigh, 
-    UInt maxNumLSIts, Double alphaLSMin, Double alphaLSMax, 
-    Double jacobiResolution, Integer jacImplementation, bool stopLineSearchAtLocalMin, Double angClipping){
+    void SetParamsForInversion(ParameterInversion inversionParams){
           
-      INV_inversionMethod_ = inversionMethod;
-      INV_maxIter_ = maxNumOuterIts;
-      INV_resTolH_ = resTolH;
-      INV_resTolB_ = resTolB;
-      
-      INV_maxRegIter_ = maxNumRegIts;
-      INV_alphaRegStart_ = alphaRegStart;
-      INV_alphaRegMin_ = alphaRegMin;
-      INV_alphaRegMax_ = alphaRegMax;
-      INV_trustLow_ = trustLow;
-      INV_trustMid_ = trustMid;
-      INV_trustHigh_ = trustHigh;
-      
-      INV_maxLSIter_ = maxNumLSIts;
-      INV_alphaLSMin_ = alphaLSMin;
-      INV_alphaLSMax_ = alphaLSMax;
-      INV_jacobiResolution_ = jacobiResolution;
-      INV_jacobiImplementation_ = jacImplementation;
-      
-      INV_stopLineSearchAtLocalMin_ = stopLineSearchAtLocalMin;
-      INV_angClipping_ = angClipping;
-      
-//      std::cout << "INV_inversionMethod_ " << INV_inversionMethod_ << std::endl;
-//      std::cout << "INV_maxIter_ " << INV_maxIter_ << std::endl;
-//      std::cout << "INV_resTolH_ " << INV_resTolH_ << std::endl;
-//      std::cout << "INV_resTolB_ " << INV_resTolB_ << std::endl;
-//      std::cout << "INV_maxRegIter_ " << INV_maxRegIter_ << std::endl;
-//      std::cout << "INV_alphaRegStart_ " << INV_alphaRegStart_ << std::endl;
-//      std::cout << "INV_alphaRegMin_ " << INV_alphaRegMin_ << std::endl;
-//      std::cout << "INV_alphaRegMax_ " << INV_alphaRegMax_ << std::endl;
-//      std::cout << "INV_trustLow_ " << INV_trustLow_ << std::endl;
-//      std::cout << "INV_trustMid_ " << INV_trustMid_ << std::endl;
-//      std::cout << "INV_trustHigh_ " << INV_trustHigh_ << std::endl;
-//            std::cout << "INV_maxLSIter_ " << INV_maxLSIter_ << std::endl;
-//      std::cout << "INV_alphaLSMin_ " << INV_alphaLSMin_ << std::endl;
-//      std::cout << "INV_alphaLSMax_ " << INV_alphaLSMax_ << std::endl;
-//      std::cout << "INV_jacobiResolution_ " << INV_jacobiResolution_ << std::endl;
-//      std::cout << "INV_jacobiImplementation_ " << INV_jacobiImplementation_ << std::endl;
-//      std::cout << "INV_stopLineSearchAtLocalMin_ " << INV_stopLineSearchAtLocalMin_ << std::endl;
-//      std::cout << "INV_angClipping_ " << INV_angClipping_ << std::endl;
+      INV_params_ = inversionParams;
+//      std::cout << "INV_params_.inversionMethod " << INV_params_.inversionMethod << std::endl;
+//      std::cout << "INV_params_.maxNumIts " << INV_params_.maxNumIts << std::endl;
+//      std::cout << "INV_params_.tolH " << INV_params_.tolH << std::endl;
+//      std::cout << "INV_params_.tolB " << INV_params_.tolB << std::endl;
+//      std::cout << "INV_params_.maxNumRegIts " << INV_params_.maxNumRegIts << std::endl;
+//      std::cout << "INV_params_.alphaRegStart " << INV_params_.alphaRegStart << std::endl;
+//      std::cout << "INV_params_.alphaRegMin " << INV_params_.alphaRegMin << std::endl;
+//      std::cout << "INV_params_.alphaRegMax " << INV_params_.alphaRegMax << std::endl;
+//      std::cout << "INV_params_.trustLow " << INV_params_.trustLow << std::endl;
+//      std::cout << "INV_params_.trustMid " << INV_params_.trustMid << std::endl;
+//      std::cout << "INV_params_.trustHigh " << INV_params_.trustHigh << std::endl;
+//      std::cout << "INV_params_.maxNumLSIts " << INV_params_.maxNumLSIts << std::endl;
+//      std::cout << "INV_params_.alphaLSMin " << INV_params_.alphaLSMin << std::endl;
+//      std::cout << "INV_params_.alphaLSMax " << INV_params_.alphaLSMax << std::endl;
+//      std::cout << "INV_params_.jacRes " << INV_params_.jacRes << std::endl;
+//      std::cout << "INV_params_.jacImplementation " << INV_params_.jacImplementation << std::endl;
+//      std::cout << "INV_params_.stopLineSearchAtLocalMin " << INV_params_.stopLineSearchAtLocalMin << std::endl;    
+//      
+//      std::cout << "INV_params_.projLM_mu " << INV_params_.projLM_mu << std::endl;
+//      std::cout << "INV_params_.projLM_rho " << INV_params_.projLM_rho << std::endl;
+//      std::cout << "INV_params_.projLM_beta " << INV_params_.projLM_beta << std::endl;
+//      std::cout << "INV_params_.projLM_sigma " << INV_params_.projLM_sigma << std::endl;
+//      std::cout << "INV_params_.projLM_gamma " << INV_params_.projLM_gamma << std::endl;
+//      std::cout << "INV_params_.projLM_tau " << INV_params_.projLM_tau << std::endl;
+//      std::cout << "INV_params_.projLM_c " << INV_params_.projLM_c << std::endl;  
+//      std::cout << "INV_params_.projLM_p " << INV_params_.projLM_p << std::endl;  
       
     }
 
@@ -251,16 +235,25 @@ namespace CoupledField {
     Vector<Double> computeUpdate_Krylov(Vector<Double>& x, Vector<Double>& y, 
       Vector<Double>& hyst_x, Matrix<Double> mu_inv, Integer operatorIdx);
     
+    Vector<Double> computeUpdate_LM_withFixedAlpha(Vector<Double> jacTres_neg, 
+          Matrix<Double>& jacTjac, Vector<Double>& res, Double alphaFix);
+    
     Vector<Double> computeUpdate_LM(Vector<Double> jacTres_neg, 
           Matrix<Double>& jacTjac, Double& alphaIn, Double& alphaAcc, Double& alphaMinReq, Double alphaMax);
     
-  bool computeUpdateTrustRegion(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
+    Vector<Double> projectToSolutionSpace(Vector<Double> x, int stayBelowSat);
+    
+    bool computeUpdateLM_Projected(Vector<Double>& xk, Vector<Double>& resk, Vector<Double>& y,
+      Matrix<Double>& mu_inv, Matrix<Double>& jac, Vector<Double>& jacTres,
+      Vector<Double>& dx, UInt operatorIdx, int stayBelowSat);
+
+    bool computeUpdateLM_TrustRegion(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
       Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
       Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
       int operatorIdx, int stayBelowSat, 
       Double& alpha, Double alphaMin, Double alphaMax, UInt& numberOfIterations);
 
-    bool computeUpdateLinesearch(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
+    bool computeUpdateNewton_Linesearch(Vector<Double>& xStart, Vector<Double>& xCurrent, Vector<Double>& xUpdate, 
       Vector<Double>& hystCurrent, Vector<Double>& resCurrent, Vector<Double>& yTarget, 
       Matrix<Double>& mu_inv, Matrix<Double>& jacCurrent, Vector<Double>& jacTresCurrent, 
       int operatorIdx, int stayBelowSat,
@@ -301,24 +294,7 @@ namespace CoupledField {
     Vector<Double>* prevHVal_;
     
     // For vector inversion
-    UInt INV_inversionMethod_;
-    UInt INV_maxIter_;
-    UInt INV_maxLSIter_;
-    UInt INV_maxRegIter_;
-    Double INV_resTolH_;
-    Double INV_resTolB_;
-    Double INV_jacobiResolution_;
-    Double INV_alphaRegStart_;
-    Double INV_alphaRegMin_;
-    Double INV_alphaRegMax_;
-    Double INV_trustLow_;
-    Double INV_trustMid_;
-    Double INV_trustHigh_;
-    Double INV_alphaLSMin_;
-    Double INV_alphaLSMax_;
-    Double INV_angClipping_;
-    bool INV_stopLineSearchAtLocalMin_;
-    Integer INV_jacobiImplementation_;
+    ParameterInversion INV_params_;
     
   private:
 

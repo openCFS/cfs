@@ -102,7 +102,16 @@ namespace CoupledField
     isAllowed_.insert( TRUST_LOW_HYST_INV );
     isAllowed_.insert( TRUST_MID_HYST_INV );
     isAllowed_.insert( TRUST_HIGH_HYST_INV );
-
+    
+    isAllowed_.insert( HYST_INV_PROJLM_MU );
+    isAllowed_.insert( HYST_INV_PROJLM_RHO );
+    isAllowed_.insert( HYST_INV_PROJLM_BETA );
+    isAllowed_.insert( HYST_INV_PROJLM_SIGMA );
+    isAllowed_.insert( HYST_INV_PROJLM_GAMMA );
+    isAllowed_.insert( HYST_INV_PROJLM_TAU );
+    isAllowed_.insert( HYST_INV_PROJLM_C );
+    isAllowed_.insert( HYST_INV_PROJLM_P );
+    
 		isAllowed_.insert( INITIAL_STATE );
     isAllowed_.insert( INITIAL_STATE_X );
     isAllowed_.insert( INITIAL_STATE_Y );
