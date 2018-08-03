@@ -18,6 +18,12 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/Transform.hh"
 #include "Utils/StdVector.hh"
+#include <boost/numeric/ublas/matrix_sparse.hpp>
+
+
+
+typedef boost::numeric::ublas::compressed_matrix<double> boostSparseMat;
+
 
 namespace CoupledField
 {
@@ -211,12 +217,11 @@ namespace CoupledField
       * (only doubles) where we have a StdVector of the complex DesignElement.</p>
       * @param space_in the design space (in variable). Size is GetDesignSpaceSize()
       * @return the design_id which is the old one if space_in did not change the design. */
-     virtual int ReadDesignFromExtern(const double* space_in);
-     int ReadDesignFromExtern(const StdVector<double>& space);
+     int ReadDesignFromExtern(const Vector<double>& ext_design);
      
      /** Compare the design with the present. Does not change anything!
       * @return true if the designs are equal and ReadDesignFromExtern() would give the old design id */
-     virtual bool CompareDesign(const double* space_in);
+     virtual bool CompareDesign(const Vector<double>& space_in);
            
      /** gives the initial guess (for the design space) 
       * @param space_out to this array of GetDesignSpaceSize() the initial guess is written to.
@@ -468,6 +473,8 @@ namespace CoupledField
        /** Here we cache the lower end material class. Complicated because of pizeo and stiffness, density */
        std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > bimaterials;
 
+
+
      private:
 
        /** the label for the info.xml */
@@ -523,6 +530,9 @@ namespace CoupledField
       * data size = num of design * num region elements */
      unsigned int elements;
 
+     // the filterMat is a square matrix , size = number of design element
+	 boostSparseMat filterMat_;
+
     protected:
 
 
@@ -543,6 +553,8 @@ namespace CoupledField
 
      /** This is the design space info node */
      PtrParamNode info_;
+
+
 
   private:
 
@@ -631,6 +643,10 @@ namespace CoupledField
      boost::shared_ptr<Timer> write_gradient_timer_;
 
      ErsatzMaterial::Method method_;
+
+
+
+
   };
 
 

@@ -34,10 +34,10 @@ class AuxDesign : public DesignSpace
     virtual void PostInit(int objectives, int constraints);
 
     /** @see DesignSpace::ReadDesignFromExtern() */
-    virtual int ReadDesignFromExtern(const double* space_in);
+    virtual int ReadDesignFromExtern(const Vector<double>& ext_design);
 
     /** overwrites DesignSpace::CompareDesign() */
-    virtual bool CompareDesign(const double* space_in);
+    virtual bool CompareDesign(const Vector<double>& space_in);
 
     /** writes design to the vector, prepending with shape variables */
     virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;

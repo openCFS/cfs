@@ -938,6 +938,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   assert(sp == DesignElement::DESIGN);
   assert(!de_->simp->filter.IsEmpty());
 
+
+
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];
 
@@ -1004,8 +1006,8 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];
 
-  assert(dynamic_cast<Condition*>(func) != NULL);
-  Condition* g = static_cast<Condition*>(func);
+//  assert(dynamic_cast<Condition*>(func) != NULL);
+  Condition* g = dynamic_cast<Condition*>(func);
 
   assert(f.GetType() == Filter::DENSITY);
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);

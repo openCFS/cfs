@@ -227,9 +227,10 @@ bool FeasSubProblem::eval_f(Index n, const Number* x, bool new_x, Number& obj_va
 {
   assert((int) feas_pp->x_outer.GetSize() == n);
   MMAApproximation* f = feas_pp->obj;
-
+  Vector<Number> desVec;
+  desVec.Replace(n,const_cast<Number*> (x),false);
   if(!f->approximate)
-    feas_pp->optimization->GetDesign()->ReadDesignFromExtern(x);
+    feas_pp->optimization->GetDesign()->ReadDesignFromExtern(desVec);
 
   obj_value = f->Evaluate(x, MMAApproximation::FUNC);
 
@@ -243,10 +244,11 @@ bool FeasSubProblem::eval_grad_f(Index n, const Number* x, bool new_x, Number* g
 
   assert((int) feas_pp->x_outer.GetSize() == n);
   assert((int) f->jac_pattern.GetSize() == n); // assume dense!
-
+  Vector<Number> desVec;
+  desVec.Replace(n,const_cast<Number*> (x),false);
   if(!f->approximate)
   {
-    feas_pp->optimization->GetDesign()->ReadDesignFromExtern(x);
+    feas_pp->optimization->GetDesign()->ReadDesignFromExtern(desVec);
     feas_pp->optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT);
   }
 
@@ -261,9 +263,11 @@ bool FeasSubProblem::eval_grad_f(Index n, const Number* x, bool new_x, Number* g
 bool FeasSubProblem::eval_g(Index n, const Number* x, bool new_x, Index m, Number* g)
 {
   LOG_DBG3(feasPP) << "eval_g: n = " << n << "; new_x = " << new_x << "; m = " << m;
+  Vector<Number> desVec;
+  desVec.Replace(n,const_cast<Number*> (x),false);
 
   if(feas_pp->non_approx_constraints)
-      feas_pp->optimization->GetDesign()->ReadDesignFromExtern(x);
+      feas_pp->optimization->GetDesign()->ReadDesignFromExtern(desVec);
 
   assert(m == (int) feas_pp->m);
   for(int i = 0; i < m; i++)
@@ -277,10 +281,11 @@ bool FeasSubProblem::eval_g(Index n, const Number* x, bool new_x, Index m, Numbe
 bool FeasSubProblem::eval_jac_g(Index n, const Number* x, bool new_x,  Index m, Index nele_jac, Index* iRow, Index *jCol, Number* values)
 {
   assert(m == (int) feas_pp->m);
-
+  Vector<Number> desVec;
+  desVec.Replace(n,const_cast<Number*> (x),false);
   if(feas_pp->non_approx_constraints && values != NULL)
   {
-     feas_pp->optimization->GetDesign()->ReadDesignFromExtern(x);
+     feas_pp->optimization->GetDesign()->ReadDesignFromExtern(desVec);
      feas_pp->optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT);
   }
 
@@ -324,6 +329,8 @@ bool FeasSubProblem::eval_h(Index n, const Number* x, bool new_x, Number obj_fac
   assert(feas_pp->hessian != NULL);
   compressed_matrix<double>& H = *(feas_pp->hessian);
   assert((int) H.nnz() == nele_hess);
+  Vector<Number> desVec;
+  desVec.Replace(n,const_cast<Number*> (x),false);
 
   if(values == NULL)
   {
@@ -352,7 +359,7 @@ bool FeasSubProblem::eval_h(Index n, const Number* x, bool new_x, Number obj_fac
 
     if(feas_pp->non_approx_constraints && values != NULL)
     {
-       feas_pp->optimization->GetDesign()->ReadDesignFromExtern(x);
+       feas_pp->optimization->GetDesign()->ReadDesignFromExtern(desVec);
        feas_pp->optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT);
     }
 
@@ -438,7 +445,7 @@ void FeasSubProblem::finalize_solution(SolverReturn status,
   LOG_DBG3(feasPP) << "FSP:fs orig_lambda=" << orig_lambda.ToString();
 
   // calculate transformed lambda according to feasibility paper
-  feas_pp->optimization->GetDesign()->ReadDesignFromExtern(x_final.GetPointer());
+  feas_pp->optimization->GetDesign()->ReadDesignFromExtern(x_final);
   lambda.Resize(m);
   for(int i = 0; i < m; i++)
     lambda[i] = feas_pp->constr[i]->TransformMultiplyer(orig_lambda[i]);

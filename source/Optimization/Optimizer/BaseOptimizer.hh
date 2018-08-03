@@ -62,13 +62,13 @@ namespace CoupledField
      * @param cfs_scale if true use cfs scaling values, not the optimizer values.
      *        Do it also for the gradient!!
      * @return the objective */
-    double EvalObjective(int n, const double* x, bool cfs_scale);
+    double EvalObjective(Vector<double>&  x, bool cfs_scale);
 
     /* Evaluates the objective gradient. In the autoscale case checks for old evaluation first.
      * Also does an EvalObjective() implicit!
      * @param cfs_scale @see EvalObjective()
      * @return true if within autoscale tolerance - false if restart necessary */
-    bool EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f);
+    bool EvalGradObjective( Vector<double>& x, bool cfs_scale, StdVector<double>& grad_f);
 
     /** Evaluates the constraints or rather passes them on to the optimization
      * @param cfs_scale @see EvalObjective()

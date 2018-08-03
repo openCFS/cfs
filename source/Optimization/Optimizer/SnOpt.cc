@@ -305,8 +305,8 @@ int SnOpt::Callback(integer* Status, const integer n,
     char* cu, integer* lencu, integer* iu, integer* leniu, doublereal* ru, integer* lenru)
 {
   // reorder design
-  StdVector<double> x;
-  x.Import(x_snopt, n);
+  Vector<double> x;
+  x.Replace(n,x_snopt, false);
 
   LOG_DBG(snopt)  << "CB: needF=" << *needF << " needG=" << *needG << " x_avg = " << Average(x.GetPointer(), n) << " x_std_dev = " << StandardDeviation(x.GetPointer(), n);
   LOG_DBG3(snopt) << "CB: x_org=" << StdVector<double>::ToString(n, x_snopt);
@@ -315,7 +315,7 @@ int SnOpt::Callback(integer* Status, const integer n,
   // when the last call was a gradient eval we interpret this as major and do a commit
   // with the OLD design and it's function evaluations. But only if there was really a change between the last commit.
   // the special cases are the first iteration if setupLinearConstraints() had a feasible design or on the last commit.
-  if(perform_commit_iteration_ && !optimization->GetDesign()->CompareDesign(x.GetPointer()))
+  if(perform_commit_iteration_ && !optimization->GetDesign()->CompareDesign(x))
   {
     optimization->CommitIteration();
     perform_commit_iteration_ = false; // to be reset when enough functions evaluations have been done
@@ -429,18 +429,23 @@ bool SnOpt::get_nlp_info()
 
 bool SnOpt::eval_f(int n, const double* x, double &obj_value)
 {
+  Vector<double> desVec;
+  desVec.Replace(n,const_cast<double*>(x),false);
   LOG_DBG(snopt) << "eval_f";
-  obj_value = EvalObjective(n, x, true); // as with SCPIP we do always autoscale!
+  obj_value = EvalObjective(desVec, true); // as with SCPIP we do always autoscale!
   return true;
 }
 
 bool SnOpt::eval_grad_f(int n, const double* x, double* grad_f)
 {
+  Vector<double> desVec;
+  desVec.Replace(n,const_cast<double*>(x),false);
+
   LOG_DBG(snopt) << "eval_grad_f";
   assert((int) gradhelper.GetSize() >= n);
 
   // restart_requested handled in intermediate_callback
-  bool result = EvalGradObjective(n, x, true, gradhelper);
+  bool result = EvalGradObjective(desVec, true, gradhelper);
 
   for(int i = 0; i < n; i++)
   {

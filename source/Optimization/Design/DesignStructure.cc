@@ -30,6 +30,7 @@
 #include "Utils/Timer.hh"
 #include "Utils/tools.hh"
 #include <def_use_openmp.hh>
+#include "MatVec/CRS_Matrix.hh"
 
 #ifdef USE_OPENMP
   #include <omp.h>
@@ -295,6 +296,40 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   }
 
   WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours, rex == 0); // goes into the appended filters/filter
+
+
+
+  // We just get all the design elements and for each filter create a sparse matrix
+   // For the sparse matrix we require row_index(element number) , column index(neighbour idx), and weights array
+
+   // Implementing this above in the neigbhor search will require use of critical sections. So lets just stick to looping over all elements and extracting
+//   StdVector<UInt> colInd;
+//   StdVector<UInt> rowPtr;
+//   StdVector<double> neighborWeights;
+//   int lastIndex=0;
+//
+//   rowPtr.Push_back(lastIndex);
+//   for (UInt i=0;i < data.GetSize(); i++){
+//     auto neighbours = data[i].simp->filter.Last().neighborhood;
+//     colInd.Push_back(i);
+//     neighborWeights.Push_back(1.0);
+//     for (UInt j=0;j<neighbours.GetSize();j++){
+//       colInd.Push_back(neighbours[j].neighbour->GetIndex());
+//       neighborWeights.Push_back(neighbours[j].weight);
+//
+//     }
+//     lastIndex +=neighbours.GetSize();
+//     rowPtr.Push_back(lastIndex);
+//   }
+//   CRS_Matrix<double> tempMat(data.GetSize(),data.GetSize(),neighborWeights.GetSize(),rowPtr.GetPointer(),colInd.GetPointer(),neighborWeights.GetPointer());
+
+ //  space->filterMat_ = tempMat;
+
+
+
+
+
+
 
   timer->Stop();
 }
