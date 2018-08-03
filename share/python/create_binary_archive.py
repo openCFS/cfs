@@ -47,11 +47,11 @@ zip_file = 'cfs_' + name + '_' + str(datetime.now().year) + '_' + str(datetime.n
 call = ['zip', '-r']
 if args.password:
   call.append('--password')
-  call.appen(args.password)
+  call.append(args.password)
 call.append(pwd + '/' + zip_file)
 call.append('.')  
 
 subprocess.call(call, cwd=tmp)
 print('created cfs archive ', zip_file)
 if args.password:
-  print("password to decrypt '" + args.password + "'")
+  print("password to decrypt: '" + args.password + "'")
