@@ -2110,42 +2110,151 @@ namespace CoupledField {
         material->SetScalar(0, PREISACH_PRESCRIBEOUTPUT);
       }
     }
-    int inversionMethod = 0;
-    int maxNumIts = 35;
-    int maxNumLSIts = 100;
+    
+    // common parameter for all three inversion methods
+    int maxNumOuterIts = 50;
     double tolH = 1e-12;
     double tolB = 1e-12;
+    
+    // 0 = LM, 1 = Newton, 2 = JacobiFreeNewtonKrylov
+    int inversionMethod = 1;
+    
+    // LM parameter
+    int maxNumberRegularizationIterations = 50;
+    double alphaRegStart = 0.25;
+    double alphaRegMin = 0.001953125;
+    double alphaRegMax = 8192.0;
+    double trustRegionLow = 0.15;
+    double trustRegionMid = 0.35;
+    double trustRegionHigh = 0.85;
     double jacRes = 1e-12;
-    double alphaLSStart = 0.25;
-    double alphaLSMin = 1.0/512.0;
-    double alphaLSMax = 8192.0;
+    // -1 = no jacobian > for JacobiFreeNewtonKrylov
+    //  0 = forward/backward differences
+    //  1 = central differences
+    //  2 = forward/backward differences with scaling of diagonal
+    int jacImplementation = 2;
+    
+    // Newton parameter
+    int maxNumberLinesearchIterations = 50;
+    double alphaLSMin = 0.001;
+    double alphaLSMax = 1.0;
+    bool stopLSAtLocalMin = false;
+    // jacRes and jacImplementation as for LM
+    
+    // JacobiFreeKrylovNewton
+    // > no extra parameter compared with Newton
+    
+    // important: for electrostatics, we need no inversion and should not set the
+    // parameter above
     bool setInversion = false;
-    bool stopLineSearchAtLocalMin = false;
     
     if(pInversion != NULL){
       setInversion = true;
       if(pInversion->Has("InversionMethod"))
       {
-        if(pInversion->Get("InversionMethod")->Has("LevenbergMarquardt")){
+        if(pInversion->Get("InversionMethod")->Has("LevenbergMarquardtWithTrustregion")){
           inversionMethod = 0;
-        } else if(pInversion->Get("InversionMethod")->Has("Newton")){
+          PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("LevenbergMarquardtWithTrustregion");
+          
+          if(invMethod->Has("maxNumberRegularizationIterations")){
+            maxNumberRegularizationIterations = invMethod->Get("maxNumberRegularizationIterations")->As<Integer>();
+          }
+          
+          if(invMethod->Has("alphaRegStart")){
+            alphaRegStart = invMethod->Get("alphaRegStart")->As<double>();
+          }
+          if(invMethod->Has("alphaRegMin")){
+            alphaRegMin = invMethod->Get("alphaRegMin")->As<double>();
+          }
+          if(invMethod->Has("alphaRegMax")){
+            alphaRegMax = invMethod->Get("alphaRegMax")->As<double>();
+          }
+          
+          if(invMethod->Has("trustRegionLow")){
+            trustRegionLow = invMethod->Get("trustRegionLow")->As<double>();
+          }
+          if(invMethod->Has("trustRegionMid")){
+            trustRegionMid = invMethod->Get("trustRegionMid")->As<double>();
+          }
+          if(invMethod->Has("trustRegionHigh")){
+            trustRegionHigh = invMethod->Get("trustRegionHigh")->As<double>();
+          }
+          if(invMethod->Has("jacobiResolution")){
+            jacRes = invMethod->Get("jacobiResolution")->As<double>();
+          }
+          if(invMethod->Has("jacobiImplementation")){
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardDifferences")){
+              jacImplementation = 0;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("CentralDifferences")){
+              jacImplementation = 1;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardWithScaledDiagonal")){
+              jacImplementation = 2;
+            }
+          }
+          
+        } else if(pInversion->Get("InversionMethod")->Has("NewtonWithLinesearch")){
           inversionMethod = 1;
-          if(pInversion->Get("InversionMethod")->Get("Newton")->Has("stopLineSearchAtLocalMin")){
-            stopLineSearchAtLocalMin = pInversion->Get("InversionMethod")
-                    ->Get("Newton")->Get("stopLineSearchAtLocalMin")->As<bool>();
+          PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("NewtonWithLinesearch");
+          
+          if(invMethod->Has("numberOfLinesearchSteps")){
+            maxNumberLinesearchIterations = invMethod->Get("numberOfLinesearchSteps")->As<Integer>();
           }
-        } else if(pInversion->Get("InversionMethod")->Has("JacobianFreeNewtonKrylov")){
-          if(pInversion->Get("InversionMethod")->Get("JacobianFreeNewtonKrylov")->Has("stopLineSearchAtLocalMin")){
-            stopLineSearchAtLocalMin = pInversion->Get("InversionMethod")
-                    ->Get("JacobianFreeNewtonKrylov")->Get("stopLineSearchAtLocalMin")->As<bool>();
+          
+          if(invMethod->Has("alphaLSMin")){
+            alphaLSMin = invMethod->Get("alphaLSMin")->As<double>();
           }
+          if(invMethod->Has("alphaLSMax")){
+            alphaLSMax = invMethod->Get("alphaLSMax")->As<double>();
+          }
+          
+          if(invMethod->Has("stopLinesearchAtLocalMin")){
+            stopLSAtLocalMin = invMethod->Get("stopLinesearchAtLocalMin")->As<bool>();
+          }
+          
+          if(invMethod->Has("jacobiResolution")){
+            jacRes = invMethod->Get("jacobiResolution")->As<double>();
+          }
+          if(invMethod->Has("jacobiImplementation")){
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardDifferences")){
+              jacImplementation = 0;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("CentralDifferences")){
+              jacImplementation = 1;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardWithScaledDiagonal")){
+              jacImplementation = 2;
+            }
+          }
+          
+        } else if(pInversion->Get("InversionMethod")->Has("JacobianFreeNewtonKrylovWithLinesearch")){
           inversionMethod = 2;
+          PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("JacobianFreeNewtonKrylovWithLinesearch");
+          
+          if(invMethod->Has("numberOfLinesearchSteps")){
+            maxNumberLinesearchIterations = invMethod->Get("numberOfLinesearchSteps")->As<Integer>();
+          }
+          
+          if(invMethod->Has("alphaLSMin")){
+            alphaLSMin = invMethod->Get("alphaLSMin")->As<double>();
+          }
+          if(invMethod->Has("alphaLSMax")){
+            alphaLSMax = invMethod->Get("alphaLSMax")->As<double>();
+          }
+          
+          if(invMethod->Has("stopLinesearchAtLocalMin")){
+            stopLSAtLocalMin = invMethod->Get("stopLinesearchAtLocalMin")->As<bool>();
+          }
+          
+          jacImplementation = -1;
+                    
         }
       }
 
       if(pInversion->Has("maxNumberOuterIterations"))
       {
-        maxNumIts = pInversion->Get("maxNumberOuterIterations")->As<Integer>();
+        maxNumOuterIts = pInversion->Get("maxNumberOuterIterations")->As<Integer>();
       }
       
       if(pInversion->Has("residualTolH"))
@@ -2157,49 +2266,36 @@ namespace CoupledField {
       {
         tolB = pInversion->Get("residualTolB")->As<double>();
       }
-      
-      if(pInversion->Has("jacobiResolution"))
-      {
-        jacRes = pInversion->Get("jacobiResolution")->As<double>();
-      }
-      
-      if(pInversion->Has("maxNumberLinesearchIterations"))
-      {
-        maxNumLSIts = pInversion->Get("maxNumberLinesearchIterations")->As<Integer>();
-      }
-            
-      if(pInversion->Has("alphaRegStart"))
-      {
-        alphaLSStart = pInversion->Get("alphaRegStart")->As<double>();
-      }
-      
-      if(pInversion->Has("alphaRegMin"))
-      {
-        alphaLSMin = pInversion->Get("alphaRegMin")->As<double>();
-      }
-      
-      if(pInversion->Has("alphaRegMax"))
-      {
-        alphaLSMax = pInversion->Get("alphaRegMax")->As<double>();
-      }
     }
     //Hyst operator for strains does not use inversion! Only forward mode used
     if((setInversion==true) && (setStrains==false)){
-      material->SetScalar(maxNumIts, MAX_NUM_IT_HYST_INV);
+      material->SetScalar(maxNumOuterIts, MAX_NUM_IT_HYST_INV);
       material->SetScalar(tolH, RES_TOL_H_HYST_INV, Global::REAL);
       material->SetScalar(tolB, RES_TOL_B_HYST_INV, Global::REAL);
-      material->SetScalar(jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
+      
       material->SetScalar(inversionMethod, VEC_HYST_INV_METHOD);
-      material->SetScalar(maxNumLSIts, MAX_NUM_LS_IT_HYST_INV);
-      material->SetScalar(alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
+      
+      material->SetScalar(maxNumberRegularizationIterations, MAX_NUM_REG_IT_HYST_INV);
+      material->SetScalar(alphaRegStart, ALPHA_REG_HYST_INV, Global::REAL);
+      material->SetScalar(alphaRegMin, ALPHA_REG_MIN_HYST_INV, Global::REAL);
+      material->SetScalar(alphaRegMax, ALPHA_REG_MAX_HYST_INV, Global::REAL);
+      material->SetScalar(trustRegionLow, TRUST_LOW_HYST_INV, Global::REAL);
+      material->SetScalar(trustRegionMid, TRUST_MID_HYST_INV, Global::REAL);
+      material->SetScalar(trustRegionHigh, TRUST_HIGH_HYST_INV, Global::REAL);
+      
+      material->SetScalar(jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
+      material->SetScalar(jacImplementation, JAC_IMPLEMENTATION_HYST_INV);
+      
+      material->SetScalar(maxNumberLinesearchIterations, MAX_NUM_LS_IT_HYST_INV);
       material->SetScalar(alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
       material->SetScalar(alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);
       
-      if(stopLineSearchAtLocalMin == true){
+      if(stopLSAtLocalMin == true){
         material->SetScalar(1, STOP_INV_LS_AT_LOCAL_MIN);
       } else {
         material->SetScalar(0, STOP_INV_LS_AT_LOCAL_MIN);
       }
+      
     }
 //    std::cout << "ReadHystOperator - done" << std::endl;
   }

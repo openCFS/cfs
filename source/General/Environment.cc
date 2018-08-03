@@ -1695,17 +1695,25 @@ namespace CoupledField {
     MaterialTypeEnum.Add( ANG_CLIPPING, "angularClipping" );
     MaterialTypeEnum.Add( ANG_RESOLUTION, "angularResolution" );
     MaterialTypeEnum.Add( AMP_RESOLUTION, "amplitudeResolution" );
-    MaterialTypeEnum.Add( HYST_INVERSION, "hystInversion" );
-    MaterialTypeEnum.Add( MAX_NUM_IT_HYST_INV, "maxNumberIterations" );
-    MaterialTypeEnum.Add( STOP_INV_LS_AT_LOCAL_MIN, "stopInvLineSearchAtLocalMin" );
+    
+    MaterialTypeEnum.Add( MAX_NUM_IT_HYST_INV, "hystInvOuterNumIt" );
+    MaterialTypeEnum.Add( VEC_HYST_INV_METHOD, "hystInvMethod" );
     MaterialTypeEnum.Add( RES_TOL_H_HYST_INV, "residualTolH" );
     MaterialTypeEnum.Add( RES_TOL_B_HYST_INV, "residualTolB" );
+    MaterialTypeEnum.Add( ALPHA_REG_HYST_INV, "alphaRegStart" );
+    MaterialTypeEnum.Add( ALPHA_REG_MIN_HYST_INV, "alphaRegMin" );
+    MaterialTypeEnum.Add( ALPHA_REG_MAX_HYST_INV, "alphaRegMax" );
+    MaterialTypeEnum.Add( MAX_NUM_REG_IT_HYST_INV, "hystInvRegNumIt" );
+    MaterialTypeEnum.Add( ALPHA_LS_MIN_HYST_INV, "alphaLSMin" );
+    MaterialTypeEnum.Add( ALPHA_LS_MAX_HYST_INV, "alphaLSMax" ); 
+    MaterialTypeEnum.Add( MAX_NUM_LS_IT_HYST_INV, "hystInvLSNumIt" );
+    MaterialTypeEnum.Add( STOP_INV_LS_AT_LOCAL_MIN, "stopInvLineSearchAtLocalMin" );
     MaterialTypeEnum.Add( JAC_RESOLUTION_HYST_INV, "jacobiResolution" );
-    MaterialTypeEnum.Add( MAX_NUM_LS_IT_HYST_INV, "maxNumberLSIterations" );
-    MaterialTypeEnum.Add( VEC_HYST_INV_METHOD, "hystInversionMethod" );
-    MaterialTypeEnum.Add( ALPHA_LS_HYST_INV, "alphaRegStart" );
-    MaterialTypeEnum.Add( ALPHA_LS_MIN_HYST_INV, "alphaRegMin" );
-    MaterialTypeEnum.Add( ALPHA_LS_MAX_HYST_INV, "alphaRegMax" );
+    MaterialTypeEnum.Add( JAC_IMPLEMENTATION_HYST_INV, "jacobiImplementation" );
+    MaterialTypeEnum.Add( TRUST_LOW_HYST_INV, "trustRegionLow" );
+    MaterialTypeEnum.Add( TRUST_MID_HYST_INV, "trustRegionMid" );
+    MaterialTypeEnum.Add( TRUST_HIGH_HYST_INV, "trustRegionHigh" );
+
     MaterialTypeEnum.Add( INITIAL_STATE, "initialStates" );
     MaterialTypeEnum.Add( INITIAL_STATE_X, "initialStatesX" );
     MaterialTypeEnum.Add( INITIAL_STATE_Y, "initialStatesY" );

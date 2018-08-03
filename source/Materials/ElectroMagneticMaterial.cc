@@ -83,18 +83,26 @@ namespace CoupledField
     isAllowed_.insert( ANG_CLIPPING );
     isAllowed_.insert( ANG_RESOLUTION );
     isAllowed_.insert( AMP_RESOLUTION );
-    isAllowed_.insert( HYST_INVERSION );
+ 
+    // inversion for vec hysteresis
     isAllowed_.insert( MAX_NUM_IT_HYST_INV );
+    isAllowed_.insert( VEC_HYST_INV_METHOD );
     isAllowed_.insert( RES_TOL_H_HYST_INV );
     isAllowed_.insert( RES_TOL_B_HYST_INV );
-    isAllowed_.insert( MAX_NUM_IT_HYST_INV );
-    isAllowed_.insert( JAC_RESOLUTION_HYST_INV );
-    isAllowed_.insert( MAX_NUM_LS_IT_HYST_INV );
-    isAllowed_.insert( STOP_INV_LS_AT_LOCAL_MIN );
-    isAllowed_.insert( VEC_HYST_INV_METHOD );
-    isAllowed_.insert( ALPHA_LS_HYST_INV );
+    isAllowed_.insert( ALPHA_REG_HYST_INV );
+    isAllowed_.insert( ALPHA_REG_MIN_HYST_INV );
+    isAllowed_.insert( ALPHA_REG_MAX_HYST_INV );
+    isAllowed_.insert( MAX_NUM_REG_IT_HYST_INV );
     isAllowed_.insert( ALPHA_LS_MIN_HYST_INV );
     isAllowed_.insert( ALPHA_LS_MAX_HYST_INV );
+    isAllowed_.insert( MAX_NUM_LS_IT_HYST_INV );
+    isAllowed_.insert( STOP_INV_LS_AT_LOCAL_MIN );
+    isAllowed_.insert( JAC_RESOLUTION_HYST_INV );
+    isAllowed_.insert( JAC_IMPLEMENTATION_HYST_INV );
+    isAllowed_.insert( TRUST_LOW_HYST_INV );
+    isAllowed_.insert( TRUST_MID_HYST_INV );
+    isAllowed_.insert( TRUST_HIGH_HYST_INV );
+
 		isAllowed_.insert( INITIAL_STATE );
     isAllowed_.insert( INITIAL_STATE_X );
     isAllowed_.insert( INITIAL_STATE_Y );

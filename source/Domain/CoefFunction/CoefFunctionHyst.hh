@@ -1134,19 +1134,30 @@ namespace CoupledField {
     Vector<Double> inputVector;
   };
   
-  struct ParameterLevenbergMarquardtInversion {
+  struct ParameterInversion {
+    // common parameter for inversion methods
     UInt inversionMethod;
     UInt maxNumIts;
-    UInt maxNumLSIts;
     Double tolH;
     Double tolB;
-    Double jacRes;
-    Double alphaLSStart;
+    // trust region regularization > for LM only
+    UInt maxNumRegIts;
+    Double alphaRegStart;
+    Double alphaRegMin;
+    Double alphaRegMax;
+    Double trustLow;
+    Double trustMid;
+    Double trustHigh;
+    // linesearch parameter > for Newton and KrylovNewton
+    UInt maxNumLSIts;    
     Double alphaLSMin;
     Double alphaLSMax;
+    
+    Double jacRes;
+    int jacImplementation;
     bool stopLineSearchAtLocalMin;
   };
-    
+   
   struct ParameterPreisachWeights {
     UInt numRows_;
     std::string weightType_;
@@ -1176,7 +1187,7 @@ namespace CoupledField {
 //  ParameterPreisachOperators POL_operatorParams_;
 //  ParameterPreisachOperators STRAIN_operatorParams_;
 //  
-//  ParameterLevenbergMarquardtInversion LM_inversion_;
+//  ParameterInversion LM_inversion_;
 //  InitialInput POL_initial_;
   
   struct ParameterPreisachOperators {
@@ -1343,7 +1354,7 @@ namespace CoupledField {
   ParameterPreisachOperators STRAIN_operatorParams_;
   
   bool inversionSet_;
-  ParameterLevenbergMarquardtInversion LM_inversion_;
+  ParameterInversion LM_inversion_;
   InitialInput POL_initial_;
   
     int POL_weightsAlreadyAdapted_; // for Mayergoyz case

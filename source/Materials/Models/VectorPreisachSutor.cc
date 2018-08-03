@@ -125,15 +125,7 @@ namespace CoupledField
       preisachSumTmp_[k] = Vector<Double>(dim_);
       preisachSumTmp_[k].Init();
     }
-    
-    // for inversion
-    INV_maxIter_ = 35;
-    INV_resTolH_ = 1e-12;
-    INV_resTolB_ = 1e-12;
-    INV_jacobiResolution_ = 1e-12;
-    INV_alphaLSStart_ = 0.25;
-    INV_angClipping_ = -1.0;
-    
+        
     anhyst_A_ = anhystA;
     anhyst_B_ = anhystB;
     anhyst_C_ = anhystC;

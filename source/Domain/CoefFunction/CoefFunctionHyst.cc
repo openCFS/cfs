@@ -1454,19 +1454,34 @@ namespace CoupledField {
       // inversion via LM > set parameter
       if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
         inversionSet_ = true;
-        Integer invMat, invLSIt, invMethod;
+        Integer invMat, invMethod, maxNumReg, maxNumLS;
+        
         material->GetScalar(invMat, MAX_NUM_IT_HYST_INV);
         LM_inversion_.maxNumIts = (UInt) invMat;
-        material->GetScalar(invLSIt, MAX_NUM_LS_IT_HYST_INV);
-        LM_inversion_.maxNumLSIts = (UInt) invLSIt;
+        
         material->GetScalar(invMethod, VEC_HYST_INV_METHOD);
         LM_inversion_.inversionMethod = (UInt) invMethod;
+        
         material->GetScalar(LM_inversion_.tolH, RES_TOL_H_HYST_INV, Global::REAL);
         material->GetScalar(LM_inversion_.tolB, RES_TOL_B_HYST_INV, Global::REAL);
-        material->GetScalar(LM_inversion_.jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
-        material->GetScalar(LM_inversion_.alphaLSStart, ALPHA_LS_HYST_INV, Global::REAL);
+        
+        material->GetScalar(maxNumReg, MAX_NUM_REG_IT_HYST_INV);
+        LM_inversion_.maxNumRegIts = (UInt) maxNumReg;
+        material->GetScalar(LM_inversion_.alphaRegStart, ALPHA_REG_HYST_INV, Global::REAL);
+        material->GetScalar(LM_inversion_.alphaRegMin, ALPHA_REG_MIN_HYST_INV, Global::REAL);
+        material->GetScalar(LM_inversion_.alphaRegMax, ALPHA_REG_MAX_HYST_INV, Global::REAL);  
+
+        material->GetScalar(LM_inversion_.trustLow, TRUST_LOW_HYST_INV, Global::REAL);
+        material->GetScalar(LM_inversion_.trustMid, TRUST_MID_HYST_INV, Global::REAL);
+        material->GetScalar(LM_inversion_.trustHigh, TRUST_HIGH_HYST_INV, Global::REAL);  
+        
+        material->GetScalar(maxNumLS, MAX_NUM_LS_IT_HYST_INV);
+        LM_inversion_.maxNumLSIts = (UInt) maxNumLS;
         material->GetScalar(LM_inversion_.alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
         material->GetScalar(LM_inversion_.alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);  
+        
+        material->GetScalar(LM_inversion_.jacImplementation, JAC_IMPLEMENTATION_HYST_INV, Global::REAL);
+        material->GetScalar(LM_inversion_.jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
         int stopLSAtLocalMin = 0;
         material->GetScalar(stopLSAtLocalMin, STOP_INV_LS_AT_LOCAL_MIN); 
         if(stopLSAtLocalMin == 1){
@@ -1816,11 +1831,25 @@ namespace CoupledField {
     if ( (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor") || (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") ){
       // inversion via LM > set parameter
       if (material_->GetMaterialDatabaseName() == "Electromagnetics") {
-        hyst_->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
-                LM_inversion_.tolH, LM_inversion_.tolB, 
-                LM_inversion_.jacRes, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,
-                LM_inversion_.stopLineSearchAtLocalMin,
-                POL_operatorParams_.angularClipping_);   
+        hyst_->SetParamsForInversion(
+          LM_inversion_.inversionMethod,
+          LM_inversion_.maxNumIts,
+          LM_inversion_.tolH,
+          LM_inversion_.tolB,
+          LM_inversion_.maxNumRegIts,
+          LM_inversion_.alphaRegStart,
+          LM_inversion_.alphaRegMin,
+          LM_inversion_.alphaRegMax,
+          LM_inversion_.trustLow,
+          LM_inversion_.trustMid,
+          LM_inversion_.trustHigh,
+          LM_inversion_.maxNumLSIts,
+          LM_inversion_.alphaLSMin,
+          LM_inversion_.alphaLSMax,
+          LM_inversion_.jacRes,
+          LM_inversion_.jacImplementation,
+          LM_inversion_.stopLineSearchAtLocalMin,
+          POL_operatorParams_.angularClipping_);   
       }
     }
     
@@ -5675,11 +5704,31 @@ namespace CoupledField {
                 "10: classical vector model (sutor2012) - Matrix implementation, only for reference \n"
                 "20: revised vector model (sutor2015) - Matrix implementation, only for reference \n")
 			}
-			hystTMP->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
-                LM_inversion_.tolH, LM_inversion_.tolB, 
-                LM_inversion_.jacRes, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,
-                LM_inversion_.stopLineSearchAtLocalMin,
-                POL_operatorParams_.angularClipping_);   
+      hystTMP->SetParamsForInversion(
+          LM_inversion_.inversionMethod,
+          LM_inversion_.maxNumIts,
+          LM_inversion_.tolH,
+          LM_inversion_.tolB,
+          LM_inversion_.maxNumRegIts,
+          LM_inversion_.alphaRegStart,
+          LM_inversion_.alphaRegMin,
+          LM_inversion_.alphaRegMax,
+          LM_inversion_.trustLow,
+          LM_inversion_.trustMid,
+          LM_inversion_.trustHigh,
+          LM_inversion_.maxNumLSIts,
+          LM_inversion_.alphaLSMin,
+          LM_inversion_.alphaLSMax,
+          LM_inversion_.jacRes,
+          LM_inversion_.jacImplementation,
+          LM_inversion_.stopLineSearchAtLocalMin,
+          POL_operatorParams_.angularClipping_); 
+      
+//			hystTMP->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
+//                LM_inversion_.tolH, LM_inversion_.tolB, 
+//                LM_inversion_.jacRes, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,
+//                LM_inversion_.stopLineSearchAtLocalMin,
+//                POL_operatorParams_.angularClipping_);   
       
 		} else if (POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") {			
       // basically a scalar model in multiple directions
@@ -5707,11 +5756,31 @@ namespace CoupledField {
               POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,
               POL_weightParams_.anhystOnly_,POL_operatorParams_.outputClipping_);
 			
-			hystTMP->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
-                LM_inversion_.tolH, LM_inversion_.tolB, 
-                LM_inversion_.jacRes, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,
-                LM_inversion_.stopLineSearchAtLocalMin,
-                POL_operatorParams_.angularClipping_);   
+      hystTMP->SetParamsForInversion(
+          LM_inversion_.inversionMethod,
+          LM_inversion_.maxNumIts,
+          LM_inversion_.tolH,
+          LM_inversion_.tolB,
+          LM_inversion_.maxNumRegIts,
+          LM_inversion_.alphaRegStart,
+          LM_inversion_.alphaRegMin,
+          LM_inversion_.alphaRegMax,
+          LM_inversion_.trustLow,
+          LM_inversion_.trustMid,
+          LM_inversion_.trustHigh,
+          LM_inversion_.maxNumLSIts,
+          LM_inversion_.alphaLSMin,
+          LM_inversion_.alphaLSMax,
+          LM_inversion_.jacRes,
+          LM_inversion_.jacImplementation,
+          LM_inversion_.stopLineSearchAtLocalMin,
+          POL_operatorParams_.angularClipping_); 
+      
+//			hystTMP->SetParamsForInversion(LM_inversion_.inversionMethod, LM_inversion_.maxNumIts, LM_inversion_.maxNumLSIts,
+//                LM_inversion_.tolH, LM_inversion_.tolB, 
+//                LM_inversion_.jacRes, LM_inversion_.alphaLSStart,LM_inversion_.alphaLSMin,LM_inversion_.alphaLSMax,
+//                LM_inversion_.stopLineSearchAtLocalMin,
+//                POL_operatorParams_.angularClipping_);   
 		} else {
 			EXCEPTION("Invalid model selected for inversion test");
 		}
@@ -5819,18 +5888,18 @@ namespace CoupledField {
         }
       }
       
-			
-			if ( (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor")||(POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") ) {
-				statistics << "LEVENBERG-MARQUARDT: " << std::endl;
-				statistics << "- max number of iterations: " << LM_inversion_.maxNumIts << std::endl;
-				statistics << "- tolerance wrt x: " << LM_inversion_.tolH << std::endl;
-				statistics << "- tolerance wrt y: " << LM_inversion_.tolB << std::endl;
-				statistics << "- FD-resolution for Jacobian: " << LM_inversion_.jacRes << std::endl;
-				statistics << "LINESEARCH: " << std::endl;
-				statistics << "- alpha start: " << LM_inversion_.alphaLSStart << std::endl;
-				statistics << "- alpha min: " << LM_inversion_.alphaLSMin << std::endl;
-				statistics << "- alpha max: " << LM_inversion_.alphaLSMax << std::endl;		
-			}
+//			
+//			if ( (POL_operatorParams_.methodName_ == "vectorPreisach_Sutor")||(POL_operatorParams_.methodName_ == "vectorPreisach_Mayergoyz") ) {
+//				statistics << "LEVENBERG-MARQUARDT: " << std::endl;
+//				statistics << "- max number of iterations: " << LM_inversion_.maxNumIts << std::endl;
+//				statistics << "- tolerance wrt x: " << LM_inversion_.tolH << std::endl;
+//				statistics << "- tolerance wrt y: " << LM_inversion_.tolB << std::endl;
+//				statistics << "- FD-resolution for Jacobian: " << LM_inversion_.jacRes << std::endl;
+//				statistics << "LINESEARCH: " << std::endl;
+//				statistics << "- alpha start: " << LM_inversion_.alphaLSStart << std::endl;
+//				statistics << "- alpha min: " << LM_inversion_.alphaLSMin << std::endl;
+//				statistics << "- alpha max: " << LM_inversion_.alphaLSMax << std::endl;		
+//			}
 		}
 		
 		/*
@@ -6142,6 +6211,7 @@ namespace CoupledField {
 			yOut.Init();
 			yOut.Add(1.0,hOut);
 			for(UInt j = 0; j < dim_; j++){
+        // note that in case of inversion, xIn is the RETRIEVED input!
 				yOut[j] += POL_eps_mu_SmallSignal_[j][j]*xIn[j];
 			}
 			

@@ -18,7 +18,7 @@
   <!--   Definition of hysterese model                                     -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_HystModelElec">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="elecPolarization" minOccurs="1">
         <xsd:complexType>
           <xsd:choice>
@@ -30,7 +30,7 @@
       </xsd:element>
       <xsd:element name="piezoCouplingAndStrains" minOccurs="0">
         <xsd:complexType>
-          <xsd:sequence>
+          <xsd:all>
             <xsd:element name="strainModeling" minOccurs="1">
               <xsd:complexType>
                 <xsd:choice>
@@ -132,14 +132,14 @@
                 </xsd:choice>
               </xsd:complexType>
             </xsd:element>         
-          </xsd:sequence>
+          </xsd:all>
         </xsd:complexType>
       </xsd:element>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>
           
   <xsd:complexType name="DT_HystModelMag">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="magPolarization" minOccurs="1">
         <xsd:complexType>
           <xsd:choice>
@@ -151,7 +151,7 @@
       </xsd:element>
       <xsd:element name="magstrictCouplingAndStrains" minOccurs="0">
         <xsd:complexType>
-          <xsd:sequence>
+          <xsd:all>
             <xsd:element name="strainModeling" minOccurs="1">
               <xsd:complexType>
                 <xsd:choice>
@@ -254,43 +254,43 @@
                 </xsd:choice>
               </xsd:complexType>
             </xsd:element>         
-          </xsd:sequence>
+          </xsd:all>
         </xsd:complexType>
       </xsd:element>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>        
               
   <xsd:complexType name="DT_MuDATParams">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="A" type="xsd:double" minOccurs="1"/>
       <xsd:element name="h" type="xsd:double" minOccurs="1"/>
       <xsd:element name="sigma" type="xsd:double" minOccurs="1"/>
       <xsd:element name="eta" type="xsd:double" minOccurs="1"/>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>
   
   <xsd:complexType name="DT_MuDATExtendedParams">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="A" type="xsd:double" minOccurs="1"/>
       <xsd:element name="h1" type="xsd:double" minOccurs="1"/>
       <xsd:element name="h2" type="xsd:double" minOccurs="1"/>
       <xsd:element name="sigma1" type="xsd:double" minOccurs="1"/>
       <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>
       <xsd:element name="eta" type="xsd:double" minOccurs="1"/>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>
   
   <xsd:complexType name="DT_MuDATStrainParams">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="c1" type="xsd:double" minOccurs="1"/>
       <xsd:element name="c2" type="xsd:double" minOccurs="1"/>
       <xsd:element name="c3" type="xsd:double" minOccurs="1"/>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>
   
   <xsd:complexType name="DT_StrainParams">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="1" default="1"/>
       <xsd:element name="betaCoefs" minOccurs="1">
@@ -301,20 +301,20 @@
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element> 
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>
   
   <xsd:complexType name="DT_AnhystereticParams">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="a" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="b" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="c" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="onlyAnhyst" type="xsd:boolean" minOccurs="1" default="false"/>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>  
     
   <xsd:complexType name="DT_HystWeights">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="dim_weights"  type="xsd:nonNegativeInteger" minOccurs="1"/>
       <xsd:element name="weightType" minOccurs="1">
         <xsd:complexType>
@@ -333,37 +333,74 @@
         </xsd:complexType>
       </xsd:element>
       <xsd:element name="anhystereticParameter" type="DT_AnhystereticParams" minOccurs="0"/>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>   
     
   <xsd:complexType name="DT_VecInversionParams">
-    <xsd:sequence>
-      <xsd:element name="InversionMethod" minOccurs="0">
+    <xsd:all>
+      <xsd:element name="InversionMethod" minOccurs="1">
         <xsd:complexType>
           <xsd:choice>
-            <xsd:element name="LevenbergMarquardt"/>
-            <xsd:element name="Newton">
+            <xsd:element name="LevenbergMarquardtWithTrustregion">
               <xsd:complexType>
-                <xsd:attribute name="stopLineSearchAtLocalMin" type="xsd:boolean" default="false"/>
+                <xsd:all>
+                  <xsd:element name="maxNumberRegularizationIterations" type="xsd:nonNegativeInteger" minOccurs="0" default="50"/>
+                  <xsd:element name="alphaRegStart" type="xsd:double" minOccurs="0" default="0.25"/>
+                  <xsd:element name="alphaRegMin" type="xsd:double" minOccurs="0" default="0.001953125"/>
+                  <xsd:element name="alphaRegMax" type="xsd:double" minOccurs="0" default="8192.0"/>
+                  <xsd:element name="trustRegionLow" type="xsd:double" minOccurs="0" default="0.15"/>
+                  <xsd:element name="trustRegionMid" type="xsd:double" minOccurs="0" default="0.35"/>
+                  <xsd:element name="trustRegionHigh" type="xsd:double" minOccurs="0" default="0.85"/>
+                  <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-12"/>
+                  <xsd:element name="jacobiImplementation">
+                    <xsd:complexType>
+                      <xsd:choice>
+                        <xsd:element name="ForwardBackwardDifferences"></xsd:element>
+                        <xsd:element name="CentralDifferences"></xsd:element>
+                        <xsd:element name="ForwardBackwardWithScaledDiagonal"></xsd:element>
+                      </xsd:choice>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:all>
               </xsd:complexType>
             </xsd:element>
-            <xsd:element name="JacobianFreeNewtonKrylov">
+            <xsd:element name="NewtonWithLinesearch">
               <xsd:complexType>
-                <xsd:attribute name="stopLineSearchAtLocalMin" type="xsd:boolean" default="false"/>
+                <xsd:all>
+                  <xsd:element name="numberOfLinesearchSteps" type="xsd:nonNegativeInteger" minOccurs="0" default="50"/>
+                  <xsd:element name="alphaLSMin" type="xsd:double" minOccurs="0" default="0.001"/>
+                  <xsd:element name="alphaLSMax" type="xsd:double" minOccurs="0" default="1.0"/>
+                  <xsd:element name="stopLinesearchAtLocalMin" type="xsd:boolean" default="false"/>
+                  <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-12"/>
+                  <xsd:element name="jacobiImplementation">
+                    <xsd:complexType>
+                      <xsd:choice>
+                        <xsd:element name="ForwardBackwardDifferences"></xsd:element>
+                        <xsd:element name="CentralDifferences"></xsd:element>
+                        <xsd:element name="ForwardBackwardWithScaledDiagonal"></xsd:element>
+                      </xsd:choice>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="JacobianFreeNewtonKrylovWithLinesearch">
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="numberOfLinesearchSteps" type="xsd:nonNegativeInteger" minOccurs="0" default="50"/>
+                  <xsd:element name="alphaLSMin" type="xsd:double" minOccurs="0" default="0.001"/>
+                  <xsd:element name="alphaLSMax" type="xsd:double" minOccurs="0" default="1.0"/>
+                  <xsd:element name="stopLinesearchAtLocalMin" type="xsd:boolean" default="false"/>
+                </xsd:all>
               </xsd:complexType>
             </xsd:element>
           </xsd:choice>
         </xsd:complexType>
       </xsd:element>
-      <xsd:element name="maxNumberOuterIterations" type="xsd:nonNegativeInteger" minOccurs="0" default="35"/>
-      <xsd:element name="residualTolH" type="xsd:double" minOccurs="0" default="1e-12"/>
-      <xsd:element name="residualTolB" type="xsd:double" minOccurs="0" default="1e-12"/>
-      <xsd:element name="jacobiResolution" type="xsd:double" minOccurs="0" default="1e-12"/>
-      <xsd:element name="maxNumberLinesearchIterations" type="xsd:nonNegativeInteger" minOccurs="0" default="100"/>
-      <xsd:element name="alphaRegStart" type="xsd:double" minOccurs="0" default="0.25"/>
-      <xsd:element name="alphaRegMin" type="xsd:double" minOccurs="0" default="0.001953125"/>
-      <xsd:element name="alphaRegMax" type="xsd:double" minOccurs="0" default="8192.0"/>
-    </xsd:sequence>
+      <xsd:element name="maxNumberOuterIterations" type="xsd:nonNegativeInteger" minOccurs="0" default="50"/>
+      <xsd:element name="residualTolH" type="xsd:double" minOccurs="1" default="1e-12"/>
+      <xsd:element name="residualTolB" type="xsd:double" minOccurs="1" default="1e-12"/>
+    </xsd:all>
   </xsd:complexType>  
          
   <xsd:complexType name="DT_initialElec">
@@ -380,7 +417,7 @@
   </xsd:complexType>
      
   <xsd:complexType name="DT_initialInOutState">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="Vector">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
@@ -390,11 +427,11 @@
         </xsd:simpleType>
       </xsd:element>
       <xsd:element name="scaleVectorBySaturation" type="xsd:boolean" minOccurs="1" default="true"/>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType> 
 
 <xsd:complexType name="DT_ScalarPreisachHystModelElec">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="dirPolarization" minOccurs="1">
@@ -414,11 +451,11 @@
         </xsd:documentation>
       </xsd:annotation>
       </xsd:element>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>
 
   <xsd:complexType name="DT_ScalarPreisachHystModelMag">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="dirPolarization" minOccurs="1">
@@ -441,11 +478,11 @@
         </xsd:documentation>
       </xsd:annotation>
       </xsd:element>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>
   
   <xsd:complexType name="DT_ScalarPreisachHystModelStrain">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="dirPolarization" minOccurs="1">
@@ -457,7 +494,7 @@
         </xsd:simpleType>
       </xsd:element> 
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>
   
   <xsd:complexType name="DT_VectorPreisachHystModelMayergoyzElec">    
@@ -511,17 +548,17 @@
   </xsd:complexType>  
     
   <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz_Isotropic">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="numDirections" type="xsd:nonNegativeInteger" minOccurs="1" default="11"/>
       <xsd:element name="ScalarModel" type="DT_VectorPreisachHystModelMayergoyz_Base" minOccurs="1"/>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType> 
   
   <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz_Anisotropic">
     <xsd:sequence>
       <xsd:element name="ScalarModelsForSingleDirection" minOccurs="1" maxOccurs="unbounded">
         <xsd:complexType>
-          <xsd:sequence>
+          <xsd:all>
             <xsd:element name="ScalarModel" type="DT_VectorPreisachHystModelMayergoyz_Base" minOccurs="1"/>
             <xsd:element name="direction" minOccurs="1">
               <xsd:simpleType>
@@ -531,7 +568,7 @@
                 </xsd:restriction>
               </xsd:simpleType>
             </xsd:element>
-          </xsd:sequence>
+          </xsd:all>
           <xsd:attribute name="nameTag" type="xsd:token"/>
         </xsd:complexType>
       </xsd:element> 
@@ -539,12 +576,12 @@
   </xsd:complexType>   
   
   <xsd:complexType name="DT_VectorPreisachHystModelMayergoyz_Base">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="weightsAdaptedToMayergoyzVectorModel" type="xsd:boolean" minOccurs="1" default="false"/>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType> 
   
   <xsd:complexType name="DT_MayergoyzClipping">
@@ -556,7 +593,7 @@
   </xsd:complexType>
            
   <xsd:complexType name="DT_VectorPreisachHystModelSutorMag">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="1"/>
@@ -592,20 +629,20 @@
       </xsd:element>
       <xsd:element name="debuggingParameter" minOccurs="0">
         <xsd:complexType>
-          <xsd:sequence>
+          <xsd:all>
             <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
             <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
             <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
             <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
             <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
-          </xsd:sequence>
+          </xsd:all>
         </xsd:complexType>
       </xsd:element>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>         
  
   <xsd:complexType name="DT_VectorPreisachHystModelSutorElec">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="1"/>
@@ -637,20 +674,20 @@
       </xsd:element>
       <xsd:element name="debuggingParameter" minOccurs="0">
         <xsd:complexType>
-          <xsd:sequence>
+          <xsd:all>
             <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="-1"/>
             <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-15"/>
             <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-15"/>
             <xsd:element name="printOut"  type="xsd:nonNegativeInteger" minOccurs="0" default="0"/>
             <xsd:element name="bmpResolution"  type="xsd:nonNegativeInteger" minOccurs="0"/>
-          </xsd:sequence>
+          </xsd:all>
         </xsd:complexType>
       </xsd:element>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>      
   
   <xsd:complexType name="DT_VectorPreisachHystModelSutorStrain">
-    <xsd:sequence>
+    <xsd:all>
       <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="evalVersion" type="DT_SutorModelVersion" minOccurs="1"/>
@@ -674,14 +711,14 @@
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="debuggingParameter" minOccurs="0">
         <xsd:complexType>
-          <xsd:sequence>
+          <xsd:all>
             <xsd:element name="angularClipping" type="xsd:double" minOccurs="0" default="1e-4"/>
             <xsd:element name="angularResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
             <xsd:element name="amplitudeResolution" type="xsd:double" minOccurs="0" default="1e-9"/>
-          </xsd:sequence>
+          </xsd:all>
         </xsd:complexType>
       </xsd:element>
-    </xsd:sequence>
+    </xsd:all>
   </xsd:complexType>            
                             
                                
