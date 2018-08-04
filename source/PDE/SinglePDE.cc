@@ -3681,24 +3681,24 @@ namespace CoupledField {
       factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
     }
     else if ( solType == MAG_POTENTIAL) {
-      PtrCoefFct permeability, permeabilityM, factorM, factorS, factorAdd;
+      PtrCoefFct permability, permeabilityM, permeabilityS;
       PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       PtrCoefFct constTwo = CoefFunction::Generate( mp_, Global::REAL, "2.0");
 
+      PtrCoefFct factorM, factorS, factorAdd, factorAddD2;
       if(additionalCoef){
-      // Per convention, master is the linear and slave the nonlinear region
-      // Get master and slave permeabilities
-      permeabilityM = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
-      // Compute the reluctivities
-      factorM = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeabilityM, CoefXpr::OP_DIV));
-      factorS = additionalCoef;
-      // And compute the average
-      factorAdd = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp( mp_, factorM, factorS, CoefXpr::OP_ADD ) );
-      factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, factorAdd, constTwo, CoefXpr::OP_DIV));
-
+        factor = additionalCoef;
       }else{
-      permeability = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
-      factor = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeability, CoefXpr::OP_DIV));
+        // Get master and slave permeabilities
+        permeabilityM = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
+        permeabilityS = materials_[nitscheIf->GetSlaveVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
+        // Compute the reluctivities
+        factorM = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeabilityM, CoefXpr::OP_DIV));
+        factorS = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeabilityS, CoefXpr::OP_DIV));
+        // And compute the average
+        factorAdd = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp( mp_, factorM, factorS, CoefXpr::OP_ADD ) );
+        factorAddD2 = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factorAdd, constTwo, CoefXpr::OP_DIV));
+        factor = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, factorAddD2, CoefXpr::OP_DIV));
       }
 
     }
