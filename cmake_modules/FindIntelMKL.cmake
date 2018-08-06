@@ -383,7 +383,7 @@ ELSE(WIN32)
   endif(NOT MKL_SOLVERMAKEFILE)
 
   if(NOT MKL_SOLVERMAKEFILE)
-    message(FATAL_ERROR "did not find example solver makefile")
+    message(FATAL_ERROR "Did not find example solver makefile. Have you sourced MKL in bashrc?")
   endif(NOT MKL_SOLVERMAKEFILE)
 
   #-----------------------------------------------------------------------------
