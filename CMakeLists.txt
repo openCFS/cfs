@@ -797,9 +797,7 @@ ENDIF(USE_CGNS)
 
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)
-IF(NOT MINGW)
-  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
-ENDIF()
+ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
 ADD_SUBDIRECTORY(source/DataInOut/ScatteredDataInOut)
 
 ADD_SUBDIRECTORY(source/Domain)
