@@ -303,34 +303,52 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
    // For the sparse matrix we require row_index(element number) , column index(neighbour idx), and weights array
 
    // Implementing this above in the neigbhor search will require use of critical sections. So lets just stick to looping over all elements and extracting
-//   StdVector<UInt> colInd;
-//   StdVector<UInt> rowPtr;
-//   StdVector<double> neighborWeights;
-//   int lastIndex=0;
-//
-//   rowPtr.Push_back(lastIndex);
-//   for (UInt i=0;i < data.GetSize(); i++){
-//     auto neighbours = data[i].simp->filter.Last().neighborhood;
-//     colInd.Push_back(i);
-//     neighborWeights.Push_back(1.0);
-//     for (UInt j=0;j<neighbours.GetSize();j++){
-//       colInd.Push_back(neighbours[j].neighbour->GetIndex());
-//       neighborWeights.Push_back(neighbours[j].weight);
-//
-//     }
-//     lastIndex +=neighbours.GetSize();
-//     rowPtr.Push_back(lastIndex);
-//   }
-//   CRS_Matrix<double> tempMat(data.GetSize(),data.GetSize(),neighborWeights.GetSize(),rowPtr.GetPointer(),colInd.GetPointer(),neighborWeights.GetPointer());
-
- //  space->filterMat_ = tempMat;
 
 
+  shared_ptr<Timer> assemble_mat = in->Get(ParamNode::SUMMARY)->Get("density_filt_assembly/timer")->AsTimer();
+  assemble_mat->SetSub();
+  assemble_mat->Start();
+  space->weightedSumVec_.Resize(data.GetSize());
+  space->filteredVec_.Resize(data.GetSize());
+//  space->designVec_.Resize(data.GetSize());
+  StdVector<UInt> colInd;
+  StdVector<UInt> rowPtr;
+  StdVector<double> neighborWeights;
+  int lastIndex=0;
+  rowPtr.Push_back(lastIndex);
+  for (UInt i=0;i < data.GetSize(); i++){
+   auto neighbours = data[i].simp->filter.Last().neighborhood;
+   colInd.Push_back(i);
+   neighborWeights.Push_back(1.0);
+//   space->designVec_[i]=data[i].GetPlainDesignValue();
+
+   for (UInt j=0;j<neighbours.GetSize();j++){
+     colInd.Push_back(neighbours[j].neighbour->GetIndex());
+     neighborWeights.Push_back(neighbours[j].weight);
+   }
+
+   space->weightedSumVec_[i]=((1/data[i].simp->filter.Last().CalcWeightSum(true)));
+   lastIndex +=neighbours.GetSize();
+   rowPtr.Push_back(lastIndex);
 
 
+  }
+  LOG_DBG2(ds)<<"Inverse Weighted sum "<<space->weightedSumVec_.ToString();
 
+  rowPtr.Last()=rowPtr[rowPtr.GetSize()-2];
 
+  //  assert(inverseWeightedSum == space->weightedSumVec_);
+  CRS_Matrix<double> tempMat(data.GetSize(),data.GetSize(),neighborWeights.GetSize(),rowPtr.GetPointer(),colInd.GetPointer(),neighborWeights.GetPointer());
+  space->filterMat_ = tempMat;
+//  space->filterMat_.Mult(space->designVec_,space->filteredVec_);
 
+//  LOG_DBG2(ds)<<"Unweighted Filtered Design"<<space->filteredVec_.ToString();
+//  for (UInt i=0;i<space->filteredVec_.GetSize();i++){
+//    space->filteredVec_[i]=space->filteredVec_[i]*space->weightedSumVec_[i];
+//  }
+//  LOG_DBG2(ds)<<"Weighted Filtered Design"<<space->filteredVec_.ToString();
+
+  assemble_mat->Stop();
   timer->Stop();
 }
 

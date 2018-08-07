@@ -356,6 +356,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
         if(!Contains(domain->GetGrid()->regionData[r].id))
           RegisterPseudoDesignRegion(domain->GetGrid()->regionData[r].id, design[d].design);
   }
+
+
+
+
 }
 
 DesignSpace::~DesignSpace(){
@@ -1233,6 +1237,9 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
 
 int DesignSpace::ReadDesignFromExtern(const Vector<double>& ext_design)
 {
+
+
+
   bool new_design = false;
   const unsigned int nd = design.GetSize();
   unsigned int s = 0;

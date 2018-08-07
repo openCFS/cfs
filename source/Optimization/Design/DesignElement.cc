@@ -933,12 +933,25 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 
 double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const
 {
+
+  auto space =  de_->GetDesignSpace();
+
+  space->WriteDesignToExtern(space->designVec_);
+  std::cout <<space->designVec_.GetSize();
+
+  space->filterMat_.Mult(space->designVec_,space->filteredVec_);
+  for (UInt i=0;i<space->filteredVec_.GetSize();i++){
+    space->filteredVec_[i]=space->filteredVec_[i]*space->weightedSumVec_[i];
+  }
+
+
   // We filter over this element and the neighbors.
-  assert(de_->simp != NULL);
   assert(sp == DesignElement::DESIGN);
   assert(!de_->simp->filter.IsEmpty());
+  assert(de_->simp != NULL);
 
-
+//  auto space=de_->GetDesignSpace();
+// return space->filteredVec_[de_->GetIndex()];
 
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];

@@ -131,6 +131,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
 
 void OptimalityCondition::SolveProblem()
 {
+
   // we measure the optimizer in the loops only
   optimizer_timer_->Stop();
 
@@ -149,14 +150,13 @@ void OptimalityCondition::SolveProblem()
 
 
     optimization->SolveAdjointProblems();
-
     eval_grad_obj_timer_->Start();
     optimization->CalcObjectiveGradient(NULL);
     eval_grad_obj_timer_->Stop();
     
     // reset values of the constraint gradients
     optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
-    
+
     if(optimization->constraints.view->GetNumberOfActiveConstraints() > 0) {
       eval_grad_const_timer_->Start();
       optimization->CalcConstraintGradient(NULL);
@@ -200,6 +200,7 @@ void OptimalityCondition::SolveProblem()
     Optimization::context->pde->GetAssemble()->SetAllReassemble();
     optimization->SolveStateProblem();
 
+
     // calc the objective for the logging in CommitIteration(),
     // for the optimality condition it is not required.
 
@@ -212,7 +213,7 @@ void OptimalityCondition::SolveProblem()
     optimization->CommitIteration();
     iter++;
   }
-  
+
   PtrParamNode in = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
   
   if(iter >= max_iter-1) 

@@ -18,11 +18,10 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/Transform.hh"
 #include "Utils/StdVector.hh"
-#include <boost/numeric/ublas/matrix_sparse.hpp>
+#include "MatVec/CRS_Matrix.hh"
 
 
 
-typedef boost::numeric::ublas::compressed_matrix<double> boostSparseMat;
 
 
 namespace CoupledField
@@ -531,8 +530,10 @@ namespace CoupledField
      unsigned int elements;
 
      // the filterMat is a square matrix , size = number of design element
-	 boostSparseMat filterMat_;
-
+	 CRS_Matrix<double> filterMat_;
+	 Vector<double> designVec_;
+	 Vector<double> weightedSumVec_;
+	 Vector<double> filteredVec_;
     protected:
 
 
