@@ -3681,14 +3681,28 @@ namespace CoupledField {
       factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
     }
     else if ( solType == MAG_POTENTIAL) {
-      PtrCoefFct permability;
+      PtrCoefFct permeability, permeabilityM, permeabilityS, factorM, factorS, factorAdd;
       PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+      PtrCoefFct constOneC = CoefFunction::Generate( mp_, Global::COMPLEX, "1.0");
+      PtrCoefFct constTwo = CoefFunction::Generate( mp_, Global::REAL, "2.0");
 
       if(additionalCoef){
-        factor = additionalCoef;
+      // Per convention, master is the linear and slave the nonlinear region
+      // Get master and slave permeabilities
+      //permeabilityM = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
+      // Compute the reluctivities
+      //factorM = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeabilityM, CoefXpr::OP_DIV));
+      //factorS = additionalCoef;
+      // And compute the average
+      //factorAdd = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp( mp_, factorM, factorS, CoefXpr::OP_ADD ) );
+      //factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, additionalCoef, constTwo, CoefXpr::OP_DIV));
+
+      permeability = additionalCoef;
+      factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, constOneC, permeability, CoefXpr::OP_DIV));
+
       }else{
-        permability = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
-        factor = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permability, CoefXpr::OP_DIV));
+        permeability = materials_[nitscheIf->GetSlaveVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
+        factor = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeability, CoefXpr::OP_DIV));
       }
 
     }

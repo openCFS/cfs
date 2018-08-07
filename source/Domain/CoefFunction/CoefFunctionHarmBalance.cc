@@ -348,29 +348,47 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
     RegionIdType elemReg = lpm.ptEl->regionId;
     int harmonic = this->mp_->Eval(harmonicHandle_);
 
+
     if( harmonic == maxInt_ ){
       // For the initial multiharmonic iteration
       // loop over regions and get the region of the lpm
       for(auto reg : hbRegion_){
-        if( reg.region == elemReg){
-          reg.linNuCoefMap->GetScalar(coefScalReal, lpm);
-          coefScal = (Complex)coefScalReal;
-          break;
+        if (dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl) != nullptr){
+          const MortarNcSurfElem* e = dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl);
+          if( reg.region == e->ptSlave->ptVolElems[0]->regionId ){
+            reg.linNuCoefMap->GetScalar(coefScalReal, lpm);
+            coefScal = (Complex)coefScalReal;
+            break;
+          }
+        }else{
+          if( reg.region == elemReg){
+            reg.linNuCoefMap->GetScalar(coefScalReal, lpm);
+            coefScal = (Complex)coefScalReal;
+            break;
+          }
         }
       }
     }else{
-
       const Vector<Complex>& fR = freqTimeRes_.GetFreqResult( N_ + harmonic);
-      coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ] * 0.5;
-      // If harmonic is negative, we need conjugate ḩat{nu}
-      if(harmonic < 0){
-        std::conj(coefScal);
+      //TODO I know this is pure crap...needs to be handled by oop
+      if (dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl) != nullptr){
+        const MortarNcSurfElem* e = dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl);
+        coefScal = fR[ e->ptSlave->ptVolElems[0]->elemNum ] * 0.5;
+        // If harmonic is negative, we need conjugate ḩat{nu}
+        if(harmonic < 0) std::conj(coefScal);
+        LOG_DBG(coeffctharmbalance) <<"nu for Nitsche region " << ptGrid_->GetRegionName(e->ptSlave->ptVolElems[0]->regionId)<<" in harmonic "<< harmonic <<" = " <<coefScal;
+      }else{
+        coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ] * 0.5;
+        // If harmonic is negative, we need conjugate ḩat{nu}
+        if(harmonic < 0) std::conj(coefScal);
+        LOG_DBG(coeffctharmbalance) <<"nu for region " << ptGrid_->GetRegionName(elemReg)<<" in harmonic "<< harmonic <<" = " <<coefScal;
       }
-
-      LOG_DBG(coeffctharmbalance) <<"nu for region " << ptGrid_->GetRegionName(elemReg)<<" in harmonic "<< harmonic <<" = " <<coefScal;
-
     }
+
   }
+
+
+
 
   template<class T>
   void CoefFunctionHarmBalance<T>::
