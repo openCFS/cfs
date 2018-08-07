@@ -10,6 +10,7 @@
 #
 # On Unix  we determine the  required linker flags by  compiling one of  the MKL
 # examples and reading the flags from the Makefile output (cf. below).
+# another option: https://software.intel.com/en-us/articles/intel-mkl-link-line-advisor
 #-------------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
