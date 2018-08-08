@@ -5448,6 +5448,7 @@ namespace CoupledField {
     std::ofstream angularResults_p;
     std::ofstream angularResults_y;
 		std::ofstream performance;
+    std::ofstream orientationTowardsExcitation_p;
 		
 		std::stringstream statistics_name;
 		statistics_name << name << "_statistics";
@@ -5482,6 +5483,9 @@ namespace CoupledField {
 		std::stringstream performance_name;
 		performance_name << name << "_performance";		  
 		
+    std::stringstream orientation_name;
+		orientation_name << name << "_projectedCoords_p";	
+
 		if(writeResultsToFile){
 			results_x.open(results_name_x.str());
       results_xp.open(results_name_xp.str());
@@ -5490,6 +5494,7 @@ namespace CoupledField {
       angularResults_x.open(angularResults_name_x.str());
       angularResults_p.open(angularResults_name_p.str());
       angularResults_y.open(angularResults_name_y.str());
+      orientationTowardsExcitation_p.open(orientation_name.str());
 		}
     
 		if(printStatistics){
@@ -5526,6 +5531,7 @@ namespace CoupledField {
 		Vector<Double> hIn = Vector<Double>(dim_);
 		Vector<Double> yIn = Vector<Double>(dim_);
 		
+    Vector<Double> xInPrev = Vector<Double>(dim_);
 		Vector<Double> xPrev = Vector<Double>(dim_);
 		Vector<Double> hPrev = Vector<Double>(dim_);
 		Vector<Double> yPrev = Vector<Double>(dim_);
@@ -5933,6 +5939,7 @@ namespace CoupledField {
         angularResults_y << "#Number abs(yIn) atan2(yIn[1]/yIn[0])*180/pi abs(yOut) atan2(yOut[1]/yOut[0])*180/pi" << std::endl;
         angularResults_y << "# > yIn[0],yIn[1] = x and y components of output of hyst operator to xIn; used as input for inversion" << std::endl;
         angularResults_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;
+ 
 			} else {
         results_x << "#Number xIn[0] xIn[1]" << std::endl;
         results_x << "# > xIn[0],xIn[1] = x and y components of input; given by test signal" << std::endl;
@@ -5951,8 +5958,18 @@ namespace CoupledField {
         
         angularResults_y << "#Number abs(yOut) atan2(yOut[1]/yOut[0])*180/pi" << std::endl;
         angularResults_y << "# > yOut[0],yOut[1] = x and y components computed from xOut" << std::endl;  
+
 			}
-			
+      
+      orientationTowardsExcitation_p << "# Projetion of p_x and p_y to p_perpendicular and p_parallel" << std::endl;
+      orientationTowardsExcitation_p << "# with p_parallel = p along excitation axis " << std::endl;
+      orientationTowardsExcitation_p << "# and p_perpendicular = p perpendicualr to excitation axis " << std::endl;
+      orientationTowardsExcitation_p << "# Columns: " << std::endl;
+      orientationTowardsExcitation_p << "# 1. Testnumber " << std::endl;
+      orientationTowardsExcitation_p << "# 2. Excitation amplitude " << std::endl;
+      orientationTowardsExcitation_p << "# 3. Excitation angle towards x-axis " << std::endl;
+      orientationTowardsExcitation_p << "# 4. p parallel to excitation " << std::endl;
+      orientationTowardsExcitation_p << "# 5. p perpendicular to excitation " << std::endl;
 		}
 		
 		
@@ -5974,10 +5991,12 @@ namespace CoupledField {
 			
 			// set previous state
 			if(i > 0){
+        xInPrev = xIn; 
 				xPrev = xOut; // xOut = retrieved output from inversion; only set and used in case of testInversion
 				hPrev = hOut; // hOut = output of hyst operator from forward computation with overwrite = true
 				yPrev = yOut; // yOut = calculated y = h + eps*x from computation with overwrite = true
 			} else {
+        xInPrev.Init();
 				xPrev.Init();
 				hPrev.Init();
 				yPrev.Init();
@@ -6178,8 +6197,29 @@ namespace CoupledField {
         results_s << i+1 << " " << std::setprecision(9) << S_irr.ToString() << std::endl;
         results_xps << i+1 << " " << std::setprecision(9) << xIn.ToString() << " " << hOutForStrains.ToString() << " " << S_irr.ToString() << std::endl;
       }
-      results_xp << i+1 << " " << std::setprecision(9) << xIn.ToString() << " " << hOut.ToString() << std::endl;
-      
+      if(writeResultsToFile){
+        results_xp << i+1 << " " << std::setprecision(9) << xIn.ToString() << " " << hOut.ToString() << std::endl;
+        
+        Double xAmpl = xIn.NormL2();
+        Double xAngle = std::atan2(xIn[1],xIn[0])/M_PI*180;
+        
+        Vector<Double> xDir = Vector<Double>(dim_);
+        xDir.Init();
+        if(xAmpl != 0){
+          xDir.Add(1.0/xAmpl,xIn);
+        } else {
+          Double xAmplOld = xInPrev.NormL2();
+          if(xAmplOld != 0){
+            xDir.Add(1.0/xAmplOld,xInPrev);
+          } 
+        }
+        Double pParallel = hOut.Inner(xDir);
+        Vector<Double> pPerpendicularVec = Vector<Double>(dim_);
+        pPerpendicularVec.Add(1.0,hOut,-pParallel,xDir);
+        Double pPerpendicular = pPerpendicularVec.NormL2();
+        
+        orientationTowardsExcitation_p << i+1 << " " << std::setprecision(9) << xAmpl << " " << xAngle << " " << pParallel << " " << pPerpendicular << std::endl;
+      }
 			/*
        * 4. Check result
        * > only for inversion test; for forward test, we do not have a
@@ -6428,6 +6468,7 @@ namespace CoupledField {
       angularResults_x.close();
       angularResults_p.close();
       angularResults_y.close();
+      orientationTowardsExcitation_p.close();
 		}
     if(outputIrrStrains){
       results_s.close();

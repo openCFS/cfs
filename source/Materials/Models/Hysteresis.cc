@@ -1328,7 +1328,9 @@ namespace CoupledField
         // and false if it is accepted
         return false;
       } else {
-        EXCEPTION("Projected linsearch was not successful!");
+        dx.Init();
+        dx.Add(1.0,xProjected_jj,-1.0,xk);
+//        EXCEPTION("Projected linsearch was not successful!");
       }
       
     }
