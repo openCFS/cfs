@@ -18,7 +18,6 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/Transform.hh"
 #include "Utils/StdVector.hh"
-#include "MatVec/CRS_Matrix.hh"
 
 
 
@@ -216,7 +215,7 @@ namespace CoupledField
       * (only doubles) where we have a StdVector of the complex DesignElement.</p>
       * @param space_in the design space (in variable). Size is GetDesignSpaceSize()
       * @return the design_id which is the old one if space_in did not change the design. */
-     int ReadDesignFromExtern(const Vector<double>& ext_design);
+     virtual int ReadDesignFromExtern(const Vector<double>& ext_design);
      
      /** Compare the design with the present. Does not change anything!
       * @return true if the designs are equal and ReadDesignFromExtern() would give the old design id */
@@ -529,11 +528,6 @@ namespace CoupledField
       * data size = num of design * num region elements */
      unsigned int elements;
 
-     // the filterMat is a square matrix , size = number of design element
-	 CRS_Matrix<double> filterMat_;
-	 Vector<double> designVec_;
-	 Vector<double> weightedSumVec_;
-	 Vector<double> filteredVec_;
     protected:
 
 
