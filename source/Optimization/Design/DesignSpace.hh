@@ -18,6 +18,7 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/Transform.hh"
 #include "Utils/StdVector.hh"
+#include "MatVec/CRS_Matrix.hh"
 
 namespace CoupledField
 {
@@ -34,6 +35,17 @@ namespace CoupledField
   struct MultiMaterial;
   class Context;
   class LocalElementCache;
+  struct DensityFilterMat;
+
+
+  struct DensityFilterMat
+    {
+      Vector<double> inv_weighted_sum_;
+      Vector<double> filtered_vec_;
+      CRS_Matrix<double> filter_mat_;
+      bool filter_mat_set_ = false;
+      void AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbour);
+    };
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
@@ -523,6 +535,15 @@ namespace CoupledField
       * data size = num of design * num region elements */
      unsigned int elements;
 
+     Vector<double> inv_weighted_sum_;
+     Vector<double> filtered_vec_;
+     CRS_Matrix<double> filter_mat_;
+     bool filter_mat_set_ = false;
+     DensityFilterMat density_filter_;
+
+
+
+
     protected:
 
 
@@ -631,6 +652,8 @@ namespace CoupledField
      boost::shared_ptr<Timer> write_gradient_timer_;
 
      ErsatzMaterial::Method method_;
+
+
   };
 
 
@@ -652,6 +675,10 @@ namespace CoupledField
     /** this is a list of materials. One for elasticity and three for piezoelectricity */
     StdVector<std::pair<BaseMaterial*, MaterialClass> > material;
   };
+
+
+
+
 
 
 } // end of namespace

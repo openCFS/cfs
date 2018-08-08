@@ -30,6 +30,8 @@
 #include "Utils/Timer.hh"
 #include "Utils/tools.hh"
 #include <def_use_openmp.hh>
+#include "MatVec/CRS_Matrix.hh"
+
 
 #ifdef USE_OPENMP
   #include <omp.h>
@@ -204,8 +206,9 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   shared_ptr<Timer> timer = in->Get("timer")->AsTimer();
   timer->Start();
 
-  double avg_radius = 0;
-  double avg_neighbours = 0;
+  double sum_radius = 0;
+  int sum_neighbours = 0;
+
 
   // avoids multiple filter radius warning
   bool done = true;
@@ -236,7 +239,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     // don't do it in for-loop, thread local vector
     StdVector<Filter::NeighbourElement> neighbors;
 
-    #pragma omp for schedule(dynamic) reduction(+:avg_radius,avg_neighbours) firstprivate(radius)
+    #pragma omp for schedule(dynamic) reduction(+:sum_radius,sum_neighbours) firstprivate(radius)
     for(unsigned int e = start; e < end; e++)
     {
       DesignElement* de = &data[e];
@@ -283,8 +286,8 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       // save neighborhood by copy constructor
       de->simp->filter.Last().neighborhood = neighbors;
 
-      avg_radius += radius;
-      avg_neighbours += neighbors.GetSize();
+      sum_radius += radius;
+      sum_neighbours += neighbors.GetSize();
       if(done && neighbors.GetSize() > 1000) {
         #pragma omp critical
         in->SetWarning("Filter radius too large. Neighborhood for some elements is bigger than 1000!");
@@ -294,9 +297,41 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     } // end for loop
   }
 
-  WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours, rex == 0); // goes into the appended filters/filter
+  WriteFilterInfo(pn, in, ref, sum_radius, sum_neighbours, rex == 0); // goes into the appended filters/filter
 
   timer->Stop();
+
+
+
+  space->density_filter_.AssembleFilterMatrix(data,sum_neighbours);
+
+
+//  LOG_DBG2(ds)<<"Inverse Weighted sum "<<space->inv_weighted_sum_.ToString();
+//
+//
+//
+//  LOG_DBG2(ds)<<"col Index"<<colInd.ToString();
+//  LOG_DBG2(ds)<<"Row ptr"<<rowPtr.ToString();
+//  LOG_DBG2(ds)<<"Row ptr Size"<<rowPtr.GetSize();
+//  LOG_DBG2(ds)<<"Matrix rows"<<space->filter_mat_.GetNumRows();
+//  LOG_DBG2(ds)<<"Matrix cols"<<space->filter_mat_.GetNumCols();
+//  LOG_DBG2(ds)<<"Matrix nnz"<<space->filter_mat_.GetNnz();
+//
+
+  //  space->filterMat_.Mult(space->designVec_,space->filteredVec_);
+
+  //  LOG_DBG2(ds)<<"Unweighted Filtered Design"<<space->filteredVec_.ToString();
+  //  for (UInt i=0;i<space->filteredVec_.GetSize();i++){
+  //    space->filteredVec_[i]=space->filteredVec_[i]*space->weightedSumVec_[i];
+  //  }
+  //  LOG_DBG2(ds)<<"Weighted Filtered Design"<<space->filteredVec_.ToString();
+
+
+  space->filter_mat_set_ = true;
+
+
+
+
 }
 
 

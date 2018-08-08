@@ -576,10 +576,10 @@ namespace CoupledField {
                                                const StdVector<T>& data){
 
     // Check that no pattern was allocated
-    if ( rowPtr_ != NULL || colInd_ != NULL || patternPool_ != NULL ||
-        this->nrows_ != (rowP.GetSize() - 1) ) {
-      EXCEPTION( "There seems to already be a sparsity pattern!" );
-    }
+//    if ( rowPtr_ != NULL || colInd_ != NULL || patternPool_ != NULL ||
+//        this->nrows_ != (rowP.GetSize() - 1) ) {
+//      EXCEPTION( "There seems to already be a sparsity pattern!" );
+//    }
 
     //if(this->nrows_ != (rowP.GetSize() - 1) ) EXCEPTION("CRS_Matrix: rowPointer-1 has other size than number of rows!!")
 

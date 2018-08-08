@@ -356,6 +356,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
         if(!Contains(domain->GetGrid()->regionData[r].id))
           RegisterPseudoDesignRegion(domain->GetGrid()->regionData[r].id, design[d].design);
   }
+
+
 }
 
 DesignSpace::~DesignSpace(){
@@ -1233,6 +1235,7 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
 
 int DesignSpace::ReadDesignFromExtern(const double* space)
 {
+
   bool new_design = false;
   const unsigned int nd = design.GetSize();
   unsigned int s = 0;
@@ -2047,6 +2050,63 @@ BaseMaterial* MultiMaterial::GetMultiMaterial(const MaterialClass mc)
   BaseMaterial* mat = matLoader->LoadMaterial(name, mc);
   material.Push_back(std::make_pair(mat, mc));
   return mat;
+}
+
+
+
+void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbours){
+
+  // We just get all the design elements and for each filter create a sparse matrix
+     // For the sparse matrix we require row_index(element number) , column index(neighbour idx), and weights array
+     // Implementing this above in the neigbhor search will require use of critical sections. So lets just stick to looping over all elements and extracting
+
+    int num_elem = data.GetSize();
+    int nnz = (sum_neighbours+num_elem);
+    this->filter_mat_.SetSize(num_elem,num_elem,nnz);
+    UInt *colPointer=this->filter_mat_.GetColPointer();
+    UInt *rowPointer=this->filter_mat_.GetRowPointer();
+    double *dataPtr=this->filter_mat_.GetDataPointer();
+    this->inv_weighted_sum_.Resize(num_elem);
+    this->filtered_vec_.Resize(num_elem);
+    int lastIndex=0;
+    rowPointer[0]=lastIndex;
+    for (UInt i=0;i < data.GetSize(); i++){
+     auto neighbours = data[i].simp->filter.Last().neighborhood;
+     colPointer[lastIndex]=i;
+     dataPtr[lastIndex]=1.0;
+     for (UInt j=0;j<neighbours.GetSize();j++){
+       colPointer[lastIndex+j+1]=neighbours[j].neighbour->GetIndex();
+       dataPtr[lastIndex+j+1]=neighbours[j].weight;
+     }
+     this->inv_weighted_sum_[i]=((1/data[i].simp->filter.Last().CalcWeightSum(true)));
+     lastIndex +=(neighbours.GetSize()+1); // Since Neighbours doesn't include the own element
+     rowPointer[i+1]=lastIndex;
+    }
+
+//    LOG_DBG2(ds)<<"Inverse Weighted sum "<<space->inv_weighted_sum_.ToString();
+//
+//
+//
+//
+//    LOG_DBG2(ds)<<"col Index"<<colInd.ToString();
+//    LOG_DBG2(ds)<<"Row ptr"<<rowPtr.ToString();
+//    LOG_DBG2(ds)<<"Row ptr Size"<<rowPtr.GetSize();
+//    LOG_DBG2(ds)<<"Matrix rows"<<space->filter_mat_.GetNumRows();
+//    LOG_DBG2(ds)<<"Matrix cols"<<space->filter_mat_.GetNumCols();
+//    LOG_DBG2(ds)<<"Matrix nnz"<<space->filter_mat_.GetNnz();
+
+
+  //  space->filterMat_.Mult(space->designVec_,space->filteredVec_);
+
+  //  LOG_DBG2(ds)<<"Unweighted Filtered Design"<<space->filteredVec_.ToString();
+  //  for (UInt i=0;i<space->filteredVec_.GetSize();i++){
+  //    space->filteredVec_[i]=space->filteredVec_[i]*space->weightedSumVec_[i];
+  //  }
+  //  LOG_DBG2(ds)<<"Weighted Filtered Design"<<space->filteredVec_.ToString();
+
+//    assemble_mat->Stop();
+//    timer->Stop();
+    filter_mat_set_ = true;
 }
 
 
