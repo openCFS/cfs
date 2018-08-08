@@ -358,6 +358,11 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   }
 
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> DensityFilterMat
 }
 
 DesignSpace::~DesignSpace(){
@@ -1233,7 +1238,7 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
 }
 
 
-int DesignSpace::ReadDesignFromExtern(const double* space)
+int DesignSpace::ReadDesignFromExtern(const Vector<double>& ext_design)
 {
 
   bool new_design = false;
@@ -1253,7 +1258,7 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
       {
         for(unsigned int d = cur_reg.base; d < u; d++)
         {
-          const double v = space[s] * scaling + translation;
+          const double v = ext_design[s] * scaling + translation;
           if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
             new_design = true;
 
@@ -1264,7 +1269,7 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
       }
       else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS)
       { // in FIXED case, nothing is done
-        const double v = space[s] * scaling + translation;
+        const double v = ext_design[s] * scaling + translation;
         for(unsigned int d = cur_reg.base; d < u; d++)
         {
           if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
@@ -1294,12 +1299,8 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
 
   return design_id;
 }
-int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)
-{
-  return ReadDesignFromExtern(space.GetPointer());
-}
 
-bool DesignSpace::CompareDesign(const double* space)
+bool DesignSpace::CompareDesign(const Vector<double>& ext_design)
 {
   const unsigned int nd = design.GetSize();
   unsigned int s = 0;
@@ -1313,7 +1314,7 @@ bool DesignSpace::CompareDesign(const double* space)
       const unsigned int u = cur_reg.base + cur_reg.elements;
       if(cur_reg.constant == VARIABLE) {
         for(unsigned int d = cur_reg.base; d < u; d++){
-          const double v = space[s] * scaling + translation;
+          const double v = ext_design[s] * scaling + translation;
           if(data[d].GetDesign(DesignElement::PLAIN) != v) {
             return(false);
           }
@@ -1322,7 +1323,7 @@ bool DesignSpace::CompareDesign(const double* space)
           s++; // advance in every step
         } // for d
       }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS){ // in FIXED case, nothing is done
-        const double v = space[s] * scaling + translation;
+        const double v = ext_design[s] * scaling + translation;
         for(unsigned int d = cur_reg.base; d < u; d++){
           if(data[d].GetDesign(DesignElement::PLAIN) != v) {
             return(false);

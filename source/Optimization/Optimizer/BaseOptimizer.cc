@@ -97,12 +97,12 @@ void BaseOptimizer::Scale::CalcAutoscale()
   // evaluate with the current (initial) design. Use this temporary gradient space
   StdVector<double> grad(base_->optimization->GetDesign()->GetNumberOfVariables());
   // make a temporary design as a copy from design space to copy it back there :) - Fabian: what is copied back??
-  StdVector<double> data(grad.GetSize());
+  Vector<double> data(grad.GetSize());
   // copy the design to our temporary space
   int design_id = base_->optimization->GetDesign()->WriteDesignToExtern(data.GetPointer());
 
   // evaluate the the gradient -> will be cheap in restart case
-  bool good = base_->EvalGradObjective(grad.GetSize(), data.GetPointer(), false, grad);
+  bool good = base_->EvalGradObjective(data, false, grad);
   if(!good) EXCEPTION("internal error"); // needs to be good as tol = set to 0.0;
   assert(opt_scaling.value != 0.0);
   // reset the tolerance
@@ -314,8 +314,9 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 }
 
 
-double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
+double BaseOptimizer::EvalObjective( Vector<double>& desVec, bool cfs_scale)
 {
+  int n = desVec.GetSize();
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
   // we might come from another eval, then the optimizer is already stopped and we must not restart it
   bool restart_timer = optimizer_timer_->IsRunning();
@@ -325,8 +326,8 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   eval_obj_timer_->Start();
 
   // set the design and see if it is a new one
-  int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
-  LOG_DBG(optimizer) << " set new design: avg " <<  Average(x, n)  << " std_dev = " << StandardDeviation(x, n) << " -> " << new_design;
+  int new_design = optimization->GetDesign()->ReadDesignFromExtern(desVec);
+  LOG_DBG(optimizer) << " set new design: avg " <<  desVec.Avg()  << " std_dev = " << StandardDeviation(desVec.GetPointer(), desVec.GetSize()) << " -> " << new_design;
 
   bool need_eval;
   
@@ -359,13 +360,13 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 
   double ret = cfs_scale ? objective->scaling.value * sov : sov;
 
-  LOG_DBG(optimizer) << "EvalObjective: x_avg=" << Average(x, n) 
-                     << " std_dev=" << StandardDeviation(x, n) 
+  LOG_DBG(optimizer) << "EvalObjective: x_avg=" <<desVec.Avg()
+                     << " std_dev=" << StandardDeviation(desVec.GetPointer(), n)
                      << " is_new=" << need_eval << " -> "
                      << " ov=" << design_.value << " sov=" << sov
                      << " scaled=" << ret;
   
-  LOG_DBG3(optimizer) << "x=" << StdVector<double>::ToString(n, x);
+  LOG_DBG3(optimizer) << "x=" << desVec.ToString();
 
   eval_obj_timer_->Stop();
   if(restart_timer)
@@ -384,7 +385,10 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
   // The function has to be evaluated before the gradient can be computed
   // This is true most times, as usually the rhs of the adjoint problem depends on the solution
   // On the other hand, it is has usually been called by the Optimizer before and so generates no cost. (But one cannot rely on this behavior.)
-  EvalObjective(n, x, cfs_scale);
+  Vector<double> desVec;
+  desVec.Replace(n,const_cast<double*>(x),false);
+
+  EvalObjective(desVec, cfs_scale);
   
   bool need_eval = design_.design_id != design_.gradient_design_id; 
   
@@ -397,12 +401,12 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
   return(need_eval);  
 }
 
-bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f)
+bool BaseOptimizer::EvalGradObjective(Vector<double>& x, bool cfs_scale, StdVector<double>& grad_f)
 {
   optimizer_timer_->Stop();
-
+  int n = grad_f.GetSize();
   // might trigger EvalObjective so start timer afterwards
-  bool need_eval = SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
+  bool need_eval = SolveAdjointProblemsIfNeeded(n, x.GetPointer(), cfs_scale);
 
   eval_grad_obj_timer_->Start();
 
@@ -414,9 +418,12 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
   grad_f.window.Set(0, n);
   optimization->CalcObjectiveGradient(&grad_f);
 
+  // No casting from StdVector to Vector possible so using replace to achieve the same effect
+
+
   if(objective->logscale)
   {
-    double ov = EvalObjective(n, x, false);
+    double ov = EvalObjective(x,false);
     for(int i = 0; i < n; i++)
       grad_f[i] /= ov;
     LOG_DBG2(optimizer) << "EGO: ov=" << ov;
@@ -454,9 +461,12 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
 
   assert(m == optimization->constraints.view->GetNumberOfActiveConstraints());
 
+  Vector<double> desVec;
+  desVec.Replace(n,const_cast<double*>(x),false);
+
   // Before the constraints can be calculated it might be the case, that the forward problem needs recalculation
   // if it does not, this does not cost more than reading the design
-  EvalObjective(n, x, cfs_scale);
+  EvalObjective(desVec,cfs_scale);
   
   eval_const_timer_->Start(); // After EvalObjective();
   

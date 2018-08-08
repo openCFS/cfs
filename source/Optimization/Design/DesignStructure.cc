@@ -31,7 +31,10 @@
 #include "Utils/tools.hh"
 #include <def_use_openmp.hh>
 #include "MatVec/CRS_Matrix.hh"
+<<<<<<< HEAD
 
+=======
+>>>>>>> DensityFilterMat
 
 #ifdef USE_OPENMP
   #include <omp.h>
@@ -298,7 +301,6 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   }
 
   WriteFilterInfo(pn, in, ref, sum_radius, sum_neighbours, rex == 0); // goes into the appended filters/filter
-
   timer->Stop();
 
 
