@@ -933,27 +933,10 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 
 double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const
 {
-
-//  auto space = de_->GetDesignSpace();
-//  if (space->filter_mat_set_){
-//    Vector<double> design_vec;
-//     space->WriteDesignToExtern(design_vec);
-//
-//     space->density_filter_.filter_mat_.Mult(design_vec,space->density_filter_.filtered_vec_);
-//
-//     for (UInt i=0;i<space->filtered_vec_.GetSize();i++){
-//
-//       space->density_filter_.filtered_vec_[i] = space->density_filter_.filtered_vec_[i]*space->density_filter_.inv_weighted_sum_[i];
-//     }
-//     space->density_filter_.filter_mat_set_ = false;
-//  }
   // We filter over this element and the neighbors.
   assert(sp == DesignElement::DESIGN);
   assert(!de_->simp->filter.IsEmpty());
   assert(de_->simp != NULL);
-
-//  auto space=de_->GetDesignSpace();
-// return space->filteredVec_[de_->GetIndex()];
 
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];
@@ -973,6 +956,12 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
                    << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
                    << " num=" << numerator << " den=" << denominator << " fix=" << fix;
 
+  double p_filt = 0.0;
+
+  double logW;
+  p_filt =  de_->GetDesignSpace()->density_filter.filtered_vec_[de_->GetIndex()];
+  LOG_DBG3(desel)<<"elemNum"<<de_->elem->elemNum<<"Filtered Value"<<p_filt;
+
   for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
   {
     const Filter::NeighbourElement* ne = &f.neighborhood[i];
@@ -983,13 +972,17 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
 
     numerator   += w * x;
     denominator += w;
-
+    de_->GetDesignSpace()->density_filter.filter_mat_.GetMatrixEntry(de_->GetIndex(),de->GetIndex(),logW);
      LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+     LOG_DBG3(desel) <<"Weight Mat=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << logW/de_->GetDesignSpace()->density_filter.inv_weighted_sum_[de_->GetIndex()];
   }
-  double p_filt = numerator / denominator;
+   p_filt = numerator / denominator;
 
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
+
+
+//   std::cout << de_->GetIndex()<<"  " <<1/de_->GetDesignSpace()->density_filter.inv_weighted_sum_[de_->GetIndex()] <<std::endl;
+//   std::cout <<  de_->GetIndex()<<"  " << denominator << std::endl;
 
   assert(fd == Filter::STANDARD || fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE || fd == Filter::TANH);
 
@@ -1020,11 +1013,6 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];
-
-<<<<<<< HEAD
-=======
-//  assert(dynamic_cast<Condition*>(func) != NULL);
->>>>>>> DensityFilterMat
   Condition* g = dynamic_cast<Condition*>(func);
 
   assert(f.GetType() == Filter::DENSITY);

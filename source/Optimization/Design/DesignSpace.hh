@@ -540,13 +540,9 @@ namespace CoupledField
       * data size = num of design * num region elements */
      unsigned int elements;
 
-     Vector<double> inv_weighted_sum_;
-     Vector<double> filtered_vec_;
-     CRS_Matrix<double> filter_mat_;
-     bool filter_mat_set_ = false;
-     DensityFilterMat density_filter_;
+     // A struct that holds the filter weights Matrix and the filtered Vec.
 
-
+     DensityFilterMat density_filter;
 
 
     protected:

@@ -31,10 +31,6 @@
 #include "Utils/tools.hh"
 #include <def_use_openmp.hh>
 #include "MatVec/CRS_Matrix.hh"
-<<<<<<< HEAD
-
-=======
->>>>>>> DensityFilterMat
 
 #ifdef USE_OPENMP
   #include <omp.h>
@@ -305,34 +301,14 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
 
 
-  space->density_filter_.AssembleFilterMatrix(data,sum_neighbours);
-
-
-//  LOG_DBG2(ds)<<"Inverse Weighted sum "<<space->inv_weighted_sum_.ToString();
-//
-//
-//
-//  LOG_DBG2(ds)<<"col Index"<<colInd.ToString();
-//  LOG_DBG2(ds)<<"Row ptr"<<rowPtr.ToString();
-//  LOG_DBG2(ds)<<"Row ptr Size"<<rowPtr.GetSize();
-//  LOG_DBG2(ds)<<"Matrix rows"<<space->filter_mat_.GetNumRows();
-//  LOG_DBG2(ds)<<"Matrix cols"<<space->filter_mat_.GetNumCols();
-//  LOG_DBG2(ds)<<"Matrix nnz"<<space->filter_mat_.GetNnz();
-//
-
-  //  space->filterMat_.Mult(space->designVec_,space->filteredVec_);
-
-  //  LOG_DBG2(ds)<<"Unweighted Filtered Design"<<space->filteredVec_.ToString();
-  //  for (UInt i=0;i<space->filteredVec_.GetSize();i++){
-  //    space->filteredVec_[i]=space->filteredVec_[i]*space->weightedSumVec_[i];
-  //  }
-  //  LOG_DBG2(ds)<<"Weighted Filtered Design"<<space->filteredVec_.ToString();
-
-
-  space->filter_mat_set_ = true;
+  space->density_filter.AssembleFilterMatrix(data,sum_neighbours);
 
 
 
+
+  LOG_DBG2(ds)<<"Matrix rows"<<space->density_filter.filter_mat_.GetNumRows();
+  LOG_DBG2(ds)<<"Matrix cols"<<space->density_filter.filter_mat_.GetNumCols();
+  LOG_DBG2(ds)<<"Matrix nnz"<<space->density_filter.filter_mat_.GetNnz();
 
 }
 

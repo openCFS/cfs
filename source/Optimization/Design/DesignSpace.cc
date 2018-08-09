@@ -357,12 +357,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
           RegisterPseudoDesignRegion(domain->GetGrid()->regionData[r].id, design[d].design);
   }
 
-
-<<<<<<< HEAD
-=======
-
-
->>>>>>> DensityFilterMat
 }
 
 DesignSpace::~DesignSpace(){
@@ -480,6 +474,13 @@ void DesignSpace::PostInit(int objectives, int constraints)
     // this is a virtual Function.
     SetupLocalElementCache();
   }
+
+  Vector<double> design_vec;
+  WriteDesignToExtern(design_vec,true);
+
+  this->density_filter.filter_mat_.Mult(design_vec,this->density_filter.filtered_vec_);
+
+
 }
 
 void DesignSpace::SetupLocalElementCache()
@@ -1241,6 +1242,8 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
 int DesignSpace::ReadDesignFromExtern(const Vector<double>& ext_design)
 {
 
+  density_filter.filter_mat_.Mult(ext_design,density_filter.filtered_vec_);
+
   bool new_design = false;
   const unsigned int nd = design.GetSize();
   unsigned int s = 0;
@@ -1497,6 +1500,7 @@ void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type de
     for(unsigned int i = start; i < end; i++)
       data[i].SetDesign(0.0);
     break;
+    // TODO: set also density filter matrix
   case DesignElement::CONSTRAINT_GRADIENT:
   case DesignElement::COST_GRADIENT:
     for(unsigned int i = start; i < end; i++)
@@ -2067,47 +2071,24 @@ void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int s
     UInt *colPointer=this->filter_mat_.GetColPointer();
     UInt *rowPointer=this->filter_mat_.GetRowPointer();
     double *dataPtr=this->filter_mat_.GetDataPointer();
-    this->inv_weighted_sum_.Resize(num_elem);
     this->filtered_vec_.Resize(num_elem);
+    this->inv_weighted_sum_.Resize(num_elem);
+
     int lastIndex=0;
     rowPointer[0]=lastIndex;
     for (UInt i=0;i < data.GetSize(); i++){
      auto neighbours = data[i].simp->filter.Last().neighborhood;
+     double inv_weight_sum=(1/data[i].simp->filter.Last().CalcWeightSum(true));
+     this->inv_weighted_sum_[i] = inv_weight_sum;
      colPointer[lastIndex]=i;
-     dataPtr[lastIndex]=1.0;
+     dataPtr[lastIndex]=1.0 * inv_weight_sum;
      for (UInt j=0;j<neighbours.GetSize();j++){
        colPointer[lastIndex+j+1]=neighbours[j].neighbour->GetIndex();
-       dataPtr[lastIndex+j+1]=neighbours[j].weight;
+       dataPtr[lastIndex+j+1]=(neighbours[j].weight)*inv_weight_sum;
      }
-     this->inv_weighted_sum_[i]=((1/data[i].simp->filter.Last().CalcWeightSum(true)));
      lastIndex +=(neighbours.GetSize()+1); // Since Neighbours doesn't include the own element
      rowPointer[i+1]=lastIndex;
     }
-
-//    LOG_DBG2(ds)<<"Inverse Weighted sum "<<space->inv_weighted_sum_.ToString();
-//
-//
-//
-//
-//    LOG_DBG2(ds)<<"col Index"<<colInd.ToString();
-//    LOG_DBG2(ds)<<"Row ptr"<<rowPtr.ToString();
-//    LOG_DBG2(ds)<<"Row ptr Size"<<rowPtr.GetSize();
-//    LOG_DBG2(ds)<<"Matrix rows"<<space->filter_mat_.GetNumRows();
-//    LOG_DBG2(ds)<<"Matrix cols"<<space->filter_mat_.GetNumCols();
-//    LOG_DBG2(ds)<<"Matrix nnz"<<space->filter_mat_.GetNnz();
-
-
-  //  space->filterMat_.Mult(space->designVec_,space->filteredVec_);
-
-  //  LOG_DBG2(ds)<<"Unweighted Filtered Design"<<space->filteredVec_.ToString();
-  //  for (UInt i=0;i<space->filteredVec_.GetSize();i++){
-  //    space->filteredVec_[i]=space->filteredVec_[i]*space->weightedSumVec_[i];
-  //  }
-  //  LOG_DBG2(ds)<<"Weighted Filtered Design"<<space->filteredVec_.ToString();
-
-//    assemble_mat->Stop();
-//    timer->Stop();
-    filter_mat_set_ = true;
 }
 
 
