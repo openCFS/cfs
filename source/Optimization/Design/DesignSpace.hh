@@ -44,11 +44,13 @@ namespace CoupledField
 
   struct DensityFilterMat
     {
-      Vector<double> inv_weighted_sum_;
-      Vector<double> filtered_vec_;
-      CRS_Matrix<double> filter_mat_;
-      bool filter_mat_set_ = false;
+      Vector<double> inv_weighted_sum;
+      Vector<double> filtered_vec;
+      CRS_Matrix<double> filter_mat;
+      bool filter_mat_set = false;
       void AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbour);
+      void CacheDensityFilteredValue(const Vector<double>& design_vec);
+
     };
 
   /** This is the container of DesingElements which also holds the transferFunctions.
@@ -544,6 +546,7 @@ namespace CoupledField
 
      DensityFilterMat density_filter;
 
+     bool is_matrix_filt;
 
     protected:
 

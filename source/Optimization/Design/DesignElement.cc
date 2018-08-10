@@ -945,39 +945,38 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   // All equations from Sigmund; Morphology based black and white filters for topology optimization; 2007
   // p = rho. P is filtered rho (rho tilde)
   // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
+  // mathematically the neighborhood includes this element, but this is not in the structure
+  // we initialize numerator and denominator with the values obtained from this element
 
+  double p_filt = 0.0;
+  int elem_num = de_->GetIndex();
+  DesignSpace * space = de_->GetDesignSpace();
+  if (space->is_matrix_filt){
+    p_filt =  space->density_filter.filtered_vec[elem_num];
+    LOG_DBG3(desel)<<"elemNum"<<de_->elem->elemNum<<"Filtered Value"<<p_filt;
+  }
 
-// mathematically the neighborhood includes this element, but this is not in the structure
-// we initialize numerator and denominator with the values obtained from this element
-  double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
-  double denominator = f.weight;
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-                   << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
-                   << " num=" << numerator << " den=" << denominator << " fix=" << fix;
+  else{
+    double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
+     double denominator = f.weight;
+     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+                      << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
+                      << " num=" << numerator << " den=" << denominator << " fix=" << fix;
 
+    for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
+    {
+      const Filter::NeighbourElement* ne = &f.neighborhood[i];
+      const DesignElement* de = ne->neighbour;
 
-  double logW;
-  double p_filt =  de_->GetDesignSpace()->density_filter.filtered_vec_[de_->GetIndex()];
-//  LOG_DBG3(desel)<<"elemNum"<<de_->elem->elemNum<<"Filtered Value"<<p_filt;
+      double w = ne->weight;
+      double x = de->GetPlainDesignValue();
 
-//  for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
-//  {
-//    const Filter::NeighbourElement* ne = &f.neighborhood[i];
-//    const DesignElement* de = ne->neighbour;
-//
-//    double w = ne->weight;
-//    double x = de->GetPlainDesignValue();
-//
-//    numerator   += w * x;
-//    denominator += w;
-//    de_->GetDesignSpace()->density_filter.filter_mat_.GetMatrixEntry(de_->GetIndex(),de->GetIndex(),logW);
-//     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
-//     LOG_DBG3(desel) <<"Weight Mat=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << logW/de_->GetDesignSpace()->density_filter.inv_weighted_sum_[de_->GetIndex()];
-//  }
-//   double p_filt = numerator / denominator;
-//  de_->GetDesignSpace()->density_filter.filter_mat_.GetMatrixEntry(de_->GetIndex(),de_->GetIndex(),logW);
-//  std::cout << de_->GetIndex() << "Self Normed Weight Matrix" <<logW *  de_->GetDesignSpace()->density_filter.density[de_->GetIndex()] / de_->GetDesignSpace()->density_filter.inv_weighted_sum_[de_->GetIndex()] <<std::endl;
-//  std::cout << de_->GetIndex() << "Self Normed Weight" <<de_->GetPlainDesignValue() / denominator<<std::endl;
+      numerator   += w * x;
+      denominator += w;
+      LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+    }
+    p_filt = numerator / denominator;
+  }
 
 
 

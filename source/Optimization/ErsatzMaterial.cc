@@ -378,6 +378,11 @@ void ErsatzMaterial::PostInit()
     }
   }
 
+  // read the design variables and calculate the density filtered values using the filter mat and cache it.
+  Vector<double> design_vec;
+  design->WriteDesignToExtern(design_vec,false);
+  design->density_filter.CacheDensityFilteredValue(design_vec);
+
   // make basic logging
   design->ToInfo(this);
 

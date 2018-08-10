@@ -99,7 +99,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   elements = domain->GetGrid()->GetNumElems(reg_data);
 
   pamping_ = pn->Has("pamping") ? pn->Get("pamping/value")->As<double>() : 0.0;
-
+  is_matrix_filt = true;
   // store the CFS element (number) to design element mapping.
   // Used by Find() and the filter and vicinity neighbors
   elemToDesign.Resize(domain->GetGrid()->GetNumElems() + 1, std::make_pair(-1, true)); // 1 based.
@@ -474,12 +474,6 @@ void DesignSpace::PostInit(int objectives, int constraints)
     // this is a virtual function.
     SetupLocalElementCache();
   }
-  Vector<double> design_vec;
-  WriteDesignToExtern(design_vec,false);
-
-  this->density_filter.filter_mat_.Mult(design_vec,this->density_filter.filtered_vec_);
-
-
 }
 
 void DesignSpace::SetupLocalElementCache()
@@ -1243,7 +1237,7 @@ int DesignSpace::ReadDesignFromExtern(const Vector<double>& ext_design)
   // Calculate the new filtered value whenever new design is read by the optimizer
   // and store it in the design space
 
-  density_filter.filter_mat_.Mult( ext_design,density_filter.filtered_vec_);
+  density_filter.CacheDensityFilteredValue(ext_design);
 
   bool new_design = false;
   const unsigned int nd = design.GetSize();
@@ -2068,14 +2062,14 @@ void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int s
 
     int num_elem = data.GetSize();
     int nnz = (sum_neighbours+num_elem);
-    this->filter_mat_.SetSize(num_elem,num_elem,nnz);
+    this->filter_mat.SetSize(num_elem,num_elem,nnz);
 
-    UInt *colPointer=this->filter_mat_.GetColPointer();
-    UInt *rowPointer=this->filter_mat_.GetRowPointer();
-    double *dataPtr=this->filter_mat_.GetDataPointer();
+    UInt *colPointer=this->filter_mat.GetColPointer();
+    UInt *rowPointer=this->filter_mat.GetRowPointer();
+    double *dataPtr=this->filter_mat.GetDataPointer();
 
-    this->filtered_vec_.Resize(num_elem);
-    this->inv_weighted_sum_.Resize(num_elem);
+    this->filtered_vec.Resize(num_elem);
+    this->inv_weighted_sum.Resize(num_elem);
 
     int lastIndex=0;
     rowPointer[0]=lastIndex;
@@ -2084,7 +2078,7 @@ void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int s
 
       auto neighbours = data[i].simp->filter.Last().neighborhood;
       double inv_weight_sum=(1/data[i].simp->filter.Last().CalcWeightSum(true));
-      this->inv_weighted_sum_[i] = data[i].simp->filter.Last().weight*inv_weight_sum;
+      this->inv_weighted_sum[i] = data[i].simp->filter.Last().weight*inv_weight_sum;
       colPointer[lastIndex]=i;
       dataPtr[lastIndex]= data[i].simp->filter.Last().weight  * inv_weight_sum;
       for (UInt j=0;j<neighbours.GetSize();j++){
@@ -2095,6 +2089,16 @@ void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int s
       rowPointer[i+1]=lastIndex;
     }
 }
+
+
+
+void DensityFilterMat::CacheDensityFilteredValue(const Vector<double>& design_vec){
+
+  this->filter_mat.Mult(design_vec,this->filtered_vec);
+
+}
+
+
 
 
 // explicit template instantiation for GCC compiler

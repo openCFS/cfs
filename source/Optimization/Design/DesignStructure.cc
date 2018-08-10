@@ -300,9 +300,9 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   timer->Stop();
   
   space->density_filter.AssembleFilterMatrix(data,sum_neighbours);
-  LOG_DBG2(ds)<<"Matrix rows"<<space->density_filter.filter_mat_.GetNumRows();
-  LOG_DBG2(ds)<<"Matrix cols"<<space->density_filter.filter_mat_.GetNumCols();
-  LOG_DBG2(ds)<<"Matrix nnz"<<space->density_filter.filter_mat_.GetNnz();
+  LOG_DBG2(ds)<<"Matrix rows"<<space->density_filter.filter_mat.GetNumRows();
+  LOG_DBG2(ds)<<"Matrix cols"<<space->density_filter.filter_mat.GetNumCols();
+  LOG_DBG2(ds)<<"Matrix nnz"<<space->density_filter.filter_mat.GetNnz();
 
 }
 
