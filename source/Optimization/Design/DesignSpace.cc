@@ -987,9 +987,6 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 
   double bimat_factor = -1.0;
 
-  std::cout << coef << "\n";
-  std::cout << coef->GetForm() << "\n";
-  std::cout << coef->GetForm()->GetName() << "\n";
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   // factor is the pseudo density case, in case it has the penalty parameter applied

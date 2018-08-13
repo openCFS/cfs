@@ -17,7 +17,18 @@ public:
 
   /** the relactivity nu_r is part of the material property nu_0 * nu_r. In the linear case this is region constant,
    * in the nonlinear case this is element specific. */
-  double GetRelactivity(const Elem* elem);
+  double GetRelactivity(const Elem* elem)
+  {
+    // linear or nonlinear case?
+    if(nonlin_[elem->regionId])
+      return CalcRelactivity(elem);
+    else
+    {
+      if(lin_nu_r_[elem->regionId] < 0);
+        lin_nu_r_[elem->regionId] = CalcRelactivity(elem);
+      return lin_nu_r_[elem->regionId];
+    }
+  }
 
   /** material constant for convenience */
   static double nu_0;

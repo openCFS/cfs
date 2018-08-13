@@ -1149,16 +1149,10 @@ namespace CoupledField {
       }
             
       // output of norms and data to info.xml
+      WriteNonLinIterToInfoXML(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLinesearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
+
       if ( nonLinLogging_ == true ) {
-        // get current step
-        UInt actStep = PDE_.GetSolveStep()->GetActStep();
         
-        if (PDE_.IsIterCoupled()) {
-          WriteNonLinIterToInfoXML(pdename_, couplingIter_, actStep,iterationCounter, residualErr, incrementalErr, etaLinesearch);
-        } else {
-          //WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErrABS, etaLineSearch);
-          WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErr, etaLinesearch);
-        }
         // write norm to file
         logFile_ <<  iterationCounter << "\t"
                 << residualErr << "\t"

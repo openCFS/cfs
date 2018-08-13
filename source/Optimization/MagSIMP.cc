@@ -75,42 +75,6 @@ void MagSIMP::PostInit()
   }
 }
 
-inline double MagSIMP::GetRelactivity(const Elem* elem)
-{
-  // linear or nonlinear case?
-  if(nonlin_[elem->regionId])
-    return CalcRelactivity(elem);
-  else
-  {
-    if(lin_nu_r_[elem->regionId] < 0);
-      lin_nu_r_[elem->regionId] = CalcRelactivity(elem);
-    return lin_nu_r_[elem->regionId];
-  }
-}
-
-double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem)
-{
-  Matrix<double> nu_0_nu_r;
-
-  if(elem == NULL)
-  {
-    CoefFunctionConst<double>* cfc = dynamic_cast<CoefFunctionConst<double>*>(org_mat);
-    assert(cfc);
-    nu_0_nu_r = cfc->GetTensor(); // copy constructor :(
-  }
-  else
-  {
-    LocPointMapped lpm;
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
-    LocPoint lp;
-    lpm.Set(lp, esm); // element constant we need no weight
-    org_mat->GetTensor(nu_0_nu_r, lpm);
-  }
-  assert(close(nu_0_nu_r[1][1],nu_0_nu_r[0][0]));
-  double nu_r = nu_0_nu_r[0][0] / nu_0;
-  return nu_r;
-}
-
 double MagSIMP::CalcRelactivity(const Elem* elem)
 {
   assert(manager.context.GetSize() == 1); // otherwise we would need it
@@ -119,6 +83,42 @@ double MagSIMP::CalcRelactivity(const Elem* elem)
 
   return ExtractRelactivity(coef->orgMat.get(), nonlin_[elem->regionId] ? elem : NULL);
 }
+
+
+double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem)
+{
+  double nu_0_nu_r = -1; // in the end we only need the scalar
+
+  if(elem == NULL)
+  {
+    // in the linear case we have BDBInt with a diagonal dim x dim tensor with identical coefficients
+    CoefFunctionConst<double>* cfc = dynamic_cast<CoefFunctionConst<double>*>(org_mat);
+    assert(cfc);
+    nu_0_nu_r = cfc->GetTensor()[0][0]; // copy constructor :(
+  }
+  else
+  {
+    // we are here in the linear BDBInt case (first time) and nonlinear scalar BBInt case
+
+    LocPoint lp = Elem::shapes[elem->type].midPointCoord;
+    LocPointMapped lpm;
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem, true);
+    lpm.Set(lp, esm, 0.0); // this is a redundant and expensive function to call! :(
+
+    if(org_mat->GetDimType() == CoefFunction::SCALAR)
+      org_mat->GetScalar(nu_0_nu_r, lpm);
+    else
+    {
+      assert(org_mat->GetDimType() == CoefFunction::TENSOR);
+      Matrix<double> mat;
+      org_mat->GetTensor(mat, lpm);
+      nu_0_nu_r = mat[0][0];
+    }
+  }
+
+  return nu_0_nu_r/ nu_0;
+}
+
 
 
 double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
@@ -199,7 +199,6 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
     LOG_DBG2(ms) << "CMFD i=" << e <<  " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
     assert(method != IntScheme::UNDEFINED);
     assert(!intPoints.IsEmpty());
-
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(de->elem);
 
@@ -216,7 +215,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
       bdb->GetBOp()->CalcOpMat(M, lp, ptFe);
       assert(M.GetNumCols() == a.GetSize());
       assert(M.GetNumRows() == domain->GetGrid()->GetDim());
-      LOG_DBG3(ms) << "CMFD: e= " << e << " ip=" << ip << " w=" << weights[ip] << " jacDet=" << lp.jacDet << " M_" << ip << "=" << M.ToString(2);
+      LOG_DBG3(ms) << "CMFD: e= " << e << " ip=" << ip << "/" << intPoints[ip].coord.ToString() << " w=" << weights[ip] << " jacDet=" << lp.jacDet << " M_" << ip << "=" << M.ToString(2);
 
       // flux_denx = M * a
       flux_dens.Resize(dim);

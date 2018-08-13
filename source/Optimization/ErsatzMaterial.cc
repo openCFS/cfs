@@ -3594,7 +3594,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     assert(context->GetDriver()->GetAnalysisId().adjoint == false);
     context->GetDriver()->GetAnalysisId().adjoint = true;
 
-    // calculate adjoint problem
+    // calculate adjoint problem. Note that is is a linear solution what we usually want for the adjoint case!
     assemble->GetAlgSys()->Solve();
 
     context->GetDriver()->GetAnalysisId().adjoint = false;

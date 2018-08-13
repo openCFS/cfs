@@ -150,23 +150,17 @@ namespace CoupledField
     /** Creates a ParamNode::WARNING node and sets the msg as content. */
     void SetWarning(const std::string& msg, bool append = false);
 
-    /** Add child parameter nod*/
-    void AddChildNode( PtrParamNode child);
-    
-    /** If you really know what you do, you can set a child manually.
-      * An existing value is overwritten and not deleted!
-      * @param name an element with this name will exist afterwards
-      * @param index the children list must be large enough.
-      * @return the newly created object. */
-     PtrParamNode SetNewChild(const std::string& name, unsigned int index);
-    
-     PtrParamNode ReplaceChild(PtrParamNode node, unsigned int index);
+    /** Returns the root node. */
+    PtrParamNode GetRoot();
 
-    /************************************************************************
-     * N O D E   A C C E S S     M E T H O D S
-     ************************************************************************/
+    /** Returns father element. If this element is the root node, NULL is returned */
+    PtrParamNode  GetParent() { return parent_;}
+    
     /** @return the name of the attribute or XML element */
     const std::string& GetName() const { return name_;} 
+
+    /** Add child parameter nod*/
+    void AddChildNode( PtrParamNode child);
     
     /** Returns all children which are attributes and simple xml elements (cannot be differentiated) or in
     * other words leaf nodes - and without any sorting complex ParamNodes which have children themselves. 
@@ -174,12 +168,21 @@ namespace CoupledField
     * Be careful when editing this list! */
     ParamNodeList& GetChildren() { return children_;}
     
-    /** Returns father element. If this element is the root node, NULL is returned */
-    PtrParamNode  GetParent() { return parent_;}
+    /** If you really know what you do, you can set a child manually.
+      * An existing value is overwritten and not deleted!
+      * @param name an element with this name will exist afterwards
+      * @param index the children list must be large enough.
+      * @return the newly created object. */
+    PtrParamNode SetNewChild(const std::string& name, unsigned int index);
     
-    /** Returns the root node. */
-    PtrParamNode GetRoot();
-           
+    PtrParamNode ReplaceChild(PtrParamNode node, unsigned int index);
+
+    /** Convenience function to clear all children. Here smart pointers are really nice */
+    void ClearChildren();
+
+    /** clear all children by given name. This sorts all entries if something is cleared */
+    void ClearChildren(const string& name);
+
     /** Returns the only child of an element which might be an attribute or simple xml element or in
     * other words a leaf node - and without any sorting a complex ParamNode which has children by itself. 
     * If the element has more than one child node, an exception is thrown.
@@ -216,7 +219,7 @@ namespace CoupledField
 
     /** Get an element identified by two childs with prescribed value. Extend to the full standard GetByVal() features if you need them :) */
     PtrParamNode GetByVal(const std::string& parent_raw, const std::string& child1,  const std::string& value1,
-                                                         const std::string& child2,  const std::string& value2);
+                                                         const std::string& child2,  const std::string& value2, ActionType action = DEFAULT);
 
     /** Get all direct childs of a name
     * example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom") */

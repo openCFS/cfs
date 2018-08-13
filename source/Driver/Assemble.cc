@@ -483,18 +483,19 @@ namespace CoupledField
       std::stringstream progStream;
       boost::progress_display progress( size*forms.GetSize(), progStream );
 
-      if( printProgressBar_)
+      if(printProgressBar_)
         std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
 
 
-      if ( !isNewtonPart) {
+      if(!isNewtonPart)
+      {
         // First loop over all integrators to check, if any of them
         // gets re-assembled
         // Loop over all bilinearforms
         bool anyReassemble = false;
 
-        for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
-
+        for(UInt iForm = 0; iForm < forms.GetSize(); ++iForm)
+        {
           BiLinFormContext & actContext = *forms[iForm];
 
           // get matrix destinations
@@ -503,21 +504,14 @@ namespace CoupledField
 
           // If assemble was already called and the current destination
           // matrix must not be reassembled -> continue with next iterator
-          if( matReassemble_[destMat] == false ) {
-            if( matReassemble_[secDestMat] != NOTYPE ) {
-              if(  matReassemble_[secDestMat] == false ) {
-                continue;
-              }
-            } else  {
-              continue;
-            }
-          }
+          if(!matReassemble_[destMat] && (secDestMat == NOTYPE || !matReassemble_[secDestMat]))
+            continue; // check next form
+
           anyReassemble = true;
-        }
-        if( !anyReassemble ) {
-          continue;
-        }
-      }
+        } // end form loop
+        if(!anyReassemble)
+          continue; // assemble next bilin form
+      } // end !isNewtonPart
 
 
 #ifdef USE_OPENMP
@@ -554,13 +548,12 @@ namespace CoupledField
       it1.Begin();
       it2.Begin();
       //take account for const space
-      if( firstEntities.GetSize() != 1 ) {
+      if(firstEntities.GetSize() != 1 ) {
         it1+=start;
       }
       if( secondEntities.GetSize() != 1 ) {
         it2+=start;
       }
-
 
       Matrix<Double> elemMatrix;
       Matrix<Complex> elemMatrixC;
@@ -593,15 +586,8 @@ namespace CoupledField
           if ( !isNewtonPart) {
             // If assemble was already called and the current destination
             // matrix must not be reassembled -> continue with next iterator
-            if( matReassemble_[destMat] == false ) {
-              if( matReassemble_[secDestMat] != NOTYPE ) {
-                if(  matReassemble_[secDestMat] == false ) {
-                  continue;
-                }
-              } else  {
-                continue;
-              }
-            }
+            if(!matReassemble_[destMat] && (secDestMat == NOTYPE || !matReassemble_[secDestMat]))
+              continue; // check next form
           }
           // Update flag
           matrixUpdated_ = true;

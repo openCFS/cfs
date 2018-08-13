@@ -213,7 +213,8 @@ namespace CoupledField {
     
     bool performOneMoreStep;
     bool isNewton = false;
-    
+    static_non_lin_step_timer_.Start();
+
     SBM_Vector solInc(BaseMatrix::DOUBLE);
     
     //get actual solution
@@ -224,15 +225,8 @@ namespace CoupledField {
     //  Outer loop: Multilevel strategy 
     // =================================
     UInt numLevels = solStrat_->GetNumSolSteps();
-    for( UInt iLevel = 0; iLevel < numLevels; ++iLevel ) {
-      
-      // create new timer object and put it to related info element
-      shared_ptr<Timer> timer(new Timer());
-      PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
-      iter->GetByVal("solStep","value",iLevel+1,ParamNode::INSERT)
-      ->Get("timer")->SetValue(timer);
-      timer->Start();
-      
+    for( UInt iLevel = 0; iLevel < numLevels; ++iLevel )
+    {
       // update the current solution step in a multilevel approach and
       // inform PDEs (containing the FeSpaces), as well as the AlgebraicSystem
       solStrat_->SetActSolStep(iLevel + 1);
@@ -245,8 +239,7 @@ namespace CoupledField {
       
       //perform the load-steps
       Double loadFactor = 1.0;
-      PDE_.GetInfoNode()->Get("PDE")->Get(pdename_)->
-      Get("load_factor")->SetValue(loadFactor);
+      PDE_.GetInfoNode()->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
       
       // setup right hand side
       algsys_->InitRHS();
@@ -302,7 +295,7 @@ namespace CoupledField {
         // new solution is only an increment of the full solution =============
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
-	algsys_->GetSolutionVal( solInc, setIDBC );
+        algsys_->GetSolutionVal( solInc, setIDBC );
         
         //compute norms (residual and incremenal ones)
         Double residualL2Norm = 0.0;
@@ -365,16 +358,11 @@ namespace CoupledField {
           incrementalErr = solIncrL2Norm;
           WARN("Zero solution vector!! ");
         }
+
+        WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
         
         // output of norms and data
         if ( nonLinLogging_ == true ) {
-          //UInt actStep = PDE_.GetSolveStep()->GetActStep();
-          
-          if (PDE_.IsIterCoupled()) {
-            WriteNonLinIterToInfoXML(pdename_, couplingIter_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-          } else {
-            WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-          }
           
           // write norm to file
           logFile_ <<  iterationCounter << "\t"
@@ -397,9 +385,8 @@ namespace CoupledField {
         }
       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
       
-      // stop timer
-      timer->Stop();
     } // loop over levels
+    static_non_lin_step_timer_.Stop();
   }
   
   
@@ -902,17 +889,11 @@ namespace CoupledField {
           incrementalErr = solIncrL2Norm;
           //WARN("Zero solution vector!! ");
         }
-        
+
+        WriteNonLinIterToInfoXML(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
+
         // output of norms and data
         if ( nonLinLogging_ == true ) {
-          // get current step 
-          UInt actStep = PDE_.GetSolveStep()->GetActStep();
-          
-          if (PDE_.IsIterCoupled()) {
-            WriteNonLinIterToInfoXML(pdename_, couplingIter_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
-          } else {
-            WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
-          }
           // write norm to file
           logFile_ <<  iterationCounter << "\t"
                   << residualErr << "\t"
@@ -921,8 +902,7 @@ namespace CoupledField {
         }
         
         // boolean variable, holds condition if another iteration step is necessary
-        performOneMoreStep =
-                (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+        performOneMoreStep =(incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
         
         if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
           EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
@@ -1089,10 +1069,11 @@ namespace CoupledField {
         //just dummy things
         Double etaLineSearch = 1.0;
         Double residualErr = incrementalErr;
-        
+
+        WriteNonLinIterToInfoXML(pdename_, 1,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+
         // output of norms and data
         if ( nonLinLogging_ == true ) {
-          WriteNonLinIterToInfoXML(pdename_, 1,iterationCounter, residualErr, incrementalErr, etaLineSearch);
           // write norm to file
           logFile_ <<  iterationCounter << "\t"
                   << residualErr << "\t"
@@ -1844,43 +1825,44 @@ namespace CoupledField {
     }
   }
   
-  void StdSolveStep::WriteNonLinIterToInfoXML(const std::string& pdeName,
-          const UInt solStep,
-          const UInt iterationCounter,
-          const Double residualErr, 
-          const Double incrementalErr, double etaLineSearch)
-  {
-    
-    PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
-    iter = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT)
-            ->Get("iteration",ParamNode::APPEND);
-    iter->Get("pdeName")->SetValue(pdeName);
-    iter->Get("nr")->SetValue(iterationCounter);
-    iter->Get("residualErr")->SetValue(residualErr);
-    iter->Get("incrementalErr")->SetValue(incrementalErr);
-    if(etaLineSearch)
-      iter->Get("eta_linesearch")->SetValue(etaLineSearch);
-  }
   
   void StdSolveStep::WriteNonLinIterToInfoXML(const std::string& pdeName,
-          const UInt coupledIterStep,
-          const UInt solStep,
-          const UInt iterationCounter,
-          const Double residualErr, 
-          const Double incrementalErr, double etaLineSearch)
+          UInt solStep, UInt iterationCounter, Double residualErr,
+          Double incrementalErr, double etaLineSearch, int coupledIterStep)
   {
+    PtrParamNode nlc= PDE_.GetInfoNode()->Get("nonlinearConvergence");
+    nlc->Get("timer")->SetValue(static_non_lin_step_timer_);
+
+    // usually we have only one solStep.
+    // In the detail case we have repeatet solStep value="1" with different analysis_id
+    // In the non-detail case we overwrite the analysis_id but also need to clear the old content.
+    string aid = domain->GetDriver()->GetAnalysisId().ToString();
+    PtrParamNode ss;
+
+    if(progOpts->DoDetailedInfo())
+      ss = nlc->GetByVal("solStep", "value", std::to_string(solStep), "analysis", aid);
+    else
+    {
+      ss = nlc->GetByVal("solStep", "value", std::to_string(solStep));
+      ss->Get("analysis")->SetValue(aid); // possibly overwrite
+    }
+
     
-    PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
-    iter = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT);
-    iter = iter->GetByVal("couplingStep", "value", coupledIterStep, ParamNode::INSERT)
-            ->Get("iteration",ParamNode::APPEND);
+
+    // in the coupling step we have a layer between solStep and iteration
+    if(coupledIterStep >= 0)
+      ss = ss->GetByVal("couplingStep", "value", coupledIterStep, ParamNode::INSERT);
+
+    if(!progOpts->DoDetailedInfo() && iterationCounter <= 1)
+      ss->ClearChildren("iteration"); // do it here to delete only iterations and not other coupling steps
+
+    PtrParamNode iter = ss->Get("iteration",ParamNode::APPEND);
     iter->Get("pdeName")->SetValue(pdeName);
     iter->Get("nr")->SetValue(iterationCounter);
     iter->Get("residualErr")->SetValue(residualErr);
     iter->Get("incrementalErr")->SetValue(incrementalErr);
-    // SE: include PDE name and time step
-    if(etaLineSearch)
-      iter->Get("eta_linesearch")->SetValue(etaLineSearch);
+    iter->Get("eta_linesearch")->SetValue(etaLineSearch);
   }
   
 } // end of namespace
+

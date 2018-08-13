@@ -172,6 +172,30 @@ PtrParamNode ParamNode::ReplaceChild(PtrParamNode node, unsigned int index)
   return node;
 }
 
+void ParamNode::ClearChildren()
+{
+  children_.Clear();
+}
+
+void ParamNode::ClearChildren(const string& child_name)
+{
+  ParamNodeList tmp;
+  tmp.Reserve(children_.GetSize()); // avoid expensive Push_back
+  for(unsigned int i = 0; i < children_.GetSize(); i++)
+    if(children_[i]->GetName() != child_name)
+      tmp.Push_back(children_[i]);
+
+  if(tmp.GetSize() == children_.GetSize())
+    return; // nothing matched, nothing to do
+
+  children_.Clear(true); // keep capacity
+
+  // copy back if there is some important stuff we wanted to keep
+  for(unsigned int i = 0; i < tmp.GetSize(); i++)
+    children_.Push_back(tmp[i]);
+}
+
+
 /************************************************************************
  * N O D E   A C C E S S     M E T H O D S
  ************************************************************************/
@@ -337,7 +361,7 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child_r
   // Insert new node with given value
   // action is either APPEND or INSERT, i.e. the following unconstrained
   // Get()-calls will always create a child elements
-  if (insertNew || action == APPEND)
+  if(insertNew || action == APPEND)
   {
     //changed 2nd parameter to APPEND
     PtrParamNode ret = this->Get(parent, ParamNode::APPEND);
@@ -347,6 +371,7 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child_r
 
   return PtrParamNode();
 }
+
 PtrParamNode ParamNode::GetByVal(const std::string& parent,
     const std::string& child, const char* value, const ActionType action)
 {
@@ -354,10 +379,26 @@ PtrParamNode ParamNode::GetByVal(const std::string& parent,
 }
 
 
-PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1,  const string& value1,
-                                                           const string& child2,  const string& value2)
+PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1_raw,  const string& value1,
+                                                           const string& child2_raw,  const string& value2, ActionType action)
 {
+  string parent = ToValidLabel(parent_raw);
+  string child1  = ToValidLabel(child1_raw);
+  string child2  = ToValidLabel(child2_raw);
+
+  if (action == DEFAULT)
+    action = defaultAction_;
+
   ParamNodeList l = GetListByVal(parent_raw, child1, value1);
+
+  if(action == APPEND || (l.IsEmpty() && action == INSERT))
+  {
+    //changed 2nd parameter to APPEND
+    PtrParamNode ret = this->Get(parent, ParamNode::APPEND);
+    ret->Get(child1, ParamNode::APPEND)->SetValue(value1);
+    ret->Get(child2, ParamNode::APPEND)->SetValue(value2);
+    return ret;
+  }
   if(l.IsEmpty())
     EXCEPTION("parent " << parent_raw << " has no child " << child1 << " with value " << value1);
 
@@ -365,11 +406,19 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1,
   {
     // assert(l[i]->HasByVal(child1, value1));
     if(l[i]->HasByVal(child2, value2))
-      return l[i];
+      return l[i]; // stupid, as we ignore more matches
   }
 
-  EXCEPTION("parent " << parent_raw << " has  child " << child1 << " with value " << value1 <<
-            " but not also child " << child2 << " with value " << value2);
+  if(action == INSERT)
+  {
+    PtrParamNode ret = this->Get(parent, ParamNode::APPEND);
+    ret->Get(child1, ParamNode::APPEND)->SetValue(value1);
+    ret->Get(child2, ParamNode::APPEND)->SetValue(value2);
+    return ret;
+  }
+  else
+    EXCEPTION("parent " << parent_raw << " has  child " << child1 << " with value " << value1 <<
+            " but no child " << child2 << " with value " << value2);
 }
 
 ParamNodeList ParamNode::GetList(const string& name)
