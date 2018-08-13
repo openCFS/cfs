@@ -99,7 +99,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   elements = domain->GetGrid()->GetNumElems(reg_data);
 
   pamping_ = pn->Has("pamping") ? pn->Get("pamping/value")->As<double>() : 0.0;
-  is_matrix_filt = true;
+  is_matrix_filt = false;
   // store the CFS element (number) to design element mapping.
   // Used by Find() and the filter and vicinity neighbors
   elemToDesign.Resize(domain->GetGrid()->GetNumElems() + 1, std::make_pair(-1, true)); // 1 based.
@@ -1236,8 +1236,12 @@ int DesignSpace::ReadDesignFromExtern(const Vector<double>& ext_design)
 {
   // Calculate the new filtered value whenever new design is read by the optimizer
   // and store it in the design space
-
-  density_filter.CacheDensityFilteredValue(ext_design);
+  if (pn_->Has("filters") && is_matrix_filt){
+    ParamNodeList list = pn_->Get("filters")->GetList("filter");
+    for(unsigned int i = 0; i < list.GetSize(); i++){
+      density_filter[i].CacheDensityFilteredValue(ext_design);
+    }
+  }
 
   bool new_design = false;
   const unsigned int nd = design.GetSize();
@@ -2054,7 +2058,7 @@ BaseMaterial* MultiMaterial::GetMultiMaterial(const MaterialClass mc)
 
 
 
-void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbours){
+void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbours,int filter_idx){
 
   // We just get all the design elements and for each filter create a sparse matrix
   // For the sparse matrix we require row_index(element number) , column index(neighbour idx), and weights array
@@ -2076,11 +2080,11 @@ void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int s
 
     for (UInt i=0;i < data.GetSize(); i++){
 
-      auto neighbours = data[i].simp->filter.Last().neighborhood;
-      double inv_weight_sum=(1/data[i].simp->filter.Last().CalcWeightSum(true));
-      this->inv_weighted_sum[i] = data[i].simp->filter.Last().weight*inv_weight_sum;
+      auto neighbours = data[i].simp->filter[filter_idx].neighborhood;
+      double inv_weight_sum=(1/data[i].simp->filter[filter_idx].CalcWeightSum(true));
+      this->inv_weighted_sum[i] = data[i].simp->filter[filter_idx].weight*inv_weight_sum;
       colPointer[lastIndex]=i;
-      dataPtr[lastIndex]= data[i].simp->filter.Last().weight  * inv_weight_sum;
+      dataPtr[lastIndex]= data[i].simp->filter[filter_idx].weight  * inv_weight_sum;
       for (UInt j=0;j<neighbours.GetSize();j++){
         colPointer[lastIndex+j+1]=neighbours[j].neighbour->GetIndex();
         dataPtr[lastIndex+j+1]=(neighbours[j].weight)*inv_weight_sum;

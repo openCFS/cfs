@@ -939,7 +939,7 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   assert(de_->simp != NULL);
 
   unsigned int fix = DetermineFilterIndex();
-  const Filter& f = filter[fix];
+
 
 
   // All equations from Sigmund; Morphology based black and white filters for topology optimization; 2007
@@ -952,11 +952,12 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   int elem_num = de_->GetIndex();
   DesignSpace * space = de_->GetDesignSpace();
   if (space->is_matrix_filt){
-    p_filt =  space->density_filter.filtered_vec[elem_num];
+    p_filt =  space->density_filter[fix].filtered_vec[elem_num];
     LOG_DBG3(desel)<<"elemNum"<<de_->elem->elemNum<<"Filtered Value"<<p_filt;
   }
 
   else{
+    const Filter& f = filter[fix];
     double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
      double denominator = f.weight;
      LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum

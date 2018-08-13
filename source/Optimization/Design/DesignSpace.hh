@@ -47,8 +47,7 @@ namespace CoupledField
       Vector<double> inv_weighted_sum;
       Vector<double> filtered_vec;
       CRS_Matrix<double> filter_mat;
-      bool filter_mat_set = false;
-      void AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbour);
+      void AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbour, int filter_idx);
       void CacheDensityFilteredValue(const Vector<double>& design_vec);
 
     };
@@ -542,11 +541,14 @@ namespace CoupledField
       * data size = num of design * num region elements */
      unsigned int elements;
 
-     // A struct that holds the filter weights Matrix and the filtered Vec.
+     // A vector that holds the filter weights Matrix and the filtered Vec for all the filters
+     StdVector<DensityFilterMat> density_filter;
 
-     DensityFilterMat density_filter;
-
+     // If set filtering is done by matrix Vector operation by assembling a filter mat
      bool is_matrix_filt;
+
+
+
 
     protected:
 

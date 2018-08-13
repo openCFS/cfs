@@ -189,12 +189,14 @@ void ErsatzMaterial::PostInit()
 {
   // updates context which we need for the filters (pde)
   Optimization::PostInit();
-
+  ParamNodeList list;
   // from the filters we detect robustness which we need for multiple excitations
   if(pn->Has("filters"))
   {
-    ParamNodeList list = pn->Get("filters")->GetList("filter");
+    list = pn->Get("filters")->GetList("filter");
     // this is save for design=polarization
+    design->density_filter.Reserve(list.GetSize());
+
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
       if(structure_ == NULL)
@@ -378,10 +380,17 @@ void ErsatzMaterial::PostInit()
     }
   }
 
-  // read the design variables and calculate the density filtered values using the filter mat and cache it.
-  Vector<double> design_vec;
-  design->WriteDesignToExtern(design_vec,false);
-  design->density_filter.CacheDensityFilteredValue(design_vec);
+  if(pn->Has("filters")){
+    // read the design variables and calculate the density filtered values using the filter mat and cache it.
+    // This operations are not in design space post init because the design changes if we read it from a external file
+
+    for(unsigned int i = 0; i < list.GetSize(); i++){
+      Vector<double> design_vec;
+      design->WriteDesignToExtern(design_vec,false);
+      design->density_filter[i].CacheDensityFilteredValue(design_vec);
+    }
+
+  }
 
   // make basic logging
   design->ToInfo(this);
