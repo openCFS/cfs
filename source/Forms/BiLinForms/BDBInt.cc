@@ -33,7 +33,7 @@ namespace CoupledField{
   BDBInt(BaseBOperator* bOp, PtrCoefFct dData, MAT_DATA_TYPE factor, bool coordUpdate )
   : BaseBDBInt(coordUpdate) 
     {
-      name_ = "BDBInt";
+      this->type_ = BDB_INT;
       isSymmetric_ = true;
 
       //assert(dData->GetDimType() == CoefFunction::TENSOR);

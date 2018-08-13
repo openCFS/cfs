@@ -18,6 +18,7 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
+#include "Driver/FormsContexts.hh"
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -321,8 +322,10 @@ void CFS::SetGlobalEnums()
 {
   SetEnvironmentEnums();
   BasePDE::SetEnums();
+  BiLinFormContext::SetEnums();
   EntityList::SetEnums();
   ElemShape::Initialize();
+
 }
 
 void CFS::PrintGrid()

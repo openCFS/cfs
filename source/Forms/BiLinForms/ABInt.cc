@@ -27,7 +27,8 @@ ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
         bool coordUpdate )
   : BBInt<COEF_DATA_TYPE, B_DATA_TYPE>(bOp, scalCoef, factor, coordUpdate )
 {
-  this->name_ = "ABInt";
+  this->type_ = BiLinearForm::AB_INT;
+  this->name_ = "ABInt"; // no idea, why this doesn't compile: type.ToString(type_); do
   this->aOperator_ = aOp;
   this->solDependent_ = false;
 

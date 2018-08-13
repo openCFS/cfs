@@ -80,10 +80,12 @@ class BiLinearForm : public CfsCopyable{
        */
       virtual BiLinearForm* Clone()=0;
 
+      virtual ~BiLinearForm() {}
 
-      virtual ~BiLinearForm(){
+      typedef enum { NO_BILIN_TYPE = -1, BILIN_WRAPPED_LIN, BDB_INT, BB_INT, AB_INT, ADB_INT, SINGLE_ENTRY_BILIN_INT, IC_MODES_INT} Type;
+      static Enum<Type> type;
 
-      }
+      Type GetType() const { return type_; }
 
       virtual void CalcElementMatrix( Matrix<Double>& stiffMat,
                                           EntityIterator& ent1,
@@ -161,8 +163,10 @@ class BiLinearForm : public CfsCopyable{
 
     protected:
 
-      //! name of (bi)linearform
+      /** name of (bi)linearform. This is in the constructor BDBInt, ... and can be overwritten by SetName() */
       std::string name_;
+
+      Type type_ = NO_BILIN_TYPE;
 
       //! is the (bi)linear form symmetric
       bool isSymmetric_;

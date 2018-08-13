@@ -1343,6 +1343,7 @@ namespace CoupledField
       PtrParamNode inf = list->Get("bilinearForm", ParamNode::APPEND);
       // integrator name
       inf->Get("integrator")->SetValue(form->GetName());
+      inf->Get("type")->SetValue(form->type.ToString(form->GetType()));
       inf->Get("complex")->SetValue(form->IsComplex());
 
       BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);

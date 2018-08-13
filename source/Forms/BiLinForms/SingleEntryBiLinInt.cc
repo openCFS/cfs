@@ -5,16 +5,17 @@
 namespace CoupledField {
 
 
-SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val )
-    : BiLinearForm() {
-
-    name_ = "SingleEntryBiLinInt";
-    numDofs_ = numDofs;
-    // note, there was a sanity check for space independent coeffiecients. Hoewever it works fine for CoefFunctionOpt, therefore
-    // the check was removed. It came down to 2011 from andi hauk.
-    val_ = val;
-    isSymmetric_ = false; // from technical point of view: should be symmetric as a matrix with only one element can be considered symmteric
-  }
+SingleEntryBiLinInt::SingleEntryBiLinInt(UInt numDofs, PtrCoefFct& val) : BiLinearForm()
+{
+  type_ = SINGLE_ENTRY_BILIN_INT;
+  name_ = type.ToString(type_);
+  name_ = "SingleEntryBiLinInt";
+  numDofs_ = numDofs;
+  // note, there was a sanity check for space independent coeffiecients. Hoewever it works fine for CoefFunctionOpt, therefore
+  // the check was removed. It came down to 2011 from andi hauk.
+  val_ = val;
+  isSymmetric_ = false; // from technical point of view: should be symmetric as a matrix with only one element can be considered symmteric
+}
 
 SingleEntryBiLinInt::SingleEntryBiLinInt(  UInt numDofs, const std::string& val, 
                                            UInt dof, MathParser* mp ) 

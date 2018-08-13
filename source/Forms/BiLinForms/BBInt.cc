@@ -28,7 +28,8 @@ namespace CoupledField{
          PtrCoefFct scalCoef, MAT_DATA_TYPE factor, 
          bool coordUpdate) :
    BaseBDBInt(coordUpdate) {
-     this->name_ = "BBInt";
+     this->type_ = BB_INT;
+     this->name_ = type.ToString(type_);
      this->isSymmetric_ = true;
      this->bOperator_ = bOp;
      this->coefScalar_ = scalCoef;

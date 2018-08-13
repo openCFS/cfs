@@ -8,6 +8,7 @@ namespace CoupledField{
          PtrCoefFct dData, MAT_DATA_TYPE factor,
          bool coordUpdate )
   : BDBInt<COEF_DATA_TYPE, B_DATA_TYPE>(bOp, dData, factor, coordUpdate  )  {
+      this->type_ = BiLinearForm::ADB_INT;
       this->name_ = "ADBInt";
       this->isSymmetric_ = false; // in general the ADB
       assert(dData->GetDimType() == CoefFunction::TENSOR);

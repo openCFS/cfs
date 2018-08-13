@@ -99,11 +99,10 @@ double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem)
   else
   {
     // we are here in the linear BDBInt case (first time) and nonlinear scalar BBInt case
-
-    LocPoint lp = Elem::shapes[elem->type].midPointCoord;
     LocPointMapped lpm;
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem, true);
-    lpm.Set(lp, esm, 0.0); // this is a redundant and expensive function to call! :(
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
+    LocPoint lp = Elem::GetShape( Elem::GetShapeType( elem->type) ).midPointCoord;
+    lpm.Set(lp, esm); // element constant we need no weight
 
     if(org_mat->GetDimType() == CoefFunction::SCALAR)
       org_mat->GetScalar(nu_0_nu_r, lpm);
@@ -111,7 +110,7 @@ double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem)
     {
       assert(org_mat->GetDimType() == CoefFunction::TENSOR);
       Matrix<double> mat;
-      org_mat->GetTensor(mat, lpm);
+      org_mat->GetTensor(mat, lpm); // TODO: change this to a reference case
       nu_0_nu_r = mat[0][0];
     }
   }

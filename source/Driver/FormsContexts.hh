@@ -65,6 +65,8 @@ namespace CoupledField
       return integrator_->IsNewtonBilinearForm();
     }
 
+    static void SetEnums();
+
     //! Get destination matrix
     FEMatrixType GetDestMat() const { return destMat_; }
 
