@@ -91,6 +91,7 @@ inline double MagSIMP::GetRelactivity(const Elem* elem)
 double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem)
 {
   Matrix<double> nu_0_nu_r;
+  double nu_0_nu_r_scal;
 
   if(elem == NULL)
   {
@@ -102,10 +103,19 @@ double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem)
   {
     LocPointMapped lpm;
     shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
-    LocPoint lp;
+    LocPoint lp = Elem::GetShape( Elem::GetShapeType( elem->type) ).midPointCoord;
     lpm.Set(lp, esm); // element constant we need no weight
-    org_mat->GetTensor(nu_0_nu_r, lpm);
+    //org_mat->GetTensor(nu_0_nu_r, lpm);
+    org_mat->GetScalar(nu_0_nu_r_scal,lpm);
+    nu_0_nu_r.Resize(domain->GetGrid()->GetDim(), domain->GetGrid()->GetDim());
+    nu_0_nu_r *= 0;
+
+    for(unsigned i = 0; i < domain->GetGrid()->GetDim(); ++i)
+    {
+      nu_0_nu_r[i][i] = nu_0_nu_r_scal;
+    }
   }
+  //std::cout << nu_0_nu_r.ToString() << std::endl;
   assert(close(nu_0_nu_r[1][1],nu_0_nu_r[0][0]));
   double nu_r = nu_0_nu_r[0][0] / nu_0;
   return nu_r;
