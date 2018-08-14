@@ -260,21 +260,21 @@ bool SCPIP::get_starting_point(int n, double* x)
 
 bool SCPIP::eval_f(int n, const double* x_org, double& obj_value)
 {
-  Vector<double> x_srt;
-  x_srt.Replace(n,const_cast<double*>(x_org),false);
+  StdVector<double> x_srt;
+  x_srt.Import(x_org, n);
 
-  obj_value = EvalObjective(x_srt, true); // always CFS scale!
+  obj_value = EvalObjective(n, x_srt.GetPointer(), true); // always CFS scale!
   return true;
 }
 
 bool SCPIP::eval_grad_f(int n, const double* x_org, double* grad_f)
 {
-  Vector<double> x_srt;
-  x_srt.Replace(n,const_cast<double*>(x_org),false);
+  StdVector<double> x_srt;
+  x_srt.Import(x_org, n);
   
   // restart_requested handled in intermediate_callback
   assert(grad_f == df.GetPointer());
-  bool result = EvalGradObjective(x_srt, true, df);
+  bool result = EvalGradObjective(n, x_srt.GetPointer(), true, df);
 
   // do we have to write the initial iteration in the non-autoscale case?
   // SCPIP first does eval_f and then eval_grad_f

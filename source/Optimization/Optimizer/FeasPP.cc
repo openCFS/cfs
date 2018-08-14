@@ -309,7 +309,7 @@ void FeasPP::SolveProblem()
     }
 
     assert(ipopt->x_final.GetSize() == n);
-    optimization->GetDesign()->ReadDesignFromExtern(ipopt->x_final);
+    optimization->GetDesign()->ReadDesignFromExtern(ipopt->x_final.GetPointer());
 
     LOG_DBG2(feasPP) << "SP: it=" << iter << " c_grad = [" << obj->outer_grad.ToString() << "]";
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_old = [" << x_outer.ToString() << "]";
@@ -421,8 +421,8 @@ FeasPP::LSR FeasPP::Backtracking(const Vector<double>& x_old, const Vector<doubl
     LOG_DBG2(feasPP) << "FP:B dx_new=" << x_new.ToString(0, ' ');
     x_new += x_old;
     LOG_DBG2(feasPP) << "FP:B x_new=" << x_new.ToString(0, ' ');
-    optimization->GetDesign()->ReadDesignFromExtern(x_new);
-    ov = EvalObjective(x_new, true);
+    optimization->GetDesign()->ReadDesignFromExtern(x_new.GetPointer());
+    ov = EvalObjective(n, x_new.GetPointer(), true);
     LOG_DBG2(feasPP) << "FP:B e=" << result.steps << " t=" << t << " ov=" << ov << " old_ov=" << obj->outer_val << " x=" << x_new.ToString(0, ' ');
   }
   assert(!(!obj->approximate && result.steps > 1)); // see comment above
@@ -509,7 +509,7 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
 
     result.steps++;
   }
-  optimization->GetDesign()->ReadDesignFromExtern(x_next);
+  optimization->GetDesign()->ReadDesignFromExtern(x_next.GetPointer());
   LOG_DBG2(feasPP) << "FP:ALLS sigma_phi=" << sigma_phi << " < phi=" << phi << " dec=" << decrease_ << " sig=" << sigma << " sp=" << grad_phi_d << " (" << (phi + decrease_ * sigma * grad_phi_d) << ")";
   LOG_DBG3(feasPP) << "ALLS x_k+1=[" << x_next.ToString(0, ' ') << "]";
   LOG_DBG3(feasPP) << "ALLS y_k+1=[" << y_next.ToString(0, ' ') << "]";
@@ -585,8 +585,8 @@ double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<dou
   assert(y.GetSize() == m && rho.GetSize() == m);
 
   // evaluate function values
-  optimization->GetDesign()->ReadDesignFromExtern(x);
-  double f = EvalObjective(const_cast<Vector<double>&>(x), true);
+  optimization->GetDesign()->ReadDesignFromExtern(x.GetPointer());
+  double f = EvalObjective(n, x.GetPointer(), true);
   LOG_DBG3(feasPP) << "FP:CAL f=" << f << " rho=" << rho.ToString();
 
 
@@ -633,10 +633,10 @@ void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<d
 
   // for the  the x-part of grad, we need function gradients
   // evaluate function gradient values
-  optimization->GetDesign()->ReadDesignFromExtern(x);
+  optimization->GetDesign()->ReadDesignFromExtern(x.GetPointer());
   optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT, DesignElement::DEFAULT);
   StdVector<double> f_grad(n);
-  EvalGradObjective(const_cast<Vector<double>&>(x), true, f_grad);
+  EvalGradObjective(n, x.GetPointer(), true, f_grad);
   LOG_DBG3(feasPP) << "FP:CGAL f_grad=" << f_grad.ToString();
 
   StdVector<double> c_grad(n); // worst case
@@ -689,9 +689,9 @@ void FeasPP::UpdateToCurrentStep()
   LOG_DBG(feasPP) << "UTCP x=" << x_outer.ToString();
 
   // prepare all functions for the present design
-  obj->outer_val = EvalObjective(x_outer, true);
+  obj->outer_val = EvalObjective(n, x_outer.GetPointer(), true);
   optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT, DesignElement::DEFAULT);
-  EvalGradObjective(x_outer, true, obj->outer_grad);
+  EvalGradObjective(n, x_outer.GetPointer(), true, obj->outer_grad);
   LOG_DBG3(feasPP) << "FP:UTCP obj=" << obj->ToString() << " outer_val=" << obj->outer_val << " grad=" << obj->outer_grad.ToString();
 
   // we have to consider transformation between benson vanderbei and determinant constraints. Therefore me must not call EvalConstraints()
@@ -799,7 +799,7 @@ void FeasPP::CalcKKT(const Vector<double>& x, PtrParamNode in, bool sub, bool de
 
   assert(constr.GetSize() == lambda.GetSize() && constr.GetSize() == m);
 
-  optimization->GetDesign()->ReadDesignFromExtern(x);
+  optimization->GetDesign()->ReadDesignFromExtern(x.GetPointer());
 
   // || grad_f || + sum_i || lambda_i * grad_c_i ||
   Vector<double> tmp(n);
@@ -811,7 +811,7 @@ void FeasPP::CalcKKT(const Vector<double>& x, PtrParamNode in, bool sub, bool de
   if(sub)
     obj->Evaluate(x.GetPointer(), MMAApproximation::GRAD, &grad);
   else
-    EvalGradObjective(const_cast<Vector<double>&>(x), true, grad);
+    EvalGradObjective(n, x.GetPointer(), true, grad);
   tmp.Fill(grad.GetPointer(), n);
   LOG_DBG3(feasPP) << "FP:CKKT sub=" << sub << " det=" << det << " f_grad=" << tmp.NormMax() << " -> [" << tmp.ToString() << "]";
   optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
@@ -1064,18 +1064,16 @@ double MMAApproximation::EvalApproximation(const double* x_inner, Eval eval, Std
 double MMAApproximation::EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out)
 {
   double result = 0.0;
-  Vector<double> des_vec;
-  des_vec.Replace(common->n,const_cast<double*>(x_inner),false);
 
   if(GetFunction()->IsObjective())
   {
     switch(eval)
     {
     case FUNC:
-      result = common->EvalObjective(des_vec, true);
+      result = common->EvalObjective(common->n, x_inner, true);
       break;
     case GRAD:
-      common->EvalGradObjective(des_vec, true, *out);
+      common->EvalGradObjective(common->n, x_inner, true, *out);
       break;
     case HESSIAN:
       GetFunction()->CalcHessian(*out, 1.0);

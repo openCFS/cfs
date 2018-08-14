@@ -103,6 +103,8 @@ ErsatzMaterial::ErsatzMaterial() :
 
   method_ = method.Parse(pn->Get("method")->As<std::string>());
 
+
+
   // we set the calc_u1ku2_timer_ only for non-regular meshes but then as sub-timer
   calc_u1ku2_timer_ = grid->IsGridRegular() ? boost::shared_ptr<Timer>() : boost::shared_ptr<Timer>(new Timer("calc_U1KU2", true));
 
@@ -194,9 +196,9 @@ void ErsatzMaterial::PostInit()
   if(pn->Has("filters"))
   {
     list = pn->Get("filters")->GetList("filter");
-    // this is save for design=polarization
+    // reserve the density filter mat here since the struct doesn't have explicit copy constructor and push back will lead to error.
     design->density_filter.Reserve(list.GetSize());
-
+    // this is save for design=polarization
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
       if(structure_ == NULL)
@@ -380,16 +382,14 @@ void ErsatzMaterial::PostInit()
     }
   }
 
-  if(pn->Has("filters")){
-    // read the design variables and calculate the density filtered values using the filter mat and cache it.
-    // This operations are not in design space post init because the design changes if we read it from a external file
-
-    for(unsigned int i = 0; i < list.GetSize(); i++){
-      Vector<double> design_vec;
-      design->WriteDesignToExtern(design_vec,false);
-      design->density_filter[i].CacheDensityFilteredValue(design_vec);
-    }
-
+  if(pn->Has("filters")&& design->is_matrix_filt){
+      // read the design variables and calculate the density filtered values using the filter mat and cache it.
+      // This operations are not in design space post init because the design changes if we read it from a external file
+      for(unsigned int i = 0; i < list.GetSize(); i++){
+        Vector<double> design_vec;
+        design->WriteDesignToExtern(design_vec,false);
+        design->density_filter[i].CacheDensityFilteredValue(design_vec);
+      }
   }
 
   // make basic logging

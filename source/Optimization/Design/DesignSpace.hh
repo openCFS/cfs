@@ -21,9 +21,6 @@
 #include "MatVec/CRS_Matrix.hh"
 
 
-
-
-
 namespace CoupledField
 {
   template <class TYPE> class Matrix;
@@ -51,7 +48,6 @@ namespace CoupledField
       void CacheDensityFilteredValue(const Vector<double>& design_vec);
 
     };
-
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
   class DesignSpace
@@ -228,11 +224,12 @@ namespace CoupledField
       * (only doubles) where we have a StdVector of the complex DesignElement.</p>
       * @param space_in the design space (in variable). Size is GetDesignSpaceSize()
       * @return the design_id which is the old one if space_in did not change the design. */
-     virtual int ReadDesignFromExtern(const Vector<double>& ext_design);
+     virtual int ReadDesignFromExtern(const double* space_in);
+     int ReadDesignFromExtern(const StdVector<double>& space);
      
      /** Compare the design with the present. Does not change anything!
       * @return true if the designs are equal and ReadDesignFromExtern() would give the old design id */
-     virtual bool CompareDesign(const Vector<double>& space_in);
+     virtual bool CompareDesign(const double* space_in);
            
      /** gives the initial guess (for the design space) 
       * @param space_out to this array of GetDesignSpaceSize() the initial guess is written to.
@@ -484,8 +481,6 @@ namespace CoupledField
        /** Here we cache the lower end material class. Complicated because of pizeo and stiffness, density */
        std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > bimaterials;
 
-
-
      private:
 
        /** the label for the info.xml */
@@ -541,11 +536,14 @@ namespace CoupledField
       * data size = num of design * num region elements */
      unsigned int elements;
 
+
      // A vector that holds the filter weights Matrix and the filtered Vec for all the filters
      StdVector<DensityFilterMat> density_filter;
 
-     // If set filtering is done by matrix Vector operation by assembling a filter mat
+     // If set filtering is done by matrix Vector operation by assembling a filter mat.
+     // this internal bool is set to true in default mode if the number of different design is one
      bool is_matrix_filt;
+
 
 
 
@@ -570,8 +568,6 @@ namespace CoupledField
 
      /** This is the design space info node */
      PtrParamNode info_;
-
-
 
   private:
 
@@ -681,10 +677,6 @@ namespace CoupledField
     /** this is a list of materials. One for elasticity and three for piezoelectricity */
     StdVector<std::pair<BaseMaterial*, MaterialClass> > material;
   };
-
-
-
-
 
 
 } // end of namespace

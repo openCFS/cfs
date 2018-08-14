@@ -1011,6 +1011,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];
+
   Condition* g = dynamic_cast<Condition*>(func);
 
   assert(f.GetType() == Filter::DENSITY);

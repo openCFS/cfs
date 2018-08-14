@@ -100,7 +100,7 @@ void AuxDesign::ToInfo(ErsatzMaterial* em)
 
 }
 
-int AuxDesign::ReadDesignFromExtern(const Vector<double>&  space_in)
+int AuxDesign::ReadDesignFromExtern(const double* space_in)
 {
   int old_design = design_id;
 
@@ -138,7 +138,7 @@ inline unsigned int AuxDesign::AuxDesignOffset() const
   return 0;
 }
 
-bool AuxDesign::CompareDesign(const Vector<double>& space_in)
+bool AuxDesign::CompareDesign(const double* space_in)
 {
   if(exoprt_fe_design_ && !DesignSpace::CompareDesign(space_in))
     return false;

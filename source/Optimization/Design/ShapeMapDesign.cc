@@ -1063,7 +1063,7 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
 }
 
 
-int ShapeMapDesign::ReadDesignFromExtern(const Vector<double>&  space_in)
+int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
 {
   assert(!std::isnan(scaling_));
   int old_design = design_id;
@@ -1103,7 +1103,7 @@ int ShapeMapDesign::ReadDesignFromExtern(const Vector<double>&  space_in)
   return design_id;
 }
 
-bool ShapeMapDesign::CompareDesign(const Vector<double>& space_in)
+bool ShapeMapDesign::CompareDesign(const double* space_in)
 {
   for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
   {

@@ -122,7 +122,7 @@ void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
   assert(aux_design_.GetSize() == nshapeparams);
 }
 
-int ShapeDesign::ReadDesignFromExtern(const Vector<double>&  space_in)
+int ShapeDesign::ReadDesignFromExtern(const double* space_in)
 {
   int old_design = design_id;
 

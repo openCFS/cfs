@@ -131,7 +131,6 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
 
 void OptimalityCondition::SolveProblem()
 {
-
   // we measure the optimizer in the loops only
   optimizer_timer_->Stop();
 
@@ -150,13 +149,14 @@ void OptimalityCondition::SolveProblem()
 
 
     optimization->SolveAdjointProblems();
+
     eval_grad_obj_timer_->Start();
     optimization->CalcObjectiveGradient(NULL);
     eval_grad_obj_timer_->Stop();
     
     // reset values of the constraint gradients
     optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
-
+    
     if(optimization->constraints.view->GetNumberOfActiveConstraints() > 0) {
       eval_grad_const_timer_->Start();
       optimization->CalcConstraintGradient(NULL);
@@ -200,7 +200,6 @@ void OptimalityCondition::SolveProblem()
     Optimization::context->pde->GetAssemble()->SetAllReassemble();
     optimization->SolveStateProblem();
 
-
     // calc the objective for the logging in CommitIteration(),
     // for the optimality condition it is not required.
 
@@ -213,7 +212,7 @@ void OptimalityCondition::SolveProblem()
     optimization->CommitIteration();
     iter++;
   }
-
+  
   PtrParamNode in = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
   
   if(iter >= max_iter-1) 
@@ -262,7 +261,7 @@ void OptimalityCondition::CalcNextFramedIteration()
     // evaluate with new lambda 
     // restore original density from temp so we always start the calculation 
     // on the same base but with different lambda
-    optimization->GetDesign()->ReadDesignFromExtern(vault_);
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());
 
     err = Evaluate(lambda_);
     // move frames according to new lambda
@@ -304,12 +303,12 @@ void OptimalityCondition::CalcNextFumbleIteration()
     // restore original density from temp so we always start the calculation 
     // on the same base but with different lambda
     // start with check lambda_ - expand_ * step_
-    optimization->GetDesign()->ReadDesignFromExtern(vault_);
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());    
     min_err = Evaluate(lambda_ - expand_ * step_);
     double fumble = -1.0 * expand_;
 
     // check with lambda_ - contract_ * step_
-    optimization->GetDesign()->ReadDesignFromExtern(vault_);
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());    
     double t = Evaluate(lambda_ - contract_ * step_);
     if(t < min_err) {
 //    if(abs(t) < abs(min_err)) {
@@ -318,7 +317,7 @@ void OptimalityCondition::CalcNextFumbleIteration()
     }
 
     // check with lambda_ + contract_ * step_
-    optimization->GetDesign()->ReadDesignFromExtern(vault_);
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());
     t = Evaluate(lambda_ + contract_ * step_);
     if(t < min_err) {    
     //if(abs(t) < abs(min_err)) {
@@ -327,7 +326,7 @@ void OptimalityCondition::CalcNextFumbleIteration()
     }
 
     // check lambda_ + expand_ * step_
-    optimization->GetDesign()->ReadDesignFromExtern(vault_);
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());    
     t = Evaluate(lambda_ + expand_ * step_);
     if(t < min_err) {
     //if(abs(t) < abs(min_err)) {
@@ -397,7 +396,7 @@ void OptimalityCondition::CalcNextTrajectoryIteration()
     }
     // restore original density from temp so we always start the calculation 
     // on the same base but with different lambda
-    optimization->GetDesign()->ReadDesignFromExtern(vault_);
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());
 
     err = Evaluate(lambda_);
     
@@ -441,7 +440,7 @@ void OptimalityCondition::CalcNextExtremizeIteration()
   }
   
   // store the new values in the design variables
-  optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_);
+  optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer());
 }
 
 
@@ -508,7 +507,7 @@ double OptimalityCondition::Evaluate(double lambda)
    }
    optimizer_timer_->Stop();
    // store the new values in the design variables
-   optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_);
+   optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer());
    
    eval_const_timer_->Start();
    double vol = optimization->CalcConstraint(g);

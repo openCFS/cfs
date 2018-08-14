@@ -39,7 +39,7 @@ template <class TYPE> class Matrix;
 
     /** conditionally calls UpdateCoordinates()
      *  @see AuxDesign::ReadDesignFromExtern() */
-    int ReadDesignFromExtern(const Vector<double>& space_in);
+    int ReadDesignFromExtern(const double* space_in);
     
     /** return whether this element does depend on any deformations at all 
      * @param connect nodes of this element */

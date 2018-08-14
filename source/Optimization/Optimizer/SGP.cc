@@ -487,7 +487,7 @@ StdVector<double> SGP::GradientCheck(double & max_grad_error) {
       assert(index < x_outer.GetSize());
       // Set to x + eps
       x_outer[index] += eps;
-      obj_right = EvalObjective(x_outer, true);
+      obj_right = EvalObjective(n, x_outer.GetPointer(), true);
       EvalConstraints(n,x_outer.GetPointer(),m,true,constr_val.GetPointer(),true);
       for (unsigned int k=0; k < m;k++) {
         if (constr[k]->GetType() == Condition::FILTERING_GAP)
@@ -502,7 +502,7 @@ StdVector<double> SGP::GradientCheck(double & max_grad_error) {
       x_outer[index] -= 2*eps;
 
       // Eval function value f(x-h) (left)
-      obj_left = EvalObjective(x_outer, true);
+      obj_left = EvalObjective(n, x_outer.GetPointer(), true);
       EvalConstraints(n,x_outer.GetPointer(),m,true,constr_val.GetPointer(),true);
       for (unsigned int k=0; k < m;k++) {
         if (constr[k]->GetType() == Condition::FILTERING_GAP)
@@ -564,7 +564,7 @@ double SGP::EvalCostFunction(void) {
   }
 
   // evaluate objective and constraints for temporary outer variable x
-  double obj = EvalObjective(x, true);
+  double obj = EvalObjective(n, x.GetPointer(), true);
   StdVector<double> constr_val(m);
   EvalConstraints(n,x.GetPointer(),m,true,constr_val.GetPointer(),true);
   for (unsigned int k=0; k < m;k++) {
@@ -589,10 +589,10 @@ void SGP::UpdateToCurrentStep(bool inner, double ppeni, bool widening)
   // Update cost function and cost gradient only for non-inner (non-bisection) iterations
   if (!inner) {
     // prepare all functions for the present design
-    compliance = EvalObjective(x_outer, true);
+    compliance = EvalObjective(n, x_outer.GetPointer(), true);
 
     optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT, DesignElement::DEFAULT);
-    EvalGradObjective(x_outer, true, obj->outer_grad);
+    EvalGradObjective(n, x_outer.GetPointer(), true, obj->outer_grad);
     LOG_DBG3(sgp) << "FP:UTCP obj=" << obj->ToString() << " compliance=" << compliance << " compliance_grad=" << obj->outer_grad.ToString();
   }
 

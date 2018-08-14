@@ -99,7 +99,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   elements = domain->GetGrid()->GetNumElems(reg_data);
 
   pamping_ = pn->Has("pamping") ? pn->Get("pamping/value")->As<double>() : 0.0;
-  is_matrix_filt = false;
+
+
+
+
   // store the CFS element (number) to design element mapping.
   // Used by Find() and the filter and vicinity neighbors
   elemToDesign.Resize(domain->GetGrid()->GetNumElems() + 1, std::make_pair(-1, true)); // 1 based.
@@ -110,6 +113,16 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
   // setup designs
   ParamNodeList pn_design = pn->GetList("design");
+
+  // Check if matrix filtering is enabled by the user
+  bool mat_filt_set = pn->Has("filters/use_mat_filt") ? true : false;
+  if (mat_filt_set){
+     is_matrix_filt = (  pn->Get("filters/use_mat_filt")->As<std::string>() =="true") ? true : false;
+  }
+
+  if (mat_filt_set && is_matrix_filt && method != ErsatzMaterial::SIMP_METHOD){
+    EXCEPTION("Matrix based density filtering is only implemented for SIMP")
+  }
 
   // preprocess multimaterial - does not know regions yet
   SetupMultiMaterial(pn_design);
@@ -185,6 +198,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   }
   else // 'standard' SIMP case
   {
+
+     // in SIMP case if user gives default for matrix based density filtering we enable it.
+     if (!mat_filt_set)
+       is_matrix_filt = true;
     // set our own structure with is element times design parameters
     data.Reserve(elements * design.GetSize());
     totalElements_.Reserve(elements  * design.GetSize()); // the quick access copy which also combines pseudo design elements
@@ -356,7 +373,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
         if(!Contains(domain->GetGrid()->regionData[r].id))
           RegisterPseudoDesignRegion(domain->GetGrid()->regionData[r].id, design[d].design);
   }
-
 }
 
 DesignSpace::~DesignSpace(){
@@ -471,7 +487,7 @@ void DesignSpace::PostInit(int objectives, int constraints)
     // set the whole LocalElementCache to do SIMP element based and cache also ParamMat gradients
     elementCache = new LocalElementCache(this); // not yet activated
 
-    // this is a virtual function.
+    // this is a virtual Function.
     SetupLocalElementCache();
   }
 }
@@ -1232,17 +1248,8 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
 }
 
 
-int DesignSpace::ReadDesignFromExtern(const Vector<double>& ext_design)
+int DesignSpace::ReadDesignFromExtern(const double* space)
 {
-  // Calculate the new filtered value whenever new design is read by the optimizer
-  // and store it in the design space
-  if (pn_->Has("filters") && is_matrix_filt){
-    ParamNodeList list = pn_->Get("filters")->GetList("filter");
-    for(unsigned int i = 0; i < list.GetSize(); i++){
-      density_filter[i].CacheDensityFilteredValue(ext_design);
-    }
-  }
-
   bool new_design = false;
   const unsigned int nd = design.GetSize();
   unsigned int s = 0;
@@ -1260,7 +1267,7 @@ int DesignSpace::ReadDesignFromExtern(const Vector<double>& ext_design)
       {
         for(unsigned int d = cur_reg.base; d < u; d++)
         {
-          const double v = ext_design[s] * scaling + translation;
+          const double v = space[s] * scaling + translation;
           if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
             new_design = true;
 
@@ -1271,7 +1278,7 @@ int DesignSpace::ReadDesignFromExtern(const Vector<double>& ext_design)
       }
       else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS)
       { // in FIXED case, nothing is done
-        const double v = ext_design[s] * scaling + translation;
+        const double v = space[s] * scaling + translation;
         for(unsigned int d = cur_reg.base; d < u; d++)
         {
           if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
@@ -1298,11 +1305,22 @@ int DesignSpace::ReadDesignFromExtern(const Vector<double>& ext_design)
     if(df)
       df->SetAndWriteCurrent(domain->GetOptimization()->GetCurrentIteration());
   }
-
+  Vector<double> des_vec;
+  des_vec.Replace(DesignSpace::GetNumberOfVariables(),const_cast<double*>(space),false);
+  if (pn_->Has("filters") && is_matrix_filt){
+     ParamNodeList list = pn_->Get("filters")->GetList("filter");
+     for(unsigned int i = 0; i < list.GetSize(); i++){
+       density_filter[i].CacheDensityFilteredValue(des_vec);
+     }
+   }
   return design_id;
 }
+int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)
+{
+  return ReadDesignFromExtern(space.GetPointer());
+}
 
-bool DesignSpace::CompareDesign(const Vector<double>& ext_design)
+bool DesignSpace::CompareDesign(const double* space)
 {
   const unsigned int nd = design.GetSize();
   unsigned int s = 0;
@@ -1316,7 +1334,7 @@ bool DesignSpace::CompareDesign(const Vector<double>& ext_design)
       const unsigned int u = cur_reg.base + cur_reg.elements;
       if(cur_reg.constant == VARIABLE) {
         for(unsigned int d = cur_reg.base; d < u; d++){
-          const double v = ext_design[s] * scaling + translation;
+          const double v = space[s] * scaling + translation;
           if(data[d].GetDesign(DesignElement::PLAIN) != v) {
             return(false);
           }
@@ -1325,7 +1343,7 @@ bool DesignSpace::CompareDesign(const Vector<double>& ext_design)
           s++; // advance in every step
         } // for d
       }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS){ // in FIXED case, nothing is done
-        const double v = ext_design[s] * scaling + translation;
+        const double v = space[s] * scaling + translation;
         for(unsigned int d = cur_reg.base; d < u; d++){
           if(data[d].GetDesign(DesignElement::PLAIN) != v) {
             return(false);
@@ -1499,7 +1517,6 @@ void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type de
     for(unsigned int i = start; i < end; i++)
       data[i].SetDesign(0.0);
     break;
-    // TODO: set also density filter matrix
   case DesignElement::CONSTRAINT_GRADIENT:
   case DesignElement::COST_GRADIENT:
     for(unsigned int i = start; i < end; i++)
@@ -2101,6 +2118,8 @@ void DensityFilterMat::CacheDensityFilteredValue(const Vector<double>& design_ve
   this->filter_mat.Mult(design_vec,this->filtered_vec);
 
 }
+
+
 
 
 

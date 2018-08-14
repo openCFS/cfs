@@ -216,12 +216,11 @@ bool IPOPT::get_starting_point(Index n, bool init_x, Number* x,
 bool IPOPT::eval_f(Index n, const Number* x, bool new_x, Number& obj_value)
 {
   int old_design = base_->objective->scaling.design_id;
-  Vector<Number> desVec;
-  desVec.Replace(n,const_cast<Number*>(x),false);
+  
   // return the value of the objective function.
   try
   {
-    obj_value = base_->EvalObjective(desVec, false); // IPOPT can scale by itself!
+    obj_value = base_->EvalObjective(n, x, false); // IPOPT can scale by itself!
   }
   catch(Exception& e)
   {
@@ -237,17 +236,13 @@ bool IPOPT::eval_f(Index n, const Number* x, bool new_x, Number& obj_value)
 
 bool IPOPT::eval_grad_f(Index n, const Number* x, bool new_x, Number* grad_f)
 {
-  Vector<Number> desVec;
-  desVec.Replace(n,const_cast<Number*>(x),false);
-
-
   int old_design = base_->objective->scaling.design_id;
   // return the gradient of the objective function grad_{x} f(x)
 
   // TODO: do better :)
   StdVector<double> tmp(n);
 
-  bool ok = base_->EvalGradObjective(desVec, false, tmp);
+  bool ok = base_->EvalGradObjective(n, x, false, tmp);
 
   for(unsigned int i = 0; i < tmp.GetSize(); i++)
     grad_f[i] = tmp[i];
@@ -262,11 +257,9 @@ bool IPOPT::eval_grad_f(Index n, const Number* x, bool new_x, Number* grad_f)
 bool IPOPT::eval_g(Index n, const Number* x, bool new_x, Index m, Number* g)
 {
   LOG_TRACE2(ipopt) << "eval_g: n = " << n << "; new_x = " << new_x << "; m = " << m;
-  Vector<Number> desVec;
-  desVec.Replace(n,const_cast<Number*> (x),false);
 
   // we overwrite the design space, but we do this all the time - especially before eval_f
-  optimization_->GetDesign()->ReadDesignFromExtern(desVec);
+  optimization_->GetDesign()->ReadDesignFromExtern(x);
   
   base_->EvalConstraints(n, x, m, false, g, false);
 

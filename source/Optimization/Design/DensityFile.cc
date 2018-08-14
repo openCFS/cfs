@@ -105,7 +105,6 @@ DesignSpace* DensityFile::CreateDesignSpace(bool force_region, const PtrParamNod
   PtrParamNode reg = xml->Get("header/filters/filter", ParamNode::PASS);
   if (reg)
     filter.SetFilter(reg, info->Get("ersatzMaterial"));
-
   space->ToInfo(NULL);
   return space;
 }
@@ -249,7 +248,10 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     // the regions are normally implicitly defined by the element numbers. The exception
     // is force_region from <loadErsatzMaterial>
     space = CreateDesignSpace(force_region, pn, elems, xml);
+    // FIXME this is not the exact way to do it.
+    space->is_matrix_filt = false;
   }
+
 
   // check bound violations
   double lower_violation = 0.0;

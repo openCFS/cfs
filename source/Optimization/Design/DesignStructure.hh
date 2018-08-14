@@ -17,7 +17,6 @@ namespace CoupledField {
 class DesignSpace;
 class Grid;
 class GridCFS;
-class Excitation;
 struct Elem;
 }  // namespace CoupledField
 
