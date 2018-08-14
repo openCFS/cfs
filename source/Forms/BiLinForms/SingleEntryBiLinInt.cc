@@ -9,7 +9,6 @@ SingleEntryBiLinInt::SingleEntryBiLinInt(UInt numDofs, PtrCoefFct& val) : BiLine
 {
   type_ = SINGLE_ENTRY_BILIN_INT;
   name_ = type.ToString(type_);
-  name_ = "SingleEntryBiLinInt";
   numDofs_ = numDofs;
   // note, there was a sanity check for space independent coeffiecients. Hoewever it works fine for CoefFunctionOpt, therefore
   // the check was removed. It came down to 2011 from andi hauk.
