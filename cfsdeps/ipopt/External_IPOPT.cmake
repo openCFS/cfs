@@ -90,7 +90,7 @@ ELSE()
     # Fill ThirdParty content (blas/ lapack/ HSLold)
     PATCH_COMMAND  ${CMAKE_COMMAND} -P "${PFN}"
     # let it install to the temporay directory where we can remove libcoinblas and libcoinlapack and prepare to copy to precompiled cfsdeps
-    CONFIGURE_COMMAND ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config F77=${CMAKE_Fortran_COMPILER} OPT_FFLAGSS=-O3 CXX=${CMAKE_CXX_COMPILER} OPT_CXXFLAGS=-O3 
+    CONFIGURE_COMMAND env "CFLAGS=${CFS_C_FLAGS}" "CXXFLAGS=${CFS_CXX_FLAGS}" ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config F77=${CMAKE_Fortran_COMPILER} OPT_FFLAGSS=-O3 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} OPT_CXXFLAGS=-O3
   )
   
   ExternalProject_Add_Step(ipopt cfsdeps_download 

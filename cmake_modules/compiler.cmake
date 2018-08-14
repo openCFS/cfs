@@ -291,6 +291,12 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
   ENDIF()
 
+  # Fall back to GCC 7 in case of GCC 8 installed because ICC currently does not work with GCC 8 headers
+  # If we have newest intel compiler we assume that we have newest gcc as well
+  #IF(CFS_CXX_COMPILER_VER VERSION_GREATER "2018.0.0")
+    SET(CFS_C_FLAGS " -gcc-name=gcc-7 -gxx-name=g++-7 ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS " -gcc-name=gcc-7 -gxx-name=g++-7 ${CFS_CXX_FLAGS}")
+  #ENDIF()
   
   #---------------------------------------------------------------------------
   # Disable warnings about hidden overriden functions of base classes,

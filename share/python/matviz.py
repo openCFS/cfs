@@ -89,7 +89,15 @@ def read_design(hdf_file, dim_2D, args):
     res['s2'] = res['s1']
     res['s3'] = res['s1']
   elif args.parametrization == 'simp':
-    res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
+    if args.h5_region == 'all':
+      s1 = [[None]]
+      for region in f['/Mesh/Regions']:
+        s = get_element(f, "physicalPseudoDensity", region, args.h5_step)
+        s1 = numpy.concatenate((s1,s))
+      res['s1'] = s1[1:]
+      shape(res['s1'])
+    else:
+      res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
     res['s2'] = res['s1']
     res['s3'] = res['s1']
     res['angle'] = numpy.zeros(((len(res['s1']), 3)))
@@ -186,7 +194,7 @@ def plot_angle_data(file, angle, data):
 # @param force_scale overwrites args.scale
 # @param min_bb/max_bb: min/max coordinates of bounding box
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
-def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes_coords = None, min_bb = None, max_bb = None):
+def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes_coords = None, min_bb = None, max_bb = None, elems_in_regions = None):
   
   volume = None  # might ne set
   
@@ -347,10 +355,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   assert(me is not None)  
                   write_gid_mesh(me, "validation_mesh.mesh", scale)      
               else:
-                viz = create_3d_frame_ip(coords, design, samples, args.hom_grad, scale, valid_position, args.thres)
+                viz = create_3d_cross_ip(coords, design, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
           if args.show == 'simp':
-            viz = create_block(coords, design, scale, args.thres)
+            viz = create_block(coords, design, scale, args.thres, elems_in_regions)
           elif args.hom_grad == 'none':
             viz = create_3d_frame(coords, design, args.hom_dir, scale)
           elif args.unstructured:
@@ -608,11 +616,25 @@ else:
     dim_2D = nondes_min[2] == nondes_max[2]
     print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
     
-  centers, min_bb, max_bb, elem_dim, _, _ = centered_elements(f, args.h5_region)
+  if args.h5_region == 'all':
+    centers = [[None, None, None]]
+    min_bb = [numpy.Inf, numpy.Inf, numpy.Inf]
+    max_bb = [-numpy.Inf, -numpy.Inf, -numpy.Inf]
+    elems_in_regions = [[None]]
+    for region in f['/Mesh/Regions']:
+      reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements = centered_elements(f, region)
+      elems_in_regions.append(reg_elements)
+      centers = numpy.concatenate((centers, reg_centers))
+      min_bb = numpy.min([min_bb,reg_min_bb],0);
+      max_bb = numpy.max([max_bb,reg_max_bb],0);
+    elems_in_regions = elems_in_regions[1:]
+    centers = centers[1:,:]
+  else:
+    centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions = centered_elements(f, args.h5_region)
   
   if args.mesh:
     if args.h5_nondes != "None":
-      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes)
+      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, _ = centered_elements(f, args.h5_nondes)
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
 
@@ -622,7 +644,7 @@ if not args.target_volume:
     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
     perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min_bb,max_bb=min_bb)
   else:
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)
 else:
   if args.scale > 0:
     print("Error: don't give --scale and --target_volume concurrently!")

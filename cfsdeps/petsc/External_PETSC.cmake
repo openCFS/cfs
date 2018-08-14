@@ -70,16 +70,21 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
   )
 ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   # special handling for mkl
-  if(CFS_BLAS_LAPACK MATCHES "MKL")
-    set(PETSC_BLAS " --with-blas-lapack-dir=${MKL_ROOT_DIR}")
-  else()
+  IF(CFS_BLAS_LAPACK MATCHES "MKL")
+    SET(PETSC_BLAS " --with-blas-lapack-dir=${MKL_ROOT_DIR}")
+  ELSE()
     # shall work at least for openblas
     set(PETSC_BLAS " --with-blaslapack-lib=${LAPACK_LIB}")
-  endif()       
+  ENDIF()       
  
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
+  IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    SET(PETSC_DEBUG 1)
+  ELSE()
+    SET(PETSC_DEBUG 0)
+  ENDIF()
   ExternalProject_Add(petsc
     PREFIX "${PETSC_PREFIX}"
     SOURCE_DIR "${PETSC_SOURCE}"
@@ -87,14 +92,14 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     URL_MD5 ${PETSC_MD5}
     BUILD_IN_SOURCE 1
     PATCH_COMMAND ""
+    UPDATE_COMMAND ""
     # petsc has a python2 configure, maybe later also python3 compatible?
     # python2 config/configure.py  CC=$CC CXX=$CXX FC=$FC --prefix=/home/fwein/tmp/petsc-3.8.3/killme
     # CC, .. shall be mpicc to be verified in mpi.cmake. Unfortunately there is no assert() in cmake :(
     #Coudn't avoid copy paste for configure command as the configure command messes up things quotes
-    CONFIGURE_COMMAND  python2 ${PETSC_SOURCE}/configure --with-cc=${CMAKE_C_COMPILER} --with-cxx=${CMAKE_CXX_COMPILER} --with-fc=${CMAKE_Fortran_COMPILER} --with-debugging=0 COPTFLAGS=-O3 CXXOPTFLAGS=-O3 FOPTFLAGS=-O3 --prefix=${PETSC_INSTALL} --with-valgrind=0 --with-blas-lapack-dir=${MKL_ROOT_DIR}
+    CONFIGURE_COMMAND python2 ${PETSC_SOURCE}/configure --with-cc=${CMAKE_C_COMPILER} --with-cxx=${CMAKE_CXX_COMPILER} --with-fc=${CMAKE_Fortran_COMPILER} --with-debugging=${PETSC_DEBUG} COPTFLAGS=-O3 CXXOPTFLAGS=-O3 FOPTFLAGS=-O3 --prefix=${PETSC_INSTALL} --with-valgrind=0 --with-blas-lapack-dir=${MKL_ROOT_DIR}
     INSTALL_COMMAND ${CONFIGURE_MAKE_PROGRAM} install
     BUILD_BYPRODUCTS ${PETSC_LIBRARY}
-    
   )
 
   #-------------------------------------------------------------------------------

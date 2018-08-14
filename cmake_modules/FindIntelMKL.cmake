@@ -10,6 +10,7 @@
 #
 # On Unix  we determine the  required linker flags by  compiling one of  the MKL
 # examples and reading the flags from the Makefile output (cf. below).
+# another option: https://software.intel.com/en-us/articles/intel-mkl-link-line-advisor
 #-------------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
@@ -383,7 +384,7 @@ ELSE(WIN32)
   endif(NOT MKL_SOLVERMAKEFILE)
 
   if(NOT MKL_SOLVERMAKEFILE)
-    message(FATAL_ERROR "did not find example solver makefile")
+    message(FATAL_ERROR "Did not find example solver makefile. Have you sourced MKL in bashrc?")
   endif(NOT MKL_SOLVERMAKEFILE)
 
   #-----------------------------------------------------------------------------
