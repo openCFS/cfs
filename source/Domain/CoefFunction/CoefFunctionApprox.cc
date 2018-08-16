@@ -51,7 +51,8 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar,
   if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY ) {
     // in case of permeability (reluctivity) the function depends on the norm of the field
     // it is specialized in terms of evaluation
-    Double fieldAbs = elemSol.NormL2();
+    Double fieldAbs = 0;
+    fieldAbs = round(elemSol.NormL2());
 
     if( fieldAbs == 0 ) { 
       coefScalar = coefScalar_;
