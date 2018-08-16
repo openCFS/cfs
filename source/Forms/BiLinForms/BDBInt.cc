@@ -34,6 +34,7 @@ namespace CoupledField{
   : BaseBDBInt(coordUpdate) 
     {
       this->type_ = BDB_INT;
+      this->name_ = type.ToString(type_);
       isSymmetric_ = true;
 
       //assert(dData->GetDimType() == CoefFunction::TENSOR);

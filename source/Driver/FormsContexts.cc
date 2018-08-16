@@ -60,7 +60,7 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
     BiLinearForm::type.Add(BiLinearForm::AB_INT, "ABInt");
     BiLinearForm::type.Add(BiLinearForm::ADB_INT, "ABDInt");
     BiLinearForm::type.Add(BiLinearForm::SINGLE_ENTRY_BILIN_INT, "SingleEntryBiLinInt");
-    BiLinearForm::type.Add(BiLinearForm::IC_MODES_INT, "ICMOdesInt");
+    BiLinearForm::type.Add(BiLinearForm::IC_MODES_INT, "ICModesInt");
   }
 
   void BiLinFormContext::MapEqns( EntityIterator& it1, 
