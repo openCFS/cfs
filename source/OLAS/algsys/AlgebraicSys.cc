@@ -2720,7 +2720,6 @@ namespace CoupledField {
   }
 
 
-
   template<typename T>
   void AlgebraicSys::SetElementMatrix_MultHarm( FEMatrixType matrixType,
                                                 Matrix<T>& elemMat,
@@ -2728,6 +2727,7 @@ namespace CoupledField {
                                                 const StdVector<Integer>& eqnNrs1,
                                                 FeFctIdType fctId2,
                                                 const StdVector<Integer>& eqnNrs2,
+                                                bool setCounterPart,
                                                 const StdVector<UInt>& sbmIndices) {
 
     if(fctId1 != fctId2) EXCEPTION("AlgebraicSys::SetElementMatrix_MultHarm function Id's don't match!");
@@ -2919,7 +2919,21 @@ namespace CoupledField {
           } //j
         } //i
 
-
+        // 2) if sbmRow == sbmCol and transposed should be set,
+        // we have to assemble the transposed by hand
+        // loop over all rows/col
+        if( sbmRow == sbmCol && setCounterPart ) {
+          LOG_DBG3(algSys) << "\t2) free-free entries (transposed):";
+          LOG_DBG3(algSys) << "\t\trowIndices: " << cList1.ToString();
+          LOG_DBG3(algSys) << "\t\tcolIndices: " << rList1.ToString();
+          for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+            rowInd = rIndList1[i];
+            for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
+              colInd = cIndList1[j];
+              stdMat->AddToMatrixEntry( cList1[j], rList1[i], elemMat[rowInd][colInd] );
+            } //j
+          } //i
+        } // sbmRow == sbmCol
       } // stdMat != NULL
 
       // 3) Assemble all free <-> fixed entries
@@ -2936,13 +2950,28 @@ namespace CoupledField {
           } // j
         } // i
       } // if cList2.GetSize()
+
+
+      // 4) Assemble all free <-> fixed entries ( TRANSPOSED )
+      if( rList2.GetSize() ) {
+        if( sbmRow == sbmCol && setCounterPart == true) {
+          LOG_DBG3(algSys) << "\t4) free-fixed entries (transposed):";
+          LOG_DBG3(algSys) << "\t\trowIndices: " << cList1.ToString();
+          LOG_DBG3(algSys) << "\t\tcolIndices: " << rList2.ToString();
+
+          for ( UInt i = 0; i < rList2.GetSize(); i++ ) {
+            rowInd = rIndList2[i];
+            for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
+              colInd = cIndList1[j];
+              idbcHandler_->AddWeightFixedToFree( matrixType, sbmCol, sbmRow, cList1[j], rList2[i], elemMat[rowInd][colInd]);
+            } // j
+          } // i
+        } // sbmCol == sbmRow
+      } // rList2.GetSize()
+
     }
 
   }
-
-
-
-
 
 
   template<typename T>
@@ -5039,12 +5068,12 @@ namespace CoupledField {
   template void AlgebraicSys::
   SetElementMatrix_MultHarm( FEMatrixType, Matrix<Double>&,
                     FeFctIdType, const StdVector<Integer>& ,
-                    FeFctIdType, const StdVector<Integer>& ,
+                    FeFctIdType, const StdVector<Integer>& , bool,
                     const StdVector<UInt>&);
   template void AlgebraicSys::
   SetElementMatrix_MultHarm( FEMatrixType, Matrix<Complex>&,
                     FeFctIdType, const StdVector<Integer>& ,
-                    FeFctIdType, const StdVector<Integer>& ,
+                    FeFctIdType, const StdVector<Integer>& , bool,
                     const StdVector<UInt>&);
   
   template void AlgebraicSys::

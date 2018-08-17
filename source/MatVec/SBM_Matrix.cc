@@ -613,8 +613,8 @@ namespace CoupledField {
     for ( UInt j = 0; j < ncols_; j++ ) {
       for ( UInt i = 0; i < nrows_; i++ ) {
         // construct file name
-        if(ncols_ > 1 || nrows_ > 1)
-          ss << fname << '_' << i << '_' << j;
+        //if(ncols_ > 1 || nrows_ > 1)
+        ss << fname << '_' << i << '_' << j;
         outFile =  ss.str();
         ss.str(std::string());
         // export sub-matrix

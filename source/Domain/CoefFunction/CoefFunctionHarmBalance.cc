@@ -348,16 +348,17 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
     RegionIdType elemReg = lpm.ptEl->regionId;
     int harmonic = this->mp_->Eval(harmonicHandle_);
 
-
     if( harmonic == maxInt_ ){
       // For the initial multiharmonic iteration
       // loop over regions and get the region of the lpm
       for(auto reg : hbRegion_){
-        if (dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl) != nullptr){
-          const MortarNcSurfElem* e = dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl);
-          if( reg.region == e->ptSlave->ptVolElems[0]->regionId ){
-            reg.linNuCoefMap->GetScalar(coefScalReal, lpm);
+        if ( lpm.isSurface ){
+          if( reg.region == lpm.lpmVol->ptEl->regionId ){
+            elemReg = lpm.lpmVol->ptEl->regionId;
+            reg.linNuCoefMap->GetScalar(coefScalReal, *lpm.lpmVol);
             coefScal = (Complex)coefScalReal;
+            LOG_DBG(coeffctharmbalance) <<"nu for Nitsche interface with volume region " << ptGrid_->GetRegionName( elemReg )<<
+                                        " in initial computation = " <<coefScal;
             break;
           }
         }else{
@@ -370,13 +371,13 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
       }
     }else{
       const Vector<Complex>& fR = freqTimeRes_.GetFreqResult( N_ + harmonic);
-      //TODO I know this is pure crap...needs to be handled by oop
-      if (dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl) != nullptr){
-        const MortarNcSurfElem* e = dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl);
-        coefScal = fR[ e->ptSlave->ptVolElems[0]->elemNum ] * 0.5;
+      if ( lpm.isSurface ){
+        coefScal = fR[ positionOfElem_[lpm.lpmVol->ptEl->elemNum] ] * 0.5;
         // If harmonic is negative, we need conjugate ḩat{nu}
         if(harmonic < 0) std::conj(coefScal);
-        LOG_DBG(coeffctharmbalance) <<"nu for Nitsche region " << ptGrid_->GetRegionName(e->ptSlave->ptVolElems[0]->regionId)<<" in harmonic "<< harmonic <<" = " <<coefScal;
+        elemReg = lpm.lpmVol->ptEl->regionId;
+        LOG_DBG(coeffctharmbalance) <<"nu for Nitsche interface with volume region " << ptGrid_->GetRegionName( elemReg )<<
+                                    " in harmonic "<< harmonic <<" = " <<coefScal;
       }else{
         coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ] * 0.5;
         // If harmonic is negative, we need conjugate ḩat{nu}

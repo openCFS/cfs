@@ -546,7 +546,7 @@ class BaseFieldFunctor;
     template<UInt DIM, UInt D_DOF>
     void DefineNitscheCoupling( SolutionType solType,
                                 NcInterfaceInfo &iface,
-                                shared_ptr<CoefFunction> additionalCoef = NULL);
+                                shared_ptr<CoefFunctionMulti> additionalCoef = NULL);
     
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;

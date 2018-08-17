@@ -598,6 +598,13 @@ namespace CoupledField {
     //!                w.r.t. sub-graph associated with identifierFct2
     //! \param numEqn2 number of equations related to sub-graph of
     //!                identifierFct2
+    //! \param setCounterPart if this flag is true, then the method will
+    //!                not only insert the element matrix    \f$  E  \f$ , but also
+    //!                its transpose    \f$  E^T  \f$ . In doing so also the
+    //!                row and column indices derived from the equation
+    //!                numbers are interchanged. Note that this is only
+    //!                supported for off-diagonal blocks, i.e. for cases
+    //!                with different Fct identifiers.
     //! \param sbmIndices SBM-indices of the sbm-blocks,
     //!                   which have to be assembled
     template<typename T>
@@ -607,6 +614,7 @@ namespace CoupledField {
                                    const StdVector<Integer>& eqnNrs1,
                                    FeFctIdType fctId2,
                                    const StdVector<Integer>& eqnNrs2,
+                                   bool setCounterPart,
                                    const StdVector<UInt>& sbmIndices );
 
     //! Assemble the local rhs vector to the global one

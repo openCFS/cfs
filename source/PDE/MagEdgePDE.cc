@@ -629,7 +629,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             EXCEPTION("MagEdgePDE only works for 3D geometry!")
           else
             if(analysistype_ == MULTIHARMONIC){
-              DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt, multiHarmCoef_ );
+              DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt, reluc_ );
             }else{
               DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt );
             }

@@ -825,7 +825,7 @@ namespace CoupledField
       }
       // If the region is not nonlinear, we do not have to assemble
       // off-diagonal blocks in the multiharmonic system matrix
-      if( (nonLinTypes.GetSize() == 0 && harm != 0) ){
+      if( (nonLinTypes.GetSize() == 0 && harm != 0 )){
         continue;
       }
 
@@ -2189,6 +2189,7 @@ namespace CoupledField
         algsys_->SetElementMatrix_MultHarm( mappedDest, harmMat,
                                             fctId1, eqnVec1,
                                             fctId2, eqnVec2,
+                                            context.IsSetCounterPart(),
                                             sbmIndices);
       }else{
         algsys_->SetElementMatrix( mappedDest, harmMat,
@@ -2248,6 +2249,7 @@ namespace CoupledField
       algsys_->SetElementMatrix_MultHarm( mappedDest, harmMat,
                                           fctId1, eqnVec1,
                                           fctId2, eqnVec2,
+                                          context.IsSetCounterPart(),
                                           sbmIndices );
     }else{
       algsys_->SetElementMatrix( mappedDest, harmMat,
