@@ -997,9 +997,9 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 
   if(app == App::MAG)
   {
-	/*double mu_0 = 4*M_PI*1e-7;
-	double mu_0mu_r = ((Complex) retScal).real();
-	retScal = mu_0*(1+(mu_0mu_r-1)*factor);*/
+    // retScal = nu_0 * nu_r
+    const double nu_0 = 1/(4*M_PI*1e-7);
+    retScal = (retScal * factor) + (1-factor) * nu_0;
   }
   else
   {
