@@ -3698,11 +3698,12 @@ namespace CoupledField {
       //factorAdd = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp( mp_, factorM, factorS, CoefXpr::OP_ADD ) );
       //factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, additionalCoef, constTwo, CoefXpr::OP_DIV));
 
-      //reluctivity = additionalCoef->GetRegionCoef(nitscheIf->GetSlaveVolRegion());
-      //factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, constOneC, reluctivity, CoefXpr::OP_MULT));
+      reluctivity = additionalCoef->GetRegionCoef(nitscheIf->GetSlaveVolRegion());
+      factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, constOneC, reluctivity, CoefXpr::OP_MULT));
 
-      permeability = materials_[nitscheIf->GetSlaveVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
-      factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, constOneC, permeability, CoefXpr::OP_DIV));
+
+      //permeability = materials_[nitscheIf->GetSlaveVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
+      //factor = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, constOneC, permeability, CoefXpr::OP_DIV));
 
       }else{
         permeability = materials_[nitscheIf->GetSlaveVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
