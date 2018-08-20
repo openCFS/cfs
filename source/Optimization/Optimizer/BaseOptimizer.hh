@@ -101,7 +101,7 @@ namespace CoupledField
 
     /** standard optimiers (snopt, scpip, ...) just call the BaseOptimizer::Eval*() functions where
      * the optimizer_timer_ is paused. Special optimizers like EvaluateOnly are more direct and need to pause themselves */
-    boost::shared_ptr<Timer> GetOptimierTimer() { return optimizer_timer_; }
+    boost::shared_ptr<Timer> GetOptimizerTimer() { return optimizer_timer_; }
 
     /** returns the eval_[grad]_obj or eval_[grad]_const_timer_ or NULL if none is running */
     boost::shared_ptr<Timer> GetRunnungEvalTimer();
