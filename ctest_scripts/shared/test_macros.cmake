@@ -538,9 +538,14 @@ MACRO(SET_COMPILER_ENV COMPILER_TYPE)
     SET(ENV{CC} "icc")
     SET(ENV{CXX} "icpc")
     SET(ENV{FC} "ifort")
+    
+  ELSEIF(${COMPILER_TYPE} STREQUAL "MPI")
+    SET(ENV{CC} "mpicc")
+    SET(ENV{CXX} "mpicxx")
+    SET(ENV{FC} "mpif90")
 
   ELSE()
-    MESSAGE("can only set compiler environment for GCC, GCC-6, GCC-7, CLANG or ICC, not for ${COMPILER}!")
+    MESSAGE("can only set compiler environment for GCC, GCC-6, GCC-7, CLANG, ICC or MPI, not for ${COMPILER}!")
   ENDIF()
 
   SET(ENV{LC_MESSAGES} "C")
