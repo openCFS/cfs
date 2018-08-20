@@ -70,13 +70,15 @@ SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 
 SET(Boost_LIBRARY_DIR "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}" CACHE PATH "Boost library dir.")
 
-#SET(BOOST_EXTRA_PARAMS toolset=mingw) #CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
-
 IF(UNIX)
   SET(BOOST_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
   SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
 ENDIF(UNIX)
 
+SET(BOOST_EXTRA_PARAMS "") # both bootstrap and jam
+SET(BOOST_BOOTSTRAP_PARAMS "")
+SET(BOOST_JAM_PATCH_COMMAND "")
+SET(BOOST_JAM_PARAMS "")
 IF(MINGW)
   SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
 
@@ -86,8 +88,14 @@ IF(MINGW)
 
   SET(BOOST_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
 
-  SET(BOOST_EXTRA_PARAMS ${BOOST_EXTRA_PARAMS} target-os=windows architecture=x86 address-model=64)
-ENDIF(MINGW)
+  SET(BOOST_EXTRA_PARAMS ${BOOST_EXTRA_PARAMS} target-os=windows architecture=x86 address-model=64 release )
+  SET(BOOST_BOOTSTRAP_PARAMS --with-toolset=gcc --without-libraries=context --without-libraries=coroutine)
+  SET(BOOST_JAM_PATCH_COMMAND echo "using gcc : mingw : x86_64-w64-mingw32-gcc $<SEMICOLON>" > user-config.jam)
+  SET(BOOST_JAM_PARAMS --user-config=user-config.jam toolset=gcc-mingw )
+ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  SET(BOOST_BOOTSTRAP_PARAMS --with-toolset=intel-linux)
+  SET(BOOST_JAM_PATCH_COMMAND echo "using intel : linux : icc : <compileflags>${CFS_C_FLAGS} $<SEMICOLON> using intel : linux : icpc : <compileflags>${CFS_CXX_FLAGS} $<SEMICOLON> " > user-config.jam)
+ENDIF()
 
 
 SET(BOOST_DATE_TIME_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_date_time${BOOST_LIB_SUFFIX}")
@@ -105,6 +113,11 @@ SET(BOOST_TEST_EXEC_MONITOR_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_t
 SET(BOOST_THREAD_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_thread${BOOST_LIB_SUFFIX}")
 SET(BOOST_UNIT_TEST_FRAMEWORK_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_unit_test_framework${BOOST_LIB_SUFFIX}")
 SET(BOOST_WSERIALIZATION_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_wserialization${BOOST_LIB_SUFFIX}")
+
+# in case someone manages to break cross-compilation again, this is how it works:
+# echo "using gcc : mingw : x86_64-w64-mingw32-gcc ;" > user-config.jam
+# ./bootstrap.sh --without-libraries=python --prefix=<path> --with-toolset=gcc target-os=windows architecture=x86 address-model=64 release
+# ./b2 --user-config=user-config.jam toolset=gcc-mingw target-os=windows architecture=x86 address-model=64 release
 
 #-------------------------------------------------------------------------------
 # The BOOST external project
@@ -130,11 +143,11 @@ ELSE()
   ExternalProject_Add(boost
     PREFIX "${BOOST_prefix}"
     URL ${LOCAL_FILE}
+    PATCH_COMMAND ${BOOST_JAM_PATCH_COMMAND}
     CONFIGURE_COMMAND ""
-    PATCH_COMMAND ""
     BINARY_DIR ${BOOST_source}
-    BUILD_COMMAND ./bootstrap.sh --without-libraries=python --prefix=${BOOST_install} ${BOOST_EXTRA_PARAMS}
-    INSTALL_COMMAND ./b2 threading=multi install
+    BUILD_COMMAND ./bootstrap.sh --without-libraries=python --prefix=${BOOST_install} ${BOOST_BOOTSTRAP_PARAMS} ${BOOST_EXTRA_PARAMS}
+    INSTALL_COMMAND ./b2 ${BOOST_EXTRA_PARAMS} ${BOOST_JAM_PARAMS} threading=multi install
   )
 
   #-------------------------------------------------------------------------------
