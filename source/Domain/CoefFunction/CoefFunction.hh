@@ -330,6 +330,19 @@ public:
   
   //@}
 
+  virtual void Init(shared_ptr<BaseFeFunction> feFct,
+            shared_ptr<FeSpace> feSpc,
+            const StdVector<RegionIdType>& regions,
+            std::map<RegionIdType, BaseMaterial*>& materials,
+            Grid* ptGrid,
+            PtrCoefFct magFluxCoef,
+            const UInt& N,
+            const UInt& M,
+            const Double& baseFreq,
+            const UInt& nFFT){
+    EXCEPTION("Not implemented here in base class");
+    return;
+  }
 
   //! Set associated coordinate system
   virtual void SetCoordinateSystem(CoordSystem* cSys){

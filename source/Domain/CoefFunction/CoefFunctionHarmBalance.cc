@@ -25,8 +25,14 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
   // ==========================================================================
   //  COEFFICIENT FUNCTION HARMONIC BALANCING
   // ==========================================================================
+template<class T>
+  CoefFunctionHarmBalance<T>::CoefFunctionHarmBalance():CoefFunction(){
+
+}
+
+
   template<class T>
-  CoefFunctionHarmBalance<T>::CoefFunctionHarmBalance(shared_ptr<BaseFeFunction> feFct,
+  void CoefFunctionHarmBalance<T>::Init(shared_ptr<BaseFeFunction> feFct,
                                                       shared_ptr<FeSpace> feSpc,
                                                       const StdVector<RegionIdType>& regions,
                                                       std::map<RegionIdType, BaseMaterial*>& materials,
@@ -35,7 +41,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
                                                       const UInt& N,
                                                       const UInt& M,
                                                       const Double& baseFreq,
-                                                      const UInt& nFFT):CoefFunction() {
+                                                      const UInt& nFFT){
 
     // Initialize the hbRegion_ vector. Therefore loop over every region
     // and assign material...and roughly init the remaining in the struct
@@ -119,7 +125,12 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
 
   template<class T>
   CoefFunctionHarmBalance<T>::
-  ~CoefFunctionHarmBalance() {}
+  ~CoefFunctionHarmBalance() {
+    mp_->ReleaseHandle(cashHandle_);
+    mp_->ReleaseHandle(solHandle_);
+    mp_->ReleaseHandle(harmonicHandle_);
+
+  }
 
 
   template<class T>

@@ -110,6 +110,28 @@ namespace CoupledField
   }
 
 
+  void MultiHarmonicDriver::SetToStepValue(UInt stepNum, Double stepVal ){
+    // ensure that this method is only called if simState has input
+    if( ! simState_->HasInput()) {
+      EXCEPTION( "Can only set external time step, if simulation state "
+              << "is read from external file" );
+    }
+
+    // current frequency
+    Double actFreq = harmFreq_[stepNum];
+
+    UInt actFreqStep = stepNum;
+    analysis_id_.step = actFreqStep;
+    analysis_id_.freq = actFreq;
+
+    Integer h = -numHarmonics_N_ + 2 * stepNum;
+    // We need to activate the correct harmonic results in CoefFunctionHarmBalance
+    mathParser_->SetValue(MathParser::GLOB_HANDLER, "f", actFreq);
+    mathParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
+  }
+
+
+
   void MultiHarmonicDriver::Init(bool restart)
   {
 	  InitializePDEs();
@@ -126,7 +148,7 @@ namespace CoupledField
     UInt numFreq = numHarmonics_N_ + 1;
     handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq );
 
-    if( writeAllSteps_ )
+    //if( writeAllSteps_ )
       simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
     
     // In multiharmonic analysis we speak in terms of multiples of base-harmonics.
@@ -176,15 +198,19 @@ namespace CoupledField
       handler_->BeginStep( actFreqStep, actFreq );
       ptPDE_->WriteResultsInFile( actFreqStep, actFreq );
       handler_->FinishStep( );
+
+      simState_->WriteStep( actFreqStep, actFreq);
     }
 
     handler_->FinishMultiSequenceStep();
-    if( writeAllSteps_ )
+//    if( writeAllSteps_ )
       simState_->FinishMultiSequenceStep( !abortSimulation_ );
 
     // Perform finalization only if not part of sequence
-    if(!isPartOfSequence_) 
+    if(!isPartOfSequence_)
       handler_->Finalize();
+
+
   }
   
 }

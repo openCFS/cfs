@@ -39,19 +39,21 @@ class CoefFunctionHarmBalance : public CoefFunction {
 
 public:
   //! Constructor
-  CoefFunctionHarmBalance(shared_ptr<BaseFeFunction> feFct,
-                          shared_ptr<FeSpace> feSpc,
-                          const StdVector<RegionIdType>& regions,
-                          std::map<RegionIdType, BaseMaterial*>& materials,
-                          Grid* ptGrid,
-                          PtrCoefFct magFluxCoef,
-                          const UInt& N,
-                          const UInt& M,
-                          const Double& baseFreq,
-                          const UInt& nFFT);
+  CoefFunctionHarmBalance();
 
   //! Destructor
   virtual ~CoefFunctionHarmBalance();
+
+  virtual void Init(shared_ptr<BaseFeFunction> feFct,
+          shared_ptr<FeSpace> feSpc,
+          const StdVector<RegionIdType>& regions,
+          std::map<RegionIdType, BaseMaterial*>& materials,
+          Grid* ptGrid,
+          PtrCoefFct magFluxCoef,
+          const UInt& N,
+          const UInt& M,
+          const Double& baseFreq,
+          const UInt& nFFT);
 
 
   //! \copydoc CoefFunction::GetScalar

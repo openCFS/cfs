@@ -52,6 +52,9 @@ public:
   //! Main method, where harmonic analysis is implemented.
   void SolveProblem();
 
+  //! \copydoc SingleDriver::SetToStepValue
+  virtual void SetToStepValue(UInt stepNum, Double stepVal );
+
   /** Helper method which determines if an AnalyisType is complex. */
   virtual bool IsComplex() { return true; };
 
