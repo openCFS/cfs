@@ -92,11 +92,6 @@
           </xsd:element>
 
           <!-- Surface regions on which results can be calculated-->
-          <xsd:element name="surface" minOccurs="0" maxOccurs="unbounded">
-            <xsd:complexType>
-              <xsd:attribute name="name" type="xsd:token" use="required"/>
-            </xsd:complexType>
-          </xsd:element>
 
           <!-- Non-conforming interfaces of the PDE -->
           <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1">
@@ -174,10 +169,8 @@
           </xsd:element>
 
           <!-- Section for specifying initial conditions (optional) -->
-          <xsd:element name="InitialCondition" type="xsd:double" minOccurs="0"/>
 
           <!-- Section for specifying reference conditions (optional) -->
-          <xsd:element name="referenceTemperature" type="xsd:double" minOccurs="0"/>
 
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_HeatStoreResults" minOccurs="0" maxOccurs="1">
@@ -300,7 +293,7 @@
       <xsd:enumeration value="physicalPseudoDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
   <xsd:simpleType name="DT_HeatSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="heatFluxIntensity"/>
@@ -339,7 +332,7 @@
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
-        
+
         <!-- SurfElement result definition -->
         <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
@@ -350,7 +343,7 @@
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
-        
+
         <!-- SurfRegion result definition -->
         <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
