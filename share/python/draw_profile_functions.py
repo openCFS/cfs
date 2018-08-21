@@ -922,12 +922,18 @@ def generate_basecell(args,info):
     end = time.time()
     print("time:",end - start)
     sys.exit()
+  
+    import pymesh
+    print("verts:",verts)
+    print("faces:",faces)
+    verts, faces, _ = pymesh.remove_duplicated_vertices_raw(np.asarray(verts),np.asarray(faces),1e-4) 
+    verts, faces, _ = pymesh.remove_duplicated_faces_raw(np.asarray(verts),np.asarray(faces))
     
     # marching_cubes returns float values
     verts = np.asarray(verts)
     # scale structure to [0,1]^3
     # moves structure to [0,1]^3
-    verts += (h/2.0,h/2.0,h/2.0)
+    #verts += (h/2.0,h/2.0,h/2.0)
     points = verts
     cells = faces 
     # extract points on the boundary circles

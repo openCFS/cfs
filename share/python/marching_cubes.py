@@ -86,10 +86,8 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
           marching_cubes(voxels[i:i+cubeSize+1,j:j+cubeSize+1,k:k+cubeSize+1], h, points, triangles, normals, thresh, int(cubeSize/2),offset=(i,j,k),parent=tree_nodes[i,j,k])
           
   if cubeSize == 2:
+    replace = []
     from anytree import PreOrderIter 
-    points = []
-    triangles = []
-    normals = []
     # search for all tree leaves
     for node in PreOrderIter(root):
       same_level_dir = None
@@ -107,19 +105,13 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
           print("same_level_dir:",same_level_dir)
           print("number of transitions:",np.count_nonzero(np.array(trans_dir)))
             
-          tmp_points = copy.deepcopy(mc.points)
+          tmp_points = copy.deepcopy(mc.vertices)
           tmp_triangles = mc.triangles
           tmp_normals = mc.normals
           
-          print("before scaling:",tmp_points)
+#           print("before scaling:",tmp_points)
           
-          lowres_point_ids = scale_regular_vertices(tmp_points,trans_dir,same_level_dir,mc)
-          
-          print("after scaling:",tmp_points)
-#           print(mc.global_blb)
-#           print("trans_dir:",trans_dir)
-#           print("lowres_point_ids:",lowres_point_ids)
-          #sys.exit()
+          scale_regular_vertices(tmp_points,trans_dir,same_level_dir,mc,replace)
           
           # add transition cells
           for ctd,td in enumerate(trans_dir):
@@ -138,52 +130,74 @@ def marching_cubes(voxels,h,points,triangles,normals,thresh = 0.5,cubeSize=2,off
               # get low-res points at transition face
               lowres_points = []
               lowres_normals = []
-              comp = mc.corners[7].coords if sig > 0 else mc.corners[0].coords
               
-#               if len(lowres_point_ids[ctd]) == 0:
-# # # #                 lowres_point_ids[ctd] = [1]
-#                 write_vtp(points, triangles, h,normals=normals,name="debug.vtp")
-#                 sys.exit()
-              
-              for lp in lowres_point_ids[ctd]:
+              for lp in mc.lowres_points_idx[ctd]:
                 lowres_points.append(tmp_points[lp])
                 lowres_normals.append(tmp_normals[lp])
               
-              print("dir:",sig,dir)
-              print("lowres points:",lowres_points)
-              
+#               print("mc ",mc.global_blb," transition in dir ",dir," with lowres_points:")
+#               for l in lowres_points:
+#                 print(l.coords)
               tc = Transition_Cell(voxels,h,(0,0,0),int(mc.size*0.5),tc_corns,lowres_points,lowres_normals)
+#               print("\nhigh-res points:")
+#               for p in tc.corners:
+#                 print(p.coords,p.secondary)
+              
               tc.triangulate(voxels)
-              add_local_to_global_mesh(tmp_points, tmp_triangles, tmp_normals, tc.points, tc.triangles, tc.normals)
               
+#               print("\ntc verts")
+#               for tcv in tc.vertices:
+#                 print(tcv.coords)
+#               
+#               print("triangles:",tc.triangles)
+              add_local_to_global_mesh(tmp_points, tmp_triangles, tmp_normals, tc.vertices, tc.triangles, tc.normals)
               
-              tmp_points, tmp_normals, map_to_unique = merge_points(tmp_points, tmp_normals)
-              for i in range(len(tmp_triangles)):
-                new_t = [0,0,0]
-                for j in range(3):
-                  new_t[j] = int(map_to_unique[tmp_triangles[i][j]])
-  
-                tmp_triangles[i] = new_t  
-                    
+#               print("\nbefore merge")
+#               for tcv in tmp_points:
+#                 print(tcv.coords,tcv.secondary)
+#                
+#               print("triangles:",tmp_triangles)
+              
+#               tmp_points, tmp_normals, map_to_unique = merge_points(tmp_points, tmp_normals)
+#               
+#               for i in range(len(tmp_triangles)):
+#                 new_t = [0,0,0]
+#                 for j in range(3):
+#                   new_t[j] = int(map_to_unique[tmp_triangles[i][j]])
+#   
+#                 tmp_triangles[i] = new_t  
+              
+#               print("\nafter merge")
+#               for tcv in tmp_points:
+#                 print(tcv.coords,tcv.secondary)
+#                
+#               print("triangles:",tmp_triangles)
+#                     
 #           print("calc projection")
 #           tmp_points = project_on_to_regular_plane(tmp_points,mc.points,mc.normals)
             
         else: 
-          assert(mc.points)
+          assert(mc.vertices)
           assert(mc.normals)
           assert(mc.triangles)
-          tmp_points = mc.points
+          tmp_points = mc.vertices
           tmp_normals = mc.normals
           tmp_triangles = mc.triangles
+          
+        add_local_to_global_mesh(points, triangles, normals, tmp_points, tmp_triangles, tmp_normals,coords=True)
         
-        #print("add ",tmp_points)  
-        add_local_to_global_mesh(points, triangles, normals, tmp_points, tmp_triangles, tmp_normals)
-        
-#         if len(triangles) > 580:
-#           print("len(triangles):",len(triangles))
+#         if len(triangles) > 50:
 #           write_vtp(points, triangles, h,normals=normals)
 #           sys.exit()
-        
+    
+#     for itp,tp in enumerate(points):
+#       for r in replace:
+#         old = r[0]
+#         if same_vector(old, tp):
+#           print("replace ",tp, " with ",r[1])
+#           points[itp] = r[1]
+    #points, triangles = tin.ReturnArrays()
+#     write_vtp(mf.v, mf.f, h,normals=normals)
     write_vtp(points, triangles, h,normals=normals)
 #     from anytree.exporter import DotExporter
 #     DotExporter(root).to_picture("test.png")
@@ -201,6 +215,14 @@ def project_on_to_regular_plane(points,plane_points,normals):
 #     print("projected ",q," onto ",points[it])
   
   return points
+
+# triangle: coords of 3 triangles vertices
+def calc_triangle_area(triangle):
+  v0 = np.array(triangle[0])
+  v1 = np.array(triangle[1])
+  v2 = np.array(triangle[2])
+  
+  return 0.5 * np.linalg.norm(np.cross(v1-v0,v2-v0))
   
 # linearly interpolate intersection points with isovalue 'thresh'
 # p1 and p2 are vertices of an edge and v1 and v2 scalar values at respective vertex
@@ -214,7 +236,7 @@ def VertexInterp(thresh,p1,p2):
   valp1 = p1.value
   valp2 = p2.value
   p1 = np.asarray(p1.coords)
-  p2 = np.asarray(p2.coords)  
+  p2 = np.asarray(p2.coords) 
   
   if np.isclose(valp2-valp1,0):
     return p1, 0
@@ -326,6 +348,11 @@ class Vertex():
   def __init__(self,value,coords):
     self.value = value
     self.coords = coords
+    self.secondary = None
+    # list with 7 flags indicating in which direction vertex was already scaled
+    # to avoid multiple scaling
+    # [0,x,y,z,-x,-y,-z]
+    self.scaled = np.zeros(7)
     
 class Transition_Cell():
   # voxels: voxel field
@@ -339,10 +366,7 @@ class Transition_Cell():
     self.regular = False
     self.h = h
     # number of nodes on high-res face
-    high_nn = 9
-    # number of nodes on low-res face
-    low_nn = 4
-    nn = 13
+    nn = 9
     self.size = size
     self.corners = [None] * nn
     #### node numbering #####
@@ -358,7 +382,7 @@ class Transition_Cell():
     # |  0----- 1 -----2        9------------10
     # --->x
 
-    cornerIndizes = [None] * high_nn
+    cornerIndizes = [None] * nn
     cornerIndizes[0] = np.array(hires_corns[0])
     cornerIndizes[2] = np.array(hires_corns[1])
     cornerIndizes[6] = np.array(hires_corns[2])
@@ -370,11 +394,11 @@ class Transition_Cell():
     cornerIndizes[4] = (cornerIndizes[3]+0.5*(cornerIndizes[5]-cornerIndizes[3])).astype(int)
     cornerIndizes[7] = (cornerIndizes[6]+0.5*(cornerIndizes[8]-cornerIndizes[6])).astype(int)
     
-    
-    assert(len(cornerIndizes) == high_nn)
+    self.global_blb = cornerIndizes[0]
+    assert(len(cornerIndizes) == nn)
     # first 9 corners belong to high-res faces
     # last 4 corners belong to low-res faces
-    for i in range(high_nn):
+    for i in range(nn):
       # map back to 3d
       self.corners[i] = Vertex(voxels[tuple(cornerIndizes[i])],voxel_to_cartesian_coords(tuple(cornerIndizes[i]),offset,h))
       
@@ -403,20 +427,30 @@ class Transition_Cell():
     caseCode |= 128 if voxels[self.cornerIndizes[3]] > thresh else 0
     caseCode |= 256 if voxels[self.cornerIndizes[4]] > thresh else 0
     
-#     print("caseCode:",caseCode)
- 
     return caseCode  
 
   def triangulate(self,voxels):
-    self.points, self.triangles, self.normals, _, _ = triangulate_scaled(voxels, self, scale=0)
+    self.vertices, self.triangles, self.normals, _, _ = triangulate_mc(voxels, self)
 
-def add_local_to_global_mesh(gverts,gtris,gnorms,lverts,ltris,lnorms):
+def add_local_to_global_mesh(gverts,gtris,gnorms,lverts,ltris,lnorms,coords=False):
   assert(type(gverts) == list)
   assert(type(gtris) == list)
   assert(type(gnorms) == list)
   
   off = len(gverts)
-  gverts.extend(lverts)
+  if coords:
+    points = []
+    for l in lverts:
+      if l.secondary is not None:
+#         print("primary:",l.coords)
+#         print("secondary:",l.secondary)
+        points.append(l.secondary)
+      else:
+        points.append(l.coords)  
+    gverts.extend(points) 
+  else:  
+    gverts.extend(lverts)
+    
   gnorms.extend(lnorms)
   
   # add offset to triangle vertices
@@ -458,13 +492,6 @@ def calc_corner_normals(voxels,cornerIndizes,cubeSize):
   unity = np.array((0,1,0))
   unitz = np.array((0,0,1))
   
-#   print("cornerIndizes:",cornerIndizes)
-#   for i in range(ncorners):
-#     cornerIdx = np.array(cornerIndizes[i])
-#     print(voxels[tuple(cornerIdx)])
-  
-#   print("cornerIndizes:",cornerIndizes)
-  
   for i in range(ncorners):
     cornerIdx = np.array(cornerIndizes[i])
     # central differences to calculate normal at 8 corners of marching cube
@@ -473,11 +500,7 @@ def calc_corner_normals(voxels,cornerIndizes,cubeSize):
 
     right = cornerIdx + unitx
     left = cornerIdx - unitx 
-#     print("\ni:",i," right:",right," left:",left)   
     if right[0] < nx and left[0] > 0:
-#       print("voxels[tuple(right)]:",voxels[tuple(right)])
-#       print("voxels[tuple(left)]:",voxels[tuple(left)])
-#       print("voxels[tuple(cornerIdx)]):",voxels[tuple(cornerIdx)])
       normalx = (voxels[tuple(right)] - voxels[tuple(left)])/ 2.0
     elif right[0] < nx: 
       normalx = (voxels[tuple(right)] - voxels[tuple(cornerIdx)])/ 2.0
@@ -503,7 +526,6 @@ def calc_corner_normals(voxels,cornerIndizes,cubeSize):
     else: #back[2] > 0
       normalz = (voxels[tuple(cornerIdx)] - voxels[tuple(back)])/ 2.0
       
-#     print("nx,ny,nz:",normalx,normaly,normalz)  
     assert(normalx is not None)
     assert(normaly is not None)
     assert(normalz is not None)
@@ -512,7 +534,6 @@ def calc_corner_normals(voxels,cornerIndizes,cubeSize):
     norm = np.linalg.norm(normals[i])
     if not np.isclose(norm, 0):
       normals[i] = normals[i] / norm 
-#       print("normals[i]:",normals[i])
   
   return normals    
 
@@ -619,59 +640,19 @@ def calc_shifted_corner_verts(c0,c1,corners,voxels,h):
 # using 'scale' to determine which face to scale
 # scale order: 0: no scale,  1: right face (+x), 2: back face (+y), 3: top face (+z)
 # 4: left face (-x), 5: front face (-y), 6: bottom face (-z)    
-def triangulate_scaled(voxels,mc,scale=0):
+def triangulate_mc(voxels,mc):
   caseCode = mc.caseCode
   corners = mc.corners
   cornerNormals = mc.cornerNormals
   cubeSize = mc.size
   regular = mc.regular
   ncorners = len(corners)
-  # scaling factor
-  fact = np.ones(3)
-  if np.isscalar(scale):
-    scale = [scale]
-  scale = np.array(scale).astype(int)
   
-  # scale corners
-  tmp_corners = copy.deepcopy(corners)
-  
-  for i,s in enumerate(scale):
-    if s != 0:
-      if 0 < i < 4: # +x, +y or +z
-        anchor = tmp_corners[0].coords
-        fact = np.ones(3) 
-        fact[i-1] = 1.0 - (1/16. * cubeSize)
-        
-#         print("\nbefore scale with :",fact)
-#         for tmpc in tmp_corners:
-#           print(tmpc.coords)
-        for ci in range(ncorners):
-          # move to origin/anchor to scale, then move back
-          tmp_corners[ci].coords = fact * (np.array(tmp_corners[ci].coords) - anchor) + anchor
-          
-#         print("\after scale with :",fact)
-#         for tmpc in tmp_corners:
-#           print(tmpc.coords)
-      elif 3 < i < 7:
-        anchor = tmp_corners[ncorners-1].coords
-        fact = np.ones(3)
-        fact[i-4] = 1.0 - (0.125 * cubeSize)
-        
-        for ci in range(ncorners):
-          # move to origin/anchor to scale, then move back
-          tmp_corners[ci].coords = fact * (np.array(tmp_corners[ci].coords) - anchor) + anchor
-      else:
-        assert(i == 0)
-          
   assert(len(corners) == 8 or len(corners) == 13)
   assert(cubeSize > 0)
   cellClassTable = None
   vertexLocationsTable = None
   cellDataTable = None
-  
-#   print("corners before shifting:")
-#   for c in corners:
-#     print(c.coords)
   
   if regular:
     cellClassTable = regularCellClass
@@ -702,6 +683,7 @@ def triangulate_scaled(voxels,mc,scale=0):
   tmp_points = []
   tmp_triangles = []
   tmp_normals = []
+  tmp_corners = copy.deepcopy(corners)
   mappedIndizes = [None] * len(indices) # map from point id to real id
   # run over all number of vertices in triangulation
   # and add right vertex and respective normal to points/normals list
@@ -717,20 +699,22 @@ def triangulate_scaled(voxels,mc,scale=0):
       #print("v0:",v0,"v1:",v1)
       v0 = lowres_id_to_highres_id(v0)
       v1 = lowres_id_to_highres_id(v1)
-      print(tmp_corners[v0].coords,tmp_corners[v1].coords)
-      print("lowres_points:",mc.lowres_points)
       mid = tmp_corners[v0].coords+(tmp_corners[v1].coords-tmp_corners[v0].coords)*0.5
       diffs = []
+      print("lowres points of ",mc.global_blb, len(mc.lowres_points))
       for p in mc.lowres_points:
-        diffs.append(np.linalg.norm(mid-p))
-      
+        print(p.coords,p.secondary)
+        if p.secondary is None:
+          diffs.append(np.linalg.norm(mid-p.coords))
+        else: 
+          diffs.append(np.linalg.norm(mid-p.secondary))
+          
       # take point with smallest difference
       idx = np.argmin(diffs)
-      
-      vert = mc.lowres_points[idx]
+      vert = mc.lowres_points[idx].coords if mc.lowres_points[idx].secondary is None else mc.lowres_points[idx].secondary
+#       print("tc: create vert",vert)
       mu = 0.5
       normal = mc.lowres_normals[idx]
-      print("take lowres point ",vert)
     else:  
       first = copy.deepcopy(tmp_corners[v0])
       second = copy.deepcopy(tmp_corners[v1])
@@ -740,13 +724,8 @@ def triangulate_scaled(voxels,mc,scale=0):
     
       vert, mu = VertexInterp(0.5,first,second)
       normal = cornerNormals[int(v0)] * mu + (1-mu) * cornerNormals[int(v1)]
-      #if not regular:
-        #print("\nvert:",vert)
-        #print("mu:",mu)
-        #print("first:",v0," ",first.coords,first.value)
-        #print("second:",v1," ",second.coords,second.value)
   
-    tmp_points.append(vert)
+    tmp_points.append(Vertex(0,vert))
     tmp_normals.append(normal)
     
     mappedIndizes[vc] = len(tmp_points)-1
@@ -772,13 +751,25 @@ def triangulate_scaled(voxels,mc,scale=0):
   
       angles.append(calc_angle(n0, n1))
       angles.append(calc_angle(n0, n2))
-      angles.append(calc_angle(n1, n2))    
-  
+      angles.append(calc_angle(n1, n2))  
+    
+    # add low_res points for all 6 faces in case there is a transition
+    lowres_points_idx = [[] for i in range(7)]
+    for i,p in enumerate(tmp_points):
+      for d in range(1,7):
+        dir, sig = transition_pos_to_dir(d)
+        comp = mc.corners[7].coords if sig > 0 else mc.corners[0].coords
+        if np.isclose(p.coords[dir],comp[dir]):
+          lowres_points_idx[d].append(i)
+    
+    mc.lowres_points_idx = lowres_points_idx   
   assert(len(tmp_points) == len(tmp_normals))
   
-  #if not regular:
-    #print("\ntmp_points:",tmp_points)
-    #print("tmp_triangles:",tmp_triangles)
+  if not regular:
+    print("\ntc\n points")
+    for p in tmp_points:
+      print(p.coords)
+    print("triangles:",tmp_triangles)  
   return tmp_points, tmp_triangles, tmp_normals, angles, tmp_corners
   
 class Marching_Cube():
@@ -826,6 +817,7 @@ class Marching_Cube():
       self.corners[i] = Vertex(voxels[tuple(cidx)],voxel_to_cartesian_coords(gidx.astype(int),(0,0,0),h))
     
     self.caseCode = self.calc_case_code_regular(voxels)  
+    self.lowres_points_idx = None
     
   def calc_case_code_regular(self,voxels,thresh=0.5):
     """ Return case code for transition cell for given configuration
@@ -849,7 +841,7 @@ class Marching_Cube():
   
   def triangulate(self,voxels):
     # regular case
-    self.points, self.triangles, self.normals, self.angles, _ = triangulate_scaled(voxels,self,scale=0)
+    self.vertices, self.triangles, self.normals, self.angles, _ = triangulate_mc(voxels,self)
   
 
 def neighbor_face_indices(idx,size):  
@@ -860,16 +852,34 @@ def neighbor_face_indices(idx,size):
     >>> str(neighbor_face_indices((25,6,4),2))
     '[(23, 6, 4), (27, 6, 4), (25, 4, 4), (25, 8, 4), (25, 6, 2), (25, 6, 6)]'
   """
-  inds = [None] * 6
   i = idx[0]
   j = idx[1]
   k = idx[2]
   # order: left, right, back, front, bottom, top
   return [(i-size,j,k),(i+size,j,k),(i,j-size,k),(i,j+size,k),(i,j,k-size),(i,j,k+size)]
 
-def scale_regular_vertices(points,trans_dir,same_level_dir,mc):
+def all_neighbor_indices(idx,s):  
+  """
+    For a given voxel coordinate tuple (i,j,k),
+    return a list with neighbor indices for full neighborhood (26)
+    size: size of MC or step length to next cube
+  """
+  i = idx[0]
+  j = idx[1]
+  k = idx[2]
+  n = [(i-s,j,k),(i-s,j-s,k),(i-s,j-s,k-s),(i-s,j,k-s),\
+       (i-s,j+s,k),(i-s,j+s,k+s),(i-s,j,k+s),(i-s,j-s,k+s),(i-s,j+s,k-s),\
+       (i+s,j,k),(i+s,j-s,k),(i+s,j-s,k-s),(i+s,j,k-s),\
+       (i+s,j+s,k),(i+s,j+s,k+s),(i+s,j,k+s),(i+s,j-s,k+s),(i+s,j+s,k-s),\
+       (i,j,k),(i,j-s,k),(i,j-s,k-s),(i,j,k-s),\
+       (i,j+s,k),(i,j+s,k+s),(i,j,k+s),(i,j-s,k+s),(i,j+s,k-s)
+      ] 
+  # order: left, right, back, front, bottom, top
+  return n
+
+
+def scale_regular_vertices(verts,trans_dir,same_level_dir,mc,replace):
   neighbor_dirs = []
-  lowres_point_ids = [[] for i in range(7)]
   for csld,sld in enumerate(same_level_dir):
     if sld != 0:
       ndir, nsig = transition_pos_to_dir(csld)
@@ -887,40 +897,71 @@ def scale_regular_vertices(points,trans_dir,same_level_dir,mc):
     fact = 0.125
     comp = None
     comp_neighbor = None
+    neighbor = None
     if s != 0:
       dir, sig = transition_pos_to_dir(cs)
       comp = mc.corners[7].coords if sig > 0 else mc.corners[0].coords
-      
-      for count in range(len(points)):
+      lwp = [(9999,999,999)]
+      for count in range(len(verts)):
         mismatch = False
         for nd in neighbor_dirs:
           comp_neighbor = mc.corners[7].coords if nd[0] > 0 else mc.corners[0].coords
-          # if vertex is shared betwee this mc and neighbor of same level
-          if np.isclose(points[count][nd[1]],comp_neighbor[nd[1]]):
+          # if vertex is shared between this mc and neighbor of same level
+          if np.isclose(verts[count].coords[nd[1]],comp_neighbor[nd[1]]):
             # if neighbor has transition in same direction, then scaling is allowed
             neighbor = find_by_attr(root,str(tuple(nd[2].astype(int))))
             ntrans_dir, _ = calc_transitions(neighbor)
             # no transition in same direction, don't scale
             if ntrans_dir[cs] == 0:
               mismatch = True
-                                                               
-        print("dir ",dir,points[count]," close to ",comp,"?")
-        
-        if np.isclose(points[count][dir],comp[dir]):
-          print("True")
-          lowres_point_ids[cs].append(count)
-        else:
-          print("False")
+            else:
+              mismatch = False
               
-        if not mismatch and np.isclose(points[count][dir],comp[dir]):
+        if np.isclose(verts[count].coords[dir],comp[dir]):
+#         if np.isclose(points[count][dir],comp[dir]):
           #print("True - translating ",points[count], " in dir ",dir)
           #print(points[count][dir]," close to ",comp[dir])
           #print(points[count][dir]," - ",fact*sig*mc.h[dir]*mc.size)
-          points[count][dir] -= fact*sig*mc.h[dir]*mc.size
+          if verts[count].secondary is None:
+            verts[count].secondary = np.copy(verts[count].coords)
+            
+          # don't scale again in same direction
+          if not verts[count].scaled[dir]:
+            print("scale ",verts[count].secondary)
+            verts[count].secondary[dir] -= fact*sig*mc.h[dir]*mc.size
+            verts[count].scaled[dir] = True
+            print("to ",verts[count].secondary,"\n")
+            
+          if neighbor:
+            for ip,p in enumerate(neighbor.mc.vertices):
+              if same_vector(p.coords,verts[count].coords):
+                neighbor.mc.vertices[ip].secondary = verts[count].secondary
+                neighbor.mc.vertices[ip].scaled[dir] = 1 
+            # find neighbors of neighbor and replace point
+            neighbor_inds = all_neighbor_indices(neighbor.mc.global_blb,neighbor.mc.size)
+            if mc.global_blb[0] == 16 and mc.global_blb[1] == 20 and mc.global_blb[2] == 2:
+              print("16,20,2 neighbors:",neighbor_inds)
+#               sys.exit()
+            for nid in neighbor_inds:
+              # check if neighbor exists
+              nneighbor = find_by_attr(root,str(tuple(nid)),maxlevel=2)
+              print("neighbor name ",nid, nneighbor)
+              print("compare with ",verts[count].coords,verts[count].secondary)
+              if nneighbor:
+                for ip,p in enumerate(nneighbor.mc.vertices):
+                  print("vert:",p.coords,p.secondary)
+                  if same_vector(p.coords,verts[count].coords) or same_vector(p.coords,verts[count].secondary):
+                    print("this",mc.global_blb," set neighbor ",nneighbor.mc.global_blb)
+                    print("second ",nneighbor.mc.vertices[ip].secondary, " to",verts[count].secondary)
+                    nneighbor.mc.vertices[ip].secondary = verts[count].secondary
+                    nneighbor.mc.vertices[ip].scaled[dir] = 1
+                    
+#             if mc.global_blb[0] == 16 and mc.global_blb[1] == 20 and mc.global_blb[2] == 2:
+#               sys.exit()        
+#           rep.append(points[count])
+#           print("add ",rep," to replaces")
+#           replace.append(rep)
           #print("new point:",points[count])
-
-  return lowres_point_ids
-
 
 def lowres_id_to_highres_id(idx):
   assert(8 < idx < 13)
@@ -989,7 +1030,7 @@ def point_in_list(point,list):
   """
   
   for i,p in enumerate(list):
-    if same_vector(p, point):
+    if same_vector(p.coords, point.coords):
       return True, i 
     
   return False, -1         
