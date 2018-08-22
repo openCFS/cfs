@@ -95,7 +95,7 @@ build:gcc4: # eventually we should have one job for each required configuration
   stage: build
   tags:
     - gcc4
-    - release
+    - libc2.12 # this is the lowest libc version we can build with -> it should run on all runners
   variables:
     BUILD_NAME: "GCC4"
     GCC_VERSION: 4
@@ -234,6 +234,7 @@ testsuite:gcc4:linux: # if the machine has multiple
 testsuite:gcc5:linux:
   tags:
     - linux
+    - run_libc2.17
   stage: test
   variables:
     BUILD_NAME: GCC5
@@ -245,7 +246,7 @@ testsuite:gcc5:linux:
 testsuite:gcc6:linux: # if the machine has multiple
   tags:
     - linux
-    - gcc6 # just to avoid centos6
+    - run_libc2.17
   stage: test
   variables:
     BUILD_NAME: GCC6
@@ -257,7 +258,8 @@ testsuite:gcc6:linux: # if the machine has multiple
 testsuite:gcc7:linux: # if the machine has multiple
   tags:
     - linux
-    - gcc7 # just to avoid centos6
+    - gcc7 # due to libgfortran.so.4
+    - run_libc2.17
   stage: test
   variables:
     BUILD_NAME: GCC7
@@ -269,7 +271,8 @@ testsuite:gcc7:linux: # if the machine has multiple
 stable:gcc7min:linux:
   tags:
     - linux
-    - gcc7 # to avoid centos6 & ubuntu
+    - gcc7 # due to libgfortran.so.4
+    - run_libc2.17
   stage: test
   variables:
     BUILD_NAME: "GCC7 minimal"
