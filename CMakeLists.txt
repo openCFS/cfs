@@ -627,7 +627,7 @@ IF(BUILD_TESTING)
       SET(MSG "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'.\n")
       SET(MSG "${MSG}Please specify a proper location!\n")
       SET(MSG "${MSG}Did you clone with 'git clone --recurse-submodules'?\n")
-      SET(MSG "${MSG}If not go to your source directory and do\n"
+      SET(MSG "${MSG}If not go to your source directory and do\n")
       SET(MSG "${MSG}   'git submodule update --init --recursive'\n")
       SET(MSG "${MSG}   'git pull --recurse-submodules'\n")
       MESSAGE(FATAL_ERROR "${MSG}")
