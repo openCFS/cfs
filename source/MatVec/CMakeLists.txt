@@ -1,25 +1,19 @@
 SET(MATVEC_SRCS
-    BaseMatrix.cc
-    generatematvec.cc
-    SBM_Vector.cc
-    SBM_Matrix.cc
-    SingleVector.cc
-    StdMatrix.cc
-    matrixSerialization.cc
-    vectorSerialization.cc
-    )
-
-IF(EXPLICIT_TEMPLATE_INSTANTIATION)
-SET(MATVEC_SRCS
-    ${MATVEC_SRCS}
-    CRS_Matrix.cc
-    Diag_Matrix.cc
-    SCRS_Matrix.cc
-    Vector.cc
-    VBR_Matrix.cc
-    Matrix.cc
-    )
-ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
+  BaseMatrix.cc
+  generatematvec.cc
+  SBM_Vector.cc
+  SBM_Matrix.cc
+  SingleVector.cc
+  StdMatrix.cc
+  matrixSerialization.cc
+  vectorSerialization.cc
+  CRS_Matrix.cc
+  Diag_Matrix.cc
+  SCRS_Matrix.cc
+  Vector.cc
+  VBR_Matrix.cc
+  Matrix.cc
+)
 
 IF(MKL_INCLUDE_DIR)
   INCLUDE_DIRECTORIES(${MKL_INCLUDE_DIR})
@@ -40,10 +34,8 @@ SET(TARGET_LL
   ${CFS_FORTRAN_LIBS})
 
 SET(TARGET_LL
-    ${TARGET_LL}
-    ${BOOST_SERIALIZATION_LIB}
-    graph-olas)
-
-
+  ${TARGET_LL}
+  ${BOOST_SERIALIZATION_LIB}
+  graph-olas)
 
 TARGET_LINK_LIBRARIES(matvec ${TARGET_LL})

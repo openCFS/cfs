@@ -75,6 +75,10 @@ IF(UNIX)
   SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
 ENDIF(UNIX)
 
+SET(BOOST_EXTRA_PARAMS "") # both bootstrap and jam
+SET(BOOST_BOOTSTRAP_PARAMS "")
+SET(BOOST_JAM_PATCH_COMMAND "")
+SET(BOOST_JAM_PARAMS "")
 IF(MINGW)
   SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
 
@@ -82,8 +86,53 @@ IF(MINGW)
   LIST(GET COMPVER 0 COMPVER_MAJOR)
   LIST(GET COMPVER 1 COMPVER_MINOR)
 
-  SET(BOOST_LIB_SUFFIX "-gcc${COMPVER_MAJOR}${COMPVER_MINOR}-mt-${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-ENDIF(MINGW)
+  SET(BOOST_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+  SET(BOOST_EXTRA_PARAMS ${BOOST_EXTRA_PARAMS} target-os=windows architecture=x86 address-model=64 release )
+  SET(BOOST_BOOTSTRAP_PARAMS --with-toolset=gcc --without-libraries=context --without-libraries=coroutine)
+  SET(BOOST_JAM_PATCH_COMMAND echo "using gcc : mingw : x86_64-w64-mingw32-gcc $<SEMICOLON>" > user-config.jam)
+  SET(BOOST_JAM_PARAMS --user-config=user-config.jam toolset=gcc-mingw )
+
+  SET(EXT_ZLIB_zlib_prefix "${BOOST_prefix}/ext_zlib" )
+
+  SET(EXT_ZLIB_MIRRORS
+    "http://zlib.net/${ZLIB_GZ}"
+    "http://fossies.org/linux/misc/${ZLIB_GZ}"
+    "${ZLIB_URL}/${ZLIB_GZ}"
+  )
+  SET(EXT_ZLIB_LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/zlib/${ZLIB_GZ}")
+  SET(EXT_ZLIB_MD5_SUM ${ZLIB_MD5})
+
+  SET(EXT_ZLIB_DLFN "${zlib_prefix}/zlib-download.cmake")
+  CONFIGURE_FILE(
+    "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+    "${EXT_ZLIB_DLFN}"
+    @ONLY
+  )
+
+  ExternalProject_Add(boost_download_zlib
+    PREFIX ${EXT_ZLIB_zlib_prefix}
+    SOURCE_DIR ${EXT_ZLIB_zlib_source}
+    URL ${EXT_ZLIB_LOCAL_FILE}
+    URL_MD5 ${ZLIB_MD5}
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+
+  ExternalProject_Add_Step(boost_download_zlib cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${EXT_ZLIB_DLFN}"
+    DEPENDERS download
+    DEPENDS "${EXT_ZLIB_DLFN}"
+    WORKING_DIRECTORY ${zlib_prefix}
+  )
+
+  SET(BOOST_ZLIB_SOURCE ${EXT_ZLIB_zlib_prefix}/src/boost_download_zlib)
+  SET(BOOST_JAM_PARAMS ${BOOST_JAM_PARAMS} -s ZLIB_SOURCE="${BOOST_ZLIB_SOURCE}" -s ZLIB_INCLUDE="${BOOST_ZLIB_SOURCE}" -s NO_ZLIB=0 ) #-s NO_BZIP2=1)
+ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  SET(BOOST_BOOTSTRAP_PARAMS --with-toolset=intel-linux)
+  SET(BOOST_JAM_PATCH_COMMAND echo "using : : : <compileflags>${CFS_C_FLAGS} $<SEMICOLON>" > user-config.jam) # using intel : linux : c++ : <compileflags>${CFS_CXX_FLAGS} $<SEMICOLON> " > user-config.jam)
+ENDIF()
 
 
 SET(BOOST_DATE_TIME_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_date_time${BOOST_LIB_SUFFIX}")
@@ -101,6 +150,11 @@ SET(BOOST_TEST_EXEC_MONITOR_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_t
 SET(BOOST_THREAD_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_thread${BOOST_LIB_SUFFIX}")
 SET(BOOST_UNIT_TEST_FRAMEWORK_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_unit_test_framework${BOOST_LIB_SUFFIX}")
 SET(BOOST_WSERIALIZATION_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_wserialization${BOOST_LIB_SUFFIX}")
+
+# in case someone manages to break cross-compilation again, this is how it works:
+# echo "using gcc : mingw : x86_64-w64-mingw32-gcc ;" > user-config.jam
+# ./bootstrap.sh --without-libraries=python --prefix=<path> --with-toolset=gcc target-os=windows architecture=x86 address-model=64 release
+# ./b2 --user-config=user-config.jam toolset=gcc-mingw target-os=windows architecture=x86 address-model=64 release
 
 #-------------------------------------------------------------------------------
 # The BOOST external project
@@ -126,12 +180,16 @@ ELSE()
   ExternalProject_Add(boost
     PREFIX "${BOOST_prefix}"
     URL ${LOCAL_FILE}
+    PATCH_COMMAND ${BOOST_JAM_PATCH_COMMAND}
     CONFIGURE_COMMAND ""
-    PATCH_COMMAND ""
     BINARY_DIR ${BOOST_source}
-    BUILD_COMMAND ./bootstrap.sh --without-libraries=python --prefix=${BOOST_install}
-    INSTALL_COMMAND ./b2 threading=multi install
+    BUILD_COMMAND ./bootstrap.sh --without-libraries=python --prefix=${BOOST_install} ${BOOST_BOOTSTRAP_PARAMS} ${BOOST_EXTRA_PARAMS}
+    INSTALL_COMMAND ./b2 ${BOOST_EXTRA_PARAMS} ${BOOST_JAM_PARAMS} threading=multi install
   )
+
+  IF(MINGW)
+    ADD_DEPENDENCIES(boost boost_download_zlib)
+  ENDIF()
 
   #-------------------------------------------------------------------------------
   # Add custom download step to be able to download from a list of mirrors
