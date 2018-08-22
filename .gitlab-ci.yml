@@ -321,3 +321,16 @@ install_on_draco:
   environment:
     name: share_programs
   <<: *deploy_rules
+
+# this creates the XML-schema (without optimization) and copies it to cfs-doc/xml
+xml_to_cfs-doc:
+  before_script:
+    - mkdir -p build
+    - cd build
+    - cmake -DDISABLE_OPTIMIZATION=ON -DBUILD_TESTING=OFF ..
+    - cd share/xml
+    - make
+    - scp -r CFS-* cfs-doc:/var/www/xml/.
+  environment:
+    name: cfs-dev_xml
+  <<: *deploy_rules
