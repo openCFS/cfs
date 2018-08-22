@@ -3094,7 +3094,7 @@ namespace CoupledField {
         }
 
         // Check for material rotation parameters
-        PtrParamNode rotNode = regionNodes[i]->Get("matRotation", ParamNode::PASS );
+        PtrParamNode rotNode = regionNodes[i]->Get("matRotation", ParamNode::INSERT );
 
         Vector<Double> rotVec (3);
         rotVec.Init();
@@ -3103,7 +3103,7 @@ namespace CoupledField {
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree,
         // so that we pick by default the yz-plane
-        if( !rotNode ) {
+        if( !rotNode->HasChildren() ) {
           if( dim_ == 2) {  
             rotVec[0] = -90.0;
             rotVec[2] = -90.0;
