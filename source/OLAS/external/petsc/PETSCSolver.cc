@@ -321,8 +321,21 @@ PETSCWorker::PETSCWorker(int argc,const char **argv){
   string schema = progOpts->GetSchemaPathStr();
 
   schema += "/CFS-Simulation/CFS.xsd";
-  xml_ = XmlReader::ParseFile(xmlFile, schema)->Get("sequenceStep")->Get("linearSystems")->Get("system")->Get("solverList");
-  if(xml_->GetChild()->GetName()=="petsc"){
+  PtrParamNode root_node = XmlReader::ParseFile(xmlFile, schema);
+
+  //  xml_ = XmlReader::ParseFile(xmlFile, schema)->Get("sequenceStep")->Get("linearSystems")->Get("system")->Get("solverList");
+
+  root_node = root_node->Has("sequenceStep") ? root_node->Get("sequenceStep"): nullptr;
+
+  if (root_node != nullptr)
+  root_node = root_node->Has("linearSystems") ? root_node->Get("linearSystems") : nullptr;
+
+  if (root_node != nullptr)
+    xml_=root_node->Has("system") ? (root_node->Get("system")->Has("solverList") ? root_node->Get("system")->Get("solverList"): nullptr):nullptr;
+
+
+
+  if(xml_!= nullptr && xml_->Has("petsc")){
 
     xml_=xml_->Get("petsc");
     maxIter_    = xml_->Get("maxIter")->As<int>();

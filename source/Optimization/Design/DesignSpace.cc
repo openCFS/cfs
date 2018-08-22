@@ -114,16 +114,19 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   // setup designs
   ParamNodeList pn_design = pn->GetList("design");
 
-  // Check if matrix filtering is enabled by the user
-  bool mat_filt_set = pn->Has("filters/use_mat_filt") ? true : false;
-  if (mat_filt_set){
-     is_matrix_filt = (  pn->Get("filters/use_mat_filt")->As<std::string>() =="true") ? true : false;
-  }
 
-  if (mat_filt_set && is_matrix_filt && method != ErsatzMaterial::SIMP_METHOD){
-    EXCEPTION("Matrix based density filtering is only implemented for SIMP")
-  }
 
+
+  // Check if matrix filtering is enabled by the user, there is no default value in the schema file
+  // we cannot use the matrix yet for multiple design types, yet this is easy to extend!
+  bool is_mat_possible = design.GetSize() == 1;
+  is_matrix_filt = is_mat_possible;
+  if(pn->Has("filters/use_mat_filt"))
+  {
+    is_matrix_filt = pn->Get("filters/use_mat_filt")->As<bool>();
+    if(is_matrix_filt && !is_mat_possible)
+      throw Exception("use_mat_filter as density filter is currently only implemnted for a single design type");
+  }
   // preprocess multimaterial - does not know regions yet
   SetupMultiMaterial(pn_design);
 
@@ -158,8 +161,13 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
   // now read the transfer functions
   ParamNodeList trans_in = pn->GetList("transferFunction");
+
+
+
+
   if(method != ErsatzMaterial::PARAM_MAT && method != ErsatzMaterial::SHAPE_PARAM_MAT)
   {
+
     if(trans_in.GetSize() == 0)
       throw Exception("no transferFunctions given");
     transfer.Reserve(trans_in.GetSize());
@@ -168,6 +176,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   }
   else
   {
+
     transfer.Reserve(trans_in.GetSize() + 1); // We reserve space for all given TransferFunctions plus the fallback IDENTITY transfer function
     transfer.Push_back(TransferFunction()); // add fallback IDENTITY transfer function at transfer[0] for parameters with no given TransferFunction
   }
@@ -198,10 +207,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   }
   else // 'standard' SIMP case
   {
-
-     // in SIMP case if user gives default for matrix based density filtering we enable it.
-     if (!mat_filt_set)
-       is_matrix_filt = true;
     // set our own structure with is element times design parameters
     data.Reserve(elements * design.GetSize());
     totalElements_.Reserve(elements  * design.GetSize()); // the quick access copy which also combines pseudo design elements
@@ -474,6 +479,9 @@ void DesignSpace::PostInit(int objectives, int constraints)
       }
     }
   }
+
+  // Log to info if we use matrix filtering
+  info_->Get("filters")->Get("use_mat_filt")->SetValue(is_matrix_filt);
 
   LOG_DBG(designSpace) << "# objectives = " << objectives << ", # constraints = " << constraints;
   DesignElement::SetDesignSpace(this);
@@ -2098,13 +2106,14 @@ void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int s
     for (UInt i=0;i < data.GetSize(); i++){
 
       auto neighbours = data[i].simp->filter[filter_idx].neighborhood;
-      double inv_weight_sum=(1/data[i].simp->filter[filter_idx].CalcWeightSum(true));
-      this->inv_weighted_sum[i] = data[i].simp->filter[filter_idx].weight*inv_weight_sum;
+      // Set this weight sum so that we don't recalculate it
+      data[i].simp->filter[filter_idx].weight_sum = (data[i].simp->filter[filter_idx].CalcWeightSum(true));
+      this->inv_weighted_sum[i] = (1/ data[i].simp->filter[filter_idx].weight_sum);
       colPointer[lastIndex]=i;
-      dataPtr[lastIndex]= data[i].simp->filter[filter_idx].weight  * inv_weight_sum;
+      dataPtr[lastIndex]= data[i].simp->filter[filter_idx].weight  * this->inv_weighted_sum[i];
       for (UInt j=0;j<neighbours.GetSize();j++){
         colPointer[lastIndex+j+1]=neighbours[j].neighbour->GetIndex();
-        dataPtr[lastIndex+j+1]=(neighbours[j].weight)*inv_weight_sum;
+        dataPtr[lastIndex+j+1]=(neighbours[j].weight)* this->inv_weighted_sum[i];
       }
       lastIndex +=(neighbours.GetSize()+1); // Since Neighbours doesn't include the own element
       rowPointer[i+1]=lastIndex;

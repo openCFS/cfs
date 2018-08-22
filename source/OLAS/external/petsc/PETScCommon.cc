@@ -309,7 +309,8 @@ void PETScCommon::GetCFSEqnMapMG(StdVector<unsigned int> &cfsEqnMap){
 
 
 void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsVec,Vec &dirNodeVec,Vec &dirVec,
-    int nx,int ny,int nz){
+    int nx,int ny,int nz)
+{
   //This method gets the local element matrix and assembels into global matrix
   PetscInt edof[24]; // connctinvity of element with eqnNr for assembly.
 

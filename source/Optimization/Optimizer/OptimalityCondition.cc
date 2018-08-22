@@ -415,7 +415,7 @@ void OptimalityCondition::CalcNextExtremizeIteration()
   // work (it becomes unsymmetrically for symmetric problems) as all 
   // elements but the first have old and new elements in their filter
   // stencil. Hence we store in evaluate_tmp_
-  
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(unsigned int i = 0; i < data.GetSize(); i++)    
   {
     DesignElement* de = &data[i];
@@ -468,6 +468,7 @@ double OptimalityCondition::Evaluate(double lambda)
    // elements but the first have old and new elements in their filter
    // stencil. Hence we store in evaluate_tmp_
    
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
    for(unsigned int i = 0; i < data.GetSize(); i++)    
    {
      DesignElement* de = &data[i];
