@@ -248,8 +248,6 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     // the regions are normally implicitly defined by the element numbers. The exception
     // is force_region from <loadErsatzMaterial>
     space = CreateDesignSpace(force_region, pn, elems, xml);
-    // FIXME this is not the exact way to do it.
-    space->is_matrix_filt = false;
   }
 
 

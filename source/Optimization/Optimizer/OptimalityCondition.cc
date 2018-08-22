@@ -507,10 +507,12 @@ double OptimalityCondition::Evaluate(double lambda)
                   << " upper=" << upper << " new=" << evaluate_tmp_[i];
    }
    optimizer_timer_->Stop();
+
+   eval_const_timer_->Start();
+
    // store the new values in the design variables
    optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer());
    
-   eval_const_timer_->Start();
    double vol = optimization->CalcConstraint(g);
    eval_const_timer_->Stop();
 

@@ -16,10 +16,20 @@ set(ilupack_install  "${ilupack_prefix}/tmp")
 #SET(MIRRORS 
 #  "${CFS_FAU_MIRROR}/sources/ilupack/${ILUPACK_MD5}"
 #  "${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/MD5/${ILUPACK_MD5}")
+
+
+#-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ilupack/ilupack-patch.cmake.in")
+SET(PFN "${ilupack_prefix}/ilupack-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+
   
-#SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ilupack/${ILUPACK_GZ}") 
 
 SET(LOCAL_FILE "/home/sri/code/tmp/Ilupack_Task_OPENMP.tgz") # need to set the actual source later
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ilupack/${ILUPACK_GZ}") 
 
 #SET(MD5_SUM ${ILUPACK_MD5})
 #SET(MD5_SUM 17b39bb3fedd5264cacca5a4d7e23d43)
@@ -107,10 +117,10 @@ ELSE()
     URL ${LOCAL_FILE}
 #    URL_MD5 ${ILUPACK_MD5} enable this when ilupack is added to a server and source file is fixed
     BUILD_IN_SOURCE 1
-    PATCH_COMMAND ""
-    CONFIGURE_COMMAND ./COMPILE_ALL.sh "${MAKE_PLATFORM}"
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CONFIGURE_COMMAND ./COMPILE_ALL.sh "${MAKE_PLATFORM}" "${ilupack_install}"
     BUILD_COMMAND ""
-    INSTALL_COMMAND ./COPY_LIB.sh "${ilupack_install}"
+    INSTALL_COMMAND "" 
    )
     
   #-------------------------------------------------------------------------------
