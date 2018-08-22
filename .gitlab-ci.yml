@@ -258,6 +258,7 @@ testsuite:gcc6:linux: # if the machine has multiple
 testsuite:gcc7:linux: # if the machine has multiple
   tags:
     - linux
+    - gcc7 # due to libgfortran.so.4
     - run_libc2.17
   stage: test
   variables:
@@ -270,6 +271,7 @@ testsuite:gcc7:linux: # if the machine has multiple
 stable:gcc7min:linux:
   tags:
     - linux
+    - gcc7 # due to libgfortran.so.4
     - run_libc2.17
   stage: test
   variables:
