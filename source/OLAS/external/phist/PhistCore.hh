@@ -43,6 +43,8 @@
 #include "phist_core.hpp"
 #include "phist_krylov.hpp"
 #include "phist_precon.hpp"
+#include "phist_schur_decomp.h"
+
 
 namespace CoupledField {
 

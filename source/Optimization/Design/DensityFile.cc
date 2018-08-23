@@ -105,7 +105,6 @@ DesignSpace* DensityFile::CreateDesignSpace(bool force_region, const PtrParamNod
   PtrParamNode reg = xml->Get("header/filters/filter", ParamNode::PASS);
   if (reg)
     filter.SetFilter(reg, info->Get("ersatzMaterial"));
-
   space->ToInfo(NULL);
   return space;
 }
@@ -250,6 +249,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     // is force_region from <loadErsatzMaterial>
     space = CreateDesignSpace(force_region, pn, elems, xml);
   }
+
 
   // check bound violations
   double lower_violation = 0.0;

@@ -934,45 +934,53 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const
 {
   // We filter over this element and the neighbors.
-  assert(de_->simp != NULL);
   assert(sp == DesignElement::DESIGN);
   assert(!de_->simp->filter.IsEmpty());
+  assert(de_->simp != NULL);
 
   unsigned int fix = DetermineFilterIndex();
-  const Filter& f = filter[fix];
+
 
 
   // All equations from Sigmund; Morphology based black and white filters for topology optimization; 2007
   // p = rho. P is filtered rho (rho tilde)
   // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
-
-
   // mathematically the neighborhood includes this element, but this is not in the structure
   // we initialize numerator and denominator with the values obtained from this element
-  double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
-  double denominator = f.weight;
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-                   << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
-                   << " num=" << numerator << " den=" << denominator << " fix=" << fix;
-
-  for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
-  {
-    const Filter::NeighbourElement* ne = &f.neighborhood[i];
-    const DesignElement* de = ne->neighbour;
-
-    double w = ne->weight;
-    double x = de->GetPlainDesignValue();
-
-    numerator   += w * x;
-    denominator += w;
-
-     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+  double p_filt = 0.0;
+  int elem_num = de_->GetIndex();
+  DesignSpace * space = de_->GetDesignSpace();
+  if (space->is_matrix_filt){
+    p_filt =  space->density_filter[fix].filtered_vec[elem_num];
+    LOG_DBG3(desel)<<"elemNum"<<de_->elem->elemNum<<"Filtered Value"<<p_filt;
   }
 
-  double p_filt = numerator / denominator;
+  else{
+    const Filter& f = filter[fix];
+    double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
+     double denominator = f.weight;
+     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+                      << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
+                      << " num=" << numerator << " den=" << denominator << " fix=" << fix;
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
+    for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
+    {
+      const Filter::NeighbourElement* ne = &f.neighborhood[i];
+      const DesignElement* de = ne->neighbour;
+
+      double w = ne->weight;
+      double x = de->GetPlainDesignValue();
+
+      numerator   += w * x;
+      denominator += w;
+      LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+    }
+    p_filt = numerator / denominator;
+  }
+
+
+
 
   assert(fd == Filter::STANDARD || fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE || fd == Filter::TANH);
 
@@ -992,8 +1000,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
 
   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter[fix].density_)
                    << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
-
   return p_filt;
+
 }
 
 double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func) const
@@ -1003,6 +1011,8 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];
+
+  Condition* g = dynamic_cast<Condition*>(func);
 
   assert(f.GetType() == Filter::DENSITY);
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
@@ -1028,7 +1038,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
       const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
 
-      double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(func)); // d f/d P_i
+      double v = de->GetPlainValue(sp, g); // d f/d P_i
 
       double w = i == -1 ? f.weight : ne->weight;
 

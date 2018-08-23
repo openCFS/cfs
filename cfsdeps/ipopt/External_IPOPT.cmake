@@ -121,9 +121,18 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 # Add project to global list of CFSDEPS, this allows "make snopt"
 SET(CFSDEPS ${CFSDEPS} ipopt)
 
+
+#The ipopt depends on the metis libraries and the metis library are built by ilupack when its on.
+#In this case one needs both metis and metisomp libs to be linked along with ipopt
+
 # Determine paths of IPOPT libraries. We have only libs include/coin
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a" CACHE FILEPATH "IPOPT library.")
+IF(USE_ILUPACK)
+  SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a;${LD}/libmetis_ilu.a;${LD}/libmetisomp.a;" CACHE FILEPATH "IPOPT library.")
+ELSE()
+  SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a;${LD}/libmetis.a" CACHE FILEPATH "IPOPT library.")
+ENDIF()  
+
 SET(IPOPT_INCLUDE_DIR "${CFS_BINARY_DIR}/include" CACHE FILEPATH "IPOPT library.")
 
 MARK_AS_ADVANCED(IPOPT_LIBRARY)

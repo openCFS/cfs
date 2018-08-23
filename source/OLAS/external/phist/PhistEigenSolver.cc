@@ -221,8 +221,8 @@ namespace CoupledField {
     phist::kernels<TYPE>::mvec_create(&X,map,nEig,&iflag);
     assert(iflag >= 0); // iflag is reset to 0 for success
 
-
-    phist::jada<TYPE>::ComputeEigenvectors(Q,R,X,&iflag);
+    // FIXME phist ComputeEigenVectors moved to core but seg faults in CPU
+    phist::core<TYPE>::ComputeEigenvectors(Q,R,X,&iflag);
     assert(iflag >= 0);
 
     // rescale ev_
