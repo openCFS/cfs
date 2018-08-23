@@ -25,18 +25,27 @@
 
 namespace CoupledField{
 
-
+//! This is a special class used to identify a finite volume face by its nodes.
+//! The master and slave elements are equal, if it is a boundary element.
+//! The two faces created from adjacent cells shoudl have the same nodes in reverse order (see EqualTest)
 class VTKFVFace {
 
 public:
 
+  //! Contructor using master Element number and nodes
   VTKFVFace(UInt masterElement, StdVector<UInt>& points);
  
   VTKFVFace();
   
   virtual ~VTKFVFace();
   
+  //! returns true if faces use same nodes in same or reverse order
   bool operator==(const VTKFVFace &other) const;
+  
+  //! Returns 1, if the other face contains the same nodes in same order
+  //! -1 if the other face contains teh same nodes in reverse order
+  //! 0 else
+  Integer EqualTest(const VTKFVFace &other) const;
   
   UInt GetMasterElement();
   
@@ -52,6 +61,7 @@ public:
   
   bool HasPoint(UInt point);
   
+  //! returrns a hash code unique for faces with the same node numers
   size_t GetHash() const;
   
 private: 
@@ -68,6 +78,7 @@ private:
 
 }
 
+// for use of VTKFVFace in unordered_set or unordered_map
 namespace std {
 
 template<>
@@ -281,14 +292,20 @@ protected:
   // FINITE VOLUME REPRESENTATION SECTION
   // =======================================================================
 
+  //! true if the finite volume mesh should be read
   bool readFVMesh_;
   
+  //! true if some pyramids need to be fixed
   bool fixFVPyramids_;
 
+  //! Used for faces
   std::unordered_set<VTKFVFace> FVFaces_;
 
+  //! Some counter
   UInt numFVTestedFaces_;
+  //! Some counter
   Integer numFVInternalFaces_;
+  //! Some counter
   Integer numFVBoundaryFaces_;
 
   void AddFVEdge(UInt masterElement, UInt pA, UInt pB);

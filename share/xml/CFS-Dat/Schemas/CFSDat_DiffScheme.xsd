@@ -27,6 +27,23 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="betaScaling" type="xsd:double" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          betaScaling: slope of the linear term that was added to the radial basic functions. 
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    
+    <xsd:attribute name="kScaling" type="xsd:double" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          kScaling: constant term that was added to the radial basic functions 
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    
+    
     <xsd:attribute name="logEps" type="xsd:boolean" default="false">
       <xsd:annotation>
         <xsd:documentation>

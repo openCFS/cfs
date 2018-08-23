@@ -35,12 +35,14 @@ SNGRFilter::SNGRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
   upResNames.insert(inTemp_);
   upResNames.insert(inTEF_);
 
-  //OUTPUT
+  //OUTPUT mandatory
   this->outName_ = config->Get("output/resultName")->As<std::string>();
-  this->interName_ = config->Get("intermediateResult/resultName")->As<std::string>();
-  //DECLARE Output
-  filtResNames.insert(interName_);
   filtResNames.insert(outName_);
+  //OUTPUT optional
+  if (config->Has("intermediateResult")) {
+    this->interName_ = config->Get("intermediateResult/resultName")->As<std::string>();
+    filtResNames.insert(interName_);
+  }
 
   // using the TKE-criterion, the source region in the CFD-domain used for reconstructing turbulent velocity, is controlled
   // typical value in literature is 10%
@@ -69,13 +71,16 @@ SNGRFilter::SNGRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
 
   // enable ensemble-average at microphone location
   this->ensemble_ = config->Get("ensembles")->As<UInt>();
-  
+
 }
 
-void SNGRFilter::FinishInit(){
+void SNGRFilter::PrepareCalculation(){
 
   //input Grid
   inGrid_ = resultManager_->GetExtInfo(upResIds[0])->ptGrid;
+
+  // setup global stuff, read RANS data etc.
+  this->PrepareMethod();
 
   // chose method
   if(method_ == "BaillySNGR"){
@@ -84,10 +89,15 @@ void SNGRFilter::FinishInit(){
     std::cout << "Acording to publication: A Stochastic Approach To Compute Subsonic Noise Using Linearized Euler's Equations." << std::endl;
     std::cout << "Doing " << ensemble_ << " indipendent reconstruction(s)." << std::endl;
 
+    // TODO remove debug output
+    std::cout << "readInResultName, TKE: " << inTKE_ << std::endl;
+
     // Initialize SNGR method
-    this->PrepareMethodBailly();
-    this->UpdateResultMethodBailly();
-    this->SetTimelineMethodBailly();
+    this->InitArraysBailly();
+    std::cout << "enter UpdateResultBailly" << std::endl;
+    this->InitResultMethodBailly();
+    std::cout << "enter SetTimelineMethodBailly" << std::endl;
+
   }
   else if(method_ == "BillsonSNGR"){
     // go with Billson, 2003
@@ -96,18 +106,15 @@ void SNGRFilter::FinishInit(){
     std::cout << "Doing " << ensemble_ << " indipendent reconstruction(s)." << std::endl;
 
     // Initialize SNGR method
-    this->PrepareMethodBailly();
-    // Node loop
-//    this->FinishB();
-
   }
-//  else if(method_ == "next"){
-//    // go with
-//    std::cout << "Start reconstruction of synthetic turbulent velocity field using ." << std::endl;
-//    std::cout << "Acording to publication: ." << std::endl;
-//    std::cout << "Doing " << ensemble_ << " indipendent reconstruction(s)." << std::endl;
-//
-//  }
+  else if(method_ == "Lafitte"){
+    // go with Lafitte 2014
+    std::cout << "Start reconstruction of synthetic turbulent velocity field using SNGR by Lafitte, Le Garrec, Bailly & Laurendeau, 2014." << std::endl;
+    std::cout << "Acording to publication: Turbulence Generation from a Sweeping-Based Stochastic Model." << std::endl;
+    std::cout << "Doing " << ensemble_ << " indipendent reconstruction(s)." << std::endl;
+
+    this->InitArraysLafitte();
+  }
   else{
     EXCEPTION("This is not a valid method.")
   }
@@ -115,21 +122,13 @@ void SNGRFilter::FinishInit(){
 
 
 bool SNGRFilter::UpdateResults(std::set<uuids::uuid>& upResults){
-
-// TODO matthias checkin
-//  resultManager_->SetTimeValue(tkeId,aTF);
-//  resultManager_->SetTimeValue(tefId,aTF);
-//  resultManager_->SetTimeValue(velocityId,aTF);
-//  resultManager_->SetTimeValue(densityId,aTF);
-//  resultManager_->SetTimeValue(temperatureId,aTF);
   resultManager_->ActivateResult(tkeId_);
   resultManager_->ActivateResult(tefId_);
   resultManager_->ActivateResult(velocityId_);
   resultManager_->ActivateResult(densityId_);
   resultManager_->ActivateResult(temperatureId_);
   resultManager_->DeactivateResult(outId_);
-  resultManager_->DeactivateResult(interId_);
-
+  if(params_->Has("intermediateResult")) resultManager_->DeactivateResult(interId_);
 
   //now we call for upstream data in each source
   CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
@@ -138,29 +137,50 @@ bool SNGRFilter::UpdateResults(std::set<uuids::uuid>& upResults){
     (*srcIter)->Run();
   }
 
-  //equation numbers for this result
-  //here, those equation numbers are equal for all in/out results
-  Vector<Double>& returnVec = GetOwnResultVector<Double>(outId_);
+  // Now we compute the downstream results for the current value
+  std::set<uuids::uuid>::iterator oIter = upResults.begin();
+  for(; oIter != upResults.end(); ++oIter){
+    std::string resName = resultManager_->GetExtInfo(*oIter)->resultName;
+//    std::cout<<"oIter: "<<resName<<std::endl;
 
-#pragma omp parallel for
-  for(UInt i=0;i<meanVelocity_.GetSize();++i){
-    returnVec[i] = meanVelocity_[i];
-    //if(i==idsNodesToProcess_[k]){   TODO stimmt so noch nicht. Ähnlich für returnVecInter
-    //  returnVec[i] = turbReconstVelocity_[k];
-    //  k++;
-    //}
+    if (resName == resultManager_->GetResultName(outId_)) {
+
+      const UInt actStepIndex = resultManager_->GetStepIndex(*oIter);
+//      std::cout << "actStepIndex " << actStepIndex << std::endl;
+      this->SetTimelineMethodBailly(actStepIndex);
+
+      // calc current time step
+//      std::cout<<"outID: "<<resultManager_->GetResultName(outId_)<<std::endl;
+
+      //equation numbers for this result //VECTOR result
+      //here, those equation numbers are equal for all in/out results
+      Vector<Double>& returnVec = GetOwnResultVector<Double>(*oIter);
+//      UInt size = returnVec.GetSize()/3;
+
+      for(UInt i=0;i<idsNodesToProcess_.GetSize();++i){
+          UInt j = idsNodesToProcess_[i];
+          // For input values use j-index, for output quantities i-index
+          returnVec[3*j] = turbReconstVelocity_[3*i];
+          returnVec[3*j + 1] = turbReconstVelocity_[3*i + 1];
+          returnVec[3*j + 2] = turbReconstVelocity_[3*i + 2];
+      }
+
+      resultManager_->SetResultVecUpToDate(*oIter,true);
+
+    } else if (resName == resultManager_->GetResultName(interId_)) {
+      Vector<Double>& returnVecInter = GetOwnResultVector<Double>(*oIter);
+      std::cout<<"InterID: "<<resultManager_->GetResultName(interId_)<<std::endl;
+      //RETURN OTHER OUTPUT intermediate result // Dummy SCALAR output
+      for(UInt i=0;i<idsNodesToProcess_.GetSize();++i){
+          UInt j = idsNodesToProcess_[i];
+
+          returnVecInter[j] = reconstTKE_[i];
+      }
+      resultManager_->SetResultVecUpToDate(*oIter,true);
+
+    }
+
   }
-
-  resultManager_->SetResultVecUpToDate(outId_,true);
-
-  Vector<Double>& returnVecInter = GetOwnResultVector<Double>(interId_);
-
-  //RETURN OTHER OUTPUT intermediate result
-#pragma omp parallel for
-  for(UInt i=0;i<TKE_.GetSize();++i){
-    returnVecInter[i] = TKE_[i];
-  }
-  resultManager_->SetResultVecUpToDate(interId_,true);
 
   return true;
 }
@@ -174,21 +194,26 @@ ResultIdList SNGRFilter::SetUpstreamResults(){
   tefId_ = upResNameIds[inTEF_];
   densityId_ = upResNameIds[inDensity_];
   temperatureId_ = upResNameIds[inTemp_];
-
   return generated;
 }
 
 void SNGRFilter::AdaptFilterResults(){
   //We should check some validity...
-  //we can almost copy everything from time input (also scalar, etc.)
-  outId_ = filterResIds[0];
-  resultManager_->CopyResultData(velocityId_,outId_);
-  resultManager_->SetValid(outId_);
-
-  //REGISTER INTERMEDIATE result
-  interId_  = filterResIds[1];
-  resultManager_->CopyResultData(tkeId_,interId_);
-  resultManager_->SetValid(interId_);
+  for(UInt aRes = 0; aRes < filterResIds.GetSize(); aRes++){
+    //we can almost copy everything from time input (also scalar, etc.)
+    if(resultManager_->GetResultName(filterResIds[aRes]) == this->outName_ ) {
+      outId_ = filterResIds[aRes];
+//      std::cout<<"RES1:"<<resultManager_->GetResultName(filterResIds[aRes])<<std::endl;
+      resultManager_->CopyResultData(velocityId_,outId_);
+      resultManager_->SetValid(outId_);
+    } else if (resultManager_->GetResultName(filterResIds[aRes]) == this->interName_ ) {
+    //REGISTER INTERMEDIATE result //SCALAR copied
+      interId_  = filterResIds[aRes];
+//      std::cout<<"RES0:"<<resultManager_->GetResultName(filterResIds[aRes])<<std::endl;
+      resultManager_->CopyResultData(tkeId_,interId_);
+      resultManager_->SetValid(interId_);
+    }
+  }
 }
 
 // ===================================================================== //
@@ -202,16 +227,15 @@ void SNGRFilter::GetTkeThreshold(){
   }
   minTKE_ = TKEcrit_*maxTKE;
   // get node ids, that pass the tke criterion
-  UInt k=0;
+
   for(UInt i=0; i<numNodes_; ++i){
     if(TKE_[i]>=minTKE_){
-      idsNodesToProcess_[k] = i;
-      k++;
+			idsNodesToProcess_.Push_back(i);
     }
   }
 }
 
-void SNGRFilter::SetRandVectors(UInt k, UInt j){
+void SNGRFilter::SetRandVectors(UInt k, UInt j,Double rmsOfVelFluct,Vector<Double> kn){
   // Set up random number generators
   UInt seed_uniform = std::chrono::system_clock::now().time_since_epoch().count();
   std::mt19937 generator_uniform (seed_uniform);
@@ -240,16 +264,16 @@ void SNGRFilter::SetRandVectors(UInt k, UInt j){
   UInt seed_normal = std::chrono::system_clock::now().time_since_epoch().count();
   std::default_random_engine generator_normal (seed_normal);
   // set angular frequency for j-th mode
-  Double omegaExpectValue = rmsOfVelFluct_ * kn_[j];
+  Double omegaExpectValue = rmsOfVelFluct * kn[j];
   std::normal_distribution<double> distribution(omegaExpectValue,omegaExpectValue);
   omega_[numModes_*k+j] = distribution(generator_normal);
 
   //TODO revisit - set wave vector
   // magnitude of wave vector is wave number of current mode
   UInt g = 3*numModes_*k+3*j; // index in array for wave and direction vector
-  waveVec_[g] = kn_[j]*cos(theta)*cos(phi);
-  waveVec_[g+1] = kn_[j]*sin(phi);
-  waveVec_[g+2] = -kn_[j]*sin(theta)*cos(phi);
+  waveVec_[g] = kn[j]*cos(theta)*cos(phi);
+  waveVec_[g+1] = kn[j]*sin(phi);
+  waveVec_[g+2] = -kn[j]*sin(theta)*cos(phi);
   // set direction vector, perpendicular to wave vector, ensures incompressible velocity field
   dirVec_[g] = -sin(phi)*cos(alpha)*cos(theta)+sin(alpha)*sin(theta);
   dirVec_[g+1] = cos(phi)*cos(alpha);
@@ -264,13 +288,18 @@ void SNGRFilter::SetRandVectors(UInt k, UInt j){
   }
 }
 
-void SNGRFilter::SetVelocityAmplitude(UInt k, UInt j){
+void SNGRFilter::SetRandVectorsBillson(){
+  // TODO check if this could be included in another function
+}
+
+void SNGRFilter::SetVelocityAmplitude(UInt k, UInt j, Double peakWN,
+    Double deltaWN, Double kolmogorovWN, Double rmsOfVelFluct,Vector<Double> kn){
   // compute Karman-Pao spectrum for isotropic turbulence
-  Double E_kn = A_*(pow(rmsOfVelFluct_,2.0)/peakWN_)*pow(kn_[j]/peakWN_,4.0)*exp(-2.0*pow(kn_[j]/kolmogorovWN_,2.0))*1.0/(pow((1.0+pow(kn_[j]/peakWN_,2.0)),(17.0/6.0)));
+  Double E_kn = A_*(pow(rmsOfVelFluct,2.0)/peakWN)*pow(kn[j]/peakWN,4.0)*exp(-2.0*pow(kn[j]/kolmogorovWN,2.0))*1.0/(pow((1.0+pow(kn[j]/peakWN,2.0)),(17.0/6.0)));
   // amplitude for current mode
-  if(incrModes_ == "logarithmic") deltaWN_=dWN_[j];
-  velAmplitude_[numModes_*k+j] = sqrt(E_kn*deltaWN_);
-  reconstTKE_[k] += E_kn*deltaWN_;
+//  if(incrModes_ == "logarithmic") deltaWN_=dWN_[j];
+  velAmplitude_[numModes_*k+j] = sqrt(E_kn*deltaWN);
+  reconstTKE_[k] += E_kn*deltaWN;
 
 //      // confirm that reconstructed velocity field is consistent with TKE from RANS analysis.
 //      // literature gives reason to assume that this test fails often
@@ -281,31 +310,50 @@ void SNGRFilter::SetVelocityAmplitude(UInt k, UInt j){
 //      }
 }
 
-// ===================================================================== //
-//                         Method Block functions                        //
-// ============================== SNGR ================================= //
-// ===================================================================== //
-void SNGRFilter::PrepareMethodBailly(){
-  // compute time step, factor 30 for resolving a smooth curve
-  deltaT_ = 1.0/(30*maxFreq_);
-  // set length of output signal, factor 1.5 for safety
-  if (sigLength_ == 0.0){
-    sigLength_ = 1.5/(minFreq_);
+void SNGRFilter::PrepareMethod(){
+
+  PtrParamNode stepNode = params_->GetParent()->Get("stepValueDefinition");
+  if(stepNode->Has("startStop")){
+    PtrParamNode stNode = stepNode->Get("startStop");
+    numSteps_ = stNode->Get("numSteps")->Get("value")->As<UInt>();
+    deltaT_    = stNode->Get("delta")->Get("value")->As<Double>();
+  } else {
+    EXCEPTION("DEFINE START/STOP in PIPELINE!")
   }
+  // compute time step, factor 30 for resolving a smooth curve
+  maxFreq_ = 1.0/(2*deltaT_);
+  minFreq_ = 1.0/((numSteps_-1)*deltaT_);
+  std::cout << "frequency resolution as follows, maxFreq: " << maxFreq_ << ", minFreq: " << minFreq_ << std::endl;
+//  deltaT_ = 1.0/(30*maxFreq_);
+  // set length of output signal, factor 1.5 for safety
+//  if (sigLength_ == 0.0){
+//    sigLength_ = 1.5/(minFreq_);
+//  }
 
   // time values
-  numSteps_ = ceil(sigLength_/deltaT_);
-  Vector<Double> stepValues_(numSteps_);
-  for (UInt idx=0; idx<numSteps_; idx++){
-    stepValues_[idx] = idx*deltaT_;
-  }
+//  numSteps_ = ceil(sigLength_/deltaT_);
+//  globalStepValueMap_.Resize(numSteps_);
+//  for (UInt idx=0; idx<numSteps_; ++idx){
+//    globalStepValueMap_[idx] = idx*deltaT_;
+//  }
 
+  // TODO remove debug output
+  std::cout << "numSteps_: " << numSteps_ << std::endl;
+  std::cout << "sigLength_: " << sigLength_ << std::endl;
+  std::cout << "deltaT_: " << deltaT_ << std::endl;
+//  std::cout << "length globalStepValueMap_: " << globalStepValueMap_.GetSize() << std::endl;
+  std::cout << "stepValues(0) " << globalStepValueMap_[0] << std::endl;
+  std::cout << "stepValues(1) " << globalStepValueMap_[1] << std::endl;
+  std::cout << "stepValues(end-1) " << globalStepValueMap_[numSteps_-2] << std::endl;
+  std::cout << "stepValues(end) " << globalStepValueMap_[numSteps_-1] << std::endl;
+
+  // get grid
   StdVector<int> volRegionIds;
   inGrid_->GetVolRegionIds(volRegionIds);
   numNodes_ = inGrid_->GetNumNodes(volRegionIds);
-
-  // get result for result id TODO evtl. Vector<Double>& als Datentyp vor den Namen wieder einfügen.
+  // get result for result id // TODO evtl. Vector<Double>& als Datentyp vor den Namen wieder einfügen.
   CF::StdVector<UInt> numEqation;
+
   TKE_ = GetUpstreamResultVector<Double>(tkeId_,numEqation);
   meanVelocity_ = GetUpstreamResultVector<Double>(velocityId_,numEqation);
   localDensity_ = GetUpstreamResultVector<Double>(densityId_,numEqation);
@@ -314,21 +362,131 @@ void SNGRFilter::PrepareMethodBailly(){
 
   // get tke threshold, actually gets the ids of all nodes that pass the tke criterion
   this->GetTkeThreshold();
-  UInt numNodesToProcess = idsNodesToProcess_.GetSize();
-
-  // initialize
-//  Vector<Double> turbLengthScale_(numModes_*nodesToProcess);
-//  Vector<Double> peakWN_(numNodes_);
-  Vector<Double> velAmplitude_(numModes_*numNodesToProcess);
-  Vector<Double> reconstTKE_(numNodesToProcess);
-  Vector<Double> omega_(numModes_*numNodesToProcess);
-  Vector<Double> phase_(numModes_*numNodesToProcess);
-  Vector<Double> waveVec_(numModes_*numNodesToProcess*3);
-  Vector<Double> dirVec_(numModes_*numNodesToProcess*3);
 }
 
-void SNGRFilter::UpdateResultMethodBailly(){
-  // node loop TODO pragma omp parallel for
+// ===================================================================== //
+//                         Method Block functions                        //
+// ============================ SNGR Bailly ============================ //
+// ===================================================================== //
+void SNGRFilter::InitArraysBailly(){
+  // initialize
+  UInt numNodesToProcess = idsNodesToProcess_.GetSize();
+//  Vector<Double> turbLengthScale_(numModes_*nodesToProcess);
+//  Vector<Double> peakWN(numNodes_);
+  velAmplitude_.Resize(numModes_*numNodesToProcess);
+  reconstTKE_.Resize(numNodesToProcess);
+  omega_.Resize(numModes_*numNodesToProcess);
+  phase_.Resize(numModes_*numNodesToProcess);
+  waveVec_.Resize(numModes_*numNodesToProcess*3);
+  dirVec_.Resize(numModes_*numNodesToProcess*3);
+}
+
+void SNGRFilter::InitResultMethodBailly(){
+//#pragma omp parallel for
+  for(UInt k=0; k<idsNodesToProcess_.GetSize(); ++k){
+      UInt i = idsNodesToProcess_[k];
+      // dissipation rate and viscosity (Sutherland)
+      Double TDR;
+      if(inTEF_ == "Turbulence_Eddy_Fr9"){
+        TDR = c_mu_*TKE_[i]*TEF_[i];
+      }
+      else{
+        TDR = TEF_[i];
+      }
+      Double kinVisco = (18.132941775e-6*(291.15+120.0)/(localTemp_[i]+120.0)*pow(localTemp_[i]/291.15,(3.0/2.0)))/localDensity_[i];
+      // turbulent length scale
+      Double rmsOfVelFluct = sqrt(2.0/3.0*TKE_[i]);
+      //turbLengthScale_[i] = fL*pow(rmsOfVelFluct,3.0)/TDR; //
+      Double turbLengthScale = fL_*pow(c_mu_,0.75)*pow(TKE_[i],1.5)/TDR;
+      // Kolmogorov wave number
+      Double kolmogorovWN = pow(TDR,(1.0/4.0))*1.0/(pow(kinVisco,(3.0/4.0)));
+      // essential locations in engery spectrum
+      Double peakWN = 9.0*M_PI/55.0*A_/turbLengthScale;
+      Double kmax = maxWN_ * peakWN;
+      Double kmin = minWN_ * peakWN;
+
+      // compute wave number increments
+      Vector<Double> kn;  // array of all wave number values
+      kn.Resize(numModes_);
+//      if(incrModes_ == "logarithmic"){
+//        deltaWN_ = (log(kmax)-log(kmin))/(numModes_-1);
+//        for(UInt p=0;p<numModes_;++p){
+//          kn[p] = exp(log(kmin)+p*deltaWN_);
+//          if(p==0) dWN_[0] = kmin;
+//          else dWN_[p] = kn[p]-kn[p-1];
+//        }
+//      } else {
+          Double deltaWN = (kmax-kmin)/(numModes_-1);
+          for(UInt p=0;p<numModes_;++p){
+            kn[p] = kmin + p*deltaWN;
+          }
+//      }
+      // mode loop
+      for(UInt j=0; j<numModes_; ++j){
+        // set engergy and velocity amplitude for j-th mode
+        this->SetVelocityAmplitude(k,j,peakWN,deltaWN,kolmogorovWN,rmsOfVelFluct,kn);
+
+         // set wave and direction vector for j-th mode
+        this->SetRandVectors(k,j,rmsOfVelFluct,kn);
+      }
+  }
+}
+
+void SNGRFilter::SetTimelineMethodBailly(UInt k){
+  // time loop
+//  for(UInt k=0; k<numSteps_; ++k){
+    // initialize output
+    turbReconstVelocity_.Resize(idsNodesToProcess_.GetSize()*3);
+    turbReconstVelocity_.Init();
+//#pragma omp parallel for
+    for(UInt p=0; p<idsNodesToProcess_.GetSize(); ++p){
+      UInt i = idsNodesToProcess_[p];
+      // how to get a coordinate
+      CF::Vector<Double> pCoord;
+      inGrid_->GetNodeCoordinate3D(pCoord,i+1);
+      // mode loop
+      for(UInt j=0; j<numModes_; ++j){
+        UInt g = numModes_*p*3+j*3;  // index in waveVec and dirVec arrays
+        Double kx = waveVec_[g]*(pCoord[0]-meanVelocity_[i*3]*globalStepValueMap_[k]) + waveVec_[g+1]*(pCoord[1]-meanVelocity_[i*3+1]*globalStepValueMap_[k]) + waveVec_[g+2]*(pCoord[2]-meanVelocity_[i*3+2]*globalStepValueMap_[k]);
+        Double sumElem = 2.0*velAmplitude_[numModes_*p+j]*cos(kx + phase_[numModes_*p+j] + fa_*omega_[numModes_*p+j]*globalStepValueMap_[k]);
+        turbReconstVelocity_[p*3] += sumElem*dirVec_[g];
+        turbReconstVelocity_[p*3+1] += sumElem*dirVec_[g+1];
+        turbReconstVelocity_[p*3+2] += sumElem*dirVec_[g+2];
+      }
+    }
+
+    // write node results to file
+    std::cout << "Writing reconstructed velocity field to file." << std::endl;
+
+/*  std::cout << "The reconstruction was carried out for " << flg_ << " of " << numNodes_ << " nodes, " << flg_/numNodes_*100.0 << "%." << std::endl;
+    std::cout << "The remaining " << numNodes_-flg_ << "(" << (numNodes_-flg_)/numNodes_*100.0 << "%) nodes did not meet the TKE-Criterion." << std::endl;
+    if(tkeFAIL_!=0){
+      std::cout << "There has been a problem with the reconstructed TKE in " << tkeFAIL_ << " nodes." << std::endl;
+    }
+    if(perpFAIL_!=0){
+      std::cout << "For " << perpFAIL_ << " nodes the wave vector and direction vector where not sufficiently perpendicular." << std::endl;
+    }
+*/
+
+//  }
+  std::cout << "Reconstruction of turbulent velocity field finished" << std::endl;
+}
+
+// ===================================================================== //
+//                         Method Block functions                        //
+// ============================ Billson SNGR =========================== //
+// ===================================================================== //
+void SNGRFilter::InitArraysBillson(){
+	// initialize
+	UInt numNodesToProcess = idsNodesToProcess_.GetSize();
+  velAmplitude_.Resize(numModes_*numNodesToProcess);
+  waveNumIncrements_.Resize(numModes_*numNodesToProcess);
+  reconstTKE_.Resize(numNodesToProcess);
+}
+
+
+void SNGRFilter::UpdateResultBillson(){
+	// node loop TODO pragma omp parallel for
   UInt i = 0;
   for(UInt k=0; k<idsNodesToProcess_.GetSize(); ++k){
       i = idsNodesToProcess_[k];
@@ -342,108 +500,72 @@ void SNGRFilter::UpdateResultMethodBailly(){
       }
       Double kinVisco = (18.132941775e-6*(291.15+120.0)/(localTemp_[i]+120.0)*pow(localTemp_[i]/291.15,(3.0/2.0)))/localDensity_[i];
       // turbulent length scale
-      rmsOfVelFluct_ = sqrt(2.0/3.0*TKE_[i]);
+      Double rmsOfVelFluct = sqrt(2.0/3.0*TKE_[i]);
       //turbLengthScale_[i] = fL*pow(rmsOfVelFluct,3.0)/TDR; //
       Double turbLengthScale = fL_*pow(c_mu_,0.75)*pow(TKE_[i],1.5)/TDR;
       // Kolmogorov wave number
-      kolmogorovWN_ = pow(TDR,(1.0/4.0))*1.0/(pow(kinVisco,(3.0/4.0)));
+      Double kolmogorovWN = pow(TDR,(1.0/4.0))*1.0/(pow(kinVisco,(3.0/4.0)));
       // essential locations in engery spectrum
-      Double peakWN_ = 9.0*M_PI/55.0*A_/turbLengthScale;
-      Double kmax = maxWN_ * peakWN_;
-      Double kmin = minWN_ * peakWN_;
+      Double peakWN = 9.0*M_PI/55.0*A_/turbLengthScale;
+      Double kmax = maxWN_ * peakWN;
+      Double kmin = minWN_ * peakWN;
+
       // compute wave number increments
-      Vector<Double> kn_(numModes_);
-      if(incrModes_ == "logarithmic"){
-        deltaWN_ = (log(kmax)-log(kmin))/(numModes_-1);
-        for(UInt p=0;p<numModes_;p++){
-          kn_[p] = exp(log(kmin)+p*deltaWN_);
-          if(p==0) dWN_[0] = kmin;
-          else dWN_[p] = kn_[p]-kn_[p-1];
-        }
-      } else {
-          deltaWN_ = (kmax-kmin)/(numModes_-1);
-          for(UInt p=0;p<numModes_;p++){
-            kn_[p] = kmin + p*deltaWN_;
+      Vector<Double> kn;
+      kn.Resize(numModes_);
+//      if(incrModes_ == "logarithmic"){
+//        deltaWN_ = (log(kmax)-log(kmin))/(numModes_-1);
+//        for(UInt p=0;p<numModes_;++p){
+//          // in constrast to Bailly's method, one has to save the wave number sampling points
+//          waveNumIncrements_[numModes_*k+p] = exp(log(kmin)+p*deltaWN_);
+//          kn[p] = waveNumIncrements_[numModes_*k+p];
+//          if(p==0) dWN_[0] = kmin;
+//          else dWN_[p] = waveNumIncrements_[numModes_*k+p]-waveNumIncrements_[numModes_*k+p-1];
+//        }
+//      } else {
+          Double deltaWN = (kmax-kmin)/(numModes_-1);
+          for(UInt p=0;p<numModes_;++p){
+            waveNumIncrements_[numModes_*k+p] = kmin + p*deltaWN;
+            kn[p] = waveNumIncrements_[numModes_*k+p];
           }
-      }
+//      }
       // mode loop
       for(UInt j=0; j<numModes_; ++j){
         // set engergy and velocity amplitude for j-th mode
-        this->SetVelocityAmplitude(k,j);
+        this->SetVelocityAmplitude(k,j,peakWN,deltaWN,kolmogorovWN,rmsOfVelFluct,kn);
 
          // set wave and direction vector for j-th mode
-        this->SetRandVectors(k,j);
+        this->SetRandVectors(k,j,rmsOfVelFluct,kn);
       }
   }
 }
 
-void SNGRFilter::SetTimelineMethodBailly(){
-  // time loop
-  for(UInt k=0; k<numSteps_; ++k){
-    // initialize output
-    Vector<Double> turbReconstVelocity_(idsNodesToProcess_.GetSize()*3);
-    // node loop TODO pragma omp parallel for
+void SNGRFilter::InitTimelineBillsonSNGR(UInt i){
+// initially for every time step the random values for one mode are generated new,
+// this way for the initial velocity field all time steps are independent from one another.
+
+  for(UInt k=0;k<numSteps_;++k){
+  	initVelocity_.Resize(idsNodesToProcess_.GetSize()*3); //TODO, this field needs to be stored somewhere
     for(UInt p=0; p<idsNodesToProcess_.GetSize(); ++p){
       UInt i = idsNodesToProcess_[p];
       // how to get a coordinate
       CF::Vector<Double> pCoord;
       inGrid_->GetNodeCoordinate3D(pCoord,i+1); //TODO warum i+1
       // mode loop
-      for(UInt j=0; j<numModes_; ++j){
-        UInt g = numModes_*p*3+j*3;  // index in waveVec and dirVec arrays
-        Double kx = waveVec_[g]*(pCoord[0]-meanVelocity_[i*3]*stepValues_[k]) + waveVec_[g+1]*(pCoord[1]-meanVelocity_[i*3+1]*stepValues_[k]) + waveVec_[g+2]*(pCoord[2]-meanVelocity_[i*3+2]*stepValues_[k]);
-        Double sumElem = 2.0*velAmplitude_[numModes_*p+j]*cos(kx + phase_[numModes_*p+j] + fa_*omega_[numModes_*p+j]*stepValues_[k]);
-        turbReconstVelocity_[p*3] += sumElem*dirVec_[g];
-        turbReconstVelocity_[p*3+1] += sumElem*dirVec_[g+1];
-        turbReconstVelocity_[p*3+2] += sumElem*dirVec_[g+2];
-      }
-    }
+    	for(UInt j=0;j<numModes_;++j){
 
-    // write node results to file
-    //TODO muss hier der Inhalt aus der Fkt UpdateResults angefgügt werden?
-    std::cout << "Writing reconstructed velocity field to file." << std::endl;
 
-/*  std::cout << "The reconstruction was carried out for " << flg_ << " of " << numNodes_ << " nodes, " << flg_/numNodes_*100.0 << "%." << std::endl;
-    std::cout << "The remaining " << numNodes_-flg_ << "(" << (numNodes_-flg_)/numNodes_*100.0 << "%) nodes did not meet the TKE-Criterion." << std::endl;
-    if(tkeFAIL_!=0){
-      std::cout << "There has been a problem with the reconstructed TKE in " << tkeFAIL_ << " nodes." << std::endl;
-    }
-    if(perpFAIL_!=0){
-      std::cout << "For " << perpFAIL_ << " nodes the wave vector and direction vector where not sufficiently perpendicular." << std::endl;
-    }
-*/
-  }
-  std::cout << "Reconstruction of turbulent velocity field finished" << std::endl;
-}
+      	// set wave and direction vector for j-th mode, redo this for every timestep in the initial velocity field, the initial field should be locally white noise
+      	//this->SetRandVectorsBillson(j);
 
-// ===================================================================== //
-//                         Method Block functions                        //
-// ============================ Billson SNGR =========================== //
-// ===================================================================== //
-/*
-void SNGRFilter::InitTimelineBillsonSNGR(UInt i){
-// initially for every time step the random values for one mode are generated new,
-// this way for the initial velocity field all time steps are independent from one another.
+      	Double velA_coskx = 2*velAmplitude_[j]*cos(waveVec_[0]*pCoord[0] + waveVec_[1]*pCoord[1] + waveVec_[2]*pCoord[2] + phase_[j]);
+      	initVelocity_[k*3] += velA_coskx*dirVec_[0];
+      	initVelocity_[k*3+1] += velA_coskx*dirVec_[1];
+      	initVelocity_[k*3+2] += velA_coskx*dirVec_[2];
+    	}
+  	}
 
-  // re-initialise intermidiate velocity field for every node
-  Vector<Double> initVelocity_(numSteps_*3); //TODO wo soll dieses initial field zwischen gespeichert werden?
-
-  for(UInt k=0;k<numSteps_;k++){
-    for(UInt j=0;j<numModes_;j++){
-      // set engergy and velocity amplitude for j-th mode
-      this->SetVelocityAmplitude(i,j);
-
-      // set wave and direction vector for j-th mode
-      this->SetRandVectors(j);
-
-      Double velA_coskx = 2*velAmplitude_[j]*cos(waveVec_[0]*pCoord_[0] + waveVec_[1]*pCoord_[1] + waveVec_[2]*pCoord_[2] + phase_[j]);
-      initVelocity_[k*3] += velA_coskx*dirVec_[0];
-      initVelocity_[k*3+1] += velA_coskx*dirVec_[1];
-      initVelocity_[k*3+2] += velA_coskx*dirVec_[2];
-    }
-  }
-  // call to final time line
-  //this->FinalTimelineMethodBillsonSNGR
+	}
 }
 
 //TODO void SNGRFilter::FinalTimelineMethodBillsonSNGR(){
@@ -451,6 +573,126 @@ void SNGRFilter::InitTimelineBillsonSNGR(UInt i){
 
 // apply time filter -> final velocity field
 //}
-*/
+
+
+// ===================================================================== //
+//                         Method Block functions                        //
+// ==================== Lafitte Sweeping-Based SNGR ==================== //
+// ===================================================================== //
+
+
+void SNGRFilter::UpdateResultLafitte(){
+  UInt i = 0;
+  Double sumTDR = 0.0;
+  UInt numNodesToProcess = idsNodesToProcess_.GetSize();
+  velAmplitude_.Resize(numModes_*numNodesToProcess);
+  reconstTKE_.Resize(numNodesToProcess);
+  peakWNLafitte_.Resize(numNodesToProcess);
+  cutOffWNLafitte_.Resize(numNodesToProcess);
+  numLargeScaleModes_.Resize(numNodesToProcess);
+  timeScale_.Resize(numNodesToProcess);
+
+  Vector<Double> kn;
+  Double deltaWN;
+  // node loop TODO pragma omp parallel for
+  for(UInt k=0; k<numNodesToProcess; ++k){
+      i = idsNodesToProcess_[k];
+      // dissipation rate
+      Double TDR;
+      if(inTEF_ == "Turbulence_Eddy_Fr9"){
+        TDR = c_mu_*TKE_[i]*TEF_[i];
+      }
+      else{
+        TDR = TEF_[i];
+      }
+      sumTDR += TDR;
+      // turbulent length scale
+      Double turbLengthScale = fL_*pow(c_mu_,0.75)*pow(TKE_[i],1.5)/TDR;
+      // essential locations in engery spectrum
+      peakWNLafitte_[i] = 9.0*M_PI/55.0*A_/turbLengthScale;
+      cutOffWNLafitte_[i] = 1.8*peakWNLafitte_[i];
+      Double kmax = maxWN_ * peakWNLafitte_[i];
+      Double kmin = minWN_ * peakWNLafitte_[i];
+      // turbulent time scale
+      timeScale_[i] = ft_*TKE_[i]/TDR;
+
+      // compute wave number increments
+      kn.Resize(numModes_);
+//      if(incrModes_ == "logarithmic"){
+//        deltaWN_ = (log(kmax)-log(kmin))/(numModes_-1);
+//        for(UInt p=0;p<numModes_;++p){
+//          kn[p] = exp(log(kmin)+p*deltaWN_);
+//          if(p==0) dWN_[0] = kmin;
+//          else dWN_[p] = kn[p]-kn[p-1];
+//        }
+//      } else {
+          deltaWN = (kmax-kmin)/(numModes_-1);
+          for(UInt p=0;p<numModes_;++p){
+            kn[p] = kmin + p*deltaWN;
+            if ((kn[p]>cutOffWNLafitte_[k]) && (kn[p-1]<cutOffWNLafitte_[k])){ // && p!=0
+              numLargeScaleModes_[k] = p-1; // if the user chooses minWN_ > ke (e.g. minWN_>=1.8*ke) this line will fail.
+            } else if((p=0) && (kn[p]>cutOffWNLafitte_[k])){
+                numLargeScaleModes_[k] = 0;
+            }
+//          }
+      }
+  // TODO include kinVisco, rms, kolmogorvWN here >> call to SNGRFilter::SetVelocityAmplitude also here.
+  }
+
+  // mean value of dissipation rate in most energetic grid points
+  aveTDR_ = sumTDR/numNodesToProcess;
+  // TODO Achtung !!!!!!!!
+  // TODO Achtung !!!!!!!!
+  // TODO Achtung !!!!!!!! -- we have to check, wheather there are local changes in the number of numLargeScaleModes_
+  // TODO Achtung !!!!!!!!
+  // TODO Achtung !!!!!!!!
+  omega_.Resize(numLargeScaleModes_.GetSize()); // TODO omega_ fixed for all nodes but still dependent on mode; only set for numLargeScaleModes_, the rest does not get an omega_
+
+  for(UInt j=0; j<numLargeScaleModes_.GetSize(); ++j){
+    omega_[j] = pow(C_k_,0.5)*pow(aveTDR_,1.0/3.0)*pow(kn[j],2.0/3.0); // TODO kn is not saved over every node, but has to be in this setup.
+  }
+
+
+
+// TODO this loop is not done yet
+  i = 0;
+  for(UInt k=0; k<numNodesToProcess; ++k){
+      i = idsNodesToProcess_[k];
+      // kinematic viscosity nu=f(localTemp_) (Sutherland)
+      Double kinVisco = (18.132941775e-6*(291.15+120.0)/(localTemp_[i]+120.0)*pow(localTemp_[i]/291.15,(3.0/2.0)))/localDensity_[i];
+      // turbulent length scale
+      Double rmsOfVelFluct = sqrt(2.0/3.0*TKE_[i]);
+      // Kolmogorov wave number
+      Double TDR;
+      if(inTEF_ == "Turbulence_Eddy_Fr9"){
+        TDR = c_mu_*TKE_[i]*TEF_[i];
+      }
+      else{
+        TDR = TEF_[i];
+      }
+      Double kolmogorovWN = pow(TDR,(1.0/4.0))*1.0/(pow(kinVisco,(3.0/4.0)));
+
+      // mode loop
+      for(UInt j=0; j<numModes_; ++j){
+        // set engergy and velocity amplitude for j-th mode
+        this->SetVelocityAmplitude(k,j,peakWNLafitte_[i],deltaWN,kolmogorovWN,rmsOfVelFluct,kn);
+
+         // set wave and direction vector for j-th mode
+        this->SetRandVectors(k,j,rmsOfVelFluct,kn);
+      }
+  }
+}
+
+// TODO numModes_ has to be replaced with something usefull.
+void SNGRFilter::InitArraysLafitte(){
+  // initialize
+  UInt numNodesToProcess = idsNodesToProcess_.GetSize();
+//  turbLengthScale_(numModes_*nodesToProcess);
+//  peakWN(numNodes_);
+
+  phase_.Resize(numModes_*numNodesToProcess);
+  waveVec_.Resize(numModes_*numNodesToProcess*3);
+  dirVec_.Resize(numModes_*numNodesToProcess*3);
+}
 
 }

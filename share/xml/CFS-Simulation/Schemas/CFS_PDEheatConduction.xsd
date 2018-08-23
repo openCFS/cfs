@@ -40,8 +40,8 @@
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
-                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/> 
-                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/> 
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
@@ -81,7 +81,7 @@
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
-          
+
           <!-- Type of velocity (optional) -->
           <xsd:element name="velocityList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -90,13 +90,8 @@
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
-          
+
           <!-- Surface regions on which results can be calculated-->
-          <xsd:element name="surface" minOccurs="0" maxOccurs="unbounded">
-            <xsd:complexType>
-              <xsd:attribute name="name" type="xsd:token" use="required"/>
-            </xsd:complexType>
-          </xsd:element>
 
           <!-- Non-conforming interfaces of the PDE -->
           <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1">
@@ -133,7 +128,7 @@
                     <xsd:documentation>Defines heat transport (Robin B.C.) on a given boundary</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
-                
+
                 <xsd:element name="heatFlux" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>Defines heat flux (Neumann B.C.)</xsd:documentation>
@@ -146,14 +141,14 @@
                     <xsd:documentation>Defines nodal heat</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
-                
+
                 <!-- heat specific boundary conditions -->
                 <xsd:element name="designDependentHeatSource" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>Creates heat sources at interfaces betweens void and solid </xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
-                
+
                 <!-- heat specific boundary conditions -->
                 <xsd:element name="heatSourceDensity" type="DT_BcInhomScalar">
                   <xsd:annotation>
@@ -174,10 +169,8 @@
           </xsd:element>
 
           <!-- Section for specifying initial conditions (optional) -->
-          <xsd:element name="InitialCondition" type="xsd:double" minOccurs="0"/>
 
           <!-- Section for specifying reference conditions (optional) -->
-          <xsd:element name="referenceTemperature" type="xsd:double" minOccurs="0"/>
 
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_HeatStoreResults" minOccurs="0" maxOccurs="1">
@@ -242,8 +235,8 @@
   <xsd:complexType name="DT_HeatR">
     <xsd:complexContent>
       <xsd:extension base="DT_BcInhomScalar">
-        <xsd:attribute name="heatTransferCoefficient" type="xsd:double" />
-        <xsd:attribute name="bulkTemperature" type="xsd:double" default="20.0"/>
+        <xsd:attribute name="heatTransferCoefficient" type="xsd:string"/>
+        <xsd:attribute name="bulkTemperature" type="xsd:string" default="20.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -294,10 +287,22 @@
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
 
-			<!-- non-physical design variable for simp topology optimization -->
-			<xsd:enumeration value="mechPseudoDensity" />
-			<!-- physical application of design variable in the simulation -->
-			<xsd:enumeration value="physicalPseudoDensity" />
+      <!-- non-physical design variable for simp topology optimization -->
+      <xsd:enumeration value="mechPseudoDensity"/>
+      <!-- physical application of design variable in the simulation -->
+      <xsd:enumeration value="physicalPseudoDensity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="DT_HeatSurfElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="heatFluxIntensity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="DT_HeatSurfRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="heatFlux"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -323,6 +328,28 @@
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
                 <xsd:attribute name="type" type="DT_HeatElemResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- SurfElement result definition -->
+        <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfElemResult">
+                <xsd:attribute name="type" type="DT_HeatSurfElemResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- SurfRegion result definition -->
+        <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfRegionResult">
+                <xsd:attribute name="type" type="DT_HeatSurfRegionResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

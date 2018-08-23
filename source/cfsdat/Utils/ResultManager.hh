@@ -163,8 +163,14 @@ public:
   //! Returns true if a result is constant in time
   //! \param (in) resId unique id of Result
   //! \return true if a result is constant in time
-  bool IsConstant(uuids::uuid resId);
+  bool IsStatic(uuids::uuid resId);
   
+  //! Set if a quantity is static in time
+  //! \param (in) resId unique id of Result
+  //! \param (in) isStatic if the quantity is static
+  //! \return Nothing
+  void SetStatic(uuids::uuid resId, bool isStatic);
+
   //! Set the time step value vector of the given result
   //!   - Replace if vector has already been set
   //!   - Only valid during initialization phase.
@@ -425,6 +431,7 @@ private:
     isSimilar &= resOne.first->definedOn                      == resTwo.first->definedOn;
     isSimilar &= resOne.first->entryType                      == resTwo.first->entryType;
     isSimilar &= resOne.first->ptGrid                         == resTwo.first->ptGrid;
+    isSimilar &= resOne.first->dofNames.GetSize()             == resTwo.first->dofNames.GetSize();
     return isSimilar;
   }
 

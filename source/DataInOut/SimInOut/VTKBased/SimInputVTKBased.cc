@@ -30,6 +30,8 @@
 #include "vtkSMPMergePoints.h"
 #include "vtkInformation.h"
 
+#include <unordered_map>
+
 // This is due to the fucking OLAS New operator!!!
 #undef New
 
@@ -38,7 +40,10 @@ namespace CoupledField {
 DECLARE_LOG(siminputVTK)
 DEFINE_LOG(siminputVTK, "simInput.vtk")
 
-
+//! This is a special class for the identification of unqie finite volume faces.
+// It is intended to find the two cells adjacent to one face. Therefore it provides 
+// a hash value und a == operator. 
+// As long as slave and master element are equal, it is a boundary face
 VTKFVFace::VTKFVFace(UInt masterElement, StdVector<UInt>& points) {
   masterElement_ = masterElement;
   slaveElement_ = masterElement;
@@ -98,12 +103,20 @@ size_t VTKFVFace::GetHash() const {
 }
 
 bool VTKFVFace::operator==(const VTKFVFace &other) const {
+  return EqualTest(other) != 0;
+}
+  
+//! This is for testing equality to other faces.
+//! returns 0 if the faces are not equal
+//! returns 1 if the points are equal and in same orientation
+//! returns -1 if the points are equal and in reverse orientation
+Integer VTKFVFace::EqualTest(const VTKFVFace &other) const {
   const UInt size = points_.GetSize();
   if (size != other.points_.GetSize()) {
-    return false;
+    return 0;
   }
   if (size == 0) {
-    return false;
+    return 0;
   }
   UInt firstPoint = points_[0];
   UInt firstOtherIndex = 0;
@@ -115,10 +128,10 @@ bool VTKFVFace::operator==(const VTKFVFace &other) const {
     }
   }
   if (notFound) {
-    return false;
+    return 0;
   }
   if (size == 1) {
-    return true;
+    return -1;
   }
   
   // forward check
@@ -132,15 +145,7 @@ bool VTKFVFace::operator==(const VTKFVFace &other) const {
     }
   }
   if (forwardEqual) {
-    /**
-    if ((size > 2) && (masterCell_ != other.masterCell_)) {
-      std::cout << "  cell A " << masterCell_ << "    cell B " << other.masterCell_ << std::endl;
-      for (UInt i = 0; i < size; i++) {
-        std::cout << "  pA " << points_[i] << "    pB " << other.points_[i] << std::endl;
-      }
-    }
-    **/
-    return true;
+    return 1;
   }
   // backward check
   bool backwardEqual = true;
@@ -153,7 +158,10 @@ bool VTKFVFace::operator==(const VTKFVFace &other) const {
       oI--;
     }
   }
-  return backwardEqual;
+  if (backwardEqual) {
+    return -1;
+  }
+  return 0;
 }
 
 VTKFVFace::~VTKFVFace() {
@@ -258,8 +266,9 @@ void SimInputVTKBased::GetPointIDsByRegion(std::map<std::string, StdVector<UInt>
   UInt numElems = 0;
   std::string regionName;
   vtkDataSet* ds;
-  Double pt[3];
-
+  Double pt[3] = {0.0,0.0,0.0};
+  std::unordered_map<Point, UInt> coordNodeMap;
+  
   //determine dimension of the Grid to distinguish between surface and volume regions
   Integer gDim = mi_->GetDim();
   while (! iter->IsDoneWithTraversal()){
@@ -288,7 +297,7 @@ void SimInputVTKBased::GetPointIDsByRegion(std::map<std::string, StdVector<UInt>
 
     regionNamesOfDim_[regDim].Push_back(regionName);
 
-    mi_->AddNodes(curNumPoints);
+    //mi_->AddNodes(curNumPoints);
     mi_->AddElems(curNumElems);
 
     pointMap[regionName].Reserve(curNumPoints);
@@ -296,16 +305,33 @@ void SimInputVTKBased::GetPointIDsByRegion(std::map<std::string, StdVector<UInt>
     //make points unique if we need this
     //right now, every region consists of a disconnected set of points
     for (UInt j = 0; j < curNumPoints; ++j){
+      ds->GetPoint(j, pt);
+      Point ip(pt[0], pt[1], pt[2]);
+      if (coordNodeMap.find(ip) == coordNodeMap.end()) {
+        numNodes++;
+        coordNodeMap[ip] = numNodes;
+      }
+      pointMap[regionName].Push_back(coordNodeMap[ip]);
+      /**
       numNodes++;
       ds->GetPoint(j, pt);
       Vector<Double> aNodeC;
       aNodeC.Fill(pt,gDim);
       mi_->SetNodeCoordinate(numNodes,aNodeC);
       pointMap[regionName].Push_back(numNodes);
+      **/
+
     }
     iter->GoToNextItem();
   }
   iter->Delete();
+  
+  // inserting node coordinates_
+  mi_->AddNodes(numNodes);
+  for (std::unordered_map<Point, UInt>::iterator it = coordNodeMap.begin(); it != coordNodeMap.end(); it++) {
+    mi_->SetNodeCoordinate(it->second,it->first.data);
+  }
+  
   numNodes_ = numNodes;
   numRegions_ = numRegions;
   numElems_ = numElems;
@@ -368,6 +394,7 @@ void SimInputVTKBased::ReadElemData(std::map<std::string, StdVector<UInt> >& poi
           vtkPoints *   polyPts = vtkPoints::New();
           UInt result = cell->Triangulate(0,polyPtsIds,polyPts);
           UInt masterFVElement = elemIdx;  // FV stuff
+          bool isVolume = curT == Elem::ET_POLYHEDRON;
           if(result || curT == Elem::ET_POLYGON){
             Elem::FEType newType;
             UInt eDim = 0;
@@ -390,7 +417,7 @@ void SimInputVTKBased::ReadElemData(std::map<std::string, StdVector<UInt> >& poi
               globElemLocElem_[elemIdx] = cellId;
               if (readFVMesh_) { // FV stuff
                 masterElement[elemIdx] = masterFVElement;
-                isVolumeElement[elemIdx] = true;
+                isVolumeElement[elemIdx] = isVolume;
               } // FV stuff end
               elemIdx++;
             }
@@ -454,6 +481,9 @@ void SimInputVTKBased::ReadElemData(std::map<std::string, StdVector<UInt> >& poi
               AddFVQuadFace(elemIdx, con[3], con[2], con[1], con[0]);
               numFVPyra++;
             } else if (curT == Elem::ET_TET4) {
+              if (elemIdx == 13517665 || elemIdx == 13519266 || elemIdx == 13519271) {
+                std::cout << " real tetra " << elemIdx << std::endl;
+              }
               AddFVTriFace(elemIdx, con[0], con[1], con[3]);
               AddFVTriFace(elemIdx, con[1], con[2], con[3]);
               AddFVTriFace(elemIdx, con[2], con[0], con[3]);
@@ -819,6 +849,7 @@ void SimInputVTKBased::ReadElemData(std::map<std::string, StdVector<UInt> >& poi
     fvrep.faceMasterElement.Resize(numFaces);
     fvrep.faceSlaveElement.Resize(numFaces);
     fvrep.facePointIndex.Resize(numFaces + 1);
+    fvrep.faceCount = numFaces;
     
     // copy main face interformation
     UInt fIdx = 0;
@@ -882,9 +913,12 @@ void SimInputVTKBased::AddFVFace(UInt masterElement, StdVector<UInt>& points) { 
     numFVBoundaryFaces_++;
   } else {
     VTKFVFace fvFaceFound = *got;
+    if (fvFaceFound.EqualTest(fvFace) == 1 && points.GetSize() > 2) {
+      WARN("Equal finite volume faces are forward equal");
+    }
     FVFaces_.erase(fvFaceFound);
     if (fvFaceFound.HasSlaveElement()) {
-      std::cout << "Has Internal Face at least twice" << std::endl;
+      WARN("Internal finite volume faces appeared more than two times");
     }
     fvFaceFound.SetSlaveElement(masterElement);
     FVFaces_.insert(fvFaceFound);
@@ -934,6 +968,16 @@ void SimInputVTKBased::GetRegionName(std::string& name, vtkCompositeDataIterator
 
     tmp << boost::regex_replace(name, datExp, name_format, boost::match_default | boost::format_sed);
     name = tmp.str();
+  }
+  bool removed = true;
+  while (removed) {
+    removed = false;
+    if (name.size() > 0) {
+      if (name.back() == '_') {
+        name.pop_back();
+        removed = true;
+      }
+    }
   }
 }
 

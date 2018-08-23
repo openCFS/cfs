@@ -47,10 +47,15 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
   inDim_ = 0;
   p_ = config->Get("scheme")->Get("interpolationExponent")->As<UInt>();
 
+  // Setup lazzaro scheme
   numNN_ = 18;
   numNW_ = 13;
+
+  //No Slip Boundary handling on target Grid
   noSlip_ = false;
   if(config->Has("noSlipWall")){noSlip_ = true;}
+
+  //Target Entity Nodes/Element centrooids
   useElemAsTarget_ = false;
   if(params_->Has("useElemAsTarget")){useElemAsTarget_ = params_->Get("useElemAsTarget")->As<bool>();}
 
@@ -68,7 +73,7 @@ bool RBFInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
   // vector, containing the source data values
   Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
 
-
+  // RBF setup
   Matrix& matrix = matrices_[matrixIndex_];
   const UInt maxNumTrgEntities = matrix.numTargets;
   StdVector<CF::UInt>& targetSourceIndex = matrix.targetSourceIndex;
@@ -77,8 +82,9 @@ bool RBFInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
   StdVector<CF::Double>& targetSourceFactor2 = matrix.targetSourceFactor2;
   StdVector< CF::Matrix<Double> >& targetRBFInv = matrix.targetRBFInvMat;
 
-
+  // RBF Interpolation
   RBFInterpolation(returnVec, inVec, numEquPerEnt_, targetSource, targetSourceIndex, targetRBFInv, targetSourceFactor, targetSourceFactor2, maxNumTrgEntities);
+  //Final scaling
   returnVec.ScalarMult(globalFactor_);
 
   return true;
@@ -184,6 +190,8 @@ void RBFInterpolator::PrepareCalculation(){
 void RBFInterpolator::PreparePATCH(){
   std::cout << "\t ---> RBFInterpolator preparing for interpolation" << std::endl;
 
+
+
   std::cout << "\t\t 1/4 Obtaining source entities " << std::endl;
   uuids::uuid upRes = upResIds[0];
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
@@ -191,6 +199,12 @@ void RBFInterpolator::PreparePATCH(){
   scrMap_ = resultManager_->GetEqnMap(upRes);
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
   bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
+
+  if ( inElems ){
+	  EXCEPTION("Element to Node interpolation using RBF currently not possible");
+  }
+
+
 
   const CF::UInt maxNumSrcEntities = scrMap_->GetNumEntities();
   StdVector<CF::UInt> globSrcEntity;
@@ -237,8 +251,18 @@ void RBFInterpolator::PreparePATCH(){
     }
   }
 
+  std::cout<< "\t\t 4/5 Boundary handling if activated " << std::endl;
 
-  std::cout << "\t\t 4/4 Creating interpolation matrix " << std::endl;
+  if(noSlip_){
+    std::string regionName = params_->Get("noSlipWall/name")->As<std::string>();
+    trgGrid_->GetNodesByRegion(boundary_,trgGrid_->GetRegionId(regionName));//TODO this is the region name...
+    //TODO loop over targets...
+    std::cout << "\t\t\t Interpolator considers a no slip boundary at "
+        << regionName << std::endl;
+  }
+
+
+  std::cout << "\t\t 5/5 Creating interpolation matrix " << std::endl;
   matrix.numTargets = maxNumTrgEntities;
   StdVector<CF::UInt>& targetSourceIndex = matrix.targetSourceIndex;
   StdVector<CF::UInt>& targetSource = matrix.targetSource;
@@ -265,12 +289,14 @@ void RBFInterpolator::PreparePATCH(){
   StdVector<RegionIdType>  volRegions;
   inGrid_->GetVolRegionIds(volRegions);
 
-
+  // Prepare Nodes -> Element Map for the Input Grid
+  // This is used for the source neighbor search
   inGrid_->SetNodesToElemsMap();
 
   StdVector<Vector<Double> > globCoords(maxNumTrgEntities);
   StdVector<LocPoint> lps;
   StdVector<const Elem*> elems;
+
 //TODO this only works for one region !!
   std::string regionName = params_->Get("regions/sourceRegions/region/name")->As<std::string>();
   shared_ptr<EntityList> actSDList =  inGrid_->GetEntityList(EntityList::ELEM_LIST, regionName);
@@ -284,12 +310,17 @@ void RBFInterpolator::PreparePATCH(){
         trgGrid_->GetElemCentroid(globCoords[trgEnt], globEntityNumber,true);
       } else {
         trgGrid_->GetNodeCoordinate3D(globCoords[trgEnt], globEntityNumber);
+//        //TODO if belongs to entity then this is zero Inv matrix
+//        if(noSlip_){//TODO
+//          std::string regionName = params_->Get("noSlipWall/name")->As<std::string>();
+//          trgGrid_->GetNodesByRegion(boundary,trgGrid_->GetRegionId(regionName));//TODO this is the region name...
+//        }
       }
 
     }
   }
 
-  // get the target elements
+  // Get the Elements on the input Grid, where the Target points are located at
   inGrid_->GetElemsAtGlobalCoords( globCoords, lps, elems, inEntities);
 
 
@@ -307,6 +338,8 @@ void RBFInterpolator::PreparePATCH(){
     if (globEntityNumber != UnusedEntityNumber) {
         CF::Vector<Double> pCoord = globCoords[trgEnt];
         StdVector<UInt> listNt ;
+
+        // Element of the input grid that belongs to the target point
         const Elem* curE = elems[trgEnt];
         StdVector<UInt> nodeList ;
         nodeList.Resize(1);
@@ -315,8 +348,10 @@ void RBFInterpolator::PreparePATCH(){
         srcElements.Insert(0,curE);
         inGrid_->GetNodesOfElemList(listN,srcElements,false);
         StdVector<const Elem*> gotElements;
+	StdVector<const Elem*> tmp;
         for(UInt bNode =0;bNode < listN.GetSize(); ++bNode){
-          StdVector<Elem*> const & tmp = inGrid_->GetElemsByNode(listN[bNode]);
+          inGrid_->GetElemsNextToNode(tmp,listN[bNode]);
+          //StdVector<const Elem*> const & tmp = inGrid_->GetElemsByNode(listN[bNode]);
           for(UInt bElemN =0;bElemN < tmp.GetSize(); ++bElemN){
             //if(!gotElements.Contains(inGrid_->GetElem(tmp[bElemN]->elemNum)))  gotElements.Push_back(inGrid_->GetElem(tmp[bElemN]->elemNum));
             if(!gotElements.Contains(tmp[bElemN]))  gotElements.Push_back(tmp[bElemN]);
@@ -371,6 +406,10 @@ void RBFInterpolator::PreparePATCH(){
           CF::Matrix<Double> InvLoc;
           CalcLocRBFInv(InvLoc, neighbourCoords, alpha, numNN_, trgGrid_);
           targetInvMat[trgEnt] = InvLoc;
+          //Check if this is a boundary node
+          if(noSlip_&&boundary_.Find(globEntityNumber)>=0){
+            targetInvMat[trgEnt] *= 0.0;
+          }
 
 
           Double r_k;
@@ -480,8 +519,17 @@ void RBFInterpolator::PrepareCGAL(){
   Tree tree(boost::make_zip_iterator(boost::make_tuple( points.begin(),indices.begin() )),
             boost::make_zip_iterator(boost::make_tuple( points.end(),indices.end() ) ) );
 
+  std::cout<< "\t\t 4/5 Boundary handling if activated " << std::endl;
 
-  std::cout << "\t\t 4/4 Creating interpolation matrix " << std::endl;
+  if(noSlip_){
+    std::string regionName = params_->Get("noSlipWall/name")->As<std::string>();
+    trgGrid_->GetNodesByRegion(boundary_,trgGrid_->GetRegionId(regionName));//TODO this is the region name...
+    //TODO loop over targets...
+    std::cout << "\t\t\t Interpolator considers a no slip boundary at "
+        << regionName << std::endl;
+  }
+
+  std::cout << "\t\t 5/5 Creating interpolation matrix " << std::endl;
   matrix.numTargets = maxNumTrgEntities;
   StdVector<CF::UInt>& targetSourceIndex = matrix.targetSourceIndex;
   StdVector<CF::UInt>& targetSource = matrix.targetSource;
@@ -553,6 +601,10 @@ void RBFInterpolator::PrepareCGAL(){
         CF::Matrix<Double> InvLoc;
         CalcLocRBFInv(InvLoc, neighbourCoords, alpha, numNN_, trgGrid_);
         targetInvMat[trgEnt] = InvLoc;
+        //Check if this is a boundary node
+        if(noSlip_&&boundary_.Find(globEntityNumber)>=0){
+          targetInvMat[trgEnt] *= 0.0;
+        }
 
 
         Double r_k;
