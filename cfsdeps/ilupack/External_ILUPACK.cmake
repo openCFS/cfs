@@ -13,8 +13,8 @@ set(ilupack_install  "${ilupack_prefix}/tmp")
 # is also a mirror by the FAU CFS optimization group.
 # To obfuscate the download,. the filename is replaced by its md5 sum.
 #-------------------------------------------------------------------------------
-#SET(MIRRORS 
-#  "${CFS_FAU_MIRROR}/sources/ilupack/${ILUPACK_MD5}"
+SET(MIRRORS 
+  "${CFS_FAU_MIRROR}/sources/ilupack/${ILUPACK_MD5}")
 #  "${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/MD5/${ILUPACK_MD5}")
 
 
@@ -26,16 +26,13 @@ SET(PFN "${ilupack_prefix}/ilupack-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 
-  
-
-SET(LOCAL_FILE "/home/sri/code/tmp/Ilupack_Task_OPENMP.tgz") # need to set the actual source later
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ilupack/${ILUPACK_GZ}") 
 
-#SET(MD5_SUM ${ILUPACK_MD5})
-#SET(MD5_SUM 17b39bb3fedd5264cacca5a4d7e23d43)
+SET(MD5_SUM ${ILUPACK_MD5})
+SET(MD5_SUM 0a5792597f8120d71e221de601440137)
 
-#SET(DLFN "${ilupack_prefix}/ilupack-download.cmake")
-#CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
+SET(DLFN "${ilupack_prefix}/ilupack-download.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "ilupack" "${ILUPACK_VER}")
