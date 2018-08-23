@@ -48,7 +48,7 @@ void CheckLevels(int nx,int ny,int nz);
 void AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsVec,Vec &dirNodeVec,Vec &dirVec,int nx,int ny,int nz);
 void GetHomDirNodes(Vec &dirVec);
 void SetLinRhs(Vec &rhsVec);
-void GetCFSEqnMapMG(StdVector<unsigned int> &cfsEqnMap);
+void GetCFSEqnMapMG(StdVector<unsigned int> &cfsEqnMap, bool& MG_FLAG);
 void GetSolution(bool multigrid);
 void CreateDMDA(DM & daNodes,Mat &sysMat,Vec &solVec,Vec &rhsVec,Vec &dirVec,int nx,int ny,int nz,int dim);
 void SetupMGSolver(DM &da_nodes,PC &precond_);
