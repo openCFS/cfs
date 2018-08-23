@@ -627,7 +627,9 @@ IF(BUILD_TESTING)
       SET(MSG "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'.\n")
       SET(MSG "${MSG}Please specify a proper location!\n")
       SET(MSG "${MSG}Did you clone with 'git clone --recurse-submodules'?\n")
-      SET(MSG "${MSG}If not do 'git fetch --recurse-submodules'\n")
+      SET(MSG "${MSG}If not go to your source directory and do\n")
+      SET(MSG "${MSG}   'git submodule update --init --recursive'\n")
+      SET(MSG "${MSG}   'git pull --recurse-submodules'\n")
       MESSAGE(FATAL_ERROR "${MSG}")
     ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
   ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
@@ -654,6 +656,10 @@ IF(BUILD_TESTING)
   set(NIGHTLY_START_TIME "00:00:00 CET")
   set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}" CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
+  # set the test timeout
+  set(TESTSUITE_TEST_TIMEOUT 300 CACHE STRING "timeout in s for each test in the testsuite (sets DART_TESTING_TIMEOUT)")
+  set(DART_TESTING_TIMEOUT "${TESTSUITE_TEST_TIMEOUT}" CACHE INTERNAL "=TESTSUITE_TEST_TIMEOUT") # see https://cmake.org/cmake/help/v3.3/manual/ctest.1.html#ctest-test-step
+  mark_as_advanced(TESTSUITE_TEST_TIMEOUT)
   if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
     # get the build host
     execute_process(COMMAND ${CFS_BINARY_DIR}/bin/cfs --version --noColor
@@ -666,8 +672,8 @@ IF(BUILD_TESTING)
     if(NOT (CFS_BUILD_HOST STREQUAL "${ORIGINAL_BUILD_HOST}") )
       # extract the short name (first 2 domain name components)
       string(REGEX MATCH "[^.]+([.][^.]+)?" ORIGINAL_BUILD_HOST "${ORIGINAL_BUILD_HOST}")
-      # modify build name 
-      set(BUILDNAME "${BUILDNAME} [built on ${ORIGINAL_BUILD_HOST}]")
+      message("current build host CFS_BUILD_HOST='${CFS_BUILD_HOST}'")
+      message("build host where the binary is from ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
     endif()
   endif(GITLAB_TEST_TAG)
   INCLUDE(CTest) # to actually write DartConfiguration.tcl

@@ -390,6 +390,14 @@ namespace CoupledField {
         return "W/m^2";
         break;
 
+      case HEAT_FLUX_INTENSITY:
+        return "W/m^2";
+        break;
+
+      case HEAT_FLUX:
+        return "W";
+        break;
+
       case HEAT_RHS_LOAD:
         return "?";
         break;
@@ -1472,6 +1480,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(HEAT_MEAN_TEMPERATURE, "heatMeanTemperature");
     SolutionTypeEnum.Add(HEAT_TEMPERATURE_D1, "heatTemperatureD1");
     SolutionTypeEnum.Add(HEAT_FLUX_DENSITY, "heatFluxDensity");
+    SolutionTypeEnum.Add(HEAT_FLUX_INTENSITY, "heatFluxIntensity");
+    SolutionTypeEnum.Add(HEAT_FLUX, "heatFlux");
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
     SolutionTypeEnum.Add(HEAT_SOURCE_DENSITY, "heatSourceDensity");
     //fluidMech
@@ -1511,7 +1521,7 @@ namespace CoupledField {
     // TEST PDE
     SolutionTypeEnum.Add(TEST_DOF, "testDof");
     SolutionTypeEnum.Add(TEST_FIELD, "testField");
-    //SolutionTypeEnum.Add(TEST_RHS_LOAD, "testRhsLoad");// FixMe: this was commented because it causes an exception in Enum.hh:222
+    SolutionTypeEnum.Add(TEST_RHS_LOAD, "testRhsLoad");
 
     // optimization
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");
