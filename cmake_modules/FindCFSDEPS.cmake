@@ -353,7 +353,7 @@ SET(BOOST_VER "${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}")
 SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
 SET(BOOST_GZ "${BOOST_BASE}_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2")
 SET(BOOST_MD5 "b2dfbd6c717be4a7bb2d88018eaccf75") #1.66
-#SET(BOOST_MD5 "ced776cb19428ab8488774e1415535ab") # 1.67
+#SET(BOOST_MD5 "7fbd1890f571051f2a209681d57d486a") # 1.68
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------
