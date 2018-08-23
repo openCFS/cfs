@@ -291,12 +291,11 @@ ENDIF(USE_SUITESPARSE)
 #-----------------------------------------------------------------------------
 IF(USE_ILUPACK)
   SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
-  SET(ILUPACK_BASE "ilupack")
-  SET(ILUPACK_VER "parallel_openmp")
-  SET(ILUPACK_GZ "${ILUPACK_BASE}${ILUPACK_VER}_src.tgz")
-  SET(ILUPACK_MD5 "ef1bee47b6feaaca66fac9820b3dcc6e")
+  SET(ILUPACK_VER "2.4_parallel_0818")
+  SET(ILUPACK_GZ "ilupack-${ILUPACK_VER}_src.tgz")
+  SET(ILUPACK_MD5 "0a5792597f8120d71e221de601440137")
   INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
-  #ADD_DEPENDENCIES(ilupack metis)
+  #ADD_DEPENDENCIES(ilupack metis) # ilupack has its own (parallel) metis additional to cfs-metis
 ENDIF(USE_ILUPACK)
 
 #  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")

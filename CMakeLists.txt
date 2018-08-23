@@ -251,6 +251,10 @@ ELSE()
   SET(USE_MPI "OFF") 
 ENDIF()
 
+IF(USE_PETSC AND USE_ILUPACK)
+  MESSAGE("Using PETSc with ilupack will lead to build error(to be fixed in future), switch either one to  OFF")
+ENDIF()
+
 # phist requires ghost
 IF(USE_PHIST_EV OR USE_PHIST_CG)
   SET(BUILD_GHOST ON CACHE BOOL "ghost kernel library (optionally cuda based) from sppexa/FAU. Required for phist" FORCE)
