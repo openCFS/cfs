@@ -24,15 +24,15 @@ DECLARE_LOG(petsc)
 DEFINE_LOG(petsc, "petscSolver")
 //initialize PETSCSolver class
 PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::EntryType type){
-  A_=nullptr;
-  da_nodes=nullptr;
-  x_=nullptr;
-  b_=nullptr;
-  precond_=nullptr;
-  solver_=nullptr;
+  A_ = nullptr;
+  da_nodes = nullptr;
+  x_ = nullptr;
+  b_ = nullptr;
+  precond_ = nullptr;
+  solver_ = nullptr;
   firstSetup_ = true;
-  dirNodeVec_=nullptr;
-  N_=nullptr;
+  dirNodeVec_ = nullptr;
+  N_ = nullptr;
   xml_ = pn;
   infoNode_ =  olasInfo->Get("petsc");
 
@@ -40,8 +40,8 @@ PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::Ent
   tolerance_  =  xml_->Get("tolerance")->As<double>();
   minTol_  =  xml_->Get("minimalTolerance")->As<double>();
 
-  solverstring_=xml_->Get("solver")->As<std::string>();
-  precondstring_=CreatePrecondString(xml_); //this fn also gets some values to be set for the multigrid if precond=mg
+  solverstring_ = xml_->Get("solver")->As<std::string>();
+  precondstring_ = CreatePrecondString(xml_); //this fn also gets some values to be set for the multigrid if precond=mg
 
 
   PtrParamNode hdr = infoNode_->Get(ParamNode::HEADER);
@@ -49,13 +49,18 @@ PETSCSolver::PETSCSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::Ent
   hdr->Get("tolerance")->SetValue(double(tolerance_));
   hdr->Get("solver")->SetValue(solverstring_);
   hdr->Get("precond")->SetValue(precondstring_);
-  if (precondstring_=="mg"){
+  if (precondstring_=="mg" ||precondstring_=="gamg" ){
      MG_FLAG=true;
-     GetCFSEqnMapMG(cfsEqnMap_); //This fn also sets the assemble class flag skipElemAssembly_.
+     // This fn also sets the assemble class flag skipElemAssembly_ ,
+     // also returns MG_FLAG false in case of unstructured meshes
+     GetCFSEqnMapMG(cfsEqnMap_,MG_FLAG);
+     if (!MG_FLAG && precondstring_=="mg")
+       Exception("Geometric Multigrid is implemented only for regular grids");
      hdr->Get("innerSolver")->SetValue(innerSovler);
      hdr->Get("coarse_maxits")->SetValue(coarse_maxits);
    }
 
+//  std::cout<<"MG Flag" << MG_FLAG <<std::endl;
 
 
 }
@@ -80,48 +85,48 @@ PETSCSolver::~PETSCSolver(){
 void PETSCSolver::Setup(BaseMatrix &sysmat){
 
 
-
   //create petsc matrix form the sysmatrix
   const StdMatrix& stdmat = static_cast<const StdMatrix&>(sysmat);
 
   BaseMatrix::EntryType etype = stdmat.GetEntryType(); //currently only real values can be solved using Petsc should implement for complex values
-  assert(etype==BaseMatrix::DOUBLE);
 
   BaseMatrix::StorageType stype = stdmat.GetStorageType();
 
-  if (stype==BaseMatrix::SPARSE_SYM){symmetric=true;}
+  if (stype==BaseMatrix::SPARSE_SYM)
+    symmetric=true;
 
-  //Requires the grid information ie dimension of the mesh, global_coordinates, boundary_type,stencil_type,ndof,stencil_width
 
   const SCRS_Matrix<Double>& crs = static_cast<const SCRS_Matrix<Double>&>(sysmat);
 
-  if(crs.GetNumCols() != crs.GetNumRows()){
-  EXCEPTION("PETSC solver only tested for quadratic matrices");
-  }
+  if(crs.GetNumCols() != crs.GetNumRows())
+    EXCEPTION("PETSC solver only tested for quadratic matrices");
+
+  if(!MG_FLAG && precondstring_ =="gamg" && symmetric)
+    EXCEPTION("Algebraic Multigrid works only when matrix storage is sparseNonSym with non-regular grids ")
+
+
   //gather info
   UInt dim = 0;
   PetscInt* rowPtr = nullptr;
   PetscInt* colPtr = nullptr;
   PetscScalar * dataPtr = nullptr;
-
   dim = crs.GetNumRows();
   rowPtr = (PetscInt*) crs.GetRowPointer();
   colPtr = (PetscInt*) crs.GetColPointer();
   dataPtr = const_cast<PetscScalar *>(crs.GetDataPointer());
 
-  //To preallocate without grid info we require info about number of non-zero per row
-  UInt * nnzr = new UInt[dim];
-  for (UInt ii=0;ii<dim;ii++){
-  //100 is just a big enough number which ensures there is no lack of memory allocation for petsc matix in parallel
-   nnzr[ii]=crs.GetRowSize(ii)+100;
-  }
-
   int nx=0,ny=0,nz=0,dimension=0;
   if (firstSetup_ ){
+
     SendWorkerCommand(SETUP_MATRIX);
-    if (MG_FLAG){
+
+    // The master determines if it is okay for multigrid to be used and communicate to workers
+    for (int rank=1;rank<size_;rank++)
+      ierr=MPI_Send(&MG_FLAG,sizeof(bool),MPIU_BOOL,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
 
 
+    if (MG_FLAG)
+    {
       GetGridInfoMG(nx,ny,nz,dimension);
       for (int rank=1;rank<size_;rank++){
         ierr=MPI_Send(&nx,sizeof(int),MPI_INT,rank,DATA,PETSC_COMM_WORLD);CHKERRXX(ierr);
@@ -142,7 +147,20 @@ void PETSCSolver::Setup(BaseMatrix &sysmat){
       GetGlobalVec(dirNodeVec_,dirNodeVecGlobal_,true); // dirNodeVecGlobal_ has entire vector in master node
 
     }
-    else {
+    else
+    {
+
+      // We are here when PETSc iterative solvers are used or when the grid is non regular
+
+
+      //To preallocate without grid info we require info about number of non-zero per row
+      UInt * nnzr = new UInt[dim];
+
+      //100 is just a big enough number which ensures there is no lack of memory allocation for petsc matix in parallel
+      for (UInt ii=0;ii<dim;ii++)
+        nnzr[ii]=crs.GetRowSize(ii)+100;
+
+
 
       //only time where data is sent using mpi(can be implemented better)
       for (int rank=1;rank<size_;rank++){
@@ -344,8 +362,6 @@ PETSCWorker::PETSCWorker(int argc,const char **argv){
 
     solverstring_=xml_->Get("solver")->As<std::string>();
     precondstring_=CreatePrecondString(xml_);
-    if (precondstring_=="mg")
-      MG_FLAG=true;
   }
 
 
@@ -445,6 +461,11 @@ void PETSCWorker::run(){
 void PETSCWorker::InitPetscWorker(){
 
   MPI_Status status;
+
+  MPI_Recv(&MG_FLAG,1,MPIU_BOOL,0,DATA,PETSC_COMM_WORLD,&status);
+
+//  std::cout<<"MG Flag" << MG_FLAG <<std::endl;
+
   if (MG_FLAG){
 
     MPI_Recv(&nx,1,MPI_INT,0,DATA,PETSC_COMM_WORLD,&status);

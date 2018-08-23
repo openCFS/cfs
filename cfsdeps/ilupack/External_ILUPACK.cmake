@@ -69,7 +69,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-----------------------------------------------------------------------------
 # Determine paths of ILUPACK libraries.
 #-----------------------------------------------------------------------------
-# The parallel version of ilupack requires the latest runtime library to work properly. If one
+# The parallel version of ilupack requires the latest openmp runtime library to work properly. If one
 # doesn't have mkl version >= 2018 it will simply give weird runtime errors. The alternative is
 # to use the latest gcc compiler >=6 with -libgomp which will also work. Currently CFS automatically
 # sets the runtime openmp library to -libiomp (The intel openmp runtime lib) if mkl is found in system.

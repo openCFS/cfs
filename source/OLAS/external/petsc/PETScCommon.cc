@@ -54,6 +54,7 @@ void PETScCommon::PenaltyHomDir(Mat &sysMat,Vec &rhsVec,Vec &f){
 
 
 void PETScCommon::SetupMatrix(UInt dim,UInt* nnzr,bool symmetric, Mat &sysMat,Vec &solVec,Vec &rhsVec){
+
   if (symmetric){
     ierr=MatCreateSBAIJ(PETSC_COMM_WORLD,PetscInt(1),PETSC_DECIDE,PETSC_DECIDE,
         PetscInt(dim),PetscInt(dim),0,(PetscInt *)nnzr,0,(PetscInt *)nnzr,&sysMat);
@@ -218,10 +219,11 @@ void PETScCommon::GetGridInfoMG(int &nx,int &ny,int &nz,int &dimension){
     EXCEPTION("Multigrid Doesn't Work for periodic domain yet");
   }
 
-   paramNode=domain->GetParamRoot()->Get("sequenceStep")->Get("linearSystems")->Get("system")
-       ->Get("solutionStrategy")->Get("standard");
-   if (paramNode->Get("matrix/reordering")->As<std::string>() !="noReordering")
-     EXCEPTION("Set matrix reordering to noReordering");
+  paramNode=domain->GetParamRoot()->Get("sequenceStep")->Get("linearSystems")->Get("system")
+     ->Get("solutionStrategy")->Get("standard");
+
+  if (paramNode->Get("matrix/reordering")->As<std::string>() !="noReordering")
+   EXCEPTION("Set matrix reordering to noReordering");
 
 
   dimension=grid->GetDim();
@@ -266,21 +268,35 @@ void PETScCommon::CreateDMDA(DM & daNodes,Mat &sysMat,Vec &solVec,Vec &rhsVec,Ve
  }
 
 
-void PETScCommon::GetCFSEqnMapMG(StdVector<unsigned int> &cfsEqnMap){
-//This function also sets the assemble flag to not assemble in cfs.
-// Calling the grid class a lot might affect performance
-//check here for performance issues
+void PETScCommon::GetCFSEqnMapMG(StdVector<unsigned int> &cfsEqnMap, bool& MG_FLAG){
+  //This function also sets the assemble flag to not assemble in cfs.
+  // Calling the grid class a lot might affect performance
+  //check here for performance issues
+
+
   Grid * grid =domain->GetGrid();
+  assemble_=domain->GetBasePDE()->GetAssemble();
+
+  // if grid is regular we proceed else we switch off the multigrid assembly and proceed to CFS assembly
+  if(!grid->IsGridRegular())
+    MG_FLAG = false ;
+  else
+    assemble_->SkipElemAssembly() ;
+
+
+
   ParamNodeList regionList;
   //Get some param pointers for the domain and region list so that we can iterate through all regions and sum up the number of elements in x,y and z
-   PtrParamNode paramNode=domain->GetParamRoot()->Get("domain");
-   regionList = paramNode->GetList("regionList");
+  PtrParamNode paramNode=domain->GetParamRoot()->Get("domain");
+  regionList = paramNode->GetList("regionList");
+
+
+
 
   for(unsigned int i=0; i < regionList.GetSize(); i++)
   {
   // we are compatible with the region attribute and unbounded region elements
     string reg = regionList[i]->Get("region")->Has("name") ? regionList[i]->Get("region")->Get("name")->As<std::string>() : regionList[i]->As<std::string>();
-
     shared_ptr<EntityList> nodesList = grid->GetEntityList(EntityList::NODE_LIST, reg);
     EntityIterator nodeIt=nodesList->GetIterator();
     for (nodeIt.Begin(); !nodeIt.IsEnd(); nodeIt++)
@@ -302,8 +318,6 @@ void PETScCommon::GetCFSEqnMapMG(StdVector<unsigned int> &cfsEqnMap){
       }//loop over all pdes
     }//loop over all nodes
   }//loop over all regions
-  assemble_=domain->GetBasePDE()->GetAssemble();
-  assemble_->SkipElemAssembly();
 }
 
 
@@ -502,7 +516,7 @@ std::string PETScCommon::CreatePrecondString(PtrParamNode xml){
   UInt numChilds = sol.GetSize();
   if(numChilds==2){
     output = sol[1]->GetName();
-    if (output=="mg"){
+    if (output=="mg" or output=="gamg"){
       nlvls=sol[1]->Get("nlvls")->As<int>();
       coarse_atol=sol[1]->Get("coarse_atol")->As<double>();
       coarse_rtol=sol[1]->Get("coarse_rtol")->As<double>();
