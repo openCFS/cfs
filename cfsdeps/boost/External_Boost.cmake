@@ -116,7 +116,7 @@ IF(MINGW)
     URL ${EXT_ZLIB_LOCAL_FILE}
     URL_MD5 ${ZLIB_MD5}
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
+    BUILD_COMMAND "ls"
     INSTALL_COMMAND ""
   )
 
@@ -131,7 +131,7 @@ IF(MINGW)
   SET(BOOST_JAM_PARAMS ${BOOST_JAM_PARAMS} -s ZLIB_SOURCE="${BOOST_ZLIB_SOURCE}" -s ZLIB_INCLUDE="${BOOST_ZLIB_SOURCE}" -s NO_ZLIB=0 ) #-s NO_BZIP2=1)
 ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   SET(BOOST_BOOTSTRAP_PARAMS --with-toolset=intel-linux)
-  SET(BOOST_JAM_PATCH_COMMAND echo "using : : : <compileflags>${CFS_C_FLAGS} $<SEMICOLON>" > user-config.jam) # using intel : linux : c++ : <compileflags>${CFS_CXX_FLAGS} $<SEMICOLON> " > user-config.jam)
+  SET(BOOST_JAM_PARAMS cxxflags=-gxx-name=g++-7 cxxflags=-gcc-name=gcc-7)
 ENDIF()
 
 
