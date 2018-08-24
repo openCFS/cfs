@@ -27,7 +27,7 @@ DEFINE_LOG(coeffctharmbalance, "coeffctharmbalance")
   // ==========================================================================
 template<class T>
   CoefFunctionHarmBalance<T>::CoefFunctionHarmBalance():CoefFunction(){
-
+  isMH_ = false;
 }
 
 
@@ -46,6 +46,9 @@ template<class T>
     // Initialize the hbRegion_ vector. Therefore loop over every region
     // and assign material...and roughly init the remaining in the struct
     hbRegion_.Resize(regions.GetSize());
+
+    // Inform the coeffunction that this is indeed a multiharmonic analysis
+    isMH_ = true;
 
     for(UInt iRegion = 0; iRegion < regions.GetSize(); ++iRegion){
       HBRegionHelper& st = hbRegion_[iRegion];
@@ -126,9 +129,11 @@ template<class T>
   template<class T>
   CoefFunctionHarmBalance<T>::
   ~CoefFunctionHarmBalance() {
-    mp_->ReleaseHandle(cashHandle_);
-    mp_->ReleaseHandle(solHandle_);
-    mp_->ReleaseHandle(harmonicHandle_);
+    if( isMH_ ){
+      mp_->ReleaseHandle(cashHandle_);
+      mp_->ReleaseHandle(solHandle_);
+      mp_->ReleaseHandle(harmonicHandle_);
+    }
 
   }
 

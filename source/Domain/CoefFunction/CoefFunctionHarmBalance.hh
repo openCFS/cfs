@@ -174,6 +174,9 @@ protected:
 
   MHTimeFreqResult freqTimeRes_;
 
+  //! Boolean to check if we even have a multiharmonic analysis
+  bool isMH_;
+
   //! For every region we create one HBRegionHelper struct.
   //! The iRegion variable is the key (comes from PDE)
   StdVector<HBRegionHelper> hbRegion_;
