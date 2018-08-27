@@ -695,6 +695,12 @@ IF(USE_PHIST_CG OR USE_PHIST_EV)
 ENDIF(USE_PHIST_CG OR USE_PHIST_EV)
 
 IF(USE_ILUPACK)
+  #Since the latest version of ilupack requires GCC > 5.0 or the latest ICC compilers
+  IF((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND 
+  ((CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0") OR (CMAKE_C_COMPILER_VERSION VERSION_LESS "5.0") OR (CFS_FORTRAN_COMPILER_VER VERSION_LESS "5.0") ))
+      MESSAGE(FATAL_ERROR "Ilupack can be compiled only when gcc,g++ and gfortran compiler versions are greater than 5")
+  ENDIF()
+  # For intel compilers still one needs to figure out the proper compiler versions
   ADD_SUBDIRECTORY(source/OLAS/external/ilupack)
 ENDIF(USE_ILUPACK)
 
