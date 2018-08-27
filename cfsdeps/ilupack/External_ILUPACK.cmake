@@ -77,7 +77,7 @@ SET(ILUPACK_SHARE "${LD}/libclock.a;${LD}/libsparsenew.a;${LD}/libvector.a")
 SET(ILUPACK_OPENMP "${LD}/libspdil.a;${LD}/libtools.a;${LD}/libbasic.a")  
 
 SET(ILUPACK_LIBRARY
-  "${ILUPACK_OPENMP};${LD}/libilupack.a;${LD}/libamd.a;${LD}/libcamd.a;${LD}/libblaslike.a;${LD}/libmetis_ilu.a;${LD}/libmetisomp.a;${LD}/libmtmetis.a;${LD}/libmumps.a;${LD}/libsparspak.a;${ILUPACK_SHARE};"               
+  "${ILUPACK_OPENMP};${LD}/libilupack.a;${LD}/libamd_ilu.a;${LD}/libcamd_ilu.a;${LD}/libblaslike.a;${LD}/libmetis_ilu.a;${LD}/libmetisomp.a;${LD}/libmtmetis.a;${LD}/libmumps.a;${LD}/libsparspak.a;${ILUPACK_SHARE};"               
   CACHE FILEPATH "ILUPACK library.")
   
 MARK_AS_ADVANCED(ILUPACK_LIBRARY)

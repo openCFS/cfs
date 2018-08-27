@@ -298,7 +298,7 @@ IF(USE_ILUPACK)
   # TODO: For intel compilers still one needs to figure out the proper compiler versions
  
   SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
-  SET(ILUPACK_VER "2.4_parallel_0818")
+  SET(ILUPACK_VER "2.4_parallel_0827")
   SET(ILUPACK_GZ "ilupack-${ILUPACK_VER}_src.tgz")
   SET(ILUPACK_MD5 "0a5792597f8120d71e221de601440137")
   INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")

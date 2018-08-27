@@ -16,7 +16,7 @@
 
 
 +++ COMPILE_ALL.sh 
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,18 @@
 +# Local path
 +# Building the ILUPACK libraries
 +# cd svnilupack
@@ -33,4 +33,5 @@
 +mkdir -p $2/include
 +find . -name '*.h' -exec cp -rf {} $2/include/. \;
 +mv $2/lib/libmetis.a $2/lib/libmetis_ilu.a
-
++mv $2/lib/libamd.a $2/lib/libamd_ilu.a
++mv $2/lib/libcamd.a $2/lib/libcamd_ilu.a
