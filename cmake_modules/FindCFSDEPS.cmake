@@ -290,6 +290,13 @@ ENDIF(USE_SUITESPARSE)
 # Find ILUPACK library
 #-----------------------------------------------------------------------------
 IF(USE_ILUPACK)
+  #Since the latest version of ilupack requires GCC > 5.0 or the latest ICC compilers
+  IF((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND 
+   ((CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0") OR (CMAKE_C_COMPILER_VERSION VERSION_LESS "5.0") OR (CFS_FORTRAN_COMPILER_VER VERSION_LESS "5.0") ))
+    MESSAGE(FATAL_ERROR "Ilupack can be compiled only when gcc,g++ and gfortran compiler versions are greater than 5")
+  ENDIF()
+  # TODO: For intel compilers still one needs to figure out the proper compiler versions
+ 
   SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
   SET(ILUPACK_VER "2.4_parallel_0818")
   SET(ILUPACK_GZ "ilupack-${ILUPACK_VER}_src.tgz")
