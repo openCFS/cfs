@@ -114,19 +114,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   // setup designs
   ParamNodeList pn_design = pn->GetList("design");
 
-
-
-
-  // Check if matrix filtering is enabled by the user, there is no default value in the schema file
-  // we cannot use the matrix yet for multiple design types, yet this is easy to extend!
-  bool is_mat_possible = design.GetSize() == 1;
-  is_matrix_filt = is_mat_possible;
-  if(pn->Has("filters/use_mat_filt"))
-  {
-    is_matrix_filt = pn->Get("filters/use_mat_filt")->As<bool>();
-    if(is_matrix_filt && !is_mat_possible)
-      throw Exception("use_mat_filter as density filter is currently only implemnted for a single design type");
-  }
   // preprocess multimaterial - does not know regions yet
   SetupMultiMaterial(pn_design);
 
@@ -378,6 +365,19 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
         if(!Contains(domain->GetGrid()->regionData[r].id))
           RegisterPseudoDesignRegion(domain->GetGrid()->regionData[r].id, design[d].design);
   }
+
+  // Check if matrix filtering is enabled by the user, there is no default value in the schema file
+   // we cannot use the matrix yet for multiple design types, yet this is easy to extend!
+   bool is_mat_possible = design.GetSize() == 1;
+   is_matrix_filt = is_mat_possible;
+   if(pn->Has("filters/use_mat_filt"))
+   {
+     is_matrix_filt = pn->Get("filters/use_mat_filt")->As<bool>();
+     if(is_matrix_filt && !is_mat_possible)
+       EXCEPTION("use_mat_filter as density filter is currently only implemnted for a single design type");
+   }
+
+
 }
 
 DesignSpace::~DesignSpace(){
