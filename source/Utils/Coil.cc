@@ -74,7 +74,7 @@ namespace CoupledField {
       std::string value, phase;
       value = myParam_->Get("source")->Get("value")->As<std::string>();
       phase = myParam_->Get("source")->Get("phase")->As<std::string>();
-      srcVal_ = CoefFunction::Generate(mParser_, type, value, phase);
+      srcVal_ = CoefFunction::Generate(mParser_, type, AmplPhaseToReal(value, phase), AmplPhaseToImag(value, phase));
     }
 
     /* code from NACS
