@@ -107,9 +107,6 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
   )
-  IF(USE_ILUPACK)
-    add_dependencies(metis ilupack)
-  ENDIF()
 ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
@@ -123,6 +120,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
       ${CMAKE_ARGS}
     BUILD_BYPRODUCTS ${METIS_LIBRARY}    
   )
+
   # The ilupack has a metis.h from a newer version of metis which is not compatible with CFS, so building it in this way 
   # replaces the ilupack metis.h with the older metis library's metis.h.
   IF(USE_ILUPACK)
