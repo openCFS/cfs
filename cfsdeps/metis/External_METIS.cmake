@@ -107,6 +107,11 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
   )
+  # This is still required for the build to work properly since we need to replace the metis related files from ilupack with old metis
+  IF(USE_ILUPACK)
+    add_dependencies(metis ilupack)
+  ENDIF()
+
 ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
@@ -123,9 +128,9 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
 
   # The ilupack has a metis.h from a newer version of metis which is not compatible with CFS, so building it in this way 
   # replaces the ilupack metis.h with the older metis library's metis.h.
-  # IF(USE_ILUPACK)
-  #  add_dependencies(metis ilupack)
-  # ENDIF()
+  IF(USE_ILUPACK)
+    add_dependencies(metis ilupack)
+  ENDIF()
 
   #-------------------------------------------------------------------------------
   # Add custom download step to be able to download from a list of mirrors
@@ -137,7 +142,6 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     DEPENDS "${DLFN}"
     WORKING_DIRECTORY ${metis_prefix}
   )
-  
   IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------
     # Add custom step to zip a precompiled package to the cache.
