@@ -16,24 +16,35 @@ namespace CoupledField
   /*
    * BASE CLASS FUNCTIONS
    */
-  VectorPreisachSutor::VectorPreisachSutor(Integer numElem, Double xSat, Double ySat,
-          Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-          bool classical, bool scaleUpToSaturation,
-          Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
-  : Hysteresis(numElem,xSat,ySat,anhystA,anhystB,anhystC,anhystOnly)
-  {
-    
-    /*
-     * Global quantities, i.e. the same for all FE elements of the same material
-     */
-    if (xSat > 0 ) {
-      XSaturated_  = xSat;
-    }
-    else {
-      XSaturated_  = 1.0;
-    }
-    
-    PSaturated_  = ySat;
+  VectorPreisachSutor::VectorPreisachSutor(Integer numElem, ParameterPreisachOperators operatorParams, 
+          ParameterPreisachWeights weightParams, UInt dim, bool isVirgin) 
+  : Hysteresis(numElem,operatorParams,weightParams){
+//  Integer numElem, Double xSat, Double ySat,
+//          Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+//          bool classical, bool scaleUpToSaturation,
+//          Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
+//  : Hysteresis(numElem,xSat,ySat,anhystA,anhystB,anhystC,anhystOnly)
+
+    Matrix<Double> preisachWeight = weightParams.weightTensor_;
+    Double rotationalResistance = operatorParams.rotResistance_;
+ 
+    bool classical = operatorParams.isClassical_;
+    bool scaleUpToSaturation = operatorParams.scaleUpToSaturation_;
+    Double angularDistance = operatorParams.angularDistance_;
+    Double angResolution = operatorParams.angularResolution_;
+
+    // set by Hysteresis base class
+//    /*
+//     * Global quantities, i.e. the same for all FE elements of the same material
+//     */
+//    if (xSat > 0 ) {
+//      XSaturated_  = xSat;
+//    }
+//    else {
+//      XSaturated_  = 1.0;
+//    }
+//    
+//    PSaturated_  = ySat;
     
     isVirgin_    = isVirgin;
     
@@ -125,10 +136,10 @@ namespace CoupledField
       preisachSumTmp_[k] = Vector<Double>(dim_);
       preisachSumTmp_[k].Init();
     }
-        
-    anhyst_A_ = anhystA;
-    anhyst_B_ = anhystB;
-    anhyst_C_ = anhystC;
+    
+    anhyst_A_ = weightParams.anhysteretic_a_;
+    anhyst_B_ = weightParams.anhysteretic_b_;
+    anhyst_C_ = weightParams.anhysteretic_c_;
     
     scaleUpToSaturation_ = scaleUpToSaturation;
     
@@ -517,14 +528,19 @@ namespace CoupledField
   /*
    * MATRIX BASED IMPLEMENTATION
    */
-  VectorPreisachSutor_MatrixApproach::VectorPreisachSutor_MatrixApproach(Integer numElem, Double xSat, Double ySat,
-          Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-          bool classical, bool scaleUpToSaturation,
-          Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
-  : VectorPreisachSutor(numElem, xSat, ySat,
-          preisachWeight, rotationalResistance , dim, isVirgin,
-          classical, scaleUpToSaturation, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
+  VectorPreisachSutor_MatrixApproach::VectorPreisachSutor_MatrixApproach(Integer numElem, ParameterPreisachOperators operatorParams, 
+          ParameterPreisachWeights weightParams, UInt dim, bool isVirgin)
+  : VectorPreisachSutor(numElem,operatorParams,weightParams,dim,isVirgin)
   {
+    
+//  Integer numElem, Double xSat, Double ySat,
+//          Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+//          bool classical, bool scaleUpToSaturation,
+//          Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
+//  : VectorPreisachSutor(numElem, xSat, ySat,
+//          preisachWeight, rotationalResistance , dim, isVirgin,
+//          classical, scaleUpToSaturation, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
+//  {
     LOG_TRACE(vecpreisach) << "Using Matrix-based implementation";
     
     /*
@@ -597,9 +613,9 @@ namespace CoupledField
     //
     // > currently b) is used!
     
-    anhyst_A_ = anhystA;
-    anhyst_B_ = anhystB;
-    anhyst_C_ = anhystC;
+    anhyst_A_ = weightParams.anhysteretic_a_;
+    anhyst_B_ = weightParams.anhysteretic_b_;
+    anhyst_C_ = weightParams.anhysteretic_c_;
     
   }
   
@@ -991,8 +1007,22 @@ namespace CoupledField
     // as the rotational operator is limited to rotRes (instead of +1)
     retVec.ScalarMult(PSaturated_/maxOutputVal_);
     
-    retVec.Add(anhystPart);
-    retVec.ScalarMult(PSaturated_);
+    // new 30.8.2018:
+    // if muDat weights and anhyst params are used which were derived by script
+    // from M. Loeffler, PSaturated is the overall output value, i.e. Preisach operator + anhyst part
+    // in this case, the integal over all Preisach weights will be != 1 in exchange
+    // > in our model, we always set the integal over all weights to 1 by normalization (see CoefFunctionHyst.cc)
+    // > therefore, the sum of Preisach operator + anhystPart will not fit to the derived muDat + anhyst data
+    // > we take care of that, by scaling the pure Preisach part by hystSaturated_ instead of PSaturated_
+    retVec.ScalarMult(hystSaturated_);
+    
+    // add anhyst part
+    retVec.Add(PSaturated_,anhystPart);
+    //retVec += PSaturated_ * anhystPart;
+    
+    // old version assuming that PSaturated can directly be applied to hysteresis part
+//    retVec.Add(anhystPart);
+//    retVec.ScalarMult(PSaturated_);
     
     if(overwrite == false){
       /*
@@ -1085,14 +1115,19 @@ namespace CoupledField
   /*
    * LIST BASED IMPLEMENTATIONl
    */
-  VectorPreisachSutor_ListApproach::VectorPreisachSutor_ListApproach(Integer numElem, Double xSat, Double ySat,
-          Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-          bool classical, bool scaleUpToSaturation, 
-          Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
-  : VectorPreisachSutor(numElem, xSat, ySat,
-          preisachWeight, rotationalResistance , dim, isVirgin,
-          classical, scaleUpToSaturation, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
+  VectorPreisachSutor_ListApproach::VectorPreisachSutor_ListApproach(Integer numElem, ParameterPreisachOperators operatorParams, 
+          ParameterPreisachWeights weightParams, UInt dim, bool isVirgin)
+  : VectorPreisachSutor(numElem,operatorParams,weightParams,dim,isVirgin)
   {
+  
+//  (Integer numElem, Double xSat, Double ySat,
+//          Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+//          bool classical, bool scaleUpToSaturation, 
+//          Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
+//  : VectorPreisachSutor(numElem, xSat, ySat,
+//          preisachWeight, rotationalResistance , dim, isVirgin,
+//          classical, scaleUpToSaturation, angularDistance, angResolution, anhystA, anhystB, anhystC, anhystOnly)
+//  {
     
     LOG_TRACE(vecpreisach) << "Using List-based implementation";
     
@@ -1164,7 +1199,7 @@ namespace CoupledField
     //    bool overwriteDir = true; // we need to set the rotational operator
     bool debugOut = false;
     int successCode = 0;
-    maxOutputVal_ = PSaturated_; // we need this value in order to call computeValue_vec
+    maxOutputVal_ = hystSaturated_; // we need this value in order to call computeValue_vec; no anhyst part so use hystSaturated
     
     Vector<Double> zeroOutput = computeValue_vec(satInput, 0, overwrite, debugOut, successCode);
     //    std::cout << "Output to zeroVec in initial state: " << zeroOutput.ToString() << std::endl;
@@ -1174,8 +1209,12 @@ namespace CoupledField
     Vector<Double> satOutput = computeValue_vec(satInput, 0, overwrite, debugOut, successCode);
     //    std::cout << "Output to saturation in X in initial state: " << satOutput.ToString() << std::endl;
     
-    maxOutputVal_ = satOutput.NormL2();
+    maxOutputVal_ = satOutput.NormL2(); // includes NO anhyst part!
     
+//    std::cout << "maxOutputVal_ without anhyst part: " << maxOutputVal_ << std::endl;
+//    std::cout << "hystSaturated_: " << hystSaturated_ << std::endl;
+//    std::cout << "PSaturated_: " << PSaturated_ << std::endl;
+//    
     bool testForRemanence = !true;
     if(testForRemanence){
       satOutput = computeValue_vec(satInput, 0, true, debugOut, successCode);
@@ -1194,9 +1233,9 @@ namespace CoupledField
     // > currently b) is used!
     //    std::cout << "maxOutputVal_: " << maxOutputVal_ <<std::endl;
     //    std::cout << "maxOutputVal_-PSaturated_: " << maxOutputVal_-PSaturated_ <<std::endl;
-    anhyst_A_ = anhystA;
-    anhyst_B_ = anhystB;
-    anhyst_C_ = anhystC;
+    anhyst_A_ = weightParams.anhysteretic_a_;
+    anhyst_B_ = weightParams.anhysteretic_b_;
+    anhyst_C_ = weightParams.anhysteretic_c_;
     
   }
   
@@ -2600,10 +2639,24 @@ namespace CoupledField
     // scale for the case of revised model and rotres < 1
     // in that case the output of the hyst operator is not PSaturated if input is XSaturated
     // as the rotational operator is limited to rotRes (instead of +1)
-    Yout.ScalarMult(PSaturated_/maxOutputVal_);
+//    std::cout << "PSaturated_: " << PSaturated_ << std::endl;
+//    std::cout << "hystSaturated_: " << hystSaturated_ << std::endl;
+//    std::cout << "maxOutputVal_: " << maxOutputVal_ << std::endl;
+    // note: maxOutputVal_ is max value WITHOUT anhyst part, i.e. it should be scaled with hystSaturated not PSaturated
+    Yout.ScalarMult(hystSaturated_/maxOutputVal_);
+    
+    // new 30.8.2018:
+    // if muDat weights and anhyst params are used which were derived by script
+    // from M. Loeffler, PSaturated is the overall output value, i.e. Preisach operator + anhyst part
+    // in this case, the integal over all Preisach weights will be != 1 in exchange
+    // > in our model, we always set the integal over all weights to 1 by normalization (see CoefFunctionHyst.cc)
+    // > therefore, the sum of Preisach operator + anhystPart will not fit to the derived muDat + anhyst data
+    // > we take care of that, by scaling the pure Preisach part by hystSaturated_ instead of PSaturated_
+    Yout.ScalarMult(hystSaturated_);
     
     // add anhyst part
-    Yout += anhystPart;
+    Yout.Add(PSaturated_,anhystPart);
+    //Yout += PSaturated_ * anhystPart;
     
     //  std::cout << "###YOUT###################" << std::endl;
     //  std::cout << std::setprecision(16) << std::scientific << Yout.ToString() << std::endl;
@@ -2615,14 +2668,14 @@ namespace CoupledField
      * for the evaluation of all three parts
      */
     if(overwrite == true){
-      preisachSum_[idElem] = Yout*PSaturated_;
+      preisachSum_[idElem] = Yout;
       
       prevXVal_[idElem] = u_in;
       prevHVal_[idElem] = preisachSum_[idElem];
       
       return preisachSum_[idElem];
     } else {
-      preisachSumTmp_[idElem] = Yout*PSaturated_;
+      preisachSumTmp_[idElem] = Yout;
       
       return preisachSumTmp_[idElem];
     }

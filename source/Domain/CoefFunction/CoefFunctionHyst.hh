@@ -129,7 +129,7 @@ namespace CoupledField {
     }
     
     void PrecomputeMaterialTensorForInverison();
-        
+    
     void ComputeTensor(Matrix<Double>& outputTensor, const LocPointMapped& lpm, std::string tensorName, std::string implementationVersion, bool transposed, bool rotate, bool useAbs, bool lockPrecomputationAndDeltaMat=false );
     
     void ComputeVector(Vector<Double>& outputVector,const LocPointMapped& lpm, int timeLevel, int baseSign, std::string vectorName, bool onBoundary );
@@ -151,8 +151,8 @@ namespace CoupledField {
       ptrFieldTensor_->GetTensor(epsS_nuS,lpm);
       
       if(ptrCouplTensor_ == NULL){
-//        std::cout << "StrainForm = " << strainForm_ << "(due to material file)" << std::endl;
-//        std::cout << "However, no coupling was defined in .xml file." << std::endl;
+        //        std::cout << "StrainForm = " << strainForm_ << "(due to material file)" << std::endl;
+        //        std::cout << "However, no coupling was defined in .xml file." << std::endl;
         strainForm_ = -1;
         hystCoefFunction_->SetStrainForm(-1);
       }
@@ -1127,7 +1127,7 @@ namespace CoupledField {
     std::string resultName_;
     bool onBoundary_;
   };
-
+  
   
   // ============================================================================
   //  Hysteresis
@@ -1243,32 +1243,20 @@ namespace CoupledField {
       }
     }
     
-  ParameterPreisachWeights POL_weightParams_;
-  ParameterPreisachWeights STRAIN_weightParams_;
+    ParameterPreisachWeights POL_weightParams_;
+    ParameterPreisachWeights STRAIN_weightParams_;
     
-  ParameterPreisachOperators POL_operatorParams_;
-  ParameterPreisachOperators STRAIN_operatorParams_;
-  
-  bool inversionSet_;
-  ParameterInversion LM_inversion_;
-  InitialInput POL_initial_;
-  
-    int POL_weightsAlreadyAdapted_; // for Mayergoyz case
+    ParameterPreisachOperators POL_operatorParams_;
+    ParameterPreisachOperators STRAIN_operatorParams_;
     
-    std::string STRAIN_weightType_;
-    Double STRAIN_constWeight_;
-    Double STRAIN_muDat_A_;
-    Double STRAIN_muDat_sigma1_;
-    Double STRAIN_muDat_sigma2_;
-    Double STRAIN_muDat_h1_;
-    Double STRAIN_muDat_h2_;
-    Double STRAIN_muDat_eta_;
-    Double STRAIN_anhysteretic_a_;
-    Double STRAIN_anhysteretic_b_;
-    Double STRAIN_anhysteretic_c_;
-    Matrix<Double> STRAIN_weightTensor_;
+    ParameterIrrStrainsAndCoupling CouplingParams_;
+    
+    
+    bool inversionSet_;
+    ParameterInversion LM_inversion_;
+    InitialInput POL_initial_;
     std::string STRAIN_usedHystModel_;
-    bool STRAIN_anhystOnly_;
+    int POL_weightsAlreadyAdapted_; // for Mayergoyz case
     int STRAIN_weightsAlreadyAdapted_; // for Mayergoyz case
     
     
@@ -1281,6 +1269,10 @@ namespace CoupledField {
       //  > vector Preisach model (Mayergoyz) ISOTROPIC materials
       //
       // Source: "A Preisach-based hysteresis model for magnetic and ferroelectric hysteresis" - A. Sutor 2010
+      // note: at this point we assume that A,sigma,h and eta are meant for p,e in range [-1,1]
+      //       the script for determining these parameters (as well as the above mentioned
+      //        artcle) assuems p,e in range [-0.5,0.5] > parameters have to be transfereed to correct range
+      //                prior to calling this function; this can either be done by user or by CFS if flag in mat.xml is set
       return A/(1 + std::pow( std::pow((alpha+beta)*sigma,2) + std::pow((alpha-beta-h)*sigma,2),eta));
     }
     
@@ -1293,6 +1285,10 @@ namespace CoupledField {
       //  > vector Preisach model (Mayergoyz) ISOTROPIC materials
       //
       // Source: "Generalisiertes Preisach Modell für die Simulation und Kompensation der Hysterese piezokeramischer Aktoren" - F. Wolf 2014
+      // note: at this point we assume that A,sigma,h and eta are meant for p,e in range [-1,1]
+      //       the script for determining these parameters (as well as the above mentioned
+      //        artcle) assuems p,e in range [-0.5,0.5] > parameters have to be transfereed to correct range
+      //                prior to calling this function; this can either be done by user or by CFS if flag in mat.xml is set
       return A/(1 + std::pow( std::pow((alpha+beta+h1)*sigma1,2) + std::pow((alpha-beta-h2)*sigma2,2),eta));
     }
     
@@ -1837,15 +1833,15 @@ namespace CoupledField {
     }
     
     bool useStrainForm(){
-      return COUPLED_useStrainForm_;
+      return CouplingParams_.useStrainForm_;
     }
     
     int GetStrainForm(){
-      return COUPLED_strainForm_;
+      return CouplingParams_.strainForm_;
     }
     
     void SetStrainForm(int strainForm){
-      COUPLED_strainForm_ = strainForm;
+      CouplingParams_.strainForm_ = strainForm;
     }
     
     bool deltaMatActive(){
@@ -1907,7 +1903,8 @@ namespace CoupledField {
     void CreateNonPeriodicTestSignal(std::string name, Double amplitudeScaling, UInt numberOfSteps, Vector<Double>& xVals, Vector<Double>& yVals);
     
     void TestHystOperatorWithSignal(std::string name, Vector<Double> xVals, Vector<Double> yVals, 
-    bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, bool test1D, bool outputIrrStrains);
+    bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, 
+    std::string commonPerfFile, bool test1D, bool outputIrrStrains);
     
     void WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals);
     
@@ -2023,125 +2020,125 @@ namespace CoupledField {
       PreprocessLPM(lpm, actualLPM, operatorIdx, storageIdx);
       
       rotatedCouplTensor = rotatedCouplingTensor_[storageIdx];
-//      
-//      if( (rotatedCouplingTensor_requiresReeval_[storageIdx] == false) && (timeLevel == lastUsedTimeLevelForRotation_[storageIdx]) ){
-//        //      std::cout << "Coupling Tensor already rotated > no reeval performed" << std::endl;
-//        rotatedCouplTensor = rotatedCouplingTensor_[storageIdx];
-//      } else {
-//        
-//        // obtain coupling tensor first
-//        UInt numRows, numCols;
-//        numCols = couplTensor.GetNumCols();
-//        numRows = couplTensor.GetNumRows();
-//        //couplTensorCoefFnc->GetTensorSize(numRows,numCols);
-//        //Matrix<Double> couplTensor = Matrix<Double>(numRows,numCols);
-//        //couplTensorCoefFnc->GetTensor(couplTensor,actualLPM);
-//        
-//        //      std::cout << "Retrieved coupling tensor: " << couplTensor.ToString() << std::endl;
-//        //      std::cout << "Rotate coupling tensor" << std::endl;
-//        rotatedCouplTensor.Resize(numRows,numCols);
-//        Matrix<Double> scaledCouplTensor = Matrix<Double>(numRows,numCols);
-//        
-//        // get current polarization (elec or mag)
-//        Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(lpm, timeLevel);
-//        
-//        //      std::cout << "Current polarization vector " << P.ToString() << std::endl;
-//        //      
-//        // calculate scaling
-//        assert(POL_operatorParams_.outputSat_ != 0);
-//        Double scaling = P.NormL2()/POL_operatorParams_.outputSat_;
-//        
-//        scaledCouplTensor = couplTensor* scaling;
-//        
-//        //      std::cout << "Scalaed coupling tensor " << scaledCouplTensor.ToString() << std::endl;
-//        //      
-//        if(rotate == true){
-//          if(P.NormL2() == 0){
-//            //        std::cout << "Polarization is zero > perform no rotation" << std::endl;
-//            rotatedCouplTensor = scaledCouplTensor;
-//            
-//          } else {
-//            Vector<Double> dirP = Vector<Double>(P.GetSize());
-//            dirP = P / P.NormL2();
-//            
-//            // calculate rotation matrix
-//            if(numCols == 4){
-//              // axi case: 2x4 matrix
-//              WARN("Rotation for axi case not implemented yet. No rotation was peformed");
-//              rotatedCouplTensor = scaledCouplTensor;
-//              
-//            } else if (numCols == 6){
-//              // 3d plane case
-//              // Idea: Create rotation matrix, that maps the current direction of P onto z-axis
-//              //       as the z-axis is the default polarization axis in the mat file
-//              //       To obtained the desired behavior, we have to rotate the z-axis onto P however.
-//              //       This can be done by taking the transposed rotation matrix.
-//              
-//              Double alpha, beta, gamma;
-//              
-//              // 1. rotate around z-axis by angle gamma such that P lies in z-y plane
-//              // gamma = angle between z-y plane and dirP
-//              gamma = std::atan2(dirP[0],dirP[1]);
-//              
-//              // 2. rotate around x-axis by angle alpha such that P lies on top of z-axis
-//              // alpha = angle between x-y plane and z
-//              alpha = std::atan2(std::sqrt(dirP[1]*dirP[1]+dirP[0]*dirP[0]),dirP[2]);
-//              
-//              // no rotation arouind y-axis needed > beta = 0
-//              // WARNING: this whole procedure is only valid if coupling tensor is at least
-//              // transverse isotropic! Otherwise we have to figure out on which axis to rotate
-//              // the transverse directions
-//              beta = 0.0;
-//              Matrix<Double> R = Compute3DRotationMatrix(alpha, beta, gamma);
-//              
-//              // take transpose matrix to revert rotation (i.e. rotate z-axis onto dirP)
-//              Matrix<Double> RT;
-//              RT.Resize(3,3);
-//              R.Transpose(RT);
-//              
-//              assert(rotatedCouplTensor.GetNumRows() == 3);
-//              assert(rotatedCouplTensor.GetNumCols() == 6);
-//              
-//              scaledCouplTensor.PerformRotation(RT,rotatedCouplTensor);
-//              
-//            } else {
-//              // 2d plane strain or plane stress case
-//              // Important remark:
-//              //  for 2d plane strain and stress (and somehow also for axi) the coupling tensor
-//              //  will be rotated by default by alpha = -90 and gamma = -90.
-//              //  This results in the following mapping of the coordinate axis:
-//              //    z > y, y > x, x > z
-//              //  I.e. the material is rotated such that the default polarization is in +y direction.
-//              //  We thus have two possibilities to align the material tensor to the 2d polarization
-//              //  direction:
-//              //  a) get original 3x6 tensor and rotate that tensor according to the 3d version above
-//              //      then cut out subtensor
-//              //  b) take cut out subtensor and perform rotation directly in 2d
-//              //      > Version b done in the following
-//              Double gamma;
-//              
-//              // std::atan2(dirP[0],dirP[1]) would rotate towards the y-axis
-//              // we want however the y-axis to rotate, so that we take -gamma instead
-//              gamma = -std::atan2(dirP[0],dirP[1]);
-//              
-//              Matrix<Double> R = Compute2DRotationMatrix(gamma);
-//              
-//              assert(rotatedCouplTensor.GetNumRows() == 2);
-//              assert(rotatedCouplTensor.GetNumCols() == 3);
-//              
-//              scaledCouplTensor.PerformRotation(R,rotatedCouplTensor);
-//              
-//            }
-//          }
-//        } else {
-//          // no rotation > take scale tensor
-//          rotatedCouplTensor = scaledCouplTensor;
-//        }
-//        
-//        rotatedCouplingTensor_requiresReeval_[storageIdx] = false;
-//        rotatedCouplingTensor_[storageIdx] = rotatedCouplTensor;
-//        lastUsedTimeLevelForRotation_[storageIdx] = timeLevel;
-//      }
+      //      
+      //      if( (rotatedCouplingTensor_requiresReeval_[storageIdx] == false) && (timeLevel == lastUsedTimeLevelForRotation_[storageIdx]) ){
+      //        //      std::cout << "Coupling Tensor already rotated > no reeval performed" << std::endl;
+      //        rotatedCouplTensor = rotatedCouplingTensor_[storageIdx];
+      //      } else {
+      //        
+      //        // obtain coupling tensor first
+      //        UInt numRows, numCols;
+      //        numCols = couplTensor.GetNumCols();
+      //        numRows = couplTensor.GetNumRows();
+      //        //couplTensorCoefFnc->GetTensorSize(numRows,numCols);
+      //        //Matrix<Double> couplTensor = Matrix<Double>(numRows,numCols);
+      //        //couplTensorCoefFnc->GetTensor(couplTensor,actualLPM);
+      //        
+      //        //      std::cout << "Retrieved coupling tensor: " << couplTensor.ToString() << std::endl;
+      //        //      std::cout << "Rotate coupling tensor" << std::endl;
+      //        rotatedCouplTensor.Resize(numRows,numCols);
+      //        Matrix<Double> scaledCouplTensor = Matrix<Double>(numRows,numCols);
+      //        
+      //        // get current polarization (elec or mag)
+      //        Vector<Double> P = GetPrecomputedOutputOfHysteresisOperator(lpm, timeLevel);
+      //        
+      //        //      std::cout << "Current polarization vector " << P.ToString() << std::endl;
+      //        //      
+      //        // calculate scaling
+      //        assert(POL_operatorParams_.outputSat_ != 0);
+      //        Double scaling = P.NormL2()/POL_operatorParams_.outputSat_;
+      //        
+      //        scaledCouplTensor = couplTensor* scaling;
+      //        
+      //        //      std::cout << "Scalaed coupling tensor " << scaledCouplTensor.ToString() << std::endl;
+      //        //      
+      //        if(rotate == true){
+      //          if(P.NormL2() == 0){
+      //            //        std::cout << "Polarization is zero > perform no rotation" << std::endl;
+      //            rotatedCouplTensor = scaledCouplTensor;
+      //            
+      //          } else {
+      //            Vector<Double> dirP = Vector<Double>(P.GetSize());
+      //            dirP = P / P.NormL2();
+      //            
+      //            // calculate rotation matrix
+      //            if(numCols == 4){
+      //              // axi case: 2x4 matrix
+      //              WARN("Rotation for axi case not implemented yet. No rotation was peformed");
+      //              rotatedCouplTensor = scaledCouplTensor;
+      //              
+      //            } else if (numCols == 6){
+      //              // 3d plane case
+      //              // Idea: Create rotation matrix, that maps the current direction of P onto z-axis
+      //              //       as the z-axis is the default polarization axis in the mat file
+      //              //       To obtained the desired behavior, we have to rotate the z-axis onto P however.
+      //              //       This can be done by taking the transposed rotation matrix.
+      //              
+      //              Double alpha, beta, gamma;
+      //              
+      //              // 1. rotate around z-axis by angle gamma such that P lies in z-y plane
+      //              // gamma = angle between z-y plane and dirP
+      //              gamma = std::atan2(dirP[0],dirP[1]);
+      //              
+      //              // 2. rotate around x-axis by angle alpha such that P lies on top of z-axis
+      //              // alpha = angle between x-y plane and z
+      //              alpha = std::atan2(std::sqrt(dirP[1]*dirP[1]+dirP[0]*dirP[0]),dirP[2]);
+      //              
+      //              // no rotation arouind y-axis needed > beta = 0
+      //              // WARNING: this whole procedure is only valid if coupling tensor is at least
+      //              // transverse isotropic! Otherwise we have to figure out on which axis to rotate
+      //              // the transverse directions
+      //              beta = 0.0;
+      //              Matrix<Double> R = Compute3DRotationMatrix(alpha, beta, gamma);
+      //              
+      //              // take transpose matrix to revert rotation (i.e. rotate z-axis onto dirP)
+      //              Matrix<Double> RT;
+      //              RT.Resize(3,3);
+      //              R.Transpose(RT);
+      //              
+      //              assert(rotatedCouplTensor.GetNumRows() == 3);
+      //              assert(rotatedCouplTensor.GetNumCols() == 6);
+      //              
+      //              scaledCouplTensor.PerformRotation(RT,rotatedCouplTensor);
+      //              
+      //            } else {
+      //              // 2d plane strain or plane stress case
+      //              // Important remark:
+      //              //  for 2d plane strain and stress (and somehow also for axi) the coupling tensor
+      //              //  will be rotated by default by alpha = -90 and gamma = -90.
+      //              //  This results in the following mapping of the coordinate axis:
+      //              //    z > y, y > x, x > z
+      //              //  I.e. the material is rotated such that the default polarization is in +y direction.
+      //              //  We thus have two possibilities to align the material tensor to the 2d polarization
+      //              //  direction:
+      //              //  a) get original 3x6 tensor and rotate that tensor according to the 3d version above
+      //              //      then cut out subtensor
+      //              //  b) take cut out subtensor and perform rotation directly in 2d
+      //              //      > Version b done in the following
+      //              Double gamma;
+      //              
+      //              // std::atan2(dirP[0],dirP[1]) would rotate towards the y-axis
+      //              // we want however the y-axis to rotate, so that we take -gamma instead
+      //              gamma = -std::atan2(dirP[0],dirP[1]);
+      //              
+      //              Matrix<Double> R = Compute2DRotationMatrix(gamma);
+      //              
+      //              assert(rotatedCouplTensor.GetNumRows() == 2);
+      //              assert(rotatedCouplTensor.GetNumCols() == 3);
+      //              
+      //              scaledCouplTensor.PerformRotation(R,rotatedCouplTensor);
+      //              
+      //            }
+      //          }
+      //        } else {
+      //          // no rotation > take scale tensor
+      //          rotatedCouplTensor = scaledCouplTensor;
+      //        }
+      //        
+      //        rotatedCouplingTensor_requiresReeval_[storageIdx] = false;
+      //        rotatedCouplingTensor_[storageIdx] = rotatedCouplTensor;
+      //        lastUsedTimeLevelForRotation_[storageIdx] = timeLevel;
+      //      }
     }
     
     CoefFunctionHelper* hystHelper_;
@@ -2385,7 +2382,7 @@ namespace CoupledField {
     /*
      * Preisach weights and its size in form of the number of rows
      */
-//    Matrix<Double> POL_weightParams_.weightTensor_;
+    //    Matrix<Double> POL_weightParams_.weightTensor_;
     Matrix<Double> POL_PreisachWeightsStrains_;
     UInt POL_numRows_;
     UInt POL_numRowsStrain_;
@@ -2394,14 +2391,14 @@ namespace CoupledField {
      * Saturation values for input (x, E/H) and output (y, P/M) of
      * hysteresis operator
      */
-//    Double POL_operatorParams_.inputSat_;
-//    Double POL_operatorParams_.outputSat_;
+    //    Double POL_operatorParams_.inputSat_;
+    //    Double POL_operatorParams_.outputSat_;
     Double COUPLED_sSat_; // new strain in saturation 
     
     /*
      * determines whether the vector or the scalar model shall be used
      */
-//    CoefDimType POL_operatorParams_.methodType_;
+    //    CoefDimType POL_operatorParams_.methodType_;
     
     /*
      * Additional parameter for scalar Preisach model
@@ -2410,7 +2407,7 @@ namespace CoupledField {
      * Direction (x,y,z) in which Polarization of material points
      * NEW: instead of specifying only x,y,z we allow to specify a direction in the mat.xml file
      */
-//    Vector<Double> POL_operatorParams_.fixDirection_;
+    //    Vector<Double> POL_operatorParams_.fixDirection_;
     bool POL_useExtension_;
     bool POL_setWithFlux_;
     
@@ -2419,18 +2416,18 @@ namespace CoupledField {
      */
     // determines wheter the vector model from 2012 (classical) or the one from#
     // 2015 (revised) is used
-//    bool POL_operatorParams_.isClassical_;
+    //    bool POL_operatorParams_.isClassical_;
     
     /*
      * see VectorPreisach10 for more details
      */
-//    Double POL_operatorParams_.angularDistance_;
+    //    Double POL_operatorParams_.angularDistance_;
     
     /*
      * if != 0, the rotation states of the vector preisach model will be clipped
      * to the provided precision (in rad)
      */
-//    Double POL_operatorParams_.angularClipping_;
+    //    Double POL_operatorParams_.angularClipping_;
     
     /*
      *  new parameter added 03.07.2017
@@ -2447,26 +2444,26 @@ namespace CoupledField {
      *
      *  if both criteria are true, the old value is taken and no reevaluation is done
      */
-//    Double POL_operatorParams_.angularResolution_;
-//    Double POL_operatorParams_.amplitudeResolution_;
-//    
+    //    Double POL_operatorParams_.angularResolution_;
+    //    Double POL_operatorParams_.amplitudeResolution_;
+    //    
     /*
      * 1,2 nested-list implementation of classical and revised vector hyst. model
      * 10,20 matrix based implementation of classical and revised vector hyst. model
      */
-//    UInt POL_operatorParams_.evalVersion_;
-//    
+    //    UInt POL_operatorParams_.evalVersion_;
+    //    
     /*
      * evaluation of Hyst operator for inputs larger than Saturation
      * > for Mayergoyz hyst model no bisection possible
      */
-//    bool POL_operatorParams_.fieldsAlignedAboveSat_;
+    //    bool POL_operatorParams_.fieldsAlignedAboveSat_;
     // mayergoyz vector without clipping produces values above PSaturated_
     // when input grows above XSaturated_ > set flag to false
     // otherwise, flag = true
-//    bool POL_operatorParams_.hystOutputRestrictedToSat_;
-//    int POL_operatorParams_.numDirections_;
-//    int POL_operatorParams_.outputClipping_;
+    //    bool POL_operatorParams_.hystOutputRestrictedToSat_;
+    //    int POL_operatorParams_.numDirections_;
+    //    int POL_operatorParams_.outputClipping_;
     
     /*
      * Initial input to the vector hysteresis operator;
@@ -2482,7 +2479,7 @@ namespace CoupledField {
      * images
      */
     UInt POL_bmpResolution_;
-//    UInt POL_operatorParams_.printOut_;
+    //    UInt POL_operatorParams_.printOut_;
     
     bool storageInitialized_;
     /*
@@ -2676,16 +2673,6 @@ namespace CoupledField {
     //! material object
     BaseMaterial* material_;
     
-    bool COUPLED_useStrainForm_;
-    int COUPLED_strainForm_;
-    int COUPLED_dim_beta_;
-    Matrix<Double> COUPLED_betaCoefs_;
-    Double COUPLED_irrStrain_c1_;
-    Double COUPLED_irrStrain_c2_;
-    Double COUPLED_irrStrain_c3_;
-    int COUPLED_irrStrainForm_;
-    
-    
     /*
      * ###############
      * ### Storage ###
@@ -2776,16 +2763,16 @@ namespace CoupledField {
     // flags indicating if we need inversion (for e.g. for magnetics)
     // and if we have an inverse model for that
     bool needsInversion_;
-//    bool POL_operatorParams_.hasInverseModel_;
+    //    bool POL_operatorParams_.hasInverseModel_;
     // For inversion via Levenberg Marquardt
-//    UInt LM_inversion_.maxNumIts;
-//    Double LM_inversion_.tolH;
-//    Double LM_inversion_.tolB;
-//    Double LM_inversion_.jacRes;
-//    bool LM_inversion_.useTikhonov;
-//    Double LM_inversion_.alphaLSStart;
-//    Double LM_inversion_.alphaLSMin;
-//    Double LM_inversion_.alphaLSMax;
+    //    UInt LM_inversion_.maxNumIts;
+    //    Double LM_inversion_.tolH;
+    //    Double LM_inversion_.tolB;
+    //    Double LM_inversion_.jacRes;
+    //    bool LM_inversion_.useTikhonov;
+    //    Double LM_inversion_.alphaLSStart;
+    //    Double LM_inversion_.alphaLSMin;
+    //    Double LM_inversion_.alphaLSMax;
     
     // when setting the system into remanence for the case of magnetics
     // we do this by forcing the input to the hystoperator to become 0;

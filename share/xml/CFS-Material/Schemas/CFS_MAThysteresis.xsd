@@ -34,16 +34,31 @@
             <xsd:element name="strainModeling" minOccurs="1">
               <xsd:complexType>
                 <xsd:choice>
-                  <xsd:element name="muDatRelated" type="DT_MuDATStrainParams">
+                  <xsd:element name="muDatWolf" type="DT_MuDATStrainParams">
                     <xsd:annotation>
                       <xsd:documentation xml:lang="en">   
                         Model strains as discribed in "Generalisiertes Preisach-Modell für die Simulation und Kompensation
                         der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf
                         i.e.,
-                        S = c1 + abs( strainSat*H(E)/Hsat + c2) + (E - ESat)/ESat * c3 (1D case)
-                        with H(E) being the hyst operator which can be the same as for polarization or a separate one;
-                        Hsat is the output saturation of H(E)
+                        S = c1 + |p(e) + c2| + (e - 0.5)*c3
+                        p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]
+                        with p(e) being the hyst operator which can be the same as for polarization or a separate one;
                         for 2D and 3D extend similar as in case of polynomial approximation
+                        i.e.,
+                        [S] = 3/2*S*(dirP dirP^T - 1/3[I])
+                        with dirP being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="muDatLoeffler" type="DT_LoefflerStrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">  
+                        Model irreversible strains as described used M. Loeffler in his muDat identification script
+                        (arising from his Diplomarbeit)
+                        S = strainSat*( sum_i=0^N c_i*p(e)^i + d0*e + d1*e^2 )
+                        note: p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]        
+                        with p(e) being the hyst operator which can be the same as for polarization or a separate one;
+                                        for 2D and 3D extend similar as in case of polynomial approximation
                         i.e.,
                         [S] = 3/2*S*(dirH dirH^T - 1/3[I])
                         with dirH being the direction of the hyst output
@@ -55,10 +70,9 @@
                       <xsd:documentation xml:lang="en">   
                         Model strains (similar) as discribed in "Numerical Simulation of Mechatronic Sensors and Actuators"
                         i.e.,
-                        S = strainSat*(beta0 + beta1 * H(E)/Hsat + beta2 * (H(E)/Hsat)^2 + beta3 * (H(E)/Hsat)^3 ...)
-                        /sum(beta_i)(1D case)
-                        with H(E) being the hyst operator which can be the same as for polarization or a separate one;
-                        Hsat is the output saturation of H(E)
+                        S = sum_i=1^N beta_i*P(E)^i
+                        note: P,E are polarization and electric field but not normalized!
+                        with P(E) being the hyst operator which can be the same as for polarization or a separate one;
                         for 2D and 3D extend in the following way
                         [S] = 3/2*S*(dirH dirH^T - 1/3[I])
                         with dirH being the direction of the hyst output
@@ -155,16 +169,31 @@
             <xsd:element name="strainModeling" minOccurs="1">
               <xsd:complexType>
                 <xsd:choice>
-                  <xsd:element name="muDatRelated" type="DT_MuDATStrainParams">
+                  <xsd:element name="muDatWolf" type="DT_MuDATStrainParams">
                     <xsd:annotation>
                       <xsd:documentation xml:lang="en">   
                         Model strains as discribed in "Generalisiertes Preisach-Modell für die Simulation und Kompensation
                         der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf
                         i.e.,
-                        S = c1 + abs( strainSat*H(E)/Hsat + c2) + (E - ESat)/ESat * c3 (1D case)
-                        with H(E) being the hyst operator which can be the same as for polarization or a separate one;
-                        Hsat is the output saturation of H(E)
+                        S = c1 + |p(e) + c2| + (e - 0.5)*c3
+                        p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]
+                        with p(e) being the hyst operator which can be the same as for polarization or a separate one;
                         for 2D and 3D extend similar as in case of polynomial approximation
+                        i.e.,
+                        [S] = 3/2*S*(dirP dirP^T - 1/3[I])
+                        with dirP being the direction of the hyst output
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="muDatLoeffler" type="DT_LoefflerStrainParams">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">  
+                        Model irreversible strains as described used M. Loeffler in his muDat identification script
+                        (arising from his Diplomarbeit)
+                        S = strainSat*( sum_i=0^N c_i*p(e)^i + d0*e + d1*e^2 )
+                        note: p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]        
+                        with p(e) being the hyst operator which can be the same as for polarization or a separate one;
+                                        for 2D and 3D extend similar as in case of polynomial approximation
                         i.e.,
                         [S] = 3/2*S*(dirH dirH^T - 1/3[I])
                         with dirH being the direction of the hyst output
@@ -176,10 +205,9 @@
                       <xsd:documentation xml:lang="en">   
                         Model strains (similar) as discribed in "Numerical Simulation of Mechatronic Sensors and Actuators"
                         i.e.,
-                        S = strainSat*(beta0 + beta1 * H(E)/Hsat + beta2 * (H(E)/Hsat)^2 + beta3 * (H(E)/Hsat)^3 ...)
-                        /sum(beta_i)(1D case)
-                        with H(E) being the hyst operator which can be the same as for polarization or a separate one;
-                        Hsat is the output saturation of H(E)
+                        S = sum_i=1^N beta_i*P(E)^i
+                        note: P,E are polarization and electric field but not normalized!
+                        with P(E) being the hyst operator which can be the same as for polarization or a separate one;
                         for 2D and 3D extend in the following way
                         [S] = 3/2*S*(dirH dirH^T - 1/3[I])
                         with dirH being the direction of the hyst output
@@ -261,15 +289,34 @@
   </xsd:complexType>        
               
   <xsd:complexType name="DT_MuDATParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">   
+        used script (by M. Loeffler, Dipl. Arbeit) assumes Preisach model in
+        the range from [-0.5, 0.5]; the implemented version, however, uses [-1,1] for
+        Preisach plane; therefore, the muDat parameter have to be adapted; if forHalfRange
+        is true, this adaption is made by CFS; if it is set to false (default) it is assumed
+        that parameter have already been adapted.
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:all>
       <xsd:element name="A" type="xsd:double" minOccurs="1"/>
       <xsd:element name="h" type="xsd:double" minOccurs="1"/>
       <xsd:element name="sigma" type="xsd:double" minOccurs="1"/>
       <xsd:element name="eta" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
     </xsd:all>
   </xsd:complexType>
   
   <xsd:complexType name="DT_MuDATExtendedParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">   
+        used script (by M. Loeffler, Dipl. Arbeit) assumes Preisach model in
+        the range from [-0.5, 0.5]; the implemented version, however, uses [-1,1] for
+        Preisach plane; therefore, the muDat parameter have to be adapted; if forHalfRange
+        is true, this adaption is made by CFS; if it is set to false (default) it is assumed
+        that parameter have already been adapted.
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:all>
       <xsd:element name="A" type="xsd:double" minOccurs="1"/>
       <xsd:element name="h1" type="xsd:double" minOccurs="1"/>
@@ -277,23 +324,66 @@
       <xsd:element name="sigma1" type="xsd:double" minOccurs="1"/>
       <xsd:element name="sigma2" type="xsd:double" minOccurs="1"/>
       <xsd:element name="eta" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
     </xsd:all>
   </xsd:complexType>
   
   <xsd:complexType name="DT_MuDATStrainParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">   
+        Model irreversible strains as described by Felix Wolf in his PHD-Thesis
+        S = c1 + |p(e) + c2| + (e - 0.5)*c3
+        p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]
+        
+        scaleToStrainSat:
+          if true: S = strainSat*( c1 + |p(e) + c2| + (e - 0.5)*c3 )/( c1 + |p(emax) + c2| + (emax - 0.5)*c3 )
+          (i.e. resulting strains are normalized to [0,1] and then scaled by strainSat)
+          if false: S = c1 + |p(e) + c2| + (e - 0.5)*c3
+          (i.e. actual amplitude is assumed to be contained in c_i already)
+        
+        forHalfRange:
+          if true: c1,c2,c3 have been determined for p,e in range [-0.5,0.5]; in this case
+          c1,c2,c3 are rescaled by CFS to fit p,e in range [-1,1]              
+          if false: c1,c2,c3 have been determined for p,e in range [-1,1]; in this case
+          c1,c2,c3 are directly used
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:all>
       <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="c1" type="xsd:double" minOccurs="1"/>
       <xsd:element name="c2" type="xsd:double" minOccurs="1"/>
       <xsd:element name="c3" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="scaleToStrainSat" type="xsd:boolean" minOccurs="1" default="true"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="false"/>
     </xsd:all>
   </xsd:complexType>
   
-  <xsd:complexType name="DT_StrainParams">
+  <xsd:complexType name="DT_LoefflerStrainParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">   
+        Model irreversible strains as described used M. Loeffler in his muDat identification script
+        (arising from his Diplomarbeit)
+        S = strainSat*( sum_i=0^N c_i*p(e)^i + d0*e + d1*e^2 )
+        note: p,e = normalized polarization,electric field; normalized to range [-0.5,0.5]; sum starts at 0
+        i.e. parameter ci starts at 1 with c0!
+        
+        scaleToStrainSat:
+          if true: S = strainSat*( sum_i=0^N c_i*p(e)^i + d0*e + d1*e^2 )
+          (i.e. resulting strains are assumed to be normalized to [0,1] and then scaled by strainSat)
+          if false: S = sum_i=0^N c_i*p(e)^i + d0*e + d1*e^2
+          (i.e. actual amplitude is assumed to be contained in c_i, d_i)
+        
+        forHalfRange:
+          if true: ci and di have been determined for p,e in range [-0.5,0.5]; in this case
+          ci and di are rescaled by CFS to fit p,e in range [-1,1]              
+          if false: ci and di have been determined for p,e in range [-1,1]; in this case
+          ci and di are directly used
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:all>
       <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="dim_betaCoefs" type="xsd:nonNegativeInteger" minOccurs="1" default="1"/>
-      <xsd:element name="betaCoefs" minOccurs="1">
+      <xsd:element name="dim_ci" type="xsd:nonNegativeInteger" minOccurs="1" default="1"/>
+      <xsd:element name="ci" minOccurs="1">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
             <xsd:minLength value="1"/> 
@@ -301,15 +391,71 @@
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element> 
+      <xsd:element name="d0" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="d1" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="scaleToStrainSat" type="xsd:boolean" minOccurs="1" default="true"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
+    </xsd:all>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_StrainParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">   
+        Model irreversible strains as described by Manfred in his book
+        S = sum_i=1^N c_i*P(E)^i 
+        note: P,E are polarization and electric field but not normalized! sum starts at 1
+        i.e. parameter ci starts at 1 with c1!
+        
+        scaleToStrainSat:
+          if true: S = strainSat*( sum_i=1^N beta_i*P(E)^i )/( sum_i=1^N beta_i*P(EMax)^i )
+          (i.e. resulting strains are normalized to [0,1] and then scaled by strainSat)
+          if false: S = sum_i=1^N beta_i*P(E)^i
+          (i.e. actual amplitude is assumed to be contained in beta_i already)
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="strainSat" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="dim_ci" type="xsd:nonNegativeInteger" minOccurs="1" default="1"/>
+      <xsd:element name="ci" minOccurs="1">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:minLength value="1"/> 
+            <xsd:maxLength value="11"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="scaleToStrainSat" type="xsd:boolean" minOccurs="1" default="false"/>
     </xsd:all>
   </xsd:complexType>
   
   <xsd:complexType name="DT_AnhystereticParams">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">   
+        Add anhysteretic part to output of hyst operator to obtain overall polarization;
+        Sutor version (cInAtan=false): p_total(e) = p(e) + a*atan(b*e)*c
+        Loeffler version (default,cInAtan=true): p_total(e) = p(e) + a*atan(b*(e+c))
+        note: in their works, Sutor and Loeffler model p,e to be normalized to range [-0.5,0.5]
+        in CFS p,e are normalized to [-1,1] such that a,b,c have to be adapted which is done by CFS if
+        flag forHalfRange = true
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:all>
       <xsd:element name="a" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="b" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="c" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="onlyAnhyst" type="xsd:boolean" minOccurs="1" default="false"/>
+      <xsd:element name="forHalfRange" type="xsd:boolean" minOccurs="1" default="true"/>
+      <xsd:element name="cInAtan" type="xsd:boolean" minOccurs="1" default="true"/>
+      <xsd:element name="anhystPartCountsTowardsOutputSat" type="xsd:boolean" minOccurs="1" default="true">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">   
+            anhystPartCountsTowardsOutputSat:
+              true (default): outputSat = output value of preisach operator + anhyst part at inputSat
+              false: outputSat = output value of preisach operator at inputSat; anhyst part comes on top 
+            Note: if muDat and anhyst parameter are determined using M. Loefflers script, true has to be selected
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:all>
   </xsd:complexType>  
     
@@ -399,7 +545,7 @@
                 <xsd:documentation xml:lang="en">   
                   Projected Levenberg Marquardt algorithm taken from
                   "Levenberg-Marquardt methods for constrained nonlinear equations with strong local convergence properties"
-                    -Kanzow,Yamashita,Fukushima
+                  -Kanzow,Yamashita,Fukushima
                   with Armijo-type linesearch taken from 
                   https://en.wikipedia.org/wiki/Backtracking_line_search
                 </xsd:documentation>
@@ -466,7 +612,7 @@
     </xsd:all>
   </xsd:complexType> 
 
-<xsd:complexType name="DT_ScalarPreisachHystModelElec">
+  <xsd:complexType name="DT_ScalarPreisachHystModelElec">
     <xsd:all>
       <xsd:element name="inputSat" type="xsd:double" minOccurs="1"/>
       <xsd:element name="outputSat" type="xsd:double" minOccurs="1"/>
@@ -481,11 +627,11 @@
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="initialState" type="DT_initialElec" minOccurs="0">
         <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-          Define initial state of hyst operator
-          (A): input > given vector will be fed into forward hyst operator
-        </xsd:documentation>
-      </xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+          </xsd:documentation>
+        </xsd:annotation>
       </xsd:element>
     </xsd:all>
   </xsd:complexType>
@@ -505,14 +651,14 @@
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
         <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-          Define initial state of hyst operator
-          (A): input > given vector will be fed into forward hyst operator
-          (B): output > given vector will be fed into inversion method for hyst operator;
-          this means, that the actual output of the hyst operator will be
-          equal to the given vector MINUS reversible and anhysteretic parts   
-        </xsd:documentation>
-      </xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+            (B): output > given vector will be fed into inversion method for hyst operator;
+            this means, that the actual output of the hyst operator will be
+            equal to the given vector MINUS reversible and anhysteretic parts   
+          </xsd:documentation>
+        </xsd:annotation>
       </xsd:element>
     </xsd:all>
   </xsd:complexType>
@@ -542,11 +688,11 @@
       <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
       <xsd:element name="initialState" type="DT_initialElec" minOccurs="0">
         <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-          Define initial state of hyst operator
-          (A): input > given vector will be fed into forward hyst operator
-        </xsd:documentation>
-      </xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+          </xsd:documentation>
+        </xsd:annotation>
       </xsd:element>
     </xsd:sequence>
   </xsd:complexType>    
@@ -561,14 +707,14 @@
       <xsd:element name="clipOutputToSat" type="DT_MayergoyzClipping" minOccurs="0"/>
       <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
         <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-          Define initial state of hyst operator
-          (A): input > given vector will be fed into forward hyst operator
-          (B): output > given vector will be fed into inversion method for hyst operator;
-          this means, that the actual output of the hyst operator will be
-          equal to the given vector MINUS reversible and anhysteretic parts   
-        </xsd:documentation>
-      </xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+            (B): output > given vector will be fed into inversion method for hyst operator;
+            this means, that the actual output of the hyst operator will be
+            equal to the given vector MINUS reversible and anhysteretic parts   
+          </xsd:documentation>
+        </xsd:annotation>
       </xsd:element>
     </xsd:sequence>
   </xsd:complexType>    
@@ -637,31 +783,31 @@
       <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="enforceSatOutputAtSatInput" type="xsd:boolean" minOccurs="1" default="true">
         <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-          enforceSatOutputAtSatInput: 
+          <xsd:documentation xml:lang="en">
+            enforceSatOutputAtSatInput: 
             + only relevant for revised model and if rotResistance smaller 1
             + if rotResistance smaller 1, the Preisach plane for the rotstate is not fully filled
-              if input reaches saturation; in that case we have to options:
-                a) allow further filling of Preisach plane for inputs larger than saturation
-                    > enforceSatOutputAtSatInput = false
-                b) restrict output to the value that is reached at input saturation, then scale
-                    resulting output up such that output is in saturation, too
-                    > enforceSatOutputAtSatInput = true
-        </xsd:documentation>
+            if input reaches saturation; in that case we have to options:
+            a) allow further filling of Preisach plane for inputs larger than saturation
+            > enforceSatOutputAtSatInput = false
+            b) restrict output to the value that is reached at input saturation, then scale
+            resulting output up such that output is in saturation, too
+            > enforceSatOutputAtSatInput = true
+          </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="hystInversion" type="DT_VecInversionParams" minOccurs="1"/>
       <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
         <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-          Define initial state of hyst operator
-          (A): input > given vector will be fed into forward hyst operator
-          (B): output > given vector will be fed into inversion method for hyst operator;
-          this means, that the actual output of the hyst operator will be
-          equal to the given vector MINUS reversible and anhysteretic parts   
-        </xsd:documentation>
-      </xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+            (B): output > given vector will be fed into inversion method for hyst operator;
+            this means, that the actual output of the hyst operator will be
+            equal to the given vector MINUS reversible and anhysteretic parts   
+          </xsd:documentation>
+        </xsd:annotation>
       </xsd:element>
       <xsd:element name="debuggingParameter" minOccurs="0">
         <xsd:complexType>
@@ -686,27 +832,27 @@
       <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="enforceSatOutputAtSatInput" type="xsd:boolean" minOccurs="1" default="true">
         <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-          enforceSatOutputAtSatInput: 
+          <xsd:documentation xml:lang="en">
+            enforceSatOutputAtSatInput: 
             + only relevant for revised model and if rotResistance smaller 1
             + if rotResistance smaller 1, the Preisach plane for the rotstate is not fully filled
-              if input reaches saturation; in that case we have to options:
-                a) allow further filling of Preisach plane for inputs larger than saturation
-                    > enforceSatOutputAtSatInput = false
-                b) restrict output to the value that is reached at input saturation, then scale
-                    resulting output up such that output is in saturation, too
-                    > enforceSatOutputAtSatInput = true
-        </xsd:documentation>
+            if input reaches saturation; in that case we have to options:
+            a) allow further filling of Preisach plane for inputs larger than saturation
+            > enforceSatOutputAtSatInput = false
+            b) restrict output to the value that is reached at input saturation, then scale
+            resulting output up such that output is in saturation, too
+            > enforceSatOutputAtSatInput = true
+          </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
       <xsd:element name="initialState" type="DT_initialElec" minOccurs="0">
         <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-          Define initial state of hyst operator
-          (A): input > given vector will be fed into forward hyst operator
-        </xsd:documentation>
-      </xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Define initial state of hyst operator
+            (A): input > given vector will be fed into forward hyst operator
+          </xsd:documentation>
+        </xsd:annotation>
       </xsd:element>
       <xsd:element name="debuggingParameter" minOccurs="0">
         <xsd:complexType>
@@ -731,17 +877,17 @@
       <xsd:element name="angularDistance" type="xsd:double" minOccurs="1" default="0"/>
       <xsd:element name="enforceSatOutputAtSatInput" type="xsd:boolean" minOccurs="1" default="true">
         <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-          enforceSatOutputAtSatInput: 
+          <xsd:documentation xml:lang="en">
+            enforceSatOutputAtSatInput: 
             + only relevant for revised model and if rotResistance smaller 1
             + if rotResistance smaller 1, the Preisach plane for the rotstate is not fully filled
-              if input reaches saturation; in that case we have to options:
-                a) allow further filling of Preisach plane for inputs larger than saturation
-                    > enforceSatOutputAtSatInput = false
-                b) restrict output to the value that is reached at input saturation, then scale
-                    resulting output up such that output is in saturation, too
-                    > enforceSatOutputAtSatInput = true
-        </xsd:documentation>
+            if input reaches saturation; in that case we have to options:
+            a) allow further filling of Preisach plane for inputs larger than saturation
+            > enforceSatOutputAtSatInput = false
+            b) restrict output to the value that is reached at input saturation, then scale
+            resulting output up such that output is in saturation, too
+            > enforceSatOutputAtSatInput = true
+          </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>

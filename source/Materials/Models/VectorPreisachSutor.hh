@@ -659,11 +659,14 @@ namespace CoupledField {
   {
     
   public:
-    VectorPreisachSutor(Integer numElem, Double xSat, Double ySat,
-      Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, bool scaleUpToSaturation, Double angularDistance, Double angResolution, 
-      Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
-    
+    VectorPreisachSutor(Integer numElem, ParameterPreisachOperators operatorParams, 
+          ParameterPreisachWeights weightParams, UInt dim, bool isVirgin);
+      
+//      Integer numElem, Double xSat, Double ySat,
+//      Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+//      bool classical, bool scaleUpToSaturation, Double angularDistance, Double angResolution, 
+//      Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
+        
     virtual ~VectorPreisachSutor();
     
     //! this function gets called from outside and calculates the output of the Preisach operator
@@ -752,8 +755,8 @@ namespace CoupledField {
     /*!
      * Global quantities, i.e. the same for all FE elements of the same material
      */
-    Double XSaturated_; //! saturation value for  input
-    Double PSaturated_; //! saturation value for output
+//    Double XSaturated_; //! saturation value for  input
+//    Double PSaturated_; //! saturation value for output
     Double maxOutputVal_; // actual maximial output if input is in or above saturation
     // usually = PSaturated, but not for rotResistance < 1 and revised model
     
@@ -823,10 +826,13 @@ namespace CoupledField {
   class VectorPreisachSutor_MatrixApproach : public VectorPreisachSutor
   {
   public:
-    VectorPreisachSutor_MatrixApproach(Integer numElem, Double xSat, Double ySat,
-      Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, bool scaleUpToSaturation, Double angularDistance, Double angResolution, 
-      Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
+    VectorPreisachSutor_MatrixApproach(Integer numElem, ParameterPreisachOperators operatorParams, 
+          ParameterPreisachWeights weightParams, UInt dim, bool isVirgin);
+      
+//      Integer numElem, Double xSat, Double ySat,
+//      Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+//      bool classical, bool scaleUpToSaturation, Double angularDistance, Double angResolution, 
+//      Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
     
     ~VectorPreisachSutor_MatrixApproach();
     
@@ -872,10 +878,13 @@ namespace CoupledField {
   {
     
   public:
-    VectorPreisachSutor_ListApproach(Integer numElem, Double xSat, Double ySat,
-      Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-      bool classical, bool scaleUpToSaturation, Double angularDistance, Double angResolution, 
-      Double anhystA=0.0, Double anhystB=0.0, Double anhystC=0.0, bool anhystOnly = false);
+    VectorPreisachSutor_ListApproach(Integer numElem, ParameterPreisachOperators operatorParams, 
+          ParameterPreisachWeights weightParams, UInt dim, bool isVirgin);
+      
+//      Integer numElem, Double xSat, Double ySat,
+//      Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+//      bool classical, bool scaleUpToSaturation, Double angularDistance, Double angResolution, 
+//      Double anhystA=0.0, Double anhystB=0.0, Double anhystC=0.0, bool anhystOnly = false);
     
     virtual ~VectorPreisachSutor_ListApproach();
     

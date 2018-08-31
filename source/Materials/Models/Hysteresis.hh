@@ -16,7 +16,10 @@ namespace CoupledField {
   public:
     Hysteresis(Integer numElem);
     
-    Hysteresis(Integer numElem, Double XSaturated, Double YSaturated, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly);
+    Hysteresis(Integer numElem, ParameterPreisachOperators operatorParams, ParameterPreisachWeights weightParams);
+    
+    Hysteresis(Integer numElem, Double XSaturated, Double YSaturated, Double hystSaturated, 
+    Double anhystA, Double anhystB, Double anhystC, bool anhystOnly, bool anhyst_cInAtan);
 
     ///
     virtual ~Hysteresis();
@@ -164,8 +167,30 @@ namespace CoupledField {
 
     inline Double evalAnhystPart_normalized(Double xNormalizedUnclipped){
       // returns normalized anhysteretic part
-      return anhyst_A_*std::atan(anhyst_B_*xNormalizedUnclipped) + anhyst_C_*xNormalizedUnclipped;
+      // note: at this point we assume that a,b,c are meant for p,e in range [-1,1]
+      //       the script for determining these parameters assuems p,e in range [-0.5,0.5] 
+      //      > parameters have to be transfereed to correct range
+      //         prior to calling this function; this can either be done by user or by CFS if flag in mat.xml is set
+      if(anhyst_cInAtan_ == true){
+        return anhyst_A_*std::atan(anhyst_B_*(xNormalizedUnclipped + anhyst_C_));
+      } else {
+        return anhyst_A_*std::atan(anhyst_B_*xNormalizedUnclipped) + anhyst_C_*xNormalizedUnclipped;
+      }
     }
+    
+    static Double evalAnhystPart_normalized_atSaturation(Double anhystA, Double anhystB, Double anhystC, bool cInAtan){
+      // anhyst parameter are assumed to be defined for full range i.e. from -1 to +1
+      std::cout << "anhystA: " << anhystA << std::endl;
+      std::cout << "anhystB: " << anhystB << std::endl;
+      std::cout << "anhystC: " << anhystC << std::endl;
+      
+      if(cInAtan){
+        return anhystA*std::atan(anhystB + anhystC);
+      } else {
+        return anhystA*std::atan(anhystB) + anhystC;
+      }
+    }
+    
     
     Double bisectForAnhyst_normalized(Double Ytarget_normalized, Double Xdown_normalized, Double Xup_normalized, 
       Double Poffset_normalized, Double eps_mu_normalized, Double tol, Vector<Double> dir, UInt idx);
@@ -284,9 +309,12 @@ namespace CoupledField {
     Double anhyst_A_;
     Double anhyst_B_;
     Double anhyst_C_;
+    bool anhyst_cInAtan_;
     bool anhystOnly_;
     Double XSaturated_;
     Double PSaturated_;
+    Double hystSaturated_; // saturation value of hyst operator alone (without anhyst part); can be the same as PSaturated
+    // depending on parameter anhystCountingToOutputSat_ (part of weight params)
     UInt dim_;
     
     // additional for inversion

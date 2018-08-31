@@ -1648,19 +1648,19 @@ namespace CoupledField {
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_TYPE, "preisachWeights_type" ); 
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_A, "preisachWeights_mudatA" ); 
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_H, "preisachWeights_mudath" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_H2, "preisachWeights_mudath2" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_SIGMA, "preisachWeights_mudatsigma" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_SIGMA2, "preisachWeights_mudatsigma2" ); 
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_ETA, "preisachWeights_mudateta" );
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_A, "preisachWeights_mudatextA" ); 
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_H1, "preisachWeights_mudatexth1" );
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_H2, "preisachWeights_mudatexth2" );
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_SIGMA1, "preisachWeights_mudatextsigma1" ); 
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_SIGMA2, "preisachWeights_mudatextsigma2" ); 
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_ETA, "preisachWeights_mudatexteta" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT, "preisachWeights_anhystCountsToSat" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE, "preisachWeights_mudat_paramsforhalfrange" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR, "preisachWeights_forMayergoyzVector" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_ONLY, "preisachWeights_anhyst_ONLY" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_A, "preisachWeights_anhystA" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_B, "preisachWeights_anhystB" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_C, "preisachWeights_anhystC" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_CINATAN, "preisachWeights_anhyst_cinatan" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE, "preisachWeights_anhyst_paramsforhalfrange" );   
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_TENSOR, "preisachWeights_givenTensor" );
     MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_NUM_DIR, "preisach_mayergoyz_num_dir" );
     MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_ISOTROPIC, "preisach_mayergoyz_isotropic" );
@@ -1680,12 +1680,18 @@ namespace CoupledField {
     MaterialTypeEnum.Add( HYST_MODEL, "hystModel" ); 
     MaterialTypeEnum.Add( PREISACH_DIM, "PreisachDim" );
     MaterialTypeEnum.Add( HYST_STRAIN_FORM, "strainForm" );
-    MaterialTypeEnum.Add( HYST_BETA_COEFS, "betaCoefs" );
-    MaterialTypeEnum.Add( DIM_BETA_COEFS, "dim_betaCoefs" );
+   
     MaterialTypeEnum.Add( HYST_IRRSTRAINS, "irrStrainForm" );
     MaterialTypeEnum.Add( HYST_IRRSTRAIN_C1, "irrStrainMuDatC1" );
     MaterialTypeEnum.Add( HYST_IRRSTRAIN_C2, "irrStrainMuDatC2" );
     MaterialTypeEnum.Add( HYST_IRRSTRAIN_C3, "irrStrainMuDatC3" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_CI, "irrStrainMuDatCI" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_CI_SIZE, "irrStrainMuDatCI_size" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_D0, "irrStrainMuDatD0" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_D1, "irrStrainMuDatD1" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_SCALETOSAT, "irrStrainMuDat_scaleToSat" );
+    MaterialTypeEnum.Add( HYST_IRRSTRAIN_PARAMSFORHALFRANGE, "irrStrain_paramsforhalfrange" );
+    
     MaterialTypeEnum.Add( ROT_RESISTANCE, "RotResistance" );
     MaterialTypeEnum.Add( PRINT_PREISACH, "printOut" );
     MaterialTypeEnum.Add( PRINT_PREISACH_RESOLUTION, "bmpResolution" );
@@ -1734,16 +1740,15 @@ namespace CoupledField {
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_DIM_STRAIN, "preisachWeights_dim_strain" ); 
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_CONSTVALUE_STRAIN, "preisachWeights_constValue_strain" ); 
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_TYPE_STRAIN, "preisachWeights_type_strain" ); 
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_A_STRAIN, "preisachWeights_mudatA_strain" ); 
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_H_STRAIN, "preisachWeights_mudath_strain" );
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_SIGMA_STRAIN, "preisachWeights_mudatsigma_strain" ); 
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_ETA_STRAIN, "preisachWeights_mudateta_strain" );
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_A_STRAIN, "preisachWeights_mudatextA_strain" ); 
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_H1_STRAIN, "preisachWeights_mudatexth1_strain" );
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_H2_STRAIN, "preisachWeights_mudatexth2_strain" );
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_SIGMA1_STRAIN, "preisachWeights_mudatextsigma1_strain" ); 
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_SIGMA2_STRAIN, "preisachWeights_mudatextsigma2_strain" ); 
-    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDATEXT_ETA_STRAIN, "preisachWeights_mudatexteta_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_A_STRAIN, "preisachWeights_mudatA_STRAIN" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_H_STRAIN, "preisachWeights_mudath_STRAIN" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_H2_STRAIN, "preisachWeights_mudath2_STRAIN" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_SIGMA_STRAIN, "preisachWeights_mudatsigma_STRAIN" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_SIGMA2_STRAIN, "preisachWeights_mudatsigma2_STRAIN" ); 
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_ETA_STRAIN, "preisachWeights_mudateta_STRAIN" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT_STRAIN, "preisachWeights_anhystCountsToSat_STRAIN" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE_STRAIN, "preisachWeights_mudat_paramsforhalfrange_STRAIN" );
+    
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR_STRAIN, "preisachWeights_forMayergoyzVector_strain" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_TENSOR_STRAIN, "preisachWeights_givenTensor_strain" );
     
@@ -1765,6 +1770,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_A_STRAIN, "preisachWeights_anhystA_strain" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_B_STRAIN, "preisachWeights_anhystB_strain" );
     MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_C_STRAIN, "preisachWeights_anhystC_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_CINATAN_STRAIN, "preisachWeights_anhyst_cinatan_strain" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE_STRAIN, "preisachWeights_anhyst_paramsforhalfrange_strain" );   
     
     MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_NUM_DIR_STRAIN, "preisach_mayergoyz_num_dir_strain" );
     MaterialTypeEnum.Add( PREISACH_MAYERGOYZ_ISOTROPIC_STRAIN, "preisach_mayergoyz_isotropic_strain" );

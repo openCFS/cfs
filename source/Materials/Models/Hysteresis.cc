@@ -18,19 +18,52 @@ namespace CoupledField
   {
     
     //numElements_ = numElem;
-    Hysteresis(numElem, 1.0,1.0, 0.0,0.0,0.0, false);
+    Hysteresis(numElem, 1.0,1.0,1.0,0.0,0.0,0.0, false,true);
   }
   
-  Hysteresis::Hysteresis(Integer numElem, Double XSaturated, Double YSaturated, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
-  {
+  
+  Hysteresis::Hysteresis(Integer numElem, Double XSaturated, Double YSaturated, Double hystSaturated,
+          Double anhystA, Double anhystB, Double anhystC, bool anhystOnly, bool anhyst_cInAtan){
+    
     numElements_ = numElem;
     anhyst_A_ = anhystA;
     anhyst_B_ = anhystB;
     anhyst_C_ = anhystC;
+    anhyst_cInAtan_ = anhyst_cInAtan;
     anhystOnly_ = anhystOnly;
+    
     XSaturated_ = XSaturated;
-    PSaturated_ = YSaturated;
+    PSaturated_ = YSaturated; 
+    hystSaturated_ = hystSaturated; 
     dim_ = 0;
+  }
+  
+  Hysteresis::Hysteresis(Integer numElem, ParameterPreisachOperators operatorParams, 
+          ParameterPreisachWeights weightParams)
+  {
+    numElements_ = numElem;
+    anhyst_A_ = weightParams.anhysteretic_a_; 
+    anhyst_B_ = weightParams.anhysteretic_b_;
+    anhyst_C_ = weightParams.anhysteretic_c_;
+    anhyst_cInAtan_ = weightParams.anhysteretic_cInAtan_;
+    anhystOnly_ = weightParams.anhystOnly_;
+    
+    XSaturated_ = operatorParams.inputSat_;
+    PSaturated_ = operatorParams.outputSat_; 
+    hystSaturated_ = operatorParams.preisachSat_; 
+    dim_ = 0;
+    
+//    std::cout << "Hystbaseclass: " << std::endl;
+//    std::cout << "anhyst_A_: " << anhyst_A_ << std::endl;
+//    std::cout << "anhyst_B_: " << anhyst_B_ << std::endl;
+//    std::cout << "anhyst_C_: " << anhyst_C_ << std::endl;
+//    std::cout << "anhyst_cInAtan_: " << anhyst_cInAtan_ << std::endl;
+//    std::cout << "anhystOnly_: " << anhystOnly_ << std::endl;
+//    std::cout << "XSaturated_: " << XSaturated_ << std::endl;
+//    std::cout << "PSaturated_: " << PSaturated_ << std::endl;
+//    std::cout << "hystSaturated_: " << hystSaturated_ << std::endl;
+//    std::cout << "dim_: " << dim_ << std::endl;
+
   }
   
   Hysteresis::~Hysteresis()
@@ -40,6 +73,15 @@ namespace CoupledField
 	Double Hysteresis::bisectForAnhyst(Double Ytarget, 
           Double Xdown, Double Xup, Double Poffset, Double eps_mu, Double tol, Vector<Double> dir, UInt idx){
 		
+//    std::cout << "Biscet before normalization" << std::endl;
+//      std::cout << " Ytarget: " << Ytarget << std::endl;
+//      std::cout << " Xdown: " << Xdown << std::endl;
+//      std::cout << " Xup: " << Xup << std::endl;
+//      std::cout << " Poffset: " << Poffset << std::endl;
+//      std::cout << " XSaturated_: " << XSaturated_ << std::endl;
+//      std::cout << " PSaturated_: " << PSaturated_ << std::endl;
+//      std::cout << " hystSaturated_: " << hystSaturated_ << std::endl;
+    
 		return XSaturated_*bisectForAnhyst_normalized(Ytarget/PSaturated_, 
             Xdown/XSaturated_, Xup/XSaturated_, Poffset/PSaturated_, XSaturated_*eps_mu/PSaturated_, tol/XSaturated_, dir, idx);
 		
@@ -116,7 +158,15 @@ namespace CoupledField
 		}
     
     if(resUp*resDown > 0){
-      EXCEPTION("Solution not in expected interval!");
+      std::stringstream errormsg;
+      errormsg << "Bisection for anhystPart -> Starting values not appropriate! Both residuals have same sign!" << std::endl;
+      errormsg << " Ytarget_normalized: " << Ytarget_normalized << std::endl;
+      errormsg << " Xdown_normalized: " << Xdown_normalized << std::endl;
+      errormsg << " Xup_normalized: " << Xup_normalized << std::endl;
+      errormsg << " Poffset_normalized: " << Poffset_normalized << std::endl;
+      errormsg << " resUp: " << resUp << std::endl;
+      errormsg << " resDown: " << resDown << std::endl;
+      EXCEPTION(errormsg.str());
     }
     if(abs(resUp) < tol){
       Xout_normalized = Xup_normalized;
@@ -1642,6 +1692,7 @@ namespace CoupledField
       traceMsg << "Previous solution: Percentage of saturation (|xVal|/XSaturated): " << prevXval.NormL2()/XSaturated_ << std::endl;
       traceMsg << "Material Tensor: " << mu.ToString() << std::endl;
       traceMsg << "ySat: " << PSaturated_ << std::endl;
+      traceMsg << "hystSat: " << hystSaturated_ << std::endl;
       traceMsg << "xSat: " << XSaturated_ << std::endl;
       traceMsg << "INV_params_.maxNumIts: " << INV_params_.maxNumIts << std::endl;
       traceMsg << "INV_params_.tolH: " << INV_params_.tolH << std::endl;
@@ -1893,14 +1944,15 @@ namespace CoupledField
           successFlag = 2;
           return xVal;
         } else {
-          traceMsg << "--B2-- Inversion: Anhysteretic non-zero > solve by bisection" << std::endl;
-          Double tol = 1e-12;
+          traceMsg << "--B2-- Inversion: Anhysteretic non-zero > solve by bisection" << std::endl; 
+          Double tol = INV_params_.tolB; //1e-12;
           Double Xup, Xdown, Poffset;
           //Xup = (yNorm - PSaturated_)/eps_mu;
           //Poffset = PSaturated_;
           Xup = (yNorm - hystValAtXSat.NormL2())/eps_mu;
           Xdown = XSaturated_;
-          Poffset = hystValAtXSat.NormL2();
+          Poffset = hystSaturated_;//hystValAtXSat.NormL2();
+//          std::cout << "hystValAtXSat: " << hystValAtXSat << std::endl;
           xScal = bisectForAnhyst(yNorm, Xdown, Xup, Poffset, eps_mu, tol);
           xVal.Init();
           xVal.Add(xScal,yDir);

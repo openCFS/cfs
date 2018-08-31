@@ -20,10 +20,16 @@ namespace CoupledField
     
   }
   
-  VectorPreisachMayergoyz::VectorPreisachMayergoyz(Integer numElem, UInt numDirections, Double xSat, Double ySat, 
-          Matrix<Double>& preisachWeight, UInt dim, bool isVirgin, 
-          Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly, int clipOutput) : Hysteresis(numElem){
-    
+  VectorPreisachMayergoyz::VectorPreisachMayergoyz(Integer numElem, ParameterPreisachOperators operatorParams, 
+          ParameterPreisachWeights weightParams, UInt dim, bool isVirgin)
+  : Hysteresis(numElem,operatorParams,weightParams){
+      
+//  (Integer numElem, UInt numDirections, Double xSat, Double ySat, 
+//          Matrix<Double>& preisachWeight, UInt dim, bool isVirgin, 
+//          Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly, int clipOutput) : Hysteresis(numElem){
+    UInt numDirections = operatorParams.numDirections_;
+    int clipOutput = operatorParams.outputClipping_;
+
     /*
      * Idea of Mayergoyz model: 
      *  Vectorial Hysteresis is obtained by summing up Scalar Hysteresis models into 
@@ -106,12 +112,13 @@ namespace CoupledField
     if(isIsotropic_){
       // add anhysteretic part directly to output and set saturation parameter accordingly
       // the single scalar models will not have anhysteretic parts
-      XSaturated_ = xSat;
-      PSaturated_ = ySat;
-      anhyst_A_ = anhyst_A;
-      anhyst_B_ = anhyst_B;
-      anhyst_C_ = anhyst_C;
-      anhystOnly_ = anhystOnly;
+      // already done in Hysteresis base class
+//      XSaturated_ = xSat;
+//      PSaturated_ = ySat;
+//      anhyst_A_ = anhyst_A;
+//      anhyst_B_ = anhyst_B;
+//      anhyst_C_ = anhyst_C;
+//      anhystOnly_ = anhystOnly;
       
       /*
        * IMPORTANT REMARK:
@@ -122,7 +129,10 @@ namespace CoupledField
        */
       singlePreisachOperators_ = new Preisach*[numDirections];
       for(UInt i = 0; i < numDirections_; i++){
-        singlePreisachOperators_[i] = new Preisach(numElem, xSat, ySat, preisachWeight, isVirgin,0.0, 0.0, 0.0, false);
+        // > set anhysteretic parameter to 0 here!
+        // preisach models shall only return the pure hysteretic part; the anhysteretic part is added later in this class
+        bool ignoreAnhystPart = true;
+        singlePreisachOperators_[i] = new Preisach(numElem,operatorParams,weightParams, isVirgin, ignoreAnhystPart); 
       }
       
     } else {
@@ -236,7 +246,6 @@ namespace CoupledField
     
   }  
     
-    
   Vector<Double> VectorPreisachMayergoyz::computeValue_vec(Vector<Double>& xVal, Integer idx, 
           bool overwrite,bool debugOutput,int& successFlag){
     
@@ -314,23 +323,26 @@ namespace CoupledField
       // clip amplitude to saturation; works well if input only in 1d but
       // not so well if remanent parts perpendicular to input exist as those
       // will be scaled down, too
-      if(output.NormL2() > PSaturated_){
-        output.ScalarMult(PSaturated_/output.NormL2());
+      // NOTE: here we have to scale by hystSaturated as this is the saturation
+      //      value of the hysteretic part alone
+      if(output.NormL2() > hystSaturated_){
+        output.ScalarMult(hystSaturated_/output.NormL2());
       }
     } else if(clipOutput_ == 2){
       // > default
       // clip amplitude to saturation, but such that remanent part is not
       // affected; results seem to be more reasonable than unclipped and clipping 1  
       Double projection = output.Inner(dirInput);
-      if((abs(output.NormL2()) > PSaturated_)&&(dirInput.NormL2() != 0)){
+      if((abs(output.NormL2()) > hystSaturated_)&&(dirInput.NormL2() != 0)){
         output.Add(-projection,dirInput);
         Double normRemaining = output.NormL2();
-        output.Add(std::sqrt(PSaturated_*PSaturated_-normRemaining*normRemaining),dirInput);
+        output.Add(std::sqrt(hystSaturated_*hystSaturated_-normRemaining*normRemaining),dirInput);
       }
     } 
     if(isIsotropic_){
       // for isotropic case, add anhystPart directly to output
       // make sure that the scalar models return no anhystPart in this case
+      // > scale anhysteretic part by PSaturated_
       if(xVal.NormL2() != 0){
         Double amplitude = PSaturated_*evalAnhystPart_normalized(xVal.NormL2()/XSaturated_);
         output.Add(amplitude,dirInput); 

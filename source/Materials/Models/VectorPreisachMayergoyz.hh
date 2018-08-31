@@ -22,9 +22,12 @@ namespace CoupledField {
       Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, bool anhystOnly, int clipOutput);
     
     // constructor for isotropic case, i.e. same xSat, ySat and weights in all directions
-    VectorPreisachMayergoyz(Integer numElem, UInt numDirections, Double xSat, Double ySat, 
-      Matrix<Double>& preisachWeight, UInt dim, bool isVirgin,Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly, int clipOutput);
-    
+    VectorPreisachMayergoyz(Integer numElem, ParameterPreisachOperators operatorParams, 
+          ParameterPreisachWeights weightParams, UInt dim, bool isVirgin);
+      
+//      Integer numElem, UInt numDirections, Double xSat, Double ySat, 
+//      Matrix<Double>& preisachWeight, UInt dim, bool isVirgin,Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly, int clipOutput);
+//        
     virtual ~VectorPreisachMayergoyz();
     
     //! Try to compute input xVal to hyst operator, such that mu*xVal + H(xVal) = yVal

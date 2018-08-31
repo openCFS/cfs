@@ -1621,24 +1621,43 @@ namespace CoupledField {
       Double irrStrains_c1 = 0.0;
       Double irrStrains_c2 = 0.0;
       Double irrStrains_c3 = 0.0;
+      Double irrStrains_d0 = 0.0;
+      Double irrStrains_d1 = 0.0;
+      bool scaleToStrainSat = false;
+      bool paramsDefinedForHalfRange = false;
       int coefdim = 1;
-      Matrix<Double> betaCoefs = Matrix<Double>(1,1);
+      Matrix<Double> ciCoefs = Matrix<Double>(1,1);
       
       if(strainModelingNode != NULL){
         PtrParamNode innerNode = NULL;
-        if(strainModelingNode->Has("muDatRelated")){
+        if(strainModelingNode->Has("muDatWolf")){
           irrStrainImplementation = 0;
-          innerNode = strainModelingNode->Get("muDatRelated");
+          innerNode = strainModelingNode->Get("muDatWolf");
           strainSat = innerNode->Get("strainSat")->As<Double>();
           irrStrains_c1 = innerNode->Get("c1")->As<Double>();
           irrStrains_c2 = innerNode->Get("c2")->As<Double>();
           irrStrains_c3 = innerNode->Get("c3")->As<Double>();
-        } else if(strainModelingNode->Has("higherOrderPolynomial")){
+          scaleToStrainSat = innerNode->Get("scaleToStrainSat")->As<bool>();
+          paramsDefinedForHalfRange = innerNode->Get("forHalfRange")->As<bool>();
+        } else if(strainModelingNode->Has("muDatLoeffler")){
           irrStrainImplementation = 1;
+          innerNode = strainModelingNode->Get("muDatLoeffler");
           strainSat = innerNode->Get("strainSat")->As<Double>();
-          coefdim = innerNode->Get("dim_betaCoefs")->As<Integer>();
-          betaCoefs.Resize(1,coefdim);
-          ParamTools::AsTensor<double>(innerNode->Get("betaCoefs"),1, coefdim, betaCoefs);
+          coefdim = innerNode->Get("dim_ci")->As<Integer>();
+          ciCoefs.Resize(1,coefdim);
+          ParamTools::AsTensor<double>(innerNode->Get("ci"),1, coefdim, ciCoefs);
+          irrStrains_d0 = innerNode->Get("d0")->As<Double>();
+          irrStrains_d1 = innerNode->Get("d1")->As<Double>();
+          scaleToStrainSat = innerNode->Get("scaleToStrainSat")->As<bool>();
+          paramsDefinedForHalfRange = innerNode->Get("forHalfRange")->As<bool>();
+        } else if(strainModelingNode->Has("higherOrderPolynomial")){
+          irrStrainImplementation = 2;
+          innerNode = strainModelingNode->Get("higherOrderPolynomial");
+          strainSat = innerNode->Get("strainSat")->As<Double>();
+          coefdim = innerNode->Get("dim_ci")->As<Integer>();
+          ciCoefs.Resize(1,coefdim);
+          ParamTools::AsTensor<double>(innerNode->Get("ci"),1, coefdim, ciCoefs);
+          scaleToStrainSat = innerNode->Get("scaleToStrainSat")->As<bool>();
         }
       }
       material->SetScalar(strainSat, S_SATURATION, Global::REAL ); 
@@ -1646,8 +1665,20 @@ namespace CoupledField {
       material->SetScalar(irrStrains_c1, HYST_IRRSTRAIN_C1, Global::REAL);
       material->SetScalar(irrStrains_c2, HYST_IRRSTRAIN_C2, Global::REAL);
       material->SetScalar(irrStrains_c3, HYST_IRRSTRAIN_C3, Global::REAL);
-      material->SetScalar(coefdim, DIM_BETA_COEFS);
-      material->SetTensor(betaCoefs, HYST_BETA_COEFS, Global::REAL);
+      material->SetScalar(irrStrains_d0, HYST_IRRSTRAIN_D0, Global::REAL);
+      material->SetScalar(irrStrains_d1, HYST_IRRSTRAIN_D1, Global::REAL);
+      material->SetScalar(coefdim, HYST_IRRSTRAIN_CI_SIZE);
+      material->SetTensor(ciCoefs, HYST_IRRSTRAIN_CI, Global::REAL);
+      if(scaleToStrainSat){
+        material->SetScalar(1, HYST_IRRSTRAIN_SCALETOSAT);
+      } else {
+        material->SetScalar(0, HYST_IRRSTRAIN_SCALETOSAT);
+      }
+      if(paramsDefinedForHalfRange){
+        material->SetScalar(1, HYST_IRRSTRAIN_PARAMSFORHALFRANGE);
+      } else {
+        material->SetScalar(0, HYST_IRRSTRAIN_PARAMSFORHALFRANGE);
+      }
             
       PtrParamNode strainOperatorNode = couplingNode->Get("hystOperatorForStrains");
       if(strainOperatorNode->Has("usePolarization")){
@@ -1905,8 +1936,8 @@ namespace CoupledField {
         }
         
         // read input/output saturation of Preisach hysterese model
-        material->SetScalar(model->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL ); 
-        material->SetScalar(model->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL ); 
+        material->SetScalar(singleModel->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL ); 
+        material->SetScalar(singleModel->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL ); 
         
         if(singleModel->Has("weights")){
           pWeight = singleModel->Get("weights");
@@ -1982,11 +2013,18 @@ namespace CoupledField {
         Double h = muDat->Get("h")->As<Double>();
         Double sigma = muDat->Get("sigma")->As<Double>();
         Double eta = muDat->Get("eta")->As<Double>();
-        
+                
+        int paramsDefinedForHalfRange = 0;
+        bool paramsDefinedForHalfRangeBool = muDat->Get("forHalfRange")->As<bool>();
+        if(paramsDefinedForHalfRangeBool){
+          paramsDefinedForHalfRange = 1;
+        }
+
         material->SetScalar(A, MaterialType(PREISACH_WEIGHTS_MUDAT_A+enumOffset), Global::REAL );
         material->SetScalar(h, MaterialType(PREISACH_WEIGHTS_MUDAT_H+enumOffset), Global::REAL );
         material->SetScalar(sigma, MaterialType(PREISACH_WEIGHTS_MUDAT_SIGMA+enumOffset), Global::REAL );
         material->SetScalar(eta, MaterialType(PREISACH_WEIGHTS_MUDAT_ETA+enumOffset), Global::REAL );
+        material->SetScalar(paramsDefinedForHalfRange, MaterialType(PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE+enumOffset));
         material->SetScalar(weightType, MaterialType(PREISACH_WEIGHTS_TYPE+enumOffset));
         
       } else if(pWeightInner->Has("muDatExtended")){
@@ -1998,13 +2036,20 @@ namespace CoupledField {
         Double sigma1 = muDatExt->Get("sigma1")->As<Double>();
         Double sigma2 = muDatExt->Get("sigma2")->As<Double>();
         Double eta = muDatExt->Get("eta")->As<Double>();        
+                
+        int paramsDefinedForHalfRange = 0;
+        bool paramsDefinedForHalfRangeBool = muDatExt->Get("forHalfRange")->As<bool>();
+        if(paramsDefinedForHalfRangeBool){
+          paramsDefinedForHalfRange = 1;
+        }
         
-        material->SetScalar(A, MaterialType(PREISACH_WEIGHTS_MUDATEXT_A+enumOffset), Global::REAL );
-        material->SetScalar(h1, MaterialType(PREISACH_WEIGHTS_MUDATEXT_H1+enumOffset), Global::REAL );
-        material->SetScalar(h2, MaterialType(PREISACH_WEIGHTS_MUDATEXT_H2+enumOffset), Global::REAL );
-        material->SetScalar(sigma1, MaterialType(PREISACH_WEIGHTS_MUDATEXT_SIGMA1+enumOffset), Global::REAL );
-        material->SetScalar(sigma2, MaterialType(PREISACH_WEIGHTS_MUDATEXT_SIGMA2+enumOffset), Global::REAL );
-        material->SetScalar(eta, MaterialType(PREISACH_WEIGHTS_MUDATEXT_ETA+enumOffset), Global::REAL );
+        material->SetScalar(A, MaterialType(PREISACH_WEIGHTS_MUDAT_A+enumOffset), Global::REAL );
+        material->SetScalar(h1, MaterialType(PREISACH_WEIGHTS_MUDAT_H+enumOffset), Global::REAL );
+        material->SetScalar(h2, MaterialType(PREISACH_WEIGHTS_MUDAT_H2+enumOffset), Global::REAL );
+        material->SetScalar(sigma1, MaterialType(PREISACH_WEIGHTS_MUDAT_SIGMA+enumOffset), Global::REAL );
+        material->SetScalar(sigma2, MaterialType(PREISACH_WEIGHTS_MUDAT_SIGMA2+enumOffset), Global::REAL );
+        material->SetScalar(eta, MaterialType(PREISACH_WEIGHTS_MUDAT_ETA+enumOffset), Global::REAL );
+        material->SetScalar(paramsDefinedForHalfRange, MaterialType(PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE+enumOffset));
         material->SetScalar(weightType, MaterialType(PREISACH_WEIGHTS_TYPE+enumOffset));
         
       } else if(pWeightInner->Has("weightTensor")){
@@ -2018,15 +2063,19 @@ namespace CoupledField {
       } else {
         EXCEPTION("No valid Preisach weights found");
       }
-      if(pWeightInner->Has("anhystereticParameter")){
-        pAnhyst = pWeightInner->Get("anhystereticParameter");
-      } 
     } else {
       EXCEPTION("No valid Preisach weights found");
     }
     
+    if(pWeight->Has("anhystereticParameter")){
+      pAnhyst = pWeight->Get("anhystereticParameter");
+    } 
+    
     Double a,b,c;
     bool onlyanhyst;
+    bool anhystForHalfRange;
+    bool cInAtan;
+    bool anhystOutputSat;
     if(pAnhyst != NULL){
       if(pAnhyst->Has("a")){
         a = pAnhyst->Get("a")->As<Double>();
@@ -2048,11 +2097,29 @@ namespace CoupledField {
       } else {
         onlyanhyst = false;
       }
+      if(pAnhyst->Has("forHalfRange")){
+        anhystForHalfRange = pAnhyst->Get("forHalfRange")->As<bool>();
+      } else {
+        anhystForHalfRange = false;
+      }
+      if(pAnhyst->Has("cInAtan")){
+        cInAtan = pAnhyst->Get("cInAtan")->As<bool>();
+      } else {
+        cInAtan = false;
+      }
+      if(pAnhyst->Has("anhystPartCountsTowardsOutputSat")){
+        anhystOutputSat = pAnhyst->Get("anhystPartCountsTowardsOutputSat")->As<bool>();
+      } else {
+        anhystOutputSat = true;
+      }
     } else {
       a = 0;
       b = 0;
       c = 0;
       onlyanhyst = false;
+      cInAtan = false;
+      anhystForHalfRange = false;
+      anhystOutputSat = true;
     }
     
     material->SetScalar(a, MaterialType(PREISACH_WEIGHTS_ANHYST_A+enumOffset), Global::REAL);
@@ -2062,6 +2129,21 @@ namespace CoupledField {
       material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYST_ONLY+enumOffset));
     } else {
       material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYST_ONLY+enumOffset));
+    }
+    if(anhystForHalfRange){
+      material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE+enumOffset));
+    } else {
+      material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE+enumOffset));
+    }
+    if(cInAtan){
+      material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYST_CINATAN+enumOffset));
+    } else {
+      material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYST_CINATAN+enumOffset));
+    }
+    if(anhystOutputSat){
+      material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT+enumOffset));
+    } else {
+      material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT+enumOffset));
     }
     
     Matrix<Double> initialStateTensor = Matrix<Double>(1,3);

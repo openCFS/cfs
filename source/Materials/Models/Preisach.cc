@@ -15,268 +15,280 @@ namespace CoupledField
   DEFINE_LOG(scalpreisachInversion, "scalpreisachInversion")
   DECLARE_LOG(scalpreisachVecExtension)
   DEFINE_LOG(scalpreisachVecExtension, "scalpreisachVecExtension")
-      
-  ExtendedPreisach::ExtendedPreisach(Integer numElem, Double xSat, Double ySat, 
-          Matrix<Double>& preisachWeight, Double rotationalResistance , Double angularDistance, UInt dim, bool isVirgin, 
-          Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly):
-  Preisach(numElem, xSat, ySat, preisachWeight, isVirgin, anhyst_A, anhyst_B, anhyst_C, anhystOnly){
-    
-    if(angularDistance != 0){
-      WARN("angularDistance not yet used in ExtendedPreisach");
-    }
-    
-    rotResistance_ = rotationalResistance;
-    dim_ = dim;
-    
-    rotationStates_ = new std::map<Double,Vector<Double> >[numElem];
-    currentDirection_ = new Vector<Double>[numElem];
-  }
+//      
+//  ExtendedPreisach::ExtendedPreisach(Integer numElem, Double xSat, Double ySat, 
+//          Matrix<Double>& preisachWeight, Double rotationalResistance , Double angularDistance, UInt dim, bool isVirgin, 
+//          Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly):
+//  Preisach(numElem, xSat, ySat, preisachWeight, isVirgin, anhyst_A, anhyst_B, anhyst_C, anhystOnly){
+//    
+//    if(angularDistance != 0){
+//      WARN("angularDistance not yet used in ExtendedPreisach");
+//    }
+//    
+//    rotResistance_ = rotationalResistance;
+//    dim_ = dim;
+//    
+//    rotationStates_ = new std::map<Double,Vector<Double> >[numElem];
+//    currentDirection_ = new Vector<Double>[numElem];
+//  }
+//  
+//  ExtendedPreisach::~ExtendedPreisach(){
+//    delete [] rotationStates_;
+//    delete [] currentDirection_;
+//  }
+//  
+//  void ExtendedPreisach::UpdateRotationStateWithFluxDensity(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
+//    // use flux quantity as input
+//    // > e.g. for magnetics
+//    
+//    /*
+//     * 1. Decompose flux_in into amplitude and direction
+//     */
+//    Double ampl = flux_in.NormL2();
+//    if(ampl <= 0){
+//      // nothing to update
+//      return;
+//    }
+//    
+//    Vector<Double> dir = flux_in;
+//    dir.ScalarDiv(ampl);
+//    
+//    /*
+//     * 2. Compute actual setting value as for Vector Modell 2015er edition
+//     */
+//    // major difference: we use the flux quantity; full setting shall be achived
+//    // if material goes in saturation, i.e. we have to clip towards YSaturation_
+//    // however. YSaturation is the saturation value for P not for the flux quantity
+//    Vector<Double> satInCurDir = Vector<Double>(dim_);
+//    eps_mu.Mult(dir,satInCurDir);
+//    satInCurDir.ScalarMult(XSaturated_);
+//    
+//    Double anhystPart = PSaturated_*evalAnhystPart_normalized(1.0);
+//    satInCurDir.Add(PSaturated_+anhystPart,dir);
+//    
+//    // satInCurDir = (PSaturated_*Identity + XSaturated*eps_mu)*dir
+//    Double satValue = satInCurDir.NormL2();
+//    
+//    if(ampl >= satValue){
+//      ampl = 1.0;
+//    } else {
+//      ampl = ampl/satValue;
+//    }
+//    
+//    UpdateRotationState(ampl, dir, idx);
+//  }
+//  
+//  void ExtendedPreisach::UpdateRotationStateWithFieldIntensity(Vector<Double> field_in, UInt idx){
+//    // use field strength as input
+//    // > e.g. for electrostatics
+//    
+//    /*
+//     * 1. Decompose field_in into amplitude and direction
+//     */
+//    Double ampl = field_in.NormL2();
+//    if(ampl <= 0){
+//      // nothing to update
+//      return;
+//    }
+//    
+//    Vector<Double> dir = field_in;
+//    dir.ScalarDiv(ampl);
+//    
+//    /*
+//     * 2. Compute actual setting value as for Vector Modell 2015er edition
+//     */
+//    // field intensity only has to be scaled by XSaturated_
+//    Double satValue = XSaturated_;
+//    
+//    if(ampl >= satValue){
+//      ampl = 1.0;
+//    } else {
+//      ampl = ampl/satValue;
+//    }
+//    UpdateRotationState(ampl, dir, idx);
+//  }
+//  
+//  
+//  void ExtendedPreisach::UpdateRotationState(Double normalizedAmplitude, Vector<Double> dir, UInt idx){
+//        
+//    Double X_thres = normalizedAmplitude*rotResistance_;
+//    
+//    if(X_thres > 1.0){
+//      X_thres = 1.0;
+//    } else if (X_thres <= 0){
+//      return;
+//    }
+//    
+//    LOG_DBG(scalpreisachVecExtension) << "idx, amplitude, dirExtion: ";
+//    LOG_DBG(scalpreisachVecExtension) << idx;
+//    LOG_DBG(scalpreisachVecExtension) << normalizedAmplitude;
+//    LOG_DBG(scalpreisachVecExtension) << dir.ToString();
+//    
+//    
+//    LOG_DBG(scalpreisachVecExtension) << "Rotation list pre update: ";
+//    std::map<Double, Vector<Double> >::iterator it;
+//    UInt cnt = 0;
+//    for(it =  rotationStates_[idx].begin(); it != rotationStates_[idx].end(); it++){
+//      cnt++;
+//      LOG_DBG(scalpreisachVecExtension) << "# - Thres / Vec: " << cnt << " - "; 
+//      LOG_DBG(scalpreisachVecExtension) << it->first;
+//      LOG_DBG(scalpreisachVecExtension) << it->second.ToString();
+//    }
+//    
+//    /*
+//     * 3. Update list using X_thres
+//     */
+//    // special case: list empty
+//    if(rotationStates_[idx].empty()){
+//      // directly insert X_thres, dir
+//      rotationStates_[idx].insert(std::pair<Double, Vector<Double> >(X_thres, dir));
+//    } else {
+//      std::map<Double, Vector<Double> >::iterator insertPos;
+//      std::pair<std::map<Double, Vector<Double> >::iterator,bool> retVal; 
+//      /*
+//       * Advantage from taking a map:
+//       *  > map is sorted automatically
+//       *  > insert function will find the correct position (according to key)
+//       *      and will return its position
+//       *  > using this position we can easily wipe out rest according to wiping
+//       *      out rules (which are much easier for the rotation states as the 
+//       *      only rule is: remove all entries with key < X_thres, keep rest
+//       */
+//      retVal = rotationStates_[idx].insert(std::pair<Double, Vector<Double> >(X_thres, dir));
+//      insertPos = retVal.first;
+//      
+//      // if X_thres was inserted, insertPos point to the new entry
+//      // if X_thres was not inserted (due to its value already in the map), insertPos points to the 
+//      //  this prevously inserted element
+//      
+//      std::map<Double, Vector<Double> >::iterator startPos = rotationStates_[idx].begin();
+//      LOG_DBG(scalpreisachVecExtension) << "# InsertPos: " << insertPos->first;
+//      LOG_DBG(scalpreisachVecExtension) << "# startPos: " << startPos->first;
+//      rotationStates_[idx].erase(startPos,insertPos); // insertPos is kept
+//      
+//    }
+//    
+//    LOG_DBG(scalpreisachVecExtension) << "Rotation list after update: ";
+//    cnt = 0;
+//    for(it =  rotationStates_[idx].begin(); it != rotationStates_[idx].end(); it++){
+//      cnt++;
+//      LOG_DBG(scalpreisachVecExtension) << "# - Thres / Vec: " << cnt << " - "; 
+//      LOG_DBG(scalpreisachVecExtension) << it->first;
+//      LOG_DBG(scalpreisachVecExtension) << it->second.ToString();
+//    }
+//  }
+//  
+//  void ExtendedPreisach::EvaluateRotationState(UInt idx){
+//    // evaluate rotationStates_ and store in currentDirection_
+//    // iterate through map from back to front
+//    Vector<Double> dirVector = Vector<Double>(dim_);
+//    dirVector.Init();
+//    Double curWeight;
+//    
+//    if(!rotationStates_[idx].empty()){
+//      Double curVal;
+//      Double nextVal;
+//    
+//      std::map<Double, Vector<Double> >::reverse_iterator curPos;
+//      for(curPos = rotationStates_[idx].rbegin(); curPos != rotationStates_[idx].rend(); curPos++){
+//        if(++curPos == rotationStates_[idx].rend()){
+//          // currently we are in the last entry 
+//          nextVal = 0.0;
+//        } else {
+//          nextVal = curPos->first;
+//        }
+//        curPos--;
+//        curVal = curPos->first;
+//        
+//        
+//        // each rotation state is weighted with the actual area that is assigned
+//        // to it in the Preisach-like plane
+//        // as in the SutorModel from 2015 this plane consists of triangles like
+//        /*
+//         * Rotation states form flipped L-shapes in the whole Preisach plane
+//         *
+//         *            S_U           alpha           T_U
+//         *      __ __ __ __ __ __ __ |_  __ __ __ __ __ __
+//         *     |                     |                  /
+//         *     |A0                   |                /
+//         *     |      _ _ _ _ _ _ _ _|_ _ _ _ _ _ _ /_ ex1
+//         *     |     |   A1          |            /
+//         *     |     |     _ _ _ _ _ |_ _ _ _ _ /_ ex2
+//         *     |     |   |    A2     |        /
+//         *     |     |   |           |      /
+//         *     |     |   |        _ _| _ _/_ _ exN
+//         *     |     |   |      |    |  /
+//         *     |_____|___|______|_AN_|/____________________ beta
+//         *     |     |   |      |   /
+//         *     |     |   |      | /
+//         *     |     |   |      /
+//         *     |     |   |    /
+//         *     |     |   |  /
+//         *     |     |   |/
+//         *     |     |  /
+//         *     |     |/
+//         *     |    /
+//         *     |_ /
+//         *           T_L
+//         */
+//        // Unlike the actual vector model, these states are not further sub
+//        // divided so that the area computation is very simple
+//        // > take outersquare - innersquare, divide by 2 (for triangles), divide
+//        //  by 2 to value between 0 and 1 (preisach plane goes from -1 to +1)
+//        // BUT: curVal is always >= 0 (as it scales with amplitude)
+//        //      > we actually evaluate just a quarter going from 0,curVal x 0,curVal
+//        //      > no division by 4 required
+//        curWeight = (curVal*curVal - nextVal*nextVal);
+//        dirVector.Add(curWeight,curPos->second);
+//      }
+//    }
+//    currentDirection_[idx] = dirVector;  
+//  }
+//  
   
-  ExtendedPreisach::~ExtendedPreisach(){
-    delete [] rotationStates_;
-    delete [] currentDirection_;
-  }
+//  Preisach::Preisach(Integer numElem, Double xSat, Double ySat, 
+//          Matrix<Double>& preisachWeight, bool isVirgin) 
+//  : Hysteresis(numElem,xSat,ySat,0.0, 0.0, 0.0,false){
+//    Preisach(numElem, xSat, ySat, preisachWeight, isVirgin, 0.0, 0.0, 0.0,false);
+//  }
   
-  void ExtendedPreisach::UpdateRotationStateWithFluxDensity(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
-    // use flux quantity as input
-    // > e.g. for magnetics
-    
-    /*
-     * 1. Decompose flux_in into amplitude and direction
-     */
-    Double ampl = flux_in.NormL2();
-    if(ampl <= 0){
-      // nothing to update
-      return;
-    }
-    
-    Vector<Double> dir = flux_in;
-    dir.ScalarDiv(ampl);
-    
-    /*
-     * 2. Compute actual setting value as for Vector Modell 2015er edition
-     */
-    // major difference: we use the flux quantity; full setting shall be achived
-    // if material goes in saturation, i.e. we have to clip towards YSaturation_
-    // however. YSaturation is the saturation value for P not for the flux quantity
-    Vector<Double> satInCurDir = Vector<Double>(dim_);
-    eps_mu.Mult(dir,satInCurDir);
-    satInCurDir.ScalarMult(XSaturated_);
-    
-    Double anhystPart = PSaturated_*evalAnhystPart_normalized(1.0);
-    satInCurDir.Add(PSaturated_+anhystPart,dir);
-    
-    // satInCurDir = (PSaturated_*Identity + XSaturated*eps_mu)*dir
-    Double satValue = satInCurDir.NormL2();
-    
-    if(ampl >= satValue){
-      ampl = 1.0;
-    } else {
-      ampl = ampl/satValue;
-    }
-    
-    UpdateRotationState(ampl, dir, idx);
-  }
+  Preisach::Preisach(Integer numElem, ParameterPreisachOperators operatorParams, 
+          ParameterPreisachWeights weightParams, bool isVirgin, bool ignoreAnhystPart)
+  : Hysteresis(numElem,operatorParams,weightParams){
   
-  void ExtendedPreisach::UpdateRotationStateWithFieldIntensity(Vector<Double> field_in, UInt idx){
-    // use field strength as input
-    // > e.g. for electrostatics
-    
-    /*
-     * 1. Decompose field_in into amplitude and direction
-     */
-    Double ampl = field_in.NormL2();
-    if(ampl <= 0){
-      // nothing to update
-      return;
-    }
-    
-    Vector<Double> dir = field_in;
-    dir.ScalarDiv(ampl);
-    
-    /*
-     * 2. Compute actual setting value as for Vector Modell 2015er edition
-     */
-    // field intensity only has to be scaled by XSaturated_
-    Double satValue = XSaturated_;
-    
-    if(ampl >= satValue){
-      ampl = 1.0;
-    } else {
-      ampl = ampl/satValue;
-    }
-    UpdateRotationState(ampl, dir, idx);
-  }
-  
-  
-  void ExtendedPreisach::UpdateRotationState(Double normalizedAmplitude, Vector<Double> dir, UInt idx){
-        
-    Double X_thres = normalizedAmplitude*rotResistance_;
-    
-    if(X_thres > 1.0){
-      X_thres = 1.0;
-    } else if (X_thres <= 0){
-      return;
-    }
-    
-    LOG_DBG(scalpreisachVecExtension) << "idx, amplitude, dirExtion: ";
-    LOG_DBG(scalpreisachVecExtension) << idx;
-    LOG_DBG(scalpreisachVecExtension) << normalizedAmplitude;
-    LOG_DBG(scalpreisachVecExtension) << dir.ToString();
-    
-    
-    LOG_DBG(scalpreisachVecExtension) << "Rotation list pre update: ";
-    std::map<Double, Vector<Double> >::iterator it;
-    UInt cnt = 0;
-    for(it =  rotationStates_[idx].begin(); it != rotationStates_[idx].end(); it++){
-      cnt++;
-      LOG_DBG(scalpreisachVecExtension) << "# - Thres / Vec: " << cnt << " - "; 
-      LOG_DBG(scalpreisachVecExtension) << it->first;
-      LOG_DBG(scalpreisachVecExtension) << it->second.ToString();
-    }
-    
-    /*
-     * 3. Update list using X_thres
-     */
-    // special case: list empty
-    if(rotationStates_[idx].empty()){
-      // directly insert X_thres, dir
-      rotationStates_[idx].insert(std::pair<Double, Vector<Double> >(X_thres, dir));
-    } else {
-      std::map<Double, Vector<Double> >::iterator insertPos;
-      std::pair<std::map<Double, Vector<Double> >::iterator,bool> retVal; 
-      /*
-       * Advantage from taking a map:
-       *  > map is sorted automatically
-       *  > insert function will find the correct position (according to key)
-       *      and will return its position
-       *  > using this position we can easily wipe out rest according to wiping
-       *      out rules (which are much easier for the rotation states as the 
-       *      only rule is: remove all entries with key < X_thres, keep rest
-       */
-      retVal = rotationStates_[idx].insert(std::pair<Double, Vector<Double> >(X_thres, dir));
-      insertPos = retVal.first;
-      
-      // if X_thres was inserted, insertPos point to the new entry
-      // if X_thres was not inserted (due to its value already in the map), insertPos points to the 
-      //  this prevously inserted element
-      
-      std::map<Double, Vector<Double> >::iterator startPos = rotationStates_[idx].begin();
-      LOG_DBG(scalpreisachVecExtension) << "# InsertPos: " << insertPos->first;
-      LOG_DBG(scalpreisachVecExtension) << "# startPos: " << startPos->first;
-      rotationStates_[idx].erase(startPos,insertPos); // insertPos is kept
-      
-    }
-    
-    LOG_DBG(scalpreisachVecExtension) << "Rotation list after update: ";
-    cnt = 0;
-    for(it =  rotationStates_[idx].begin(); it != rotationStates_[idx].end(); it++){
-      cnt++;
-      LOG_DBG(scalpreisachVecExtension) << "# - Thres / Vec: " << cnt << " - "; 
-      LOG_DBG(scalpreisachVecExtension) << it->first;
-      LOG_DBG(scalpreisachVecExtension) << it->second.ToString();
-    }
-  }
-  
-  void ExtendedPreisach::EvaluateRotationState(UInt idx){
-    // evaluate rotationStates_ and store in currentDirection_
-    // iterate through map from back to front
-    Vector<Double> dirVector = Vector<Double>(dim_);
-    dirVector.Init();
-    Double curWeight;
-    
-    if(!rotationStates_[idx].empty()){
-      Double curVal;
-      Double nextVal;
-    
-      std::map<Double, Vector<Double> >::reverse_iterator curPos;
-      for(curPos = rotationStates_[idx].rbegin(); curPos != rotationStates_[idx].rend(); curPos++){
-        if(++curPos == rotationStates_[idx].rend()){
-          // currently we are in the last entry 
-          nextVal = 0.0;
-        } else {
-          nextVal = curPos->first;
-        }
-        curPos--;
-        curVal = curPos->first;
-        
-        
-        // each rotation state is weighted with the actual area that is assigned
-        // to it in the Preisach-like plane
-        // as in the SutorModel from 2015 this plane consists of triangles like
-        /*
-         * Rotation states form flipped L-shapes in the whole Preisach plane
-         *
-         *            S_U           alpha           T_U
-         *      __ __ __ __ __ __ __ |_  __ __ __ __ __ __
-         *     |                     |                  /
-         *     |A0                   |                /
-         *     |      _ _ _ _ _ _ _ _|_ _ _ _ _ _ _ /_ ex1
-         *     |     |   A1          |            /
-         *     |     |     _ _ _ _ _ |_ _ _ _ _ /_ ex2
-         *     |     |   |    A2     |        /
-         *     |     |   |           |      /
-         *     |     |   |        _ _| _ _/_ _ exN
-         *     |     |   |      |    |  /
-         *     |_____|___|______|_AN_|/____________________ beta
-         *     |     |   |      |   /
-         *     |     |   |      | /
-         *     |     |   |      /
-         *     |     |   |    /
-         *     |     |   |  /
-         *     |     |   |/
-         *     |     |  /
-         *     |     |/
-         *     |    /
-         *     |_ /
-         *           T_L
-         */
-        // Unlike the actual vector model, these states are not further sub
-        // divided so that the area computation is very simple
-        // > take outersquare - innersquare, divide by 2 (for triangles), divide
-        //  by 2 to value between 0 and 1 (preisach plane goes from -1 to +1)
-        // BUT: curVal is always >= 0 (as it scales with amplitude)
-        //      > we actually evaluate just a quarter going from 0,curVal x 0,curVal
-        //      > no division by 4 required
-        curWeight = (curVal*curVal - nextVal*nextVal);
-        dirVector.Add(curWeight,curPos->second);
-      }
-    }
-    currentDirection_[idx] = dirVector;  
-  }
-  
-  Preisach::Preisach(Integer numElem, Double xSat, Double ySat, 
-          Matrix<Double>& preisachWeight, bool isVirgin) 
-  : Hysteresis(numElem,xSat,ySat,0.0, 0.0, 0.0,false){
-    Preisach(numElem, xSat, ySat, preisachWeight, isVirgin, 0.0, 0.0, 0.0,false);
-  }
-  
-  Preisach::Preisach(Integer numElem, Double xSat, Double ySat, 
-          Matrix<Double>& preisachWeight, bool isVirgin, Double anhyst_A, Double anhyst_B, Double anhyst_C,bool anhystOnly) 
-  : Hysteresis(numElem,xSat,ySat,anhyst_A,anhyst_B,anhyst_C,anhystOnly)
-  {
+//  Preisach::Preisach(Integer numElem, Double xSat, Double ySat, 
+//          Matrix<Double>& preisachWeight, bool isVirgin, Double anhyst_A, Double anhyst_B, Double anhyst_C,bool anhystOnly) 
+//  : Hysteresis(numElem,xSat,ySat,anhyst_A,anhyst_B,anhyst_C,anhystOnly)
+//  {
     LOG_TRACE(scalpreisach) << "ScalarPreisach: Using Everett function";
     //tol_ = 1e-5;
     tol_ = 1e-15;
     
-    if (xSat > 0 ) {
-      XSaturated_  = xSat;
-    }
-    else {
-      XSaturated_  = 1.0;
-    }
-       
-    PSaturated_  = ySat;
+    // set in base class
+//    if (xSat > 0 ) {
+//      XSaturated_  = xSat;
+//    }
+//    else {
+//      XSaturated_  = 1.0;
+//    }
+//       
+//    PSaturated_  = ySat;
+    
     isVirgin_    = isVirgin;
     
-    preisachWeights_ = preisachWeight;
+    preisachWeights_ = weightParams.weightTensor_;
+    
     preisachSum_.Resize(numElem);
     preisachSum_.Init();
     StringLength_.Resize(numElem);
    
-//    anhyst_A_ = anhyst_A;
-//    anhyst_B_ = anhyst_B;
-//    anhyst_C_ = anhyst_C;
+    // needed in combination with Mayergoyz model
+    // > only pure hysteretic part wanted in that case
+    if(ignoreAnhystPart){
+      anhyst_A_ = 0;
+      anhyst_B_ = 0;
+      anhyst_C_ = 0;
+    }
     
     strings_     = new Vector<Double>[numElem];
     helpStrings_ = new Vector<Double>[numElem];
@@ -347,6 +359,11 @@ namespace CoupledField
     Double diffMin, diffMiddle;
     Double everettMin, everettMiddle;
     Double dX_to_dY = eps_mu*XSaturated_/PSaturated_;
+    
+    // new: as preisach operator alone leads to hystSaturated instead of PSaturated
+    //        but dY is normalized to PSaturated, we have to add the scaling dHyst_to_dY to all
+    //        everett related parts (as those return +/-1 which corresponds to +/-hystSaturated
+    Double dHyst_to_dY = hystSaturated_/PSaturated_;
     Double dX = 0.0;
     Double dAnhyst = 0.0;
     
@@ -362,7 +379,7 @@ namespace CoupledField
         // vice versa)
         everettMiddle = 2.0*everettPixel(xFixed,xMiddle);
         // dY = dP + dX_to_dY * dX
-        diffMiddle = dY - everettMiddle - dX*dX_to_dY - dAnhyst;
+        diffMiddle = dY - dHyst_to_dY*everettMiddle - dX*dX_to_dY - dAnhyst;
         
         if(abs(diffMiddle) < tol){
 					LOG_DBG(scalpreisachInversion) << "Remaining diff (normalized): " << abs(diffMiddle);
@@ -376,7 +393,7 @@ namespace CoupledField
         // syntax for everettPixel: 1. parameter: older/previous entry, 2. parameter new/next entry
         everettMin = 2.0*everettPixel(xFixed,xMin);
         
-        diffMin = dY - everettMin - dX*dX_to_dY - dAnhyst;
+        diffMin = dY - dHyst_to_dY*everettMin - dX*dX_to_dY - dAnhyst;
         
 //				std::cout << "xMiddle: " << xMiddle << std::endl;
 //        std::cout << "everettMiddle: " << everettMiddle << std::endl;
@@ -413,7 +430,7 @@ namespace CoupledField
         // revert a previous state
         everettMiddle = everettPixel(-xMiddle,xMiddle);
 
-        diffMiddle = dY - everettMiddle - dX*dX_to_dY - dAnhyst;
+        diffMiddle = dY - dHyst_to_dY*everettMiddle - dX*dX_to_dY - dAnhyst;
         
         if(abs(diffMiddle) < tol){
           LOG_DBG(scalpreisachInversion) << "Remaining diff (normalized): " << abs(diffMiddle);
@@ -429,7 +446,7 @@ namespace CoupledField
         everettMin = everettPixel(-xMin,xMin);
         //everettMax = everettPixel(-xMax,xMax,sign);
 				
-        diffMin = dY - everettMin - dX*dX_to_dY - dAnhyst;
+        diffMin = dY - dHyst_to_dY*everettMin - dX*dX_to_dY - dAnhyst;
         //diffMin = dYabs - abs(everettMin + dX*dX_to_dY);
         //diffMax = dYabs - everettMax;
 				
@@ -479,12 +496,17 @@ namespace CoupledField
 		Double x1,x2; // search interval for later bisection
 		x1 = 0.0;
 		x2 = 0.0;
-    Double tol = 1e-10;
+    Double tol = 1e-8/XSaturated_;
     // dX_to_dY is the factor which is needed to transfer a normalized dX to 
     // a normalized dY
     // dY_norm = dY/YSaturated = eps_mu*dX/YSaturated = eps_mu*dX*XSaturated/XSaturated/YSaturated
     //         = eps_mu*XSaturated/YSaturated * dX_norm
     Double dX_to_dY = eps_mu*XSaturated_/PSaturated_;
+    // new: as preisach operator alone leads to hystSaturated instead of PSaturated
+    //        but dY is normalized to PSaturated, we have to add the scaling dHyst_to_dY to all
+    //        everett related parts (as those return +/-1 which corresponds to +/-hystSaturated
+    Double dHyst_to_dY = hystSaturated_/PSaturated_;
+    
     UInt invcase = 0;
 		UInt subcase = 0;
     //std::cout << "Inversion" << std::endl;
@@ -508,7 +530,7 @@ namespace CoupledField
     } else {
       // we just invert the actual hysteresis operator, i.e we have to subtract all anhyst and reversible parts
       //  before starting the inversion
-      if(Yin >= (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat) ){
+      if(Yin >= (hystSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat) ){
         LOG_DBG(scalpreisachInversion) << "Pos saturation";
         //std::cout << "pos saturation" << std::endl;
         /*
@@ -523,19 +545,19 @@ namespace CoupledField
          * > with anhysteretic part, inversion more complicated!
          */
         if(anhystPartPosSat == 0){
-          Xout = (Yin - PSaturated_)/eps_mu;
+          Xout = (Yin - hystSaturated_)/eps_mu;
           invcase = 1;
         } else {
           Double Xup, Xdown, Poffset;
-          Xup = (Yin - PSaturated_)/eps_mu;
+          Xup = (Yin - hystSaturated_)/eps_mu;
           Xdown = XSaturated_;
-          Poffset = PSaturated_;
+          Poffset = hystSaturated_;
           Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tol);
           //Xout = bisectForSaturation(Yin, eps_mu, tol, false);
           invcase = 11;
         }
         successFlag = 2;
-      } else if (Yin <= (-PSaturated_ - eps_mu*XSaturated_ + anhystPartNegSat) ){
+      } else if (Yin <= (-hystSaturated_ - eps_mu*XSaturated_ + anhystPartNegSat) ){
         LOG_DBG(scalpreisachInversion) << "Neg saturation";
         //std::cout << "neg saturation" << std::endl;
         /*
@@ -546,13 +568,13 @@ namespace CoupledField
          * xOut = (yIn + Ysaturated_)/eps_mu
          */
         if(anhystPartPosSat == 0){
-          Xout = (Yin + PSaturated_)/eps_mu;
+          Xout = (Yin + hystSaturated_)/eps_mu;
           invcase = 2;
         } else {
           Double Xup, Xdown, Poffset;
-          Xup = (Yin + PSaturated_)/eps_mu;
+          Xup = (Yin + hystSaturated_)/eps_mu;
           Xdown = -XSaturated_;
-          Poffset = -PSaturated_;
+          Poffset = -hystSaturated_;
           Xout = bisectForAnhyst(Yin, Xdown, Xup, Poffset, eps_mu, tol);
           //Xout = bisectForSaturation(Yin, eps_mu, tol, true);
           invcase = 21;
@@ -598,14 +620,14 @@ namespace CoupledField
         Double Y_normalized = Yin/PSaturated_;
         Double P_old_normalized = previousPval_[idx];    
         // IMPORTANT NOTE: previousXval_[idx] is normalized but NOT clipped > exactly what we need!
-        // NOTE: previousPval_ contains already the anhysteretic part!
+        // NOTE: previousPval_ contains already the anhysteretic part and in total is normalized to PSaturated_!
         Double Y_old_normalized = P_old_normalized + dX_to_dY*previousXval_[idx];// + evalAnhystPart_normalized(previousXval_[idx]);
         LOG_DBG(scalpreisachInversion) << "Y_old: " << Y_old_normalized*PSaturated_;
         LOG_DBG(scalpreisachInversion) << "Y_old_normalized: " << Y_old_normalized;
-        if(Y_old_normalized > (1 + dX_to_dY + evalAnhystPart_normalized(1.0))){
-          Y_old_normalized = 1 + dX_to_dY + evalAnhystPart_normalized(1.0);
-        } else if (Y_old_normalized < -(1 + dX_to_dY)+evalAnhystPart_normalized(-1.0)){
-          Y_old_normalized = -1 - dX_to_dY + evalAnhystPart_normalized(-1.0);
+        if(Y_old_normalized > (dHyst_to_dY + dX_to_dY + evalAnhystPart_normalized(1.0))){
+          Y_old_normalized = dHyst_to_dY + dX_to_dY + evalAnhystPart_normalized(1.0);
+        } else if (Y_old_normalized < -(dHyst_to_dY + dX_to_dY)+evalAnhystPart_normalized(-1.0)){
+          Y_old_normalized = -dHyst_to_dY - dX_to_dY + evalAnhystPart_normalized(-1.0);
         }
         LOG_DBG(scalpreisachInversion) << "Y_old_normalized (clipped): " << Y_old_normalized;
 
@@ -668,7 +690,7 @@ namespace CoupledField
             Double dP = everettEl[actLength-1];
             //std::cout << "dP (=everett[actLength-1]): " << dP << std::endl;
 
-            dY += dP;
+            dY += dHyst_to_dY*dP;
             //std::cout << "dY+dP: " << dY << std::endl;
 
             // we search space for dY not dP, so we have to add the contribution of
@@ -751,7 +773,7 @@ namespace CoupledField
 
               // the availableSpace consists of the space for dP, i.e. the size of the
               // everett pixel
-              Double availSpace = everettEl[actLength-1];
+              Double availSpace = dHyst_to_dY*everettEl[actLength-1];
 
               Double dX = stringEl[actLength-1];
               Double dAnhyst = evalAnhystPart_normalized(stringEl[actLength-1]);
@@ -764,7 +786,7 @@ namespace CoupledField
                 subcase = 2;
               } else {
                 // last entry; everettEl counts twice
-                availSpace += everettEl[actLength-1];
+                availSpace += dHyst_to_dY*everettEl[actLength-1];
                 // we also have to take the difference towards the other edge of the triangle, so add last entry another time
                 // dX += stringEl[actLength-1];
                 // > instead: add dX*dX_to_dY to availspace instead of increasing dX!
@@ -813,7 +835,7 @@ namespace CoupledField
                 // dY = dP + dX_to_dY*dX
                 // we actually try to find a fitting dP here, so we must subtract
                 // the influence of dX
-                dY += everettEl[actLength-1]+dX_to_dY*dX + dAnhyst;
+                dY += dHyst_to_dY*everettEl[actLength-1]+dX_to_dY*dX + dAnhyst;
                 actLength--;
                 if(actLength >= 1){
                   dX = stringEl[actLength-1];
@@ -822,7 +844,7 @@ namespace CoupledField
                     dX -= stringEl[actLength-2];
                     dAnhyst -= evalAnhystPart_normalized(stringEl[actLength-2]);
                   }
-                  dY += everettEl[actLength-1] + dX_to_dY*dX + dAnhyst;
+                  dY += dHyst_to_dY*everettEl[actLength-1] + dX_to_dY*dX + dAnhyst;
                   if(minmaxcur > 0){
                     // max> max was removed; lower bound can be increased to removed entry
                     x1 = stringEl[actLength-1];
@@ -1020,6 +1042,9 @@ namespace CoupledField
       if(overwrite){
         previousXval_[idx] = Xin/XSaturated_;
       }
+      // note: preisachSum contains hyst part + anhyst part and is normalized to PSaturated_
+      //  if anhystpart counts for PSaturated, preisachSum will be in range [-1,1] if input is below saturation
+      //  if anhystpart does not count for PSaturated, preisachSum may be larger than 1 at saturation
 			return preisachSum_[idx];
 		}
     
@@ -1201,9 +1226,20 @@ namespace CoupledField
       LOG_DBG(scalpreisachInversion) << "Eval Preisach - Add anhystPart " << evalAnhystPart_normalized(X_norm_unclipped);
       LOG_DBG(scalpreisachInversion) << "for X/norm = " << (X_norm_unclipped);
       
-      //newY = preisachSum_[idx];
-      //newY += evalAnhystPart_normalized(X_norm_unclipped);
-      preisachSum_[idx] += evalAnhystPart_normalized(X_norm_unclipped);
+      // 1. scale Preisach sum (till now only hysteretic part) by hystSaturated_
+      // 2. add PSaturated_ * anhystPart
+      // 3. normalize sum to PSaturated_
+      
+//      std::cout << "preisachSum_[idx]: " << preisachSum_[idx] << std::endl;
+      
+      preisachSum_[idx] *= hystSaturated_;      
+//      std::cout << "preisachSum_[idx]*= hystSaturated_: " << preisachSum_[idx] << std::endl;
+      preisachSum_[idx] += PSaturated_*evalAnhystPart_normalized(X_norm_unclipped);
+//      std::cout << "preisachSum_[idx]+= PSaturated_*evalAnhystPart_normalized(X_norm_unclipped): " << preisachSum_[idx] << std::endl;
+      
+      preisachSum_[idx] /= PSaturated_;
+//      std::cout << "preisachSum_[idx]/= PSaturated_: " << preisachSum_[idx] << std::endl;
+      
       //newY += anhyst_A_*std::atan(anhyst_B_*X_norm_unclipped) + anhyst_C_*X_norm_unclipped;
       newY = preisachSum_[idx]; 
       
@@ -1242,8 +1278,15 @@ namespace CoupledField
       Double X_norm_unclipped = Xin / XSaturated_;
       LOG_DBG(scalpreisachInversion) << "Eval Preisach - Add anhystPart " << evalAnhystPart_normalized(X_norm_unclipped);
       LOG_DBG(scalpreisachInversion) << "for X/norm = " << (X_norm_unclipped);
-      newY += evalAnhystPart_normalized(X_norm_unclipped);
       
+      // 1. scale Preisach sum (till now only hysteretic part) by hystSaturated_
+      // 2. add PSaturated_ * anhystPart
+      // 3. normalize sum to PSaturated_ 
+      newY *= hystSaturated_;      
+      newY += PSaturated_*evalAnhystPart_normalized(X_norm_unclipped);
+      newY /= PSaturated_;
+      
+//      newY += evalAnhystPart_normalized(X_norm_unclipped);
       //newY += anhyst_A_*std::atan(anhyst_B_*X_norm_unclipped) + anhyst_C_*X_norm_unclipped;
     }
     LOG_TRACE(scalpreisachInversion) << "Computed new value: " << newY;

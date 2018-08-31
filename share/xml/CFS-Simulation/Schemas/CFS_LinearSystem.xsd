@@ -308,6 +308,7 @@
         <xsd:attribute name="NumPeriods" type="xsd:float" use="optional" default="5"/>
         <xsd:attribute name="StepsPerPeriod" type="xsd:nonNegativeInteger" use="optional" default="20"/>
         <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="OutputName" type="xsd:token" use="optional" default="---"/>
       </xsd:restriction>
     </xsd:complexContent> 
   </xsd:complexType>    
@@ -319,6 +320,7 @@
         <xsd:attribute name="FileContaining_x_over_steps" type="xsd:token" use="required"/>
         <xsd:attribute name="FileContaining_y_over_steps" type="xsd:token" use="optional"/>
         <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="OutputName" type="xsd:token" use="optional" default="---"/>
       </xsd:restriction>
     </xsd:complexContent> 
   </xsd:complexType>   
@@ -329,6 +331,7 @@
         <xsd:attribute name="AmplitudeScaling" type="xsd:float" use="optional" default="1"/>
         <xsd:attribute name="NumSteps" type="xsd:nonNegativeInteger" use="optional" default="100"/>
         <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="OutputName" type="xsd:token" use="optional" default="---"/>
       </xsd:restriction>
     </xsd:complexContent> 
   </xsd:complexType>  
@@ -357,7 +360,14 @@
         <xsd:element name="WriteInputToFile" type="DT_CFSBool" default="no"/>
         <xsd:element name="WriteResultsToFile" type="DT_CFSBool" default="no"/>
         <xsd:element name="OutputIrrStrains" type="DT_CFSBool" default="no"/>
-        <xsd:element name="MeasurePerformance" type="DT_CFSBool" default="no"/>
+        <xsd:element name="MeasurePerformance">
+          <xsd:complexType>
+            <xsd:all>
+              <xsd:element name="activate" type="DT_CFSBool" default="no"/>
+              <xsd:element name="commonResultFile" type="xsd:token" default="---"/>
+            </xsd:all>
+          </xsd:complexType>
+        </xsd:element>
     </xsd:sequence>
   </xsd:complexType>
   
@@ -410,7 +420,7 @@
       <xsd:element name="HYST_evalDepth" type="xsd:nonNegativeInteger" default="2" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="HYST_testOperator" type="DT_testOperator" minOccurs="0" maxOccurs="1"/>
     </xsd:sequence>
-    <xsd:attribute name="logging" type="DT_CFSBool" use="optional" default="no"/>
+    <xsd:attribute name="logging" type="DT_CFSBool" use="optional" default="yes"/>
   </xsd:complexType>
   
   <!-- ******************************************************************* -->

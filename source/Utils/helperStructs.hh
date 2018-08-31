@@ -63,6 +63,7 @@ namespace CoupledField {
     // weightType = 2 > extended muDat (use muDat parameter in addition)
     Double muDat_h2_;
     Double muDat_sigma2_;
+        
     // weightType = 3 > tensor given
     Matrix<Double> weightTensor_;
     
@@ -70,7 +71,16 @@ namespace CoupledField {
     Double anhysteretic_a_;
     Double anhysteretic_b_;
     Double anhysteretic_c_;
+    Double anhystAtSat_normalized_;
+    int anhysteretic_cInAtan_;
     bool anhystOnly_;
+    bool anhystCountingToOutputSat_;
+    // 0 (default): integrate over all weights, scale down to 1, use outputSat for scaling of Preisach operator
+    // 1 (default for muDat): integrate over all weights, scale down to 1, use preisachSat for scaling of Preisach operator
+    //                        with preisachSat = outputSat*(1.0 - anhystAtSat_normalized_)
+    Double intOverWeights_;
+    
+    
   };
   
 //   ParameterPreisachWeights POL_weightParams_;
@@ -82,6 +92,29 @@ namespace CoupledField {
 //  ParameterInversion LM_inversion_;
 //  InitialInput POL_initial_;
   
+  struct ParameterIrrStrainsAndCoupling {
+    
+    bool couplingDefined_inMatFile_;
+    int strainForm_;
+    bool useStrainForm_;
+    
+    int ci_size_;
+    Matrix<Double> ci_;
+    Double c1_;
+    Double c2_;
+    Double c3_;
+    Double d0_;
+    Double d1_;
+    int irrStrainForm_;
+    Double sSat_;
+    int scaleTosSat_;
+    int paramsForHalfRange_;
+    
+    bool ownHystOperator_;
+    
+  };
+  
+  
   struct ParameterPreisachOperators {
     
     int methodType_; // SCALAR or VECTOR (> CoefFunction::CoefDimType)
@@ -92,8 +125,11 @@ namespace CoupledField {
      */
     Double inputSat_;
     Double outputSat_; // saturation of Polarization or Strains but not of flux!
+    Double preisachSat_; // depends on anhysteretic parameter! 
+    // if anhystCountingToOutputSat_ == false > preisachSat = outputSat = value of preisach operator alone at inputSat
+    // if anhystCountingToOutputSat_ == true > preisachSat = outputSat*(1-anhystAtSat_normalized_)
     bool fieldsAlignedAboveSat_;
-    bool hystOutputRestrictedToSat_;
+    bool hystOutputRestrictedToSat_; // meant is value of preisachSat_ here
     bool hasInverseModel_;
     
     /*

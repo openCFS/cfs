@@ -29,6 +29,8 @@
 
 #include "Utils/SmoothSpline.hh"
 #include "Utils/LinInterpolate.hh"
+#include "Utils/helperStructs.hh"
+
 using std::string;
 using std::map;
 using std::set;
@@ -729,10 +731,15 @@ namespace CoupledField
      *    the classes are loaded in correct order for linker
      */
     // just make dummy calls for linker
-    Matrix<Double> weights = Matrix<Double>(1,1);
-    hyst_ = new Preisach(numElemSD, 1, 1, weights, false);
-    hyst_ = new VectorPreisachSutor_ListApproach(numElemSD, 1, 1, weights, 1, dim_, false, false, 0, 0, 0, 0, 0, false);
-    hyst_ = new VectorPreisachMayergoyz(numElemSD, 2, 1, 1, weights, dim_, false, 0, 0, 0, false, 0);
+    ParameterPreisachOperators operatorParams = ParameterPreisachOperators();
+    ParameterPreisachWeights weightParams = ParameterPreisachWeights();
+    bool isVirgin = false;
+    bool ignoreAnhystPart = false;
+    Integer numElem = 1;
+    
+    hyst_ = new Preisach(numElem,operatorParams,weightParams,isVirgin,ignoreAnhystPart);
+    hyst_ = new VectorPreisachSutor(numElem,operatorParams,weightParams,dim,isVirgin);
+    hyst_ = new VectorPreisachMayergoyz(numElem,operatorParams,weightParams,dim,isVirgin);
     EXCEPTION( "BaseMaterial::InitHyst should not be used anymore" );
 //    
 //    isHystInverse_      = isInverse;
