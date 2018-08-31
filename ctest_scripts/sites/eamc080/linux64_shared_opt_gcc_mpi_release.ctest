@@ -9,7 +9,7 @@
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfs-shared_opt")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/release-shared_opt")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/release-shared_opt-mpi")
 
 include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
