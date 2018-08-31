@@ -16,7 +16,7 @@
 
 
 +++ COMPILE_ALL.sh 
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,19 @@
 +# Local path
 +# Building the ILUPACK libraries
 +# cd svnilupack
@@ -28,6 +28,7 @@
 +cd Shared ; make PLATFORM=$1 ; cd ..
 +# Building the OPENMP library
 +cd OPENMP ; make PLATFORM=$1 ; cd ..
++find . -iname "metis.h" -exec rm -f '{}' \;
 +mkdir -p $2/lib
 +find . -name '*.a' -exec cp -rf {} $2/lib/. \;
 +mkdir -p $2/include
