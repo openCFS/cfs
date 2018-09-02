@@ -786,8 +786,7 @@ void HeatPDE::HeatTransferBC(){
         PtrCoefFct coeffRHS = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor2, bulkTimesAlpha, CoefXpr::OP_MULT ) );
 
         if(isComplex_) {
-          EXCEPTION("Heat transfer BC not yet implemented for complex case");
-          //lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coeffRHS, coefUpdateGeo);
+          lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coeffRHS, coefUpdateGeo);
         } else  {
           lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(), 1.0, coeffRHS, coefUpdateGeo);
         }
