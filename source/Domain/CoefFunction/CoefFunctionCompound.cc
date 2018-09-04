@@ -95,7 +95,7 @@ GetTensor( Matrix<Double>& coefMat, const LocPointMapped& lpm ) {
 
 void CoefFunctionCompound<Double>::
 GetVector( Vector<Double>& coefVec, const LocPointMapped& lpm ) {
-  //assert(this->dimType_ == VECTOR );
+  assert(this->dimType_ == VECTOR );
 
   //assert(this->dimType_ == CoefFunction::VECTOR);
   Vector<Double> pointCoord, locVector;
