@@ -963,6 +963,22 @@ void HeatPDE::DefinePrimaryResults() {
   res1->SetFeFunction(feFunctions_[HEAT_TEMPERATURE]);
   DefineFieldResult( feFunctions_[HEAT_TEMPERATURE], res1 );
 
+  shared_ptr<ResultInfo> res2( new ResultInfo);
+  res2->resultType = HEAT_RMS_TEMPERATURE;
+  res2->dofNames = "";
+  res2->unit = "K";
+  res2->definedOn = ResultInfo::NODE;
+  res2->entryType = ResultInfo::SCALAR;
+  results_.Push_back( res2 );
+  availResults_.insert( res2 );
+  PtrCoefFct tmpReal = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_,feFunctions_[HEAT_TEMPERATURE],CoefXpr::OP_RE ) );
+  DefineFieldResult( tmpReal, res2 );
+//  DefineFieldResult( convecVelCoef_, velocity );
+//  res2->SetFeFunction(feFunctions_[HEAT_TEMPERATURE]);
+//  DefineFieldResult( feFunctions_[HEAT_TEMPERATURE], res2 );
+
+
+
 
   // -----------------------------------
   //  Define xml-names of Dirichlet BCs

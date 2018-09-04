@@ -47,7 +47,7 @@ namespace CoupledField {
     dim_    = ptGrid_->GetDim(); 
 
     isaxi_ = false;
-    isComplex_ = false;
+    isComplex_ = true;
     
     
     infoNode_ = infoNode;
