@@ -251,7 +251,7 @@
                 <!-- a) fixed time / frequency step -->
                 <xsd:element name="constant">
                   <xsd:complexType>
-                    <xsd:attribute name="step" type="xsd:positiveInteger" use="optional" default="1"
+                    <xsd:attribute name="step" type="xsd:integer" use="optional" default="1"
                     />
                   </xsd:complexType>
                 </xsd:element>
