@@ -20,6 +20,7 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/CoefFunction/CoefFunctionMapping.hh"
+#include "Domain/CoefFunction/CoefFunctionComplexToReal.hh"
 #include "Utils/StdVector.hh"
 
 #include "Driver/Assemble.hh"
@@ -962,6 +963,27 @@ void HeatPDE::DefinePrimaryResults() {
   availResults_.insert( res1 );
   res1->SetFeFunction(feFunctions_[HEAT_TEMPERATURE]);
   DefineFieldResult( feFunctions_[HEAT_TEMPERATURE], res1 );
+
+  shared_ptr<ResultInfo> res2( new ResultInfo);
+  res2->resultType = HEAT_MEAN_TEMPERATURE;
+  res2->dofNames = "";
+  res2->unit = "K";
+  res2->definedOn = ResultInfo::NODE;
+  res2->entryType = ResultInfo::SCALAR;
+  results_.Push_back( res2 );
+  availResults_.insert( res2 );
+  //PtrCoefFct tmpReal = CoefFunction::Generate( mp_, Global::REAL, CoefXprUnaryOp( mp_,feFunctions_[HEAT_TEMPERATURE],CoefXpr::OP_RE ) );
+  //DefineFieldResult( tmpReal, res2 );
+  // Define new CoefFunction
+  PtrCoefFct tmpReal = NULL;
+  // Reset it to be a changetype coef
+  tmpReal.reset(new CoefFunctionComplexToReal<Double>(feFunctions_[HEAT_TEMPERATURE], ptGrid_));
+  DefineFieldResult( tmpReal, res2 );
+
+  //  DefineFieldResult( convecVelCoef_, velocity );
+  //  res2->SetFeFunction(feFunctions_[HEAT_TEMPERATURE]);
+  //  DefineFieldResult( feFunctions_[HEAT_TEMPERATURE], res2 );
+
 
 
   // -----------------------------------
