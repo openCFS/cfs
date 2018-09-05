@@ -332,6 +332,7 @@ namespace CoupledField
       // > default
       // clip amplitude to saturation, but such that remanent part is not
       // affected; results seem to be more reasonable than unclipped and clipping 1  
+      // BIG DISADVANTAGE: hard to invert!!!!!
       Double projection = output.Inner(dirInput);
       if((abs(output.NormL2()) > hystSaturated_)&&(dirInput.NormL2() != 0)){
         output.Add(-projection,dirInput);

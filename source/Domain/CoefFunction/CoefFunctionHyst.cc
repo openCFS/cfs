@@ -1189,10 +1189,10 @@ namespace CoupledField {
     material->GetScalar(paramSet.anhysteretic_c_ , MaterialType(PREISACH_WEIGHTS_ANHYST_C+enumOffset), Global::REAL);
     material->GetScalar(paramSet.anhysteretic_cInAtan_ , MaterialType(PREISACH_WEIGHTS_ANHYST_CINATAN+enumOffset));
     
-          std::cout << "anhystA: " << paramSet.anhysteretic_a_ << std::endl;
-      std::cout << "anhystB: " << paramSet.anhysteretic_b_ << std::endl;
-      std::cout << "anhystC: " << paramSet.anhysteretic_c_ << std::endl;
-    
+//          std::cout << "anhystA: " << paramSet.anhysteretic_a_ << std::endl;
+//      std::cout << "anhystB: " << paramSet.anhysteretic_b_ << std::endl;
+//      std::cout << "anhystC: " << paramSet.anhysteretic_c_ << std::endl;
+//    
     int anhystForHalfRange;
     // script for determining muDat parameter uses a Preisach model that is normalized
     // to [-0.5,0.5]; here we use [-1,1] as range instead
@@ -1342,7 +1342,7 @@ namespace CoupledField {
       //    by doing so, outputSat will be the saturation value of the preisach operator AND the scaling factor
       //    for the anhyst part
       paramSet.intOverWeights_ = intOverWeights;
-      std::cout << "intOverWeights_: " << intOverWeights << std::endl;
+//      std::cout << "intOverWeights_: " << intOverWeights << std::endl;
       if(scalingRequired){
         for(UInt i = 0; i < paramSet.numRows_; i++){
           for(UInt k = 0; k < paramSet.numRows_; k++){
@@ -5624,6 +5624,21 @@ namespace CoupledField {
         xVals[i] = POL_operatorParams_.inputSat_*xScal[i]*dir[0];
         yVals[i] = POL_operatorParams_.inputSat_*xScal[i]*dir[1];
       }
+    } else if(name == "RemDrop"){
+      // saturate material with one step, then increase input signal perpendicular up to saturation
+      // similar to "SatX-RemX-SatY" 
+      xVals.Resize(numberOfSteps+1);
+      yVals.Resize(numberOfSteps+1);
+      xVals.Init();
+      yVals.Init();
+      
+      Double maxAmplitude = POL_operatorParams_.inputSat_;
+      xVals[0] = maxAmplitude;
+      
+      Double increase = 1.0/Double(numberOfSteps-1);
+      for(UInt i = 0; i < numberOfSteps; i++){
+        yVals[i+1] = maxAmplitude*i*increase;
+      }   
     } else if(name == "SatX-RemX-SatY"){
       if(numberOfSteps < 8){
         numberOfSteps = 8;
@@ -6398,6 +6413,8 @@ namespace CoupledField {
 			} // testInversion
 			
 			// 3. forward; overwrite this time and measure performance
+      // NOTE: in case of inversion, we set the memory of the system with the RETRIEVED SOLUTION
+      // i.e. if inversion fails, it will also affect the reference solution!
 			overwriteMemory = true;
 			
 			successFlagForward = -1;
@@ -7094,6 +7111,35 @@ namespace CoupledField {
         WriteSignalToFile("SatX-RemX-SatY_input",xVals,yVals);
       }
     }
+    
+    if(InputSignals->Has("RemDrop")){
+      if(InputSignals->Get("RemDrop")->Has("AmplitudeScaling")){
+        InputSignals->Get("RemDrop")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);
+      }
+      if(InputSignals->Get("RemDrop")->Has("NumSteps")){
+        InputSignals->Get("RemDrop")->GetValue("NumSteps",numberOfSteps,ParamNode::PASS);
+      }
+      bool test1D = false;
+      if(InputSignals->Get("RemDrop")->Has("Test1D")){
+        InputSignals->Get("RemDrop")->GetValue("Test1D",test1D,ParamNode::PASS);
+      }
+      std::string outputName = "---";
+      if(InputSignals->Get("RemDrop")->Has("OutputName")){
+        InputSignals->Get("RemDrop")->GetValue("OutputName",outputName,ParamNode::PASS);
+      }
+      if(outputName == "---"){
+        outputName = "RemDrop";
+      }
+      
+      CreateNonPeriodicTestSignal("RemDrop",amplitudeScaling,numberOfSteps,xVals,yVals);
+      TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+      if(writeInputToFile){
+        WriteSignalToFile("RemDrop_input",xVals,yVals);
+      }
+    }
+    
+    
     if(InputSignals->Has("ReadFromFile")){
       if(InputSignals->Get("ReadFromFile")->Has("AmplitudeScaling")){
         InputSignals->Get("ReadFromFile")->GetValue("AmplitudeScaling",amplitudeScaling,ParamNode::PASS);

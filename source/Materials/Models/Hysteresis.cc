@@ -2265,14 +2265,14 @@ namespace CoupledField
               traceMsg << "Remaining residual-norm wrt y: " << errorNormResY << std::endl;
             }
             successFlag = -1;
-            std::cout << "start Sol: " << startSol.ToString() << std::endl;
-            std::cout << "last found Sol: " << xVal.ToString() << std::endl;
-            std::cout << "best found Sol wrt error Norm: " << bestSol.ToString() << std::endl;
-            std::cout << "best found Sol wrt residual Norm: " << bestSolRes.ToString() << std::endl;
-            std::cout << "actual Sol: " << sol.ToString() << std::endl;
-            std::cout << "|jacT*ResX|: " << errorNorm << std::endl;
-            std::cout << "errorNormResX: " << errorNormResX << std::endl;
-            std::cout << "errorNormResY: " << errorNormResY << std::endl;
+//            std::cout << "start Sol: " << startSol.ToString() << std::endl;
+//            std::cout << "last found Sol: " << xVal.ToString() << std::endl;
+//            std::cout << "best found Sol wrt error Norm: " << bestSol.ToString() << std::endl;
+//            std::cout << "best found Sol wrt residual Norm: " << bestSolRes.ToString() << std::endl;
+//            std::cout << "actual Sol: " << sol.ToString() << std::endl;
+//            std::cout << "|jacT*ResX|: " << errorNorm << std::endl;
+//            std::cout << "errorNormResX: " << errorNormResX << std::endl;
+//            std::cout << "errorNormResY: " << errorNormResY << std::endl;
             break;
           }
         }

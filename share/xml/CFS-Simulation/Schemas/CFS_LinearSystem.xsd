@@ -350,6 +350,7 @@
               <xsd:element name="Forc" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
               <xsd:element name="SelfDesigned" type="DT_testInputNonPeriodic" minOccurs="0" maxOccurs="1"/>
               <xsd:element name="SatX-RemX-SatY" type="DT_testInputNonPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="RemDrop" type="DT_testInputNonPeriodic" minOccurs="0" maxOccurs="1"/>
               <xsd:element name="ReadFromFile" type="DT_testInputFile" minOccurs="0" maxOccurs="1"/>
             </xsd:choice>
           </xsd:complexType>

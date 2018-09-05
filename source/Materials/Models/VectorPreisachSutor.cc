@@ -1005,8 +1005,9 @@ namespace CoupledField
     // scale for the case of revised model and rotres < 1
     // in that case the output of the hyst operator is not PSaturated if input is XSaturated
     // as the rotational operator is limited to rotRes (instead of +1)
-    retVec.ScalarMult(PSaturated_/maxOutputVal_);
-    
+    if(classical_ || scaleUpToSaturation_){
+      retVec.ScalarMult(PSaturated_/maxOutputVal_);
+    }
     // new 30.8.2018:
     // if muDat weights and anhyst params are used which were derived by script
     // from M. Loeffler, PSaturated is the overall output value, i.e. Preisach operator + anhyst part
@@ -2643,7 +2644,9 @@ namespace CoupledField
 //    std::cout << "hystSaturated_: " << hystSaturated_ << std::endl;
 //    std::cout << "maxOutputVal_: " << maxOutputVal_ << std::endl;
     // note: maxOutputVal_ is max value WITHOUT anhyst part, i.e. it should be scaled with hystSaturated not PSaturated
-    Yout.ScalarMult(hystSaturated_/maxOutputVal_);
+    if(classical_ || scaleUpToSaturation_){
+      Yout.ScalarMult(PSaturated_/maxOutputVal_);
+    }
     
     // new 30.8.2018:
     // if muDat weights and anhyst params are used which were derived by script

@@ -180,9 +180,9 @@ namespace CoupledField {
     
     static Double evalAnhystPart_normalized_atSaturation(Double anhystA, Double anhystB, Double anhystC, bool cInAtan){
       // anhyst parameter are assumed to be defined for full range i.e. from -1 to +1
-      std::cout << "anhystA: " << anhystA << std::endl;
-      std::cout << "anhystB: " << anhystB << std::endl;
-      std::cout << "anhystC: " << anhystC << std::endl;
+//      std::cout << "anhystA: " << anhystA << std::endl;
+//      std::cout << "anhystB: " << anhystB << std::endl;
+//      std::cout << "anhystC: " << anhystC << std::endl;
       
       if(cInAtan){
         return anhystA*std::atan(anhystB + anhystC);
