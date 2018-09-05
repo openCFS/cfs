@@ -407,8 +407,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
     angle_max = angle[numpy.argmax(numpy.abs(data))]
     angle_min = angle[numpy.argmin(numpy.abs(data))]
 
-    print(" largest entry: {:>13.6e}".format(numpy.max(numpy.abs(data))) + "  in direction " + str(to_vector(angle_max)))
-    print("smallest entry: {:>13.6e}".format(numpy.min(numpy.abs(data))) + "  in direction " + str(to_vector(angle_min)))
+    print(" largest e-modulus: {:>13.6e}".format(numpy.max(numpy.abs(data))) + "  in direction " + str(to_vector(angle_max)))
+    print("smallest e-modulus: {:>13.6e}".format(numpy.min(numpy.abs(data))) + "  in direction " + str(to_vector(angle_min)))
     if len(aux) > 0:
       print("largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux)))
     
@@ -540,6 +540,7 @@ infoXml_read = None
 elem_dim = None
 min_bb = None
 max_bb = None
+elems_in_regions = [[None]]
 
 # check if we read data from command line instead from an h5 file or a info.xml was given
 if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.endswith(".mat"):
@@ -620,7 +621,6 @@ else:
     centers = [[None, None, None]]
     min_bb = [numpy.Inf, numpy.Inf, numpy.Inf]
     max_bb = [-numpy.Inf, -numpy.Inf, -numpy.Inf]
-    elems_in_regions = [[None]]
     for region in f['/Mesh/Regions']:
       reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements = centered_elements(f, region)
       elems_in_regions.append(reg_elements)
