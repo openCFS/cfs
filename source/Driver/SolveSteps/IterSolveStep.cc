@@ -628,7 +628,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
        c->AddCoefFct( list, acc );
      }
      
-     return acc;
+     return coef;
    }
   
   // ========================================================================
@@ -977,7 +977,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       // -----------------------------------
       //  3) Compute Coupling Criterions
       // -----------------------------------
-      normsReached = true;
+      normsReached = (iter>1);
       msg.str(""); // clear logging information stream
       msg << std::setw(width[0]) << "Quantity"
                << std::setw(width[1]) << "Converged"
@@ -997,8 +997,9 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         // Obtain norm
         Double norm = convIt->second->GetNorm();
         normsReached &= convIt->second->Converged();
+        std::string quantityName = SolutionTypeEnum.ToString(convIt->first);
+        LOG_DBG3(itersolvestep) << "Quantity " << quantityName << " :" << norm << std::endl;
         if (nonLinLogging_) {
-          std::string quantityName = SolutionTypeEnum.ToString(convIt->first);
           PtrParamNode itNode =actNode->GetByVal("quantity","name", quantityName)
                   ->Get("iteration",ParamNode::APPEND);
           itNode->Get("count")->SetValue(iter+1);
@@ -1011,8 +1012,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               << std::setw(width[2]) << std::setiosflags(std::ios::scientific) << norm
               << std::setw(width[3]) << std::setiosflags(std::ios::scientific) << convIt->second->GetFinalNorm()
               << std::endl;
-
-          //std::cout << "Quantity " << quantityName << " :" << norm << std::endl;
         }
       }
       iter++;
