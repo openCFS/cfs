@@ -22,9 +22,12 @@
 #include "Filters/Derivatives/TimeDerivFilter.hh"
 #include "Filters/Derivatives/PostLighthillSource.hh"
 #include "SignalProcessing/FftFilter.hh"
+#include "SignalProcessing/FIRFilter.hh"
 #include "SignalProcessing/TimeMeanFilter.hh"
 #include "SignalProcessing/TemporalBlendingFilter.hh"
+#include "Filters/SynteticSources/BaseSNGR.hh"
 #include <boost/tokenizer.hpp>
+#include <cmath>
 #include <Filters/BaseMeshFilterType.hh>
 
 namespace CFSDat{
@@ -37,6 +40,9 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
   else if (filtNode->GetName() == "meshOutput") {
     newPtr = FilterPtr(new CFSDat::OutputFilter(0,filtNode,resMana));
   }
+  else if (filtNode->GetName() == "fir") {
+    newPtr = FilterPtr(new CFSDat::FIRFilter(0,filtNode,resMana));
+  }
   else if (filtNode->GetName() == "timeDeriv1") {
     newPtr = FilterPtr(new CFSDat::TimeDerivFilterD1(0,filtNode,resMana));
   }
@@ -45,6 +51,9 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
   }
   else if (filtNode->GetName() == "postLighthill") {
     newPtr = FilterPtr(new CFSDat::PostLighthillSource(0, filtNode, resMana));
+  }
+  else if (filtNode->GetName() == "syntheticTurbulence_SNGR") {
+    newPtr = FilterPtr(new CFSDat::SNGRFilter(0, filtNode, resMana));
   }
   else if ((filtNode->GetName() == "interpolation") ||
            (filtNode->GetName() == "differentiation") ||
@@ -71,11 +80,12 @@ BaseFilter::BaseFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
             : numWorkers_(numWorkers),
               params_(config){
 
-  std::cout << "\t---> Creating Filter with ID \"" << config->Get("id", CF::ParamNode::EX)->As<std::string>() << "\"" << std::endl;
+  filterId_ = config->Get("id", CF::ParamNode::EX)->As<std::string>();
+  
+  std::cout << "\t---> Creating Filter with ID \"" << filterId_ << "\"" << std::endl;
 
   filtStreamType_ = BaseFilter::NO_STREAM;
   filterTag_ = boost::uuids::random_generator()();
-  filterId_ = config->Get("id", CF::ParamNode::EX)->As<std::string>();
 
   std::string inIds = config->Get("inputFilterIds", CF::ParamNode::EX)->As<std::string>();
 
@@ -109,67 +119,315 @@ BaseFilter::BaseFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_pt
         globalStepValueMap_[start+i+1] = (starttime-startTime_) + (start+i)*delta;
     }
   }
+  // initializing fields for initialization of results
+  initSourceResults_ = 0;
+  initSinkResults_ = 0;
 }
 
-void BaseFilter::InitResults(){
-  std::cout << "\t---> Initializing Filter id " << this->filterId_ << std::endl;
-  //search for results provided by filter itself
-  //deactivate everything which should not go up
-  ExtractFilterResults();
 
+void BaseFilter::InitResults(){
+  if (filtStreamType_ != OUTPUT_FILTER) {
+    EXCEPTION("Function InitResults() should only be called for output filters");
+  }
+  std::cout << "\t---> Initializing Output Filter id " << this->filterId_ << std::endl;
+  InitResultsUpstream();
+}
+
+  
+void BaseFilter::InitResultsUpstream(){
+  std::cout << "\t---> Initializing Filter id " << this->filterId_ << " Upstream " << std::endl;
+  // search for results provided by filter itself
+  ExtractFilterResults();
+  
+  UInt numSinks = sinks_.GetSize();
+  if (numSinks > 0) {
+    initSinkResults_++;
+    if (initSinkResults_ < numSinks) {
+      // here we wait for all requested results to be initialized
+      return;
+    } else if (initSinkResults_ > numSinks) {
+      EXCEPTION("Function InitResultsUpstream() called too often, should not exceed number of downstream filters, maybe a circular dependency occurred");
+    }
+  }
+  //now as all upstream filters have arrived, we go further upstream
+  
+  //check if filter is needed
+  if (filtStreamType_ != OUTPUT_FILTER) {
+    if (!CheckNeeded()) {
+      return;
+    }
+  }
+  
   //obtain results of upstream data
   //and give the implementing filter the possiblity to modify
   upResIds = this->SetUpstreamResults();
 
-  //activate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->ActivateResult(upResIds[aRes]);
+  if (upResIds.GetSize() == 0) {
+    //now we arrived at an upstream end of the pipeline
+    //go downstream again
+    InitResultsDownstream();
+    return;
   }
-
-  //loop over sources
-  for(UInt aSrc=0;aSrc< sources_.GetSize(); aSrc++){
-    sources_[aSrc]->InitResults();
-  }
-
-  //adapt the filter results according to the upstream data
-  AdaptFilterResults();
-
-  //now deactivate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->DeactivateResult(upResIds[aRes]);
-  }
-
-  for(UInt aRes=0;aRes<filterResIds.GetSize();aRes++){
-    resultManager_->ActivateResult(filterResIds[aRes]);
-  }
-}
-
-void BaseFilter::ExtractFilterResults(){
-
-  //in case of multiple output filters, this clear leads to the adding of just the last child filter
-  //visiting the current one during traversal. on first sight, nothing prevents us from just pushing additional results
-  //needs a little bit more thought as this is really a general issue
-  if(filterResIds.GetSize() > 0){
-    std::cout << "WARNING: BaseFilter::ExtractFilterResults() : Filter results are not empty in call to Extract filter results for " << this->filterId_<< std::endl;
-    std::cout << "\t This warning is triggered due to the occurence of multiple child filters. This is not yet validated." << std::endl;
-    std::cout << "\t remove this warning if everything has been proven to be valid!" << std::endl;
-  }
-  //filterResIds.Clear();
-
+  
+  // deactivate remaining results needed from downstream
   std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
   std::set<uuids::uuid>::iterator aIter = activeResults.begin();
   for(; aIter != activeResults.end(); ++aIter){
-    ResultManager::ConstInfoPtr aInfo = resultManager_->GetExtInfo(*aIter);
+    resultManager_->DeactivateResult(*aIter);
+  }
+  // activate upstream results
+  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
+    resultManager_->ActivateResult(upResIds[aRes]);
+  }
+  // Going further upstream
+  for(UInt aSrc=0;aSrc< sources_.GetSize(); aSrc++){
+    sources_[aSrc]->InitResultsUpstream();
+  }
+  // reactivate remaining results needed from downstream
+  aIter = activeResults.begin();
+  for(; aIter != activeResults.end(); ++aIter){
+    resultManager_->ActivateResult(*aIter);
+  }
+}
+
+
+void BaseFilter::ExtractFilterResults(){
+  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
+  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
+  for(; aIter != activeResults.end(); ++aIter){
+    uuids::uuid aId = *aIter;
+    ResultManager::ConstInfoPtr aInfo = resultManager_->GetExtInfo(aId);
     //print_ConstExtInfoFields((*aInfo.get()));
 
     if(filtResNames.find(aInfo->resultName) != filtResNames.end()){
       //only push back the result id once.
-      if(filterResIds.Find(*aIter) == -1){
-        filterResIds.Push_back(*aIter);
+      if(filterResIds.Find(aId) == -1){
+        bool combined = false;
+        for (UInt i = 0; i < filterResIds.GetSize(); i++) {
+          uuids::uuid otherId = filterResIds[i];
+          ResultManager::ConstInfoPtr oInfo = resultManager_->GetExtInfo(otherId);
+          if (aInfo->resultName == oInfo->resultName) {
+            resultManager_->CombineResults(aId,otherId);
+            combined = true;
+            break;
+          }
+        }
+        if (combined) {
+          std::cout << "\t\t Providing and combining result " << aInfo->resultName << std::endl;
+        } else {
+          filterResNameIds[aInfo->resultName] = aId;
+          std::cout << "\t\t Providing result " << aInfo->resultName << std::endl;
+        }
+        filterResIds.Push_back(aId);
       }
-      resultManager_->DeactivateResult(*aIter);
+      resultManager_->DeactivateResult(aId);
     }
   }
 }
 
+
+bool BaseFilter::CheckNeeded() {
+  if (filterResIds.GetSize() == 0){
+    std::cerr << "WARNING: filter " << filterId_ << " is not needed for the requested results. Is this what you want?" << std::endl;
+    return false;
+  }
+  return true;
+}
+
+ResultIdList BaseFilter::SetDefaultUpstreamResults() {
+  std::set<uuids::uuid> allResultIdSet;
+  for (UInt i = 0; i < filterResIds.GetSize(); i++) {
+    allResultIdSet.insert(filterResIds[i]);
+  }
+  ResultIdList resultIds;
+  std::set<std::string>::iterator inItr = upResNames.begin();
+  for (; inItr != upResNames.end(); inItr++) {
+    std::string name = *inItr;
+    uuids::uuid newId = RegisterUpstreamResult(name, filterResIds[0]);
+    resultIds.Push_back(newId);
+  }
+  return resultIds;
+}
+
+
+uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, uuids::uuid downStreamResultId) {
+  return RegisterUpstreamResult(name, 0, 0, downStreamResultId);
+}
+
+
+uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, Integer minOffset, 
+                         Integer maxOffset, uuids::uuid downStreamResultId) {
+  std::set<uuids::uuid> idSet;
+  idSet.insert(downStreamResultId);
+  return RegisterUpstreamResult(name, minOffset, maxOffset, idSet);
+}
+
+uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, std::set<uuids::uuid> downStreamResultIds) {
+  return RegisterUpstreamResult(name, 0, 0, downStreamResultIds);
+}
+
+
+uuids::uuid BaseFilter::RegisterUpstreamResult(std::string name, Integer minOffset, 
+                         Integer maxOffset, std::set<uuids::uuid> downStreamResultIds) {
+  std::cout << "\t\t Requesting Result " << name << std::endl;
+  Integer downStreamMaxStepOffset = GetDownStreamMaxStepOffset(downStreamResultIds);
+  uuids::uuid validDownStreamId = uuids::nil_uuid();
+  std::set<uuids::uuid>::iterator dItr = downStreamResultIds.begin();
+  for (; dItr != downStreamResultIds.end(); dItr++) {
+    uuids::uuid downStreamResultId = *dItr;
+    if (downStreamResultId != uuids::nil_uuid()) {
+      if (filterResIds.Find(downStreamResultId) == -1) {
+        EXCEPTION("RegisterUpstreamResult not called with valid");
+      }
+      validDownStreamId = downStreamResultId;
+    }
+  }
+  uuids::uuid newId = resultManager_->AddResult(name,this->filterTag_,
+                            downStreamMaxStepOffset+minOffset,
+                            downStreamMaxStepOffset+maxOffset);
+  if (validDownStreamId != uuids::nil_uuid()) {
+    CopyTimeLineUpstream(newId, validDownStreamId);
+    //resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(validDownStreamId)->timeLine.get()));
+    //resultManager_->SetTimeLine(newId,resultManager_->GetTimeLine(validDownStreamId));
+  }
+  upResNameIds[name] = newId;
+  return newId;
+}
+
+void BaseFilter::CopyTimeLineUpstream(uuids::uuid upStreamId, uuids::uuid downStreamId) {
+  resultManager_->SetTimeLine(upStreamId,resultManager_->GetTimeLine(downStreamId));
+}
+
+Integer BaseFilter::GetDownStreamMaxStepOffset(std::set<uuids::uuid> downStreamResultIds) {
+  Integer downStreamMaxStepOffset = 0;
+  std::set<uuids::uuid>::iterator dItr = downStreamResultIds.begin();
+  for (; dItr != downStreamResultIds.end(); dItr++) {
+    uuids::uuid downStreamResultId = *dItr;
+    if (downStreamResultId != uuids::nil_uuid()) {
+      if (filterResIds.Find(downStreamResultId) == -1) {
+        EXCEPTION("RegisterUpstreamResult not called with valid");
+      }
+      // here we get the offset of the newest downstream result to be evaluated
+      ResultManager::ConstInfoPtr outInPtr = resultManager_->GetExtInfo(downStreamResultId);
+      downStreamMaxStepOffset = std::max(outInPtr->maxStepOffset,downStreamMaxStepOffset);
+    }
+  }
+  return downStreamMaxStepOffset;
+}
+
+
+void BaseFilter::InitResultsDownstream(){
+  std::cout << "\t---> Initializing Filter id " << this->filterId_ << " Downstream " << std::endl;
+  
+  UInt numSources = sources_.GetSize();
+  if (numSources > 0) {
+    initSourceResults_++;
+    if (initSourceResults_ < numSources) {
+      return;
+    } else if (initSourceResults_ > numSources) {
+      EXCEPTION("Function InitResultsDownstream() called too often, should not exceed number of upstream filters");
+    }
+  }
+  //now as all upstream filters have arrived, we go further downstream
+
+  //adapt the filter results according to the upstream data
+  AdaptFilterResults();
+  
+  //loop over sinks
+  for(UInt aSin=0;aSin< sinks_.GetSize(); aSin++){
+    sinks_[aSin]->InitResultsDownstream();
+  }
+}
+
+bool BaseFilter::Run() {
+  std::set<uuids::uuid> obsoleteResults = ExtractObsoleteResults();
+  if (obsoleteResults.empty()) {
+    return true;
+  }
+  bool success = this->UpdateResults(obsoleteResults);
+  DeactivateUpstreamResults();
+  if (success) {
+    std::set<uuids::uuid>::iterator sIter = obsoleteResults.begin();
+    for (; sIter != obsoleteResults.end(); ++sIter) {
+      resultManager_->SetResultVecUpToDate(*sIter,true);
+    }
+  } else {
+    WARN("Some results needed for " << this->filterId_ << " could not be calculated");
+  }
+  return success;
+}
+  
+bool BaseFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
+  EXCEPTION("Function UpdateResults() called but not implemented for filter");
+  return false;
+}
+
+std::set<uuids::uuid> BaseFilter::ExtractObsoleteResults() {
+  std::set<uuids::uuid> requestedResults;
+  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
+  std::set<uuids::uuid>::iterator actRes = activeResults.begin();
+  for (;actRes != activeResults.end(); actRes++) {
+    if(filterResIds.Find(*actRes) > -1) {
+      if (!resultManager_->IsResultVecUpToDate(*actRes)) {
+        requestedResults.insert(resultManager_->GetMasterResult(*actRes));
+      }
+    }
+  }
+  return requestedResults;
+}
+
+
+void BaseFilter::DeactivateUpstreamResults() {
+  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
+    resultManager_->DeactivateResult(upResIds[aRes]);
+  }
+}
+
+void BaseFilter::PrepareUpstreamResult(uuids::uuid resId) {
+  if (!resultManager_->IsResultVecUpToDate(resId)) {
+    resultManager_->ActivateResult(resId);
+    CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
+    for(; srcIter != sources_.End() ; srcIter++){
+      // should we check here anything for success?
+      (*srcIter)->Run();
+    }
+    if (!resultManager_->IsResultVecUpToDate(resId)) {
+      WARN("Receiving upstream result " << resultManager_->GetResultName(resId) << " did not work");
+    }
+  }
+}
+
+
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template CF::Vector<Double>& BaseFilter::GetOwnResultVector(uuids::uuid, CF::StdVector<UInt>&);
+  template CF::Vector<Complex>& BaseFilter::GetOwnResultVector(uuids::uuid, CF::StdVector<UInt>&);
+  template CF::Vector<Double>& BaseFilter::GetOwnResultVector(uuids::uuid);
+  template CF::Vector<Complex>& BaseFilter::GetOwnResultVector(uuids::uuid);
+
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double, CF::StdVector<UInt>&);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double, CF::StdVector<UInt>&);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer, CF::StdVector<UInt>&);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer, CF::StdVector<UInt>&);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, CF::StdVector<UInt>&);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, CF::StdVector<UInt>&);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Double);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid, Integer);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(uuids::uuid);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(uuids::uuid);
+  
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Double, CF::StdVector<UInt>&);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Double, CF::StdVector<UInt>&);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Integer, CF::StdVector<UInt>&);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Integer, CF::StdVector<UInt>&);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, CF::StdVector<UInt>&);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, CF::StdVector<UInt>&);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Double);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Double);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string, Integer);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string, Integer);
+  template CF::Vector<Double>& BaseFilter::GetUpstreamResultVector(std::string);
+  template CF::Vector<Complex>& BaseFilter::GetUpstreamResultVector(std::string);
+#endif
 }

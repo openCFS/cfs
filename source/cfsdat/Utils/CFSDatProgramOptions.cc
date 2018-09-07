@@ -178,7 +178,7 @@ void CFSDatProgramOptions::GetHeaderString(std::ostream & out)
         << " (rev " << CFS_WC_REVISION << ")" << std::endl
         << " compiled " << __DATE__
         << " as " << CMAKE_BUILD_TYPE << std::endl
-        << " CFSDat routines use " << CoupledField::NUM_CFS_THREADS << " threads for this run" << std::endl;
+        << " CFSDat routines use " << CoupledField::CFS_NUM_THREADS << " threads for this run" << std::endl;
     out << "============================================================"
         << "==========="
         << std::endl << std::endl;

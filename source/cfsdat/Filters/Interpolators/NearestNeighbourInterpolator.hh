@@ -46,9 +46,10 @@ public:
 
   virtual ~NearestNeighbourInterpolator();
 
-  virtual bool Run();
-
 protected:
+
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
+  
 /*
   //! Count the number of entities, which are used for the interpolation
   CF::UInt CountUsedEntities(const StdVector<CF::UInt>& entities);
@@ -113,6 +114,9 @@ private:
   //! Boolean, which stores the binary input from xml-file, if we
   //! perform a mesh-check. If mesh-check is set in xml-> mCheck = true
   bool mCheck_;
+
+  //! if true, then element values are the interpolation target
+  bool useElemAsTarget_;
 
   //! for the mesh-check this mesh also needs to be stored, trgGrid_ is
   //! stored in MeshFilter

@@ -18,6 +18,13 @@ import argparse
 import copy
 from scipy.interpolate import interp1d
 
+# this is for TW to suppress annying 
+#value_data = vtk.util.numpy_support.numpy_to_vtk(tmp_element_data_arr, deep=True)
+#/usr/lib64/python3.6/site-packages/vtk/util/numpy_support.py:137: FutureWarning: Conversion of the second argument of issubdtype from `complex` to `np.complexfloating` is deprecated. In future, it will be treated as `np.complex128 == np.dtype(complex).type`.
+#  assert not numpy.issubdtype(z.dtype, complex), \
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 try:
   from matviz_vtk import *
 except:
@@ -37,42 +44,49 @@ def dof(val):
     return 1
   if val == 'z':
     return 2
+  print(val)
   assert(False)
 
 # 'x' and 'y' -> 'z' 
 def flip_dof(dof1, dof2):
   
   if dof1 == 0:
+    assert(dof2 == 1 or dof2 == 2)
     if dof2 == 1:
       return 2
     else:
       return 1
 
   if dof1 == 1:
+    assert(dof2 == 0 or dof2 == 2)
     if dof2 == 2:
       return 0
     else:
       return 2
 
   if dof1 == 2:
+    assert(dof2 == 0 or dof2 == 1)
     if dof2 == 0:
       return 1
     else:
       return 0
   
   if dof1 == 'x':
+    assert(dof2 == 'y' or dof2 == 'z')
     if dof2 == 'y':
       return 'z'
     else:
       return 'y'
 
   if dof1 == 'y':
+    assert(dof2 == 'x' or dof2 == 'z')
     if dof2 == 'z':
       return 'x'
     else:
       return 'z'
 
   if dof1 == 'z':
+    assert(dof2 == 'x' or dof2 == 'y')
     if dof2 == 'x':
       return 'y'
     else:
@@ -80,10 +94,23 @@ def flip_dof(dof1, dof2):
 
   assert(False)
 
+# for 3D gives the third dof
+def missing_dof(dof1, dof2):
+  assert(dof1 == 0 or dof1 == 1 or dof1 == 2)
+  assert(dof2 == 0 or dof2 == 1 or dof2 == 2)
+  assert(dof1 != dof2)
+  if dof1 == 0:
+    return 1 if dof2 == 2 else 2
+  if dof1 == 1:
+    return 0 if dof2 == 2 else 2
+  if dof1 == 2:
+    return 1 if dof2 == 0 else 0
+  assert(False)
+
 def create_figure(res, minimal, maximal):
 
   dpi_x = res / 100.0 
-  
+
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_x))
   ax = fig.add_subplot(111)
   ax.set_xlim(min(0,minimal[0]), max(1,maximal[0]))
@@ -108,12 +135,36 @@ def find_shape_by_dof(shapes, dof):
       res.append(s)  
   return res     
 
-
+# transforms ids from 0 to 6 to color codes 'b' to 'k'. Only for matplotlib, not for vtk!
+def matplotlib_color_coder(id):
+  id = id % 6
+  if id == 0:
+    return 'b'  
+  if id == 1:
+    return 'g'  
+  if id == 2:
+    return 'r'  
+  if id == 3:
+    return 'c'  
+  if id == 4:
+    return 'm'  
+  if id == 5:
+    return 'y'  
+  if id == 6:
+    return 'k'
+  assert(id <= 6)  
+  
   
 class Shape: 
-  def __init__(self, id, dof):
+  def __init__(self, id, dof, dof_b = None, scale = [1.0,1.0,1.0], ref = None):
     self.id = id
+    # legacy shape have no ref yet
+    self.ref = ref
     self.dof = dof
+    self.dof_b = dof_b
+
+    self.scale = scale
+    # the element number
     self.el = []
     # node variable a. For 3D there is also b
     self.a = []
@@ -121,25 +172,13 @@ class Shape:
     self.b = []
     self.profile = []
     self.valid = [] # only necessary for image import
-    if id == 0:
-      self.color = 'b'  
-    if id == 1:
-      self.color = 'g'  
-    if id == 2:
-      self.color = 'r'  
-    if id == 3:
-      self.color = 'c'  
-    if id == 4:
-      self.color = 'm'  
-    if id == 5:
-      self.color = 'y'  
-    if id == 6:
-      self.color = 'k'
-    assert(id <= 6)  
+    # the color is in matplotlib code ('b', ...) transform for vtk
+    self.color = matplotlib_color_coder(id)  
   
   # print the shape info
   def __str__(self):
-    return "id=" + str(self.id) + " dof=" + str(self.dof) + " color=" + self.color + " #el=" + str(len(self.el)) + " el=" + str(self.el)
+    return "id=" + str(self.id) + " dof=" + str(self.dof) + " dof_b=" + str(self.dof_b) \
+         + " color=" + self.color + " #el=" + str(len(self.el)) + " #b=" + str(len(self.b)) + " el=" + str(self.el)
 
   # shape info for a given index
   def to_string(self, idx):
@@ -148,6 +187,8 @@ class Shape:
   #@return x, y for center point a
   def get_center(self, idx):   
     free = idx * float(1./(len(self.el)-1))
+    # fails for 3D!!!
+    free *= self.scale[1-self.dof]
     val  = self.a[idx]
     # this is the a middle line
     x = free if self.dof == 1 else val
@@ -172,33 +213,33 @@ class Shape:
 
   # return the coordinates for both profile nodes
   #@return x1,y1,x2,y2
-  def get_profiles(self, idx, profile_factor):
+  def get_profiles(self, idx):
     x,y = self.get_center(idx)
     if self.dof == 0:
-       return x - profile_factor * self.profile[idx], y, x + profile_factor * self.profile[idx], y
+       return x - self.profile[idx], y, x + self.profile[idx], y
     else:    
-      return x, y - profile_factor * self.profile[idx], x, y + profile_factor * self.profile[idx]   
+      return x, y - self.profile[idx], x, y + self.profile[idx]   
       
   # return the line coordinates for the profile
   #@param left (True) or right (False)
-  def get_profile(self, idx_1, idx_2, left, profile_factor):
+  def get_profile(self, idx_1, idx_2, left):
     x_val = []
     y_val = []
 
     x,y = self.get_center(idx_1)
     if self.dof == 0:
-      x += (-1.0 if left else +1.0) * profile_factor* self.profile[idx_1]
+      x += (-1.0 if left else +1.0) * self.profile[idx_1]
     else:    
-      y += (-1.0 if left else +1.0) * profile_factor * self.profile[idx_1]  
+      y += (-1.0 if left else +1.0) * self.profile[idx_1]  
     
     x_val.append(x)
     y_val.append(y)
     
     x,y = self.get_center(idx_2)
     if self.dof == 0:
-      x += (-1.0 if left else +1.0) * profile_factor * self.profile[idx_2]
+      x += (-1.0 if left else +1.0) * self.profile[idx_2]
     else:    
-      y += (-1.0 if left else +1.0) * profile_factor * self.profile[idx_2]  
+      y += (-1.0 if left else +1.0) * self.profile[idx_2]  
     
     x_val.append(x)
     y_val.append(y)
@@ -323,7 +364,7 @@ def read_legacy_xml(filename, set, profile):
       d = dof(el.get('dof'))
       node = el.get('type') == 'node' or el.get('type') == None
       if node: 
-        shapes.append(Shape(id = len(shapes), dof=d))
+        shapes.append(Shape(id = len(shapes), dof=d, ref = len(shapes)))
         curr = shapes[-1]
       else:
         # we have a profile, hence search the corresponding shape
@@ -350,39 +391,50 @@ def read_legacy_xml(filename, set, profile):
 
 # reads 2D and 3D s
 def read_xml(xml, set, profile):
+  # find scaling assuming equal mesh sizing
+  nx, ny, nz = read_mesh_info_xml(xml)
+  scale = [1.0, float(ny)/nx, float(nz)/nx] # nz=1 ignored in 2D 
+  
   shapes = []
-
   sq = 'last()' if not set else '@id="' + str(set) + '"'
-  list = xml.xpath('//set[' + sq + ']/shapeParamElement[@ref="0"]')
+  ref = 0 # the current ref id to read the shape from, incremented at end of loop
+  query = '//set[' + sq + ']/shapeParamElement[@ref="' + str(ref) + '"]'
+  list = xml.xpath(query) 
   while list:
     # we do not know yet if we are 2D or 3D. For 3D center nodes, the there are two nodes dof the the shape dof is the third by definition
     first_dof = dof(list[0].get('dof')) # might change
     first_shape = int(list[0].get('shape'))
-    shape = Shape(id = len(shapes), dof = first_dof)
-    for el in list:
+    shape = Shape(id = len(shapes), dof = first_dof, scale = scale, ref = ref)
+    for idx, el in enumerate(list):
       nr = int(el.get('nr'))
-      v =  float(el.get('design'))
-      d = dof(dof(el.get('dof')))
-      s = int(el.get('shape'))
-      t = el.get('type')
+      v  = float(el.get('design'))
+      s  = int(el.get('shape'))
+      t  = el.get('type')
       
       if s == first_shape:
         shape.a.append(v)
         shape.el.append(nr)
+        # works currently only for 2D. This is the running coordinate
+        print(idx/len(list))
+        
       else:
         if t == 'node':
+          d  = dof(el.get('dof'))
           assert(d != first_dof)
-          shape.dof = flip_dof(first_dof, d) # done everytime but who cares ...
+          shape.dof_b = d # done everytime but who cares ...
           shape.b.append(v)
         else:
-          shape.profile.append(v) 
+          shape.profile.append(v if not profile else profile) 
           shape.valid.append(True) # not really necessary    
 
     # print(len(shape.a), len(shape.b), len(shape.profile))
     assert(len(shape.a) == len(shape.profile))
     assert(len(shape.b) == 0 or len(shape.b) == len(shape.a)) # 3D case
+    assert((len(shape.b) == 0 and shape.dof_b is None) or (len(shape.b) > 0 and shape.dof_b is not None))
     shapes.append(shape)
-    list = xml.xpath('//set[' + sq + ']/shapeParamElement[@ref="' + str(len(shapes)) + '"]')
+    
+    ref += 1 if len(shape.b) == 0 else 2 
+    list = xml.xpath('//set[' + sq + ']/shapeParamElement[@ref="' + str(ref) + '"]')
 
   return shapes   
 
@@ -394,7 +446,7 @@ def resample(shapes, resample):
   new_space = np.linspace(0, 1.0, num=resample+1, endpoint=True)
 
   for o in shapes:
-     s = Shape(o.id, o.dof)
+     s = Shape(o.id, o.dof, ref = o.ref)
      s.el = list(range(len(res) * (resample+1), (len(res)+1) * (resample+1)))
      v = interp1d(org_space, o.a, kind='cubic')
      s.a = v(new_space)
@@ -404,6 +456,123 @@ def resample(shapes, resample):
      res.append(s)
 
   return res   
+
+
+## create 2D data from 3D data. Removes all shapes with z-orientation.
+# assumes values for dof_a and dof_b=z to be the same 
+# in the sym case the forst shape is drwan four times in 2D
+def downscale(shapes, mode):
+  assert mode == 'straight' or mode == 'sym'
+  assert len(shapes) > 0
+  assert len(shapes[0].b) > 0
+  
+  res = []
+  base_el = 0
+  if mode == 'straight':
+    for org in shapes:
+      assert org.dof is not None and org.dof_b is not None
+      if org.dof == 2 or org.dof_b == 2: # skip case with orientation z
+        s = Shape(len(res), org.dof if org.dof != 2 else org.dof_b, ref=len(res))
+        s.el = list(range(base_el, base_el + len(org.el)))
+        base_el += len(org.el)
+        s.a  = org.a if org.dof != 2 else org.b
+        s.profile = org.profile
+        res.append(s)
+    if len(res) == 0:
+      print('downscaling removed all ', len(shapes), ' shapes. Apparently all were with z-orientation.')
+      sys.exit()    
+  else:
+    assert mode == 'sym'    
+    assert len(shapes) == 12 # not really a necessary 
+    org = shapes[0]
+    n = len(org.el)
+    
+    s = Shape(0, dof=org.dof, ref=0)
+    s.el = list(range(0, n))
+    s.a  = org.a  
+    s.profile = org.profile
+    res.append(s)
+
+    s = Shape(1, dof=org.dof, ref=1)
+    s.el = list(range(n, 2*n))
+    s.a  = 1-numpy.array(org.a)  
+    s.profile = org.profile
+    res.append(s)
+
+    s = Shape(2, dof=1 if org.dof == 0 else 0, ref=2)
+    s.el = list(range(2*n, 3*n))
+    s.a  = org.a  
+    s.profile = org.profile
+    res.append(s)
+
+    s = Shape(3, dof=1 if org.dof == 0 else 0, ref=3)
+    s.el = list(range(3*n, 4*n))
+    s.a  = 1-numpy.array(org.a)  
+    s.profile = org.profile
+    res.append(s)
+
+  return res   
+
+## create 3D data from 2D data. Meant for square symmetry
+# this makes 3d center node shapes with second shape of dof=z and same values
+def upscale(shapes, mode):
+  assert mode == 'straight' or mode == 'sym'
+  assert len(shapes) > 0
+  assert len(shapes[0].b) == 0
+  assert shapes[0].dof == 0 or shapes[0].dof == 1
+  
+  res = []
+  
+  if mode == 'straight':
+    for org in shapes:
+      s = Shape(len(res), org.dof, dof_b=2, ref=len(res))
+      s.el = org.el
+      s.a  = org.a
+      s.b  = org.a # we copy the same information
+      s.profile = org.profile
+      #s.valid = org.valid
+      res.append(s)
+  else: # sym    
+    assert(len(shapes) == 4)
+    org = shapes[0]
+    n = len(org.el)
+    assert org.el == list(range(0,n))
+    upscale_3d_sym_block(org, res, org.dof, 2)
+    upscale_3d_sym_block(org, res, missing_dof(org.dof, 2), 2)
+    upscale_3d_sym_block(org, res, org.dof, missing_dof(org.dof, 2))
+  return res
+
+def upscale_3d_sym_block(org, res, dof_a, dof_b):
+  n = len(org.el)
+  s = Shape(len(res), dof_a, dof_b=dof_b, ref=len(res))
+  el_base = 0 if len(res) == 0 else res[-1].el[-1] + n + 1
+
+  s.el = list(range(el_base,el_base+n))
+  s.a  = org.a
+  s.b  = org.a
+  s.profile = org.profile
+  res.append(s)
+  
+  s = Shape(len(res), dof_a, dof_b=dof_b, ref=len(res))
+  s.el = list(range(el_base+2*n,el_base+3*n)) # first shape has elemes for a and b
+  s.a  = 1-numpy.array(org.a)  
+  s.b  = org.a
+  s.profile = org.profile
+  res.append(s)
+    
+  s = Shape(len(res), dof_a, dof_b=dof_b, ref=len(res))
+  s.el = list(range(el_base+4*n,el_base+5*n)) # first shape has elemes for a and b
+  s.a  = org.a  
+  s.b  = 1-numpy.array(org.a)
+  s.profile = org.profile
+  res.append(s)
+     
+  s = Shape(len(res), dof_a, dof_b=dof_b, ref=len(res))
+  s.el = list(range(el_base+6*n,el_base+7*n)) # first shape has elemes for a and b
+  s.a  = 1-numpy.array(org.a)
+  s.b  = 1-numpy.array(org.a)
+  s.profile = org.profile
+  res.append(s)
 
 # searches for data (< 128) within a 1D line
 # returns tupes with center and profile in meters (assume unit cube!)
@@ -567,7 +736,7 @@ def import_from_image(filename, resample, repair):
   return shapes
     
 # creates a matplotlib figure     
-def plot_data(res, shapes, profile_factor, unit):
+def plot_data(res, shapes, unit):
   # find extreme bounds to also visualize negative node positions
   minimal = [0.0]*2
   maximal = [1.0]*2
@@ -590,10 +759,10 @@ def plot_data(res, shapes, profile_factor, unit):
       fig.gca().add_artist(c)
       
     for i in range(0,n-1):
-      x1, y1 = shape.get_profile(i, i+1, True, profile_factor) # left      
+      x1, y1 = shape.get_profile(i, i+1, True) # left      
       l = plt.Line2D(x1,y1, marker='.', color=shape.color)        
       sub.add_line(l)
-      x2, y2 = shape.get_profile(i, i+1, False, profile_factor) # right          
+      x2, y2 = shape.get_profile(i, i+1, False) # right          
       l = plt.Line2D(x2,y2, marker='.', color=shape.color)                                    
       sub.add_line(l)
       
@@ -604,7 +773,7 @@ def plot_data(res, shapes, profile_factor, unit):
   return fig, sub
 
 # create vtk polydata tesselation
-def create_2d_vtk(shapes, profile_factor):
+def create_2d_vtk(shapes):
   # create vtk cells and points
   points = vtk.vtkPoints()
   cells = vtk.vtkCellArray()
@@ -615,7 +784,7 @@ def create_2d_vtk(shapes, profile_factor):
     last_center = points.InsertNextPoint(cx, cy, 0.0)
   
     # last (-1) 'left' and 'right' profile nodes
-    xl, yl, xr, yr = shape.get_profiles(0, profile_factor)
+    xl, yl, xr, yr = shape.get_profiles(0)
     last_left = points.InsertNextPoint(xl, yl, 0.0)
     last_right = points.InsertNextPoint(xr, yr, 0.0)
   
@@ -626,7 +795,7 @@ def create_2d_vtk(shapes, profile_factor):
       this_center = points.InsertNextPoint(cx, cy, 0.0)
   
       # this 'left' and 'right' profile nodes
-      xl, yl, xr, yr = shape.get_profiles(i, profile_factor)
+      xl, yl, xr, yr = shape.get_profiles(i)
       this_left = points.InsertNextPoint(xl, yl, 0.0)
       this_right = points.InsertNextPoint(xr, yr, 0.0)
     
@@ -671,77 +840,166 @@ def create_2d_vtk(shapes, profile_factor):
 
   return polydata
 
+
+# helper for export
+def ShapeParamElementXML(out, type, dof_val, id, ref, elnr, design):
+   assert(type == 'node' or type == 'profile')
+   assert(len(elnr) > 0)
+   assert(len(design) == len(elnr))
+   for i in range(len(elnr)):  
+     out.write('    <shapeParamElement nr="' + str(elnr[i]) + '" type="' + type + '"') 
+     if dof_val is not None:
+       out.write(' dof="' + dof(dof_val) + '"')
+     out.write(' shape="' + str(id) + '" ref="' + str(ref) + '"')
+     out.write(' design="' + str(design[i]) + '"/>\n')
+   
 def export(shapes, filename, suppress_profile):
+  d2 = len(shapes[0].b) == 0
   out = open(filename, "w")
   out.write('<?xml version="1.0"?>\n')
   out.write('<cfsErsatzMaterial>\n')
   out.write('  <header>\n')
-  nx = len(shapes[0].a) - 1
-  out.write('    <mesh x="' + str(nx) + '" y="' + str(nx) + '" z="1"/>\n')  
+  nx = len(shapes[0].a) - 1 # todo! this can be done exactly!
+  ny = nx # todo! this can be done exactly!
+  nz = 1 if d2 else nx # todo! this can be done exactly!
+  out.write('    <mesh x="' + str(nx) + '" y="' + str(ny) + '" z="' + str(nz) + '"/>\n')  
   out.write('  </header>\n')
   out.write('  <set id="shape_map.py">\n')
   # <shapeParamElement nr="0" type="node" dof="x" design="0.3"/>
   for shape in shapes:
-    for i in range(len(shape.a)):  
-      out.write('    <shapeParamElement nr="' + str(shape.el[i]) + '" type="node" dof="' + dof(shape.dof) + '" design="' + str(shape.a[i]) + '"/>\n')
+    if d2:
+      ShapeParamElementXML(out, 'node', shape.dof, shape.id, shape.ref, shape.el, shape.a)
+    else:
+      ShapeParamElementXML(out, 'node', shape.dof, 2*shape.id, 2*shape.ref, shape.el, shape.a)
+      b_el = list(numpy.array(shape.el) + len(shape.el))
+      ShapeParamElementXML(out, 'node', shape.dof_b, 2*shape.id+1, 2*shape.ref, b_el, shape.b)
   if not suppress_profile:
-    base = shapes[-1].el[-1]+1
+    el_base = shapes[-1].el[-1]+1 + ( 0 if d2 else len(shape.el)) # successive elements are already taken by the last b-shape   
     for shape in shapes:
-      for i in range(len(shape.a)):  
-        out.write('    <shapeParamElement nr="' + str(base + shape.el[i]) + '" type="profile" dof="' + dof(shape.dof) + '" design="' + str(shape.profile[i]) + '"/>\n')
-        
-           
+      # also 3D has only one profile
+      ref = shape.ref if d2 else 2*shape.ref
+      id  = (1 if d2 else 2) * shapes[-1].id + shape.id + (1 if d2 else 2)
+      ShapeParamElementXML(out, 'profile', None, id, ref, list(el_base + numpy.array(range(0, len(shape.el)))), shape.profile)
+      el_base += len(shape.el)
   out.write('  </set>\n')
   out.write(' </cfsErsatzMaterial>\n')
+  print("saved '" + filename + "'")
+
+
+##see also sketch_tool.py  
+def abaqus(shapes, filename):
+  for shape in shapes:
+    n = len(shape.a)
+    assert len(shape.profile) == n
+    
+    for i in range(n):
+      
+    
+    
+      ShapeParamElementXML(out, 'node', shape.dof, shape.id, shape.ref, shape.el, shape.a)
+
+
+# small permutation helper
+#@param pm the indices define from where to take the value
+def permutate(pm, v0, v1, v2):  
+  assert(len(pm) == 3)
+  v = [v0, v1, v2]
+  #print('permutate: pm=',pm, '(',v0,v1,v2,') -> ',v[pm[0]], v[pm[1]], v[pm[2]]) 
+  return (v[pm[0]], v[pm[1]], v[pm[2]])
+  
   
 ## creates a 3d vtk polydate from a shape
-#@param res how fine to resolve a circle  
-def create_3d_vtk(shape, res):
+#@param res how fine to resolve a circle, shall be even!
+def create_3d_vtk_shape(shape, res):
   assert(len(shape.a) == len(shape.b) == len(shape.profile))
+  assert(res % 2 == 0)
+
+  # here we assume a cylinder standing on the xy plane, growing in the z-direction
+  # this needs to permutated when we store the actual nodal coordinates
+  pm = None
+  if shape.dof == 0 and shape.dof_b == 1: # this is the assumed case xy
+    pm = [0, 1, 2] 
+  if shape.dof == 1 and shape.dof_b == 0: # yx plane, could be probably be same as above
+    pm = [1, 0, 2] 
+  if shape.dof == 0 and shape.dof_b == 2: # xz plane
+    pm = [0, 2, 1]
+  if shape.dof == 2 and shape.dof_b == 0: # zx plane
+    pm = [1, 2, 0]
+  if shape.dof == 1 and shape.dof_b == 2: # yz plane
+    pm = [2, 0, 1]
+  if shape.dof == 2 and shape.dof_b == 1: # zy plane
+    pm = [2, 1, 0]
+  
   # centers points
   ns = len(shape.a)
   z = np.linspace(0,1,ns)
-
   l = np.linspace(0,2*np.pi, res)
 
-  points = vtk.vtkPoints()
+  points = []
+  
   for s in range(ns-1):
     b = s*2*res # base
     c1x = shape.a[s] + shape.profile[s] * np.cos(l)
     c1y = shape.b[s] + shape.profile[s] * np.sin(l)
     c2x = shape.a[s+1] + shape.profile[s+1] * np.cos(l)
     c2y = shape.b[s+1] + shape.profile[s+1] * np.sin(l)
-    for r in range(res):
-      points.InsertPoint(b + 2*r, c1x[r], c1y[r], z[s])
-      points.InsertPoint(b + 2*r+1, c2x[r], c2y[r], z[s+1])
-
-    cell = vtk.vtkCellArray()
-  
-  cell.InsertNextCell(2*(ns-1)*res) # number of points
-  for i in range(2*(ns-1)*res):
-    cell.InsertCellPoint(i)
     
-  poly = vtk.vtkPolyData()
-  poly.SetPoints(points)  
-  poly.SetStrips(cell)
+    for r in range(res):
+      points.append(permutate(pm, c1x[r], c1y[r], z[s]))
+      points.append(permutate(pm, c2x[r], c2y[r], z[s+1]))
+      # points.append((c1x[r], c1y[r], z[s]))
+      # points.append((c2x[r], c2y[r], z[s+1]))
   
-  return poly
+  cells = []
+  for s in range(ns-1):
+    b = s*2*res # base
+    for r in range(res):
+      id1 = b + 2*r   # base line start
+      id2 = b + 2*r+1 # upper line start
+      id3 = (s+1)*2*res + 2*r # base line end
+      id4 = (s+1)*2*res + 2*r+1 # upper line end
+      cells.append((id1, id3, id2))
+      cells.append((id3, id4, id2))
+    
+  cells = []
+  for d in range(int(len(points)/4)):
+    cells.append((4*d+0, 4*d+2, 4*d+1))  
+    cells.append((4*d+2, 4*d+1, 4*d+3))
+    if (d < int(len(points)/4)-1):
+      cells.append((4*d+2, 4*d+4, 4*d+3))
+      cells.append((4*d+4, 4*d+5, 4*d+3))
+    
+  poly = fill_vtk_polydata(points, cells)
+
+  # setup the color scalar
+  color = vtk.vtkUnsignedCharArray()
+  color.SetNumberOfComponents(3)
+  color.SetName("color")
+  for c in range(len(cells)):
+    color.InsertNextTuple3(0, 0, shape.id)  
+  poly.GetCellData().SetScalars(color)
+  
+  return poly  
+
   
 # __name__ is 'shape_map' if imported or '__main__' if run as commandline tool
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument("input", help="a .density.xml or .grad.plot file or a image")
   parser.add_argument("--set", help="set nr within a .density.file", type=int)
-  parser.add_argument("--profile", help="give the profile if it is not in input", type=float)
-  parser.add_argument("--half_profile", help="lecay files have a doubled profile value. This corrects this", action='store_true')
+  parser.add_argument("--profile", help="give the profile if it is not in input or to overwrite", type=float)
+  parser.add_argument("--scale_profile", help="legacay files have a doubled profile value. Scale them by .5", type=float)
   parser.add_argument('--resample', help="resample to this resolution", type=int)
   parser.add_argument('--repair', help="interpolate unsure data (when parsing from image)", action='store_true')
   parser.add_argument('--symmetrize', help="mirror on x-axis", action='store_true')
+  parser.add_argument('--transform', help="transforms 2D <-> 3D. 'sym' assumes square/cubic symmetry", choices=['straight','sym'])
   parser.add_argument('--export', help="write a density.xml file with shapeParam variables")
   parser.add_argument('--suppress_profile', help="do not export profile", action='store_true')
   parser.add_argument('--unbounded', help="do not restrict the visualization on a unit square", action='store_true')
-  parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps or even vtp!")
+  parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps, vtp")
+  parser.add_argument('--abaqus', help="write 2D data as abaqus sketch python script fragment to given filename")
   parser.add_argument('--noshow', help="don't show the image", action='store_true')
+  parser.add_argument('--nooutline', help="don't show outline of the design domain for 3D", action='store_true')
   args = parser.parse_args()
   
   if not os.path.exists(args.input):
@@ -749,7 +1007,7 @@ if __name__ == '__main__':
     os.sys.exit()
   
   shapes = []
-  if args.input.endswith('.xml') or args.input.endswith('.plot'):
+  if args.input.endswith('.xml') or args.input.endswith('.xml.gz') or args.input.endswith('.plot'):
     shapes = read_file(args.input, args.set, args.profile)
     if args.resample:
       shapes = resample(shapes, args.resample)  
@@ -758,35 +1016,59 @@ if __name__ == '__main__':
   
   print('average profile is ' + str(1.0/len(shapes) * sum([ s.average_valid_profile() for s in shapes])))
     
+  if args.scale_profile:
+    for s in shapes:
+      s.profile = list(args.scale_profile * numpy.array(s.profile))  
+    
   if args.symmetrize:
     symmetrize(shapes)  
+  
+  if args.transform:
+    if len(shapes[0].b) == 0:
+      shapes = upscale(shapes, args.transform)
+    else:
+      shapes = downscale(shapes, args.transform)
   
   if args.export:  
     export(shapes, args.export, args.suppress_profile)
 
   # do we do 3d? 
   d3 = len(shapes[0].b) > 0
-
+  
+  if args.abaqus:
+    if d3:
+      print('abaqus export only for 2D')
+      os.sys.exit(1)
+    abaqus(args.abaqus)   
+  
   # vtp generation exclusivly triggerd by saving an vtp file
   if d3 or (args.save and args.save.endswith('.vtp')):
     poly = None
     if d3:
-      assert(len(shapes) == 1)
-      poly = create_3d_vtk(shapes[0], 100)
-      assert(not args.save)
+      ap = vtk.vtkAppendPolyData()
+      for shape in shapes:
+        poly = create_3d_vtk_shape(shape, 26)
+        ap.AddInputData(poly)
+      if not args.nooutline:
+        ap.AddInputData(generate_outline_box([1,1,1], [0,0,0])) # make smarter if you need it  
+      ap.Update()
+      poly = ap.GetOutput()
     else:
-      poly = create_2d_vtk(shapes,  1.0 if not args.half_profile else .5)
+      poly = create_2d_vtk(shapes)
+    if args.save:
       show_write_vtk(poly,800,args.save)
     if not args.noshow:
-      show_vtk(poly,800,show_edges=True if d3 else True) # show edges
+      show_vtk(poly,800,show_edges=True if d3 else False) 
   else:
-    fig, sub = plot_data(800, shapes, 1.0 if not args.half_profile else .5, not args.unbounded)
+    fig, sub = plot_data(800, shapes, not args.unbounded)
     if args.save:
       print("write '" + args.save + "'")
       fig.savefig(args.save)
-    elif not args.noshow:
+    if not args.noshow:
       fig.show()
       input("Press Enter to terminate.")
+      
+      
 else:
   #f = 'shape_map_3d.density.xmp'
   #print(f)
@@ -796,6 +1078,6 @@ else:
   #fig.show()
   import vtk
   from matviz_vtk import *
-  poly = create_3d_vtk()
+  poly = create_3d_vtk_shape()
   #show_write_vtk(poly, 200, 'polydata.vtp')
   show_vtk(poly, 800)

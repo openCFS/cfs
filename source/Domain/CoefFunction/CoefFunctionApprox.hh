@@ -1,7 +1,6 @@
 #ifndef FILE_COEFFUNCTION_APPROX_HH
 #define FILE_COEFFUNCTION_APPROX_HH
 
-#include <boost/tr1/type_traits.hpp>
 #include "CoefFunction.hh"
 #include "FeBasis/FeFunctions.hh"
 

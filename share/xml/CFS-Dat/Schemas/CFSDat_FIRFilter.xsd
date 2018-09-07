@@ -1,0 +1,69 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Parameter file schema for the Coupled Field Data processing
+      project CFS-Dat
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
+  
+  <!-- ******************************************************************** -->
+  <!-- Data type for first time derivative -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_FIRFilter">
+    <xsd:complexContent mixed="true">
+      <xsd:extension base="DT_BaseFilter">
+        <xsd:sequence>
+          <xsd:element name="coefficients" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>Filter coefficients devided by blank or comma.</xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+               <xsd:simpleContent>
+                 <xsd:extension base="xsd:token">
+                   <xsd:attribute name="offset" type="xsd:token" default="center" use="optional">
+                     <xsd:annotation>
+                       <xsd:documentation>Offset for the filter (or stencil type) can either be 'center', 'forward' or 'backward', or a number which gives the offset for the filter coefficients</xsd:documentation>
+                     </xsd:annotation>
+                   </xsd:attribute>
+                 </xsd:extension>
+               </xsd:simpleContent>
+             </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="singleResult">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="inputQuantity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="outputQuantity">
+                  <xsd:complexType>
+                    <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>          
+        </xsd:sequence>
+        <xsd:attribute name="upsampling" type="xsd:integer" use="optional"/>
+        <xsd:attribute name="downsampling" type="xsd:integer" use="optional"/>
+        <xsd:attribute name="inputFilterIds" use="required" type="xsd:token">
+          <xsd:annotation>
+            <xsd:documentation> Space separated Ids for the input filter. Creates a connection between
+              the filter with the given id and the current filter. Will be ignored for input filters.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+</xsd:schema>

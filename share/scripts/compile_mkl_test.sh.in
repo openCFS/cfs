@@ -42,6 +42,7 @@ MKL_INT main() {
 echo "SOLVER = dss_sym_c" > solverc.lst
 
 cat $MKL_SOLVERMAKEFILE > makefile.orig
+
 cat $MKL_SOLVERMAKEFILE | \
   sed "s|CC = [gi]cc|CC = $CC|" | \
   sed "s|COMPILER = [gi]cc|COMPILER = $CC|" | \

@@ -54,8 +54,11 @@ class BaseTimeScheme{
      *   \param[out]rhsVec OutputVector
      *   \param[in] subIdx not used right now, preparing for local time stepping
     */
-    virtual void ComputeStageRHS(UInt actStage, Integer derivId, SingleVector* rhsVec, Integer subIdx=-1)=0;
+    virtual void ComputeStageRHS(UInt actStage, Integer derivId, SingleVector* rhsVec, Integer subIdx=-1,bool forceIncremental=false)=0;
 
+    virtual void UpdateStageRHSWithVector(UInt actStage, Integer derivId, SingleVector* rhsVec,
+                                 SingleVector* UpdateVector, Double factor, bool forceReset = false)=0;
+    
     /// Update function called at the end of the solvestep
     virtual void FinishStep()=0;
 
@@ -112,6 +115,10 @@ class BaseTimeScheme{
     /// Give the timestep the possibility to initialize
     virtual void InitStage(UInt aStage,Double aTime,Domain* domain)=0;
 
+    virtual bool isIncremental()=0;
+
+    virtual void forceIncremental()=0;
+    
   protected:
 
     /// Current time derivative order of the solution

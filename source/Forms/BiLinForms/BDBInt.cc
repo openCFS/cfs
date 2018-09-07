@@ -16,7 +16,11 @@
 // 
 // =====================================================================================
 #include "BDBInt.hh"
+#include "Domain/Domain.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
+
 
 DECLARE_LOG(bdbint)
 DEFINE_LOG(bdbint, "bdbint")
@@ -58,6 +62,13 @@ namespace CoupledField{
   {
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
+
+    // for optimization we cache the local element matrices, e.g. to speed up assembly and apply
+    // ersatz material design parametrization directly on the elements
+    if(domain->HasDesign())
+      if(domain->GetDesign()->ApplyPhysicalDesignElementMatrix<MAT_DATA_TYPE>(this, elemMat, ptElem))
+        return;
+
     MAT_DATA_TYPE fac(0.0);
 
     // Obtain FE element from feSpace and integration scheme
@@ -81,11 +92,15 @@ namespace CoupledField{
     // Loop over all integration points
     LocPointMapped lp;
     // if MSFEM get Element Matrix from material catalog
-    if(domain->GetDesign() != NULL && domain->GetDesign()->designMaterial != NULL && domain->GetDesign()->getDesignMaterialType() == domain->GetDesign()->designMaterial->MSFEM_C1) {
-      lp.Set( intPoints[0], esm, weights[0] );
-      dData_->GetMsfemElementMatrix(dynamic_cast <Matrix<Double> &> (elemMat),lp);
-      LOG_DBG3(bdbint) << "BDB elemMatrix=" << ptElem->elemNum << " == "<< lp.ptEl->elemNum<<" elemMat=" << elemMat.ToString();
-      return;
+    if(domain->HasDesign() && domain->GetDesign()->DoMSFEM())
+    {
+      lp.Set( intPoints[0], esm, weights[0]);
+      // it would be nicer to have a separate MS-FEM call
+      if(domain->GetDesign()->ApplyPhysicalDesign<MAT_DATA_TYPE>(dynamic_pointer_cast<CoefFunctionOpt>(dData_), elemMat, &lp))
+      {
+        LOG_DBG3(bdbint) << "BDBInt: MS-FEM elem=" << ptElem->elemNum << " == "<< lp.ptEl->elemNum << " elemMat=" << elemMat.ToString();
+        return;
+      }
     }
     const UInt numIntPts = intPoints.GetSize();
     for( UInt i = 0; i < numIntPts; i++  )
@@ -99,8 +114,9 @@ namespace CoupledField{
       // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString(2);
 
       // Calculate D-Mat
+   //   std::cout << "Integration point " << i << " of " << numIntPts << std::endl;
       dData_->GetTensor(dMat_,lp);
-      assert(dMat_.IsSymmetric(1e-8) > 0);
+      assert(dMat_.IsSymmetric(1e-8));
       // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " dMat=" << dMat_.ToString(2);
 
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
@@ -117,7 +133,7 @@ namespace CoupledField{
       elemMat += TransposeConjugate(bMat_) * dbMat_ * factor_;
 #endif
 
-      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " elemMat=" << elemMat.ToString(2);
+      LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " elemMat=" << elemMat.ToString(2);
     }
 
     // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " dbMat=" << dbMat_.ToString();

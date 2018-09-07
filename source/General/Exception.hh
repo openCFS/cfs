@@ -8,13 +8,24 @@
 
 namespace CoupledField {
 
+
+ /** this creates an exception and add filename and line number */
  #define EXCEPTION(STR){                                          \
     std::ostringstream ostr;                                      \
     ostr << STR;                                                  \
     CoupledField::Exception ex__(NULL, __FILE__, __LINE__, ostr.str().c_str()); \
     throw ex__;                                                   \
   }
-    
+
+/** this creates an exception without filename and line number */
+#define PLAIN_EXCEPTION(STR){                          \
+   std::ostringstream ostr;                           \
+   ostr << STR;                                       \
+   CoupledField::Exception ex__(ostr.str().c_str());  \
+   throw ex__;                                        \
+ }
+
+
  #define RETHROW_EXCEPTION(REASON, STR){                               \
     std::ostringstream ostr;                                           \
     ostr << STR;                                                       \
@@ -72,7 +83,7 @@ namespace CoupledField {
     Exception( const Exception& exc ) throw ();
 
     //! Destructor
-    virtual ~Exception() throw();
+    virtual ~Exception();
 
     //! Set callback method for exceptions
     static void SetCallbackEx(boost::function<void (Exception& x)> cb );

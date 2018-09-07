@@ -24,6 +24,8 @@
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 
+#include "Utils/Timer.hh"
+
 namespace CoupledField {
 
 // declare logging stream
@@ -119,6 +121,11 @@ namespace CoupledField {
       return;
     }
 
+    // defining the graph can be expensive. Most expensive are (ordered by cost):
+    // - AlgebraicSys::GraphSetupDone()
+    // - Assemble::SetupMatrixGraph()
+    shared_ptr<Timer> timer = myInfo_->Get(ParamNode::HEADER)->Get("graph_setup/timer")->AsTimer();
+    timer->Start();
 
     // ==============================================
     //   DEFINE GRAPH AND SBM BLOCKS
@@ -250,6 +257,8 @@ namespace CoupledField {
     // finish the assembly of the matrix graph
     algsys_->GraphSetupDone();
 
+    timer->Stop();
+
     // create matrices and solver object, if PDE is not direct coupled
     CreateMatrices_Solver();
 
@@ -380,16 +389,16 @@ namespace CoupledField {
 
     //do the same for RHS
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator rFncIt= this->rhsFeFunctions_.begin();
-    while(rFncIt != this->rhsFeFunctions_.end()){
-      rFncIt->second->ApplyLoads();
-      rFncIt++;
+    while(rFncIt != this->rhsFeFunctions_.end()) {
+    	rFncIt->second->ApplyLoads();
+    	rFncIt++;
     }
   }
 
   // **********
   // Hysteresis
   // **********
-  void StdPDE::SetPreviousHystVals(bool setNextToLastTS){
+  void StdPDE::SetPreviousHystVals(bool setNextToLastTS, bool forceMemoryLock){
     if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
         //set current values to previous values for hysteresis operator
         //needed for the next time step
@@ -399,88 +408,40 @@ namespace CoupledField {
           /*
            * Note: If locked = true, overwrite = false
            */
-          it->second->SetPreviousHystVals(setNextToLastTS);
+          it->second->SetPreviousHystVals(setNextToLastTS, forceMemoryLock);
         }
      }
   }
 
-  void StdPDE::SetFlagInCoefFncHyst(std::string flagName,bool newState){
+  void StdPDE::SetFlagInCoefFncHyst(std::string flagName, Integer newState){
+
     if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
         //set current values to previous values for hysteresis operator
         //needed for the next time step
         std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
         std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-          /*
-           * Note: If locked = true, overwrite = false
-           */
-          it->second->SetFlag(flagName,newState);
+
+        if(flagName == "outputDebugInfos"){
+          for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+            /*
+             * Note: If locked = true, overwrite = false
+             */
+            std::cout << it->second->ToString() << std::endl;
+          }
+        } else {
+          // set flag with with the corresponding flagname
+          for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+            /*
+             * Note: If locked = true, overwrite = false
+             */
+            it->second->SetFlag(flagName,newState);
+          }
         }
-     }
+     } else {
+			// check for coupled case if one of the pdes is hysteretic
+			//if(){}
+		 }
   }
-
-  void StdPDE::LockUnlockHystMemory(bool locked){
-    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
-        //set current values to previous values for hysteresis operator
-        //needed for the next time step
-        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
-        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-          /*
-           * Note: If locked = true, overwrite = false
-           */
-          it->second->setOverwrite(!locked);
-        }
-     }
-  }
-
-
-  void StdPDE::LockUnlockHystDirection(bool locked){
-    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
-        //set current values to previous values for hysteresis operator
-        //needed for the next time step
-        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
-        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-          /*
-           * Note: If locked = true, overwrite = false
-           */
-          it->second->setOverwriteDirection(!locked);
-        }
-     }
-  }
-
-  void StdPDE::UseNextToLastTSForDeltaMat(bool useNextToLastTS){
-    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
-        //set current values to previous values for hysteresis operator
-        //needed for the next time step
-        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
-        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-          /*
-           * Note: If active = true, deltaComputation shall be true
-           */
-          it->second->setUseNextToLastTS(useNextToLastTS);
-        }
-     }
-  }
-
-
-  void StdPDE::ActivateDeactivateDeltaMat(bool active){
-    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
-        //set current values to previous values for hysteresis operator
-        //needed for the next time step
-        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
-        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-        for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-          /*
-           * Note: If active = true, deltaComputation shall be true
-           */
-          it->second->setDeltaComputation(active);
-        }
-     }
-  }
-
 } // end of namespace
 
 

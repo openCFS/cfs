@@ -77,9 +77,9 @@
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
 #include "DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh"
 #ifndef __MINGW32__
-#ifndef __INTEL_COMPILER
+//#ifndef __INTEL_COMPILER
 #include "DataInOut/SimInOut/Streaming/SimOutputStreaming.hh"
-#endif
+//#endif
 #endif
 
 #include "DataInOut/ParamHandling/XMLMaterialHandler.hh"
@@ -275,7 +275,8 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     actNode->GetValue( "gridId", gridId, ParamNode::PASS );
     gridIds[actId] = gridId;
     
-    std::cout << "++ Creating " << actFormat << " writer with ID '" << actId << "'" << std::endl;
+    if(!progOpts->IsQuiet())
+      std::cout << "++ Creating " << actFormat << " writer with ID '" << actId << "'" << std::endl;
     out[actId]  = CreateSingleOutputFileObject(simName,actNode,infoNode,restart);
 
   } // loop over reader nodes
@@ -560,12 +561,12 @@ shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(std::string
   }
 
 #ifndef __MINGW32__
-#ifndef __INTEL_COMPILER
+// #ifndef __INTEL_COMPILER
   if (fFormat == "streaming")
   {
     aOutput = shared_ptr<SimOutput> (new SimOutputStreaming(configNode, infoNode, isRestart));
   }
-#endif
+// #endif
 #endif
 
   return aOutput;

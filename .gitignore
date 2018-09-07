@@ -4,7 +4,6 @@
 /.settings
 /CTestConfig.cmake
 /compile
-ctest_scripts/sites/lse34/logs
 /debug
 /icc
 /iccdebug
@@ -19,3 +18,6 @@ share/doc/developer/makedoc.sh
 share/doc/user/makedoc.sh
 share/scripts/IdentifyFortranCompiler.s
 /valgrind
+rel*
+streamviz_memlog*
+__pycache__/

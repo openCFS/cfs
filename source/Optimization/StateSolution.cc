@@ -80,7 +80,7 @@ StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int 
 
   assert(timestep_mode == -1 || Optimization::manager.any().eigenvalue); // add transient
 
-  if(data_.Capacity() == 0)
+  if(data_.GetCapacity() == 0)
   {
     ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization());
     assert(em != NULL);
@@ -111,8 +111,8 @@ StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int 
     return found[0];
 
   // we need to add one
-  if(data_.GetSize() >= data_.Capacity()) // We may not re-map the data as we might have returned pointers to the content before
-    EXCEPTION("StateContainer capacity " << data_.Capacity() << " turned out to be too small");
+  if(data_.GetSize() >= data_.GetCapacity()) // We may not re-map the data as we might have returned pointers to the content before
+    EXCEPTION("StateContainer capacity " << data_.GetCapacity() << " turned out to be too small");
 
   data_.Resize(data_.GetSize() + 1);
   StateSolution& state = data_.Last();

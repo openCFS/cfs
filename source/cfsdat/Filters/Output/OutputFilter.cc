@@ -37,10 +37,12 @@ OutputFilter::~OutputFilter(){
 }
 
 bool OutputFilter::Run(){
+  /**
   ResultIdList::iterator rIter = upResIds.Begin();
   for(; rIter != upResIds.End() ; rIter++){
-    resultManager_->SetTimeValue(*rIter,aStepIter_->second);
+    resultManager_->SetStepValue(*rIter,aStepIter_->second);
     resultManager_->ActivateResult(*rIter);
+    std::cout << " activate result " << std::endl;
   }
 
   CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
@@ -48,7 +50,7 @@ bool OutputFilter::Run(){
     // should we check here anything for success?
     (*srcIter)->Run();
   }
-
+**/
 /*  // Filter Start value offset
   //determine global step value map
   PtrParamNode stepNode = params_->GetParent()->Get("stepValueDefinition");
@@ -61,19 +63,22 @@ bool OutputFilter::Run(){
   }*/
 
   //lets write results if they are valid
-  rIter = upResIds.Begin();
+  ResultIdList::iterator rIter = upResIds.Begin();
+//  rIter = upResIds.Begin();
   bool allsuccess = true;
   for(; rIter != upResIds.End() ; rIter++){
     //if(resultManager_->IsResultVecUpToDate(*rIter)){
       if(resultManager_->GetExtInfo(*rIter)->isMeshResult){
-        ResultManager::ConstResPtr cRes = resultManager_->GetResultAdapter(*rIter);
         StdVector< str1::shared_ptr<BaseResult> > cResVec = resultManager_->GetBaseResultVector(*rIter);
         CF::StdVector<UInt> eqnVec;
 
         outFile_->BeginStep(aStepIter_->first,aStepIter_->second); //Add step values and time line in output file
 
         if(resultManager_->GetExtInfo(*rIter)->dType == ExtendedResultInfo::COMPLEX){
-          Vector<Complex> & fullVec = resultManager_->GetResultVector<Complex>(*rIter,eqnVec);
+          Vector<Complex> & fullVec = GetUpstreamResultVector<Complex>(*rIter,aStepIter_->second,eqnVec);
+          if (!resultManager_->IsResultVecUpToDate(*rIter)) {
+            break;
+          }
           //now we loop over the result array and copy the values according to
           for(UInt aRe = 0; aRe < cResVec.GetSize(); ++aRe){
 
@@ -88,7 +93,7 @@ bool OutputFilter::Run(){
             //obtain region equations
             std::string regName = cResVec[aRe]->GetEntityList()->GetName();
             CF::RegionIdType rId = resultManager_->GetExtInfo(*rIter)->ptGrid->GetRegion().Parse(regName);
-            cRes->mapping->GetRegionEquations(eqnVec,rId);
+            resultManager_->GetEqnMap(*rIter)->GetRegionEquations(eqnVec,rId);
             resVec.Resize(eqnVec.GetSize()); //TODO
             for(UInt aEq = 0; aEq<eqnVec.GetSize();++aEq){
               resVec[aEq] =  fullVec[eqnVec[aEq]];
@@ -96,7 +101,10 @@ bool OutputFilter::Run(){
             outFile_->AddResult(cResVec[aRe]);
           }
         }else{
-          Vector<Double> & fullVec = resultManager_->GetResultVector<Double>(*rIter,eqnVec);
+          Vector<Double> & fullVec = GetUpstreamResultVector<Double>(*rIter,aStepIter_->second,eqnVec);
+          if (!resultManager_->IsResultVecUpToDate(*rIter)) {
+            break;
+          }
           //now we loop over the result array and copy the values according to
           for(UInt aRe = 0; aRe < cResVec.GetSize(); ++aRe){
 
@@ -111,8 +119,8 @@ bool OutputFilter::Run(){
             //obtain region equations
             std::string regName = cResVec[aRe]->GetEntityList()->GetName();
             CF::RegionIdType rId = resultManager_->GetExtInfo(*rIter)->ptGrid->GetRegion().Parse(regName);
-            cRes->mapping->GetRegionEquations(eqnVec,rId);
-            resVec.Resize(eqnVec.GetSize()); //TODO
+            resultManager_->GetEqnMap(*rIter)->GetRegionEquations(eqnVec,rId);
+            resVec.Resize(eqnVec.GetSize());
             for(UInt aEq = 0; aEq<eqnVec.GetSize();++aEq){
               resVec[aEq] =  fullVec[eqnVec[aEq]];
             }
@@ -129,10 +137,9 @@ bool OutputFilter::Run(){
       }
 
   }
+  
   //now deactivate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->DeactivateResult(upResIds[aRes]);
-  }
+  DeactivateUpstreamResults();
 
   ++aStepIter_;
   //check for last step
@@ -143,29 +150,29 @@ bool OutputFilter::Run(){
 }
 
 ResultIdList OutputFilter::SetUpstreamResults(){
-  ResultIdList generated;
+  // check for global step values
+  bool hasGlobalStepvalues = globalStepValueMap_.size() > 0;
+  CF::StdVector<Double> globalStepValues;
+  if (hasGlobalStepvalues) {
+    globalStepValues.Reserve(globalStepValueMap_.size());
+    std::map<UInt,Double>::iterator sIter = globalStepValueMap_.begin();
+    for (;sIter != globalStepValueMap_.end();++sIter) {
+      globalStepValues.Push_back(sIter->second);
+    }
+  }
+
   //determine requested results
   //loop over paramnode
+  ResultIdList generated;
   ParamNodeList saveList = params_->Get("saveResults")->GetList("result");
-
   for(UInt aRes = 0; aRes < saveList.GetSize(); ++aRes){
     PtrParamNode rNode = saveList[aRes];
     std::string resultName = rNode->Get("resultName")->As<std::string>();
-    //std::string defOn = rNode->Get("defOn")->As<std::string>();
     upResNames.insert(resultName);
-    uuids::uuid newId = resultManager_->AddResult(resultName,this->filterTag_);
+    uuids::uuid newId = RegisterUpstreamResult(resultName, uuids::nil_uuid());
     resultManager_->SetAsOutputResult(newId,true);
-
-    if(globalStepValueMap_.size()>0){
-      CF::StdVector<Double> stepValues;
-      stepValues.Reserve(globalStepValueMap_.size());
-//      CF::StdVector<UInt> stepNumbers(globalStepValueMap_.size());
-      std::map<UInt,Double>::iterator sIter = globalStepValueMap_.begin();
-      for(;sIter != globalStepValueMap_.end();++sIter){
-        stepValues.Push_back(sIter->second);
-//        stepNumbers.Push_back(sIter->first);
-      }
-      resultManager_->SetTimeLine(newId,stepValues);
+    if (hasGlobalStepvalues) {
+      resultManager_->SetTimeLine(newId,globalStepValues);
     }
     generated.Push_back(newId);
   }

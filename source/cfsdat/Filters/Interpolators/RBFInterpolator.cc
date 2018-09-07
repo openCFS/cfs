@@ -43,6 +43,8 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
   numNW_ = 13;
   noSlip_ = false;
   if(config->Has("noSlipWall")){noSlip_ = true;}
+  useElemAsTarget_ = false;
+  if(params_->Has("useElemAsTarget")){useElemAsTarget_ = params_->Get("useElemAsTarget")->As<bool>();}
 
 }
 
@@ -50,38 +52,13 @@ RBFInterpolator::~RBFInterpolator(){
 
 }
 
-bool RBFInterpolator::Run(){
-  // we deactivate every result, except for our own
-  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
-  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
-
-  for(; aIter != activeResults.end(); ++aIter){
-    if(filterResIds.Find(*aIter) == -1){
-      WARN(" There are still active results when reaching the interpolation filter. This indicates an unexpected use of the pipeline.")
-    }
-    resultManager_->DeactivateResult(*aIter);
-  }
-  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
-  resultManager_->SetTimeValue(upResIds[0],aTF);
-  // now we deactivate our own result and activate the others
-  resultManager_->ActivateResult(upResIds[0]);
-
-  //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-  for(; srcIter != sources_.End() ; srcIter++){
-    // should we check here anything for success?
-    (*srcIter)->Run();
-  }
-
-
-  CF::StdVector<UInt> eqnNums;
-
-  /// this is the vector, which will be filled with the interpolation result
-  Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
-  returnVec.Init();
+bool RBFInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
+  /// this is the vector, which will be filled with the result
+  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
+  Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
 
   // vector, containing the source data values
-  Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
 
 
   Matrix& matrix = matrices_[matrixIndex_];
@@ -95,14 +72,6 @@ bool RBFInterpolator::Run(){
 
   RBFInterpolation(returnVec, inVec, numEquPerEnt_, targetSource, targetSourceIndex, targetRBFInv, targetSourceFactor, targetSourceFactor2, maxNumTrgEntities);
 
-
-  resultManager_->ActivateResult(filterResIds[0]);
-
-  //now deactivate own upstream results
-  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
-    resultManager_->DeactivateResult(upResIds[aRes]);
-  }
-
   return true;
 }
 
@@ -110,7 +79,7 @@ bool RBFInterpolator::Run(){
 CF::UInt RBFInterpolator::CountUsedEntities(const StdVector<CF::UInt>& entities) {
   const CF::UInt size = entities.GetSize();
   CF::UInt numEntities = 0;
-#pragma omp parallel for reduction(+:numEntities) num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for reduction(+:numEntities) num_threads(CFS_NUM_THREADS)
   for(CF::UInt inEnt = 0; inEnt < size; inEnt++) {
     if (entities[inEnt] != UnusedEntityNumber) {
       numEntities++;
@@ -138,7 +107,7 @@ void RBFInterpolator::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>
       grid->GetNodesByName(regEntities, *sRegIter);
     }
     const UInt size = regEntities.GetSize();
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt eIter = 0; eIter < size; ++eIter) {
       CF::UInt entityNumber = regEntities[eIter];
       entities[map->GetEntityIndex(entityNumber)] = entityNumber;
@@ -197,6 +166,12 @@ void RBFInterpolator::PrepareCalculation(){
   std::cout << "\n\t\t Interpolation prepared!" << std::endl;
 }
 
+//TODO prepare entities
+//void RBFInterpolator::PrepareEntities(){
+//
+//}
+
+
 void RBFInterpolator::PreparePATCH(){
   std::cout << "\t ---> RBFInterpolator preparing for interpolation" << std::endl;
 
@@ -204,7 +179,7 @@ void RBFInterpolator::PreparePATCH(){
   uuids::uuid upRes = upResIds[0];
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
-  scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
+  scrMap_ = resultManager_->GetEqnMap(upRes);
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
   bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
 
@@ -216,7 +191,7 @@ void RBFInterpolator::PreparePATCH(){
     numNN_ = numSrcEntities;
   }
 
-  trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
+  trgMap_ = resultManager_->GetEqnMap(filterResIds[0]);
 
 
   interpolators_.Push_back(this);
@@ -232,7 +207,8 @@ void RBFInterpolator::PreparePATCH(){
   const CF::UInt numTrgEntities = CountUsedEntities(globTrgEntity);
 
   std::cout << "\t\t\t Interpolator is dealing with " << numSrcEntities <<
-               " source " << (inElems ? "elements" : "nodes") << " and "<< numTrgEntities << " target nodes" << std::endl;
+               " source " << (inElems ? "elements" : "nodes") << " and "<< numTrgEntities << " target "
+               << (useElemAsTarget_ ? "elements" : "nodes") << std::endl;
 
   std::cout << "\t\t 3/4 Creating search tree " << std::endl;
   std::vector<CF::UInt> indices;
@@ -295,7 +271,12 @@ void RBFInterpolator::PreparePATCH(){
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) { // Loop over the Target points
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
-      trgGrid_->GetNodeCoordinate3D(globCoords[trgEnt], globEntityNumber);
+      if(useElemAsTarget_){
+        trgGrid_->GetElemCentroid(globCoords[trgEnt], globEntityNumber,true);
+      } else {
+        trgGrid_->GetNodeCoordinate3D(globCoords[trgEnt], globEntityNumber);
+      }
+
     }
   }
 
@@ -436,7 +417,7 @@ void RBFInterpolator::PrepareCGAL(){
   uuids::uuid upRes = upResIds[0];
   inGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
-  scrMap_ = resultManager_->GetResultAdapter(upRes)->mapping;
+  scrMap_ = resultManager_->GetEqnMap(upRes);
   numEquPerEnt_ = scrMap_->GetNumEqnPerEnt();
   bool inElems = inInfo->definedOn == ExtendedResultInfo::ELEMENT;
 
@@ -448,7 +429,7 @@ void RBFInterpolator::PrepareCGAL(){
     numNN_ = numSrcEntities;
   }
 
-  trgMap_ = resultManager_->GetResultAdapter(filterResIds[0])->mapping;
+  trgMap_ = resultManager_->GetEqnMap(filterResIds[0]);
 
 
   interpolators_.Push_back(this);
@@ -464,7 +445,8 @@ void RBFInterpolator::PrepareCGAL(){
   const CF::UInt numTrgEntities = CountUsedEntities(globTrgEntity);
 
   std::cout << "\t\t\t Interpolator is dealing with " << numSrcEntities <<
-               " source " << (inElems ? "elements" : "nodes") << " and "<< numTrgEntities << " target nodes" << std::endl;
+               " source " << (inElems ? "elements" : "nodes") << " and "<< numTrgEntities << " target "
+               << (useElemAsTarget_ ? "elements" : "nodes") << std::endl;
 
   std::cout << "\t\t 3/4 Creating search tree " << std::endl;
   std::vector<Point_3> points;
@@ -520,7 +502,7 @@ void RBFInterpolator::PrepareCGAL(){
   }
 
 
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(CF::UInt trgEnt = 0; trgEnt < maxNumTrgEntities; trgEnt++) {
     StdVector<CF::Double> srcDist;
     srcDist.Resize(numNN_);
@@ -528,7 +510,11 @@ void RBFInterpolator::PrepareCGAL(){
     CF::UInt globEntityNumber = globTrgEntity[trgEnt];
     if (globEntityNumber != UnusedEntityNumber) {
       CF::Vector<Double> pCoord;
-      trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
+      if(useElemAsTarget_){
+        trgGrid_->GetElemCentroid(pCoord, globEntityNumber,true);
+      } else {
+        trgGrid_->GetNodeCoordinate3D(pCoord, globEntityNumber);
+      }
       Point_3 query(pCoord[0],pCoord[1],pCoord[2]);
       Distance tr_dist;
 //TODO do not know why but it calls the get(..) method from NearstNeighbourInterpolator, altough there is one defined here...
@@ -616,21 +602,7 @@ Double RBFInterpolator::DistanceEUCLID(CF::Vector<Double> p1, CF::Vector<Double>
 }
 
 ResultIdList RBFInterpolator::SetUpstreamResults(){
-  ResultIdList generated;
-  //we should only have one filter Result
-  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
-  std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
-
-  //add input result to manager
-  std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
-  uuids::uuid newId = resultManager_->AddResult(inRes,this->filterTag_);
-
-  //set the timeline of upstream data if already set
-  resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
-  generated.Push_back(newId);
-
-  return generated;
-
+  return SetDefaultUpstreamResults();
 }
 
 void RBFInterpolator::AdaptFilterResults(){
@@ -655,7 +627,13 @@ void RBFInterpolator::AdaptFilterResults(){
 
   //after this filter we have nodal values on different regions
   //on a different grid
-  resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  if(useElemAsTarget_){
+    resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::ELEMENT);
+  } else {
+    resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  }
+
+
   resultManager_->SetGrid(filterResIds[0],this->trgGrid_);
   resultManager_->SetMeshResult(filterResIds[0],true);
 

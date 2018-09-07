@@ -19,7 +19,6 @@
 #include <cmath>
 
 #include "CoefFunction.hh"
-#include <boost/tr1/type_traits.hpp>
 #include "Utils/mathParser/mathParser.hh"
 
 
@@ -35,6 +34,7 @@ public:
     ReflectionCoefficient = 1e-3;
     functionType = NO_TYPE;
     DampFactor = 1.0;
+    constFactor =1.0;
   }
 
   virtual ~DampFunction() {};
@@ -261,8 +261,13 @@ public:
   }
 
   virtual bool IsComplex(){
-    return std::tr1::is_same<T,Complex>::value;
+    return std::is_same<T,Complex>::value;
   }
+
+  std::string ToString() const {
+      std::string out = "CoefFunctionPML";
+      return out;
+  };
 
 protected:
     //void ComputeDampingFactor( Vector<Double>& factors,

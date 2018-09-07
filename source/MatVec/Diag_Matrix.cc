@@ -208,30 +208,6 @@ namespace CoupledField {
     EXCEPTION("Implement me");
   }
 
-
-  // **************
-  //   GetMaxDiag
-  // **************
-  template<typename T>
-  Double Diag_Matrix<T>::GetMaxDiag() const {
-
-
-    double maxDiag = 0;
-    double current = 0;
-    UInt i;
-
-    for ( i = 0; i < this->nrows_; i++ ) {
-
-      // use an opType to ensure that tiny matrices
-      // are treated correctly
-      current = OpType<T>::MaxDiag( data_[i] );
-      maxDiag = maxDiag > current ? maxDiag : current;
-    }
-
-    return maxDiag;
-  }
-
-
   // ******************
   //   Re-size matrix 
   // ******************

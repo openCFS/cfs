@@ -6,8 +6,8 @@
 #include "CRS_Matrix.hh"
 #include "SCRS_Matrix.hh"
 #include "opdefs.hh"
-
 #include "Utils/SyncAccess.hh"
+#include "Utils/tools.hh"
 
 #ifdef USE_MKL
 #include <mkl_spblas.h>
@@ -793,7 +793,16 @@ namespace CoupledField {
     }
   }
 
-
+  template<typename T>
+  T CRS_Matrix<T>::MultColumnWithVec(const UInt & r, const Vector<T>& vec) const{
+    T sum = 0.0;
+    UInt i, b;
+    for( i = rowPtr_[r]; i < rowPtr_[r+1]; ++i){
+      b = colInd_[i];
+      sum += data_[i] * vec[b];
+    }
+    return sum;
+  }
 
   // ***********
   //   MultSub
@@ -1044,7 +1053,17 @@ namespace CoupledField {
     os << '\n' << std::endl;
 #endif
     return os.str(); 
+  }
 
+  template<typename T>
+  std::string CRS_Matrix<T>::Dump() const
+  {
+    std::stringstream ss;
+    // don't use ToString() from this class but the glocal ToString() from tools.hh
+    ss << " row=" << ::ToString<unsigned int>(rowPtr_, this->nrows_+1) << std::endl;
+    ss << " col=" << ::ToString<unsigned int>(colInd_, this->nnz_)  << std::endl;
+    ss << " val=" << ::ToString<T>(data_, this->nnz_);
+    return ss.str();
   }
 
 
@@ -1458,30 +1477,6 @@ namespace CoupledField {
                              const std::set<UInt>& colIndices ) {
     EXCEPTION("Implement me");
   }
-
-
-  // **************
-  //   GetMaxDiag
-  // **************
-  template<typename T>
-  Double CRS_Matrix<T>::GetMaxDiag() const {
-
-
-    double maxDiag = 0;
-    double current = 0;
-    UInt i;
-
-    for ( i = 0; i < this->nrows_; i++ ) {
-
-      // use an opType to ensure that tiny matrices
-      // are treated correctly
-      current = OpType<T>::MaxDiag( data_[ diagPtr_[i] ] );
-      maxDiag = maxDiag > current ? maxDiag : current;
-    }
-
-    return maxDiag;
-  }
-
 
   // ************************
   //   Add (another matrix)

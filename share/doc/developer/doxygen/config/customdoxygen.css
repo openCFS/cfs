@@ -1,0 +1,144 @@
+/* Sticky footer styles
+-------------------------------------------------- */
+html {
+  position: relative;
+  min-height: 100%;
+}
+body {
+  /* Margin bottom by footer height */
+  margin-bottom: 60px;
+}
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  /* Set the fixed height of the footer here */
+  height: 60px;
+  background-color: #f5f5f5;
+}
+
+.container .text-muted {
+  margin: 20px 0;
+}
+
+/* remove upper border of member-description in the table */
+.table tbody tr td.mdescRight {
+  border: 0px;
+}
+.table tbody tr td.mdescLeft {
+  border: 0px;
+}
+
+/* make the tooltips invisible */
+.ttc {
+  display: none;
+  visibility: hidden;
+  line-height: 0px;
+}
+
+/* this is how bootstrap formats <pre> i.e. code blocks
+ * we can't use <pre> because of the tootipps which will create excessive whitespace
+ */
+div.line {
+  white-space: pre;
+  font-family: monospace, fixed;
+  font-size: 13px;
+}
+
+.fragment {
+  overflow: auto;
+}
+
+/* stuff for the class list */
+.directory td.entry {
+  white-space: nowrap;
+}
+span.icona {
+  margin: 4px;
+}
+
+td.memItemLeft {
+  white-space: nowrap;
+}
+
+/* class index */
+table.classindex {
+  white-space: nowrap;
+}
+
+/* no markers in lists */
+ul li { /* disable everywhere */
+  list-style-type:none;
+}
+
+div.textblock ul li { /* activate in texts */
+  list-style-type:unset;
+}
+
+/* description list formating (Class Purpose, ...)  */
+p.startdd {
+  display: none;
+  visibility: hidden;
+}
+p.enddd {
+  display: none;
+  visibility: hidden;
+}
+dt {
+  margin-top: 1ex;
+}
+
+/* labels */
+span.label {
+  float: none;
+  margin: 2px;
+}
+td .label {
+  line-height: 20px;
+}
+
+/* this part is from doxygen.css for code coloring */
+
+span.keyword {
+	color: #008000
+}
+
+span.keywordtype {
+	color: #604020
+}
+
+span.keywordflow {
+	color: #e08000
+}
+
+span.comment {
+	color: #800000
+}
+
+span.preprocessor {
+	color: #806020
+}
+
+span.stringliteral {
+	color: #002080
+}
+
+span.charliteral {
+	color: #008080
+}
+
+span.vhdldigit {
+	color: #ff00ff
+}
+
+span.vhdlchar {
+	color: #000000
+}
+
+span.vhdlkeyword {
+	color: #700070
+}
+
+span.vhdllogic {
+	color: #ff0000
+}

@@ -49,6 +49,9 @@ namespace CoupledField {
     //! \param material Material object to be filled with data
     void ReadMechanic(BaseMaterial *material, PtrParamNode pn);
 
+    //! Reads <isotropic> section of mechanical material (real or imaginary part)
+    StdVector<std::string> ReadMechanicIsotropic(PtrParamNode node);
+
     //! Reads acoustic material.
     //! \param material Material object to be filled with data
     void ReadAcoustic(BaseMaterial *material, PtrParamNode pn);

@@ -30,6 +30,15 @@ namespace CoupledField {
       return Yout;
     };
 
+    virtual Vector<Double> computeInput_vec(Vector<Double>& yVal, Integer idElem, Matrix<Double> mu, Double& alpha, bool overwrite = true,bool overwriteDirection = true) {
+      EXCEPTION("computeInput_vec not implemented in base-class");
+    };
+    
+    virtual Double computeInputAndUpdate(Double Yin, Double eps_mu, Integer idx, bool overwrite = true){
+      EXCEPTION( "computeInputAndUpdate not implemented in base-Class" );
+      return 0.0;
+    };
+    
     //!
     virtual Double computeValueAndUpdate(Double xVal, Integer idxElem, 
                                          bool overwrite = true ) {
@@ -89,6 +98,15 @@ namespace CoupledField {
     virtual void rotationStateToBmp(UInt numPixel, std::string filename, UInt idElem){
       EXCEPTION( " switchingStateToBmp not implemented in base-Class" );
     };
+
+    virtual std::string runtimeToString(){
+      EXCEPTION( "runtimeToString not implemented in base-Class" );
+    };
+
+    virtual void setFlags(UInt performanceFlag){
+      EXCEPTION( "setFlag not inplemented in base-Class")
+    };
+
 
   protected:
 

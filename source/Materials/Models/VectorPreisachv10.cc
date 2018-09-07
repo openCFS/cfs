@@ -1,69 +1,83 @@
 #include "VectorPreisachv10.hh"
 
-#include <iostream>
 #include <fstream>
-
+#include <iostream>
+#include <string>
+#include <boost/algorithm/string.hpp>
+#include "DataInOut/Logging/LogConfigurator.hh"
 /* See VectorPreisachv10_ListApproach.hh for detailed description */
 
 namespace CoupledField
 { 
-/*
- * BASE CLASS FUNCTIONS
- */
+  DECLARE_LOG(vecpreisach)
+  DEFINE_LOG(vecpreisach, "vecpreisach")
+  
+  /*
+   * BASE CLASS FUNCTIONS
+   */
   VectorPreisachv10::VectorPreisachv10(Integer numElem, Double xSat, Double ySat,
-         Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-         bool classical, Double angularDistance)
-    : Hysteresis(numElem)
+          Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+          bool classical, Double angularDistance, Double angularClipping)
+  : Hysteresis(numElem)
   {
-
+    
     /*
      * Global quantities, i.e. the same for all FE elements of the same material
      */
     if (xSat > 0 ) {
-      Xsaturated_  = xSat;
+      XSaturated_  = xSat;
     }
     else {
-      Xsaturated_  = 1.0;
+      XSaturated_  = 1.0;
     }
-
+    
     YSaturated_  = ySat;
-
+    
     isVirgin_    = isVirgin;
-
+    
+    // default: no measurements; no output; new mapping
+    mappingVersion_ = 1;
+    performanceMeasurement_ = 0;
+    // TODO: change all occurances of debug output to logging system, then remove flag
+    textOutputLevel_ = 0;
+    
     numElem_ = numElem;
     dim_ = dim;
-
+    
     preisachWeights_ = preisachWeight;
-
+    
     tol_ = 1e-15;
-
+    
     isSymmetric_ = preisachWeights_.IsSymmetric(tol_);
-
+    
     // get size of preisachWeights_
     UInt M = preisachWeights_.GetNumRows();
     UInt N = preisachWeights_.GetNumCols();
-
+    
     if(M != N){
       EXCEPTION("Matrix preisachWeight has dim " << M << " x " << N << " and thus is not symmetric!");
     }
-
+    
     numRows_ = M;
-
+    
     // resolution of Preisach plane
     delta_ = 2.0/Double(numRows_);
-
+    
     rotationalResistance_ = rotationalResistance;
-
+    
     angularDistance_ = angularDistance;
-
+    angularClipping_ = angularClipping;
+    
     classical_ = classical;
-
+    
     if(classical_){
       std::cout << "VectorPreisach: Using classical vector model (Sutor2012)" << std::endl;
     } else {
       std::cout << "VectorPreisach: Using revised vector model (Sutor2015)" << std::endl;
     }
-
+    
+		//std::cout << "NumElements: " << numElem_ << std::endl;
+		
     /*
      * Local quantities, i.e. arrays storing different values for each FE element
      */
@@ -72,7 +86,7 @@ namespace CoupledField
       preisachSum_[k] = Vector<Double>(dim_);
       preisachSum_[k].Init();
     }
-
+    
     /*
      * Needed in context of the linesearch algorithm:
      * there we have to evaluate the hysteresis operator
@@ -87,13 +101,98 @@ namespace CoupledField
       preisachSumTmp_[k] = Vector<Double>(dim_);
       preisachSumTmp_[k].Init();
     }
+    
+    prevXval_ = new Vector<Double>[numElem_];
+    prevYval_ = new Vector<Double>[numElem_];
+    prevHystval_ = new Vector<Double>[numElem_];
+    for(UInt k = 0; k < numElem_; k++){
+      prevXval_[k] = Vector<Double>(dim_);
+      prevXval_[k].Init();
+      prevYval_[k] = Vector<Double>(dim_);
+      prevYval_[k].Init();
+      prevHystval_[k] = Vector<Double>(dim_);
+      prevHystval_[k].Init();
+    }
+    
   }
-
+  
   VectorPreisachv10::~VectorPreisachv10(){
     delete[] preisachSum_;
     delete[] preisachSumTmp_;
+    delete[] prevXval_;
+    delete[] prevYval_;
+    delete[] prevHystval_;
   }
-
+  
+  Vector<Double> VectorPreisachv10::clipNewRotationDirection(Vector<Double>& e_u_new){
+    /*
+     * New function April 2017
+     * Idea: Restrict the range of possible rotation directions to fixed angular steps
+     * (i.e. x rad)
+     * Reason: Due to numerical pollutions, we might encounter rotation directions like
+     * (1.00000000,-1e-9) or (0.99999999,1e-10). These deviations from the input direction
+     * (1.0,0) seem negligble but will lead to actual problems when evaluting deltaMatrices
+     * of the form deltaP/deltaE (as deltaE normally is similarly small). Due to this, the
+     * resulting deltaMatrices may have huge permittivities/permeabilites in direction where
+     * normally no value should be. This leads to serious convergence issues.
+     *
+     */
+    if(angularClipping_ == 0){
+      /*
+       * no clipping
+       */
+      return e_u_new;
+    }
+    
+    //return e_u_new;
+    Vector<Double> e_clipped = Vector<Double>(dim_);
+    
+    if(dim_ == 2){
+      /*
+       * 2d-case: Calculate current angle of e_u_new to x-y-axis using atan
+       */
+      Double currentPhi = std::atan2(e_u_new[1],e_u_new[0]);
+      
+      /*
+       * check for case that currentPhi is roughly +/-pi
+       */
+      Double currentPhiClipped = 0.0;
+      if( abs(abs(currentPhi)-M_PI)<angularClipping_ ){
+        
+        //        std::cout << "abs(currentPhi): " << abs(currentPhi) << std::endl;
+        //        std::cout << "abs(abs(currentPhi)-M_PI): " << abs(abs(currentPhi)-M_PI) << std::endl;
+        //        std::cout << "abs(abs(currentPhi)-M_PI)*pow(10,numOfDecimals): " << abs(abs(currentPhi)-M_PI)*pow(10,numOfDecimals) << std::endl;
+        
+        currentPhiClipped = M_PI; //not needed
+        e_clipped[0] = -1.0;
+        e_clipped[1] = 0.0;
+      } else {
+        currentPhiClipped = std::floor( currentPhi/angularClipping_+0.5 )*angularClipping_;
+        e_clipped[0] = std::cos(currentPhiClipped);
+        e_clipped[1] = std::sin(currentPhiClipped);
+      }
+      
+      //   std::cout << "e_in before clipping: " << std::endl;
+      //   std::cout << e_u_new.ToString() << std::endl;
+      //
+      //      std::cout << "angle before clipping: " << std::endl;
+      //      std::cout << currentPhi << std::endl;
+      //
+      //   std::cout << "e_in after clipping: " << std::endl;
+      //   std::cout << e_clipped.ToString() << std::endl;
+      //
+      //      std::cout << "angle after clipping: " << std::endl;
+      //      std::cout << currentPhiClipped << std::endl;
+      
+      return e_clipped;
+    } else {
+      //TODO: Implement me
+      return e_u_new;
+    }
+    
+    
+  }
+  
   Vector<Double> VectorPreisachv10::evaluateNewRotationDirection(Vector<Double>& e_u_new, Vector<Double>& e_u_old, Double xVal){
     /*
      * calculates the new rotation direction for overwritten rotation states according to the
@@ -123,7 +222,7 @@ namespace CoupledField
        *        (or rotate e_u_new by deltaphi towards e_u_old)
        */
       Double delta_phi, alpha;
-
+      
       /*
        * 0. Check old rotation state: if it is zero (i.e. unset yet), rotate completely to new direction
        */
@@ -137,15 +236,19 @@ namespace CoupledField
        *
        * angularDistance_ in deg
        */
-      xVal /= Xsaturated_;
+      xVal /= XSaturated_;
       delta_phi = angularDistance_ * (1 - abs(xVal));
-
+      //      std::cout << "delta_phi: " << delta_phi << std::endl;
+      
       /*
        * 2. get angle between e_u_new and e_u_old
        * Note: e_u_new and e_u_old already have length 1
        * Note2: delta_phi is in degree, so alpha has to be in degree, too
        */
       Double tmp = e_u_old.Inner(e_u_new);
+      //      std::cout << "e_u_old: " << e_u_old.ToString() << std::endl;
+      //      std::cout << "e_u_new: " << e_u_new.ToString() << std::endl;
+      //      std::cout << "e_u_old.Inner(e_u_new): " << tmp << std::endl;
       /*
        * due to rounding errors, the scalar product of two vectors of lenght 1
        * can be larger than 1 -> cut down to avoid NaN
@@ -156,7 +259,8 @@ namespace CoupledField
         tmp = -1.0;
       }
       alpha = std::acos(tmp)*180/M_PI;
-
+      
+      //      std::cout << "alpha: " << alpha << std::endl;
       /*
        * NEW: 15.2.2017
        * If alpha (the angle between new and old state is  close to zero,
@@ -170,16 +274,18 @@ namespace CoupledField
          */
         return e_u_new;
       }
-
+      
       /*
        * 3. calculate new rotation direction depending on delta_phi and alpha
        */
       if(delta_phi < angleTol){
+        //        std::cout << "delta_phi < angleTol > return e_u_new" << std::endl;
         /*
          * no resistance to rotation
          */
         return e_u_new;
       } else if(delta_phi >= alpha) {
+        //        std::cout << "delta_phi >= angleTol > return e_u_old" << std::endl;
         /*
          * e_u_old is already closer than the resistance angle delta_phi that should remain
          */
@@ -192,32 +298,40 @@ namespace CoupledField
         Vector<Double> e_phi = Vector<Double>(dim_);
         Matrix<Double> rotMat = Matrix<Double>(dim_,dim_);
         Double c,s;
-
+        
         if(dim_ == 2){
           /*
            * in 2d we need
            *  1. direction of rotation axis (+z or -z)
            *  2. a 2x2 rotation matrix describing a rotation of -delta_phi degree around rotation axis
            */
-
+          
           /*
            * in 2d rotation axis is either +z or -z; find sign via cross product of e_u_old and e_u_new but take only 3rd entry
            * Note: we build the right-hand-system e_u_old, e_u_new, e_u_old x e_u_new
            */
           Double n3;
           n3 = e_u_old[0]*e_u_new[1] - e_u_old[1]*e_u_new[0];
-          n3 = n3/abs(n3);
-
+          
+          if(n3 != 0){
+            n3 = n3/abs(n3);
+          }
+          
+          //std::cout << "n3: " << n3 << std::endl;
+          
           c = std::cos(-delta_phi/180*M_PI);
           s = std::sin(-delta_phi/180*M_PI);
-
+          
+          //          std::cout << "c: " << c << std::endl;
+          //          std::cout << "s: " << s << std::endl;
+          
           rotMat[0][0] = c;
           rotMat[0][1] = -n3*s;
           rotMat[1][0] = n3*s;
           rotMat[1][1] = c;
-
+          
           e_phi = rotMat*e_u_new;
-
+          
         } else {
           /*
            * in 3d we need
@@ -226,11 +340,14 @@ namespace CoupledField
            */
           Vector<Double> normal = Vector<Double>(dim_);
           e_u_old.CrossProduct(e_u_new,normal);
-          normal = normal/normal.NormL2();
-
+          
+          if(normal.NormL2() != 0){
+            normal = normal/normal.NormL2();
+          }
+          
           c = std::cos(-delta_phi/180*M_PI);
           s = std::sin(-delta_phi/180*M_PI);
-
+          
           /*
            * rotation matrix for a rotation around 'normal';
            * Note: e_u_old, e_u_new and normal have to have the same origin
@@ -239,36 +356,888 @@ namespace CoupledField
           rotMat[0][0] = normal[1]*normal[1]*(1-c) + c;
           rotMat[0][1] = normal[1]*normal[2]*(1-c) - normal[3]*s;
           rotMat[0][2] = normal[1]*normal[3]*(1-c) + normal[2]*s;
-
+          
           rotMat[1][0] = normal[2]*normal[1]*(1-c) + normal[3]*s;
           rotMat[1][1] = normal[2]*normal[2]*(1-c) + c;
           rotMat[1][2] = normal[2]*normal[3]*(1-c) - normal[1]*s;
-
+          
           rotMat[2][0] = normal[3]*normal[1]*(1-c) - normal[2]*s;
           rotMat[2][1] = normal[3]*normal[2]*(1-c) + normal[1]*s;
           rotMat[2][2] = normal[3]*normal[3]*(1-c) + c;
-
+          
           e_phi = rotMat*e_u_new;
         }
         return e_phi;
       }
     }
   }
+  
+  Vector<Double> VectorPreisachv10::computeAbsResidualX(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, Matrix<Double> mu_inv){
+    /*
+     *    yVal = mu*xVal + hystVal(xVal)
+     * 
+     *  > res = xVal + hystVal(xVal)/mu - yVal/mu
+     */
+    Vector<Double> res = Vector<Double>(dim_);
+    Vector<Double> tmp = Vector<Double>(dim_);
+    tmp = hystVal;
+    tmp.Add(-1.0,yVal);
+    mu_inv.Mult(tmp,res);
+    res.Add(1.0,xVal);
+    
+    //    for(UInt i = 0; i < dim_; i++){
+    //      // assume that mu is diagonal and has entries != 0
+    //      if(mu[i][i] != 0){
+    //        res[i] += 1.0/mu[i][i]*hystVal[i];
+    //        res[i] += -1.0/mu[i][i]*yVal[i];
+    //      }
+    //    }
+    
+    return res;
+  }
+  
+  Vector<Double> VectorPreisachv10::computeResidual(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hystVal, 
+          Matrix<Double> mu, Matrix<Double> mu_inv, bool wrtX, bool relative){
+    
+    Vector<Double> ret = computeAbsResidualX(xVal, yVal, hystVal, mu_inv);
+    if(wrtX){
+      /*
+       * wrtX = true
+       * 
+       * > resAbsX = xVal - yVal/mu + hystVal/mu
+       * > resRelX = resAbsX/xVal.NormL2()
+       */
+      if(relative){
+        Double xValNorm = xVal.NormL2();
+        if(xValNorm != 0){
+          ret.ScalarDiv(xValNorm);
+        } else {
+          WARN("relative residual wrt x requested, but xValNorm == 0; return abs value instead");
+        }
+      }
+    } else {
+      /*
+       *  wrtX = false
+       * 
+       * > resAbsY = yVal - hystVal - mu*xVal = -mu*resAbsX
+       * > resRelY = reaAbsY/yVal.NormL2()
+       * 
+       */
+      Vector<Double> tmp = Vector<Double>(dim_);
+      //ret = ret*(-mu);
+      mu.Mult(ret,tmp);
+      tmp.ScalarMult(-1.0);
+      ret = tmp;
+      //      for(UInt i = 0; i < dim_; i++){
+      //        ret[i] = -1.0*ret[i]*mu[i][i];
+      //      }
+      
+      if(relative){
+        Double yValNorm = yVal.NormL2();
+        if(yValNorm != 0){
+          ret.ScalarDiv(yValNorm);
+        } else {
+          WARN("relative residual wrt y requested, but yValNorm == 0; return abs value instead");
+        }
+      }
+    }
+    
+    return ret;
+  }
+  
+  Matrix<Double> VectorPreisachv10::computeJacobianOfAbsResidualX(Vector<Double>& xVal, Vector<Double>& hystVal, 
+          Matrix<Double> mu_inv, Integer idElem, Double sign, UInt implementation) {
+    
+    LOG_TRACE(vecpreisach) << "VecPreisach::computeJacobianOfAbsResidualX";
+    if(xVal.NormL2() >= XSaturated_){
+      EXCEPTION("xVal.NormL2() >= XSaturated_");
+    }
+    
+    Double deltaX;
+    Double deltaXmin = 1e-8*XSaturated_; 
+    Double scal = 1e-5;
+    
+    bool overwrite = false;
+    Vector<Double> xShifted;
+    Vector<Double> hystShifted;
+    Vector<Double> deltaHyst;
+    Matrix<Double> jac = Matrix<Double>(dim_,dim_);
+    
+    if(implementation == 0){
+      LOG_DBG(vecpreisach) << "Use forward/backward differences for approximation of Jacobian";
+      /*
+       * Full Jacobian using forward/backward differences
+       */
+      for(UInt i = 0; i < dim_; i++){
+        xShifted = xVal;
+        
+        //        if( xVal[i] < 0 ){
+        //          deltaX = sign*std::min( -scal*XSaturated_, -deltaXmin );
+        //        } else {
+        //          deltaX = sign*std::max( scal*XSaturated_, deltaXmin );
+        //        }
+        if( xVal[i] < 0 ){
+          deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
+        } else {
+          deltaX = sign*std::max( scal*xVal[i], deltaXmin );
+        }
+        
+        xShifted[i] += deltaX;
+        hystShifted = computeValue_vec(xShifted, idElem, overwrite); 
+        /*
+         * Compute Jacobian for residual wrt x
+         * 
+         * jac_ji = + delta_ji + mu_inv[j][:]*dhystVal/dxVal_i
+         */   
+        deltaHyst = hystShifted;
+        deltaHyst.Add(-1.0,hystVal);
+        
+        Vector<Double> curCol = Vector<Double>(dim_);
+        mu_inv.Mult(deltaHyst,curCol);
+        curCol.ScalarDiv(deltaX);
+        
+        jac[i][i] = 1.0;
+        for(UInt j = 0; j < dim_; j++){
+          jac[j][i] += curCol[j];
+          
+          //          //jac[j][i] += (hystShifted[j]-hyst[j])/deltaX/mu; 
+          //          // assume matrix mu to be diagonal
+          //          // > here we had an error by taking mu[i][i] instead of mu[j][j]
+          //          if(mu[j][j]!=0){
+          //            jac[j][i] += (hystShifted[j]-hystVal[j])/(xShifted[i]-xShifted_opp[i])/mu[j][j]; 
+          //          }
+        }
+      }
+    } else if(implementation == 1){
+      LOG_DBG(vecpreisach) << "Use central differences for approximation of Jacobian";
+      /*
+       * Full Jacobian using central differences
+       */
+      Vector<Double> xShifted_opp;
+      Vector<Double> hystShifted_opp;
+      
+      for(UInt i = 0; i < dim_; i++){
+        xShifted = xVal;
+        
+        //        if( xVal[i] < 0 ){
+        //          deltaX = sign*std::min( -scal*XSaturated_, -deltaXmin );
+        //        } else {
+        //          deltaX = sign*std::max( scal*XSaturated_, deltaXmin );
+        //        }
+        if( xVal[i] < 0 ){
+          deltaX = sign*std::min( scal*xVal[i], -deltaXmin );
+        } else {
+          deltaX = sign*std::max( scal*xVal[i], deltaXmin );
+        }
+        
+        xShifted[i] += deltaX;
+        hystShifted = computeValue_vec(xShifted, idElem, overwrite); 
+        xShifted_opp = xVal;
+        xShifted_opp[i] -= deltaX;
+        hystShifted_opp = computeValue_vec(xShifted_opp, idElem, overwrite); 
+        
+        /*
+         * Compute Jacobian for residual wrt x
+         * 
+         * jac_ji = + delta_ji + mu_inv[j][:]*dhystVal/dxVal_i
+         */   
+        deltaHyst = hystShifted;
+        deltaHyst.Add(-1.0,hystShifted_opp);
+        
+        Vector<Double> curCol = Vector<Double>(dim_);
+        mu_inv.Mult(deltaHyst,curCol);
+        curCol.ScalarDiv(2*deltaX);
+        
+        jac[i][i] = 1.0;
+        for(UInt j = 0; j < dim_; j++){
+          jac[j][i] += curCol[j];
+          
+          //          //jac[j][i] += (hystShifted[j]-hyst[j])/deltaX/mu; 
+          //          // assume matrix mu to be diagonal
+          //          // > here we had an error by taking mu[i][i] instead of mu[j][j]
+          //          if(mu[j][j]!=0){
+          //            jac[j][i] += (hystShifted[j]-hystVal[j])/(xShifted[i]-xShifted_opp[i])/mu[j][j]; 
+          //          }
+        }
+      }
+      
+    } else if(implementation == 2){
+      LOG_DBG(vecpreisach) << "Use deltaMat for approximation of Jacobian";
+      /*
+       * Use deltaMat-Jacobian
+       * > use same implementation as in coefFncHyst
+       */
+      Matrix<Double> deltaMat = Matrix<Double>(dim_,dim_);
+      Vector<Double> deltaX_vec = Vector<Double>(dim_);
+      Vector<Double> deltaHyst_vec = Vector<Double>(dim_);
+      
+      deltaX_vec.Init();
+      deltaX_vec.Add(1.0,xVal,-1.0,prevXval_[idElem]);
+      
+      deltaHyst_vec.Init();
+      deltaHyst_vec.Add(1.0,hystVal,-1.0,prevHystval_[idElem]);
+      
+      Double deltaX_norm = deltaX_vec.NormL2();
+      Double relTol = 1e-16;
+      if(dim_ == 2){
+        if(abs(deltaX_vec[0])/deltaX_norm > relTol){
+          // division can be used
+          deltaMat[0][0] = deltaHyst_vec[0]/deltaX_vec[0];
+        } else if(abs(deltaX_vec[1])/deltaX_norm > relTol) {
+          // distribute entry to non-diagonal entries
+          deltaMat[0][1] = deltaHyst_vec[0]/deltaX_vec[1];
+          deltaMat[1][0] = deltaHyst_vec[0]/deltaX_vec[1];
+        } 
+        //          else {
+        //            // all entries are too small (relatively > return zero matrx
+        //            // leave entry zero
+        //          }
+        
+        if(abs(deltaX_vec[1])/deltaX_norm > relTol){
+          deltaMat[1][1] = deltaHyst_vec[1]/deltaX_vec[1];
+        } else if(abs(deltaX_vec[0])/deltaX_norm > relTol) {
+          // distribute entry to non-diagonal entries
+          deltaMat[0][1] = deltaHyst_vec[1]/deltaX_vec[0];
+          deltaMat[1][0] = deltaHyst_vec[1]/deltaX_vec[0];
+        } 
+        //          else {
+        //            // all entries are too small (relatively > return zero matrx
+        //            // leave entry zero
+        //          }
+        
+      } else {
+        Double sum,diff;
+        sum = deltaX_vec[1]+deltaX_vec[2];
+        diff = deltaX_vec[1]-deltaX_vec[2];
+        
+        if(abs(deltaX_vec[0])/deltaX_norm > relTol){
+          // division can be used
+          deltaMat[0][0] = deltaHyst_vec[0]/deltaX_vec[0];
+        } else if(abs(sum)/deltaX_norm > relTol) {
+          // distribute entry to non-diagonal entries
+          deltaMat[0][1] = deltaHyst_vec[0]/sum;
+          deltaMat[1][0] = deltaHyst_vec[0]/sum;
+          deltaMat[0][2] = deltaHyst_vec[0]/sum;
+          deltaMat[2][0] = deltaHyst_vec[0]/sum;
+        } else if(abs(diff)/deltaX_norm > relTol) {
+          // distribute entry to non-diagonal entries
+          deltaMat[0][1] = deltaHyst_vec[0]/diff;
+          deltaMat[1][0] = deltaHyst_vec[0]/diff;
+          deltaMat[0][2] = -deltaHyst_vec[0]/diff;
+          deltaMat[2][0] = -deltaHyst_vec[0]/diff;
+        } 
+        //          else {
+        //            // all entries are too small (relatively > return zero matrx
+        //            // leave entry zero
+        //          }
+        
+        sum = deltaX_vec[0]+deltaX_vec[2];
+        diff = deltaX_vec[0]-deltaX_vec[2];
+        
+        if(abs(deltaX_vec[1])/deltaX_norm > relTol){
+          // division can be used
+          deltaMat[1][1] = deltaHyst_vec[1]/deltaX_vec[1];
+        } else if(abs(sum)/deltaX_norm > relTol) {
+          // distribute entry to non-diagonal entries
+          deltaMat[0][1] = deltaHyst_vec[1]/sum;
+          deltaMat[1][0] = deltaHyst_vec[1]/sum;
+          deltaMat[1][2] = deltaHyst_vec[1]/sum;
+          deltaMat[2][1] = deltaHyst_vec[1]/sum;
+        } else if(abs(diff)/deltaX_norm > relTol) {
+          // distribute entry to non-diagonal entries
+          deltaMat[0][1] = deltaHyst_vec[1]/diff;
+          deltaMat[1][0] = deltaHyst_vec[1]/diff;
+          deltaMat[1][2] = -deltaHyst_vec[1]/diff;
+          deltaMat[2][1] = -deltaHyst_vec[1]/diff;
+        } 
+        //          else {
+        //            // all entries are too small (relatively > return zero matrx
+        //            // leave entry zero
+        //          }
+        
+        sum = deltaX_vec[0]+deltaX_vec[1];
+        diff = deltaX_vec[0]-deltaX_vec[1];
+        
+        if(abs(deltaX_vec[2])/deltaX_norm > relTol){
+          // division can be used
+          deltaMat[2][2] = deltaHyst_vec[2]/deltaX_vec[2];
+        } else if(abs(sum)/deltaX_norm > relTol) {
+          // distribute entry to non-diagonal entries
+          deltaMat[0][2] = deltaHyst_vec[2]/sum;
+          deltaMat[2][0] = deltaHyst_vec[2]/sum;
+          deltaMat[1][2] = deltaHyst_vec[2]/sum;
+          deltaMat[2][1] = deltaHyst_vec[2]/sum;
+        } else if(abs(diff)/deltaX_norm > relTol) {
+          // distribute entry to non-diagonal entries
+          deltaMat[0][2] = deltaHyst_vec[2]/diff;
+          deltaMat[2][0] = deltaHyst_vec[2]/diff;
+          deltaMat[1][2] = -deltaHyst_vec[2]/diff;
+          deltaMat[2][1] = -deltaHyst_vec[2]/diff;
+        } 
+        //          else {
+        //            // all entries are too small (relatively > return zero matrx
+        //            // leave entry zero
+        //          }                   
+      }
+      /*
+       * Compute Jacobian for residual wrt x
+       * 
+       * jac_ji = + delta_ji + mu_inv[j][:]*deltaMat[:,i]
+       */   
+      mu_inv.Mult(deltaMat,jac);
+      for(UInt i = 0; i < dim_; i++){
+        jac[i][i] += 1.0;
+      }
+    }
+    
+    LOG_DBG(vecpreisach) << "Retrieved Jacobian: " << jac.ToString();
+    return jac;
+  }
+  
+  Matrix<Double> VectorPreisachv10::computeJacobian(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& hyst, Vector<Double>& resX,
+          Matrix<Double> mu, Matrix<Double> mu_inv, Integer idElem, Double sign, bool wrtX, bool relative, UInt implementation){
 
+    Matrix<Double> jac = computeJacobianOfAbsResidualX(xVal, hyst, mu_inv, idElem, sign, implementation);
+    
+    if(wrtX){
+      /*
+       * wrtX = true
+       * 
+       * jacAbsX_ij = d resAbsX_i / d x_j
+       *            = d ( x_i - y_i/mu + hyst_i/mu ) / d x_j
+       *            ~ delta_ij + 1/mu (hyst(x+Dx_j*e_j) - hyst(x))_i / Dx_j 
+       *            > computeJacobianOfAbsResidualX(xVal, hyst, mu, idElem, sign);
+       * 
+       * jacRelX_ij = d resRelX_i / d x_j
+       *            
+       *            = d (reaAbsX_i / xVal.NormL2()) / d x_j
+       * 
+       *            = ( xVal.NormL2()* d resAbsX_i / d x_j - resAbsX_i* d xVal.NormL2() / d x_j ) * (1/xVal.NormL2()^2)
+       * 
+       *            = jacAbsX_ij / xVal.NormL2() - resAbsX_i * xVal_j / (xVal.NormL2()^3) 
+       * 
+       *            = jacAbsX_ij / xVal.NormL2() - resRelX_i * xVal_j / (xVal.NormL2()^2) 
+       * 
+       */
+      if(relative){
+        Double xValNorm = xVal.NormL2();
+        if(xValNorm != 0){
+          jac = jac*(1.0/xValNorm);
+          
+          Double xValNormQuad = xValNorm*xValNorm;
+          for(UInt i = 0; i < dim_; i++){
+            for(UInt j = 0; j < dim_; j++){
+              // resX has to be relative wrt x, too!
+              jac[i][j] -= (resX[i]*xVal[j])/xValNormQuad;
+            }
+          }
+        } else {
+          WARN("Jacobian of relative residual wrt x requested, but xValNorm == 0; return Jacobian of abs value instead");
+        }
+      }
+    } else {
+      /*
+       * wrtX = false
+       * 
+       * jacAbsY_ij = d resAbsY_i / d x_j
+       *            = d (-mu*resAbsX_i) / d x_j
+       *            = -mu * jacAbsX_ij
+       * 
+       * jacRelY_ij = d resRelY_i / d x_j
+       *            = 1/yVal.normL2() * jacAbsY_ij
+       *            
+       */
+      //jac = jac*(-mu);
+      Matrix<Double> tmp = Matrix<Double>(dim_,dim_);
+      tmp = jac;
+      mu.Mult(tmp,jac);
+      jac = jac*(-1.0);
+      
+      if(relative){
+        Double yValNorm = yVal.NormL2();
+        if(yValNorm != 0){
+          jac = jac*(1.0/yValNorm);
+        } else {
+          WARN("relative residual wrt y requested, but yValNorm == 0; return abs value instead");
+        }
+      }
+    }
+    
+    return jac;
+  }
+  
+  bool VectorPreisachv10::checkConvergence(Vector<Double>& res, Matrix<Double>& jacT, Double& errorNorm, Double tol){
+    // According to Dahmen&Reusken - Numerik partieller DFG
+    // the residual is a non-sufficient condition
+    // instead we have to check the norm of jacT*res
+    Vector<Double> errorVec = Vector<Double>(dim_);
+    jacT.Mult(res,errorVec); 
+    errorNorm = errorVec.NormL2();
+    
+    //std::cout << "CheckConvergence" << std::endl;
+    //std::cout << "resIn: " << res.ToString() << std::endl;
+    //std::cout << "jacT: " << jacT.ToString() << std::endl;
+    //std::cout << "ErrorVec: " << errorVec.ToString() << std::endl;
+    
+    if(errorNorm <= tol){
+      return true;
+    } else {
+      return false;
+    }
+    
+  }
+  
+  bool VectorPreisachv10::checkIncrement(Vector<Double>& xNew, Vector<Double>& xUpdate, Vector<Double>& res, Vector<Double>& resShifted, 
+          Matrix<Double>& jac, Double& alpha){
+    
+    LOG_DBG(vecpreisach) << "Check increment";
+    bool success = false;
+    if(xNew.NormL2() >= XSaturated_){
+      // input yVal is not in saturation (otherwise we would not be here but
+      // use the simple case)
+      // > new value cannot be in saturation either
+      // > current update will definitely not match
+      // > problem here: if xNew is in saturation, further comvergence using
+      //    the jacobian will not work as the slope will be such that we 
+      //    cannot leave this (wrongly obtained) saturation
+      // > discard update and try with different alpha again
+      LOG_DBG(vecpreisach) << "Intermediate solution (" << xNew.ToString() << ") has gone into saturation > discard!";
+      alpha = alpha*2.0;
+      success = false;
+    } else {
+      //std::cout << "Safe case: " << std::endl;
+      //std::cout << "Check increment according to residual" << std::endl;
+      
+      // According to Dahmen & Reusken, we have to check
+      // our increment by computing
+      // 
+      // rho = (||F(x)||^2 - ||F(x + increment)||^2) /
+      //       (||F(x||^2 - ||F(x) + F'(x)*increment||^2)
+      //
+      // F = residual
+      // F' = Jacobian
+      Double resNorm = res.NormL2();
+      Double resShiftedNorm = resShifted.NormL2();
+      Vector<Double> tmp = Vector<Double>(dim_);
+      jac.Mult(xUpdate,tmp);
+      //      
+      //      std::cout << "res: " << res.ToString() << std::endl;
+      //      std::cout << "resShifted_: " << resShifted.ToString() << std::endl;
+      //      std::cout << "xUpdate: " << xUpdate.ToString() << std::endl;
+      //      std::cout << "jac: " << jac.ToString() << std::endl;
+      //      
+      tmp = tmp + res;
+      Double tmpNorm = tmp.NormL2();
+      Double a = resNorm*resNorm - resShiftedNorm*resShiftedNorm;
+      Double b = resNorm*resNorm - tmpNorm*tmpNorm;
+      //      std::cout << "resNorm*resNorm - resShiftedNorm*resShiftedNorm: " << a << std::endl;
+      //      std::cout << "resNorm*resNorm - tmpNorm*tmpNorm: " << b  << std::endl;
+      //      
+      Double rho;
+      if(b != 0){
+        rho = a/b;
+      } else {
+        rho = a;
+      }
+      
+      // 0 < beta0 < beta1 < 1
+      Double beta0 = 0.25;
+      Double beta1 = 0.75;
+      
+      //std::cout << "rho: " << rho << std::endl;
+      //      std::cout << "current alpha: " << alpha << std::endl;
+      // test different stepping; the furhter away we are, the stronger
+      // we will adapt stepping alpha for next time
+      
+      // increment not accepted; increase alpha in linesearch
+      if(rho < -100*beta0){
+        alpha = alpha*256.0;
+      } else if(rho < -10*beta0){
+        alpha = alpha*128.0;
+      } else if(rho < -beta0){
+        alpha = alpha*64.0;
+      } else if(rho < 0){
+        alpha = alpha*32.0;
+      } else if(rho < beta0/8.0){
+        alpha = alpha*16.0;
+      } else if(rho < beta0/4.0){
+        alpha = alpha*8.0;
+      } else if(rho < beta0/2.0){
+        alpha = alpha*4.0;
+      } else if(rho < beta0/1.5){
+        alpha = alpha*2.0;
+      } else if(rho < beta0){
+        alpha = alpha*1.5; 
+      } 
+      // increment accepted; decrease alpha for next linesearch call
+      // usually rho does not become much larger than 1 (from theory 1 = max)#
+      else if(rho > 1.8*beta1){
+        alpha = alpha/16.0;
+        success = true;
+      } else if(rho > 1.4*beta1){
+        alpha = alpha/8.0;
+        success = true;
+      } else if(rho > 1.2*beta1){
+        alpha = alpha/4.0;
+        success = true;
+      } else if(rho > 1.1*beta1){
+        alpha = alpha/2.0;
+        success = true;
+      } else if(rho > beta1){
+        alpha = alpha/1.5;
+        success = true;
+      } else {
+        // best case
+        // increment ok; keep alpha as startvalue for next linesearch
+        success = true;
+      }
+    }
+    //      std::cout << "new alpha: " << alpha << std::endl;
+    return success;
+  }
+  
+  bool VectorPreisachv10::performLinesearch(Vector<Double>& xVal, Vector<Double>& yVal, Vector<Double>& res, Vector<Double>& xUpdate,
+          Matrix<Double>& jac, Matrix<Double>& jacT, Matrix<Double> mu, Matrix<Double> mu_inv, Integer idElem,Double& alpha, 
+          bool wrtX, bool relative){
+    
+    if(xVal.NormL2() >= XSaturated_){
+      EXCEPTION("xInput to Linesearch already above saturation > should not be the case!");
+    }
+    
+    UInt maxIter = 25;
+    UInt itCnt = 0;
+    
+    Matrix<Double> matToInvert = Matrix<Double>(dim_,dim_);
+    Matrix<Double> matInverted = Matrix<Double>(dim_,dim_);
+    Matrix<Double> jacTjac = Matrix<Double>(dim_,dim_);
+    jacT.Mult(jac,jacTjac);
+    Vector<Double> jacTres_neg = Vector<Double>(dim_);
+    Vector<Double> resNew = Vector<Double>(dim_);
+    Vector<Double> xNew = Vector<Double>(dim_);
+    Vector<Double> hystNew = Vector<Double>(dim_);
+    
+    jacT.Mult(res,jacTres_neg);
+    jacTres_neg = jacTres_neg*(-1.0);
+    
+    Double alphaMax = 1e8;
+    Double alphaMin = 1e-16;
+    
+    bool success = false;
+    bool discard = false;
+    
+    while(true){
+      itCnt++;
+      
+      matToInvert = jacTjac;
+      for(UInt i = 0; i < dim_; i++){
+        matToInvert[i][i] +=  alpha*alpha;
+      }
+      
+      matToInvert.Invert(matInverted);
+      matInverted.Mult(jacTres_neg,xUpdate);
+      
+      xNew.Init();
+      xNew.Add(1.0,xVal,1.0,xUpdate);
+      
+      hystNew = computeValue_vec(xNew, idElem, false);
+      resNew = computeResidual(xNew,yVal,hystNew,mu,mu_inv,wrtX,relative);
+        
+      //std::cout << "Current iteration: " << itCnt << std::endl;
+      //std::cout << "Alpha pre: " << alpha << std::endl;
+      success = checkIncrement(xNew, xUpdate, res, resNew, jac, alpha);
+      //std::cout << "Alpha post: " << alpha << std::endl;
+      
+      if(alpha > alphaMax){
+        LOG_DBG(vecpreisach) << "Maximal alpha reached > stop";
+        // maximal alpha used; stop here (regardless of success
+        alpha = alphaMax;
+        break;
+      }
+      if(alpha < alphaMin){
+        LOG_DBG(vecpreisach) << "Minimal alpha reached > stop";
+        // minimal alpha used; stop here
+        alpha = alphaMin;
+        break;
+      }
+      
+      if(success){
+        LOG_DBG(vecpreisach) << "Linesearch was successful after " << itCnt << "iterations";
+        break;
+      } else {
 
-/*
- * MATRIX BASED IMPLEMENTATIONl
- */
+        if(itCnt >= maxIter){
+          LOG_DBG(vecpreisach) << "Linesearch was not successful; Discard update.";
+          discard = true;
+          break;
+        }
+      }
+    }
+    
+    return discard;
+  }
+  
+  
+  Vector<Double> VectorPreisachv10::computeInput_vec(Vector<Double>& yVal, Integer idElem, Matrix<Double> mu, Double& alpha, 
+          bool overwrite,bool overwriteDirection){
+    
+    LOG_TRACE(vecpreisach) << "VecPreisach::computeInput_vec";
+    LOG_DBG(vecpreisach) << "Input value yVal: " << yVal.ToString();
+    Vector<Double> xVal = Vector<Double>(dim_);
+    Double tolYNorm = 1e-14;
+    
+    /*
+     * Check if yVal is significantly different from previous value
+     */
+    Vector<Double> diff = yVal;
+    diff -= prevYval_[idElem];
+    
+    if(diff.NormL2() < tolYNorm){
+      LOG_DBG(vecpreisach) << "Inversion: Reuse old value";
+      xVal = prevXval_[idElem];
+      LOG_DBG(vecpreisach) << "Reused value xVal: " << xVal.ToString();
+      return xVal;
+    }
+    
+    /*
+     * Invert eps/mu for later usage
+     */
+    Matrix<Double> mu_inv = Matrix<Double>(dim_,dim_);
+    Vector<Double> xTMP = Vector<Double>(dim_);
+    mu.Invert(mu_inv);
+    
+    /*
+     * Check if yVal is beyond saturation > easy case
+     */
+    Double yNorm = yVal.NormL2();
+    
+    // NOTE: it is not enough to compare yNorm >= YSaturated_ as at this point
+    // mu*xSat could already lead to a reasonable addition
+    // we can only use the simple case, if
+    // yNorm >= YSaturated_ + mu*XSaturated_ !
+    // Attention: this works only if mu is a scalar!
+    // > instead compute
+    //      yTMP = yVal - mu*yDir*XSaturated
+    // then check if yTMP.Norm >= YSaturated
+    Vector<Double> yTMP = Vector<Double>(dim_);
+    if(yNorm >= 0){
+      Vector<Double> yTMP2 = yVal;
+      // yTMP2 = yDir*XSaturated
+      yTMP2 *= XSaturated_/yNorm;
+      // yTMP = mu*yDir*XSaturated
+      mu.Mult(yTMP2,yTMP);
+      // yTMP = yDir*XSaturated - yVal
+      yTMP -= yVal;
+    }
+    
+    if(yTMP.NormL2() >= YSaturated_){
+      LOG_DBG(vecpreisach) << "Inversion: Use simple approach";
+      //std::cout << "Use simple approach" << std::endl;
+      // Important consequences:
+      // a) material is completely aligned with outer field (at least in Sutors model and therefore also x
+      // b) mu (eps) adds an important contribution
+      // c) xVal = (yVal - ySat+xSat*mu)/mu + xSat
+      //         = (yVal - ySat)/mu
+      Vector<Double> ySat = yVal;
+      ySat *= (YSaturated_/yNorm);
+      xTMP = yVal;
+      xTMP -= ySat;
+      
+      //xVal /= mu;
+      mu_inv.Mult(xTMP,xVal);
+      //      for(UInt i = 0; i < dim_; i++){
+      //        if(mu[i][i]!=0){
+      //          xVal[i] = xVal[i]/mu[i][i];
+      //        }
+      //      } 
+    } 
+    /*
+     * Use Levenberg-Marquart algorithm as presented in Dahmen&Reusken - Numerik partialler DFG
+     */   
+    else { // LM
+      LOG_TRACE(vecpreisach) << "Inversion: Use Levenberg Marquart";
+      //std::cout << "Try LM" << std::endl;
+      
+      // tolerance wrt y > 1e-10 or 1e-12 seems good > takes 2-3 its
+      // only problem: y-x-loops look ugly as x can be quite off!
+      //Double tolError = 1e-11;  
+      // tolerance for reevalution
+      UInt maxIter = 25;
+      UInt itCnt = 0;
+      Double tolError = 1e-10;
+      bool wrtX = true;
+      bool relError = !true;
+      UInt initialFixpointIterations = 2;
+      
+      // toleranace for relative error criterion
+      if(relError == false){
+        tolError = tolError*XSaturated_;
+      }
+      
+      // use last computed Xval as starting ppoint
+      xVal = prevXval_[idElem];
+      LOG_DBG(vecpreisach) << "starting Xval: " << xVal.ToString();
+      
+      /*
+       * In the followng, prev*val_ = value of previous iteration
+       *                      *val_ = current value
+       */
+      
+      // perform some initial steps with fp iteation
+      Vector<Double> hystVal = prevHystval_[idElem];
+      for(UInt i = 0; i < initialFixpointIterations; i++){
+        prevXval_[idElem] = xVal;
+        prevHystval_[idElem] = hystVal;
+        LOG_DBG(vecpreisach) << "Initial FP (" << i << ")";
+        hystVal = computeValue_vec(xVal, idElem, false);
+        LOG_DBG(vecpreisach) << "current hyst output: " << hystVal.ToString();
+        xTMP = yVal;
+        xTMP.Add(-1.0,hystVal);
+        mu_inv.Mult(xTMP,xVal);
+        LOG_DBG(vecpreisach) << "newXval: " << xVal.ToString();
+      }
+      
+      /*
+       * As y is not in saturation (that case was already ruled out, 
+       * the actual xVal cannot be in saturation neither
+       */
+      if(xVal.NormL2() >= XSaturated_){
+        LOG_DBG(vecpreisach) << "Reset xVal as its value is above Xsaturation";
+        // reduce amplitude to a value slightly below saturation
+        xVal.ScalarMult(0.9*XSaturated_/xVal.NormL2());
+        // or reset to 0?
+        //xVal.Init();
+      }
+      
+      Double sign = 1.0;
+      bool success = false;
+      bool discardUpdate = false;
+      
+      // check if a starting value for the linesearch paramater alpha was given
+      // if not: set some starting value (found out by testing to be quite ok)
+      if(alpha < 0.0){
+        alpha = 1.0;
+        //        Double muNorm = mu.NormL2();
+        //        if(wrtX){
+        //          // larger alpha needed
+        //          alpha = 10/std::sqrt(muNorm);
+        //        } else {
+        //          // small alpha needed
+        //          alpha = 0.1*std::sqrt(muNorm);
+        //        }
+      }
+      
+      Vector<Double> xUpdate = Vector<Double>(dim_);
+      Vector<Double> res = Vector<Double>(dim_);
+      Matrix<Double> jac = Matrix<Double>(dim_,dim_);
+      Matrix<Double> jacT = Matrix<Double>(dim_,dim_);
+      
+      Double errorNorm;
+      UInt implementation = 0;
+      Vector<Double> bestSol = Vector<Double>(dim_);
+      Double bestErrorNorm = 1e10;
+      
+      /*
+       * Start actual LM iteration
+       */
+      while(true){
+        if(itCnt != 0){
+          prevXval_[idElem] = xVal;
+          prevHystval_[idElem] = hystVal;
+        }  
+        itCnt++;
+        LOG_DBG(vecpreisach) << "Levenberg-Marquart (" << itCnt << ")";
+        LOG_DBG(vecpreisach) << "Current solution: " << xVal.ToString();
+        
+        // do not override hyst memory here
+        hystVal = computeValue_vec(xVal, idElem, false);
+        
+        res = computeResidual(xVal,yVal,hystVal,mu,mu_inv,wrtX,relError);
+        jac = computeJacobian(xVal,yVal,hystVal,res,mu,mu_inv,idElem,sign,wrtX,relError,implementation);
+        jac.Transpose(jacT);
+                
+        success = checkConvergence(res,jacT,errorNorm,tolError);
+        
+        if(success){   
+          break;
+        } else {
+          if(itCnt >= maxIter){
+            
+            UInt maxAttempts = 0;
+            if(implementation < maxAttempts){
+              if(errorNorm < bestErrorNorm){
+                bestSol = xVal;                
+              }
+              implementation++;
+              itCnt = 0;
+            } else {
+              xVal = bestSol;
+              break;
+            }
+          }
+        }
+        LOG_DBG(vecpreisach) << "Solution nor appropriate yet > Perform linesearch";
+        discardUpdate = performLinesearch(xVal, yVal, res, xUpdate, jac, jacT, mu, mu_inv, idElem, alpha, wrtX, relError);
+ 
+        if(!discardUpdate){
+          xVal = xVal+xUpdate;
+        } else {
+          //break;
+        }
+        sign = sign*(-1.0);
+      }
+
+      if(xVal.NormL2() >= XSaturated_){
+        EXCEPTION("LM lead xVal into saturation > should not be the case!");
+      }
+    }// end LM
+    
+    bool checkSolution = true;
+    if(checkSolution){
+
+      Vector<Double> yCheck = Vector<Double>(dim_);
+      Vector<Double> hCheck = computeValue_vec(xVal, idElem, false);
+      
+      mu.Mult(xVal,yCheck);
+      yCheck.Add(hCheck);
+      
+      Vector<Double> diff = yCheck;
+      diff -= yVal;
+
+      //std::cout << "NormDiff " << diff.NormL2() << std::endl;
+      if(diff.NormL2() > 1e-5){
+        LOG_DBG(vecpreisach) << "Levenberg Marquart was not succresful";
+        LOG_DBG(vecpreisach) << "Target vector: "<<yVal.ToString();
+        LOG_DBG(vecpreisach) << "Retrieved vector: "<<yCheck.ToString();
+        //EXCEPTION("Inversion not successful");
+      }        
+    }
+    
+    /*
+     * set values for next time
+     */
+    prevYval_[idElem] = yVal;
+    prevHystval_[idElem] = computeValue_vec(xVal, idElem, false);
+    prevXval_[idElem] = xVal;
+    LOG_DBG(vecpreisach) << "End of Inversion -- Retrieved value xVal: " << xVal.ToString();
+    LOG_TRACE(vecpreisach) << "     ";
+    LOG_TRACE(vecpreisach) << "     ";
+    return xVal;
+    
+  } 
+  
+  /*
+   * MATRIX BASED IMPLEMENTATIONl
+   */
   VectorPreisachv10_MatrixApproach::VectorPreisachv10_MatrixApproach(Integer numElem, Double xSat, Double ySat,
-         Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-         bool classical, Double angularDistance)
-    : VectorPreisachv10(numElem, xSat, ySat,
-                        preisachWeight, rotationalResistance , dim, isVirgin,
-                        classical, angularDistance)
+          Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+          bool classical, Double angularDistance, Double angularClipping)
+  : VectorPreisachv10(numElem, xSat, ySat,
+          preisachWeight, rotationalResistance , dim, isVirgin,
+          classical, angularDistance, angularClipping)
   {
-
-    std::cout << "Using Matrix-based approach" << std::endl;
-
+    
+    std::cout << "Using Matrix-based implementation" << std::endl;
+    
     /*
      * Get storage for switchingStates and rotatationStates
      */
@@ -276,50 +1245,55 @@ namespace CoupledField
     rotationStateX_ = new Matrix<Double>[numElem];
     rotationStateY_ = new Matrix<Double>[numElem];
     rotationStateZ_ = new Matrix<Double>[numElem];
-
+    
     /*
      * Initialize arrays/vectors/matrices for each element
      */
     for(UInt k = 0; k < (UInt) numElem; k++){
       switchingStates_[k] = Matrix<Double>(numRows_,numRows_);
-
+      
       rotationStateX_[k] = Matrix<Double>(numRows_,numRows_);
       rotationStateX_[k].Init();
-
+      
       rotationStateY_[k] = Matrix<Double>(numRows_,numRows_);
       rotationStateY_[k].Init();
-
+      
       if(dim_ == 3){
         rotationStateZ_[k] = Matrix<Double>(numRows_,numRows_);
         rotationStateZ_[k].Init();
       }
     }
-
+    
     /*
      * Initialize switchingStates
      */
     for(UInt k = 0; k < numElem_; k++){
       InitializeSwitchingState(k);
     }
-
+    
   }
-
+  
   VectorPreisachv10_MatrixApproach::~VectorPreisachv10_MatrixApproach(){
     delete[] switchingStates_;
     delete[] rotationStateX_;
     delete[] rotationStateY_;
     delete[] rotationStateZ_;
+    
+    delete updateMatricesTimer_;
+    delete evaluateMatricesTimer_;
+    delete copyToTemporalStorageTimer_;
+    delete copyFromTemporalStorageTimer_;
   }
-
+  
   void VectorPreisachv10_MatrixApproach::InitializeSwitchingState(UInt idElem){
-
+    
     /*
      * split Preisach plane along diagonal alpha=-beta in a +1 and -1 part
      */
     for(UInt i = 0; i < numRows_; i++){
-
+      
       for(UInt j = 0; j <= i; j++){
-
+        
         if(i+j+1 == numRows_){
           // on diagonal alpha = -beta -> leave at 0
         } else if(i+j+1 < numRows_){
@@ -336,7 +1310,30 @@ namespace CoupledField
       }
     }
   }
-
+  
+  std::string VectorPreisachv10_MatrixApproach::runtimeToString(){
+    std::ostringstream oss;
+    oss << "--- VectorPreisach MatrixApproach ---\n";
+    if(performanceMeasurement_){
+      Double totalUpdateTime = updateMatricesTimer_->GetCPUTime();
+      Double totalEvaluationTime = evaluateMatricesTimer_->GetCPUTime();
+      Double totalCopyingTimeForward = copyToTemporalStorageTimer_->GetCPUTime();
+      Double totalCopyingTimeBackward = copyFromTemporalStorageTimer_->GetCPUTime();
+      
+      oss << "-- Updating -- \n";
+      oss << "  Total number of update steps: " << updateMatricesCounter_ << "\n";
+      oss << "  Average time to update matrices: " << totalUpdateTime/updateMatricesCounter_ << "\n";
+      
+      oss << "-- Evaluation -- \n";
+      oss << "  Total number of evaluation steps: " << evaluateMatricesCounter_ << "\n";
+      oss << "  Percentage of evaluation on temporal storage: " << copyToTemporalStorageCounter_/evaluateMatricesCounter_*100 << "% \n";
+      oss << "  Average time to evaluate nested list: " << totalEvaluationTime/evaluateMatricesCounter_ << "\n"
+              << "  Average time to create temporal copy: " << totalCopyingTimeForward/copyToTemporalStorageCounter_ << "\n"
+              << "  Average time to restore backup: " << totalCopyingTimeBackward/copyToTemporalStorageCounter_ << "\n";
+    }
+    return oss.str();
+  }
+  
   void VectorPreisachv10_MatrixApproach::UpdateSwitchingStates(Vector<Double>& u_in, UInt idElem){
     /*
      * Update switching states from current input u_in; update only for FE element with index idElem
@@ -344,68 +1341,68 @@ namespace CoupledField
      */
     Vector<Double> curState = Vector<Double>(dim_);
     Double alpha,betaNext,xPar;
-
+    
     /*
      * iterate over switching states
      */
     for(UInt i = 0; i < numRows_; i++){
-     alpha = -1 + i*delta_;
-
-     for(UInt j = 0; j <= i; j++){
-       betaNext = -1 + (j+1)*delta_;
-
-       /*
-        * get corresponding rotation state
-        */
-       curState[0] = rotationStateX_[idElem][i][j];
-       curState[1] = rotationStateY_[idElem][i][j];
-       if(dim_ == 3){
-         curState[2] = rotationStateZ_[idElem][i][j];
-       }
-
-       /*
-        * calcualte xPar, which is responsible for the setting process
-        */
-       xPar = u_in.Inner(curState);
-
-       xPar /= Xsaturated_;
-
-       /*
-        * check if update is needed
-        */
-       Double fac = 1.0;
-       if(i == j){
-         fac = 0.5;
-       }
-
-       if(xPar > alpha){
-         switchingStates_[idElem][i][j] = fac;
-       } else if (xPar < betaNext){
-         switchingStates_[idElem][i][j] = -fac;
-       }
-     }
+      alpha = -1 + i*delta_;
+      
+      for(UInt j = 0; j <= i; j++){
+        betaNext = -1 + (j+1)*delta_;
+        
+        /*
+         * get corresponding rotation state
+         */
+        curState[0] = rotationStateX_[idElem][i][j];
+        curState[1] = rotationStateY_[idElem][i][j];
+        if(dim_ == 3){
+          curState[2] = rotationStateZ_[idElem][i][j];
+        }
+        
+        /*
+         * calcualte xPar, which is responsible for the setting process
+         */
+        xPar = u_in.Inner(curState);
+        
+        xPar /= XSaturated_;
+        
+        /*
+         * check if update is needed
+         */
+        Double fac = 1.0;
+        if(i == j){
+          fac = 0.5;
+        }
+        
+        if(xPar > alpha){
+          switchingStates_[idElem][i][j] = fac;
+        } else if (xPar < betaNext){
+          switchingStates_[idElem][i][j] = -fac;
+        }
+      }
     }
   }
-
+  
   void VectorPreisachv10_MatrixApproach::UpdateRotationStates(Double XThres, Double xVal, Vector<Double>& e_u_new, UInt idElem){
     /*
      * Update rotation states from current input u_in = xVal * e_u_new; change of rotation state indicated by xThres
      * Update only for FE element with index idElem
      */
-
+    
     Vector<Double> curState = Vector<Double>(dim_);
     Vector<Double> newState;
     Double alpha,betaNext;
-
+    
     /*
      * iterate over rotation states
      */
     for(UInt i = 0; i < numRows_; i++){
       alpha = -1 + i*delta_;
-
+      
       for(UInt j = 0; j <= i; j++){
         betaNext = -1 + (j+1)*delta_;
-
+        
         /*
          * check if update is necessary
          */
@@ -427,9 +1424,9 @@ namespace CoupledField
             continue;
           }
         }
-
+        
         curState.Init();
-
+        
         /*
          * extract current rotation state
          */
@@ -438,12 +1435,13 @@ namespace CoupledField
         if(dim_ == 3){
           curState[2] = rotationStateZ_[idElem][i][j];
         }
-
+        
         /*
          * compute new rotation direction
          */
         newState = evaluateNewRotationDirection(e_u_new, curState, xVal);
-
+        newState = clipNewRotationDirection(newState);
+        
         /*
          * store new state
          */
@@ -455,15 +1453,21 @@ namespace CoupledField
       }
     }
   }
-
+  
   Vector<Double> VectorPreisachv10_MatrixApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite, bool overwriteDirection){
-
+    
     Matrix<Double> switchingStatesSingleElemBAK;
     Matrix<Double> rotationStateXSingleElemBAK;
     Matrix<Double> rotationStateYSingleElemBAK;
     Matrix<Double> rotationStateZSingleElemBAK;
-
+    
     if(overwrite == false){
+      
+      if(performanceMeasurement_){
+        copyToTemporalStorageCounter_++;
+        copyToTemporalStorageTimer_->Start();
+      }
+      
       /*
        * get copies of the data structures
        */
@@ -471,48 +1475,74 @@ namespace CoupledField
       rotationStateXSingleElemBAK = rotationStateX_[idElem];
       rotationStateYSingleElemBAK = rotationStateY_[idElem];
       rotationStateZSingleElemBAK = rotationStateZ_[idElem];
+      
+      if(performanceMeasurement_){
+        copyToTemporalStorageTimer_->Stop();
+      }
+      
     }
-
+    
     /*
      * Determine the current rotational threshold
+     *
+     * Note: u_in is no longer normalized, i.e. u_in.NormL2 > Xsaturated is possible!
+     * in that case, we have to cap u_in.NormL2 to Xsaturated BEFORE computing X_thres
+     * Otherwise, the Preisach plane may be filled further than it is intended by the model
+     * (e.g. for k = 0.5 and the revised model, the maximal filling state of the Preisach plane
+     * is 0.5, not 1)
      */
     Double X_thres;
-    if(classical_){
-      X_thres = std::pow((u_in.NormL2()/Xsaturated_),rotationalResistance_);
+    Double uNormTmp = u_in.NormL2();
+    if(uNormTmp >= XSaturated_){
+      uNormTmp = 1.0;
     } else {
-      X_thres = u_in.NormL2()*(rotationalResistance_/Xsaturated_);
+      uNormTmp = uNormTmp/XSaturated_;
     }
-
+    if(classical_){
+      X_thres = std::pow(uNormTmp,rotationalResistance_);
+    } else {
+      X_thres = uNormTmp*rotationalResistance_;
+    }
+    
     /*
      * Get current direction
      */
     Vector<Double> e_u = Vector<Double>(u_in.GetSize());
     Double xVal = u_in.NormL2();
-
+    
     if(xVal > tol_){
       e_u = u_in/xVal;
     } else {
       e_u.Init(0.0);
     }
-
+    
+    if(performanceMeasurement_){
+      updateMatricesCounter_++;
+      updateMatricesTimer_->Start();
+    }
+    
     /*
      * Update rotation states
      */
     if(overwriteDirection){
       UpdateRotationStates(X_thres, xVal, e_u, idElem);
     }
-
+    
     /*
      * Update switching states
      */
     UpdateSwitchingStates(u_in, idElem);
-
+    
+    if(performanceMeasurement_){
+      updateMatricesTimer_->Stop();
+    }
+    
     /*
      * Storage for return values
      */
     Vector<Double> retVec = Vector<Double>(dim_);
     retVec.Init();
-
+    
     /*
      * Storage for element value
      */
@@ -520,57 +1550,75 @@ namespace CoupledField
     Double y = 0;
     Double z = 0;
     Double s = 0;
-
+    
+    if(performanceMeasurement_){
+      evaluateMatricesCounter_++;
+      evaluateMatricesTimer_->Start();
+    }
+    
     /*
      * iterate over matrices and multiply entries together
      */
     for(UInt i = 0; i < numRows_; i++){
-
+      
       for(UInt j = 0; j <= i; j++){
-         s = switchingStates_[idElem][i][j];
-         s *= preisachWeights_[i][j];
-         x += s*rotationStateX_[idElem][i][j];
-         y += s*rotationStateY_[idElem][i][j];
+        s = switchingStates_[idElem][i][j];
+        s *= preisachWeights_[i][j];
+        x += s*rotationStateX_[idElem][i][j];
+        y += s*rotationStateY_[idElem][i][j];
       }
     }
-
+    
     retVec[0] = x;
     retVec[1] = y;
-
+    
     if(dim_ == 3){
       for(UInt i = 0; i < numRows_; i++){
-
+        
         for(UInt j = 0; j <= i; j++){
-           s = switchingStates_[idElem][i][j];
-           s *= preisachWeights_[i][j];
-           z += s*rotationStateZ_[idElem][i][j];
+          s = switchingStates_[idElem][i][j];
+          s *= preisachWeights_[i][j];
+          z += s*rotationStateZ_[idElem][i][j];
         }
       }
       retVec[2] = z;
     }
-
+    
+    if(performanceMeasurement_){
+      evaluateMatricesTimer_->Stop();
+    }
+    
+    
     if(overwrite == false){
       /*
        * store to tmp array
        */
       preisachSumTmp_[idElem] = retVec*(YSaturated_*delta_*delta_);
-
+      
       /*
        * reload backup
        */
+      if(performanceMeasurement_){
+        copyFromTemporalStorageTimer_->Start();
+      }
+      
       switchingStates_[idElem] = switchingStatesSingleElemBAK;
       rotationStateX_[idElem] = rotationStateXSingleElemBAK;
       rotationStateY_[idElem] = rotationStateYSingleElemBAK;
       rotationStateZ_[idElem] = rotationStateZSingleElemBAK;
-
+      
+      if(performanceMeasurement_){
+        copyFromTemporalStorageTimer_->Stop();
+      }
+      
       return preisachSumTmp_[idElem];
     } else {
       preisachSum_[idElem] = retVec*(YSaturated_*delta_*delta_);
-
+      
       return preisachSum_[idElem];
     }
- }
-
+  }
+  
   void VectorPreisachv10_MatrixApproach::switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState)
   {
     /*
@@ -578,33 +1626,33 @@ namespace CoupledField
      * in the old versions, the rotation state was evaluated separately although we have to iterate over the
      * rotation list to evaluate the switching lists
      */
-
+    
     if(numPixel < 2){
       WARN("Image should have more than 2 x 2 pixel");
       return;
     }
-
+    
     if(numPixel%2 != 0){
       WARN("Rounded number of pixel ("<<numPixel<<") to a multiple of 2 ("<<numPixel+1<<")");
       numPixel = numPixel + 1;
     }
-
+    
     /*
      * Calculate upscaling factor
      */
-    UInt upscaling = (UInt) floor(numPixel/numRows_);
-
+    UInt upscaling = (UInt) std::floor(numPixel/numRows_);
+    
     /*
      * now call output function of matrix
      */
-
+    
     if(overLayWithRotState == true){
       UInt version = 2;
-
+      
       if(version == 1){
-
+        
         for(UInt comp = 0; comp < dim_; comp++){
-
+          
           std::stringstream stream;
           std::string filename_new;
           if(comp == 0){
@@ -621,86 +1669,149 @@ namespace CoupledField
             switchingStates_[idElem].matrix2Bmp(upscaling,filename_new,&rotationStateZ_[idElem]);
           }
         }
-
+        
       } else if(version == 2) {
-       /*
-        * New way of outputting matrix:
-        *   encode rotation state in color: 0 = red; 120 = blue; 240 = green; angles in between colored as a mix
-        *   encode switching state as sign and amplitude: negative switching -> angle + 180; absvalue < 1 -> scale final colorcombination
-        *
-        *   -> only for 2D rotstates, as the z component is not considered
-        */
-
+        /*
+         * New way of outputting matrix:
+         *   encode rotation state in color: 0 = red; 120 = blue; 240 = green; angles in between colored as a mix
+         *   encode switching state as sign and amplitude: negative switching -> angle + 180; absvalue < 1 -> scale final colorcombination
+         *
+         *   -> only for 2D rotstates, as the z component is not considered
+         */
+        
         std::stringstream stream;
         stream << "xy-" << filename;
         std::string filename_new = stream.str();
-
+        
         switchingStates_[idElem].matrix2Bmp_v2(upscaling,filename_new,&rotationStateX_[idElem],&rotationStateY_[idElem]);
       }
     } else {
       switchingStates_[idElem].matrix2Bmp(upscaling,filename,NULL);
     }
   }
-
+  
   /*
    * LIST BASED IMPLEMENTATIONl
    */
   VectorPreisachv10_ListApproach::VectorPreisachv10_ListApproach(Integer numElem, Double xSat, Double ySat,
-     Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
-     bool classical, Double angularDistance)
-      : VectorPreisachv10(numElem, xSat, ySat,
-                      preisachWeight, rotationalResistance , dim, isVirgin,
-                      classical, angularDistance)
-    {
-
-      std::cout << "Using List-based approach" << std::endl;
-
-      globRotList_ = new std::list<RotListEntryv10>[numElem_];
-      for(UInt k = 0; k < numElem_; k++){
-        globRotList_[k] = std::list<RotListEntryv10>();
-        Initialize_GlobalRotationList(globRotList_[k]);
-      }
-
-      /*
-       * lowerTriangleValue_ and lastEu_ only needed for classical_ model
-       */
-      lowerTriangleValue_ = 0.0;
-
-      if(classical_){
-        Evaluate_LowerTriangle();
-      }
-
-      lastEu_ = new Vector<Double>[numElem_];
-      for(UInt k = 0; k < numElem_; k++){
-        lastEu_[k] = Vector<Double>(dim_);
-        lastEu_[k].Init();
-      }
+          Matrix<Double>& preisachWeight, Double rotationalResistance , UInt dim, bool isVirgin,
+          bool classical, Double angularDistance, Double angularClipping)
+  : VectorPreisachv10(numElem, xSat, ySat,
+          preisachWeight, rotationalResistance , dim, isVirgin,
+          classical, angularDistance, angularClipping)
+  {
+    
+    std::cout << "Using List-based implementation" << std::endl;
+    
+    globRotList_ = new std::list<RotListEntryv10>[numElem_];
+    for(UInt k = 0; k < numElem_; k++){
+      globRotList_[k] = std::list<RotListEntryv10>();
+      Initialize_GlobalRotationList(globRotList_[k]);
     }
-
+    
+    //      std::cout << "Global rotlists after initialization: " << std::endl;
+    //      std::list<RotListEntryv10>::iterator listIt;
+    //      for(UInt k = 0; k < numElem_; k++){
+    //        std::cout << "Element number: " << k << std::endl;
+    //        for(listIt = globRotList_[k].begin(); listIt != globRotList_[k].end(); listIt++){
+    //          std::cout << listIt->ToString() << std::endl;
+    //        }
+    //      }
+    /*
+     * lowerTriangleValue_ and lastEu_ only needed for classical_ model
+     */
+    lowerTriangleValue_ = 0.0;
+    
+    if(classical_){
+      Evaluate_LowerTriangle();
+    }
+    
+    lastEu_ = new Vector<Double>[numElem_];
+    for(UInt k = 0; k < numElem_; k++){
+      //lastEu_[k] = initDir;
+      lastEu_[k] = Vector<Double>(dim_);
+      lastEu_[k].Init();
+    }
+    
+    /*
+     * Timer and counter
+     */
+    updateNestedListCounter_ = 0;
+    evaluateNestedListCounter_ = 0;
+    copyToTemporalStorageCounter_ = 0;
+    
+    updateRotListTimer_ = new Timer();
+    updateSwitchingListTimer_ = new Timer();
+    simplifyRotListTimer_ = new Timer();
+    simplifySwitchingListTimer_ = new Timer();
+    evaluateNestedListTimer_ = new Timer();
+    copyToTemporalStorageTimer_ = new Timer();
+    
+  }
+  
   VectorPreisachv10_ListApproach::~VectorPreisachv10_ListApproach(){
-    delete[] preisachSum_;
     delete[] globRotList_;
     delete[] lastEu_;
+    
+    delete updateRotListTimer_;
+    delete updateSwitchingListTimer_;
+    delete simplifyRotListTimer_;
+    delete simplifySwitchingListTimer_;
+    delete copyToTemporalStorageTimer_;
+    delete evaluateNestedListTimer_;
   }
-
+  
+  std::string VectorPreisachv10_ListApproach::runtimeToString(){
+    std::ostringstream oss;
+    oss << "--- VectorPreisach ListApproach ---\n";
+    if(performanceMeasurement_){
+      Double totalRotListUpdateTime = updateRotListTimer_->GetCPUTime();
+      Double totalSwitchListUpdateTime = updateSwitchingListTimer_->GetCPUTime();
+      
+      Double totalRotListSimplifyTime = simplifyRotListTimer_->GetCPUTime();
+      Double totalSwitchListSimplifyTime = simplifySwitchingListTimer_->GetCPUTime();
+      
+      Double totalEvalNestedTime = evaluateNestedListTimer_->GetCPUTime();
+      Double totalCopyingTime = copyToTemporalStorageTimer_->GetCPUTime();
+      
+      oss << "-- Updating -- \n";
+      oss << "  Total number of nested list updates: " << updateNestedListCounter_ << "\n";
+      oss << "  Average time to update outer rotation list: " << totalRotListUpdateTime/updateNestedListCounter_ << "\n"
+              << "  Average time to update inner switching lists: " << totalSwitchListUpdateTime/updateNestedListCounter_ << "\n";
+      
+      oss << "-- Simplification/merging -- \n";
+      oss << "  Total number of simplification steps: " << updateNestedListCounter_ << "\n";
+      oss << "  Average time to simplify outer list: " << totalRotListSimplifyTime/updateNestedListCounter_ << "\n"
+              << "  Average time to simplify inner switching lists: " << totalSwitchListSimplifyTime/updateNestedListCounter_ << "\n";
+      
+      oss << "-- Evaluation -- \n";
+      oss << "  Total number of evaluation steps: " << evaluateNestedListCounter_ << "\n";
+      oss << "  Percentage of evaluation on temporal storage: " << ((Double) copyToTemporalStorageCounter_)/((Double) evaluateNestedListCounter_)*100 << "% \n";
+      oss << "  Average time to evaluate nested list: " << totalEvalNestedTime/evaluateNestedListCounter_ << "\n"
+              << "  Average time to create temporal copy: " << totalCopyingTime/copyToTemporalStorageCounter_ << "\n";
+    }
+    return oss.str();
+  }
+  
+  
   void VectorPreisachv10_ListApproach::Initialize_GlobalRotationList(std::list<RotListEntryv10>& usedList){
     /*
      * Make sure that list is empty
      */
     usedList.clear();
-
+    
     /*
      * Initialize list with a maximum of value 0 and 0-vector
      */
     Vector<Double> zeroVec = Vector<Double>(dim_);
     zeroVec.Init(0);
-
+    
     /*
      * Create new entry for rotlist; the contained switching list is empty
      */
     std::list<ListEntryv10> switchingList = std::list<ListEntryv10>();
     RotListEntryv10 initEntry = RotListEntryv10(0.0, 0.0, zeroVec, switchingList, 0.0, false, false);
-
+    
     /*
      * For classical model, we insert a minimum of value 0
      * -> evaluation will lead to an upper triangle which is completely -1 and a split upper square
@@ -709,11 +1820,71 @@ namespace CoupledField
     if(classical_ == true){
       initEntry.getListReference().push_back(ListEntryv10(0,true,false));
     }
-
+    
     usedList.push_back(initEntry);
     //lastXpar_[idElem] = 0.0;
   }
-
+  
+  void VectorPreisachv10_ListApproach::Initialize_GlobalRotationListWithValues(std::list<RotListEntryv10>& usedList,Vector<Double>& initDir, Double initRotValue, Double initSwitchValue){
+    /*
+     * Make sure that list is empty
+     */
+    usedList.clear();
+    
+    /*
+     * clamp initValue to range 0,1
+     */
+    if(initRotValue < 0){
+      initRotValue = 0.0;
+    } else if (initRotValue > 1.0){
+      initRotValue = 1.0;
+    }
+    
+    /*
+     * Create new entry for rotlist; the contained switching list is empty
+     */
+    std::list<ListEntryv10> switchingList = std::list<ListEntryv10>();
+    RotListEntryv10 initEntry = RotListEntryv10(initRotValue, 0.0, initDir, switchingList, 0.0, false, false);
+    
+    /*
+     * Note: switching list is set with entries of xPar which
+     * computes from inner(u_in/Xsaturated_,rotDirection)
+     * thus it should only have values between 0 and 1 (assuming that input is restricted to
+     * amplitudes Xsaturated_ (even if this is not the case, it would make no difference as
+     * the evaluation is limited to that range
+     */
+    if(initSwitchValue <= 0){
+      initSwitchValue = 0.0;
+    } else if(initSwitchValue >= XSaturated_){
+      initSwitchValue = 1.0;
+    } else {
+      initSwitchValue = initSwitchValue/XSaturated_;
+    }
+    
+    /*
+     * For classical model, we (always!)insert a minimum of value 0
+     * -> evaluation will lead to an upper triangle which is completely -1 and a split upper square
+     *    together with the +1 lower triangle we get a total state of 0 (assuming symmetric weights!
+     */
+    if(classical_ == true){
+      initEntry.getListReference().push_back(ListEntryv10(0.0,true,false));
+    }
+    
+    if(initSwitchValue != 0){
+      /*
+       * we do not need to insert a value of 0; this would be the empty case;
+       * otherwise, we insert the value as a maximum and ADDITIONALLY
+       * 0.0 as minimum (i.e. we assume that material is in a remanence case)
+       */
+      initEntry.getListReference().push_back(ListEntryv10(initSwitchValue,false,false));
+      initEntry.getListReference().push_back(ListEntryv10(0.0,true,false));
+    }
+    
+    usedList.push_back(initEntry);
+    //lastXpar_[idElem] = 0.0;
+  }
+  
+  
   void VectorPreisachv10_ListApproach::Update_GlobalRotationList(Double xThres, Double xVal, Vector<Double> e_u, std::list<RotListEntryv10>& usedList,bool overwriteDirection){
     /*
      * function for updating the global rotation list with an entry pair xThres,e_u
@@ -735,11 +1906,11 @@ namespace CoupledField
      *      5. update the switching lists of all entries based on the new rotation state
      *      6. use Simplify_GlobalRotationList to merge adjacent rotListEntries if possible
      */
-
+    
     if(usedList.empty()){
       EXCEPTION("List may not be empty at this point");
     }
-
+    
     /*
      * Step 1. Update rotation list by inserting new entries (if needed!)
      */
@@ -751,7 +1922,7 @@ namespace CoupledField
     std::list<RotListEntryv10>::iterator insertPos = usedList.end();
     std::list<RotListEntryv10>::iterator listStart = usedList.begin();
     std::list<RotListEntryv10>::iterator listEnd = --(usedList.end());
-
+    
     Double curVal;
     /*
      * lowerBound is important for RotListEntries
@@ -768,7 +1939,7 @@ namespace CoupledField
     Vector<Double> e_u_old;
     bool posFound = false;
     bool needsInsert = true;
-
+    
     /*
      * cut down xThres to range of interest (0 to 1)
      * (as xThres is used to compare against alpha and alpha in the upper square goes from 0 to 1)
@@ -777,7 +1948,7 @@ namespace CoupledField
     if(xThres > 1.0){
       xThres = 1.0;
     }
-
+    
     // for classical_ we have to add entries for xThres = 0.0 as this entry would influence
     // the result of the upper triangle!
     // -> already done during Initialize_GlobalRotationList -> no further insert needed
@@ -785,31 +1956,40 @@ namespace CoupledField
       xThres = 0.0;
       needsInsert = false;
     }
-
-//    std::cout << "##########################" << std::endl;
-//    std::cout << "GlobalRotationList pre insert" << std::endl;
-//
-//    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
-//    std::cout << listIt->ToString() << std::endl;
-//    }
-
+    
+    //    std::cout << "XThres: " << xThres << std::endl;
+    //    std::cout << "e_u: " << e_u.ToString() << std::endl;
+    //
+    //    std::cout << "##########################" << std::endl;
+    //    std::cout << "GlobalRotationList pre insert" << std::endl;
+    //
+    //    for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
+    //    std::cout << listIt->ToString() << std::endl;
+    //    }
+    
+    if(performanceMeasurement_){
+      updateRotListTimer_->Start();
+      updateNestedListCounter_++;
+    }
+    
     int cntInner = 0;
-
-    if(overwriteDirection){
+    
+    //	std::cout << "Overwrite direction? " << overwriteDirection << std::endl;
+		
+    if((overwriteDirection)&&(needsInsert == true)){
       /*
        * Update rotation states
        */
-
       for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
         cntInner++;
         curVal = listIt->getVal();
-
+        
         /*
          * check if new input value (xThres) is larger than curVal
          */
         if((xThres >= curVal)&&(posFound == false)){
           posFound = true;
-
+          
           if(xThres == curVal){
             /*
              * here we do not need to insert a new entry as the area
@@ -832,9 +2012,9 @@ namespace CoupledField
               listIt--;
               prevState = listIt->getVecReference();
               listIt++;
-
+              
               Double tol = 1e-15;
-
+              
               needsInsert = false;
               /*
                * check if previous state has the same (or nearly) the same rotation state
@@ -850,7 +2030,7 @@ namespace CoupledField
             } else {
               needsInsert = true;
             }
-
+            
             if(needsInsert == true){
               /*
                * mark position for later
@@ -858,12 +2038,12 @@ namespace CoupledField
                * (i.e. if listIt = list.end() it will be inserted before the end)
                */
               insertPos = listIt;
-
+              
               // ???
-  //            if(insertPos == globRotList_[idElem].end()){
-  //
-  //            }
-
+              //            if(insertPos == globRotList_[idElem].end()){
+              //
+              //            }
+              
               /*
                * the new rotation area will be between xThresh and curVal
                */
@@ -878,12 +2058,13 @@ namespace CoupledField
            * the rotation state
            * (if the rotation state is already e_u, the flag rotHasChanged_ is not set to true!)
            */
-
+          
           if(classical_){
             /*
              * classical model knows no angular distance -> full rotation is performed
+             * but: e_u might have to be clipped
              */
-            listIt->setVec(e_u);
+            listIt->setVec(clipNewRotationDirection(e_u));
           } else {
             /*
              * here we do not set the state to e_u directly but rotate it towards e_u;
@@ -891,12 +2072,13 @@ namespace CoupledField
              */
             e_u_old = listIt->getVecReference();
             e_phi = evaluateNewRotationDirection(e_u,e_u_old,xVal);
-
+            e_phi = clipNewRotationDirection(e_phi);
+            
             listIt->setVec(e_phi);
           }
         }
       } // loop
-
+      
       if(posFound == false){
         /*
          * no suitable position was found (i.e. the current input is the smallest so far)
@@ -905,11 +2087,11 @@ namespace CoupledField
          * we later call the simplify list function, but this saves some unnecessary computations)
          */
         prevState = listEnd->getVecReference();
-
+        
         Double tol = 1e-15;
-
+        
         needsInsert = false;
-
+        
         for(UInt i = 0; i< e_u.GetSize();i++){
           if(abs(e_u[i]-prevState[i])>tol){
             needsInsert = true;
@@ -920,7 +2102,7 @@ namespace CoupledField
           }
         }
       }
-
+      
       /*
        * finally, if we still need to insert an element -> do it
        *
@@ -936,7 +2118,7 @@ namespace CoupledField
          * 3. for Sutor2015: rotation state of new entry has to be created from rotating the direction of the (partially)
          *    overlaid entry towards the current direction
          */
-
+        
         std::list<ListEntryv10> newList = std::list<ListEntryv10>();
         Double lastXpar = 0.0;
         UInt startCnt;
@@ -952,7 +2134,7 @@ namespace CoupledField
            * e_u_old is the rotation state which will rotate towards e_u_new
            */
           e_u_old = insertPos->getVecReference();
-
+          
           /*
            * as we inherit the switching list, we also inherit the wiped out property and the value of startCnt
            */
@@ -974,25 +2156,29 @@ namespace CoupledField
             wasWipedOut = false;
             startCnt = 0;
           }
-          else
-            EXCEPTION("undefined state for variable wasWipedOut");
           /*
            * new previous rotation state available; e_u_old = 0-vector
            */
           e_u_old = Vector<Double>(dim_);
         }
-
+        
         /*
          * Important: do not forget to insert rotated from evaluateNewRotationDirection instead of e_u!
          * As we insert at the end of the list, we overwrite (at least partially) the last rotentry
          * -> needed rotation direction of partially overlapped rotation state -> see above
          */
         e_phi = evaluateNewRotationDirection(e_u,e_u_old,xVal);
-
+        e_phi = clipNewRotationDirection(e_phi);
+        
         usedList.insert(insertPos,RotListEntryv10(xThres,lowerBound,e_phi,newList,lastXpar,false,false,wasWipedOut,startCnt));
       }
     } // if overwriteDirection = true
-
+    
+    if(performanceMeasurement_){
+      updateRotListTimer_->Stop();
+      updateSwitchingListTimer_->Start();
+    }
+    
     /*
      * Step 2. For each entry in rotation list, update the switching list with the value xPar
      * -> this has to be done even if overwriteDirection = false
@@ -1004,21 +2190,21 @@ namespace CoupledField
      * reset list iterator to the end; list may be extended!
      */
     listEnd = --(usedList.end());
-
+    
     for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
-
+      
       rotState = listIt->getVecReference();
-
+      
       xPar = rotState.Inner(e_u)*xVal;// = rotState.Inner(u_in);
       /*
        * Normalize to Xsaturated
        */
-      xPar /= Xsaturated_;
-
+      xPar /= XSaturated_;
+      
       if( abs(xPar) < 1e-15 ){
         xPar = 0.0;
       }
-
+      
       /*
        * we need to pass lastXpar to list
        */
@@ -1030,18 +2216,18 @@ namespace CoupledField
          */
         isLastRotEntry = true;
       }
-
+      
       Rectangle bbox = Rectangle(0,0,0,0);
       getBoundingBoxFromRotEntry(listIt, bbox, isLastRotEntry);
-
+      
       updated = Update_SwitchingList(listIt->getListReference(),xPar,listIt->getLastLocalXpar(), bbox, listIt->wasListWipedOut(),isLastRotEntry);
-
-//      if(updated != 0){
-//        std::cout << "UPDATE of switching list!" << std::endl;
-//      } else {
-//        std::cout << "NO UPDATE of switching list!" << std::endl;
-//      }
-
+      
+      //      if(updated != 0){
+      //        std::cout << "UPDATE of switching list!" << std::endl;
+      //      } else {
+      //        std::cout << "NO UPDATE of switching list!" << std::endl;
+      //      }
+      
       if(updated == 1){
         /*
          * list was updated by the input was not strong enough to wipe out the diagonal splitting along alpha = -beta
@@ -1070,39 +2256,54 @@ namespace CoupledField
          */
         listIt->setStartCnt(0);
       }
-
+      
       /*
        * else: no update was performed!
        */
     }
-
-    //std::cout << "##########################" << std::endl;
-//    std::cout << "GlobalRotationList pre merge and simplify" << std::endl;
-//
-//    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
-//    std::cout << listIt->ToString() << std::endl;
-//    }
-
+    
+    //    std::cout << "##########################" << std::endl;
+    //    std::cout << "GlobalRotationList pre merge and simplify" << std::endl;
+    //
+    //    for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
+    //    std::cout << listIt->ToString() << std::endl;
+    //    }
+    
+    if(performanceMeasurement_){
+      updateSwitchingListTimer_->Stop();
+      simplifyRotListTimer_->Start();
+    }
+    
     /*
      * Step 3. Merge adjacent rotList entries
      */
     Simplify_GlobalRotationList(usedList);
-
+    
+    if(performanceMeasurement_){
+      simplifyRotListTimer_->Stop();
+      simplifySwitchingListTimer_->Start();
+    }
+    
     /*
      * Step 4. Simplify local switching lists
      */
     Simplify_LocalSwitchingLists(usedList);
-
-//    static int cnt = 0;
-//    std::cout << "GlobalRotationList after merge and simplify -- step " << ++cnt << std::endl;
-//
-//    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
-//    std::cout << listIt->ToString() << std::endl;
-//    }
-//    std::cout << "##########################" << std::endl;
-
+    
+    if(performanceMeasurement_){
+      simplifySwitchingListTimer_->Stop();
+    }
+    
+    //    static int cnt = 0;
+    //
+    //    std::cout << "GlobalRotationList after merge and simplify -- step " << ++cnt << std::endl;
+    //
+    //    for(listIt = usedList.begin(); listIt != usedList.end(); listIt++){
+    //    std::cout << listIt->ToString() << std::endl;
+    //    }
+    //    std::cout << "##########################" << std::endl;
+    
   }
-
+  
   UInt VectorPreisachv10_ListApproach::Update_SwitchingList(std::list<ListEntryv10>& list, Double newEntry, Double lastXpar, Rectangle boundingBox, bool wasWipedOut, bool lastRotEntry){
     /*
      * This function is used to update both the globalSwitching list as well as the
@@ -1240,26 +2441,26 @@ namespace CoupledField
      *
      *
      */
-
+    
     // not needed anymore as we clip against bounding box
-//    Double alpha,beta,delta;
-//
-//    /*
-//     * New treatment: switching state is always over the whole Preisach plane; it will later get clipped to
-//     * fitting rotation states
-//     * in that case, the min-max list can have values from -1 to +1 for alpha and beta
-//     */
-//    alpha = -1.0;
-//    beta = -1.0;
-//    delta = 2.0;
-
+    //    Double alpha,beta,delta;
+    //
+    //    /*
+    //     * New treatment: switching state is always over the whole Preisach plane; it will later get clipped to
+    //     * fitting rotation states
+    //     * in that case, the min-max list can have values from -1 to +1 for alpha and beta
+    //     */
+    //    alpha = -1.0;
+    //    beta = -1.0;
+    //    delta = 2.0;
+    
     std::list<ListEntryv10>::iterator listIt;
-
+    
     bool appendDirectly = false;
     if(list.empty()==true){
       appendDirectly = true;
     }
-
+    
     int state;
     /*
      * check if the current input is a minimum or a maximum
@@ -1277,18 +2478,18 @@ namespace CoupledField
     } else {
       state = -2;
     }
-
+    
     /*
      * get outer boundings of the corresponding rotation state
      */
     Double l,r,t,b;
     boundingBox.getBounds(l,r,t,b);
-
-//    std::cout << "xPar: " << newEntry << std::endl;
-//    std::cout << "lastXpar: " << lastXpar << std::endl;
-//    std::cout << "left/right: " << l << " / " << r << std::endl;
-//    std::cout << "isLastRotEntry: " << lastRotEntry << std::endl;
-
+    
+    //    std::cout << "xPar: " << newEntry << std::endl;
+    //    std::cout << "lastXpar: " << lastXpar << std::endl;
+    //    std::cout << "left/right: " << l << " / " << r << std::endl;
+    //    std::cout << "isLastRotEntry: " << lastRotEntry << std::endl;
+    
     /*
      * Check if lists gets completely overwritten (i.e. the saturated input value exceeds the bounds of the region
      */
@@ -1340,7 +2541,7 @@ namespace CoupledField
          * elements on alpha = -beta also loose their special state
          */
         return 2;
-
+        
       } else if(newEntry <= b){
         /*
          * new entry will have no effect
@@ -1397,7 +2598,7 @@ namespace CoupledField
          * return 2 -> list was updated and wiped
          */
         return 2;
-
+        
       } else if(newEntry >= r){
         /*
          * new entry will have no effect
@@ -1436,7 +2637,7 @@ namespace CoupledField
        * else -> see below
        */
     }
-
+    
     /*
      * it is ok if list is empty at beginning of the function;
      * however, in that case, an entry is added to the list or the function
@@ -1446,13 +2647,13 @@ namespace CoupledField
       EXCEPTION("List is not allowed to be empty at this point!");
     }
     std::list<ListEntryv10>::iterator lastEntry = --(list.end());
-
+    
     /*
      * if we came to this point, we have to iterate through the list and check if value shall be included
      */
     bool canBeInserted = false;
     bool canBeDeleted = false;
-
+    
     /*
      * compare current input type with the extremum type of the last entry
      * if they are of opposite type (e.g. a maximum shall be inserted and last entry of list is a minimum)
@@ -1475,18 +2676,18 @@ namespace CoupledField
         canBeInserted = true;
       }
     }
-
+    
     bool listMin;
     bool firstEntrySet = false;
     UInt cnt = 0;
     Double listVal;
     ListEntryv10 helperEntry = ListEntryv10(0,false);
-
+    
     for(listIt = list.begin(); listIt != list.end(); listIt++){
-
+      
       listMin = listIt->isMin();
       listVal = listIt->getVal();
-
+      
       if(state == 2){
         /*
          * we iterate over MinMaxList and new entry is a maximum
@@ -1510,7 +2711,7 @@ namespace CoupledField
             canBeDeleted = true;
           }
         }
-
+        
       } else if(state == -2){
         /*
          * we iterate over MinMaxList and new entry is a minimum
@@ -1535,13 +2736,13 @@ namespace CoupledField
           }
         }
       }
-
+      
       if(canBeDeleted){
         /*
          * delete all entries of the list starting with the current one
          */
         list.erase(listIt,list.end());
-
+        
         /*
          * set flag denoting that the first entry of the list got deleted, too.
          * -> after this function, a new first entry is to be set
@@ -1550,14 +2751,14 @@ namespace CoupledField
         if(cnt == 0){
           firstEntrySet = true;
         }
-
+        
         break;
       }
       cnt++;
     }
-
+    
     if(canBeInserted == true){
-
+      
       if(state > 0){
         /*
          * insert maximum
@@ -1588,30 +2789,48 @@ namespace CoupledField
      */
     return 0;
   }
-
+  
   Vector<Double> VectorPreisachv10_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,bool overwriteDirection){
     /*
      * Determine the current rotational threshold
+     *
+     * Note: u_in is no longer normalized, i.e. u_in.NormL2 > Xsaturated is possible!
+     * in that case, we have to cap u_in.NormL2 to Xsaturated BEFORE computing X_thres
+     * Otherwise, the Preisach plane may be filled further than it is intended by the model
+     * (e.g. for k = 0.5 and the revised model, the maximal filling state of the Preisach plane
+     * is 0.5, not 1)
      */
     Double X_thres;
-    if(classical_){
-      X_thres = std::pow((u_in.NormL2()/Xsaturated_),rotationalResistance_);
+    Double uNormTmp = u_in.NormL2();
+    if(uNormTmp >= XSaturated_){
+      uNormTmp = 1.0;
     } else {
-      X_thres = u_in.NormL2()*(rotationalResistance_/Xsaturated_);
+      uNormTmp = uNormTmp/XSaturated_;
     }
-
+    if(classical_){
+      X_thres = std::pow(uNormTmp,rotationalResistance_);
+    } else {
+      X_thres = uNormTmp*rotationalResistance_;
+    }
+    
     /*
      * Get current direction
      */
     Vector<Double> e_u = Vector<Double>(u_in.GetSize());
     Double xVal = u_in.NormL2();
-
-    if(xVal > tol_){
+    
+    //  std::cout << "xVal: " << xVal << std::endl;
+    //	std::cout << "OverwriteDirection? " << overwriteDirection << std::endl;
+    
+    //if(xVal > tol_) //another tolerance?!
+    if(xVal != 0){
       e_u = u_in/xVal;
     } else {
       e_u.Init(0.0);
     }
-
+    
+    // std::cout << "e_u: " << e_u.ToString() << std::endl;
+    
     /*
      * set value of lastEu_ (only needed for classical_ model to get the rotation information for the lowerTriangle_)
      */
@@ -1623,96 +2842,130 @@ namespace CoupledField
      */
     Vector<Double> retVec = Vector<Double>(dim_);
     retVec.Init();
-
+    
     /*
      * Storage for element value
      */
     Vector<Double> Yout = Vector<Double>(dim_);
     Yout.Init(0.0);
-
+    
     /*
      * Update and evaluate global rotation list
      */
-
-//    /*
-//     * check if copy works
-//     */
-//    std::cout << "GlobalRotationList pre updating " << std::endl;
-//
-//    std::list<RotListEntryv10>::iterator listIt;
-//    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
-//    std::cout << listIt->ToString() << std::endl;
-//    }
-//    std::cout << "##########################" << std::endl;
-//
-
+    
+    //    /*
+    //     * check if copy works
+    //     */
+    //    std::cout << "GlobalRotationList pre updating " << std::endl;
+    //
+    //    std::list<RotListEntryv10>::iterator listIt;
+    //    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
+    //    std::cout << listIt->ToString() << std::endl;
+    //    }
+    //    std::cout << "##########################" << std::endl;
+    
+    
     if(overwrite == true){
       /*
        * work on std data structure
        */
-      //std::cout << "Work on permanent storage" << std::endl;
+      // std::cout << "Work on permanent storage" << std::endl;
       Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],overwriteDirection);
       //Update_GlobalRotationList(X_thres, xVal, e_u, globRotList_[idElem],true);
-
+      
       /*
        * Evaluate_GlobalRotationList checks for each element if it was changed or not and
        * reevaluates only the ones that did
        */
+      if(performanceMeasurement_){
+        evaluateNestedListCounter_++;
+        evaluateNestedListTimer_->Start();
+      }
+      
       Evaluate_GlobalRotationList(globRotList_[idElem], retVec);
+      
+      if(performanceMeasurement_){
+        evaluateNestedListTimer_->Stop();
+      }
+      
     } else {
       /*
        * get copy of globRotList_[idElem]
        */
-      //std::cout << "Working on temporal copy" << std::endl;
+      // std::cout << "Working on temporal copy" << std::endl;
+      
+      if(performanceMeasurement_){
+        copyToTemporalStorageCounter_++;
+        copyToTemporalStorageTimer_->Start();
+      }
+      
       std::list<RotListEntryv10> tmpList = globRotList_[idElem];
-
-//      std::cout << "tmpList pre updating " << std::endl;
-//
-//      for(listIt = tmpList.begin(); listIt != tmpList.end(); listIt++){
-//      std::cout << listIt->ToString() << std::endl;
-//      }
-//      std::cout << "##########################" << std::endl;
-
+      
+      if(performanceMeasurement_){
+        copyToTemporalStorageTimer_->Stop();
+      }
+      
+      //      std::cout << "tmpList pre updating " << std::endl;
+      //std::list<RotListEntryv10>::iterator listIt;
+      //      for(listIt = tmpList.begin(); listIt != tmpList.end(); listIt++){
+      //      std::cout << listIt->ToString() << std::endl;
+      //      }
+      //      std::cout << "##########################" << std::endl;
+      
       /*
        * then perform all updates on that temporal list only
        */
-      std::cout << "Working only on temporal storage! " << std::endl;
+      //   std::cout << "Working only on temporal storage! " << std::endl;
       //Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,true);
       Update_GlobalRotationList(X_thres, xVal, e_u, tmpList,overwriteDirection);
-
+      
+      if(performanceMeasurement_){
+        evaluateNestedListCounter_++;
+        evaluateNestedListTimer_->Start();
+      }
+      
       Evaluate_GlobalRotationList(tmpList, retVec);
-
-//      std::cout << "tmpList post updating " << std::endl;
-//
-//      for(listIt = tmpList.begin(); listIt != tmpList.end(); listIt++){
-//      std::cout << listIt->ToString() << std::endl;
-//      }
-//      std::cout << "##########################" << std::endl;
+      
+      if(performanceMeasurement_){
+        evaluateNestedListTimer_->Stop();
+      }
+      
+      //      std::cout << "retVec: " << retVec.ToString() << std::endl;
+      //
+      //      std::cout << "tmpList post updating " << std::endl;
+      //
+      //      for(listIt = tmpList.begin(); listIt != tmpList.end(); listIt++){
+      //      std::cout << listIt->ToString() << std::endl;
+      //      }
+      //      std::cout << "##########################" << std::endl;
+      //			
     }
-
-//    /*
-//     * check if copy works
-//     */
-//    std::cout << "GlobalRotationList after updating and evaluation " << std::endl;
-//
-//    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
-//    std::cout << listIt->ToString() << std::endl;
-//    }
-//    std::cout << "##########################" << std::endl;
-
+    
+    //    /*
+    //     * check if copy works
+    //     */
+    //    if(idElem == 0){
+    //    std::cout << "GlobalRotationList after updating and evaluation " << std::endl;
+    //    //std::list<RotListEntryv10>::iterator listIt;
+    //    for(listIt = globRotList_[idElem].begin(); listIt != globRotList_[idElem].end(); listIt++){
+    //    std::cout << listIt->ToString() << std::endl;
+    //    }
+    //    std::cout << "##########################" << std::endl;
+    //    }
+    
     Yout += retVec;
-
+    
     if(classical_){
       /*
        * Add value of lower triangle
        */
       Yout += e_u * lowerTriangleValue_;
     }
-
-  //  std::cout << "###YOUT###################" << std::endl;
-  //  std::cout << std::setprecision(16) << std::scientific << Yout.ToString() << std::endl;
-  //  std::cout << "##########################" << std::endl;
-
+    
+    //  std::cout << "###YOUT###################" << std::endl;
+    //  std::cout << std::setprecision(16) << std::scientific << Yout.ToString() << std::endl;
+    //  std::cout << "##########################" << std::endl;
+    
     /*
      * in previous versions we scaled with delta_^2, too
      * this is no longer needed as we perform this step already in mapRectangleToPreisachWeights which is called
@@ -1726,7 +2979,7 @@ namespace CoupledField
       return preisachSumTmp_[idElem];
     }
   }
-
+  
   Double VectorPreisachv10_ListApproach::clipRectangleToElement(Rectangle& source, UInt idAlpha, UInt idBeta, Double delta, bool isRotState){
     /*
      * Calculates the overlapping area of a rectangle (rectT,rectB,rectL,rectR) with the element defined by alphaId, betaId
@@ -1744,7 +2997,7 @@ namespace CoupledField
      *    the cutting of triangle parts below the diagonal
      *
      */
-
+    
     if(delta <= 0){
       /*
        * default for clipping to Preisach elements
@@ -1754,25 +3007,25 @@ namespace CoupledField
     /*
      * else: use different delta for clipping to Bmp
      */
-
+    
     Double elemLeft,elemBot;
     Double ovL,ovR,ovT,ovB;
     bool success;
-
+    
     elemLeft = idBeta*delta - 1.0;
     elemBot = idAlpha*delta - 1.0;
-
+    
     Rectangle elemRect = Rectangle(elemLeft,elemLeft+delta, elemBot+delta, elemBot);
     Rectangle target = Rectangle(0,0,0,0);
-
+    
     success = elemRect.clipRectangles(source,target);
-
+    
     if(!success){
       return 0.0;
     }
-
+    
     target.getBounds(ovL,ovR,ovT,ovB);
-
+    
     /*
      * check if element is a diagonal one, i.e. if it lies on alpha = beta -> idAlpha = idBeta
      */
@@ -1799,7 +3052,7 @@ namespace CoupledField
          */
         ovR = ovT;
       }
-
+      
       if(ovR-elemLeft >= ovB-elemBot){
         /*
          * lower right corner below diagonal (only this triangular area is still below diagonal!)
@@ -1808,29 +3061,29 @@ namespace CoupledField
         triang = 0.5*((ovR-ovB)*(ovR-ovB));
       }
     }
-
+    
     if(isRotState == true){
       /*
        * do not subtract the part below the diagonal -> treat element as full element
        */
       triang = 0.0;
     }
-
+    
     /*
      * calculate rectangular area
      * Note: execute this step after the cutting down steps above, so that the area below the diagonal is
      * at max a triangle (which value already is known)
      */
     Double area = (ovT-ovB)*(ovR-ovL);
-
+    
     /*
      * subtract triangular part (if any)
      */
     area -= triang;
-
+    
     return area;
   }
-
+  
   void VectorPreisachv10_ListApproach::getBoundingBoxFromRotEntry(std::list<RotListEntryv10>::iterator rotListIt, Rectangle& rect, bool lastRotListEntryv10){
     /*
      * helper function returning a bounding box including all rotation areas which belong to a given rotListEntryv10
@@ -1839,11 +3092,11 @@ namespace CoupledField
      *  when new values are added to the local switching list, these values can be clipped to this bounding box
      *
      */
-
+    
     Double l,r,t,b;
     Double upperBound = rotListIt->getVal(); //exi
     Double lowerBound = rotListIt->getLowerVal(); //exi+1
-
+    
     if(classical_ == true){
       /*
        * Rotation states form flipped L-shapes in S_U; last entry of list extends into T_U
@@ -1880,7 +3133,7 @@ namespace CoupledField
         r = 1.0;
         b = 0.0;
         t = 1.0;
-
+        
       } else {
         /*
          * inner entry (also includes i=0)
@@ -1928,24 +3181,24 @@ namespace CoupledField
       b = -upperBound;
       t = upperBound;
     }
-
+    
     rect.setBounds(l,r,t,b);
   }
-
-
+  
+  
   bool VectorPreisachv10_ListApproach::getRectanglesFromRotEntry(std::list<RotListEntryv10>::iterator rotListIt, Rectangle& rect1, Rectangle& rect2, bool lastRotListEntryv10){
     /*
      * -encapsulate the determination of rectangular rotation areas from a rot list entry
      * -return true if two non-zero rectangles are created; false otherwise
      * -lastRotListEntryv10 needed to check for last entry
      */
-
+    
     bool twoAreas = true;
     Double l,r,t,b;
     Double l2,r2,t2,b2;
     Double upperBound = rotListIt->getVal(); //exi
     Double lowerBound = rotListIt->getLowerVal(); //exi+1
-
+    
     if(classical_ == true){
       /*
        * Rotation states form flipped L-shapes in S_U; last entry of list extends into T_U
@@ -1994,7 +3247,7 @@ namespace CoupledField
         r = upperBound;
         b = 0.0;
         t = upperBound;
-
+        
         /*
          * AN2
          */
@@ -2010,7 +3263,7 @@ namespace CoupledField
         r = -lowerBound;
         b = lowerBound;
         t = upperBound;
-
+        
         l2 = -upperBound;
         r2 = -lowerBound;
         b2 = upperBound;
@@ -2068,7 +3321,7 @@ namespace CoupledField
         r = upperBound;
         b = -upperBound;
         t = upperBound;
-
+        
         l2 = 0;
         r2 = 0;
         b2 = 0;
@@ -2081,20 +3334,20 @@ namespace CoupledField
         r = -lowerBound;
         b = -upperBound;
         t = lowerBound;
-
+        
         l2 = -upperBound;
         r2 = upperBound;
         b2 = lowerBound;
         t2 = upperBound;
       }
     }
-
+    
     rect1.setBounds(l,r,t,b);
     rect2.setBounds(l2,r2,t2,b2);
-
+    
     return twoAreas;
   }
-
+  
   void VectorPreisachv10_ListApproach::Evaluate_GlobalRotationList(std::list<RotListEntryv10>& usedList, Vector<Double>& retVec){
     /*
      * Evaluates the weighted rotation state of
@@ -2123,7 +3376,7 @@ namespace CoupledField
      * save evaluated state in retVec
      *
      */
-
+    
     /*
      * Init ret vec
      */
@@ -2131,49 +3384,50 @@ namespace CoupledField
       retVec = Vector<Double>(dim_);
     }
     retVec.Init(0);
-
+    
     /*
      * iterators for local switching list
      */
     std::list<ListEntryv10>::iterator swListIt;
     std::list<ListEntryv10>::iterator swListStart;
     std::list<ListEntryv10>::iterator swListEnd;
-
+    
     /*
      * iterators for global rotation list
      */
     std::list<RotListEntryv10>::iterator rotListIt;
     std::list<RotListEntryv10>::iterator rotListEnd = --(usedList.end());
-
+    
     bool twoAreas = true;
     bool lastRotListEntryv10;
-
+    
     Rectangle rotRect1 = Rectangle(0,0,0,0);
     Rectangle rotRect2 = Rectangle(0,0,0,0);
     Rectangle swRect = Rectangle(0,0,0,0);
     Rectangle overlapRect = Rectangle(0,0,0,0);
-
+    
     Double sum = 0.0;
     Double tmp = 0.0;
     Double factor;
     UInt cnt = 0;
     UInt outercnt = 1;
-
+    
     Vector<Double> rotState;
-
+    
     for(rotListIt = usedList.begin(); rotListIt != usedList.end(); rotListIt++){
-
+      
       if(rotListIt == rotListEnd){
         lastRotListEntryv10 = true;
       } else {
         lastRotListEntryv10 = false;
       }
       rotState = rotListIt->getVecReference();
-
+      
       /*
        * check if reevaluation is needed at all
        */
       if(rotListIt->hasChanged() == false){
+        //        std::cout << "Rotstate did not change > reuse old value" << std::endl;
         /*
          * neither switching list did change since last time (and weights did not change either)
          * nor did the lower bound of the rotation area
@@ -2186,21 +3440,21 @@ namespace CoupledField
         /*
          * get rotation area(s)
          */
-
+        
         swListStart = rotListIt->getListReference().begin();
         swListEnd = --(rotListIt->getListReference().end());
-
+        
         twoAreas = getRectanglesFromRotEntry(rotListIt, rotRect1, rotRect2,lastRotListEntryv10);
-
-//        std::cout << "---------------------------" << std::endl;
-//        std::cout << "Rotlistentry " << outercnt << std::endl;
-//        Double ltmp,rtmp,ttmp,btmp;
-//        rotRect1.getBounds(ltmp,rtmp,ttmp,btmp);
-//        std::cout << "Rect1: " << ltmp << ", " << rtmp << ", " << ttmp << ", " << btmp << std::endl;
-//        rotRect2.getBounds(ltmp,rtmp,ttmp,btmp);
-//        std::cout << "Rect2: " << ltmp << ", " << rtmp << ", " << ttmp << ", " << btmp << std::endl;
+        
+        //        std::cout << "---------------------------" << std::endl;
+        //        std::cout << "Rotlistentry " << outercnt << std::endl;
+        //        Double ltmp,rtmp,ttmp,btmp;
+        //        rotRect1.getBounds(ltmp,rtmp,ttmp,btmp);
+        //        std::cout << "Rect1: " << ltmp << ", " << rtmp << ", " << ttmp << ", " << btmp << std::endl;
+        //        rotRect2.getBounds(ltmp,rtmp,ttmp,btmp);
+        //        std::cout << "Rect2: " << ltmp << ", " << rtmp << ", " << ttmp << ", " << btmp << std::endl;
         outercnt++;
-
+        
         /*
          * reset counter (needed to check if we have the first entry of the switch list)
          * Regarding cnt:
@@ -2223,63 +3477,63 @@ namespace CoupledField
         sum = 0.0;
         tmp = 0.0;
         bool success = false;
-
-//        std::cout << "RotRect1" << std::endl;
-//        std::cout << rotRect1.ToString() << std::endl;
-//
-//        std::cout << "RotRect2" << std::endl;
-//        std::cout << rotRect2.ToString() << std::endl;
-
+        
+        //        std::cout << "RotRect1" << std::endl;
+        //        std::cout << rotRect1.ToString() << std::endl;
+        //
+        //        std::cout << "RotRect2" << std::endl;
+        //        std::cout << rotRect2.ToString() << std::endl;
+        
         for(swListIt = rotListIt->getListReference().begin(); swListIt != rotListIt->getListReference().end(); ){
-
+          
           /*
            * get rectangular bounds corresponding to entry of switching list (compare to Evaluate_GlobalSwitchingList)
            */
           factor = getRectangleFromSwitchingList(rotListIt->getListReference(),swListStart, swListIt, swListEnd,cnt, swRect);
-
+          
           /*
            * clip resulting area against rotation area1
            */
           success = rotRect1.clipRectangles(swRect,overlapRect);
-
-//          std::cout << "Switching" << std::endl;
-//          std::cout << swRect.ToString() << std::endl;
-
+          
+          //          std::cout << "Switching" << std::endl;
+          //          std::cout << swRect.ToString() << std::endl;
+          
           if(success){
             /*
              *  clip overlap to PreisachPlane and sum up
              */
             tmp = mapRectangleToPreisachWeights(overlapRect);
-
-//            std::cout << "Overlap1" << std::endl;
-//            std::cout << overlapRect.ToString() << std::endl;
-//            std::cout << "Factor: " << factor << std::endl;
-//            std::cout << "Value: " << tmp << std::endl;
-
+            
+            //            std::cout << "Overlap1" << std::endl;
+            //            std::cout << overlapRect.ToString() << std::endl;
+            //            std::cout << "Factor: " << factor << std::endl;
+            //            std::cout << "Value: " << tmp << std::endl;
+            
             sum += factor*tmp;
           }
-
+          
           if(twoAreas){
             /*
              * repeat the clipping steps for the second area
              */
             success = rotRect2.clipRectangles(swRect,overlapRect);
-
+            
             if(success){
-             /*
-              *  clip overlap to PreisachPlane and sum up
-              */
-             tmp = mapRectangleToPreisachWeights(overlapRect);
-
-//             std::cout << "Overlap2" << std::endl;
-//             std::cout << overlapRect.ToString() << std::endl;
-//             std::cout << "Factor: " << factor << std::endl;
-//             std::cout << "Value: " << tmp << std::endl;
-
-             sum += factor*tmp;
+              /*
+               *  clip overlap to PreisachPlane and sum up
+               */
+              tmp = mapRectangleToPreisachWeights(overlapRect);
+              
+              //             std::cout << "Overlap2" << std::endl;
+              //             std::cout << overlapRect.ToString() << std::endl;
+              //             std::cout << "Factor: " << factor << std::endl;
+              //             std::cout << "Value: " << tmp << std::endl;
+              
+              sum += factor*tmp;
             }
           }
-
+          
           /*
            * extra treatment for unsymmetric weights
            * here we have to overlap with the diagonally split area, too.
@@ -2306,22 +3560,27 @@ namespace CoupledField
            *
            */
           if(cnt == 0){
-
+            
             if((isSymmetric_ == false)&&(rotListIt->wasListWipedOut() == false)){
               /*
                * set flag upperSplitSquare to true -> get area 0 instead of area 1
                */
               factor = getRectangleFromSwitchingList(rotListIt->getListReference(),swListStart, swListIt, swListEnd,cnt, swRect,true);
-
+              
               if(factor != 0){
+                // getRectangleFromSwitchingList returns the correct sign for
+                // the addition (i.e. +1 or -1 depending on minima/maxima)
+                // exception: area0, as this area is half +1 and half -1
+                // for this special case, getRectangleFromSwitchingList returns 0
+                // and the signs are considered in mapRectanglesToPreisachPlane
                 EXCEPTION("Something got wrong here! Check function getRectangleBounds!");
               }
-
+              
               /*
                * clip resulting area against rotation area1
                */
               success = rotRect1.clipRectangles(swRect,overlapRect);
-
+              
               if(success){
                 /*
                  *  clip overlap to PreisachPlane and sum up
@@ -2332,13 +3591,13 @@ namespace CoupledField
                 // will not only skip the diagonal entries, but also consider the right signs!
                 sum += tmp;
               }
-
+              
               if(twoAreas){
                 /*
                  * repeat the clipping steps for the second area
                  */
                 success = rotRect2.clipRectangles(swRect,overlapRect);
-
+                
                 if(success){
                   /*
                    *  clip overlap to PreisachPlane and sum up
@@ -2352,17 +3611,17 @@ namespace CoupledField
               }
             }
           }
-
+          
           if(cnt > 0){
             /*
              * NOTE: area1 and area2 are both calculated using the first list entry, therefore we do not increase the iterator after
              * the first iteration
              */
-             swListIt++;
+            swListIt++;
           }
           cnt++;
         } // sw list
-
+        
         /*
          * set rotation element to be unchanged
          * -> if neither the boundaries of the rotation area, nor the switching list change till next time
@@ -2370,18 +3629,18 @@ namespace CoupledField
          */
         rotListIt->setToUnchanged();
         rotListIt->setLastEvalState(sum);
-
+        
         /*
          * add sum * rotState to retVec
          */
-//        std::cout << "Sum: " << sum << std::endl;
-//        std::cout << "rotState: " << rotState.ToString() << std::endl;
+        //        std::cout << "Sum: " << sum << std::endl;
+        //        std::cout << "rotState: " << rotState.ToString() << std::endl;
         retVec += rotState*sum;
-//        std::cout << "retVec: " << retVec.ToString() << std::endl;
+        //        std::cout << "retVec: " << retVec.ToString() << std::endl;
       }
     } // rot list
   }
-
+  
   void VectorPreisachv10_ListApproach::Evaluate_LowerTriangle(){
     /*
      * This function calculates the overall switching state of the lower triangle;
@@ -2389,7 +3648,7 @@ namespace CoupledField
      * the overall contribution of the lowe triangle
      * -> this function has to be called only once during the initializatioh as the state is always +1
      */
-
+    
     /*
      * use function mapRectangleToPreisachWeights for the evaluation
      * this function overlaps rectangles with the Preisach plane and intergrates over all weights in the
@@ -2399,8 +3658,22 @@ namespace CoupledField
     Rectangle rect = Rectangle(-1.0,0.0,0.0,-1.0);
     lowerTriangleValue_ = mapRectangleToPreisachWeights(rect);
   }
-
+  
   Double VectorPreisachv10_ListApproach::mapRectangleToPreisachWeights(Rectangle& rect, bool skipUpperDiagonal){
+    
+    if(mappingVersion_ == 0){
+      //if(textOutputLevel_ == 2){
+      // std::cout << "Use OLD mapping method" << std::endl;
+      //}
+      return mapRectangleToPreisachWeightsOLD(rect, skipUpperDiagonal);
+    } else {
+      //if(textOutputLevel_ == 2){
+      // std::cout << "Use NEW mapping method" << std::endl;
+      //}
+      return mapRectangleToPreisachWeightsNEW(rect, skipUpperDiagonal);
+    }
+  }
+  Double VectorPreisachv10_ListApproach::mapRectangleToPreisachWeightsOLD(Rectangle& rect, bool skipUpperDiagonal){
     /*
      * Input: rectangle area described by its top (t), bottom (b), left (l) and right (r) boundary
      * Output: Sum over all PreisachWeights overlapped by the rectangle (partially overlapped elements
@@ -2417,13 +3690,13 @@ namespace CoupledField
      *  Furthermore, skipUpperDiagonal will consider the correct signs, i.e. all entries above alpha = -beta will be subtracted
      *  all entries below will be added to the return value!
      */
-
+    
     Double sum = 0.0;
     Double t,b,l,r;
     rect.getBounds(l,r,t,b);
-
- //   std::cout << "L,R,T,B: " << l << "," << r << "," << t << "," << b << "," << std::endl;
-
+    
+    //   std::cout << "L,R,T,B: " << l << "," << r << "," << t << "," << b << "," << std::endl;
+    
     /*
      * restrict input value to valid range
      * (Preisach plane just goes from -1 to +1 in alpha and beta)
@@ -2432,16 +3705,16 @@ namespace CoupledField
     b = std::max(b,-1.0);
     l = std::max(l,-1.0);
     r = std::min(r,1.0);
-
- //   std::cout << "L,R,T,B: " << l << "," << r << "," << t << "," << b << "," << std::endl;
-
+    
+    //   std::cout << "L,R,T,B: " << l << "," << r << "," << t << "," << b << "," << std::endl;
+    
     /*
      * check if rectangular has size != 0
      */
     if((t <= b)||(r <= l)){
       return sum;
     }
-
+    
     /*
      * Lower triangluar part of Preisach plane (here 16 elements)
      * and overlapping rectangle
@@ -2474,49 +3747,56 @@ namespace CoupledField
      *      > if yes sum up value
      *      > else use clipToElement to determine the appropriate scaling value for weight, then sum up
      */
-
+    
     /*
      * 1. get indices of all overlapped elements (partially and fully)
      * NOTE: element alpha = -1 and beta = -1 will have index 0,0!
      * -> add floor(1.0/delta_) != numRows/2
      */
-    int rowMin =  floor(b/delta_) + floor(1.0/delta_);
-    int rowMax = ceil(t/delta_) + floor(1.0/delta_)-1;
-
-    int colMin =  floor(l/delta_) + floor(1.0/delta_);
-    int colMax =  ceil(r/delta_) + floor(1.0/delta_)-1;
-
+    int rowMin =  std::floor(b/delta_) + std::floor(1.0/delta_);
+    int rowMax = std::ceil(t/delta_) + std::floor(1.0/delta_)-1;
+    
+    int colMin =  std::floor(l/delta_) + std::floor(1.0/delta_);
+    int colMax =  std::ceil(r/delta_) + std::floor(1.0/delta_)-1;
+    
     /*
      * NEW: use integers instead of unsigned integer
      * REASON: colMaxFull became negative (which simply would indicate no fully overlapped elemets), but
      * unsigning took it to a very large positive value and thus -> wrong result
      */
-
+    
     /*
      * 2. get indices of completely overlapped elements
      */
-    int rowMinFull =  ceil(b/delta_) + floor(1.0/delta_);
-    int rowMaxFull = floor(t/delta_) + floor(1.0/delta_)-1;
-
-    int colMinFull =  ceil(l/delta_) + floor(1.0/delta_);
-    int colMaxFull = floor(r/delta_) + floor(1.0/delta_)-1;
-
-//    std::cout << std::setprecision(12) << std::scientific << b << " " << t << " " << l << " " << r << std::endl;
-//    std::cout << std::setprecision(12) << std::scientific << floor(b) << " " << ceil(t) << " " << floor(l) << " " << ceil(r) << std::endl;
-//    std::cout << std::setprecision(12) << std::scientific << floor(b/delta_) << " " << ceil(t/delta_) << " " << floor(l) << " " << ceil(r) << std::endl;
-//    std::cout << rowMin << " " << rowMax << " " << colMin << " " << colMax << std::endl;
-//    std::cout << rowMinFull << " " << rowMaxFull << " " << colMinFull << " " << colMaxFull << std::endl;
-
+    int rowMinFull =  std::ceil(b/delta_) + std::floor(1.0/delta_);
+    int rowMaxFull = std::floor(t/delta_) + std::floor(1.0/delta_)-1;
+    
+    int colMinFull =  std::ceil(l/delta_) + std::floor(1.0/delta_);
+    int colMaxFull = std::floor(r/delta_) + std::floor(1.0/delta_)-1;
+    
+    //    std::cout << std::setprecision(12) << std::scientific << b << " " << t << " " << l << " " << r << std::endl;
+    //    std::cout << std::setprecision(12) << std::scientific << floor(b) << " " << ceil(t) << " " << floor(l) << " " << ceil(r) << std::endl;
+    //    std::cout << std::setprecision(12) << std::scientific << floor(b/delta_) << " " << ceil(t/delta_) << " " << floor(l) << " " << ceil(r) << std::endl;
+    //    std::cout << rowMin << " " << rowMax << " " << colMin << " " << colMax << std::endl;
+    //    std::cout << rowMinFull << " " << rowMaxFull << " " << colMinFull << " " << colMaxFull << std::endl;
+    
+    
+    //    Matrix<Double> accessCounter = preisachWeights_;
+    ////
+    //    accessCounter.Init();
+    
+    //   std::cout << "AccessCounter (start): " << accessCounter.ToString() << std::endl;
+    
     /*
      * Iterate over all elements
      */
     Double tmp = 0.0;
-
+    
     if(skipUpperDiagonal == true){
       /*
        * special treatment:
        * 1. skip entries on alpha = -beta
-       * 2. consider the right signs, i.e. +1 for entries below alpha = -beta
+       * 2. consider the correct signs, i.e. +1 for entries below alpha = -beta
        *    and -1 for entries above!
        */
       Double sign;
@@ -2525,11 +3805,11 @@ namespace CoupledField
          * ensure, that j <= i -> other elements do not contribute
          */
         UInt i = (UInt) ii;
-
+        
         for(int jj = colMin; jj <= std::min(ii,colMax); jj++){
-
+          
           UInt j = (UInt) jj;
-
+          
           if(numRows_-i-j-1 == 0){
             /*
              * alpha = -beta
@@ -2548,9 +3828,9 @@ namespace CoupledField
              */
             sign = 1.0;
           }
-
+          
           tmp = preisachWeights_[i][j];
-
+          
           /*
            * Check for an inner element
            */
@@ -2563,7 +3843,7 @@ namespace CoupledField
               if(i == j){
                 tmp = tmp/2.0;
               }
-
+              
               /*
                * scale Preisach weights with area
                */
@@ -2598,26 +3878,30 @@ namespace CoupledField
              */
             tmp = tmp * clipRectangleToElement(rect, i, j);
           }
-
+          
           sum += sign*tmp;
         }
       }
-
+      
     } else {
       /*
        * std treatment
        */
+      /*
+       * sum over all fully overlapped Elements
+       */
+      Double sumFullElems = 0.0;
       for(int ii = rowMin; ii <= rowMax; ii++){
         /*
          * ensure, that j <= i -> other elements do not contribute
          */
         UInt i = (UInt) ii;
-
+        
         for(int jj = colMin; jj <= std::min(ii,colMax); jj++){
           UInt j = (UInt) jj;
-
+          
           tmp = preisachWeights_[i][j];
-
+          
           /*
            * Check for an inner element
            */
@@ -2628,12 +3912,22 @@ namespace CoupledField
                */
               if(i == j){
                 tmp = tmp/2.0;
+                // accessCounter[i][j] += 0.5;
               }
-
+              //              else {
+              //                accessCounter[i][j] += 1;
+              //              }
+              
+              sumFullElems += tmp;
+              
+              
+              /*
+               * new: scale only at end of summation to save flops
+               */
               /*
                * scale Preisach weights with area
                */
-              tmp *= delta_*delta_;
+              //tmp *= delta_*delta_;
             } else {
               /*
                * Partially overlapped element
@@ -2647,7 +3941,9 @@ namespace CoupledField
                * Note 2: here we do not have to scale with delta_^2 as the overlap is already a returning an
                * area <= delta_^2
                */
-              tmp = tmp * clipRectangleToElement(rect, i, j);
+              sum += tmp * clipRectangleToElement(rect, i, j);
+              // accessCounter[i][j] += clipRectangleToElement(rect, i, j);
+              //tmp = tmp * clipRectangleToElement(rect, i, j);
             }
           } else {
             /*
@@ -2662,20 +3958,565 @@ namespace CoupledField
              * Note 2: here we do not have to scale with delta_^2 as the overlap is already a returning an
              * area <= delta_^2
              */
-            tmp = tmp * clipRectangleToElement(rect, i, j);
+            sum += tmp * clipRectangleToElement(rect, i, j);
+            // accessCounter[i][j] += clipRectangleToElement(rect, i, j);
+            //tmp = tmp * clipRectangleToElement(rect, i, j);
           }
-
-          sum += tmp;
+          
+          /*
+           * new: all partially filled elements get added directly to sum;
+           * all others are added at end of loop
+           */
+          //sum += tmp;
+        }
+      }
+      sum += sumFullElems*delta_*delta_;
+    }
+    
+    //    std::cout << "rowMin / rowMinFull: " << rowMin << " / " << rowMinFull << std::endl;
+    //    std::cout << "rowMax / rowMaxFull: " << rowMax << " / " << rowMaxFull << std::endl;
+    //    std::cout << "colMin / colMinFull: " << colMin << " / " << colMinFull << std::endl;
+    //    std::cout << "colMax / colMaxFull: " << colMax << " / " << colMaxFull << std::endl;
+    //    std::cout << "AccessCounter (end): " << accessCounter.ToString() << std::endl;
+    
+    return sum;
+  }
+  
+  //NEW
+  Double VectorPreisachv10_ListApproach::mapRectangleToPreisachWeightsNEW(Rectangle& rect, bool skipUpperDiagonal){
+    /*
+     * Input: rectangle area described by its top (t), bottom (b), left (l) and right (r) boundary
+     * Output: Sum over all PreisachWeights overlapped by the rectangle (partially overlapped elements
+     * are added only partially!)
+     *
+     * skipUpperDiagonal:
+     *  used for the calculation of the upper square area which is split along the diagonal alpha=-beta
+     *  Normally, we can leave out this area, as positive and negative part cancel out. This is not true
+     *  if the Preisach weights are no longer symmetric to alpha = -beta. In that case we have to sum up
+     *  parts of both halves of this upper square (only the parts overlapping with a rotation state).
+     *  To make calculation easier, we skip the diagonal entries on alpha = -beta. This is valid, as one
+     *  element of the Preisach plane is always assumed to be symmetric, so that a single element which
+     *  is split along its diagonal sums up to 0.
+     *  Furthermore, skipUpperDiagonal will consider the correct signs, i.e. all entries above alpha = -beta will be subtracted
+     *  all entries below will be added to the return value!
+     */
+    
+    Double sum = 0.0;
+    Double t,b,l,r;
+    rect.getBounds(l,r,t,b);
+    
+    //   std::cout << "L,R,T,B: " << l << "," << r << "," << t << "," << b << "," << std::endl;
+    
+    /*
+     * restrict input value to valid range
+     * (Preisach plane just goes from -1 to +1 in alpha and beta)
+     */
+    t = std::min(t,1.0);
+    b = std::max(b,-1.0);
+    l = std::max(l,-1.0);
+    r = std::min(r,1.0);
+    
+    //   std::cout << "L,R,T,B: " << l << "," << r << "," << t << "," << b << "," << std::endl;
+    
+    /*
+     * check if rectangular has size != 0
+     */
+    if((t <= b)||(r <= l)){
+      return sum;
+    }
+    
+    /*
+     * Lower triangluar part of Preisach plane (here 16 elements)
+     * and overlapping rectangle
+     *   _____ _____ _____ _____ _____
+     *  |    .|.....|.....|.....|.   /
+     *  | 1 ¦ | 2   | 3   | 4   |¦5/
+     *  |___¦_|_____|_____|_____|/
+     *  |   ¦ |     |     |    / ¦
+     *  | 6 ¦ | 7   | 8   | 9/   ¦
+     *  |___¦_|_____|_____|/     ¦
+     *  |   ¦ |     |    /       ¦
+     *  | a ¦.|.b...|.c/.........¦
+     *  |_____|_____|/
+     *  |     |    /
+     *  | d   | e/
+     *  |_____|/
+     *  |    /
+     *  | f/
+     *  |/
+     *
+     *  Element 7,8,9 are completely overlapped
+     *  Element 6 is cut vertically
+     *  Element 2,3,b,c are cut horizontally
+     *  Element a is cut horizontally and vertically
+     *  Element c,5 are cut horizontally, vertically and diagonally
+     *
+     *  Approach:
+     *   Iterate over all (fully and partially overlapped) elements
+     *    >Check if indices denote a fully overlapped element
+     *      > if yes sum up value
+     *      > else use clipToElement to determine the appropriate scaling value for weight, then sum up
+     */
+    
+    /*
+     * 1. get indices of all overlapped elements (partially and fully)
+     * NOTE: element alpha = -1 and beta = -1 will have index 0,0!
+     * -> add floor(1.0/delta_) != numRows/2
+     */
+    int rowMin =  std::floor(b/delta_) + std::floor(1.0/delta_);
+    int rowMax = std::ceil(t/delta_) + std::floor(1.0/delta_)-1;
+    
+    int colMin =  std::floor(l/delta_) + std::floor(1.0/delta_);
+    int colMax =  std::ceil(r/delta_) + std::floor(1.0/delta_)-1;
+    
+    /*
+     * NEW: use integers instead of unsigned integer
+     * REASON: colMaxFull became negative (which simply would indicate no fully overlapped elemets), but
+     * unsigning took it to a very large positive value and thus -> wrong result
+     */
+    
+    /*
+     * 2. get indices of completely overlapped elements
+     */
+    int rowMinFull =  std::ceil(b/delta_) + std::floor(1.0/delta_);
+    int rowMaxFull = std::floor(t/delta_) + std::floor(1.0/delta_)-1;
+    
+    int colMinFull =  std::ceil(l/delta_) + std::floor(1.0/delta_);
+    int colMaxFull = std::floor(r/delta_) + std::floor(1.0/delta_)-1;
+    
+    //    std::cout << std::setprecision(12) << std::scientific << b << " " << t << " " << l << " " << r << std::endl;
+    //    std::cout << std::setprecision(12) << std::scientific << floor(b) << " " << ceil(t) << " " << floor(l) << " " << ceil(r) << std::endl;
+    //    std::cout << std::setprecision(12) << std::scientific << floor(b/delta_) << " " << ceil(t/delta_) << " " << floor(l) << " " << ceil(r) << std::endl;
+    //    std::cout << rowMin << " " << rowMax << " " << colMin << " " << colMax << std::endl;
+    //    std::cout << rowMinFull << " " << rowMaxFull << " " << colMinFull << " " << colMaxFull << std::endl;
+    
+    /*
+     * new (hopefully cheaper) approach
+     *    instead of iterating over all elements and checking for each element
+     *    if it is
+     *      a) on the diagonal alpha = beta
+     *      b) partially overlapped
+     *    we do
+     *      1) loop over all fully overlapped elements excluding diagonal
+     *      2) loop over all fully overlapped elements on the diagonal
+     *      3) iterate over all partially overlapped elements
+     *        3a) bottom
+     *        3b) left
+     *        3c) top
+     *        3d) right
+     *
+     *    for upper split upper part, we do
+     *      1) loop over all fully overlapped elements excluding diagonal
+     *      2) only fully overlapped diagonal elements
+     *      3) iterate over all partially overlapped elements
+     
+     *    -> only relevant for case of unsymmetric weights!
+     *    TODO: unsymmetric case has to be tested
+     *
+     *
+     */
+    
+    Double tmp = 0.0;
+    Double fullElementSum = 0.0;
+    
+    //    Matrix<Double> accessCounter = preisachWeights_;
+    //
+    //    accessCounter.Init();
+    
+    //std::cout << "AccessCounter (start): " << accessCounter.ToString() << std::endl;
+    
+    
+    if(skipUpperDiagonal == true){
+      /*
+       * special treatment:
+       * 1. skip entries on alpha = -beta
+       * 2. consider the correct signs, i.e. +1 for entries below alpha = -beta
+       *    and -1 for entries above!
+       */
+      
+      /*
+       * new approach
+       * 1) only full elements without diagonal
+       */
+      for(int ii = rowMinFull; ii <= rowMaxFull; ii++){
+        UInt i = (UInt) ii;
+        
+        // ii-1 -> diagonal not reached
+        for(int jj = colMinFull; jj <= std::min(ii-1,colMaxFull); jj++){
+          UInt j = (UInt) jj;
+          
+          if(numRows_-i-j-1 == 0){
+            /*
+             * alpha = -beta
+             */
+            continue;
+          }
+          
+          if (numRows_ < i+j+1){
+            /*
+             * above alpha = -beta
+             * -> sign = -1
+             */
+            fullElementSum -= preisachWeights_[i][j];
+          } else {
+            /*
+             * below diagonal
+             * -> sign = +1
+             */
+            fullElementSum += preisachWeights_[i][j];
+          }
+        }
+      }
+      
+      /*
+       * new approach
+       * 2) only full diagonal elements
+       */
+      for(int ii = rowMinFull; ii <= rowMaxFull; ii++){
+        UInt i = (UInt) ii;
+        
+        // ii-1 was already treated above; now check only if element on diagonal
+        // colMaxFull == ii is needed, too
+        if(colMaxFull >= ii){
+          UInt j = i;
+          
+          if(numRows_-i-j-1 == 0){
+            /*
+             * alpha = -beta
+             */
+            continue;
+          }
+          
+          if (numRows_ < i+j+1){
+            /*
+             * above alpha = -beta
+             * -> sign = -1
+             */
+            fullElementSum -= preisachWeights_[i][j]/2.0;
+          } else {
+            /*
+             * below diagonal
+             * -> sign = +1
+             */
+            fullElementSum += preisachWeights_[i][j]/2.0;
+          }
+        }
+      }
+      
+      // full elements have an area of delta_^2
+      // including the ones on the diagonal as these have been scaled
+      // by 2.0 already
+      sum += delta_*delta_*fullElementSum;
+      
+      /*
+       * partial bottom elements (including corners)
+       */
+      if(rowMinFull > rowMin){
+        int ii = rowMin;
+        UInt i = (UInt) rowMin;
+        
+        for(int jj = colMin; jj <= std::min(ii,colMax); jj++){
+          UInt j = (UInt) jj;
+          
+          if(numRows_-i-j-1 == 0){
+            /*
+             * alpha = -beta
+             */
+            continue;
+          }
+          
+          // clip to rectangles will return the
+          // the partially overlapped area;
+          // this value is already scaled by delta_^2
+          // additonally, on alpha = beta, the part below the diagonal is
+          // subtracted
+          tmp = clipRectangleToElement(rect, i, j);
+          
+          if (numRows_ < i+j+1){
+            /*
+             * above alpha = -beta
+             * -> sign = -1
+             */
+            sum -= tmp*preisachWeights_[i][j];
+          } else {
+            /*
+             * below diagonal
+             * -> sign = +1
+             */
+            sum += tmp*preisachWeights_[i][j];
+          }
+        }
+      }
+      
+      /*
+       * partial top elements (including corners)
+       */
+      if((rowMaxFull < rowMax)&&(rowMin != rowMax)){
+        int ii = rowMax;
+        UInt i = (UInt) rowMax;
+        
+        for(int jj = colMin; jj <= std::min(ii,colMax); jj++){
+          UInt j = (UInt) jj;
+          
+          if(numRows_-i-j-1 == 0){
+            /*
+             * alpha = -beta
+             */
+            continue;
+          }
+          
+          // clip to rectangles will return the
+          // the partially overlapped area;
+          // this value is already scaled by delta_^2
+          tmp = clipRectangleToElement(rect, i, j);
+          
+          if (numRows_ < i+j+1){
+            /*
+             * above alpha = -beta
+             * -> sign = -1
+             */
+            sum -= tmp*preisachWeights_[i][j];
+          } else {
+            /*
+             * below diagonal
+             * -> sign = +1
+             */
+            sum += tmp*preisachWeights_[i][j];
+          }
+        }
+      }
+      
+      /*
+       * partial right elements (excluding corners)
+       * colIndex jj has to be
+       * <= rowIndex
+       *
+       * start with right edge
+       * > reason: if the first column is partially filled, we
+       * have colMaxFull = -1; colMax = 1 > working
+       * but colMinFull = colMin = 0 > not working
+       */
+      if(colMaxFull < colMax){
+        int jj = colMax;
+        UInt j = (UInt) colMax;
+        
+        for(int ii = std::max(rowMinFull,jj); ii <= rowMaxFull; ii++){
+          UInt i = (UInt) ii;
+          
+          if(numRows_-i-j-1 == 0){
+            /*
+             * alpha = -beta
+             */
+            continue;
+          }
+          
+          // clip to rectangles will return the
+          // the partially overlapped area;
+          // this value is already scaled by delta_^2
+          tmp = clipRectangleToElement(rect, i, j);
+          
+          if (numRows_ < i+j+1){
+            /*
+             * above alpha = -beta
+             * -> sign = -1
+             */
+            sum -= tmp*preisachWeights_[i][j];
+          } else {
+            /*
+             * below diagonal
+             * -> sign = +1
+             */
+            sum += tmp*preisachWeights_[i][j];
+          }
+        }
+      }
+      
+      /*
+       * partial left elements (excluding corners)
+       * colIndex jj has to be
+       * <= rowIndex
+       * -> ii starts at jj, but only if it is larger than rowMinFull
+       * (otherwise the corner could be included twice)
+       * -> ii starts at jj, but only if it is larger than rowMinFull
+       * (otherwise the corner could be included twice)
+       */
+      if((colMinFull > colMin)&&(colMin != colMax)){
+        int jj = colMin;
+        UInt j = (UInt) colMin;
+        
+        for(int ii = std::max(rowMinFull,jj); ii <= rowMaxFull; ii++){
+          UInt i = (UInt) ii;
+          
+          if(numRows_-i-j-1 == 0){
+            /*
+             * alpha = -beta
+             */
+            continue;
+          }
+          
+          // clip to rectangles will return the
+          // the partially overlapped area;
+          // this value is already scaled by delta_^2
+          tmp = clipRectangleToElement(rect, i, j);
+          
+          if (numRows_ < i+j+1){
+            /*
+             * above alpha = -beta
+             * -> sign = -1
+             */
+            sum -= tmp*preisachWeights_[i][j];
+          } else {
+            /*
+             * below diagonal
+             * -> sign = +1
+             */
+            sum += tmp*preisachWeights_[i][j];
+          }
+        }
+      }
+      
+      
+    } else {
+      /*
+       * standard treatment (i.e. no skipping of elements, no signing, just adding up)
+       * Remark: the correct sign for the whole sum if obtained from function
+       *         getRectangleFromSwitchingList during the evaluation in Evaluate_GlobalRotation
+       */
+      
+      /*
+       * new approach
+       * 1) only full elements without diagonal
+       */
+      for(int ii = rowMinFull; ii <= rowMaxFull; ii++){
+        UInt i = (UInt) ii;
+        
+        // ii-1 -> diagonal not reached
+        for(int jj = colMinFull; jj <= std::min(ii-1,colMaxFull); jj++){
+          UInt j = (UInt) jj;
+          
+          fullElementSum += preisachWeights_[i][j];
+          // accessCounter[i][j] += 1;
+        }
+      }
+      
+      /*
+       * new approach
+       * 2) only full diagonal elements
+       */
+      for(int ii = rowMinFull; ii <= rowMaxFull; ii++){
+        UInt i = (UInt) ii;
+        
+        // ii-1 was already treated above; now check only if element on diagonal
+        // colMaxFull == ii is needed, too
+        if(colMaxFull >= ii){
+          UInt j = i;
+          
+          fullElementSum += preisachWeights_[i][j]/2.0;
+          //  accessCounter[i][j] += 0.5;
+        }
+      }
+      
+      // full elements have an area of delta_^2
+      // including the ones on the diagonal as these have been scaled
+      // by 2.0 already
+      sum += delta_*delta_*fullElementSum;
+      
+      /*
+       * partial bottom elements (including corners)
+       */
+      if(rowMinFull > rowMin){
+        int ii = rowMin;
+        UInt i = (UInt) rowMin;
+        
+        for(int jj = colMin; jj <= std::min(ii,colMax); jj++){
+          UInt j = (UInt) jj;
+          
+          // clip to rectangles will return the
+          // the partially overlapped area;
+          // this value is already scaled by delta_^2
+          // additonally, on alpha = beta, the part below the diagonal is
+          // subtracted
+          sum += clipRectangleToElement(rect, i, j)*preisachWeights_[i][j];
+          //  accessCounter[i][j] += clipRectangleToElement(rect, i, j);
+        }
+      }
+      
+      /*
+       * partial top elements (including corners)
+       * check if rowMin and rowMax are the same > in this case we only have
+       * one partial row which was already treated above
+       */
+      if((rowMaxFull < rowMax)&&(rowMin != rowMax)){
+        int ii = rowMax;
+        UInt i = (UInt) rowMax;
+        
+        for(int jj = colMin; jj <= std::min(ii,colMax); jj++){
+          UInt j = (UInt) jj;
+          
+          sum += clipRectangleToElement(rect, i, j)*preisachWeights_[i][j];
+          //  accessCounter[i][j] += clipRectangleToElement(rect, i, j);
+        }
+      }
+      
+      /*
+       * partial right elements (excluding corners)
+       * colIndex jj has to be
+       * <= rowIndex
+       * -> ii starts at jj, but only if it is larger than rowMinFull
+       * (otherwise the corner could be included twice)
+       *
+       * start with right edge
+       * > reason: if the first column is partially filled, we
+       * have colMaxFull = -1; colMax = 1 > working
+       * but colMinFull = colMin = 0 > not working
+       */
+      if(colMaxFull < colMax){
+        int jj = colMax;
+        UInt j = (UInt) colMax;
+        
+        for(int ii = std::max(rowMinFull,jj); ii <= rowMaxFull; ii++){
+          UInt i = (UInt) ii;
+          
+          sum += clipRectangleToElement(rect, i, j)*preisachWeights_[i][j];
+          //  accessCounter[i][j] += clipRectangleToElement(rect, i, j);
+        }
+      }
+      
+      /*
+       * partial left elements (excluding corners)
+       * colIndex jj has to be
+       * <= rowIndex
+       * -> ii starts at jj, but only if it is larger than rowMinFull
+       * (otherwise the corner could be included twice)
+       *
+       * check if colMin and colMax are the same > in this case we only have
+       * one partial col which was already treated above
+       */
+      if((colMinFull > colMin)&&(colMin != colMax)){
+        int jj = colMin;
+        UInt j = (UInt) colMin;
+        
+        for(int ii = std::max(rowMinFull,jj); ii <= rowMaxFull; ii++){
+          UInt i = (UInt) ii;
+          
+          sum += clipRectangleToElement(rect, i, j)*preisachWeights_[i][j];
+          //  accessCounter[i][j] += clipRectangleToElement(rect, i, j);
         }
       }
     }
-
+    
+    //    std::cout << "rowMin / rowMinFull: " << rowMin << " / " << rowMinFull << std::endl;
+    //    std::cout << "rowMax / rowMaxFull: " << rowMax << " / " << rowMaxFull << std::endl;
+    //    std::cout << "colMin / colMinFull: " << colMin << " / " << colMinFull << std::endl;
+    //    std::cout << "colMax / colMaxFull: " << colMax << " / " << colMaxFull << std::endl;
+    //    std::cout << "AccessCounter (end): " << accessCounter.ToString() << std::endl;
+    
     return sum;
   }
-
+  
   Double VectorPreisachv10_ListApproach::getRectangleFromSwitchingList(std::list<ListEntryv10>& list,
-                            std::list<ListEntryv10>::iterator startIt, std::list<ListEntryv10>::iterator curIt, std::list<ListEntryv10>::iterator endIt,
-                            UInt idArea, Rectangle& rect, bool upperSplitSquare){
+          std::list<ListEntryv10>::iterator startIt, std::list<ListEntryv10>::iterator curIt, std::list<ListEntryv10>::iterator endIt,
+          UInt idArea, Rectangle& rect, bool upperSplitSquare){
     /*
      * This functions is used to decompose a stair-case switching state into rectangular areas which are
      * easier to compute.
@@ -2698,147 +4539,147 @@ namespace CoupledField
      * each case, i.e. we have to cut the switching areas which go over the diagonal alpha = beta
      * down to triangle, so that the total shape of areas overlapping alpha = beta become squares.
      */
-
+    
     Double alpha, beta, delta;
     alpha = -1.0;
     beta = -1.0;
     delta = 2.0;
-
+    
     /*
-    * Calculates the coordinates of a rectangle lying inside the area
-    * (alpha, alpha+delta) x (beta, beta+delta)
-    *
-    * Input:
-    *  list -> switching list
-    *  startIt -> iterator pointing to the FIRST entry
-    *  curIt -> iterator pointing to the CURRENT entry
-    *  endIt -> iterator pointing to the LAST entry
-    *  alpha,beta -> bottom left corner coordinates of outer area
-    *  idArea -> index of area to be computed - 1 (i.e. area1 -> idArea = 0)
-    *
-    *  tRet,bRet -> y-coordinates of the top and bottom edge of the rectangle
-    *  lRet,rRet -> x-coordinates of the left and right edge of the rectangle
-    */
-
+     * Calculates the coordinates of a rectangle lying inside the area
+     * (alpha, alpha+delta) x (beta, beta+delta)
+     *
+     * Input:
+     *  list -> switching list
+     *  startIt -> iterator pointing to the FIRST entry
+     *  curIt -> iterator pointing to the CURRENT entry
+     *  endIt -> iterator pointing to the LAST entry
+     *  alpha,beta -> bottom left corner coordinates of outer area
+     *  idArea -> index of area to be computed - 1 (i.e. area1 -> idArea = 0)
+     *
+     *  tRet,bRet -> y-coordinates of the top and bottom edge of the rectangle
+     *  lRet,rRet -> x-coordinates of the left and right edge of the rectangle
+     */
+    
     /*
-    * Splitting into splitting areas for e1 = max
-    *
-    *                         alpha
-    *      __ __ __ __ __ __ __ |_  __ __ __ __ __ __
-    *     |\    |          |       |               /
-    *     |  \  |    A0    | A2    | A4          /
-    *     |_ _ \|_ _ _ _ _ |       |           /___ e1
-    *     |A1              |       |         /
-    *     |_ _ _ _ _  _ _ _|_ _ __ |       /___ e3
-    *     |A3                      |     /
-    *     |_ _ _ _ _ _ _ _ _ _ _ _ |_ _/___ e5
-    *     |A5                        /
-    *     |                        /
-    *     |                      /_|__________________ beta
-    *     |                    /   |
-    *     |                  /     |
-    *     |                /       e4
-    *     |              / |
-    *     |            /   |
-    *     |          /     e2
-    *     |        /
-    *     |     |/
-    *     |    /|
-    *     |_ /  |
-    *          -e1
-    *
-    *     set e0 = -e1
-    *
-    *     negative areas (i = even)
-    *       L = ei;             R = min(ei+2,1) > if ei+2 does not exist: ei+2 = 1
-    *       B = max(ei+1,ei);   T = 1
-    *             > limit extend of areas such, that the area below the diagonal is a triangle
-    *             > if ei+1 does not exist: ei+1 = -1
-    *
-    *     positive areas (i = odd)
-    *       L = -1;             R = min(ei+1,ei) > ensure that area below diagonal is triangular; if ei+1 does not exist: ei+1 = 1
-    *       B = max(ei+2,-1);   T = ei
-    *             > if ei+2 does not exist: ei+2 = -1
-    *
-    *     upper split area:
-    *       L = -1; R = -e1; B = e1; T = 1
-    *
-    *
-    * Splitting into splitting areas for e1 = min
-    *
-    *                         alpha
-    *      __ __ __ __ __ __ __ |_  __ __ __ __ __ __
-    *     |\    |     |           |                /
-    *     |  \  | A1  |   A3      | A5           /
-    *     |_ _ \|     |           |           _/___ -e1
-    *     |A0   |     |           |          /
-    *     |_ _ _|_ _  |           |        /___ e2
-    *     |A2         |           |      /
-    *     |_ _ ___ _ _|_ _  _ _ _ |   _/___ e4
-    *     |A4                     |  /
-    *     |                       |/
-    *     |                      /|__________________ beta
-    *     |                    /  |
-    *     |                  /    |
-    *     |                /      e5
-    *     |              /
-    *     |           |/
-    *     |          /|
-    *     |        /  |
-    *     |     |/    e3
-    *     |    /|
-    *     |_ /  |
-    *           e1
-    *
-    *     set e0 = -e1
-    *
-    *     negative areas (i = odd)
-    *       L = ei;             R = min(ei+2,1) > if ei+2 does not exist: ei+2 = 1
-    *       B = max(ei+1,ei);   T = 1
-    *             > limit extend of areas such, that the area below the diagonal is a triangle
-    *             (take A5 as example: as no e6 exists, A5 would reach down to the bottom of the Preisach plane (-1)
-    *              by this, the area below the diagonal would be a trapezoid standing on its side
-    *              by restricting to e5, we have only a triangle below the diagonal)
-    *             > if ei+1 does not exist: ei+1 = -1
-    *
-    *     positive areas (i = even)
-    *       L = -1;             R = min(ei+1,ei) > ensure that area below diagonal is triangular; if ei+1 does not exist: ei+1 = 1
-    *       B = max(ei+2,-1);   T = ei
-    *             > if ei+2 does not exist: ei+2 = -1
-    *
-    *     upper split area:
-    *       L = -1; R = e1; B = -e1; T = 1
-    *
-    *
-    * Note regarding different starting case (e1 = min or max):
-    *   The rules for calculating positive and negative areas are independent of the type of e1.
-    *   The only change is w.r.t. the indices. For e1 = min, positive areas have even indices and for
-    *   e1 = max, they have odd indices. However, this is true for the type of ei, too. If list starts
-    *   with minimum, all odd entries will be minima and if list starts with maximum, all odd entries will
-    *   be maxima. Together with the calculation rules, we see that area Ai is positive, if ei is a maximum
-    *   no matter what type e1 is. The calculation can thus be done without checking for indices or the
-    *   type of e1. We only have to check, whether ei is a max or a min.
-    *   Exception: Area0 is obtained from e1, too. To get this area, idArea has to be set to 0.
-    *
-    *
-    * Note regarding initial values:
-    *   When the classical model is used (version 2012), the lower triangle T_L gets not evaluated
-    *   via switching lists as its switching state is always +1; to compensate for the +1 triangle, we
-    *   should have an initial value of -1 for the upper triangle; this can easily be achieved by
-    *   initializing the list with a max(or min) of value 0.
-    *
-    *
-    */
-
+     * Splitting into splitting areas for e1 = max
+     *
+     *                         alpha
+     *      __ __ __ __ __ __ __ |_  __ __ __ __ __ __
+     *     |\    |          |       |               /
+     *     |  \  |    A0    | A2    | A4          /
+     *     |_ _ \|_ _ _ _ _ |       |           /___ e1
+     *     |A1              |       |         /
+     *     |_ _ _ _ _  _ _ _|_ _ __ |       /___ e3
+     *     |A3                      |     /
+     *     |_ _ _ _ _ _ _ _ _ _ _ _ |_ _/___ e5
+     *     |A5                        /
+     *     |                        /
+     *     |                      /_|__________________ beta
+     *     |                    /   |
+     *     |                  /     |
+     *     |                /       e4
+     *     |              / |
+     *     |            /   |
+     *     |          /     e2
+     *     |        /
+     *     |     |/
+     *     |    /|
+     *     |_ /  |
+     *          -e1
+     *
+     *     set e0 = -e1
+     *
+     *     negative areas (i = even)
+     *       L = ei;             R = min(ei+2,1) > if ei+2 does not exist: ei+2 = 1
+     *       B = max(ei+1,ei);   T = 1
+     *             > limit extend of areas such, that the area below the diagonal is a triangle
+     *             > if ei+1 does not exist: ei+1 = -1
+     *
+     *     positive areas (i = odd)
+     *       L = -1;             R = min(ei+1,ei) > ensure that area below diagonal is triangular; if ei+1 does not exist: ei+1 = 1
+     *       B = max(ei+2,-1);   T = ei
+     *             > if ei+2 does not exist: ei+2 = -1
+     *
+     *     upper split area:
+     *       L = -1; R = -e1; B = e1; T = 1
+     *
+     *
+     * Splitting into splitting areas for e1 = min
+     *
+     *                         alpha
+     *      __ __ __ __ __ __ __ |_  __ __ __ __ __ __
+     *     |\    |     |           |                /
+     *     |  \  | A1  |   A3      | A5           /
+     *     |_ _ \|     |           |           _/___ -e1
+     *     |A0   |     |           |          /
+     *     |_ _ _|_ _  |           |        /___ e2
+     *     |A2         |           |      /
+     *     |_ _ ___ _ _|_ _  _ _ _ |   _/___ e4
+     *     |A4                     |  /
+     *     |                       |/
+     *     |                      /|__________________ beta
+     *     |                    /  |
+     *     |                  /    |
+     *     |                /      e5
+     *     |              /
+     *     |           |/
+     *     |          /|
+     *     |        /  |
+     *     |     |/    e3
+     *     |    /|
+     *     |_ /  |
+     *           e1
+     *
+     *     set e0 = -e1
+     *
+     *     negative areas (i = odd)
+     *       L = ei;             R = min(ei+2,1) > if ei+2 does not exist: ei+2 = 1
+     *       B = max(ei+1,ei);   T = 1
+     *             > limit extend of areas such, that the area below the diagonal is a triangle
+     *             (take A5 as example: as no e6 exists, A5 would reach down to the bottom of the Preisach plane (-1)
+     *              by this, the area below the diagonal would be a trapezoid standing on its side
+     *              by restricting to e5, we have only a triangle below the diagonal)
+     *             > if ei+1 does not exist: ei+1 = -1
+     *
+     *     positive areas (i = even)
+     *       L = -1;             R = min(ei+1,ei) > ensure that area below diagonal is triangular; if ei+1 does not exist: ei+1 = 1
+     *       B = max(ei+2,-1);   T = ei
+     *             > if ei+2 does not exist: ei+2 = -1
+     *
+     *     upper split area:
+     *       L = -1; R = e1; B = -e1; T = 1
+     *
+     *
+     * Note regarding different starting case (e1 = min or max):
+     *   The rules for calculating positive and negative areas are independent of the type of e1.
+     *   The only change is w.r.t. the indices. For e1 = min, positive areas have even indices and for
+     *   e1 = max, they have odd indices. However, this is true for the type of ei, too. If list starts
+     *   with minimum, all odd entries will be minima and if list starts with maximum, all odd entries will
+     *   be maxima. Together with the calculation rules, we see that area Ai is positive, if ei is a maximum
+     *   no matter what type e1 is. The calculation can thus be done without checking for indices or the
+     *   type of e1. We only have to check, whether ei is a max or a min.
+     *   Exception: Area0 is obtained from e1, too. To get this area, idArea has to be set to 0.
+     *
+     *
+     * Note regarding initial values:
+     *   When the classical model is used (version 2012), the lower triangle T_L gets not evaluated
+     *   via switching lists as its switching state is always +1; to compensate for the +1 triangle, we
+     *   should have an initial value of -1 for the upper triangle; this can easily be achieved by
+     *   initializing the list with a max(or min) of value 0.
+     *
+     *
+     */
+    
     Double l,r,t,b;
     Double nextVal, nextnextVal;
     Double firstVal = startIt->getVal();
     Double curVal = curIt->getVal();
     bool firstMin = startIt->isMin();
     bool curMin = curIt->isMin();
-
+    
     if(upperSplitSquare == true){
-
+      
       l = -1;
       if(firstMin){
         r = firstVal;
@@ -2848,11 +4689,11 @@ namespace CoupledField
         b = firstVal;
       }
       t = 1;
-
+      
       rect.setBounds(l,r,t,b);
       return 0.0; // value 0.0 not needed, but by this we can check if value was hit
     }
-
+    
     if(idArea == 0){
       /*
        * use startIt regardless of the state of curIt!
@@ -2878,18 +4719,18 @@ namespace CoupledField
         } else {
           nextVal = alpha;
         }
-
+        
         l = beta;
         r = firstVal;
         b = nextVal; // will automatically be std::max(nextVal,alpha);
         t = -firstVal;
-
+        
         /*
          * min-helper area is positive, so +1.0
          */
         rect.setBounds(l,r,t,b);
         return 1.0;
-
+        
       } else {
         /*
          * List starts with maximum; get area 0 according to
@@ -2912,12 +4753,12 @@ namespace CoupledField
         } else {
           nextVal = beta+delta;
         }
-
+        
         l = -firstVal;
         r = nextVal; // will automatically be std::min(nextVal,beta+delta);
         b = firstVal;
         t = alpha+delta;
-
+        
         /*
          * max-helper area is negative, so -1.0
          */
@@ -2940,22 +4781,22 @@ namespace CoupledField
          */
         if(curIt != endIt){
           curIt++;
-
+          
           if(curIt->isMin() == curMin){
             EXCEPTION("MinMaxList has to be alternating!")
           } else {
             nextVal = curIt->getVal();
           }
-
+          
           if(curIt != endIt){
             curIt++;
-
+            
             if(curIt->isMin() != curMin){
               EXCEPTION("MinMaxList has to be alternating!")
-              /*
-               * here we would expect the same entry type the the one of the current iteration
-               * e.g. a minimum after a maximum which followed a minimum
-               */
+                      /*
+                       * here we would expect the same entry type the the one of the current iteration
+                       * e.g. a minimum after a maximum which followed a minimum
+                       */
             } else {
               nextnextVal = curIt->getVal();
             }
@@ -2968,18 +4809,18 @@ namespace CoupledField
           nextVal = alpha;
           nextnextVal = beta+delta;
         }
-
+        
         l = curVal;
         r = nextnextVal; // will automatically be std::min(nextnextVal,beta+delta);
         b = std::max(curVal,nextVal);
         t = alpha+delta;
-
+        
         /*
          * min area is negative, so -1.0
          */
         rect.setBounds(l,r,t,b);
         return -1.0;
-
+        
       } else {
         /*
          * entry is maximum; get area i according to
@@ -2989,25 +4830,25 @@ namespace CoupledField
          *             > if ei+2 does not exist: ei+2 = -1
          *
          */
-
+        
         if(curIt != endIt){
           curIt++;
-
+          
           if(curIt->isMin() == curMin){
             EXCEPTION("MinMaxList has to be alternating!")
           } else {
             nextVal = curIt->getVal();
           }
-
+          
           if(curIt != endIt){
             curIt++;
-
+            
             if(curIt->isMin() != curMin){
               EXCEPTION("MinMaxList has to be alternating!")
-              /*
-               * here we would expect the same entry type the the one of the current iteration
-               * e.g. a minimum after a maximum which followed a minimum
-               */
+                      /*
+                       * here we would expect the same entry type the the one of the current iteration
+                       * e.g. a minimum after a maximum which followed a minimum
+                       */
             } else {
               nextnextVal = curIt->getVal();
             }
@@ -3020,12 +4861,12 @@ namespace CoupledField
           nextVal = beta+delta;
           nextnextVal = alpha;
         }
-
+        
         l = beta;
         r = std::min(curVal,nextVal);
         b = nextnextVal; // will automatically be std::max(nextnextVal,alpha);
         t = curVal;
-
+        
         /*
          * max area is positive, so 1.0
          */
@@ -3034,7 +4875,7 @@ namespace CoupledField
       }
     }
   }
-
+  
   void VectorPreisachv10_ListApproach::Simplify_LocalSwitchingLists(std::list<RotListEntryv10>& usedList){
     /*
      * This function iterates over the globalRotation list and checks each entry in the corresponding
@@ -3045,29 +4886,29 @@ namespace CoupledField
      * (id = 0) no longer is in the list).
      * Leave out all rotListEntries for which the flag isUpdated is false.
      */
-
+    
     std::list<ListEntryv10>::iterator swListIt;
     std::list<ListEntryv10>::iterator firstToKeep;
     std::list<ListEntryv10>::iterator swListEnd; // = --(globSwitchList_[idElem].end());
     std::list<ListEntryv10>::iterator swListStart;
-
+    
     /*
      * iterators for global rotation list
      */
     std::list<RotListEntryv10>::iterator rotListIt;
     std::list<RotListEntryv10>::iterator rotListEnd = --(usedList.end());
-
+    
     bool twoAreas,lastRotListEntry;
-
+    
     Rectangle rotRect1 = Rectangle(0,0,0,0);
     Rectangle rotRect2 = Rectangle(0,0,0,0);
     Rectangle swRect = Rectangle(0,0,0,0);
     Rectangle overlapRect = Rectangle(0,0,0,0);
-
+    
     UInt cnt;
-
+    
     for(rotListIt = usedList.begin(); rotListIt != usedList.end(); rotListIt++){
-
+      
       if(rotListIt == rotListEnd){
         lastRotListEntry = true;
       } else {
@@ -3078,7 +4919,7 @@ namespace CoupledField
        * in that case we have to make sure to not test for the wrong value
        */
       cnt = rotListIt->getStartCnt();
-
+      
       /*
        * check if reevaluation is needed at all
        */
@@ -3095,19 +4936,19 @@ namespace CoupledField
         /*
          * get rotation area(s)
          */
-
+        
         swListStart = rotListIt->getListReference().begin();
         swListEnd = --(rotListIt->getListReference().end());
-
+        
         twoAreas = getRectanglesFromRotEntry(rotListIt, rotRect1, rotRect2,lastRotListEntry);
-
+        
         firstToKeep = rotListIt->getListReference().begin();
         swListEnd = --(rotListIt->getListReference().end());
-
+        
         bool success1 = false;
         bool success2 = false;
         bool gotSuccess = false;
-
+        
         /*
          * here we do not increase the iterator directly (similar as we do it during evaluation)
          *
@@ -3120,24 +4961,24 @@ namespace CoupledField
          *  areas we have to check if one of them has a valid overlap.
          */
         for(swListIt = rotListIt->getListReference().begin(); swListIt != rotListIt->getListReference().end(); ){
-
+          
           /*
            * get rectangular bounds corresponding to entry of switching list (compare to Evaluate_GlobalSwitchingList)
            */
           getRectangleFromSwitchingList(rotListIt->getListReference(),swListStart, swListIt, swListEnd,cnt, swRect);
-
+          
           /*
            * clip resulting area against rotation area1
            */
           success1 = rotRect1.clipRectangles(swRect,overlapRect);
-
+          
           if(twoAreas){
             /*
              * repeat the clipping steps for the second area
              */
             success2 = rotRect2.clipRectangles(swRect,overlapRect);
           }
-
+          
           if((success1 == true)||(success2==true)){
             /*
              * the current switching area has an overlap with at least one of the two rotation areas
@@ -3149,9 +4990,9 @@ namespace CoupledField
             gotSuccess = true;
             break;
           }
-
+          
           if(cnt > 0){
-
+            
             /*
              * entry has no overlap, check next one
              * (start increasing only if cnt > 0 as list entry corrsponding to cnt == 0
@@ -3162,7 +5003,7 @@ namespace CoupledField
           }
           cnt++;
         } // sw list
-
+        
         if(firstToKeep != rotListIt->getListReference().begin()){
           /*
            * At least one entry has to be removed from the list
@@ -3206,7 +5047,7 @@ namespace CoupledField
       } // rot list has changed
     } // rot list
   }
-
+  
   void VectorPreisachv10_ListApproach::Simplify_GlobalRotationList(std::list<RotListEntryv10>& usedList){
     /*
      * New merging rule (applicable for all versions)
@@ -3275,28 +5116,28 @@ namespace CoupledField
      *          -> can be merged now, as (a+b)/2 > b and b = top
      *
      */
-
-
+    
+    
     /*
      * iterate over rotation list and check if two adjacent entries have the same rotation state and the
      * same list of switching entries
      * This case can happen e.g. if an input overrides multiple older rotation areas at once and the
      * resulting value of xPar is large enough to overwrite the contained switching lists
      */
-
+    
     if(usedList.size() < 2){
       /*
        * list has not enough entries to be merged together
        */
       return;
     }
-
+    
     std::list<RotListEntryv10>::iterator listIt;
     std::list<RotListEntryv10>::iterator nextListIt;
     std::list<RotListEntryv10>::iterator listEnd = --(usedList.end());
-
+    
     for(listIt = usedList.begin(); listIt != usedList.end(); ){
-
+      
       /*
        *  get next entry in list (if any)
        *  if not -> nothing more to do here
@@ -3304,7 +5145,7 @@ namespace CoupledField
       if(listIt != listEnd){
         nextListIt = listIt;
         nextListIt++;
-
+        
         /*
          * check if entries can be merged together
          * (v2 = new merging rule; without v2 = classical merging)
@@ -3320,13 +5161,13 @@ namespace CoupledField
            * now we can delete the second entry
            */
           usedList.erase(nextListIt);
-
+          
           /*
            * reset iterator to last entry
            * (normally the iterators should remain valid, but I do not trust them ...
            */
           listEnd = --(usedList.end());
-
+          
           /*
            * do not increase iterator
            * -> it might be, that the by now extended first entry matches also the next one
@@ -3342,7 +5183,7 @@ namespace CoupledField
       }
     }
   }
-
+  
   void VectorPreisachv10_ListApproach::mapRectangleToHelperMatrix(Matrix<Double>& helper, Rectangle rect, Double factor, bool skipUpperDiagonal, bool isRotState){
     /*
      * similar function to mapRectangleToPreisachWeights
@@ -3363,10 +5204,10 @@ namespace CoupledField
      *    the cutting of triangle parts below the diagonal
      *
      */
-
+    
     Double l,r,t,b;
     rect.getBounds(l,r,t,b);
-
+    
     /*
      * restrict input value to valid range
      * (Preisach plane just goes from -1 to +1 in alpha and beta)
@@ -3375,18 +5216,18 @@ namespace CoupledField
     b = std::max(b,-1.0);
     l = std::max(l,-1.0);
     r = std::min(r,1.0);
-
+    
     /*
      * check if rectangular has size != 0
      */
     if((t <= b)||(r <= l)){
       return;
     }
-
+    
     UInt numRows = helper.GetNumRows();
-
+    
     Double delta = 2.0/numRows;
-
+    
     /*
      * Lower triangluar part of Preisach plane (here 16 elements)
      * and overlapping rectangle
@@ -3419,34 +5260,34 @@ namespace CoupledField
      *      > if yes sum up value
      *      > else use clipToElement to determine the appropriate scaling value for weight, then sum up
      */
-
+    
     /*
      * 1. get indices of all overlapped elements (partially and fully)
      * NOTE: element alpha = -1 and beta = -1 will have index 0,0!
      * -> add floor(1.0/delta_) != numRows/2
      */
-    int rowMin =  floor(b/delta) + floor(1.0/delta);
-    int rowMax = ceil(t/delta) + floor(1.0/delta)-1;
-
-    int colMin =  floor(l/delta) + floor(1.0/delta);
-    int colMax =  ceil(r/delta) + floor(1.0/delta)-1;
-
+    int rowMin =  std::floor(b/delta) + std::floor(1.0/delta);
+    int rowMax = std::ceil(t/delta) + std::floor(1.0/delta)-1;
+    
+    int colMin =  std::floor(l/delta) + std::floor(1.0/delta);
+    int colMax =  std::ceil(r/delta) + std::floor(1.0/delta)-1;
+    
     /*
      * NEW: use integers instead of unsigned integer
      * REASON: colMaxFull became negative (which simply would indicate no fully overlapped elemets), but
      * unsigning took it to a very large positive value and thus -> wrong result
      */
-
+    
     /*
      * 2. get indices of completely overlapped elements
      */
-    int rowMinFull =  ceil(b/delta) + floor(1.0/delta);
-    int rowMaxFull = floor(t/delta) + floor(1.0/delta)-1;
-
-    int colMinFull =  ceil(l/delta) + floor(1.0/delta);
-    int colMaxFull = floor(r/delta) + floor(1.0/delta)-1;
-
-
+    int rowMinFull =  std::ceil(b/delta) + std::floor(1.0/delta);
+    int rowMaxFull = std::floor(t/delta) + std::floor(1.0/delta)-1;
+    
+    int colMinFull =  std::ceil(l/delta) + std::floor(1.0/delta);
+    int colMaxFull = std::floor(r/delta) + std::floor(1.0/delta)-1;
+    
+    
     if(skipUpperDiagonal == true){
       /*
        * special treatment:
@@ -3460,11 +5301,11 @@ namespace CoupledField
          * ensure, that j <= i -> other elements do not contribute
          */
         UInt i = (UInt) ii;
-
+        
         for(int jj = colMin; jj <= std::min(ii,colMax); jj++){
-
+          
           UInt j = (UInt) jj;
-
+          
           if(numRows-i-j-1 == 0){
             /*
              * alpha = -beta
@@ -3484,7 +5325,7 @@ namespace CoupledField
              */
             sign = 1.0;
           }
-
+          
           /*
            * Check for an inner element
            */
@@ -3497,7 +5338,7 @@ namespace CoupledField
               if((i == j)&&(isRotState==false)){
                 helper[i][j] = sign*0.5;
               }
-
+              
               /*
                * scale Preisach weights with area
                */
@@ -3535,12 +5376,12 @@ namespace CoupledField
           }
         }
       }
-
+      
     } else {
       /*
        * std treatment
        */
-
+      
       /*
        * Iterate over all elements
        */
@@ -3549,13 +5390,13 @@ namespace CoupledField
          * ensure, that j <= i -> other elements do not contribute
          */
         UInt i = (UInt) ii;
-
+        
         for(int jj = colMin; jj <= std::min(ii,colMax); jj++){
           /*
            * Check for an inner element
            */
           UInt j = (UInt) jj;
-
+          
           if((ii >= rowMinFull)&&(ii <= rowMaxFull)){
             if((jj >= colMinFull)&&(jj <= colMaxFull)){
               /*
@@ -3601,8 +5442,8 @@ namespace CoupledField
       }
     }
   }
-
-
+  
+  
   void VectorPreisachv10_ListApproach::switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState)
   {
     /*
@@ -3610,23 +5451,23 @@ namespace CoupledField
      * in the old versions, the rotation state was evaluated separately although we have to iterate over the
      * rotation list to evaluate the switching lists
      */
-
+    
     if(numPixel < 2){
       WARN("Image should have more than 2 x 2 pixel");
       return;
     }
-
+    
     if(numPixel%2 != 0){
       WARN("Rounded number of pixel ("<<numPixel<<") to a multiple of 2 ("<<numPixel+1<<")");
       numPixel = numPixel + 1;
     }
-
+    
     /*
      * create matrix needed to save switching state
      */
     Matrix<Double> helperMatrix = Matrix<Double>(numPixel,numPixel);
     helperMatrix.Init();
-
+    
     /*
      * create matrices to store the rotation state
      */
@@ -3641,7 +5482,7 @@ namespace CoupledField
         rotZ.Init();
       }
     }
-
+    
     /*
      * Fill matrix / matrices
      * 1. if(classical_)
@@ -3653,7 +5494,7 @@ namespace CoupledField
      *    a. determine overlapping areas and clip them against helperMatrix
      *    b. for unsymmetric weights include triagonal areas
      */
-
+    
     /*
      * Part 1
      */
@@ -3664,7 +5505,7 @@ namespace CoupledField
           else helperMatrix[i][j] = 1.0;
         }
       }
-
+      
       if(overLayWithRotState){
         for(UInt i = 0; i < numPixel/2; i++){
           for(UInt j = 0; j <= i; j++){
@@ -3685,54 +5526,54 @@ namespace CoupledField
         }
       }
     }
-
+    
     /*
      * Part 2
      */
-
+    
     /*
      * iterators for local switching list
      */
     std::list<ListEntryv10>::iterator swListIt;
     std::list<ListEntryv10>::iterator swListStart;
     std::list<ListEntryv10>::iterator swListEnd;
-
+    
     /*
      * iterators for global rotation list
      */
     std::list<RotListEntryv10>::iterator rotListIt;
     std::list<RotListEntryv10>::iterator rotListEnd = --(globRotList_[idElem].end());
-
+    
     bool area0 = true;
     bool twoAreas = true;
     bool lastRotListEntryv10;
     Double upperBound;
-
+    
     Rectangle rotRect1 = Rectangle(0,0,0,0);
     Rectangle rotRect2 = Rectangle(0,0,0,0);
     Rectangle swRect = Rectangle(0,0,0,0);
     Rectangle overlapRect = Rectangle(0,0,0,0);
-
+    
     Vector<Double> curRotState;
     Double factor;
     UInt cnt = 0;
-
+    
     for(rotListIt = globRotList_[idElem].begin(); rotListIt != globRotList_[idElem].end(); rotListIt++){
-
+      
       if(rotListIt == rotListEnd){
         lastRotListEntryv10 = true;
       } else {
         lastRotListEntryv10 = false;
       }
-
+      
       curRotState = rotListIt->getVecReference();
       upperBound = rotListIt->getVal(); //exi
-
+      
       swListStart = rotListIt->getListReference().begin();
       swListEnd = --(rotListIt->getListReference().end());
-
+      
       twoAreas = getRectanglesFromRotEntry(rotListIt, rotRect1, rotRect2,lastRotListEntryv10);
-
+      
       if(twoAreas == false){
         /*
          * area0 is already an actually set area (i.e. it has a rotation state
@@ -3740,18 +5581,18 @@ namespace CoupledField
          */
         area0 = false;
       }
-
+      
       if(area0 == true){
         /*
          * area0 has no rotation state but has a switching state that we want to output
          */
-
+        
         if(classical_){
           /*
            * area 0 consists only of one square region
            */
           Rectangle area0 = Rectangle(-1.0,-upperBound,1.0,upperBound);
-
+          
           /*
            * map rectangle to HelperMatrix and set flag skipUpperDiagonal to true
            * -> by setting the flag to true, the function will automatically assume that the area shall
@@ -3769,21 +5610,21 @@ namespace CoupledField
            */
           Rectangle area0_square = Rectangle(-1.0,-upperBound,1.0,upperBound);
           mapRectangleToHelperMatrix(helperMatrix,area0_square,0,true);
-
+          
           Rectangle area0_left = Rectangle(-1.0,-upperBound,upperBound,-1.0);
           mapRectangleToHelperMatrix(helperMatrix,area0_left,1.0,false);
-
+          
           Rectangle area0_top = Rectangle(-upperBound,1.0,1.0,upperBound);
           mapRectangleToHelperMatrix(helperMatrix,area0_top,-1.0,false);
         }
-
+        
         area0 = false;
-
+        
         /*
          * Note: we do not have to write to the matrix for the rotation states as we have no rotation state here
          */
       }
-
+      
       /*
        * reset counter (needed to check if we have the first entry of the switch list)
        * Regarding cnt:
@@ -3803,34 +5644,34 @@ namespace CoupledField
        *  either 0 or 1.
        */
       cnt = rotListIt->getStartCnt();
-
+      
       bool success = false;
-
+      
       for(swListIt = rotListIt->getListReference().begin(); swListIt != rotListIt->getListReference().end(); ){
-
+        
         /*
          * get rectangular bounds corresponding to entry of switching list (compare to Evaluate_GlobalSwitchingList)
          */
         factor = getRectangleFromSwitchingList(rotListIt->getListReference(),swListStart, swListIt, swListEnd,cnt, swRect);
-
+        
         /*
          * clip resulting area against rotation area1
          */
         success = rotRect1.clipRectangles(swRect,overlapRect);
-
+        
         if(success){
           /*
            *  clip overlap to HelperMatrix (factor holds the value +1 or -1 and indicates how the matrix shall be filled)
            */
           mapRectangleToHelperMatrix(helperMatrix,overlapRect,factor);
         }
-
+        
         if(twoAreas){
           /*
            * repeat the clipping steps for the second area
            */
           success = rotRect2.clipRectangles(swRect,overlapRect);
-
+          
           if(success){
             /*
              *  clip overlap to HelperMatrix (factor holds the value +1 or -1 and indicates how the matrix shall be filled)
@@ -3838,7 +5679,7 @@ namespace CoupledField
             mapRectangleToHelperMatrix(helperMatrix,overlapRect,factor);
           }
         }
-
+        
         /*
          * extra treatment for unsymmetric weights
          * here we have to overlap with the diagonally split area, too.
@@ -3865,7 +5706,7 @@ namespace CoupledField
          *
          */
         if(cnt == 0){
-
+          
           /*
            * only difference to evaluation algorithm: do this also, if list was already wiped
            */
@@ -3874,16 +5715,16 @@ namespace CoupledField
              * set flag upperSplitSquare to true -> get area 0 instead of area 1
              */
             factor = getRectangleFromSwitchingList(rotListIt->getListReference(),swListStart, swListIt, swListEnd,cnt, swRect,true);
-
+            
             if(factor != 0){
               EXCEPTION("Something got wrong here! Check function getRectangleBounds!");
             }
-
+            
             /*
              * clip resulting area against rotation area1
              */
             success = rotRect1.clipRectangles(swRect,overlapRect);
-
+            
             if(success){
               /*
                *  clip overlap to HelperMatrix (factor holds the value +1 or -1 and indicates how the matrix shall be filled)
@@ -3891,13 +5732,13 @@ namespace CoupledField
                */
               mapRectangleToHelperMatrix(helperMatrix,overlapRect,factor,true);
             }
-
+            
             if(twoAreas){
               /*
                * repeat the clipping steps for the second area
                */
               success = rotRect2.clipRectangles(swRect,overlapRect);
-
+              
               if(success){
                 /*
                  *  clip overlap to HelperMatrix (factor holds the value +1 or -1 and indicates how the matrix shall be filled)
@@ -3908,61 +5749,61 @@ namespace CoupledField
             }
           }
         }
-
+        
         if(cnt > 0){
           /*
            * NOTE: area1 and area2 are both calculated using the first list entry, therefore we do not increase the iterator after
            * the first iteration
            */
-           swListIt++;
+          swListIt++;
         }
         cnt++;
       } // sw list
-
+      
       if(overLayWithRotState){
         /*
          * write information about rotation state into matrices
          */
         Double currentEntry_x = curRotState[0];
-
+        
         mapRectangleToHelperMatrix(rotX,rotRect1,currentEntry_x,false,true);
-
+        
         if(twoAreas){
           mapRectangleToHelperMatrix(rotX,rotRect2,currentEntry_x,false,true);
         }
-
+        
         Double currentEntry_y = curRotState[1];
-
+        
         mapRectangleToHelperMatrix(rotY,rotRect1,currentEntry_y,false,true);
-
+        
         if(twoAreas){
           mapRectangleToHelperMatrix(rotY,rotRect2,currentEntry_y,false,true);
         }
-
+        
         if(dim_ == 3){
           Double currentEntry_z = curRotState[2];
-
+          
           mapRectangleToHelperMatrix(rotZ,rotRect1,currentEntry_z,false,true);
-
+          
           if(twoAreas){
             mapRectangleToHelperMatrix(rotZ,rotRect2,currentEntry_z,false,true);
           }
         }
       }
     } // rot list
-
+    
     /*
      * now call output function of matrix
      */
     UInt upscaling = 1;
-
+    
     if(overLayWithRotState == true){
       UInt version = 2;
-
+      
       if(version == 1){
-
+        
         for(UInt comp = 0; comp < dim_; comp++){
-
+          
           std::stringstream stream;
           std::string filename_new;
           if(comp == 0){
@@ -3979,29 +5820,29 @@ namespace CoupledField
             helperMatrix.matrix2Bmp(upscaling,filename_new,&rotZ);
           }
         }
-
+        
       } else if(version == 2) {
-       /*
-        * New way of outputting matrix:
-        *   encode rotation state in color: 0 = red; 120 = blue; 240 = green; angles in between colored as a mix
-        *   encode switching state as sign and amplitude: negative switching -> angle + 180; absvalue < 1 -> scale final colorcombination
-        *
-        *   -> only for 2D rotstates, as the z component is not considered
-        */
-
+        /*
+         * New way of outputting matrix:
+         *   encode rotation state in color: 0 = red; 120 = blue; 240 = green; angles in between colored as a mix
+         *   encode switching state as sign and amplitude: negative switching -> angle + 180; absvalue < 1 -> scale final colorcombination
+         *
+         *   -> only for 2D rotstates, as the z component is not considered
+         */
+        
         std::stringstream stream;
         stream << "xy-" << filename;
         std::string filename_new = stream.str();
-
+        
         helperMatrix.matrix2Bmp_v2(upscaling,filename_new,&rotX,&rotY);
-//
-//        std::cout << "switching: \n" << helperMatrix.ToString() << std::endl;
-//        std::cout << "rotx: \n " << rotX.ToString() << std::endl;
-//        std::cout << "roty: \n" << rotY.ToString() << std::endl;
+        //
+        //        std::cout << "switching: \n" << helperMatrix.ToString() << std::endl;
+        //        std::cout << "rotx: \n " << rotX.ToString() << std::endl;
+        //        std::cout << "roty: \n" << rotY.ToString() << std::endl;
       }
     } else {
       helperMatrix.matrix2Bmp(upscaling,filename,NULL);
     }
   }
-
+  
 }//end namespace

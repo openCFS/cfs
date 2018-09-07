@@ -18,12 +18,14 @@ namespace CoupledField {
     Preisach(Integer numElem, Double xSat, Double ysat, 
 	     Matrix<Double>& preisachWeight, bool isVirgin);
 
-    //!
+    //! destructor
     virtual ~Preisach();
 
-    //! destructor
-    Double computeValue(Double& xVal, Integer idxElem, bool overwrite = true);
-
+    //! actually never used
+    //Double computeValue(Double& xVal, Integer idxElem, bool overwrite = true);
+    
+    Double computeInputAndUpdate(Double Yin, Double eps_mu, Integer idx, bool overwrite = true);
+    
     //!computes for xVal a new output value and deletion rules are applied
     Double computeValueAndUpdate(Double xVal, Integer idxElem, 
                                  bool overwrite = true);
@@ -45,19 +47,26 @@ namespace CoupledField {
     {;};
 
     //! normalizes the input to Xsaturated_
-    Double normalizeInput(Double xInput);
+    Double normalizeAndClipInput(Double xInput);
 
-    //! normalizes the output to Ysaturated_
-    Double normalizeOutput(Double xInput);
+    std::string runtimeToString(){
+      return "No runtime information available for Scalar Preisach model";
+    };
+
+    void setFlags(UInt performanceFlag){
+      ;
+    };
 
   protected:
 
     //! computes  the everett function (area-integration for x1, x2)
     Double everettPixel(Double x1, Double x2);
 
+    Double bisect(Double dY,Double xMin,Double xMax, Double xFixed, Double eps_mu, Double tol);
+    
   private:
 
-    Double Xsaturated_; //! saturation value for  input
+    Double XSaturated_; //! saturation value for  input
     Double YSaturated_; //! saturation value for output
 
     bool isVirgin_; //! yes, if starting at zero
@@ -66,13 +75,25 @@ namespace CoupledField {
 
     Vector<Double>* strings_; //! irreduceable minima and maxima
     Vector<Double>* helpStrings_; //! help array for string_
+    Vector<Integer>* minmaxtype_; // stores for each entry of the min/max list if it is a minimum or not
+    // -1 = min; 1 = max; 0 = initial state
+    Vector<Double>* evaluatedEverettPixel_; // stores to each entry of the min/max list
+                                            // the corresponding everett pixel (with sign)
+    // i.e. everett(-strings[0],strings[0]), everett(strings[0],strings[1]), everett(strings[1],strings[2]), ...
+    // note that we need one additional entry for the first min/max
 
     Vector<UInt> StringLength_; //! number of irreduceable minima and maxima
     UInt maxStringLength_; //! maximum allowd length for 
 
-    Matrix<Double> preisachWeights_; //! presach weight function
+    Matrix<Double> preisachWeights_; //! preisach weight function
 
-    Double eps_; //! accuracy parameter
+    Double tol_; //! accuracy parameter
+    
+    // previous input value X and polarization P
+    // NOTE:
+    //  X and P are normalized; P is clipped to saturation, X must not be clipped
+    Vector<Double> previousXval_;
+    Vector<Double> previousPval_;
   };
 
 

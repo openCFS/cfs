@@ -38,6 +38,7 @@ class CoordSystem;
 class CoefXpr;
 class CoefFunction;
 class FeSpace;
+class BaseFeFunction;
 
 //! This is the base class for describing coefficients
 
@@ -98,6 +99,22 @@ public:
   } CoefDependType;
   static Enum<CoefDependType> CoefDependType_;
   
+  //! Dependency of coefficient function
+  typedef enum{
+	NOINVERS,
+    INVSOURCE,         /*!< Invserse scheme: source data */
+    INVMEASURE         /*!< Inverse scheme: measured data */
+  } CoefInverseType;
+  static Enum<CoefInverseType> CoefInverseType_;
+
+  //! Dependency of coefficient function
+  typedef enum{
+	NOINFORMATION,
+    FEBASIS,         /*!< Invserse scheme: source data */
+    DELTA         /*!< Inverse scheme: measured data */
+  } CoefInverseSourceApprox;
+  static Enum<CoefInverseSourceApprox> CoefInverseSourceApprox_;
+
   //! Modifications of coefficient function
   typedef enum{
     NONE,              /*!< Default interpolation of data*/
@@ -246,48 +263,32 @@ public:
   //@{ \name Access Methods
 
   //! Return real-valued tensor at integration point
-  virtual void GetTensor(Matrix<Double>& tensor, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetTensor(Matrix<Double>& tensor, const LocPointMapped& lpm ) {
     EXCEPTION( "CoefFunction::GetTensor<Double> called: This may not happen. "
-        << "Most likely this method is called with a complex-valued "
-        << "CoefFunction object." );
-  }
-
-  //! Return real-valued Msfem Element Matrix at integration point
-  virtual void GetMsfemElementMatrix(Matrix<Double>& matrix,
-      const LocPointMapped& lpm) {
-    EXCEPTION( "CoefFunction::GetMsfemElementMatrix<Double> called: This may not happen. "
-        << "Most likely this method is called with a complex-valued "
-        << "CoefFunction object." );
+        << "Most likely this method is called with a complex-valued CoefFunction object." );
   }
 
   //! Return real-valued vector at integration point
-  virtual void GetVector(Vector<Double>& vec, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm ) {
     EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen " 
-        << "Most likely this method is called with a complex-valued "
-        << "CoefFunction object." );
+        << "Most likely this method is called with a complex-valued CoefFunction object." );
   }
 
   //! Return real-valued element averaged value
-  virtual void GetAvgElemValue(Double & vec, 
-                         const Elem* elem) {
+  virtual void GetAvgElemValue(Double & vec, const Elem* elem) {
     EXCEPTION( "CoefFunction::GetAvgElemValue<Double> not implemented in base class" );
   }
 
 
   //! Return real-valued scalar at integration point
-  virtual void GetScalar(Double& scal, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetScalar(Double& scal, const LocPointMapped& lpm ) {
     EXCEPTION( "CoefFunction::GetScalar<Double> called: This may not happen. " 
         << "Most likely this method is called with a complex-valued "
         << "CoefFunction object." );
   }
 
   //! Return complex-valued tensor at integration point
-  virtual void GetTensor(Matrix<Complex>& tensor, 
-                         const LocPointMapped& lpm ) {
-    
+  virtual void GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm ) {
     // Provide default implementation in the base class, which returns
     // just the double values as real-valued complex matrix
     Matrix<Double> temp;
@@ -297,8 +298,7 @@ public:
   }
 
   //! Return complex-valued vector at integration point
-  virtual void GetVector(Vector<Complex>& vec, 
-                         const LocPointMapped& lpm ) {
+  virtual void GetVector(Vector<Complex>& vec, const LocPointMapped& lpm ) {
     // Provide default implementation in the base class, which returns
      // just the double values as real-valued complex vector
      Vector<Double> temp;
@@ -336,6 +336,11 @@ public:
     coordSys_ = cSys;
   }
   
+  //!
+  virtual void SetFeFunction( shared_ptr<BaseFeFunction> fct1, SolutionType solType) {
+	  feFunctions_[solType] = fct1;
+  }
+
   //! Get associated coordinate system
   CoordSystem* GetCoordinateSystem(){
     return coordSys_;
@@ -344,6 +349,21 @@ public:
   //! Return dependency of CoefFunction
   CoefDependType GetDependency() {
     return dependType_;
+  }
+
+  //! Return dependency of CoefFunction
+  CoefInverseType GetInverseType() {
+    return inverseType_;
+  }
+
+  //! Set type of approximation for source type
+  void SetInverseSourceApproxType( CoefInverseSourceApprox type )  {
+	  approxSourceType_ = type;
+  }
+
+  //! Return dependency of CoefFunction
+  CoefInverseSourceApprox GetInverseSourceApproxType() {
+    return approxSourceType_;
   }
 
   //! Return type of entry (scalar, vector, tensor)
@@ -372,6 +392,12 @@ public:
     return isComplex_;
   }
 
+  //! stes the coefFnc as active (just used for inverse source identififcation)
+  virtual void SetActive(bool val) {
+    isActive_ = val;
+  }
+
+
   //! Dump coefficient function to string 
   virtual std::string ToString() const {
     EXCEPTION("CoefFuncion: ToString() not properly overwritten");
@@ -387,6 +413,46 @@ public:
   virtual void SetDerivativeOperation(CoefDerivativeType type, UInt gDim, UInt dDim){
     EXCEPTION("CoefFunction: This CoefFunction does not support derivatives");
     return;
+  }
+  //! computes the optimality condition
+  virtual void ComputeOptCondition(Double& optAmp, Double& optPhase) {
+	  EXCEPTION("CoefFuncion::ComputeOptCondition not implemented");
+   }
+
+  //! computes the L2 norm of error
+  virtual void ComputeDiff2Meas( Double& error ) {
+	  EXCEPTION("CoefFuncion::ComputeDiff2Meas not implemented");
+  }
+
+  //! set all parameters for inverse scheme
+  virtual void SetInverseParam( Double& alpha, Double& beta, Double& rho, Double& qExp,
+		                        Double& freq, std::string fileNameMeasdata,
+								std::string logLevel) {
+ 	  EXCEPTION("CoefFuncion::SetInverseParam not implemented");
+   }
+
+  //! set all parameters for inverse scheme
+  virtual void ChangeInverseParam( Double& alpha, Double& beta, Double& rho) {
+   	  EXCEPTION("CoefFuncion::ChangeInverseParam not implemented");
+  }
+
+  //! update the source values (amplitude and phase)
+  virtual void UpdateSource(Double& stepLength, bool lineSearch) {
+	  EXCEPTION("CoefFuncion::UpdateSource not implemented");
+  }
+
+  //! computes the L2 norm of error
+  virtual void ComputeTikh(Double& funcVal, Double& resSquared) {
+	  EXCEPTION("CoefFuncion::ComputeTikh not implemented");
+  }
+
+  //! compute square of L2-norm of measured pressure at mic-positions
+  virtual void ComputeMeasL2squared( Double& vaL2 ) {
+	  EXCEPTION("CoefFuncion::ComputeMeasL2squared not implemented");
+  }
+
+  virtual void SetApproxSourceDelta() {
+	  EXCEPTION("CoefFuncion::SetApproxSourceDelta not implemented");
   }
   // ======================================================================
   //  Helper methods for generating variable names of coefficient function
@@ -522,50 +588,79 @@ public:
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
   //! Functions needed for Hystersis
-  virtual void SetPreviousHystVals(bool setNextToLastTS_too = false) {
+  virtual void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false) {
 	  EXCEPTION("SetPreviousHystVals not available");
   }
 
-  //! function for Hysteresis operator to activate or deactivate computation of deltaMatrix
-  virtual void setDeltaComputation(bool deltaComputation_new){
-    EXCEPTION("setDeltaComputation not available");
+  virtual void SetFlag(std::string flagName, Integer intState){
+    EXCEPTION( "Not implemented in base class");
   }
-
-  //! function for Hysteresis operator to switch between using the
-  // value of the nextToLastTS or of the previousIteration
-  virtual void setUseNextToLastTS(bool useNextToLastTS_new){
-    EXCEPTION("setUseNextToLastTS not available");
+  
+  virtual bool useStrainForm(){
+    EXCEPTION("Not implemented in base class");
   }
-
-  //! function for Hysteresis operator to allow or disallow memory setting
-  virtual void setOverwrite(bool overwrite){
-    EXCEPTION("setOverwrite not available");
+  
+  virtual std::string getPDEName(){
+    EXCEPTION("Not implemented in base class");
   }
-
-  //! function for Hysteresis operator to allow or disallow direction setting
-  virtual void setOverwriteDirection(bool overwrite){
-    EXCEPTION("setOverwrite not available");
+  
+  virtual bool deltaMatActive(){
+    EXCEPTION("Not implemented in base class");
   }
-
-  //! for calculation of div and rot in coefFncHyst, we need information about grid
-  //! and about regions which have hysteresis assigned;
-  //! we can get access to both information if we know the PDE which called this coef function
-  virtual void SetLinkedPDE(StdPDE* linkedPDE){
+  
+  virtual int GetDeltaForm(){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual int GetTimeLevel(std::string EntitiyType){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(std::string tensorName ){
+    EXCEPTION("Not implemented in base class");
+  }
+  virtual shared_ptr<CoefFunction> GenerateRHSCoefFnc(std::string vectorName, bool onBoundary = false){
+    EXCEPTION("Not implemented in base class");
+  }
+  virtual shared_ptr<CoefFunction> GenerateOutputCoefFnc(std::string ResultName){
+    EXCEPTION("Not implemented in base class");
+  }
+  
+  virtual Vector<Double> GetOutputOfHysteresisOperator(const LocPointMapped& lpm, int timeLevel){
     EXCEPTION( "Not implemented in base class");
   }
 
-  virtual void SetFlag(std::string flagName,bool newState){
+  virtual void ScaleAndRotateCouplingTensor(const LocPointMapped& lpm, Matrix<Double>& couplTensor, Matrix<Double>& rotatedCouplTensor, int timeLevel,
+  bool rotate=true){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual Matrix<Double> GetDeltaMat(const LocPointMapped& Originallpm, int timelevel_new, int timelevel_old, bool useStrains, bool useAbs,
+      std::string implementationVersion){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual void SetElastAndCouplTensor(PtrCoefFct elastTensor, PtrCoefFct couplTensor){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual void AddAdditionalSDList(shared_ptr<EntityList> actSDList, bool onSurface){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual Double GetOutputSaturation(){
     EXCEPTION( "Not implemented in base class");
   }
 
-  //! set regionId of neighbor
-  virtual void SetNeighborRegionId(RegionIdType id) {
-	  neighborRegionId_ = id;
+
+  //! set volume regionId being the correct neighbor of a surface region id
+  virtual void SetVolNeighborRegionId(RegionIdType surfId, RegionIdType volId) {
+	  neighborRegionId_[surfId] = volId;
   }
 
-  //! return regionId of neighbor
-  virtual RegionIdType GetNeighborRegionId() {
-	  return neighborRegionId_;
+  //! return volume regionId being the correct neighbor of a surface region id
+  virtual RegionIdType GetVolNeighborRegionId(RegionIdType surfId) {
+	  return neighborRegionId_[surfId];
   }
   //@}
 
@@ -612,6 +707,12 @@ protected:
   //! storing the derivative type of the CoefFunction
   CoefDerivativeType derivType_;
 
+  //! storing the type for inverse scheme
+   CoefInverseType inverseType_;
+
+  //! how the source term is approximated
+  CoefInverseSourceApprox inverseApproxType_;
+
   //! Flag, if coefficient function is analytic (= can be represented as string)
   bool isAnalytic_;
   
@@ -624,9 +725,17 @@ protected:
   //! only needed for hystersis
   StdPDE* linkedPDE_;
 
-  //! volume region id of the specified neighbor (important for surface coefficients!)
-  RegionIdType neighborRegionId_;
+  //! for each surface Region id we have to correct neighbor volume region id
+  std::map<RegionIdType, RegionIdType> neighborRegionId_;
 
+  //! Map Storing FeSpaces for each unknown of PDE
+  std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;
+
+  //! sets the rhsFnc active
+  bool isActive_;
+
+  //! approximate source terms with delta fu	nctions
+  CoefInverseSourceApprox approxSourceType_;
 };
 
 

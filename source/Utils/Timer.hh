@@ -3,13 +3,16 @@
 
 #include <ctime>
 #include <string>
-#include "boost/date_time/posix_time/posix_time.hpp"
+#include <boost/chrono.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace CoupledField
 {
 
 /** The Timer class is based on the code timer.hh from Ken Wilder (http://sites.google.com/site/jivsoft/Home/timer)
  * It implements a timer object which sums up time intervals.
+ *
+ * A convenient way to create a timer is via ParamNode::AsTimer().
  */
 class Timer
 {
@@ -23,17 +26,25 @@ class Timer
   bool IsRunning() const { return running; }
 
   /** Start or resume a timer.
-    If it is already running, let it continue running. */
-  void Start();
+    If it is already running, let it continue running.
+    @return false if already running (nothing is changed), true for a real start*/
+  bool Start();
 
-  /** Turn the timer off and start it again from 0 */
-  void ResetStart();
+  /** Turn the timer off and start it again from 0.
+   * @return false if it was not running */
+  bool ResetStart();
 
-  /** Stop the timer, ca be restarted via Start */
-  void Stop();
+  /** Stop the timer, can be restarted via Start
+   * @return false if it was not running before */
+  bool Stop();
 
   void SetLabel(const std::string& name) {
     label_ = name;
+  }
+
+  /** to set sub when created as ParamNode::AsTimer() */
+  void SetSub() {
+    sub_ = true;
   }
 
   /** The number of Start() calls since construction or the last ResetStart()+1.
@@ -62,6 +73,8 @@ class Timer
    *  2. cout << GetTimeString(second (or microsec)_clock::local_time() - start_time);*/
   static const std::string GetTimeString(const boost::posix_time::time_duration period);
 
+  static const std::string GetTimeString(double seconds);
+
   /** Prints the time in human readable format to specified stream
    *  @param (in) stream output stream
    */
@@ -71,10 +84,15 @@ class Timer
   /** The number of Start() calls since construction or the last ResetStart()+1 */
   int    calls_;
   bool   running;
+
+  /** clock is cpu time */
   clock_t start_clock;
-  time_t  start_time;
-  double sum_time;
   clock_t sum_clock;
+
+  /** wall time: boost time, as time_t is only in seconds */
+  boost::posix_time::ptime start_time_;
+  double sum_time_ = 0;
+
   std::string label_;
   bool sub_;
 

@@ -84,9 +84,17 @@ which can be reused for other CFS++ builds.
 This directory may even be located on a network share.")
 ENDIF(NOT CFS_DEPS_CACHE_DIR)
 
-FILE(TO_CMAKE_PATH
-  "${CFS_DEPS_CACHE_DIR}"
-  CFS_DEPS_CACHE_DIR)
+FILE(TO_CMAKE_PATH "${CFS_DEPS_CACHE_DIR}" CFS_DEPS_CACHE_DIR)
+
+# for configure projectes we may not use ninja but need make
+if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+  message("CMAKE_GENERATOR = ${CMAKE_GENERATOR}")
+  find_program(CONFIGURE_MAKE_PROGRAM make)
+else()
+  set(CONFIGURE_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build configure projects")
+endif()
+mark_as_advanced(CONFIGURE_MAKE_PROGRAM)
+
 
 #-------------------------------------------------------------------------------
 # Build zlib library
@@ -198,7 +206,7 @@ ENDIF(USE_GIDPOST)
 # Find Netlib BLAS/LAPACK library
 # MKL contains blas and lapack, OpenBLAS contains blas and somehow also lapack?!
 #-----------------------------------------------------------------------------
-IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
+IF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  )
     
   SET(LAPACK_URL "${CFS_DS_SOURCES_DIR}/lapack")
   SET(LAPACK_BASE "lapack")
@@ -208,7 +216,7 @@ IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
     
   INCLUDE("${CFSDEPS_DIR}/lapack/External_LAPACK.cmake")
     
-ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
+ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  )
 
 #-----------------------------------------------------------------------------
 # Find OpenBLAS/LAPACK library
@@ -268,7 +276,7 @@ ENDIF(USE_ARPACK)
 #-----------------------------------------------------------------------------
 # Find SuiteSparse/CholMod/UMFPACK/AMD library
 #-----------------------------------------------------------------------------
-IF(USE_SUITESPARSE OR USE_ILUPACK)
+IF(USE_SUITESPARSE)
   SET(SUITESPARSE_URL "${CFS_DS_SOURCES_DIR}/suitesparse")
   SET(SUITESPARSE_BASE "SuiteSparse")
   SET(SUITESPARSE_VER "4.2.1")
@@ -276,19 +284,25 @@ IF(USE_SUITESPARSE OR USE_ILUPACK)
   SET(SUITESPARSE_MD5 "4628df9eeae10ae5f0c486f1ac982fce")
 
   INCLUDE("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
-ENDIF(USE_SUITESPARSE OR USE_ILUPACK)
+ENDIF(USE_SUITESPARSE)
 
 #-----------------------------------------------------------------------------
 # Find ILUPACK library
 #-----------------------------------------------------------------------------
 IF(USE_ILUPACK)
+  #Since the latest version of ilupack requires GCC > 5.0 or the latest ICC compilers
+  IF((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND 
+   ((CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0") OR (CMAKE_C_COMPILER_VERSION VERSION_LESS "5.0") OR (CFS_FORTRAN_COMPILER_VER VERSION_LESS "5.0") ))
+    MESSAGE(FATAL_ERROR "Ilupack can be compiled only when gcc,g++ and gfortran compiler versions are greater than 5")
+  ENDIF()
+  # TODO: For intel compilers still one needs to figure out the proper compiler versions
+ 
   SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
-  SET(ILUPACK_BASE "ilupack")
-  SET(ILUPACK_VER "2.2.1")
-  SET(ILUPACK_GZ "${ILUPACK_BASE}${ILUPACK_VER}_src.tgz")
-  SET(ILUPACK_MD5 "7cb6ba2e854e13d243218d9e9478d13c")
-   
+  SET(ILUPACK_VER "2.4_parallel_0831")
+  SET(ILUPACK_GZ "ilupack-${ILUPACK_VER}_src.tgz")
+  SET(ILUPACK_MD5 "0a5792597f8120d71e221de601440137")
   INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
+  #ADD_DEPENDENCIES(ilupack metis) # ilupack has its own (parallel) metis additional to cfs-metis
 ENDIF(USE_ILUPACK)
 
 #  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")
@@ -340,12 +354,12 @@ ENDIF(USE_SUPERLU)
 #-------------------------------------------------------------------------------
 SET(BOOST_BASE "boost")
 SET(BOOST_MAJOR_VER 1)
-SET(BOOST_MINOR_VER 58)
+SET(BOOST_MINOR_VER 66)
+SET(BOOST_VER "${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}")
 SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
 SET(BOOST_GZ "${BOOST_BASE}_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2")
-SET(BOOST_MD5 "b8839650e61e9c1c0a89f371dd475546") # 1.58
-#SET(BOOST_MD5 "65a840e1a0b13a558ff19eeb2c4f0cbe") # 1.60
-#SET(BOOST_MD5 "6095876341956f65f9d35939ccea1a9f") # 1.61
+SET(BOOST_MD5 "b2dfbd6c717be4a7bb2d88018eaccf75") #1.66
+#SET(BOOST_MD5 "ced776cb19428ab8488774e1415535ab") # 1.67
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------
@@ -353,9 +367,13 @@ INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 #-------------------------------------------------------------------------------
 SET(MUPARSER_URL "${CFS_DS_SOURCES_DIR}/muparser")
 SET(MUPARSER_BASE "muparser")
-SET(MUPARSER_VER "v2_2_2")
-SET(MUPARSER_ZIP "${MUPARSER_BASE}_${MUPARSER_VER}.zip")
-SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
+SET(MUPARSER_VER "2.2.5")
+#SET(MUPARSER_VER "v2_2_2")
+SET(MUPARSER_ZIP "${MUPARSER_BASE}-${MUPARSER_VER}.tar.gz")
+#SET(MUPARSER_ZIP "${MUPARSER_BASE}_${MUPARSER_VER}.zip") # v2_2_2
+SET(MUPARSER_MD5 "02dae671aa5ad955fdcbcd3fee313fb7") # 2.2.5
+#SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a") #v2_2_2
+SET(MUPARSER_SHA512 "d89380ebdc0ce91d0ea38fe43419ab6ed06c47d352b9ee20e1edcce48337b464366153493e0241c373ba2880a8b419fb9541e56cda0d14915daf9b98136ee682") # needed for URL
 
 INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
@@ -454,6 +472,18 @@ ENDIF(USE_LIBFBI)
 INCLUDE("${CFSDEPS_DIR}/spacepart/External_spacepart.cmake")
 
 #-----------------------------------------------------------------------------
+# FEAST - FEAST Eigenvalue Solver
+#-----------------------------------------------------------------------------
+IF(USE_FEAST_COMMUNITY)
+  SET(FEAST_URL "${CFS_DS_SOURCES_DIR}/feast")
+  SET(FEAST_BASE "feast")
+  SET(FEAST_VER "3.0")
+  SET(FEAST_GZ "${FEAST_BASE}_${FEAST_VER}.tgz")
+  SET(FEAST_MD5 "f03819c19a8724d0095dd24eae7ba43a")
+  INCLUDE("${CFSDEPS_DIR}/feast/External_FEAST.cmake")
+ENDIF()
+
+#-----------------------------------------------------------------------------
 # FLANN - Fast Library for Approximate Nearest Neighbors
 #-----------------------------------------------------------------------------
 IF(USE_FLANN)
@@ -502,7 +532,7 @@ IF(USE_IPOPT)
   SET(IPOPT_VER "3.11.9")
   SET(IPOPT_TGZ "${IPOPT_BASE}-${IPOPT_VER}.tgz")
   SET(IPOPT_MD5 "657fa0f2f301f0d7b2a4e5b43e2370f5") 
-  
+ 
   INCLUDE("${CFSDEPS_DIR}/ipopt/External_IPOPT.cmake")
 ENDIF(USE_IPOPT)
 
@@ -546,14 +576,62 @@ IF(BUILD_HDFVIEW)
 ENDIF(BUILD_HDFVIEW)
 
 #-------------------------------------
-# External anaconda 3
+# External anaconda 3 as a service for test machines at TU-Wien
 #-------------------------------------
-if(USE_ANACONDA3)
+if(BUILD_ANACONDA3)
   SET(ANACONDA3_URL "${CFS_DS_SOURCES_DIR}/anaconda3")
   SET(ANACONDA3_SH "Anaconda3-4.2.0-Linux-x86_64.sh")
   SET(ANACONDA3_MD5 "4692f716c82deb9fa6b59d78f9f6e85c")
   INCLUDE("${CFSDEPS_DIR}/anaconda3/External_anaconda3.cmake")
-endif(USE_ANACONDA3)
+endif(BUILD_ANACONDA3)
+
+# PETSc requires mpi
+if(USE_PETSC)
+  SET(PETSC_VER "3.9.3")
+  SET(PETSC_TGZ "petsc-${PETSC_VER}.tar.gz")
+  SET(PETSC_MD5 "7b71d705f66f9961cb0e2da3f9da79a1")
+  
+  INCLUDE("${CFSDEPS_DIR}/petsc/External_PETSC.cmake")
+endif(USE_PETSC)
+
+# hwloc is a build dependency for ghost/phist but not explicitly used, therefore BUILD_HWLOC 
+if(BUILD_HWLOC)
+  SET(HWLOC_VER "1.11.8") # note that 1.11 is hardcoded in External_HWLOC!
+  SET(HWLOC_TGZ "hwloc-${HWLOC_VER}.tar.gz")
+  SET(HWLOC_MD5 "a0fa1c9109a4d8b4b6568e62cc9b6e30") 
+  
+  INCLUDE("${CFSDEPS_DIR}/hwloc/External_HWLOC.cmake")
+endif(BUILD_HWLOC)
+
+# ghost is required for phist or could be used standalone
+if(BUILD_GHOST)
+  # we use the cfs-fork of ghost and download the stuff via bitbuket
+  # we could also use a subversion mirror on github but only for ghost, not for phist
+  # svn co https://github.com/RRZE-HPC/GHOST/trunk@r<REVSION>
+  set(GHOST_REV "a3b75fc52c7e") # subversion revision numbers are are more easily handable :(
+  set(GHOST_MD5 "47a7f3b21cf8e8f16c69a6889a184f60")
+  set(GHOST_ZIP "${GHOST_REV}.zip")
+  # https://bitbucket.org/fabian_wein/cfs_ghost/get/840f2717f849.zip -> fabian_wein-cfs_ghost-840f2717f849
+  # https://bitbucket.org/essex/ghost/get/f3c78b57e836.zip -> essex-ghost-f3c78b57e836
+  set(GHOST_BB_USER "essex")
+  set(GHOST_BB_PROJECT "ghost")
+  include("${CFSDEPS_DIR}/ghost/External_GHOST.cmake")
+  
+  ADD_DEPENDENCIES(ghost hwloc)
+endif(BUILD_GHOST)
+
+# phist provides a ghost (=cuda if available) based EV-solver
+if(USE_PHIST_EV OR USE_PHIST_CG)
+  set(PHIST_REV "853be38a7078") 
+  set(PHIST_MD5 "a07fcc37d45a49d5e2e8fc2b31f334a7")
+  set(PHIST_ZIP "${PHIST_REV}.zip")
+  set(PHIST_BB_USER "essex")
+  set(PHIST_BB_PROJECT "phist")
+  include("${CFSDEPS_DIR}/phist/External_PHIST.cmake")
+  
+  ADD_DEPENDENCIES(phist ghost)
+endif()
+
 
 #-------------------------------------------------------------------------------
 # The cfsdeps meta target. Issue 'make -jX cfsdeps' to build all required.

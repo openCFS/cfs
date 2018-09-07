@@ -355,18 +355,6 @@ namespace CoupledField {
     //!  v might be a Double, Complex or a tiny Matrix of either type
     void GetMatrixEntry( UInt i, UInt j, T &v ) const;
 
-    //! Return the diagonal entry of row i
-    inline
-    T& GetDiag( UInt i ) {
-      return data_[rowPtr_[i]];
-    }
-
-    //! Return the diagonal entry of row i (read only)
-    inline
-    const T& GetDiag( UInt i ) const {
-      return this->data_[rowPtr_[i]];
-    }
-
     //! Set the diagonal entry of row i to the value of v
     virtual void SetDiagEntry( UInt i, const T &v ) {
       data_[rowPtr_[i]] = v;
@@ -377,11 +365,7 @@ namespace CoupledField {
       v = data_[rowPtr_[i]];
     }
 
-    //! Determine maximum absolute value of diagonal entries
-
-    //! This method determines the the maximal absolute value (on the scalar)
-    //! level of the entries on the main diagonal of the matrix.
-    Double GetMaxDiag() const;
+    T GetDiagEntry(unsigned int row) const { return data_[rowPtr_[row]]; }
 
     //! This routine adds the value of v to the matrix entry at (i,j)
 
@@ -527,6 +511,9 @@ namespace CoupledField {
     //! method is primarily intended for debugging.
     virtual std::string ToString( char colSeparator = ' ',
                                   char rowSeparator = '\n' ) const;
+
+
+    std::string Dump() const;
 
     //! Export the matrix to a file in MatrixMarket format
 

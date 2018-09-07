@@ -115,5 +115,19 @@
       </elasticity>
     </mechanical>
   </material>
+  <material name="void">
+    <mechanical>
+      <density> 1 </density>
+      <elasticity>
+        <isotropic>
+          <real>
+            <elasticityModulus> 1e-9 </elasticityModulus>
+            <poissonNumber> 0.3 </poissonNumber>
+          </real>
+        </isotropic>
+      </elasticity>
+    </mechanical>
+  </material>
+  
   
 </cfsMaterialDataBase>

@@ -143,11 +143,6 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     case BENSON_VANDERBEI_1:
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
-    case DETERMINANT_MATRIX:
-    case ROTATIONAL_MATRIX_1:
-    case ROTATIONAL_MATRIX_2:
-    case DETERMINANT_MAPPING:
-    case TRACE_MAPPING:
     if(!pn->Has("parameter"))
         throw Exception("'parameter' (very small value) mandatory for '" + type.ToString(type_) + "'");
       break;
@@ -265,7 +260,7 @@ void Condition::AddOutputConstraints(PtrParamNode pn, StdVector<Condition*>& lis
   PtrParamNode xml = elems[0];
   //std::string entName = xml->Get("name")->As<std::string>();
   entName.assign(entName + boost::lexical_cast<std::string>(i));
-  xml ->Get("name")->SetValue(entName);
+  xml->Get("name")->SetValue(entName);
 }
 
 
@@ -719,11 +714,6 @@ bool Condition::IsFeasibilityConstraint() const
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
-  case DETERMINANT_MATRIX:
-  case ROTATIONAL_MATRIX_1:
-  case ROTATIONAL_MATRIX_2:
-  case DETERMINANT_MAPPING:
-  case TRACE_MAPPING:
   case DESIGN:
     return true;
   default:

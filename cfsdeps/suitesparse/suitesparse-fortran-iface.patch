@@ -5,7 +5,7 @@
 -project(SuiteSparse-4.2.1 C)
 +project(SuiteSparse-4.2.1 Fortran C)
 +
-+IF(NOT CMAKE_CROSSCOMPILING AND NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "OPEN64")
++IF(NOT CMAKE_CROSSCOMPILING)
 +  # Create a header file blas_lapack.h with the correct mangling
 +  # for the Fortran routines called in my C programs.
 +  # cf. http://www.netlib.org/lapack/lawnspdf/lawn270.pdf

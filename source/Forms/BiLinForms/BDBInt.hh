@@ -19,8 +19,6 @@
 #ifndef FILE_BDBINT_NEW
 #define FILE_BDBINT_NEW
 
-#include <boost/tr1/type_traits.hpp>
-
 #include "BiLinearForm.hh"
 #include "Forms/Operators/BaseBOperator.hh"
 #include "MatVec/promote.hh"
@@ -243,8 +241,8 @@ public:
       //@}
 
 
-      bool IsComplex(){
-        return std::tr1::is_same<MAT_DATA_TYPE,Complex>::value;
+      bool IsComplex() const {
+        return std::is_same<MAT_DATA_TYPE,Complex>::value;
       }
       
       //! \copydoc BiLinearForm::IsSolDependent

@@ -16,6 +16,7 @@
 #include "MatVec/Vector.hh"
 #include <set>
 #include <algorithm>
+#include <cmath>
 
 namespace CFSDat{
 
@@ -27,59 +28,74 @@ ResultManager::~ResultManager(){
 
 }
 
-uuids::uuid ResultManager::AddResult(std::string name, uuids::uuid filterTag, CF::StdVector<Integer> timeCacheSteps){
+uuids::uuid ResultManager::AddResult(std::string name, uuids::uuid filterTag){
+  return AddResult(name, filterTag, 0, 0);
+}
+
+uuids::uuid ResultManager::AddResult(std::string name, uuids::uuid filterTag,
+       Integer minStepOffset, Integer maxStepOffset){
   uuids::uuid generated = boost::uuids::random_generator()();
   //if we do not have an offset vector we proceed with the standard
   //operation, if we have one given, we add a master result...
-  if(timeCacheSteps.GetSize() == 0){
-    //we add a new value for our map
-    std::pair<InfoPtr,ResPtr> newInfo;
-    newInfo.first.reset(new ExtendedResultInfo);
-    //leave the second part as null for the moment, this will be done in finalize
-    //just set the name
-    newInfo.first->resultName = name;
-    newInfo.first->generatorId = filterTag;
-    resultMap_[generated] = newInfo;
-  }else{
-    //master result case...
-    UInt numOffsets  = timeCacheSteps.GetSize();
-    for(UInt aStep =0;aStep<numOffsets;++aStep){
-      //generate new slave result
-      uuids::uuid cSlave = boost::uuids::random_generator()();
-      std::pair<InfoPtr,ResPtr> newInfo;
-      newInfo.first.reset(new ExtendedResultInfo);
-      newInfo.first->resultName = name;
-      newInfo.first->generatorId = filterTag;
-      newInfo.first->timeStepOffset = timeCacheSteps[aStep];
-      newInfo.first->timeCacheMasterId = generated;
-      resultMap_[cSlave] = newInfo;
-      masterResMap_[generated][timeCacheSteps[aStep]] = cSlave;
-    }
-    masterInfos_[generated].reset(new ExtendedResultInfo);
-    masterInfos_[generated]->isTimeCacheMaster = true;
-    masterInfos_[generated]->resultName = name;
-    masterInfos_[generated]->generatorId = filterTag;
-    //now we already ensure that all shared pointers are identical
-    std::map<Integer, uuids::uuid>::iterator resIter = masterResMap_[generated].begin();
-    for(;resIter != masterResMap_[generated].end();++resIter){
-      uuids::uuid cNum = resIter->second;
-      resultMap_[cNum].first->timeLine = masterInfos_[generated]->timeLine;
-      resultMap_[cNum].first->stepNumbers = masterInfos_[generated]->stepNumbers;
-      resultMap_[cNum].first->regNames = masterInfos_[generated]->regNames;
-      resultMap_[cNum].first->entityNumbers = masterInfos_[generated]->entityNumbers;
-      resultMap_[cNum].first->eqnNumbers = masterInfos_[generated]->eqnNumbers;
-    }
-  }
+  
+  //we add a new value for our map
+  std::pair<InfoPtr,ResPtr> newInfo;
+  newInfo.first.reset(new ExtendedResultInfo);
+  //leave the second part as null for the moment, this will be done in finalize
+  //just set the name
+  newInfo.first->resultName = name;
+  newInfo.first->generatorId = filterTag;
+  newInfo.first->minStepOffset = minStepOffset;
+  newInfo.first->maxStepOffset = maxStepOffset;
+  newInfo.first->masterId = generated;
+  
+  resultMap_[generated] = newInfo;
   return generated;
 }
 
-bool ResultManager::IsResultVecUpToDate(uuids::uuid requestedId, Integer offsetStep){
-  checkFinalized();
-  uuids::uuid remappedId = remapMasterResults(requestedId,offsetStep);
-  return resultMap_[remappedId].second->isUpToDate;
+uuids::uuid ResultManager::GetMasterResult(uuids::uuid resultId) {
+  return resultMap_[resultId].first->masterId;
 }
+
+
+void ResultManager::CombineResults(uuids::uuid masterId, uuids::uuid slaveId) {
+  InfoPtr masterInfo = resultMap_[masterId].first;
+  ResPtr masterResult = resultMap_[masterId].second;
+  
+  slaveId = GetMasterResult(slaveId);
+  InfoPtr slaveInfo = resultMap_[slaveId].first;
+  
+  if (slaveInfo->slaveIds.size() > 0) {
+    std::set<uuids::uuid>& slaveIds = slaveInfo->slaveIds;
+    std::set<uuids::uuid>::iterator slavItr = slaveIds.begin();
+    for (; slavItr != slaveIds.end(); slavItr++) {
+      uuids::uuid iSlaveId = *slavItr;
+      masterInfo->slaveIds.insert(iSlaveId);
+      resultMap_[iSlaveId] = resultMap_[masterId];
+    }
+  }
+  if (slaveInfo->isOutput) {
+    masterInfo->isOutput = true;
+  }
+  masterInfo->minStepOffset = std::min(masterInfo->minStepOffset,slaveInfo->minStepOffset);
+  masterInfo->maxStepOffset = std::max(masterInfo->maxStepOffset,slaveInfo->maxStepOffset);
+  masterInfo->slaveIds.insert(slaveId);
+  resultMap_[slaveId] = resultMap_[masterId];
+}
+
+bool ResultManager::IsResultVecUpToDate(uuids::uuid requestedId){
+  checkFinalized();
+  return resultMap_[requestedId].second->IsUpToDate();
+}
+
+void ResultManager::SetResultVecUpToDate(uuids::uuid requestedId, bool upToDate) {
+  checkFinalized();
+  resultMap_[requestedId].second->SetUpToDate(upToDate);
+}
+
+
 template<typename T>
-CF::Vector<T>&  ResultManager::GetResultVector(uuids::uuid requestedId, CF::StdVector<UInt>& eqnNumbers, Integer timeStepOffset){
+CF::Vector<T>&  ResultManager::GetResultVector(uuids::uuid requestedId, CF::StdVector<UInt>& eqnNumbers){
   //performance tests have reveals that all syntactic sugar
   //e.g. by providing a view on the vector or anything have not advantage
   //in runtime over just returning an index array which can be used by the caller
@@ -87,60 +103,78 @@ CF::Vector<T>&  ResultManager::GetResultVector(uuids::uuid requestedId, CF::StdV
   //quite annoying nonetheless, if the requested result is defined on all entites,
   // a vector from 0...N is returned... bullshit
   checkFinalized();
-  uuids::uuid remappedId = remapMasterResults(requestedId,timeStepOffset);
-  ResultAdaptor<T> * resAdapt = dynamic_cast<ResultAdaptor<T> * >(resultMap_[remappedId].second.get());
-  eqnNumbers = (*resultMap_[remappedId].first->eqnNumbers.get());
-  return resAdapt->resultVector;
+  ResultCache<T> * resCache = dynamic_cast<ResultCache<T> * >(resultMap_[requestedId].second.get());
+  eqnNumbers = (*resultMap_[requestedId].first->eqnNumbers.get());
+  //return resAdapt->resultVector;
+  return resCache->GetResultVector();
 }
 
-//CF::Vector<Complex>& ResultManager::GetResultVector(uuids::uuid requestedId, CF::StdVector<UInt>& eqnNumbers, Integer timeStepOffset){
+template<typename T>
+CF::Vector<T>&  ResultManager::GetResultVector(uuids::uuid requestedId){
+  //performance tests have reveals that all syntactic sugar
+  //e.g. by providing a view on the vector or anything have not advantage
+  //in runtime over just returning an index array which can be used by the caller
+  //in addition, the memory requirements for an additional integer array are quite low
+  //quite annoying nonetheless, if the requested result is defined on all entites,
+  // a vector from 0...N is returned... bullshit
+  checkFinalized();
+  ResultCache<T> * resCache = dynamic_cast<ResultCache<T> * >(resultMap_[requestedId].second.get());
+  //return resAdapt->resultVector;
+  return resCache->GetResultVector();
+}
+
+//CF::Vector<Complex>& ResultManager::GetResultVector(uuids::uuid requestedId, CF::StdVector<UInt>& eqnNumbers){
 //  checkFinalized();
-//  uuids::uuid remappedId = remapMasterResults(requestedId,timeStepOffset);
-//
 //  ResultAdaptor<Complex> * resAdapt = dynamic_cast<ResultAdaptor<Complex> * >(resultMap_[remappedId].second.get());
-//  //retVec = dynamic_cast<CF::Vector<Complex> & >(resultMap_[remappedId].second->GetSingleVector());
-//  eqnNumbers = (*resultMap_[remappedId].first->eqnNumbers.get());
+//  //retVec = dynamic_cast<CF::Vector<Complex> & >(resultMap_[requestedId].second->GetSingleVector());
+//  eqnNumbers = (*resultMap_[requestedId].first->eqnNumbers.get());
 //  return resAdapt->resultVector;
 //}
 
-CF::StdVector<shared_ptr<BaseResult> >& ResultManager::GetBaseResultVector(uuids::uuid requestedId, Integer timeStepOffset){
+str1::shared_ptr<EqnMapSimple> ResultManager::GetEqnMap(uuids::uuid requestedId) {
   checkFinalized();
-  uuids::uuid remappedId = remapMasterResults(requestedId,timeStepOffset);
-  return resultMap_[remappedId].second->baseResultVector;
+  return resultMap_[requestedId].second->mapping;
 }
 
-ResultManager::ConstResPtr ResultManager::GetResultAdapter(uuids::uuid requestedId, Integer timeStepOffset){
+CF::StdVector<shared_ptr<BaseResult> >& ResultManager::GetBaseResultVector(uuids::uuid requestedId){
   checkFinalized();
-  uuids::uuid remappedId = remapMasterResults(requestedId,timeStepOffset);
-  return resultMap_[remappedId].second;
+  return resultMap_[requestedId].second->baseResultVector;
 }
 
-Double ResultManager::GetStepValue(uuids::uuid requestedId, Integer offsetStep){
+UInt ResultManager::GetStepIndex(uuids::uuid requestedId){
   checkFinalized();
-  uuids::uuid remappedId = remapMasterResults(requestedId,offsetStep);
-  return resultMap_[remappedId].second->stepValue;
+  return resultMap_[requestedId].second->GetStepIndex();
 }
 
-void ResultManager::SetTimeValue(uuids::uuid requestedId, Double value){
+void ResultManager::SetStepIndex(uuids::uuid requestedId, Integer stepIndex){
   checkFinalized();
+  const CF::StdVector<Double>& timeLine = *resultMap_[requestedId].first->timeLine.get();
+  UInt setStepIndex = std::min<UInt>(std::max<Integer>(0,stepIndex)
+                                     ,timeLine.GetSize() - 1);
+  return resultMap_[requestedId].second->SetStepIndex(setStepIndex);
+}
 
-  if(checkResultDef(requestedId)){
-    std::map<Integer, uuids::uuid>::iterator assocIter =  masterResMap_[requestedId].begin();
-    for(;assocIter != masterResMap_[requestedId].end();++assocIter){
-      if(resultMap_[assocIter->second].first->timeCacheMasterId == requestedId){
-        StdVector<Double>& tsteps = (*resultMap_[assocIter->second].first->timeLine.get());
-        //assume equidistant otherwise we would need to search now
-        Double delta = tsteps[1] - tsteps[0];
-        resultMap_[assocIter->second].second->stepValue = value+(resultMap_[assocIter->second].first->timeStepOffset*delta);
-        //do not activate this. otherwise the shifting operation in input filter will not work!
-        //resultMap_[assocIter->second].second->GetSingleVector()->Init();
-        resultMap_[assocIter->second].second->isUpToDate = false;
-      }
+Double ResultManager::GetStepValue(uuids::uuid requestedId){
+  checkFinalized();
+  const CF::StdVector<Double>& timeLine = *resultMap_[requestedId].first->timeLine.get();
+  const UInt index = resultMap_[requestedId].second->GetStepIndex();
+  return timeLine[index];
+}
+
+void ResultManager::SetStepValue(uuids::uuid requestedId, Double value){
+  checkFinalized();
+  const CF::StdVector<Double>& timeLine = *resultMap_[requestedId].first->timeLine.get();
+  const UInt size = timeLine.GetSize();
+  Double minDist = std::abs(value - timeLine[0]);
+  UInt minIndex = 0;
+  for (UInt i = 1; i < size; i++) {
+    Double dist = std::abs(value - timeLine[i]);
+    if (dist < minDist) {
+      minDist = dist;
+      minIndex = i;
     }
-  }else{
-    resultMap_[requestedId].second->stepValue = value;
-    resultMap_[requestedId].second->isUpToDate = false;
   }
+  resultMap_[requestedId].second->SetStepIndex(minIndex);
 }
 
 //  //this is avery annoying thing. since different input files have
@@ -199,10 +233,6 @@ void ResultManager::SetTimeValue(uuids::uuid requestedId, Double value){
 ResultManager::ConstInfoPtr ResultManager::GetExtInfo(uuids::uuid resId){
   //this check is tedious can we think of anything else?
   if(resultMap_.find(resId) == resultMap_.end()){
-    //try to look within the master results
-    if(masterInfos_.find(resId) != masterInfos_.end()){
-      return masterInfos_[resId];
-    }
     EXCEPTION("Requested Id which is not generated! Make sure every call "
                   "to ResultManager provides valid resultIds.");
   }
@@ -212,107 +242,50 @@ ResultManager::ConstInfoPtr ResultManager::GetExtInfo(uuids::uuid resId){
 
 //has anybody an idea how to avoid this piece of code?
 //and do the same without templates?
-#define RESULT_MANAGER_COPY_FIELD(resId, fName , toCopy)                                     \
-    bool isMaster = checkResultDef(resId);                                                   \
-    if(isMaster){                                                                            \
-      std::map<Integer, uuids::uuid>::iterator assocIter =  masterResMap_[resId].begin();    \
-      for(;assocIter != masterResMap_[resId].end();++assocIter){                             \
-        resultMap_[assocIter->second].first->fName = toCopy;                                 \
-      }                                                                                      \
-      masterInfos_[resId]->fName = toCopy;                                                   \
-    }else{                                                                                   \
-      InfoPtr curInfo = resultMap_[resId].first;                                             \
-      curInfo->fName = toCopy;                                                               \
-      if(curInfo->timeCacheMasterId!=uuids::nil_uuid() )                                     \
-        masterInfos_[curInfo->timeCacheMasterId]->fName = toCopy;                             \
-    }                                                                                        \
+#define RESULT_MANAGER_COPY_FIELD(resId, fName , toCopy)                                   \
+    InfoPtr curInfo = resultMap_[resId].first;                                             \
+    curInfo->fName = toCopy;                                                               \
 
-#define RESULT_MANAGER_COPY_SH_PTR_FIELD(resId, fName , toCopy)                              \
-    bool isMaster = checkResultDef(resId);                                                   \
-    if(isMaster){                                                                            \
-      std::map<Integer, uuids::uuid>::iterator assocIter =  masterResMap_[resId].begin();    \
-      for(;assocIter != masterResMap_[resId].end();++assocIter){                             \
-        (*resultMap_[assocIter->second].first->fName.get()) = toCopy;                        \
-      }                                                                                      \
-      (*masterInfos_[resId]->fName.get()) = toCopy;                                          \
-    }else{                                                                                   \
-      (*resultMap_[resId].first->fName.get()) = toCopy;                                      \
-    }                                                                                        \
+#define RESULT_MANAGER_COPY_SH_PTR_FIELD(resId, fName , toCopy)                            \
+    (*resultMap_[resId].first->fName.get()) = toCopy;                                      \
 
-#define RESULT_MANAGER_COPY_SH_PTR_SET(resId, fName , toCopy)                                \
-    bool isMaster = checkResultDef(resId);                                                   \
-    if(isMaster){                                                                            \
-      std::map<Integer, uuids::uuid>::iterator assocIter =  masterResMap_[resId].begin();    \
-      for(;assocIter != masterResMap_[resId].end();++assocIter){                             \
-        resultMap_[assocIter->second].first->fName->clear();                                 \
-        resultMap_[assocIter->second].first->fName->insert(toCopy.begin(),toCopy.end());     \
-      }                                                                                      \
-      masterInfos_[resId]->fName->clear();                                                   \
-      masterInfos_[resId]->fName->insert(toCopy.begin(),toCopy.end());                       \
-    }else{                                                                                   \
-      resultMap_[resId].first->fName->clear();                                               \
-      resultMap_[resId].first->fName->insert(toCopy.begin(),toCopy.end());                   \
-    }                                                                                        \
+#define RESULT_MANAGER_COPY_SH_PTR_SET(resId, fName , toCopy)                              \
+    resultMap_[resId].first->fName->clear();                                               \
+    resultMap_[resId].first->fName->insert(toCopy.begin(),toCopy.end());                   \
 
-#define RESULT_MANAGER_OBTAIN_FIELD(resId, fName)                  \
-    bool isMaster = checkResultDef(resId);                         \
-    if(isMaster){                                                  \
-      return masterInfos_[resId]->fName;                           \
-    }else{                                                         \
-      return resultMap_[resId].first->fName;                       \
-    }                                                              \
+#define RESULT_MANAGER_OBTAIN_FIELD(resId, fName)                \
+    return resultMap_[resId].first->fName;                       \
 
 
-#define RESULT_MANAGER_OBTAIN_SH_PTR_FIELD(resId, fName)           \
-    bool isMaster = checkResultDef(resId);                         \
-    if(isMaster){                                                  \
-      return (*masterInfos_[resId]->fName.get());                  \
-    }else{                                                         \
-      return (*resultMap_[resId].first->fName.get());              \
-    }                                                              \
+#define RESULT_MANAGER_OBTAIN_SH_PTR_FIELD(resId, fName)         \
+    return (*resultMap_[resId].first->fName.get());              \
 
 void ResultManager::CopyResultData(uuids::uuid srcId, uuids::uuid trgId){
   checkNotFinalized();
-  bool isMasterTrg = checkResultDef(trgId);
-  bool isMasterSrc = checkResultDef(srcId);
-  InfoPtr srcInfo = (isMasterSrc)? masterInfos_[srcId] : resultMap_[srcId].first;
-
-  if(isMasterTrg){
-    std::map<Integer, uuids::uuid>::iterator assocIter =  masterResMap_[trgId].begin();
-    for(;assocIter !=  masterResMap_[trgId].end();++assocIter){
-      resultMap_[assocIter->second].first->dType = srcInfo->dType;
-      resultMap_[assocIter->second].first->complexFormat = srcInfo->complexFormat;
-      resultMap_[assocIter->second].first->definedOn = srcInfo->definedOn;
-      resultMap_[assocIter->second].first->dofNames = srcInfo->dofNames;
-      resultMap_[assocIter->second].first->entryType = srcInfo->entryType;
-      resultMap_[assocIter->second].first->ptGrid = srcInfo->ptGrid;
-      resultMap_[assocIter->second].first->isMeshResult = srcInfo->isMeshResult;
-    }
-    (*masterInfos_[trgId]->entityNumbers.get()) = (*srcInfo->entityNumbers.get());
-    (*masterInfos_[trgId]->eqnNumbers.get()) = (*srcInfo->eqnNumbers.get());
-    (*masterInfos_[trgId]->timeLine.get()) = (*srcInfo->timeLine.get());
-    (*masterInfos_[trgId]->stepNumbers.get()) = (*srcInfo->stepNumbers.get());
-    (*masterInfos_[trgId]->regNames.get()) = (*srcInfo->regNames.get());
-    masterInfos_[trgId]->isMeshResult = srcInfo->isMeshResult;
-  }else{
-    resultMap_[trgId].first->dType = srcInfo->dType;
-    resultMap_[trgId].first->complexFormat = srcInfo->complexFormat;
-    resultMap_[trgId].first->definedOn = srcInfo->definedOn;
-    resultMap_[trgId].first->dofNames = srcInfo->dofNames;
-    resultMap_[trgId].first->entryType = srcInfo->entryType;
-    resultMap_[trgId].first->ptGrid = srcInfo->ptGrid;
-    resultMap_[trgId].first->isMeshResult = srcInfo->isMeshResult;
-
-    (*resultMap_[trgId].first->regNames.get())  = (*srcInfo->regNames.get());
-    (*resultMap_[trgId].first->entityNumbers.get()) = (*srcInfo->entityNumbers.get());
-    (*resultMap_[trgId].first->eqnNumbers.get()) = (*srcInfo->eqnNumbers.get());
-    (*resultMap_[trgId].first->timeLine.get()) = (*srcInfo->timeLine.get());
-    (*resultMap_[trgId].first->stepNumbers.get()) = (*srcInfo->stepNumbers.get());
-  }
+  InfoPtr srcInfo = resultMap_[srcId].first;
+  InfoPtr trgInfo = resultMap_[trgId].first;
+  
+  resultMap_[trgId].first->dType = srcInfo->dType;
+  resultMap_[trgId].first->complexFormat = srcInfo->complexFormat;
+  resultMap_[trgId].first->definedOn = srcInfo->definedOn;
+  resultMap_[trgId].first->dofNames = srcInfo->dofNames;
+  resultMap_[trgId].first->entryType = srcInfo->entryType;
+  resultMap_[trgId].first->ptGrid = srcInfo->ptGrid;
+  resultMap_[trgId].first->isMeshResult = srcInfo->isMeshResult;
+  
+  (*resultMap_[trgId].first->regNames.get())  = (*srcInfo->regNames.get());
+  (*resultMap_[trgId].first->entityNumbers.get()) = (*srcInfo->entityNumbers.get());
+  (*resultMap_[trgId].first->eqnNumbers.get()) = (*srcInfo->eqnNumbers.get());
+  (*resultMap_[trgId].first->timeLine.get()) = (*srcInfo->timeLine.get());
+  (*resultMap_[trgId].first->stepNumbers.get()) = (*srcInfo->stepNumbers.get());
 }
 
 CF::StdVector<Double> ResultManager::GetTimeLine(uuids::uuid resId){
   RESULT_MANAGER_OBTAIN_SH_PTR_FIELD(resId,timeLine)
+}
+
+bool ResultManager::IsConstant(uuids::uuid resId) {
+  return resultMap_[resId].first->timeLine->GetSize() <= 1;
 }
 
 void ResultManager::SetTimeLine(uuids::uuid resId, CF::StdVector<Double> tVec){
@@ -421,25 +394,7 @@ void ResultManager::SetGrid(uuids::uuid resId, Grid* ptGrid){
 }
 
 void ResultManager::SetValid(uuids::uuid resId){
-  //we set the result as valid anyway
-  //in case of master results we check if every associated result is valid
-  //and check the master only if this is the case
-  bool isMaster = checkResultDef(resId);
-  if(isMaster){
-    WARN("trying to check a master result as valid. this is not expected and indicates a bug. Please send a report.");
-  }else{
-    resultMap_[resId].first->isValid = true;
-    uuids::uuid masterId = resultMap_[resId].first->timeCacheMasterId;
-    //now we loop over associated results and check for validity
-    if(masterId != uuids::nil_uuid()){
-      std::map<Integer, uuids::uuid>::iterator uIter = masterResMap_[masterId].begin();
-      bool allValid = true;
-      for(;uIter!=masterResMap_[masterId].end();++uIter){
-        allValid &= resultMap_[uIter->second].first->isValid;
-      }
-      masterInfos_[masterId]->isValid = allValid;
-    }
-  }
+  resultMap_[resId].first->isValid = true;
 }
 
 void ResultManager::Finalize(){
@@ -493,38 +448,6 @@ void ResultManager::Finalize(){
 //    std::cout << "--------------------------------------------------" << std::endl;
 //  }
 
-  //check if we have results which are consistent with caching results and add those to master results
-  MasterUuidMap::iterator maIter = masterResMap_.begin();
-  for(;maIter!=masterResMap_.end();++maIter){
-    uuidIter = resultMap_.begin();
-    for(;uuidIter != resultMap_.end();++uuidIter){
-      if(uuidIter->second.first->timeStepOffset == 0){
-        if(checkEqualStageStrict(uuidIter->second.first,masterInfos_[maIter->first]) ){
-          if(maIter->second.find(0) != maIter->second.end()){
-            uuidIter->second.first = masterInfos_[maIter->second[0]];
-          }else{
-            maIter->second[0] = uuidIter->first;
-            //modify shared pointer arrays
-            uuidIter->second.first->timeLine = masterInfos_[maIter->first]->timeLine;
-            uuidIter->second.first->stepNumbers = masterInfos_[maIter->first]->stepNumbers;
-            uuidIter->second.first->regNames = masterInfos_[maIter->first]->regNames;
-            uuidIter->second.first->entityNumbers = masterInfos_[maIter->first]->entityNumbers;
-            uuidIter->second.first->eqnNumbers = masterInfos_[maIter->first]->eqnNumbers;
-          }
-        }
-      }
-    }
-  }
-
-  //check consistency of time cache master results
-  maIter = masterResMap_.begin();
-  for(;maIter!=masterResMap_.end();++maIter){
-    std::map<Integer, uuids::uuid>::iterator sIter = maIter->second.begin();
-    if(!checkEqualStageStrict(masterInfos_[maIter->first],resultMap_[sIter->second].first)){
-      EXCEPTION("Detected inconsistency in time cache result " << masterInfos_[maIter->first]->resultName << ". This indicates a bug.")
-    }
-  }
-
   //now it it time to create results for each unique result (compression not available yet)
   uuidIter = resultMap_.begin();
   std::set<uuids::uuid> toRemove;
@@ -535,11 +458,12 @@ void ResultManager::Finalize(){
       toRemove.insert(uuidIter->first);
       continue;
     }
-
+    
+    UInt cacheSteps = 1 + cInfo->maxStepOffset - cInfo->minStepOffset;
     if(cInfo->dType == ExtendedResultInfo::COMPLEX){
-      uuidIter->second.second = str1::shared_ptr<GenericResultAdapter>(new ResultAdaptor<CF::Complex>());
+      uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Complex>(cacheSteps));
     }else if(cInfo->dType == ExtendedResultInfo::DOUBLE){
-      uuidIter->second.second = str1::shared_ptr<GenericResultAdapter>(new ResultAdaptor<CF::Double>());
+      uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Double>(cacheSteps));
     }else{
       EXCEPTION("Only Complex and Double results supported yet")
     }
@@ -560,30 +484,42 @@ void ResultManager::Finalize(){
   //start with the first result and obtain a vector of equations
   uuidIter = resultMap_.begin();
   for(;uuidIter != resultMap_.end();++uuidIter){
+    ResPtr cRes = uuidIter->second.second;
+    cRes->SetUpToDate(false);
+  }
+  uuidIter = resultMap_.begin();
+  for(;uuidIter != resultMap_.end();++uuidIter){
     InfoPtr cInfo = uuidIter->second.first;
     ResPtr cRes = uuidIter->second.second;
-    if(!cRes->isUpToDate){
+    //if(!cRes->IsUpToDate()){
+    if (true) {
       CreateEqnMapping(cInfo,cRes);
-      CreateResultVector(cInfo,cRes);
-      cRes->isUpToDate = true;
+      SetResultVectorSize(cInfo,cRes);
+      cRes->SetUpToDate(true);
       UuidMap::iterator otherIter = resultMap_.begin();
       //now we loop over all results and try to apply same pointers as possible
       for(;otherIter != resultMap_.end();++otherIter){
         InfoPtr coInfo = otherIter->second.first;
         ResPtr coRes = otherIter->second.second;
-        if(!coRes->isUpToDate){
+        if (false) {
+        //if(!coRes->IsUpToDate()){
           //try to copy shared pointer
           if(checkEqualEqnMap(uuidIter->second, otherIter->second)){
             coRes->mapping = cRes->mapping;
             if(checkEqualEqnVec(uuidIter->second, otherIter->second)){
               coInfo->eqnNumbers = cInfo->eqnNumbers;
             }
-            CreateResultVector(coInfo,coRes);
-            coRes->isUpToDate = true;
+            SetResultVectorSize(coInfo,coRes);
+            coRes->SetUpToDate(true);
           }
         }
       }
     }
+  }
+  uuidIter = resultMap_.begin();
+  for(;uuidIter != resultMap_.end();++uuidIter){
+    ResPtr cRes = uuidIter->second.second;
+    cRes->SetUpToDate(false);
   }
 
   //create output results for the remainder
@@ -594,6 +530,8 @@ void ResultManager::Finalize(){
     if(!cInfo->isOutput)
       continue;
 
+    std::cout << " Preparing output " << std::endl;
+    
     //no offset results here...
     StdVector< str1::shared_ptr<CF::BaseResult> >& resVec = cRes->baseResultVector;
 
@@ -633,11 +571,8 @@ void ResultManager::Finalize(){
 
   uuidIter = resultMap_.begin();
   for(;uuidIter != resultMap_.end();++uuidIter){
-    uuidIter->second.second->isUpToDate = false;
+    uuidIter->second.second->SetUpToDate(false);
   }
-
-
-
   this->isFinalized_ = true;
 
 }
@@ -659,23 +594,23 @@ void ResultManager::CreateEqnMapping(InfoPtr cInfo, ResPtr cRes){
   }
 }
 
-void ResultManager::CreateResultVector(InfoPtr cInfo, ResPtr cRes){
+void ResultManager::SetResultVectorSize(InfoPtr cInfo, ResPtr cRes){
   //first we create a Result
   //obtain initial equation vector
   if(cInfo->entityNumbers->GetSize() == 0){
     //we just resize the solution vector to the global number of equations
-    cRes->GetSingleVector()->Resize(cRes->mapping->GetNumEquations());
+    cRes->SetVectorSize(cRes->mapping->GetNumEquations());
   }else{
     //apparently we only need a subset of equations, so we try to cope with that
-    cRes->GetSingleVector()->Resize(cInfo->eqnNumbers->GetSize());
+    cRes->SetVectorSize(cInfo->eqnNumbers->GetSize());
   }
-  cRes->GetSingleVector()->Init();
-
 }
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template CF::Vector<Double>&  ResultManager::GetResultVector(uuids::uuid, CF::StdVector<UInt>&, Integer);
-  template CF::Vector<Complex>&  ResultManager::GetResultVector(uuids::uuid, CF::StdVector<UInt>&, Integer);
+  template CF::Vector<Double>&  ResultManager::GetResultVector(uuids::uuid, CF::StdVector<UInt>&);
+  template CF::Vector<Complex>&  ResultManager::GetResultVector(uuids::uuid, CF::StdVector<UInt>&);
+  template CF::Vector<Double>&  ResultManager::GetResultVector(uuids::uuid);
+  template CF::Vector<Complex>&  ResultManager::GetResultVector(uuids::uuid);
 #endif
 }
 

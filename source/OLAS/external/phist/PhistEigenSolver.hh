@@ -1,18 +1,16 @@
 #ifndef OLAS_Phist_EIGENSOLVER_HH
 #define OLAS_Phist_EIGENSOLVER_HH
 
+#include "PhistCore.hh"
+#include "OLAS/solver/BaseSolver.hh"
 #include "OLAS/solver/BaseEigenSolver.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "MatVec/Matrix.hh"
-
-
 
 namespace CoupledField {
   
   class StdMatrix;
-  //class phist_DsparseMat;
-  class sparseMat_t;
-  class PhistEigenSolver : public BaseEigenSolver
+  class sparseMat_t; // phist matrix type
+
+  class PhistEigenSolver : public BaseEigenSolver , PhistCore
   {
   public:
     
@@ -25,6 +23,19 @@ namespace CoupledField {
     
     //! Default Destructor
     virtual ~PhistEigenSolver();
+
+
+    /** @see BaseEigenSolver */
+    virtual void Setup(const BaseMatrix & A, bool isHermitian=false)
+    {
+      std::cout << "PistEigenSolver::Setup(A)\n";
+    }
+
+    /** @see BaseEigenSolver */
+    virtual void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false)
+    {
+      std::cout << "PistEigenSolver::Setup(A, B)\n";
+    }
 
     //! Setup routine for standard eigenvalue problem
 
@@ -64,6 +75,19 @@ namespace CoupledField {
                UInt numFreq, double freqShift, bool sort );
 
 
+    /** @see BaseEigenSolver */
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, double minVal, double maxVal)
+    {
+      std::cout << "PhistEigenSolver::CalcEigenValues(minVal)\n";
+    }
+
+    /** @see BaseEigenSolver */
+    void CalcEigenValues(BaseVector& sol, BaseVector& err, unsigned int N, double shiftPoint)
+    {
+      std::cout << "PhistEigenSolver::CalcEigenValues(N)\n";
+    }
+
+
     //! Solve the linear generalized eigenvalue problem
     
     //! This method triggers the calculation of the eigenvalue problem.
@@ -76,10 +100,11 @@ namespace CoupledField {
     //! This method may be called after the CalcEigenFrequencies() method.
     //! It calculates a given eigenmode and stores in a use supplied vector.
     //! \param modeNr Number of the (converged) eigenmode to be calculated
-    //! \param mode Vector with the eignmode
-    void GetEigenMode( UInt modeNr, Vector<Complex> & mode );
-    void GetComplexEigenMode( UInt modeNr, Vector<Complex> & mode );
-
+    //! \param mode Vector with the eigenmode
+    void GetEigenMode(unsigned int modeNr, Vector<Complex> & mode, bool right = true);
+    void GetComplexEigenMode(unsigned int modeNr, Vector<Complex> & mode) {
+      GetEigenMode(modeNr, mode);
+    }
 
     //! Calculate condition number
 
@@ -90,31 +115,99 @@ namespace CoupledField {
                               Vector<Double>& evs,
                               Vector<Double>& err );
 
+
+    /** this structure is forwarded to (Non)SymSparseMatRowFunc as service value */
+    typedef struct {
+      /** either stiff, mass, or damping */
+      const StdMatrix* mat = NULL;
+      /** scale value, e.g. to scale the B-Mat by 1/B[0,0]. Controlled by scale_mass*/
+      double scale = 1.0;
+    } SparseMatRowFuncService;
+
   private:
+
+    /** templated instance of the overwritten Setup() */
+    template<class TYPE>
+    void Setup(const BaseMatrix & A, const BaseMatrix & B, bool isHermitian=false);
+
+    /** templated instance of the overwritten CalcEigenValues() */
+    template<class TYPE>
+    void CalcEigenValues(BaseVector &sol, BaseVector &err, unsigned int N, double shiftPoint);
+
     /** print setup information */
     void ToInfo();
+
+    void SetupCommon(unsigned int numFreq, double freqShift);
+
+    /** little helper */
+    bool IsSymmetric(const BaseMatrix& cfs) const;
+
+    template<class TYPE>
+    void SaveModes(typename phist::types<TYPE>::mvec_ptr X, int nEig);
+
+    phist_jadaOpts opts_;
+
+    phist_comm_ptr comm_ = NULL;
+
+    Enum<phist_EeigSort> which;
+    Enum<phist_ElinSolv> linSolv;
 
     //static int Diag(ghost_gidx row, ghost_lidx *rowlen, ghost_gidx *col, void *val, __attribute__((unused)) void *arg);
 
     /** phist copy of stiffmess matrix */
-    sparseMat_t* A_;
+    sparseMat_t* A_ = NULL;
 
     /** phist copy of mass matrix */
-    sparseMat_t* B_;
+    sparseMat_t* B_ = NULL;
 
     /** Attribute for xml paramnode of <solver> section */
     PtrParamNode xml_;
 
     /** eigenvalues */
-    StdVector<std::complex<double> > ev_; // always complex,
+    Vector<std::complex<double> > ev_; // always complex,
 
     /** norms associated to ev */
-    StdVector<double> resNorm_;
+    Vector<double> resNorm_;
 
-    Matrix<double> mode_;
+    /** for some strange reason CFS only expects as complex ?! */
+    Matrix<std::complex<double> > mode_;
 
+    /** shall we scale the mass matrix as suggested by Jonas? */
+    bool scale_mass_;
 
-    // we do not use solver and preconditioners from CFS for Phist
+    /** in case we have scale_mass_, this is the value */
+    double scale_mass_val_ = 1.0;
+
+    /** is this a Hermitian system */
+    bool hermitian_ = false;
+
+    /** to know which type we use. Not all complex need to be hermitian! */
+    bool complex_ = false;
+
+    /** remove when switching to new interface, we then have eigenProblemType_ */
+    bool sym_ = false;
+
+    /** from the last ev the iterations */
+    int last_iter_ = -1;
+    int sum_iter_ = 0;
+    int count_iter_ = 0;
+
+    /** sorts the eigenfrequencies and sets the sort_idx_ permutation. */
+    void SetupSortIdx(const StdVector<double>& freq); // TODO: move to BaseEigenSolver
+
+    /** for SetupSortIdx */
+    typedef std::pair<double, unsigned int> ev_idx;  // TODO: move to BaseEigenSolver
+
+    /** for SetupIndex */
+    static bool comperator(const ev_idx& one, const ev_idx& two)  // TODO: move to BaseEigenSolver
+    {
+      return one.first < two.first;
+    }
+
+    /** this is the permutation matrix which allows sorting. Always used
+     * and in the non-sorting case set to 0,1,2, ... */
+    StdVector<unsigned int> sort_idx_; // TODO: move to BaseEigenSolver
+
   };
 }
 

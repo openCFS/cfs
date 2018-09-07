@@ -1,7 +1,6 @@
 #ifndef COEFFUNCTIONOPT_HH_
 #define COEFFUNCTIONOPT_HH_
 
-#include <boost/tr1/type_traits.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "CoefFunction.hh"
@@ -40,11 +39,6 @@ public:
 
   void GetTensor(Matrix<Complex>& coefMat, const LocPointMapped& lpm) {
     GetTensor<Complex>(coefMat, lpm);
-  }
-
-  //! \copydoc CoefFunction::GetMsfemElementMatrix
-  void GetMsfemElementMatrix(Matrix<double>& elemMat, const LocPointMapped& lpm) {
-    GetMsfemElementMatrix<double>(elemMat, lpm);
   }
 
   //! \copydoc CoefFunction::GetScalar
@@ -107,6 +101,8 @@ public:
 
   /** Is DesignElement::NO_DERIVATIVE is state is not DIRECTION. For tensors and mass */
   DesignElement::Type GetMaterialDerivative() const { return direction; }
+
+  State GetState() const { return state; }
 
   /** the original material. Required if no optimization available or for SIMP and bi-material optimization */
   PtrCoefFct orgMat;

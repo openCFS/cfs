@@ -57,7 +57,6 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
       elem_dim[i] = element_dimensions(reg_elements[i] - 1, all_elements, all_nodes)
   else:
     elem_dim = element_dimensions(reg_elements[0] - 1, all_elements, all_nodes)
-  print(elem_dim)        
     
   # determine region dimensions, we need to resort for the desired region! Due to 1 to zero based conversion we need to do it manually :(
   nodes = numpy.zeros((len(reg_nodes), 3))
@@ -101,7 +100,7 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
     for i in range(len(nodes[:,0])):
       result.append([nodes[i,0],nodes[i,1],nodes[i,2]])
       
-  return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support 
+  return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support, reg_elements
                 
 # # find minimal and maximal coordinate
 # @param coordinates as from centered_elements

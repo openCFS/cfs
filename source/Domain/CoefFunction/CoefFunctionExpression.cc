@@ -172,6 +172,7 @@ void CoefFunctionExpression<Double>::SetScalar(const std::string& val){
 }
 
 std::string CoefFunctionExpression<Double>::ToString() const {
+  std::string ret;
   switch( this->dimType_) {
     case NO_DIM:
       return "";
@@ -183,8 +184,15 @@ std::string CoefFunctionExpression<Double>::ToString() const {
       return this->coefVec_.ToString();
       break;
     case TENSOR:
-      WARN("Not clean implemented");
-      return this->coefMat_.ToString();
+      ret = lexical_cast<string>(this->numRows_) + "x" + lexical_cast<string>(this->numCols_) + " tensor:\n";
+      for (int i=0; i<(int)this->numRows_;i++) {
+        for (int j=0; j<(int)this->numCols_;j++) {
+          int n = i*this->numCols_+j;
+          ret += this->coefMat_[n] + " ";
+        }
+        ret += "\n";
+      }
+      return ret;
       break;
     default:
       EXCEPTION("Missing case");
@@ -444,9 +452,14 @@ std::string CoefFunctionExpression<Complex>::ToString() const {
       return ret;
       break;
     case TENSOR:
-      WARN("Not clean implemented");
-      ret  = "Real-Part: " + this->coefMatReal_.ToString() + "\n";
-      ret += "Imag-Part: " + this->coefMatImag_.ToString();
+      ret = lexical_cast<string>(this->numRows_) + "x" + lexical_cast<string>(this->numCols_) + " tensor:\n";
+      for (int i=0; i<(int)this->numRows_;i++) {
+        for (int j=0; j<(int)this->numCols_;j++) {
+          int n = i*this->numCols_+j;
+          ret += this->coefMatReal_[n] + "+1j*"+ this->coefMatImag_[n] + " ";
+        }
+        ret += "\n";
+      }
       return ret;
       break;
     default:

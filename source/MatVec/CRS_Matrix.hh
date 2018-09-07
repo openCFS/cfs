@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include <def_expl_templ_inst.hh>
-#include <def_use_lapack.hh>
 #include <def_use_blas.hh>
 
 #include "SparseOLASMatrix.hh"
@@ -440,20 +439,6 @@ namespace CoupledField {
     //!  v might be a Double, Complex or a tiny Matrix of either type
     bool HasMatrixEntry( UInt i, UInt j, T& v) const;
 
-    //! Return the diagonal entry of row i
-    inline
-    T& GetDiag( UInt i ) {
-      UInt aux = diagPtr_[i];
-      return data_[aux];
-    }
-
-    //! Return the diagonal entry of row i (read only)
-    inline
-    const T& GetDiag( UInt i ) const {
-      UInt aux = diagPtr_[i];
-      return data_[aux];
-    }
-
     //! Set the diagonal entry of row i to the value of v
     void SetDiagEntry( UInt i, const T &v ) {
       UInt aux = diagPtr_[i];
@@ -466,11 +451,7 @@ namespace CoupledField {
       v = data_[aux];
     }
 
-    //! Determine maximum absolute value of diagonal entries
-
-    //! This method determines the the maximal absolute value (on the scalar)
-    //! level of the entries on the main diagonal of the matrix.
-    Double GetMaxDiag() const;
+    T GetDiagEntry(unsigned int row) const { return data_[diagPtr_[row]]; }
 
     //! This routine adds the value of v to the matrix entry at (i,j)
 
@@ -545,6 +526,9 @@ namespace CoupledField {
 
     void Mult_type(const Vector<Complex> &mvec, Vector<Complex> &rvec);
     void MultAdd_type( const Vector<Complex> &mvec, Vector<Complex> &rvec );
+
+    //! Multiplication of row i with vector vec
+    T MultColumnWithVec(const UInt & r, const Vector<T>& vec) const;
 
     //@}
 
@@ -660,6 +644,8 @@ namespace CoupledField {
     std::string ToString( char colSeparator = ' ',
                           char rowSeparator = '\n' ) const;
     
+    std::string Dump() const;
+
     //! Export the matrix to a file in MatrixMarket format
 
     //! The method will export the matrix to an ascii file according to the

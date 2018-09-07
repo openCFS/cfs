@@ -1,4 +1,5 @@
 # This collects some tool routines for optimization
+from cfs_utils import *
 
 import numpy
 import numpy.linalg
@@ -8,7 +9,7 @@ import sys
 import scipy.io
 from lxml import etree
 from PIL import Image
-from cfs_utils import *
+
 
 # dump some information about a density file
 def print_design_info(filename, attribute, set = None, fill = None):
@@ -216,13 +217,21 @@ def read_mesh_info(filename, silent = True):
     else:
       raise RuntimeError("cannot find '" + filename + "'")
   
-  tree = etree.parse(filename)
-  root = tree.getroot()
-  mesh = root.xpath('//cfsErsatzMaterial/header/mesh')
+  xml = open_xml(filename)
+  
+  nx, ny, nz = read_mesh_info_xml(xml)
+  
+  if not nx and not silent:
+    raise RuntimeError("file '" + filename + "' has no mesh information")
+
+  return nx, ny, nz    
+       
+
+def read_mesh_info_xml(xml):
+
+  mesh = xml.xpath('//cfsErsatzMaterial/header/mesh')
   
   if len(mesh) == 0:
-    if not silent:
-      raise RuntimeError("file '" + filename + "' has no mesh information")
     return None, None, None
   
   else:
@@ -233,6 +242,7 @@ def read_mesh_info(filename, silent = True):
     # return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
     return nx, ny, nz    
        
+
   
 # # Reads a density.xml file as vector. 
 # @param filename from which the last 'set' is used
@@ -249,7 +259,7 @@ def read_density_as_vector(filename, dt="density", attribute="design", set=None)
   xml = open_xml(filename)
   query = '//set[' + qset + ']/' + qelement + '[@type="' + dt + '"]/@' + attribute
   res = xml.xpath(query)
-  print("len " + str(len(res)))
+
   vals = [0] * len(res)
   for idx, element in enumerate(res):
     # traverse the elements and get the design
@@ -471,7 +481,7 @@ def threshold_filter(data, threshold, min, max):
 
 # # threshold towards a given final volume
 # @param data original 2d/3d data
-# @param min niminum final density in the result, ignores penalty, max = 1
+# @param min minimal final density in the result, ignores penalty, max = 1
 # @param target volume fraction to be reached
 # @param material_penalty penalty to interpret original data
 # @return: the new data array as first value and the threshold as second value

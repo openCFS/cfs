@@ -93,6 +93,7 @@ namespace CoupledField {
     //! Tell Assemble to Reassemble all the matrices the next time (done on init and from Optimization)
     void SetAllReassemble(){ CheckNonLinearities(true); }
 
+    void DisableMatrixAssembly();
     //! Query if matrix related to BiLinearForm is symmetric
     bool IsFEMatSymmetric(  BiLinFormContext* ctx );
     
@@ -109,6 +110,8 @@ namespace CoupledField {
     /** Append info about registered (bi)linearforms */
     void ToInfo(PtrParamNode in);
 
+    //Sets a flag to skip eleme assembly for std matrix case
+    void SkipElemAssembly();
     /** search for an integrator.
      * @param pde2 the second pde, note the order -> see debug file.
      * @param pde1/pde2 this is the first and second pde. If NULL not compared.
@@ -116,6 +119,10 @@ namespace CoupledField {
      * @return the form is GetIntegrator() of the context. NULL only for silent true
      * @exception if not silent and nothing found */
     BiLinFormContext* GetBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1 = NULL, SinglePDE* pde2 = NULL, bool silent = false);
+
+    bool HasBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1 = NULL, SinglePDE* pde2 = NULL) {
+      return GetBiLinForm(integrator, regionId, pde1, pde2, true) != NULL;
+    }
 
     /** @see GetBiLinForm() */
     LinearForm* GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent = false);
@@ -258,6 +265,10 @@ namespace CoupledField {
     
     //! Flag, if progress bar should be printed
     bool printProgressBar_;
+
+    //flag for skipping element assembly when using petsc geometric multigrid
+    bool skipElemAssembly_;
+
   };
 }
 #endif

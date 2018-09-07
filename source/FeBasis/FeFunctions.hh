@@ -1,6 +1,5 @@
 #ifndef FILE_CFS_FEFUNCTION_HH
 #define FILE_CFS_FEFUNCTION_HH
-#include <boost/tr1/type_traits.hpp>
 
 #include "General/Environment.hh"
 
@@ -371,7 +370,7 @@ public:
   
   
   virtual bool IsComplex() const {
-    return std::tr1::is_same<T,Complex>::value;
+    return std::is_same<T,Complex>::value;
     
   }
   //! \copydoc BaseFeFunction::SetResultInfo 
@@ -414,6 +413,9 @@ public:
   //! Incorporate load conditions, the characteristic here is that the values will be
   //! added, not set as in ApplyBCs
   virtual void ApplyLoads();
+
+  //! incorporate loads defined in values
+  virtual void ApplyLoads(PtrCoefFct& values);
 
   //! Set the feFunction to values obtained by external data sources
   virtual void ApplyExternalData();

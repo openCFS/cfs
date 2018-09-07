@@ -1,10 +1,10 @@
 #include <def_use_ilupack.hh>
-#include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_suitesparse.hh>
 #include <def_use_superlu.hh>
 #include <def_use_lis.hh>
-#include<def_use_petsc.hh>
+#include <def_use_petsc.hh>
+#include <def_use_phist_cg.hh>
 
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -42,6 +42,15 @@
 #ifdef USE_PETSC
 #include "OLAS/external/petsc/PETSCSolver.hh"
 #endif
+
+
+
+#ifdef USE_PHIST_CG
+#include "OLAS/external/phist/PhistLinearSolver.hh"
+#endif
+
+
+
 // include source code for templated solvers
 #include "BaseSolver.hh"
 #include "RichardsonSolver.hh"
@@ -409,6 +418,33 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
 
 
+
+  case BaseSolver::PHIST:
+
+  #ifdef USE_PHIST_CG
+    {
+      // Check suitability of matrix
+      if (mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
+        EXCEPTION("PETSC only works with (S)CRS_Matrix class!");
+      const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
+       if(stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM
+          && stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM  )
+        EXCEPTION("PETSC only works with (S)CRS_Matrix class!");
+
+      retSolver = new PhistLinearSolver(solverNode, olasInfo, eType);
+
+      LOG_DBG(genSolver) << " GenerateSolver: Generated PETSC solver";
+    }
+  #else
+    EXCEPTION("Compile with USE_PHIST_CG to enable interface to PHIST_CG.");
+  #endif
+    break;
+
+
+
+
+
+
   case BaseSolver::CHOLMOD:
 #ifdef USE_SUITESPARSE
   {
@@ -540,9 +576,15 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
       break;
 
     case BaseSolver::PETSC:
-          ret.insert(BaseMatrix::SPARSE_SYM);
-          ret.insert(BaseMatrix::SPARSE_NONSYM);
-          break;
+      ret.insert(BaseMatrix::SPARSE_SYM);
+      ret.insert(BaseMatrix::SPARSE_NONSYM);
+      break;
+
+
+    case BaseSolver::PHIST:
+       ret.insert(BaseMatrix::SPARSE_SYM);
+       ret.insert(BaseMatrix::SPARSE_NONSYM);
+       break;
 
     case BaseSolver::SUPERLU:
       ret.insert(BaseMatrix::SPARSE_NONSYM);

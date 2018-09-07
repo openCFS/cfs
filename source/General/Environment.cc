@@ -227,6 +227,10 @@ namespace CoupledField {
       case ELEC_FIELD_INTENSITY:
         return "V/m";
         break;
+        
+      case ELEC_FIELD_INTENSITY_SURF:
+        return "V/m";
+        break;
 
       case ELEC_POTENTIAL:
         return "V";
@@ -282,6 +286,18 @@ namespace CoupledField {
 
       case FLUIDMECH_VORTICITY:
         return "1/s";
+        break;
+
+      case FLUIDMECH_TEMP:
+        return "K";
+        break;
+
+      case FLUIDMECH_TDR:
+        return "1/s";
+        break;
+
+      case FLUIDMECH_TEF:
+        return "m^2/s^3";
         break;
 
       case FLUIDMECH_PRESSURE:
@@ -375,6 +391,7 @@ namespace CoupledField {
         break;
 
       case MAG_FLUX_DENSITY:
+      case MAG_FLUX_DENSITY_SURF:  
       case MAG_NORMAL_FLUX_DENSITY:
         return "Vs/m^2";
         break;
@@ -420,6 +437,9 @@ namespace CoupledField {
       case MAG_MAGNETIZATION:
         return "A/m";
 
+      case MAG_POLARIZATION:
+        return "Vs/m^2";
+        
       case MAG_EDDY_POWER:
       case MAG_CORE_LOSS:
         return "W";
@@ -843,8 +863,6 @@ namespace CoupledField {
       out = GEOMETRIC;
     } else if( in == "hysteresis") {
       out = HYSTERESIS;
-    } else if( in == "hysteresis_fixpoint") {
-      out = HYSTERESIS_FIXPOINT;
     } else if( in == "piezoMicroHF") {
       out = PIEZO_MICRO_HF;
     } else if( in == "permeability") {
@@ -855,7 +873,7 @@ namespace CoupledField {
       out = NLHEAT_CONDUCTIVITY;
     } else if( in == "heatCapacity") {
       out = NLHEAT_CAPACITY;
-    } else if( in == "elecConductivity") {
+    } else if( (in == "elecConductivity") || (in == "electricConductivity") ) {
        out = NLELEC_CONDUCTIVITY;
     } else if( in == "elecBiPole") {
        out = NLELEC_BIPOLE;
@@ -902,9 +920,6 @@ namespace CoupledField {
         break;
       case HYSTERESIS:
         out = "hysteresis";
-        break;
-      case HYSTERESIS_FIXPOINT:
-        out = "hysteresis_fixpoint";
         break;
       case NLELEC_CONDUCTIVITY:
         out = "elecConductivity";
@@ -1307,6 +1322,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_DYADIC_STRAIN_SUM, "mechDyadicStrainSum");
     SolutionTypeEnum.Add(MECH_QUAD_DISP, "mechQuadDisplacement");
     SolutionTypeEnum.Add(MECH_QUAD_DISP_SUM, "mechQuadDisplacementSum");
+    // averages
+    SolutionTypeEnum.Add(MECH_STRAIN_AVERAGE, "mechStrainAverage");
+    SolutionTypeEnum.Add(MECH_STRESS_AVERAGE, "mechStressAverage");
 
 
     SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
@@ -1319,6 +1337,7 @@ namespace CoupledField {
     //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
+    SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_SURF, "elecFieldIntensitySurf");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_CURRENT_DENSITY, "elecCurrentDensity");
     SolutionTypeEnum.Add(ELEC_NORMAL_CURRENT_DENSITY, "elecNormalCurrentDensity");
@@ -1404,12 +1423,14 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUX_INDUCED_STRAIN, "fluxIndStrain");
 
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
+    SolutionTypeEnum.Add(MAG_FLUX_DENSITY_SURF, "magFluxDensitySurf");
     SolutionTypeEnum.Add(MAG_FLUX, "magFlux");
     SolutionTypeEnum.Add(MAG_NORMAL_FLUX_DENSITY, "magNormalFluxDensity");
     SolutionTypeEnum.Add(MAG_FIELD_INTENSITY, "magFieldIntensity");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT_DENSITY, "magEddyCurrentDensity");
     SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
     SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
+    SolutionTypeEnum.Add(MAG_JOULE_LOSS_POWER_DENSITY, "magJouleLossPowerDensity");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
     SolutionTypeEnum.Add(MAG_FORCE_MAXWELL_DENSITY, "magForceMaxwellDensity");
@@ -1426,6 +1447,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     SolutionTypeEnum.Add(MAG_MAGNETIZATION, "magMagnetization");
+    SolutionTypeEnum.Add(MAG_POLARIZATION, "magPolarization");
 
     // magnetic - coil results
     SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");
@@ -1460,7 +1482,10 @@ namespace CoupledField {
 
     SolutionTypeEnum.Add(FLUIDMECH_FORCE, "fluidMechForce");
     SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
+    SolutionTypeEnum.Add(FLUIDMECH_TEMP, "fluidMechTemp");
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
+    SolutionTypeEnum.Add(FLUIDMECH_TDR, "fluidMechTDR");
+    SolutionTypeEnum.Add(FLUIDMECH_TEF, "fluidMechTEF");
     SolutionTypeEnum.Add(FLUIDMECH_STRESS, "fluidMechStress");
     SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
     SolutionTypeEnum.Add(FLUIDMECH_WVT, "fluidMechWVT");
@@ -1632,12 +1657,22 @@ namespace CoupledField {
     MaterialTypeEnum.Add( P_DIRECTION, "Pdirection" ); 
     MaterialTypeEnum.Add( HYST_MODEL, "hystModel" ); 
     MaterialTypeEnum.Add( PREISACH_DIM, "PreisachDim" );
+    MaterialTypeEnum.Add( HYST_STRAIN_FORM, "strainForm" );
+    MaterialTypeEnum.Add( HYST_BETA_COEFS, "betaCoefs" );
+    MaterialTypeEnum.Add( DIM_BETA_COEFS, "dim_betaCoefs" );
     MaterialTypeEnum.Add( ROT_RESISTANCE, "RotResistance" );
     MaterialTypeEnum.Add( PRINT_PREISACH, "printOut" );
     MaterialTypeEnum.Add( PRINT_PREISACH_RESOLUTION, "bmpResolution" );
     MaterialTypeEnum.Add( IS_TESTING, "isTesting" );
     MaterialTypeEnum.Add( EVAL_VERSION, "evalVersion" );
     MaterialTypeEnum.Add( ANG_DISTANCE, "angularDistance" );
+    MaterialTypeEnum.Add( ANG_CLIPPING, "angularClipping" );
+    MaterialTypeEnum.Add( ANG_RESOLUTION, "angularResolution" );
+    MaterialTypeEnum.Add( AMP_RESOLUTION, "amplitudeResolution" );
+    MaterialTypeEnum.Add( INITIAL_STATE, "initialStates" );
+    MaterialTypeEnum.Add( INITIAL_STATE_X, "initialStatesX" );
+    MaterialTypeEnum.Add( INITIAL_STATE_Y, "initialStatesY" );
+    MaterialTypeEnum.Add( INITIAL_STATE_Z, "initialStatesZ" );
     MaterialTypeEnum.Add( NONLIN_COEFFICIENT, "nonLinCoefficient" ); 
     MaterialTypeEnum.Add( NONLIN_DEPENDENCY, "nonLinDependency" );
     MaterialTypeEnum.Add( NONLIN_APPROXIMATION_TYPE, "nonLinApproximationType" );
@@ -1676,11 +1711,16 @@ namespace CoupledField {
     // ==== Initialization of NonLinMethodEnum ====
     NonLinMethodTypeEnum.Add( FIXEDPOINT, "fixPoint" );
     NonLinMethodTypeEnum.Add( NEWTON, "newton" );
+    NonLinMethodTypeEnum.Add( HYST_FIXPOINT_IT, "HYST_fixPoint_IT" );
+    NonLinMethodTypeEnum.Add( HYST_FIXPOINT_TS, "HYST_fixPoint_TS" );
+    NonLinMethodTypeEnum.Add( HYST_DELTAMAT_IT, "HYST_deltaMat_IT" );
+    NonLinMethodTypeEnum.Add( HYST_DELTAMAT_TS, "HYST_deltaMat_TS" );
+    NonLinMethodTypeEnum.Add( HYST_DEBUG, "HYST_debug" );
   }
 
 
   void SetNumberOfThreads(UInt numThreads){
-    NUM_CFS_THREADS = numThreads;
+    CFS_NUM_THREADS = numThreads;
   }
 
   Enum<SolutionType> SolutionTypeEnum;
@@ -1690,7 +1730,7 @@ namespace CoupledField {
   Enum<FEMatrixType> feMatrixType;
   UInt MAX_NUM_FE_MATRICES;
   //give default value of 1 for the OMP threads
-  UInt NUM_CFS_THREADS = 1;
+  UInt CFS_NUM_THREADS = 1;
 }
 
 

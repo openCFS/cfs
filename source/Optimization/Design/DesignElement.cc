@@ -50,10 +50,6 @@ Enum<DesignElement::Detail>         DesignElement::detail;
 Enum<ShapeParamElement::Dof>        ShapeParamElement::dof;
 
 Enum<ShapeMapDesign::Type>          ShapeMapDesign::type;
-Enum<ShapeMapDesign::Symmetry>      ShapeMapDesign::symmetry;
-
-
-
 
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
@@ -83,33 +79,13 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case STIFF3:
     case SHEAR1:
     //for mod_red
-    case SCALING1:
-    case SCALING2:
     case ROTANGLE:
-    case ROTANGLE2:
-    case G11:
-    case G12:
-    case G21:
-    case G22:
-    case G_MAP_X:
-    case G_MAP_Y:
-    case GX_0:
-    case GY_0:
-    case GX_PX:
-    case GY_PX:
-    case GX_PY:
-    case GY_PY:
-    case GX_PXY:
-    case GY_PXY:
     // Batian's stuff
     // FIXMI!!
     case POISSON:
     case POISSONISO:
     case EMODUL:
     case EMODULISO:
-    case I_1:
-    case I_2:
-    case I_3:
       return true;
     default:
       return false;
@@ -174,21 +150,6 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case PIEZO_21:
     case PIEZO_22:
     case PIEZO_23:
-      return true;
-    default:
-      return false;
-    }
-    break;
-  }
-
-  case G_ALL:
-  {
-    switch(test)
-    {
-    case G11:
-    case G12:
-    case G21:
-    case G22:
       return true;
     default:
       return false;
@@ -334,7 +295,7 @@ ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesign
 std::string ShapeParamElement::ToString() const
 {
   std::stringstream ss;
-  ss << "(idx=" << index_ << " opt_idx=" << opt_index_ << " t=" << type.ToString(type_) << " d=" << dof.ToString(dof_) << " v=" << design << ")";
+  ss << "(idx=" << index_ << " opt_idx=" << ((int) opt_index_) << " t=" << type.ToString(type_) << " d=" << dof.ToString(dof_) << " v=" << design << ")";
   return ss.str();
 }
 
@@ -540,7 +501,6 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == PENALIZED_STRESS
       || rd.value == DESIGN_TRACKING
       || rd.value == PROJECTION
-      || rd.value == TRANSFO_MATRIX
       || rd.value == SHAPE_MAP_GRAD
       || rd.value == SHAPE_MAP_ORDER
       || rd.value == SHAPE_MAP_CORNER)
@@ -625,9 +585,12 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
   // validate first:
   switch(sp)
   {
-  case DESIGN:                return design;
+  case DESIGN:
+    return design;
 
-  case COST_GRADIENT:         return SumObjectiveGradient();
+  case COST_GRADIENT:
+    return SumObjectiveGradient();
+
   case WEIGHT:
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->DetermineFilter().weight;
@@ -645,7 +608,6 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
   case MAX_OSCILLATION:
   case MAX_JUMP:
   case PENALIZED_STRESS:
-  case TRANSFO_MATRIX:
     assert(false); // should be covered before by special result index
     break; // only for the compiler
 
@@ -784,11 +746,6 @@ void DesignElement::SetEnums()
   ShapeMapDesign::type.Add(ShapeMapDesign::NODE, "node");
   ShapeMapDesign::type.Add(ShapeMapDesign::PROFILE, "profile");
 
-  ShapeMapDesign::symmetry.SetName("ShapeMapDesign::Symmetry");
-  ShapeMapDesign::symmetry.Add(ShapeMapDesign::NONE, "none");
-  ShapeMapDesign::symmetry.Add(ShapeMapDesign::MIRROR, "mirror");
-
-
   ShapeParamElement::dof.SetName("ShapeParamElement::Dof");
   ShapeParamElement::dof.Add(ShapeParamElement::NOT_SET, "not_set");
   ShapeParamElement::dof.Add(ShapeParamElement::X, "x");
@@ -804,7 +761,6 @@ void DesignElement::SetEnums()
   type.Add(MECH_ALL, "mech_all");
   type.Add(DIELEC_TRACE, "dielec_trace");
   type.Add(DIELEC_ALL, "dielec_all");
-  type.Add(G_ALL, "G_all");
   type.Add(PIEZO_ALL, "piezo_all");
   type.Add(DEFAULT, "default");
   type.Add(DENSITY, "density");
@@ -840,23 +796,6 @@ void DesignElement::SetEnums()
   type.Add(PIEZO_22, "piezo_22");
   type.Add(PIEZO_23, "piezo_23");
   type.Add(ROTANGLE, "rotAngle");
-  type.Add(ROTANGLE2, "rotAngle2");
-  type.Add(SCALING1, "scaling1");
-  type.Add(SCALING2, "scaling2");
-  type.Add(G11, "G11");
-  type.Add(G12, "G12");
-  type.Add(G21, "G21");
-  type.Add(G22, "G22");
-  type.Add(G_MAP_X, "G_MAP_X");
-  type.Add(G_MAP_Y, "G_MAP_Y");
-  type.Add(GX_0, "GX_0");
-  type.Add(GY_0, "GY_0");
-  type.Add(GX_PX, "GX_PX");
-  type.Add(GY_PX, "GY_PX");
-  type.Add(GX_PY, "GX_PY");
-  type.Add(GY_PY, "GY_PY");
-  type.Add(GX_PXY, "GX_PXY");
-  type.Add(GY_PXY, "GY_PXY");
   type.Add(ROTANGLEX, "rotAngleX");
   type.Add(ROTANGLEY, "rotAngleY");
   type.Add(ROTANGLEZ, "rotAngleZ");
@@ -872,9 +811,6 @@ void DesignElement::SetEnums()
   type.Add(NODE, "node");
   type.Add(PROFILE, "profile");
   type.Add(ALL_DESIGNS, "allDesigns");
-  type.Add(I_1, "I_1");
-  type.Add(I_2, "I_2");
-  type.Add(I_3, "I_3");
 
   access.SetName("DesignElement::Access");
   access.Add(PLAIN, "plain");
@@ -893,7 +829,6 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(PROJECTION, "projection");
-  valueSpecifier.Add(TRANSFO_MATRIX, "transfoMatrix");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
   valueSpecifier.Add(LEVEL_SET_VALUE, "levelSetValue");
   valueSpecifier.Add(LEVEL_SET_STATE, "levelSetState");
@@ -941,10 +876,6 @@ void DesignElement::SetEnums()
   detail.Add(GLOBAL_DESIGN, "globalDesign");
   detail.Add(STRESS, "stress");
   detail.Add(PROJECTION_FILTER, "projectionFilter");
-  detail.Add(TRANSFO_MATRIX11, "transfoMatrix11");
-  detail.Add(TRANSFO_MATRIX12, "transfoMatrix12");
-  detail.Add(TRANSFO_MATRIX21, "transfoMatrix21");
-  detail.Add(TRANSFO_MATRIX22, "transfoMatrix22");
   detail.Add(SM_NODE, "node");
   detail.Add(SM_NODE_A, "node_a");
   detail.Add(SM_NODE_B, "node_b");
@@ -1031,45 +962,53 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const
 {
   // We filter over this element and the neighbors.
-  assert(de_->simp != NULL);
   assert(sp == DesignElement::DESIGN);
   assert(!de_->simp->filter.IsEmpty());
+  assert(de_->simp != NULL);
 
   unsigned int fix = DetermineFilterIndex();
-  const Filter& f = filter[fix];
+
 
 
   // All equations from Sigmund; Morphology based black and white filters for topology optimization; 2007
   // p = rho. P is filtered rho (rho tilde)
   // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
-
-
   // mathematically the neighborhood includes this element, but this is not in the structure
   // we initialize numerator and denominator with the values obtained from this element
-  double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
-  double denominator = f.weight;
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-                   << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
-                   << " num=" << numerator << " den=" << denominator << " fix=" << fix;
-
-  for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
-  {
-    const Filter::NeighbourElement* ne = &f.neighborhood[i];
-    const DesignElement* de = ne->neighbour;
-
-    double w = ne->weight;
-    double x = de->GetPlainDesignValue();
-
-    numerator   += w * x;
-    denominator += w;
-
-     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+  double p_filt = 0.0;
+  int elem_num = de_->GetIndex();
+  DesignSpace * space = de_->GetDesignSpace();
+  if (space->is_matrix_filt){
+    p_filt =  space->density_filter[fix].filtered_vec[elem_num];
+    LOG_DBG3(desel)<<"elemNum"<<de_->elem->elemNum<<"Filtered Value"<<p_filt;
   }
 
-  double p_filt = numerator / denominator;
+  else{
+    const Filter& f = filter[fix];
+    double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
+     double denominator = f.weight;
+     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+                      << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
+                      << " num=" << numerator << " den=" << denominator << " fix=" << fix;
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
+    for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
+    {
+      const Filter::NeighbourElement* ne = &f.neighborhood[i];
+      const DesignElement* de = ne->neighbour;
+
+      double w = ne->weight;
+      double x = de->GetPlainDesignValue();
+
+      numerator   += w * x;
+      denominator += w;
+      LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+    }
+    p_filt = numerator / denominator;
+  }
+
+
+
 
   assert(fd == Filter::STANDARD || fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE || fd == Filter::TANH);
 
@@ -1089,8 +1028,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
 
   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter[fix].density_)
                    << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
-
   return p_filt;
+
 }
 
 double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func) const
@@ -1100,6 +1039,8 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];
+
+  Condition* g = dynamic_cast<Condition*>(func);
 
   assert(f.GetType() == Filter::DENSITY);
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
@@ -1125,7 +1066,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
       const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
 
-      double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(func)); // d f/d P_i
+      double v = de->GetPlainValue(sp, g); // d f/d P_i
 
       double w = i == -1 ? f.weight : ne->weight;
 

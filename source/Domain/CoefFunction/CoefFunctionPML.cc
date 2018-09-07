@@ -32,7 +32,7 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
   CoefFunction(){
 
   isAnalytic_ = false;
-  isComplex_ =  std::tr1::is_same<T,Complex>::value;
+  isComplex_ =  std::is_same<T,Complex>::value;
   dependType_ = GENERAL;
   
   //prepare dimenstions of propagation region
@@ -94,16 +94,16 @@ void CoefFunctionPML<T>::GetTensor(Matrix<Complex>& tensor,
   tensor.Init();
   Double locThick=0.0;
   Double position=0.0;
-  Complex dummy(1.0,0.0);
+  Complex one(1.0,0.0);
   Double sos;
   speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
-      Complex fac(0.0,-1.0 * sos* dampFunction_->ComputeFactor(position,locThick)/omega_);
-      tensor[i][i] = dummy / (dummy + fac);
+      Complex fac(0.0,-1.0 * sos* dampFunction_->ComputeFactor(position,locThick));
+      tensor[i][i] = omega_ / (omega_ + fac);
     }else{
-      tensor[i][i] = dummy;
+      tensor[i][i] = one;
     }
   }
 }

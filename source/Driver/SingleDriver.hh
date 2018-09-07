@@ -37,8 +37,7 @@ namespace CoupledField {
     virtual void SetToStepValue(UInt stepNum, Double stepVal ) {
       EXCEPTION( "Not implemented" );
     }
-    
-    
+
   protected:
   
     //! Initialize PDEs
@@ -57,6 +56,9 @@ namespace CoupledField {
     //! Pointer to math parser instance
     MathParser * mathParser_;
     
+    //! approximate source with delta functions
+    bool approxSourceWithDeltaFnc_;
+
   };
 
 }

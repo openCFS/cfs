@@ -1,0 +1,459 @@
+import numpy as np
+import matplotlib
+matplotlib.use('Agg') # importing matplotlib and this line fixes segfaults when spamming plot too often
+import matplotlib.pyplot as plt
+from io import StringIO
+import threading
+import json
+import svgwrite
+import time
+from lxml import etree
+
+# get the latest values
+def get_values(GLOBAL_RAW_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
+  data = {}
+  
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
+  
+  # iteration_num is the latest iteration that was shown by the GUI
+  # we will wait for a new data to arrive f 
+  latest_received_iteration = -1
+  try:
+    latest_received_iteration = int(xml.xpath('//process/iteration[last()]/@number')[0])
+  except Exception as e:
+    pass
+  
+  if latest_received_iteration > 0:
+    if iteration_num >= latest_received_iteration: # wait 9 seconds to receive new xml
+      
+      e = None
+      
+      if key in UPDATE_EVENTS:
+        e = UPDATE_EVENTS[key]
+      else:
+        e = threading.Event()
+        UPDATE_EVENTS[key] = e
+      
+      print('request too early, waiting')
+  
+      # client waits 10 seconds to give the http connection a 1 second buffer to avoid errors
+      e.wait(9)
+      
+      # remove the event to prevent cluttering
+      if key in UPDATE_EVENTS:
+        del UPDATE_EVENTS[key]
+    
+    if iteration_num >= latest_received_iteration: # still nothing new, tell the client javascript that there is nothing new
+      print('no new data!')
+      return '"no_new_data"'
+  else:
+    time.sleep(2)
+
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key]) # load xml again in case there is a new one available
+
+  data['results'] = {}
+
+  for result in xml.xpath('//calculation/process/sequence/result'):
+    name = result.xpath('@data')[0]
+    
+    data['results'][name] = name + ': ' + result.xpath('item[last()]')[0].xpath('@value')[0] + \
+                              ' ' + result.xpath('item[last()]')[0].xpath('@unit')[0]
+  
+  data['iterations'] = {}
+  
+  try:
+    value_map = xml.xpath('//process/iteration[last()]')[0]
+    for this_tuple in value_map.items():
+      name = this_tuple[0]
+      value = this_tuple[1]
+      
+      data['iterations'][name] = name + ': ' + value
+  except Exception as e:
+    pass
+  
+  return json.dumps(data)
+
+
+# returns html with embedded svg OR error code 
+def plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, x_name, y1_it_names, y2_it_names, y1_res_names, y2_res_names, \
+         iteration_num, logscale_y1, logscale_y2, result_view_arr, show_bloch):
+  
+  data = ""
+  
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
+  
+  # iteration_num is the latest iteration that was shown by the GUI
+  # we will wait for a new data to arrive f
+  latest_received_iteration = -1
+  try:
+    latest_received_iteration = int(xml.xpath('//process/iteration[last()]/@number')[0])
+  except Exception as e:
+    pass
+  
+  if latest_received_iteration > 0:
+    if iteration_num >= latest_received_iteration: # wait 9 seconds to receive new xml
+      
+      e = None
+      
+      if key in UPDATE_EVENTS:
+        e = UPDATE_EVENTS[key]
+      else:
+        e = threading.Event()
+        UPDATE_EVENTS[key] = e
+      
+      print('request too early, waiting')
+  
+      # client waits 10 seconds to give the http connection a 1 second buffer to avoid errors
+      e.wait(9)
+      
+      # remove the event to prevent cluttering
+      if key in UPDATE_EVENTS:
+        del UPDATE_EVENTS[key]
+    
+    if iteration_num >= latest_received_iteration: # still nothing new, tell the client javascript that there is nothing new
+      print('no new data!')
+      return 'no_new_data'
+
+  else:
+    time.sleep(2)
+
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key]) # load xml again in case there is a new one available
+
+  if show_bloch:
+    
+    x_axis_values = [] # 1D array with 1, 2, 3, <latest step>, <latest step +1>
+    
+    y_axis_values_array = [] # 2D array. first Index is the mode, second the step. Latest step is first repeated
+    
+    last_result_elem = xml.xpath('//sequenceStep/eigenFrequency/result[last()]')[0]
+    
+    fig = plt.figure()
+
+    plt.xlabel("direction")
+    plt.ylabel("frequency [Hz]")
+
+    # plot stuff
+    
+    first_wavevector = list(last_result_elem)[0]
+    
+    for tmp in first_wavevector:
+      y_axis_values_array.append([])
+    
+    for wave_vector_elm in last_result_elem:
+      this_step = int(wave_vector_elm.attrib['step'])
+      
+      x_axis_values.append(this_step)
+      
+      for mode in wave_vector_elm:
+        y_axis_values_array[int(mode.attrib['nr'])-1].append(float(mode.attrib['frequency']))
+    
+    # append the first vector as last element
+    for mode in first_wavevector:
+        y_axis_values_array[int(mode.attrib['nr'])-1].append(float(mode.attrib['frequency']))
+    x_axis_values.append(len(last_result_elem))
+    
+    for mode_nr in range(len(first_wavevector)):
+      plt.plot(x_axis_values, y_axis_values_array[mode_nr], '-o')
+    
+    fig.tight_layout()
+    plt.gca().set_ylim(bottom=0) # set bottom of plot to be always 0
+    
+    imgdata = StringIO()
+    fig.savefig(imgdata, format = 'svg')
+    
+    # this 'all' might cause some probolems if this tool
+    # is used by multiple people at the same time
+    plt.close('all')
+    
+    imgdata.seek(0)  # rewind the data
+  
+    svg_dta = imgdata.readlines()  # this is svg data
+
+    # transfer everything from svg_data to our "data" output variable
+    for l in svg_dta:
+      data += l
+  
+    # just to be sure:
+    del imgdata
+    del svg_dta
+  
+  if len(result_view_arr) > 0:
+    domain_elem = xml.xpath('//header/domain')[0]
+    
+    _2d_orientation = "error"
+    
+    if int(domain_elem.attrib['nx']) == 1:
+      _2d_orientation = 'yz'
+    elif int(domain_elem.attrib['ny']) == 1:
+      _2d_orientation = 'xz'
+    elif int(domain_elem.attrib['nz']) == 1:
+      _2d_orientation = 'xy'
+    else:
+      print('Error: not a 2D grid!')
+      data += '<br/>Error: not a 2D grid!'
+      # return data to avoid complete failure
+      return data
+  
+    for this_result_name in result_view_arr:
+      
+      result_elm = xml.xpath('//results/result[@name="' + this_result_name + '"][last()]')[0]
+      
+      ax_x_descr = "x"
+      ax_y_descr = "x"
+      
+      x_coords = []
+      y_coords = []
+      values = []
+      
+      values = np.array(result_elm.xpath('item/@v_0')).astype(np.float)
+
+      if _2d_orientation == 'yz':
+        ax_x_descr = 'y'
+        ax_y_descr = 'z'
+      elif _2d_orientation == 'xz':
+        ax_x_descr = 'x'
+        ax_y_descr = 'z'
+      elif _2d_orientation == 'xy':
+        ax_x_descr = 'x'
+        ax_y_descr = 'y'
+        
+      x_node_coords = []
+      y_node_coords = []
+      if _2d_orientation == 'yz':
+        x_node_coords = np.array(xml.xpath('//grid/nodeList/node/@y')).astype(np.float)
+        tmparr = np.array(xml.xpath('//grid/nodeList/node/@z')).astype(np.float)
+      elif _2d_orientation == 'xz':
+        x_node_coords = np.array(xml.xpath('//grid/nodeList/node/@x')).astype(np.float)
+        tmparr = np.array(xml.xpath('//grid/nodeList/node/@z')).astype(np.float)
+      elif _2d_orientation == 'xy':
+        x_node_coords = np.array(xml.xpath('//grid/nodeList/node/@x')).astype(np.float)
+        tmparr = np.array(xml.xpath('//grid/nodeList/node/@y')).astype(np.float)
+
+      y_node_coords = np.full(len(tmparr), max(tmparr)) - tmparr
+
+      imgdata = StringIO()
+
+      value_pos = 0
+      if result_elm.attrib['solution'] == 'element':
+        
+        dwg = svgwrite.Drawing(profile='tiny')
+        
+        max_value = max(values)
+        min_value = min(values)
+        
+        value_factor = 255/(max_value-min_value)
+        
+        for this_poly_element in xml.xpath('//regionList/region[@name="' + result_elm.attrib['region'] + '"]/element'):
+          node_count = int(this_poly_element.attrib['nodes'])
+          
+          points = []
+        
+          for node_id in range(node_count):
+            node_number = int(this_poly_element.attrib['node_'+str(node_id)])
+            
+            # we need to subtract one since the node start counting at 1, but we start counting at 0
+            coord_tuple = (x_node_coords[node_number-1], \
+                           y_node_coords[node_number-1] )
+            points.append(coord_tuple)
+
+          color_value = (values[value_pos]-min_value) * value_factor
+
+          #def tri_func(value, center):
+          #  if value < center:
+          #    return max((center-value)*2, 0)
+          #  return max((value-center)*2, 0)
+
+          #tmp_color = svgwrite.rgb(tri_func(color_value, 0), tri_func(color_value, 255/2), tri_func(color_value, 255))
+          tmp_color = svgwrite.rgb(color_value, 0, 255-color_value)
+          
+          polygon = dwg.polygon(points=points, fill=tmp_color, stroke='black', stroke_width=0)
+          dwg.add(polygon)
+          
+          value_pos += 1
+        dwg.viewbox(min(x_node_coords), min(y_node_coords), max(x_node_coords), max(y_node_coords))
+        dwg.write(fileobj=imgdata)
+          
+      elif result_elm.attrib['solution'] == 'node':
+        fig = plt.figure()
+        
+        plt.colorbar()
+        
+        fig.tight_layout()
+        
+        fig.savefig(imgdata, format = 'svg')
+        
+        # this 'all' might cause some probolems if this tool
+        # is used by multiple people at the same time
+        plt.close('all')
+      
+        plt.tripcolor(x_node_coords, y_node_coords, values)
+
+      else:
+        data += "<br>unknown element solution type<br>"
+        continue
+
+      imgdata.seek(0)  # rewind the data
+    
+      svg_dta = imgdata.readlines()  # this is svg data
+    
+      # just to be sure:
+      del imgdata
+
+      data += "<br/>"
+      data += this_result_name + ":<br/>"
+      
+      # transfer everything from svg_data to our "data" output variable
+      for l in svg_dta:
+        data += l
+  
+  fig = plt.figure()
+
+  try:
+    x = xml.xpath('//process/iteration/@' + x_name)
+    
+    fig, ax1 = plt.subplots()
+    t = x
+    
+    y1_label = ""
+    
+    y1_min = []
+    y1_max = []
+    
+    plot_mode = '-' # aka line
+    
+    try:
+      print(xml.xpath('(//process/iteration/@number)[last()]')[0])
+      if int(xml.xpath('(//process/iteration/@number)[last()]')[0]) <= 20:
+        plot_mode = '-o' # aka lines plus points
+    except Exception as e:
+      pass
+    
+    for y1_it_name in y1_it_names:
+      # convert to list of floats
+      y1_it = [float(i) for i in xml.xpath('//process/iteration/@' + y1_it_name)]
+    
+      if len(t) != len(y1_it):
+        data += 'error len(' + y1_it_name + ') != len(' + x_name + ')!<br>'
+        data += str(len(y1_it_name)) + '!=' + str(len(x_name)) + '<br><br>'
+        continue
+    
+      y1_label += y1_it_name + ', '
+      ax1.plot(t, y1_it, plot_mode, label=y1_it_name)
+      
+      y1_min.append(min(y1_it))
+      y1_max.append(max(y1_it))
+  
+    for y1_res_name in y1_res_names:
+      # convert to list of floats
+      y1_res = [float(i) for i in xml.xpath('//calculation/process/sequence/result[@data="' + y1_res_name + '"]/item/@value')]
+    
+      if len(t) != len(y1_res):
+        data += 'error len(' + y1_res_names + ') != len(' + x_name + '):<br>'
+        data += str(len(y1_res_names)) + '!=' + str(len(x_name)) + '<br><br>'
+        continue
+  
+      y1_label += y1_res_name + ', '
+      ax1.plot(t, y1_res, plot_mode, label=y1_res_name)
+      
+      y1_min.append(min(y1_res))
+      y1_max.append(max(y1_res))
+  
+    #if x_name == "name":
+    #  ax1.set_xlabel("iteration")
+    #else:
+    #  ax1.set_xlabel(x_name)
+    
+    ax1.set_xlabel("iteration")
+    
+    ax1.set_ylabel(y1_label[:-2])
+    
+    if logscale_y1:
+      ax1.set_yscale('log')
+      if y1_min:
+        ax1.set_ylim(min(y1_min), max(y1_max))
+    else:
+      ax1.autoscale(True, 'both')
+    
+    ax1.legend(loc='lower left', bbox_to_anchor=(0, 1))
+    ax2 = ax1.twinx()
+  
+    # "advance the colors" aka prevent color resetting when plotting for other axis
+    ax2._get_lines.prop_cycler = ax1._get_lines.prop_cycler
+  
+    y2_label = ""
+    
+    y2_min = []
+    y2_max = []
+    
+    for y2_it_name in y2_it_names:
+      # convert to list of floats
+      y2_it = [float(i) for i in xml.xpath('//process/iteration/@' + y2_it_name)]
+    
+      if len(t) != len(y2_it):
+        data += 'error len(' + y2_it_name + ') != len(' + x_name + ')!<br>'
+        data += str(len(y2_it_name)) + '!=' + str(len(x_name)) + '<br><br>'
+        continue
+    
+      y2_label += y2_it_name + ', '
+      ax2.plot(t, y2_it, plot_mode, label=y2_it_name)
+      
+      y2_min.append(min(y2_it))
+      y2_max.append(max(y2_it))
+  
+    for y2_res_name in y2_res_names:
+      # convert to list of floats
+      y2_res = [float(i) for i in xml.xpath('//calculation/process/sequence/result[@data="' + y2_res_name + '"]/item/@value')]
+    
+      if len(t) != len(y2_res):
+        data += 'error len(' + y2_res_names + ') != len(' + x_name + ')!<br>'
+        data += str(len(y2_res_names)) + '!=' + str(len(x_name)) + '<br><br>'
+        continue
+  
+      y2_label += y2_res_name + ', '
+      ax2.plot(t, y2_res, plot_mode, label=y2_res_name)
+      
+      y2_min.append(min(y2_res))
+      y2_max.append(max(y2_res))
+  
+    ax2.set_ylabel(y2_label[:-2])
+    
+    if logscale_y2:
+      ax2.set_yscale('log')
+      if y2_min:
+        ax2.set_ylim(min(y2_min), max(y2_max))
+    else:
+      ax2.autoscale(True, 'both')
+  
+    ax2.legend(loc='lower right', bbox_to_anchor=(1, 1))
+    
+    fig.tight_layout()
+    
+    imgdata = StringIO()
+    fig.savefig(imgdata, format = 'svg')
+    
+    # this 'all' might cause some probolems if this tool
+    # is used by multiple people at the same time
+    plt.close('all')
+    
+    imgdata.seek(0)  # rewind the data
+  
+    svg_dta = imgdata.readlines()  # this is svg data
+  
+    # just to be sure:
+    del imgdata
+
+    # transfer everything from svg_data to our "data" output variable
+    for l in svg_dta:
+      data += l
+    
+    del svg_dta
+  
+  except Exception as e:
+    pass
+
+  # data iteration num is used by javascript to determine the latest updated version
+  # this is transmitted when requesting new data
+  data += '<div id="iteration_num">' + str(latest_received_iteration) + '</div>'
+  data += '<div id ="status">' + xml.xpath('//cfsInfo/@status')[0] + '</div>'
+  
+  return data

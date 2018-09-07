@@ -51,7 +51,17 @@ namespace CoupledField
     isAllowed_.insert( PRINT_PREISACH_RESOLUTION );
     isAllowed_.insert( IS_TESTING );
     isAllowed_.insert( ANG_DISTANCE );
+    isAllowed_.insert( ANG_CLIPPING );
+    isAllowed_.insert( ANG_RESOLUTION );
+    isAllowed_.insert( AMP_RESOLUTION );
+    isAllowed_.insert( INITIAL_STATE );
+    isAllowed_.insert( INITIAL_STATE_X );
+    isAllowed_.insert( INITIAL_STATE_Y );
+    isAllowed_.insert( INITIAL_STATE_Z );
     isAllowed_.insert( PREISACH_DIM );
+    isAllowed_.insert( HYST_STRAIN_FORM );
+    isAllowed_.insert( HYST_BETA_COEFS );
+    isAllowed_.insert( DIM_BETA_COEFS );
     isAllowed_.insert( ROT_RESISTANCE );
     isAllowed_.insert( HYST_MODEL );
     isAllowed_.insert( DATA_ACCURACY );
@@ -59,6 +69,7 @@ namespace CoupledField
     isAllowed_.insert( MAGNETOSTRICTION_TENSOR_h_mag );
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( CORE_LOSS );
+    isAllowed_.insert( NONLIN_DEPENDENCY );
   }
 
   ElectroMagneticMaterial::~ElectroMagneticMaterial() {
@@ -173,7 +184,6 @@ namespace CoupledField
   void ElectroMagneticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
                                           Global::ComplexPart dataType ) {
 
-
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
       std::string dim = "tensor";
@@ -194,13 +204,18 @@ namespace CoupledField
         tensorParams_[matType].SetPart( dataType, param );
         tensorParamsOrig_[matType].SetPart( dataType, param );
 
-        // to be consistent to old structure
-        if ( dataType == Global::REAL ) {
-          scalarParams_[matType] = Complex( param[2][2], 0.0);
-        }
-        else {
-          scalarParams_[matType] = Complex( 0.0, param[2][2]);
-          isComplex_.insert( matType );
+        // added this check to avoid seg-faults for tensors of size Nx1
+        // ( normal material parameter (like permittivity) do not need this check
+        //   but for some hysteresis parameter, Nx1 arrays are needed)
+        if(param.GetNumRows() >= 2 && param.GetNumCols() >= 2){
+          // to be consistent to old structure
+          if ( dataType == Global::REAL ) {
+            scalarParams_[matType] = Complex( param[2][2], 0.0);
+          }
+          else {
+            scalarParams_[matType] = Complex( 0.0, param[2][2]);
+            isComplex_.insert( matType );
+          }
         }
       }
       else {
@@ -212,7 +227,6 @@ namespace CoupledField
 
   void ElectroMagneticMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
                                           Global::ComplexPart dataType ) {
-
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -898,9 +912,10 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
     //             reluctivity(magFluxDensity) = nu(B)
     //
     //The core loss factor is also handled here because it needs to be approximated.
+	//Also the temperature-dependent conductivity is processed here via a call to the BaseMaterial
 
     // Ensure that only MAG_RELUCTIVITY or CORE_LOSS are queried
-    if( matType != MAG_RELUCTIVITY && matType != CORE_LOSS ) {
+    if( matType != MAG_RELUCTIVITY && matType != CORE_LOSS && matType != MAG_CONDUCTIVITY) {
       EXCEPTION("Scalar nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY and CORE_LOSS!"
           << "MAG_RELUCTIVITY_DERIV must be queried using GetTensorCoefFncNonLin.");
     }
@@ -1133,6 +1148,8 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
         // checking for isSet_ in the PDE is not enough, which seems odd
         ret = CoefFunction::Generate( mp_, Global::REAL, "0.0" );
       }
+    } else if( matType == MAG_CONDUCTIVITY){
+    	ret = BaseMaterial::GetScalCoefFncNonLin(matType, matDataType, fluxCoef);
     }
 
     return ret;

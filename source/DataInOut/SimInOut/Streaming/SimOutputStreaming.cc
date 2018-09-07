@@ -8,14 +8,22 @@
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/Results/ResultInfo.hh"
 #include "SimOutputStreaming.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/Logging/log.hpp"
 
 using boost::asio::ip::tcp;
 
 using namespace CoupledField;
-using std::string;
+
+
+DECLARE_LOG(SOS)
+DEFINE_LOG(SOS, "streaming")
+
 
 SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode, PtrParamNode infoNode, bool isRestart) :
-  SimOutput("", outputNode, infoNode, isRestart)
+  SimOutput("", outputNode, infoNode, isRestart),
+  io_service_thread(SimOutputStreaming::io_service_runner_wrapper, this), // initialize the sending thread
+  io_service_work(boost::make_shared<boost::asio::io_service::work>(io_service))
 {
   formatName_ = "streaming";
   capabilities_.insert(MESH_RESULTS);
@@ -25,14 +33,27 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode, PtrParamNode inf
   port_ = outputNode->Get("port")->As<string>();
   path_ = outputNode->Get("path")->As<string>();
   send_mesh_ = outputNode->Get("sendMesh")->As<bool>();
-  compressed_ = outputNode->Get("compressed")->As<bool>();
   silent_ = outputNode->Has("silent") ? outputNode->Get("silent")->As<bool>() : false;
   content_ = PtrParamNode(new ParamNode(ParamNode::INSERT));
   content_->SetName("cfsStreaming");
+
+  //wait_var = new std::condition_variable();
+  current_client = NULL;
+
+  // start the sending thread
+  io_service_thread.detach();
 }
 
 SimOutputStreaming::~SimOutputStreaming()
 {
+  // send last .info.xml to receive status="finished" and memory data
+  // set force to true
+  TransmitData(true);
+
+  io_service_work.reset(); // tell the dummy work to stop
+
+  io_service.run(); // joining the C++ thread is buggy for some reason
+  // this will do it as well
 }
 
 void SimOutputStreaming::Init(Grid * ptGrid, bool printGridOnly)
@@ -64,6 +85,7 @@ void SimOutputStreaming::RegisterResult(shared_ptr<BaseResult> br, UInt saveBegi
 
 void SimOutputStreaming::BeginStep( UInt stepNum, Double stepVal)
 {
+  results_.Clear();
   actStep_ = stepNum;
   actStepVal_ = stepVal;
 }
@@ -73,25 +95,43 @@ void SimOutputStreaming::AddResult( shared_ptr<BaseResult> sol)
   results_.Push_back(sol);
 }
 
-void SimOutputStreaming::FinishStep()
-{
-  if(http_)
-  {
-    boost::asio::io_service io_service;
-    Client client(io_service, host_, port_, path_, this);
-    io_service.run();
-    results_.Clear();
-  }
-  else
-  {
-     std::ofstream out(path_.c_str());
-     Transmit(out);
-     out.close();
+void SimOutputStreaming::FinishStep() {
+  TransmitData(false);
+}
+
+void SimOutputStreaming::TransmitData(bool force) {
+  if (http_) {
+    /** we do not want to send more than one thing at a time,
+     * otherwise client suicide will mess everything up **/
+    if (force) {
+      int i=0;
+      while(current_client != NULL) {
+        // kindof busy sleep because this will only be executed at the very end
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        i++;
+        if (i>200) {
+          // if this takes longer than 2 seconds, orphan the running client:
+          current_client = NULL; // because we still want to try sending data
+          // (to avoid deadlock)
+          break;
+        }
+      }
+    }
+    if ( current_client == NULL ) {
+      // this client will destroy itself upon finishing
+      // is the requests fails, it will lock up and skip sending data
+      // (except for the final data which will still be tried)
+      current_client = new Client(io_service, this);
+      current_client->Send(host_, port_, path_);
+    }
+  } else {
+    std::ofstream out(path_.c_str());
+    Transmit(out);
+    out.close();
   }
 }
 
-UInt SimOutputStreaming::GetContentLength()
-{
+UInt SimOutputStreaming::GetContentLength() {
   UInt v = 40;
   for(UInt r = 0, s = results_.GetSize(); r < s; ++r){
     if(results_[r]->GetResultInfo()->resultName != "physicalPseudoDensity")
@@ -108,7 +148,9 @@ void SimOutputStreaming::Transmit(std::ostream& out)
   Grid* grid = domain->GetGrid();
 
   // add the complete info.xml treee
-  content_->Get("cfsInfo")->SetValue(domain->GetInfoRoot(), false); // use own name and make sure we are not seed as stupid boost::any
+  // use own name and make sure we are not seed as stupid boost::any
+  // also don't write warnings againt to cerr
+  content_->Get("cfsInfo")->SetValue(domain->GetInfoRoot(), false, false);
 
   // add mesh if it is new
   if(send_mesh_ && !content_->Has("grid"))
@@ -122,6 +164,7 @@ void SimOutputStreaming::Transmit(std::ostream& out)
   for(unsigned int r = 0; r < results_.GetSize(); r++)
   {
     shared_ptr<BaseResult> sol = results_[r];
+    bool cplx = sol->GetEntryType() == BaseMatrix::COMPLEX;
     shared_ptr<ResultInfo> resInfo = sol->GetResultInfo();
 
     PtrParamNode rpn = results->Get("result", ParamNode::APPEND);
@@ -139,20 +182,22 @@ void SimOutputStreaming::Transmit(std::ostream& out)
       rpn->Get("dof_" + boost::lexical_cast<std::string>(d))->SetValue(resInfo->dofNames[d]);
 
     rpn->Get("unit")->SetValue(resInfo->unit);
-
-    // TODO now only real valued!
+    if(cplx)
+      rpn->Get("desiredComplexFormat")->SetValue(resInfo->complexFormat == REAL_IMAG ? "realImag" : "amplPhase");
 
     // we do the fast bulk block stuff as it saves a lot of time!
     StdVector<std::string>& block = rpn->GetFastBulkBlock();
 
-    // the result vector is a set of dofs
-    Vector<double>& resultVec = dynamic_cast<Result<double>&>(*sol).GetVector();
-    // the actual item size
-    unsigned int items = resultVec.GetSize() / dofs;
+    SingleVector* vec = sol->GetSingleVector();
+    assert(vec != NULL && vec->GetSize() >= 0);
 
-    // TODO handle only simple cases here!
+    // the result vector is a set of dofs
+    unsigned int items = vec->GetSize() / dofs;
+
     StdVector<unsigned int> nodes; // nodes per region
     StdVector<Elem*> elems;   // // elements per region
+    // TODO handle only simple cases here!
+    assert(resInfo->definedOn == ResultInfo::NODE || resInfo->definedOn == ResultInfo::ELEMENT);
     if(resInfo->definedOn == ResultInfo::NODE)
       grid->GetNodesByRegion(nodes, regid);
     else
@@ -167,30 +212,51 @@ void SimOutputStreaming::Transmit(std::ostream& out)
       ss << "<item";
 
       for(unsigned int d = 0; d < dofs; d++)
-        ss << " v_" << boost::lexical_cast<std::string>(d) << "=\"" << resultVec[dofs * e + d] << "\"";
+      {
+        ss << " v_" << d << "=\"";
+        if(cplx)
+          ss << vec->GetComplexEntry(dofs * e + d);
+        else
+          ss << vec->GetDoubleEntry(dofs * e + d);
+        ss << "\"";
+      }
 
+      ss << " id=\"";
       // mandatory for nodes
       if(resInfo->definedOn == ResultInfo::NODE)
-        ss << " id=\"" << nodes[e] << "\"";
-      else if(!compressed_) // for elements it is redundand so we skip it in compressed mode
-        ss << " id=\"" << elems[e]->elemNum << "\"";
-      ss << "/>";
+        ss << nodes[e];
+      else
+        ss << elems[e]->elemNum;
+      ss << "\"/>";
       block[e] = ss.str();
     }
   }
   // write the stuff
-  content_->ToXML(out, compressed_ ? -99 : 0, true); // adjust element type!
+  content_->ToXML(out, -99, true); // adjust element type!
 }
 
-SimOutputStreaming::Client::Client(boost::asio::io_service& io_service,
-      const std::string& server, const std::string& port, const std::string& path, SimOutputStreaming* base)
-    : resolver_(io_service),
-      socket_(io_service)
+void SimOutputStreaming::io_service_runner(void) {
+  LOG_DBG(SOS) << "++ starting io_service thread ..." << std::endl;
+  io_service.run();
+  LOG_DBG(SOS) << "++ io_service thread ended" << std::endl;
+}
+
+void SimOutputStreaming::io_service_runner_wrapper(SimOutputStreaming* this_) {
+  this_->io_service_runner();
+}
+
+SimOutputStreaming::Client::Client(boost::asio::io_service& io_service, SimOutputStreaming* base)
+: resolver_(io_service),
+  socket_(io_service) {
+  base_ = base;}
+
+void SimOutputStreaming::Client::Send(const std::string& server, const std::string& port, const std::string& path)
 {
     // it is more robust known the content length a priori, therefore we use a memory stream
     std::stringstream mem;
     // fill with all our data
-    base->Transmit(mem);
+    base_->Transmit(mem);
+
 
     std::ostream request_stream(&request_);
     request_stream << "POST " << path << " HTTP/1.1\r\n";
@@ -203,8 +269,7 @@ SimOutputStreaming::Client::Client(boost::asio::io_service& io_service,
     // copy data
     request_stream << mem.rdbuf() << "\r\n\r\n";
 
-    if(!base->silent_)
-      std::cout << "try to connect " << server << " port " << port << " to transmit " << mem.tellp() << " bytes" << std::endl;
+    LOG_DBG(SOS) << "try to connect " << server << " port " << port << " to transmit " << mem.tellp() << " bytes" << std::endl;
 
     // Start an asynchronous resolve to translate the server and service names
     // into a list of endpoints.
@@ -275,37 +340,39 @@ void SimOutputStreaming::Client::handle_write_request(const boost::system::error
 
 void SimOutputStreaming::Client::handle_read_status_line(const boost::system::error_code& err)
 {
-    if (!err)
-    {
-      // Check that response is OK.
-      std::istream response_stream(&response_);
-      std::string http_version;
-      response_stream >> http_version;
-      unsigned int status_code;
-      response_stream >> status_code;
-      std::string status_message;
-      std::getline(response_stream, status_message);
-      if (!response_stream || http_version.substr(0, 5) != "HTTP/")
-      {
-        std::cout << "Invalid response\n";
-        return;
-      }
-      if (status_code != 200)
-      {
-        std::cout << "Response returned with status code ";
-        std::cout << status_code << "\n";
-        return;
-      }
 
-      // Read the response headers, which are terminated by a blank line.
-      boost::asio::async_read_until(socket_, response_, "\r\n\r\n",
-          boost::bind(&Client::handle_read_headers, this,
-            boost::asio::placeholders::error));
-    }
-    else
+  string msg = "Streaming to " + base_->host_ + ":" + base_->port_ + " results in ";
+
+  if(!err)
+  {
+    // Check that response is OK.
+    std::istream response_stream(&response_);
+    std::string http_version;
+    response_stream >> http_version;
+    unsigned int status_code;
+    response_stream >> status_code;
+    std::string status_message;
+    std::getline(response_stream, status_message);
+    if (!response_stream || http_version.substr(0, 5) != "HTTP/")
     {
-      std::cout << "Error: " << err << "\n";
+      std::cout << msg + "invalid response\n";
+      return;
     }
+    if (status_code != 200)
+    {
+      std::cout << msg + "status code " << status_code << "\n";
+      return;
+    }
+
+    // Read the response headers, which are terminated by a blank line.
+    boost::asio::async_read_until(socket_, response_, "\r\n\r\n",
+        boost::bind(&Client::handle_read_headers, this,
+            boost::asio::placeholders::error));
+  }
+  else
+  {
+    std::cout << msg + "error: " << err << "\n";
+  }
 }
 
 void SimOutputStreaming::Client::handle_read_headers(const boost::system::error_code& err)
@@ -320,8 +387,9 @@ void SimOutputStreaming::Client::handle_read_headers(const boost::system::error_
       //std::cout << "\n";
 
       // Write whatever content we already have to output.
-      if (response_.size() > 0)
-        std::cout << &response_;
+      if (response_.size() > 0) {
+        LOG_DBG(SOS) << "S:C:hrh: " << &response_;
+      }
 
       // Start reading remaining data until EOF.
       boost::asio::async_read(socket_, response_,
@@ -340,7 +408,7 @@ void SimOutputStreaming::Client::handle_read_content(const boost::system::error_
     if (!err)
     {
       // Write all of the data that has been read so far.
-      std::cout << &response_;
+      LOG_DBG(SOS) << "S:C:hrc: " << &response_;
 
       // Continue reading remaining data until EOF.
       boost::asio::async_read(socket_, response_,
@@ -348,9 +416,20 @@ void SimOutputStreaming::Client::handle_read_content(const boost::system::error_
           boost::bind(&Client::handle_read_content, this,
             boost::asio::placeholders::error));
     }
-    else if (err != boost::asio::error::eof)
-    {
-      std::cout << "Error: " << err << "\n";
+    else {
+      if (err != boost::asio::error::eof) {
+        std::cout << "Error: " << err << "\n";
+      } else {
+        SimOutputStreaming* base_copy = base_;
+
+        // commit suicide here
+        // DO NOT ACCESS ANY MEMBER VARIABLES AFTER DELETE!
+        // delete base_->current_client;
+        delete this; // we are using this since the client might have been overridden by forcefully sending
+
+        if (this == base_copy->current_client) // we are just accessing the pointer so this comparison is fine
+          base_copy->current_client = NULL; // tell streaming that the client comitted suicide
+      }
     }
 }
 

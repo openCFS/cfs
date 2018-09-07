@@ -251,10 +251,6 @@ void BaseOptimizer::SolveOptimizationProblem()
   optimizer_timer_->Start();
   SolveProblem();
 
-  // dirty fix to have the final status streamed for iTop
-   // if(/* FIXME domain->GetResultHandler()->GetOutputWriter("streaming", true) != NULL && */this->type_ != Optimization::EVALUATE_INITIAL_DESIGN)
-  // optimization->CommitIteration(true);
-
   optimizer_timer_->Stop();
 }
 
@@ -326,6 +322,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   optimizer_timer_->Stop();
 
   assert(!GetRunnungEvalTimer()); // no currently running timer!
+
   eval_obj_timer_->Start();
 
   // set the design and see if it is a new one
@@ -479,7 +476,7 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   optimizer_timer_->Start();
 }
 
-double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call)
+double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call, Excitation* ev_only_excite)
 {
   // for a proper time measurement we have to know if we are called by EvalConstraints() or directly (FeasPP)
   assert(!(!direct_call && !eval_const_timer_->IsRunning()));
@@ -500,7 +497,7 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
     else
       manual_scaling = g->manual_scaling_value;
   }
-  double org = optimization->CalcConstraint(g);
+  double org = optimization->CalcConstraint(g, ev_only_excite);
   double base = org;
   if(g->HasGeneralSlackBound())
   {

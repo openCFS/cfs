@@ -55,6 +55,9 @@ class BiLinearForm;
     //! Definition of the (bi)linear forms
     void DefineIntegrators();
 
+    // for hysteresis we need rhs loads that contain information about both pdes
+    void DefineRhsLoadIntegrators();
+    
     void DefinePBCIntegrators(shared_ptr<BaseFeFunction>& fe1, shared_ptr<BaseFeFunction>& fe2);
 
     template<typename DATA_TYPE>
@@ -79,12 +82,20 @@ class BiLinearForm;
     //! Returns a stiffness integrator appropriate to the actual problem (e.g. 3D) with the material tensor scaled by a given factor
     BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor);
 
+    // returns true if hysteretic behavior was found and false otherwise
+    // case true:
+    //  elecToMechInt = integrator that couples electric field to mechanics
+    //  mechToElecInt = integrator that couples mechancis to electric field
+    // case false:
+    //  elecToMechInt = output of GetStiffIntegrator
+    //  mechToElecInt = NULL and will not be used; instead isCounterpart will be set for assemblys
+    bool GetStiffIntegratorHyst( BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, BaseBDBInt** elecToMechInt, BaseBDBInt** mechToElecInt);
 
     //! Subtype of related mechanical PDE
     std::string subType_;
     
   private:
-
+    bool isHyst_;
   };
 
 

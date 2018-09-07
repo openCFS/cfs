@@ -73,7 +73,7 @@ PtrParamNode ParamNode::GenerateWriteNode(const string& root, const string& file
  * S E T    M E T H O D S
  *************************************************************************/
 
-void ParamNode::SetValue(const boost::any& value)
+void ParamNode::SetValue(const boost::any& value, bool cerr_warning)
 {
   this->value_ = value;
 
@@ -81,7 +81,7 @@ void ParamNode::SetValue(const boost::any& value)
 //  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('<') == std::string::npos)); //FIXME second expression does not allow &lt; and &gt; but we might need this for MathParser
 //  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
 
-  if(this->name_ == WARNING)
+  if(this->name_ == WARNING && cerr_warning)
     std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
 }
 void ParamNode::SetValue(const char* value)
@@ -96,7 +96,7 @@ void ParamNode::SetValue(const double value, const int precision)
   SetValue(value);
 }
 
-void ParamNode::SetValue(PtrParamNode node, bool overwrite_name)
+void ParamNode::SetValue(PtrParamNode node, bool overwrite_name, bool cerr_warning)
 {
   if(overwrite_name)
     SetName(node->GetName());
@@ -104,7 +104,7 @@ void ParamNode::SetValue(PtrParamNode node, bool overwrite_name)
   assert(name_ != "");
 
   // set the value
-  SetValue(node->value_);
+  SetValue(node->value_, cerr_warning);
 
   ParamNodeList& children = node->GetChildren();
   // reserve own children size
@@ -116,7 +116,7 @@ void ParamNode::SetValue(PtrParamNode node, bool overwrite_name)
     // add new element
     PtrParamNode other = children[i];
     PtrParamNode new_node = SetNewChild(other->GetName(), i); // faster for large arrays
-    new_node->SetValue(other, false);
+    new_node->SetValue(other, false, cerr_warning);
   }
 }
 
@@ -504,7 +504,7 @@ bool ParamNode::As<bool>() const
     std::string str = boost::any_cast<std::string>(value_);
     if(str == "yes" || str == "true" || str == "on" || str == "enable" || str == "1")
       return true;
-    if(str == "no" || str == "false" || str == "off" || str == "disable" || str == "0")
+    if(str == "no" || str == "false" || str == "off" || str == "disable" || str == "0" || str == "none")
       return false;
 
    EXCEPTION("Cannot convert node '" << name_ << "' with value '" << str << "' to boolean");

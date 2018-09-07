@@ -52,9 +52,9 @@
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
-                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"
-                      > </xsd:attribute>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/> 
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -74,6 +74,19 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- List defining nonlinear material dependency types -->
+          <xsd:element name="matDependencyList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="electricConductivity" type="DT_matDependency">
+                  <xsd:annotation>
+                    <xsd:documentation>Electric conductivity as function of temperature</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
           <!-- Initial conditions (optional) -->
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -244,6 +257,7 @@
   <xsd:simpleType name="DT_MagneticEdgeNodeResult">
     <xsd:restriction base="xsd:token"> </xsd:restriction>
   </xsd:simpleType>
+  
 
   <!-- Definition of elem result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticEdgeElemResult">
@@ -251,6 +265,7 @@
       <xsd:enumeration value="magFluxDensity"/>
       <xsd:enumeration value="magPotentialD1"/>
       <xsd:enumeration value="magFieldIntensity"/>
+      <xsd:enumeration value="elecFieldIntensity"/>
       <xsd:enumeration value="magPotentialDiv"/>
       <xsd:enumeration value="magEddyCurrentDensity"/>
       <xsd:enumeration value="magCoilCurrentDensity"/>
@@ -260,9 +275,17 @@
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="magCoreLossDensity"/>
+      <xsd:enumeration value="magJouleLossPowerDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- Definition of surface element result types of magneticedge PDE -->
+  <xsd:simpleType name="DT_MagneticEdgeSurfElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magForceMaxwellDensity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
   <!-- Definition of region result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticEdgeRegionResult">
     <xsd:restriction base="xsd:token">
@@ -278,6 +301,8 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEddyCurrent"/>
       <xsd:enumeration value="magFlux"/>
+      <xsd:enumeration value="magForceVWP"/>
+      <xsd:enumeration value="magForceMaxwell"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -357,6 +382,17 @@
             <xsd:complexContent>
               <xsd:extension base="DT_SensorArrayResult">
                 <xsd:attribute name="type" type="DT_MagneticEdgeElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Surface element result definition -->
+        <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfElemResult">
+                <xsd:attribute name="type" type="DT_MagneticEdgeSurfElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

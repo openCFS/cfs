@@ -12,28 +12,26 @@ SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
 SET(ENV{LANGUAGE} "C")
 
-IF(${SITE_DIR} MATCHES "trunk")
-  SET(CTEST_BUILD_NAME "Update Testsuite trunk")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-trunk")
+IF(${SITE_DIR} MATCHES "master_stingl")
+  SET(CTEST_BUILD_NAME "Update Testsuite stingl master")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-stingl_master")
 ELSE()
   SET(CTEST_BUILD_NAME "Update Testsuite shared_opt")
   SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-shared_opt")
 ENDIF()
 
-# this is copy pasted to the ctest cases
-set(CTEST_BUILD_NAME "Update Testsuite shared_opt")
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-shared_opt")
 SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
 
-# don't delete!!
-SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
+# don't know if this even works!!
+# create new empty directory in test specific cmake files, not here!
+# SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
 
 MESSAGE("\n---------------------------------------------------")
 MESSAGE("Update testsuite ${CTEST_SOURCE_DIRECTORY} ...")
 MESSAGE("---------------------------------------------------\n")
 
-FIND_PROGRAM(CTEST_SVN_COMMAND NAMES svn)
-SET(CTEST_UPDATE_TYPE "svn")
+FIND_PROGRAM(CTEST_GIT_COMMAND NAMES git)
+SET(CTEST_UPDATE_TYPE "git")
 
 CTEST_START(Nightly)
 CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)

@@ -18,6 +18,8 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/Transform.hh"
 #include "Utils/StdVector.hh"
+#include "MatVec/CRS_Matrix.hh"
+
 
 namespace CoupledField
 {
@@ -33,7 +35,19 @@ namespace CoupledField
   class SinglePDE;
   struct MultiMaterial;
   class Context;
+  class LocalElementCache;
+  struct DensityFilterMat;
 
+
+  struct DensityFilterMat
+    {
+      Vector<double> inv_weighted_sum;
+      Vector<double> filtered_vec;
+      CRS_Matrix<double> filter_mat;
+      void AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbour, int filter_idx);
+      void CacheDensityFilteredValue(const Vector<double>& design_vec);
+
+    };
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
   class DesignSpace
@@ -55,20 +69,16 @@ namespace CoupledField
 
      /** Consist all regions of the design of a regular grid?.
       * In the derived design space we assume a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT
-      * Regular means: All elements have same size but not filled cube*/
-     virtual bool IsRegular() const
-     {
-       return all_regions_regular_;
-     }
+      * the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
+      * element nodes, such that one cannot use the same element matrix, even if the grid is regular
+      * therefore the attribute designSpace/enforce_unstructured
+      * Regular means: All elements have same size but not necessarily that the domain is square. */
+     bool IsRegular() const { return is_regular_; }
 
      /**
       * Is the design the whole mesh consisting of regular elements and completely filled by elements?
-      * Is not true for a sparse mesh?
-      */
-     bool IsCubic() const
-     {
-       return is_cubic_;
-     }
+      * Is not true for a sparse mesh? */
+     bool IsCubic() const { return is_cubic_; }
 
      /** Set the DesignMaterial this is only used in parametric material optimization and therefore not in constructor
       * @param dm ParamNode in XML
@@ -78,8 +88,12 @@ namespace CoupledField
      /** returns the type of the DesignMaterial of the Ersatzmaterial **/
      DesignMaterial::Type getDesignMaterialType()
      {
+       assert(designMaterial != NULL);
        return designMaterial->GetType();
      }
+
+     /** Do we do multiscale FEM, where we model not the tensor as in FEM but the local element matrix */
+     bool DoMSFEM() const { return designMaterial != NULL && designMaterial->GetType() == DesignMaterial::MSFEM_C1; }
 
      /** Set the optimizer, required for level set give the level set values as nodal values.
       * Otherwise not required to be called */
@@ -88,7 +102,13 @@ namespace CoupledField
      /** Check if a region is subject to optimization (in principle, might be more complicated for piezo, ... */
      int FindRegion(RegionIdType regionId) const;
 
-     /** Performs the optimization for the matrix case. This
+     /** Is based on LocalElementCache and applies optimization if indicated by the coef function of the form.
+      * Does only work for SIMP type calls
+      * @return true if we could set retMat, even if no optimization (application of design) was applied */
+     template <class T>
+     bool ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>& retMat, const Elem* elem);
+
+     /** Handles ParamMat, including MS-FEM and fallback for SIMP for ApplyPhysicalDesignElementMatrix() if disabled
       * @return true if design and retMat is set */
      template <class T>
      bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T>& retMat, const LocPointMapped* lpm);
@@ -317,7 +337,8 @@ namespace CoupledField
        EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
      }
 
-
+     /** helper class to for form tpye depending on material. Exception if nothing known.  */
+     static const string ToForm(MaterialClass mc, MaterialType mt);
 
      /** When we have more design types this is a divisor of data.GetSize() */
      unsigned int GetNumberOfElements() { return elements; }
@@ -346,6 +367,9 @@ namespace CoupledField
      bool DoNonDesignVicinity() const { return non_design_vicinity_; }
 
      PtrParamNode GetInfo() { return info_; }
+
+     /** the global LocalElementCache instance, not necessary enabled. Only a pointer for include reasons */
+     LocalElementCache* elementCache = NULL;
 
      /** This is our real design data, a set of DesignElements.
       * Size is design.GetSize() * elements
@@ -442,20 +466,25 @@ namespace CoupledField
        bool HasBiMaterial() const;
 
        /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
-        * easy to be also simple for load ersatz material */
+        * easy to be also simple for load ersatz material. Shall be thread-save */
        PtrCoefFct GetBiMaterial(MaterialClass mc, MaterialType mt);
+
+       /** returns existing data, As the other GetBiMaterial() is called, data may be created on the fly. */
+       PtrCoefFct GetBiMaterial(const string& integrator);
+
+       PtrCoefFct GetBiMaterial(BiLinearForm* form) { return GetBiMaterial(form->GetName()); }
 
        std::string ToString() const;
 
        void ToInfo(PtrParamNode node) const;
 
+       /** Here we cache the lower end material class. Complicated because of pizeo and stiffness, density */
+       std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > bimaterials;
+
      private:
 
        /** the label for the info.xml */
        std::string bimaterial_;
-
-       /** Here we cache the lower end material class. Complicated because of pizeo and stiffness, density */
-       std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > bimaterials_;
      };
      
      /** Get DesignRegion.  */
@@ -463,8 +492,7 @@ namespace CoupledField
 
      DesignRegion* GetRegion(RegionIdType id, MultiMaterial* mm, bool throw_exception = true);
 
-     /** try to identify the design by the coefficient function */
-     DesignRegion* GetRegion(shared_ptr<CoefFunctionOpt>& coef, RegionIdType reg);
+     DesignRegion* GetRegion(RegionIdType id, MaterialClass mc, MaterialType mt, bool throw_exception = true);
 
      /** This now is a vector of design and region regions[design][region].
       Design is here the unique design. */
@@ -508,6 +536,18 @@ namespace CoupledField
       * data size = num of design * num region elements */
      unsigned int elements;
 
+
+     // A vector that holds the filter weights Matrix and the filtered Vec for all the filters
+     StdVector<DensityFilterMat> density_filter;
+
+     // If set filtering is done by matrix Vector operation by assembling a filter mat.
+     // this internal bool is set to true in default mode if the number of different design is one
+     bool is_matrix_filt;
+
+
+
+
+
     protected:
 
 
@@ -519,6 +559,8 @@ namespace CoupledField
      void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Function* f, bool scaling = true) const;
 
+     /** Initialized the LocalElementCache. Called by PostInit() */
+     void SetupLocalElementCache();
 
      /** This number identifies the design space. It is always incremented if ReadDesignFromExtern() reads
       * a different design */
@@ -573,10 +615,14 @@ namespace CoupledField
      /** We have to know the level set method to map to nodal values */
      BaseOptimizer* optimizer_;
 
-     /** are all regions regular.
+     /** are all regions regular and also not designSpace/enforce_unstructured is set.
       * Note, that in the derived design space a irregular grid is assumed! */
-     bool all_regions_regular_;
+     bool is_regular_;
 
+     /** generally we want local element caching but for debug purpose we might want to switch it off */
+     bool local_element_caching_;
+
+     /** if the full regular space is filled with design */
      bool is_cubic_;
 
      /** just a cache from regions */

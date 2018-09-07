@@ -50,7 +50,7 @@ namespace CoupledField
     region_.Add( NO_REGION_ID, "_NO_REGION_");
 
     UInt slotsToReserve = 6;
-    for(UInt aT = 0; aT < NUM_CFS_THREADS; aT++){
+    for(UInt aT = 0; aT < CFS_NUM_THREADS; aT++){
       lastShapeElemNumOrig_.Mine(aT).Reserve(slotsToReserve);
       lastShapeElemNumUpdated_.Mine(aT).Reserve(slotsToReserve);
       elemShapeMapOrig_.Mine(aT).Reserve(slotsToReserve);
@@ -75,46 +75,50 @@ namespace CoupledField
 
   Matrix<double>& Grid::CalcGridBoundingBox(CoordSystem* sys, bool force_3D)
   {
-    Matrix<double>& box = grid_bounding_box_;
-    if(box.GetNumRows() == 0)
+    #pragma omp critical
     {
-      // set the box ignoring force_3D!
-      if(sys == NULL)
-        sys = domain->GetCoordSystem();
-
-      StdVector<RegionIdType> regs;
-      GetVolRegionIds(regs);
-
-      Matrix<double> tmp;
-
-      for(unsigned int r = 0; r < regs.GetSize(); r++)
+      Matrix<double>& box = grid_bounding_box_;
+      if(box.GetNumRows() == 0)
       {
-        CalcBoundingBoxOfRegion(regs[r], tmp, sys);
+        // set the box ignoring force_3D!
+        if(sys == NULL)
+          sys = domain->GetCoordSystem();
 
-        LOG_DBG(grid) << "CGBB: tmp rows= " << tmp.GetNumRows() << " cols = " << tmp.GetNumCols();
-        LOG_DBG(grid) << "CGBB: " << r << " regs[r]reg=" << regs[r] << " = " << region_.ToString(regs[r]) << " bb=" << tmp.ToString(0, false);
-        if(r == 0) // the first region is the first guess
-          box = tmp;
-        else
+        StdVector<RegionIdType> regs;
+        GetVolRegionIds(regs);
+
+        Matrix<double> tmp;
+
+        for(unsigned int r = 0; r < regs.GetSize(); r++)
         {
-          for(unsigned int d = 0; d < tmp.GetNumRows(); d++)
+          CalcBoundingBoxOfRegion(regs[r], tmp, sys);
+
+          LOG_DBG(grid) << "CGBB: tmp rows= " << tmp.GetNumRows() << " cols = " << tmp.GetNumCols();
+          LOG_DBG(grid) << "CGBB: " << r << " regs[r]reg=" << regs[r] << " = " << region_.ToString(regs[r]) << " bb=" << tmp.ToString(0, false);
+          if(r == 0) // the first region is the first guess
+            box = tmp;
+          else
           {
-            box[d][0] = std::min(box[d][0], tmp[d][0]);
-            box[d][1] = std::max(box[d][1], tmp[d][1]);
+            for(unsigned int d = 0; d < tmp.GetNumRows(); d++)
+            {
+              box[d][0] = std::min(box[d][0], tmp[d][0]);
+              box[d][1] = std::max(box[d][1], tmp[d][1]);
+            }
           }
         }
       }
-    }
 
-    // now the box is set but it might be that force_3D is ignored
-    // this also works if box was created in a previous call but with another force_3D parameter
-    if(GetDim() == 2 && ((!force_3D && box.GetNumRows() == 3) || (force_3D && box.GetNumRows() == 2)))
-    {
-      Matrix<double> tmp(force_3D ? 3 : 2,2);
-      tmp.Assign(box, 1.0, true); // size tolerant
-      box = tmp;
-    }
-    return box;
+      // now the box is set but it might be that force_3D is ignored
+      // this also works if box was created in a previous call but with another force_3D parameter
+      if(GetDim() == 2 && ((!force_3D && box.GetNumRows() == 3) || (force_3D && box.GetNumRows() == 2)))
+      {
+        Matrix<double> tmp((force_3D ? 3 : 2), 2);
+        tmp.Assign(box, 1.0, true); // size tolerant
+        box = tmp;
+      }
+    } // end of critical guard
+
+    return grid_bounding_box_;
   }
 
   shared_ptr<ElemShapeMap> Grid::GetElemShapeMap(const Elem* ptElem, bool isUpdated, bool secondary)
@@ -1066,7 +1070,7 @@ namespace CoupledField
 
     // loop over matches, perform global->local mapping of coordinates
     // and check, if coordinate is really contained in this element
-#pragma omp parallel for num_threads(NUM_CFS_THREADS)
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for( UInt iM = 0; iM < numMatches; ++iM ) {
       std::set<const Elem*>::const_iterator it;
       Vector<Double> locCoord;
@@ -1147,32 +1151,33 @@ namespace CoupledField
       }
     }
 
-    // Calculate a diameter of the  element in each coordinate direction.  Use
-    // L2-length of element for directions in which no diameter is available.
-    shared_ptr<ElemShapeMap> esm = GetElemShapeMap(elem,updated);
-    Vector<Double> dia;    
-    esm->CalcDiameter(dia);
-    UInt elemDim = dia.GetSize();
-    Double length = NormL2(&dia[0], elemDim);
-    if(elemDim < 3) 
-    {
-      Vector<Double> tmpDia = dia;
-      dia.Resize(3);
-      for( UInt i=0; i<tmpDia.GetSize(); ++i ) {
-        dia[i] = tmpDia[i];
-      }
-      for(UInt i=elemDim; i<3; i++) 
-      {
-        dia[i] = length;
-      }
-    }    
+    Vector<Double> dia(3);
+    dia[0] = xmax - xmin;
+    dia[1] = ymax - ymin;
+    dia[2] = zmax - zmin;
 
-    xmin -= globToler*dia[0];
-    xmax += globToler*dia[0];
-    ymin -= globToler*dia[1];
-    ymax += globToler*dia[1];
-    zmin -= globToler*dia[2];
-    zmax += globToler*dia[2];
+    // If a two-dimensional element is part of a three dimensional grid we use the maximum diameter of all diameters
+    UInt elemDim = Elem::GetShape( Elem::GetShapeType( elem->type) ).dim;
+    if (elemDim < globalDim) {
+      Double maxDia = dia[0];
+      UInt i = dia[1] > dia[2] ? 1 : 2;
+      maxDia = dia[i] > maxDia ? dia[i] : maxDia;
+      Double thisTol = globToler*maxDia;
+
+      xmin -= thisTol;
+      xmax += thisTol;
+      ymin -= thisTol;
+      ymax += thisTol;
+      zmin -= thisTol;
+      zmax += thisTol;
+    } else {
+      xmin -= globToler*dia[0];
+      xmax += globToler*dia[0];
+      ymin -= globToler*dia[1];
+      ymax += globToler*dia[1];
+      zmin -= globToler*dia[2];
+      zmax += globToler*dia[2];
+    }
   }
 
 #ifdef USE_CGAL

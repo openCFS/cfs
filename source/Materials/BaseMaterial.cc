@@ -187,7 +187,7 @@ namespace CoupledField
        matTypeNotAllowed( matType, dim );
      }
     
-    
+    isSet_.insert( matType ); // enables printing to info.xml
     // switch depending on dimType of coefficient function
     switch(coef->GetDimType()) {
       case CoefFunction::SCALAR:
@@ -261,7 +261,7 @@ namespace CoupledField
     string help = MaterialTypeEnum.ToString( matType );
 
     EXCEPTION( "Material type (" << dim << ") " << help 
-               << " was not read form/defined in material file" );
+               << " was not read from/defined in material file" );
   }
 
 
@@ -316,6 +316,18 @@ namespace CoupledField
 
       PtrParamNode in_ = in->Get("property", ParamNode::APPEND);
       in_->Get("name")->SetValue(MaterialTypeEnum.ToString(mt));
+
+      std::vector<CoefMap*> Coefs; // vector for iteration
+      Coefs.push_back( &scalarCoef_ );Coefs.push_back( &vectorCoef_ );Coefs.push_back( &tensorCoef_ ); // fill it with pointers
+      // iterate over all types of coef functions
+      for(std::vector<CoefMap*>::iterator it=Coefs.begin();it!=Coefs.end();++it)
+      {
+          CoefMap::const_iterator posIt = (*it)->find(mt); // check if it is set
+          if (posIt != (*it)->end() ) {
+              PtrCoefFct coef = posIt->second;
+              in_->Get("value")->SetValue( coef->ToString() ); // print to xml
+          }
+      }
 
       if(rot != NULL && rot->NormMax() > 0)
       {
@@ -396,8 +408,11 @@ namespace CoupledField
         continue;
         //this is the case for tensors like the preisach weights which shall be allowed to have more than 3 x 3 entries
         //furthermore, a rotation of these parameter is not necessary
+      } else if (it->second.GetNumCols() == 1 || it->second.GetNumRows() == 1){
+        continue;
+        // similar case as above; for hysteresis we may specify vectors via the material file
+        // those vectors do not have to be rotated
       }
-
       RotateTensorByRotationAngles( rotAngle, it->first, persistent );
     }
     
@@ -707,7 +722,7 @@ namespace CoupledField
     /*
      * is this function ever called?
      * -> grep shows NO call to InitHyst;
-     *    instead everything is handeled via CoefFunctionHyst
+     *    instead everything is handled via CoefFunctionHyst
      */
     isHystInverse_      = isInverse;
     computeHystInverse_ = computeHystInverse;
@@ -744,9 +759,11 @@ namespace CoupledField
         GetScalar(isTesting, IS_TESTING);
 
         Double angDistance;
+        Double angClipping;
         Matrix<Double> easyAxis_Matrix;
         Vector<Double> easyAxis = Vector<Double>(dim);
         GetScalar(angDistance, ANG_DISTANCE, Global::REAL);
+        GetScalar(angClipping, ANG_CLIPPING, Global::REAL);
 
       /*
        * should be obsolete as hyst_ is initialized in coefFctHyst
@@ -759,25 +776,25 @@ namespace CoupledField
 
         hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
                                                    weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance);
+                                                   classical, angDistance,angClipping);
       } else if(evalVersion == 2){
         classical = false; // revised vector preisach model -> sutor2015
 
         hyst_ = new VectorPreisachv10_ListApproach(numElemSD, Xsat, Ysat,
                                                    weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance);
+                                                   classical, angDistance,angClipping);
       } else if(evalVersion == 10){
         classical = true; // original vector preisach model -> sutor2015; matrix based implementation
 
         hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
                                                    weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance);
+                                                   classical, angDistance,angClipping);
       } else if(evalVersion == 20){
         classical = false; // revised vector preisach model -> sutor2015; matrix based implementation
 
         hyst_ = new VectorPreisachv10_MatrixApproach(numElemSD, Xsat, Ysat,
                                                    weights, rotationalResistance, dim_, isVirgin,
-                                                   classical, angDistance);
+                                                   classical, angDistance,angClipping);
       } else {
         EXCEPTION("evalVersion has to be one of the following: \n "
             "1: classical vector model (sutor2012) \n"

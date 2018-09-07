@@ -72,56 +72,51 @@ extern "C" void _allmul() {
 PtrParamNode infoNode;
 
 
-#define DIETAG 0
-
-int main(int argc, const char **argv){
-  
-  #ifdef USE_PETSC
-  PetscInitialize(NULL,NULL,PETSC_NULL,PETSC_NULL); 
+#ifdef USE_PETSC
+int main(int argc, const char **argv)
+{
+  PetscInitialize(NULL,NULL,PETSC_NULL,PETSC_NULL);
   int rank;
   int size;
+  int ret =0;
   //find which is my rank
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD,&size);
-  if (rank==0){ 
-  #endif
+  if (rank==0)
+  {
     CFS cfs(argc, argv);   
-    int ret = cfs.Run();
-    
-  #ifdef USE_PETSC
+    ret = cfs.Run();
     //Send a Kill Tag to all workers before exiting the code
-    if (size>1){
-      for (rank = 1; rank < size; ++rank) {
+    if(size>1)
+      for(rank = 1; rank < size; ++rank)
         MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
-      }	
-    }
-  #endif
-    return ret; 
-  #ifdef USE_PETSC
   }
-  else {
-      PETSCWorker w;
-      w.run();
+  else
+  {
+    PETSCWorker w(argc, argv);
+    w.run();
   }
-
   PetscFinalize();
-  #endif
- 
-  
+  return ret;
 }
+#else
+int main(int argc, const char **argv)
+{
+  CFS cfs(argc, argv);
+  int ret = cfs.Run();
+  return ret;
+}
+#endif // USE_PETSC
 
 void PrintWarning(CoupledField::Exception& ex ) {
   
   // Print warning on command line
- std::string msg = ex.GetMsg();
- std::string fileName = ex.GetFileName();
- UInt lineNum = ex.GetLineNum();
+  std::string msg = ex.GetMsg();
+  std::string fileName = ex.GetFileName();
+  UInt lineNum = ex.GetLineNum();
  
-  std::cerr << "\n "
-      << fg_blue << "WARNING:" << fg_reset << "\n "
-      << msg << endl;
-  std::cerr << "\n(" << fileName << ", Line " 
-            << lineNum  << ")\n\n";
+  std::cerr << "\n " << fg_blue << "WARNING:" << fg_reset << "\n " << msg << endl;
+  std::cerr << "\n(" << fileName << ", Line " << lineNum  << ")\n\n";
   
   // Print warning also to info xml
   PtrParamNode warn = infoNode->Get("warning",ParamNode::INSERT);
@@ -268,32 +263,11 @@ int CFS::Run()
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
 
     timer->Stop();
-    if(!progOpts->IsQuiet())
-      cout << endl; // conditional empty line
     
-    cout << ">> Total time: wall clock: '";
-    
-    int walltime = (int) timer->GetWallTime();
-    double cputime = timer->GetCPUTime();
-
-    if(walltime > 120) 
-    {
-      int wallmin((int) (walltime / 60.0));
-      int cpumin((int) (cputime / 60.0));
-      if(wallmin > 60)
-        cout << wallmin / 60 << "h " << (wallmin % 60) << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'";
-      else
-        cout << wallmin << "m " << (walltime % 60) << "s' CPU time: '" << cpumin << "m " << ((int) cputime % 60) << "s'";
-    }
-    else
-    {
-      cout << walltime << "s' CPU time: '" << cputime << "s'";
-    }
-    if(progOpts->IsQuiet())
-      cout << " at " << to_simple_string(second_clock::local_time()) << endl;
-
-    
-    cout << endl << endl;
+    cout << endl;
+    cout << ">> Total wall-clock time: '" << Timer::GetTimeString(timer->GetWallTime())
+         << "' cpu time: '" << Timer::GetTimeString(timer->GetCPUTime())
+         << "' at " << to_simple_string(second_clock::local_time()) << endl << endl;
       
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
@@ -360,7 +334,8 @@ void CFS::PrintGrid()
 
 void CFS::SolveProblem()
 {
-  // Set up Problem
+
+ // Set up Problem
  domain->PostInit();
 
  // Solves the driver or optimization problem
@@ -384,13 +359,11 @@ void CFS::WriteXMLSkeleton()
   string simName = progOpts->GetSimName();
   if(meshFile == "")
     meshFile = simName + ".mesh";
-  SimInput * ptInputfile = new SimInputMESH(meshFile, PtrParamNode(), infoNode);
-  ptInputfile->InitModule();
+  SimInputMESH input(meshFile, PtrParamNode(), infoNode);
+  input.InitModule();
   // class writing log-information
-  SkeletonConf *ptskel = new SkeletonConf(ptInputfile);
-  ptskel->WriteConf();
-  delete ptskel;
-  delete ptInputfile;
+  SkeletonConf skeleton(dynamic_cast<SimInput*>(&input));
+  skeleton.WriteConf();
 }
 
 
@@ -410,6 +383,8 @@ void CFS::ReadXMLFile()
   // parse the problem xml file, validate and fill with defaults from schema
   // continue to work only with the ParamNode tree
   paramNode_ = XmlReader::ParseFile(xmlFile, schema);
+
+  // paramNode_->Dump();
 }
 
 void CFS::SetupIO(PtrParamNode rootNode )
@@ -461,11 +436,15 @@ void CFS::SetupIO(PtrParamNode rootNode )
   // Log command line parameters
   progOpts->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("progOpts"));
   
-  // log the optinal id/name/token/label from <cfsSimulation id="..">
-  infoNode->Get(ParamNode::HEADER)->Get("id")->SetValue(paramNode_->Get("id"));
+  // log the optional id/name/token/label from <cfsSimulation id="..">
+  std::string id = progOpts->GetId() != "" ? progOpts->GetId() : paramNode_->Get("id")->As<std::string>();
+  infoNode->Get(ParamNode::HEADER)->Get("id")->SetValue(id);
   
+  // additional log for all kind of information
+  if (paramNode_->Has("info"))
+    infoNode->Get(ParamNode::HEADER)->Get("info")->SetValue(paramNode_->Get("info"),false);
   // if requested give the problem file -> one can see the defaults then
   if(progOpts->DoDetailedInfo())
-    infoNode->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(paramNode_);
+    infoNode->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(paramNode_,false);
 }
 

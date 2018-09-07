@@ -3,12 +3,16 @@
 
 #include <iosfwd>
 #include <string>
+#include <thread>
+#include <mutex>
+#include <atomic>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/SimOutput.hh"
 #include "Utils/StdVector.hh"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/thread.hpp>
 
 namespace CoupledField {
 class BaseResult;
@@ -44,8 +48,11 @@ namespace CoupledField
     //! Begin single analysis step
     void BeginStep( UInt stepNum, Double stepVal );
 
-    /** This transmits the data */
+    /** This calls data transmit */
     void FinishStep();
+
+    /** This transmits the data; force = true can cause mem leak if connection fails! **/
+    void TransmitData(bool force);
 
     /** Mesh results are node and cell results */
     void AddResult( shared_ptr<BaseResult> sol );
@@ -57,6 +64,9 @@ namespace CoupledField
      * @param out here the data has to be written, the wrapping is done by Client */
     void Transmit(std::ostream& out);
 
+    /** overwrites virtual function */
+    bool IsStreaming() {return true;}
+
   private:
 
     /** accumulated results by AddMeshResult() to be written and released by FinishStep() */
@@ -67,8 +77,9 @@ namespace CoupledField
     class Client
     {
     public:
-      Client(boost::asio::io_service& io_service,
-          const std::string& server, const std::string& port, const std::string& path, SimOutputStreaming* base);
+      Client(boost::asio::io_service& io_service, SimOutputStreaming* base);
+
+      void Send(const std::string& server, const std::string& port, const std::string& path);
 
     private:
       void handle_resolve(const boost::system::error_code& err,
@@ -85,11 +96,31 @@ namespace CoupledField
 
       void handle_read_content(const boost::system::error_code& err);
 
+      SimOutputStreaming* base_;
+
       tcp::resolver resolver_;
       tcp::socket socket_;
       boost::asio::streambuf request_;
       boost::asio::streambuf response_;
     };
+
+    /** this service will be used by the client **/
+    boost::asio::io_service io_service;
+
+    /** this is the threaded function that calls io_service.run() to thread the file sending process **/
+    void io_service_runner(void);
+
+    /** wrapper that calls the function on the member **/
+    static void io_service_runner_wrapper(SimOutputStreaming* this_);
+
+    /** this is the according threading object **/
+    std::thread io_service_thread;
+
+    /** this pseudowork hinders the io_service.run() to exit immediately after sending first data **/
+    boost::shared_ptr<boost::asio::io_service::work> io_service_work;
+
+    /** the current sending client, used to determine whether stuff is being sent at the moment or not **/
+    Client* current_client;
 
     /** do http streaming or file? */
     bool http_;
@@ -105,9 +136,6 @@ namespace CoupledField
 
     /** add the mesh ? */
     bool send_mesh_;
-
-    /** compression is not zipped but no identation and no 'nr' in result/data/item */
-    bool compressed_;
 
     /** should we output more information to the command line? */
     bool silent_;

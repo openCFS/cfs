@@ -43,13 +43,10 @@ public:
 
   virtual ~RBFInterpolator();
 
-  virtual bool Run();
-
-
 
 protected:
 
-
+  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
 
   virtual void PrepareCalculation();
 
@@ -99,6 +96,9 @@ private:
 
     //! if true, then all nodes on region "wall" will have 0.0 as return-vector entry
     bool noSlip_;
+
+    //! if true, then element values are the interpolation target
+    bool useElemAsTarget_;
 
     //! index in the static matrices vector to use
     UInt matrixIndex_;

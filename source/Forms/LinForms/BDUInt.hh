@@ -22,7 +22,6 @@
 #define FILE_RHS_BDUINTEGRATOR_
 
 #include "LinearForm.hh"
-#include <boost/tr1/type_traits.hpp>
 #include "Domain/CoefFunction/CoefFunction.hh"
 
 
@@ -39,14 +38,16 @@ public:
   BDUIntegrator(VEC_DATA_TYPE factor,
                 shared_ptr<CoefFunction > rhsCoef,
                 shared_ptr<CoefFunction> dCoef,
-                bool coordUpdate = false );
+                bool coordUpdate = false,
+				bool extractReal = false);
 
   //! Constructor for surface integration
   BDUIntegrator(VEC_DATA_TYPE factor,
                 shared_ptr<CoefFunction > rhsCoef,
                 shared_ptr<CoefFunction> dCoef,
                 const std::set<RegionIdType>& volRegions,
-                bool coordUpdate = false );
+                bool coordUpdate = false,
+				bool extractReal = false);
 
   //! Copy constructor
   BDUIntegrator(const BDUIntegrator& right )
@@ -70,8 +71,8 @@ public:
 
   void CalcElemVector(Vector<VEC_DATA_TYPE> & elemVec,EntityIterator& ent);
 
-  bool IsComplex(){
-    return std::tr1::is_same<VEC_DATA_TYPE,Complex>::value;
+  bool IsComplex() const {
+    return std::is_same<VEC_DATA_TYPE,Complex>::value;
   }
 
   virtual void SetFeSpace(shared_ptr<FeSpace> feSpace ){

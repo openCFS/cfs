@@ -29,9 +29,6 @@ public:
 
   virtual ~AeroacousticBase();
 
-  virtual bool Run() = 0;
-
-
 
 protected:
 
@@ -54,6 +51,19 @@ protected:
                     const Vector<Double>& inVec2,
                     const UInt& numEquPerEnt,
                     const Double& scalarFactor);
+
+  void TensorProduct(Vector<Double>& retVec,
+                    const Vector<Double>& tensor1,
+                    const Vector<Double>& tensor2,
+                    const UInt& numEquPerEnt,
+                    const Double& scalarFactor);
+
+  void TensorProduct(Vector<Double>& retVec,
+                    const Vector<Double>& tensor1,
+                    const Vector<Double>& tensor2,
+                    const UInt& numEquPerEnt,
+                    const Double& scalarFactor,
+                    const Vector<Double>& scalar);
 
 
   void Node2Cell(Vector<Double>& returnVec,

@@ -4,6 +4,7 @@
 #include "BaseMatrix.hh"
 #include "StdMatrix.hh"
 #include "Vector.hh"
+#include "MatVec/opdefs.hh"
 
 namespace CoupledField {
 
@@ -150,13 +151,61 @@ namespace CoupledField {
     //! the latter are counted and the number of entries on the scalar level
     //! will actually be higher depending on the block size.
     //! Also for symmetric storage - GetNumEntries() give the right number of elements!
-    UInt GetNnz() const {
+    virtual UInt GetNnz() const {
       return nnz_;
     }
+
+    virtual T GetDiagEntry(unsigned int row) const = 0;
+
+    T GetTrace() const
+    {
+      assert(GetNumRows() == GetNumCols());
+      T res = 0;
+      for(unsigned int i = 0; i < GetNumRows(); i++)
+        res += GetDiagEntry(i);
+      return res;
+    }
+
+    T GetAvgDiag() const { return GetTrace() * (1./GetNumRows()); }
+
+    double GetMaxDiag() const
+    {
+      double maxDiag = -1e-70;
+      for(unsigned int i = 0; i < this->nrows_; ++i )
+        maxDiag = std::max(maxDiag, Abs<T>(GetDiagEntry(i)));
+      return maxDiag;
+    }
+
+    /** see the specific implementations */
+    virtual UInt GetRowSize(UInt i) const =0;
+
+    /** implemented in (S)CRS_Matrix but not in VBR_Matrix. Therefore ugly and dangerous OO :( */
+    virtual UInt* GetRowPointer() { assert(false); return NULL; }
+    virtual const UInt* GetRowPointer() const { assert(false); return NULL; }
+
+    /** implemented in (S)CRS_Matrix but not in VBR_Matrix */
+    virtual UInt* GetColPointer() { assert(false); return NULL; }
+    virtual const UInt* GetColPointer() const { assert(false); return NULL; }
+
+    /** implemented in (S)CRS_Matrix but not in VBR_Matrix */
+    virtual T* GetDataPointer() { assert(false); return NULL; }
+    virtual const T* GetDataPointer() const { assert(false); return NULL; }
+
+    /** only implemented for CRS_Matrix and SCRS_Matrix */
+    virtual unsigned int GetMaxRowSize() const {
+      assert(false);
+      return 0;
+    }
+
 
     //! Trasforms SCRS matrix into vector containing all upper
     //! triangle elements further usage in CFS++
     virtual void CopySCRSMatrix2Vec(Complex* &A){;};
+
+    /** Dump the matrix for debug purpose */
+    virtual std::string Dump() const {
+      return "Dump() not implemented";
+    }
 
     //@}
 

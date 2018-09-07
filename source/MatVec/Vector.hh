@@ -283,15 +283,25 @@ template<typename T> class ElemStoreSol;
     /** diff norm */
     double NormL2(const Vector<T>& other) const;
 
+    //** evaluate ModalAssuranceCriterion */
+    Double MAC(const Vector<T>& other) const;
+
     /** Sum of all the vector's elements */
     T Sum() const;
 
     T Avg() const;
 
+    /** Product of elements.
+     * @see Inner()  */
+    T Product() const;
+
     /** Extremal element. For Complex separate for real and imaginary part */
     T Min() const;
 
     T Max() const;
+
+    /** returns the entry with the maximum absolute value, the location is reported in loc */
+    T MaxAbs(int& loc) const;
 
     /** return the minimal and maximal element concurrently.
      * @see Min() for complex */
@@ -342,9 +352,6 @@ template<typename T> class ElemStoreSol;
     
     //! Is this vector collinear with another vector?
     bool Collinear( const Vector<T>& vec);
-    
-    //! Equality operator
-    bool operator==(const Vector<T> &x) const;
     
 //@}
 
@@ -409,6 +416,7 @@ template<typename T> class ElemStoreSol;
 
     //@{
 
+
     //! Assignment operator
     Vector<T> &operator=(const Vector<T> &x);
 
@@ -450,6 +458,13 @@ template<typename T> class ElemStoreSol;
     //@}
 
 #endif // EXPR_TEMPLATES
+
+
+    //! Equality operator - outside EXPR_TEMPLATES
+    bool operator==(const Vector<T> &x) const;
+
+    /** comparison is done via memcmp */
+    bool operator!=( const Vector<T>& x) const;
 
 
 
