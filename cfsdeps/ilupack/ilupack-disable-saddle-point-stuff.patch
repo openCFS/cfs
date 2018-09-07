@@ -1,0 +1,125 @@
+--- solvers/symAMGsetupparameters.c.orig	2008-11-26 11:45:58.000000000 +0100
++++ solvers/symAMGsetupparameters.c	2009-02-01 16:27:03.000000000 +0100
+@@ -960,6 +960,10 @@
+ 	       }
+ 	       else if (!strncmp("amd",param->ordering,3)) {
+ 		  if (param->flags&SADDLE_POINT) {
++                      /*
++                      // These lines have been commented out due to linker
++                      // problems. According to Matthias Bollhoefer the
++                      // saddle point code is still work in progress.
+ #ifdef _MC64_MATCHING_
+ 		     param->perm0         =PERMSMC64AMD_SP;
+ 		     param->perm          =PERMSMC64AMD_SP;
+@@ -971,6 +975,9 @@
+ 		     param->perm          =PERMSMATCHINGAMD_SP;
+ #endif
+ 		     param->permf         =SPDPERMPP;
++                     */
++                     // Print warning message
++                     printf("\nILUPACK WARNING:\nSaddle point code in file %s before line %d has been commented out!\n", __FILE__, __LINE__);
+ 		  }
+ 		  else {
+ #ifdef _MC64_MATCHING_
+@@ -991,6 +998,7 @@
+ 	       }
+ 	       else if (!strncmp("metisn",param->ordering,6)) {
+ 		  if (param->flags&SADDLE_POINT) {
++                     /*
+ #ifdef _MC64_MATCHING_
+ 		     param->perm0         =PERMSMC64METISN_SP;
+ 		     param->perm          =PERMSMC64METISN_SP;
+@@ -1002,6 +1010,8 @@
+ 		     param->perm          =PERMSMATCHINGMETISN_SP;
+ #endif
+ 		     param->permf         =SPDPERMPP;
++                     */
++                     printf("\nILUPACK_WARNING:\nSaddle point code in file %s before line %d has been commented out!\n", __FILE__, __LINE__);
+ 		  }
+ 		  else {
+ #ifdef _MC64_MATCHING_
+@@ -1022,6 +1032,7 @@
+ 	       }
+ 	       else if (!strncmp("metise",param->ordering,6)) {
+ 		  if (param->flags&SADDLE_POINT) {
++                     /*
+ #ifdef _MC64_MATCHING_
+ 		     param->perm0         =PERMSMC64METISE_SP;
+ 		     param->perm          =PERMSMC64METISE_SP;
+@@ -1033,6 +1044,8 @@
+ 		     param->perm          =PERMSMATCHINGMETISE_SP;
+ #endif
+ 		     param->permf         =SPDPERMPP;
++                     */
++                     printf("\nILUPACK WARNING:\nSaddle point code in file %s before line %d has been commented out!\n", __FILE__, __LINE__);
+ 		  }
+ 		  else {
+ #ifdef _MC64_MATCHING_
+@@ -1053,6 +1066,7 @@
+ 	       }
+ 	       else if (!strncmp("rcm",param->ordering,3)) {
+ 		  if (param->flags&SADDLE_POINT) {
++                     /*
+ #ifdef _MC64_MATCHING_
+ 		     param->perm0         =PERMSMC64RCM_SP;
+ 		     param->perm          =PERMSMC64RCM_SP;
+@@ -1064,6 +1078,8 @@
+ 		     param->perm          =PERMSMATCHINGRCM_SP;
+ #endif
+ 		     param->permf         =SPDPERMPP;
++                     */
++                     printf("\nILUPACK WARNING:\nSaddle point code in file %s before line %d has been commented out!\n", __FILE__, __LINE__);
+ 		  }
+ 		  else {
+ #ifdef _MC64_MATCHING_
+@@ -1084,6 +1100,7 @@
+ 	       }
+ 	       else if (!strncmp("amf",param->ordering,3)) {
+ 		  if (param->flags&SADDLE_POINT) {
++                     /*
+ #ifdef _MC64_MATCHING_
+ 		     param->perm0         =PERMSMC64AMF_SP;
+ 		     param->perm          =PERMSMC64AMF_SP;
+@@ -1095,6 +1112,8 @@
+ 		     param->perm          =PERMSMATCHINGAMF_SP;
+ #endif
+ 		     param->permf         =SPDPERMPP;
++                     */
++                     printf("ILUPACK WARNING:\nSaddle point code in file %s before line %d has been commented out!\n", __FILE__, __LINE__);
+ 		  }
+ 		  else {
+ #ifdef _MC64_MATCHING_
+@@ -1115,6 +1134,7 @@
+ 	       }
+ 	       else if (!strncmp("mmd",param->ordering,3)) {
+ 		  if (param->flags&SADDLE_POINT) {
++                     /*
+ #ifdef _MC64_MATCHING_
+ 		     param->perm0         =PERMSMC64MMD_SP;
+ 		     param->perm          =PERMSMC64MMD_SP;
+@@ -1126,6 +1146,8 @@
+ 		     param->perm          =PERMSMATCHINGMMD_SP;
+ #endif
+ 		     param->permf         =SPDPERMPP;
++                     */
++                     printf("\nILUPACK WARNING:\nSaddle point code in file %s before line %d has been commented out!\n", __FILE__, __LINE__);
+ 		  }
+ 		  else {
+ #ifdef _MC64_MATCHING_
+@@ -1409,6 +1431,7 @@
+ 		  if (param->flags&SADDLE_POINT) {
+ 		    /* in principle we should later replace this 
+ 		       drive by one without matching !!! */
++                    /*
+ #ifdef _MC64_MATCHING_
+ 		     param->perm0         =PERMSMC64METISN_SP;
+ 		     param->perm          =PERMSMC64METISN_SP;
+@@ -1420,6 +1443,8 @@
+ 		     param->perm          =PERMSMATCHINGMETISN_SP;
+ #endif
+ 		     param->permf         =SPDPERMPP;
++                    */
++                    printf("\nILUPACK WARNING:\nSaddle point code in file %s before line %d has been commented out!", __FILE__, __LINE__);
+ 		  }
+ 		  else {
+ 		     param->perm0         =SYMPERMMETISN;

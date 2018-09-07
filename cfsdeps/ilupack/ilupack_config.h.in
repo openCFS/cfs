@@ -1,0 +1,7 @@
+#ifndef ILUPACK_CONFIG_H
+#define ILUPACK_CONFIG_H
+
+#cmakedefine HAVE_SYS_TIMES_H @HAVE_SYS_TIMES_H@
+#cmakedefine HAVE_SYS_TIME_H @HAVE_SYS_TIME_H@
+
+#endif
