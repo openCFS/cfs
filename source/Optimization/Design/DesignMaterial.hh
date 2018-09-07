@@ -209,7 +209,7 @@ class TransferFunction;
     inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
     
     /* general anisotropic FMO tensor */
-    inline void GetElasticFMOTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+    inline void GetElasticFMOTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
 
     /** Calculate the orthotropic material tensor */
     inline void GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);

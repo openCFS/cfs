@@ -127,6 +127,9 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case MECH_22:
     case MECH_23:
     case MECH_33:
+    case MECH_44:
+    case MECH_55:
+    case MECH_66:
       return true;
     default:
       return false;
@@ -497,6 +500,28 @@ int DesignElement::GetOptResultIndex(SolutionType st)
     return 18;
   case OPT_RESULT_20:
     return 19;
+  case OPT_RESULT_21:
+    return 20;
+  case OPT_RESULT_22:
+    return 21;
+  case OPT_RESULT_23:
+    return 22;
+  case OPT_RESULT_24:
+    return 23;
+  case OPT_RESULT_25:
+    return 24;
+  case OPT_RESULT_26:
+    return 25;
+  case OPT_RESULT_27:
+    return 26;
+  case OPT_RESULT_28:
+      return 27;
+  case OPT_RESULT_29:
+      return 28;
+  case OPT_RESULT_30:
+      return 29;
+  case OPT_RESULT_31:
+      return 30;
   default:
     return -1;
   }
@@ -802,6 +827,9 @@ void DesignElement::SetEnums()
   type.Add(MECH_23, "mech_23");
   type.Add(MECH_13, "mech_13");
   type.Add(MECH_12, "mech_12");
+  type.Add(MECH_44, "mech_44");
+  type.Add(MECH_55, "mech_55");
+  type.Add(MECH_66, "mech_66");
   type.Add(DIELEC_11, "dielec_11");
   type.Add(DIELEC_12, "dielec_12");
   type.Add(DIELEC_22, "dielec_22");

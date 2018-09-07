@@ -463,6 +463,21 @@
       <xsd:enumeration value="optResult_14"/>
       <xsd:enumeration value="optResult_15"/>
       <xsd:enumeration value="optResult_16"/>
+      <xsd:enumeration value="optResult_17"/>
+      <xsd:enumeration value="optResult_18"/>
+      <xsd:enumeration value="optResult_19"/>
+      <xsd:enumeration value="optResult_20"/>
+      <xsd:enumeration value="optResult_21"/>
+      <xsd:enumeration value="optResult_22"/>
+      <xsd:enumeration value="optResult_23"/>
+      <xsd:enumeration value="optResult_24"/>
+      <xsd:enumeration value="optResult_25"/>
+      <xsd:enumeration value="optResult_26"/>
+      <xsd:enumeration value="optResult_27"/>
+      <xsd:enumeration value="optResult_28"/>
+      <xsd:enumeration value="optResult_29"/>
+      <xsd:enumeration value="optResult_30"/>
+      <xsd:enumeration value="optResult_31"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -521,8 +536,26 @@
       <xsd:enumeration value="optResult_9"/>
       <xsd:enumeration value="optResult_10"/>
       <xsd:enumeration value="optResult_11"/>
-      <xsd:enumeration value="optResult_12"/>      
-      
+      <xsd:enumeration value="optResult_12"/>   
+      <xsd:enumeration value="optResult_13"/>      
+      <xsd:enumeration value="optResult_14"/>      
+      <xsd:enumeration value="optResult_15"/>      
+      <xsd:enumeration value="optResult_16"/>      
+      <xsd:enumeration value="optResult_17"/>      
+      <xsd:enumeration value="optResult_18"/>      
+      <xsd:enumeration value="optResult_19"/>      
+      <xsd:enumeration value="optResult_20"/>      
+      <xsd:enumeration value="optResult_21"/>      
+      <xsd:enumeration value="optResult_22"/>      
+      <xsd:enumeration value="optResult_23"/>      
+      <xsd:enumeration value="optResult_24"/>      
+      <xsd:enumeration value="optResult_25"/>
+      <xsd:enumeration value="optResult_26"/>      
+      <xsd:enumeration value="optResult_27"/>
+      <xsd:enumeration value="optResult_28"/>
+      <xsd:enumeration value="optResult_29"/>
+      <xsd:enumeration value="optResult_30"/>
+      <xsd:enumeration value="optResult_31"/>
     </xsd:restriction>
   </xsd:simpleType>
 

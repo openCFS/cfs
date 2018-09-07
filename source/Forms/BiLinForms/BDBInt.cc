@@ -121,7 +121,6 @@ namespace CoupledField{
     }
 
     // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " dbMat=" << dbMat_.ToString();
-
   }
 
   // ===============

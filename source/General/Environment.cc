@@ -1502,6 +1502,18 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_18, "optResult_18");
     SolutionTypeEnum.Add(OPT_RESULT_19, "optResult_19");
     SolutionTypeEnum.Add(OPT_RESULT_20, "optResult_20");
+    SolutionTypeEnum.Add(OPT_RESULT_21, "optResult_21");
+    SolutionTypeEnum.Add(OPT_RESULT_22, "optResult_22");
+    SolutionTypeEnum.Add(OPT_RESULT_23, "optResult_23");
+    SolutionTypeEnum.Add(OPT_RESULT_24, "optResult_24");
+    SolutionTypeEnum.Add(OPT_RESULT_25, "optResult_25");
+    SolutionTypeEnum.Add(OPT_RESULT_26, "optResult_26");
+    SolutionTypeEnum.Add(OPT_RESULT_27, "optResult_27");
+    SolutionTypeEnum.Add(OPT_RESULT_28, "optResult_28");
+    SolutionTypeEnum.Add(OPT_RESULT_29, "optResult_29");
+    SolutionTypeEnum.Add(OPT_RESULT_30, "optResult_30");
+    SolutionTypeEnum.Add(OPT_RESULT_31, "optResult_31");
+
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "lagrangeMultiplier");
     SolutionTypeEnum.Add(LAGRANGE_MULT_DERIV_1, "lagrangeMultiplierD1");
