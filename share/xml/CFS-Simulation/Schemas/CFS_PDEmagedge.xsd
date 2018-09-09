@@ -300,6 +300,7 @@
       <xsd:enumeration value="magEddyPower"/>
       <xsd:enumeration value="magForceLorentz"/>
       <xsd:enumeration value="magCoreLoss"/>
+      <xsd:enumeration value="magJouleLossPower"/>
     </xsd:restriction>
   </xsd:simpleType>
 

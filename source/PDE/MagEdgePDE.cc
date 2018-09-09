@@ -1356,6 +1356,26 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       jld->entryType = ResultInfo::SCALAR;
       shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
       DefineFieldResult( jldCoef, jld );
+
+    // === JOULE LOSS POWER ===
+    shared_ptr<ResultInfo> jldRes(new ResultInfo());
+    jldRes->resultType = MAG_JOULE_LOSS_POWER;
+    jldRes->dofNames = "";
+    jldRes->unit = "W";
+    jldRes->definedOn = ResultInfo::REGION;
+    jldRes->entryType = ResultInfo::SCALAR;
+    availResults_.insert( jldRes );
+    shared_ptr<ResultFunctor> jldFunc;
+    shared_ptr<CoefFunctionMulti> coreLossCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+    if( isComplex_ ){
+      jldFunc.reset( new ResultFunctorIntegrate<Complex>(jldCoef, feFct, jldRes) );
+    } else {
+      jldFunc.reset( new ResultFunctorIntegrate<Double>(jldCoef, feFct, jldRes) );
+    }
+    resultFunctors_[MAG_JOULE_LOSS_POWER] = jldFunc;
+    // it is an integrated result but we need to save the coef function
+    // somewhere for the finalization
+    fieldCoefs_[MAG_CORE_LOSS] = coreLossCoef;
     }
   }
 
