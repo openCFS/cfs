@@ -17,8 +17,7 @@
 #include "General/defs.hh"
 #include "Enum.hh"
 
-// KILLME #define REFACTOR WARN("Commented out due to refactoring");
-#define REFACTOR
+#define REFACTOR WARN("Commented out due to refactoring");
 
 //! \file Environment.hh
 //! This file contains some global macro, class and enumeration data type
