@@ -628,7 +628,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
        c->AddCoefFct( list, acc );
      }
      
-     return coef;
+     return acc;
    }
   
   // ========================================================================
@@ -977,7 +977,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       // -----------------------------------
       //  3) Compute Coupling Criterions
       // -----------------------------------
-      normsReached = (iter>1);
+      normsReached = true;
       msg.str(""); // clear logging information stream
       msg << std::setw(width[0]) << "Quantity"
                << std::setw(width[1]) << "Converged"
