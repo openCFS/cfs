@@ -1437,7 +1437,7 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
 //    }
 //    count++;
   }
-  double dens = GetParameter(map, DesignElement::DENSITY);
+  double dens = GetParameter(DesignElement::DENSITY);
   TransferFunction* tf = space_->GetTransferFunction(DesignElement::DENSITY, App::MECH);
   t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
 }
@@ -2712,11 +2712,11 @@ int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point
   assert(h > -eps);
   int idx = -1;
   // set index for values close to boundaries manually
-  if (close(point, interval[nRows - 1][0]) { 
+  if (close(point, interval[nRows - 1][0])) {
     idx = nRows - 2;
-  } else if (close(point, interval[0][0]) {
+  } else if (close(point, interval[0][0])) {
     idx = 0;
-  } elsef if (interval[0][0] < point && point < interval[nRows-1][0])) { 
+  } else if (interval[0][0] < point && point < interval[nRows-1][0]) {
     idx = (int) ( (point - interval[0][0]) / h);
   } else if (point > interval[nRows - 1][0]) {
     idx = nRows - 2;
