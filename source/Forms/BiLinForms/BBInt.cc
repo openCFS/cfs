@@ -18,6 +18,10 @@
 
 #include "BBInt.hh"
 #include "Domain/Domain.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+
+DECLARE_LOG(bbint)
+DEFINE_LOG(bbint, "bbint")
 
 namespace CoupledField{
 
@@ -89,6 +93,8 @@ namespace CoupledField{
        bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_ * fac, 1.0);
 #else
        elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
+       LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " fac=" << fac << " factor_=" << factor_ << " bmat=" << bMat_.ToString(2);
+       LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " -> K_" << i << "=" << elemMat.ToString(2);
 #endif
      }
    }
@@ -341,6 +347,7 @@ namespace CoupledField{
        // Call the CalcBMat()-method
        this->bOperator_->CalcOpMatTransposed( bMatT_, lp1, ptFe1);
        this->bOperator_->CalcOpMat( this->bMat_, lp2, ptFe2);
+
 
        // Calculate scalar factor
        //TODO: Which point to take? lp1 or lp2?

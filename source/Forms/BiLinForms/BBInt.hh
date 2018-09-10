@@ -148,7 +148,7 @@ namespace CoupledField {
       
       //! \copydoc BiLinearForm::IsSolDependent
       virtual bool IsSolDependent() {
-        return coefScalar_->GetDependency() == CoefFunction::SOLUTION;
+        return coefScalar_->GetDependency() == CoefFunction::SOLUTION || CoefFunction::SPACE;
       }
             
       //! Set Finite Element Space
