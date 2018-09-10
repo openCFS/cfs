@@ -1559,7 +1559,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         if(analysistype_ == MULTIHARMONIC){
         	// consider that the quantities (A,J) in multiharmonic are 1/2 of the harmonic ones,
         	// because of the negative harmonics
-        	coefFreqFactor = CoefFunction::Generate( mp_, part, "2*pi*f");
+        	coefFreqFactor = CoefFunction::Generate( mp_, part, "0.5*pi*f");
         }
         else {
         	// for harmonic
