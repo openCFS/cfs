@@ -1356,6 +1356,26 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       jld->entryType = ResultInfo::SCALAR;
       shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
       DefineFieldResult( jldCoef, jld );
+
+    // === JOULE LOSS POWER ===
+    shared_ptr<ResultInfo> jldRes(new ResultInfo());
+    jldRes->resultType = MAG_JOULE_LOSS_POWER;
+    jldRes->dofNames = "";
+    jldRes->unit = "W";
+    jldRes->definedOn = ResultInfo::REGION;
+    jldRes->entryType = ResultInfo::SCALAR;
+    availResults_.insert( jldRes );
+    shared_ptr<ResultFunctor> jldFunc;
+    shared_ptr<CoefFunctionMulti> coreLossCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+    if( isComplex_ ){
+      jldFunc.reset( new ResultFunctorIntegrate<Complex>(jldCoef, feFct, jldRes) );
+    } else {
+      jldFunc.reset( new ResultFunctorIntegrate<Double>(jldCoef, feFct, jldRes) );
+    }
+    resultFunctors_[MAG_JOULE_LOSS_POWER] = jldFunc;
+    // it is an integrated result but we need to save the coef function
+    // somewhere for the finalization
+    fieldCoefs_[MAG_CORE_LOSS] = coreLossCoef;
     }
   }
 
@@ -1515,54 +1535,37 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
 
     // === EDDY CURRENT (JOULE) LOSS DENSITY INTEGRATED===
-    /* Already integrated over one period of excitation "signal"
-     * Q = \gamma \omega^2 ||\hat{A}||^2 + \omega Im{ \hat{J}_i \hat{\overbar{A}} }
-     * \hat{\overbar{A}} is the conjugate complex of \hat{A}
+    /*  The electric power averaved over
+     *  one period T of the time history
+     *    P_mean = 1/T \int_0^T E(t)*J(t) dt
+     *  with the electric field E(t) and the total current density J(t).
+     *  The general expression is:
+     *  omega*Im(A'*J)
+     *  where J is the total current density,
+     *  and A' is the conjugate complex of the magnetic vector potential.
      */
     if( (analysistype_ == HARMONIC) || (analysistype_ == MULTIHARMONIC) ){
       shared_ptr<CoefFunctionMulti> eddyLossCoef =
           dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
       regIt = regions_.Begin();
+      // for the sake of simplicity we should real with the total current density
       for( ; regIt != regions_.End(); ++regIt ) {
         RegionIdType actRegion = *regIt;
-        // first part : \gamma \omega^2 ||\hat{A}||^2
-        PtrCoefFct normA = CoefFunction::Generate( mp_, part, CoefXprUnaryOp( mp_, GetCoefFct(MAG_POTENTIAL), CoefXpr::OP_NORM) );
-        PtrCoefFct squareNormA = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, normA, normA, CoefXpr::OP_MULT ) );
-        PtrCoefFct tmp = NULL;
+        // OP_MULT_CONJ computes A in B'
+        PtrCoefFct conjAinJ = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, GetCoefFct(MAG_TOTAL_CURRENT_DENSITY), GetCoefFct(MAG_POTENTIAL), CoefXpr::OP_MULT_CONJ) );
+        PtrCoefFct coefIm = CoefFunction::Generate( mp_, part, CoefXprUnaryOp( mp_, conjAinJ, CoefXpr::OP_IM ) );
+        // frequency factor
+        PtrCoefFct coefFreqFactor = NULL;
         if(analysistype_ == MULTIHARMONIC){
-          tmp = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, squareNormA, "pi*f*pi*f", CoefXpr::OP_MULT ) );
-        }else{
-          tmp = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, squareNormA, "0.5*2*pi*f*2*pi*f", CoefXpr::OP_MULT ) );
+        	// consider that the quantities (A,J) in multiharmonic are 1/2 of the harmonic ones,
+        	// because of the negative harmonics
+        	coefFreqFactor = CoefFunction::Generate( mp_, part, "0.5*pi*f");
         }
-        PtrCoefFct part1 = CoefFunction::Generate( mp_, part,
-                            CoefXprBinOp( mp_, materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL),
-                                tmp, CoefXpr::OP_MULT ) );
-
-
-        PtrCoefFct  part2 = NULL;
-        if( coilCurrentDens_.find(actRegion) != coilCurrentDens_.end() ) {
-          // Coil region (region of impressed current density)
-          if(analysistype_ == MULTIHARMONIC){
-            // Nonlinear Multiharmonic
-            WARN("For a multiharmonic analysis, Joule losses in coils are not implemented and set to ZERO!\n"
-                      "Only for the linear harmonic case!!!");
-            part2 = CoefFunction::Generate( mp_, part, "0.0");
-          }else{
-            // Linear harmonic
-            // second part : \omega Im{ \hat{J}_i \hat{\overbar{A}} }
-            PtrCoefFct part2Tmp = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, GetCoefFct(MAG_POTENTIAL), GetCoefFct(MAG_COIL_CURRENT_DENSITY), CoefXpr::OP_MULT_CONJ ) );
-            PtrCoefFct part2TmpIM = CoefFunction::Generate( mp_, part, CoefXprUnaryOp( mp_, part2Tmp, CoefXpr::OP_IM ) );
-            part2 = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, part2TmpIM, "pi*f", CoefXpr::OP_MULT ) );
-          }
-        }else{
-          part2 = CoefFunction::Generate( mp_, part, "0.0");
+        else {
+        	// for harmonic
+        	coefFreqFactor = CoefFunction::Generate( mp_, part, "pi*f");
         }
-
-        // add both parts
-        PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, part1, part2, CoefXpr::OP_ADD) );
-        // the division by the period length is already incorporated
-        //PtrCoefFct  partAdd =  CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, partAddTmp, "1.0", CoefXpr::OP_DIV) );
-        eddyLossCoef->AddRegion(actRegion, partAdd);
+        eddyLossCoef->AddRegion(actRegion, CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, coefFreqFactor, coefIm, CoefXpr::OP_MULT) ) );
       }
     }
 

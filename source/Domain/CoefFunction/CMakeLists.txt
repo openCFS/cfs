@@ -25,6 +25,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionStabParams.cc
   CoefFunctionHyst.cc
   CoefFunctionHarmBalance.cc
+  CoefFunctionComplexToReal.cc
 )
 
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})

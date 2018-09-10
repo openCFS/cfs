@@ -1621,6 +1621,7 @@ namespace CoupledField
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
 
             algsys_-> SetElementRHS(elemVec, fctId, eqnVec);
+            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
         } else {
           // That should be STATIC, TRANSIENT or EIGENFREQUENCY
@@ -1648,11 +1649,11 @@ namespace CoupledField
             // Map equation numbers
             actContext.MapEqns(entIt, eqnVec, fctId);
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " map eqnVec=" << eqnVec.ToString();
-            
+
             // Perform remapping
             ReMapEquations(eqnVec, fctId);
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " remap eqnVec=" << eqnVec.ToString();
-            
+
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
             // Pass element vector to algebraic system
             algsys_->SetElementRHS(elemVec, fctId, eqnVec);
