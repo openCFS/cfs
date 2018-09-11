@@ -1814,7 +1814,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       DesignElement* org = &data[data_index];
 
       // we need to transform manually only for smart design with excitation given. The physicalPseudoDensity has it by itself
-      if(descr.solutionType >= OPT_RESULT_1 && descr.solutionType <= OPT_RESULT_25 && descr.access == DesignElement::SMART && descr.excitation >= 0 && ex != NULL && ex->transform != NULL)
+      if(descr.solutionType >= OPT_RESULT_1 && descr.solutionType <= OPT_RESULT_31 && descr.access == DesignElement::SMART && descr.excitation >= 0 && ex != NULL && ex->transform != NULL)
       {
         DesignElement* trans = ApplyTransformations(org, org, NULL);
         trans->GetValue(descr, result_value, dofs);

@@ -1487,35 +1487,35 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTen
     break;
   case DesignElement::MECH_12:
     if (subTensor != FULL) {
-      Set2dVoigtTensor(E, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+      Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     } else {
       SetOrthotropicTensor(E,subTensor, 0.,1.0,0.,0.,0.,0.,0.,0.,0.);
     }
     break;
   case DesignElement::MECH_13:
     if (subTensor != FULL) {
-      Set2dVoigtTensor(E, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+      Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     } else {
       SetOrthotropicTensor(E,subTensor, 0.,0.,1.0,0.,0.,0.,0.,0.,0.);
     }
     break;
   case DesignElement::MECH_22:
     if (subTensor != FULL) {
-      Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+      Set2dVoigtTensor(E, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     } else {
       SetOrthotropicTensor(E,subTensor, 0.,0.,0.,1.0,0.,0.,0.,0.,0.);
     }
     break;
   case DesignElement::MECH_23:
     if (subTensor != FULL) {
-      Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+      Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
     } else {
       SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,1.0,0.,0.,0.,0.);
     }
     break;
   case DesignElement::MECH_33:
     if (subTensor != FULL) {
-      Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+      Set2dVoigtTensor(E, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
     } else {
       SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,0.,1.0,0.,0.,0.);
     }
