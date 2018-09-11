@@ -625,7 +625,7 @@ def write_gid_mesh(mesh, filename,scale = 1):
 # names all nodes on edges, faces and corners of cubic domain
 def name_bc_nodes(mesh):
   assert(mesh != None)
-  assert(mesh.nz > 1)
+  assert(mesh.nz > 0)
   nx = mesh.nx
   ny = mesh.ny
   nz = mesh.nz

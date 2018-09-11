@@ -207,7 +207,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
     # either Image or polydata  
     viz = None
     if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp","hom_ortho_3d"):
-
       if args.show == "simp":
         args.parametrization = "simp"
       if h5_read:
@@ -217,7 +216,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
 
       if dim_2D and args.show in TWO_SCALE:
         print("Volume for regular grid: " + str(calc_volume(design['s1'], design['s2'])))
-      
       # add angle bias, e.g. by 90 deg to correct thomas
       design['angle'] += args.angle_bias * numpy.pi / 180
       # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
@@ -536,6 +534,7 @@ tensor = []  # becomes a single tensor or a tensor array
 centers = []
 dim_2D = None
 h5_read = None
+matlab_read = None
 infoXml_read = None
 elem_dim = None
 min_bb = None
@@ -573,7 +572,7 @@ if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.
   else:
     #data from matlab file
     assert(args.input.endswith(".mat"))
-    dim_2D = '2D'
+    matlab_read = True
     input = args.input
     args.tensor = 'matlab'
   if not args.tensor == 'matlab' and args.tensor == 'mechTensor':
@@ -642,7 +641,7 @@ else:
 if not args.target_volume:
   if args.mesh and args.h5_nondes != "None":
     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min_bb,max_bb=min_bb)
+    perform(args, h5_read, matlab_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min_bb,max_bb=min_bb)
   else:
     perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)
 else:
@@ -661,7 +660,7 @@ else:
   best_s = -1
   while upper - lower > 0.000001 and abs(best_err) > 0.0001:
     for s in numpy.arange(lower, upper, (upper - lower) / 5.):
-      vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, s)
+      vol = perform(args, h5_read,matlab_read, dim_2D, tensor, centers, aux_code, s)
       err = abs(vol - args.target_volume)
       if vol == None:
         sys.exit(1)
@@ -691,7 +690,7 @@ else:
 
   # the last result does not mean to be the best result
   if err != best_err:
-    vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, best_s)
+    vol = perform(args, h5_read,matlab_read, dim_2D, tensor, centers, aux_code, best_s)
     print("!!!!! best_target_volume: best_scale=" + str(best_s) + " -> " + str(vol) + " err=" + str(abs(vol - args.target_volume)))
     tv = xml.etree.ElementTree.SubElement(info, "best_target_volume")
     tv.set("target", str(args.target_volume))

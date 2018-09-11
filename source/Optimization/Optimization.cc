@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -1181,7 +1182,11 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     Function* f = objectives.data[i];
-    iteration->Get(f->ToString())->SetValue(f->GetValue());
+
+    std::stringstream ss;
+    ss << std::setprecision(10) << f->GetValue();
+
+    iteration->Get(f->ToString())->SetValue(ss.str());
     if(f->GetType() == Function::BANDGAP)
     {
       // we search with the wave vectors for minimun and maximum

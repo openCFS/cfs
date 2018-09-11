@@ -818,6 +818,17 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
       case OPT_RESULT_18: return 17;
       case OPT_RESULT_19: return 18;
       case OPT_RESULT_20: return 19;
+      case OPT_RESULT_21: return 20;
+      case OPT_RESULT_22: return 21;
+      case OPT_RESULT_23: return 22;
+      case OPT_RESULT_24: return 23;
+      case OPT_RESULT_25: return 24;
+      case OPT_RESULT_26: return 25;
+      case OPT_RESULT_27: return 26;
+      case OPT_RESULT_28: return 27;
+      case OPT_RESULT_29: return 28;
+      case OPT_RESULT_30: return 29;
+      case OPT_RESULT_31: return 30;
       default: throw Exception("invalid solution type");
     }
   }
@@ -1803,7 +1814,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       DesignElement* org = &data[data_index];
 
       // we need to transform manually only for smart design with excitation given. The physicalPseudoDensity has it by itself
-      if(descr.solutionType >= OPT_RESULT_1 && descr.solutionType <= OPT_RESULT_20 && descr.access == DesignElement::SMART && descr.excitation >= 0 && ex != NULL && ex->transform != NULL)
+      if(descr.solutionType >= OPT_RESULT_1 && descr.solutionType <= OPT_RESULT_31 && descr.access == DesignElement::SMART && descr.excitation >= 0 && ex != NULL && ex->transform != NULL)
       {
         DesignElement* trans = ApplyTransformations(org, org, NULL);
         trans->GetValue(descr, result_value, dofs);
