@@ -909,33 +909,50 @@ def generate_basecell(args,info):
     h = np.float32(1.0/args.res)
     # coords of vertices lie in [0,1-h]
     import time
-    start = time.time()
+#     start = time.time()
     import marching_cubes
     verts = []
     faces = []
     normals = []
-#     verts, faces, normals, values = measure.marching_cubes_lewiner(array,spacing=(h,h,h),allow_degenerate=False,step_size=1)
-#     marching_cubes.write_vtp(verts,faces,(h,h,h),name="mc_lewiner.vtp",normals=normals)
+    shape = np.asarray(array.shape[0:3]) + np.array((3,3,3))
+    helper = np.zeros(shape,dtype=int)
+    helper[1:shape[0]-2,1:shape[1]-2,1:shape[2]-2] = array
+    
+#     helper[0,1:shape[1]-1,1:shape[2]-1] = helper[1,1:shape[1]-1,1:shape[2]-1]
+#     helper[shape[0]-1,1:shape[1]-1,1:shape[2]-1] = helper[shape[0]-2,1:shape[1]-1,1:shape[2]-1]
+#     
+#     helper[1:shape[0]-1,0,1:shape[2]-1] = helper[1:shape[0]-1,1,1:shape[2]-1]
+#     helper[1:shape[0]-1,shape[1]-1,1:shape[2]-1] = helper[1:shape[0]-1,shape[1]-2,1:shape[2]-1]
+#     
+#     helper[1:shape[0]-1,1:shape[1]-1,0] = helper[1:shape[0]-1,1:shape[1]-1,1]
+#     helper[1:shape[0]-1,1:shape[1]-1,shape[2]-1] = helper[1:shape[0]-1,1:shape[1]-1,shape[2]-2]
+     
+#     points, cells, normals, values = measure.marching_cubes_lewiner(helper,spacing=(h,h,h),allow_degenerate=False,step_size=2)
+#     marching_cubes.write_vtp(points,cells,(h,h,h),name="mc_lewiner.vtp",normals=normals)
 #     sys.exit()
 #     verts, faces = measure.marching_cubes_classic(array,spacing=(h,h,h))
-    marching_cubes.marching_cubes(array,(h,h,h),verts,faces,normals)
-    end = time.time()
-    print("time:",end - start)
+    points, cells = marching_cubes.marching_cubes(helper,(h,h,h),verts,faces,normals)
+#     end = time.time()
+#     print("time:",end - start)
     sys.exit()
-  
-    import pymesh
-    print("verts:",verts)
-    print("faces:",faces)
-    verts, faces, _ = pymesh.remove_duplicated_vertices_raw(np.asarray(verts),np.asarray(faces),1e-4) 
-    verts, faces, _ = pymesh.remove_duplicated_faces_raw(np.asarray(verts),np.asarray(faces))
     
     # marching_cubes returns float values
-    verts = np.asarray(verts)
+    points = np.asarray(points)
     # scale structure to [0,1]^3
     # moves structure to [0,1]^3
-    #verts += (h/2.0,h/2.0,h/2.0)
-    points = verts
-    cells = faces 
+    points += (h/2.0,h/2.0,h/2.0)
+  
+#     import pymesh
+#     mesh = pymesh.form_mesh(np.asarray(points),np.asarray(cells))
+#     mesh = pymesh.resolve_self_intersection(mesh)
+#     mesh, _ = pymesh.collapse_short_edges(mesh, rel_threshold=0.3)
+#     points, cells, _ = pymesh.remove_duplicated_vertices_raw(mesh.vertices,mesh.faces)
+#     points, cells, _ = pymesh.remove_duplicated_faces_raw(points,cells)
+#     points, cells, _ = pymesh.remove_degenerated_triangles_raw(points, cells, num_iterations=10)
+    #mesh.vertices += (h/2.0,h/2.0,h/2.0)
+    #points = mesh.vertices
+    #cells = mesh.faces
+    
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
     # points: list with 3d coords
@@ -944,7 +961,11 @@ def generate_basecell(args,info):
       if args.target == "surface_mesh" :
         points, cells = mesh_boundary_circles(points, cells, bp_lists, args.bc_flags)
       
+#       points, cells, _ = pymesh.remove_duplicated_vertices_raw(points,cells)
+#       marching_cubes.write_vtp(points, cells, (h,h,h), "test.vtp")
+      
       if args.simplify:  
+        marching_cubes.write_vtp(points,cells,(h,h,h),name="mc_lewiner.vtp")
         points, cells = collapse_short_edges(points, cells)
       
   if args.target == '3dlines' and not args.save_vtp:
@@ -1375,6 +1396,7 @@ def extract_2d_bc_boundary_coords(bpoints,bound):
 # @param bp_lists: 6 lists with boundary points for each bounding box face
 # @param points: list with 3d coords
 def mesh_boundary_circles(points,cells,bpoints,flags=None):
+  print("meshed boundary circles")
   assert(len(bpoints) == 6)
    
   lists_2d = []
@@ -1519,7 +1541,7 @@ def mesh_basecell_boundary(points,cells,coords_2d,bound):
   return points,cells
 
 
-def cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz):
+def cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz,log=False):
   """
     Returns voxel coordinates (i,j,k) for given cartesian coords (x,y,z)
     @param point described in cartesian coords
@@ -1537,9 +1559,11 @@ def cartesian_to_voxel_coords(point,minx,miny,minz,hx,hy,hz):
     >>> cartesian_to_voxel_coords((0.4,0.4,0.4),-2.0,5.0,0.4,0.1,0.1,0.1)
     (23, -45, 0)
   """
-  i = int((point[0]-minx) / hx)#-1e-6)
-  j = int((point[1]-miny) / hy)#-1e-6)
-  k = int((point[2]-minz) / hz)#-1e-6)
+  if log:
+    print("point:",point)
+  i = int((point[0]-minx) / hx-1e-6)
+  j = int((point[1]-miny) / hy-1e-6)
+  k = int((point[2]-minz) / hz-1e-6)
   
   return i,j,k
 
@@ -1554,9 +1578,9 @@ def voxel_to_cartesian_coords(voxel,lbounds,h):
   """
   
   assert(len(lbounds) == len(h))
-  x = voxel[0] * h[0] + lbounds[0]# + 1e-6
-  y = voxel[1] * h[1] + lbounds[1]# + 1e-6
-  z = voxel[2] * h[2] + lbounds[2]# + 1e-6
+  x = voxel[0] * h[0] + lbounds[0] + 1e-6
+  y = voxel[1] * h[1] + lbounds[1] + 1e-6
+  z = voxel[2] * h[2] + lbounds[2] + 1e-6
   
   return np.array([x,y,z])
 
