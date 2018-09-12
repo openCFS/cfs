@@ -348,6 +348,21 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+  <xsd:complexType name="DT_BcHomVectorEdge">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BcHomScalar">
+        <!-- single components given -->
+        <xsd:sequence>
+          <xsd:element name="comp" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="dof" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 
   <!-- Homogeneous tensor-valued boundary condition -->
   <xsd:complexType name="DT_BcHomTensor">
