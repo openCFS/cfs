@@ -111,9 +111,9 @@
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <!-- Dirichlet Boundary Conditions -->
-                <xsd:element name="fluxParallel" type="DT_BcHomVectorEdge">
+                <xsd:element name="fluxParallel" type="DT_BcHomScalar">
                   <xsd:annotation>
-                    <xsd:documentation>Magnetic field lines are forced to be parallel to the surface. If components are given on can directly specify homogeneous Neumann BCs.</xsd:documentation>
+                    <xsd:documentation>Magnetic field lines are forced to be parallel to the surface. This corresponds to homogeneous Neumann BCs for all edge degrees of freedom on the surface.</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
                 <xsd:element name="potential" type="DT_BcInhomVector">
