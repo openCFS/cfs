@@ -253,10 +253,11 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat)
 
 
   // GNL, SYM, PD, HER, .... The parallel version of ilupack operates on sparse matrix and this step is not required
-  if (!isParallel)
+  if (!isParallel){
     DetermineMatrixType(sysMat, out);
+    LOG_TRACE2(ilupack) <<  "Setup: matrix -> " << matrix.ToString(matrix_);
 
-  LOG_TRACE2(ilupack) <<  "Setup: matrix -> " << matrix.ToString(matrix_);
+  }
 
   // in case we already run release memory - it's save if first run
 //  IlupackAMGDelete();
@@ -289,7 +290,7 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
 #ifdef USE_ILUPACK_PARALLEL
     // for OMP template is not supported in the lib. So casting it manually to
 
-    ierr=IlupackFactorizationOMP(spr,index,*parameter,nleaves,mtmetis,&vFact)
+    ierr=IlupackFactorizationOMP(spr,index,*parameter,nleaves,mtmetis,&vFact);
 #endif
   }
   else{
