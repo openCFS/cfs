@@ -206,9 +206,10 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
     
     len_nd = np.cumsum(len_nd)
     array = np.empty((samples[0]*args.bc_res,samples[1]*args.bc_res,samples[2]*args.bc_res),dtype=bool)
+    print("array.shape",array.shape)
     for i,nd in enumerate(newData):
       array[len_nd[i]:len_nd[i+1],:,:] = nd
-      print(len_nd[i],":",len_nd[i+1])
+      print(len_nd[i],":",len_nd[i+1]," nd.shape:",nd.shape)
       
 #     x = np.arange(0,array.shape[0]+1,1)
 #     y = np.arange(0,array.shape[1]+1,1)
@@ -218,29 +219,32 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
     
     mesh = mesh_tool.Mesh(samples[0]*args.bc_res,samples[1]*args.bc_res,samples[2]*args.bc_res)
     mesh_tool.create_dense_mesh_density(array,mesh,0.5,1.0,1e-9)
+    mesh.bc = []
 #     mesh_tool.write_gid_mesh(mesh, "dense.mesh")
     sparse = mesh_tool.convert_to_sparse_mesh(mesh)
     mesh_tool.write_gid_mesh(sparse, "sparse.mesh")
   
   sys.exit()
+
+  borders = my_mpi_grid.communicate_edges()
       
   # binary helper array
-  shape = np.asarray(my_mpi_grid.grid.data.shape[0:3]) + np.array((6,6,6))
-  helper = np.zeros(shape,dtype=int)
-  helper[3:shape[0]-3,3:shape[1]-3,3:shape[2]-3] = my_mpi_grid.grid.data
+  shape = np.asarray(my_mpi_grid.grid.data.shape[0:3]) + np.array((2,2,2))
+  helper = np.zeros(shape,dtype=bool)
+  helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = my_mpi_grid.grid.data
   
   # hope for python's garbage collector to delete voxel array
   my_mpi_grid.grid.data = None
   
-#   for b in borders:
-#     # b[0] stores direction oft cartesian comm
-#     if b[0] > my_mpi_grid.rank:
-#       assert(b[1] is not None)
-#       helper[shape[0]-2,1:shape[1]-2,1:shape[2]-2] = b[1] 
-#     else:
-#       assert(b[0] < my_mpi_grid.rank)
-#       assert(b[1] is not None)
-#       helper[0,1:shape[1]-2,1:shape[2]-2] = b[1]
+  for b in borders:
+    # b[0] stores direction oft cartesian comm
+    if b[0] > my_mpi_grid.rank:
+      assert(b[1] is not None)
+      helper[shape[0]-1,1:shape[1]-1,1:shape[2]-1] = b[1] 
+    else:
+      assert(b[0] < my_mpi_grid.rank)
+      assert(b[1] is not None)
+      helper[0,1:shape[1]-1,1:shape[2]-1] = b[1]
   
   print("hx,hy,hz:",my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
   hx = my_mpi_grid.grid.hx
@@ -255,7 +259,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
   my_mpi_grid.vertices = []
   my_mpi_grid.faces = []
 #   marching_cubes(helper,(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),my_mpi_grid.vertices, my_mpi_grid.faces,normals)
-  my_mpi_grid.vertices, my_mpi_grid.faces, _, _ = measure.marching_cubes_lewiner(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False,step_size=2)
+  my_mpi_grid.vertices, my_mpi_grid.faces, _, _ = measure.marching_cubes_lewiner(helper,spacing=(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),allow_degenerate=False,step_size=1)
   # translate from (0,0,0) to correct position
   # and marching cubes shift everything by 0.5 * hx/hy/hz
   shift = np.asarray(my_mpi_grid.bounds[0:3]) - np.asarray((my_mpi_grid.grid.hx/2.0,my_mpi_grid.grid.hy/2.0,my_mpi_grid.grid.hz/2.0))
@@ -299,7 +303,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
     matviz_vtk.show_write_vtk(pd, 10, "marching_all.vtp")
     
 #     data = (verts,faces)
-#   sys.exit()  
+  sys.exit()  
 # #   # broadcast all verts to all ranks
 #   data = my_mpi_grid.comm.bcast(data,root=0)
 #   my_mpi_grid.set_vertices_and_faces(data[0],data[1])
