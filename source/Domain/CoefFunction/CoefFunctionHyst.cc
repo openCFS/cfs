@@ -5693,7 +5693,8 @@ namespace CoupledField {
   
   void CoefFunctionHyst::TestHystOperatorWithSignal(std::string name, Vector<Double> xVals, Vector<Double> yVals, 
           bool testInversion, bool printStatistics, bool writeResultsToFile, 
-          bool measurePerformance, std::string commonPerformanceFile, bool test1D, bool outputIrrStrains){
+          bool measurePerformance, std::string commonPerformanceFile, bool test1D, bool outputIrrStrains,
+          std::string nameTagForPerfFile){
     
 		/*
      * 0. Declare variables (there are alot)
@@ -6332,6 +6333,10 @@ namespace CoupledField {
 				numberOfLinesearchIterations = 0;
 				maxNumberOfLinesearchIterations = 0;
 				
+        Double eps_mu_scal = POL_eps_mu_SmallSignal_[0][0];
+        Double scalIn = yIn[0];
+        Double scalOut = 0;
+        
         if (measurePerformance) {
           backwardTimer->Start();
 					startTime = backwardTimer->GetCPUTime();
@@ -6343,7 +6348,9 @@ namespace CoupledField {
                   numberOfLMIterations, numberOfLinesearchIterations, maxNumberOfLinesearchIterations,
                   successFlagBackward, minAlpha, maxAlpha, avgAlpha, xIn);	
         } else {	
-					xOut[0] = hystTMP->computeInputAndUpdate(yIn[0], POL_eps_mu_SmallSignal_[0][0], 
+//					xOut[0] = hystTMP->computeInputAndUpdate(yIn[0], POL_eps_mu_SmallSignal_[0][0], 
+//                  0, overwriteMemory, successFlagBackward);
+          scalOut = hystTMP->computeInputAndUpdate(scalIn, eps_mu_scal, 
                   0, overwriteMemory, successFlagBackward);
         }
 				
@@ -6365,6 +6372,10 @@ namespace CoupledField {
           } else {
             performance << "- backward: " << evalTime << "(reused)" << std::endl;
 					}
+        }
+        
+        if(!vector){
+          xOut[0] = scalOut;
         }
 				
 				if(successFlagBackward == -1){
@@ -6421,6 +6432,9 @@ namespace CoupledField {
 			hOut.Init();
       hOutForStrains.Init();
 			
+      Double hinScal = xIn[0];
+      Double houtScal = 0.0;
+      
 			if (measurePerformance) {
 				forwardTimer->Start();
 				startTime = forwardTimer->GetCPUTime();
@@ -6429,19 +6443,9 @@ namespace CoupledField {
 			if(vector){
 				hOut = hystTMP->computeValue_vec(xIn, 0, overwriteMemory, debugOut, successFlagForward);
 			} else {  
-				hOut[0] = hystTMP->computeValueAndUpdate(xIn[0], 0, overwriteMemory, successFlagForward);
+				houtScal = hystTMP->computeValueAndUpdate(hinScal, 0, overwriteMemory, successFlagForward);
 			}
-			
-      if(CouplingParams_.ownHystOperator_){
-        if(vector){
-          hOutForStrains = hystStrainTMP->computeValue_vec(xIn, 0, overwriteMemory, debugOut, successFlagForward);
-        } else {  
-          hOutForStrains[0] = hystStrainTMP->computeValueAndUpdate(xIn[0], 0, overwriteMemory, successFlagForward);
-        }
-      } else {
-        hOutForStrains = hOut;
-      }
-      
+			      
 			if (measurePerformance) {
 				forwardTimer->Stop();
 				
@@ -6462,6 +6466,19 @@ namespace CoupledField {
 				}
 			}
 			
+      if(!vector){
+        hOut[0] = houtScal;
+      }
+      if(CouplingParams_.ownHystOperator_){
+        if(vector){
+          hOutForStrains = hystStrainTMP->computeValue_vec(xIn, 0, overwriteMemory, debugOut, successFlagForward);
+        } else {  
+          hOutForStrains[0] = hystStrainTMP->computeValueAndUpdate(hinScal, 0, overwriteMemory, successFlagForward);
+        }
+      } else {
+        hOutForStrains = hOut;
+      }
+            
 			if(successFlagForward == -1){
 				forwardFails++;
 			} else if(successFlagForward == 0){
@@ -6751,11 +6768,21 @@ namespace CoupledField {
       
       
       if(commonPerformanceFile != "---"){
+        bool detailled = false;
         if(testInversion){
           Double backwardAvgEvalTime = backwardTotalEvalTime/backwardEvalCounter;
-          commonPerfStream << name << "\t\t Forward: " << forwardAvgEvalTime << " (Evals=" << forwardEvalCounter << ") " << "\t Backward: " << backwardAvgEvalTime << " (Evals=" << backwardEvalCounter << ") " << "\t InversionFails=" << numFails << std::endl;
+          
+          if(detailled){
+            commonPerfStream << std::fixed << std::setprecision(6) << nameTagForPerfFile << "\t\t Forward: " << forwardAvgEvalTime << " (Evals=" << forwardEvalCounter << ") " << "\t Backward: " << backwardAvgEvalTime << " (Evals=" << backwardEvalCounter << ") " << "\t InversionFails=" << numFails << std::endl;
+          } else {
+            commonPerfStream << std::fixed << std::setprecision(6) << nameTagForPerfFile << "\t" << forwardAvgEvalTime << "\t" << forwardEvalCounter << "\t" << backwardAvgEvalTime << "\t" << backwardEvalCounter << "\t" << numFails << std::endl;
+          }
         } else {
-          commonPerfStream << name << "\t\t Forward: " << forwardAvgEvalTime << " (Evals=" << forwardEvalCounter << ") " << "\t Backward: 0.0 (Evals=0) \t InversionFails=0" << std::endl;
+          if(detailled){
+            commonPerfStream << std::fixed << std::setprecision(6) << nameTagForPerfFile << "\t\t Forward: " << forwardAvgEvalTime << " (Evals=" << forwardEvalCounter << ") " << "\t Backward: 0.0 (Evals=0) \t InversionFails=0" << std::endl;
+          } else {
+            commonPerfStream << std::fixed << std::setprecision(6) << nameTagForPerfFile << "\t" << forwardAvgEvalTime << "\t" << forwardEvalCounter << "\t" << 0 << "\t" << 0 << "\t" << 0 << std::endl;
+          }
         }
       }
 		}
@@ -6877,9 +6904,17 @@ namespace CoupledField {
         outputName = "Sine";
       }
       
+      std::string nameTagForPerfFile = "---";
+        if(InputSignals->Get("Sine")->Has("NameTagPerFile")){
+        InputSignals->Get("Sine")->GetValue("NameTagPerFile",nameTagForPerfFile,ParamNode::PASS);
+      }
+      if(nameTagForPerfFile == "---"){
+        nameTagForPerfFile = outputName;
+      }
+      
       CreatePeriodicTestSignal("Sine",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
       if(writeInputToFile){
         WriteSignalToFile("Sine_input",xVals,yVals);
       }
@@ -6906,9 +6941,17 @@ namespace CoupledField {
         outputName = "Rotation";
       }
       
+      std::string nameTagForPerfFile = "---";
+        if(InputSignals->Get("Rotation")->Has("NameTagPerFile")){
+        InputSignals->Get("Rotation")->GetValue("NameTagPerFile",nameTagForPerfFile,ParamNode::PASS);
+      }
+      if(nameTagForPerfFile == "---"){
+        nameTagForPerfFile = outputName;
+      }
+      
       CreatePeriodicTestSignal("Rotation",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
       if(writeInputToFile){
         WriteSignalToFile("Rotation_input",xVals,yVals);
       }
@@ -6934,10 +6977,18 @@ namespace CoupledField {
       if(outputName == "---"){
         outputName = "DecreasingRotation";
       }
-            
+           
+      std::string nameTagForPerfFile = "---";
+        if(InputSignals->Get("DecreasingRotation")->Has("NameTagPerFile")){
+        InputSignals->Get("DecreasingRotation")->GetValue("NameTagPerFile",nameTagForPerfFile,ParamNode::PASS);
+      }
+      if(nameTagForPerfFile == "---"){
+        nameTagForPerfFile = outputName;
+      }
+      
       CreatePeriodicTestSignal("DecreasingRotation",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
       if(writeInputToFile){
         WriteSignalToFile("DecreasingRotation_input",xVals,yVals);
       }
@@ -6964,9 +7015,17 @@ namespace CoupledField {
         outputName = "IncreasingRotation";
       }
           
+      std::string nameTagForPerfFile = "---";
+        if(InputSignals->Get("IncreasingRotation")->Has("NameTagPerFile")){
+        InputSignals->Get("IncreasingRotation")->GetValue("NameTagPerFile",nameTagForPerfFile,ParamNode::PASS);
+      }
+      if(nameTagForPerfFile == "---"){
+        nameTagForPerfFile = outputName;
+      }
+      
       CreatePeriodicTestSignal("IncreasingRotation",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
       if(writeInputToFile){
         WriteSignalToFile("IncreasingRotation_input",xVals,yVals);
       }
@@ -6994,9 +7053,17 @@ namespace CoupledField {
         outputName = "DecreasingSine";
       }
       
+      std::string nameTagForPerfFile = "---";
+        if(InputSignals->Get("DecreasingSine")->Has("NameTagPerFile")){
+        InputSignals->Get("DecreasingSine")->GetValue("NameTagPerFile",nameTagForPerfFile,ParamNode::PASS);
+      }
+      if(nameTagForPerfFile == "---"){
+        nameTagForPerfFile = outputName;
+      }
+      
       CreatePeriodicTestSignal("DecreasingSine",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
       if(writeInputToFile){
         WriteSignalToFile("DecreasingSine_input",xVals,yVals);
       }
@@ -7023,9 +7090,17 @@ namespace CoupledField {
         outputName = "DecreasingSawtooth";
       }
       
+      std::string nameTagForPerfFile = "---";
+        if(InputSignals->Get("DecreasingSawtooth")->Has("NameTagPerFile")){
+        InputSignals->Get("DecreasingSawtooth")->GetValue("NameTagPerFile",nameTagForPerfFile,ParamNode::PASS);
+      }
+      if(nameTagForPerfFile == "---"){
+        nameTagForPerfFile = outputName;
+      }
+      
       CreatePeriodicTestSignal("DecreasingSawtooth",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
       if(writeInputToFile){
         WriteSignalToFile("DecreasingSawtooth_input",xVals,yVals);
       }
@@ -7052,9 +7127,17 @@ namespace CoupledField {
         outputName = "Forc";
       }
       
+      std::string nameTagForPerfFile = "---";
+        if(InputSignals->Get("Forc")->Has("NameTagPerFile")){
+        InputSignals->Get("Forc")->GetValue("NameTagPerFile",nameTagForPerfFile,ParamNode::PASS);
+      }
+      if(nameTagForPerfFile == "---"){
+        nameTagForPerfFile = outputName;
+      }
+      
       CreatePeriodicTestSignal("Forc",amplitudeScaling,numPeriods,stepsPerPeriod,xVals,yVals);
       TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
       if(writeInputToFile){
         WriteSignalToFile("Forc_input",xVals,yVals);
       }
@@ -7078,9 +7161,17 @@ namespace CoupledField {
         outputName = "SelfDesigned";
       }
       
+      std::string nameTagForPerfFile = "---";
+        if(InputSignals->Get("SelfDesigned")->Has("NameTagPerFile")){
+        InputSignals->Get("SelfDesigned")->GetValue("NameTagPerFile",nameTagForPerfFile,ParamNode::PASS);
+      }
+      if(nameTagForPerfFile == "---"){
+        nameTagForPerfFile = outputName;
+      }
+      
       CreateNonPeriodicTestSignal("SelfDesigned",amplitudeScaling,numberOfSteps,xVals,yVals);
       TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
       if(writeInputToFile){
         WriteSignalToFile("SelfDesigned_input",xVals,yVals);
       }
@@ -7104,9 +7195,17 @@ namespace CoupledField {
         outputName = "SatX-RemX-SatY";
       }
       
+      std::string nameTagForPerfFile = "---";
+        if(InputSignals->Get("SatX-RemX-SatY")->Has("NameTagPerFile")){
+        InputSignals->Get("SatX-RemX-SatY")->GetValue("NameTagPerFile",nameTagForPerfFile,ParamNode::PASS);
+      }
+      if(nameTagForPerfFile == "---"){
+        nameTagForPerfFile = outputName;
+      }
+      
       CreateNonPeriodicTestSignal("SatX-RemX-SatY",amplitudeScaling,numberOfSteps,xVals,yVals);
       TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
       if(writeInputToFile){
         WriteSignalToFile("SatX-RemX-SatY_input",xVals,yVals);
       }
@@ -7131,9 +7230,17 @@ namespace CoupledField {
         outputName = "RemDrop";
       }
       
+      std::string nameTagForPerfFile = "---";
+        if(InputSignals->Get("RemDrop")->Has("NameTagPerFile")){
+        InputSignals->Get("RemDrop")->GetValue("NameTagPerFile",nameTagForPerfFile,ParamNode::PASS);
+      }
+      if(nameTagForPerfFile == "---"){
+        nameTagForPerfFile = outputName;
+      }
+      
       CreateNonPeriodicTestSignal("RemDrop",amplitudeScaling,numberOfSteps,xVals,yVals);
       TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
       if(writeInputToFile){
         WriteSignalToFile("RemDrop_input",xVals,yVals);
       }
@@ -7189,6 +7296,14 @@ namespace CoupledField {
         outputName = combinedname.str();
       }
       
+      std::string nameTagForPerfFile = "---";
+        if(InputSignals->Get("ReadFromFile")->Has("NameTagPerFile")){
+        InputSignals->Get("ReadFromFile")->GetValue("NameTagPerFile",nameTagForPerfFile,ParamNode::PASS);
+      }
+      if(nameTagForPerfFile == "---"){
+        nameTagForPerfFile = outputName;
+      }
+      
       if(xVals.GetSize() < maxSize){
         xVals.Resize(maxSize);
       }
@@ -7200,7 +7315,7 @@ namespace CoupledField {
       yVals.ScalarMult(amplitudeScaling);
       
       TestHystOperatorWithSignal(outputName,xVals,yVals,testInversion,printStatistics,writeResultsToFile,
-              measurePerformance,commonPerfFile,test1D,outputIrrStrains);
+              measurePerformance,commonPerfFile,test1D,outputIrrStrains,nameTagForPerfFile);
       
       combinedname << "_input";
       if(writeInputToFile){

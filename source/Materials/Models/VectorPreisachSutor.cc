@@ -601,7 +601,7 @@ namespace CoupledField
     //    bool overwriteDir = true; // we need to set the rotational operator
     bool debugOut = false;
     int successCode = 0;
-    maxOutputVal_ = PSaturated_; // we need this value in order to call computeValue_vec
+    maxOutputVal_ = hystSaturated_; // we need this value in order to call computeValue_vec
     
     Vector<Double> satOutput = computeValue_vec(satInput, 0, overwrite, debugOut, successCode);
     
@@ -857,7 +857,7 @@ namespace CoupledField
     Vector<Double> e_u = Vector<Double>(u_in.GetSize());
     Double xVal = u_in.NormL2();
     
-    if(xVal > tol_){
+    if(xVal != 0){
       e_u = u_in/xVal;
     } else {
       e_u.Init(0.0);

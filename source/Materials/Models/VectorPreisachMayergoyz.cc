@@ -142,6 +142,25 @@ namespace CoupledField
       EXCEPTION("Only isotropic case implemented.");
     }
     
+    bool testSatOutput = false;
+    if(testSatOutput){
+      std::cout << "hystSaturated: " << hystSaturated_ << std::endl;
+      std::cout << "PSaturated: " << PSaturated_ << std::endl;
+      std::cout << "anhyst_A_ " << anhyst_A_ << std::endl;
+      std::cout << "anhyst_B_ " << anhyst_B_ << std::endl;
+      std::cout << "anhyst_C_ " << anhyst_C_ << std::endl;
+
+      Vector<Double> satInput = Vector<Double>(dim_);
+      satInput = singleDirections_[0]*XSaturated_;
+      int blub;
+      Double scalarResult = singlePreisachOperators_[0]->computeValueAndUpdate(XSaturated_,0,false,blub);
+      std::cout << "result of scalar model in direction [0]: " << scalarResult << std::endl;
+      
+      Vector<Double> vectorResult = this->computeValue_vec(satInput,0,false,false,blub);
+      std::cout << "result of vector model in directon [0]: " << vectorResult.ToString() << std::endl;
+
+    }
+
     prevXVal_ = new Vector<Double>[numElem];
     prevHVal_ = new Vector<Double>[numElem];
     for(int k = 0; k < numElem; k++){     
@@ -315,7 +334,7 @@ namespace CoupledField
     
     Vector<Double> dirInput = Vector<Double>(dim_);
     dirInput.Init();
-    if((xVal.NormL2() != 0)&&(clipOutput_ == 2)){
+    if((xVal.NormL2() != 0)){ //&&(clipOutput_ == 2)){
       dirInput.Add(1.0/xVal.NormL2(),xVal);
     }
         
@@ -349,7 +368,7 @@ namespace CoupledField
         output.Add(amplitude,dirInput); 
       } 
     }
-    
+ 
     if(overwrite == true){
       /*
        * store to arrays > as in VectorPreisachSutor

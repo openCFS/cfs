@@ -1904,7 +1904,7 @@ namespace CoupledField {
     
     void TestHystOperatorWithSignal(std::string name, Vector<Double> xVals, Vector<Double> yVals, 
     bool testInversion, bool printStatistics, bool writeResultsToFile, bool measurePerformance, 
-    std::string commonPerfFile, bool test1D, bool outputIrrStrains);
+    std::string commonPerfFile, bool test1D, bool outputIrrStrains, std::string nameTagForPerfFile);
     
     void WriteSignalToFile(std::string name, Vector<Double> xVals, Vector<Double> yVals);
     

@@ -309,6 +309,7 @@
         <xsd:attribute name="StepsPerPeriod" type="xsd:nonNegativeInteger" use="optional" default="20"/>
         <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
         <xsd:attribute name="OutputName" type="xsd:token" use="optional" default="---"/>
+        <xsd:attribute name="NameTagPerFile" type="xsd:token" use="optional" default="---"/>
       </xsd:restriction>
     </xsd:complexContent> 
   </xsd:complexType>    
@@ -321,6 +322,7 @@
         <xsd:attribute name="FileContaining_y_over_steps" type="xsd:token" use="optional"/>
         <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
         <xsd:attribute name="OutputName" type="xsd:token" use="optional" default="---"/>
+        <xsd:attribute name="NameTagPerFile" type="xsd:token" use="optional" default="---"/>
       </xsd:restriction>
     </xsd:complexContent> 
   </xsd:complexType>   
@@ -332,6 +334,7 @@
         <xsd:attribute name="NumSteps" type="xsd:nonNegativeInteger" use="optional" default="100"/>
         <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
         <xsd:attribute name="OutputName" type="xsd:token" use="optional" default="---"/>
+        <xsd:attribute name="NameTagPerFile" type="xsd:token" use="optional" default="---"/>
       </xsd:restriction>
     </xsd:complexContent> 
   </xsd:complexType>  
@@ -422,6 +425,7 @@
       <xsd:element name="HYST_testOperator" type="DT_testOperator" minOccurs="0" maxOccurs="1"/>
     </xsd:sequence>
     <xsd:attribute name="logging" type="DT_CFSBool" use="optional" default="yes"/>
+    <xsd:attribute name="minLoggingToTerminal" type="DT_CFSBool" use="optional" default="no"/>
   </xsd:complexType>
   
   <!-- ******************************************************************* -->

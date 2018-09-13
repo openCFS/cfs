@@ -126,6 +126,7 @@ namespace CoupledField {
       //      
       // perform logging?
       hystNode->GetValue( "logging", nonLinLogging_, ParamNode::PASS );
+      hystNode->GetValue( "minLoggingToTerminal", minLoggingToTerminal_, ParamNode::PASS );
       
       // type of line search
       if( hystNode->Has("lineSearch") ) {
@@ -1757,7 +1758,7 @@ namespace CoupledField {
     // the following variable indicates towards which previous state the deltaMatrix shall be computed
     // (only in case of deltaMatrix and deltaMat towards Iteration of course)
     UInt numIterationsTillUpdateOfLastITValues = 1;
-    
+    Double etaLinesearch;
     /*
      * For magnetic PDE, we have the problem, that the matrix that is used
      * to compute H (i.e. mu/nu) might depend on H/M itself
@@ -1770,6 +1771,10 @@ namespace CoupledField {
     
     do {
       //      std::cout << "#### SolveStepHyst::Start of IT" << std::endl;
+      
+      if(minLoggingToTerminal_){
+        std::cout << "--> " << nonLinMethod_ << ": Iteration " << iterationCounter << std::endl;
+      }
       
       if(debugOutput_){
         PDE_.CheckSaturationOfHystOperators(lastTSSatAvg, lastItSatAvg, curItSatAvg, oppositeDirAsTSAvg, oppositeDirAsItAvg);
@@ -2048,8 +2053,7 @@ namespace CoupledField {
        */
       Double residualL2Norm = 0.0;
       Double incrementL2Norm = 0.0;
-      Double etaLinesearch;
-      
+            
 			// unlock hyst operator (if locked)
 			PDE_.SetFlagInCoefFncHyst("lockHystOperator",0);
 			
@@ -2425,17 +2429,59 @@ namespace CoupledField {
       //  
       //      std::cout << "#### SolveStepHyst::End of IT" << std::endl;
       
+      if(minLoggingToTerminal_){
+        std::cout << " -> rel res: " << residualErrRel << std::endl;
+        std::cout << " -> rel inc: " << incrementalErrRel << std::endl;
+      }
+      
     } while(performOneMoreStep && (iterationCounter < nonLinMaxIter_));
     
     abortOnMaxIter_ = true;
     if (performOneMoreStep && (iterationCounter >= nonLinMaxIter_) && abortOnMaxIter_) {
-      EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
-              << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
-              << "' at iteration '" << iterationCounter
-              << "'.\n ==> incremental error (abs): " << incrementalErr
-              << "'.\n ==> incremental error (rel): " << incrementalErrRel
-              << "\n ==> residual error (abs): " << residualErr
-              << "\n ==> residual error (rel): " << residualErrRel);
+      // check failback one more time
+      LOG_TRACE(solvehyst) << "Checking best found solution against failBackCriterion";
+      if(bestResNorm < failBackCrit_){
+        LOG_TRACE(solvehyst) << "Best found solution so far passes failBack > take it";
+        solVec_ = bestSol;
+        residualErr = bestResNorm;
+        // output of norms and data to info.xml
+        if ( nonLinLogging_ == true ) {
+          // get current step
+          UInt actStep = PDE_.GetSolveStep()->GetActStep();
+          
+          //              if (PDE_.IsIterCoupled()) {
+          //                WriteHystIterToInfoXML(pdename_,"Failback", couplingIter_, actStep,0,0, residualErrCheck, -1.0, 0);
+          //              } else {
+          //                //WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErrABS, etaLineSearch);
+          //                WriteHystIterToInfoXML(pdename_,"Failback", actStep,0,0, residualErrCheck, -1.0, 0);
+          //              }
+          
+          WriteHystIterToInfoXML(pdename_,
+                  nonLinMethod_,
+                  lineSearch_,
+                  couplingIter_,
+                  actStep,
+                  iterationCounterLog,
+                  iterationCounter,
+                  residualErr, residualErrRel, useRelativeNormForRes_, 
+                  incrementalErr, incrementalErrRel, useRelativeNormForInc_,
+                  etaLinesearch, false, true);
+          
+          // write norm to file
+          logFile_ <<  iterationCounterLog << "\t"
+                  << residualErr << "\t"
+                  << incrementalErr << "\t"
+                  << etaLinesearch << std::endl;
+        }
+      } else {
+        EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
+                << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                << "' at iteration '" << iterationCounter
+                << "'.\n ==> incremental error (abs): " << incrementalErr
+                << "'.\n ==> incremental error (rel): " << incrementalErrRel
+                << "\n ==> residual error (abs): " << residualErr
+                << "\n ==> residual error (rel): " << residualErrRel);
+      }
     }
     
     // check solution
