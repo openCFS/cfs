@@ -201,13 +201,29 @@ namespace CoupledField
     std::ostringstream os;
 
     os << std::scientific << std::setprecision(7);
-    
+    bool IsComplex = false;
     switch(level)
     {
       case -1:
+        //bool IsComplex = this->IsComplex();
+        // check if data_ is real or complex
+        for(UInt j = 0; j < size_row_; j++) {
+          for(UInt i = 0; i < size_col_; i++) {
+            Complex cval = (Complex) data_[j][i];
+            if (cval.imag() != 0) {
+              IsComplex = true;
+              break;
+            }
+          }
+        }
         for(UInt j = 0; j < size_row_; j++) {
           for(UInt i = 0; i < size_col_; i++)
-            os << data_[j][i] << (j == size_row_ - 1 && i == size_col_ - 1 ? "" : " "); // space not for last element
+            if (IsComplex)
+              os << data_[j][i] << (j == size_row_ - 1 && i == size_col_ - 1 ? "" : " "); // space not for last element
+            else {
+              Complex cval = (Complex) data_[j][i];
+              os << cval.real() << (j == size_row_ - 1 && i == size_col_ - 1 ? "" : " "); // space not for last element
+            }
 
           if(newline) os << std::endl;
           else os << " ";
