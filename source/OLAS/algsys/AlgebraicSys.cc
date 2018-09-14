@@ -312,7 +312,7 @@ namespace CoupledField {
     }
 
     // Log what we will do
-    PrintFeMatrixInfo();
+    //PrintFeMatrixInfo();
 
     // --------------------------------------------
     //  Treatment of Dirichlet Boundary Conditions
