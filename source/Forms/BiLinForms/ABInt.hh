@@ -28,6 +28,7 @@ namespace CoupledField {
       //here we would also need to create a new operator
       this->aOperator_ = right.aOperator_->Clone();
       this->solDependent_ = right.solDependent_;
+      this->aMat_ = right.aMat_;
     }
 
     //! \copydoc BiLinearForm::Clone
@@ -276,6 +277,7 @@ namespace CoupledField {
       this->ptFeSpaceSlave_ = right.ptFeSpaceSlave_;
       this->ptFeSpaceMaster_ = right.ptFeSpaceMaster_;
       this->isCoplanar_ = right.isCoplanar_;
+      doTranspose_ = right.doTranspose_;
     }
 
     //! \copydoc BiLinearForm::Clone
@@ -315,6 +317,8 @@ namespace CoupledField {
     //! Is the interface coplanar?
     bool isCoplanar_;
 
+    //! element matrix needs to be transposed
+    bool doTranspose_;
   };
 
 }
