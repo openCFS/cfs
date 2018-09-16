@@ -137,10 +137,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     if(analysistype_ == MULTIHARMONIC){
       reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, true));
     }
-    else{
-      reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
-    }
-
 
 
     RegionIdType actRegion;
@@ -900,10 +896,22 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     idbcSolNameMap_[MAG_POTENTIAL] = "potential";
 
     // === PERMEABILITY ===
-    // No idea why we need  matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion() in DefineIntegratort as the result comes from reluc_ anyway
-    // ToDo: fix that properly!
-    //shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false)); // does not work
-    matCoefs_[MAG_ELEM_PERMEABILITY] = reluc_; // this seems completely wrong - but the testcase runs
+    shared_ptr<ResultInfo> permeability ( new ResultInfo );
+    permeability->resultType = MAG_ELEM_PERMEABILITY;
+    permeability->dofNames = "";
+    permeability->unit = "Vs/Am";
+    permeability->definedOn = ResultInfo::ELEMENT;
+    permeability->entryType = ResultInfo::SCALAR;
+    // In multiharmonic analysis we have complex permeability
+    if(analysistype_ == MULTIHARMONIC){
+      shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, true));
+      matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
+      DefineFieldResult(permFct, permeability);
+    }else{
+      shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
+      matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
+      DefineFieldResult(permFct, permeability);
+    }
 
   }
 
@@ -1192,6 +1200,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         CoefXprUnaryOp( mp_, reluc_, CoefXpr::OP_INV ) );
     DefineFieldResult( muFunc, perm );
 
+    // === RELUCTIVITY  ===
+    shared_ptr<ResultInfo> reluc(new ResultInfo);
+    reluc->resultType = MAG_ELEM_RELUCTIVITY;
+    reluc->dofNames = "";
+    reluc->unit = "Am/Vs";
+    reluc->definedOn = ResultInfo::ELEMENT;
+    reluc->entryType = ResultInfo::SCALAR;
+    DefineFieldResult( reluc_, reluc );
 
     // === MAGNETIC FIELD INTENSITY ===
     shared_ptr<ResultInfo> magIntens(new ResultInfo);
