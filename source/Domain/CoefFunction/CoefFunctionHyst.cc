@@ -1453,17 +1453,21 @@ namespace CoupledField {
 			if (dim_ == 3) {
 				material->GetScalar(paramSet.fixDirection_[2], MaterialType(P_DIRECTION_Z+enumOffset), Global::REAL);
 			}
-      
+      Double dirNorm = paramSet.fixDirection_.NormL2();
+
       if(paramSet.fixDirection_.NormL2() == 0){
         WARN("Zero direction specified; taking default = x-direction");
         paramSet.fixDirection_[0] = 1.0;
       } else {
-        paramSet.fixDirection_[0]/=paramSet.fixDirection_.NormL2();
-        paramSet.fixDirection_[1]/=paramSet.fixDirection_.NormL2();
+        paramSet.fixDirection_[0]/=dirNorm;
+        paramSet.fixDirection_[1]/=dirNorm;
         if (dim_ == 3) {
-          paramSet.fixDirection_[2]/=paramSet.fixDirection_.NormL2();
+          paramSet.fixDirection_[2]/=dirNorm;
         }
       }
+      
+//      std::cout << "Scalar model - using direction (normalized): " << paramSet.fixDirection_.ToString() << std::endl;
+      
     } else if(paramSet.methodName_ == "vectorPreisach_Sutor"){
       paramSet.hasInverseModel_ = false;
       material->GetScalar(paramSet.rotResistance_, MaterialType(ROT_RESISTANCE+enumOffset), Global::REAL);
