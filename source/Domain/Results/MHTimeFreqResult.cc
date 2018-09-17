@@ -353,8 +353,8 @@ namespace CoupledField {
         // harmonic number
         h = k - N_;
         for(UInt j = 0; j < spatialSize_; ++j){
-          // multiplication with 0.5 due to double sided spectrum
-          timeResult_[j][i] += freqResult_[j][k] * (cos(h * omega0_ * t) + Complex(0.0,1.0)*sin(h * omega0_ *t)) * 0.5;
+          // this is our multiharmonic Ansatz
+          timeResult_[j][i] += freqResult_[j][k] * (cos(h * omega0_ * t) + Complex(0.0,1.0)*sin(h * omega0_ *t));
         }
       }
     }// loop over time array

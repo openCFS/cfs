@@ -387,14 +387,14 @@ template<class T>
       const Vector<Complex>& fR = freqTimeRes_.GetFreqResult( N_ + harmonic);
       if ( lpm.isSurface ){
         const MortarNcSurfElem* e = dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl);
-        coefScal = fR[ positionOfElem_[e->ptSlave->ptVolElems[0]->elemNum] ] * 0.25;
+        coefScal = fR[ positionOfElem_[e->ptSlave->ptVolElems[0]->elemNum] ] * 0.5;
         // If harmonic is negative, we need conjugate ḩat{nu}
         if(harmonic < 0) std::conj(coefScal);
         elemReg = e->ptSlave->ptVolElems[0]->regionId;
         LOG_DBG(coeffctharmbalance) <<"nu for Nitsche interface with volume region " << ptGrid_->GetRegionName( elemReg )<<
                                     " in harmonic "<< harmonic <<" = " <<coefScal;
       }else{
-        coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ] * 0.25;
+        coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ] * 0.5;
         // If harmonic is negative, we need conjugate ḩat{nu}
         if(harmonic < 0) std::conj(coefScal);
         LOG_DBG(coeffctharmbalance) <<"nu for region " << ptGrid_->GetRegionName(elemReg)<<" in harmonic "<< harmonic <<" = " <<coefScal;
