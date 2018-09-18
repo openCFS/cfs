@@ -423,11 +423,8 @@ namespace CoupledField {
             int_DUM_PhiM = GetNormalPiezoFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true);
             int_DUM_PhiS = GetNormalPiezoFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true);
           }
-<<<<<<< HEAD
           
-=======
 
->>>>>>> master
           int_UM_DPhiM->SetBCoefFunctionOpB(matData);
           int_UM_DPhiM->SetName("int_UM_DPhiM");
           int_US_DPhiM->SetBCoefFunctionOpB(matData);
