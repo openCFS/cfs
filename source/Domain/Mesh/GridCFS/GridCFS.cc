@@ -2343,6 +2343,23 @@ namespace CoupledField {
      region = orderedElems_[ielem-1]->regionId;
    }
 
+  RegionIdType GridCFS::GetElemRegion(UInt ielem)
+   {
+  #ifndef NDEBUG
+     if ( ielem > numElems_ ) {
+       EXCEPTION( "GridCFS: There are only " << numElems_
+                  << " elements in the grid! You requested element number "
+                  << ielem << ". Go check your mesh file!" );
+     }
+     if ( orderedElems_[ielem-1] == NULL ) {
+       EXCEPTION( "Element with Nr. " << ielem << " is not contained in mesh!" );
+
+     }
+  #endif
+
+     return orderedElems_[ielem-1]->regionId;
+   }
+
   void GridCFS::FindElementNeighorhood()
   {
     // TODO: This is from the legacy code -> replace with ShapeMap concept!
@@ -2666,66 +2683,63 @@ namespace CoupledField {
 
 
   }
-
-  void GridCFS::GetElemsNextToNodes( StdVector<Elem*> & elemList,
+  void GridCFS::GetElemsNextToNodes( StdVector<const Elem*> & elemList,
                                      const StdVector<UInt> & nodeList,
-                                     const StdVector<RegionIdType>
-                                     & regionIds) {
-    bool belongs2Interface;
-
-    StdVector<UInt> map;
-    Integer index = 0;
-
-    // loop over all regionIDs
-    for (UInt isd=0; isd<regionIds.GetSize(); isd++)
-    {
-
-      // get index for id in regionlist
-      index = volRegionIds_.Find(regionIds[isd]);
-      if ( index == -1 ) {
-        EXCEPTION( "GetElemsNextToNodes: A region with id '"
-                   << regionIds[isd] << "' was not found in the list of "
-                   << "of volume regions." );
-      }
-      // Get element of given region
-      StdVector<Elem*> const & elems = volElems_[index];
-
-      // loop over all elements in subdomain
-      for (UInt iNS=0; iNS < elems.GetSize(); iNS++)
-      {
-        Elem *aux = elems[iNS];
-
-        StdVector<UInt>  const & aux_connect = aux->connect;
-
-        belongs2Interface = false;
-
-        // check if any node is common in Interface
-        for (UInt inode=0; inode<aux_connect.GetSize(); inode++) {
-
-          for (UInt nnode=0; nnode<nodeList.GetSize(); nnode++) {
-
-            if (nodeList[nnode] == aux_connect[inode]) {
-              belongs2Interface = true;
-              break;
-            }
-          }
+                                     const StdVector<RegionIdType> & regionIds) {
+    elemList.Clear();
+    for (UInt n = 0; n < nodeList.GetSize(); n++) {
+      StdVector<const Elem*> nElemList;
+      GetElemsNextToNode(nElemList, nodeList[n], regionIds);
+      for (UInt iE = 0; iE < nElemList.GetSize(); iE++) {
+        bool found = false;
+        for (UInt i = 0; i < elemList.GetSize() && !found; i++) {
+          found = elemList[i] == nElemList[iE];
         }
-
-        if (belongs2Interface)
-          elemList.Push_back(elems[iNS]);
+        if (!found) {
+          elemList.Push_back(nElemList[iE]);
+        }
       }
     }
+  }
 
+  void GridCFS::GetElemsNextToNode( StdVector<const Elem*> & elemList,
+                                     const UInt & node) {
+    SetNodesToElemsMap();
+    
+    const UInt maxIdx = nodeElemMapIndices_[node + 1];
+    elemList.Clear();
+    
+    for (UInt idx = nodeElemMapIndices_[node]; idx < maxIdx; idx++) {
+      const Elem* elem = GetElem(nodeElemMap_[idx]);
+      elemList.Push_back(elem);
+    }
+  }
 
+  void GridCFS::GetElemsNextToNode( StdVector<const Elem*> & elemList,
+                                     const UInt & node,
+                                     const StdVector<RegionIdType>& regionIds) {
+    SetNodesToElemsMap();
+    
+    const UInt maxIdx = nodeElemMapIndices_[node + 1];
+    const UInt nRegions = regionIds.GetSize();
+    elemList.Clear();
+    
+    for (UInt idx = nodeElemMapIndices_[node]; idx < maxIdx; idx++) {
+      const Elem* elem = GetElem(nodeElemMap_[idx]);
+      for (UInt iR = 0; iR < nRegions; iR++) {
+        if (regionIds[iR] == elem->regionId) {
+          elemList.Push_back(elem);
+        }
+      }
+    }
   }
 
   void GridCFS::GetNumOfElemsNextToNodes( UInt & num,
                                      const UInt & node,
                                      const StdVector<RegionIdType>& regionIds) {
-    num = 0;
-    for(auto i = mapNodeToElems_[node].Begin(); i != mapNodeToElems_[node].End(); ++i){
-      if( regionIds.Contains( (*i)->regionId) ) ++num;
-    }
+    StdVector<const Elem*> elemList;
+    GetElemsNextToNode(elemList, node, regionIds);
+    num = elemList.GetSize();
   }
 
   void GridCFS::GetElemsNextToSurface( StdVector<Elem*> & neighbours,
@@ -2832,31 +2846,45 @@ namespace CoupledField {
     }
 
   }
-
+  void GridCFS::ClearNodeToElemConnectivity() {
+    mappedNodeToElems_ = false;
+    nodeElemMapIndices_.Clear(false);
+    nodeElemMap_.Clear(false);
+  }
+  
   void GridCFS::SetNodesToElemsMap()
   {
-    if(mappedNodeToElems_)
-      return;
-
     #pragma omp critical (CoefFunctionAccumulator)
     {
-      mapNodeToElems_.Resize(GetNumNodes()+1);
-      int maxNeighbors = dim_ == 2 ? 4 : 8;
-      for (int n = 0, nNodes = mapNodeToElems_.GetSize(); n < nNodes; n++) {
-        mapNodeToElems_[n].Reserve(maxNeighbors);
-      }
-      // traverse all elements
-      for(unsigned int e = 0; e < numElems_; e++)
-      {
-        Elem* elem = orderedElems_[e];
-        // add this elem to every node that it is connected with
-        for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++) {
-          if (!mapNodeToElems_[elem->connect[n]].Contains(elem))
-            mapNodeToElems_[elem->connect[n]].Push_back(elem);
+      if(!mappedNodeToElems_) {
+	nodeElemMapIndices_.Resize(GetNumNodes()+2);
+        nodeElemMapIndices_.Init(0);
+        for (UInt e = 0; e < numElems_; e++) {
+          Elem* elem = orderedElems_[e];
+          for (UInt n = 0; n < elem->connect.GetSize(); n++) {
+            nodeElemMapIndices_[elem->connect[n]]++;
+          }
         }
+        UInt idx = 0;
+        for (UInt n = 1; n < GetNumNodes() + 2; n++) {
+          UInt add = nodeElemMapIndices_[n];
+          nodeElemMapIndices_[n] = idx;
+          idx += add;
+        }
+        UInt dummy = GetNumElems() + 2;
+        nodeElemMap_.Resize(idx);
+        nodeElemMap_.Init(dummy);
+        for (UInt e = 0; e < numElems_; e++) {
+          Elem* elem = orderedElems_[e];
+          for (UInt n = 0; n < elem->connect.GetSize(); n++) {
+            UInt node = elem->connect[n];
+            UInt sIdx;
+            for (sIdx = nodeElemMapIndices_[node]; nodeElemMap_[sIdx] != dummy; sIdx++) {}
+            nodeElemMap_[sIdx] = e + 1;
+          }
+        }
+        mappedNodeToElems_ = true;
       }
-
-      mappedNodeToElems_ = true;
     }
   }
 
@@ -2967,7 +2995,6 @@ namespace CoupledField {
         if ( elemsFound == nrNodes ) {
 
           ptVolElem = orderedElems_[elemNrPerNode[surfNodeNr-1][iVolElem]-1];
-
           if ( elemsAssigned == 0 ) {
             myElem->ptVolElems[0] = ptVolElem;
           }
@@ -2981,7 +3008,7 @@ namespace CoupledField {
 
       // sanity check (avoid the impossible ;-)
       if ( elemsAssigned > 2 ) {
-        EXCEPTION( "Found " << elemsAssigned
+        WARN( "Found " << elemsAssigned
                    << " volume elements for surface element no. "
                    << myElem->elemNum );
       }

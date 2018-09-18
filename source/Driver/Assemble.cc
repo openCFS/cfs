@@ -512,15 +512,15 @@ namespace CoupledField
           }
           anyReassemble = true;
         }
-        
+       /* 
         if( !anyReassemble ) {
           LOG_DBG(assemble) << "AM_Std: -> NO Reassembly required for BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
+        */
+	if( !anyReassemble ) {
           continue;
         }
       }
 
-
-      LOG_DBG(assemble) << "AM_Std: -> Reassembly required for BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
 #ifdef USE_OPENMP
 #pragma omp parallel num_threads(CFS_NUM_THREADS)
     {

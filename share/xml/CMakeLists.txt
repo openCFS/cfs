@@ -82,9 +82,12 @@ ADD_CUSTOM_TARGET(share_xml_dat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/CFS_Dat.xsd ${DST_DIR}/CFS_Dat.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_BaseFilter.xsd ${DST_DIR}/Schemas/CFSDat_BaseFilter.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_BinOpFilt.xsd ${DST_DIR}/Schemas/CFSDat_BinOpFilt.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_Tensor.xsd ${DST_DIR}/Schemas/CFSDat_Tensor.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_DatMeshInput.xsd ${DST_DIR}/Schemas/CFSDat_DatMeshInput.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_DatMeshOutput.xsd ${DST_DIR}/Schemas/CFSDat_DatMeshOutput.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_DefOn.xsd ${DST_DIR}/Schemas/CFSDat_DefOn.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_GaussDerivative.xsd ${DST_DIR}/Schemas/CFSDat_GaussDerivative.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_VolumeMultiplication.xsd ${DST_DIR}/Schemas/CFSDat_VolumeMultiplication.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_Differentiation.xsd ${DST_DIR}/Schemas/CFSDat_Differentiation.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_DifferentiationType.xsd ${DST_DIR}/Schemas/CFSDat_DifferentiationType.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_FilterList.xsd ${DST_DIR}/Schemas/CFSDat_FilterList.xsd
@@ -92,6 +95,7 @@ ADD_CUSTOM_TARGET(share_xml_dat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_Interpolation.xsd ${DST_DIR}/Schemas/CFSDat_Interpolation.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_InterpolationType.xsd ${DST_DIR}/Schemas/CFSDat_InterpolationType.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_NearestNeighbour.xsd ${DST_DIR}/Schemas/CFSDat_NearestNeighbour.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_FEBased.xsd ${DST_DIR}/Schemas/CFSDat_FEBased.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_ResultDef.xsd ${DST_DIR}/Schemas/CFSDat_ResultDef.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_RotDomain.xsd ${DST_DIR}/Schemas/CFSDat_RotDomain.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFSDat_RotSubstantialTimeDeriv.xsd ${DST_DIR}/Schemas/CFSDat_RotSubstantialTimeDeriv.xsd

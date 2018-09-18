@@ -213,7 +213,7 @@ namespace CoupledField {
 		
 		DefineRhsLoadIntegrators();
   }
-  
+	
   void MagnetoStrictCoupling::DefinePostProcResults() {
     
     shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
@@ -283,8 +283,6 @@ namespace CoupledField {
       DefineFieldResult( coefIntens_full, magIntens );
     }
     
-    
-		
 		// === MAGNETIC ENERGY ===
 		shared_ptr<ResultInfo> energy(new ResultInfo);
 		energy->resultType = MAG_ENERGY;
@@ -407,7 +405,6 @@ namespace CoupledField {
 				// bdbInts_ stores bdbIntegrator for mechanical pde (magToMechInt)
 				BaseBDBInt* bdb = it->second;
 				stressCplFunc->AddIntegrator(bdb, region);
-        //				std::cout << "StressCpl success" << std::endl;
 				
 				// bdbIntsCounterpart_ stores bdeIntegrator for electric pde (mechToElecInt)
 				BaseBDBInt* bdbCounterpart = bdbIntsCounterpart_[region];
@@ -434,8 +431,7 @@ namespace CoupledField {
 		
 		shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
     shared_ptr<BaseFeFunction> magFct = pde2_->GetFeFunction(MAG_POTENTIAL);
-    
-    LinearForm * lin = NULL;
+      LinearForm * lin = NULL;
 		LinearForm * linMag = NULL;
     // Flag, if coefficient function lives on updated geoemtry
     bool coefUpdateGeo = true;
@@ -463,13 +459,13 @@ namespace CoupledField {
         // get regionIdType
         RegionIdType curReg = it->first;
 				PtrCoefFct regionHystOperator = it->second;
-        
 				actSDMat = materials_[curReg];
 				
         // get SDList
         shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
         actSDList->SetRegion( curReg );
         
+
 				// per default we evaluate at each integration point
 				// this behavior can be changed by setting a flag in coefFncHyst
         bool fullevaluation = true;
@@ -546,8 +542,7 @@ namespace CoupledField {
 					} else if( subType_ == "2.5d") {
 						lin = new BUIntegrator<Double>( new StrainOperator2p5D<FeH1>(),
                     (factor),mechRHS, coefUpdateGeo, fullevaluation);
-            
-					} else {
+           					} else {
 						EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
 					}
 				}
@@ -637,8 +632,7 @@ namespace CoupledField {
       coupledIrrStrains_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
       irrStrainsSet_ = true;
     }
-    
-    // ------------------------
+       // ------------------------
     //  Obtain linear material
     // ------------------------		
 		shared_ptr<CoefFunction > couplingCoef;
@@ -666,8 +660,7 @@ namespace CoupledField {
 			shared_ptr<CoefFunction > stiffCoef;
 			stiffCoef = mechMat[regionId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, 
               Global::REAL, true );
-      
-			// get hyst operator for current region from elec pde
+     			// get hyst operator for current region from elec pde
 			PtrCoefFct hystOperator;
 			shared_ptr<CoefFunctionMulti> hystCoefs;
 			hystCoefs = pde2_->GetHystCoefs();
@@ -792,7 +785,7 @@ namespace CoupledField {
   MagnetoStrictCoupling::GetStiffIntegrator( BaseMaterial* actSDMat,
           RegionIdType regionId,
           bool isComplex ) {
-    
+   
     // Get region name
     std::string regionName = ptGrid_->GetRegion().ToString( regionId );
 		
@@ -895,7 +888,7 @@ namespace CoupledField {
     if ( analysisType_ == BasePDE::TRANSIENT ) {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())
-              ->GetDeltaT();
+				->GetDeltaT();
 			
       //in this case we additionally need to define
       //a timestepping for the magPDE

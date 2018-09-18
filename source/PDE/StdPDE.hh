@@ -165,7 +165,7 @@ namespace CoupledField {
         
         bool IsHysteresis() 
         { return isHysteresis_;};
-                
+        
         bool IsIterCoupled() 
         { return isIterCoupled_;};
         

@@ -254,8 +254,7 @@
       </xsd:element>
     </xsd:complexContent>
   </xsd:complexType>-->
-    
-  <xsd:complexType name="DT_LineSearch">
+     <xsd:complexType name="DT_LineSearch">
     <xsd:attribute name="type" use="optional" default="none">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
@@ -497,6 +496,7 @@
           <!-- nonLinear element -->
           <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="hysteretic" type="DT_HystereticParams" minOccurs="0" maxOccurs="1"/>
+          
           <!-- timeStepping element -->
           <!-- .... @ahueppe: to be implemented -->
           
@@ -589,6 +589,7 @@
                       <!-- nonLinear element -->
                       <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0" maxOccurs="1"/>
                       <xsd:element name="hysteretic" type="DT_HystereticParams" minOccurs="0" maxOccurs="1"/>
+                      
                       <!-- timeStepping element -->  
                       
                     </xsd:sequence>

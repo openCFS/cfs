@@ -7,6 +7,7 @@
 
 #include "General/Enum.hh"
 #include "MatVec/BaseMatrix.hh"
+#include "MatVec/Vector.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Environment.hh"
 
@@ -40,6 +41,12 @@ namespace CoupledField {
     //! - FEAST
     static Enum<EigenSolverType> eigenSolverType;
 
+    typedef enum {NONE, MAX, NORM} ModeNormalization;
+    //! Defines how to normalized the modes
+    //! - NONE : don not change what is returned by the solver
+    //! - MAX : normalize such that the maximum absolute entry has a value of 1
+    //! - NORM : normalize such that the L2 norm of each mode is 1
+
   public:
     
     //! Default Constructor
@@ -62,7 +69,8 @@ namespace CoupledField {
         isSymmetric_(true),
         isHermitian_(false),
         a_(NULL),
-        eigenProblemType_(NO_TYPE)
+        eigenProblemType_(NO_TYPE),
+        modeNormalization_(NONE)
     {
     }
     
@@ -235,6 +243,31 @@ namespace CoupledField {
         }
     }
 
+    //! normalize a mode
+    void NormalizeMode(Vector<Complex> & mode, ModeNormalization type ) {
+      double factor;
+      switch (type) {
+        case ModeNormalization::NONE :
+          factor = 1.0; break;
+        case ModeNormalization::MAX :
+          int loc;
+          factor = std::abs(mode.MaxAbs(loc));
+          break;
+        case ModeNormalization::NORM:
+          factor = mode.NormL2();
+          break;
+        default: EXCEPTION("ModeNormalization not known");
+      }
+      mode.ScalarDiv(factor);
+    }
+    void GetNormalizedEigenMode( UInt modeNr, Vector<Complex> & mode, bool right=true){
+      GetEigenMode(modeNr,mode,right);
+      NormalizeMode( mode, modeNormalization_);
+    }
+    void SetModeNormalization(ModeNormalization normType){
+      modeNormalization_ = normType;
+    }
+
 
   protected: 
 
@@ -294,6 +327,9 @@ namespace CoupledField {
     const StdMatrix* a_;
 
     EigenValueProblemType eigenProblemType_;
+
+    //! defines the mode normalization
+    ModeNormalization modeNormalization_;
   };
   
 }

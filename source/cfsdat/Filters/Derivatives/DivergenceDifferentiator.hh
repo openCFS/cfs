@@ -68,6 +68,12 @@ private:
   //! Scaling of epsilon-parameter for RBF-basis function
   Double epsScal_;
 
+  //! Scaling of beta-parameter for RBF-basis function
+  Double betaScal_;
+
+  //! Scaling of k-parameter for RBF-basis function
+  Double kScal_;
+
   //! if true, a console output of [minimal distance, maximal distance, optimized epsilon]
   //! will be performed
   bool logEps_;

@@ -39,9 +39,6 @@
 #include "Domain/Results/ResultFunctor.hh"
 
 namespace CoupledField {
-  
-  
-  
   // ***************
   //   Constructor
   // ***************
@@ -70,14 +67,11 @@ namespace CoupledField {
     // Initialize nonlinearities
     InitNonLin();   
   }
-  
-  // **************
+   // **************
   //   Destructor
   // **************
   PiezoCoupling::~PiezoCoupling() {
   }
-  
-  
   // *********************
   //   DefineIntegrators
   // *********************
@@ -93,13 +87,11 @@ namespace CoupledField {
     } else if(pde2_->IsHysteresis()){
       isHyst_ = true;
     }
-    
     // get hold of both feFunctions
     shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
     shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
     shared_ptr<FeSpace> dispSpace = dispFct->GetFeSpace();
     shared_ptr<FeSpace> elecSpace = elecFct->GetFeSpace();
-    
     // Global::ComplexPart matType = Global::REAL;
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
@@ -118,15 +110,13 @@ namespace CoupledField {
       //transform the type
       SubTensorType tensorType;
       String2Enum(subType_,tensorType);
-      
-      // create new entity list
+           // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
       
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region", "name", regionName.c_str());
-      
       // Take account for pml in frequency domain
       // 'coeffPMLScal' is the function, the material tensor is to be scaled by. if PML isn't defined, it's unity
       PtrCoefFct coefPMLScal, coefPMLVec;
@@ -139,13 +129,11 @@ namespace CoupledField {
         {
           MathParser* mp = pde1_->GetDomain()->GetMathParser();
           std::string pmlFormul;
-          
           harmonicPML = true;
           std::string dampId;
           curRegNode->GetValue("dampingId", dampId);
           pmlNode = pde1_->GetParamNode()->Get("dampingList")->GetByVal("pml", "id", dampId.c_str());
           pmlFormul = pmlNode->Get("formulation")->As<std::string>();
-          
           // speed of sound is set to equal '1.0'
           speedOfSnd = CoefFunction::Generate(mp, Global::REAL, "1.0");
           if (pmlFormul == "classic")
@@ -173,6 +161,7 @@ namespace CoupledField {
       
 			if(isHyst_){
         //				std::cout << "Hyst case -> check if region is hyst" << std::endl;
+		
 				BaseBDBInt* mechToElecInt = NULL;
 				BaseBDBInt* elecToMechInt = NULL;
 				
@@ -226,8 +215,7 @@ namespace CoupledField {
 					stiffIntDescr->SetCounterPart(true);
           
 					assemble_->AddBiLinearForm( stiffIntDescr );
-          
-					// remember own bilinearform 
+         					// remember own bilinearform 
 					bdbInts_[actRegion] = elecToMechInt;
 				}
 				
@@ -269,7 +257,6 @@ namespace CoupledField {
 		
 		DefineRhsLoadIntegrators();
   }
-  
   void PiezoCoupling::DefinePBCIntegrators(shared_ptr<BaseFeFunction>& fe1, shared_ptr<BaseFeFunction>& fe2)
   {
     PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
@@ -279,8 +266,7 @@ namespace CoupledField {
       return;
     
     MathParser* mp = pde1_->GetDomain()->GetMathParser();
-    
-    ParamNodeList blochNodesList = bcNode->GetList("blochPeriodic");
+       ParamNodeList blochNodesList = bcNode->GetList("blochPeriodic");
     for (UInt i = 0; i < blochNodesList.GetSize(); i++)
     {
       std::string str_value = blochNodesList[i]->Get("factor_value")->As<std::string>();
@@ -292,8 +278,7 @@ namespace CoupledField {
       
       PtrCoefFct factor = CoefFunction::Generate(mp, Global::COMPLEX, str_real, str_imag);
       PtrCoefFct one = CoefFunction::Generate(mp, Global::REAL, "1.0", "0.0");
-      
-      ParamNodeList regionsList = blochNodesList[i]->GetList("region");
+           ParamNodeList regionsList = blochNodesList[i]->GetList("region");
       for (UInt j = 0; j < regionsList.GetSize(); j++)
       {
         std::string ncRegionName = regionsList[j]->Get("name")->As<std::string>();
@@ -307,7 +292,7 @@ namespace CoupledField {
         
         PtrCoefFct matData, tmpData;
         RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
-        
+
         SubTensorType tensorType = NO_TENSOR;
         if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
           tensorType = PLANE_STRAIN;
@@ -318,13 +303,13 @@ namespace CoupledField {
         } else {
           EXCEPTION( "Unknown subtype '" << subType_ << "'" );
         }
-        
+
         std::string formulation = regionsList[j]->Get("formulation")->As<std::string>();
         if (formulation == "Nitsche")
         {
           std::string nitFac = regionsList[j]->Get("nitscheFactor")->As<std::string>();
           shared_ptr<ElemList> actSDList = ncIf->GetElemList();
-          
+
           PtrCoefFct coefFuncPMLVec, coefFuncPMLScl;
           if ((pde1_->GetDamping(volMasterId) == PML) && (pde2_->GetDamping(volMasterId) == PML))
           {
@@ -359,7 +344,7 @@ namespace CoupledField {
               {
                 EXCEPTION("Unknown PML-formulation '" << pmlFormul << "'");
               }
-              
+
               tmpData = materials_[volMasterId]->GetTensorCoefFnc(PIEZO_TENSOR, tensorType, Global::COMPLEX, true);
               matData = CoefFunction::Generate(mp, Global::COMPLEX, CoefXprTensScalOp(mp, tmpData, coefFuncPMLScl, CoefXpr::OP_MULT));
             }
@@ -372,7 +357,7 @@ namespace CoupledField {
           BiLinearForm* int_PhiS_DUM = NULL; // PS' * n([e]BmUM)
           BiLinearForm* int_DPhiM_UM = NULL; // n([e`]BePM') * UM
           BiLinearForm* int_DPhiM_US = NULL; // n([e`]BePM') * US
-          
+
           // define bilinear forms coupling mechanical displacement with electric potential
           if (matData->IsComplex())
           {
@@ -388,7 +373,7 @@ namespace CoupledField {
             int_DPhiM_UM = GetNormalPiezoStrainIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true);
             int_DPhiM_US = GetNormalPiezoStrainIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true);
           }
-          
+
           int_PhiM_DUM->SetBCoefFunctionOpB(matData);
           int_PhiM_DUM->SetName("int_PhiM_DUM");
           int_PhiS_DUM->SetBCoefFunctionOpB(matData);
@@ -397,7 +382,7 @@ namespace CoupledField {
           int_DPhiM_UM->SetName("int_DPhiM_UM");
           int_DPhiM_US->SetBCoefFunctionOpA(matData);
           int_DPhiM_US->SetName("int_DPhiM_US");
-          
+
           // define contexts for bilinear forms
           SurfaceBiLinFormContext* descr_PhiM_DUM = new SurfaceBiLinFormContext(int_PhiM_DUM, STIFFNESS, BiLinearForm::MASTER_MASTER);
           SurfaceBiLinFormContext* descr_PhiS_DUM = new SurfaceBiLinFormContext(int_PhiS_DUM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
@@ -408,12 +393,10 @@ namespace CoupledField {
           descr_PhiS_DUM->SetEntities(actSDList, actSDList);
           descr_DPhiM_UM->SetEntities(actSDList, actSDList);
           descr_DPhiM_US->SetEntities(actSDList, actSDList);
-          
           descr_PhiM_DUM->SetFeFunctions(fe2, fe1);
           descr_PhiS_DUM->SetFeFunctions(fe2, fe1);
           descr_DPhiM_UM->SetFeFunctions(fe2, fe1);
           descr_DPhiM_US->SetFeFunctions(fe2, fe1);
-          
           assemble_->AddBiLinearForm(descr_PhiM_DUM);
           assemble_->AddBiLinearForm(descr_PhiS_DUM);
           assemble_->AddBiLinearForm(descr_DPhiM_UM);
@@ -424,7 +407,7 @@ namespace CoupledField {
           BiLinearForm* int_US_DPhiM = NULL; // US' * n([e`]BePM)
           BiLinearForm* int_DUM_PhiM = NULL; // n([e]BmUM') * PM
           BiLinearForm* int_DUM_PhiS = NULL; // n([e]BmUM') * PS
-          
+
           // define bilinear forms coupling electric potential with mechanical displacement
           if (matData->IsComplex())
           {
@@ -440,7 +423,11 @@ namespace CoupledField {
             int_DUM_PhiM = GetNormalPiezoFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true);
             int_DUM_PhiS = GetNormalPiezoFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true);
           }
+<<<<<<< HEAD
           
+=======
+
+>>>>>>> master
           int_UM_DPhiM->SetBCoefFunctionOpB(matData);
           int_UM_DPhiM->SetName("int_UM_DPhiM");
           int_US_DPhiM->SetBCoefFunctionOpB(matData);
@@ -460,12 +447,12 @@ namespace CoupledField {
           descr_US_DPhiM->SetEntities(actSDList, actSDList);
           descr_DUM_PhiM->SetEntities(actSDList, actSDList);
           descr_DUM_PhiS->SetEntities(actSDList, actSDList);
-          
+
           descr_UM_DPhiM->SetFeFunctions(fe1, fe2);
           descr_US_DPhiM->SetFeFunctions(fe1, fe2);
           descr_DUM_PhiM->SetFeFunctions(fe1, fe2);
           descr_DUM_PhiS->SetFeFunctions(fe1, fe2);
-          
+
           assemble_->AddBiLinearForm(descr_UM_DPhiM);
           assemble_->AddBiLinearForm(descr_US_DPhiM);
           assemble_->AddBiLinearForm(descr_DUM_PhiM);
@@ -484,6 +471,9 @@ namespace CoupledField {
   }
   
   void PiezoCoupling::DefinePostProcResults() {
+    
+//		std::cout << "PiezoCoupling - DefinePostProcResults" << std::endl;
+		
     shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
     shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
@@ -580,8 +570,7 @@ namespace CoupledField {
       DefineFieldResult( irrStresses_, irrStressInfo );
       availResults_.insert( irrStressInfo );
     }
-    
-    // ==== Mechanic Stress ===
+       // ==== Mechanic Stress ===
     shared_ptr<ResultInfo> stress(new ResultInfo);
     stress->resultType = MECH_STRESS;
     stress->dofNames = stressComponents;
@@ -594,7 +583,7 @@ namespace CoupledField {
     // [sigma] = [c]*S - [e]*E
     // a) mechanic  -> take from mechanic PDE
     PtrCoefFct coefMechSigma = pde1_->GetCoefFct( MECH_STRESS );
-    
+        
     // b) coupling part [e]*E = - [e] grad(V_p) -> use own ADB-form
     shared_ptr<CoefFunctionFormBased> stressCplFunc;
     // Note: As the "B"-operator of the ADB operator only calculates 
@@ -627,7 +616,6 @@ namespace CoupledField {
     }
     
     DefineFieldResult(coefStress, stress);
-    
     
     // === Electric Charge Density (surface) ===
     shared_ptr<ResultInfo> chargeD(new ResultInfo);
@@ -683,8 +671,7 @@ namespace CoupledField {
 				sChargeDens->AddVolumeCoef(region, coefFlux);
 			} else {
 				BaseBDBInt* bdb = it->second;
-        
-				// 2) pass integrators to functors
+       				// 2) pass integrators to functors
 				cplFunc->AddIntegrator(bdb, region);
 				stressCplFunc->AddIntegrator(bdb, region);
 				sChargeDens->AddVolumeCoef(region, coefFlux);
@@ -714,8 +701,7 @@ namespace CoupledField {
 		
 		shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
     shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
-    
-    LinearForm * lin = NULL;
+      LinearForm * lin = NULL;
 		LinearForm * linElec = NULL;
     // Flag, if coefficient function lives on updated geoemtry
     bool coefUpdateGeo = true;
@@ -743,13 +729,12 @@ namespace CoupledField {
         // get regionIdType
         RegionIdType curReg = it->first;
 				PtrCoefFct regionHystOperator = it->second;
-        
+
 				actSDMat = materials_[curReg];
 				
         // get SDList
         shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
         actSDList->SetRegion( curReg );
-        
 				// per default we evaluate at each integration point
 				// this behavior can be changed by setting a flag in coefFncHyst
         bool fullevaluation = true;
@@ -784,7 +769,7 @@ namespace CoupledField {
 				
 				// mech RHS
 				shared_ptr<CoefFunction> mechRHS = regionHystOperator->GenerateRHSCoefFnc("IrrStressForMechPDE");
-				
+			
 				if ( isComplex_ ) {
 					if( subType_ == "axi" ) {
 						lin = new BUIntegrator<Complex>( new StrainOperatorAxi<FeH1,Complex>(),
@@ -919,8 +904,7 @@ namespace CoupledField {
       coupledIrrStrains_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
       irrStrainsSet_ = true;
     }
-    
-    // ------------------------
+       // ------------------------
     //  Obtain linear material
     // ------------------------		
 		shared_ptr<CoefFunction > couplingCoef;
@@ -954,7 +938,7 @@ namespace CoupledField {
 			shared_ptr<CoefFunctionMulti> hystCoefs;
 			hystCoefs = pde2_->GetHystCoefs();
 			hystOperator =hystCoefs->GetRegionCoef(regionId);
-      
+				
       // IMPORTANT: pass information about stiffCoef and couplCoef to hystOperrator
       // there it will not only be used for the Following MatCoefFnc but also used
       // in the single pdes to get correct matrix entries!
@@ -1085,8 +1069,7 @@ namespace CoupledField {
     
     // Get region name
     std::string regionName = ptGrid_->GetRegion().ToString( regionId );
-    
-    SubTensorType tensorType = NO_TENSOR;
+       SubTensorType tensorType = NO_TENSOR;
     if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
       tensorType = PLANE_STRAIN;
     } else if( subType_ == "axi" ){
@@ -1107,14 +1090,13 @@ namespace CoupledField {
       curCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR, tensorType, 
               Global::REAL, true );
     }	
-    
-		BaseBDBInt * integ = NULL;
+   		BaseBDBInt * integ = NULL;
 		
 		// NON-HYST CASE -> Symmetric
 		// ----------------------------------------
 		//  Determine correct stiffness integrator 
 		// ----------------------------------------
-    
+
 		// NOTE: here we have to couple +Bu with +GradV as in the constitutive equations Bu and -E are coupled!
 		// -> no factor -1 here
 		if ( isComplex ) {
@@ -1171,7 +1153,6 @@ namespace CoupledField {
     return integ;
     
   }
-  
   BaseBDBInt* PiezoCoupling::GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor)
   {
     SubTensorType tensorType = NO_TENSOR;
@@ -1194,8 +1175,7 @@ namespace CoupledField {
     // ----------------------------------------
     //  Determine correct stiffness integrator
     // ----------------------------------------
-    
-    // NOTE: here we have to couple +Bu with +GradV as in the constitutive equations Bu and -E are coupled!
+       // NOTE: here we have to couple +Bu with +GradV as in the constitutive equations Bu and -E are coupled!
     // -> no factor -1 here
     BaseBDBInt * integ = NULL;
     if (subType_ == "planeStrain" || subType_ == "planeStress")
@@ -1244,7 +1224,6 @@ namespace CoupledField {
         fluxOp = new SurfaceNormalPiezoFluxOperator<FeH1, 2, 2, Double>(subType_);
       idOp = new SurfaceMultiIdOp<FeH1, 2, 1>();
     }
-    
     if (fluxOpA)
       integ = new SurfaceNitscheABInt<DATA_TYPE, DATA_TYPE>(fluxOp, idOp, scalCoefFucn, factor, cplDir, true);
     else
@@ -1259,8 +1238,7 @@ namespace CoupledField {
   {
     BiLinearForm* integ = NULL;
     BaseBOperator *fluxOp = NULL, *idOp = NULL;
-    
-    if (dim_ == 3)
+       if (dim_ == 3)
     {
       if (coefFuncPMLVec)
         fluxOp = new SurfaceNormalPiezoStrainOperator<FeH1, 3, 1, Complex>(subType_, coefFuncPMLVec);
@@ -1284,7 +1262,7 @@ namespace CoupledField {
         fluxOp = new SurfaceNormalPiezoStrainOperator<FeH1, 2, 1, Double>(subType_);
       idOp = new SurfaceIdentityOperator<FeH1, 2, 2>();
     }
-    
+
     if (fluxOpA)
       integ = new SurfaceNitscheABInt<DATA_TYPE, DATA_TYPE>(fluxOp, idOp, scalCoefFucn, factor, cplDir, true);
     else
@@ -1316,6 +1294,6 @@ namespace CoupledField {
   template BiLinearForm* PiezoCoupling::GetNormalPiezoStrainIntegrator<Double>(PtrCoefFct, PtrCoefFct, Double, BiLinearForm::CouplingDirection, bool);
   template BiLinearForm* PiezoCoupling::GetNormalPiezoFluxIntegrator<Complex>(PtrCoefFct, PtrCoefFct, Double, BiLinearForm::CouplingDirection, bool);
   template BiLinearForm* PiezoCoupling::GetNormalPiezoStrainIntegrator<Complex>(PtrCoefFct, PtrCoefFct, Double, BiLinearForm::CouplingDirection, bool);
-  
+
 }
 

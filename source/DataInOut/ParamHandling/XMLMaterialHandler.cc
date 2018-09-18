@@ -261,7 +261,6 @@ namespace CoupledField {
   {
     //    std::cout << "ReadMechanics" << std::endl;
     bool     flagElasticitySet=false;
-    
     // bool     flagElastTensorImag=false;
     
     
@@ -662,8 +661,7 @@ namespace CoupledField {
     vals[35] = mu;
     return vals;
   }
-  
-  
+ 
   //**********************************************************************
   //*************  READ ACOUSTICS ****************************************
   //**********************************************************************
@@ -1180,7 +1178,7 @@ namespace CoupledField {
     {
       PtrParamNode hystNode = mag->Get("hystModel");
       ReadHysteresis(material, hystNode);
-    }
+   }
     
     //read real magmech coupling tensor
     if(mag->Has("magnetoStrictionTensor_h_mag"))

@@ -115,7 +115,9 @@ namespace CoupledField
     
     //! Return linear stiffness integrator for a given region with the material tensor scaled by 'scalingFactor'
     BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType, RegionIdType regionId, PtrCoefFct scalingFactor);
-    
+
+    //! Return linear stiffness integrator for a given region with the material tensor scaled by 'scalingFactor'
+    BaseBDBInt* GetStiffIntegratorInfMap(BaseMaterial* actSDMat, SubTensorType tensorType, RegionIdType regionId, PtrCoefFct scalingFactor);
     //! Return flux integrator used for Nitsche coupling
     template<typename DATA_TYPE>
     BiLinearForm* GetFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFuncPMLVec, Double factor,

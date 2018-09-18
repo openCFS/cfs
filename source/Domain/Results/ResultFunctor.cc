@@ -25,7 +25,7 @@ template<class TYPE> FieldCoefFunctor<TYPE>::~FieldCoefFunctor() {
 
   
 template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseResult> res )
-{ 
+{
   EntityList::ListType entityListType = res->GetEntityList()->GetType();
 
   // optimization results are generated in DesignSpace(). This includes complicated ones like opt_result_*
@@ -52,10 +52,8 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
   }
 
   Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
-
   EntityIterator it = actSol.GetEntityList()->GetIterator();
   Vector<TYPE>& vec = actSol.GetVector();
-
   Vector<TYPE> tempField;
   vec.Resize( it.GetSize() * this->dim_ );
 
@@ -71,8 +69,7 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
       LocPointMapped lpm;
       shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
       lpm.Set(lp, esm, 0.0);
-
-      this->GetVector(tempField, lpm );      
+      this->GetVector(tempField, lpm );
       // loop over dofs
       for(UInt iDim = 0; iDim < dim_; iDim++ )
         vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
@@ -152,14 +149,11 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::GetVector(Vector<TYPE>& vec, c
       {
         Matrix<TYPE> tmp;
         coef_->GetTensor(tmp, lpm);
-     
         if(resultInfo_->dofNames.GetSize() == tmp.GetNumRows() * tmp.GetNumCols())
           tmp.ConvertToVec_AppendRows(vec);
         else
           tmp.ConvertToVec_UpperTriangular(vec);
-        
         break;
-        
       }
     default:
       EXCEPTION("Missing case statement");
@@ -573,7 +567,7 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::EvalResult(shared_ptr<BaseResu
     nameIt.GetGrid()->GetNodesByRegion(surfNodeList, ptGrid_->GetRegionId(nameIt.GetName()) );
 
     // get volume elements next to nodes
-    StdVector<Elem*> elemList;
+    StdVector<const Elem*> elemList;
     ptGrid_->GetElemsNextToNodes( elemList, surfNodeList, neighborIds);
 
     //get memory

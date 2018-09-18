@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
-  elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -13,7 +10,7 @@
   </xsd:annotation>
 
   <!-- ******************************************************************** -->
-  <!--  Definitions of various custom simple data types --> 
+  <!--  Definitions of various custom simple data types -->
   <!-- ******************************************************************** -->
 
   <!-- Data type for strings with one element (character) -->
@@ -81,17 +78,17 @@
       <xsd:enumeration value="native"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
   <!-- Data type for setting a array of doubles -->
   <xsd:simpleType name="DT_DoubleList">
     <xsd:list itemType="xsd:double"/>
   </xsd:simpleType>
-  
+
   <!-- Data type for setting a array of tokens -->
   <xsd:simpleType name="DT_TokenList">
     <xsd:list itemType="xsd:token"/>
-  </xsd:simpleType>  
-  
+  </xsd:simpleType>
+
   <!-- Data defining a scalar value -->
   <xsd:complexType name="DT_Scalar" mixed="false">
     <xsd:attribute name="value" type="xsd:token" use="required"/>
@@ -103,7 +100,7 @@
     <xsd:attribute name="dim" type="xsd:token" use="required"/>
     <!--fill here with remaining definitions of a vector-->
   </xsd:complexType>
-  
+
   <!-- Data defining a tensorial value -->
   <xsd:complexType name="DT_Tensor">
     <xsd:attribute name="dim1" type="xsd:token" use="required"/>
@@ -139,7 +136,27 @@
       <xsd:enumeration value="phi"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
+  <!-- Data type for describing mode normalization -->
+  <xsd:simpleType name="DT_ModeNormalization">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="solver">
+        <xsd:annotation>
+          <xsd:documentation>Use the normalization of the solver</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="max">
+        <xsd:annotation>
+          <xsd:documentation>Scale the eigenvector such that the maximum element has a aboslute value of 1</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="norm">
+        <xsd:annotation>
+          <xsd:documentation>Scale the eigenvector such that it's L2-norm equals one</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+    </xsd:restriction>
+  </xsd:simpleType>
 
   <!-- Data type for describing a point either by a node name or a -->
   <!-- position vector (in 3D)-->
@@ -165,7 +182,7 @@
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <!-- Data type for describing type of entities -->
   <xsd:simpleType name="DT_EntityType">
     <xsd:restriction base="xsd:token">
@@ -204,11 +221,11 @@
   </xsd:simpleType>
 
   <!-- ******************************************************************* -->
-  <!--   Data type for defining a coil by means of current Sticks --> 
+  <!--   Data type for defining a coil by means of current Sticks -->
   <!--   using the law of Biot-Savart -->
   <!-- ******************************************************************* -->
-  
-  <xsd:complexType name="DT_BiotSavartCoil">      
+
+  <xsd:complexType name="DT_BiotSavartCoil">
     <xsd:sequence>
       <xsd:element name="coil" minOccurs="1" maxOccurs="unbounded">
         <xsd:complexType>
@@ -217,11 +234,10 @@
           <xsd:attribute name="value" type="xsd:token" use="optional" default="1"/>
         </xsd:complexType>
       </xsd:element>
-    </xsd:sequence> 
+    </xsd:sequence>
     <xsd:attribute name="showInGrid" type="DT_CFSBool" default="yes"/>
-    
-    
+
+
   </xsd:complexType>
 
 </xsd:schema>
-

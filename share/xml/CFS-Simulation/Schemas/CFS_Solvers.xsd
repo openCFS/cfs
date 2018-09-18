@@ -140,6 +140,84 @@
   </xsd:complexType>
 
 
+
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                          OLAS_RICHARDSON                     == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+  
+  
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for OLAS_RICHARDSON Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="richardson" type="DT_SolverOLASRICHARDSON" substitutionGroup="SolverBasic"/>
+  
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for OLAS_RICHARDSON Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SolverOLASRICHARDSON">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          
+          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0" maxOccurs="1"/>
+          
+          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Threshold for stopping criterion specified in the stoppingRule sub-tag of the solver tag.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0" default="50">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Maximum number of iterations before the solver stops. If this number of iterations
+                is reached the solver will stop regardless if the tolerance has already been met.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+                 
+          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0" default="no">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                If logging is set to yes, then the solution process will log the convergence history
+                (absolute and relative residual norm) to the log stream.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="consoleConvergence" type="DT_CFSBool" minOccurs="0" default="no">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                If consoleConvergence is set to true, then the absolute residual for every Richardson-step
+                will be displayed.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="omega" type="DT_PosFloat" minOccurs="0" default="1.0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Relaxation parameter
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+
+
+
+
+
+
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                         LAPACK_LU Solver                      == -->
@@ -635,6 +713,14 @@
           <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0"/>
           <xsd:element name="maxKrylovDim" type="xsd:positiveInteger" minOccurs="0"/>
           <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="consoleConvergence" type="DT_CFSBool" minOccurs="0" default="no">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                If consoleConvergence is set to true, then the absolute residual for every CG-step
+                will be displayed.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
@@ -1365,7 +1451,7 @@
               <xsd:documentation>The number of contour points (see the description of FEAST algorithm). Must be one of {3,4,5,6,8,10,12,16,20,24,32,40,48}.</xsd:documentation>
 	          </xsd:annotation>
           </xsd:element>
-	        <xsd:element name="maxRefinmentLoops" type="xsd:nonNegativeInteger" minOccurs="0" default="20">
+	        <xsd:element name="maxRefinementLoops" type="xsd:nonNegativeInteger" minOccurs="0" default="20">
 	          <xsd:annotation>
 	            <xsd:documentation>Maximum number of Extended Eigensolver refinement loops allowed.</xsd:documentation>
             </xsd:annotation>         

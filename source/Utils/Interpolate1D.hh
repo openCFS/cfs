@@ -33,14 +33,14 @@ namespace CoupledField {
     static Double Interpolate( const char* fileName, 
                                Double xEntry, 
                                Double method );
+
+  private:
     
     //! Read in data from file
     static void ReadFile( const char* fileName,
                           Vector<Double>& xVals,
                           Vector<Double>& yVals );
 
-  private:
-    
     //! Calculate second derivative for cubic spline interpolation
     static void Spline( const Vector<Double>& x, const Vector<Double>& y,
                         Double yp0, Double ypn,

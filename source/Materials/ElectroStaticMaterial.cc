@@ -75,7 +75,6 @@ namespace CoupledField
     isAllowed_.insert( ANG_CLIPPING );
     isAllowed_.insert( ANG_RESOLUTION );
     isAllowed_.insert( AMP_RESOLUTION );
-    
 		isAllowed_.insert( INITIAL_STATE );
     isAllowed_.insert( INITIAL_STATE_X );
     isAllowed_.insert( INITIAL_STATE_Y );
@@ -134,7 +133,6 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_MAYERGOYZ_ISOTROPIC_STRAIN );
     isAllowed_.insert( PREISACH_MAYERGOYZ_CLIPOUTPUT_STRAIN );
     isAllowed_.insert( IRRSTRAIN_REUSE_P );
-
     isAllowed_.insert( NONLIN_COEFFICIENT );
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
@@ -535,5 +533,4 @@ namespace CoupledField
 //
 //    return Yval;
 //  }
-
 }

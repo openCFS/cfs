@@ -595,7 +595,6 @@ public:
   virtual void TestInversion(PtrParamNode testNode){
     EXCEPTION( "Not implemented in base class");
   }
-  
   virtual void SetFlag(std::string flagName, Integer intState){
     EXCEPTION( "Not implemented in base class");
   }
@@ -623,7 +622,6 @@ public:
   virtual bool couplingTensorSet(){
     EXCEPTION("Not implemented in base class");
   }
-  
   virtual int GetDeltaForm(){
     EXCEPTION("Not implemented in base class");
   }

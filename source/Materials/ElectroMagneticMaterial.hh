@@ -122,8 +122,6 @@ namespace CoupledField {
 //    virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val );
 //
 //    Double ComputeMatDiff( Vector<Double>& dX, Vector<Double>& dY, UInt idx );
-
-
   private:
 
     //! compute the correct subTensor (3D, AXI, ..)

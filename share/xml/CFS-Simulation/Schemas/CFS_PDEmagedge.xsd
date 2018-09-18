@@ -62,6 +62,13 @@
           </xsd:element>
 
           <!-- List defining nonlinear types -->
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Definnes the non-matching interfaces</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <!-- List defining nonlinear types -->
           <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">

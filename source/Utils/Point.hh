@@ -58,6 +58,9 @@ public:
   Point & operator=(const Point & t);
 
   //!
+  bool operator==(const Point & t) const;
+
+  //!
   Point & operator+=(const Point & t);
   Point operator+(const Point &t);
   Point operator+(const Point &t) const;
@@ -122,6 +125,10 @@ public:
     dist[1] = data[1] - other.data[1];
     dist[2] = data[2] - other.data[2];
   }
+  
+  size_t GetHash() const {
+    return std::hash<double>()(data[0]) - std::hash<double>()(data[1]) + std::hash<double>()(data[2]);
+  }
 
   /** Lists the content
   * @return the form "(0.3;4.3;0.0)" but no digit control */
@@ -137,5 +144,16 @@ private:
 };
 
 
+}
+
+namespace std {
+
+template<>
+struct hash<CoupledField::Point>
+{
+  size_t operator()(const CoupledField::Point & obj) const {
+        return obj.GetHash();
+  }
+};
 }
 #endif /* POINT_HH_ */

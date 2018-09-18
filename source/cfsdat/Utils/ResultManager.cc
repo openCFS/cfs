@@ -15,7 +15,7 @@
 #include "ResultManager.hh"
 #include "MatVec/Vector.hh"
 #include <set>
-#include <algorithm>
+// #include <algorithm>
 #include <cmath>
 
 namespace CFSDat{
@@ -151,7 +151,7 @@ void ResultManager::SetStepIndex(uuids::uuid requestedId, Integer stepIndex){
   const CF::StdVector<Double>& timeLine = *resultMap_[requestedId].first->timeLine.get();
   UInt setStepIndex = std::min<UInt>(std::max<Integer>(0,stepIndex)
                                      ,timeLine.GetSize() - 1);
-  return resultMap_[requestedId].second->SetStepIndex(setStepIndex);
+  resultMap_[requestedId].second->SetStepIndex(setStepIndex);
 }
 
 Double ResultManager::GetStepValue(uuids::uuid requestedId){
@@ -284,8 +284,12 @@ CF::StdVector<Double> ResultManager::GetTimeLine(uuids::uuid resId){
   RESULT_MANAGER_OBTAIN_SH_PTR_FIELD(resId,timeLine)
 }
 
-bool ResultManager::IsConstant(uuids::uuid resId) {
-  return resultMap_[resId].first->timeLine->GetSize() <= 1;
+bool ResultManager::IsStatic(uuids::uuid resId) {
+  return resultMap_[resId].first->isStatic;
+}
+
+void ResultManager::SetStatic(uuids::uuid resId, bool isStatic) {
+  resultMap_[resId].first->isStatic = isStatic;
 }
 
 void ResultManager::SetTimeLine(uuids::uuid resId, CF::StdVector<Double> tVec){
@@ -428,6 +432,8 @@ void ResultManager::Finalize(){
   //       pos1. it gets converted if a result is requested as an output result
   //       pos2. Output results are marked on creation and cannot be combined in a simple manner
   //       pos3. Base results are cached w.r.t. the entitylists etc.
+  
+  /**
 
   std::set<InfoPtr> allInfos;
   std::set<Grid*> allGrids;
@@ -440,7 +446,7 @@ void ResultManager::Finalize(){
 //      std::cerr << uuidIter->second.first->ptGrid << std::endl;
     }
   }
-
+**/
 //  uuidIter = resultMap_.begin();
 //  for(;uuidIter != resultMap_.end();++uuidIter){
 //    print_ExtInfoFields((*uuidIter->second.first.get()));
@@ -448,8 +454,8 @@ void ResultManager::Finalize(){
 //    std::cout << "--------------------------------------------------" << std::endl;
 //  }
 
-  //now it it time to create results for each unique result (compression not available yet)
-  uuidIter = resultMap_.begin();
+  // create the result cache for each uniqe result (master result) if valid
+  UuidMap::iterator uuidIter = resultMap_.begin();
   std::set<uuids::uuid> toRemove;
   for(;uuidIter != resultMap_.end();++uuidIter){
     InfoPtr cInfo = uuidIter->second.first;
@@ -458,14 +464,15 @@ void ResultManager::Finalize(){
       toRemove.insert(uuidIter->first);
       continue;
     }
-    
-    UInt cacheSteps = 1 + cInfo->maxStepOffset - cInfo->minStepOffset;
-    if(cInfo->dType == ExtendedResultInfo::COMPLEX){
-      uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Complex>(cacheSteps));
-    }else if(cInfo->dType == ExtendedResultInfo::DOUBLE){
-      uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Double>(cacheSteps));
-    }else{
-      EXCEPTION("Only Complex and Double results supported yet")
+    if (cInfo->masterId == uuidIter->first) {
+      UInt cacheSteps = 1 + cInfo->maxStepOffset - cInfo->minStepOffset;
+      if(cInfo->dType == ExtendedResultInfo::COMPLEX){
+        uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Complex>(cacheSteps, cInfo->isStatic));
+      } else if(cInfo->dType == ExtendedResultInfo::DOUBLE){
+        uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Double>(cacheSteps, cInfo->isStatic));
+      }else{
+        EXCEPTION("Only Complex and Double results supported yet. Result: " << cInfo->resultName)
+      }
     }
   }
   //remove invalid results
@@ -473,6 +480,14 @@ void ResultManager::Finalize(){
   for(;aiter != toRemove.end();++aiter){
     resultMap_.erase(*aiter);
     activeIds_.erase(*aiter);
+  }
+  uuidIter = resultMap_.begin();
+  // setting results for slave result ids
+  for(;uuidIter != resultMap_.end();++uuidIter){
+    InfoPtr cInfo = uuidIter->second.first;
+    if (cInfo->masterId != uuidIter->first) {
+      uuidIter->second.second = resultMap_[cInfo->masterId].second;
+    }
   }
   //get unique grid pointers
 //
@@ -491,8 +506,9 @@ void ResultManager::Finalize(){
   for(;uuidIter != resultMap_.end();++uuidIter){
     InfoPtr cInfo = uuidIter->second.first;
     ResPtr cRes = uuidIter->second.second;
+    if (cInfo->masterId == uuidIter->first && !cRes->IsUpToDate()) {
     //if(!cRes->IsUpToDate()){
-    if (true) {
+    //if (true) {
       CreateEqnMapping(cInfo,cRes);
       SetResultVectorSize(cInfo,cRes);
       cRes->SetUpToDate(true);
@@ -501,7 +517,8 @@ void ResultManager::Finalize(){
       for(;otherIter != resultMap_.end();++otherIter){
         InfoPtr coInfo = otherIter->second.first;
         ResPtr coRes = otherIter->second.second;
-        if (false) {
+        if (coInfo->masterId == uuidIter->first && !coRes->IsUpToDate()) {
+        //if (false) {
         //if(!coRes->IsUpToDate()){
           //try to copy shared pointer
           if(checkEqualEqnMap(uuidIter->second, otherIter->second)){
@@ -527,11 +544,10 @@ void ResultManager::Finalize(){
   for(;uuidIter != resultMap_.end();++uuidIter){
     InfoPtr cInfo = uuidIter->second.first;
     ResPtr cRes = uuidIter->second.second;
-    if(!cInfo->isOutput)
+    if (cInfo->masterId != uuidIter->first || !cInfo->isOutput) {
       continue;
+    }
 
-    std::cout << " Preparing output " << std::endl;
-    
     //no offset results here...
     StdVector< str1::shared_ptr<CF::BaseResult> >& resVec = cRes->baseResultVector;
 

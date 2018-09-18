@@ -83,7 +83,6 @@ namespace CoupledField {
 //
 //    Double ComputeScalarHystVal( UInt nrElem, Double Xval );
 
-
   private:
 
     //! compute the correct subTensor (3D, AXI, ..)

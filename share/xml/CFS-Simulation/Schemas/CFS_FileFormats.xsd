@@ -492,6 +492,7 @@
                         </xsd:restriction>                        
                       </xsd:simpleType>
                     </xsd:attribute-->
+                    <xsd:attribute name="static" type="DT_CFSBool" default="no"/>
                     <xsd:attribute name="dof" use="optional" type="xsd:token">
                       <xsd:annotation>
                         <xsd:documentation xml:lang="en">
@@ -510,6 +511,8 @@
         <xsd:attribute name="linearizeEntities" type="xsd:token" default=""/>
         <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
         <xsd:attribute name="scaleFac" type="xsd:double" default="1.0"/>
+        <xsd:attribute name="readFVMesh" type="DT_CFSBool" default="no"/>
+        <xsd:attribute name="fixFVPyramids" type="DT_CFSBool" default="yes"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -958,7 +961,7 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputHDF5">
     <xsd:attribute name="externalFiles" type="DT_CFSBool" default="no"/>
-    <xsd:attribute name="maxChunkSize" type="xsd:positiveInteger" default="100"/>
+    <xsd:attribute name="maxChunkSize" type="xsd:nonNegativeInteger" default="128"/>
     <xsd:attribute name="compressionLevel" default="6">
       <xsd:simpleType>
         <xsd:restriction base="xsd:nonNegativeInteger">

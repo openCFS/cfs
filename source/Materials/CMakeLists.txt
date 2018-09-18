@@ -15,8 +15,6 @@ SET(MATERIALS_SRCS
   Models/PiezoMicroModelBK.cc
   Models/PiezoMicroModelHF.cc
   Models/VectorPreisachSutor.cc
-  #Models/VectorPreisachv7.cc
-  #Models/VectorPreisach.cc
   Models/Preisach.cc
   Models/VectorPreisachMayergoyz.cc
   Models/SimplePreisachInv.cc 

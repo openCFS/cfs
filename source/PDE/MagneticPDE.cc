@@ -341,7 +341,6 @@ namespace CoupledField {
            */
           // NEW: coefFncHyst should already be created during DefinePostProcResults!      
           PtrCoefFct hystPol = hysteresisCoefs_->GetRegionCoef(actRegion);
-
           curCoef = hystPol->GenerateMatCoefFnc("Reluctivity");
           
           PtrCoefFct hystOutput = hystPol->GenerateOutputCoefFnc("MagPolarization");
@@ -862,7 +861,6 @@ namespace CoupledField {
         if(it->second == NULL){
           continue;
         }
-        
         // get SDList
         shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
         actSDList->SetRegion( curReg );
@@ -1467,15 +1465,11 @@ namespace CoupledField {
       
       DefineFieldResult( hysteresisFieldIntensity_, magIntens );
       availResults_.insert( magIntens );
-      
-      
-      
       // new: init hysteresis right now (so that it is available
       // in case of magnetostrictive coupling for the definition of
       // the integrators
       InitHystCoefs();
       
-//      
 ////      // we should use the same nu here that is used for inversion etc
 ////      // otherwise results do not match!
 ////      PtrCoefFct magMag;
@@ -1507,7 +1501,7 @@ namespace CoupledField {
 //      // use std computation of mag intensity, i.e. H = B/mu
 //      DefineFieldResult( magIntensFunc, magIntens );
 //    }
-    
+   
     // for both BdBKernel and EnergyResultFunctor, we need to apply the -1 factor
     // to get right sign in the results (even though the energy results are not really usable in the coupled case as they neglect the influnce of the coupled pde)
     Double factor = 1.0;

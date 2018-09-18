@@ -18,6 +18,7 @@
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
+#include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "Driver/SolveSteps/SolveStepHyst.hh"
@@ -308,7 +309,8 @@ namespace CoupledField {
       PtrCoefFct coefPMLVec, speedOfSnd;
       PtrParamNode pmlNode;
       std::string pmlFormul;
-      //
+      PtrCoefFct coefMAPScal, coefMAPVec;
+      bool isMapping = false;
       
       if (dampingList_[actRegion] == PML)
       {
@@ -346,7 +348,21 @@ namespace CoupledField {
       }
       else
       {
-        harmonicPML = false;
+        if( dampingList_[actRegion] == MAPPING ) {
+          // ====================================================================
+          // Take account for mapping of an infinite domain
+          // ====================================================================
+          // Generate scalar valued coefficient function
+          PtrCoefFct val1 = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+          std::string dampId;
+          curRegNode->GetValue("dampingId",dampId);
+          PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
+          coefMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,true));
+          coefMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,false));
+          isMapping = true;
+        }else{
+          harmonicPML = false;
+        }
       }
       
       // ----- standard real-valued stiffness integrator
@@ -357,7 +373,13 @@ namespace CoupledField {
         stiffInt->SetBCoefFunctionOpA(coefPMLVec);
       }
       else{
-        stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
+        if(isMapping){
+          // Infinte mapping case
+          stiffInt = GetStiffIntegratorInfMap(actSDMat, tensorType, actRegion, coefMAPScal);
+          stiffInt->SetBCoefFunctionOpA(coefMAPVec);
+        }else{
+          stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
+        }
       }
       stiffInt->SetName("LinElecIntegrator");
       BiLinFormContext * stiffIntDescr =
@@ -735,8 +757,6 @@ namespace CoupledField {
      *              > specify this in xml file
      */ 
     if( isHysteresis_ ){
-      // TODO: add terms for piezo coupling!
-      
       std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
       ParamNodeList fpNodeList = bcNode->GetList( "fieldParallel" );
       std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
@@ -1046,7 +1066,6 @@ namespace CoupledField {
           SubTensorType tensorType,
           RegionIdType regionId ) {
     
-//    std::cout << "ElecPDE::GetStiffIntegrator" << std::endl;
     BaseBDBInt * integ = NULL;
     bool isComplex = complexMatData_[regionId];
     
@@ -1119,23 +1138,60 @@ namespace CoupledField {
     return integ;
   }
   
-  BaseBDBInt* ElecPDE::GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType,
+  BaseBDBInt* ElecPDE::GetStiffIntegratorInfMap(BaseMaterial* actSDMat, SubTensorType tensorType,
           RegionIdType regionId, PtrCoefFct scalingFactor)
   {
     BaseBDBInt* integ = NULL;
     
     shared_ptr<CoefFunction > curCoef;
-    curCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY, tensorType, Global::COMPLEX);
-    
+    curCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY, tensorType, Global::REAL);
+
     // store coefficient function for later use (e.g. in boundary integrators)
     regionPermittivity_[regionId] = curCoef;
-    PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
+    PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
     
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
     if (isPiezoCoupled_)
       factor = -1.0;
     
+    BaseBOperator* bOp = NULL;
+    //Infinite mapping case
+    if (dim_ == 2)
+    {
+      if (subType_ == "2.5d"){
+        EXCEPTION("2.5d version with infinite mapping not tested and therefore caught!");
+      }else{
+        bOp = new ScaledGradientOperator<FeH1, 2, Double>();
+      }
+    }
+    else
+      bOp = new ScaledGradientOperator<FeH1, 3, Double>();
+
+    integ = new BDBInt<Double, Double>(bOp, curCoefScl, factor, updatedGeo_);
+
+    
+    return integ;
+  }
+  
+  BaseBDBInt* ElecPDE::GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType,
+          RegionIdType regionId, PtrCoefFct scalingFactor)
+  {
+    BaseBDBInt* integ = NULL;
+
+    shared_ptr<CoefFunction > curCoef;
+    curCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY, tensorType, Global::REAL);
+
+
+    // store coefficient function for later use (e.g. in boundary integrators)
+    regionPermittivity_[regionId] = curCoef;
+    PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
+
+    // Note; in the piezoelectric case we have to multiply by -1
+    Double factor = 1.0;
+    if (isPiezoCoupled_)
+      factor = -1.0;
+
     BaseBOperator* bOp = NULL;
     if (dim_ == 2)
     {
@@ -1146,12 +1202,12 @@ namespace CoupledField {
     }
     else
       bOp = new ScaledGradientOperator<FeH1, 3, Complex>();
-    
+
     integ = new BDBInt<Complex, Complex>(bOp, curCoefScl, factor, updatedGeo_);
-    
+
     return integ;
   }
-  
+
   template<typename DATA_TYPE>
   BiLinearForm* ElecPDE::GetFluxIntegrator(PtrCoefFct scalCoefFunc, PtrCoefFct coefFnc, Double factor,
           BiLinearForm::CouplingDirection cplDir, bool fluxOpA)
@@ -1381,8 +1437,6 @@ namespace CoupledField {
   }
   
   void ElecPDE::DefinePostProcResults() {
-    
-//    std::cout << "ElecPDE - DefinePostProcResults" << std::endl;
     
     shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_POTENTIAL];
     bool is2p5 = (subType_ == "2.5d");

@@ -81,7 +81,9 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
 
 template<typename T>
 CoefFunctionPML<T>::~CoefFunctionPML(){
-
+  //std::cout<<"DESRUC"<<std::endl;
+  //It might be necessary to just disconnect the callback instead of releasing the handle
+  mp_->ReleaseHandle( mHandle_ );
 }
 
 

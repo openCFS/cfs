@@ -599,6 +599,19 @@ namespace CoupledField
     }
   }
 
+
+  // =======================================================================
+  // FINITE VOLUME REPRESENTATION SECTION
+  // =======================================================================
+
+  Grid::FiniteVolumeRepresentation::FiniteVolumeRepresentation() {
+    isSet = false;
+  }
+
+  Grid::FiniteVolumeRepresentation& Grid::GetFiniteVolumeRepresentation() {
+    return fvr_;    
+  }
+
   // =========================================================================
   // NONCONFORMING INTERFACES SECTION
   // =========================================================================
