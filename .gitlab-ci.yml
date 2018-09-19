@@ -266,18 +266,18 @@ testsuite:gcc7:linux: # if the machine has multiple
   dependencies:
     - build:gcc7
 
-stable:gcc7min:linux:
-  tags:
-    - linux
-    - gcc7 # due to libgfortran.so.4
-    - run_libc2.17
-  stage: test
-  variables:
-    BUILD_NAME: "GCC7 minimal"
-  retry: 1
-  <<: *test_stable
-  dependencies:
-    - build:gcc7min
+#stable:gcc7min:linux:
+#  tags:
+#    - linux
+#    - gcc7 # due to libgfortran.so.4
+#    - run_libc2.17
+#  stage: test
+#  variables:
+#    BUILD_NAME: "GCC7 minimal"
+#  retry: 1
+#  <<: *test_stable
+#  dependencies:
+#    - build:gcc7min
 
 
 #################################################
