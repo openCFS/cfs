@@ -387,6 +387,10 @@ namespace CoupledField {
       
     } // loop over levels
     static_non_lin_step_timer_.Stop();
+
+    // Recalculate with the right eta
+    isNewton = false;
+    assemble_->AssembleMatrices(isNewton);
   }
   
   

@@ -414,7 +414,7 @@ void ErsatzMaterial::StoreResults(double step_val)
 
   if(cm == FORWARD || cm == BOTH) {
 //    assert(!context->DoMultiSequence()); // extend!
-    forward.WriteAverage(context->pde, context->sequence); // func = NULL
+    //forward.WriteAverage(context->pde, context->sequence); // func = NULL
     Optimization::StoreResults(step_val);
   }
 
@@ -438,7 +438,7 @@ void ErsatzMaterial::StoreResults(double step_val)
     if(cm == ADJOINT || cm == BOTH) {
       // sum up if there are more excitations
       assert(!context->DoMultiSequence()); // extend!)
-      adjoint.WriteAverage(context->pde, context->sequence, funcs[fi]); // time step??
+      //adjoint.WriteAverage(context->pde, context->sequence, funcs[fi]); // time step??
       Optimization::StoreResults(real_step + 0.5 + (0.5 / funcs.GetSize()) * fi);
     }
   }
