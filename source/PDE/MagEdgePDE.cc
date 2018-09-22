@@ -1565,9 +1565,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         // frequency factor
         PtrCoefFct coefFreqFactor = NULL;
         if(analysistype_ == MULTIHARMONIC){
-        	// consider that the quantities (A,J) in multiharmonic are 1/2 of the harmonic ones,
-        	// because of the negative harmonics
-        	coefFreqFactor = CoefFunction::Generate( mp_, part, "0.5*pi*f");
+            // consider that the quantities (A,J) in multiharmonic are 1/2 of the harmonic ones,
+            // the total dissipated power is obtained by summing all the harmonics
+            // the negative factor is to get out positive values ???
+            coefFreqFactor = CoefFunction::Generate( mp_, part, "-2*pi*f");
         }
         else {
         	// for harmonic
