@@ -159,7 +159,7 @@ namespace CoupledField {
 //    for(UInt i = 0; i < freqResult_.GetNumCols(); ++i){
 //      Vector<Complex> tmp;
 //      freqResult_.GetCol(tmp, i);
-//      std::cout<<"Initial freqResult_["<<i<<"] = "<< freqResult_[5][i]<<std::endl;
+//      std::cout<<"Initial freqResult_["<<i<<"] = "<< freqResult_[10][i]<<std::endl;
 //    }
   }
 
@@ -206,11 +206,11 @@ namespace CoupledField {
 
     deleteMeResult_.Resize(timeResult_.GetNumRows(), timeResult_.GetNumCols());
     deleteMeResult_ = timeResult_;
-    //for(UInt i = 0; i < timeResult_.GetNumRows(); ++i){
-    //  for(UInt j = 0; j < timeResult_.GetNumCols(); ++j ){
-    //    deleteMeResult_[i][j] = timeResult_[i][j];
-    //  }
-    //}
+//    for(UInt i = 0; i < timeResult_.GetNumRows(); ++i){
+//      for(UInt j = 0; j < timeResult_.GetNumCols(); ++j ){
+//        deleteMeResult_[i][j] = timeResult_[i][j];
+//      }
+//    }
 
     Complex tmp;
 
@@ -312,7 +312,7 @@ namespace CoupledField {
     status = DftiFreeDescriptor(&dftHandle); // ignore errors from Free function
 #endif
 
-    freqResult_ = freqResult_ * (1.0 / ((nFFT_ )/2));
+    freqResult_ = freqResult_ * (1.0 / ((nFFT_ )));
 
 //    for(UInt i = 0; i < deleteMeResult_.GetNumCols(); ++i){
 //      std::cout<<"deleteMeResult_["<<i<<"] = "<<deleteMeResult_[10][i]<<std::endl;
@@ -353,8 +353,8 @@ namespace CoupledField {
         // harmonic number
         h = k - N_;
         for(UInt j = 0; j < spatialSize_; ++j){
-          // this is our multiharmonic Ansatz
-          timeResult_[j][i] += freqResult_[j][k] * (cos(h * omega0_ * t) + Complex(0.0,1.0)*sin(h * omega0_ *t));
+          // multiplication with 0.5 due to double sided spectrum
+          timeResult_[j][i] += freqResult_[j][k] * (cos(h * omega0_ * t) - Complex(0.0,1.0)*sin(h * omega0_ *t));
         }
       }
     }// loop over time array

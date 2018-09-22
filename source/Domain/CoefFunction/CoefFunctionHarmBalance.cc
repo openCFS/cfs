@@ -254,7 +254,7 @@ template<class T>
     LOG_DBG(coeffctharmbalance) << "\t UpdateHarm()";
 
     // Just for the logging output give the index of solution vector to print
-    UInt index = 1;
+    UInt index = 9;
     if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
       freqTimeRes_.PrintTimeResults(index);
     }
@@ -387,16 +387,16 @@ template<class T>
       const Vector<Complex>& fR = freqTimeRes_.GetFreqResult( N_ + harmonic);
       if ( lpm.isSurface ){
         const MortarNcSurfElem* e = dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl);
-        coefScal = fR[ positionOfElem_[e->ptSlave->ptVolElems[0]->elemNum] ] * 0.5;
+        coefScal = fR[ positionOfElem_[e->ptSlave->ptVolElems[0]->elemNum] ];
         // If harmonic is negative, we need conjugate ḩat{nu}
-        if(harmonic < 0) coefScal = std::conj(coefScal);
+        if(harmonic < 0) std::conj(coefScal);
         elemReg = e->ptSlave->ptVolElems[0]->regionId;
         LOG_DBG(coeffctharmbalance) <<"nu for Nitsche interface with volume region " << ptGrid_->GetRegionName( elemReg )<<
                                     " in harmonic "<< harmonic <<" = " <<coefScal;
       }else{
-        coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ] * 0.5;
+        coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ];
         // If harmonic is negative, we need conjugate ḩat{nu}
-        if(harmonic < 0) coefScal = std::conj(coefScal);
+        if(harmonic < 0) std::conj(coefScal);
         LOG_DBG(coeffctharmbalance) <<"nu for region " << ptGrid_->GetRegionName(elemReg)<<" in harmonic "<< harmonic <<" = " <<coefScal;
       }
     }
