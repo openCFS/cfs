@@ -1388,11 +1388,19 @@ namespace CoupledField {
     // redoes this
     assemble_->PostAssemble();
 
+
     // Calls method ApplyBC and ApplyLoads in FeFunction
     PDE_.SetBCs();
 
-    std::map<FEMatrixType,Double> empty;
-    algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+    // Computation of effective matrix:
+    /* NOTE: this is commented because we also include the MASS matrix
+             in the SYSTEM matrix, as defined in Assemble::CreateMatrixMap().
+             Sometimes having an extra MASS matrix is benefitial, e.g. for exporting and
+             comparing different matrix parts, that's why it's still here
+    */
+    //std::map<FEMatrixType,Double> empty;
+    //algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+
 
     // Incorporate Boundary conditions and
     // recalculate the preconditioner eventually
@@ -1477,12 +1485,16 @@ namespace CoupledField {
       // Sets flag that matrix was already assembled. The method CheckNonLinearities re-does this
       assemble_->PostAssemble();
 
-      // Calls method ApplyBC and ApplyLoads in FeFunction
-      //PDE_.SetBCs();
 
-      // compute effective matrix
-      std::map<FEMatrixType,Double> empty;
-      algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+      // Computation of effective matrix:
+      /* NOTE: this is commented because we also include the MASS matrix
+               in the SYSTEM matrix, as defined in Assemble::CreateMatrixMap().
+               Sometimes having an extra MASS matrix is benefitial, e.g. for exporting and
+               comparing different matrix parts, that's why it's still here
+      */
+      //std::map<FEMatrixType,Double> empty;
+      //algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+
 
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
@@ -1997,8 +2009,15 @@ namespace CoupledField {
       this->AssembleMH(solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
       assemble_->PostAssemble();
 
-      std::map<FEMatrixType,Double> empty;
-      algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+      // Computation of effective matrix:
+      /* NOTE: this is commented because we also include the MASS matrix
+               in the SYSTEM matrix, as defined in Assemble::CreateMatrixMap().
+               Sometimes having an extra MASS matrix is benefitial, e.g. for exporting and
+               comparing different matrix parts, that's why it's still here
+      */
+      //std::map<FEMatrixType,Double> empty;
+      //algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+
 
 
       actSol.ScalarMult(-1.0);

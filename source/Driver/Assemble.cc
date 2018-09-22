@@ -2030,7 +2030,7 @@ namespace CoupledField
     case BasePDE::MULTIHARMONIC:
       matrixMap_[SYSTEM]    = SYSTEM;
       matrixMap_[STIFFNESS] = SYSTEM;
-      matrixMap_[DAMPING]   = DAMPING;
+      matrixMap_[DAMPING]   = SYSTEM;
       matrixMap_[MASS]      = SYSTEM;
       matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
       matrixMap_[DAMPING_UPDATE]   = SYSTEM;
