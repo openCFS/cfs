@@ -3019,13 +3019,29 @@ namespace CoupledField {
       if( isMultHarm_ ){
         SingleVector &vecP = (*rhs_)( (solStrat_->GetNumHarmN() + 1)/2);
         SingleVector &vecN = (*rhs_)( (solStrat_->GetNumHarmN() - 1)/2);
-        if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
-          if ( rowNum <= lastFreeRowIndex ) {
-            vecP.AddToEntry( rowNum-1, elemRHS[iRow]);
-            // this entry must be conjugate complex
-            vecN.AddToEntry( rowNum-1, std::conj(elemRHS[iRow]));
-          }
-        } // loop over rows
+        if(vecP.GetEntryType() == BaseMatrix::COMPLEX && vecN.GetEntryType() == BaseMatrix::COMPLEX){
+          if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
+            if ( rowNum <= lastFreeRowIndex &&  elemRHS[iRow] != (Complex)0.0 ) {
+              // If we want excitation in the imaginary part (corresponds to sinusoidal excitation)
+              /*
+              Complex tmp, tmp1 = elemRHS[iRow];
+              tmp.real(0.0);
+              tmp.imag(tmp1.real());
+              vecP.AddToEntry( rowNum-1, tmp/2.0);
+              // this entry must be conjugate complex
+              vecN.AddToEntry( rowNum-1, std::conj(tmp)/2.0);
+              */
+
+              // If we want excitation in the real part (corresponds to cosine excitation)
+              vecP.AddToEntry( rowNum-1, elemRHS[iRow]/2.0);
+              //this entry must be conjugate complex
+              vecN.AddToEntry( rowNum-1, std::conj(elemRHS[iRow])/2.0);
+            }
+          } // loop over rows
+        }else EXCEPTION("This error when filling the multiharm rhs should not happen");
+
+        LOG_DBG3(algSys) << "SER: rhs is:\n " << (*rhs_).ToString();
+
       } else{
         SingleVector &vec = (*rhs_)(rowBlock);
         if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
