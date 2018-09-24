@@ -17,6 +17,7 @@
 
 extern "C"
 {
+#ifdef USE_ILUPACK_PARALLEL
   #include "reloj.h"
   #include "InputOutput.h"
   #include "ScalarVectors.h"
@@ -29,8 +30,10 @@ extern "C"
   #include "ToolsOPENMP.h"
   #include "SPDfactorOPENMP.h"
   #include "SPDsolverOPENMP.h"
+#endif
 
 }
+
 
 #ifdef _OPENMP
   #include <omp.h>
@@ -73,8 +76,11 @@ template<typename T>
 Ilupack<T>::~Ilupack()
 {
   LOG_TRACE(ilupack) <<  "~Ilupack()";
+
   if(isParallel){
+#ifdef USE_ILUPACK_PARALLEL
     RemoveSparseMatrix (&spr);
+#endif
   }
   else{
     IlupackAMGDelete();
@@ -121,6 +127,8 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   // but just move it
 
   if (isParallel){
+#ifdef USE_ILUPACK_PARALLEL
+
     //Create the sparse matrix spr
     CreateSparseMatrix(&spr,0,som.GetNumRows(),som.GetNumCols(),elements,0);
 
@@ -147,6 +155,7 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
     ConvertIlupackToMatrix (A, &spr, index);
 //    WriteSparseMatrixHB("MatrixRead.rsa",spr,8,4,"MatrixRead",0);
 
+#endif
 
   }
   else {
@@ -244,10 +253,11 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat)
 
 
   // GNL, SYM, PD, HER, .... The parallel version of ilupack operates on sparse matrix and this step is not required
-  if (!isParallel)
+  if (!isParallel){
     DetermineMatrixType(sysMat, out);
+    LOG_TRACE2(ilupack) <<  "Setup: matrix -> " << matrix.ToString(matrix_);
 
-  LOG_TRACE2(ilupack) <<  "Setup: matrix -> " << matrix.ToString(matrix_);
+  }
 
   // in case we already run release memory - it's save if first run
 //  IlupackAMGDelete();
@@ -269,11 +279,24 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
   PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
 
-  auto parameter= reinterpret_cast<DILUPACKparam*>(&param);// for OMP template is not supported in the lib. So casting it manually to
-  int ierr;
-  ptr_IlupackFactor  vFact=nullptr ;
+#ifdef USE_ILUPACK_PARALLEL
 
-  isParallel?ierr=IlupackFactorizationOMP(spr,index,*parameter,nleaves,mtmetis,&vFact):ierr=IlupackAMGFactor();
+  auto parameter= reinterpret_cast<DILUPACKparam*>(&param);
+  ptr_IlupackFactor  vFact=nullptr ;
+#endif
+
+  int ierr=0;
+  if(isParallel){
+#ifdef USE_ILUPACK_PARALLEL
+    // for OMP template is not supported in the lib. So casting it manually to
+
+    ierr=IlupackFactorizationOMP(spr,index,*parameter,nleaves,mtmetis,&vFact);
+#endif
+  }
+  else{
+   ierr=IlupackAMGFactor();
+  }
+
 
   // factorize the iLU preconditioner
   std::stringstream ss;
@@ -322,7 +345,8 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
   if (!isParallel){
 
     out->Get("levels")->SetValue(precond.nlev);
-    CalcFillIn(out);
+    // Again some boost stuff that might be the issue
+    //CalcFillIn(out);
     PtrParamNode timing = out->Get("timing");
     timing->Get("total_time")->SetValue(ILUPACK_secnds[7]);
     timing->Get("initial_preprocessing")->SetValue(ILUPACK_secnds[0]);
@@ -340,12 +364,15 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
 
 
   if (isParallel){
+#ifdef USE_ILUPACK_PARALLEL
+
     double *rhs, *sol;
 
     sol = dynamic_cast<Vector<double>&> (base_sol).GetPointer();
     rhs =  const_cast<double*> (dynamic_cast<const Vector<double>&> (base_rhs).GetPointer());
 
     IlupackSolverOMPG(spr, index, rhs, sol, vFact, *parameter, &parameter->maxit,&parameter->restol);
+#endif
   }
   else{
     // we gain the solution pointer
@@ -436,7 +463,7 @@ void Ilupack<T>::InitParameters()
   {
     CheckParameter(out, &param.nrestart, "iterativeSolver/nrestart");
   }
-
+#ifdef USE_ILUPACK_PARALLEL
   CheckParameter(out, &nleaves, "nleaves");
   // TODO we currently ignore saddle point structures
   param.ind = NULL;
@@ -445,6 +472,7 @@ void Ilupack<T>::InitParameters()
   else
     param.nthreads=1;
   //set to 1 for nthreads if env variable is not set
+#endif
 
 }
 
@@ -475,7 +503,9 @@ void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat, PtrParamNode out)
     matrix_ = mst == BaseMatrix::SPARSE_SYM ? SYM : GNL;
   }
 
-  out->Get("ilupackMatrix")->SetValue(matrix.ToString(matrix_));
+// This causes a seg fault in Debug, maybe something is changed in boost.
+// FIXME Monday
+//  out->Get("ilupackMatrix")->SetValue(matrix.ToString(matrix_));
 }
 
 template<typename T>
