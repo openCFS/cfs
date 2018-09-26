@@ -91,6 +91,7 @@ protected:
   StdVector<double> p_0j, q_0j; // objective approx
   Matrix<double> p_ij, q_ij; // constraint approx
   StdVector<double> b; // rhs of constrain inequality in subproblem.
+  double compliance_old=0; //used only in globally convergent version.
 
   /** MMA Sub Problem
    *      min funcA(xval) + z + 1/2 z^2 + summation(y_i*c_i + 1/2 y_i^2 ; i = [1, m])
@@ -157,8 +158,10 @@ protected:
 
   /** Globally convergent version refer K.Svanberg's DCAMM lecture notes section 6
    * ToDo: NOT IMPLEMENTED*/
-  // bool globallyConvergent = false;
-  // StdVector<double> rho;
+   bool globallyConvergent = false;
+   StdVector<double> rho;
+   double rho_0=0;
+   double objective_r = 0.0; // The r_i in the function approx
 
 
   // Lagrange multipliers

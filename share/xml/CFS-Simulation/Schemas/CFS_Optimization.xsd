@@ -692,6 +692,8 @@
                 <xsd:attribute name="constraint_modification" default="false" use="optional" type="xsd:boolean" />
                 <!-- move_limit is to ensure xmin and xmax are close to xval, if false they are not varied -->
                 <xsd:attribute name="move_limit" default="false" use="optional" type="xsd:boolean" />
+                <!-- for globally convergent sub problem -->
+                <xsd:attribute name="globally_convergent" default="false" use="optional" type="xsd:boolean" />
               </xsd:complexType>
             </xsd:element>
  

@@ -36,6 +36,9 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
     asymdec = this_opt_pn_->Get("asym_dec")->As<double>();
     asyminc = this_opt_pn_->Get("asym_inc")->As<double>();
 
+    globallyConvergent = this_opt_pn_->Get("globally_convergent")->As<bool>();
+
+
     constraintModification = this_opt_pn_->Get("constraint_modification")->As<bool>();
     robustAsymptotes = this_opt_pn_->Get("robust_asymptote")->As<bool>();
     fixedAsymptotes = this_opt_pn_->Has("fixed_asymptotes") && this_opt_pn_->Get("fixed_asymptotes/enable")->As<bool>();
@@ -109,6 +112,13 @@ void MMA::PostInit()
   if(!fixedAsymptotes) {
     xold1 = xval;
     xold2 = xval;
+  }
+
+  if(globallyConvergent) {
+    xold1 = xval;
+    xold2 = xval;
+    rho_0 = 0.0001;
+    rho.Resize(m,0.0001);
   }
 
   alpha.Resize(n);
@@ -294,149 +304,287 @@ void MMA::GenreteSubProblem()
   double gamma = 0.0;
 
   DesignSpace* space = optimization->GetDesign();
-  if(optimization->GetCurrentIteration() < 3)
+
+  // Update of low and upp for globallyConvergent
+  if(globallyConvergent)
   {
-    // We have to define the low and upp only once for fixed asymptotes.
-    if(fixedAsymptotes){
+    /** The update for the first iteration was decided by me. */
+    if(optimization->GetCurrentIteration() < 1)
+    {
       for(unsigned int in =0; in < n; ++in)
       {
-        BaseDesignElement* de = space->GetDesignElement(in);
+        low[in] = min(xmin[in], low[in]);
+        upp[in] = max(xmax[in], upp[in]);
+      }
+      rho_0 = 0.00001;
+      for(unsigned int mj =0; mj<m; ++mj)
+        rho[mj] = 0.00001;
 
-        if(lowerMultiplier)
-        {
-          low[in] = asym_fixed_lower*xmin[in];
-          low[in] = min(xmin[in], low[in]);
-        }
-        else
-        {
-          low[in] = asym_fixed_lower;
-          low[in] = min(de->GetLowerBound(), low[in]);
-        }
+      LOG_DBG3(mmaTopOpt) << "GSP:GC rho_0= " << rho_0;
+      LOG_DBG3(mmaTopOpt) << "GSP:GC rho= " << rho.ToString(0);
+    }
+    else
+    {
+      /** Description povided in K.Svanberg's DCAMM lecture notes section 6*/
 
-        if(upperMultiplier)
+      double objective_approx = 0.0; // This is compute the objective approximation @xnew
+      /** Deal with the objective*/
+      for(unsigned int ni =0; ni< n; ++ni)
+      {
+        objective_approx += p_0j[ni] /(upp[ni] - xval[ni]) + q_0j[ni] / (xval[ni] - low[ni]);
+      }
+      objective_approx -= objective_r; //TODO: Check objective_approx is computed correctly
+
+      if(objective_approx < compliance)
+        rho_0 = 2.0*rho_0;
+
+      StdVector<double> constrain_approx(m); // This is compute the constrain approximation @xnew
+      /** Deal with the constraint*/
+      for(unsigned int j =0; j<m; ++j)
+      {
+        constrain_approx[j] = 0.0;
+        for(unsigned int ni =0; ni<n; ++ni)
         {
-          upp[in] = asym_fixed_upper*xmax[in];
-          upp[in] = max(xmax[in], upp[in]);
-        }
-        else
-        {
-          upp[in] = asym_fixed_upper;
-          upp[in] = max(de->GetUpperBound(), upp[in]);
+          double asym = p_ij[j][ni] /(upp[ni] - xval[ni]) + q_ij[j][ni] / (xval[ni] - low[ni]);
+          constrain_approx[j] += asym;
         }
       }
-    }
-    else {
-        for(unsigned int in =0; in < n; ++in)
+      for(unsigned int mj=0; mj<m;++mj)
+          constrain_approx[mj] += -b[mj]; //TODO: Check constrain_approx[mj] is computed correctly
+
+      for(unsigned int mj =0; mj<m; ++mj)
+        if(constrain_approx[mj] < constrains[mj])
+          rho[mj] = 2.0*rho[mj];
+
+      /** Decide if the low and upp should be updated. Description povided in K.Svanberg's DCAMM lecture notes section 6
+       * We decide to update only if all the function_approximation evaluated at xnew is greater then function evaluated at xnew */
+      bool shouldUpdate = true;
+      if(!(objective_approx >= compliance))
+              shouldUpdate = false;
+
+      if(shouldUpdate )
+        for(unsigned int mj=0; mj<m;++mj)
         {
-          low[in] += xval[in] -  asyminit*(xmax[in] - xmin[in]);
-          upp[in] += xval[in] +  asyminit*(xmax[in] - xmin[in]);
+          if( !(constrain_approx[mj] >= constrains[mj]))
+          {
+            shouldUpdate = false;
+            break;
+          }
         }
+
+
+      if(shouldUpdate)
+      {
+        for(unsigned int ni =0; ni< n; ++ni)
+        {
+          low[ni] = xval[ni] - (xold1[ni] - low[ni]);
+          upp[ni] = xval[ni] + (xold1[ni] - upp[ni]);
+        }
+      }
+      LOG_DBG3(mmaTopOpt) << "GSP:GC shouldUpdate= " << shouldUpdate;
+      LOG_DBG3(mmaTopOpt) << "GSP:GC objective_approx(xnew)= " << objective_approx;
+      LOG_DBG3(mmaTopOpt) << "GSP:GC objective(xnew)= " << compliance;
+      LOG_DBG3(mmaTopOpt) << "GSP:GC constraint_approx(xnew)= " << constrain_approx.ToString(0);
+      LOG_DBG3(mmaTopOpt) << "GSP:GC constraint(xnew)= " << constrains.ToString(0);
+      LOG_DBG3(mmaTopOpt) << "GSP:GC rho_0= " << rho_0;
+      LOG_DBG3(mmaTopOpt) << "GSP:GC rho= " << rho.ToString(0);
     }
   }
-  if(optimization->GetCurrentIteration() > 2 && !fixedAsymptotes)
+  // Update of low and upp for other asymptotes
+  else
   {
-      for(unsigned int i =0; i< n; ++i)
+    if(optimization->GetCurrentIteration() < 3)
       {
-        /** implementation of robust asymptote based on TopOpt code
-         * refer function GenSub(...) in MMA.c */
-        if(robustAsymptotes) {
-          sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
-          if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
-          else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
-          else gamma = 1.0; // there is no design change
-          low[i] = xval[i] - gamma*(xold1[i] - low[i]);
-          upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
-          double x_min_tmp = max(1.0e-5, xmax[i] - xmin[i]);
-          double x_max_tmp = 0.0;
-
-          //Robust Asymptotes
-          low[i]=max(low[i],xval[i]-100.0*x_min_tmp);
-          low[i]=min(low[i],xval[i]-0.01*x_min_tmp);
-          upp[i]=max(upp[i],xval[i]+0.01*x_min_tmp);
-          upp[i]=min(upp[i],xval[i]+100.0*x_min_tmp);
-          low[i] = min(max(low[i], xval[i] - 100.0*x_min_tmp ),xval[i] - 1.0e-4*x_min_tmp);
-          upp[i] = min(max(upp[i], xval[i] + 1.0e-4*x_min_tmp ),xval[i] + 100.0*x_min_tmp);
-          x_min_tmp = xmin[i] - 1.0e-5;
-          x_max_tmp = xmax[i] + 1.0e-5;
-          if(xval[i] < x_min_tmp)
+        // We have to define the low and upp only once for fixed asymptotes.
+        if(fixedAsymptotes){
+          for(unsigned int in =0; in < n; ++in)
           {
-            low[i] = xval[i] - (x_max_tmp - xval[i])/0.9;
-            upp[i] = xval[i] + (x_max_tmp - xval[i])/0.9;
-          }
-          if(xval[i] > x_max_tmp)
-          {
-            low[i] = xval[i] - (xval[i] - x_min_tmp)/0.9;
-            upp[i] = xval[i] + (xval[i] - x_min_tmp)/0.9;
+            BaseDesignElement* de = space->GetDesignElement(in);
+            if(lowerMultiplier)
+            {
+              low[in] = asym_fixed_lower*xmin[in];
+              low[in] = min(xmin[in], low[in]);
+            }
+            else
+            {
+              low[in] = asym_fixed_lower;
+              low[in] = min(de->GetLowerBound(), low[in]);
+            }
+            if(upperMultiplier)
+            {
+              upp[in] = asym_fixed_upper*xmax[in];
+              upp[in] = max(xmax[in], upp[in]);
+            }
+            else
+            {
+              upp[in] = asym_fixed_upper;
+              upp[in] = max(de->GetUpperBound(), upp[in]);
+            }
           }
         }
-        /** implementation of robust asymptote based on TopOpt code
-         * refer function GenSub(...) in MMA.c */
         else {
-          sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
-          if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
-          else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
-          else gamma = 1.0; // there is no design change
-          low[i] = xval[i] - gamma*(xold1[i] - low[i]);
-          upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
-          double x_max_min = max(1.0e-5, xmax[i] - xmin[i]);
-          low[i]=max(low[i],xval[i]-10.0*x_max_min);
-          low[i]=min(low[i],xval[i]-1.0e-4*x_max_min);
-          upp[i]=max(upp[i],xval[i]+1.0e-4*x_max_min);
-          upp[i]=min(upp[i],xval[i]+10.0*x_max_min);
+            for(unsigned int in =0; in < n; ++in)
+            {
+              low[in] += xval[in] -  asyminit*(xmax[in] - xmin[in]);
+              upp[in] += xval[in] +  asyminit*(xmax[in] - xmin[in]);
+            }
         }
+      }
+      if(optimization->GetCurrentIteration() > 2 && !fixedAsymptotes)
+      {
+          for(unsigned int i =0; i< n; ++i)
+          {
+            /** implementation of robust asymptote based on TopOpt code
+             * refer function GenSub(...) in MMA.c */
+            if(robustAsymptotes) {
+              sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
+              if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
+              else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
+              else gamma = 1.0; // there is no design change
+              low[i] = xval[i] - gamma*(xold1[i] - low[i]);
+              upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
+              double x_min_tmp = max(1.0e-5, xmax[i] - xmin[i]);
+              double x_max_tmp = 0.0;
+
+              //Robust Asymptotes
+              low[i]=max(low[i],xval[i]-100.0*x_min_tmp);
+              low[i]=min(low[i],xval[i]-0.01*x_min_tmp);
+              upp[i]=max(upp[i],xval[i]+0.01*x_min_tmp);
+              upp[i]=min(upp[i],xval[i]+100.0*x_min_tmp);
+              low[i] = min(max(low[i], xval[i] - 100.0*x_min_tmp ),xval[i] - 1.0e-4*x_min_tmp);
+              upp[i] = min(max(upp[i], xval[i] + 1.0e-4*x_min_tmp ),xval[i] + 100.0*x_min_tmp);
+              x_min_tmp = xmin[i] - 1.0e-5;
+              x_max_tmp = xmax[i] + 1.0e-5;
+              if(xval[i] < x_min_tmp)
+              {
+                low[i] = xval[i] - (x_max_tmp - xval[i])/0.9;
+                upp[i] = xval[i] + (x_max_tmp - xval[i])/0.9;
+              }
+              if(xval[i] > x_max_tmp)
+              {
+                low[i] = xval[i] - (xval[i] - x_min_tmp)/0.9;
+                upp[i] = xval[i] + (xval[i] - x_min_tmp)/0.9;
+              }
+            }
+            /** implementation of robust asymptote based on TopOpt code
+             * refer function GenSub(...) in MMA.c */
+            else {
+              sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
+              if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
+              else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
+              else gamma = 1.0; // there is no design change
+              low[i] = xval[i] - gamma*(xold1[i] - low[i]);
+              upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
+              double x_max_min = max(1.0e-5, xmax[i] - xmin[i]);
+              low[i]=max(low[i],xval[i]-10.0*x_max_min);
+              low[i]=min(low[i],xval[i]-1.0e-4*x_max_min);
+              upp[i]=max(upp[i],xval[i]+1.0e-4*x_max_min);
+              upp[i]=min(upp[i],xval[i]+10.0*x_max_min);
+            }
+          }
       }
   }
 
   // Formation of pij and qij
   double dfdx_pos, dfdx_neg, extra;
-  double feps = 1.0e-6;
-  for(unsigned int ni=0; ni < n; ++ni)
+  if(globallyConvergent)
   {
-    /** explained in K.Svanberg's paper section 3. equation 8.
-     * this is chosen to avoid division by zero in subproblem*/
-    alpha[ni] = max(xmin[ni], 0.9*low[ni]+0.1*xval[ni]);
-    beta[ni] = min(xmax[ni], 0.9*upp[ni]+0.1*xval[ni]);
-
-    dfdx_pos = max(0.0, grad_compliance[ni]);
-    dfdx_neg = max(0.0, -1.0*grad_compliance[ni]);
-    extra = 0.001*Abs(grad_compliance[ni]) + 0.5*feps/(upp[ni] - low[ni]);
-    p_0j[ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra);
-    q_0j[ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra);
-
-    for(unsigned int mj =0; mj<m ; ++mj)
-    {
-      dfdx_pos = max(0.0, grad_constrains[mj*n + ni]);
-      dfdx_neg = max(0.0, -1*grad_constrains[mj*n + ni]);
-      /** when constraintModification = true p_ij and q_ij are formed according to
-       * description povided in K.Svanberg's DCAMM lecture notes section 4*/
-      if(constraintModification)
+    objective_r = 0.0;
+    for(unsigned int ni=0; ni < n; ++ni)
       {
-        extra = 0.001*Abs(grad_constrains[mj*n + ni]) + 0.5*feps/(upp[ni] - low[ni]);
-        p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra) ;
-        q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra) ;
+        /** explained in K.Svanberg's paper section 3. equation 8.
+         * this is chosen to avoid division by zero in subproblem*/
+        alpha[ni] = max(xmin[ni], 0.9*low[ni]+0.1*xval[ni]);
+        beta[ni] = min(xmax[ni], 0.9*upp[ni]+0.1*xval[ni]);
+
+        dfdx_pos = max(0.0, grad_compliance[ni]);
+        dfdx_neg = max(0.0, -1.0*grad_compliance[ni]);
+
+        extra = rho_0*(upp[ni] - low[ni])*0.5;
+        p_0j[ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra);
+        q_0j[ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra);
+
+
+        objective_r += p_0j[ni] /(upp[ni] - xval[ni]) + q_0j[ni] / (xval[ni] - low[ni]);
+
+        for(unsigned int mj =0; mj<m ; ++mj)
+        {
+          dfdx_pos = max(0.0, grad_constrains[mj*n + ni]);
+          dfdx_neg = max(0.0, -1*grad_constrains[mj*n + ni]);
+
+          extra = rho[mj]*(upp[ni] - low[ni])*0.5;
+          p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra) ;
+          q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra) ;
+        }
       }
-      /** When constraintModification = false p_ij and q_ij are formed according to original K.Svanberg's paper*/
-      else
+      // Calculation of RHS of the constrains in subproblem
+      for(unsigned int j =0; j<m; ++j)
       {
-        p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * dfdx_pos ;
-        q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * dfdx_neg ;
+        b[j] = 0.0;
+        for(unsigned int ni =0; ni<n; ++ni)
+        {
+          double asym = p_ij[j][ni] /(upp[ni] - xval[ni]) + q_ij[j][ni] / (xval[ni] - low[ni]);
+          b[j] += asym;
+        }
       }
-    }
+      objective_r += -compliance;
+      for(unsigned int mj=0; mj<m;++mj)
+      {
+        b[mj] += -constrains[mj];
+      }
   }
-  // Calculation of RHS of the constrains in subproblem
-  for(unsigned int j =0; j<m; ++j)
+  else
   {
-    b[j] = 0.0;
-    for(unsigned int i =0; i<n; ++i)
-    {
-      double asym = p_ij[j][i] /(upp[i] - xval[i]) + q_ij[j][i] / (xval[i] - low[i]);
-      b[j] += asym;
-    }
+    double feps = 1.0e-6;
+    for(unsigned int ni=0; ni < n; ++ni)
+      {
+        /** explained in K.Svanberg's paper section 3. equation 8.
+         * this is chosen to avoid division by zero in subproblem*/
+        alpha[ni] = max(xmin[ni], 0.9*low[ni]+0.1*xval[ni]);
+        beta[ni] = min(xmax[ni], 0.9*upp[ni]+0.1*xval[ni]);
+
+        dfdx_pos = max(0.0, grad_compliance[ni]);
+        dfdx_neg = max(0.0, -1.0*grad_compliance[ni]);
+        extra = 0.001*Abs(grad_compliance[ni]) + 0.5*feps/(upp[ni] - low[ni]);
+        p_0j[ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra);
+        q_0j[ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra);
+
+        for(unsigned int mj =0; mj<m ; ++mj)
+        {
+          dfdx_pos = max(0.0, grad_constrains[mj*n + ni]);
+          dfdx_neg = max(0.0, -1*grad_constrains[mj*n + ni]);
+          /** when constraintModification = true p_ij and q_ij are formed according to
+           * description povided in K.Svanberg's DCAMM lecture notes section 4*/
+          if(constraintModification)
+          {
+            extra = 0.001*Abs(grad_constrains[mj*n + ni]) + 0.5*feps/(upp[ni] - low[ni]);
+            p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra) ;
+            q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra) ;
+          }
+          /** When constraintModification = false p_ij and q_ij are formed according to original K.Svanberg's paper*/
+          else
+          {
+            p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * dfdx_pos ;
+            q_ij[mj][ni] = pow(xval[ni] - low[ni], 2.0) * dfdx_neg ;
+          }
+        }
+      }
+      // Calculation of RHS of the constrains in subproblem
+      for(unsigned int j =0; j<m; ++j)
+      {
+        b[j] = 0.0;
+        for(unsigned int i =0; i<n; ++i)
+        {
+          double asym = p_ij[j][i] /(upp[i] - xval[i]) + q_ij[j][i] / (xval[i] - low[i]);
+          b[j] += asym;
+        }
+      }
+      for(unsigned int j=0; j<m;++j)
+      {
+        b[j] += -constrains[j];
+      }
   }
-  for(unsigned int j=0; j<m;++j)
-  {
-    b[j] += -constrains[j];
-  }
+
 
   LOG_DBG3(mmaTopOpt) << "GSP:Sub low=" << low.ToString(0);
   LOG_DBG3(mmaTopOpt) << "GSP:Sub upp=" << upp.ToString(0);
