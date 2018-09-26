@@ -368,12 +368,12 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
    bool is_mat_possible = false;
 
-   // In the CONSTANT_ON_ALL_REGIONS case we get the design vector of only one region and lot of functions
-   // work on that basis if the region is constant. So the normal assembling of filter matrix or the other functions
+   // If any of the region is constant case we get the design vector of only one per constant region and lot of functions
+   // work on that basis. So the normal assembling of filter matrix or the other functions
    // which give out design vector needs to be modified for making mat vec based filtering work for constant region
    StdVector<DesignRegion>& cur_des = regions.Last();
    // Assume if one design element has the attribute constant_on_all_region , all other design element should have this.
-   if (cur_des.Last().constant != CONSTANT_ON_ALL_REGIONS && design.GetSize() == 1 )
+   if (cur_des.Last().constant == VARIABLE && design.GetSize() == 1 )
      is_mat_possible = true;
 
    // Check if matrix filtering is enabled by the user, there is no default value in the schema file
@@ -383,7 +383,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
    {
      is_matrix_filt = pn->Get("filters/use_mat_filt")->As<bool>();
      if(is_matrix_filt && !is_mat_possible)
-       EXCEPTION("use_mat_filter as density filter is currently only implemnted for a single design type");
+       EXCEPTION("use_mat_filter is implemented only for non constant region and single design type");
    }
 
 
