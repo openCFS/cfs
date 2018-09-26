@@ -121,7 +121,6 @@ IF(MINGW OR MSVC)
   ${MKL_LIB_DIR}/mkl_intel_lp64.lib
   ${MKL_LIB_DIR}/mkl_intel_thread.lib
   ${MKL_LIB_DIR}/mkl_core.lib
-  ${MKL_LIB_DIR}/mkl_intel_lp64.lib
   ${MKL_LIB_DIR}/mkl_sequential.lib
   ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib # md or mt? I have no idea
   -openmp
