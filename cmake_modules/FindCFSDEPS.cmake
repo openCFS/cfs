@@ -206,7 +206,7 @@ ENDIF(USE_GIDPOST)
 # Find Netlib BLAS/LAPACK library
 # MKL contains blas and lapack, OpenBLAS contains blas and somehow also lapack?!
 #-----------------------------------------------------------------------------
-IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
+IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK  )
     
   SET(LAPACK_URL "${CFS_DS_SOURCES_DIR}/lapack")
   SET(LAPACK_BASE "lapack")
@@ -216,7 +216,7 @@ IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
     
   INCLUDE("${CFSDEPS_DIR}/lapack/External_LAPACK.cmake")
     
-ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
+ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  OR USE_ILUPACK )
 
 #-----------------------------------------------------------------------------
 # Find OpenBLAS/LAPACK library
@@ -289,15 +289,31 @@ ENDIF(USE_SUITESPARSE OR USE_ILUPACK)
 #-----------------------------------------------------------------------------
 # Find ILUPACK library
 #-----------------------------------------------------------------------------
-IF(USE_ILUPACK)
+IF(USE_ILUPACK_PARALLEL)
+  #Since the latest version of ilupack requires GCC > 5.0 or the latest ICC compilers
+  IF((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND 
+   ((CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0") OR (CMAKE_C_COMPILER_VERSION VERSION_LESS "5.0") OR (CFS_FORTRAN_COMPILER_VER VERSION_LESS "5.0") ))
+    MESSAGE(FATAL_ERROR "Ilupack can be compiled only when gcc,g++ and gfortran compiler versions are greater than 5")
+  ENDIF()
+  # TODO: For intel compilers still one needs to figure out the proper compiler versions
+# 
+  SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
+  SET(ILUPACK_VER "2.4_parallel_0831")
+  SET(ILUPACK_GZ "ilupack-${ILUPACK_VER}_src.tgz")
+  SET(ILUPACK_MD5 "0a5792597f8120d71e221de601440137")
+  INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
+  #ADD_DEPENDENCIES(ilupack metis) # ilupack has its own (parallel) metis additional to cfs-metis
+ELSEIF(USE_ILUPACK)
   SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
   SET(ILUPACK_BASE "ilupack")
   SET(ILUPACK_VER "2.2.1")
   SET(ILUPACK_GZ "${ILUPACK_BASE}${ILUPACK_VER}_src.tgz")
   SET(ILUPACK_MD5 "7cb6ba2e854e13d243218d9e9478d13c")
-   
   INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
-ENDIF(USE_ILUPACK)
+ENDIF()
+
+
+
 
 #  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")
 #  MESSAGE("LAPACK_LIBRARY ${LAPACK_LIBRARY}")
@@ -526,7 +542,7 @@ IF(USE_IPOPT)
   SET(IPOPT_VER "3.11.9")
   SET(IPOPT_TGZ "${IPOPT_BASE}-${IPOPT_VER}.tgz")
   SET(IPOPT_MD5 "657fa0f2f301f0d7b2a4e5b43e2370f5") 
-  
+ 
   INCLUDE("${CFSDEPS_DIR}/ipopt/External_IPOPT.cmake")
 ENDIF(USE_IPOPT)
 
@@ -602,8 +618,8 @@ if(BUILD_GHOST)
   # we use the cfs-fork of ghost and download the stuff via bitbuket
   # we could also use a subversion mirror on github but only for ghost, not for phist
   # svn co https://github.com/RRZE-HPC/GHOST/trunk@r<REVSION>
-  set(GHOST_REV "656ea8c55fd3") # subversion revision numbers are are more easily handable :(
-  set(GHOST_MD5 "35eb5df4bc2bca54a9aa55d6f94c9f0e")
+  set(GHOST_REV "a3b75fc52c7e") # subversion revision numbers are are more easily handable :(
+  set(GHOST_MD5 "47a7f3b21cf8e8f16c69a6889a184f60")
   set(GHOST_ZIP "${GHOST_REV}.zip")
   # https://bitbucket.org/fabian_wein/cfs_ghost/get/840f2717f849.zip -> fabian_wein-cfs_ghost-840f2717f849
   # https://bitbucket.org/essex/ghost/get/f3c78b57e836.zip -> essex-ghost-f3c78b57e836
@@ -616,8 +632,8 @@ endif(BUILD_GHOST)
 
 # phist provides a ghost (=cuda if available) based EV-solver
 if(USE_PHIST_EV OR USE_PHIST_CG)
-  set(PHIST_REV "71f4a86a0296") 
-  set(PHIST_MD5 "c0ef0b4bdcaa1086bc08bb68eae6dd70")
+  set(PHIST_REV "853be38a7078") 
+  set(PHIST_MD5 "a07fcc37d45a49d5e2e8fc2b31f334a7")
   set(PHIST_ZIP "${PHIST_REV}.zip")
   set(PHIST_BB_USER "essex")
   set(PHIST_BB_PROJECT "phist")

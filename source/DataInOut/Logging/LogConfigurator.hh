@@ -29,7 +29,8 @@ BOOST_LOG_DEFINE_LEVEL(trace2, 1450)
 
 
 #define LOGL(log_name,lvl) BOOST_LOGL(log_name,lvl)
-#define LOG(log_name) BOOST_LOG(log_name)
+// This conflicts with a logarithm definition in ilupackmacros.h.
+//#define LOG(log_name) BOOST_LOG(log_name)
 
 #ifndef NDEBUG
 #define LOG_DBG3(log_name) BOOST_LOGL(log_name,dbg3)

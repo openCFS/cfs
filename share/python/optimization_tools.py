@@ -96,18 +96,28 @@ def read_stiff_angle_matlab(filename):
   centers = mat2['centers']
   domain_data = domain_data['data']
   max = domain_data[0][:]
+  if max[2] == 0:
+    dim = 2
+  else:
+    dim = 3
   min = domain_data[1][:]
   elem_dim = domain_data[2][:]
   coords = (centers,min,max,elem_dim)
   s1 = numpy.zeros((d.shape[0], 1))
   s2 = numpy.zeros((d.shape[0], 1))
+  s3 = numpy.zeros((d.shape[0], 1)) if dim == 3 else None
   angle = numpy.zeros((d.shape[0], 1))
   for i in range(d.shape[0]):
     # angle needs to be changed to negative to match matlab result
     angle[i] = -d[i][0]
     s1[i] = d[i][1]
     s2[i] = d[i][2]
-  return angle,s1,s2,coords
+    if dim == 3:
+      s3[i] = d[i][3]
+  if dim == 3:
+    return None,s1,s2,coords,s3,None
+  else:
+    return angle,s1,s2,coords,s3,'2D'
 
 # # read arbitrary multi-design density file as numpy array
 def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):

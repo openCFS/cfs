@@ -59,7 +59,18 @@ public:
   Type GetType() const { return type_; }
 
   /** Sums up the weights of the neighbors and optionally the own element */
-  double CalcWeightSum(bool include_this) const;
+  double CalcWeightSum(bool include_this) const
+  {
+	  double res = 0.0;
+
+	  for(unsigned int i = 0, n = neighborhood.GetSize(); i < n; i++)
+		  res += neighborhood[i].weight;
+
+	  if(include_this)
+		  res += this->weight;
+
+	  return res;
+  }
 
   void Dump() const;
 

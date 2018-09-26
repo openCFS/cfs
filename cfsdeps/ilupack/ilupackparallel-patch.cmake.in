@@ -7,32 +7,25 @@
 #=============================================================================
 # Set global variables, configured from the external build.
 #=============================================================================
+set(ilupack_source  "@ilupack_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(WIN32 "@WIN32@")
-SET(MSVC "@MSVC@")
+SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
 #=============================================================================
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
+
 #=============================================================================
 # Apply some patches.
 #=============================================================================
 SET(patches
-  "flann-for-cfs.patch"
-
-  # Extra commas at the end of enum lists may irritate some compilers.
-  "flann-extra-commas-at-end-of-enum-lists.patch"
-
-  # warning: ‘struct flann::anyimpl::base_any_policy’ has virtual functions
-  # but non-virtual destructor 
-  "flann-any.patch"
-  
-  # flann will not build with cmake version > 3.10
-  # https://github.com/mariusmuja/flann/issues/369
-  # this is a tricky patch untill flann is fixed
-  "flann-new-cmake.patch"
+  "ilupack-compiler.patch"
 )
 
-APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/flann")
+
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/ilupack")
+

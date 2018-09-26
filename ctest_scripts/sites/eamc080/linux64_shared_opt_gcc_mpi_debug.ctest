@@ -9,7 +9,7 @@
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfs-shared_opt")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/debug-shared_opt")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/debug-shared_opt-mpi")
 
 include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
@@ -49,9 +49,9 @@ SET(CTEST_INITIAL_CACHE
    USE_CCMIO:BOOL=OFF
    USE_CGAL:BOOL=OFF
    USE_CGNS:BOOL=ON
+   USE_ENSIGHT:BOOL=OFF
    USE_FEAST:BOOL=OFF
    USE_FLANN:BOOL=OFF   
-   USE_ENSIGHT:BOOL=OFF
    USE_ILUPACK:BOOL=OFF
    USE_IPOPT:BOOL=ON
    USE_OPENMP:BOOL=ON

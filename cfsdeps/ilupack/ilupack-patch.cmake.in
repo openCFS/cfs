@@ -38,6 +38,7 @@ EXECUTE_PROCESS(
 #=============================================================================
 # Apply some patches.
 #=============================================================================
+
 SET(patches
   "ilupack-nomore-malloc-header.patch"
   "ilupack-sparspak-revrse.patch"
