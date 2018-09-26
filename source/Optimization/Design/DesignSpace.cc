@@ -366,9 +366,18 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
           RegisterPseudoDesignRegion(domain->GetGrid()->regionData[r].id, design[d].design);
   }
 
-  // Check if matrix filtering is enabled by the user, there is no default value in the schema file
+   bool is_mat_possible = false;
+
+   // In the CONSTANT_ON_ALL_REGIONS case we get the design vector of only one region and lot of functions
+   // work on that basis if the region is constant. So the normal assembling of filter matrix or the other functions
+   // which give out design vector needs to be modified for making mat vec based filtering work for constant region
+   StdVector<DesignRegion>& cur_des = regions.Last();
+   // Assume if one design element has the attribute constant_on_all_region , all other design element should have this.
+   if (cur_des.Last().constant != CONSTANT_ON_ALL_REGIONS && design.GetSize() == 1 )
+     is_mat_possible = true;
+
+   // Check if matrix filtering is enabled by the user, there is no default value in the schema file
    // we cannot use the matrix yet for multiple design types, yet this is easy to extend!
-   bool is_mat_possible = design.GetSize() == 1;
    is_matrix_filt = is_mat_possible;
    if(pn->Has("filters/use_mat_filt"))
    {
@@ -1320,7 +1329,7 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
      for(unsigned int i = 0; i < list.GetSize(); i++){
        density_filter[i].CacheDensityFilteredValue(des_vec);
      }
-   }
+  }
   return design_id;
 }
 int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)
