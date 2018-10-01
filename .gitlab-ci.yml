@@ -205,7 +205,7 @@ complete-build:linux:
     - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|Preisach|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust" --track $CDASH_TRACK # exclude the install step and the failing tests
+    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust" --track $CDASH_TRACK # exclude the install step and the failing tests
   <<: *ctest_default
 
 # test everything
@@ -294,6 +294,19 @@ stable:gcc7min:linux:
   dependencies:
     - build:gcc7min
 
+testsuite:gcc7min:linux:
+  tags:
+    - linux
+    - gcc7 # due to libgfortran.so.4
+    - run_libc2.17
+  stage: test
+  variables:
+    BUILD_NAME: "GCC7 minimal"
+  <<: *test_all_multicore
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  dependencies:
+    - build:gcc7min
+
 stable:gcc7max:linux:
   tags:
     - linux
@@ -304,6 +317,19 @@ stable:gcc7max:linux:
     BUILD_NAME: "GCC7 maximal"
   retry: 1
   <<: *test_stable
+  dependencies:
+    - build:gcc7max
+
+testsuite:gcc7max:linux:
+  tags:
+    - linux
+    - gcc7 # due to libgfortran.so.4
+    - run_libc2.17
+  stage: test
+  variables:
+    BUILD_NAME: "GCC7 maximal"
+  <<: *test_all_multicore
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
     - build:gcc7max
 
