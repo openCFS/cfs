@@ -252,17 +252,24 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
         dst='${LOCAL_FILE}'
         timeout=${TIMEOUT}")
 
-      FILE(DOWNLOAD
-        ${URL}
-        ${LOCAL_FILE}
-        INACTIVITY_TIMEOUT ${TIMEOUT}
-        STATUS DL_STATUS
-        LOG DL_LOG
-        SHOW_PROGRESS
-        TLS_VERIFY OFF)
+      IF(EXISTS ${URL})
+        GET_FILENAME_COMPONENT(FOLDER ${LOCAL_FILE} DIRECTORY)
+        MESSAGE("Actual path to folder is: ${FOLDER} ")
+        FILE(COPY
+          ${URL} DESTINATION ${FOLDER})
+      ELSE()
+        FILE(DOWNLOAD
+          ${URL}
+          ${LOCAL_FILE}
+          INACTIVITY_TIMEOUT ${TIMEOUT}
+          STATUS DL_STATUS
+          LOG DL_LOG
+          SHOW_PROGRESS
+          TLS_VERIFY OFF)
 
-      LIST(GET DL_STATUS 0 DL_FAIL)
-      LIST(GET DL_STATUS 1 DL_MSG)
+        LIST(GET DL_STATUS 0 DL_FAIL)
+        LIST(GET DL_STATUS 1 DL_MSG)
+      ENDIF()
 
       IF(NOT DL_FAIL)
         FILE(MD5 ${LOCAL_FILE} ACTUAL_MD5)
