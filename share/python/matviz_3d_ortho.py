@@ -186,46 +186,32 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
     design_elems = None
     draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
     draw_non_design(holes, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
-  #   x = np.arange(0,my_mpi_grid.grid.data.shape[0]+1,1)
-  #   y = np.arange(0,my_mpi_grid.grid.data.shape[1]+1,1)
-  #   z = np.arange(0,my_mpi_grid.grid.data.shape[2]+1,1)
-  #   from pyevtk.hl import gridToVTK
-  #   gridToVTK("voxels"+str(my_mpi_grid.rank),x,y,z,cellData={"voxels":my_mpi_grid.grid.data.astype(int)})
   
     nondes_coords = None
     holes = None
     
-  import mesh_tool
+#   import mesh_tool
+#   
+#   newData = comm.gather(my_mpi_grid.grid.data,root=0)
+#   
+#   if my_mpi_grid.rank == 0:
+#     len_nd = [0]
+#     for nd in newData:
+#       len_nd.append(nd.shape[0])
+#     
+#     len_nd = np.cumsum(len_nd)
+#     array = np.empty((samples[0]*args.bc_res,samples[1]*args.bc_res,samples[2]*args.bc_res),dtype=bool)
+#     for i,nd in enumerate(newData):
+#       array[len_nd[i]:len_nd[i+1],:,:] = nd
+#       
+#     mesh = mesh_tool.Mesh(samples[0]*args.bc_res,samples[1]*args.bc_res,samples[2]*args.bc_res)
+#     mesh_tool.create_dense_mesh_density(array,mesh,0.5,1.0,1e-9)
+#     mesh.bc = []
+# #     mesh_tool.write_gid_mesh(mesh, "dense.mesh")
+#     mesh = mesh_tool.convert_to_sparse_mesh(mesh)
+#     mesh = mesh_tool.add_bc_for_ppbox(mesh, bounds)
+#     mesh_tool.write_gid_mesh(sparse, "sparse.mesh")
   
-  newData = comm.gather(my_mpi_grid.grid.data,root=0)
-  
-  if my_mpi_grid.rank == 0:
-    len_nd = [0]
-    for nd in newData:
-      len_nd.append(nd.shape[0])
-    
-    len_nd = np.cumsum(len_nd)
-    array = np.empty((samples[0]*args.bc_res,samples[1]*args.bc_res,samples[2]*args.bc_res),dtype=bool)
-    print("array.shape",array.shape)
-    for i,nd in enumerate(newData):
-      array[len_nd[i]:len_nd[i+1],:,:] = nd
-      print(len_nd[i],":",len_nd[i+1]," nd.shape:",nd.shape)
-      
-#     x = np.arange(0,array.shape[0]+1,1)
-#     y = np.arange(0,array.shape[1]+1,1)
-#     z = np.arange(0,array.shape[2]+1,1)
-#     from pyevtk.hl import gridToVTK
-#     gridToVTK("voxels",x,y,z,cellData={"voxels":array.astype(int)})
-    
-    mesh = mesh_tool.Mesh(samples[0]*args.bc_res,samples[1]*args.bc_res,samples[2]*args.bc_res)
-    mesh_tool.create_dense_mesh_density(array,mesh,0.5,1.0,1e-9)
-    mesh.bc = []
-#     mesh_tool.write_gid_mesh(mesh, "dense.mesh")
-    sparse = mesh_tool.convert_to_sparse_mesh(mesh)
-    mesh_tool.write_gid_mesh(sparse, "sparse.mesh")
-  
-  sys.exit()
-
   borders = my_mpi_grid.communicate_edges()
       
   # binary helper array
@@ -255,7 +241,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
   from skimage import measure
   # coords of vertices lie in [0,1-h]
   from marching_cubes import marching_cubes
-  normals =[]
+  normals = []
   my_mpi_grid.vertices = []
   my_mpi_grid.faces = []
 #   marching_cubes(helper,(np.float32(my_mpi_grid.grid.hx),np.float32(my_mpi_grid.grid.hy),np.float32(my_mpi_grid.grid.hz)),my_mpi_grid.vertices, my_mpi_grid.faces,normals)
@@ -303,7 +289,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
     matviz_vtk.show_write_vtk(pd, 10, "marching_all.vtp")
     
 #     data = (verts,faces)
-  sys.exit()  
+#   sys.exit()  
 # #   # broadcast all verts to all ranks
 #   data = my_mpi_grid.comm.bcast(data,root=0)
 #   my_mpi_grid.set_vertices_and_faces(data[0],data[1])

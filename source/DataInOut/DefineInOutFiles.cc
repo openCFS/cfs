@@ -145,8 +145,6 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
     
     if ( meshFile.find(".h5", meshFile.length()-4) != std::string::npos ) {
       inFiles[actId] = shared_ptr<SimInput>( new SimInputHDF5(meshFile, PtrParamNode(new ParamNode()), infoNode) );
-    } else if ( meshFile.find(".msh", meshFile.length()-5) != std::string::npos ){
-      inFiles[actId] = shared_ptr<SimInput>( new SimInputGmsh(meshFile, PtrParamNode(new ParamNode()), infoNode) );
     } else {
       inFiles[actId] = shared_ptr<SimInput>( new SimInputMESH(meshFile, PtrParamNode(), infoNode) );
     }

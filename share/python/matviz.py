@@ -609,12 +609,15 @@ else:
         # in case we have more than 1 non-design solid region
         if "," in args.h5_nondes:
           nondes_regs = args.h5_nondes.split(",")
-        
+        elif type(nondes_regs) == str:
+          nondes_regs = [nondes_regs]
+          
         nondes_centers = []
         nondes_elements = []
         nondes_min = 999999
-        nondes_max = -999999  
+        nondes_max = -999999 
         for nr in list(nondes_regs):
+          print("nr:",nr)
           tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements = centered_elements(f, nr,centered=False)
           nondes_elements.extend(tmp_nondes_elements)
           nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
