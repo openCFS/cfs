@@ -75,22 +75,22 @@ namespace CoupledField
         startingAxis_[0] = 1.0; // default if nothing works
       }
     }
-    
+    Double angleOffset = atan2(startingAxis_[1],startingAxis_[0]);
     // accroding to "Magnetic Field Analysis of Electric Machines Taking Ferromagnetic Hysteresis into Account" by J. Saitz, p. 38
     // we should use randomly distributed starting angle to make up for the missing symmetry property due to discretization
     Double deltaAngle = M_PI/numDirections;
 //    Double startingAngle = -deltaAngle/2;
     Double currentAngle = 0.0;
-    std::cout << "MG-model-Directions of scalar models: " << std::endl;
-    std::cout << "Staring axis: " << startingAxis_.ToString() << std::endl;
+//    std::cout << "MG-model-Directions of scalar models: " << std::endl;
+//    std::cout << "Staring axis: " << startingAxis_.ToString() << std::endl;
+//    std::cout << "Staring angle: " << angleOffset << std::endl;
     for(UInt i = 0; i < numDirections; i++){
-      currentAngle = i*deltaAngle;
-      std::cout << "angle (" << i << "): " << currentAngle << std::endl;
+      currentAngle = angleOffset + i*deltaAngle;
+//      std::cout << "angle (" << i << "): " << currentAngle << std::endl;
       singleDirections_[i] = Vector<Double>(dim_);
-      singleDirections_[i] = startingAxis_;
-      singleDirections_[i][0] += std::cos(currentAngle);
-      singleDirections_[i][1] += std::sin(currentAngle);
-      std::cout << "direction (" << i << "): " << singleDirections_[i].ToString() << std::endl;
+      singleDirections_[i][0] = std::cos(currentAngle);
+      singleDirections_[i][1] = std::sin(currentAngle);
+//      std::cout << "direction (" << i << "): " << singleDirections_[i].ToString() << std::endl;
     }
     
 		// Inversion requires the following steps:
