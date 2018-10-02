@@ -1878,11 +1878,11 @@ namespace CoupledField
     int successCodeTmp = 0;
     Vector<Double> hystValAtXSat = computeValue_vec(satInput, operatorIndex, false, false, successCodeTmp);
     Double anhystPartPosSat = PSaturated_*evalAnhystPart_normalized(1.0);
-    //      std::cout << "yNorm: " << yNorm << std::endl;
-    //      std::cout << "hystValAtXSat: " << hystValAtXSat << std::endl;
-    //      std::cout << "XSaturated_: " << XSaturated_ << std::endl;
-    //      std::cout << "PSaturated_: " << PSaturated_ << std::endl;
-    //      std::cout << "eps_mu: " << eps_mu << std::endl;
+//          std::cout << "yNorm: " << yNorm << std::endl;
+//          std::cout << "hystValAtXSat: " << hystValAtXSat << std::endl;
+//          std::cout << "XSaturated_: " << XSaturated_ << std::endl;
+//          std::cout << "PSaturated_: " << PSaturated_ << std::endl;
+//          std::cout << "eps_mu: " << eps_mu << std::endl;
     //      
     // check saturation in direction of yIn might solve system
     //Double diffSat = yNorm - (PSaturated_ + eps_mu*XSaturated_ + anhystPartPosSat);

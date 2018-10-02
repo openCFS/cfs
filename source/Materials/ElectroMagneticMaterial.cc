@@ -62,6 +62,11 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_MAYERGOYZ_NUM_DIR );
     isAllowed_.insert( PREISACH_MAYERGOYZ_ISOTROPIC );
     isAllowed_.insert( PREISACH_MAYERGOYZ_CLIPOUTPUT );
+    
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_X );
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_Y );
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_Z );
+    
     isAllowed_.insert( PREISACH_PRESCRIBEOUTPUT );
     isAllowed_.insert( PREISACH_SCALEINITIALSTATE );
     isAllowed_.insert( SCALETOSAT );
@@ -171,6 +176,11 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_MAYERGOYZ_NUM_DIR_STRAIN );
     isAllowed_.insert( PREISACH_MAYERGOYZ_ISOTROPIC_STRAIN );
     isAllowed_.insert( PREISACH_MAYERGOYZ_CLIPOUTPUT_STRAIN );
+    
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_X_STRAIN );
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_Y_STRAIN );
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_Z_STRAIN );
+    
     isAllowed_.insert( IRRSTRAIN_REUSE_P );
     
     isAllowed_.insert( DATA_ACCURACY );

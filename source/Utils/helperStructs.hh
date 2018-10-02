@@ -157,6 +157,7 @@ namespace CoupledField {
     bool isIsotropic_;
     int numDirections_;
     int outputClipping_;
+    Vector<Double> startingAxisMG_;
   };
   
 } // end of CoupledField

@@ -38,6 +38,12 @@ namespace CoupledField {
     Double computeValueAndUpdateMeasure( Double Xin, Integer idx,
           bool overwrite, int& successFlag, Double& time );  
     
+    // new: allow direct computation of vector output using fixDirection member
+    // mostly needed when scalar model shall be inverted using newton/lm like the vector models
+    // > not recommended though; use Everett based inversion instead (computeInputAndUpdate)
+    Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idxElem, bool overwrite,
+      bool debugOut, int& successFlag);
+    
     //! returns the current output of the hyst-operator for element idxElem
     Double getValue(  Integer idxElem);
     
@@ -90,6 +96,7 @@ namespace CoupledField {
     
     bool isVirgin_; //! yes, if starting at zero
     
+    Vector<Double> fixDirection_; //! direction in which scalar model acts
     Vector<Double> preisachSum_; //! output value of Preisach operator
     
     Vector<Double>* strings_; //! irreduceable minima and maxima

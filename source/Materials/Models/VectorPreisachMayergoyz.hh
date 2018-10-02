@@ -19,7 +19,9 @@ namespace CoupledField {
     // we have to specify xSaat,ySat as well as a set of fitting preisachWeights
     // the number of directions is specified by the length of xSat, ySat, etc
     VectorPreisachMayergoyz(Integer numElem, Vector<Double> xSat, Vector<Double> ySat, 
-      Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, bool anhystOnly, int clipOutput);
+      Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,
+      Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, 
+      bool anhystOnly, int clipOutput);
     
     // constructor for isotropic case, i.e. same xSat, ySat and weights in all directions
     VectorPreisachMayergoyz(Integer numElem, ParameterPreisachOperators operatorParams, 
@@ -53,8 +55,8 @@ namespace CoupledField {
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idx, bool overwrite,
       bool debugOutput, int& successFlag);
     
-    Vector<Double> computeValue_vecMeasure(Vector<Double>& xVal, Integer idx, bool overwrite,
-      bool debugOutput, int& successFlag, Double& time);
+//    Vector<Double> computeValue_vecMeasure(Vector<Double>& xVal, Integer idx, bool overwrite,
+//      bool debugOutput, int& successFlag, Double& time);
     
     void setFlags(UInt performanceFlag){
       ;
@@ -66,6 +68,7 @@ namespace CoupledField {
     int clipOutput_;
     bool isIsotropic_;
     
+    Vector<Double> startingAxis_;
     Vector<Double>* singleDirections_;
     Preisach** singlePreisachOperators_;
     Matrix<Double> matrixForCoefComputation_;

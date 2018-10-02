@@ -92,6 +92,7 @@ namespace CoupledField{
     if(this->analysistype_ == STATIC){
       EXCEPTION("No STATIC analysis in AcousticPDE");
     }
+
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H1"){
       std::string form = SolutionTypeEnum.ToString(formulation_);
@@ -1791,6 +1792,7 @@ namespace CoupledField{
     res1->SetFeFunction(feFunctions_[formulation_]);
     DefineFieldResult( feFunctions_[formulation_], res1 );
     
+
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
@@ -2017,7 +2019,8 @@ namespace CoupledField{
     } else{
       presFct = this->GetCoefFct(ACOU_PRESSURE);
     }
-   
+    
+    
     shared_ptr<ResultInfo> pos, vel, velNormal, intensity, surfIntensity, intensNormal, power, pres;
     PtrCoefFct intensFct, velFct, velFctPW, posFct;
     shared_ptr<CoefFunctionSurf> sNormIntens, sIntens, velFctNormal, sNormIntensPW;
@@ -2052,6 +2055,7 @@ namespace CoupledField{
       pos->unit = "m";
       pos->entryType = ResultInfo::VECTOR;
       pos->definedOn = ResultInfo::ELEMENT;
+
       // === ACOU_NORMAL_VELOCITY ===
       velNormal.reset(new ResultInfo);
       velNormal->resultType = ACOU_NORMAL_VELOCITY;

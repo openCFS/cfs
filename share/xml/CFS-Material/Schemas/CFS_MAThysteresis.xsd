@@ -576,6 +576,15 @@
                 </xsd:all>
               </xsd:complexType>
             </xsd:element>
+            <xsd:element name="EverettBasedInversion">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">   
+                  Efficient inversion for SCALAR preisach model only.
+                  Taken from "Generalisiertes Preisach-Modell für die Simulation und Kompensation
+                        der Hysterese piezokeramischer Wandler" - PHD Thesis, Felix Wolf
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
           </xsd:choice>
         </xsd:complexType>
       </xsd:element>
@@ -649,6 +658,7 @@
         </xsd:simpleType>
       </xsd:element> 
       <xsd:element name="weights" type="DT_HystWeights" minOccurs="1"/>
+      <xsd:element name="hystInversion" type="DT_VecInversionParams" minOccurs="1"/>
       <xsd:element name="initialState" type="DT_initialMag" minOccurs="0">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
@@ -659,7 +669,7 @@
             equal to the given vector MINUS reversible and anhysteretic parts   
           </xsd:documentation>
         </xsd:annotation>
-      </xsd:element>
+      </xsd:element> 
     </xsd:all>
   </xsd:complexType>
   
@@ -733,6 +743,22 @@
     <xsd:all>
       <xsd:element name="numDirections" type="xsd:nonNegativeInteger" minOccurs="1" default="11"/>
       <xsd:element name="ScalarModel" type="DT_VectorPreisachHystModelMayergoyz_Base" minOccurs="1"/>
+      <xsd:element name="startAxis" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Model uses numDirections equally distributed direction vectors; per default the counting
+            starts at the x-axis (1 0 0); 
+            by setting a 3d vector here, the starting axis can be set; 
+            setting (0 0 0) will trigger random generation (one random direction for each hyst operator!)
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:minLength value="3"/> 
+            <xsd:maxLength value="3"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
     </xsd:all>
   </xsd:complexType> 
   

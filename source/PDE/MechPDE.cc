@@ -78,6 +78,7 @@ namespace CoupledField {
     
     //! Always use total Lagrangian formulation 
     updatedGeo_        = false;
+    
     // ****************************
     // DETERMINE GEOMETRY
     // ****************************
@@ -1502,6 +1503,7 @@ namespace CoupledField {
       myFct->AddEntityList(ent[i]);
       
     } // for
+    
     // ==================
     //  THERMAL STRAIN
     // ==================

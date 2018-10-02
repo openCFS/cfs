@@ -1967,6 +1967,7 @@ namespace CoupledField {
       this->feFunctions_[solType]->ApplyExternalData();
     }
     
+
     ifNode = icNode->Get("initialFieldD1", ParamNode::PASS );
     if( ifNode ) {
       LOG_TRACE(singlepde) << pdename_ << ": Reading initial condition";
@@ -2006,6 +2007,7 @@ namespace CoupledField {
       //Trigger the feFunction to fill itself from the field
       this->timeDerivFeFunctions_[solType]->ApplyExternalData();
     }
+
     LOG_TRACE(singlepde) << pdename_ << ": Finished reading initial conditions";
   }
 
@@ -3676,6 +3678,7 @@ namespace CoupledField {
     else if ( solType == MAG_POTENTIAL) {
       PtrCoefFct permability;
       PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
       permability = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( MAG_PERMEABILITY, Global::REAL );
       factor = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permability, CoefXpr::OP_DIV));
     }
@@ -3783,6 +3786,7 @@ namespace CoupledField {
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               factor, beta, curcpl, updatedGeo_, true, true);
       }
+
     }
 
     if ( solType == MECH_DISPLACEMENT ) {
@@ -3864,6 +3868,7 @@ namespace CoupledField {
                   new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                   factor, beta * -1.0, curcpl, updatedGeo_, true, true);
         }
+
     }
     
     if ( solType == MECH_DISPLACEMENT ) {
@@ -3881,6 +3886,7 @@ namespace CoupledField {
                           factor, 1.0, curcpl, updatedGeo_, true);
     	}
     	else {
+
         if(pdename_ == "magneticEdge"){
           flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
                  (new SurfaceCurlNormalOperator<FeHCurl,DIM,D_DOF>(),
@@ -4040,6 +4046,7 @@ namespace CoupledField {
     flux_du1_v1_Context->SetEntities(actSDList,actSDList);
     flux_u1_dv1_Context->SetEntities(actSDList,actSDList);
     flux_du1_v2_Context->SetEntities(actSDList,actSDList);
+
     penalty_u1_v1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
     penalty_u2_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
     penalty_u1_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );

@@ -8,6 +8,7 @@
 #include "General/Exception.hh"
 #include "Utils/tools.hh"
 #include "Utils/helperStructs.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField {
 
@@ -57,12 +58,28 @@ namespace CoupledField {
       return Yout;
     };
     
-    virtual Vector<Double> computeValue_vecMeasure(Vector<Double>& xVal, Integer idxElem, bool overwrite,
-      bool debugOut, int& successFlag, Double& time) {
-      EXCEPTION( "computeValue_vec not implemented in base-Class" );
-      Vector<Double> Yout;
-      return Yout;
+    Vector<Double> computeValue_vecMeasure(Vector<Double>& xVal, Integer idx, 
+    bool overwrite,bool debugOutput,int& successFlag, Double& time){
+      
+      Timer* timer = new Timer();
+      Double startTime = timer->GetCPUTime();
+      timer->Start();
+      
+      Vector<Double> Yvec = computeValue_vec(xVal, idx, overwrite, debugOutput, successFlag);
+      
+      timer->Stop();
+      Double endTime = timer->GetCPUTime();  
+      time = endTime-startTime;
+      
+      return Yvec;
     };
+    
+//    virtual Vector<Double> computeValue_vecMeasure(Vector<Double>& xVal, Integer idxElem, bool overwrite,
+//      bool debugOut, int& successFlag, Double& time) {
+//      EXCEPTION( "computeValue_vec not implemented in base-Class" );
+//      Vector<Double> Yout;
+//      return Yout;
+//    };
 
     virtual Vector<Double> computeInput_vec(Vector<Double> yVal, Integer operatorIndex, 
       Matrix<Double> mu, bool fieldsAlignedAboveSat, bool hystOutputRestrictedToSat, 

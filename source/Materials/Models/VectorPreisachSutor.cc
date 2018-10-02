@@ -95,6 +95,9 @@ namespace CoupledField
 		angResolution_ = angResolution;
 		
     classical_ = classical;
+    usePreComputedValue_ = true;
+    rotMat_ = Matrix<Double>(dim_,dim_);
+    lastRotatedVec_ = Vector<Double>(dim_);
     
     if(classical_){
       LOG_TRACE(vecpreisach) << "VectorPreisach: Using classical vector model (Sutor2012)";
@@ -386,12 +389,31 @@ namespace CoupledField
        *
        * angularDistance_ in deg
        */
-      xVal /= XSaturated_;
-      if(abs(xVal) > 1){
-        delta_phi = 0.0;
+      Double c,s;
+      if(usePreComputedValue_){
+        delta_phi = deltaPhi_preComputed_;
+        c = cos_deltaPhi_preComputed_;
+        s = sin_deltaPhi_preComputed_;
       } else {
-        delta_phi = angularDistance_ * (1 - abs(xVal));
+        xVal /= XSaturated_;
+        if(abs(xVal) > 1){
+          delta_phi = 0.0;
+        } else {
+          delta_phi = angularDistance_ * (1 - abs(xVal));
+        }
+        // compute later but only if needed
+        c = 0.0;
+        s = 0.0;
       }
+      
+      if(delta_phi <= angResolution_){
+				//        std::cout << "delta_phi < angleTol > return e_u_new" << std::endl;
+        /*
+         * no resistance to rotation
+         */
+        return e_u_new;
+      }
+      
       //      std::cout << "delta_phi: " << delta_phi << std::endl;
       
       /*
@@ -431,13 +453,7 @@ namespace CoupledField
       /*
        * 3. calculate new rotation direction depending on delta_phi and alpha
        */
-      if(delta_phi <= angResolution_){
-				//        std::cout << "delta_phi < angleTol > return e_u_new" << std::endl;
-        /*
-         * no resistance to rotation
-         */
-        return e_u_new;
-      } else if(delta_phi >= alpha) {
+      if(delta_phi >= alpha) {
 				//        std::cout << "delta_phi >= angleTol > return e_u_old" << std::endl;
         /*
          * e_u_old is already closer than the resistance angle delta_phi that should remain
@@ -449,77 +465,87 @@ namespace CoupledField
          * Note: e_u_new is rotated by -delta_phi towards e_u_old
          */
         Vector<Double> e_phi = Vector<Double>(dim_);
-        Matrix<Double> rotMat = Matrix<Double>(dim_,dim_);
-        Double c,s;
-        
-        if(dim_ == 2){
-          /*
-           * in 2d we need
-           *  1. direction of rotation axis (+z or -z)
-           *  2. a 2x2 rotation matrix describing a rotation of -delta_phi degree around rotation axis
-           */
-          
-          /*
-           * in 2d rotation axis is either +z or -z; find sign via cross product of e_u_old and e_u_new but take only 3rd entry
-           * Note: we build the right-hand-system e_u_old, e_u_new, e_u_old x e_u_new
-           */
-          Double n3;
-          n3 = e_u_old[0]*e_u_new[1] - e_u_old[1]*e_u_new[0];
-          
-          if(n3 != 0){
-            n3 = n3/abs(n3);
-          }
-          
-          //std::cout << "n3: " << n3 << std::endl;
-          
-          c = std::cos(-delta_phi/180*M_PI);
-          s = std::sin(-delta_phi/180*M_PI);
-          
-          //          std::cout << "c: " << c << std::endl;
-          //          std::cout << "s: " << s << std::endl;
-          
-          rotMat[0][0] = c;
-          rotMat[0][1] = -n3*s;
-          rotMat[1][0] = n3*s;
-          rotMat[1][1] = c;
-          
-          e_phi = rotMat*e_u_new;
-          
+        Vector<Double> diffToLastRotatedVec = Vector<Double>(dim_);
+        diffToLastRotatedVec.Add(1.0,lastRotatedVec_,-1.0,e_u_old);
+        if(diffToLastRotatedVec.NormL2() < 1e-16){
+          //std::cout << "Reuse last rotMat" << std::endl;
+          // the last time this function was called, it basically rotated the same state
+          // > reuse rotMat_!
         } else {
-          /*
-           * in 3d we need
-           *  1. rotation axis given by e_u_old x e_u_new
-           *  2. a 3x3 rotation matrix describing a rotation of -delta_phi degree around rotation axis
-           */
-          Vector<Double> normal = Vector<Double>(dim_);
-          e_u_old.CrossProduct(e_u_new,normal);
-          
-          if(normal.NormL2() != 0){
-            normal = normal/normal.NormL2();
+          lastRotatedVec_ = e_u_old;
+
+          rotMat_.Init();
+
+          if(dim_ == 2){
+            /*
+             * in 2d we need
+             *  1. direction of rotation axis (+z or -z)
+             *  2. a 2x2 rotation matrix describing a rotation of -delta_phi degree around rotation axis
+             */
+
+            /*
+             * in 2d rotation axis is either +z or -z; find sign via cross product of e_u_old and e_u_new but take only 3rd entry
+             * Note: we build the right-hand-system e_u_old, e_u_new, e_u_old x e_u_new
+             */
+            Double n3;
+            n3 = e_u_old[0]*e_u_new[1] - e_u_old[1]*e_u_new[0];
+
+            if(n3 != 0){
+              n3 = n3/abs(n3);
+            }
+
+            //std::cout << "n3: " << n3 << std::endl;
+            if(!usePreComputedValue_){
+              c = std::cos(-delta_phi/180*M_PI);
+              s = std::sin(-delta_phi/180*M_PI);
+            }
+
+            //          std::cout << "c: " << c << std::endl;
+            //          std::cout << "s: " << s << std::endl;
+
+            rotMat_[0][0] = c;
+            rotMat_[0][1] = -n3*s;
+            rotMat_[1][0] = n3*s;
+            rotMat_[1][1] = c;
+
+          } else {
+            /*
+             * in 3d we need
+             *  1. rotation axis given by e_u_old x e_u_new
+             *  2. a 3x3 rotation matrix describing a rotation of -delta_phi degree around rotation axis
+             */
+            Vector<Double> normal = Vector<Double>(dim_);
+            e_u_old.CrossProduct(e_u_new,normal);
+
+            if(normal.NormL2() != 0){
+              normal = normal/normal.NormL2();
+            }
+
+            if(!usePreComputedValue_){
+              c = std::cos(-delta_phi/180*M_PI);
+              s = std::sin(-delta_phi/180*M_PI);
+            }
+
+            /*
+             * rotation matrix for a rotation around 'normal';
+             * Note: e_u_old, e_u_new and normal have to have the same origin
+             * (which is fulfilled here as all are vectors starting at (0,0,0))
+             */
+            rotMat_[0][0] = normal[1]*normal[1]*(1-c) + c;
+            rotMat_[0][1] = normal[1]*normal[2]*(1-c) - normal[3]*s;
+            rotMat_[0][2] = normal[1]*normal[3]*(1-c) + normal[2]*s;
+
+            rotMat_[1][0] = normal[2]*normal[1]*(1-c) + normal[3]*s;
+            rotMat_[1][1] = normal[2]*normal[2]*(1-c) + c;
+            rotMat_[1][2] = normal[2]*normal[3]*(1-c) - normal[1]*s;
+
+            rotMat_[2][0] = normal[3]*normal[1]*(1-c) - normal[2]*s;
+            rotMat_[2][1] = normal[3]*normal[2]*(1-c) + normal[1]*s;
+            rotMat_[2][2] = normal[3]*normal[3]*(1-c) + c;
           }
-          
-          c = std::cos(-delta_phi/180*M_PI);
-          s = std::sin(-delta_phi/180*M_PI);
-          
-          /*
-           * rotation matrix for a rotation around 'normal';
-           * Note: e_u_old, e_u_new and normal have to have the same origin
-           * (which is fulfilled here as all are vectors starting at (0,0,0))
-           */
-          rotMat[0][0] = normal[1]*normal[1]*(1-c) + c;
-          rotMat[0][1] = normal[1]*normal[2]*(1-c) - normal[3]*s;
-          rotMat[0][2] = normal[1]*normal[3]*(1-c) + normal[2]*s;
-          
-          rotMat[1][0] = normal[2]*normal[1]*(1-c) + normal[3]*s;
-          rotMat[1][1] = normal[2]*normal[2]*(1-c) + c;
-          rotMat[1][2] = normal[2]*normal[3]*(1-c) - normal[1]*s;
-          
-          rotMat[2][0] = normal[3]*normal[1]*(1-c) - normal[2]*s;
-          rotMat[2][1] = normal[3]*normal[2]*(1-c) + normal[1]*s;
-          rotMat[2][2] = normal[3]*normal[3]*(1-c) + c;
-          
-          e_phi = rotMat*e_u_new;
-        }
+        } // reuse rotMat_
+        
+        e_phi = rotMat_*e_u_new;
         return e_phi;
       }
     }
@@ -856,6 +882,18 @@ namespace CoupledField
      */
     Vector<Double> e_u = Vector<Double>(u_in.GetSize());
     Double xVal = u_in.NormL2();
+    
+    if(!classical_ && usePreComputedValue_){
+      // for computation of new direction vector in case of revised model
+      Double xValTMP = xVal / XSaturated_;
+      if(abs(xValTMP) > 1){
+        deltaPhi_preComputed_ = 0.0;
+      } else {
+        deltaPhi_preComputed_ = angularDistance_ * (1 - abs(xValTMP));
+      }
+      cos_deltaPhi_preComputed_ = std::cos(-deltaPhi_preComputed_/180*M_PI);
+      sin_deltaPhi_preComputed_ = std::sin(-deltaPhi_preComputed_/180*M_PI);
+    }
     
     if(xVal != 0){
       e_u = u_in/xVal;
@@ -2352,22 +2390,21 @@ namespace CoupledField
     return 0;
   }
   
-  Vector<Double> VectorPreisachSutor_ListApproach::computeValue_vecMeasure(Vector<Double>& u_in, Integer idElem, bool overwrite,
-          bool debugOut, int& successCode, Double& time){
-    
-    Timer* timer = new Timer();
-    Double startTime = timer->GetCPUTime();
-    timer->Start();
-    
-    Vector<Double> Yvec = computeValue_vec(u_in, idElem, overwrite, debugOut, successCode);
-    
-    timer->Stop();
-    Double endTime = timer->GetCPUTime();  
-    time = endTime-startTime;
-    
-    return Yvec;
-    
-  }  
+//  Vector<Double> VectorPreisachSutor_ListApproach::computeValue_vecMeasure(Vector<Double>& u_in, Integer idElem, bool overwrite,
+//          bool debugOut, int& successCode, Double& time){
+//    
+//    Timer* timer = new Timer();
+//    Double startTime = timer->GetCPUTime();
+//    timer->Start();
+//    
+//    Vector<Double> Yvec = computeValue_vec(u_in, idElem, overwrite, debugOut, successCode);
+//    
+//    timer->Stop();
+//    Double endTime = timer->GetCPUTime();  
+//    time = endTime-startTime;
+//    
+//    return Yvec;
+//  }  
   
   Vector<Double> VectorPreisachSutor_ListApproach::computeValue_vec(Vector<Double>& u_in, Integer idElem, bool overwrite,
           bool debugOut, int& successCode){
@@ -2428,6 +2465,18 @@ namespace CoupledField
      */
     Vector<Double> e_u = Vector<Double>(u_in.GetSize());
     Double xVal = u_in.NormL2();
+    
+    if(!classical_ && usePreComputedValue_){
+      // for computation of new direction vector in case of revised model
+      Double xValTMP = xVal / XSaturated_;
+      if(abs(xValTMP) > 1){
+        deltaPhi_preComputed_ = 0.0;
+      } else {
+        deltaPhi_preComputed_ = angularDistance_ * (1 - abs(xValTMP));
+      }
+      cos_deltaPhi_preComputed_ = std::cos(-deltaPhi_preComputed_/180*M_PI);
+      sin_deltaPhi_preComputed_ = std::sin(-deltaPhi_preComputed_/180*M_PI);
+    }
     
     //  std::cout << "xVal: " << xVal << std::endl;
     //	std::cout << "OverwriteDirection? " << overwriteDirection << std::endl;

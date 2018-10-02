@@ -1253,7 +1253,7 @@ namespace CoupledField {
     
     
     bool inversionSet_;
-    ParameterInversion LM_inversion_;
+    ParameterInversion InversionParams_;
     InitialInput POL_initial_;
     std::string STRAIN_usedHystModel_;
     int POL_weightsAlreadyAdapted_; // for Mayergoyz case
@@ -2765,14 +2765,14 @@ namespace CoupledField {
     bool needsInversion_;
     //    bool POL_operatorParams_.hasInverseModel_;
     // For inversion via Levenberg Marquardt
-    //    UInt LM_inversion_.maxNumIts;
-    //    Double LM_inversion_.tolH;
-    //    Double LM_inversion_.tolB;
-    //    Double LM_inversion_.jacRes;
-    //    bool LM_inversion_.useTikhonov;
-    //    Double LM_inversion_.alphaLSStart;
-    //    Double LM_inversion_.alphaLSMin;
-    //    Double LM_inversion_.alphaLSMax;
+    //    UInt InversionParams_.maxNumIts;
+    //    Double InversionParams_.tolH;
+    //    Double InversionParams_.tolB;
+    //    Double InversionParams_.jacRes;
+    //    bool InversionParams_.useTikhonov;
+    //    Double InversionParams_.alphaLSStart;
+    //    Double InversionParams_.alphaLSMin;
+    //    Double InversionParams_.alphaLSMax;
     
     // when setting the system into remanence for the case of magnetics
     // we do this by forcing the input to the hystoperator to become 0;

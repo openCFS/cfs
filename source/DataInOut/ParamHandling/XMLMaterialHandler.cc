@@ -1727,6 +1727,7 @@ namespace CoupledField {
     PtrParamNode pStrainForm = NULL;
     PtrParamNode initialState = NULL;
     PtrParamNode irrStrainNode = NULL;
+    bool isVector = true;
     
     /*
      * Instead of setting each parameter twice in the form
@@ -1746,6 +1747,7 @@ namespace CoupledField {
     }
     
     if(operatorNode->Has("scalarPreisach")){
+      isVector = false;
       model = operatorNode->Get("scalarPreisach");
       if(setStrains){
         material->SetScalar("scalarPreisach", HYST_MODEL_STRAIN);
@@ -1778,6 +1780,11 @@ namespace CoupledField {
       if(model->Has("weights")){
         pWeight = model->Get("weights");
         // Read in weights separately below as they require the same steps for VectorHysteresis, too
+      }
+      
+      // new: scalar model might use the vector inversion, too (but not recommended)
+      if(model->Has("hystInversion")){
+        pInversion = model->Get("hystInversion");
       }
       
       if(model->Has("initialState")){
@@ -1933,6 +1940,27 @@ namespace CoupledField {
           EXCEPTION("Single scalar Preisach model required for isotropic vector model");
         }
         
+        Matrix<Double> startAxis = Matrix<Double>(1,3);
+        if(innerModel->Has("startAxis")){
+          ParamTools::AsTensor<double>(innerModel->Get("startAxis"),1, 3, startAxis);
+          // normalize
+          Double startAxisNorm = startAxis.NormL2();
+          if(startAxisNorm != 0){
+            startAxis[0][0] /= startAxisNorm;
+            startAxis[0][1] /= startAxisNorm;
+            startAxis[0][2] /= startAxisNorm;
+          } 
+          // random vector will be generated for each element > not done here
+        } else {
+          startAxis.Init();
+          // default case > x axis
+          startAxis[0][0] = 1.0;
+        }
+        
+        material->SetScalar( startAxis[0][0], MaterialType(MAYERGOYZ_STARTAXIS_X+enumOffset), Global::REAL);
+        material->SetScalar( startAxis[0][1], MaterialType(MAYERGOYZ_STARTAXIS_Y+enumOffset), Global::REAL);
+        material->SetScalar( startAxis[0][2], MaterialType(MAYERGOYZ_STARTAXIS_Z+enumOffset), Global::REAL);
+ 
         // read input/output saturation of Preisach hysterese model
         material->SetScalar(singleModel->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL ); 
         material->SetScalar(singleModel->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL ); 
@@ -2196,9 +2224,14 @@ namespace CoupledField {
     double tolH = 1e-12;
     double tolB = 1e-12;
     
-    // 0 = LM, 1 = Newton, 2 = JacobiFreeNewtonKrylov, 3 = projected LM
-    int inversionMethod = 1;
-    
+    // 0 = LM, 1 = Newton, 2 = JacobiFreeNewtonKrylov, 3 = projected LM, 4 = Everett based
+    int inversionMethod;
+    if(isVector){
+      inversionMethod = 1;
+    } else {
+      inversionMethod = 4;
+    }
+
     // LM parameter
     int maxNumberRegularizationIterations = 50;
     double alphaRegStart = 0.25;
@@ -2245,8 +2278,7 @@ namespace CoupledField {
     Double projLM_mu = 1.0;
     Double projLM_tau = 0.8;
     Double projLM_c = 0.8;
-    
-    
+
     // important: for electrostatics, we need no inversion and should not set the
     // parameter above
     bool setInversion = false;
@@ -2410,6 +2442,11 @@ namespace CoupledField {
           }
           if(invMethod->Has("c")){
             projLM_c = invMethod->Get("c")->As<double>();
+          }
+        } else if(pInversion->Get("InversionMethod")->Has("EverettBasedInversion")){
+          inversionMethod = 4;
+          if(isVector){
+            EXCEPTION("EverettBasedInversion only supported for scalar model");
           }
         } else {
           EXCEPTION("No valid method selected");

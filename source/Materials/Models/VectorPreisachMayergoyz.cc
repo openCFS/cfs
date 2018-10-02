@@ -14,7 +14,8 @@ namespace CoupledField
   
   VectorPreisachMayergoyz::VectorPreisachMayergoyz(Integer numElem, Vector<Double> xSat, Vector<Double> ySat, 
           Matrix<Double>* preisachWeight, UInt dim, bool isVirgin,
-          Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, bool anhystOnly, int clipOutput) : Hysteresis(numElem){
+          Vector<Double> anhyst_A, Vector<Double> anhyst_B, Vector<Double> anhyst_C, 
+          bool anhystOnly, int clipOutput) : Hysteresis(numElem){
     
     EXCEPTION("Anisotropic case not yet implemented; Find way to compute weightings first!");
     
@@ -30,6 +31,8 @@ namespace CoupledField
     UInt numDirections = operatorParams.numDirections_;
     int clipOutput = operatorParams.outputClipping_;
 
+    startingAxis_ = operatorParams.startingAxisMG_;
+    
     /*
      * Idea of Mayergoyz model: 
      *  Vectorial Hysteresis is obtained by summing up Scalar Hysteresis models into 
@@ -41,7 +44,7 @@ namespace CoupledField
      */
     dim_ = dim;
     if(dim != 2){
-      EXCEPTION("Mayergoyz vector model only implemented for 2d");
+      EXCEPTION("Mayergoyz vector model (currently) only implemented for 2d");
       // for the 3d case the computation of the weightings has to be adapted; furtherone
       // one has to specify many more directions as we have to integrate over a whole
       // hemisphere instead of a hemicircle
@@ -54,17 +57,40 @@ namespace CoupledField
     
     singleDirections_ = new Vector<Double>[numDirections_];
     
+    if(startingAxis_.GetSize() != dim_){
+      EXCEPTION("Length of starting axis does not match dimension of model");
+    }
+    
+    if(startingAxis_.NormL2() < 1e-16){
+      // generate random starting axis
+      for(UInt i = 0; i < startingAxis_.GetSize(); i++){
+        startingAxis_[i] = 2*((float) rand()) / (float) RAND_MAX-1.0;
+      }
+      Double axisNorm = startingAxis_.NormL2();
+      if(axisNorm != 0){
+        for(UInt i = 0; i < startingAxis_.GetSize(); i++){
+          startingAxis_[i] /= axisNorm;
+        }
+      } else {
+        startingAxis_[0] = 1.0; // default if nothing works
+      }
+    }
+    
     // accroding to "Magnetic Field Analysis of Electric Machines Taking Ferromagnetic Hysteresis into Account" by J. Saitz, p. 38
     // we should use randomly distributed starting angle to make up for the missing symmetry property due to discretization
     Double deltaAngle = M_PI/numDirections;
-    Double startingAngle = -deltaAngle/2;
-    Double currentAngle;
+//    Double startingAngle = -deltaAngle/2;
+    Double currentAngle = 0.0;
+    std::cout << "MG-model-Directions of scalar models: " << std::endl;
+    std::cout << "Staring axis: " << startingAxis_.ToString() << std::endl;
     for(UInt i = 0; i < numDirections; i++){
-      currentAngle = startingAngle + i*deltaAngle;
-      
+      currentAngle = i*deltaAngle;
+      std::cout << "angle (" << i << "): " << currentAngle << std::endl;
       singleDirections_[i] = Vector<Double>(dim_);
-      singleDirections_[i][0] = std::cos(currentAngle);
-      singleDirections_[i][1] = std::sin(currentAngle);
+      singleDirections_[i] = startingAxis_;
+      singleDirections_[i][0] += std::cos(currentAngle);
+      singleDirections_[i][1] += std::sin(currentAngle);
+      std::cout << "direction (" << i << "): " << singleDirections_[i].ToString() << std::endl;
     }
     
 		// Inversion requires the following steps:
@@ -248,23 +274,22 @@ namespace CoupledField
 ////    yCheck.Add(tmp);
 ////    return output;
 //  }
-  Vector<Double> VectorPreisachMayergoyz::computeValue_vecMeasure(Vector<Double>& xVal, Integer idx, 
-          bool overwrite,bool debugOutput,int& successFlag, Double& time){
-    
-    Timer* timer = new Timer();
-    Double startTime = timer->GetCPUTime();
-    timer->Start();
-    
-    Vector<Double> Yvec = computeValue_vec(xVal, idx, overwrite, debugOutput, successFlag);
-    
-    timer->Stop();
-    Double endTime = timer->GetCPUTime();  
-    time = endTime-startTime;
-    
-    return Yvec;
-    
-  }  
-    
+//    Vector<Double> VectorPreisachMayergoyz::computeValue_vecMeasure(Vector<Double>& xVal, Integer idx, 
+//          bool overwrite,bool debugOutput,int& successFlag, Double& time){
+//    
+//    Timer* timer = new Timer();
+//    Double startTime = timer->GetCPUTime();
+//    timer->Start();
+//    
+//    Vector<Double> Yvec = computeValue_vec(xVal, idx, overwrite, debugOutput, successFlag);
+//    
+//    timer->Stop();
+//    Double endTime = timer->GetCPUTime();  
+//    time = endTime-startTime;
+//    
+//    return Yvec;
+//  }
+  
   Vector<Double> VectorPreisachMayergoyz::computeValue_vec(Vector<Double>& xVal, Integer idx, 
           bool overwrite,bool debugOutput,int& successFlag){
     

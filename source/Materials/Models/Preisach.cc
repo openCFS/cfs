@@ -15,243 +15,7 @@ namespace CoupledField
   DEFINE_LOG(scalpreisachInversion, "scalpreisachInversion")
   DECLARE_LOG(scalpreisachVecExtension)
   DEFINE_LOG(scalpreisachVecExtension, "scalpreisachVecExtension")
-//      
-//  ExtendedPreisach::ExtendedPreisach(Integer numElem, Double xSat, Double ySat, 
-//          Matrix<Double>& preisachWeight, Double rotationalResistance , Double angularDistance, UInt dim, bool isVirgin, 
-//          Double anhyst_A, Double anhyst_B, Double anhyst_C, bool anhystOnly):
-//  Preisach(numElem, xSat, ySat, preisachWeight, isVirgin, anhyst_A, anhyst_B, anhyst_C, anhystOnly){
-//    
-//    if(angularDistance != 0){
-//      WARN("angularDistance not yet used in ExtendedPreisach");
-//    }
-//    
-//    rotResistance_ = rotationalResistance;
-//    dim_ = dim;
-//    
-//    rotationStates_ = new std::map<Double,Vector<Double> >[numElem];
-//    currentDirection_ = new Vector<Double>[numElem];
-//  }
-//  
-//  ExtendedPreisach::~ExtendedPreisach(){
-//    delete [] rotationStates_;
-//    delete [] currentDirection_;
-//  }
-//  
-//  void ExtendedPreisach::UpdateRotationStateWithFluxDensity(Vector<Double> flux_in, Matrix<Double> eps_mu, UInt idx){
-//    // use flux quantity as input
-//    // > e.g. for magnetics
-//    
-//    /*
-//     * 1. Decompose flux_in into amplitude and direction
-//     */
-//    Double ampl = flux_in.NormL2();
-//    if(ampl <= 0){
-//      // nothing to update
-//      return;
-//    }
-//    
-//    Vector<Double> dir = flux_in;
-//    dir.ScalarDiv(ampl);
-//    
-//    /*
-//     * 2. Compute actual setting value as for Vector Modell 2015er edition
-//     */
-//    // major difference: we use the flux quantity; full setting shall be achived
-//    // if material goes in saturation, i.e. we have to clip towards YSaturation_
-//    // however. YSaturation is the saturation value for P not for the flux quantity
-//    Vector<Double> satInCurDir = Vector<Double>(dim_);
-//    eps_mu.Mult(dir,satInCurDir);
-//    satInCurDir.ScalarMult(XSaturated_);
-//    
-//    Double anhystPart = PSaturated_*evalAnhystPart_normalized(1.0);
-//    satInCurDir.Add(PSaturated_+anhystPart,dir);
-//    
-//    // satInCurDir = (PSaturated_*Identity + XSaturated*eps_mu)*dir
-//    Double satValue = satInCurDir.NormL2();
-//    
-//    if(ampl >= satValue){
-//      ampl = 1.0;
-//    } else {
-//      ampl = ampl/satValue;
-//    }
-//    
-//    UpdateRotationState(ampl, dir, idx);
-//  }
-//  
-//  void ExtendedPreisach::UpdateRotationStateWithFieldIntensity(Vector<Double> field_in, UInt idx){
-//    // use field strength as input
-//    // > e.g. for electrostatics
-//    
-//    /*
-//     * 1. Decompose field_in into amplitude and direction
-//     */
-//    Double ampl = field_in.NormL2();
-//    if(ampl <= 0){
-//      // nothing to update
-//      return;
-//    }
-//    
-//    Vector<Double> dir = field_in;
-//    dir.ScalarDiv(ampl);
-//    
-//    /*
-//     * 2. Compute actual setting value as for Vector Modell 2015er edition
-//     */
-//    // field intensity only has to be scaled by XSaturated_
-//    Double satValue = XSaturated_;
-//    
-//    if(ampl >= satValue){
-//      ampl = 1.0;
-//    } else {
-//      ampl = ampl/satValue;
-//    }
-//    UpdateRotationState(ampl, dir, idx);
-//  }
-//  
-//  
-//  void ExtendedPreisach::UpdateRotationState(Double normalizedAmplitude, Vector<Double> dir, UInt idx){
-//        
-//    Double X_thres = normalizedAmplitude*rotResistance_;
-//    
-//    if(X_thres > 1.0){
-//      X_thres = 1.0;
-//    } else if (X_thres <= 0){
-//      return;
-//    }
-//    
-//    LOG_DBG(scalpreisachVecExtension) << "idx, amplitude, dirExtion: ";
-//    LOG_DBG(scalpreisachVecExtension) << idx;
-//    LOG_DBG(scalpreisachVecExtension) << normalizedAmplitude;
-//    LOG_DBG(scalpreisachVecExtension) << dir.ToString();
-//    
-//    
-//    LOG_DBG(scalpreisachVecExtension) << "Rotation list pre update: ";
-//    std::map<Double, Vector<Double> >::iterator it;
-//    UInt cnt = 0;
-//    for(it =  rotationStates_[idx].begin(); it != rotationStates_[idx].end(); it++){
-//      cnt++;
-//      LOG_DBG(scalpreisachVecExtension) << "# - Thres / Vec: " << cnt << " - "; 
-//      LOG_DBG(scalpreisachVecExtension) << it->first;
-//      LOG_DBG(scalpreisachVecExtension) << it->second.ToString();
-//    }
-//    
-//    /*
-//     * 3. Update list using X_thres
-//     */
-//    // special case: list empty
-//    if(rotationStates_[idx].empty()){
-//      // directly insert X_thres, dir
-//      rotationStates_[idx].insert(std::pair<Double, Vector<Double> >(X_thres, dir));
-//    } else {
-//      std::map<Double, Vector<Double> >::iterator insertPos;
-//      std::pair<std::map<Double, Vector<Double> >::iterator,bool> retVal; 
-//      /*
-//       * Advantage from taking a map:
-//       *  > map is sorted automatically
-//       *  > insert function will find the correct position (according to key)
-//       *      and will return its position
-//       *  > using this position we can easily wipe out rest according to wiping
-//       *      out rules (which are much easier for the rotation states as the 
-//       *      only rule is: remove all entries with key < X_thres, keep rest
-//       */
-//      retVal = rotationStates_[idx].insert(std::pair<Double, Vector<Double> >(X_thres, dir));
-//      insertPos = retVal.first;
-//      
-//      // if X_thres was inserted, insertPos point to the new entry
-//      // if X_thres was not inserted (due to its value already in the map), insertPos points to the 
-//      //  this prevously inserted element
-//      
-//      std::map<Double, Vector<Double> >::iterator startPos = rotationStates_[idx].begin();
-//      LOG_DBG(scalpreisachVecExtension) << "# InsertPos: " << insertPos->first;
-//      LOG_DBG(scalpreisachVecExtension) << "# startPos: " << startPos->first;
-//      rotationStates_[idx].erase(startPos,insertPos); // insertPos is kept
-//      
-//    }
-//    
-//    LOG_DBG(scalpreisachVecExtension) << "Rotation list after update: ";
-//    cnt = 0;
-//    for(it =  rotationStates_[idx].begin(); it != rotationStates_[idx].end(); it++){
-//      cnt++;
-//      LOG_DBG(scalpreisachVecExtension) << "# - Thres / Vec: " << cnt << " - "; 
-//      LOG_DBG(scalpreisachVecExtension) << it->first;
-//      LOG_DBG(scalpreisachVecExtension) << it->second.ToString();
-//    }
-//  }
-//  
-//  void ExtendedPreisach::EvaluateRotationState(UInt idx){
-//    // evaluate rotationStates_ and store in currentDirection_
-//    // iterate through map from back to front
-//    Vector<Double> dirVector = Vector<Double>(dim_);
-//    dirVector.Init();
-//    Double curWeight;
-//    
-//    if(!rotationStates_[idx].empty()){
-//      Double curVal;
-//      Double nextVal;
-//    
-//      std::map<Double, Vector<Double> >::reverse_iterator curPos;
-//      for(curPos = rotationStates_[idx].rbegin(); curPos != rotationStates_[idx].rend(); curPos++){
-//        if(++curPos == rotationStates_[idx].rend()){
-//          // currently we are in the last entry 
-//          nextVal = 0.0;
-//        } else {
-//          nextVal = curPos->first;
-//        }
-//        curPos--;
-//        curVal = curPos->first;
-//        
-//        
-//        // each rotation state is weighted with the actual area that is assigned
-//        // to it in the Preisach-like plane
-//        // as in the SutorModel from 2015 this plane consists of triangles like
-//        /*
-//         * Rotation states form flipped L-shapes in the whole Preisach plane
-//         *
-//         *            S_U           alpha           T_U
-//         *      __ __ __ __ __ __ __ |_  __ __ __ __ __ __
-//         *     |                     |                  /
-//         *     |A0                   |                /
-//         *     |      _ _ _ _ _ _ _ _|_ _ _ _ _ _ _ /_ ex1
-//         *     |     |   A1          |            /
-//         *     |     |     _ _ _ _ _ |_ _ _ _ _ /_ ex2
-//         *     |     |   |    A2     |        /
-//         *     |     |   |           |      /
-//         *     |     |   |        _ _| _ _/_ _ exN
-//         *     |     |   |      |    |  /
-//         *     |_____|___|______|_AN_|/____________________ beta
-//         *     |     |   |      |   /
-//         *     |     |   |      | /
-//         *     |     |   |      /
-//         *     |     |   |    /
-//         *     |     |   |  /
-//         *     |     |   |/
-//         *     |     |  /
-//         *     |     |/
-//         *     |    /
-//         *     |_ /
-//         *           T_L
-//         */
-//        // Unlike the actual vector model, these states are not further sub
-//        // divided so that the area computation is very simple
-//        // > take outersquare - innersquare, divide by 2 (for triangles), divide
-//        //  by 2 to value between 0 and 1 (preisach plane goes from -1 to +1)
-//        // BUT: curVal is always >= 0 (as it scales with amplitude)
-//        //      > we actually evaluate just a quarter going from 0,curVal x 0,curVal
-//        //      > no division by 4 required
-//        curWeight = (curVal*curVal - nextVal*nextVal);
-//        dirVector.Add(curWeight,curPos->second);
-//      }
-//    }
-//    currentDirection_[idx] = dirVector;  
-//  }
-//  
-  
-//  Preisach::Preisach(Integer numElem, Double xSat, Double ySat, 
-//          Matrix<Double>& preisachWeight, bool isVirgin) 
-//  : Hysteresis(numElem,xSat,ySat,0.0, 0.0, 0.0,false){
-//    Preisach(numElem, xSat, ySat, preisachWeight, isVirgin, 0.0, 0.0, 0.0,false);
-//  }
-  
+
   Preisach::Preisach(Integer numElem, ParameterPreisachOperators operatorParams, 
           ParameterPreisachWeights weightParams, bool isVirgin, bool ignoreAnhystPart)
   : Hysteresis(numElem,operatorParams,weightParams){
@@ -263,7 +27,7 @@ namespace CoupledField
     LOG_TRACE(scalpreisach) << "ScalarPreisach: Using Everett function";
     //tol_ = 1e-5;
     tol_ = 1e-15;
-    
+
     // set in base class
 //    if (xSat > 0 ) {
 //      XSaturated_  = xSat;
@@ -274,6 +38,9 @@ namespace CoupledField
 //       
 //    PSaturated_  = ySat;
     
+    fixDirection_ = operatorParams.fixDirection_;
+    dim_ =  fixDirection_.GetSize();
+  
     isVirgin_    = isVirgin;
     
     preisachWeights_ = weightParams.weightTensor_;
@@ -962,6 +729,23 @@ namespace CoupledField
   //
   //    return ( Yval*PSaturated_ );
   //  }
+  
+  Vector<Double> Preisach::computeValue_vec(Vector<Double>& xVal, Integer idxElem, bool overwrite,
+      bool debugOut, int& successFlag) {
+    
+//    std::cout << "Scal Preisach: computeValue_vec; input: " << xVal.ToString() << std::endl;
+    // apply the same steps as in CoefFunctionHyst
+    Double scalInput;
+    Double scalOutput;
+    fixDirection_.Inner(xVal,scalInput);
+
+    scalOutput = this->computeValueAndUpdate(scalInput,idxElem, overwrite,successFlag);
+    Vector<Double> outputOfHystOperator = Vector<Double>(fixDirection_.GetSize());
+    outputOfHystOperator.Init();
+    outputOfHystOperator.Add(scalOutput,fixDirection_);
+
+    return outputOfHystOperator;
+  }
   
   Double Preisach::computeValueAndUpdate( Double Xin, Integer idx,
           bool overwrite, int& successFlag )  

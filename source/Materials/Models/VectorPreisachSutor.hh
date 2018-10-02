@@ -820,6 +820,17 @@ namespace CoupledField {
      * 1 = new version (default)
      */
     UInt mappingVersion_;
+
+    /*
+     * for revised version -> allow precomputation of deltaPhi as well as cos(deltaPhi), sin(deltaPhi)
+     * for computation of new rotation state
+     */
+    bool usePreComputedValue_;
+    Double deltaPhi_preComputed_;
+    Double cos_deltaPhi_preComputed_;
+    Double sin_deltaPhi_preComputed_;
+    Matrix<Double> rotMat_;
+    Vector<Double> lastRotatedVec_;
     
   };
   
@@ -892,8 +903,8 @@ namespace CoupledField {
     Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idElem, bool overwrite,
       bool debugOut, int& successFlag);
     
-    Vector<Double> computeValue_vecMeasure(Vector<Double>& u_in, Integer idElem, bool overwrite,
-          bool debugOut, int& successCode, Double& time);
+//    Vector<Double> computeValue_vecMeasure(Vector<Double>& u_in, Integer idElem, bool overwrite,
+//          bool debugOut, int& successCode, Double& time);
     
     void switchingStateToBmp(UInt numPixel, std::string filename, UInt idElem, bool overLayWithRotState);
     
