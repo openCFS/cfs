@@ -3122,10 +3122,8 @@ namespace CoupledField {
       }
 
       // b) pardiso and most external solvers need no reordering or have their own
-      //FIXME
-      // making pardiso have by default no reordering causes  WaterWaves_Sloshing testcases to fail.
-      // It should be trivial to correct the test cases to account for no reordering , then uncomment for pardiso too.
-      if( ( // st == BaseSolver::PARDISO_SOLVER ||
+
+      if( (st == BaseSolver::PARDISO_SOLVER ||
           st == BaseSolver::UMFPACK ||
           st == BaseSolver::ILUPACK ||
           st == BaseSolver::LIS ||
