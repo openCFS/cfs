@@ -206,7 +206,7 @@ ENDIF(USE_GIDPOST)
 # Find Netlib BLAS/LAPACK library
 # MKL contains blas and lapack, OpenBLAS contains blas and somehow also lapack?!
 #-----------------------------------------------------------------------------
-IF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  )
+IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK  )
     
   SET(LAPACK_URL "${CFS_DS_SOURCES_DIR}/lapack")
   SET(LAPACK_BASE "lapack")
@@ -216,7 +216,7 @@ IF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  )
     
   INCLUDE("${CFSDEPS_DIR}/lapack/External_LAPACK.cmake")
     
-ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  )
+ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  OR USE_ILUPACK )
 
 #-----------------------------------------------------------------------------
 # Find OpenBLAS/LAPACK library
@@ -276,7 +276,7 @@ ENDIF(USE_ARPACK)
 #-----------------------------------------------------------------------------
 # Find SuiteSparse/CholMod/UMFPACK/AMD library
 #-----------------------------------------------------------------------------
-IF(USE_SUITESPARSE)
+IF(USE_SUITESPARSE OR USE_ILUPACK)
   SET(SUITESPARSE_URL "${CFS_DS_SOURCES_DIR}/suitesparse")
   SET(SUITESPARSE_BASE "SuiteSparse")
   SET(SUITESPARSE_VER "4.2.1")
@@ -284,26 +284,36 @@ IF(USE_SUITESPARSE)
   SET(SUITESPARSE_MD5 "4628df9eeae10ae5f0c486f1ac982fce")
 
   INCLUDE("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
-ENDIF(USE_SUITESPARSE)
+ENDIF(USE_SUITESPARSE OR USE_ILUPACK)
 
 #-----------------------------------------------------------------------------
 # Find ILUPACK library
 #-----------------------------------------------------------------------------
-IF(USE_ILUPACK)
+IF(USE_ILUPACK_PARALLEL)
   #Since the latest version of ilupack requires GCC > 5.0 or the latest ICC compilers
   IF((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND 
    ((CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0") OR (CMAKE_C_COMPILER_VERSION VERSION_LESS "5.0") OR (CFS_FORTRAN_COMPILER_VER VERSION_LESS "5.0") ))
     MESSAGE(FATAL_ERROR "Ilupack can be compiled only when gcc,g++ and gfortran compiler versions are greater than 5")
   ENDIF()
   # TODO: For intel compilers still one needs to figure out the proper compiler versions
- 
+# 
   SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
   SET(ILUPACK_VER "2.4_parallel_0831")
   SET(ILUPACK_GZ "ilupack-${ILUPACK_VER}_src.tgz")
   SET(ILUPACK_MD5 "0a5792597f8120d71e221de601440137")
   INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
   #ADD_DEPENDENCIES(ilupack metis) # ilupack has its own (parallel) metis additional to cfs-metis
-ENDIF(USE_ILUPACK)
+ELSEIF(USE_ILUPACK)
+  SET(ILUPACK_PATH "${CFS_BINARY_DIR}/cfsdeps/ilupack")
+  SET(ILUPACK_BASE "ilupack")
+  SET(ILUPACK_VER "2.2.1")
+  SET(ILUPACK_GZ "${ILUPACK_BASE}${ILUPACK_VER}_src.tgz")
+  SET(ILUPACK_MD5 "7cb6ba2e854e13d243218d9e9478d13c")
+  INCLUDE("${CFSDEPS_DIR}/ilupack/External_ILUPACK.cmake")
+ENDIF()
+
+
+
 
 #  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")
 #  MESSAGE("LAPACK_LIBRARY ${LAPACK_LIBRARY}")
@@ -359,7 +369,7 @@ SET(BOOST_VER "${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}")
 SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
 SET(BOOST_GZ "${BOOST_BASE}_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2")
 SET(BOOST_MD5 "b2dfbd6c717be4a7bb2d88018eaccf75") #1.66
-#SET(BOOST_MD5 "ced776cb19428ab8488774e1415535ab") # 1.67
+#SET(BOOST_MD5 "7fbd1890f571051f2a209681d57d486a") # 1.68
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------

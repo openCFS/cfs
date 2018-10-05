@@ -83,12 +83,11 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 # Determine paths of METIS libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-IF(NOT USE_ILUPACK)
-  SET(METIS_LIBRARY
+IF(NOT USE_ILUPACK_PARALLEL)
+SET(METIS_LIBRARY
     "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}metis${CMAKE_STATIC_LIBRARY_SUFFIX};"
     CACHE FILEPATH "METIS library.")
-ENDIF()  
-  
+ENDIF()
 MARK_AS_ADVANCED(METIS_LIBRARY)
 
 #-------------------------------------------------------------------------------
@@ -108,7 +107,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     INSTALL_COMMAND ""
   )
   # This is still required for the build to work properly since we need to replace the metis related files from ilupack with old metis
-  IF(USE_ILUPACK)
+  IF(USE_ILUPACK_PARALLEL)
     add_dependencies(metis ilupack)
   ENDIF()
 
@@ -128,7 +127,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
 
   # The ilupack has a metis.h from a newer version of metis which is not compatible with CFS, so building it in this way 
   # replaces the ilupack metis.h with the older metis library's metis.h.
-  IF(USE_ILUPACK)
+  IF(USE_ILUPACK_PARALLEL)
     add_dependencies(metis ilupack)
   ENDIF()
 

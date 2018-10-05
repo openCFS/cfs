@@ -97,11 +97,11 @@ IF(MINGW OR MSVC)
   #---------------------------------------------------------------------------
   MKL_VERSION_FROM_HEADER()
   SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
-
-
-  message("mkl version: ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}")
   
   SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64_win")
+
+  # mkl_solver* libs are deprecated as of v10
+  # see: https://web.archive.org/web/20091027212420/https://software.intel.com/en-us/articles/mkl_solver_libraries_are_deprecated_libraries_since_version_10_2_Update_2/
 
   SET(MKL_BLAS_LIB
     # This works with MinGW GCC 4.5.3 on CentOS/Oracle 6
@@ -109,33 +109,23 @@ IF(MINGW OR MSVC)
     ${MKL_LIB_DIR}/mkl_intel_lp64.lib
     ${MKL_LIB_DIR}/mkl_intel_thread.lib
     ${MKL_LIB_DIR}/mkl_core.lib
+    ${MKL_LIB_DIR}/mkl_blas95_lp64.lib
     -Wl,--end-group
-    # ${MKL_LIB_DIR}/libiomp5mt.lib ########disabled
     #    wrap-chkstk
 # ${MKL_LIB_DIR}/libguide.lib
     )
-  IF(MINGW)
-    LIST(APPEND MKL_BLAS_LIB 
-      #${MKL_ROOT_DIR}/../msvcrt/msvc90/amd64/runtmchk.lib ########disabled
-    )
-  ENDIF()
+
   SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
-  
-  SET(MKL_PARDISO_LIB
-    ${MKL_LIB_DIR}/mkl_solver_lp64.lib
-    )
-  
+
   SET(DEPS_SEQUENTIAL
-  ${MKL_LIB_DIR}/mkl_solver_lp64_sequential.lib
   ${MKL_LIB_DIR}/mkl_intel_lp64.lib
   ${MKL_LIB_DIR}/mkl_intel_thread.lib
   ${MKL_LIB_DIR}/mkl_core.lib
-  ${MKL_LIB_DIR}/mkl_intel_lp64.lib
   ${MKL_LIB_DIR}/mkl_sequential.lib
-  ${MKL_LIB_DIR}/libiomp5mt.lib
-  ${MKL_ROOT_DIR}/../msvcrt/msvc90/amd64/runtmchk.lib
+  ${MKL_ROOT_DIR}/../compiler/lib/intel64_win/libiomp5md.lib # md or mt? I have no idea
+  -openmp
+  #${MKL_ROOT_DIR}/../msvcrt/msvc90/amd64/runtmchk.lib
   #    ${MKL_LIB_DIR}/libguide40.lib
-  #    /home/strieben/Documents/MKL/test/runtmchk.lib
   )
 
   SET(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)

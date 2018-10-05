@@ -1,7 +1,7 @@
 # update the shared_opt testsuite prior to all tests
 
 # needs to set again for the test cases
-set(CTEST_SITE "eamc072")
+set(CTEST_SITE "momo")
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
 # to specifiy the compilers and that all messages should be output in English
@@ -17,7 +17,7 @@ IF(${SITE_DIR} MATCHES "master_stingl")
   SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-stingl_master")
 ELSE()
   SET(CTEST_BUILD_NAME "Update Testsuite shared_opt")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-shared_opt")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/testsuites/shared_opt-test")
 ENDIF()
 
 SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
