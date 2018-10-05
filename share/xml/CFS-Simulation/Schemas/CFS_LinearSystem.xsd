@@ -166,10 +166,10 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
-    <xsd:attribute name="reordering" use="optional" default="_default_">
+    <xsd:attribute name="reordering" use="optional" default="default">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="_default_"/>
+          <xsd:enumeration value="default"/>
           <xsd:enumeration value="noReordering"/>
           <xsd:enumeration value="Metis"/>
           <xsd:enumeration value="Sloan"/>
