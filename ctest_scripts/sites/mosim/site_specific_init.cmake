@@ -1,7 +1,7 @@
 # update the testsuites prior to all tests
 
 # needs to set again for the test cases
-set(CTEST_SITE "eamcmpre")
+set(CTEST_SITE "mosim")
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
 # to specifiy the compilers and that all messages should be output in English

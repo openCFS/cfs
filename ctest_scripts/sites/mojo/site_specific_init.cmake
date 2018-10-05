@@ -1,7 +1,7 @@
-# update the shared_opt testsuite prior to all tests
+# update the testsuites prior to all tests
 
 # needs to set again for the test cases
-set(CTEST_SITE "eamc072")
+set(CTEST_SITE "mojo")
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
 # to specifiy the compilers and that all messages should be output in English
@@ -12,28 +12,27 @@ SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
 SET(ENV{LANGUAGE} "C")
 
-IF(${SITE_DIR} MATCHES "master_stingl")
-  SET(CTEST_BUILD_NAME "Update Testsuite stingl master")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-stingl_master")
+IF(SITE_DIR MATCHES "trunk")
+  SET(CTEST_BUILD_NAME "Update Testsuite trunk")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk_cfs-test")
 ELSE()
   SET(CTEST_BUILD_NAME "Update Testsuite shared_opt")
-  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/testsuites/shared_opt-test")
+  SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared_cfs-test")
 ENDIF()
 
 SET(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}")
 
-# don't know if this even works!!
-# create new empty directory in test specific cmake files, not here!
-# SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
+# additionally we create and remove the directories in the ctest files
+# note that originally this was false, whyever?!
+SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 
-MESSAGE("\n---------------------------------------------------")
 MESSAGE("Update testsuite ${CTEST_SOURCE_DIRECTORY} ...")
-MESSAGE("---------------------------------------------------\n")
 
+# note that the cfs tests need to perform this again
 FIND_PROGRAM(CTEST_GIT_COMMAND NAMES git)
 SET(CTEST_UPDATE_TYPE "git")
 
-CTEST_START(Nightly)
+CTEST_START(Nightly )
 CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
 CTEST_SUBMIT()
 
