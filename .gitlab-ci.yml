@@ -56,9 +56,9 @@ cache:
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK -V
     - sh -c "$(cat pre_cmd) ctest -D ExperimentalConfigure --track $CDASH_TRACK -V"
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || submit.log # intermittent submit to get live CDash results
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # intermittent submit to get live CDash results
     - sh -c "$(cat pre_cmd) ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.out"
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || submit.log
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
     - ctest -D ExperimentalTest -R Install --track $CDASH_TRACK # only do the install testing
     # check the coding_score
     - ../ctest_scripts/shared/coding_score.sh build.out
