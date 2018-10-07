@@ -134,26 +134,14 @@ build:gcc7:
   <<: *gcc_before
   <<: *default_build_job
 
-#build:gcc7min:
-#  stage: build
-#  tags:
-#    - gcc7
-#  variables:
-#    BUILD_NAME: "GCC7 minimal"
-#    GCC_VERSION: 7
-#    CFS_CONFIG_OPTIONS: "-DCFSDAT=OFF -DCFS_BLAS_LAPACK=OPENBLAS -DUSE_COMSOL=OFF -DUSE_GIDPOST=OFF -DUSE_GMV=OFF -DUSE_GMSH=OFF -DUSE_UNV=OFF -DUSE_ENSIGHT=OFF -DUSE_ANSYSRST=OFF -DUSE_PARDISO=OFF -DUSE_FEAST=OFF -DUSE_ILUPACK=OFF -DUSE_SUITESPARSE=OFF -DUSE_LIS=OFF -DUSE_SUPERLU=OFF -DUSE_CGNS=OFF -DUSE_METIS=OFF -DUSE_CGAL=OFF -DUSE_FLANN=OFF -DUSE_OPENMP=OFF"
-#  <<: *gcc_before
-#  <<: *default_build_job
-
-# maximal build using as many options as possible
-build:gcc7max:
+build:gcc7min:
   stage: build
   tags:
     - gcc7
   variables:
-    BUILD_NAME: "GCC7 maximal"
+    BUILD_NAME: "GCC7 minimal"
     GCC_VERSION: 7
-    CFS_CONFIG_OPTIONS: "-DUSE_IPOPT=ON -DUSE_SCPIP=ON -DUSE_SNOPT=ON"
+    CFS_CONFIG_OPTIONS: "-DCFSDAT=OFF -DCFS_BLAS_LAPACK=OPENBLAS -DUSE_COMSOL=OFF -DUSE_GIDPOST=OFF -DUSE_GMV=OFF -DUSE_GMSH=OFF -DUSE_UNV=OFF -DUSE_ENSIGHT=OFF -DUSE_ANSYSRST=OFF -DUSE_PARDISO=OFF -DUSE_FEAST=OFF -DUSE_ILUPACK=OFF -DUSE_SUITESPARSE=OFF -DUSE_LIS=OFF -DUSE_SUPERLU=OFF -DUSE_CGNS=OFF -DUSE_METIS=OFF -DUSE_CGAL=OFF -DUSE_FLANN=OFF -DUSE_OPENMP=OFF"
   <<: *gcc_before
   <<: *default_build_job
 
@@ -293,20 +281,7 @@ testsuite:gcc7:linux: # if the machine has multiple
   dependencies:
     - build:gcc7
 
-#stable:gcc7min:linux:
-#  tags:
-#    - linux
-#    - gcc7 # due to libgfortran.so.4
-#    - run_libc2.17
-#  stage: test
-#  variables:
-#    BUILD_NAME: "GCC7 minimal"
-#  retry: 1
-#  <<: *test_stable
-#  dependencies:
-#    - build:gcc7min
-
-testsuite:gcc7min:linux:
+stable:gcc7min:linux:
   tags:
     - linux
     - gcc7 # due to libgfortran.so.4
@@ -314,23 +289,10 @@ testsuite:gcc7min:linux:
   stage: test
   variables:
     BUILD_NAME: "GCC7 minimal"
-  <<: *test_all_multicore
-  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  dependencies:
-    - build:gcc7min
-
-stable:gcc7max:linux:
-  tags:
-    - linux
-    - gcc7 # due to libgfortran.so.4
-    - run_libc2.17
-  stage: test
-  variables:
-    BUILD_NAME: "GCC7 maximal"
   retry: 1
   <<: *test_stable
   dependencies:
-    - build:gcc7max
+    - build:gcc7min
 
 testsuite:gcc7min:linux:
   tags:
