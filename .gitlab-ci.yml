@@ -157,6 +157,18 @@ build:gcc7max:
   <<: *gcc_before
   <<: *default_build_job
 
+# maximal build using as many options as possible
+build:gcc7max:
+  stage: build
+  tags:
+    - gcc7
+  variables:
+    BUILD_NAME: "GCC7 maximal"
+    GCC_VERSION: 7
+    CFS_CONFIG_OPTIONS: "-DUSE_IPOPT=ON -DUSE_SCPIP=ON -DUSE_SNOPT=ON"
+  <<: *gcc_before
+  <<: *default_build_job
+
 # re-build everything
 complete-build:linux:
   stage: build
@@ -320,6 +332,35 @@ stable:gcc7max:linux:
   dependencies:
     - build:gcc7max
 
+<<<<<<< HEAD
+=======
+testsuite:gcc7min:linux:
+  tags:
+    - linux
+    - gcc7 # due to libgfortran.so.4
+    - run_libc2.17
+  stage: test
+  variables:
+    BUILD_NAME: "GCC7 minimal"
+  <<: *test_all_multicore
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  dependencies:
+    - build:gcc7min
+
+stable:gcc7max:linux:
+  tags:
+    - linux
+    - gcc7 # due to libgfortran.so.4
+    - run_libc2.17
+  stage: test
+  variables:
+    BUILD_NAME: "GCC7 maximal"
+  retry: 1
+  <<: *test_stable
+  dependencies:
+    - build:gcc7max
+
+>>>>>>> master
 testsuite:gcc7max:linux:
   tags:
     - linux
