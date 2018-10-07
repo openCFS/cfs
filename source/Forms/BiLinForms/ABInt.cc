@@ -26,7 +26,7 @@ ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
         PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
         bool coordUpdate )
   : BBInt<COEF_DATA_TYPE, B_DATA_TYPE>(bOp, scalCoef, factor, coordUpdate )
-{
+{	;
   this->name_ = "ABInt";
   this->aOperator_ = aOp;
   this->solDependent_ = false;
@@ -586,12 +586,12 @@ SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
 		                                     std::set<RegionIdType>(), coordUpdate)
 //  isCoplanar_(coplanar), cplDirection_(cplDirection)
 {
-  this->name_ = "SurfaceMortarABInt";
-  this->isSymmetric_ = true;
+  this->name_ = "SurfaceMortarABIntMA";
+  this->isSymmetric_ = false;
   this->isCoplanar_ = coplanar;
   this->ptMasterOp_ = NULL;
   this->ptSlaveOp_ = NULL;
-
+  doTranspose_ = false;
 }
 
 //mechanical-acoustic coupling on non-conforming grids!
@@ -605,12 +605,13 @@ SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
 : SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>(aOp, bOp, regionCoefs, factor,
                                      std::set<RegionIdType>(), coordUpdate)
 {
-  this->name_ = "SurfaceMortarABInt";
-  this->isSymmetric_ = true;
+  this->name_ = "SurfaceMortarABIntMA";
+  this->isSymmetric_ = false;
   this->regionCoefs_ = regionCoefs;
-  this->isCoplanar_ = coplanar;
-  this->ptMasterOp_ = NULL;
-  this->ptSlaveOp_ = NULL;
+  this->isCoplanar_  = coplanar;
+  this->ptMasterOp_  = NULL;
+  this->ptSlaveOp_   = NULL;
+  doTranspose_ = false;
 }
 
 
@@ -770,10 +771,11 @@ void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
 #endif
   }
 
-  if ( ptMasterOp_ != this->bOperator_) {
-	  elemMat = result;
-  } else {
+  if ( doTranspose_ ) {
 	  result.Transpose(elemMat);
+  }
+  else {
+	  elemMat = result;
   }
 
   LOG_DBG2(mortarInt) << "Element matrix of NcSurfElem #"
@@ -795,6 +797,8 @@ void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
   } else if (resType2 == MECH_DISPLACEMENT) {
 	  ptFeSpaceMaster_ = feSpace2;
 	  ptMasterOp_ = this->bOperator_;
+	  this->name_ = "SurfaceMortarABIntMAtrans";
+	  doTranspose_ = true;
   } else {
 	  EXCEPTION("Could not find FeSpace of mechanic region.");
   }

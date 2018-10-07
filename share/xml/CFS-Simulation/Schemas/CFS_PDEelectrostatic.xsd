@@ -82,8 +82,12 @@
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="pml" type="DT_DampingPML">
                   <xsd:annotation>
-                    <xsd:documentation>Perefectly Matched Layer (PML); just working in frequency domain! The only application of PML in electrostatics 
-                    that seems to be reasonable is within piezo coupling</xsd:documentation>
+                    <xsd:documentation>Allows region to be a Perfectly Matched Layer</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="mapping" type="DT_DampingMapping">
+                  <xsd:annotation>
+                    <xsd:documentation>Allows region to be a Mapping layer.</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
               </xsd:choice>
