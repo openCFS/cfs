@@ -53,6 +53,7 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
   //define regularization parameter
   //beta_ = 0.5;
   isDataReadFromFile_ = false;
+  scalValAmp_ = 1.0;
 
   //obtain all nodes
   nodeListSource_ = this->srcGrid_->GetEntityList(EntityList::NODE_LIST,destreg);
@@ -115,7 +116,8 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalSource<DATA_TYPE>::SetInverseParam( Double& alpha, Double& beta,
-		Double& rho, Double& qExp, Double& freq, std::string fileName, std::string logLevel) {
+		Double& rho, Double& qExp, Double& freq, std::string fileName, std::string logLevel,
+		Double& scale2Val) {
 
 	alpha_    = alpha;
 	beta_     = beta;
@@ -184,6 +186,23 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::SetInverseParam( Double& alpha, Dou
 						  <<  readMeasVec_[i] << std::endl;
 			}
 		}
+		//scale the measured pressure that the values are about 1
+		Double actVal;
+		Double maxVal = std::abs(readMeasVec_[0]);
+		for ( UInt i=1; i<readMeasVec_.GetSize(); i++) {
+			actVal = std::abs(readMeasVec_[i]);
+			if ( maxVal < actVal )
+				maxVal = actVal;
+		}
+		scale2Val /= maxVal;
+		scalValAmp_ = scale2Val;
+		for ( UInt i=0; i<readMeasVec_.GetSize(); i++) {
+			readMeasVec_[i] *= scalValAmp_;
+		}
+	}
+	else if ( this->inverseType_ == CoefFunction::INVSOURCE ){
+		//save scaling value
+		scalValAmp_ = scale2Val;
 	}
 
 	scalingHesse_ = 1.0;
@@ -583,7 +602,9 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeDiff2Meas(Double& error) {
 
 
 template<typename DATA_TYPE>
-void CoefFunctionGridNodalSource<DATA_TYPE>::UpdateSource( Double& stepLength, bool lineSearch ) {
+void CoefFunctionGridNodalSource<DATA_TYPE>::UpdateSource( Double& stepLength,
+		                                                   bool lineSearch,
+														   bool scaleBack) {
 
 	if ( lineSearch ) {
 		for ( UInt i=0; i<sourceAmp_.GetSize(); i++ ) {
@@ -593,6 +614,12 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::UpdateSource( Double& stepLength, b
 			//project Phi to be between -pi/2 and pi/2
 			Phi = std::min(M_PI/2.0, std::max(-M_PI/2.0,Phi));
 			sourcePhi_[i] = Phi;
+		}
+	}
+	else if ( scaleBack ) {
+		for ( UInt i=0; i<sourceAmp_.GetSize(); i++ ) {
+			sourceAmp_[i] /= scalValAmp_;
+			sourceAmpSave_[i] = sourceAmp_[i];
 		}
 	}
 	else {

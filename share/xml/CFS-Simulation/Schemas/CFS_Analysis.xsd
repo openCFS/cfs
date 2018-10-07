@@ -239,6 +239,7 @@
           <xsd:element name="logLevel" type="xsd:string" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="scale2Val" type="xsd:token" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
