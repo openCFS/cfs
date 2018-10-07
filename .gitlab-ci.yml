@@ -332,8 +332,6 @@ stable:gcc7max:linux:
   dependencies:
     - build:gcc7max
 
-<<<<<<< HEAD
-=======
 testsuite:gcc7min:linux:
   tags:
     - linux
@@ -360,7 +358,6 @@ stable:gcc7max:linux:
   dependencies:
     - build:gcc7max
 
->>>>>>> master
 testsuite:gcc7max:linux:
   tags:
     - linux
