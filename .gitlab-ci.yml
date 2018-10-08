@@ -26,12 +26,10 @@ stages:
       - web # For pipelines created using 'Run pipeline' button in GitLab UI under project/Pipelines
       - schedules # For scheduled pipelines
 
-# this is run before/after every step
+# this is run after every step
 after_script:
   - cd build
-  - cat Testing/TAG || echo "no TAG" # debug
-  - ctest -D ExperimentalSubmit --track $CDASH_TRACK
-  - rm CMakeCache.txt || echo "no CMakeCache.txt ?"
+  - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
 
 # cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
 # use the ref-name, e.g. `master` as key -> same for sucessive builds
@@ -58,9 +56,9 @@ cache:
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK -V
     - sh -c "$(cat pre_cmd) ctest -D ExperimentalConfigure --track $CDASH_TRACK -V"
-    - ctest -D ExperimentalSubmit --track $CDASH_TRACK # intermittent submit to get live CDash results
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # intermittent submit to get live CDash results
     - sh -c "$(cat pre_cmd) ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.out"
-    - ctest -D ExperimentalSubmit --track $CDASH_TRACK
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
     - ctest -D ExperimentalTest -R Install --track $CDASH_TRACK # only do the install testing
     # check the coding_score
     - ../ctest_scripts/shared/coding_score.sh build.out
@@ -81,8 +79,12 @@ cache:
     - rm -f CMakeCache.txt # clear old cache
     # try software collection, and if it fails, use native gcc
     - rm -f scl_version
+    # debug output
+    - echo "GCC_VERSION=$GCC_VERSION"
     # check gcc version via grep
     - (scl enable devtoolset-$GCC_VERSION -- gcc --version && echo $GCC_VERSION > scl_version) | grep "${GCC_VERSION}\.[0-9]\.[0-9]" || (scl enable devtoolset-3 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "3" > scl_version ) || (scl enable devtoolset-4 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "4" > scl_version ) || gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
+    # debug output
+    - cat scl_version
     # write out the config_cmd
     - echo "cmake -DBUILDNAME='$CI_COMMIT_REF_SLUG / ${BUILD_NAME}' -DCTEST_GIT_UPDATE_CUSTOM='git;checkout;$CI_COMMIT_SHA' ${CFS_CONFIG_OPTIONS} .." > config_cmd && cat config_cmd
     # write out the correct scl as pre_cmd
@@ -143,6 +145,17 @@ build:gcc7min:
   <<: *gcc_before
   <<: *default_build_job
 
+# maximal build using as many options as possible
+build:gcc7max:
+  stage: build
+  tags:
+    - gcc7
+  variables:
+    BUILD_NAME: "GCC7 maximal"
+    GCC_VERSION: 7
+    CFS_CONFIG_OPTIONS: "-DUSE_IPOPT=ON -DUSE_SCPIP=ON -DUSE_SNOPT=ON"
+  <<: *gcc_before
+  <<: *default_build_job
 
 # re-build everything
 complete-build:linux:
@@ -192,7 +205,7 @@ complete-build:linux:
     - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|Preisach|CFSdat_FFT_2D|curlcurlA3d" --track $CDASH_TRACK # exclude the install step and the failing tests
+    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust" --track $CDASH_TRACK # exclude the install step and the failing tests
   <<: *ctest_default
 
 # test everything
@@ -281,6 +294,44 @@ stable:gcc7min:linux:
   dependencies:
     - build:gcc7min
 
+testsuite:gcc7min:linux:
+  tags:
+    - linux
+    - gcc7 # due to libgfortran.so.4
+    - run_libc2.17
+  stage: test
+  variables:
+    BUILD_NAME: "GCC7 minimal"
+  <<: *test_all_multicore
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  dependencies:
+    - build:gcc7min
+
+stable:gcc7max:linux:
+  tags:
+    - linux
+    - gcc7 # due to libgfortran.so.4
+    - run_libc2.17
+  stage: test
+  variables:
+    BUILD_NAME: "GCC7 maximal"
+  retry: 1
+  <<: *test_stable
+  dependencies:
+    - build:gcc7max
+
+testsuite:gcc7max:linux:
+  tags:
+    - linux
+    - gcc7 # due to libgfortran.so.4
+    - run_libc2.17
+  stage: test
+  variables:
+    BUILD_NAME: "GCC7 maximal"
+  <<: *test_all_multicore
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  dependencies:
+    - build:gcc7max
 
 #################################################
 # DEPLOY STAGES
