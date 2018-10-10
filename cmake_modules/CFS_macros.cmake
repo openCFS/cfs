@@ -254,9 +254,8 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
 
       IF(EXISTS ${URL})
         GET_FILENAME_COMPONENT(FOLDER ${LOCAL_FILE} DIRECTORY)
-        MESSAGE("Actual path to folder is: ${FOLDER} ")
-        FILE(COPY
-          ${URL} DESTINATION ${FOLDER})
+        MESSAGE("src is an existing local file: copy ${URL} -> ${LOCAL_FILE}")
+        CONFIGURE_FILE("${URL}" "${LOCAL_FILE}" COPYONLY)
       ELSE()
         FILE(DOWNLOAD
           ${URL}
