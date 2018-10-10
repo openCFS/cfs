@@ -5986,10 +5986,10 @@ namespace CoupledField {
 //                POL_weightParams_.weightTensor_, isVirgin, 
 //                POL_weightParams_.anhysteretic_a_, POL_weightParams_.anhysteretic_b_, POL_weightParams_.anhysteretic_c_,
 //                POL_weightParams_.anhystOnly_);
+        test1D = true;
         if(InversionParams_.inversionMethod != 4){
-          std::cout << "Inversion of scalar model with Newton/LM selected; will restrict input to operator direction \n"
-                  "as otherwise inversion will not work" << std::endl;
-          test1D = true;
+//          std::cout << "Inversion of scalar model with Newton/LM selected; will restrict input to operator direction \n"
+//                  "as otherwise inversion will not work" << std::endl;
           hystTMP->SetParamsForInversion(InversionParams_); 
         } 
       }
@@ -6074,6 +6074,7 @@ namespace CoupledField {
       
       statistics << "with num directions = " << POL_operatorParams_.numDirections_ << std::endl;
       statistics << "and output clipping mode = " << POL_operatorParams_.outputClipping_ << std::endl;
+      statistics << "Starting axis: " << POL_operatorParams_.startingAxisMG_.ToString() << std::endl;
       
       /*
        * IMPORTANT REMARK:

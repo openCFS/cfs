@@ -62,6 +62,7 @@ namespace CoupledField
     }
     
     if(startingAxis_.NormL2() < 1e-16){
+//      std::cout << "Generate random starting axis" << std::endl;
       // generate random starting axis
       for(UInt i = 0; i < startingAxis_.GetSize(); i++){
         startingAxis_[i] = 2*((float) rand()) / (float) RAND_MAX-1.0;
@@ -86,10 +87,11 @@ namespace CoupledField
 //    std::cout << "Staring angle: " << angleOffset << std::endl;
     for(UInt i = 0; i < numDirections; i++){
       currentAngle = angleOffset + i*deltaAngle;
-//      std::cout << "angle (" << i << "): " << currentAngle << std::endl;
       singleDirections_[i] = Vector<Double>(dim_);
       singleDirections_[i][0] = std::cos(currentAngle);
       singleDirections_[i][1] = std::sin(currentAngle);
+      
+//      std::cout << "angle (" << i << "): " << currentAngle << std::endl;
 //      std::cout << "direction (" << i << "): " << singleDirections_[i].ToString() << std::endl;
     }
     
@@ -159,6 +161,7 @@ namespace CoupledField
         // preisach models shall only return the pure hysteretic part; the anhysteretic part is added later in this class
         bool ignoreAnhystPart = true;
         singlePreisachOperators_[i] = new Preisach(numElem,operatorParams,weightParams, isVirgin, ignoreAnhystPart); 
+        singlePreisachOperators_[i]->setFixDirection(singleDirections_[i]);
       }
       
     } else {
@@ -299,9 +302,9 @@ namespace CoupledField
     Vector<Double> output = Vector<Double>(dim_);
     output.Init();
     
-    Vector<Double> currentDir;
 //    Vector<Double> tmp = Vector<Double>(dim_);
-    Double scalarInput, scalarOutput;
+//    Vector<Double> currentDir;
+//    Double scalarInput, scalarOutput;
     
     /*
      * Remarks to capping/clipping:
@@ -337,11 +340,19 @@ namespace CoupledField
 
     successFlag = 0;
     int successFlagSingle = 0;
+    Vector<Double> scalContribution = Vector<Double>(dim_);
+    Vector<Double> testOutput = Vector<Double>(dim_);
     for(UInt i = 0; i < numDirections_; i++){
-      currentDir = singleDirections_[i];
-      currentDir.Inner(xVal,scalarInput);
-      scalarOutput = singlePreisachOperators_[i]->computeValueAndUpdate(scalarInput,idx,overwrite,successFlagSingle);
-      output.Add(scalarOutput,currentDir);
+      scalContribution.Init();
+      scalContribution = singlePreisachOperators_[i]->computeValue_vec(xVal,idx,overwrite,debugOutput,successFlagSingle);
+      output.Add(1.0,scalContribution);
+      
+//      // old version     
+//        currentDir = singleDirections_[i];
+//        currentDir.Inner(xVal,scalarInput);
+//        scalarOutput = singlePreisachOperators_[i]->computeValueAndUpdate(scalarInput,idx,overwrite,successFlagSingle);
+//        output.Add(scalarOutput,currentDir);
+      
       // just check if at least one of the scalar models required reevaluation
       if(successFlagSingle != 0){
         successFlag = successFlagSingle;

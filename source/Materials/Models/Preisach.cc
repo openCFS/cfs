@@ -61,7 +61,7 @@ namespace CoupledField
     helpStrings_ = new Vector<Double>[numElem];
     minmaxtype_ = new Vector<Integer>[numElem];
     evaluatedEverettPixel_ = new Vector<Double>[numElem];
-    maxStringLength_ = 100;
+    maxStringLength_ = 200;
 
     for (Integer el=0; el<numElem; el++) {
       strings_[el].Resize(maxStringLength_);

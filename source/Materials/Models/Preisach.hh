@@ -70,6 +70,10 @@ namespace CoupledField {
       ;
     };
     
+    void setFixDirection(Vector<Double> newDirection){
+      fixDirection_ = newDirection;
+    }
+    
   protected:
     
     //! computes  the everett function (area-integration for x1, x2)
