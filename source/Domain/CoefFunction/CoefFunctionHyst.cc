@@ -7439,7 +7439,8 @@ namespace CoupledField {
     }
     
     if(stopAfterTests){
-      EXCEPTION("Stop after testing");
+      std::cout << ("--- Stop after testing ---") << std::endl;
+      exit(0);
     }
     
     
