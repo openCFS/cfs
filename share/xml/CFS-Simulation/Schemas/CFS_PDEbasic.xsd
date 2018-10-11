@@ -1292,6 +1292,14 @@
           <!--  A) Iterative Coupling      -->
           <!-- =========================== -->
           <xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
+          <!-- =========================== -->
+          <!--  B) External file           -->
+          <!-- =========================== -->          
+          <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
+          <!-- =========================== -->
+          <!--  C) Sequence step           -->
+          <!-- =========================== -->           
+          <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
           <!-- <xsd:element name="couplingAndNonLinearity" maxOccurs="1" type="DT_IterCplNonLinData"/>          -->
         </xsd:choice>
       </xsd:extension>

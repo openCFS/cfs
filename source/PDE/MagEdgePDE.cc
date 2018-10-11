@@ -302,7 +302,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // ============================================================
       // Mass Matrix
       // ============================================================
-      if ( matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 && nonLinTypes.GetSize() == 0) {
+      if ( (matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 && nonLinTypes.GetSize() == 0) ||
+          (matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 && analysistype_ == MULTIHARMONIC) ) {
           // =================================================
           // Pure temperature-dependent nonlinear Mass Matrix
           // =================================================
@@ -1572,7 +1573,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         }
         else {
         	// for harmonic
-        	coefFreqFactor = CoefFunction::Generate( mp_, part, "pi*f");
+        	coefFreqFactor = CoefFunction::Generate( mp_, part, "-pi*f");
         }
         eddyLossCoef->AddRegion(actRegion, CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, coefFreqFactor, coefIm, CoefXpr::OP_MULT) ) );
       }
