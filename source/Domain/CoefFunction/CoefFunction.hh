@@ -440,7 +440,7 @@ public:
   //! set all parameters for inverse scheme
   virtual void SetInverseParam( Double& alpha, Double& beta, Double& rho, Double& qExp,
 		                        Double& freq, std::string fileNameMeasdata,
-								std::string logLevel) {
+								std::string logLevel, Double& scalVal) {
  	  EXCEPTION("CoefFuncion::SetInverseParam not implemented");
    }
 
@@ -450,7 +450,7 @@ public:
   }
 
   //! update the source values (amplitude and phase)
-  virtual void UpdateSource(Double& stepLength, bool lineSearch) {
+  virtual void UpdateSource(Double& stepLength, bool lineSearch, bool scaleBack=false) {
 	  EXCEPTION("CoefFuncion::UpdateSource not implemented");
   }
 
@@ -763,7 +763,7 @@ protected:
   //! sets the rhsFnc active
   bool isActive_;
 
-  //! approximate source terms with delta fu	nctions
+  //! approximate source terms with delta functions
   CoefInverseSourceApprox approxSourceType_;
 };
 

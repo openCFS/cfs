@@ -509,7 +509,9 @@ IF(USE_SNOPT)
   SET(SNOPT_VER "7.2.8")
   SET(SNOPT_MD5 "9e75be8400eb878b9cb3d489084af196")
   SET(SNOPT_PATH "${CFS_BINARY_DIR}/cfsdeps/snopt")
-  SET(SNOPT_ZIP "${SNOPT_BASE}-${SNOPT_VER}.zip")
+  # as snopt is commerical propriatary copy we hand an encrypted source file
+  # you need to provide CFS_KEY_SNOPT with the password
+  SET(SNOPT_ZIP "${SNOPT_BASE}-${SNOPT_VER}-cfsdeps.zip")
   INCLUDE("${CFSDEPS_DIR}/snopt/External_SNOPT.cmake")
 ENDIF(USE_SNOPT)
 
