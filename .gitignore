@@ -21,4 +21,5 @@ share/scripts/IdentifyFortranCompiler.s
 rel*
 streamviz_memlog*
 __pycache__/
+share/python/*.pyc
 /root

@@ -248,6 +248,13 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     // the regions are normally implicitly defined by the element numbers. The exception
     // is force_region from <loadErsatzMaterial>
     space = CreateDesignSpace(force_region, pn, elems, xml);
+
+    // In case where we read density file from external file the matrix based filtering is buggy.
+    // Dirty fix of disabling it for now
+    space->is_matrix_filt = false;
+    if (pn->Has("filters/use_mat_filt") && pn->Get("filters/use_mat_filt")->As<bool>())
+      EXCEPTION("Using Matrix based filtering is not tested when loading material from external file")
+
   }
 
 
