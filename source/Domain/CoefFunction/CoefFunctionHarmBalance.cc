@@ -96,8 +96,8 @@ template<class T>
     // Bind the handle to the correct expression
     mp_->SetExpr(cashHandle_,"finishCash");
     // Flag for first time calculation
-    //mp_->SetValue(MathParser::GLOB_HANDLER, "finishCash", std::numeric_limits<unsigned int>::max());
-    mp_->SetValue(MathParser::GLOB_HANDLER, "finishCash", 0);
+    mp_->SetValue(MathParser::GLOB_HANDLER, "finishCash", std::numeric_limits<unsigned int>::max());
+    //mp_->SetValue(MathParser::GLOB_HANDLER, "finishCash", 0);
     // register callback mechanism if expression changes
     mp_->AddExpChangeCallBack( boost::bind(&CoefFunctionHarmBalance<T>::FinishCash, this ), cashHandle_ );
 
@@ -259,9 +259,11 @@ template<class T>
       freqTimeRes_.PrintTimeResults(index);
     }
 
-    // Perform FFT of time-signal
-    freqTimeRes_.TimeToFourier();
-
+    UInt c = this->mp_->Eval(cashHandle_);
+    if( c != std::numeric_limits<unsigned int>::max() ){
+      // Perform FFT of time-signal
+      freqTimeRes_.TimeToFourier();
+    }
 
     if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
       freqTimeRes_.PrintFreqResults(index);
