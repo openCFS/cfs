@@ -177,7 +177,7 @@ namespace CoupledField
     /** works only with a single grid */
     Grid* GetGrid()
     {
-      assert(gridMap_.size() == 1);
+      //assert(gridMap_.size() == 1);
       return gridMap_.begin()->second;
     }
 

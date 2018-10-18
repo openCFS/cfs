@@ -314,7 +314,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           shared_ptr<EntityList> ent = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
 
           //get coeff-Fnc to evaluate the temperature
-          ReadMaterialDependency( "electricConductivity", dispDofNames, ResultInfo::SCALAR, isComplex_,
+          ReadMaterialDependency( "electricConductivity", dispDofNames, ResultInfo::SCALAR, false,
                                   ent, coef, updatedGeo_ );
           //coef-Fnc for electric conductivity
           PtrCoefFct condNL = actMat->GetScalCoefFncNonLin( MAG_CONDUCTIVITY, Global::REAL, coef);
