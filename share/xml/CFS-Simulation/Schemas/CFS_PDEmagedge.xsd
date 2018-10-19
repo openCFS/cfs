@@ -262,7 +262,9 @@
 
   <!-- Definition of nodal result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticEdgeNodeResult">
-    <xsd:restriction base="xsd:token"> </xsd:restriction>
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magJouleLossPowerDensityOnNodes"/>
+    </xsd:restriction>
   </xsd:simpleType>
   
 

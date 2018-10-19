@@ -1366,6 +1366,15 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
       DefineFieldResult( jldCoef, jld );
 
+      shared_ptr<ResultInfo> jldN(new ResultInfo);
+      jldN->resultType = MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES;
+      jldN->dofNames = "";
+      jldN->unit = "W/m^3";
+      jldN->definedOn = ResultInfo::NODE;
+      jldN->entryType = ResultInfo::SCALAR;
+      shared_ptr<CoefFunctionMulti> jldNCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
+      DefineFieldResult( jldNCoef, jldN );
+
     // === JOULE LOSS POWER ===
     shared_ptr<ResultInfo> jldRes(new ResultInfo());
     jldRes->resultType = MAG_JOULE_LOSS_POWER;
@@ -1554,8 +1563,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
      *  and A' is the conjugate complex of the magnetic vector potential.
      */
     if( (analysistype_ == HARMONIC) || (analysistype_ == MULTIHARMONIC) ){
-      shared_ptr<CoefFunctionMulti> eddyLossCoef =
-          dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
+      shared_ptr<CoefFunctionMulti> eddyLossCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
+      shared_ptr<CoefFunctionMulti> eddyLossCoefN = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES]);
       regIt = regions_.Begin();
       // for the sake of simplicity we should real with the total current density
       for( ; regIt != regions_.End(); ++regIt ) {
@@ -1576,11 +1585,13 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         	coefFreqFactor = CoefFunction::Generate( mp_, part, "-pi*f");
         }
         eddyLossCoef->AddRegion(actRegion, CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, coefFreqFactor, coefIm, CoefXpr::OP_MULT) ) );
+        eddyLossCoefN->AddRegion(actRegion, CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, coefFreqFactor, coefIm, CoefXpr::OP_MULT) ) );
       }
     }
 
     if( analysistype_ == TRANSIENT){
 		shared_ptr<CoefFunctionMulti> eddyLossCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
+		shared_ptr<CoefFunctionMulti> eddyLossCoefN = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES]);
 		regIt = regions_.Begin();
 		for( ; regIt != regions_.End(); ++regIt ) {
 		  RegionIdType actRegion = *regIt;
@@ -1590,6 +1601,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 		  //PtrCoefFct partT = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, "t", partTmp, CoefXpr::OP_MULT ) );
 
 		  eddyLossCoef->AddRegion(actRegion, partTmp);
+		  eddyLossCoefN->AddRegion(actRegion, partTmp);
 		}
     }
 
