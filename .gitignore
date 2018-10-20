@@ -20,3 +20,4 @@ share/scripts/IdentifyFortranCompiler.s
 /valgrind
 streamviz_memlog*
 __pycache__/
+source/Driver/SolveSteps/StdSolveStep.cc.orig
