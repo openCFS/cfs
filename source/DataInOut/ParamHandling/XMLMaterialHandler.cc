@@ -1809,6 +1809,39 @@ namespace CoupledField {
               flow->Get("kinematicViscosity")->As<std::string>() );
       material->SetCoefFct( KINEMATIC_VISCOSITY, kinVisc );
     }
+
+    // read bulk viscosity
+    if(flow->Has("bulkViscosity")) {
+          PtrCoefFct bulkVisc =
+                  CoefFunction::Generate(mp_, Global::REAL,
+                  flow->Get("bulkViscosity")->As<std::string>() );
+          material->SetCoefFct( BULK_VISCOSITY, bulkVisc );
+    }
+
+    // read adiabatic exponent
+    if(flow->Has("adiabaticExponent")) {
+    	PtrCoefFct exp =
+    		CoefFunction::Generate(mp_, Global::REAL,
+    					flow->Get("adiabaticExponent")->As<std::string>() );
+    	material->SetCoefFct( ADIABATIC_EXPONENT, exp );
+    }
+
+    // read reference pressure
+    if(flow->Has("refPressure")) {
+          PtrCoefFct refPres =
+                  CoefFunction::Generate(mp_, Global::REAL,
+                  flow->Get("refPressure")->As<std::string>() );
+          material->SetCoefFct( REF_PRESSURE, refPres );
+    }
+
+    // read reference temperature
+    if(flow->Has("refTemperature")) {
+          PtrCoefFct refTemp =
+                  CoefFunction::Generate(mp_, Global::REAL,
+                  flow->Get("refTemperature")->As<std::string>() );
+          material->SetCoefFct( REF_TEMPERATURE, refTemp );
+    }
+
   }
   
   //**********************************************************************

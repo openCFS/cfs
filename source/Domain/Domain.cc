@@ -50,6 +50,7 @@
 #include "PDE/ElecPDE.hh"
 #include "PDE/PerturbedFlowPDE.hh"
 #include "PDE/FlowPDE.hh"
+#include "PDE/LinFlowPDE.hh"
 #include "PDE/HeatPDE.hh"
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagEdgePDE.hh"
@@ -750,6 +751,9 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 //
     else if (actPdeName == "heatConduction")
       ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+
+    else if (actPdeName == "fluidMechLin")
+      ptSinglePde_[i] = new LinFlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "fluidMech") {
       std::string formulation = actPdeNode->Get("formulation")->As<std::string>();

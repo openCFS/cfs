@@ -18,6 +18,7 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEbasic.xsd ${DST_DIR}/Schemas/CFS_PDEbasic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEelectrostatic.xsd ${DST_DIR}/Schemas/CFS_PDEelectrostatic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEfluidMech.xsd ${DST_DIR}/Schemas/CFS_PDEfluidMech.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEfluidMechLin.xsd ${DST_DIR}/Schemas/CFS_PDEfluidMechLin.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEheatConduction.xsd ${DST_DIR}/Schemas/CFS_PDEheatConduction.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEmagedge.xsd ${DST_DIR}/Schemas/CFS_PDEmagedge.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEsplit.xsd ${DST_DIR}/Schemas/CFS_PDEsplit.xsd
