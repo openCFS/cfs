@@ -6,6 +6,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ProgramOptions.hh"
+#include "Optimization/Optimizer/BFGS.hh"
 
 #include <string>
 #include <limits>
@@ -36,7 +37,10 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
     asymdec = this_opt_pn_->Get("asym_dec")->As<double>();
     asyminc = this_opt_pn_->Get("asym_inc")->As<double>();
 
-    globallyConvergent = this_opt_pn_->Get("globally_convergent")->As<bool>();
+    /*globallyConvergent = this_opt_pn_->Get("globally_convergent")->As<bool>();*/
+    globallyConvergent = this_opt_pn_->Has("globally_convergent") && this_opt_pn_->Get("globally_convergent/enable")->As<bool>();
+    if(globallyConvergent)
+          asym_fixed_lower = this_opt_pn_->Get("fixed_asymptotes/lower")->As<double>();
 
 
     constraintModification = this_opt_pn_->Get("constraint_modification")->As<bool>();
@@ -53,6 +57,8 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
     }
     if(fixedAsymptotes && robustAsymptotes)
       throw Exception("cannot have robust and fixed asymptotes concurrently for MMA");
+
+    penalty_c = this_opt_pn_->Get("constrain_penalty_c")->As<double>();
   }
 
   assert(!(robustAsymptotes && fixedAsymptotes)); // cannot have both the asymptotes
@@ -63,6 +69,8 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
 
   sps_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_solve_sub_prob/timer")->AsTimer().get();
   sps_timer_->SetSub();
+
+  testing = this_opt_pn_->Get("testing_functions")->As<bool>();
 
 }
 
@@ -117,8 +125,8 @@ void MMA::PostInit()
   if(globallyConvergent) {
     xold1 = xval;
     xold2 = xval;
-    rho_0 = 0.0001;
-    rho.Resize(m,0.0001);
+    rho_0 = rho_init;
+    rho.Resize(m,rho_init);
   }
 
   alpha.Resize(n);
@@ -133,9 +141,9 @@ void MMA::PostInit()
   mu.Resize(m); // Lagrange multiplier
   y.Resize(m); // elastic variable
   z = 0.0; // elastic variable
-  a.Resize(m, 0.0); // cdev: terms in subproblem which i do not understand
-  c.Resize(m, 1000.0); // cdev: terms in subproblem which i do not understand
-  d.Resize(m, 0.0); // cdev: terms in subproblem which i do not understand
+  a.Resize(m, 0.0); // cdev: terms in subproblem
+  c.Resize(m, penalty_c); // cdev: elastic terms in subproblem
+  d.Resize(m, 0.0); // cdev: terms in subproblem
   s.Resize(2*m, 0.0); // slack variables
   dual_gradient.Resize(m, 0.0);
   dual_hessian.Resize(m*m, 0.0);
@@ -208,36 +216,41 @@ void MMA::ComputeObjectiveConstraintsSensitivities()
 
 void MMA::SolveProblem()
 {
-  if(optimization->GetMaxIterations() == 0)
+  if(testing)
+    FunctionTest();
+  else
   {
-    throw Exception("maximum number of iterations is 0 ");
-    return;
+    if(optimization->GetMaxIterations() == 0)
+    {
+      throw Exception("maximum number of iterations is 0 ");
+      return;
+    }
+    ComputeObjectiveConstraintsSensitivities();
+
+    assert(optimization->GetCurrentIteration() == 0);
+
+    int maxit = optimization->GetMaxIterations();
+
+    /** ok is used to check if the sub problem was solvable*/
+    bool ok = true;
+    while(!optimization->DoStopOptimization() && optimization->GetCurrentIteration() <= maxit && ok)
+    {
+      if(moveLimits)
+        AdjustMoveLimits();
+      ok = SolveMMA();
+
+      // new design is stored, also the correspoding function values. Increments iteration
+      optimization->CommitIteration();
+      if(ok)
+        ComputeObjectiveConstraintsSensitivities();
+    }
+
+    PtrParamNode summary = optimization->optInfoNode->Get(ParamNode::SUMMARY);
+    summary->Get("break/converged")->SetValue(ok);
+
+    if(!ok)
+     summary->SetWarning(mma_error_);
   }
-  ComputeObjectiveConstraintsSensitivities();
-
-  assert(optimization->GetCurrentIteration() == 0);
-
-  int maxit = optimization->GetMaxIterations();
-
-  /** ok is used to check if the sub problem was solvable*/
-  bool ok = true;
-  while(!optimization->DoStopOptimization() && optimization->GetCurrentIteration() <= maxit && ok)
-  {
-    if(moveLimits)
-      AdjustMoveLimits();
-    ok = SolveMMA();
-
-    // new design is stored, also the correspoding function values. Increments iteration
-    optimization->CommitIteration();
-    if(ok)
-      ComputeObjectiveConstraintsSensitivities();
-  }
-
-  PtrParamNode summary = optimization->optInfoNode->Get(ParamNode::SUMMARY);
-  summary->Get("break/converged")->SetValue(ok);
-
-  if(!ok)
-   summary->SetWarning(mma_error_);
 }
 
 /** Based on TopOpt implementation */
@@ -316,24 +329,19 @@ void MMA::GenreteSubProblem()
         low[in] = min(xmin[in], low[in]);
         upp[in] = max(xmax[in], upp[in]);
       }
-      rho_0 = 0.00001;
-      for(unsigned int mj =0; mj<m; ++mj)
-        rho[mj] = 0.00001;
-
       LOG_DBG3(mmaTopOpt) << "GSP:GC rho_0= " << rho_0;
       LOG_DBG3(mmaTopOpt) << "GSP:GC rho= " << rho.ToString(0);
     }
     else
     {
       /** Description povided in K.Svanberg's DCAMM lecture notes section 6*/
-
       double objective_approx = 0.0; // This is compute the objective approximation @xnew
       /** Deal with the objective*/
       for(unsigned int ni =0; ni< n; ++ni)
       {
         objective_approx += p_0j[ni] /(upp[ni] - xval[ni]) + q_0j[ni] / (xval[ni] - low[ni]);
       }
-      objective_approx -= objective_r; //TODO: Check objective_approx is computed correctly
+      objective_approx -= objective_r;
 
       if(objective_approx < compliance)
         rho_0 = 2.0*rho_0;
@@ -422,7 +430,8 @@ void MMA::GenreteSubProblem()
             }
           }
         }
-        else {
+        else
+        {
             for(unsigned int in =0; in < n; ++in)
             {
               low[in] += xval[in] -  asyminit*(xmax[in] - xmin[in]);
@@ -434,51 +443,46 @@ void MMA::GenreteSubProblem()
       {
           for(unsigned int i =0; i< n; ++i)
           {
+            sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
+            if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
+            else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
+            else gamma = 1.0; // there is no design change
+            low[i] = xval[i] - gamma*(xold1[i] - low[i]);
+            upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
+            double x_max_min = max(1.0e-5, xmax[i] - xmin[i]);
+            double x_max_tmp = 0.0;
+            double x_min_tmp = 0.0;
+
             /** implementation of robust asymptote based on TopOpt code
-             * refer function GenSub(...) in MMA.c */
-            if(robustAsymptotes) {
-              sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
-              if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
-              else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
-              else gamma = 1.0; // there is no design change
-              low[i] = xval[i] - gamma*(xold1[i] - low[i]);
-              upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
-              double x_min_tmp = max(1.0e-5, xmax[i] - xmin[i]);
-              double x_max_tmp = 0.0;
+             * refer function GenSub(...) in MMA.cc for the case RobustAsymptotesType == 1*/
+            if(robustAsymptotes)
+            {
 
               //Robust Asymptotes
-              low[i]=max(low[i],xval[i]-100.0*x_min_tmp);
-              low[i]=min(low[i],xval[i]-0.01*x_min_tmp);
-              upp[i]=max(upp[i],xval[i]+0.01*x_min_tmp);
-              upp[i]=min(upp[i],xval[i]+100.0*x_min_tmp);
-              low[i] = min(max(low[i], xval[i] - 100.0*x_min_tmp ),xval[i] - 1.0e-4*x_min_tmp);
-              upp[i] = min(max(upp[i], xval[i] + 1.0e-4*x_min_tmp ),xval[i] + 100.0*x_min_tmp);
+              low[i]=max(low[i],xval[i]-100.0*x_max_min);
+              low[i]=min(low[i],xval[i]-1.0e-4*x_max_min);
+              upp[i]=max(upp[i],xval[i]+1.0e-4*x_max_min);
+              upp[i]=min(upp[i],xval[i]+100.0*x_max_min);
+
               x_min_tmp = xmin[i] - 1.0e-5;
               x_max_tmp = xmax[i] + 1.0e-5;
-              if(xval[i] < x_min_tmp)
+              if(xval[i] < x_max_min)
               {
                 low[i] = xval[i] - (x_max_tmp - xval[i])/0.9;
                 upp[i] = xval[i] + (x_max_tmp - xval[i])/0.9;
               }
               if(xval[i] > x_max_tmp)
               {
-                low[i] = xval[i] - (xval[i] - x_min_tmp)/0.9;
-                upp[i] = xval[i] + (xval[i] - x_min_tmp)/0.9;
+                low[i] = xval[i] - (xval[i] - x_max_min)/0.9;
+                upp[i] = xval[i] + (xval[i] - x_max_min)/0.9;
               }
             }
             /** implementation of robust asymptote based on TopOpt code
              * refer function GenSub(...) in MMA.c */
             else {
-              sign_change = (xval[i] - xold1[i]) * (xold1[i] - xold2[i]); // will be negative if there is oscillation of design values
-              if( sign_change < 0.0) gamma = asymdec; // if there is oscillation decrese the asymptotes, convergence will be slower
-              else if (sign_change > 0.0) gamma = asyminc; // if there is oscillation increase the asymptotes, for faster convergence.
-              else gamma = 1.0; // there is no design change
-              low[i] = xval[i] - gamma*(xold1[i] - low[i]);
-              upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
-              double x_max_min = max(1.0e-5, xmax[i] - xmin[i]);
               low[i]=max(low[i],xval[i]-10.0*x_max_min);
-              low[i]=min(low[i],xval[i]-1.0e-4*x_max_min);
-              upp[i]=max(upp[i],xval[i]+1.0e-4*x_max_min);
+              low[i]=min(low[i],xval[i]-0.01*x_max_min);
+              upp[i]=max(upp[i],xval[i]+0.01*x_max_min);
               upp[i]=min(upp[i],xval[i]+10.0*x_max_min);
             }
           }
@@ -545,7 +549,11 @@ void MMA::GenreteSubProblem()
 
         dfdx_pos = max(0.0, grad_compliance[ni]);
         dfdx_neg = max(0.0, -1.0*grad_compliance[ni]);
-        extra = 0.001*Abs(grad_compliance[ni]) + 0.5*feps/(upp[ni] - low[ni]);
+        if(constraintModification)
+          extra = 0.001*Abs(grad_compliance[ni]) + 0.5*feps/(upp[ni] - low[ni]);
+        else
+          extra = 0.0;
+
         p_0j[ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra);
         q_0j[ni] = pow(xval[ni] - low[ni], 2.0) * (dfdx_neg + extra);
 
@@ -996,7 +1004,7 @@ void MMA::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 }
 
 
-/*
+
 // Used for debugging, Helper function to read files used in InitilizeFromFile()
 bool MMA::is_number(const std::string& s)
 {
@@ -1010,11 +1018,11 @@ bool MMA::is_number(const std::string& s)
     }
     return true;
 }
-*/
+
 /**
  * Used for debugging, will read the data from PETSC output file produced by topopt and inilitize.
  * */
-/*
+
 void MMA::InitilizeFromFile(std::string filename, double *dp){
   std::ifstream input(filename);
     if (input) {
@@ -1030,45 +1038,62 @@ void MMA::InitilizeFromFile(std::string filename, double *dp){
         }
   }
 }
-*/
+
 /** Used for debugging, content of the function modified based on the function being chceked
  * 1. We initilize all the data used by the function
  * 2. Call the function
  * 3. Output the data you want to check
  */
-/*
-void MMA::StupidTest()
+
+void MMA::FunctionTest()
 {
 
-  //Set movie limits
-
+  /**
+   * First we are initilizing all the data required to initilize the funciton.
+   */
   n=512;
   m=1;
   Matrix<double> temp(n,m);
-  xval.Resize(n);  InitilizeFromFile("xval_DH.txt", xval.GetPointer());
-  low.Resize(n);  InitilizeFromFile("L_DH.txt", low.GetPointer());
-  upp.Resize(n);  InitilizeFromFile("U_DH.txt", upp.GetPointer());
-  p_ij.Resize(temp); InitilizeFromFile("pij_DH.txt", p_ij[0]);
-  q_ij.Resize(temp); InitilizeFromFile("qij_D.txt", q_ij[0]);
-  alpha.Resize(n); InitilizeFromFile("alpha_GS.txt", alpha.GetPointer());
-  beta.Resize(n); InitilizeFromFile("beta_GS.txt", beta.GetPointer());
-  p_0j.Resize(n); InitilizeFromFile("p0_GS.txt", p_0j.GetPointer());
-  q_0j.Resize(n); InitilizeFromFile("q0_GS.txt", q_0j.GetPointer());
-  c[0] = 1000.0;
-  lamda[0] = 500.000000;
-  mu[0] = 1.0;
-  a[0] = 0.0;
+  xval.Resize(n);  InitilizeFromFile("in_xval_3.txt", xval.GetPointer());
+  low.Resize(n);  InitilizeFromFile("in_L_3.txt", low.GetPointer());
+  upp.Resize(n);  InitilizeFromFile("in_U_3.txt", upp.GetPointer());
+  p_ij.Resize(temp); InitilizeFromFile("in_pij_3.txt", p_ij[0]);
+  q_ij.Resize(temp); InitilizeFromFile("in_qij_3.txt", q_ij[0]);
+  alpha.Resize(n); InitilizeFromFile("in_alpha_3.txt", alpha.GetPointer());
+  beta.Resize(n); InitilizeFromFile("in_beta_3.txt", beta.GetPointer());
+  p_0j.Resize(n); InitilizeFromFile("in_p0_3.txt", p_0j.GetPointer());
+  q_0j.Resize(n); InitilizeFromFile("in_q0_3.txt", q_0j.GetPointer());
 
-  HessianOfDual();
+  lamda.Resize(m);
+  mu.Resize(m); mu[0] = 1.0;
+  a.Resize(m); a[0] = 0.0;
+  b.Resize(m); b[0] = 0.1509128; // This is entered manually from petsc.
+  c.Resize(m); c[0] = 1000.0;
 
-  LOG_DBG3(mmaTopOpt) << "StupidTest: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ " ;
-  LOG_DBG3(mmaTopOpt) << "PD: dual_hessian[j]=" << dual_hessian[0];
+  /**
+   * Execute the fucntion to be tested
+   */
+  SolveSubProblem();
 
 
-  LOG_DBG3(mmaTopOpt) << "StupidTest: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ " ;
-  assert (true && "Stupid test done");
+  /**
+   * Check the output of the function.
+   */
+  StdVector<double> xval_TopOpt;
+  xval_TopOpt.Resize(n); InitilizeFromFile("out_xval_3.txt", xval_TopOpt.GetPointer());
+  for (unsigned int in = 0; in < n; ++in)
+    xval_TopOpt[in] -= xval[in];
+
+  LOG_DBG3(mmaTopOpt) << "FT: Function Test SolveSubProblem : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ " ;
+  LOG_DBG3(mmaTopOpt) << "FT: xdif[]=" << xval_TopOpt.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "FT: y[]=" << y.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "FT: z=" << z;
+  LOG_DBG3(mmaTopOpt) << "FT: lamda[]=" << lamda.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "FT: mu[]=" << mu.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "FT: Function Test SolveSubProblem : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ " ;
+
 }
-*/
+
 //
 //void MMA::StupidTest()
 //{

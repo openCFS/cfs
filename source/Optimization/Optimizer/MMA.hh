@@ -3,7 +3,6 @@
 
 
 #include "Optimization/Optimizer/BaseOptimizer.hh"
-//#include "Optimization/Optimizer/MMASubProblem.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "MatVec/Vector.hh"
 
@@ -124,6 +123,7 @@ protected:
 
   unsigned int max_sub_iter = 10; // maximum iteration for subproblem solver
   StdVector<double> a, c, d; // penalty parameter for the subproblem
+  double penalty_c = 1000.0;
 
   /** sub problem move limits
    * according to K.Svanberg's DCAMM lecture notes section 4.
@@ -159,6 +159,7 @@ protected:
   /** Globally convergent version refer K.Svanberg's DCAMM lecture notes section 6
    * ToDo: NOT IMPLEMENTED*/
    bool globallyConvergent = false;
+   double rho_init = 0.0001;
    StdVector<double> rho;
    double rho_0=0;
    double objective_r = 0.0; // The r_i in the function approx
@@ -197,6 +198,8 @@ protected:
 
   StdVector<SubInfo> subiters;
 
+  bool testing = false;
+
 protected:
 
   void SolveProblem();
@@ -231,6 +234,8 @@ private:
 
   void HessianOfDual();
 
+  void BGFSHessianOfDual();
+
   void Factorize(StdVector<double> & , const unsigned int );
 
   void Solve(StdVector<double> & , StdVector<double> &, const int );
@@ -247,6 +252,11 @@ private:
 
   /** when the subproblem failes, the error message set */
   std::string mma_error_;
+
+  /** for testing */
+  void FunctionTest();
+  void InitilizeFromFile(std::string filename, double *dp);
+  bool is_number(const std::string& s);
 };
 
 

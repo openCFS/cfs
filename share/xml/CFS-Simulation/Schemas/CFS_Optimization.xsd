@@ -683,7 +683,16 @@
                       <xsd:attribute name="upper" use="optional" type="xsd:float" default="10"/>
                     </xsd:complexType>
                   </xsd:element>
+                  <!-- for globally convergent sub problem -->
+                  <xsd:element name="globally_convergent" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:attribute name="enable" use="required" type="xsd:boolean"/>
+                      <xsd:attribute name="rho" use="optional" type="xsd:float" default="0.0001"/>
+                    </xsd:complexType>
+                  </xsd:element>
                 </xsd:sequence>
+
+                <xsd:attribute name="constrain_penalty_c" default="1000.0" use="optional" type="xsd:float"/>
                 <xsd:attribute name="max_sub_iter" default="10" use="optional" type="xsd:integer"/>
                 <xsd:attribute name="asym_init" default="0.9" use="optional" type="xsd:float"/>
                 <xsd:attribute name="asym_dec" default="0.7" use="optional" type="xsd:float"/>
@@ -692,8 +701,10 @@
                 <xsd:attribute name="constraint_modification" default="false" use="optional" type="xsd:boolean" />
                 <!-- move_limit is to ensure xmin and xmax are close to xval, if false they are not varied -->
                 <xsd:attribute name="move_limit" default="false" use="optional" type="xsd:boolean" />
-                <!-- for globally convergent sub problem -->
-                <xsd:attribute name="globally_convergent" default="false" use="optional" type="xsd:boolean" />
+                
+                <!-- cdev: for testing -->
+                <xsd:attribute name="testing_functions" default="false" use="optional" type="xsd:boolean" />
+                
               </xsd:complexType>
             </xsd:element>
  
@@ -848,8 +859,10 @@
                 <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
               </xsd:complexType>
             </xsd:element>
-
-
+            
+            <!-- constrained bfgs optimization algorithm will be called by mma -->
+            <!-- <xsd:element name="bfgs" minOccurs="0"> -->
+            
             <!-- the parameters of the shape optimizer can be set
                  <shapeOpt enableTopgrad="true" /> -->
             <xsd:element name="shapeOpt" minOccurs="0">
@@ -1019,6 +1032,8 @@
                 <xsd:enumeration value="sgp"/>
                 <xsd:enumeration value="snopt"/>
                 <xsd:enumeration value="knitro"/>
+                <!-- this is for own implementation of BFGS optimization method presented by Tim Kelly https://ctk.math.ncsu.edu/matlab_darts.html -->
+                <!-- <xsd:enumeration value="bfgs"/> -->
                 <!-- this evaluates only the initial design -->
                 <xsd:enumeration value="evaluate"/>
                 <xsd:enumeration value="shapeOpt"/>

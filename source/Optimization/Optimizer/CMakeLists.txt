@@ -6,6 +6,7 @@ SET(OPTIMIZER_SRCS
   GradientCheck.cc
   SGP.cc
   MMA.cc
+  BFGS.cc
 )
 
 SET(TARGET_LL
