@@ -346,11 +346,12 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app,
       if(save_sol)
       {
         // we need to copy the solution from the algebraic system to the feFunction
-        LOG_DBG3(statesol) << "SS:R: fe sol=" << fe->GetSingleVector()->ToString();
+        LOG_DBG3(statesol) << "SS:R1: fe sol=" << fe->GetSingleVector()->ToString();
         Vector<T> tmpSol;
         fe->GetSystem()->GetSolutionVal(tmpSol, fe->GetFctId(), true); // set idbc
-        LOG_DBG3(statesol) << "SS:R: sys sol=" << tmpSol.ToString();
+        LOG_DBG3(statesol) << "SS:R2: sys sol=" << tmpSol.ToString();
         dynamic_cast<Vector<T>& >(*(fe->GetSingleVector())) = tmpSol;
+        LOG_DBG3(statesol) << "SS:R3: fe sol-nachher=" << fe->GetSingleVector()->ToString();
       }
 
       // we save the element vectors in elem_vec. Might be empty the first call
@@ -439,7 +440,10 @@ void StateSolution::Write(SinglePDE* pde)
 
     SolutionType solt = GetSolutionType(pde);
     shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(solt);
+    LOG_DBG2(statesol) << "raw = " << raw->ToString(2);
+    LOG_DBG2(statesol) << "fe = " << fe->GetSingleVector()->ToString(2);
     *(fe->GetSingleVector()) = *raw; // out of two pointers we make references and then use the assignment operator
+    LOG_DBG2(statesol) << "fe = " << fe->GetSingleVector()->ToString(2);
   }
   else
     LOG_DBG2(statesol) << "SS:W raw not written as it was not set";

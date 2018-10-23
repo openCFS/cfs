@@ -158,6 +158,10 @@ namespace CoupledField
                               Double& etaLineSearch, Double& RHSLin2Norm,
                               bool trans=false);
 
+    void SetSolveVecZero(){
+      solVec_.Init();
+    }
+
   protected:
     
     // ========================================================

@@ -46,6 +46,7 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar,
   Vector<Double> elemSol;
 
   dependCoef_->GetVector( elemSol, lpm);
+  LOG_DBG(coeffctapprox) << "elemSol = " << elemSol.ToString(2);
   
 
   if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY ) {

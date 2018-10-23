@@ -219,6 +219,7 @@ namespace CoupledField {
     
     //get actual solution
     SBM_Vector  actSol(BaseMatrix::DOUBLE);
+    solVec_.Init();
     actSol = solVec_;
     
     // =================================
@@ -338,6 +339,7 @@ namespace CoupledField {
           
           // store the new solution
           solVec_ = actSol;
+          LOG_TRACE(stdsolvestep) << "actSol=" << solVec_.ToString(2);
         }
         
         // calculation relative residual error ====================================

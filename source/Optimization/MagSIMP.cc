@@ -29,6 +29,8 @@ DEFINE_LOG(ms, "magSimp")
 
 double MagSIMP::nu_0 = 1.0/(4 * M_PI * 1e-7);
 
+Vector <double> real_nu;
+
 MagSIMP::MagSIMP()
 {
   assert(close(nu_0,1.0/(4 * M_PI * 1e-7)));
@@ -271,6 +273,11 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   MagMat* mag = dynamic_cast<MagMat*>(f->ctxt->mat);
   SinglePDE* pde = f->ctxt->pde;
 
+  // Write the solution from the algebraic system to the vector real_nu, real_nu will be needed in SetElementK to get the correct nu
+  SolutionType solt = MAG_POTENTIAL;
+  shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
+  real_nu = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
+
   // We use BDBInt to compute M, but in the nonlinear case we have only BBInt stored in assemble
   // therefore we construct a own one
     // new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef,factor, updatedGeo_); in MagneticPDE.cc
@@ -338,9 +345,17 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
 {
   OptimizationMaterial* mat = f->ctxt->mat;
   Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
-  //std::cout << "out= " << out.ToString() << std::endl;
 
   //assert(app != App::MAG); // shall be in MagSIMP.cc
+
+  // Not 100% sure about this but with it we get the correct nu
+  // Define a new Vector buffer_store containing the information from StateSolution
+  // Undo the overwriting from StateSolution.cc line 353 and 445 to get the right nu
+  Vector <double> buffer_store;
+  SolutionType solt = MAG_POTENTIAL;
+  shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
+  buffer_store = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
+  dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = real_nu;
 
   switch(app)
   {
@@ -355,13 +370,12 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
 
     // element matrix with org material, might be cached -> local_element_cache
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mag->Stiffness(de->elem));
+
+    // Overwrite again with the stuff from StateSolution.cc line 353 and 445
+    dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = buffer_store;
     LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
 
     double nu_r = GetRelactivity(de->elem);
-
-    //assert(nu_r > 0);
-    //assert(mag->nu_0 > 0);
-
     // simulation: BDB with D=(d 0; 0 d) with d = nu_0*nu_r
     // optimization: d = nu_0 * nu_r * f(rho) - nu_0 * f(rho) + nu_0
     // derivative: d = nu_0 * nu_r * f'(rho) - nu_0 * f'(rho)
@@ -382,7 +396,7 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
   default:
     SIMP::SetElementK(f, de, tf, app, mat_out, derivative, calcMode, ev);
     return; // other cases should be handled in SIMP
-  } // end switch
+  }  // end switch
 }
 
 const Matrix<double>& MagSIMP::GetSelectionMatrix(const Function* f) const

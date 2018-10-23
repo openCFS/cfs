@@ -2687,6 +2687,7 @@ namespace CoupledField {
           sol_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
         }
         retVec[i] = entry;
+        LOG_DBG2(algSys) << "i= " << i << "retVec[i]= " << entry;
       }
 
     }
@@ -2750,7 +2751,9 @@ namespace CoupledField {
           rhs_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
         }
         retVec[i] = entry;
+        LOG_DBG(algSys) << "i= " << i << "retVec[i]= " << entry;
       }
+
 
     } else {
 
@@ -2767,6 +2770,7 @@ namespace CoupledField {
         }
         retVec[i] = entry;
       }
+      LOG_DBG(algSys) << "retVec " << retVec.ToString(2);
     }
   }
   

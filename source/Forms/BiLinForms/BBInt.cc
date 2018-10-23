@@ -86,6 +86,7 @@ namespace CoupledField{
 
        // Calculate scalar factor
        this->coefScalar_->GetScalar(fac, lp);
+       LOG_DBG3(bbint) << "e= " << ptElem->elemNum << " nu= " << fac;
 
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
