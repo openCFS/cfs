@@ -348,7 +348,11 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app,
         // we need to copy the solution from the algebraic system to the feFunction
         LOG_DBG3(statesol) << "SS:R1: fe sol=" << fe->GetSingleVector()->ToString();
         Vector<T> tmpSol;
-        fe->GetSystem()->GetSolutionVal(tmpSol, fe->GetFctId(), true); // set idbc
+        if(app == App::MAG)
+          fe->GetSystem()->GetSolutionVal(tmpSol, fe->GetFctId(), false);
+        else
+          fe->GetSystem()->GetSolutionVal(tmpSol, fe->GetFctId(), true); // set idbc
+
         LOG_DBG3(statesol) << "SS:R2: sys sol=" << tmpSol.ToString();
         dynamic_cast<Vector<T>& >(*(fe->GetSingleVector())) = tmpSol;
         LOG_DBG3(statesol) << "SS:R3: fe sol-nachher=" << fe->GetSingleVector()->ToString();
@@ -401,7 +405,11 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app,
       {
         // we need to copy the solution from the algebraic system to the feFunction
         // LOG_DBG3(statesol) << "S:R: fe sol=" << fe->GetSingleVector()->ToString(); // data will be outdated
-        fe->GetSystem()->GetSolutionVal(*vec, fe->GetFctId(), true); // set idbc
+        if(app == App::MAG)
+          *vec = dynamic_cast<Vector<T>& >(*(fe->GetSingleVector()));
+        else
+          fe->GetSystem()->GetSolutionVal(*vec, fe->GetFctId(), true); // set idbc
+
         assert(derivative == NO_DERIVTYPE);
         // if not, the above might work ?!
         // FIXME **tmp = pde->getTimeStepping()->GetDeriveMap()[derivative]; // assigning, data is copied
@@ -409,7 +417,8 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app,
       else
         fe->GetSystem()->GetRHSVal(*vec, fe->GetFctId());
 
-      LOG_DBG3(statesol) << "SS:R: st=" << st << " vec=" << vec->ToString();
+
+      LOG_DBG3(statesol) << "SS:R: st=" << st << " vec=" << vec->ToString() << "size= " << vec->GetSize();
 
       return vec;
     }
