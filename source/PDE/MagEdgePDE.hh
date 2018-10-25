@@ -33,6 +33,9 @@ namespace CoupledField
     //! specifying coil results.
     shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
 
+    /** @see virtual SinglePDE::GetNativeSolutionType() */
+    SolutionType GetNativeSolutionType() const { return MAG_POTENTIAL; }
+
   protected:
     
     //! Initialize NonLinearities

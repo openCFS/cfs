@@ -77,26 +77,33 @@ void MagSIMP::PostInit()
   }
 }
 
-double MagSIMP::CalcRelactivity(const Elem* elem)
+double MagSIMP::CalcRelactivity(const Elem* elem, UInt dim)
 {
   assert(manager.context.GetSize() == 1); // otherwise we would need it
   OptimizationMaterial* mat = context->mat;
   CoefFunctionOpt* coef = mat->GetMatCoef(mat->stiff, elem->regionId);
 
-  return ExtractRelactivity(coef->orgMat.get(), nonlin_[elem->regionId] ? elem : NULL);
+  return ExtractRelactivity(coef->orgMat.get(), nonlin_[elem->regionId] ? elem : NULL, dim);
 }
 
 
-double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem)
+double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem, UInt dim)
 {
   double nu_0_nu_r = -1; // in the end we only need the scalar
 
   if(elem == NULL)
   {
-    // in the linear case we have BDBInt with a diagonal dim x dim tensor with identical coefficients
+    // in the linear 2D case we have BDBInt with a diagonal dim x dim tensor with identical coefficients, in 3D it is a BBInt with a scalar value
     CoefFunctionConst<double>* cfc = dynamic_cast<CoefFunctionConst<double>*>(org_mat);
     assert(cfc);
-    nu_0_nu_r = cfc->GetTensor()[0][0]; // copy constructor :(
+    if(dim == 2)
+    {
+      nu_0_nu_r = cfc->GetTensor()[0][0]; // copy constructor :(
+    }
+    else
+    {
+      nu_0_nu_r = cfc->GetScalar();
+    }
   }
   else
   {
@@ -375,7 +382,7 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
     dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = buffer_store;
     LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
 
-    double nu_r = GetRelactivity(de->elem);
+    double nu_r = GetRelactivity(de->elem, domain->GetGrid()->GetDim());
     // simulation: BDB with D=(d 0; 0 d) with d = nu_0*nu_r
     // optimization: d = nu_0 * nu_r * f(rho) - nu_0 * f(rho) + nu_0
     // derivative: d = nu_0 * nu_r * f'(rho) - nu_0 * f'(rho)
