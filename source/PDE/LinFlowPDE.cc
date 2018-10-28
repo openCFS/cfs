@@ -48,8 +48,11 @@
 #include "Forms/Operators/ConvectiveOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/StrainOperator.hh"
-
 #include "Domain/CoefFunction/CoefXpr.hh"
+
+
+#include "Driver/TimeSchemes/TimeSchemeGLM.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -78,6 +81,7 @@ namespace CoupledField {
     nonLin_    = false;
     nonLinMaterial_ = false;
     isAlwaysStatic_ = false;
+    isHeatCoupled_  = false;
 
     //! Always use total Lagrangian formulation 
     updatedGeo_        = true;
@@ -203,9 +207,7 @@ namespace CoupledField {
       // --------------------------
       // We hardcode the Taylor-Hood spaces for the moment
       velSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
-      //velSpace->SetRegionApproximation(actRegion, "default", "default");
       meanVelSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
-      // meanVelSpace->SetRegionApproximation(actRegion, "default", "default");
       presSpace->SetRegionApproximation(actRegion, "presPolyId", "presIntegId");
 
       PtrCoefFct density = materials_[actRegion]->GetScalCoefFnc(
@@ -253,14 +255,21 @@ namespace CoupledField {
     	  // add time derivative of density expressed by pressure according to
     	  // thermodynamic relation
     	  PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-    	  PtrCoefFct adiabaticExp = materials_[actRegion]->GetScalCoefFnc(
-    			  ADIABATIC_EXPONENT, Global::REAL);
     	  PtrCoefFct refPres = materials_[actRegion]->GetScalCoefFnc(
-    			  REF_PRESSURE, Global::REAL);
-    	  PtrCoefFct help1 = CoefFunction::Generate( mp_,  Global::REAL,
+    	      			  REF_PRESSURE, Global::REAL);
+    	  PtrCoefFct fnc;
+    	  if ( isHeatCoupled_ ) {
+    		  fnc = CoefFunction::Generate( mp_, Global::REAL,
+    		  				  CoefXprBinOp(mp_, constOne, refPres, CoefXpr::OP_DIV ) );
+    	  }
+    	  else {
+    		  PtrCoefFct adiabaticExp = materials_[actRegion]->GetScalCoefFnc(
+    			  ADIABATIC_EXPONENT, Global::REAL);
+    		  PtrCoefFct help1 = CoefFunction::Generate( mp_,  Global::REAL,
     			  CoefXprBinOp(mp_, adiabaticExp, refPres, CoefXpr::OP_MULT ) );
-    	  PtrCoefFct fnc = CoefFunction::Generate( mp_, Global::REAL,
+    		  fnc = CoefFunction::Generate( mp_, Global::REAL,
 				  CoefXprBinOp(mp_, constOne, help1, CoefXpr::OP_DIV ) );
+    	  }
 
     	  BiLinearForm *dampIntpp = NULL;
     	  if( dim_ == 2 ) {
@@ -571,19 +580,24 @@ namespace CoupledField {
     meanVelSpace->Finalize();
     meanVelSpace->PreCalcShapeFncs();
     meanVelFct->Finalize();
-
-    //    meanVelSpace->PrintEqnMap();
-
   }
   
   void LinFlowPDE::DefineSolveStep() {
-    solveStep_ = new SolveStepElec(*this);
+    solveStep_ = new StdSolveStep(*this);
   }
 
-  void LinFlowPDE::ReadSpecialBCs( ) 
-  {
+  void LinFlowPDE::InitTimeStepping() {
+
+    GLMScheme * schemeV = new Trapezoidal(0.5);
+    GLMScheme * schemeP = new Trapezoidal(0.5);
+
+    shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0) );
+    shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0) );
+    feFunctions_[FLUIDMECH_VELOCITY]->SetTimeScheme(mySchemeV);
+    feFunctions_[FLUIDMECH_PRESSURE]->SetTimeScheme(mySchemeP);
   }
   
+
   void LinFlowPDE::DefinePrimaryResults() {
     shared_ptr<BaseFeFunction> feFct = feFunctions_[FLUIDMECH_VELOCITY];
 

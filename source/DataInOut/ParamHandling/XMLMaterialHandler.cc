@@ -1774,6 +1774,14 @@ namespace CoupledField {
       } // nonlinear isotropic material  
       
     }
+
+    // read reference temperature
+    if(therm->Has("refTemperature")) {
+          PtrCoefFct refTemp =
+                  CoefFunction::Generate(mp_, Global::REAL,
+                		  therm->Get("refTemperature")->As<std::string>() );
+          material->SetCoefFct( REF_TEMPERATURE, refTemp );
+    }
   }
   
   //**********************************************************************
@@ -1832,14 +1840,6 @@ namespace CoupledField {
                   CoefFunction::Generate(mp_, Global::REAL,
                   flow->Get("refPressure")->As<std::string>() );
           material->SetCoefFct( REF_PRESSURE, refPres );
-    }
-
-    // read reference temperature
-    if(flow->Has("refTemperature")) {
-          PtrCoefFct refTemp =
-                  CoefFunction::Generate(mp_, Global::REAL,
-                  flow->Get("refTemperature")->As<std::string>() );
-          material->SetCoefFct( REF_TEMPERATURE, refTemp );
     }
 
   }

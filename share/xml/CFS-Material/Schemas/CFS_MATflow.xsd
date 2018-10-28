@@ -61,13 +61,6 @@
           </xsd:documentation>
         </xsd:annotation>        
       </xsd:element>      
-      <xsd:element name="refTemperature" minOccurs="0" type="xsd:token">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-            reference temperature in Kelvin
-          </xsd:documentation>
-        </xsd:annotation>        
-      </xsd:element>         
     </xsd:sequence>
   </xsd:complexType>
   

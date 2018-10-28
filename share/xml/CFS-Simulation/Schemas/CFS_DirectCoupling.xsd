@@ -465,6 +465,30 @@
     </xsd:complexType>
   </xsd:element> 
 
+  <!-- ======================================= -->
+  <!--  Linear Flow - Heat coupling  -->
+  <!-- ======================================= -->
+  <xsd:element name="linFlowHeatDirect" substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+            
+            <!-- (volume) region list -->
+            <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="region" minOccurs="1" maxOccurs="unbounded"/>                                                  
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+  
+  
   <!-- ******************************************************************* -->
   <!--   Definition of Post Processing Results -->
   <!-- ******************************************************************* -->

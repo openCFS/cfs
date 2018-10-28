@@ -1,6 +1,15 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// ================================================================================================
+/*!
+ *       \file     LinFlowPDE.hh
+ *       \brief    Linearized flow equations (incompressible and compressible version);
+ *                 A background flow can also be considered
+ *       \date     Oct 21, 2018
+ *       \author   Manfred Kaltenbacher
+ */
+//================================================================================================
 
 #ifndef FILE_LINFLUIDMECHPDE
 #define FILE_LINFLUIDMECHPDE
@@ -15,7 +24,7 @@ namespace CoupledField
   class LinearFormContext;
   class CoefFunctionMulti;
   
-  //! Class for linearized perturbed formulation of Navier-Stoke's equations.
+  //! Class for linearized flow equations (incompressible and compressible version).
   class LinFlowPDE : public SinglePDE {
 
   public:
@@ -31,6 +40,11 @@ namespace CoupledField
 
     //! Destructor
     virtual ~LinFlowPDE(){};
+
+    //! set coupling to Heat PDE true
+    void SetHeatCoupling() {
+    	isHeatCoupled_ = true;
+    }
 
   protected:
 
@@ -52,19 +66,16 @@ namespace CoupledField
     void DefineSolveStep();
 
     //! Init the time stepping: nothing to do
-    void InitTimeStepping() {;};
+    void InitTimeStepping();
 
-    //! Nothing to do
-    void SetTimeStep(const Double dt) {;};
-
-    //! Read special boundary conditions
-    void ReadSpecialBCs();
+    //! Read special boundary conditions (nothing to do)
+    void ReadSpecialBCs() {;};
 
     //! Calculate field variables at arbitrary points
     void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
                     StdVector<LocPoint>& points, SingleVector& values );
 
-    //! SubType of electrostatic section
+    //! SubType (plane, axi, 3D)
     std::string subType_;
 
     // *****************
@@ -117,6 +128,9 @@ namespace CoupledField
 
     //! amplitude factor for first convective term in case of varying background flow
     Double factorC1_;
+
+    //! true, if coupled to Heat PDE
+    bool isHeatCoupled_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
