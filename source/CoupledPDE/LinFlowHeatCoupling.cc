@@ -75,13 +75,10 @@ namespace CoupledField {
     shared_ptr<FeSpace> pressSpace = flowFct->GetFeSpace();
     shared_ptr<FeSpace> heatSpace  = heatFct->GetFeSpace();
 
-    RegionIdType actRegion;
-    BaseMaterial *actSDMat;
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
     	// Set current region and material
-    	actRegion = it->first;
-    	actSDMat = it->second;
+    	RegionIdType actRegion = it->first;
 
     	// create new entity list
     	shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
