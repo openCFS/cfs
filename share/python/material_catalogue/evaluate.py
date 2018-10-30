@@ -128,6 +128,9 @@ parser.add_argument("--epsilon", help="number of frames/crosses in the cell prob
 parser.add_argument("--oversampling", help="name of the mesh with size minres/epsilon including only one base cell")
 parser.add_argument("--penalization", help="creates a penalized material catalogue in the interval [0, 1/steps_p], step_p has to be given",type=int)
 
+# skip reading .info.xml for parameter at bound 0 or 1 and add trivial coefficients eps or 1 instead
+parser.add_argument("--skip_bounds", help="skip searching for parameter values 0 or 1 and take trivial (1e-6 or 1) coeffs", action='store_true', default=False)
+
 
 
 args = parser.parse_args()
@@ -357,9 +360,6 @@ if dim == 2:
     if not args.design:
       x += 1
 elif dim == 3:
-  start = 0.1
-  end = 0.8
-  d = (end-start)/steps
   # Read homogenized material tensors from cell problems in 3D and create detailed_stats table
   x = 0
   while x < steps + 1:
@@ -367,45 +367,60 @@ elif dim == 3:
     while y < steps + 1:
       z= 0
       while z < steps + 1:
-        if args.penalization:
-          steps_p = args.penalization
-          x_tmp = x
-          y_tmp = y
-          z_tmp = z
-          x = float(x) / steps_p if x > 0 else 0
-          y = float(y)/ steps_p if y > 0 else 0
-          z = float(z)/ steps_p if z > 0 else 0
-          if args.design:
+        # found a combination of x, y, z where at least one is 0 or 1
+        if  args.skip_bounds and (0 in [x,y,z] or 1 in [x,y,z]):
+          # skip searching for .info.xml files and write trivial coefficients directly to detailed_stats
+          if 0 in [x,y,z]: 
+            tensor_vals = ['1.346154e-06', '5.769231e-07', '5.769231e-07', '1.346154e-06', '5.769231e-07', '1.346154e-06', '3.846154e-07', '3.846154e-07', '3.846154e-07']
+            vol = 0
+          else:
+            assert(1 in [x,y,z])
+            tensor_vals = ['1.346154e-06', '5.769231e-07', '5.769231e-07', '1.346154e-06', '5.769231e-07', '1.346154e-06', '3.846154e-07', '3.846154e-07', '3.846154e-07']  
+            vol = 1
+            
+          out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + ''.join(mylist) + '\n')
+          out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' 0 '  + '\n')
+        else: # if we have 0-0-0.info.xml, 0-1-2.info.xml, 1-1-1.info.xml  
+          if args.penalization:
+            steps_p = args.penalization
+            x_tmp = x
+            y_tmp = y
+            z_tmp = z
+            x = float(x) / steps_p if x > 0 else 0
+            y = float(y)/ steps_p if y > 0 else 0
+            z = float(z)/ steps_p if z > 0 else 0
+            if args.design:
+              tmp = args.design.split(',')
+              x = float(steps * float(tmp[0]))
+              y = float(steps * float(tmp[1]))
+              z = int(steps * float(tmp[2]))  
+          elif args.design:
             tmp = args.design.split(',')
-            x = float(steps * float(tmp[0]))
-            y = float(steps * float(tmp[1]))
-            z = int(steps * float(tmp[2]))  
-        elif args.design:
-          tmp = args.design.split(',')
-          x = int(steps * float(tmp[0]))
-          y = int(steps * float(tmp[1]))
-          z = int(steps * float(tmp[2]))
-        infoxml = str(folder) + "/" + str(x) + "-" + str(y) + "-" + str(z) + ".info.xml"
-        # print infoxml
-        if os.path.isfile(infoxml):      
-          doc = lxml.etree.parse(infoxml, lxml.etree.XMLParser(remove_comments=True))
-          #xml = doc.xpathNewContext()
-          # complex values!  
-          print(infoxml + ' -> ')
-          matrix = xpath(doc, "//homogenizedTensor/tensor/real/text()")    
-          res = list(map(float, matrix.split())) # convert list with string elements to list with float elements    
-          ts = np.asarray(res)
-          print(infoxml + ' -> '+ str(ts))
-          out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(ts[0]) + ' ' + str(ts[1]) + ' ' + str(ts[2]) + ' ' + str(ts[7]) + ' ' + str(ts[8]) + ' ' + str(ts[14]) + ' ' + str(ts[21]) + ' ' + str(ts[28]) + ' ' + str(ts[35]) + '\n')
-          vol = xpath(doc, "//domain/@structure_volume")
-          if vol != "cannot_determine":
-            vol = float(vol)
-            out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(vol) + '\n')
+            x = int(steps * float(tmp[0]))
+            y = int(steps * float(tmp[1]))
+            z = int(steps * float(tmp[2]))
+          infoxml = str(folder) + "/" + str(x) + "-" + str(y) + "-" + str(z) + ".info.xml"
+          # print infoxml
+          if os.path.isfile(infoxml):      
+            doc = lxml.etree.parse(infoxml, lxml.etree.XMLParser(remove_comments=True))
+            #xml = doc.xpathNewContext()
+            # complex values!  
+            print(infoxml + ' -> ')
+            matrix = xpath(doc, "//homogenizedTensor/tensor/real/text()")    
+            res = list(map(float, matrix.split())) # convert list with string elements to list with float elements    
+            ts = np.asarray(res)
+            print(infoxml + ' -> '+ str(ts))
+        
+            out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(ts[0]) + ' ' + str(ts[1]) + ' ' + str(ts[2]) + ' ' + str(ts[7]) + ' ' + str(ts[8]) + ' ' + str(ts[14]) + ' ' + str(ts[21]) + ' ' + str(ts[28]) + ' ' + str(ts[35]) + '\n')
+            vol = xpath(doc, "//domain/@structure_volume")
+            if vol != "cannot_determine":
+              vol = float(vol)
+              out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(vol) + '\n')
           
           # if x != y:
           #  out.write(str(y).rjust(3) + ' ' + str(x).rjust(3) + ' ' + ts[4] + ' ' + ts[1] + ' ' + ts[0] + ' ' + ts[8] + '\n')
-        else:
-          print('file ' + infoxml + ' not found')
+          else:
+            print('file ' + infoxml + ' not found')
         if args.design:
           # stop calculations if only one point is needed (debug)
           x = steps + 1
