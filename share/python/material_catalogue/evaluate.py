@@ -128,7 +128,7 @@ parser.add_argument("--epsilon", help="number of frames/crosses in the cell prob
 parser.add_argument("--oversampling", help="name of the mesh with size minres/epsilon including only one base cell")
 parser.add_argument("--penalization", help="creates a penalized material catalogue in the interval [0, 1/steps_p], step_p has to be given",type=int)
 
-# skip reading .info.xml for parameter at bound 0 or 1 and add trivial coefficients eps or 1 instead
+# skip reading .info.xml for parameter at bound 0 or 1 and add trivial coefficients eps or +1 instead
 parser.add_argument("--skip_bounds", help="skip searching for parameter values 0 or 1 and take trivial (1e-6 or 1) coeffs", action='store_true', default=False)
 
 
@@ -367,20 +367,21 @@ elif dim == 3:
     while y < steps + 1:
       z= 0
       while z < steps + 1:
-        # found a combination of x, y, z where at least one is 0 or 1
-        if  args.skip_bounds and (0 in [x,y,z] or 1 in [x,y,z]):
+        # found a combination of x, y, z where at least one is 0 or value of 'steps'
+        if  args.skip_bounds and (0 in [x,y,z] or steps in [x,y,z]):
           # skip searching for .info.xml files and write trivial coefficients directly to detailed_stats
+          # e.g if we have 0-0-0.info.xml, 0-1-2.info.xml, steps-steps-steps.info.xml  
           if 0 in [x,y,z]: 
             tensor_vals = ['1.346154e-06', '5.769231e-07', '5.769231e-07', '1.346154e-06', '5.769231e-07', '1.346154e-06', '3.846154e-07', '3.846154e-07', '3.846154e-07']
             vol = 0
           else:
-            assert(1 in [x,y,z])
+            assert(steps in [x,y,z])
             tensor_vals = ['1.346154e-06', '5.769231e-07', '5.769231e-07', '1.346154e-06', '5.769231e-07', '1.346154e-06', '3.846154e-07', '3.846154e-07', '3.846154e-07']  
             vol = 1
             
-          out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + ''.join(mylist) + '\n')
+          out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + ' '.join(tensor_vals) + '\n')
           out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' 0 '  + '\n')
-        else: # if we have 0-0-0.info.xml, 0-1-2.info.xml, 1-1-1.info.xml  
+        else:  
           if args.penalization:
             steps_p = args.penalization
             x_tmp = x
