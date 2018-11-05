@@ -50,6 +50,7 @@
 #include "PDE/ElecPDE.hh"
 #include "PDE/PerturbedFlowPDE.hh"
 #include "PDE/FlowPDE.hh"
+#include "PDE/LinFlowPDE.hh"
 #include "PDE/HeatPDE.hh"
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagEdgePDE.hh"
@@ -68,7 +69,7 @@
 #include "CoupledPDE/FluidMechCoupling.hh"
 #include "CoupledPDE/WaterWaveAcousticsCoupling.hh"
 #include "CoupledPDE/WaterWaveMechCoupling.hh"
-
+#include "CoupledPDE/LinFlowHeatCoupling.hh"
 // Include driver
 #include "Driver/BaseDriver.hh"
 #include "Driver/SingleDriver.hh"
@@ -751,6 +752,9 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     else if (actPdeName == "heatConduction")
       ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
+    else if (actPdeName == "fluidMechLin")
+      ptSinglePde_[i] = new LinFlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+
     else if (actPdeName == "fluidMech") {
       std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
 
@@ -960,7 +964,18 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
       coupling = new WaterWaveMechCoupling(pde1, pde2, pairNodes[i], info_,
                                            simState_, this );
     }
-//
+    // *** Linear flow coupled with heat ***
+    else if (couplingName == "linFlowHeatDirect")
+    {
+
+      pde1 = GetSinglePDE("fluidMechLin");
+      pde2 = GetSinglePDE("heatConduction");
+
+      coupling = new LinFlowHeatCoupling(pde1, pde2, pairNodes[i], info_,
+    		                             simState_, this );
+      // inform linFlowPDE about coupling to heatConduction
+      dynamic_cast<LinFlowPDE*> (pde1)->SetHeatCoupling();
+    }
 //    // ------------------------------------------------------------------------
 //    // *** THERMO-MECH Coupling ***
 //    else if (couplingName == "thermoMechDirect")

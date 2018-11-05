@@ -1660,6 +1660,9 @@ namespace CoupledField {
     MaterialTypeEnum.Add( THERMAL_EXPANSION_TENSOR, "thermalExpansion" ); 
     MaterialTypeEnum.Add( DYNAMIC_VISCOSITY, "dynamicViscosity" ); 
     MaterialTypeEnum.Add( KINEMATIC_VISCOSITY, "kinematicViscosity" );
+    MaterialTypeEnum.Add( BULK_VISCOSITY, "bulkViscosity" );
+    MaterialTypeEnum.Add( REF_PRESSURE, "refPressure" );
+    MaterialTypeEnum.Add( REF_TEMPERATURE, "referenceTemperature" );
     MaterialTypeEnum.Add( PIEZO_TENSOR, "PiezoTensor" ); 
     MaterialTypeEnum.Add( SPON_POLARIZATION, "sponPolarization" ); 
     MaterialTypeEnum.Add( SPON_STRAIN, "sponStrain" ); 

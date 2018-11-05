@@ -18,6 +18,8 @@ SET(PDE_SRCS
   ElecCurrentPDE.cc
   WaterWavePDE.cc
   FlowPDE.cc
+  LinFlowPDE.cc
+  LinFlowPDE.cc
   TestPDE.cc
   LatticeBoltzmannPDE.cc
 )
