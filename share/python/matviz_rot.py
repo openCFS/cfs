@@ -200,8 +200,9 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
     for theta in numpy.arange(0.5 * numpy.pi, 1.5001 * numpy.pi, numpy.pi / (steps-1)):
       for phi in numpy.arange(0, 2.0001 * numpy.pi, d_phi):
         test = rotate_cfs(tensor, phi, theta)
+        invtest = numpy.linalg.inv(test)
         angle.append((phi, theta))
-        data.append(test[0,0])
+        data.append(1./invtest[0,0])
             
         if aux_data == "ortho_norm":
           aux.append(sqrt(2.0 * (test[0,3]**2 + test[1,3]**2 + test[2,3]**2 + test[0,4]**2 + test[1,4]**2 + test[2,4]**2 + test[3,4]**2 +

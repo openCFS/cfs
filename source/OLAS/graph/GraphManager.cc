@@ -285,15 +285,15 @@ namespace CoupledField {
     // Loop over all rows
     for( UInt iRow = 0; iRow < numRows; ++iRow ) {
       // get hold of block numbers and indices
-      const UInt & rowBlock = rowBlocks[iRow];
-      const UInt & rowNum = rowNums[iRow];
+      const UInt& rowBlock = rowBlocks[iRow];
+      const UInt& rowNum = rowNums[iRow];
 
       // Compute index of graph in graph pointer matrix
       // get hold of vertex and edgelists
-      std::vector<UInt> & vList1 = vertexList1_[rowBlock];
-      std::vector<UInt> & vList2 = vertexList2_[rowBlock];
+      std::vector<UInt>& vList1 = vertexList1_[rowBlock];
+      std::vector<UInt>& vList2 = vertexList2_[rowBlock];
       // get limits of free indices
-      const UInt & lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
+      const UInt& lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
 
       // STEP 1: Generate vertex list from first connect array, dropping
       //         equation numbers for dofs fixed by inhomogeneous Dirichlet
@@ -312,15 +312,15 @@ namespace CoupledField {
     for( UInt iCol = 0; iCol < numCols; ++iCol ) {
 
       // get hold of block numbers and indices
-      const UInt & colBlock = colBlocks[iCol];
-      const UInt & colNum = colNums[iCol];
+      const UInt& colBlock = colBlocks[iCol];
+      const UInt& colNum = colNums[iCol];
 
       // get hold of vertex and edgelists
-      std::vector<UInt> & eList1 = edgeList1_[colBlock];
-      std::vector<UInt> & eList2 = edgeList2_[colBlock];
+      std::vector<UInt>& eList1 = edgeList1_[colBlock];
+      std::vector<UInt>& eList2 = edgeList2_[colBlock];
 
       // get limits of free indices
-      const UInt & lastFreeColIndex = blockInfo_[colBlock]->numLastFreeIndex;
+      const UInt& lastFreeColIndex = blockInfo_[colBlock]->numLastFreeIndex;
 
       // STEP 2: Split the second connect array into two edge lists, one for
       //         the graph and one for the IDBCgraph (which handles the indices

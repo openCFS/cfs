@@ -1,6 +1,5 @@
 #ifndef FILE_CFS_FEFUNCTION_HH
 #define FILE_CFS_FEFUNCTION_HH
-#include <boost/tr1/type_traits.hpp>
 
 #include "General/Environment.hh"
 
@@ -371,7 +370,7 @@ public:
   
   
   virtual bool IsComplex() const {
-    return std::tr1::is_same<T,Complex>::value;
+    return std::is_same<T,Complex>::value;
     
   }
   //! \copydoc BaseFeFunction::SetResultInfo 

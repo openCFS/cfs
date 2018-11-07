@@ -2,7 +2,7 @@
 #define ILUPACK_HH
 
 #include <def_expl_templ_inst.hh>
-
+#include<def_use_ilupack.hh>
 #include "General/Environment.hh"
 #include "OLAS/solver/BaseSolver.hh"
 
@@ -11,10 +11,19 @@
 // include the original ilupack header
 extern "C"
 {
-   #include <ilupack.h> 
+#include <ilupack.h>
+#ifdef USE_ILUPACK_PARALLEL
+#include <SparseSymmetricNew.h>
+#endif
+
 }
 
+// Due to some issues in building currently we are using the serial version of the Ilupack 2.2.1 , but the parallel version
+// can also be built along with CFS (ie OPENMP version with mtmetis and ilupack own metis).
+// The speedup is not significant yet but as it is being currently developed , it might be worth a try in future
+// (In other words it means I spent a few weeks and I don't want to remove the code entirely :) )
 
+// Ilupack parallel is a superset of the original ilupack
 
 namespace CoupledField 
 {
@@ -27,65 +36,141 @@ namespace CoupledField
    * Only DILUPACKparam and ZILUPACKParam differ in size as in two cases there are instances but
    * not pointers of the type used. 
    * The following struct is modification of the original Ilupack stuff. */
+
+#ifdef USE_ILUPACK_PARALLEL
   template<typename TYPE>
   struct TYPE_ILUPACKparam
   {
-     integer              ipar[ILUPACK_NIPAR];
-     doubleprecision      fpar[ILUPACK_NFPAR];
-     integer              type;
-     integer             *ibuff;
-     integer             *iaux;
-     TYPE                *dbuff;
-     TYPE                *daux;
-     integer             *ju;
-     integer             *jlu;
-     TYPE                *alu;
-     TYPE                *testvector;
-     size_t               nibuff, ndbuff, nju,njlu,nalu, ndaux,niaux,ntestvector;
-     integer              rcomflag, returnlabel;
-     TYPE                *tv;
-     integer             *ind;
-     integer              nindicator;
-     integer             *indicator;
-     Dmat                 A;
-     integer              istack[30], *pistack[20];
-     doubleprecision      rstack[30], *prstack[10];
-     TYPE                 fstack[30], *pfstack[10];
-     size_t               ststack[5], *pststack[5];
-     Dmat                 mstack[1];
-     DAMGlevelmat        *amglmstack[1];
-     integer            (*intfctstack[3])();
-     integer              matching;
-     char                *ordering;
-     doubleprecision      droptol;
-     doubleprecision      droptolS;
-     doubleprecision      condest;
-     doubleprecision      restol;
-     integer              maxit;
-     doubleprecision      elbow;
-     integer              lfil;
-     integer              lfilS;
-     char                *typetv;
-     char                *amg;
-     integer              npresmoothing;
-     integer              npostsmoothing;
-     integer              ncoarse;
-     char                *presmoother;
-     char                *postsmoother;
-     char                *FCpart;
-     char                *typecoarse;
-     integer              nrestart;
-     integer              flags;
-     char                *solver;
-     TYPE                 damping;
-     integer            (*perm0)();
-     integer            (*perm)();
-     integer            (*permf)();
-     integer            isreal;
-     integer            issingle;
+    integer          ipar[ILUPACK_NIPAR];
+    TYPE             fpar[ILUPACK_NFPAR];
+    integer          type;
+    integer          *ibuff;
+    integer          *iaux;
+    TYPE             *dbuff;
+    TYPE             *daux;
+    integer          *ju;
+    integer          *jlu;
+    TYPE             *alu;
+    TYPE             *testvector;
+    size_t           nibuff, ndbuff, nju,njlu,nalu, ndaux,niaux,ntestvector;
+    integer          rcomflag, returnlabel;
+    TYPE             *tv;
+    integer          *ind;
+    integer          nindicator;
+    integer          *indicator;
+    Dmat             A;
+    integer          istack[30], *pistack[20];
+    double           rstack[30], *prstack[10];
+    TYPE             fstack[30], *pfstack[10];
+    size_t           ststack[5], *pststack[5];
+    Dmat             mstack[1];
+    DAMGlevelmat     *amglmstack[1];
+    integer          (*intfctstack[3])();
+    integer          matching;
+    char             *ordering;
+    double  droptol;
+    double  droptolS;
+    double  droptolc;
+    double  condest;
+    double restol;
+    integer          maxit;
+    double  elbow;
+    integer          lfil;
+    integer          lfilS;
+    char             *typetv;
+    char             *amg;
+    integer          npresmoothing;
+    integer          npostsmoothing;
+    integer          ncoarse;
+    char             *presmoother;
+    char             *postsmoother;
+    char             *FCpart;
+    char             *typecoarse;
+    integer          nrestart;
+    integer          flags;
+    char             *solver;
+    TYPE  damping;
+    TYPE  contraction;
+    integer          mixedprecision;
+    integer          (*perm0)();
+    integer          (*perm)();
+    integer          (*permf)();
+    TYPE  shift0;
+    TYPE  shiftmax;
+    integer          nshifts;
+    TYPE  *shifts;
+    Dmat             *shiftmatrix;
+    integer          niter;
+    integer          nthreads;
+    integer          *indpartial;
+    integer          *indexpartial;
+    TYPE  *valpartial;
+    TYPE  *valuepartial;
+
   } ;
-  
-  
+
+
+#else
+  template<typename TYPE>
+  struct TYPE_ILUPACKparam
+    {
+       integer              ipar[ILUPACK_NIPAR];
+       doubleprecision      fpar[ILUPACK_NFPAR];
+       integer              type;
+       integer             *ibuff;
+       integer             *iaux;
+       TYPE                *dbuff;
+       TYPE                *daux;
+       integer             *ju;
+       integer             *jlu;
+       TYPE                *alu;
+       TYPE                *testvector;
+       size_t               nibuff, ndbuff, nju,njlu,nalu, ndaux,niaux,ntestvector;
+       integer              rcomflag, returnlabel;
+       TYPE                *tv;
+       integer             *ind;
+       integer              nindicator;
+       integer             *indicator;
+       Dmat                 A;
+       integer              istack[30], *pistack[20];
+       doubleprecision      rstack[30], *prstack[10];
+       TYPE                 fstack[30], *pfstack[10];
+       size_t               ststack[5], *pststack[5];
+       Dmat                 mstack[1];
+       DAMGlevelmat        *amglmstack[1];
+       integer            (*intfctstack[3])();
+       integer              matching;
+       char                *ordering;
+       doubleprecision      droptol;
+       doubleprecision      droptolS;
+       doubleprecision      condest;
+       doubleprecision      restol;
+       integer              maxit;
+       doubleprecision      elbow;
+       integer              lfil;
+       integer              lfilS;
+       char                *typetv;
+       char                *amg;
+       integer              npresmoothing;
+       integer              npostsmoothing;
+       integer              ncoarse;
+       char                *presmoother;
+       char                *postsmoother;
+       char                *FCpart;
+       char                *typecoarse;
+       integer              nrestart;
+       integer              flags;
+       char                *solver;
+       TYPE                 damping;
+       integer            (*perm0)();
+       integer            (*perm)();
+       integer            (*permf)();
+       integer            isreal;
+       integer            issingle;
+    } ;
+
+#endif
+
   template<typename T>
   class Ilupack : public BaseIterativeSolver 
   {
@@ -168,7 +253,18 @@ namespace CoupledField
     /** Here ilupack stores the preconditioner. */
     DAMGlevelmat precond;
 
+#ifdef USE_ILUPACK_PARALLEL
+    SparseMatrix spr;
+#endif
 
+    //The OpenMP version of ILUPACK creates a task dependency tree to parallelize the computation and nleaves describes number
+    // of tasks to create.
+    int nleaves=1;
+    int index = 0;// This indicates the index used for the sparse matrix which is required in parallel ilupack
+    int mtmetis=0; //the number of threads for the multithreaded metis
+
+    bool isParallel=false;
+    bool firstSetup=true;
   };
 
 } // end of namespace

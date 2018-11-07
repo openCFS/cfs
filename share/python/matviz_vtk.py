@@ -461,7 +461,7 @@ def create_centered_bar(cells, points, center, dim, angle=None, not_drawn = None
 
   return points_list, cells_list
 
-def create_block(coords, design, scale, thres = 0.0):
+def create_block(coords, design, scale, thres = 0.0, elems_in_regions = None):
   
   s1 = design['s1']
 
@@ -489,11 +489,27 @@ def create_block(coords, design, scale, thres = 0.0):
   colors = vtk.vtkUnsignedCharArray()
   colors.SetNumberOfComponents(3)
   colors.SetName("color")
-  nc = vtk.vtkNamedColors().GetColor3d('black')
-  for c in s1:
-    colors.InsertNextTuple3(nc[0], nc[1], nc[2])
+  if not elems_in_regions:
+    # only one color
+    nc = vtk.vtkNamedColors().GetColor3d('black')
+    for _ in s1:
+      colors.InsertNextTuple3(nc[0], nc[1], nc[2])
+  else:
+    # one color for each region
+    # generate list of RGB colors
+    n_regions = size(elems_in_regions)
+    n_color = int(ceil(pow(n_regions,1./3.)))
+    color1D = numpy.linspace(0, 255, n_color)
+    nc = numpy.array(numpy.meshgrid(color1D, color1D, color1D)).T.reshape(-1,3)
+    for index, s in enumerate(s1):
+      for ri, elems in enumerate(elems_in_regions):
+        if index+1 in elems: # elems are 1 based
+          regindex = ri
+          break       
+      if s > thres:
+        colors.InsertNextTuple3(nc[regindex][0], nc[regindex][1], nc[regindex][2])
   
-#  polydata.GetCellData().SetScalars(colors)
+    polydata.GetCellData().SetScalars(colors)
   
   return polydata
 
@@ -818,7 +834,7 @@ def create_3d_frame_ip(coords, design, ip, grad, scale, valid_position, thres=0.
   s1 = design['s1']
   s2 = design['s2']
   s3 = design['s3']
-  angles = design['angles']
+  angles = design['angle']
     
   # point coordinates from h5 file
   centers, min, max = coords[0:3] 
@@ -873,10 +889,10 @@ def create_3d_frame_ip(coords, design, ip, grad, scale, valid_position, thres=0.
             for _ in range(4):
               coords.append(coord)
             # add offset for s1 for all s1-bars
-            coords[0] += [0.,-s1/4.,s1/4.]
-            coords[1] += [0.,s1/4.,s1/4.]
-            coords[2] += [0.,-s1/4.,-s1/4.]
-            coords[3] += [0.,s1/4.,-s1/4.]        
+            coords[0] = coords[0] + [0.,-s1/4.,s1/4.]
+            coords[1] = coords[1] + [0.,s1/4.,s1/4.]
+            coords[2] = coords[2] + [0.,-s1/4.,-s1/4.]
+            coords[3] = coords[3] + [0.,s1/4.,-s1/4.]        
             create_centered_bars(cells, points, coords, (scale * scale_[0] * dx, scale * 0.5 * s1 * dx, scale * 0.5 * s1 * dx), angle,['right','left'])
             real_volume += scale * scale_[0] * dx * scale * s1 * dx * scale * s1 * dx
           coord_offset = [0.,scale* dx * s1 * 0.5 + scale * 0.25 * (scale_[1] * dy - dx * s1),0.]
@@ -887,10 +903,10 @@ def create_3d_frame_ip(coords, design, ip, grad, scale, valid_position, thres=0.
             for i  in range(4):
               coords.append(coord)
             # add offset for s2 for all s2-bars
-            coords[0] += [-s1/4.,0., s1/4.]
-            coords[1] += [s1/4., 0., s1/4.]
-            coords[2] += [-s1/4.,0., -s1/4.]
-            coords[3] += [s1/4., 0.,  -s1/4.]  
+            coords[0] = coords[0] + [-s1/4.,0., s1/4.]
+            coords[1] = coords[1] + [s1/4., 0., s1/4.]
+            coords[2] = coords[2] + [-s1/4.,0., -s1/4.]
+            coords[3] = coords[3] + [s1/4., 0.,  -s1/4.]  
             create_centered_bars(cells, points, coords, (scale * 0.5 * s2 * dy, dy_offset, scale * 0.5 * s2 * dy), angle,['top','bottom'])
             real_volume += scale * s2 * dy* dy_offset* scale * s2 * dy
           
@@ -902,10 +918,10 @@ def create_3d_frame_ip(coords, design, ip, grad, scale, valid_position, thres=0.
             for i  in range(4):
               coords.append(coord)
             # add offset for s3 for all s3-bars
-            coords[0] += [-s1/4.,s1/4.,0.]
-            coords[1] += [s1/4., s1/4.,0.]
-            coords[2] += [-s1/4., -s1/4., 0.]
-            coords[3] += [s1/4., -s1/4.,0.]   
+            coords[0] = coords[0] + [-s1/4.,s1/4.,0.]
+            coords[1] = coords[1] + [s1/4., s1/4.,0.]
+            coords[2] = coords[2] + [-s1/4., -s1/4., 0.]
+            coords[3] = coords[3] + [s1/4., -s1/4.,0.]   
             create_centered_bars(cells, points, coords, (scale * 0.5 * s3 * dz, scale * 0.5 * s3 * dz,dz_offset), angle,['front','back'])
             real_volume += scale * s3 * dz * scale * s3 * dz * dz_offset
 
@@ -967,9 +983,9 @@ def create_3d_frame_ip(coords, design, ip, grad, scale, valid_position, thres=0.
   return polydata
 
 # # without rotation and shearing
-def create_3d_cross_ip(coords, design, ip_nx, grad, scale, valid_position, thres=0.0, csize = None):
+def create_3d_cross_ip(coords, design, ip, grad, scale, valid_position, thres=0.0, csize = None):
   # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
-  # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
+  # ip: number of uniform cells in (x,y,z)-direction, can be replaced by csize (size of cell in each direction)
   # grad: type of interpolation ('linear', 'nearest')
   # scale: parameter for scaling the cell size if necessary
   # valid_position: returns false if point inside the convex hull of the part, should be excluded, otherwise true.
@@ -981,7 +997,7 @@ def create_3d_cross_ip(coords, design, ip_nx, grad, scale, valid_position, thres
   s1 = design['s1']
   s2 = design['s2']
   s3 = design['s3']
-  angles = design['angles']
+  angles = design['angle']
     
   # point coordinates from h5 file
   centers, min, max = coords[0:3] 
@@ -995,9 +1011,9 @@ def create_3d_cross_ip(coords, design, ip_nx, grad, scale, valid_position, thres
   
   # set size dx/dy/dz of one cell
   if csize is None:
-    dx = (max[0] - min[0]) / ip_nx
-    dy = dx
-    dz = dx
+    dx = (max[0] - min[0]) / ip[0]
+    dy = (max[1] - min[1]) / ip[1]
+    dz = (max[2] - min[2]) / ip[2]
   else:
     dx = csize[0]
     dy = csize[1]
@@ -1007,7 +1023,7 @@ def create_3d_cross_ip(coords, design, ip_nx, grad, scale, valid_position, thres
   vol = calc_cross_elem_vol_3D(s1,s2,s3)
   
   # calculate interpolated values of the design variables s1,s2,s3 for a uniform 3d grid 
-  ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angles)
+  ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angles)
 
   #scales the lattice cells to fit in the design domain exactly
   #scale = scale_max 

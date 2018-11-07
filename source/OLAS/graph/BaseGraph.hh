@@ -105,8 +105,8 @@ namespace CoupledField {
     //!                       to which neighbours/edges are to be added
     //! \param neighbourList  a vector containing vertex numbers of the
     //!                       neighbours of the vertices in vertexList
-    void AddVertexNeighbours( std::vector<UInt> vertexList,
-                              std::vector<UInt> neighbourList );
+    void AddVertexNeighbours( std::vector<UInt>& vertexList,
+                              std::vector<UInt>& neighbourList );
 
     
     //! Set block definition
@@ -293,7 +293,7 @@ namespace CoupledField {
     UInt numNonDiagEntries_;
     
     //! Number of edges in the graph
-    UInt nne_;
+    UInt nne_ = 0;
 
     //! store the lower bandwidth of the graph
     UInt bwlower_;
@@ -302,7 +302,7 @@ namespace CoupledField {
     UInt bwupper_;
     
     //! store the average total bandwidth of the graph
-    UInt bwavg_;
+    UInt bwavg_ = 0;
 
 
     // =======================================================================
@@ -417,13 +417,13 @@ namespace CoupledField {
     //! \note The graph object will not take ownership of this pointer, i.e.
     //! the user has to delete this pointer from outside after the graph
     //! object is deleted.
-    const StdVector<StdVector<UInt> > *unsortedBlocks_;
+    const StdVector<StdVector<UInt> >* unsortedBlocks_ = NULL;
     
     //! Final representation of blocks
     StdVector<std::pair<UInt,UInt> > sortedBlocks_;
 
     //! set for faster add of element neighbors
-    NodeSet* setElements_;
+    NodeSet* setElements_ = NULL;
 
     //! flag to check if element_ pointer is ready
     bool setToElemDone_;

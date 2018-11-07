@@ -927,14 +927,11 @@ def generate_basecell(args,info):
 #     helper[1:shape[0]-1,1:shape[1]-1,0] = helper[1:shape[0]-1,1:shape[1]-1,1]
 #     helper[1:shape[0]-1,1:shape[1]-1,shape[2]-1] = helper[1:shape[0]-1,1:shape[1]-1,shape[2]-2]
      
-#     points, cells, normals, values = measure.marching_cubes_lewiner(helper,spacing=(h,h,h),allow_degenerate=False,step_size=2)
+    points, cells, normals, values = measure.marching_cubes_lewiner(helper,spacing=(h,h,h),allow_degenerate=False,step_size=1)
 #     marching_cubes.write_vtp(points,cells,(h,h,h),name="mc_lewiner.vtp",normals=normals)
 #     sys.exit()
-#     verts, faces = measure.marching_cubes_classic(array,spacing=(h,h,h))
-    points, cells = marching_cubes.marching_cubes(helper,(h,h,h),verts,faces,normals)
 #     end = time.time()
 #     print("time:",end - start)
-    sys.exit()
     
     # marching_cubes returns float values
     points = np.asarray(points)

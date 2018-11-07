@@ -89,7 +89,15 @@ def read_design(hdf_file, dim_2D, args):
     res['s2'] = res['s1']
     res['s3'] = res['s1']
   elif args.parametrization == 'simp':
-    res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
+    if args.h5_region == 'all':
+      s1 = [[None]]
+      for region in f['/Mesh/Regions']:
+        s = get_element(f, "physicalPseudoDensity", region, args.h5_step)
+        s1 = numpy.concatenate((s1,s))
+      res['s1'] = s1[1:]
+      shape(res['s1'])
+    else:
+      res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
     res['s2'] = res['s1']
     res['s3'] = res['s1']
     res['angle'] = numpy.zeros(((len(res['s1']), 3)))
@@ -186,8 +194,7 @@ def plot_angle_data(file, angle, data):
 # @param force_scale overwrites args.scale
 # @param min_bb/max_bb: min/max coordinates of bounding box
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
-def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes = None, min_bb = None, max_bb = None):
-  
+def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes = None, min_bb = None, max_bb = None, elems_in_regions = None):
   volume = None  # might ne set
   
   scale = force_scale if force_scale else args.scale
@@ -208,7 +215,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
 
       if dim_2D and args.show in TWO_SCALE:
         print("Volume for regular grid: " + str(calc_volume(design['s1'], design['s2'])))
-      
       # add angle bias, e.g. by 90 deg to correct thomas
       design['angle'] += args.angle_bias * numpy.pi / 180
       # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
@@ -297,12 +303,15 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   valid_position = valid_position_lufo
                   valid_ring_position = None
                   print('Lufo bracket is calculated!')
-
+                
+                assert(nondes is not None)
+                assert(nondes[0] is not None)
+                assert(len(nondes[0]) == 3)
                 if args.show == 'simp':
-                  me = create_validation_mesh(coords, nondes_coords, design, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
+                  me = create_validation_mesh(coords, nondes[0], design, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize,args.show)
                 else:
                   if args.type == "apod6" or args.type == "robot": 
-                    me = create_validation_mesh(coords, nondes_coords, design, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
+                    me = create_validation_mesh(coords, nondes[0], design, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,valid_ring_position, args.type,args.thres,csize)
                 write_gid_mesh(me, args.mesh+".mesh")
                 exit()  
               else:
@@ -316,7 +325,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
             else:
               tmp = args.hom_samples.split(',')
               if len(tmp) == 1:
-                samples = [int(tmp[0]),int(tmp[0]),int(int[0])]
+                samples = [int(tmp[0]),int(tmp[0]),int(tmp[0])]
               else:
                 samples = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
               if args.show == "hom_ortho_3d" or args.mesh:
@@ -340,10 +349,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   if not args.save:
                     viz = None # avoid showing or writing vtp file
               else:
-                viz = create_3d_frame_ip(coords, design, samples, args.hom_grad, scale, valid_position, args.thres)
+                viz = create_3d_cross_ip(coords, design, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
           if args.show == 'simp':
-            viz = create_block(coords, design, scale, args.thres)
+            viz = create_block(coords, design, scale, args.thres, elems_in_regions)
           elif args.hom_grad == 'none':
             viz = create_3d_frame(coords, design, args.hom_dir, scale)
           elif args.unstructured:
@@ -358,10 +367,13 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
               # write design values for each element node to file 
               write_node_design(args.nodefile + '_' + repr(nx) + 'x' + repr(ny) + 'x' + repr(nz), mesh, coords, design)
             else:
+              assert(nondes is not None)
+              assert(nondes[0] is not None)
+              assert(len(nondes[0]) == 3)
               # create structured 3D mesh from given hdf5_file which can be non-structured
-              mesh = create_3d_mesh_unstructured(coords, nondes_coords, nondes_force, nondes_support, design, nx, ny, nz, args.hom_grad, args.scale)
+              mesh = create_3d_mesh_unstructured(coords, nondes[0], nondes_force, nondes_support, design, nx, ny, nz, args.hom_grad, args.scale)
               # postprocess the structured mesh for the robot arm, removal of some irregularities 
-              mesh = post_process_mesh(mesh, coords, nondes_coords, nx, ny, nz)
+              mesh = post_process_mesh(mesh, coords, nondes[0], nx, ny, nz)
           else:
             print("hom_rect in 3D only for '--hom_grad none' implemented")
             exit()
@@ -392,8 +404,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
     angle_max = angle[numpy.argmax(numpy.abs(data))]
     angle_min = angle[numpy.argmin(numpy.abs(data))]
 
-    print(" largest entry: {:>13.6e}".format(numpy.max(numpy.abs(data))) + "  in direction " + str(to_vector(angle_max)))
-    print("smallest entry: {:>13.6e}".format(numpy.min(numpy.abs(data))) + "  in direction " + str(to_vector(angle_min)))
+    print(" largest e-modulus: {:>13.6e}".format(numpy.max(numpy.abs(data))) + "  in direction " + str(to_vector(angle_max)))
+    print("smallest e-modulus: {:>13.6e}".format(numpy.min(numpy.abs(data))) + "  in direction " + str(to_vector(angle_min)))
     if len(aux) > 0:
       print("largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux)))
     
@@ -523,6 +535,7 @@ infoXml_read = None
 elem_dim = None
 min_bb = None
 max_bb = None
+elems_in_regions = [[None]]
 
 # check if we read data from command line instead from an h5 file or a info.xml was given
 if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.endswith(".mat"):
@@ -555,7 +568,6 @@ if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.
   else:
     #data from matlab file
     assert(args.input.endswith(".mat"))
-    dim_2D = '2D'
     input = args.input
     args.tensor = 'matlab'
   if not args.tensor == 'matlab' and args.tensor == 'mechTensor':
@@ -598,10 +610,23 @@ else:
     print('Reading elements from H5-file done ')
     dim_2D = nondes_min[2] == nondes_max[2]
     print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
-  
-  # similar to centers, but not centered
-  design_elems = None 
-  centers, min_bb, max_bb, elem_dim, _, _, _ = centered_elements(f, args.h5_region)
+    
+  if args.h5_region == 'all':
+    centers = [[None, None, None]]
+    min_bb = [numpy.Inf, numpy.Inf, numpy.Inf]
+    max_bb = [-numpy.Inf, -numpy.Inf, -numpy.Inf]
+    for region in f['/Mesh/Regions']:
+      reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements = centered_elements(f, region)
+      elems_in_regions.append(reg_elements)
+      centers = numpy.concatenate((centers, reg_centers))
+      min_bb = numpy.min([min_bb,reg_min_bb],0);
+      max_bb = numpy.max([max_bb,reg_max_bb],0);
+    elems_in_regions = elems_in_regions[1:]
+    centers = centers[1:,:]
+  else:
+    # similar to centers, but not centered
+    centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions = centered_elements(f, args.h5_region)
+    design_elems = None 
   if args.mesh:
     if args.h5_nondes != "None":
       if (MPI.COMM_WORLD.Get_rank()==0):
@@ -639,13 +664,15 @@ if not args.target_volume:
     nondes_solid = None
     design = None
     if (MPI.COMM_WORLD.Get_rank()==0):
-      nondes_solid = (nondes_elements, nondes_min, nondes_max)
-      nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
-#     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
+      if args.h5_nondes != "None":
+        nondes_solid = (nondes_elements, nondes_min, nondes_max)
+      if args.h5_nondes_void != "None":   
+        nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
       design = (design_elems, design_elems_min, design_elems_max)
+      
     perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes=(nondes_solid,nondes_void,design),min_bb=min_bb,max_bb=max_bb)
   else:
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)
 else:
   if args.scale > 0:
     print("Error: don't give --scale and --target_volume concurrently!")

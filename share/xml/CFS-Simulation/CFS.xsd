@@ -61,7 +61,6 @@
 	<xsd:element name="cfsSimulation">
 		<xsd:complexType>
 			<xsd:sequence>
-      
         <!-- Allows to provide arbitrary info which is copied to .info.xml - similar to "id" attribute  -->     
         <xsd:element name="info" minOccurs="0">
           <xsd:complexType>

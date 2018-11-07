@@ -8,8 +8,8 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfs-trunk")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/debug-trunk")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfs-master_stingl")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/debug-master_stingl")
 
 include("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 
@@ -25,7 +25,7 @@ file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 SET_COMPILER_ENV("GCC")
 
 SET(BUILDTYPE "DEBUG")
-SET(CTEST_BUILD_NAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(CTEST_BUILD_NAME "master_stingl ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 set(CTEST_SITE "${HOSTNAME}")
 
 # will generate CTestConfig.cmake using our sites variant
@@ -41,21 +41,23 @@ SET(CTEST_INITIAL_CACHE
    CFS_DEPS_PRECOMPILED:BOOL=ON
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/deps.cache-trunk
    CFSDAT:BOOL=ON
-   USE_PARDISO:BOOL=ON
+   USE_CCMIO:BOOL=OFF
    USE_CGAL:BOOL=ON
    USE_CGNS:BOOL=ON
-   USE_CCMIO:BOOL=OFF
-   USE_FLANN:BOOL=OFF   
    USE_ENSIGHT:BOOL=OFF
-   USE_SNOPT:BOOL=ON
-   USE_SCPIP:BOOL=ON
+   USE_FEAST:BOOL=OFF
+   USE_FLANN:BOOL=OFF   
+   USE_ILUPACK:BOOL=ON
    USE_IPOPT:BOOL=ON
    USE_OPENMP:BOOL=ON
-   USE_ILUPACK:BOOL=ON
+   USE_PARDISO:BOOL=ON
+   USE_PETSC:BOOL=OFF
+   USE_SCPIP:BOOL=ON
+   USE_SNOPT:BOOL=ON
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
-   BUILDNAME:STRING=${BUILDNAME}")
+   BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
-find_program(CTEST_SVN_COMMAND NAMES svn) 
-set(CTEST_UPDATE_TYPE "svn")
+find_program(CTEST_GIT_COMMAND NAMES git)
+set(CTEST_UPDATE_TYPE "git")
 
 DO_TESTING()

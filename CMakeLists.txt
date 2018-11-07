@@ -227,10 +227,14 @@ OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs." ${USE_SUPERLU_DEFAULT})
 OPTION(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
 OPTION(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFAULT})
 OPTION(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
-
+OPTION(USE_ILUPACK_PARALLEL "Ilupack with openmp. Experimental version." ${USE_ILUPACK_PARALLEL_DEFAULT})
 IF(USE_FEAST AND NOT CFS_BLAS_LAPACK STREQUAL "MKL" )
   MESSAGE(FATAL_ERROR "USE_FEAST=ON requires Intel MKL! Set CFS_BLAS_LAPACK=MKL")
 ENDIF()
+IF(USE_ILUPACK AND USE_ILUPACK_PARALLEL)
+  MESSAGE(FATAL_ERROR "Either USE_ILUPACK=ON or USE_ILUPACK_PARALLEL=ON.  Both can not be swithed on together")
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
 #-----------------------------------------------------------------------------
@@ -249,6 +253,10 @@ IF(USE_PETSC)
   INCLUDE("cmake_modules/mpi.cmake")
 ELSE()
   SET(USE_MPI "OFF") 
+ENDIF()
+
+IF(USE_PETSC AND USE_ILUPACK_PARALLEL )
+  MESSAGE("Using PETSc with ilupack will lead to build error(to be fixed in future), switch either one to  OFF")
 ENDIF()
 
 # phist requires ghost
@@ -690,9 +698,9 @@ IF(USE_PHIST_CG OR USE_PHIST_EV)
   ADD_SUBDIRECTORY(source/OLAS/external/phist)
 ENDIF(USE_PHIST_CG OR USE_PHIST_EV)
 
-IF(USE_ILUPACK)
+IF(USE_ILUPACK OR USE_ILUPACK_PARALLEL)
   ADD_SUBDIRECTORY(source/OLAS/external/ilupack)
-ENDIF(USE_ILUPACK)
+ENDIF(USE_ILUPACK OR USE_ILUPACK_PARALLEL)
 
 ADD_SUBDIRECTORY(source/OLAS/external/lapack)
 
@@ -797,9 +805,7 @@ ENDIF(USE_CGNS)
 
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)
-IF(NOT MINGW)
-  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
-ENDIF()
+ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
 ADD_SUBDIRECTORY(source/DataInOut/ScatteredDataInOut)
 
 ADD_SUBDIRECTORY(source/Domain)

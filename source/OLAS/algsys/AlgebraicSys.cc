@@ -3101,7 +3101,7 @@ namespace CoupledField {
 #endif
       bool canChangeReordering = true;
       if (matNode->Has("reordering") && 
-          matNode->Get("reordering")->As<std::string>() != "_default_" ) {
+          matNode->Get("reordering")->As<std::string>() != "default" ) {
         ot = BaseOrdering::reorderingType.Parse(
             matNode->Get("reordering")->As<std::string>());
         canChangeReordering = false;
@@ -3120,19 +3120,24 @@ namespace CoupledField {
         ot = BaseOrdering::SLOAN;
 #endif
       }
-      
+
       // b) pardiso and most external solvers need no reordering or have their own
-      if( st == BaseSolver::PARDISO_SOLVER &&
-          st == BaseSolver::UMFPACK &&
-          st == BaseSolver::ILUPACK &&
-//          st == BaseSolver::LIS &&
-          st == BaseSolver::SUPERLU &&
-          st == BaseSolver::SPOOLES &&
-          ot != BaseOrdering::NOREORDERING &&
-          canChangeReordering == true ) {
+
+      if( (st == BaseSolver::PARDISO_SOLVER ||
+          st == BaseSolver::UMFPACK ||
+          st == BaseSolver::ILUPACK ||
+          st == BaseSolver::LIS ||
+          st == BaseSolver::SUPERLU ||
+          st == BaseSolver::SPOOLES ||
+          st ==BaseSolver::PETSC ||
+          st ==BaseSolver::CG ) &&
+          (ot != BaseOrdering::NOREORDERING &&
+          canChangeReordering == true) ) {
         ot = BaseOrdering::NOREORDERING;
       }
       
+
+
       // c) ilu-based preconditioners prefer reordering
       if( ( pt == BasePrecond::ILUK ||
             pt == BasePrecond::ILUTP ||

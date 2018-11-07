@@ -100,6 +100,9 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
   pamping_ = pn->Has("pamping") ? pn->Get("pamping/value")->As<double>() : 0.0;
 
+
+
+
   // store the CFS element (number) to design element mapping.
   // Used by Find() and the filter and vicinity neighbors
   elemToDesign.Resize(domain->GetGrid()->GetNumElems() + 1, std::make_pair(-1, true)); // 1 based.
@@ -145,8 +148,13 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
   // now read the transfer functions
   ParamNodeList trans_in = pn->GetList("transferFunction");
+
+
+
+
   if(method != ErsatzMaterial::PARAM_MAT && method != ErsatzMaterial::SHAPE_PARAM_MAT)
   {
+
     if(trans_in.GetSize() == 0)
       throw Exception("no transferFunctions given");
     transfer.Reserve(trans_in.GetSize());
@@ -155,6 +163,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   }
   else
   {
+
     transfer.Reserve(trans_in.GetSize() + 1); // We reserve space for all given TransferFunctions plus the fallback IDENTITY transfer function
     transfer.Push_back(TransferFunction()); // add fallback IDENTITY transfer function at transfer[0] for parameters with no given TransferFunction
   }
@@ -356,6 +365,28 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
         if(!Contains(domain->GetGrid()->regionData[r].id))
           RegisterPseudoDesignRegion(domain->GetGrid()->regionData[r].id, design[d].design);
   }
+
+   bool is_mat_possible = false;
+
+   // If any of the region is constant case we get the design vector of only one per constant region and lot of functions
+   // work on that basis. So the normal assembling of filter matrix or the other functions
+   // which give out design vector needs to be modified for making mat vec based filtering work for constant region
+   StdVector<DesignRegion>& cur_des = regions.Last();
+   // Assume if one design element has the attribute constant_on_all_region , all other design element should have this.
+   if (cur_des.Last().constant == VARIABLE && design.GetSize() == 1 )
+     is_mat_possible = true;
+
+   // Check if matrix filtering is enabled by the user, there is no default value in the schema file
+   // we cannot use the matrix yet for multiple design types, yet this is easy to extend!
+   is_matrix_filt = is_mat_possible;
+   if(pn->Has("filters/use_mat_filt"))
+   {
+     is_matrix_filt = pn->Get("filters/use_mat_filt")->As<bool>();
+     if(is_matrix_filt && !is_mat_possible)
+       EXCEPTION("use_mat_filter is implemented only for non constant region and single design type");
+   }
+
+
 }
 
 DesignSpace::~DesignSpace(){
@@ -457,6 +488,9 @@ void DesignSpace::PostInit(int objectives, int constraints)
       }
     }
   }
+
+  // Log to info if we use matrix filtering
+  info_->Get("filters")->Get("use_mat_filt")->SetValue(is_matrix_filt);
 
   LOG_DBG(designSpace) << "# objectives = " << objectives << ", # constraints = " << constraints;
   DesignElement::SetDesignSpace(this);
@@ -793,6 +827,17 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
       case OPT_RESULT_18: return 17;
       case OPT_RESULT_19: return 18;
       case OPT_RESULT_20: return 19;
+      case OPT_RESULT_21: return 20;
+      case OPT_RESULT_22: return 21;
+      case OPT_RESULT_23: return 22;
+      case OPT_RESULT_24: return 23;
+      case OPT_RESULT_25: return 24;
+      case OPT_RESULT_26: return 25;
+      case OPT_RESULT_27: return 26;
+      case OPT_RESULT_28: return 27;
+      case OPT_RESULT_29: return 28;
+      case OPT_RESULT_30: return 29;
+      case OPT_RESULT_31: return 30;
       default: throw Exception("invalid solution type");
     }
   }
@@ -1288,7 +1333,14 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
     if(df)
       df->SetAndWriteCurrent(domain->GetOptimization()->GetCurrentIteration());
   }
-
+  Vector<double> des_vec;
+  des_vec.Replace(DesignSpace::GetNumberOfVariables(),const_cast<double*>(space),false);
+  if (pn_->Has("filters") && is_matrix_filt){
+     ParamNodeList list = pn_->Get("filters")->GetList("filter");
+     for(unsigned int i = 0; i < list.GetSize(); i++){
+       density_filter[i].CacheDensityFilteredValue(des_vec);
+     }
+  }
   return design_id;
 }
 int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)
@@ -1771,7 +1823,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       DesignElement* org = &data[data_index];
 
       // we need to transform manually only for smart design with excitation given. The physicalPseudoDensity has it by itself
-      if(descr.solutionType >= OPT_RESULT_1 && descr.solutionType <= OPT_RESULT_20 && descr.access == DesignElement::SMART && descr.excitation >= 0 && ex != NULL && ex->transform != NULL)
+      if(descr.solutionType >= OPT_RESULT_1 && descr.solutionType <= OPT_RESULT_31 && descr.access == DesignElement::SMART && descr.excitation >= 0 && ex != NULL && ex->transform != NULL)
       {
         DesignElement* trans = ApplyTransformations(org, org, NULL);
         trans->GetValue(descr, result_value, dofs);
@@ -2048,6 +2100,57 @@ BaseMaterial* MultiMaterial::GetMultiMaterial(const MaterialClass mc)
   material.Push_back(std::make_pair(mat, mc));
   return mat;
 }
+
+
+
+void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbours,int filter_idx){
+
+  // We just get all the design elements and for each filter create a sparse matrix
+  // For the sparse matrix we require row_index(element number) , column index(neighbour idx), and weights array
+  // Implementing this above in the neigbhor search will require use of critical sections. So lets just stick to looping over all elements and extracting
+
+    int num_elem = data.GetSize();
+    int nnz = (sum_neighbours+num_elem);
+    this->filter_mat.SetSize(num_elem,num_elem,nnz);
+
+    UInt *colPointer=this->filter_mat.GetColPointer();
+    UInt *rowPointer=this->filter_mat.GetRowPointer();
+    double *dataPtr=this->filter_mat.GetDataPointer();
+
+    this->filtered_vec.Resize(num_elem);
+    this->inv_weighted_sum.Resize(num_elem);
+
+    int lastIndex=0;
+    rowPointer[0]=lastIndex;
+
+    for (UInt i=0;i < data.GetSize(); i++){
+
+      auto neighbours = data[i].simp->filter[filter_idx].neighborhood;
+      // Set this weight sum so that we don't recalculate it
+      data[i].simp->filter[filter_idx].weight_sum = (data[i].simp->filter[filter_idx].CalcWeightSum(true));
+      this->inv_weighted_sum[i] = (1/ data[i].simp->filter[filter_idx].weight_sum);
+      colPointer[lastIndex]=i;
+      dataPtr[lastIndex]= data[i].simp->filter[filter_idx].weight  * this->inv_weighted_sum[i];
+      for (UInt j=0;j<neighbours.GetSize();j++){
+        colPointer[lastIndex+j+1]=neighbours[j].neighbour->GetIndex();
+        dataPtr[lastIndex+j+1]=(neighbours[j].weight)* this->inv_weighted_sum[i];
+      }
+      lastIndex +=(neighbours.GetSize()+1); // Since Neighbours doesn't include the own element
+      rowPointer[i+1]=lastIndex;
+    }
+}
+
+
+
+void DensityFilterMat::CacheDensityFilteredValue(const Vector<double>& design_vec){
+
+  this->filter_mat.Mult(design_vec,this->filtered_vec);
+
+}
+
+
+
+
 
 
 // explicit template instantiation for GCC compiler
