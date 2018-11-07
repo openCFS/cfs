@@ -928,10 +928,6 @@ def generate_basecell(args,info):
 #     helper[1:shape[0]-1,1:shape[1]-1,shape[2]-1] = helper[1:shape[0]-1,1:shape[1]-1,shape[2]-2]
      
     points, cells, normals, values = measure.marching_cubes_lewiner(helper,spacing=(h,h,h),allow_degenerate=False,step_size=1)
-#     marching_cubes.write_vtp(points,cells,(h,h,h),name="mc_lewiner.vtp",normals=normals)
-#     sys.exit()
-#     end = time.time()
-#     print("time:",end - start)
     
     # marching_cubes returns float values
     points = np.asarray(points)
@@ -939,17 +935,6 @@ def generate_basecell(args,info):
     # moves structure to [0,1]^3
     points += (h/2.0,h/2.0,h/2.0)
   
-#     import pymesh
-#     mesh = pymesh.form_mesh(np.asarray(points),np.asarray(cells))
-#     mesh = pymesh.resolve_self_intersection(mesh)
-#     mesh, _ = pymesh.collapse_short_edges(mesh, rel_threshold=0.3)
-#     points, cells, _ = pymesh.remove_duplicated_vertices_raw(mesh.vertices,mesh.faces)
-#     points, cells, _ = pymesh.remove_duplicated_faces_raw(points,cells)
-#     points, cells, _ = pymesh.remove_degenerated_triangles_raw(points, cells, num_iterations=10)
-    #mesh.vertices += (h/2.0,h/2.0,h/2.0)
-    #points = mesh.vertices
-    #cells = mesh.faces
-    
     # extract points on the boundary circles
     # each entry contains a list representing one boundary face of the base cell
     # points: list with 3d coords
