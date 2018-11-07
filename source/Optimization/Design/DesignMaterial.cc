@@ -607,7 +607,7 @@ unsigned int DesignMaterial::RequiredParameters( OptimizationMaterial::System ma
     if (dim == 2)
       return r + (material == OptimizationMaterial::MECH ? 6 : 15);
     else
-      return r + (material == OptimizationMaterial::MECH ? 9 : 15);
+      return r + (material == OptimizationMaterial::MECH ? 21 : 15);
   case ISOTROPIC:
   case LAME_ISOTROPIC:
     return r + 2;
@@ -686,13 +686,25 @@ bool DesignMaterial::CheckRequiredDesigns(
           && design.Find(DesignElement::MECH_12) >= 0);
     } else {
       return (design.Find(DesignElement::MECH_11) >= 0
-          && design.Find(DesignElement::MECH_22) >= 0
-          && design.Find(DesignElement::MECH_33) >= 0
-          && design.Find(DesignElement::MECH_23) >= 0
-          && design.Find(DesignElement::MECH_13) >= 0
           && design.Find(DesignElement::MECH_12) >= 0
+          && design.Find(DesignElement::MECH_13) >= 0
+          && design.Find(DesignElement::MECH_14) >= 0
+          && design.Find(DesignElement::MECH_15) >= 0
+          && design.Find(DesignElement::MECH_16) >= 0
+          && design.Find(DesignElement::MECH_22) >= 0
+          && design.Find(DesignElement::MECH_23) >= 0
+          && design.Find(DesignElement::MECH_24) >= 0
+          && design.Find(DesignElement::MECH_25) >= 0
+          && design.Find(DesignElement::MECH_26) >= 0
+          && design.Find(DesignElement::MECH_33) >= 0
+          && design.Find(DesignElement::MECH_34) >= 0
+          && design.Find(DesignElement::MECH_35) >= 0
+          && design.Find(DesignElement::MECH_36) >= 0
           && design.Find(DesignElement::MECH_44) >= 0
+          && design.Find(DesignElement::MECH_45) >= 0
+          && design.Find(DesignElement::MECH_46) >= 0
           && design.Find(DesignElement::MECH_55) >= 0
+          && design.Find(DesignElement::MECH_56) >= 0
           && design.Find(DesignElement::MECH_66) >= 0);
     }
   case ISOTROPIC:
@@ -1452,16 +1464,32 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTen
   bool set = direction == DesignElement::NO_DERIVATIVE; //|| direction == DesignElement::ROTANGLE;
 
   double e11 = set ? GetParameter(map, DesignElement::MECH_11) : 0;
-  double e22 = set ? GetParameter(map, DesignElement::MECH_22) : 0;
-  double e33 = set ? GetParameter(map, DesignElement::MECH_33) : 0;
-  double e23 = set ? GetParameter(map, DesignElement::MECH_23) : 0;
-  double e13 = set ? GetParameter(map, DesignElement::MECH_13) : 0;
   double e12 = set ? GetParameter(map, DesignElement::MECH_12) : 0;
-  double e44, e55, e66;
+  double e13 = set ? GetParameter(map, DesignElement::MECH_13) : 0;
+  double e22 = set ? GetParameter(map, DesignElement::MECH_22) : 0;
+  double e23 = set ? GetParameter(map, DesignElement::MECH_23) : 0;
+  double e33 = set ? GetParameter(map, DesignElement::MECH_33) : 0;
+
+
+
+
+  double e14 = 0, e15 = 0, e16 = 0, e24 = 0, e25 = 0, e26 = 0, e34 = 0, e35 = 0, e36 = 0, e44 = 0, e45 = 0, e46 = 0, e55 = 0, e56 = 0, e66 = 0;
   if (subTensor == FULL) {
-    // orthotropic 3D tensor
+    // 3D tensor
+    e14 = set ? GetParameter(map, DesignElement::MECH_14) : 0;
+    e15 = set ? GetParameter(map, DesignElement::MECH_15) : 0;
+    e16 = set ? GetParameter(map, DesignElement::MECH_16) : 0;
+    e24 = set ? GetParameter(map, DesignElement::MECH_24) : 0;
+    e25 = set ? GetParameter(map, DesignElement::MECH_25) : 0;
+    e26 = set ? GetParameter(map, DesignElement::MECH_26) : 0;
+    e34 = set ? GetParameter(map, DesignElement::MECH_34) : 0;
+    e35 = set ? GetParameter(map, DesignElement::MECH_35) : 0;
+    e36 = set ? GetParameter(map, DesignElement::MECH_36) : 0;
     e44 = set ? GetParameter(map, DesignElement::MECH_44) : 0;
+    e45 = set ? GetParameter(map, DesignElement::MECH_45) : 0;
+    e46 = set ? GetParameter(map, DesignElement::MECH_46) : 0;
     e55 = set ? GetParameter(map, DesignElement::MECH_55) : 0;
+    e56 = set ? GetParameter(map, DesignElement::MECH_56) : 0;
     e66 = set ? GetParameter(map, DesignElement::MECH_66) : 0;
   }
 
@@ -1475,71 +1503,110 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTen
       Set2dVoigtTensor(E, e11, e22, e33, e23, e13, e12);
     } else {
       // temporarily: orthotropic 3D tensor
-      SetOrthotropicTensor(E,subTensor, e11,e12,e13,e22,e23,e33,e44,e55,e66);
+      Set3dVoigtTensor(E,subTensor, e11,e12,e13,e14,e15,e16,e22,e23,e24,e25,e26,e33,e34,e35,e36,e44,e45,e46,e55,e56,e66);
     }
     break;
   case DesignElement::MECH_11:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 1.0,0.,0.,0.,0.,0.,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
     break;
   case DesignElement::MECH_12:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 0.,1.0,0.,0.,0.,0.,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
     break;
   case DesignElement::MECH_13:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,1.0,0.,0.,0.,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
+    break;
+  case DesignElement::MECH_14:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_15:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_16:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     break;
   case DesignElement::MECH_22:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,1.0,0.,0.,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
     break;
   case DesignElement::MECH_23:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,1.0,0.,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
+    break;
+  case DesignElement::MECH_24:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_25:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_26:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     break;
   case DesignElement::MECH_33:
     if (subTensor != FULL) {
       Set2dVoigtTensor(E, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
     } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,0.,1.0,0.,0.,0.);
+      Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
+    break;
+  case DesignElement::MECH_34:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_35:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_36:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.);
     break;
   case DesignElement::MECH_44:
-    if (subTensor != FULL) {
-      EXCEPTION("MECH_44 is only defined for 3D! Check the code.\n");
-    } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,1.0,0.,0.);
-    }
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_45:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_46:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.);
     break;
   case DesignElement::MECH_55:
-    if (subTensor != FULL) {
-      EXCEPTION("MECH_55 is only defined for 3D! Check the code.\n");
-    } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,1.0,0.);
-    }
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.);
+    break;
+  case DesignElement::MECH_56:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.);
     break;
   case DesignElement::MECH_66:
-    if (subTensor != FULL) {
-      EXCEPTION("MECH_66 is only defined for 3D! Check the code.\n");
-    } else {
-      SetOrthotropicTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,1.0);
-    }
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.);
     break;
   default:
     // for piezo FMO the derivative w.r.E. dielec_11, ... is zero
@@ -2705,11 +2772,10 @@ bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
 }
 
 int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point) const {
-  double eps = 1e-6;
   int nRows = interval.GetNumRows();
   assert(nRows > 0);
   double h = interval[1][0] - interval[0][0];
-  assert(h > -eps);
+  assert(h > -1e-6);
   int idx = -1;
   // set index for values close to boundaries manually
   if (close(point, interval[nRows - 1][0])) {
@@ -3236,9 +3302,9 @@ void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t12,
   t[2][2] = t33;
 }
 
-void DesignMaterial::SetOrthotropicTensor(Matrix<double>& t,
-    SubTensorType subTensor, double e11, double e12, double e13, double e22,
-    double e23, double e33, double e44, double e55, double e66) {
+void DesignMaterial::Set3dVoigtTensor(Matrix<double>& t,
+    SubTensorType subTensor, double e11, double e12, double e13, double e14, double e15, double e16, double e22, double e23, double e24, double e25, double e26,
+    double e33, double e34, double e35, double e36, double e44, double e45, double e46, double e55, double e56, double e66) {
   switch (subTensor) {
     case FULL:
       t.Resize(6, 6);
@@ -3246,14 +3312,38 @@ void DesignMaterial::SetOrthotropicTensor(Matrix<double>& t,
       t[0][0] = e11;
       t[0][1] = e12;
       t[0][2] = e13;
+      t[0][3] = e14;
+      t[0][4] = e15;
+      t[0][5] = e16;
       t[1][0] = e12;
+      t[2][0] = e13;
+      t[3][0] = e14;
+      t[4][0] = e15;
+      t[5][0] = e16;
       t[1][1] = e22;
       t[1][2] = e23;
-      t[2][0] = e13;
+      t[1][3] = e24;
+      t[1][4] = e25;
+      t[1][5] = e26;
       t[2][1] = e23;
+      t[3][1] = e24;
+      t[4][1] = e25;
+      t[5][1] = e26;
       t[2][2] = e33;
+      t[2][3] = e34;
+      t[2][4] = e35;
+      t[2][5] = e36;
+      t[3][2] = e34;
+      t[4][2] = e35;
+      t[5][2] = e36;
       t[3][3] = e44;
+      t[3][4] = e45;
+      t[3][5] = e46;
+      t[4][3] = e45;
+      t[5][3] = e46;
       t[4][4] = e55;
+      t[4][5] = e56;
+      t[5][4] = e56;
       t[5][5] = e66;
       break;
     case PLANE_STRAIN:

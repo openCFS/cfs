@@ -838,6 +838,41 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
       case OPT_RESULT_29: return 28;
       case OPT_RESULT_30: return 29;
       case OPT_RESULT_31: return 30;
+      case OPT_RESULT_32: return 31;
+      case OPT_RESULT_33: return 32;
+      case OPT_RESULT_34: return 33;
+      case OPT_RESULT_35: return 34;
+      case OPT_RESULT_36: return 35;
+      case OPT_RESULT_37: return 36;
+      case OPT_RESULT_38: return 37;
+      case OPT_RESULT_39: return 38;
+      case OPT_RESULT_40: return 39;
+      case OPT_RESULT_41: return 40;
+      case OPT_RESULT_42: return 41;
+      case OPT_RESULT_43: return 42;
+      case OPT_RESULT_44: return 43;
+      case OPT_RESULT_45: return 44;
+      case OPT_RESULT_46: return 45;
+      case OPT_RESULT_47: return 46;
+      case OPT_RESULT_48: return 47;
+      case OPT_RESULT_49: return 48;
+      case OPT_RESULT_50: return 49;
+      case OPT_RESULT_51: return 50;
+      case OPT_RESULT_52: return 51;
+      case OPT_RESULT_53: return 52;
+      case OPT_RESULT_54: return 53;
+      case OPT_RESULT_55: return 54;
+      case OPT_RESULT_56: return 55;
+      case OPT_RESULT_57: return 56;
+      case OPT_RESULT_58: return 57;
+      case OPT_RESULT_59: return 58;
+      case OPT_RESULT_60: return 59;
+      case OPT_RESULT_61: return 60;
+      case OPT_RESULT_62: return 61;
+      case OPT_RESULT_63: return 62;
+      case OPT_RESULT_64: return 63;
+      case OPT_RESULT_65: return 64;
+      case OPT_RESULT_66: return 65;
       default: throw Exception("invalid solution type");
     }
   }
@@ -1823,7 +1858,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       DesignElement* org = &data[data_index];
 
       // we need to transform manually only for smart design with excitation given. The physicalPseudoDensity has it by itself
-      if(descr.solutionType >= OPT_RESULT_1 && descr.solutionType <= OPT_RESULT_31 && descr.access == DesignElement::SMART && descr.excitation >= 0 && ex != NULL && ex->transform != NULL)
+      if(descr.solutionType >= OPT_RESULT_1 && descr.solutionType <= OPT_RESULT_66 && descr.access == DesignElement::SMART && descr.excitation >= 0 && ex != NULL && ex->transform != NULL)
       {
         DesignElement* trans = ApplyTransformations(org, org, NULL);
         trans->GetValue(descr, result_value, dofs);

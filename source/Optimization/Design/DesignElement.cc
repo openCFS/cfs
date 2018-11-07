@@ -100,11 +100,23 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case MECH_11:
     case MECH_12:
     case MECH_13:
+    case MECH_14:
+    case MECH_15:
+    case MECH_16:
     case MECH_22:
     case MECH_23:
+    case MECH_24:
+    case MECH_25:
+    case MECH_26:
     case MECH_33:
+    case MECH_34:
+    case MECH_35:
+    case MECH_36:
     case MECH_44:
+    case MECH_45:
+    case MECH_46:
     case MECH_55:
+    case MECH_56:
     case MECH_66:
       return true;
     default:
@@ -483,6 +495,41 @@ int DesignElement::GetOptResultIndex(SolutionType st)
       return 29;
   case OPT_RESULT_31:
       return 30;
+  case OPT_RESULT_32: return 31;
+  case OPT_RESULT_33: return 32;
+  case OPT_RESULT_34: return 33;
+  case OPT_RESULT_35: return 34;
+  case OPT_RESULT_36: return 35;
+  case OPT_RESULT_37: return 36;
+  case OPT_RESULT_38: return 37;
+  case OPT_RESULT_39: return 38;
+  case OPT_RESULT_40: return 39;
+  case OPT_RESULT_41: return 40;
+  case OPT_RESULT_42: return 41;
+  case OPT_RESULT_43: return 42;
+  case OPT_RESULT_44: return 43;
+  case OPT_RESULT_45: return 44;
+  case OPT_RESULT_46: return 45;
+  case OPT_RESULT_47: return 46;
+  case OPT_RESULT_48: return 47;
+  case OPT_RESULT_49: return 48;
+  case OPT_RESULT_50: return 49;
+  case OPT_RESULT_51: return 50;
+  case OPT_RESULT_52: return 51;
+  case OPT_RESULT_53: return 52;
+  case OPT_RESULT_54: return 53;
+  case OPT_RESULT_55: return 54;
+  case OPT_RESULT_56: return 55;
+  case OPT_RESULT_57: return 56;
+  case OPT_RESULT_58: return 57;
+  case OPT_RESULT_59: return 58;
+  case OPT_RESULT_60: return 59;
+  case OPT_RESULT_61: return 60;
+  case OPT_RESULT_62: return 61;
+  case OPT_RESULT_63: return 62;
+  case OPT_RESULT_64: return 63;
+  case OPT_RESULT_65: return 64;
+  case OPT_RESULT_66: return 65;
   default:
     return -1;
   }
@@ -778,13 +825,25 @@ void DesignElement::SetEnums()
   type.Add(DAMPINGBETA, "damping-beta");
   type.Add(UNITY, "unity");
   type.Add(MECH_11, "mech_11");
-  type.Add(MECH_22, "mech_22");
-  type.Add(MECH_33, "mech_33");
-  type.Add(MECH_23, "mech_23");
-  type.Add(MECH_13, "mech_13");
   type.Add(MECH_12, "mech_12");
+  type.Add(MECH_13, "mech_13");
+  type.Add(MECH_14, "mech_14");
+  type.Add(MECH_15, "mech_15");
+  type.Add(MECH_16, "mech_16");
+  type.Add(MECH_22, "mech_22");
+  type.Add(MECH_23, "mech_23");
+  type.Add(MECH_24, "mech_24");
+  type.Add(MECH_25, "mech_25");
+  type.Add(MECH_26, "mech_26");
+  type.Add(MECH_33, "mech_33");
+  type.Add(MECH_34, "mech_34");
+  type.Add(MECH_35, "mech_35");
+  type.Add(MECH_36, "mech_36");
   type.Add(MECH_44, "mech_44");
+  type.Add(MECH_45, "mech_45");
+  type.Add(MECH_46, "mech_46");
   type.Add(MECH_55, "mech_55");
+  type.Add(MECH_56, "mech_56");
   type.Add(MECH_66, "mech_66");
   type.Add(DIELEC_11, "dielec_11");
   type.Add(DIELEC_12, "dielec_12");
