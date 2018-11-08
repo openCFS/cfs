@@ -54,7 +54,7 @@ namespace CoupledField {
      typedef std::string IdType;
 
      //! Enumeration type for distinguishing the different source types of coils
-     typedef enum {NO_SOURCE_TYPE, CURRENT, VOLTAGE, EXTERNAL } SourceType;
+     typedef enum {NO_SOURCE_TYPE, CURRENT, CURRENT_MULTHARM, VOLTAGE, EXTERNAL } SourceType;
      
      //! Constructor for coils
 
@@ -95,6 +95,15 @@ namespace CoupledField {
      //! Scalar value of excitation (voltage, current)
      PtrCoefFct srcVal_;
      
+     //! Values of excitation in different harmonics.
+     //! Key is the harmonic (only prescribe positive harmonics,
+     //! because the mirroring to the negative spectrum is performed
+     //! internally).
+     std::map<UInt, PtrCoefFct> srcValMH_;
+
+     //! Flag if we have multiharmonic excitation
+     bool isMultHarm_;
+
      //! Define part of a coil
      struct Part {
        

@@ -409,6 +409,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt;
       partIt = actCoil.parts_.begin();
       if(( actCoil.sourceType_ == Coil::CURRENT )||
+         ( actCoil.sourceType_ == Coil::CURRENT_MULTHARM )||
          ( actCoil.sourceType_ == Coil::EXTERNAL )) {
 
         /*
@@ -428,8 +429,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
           actSDList->SetRegion( actRegion );
 
-          // generate source current vector
-          PtrCoefFct jFct;
+          /*
+            generate source current vector
+            for the non-multiharmonic case it is a simple PtrCoefFct type
+            but due to the flexibility to use multiharmonic excitation,
+            we need a map of PtrCoefFct's, where the key is the harmonic number.
+            So in the non-multiharmonic case, we simply have one key "0"
+          */
+          std::map<UInt, PtrCoefFct> jFct;
           if( actCoil.sourceType_ == Coil::CURRENT ){
             CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_,
                                                    CoefXpr::OP_MULT);
@@ -437,29 +444,75 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
             CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect),
                                                    CoefXpr::OP_DIV);
-            jFct = CoefFunction::Generate(mp_, part, jVec);
+            jFct[0] = CoefFunction::Generate(mp_, part, jVec);
+          } else if( actCoil.sourceType_ == Coil::CURRENT_MULTHARM ){
+
+            if( (actCoil.srcValMH_.find(0) != actCoil.srcValMH_.end()) && (!dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->zeroHarm_) ){
+              EXCEPTION("You specified an excitation in harmonic 0 but didn't set the"
+                        "<includeZeroHarmonic> tag to true in the analysis section!");
+            }
+
+            // loop over all inserted harmonics of the xml file; type is std::map<Integer, PtrCoefFct>
+            for(auto& h : actCoil.srcValMH_){
+              CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, h.second  , CoefXpr::OP_MULT);
+              PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
+              CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
+              jFct[h.first] = CoefFunction::Generate(mp_, part, jVec);
+            }
           } else {
-            jFct = coilPartsExtJ_[partIt->second];
+            jFct[0] = coilPartsExtJ_[partIt->second];
           }
-          coilCurrentDens_[actRegion] = jFct;
-          LinearForm* curInt;
-          if( isComplex_ ) {
-            curInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
-                                                1.0, jFct, updatedGeo_);
+
+
+          // This switch is necessary because we need to select which harmonic component
+          // we want to assemble in the rhs
+          if( actCoil.sourceType_ == Coil::CURRENT_MULTHARM ){
+            // Multiharmonic Case
+            LinearForm* curInt;
+            for(auto& h : jFct){
+              coilCurrentDens_[actRegion] = h.second;
+              if( isComplex_ ) {
+                curInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
+                                                    1.0, h.second, updatedGeo_);
+              }
+              else {
+                curInt = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(),
+                                                   1.0, h.second, updatedGeo_);
+              }
+              curInt->SetName("CoilIntegrator");
+              curInt->SetHarm(h.first);
+              LinearFormContext * coilContext = new LinearFormContext( curInt );
+              coilContext->SetEntities( actSDList );
+              coilContext->SetFeFunction( feFunc );
+              assemble_->AddLinearForm( coilContext );
+            }
+          }else{
+            // Classic Case
+            LinearForm* curInt;
+            coilCurrentDens_[actRegion] = jFct[0];
+            if( isComplex_ ) {
+              curInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
+                                                  1.0, jFct[0], updatedGeo_);
+            }
+            else {
+              curInt = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(),
+                                                 1.0, jFct[0], updatedGeo_);
+            }
+            curInt->SetName("CoilIntegrator");
+            LinearFormContext * coilContext = new LinearFormContext( curInt );
+            coilContext->SetEntities( actSDList );
+            coilContext->SetFeFunction( feFunc );
+            assemble_->AddLinearForm( coilContext );
+
           }
-          else {
-            curInt = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(),
-                                               1.0, jFct, updatedGeo_);
-          }
-          curInt->SetName("CoilIntegrator");
-          LinearFormContext * coilContext =
-              new LinearFormContext( curInt );
-          coilContext->SetEntities( actSDList );
-          coilContext->SetFeFunction( feFunc );
-          assemble_->AddLinearForm( coilContext );
+
+
+
+
+
         } // loop: parts
 
-      } else {
+      }else{
 
         /*
         ============================================

@@ -627,11 +627,13 @@ namespace CoupledField {
     //! \param fctId   identifier of the Fct related to sub-graph
     //! \param eqnNrs  equation numbers (1-based) of the element rhs
     //!                w.r.t. sub-graph associated with idFct
-    //! \param numEqn  length of eqnNrs array
+    //! \param harm  for multiharmonic analysis, we need the info
+    //!                which harmonic we are currently considerng
     template<typename T>
     void SetElementRHS( const Vector<T>& elemRHS, 
                         const FeFctIdType fctId,
-                        StdVector<Integer>& eqnNrs );
+                        StdVector<Integer>& eqnNrs,
+                        UInt& harm);
 
 
     //! Adds a value to a given global rhs entry

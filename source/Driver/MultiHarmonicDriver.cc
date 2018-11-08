@@ -79,6 +79,18 @@ namespace CoupledField
 
     actHarm_ = 0;
 
+    // Do we need to incorporate the zero harmonic?
+    param_->GetValue("includeZeroHarmonic", zeroHarm_, ParamNode::PASS );
+
+
+
+
+
+
+
+
+
+
     harmFreq_.Resize(numHarmonics_N_ + 1 );
     Double dummy = -1;
     // Insert frequencies in the loop (now in the optimized version, we

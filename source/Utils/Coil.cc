@@ -58,9 +58,11 @@ namespace CoupledField {
     // obtain coilId
     coilId_ = myParam_->Get("id")->As<std::string>();
     
+    isMultHarm_ = false;
+
     // Read source type (only if present: for measurement coils,
     // no excitation is given)
-    if( myParam_->Has("source") ) { 
+    if( myParam_->Has("source") ) {
       std::string exType = myParam_->Get("source")->Get("type")->As<std::string>();
       if ( exType == "current" ) {
         sourceType_ = CURRENT;
@@ -75,6 +77,22 @@ namespace CoupledField {
       value = myParam_->Get("source")->Get("value")->As<std::string>();
       phase = myParam_->Get("source")->Get("phase")->As<std::string>();
       srcVal_ = CoefFunction::Generate(mParser_, type, AmplPhaseToReal(value, phase), AmplPhaseToImag(value, phase));
+    }else if( myParam_->Has("sourceMultiharmonic")){
+      isMultHarm_ = true;
+      sourceType_ = CURRENT_MULTHARM;
+      std::string value, phase;
+      ParamNodeList harmonicList = myParam_->Get("sourceMultiharmonic")->GetList("harmonic");
+      //srcValMH_.Resize(harmonicList.GetSize());
+      for( UInt h = 0; h < harmonicList.GetSize(); ++h ) {
+        PtrParamNode harmNode = harmonicList[h];
+        UInt harmVal = harmNode->Get("harmonic")->As<Integer>();
+        if( (harmVal!=0) && (harmVal%2==0) ){
+          EXCEPTION("Only odd harmonics are allowed for the excitation current!");
+        }
+        value = harmNode->Get("value")->As<std::string>();
+        phase = harmNode->Get("phase")->As<std::string>();
+        srcValMH_[harmVal] = CoefFunction::Generate(mParser_, type, AmplPhaseToReal(value, phase), AmplPhaseToImag(value, phase));
+      }
     }
 
     /* code from NACS

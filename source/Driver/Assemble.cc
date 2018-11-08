@@ -1583,6 +1583,8 @@ namespace CoupledField
 
       LinearForm* form = actContext.GetIntegrator();
 
+      UInt h = form->GetHarm();
+
       try
       {
         // get entity iterator
@@ -1619,8 +1621,7 @@ namespace CoupledField
             ReMapEquations(eqnVec, fctId);
 
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
-
-            algsys_-> SetElementRHS(elemVec, fctId, eqnVec);
+            algsys_-> SetElementRHS(elemVec, fctId, eqnVec, h);
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
         } else {
@@ -1656,7 +1657,7 @@ namespace CoupledField
 
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
             // Pass element vector to algebraic system
-            algsys_->SetElementRHS(elemVec, fctId, eqnVec);
+            algsys_->SetElementRHS(elemVec, fctId, eqnVec, h);
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
         }

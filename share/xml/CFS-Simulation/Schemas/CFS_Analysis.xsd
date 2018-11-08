@@ -182,6 +182,16 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          <xsd:element name="includeZeroHarmonic" type="xsd:boolean" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                If this is set true, then the zero harmonic is included in the
+                analysis. Therewith we can also simulate pre-loaded coils (DC component).
+                The downside is a longer computational time because we also have to
+                solve the static problem.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>

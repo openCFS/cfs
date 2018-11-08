@@ -2977,7 +2977,7 @@ namespace CoupledField {
   template<typename T>
   void AlgebraicSys::SetElementRHS( const Vector<T>& elemRHS, 
       const FeFctIdType fctId,
-      StdVector<Integer>& eqnNrs ) {
+      StdVector<Integer>& eqnNrs, UInt& harm ) {
 
     LOG_DBG(algSys) << "SER: Setting element RHS for fctId ("<< fctId << ")";
     LOG_DBG2(algSys) << "SER: EqnVec: " << eqnNrs.ToString();
@@ -3017,21 +3017,11 @@ namespace CoupledField {
 
 
       if( isMultHarm_ ){
-        SingleVector &vecP = (*rhs_)( (solStrat_->GetNumHarmN() + 1)/2);
-        SingleVector &vecN = (*rhs_)( (solStrat_->GetNumHarmN() - 1)/2);
+        SingleVector &vecP = (*rhs_)( (solStrat_->GetNumHarmN() + harm)/2);
+        SingleVector &vecN = (*rhs_)( (solStrat_->GetNumHarmN() - harm)/2);
         if(vecP.GetEntryType() == BaseMatrix::COMPLEX && vecN.GetEntryType() == BaseMatrix::COMPLEX){
           if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
             if ( rowNum <= lastFreeRowIndex &&  elemRHS[iRow] != (Complex)0.0 ) {
-              // If we want excitation in the imaginary part (corresponds to sinusoidal excitation)
-              /*
-              Complex tmp, tmp1 = elemRHS[iRow];
-              tmp.real(0.0);
-              tmp.imag(tmp1.real());
-              vecP.AddToEntry( rowNum-1, tmp/2.0);
-              // this entry must be conjugate complex
-              vecN.AddToEntry( rowNum-1, std::conj(tmp)/2.0);
-              */
-
               // If we want excitation in the real part (corresponds to cosine excitation)
               vecP.AddToEntry( rowNum-1, elemRHS[iRow]/2.0);
               //this entry must be conjugate complex
@@ -5094,10 +5084,10 @@ namespace CoupledField {
   
   template void AlgebraicSys::
   SetElementRHS( const Vector<Double>&, const FeFctIdType, 
-                 StdVector<Integer>&);
+                 StdVector<Integer>&, UInt&);
   template void AlgebraicSys::
     SetElementRHS( const Vector<Complex>&, const FeFctIdType, 
-                   StdVector<Integer>&);
+                   StdVector<Integer>&, UInt&);
   
   template void AlgebraicSys::SetNodeRHS(Double, FeFctIdType, Integer );
   template void AlgebraicSys::SetNodeRHS(Complex, FeFctIdType, Integer );

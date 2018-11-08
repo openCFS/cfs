@@ -331,6 +331,7 @@ namespace CoupledField {
     //! \name Attributes connected to nonlinearity
     bool nonLin_;           //!< flag for nonlinear calculations
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
+    bool isAlwaysStatic_;
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
     // note: not all regions have to have hysteretic material behavior
     bool isHysteresis_;

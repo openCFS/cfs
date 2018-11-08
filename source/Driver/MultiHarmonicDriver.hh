@@ -73,6 +73,9 @@ public:
   //! Harmonic, we are currently considering
   UInt actHarm_;
 
+  //! Boolean, which tells us if we need to incorporate the zero harmonic
+  bool zeroHarm_;
+
   //! Vector containing the harmonic-frequencies (negative, 0, positive)
   StdVector<Double> harmFreq_;
 
