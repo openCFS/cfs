@@ -2471,18 +2471,7 @@ namespace CoupledField {
     } else {
       strainFunc.reset(new CoefFunctionBOp<Double>(feFct, strain));
     }
-    
-    if ( isThermalStrain )  {
-      //add thermal strain to mechanical strain
-      shared_ptr<CoefFunction> totalStrain;
-      totalStrain =
-              CoefFunction::Generate( mp_, part,
-              CoefXprBinOp(mp_,strainFunc,thermalStrain_,CoefXpr::OP_ADD));
-      DefineFieldResult( totalStrain, strain );
-    }
-    else {
-      DefineFieldResult( strainFunc, strain );
-    }
+    DefineFieldResult( strainFunc, strain );
     stiffFormCoefs_.insert(strainFunc);
     
     // === MECHANIC PRINCIPAL STRAIN ===
