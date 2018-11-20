@@ -1577,18 +1577,47 @@ namespace CoupledField{
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
         EXCEPTION("Rhs density must be defined on elements")
       }
-      if ( sosAtLaplace_)
-        EXCEPTION("rhsDensity and speed of sound at Laplace operator currently not possible");
+      if ( sosAtLaplace_) {
+    	//get region id
+    	std::string volRegName = ent[i]->GetName();
+    	RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
 
-      if(isComplex_) {
+    	//get adiabatic exponent
+    	PtrCoefFct density = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+
+    	//get speed of sound and square it
+    	std::map<RegionIdType,PtrCoefFct > c0Fcts = matCoefs_[ACOU_ELEM_SPEED_OF_SOUND]->GetRegionCoefs();
+    	PtrCoefFct regionC0 = c0Fcts[aRegion];
+    	PtrCoefFct regionC02 = CoefFunction::Generate( mp_, Global::REAL,
+    			CoefXprBinOp(mp_, regionC0, regionC0, CoefXpr::OP_MULT ) );
+
+    	PtrCoefFct tmpCoef = CoefFunction::Generate( mp_, Global::REAL,
+              		  CoefXprBinOp(mp_, regionC02, density, CoefXpr::OP_MULT ) );
+
+    	if(isComplex_) {
+    	  PtrCoefFct coefRHS = CoefFunction::Generate( mp_, Global::COMPLEX,
+    	      	    		  CoefXprBinOp(mp_, tmpCoef, coef[i], CoefXpr::OP_MULT ) );
     	  lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
-    				  Complex(scalFactor), coef[i], updatedGeo_);
+    				  Complex(scalFactor), coefRHS, updatedGeo_);
+    	}
+    	else {
+    	  PtrCoefFct coefRHS = CoefFunction::Generate( mp_, Global::REAL,
+    		         		  CoefXprBinOp(mp_, tmpCoef, coef[i], CoefXpr::OP_MULT ) );
+    	  lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+    			                          scalFactor, coefRHS, updatedGeo_);
+    	}
       }
       else {
-    	  lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
-    			                          scalFactor, coef[i], updatedGeo_);
+        if(isComplex_) {
+        	  lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+        				  Complex(scalFactor), coef[i], updatedGeo_);
+        }
+        else {
+        	lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+        			                          scalFactor, coef[i], updatedGeo_);
+        }
       }
-      lin->SetName("RhsDensityInt");
+            lin->SetName("RhsDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);
