@@ -18,6 +18,7 @@
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 
 // forms
 #include "Forms/BiLinForms/BDBInt.hh"
@@ -169,10 +170,18 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         
         // create stiffness integrator
         //BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
+        CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
         PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
         PtrCoefFct nuNl = 
             actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, 
                                           magFluxCoef  );
+
+        if(domain->HasDesign())
+        {
+          cfo = new CoefFunctionOpt(domain->GetDesign(), nuNl, this);
+          nuNl.reset(cfo);
+        }
+
         //compute permeability
         PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
         PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL,
@@ -193,6 +202,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        bdbInts_[actRegion] = stiff1;
        // add also material to global, distributed reluctivity coefficient function
        reluc_->AddRegion(actRegion, nuNl);
+
+       // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+       if(cfo)
+         cfo->SetForm(stiff1);
 
        // ================================================
        //  Nonlinear Stiffness Integrator (only Newton )
@@ -247,11 +260,20 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         PtrCoefFct curCoef = 
             //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
             actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
+
+        CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
+
         //compute permeability
         PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
         PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL,
         					      	            CoefXprBinOp(mp_, constOne, curCoef, CoefXpr::OP_DIV ) );
         matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+
+        if(domain->HasDesign())
+        {
+          cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, this);
+          curCoef.reset(cfo);
+        }
 
         BaseBDBInt* curlcurl;
         //curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
@@ -263,7 +285,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        stiffContext->SetEntities( actSDList, actSDList );
        stiffContext->SetFeFunctions( feFunc, feFunc );
        assemble_->AddBiLinearForm( stiffContext );
-       
+
+       // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+       if(cfo)
+         cfo->SetForm(curlcurl);
+
        // Important: Add bdb-integrator to global list, as we need them later
        // for calculation of postprocessing results
        bdbInts_[actRegion] = curlcurl;
@@ -1294,6 +1320,26 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     jld->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
     DefineFieldResult( jldCoef, jld );
+
+    // optimization results are provided in DesignSpace::ExtractResults()
+    // copied from MechPDE
+    // === MECH_PSEUDO_DENISTY ===
+    shared_ptr<ResultInfo> mpd(new ResultInfo);
+    mpd->resultType = MECH_PSEUDO_DENSITY;
+    mpd->entryType = ResultInfo::SCALAR;
+    mpd->definedOn = ResultInfo::ELEMENT;
+    mpd->dofNames = "";
+    mpd->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mpd); // the fe-function is only a dummy
+
+    // === PHYSICAL_PSEUDO_DENISTY ===
+    shared_ptr<ResultInfo> ppd(new ResultInfo);
+    ppd->resultType = PHYSICAL_PSEUDO_DENSITY;
+    ppd->entryType = ResultInfo::SCALAR;
+    ppd->definedOn = ResultInfo::ELEMENT;
+    ppd->dofNames = "";
+    ppd->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
 
   }
 

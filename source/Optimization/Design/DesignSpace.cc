@@ -870,7 +870,7 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
 
     // in the Optimization case nu_r is cached in the linear case. Here we do the general nonlinear case
     MagSIMP* ms = domain->GetOptimization() != NULL ? dynamic_cast<MagSIMP*>(domain->GetOptimization()) : NULL;
-    double nu_r = ms != NULL ? ms->GetRelactivity(elem) : MagSIMP::ExtractRelactivity(coef->orgMat.get());
+    double nu_r = ms != NULL ? ms->GetRelactivity(elem, domain->GetGrid()->GetDim()) : MagSIMP::ExtractRelactivity(coef->orgMat.get());
     double nu_0 = MagSIMP::nu_0;
     assert(nu_r > 0 && nu_0 > 0);
 

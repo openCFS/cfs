@@ -17,15 +17,15 @@ public:
 
   /** the relactivity nu_r is part of the material property nu_0 * nu_r. In the linear case this is region constant,
    * in the nonlinear case this is element specific. */
-  double GetRelactivity(const Elem* elem)
+  double GetRelactivity(const Elem* elem, UInt dim)
   {
     // linear or nonlinear case?
     if(nonlin_[elem->regionId])
-      return CalcRelactivity(elem);
+      return CalcRelactivity(elem, dim);
     else
     {
       if(lin_nu_r_[elem->regionId] < 0);
-        lin_nu_r_[elem->regionId] = CalcRelactivity(elem);
+        lin_nu_r_[elem->regionId] = CalcRelactivity(elem, dim);
       return lin_nu_r_[elem->regionId];
     }
   }
@@ -37,7 +37,7 @@ public:
    * Extracts nu_r from the material coefficient. In the linear case this is a material constant, in the nonlinear case
    * this is element specific
    * @param elem if NULL we assume linear */
-  static double ExtractRelactivity(CoefFunction* org_mat, const Elem* elem = NULL);
+  static double ExtractRelactivity(CoefFunction* org_mat, const Elem* elem = NULL, UInt dim = 0);
 
 protected:
 
@@ -46,7 +46,7 @@ protected:
   virtual void PostInit();
 
   /** Get's linear or nonlinear nu_r from the elements material property */
-  double CalcRelactivity(const Elem* elem);
+  double CalcRelactivity(const Elem* elem, UInt dim);
 
 
 
