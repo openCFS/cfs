@@ -342,11 +342,14 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
     {
       // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
       int eqn_nbr = eqn[n];
+      if(eqn_nbr == 0) {
+        continue;
+      }
       assert(eqn_nbr > 0);
       unsigned int eqn_idx = eqn_nbr-1;
 
       out[eqn_idx] += (1.0/f->elements.GetSize()) * rhs_el[n]; // we norm the function by number of elements
-      LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn_idx]=" << out[eqn[n]];
+      LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn_idx]=" << out[eqn_idx];
     }
   } // end loop elements
   delete bdb;
