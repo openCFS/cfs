@@ -244,7 +244,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
 
   } // end loop elems
 
-  result /= f->elements.GetSize();
+  result /= f->elements.GetSize(); // norm the function
   LOG_DBG(ms) << "CMFD: exit -> " << result;
   return result;
 }
@@ -258,9 +258,9 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
   // the gradient is < lambda^T, K' * A >
   assert(excite.sequence == f->ctxt->sequence);
 
-  DesignDependentRHS rhs;
+  double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
-  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], &rhs, 1.0, STANDARD, f);
+  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], NULL, factor, STANDARD, f);
 
 }
 
@@ -342,14 +342,15 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
     {
       // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
       int eqn_nbr = eqn[n];
-      if(eqn_nbr == 0) {
-        continue;
-      }
-      assert(eqn_nbr > 0);
-      unsigned int eqn_idx = eqn_nbr-1;
+      if(eqn_nbr <= 0)
+        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_nbr=" << eqn_nbr << " -> skip RHS node";
+      else
+      {
+        unsigned int eqn_idx = eqn_nbr-1;
 
-      out[eqn_idx] += (1.0/f->elements.GetSize()) * rhs_el[n]; // we norm the function by number of elements
-      LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn_idx]=" << out[eqn_idx];
+        out[eqn_idx] += rhs_el[n]; // we don't norm here, we moved the norming to CalcMagFluxDensGradient
+        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn_idx]=" << out[eqn_idx];
+      }
     }
   } // end loop elements
   delete bdb;
