@@ -259,8 +259,8 @@ namespace CoupledField {
       UInt numHarm_N = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_N_;
       UInt numHarm_M = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_M_;
       UInt numFFT = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numFFT_;
-
-      solStrat_->SetMultHarm(baseFreq, numHarm_N, numHarm_M, numFFT);
+      bool zeroHarm = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->zeroHarm_;
+      solStrat_->SetMultHarm(baseFreq, numHarm_N, numHarm_M, numFFT, zeroHarm);
     }
 
 

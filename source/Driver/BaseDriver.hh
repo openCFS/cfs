@@ -89,6 +89,21 @@ namespace CoupledField
     PtrParamNode GetInfo() { return info_; }
 
     PtrParamNode GetParam() { return param_; }
+
+    //! Compute the index of a given harmonic
+    virtual UInt IndexOfHarmonic(const Integer& harmonic){
+      EXCEPTION("IndexOfHarmonic not implemeted here in the baseclass!");
+    }
+    //! Compute the harmonic of a given harmonic
+    virtual Integer HarmonicOfIndex(const UInt& Index){
+      EXCEPTION("HarmonicOfIndex not implemeted here in the baseclass!");
+    }
+    //! Get the number of the considered frequencies (positive and negative)
+    virtual UInt GetNumFreq(){
+      EXCEPTION("GetNumFreq() not implemeted here in the baseclass!");
+    }
+
+
   protected:
     
     //! type of analysis

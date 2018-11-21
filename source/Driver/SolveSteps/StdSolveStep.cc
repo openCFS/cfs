@@ -1355,6 +1355,7 @@ namespace CoupledField {
     UInt M = solStrat_->GetNumHarmM();
     Double bF = solStrat_->GetBaseFreq();
     UInt numFFT = solStrat_->GetNumFFT();
+    bool zeroHarm = solStrat_->IsZeroHarm();
     if(numFFT % 2 != 0){
       EXCEPTION("Please provide a numFFT xml attribute, which is even!");
     }
@@ -1426,7 +1427,7 @@ namespace CoupledField {
     actSol = solVecMH_;
 
     // Create multiharmonic time-frequency object and provide basic information
-    MHTimeFreqResult ftRes(N, M, bF, numFFT);
+    MHTimeFreqResult ftRes(N, M, bF, numFFT, PDE_.GetDomain());
 
     // Evaluate the nonlinearity (transform solution in time domain =>
     // evaluate the curl for the B-field => evaluate BH curve =>

@@ -111,10 +111,12 @@ class IDBC_Graph;
     //!                          pattern.
     //! \param isMultHarm        True if we perform a multiharmonic analysis
     //! \param N, M              Number of harmonics
+    //! \param size              Number of considered frequencies (num of sbm blocks)
     void SetupInit( UInt numBlocks, bool useDistinctGraphs,
                     bool isMultHarm = false,
                     UInt N = 0,
-                    UInt M = 0);
+                    UInt M = 0,
+                    UInt size = 0);
 
     //! Finalises setup of the graph manager
 
@@ -361,8 +363,20 @@ class IDBC_Graph;
     //! to AssembleDone().
     bool reorderingDone_;
 
+    // =======================================================================
+    // MULITHARMONIC VARIABLES
+    // =======================================================================
+
+    //@{ \name Variables for multiharmonic analysis
+
+    //! Number of harmonics for solution quantity
     UInt N_;
+    //! Number of harmonics for reluctivity
     UInt M_;
+    //! Number of considered frequencies (positive and negative)
+    //! which is the number of row/col blocks in the SBM matrix
+    UInt sizeMH_;
+    //@}
 
     //! Flag indicating whether registration of all SBMBlocks is done
 

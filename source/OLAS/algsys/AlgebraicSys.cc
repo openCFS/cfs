@@ -274,16 +274,19 @@ namespace CoupledField {
         // ------------------------------
         UInt N = solStrat_->GetNumHarmN();
         UInt M = solStrat_->GetNumHarmM();
+        bool zeroHarm = solStrat_->IsZeroHarm();
 
+        UInt a = (zeroHarm)? 2 : 1;
         SubMatrixID id;
-        for( UInt iRow = 0; iRow < N + 1; ++iRow ) {
+        for( UInt iRow = 0; iRow < N + a; ++iRow ) {
           id.rowInd = iRow;
           id.colInd = iRow;
           sbmPatternIds_[id] = NO_PATTERN_ID;
           for( UInt iCol = iRow + 1; iCol < iRow + (M-1)/2 + 1; ++iCol ) {
-            if( iCol <  N + 1){
+            if( iCol <  N + a){
               id.rowInd = iRow;
               id.colInd = iCol;
+              LOG_TRACE(algSys) << "(row,col)=("<<iRow<<","<<iCol<<")";
               sbmPatternIds_[id] = NO_PATTERN_ID;
             }
           }
@@ -355,7 +358,7 @@ namespace CoupledField {
     StdMatrix *stdMat = NULL;
     BaseVector *bVec = NULL;
     SingleVector *sVec = NULL;
-    UInt nB = (isMultHarm_)? solStrat_->GetNumHarmN() + 1 : numBlocks_;
+    UInt nB = (isMultHarm_)? domain->GetDriver()->GetNumFreq() : numBlocks_;
     for ( UInt k = 0; k < nB; k++ ) {
       // Get diag matrix for vector generation
       stdMat = sysMat_[SYSTEM]->GetPointer( k, k );
@@ -1605,9 +1608,7 @@ namespace CoupledField {
     // -----------------------------------------------------------
 
     // number of harmonics
-    UInt N = solStrat_->GetNumHarmN();
     UInt M = solStrat_->GetNumHarmM();
-
 
     // loop over all matrix Types in feSubMatricesByFctId
     std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct = feSubMatricesByFctId_.begin();
@@ -1619,9 +1620,9 @@ namespace CoupledField {
       //for( auto & sbmIt : sbmSet ) {
         // Fetch all SBM blocks, in which the current (rowFctId, colFctId) occurs.
         // In the multiharmonic case, give it all the non-zero (sbmRow, sbmCol) combinations
-        for( UInt sbmRow = 0; sbmRow < N + 1; ++sbmRow ) {
+        for( UInt sbmRow = 0; sbmRow < domain->GetDriver()->GetNumFreq(); ++sbmRow ) {
           for( UInt sbmCol = sbmRow; sbmCol < sbmRow + (M-1)/2; ++sbmCol ) {
-            if( sbmCol < N + 1){
+            if( sbmCol < domain->GetDriver()->GetNumFreq() ){
               SubMatrixID sID;
               sID.rowInd = sbmRow;
               sID.colInd = sbmCol;
@@ -1658,9 +1659,9 @@ namespace CoupledField {
     }
     else {
       SubMatrixID sID;
-      for (  UInt sbmRow = 0; sbmRow < N + 1; ++sbmRow ) {
+      for (  UInt sbmRow = 0; sbmRow < domain->GetDriver()->GetNumFreq(); ++sbmRow ) {
         for ( UInt sbmCol = sbmRow; sbmCol < sbmRow + (M-1)/2 + 1; ++sbmCol ) {
-          if( sbmCol < N + 1){
+          if( sbmCol < domain->GetDriver()->GetNumFreq()){
             ++nnzBlocks;
             if ( graphManager_->SubGraphExists( sbmRow, sbmCol ) == true ) {
               sID.rowInd = sbmRow;
@@ -1690,7 +1691,7 @@ namespace CoupledField {
     for( UInt i = 0; i < nnzBlocks; i++ ) {
       size_ += blockInfo_[0]->size;
     }
-    StdVector< StdVector<UInt> > toBeCopied((N + 1) * (N + 1));
+    StdVector< StdVector<UInt> > toBeCopied( domain->GetDriver()->GetNumFreq()  * domain->GetDriver()->GetNumFreq() );
     rowIndList1_.Set(toBeCopied);
     rowList1_.Set(toBeCopied);
     rowIndList2_.Set(toBeCopied);
@@ -1806,11 +1807,10 @@ namespace CoupledField {
 
     // Different setup for multiharmonic analysis
     if( isMultHarm_ ){
-      UInt N = solStrat_->GetNumHarmN();
-      UInt M = solStrat_->GetNumHarmM();
-
-      UInt numSBMRows = N + 1;
-      graphManager_->SetupInit( numSBMRows, distinctMatGraphs_, true, N, M );
+      UInt numSBMRows = domain->GetDriver()->GetNumFreq();
+      graphManager_->SetupInit( numSBMRows, distinctMatGraphs_, true,
+                                solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM(),
+                                domain->GetDriver()->GetNumFreq() );
 
       // In the multiharmonic case, we have only one set of equations
       // but they are present several times in the final system matrix
@@ -2733,9 +2733,8 @@ namespace CoupledField {
     if(fctId1 != fctId2) EXCEPTION("AlgebraicSys::SetElementMatrix_MultHarm function Id's don't match!");
 
     // lambda for converting flattened sbm-index to (row, col) tuple
-    UInt N = solStrat_->GetNumHarmN();
-    //UInt M = solStrat_->GetNumHarmM();
-    auto DeflattenIndex = [N](UInt ind) { std::vector<UInt> a = {ind / (N + 1), ind % (N + 1)}; return a;};
+    UInt size = domain->GetDriver()->GetNumFreq();
+    auto DeflattenIndex = [size](UInt ind) { std::vector<UInt> a = {ind / (size), ind % (size)}; return a;};
     //auto FlattenIndex = [N](UInt row, UInt col) { return N * row + col;};
 
     std::string t;
@@ -3004,21 +3003,21 @@ namespace CoupledField {
       const UInt & lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
 
       // Get vector, differentiate between normal and multiharmonic case
-      // TODO this method must be adapted if we consider a real multiharmonic excitation
-      // with several harmonics. Currently only an excitation in the base-harmonic is allowed.
-      // Until now, the rhs-indices (SBM sub vectors) N+1 and N-1 are set
       // index:     [  0     1     2  ... N-1  N    N+1   N+2 ...  2N ]
       // harmonic:  [ -N   -N+1  -N+2 ... -1   0     1     2  ...   N ]
       // ========= UPDATE for the fastHBFEM version ======================
-      // In the optimized version, we are only considering odd harmonics
-      // and therefore we have a new index-harmonic mapping (N must be odd!! )
+      // NOTE: In the new (performance optimized) version, we use
+      // only odd harmonics and therefore the above mapping looks like
       // index:     [  0     1     2  ... (N-1)/2   (N+1)/2   (N-1)/2+2   ...  N+1 ]
       // harmonic:  [ -N   -N+2  -N+4 ...    -1        1           3      ...   N ]
+      // Or if the zero harmonic is included:
+      // index:     [  0     1     2  ... (N-1)/2 (N+1)/2+1  (N+1)/2+2  (N-1)/2+3   ...  N+2 ]
+      // harmonic:  [ -N   -N+2  -N+4 ...    -1       0         1           3      ...   N ]
 
 
       if( isMultHarm_ ){
-        SingleVector &vecP = (*rhs_)( (solStrat_->GetNumHarmN() + harm)/2);
-        SingleVector &vecN = (*rhs_)( (solStrat_->GetNumHarmN() - harm)/2);
+        SingleVector &vecP = (*rhs_)( domain->GetDriver()->IndexOfHarmonic(harm));
+        SingleVector &vecN = (*rhs_)( domain->GetDriver()->IndexOfHarmonic(-harm));
         if(vecP.GetEntryType() == BaseMatrix::COMPLEX && vecN.GetEntryType() == BaseMatrix::COMPLEX){
           if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
             if ( rowNum <= lastFreeRowIndex &&  elemRHS[iRow] != (Complex)0.0 ) {
@@ -3214,7 +3213,7 @@ namespace CoupledField {
     MapCompleteFctIdToIndex( 0, blockNums, indices);
     UInt size = blockNums.GetSize();
 
-    for(UInt i = 0; i < solStrat_->GetNumHarmN() + 1 ; ++i ) {
+    for(UInt i = 0; i < domain->GetDriver()->GetNumFreq() ; ++i ) {
       // security check: ensure that sub-vector has the same size
       // as the block indices
       if( fup(i).GetSize() != indices.GetSize() ) {
@@ -3320,7 +3319,7 @@ namespace CoupledField {
     // In multiharmonic analysis, we have to adapt the mass part
     if(isMultHarm){
       SBM_Matrix *mass = sysMat_[DAMPING];
-      for(UInt iRow = 0; iRow < solStrat_->GetNumHarmN() + 1; ++iRow){
+      for(UInt iRow = 0; iRow < domain->GetDriver()->GetNumFreq(); ++iRow){
         StdMatrix* sysSub = sys->GetPointer(iRow, iRow);
         StdMatrix* massSub = mass->GetPointer(iRow, iRow);
         // multiply massSub with harmonic number and add it to system matrix
@@ -3551,7 +3550,7 @@ namespace CoupledField {
   
 
   void AlgebraicSys::GetFullMultiHarmSolutionVal(SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
-    solVec.Resize( solStrat_->GetNumHarmN() + 1);
+    solVec.Resize( domain->GetDriver()->GetNumFreq() );
     // solVec gets initialized in GetSolutionVal method
 
     // loop over all block vector and call specialized GetRHSVal method, the boolean
@@ -3660,7 +3659,7 @@ namespace CoupledField {
   
 
   void AlgebraicSys::GetFullMultiHarmRHSVal(SBM_Vector& rhsVec ) {
-    rhsVec.Resize( solStrat_->GetNumHarmN() + 1 );
+    rhsVec.Resize( domain->GetDriver()->GetNumFreq() );
     rhsVec.Init();
 
     // loop over all block vector and call specialized GetRHSVal method, the boolean
@@ -3683,13 +3682,14 @@ namespace CoupledField {
 
 
     /* Strategy for multiharmonic system:
-     * Generate N+1 times N+1 sbm matrix but only populate the
+     * Generate (N+1 x N+1) or (N+2 x N+2) SBM matrix...driver privides the correct size
+     * in the variable numFreq_  but only populate the
      * nonzero blocks, the sbm class should recognize that ...
      */
     if( isMultHarm_ ){
-      UInt s = solStrat_->GetNumHarmN() + 1; //size
+      UInt s =  domain->GetDriver()->GetNumFreq(); //size
 
-      // Multiharmonic system matrix has size [N+1, N+1]
+      // Multiharmonic system matrix has size [numFreq, numFreq]
       bool sysMatSym = false; //system matrix is not symmetric
       retMat = new SBM_Matrix( s, s, sysMatSym );
     }else{
@@ -3719,12 +3719,12 @@ namespace CoupledField {
       UInt nrows = blockInfo_[0]->numLastFreeIndex;
       UInt ncols = blockInfo_[0]->numLastFreeIndex;
 
-      UInt N = solStrat_->GetNumHarmN();
+      //UInt N = solStrat_->GetNumHarmN();
       UInt M = solStrat_->GetNumHarmM();
-
-      for( UInt sbmRow = 0; sbmRow < N + 1; ++sbmRow ) {
+      UInt s =  domain->GetDriver()->GetNumFreq(); //size
+      for( UInt sbmRow = 0; sbmRow < s; ++sbmRow ) {
         for( UInt sbmCol = sbmRow ; sbmCol < sbmRow + (M-1)/2 + 1; ++sbmCol ) {
-          if( sbmCol < N + 1){
+          if( sbmCol < s){
             graph = graphManager_->GetGraph( sbmRow, sbmCol );
             // we only allow nonsymmetric storage scheme
             BaseMatrix::StorageType sT = BaseMatrix::SPARSE_NONSYM;
@@ -3783,10 +3783,7 @@ namespace CoupledField {
               }
             }
 
-
-
-
-          } // endif sbmCol < N + 1
+          } // endif sbmCol < size
         } // loop over sbmCols
       } // loop over sbmRows
 

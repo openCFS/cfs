@@ -79,11 +79,20 @@ public:
   //! Vector containing the harmonic-frequencies (negative, 0, positive)
   StdVector<Double> harmFreq_;
 
+  //! Number of considered frequencies (positive and negative)
+  UInt numFreq_;
+
+  //! Compute the index of a given harmonic
+  UInt IndexOfHarmonic(const Integer& harmonic);
+  //! Compute the harmonic of a given harmonic
+  Integer HarmonicOfIndex(const UInt& Index);
+  //! Get the number of the considered frequencies (positive and negative)
+  UInt GetNumFreq(){return numFreq_;}
+
 protected:
 
   //! Timer for estimating remaining runtime
   boost::shared_ptr<Timer> timer_;
-
 };
 
 }

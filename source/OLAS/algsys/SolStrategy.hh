@@ -112,22 +112,27 @@ public:
   
   PtrParamNode GetParamNode() { return param_; }
 
+  // ========================================================================
+  //  MULTIHARMONIC SECTION
+  // ========================================================================
   //! Set flag is multiharmonic analysis is used
   void SetMultHarm(bool isMultHarm){ isMultHarm_ = isMultHarm;}
 
   bool IsMultHarm(){ return isMultHarm_; }
 
-  void SetMultHarm(UInt bF, UInt nN, UInt nM, UInt numFFT){
+  void SetMultHarm(const UInt& bF, const UInt& nN, const UInt& nM, const UInt& numFFT, bool zeroHarm){
     baseFreq_ = bF;
     numHarmN_ = nN;
     numHarmM_ = nM;
     numFFT_ = numFFT;
+    zeroHarm_ = zeroHarm;
   }
 
   UInt GetBaseFreq(){ return baseFreq_; }
   UInt GetNumHarmN(){ return numHarmN_; }
   UInt GetNumHarmM(){ return numHarmM_; }
   UInt GetNumFFT(){ return numFFT_; }
+  bool IsZeroHarm(){ return zeroHarm_; }
 
 protected:
   
@@ -158,6 +163,9 @@ protected:
 
   //! Number of considered time evaluation points for FFT and iFFT
   UInt numFFT_;
+
+  //! Boolean, which tells us if we need to incorporate the zero harmonic
+  bool zeroHarm_;
 
 
 };

@@ -788,21 +788,22 @@ namespace CoupledField
     // which have to be reassembled was already carried out in the
     // StdSolveStep::AssembleMH method
 
+    UInt size = domain->GetDriver()->GetNumFreq();
     // same as ComputeIndex method in GraphManager, here with a lambda function
-    auto ComputeIndex = [N](UInt a, UInt b ) { return (N + 1) * a + b;};
+    auto ComputeIndex = [size](UInt a, UInt b ) { return (size) * a + b;};
 
     // store the sbm-indices of the blocks, which have to be assembled
     // NOTE: We now use the optimized version, where we only consider odd harmonics,
     // therefore the column isn't anymore iRow+harmonic !!!
     // =========== This is difficult to describe here, see notes (K.Roppert 2018) =====
     StdVector<UInt> sbmInd(0);
-    for( UInt iRow = 0; iRow < N + 1; ++iRow ) {
+    for( UInt iRow = 0; iRow < size; ++iRow ) {
       if(harm == 0){
         // sbm-blocks on the main diagonal
         sbmInd.Push_back( ComputeIndex(iRow, iRow) );
       }else{
         Integer col = iRow - harm/2;
-        if( col < (Integer)N + 1 && col >= 0){
+        if( col < (Integer)size && col >= 0){
           // change row/columns
           sbmInd.Push_back( ComputeIndex(col, iRow) );
         }
@@ -987,7 +988,7 @@ namespace CoupledField
                 // in a vector with size 1 to pass it to InsertMatrix method.
                 // This is kind of a workaround
                 StdVector<UInt> diagInd(1);
-                for( UInt iRow = 0; iRow < N + 1; ++iRow ) {
+                for( UInt iRow = 0; iRow < domain->GetDriver()->GetNumFreq(); ++iRow ) {
                   diagInd.Init(0);
                   diagInd[0] =  sbmInd[iRow];
                   Double f = multHarmFreqVec[iRow];

@@ -83,24 +83,18 @@ namespace CoupledField
     param_->GetValue("includeZeroHarmonic", zeroHarm_, ParamNode::PASS );
 
 
-
-
-
-
-
-
-
-
-    harmFreq_.Resize(numHarmonics_N_ + 1 );
-    Double dummy = -1;
-    // Insert frequencies in the loop (now in the optimized version, we
-    // only insert odd harmonics)
-    for(UInt i = 0; i < (numHarmonics_N_ + 1)/2; ++i  ){
-      // negative frequencies at the beginning
-      harmFreq_[(numHarmonics_N_ - 1)/2 - i] = dummy * (2*i+1) * baseFreq_;
-      // positive frequencies starting at numHarmonics_N_ + 1
-      harmFreq_[(numHarmonics_N_ + 1)/2 + i] = (2*i + 1) * baseFreq_;
+    if(zeroHarm_){
+      harmFreq_.Resize(numHarmonics_N_ + 2 );
+    }else{
+      harmFreq_.Resize(numHarmonics_N_ + 1 );
     }
+    harmFreq_.Init(0.0);
+    for(UInt i = 0; i < harmFreq_.GetSize(); ++i  ){
+      harmFreq_[i] = HarmonicOfIndex(i) * baseFreq_;
+    }
+
+    numFreq_ = harmFreq_.GetSize();
+
     // Set the flag for the harmonic callback mechanism
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "finishCash", 0 );
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "harmonicHandle", -1 );
@@ -122,6 +116,36 @@ namespace CoupledField
   }
 
 
+
+  UInt MultiHarmonicDriver::IndexOfHarmonic(const Integer& harmonic){
+    UInt ind;
+    if(zeroHarm_){
+      if(harmonic < 0) ind = (numHarmonics_N_  + harmonic)/2;
+      else if(harmonic == 0) ind = (numHarmonics_N_ + 1)/2;
+      else ind = (numHarmonics_N_ + harmonic)/2 + 1;
+    }else{
+      ind = (numHarmonics_N_ + harmonic)/2;
+    }
+    return ind;
+  }
+
+  Integer MultiHarmonicDriver::HarmonicOfIndex(const UInt& ind){
+    Integer harmonic;
+    if(zeroHarm_){
+      if( ind < (numHarmonics_N_  + 1)/2 ){
+        harmonic = Integer(-numHarmonics_N_) + Integer(2*ind);
+      }else if(ind == (numHarmonics_N_  + 1)/2 ){
+        harmonic = 0;
+      }else{
+        harmonic = Integer(-numHarmonics_N_) + 2*Integer(ind-1);
+      }
+    }else{
+      harmonic = -numHarmonics_N_ + 2*ind;
+    }
+    return harmonic;
+  }
+
+
   void MultiHarmonicDriver::SetToStepValue(UInt stepNum, Double stepVal ){
     // ensure that this method is only called if simState has input
     if( ! simState_->HasInput()) {
@@ -136,7 +160,7 @@ namespace CoupledField
     analysis_id_.step = actFreqStep;
     analysis_id_.freq = actFreq;
 
-    Integer h = -numHarmonics_N_ + 2 * stepNum;
+    Integer h = HarmonicOfIndex(stepNum);
     // We need to activate the correct harmonic results in CoefFunctionHarmBalance
     mathParser_->SetValue(MathParser::GLOB_HANDLER, "f", actFreq);
     mathParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
@@ -157,8 +181,7 @@ namespace CoupledField
   {
     ptPDE_->WriteGeneralPDEdefines();
     
-    UInt numFreq = numHarmonics_N_ + 1;
-    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq );
+    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
 
     //if( writeAllSteps_ )
       simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
@@ -188,12 +211,15 @@ namespace CoupledField
       // only odd harmonics and therefore the above mapping looks like
       // index:     [  0     1     2  ... (N-1)/2   (N+1)/2   (N-1)/2+2   ...  N+1 ]
       // harmonic:  [ -N   -N+2  -N+4 ...    -1        1           3      ...   N ]
+      // Or if the zero harmonic is included:
+      // index:     [  0     1     2  ... (N-1)/2 (N+1)/2+1  (N+1)/2+2  (N-1)/2+3   ...  N+2 ]
+      // harmonic:  [ -N   -N+2  -N+4 ...    -1       0         1           3      ...   N ]
 
       UInt actFreqStep = i;
       analysis_id_.step = actFreqStep;
       analysis_id_.freq = actFreq;
 
-      Integer h = -numHarmonics_N_ + 2*i;
+      Integer h = this->HarmonicOfIndex(i);
       // We need to activate the correct harmonic results in CoefFunctionHarmBalance
       mathParser_->SetValue(MathParser::GLOB_HANDLER, "f", actFreq);
       mathParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);

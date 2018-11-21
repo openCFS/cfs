@@ -20,7 +20,8 @@
 #include "MatVec/Matrix.hh"
 #include "General/Environment.hh"
 #include "MatVec/SBM_Vector.hh"
-
+#include "Domain/Domain.hh"
+#include "Driver/BaseDriver.hh"
 
 namespace CoupledField {
 
@@ -44,7 +45,8 @@ public:
   MHTimeFreqResult(const UInt& N,
                    const UInt& M,
                    const Double& baseFreq,
-                   const UInt& nFFT);
+                   const UInt& nFFT,
+                   Domain* domain);
 
   //! Destructor
   ~MHTimeFreqResult();
@@ -54,7 +56,8 @@ public:
   void Init(const UInt& N,
        const UInt& M,
        const Double& baseFreq,
-       const UInt& nFFT);
+       const UInt& nFFT,
+       Domain* domain);
 
   //! Initialize the timeResult_ matrix with (spatialSize, nFFT_)
   void InitTimeResult(const UInt spatialSize){
@@ -160,6 +163,9 @@ private:
 
   //! Number of considered harmonics
   UInt N_;
+
+  //! Pointer to domain object
+  Domain* domain_;
 
   //! Buffer for all input data of the FFT (one time series per row)
   //! Will be overwritten with the result of the FFT.

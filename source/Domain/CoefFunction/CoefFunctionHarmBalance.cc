@@ -62,7 +62,7 @@ template<class T>
 
     //! For the initialization from the PDE-class,
     //! Calls the Init method in MHTimeFreqResult
-    freqTimeRes_.Init(N, M, baseFreq, nFFT);
+    freqTimeRes_.Init(N, M, baseFreq, nFFT, domain);
 
     feFct_ = dynamic_pointer_cast<FeFunction<T> >(feFct);
 

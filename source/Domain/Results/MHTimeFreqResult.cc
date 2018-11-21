@@ -45,14 +45,15 @@ namespace CoupledField {
   MHTimeFreqResult::MHTimeFreqResult(const UInt& N,
                                      const UInt& M,
                                      const Double& baseFreq,
-                                     const UInt& nFFT){
+                                     const UInt& nFFT,
+                                     Domain* domain){
     spatialSize_ = 0;
     omega0_ = 0.0;
     timeResInit_ = false;
     nFFT_ = 0;
     N_ = 0;
-
-    this->Init(N, M, baseFreq, nFFT);
+    domain_ = NULL;
+    this->Init(N, M, baseFreq, nFFT, domain);
   }
 
   // Default constructor
@@ -62,6 +63,7 @@ namespace CoupledField {
     timeResInit_ = false;
     nFFT_ = 0;
     N_ = 0;
+    domain_ = NULL;
   }
 
 
@@ -72,13 +74,15 @@ namespace CoupledField {
   void MHTimeFreqResult::Init(const UInt& N,
                               const UInt& M,
                               const Double& baseFreq,
-                              const UInt& nFFT){
+                              const UInt& nFFT,
+                              Domain* domain){
     N_ = N;
     timeResult_.Resize(0,0);
     freqResult_.Resize(0,0);
     nFFT_ = nFFT  ;
     omega0_ = 2 * M_PI * baseFreq;
     spatialSize_ = 0;
+    domain_ = domain;
     // Create the time vector
     this->CreateTimeVec();
   }
@@ -133,8 +137,8 @@ namespace CoupledField {
     spatialSize_ = freqRes(0).GetSize();
     UInt numFreq = freqRes.GetSize();
 
-    // Sanity check
-    if(numFreq != N_ + 1){
+    // Consistency check
+    if(numFreq != domain->GetDriver()->GetNumFreq()){
       EXCEPTION("MHTimeFreqResult::SetFrequencyResult This should not happen!");
     }
 
@@ -143,10 +147,11 @@ namespace CoupledField {
     freqResult_.InitValue(in);
     Integer h;
     UInt ind;
+    UInt size = domain_->GetDriver()->GetNumFreq();
     // Handle harmonics
-    for(UInt i = 0; i < N_ + 1; ++i){
+    for(UInt i = 0; i < size; ++i){
       // which harmonic are we considering (in the optimized version)
-      h = -N_ + 2 * i;
+      h = domain->GetDriver()->HarmonicOfIndex(i);
       // where is this harmonic in the full harmonics vector (including
       // all harmonics, also the even ones)
       ind = N_ + h;
@@ -296,6 +301,7 @@ namespace CoupledField {
       status = DftiComputeForward(dftHandle, deleteMeResult_[i]);
       DFTI_CHECK_STATUS(dftHandle, status);
 
+      // THIS PART IS UNAFFECTED BY THE PERFORMANCE OPTIMIZATION
       // Static entry for harmonic 0
       tmp = deleteMeResult_[i][0];
       // Fill the correct frequency result matrix and also scale the FFT correctly

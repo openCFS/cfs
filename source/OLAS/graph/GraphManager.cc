@@ -59,11 +59,13 @@ namespace CoupledField {
                                 bool useDistinctGraphs,
                                 bool isMultHarm,
                                 UInt N,
-                                UInt M) {
+                                UInt M,
+                                UInt size) {
 
     if( isMultHarm ){
       N_ = N;
       M_ = M;
+      sizeMH_ = size;
       LOG_TRACE(graphMan) << "Initializing GraphManager with "
                                << numBlocks*numBlocks << " multiharmonic blocks";
     }else{
@@ -117,9 +119,7 @@ namespace CoupledField {
       edgeList2_.resize( numBlocks_ );
     }
 
-
     isMultHarm_ = isMultHarm;
-
   }
 
 
@@ -230,7 +230,7 @@ namespace CoupledField {
     // ----------------------------------
     //   D I A G O N A L    B L O C K S
     // ----------------------------------
-    for (  UInt sbmRow = 0; sbmRow < N + 1; ++sbmRow ) {
+    for (  UInt sbmRow = 0; sbmRow < sizeMH_; ++sbmRow ) {
       UInt idx = ComputeIndex( sbmRow, sbmRow );
 
       // Finalize assembly of graph
@@ -264,9 +264,9 @@ namespace CoupledField {
     // -------------------------------------------
     //   O F F  - D I A G O N A L    B L O C K S
     // -------------------------------------------
-    for (  UInt sbmRow = 0; sbmRow < N + 1; ++sbmRow ) {
+    for (  UInt sbmRow = 0; sbmRow < sizeMH_; ++sbmRow ) {
       for ( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + (M-1)/2 + 1; ++sbmCol ) {
-        if( sbmCol < N + 1){
+        if( sbmCol < sizeMH_){
           UInt idx = ComputeIndex( sbmRow, sbmCol );
 
           //  Finalize assembly of graph (sorting, re-ordering, conversion to
@@ -413,9 +413,9 @@ namespace CoupledField {
     blockInfoMH_ = blockInfo;
 
     // now generate the graph objects
-    for (  UInt sbmRow = 0; sbmRow < N_ + 1; ++sbmRow ) {
+    for (  UInt sbmRow = 0; sbmRow < sizeMH_; ++sbmRow ) {
       for ( UInt sbmCol = sbmRow ; sbmCol < sbmRow + (M_-1)/2 + 1; ++sbmCol ) {
-        if( sbmCol < N_ + 1){
+        if( sbmCol < sizeMH_){
           UInt idx = ComputeIndex( sbmRow, sbmCol );
           // Generate graph object for this block
           graph_[idx] = new BaseGraph( blockInfo->numLastFreeIndex,
@@ -553,9 +553,9 @@ namespace CoupledField {
       //    Adaption for multiharmonic case: only loop over nonzero blocks
       //    the body of the loop is the same as in the non-multiharm version
       //===================================================================
-      for (  UInt sbmRow = 0; sbmRow < N_ + 1; ++sbmRow ) {
+      for (  UInt sbmRow = 0; sbmRow < sizeMH_; ++sbmRow ) {
         for ( UInt sbmCol = sbmRow ; sbmCol < sbmRow + (M_-1)/2 + 1; ++sbmCol ) {
-          if( sbmCol < N_ + 1){
+          if( sbmCol < sizeMH_){
 
             // Compute index of graph in graph pointer matrix
             UInt idx = ComputeIndex( sbmRow, sbmCol );
