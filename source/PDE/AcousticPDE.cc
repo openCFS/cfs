@@ -5,7 +5,6 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-
 //new integrator concept
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
@@ -61,37 +60,28 @@ namespace CoupledField{
     pdematerialclass_  = FLUID;
     nonLin_            = false;
     isMechCoupled_     = false;
-    
+    formulation_ = ACOU_PRESSURE;
+
     //! Always use total Lagrangian formulation 
     updatedGeo_        = false;
-
     isTimeDomPML_      = false;
-
-    isAPML_ = false;
+    isAPML_            = false;
     complexFluidFormulation_ = false;
 
-    //check for pressure or potential formulation
-    sosAtLaplace_ = false;
     std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
-    if(pdeFormulation == "default"){
-      formulation_ = ACOU_PRESSURE;
-    }else{
-      if (pdeFormulation == "acouPressureSOSatLaplace") {
-    	  formulation_ = ACOU_PRESSURE;
-    	  sosAtLaplace_ = true;
-      }
-      else
-    	  formulation_ = SolutionTypeEnum.Parse(pdeFormulation);
-    }
+    //check for pressure or potential formulation
+    sosAtLaplace_ = (pdeFormulation == "acouPressureSOSatLaplace")? true : false;
 
+    if(pdeFormulation != "default" && pdeFormulation != "acouPressureSOSatLaplace"){
+      formulation_ = SolutionTypeEnum.Parse(pdeFormulation);
+    }
   }
 
   std::map<SolutionType, shared_ptr<FeSpace> > AcousticPDE::CreateFeSpaces( const std::string&  formulation,
                   PtrParamNode infoNode ){
 
-    if(this->analysistype_ == STATIC){
+    if(this->analysistype_ == STATIC)
       EXCEPTION("No STATIC analysis in AcousticPDE");
-    }
 
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H1"){
@@ -108,7 +98,7 @@ namespace CoupledField{
     // Check for transient PML
     // ===================================
     if(this->analysistype_ == TRANSIENT && isTimeDomPML_){
-      //now define the additional uknowns
+      //now define the additional unknowns
 
       if(dim_==3 && !this->isAPML_){
         PtrParamNode scalarpml = infoNode->Get("TransientPMLScalarAuxVar");
@@ -125,7 +115,6 @@ namespace CoupledField{
     }
     return crSpaces;
   }
-  
   
   void AcousticPDE::ReadDampingInformation() {
     std::map<std::string, DampingType> idDampType;
@@ -176,10 +165,6 @@ namespace CoupledField{
     RegionIdType actRegionId;
     std::string actRegionName, actDampingId;
 
-    //       if( regionNodes.GetSize() > 0 ) {
-    //         Info->PrintF( pdename_, "Damping in following region(s)\n" );
-    //       }
-
     for (UInt k = 0; k < regionNodes.GetSize(); k++) {
       regionNodes[k]->GetValue( "name", actRegionName );
       regionNodes[k]->GetValue( "dampingId", actDampingId );
@@ -215,25 +200,7 @@ namespace CoupledField{
         isTimeDomPML_ = true;
       }
       
-
-      //         // Log to info file
-      //         std::string dampString;
-      //         Enum2String( dampingList_[actRegionId], dampString );
-      //
-      //         if( dampingList_[actRegionId] == FRACTIONAL_GL ) {
-      //           dampString += "( Gruenwald-Letnikov algorithm )";
-      //         }
-      //         if( dampingList_[actRegionId] == FRACTIONAL_BLANK ) {
-      //           dampString += "( Blanks algorithm )";
-      //         }
-      //         if( dampingList_[actRegionId] == FRACTIONAL_GL_INT ||
-      //             dampingList_[actRegionId] == FRACTIONAL_BLANK_INT ) {
-      //           dampString += "(linear interpol. of single past values)";
-      //         }
-      //         Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(),
-      //                       dampString.c_str() );
     }
-    //       Info->PrintF( pdename_, "\n" );  
   }
 
   void AcousticPDE::DefineIntegrators(){
@@ -250,10 +217,8 @@ namespace CoupledField{
     //flag indicating frequency PML formulation
     bool harmonicPML = false;
 
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-      // Set current region and material
-      actRegion = it->first;
-      // actSDMat = it->second;
+    for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++) {
+      actRegion = regions_[iRegion];
 
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
@@ -269,7 +234,7 @@ namespace CoupledField{
       mySpace->SetRegionApproximation(actRegion, polyId,integId);
 
       //=======================================================================
-      // Generate coefficient functions
+      // Generate coefficient functions 4 (Speed of Sound)
       //=======================================================================
       PtrCoefFct c0;
       PtrCoefFct dens;
@@ -1712,44 +1677,6 @@ namespace CoupledField{
 
   }
 
-  // **********
-  // SetRhsLoads
-  // **********
-//  void  AcousticPDE::SetRhsValues() {
-//
-//	std::cout << "DO AcousticPDE::SetRhsValues() " << std::endl;
-//    //do the same for RHS
-//	//PtrCoefFct& sol = fieldCoefs_[ACOU_PRESSURE];
-//
-//    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator rFncIt= this->rhsFeFunctions_.begin();
-//    while ( rFncIt != this->rhsFeFunctions_.end() ) {
-////    	LoadCoefList loadCoefs = rFncIt->second->GetLoadCoefFunctions();
-////    	LoadCoefList::iterator it = loadCoefs.begin();
-////    	for ( ; it != loadCoefs.end(); ++it  ) {
-////    		PtrCoefFct ptCoef = it->first;
-////    		StdVector<shared_ptr<EntityList> > & lists = it->second;
-////    		if ( lists[0]->GetName() == "inner" ) {
-////    			std::cout << "Size: " << lists[0]->GetSize() << std::endl;
-////    			std::cout << "Type: " << lists[0]->GetType() << std::endl;
-////    		}
-////    		shared_ptr<EntityList>& singleList = lists[0];
-////    		EntityIterator entIt = singleList->GetIterator();
-////    		if ( singleList->GetType() == EntityList::ELEM_LIST ) {
-////    			for ( entIt.Begin(); !entIt.IsEnd(); entIt++) {
-////    				std::cout << "Node: " << entIt.GetNode() << std::endl;
-////    			}
-////    		}
-////    	}
-////    	std::cout << "END \n " << std::endl;
-//
-//
-//
-//    	rFncIt->second->ApplyLoads();
-//    	rFncIt++;
-//    }
-//  }
-
-
   void AcousticPDE::DefineSolveStep(){
     solveStep_ = new StdSolveStep(*this);
   }
@@ -1919,17 +1846,6 @@ namespace CoupledField{
   void AcousticPDE::FinalizePostProcResults(){
     //first call base class method
     SinglePDE::FinalizePostProcResults();
-
-    ////now we additonally add the convective stuff
-    //std::map<RegionIdType, BaseBDBInt*>::iterator stiffIt = this->convectiveInts_.begin();
-    //for(; stiffIt != convectiveInts_.end(); ++stiffIt ) {
-    //  RegionIdType region = stiffIt->first;
-    //  BaseBDBInt* bdb = stiffIt->second;
-    //  if( !bdb)
-    //    continue;
-    //
-    //  convectiveCoef_->AddIntegrator(bdb, region);
-    //}
   }
 
   void AcousticPDE::DefinePostProcResults(){
@@ -2361,37 +2277,27 @@ namespace CoupledField{
   void AcousticPDE::InitTimeStepping(){
 
     Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
+    GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
+    shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
+    feFunctions_[formulation_]->SetTimeScheme(acouScheme);
 
     if(this->isTimeDomPML_){
-      //basically the choice for alpha scheme needs to be done everytime we have
-      //a damping matrix not just for PML
-
-      //scheme for main unknown
-      GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
+      //the choice of alpha schemes depends on the damping matrix (e.g. PML)
       GLMScheme * scheme2 = new Newmark(0.5,0.25,alpha);
-      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
       shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(scheme2,0));
-
       feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(vecScheme);
-      feFunctions_[formulation_]->SetTimeScheme(acouScheme);
 
       if(!this->isAPML_ && dim_ == 3){
         GLMScheme * scheme3 = new Newmark(0.5,0.25,alpha);
         shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(scheme3,0));
         feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
       }
-    }else{
-      //GLMScheme * scheme1 = new Newmark(0.8,0.4225,-0.3);
-      //GLMScheme * scheme1 = new Newmark(0.6,0.3025,alpha);
-      GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
-      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
-      feFunctions_[formulation_]->SetTimeScheme(acouScheme);
     }
   }
 
   void AcousticPDE::ComputeSOS(PtrCoefFct& c0, PtrCoefFct dens, PtrCoefFct blk,
 		  PtrCoefFct regionTemp, std::string tempId) {
-
+//TODO 1 erase inconsistent coding style 1/c0^2
 	  if ( complexFluidFormulation_ ) {
 		  //here c0 is actually 1/c0^2!!
 		  c0 = CoefFunction::Generate( mp_,  Global::COMPLEX,
@@ -2404,7 +2310,9 @@ namespace CoupledField{
 
 			  // gasR=287.058 J/kg K   ... universal gas constant
 			  // kappa=1.402, adabatic exponent for air
-			  PtrCoefFct constVal = CoefFunction::Generate( mp_, Global::REAL, "402.4553160");
+        shared_ptr< CoefFunctionConst<Double> > constVal(new CoefFunctionConst<Double>());
+        constVal->SetScalar(402.4553160);
+
 			  c0 = CoefFunction::Generate( mp_,  Global::REAL,
 					  CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, constVal, regionTemp, CoefXpr::OP_MULT),
 							  CoefXpr::OP_SQRT) );
@@ -2427,10 +2335,9 @@ namespace CoupledField{
 
         // gasR=287.058 J/kg K   ... universal gas constant
         // kappa=1.402, adabatic exponent for air
-        //directly use coefFunctionConst...
         shared_ptr< CoefFunctionConst<Double> > constVal(new CoefFunctionConst<Double>());
         constVal->SetScalar(402.4553160);
-        //PtrCoefFct constVal = CoefFunction::Generate( mp_, Global::REAL, "402.4553160");
+
         cSQR = CoefFunction::Generate( mp_,  Global::REAL,
                                      CoefXprBinOp(mp_, constVal, regionTemp, CoefXpr::OP_MULT) );
       }
