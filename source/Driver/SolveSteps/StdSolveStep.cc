@@ -1355,7 +1355,6 @@ namespace CoupledField {
     UInt M = solStrat_->GetNumHarmM();
     Double bF = solStrat_->GetBaseFreq();
     UInt numFFT = solStrat_->GetNumFFT();
-    bool zeroHarm = solStrat_->IsZeroHarm();
     if(numFFT % 2 != 0){
       EXCEPTION("Please provide a numFFT xml attribute, which is even!");
     }
@@ -1384,7 +1383,6 @@ namespace CoupledField {
 
     // Loop over every frequency and assemble the correct SBM blocks
     AssembleMH(N, M, true);
-
     // Sets flag that matrix was already assembled. The method CheckNonLinearities
     // redoes this
     assemble_->PostAssemble();
@@ -1485,7 +1483,6 @@ namespace CoupledField {
 
       // Sets flag that matrix was already assembled. The method CheckNonLinearities re-does this
       assemble_->PostAssemble();
-
 
       // Computation of effective matrix:
       /* NOTE: this is commented because we also include the MASS matrix
@@ -1688,12 +1685,15 @@ namespace CoupledField {
 
     if(!onlyDiagBlocks){
       for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
-
         // Ok, now it gets confusing because in the performance-optimized
         // version, we draw a border between the harmonics of the system matrix
         // and the solution vector
-        Integer tmpH = -solStrat_->GetNumHarmN() + 2 * i;
-        Integer h = (tmpH < 0)? tmpH - 1 : tmpH + 1;
+        Integer tmpH = domain->GetDriver()->HarmonicOfIndex(i);
+        Integer h;
+        if(tmpH == 0) h = 0;
+        else if(tmpH < 0) h = tmpH - 1;
+        else h = tmpH + 1;
+
         mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
 
         // And set the corresponding frequency

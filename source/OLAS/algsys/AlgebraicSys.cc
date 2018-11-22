@@ -799,9 +799,9 @@ namespace CoupledField {
     logString.append( boost::lexical_cast<std::string>(step));
     sysMat_[SYSTEM]->Export(logString, BaseMatrix::OutputFormat::MATRIX_MARKET, "sys");
 
-    logString = "mass_step_";
-    logString.append( boost::lexical_cast<std::string>(step));
-    sysMat_[DAMPING]->Export(logString, BaseMatrix::OutputFormat::MATRIX_MARKET, "mass");
+    //logString = "mass_step_";
+    //logString.append( boost::lexical_cast<std::string>(step));
+    //sysMat_[DAMPING]->Export(logString, BaseMatrix::OutputFormat::MATRIX_MARKET, "mass");
   }
 
   void AlgebraicSys::ExportLinSys(bool setup, bool pre_solve, bool post_solve)
