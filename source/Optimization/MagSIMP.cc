@@ -370,7 +370,7 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
   SolutionType solt = MAG_POTENTIAL;
   shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
   buffer_store = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
-  dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = real_nu;
+  //dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = real_nu;
 
   switch(app)
   {
@@ -387,8 +387,8 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mag->Stiffness(de->elem));
 
     // Overwrite again with the stuff from StateSolution.cc line 353 and 445
-    dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = buffer_store;
-    LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
+    //dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = buffer_store;
+    //LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
 
     double nu_r = GetRelactivity(de->elem, domain->GetGrid()->GetDim());
     // simulation: BDB with D=(d 0; 0 d) with d = nu_0*nu_r

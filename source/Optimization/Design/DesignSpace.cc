@@ -14,6 +14,7 @@
 #include "Domain/ElemMapping/SurfElem.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Forms/LinForms/LinearForm.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
