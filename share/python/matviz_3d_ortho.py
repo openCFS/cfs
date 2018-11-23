@@ -5,6 +5,7 @@ import matviz_vtk
 import vtk
 import math
 import sys
+from _operator import add
 
 try:
   import meshpy.triangle as triangle
@@ -51,6 +52,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
   design_bounds[0:3] = min_bb[0:3]
   design_bounds[3:6] = max_bb[0:3]
   
+#   print("design_bounds:",design_bounds)
   # 0:xmin,1:ymin,2:zmin,3:xmax,4:ymax,5:zmax  
   h_des = (abs(design_bounds[3] - design_bounds[0]), abs(design_bounds[4] - design_bounds[1]), abs(design_bounds[5] - design_bounds[2]))
   
@@ -59,7 +61,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
   dy_des = h_des[1] / samples[1]
   dz_des = h_des[2] / samples[2]
   
-  min_thresh = 0.1
+  min_thresh = args.bc_thresh
   max_thresh = 0.82
     
 #   print("samples:",samples)  
@@ -126,20 +128,28 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
              
         # if one of the values is < min_thresh, set it to min_thresh        
         # if one of the values is > max_thresh, set it to max_thresh
-        x1 = min(max(this[0],min_thresh),max_thresh)
-        x2 = min(max(east[0],min_thresh),max_thresh)
-        y1 = min(max(this[1],min_thresh),max_thresh)
-        y2 = min(max(top[1],min_thresh),max_thresh)
-        z1 = min(max(this[2],min_thresh),max_thresh)
-        z2 = min(max(front[2],min_thresh),max_thresh)
+#         x1 = min(max(this[0],min_thresh),max_thresh)
+#         x2 = min(max(east[0],min_thresh),max_thresh)
+#         y1 = min(max(this[1],min_thresh),max_thresh)
+#         y2 = min(max(top[1],min_thresh),max_thresh)
+#         z1 = min(max(this[2],min_thresh),max_thresh)
+#         z2 = min(max(front[2],min_thresh),max_thresh)
 
-        li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])        
+        x1 = max(this[0],min_thresh) 
+        x2 = max(east[0],min_thresh) 
+        y1 = max(this[1],min_thresh) 
+        y2 = max(top[1],min_thresh)  
+        z1 = max(this[2],min_thresh) 
+        z2 = max(front[2],min_thresh)
+        
+        li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
+
         # bounds (voxel coords) of local base cell
         # xmin,ymin,zmin
         h = (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
-        left,lower,back = draw_profile_functions.voxel_to_cartesian_coords((li*args.bc_res,lj*args.bc_res,lk*args.bc_res), design_bounds[0:3], h)
+        left,lower,back = draw_profile_functions.voxel_to_cartesian_coords((i*args.bc_res,j*args.bc_res,k*args.bc_res), design_bounds[0:3], h)
         # xmax,ymax,zmax
-        right,upper,front = draw_profile_functions.voxel_to_cartesian_coords(((li+1)*args.bc_res,(lj+1)*args.bc_res,(lk+1)*args.bc_res), design_bounds[0:3], h)
+        right,upper,front = draw_profile_functions.voxel_to_cartesian_coords(((i+1)*args.bc_res,(j+1)*args.bc_res,(k+1)*args.bc_res), design_bounds[0:3], h)
         
         left_lower_back = (left,lower,back)
         left_upper_back = (left,upper,back)
@@ -166,7 +176,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
         # local i,j,k
         print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
         my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
-         
+           
         local_id += 1
     
   eps = 1e-6
@@ -240,7 +250,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
   #print(helper.shape,np.sum(helper))
   from skimage import measure
   # coords of vertices lie in [0,1-h]
-  from marching_cubes import marching_cubes
   normals = []
   my_mpi_grid.vertices = []
   my_mpi_grid.faces = []
@@ -289,7 +298,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
     matviz_vtk.show_write_vtk(pd, 10, "marching_all.vtp")
     
 #     data = (verts,faces)
-#   sys.exit()  
+  sys.exit()  
 # #   # broadcast all verts to all ranks
 #   data = my_mpi_grid.comm.bcast(data,root=0)
 #   my_mpi_grid.set_vertices_and_faces(data[0],data[1])
@@ -323,7 +332,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
     # e.g. one voxel layer has 1 x 14 x 9 = 126 voxels, add 126 vertices from each side
     # (left and right) to the rank's chunk
     
-    add = 4 * samples[1] * samples[2] * args.bc_res**2
+    add = 1.2 * samples[1] * samples[2] * args.bc_res**2
     rankcounts = [None] * len(chunks)
     displ = []
     for p in range(my_mpi_grid.size):
@@ -332,10 +341,11 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
       end =  offsets[p][1]
       if  p != 0:
         start -= add
+        print("rank: ",my_mpi_grid.rank," start: ",start," end: ",end, " offsets: ",offsets)
+        sys.stdout.flush()
         assert(start >= 0)
       if p != my_mpi_grid.size - 1:
         end += add
-        assert(end < len(my_mpi_grid.vertices))
       
       displ.append(start)
       rankcounts[p] = end-start  
@@ -375,7 +385,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
   
   for v in my_mpi_grid.vertices:
     assert(v is not None)
-  assert(np.amax(my_mpi_grid.faces) < len(my_mpi_grid.vertices))
   
   xmin = min(my_mpi_grid.vertices.values(), key=lambda t: t[0])[0]
   xmax = max(my_mpi_grid.vertices.values(), key=lambda t: t[0])[0]
@@ -768,7 +777,7 @@ def out_of_bounds(point,bounds):
   if bounds[0]-eps <= point[0] <= bounds[3]+eps and bounds[1]-eps <= point[1] <= bounds[4]+eps and bounds[2]-eps <= point[2] <= bounds[5]+eps:
     return False
   else:
-    print("point ",point, " is out of bounds ",design_bounds)
+    print("point ",point, " is out of bounds ",bounds)
     return True
   
 # convert list to dict with list idx as key and list content as values

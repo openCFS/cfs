@@ -439,7 +439,6 @@ if __name__ == "__main__":
     if args.save_vtp:
       matviz_vtk.show_write_vtk(normals.GetOutput(),1000,args.save+".vtp")
     if args.tets: # create tetrahedralized volume mesh from surface description
-      print("here")
       mesh_tool.create_volume_mesh_with_gmsh(stlName)
   else:    
     print("Error: Missing if branch for writing output!")

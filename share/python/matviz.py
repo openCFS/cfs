@@ -138,7 +138,6 @@ def read_design(hdf_file, dim_2D, args):
 def show_or_write(viz, args):
   assert(viz is not None)
   volume = None
-  
   global info
   if isinstance(viz, Image.Image):
     # print 'array' + str(numpy.array(viz))
@@ -488,6 +487,7 @@ parser.add_argument("--bc_beta", help="for heaviside interpolation (default 7.0)
 parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_smooth", help="number auf Taubin smoothing steps", type=int,default=40)
+parser.add_argument("--bc_thresh", help="lower threshold (diameter) for ortho basecell (default=0.1)", type=float,default=0.1)
 # print sys.argv
 
 args = parser.parse_args()
@@ -627,28 +627,27 @@ else:
     # similar to centers, but not centered
     centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions = centered_elements(f, args.h5_region)
     design_elems = None 
-  if args.mesh:
-    if args.h5_nondes != "None":
-      if (MPI.COMM_WORLD.Get_rank()==0):
-        nondes_regs = args.h5_nondes
-        # in case we have more than 1 non-design solid region
-        if "," in args.h5_nondes:
-          nondes_regs = args.h5_nondes.split(",")
-        elif type(nondes_regs) == str:
-          nondes_regs = [nondes_regs]
-          
-        nondes_centers = []
-        nondes_elements = []
-        nondes_min = 999999
-        nondes_max = -999999 
-        for nr in list(nondes_regs):
-          print("nr:",nr)
-          tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements = centered_elements(f, nr,centered=False)
-          nondes_elements.extend(tmp_nondes_elements)
-          nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
-          nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
-          
-        _, design_elems_min, design_elems_max, _, _, _, design_elems = centered_elements(f, args.h5_region,centered=False)
+  if args.h5_nondes != "None":
+    if (MPI.COMM_WORLD.Get_rank()==0):
+      nondes_regs = args.h5_nondes
+      # in case we have more than 1 non-design solid region
+      if "," in args.h5_nondes:
+        nondes_regs = args.h5_nondes.split(",")
+      elif type(nondes_regs) == str:
+        nondes_regs = [nondes_regs]
+        
+      nondes_centers = []
+      nondes_elements = []
+      nondes_min = 999999
+      nondes_max = -999999 
+      for nr in list(nondes_regs):
+        print("nr:",nr)
+        tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements = centered_elements(f, nr,centered=False)
+        nondes_elements.extend(tmp_nondes_elements)
+        nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
+        nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
+        
+      _, design_elems_min, design_elems_max, _, _, _, design_elems = centered_elements(f, args.h5_region,centered=False)
             
     if args.h5_nondes_void != "None":
       if (MPI.COMM_WORLD.Get_rank()==0): 

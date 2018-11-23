@@ -910,24 +910,11 @@ def generate_basecell(args,info):
     # coords of vertices lie in [0,1-h]
     import time
 #     start = time.time()
-    import marching_cubes
     verts = []
     faces = []
     normals = []
-    shape = np.asarray(array.shape[0:3]) + np.array((3,3,3))
-    helper = np.zeros(shape,dtype=int)
-    helper[1:shape[0]-2,1:shape[1]-2,1:shape[2]-2] = array
-    
-#     helper[0,1:shape[1]-1,1:shape[2]-1] = helper[1,1:shape[1]-1,1:shape[2]-1]
-#     helper[shape[0]-1,1:shape[1]-1,1:shape[2]-1] = helper[shape[0]-2,1:shape[1]-1,1:shape[2]-1]
-#     
-#     helper[1:shape[0]-1,0,1:shape[2]-1] = helper[1:shape[0]-1,1,1:shape[2]-1]
-#     helper[1:shape[0]-1,shape[1]-1,1:shape[2]-1] = helper[1:shape[0]-1,shape[1]-2,1:shape[2]-1]
-#     
-#     helper[1:shape[0]-1,1:shape[1]-1,0] = helper[1:shape[0]-1,1:shape[1]-1,1]
-#     helper[1:shape[0]-1,1:shape[1]-1,shape[2]-1] = helper[1:shape[0]-1,1:shape[1]-1,shape[2]-2]
      
-    points, cells, normals, values = measure.marching_cubes_lewiner(helper,spacing=(h,h,h),allow_degenerate=False,step_size=1)
+    points, cells, normals, values = measure.marching_cubes_lewiner(array,spacing=(h,h,h),allow_degenerate=False,step_size=1)
     
     # marching_cubes returns float values
     points = np.asarray(points)
