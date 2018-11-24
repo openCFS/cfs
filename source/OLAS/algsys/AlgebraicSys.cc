@@ -272,9 +272,7 @@ namespace CoupledField {
         // ------------------------------
         //  Multiharmonic Case
         // ------------------------------
-        UInt N = solStrat_->GetNumHarmN();
         UInt M = solStrat_->GetNumHarmM();
-        bool fullSystem = solStrat_->IsFullSystem();
 
         SubMatrixID id;
         UInt Nmax = domain->GetDriver()->GetNumFreq();
