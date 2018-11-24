@@ -1685,14 +1685,26 @@ namespace CoupledField {
 
     if(!onlyDiagBlocks){
       for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
-        // Ok, now it gets confusing because in the performance-optimized
-        // version, we draw a border between the harmonics of the system matrix
-        // and the solution vector
         Integer tmpH = domain->GetDriver()->HarmonicOfIndex(i);
         Integer h;
-        if(tmpH == 0) h = 0;
-        else if(tmpH < 0) h = tmpH - 1;
-        else h = tmpH + 1;
+        if(domain->GetDriver()->IsFullSystem()){
+          // Not optimized version including all harmonics (even and odd ones)
+          h = tmpH;
+
+          // the matrix entries for odd harmonics are zero, therefore we don't
+          // have to assemble them
+          if( h%2 != 0 ){
+            continue;
+          }
+
+        }else{
+          // Ok, now it gets confusing because in the performance-optimized
+          // version, we draw a border between the harmonics of the system matrix
+          // and the solution vector
+          if(tmpH == 0) h = 0;
+          else if(tmpH < 0) h = tmpH - 1;
+          else h = tmpH + 1;
+        }
 
         mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
 
@@ -1704,7 +1716,9 @@ namespace CoupledField {
         if (IS_LOG_ENABLED(stdsolvestep, dbg3)) {
           std::cout<<"harmonic = "<<h<<", frequency = "<<freq<<std::endl;
         }
-        if (std::abs(h) > (Integer)M || h == 0) {
+
+
+        if( std::abs(h) > (Integer)M || h == 0) {
           continue;
         } else {
           // Assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)

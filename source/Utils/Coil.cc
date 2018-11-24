@@ -18,6 +18,9 @@
 #include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+
+#include "Driver/BaseDriver.hh"
+
 #include <fstream>
 
 // header for logging
@@ -86,8 +89,13 @@ namespace CoupledField {
       for( UInt h = 0; h < harmonicList.GetSize(); ++h ) {
         PtrParamNode harmNode = harmonicList[h];
         UInt harmVal = harmNode->Get("harmonic")->As<Integer>();
-        if( (harmVal!=0) && (harmVal%2==0) ){
-          EXCEPTION("Only odd harmonics are allowed for the excitation current!");
+        if( (harmVal==0) && !domain->GetDriver()->IsFullSystem() ){
+          EXCEPTION("Zero harmonic excitation is only allowed if the full system is considered!"
+                    "\n Therefore switch to <fullSystem>true</fullSystem> in the analysis tag");
+        }
+        if( (harmVal%2==0) && !domain->GetDriver()->IsFullSystem() ){
+          EXCEPTION("Only odd harmonics are allowed for the excitation current in the optimized version!"
+                    "\n Therefore switch to <fullSystem>true</fullSystem> in the analysis tag");
         }
         value = harmNode->Get("value")->As<std::string>();
         phase = harmNode->Get("phase")->As<std::string>();

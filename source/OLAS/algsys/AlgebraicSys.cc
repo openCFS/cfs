@@ -274,16 +274,16 @@ namespace CoupledField {
         // ------------------------------
         UInt N = solStrat_->GetNumHarmN();
         UInt M = solStrat_->GetNumHarmM();
-        bool zeroHarm = solStrat_->IsZeroHarm();
+        bool fullSystem = solStrat_->IsFullSystem();
 
-        UInt a = (zeroHarm)? 2 : 1;
         SubMatrixID id;
-        for( UInt iRow = 0; iRow < N + a; ++iRow ) {
+        UInt Nmax = domain->GetDriver()->GetNumFreq();
+        for( UInt iRow = 0; iRow < Nmax; ++iRow ) {
           id.rowInd = iRow;
           id.colInd = iRow;
           sbmPatternIds_[id] = NO_PATTERN_ID;
           for( UInt iCol = iRow + 1; iCol < iRow + (M-1)/2 + 1; ++iCol ) {
-            if( iCol <  N + a){
+            if( iCol <  Nmax){
               id.rowInd = iRow;
               id.colInd = iCol;
               LOG_TRACE(algSys) << "(row,col)=("<<iRow<<","<<iCol<<")";
@@ -3005,16 +3005,10 @@ namespace CoupledField {
       // Get vector, differentiate between normal and multiharmonic case
       // index:     [  0     1     2  ... N-1  N    N+1   N+2 ...  2N ]
       // harmonic:  [ -N   -N+1  -N+2 ... -1   0     1     2  ...   N ]
-      // ========= UPDATE for the fastHBFEM version ======================
-      // NOTE: In the new (performance optimized) version, we use
-      // only odd harmonics and therefore the above mapping looks like
+      // NOTE: If the performance optimized version is used,
+      // only odd harmonics are considered and therefore the above mapping looks like
       // index:     [  0     1     2  ... (N-1)/2   (N+1)/2   (N-1)/2+2   ...  N+1 ]
       // harmonic:  [ -N   -N+2  -N+4 ...    -1        1           3      ...   N ]
-      // Or if the zero harmonic is included:
-      // index:     [  0     1     2  ... (N-1)/2 (N+1)/2+1  (N+1)/2+2  (N-1)/2+3   ...  N+2 ]
-      // harmonic:  [ -N   -N+2  -N+4 ...    -1       0         1           3      ...   N ]
-
-
       if( isMultHarm_ ){
         SingleVector &vecP = (*rhs_)( domain->GetDriver()->IndexOfHarmonic(harm));
         SingleVector &vecN = (*rhs_)( domain->GetDriver()->IndexOfHarmonic(-harm));

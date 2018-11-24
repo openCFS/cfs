@@ -80,11 +80,11 @@ namespace CoupledField
     actHarm_ = 0;
 
     // Do we need to incorporate the zero harmonic?
-    param_->GetValue("includeZeroHarmonic", zeroHarm_, ParamNode::PASS );
+    param_->GetValue("fullSystem", fullSystem_, ParamNode::PASS );
 
 
-    if(zeroHarm_){
-      harmFreq_.Resize(numHarmonics_N_ + 2 );
+    if(fullSystem_){
+      harmFreq_.Resize(2*numHarmonics_N_ + 1 );
     }else{
       harmFreq_.Resize(numHarmonics_N_ + 1 );
     }
@@ -119,10 +119,8 @@ namespace CoupledField
 
   UInt MultiHarmonicDriver::IndexOfHarmonic(const Integer& harmonic){
     UInt ind;
-    if(zeroHarm_){
-      if(harmonic < 0) ind = (numHarmonics_N_  + harmonic)/2;
-      else if(harmonic == 0) ind = (numHarmonics_N_ + 1)/2;
-      else ind = (numHarmonics_N_ + harmonic)/2 + 1;
+    if(fullSystem_){
+      ind = harmonic + numHarmonics_N_;
     }else{
       ind = (numHarmonics_N_ + harmonic)/2;
     }
@@ -131,14 +129,8 @@ namespace CoupledField
 
   Integer MultiHarmonicDriver::HarmonicOfIndex(const UInt& ind){
     Integer harmonic;
-    if(zeroHarm_){
-      if( ind < (numHarmonics_N_  + 1)/2 ){
-        harmonic = Integer(-numHarmonics_N_) + Integer(2*ind);
-      }else if(ind == (numHarmonics_N_  + 1)/2 ){
-        harmonic = 0;
-      }else{
-        harmonic = Integer(-numHarmonics_N_) + 2*Integer(ind-1);
-      }
+    if(fullSystem_){
+      harmonic = -numHarmonics_N_ + ind;
     }else{
       harmonic = -numHarmonics_N_ + 2*ind;
     }
@@ -207,13 +199,10 @@ namespace CoupledField
       // therefore use the index i
       // i = [  0     1     2  ...   N    N+1   N+2 ...  2N ]
       // h = [ -N   -N+1  -N+2 ...   0     1     2  ...   N ]
-      // NOTE: In the new (performance optimized) version, we use
-      // only odd harmonics and therefore the above mapping looks like
+      // NOTE: If the new (performance optimized) version is used,
+      // only odd harmonics are considered and therefore the above mapping looks like
       // index:     [  0     1     2  ... (N-1)/2   (N+1)/2   (N-1)/2+2   ...  N+1 ]
       // harmonic:  [ -N   -N+2  -N+4 ...    -1        1           3      ...   N ]
-      // Or if the zero harmonic is included:
-      // index:     [  0     1     2  ... (N-1)/2 (N+1)/2+1  (N+1)/2+2  (N-1)/2+3   ...  N+2 ]
-      // harmonic:  [ -N   -N+2  -N+4 ...    -1       0         1           3      ...   N ]
 
       UInt actFreqStep = i;
       analysis_id_.step = actFreqStep;
@@ -241,14 +230,11 @@ namespace CoupledField
     }
 
     handler_->FinishMultiSequenceStep();
-//    if( writeAllSteps_ )
-      simState_->FinishMultiSequenceStep( !abortSimulation_ );
+    simState_->FinishMultiSequenceStep( !abortSimulation_ );
 
     // Perform finalization only if not part of sequence
     if(!isPartOfSequence_)
       handler_->Finalize();
-
-
   }
   
 }

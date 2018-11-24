@@ -793,16 +793,17 @@ namespace CoupledField
     auto ComputeIndex = [size](UInt a, UInt b ) { return (size) * a + b;};
 
     // store the sbm-indices of the blocks, which have to be assembled
-    // NOTE: We now use the optimized version, where we only consider odd harmonics,
+    // NOTE: If we are using the optimized version, we only consider odd harmonics,
     // therefore the column isn't anymore iRow+harmonic !!!
     // =========== This is difficult to describe here, see notes (K.Roppert 2018) =====
     StdVector<UInt> sbmInd(0);
+    bool isFullSys = domain->GetDriver()->IsFullSystem();
     for( UInt iRow = 0; iRow < size; ++iRow ) {
       if(harm == 0){
         // sbm-blocks on the main diagonal
         sbmInd.Push_back( ComputeIndex(iRow, iRow) );
       }else{
-        Integer col = iRow - harm/2;
+        Integer col = (isFullSys)? (iRow + harm) : (iRow - harm/2);
         if( col < (Integer)size && col >= 0){
           // change row/columns
           sbmInd.Push_back( ComputeIndex(col, iRow) );

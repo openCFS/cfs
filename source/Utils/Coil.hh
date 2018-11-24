@@ -101,9 +101,6 @@ namespace CoupledField {
      //! internally).
      std::map<UInt, PtrCoefFct> srcValMH_;
 
-     //! Flag if we have multiharmonic excitation
-     bool isMultHarm_;
-
      //! Define part of a coil
      struct Part {
        
@@ -200,6 +197,9 @@ namespace CoupledField {
      
      //! Math parser instance
      MathParser * mParser_;
+
+     //! Flag if we have multiharmonic excitation
+     bool isMultHarm_;
    };
 }
 

@@ -103,6 +103,11 @@ namespace CoupledField
       EXCEPTION("GetNumFreq() not implemeted here in the baseclass!");
     }
 
+    //! True, if we are considering the full system with all harmonics (odd and even ones)
+    virtual bool IsFullSystem(){
+      EXCEPTION("IsFullSystem() not implemented here in the baseclass!");
+    }
+
 
   protected:
     

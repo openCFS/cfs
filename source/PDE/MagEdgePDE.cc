@@ -447,9 +447,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             jFct[0] = CoefFunction::Generate(mp_, part, jVec);
           } else if( actCoil.sourceType_ == Coil::CURRENT_MULTHARM ){
 
-            if( (actCoil.srcValMH_.find(0) != actCoil.srcValMH_.end()) && (!dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->zeroHarm_) ){
+            if( (actCoil.srcValMH_.find(0) != actCoil.srcValMH_.end()) && (!dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->fullSystem_) ){
               EXCEPTION("You specified an excitation in harmonic 0 but didn't set the"
-                        "<includeZeroHarmonic> tag to true in the analysis section!");
+                        "<fullSystem> tag to true in the analysis section!");
             }
 
             // loop over all inserted harmonics of the xml file; type is std::map<Integer, PtrCoefFct>

@@ -120,19 +120,19 @@ public:
 
   bool IsMultHarm(){ return isMultHarm_; }
 
-  void SetMultHarm(const UInt& bF, const UInt& nN, const UInt& nM, const UInt& numFFT, bool zeroHarm){
+  void SetMultHarm(const UInt& bF, const UInt& nN, const UInt& nM, const UInt& numFFT, bool fullSystem){
     baseFreq_ = bF;
     numHarmN_ = nN;
     numHarmM_ = nM;
     numFFT_ = numFFT;
-    zeroHarm_ = zeroHarm;
+    fullSystem_ = fullSystem;
   }
 
   UInt GetBaseFreq(){ return baseFreq_; }
   UInt GetNumHarmN(){ return numHarmN_; }
   UInt GetNumHarmM(){ return numHarmM_; }
   UInt GetNumFFT(){ return numFFT_; }
-  bool IsZeroHarm(){ return zeroHarm_; }
+  bool IsFullSystem(){ return fullSystem_; }
 
 protected:
   
@@ -165,7 +165,7 @@ protected:
   UInt numFFT_;
 
   //! Boolean, which tells us if we need to incorporate the zero harmonic
-  bool zeroHarm_;
+  bool fullSystem_;
 
 
 };

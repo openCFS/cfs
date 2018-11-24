@@ -58,6 +58,18 @@ public:
   /** Helper method which determines if an AnalyisType is complex. */
   virtual bool IsComplex() { return true; };
 
+  //! Compute the index of a given harmonic
+  UInt IndexOfHarmonic(const Integer& harmonic);
+
+  //! Compute the harmonic of a given harmonic
+  Integer HarmonicOfIndex(const UInt& Index);
+
+  //! Get the number of the considered frequencies (positive and negative)
+  UInt GetNumFreq(){return numFreq_;}
+
+  //! True, if we are considering the full system with all harmonics (odd and even ones)
+  bool IsFullSystem(){ return fullSystem_; }
+
   //! Base frequency for which a simulation is performed
   Double baseFreq_;
   
@@ -74,20 +86,13 @@ public:
   UInt actHarm_;
 
   //! Boolean, which tells us if we need to incorporate the zero harmonic
-  bool zeroHarm_;
+  bool fullSystem_;
 
   //! Vector containing the harmonic-frequencies (negative, 0, positive)
   StdVector<Double> harmFreq_;
 
   //! Number of considered frequencies (positive and negative)
   UInt numFreq_;
-
-  //! Compute the index of a given harmonic
-  UInt IndexOfHarmonic(const Integer& harmonic);
-  //! Compute the harmonic of a given harmonic
-  Integer HarmonicOfIndex(const UInt& Index);
-  //! Get the number of the considered frequencies (positive and negative)
-  UInt GetNumFreq(){return numFreq_;}
 
 protected:
 

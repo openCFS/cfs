@@ -182,13 +182,13 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          <xsd:element name="includeZeroHarmonic" type="xsd:boolean" minOccurs="1" maxOccurs="1">
+          <xsd:element name="fullSystem" type="xsd:boolean" minOccurs="1" maxOccurs="1" default="false">
             <xsd:annotation>
               <xsd:documentation>
-                If this is set true, then the zero harmonic is included in the
-                analysis. Therewith we can also simulate pre-loaded coils (DC component).
-                The downside is a longer computational time because we also have to
-                solve the static problem.
+                If this is set true, then the full multiharmonic system is considered
+                with all harmonics (odd and even ones). Therewith we can also simulate
+                pre-loaded coils (DC component). The downside is a longer computational
+                time and memory consumption.
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
