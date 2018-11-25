@@ -146,13 +146,14 @@ namespace CoupledField {
     StdVector<UInt> sbmInd(0);
     if(algsys_->GetSolStrategy()->IsMultHarm()){
       UInt M = algsys_->GetSolStrategy()->GetNumHarmM();
+      UInt a = (domain->GetDriver()->IsFullSystem())? (M+1) : ((M-1)/2 + 1);
       // same as ComputeIndex method in GraphManager, here with a lambda function
       auto ComputeIndex = [](UInt a, UInt b ) { return (domain->GetDriver()->GetNumFreq()) * a + b;};
 
       // store the sbm-indices of the nnz sbm-blocks
       for( UInt iRow = 0; iRow < domain->GetDriver()->GetNumFreq(); ++iRow ) {
         sbmInd.Push_back( ComputeIndex(iRow, iRow) );
-        for( UInt iCol = iRow + 1; iCol < iRow + (M-1)/2 + 1 ; ++iCol ) {
+        for( UInt iCol = iRow + 1; iCol < iRow + a ; ++iCol ) {
           if( iCol < domain->GetDriver()->GetNumFreq()){
             sbmInd.Push_back( ComputeIndex(iRow, iCol) );
           }

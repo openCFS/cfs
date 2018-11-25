@@ -116,7 +116,8 @@ class IDBC_Graph;
                     bool isMultHarm = false,
                     UInt N = 0,
                     UInt M = 0,
-                    UInt size = 0);
+                    UInt size = 0,
+                    bool isFullSys = false);
 
     //! Finalises setup of the graph manager
 
@@ -134,6 +135,7 @@ class IDBC_Graph;
     //! \param reorder  re-ordering type for each block
     //! \param N        Number of harmonics for solution
     //! \param M        Number of harmonics for nonlinearity
+    //! \param isFullSys Boolean if we are considering all (even & odd) harmonics
     void SetupDoneMH(const StdVector<BaseOrdering::ReorderingType>& reorder,
                      const UInt N,
                      const UInt M);
@@ -174,7 +176,7 @@ class IDBC_Graph;
     //! \note A SBMBlock can only be reordered, if it has no subblocks defined,
     //!       as otherwise we can not guarantee for continuous indices within
     //!       one block.
-    void RegisterBlockMultHarm( SBMBlockInfo* blockInfo );
+    void RegisterBlockMultHarm( SBMBlockInfo* blockInfo);
 
 
 
@@ -376,6 +378,8 @@ class IDBC_Graph;
     //! Number of considered frequencies (positive and negative)
     //! which is the number of row/col blocks in the SBM matrix
     UInt sizeMH_;
+    //! Flag wether we are considering all harmonics (even and odd) or the optimized version
+    bool isFullSys_;
     //@}
 
     //! Flag indicating whether registration of all SBMBlocks is done

@@ -276,15 +276,21 @@ namespace CoupledField {
 
         SubMatrixID id;
         UInt Nmax = domain->GetDriver()->GetNumFreq();
+        UInt a = (domain->GetDriver()->IsFullSystem())? (M+1) : ((M-1)/2 + 1);
         for( UInt iRow = 0; iRow < Nmax; ++iRow ) {
           id.rowInd = iRow;
           id.colInd = iRow;
           sbmPatternIds_[id] = NO_PATTERN_ID;
-          for( UInt iCol = iRow + 1; iCol < iRow + (M-1)/2 + 1; ++iCol ) {
+          for( UInt iCol = iRow + 1; iCol < iRow + a; ++iCol ) {
             if( iCol <  Nmax){
               id.rowInd = iRow;
               id.colInd = iCol;
               LOG_TRACE(algSys) << "(row,col)=("<<iRow<<","<<iCol<<")";
+              sbmPatternIds_[id] = NO_PATTERN_ID;
+              // transposed
+              id.rowInd = iCol;
+              id.colInd = iRow;
+              LOG_TRACE(algSys) << "(row,col)=("<<iCol<<","<<iRow<<")";
               sbmPatternIds_[id] = NO_PATTERN_ID;
             }
           }
@@ -1607,38 +1613,35 @@ namespace CoupledField {
 
     // number of harmonics
     UInt M = solStrat_->GetNumHarmM();
+    UInt a = (domain->GetDriver()->IsFullSystem())? (M+1) : ((M-1)/2 + 1);
 
     // loop over all matrix Types in feSubMatricesByFctId
     std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct = feSubMatricesByFctId_.begin();
     for( auto & itMatByFct : feSubMatricesByFctId_ ) {
       const FEMatrixType & matrixType = itMatByFct.first;
-      //const SubMatrixSet & sbmSet = itMatByFct.second;
 
-      // loop over all blocks
-      //for( auto & sbmIt : sbmSet ) {
-        // Fetch all SBM blocks, in which the current (rowFctId, colFctId) occurs.
-        // In the multiharmonic case, give it all the non-zero (sbmRow, sbmCol) combinations
-        for( UInt sbmRow = 0; sbmRow < domain->GetDriver()->GetNumFreq(); ++sbmRow ) {
-          for( UInt sbmCol = sbmRow; sbmCol < sbmRow + (M-1)/2; ++sbmCol ) {
-            if( sbmCol < domain->GetDriver()->GetNumFreq() ){
-              SubMatrixID sID;
-              sID.rowInd = sbmRow;
-              sID.colInd = sbmCol;
+      // Fetch all SBM blocks, in which the current (rowFctId, colFctId) occurs.
+      // In the multiharmonic case, give it all the non-zero (sbmRow, sbmCol) combinations
+      for( UInt sbmRow = 0; sbmRow < domain->GetDriver()->GetNumFreq(); ++sbmRow ) {
+        for( UInt sbmCol = sbmRow; sbmCol < sbmRow + a; ++sbmCol ) {
+          if( sbmCol < domain->GetDriver()->GetNumFreq() ){
+            SubMatrixID sID;
+            sID.rowInd = sbmRow;
+            sID.colInd = sbmCol;
+            // Insert sub-matrix identifier into corresponding FE-Matrix set
+            feSubMatricesByBlocks_[matrixType].insert( sID );
+
+            //also set the transposed
+            if(sbmRow != sbmCol){
+              sID.rowInd = sbmCol;
+              sID.colInd = sbmRow;
               // Insert sub-matrix identifier into corresponding FE-Matrix set
               feSubMatricesByBlocks_[matrixType].insert( sID );
-
-              //also set the transposed
-              if(sbmRow != sbmCol){
-                sID.rowInd = sbmCol;
-                sID.colInd = sbmRow;
-                // Insert sub-matrix identifier into corresponding FE-Matrix set
-                feSubMatricesByBlocks_[matrixType].insert( sID );
-              }
             }
           }
         }
+      }
 
-      //} // loop over sbmBlocks (byFctId)
     } // loop over matrixType
 
     // --------------------------------------------------------------------
@@ -1658,7 +1661,7 @@ namespace CoupledField {
     else {
       SubMatrixID sID;
       for (  UInt sbmRow = 0; sbmRow < domain->GetDriver()->GetNumFreq(); ++sbmRow ) {
-        for ( UInt sbmCol = sbmRow; sbmCol < sbmRow + (M-1)/2 + 1; ++sbmCol ) {
+        for ( UInt sbmCol = sbmRow; sbmCol < sbmRow + a; ++sbmCol ) {
           if( sbmCol < domain->GetDriver()->GetNumFreq()){
             ++nnzBlocks;
             if ( graphManager_->SubGraphExists( sbmRow, sbmCol ) == true ) {
@@ -1808,7 +1811,7 @@ namespace CoupledField {
       UInt numSBMRows = domain->GetDriver()->GetNumFreq();
       graphManager_->SetupInit( numSBMRows, distinctMatGraphs_, true,
                                 solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM(),
-                                domain->GetDriver()->GetNumFreq() );
+                                domain->GetDriver()->GetNumFreq(), solStrat_->IsFullSystem()  );
 
       // In the multiharmonic case, we have only one set of equations
       // but they are present several times in the final system matrix
@@ -3713,10 +3716,10 @@ namespace CoupledField {
 
       //UInt N = solStrat_->GetNumHarmN();
       UInt M = solStrat_->GetNumHarmM();
-      UInt s =  domain->GetDriver()->GetNumFreq(); //size
-      for( UInt sbmRow = 0; sbmRow < s; ++sbmRow ) {
-        for( UInt sbmCol = sbmRow ; sbmCol < sbmRow + (M-1)/2 + 1; ++sbmCol ) {
-          if( sbmCol < s){
+      UInt a = (domain->GetDriver()->IsFullSystem())? (M+1) : ((M-1)/2 + 1);
+      for( UInt sbmRow = 0; sbmRow < domain->GetDriver()->GetNumFreq(); ++sbmRow ) {
+        for( UInt sbmCol = sbmRow ; sbmCol < sbmRow + a; ++sbmCol ) {
+          if( sbmCol < domain->GetDriver()->GetNumFreq()){
             graph = graphManager_->GetGraph( sbmRow, sbmCol );
             // we only allow nonsymmetric storage scheme
             BaseMatrix::StorageType sT = BaseMatrix::SPARSE_NONSYM;

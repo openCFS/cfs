@@ -803,7 +803,7 @@ namespace CoupledField
         // sbm-blocks on the main diagonal
         sbmInd.Push_back( ComputeIndex(iRow, iRow) );
       }else{
-        Integer col = (isFullSys)? (iRow + harm) : (iRow - harm/2);
+        Integer col = (isFullSys)? (iRow - harm) : (iRow - harm/2);
         if( col < (Integer)size && col >= 0){
           // change row/columns
           sbmInd.Push_back( ComputeIndex(col, iRow) );

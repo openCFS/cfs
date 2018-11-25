@@ -305,7 +305,7 @@ namespace CoupledField {
                                     bool useExternalOrdering,
                                     StdVector<UInt>* vertexOrder,
                                     StdVector<UInt>* edgeOrder  ) {
-    MapSetToVector();
+    this->MapSetToVector();
 
     newOrder_ = reorder;
     assert(vertexOrder != NULL);

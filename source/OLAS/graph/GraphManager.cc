@@ -28,7 +28,8 @@ namespace CoupledField {
     M_ = 0;
     N_ = 0;
     isMultHarm_ = false;
-
+    sizeMH_ = 0;
+    isFullSys_ = false;
   }
 
 
@@ -60,12 +61,14 @@ namespace CoupledField {
                                 bool isMultHarm,
                                 UInt N,
                                 UInt M,
-                                UInt size) {
+                                UInt size,
+                                bool isFullSys) {
 
     if( isMultHarm ){
       N_ = N;
       M_ = M;
       sizeMH_ = size;
+      isFullSys_ = isFullSys;
       LOG_TRACE(graphMan) << "Initializing GraphManager with "
                                << numBlocks*numBlocks << " multiharmonic blocks";
     }else{
@@ -264,23 +267,24 @@ namespace CoupledField {
     // -------------------------------------------
     //   O F F  - D I A G O N A L    B L O C K S
     // -------------------------------------------
+    UInt a = (isFullSys_)? (M+1) : ((M-1)/2 + 1);
     for (  UInt sbmRow = 0; sbmRow < sizeMH_; ++sbmRow ) {
-      for ( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + (M-1)/2 + 1; ++sbmCol ) {
+      for ( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + a; ++sbmCol ) {
         if( sbmCol < sizeMH_){
           UInt idx = ComputeIndex( sbmRow, sbmCol );
-
-          //  Finalize assembly of graph (sorting, re-ordering, conversion to
-          // CRS-structure)
-          // Note: For the off-diagonal entries we use the re-ordering arrays
-          //       of the related row/col diagonal blocks
-          LOG_DBG(graphMan) << "Finalize off-diagonal graph (" << sbmRow
-                            << ", " << sbmCol << ")";
 
           // diagonal element (sbmRow, sbmRow)
           UInt idxRow = ComputeIndex(sbmRow, sbmRow);
           // diagonal element (sbmCol, sbmCol)
           UInt idxCol = ComputeIndex(sbmCol, sbmCol);
 
+          //  Finalize assembly of graph (sorting, re-ordering, conversion to
+          // CRS-structure)
+          // Note: For the off-diagonal entries we use the re-ordering arrays
+          //       of the related row/col diagonal blocks
+          LOG_DBG(graphMan) << "Finalize off-diagonal graph (" << sbmRow
+                            << ", " << sbmCol << ")\n\t idxRow="
+                                <<idxRow<<", idxCol="<<idxCol<<", idx="<<idx;
           //TODO not quite clear which difference this makes
           graph_[idx]->FinaliseAssembly( BaseOrdering::NOREORDERING ,
                                          true, &newOrdering_[sbmRow],
@@ -413,8 +417,9 @@ namespace CoupledField {
     blockInfoMH_ = blockInfo;
 
     // now generate the graph objects
+    UInt a = (isFullSys_)? (M_+1) : ((M_-1)/2 + 1);
     for (  UInt sbmRow = 0; sbmRow < sizeMH_; ++sbmRow ) {
-      for ( UInt sbmCol = sbmRow ; sbmCol < sbmRow + (M_-1)/2 + 1; ++sbmCol ) {
+      for ( UInt sbmCol = sbmRow ; sbmCol < sbmRow + a; ++sbmCol ) {
         if( sbmCol < sizeMH_){
           UInt idx = ComputeIndex( sbmRow, sbmCol );
           // Generate graph object for this block
@@ -544,8 +549,6 @@ namespace CoupledField {
 
 
     
-
-
     // loop over all blocks and pass for every block the information to
     // the corresponding graph / IDBC graph
     if( isMultHarm_ ){
@@ -553,8 +556,9 @@ namespace CoupledField {
       //    Adaption for multiharmonic case: only loop over nonzero blocks
       //    the body of the loop is the same as in the non-multiharm version
       //===================================================================
+      UInt a = (isFullSys_)? (M_+1) : ((M_-1)/2 + 1);
       for (  UInt sbmRow = 0; sbmRow < sizeMH_; ++sbmRow ) {
-        for ( UInt sbmCol = sbmRow ; sbmCol < sbmRow + (M_-1)/2 + 1; ++sbmCol ) {
+        for ( UInt sbmCol = sbmRow ; sbmCol < sbmRow + a; ++sbmCol ) {
           if( sbmCol < sizeMH_){
 
             // Compute index of graph in graph pointer matrix
