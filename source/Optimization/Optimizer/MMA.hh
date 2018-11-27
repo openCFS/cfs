@@ -8,7 +8,11 @@
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
+//#include "Optimization/Optimizer/BFGS.hh"
+
 using namespace boost::numeric::ublas;
+
+//class BFGS {};
 
 namespace CoupledField
 {
@@ -22,11 +26,51 @@ public:
 
   virtual ~MMA();
 
-protected:
   void PostInit();
 
   /** @see BaseOptimizer::ToInfo() */
   void ToInfo(PtrParamNode pn);
+
+  /** @see BaseOptimizer */
+  void SolveProblem();
+
+  double EvalDualFucntion(Vector<double> &xin); //TODO implement for BFGS
+  Vector<double> EvalDualGrads(Vector<double> &xin); //TODO implement for BFGS
+  unsigned int GetNoDesign(){return n;} //TODO implement for BFGS
+
+  void EvalMmaConstrains(StdVector<double> & eval, StdVector<double> & xc);
+
+  typedef enum { SVANBERG, ROBUST, FIXED } AsymUpdate;
+
+  typedef enum { TYPE_1, TYPE_2} RobustType;
+
+  typedef enum { IP_OPT, BFGS_OPT} SubSolverType;
+
+  Enum<AsymUpdate> asymUpdate;
+  Enum<RobustType> robustType;
+  Enum<SubSolverType> subSolverType;
+
+private:
+
+  /** @see BaseOptimier */
+  void LogFileHeader(Optimization::Log& log);
+  void LogFileLine(std::ofstream* out, PtrParamNode iteration);
+
+  void AdjustMoveLimits();
+
+  bool SolveMMA();
+
+  void GenreteSubProblem();
+
+  void ComputeObjectiveConstraintsSensitivities();
+
+
+  /*
+  void StupidTest();
+  void InitilizeFromFile(std::string filename, double * vec);
+  bool is_number(const std::string& s);
+  */
+
 
   /** General Optimization Problem
    *      min compliance(xval)
@@ -100,11 +144,15 @@ protected:
    *          z >= 0
    */
 
+  AsymUpdate asymUpdate_ = FIXED; // ROBUST, SVANBERG, FIXED
+  RobustType robustType_ = TYPE_1; // TYPE_1, TYPE_2
+  SubSolverType subSolverType_ = IP_OPT; //IP , BFGS
+
   /** Determines how aggresively the asymptotes are moved
    * asymptotes initialization and increase/decrease
    * these values are used in MMA::GenreteSubProblem() to update low and upp
    * can be initiated from xml. See the constructor */
-  double  asyminit = 0.9;
+  double asyminit = 0.9;
   double asymdec = 0.9;
   double asyminc = 1.1;
 
@@ -122,8 +170,20 @@ protected:
   double asym_fixed_upper = -1;
 
   unsigned int max_sub_iter = 10; // maximum iteration for subproblem solver
+  double sub_solve_tol = 1.0e-4; // tolerance for subproblem solver
+
   StdVector<double> a, c, d; // penalty parameter for the subproblem
   double penalty_c = 1000.0;
+
+//  BFGS bfgs;
+  /* To store the primal values for BFGS*/
+//  Vector<double> x_d;
+//  Vector<double> y_d;
+//  double z_d=0;
+  unsigned int nsmax=10;
+  double dual_low = 0.0;
+  double dual_upp = 1.0e9;
+  double dual_init = 0.1;
 
   /** sub problem move limits
    * according to K.Svanberg's DCAMM lecture notes section 4.
@@ -140,10 +200,6 @@ protected:
   StdVector<double> y; //elastic variable to make the problem always fesible
   double z=0.0; // elastic variable to solve non smooth problems like min-max
 
-  /** Differnet Heuristic to update low and upp in subproblem
-   * used in MMA::GenreteSubProblem() */
-  bool robustAsymptotes = false;
-  bool fixedAsymptotes = false;
   /** For fixed asymptotes in MMA::GenreteSubProblem()
    * the upper asymptotes can be set by multiplying a constant(asym_fixed_upper) to the current design value
    * or can just be a costant number, this is controlled by this bool, if true we are multplying by a constant  */
@@ -154,12 +210,12 @@ protected:
    * K.Svanberg's DCAMM lecture notes section 4
    * when constraintModification = true p_ij and q_ij are formed according to
    * K.Svanberg's orginal paper*/
-  bool constraintModification = false;
+  bool kappa = false;
 
   /** Globally convergent version refer K.Svanberg's DCAMM lecture notes section 6
    * ToDo: NOT IMPLEMENTED*/
    bool globallyConvergent = false;
-   double rho_init = 0.0001;
+   double rho_init = 0.0001; // set in xml in globalyCongergent/rho
    StdVector<double> rho;
    double rho_0=0;
    double objective_r = 0.0; // The r_i in the function approx
@@ -200,35 +256,14 @@ protected:
 
   bool testing = false;
 
-protected:
-
-  void SolveProblem();
-
-  void AdjustMoveLimits();
-
-  bool SolveMMA();
-
-  void GenreteSubProblem();
-
-  void ComputeObjectiveConstraintsSensitivities();
-
-  /** @see BaseOptimizer::ToInfo() */
-//  void ToInfo(PtrParamNode pn);
-
-  /** @see BaseOptimier */
-  void LogFileHeader(Optimization::Log& log);
-  void LogFileLine(std::ofstream* out, PtrParamNode iteration);
-
-  /*
-  void StupidTest();
-  void InitilizeFromFile(std::string filename, double * vec);
-  bool is_number(const std::string& s);
-  */
 private:
 
-  bool SolveSubProblem();
+  bool IPSubProblemSolver();
+
+  bool BFGSSubProblemSolver();
 
   void PrimalVarFromDualVar();
+  void PrimalVarFromDualVar(Vector<double> &lam, Vector<double> &x_d, Vector<double> &y_d, double &z_d ); // For BFGS
 
   void GradientOfDual();
 

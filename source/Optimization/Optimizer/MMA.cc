@@ -24,45 +24,88 @@ using std::string;
 MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimization::MMA_SOLVER)
 {
 
-  PostInitScale(1.0);
-  if(this_opt_pn_ != NULL)
-  {
-    /** max sub problem iteration */
-    max_sub_iter = this_opt_pn_->Get("max_sub_iter")->As<unsigned int>();
+  asymUpdate.SetName("MMA::AsymUpdate");
+  asymUpdate.Add(SVANBERG, "svanberg");
+  asymUpdate.Add(ROBUST, "robust");
+  asymUpdate.Add(FIXED, "fixed");
 
-    /** Determines how aggresively the asymptotes are moved
-     * asymptotes initialization and increase/decrease
-     * these values are used in MMA::GenreteSubProblem() to update low and upp */
-    asyminit = this_opt_pn_->Get("asym_init")->As<double>();
-    asymdec = this_opt_pn_->Get("asym_dec")->As<double>();
-    asyminc = this_opt_pn_->Get("asym_inc")->As<double>();
+  robustType.SetName("MMA::RobustType");
+  robustType.Add(TYPE_1, "type_1");
+  robustType.Add(TYPE_2, "type_2");
+
+  subSolverType.SetName("MMA::SubSolverType");
+  subSolverType.Add(IP_OPT, "int_point");
+  subSolverType.Add(BFGS_OPT, "bfgs");
+
+  // defauls sets in header
+  if(this_opt_pn_)
+  {
+    /** Sub problem solver specification */
+    max_sub_iter = this_opt_pn_->Get("max_sub_iter")->As<unsigned int>();
+    sub_solve_tol = this_opt_pn_->Get("sub_solve_tol")->As<double>();
+    subSolverType_ = subSolverType.Parse(this_opt_pn_->Get("sub_solver_type")->As<string>());
+
+    moveLimits = this_opt_pn_->Get("move_limit")->As<bool>();
+
+    penalty_c = this_opt_pn_->Get("constraint_penalty_c")->As<double>();
+
+    kappa = this_opt_pn_->Get("svanbergs_kappa")->As<bool>();
+
+    /** this is to test some function TODO: cdev check if this is required in the final release.*/
+    testing = this_opt_pn_->Get("testing_functions")->As<bool>();
 
     /*globallyConvergent = this_opt_pn_->Get("globally_convergent")->As<bool>();*/
     globallyConvergent = this_opt_pn_->Has("globally_convergent") && this_opt_pn_->Get("globally_convergent/enable")->As<bool>();
     if(globallyConvergent)
-          asym_fixed_lower = this_opt_pn_->Get("fixed_asymptotes/lower")->As<double>();
+      rho_init = this_opt_pn_->Get("globally_convergent/rho")->As<double>();
 
 
-    constraintModification = this_opt_pn_->Get("constraint_modification")->As<bool>();
-    robustAsymptotes = this_opt_pn_->Get("robust_asymptote")->As<bool>();
-    fixedAsymptotes = this_opt_pn_->Has("fixed_asymptotes") && this_opt_pn_->Get("fixed_asymptotes/enable")->As<bool>();
-    moveLimits = this_opt_pn_->Get("move_limit")->As<bool>();
-    if(fixedAsymptotes) {
-      asym_fixed_lower = this_opt_pn_->Get("fixed_asymptotes/lower")->As<double>();
-      asym_fixed_upper = this_opt_pn_->Get("fixed_asymptotes/upper")->As<double>();
-      upperMultiplier = this_opt_pn_->Get("fixed_asymptotes/upper_multiplier")->As<bool>();
-      lowerMultiplier = this_opt_pn_->Get("fixed_asymptotes/lower_multiplier")->As<bool>();
-      if(asym_fixed_upper <= asym_fixed_lower)
-        throw Exception("upper fixed MMA asymptote needs to be larger than lower one");
+    // asymptotes specification
+    if(this_opt_pn_->Has("asymptotes"))
+    {
+      // is required element in schema
+      PtrParamNode asym = this_opt_pn_->Get("asymptotes");
+
+      asymUpdate_ = asymUpdate.Parse(asym->Get("update")->As<string>());
+
+      /** Determines how aggresively the asymptotes are moved
+       * asymptotes initialization and increase/decrease
+       * these values are used in MMA::GenreteSubProblem() to update low and upp */
+      asyminit = asym->Get("initial")->As<double>();
+      asymdec = asym->Get("dec")->As<double>();
+      asyminc = asym->Get("inc")->As<double>();
+
+      if(asymUpdate_ == ROBUST){
+        robustType_ = robustType.Parse(asym->Get("robust_type")->As<string>());
+      }
+
+      if(asymUpdate_ == FIXED) {
+        if(!asym->Has("fixed"))
+          throw Exception("for MMA asymptotes update mode 'fixed' give subelement 'fixed'");
+        asym_fixed_lower = asym->Get("fixed/lower")->As<double>();
+        asym_fixed_upper = asym->Get("fixed/upper")->As<double>();
+        upperMultiplier = asym->Get("fixed/upper_multiplier")->As<bool>();
+        lowerMultiplier = asym->Get("fixed/lower_multiplier")->As<bool>();
+        if(asym_fixed_upper <= asym_fixed_lower)
+          throw Exception("upper fixed MMA asymptote needs to be larger than lower one");
+      }
+
+    } // end asymptotes
+    if (subSolverType_ == BFGS_OPT)
+    {
+      if(this_opt_pn_->Has("bfgs_setting"))
+      {
+        PtrParamNode bfgs_set = this_opt_pn_->Get("bfgs_setting");
+        {
+          dual_init = bfgs_set->Get("initial")->As<double>();
+          dual_low = bfgs_set->Get("low")->As<double>();
+          dual_upp = bfgs_set->Get("upp")->As<double>();
+          nsmax= bfgs_set->Get("no_stores")->As<unsigned int>();
+
+        }
+      }
     }
-    if(fixedAsymptotes && robustAsymptotes)
-      throw Exception("cannot have robust and fixed asymptotes concurrently for MMA");
-
-    penalty_c = this_opt_pn_->Get("constrain_penalty_c")->As<double>();
-  }
-
-  assert(!(robustAsymptotes && fixedAsymptotes)); // cannot have both the asymptotes
-
+  } // end pn reading
 
   gsp_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_generate_sub_prob/timer")->AsTimer().get();
   gsp_timer_->SetSub();
@@ -70,8 +113,9 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
   sps_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_solve_sub_prob/timer")->AsTimer().get();
   sps_timer_->SetSub();
 
-  testing = this_opt_pn_->Get("testing_functions")->As<bool>();
 
+
+  PostInitScale(1.0);
 }
 
 MMA::~MMA()
@@ -83,13 +127,16 @@ void MMA::ToInfo(PtrParamNode pn)
 {
   PtrParamNode m = pn->Get("mma")->Get(ParamNode::HEADER);
   PtrParamNode asym = m->Get("asymptotes");
-  asym->Get("fixed")->SetValue(fixedAsymptotes);
-  if(fixedAsymptotes) {
+  asym->Get("update")->SetValue(asymUpdate.ToString(asymUpdate_));
+
+  if(asymUpdate_ == FIXED) {
     asym->Get("fixed_lower")->SetValue(asym_fixed_lower);
     asym->Get("fixed_upper")->SetValue(asym_fixed_upper);
   }
-  asym->Get("robust")->SetValue(robustAsymptotes);
-  asym->Get("initial_asymptote")->SetValue(asyminit);
+  if(asymUpdate_ == ROBUST)
+    asym->Get("robust_type")->SetValue(robustType.ToString(robustType_));
+
+  asym->Get("initial")->SetValue(asyminit);
   asym->Get("increase_asymptote")->SetValue(asyminc);
   asym->Get("decrease_asymptote")->SetValue(asymdec);
 }
@@ -117,7 +164,7 @@ void MMA::PostInit()
   low.Resize(n,0.0); //cdev important to set it to zero
   upp.Resize(n,0.0); //cdev important to set it to zero
 
-  if(!fixedAsymptotes) {
+  if(asymUpdate_ == FIXED) {
     xold1 = xval;
     xold2 = xval;
   }
@@ -237,6 +284,7 @@ void MMA::SolveProblem()
     {
       if(moveLimits)
         AdjustMoveLimits();
+
       ok = SolveMMA();
 
       // new design is stored, also the correspoding function values. Increments iteration
@@ -269,7 +317,7 @@ void MMA::AdjustMoveLimits()
   {
     BaseDesignElement* de = space->GetDesignElement(i);
 
-    if(!fixedAsymptotes){
+    if(!(asymUpdate_ == FIXED)){
       xmin[i] = max(de->GetLowerBound(), xval[i]-move);
       xmax[i] = min(de->GetUpperBound(), xval[i]+move);
     }
@@ -297,15 +345,28 @@ bool MMA::SolveMMA()
 
   /** Copy old design values
    *  will be used to modify asymptotes, so useless when we have fixed asymptotes*/
-  if(!fixedAsymptotes) {
+  if(!(asymUpdate_ == FIXED)) {
     xold2 = xold1;
     xold1 = xval;
   }
 
+  LOG_DBG3(mmaTopOpt) << "S_MMA before: lamda=" << lamda.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "S_MMA before: c=" << c.ToString(0);
+
   // Solve the MMA subproblem dual with interior point method
   sps_timer_->Start();
-  bool ok = SolveSubProblem();
+  bool ok;
+  if(subSolverType_ == IP_OPT)
+    ok = IPSubProblemSolver();
+  else if (subSolverType_ == BFGS_OPT)
+    ok = BFGSSubProblemSolver();
+  else
+    ok = false;
   sps_timer_->Stop();
+
+  LOG_DBG3(mmaTopOpt) << "S_MMA after: lamda=" << lamda.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "S_MMA before: c=" << c.ToString(0);
+
   return ok;
 }
 
@@ -368,7 +429,7 @@ void MMA::GenreteSubProblem()
        * We decide to update only if all the function_approximation evaluated at xnew is greater then function evaluated at xnew */
       bool shouldUpdate = true;
       if(!(objective_approx >= compliance))
-              shouldUpdate = false;
+        shouldUpdate = false;
 
       if(shouldUpdate )
         for(unsigned int mj=0; mj<m;++mj)
@@ -404,7 +465,7 @@ void MMA::GenreteSubProblem()
     if(optimization->GetCurrentIteration() < 3)
       {
         // We have to define the low and upp only once for fixed asymptotes.
-        if(fixedAsymptotes){
+        if(asymUpdate_ == FIXED){
           for(unsigned int in =0; in < n; ++in)
           {
             BaseDesignElement* de = space->GetDesignElement(in);
@@ -439,7 +500,7 @@ void MMA::GenreteSubProblem()
             }
         }
       }
-      if(optimization->GetCurrentIteration() > 2 && !fixedAsymptotes)
+      if(optimization->GetCurrentIteration() > 2 && (!(asymUpdate_ == FIXED)))
       {
           for(unsigned int i =0; i< n; ++i)
           {
@@ -451,39 +512,43 @@ void MMA::GenreteSubProblem()
             upp[i] = xval[i] + gamma*(upp[i] - xold1[i]);
             double x_max_min = max(1.0e-5, xmax[i] - xmin[i]);
             double x_max_tmp = 0.0;
-            double x_min_tmp = 0.0;
+
 
             /** implementation of robust asymptote based on TopOpt code
              * refer function GenSub(...) in MMA.cc for the case RobustAsymptotesType == 1*/
-            if(robustAsymptotes)
+            if(asymUpdate_ == ROBUST)
             {
-
-              //Robust Asymptotes
-              low[i]=max(low[i],xval[i]-100.0*x_max_min);
-              low[i]=min(low[i],xval[i]-1.0e-4*x_max_min);
-              upp[i]=max(upp[i],xval[i]+1.0e-4*x_max_min);
-              upp[i]=min(upp[i],xval[i]+100.0*x_max_min);
-
-              x_min_tmp = xmin[i] - 1.0e-5;
-              x_max_tmp = xmax[i] + 1.0e-5;
-              if(xval[i] < x_max_min)
+              if (robustType_ == TYPE_1)
               {
-                low[i] = xval[i] - (x_max_tmp - xval[i])/0.9;
-                upp[i] = xval[i] + (x_max_tmp - xval[i])/0.9;
+                low[i]=max(low[i],xval[i]-10.0*x_max_min);
+                low[i]=min(low[i],xval[i]-0.01*x_max_min);
+                upp[i]=max(upp[i],xval[i]+0.01*x_max_min);
+                upp[i]=min(upp[i],xval[i]+10.0*x_max_min);
               }
-              if(xval[i] > x_max_tmp)
+              /** implementation of robust asymptote based on TopOpt code
+               * refer function GenSub(...) in MMA.c */
+              else if(robustType_ == TYPE_2)
               {
-                low[i] = xval[i] - (xval[i] - x_max_min)/0.9;
-                upp[i] = xval[i] + (xval[i] - x_max_min)/0.9;
+                double x_min_tmp = 0.0;
+                //Robust Asymptotes
+                low[i]=max(low[i],xval[i]-100.0*x_max_min);
+                low[i]=min(low[i],xval[i]-1.0e-4*x_max_min);
+                upp[i]=max(upp[i],xval[i]+1.0e-4*x_max_min);
+                upp[i]=min(upp[i],xval[i]+100.0*x_max_min);
+
+                x_min_tmp = xmin[i] - 1.0e-5;
+                x_max_tmp = xmax[i] + 1.0e-5;
+                if(xval[i] < x_max_min)
+                {
+                  low[i] = xval[i] - (x_max_tmp - xval[i])/0.9;
+                  upp[i] = xval[i] + (x_max_tmp - xval[i])/0.9;
+                }
+                if(xval[i] > x_max_tmp)
+                {
+                  low[i] = xval[i] - (xval[i] - x_max_min)/0.9;
+                  upp[i] = xval[i] + (xval[i] - x_max_min)/0.9;
+                }
               }
-            }
-            /** implementation of robust asymptote based on TopOpt code
-             * refer function GenSub(...) in MMA.c */
-            else {
-              low[i]=max(low[i],xval[i]-10.0*x_max_min);
-              low[i]=min(low[i],xval[i]-0.01*x_max_min);
-              upp[i]=max(upp[i],xval[i]+0.01*x_max_min);
-              upp[i]=min(upp[i],xval[i]+10.0*x_max_min);
             }
           }
       }
@@ -549,7 +614,7 @@ void MMA::GenreteSubProblem()
 
         dfdx_pos = max(0.0, grad_compliance[ni]);
         dfdx_neg = max(0.0, -1.0*grad_compliance[ni]);
-        if(constraintModification)
+        if(kappa)
           extra = 0.001*Abs(grad_compliance[ni]) + 0.5*feps/(upp[ni] - low[ni]);
         else
           extra = 0.0;
@@ -563,7 +628,7 @@ void MMA::GenreteSubProblem()
           dfdx_neg = max(0.0, -1*grad_constrains[mj*n + ni]);
           /** when constraintModification = true p_ij and q_ij are formed according to
            * description povided in K.Svanberg's DCAMM lecture notes section 4*/
-          if(constraintModification)
+          if(kappa)
           {
             extra = 0.001*Abs(grad_constrains[mj*n + ni]) + 0.5*feps/(upp[ni] - low[ni]);
             p_ij[mj][ni] = pow(upp[ni] - xval[ni], 2.0) * (dfdx_pos + extra) ;
@@ -593,6 +658,14 @@ void MMA::GenreteSubProblem()
       }
   }
 
+  // TODO: Remove this later
+//  if (subSolverType_ == BFGS_OPT)
+//  {
+//    StdVector<double> conEval(m);
+//    EvalMmaConstrains(conEval, xval);
+//    LOG_DBG3(mmaTopOpt) << "CHECK: Actual Constrain=" << constrains.ToString(0);
+//    LOG_DBG3(mmaTopOpt) << "CHECK: Approx Constrain=" << conEval.ToString(0);
+//  }
 
   LOG_DBG3(mmaTopOpt) << "GSP:Sub low=" << low.ToString(0);
   LOG_DBG3(mmaTopOpt) << "GSP:Sub upp=" << upp.ToString(0);
@@ -600,133 +673,347 @@ void MMA::GenreteSubProblem()
   LOG_DBG3(mmaTopOpt) << "GSP:Sub beta=" << beta.ToString(0);
 }
 
-bool MMA::SolveSubProblem()
+
+
+bool MMA::BFGSSubProblemSolver()
 {
-  // prepare for logging
-  subiters.Resize(0);
-  for(unsigned int j=0; j < m; ++j)
-  {
-    lamda[j] = c[j] * 0.5;
-    mu[j] = 1.0;
-  }
-  double tol = 1.0e-9 * sqrt(m+n);
-  double epsi = 1.0;
-  double err = 1.0;
 
-  unsigned int loop; //
+  BFGS bfgs_sub_sol(m, sub_solve_tol, max_sub_iter, nsmax, this);
 
-  LOG_DBG3(mmaTopOpt) << "SSP: Problem Iteration = " << optimization->GetCurrentIteration() << " @@@@@@@@@@@@@@@@@@@@@@@@@@";
-  LOG_DBG3(mmaTopOpt) << "SSP: xval=" << xval.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: y=" << y.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: z=" << z;
-  LOG_DBG3(mmaTopOpt) << "SSP: low=" << low.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: alpha=" << alpha.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: upp=" << upp.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: beta=" << beta.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: p_0j=" << p_0j.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: q_0j=" << q_0j.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: p_ij=" << p_ij.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: q_ij=" << q_ij.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: conA=" << b.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: lamda=" << lamda.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: mu=" << mu.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: a=" << a.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: c=" << c.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: d=" << d.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "SSP: epsi=" << epsi;
-  LOG_DBG3(mmaTopOpt) << "SSP: err=" << err;
+  Vector<double> lam_v(m, dual_init);
+  Vector<double> up_lam(m, dual_upp);
+  Vector<double> lo_lam(m, dual_low);
 
-  while(epsi > tol )
-  {
-    loop = 0;
-    while(err > 0.9*epsi && loop < max_sub_iter)
-    {
-      ++loop;
-      LOG_DBG3(mmaTopOpt) << "SSP: Sub Prob Loop = " << loop <<" :::::::::::::::::::::::::::::::::::::::::::::: ";
-      LOG_DBG3(mmaTopOpt) << "SSP: loop=" << loop << " epsi=" << epsi << " tol=" << tol;
 
-      PrimalVarFromDualVar();
+  bfgs_sub_sol.SolveBFGS(lam_v, up_lam, lo_lam);
 
-      LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D xval=" << xval.ToString(0);
-      LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D y=" << y.ToString(0);
-      LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D z=" << z;
+  // Copy the lamda values back
+  for(unsigned int im=0; im<m; ++im)
+    lamda[im] = bfgs_sub_sol.x[im];
 
-      GradientOfDual();
+  // TODO: THis is useless think about it.
+  PrimalVarFromDualVar();
 
-      LOG_DBG3(mmaTopOpt) << "SSP: Grad_D grad=" << dual_gradient.ToString(0);
-
-      for(unsigned int j =0; j<m ; ++j)
-      {
-        dual_gradient[j] = -1.0*dual_gradient[j] - epsi/lamda[j];
-      }
-
-      LOG_DBG3(mmaTopOpt) << "SSP: Grad_Mod grad=" << dual_gradient.ToString(0);
-
-      HessianOfDual();
-
-      LOG_DBG3(mmaTopOpt) << "SSP: Hess_D Hess=" << dual_hessian.ToString(0);
-
-      Factorize(dual_hessian, m);
-
-      LOG_DBG3(mmaTopOpt) << "SSP: Factorize Hess=" << dual_hessian.ToString(0);
-
-      Solve(dual_hessian, dual_gradient,m);
-
-      LOG_DBG3(mmaTopOpt) << "SSP: Solve grad=" << dual_gradient.ToString(0);
-
-      for (unsigned int j=0;j<m;j++){
-        s[j]=dual_gradient[j];
-      }
-      for (unsigned int i=0;i<m;i++){
-        s[m+i]= -mu[i]+epsi/lamda[i]-s[i]*mu[i]/lamda[i];
-      }
-
-      LOG_DBG3(mmaTopOpt) << "SSP: S=" << s.ToString(0);
-
-      DualLineSearch(); // New value of lamda and mu will be updated
-
-      LOG_DBG3(mmaTopOpt) << "SSP: lamda=" << lamda.ToString(0);
-      LOG_DBG3(mmaTopOpt) << "SSP: mu=" << mu.ToString(0);
-
-      PrimalVarFromDualVar();
-
-      LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D xval=" << xval.ToString(0);
-      LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D y=" << y.ToString(0);
-      LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D z=" << z;
-
-      err = DualResidual( epsi);
-
-      LOG_DBG3(mmaTopOpt) << "SSP: err=" << err;
-      LOG_DBG3(mmaTopOpt) << "SSP: --------------------------------------------------------------------------- \n \n" ;
-
-      // keep for verbose output in info xml
-      if(progOpts->DoDetailedInfo())
-      {
-        subiters.Push_back(SubInfo());
-        subiters.Last().lambda = lamda;
-        subiters.Last().mu = mu;
-        subiters.Last().s = s;
-        subiters.Last().err = err;
-        subiters.Last().iter = loop;
-        subiters.Last().epsi = epsi;
-      }
-    }
-
-    if(loop >= max_sub_iter)
-    {
-      std::stringstream ss;
-      ss << "MMA subproblem cannot be solved in " << loop << " sub-iters. err=" << err << " epsilon=" << epsi << " tol=" << tol;
-      mma_error_ = ss.str();
-      return false;
-    }
-
-    epsi=epsi*0.1;
-
-    LOG_DBG3(mmaTopOpt) << "SSP: .......................................................................... \n \n" ;
-  }
-
+  LOG_DBG3(mmaTopOpt) << "B_SSP: lamda=" << lamda.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "B_SSP: xval=" << xval.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "B_SSP: y=" << y.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "B_SSP: z=" << z;
   return true;
 }
+
+
+
+double MMA::EvalDualFucntion(Vector<double> &lam)
+{
+  assert(lam.GetSize() == m && "Size of lam is not equal to number of constrains");
+
+  // To store the primal values
+  Vector<double> x_d(n);
+  Vector<double> y_d(m);
+  double z_d=0;
+  PrimalVarFromDualVar(lam, x_d, y_d, z_d ); // Compute the new primal values based on the lam
+
+  double val=0;
+  for(unsigned int jn=0; jn < n; ++jn)
+  {
+    double pj_x_lamda = 0.0;
+    double qj_x_lamda = 0.0;
+    for(unsigned int im=0; im < m; ++im)
+    {
+      pj_x_lamda += p_ij[im][jn]*lam[im];
+      qj_x_lamda += q_ij[im][jn]*lam[im];
+    }
+    val += ((p_0j[jn] + pj_x_lamda)/(upp[jn] - x_d[jn])) + ((q_0j[jn] + qj_x_lamda)/(x_d[jn] - low[jn]));
+  }
+
+  for(unsigned int im=0; im<m; ++im)
+  {
+    val += -b[im]*lam[im] + y_d[im]*c[im] + 0.5*y_d[im]*y_d[im] - y_d[im]*lam[im] - lam[im]*a[im]*z_d;
+  }
+
+  val += z_d + 0.5*z_d*z_d;
+
+  LOG_DBG3(mmaTopOpt) << "BFGS: lam=" << lam.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "BFGS: evalDual=" << val;
+
+  return -val;
+}
+
+
+/*
+// This is evaluation of function withot the extra terms
+double MMA::EvalDualFucntion(Vector<double> &lam)
+{
+  assert(lam.GetSize() == m && "Size of lam is not equal to number of constrains");
+
+  // To store the primal values
+  Vector<double> x_d(n);
+  Vector<double> y_d(m);
+  double z_d=0;
+  PrimalVarFromDualVar(lam, x_d, y_d, z_d ); // Compute the new primal values based on the lam
+
+  double val=0;
+  for(unsigned int jn=0; jn < n; ++jn)
+  {
+    double pj_x_lamda = 0.0;
+    double qj_x_lamda = 0.0;
+    for(unsigned int im=0; im < m; ++im)
+    {
+      pj_x_lamda += p_ij[im][jn]*lam[im];
+      qj_x_lamda += q_ij[im][jn]*lam[im];
+    }
+    val += ((p_0j[jn] + pj_x_lamda)/(upp[jn] - x_d[jn])) + ((q_0j[jn] + qj_x_lamda)/(x_d[jn] - low[jn]));
+  }
+
+  for(unsigned int im=0; im<m; ++im)
+  {
+    val += -b[im]*lam[im];
+  }
+
+  LOG_DBG3(mmaTopOpt) << "BFGS: lam=" << lam.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "BFGS: evalDual=" << val;
+
+  return -val;
+}
+*/
+
+/*
+Vector<double> MMA::EvalDualGrads(Vector<double> &lam)
+{
+  assert(lam.GetSize() == m && "Size of lam is not equal to number of constrains");
+
+  // To store the primal values
+  Vector<double> x_d(n);
+  Vector<double> y_d(m);
+  double z_d=0;
+  PrimalVarFromDualVar(lam, x_d, y_d, z_d ); // Compute the new primal values based on the lam
+
+  Vector<double> grad(m);
+
+  for(unsigned int jm = 0; jm < m; ++jm)
+  {
+    grad[jm] = 0.0;
+    for(unsigned int in =0; in<n; ++in)
+    {
+      grad[jm] += p_ij[jm][in] / (upp[in] - x_d[in]) + q_ij[jm][in] / (x_d[in] - low[in]);
+    }
+    grad[jm] += -b[jm];
+  }
+
+  for(unsigned int jm=0; jm<m; ++jm)
+  {
+    grad[jm] = - grad[jm];
+  }
+
+  LOG_DBG3(mmaTopOpt) << "BFGS: lam=" << lam.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "BFGS: evalGrad=" << grad.ToString(0);
+
+  return grad;
+}
+*/
+
+
+Vector<double> MMA::EvalDualGrads(Vector<double> &lam)
+{
+  assert(lam.GetSize() == m && "Size of lam is not equal to number of constrains");
+
+  // To store the primal values
+  Vector<double> x_d(n);
+  Vector<double> y_d(m);
+  double z_d=0;
+  PrimalVarFromDualVar(lam, x_d, y_d, z_d ); // Compute the new primal values based on the lam
+
+  Vector<double> grad(m);
+
+  for(unsigned int jm = 0; jm < m; ++jm)
+  {
+    grad[jm] = 0.0;
+    for(unsigned int in =0; in<n; ++in)
+    {
+      grad[jm] += p_ij[jm][in] / (upp[in] - x_d[in]) + q_ij[jm][in] / (x_d[in] - low[in]);
+    }
+    grad[jm] += -b[jm];
+  }
+  for(unsigned int jm=0; jm<m; ++jm)
+  {
+    grad[jm] += - a[jm]*z_d - y_d[jm];
+  }
+
+  for(unsigned int jm=0; jm<m; ++jm)
+  {
+    grad[jm] = - grad[jm];
+  }
+
+  LOG_DBG3(mmaTopOpt) << "BFGS: lam=" << lam.ToString(0);
+  LOG_DBG3(mmaTopOpt) << "BFGS: evalGrad=" << grad.ToString(0);
+
+  return grad;
+}
+
+
+bool MMA::IPSubProblemSolver()
+{
+    // prepare for logging
+    subiters.Resize(0);
+    for(unsigned int j=0; j < m; ++j)
+    {
+      lamda[j] = c[j] * 0.5;
+      mu[j] = 1.0;
+    }
+    double tol = sub_solve_tol * sqrt(m+n);
+    double epsi = 1.0;
+    double err = 1.0;
+
+    unsigned int loop; //
+
+    LOG_DBG3(mmaTopOpt) << "SSP: Problem Iteration = " << optimization->GetCurrentIteration() << " @@@@@@@@@@@@@@@@@@@@@@@@@@";
+    LOG_DBG3(mmaTopOpt) << "SSP: xval=" << xval.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: y=" << y.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: z=" << z;
+    LOG_DBG3(mmaTopOpt) << "SSP: low=" << low.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: alpha=" << alpha.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: upp=" << upp.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: beta=" << beta.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: p_0j=" << p_0j.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: q_0j=" << q_0j.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: p_ij=" << p_ij.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: q_ij=" << q_ij.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: conA=" << b.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: lamda=" << lamda.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: mu=" << mu.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: a=" << a.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: c=" << c.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: d=" << d.ToString(0);
+    LOG_DBG3(mmaTopOpt) << "SSP: epsi=" << epsi;
+    LOG_DBG3(mmaTopOpt) << "SSP: err=" << err;
+
+    while(epsi > tol )
+    {
+      loop = 0;
+      while(err > 0.9*epsi && loop < max_sub_iter)
+      {
+        ++loop;
+        LOG_DBG3(mmaTopOpt) << "SSP: Sub Prob Loop = " << loop <<" :::::::::::::::::::::::::::::::::::::::::::::: ";
+        LOG_DBG3(mmaTopOpt) << "SSP: loop=" << loop << " epsi=" << epsi << " tol=" << tol;
+
+        PrimalVarFromDualVar();
+
+        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D xval=" << xval.ToString(0);
+        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D y=" << y.ToString(0);
+        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D z=" << z;
+
+        GradientOfDual();
+
+        LOG_DBG3(mmaTopOpt) << "SSP: Grad_D grad=" << dual_gradient.ToString(0);
+
+        for(unsigned int j =0; j<m ; ++j)
+        {
+          dual_gradient[j] = -1.0*dual_gradient[j] - epsi/lamda[j];
+        }
+
+        LOG_DBG3(mmaTopOpt) << "SSP: Grad_Mod grad=" << dual_gradient.ToString(0);
+
+        HessianOfDual();
+
+        LOG_DBG3(mmaTopOpt) << "SSP: Hess_D Hess=" << dual_hessian.ToString(0);
+
+        Factorize(dual_hessian, m);
+
+        LOG_DBG3(mmaTopOpt) << "SSP: Factorize Hess=" << dual_hessian.ToString(0);
+
+        Solve(dual_hessian, dual_gradient,m);
+
+        LOG_DBG3(mmaTopOpt) << "SSP: Solve grad=" << dual_gradient.ToString(0);
+
+        for (unsigned int j=0;j<m;j++){
+          s[j]=dual_gradient[j];
+        }
+        for (unsigned int i=0;i<m;i++){
+          s[m+i]= -mu[i]+epsi/lamda[i]-s[i]*mu[i]/lamda[i];
+        }
+
+        LOG_DBG3(mmaTopOpt) << "SSP: S=" << s.ToString(0);
+
+        DualLineSearch(); // New value of lamda and mu will be updated
+
+        LOG_DBG3(mmaTopOpt) << "SSP: lamda=" << lamda.ToString(0);
+        LOG_DBG3(mmaTopOpt) << "SSP: mu=" << mu.ToString(0);
+
+        PrimalVarFromDualVar();
+
+        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D xval=" << xval.ToString(0);
+        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D y=" << y.ToString(0);
+        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D z=" << z;
+
+        err = DualResidual( epsi);
+
+        LOG_DBG3(mmaTopOpt) << "SSP: err=" << err;
+        LOG_DBG3(mmaTopOpt) << "SSP: --------------------------------------------------------------------------- \n \n" ;
+
+        // keep for verbose output in info xml
+        if(progOpts->DoDetailedInfo())
+        {
+          subiters.Push_back(SubInfo());
+          subiters.Last().lambda = lamda;
+          subiters.Last().mu = mu;
+          subiters.Last().s = s;
+          subiters.Last().err = err;
+          subiters.Last().iter = loop;
+          subiters.Last().epsi = epsi;
+        }
+      }
+
+      if(loop >= max_sub_iter)
+      {
+        std::stringstream ss;
+        ss << "MMA subproblem cannot be solved in " << loop << " sub-iters. err=" << err << " epsilon=" << epsi << " tol=" << tol;
+        mma_error_ = ss.str();
+        return false;
+      }
+
+      epsi=epsi*0.1;
+
+      LOG_DBG3(mmaTopOpt) << "SSP: .......................................................................... \n \n" ;
+    }
+
+    return true;
+
+}
+
+
+void MMA::PrimalVarFromDualVar(Vector<double> &lam, Vector<double> &x_d, Vector<double> &y_d, double &z_d )
+{
+  double lamda_x_a = 0.0;
+
+  for(unsigned int mj=0; mj < m; ++mj)
+  {
+    if(lam[mj] < 0.0) lam[mj] = 0.0;
+    y_d[mj] = max(0.0, lam[mj] - c[mj]);
+    lamda_x_a += lam[mj]*a[mj];
+  }
+  z_d = max(0.0, 10.0*(lamda_x_a - 1.0));
+
+  /** update of xval[] according to K.Svanberg's paper section 4. equation 17-19.*/
+  double pj_x_lamda = 0.0;
+  double qj_x_lamda = 0.0;
+  for(unsigned int i = 0; i < n; ++i)
+  {
+    pj_x_lamda = p_0j[i];
+    qj_x_lamda = q_0j[i];
+    for(unsigned int j=0; j < m; ++j)
+    {
+      pj_x_lamda += p_ij[j][i]*lam[j];
+      qj_x_lamda += q_ij[j][i]*lam[j];
+    }
+    x_d[i] = (sqrt(pj_x_lamda)*low[i] + sqrt(qj_x_lamda)*upp[i]) / (sqrt(pj_x_lamda) + sqrt(qj_x_lamda));
+
+    if(x_d[i] < alpha[i])
+      x_d[i] = alpha[i];
+    if(x_d[i] > beta[i])
+      x_d[i] = beta[i];
+  }
+}
+
 
 void MMA::PrimalVarFromDualVar()
 {
@@ -771,9 +1058,7 @@ void MMA::GradientOfDual()
   for(unsigned int jm=0; jm<m; ++jm)
   {
     dual_gradient[jm] += -b[jm] - a[jm]*z - y[jm];
-
   }
-
 }
 /** according to N.Aage paper section 3.3*/
 void MMA::HessianOfDual()
@@ -931,6 +1216,19 @@ double MMA::DualResidual(double epsi)
   return result;
 }
 
+void MMA::EvalMmaConstrains(StdVector<double> & eval, StdVector<double> & xc)
+{
+  assert(eval.GetCapacity() == m && "Size of eval should be equal to number of constrains");
+  for(unsigned int im=0; im < m; ++im)
+  {
+    eval[im]=0.0;
+    for (unsigned int jn=0; jn<n; ++jn)
+    {
+      eval[im] += p_ij[im][jn]/(upp[jn] - xc[jn]) + q_ij[im][jn]/(xc[jn] - low[jn]);
+    }
+    eval[im] -= b[im];
+  }
+}
 
 void MMA::LogFileHeader(Optimization::Log& log)
 {
@@ -1048,6 +1346,19 @@ void MMA::InitilizeFromFile(std::string filename, double *dp){
 void MMA::FunctionTest()
 {
 
+/*  TestFunction prob(n, m);
+  BFGS bfgs(n, m, tol, 100, &prob);
+
+  Vector<double> x0(n);
+
+  for(unsigned int in=0; in < n;++in)
+  {
+    x0[in] = 2.0;
+  }
+
+  prob.EvalFucntion(x0);*/
+
+
   /**
    * First we are initilizing all the data required to initilize the funciton.
    */
@@ -1073,7 +1384,7 @@ void MMA::FunctionTest()
   /**
    * Execute the fucntion to be tested
    */
-  SolveSubProblem();
+  IPSubProblemSolver();
 
 
   /**

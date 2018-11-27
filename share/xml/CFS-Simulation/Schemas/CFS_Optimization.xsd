@@ -671,42 +671,169 @@
             </xsd:element>
 
            <!-- New MMA implemention -->
-            <xsd:element name="mma" minOccurs="0" >
-              <xsd:complexType>
-                <xsd:sequence>
-                  <xsd:element name="fixed_asymptotes" minOccurs="0" maxOccurs="1">
-                    <xsd:complexType>
-                      <xsd:attribute name="enable" use="required" type="xsd:boolean"/>
-                      <xsd:attribute name="upper_multiplier" default="true" use="optional" type="xsd:boolean"/>
-                      <xsd:attribute name="lower_multiplier" default="true" use="optional" type="xsd:boolean"/>
-                      <xsd:attribute name="lower" use="optional" type="xsd:float" default="0"/>
-                      <xsd:attribute name="upper" use="optional" type="xsd:float" default="10"/>
-                    </xsd:complexType>
-                  </xsd:element>
-                  <!-- for globally convergent sub problem -->
-                  <xsd:element name="globally_convergent" minOccurs="0" maxOccurs="1">
-                    <xsd:complexType>
-                      <xsd:attribute name="enable" use="required" type="xsd:boolean"/>
-                      <xsd:attribute name="rho" use="optional" type="xsd:float" default="0.0001"/>
-                    </xsd:complexType>
-                  </xsd:element>
-                </xsd:sequence>
+           <xsd:element name="mma" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+								
+								
+                <xsd:element name="globally_convergent" minOccurs="0" maxOccurs="1">
+                  <xsd:complexType>
+                    <xsd:attribute name="enable" use="required" type="xsd:boolean"/>
+                    <xsd:attribute name="rho" use="optional" type="xsd:float" default="0.0001"/>
+                  </xsd:complexType>
+                </xsd:element>
+                
+								<xsd:element name="asymptotes" minOccurs="0" maxOccurs="1">
+								  <xsd:complexType>
+								    <xsd:sequence>
+								      <xsd:element name="fixed" minOccurs="0" maxOccurs="1">
+	                      <xsd:complexType>
+		                      <xsd:attribute name="upper_multiplier" default="true" use="optional" type="xsd:boolean"/>
+		                      <xsd:attribute name="lower_multiplier" default="true" use="optional" type="xsd:boolean"/>
+		                      <xsd:attribute name="lower" use="optional" type="xsd:float" default="0"/>
+		                      <xsd:attribute name="upper" use="optional" type="xsd:float" default="10"/>
+	                      </xsd:complexType>
+	                    </xsd:element>
+								    </xsd:sequence>
+								  
+										<xsd:attribute name="update" use="optional" default="fixed">
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:token">
+													<xsd:enumeration value="svanberg"/>
+													<xsd:enumeration value="fixed"/>
+													<xsd:enumeration value="robust"/>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:attribute>
+										<xsd:attribute name="robust_type" default="type_1" use="optional">
+										  <xsd:simpleType>
+		                    <xsd:restriction base="xsd:token">
+		                      <xsd:enumeration value="type_1"/>
+		                      <xsd:enumeration value="type_2"/>
+		                    </xsd:restriction>
+		                  </xsd:simpleType>
+										</xsd:attribute>
+										
+										<xsd:attribute name="initial" default="0.9" use="optional" type="xsd:float"/>
+										<xsd:attribute name="dec" default="0.7" use="optional" type="xsd:float"/>
+										<xsd:attribute name="inc" default="1.2" use="optional" type="xsd:float"/>
+								  </xsd:complexType>								
+								</xsd:element>
+								
+								<xsd:element name="bfgs_setting" minOccurs="0" maxOccurs="1">
+								  <xsd:complexType>
+								    <xsd:attribute name="initial" default="0.1" use="optional" type="xsd:float"/>
+								    <xsd:attribute name="low" default="0.0" use="optional" type="xsd:float"/>
+								    <xsd:attribute name="upp" default="1.0e9" use="optional" type="xsd:float"/>
+								    <xsd:attribute name="no_stores" default="100" use="optional" type="xsd:integer"/>
+								  </xsd:complexType>
+								</xsd:element>
+								
+              </xsd:sequence>
+              
+              <xsd:attribute name="sub_solver_type" default="int_point" use="optional">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="int_point"/>
+                    <xsd:enumeration value="bfgs"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              
+              
+              
+              <xsd:attribute name="sub_solve_tol" default="1e-4" use="optional" type="xsd:float" />
+              
+              <xsd:attribute name="max_sub_iter" default="10" use="optional" type="xsd:integer"/>
+              
+              <!-- move_limit is to ensure xmin and xmax are close to xval, if false they are not varied -->
+              <xsd:attribute name="move_limit" default="false" use="optional" type="xsd:boolean" />
+            
+							<!-- Penalty to make problems feasible (y_i in (1.1) in Svanbergs MMA Modelling aspects 1998  -->
+							<xsd:attribute name="constraint_penalty_c" default="1000.0" use="optional" type="xsd:float"/>
+							    
+							<!-- Unnamed kappa for whatever in Sec 4.1 in (1.1) in Svanbergs MMA Modelling aspects 1998 and in TopOpt code 
+							as constraint modification -->  
+							<xsd:attribute name="svanbergs_kappa" default="false" use="optional" type="xsd:boolean" />
+							              
+							<!-- cdev: for testing -->
+							<xsd:attribute name="testing_functions" default="false" use="optional" type="xsd:boolean" />
+							
+            </xsd:complexType>
+           </xsd:element>
 
-                <xsd:attribute name="constrain_penalty_c" default="1000.0" use="optional" type="xsd:float"/>
+           
+<!-- 					<xsd:element name="mma" minOccurs="0" >
+					    <xsd:complexType>
+					        <xsd:sequence>                
+					            <xsd:element name="globally_convergent" minOccurs="0" maxOccurs="1">
+						            <xsd:complexType>
+						                <xsd:attribute name="enable" use="required" type="xsd:boolean"/>
+						                <xsd:attribute name="rho" use="optional" type="xsd:float" default="0.0001"/>
+						            </xsd:complexType>
+					            </xsd:element>
+					
+					            <xsd:element name="asymptotes" minOccurs="0" maxOccurs="1">
+					                <xsd:complexType>
+					                    <xsd:sequence>
+					                        <xsd:element name="fixed" minOccurs="0" maxOccurs="1">
+					                            <xsd:complexType>
+					                            <xsd:attribute name="upper_multiplier" default="true" use="optional" type="xsd:boolean"/>
+					                            <xsd:attribute name="lower_multiplier" default="true" use="optional" type="xsd:boolean"/>
+					                            <xsd:attribute name="lower" use="optional" type="xsd:float" default="0"/>
+					                            <xsd:attribute name="upper" use="optional" type="xsd:float" default="10"/>
+					                            </xsd:complexType>
+					                        </xsd:element>
+					                    </xsd:sequence>
+					                
+					                <xsd:attribute name="update" use="optional" default="fixed">
+					                    <xsd:simpleType>
+					                        <xsd:restriction base="xsd:token">
+					                            <xsd:enumeration value="svanberg"/>
+					                            <xsd:enumeration value="fixed"/>
+					                            <xsd:enumeration value="robust"/>
+					                        </xsd:restriction>
+					                    </xsd:simpleType>
+					                </xsd:attribute>   
+					                <xsd:attribute name="initial" default="0.9" use="optional" type="xsd:float"/>
+					                <xsd:attribute name="dec" default="0.7" use="optional" type="xsd:float"/>
+					                <xsd:attribute name="inc" default="1.2" use="optional" type="xsd:float"/>
+					                
+					                </xsd:complexType>
+					            </xsd:element>
+					        </xsd:sequence>
+					        
+					        <xsd:attribute name="constraint_penalty_c" default="1000.0" use="optional" type="xsd:float"/>
+					            
+					        <xsd:attribute name="svanbergs_kappa" default="false" use="optional" type="xsd:boolean" />
+					                        
+					        <xsd:attribute name="max_sub_iter" default="10" use="optional" type="xsd:integer"/>
+					        <xsd:attribute name="move_limit" default="false" use="optional" type="xsd:boolean" />
+					                                        
+					        <xsd:attribute name="testing_functions" default="false" use="optional" type="xsd:boolean" />
+					
+					    </xsd:complexType>
+					</xsd:element>
+               
+                       
+                Penalty to make problems feasible (y_i in (1.1) in Svanbergs MMA Modelling aspects 1998 
+                <xsd:attribute name="constraint_penalty_c" default="1000.0" use="optional" type="xsd:float"/>
+                    
+                Unnamed kappa for whatever in Sec 4.1 in (1.1) in Svanbergs MMA Modelling aspects 1998 and in TopOpt code 
+                as constraint modification  
+                <xsd:attribute name="svanbergs_kappa" default="false" use="optional" type="xsd:boolean" />
+                              
                 <xsd:attribute name="max_sub_iter" default="10" use="optional" type="xsd:integer"/>
-                <xsd:attribute name="asym_init" default="0.9" use="optional" type="xsd:float"/>
-                <xsd:attribute name="asym_dec" default="0.7" use="optional" type="xsd:float"/>
-                <xsd:attribute name="asym_inc" default="1.2" use="optional" type="xsd:float"/>
-                <xsd:attribute name="robust_asymptote" default="false" use="optional" type="xsd:boolean" />
-                <xsd:attribute name="constraint_modification" default="false" use="optional" type="xsd:boolean" />
-                <!-- move_limit is to ensure xmin and xmax are close to xval, if false they are not varied -->
+                move_limit is to ensure xmin and xmax are close to xval, if false they are not varied
                 <xsd:attribute name="move_limit" default="false" use="optional" type="xsd:boolean" />
-                
-                <!-- cdev: for testing -->
+                                              
+                cdev: for testing
                 <xsd:attribute name="testing_functions" default="false" use="optional" type="xsd:boolean" />
-                
+
               </xsd:complexType>
             </xsd:element>
+             -->
+            <!-- End of mma -->
  
             <xsd:element name="sgp" minOccurs="0" >
               <xsd:complexType>
@@ -860,8 +987,7 @@
               </xsd:complexType>
             </xsd:element>
             
-            <!-- constrained bfgs optimization algorithm will be called by mma -->
-            <!-- <xsd:element name="bfgs" minOccurs="0"> -->
+
             
             <!-- the parameters of the shape optimizer can be set
                  <shapeOpt enableTopgrad="true" /> -->
