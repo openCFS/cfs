@@ -828,11 +828,9 @@ def generate_basecell(args,info):
   global infoXml
   infoXml = info
   
-  array = None
+  array = np.zeros((res,res,res),dtype=np.int)
   if args.multiple_regions:
     array = np.ones((res,res,res),dtype=np.int) * (-1)
-    
-  array = np.zeros((res,res,res),dtype=np.int)
   
   profiles = create_profiles(args,infoXml)
   
@@ -884,8 +882,9 @@ def generate_basecell(args,info):
       # if basecell is symmetric, calculate only 1/8 and mirror the rest
       symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
       symmetric = False
+      print("before write to array")
       write_profile_to_array(array, profiles[i],args.multiple_regions)
-      
+      print("after write to array")
     if args.target == "3dlines":
       if args.save_vtp: #write 3 .vtp files
         points = vtk.vtkPoints()
@@ -900,6 +899,11 @@ def generate_basecell(args,info):
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
   
   if args.target == "volume_mesh":
+    h = 1.0/res
+    x = np.arange(0,1+h,h)
+    
+    from pyevtk.hl import gridToVTK
+    gridToVTK("array",x,x,x,cellData={"array":array})
     points, cells = voxels_to_points_and_cells(array,multRegions=args.multiple_regions)
       
   if args.target == "surface_mesh" or args.target == "marching_cubes":
@@ -1081,7 +1085,7 @@ def write_profile_to_array(array,profile,multiple_regions):
 #         projection = calc_projection(profile, center)
         if (valx-r <= 1e-6):
           array[idx[major],idx[minor_1],idx[minor_2]] = major if multiple_regions else 1
-            
+
   if symmetric:
     # mirror octant
     array[0:bound,0:bound,bound:res] = array[0:bound,0:bound,0:bound][:,:,::-1]

@@ -162,11 +162,11 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
         right_upper_front = (right,upper,front)
         
         # if base cell corners outside design domain, don't compute
-        if out_of_bounds(left_lower_back, design_bounds) and out_of_bounds(left_upper_back, design_bounds)\
-          and out_of_bounds(left_lower_front, design_bounds) and out_of_bounds(left_upper_front, design_bounds)\
-          and out_of_bounds(right_lower_back, design_bounds) and out_of_bounds(right_upper_back, design_bounds)\
-          and out_of_bounds(right_lower_front, design_bounds) and out_of_bounds(right_upper_front, design_bounds):
-            continue
+#         if out_of_bounds(left_lower_back, design_bounds) and out_of_bounds(left_upper_back, design_bounds)\
+#           and out_of_bounds(left_lower_front, design_bounds) and out_of_bounds(left_upper_front, design_bounds)\
+#           and out_of_bounds(right_lower_back, design_bounds) and out_of_bounds(right_upper_back, design_bounds)\
+#           and out_of_bounds(right_lower_front, design_bounds) and out_of_bounds(right_upper_front, design_bounds):
+#             continue
         
         flags = None
         bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
