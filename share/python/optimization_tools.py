@@ -393,6 +393,18 @@ def read_density_as_full_array(filename, attribute='design', fill=0.0, set = Non
       
   return a
 
+def convert_multi_density_to_matlab(filename, outputfile, design1,design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"): 
+  d = read_multi_design(filename,design1,design2, design3, design4, design5, design6, matrix, attribute)
+  (m,n) = d.shape
+  for i in range(n):
+    out = open(outputfile+'_des' + str(i+1), "w")
+    for j in range(m):
+      out.write(str(d[j,i])+'\n')
+    out.close()
+  
+      
+  
+
 # # replaces the element numbers by new element numbers.
 # @param org ndarray of element numbers from read_density(,elemnr=True)
 # @param map element mapping as tupel list from cfs_grid.map_elements()
