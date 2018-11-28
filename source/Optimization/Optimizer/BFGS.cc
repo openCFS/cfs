@@ -102,7 +102,7 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
   // Start of iteration
   unsigned int itc = 0;
   double fc;
-  Vector<double> gc;
+  Vector<double> gc(n);
   if(prob_t == NULL)
   {
     fc = prob->EvalDualFucntion(xc);
@@ -122,13 +122,19 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
    */
   // Matrix<double> ithist(maxit,5);
 
-  Vector<double> x_gc = xc - gc; // TODO: this is comnputed only because the kk_proj did not accept x-gc as a argument
-  Vector<double> pgc = xc - kk_proj(x_gc, up, lo);
+  Vector<double> x_gc(n);
+  x_gc = xc - gc;
+
+  Vector<double> pgc(n);
+  pgc = xc - kk_proj(x_gc, up, lo);
 
   // active index set
   unsigned int ia=0;
   Vector<int> alist(n);
-  Vector<double> tst = up-lo;
+
+  Vector<double> tst(n);
+  tst = up-lo;
+
   double lim1 = 0.5*tst.Min();
   double epsilon = min(lim1, pgc.NormL2());
 
@@ -149,7 +155,10 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
   while(pgc.NormL2() > tol && itc <= maxit)
   {
     double lam=1;
-    Vector<double> dsd = -gc;
+
+    Vector<double> dsd(n);
+    dsd = -gc;
+
     dsd = bfgsrp(ystore, sstore, ns, dsd, alist);
 
     Vector<double> neg_gc = gc;
@@ -171,7 +180,9 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
     ++itc;
     iarm =0;
 
-    Vector<double> pl = xc - xt;
+    // Vector<double> pl = xc - xt;
+    Vector<double> pl(n);
+    pl = xc - xt;
 
     /** fgoal=fc-(gc'*pl)*alp;
      * First I compute the inner product (gc'*pl)
@@ -219,11 +230,17 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
     else
       gp = prob_t->EvalDualGrads(xt);
 
-    Vector<double> y = gp - gc;
-    Vector<double> s = xt - xc;
+    Vector<double> y(n);
+    y = gp - gc;
+
+    Vector<double> s(n);
+    s= xt - xc;
+
     gc = gp;
     xc = xt;
-    Vector<double> xc_gc = xc - gc;
+    Vector<double> xc_gc(n);
+    xc_gc = xc - gc;
+
     pgc = xc - kk_proj(xc_gc, up, lo);
     epsilon = min(lim1, pgc.NormL2());
 
@@ -248,7 +265,7 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
     if (yts <= 0)
       ns= -1;
 
-    if(ns == nsmax)
+    if(ns == (int)nsmax)
       ns = -1;
     else if(yts > 0)
     {
