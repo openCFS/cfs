@@ -96,18 +96,28 @@ def read_stiff_angle_matlab(filename):
   centers = mat2['centers']
   domain_data = domain_data['data']
   max = domain_data[0][:]
+  if max[2] == 0:
+    dim = 2
+  else:
+    dim = 3
   min = domain_data[1][:]
   elem_dim = domain_data[2][:]
   coords = (centers,min,max,elem_dim)
   s1 = numpy.zeros((d.shape[0], 1))
   s2 = numpy.zeros((d.shape[0], 1))
+  s3 = numpy.zeros((d.shape[0], 1)) if dim == 3 else None
   angle = numpy.zeros((d.shape[0], 1))
   for i in range(d.shape[0]):
     # angle needs to be changed to negative to match matlab result
     angle[i] = -d[i][0]
     s1[i] = d[i][1]
     s2[i] = d[i][2]
-  return angle,s1,s2,coords
+    if dim == 3:
+      s3[i] = d[i][3]
+  if dim == 3:
+    return None,s1,s2,coords,s3,None
+  else:
+    return angle,s1,s2,coords,s3,'2D'
 
 # # read arbitrary multi-design density file as numpy array
 def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):
@@ -382,6 +392,18 @@ def read_density_as_full_array(filename, attribute='design', fill=0.0, set = Non
     a[y, x] = vals[i]
       
   return a
+
+def convert_multi_density_to_matlab(filename, outputfile, design1,design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"): 
+  d = read_multi_design(filename,design1,design2, design3, design4, design5, design6, matrix, attribute)
+  (m,n) = d.shape
+  for i in range(n):
+    out = open(outputfile+'_des' + str(i+1), "w")
+    for j in range(m):
+      out.write(str(d[j,i])+'\n')
+    out.close()
+  
+      
+  
 
 # # replaces the element numbers by new element numbers.
 # @param org ndarray of element numbers from read_density(,elemnr=True)

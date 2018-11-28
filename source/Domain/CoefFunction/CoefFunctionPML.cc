@@ -32,7 +32,7 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
   CoefFunction(){
 
   isAnalytic_ = false;
-  isComplex_ =  std::tr1::is_same<T,Complex>::value;
+  isComplex_ =  std::is_same<T,Complex>::value;
   dependType_ = GENERAL;
   
   //prepare dimenstions of propagation region

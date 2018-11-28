@@ -210,7 +210,7 @@ class TransferFunction;
     inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
     
     /* general anisotropic FMO tensor */
-    inline void GetElasticFMOTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+    inline void GetElasticFMOTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
 
     /** Calculate the orthotropic material tensor */
     inline void GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
@@ -244,9 +244,8 @@ class TransferFunction;
     /** put values from Voigt vector to correct positions in tensor (doesn't assume symmetry) */
     inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33);
 
-    /** put the entries of the orthotropic tensor at the right places */
-    inline void SetOrthotropicTensor(Matrix<double>& t, SubTensorType subTensor, double e11, double e12, double e13, double e22,
-        double e23, double e33, double e44, double e55, double e66);
+    /** put the entries of the 3D tensor at the right places */
+    inline void Set3dVoigtTensor(Matrix<double>& t, SubTensorType subTensor, double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double);
 
     /** put the entries of the transversal_isotropic tensor at the right places */
     inline void SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);

@@ -2,7 +2,6 @@
 #define FILE_RHS_KX_INTEGRATOR_
 
 #include "LinearForm.hh"
-#include <boost/tr1/type_traits.hpp>
 #include "Domain/CoefFunction/CoefFunction.hh"
 
 
@@ -50,7 +49,7 @@ namespace CoupledField{
     
     //! Return if linearform is complex
     bool IsComplex() const {
-      return std::tr1::is_same<VEC_DATA_TYPE,Complex>::value;
+      return std::is_same<VEC_DATA_TYPE,Complex>::value;
     }
 
   protected:

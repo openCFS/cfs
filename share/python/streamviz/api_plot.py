@@ -7,12 +7,13 @@ import threading
 import json
 import svgwrite
 import time
+from lxml import etree
 
 # get the latest values
-def get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
+def get_values(GLOBAL_RAW_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
   data = {}
   
-  xml = GLOBAL_DATA_DICT[key]
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
   
   # iteration_num is the latest iteration that was shown by the GUI
   # we will wait for a new data to arrive f 
@@ -48,7 +49,7 @@ def get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
   else:
     time.sleep(2)
 
-  xml = GLOBAL_DATA_DICT[key] # load xml again in case there is a new one available
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key]) # load xml again in case there is a new one available
 
   data['results'] = {}
 
@@ -74,12 +75,12 @@ def get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, iteration_num):
 
 
 # returns html with embedded svg OR error code 
-def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names, y1_res_names, y2_res_names, \
+def plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, x_name, y1_it_names, y2_it_names, y1_res_names, y2_res_names, \
          iteration_num, logscale_y1, logscale_y2, result_view_arr, show_bloch):
   
   data = ""
   
-  xml = GLOBAL_DATA_DICT[key]
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key])
   
   # iteration_num is the latest iteration that was shown by the GUI
   # we will wait for a new data to arrive f
@@ -116,7 +117,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
   else:
     time.sleep(2)
 
-  xml = GLOBAL_DATA_DICT[key] # load xml again in case there is a new one available
+  xml = etree.fromstring(GLOBAL_RAW_DATA_DICT[key]) # load xml again in case there is a new one available
 
   if show_bloch:
     
@@ -318,6 +319,15 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
     y1_min = []
     y1_max = []
     
+    plot_mode = '-' # aka line
+    
+    try:
+      print(xml.xpath('(//process/iteration/@number)[last()]')[0])
+      if int(xml.xpath('(//process/iteration/@number)[last()]')[0]) <= 20:
+        plot_mode = '-o' # aka lines plus points
+    except Exception as e:
+      pass
+    
     for y1_it_name in y1_it_names:
       # convert to list of floats
       y1_it = [float(i) for i in xml.xpath('//process/iteration/@' + y1_it_name)]
@@ -328,7 +338,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
         continue
     
       y1_label += y1_it_name + ', '
-      ax1.plot(t, y1_it, '-', label=y1_it_name)
+      ax1.plot(t, y1_it, plot_mode, label=y1_it_name)
       
       y1_min.append(min(y1_it))
       y1_max.append(max(y1_it))
@@ -343,7 +353,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
         continue
   
       y1_label += y1_res_name + ', '
-      ax1.plot(t, y1_res, '-', label=y1_res_name)
+      ax1.plot(t, y1_res, plot_mode, label=y1_res_name)
       
       y1_min.append(min(y1_res))
       y1_max.append(max(y1_res))
@@ -385,7 +395,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
         continue
     
       y2_label += y2_it_name + ', '
-      ax2.plot(t, y2_it, '-', label=y2_it_name)
+      ax2.plot(t, y2_it, plot_mode, label=y2_it_name)
       
       y2_min.append(min(y2_it))
       y2_max.append(max(y2_it))
@@ -400,7 +410,7 @@ def plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, x_name, y1_it_names, y2_it_names,
         continue
   
       y2_label += y2_res_name + ', '
-      ax2.plot(t, y2_res, '-', label=y2_res_name)
+      ax2.plot(t, y2_res, plot_mode, label=y2_res_name)
       
       y2_min.append(min(y2_res))
       y2_max.append(max(y2_res))

@@ -701,6 +701,16 @@ namespace CoupledField {
     out << "USE_ILUPACK:           " << fg_blue  << "NO" << fg_reset << endl;
  #endif
 
+
+
+
+#ifdef USE_ILUPACK_PARALLEL
+   out << "USE_ILUPACK_PARALLEL:           " << fg_blue << "YES" << fg_reset << endl;
+#else
+   out << "USE_ILUPACK_PARALLEL:           " << fg_blue  << "NO" << fg_reset << endl;
+#endif
+
+
  #ifdef USE_SUITESPARSE
     out << "USE_SUITESPARSE:       " << fg_blue << "YES" << fg_reset << endl;
     out << "SUITESPARSE_VERSION:   " << fg_blue << SUITESPARSE_MAIN_VERSION << "."

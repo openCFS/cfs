@@ -137,9 +137,24 @@ App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctx
   case DesignElement::MECH_11:
   case DesignElement::MECH_12:
   case DesignElement::MECH_13:
-  case DesignElement::MECH_23:
+  case DesignElement::MECH_14:
+  case DesignElement::MECH_15:
+  case DesignElement::MECH_16:
   case DesignElement::MECH_22:
+  case DesignElement::MECH_23:
+  case DesignElement::MECH_24:
+  case DesignElement::MECH_25:
+  case DesignElement::MECH_26:
   case DesignElement::MECH_33:
+  case DesignElement::MECH_34:
+  case DesignElement::MECH_35:
+  case DesignElement::MECH_36:
+  case DesignElement::MECH_44:
+  case DesignElement::MECH_45:
+  case DesignElement::MECH_46:
+  case DesignElement::MECH_55:
+  case DesignElement::MECH_56:
+  case DesignElement::MECH_66:
   case DesignElement::SHEAR1:
   case DesignElement::MULTIMATERIAL:
   case DesignElement::INTERPOLATION:

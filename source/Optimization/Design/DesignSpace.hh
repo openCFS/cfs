@@ -18,6 +18,8 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/Transform.hh"
 #include "Utils/StdVector.hh"
+#include "MatVec/CRS_Matrix.hh"
+
 
 namespace CoupledField
 {
@@ -34,7 +36,18 @@ namespace CoupledField
   struct MultiMaterial;
   class Context;
   class LocalElementCache;
+  struct DensityFilterMat;
 
+
+  struct DensityFilterMat
+    {
+      Vector<double> inv_weighted_sum;
+      Vector<double> filtered_vec;
+      CRS_Matrix<double> filter_mat;
+      void AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbour, int filter_idx);
+      void CacheDensityFilteredValue(const Vector<double>& design_vec);
+
+    };
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
   class DesignSpace
@@ -524,6 +537,18 @@ namespace CoupledField
      /** for SIMP type constructor we have a number of elements,
       * data size = num of design * num region elements */
      unsigned int elements;
+
+
+     // A vector that holds the filter weights Matrix and the filtered Vec for all the filters
+     StdVector<DensityFilterMat> density_filter;
+
+     // If set filtering is done by matrix Vector operation by assembling a filter mat.
+     // this internal bool is set to true in default mode if the number of different design is one
+     bool is_matrix_filt;
+
+
+
+
 
     protected:
 

@@ -89,7 +89,15 @@ def read_design(hdf_file, dim_2D, args):
     res['s2'] = res['s1']
     res['s3'] = res['s1']
   elif args.parametrization == 'simp':
-    res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
+    if args.h5_region == 'all':
+      s1 = [[None]]
+      for region in f['/Mesh/Regions']:
+        s = get_element(f, "physicalPseudoDensity", region, args.h5_step)
+        s1 = numpy.concatenate((s1,s))
+      res['s1'] = s1[1:]
+      shape(res['s1'])
+    else:
+      res['s1'] = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
     res['s2'] = res['s1']
     res['s3'] = res['s1']
     res['angle'] = numpy.zeros(((len(res['s1']), 3)))
@@ -186,7 +194,7 @@ def plot_angle_data(file, angle, data):
 # @param force_scale overwrites args.scale
 # @param min_bb/max_bb: min/max coordinates of bounding box
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
-def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes_coords = None, min_bb = None, max_bb = None):
+def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, nondes_coords = None, min_bb = None, max_bb = None, elems_in_regions = None):
   
   volume = None  # might ne set
   
@@ -199,7 +207,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
     # either Image or polydata  
     viz = None
     if args.show in ("hom_rect", "hom_rot_cross", "hom_sheared_rot_cross", "hom_cross_bar", "hom_frame", "hom_framed_cross", "rot", "stream", "hom_rect_mod", "simp","hom_ortho_3d"):
-
       if args.show == "simp":
         args.parametrization = "simp"
       if h5_read:
@@ -209,7 +216,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
 
       if dim_2D and args.show in TWO_SCALE:
         print("Volume for regular grid: " + str(calc_volume(design['s1'], design['s2'])))
-      
       # add angle bias, e.g. by 90 deg to correct thomas
       design['angle'] += args.angle_bias * numpy.pi / 180
       # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
@@ -347,10 +353,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                   assert(me is not None)  
                   write_gid_mesh(me, "validation_mesh.mesh", scale)      
               else:
-                viz = create_3d_frame_ip(coords, design, samples, args.hom_grad, scale, valid_position, args.thres)
+                viz = create_3d_cross_ip(coords, design, samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
           if args.show == 'simp':
-            viz = create_block(coords, design, scale, args.thres)
+            viz = create_block(coords, design, scale, args.thres, elems_in_regions)
           elif args.hom_grad == 'none':
             viz = create_3d_frame(coords, design, args.hom_dir, scale)
           elif args.unstructured:
@@ -399,8 +405,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
     angle_max = angle[numpy.argmax(numpy.abs(data))]
     angle_min = angle[numpy.argmin(numpy.abs(data))]
 
-    print(" largest entry: {:>13.6e}".format(numpy.max(numpy.abs(data))) + "  in direction " + str(to_vector(angle_max)))
-    print("smallest entry: {:>13.6e}".format(numpy.min(numpy.abs(data))) + "  in direction " + str(to_vector(angle_min)))
+    print(" largest e-modulus: {:>13.6e}".format(numpy.max(numpy.abs(data))) + "  in direction " + str(to_vector(angle_max)))
+    print("smallest e-modulus: {:>13.6e}".format(numpy.min(numpy.abs(data))) + "  in direction " + str(to_vector(angle_min)))
     if len(aux) > 0:
       print("largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux)))
     
@@ -528,10 +534,12 @@ tensor = []  # becomes a single tensor or a tensor array
 centers = []
 dim_2D = None
 h5_read = None
+matlab_read = None
 infoXml_read = None
 elem_dim = None
 min_bb = None
 max_bb = None
+elems_in_regions = [[None]]
 
 # check if we read data from command line instead from an h5 file or a info.xml was given
 if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.endswith(".mat"):
@@ -564,7 +572,7 @@ if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.
   else:
     #data from matlab file
     assert(args.input.endswith(".mat"))
-    dim_2D = '2D'
+    matlab_read = True
     input = args.input
     args.tensor = 'matlab'
   if not args.tensor == 'matlab' and args.tensor == 'mechTensor':
@@ -608,11 +616,24 @@ else:
     dim_2D = nondes_min[2] == nondes_max[2]
     print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
     
-  centers, min_bb, max_bb, elem_dim, _, _ = centered_elements(f, args.h5_region)
+  if args.h5_region == 'all':
+    centers = [[None, None, None]]
+    min_bb = [numpy.Inf, numpy.Inf, numpy.Inf]
+    max_bb = [-numpy.Inf, -numpy.Inf, -numpy.Inf]
+    for region in f['/Mesh/Regions']:
+      reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements = centered_elements(f, region)
+      elems_in_regions.append(reg_elements)
+      centers = numpy.concatenate((centers, reg_centers))
+      min_bb = numpy.min([min_bb,reg_min_bb],0);
+      max_bb = numpy.max([max_bb,reg_max_bb],0);
+    elems_in_regions = elems_in_regions[1:]
+    centers = centers[1:,:]
+  else:
+    centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions = centered_elements(f, args.h5_region)
   
   if args.mesh:
     if args.h5_nondes != "None":
-      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, args.h5_nondes)
+      nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, _ = centered_elements(f, args.h5_nondes)
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
 
@@ -620,9 +641,9 @@ else:
 if not args.target_volume:
   if args.mesh and args.h5_nondes != "None":
     nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min_bb,max_bb=min_bb)
+    perform(args, h5_read, matlab_read, dim_2D, tensor, centers, aux_code,None,nondes_coords,min_bb=min_bb,max_bb=min_bb)
   else:
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)
 else:
   if args.scale > 0:
     print("Error: don't give --scale and --target_volume concurrently!")
@@ -639,7 +660,7 @@ else:
   best_s = -1
   while upper - lower > 0.000001 and abs(best_err) > 0.0001:
     for s in numpy.arange(lower, upper, (upper - lower) / 5.):
-      vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, s)
+      vol = perform(args, h5_read,matlab_read, dim_2D, tensor, centers, aux_code, s)
       err = abs(vol - args.target_volume)
       if vol == None:
         sys.exit(1)
@@ -669,7 +690,7 @@ else:
 
   # the last result does not mean to be the best result
   if err != best_err:
-    vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, best_s)
+    vol = perform(args, h5_read,matlab_read, dim_2D, tensor, centers, aux_code, best_s)
     print("!!!!! best_target_volume: best_scale=" + str(best_s) + " -> " + str(vol) + " err=" + str(abs(vol - args.target_volume)))
     tv = xml.etree.ElementTree.SubElement(info, "best_target_volume")
     tv.set("target", str(args.target_volume))

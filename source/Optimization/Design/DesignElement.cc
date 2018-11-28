@@ -100,9 +100,24 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case MECH_11:
     case MECH_12:
     case MECH_13:
+    case MECH_14:
+    case MECH_15:
+    case MECH_16:
     case MECH_22:
     case MECH_23:
+    case MECH_24:
+    case MECH_25:
+    case MECH_26:
     case MECH_33:
+    case MECH_34:
+    case MECH_35:
+    case MECH_36:
+    case MECH_44:
+    case MECH_45:
+    case MECH_46:
+    case MECH_55:
+    case MECH_56:
+    case MECH_66:
       return true;
     default:
       return false;
@@ -458,6 +473,63 @@ int DesignElement::GetOptResultIndex(SolutionType st)
     return 18;
   case OPT_RESULT_20:
     return 19;
+  case OPT_RESULT_21:
+    return 20;
+  case OPT_RESULT_22:
+    return 21;
+  case OPT_RESULT_23:
+    return 22;
+  case OPT_RESULT_24:
+    return 23;
+  case OPT_RESULT_25:
+    return 24;
+  case OPT_RESULT_26:
+    return 25;
+  case OPT_RESULT_27:
+    return 26;
+  case OPT_RESULT_28:
+      return 27;
+  case OPT_RESULT_29:
+      return 28;
+  case OPT_RESULT_30:
+      return 29;
+  case OPT_RESULT_31:
+      return 30;
+  case OPT_RESULT_32: return 31;
+  case OPT_RESULT_33: return 32;
+  case OPT_RESULT_34: return 33;
+  case OPT_RESULT_35: return 34;
+  case OPT_RESULT_36: return 35;
+  case OPT_RESULT_37: return 36;
+  case OPT_RESULT_38: return 37;
+  case OPT_RESULT_39: return 38;
+  case OPT_RESULT_40: return 39;
+  case OPT_RESULT_41: return 40;
+  case OPT_RESULT_42: return 41;
+  case OPT_RESULT_43: return 42;
+  case OPT_RESULT_44: return 43;
+  case OPT_RESULT_45: return 44;
+  case OPT_RESULT_46: return 45;
+  case OPT_RESULT_47: return 46;
+  case OPT_RESULT_48: return 47;
+  case OPT_RESULT_49: return 48;
+  case OPT_RESULT_50: return 49;
+  case OPT_RESULT_51: return 50;
+  case OPT_RESULT_52: return 51;
+  case OPT_RESULT_53: return 52;
+  case OPT_RESULT_54: return 53;
+  case OPT_RESULT_55: return 54;
+  case OPT_RESULT_56: return 55;
+  case OPT_RESULT_57: return 56;
+  case OPT_RESULT_58: return 57;
+  case OPT_RESULT_59: return 58;
+  case OPT_RESULT_60: return 59;
+  case OPT_RESULT_61: return 60;
+  case OPT_RESULT_62: return 61;
+  case OPT_RESULT_63: return 62;
+  case OPT_RESULT_64: return 63;
+  case OPT_RESULT_65: return 64;
+  case OPT_RESULT_66: return 65;
   default:
     return -1;
   }
@@ -760,11 +832,26 @@ void DesignElement::SetEnums()
   type.Add(DAMPINGBETA, "damping-beta");
   type.Add(UNITY, "unity");
   type.Add(MECH_11, "mech_11");
-  type.Add(MECH_22, "mech_22");
-  type.Add(MECH_33, "mech_33");
-  type.Add(MECH_23, "mech_23");
-  type.Add(MECH_13, "mech_13");
   type.Add(MECH_12, "mech_12");
+  type.Add(MECH_13, "mech_13");
+  type.Add(MECH_14, "mech_14");
+  type.Add(MECH_15, "mech_15");
+  type.Add(MECH_16, "mech_16");
+  type.Add(MECH_22, "mech_22");
+  type.Add(MECH_23, "mech_23");
+  type.Add(MECH_24, "mech_24");
+  type.Add(MECH_25, "mech_25");
+  type.Add(MECH_26, "mech_26");
+  type.Add(MECH_33, "mech_33");
+  type.Add(MECH_34, "mech_34");
+  type.Add(MECH_35, "mech_35");
+  type.Add(MECH_36, "mech_36");
+  type.Add(MECH_44, "mech_44");
+  type.Add(MECH_45, "mech_45");
+  type.Add(MECH_46, "mech_46");
+  type.Add(MECH_55, "mech_55");
+  type.Add(MECH_56, "mech_56");
+  type.Add(MECH_66, "mech_66");
   type.Add(DIELEC_11, "dielec_11");
   type.Add(DIELEC_12, "dielec_12");
   type.Add(DIELEC_22, "dielec_22");
@@ -947,45 +1034,53 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const
 {
   // We filter over this element and the neighbors.
-  assert(de_->simp != NULL);
   assert(sp == DesignElement::DESIGN);
   assert(!de_->simp->filter.IsEmpty());
+  assert(de_->simp != NULL);
 
   unsigned int fix = DetermineFilterIndex();
-  const Filter& f = filter[fix];
+
 
 
   // All equations from Sigmund; Morphology based black and white filters for topology optimization; 2007
   // p = rho. P is filtered rho (rho tilde)
   // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
-
-
   // mathematically the neighborhood includes this element, but this is not in the structure
   // we initialize numerator and denominator with the values obtained from this element
-  double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
-  double denominator = f.weight;
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-                   << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
-                   << " num=" << numerator << " den=" << denominator << " fix=" << fix;
-
-  for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
-  {
-    const Filter::NeighbourElement* ne = &f.neighborhood[i];
-    const DesignElement* de = ne->neighbour;
-
-    double w = ne->weight;
-    double x = de->GetPlainDesignValue();
-
-    numerator   += w * x;
-    denominator += w;
-
-     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+  double p_filt = 0.0;
+  int elem_num = de_->GetIndex();
+  DesignSpace * space = de_->GetDesignSpace();
+  if (space->is_matrix_filt){
+    p_filt =  space->density_filter[fix].filtered_vec[elem_num];
+    LOG_DBG3(desel)<<"elemNum"<<de_->elem->elemNum<<"Filtered Value"<<p_filt;
   }
 
-  double p_filt = numerator / denominator;
+  else{
+    const Filter& f = filter[fix];
+    double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
+     double denominator = f.weight;
+     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+                      << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
+                      << " num=" << numerator << " den=" << denominator << " fix=" << fix;
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
+    for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
+    {
+      const Filter::NeighbourElement* ne = &f.neighborhood[i];
+      const DesignElement* de = ne->neighbour;
+
+      double w = ne->weight;
+      double x = de->GetPlainDesignValue();
+
+      numerator   += w * x;
+      denominator += w;
+      LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+    }
+    p_filt = numerator / denominator;
+  }
+
+
+
 
   assert(fd == Filter::STANDARD || fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE || fd == Filter::TANH);
 
@@ -1005,8 +1100,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
 
   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter[fix].density_)
                    << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
-
   return p_filt;
+
 }
 
 double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func) const
@@ -1016,6 +1111,8 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 
   unsigned int fix = DetermineFilterIndex();
   const Filter& f = filter[fix];
+
+  Condition* g = dynamic_cast<Condition*>(func);
 
   assert(f.GetType() == Filter::DENSITY);
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
@@ -1041,7 +1138,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
       const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
 
-      double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(func)); // d f/d P_i
+      double v = de->GetPlainValue(sp, g); // d f/d P_i
 
       double w = i == -1 ? f.weight : ne->weight;
 

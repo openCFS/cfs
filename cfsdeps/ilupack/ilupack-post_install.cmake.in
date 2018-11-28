@@ -1,0 +1,7 @@
+# we copy only include and lib
+
+FILE(COPY "@ILUPACK_INSTALL@/lib" DESTINATION "@ILUPACK_INSTALL@/lib64/@CFS_ARCH_STR@")
+FILE(REMOVE_RECURSE "@ILUPACK_INSTALL@/lib/")
+
+# copy remaining lib64 and include from install dir to the target.
+FILE(COPY "@ILUPACK_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

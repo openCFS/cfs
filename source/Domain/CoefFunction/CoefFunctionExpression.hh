@@ -17,7 +17,6 @@
 #ifndef COEFFUNCTIONEXPRESSION_HH
 #define COEFFUNCTIONEXPRESSION_HH
 
-#include <boost/tr1/type_traits.hpp>
 #include "CoefFunction.hh"
 
 #include "Utils/mathParser/mathParser.hh"

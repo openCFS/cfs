@@ -40,7 +40,7 @@ set(PI "${PHIST_PREFIX}/phist-post_install.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/phist/phist-post_install.cmake.in" "${PI}" @ONLY) 
 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "phist" "${PHIST_REV}")
-  
+
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
 set(TMP_DIR "${PHIST_INSTALL}")
@@ -94,9 +94,7 @@ SET(CMAKE_ARGS
   -DPHIST_ENABLE_COMPLEX:BOOL=ON
   -DPHIST_KERNEL_LIB:STRING=ghost
   -DGHOST_DIR:STRING=${CMAKE_CURRENT_BINARY_DIR}/share/ghost
-  -DBLA_VENDOR=Intel10_64lp_seq
-  
-  
+  -DBLA_VENDOR=Intel10_64lp_seq  
 )
 
 #-------------------------------------------------------------------------------
@@ -126,8 +124,8 @@ else()
     # somehow I cannot make the post_downlowad step work, hence we do it here.
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PD}"
     CMAKE_ARGS ${CMAKE_ARGS}
-    BUILD_COMMAND make libs
-    INSTALL_COMMAND make install
+    BUILD_COMMAND make libs &&  make scamact && make scamactools
+    INSTALL_COMMAND make install 
     BUILD_BYPRODUCTS ${PHIST_LIBRARY})
 
   #-------------------------------------------------------------------------------

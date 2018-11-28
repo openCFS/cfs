@@ -853,10 +853,25 @@
                                   <xsd:enumeration value="stiff3"/>
                                   <xsd:enumeration value="mech_11"/>
                                   <xsd:enumeration value="mech_12"/>
+                                  <xsd:enumeration value="mech_13"/>
+                                  <xsd:enumeration value="mech_14"/>
+                                  <xsd:enumeration value="mech_15"/>
+                                  <xsd:enumeration value="mech_16"/>                                 
                                   <xsd:enumeration value="mech_22"/>
                                   <xsd:enumeration value="mech_23"/>
-                                  <xsd:enumeration value="mech_13"/>
+                                  <xsd:enumeration value="mech_24"/>
+                                  <xsd:enumeration value="mech_25"/>
+                                  <xsd:enumeration value="mech_26"/>                                                                                                      
                                   <xsd:enumeration value="mech_33"/>
+                                  <xsd:enumeration value="mech_34"/>
+                                  <xsd:enumeration value="mech_35"/>
+                                  <xsd:enumeration value="mech_36"/>
+                                  <xsd:enumeration value="mech_44"/>
+                                  <xsd:enumeration value="mech_45"/>
+                                  <xsd:enumeration value="mech_46"/>
+                                  <xsd:enumeration value="mech_55"/>
+                                  <xsd:enumeration value="mech_56"/>
+                                  <xsd:enumeration value="mech_66"/>
                                 </xsd:restriction>
                               </xsd:simpleType>
                             </xsd:attribute>
@@ -1217,9 +1232,10 @@
 			               </xsd:restriction>
 		              </xsd:simpleType>
 	              </xsd:attribute>
-              </xsd:complexType>
-           </xsd:element>
-
+	              <xsd:attribute name="use_mat_filt" type="DT_Bool_Default" use="optional" />
+            </xsd:complexType>
+           </xsd:element>                 
+            
             <xsd:element name="transform" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
@@ -1508,8 +1524,7 @@
                 <xsd:attribute name="value" type="xsd:float" use="required"/>
               </xsd:complexType>
             </xsd:element>
-
-            <xsd:element name="result" minOccurs="0" maxOccurs="15">
+            <xsd:element name="result" minOccurs="0" maxOccurs="66">
               <xsd:complexType>
                 <!-- mandatory to give the type. The type is one of a list of types -->
                 <xsd:attribute name="id" use="required">
@@ -1530,6 +1545,57 @@
                       <xsd:enumeration value="optResult_13"/>
                       <xsd:enumeration value="optResult_14"/>
                       <xsd:enumeration value="optResult_15"/>
+                      <xsd:enumeration value="optResult_16"/>
+                      <xsd:enumeration value="optResult_17"/>
+                      <xsd:enumeration value="optResult_18"/>
+                      <xsd:enumeration value="optResult_19"/>
+                      <xsd:enumeration value="optResult_20"/>
+                      <xsd:enumeration value="optResult_21"/>
+                      <xsd:enumeration value="optResult_22"/>
+                      <xsd:enumeration value="optResult_23"/>
+                      <xsd:enumeration value="optResult_24"/>
+                      <xsd:enumeration value="optResult_25"/>
+                      <xsd:enumeration value="optResult_26"/>
+                      <xsd:enumeration value="optResult_27"/>
+                      <xsd:enumeration value="optResult_28"/>
+                      <xsd:enumeration value="optResult_29"/>
+                      <xsd:enumeration value="optResult_30"/>
+                      <xsd:enumeration value="optResult_31"/>
+                      <xsd:enumeration value="optResult_32"/>
+                      <xsd:enumeration value="optResult_33"/>
+                      <xsd:enumeration value="optResult_34"/>
+                      <xsd:enumeration value="optResult_35"/>
+                      <xsd:enumeration value="optResult_36"/>
+                      <xsd:enumeration value="optResult_37"/>
+                      <xsd:enumeration value="optResult_38"/>
+                      <xsd:enumeration value="optResult_39"/>
+                      <xsd:enumeration value="optResult_40"/>
+                      <xsd:enumeration value="optResult_41"/>
+                      <xsd:enumeration value="optResult_42"/>
+                      <xsd:enumeration value="optResult_43"/>
+                      <xsd:enumeration value="optResult_44"/>
+                      <xsd:enumeration value="optResult_45"/>
+                      <xsd:enumeration value="optResult_46"/>
+                      <xsd:enumeration value="optResult_47"/>
+                      <xsd:enumeration value="optResult_48"/>
+                      <xsd:enumeration value="optResult_49"/>
+                      <xsd:enumeration value="optResult_50"/>
+                      <xsd:enumeration value="optResult_51"/>
+                      <xsd:enumeration value="optResult_52"/>
+                      <xsd:enumeration value="optResult_53"/>
+                      <xsd:enumeration value="optResult_54"/>
+                      <xsd:enumeration value="optResult_55"/>
+                      <xsd:enumeration value="optResult_56"/>
+                      <xsd:enumeration value="optResult_57"/>
+                      <xsd:enumeration value="optResult_58"/>
+                      <xsd:enumeration value="optResult_59"/>
+                      <xsd:enumeration value="optResult_60"/>
+                      <xsd:enumeration value="optResult_61"/>
+                      <xsd:enumeration value="optResult_62"/>
+                      <xsd:enumeration value="optResult_63"/>
+                      <xsd:enumeration value="optResult_64"/>
+                      <xsd:enumeration value="optResult_65"/>  
+                      <xsd:enumeration value="optResult_66"/>                                                                
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
@@ -1705,7 +1771,7 @@
   <xsd:complexType name="DT_IPOPT">
     <xsd:sequence>
       <!-- We can have many option childs. Each with three attributes -->
-      <xsd:element name="option" minOccurs="0" maxOccurs="15">
+      <xsd:element name="option" minOccurs="0" maxOccurs="31">
         <xsd:complexType>
           <!-- the type attribute is from a restriction -->
           <xsd:attribute name="type" use="required">
@@ -1819,11 +1885,26 @@
       <xsd:enumeration value="damping-alpha"/>
       <xsd:enumeration value="damping-beta"/>
       <xsd:enumeration value="mech_11"/>
-      <xsd:enumeration value="mech_22"/>
-      <xsd:enumeration value="mech_33"/>
-      <xsd:enumeration value="mech_23"/>
-      <xsd:enumeration value="mech_13"/>
       <xsd:enumeration value="mech_12"/>
+      <xsd:enumeration value="mech_13"/>
+      <xsd:enumeration value="mech_14"/>
+      <xsd:enumeration value="mech_15"/>
+      <xsd:enumeration value="mech_16"/>
+      <xsd:enumeration value="mech_22"/>
+      <xsd:enumeration value="mech_23"/>
+      <xsd:enumeration value="mech_24"/>
+      <xsd:enumeration value="mech_25"/>
+      <xsd:enumeration value="mech_26"/>
+      <xsd:enumeration value="mech_33"/>
+      <xsd:enumeration value="mech_34"/>
+      <xsd:enumeration value="mech_35"/>
+      <xsd:enumeration value="mech_36"/>
+      <xsd:enumeration value="mech_44"/>
+      <xsd:enumeration value="mech_45"/>
+      <xsd:enumeration value="mech_46"/>
+      <xsd:enumeration value="mech_55"/>
+      <xsd:enumeration value="mech_56"/>
+      <xsd:enumeration value="mech_66"/>
       <xsd:enumeration value="I_1"/>
       <xsd:enumeration value="I_2"/>
       <xsd:enumeration value="I_3"/>
@@ -2512,6 +2593,14 @@
       <xsd:enumeration value="mirror"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <xsd:simpleType name="DT_Bool_Default">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="true"/>
+      <xsd:enumeration value="false"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
 
   <!-- Function with slack and alpha variabels are summaried to SlackFnct with the "function" attribute with the following options -->
   <xsd:simpleType name="DT_SlackFunction">

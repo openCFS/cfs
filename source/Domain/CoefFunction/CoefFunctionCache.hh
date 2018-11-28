@@ -10,7 +10,6 @@
 #include "CoefFunction.hh"
 #include "FeBasis/BaseFE.hh"
 #include "FeBasis/FeFunctions.hh"
-#include <boost/tr1/type_traits.hpp>
 
 namespace CoupledField  {
 

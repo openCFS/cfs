@@ -510,8 +510,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     int o = hom_rect_c_.GetNumRows();
     double da = hom_rect_a_[1][0] - hom_rect_a_[0][0];
     double db = hom_rect_b_[1][0] - hom_rect_b_[0][0];
-    double dc = 0.0;
-    dc = hom_rect_c_[1][0] - hom_rect_c_[0][0];
+    double dc = hom_rect_c_[1][0] - hom_rect_c_[0][0];
+
     int j, k, l(-1);
     j = GetInterpolationIndex(hom_rect_a_,p[0]);
     k = GetInterpolationIndex(hom_rect_b_,p[1]);
@@ -604,7 +604,10 @@ unsigned int DesignMaterial::RequiredParameters( OptimizationMaterial::System ma
   {
   case FMO:
     assert(material == OptimizationMaterial::MECH || material == OptimizationMaterial::PIEZOCOUPLING);
-    return r + (material == OptimizationMaterial::MECH ? 6 : 15);
+    if (dim == 2)
+      return r + (material == OptimizationMaterial::MECH ? 6 : 15);
+    else
+      return r + (material == OptimizationMaterial::MECH ? 21 : 15);
   case ISOTROPIC:
   case LAME_ISOTROPIC:
     return r + 2;
@@ -674,12 +677,36 @@ bool DesignMaterial::CheckRequiredDesigns(
   }
   switch (type_) {
   case FMO:
-    return (design.Find(DesignElement::MECH_11) >= 0
-        && design.Find(DesignElement::MECH_22) >= 0
-        && design.Find(DesignElement::MECH_33) >= 0
-        && design.Find(DesignElement::MECH_23) >= 0
-        && design.Find(DesignElement::MECH_13) >= 0
-        && design.Find(DesignElement::MECH_12) >= 0);
+    if (dim == 2) {
+      return (design.Find(DesignElement::MECH_11) >= 0
+          && design.Find(DesignElement::MECH_22) >= 0
+          && design.Find(DesignElement::MECH_33) >= 0
+          && design.Find(DesignElement::MECH_23) >= 0
+          && design.Find(DesignElement::MECH_13) >= 0
+          && design.Find(DesignElement::MECH_12) >= 0);
+    } else {
+      return (design.Find(DesignElement::MECH_11) >= 0
+          && design.Find(DesignElement::MECH_12) >= 0
+          && design.Find(DesignElement::MECH_13) >= 0
+          && design.Find(DesignElement::MECH_14) >= 0
+          && design.Find(DesignElement::MECH_15) >= 0
+          && design.Find(DesignElement::MECH_16) >= 0
+          && design.Find(DesignElement::MECH_22) >= 0
+          && design.Find(DesignElement::MECH_23) >= 0
+          && design.Find(DesignElement::MECH_24) >= 0
+          && design.Find(DesignElement::MECH_25) >= 0
+          && design.Find(DesignElement::MECH_26) >= 0
+          && design.Find(DesignElement::MECH_33) >= 0
+          && design.Find(DesignElement::MECH_34) >= 0
+          && design.Find(DesignElement::MECH_35) >= 0
+          && design.Find(DesignElement::MECH_36) >= 0
+          && design.Find(DesignElement::MECH_44) >= 0
+          && design.Find(DesignElement::MECH_45) >= 0
+          && design.Find(DesignElement::MECH_46) >= 0
+          && design.Find(DesignElement::MECH_55) >= 0
+          && design.Find(DesignElement::MECH_56) >= 0
+          && design.Find(DesignElement::MECH_66) >= 0);
+    }
   case ISOTROPIC:
     return (design.Find(DesignElement::EMODUL) >= 0
         && design.Find(DesignElement::POISSON) >= 0);
@@ -1428,7 +1455,7 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
 }
 
 
-void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
+void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
   // We use the anisotropic tensor only for solving FMO problems. We assume the design to be in Hill-Mandel
   // notation and therefore we need to transform it for using it in CFS
@@ -1437,40 +1464,158 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
   bool set = direction == DesignElement::NO_DERIVATIVE; //|| direction == DesignElement::ROTANGLE;
 
   double e11 = set ? GetParameter(map, DesignElement::MECH_11) : 0;
-  double e22 = set ? GetParameter(map, DesignElement::MECH_22) : 0;
-  double e33 = set ? GetParameter(map, DesignElement::MECH_33) : 0;
-  double e23 = set ? GetParameter(map, DesignElement::MECH_23) : 0;
-  double e13 = set ? GetParameter(map, DesignElement::MECH_13) : 0;
   double e12 = set ? GetParameter(map, DesignElement::MECH_12) : 0;
+  double e13 = set ? GetParameter(map, DesignElement::MECH_13) : 0;
+  double e22 = set ? GetParameter(map, DesignElement::MECH_22) : 0;
+  double e23 = set ? GetParameter(map, DesignElement::MECH_23) : 0;
+  double e33 = set ? GetParameter(map, DesignElement::MECH_33) : 0;
+
+
+
+
+  double e14 = 0, e15 = 0, e16 = 0, e24 = 0, e25 = 0, e26 = 0, e34 = 0, e35 = 0, e36 = 0, e44 = 0, e45 = 0, e46 = 0, e55 = 0, e56 = 0, e66 = 0;
+  if (subTensor == FULL) {
+    // 3D tensor
+    e14 = set ? GetParameter(map, DesignElement::MECH_14) : 0;
+    e15 = set ? GetParameter(map, DesignElement::MECH_15) : 0;
+    e16 = set ? GetParameter(map, DesignElement::MECH_16) : 0;
+    e24 = set ? GetParameter(map, DesignElement::MECH_24) : 0;
+    e25 = set ? GetParameter(map, DesignElement::MECH_25) : 0;
+    e26 = set ? GetParameter(map, DesignElement::MECH_26) : 0;
+    e34 = set ? GetParameter(map, DesignElement::MECH_34) : 0;
+    e35 = set ? GetParameter(map, DesignElement::MECH_35) : 0;
+    e36 = set ? GetParameter(map, DesignElement::MECH_36) : 0;
+    e44 = set ? GetParameter(map, DesignElement::MECH_44) : 0;
+    e45 = set ? GetParameter(map, DesignElement::MECH_45) : 0;
+    e46 = set ? GetParameter(map, DesignElement::MECH_46) : 0;
+    e55 = set ? GetParameter(map, DesignElement::MECH_55) : 0;
+    e56 = set ? GetParameter(map, DesignElement::MECH_56) : 0;
+    e66 = set ? GetParameter(map, DesignElement::MECH_66) : 0;
+  }
+
   // We don't use rotAngle for FMO anymore due to SGP Optimizer
   //double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
 
   switch (direction) {
   case DesignElement::NO_DERIVATIVE:
   //case DesignElement::ROTANGLE:
-    Set2dVoigtTensor(E, e11, e22, e33, e23, e13, e12);
+    if (subTensor != FULL) {
+      Set2dVoigtTensor(E, e11, e22, e33, e23, e13, e12);
+    } else {
+      // temporarily: orthotropic 3D tensor
+      Set3dVoigtTensor(E,subTensor, e11,e12,e13,e14,e15,e16,e22,e23,e24,e25,e26,e33,e34,e35,e36,e44,e45,e46,e55,e56,e66);
+    }
     break;
   case DesignElement::MECH_11:
-    Set2dVoigtTensor(E, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    break;
-  case DesignElement::MECH_22:
-    Set2dVoigtTensor(E, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
-    break;
-  case DesignElement::MECH_33:
-    Set2dVoigtTensor(E, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
-    break;
-  case DesignElement::MECH_23:
-    Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
-    break;
-  case DesignElement::MECH_13:
-    Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    if (subTensor != FULL) {
+      Set2dVoigtTensor(E, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    } else {
+      Set3dVoigtTensor(E,subTensor, 1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    }
     break;
   case DesignElement::MECH_12:
-    Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    if (subTensor != FULL) {
+      Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    } else {
+      Set3dVoigtTensor(E,subTensor, 0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    }
+    break;
+  case DesignElement::MECH_13:
+    if (subTensor != FULL) {
+      Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    } else {
+      Set3dVoigtTensor(E,subTensor, 0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    }
+    break;
+  case DesignElement::MECH_14:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_15:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_16:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_22:
+    if (subTensor != FULL) {
+      Set2dVoigtTensor(E, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+    } else {
+      Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    }
+    break;
+  case DesignElement::MECH_23:
+    if (subTensor != FULL) {
+      Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+    } else {
+      Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    }
+    break;
+  case DesignElement::MECH_24:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_25:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_26:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_33:
+    if (subTensor != FULL) {
+      Set2dVoigtTensor(E, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+    } else {
+      Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+    }
+    break;
+  case DesignElement::MECH_34:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_35:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_36:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_44:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_45:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_46:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.,0.);
+    break;
+  case DesignElement::MECH_55:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.,0.);
+    break;
+  case DesignElement::MECH_56:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor,   0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,0.);
+    break;
+  case DesignElement::MECH_66:
+    assert(subTensor == FULL);
+    Set3dVoigtTensor(E,subTensor, 0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,1.);
     break;
   default:
     // for piezo FMO the derivative w.r.E. dielec_11, ... is zero
-    ZeroTensor(E, PLANE_STRAIN);
+    if (subTensor != FULL) {
+      ZeroTensor(E, PLANE_STRAIN);
+    } else {
+      ZeroTensor(E, FULL);
+
+    }
   }
   if (notation == VOIGT)
     E.HillMandelToVoigt();
@@ -2628,37 +2773,26 @@ bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
 
 int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point) const {
   int nRows = interval.GetNumRows();
+  assert(nRows > 0);
   double h = interval[1][0] - interval[0][0];
+  assert(h > -1e-6);
   int idx = -1;
-  if (interval[0][0] <= point && point < interval[nRows - 1][0]) {
-    idx = (int) ( (point - interval[0][0]) / h);
-  } else if (point == interval[nRows - 1][0]) {
+  // set index for values close to boundaries manually
+  if (close(point, interval[nRows - 1][0])) {
     idx = nRows - 2;
+  } else if (close(point, interval[0][0])) {
+    idx = 0;
+  } else if (interval[0][0] < point && point < interval[nRows-1][0]) {
+    idx = (int) ( (point - interval[0][0]) / h);
   } else if (point > interval[nRows - 1][0]) {
     idx = nRows - 2;
-    point = 1.;
-    if (point > 1.01) {
-      #pragma omp critical
-      {
-        PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/progress");
-        inf_warn->SetWarning("Interpolation of Hom_RectC1 tensor failed. Design Variable "
-            + lexical_cast<string>(point) + " out of bounds ");
-      }
-    }
+    point = interval[nRows - 1][0];
   } else if (point < interval[0][0]) {
     idx = 0;
     point = interval[0][0];
-    if (point < interval[0][0]-0.01) {
-      #pragma omp critical
-      {
-        PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/progress");
-        inf_warn->SetWarning(
-          "Interpolation of Hom_RectC1 tensor failed. Design Variable "
-              + lexical_cast<string>(point) + " out of bounds ");
-      }
-    }
   }
-  assert(idx != -1);
+  assert(idx > -1);
+  assert(idx < nRows-1);
   return idx;
 }
 
@@ -2666,15 +2800,19 @@ double DesignMaterial::EvaluateC1Interpolation_3D(Vector<double>& p,
     const Matrix<double> & coeff, double & da, double & db, double & dc,
     int & j, int & k, int & l, int & m, int & n, int &o) const {
   // HOM_RECT_C1 case
+  // dirty fix: does nothing if program works correctly
+  j = (j > m - 2) ? m - 2 : j;
+  k = (k > n - 2) ? n - 2 : k;
+  l = (l > o - 2) ? o - 2 : l;
   LOG_DBG(dm)<<"p=["<<p[0]<<","<<p[1]<<", "<<p[2]<<"]";
   double t=(p[0]-hom_rect_a_[j][0])/da;
   double u =(p[1]-hom_rect_b_[k][0])/db;
   double v=(p[2]-hom_rect_c_[l][0])/dc;
   LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<" v= "<<v;
   double res = 0;
-  for (int ii = 0;ii<4;ii++) {
-    for (int jj=0;jj<4;jj++) {
-      for (int kk=0;kk<4;kk++) {
+  for (int ii = 0; ii<4; ii++) {
+    for (int jj=0; jj<4; jj++) {
+      for (int kk=0; kk<4; kk++) {
         res += coeff[(n-1)*(o-1)*j+(o-1)*k+l][ii+4*jj+16*kk]*pow(t,ii)*pow(u,jj)*pow(v,kk);
       }
     }
@@ -2988,7 +3126,7 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
     LOG_DBG2(dm)<< "GHRT: E before rotation = " << t.ToString(2);
     // RotateTensor needs Hill Mandel matrix
     t.VoigtToHillMandel();
-    RotateTensor(t, direction,VOIGT,CCW);
+    RotateTensor(t, direction, VOIGT, CCW);
     LOG_DBG2(dm)<< "GHRT: E after rotation = " << t.ToString(2);
   }
 }
@@ -3164,9 +3302,9 @@ void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t12,
   t[2][2] = t33;
 }
 
-void DesignMaterial::SetOrthotropicTensor(Matrix<double>& t,
-    SubTensorType subTensor, double e11, double e12, double e13, double e22,
-    double e23, double e33, double e44, double e55, double e66) {
+void DesignMaterial::Set3dVoigtTensor(Matrix<double>& t,
+    SubTensorType subTensor, double e11, double e12, double e13, double e14, double e15, double e16, double e22, double e23, double e24, double e25, double e26,
+    double e33, double e34, double e35, double e36, double e44, double e45, double e46, double e55, double e56, double e66) {
   switch (subTensor) {
     case FULL:
       t.Resize(6, 6);
@@ -3174,14 +3312,38 @@ void DesignMaterial::SetOrthotropicTensor(Matrix<double>& t,
       t[0][0] = e11;
       t[0][1] = e12;
       t[0][2] = e13;
+      t[0][3] = e14;
+      t[0][4] = e15;
+      t[0][5] = e16;
       t[1][0] = e12;
+      t[2][0] = e13;
+      t[3][0] = e14;
+      t[4][0] = e15;
+      t[5][0] = e16;
       t[1][1] = e22;
       t[1][2] = e23;
-      t[2][0] = e13;
+      t[1][3] = e24;
+      t[1][4] = e25;
+      t[1][5] = e26;
       t[2][1] = e23;
+      t[3][1] = e24;
+      t[4][1] = e25;
+      t[5][1] = e26;
       t[2][2] = e33;
+      t[2][3] = e34;
+      t[2][4] = e35;
+      t[2][5] = e36;
+      t[3][2] = e34;
+      t[4][2] = e35;
+      t[5][2] = e36;
       t[3][3] = e44;
+      t[3][4] = e45;
+      t[3][5] = e46;
+      t[4][3] = e45;
+      t[5][3] = e46;
       t[4][4] = e55;
+      t[4][5] = e56;
+      t[5][4] = e56;
       t[5][5] = e66;
       break;
     case PLANE_STRAIN:
@@ -3764,7 +3926,7 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
 
   switch (type_) {
   case FMO:
-      GetElasticFMOTensor(t, direction, notation);
+      GetElasticFMOTensor(t, subTensor, direction, notation);
     break;
   case ORTHOTROPIC:
   case DENSITY_TIMES_ORTHOTROPIC:

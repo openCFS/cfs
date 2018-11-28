@@ -8,7 +8,9 @@ MACRO(GENERATE_TEST_NAME_LIST TEST_NAME_LIST)
   ELSE()
     SET(${TEST_NAME_LIST}
       linux64_shared_opt_gcc_release
+      linux64_shared_opt_gcc_mpi_release
       linux64_shared_opt_gcc_debug
+      linux64_shared_opt_gcc_mpi_debug
       linux64_shared_opt_gcc_doc_doxygen
     )
   ENDIF()

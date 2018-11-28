@@ -364,7 +364,7 @@ def read_legacy_xml(filename, set, profile):
       d = dof(el.get('dof'))
       node = el.get('type') == 'node' or el.get('type') == None
       if node: 
-        shapes.append(Shape(id = len(shapes), dof=d))
+        shapes.append(Shape(id = len(shapes), dof=d, ref = len(shapes)))
         curr = shapes[-1]
       else:
         # we have a profile, hence search the corresponding shape
@@ -398,13 +398,14 @@ def read_xml(xml, set, profile):
   shapes = []
   sq = 'last()' if not set else '@id="' + str(set) + '"'
   ref = 0 # the current ref id to read the shape from, incremented at end of loop
-  list = xml.xpath('//set[' + sq + ']/shapeParamElement[@ref="' + str(ref) + '"]') 
+  query = '//set[' + sq + ']/shapeParamElement[@ref="' + str(ref) + '"]'
+  list = xml.xpath(query) 
   while list:
     # we do not know yet if we are 2D or 3D. For 3D center nodes, the there are two nodes dof the the shape dof is the third by definition
     first_dof = dof(list[0].get('dof')) # might change
     first_shape = int(list[0].get('shape'))
     shape = Shape(id = len(shapes), dof = first_dof, scale = scale, ref = ref)
-    for el in list:
+    for idx, el in enumerate(list):
       nr = int(el.get('nr'))
       v  = float(el.get('design'))
       s  = int(el.get('shape'))
@@ -413,6 +414,9 @@ def read_xml(xml, set, profile):
       if s == first_shape:
         shape.a.append(v)
         shape.el.append(nr)
+        # works currently only for 2D. This is the running coordinate
+        print(idx/len(list))
+        
       else:
         if t == 'node':
           d  = dof(el.get('dof'))
@@ -880,7 +884,20 @@ def export(shapes, filename, suppress_profile):
   out.write('  </set>\n')
   out.write(' </cfsErsatzMaterial>\n')
   print("saved '" + filename + "'")
-  
+
+
+##see also sketch_tool.py  
+def abaqus(shapes, filename):
+  for shape in shapes:
+    n = len(shape.a)
+    assert len(shape.profile) == n
+    
+    for i in range(n):
+      
+    
+    
+      ShapeParamElementXML(out, 'node', shape.dof, shape.id, shape.ref, shape.el, shape.a)
+
 
 # small permutation helper
 #@param pm the indices define from where to take the value
@@ -980,6 +997,7 @@ if __name__ == '__main__':
   parser.add_argument('--suppress_profile', help="do not export profile", action='store_true')
   parser.add_argument('--unbounded', help="do not restrict the visualization on a unit square", action='store_true')
   parser.add_argument('--save', help="save the image to the given name with the given format. Might be png, pdf, eps, vtp")
+  parser.add_argument('--abaqus', help="write 2D data as abaqus sketch python script fragment to given filename")
   parser.add_argument('--noshow', help="don't show the image", action='store_true')
   parser.add_argument('--nooutline', help="don't show outline of the design domain for 3D", action='store_true')
   args = parser.parse_args()
@@ -1016,6 +1034,13 @@ if __name__ == '__main__':
 
   # do we do 3d? 
   d3 = len(shapes[0].b) > 0
+  
+  if args.abaqus:
+    if d3:
+      print('abaqus export only for 2D')
+      os.sys.exit(1)
+    abaqus(args.abaqus)   
+  
   # vtp generation exclusivly triggerd by saving an vtp file
   if d3 or (args.save and args.save.endswith('.vtp')):
     poly = None
@@ -1042,6 +1067,8 @@ if __name__ == '__main__':
     if not args.noshow:
       fig.show()
       input("Press Enter to terminate.")
+      
+      
 else:
   #f = 'shape_map_3d.density.xmp'
   #print(f)
