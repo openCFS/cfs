@@ -71,6 +71,16 @@ namespace CoupledField
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() = 0;
 
+    //! same as GetSoltionVal and GetRHSVal but only in the
+    //! multiharmonic case and it's triggered by the MultiHarmonicDriver
+    //! in the SolveProblem() method
+    virtual void GetSolutionValMultHarm(const UInt& h){
+      EXCEPTION("Not implemented here");
+    }
+    virtual void GetRHSValMultHarm(const UInt& h){
+      EXCEPTION("Not implemented here");
+    }
+
     //----------------------- HARMONIC ---------------------------------------
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
     virtual UInt CalcEigenFrequencies( Vector<Double>& frequencies, Vector<Double>& errBounds,
@@ -128,6 +138,11 @@ namespace CoupledField
     //! Set actual frequency
     virtual void SetActFreq( const Double actFreq ) {
       actFreq_ = actFreq;
+    }
+
+    //! Set multiharmonic frequency vector
+    virtual void SetMultHarmonicFreq( const StdVector<Double> freqVec ) {
+      multHarmFreqVec_ = freqVec;
     }
 
     //! Set actual time / frequency step
@@ -193,6 +208,9 @@ namespace CoupledField
 
     //! Actual frequency 
     Double actFreq_;
+
+    //! Vector of considered frequencies (harmonics) for multiharmonic analysis
+    StdVector<Double> multHarmFreqVec_;
 
     //! number of time steps
     UInt numTimeStep_;

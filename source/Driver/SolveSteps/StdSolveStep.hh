@@ -14,6 +14,7 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 
+
 namespace CoupledField
 {
   // forward class declarations
@@ -25,6 +26,7 @@ namespace CoupledField
   class BaseIDBC_Handler;
   class FeSpace;
   class SolStrategy;
+  class MHTimeFreqResult;
 
   //  class Domain;
   
@@ -91,7 +93,7 @@ namespace CoupledField
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
 
-    //----------------------- HARMONIC---------------------------------------
+    //----------------------- HARMONIC AND MULTIHARMONIC -------------------------
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepHarmonic();
 
@@ -102,13 +104,18 @@ namespace CoupledField
     virtual void StepHarmonicLin();
 
     //! solves for one nonlinear frequency step 
-    virtual void StepHarmonicNonLin()
-    {EXCEPTION("Harmonic step not implemented!");};
+    virtual void StepHarmonicNonLin();
     
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() {;};
     
-    //----------------------- HARMONIC ---------------------------------------
+    //! same as GetSoltionVal and GetRHSVal but only in the
+    //! multiharmonic case and it's triggered by the MultiHarmonicDriver
+    //! in the SolveProblem() method
+    virtual void GetSolutionValMultHarm(const UInt& h);
+    virtual void GetRHSValMultHarm(const UInt& h);
+
+    //----------------------- EIGENFREQUENCY ----------------------------------
 
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
     UInt CalcEigenFrequencies( Vector<Double> & frequencies, Vector<Double> & errBounds,
@@ -138,7 +145,7 @@ namespace CoupledField
     void SetTimeStep( Double dt );
 
     //! computes linear part of RHS
-    Double SetLinRHS(Double loadFactor,bool nonlin = false);
+    Double SetLinRHS(Double loadFactor,bool nonlin = false, bool multiharmonic = false);
 
     //! computes ldelta inear part of RHS; in case of sub stepping
     UInt SetDeltaLinRHS();
@@ -146,6 +153,11 @@ namespace CoupledField
     //! does a line search and returns the optimal residual norm
     Double LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, 
                       Double& etaLineSearch, bool trans=false);
+
+    //! does a line search for multiharmonic analysis and returns the optimal residual norm
+    Double LineSearchMultHarm(const SBM_Vector& solIncrement, SBM_Vector& actSol,
+                      Double& etaLineSearch, MHTimeFreqResult& ftRes);
+
 
     //! does a line search and returns the optimal residual norm
     Double LineSearchMag(SBM_Vector& solIncrement, SBM_Vector& actSol,
@@ -249,6 +261,7 @@ namespace CoupledField
     SBM_Vector rhsVec_;
 
     //! Vector containing the rhs for the current stage based on the scheme
+    //! Vector containing the rhs for the current stage based on the scheme
     //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system
     SBM_Vector stageRHS_;
 
@@ -262,9 +275,20 @@ namespace CoupledField
     std::ofstream logFile_;
     MathParser::HandleType mHandle_;
     MathParser* mParser_;
-  };
+
+private:
+  void AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks = false);
+
+  void EvaluateNonlinearity(MHTimeFreqResult& ftRes, const SBM_Vector& actSol);
+
+
+  //! Vector containing all solution vectors for all harmonics
+  //! in a multiharmonic analysis. We need this vector because
+  //! solVec_ is only used to pass certain harmonics back to
+  //! the PDE
+  SBM_Vector solVecMH_;
+};
 
 } // end of namespace
 
 #endif
-

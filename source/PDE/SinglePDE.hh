@@ -440,6 +440,9 @@ class BaseFieldFunctor;
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> massInts_;
 
+    //! true, if analysistype is multiharmonic
+    bool isMultHarm_;
+
     // -----------------------------------------------------------------------
     //  Result Handling
     // -----------------------------------------------------------------------
@@ -542,7 +545,8 @@ class BaseFieldFunctor;
     //! interface.
     template<UInt DIM, UInt D_DOF>
     void DefineNitscheCoupling( SolutionType solType,
-                                NcInterfaceInfo &iface );
+                                NcInterfaceInfo &iface,
+                                shared_ptr<CoefFunctionMulti> additionalCoef = NULL);
     
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;

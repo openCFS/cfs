@@ -23,6 +23,13 @@ namespace CoupledField {
 
     reorderingDone_      = false;
     registrationDone_    = false;
+
+    blockInfoMH_ = NULL;
+    M_ = 0;
+    N_ = 0;
+    isMultHarm_ = false;
+    sizeMH_ = 0;
+    isFullSys_ = false;
   }
 
 
@@ -50,10 +57,25 @@ namespace CoupledField {
   //   SetupInit
   // =============
   void GraphManager::SetupInit( UInt numBlocks,
-                                bool useDistinctGraphs ) {
+                                bool useDistinctGraphs,
+                                bool isMultHarm,
+                                UInt N,
+                                UInt M,
+                                UInt size,
+                                bool isFullSys) {
+
+    if( isMultHarm ){
+      N_ = N;
+      M_ = M;
+      sizeMH_ = size;
+      isFullSys_ = isFullSys;
+      LOG_TRACE(graphMan) << "Initializing GraphManager with "
+                               << numBlocks*numBlocks << " multiharmonic blocks";
+    }else{
+      LOG_TRACE(graphMan) << "Initializing GraphManager with "
+                               << numBlocks << " blocks";
+    }
     
-    LOG_TRACE(graphMan) << "Initializing GraphManager with " 
-                         << numBlocks << " blocks";
     LOG_DBG(graphMan) << "\tuseDistinctGraphs:" 
         << (useDistinctGraphs ? "yes" : "no" );
     
@@ -75,21 +97,32 @@ namespace CoupledField {
     graphIDBC_.Resize( numBlocks_ * numBlocks_ );
     graphIDBC_.Init( NULL );
 
-    // Resize also the vertex and edge lists
-    vertexList1_.resize( numBlocks_ );
-    vertexList2_.resize( numBlocks_ );
-    edgeList1_.resize( numBlocks_ );
-    edgeList2_.resize( numBlocks_ );
+
     
     // Allocate memory to store the permutation vectors for the reordering
     // of the unknowns of each block
-    newOrdering_.Resize( numBlocks_ );
+    newOrdering_.Resize( numBlocks_);
     for ( UInt i = 0; i < numBlocks_; i++ ) {
       newOrdering_[i].Resize(0);
     }
 
     // Resize array with block information
-    blockInfo_.Resize(numBlocks);
+    // and also the vertex and edge lists
+    if( isMultHarm){
+      vertexList1_.resize( numBlocks_ * numBlocks_ );
+      vertexList2_.resize( numBlocks_ * numBlocks_ );
+      edgeList1_.resize( numBlocks_ * numBlocks_ );
+      edgeList2_.resize( numBlocks_ * numBlocks_ );
+    }else{
+      blockInfo_.Resize(numBlocks_);
+
+      vertexList1_.resize( numBlocks_ );
+      vertexList2_.resize( numBlocks_ );
+      edgeList1_.resize( numBlocks_ );
+      edgeList2_.resize( numBlocks_ );
+    }
+
+    isMultHarm_ = isMultHarm;
   }
 
 
@@ -187,11 +220,113 @@ namespace CoupledField {
   }
 
 
+
+  // =============
+  //   SetupDoneMH
+  // =============
+  void GraphManager::SetupDoneMH(const StdVector<BaseOrdering::ReorderingType>& reorder,
+                                 const UInt N,
+                                 const UInt M) {
+
+    LOG_TRACE(graphMan) << "Finalize Graphmanager (SetupDoneMH) for multiharmonic case";
+
+    // ----------------------------------
+    //   D I A G O N A L    B L O C K S
+    // ----------------------------------
+    for (  UInt sbmRow = 0; sbmRow < sizeMH_; ++sbmRow ) {
+      UInt idx = ComputeIndex( sbmRow, sbmRow );
+
+      // Finalize assembly of graph
+      LOG_DBG(graphMan) << "Finalize diagonal graph (" << sbmRow
+                        << ", " << sbmRow << ")";
+
+      // If reordering is going to be performed for the current block then
+      // we need to allocate memory to store the resulting permutation
+      // vector
+      if ( reorder[0] != BaseOrdering::NOREORDERING ) {
+        //EXCEPTION("================================================= \n"
+        //          " Reordering in multiharmonic analysis not allowed!! \n "
+        //          " Please use noReordering \n"
+        //          "================================================= \n");
+        newOrdering_[sbmRow].Resize( blockInfoMH_->numLastFreeIndex );
+      }
+      graph_[idx]->FinaliseAssembly( reorder[0], false, &newOrdering_[sbmRow] );
+
+      LOG_DBG3(graphMan) << "Reordering array is "
+                         << newOrdering_[sbmRow].ToString();
+
+      // Now finalize the assembly of the associated IDBC graph
+      if ( graphIDBC_[idx] != NULL ) {
+        LOG_DBG(graphMan) << "Finalize IDBC graph (" << sbmRow
+                          << ", " << sbmRow << ")";
+        graphIDBC_[idx]->FinaliseAssembly( &newOrdering_[sbmRow] );
+      }
+    }
+
+
+    // -------------------------------------------
+    //   O F F  - D I A G O N A L    B L O C K S
+    // -------------------------------------------
+    UInt a = (isFullSys_)? (M+1) : ((M-1)/2 + 1);
+    for (  UInt sbmRow = 0; sbmRow < sizeMH_; ++sbmRow ) {
+      for ( UInt sbmCol = sbmRow + 1; sbmCol < sbmRow + a; ++sbmCol ) {
+        if( sbmCol < sizeMH_){
+          UInt idx = ComputeIndex( sbmRow, sbmCol );
+
+          // diagonal element (sbmRow, sbmRow)
+          UInt idxRow = ComputeIndex(sbmRow, sbmRow);
+          // diagonal element (sbmCol, sbmCol)
+          UInt idxCol = ComputeIndex(sbmCol, sbmCol);
+
+          //  Finalize assembly of graph (sorting, re-ordering, conversion to
+          // CRS-structure)
+          // Note: For the off-diagonal entries we use the re-ordering arrays
+          //       of the related row/col diagonal blocks
+          LOG_DBG(graphMan) << "Finalize off-diagonal graph (" << sbmRow
+                            << ", " << sbmCol << ")\n\t idxRow="
+                                <<idxRow<<", idxCol="<<idxCol<<", idx="<<idx;
+          //TODO not quite clear which difference this makes
+          graph_[idx]->FinaliseAssembly( BaseOrdering::NOREORDERING ,
+                                         true, &newOrdering_[sbmRow],
+                                         &newOrdering_[sbmCol] );
+
+          // Set also the corresponding diagonal graph objects of the row/col.
+          // This is needed, as the matrix sub block definition of the coupling
+          // graph has to be taken from the corresponding diagonal blocks.
+          BaseGraph * rowDiagGraph = graph_[idxRow];
+          BaseGraph * colDiagGraph = graph_[idxCol];
+          graph_[idx]->SetRowColDiagGraphs( rowDiagGraph, colDiagGraph );
+
+
+          // Now finalize the assembly of the associated IDBC graph
+          // Note: Also here we use the external re-ordering provided by
+          //       the diagonal block of the same column
+          if ( graphIDBC_[idx] != NULL ) {
+            LOG_DBG(graphMan) << "Finalize off-diagonal IDBC-graph ("
+                              << sbmRow << ", " << sbmCol << ")";
+            graphIDBC_[idx]->FinaliseAssembly( &newOrdering_[sbmRow] );
+          }
+
+
+        }
+      }
+    }
+
+    // set flag for successful reordering
+    reorderingDone_ = true;
+
+    // Print statistics to standard log stream
+    PrintStats();
+  }
+
+
+
+
   // ===============
   //   RegisterBlock
   // ===============
   void GraphManager::RegisterBlock( const UInt blockNum,
-                                    SBMBlockInfo* blockInfo ) {
+                                    SBMBlockInfo* blockInfo) {
     
     LOG_TRACE(graphMan) << "Registering block " << blockNum;
     
@@ -210,8 +345,7 @@ namespace CoupledField {
     }
     
     
-    // Store SBM block information
-    blockInfo_[blockNum] = blockInfo; 
+
 
     // Step counter for the number of registered blocks and check number
     numRegisteredBlocks_++;
@@ -226,7 +360,10 @@ namespace CoupledField {
       registrationDone_ = true;
 
     // Generate graph object for this block
+    blockInfo_[blockNum] = blockInfo;
     UInt idx = ComputeIndex( blockNum, blockNum );
+
+
     graph_[idx] = new BaseGraph( blockInfo->numLastFreeIndex, 
                                  blockInfo->numLastFreeIndex );
     if ( graph_[idx] == NULL ) {
@@ -242,10 +379,70 @@ namespace CoupledField {
     
     // Generate IDBC graph object for this block
     GenerateIDBCGraph( blockNum, blockNum );
-    
+
   }
 
-   
+  void GraphManager::RegisterBlockMultHarm( SBMBlockInfo* blockInfo) {
+
+    LOG_TRACE(graphMan) << "Registering block for multiharmonic analysis";
+
+    if (IS_LOG_ENABLED(graphMan, dbg2) ){
+    LOG_DBG(graphMan) << "Detailed block information:";
+    LOG_DBG(graphMan) << "\ttotal size: " << blockInfo->size;
+    LOG_DBG(graphMan) << "\tlastFreeIndex: " << blockInfo->numLastFreeIndex;
+    LOG_DBG(graphMan) << "\thasSubBlocks: " << blockInfo->hasSubBlocks;
+    }
+
+    // Be cautious
+    if ( registrationDone_ == true ) {
+      EXCEPTION("Attempt to use RegisterBlock() after end of "
+               << "registration phase, i.e. after the first call to "
+               << "AssembleInit()!");
+    }
+
+
+    // Step counter for the number of registered blocks and check number
+    numRegisteredBlocks_++;
+    if ( numRegisteredBlocks_ > 1 ) {
+      EXCEPTION("GraphManager::RegisterBlock: You tried to "
+               << "register a " << numRegisteredBlocks_ << "-th block "
+               << "but in multiharmonic analysis only " << 1
+               << " block is expected!");
+    }
+
+    if( numRegisteredBlocks_ == 1 )
+      registrationDone_ = true;
+
+
+    blockInfoMH_ = blockInfo;
+
+    // now generate the graph objects
+    UInt a = (isFullSys_)? (M_+1) : ((M_-1)/2 + 1);
+    for (  UInt sbmRow = 0; sbmRow < sizeMH_; ++sbmRow ) {
+      for ( UInt sbmCol = sbmRow ; sbmCol < sbmRow + a; ++sbmCol ) {
+        if( sbmCol < sizeMH_){
+          UInt idx = ComputeIndex( sbmRow, sbmCol );
+          // Generate graph object for this block
+          graph_[idx] = new BaseGraph( blockInfo->numLastFreeIndex,
+                                       blockInfo->numLastFreeIndex );
+          if ( graph_[idx] == NULL ) {
+            EXCEPTION("Generation of graph object for block #" << sbmRow << "," << sbmCol
+                      << " failed!");
+          }
+
+          LOG_DBG(graphMan) << " GraphManager: Generated sub-graph ("
+                   << sbmRow << "," << sbmCol << ")"
+                   << " for a " << blockInfo->numLastFreeIndex << " x "
+                   << blockInfo->numLastFreeIndex
+                   << " matrix" << std::endl;
+
+          // Generate IDBC graph object for this block
+          GenerateIDBCGraph( sbmRow, sbmCol );
+        }
+      }
+    }
+
+  }
 
   // =================
   //   SetElementPos
@@ -255,7 +452,7 @@ namespace CoupledField {
                                     const StdVector<UInt>& colBlocks,
                                     const StdVector<UInt>& colNums,
                                     FEMatrixType matrixType,
-                                    bool setCounterPart ) {
+                                    bool setCounterPart) {
 
     // Just some logging for debugging
     LOG_TRACE(graphMan) << "Setting element connectivity";
@@ -272,12 +469,14 @@ namespace CoupledField {
     }
     
     // Clear the arrays
-    for( UInt i = 0; i < numBlocks_; ++i ) {
+    UInt nB = ( isMultHarm_ )? numBlocks_ * numBlocks_ : numBlocks_;
+    for( UInt i = 0; i < nB; ++i ) {
       vertexList1_[i].clear();
       vertexList2_[i].clear();
       edgeList1_[i].clear();
       edgeList2_[i].clear();
     }
+
 
     UInt numRows = rowBlocks.GetSize();
     UInt numCols = colBlocks.GetSize();
@@ -293,7 +492,13 @@ namespace CoupledField {
       std::vector<UInt> & vList1 = vertexList1_[rowBlock];
       std::vector<UInt> & vList2 = vertexList2_[rowBlock];
       // get limits of free indices
-      const UInt & lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
+      UInt l;
+      if(isMultHarm_){
+        l = blockInfoMH_->numLastFreeIndex;
+      }else{
+        l = blockInfo_[rowBlock]->numLastFreeIndex;
+      }
+      const UInt & lastFreeRowIndex = l;
 
       // STEP 1: Generate vertex list from first connect array, dropping
       //         equation numbers for dofs fixed by inhomogeneous Dirichlet
@@ -320,7 +525,13 @@ namespace CoupledField {
       std::vector<UInt> & eList2 = edgeList2_[colBlock];
 
       // get limits of free indices
-      const UInt & lastFreeColIndex = blockInfo_[colBlock]->numLastFreeIndex;
+      UInt l;
+      if(isMultHarm_){
+        l = blockInfoMH_->numLastFreeIndex;
+      }else{
+        l = blockInfo_[colBlock]->numLastFreeIndex;
+      }
+      const UInt & lastFreeColIndex = l;
 
       // STEP 2: Split the second connect array into two edge lists, one for
       //         the graph and one for the IDBCgraph (which handles the indices
@@ -335,95 +546,152 @@ namespace CoupledField {
       }
     } // loop over cols
 
-    
-    // Now we have the edge/vertex list for every block available, so
-    // we can loop explictily over vertices (=rows) and edges (=cols)
-    // of each block.
+
+
     
     // loop over all blocks and pass for every block the information to
     // the corresponding graph / IDBC graph
-    for( UInt row = 0; row < numBlocks_; ++row ) {
-      for( UInt col = 0; col < numBlocks_; ++col ) {
+    if( isMultHarm_ ){
+      //===================================================================
+      //    Adaption for multiharmonic case: only loop over nonzero blocks
+      //    the body of the loop is the same as in the non-multiharm version
+      //===================================================================
+      UInt a = (isFullSys_)? (M_+1) : ((M_-1)/2 + 1);
+      for (  UInt sbmRow = 0; sbmRow < sizeMH_; ++sbmRow ) {
+        for ( UInt sbmCol = sbmRow ; sbmCol < sbmRow + a; ++sbmCol ) {
+          if( sbmCol < sizeMH_){
 
-        // Compute index of graph in graph pointer matrix
-        UInt idx = ComputeIndex( row, col );
-        
-        // Generate coupling graph and also transpose if necessary
-        if ( row != col ) {
-          GenerateCouplingGraph( row, col );
-          if ( setCounterPart ) {
-            GenerateCouplingGraph( col, row );
-          }
+            // Compute index of graph in graph pointer matrix
+            UInt idx = ComputeIndex( sbmRow, sbmCol );
 
-          // Generate IDBC graph and its transpose if necessary
-          GenerateIDBCGraph( row, col );
-          if ( setCounterPart ) {
-            GenerateIDBCGraph( col, row );
+            // Generate coupling graph and also transpose if necessary
+            if ( sbmRow != sbmCol ) {
+              GenerateCouplingGraph( sbmRow, sbmCol );
+              if ( setCounterPart ) {
+                GenerateCouplingGraph( sbmCol, sbmRow );
+              }
+
+              // Generate IDBC graph and its transpose if necessary
+              GenerateIDBCGraph( sbmRow, sbmCol );
+              if ( setCounterPart ) {
+                GenerateIDBCGraph( sbmCol, sbmRow );
+              }
+            }
+
+            // --- logging output ---
+            if( IS_LOG_ENABLED(graphMan, dbg3) ) {
+              LOG_DBG3(graphMan) << "IDBC/Graph insertion for block ("
+                  << sbmRow << ", " << sbmCol << ")";
+
+              LOG_DBG3(graphMan) << "vertexList1: ";
+              for(UInt i=0; i <vertexList1_[0].size(); ++i )
+                LOG_DBG3(graphMan) << "\t" << vertexList1_[0][i];
+
+              LOG_DBG3(graphMan) << "vertexList2: ";
+              for(UInt i=0; i <vertexList2_[0].size(); ++i )
+                LOG_DBG3(graphMan) << "\t" << vertexList2_[0][i];
+
+              LOG_DBG3(graphMan) << "edgeList1: ";
+              for(UInt i=0; i <edgeList1_[0].size(); ++i )
+                LOG_DBG3(graphMan) << "\t" << edgeList1_[0][i];
+
+              LOG_DBG3(graphMan) << "edgeList2: ";
+              for(UInt i=0; i <edgeList2_[0].size(); ++i )
+                LOG_DBG3(graphMan) << "\t" << edgeList2_[0][i];
+            }
+
+            // Insert information into graph for real dofs
+            graph_[idx]->AddVertexNeighbours( vertexList1_[0], edgeList1_[0] );
+
+            // Insert information into graph for fixed dofs
+            graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[0], edgeList2_[0] );
+
+            if ( setCounterPart == true ) {
+
+              idx = ComputeIndex( sbmCol, sbmRow );
+              LOG_DBG3(graphMan) << "IDBC: Inserting into (" << sbmCol << ", " << sbmRow << ")" << std::endl;
+
+              // Insert information into (transpose) graph for real dofs
+              graph_[idx]->AddVertexNeighbours( edgeList1_[0], vertexList1_[0]);
+
+              // Insert information into graph for fixed dofs
+              graphIDBC_[idx]->AddVertexNeighbours( edgeList1_[0], vertexList2_[0]  );
+
+            }
           }
         }
+      }
 
-        // --- logging output ---
-        if( IS_LOG_ENABLED(graphMan, dbg3) ) {
-          LOG_DBG3(graphMan) << "IDBC/Graph insertion for block (" 
-              << row << ", " << col << ")";
-          
-          LOG_DBG3(graphMan) << "vertexList1: ";
-          for(UInt i=0; i <vertexList1_[row].size(); ++i ) 
-            LOG_DBG3(graphMan) << "\t" << vertexList1_[row][i];
-          
-          LOG_DBG3(graphMan) << "vertexList2: ";
-          for(UInt i=0; i <vertexList2_[row].size(); ++i ) 
-            LOG_DBG3(graphMan) << "\t" << vertexList2_[row][i];
-          
-          LOG_DBG3(graphMan) << "edgeList1: ";
-          for(UInt i=0; i <edgeList1_[col].size(); ++i ) 
-            LOG_DBG3(graphMan) << "\t" << edgeList1_[col][i];
-          
-          LOG_DBG3(graphMan) << "edgeList2: ";
-          for(UInt i=0; i <edgeList2_[col].size(); ++i ) 
-            LOG_DBG3(graphMan) << "\t" << edgeList2_[col][i];
-        }
-        
-        // --- logging output ---
-        // Insert information into graph for real dofs
-        graph_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList1_[col] );
+    }else{
+      //===================================================================
+      //    NON-Multiharmonic (classic) version
+      //===================================================================
+      for( UInt row = 0; row < numBlocks_; ++row ) {
+        for( UInt col = 0; col < numBlocks_; ++col ) {
+          // call the lambda function
 
-        // Insert information into graph for fixed dofs
-        graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList2_[col] );
-//        if( row!= col ) {
-//          std::cerr << "IDBC (" << row << ", " << col << ": Inserting ";
-//          for( UInt i = 0; i < vertexList1_[row].size(); ++i ) 
-//            std::cerr << vertexList1_[row][i] << ", ";
-//          std::cerr << " AND ";
-//          for( UInt i = 0; i < edgeList2_[col].size(); ++i ) 
-//            std::cerr << edgeList2_[col][i] << ", ";
-//          std::cerr << std::endl;
-//        }
+          // Compute index of graph in graph pointer matrix
+          UInt idx = ComputeIndex( row, col );
 
-        // Check for assembly of counter part
-       // if ( (row != col) && setCounterPart == true ) {
-        if ( setCounterPart == true ) {
+          // Generate coupling graph and also transpose if necessary
+          if ( row != col ) {
+            GenerateCouplingGraph( row, col );
+            if ( setCounterPart ) {
+              GenerateCouplingGraph( col, row );
+            }
 
-          idx = ComputeIndex( col, row );
-          LOG_DBG3(graphMan) << "IDBC: Inserting into (" << col << ", " << row << ")" << std::endl;
+            // Generate IDBC graph and its transpose if necessary
+            GenerateIDBCGraph( row, col );
+            if ( setCounterPart ) {
+              GenerateIDBCGraph( col, row );
+            }
+          }
 
-          // Insert information into (transpose) graph for real dofs
-          graph_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList1_[row]);
-          //graph_[idx]->AddVertexNeighbours( vertexList1_[col], edgeList1_[row]);
+          // --- logging output ---
+          if( IS_LOG_ENABLED(graphMan, dbg3) ) {
+            LOG_DBG3(graphMan) << "IDBC/Graph insertion for block ("
+                << row << ", " << col << ")";
+
+            LOG_DBG3(graphMan) << "vertexList1: ";
+            for(UInt i=0; i <vertexList1_[row].size(); ++i )
+              LOG_DBG3(graphMan) << "\t" << vertexList1_[row][i];
+
+            LOG_DBG3(graphMan) << "vertexList2: ";
+            for(UInt i=0; i <vertexList2_[row].size(); ++i )
+              LOG_DBG3(graphMan) << "\t" << vertexList2_[row][i];
+
+            LOG_DBG3(graphMan) << "edgeList1: ";
+            for(UInt i=0; i <edgeList1_[col].size(); ++i )
+              LOG_DBG3(graphMan) << "\t" << edgeList1_[col][i];
+
+            LOG_DBG3(graphMan) << "edgeList2: ";
+            for(UInt i=0; i <edgeList2_[col].size(); ++i )
+              LOG_DBG3(graphMan) << "\t" << edgeList2_[col][i];
+          }
+
+          // Insert information into graph for real dofs
+          graph_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList1_[col] );
 
           // Insert information into graph for fixed dofs
+          graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList2_[col] );
 
-          graphIDBC_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList2_[row]  );
-//          std::cerr << "IDBC (" << col << ", " << row << "): Inserting ";
-//          for( UInt i = 0; i < vertexList1_[col].size(); ++i ) 
-//            std::cerr << vertexList1_[col][i] << ", ";
-//          std::cerr << " AND ";
-//          for( UInt i = 0; i < edgeList2_[row].size(); ++i ) 
-//            std::cerr << edgeList2_[row][i] << ", ";
-//          std::cerr << std::endl;
+          if ( setCounterPart == true ) {
+
+            idx = ComputeIndex( col, row );
+            LOG_DBG3(graphMan) << "IDBC: Inserting into (" << col << ", " << row << ")" << std::endl;
+
+            // Insert information into (transpose) graph for real dofs
+            graph_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList1_[row]);
+
+            // Insert information into graph for fixed dofs
+            graphIDBC_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList2_[row]  );
+
+          }
         }
-      } // row loop
-    } // col loop
+      }
+    }
+
+
   }
 
 
@@ -436,7 +704,7 @@ namespace CoupledField {
     LOG_TRACE(graphMan) << "Returning reordering for block #" << blockNum;
     
     // Small consistency check
-    if ( blockNum > numBlocks_ ) {
+    if ( blockNum > numBlocks_ && !isMultHarm_) {
       EXCEPTION("GraphManager::GetReordering: "
                << "block with number '" << blockNum << "' was not "
                << "registered using RegisterBlock()!");
@@ -454,6 +722,7 @@ namespace CoupledField {
     order = newOrdering_[blockNum];
     newOrdering_[blockNum].Clear();
   }
+
 
 
   // ============
@@ -627,10 +896,27 @@ namespace CoupledField {
       return;
     }
     
+    if(isMultHarm_){
+      // Generate graph object
+      graph_[idx] = new BaseGraph( blockInfoMH_->numLastFreeIndex, blockInfoMH_->numLastFreeIndex );
+
+      if ( graph_[idx] == NULL ) {
+        EXCEPTION("GraphManager: Generation of sub-graph "
+                 << "for pair (" << rowNum << " , " << colNum
+                 << ") and a " << blockInfoMH_->numLastFreeIndex
+                 << " x " << blockInfoMH_->numLastFreeIndex << " matrix failed ");
+      }
+
+      // log message
+      LOG_DBG(graphMan) << " GraphManager: Generated sub-graph for  pair ("
+          << rowNum << " , " << colNum << ") and a "
+          << blockInfoMH_->numLastFreeIndex << " x "
+          << blockInfoMH_->numLastFreeIndex << " matrix " << std::endl;
+
+    }else{
 
     // Generate graph object
-    graph_[idx] = new BaseGraph( blockInfo_[rowNum]->numLastFreeIndex,
-                                 blockInfo_[colNum]->numLastFreeIndex );
+    graph_[idx] = new BaseGraph( blockInfo_[rowNum]->numLastFreeIndex, blockInfo_[colNum]->numLastFreeIndex );
 
     if ( graph_[idx] == NULL ) {
       EXCEPTION("GraphManager: Generation of sub-graph "
@@ -644,6 +930,8 @@ namespace CoupledField {
         << rowNum << " , " << colNum << ") and a "
         << blockInfo_[rowNum]->numLastFreeIndex << " x " 
         << blockInfo_[colNum]->numLastFreeIndex << " matrix " << std::endl;
+    }
+
   }
 
 
@@ -651,7 +939,7 @@ namespace CoupledField {
   //   GenerateIDBCGraph
   // =====================
   void GraphManager::GenerateIDBCGraph( UInt rowNum,
-                                        UInt colNum ) {
+                                        UInt colNum) {
 
     UInt idx = ComputeIndex( rowNum, colNum );
 
@@ -660,32 +948,59 @@ namespace CoupledField {
     if( graphIDBC_[idx] != NULL ) 
       return;
 
-    // Compute number of fixed column indices
-    UInt fixedDofs = blockInfo_[colNum]->size - 
-                     blockInfo_[colNum]->numLastFreeIndex;
-
-    // If there are fixed indices in the column block, we have to
-    // generate an IDBC graph object for this pair
-    if ( fixedDofs > 0 ) {
-
-      // Generate IDBC graph object
-      graphIDBC_[idx] = new IDBC_Graph( blockInfo_[rowNum]->numLastFreeIndex, 
-                                        fixedDofs );
-      if ( graphIDBC_[idx] == NULL ) {
-        EXCEPTION(" GraphManager: Generation of IDBC sub-graph " 
-                 << "for index pair (" << rowNum << " , " << colNum
-                 << ") and a " << blockInfo_[rowNum]->numLastFreeIndex
-                 << " x " << fixedDofs << " matrix failed ");
+    if( isMultHarm_ ){
+      // Compute number of fixed column indices
+      UInt fixedDofs = blockInfoMH_->size - blockInfoMH_->numLastFreeIndex;
+      // If there are fixed indices in the column block, we have to
+      // generate an IDBC graph object for this pair
+      if ( fixedDofs > 0 ) {
+        // Generate IDBC graph object
+        graphIDBC_[idx] = new IDBC_Graph( blockInfoMH_->numLastFreeIndex, fixedDofs );
+        if ( graphIDBC_[idx] == NULL ) {
+          EXCEPTION(" GraphManager: Generation of IDBC sub-graph "
+                   << "for index pair (" << rowNum << " , " << colNum
+                   << ") and a " << blockInfoMH_->numLastFreeIndex
+                   << " x " << fixedDofs << " matrix failed ");
+        }
       }
+
+      if ( fixedDofs > 0 ) {
+        // log message
+        LOG_DBG(graphMan) << " GraphManager: Generated IDBC sub-graph "
+            << "for index pair (" << rowNum << " , " << colNum
+            << ") and a " << blockInfo_[rowNum]->numLastFreeIndex
+            << " x " << fixedDofs << " matrix";
+      }
+
+    }else{
+      // Compute number of fixed column indices
+      UInt fixedDofs = blockInfo_[colNum]->size - blockInfo_[colNum]->numLastFreeIndex;
+      // If there are fixed indices in the column block, we have to
+      // generate an IDBC graph object for this pair
+      if ( fixedDofs > 0 ) {
+        // Generate IDBC graph object
+        graphIDBC_[idx] = new IDBC_Graph( blockInfo_[rowNum]->numLastFreeIndex, fixedDofs );
+        if ( graphIDBC_[idx] == NULL ) {
+          EXCEPTION(" GraphManager: Generation of IDBC sub-graph "
+                   << "for index pair (" << rowNum << " , " << colNum
+                   << ") and a " << blockInfo_[rowNum]->numLastFreeIndex
+                   << " x " << fixedDofs << " matrix failed ");
+        }
+      }
+
+      if ( fixedDofs > 0 ) {
+        // log message
+        LOG_DBG(graphMan) << " GraphManager: Generated IDBC sub-graph "
+            << "for index pair (" << rowNum << " , " << colNum
+            << ") and a " << blockInfo_[rowNum]->numLastFreeIndex
+            << " x " << fixedDofs << " matrix";
+      }
+
     }
 
-    if ( fixedDofs > 0 ) {
-      // log message
-      LOG_DBG(graphMan) << " GraphManager: Generated IDBC sub-graph "
-          << "for index pair (" << rowNum << " , " << colNum
-          << ") and a " << blockInfo_[rowNum]->numLastFreeIndex
-          << " x " << fixedDofs << " matrix";
-    }
   }
+
+
+
 
 } // namespace

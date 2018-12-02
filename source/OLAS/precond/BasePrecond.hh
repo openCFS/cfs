@@ -22,25 +22,13 @@ namespace CoupledField {
 
     //! This enumeration data type describes the type of Preconditioner which
     //! is applied before solving the algebraic system.
-    //! The enumeration contains the following values:
-    //! - NOPRECOND
-    //! - ID
-    //! - MG (AMG)
-    //! - JACOBI
-    //! - SSOR
-    //! - ILU0
-    //! - ILUTP
-    //! - ILUK
-    //! - ILDLK
-    //! - ILDLTP
-    //! - ILDLCN
     typedef enum { 
       NOPRECOND, ID, 
 
       // === Classical Preconditioners ==
       MG, JACOBI, BLOCK_JACOBI, SSOR, ILU0,ILUTP, 
       ILUK, ILDL0, ILDLK, ILDLTP, ILDLCN, IC0,
-      SBM_DIAG,
+      SBM_DIAG, SBM_JACOBI,
 
       // === Solvers used as Preconditioners ==
       DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,

@@ -3,7 +3,7 @@
 
 #include <map>
 #include "SinglePDE.hh" 
-#include "Driver/SolveSteps/SolveStepMagEdge.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Utils/Coil.hh"
 
 namespace CoupledField
@@ -121,6 +121,9 @@ namespace CoupledField
     //! regions.
     std::set<RegionIdType> regularizedRegions_;
     
+    //! Coefficient function for the multiharmonic material adaptions
+    shared_ptr<CoefFunction> multiHarmCoef_;
+
   private:
   };
 

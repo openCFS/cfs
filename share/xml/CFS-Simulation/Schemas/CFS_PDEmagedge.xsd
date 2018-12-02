@@ -113,7 +113,7 @@
                 <!-- Dirichlet Boundary Conditions -->
                 <xsd:element name="fluxParallel" type="DT_BcHomScalar">
                   <xsd:annotation>
-                    <xsd:documentation>Magnetic field lines are forced to be parallel to the surface </xsd:documentation>
+                    <xsd:documentation>Magnetic field lines are forced to be parallel to the surface. This corresponds to homogeneous Neumann BCs for all edge degrees of freedom on the surface.</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
                 <xsd:element name="potential" type="DT_BcInhomVector">
@@ -262,7 +262,9 @@
 
   <!-- Definition of nodal result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticEdgeNodeResult">
-    <xsd:restriction base="xsd:token"> </xsd:restriction>
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magJouleLossPowerDensityOnNodes"/>
+    </xsd:restriction>
   </xsd:simpleType>
   
 
@@ -280,6 +282,7 @@
       <xsd:enumeration value="magForceLorentzDensity"/>
       <xsd:enumeration value="magPotential"/>
       <xsd:enumeration value="magElemPermeability"/>
+      <xsd:enumeration value="magElemReluctivity"/>
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="magCoreLossDensity"/>
       <xsd:enumeration value="magJouleLossPowerDensity"/>
@@ -300,6 +303,7 @@
       <xsd:enumeration value="magEddyPower"/>
       <xsd:enumeration value="magForceLorentz"/>
       <xsd:enumeration value="magCoreLoss"/>
+      <xsd:enumeration value="magJouleLossPower"/>
     </xsd:restriction>
   </xsd:simpleType>
 

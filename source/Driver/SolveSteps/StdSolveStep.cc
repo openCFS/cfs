@@ -16,6 +16,7 @@
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 //#include "MatVec/SingleVector.hh"
+#include "Domain/Results/MHTimeFreqResult.hh"
 
 
 namespace CoupledField {
@@ -46,22 +47,19 @@ namespace CoupledField {
     feFunctions_ = PDE_.GetFeFunctions();
     rhsFeFunctions_ = PDE_.GetRhsFeFunctions();
     
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
+    it = feFunctions_.begin();
+
     // Copy vectors FE functions in SBM-vector for communication
     // with OLAS and time stepping
     solVec_.SetSize( feFunctions_.size() );
     rhsVec_.SetSize( feFunctions_.size() );
-    
-    //    resVec_.SetSize( feFunctions_.size() );
-    //    nonLinRHS_.SetSize( feFunctions_.size() );
-    
-    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
-    it = feFunctions_.begin();
-    // UInt pos = 0;
+
     for( ; it != feFunctions_.end(); ++it ){
       shared_ptr<BaseFeFunction> & ptFct = it->second;
       FeFctIdType id = ptFct->GetFctId();
       // here the solution vector is filled with pointers from
-      // the FE function. Therefore setting the solVec_ in 
+      // the FE function. Therefore setting the solVec_ in
       // algsys_->GetSolutionVal(solVec_) automatically fills the
       // SingleVector in FE function
       solVec_.SetSubVector(ptFct->GetSingleVector(), id);
@@ -72,11 +70,12 @@ namespace CoupledField {
       shared_ptr<BaseFeFunction> & ptFct = it->second;
       FeFctIdType id = ptFct->GetFctId();
       // here the solution vector is filled with pointers from
-      // the FE function. Therefore setting the solVec_ in 
+      // the FE function. Therefore setting the solVec_ in
       // algsys_->GetSolutionVal(solVec_) automatically fills the
       // SingleVector in FE function
       rhsVec_.SetSubVector(ptFct->GetSingleVector(), id);
     }
+
     // Make sure to have both vectors as "weak" vectors,
     // as the feFunctions themselves are responsible for
     // creation and destruction.
@@ -104,9 +103,9 @@ namespace CoupledField {
     //DeltaRhsLinVal_ =  SBM_Vector(BaseMatrix::DOUBLE);
     RhsLinVal_ = rhsVec_;
     
-    //		std::cout << "StdSolveStep - Constructor: " << std::endl;
-    //		std::cout << "pdename_: " << pdename_ << std::endl;
-    //		std::cout << "isHyst_: " << isHyst_ << std::endl;
+    //    std::cout << "StdSolveStep - Constructor: " << std::endl;
+    //    std::cout << "pdename_: " << pdename_ << std::endl;
+    //    std::cout << "isHyst_: " << isHyst_ << std::endl;
         
     // In the end, read nonlinear data from xml-file
     if( nonLin_ || nonLinMaterial_ ) {
@@ -219,13 +218,12 @@ namespace CoupledField {
     //get actual solution
     SBM_Vector  actSol(BaseMatrix::DOUBLE);
     actSol = solVec_;
-    
     // =================================
     //  Outer loop: Multilevel strategy 
     // =================================
     UInt numLevels = solStrat_->GetNumSolSteps();
     for( UInt iLevel = 0; iLevel < numLevels; ++iLevel ) {
-      
+
       // create new timer object and put it to related info element
       shared_ptr<Timer> timer(new Timer());
       PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
@@ -239,7 +237,7 @@ namespace CoupledField {
       ReadNonLinData();
       PDE_.UpdateToSolStrategy();
       algsys_->UpdateToSolStrategy();
-      
+
       // set the boundary conditions
       PDE_.SetBCs();
       
@@ -273,7 +271,7 @@ namespace CoupledField {
           // setup the matrices
           isNewton = false;
           assemble_->AssembleMatrices(isNewton);
-          
+
           //substract from RHS the term K*sol
           solVec_.ScalarMult(-1.0);
           algsys_->UpdateRHS(SYSTEM,solVec_,true);
@@ -298,19 +296,17 @@ namespace CoupledField {
           setIDBC = true;
         
         algsys_->Solve(setIDBC);
-        
         // new solution is only an increment of the full solution =============
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
-	algsys_->GetSolutionVal( solInc, setIDBC );
-        
+        algsys_->GetSolutionVal( solInc, setIDBC );
         //compute norms (residual and incremenal ones)
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
         if ( lineSearch_ == "none" || iterationCounter == 1) {
           //to incooperate the inhomog. Dirichlet BCs we need a full
           //step for the first iteration
-          
+
           actSol.Add(1.0, solInc);
           // store the new solution
           solVec_ = actSol;
@@ -444,7 +440,7 @@ namespace CoupledField {
     }
     
     //currently not supported
-    //	else if ( nonLin_ && nonLinMaterial_ ) {
+    //  else if ( nonLin_ && nonLinMaterial_ ) {
     //      StepTransNonLinMaterial();
     //    }
     // do a nonlinear time step
@@ -760,13 +756,13 @@ namespace CoupledField {
         iterationCounter++;
         
         if ( lineSearch_ != "none" || iterationCounter == 1) {
-        	//add linear right hand side
-        	algsys_->InitRHS(RhsLinVal_);
+          //add linear right hand side
+          algsys_->InitRHS(RhsLinVal_);
           
-        	// if the RHS depends on the nonlinearity, we have to re-assemble it
-        	if( assemble_->IsRhsSolDependent() ) {
-        		assemble_->AssembleNonLinRHS();
-        	}
+          // if the RHS depends on the nonlinearity, we have to re-assemble it
+          if( assemble_->IsRhsSolDependent() ) {
+            assemble_->AssembleNonLinRHS();
+          }
           
           // setup the matrices
           isNewton = false;
@@ -847,7 +843,7 @@ namespace CoupledField {
           algsys_->InitRHS(RhsLinVal_);
           // if the RHS depends on the nonlinearity, we have to re-assemble it
           if( assemble_->IsRhsSolDependent()) {
-        	  assemble_->AssembleNonLinRHS();
+            assemble_->AssembleNonLinRHS();
           }
           
           // setup the matrices with new solution
@@ -1280,10 +1276,9 @@ namespace CoupledField {
   void StdSolveStep::PreStepHarmonic() {
     algsys_->InitRHS();
   }
-  
-  
+
   void StdSolveStep::SolveStepHarmonic() {
-    if ( nonLin_ ) {
+    if ( nonLin_ || solStrat_->IsMultHarm() ) {
       StepHarmonicNonLin();
     }
     else {
@@ -1293,24 +1288,13 @@ namespace CoupledField {
   
   
   void StdSolveStep::StepHarmonicLin() {
-    
-    //JUST A HACK!!!!
-    //matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
-    //matrix_factor_Complex_[NO_FCT_ID][DAMPING] = CompSetLinRHSlex(0.0,actFreq_*2*M_PI);
-    //matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(-1.0 * actFreq_*actFreq_*4*M_PI*M_PI,0);
-    
-    //matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
-    //matrix_factor_Complex_[NO_FCT_ID][DAMPING] = Complex(1.0,0.0);
-    //matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(1.0,0.0);
-    
-    
     //Set special RHS Values
     //std::cout << "Do Apply Loads" << std::endl;
     PDE_.SetRhsValues();
     
     //this has to be done each frequency!
     assemble_->AssembleLinRHS();
-    
+
     assemble_->AssembleMatrices( );
     PDE_.SetBCs();
     
@@ -1323,6 +1307,7 @@ namespace CoupledField {
     std::map<FEMatrixType,Double> empty;
     algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
     
+
     // Check if the AMG-framework is used (if so, we have
     // to gather some geometry information at this point)
     // needs only be built once, doesn't change over frequency
@@ -1350,20 +1335,416 @@ namespace CoupledField {
     algsys_->GetSolutionVal(solVec_);
     
     if ( adjointSource_ ) {
-    	//check if adjoint PDE has been solved in case of source localization
-    	//if yes, we have to multiply the solution with a standard mass matrix
-    	std::cout << "DO multiply with MASS-matrix" << std::endl;
-    	//solVec_.Export("sol1.dat",BaseMatrix::MATRIX_MARKET);
-    	algsys_->InitRHS();
-    	algsys_->UpdateRHS(AUXILIARY,solVec_,true);
-    	algsys_->GetRHSVal( solVec_ );
-    	//solVec_.Export("sol2.dat",BaseMatrix::MATRIX_MARKET);
-    	//std::cout << "SOL after: \n " << solVec_ << std::endl;
-    	adjointSource_ = false;
+      //check if adjoint PDE has been solved in case of source localization
+      //if yes, we have to multiply the solution with a standard mass matrix
+      std::cout << "DO multiply with MASS-matrix" << std::endl;
+      //solVec_.Export("sol1.dat",BaseMatrix::MATRIX_MARKET);
+      algsys_->InitRHS();
+      algsys_->UpdateRHS(AUXILIARY,solVec_,true);
+      algsys_->GetRHSVal( solVec_ );
+      //solVec_.Export("sol2.dat",BaseMatrix::MATRIX_MARKET);
+      //std::cout << "SOL after: \n " << solVec_ << std::endl;
+      adjointSource_ = false;
     }
   }
-  
-  
+
+  void StdSolveStep::StepHarmonicNonLin() {
+
+    // Set some variables
+    UInt N = solStrat_->GetNumHarmN();
+    UInt M = solStrat_->GetNumHarmM();
+    Double bF = solStrat_->GetBaseFreq();
+    UInt numFFT = solStrat_->GetNumFFT();
+    if(numFFT % 2 != 0){
+      EXCEPTION("Please provide a numFFT xml attribute, which is even!");
+    }
+
+    bool performOneMoreStep = true;
+    // =================================================================================
+    //  1) Solve the initial multiharmonic ''linear'' system
+    // =================================================================================
+
+    // Perform the load-steps
+    Double loadFactor = 1.0;
+    PDE_.GetInfoNode()->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
+
+    // setup right hand side
+    algsys_->InitRHS();
+    // first boolean is flag if nonlinear (first iteration is linear)
+    // second boolean is if it's multiharmonic...which is is
+    Double RhsLinL2Norm = SetLinRHS(loadFactor, false, true);
+
+    if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"Right Hand Side Linear "<<RhsLinVal_.ToString()<<std::endl;
+
+    // Usually the RhsLinVal_ gets set in the constructor but
+    // not in the multiharmonic case. Therefore we set it here.
+    // Already done by SetLinRHS()
+    //algsys_->GetFullMultiHarmRHSVal(RhsLinVal_);
+
+    // Loop over every frequency and assemble the correct SBM blocks
+    AssembleMH(N, M, true);
+    // Sets flag that matrix was already assembled. The method CheckNonLinearities
+    // redoes this
+    assemble_->PostAssemble();
+
+
+    // Calls method ApplyBC and ApplyLoads in FeFunction
+    PDE_.SetBCs();
+
+    // Computation of effective matrix:
+    /* NOTE: this is commented because we also include the MASS matrix
+             in the SYSTEM matrix, as defined in Assemble::CreateMatrixMap().
+             Sometimes having an extra MASS matrix is benefitial, e.g. for exporting and
+             comparing different matrix parts, that's why it's still here
+    */
+    //std::map<FEMatrixType,Double> empty;
+    //algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+
+
+    // Incorporate Boundary conditions and
+    // recalculate the preconditioner eventually
+    algsys_->BuildInDirichlet();
+
+    algsys_->SetupPrecond();
+    algsys_->SetupSolver();
+
+    // Solve the linear system
+    algsys_->Solve();
+
+
+    // Get the solution of the initial (linear) multiharmonic system.
+    solVecMH_.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
+    algsys_->GetFullMultiHarmSolutionVal( solVecMH_, false);
+
+    if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION OF LINEAR SYSTEM"<<solVecMH_.ToString()<<std::endl;
+
+
+    // Get actual solution. Usually it is done via actSol = solVec_;
+    // but we need the full multiharmonic solution vector
+    SBM_Vector actSol(BaseMatrix::COMPLEX);
+    actSol = solVecMH_;
+
+    // Create multiharmonic time-frequency object and provide basic information
+    MHTimeFreqResult ftRes(N, M, bF, numFFT, PDE_.GetDomain());
+
+    // Evaluate the nonlinearity (transform solution in time domain =>
+    // evaluate the curl for the B-field => evaluate BH curve =>
+    // transform the nu(t) back to frequency domain nu(harmonic)
+    this->EvaluateNonlinearity(ftRes, actSol);
+
+    if (IS_LOG_ENABLED(stdsolvestep, dbg3)){
+      std::cout<<"actSol = "<<actSol.ToString()<<std::endl;
+    }
+
+    // =================================================================================
+    //  2) Solve the full multiharmonic nonlinear system
+    // =================================================================================
+
+    // Create new timer object and put it to related info element
+    shared_ptr<Timer> timer(new Timer());
+    PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
+    // We don't have a TwoLevel Strategy!!!
+    iter->GetByVal("solStep","value",1,ParamNode::INSERT)->Get("timer")->SetValue(timer);
+    timer->Start();
+
+    // As long as we don't have a TwoLevel solution strategy this method
+    // does not do anything...
+    solStrat_->SetActSolStep(1);
+
+    // This method just reads the nonlinear xml-node
+    ReadNonLinData();
+
+    // UpdateToSolStrategy in FeSpaces is actually only used for the TwoLevel
+    // solution strategy, where the first level only contains lowest order
+    // Hcurl basis functions and the other level higher order basis.
+    // In our case this method does not do anything
+    PDE_.UpdateToSolStrategy();
+
+    // set iteration counter
+    UInt iterationCounter = 0;
+
+
+    // This will be the incremental solution (deflect vector),
+    // meaning \Delta u^{k+1} = u^{k+1} - u^k
+    SBM_Vector solInc(BaseMatrix::COMPLEX);
+
+    // ===============================================================
+    //  2.1) Nonlinear loop
+    // ===============================================================
+    do {
+      iterationCounter++;
+      // if the RHS depends on the nonlinearity, we have to re-assemble it
+      if( assemble_->IsRhsSolDependent() ) {
+        EXCEPTION("StdSolveStep::StepHarmonicNonLin() cannot handle solution-dependent"
+            "RHSs yet!")
+      }
+
+      AssembleMH(N, M);
+      // Sets flag that matrix was already assembled. The method CheckNonLinearities re-does this
+      assemble_->PostAssemble();
+
+      // Computation of effective matrix:
+      /* NOTE: this is commented because we also include the MASS matrix
+               in the SYSTEM matrix, as defined in Assemble::CreateMatrixMap().
+               Sometimes having an extra MASS matrix is benefitial, e.g. for exporting and
+               comparing different matrix parts, that's why it's still here
+      */
+      //std::map<FEMatrixType,Double> empty;
+      //algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+
+
+      // set RHS: linear part
+      algsys_->InitRHS(RhsLinVal_ );
+
+
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) {
+        SBM_Vector resid(BaseMatrix::COMPLEX);
+        algsys_->GetFullMultiHarmRHSVal(resid);
+        std::cout<<"RHSLINVAL OF STEP "<<iterationCounter<<" = \n"<<RhsLinVal_.ToString()<<std::endl;
+        std::cout<<"RESIDUAL VECTOR OF STEP "<<iterationCounter<<" = \n"<<resid.ToString()<<std::endl;
+        std::cout<<"MHSOLVEC VECTOR OF STEP "<<iterationCounter<<" = \n"<<solVecMH_.ToString()<<std::endl;
+      }
+
+      // This is done because we want to solve the deflect-system:
+      // K(u^k) \cdot \Delta u^{k+1} = f - K(u^k) \cdot u^k
+      // where f - K(u^k) \cdot u^k gets set as the new rhs in algsys_
+      solVecMH_.ScalarMult(-1.0);
+      // the boolean has no effect...
+      algsys_->UpdateRHS_MultHarm(SYSTEM,solVecMH_,true);
+      solVecMH_.ScalarMult(-1.0);
+
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) {
+        SBM_Vector resid(BaseMatrix::COMPLEX);
+        algsys_->GetFullMultiHarmRHSVal(resid);
+        std::cout<<"RESIDUAL VECTOR OF STEP "<<iterationCounter<<" = \n"<<resid.ToString()<<std::endl;
+        std::cout<<"MHSOLVEC VECTOR OF STEP "<<iterationCounter<<" = \n"<<solVecMH_.ToString()<<std::endl;
+      }
+
+      // Incorporate Boundary conditions and recalc the preconditioner and solver
+      algsys_->BuildInDirichlet();
+      algsys_->SetupPrecond();
+      algsys_->SetupSolver();
+
+      // Solve the deflect system K(u^k) \cdot \Delta u^{k+1} = f - K(u^k) \cdot u^k
+      // for the deflect-vector \Delta u^{k+1}
+      // TODO DO WE NEED TO CALL IT WITH SETIDBC?
+      algsys_->Solve();
+      // Get the incremental solution (deflect vector), second argument is setIDBC
+      algsys_->GetFullMultiHarmSolutionVal( solInc, false);
+
+
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION INCREMENT AT STEP "<<iterationCounter<<" = \n"<<solInc.ToString()<<std::endl;
+
+      // Initialize norms (residual and incremental ones)
+      Double residualL2Norm = 0.0;
+      Double etaLineSearch  = 1.0;
+
+
+      // Perform line search to get the 'optimal' eta, which minimizes the residual-norm
+      // Meaning: u^{k+1} = u^k + eta * \Delta u^{k+1} in order to minimize
+      // the residual r^{k+1} = f - K(u^{k+1}) \cdot u^{k+1} is minimized
+      residualL2Norm = LineSearchMultHarm(solInc, actSol, etaLineSearch, ftRes);
+
+      this->EvaluateNonlinearity(ftRes, actSol);
+
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION VECTOR AT STEP "<<iterationCounter<<" = \n"<<actSol.ToString()<<std::endl;
+
+      // Store the new solution u^{k+1}
+      // Usually actSol is stored in solVec_ but this is not our full multiharmonic
+      // solution vector, therefore we store it in the temporary multiharmonic
+      // solution vector solVecMH
+      solVecMH_ = actSol;
+
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) std::cout<<"SOLUTION AT STEP "<<iterationCounter<<" = \n"<<actSol.ToString()<<std::endl;
+
+      // That's a bit dirty but it's currently the only possible way I see
+      algsys_->InitSol(solVecMH_);
+
+      if (IS_LOG_ENABLED(stdsolvestep, dbg3)) {
+        ftRes.SetFrequencyResult(actSol);
+        ftRes.FourierToTime();
+        for(UInt i = 0; i < ftRes.GetNumTimeSteps(); ++i) {
+          std::cout<<"TIME RESULT "<<i<<" = "<<ftRes.GetTimeResult(i).ToString()<<std::endl;
+        }
+      }
+
+      // Calculation relative residual error
+      Double residualErr;
+      if ( RhsLinL2Norm > 1.0 )
+        residualErr = residualL2Norm / RhsLinL2Norm;
+      else
+        residualErr = residualL2Norm;
+
+      // calculate incremental error
+      Double incrementalErr;
+      Double solIncrL2Norm = solInc.NormL2();
+      Double actSolL2Norm  = actSol.NormL2();
+
+      if ( actSolL2Norm ) incrementalErr = solIncrL2Norm / actSolL2Norm;
+      else {
+        incrementalErr = solIncrL2Norm;
+        WARN("Zero solution vector!! ");
+      }
+
+      // Output of norms and data
+      if ( nonLinLogging_ == true ) {
+        //UInt actStep = PDE_.GetSolveStep()->GetActStep();
+        if (PDE_.IsIterCoupled()) {
+          WriteNonLinIterToInfoXML(pdename_, couplingIter_, 1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+        } else {
+          WriteNonLinIterToInfoXML(pdename_, 1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+        }
+        // write norm to file
+        logFile_ <<  iterationCounter << "\t"
+            << residualErr << "\t"
+            << incrementalErr << "\t"
+            << etaLineSearch << std::endl;
+      }
+
+      // boolean variable, holds condition if another iteration step is necessary
+      performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+      std::cout<<"========= incrementalErr = "<<incrementalErr<<std::endl;
+      std::cout<<"========= residualErr = "<<residualErr<<std::endl;
+      if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
+        EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
+            << "' in step no '" << 1
+            << "' at iteration '" << iterationCounter
+            << "'.\n ==> incremental error: " << incrementalErr
+            << "\n ==> residual error: " << residualErr);
+      }
+    }while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+
+  }
+
+  void StdSolveStep::EvaluateNonlinearity(MHTimeFreqResult& ftRes,
+                                          const SBM_Vector& actSol){
+
+    // Register the multiharmonic solution at MHTimeFreqResult
+    ftRes.SetFrequencyResult(actSol);
+
+    // and transform the solution into time-domain to be able
+    // to evaluate the nonlinearity (e.g. BH curve in electromagnetics)
+    ftRes.FourierToTime();
+
+
+    // ============================================================================
+    // Evaluation of nonlinearity via callback mechanism in CoefFunctionHarmBalance
+    // ============================================================================
+
+    // Now we have to evaluate the nonlinearity at every integration point
+    // (not yet possible, so we evaluate it element wise)
+    // and transform the time signal back into frequency domain.
+    // Therefore we loop over every time step, which MHTimeFreqResult provides
+    // and set the solVec_ pointer to the correct sub-SBM vector in FeFunctions.
+    // Then the CoefFunctionHarmBalance should evaluate the nonlinearity at the
+    // integration points and store the solution...still in time domain.
+    // The transformation back into the frequency domain is carried out after this
+    // loop via changing the math parser variable "finishCash", which is a callback
+    // to CoefFunctionHarmBalance::UpdateSolution() and transforms the nu(t) into
+    // nu(harmonic)
+
+    // Loop over time steps
+    for(UInt i = 0; i < ftRes.GetNumTimeSteps(); ++i){
+      // TODO this should be double
+      Vector<Complex> timeStepVec = ftRes.GetTimeResult(i);
+      solVec_(0) = (Vector<Complex>)timeStepVec;
+
+      // Trigger the callback mechanism in CoefFunctionHarmBalance
+      // Now the PDE has the solution vector via the FeSpace and we activate
+      // the callback mechanism to cache the solution vector for current harmonic
+      mParser_->SetValue(MathParser::GLOB_HANDLER, "cacheResult", i);
+    }
+
+    // Now that the nu(t) results are cached, we can perform the FFT
+    UInt f = 1;
+    mParser_->SetValue(MathParser::GLOB_HANDLER, "finishCash", f);
+  }
+
+  void StdSolveStep::AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks) {
+    // loop over every frequency and assemble the correct SBM blocks
+
+    std::cout << "  - Calculating BiLinearForms for multiharmonic analysis" <<std::endl;
+
+    // Init all matrices, which have to be reassembled
+    // Usually this is done in Assemble::AssembleMatrices_Std but we don't
+    // use this method, therefore we call a special method here.
+    assemble_->InitMultHarm();
+
+
+    // Special treatment is needed for the diagonal blocks, due to the mass part,
+    // therefore handle this case seperately
+    // Contrary to the usual assembling process, we have to pass regionNonLinTypes_
+    // because regions without a BH curve don't have to be assembled into off-diagonal
+    // blocks in the global system matrix...performance improvement
+    assemble_->AssembleMatrices_MultHarm(0, solStrat_->GetNumHarmN(),
+        solStrat_->GetNumHarmM(),
+        regionNonLinTypes_,
+        multHarmFreqVec_);
+
+
+    if(!onlyDiagBlocks){
+      for (UInt i = 0; i < multHarmFreqVec_.GetSize(); ++i) {
+        Integer tmpH = domain->GetDriver()->HarmonicOfIndex(i);
+        Integer h;
+        if(domain->GetDriver()->IsFullSystem()){
+          // Not optimized version including all harmonics (even and odd ones)
+          h = tmpH;
+
+          // the matrix entries for odd harmonics are zero, therefore we don't
+          // have to assemble them
+          if( h%2 != 0 && h!=0 ){
+            continue;
+          }
+
+        }else{
+          // Ok, now it gets confusing because in the performance-optimized
+          // version, we draw a border between the harmonics of the system matrix
+          // and the solution vector
+          if(tmpH == 0) h = 0;
+          else if(tmpH < 0) h = tmpH - 1;
+          else h = tmpH + 1;
+        }
+
+        mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", h);
+
+        // And set the corresponding frequency
+        Double tmpf = (Double)solStrat_->GetBaseFreq();
+        Double freq = tmpf * h;
+        mParser_->SetValue(MathParser::GLOB_HANDLER, "f", freq);
+
+        if (IS_LOG_ENABLED(stdsolvestep, dbg3)) {
+          std::cout<<"harmonic = "<<h<<", frequency = "<<freq<<std::endl;
+        }
+
+
+        if( std::abs(h) > (Integer)M || h == 0) {
+          continue;
+        } else {
+          // Assemble the correct SBM-block, therefore pass the harmonic (-N,...,0,...,N)
+          // Contrary to the usual assembling process, we have to pass regionNonLinTypes_
+          // because regions without a BH curve don't have to be assembled into off-diagonal
+          // blocks in the global system matrix...performance improvement
+          // NOTE: In the new optimized version, only odd harmonics are considered
+          assemble_->AssembleMatrices_MultHarm(h, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM(), regionNonLinTypes_);
+        }
+      }
+    }
+
+    // Flag the the matrices were assembled at least once
+    mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", 0);
+  }
+
+  void StdSolveStep::GetSolutionValMultHarm(const UInt& h){
+    algsys_->GetSolutionVal(h, solVec_);
+  }
+
+
+  void StdSolveStep::GetRHSValMultHarm(const UInt& h){
+    algsys_->GetRHSVal(h, rhsVec_);
+  }
+
+
+
   // ======================================================
   // METHODS FOR EIGENVALUE COMPUTATION
   // ======================================================
@@ -1441,15 +1822,14 @@ namespace CoupledField {
   // ======================================================
   // METHODS FOR NONLINEAR ANALYSIS
   // ======================================================
-  
-  // sets excitation coil and returns L2Norm of them
-  Double StdSolveStep::SetLinRHS( Double loadFactor, bool nonlin)
+
+  Double StdSolveStep::SetLinRHS( Double loadFactor, bool nonlin, bool multiharmonic)
   {
     
     //std::cout << "SetLinRHS with bool nonlin = " << nonlin << std::endl;
     Double RhsLinL2Norm;
     
-    // to incorporate loads+
+    // to incorporate loads
     if(nonlin){
       assemble_->AssembleNonLinRHS();
     } else {
@@ -1460,7 +1840,8 @@ namespace CoupledField {
     PDE_.SetRhsValues();
     
     // Stores rhs vector into extForces and returns that L2-norm
-    algsys_->GetRHSVal( RhsLinVal_ );
+    if(multiharmonic) algsys_->GetFullMultiHarmRHSVal(RhsLinVal_);
+    else algsys_->GetRHSVal( RhsLinVal_ );
     
     RhsLinVal_.ScalarMult(loadFactor);
     
@@ -1530,20 +1911,24 @@ namespace CoupledField {
     
     for( UInt i=0; i<nrEtas; i++) {
       //std::cout << "Testing eta = " << eta[i] << std::endl;
-      actSol.Add( 1.0, solOld, eta[i], solIncrement);
-      
+      // take care about the data types
+      if(actSol.GetEntryType() == BaseMatrix::DOUBLE) actSol.Add( 1.0, solOld, eta[i], solIncrement);
+      else actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement);
+
       //store new solution
       solVec_ = actSol;
-      
+
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
       // and nonlinpart if any
       assemble_->AssembleNonLinRHS();
-      
+
+
       // setup the matrices
       bool isNewton = false;
       assemble_->AssembleMatrices(isNewton);
-      
+
+
       if( trans ) {
         //now update RHS according to time stepping
         std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
@@ -1558,7 +1943,7 @@ namespace CoupledField {
           }
           algsys_->UpdateRHS(matIt->first,stageRHS_,true);
         }
-        
+
         //substract from RHS the term K*sol
         solVec_.ScalarMult(-1.0);
         algsys_->UpdateRHS(STIFFNESS,solVec_,true);
@@ -1570,33 +1955,119 @@ namespace CoupledField {
         algsys_->UpdateRHS(SYSTEM,solVec_,true);
         solVec_.ScalarMult(-1.0);
       }
-      
-      
+
+
       // =====================================================================
       // calculation of error norms
       // =====================================================================
       SBM_Vector actRHS(BaseMatrix::DOUBLE);
       algsys_->GetRHSVal( actRHS );
-      
+
       // calculation of residual error =======================================
       Double residualL2Norm = actRHS.NormL2();
-      
+
       if (residualL2Norm < residualL2NormOpt) {
         residualL2NormOpt = residualL2Norm;
         etaOpt = eta[i];
       }
     }
+
+    //std::cout << "Optimal eta = " << etaOpt << std::endl;
+    etaLineSearch = etaOpt;
+
+    // Set new solution
+   actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+
+    return residualL2NormOpt;
+  }
+
+
+  Double StdSolveStep::LineSearchMultHarm(const SBM_Vector& solIncrement, SBM_Vector& actSol,
+          Double& etaLineSearch, MHTimeFreqResult& ftRes)  {
+
+    SBM_Vector solOld(BaseMatrix::COMPLEX);
+    solOld = actSol;
+
+
+
+    const UInt nrEtas = 4;
+    const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
+
+    // initialize etaOpt or receive compiler warning
+    Double etaOpt = 0.0;
+    Double residualL2NormOpt = 1e15;
+
+    for( UInt i=0; i<nrEtas; i++) {
+      LOG_DBG(stdsolvestep) <<" LineSearchMultHarm: Testing eta = " << eta[i];
+
+      if(actSol.GetEntryType() == BaseMatrix::DOUBLE){
+        EXCEPTION("StdSolveStep::LineSearchMultHarm Solution vector is real valued in multiharmonic analysis!");
+      }else{
+        // Actually it's this actSol = solOld + eta[i] * solIncrement;
+        actSol.Add( (Complex) 1.0, solOld, (Complex) eta[i], solIncrement);
+      }
+
+      // We need to do this in order to evaluate at the correct result vector
+      algsys_->InitSol(actSol);
+
+      // Evaluate the nonlinearity (e.g. BH curve in electromagnetics)
+      this->EvaluateNonlinearity(ftRes, actSol);
+
+      // set RHS: linear part
+      algsys_->InitRHS(RhsLinVal_ );
+      // and nonlinpart if any
+      //assemble_->AssembleLinRHS();
+
+
+      // setup the matrices
+      this->AssembleMH(solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
+      assemble_->PostAssemble();
+
+      // Computation of effective matrix:
+      /* NOTE: this is commented because we also include the MASS matrix
+               in the SYSTEM matrix, as defined in Assemble::CreateMatrixMap().
+               Sometimes having an extra MASS matrix is benefitial, e.g. for exporting and
+               comparing different matrix parts, that's why it's still here
+      */
+      //std::map<FEMatrixType,Double> empty;
+      //algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
+
+
+
+      actSol.ScalarMult(-1.0);
+      algsys_->UpdateRHS_MultHarm(SYSTEM,actSol,true);
+      actSol.ScalarMult(-1.0);
+
+      // =====================================================================
+      // calculation of error norms
+      // =====================================================================
+      SBM_Vector actRHS(BaseMatrix::COMPLEX);
+      algsys_->GetFullMultiHarmRHSVal( actRHS );
+
+      // calculation of residual error =======================================
+      Double residualL2Norm = actRHS.NormL2();
+
+      if (residualL2Norm < residualL2NormOpt) {
+        residualL2NormOpt = residualL2Norm;
+        etaOpt = eta[i];
+      }else if(residualL2Norm > residualL2NormOpt){
+        continue;
+        //TODO Proof Theory that  the first lokal minimum is the global minimum of all residuals as well.
+      }
+
+    }
     
     //std::cout << "Optimal eta = " << etaOpt << std::endl;
     etaLineSearch = etaOpt;
-    
+
     // Set new solution
-    actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+    actSol.Add( (Complex)1.0, solOld, etaOpt, solIncrement );
     
     return residualL2NormOpt;
   }
   
   
+
   Double StdSolveStep::LineSearchMag(SBM_Vector& solIncrement, SBM_Vector& actSol,
           Double& etaLineSearch, bool trans)
   {
@@ -1758,7 +2229,7 @@ namespace CoupledField {
   // read nonlinear parameters from xml file
   void StdSolveStep::ReadNonLinData() {
     
-    //		std::cout << "Read Non Lin Data" << std::endl;
+    //    std::cout << "Read Non Lin Data" << std::endl;
     // Get ParamNode of pde
     PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
     
@@ -1789,6 +2260,7 @@ namespace CoupledField {
       nonLinNode->GetValue( "resStopCrit", residualStopCrit_, 
               ParamNode::PASS );
       
+      //TODO: add defaultValue to xmlSchema!!!!!
       //TODO: add defaultValue to xmlSchema!!!!!
       
       //      nonLinNode->GetValue( "evalVersion", evalVersion_, ParamNode::INSERT );
