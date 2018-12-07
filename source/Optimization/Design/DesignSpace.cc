@@ -93,6 +93,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   applicationForm.Add(App::HEAT, "HeatConductivity", false);
   applicationForm.Add(App::MAG, "CurlCurlIntegrator", false);
   applicationForm.Add(App::MAG, "CurlCurlIntegrator-NL", false);
+  applicationForm.Add(App::MAG, "CoilIntegrator", false);
   applicationForm.Add(App::PIEZO_COUPLING, "linPiezoCoupling");
   applicationForm.Add(App::CHARGE_DENSITY, "LinNeumannInt");
   applicationForm.Add(App::PRESSURE, "PressureLinForm");
@@ -930,6 +931,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   // we store the original material tensor in retMat
   coef->orgMat->GetTensor(retMat, *lpm);
+
   //retMat *= factor;
 
   if(app == App::MAG)
@@ -1026,12 +1028,35 @@ template <class T>
 bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm)
 {
   assert(Optimization::context->pde != NULL);
-  assert(Optimization::context->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"));
-  StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(lpm->lp.number);
 
-  coef->orgMat->GetVector(retVec, *lpm);
+  if (Optimization::context->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"))
+  {
 
-  retVec[0] *=  EvalInterfaceFunction(lpm->lp.number) / (double) data.GetSize();
+    assert(Optimization::context->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"));
+    StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(lpm->lp.number);
+
+    coef->orgMat->GetVector(retVec, *lpm);
+
+    retVec[0] *=  EvalInterfaceFunction(lpm->lp.number) / (double) data.GetSize();
+
+  }
+  else
+  {
+    App::Type app = (App::Type) applicationForm.Parse(coef->GetFormL()->GetName());
+
+    if(app == App::MAG)
+    {
+      // including coil optimization
+      coef->orgMat->GetVector(retVec, *lpm);
+      assert(retVec.GetSize() != 0);
+      int idx = Find(lpm->ptEl->elemNum, false);
+      if(idx == -1)
+        return false;
+      double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
+      retVec *= factor;
+      LOG_DBG3(designSpace) << "retVec.Size= " << retVec.GetSize() << " retVec= " << retVec.ToString(2);
+    }
+  }
 
   return true;
 }

@@ -95,6 +95,9 @@ namespace CoupledField {
      //! Scalar value of excitation (voltage, current)
      PtrCoefFct srcVal_;
      
+     //! Do coil Optimization?
+     bool coilOptimization_;
+
      //! Define part of a coil
      struct Part {
        

@@ -103,6 +103,9 @@ private:
 
   Matrix<double> sel_x_;
   Matrix<double> sel_y_;
+
+  /** The magnetic rhs */
+  DesignDependentRHS magRHS;
 };
 
 } // end of namespace

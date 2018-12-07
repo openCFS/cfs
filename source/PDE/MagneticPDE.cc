@@ -64,6 +64,8 @@ namespace CoupledField {
     
     regionApproxSet_ = false;
     
+    CoilOptimization_ = false;
+
     // can the reluctivity be complex? before the change it had the same type as the PDE
     reluc_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, false));
     
@@ -551,11 +553,16 @@ namespace CoupledField {
 				  }
 				  coilCurrentDens_[actRegion] = jFct;
 
-          /*if(domain->HasDesign())
+				  if(actCoil.coilOptimization_ == true)
+				  {
+				    CoilOptimization_ = true;
+				  }
+
+          if(domain->HasDesign())
           {
             cfoc = new CoefFunctionOpt(domain->GetDesign(), jFct, this);
             jFct.reset(cfoc);
-          }*/
+          }
           
 				  if( dim_ == 3 ) {
 					  // ===========

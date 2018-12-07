@@ -17,6 +17,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
+#include "PDE/MagneticPDE.hh"
 
 namespace CoupledField {
 class DenseMatrix;
@@ -56,6 +57,8 @@ void MagSIMP::PostInit()
   SIMP::PostInit();
 
   assert(manager.context.GetSize() == 1);
+
+  magRHS.Init<double>(design, App::MAG);
 
   nonlin_.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
 
@@ -258,9 +261,26 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
   // the gradient is < lambda^T, K' * A >
   assert(excite.sequence == f->ctxt->sequence);
 
+  DesignDependentRHS* rhs = NULL;
+
+  MagneticPDE* magnetic = dynamic_cast<MagneticPDE*>(f->ctxt->pde);
+  assert(magnetic != NULL);
+  if (magnetic->OptimizationRHS())
+  {
+    rhs = new DesignDependentRHS();
+    rhs->Init<double>(design,App::MAG);
+
+    StdVector<SingleVector*>& stateSol = forward.Get(excite)->elem[App::MAG];
+    for (unsigned int id = 0; id < design->data.GetSize(); id++)
+    {
+      DesignElement* de = &design->data[id];
+    }
+
+  }
+
   double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
-  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], NULL, factor, STANDARD, f);
+  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], rhs, factor, STANDARD, f);
 
 }
 
