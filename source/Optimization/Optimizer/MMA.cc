@@ -195,6 +195,14 @@ void MMA::PostInit()
   dual_gradient.Resize(m, 0.0);
   dual_hessian.Resize(m*m, 0.0);
 
+  if(subSolverType_ == BFGS_OPT)
+  {
+    lam_v.Resize(m, dual_init);
+    up_lam.Resize(m, dual_upp);
+    lo_lam.Resize(m, dual_low);
+  }
+
+
 }
 
 void MMA::ComputeObjectiveConstraintsSensitivities()
@@ -263,6 +271,7 @@ void MMA::ComputeObjectiveConstraintsSensitivities()
 
 void MMA::SolveProblem()
 {
+//  std::cout << std::setprecision(16);
   if(testing)
     FunctionTest();
   else
@@ -658,15 +667,6 @@ void MMA::GenreteSubProblem()
       }
   }
 
-  // TODO: Remove this later
-//  if (subSolverType_ == BFGS_OPT)
-//  {
-//    StdVector<double> conEval(m);
-//    EvalMmaConstrains(conEval, xval);
-//    LOG_DBG3(mmaTopOpt) << "CHECK: Actual Constrain=" << constrains.ToString(0);
-//    LOG_DBG3(mmaTopOpt) << "CHECK: Approx Constrain=" << conEval.ToString(0);
-//  }
-
   LOG_DBG3(mmaTopOpt) << "GSP:Sub low=" << low.ToString(0);
   LOG_DBG3(mmaTopOpt) << "GSP:Sub upp=" << upp.ToString(0);
   LOG_DBG3(mmaTopOpt) << "GSP:Sub alpha=" << alpha.ToString(0);
@@ -677,13 +677,8 @@ void MMA::GenreteSubProblem()
 
 bool MMA::BFGSSubProblemSolver()
 {
-
+  no_sub_prb_eval =0;
   BFGS bfgs_sub_sol(m, sub_solve_tol, max_sub_iter, nsmax, this);
-
-  Vector<double> lam_v(m, dual_init);
-  Vector<double> up_lam(m, dual_upp);
-  Vector<double> lo_lam(m, dual_low);
-
 
   bfgs_sub_sol.SolveBFGS(lam_v, up_lam, lo_lam);
 
@@ -691,7 +686,6 @@ bool MMA::BFGSSubProblemSolver()
   for(unsigned int im=0; im<m; ++im)
     lamda[im] = bfgs_sub_sol.x[im];
 
-  // TODO: THis is useless think about it.
   PrimalVarFromDualVar();
 
   LOG_DBG3(mmaTopOpt) << "B_SSP: lamda=" << lamda.ToString(0);
@@ -706,7 +700,7 @@ bool MMA::BFGSSubProblemSolver()
 double MMA::EvalDualFucntion(Vector<double> &lam)
 {
   assert(lam.GetSize() == m && "Size of lam is not equal to number of constrains");
-
+  ++no_sub_prb_eval;
   // To store the primal values
   Vector<double> x_d(n);
   Vector<double> y_d(m);
@@ -736,81 +730,10 @@ double MMA::EvalDualFucntion(Vector<double> &lam)
   LOG_DBG3(mmaTopOpt) << "BFGS: lam=" << lam.ToString(0);
   LOG_DBG3(mmaTopOpt) << "BFGS: evalDual=" << val;
 
+  // since this value will be used to maximize the lagrang multiplier,
+  // we send the negative value to minimizer
   return -val;
 }
-
-
-/*
-// This is evaluation of function withot the extra terms
-double MMA::EvalDualFucntion(Vector<double> &lam)
-{
-  assert(lam.GetSize() == m && "Size of lam is not equal to number of constrains");
-
-  // To store the primal values
-  Vector<double> x_d(n);
-  Vector<double> y_d(m);
-  double z_d=0;
-  PrimalVarFromDualVar(lam, x_d, y_d, z_d ); // Compute the new primal values based on the lam
-
-  double val=0;
-  for(unsigned int jn=0; jn < n; ++jn)
-  {
-    double pj_x_lamda = 0.0;
-    double qj_x_lamda = 0.0;
-    for(unsigned int im=0; im < m; ++im)
-    {
-      pj_x_lamda += p_ij[im][jn]*lam[im];
-      qj_x_lamda += q_ij[im][jn]*lam[im];
-    }
-    val += ((p_0j[jn] + pj_x_lamda)/(upp[jn] - x_d[jn])) + ((q_0j[jn] + qj_x_lamda)/(x_d[jn] - low[jn]));
-  }
-
-  for(unsigned int im=0; im<m; ++im)
-  {
-    val += -b[im]*lam[im];
-  }
-
-  LOG_DBG3(mmaTopOpt) << "BFGS: lam=" << lam.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "BFGS: evalDual=" << val;
-
-  return -val;
-}
-*/
-
-/*
-Vector<double> MMA::EvalDualGrads(Vector<double> &lam)
-{
-  assert(lam.GetSize() == m && "Size of lam is not equal to number of constrains");
-
-  // To store the primal values
-  Vector<double> x_d(n);
-  Vector<double> y_d(m);
-  double z_d=0;
-  PrimalVarFromDualVar(lam, x_d, y_d, z_d ); // Compute the new primal values based on the lam
-
-  Vector<double> grad(m);
-
-  for(unsigned int jm = 0; jm < m; ++jm)
-  {
-    grad[jm] = 0.0;
-    for(unsigned int in =0; in<n; ++in)
-    {
-      grad[jm] += p_ij[jm][in] / (upp[in] - x_d[in]) + q_ij[jm][in] / (x_d[in] - low[in]);
-    }
-    grad[jm] += -b[jm];
-  }
-
-  for(unsigned int jm=0; jm<m; ++jm)
-  {
-    grad[jm] = - grad[jm];
-  }
-
-  LOG_DBG3(mmaTopOpt) << "BFGS: lam=" << lam.ToString(0);
-  LOG_DBG3(mmaTopOpt) << "BFGS: evalGrad=" << grad.ToString(0);
-
-  return grad;
-}
-*/
 
 
 Vector<double> MMA::EvalDualGrads(Vector<double> &lam)
@@ -839,6 +762,8 @@ Vector<double> MMA::EvalDualGrads(Vector<double> &lam)
     grad[jm] += - a[jm]*z_d - y_d[jm];
   }
 
+  // since this value will be used to maximize the lagrang multiplier,
+  // we send the negative value to minimizer
   for(unsigned int jm=0; jm<m; ++jm)
   {
     grad[jm] = - grad[jm];
@@ -866,64 +791,29 @@ bool MMA::IPSubProblemSolver()
 
     unsigned int loop; //
 
-    LOG_DBG3(mmaTopOpt) << "SSP: Problem Iteration = " << optimization->GetCurrentIteration() << " @@@@@@@@@@@@@@@@@@@@@@@@@@";
-    LOG_DBG3(mmaTopOpt) << "SSP: xval=" << xval.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: y=" << y.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: z=" << z;
-    LOG_DBG3(mmaTopOpt) << "SSP: low=" << low.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: alpha=" << alpha.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: upp=" << upp.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: beta=" << beta.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: p_0j=" << p_0j.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: q_0j=" << q_0j.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: p_ij=" << p_ij.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: q_ij=" << q_ij.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: conA=" << b.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: lamda=" << lamda.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: mu=" << mu.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: a=" << a.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: c=" << c.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: d=" << d.ToString(0);
-    LOG_DBG3(mmaTopOpt) << "SSP: epsi=" << epsi;
-    LOG_DBG3(mmaTopOpt) << "SSP: err=" << err;
-
+    usedSubPrbItr =0;
     while(epsi > tol )
     {
       loop = 0;
       while(err > 0.9*epsi && loop < max_sub_iter)
       {
-        ++loop;
-        LOG_DBG3(mmaTopOpt) << "SSP: Sub Prob Loop = " << loop <<" :::::::::::::::::::::::::::::::::::::::::::::: ";
-        LOG_DBG3(mmaTopOpt) << "SSP: loop=" << loop << " epsi=" << epsi << " tol=" << tol;
+        ++loop; ++usedSubPrbItr;
 
-        PrimalVarFromDualVar();
-
-        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D xval=" << xval.ToString(0);
-        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D y=" << y.ToString(0);
-        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D z=" << z;
+        PrimalVarFromDualVar(); ++no_sub_prb_eval;
 
         GradientOfDual();
 
-        LOG_DBG3(mmaTopOpt) << "SSP: Grad_D grad=" << dual_gradient.ToString(0);
 
         for(unsigned int j =0; j<m ; ++j)
         {
           dual_gradient[j] = -1.0*dual_gradient[j] - epsi/lamda[j];
         }
 
-        LOG_DBG3(mmaTopOpt) << "SSP: Grad_Mod grad=" << dual_gradient.ToString(0);
-
         HessianOfDual();
-
-        LOG_DBG3(mmaTopOpt) << "SSP: Hess_D Hess=" << dual_hessian.ToString(0);
 
         Factorize(dual_hessian, m);
 
-        LOG_DBG3(mmaTopOpt) << "SSP: Factorize Hess=" << dual_hessian.ToString(0);
-
         Solve(dual_hessian, dual_gradient,m);
-
-        LOG_DBG3(mmaTopOpt) << "SSP: Solve grad=" << dual_gradient.ToString(0);
 
         for (unsigned int j=0;j<m;j++){
           s[j]=dual_gradient[j];
@@ -932,23 +822,11 @@ bool MMA::IPSubProblemSolver()
           s[m+i]= -mu[i]+epsi/lamda[i]-s[i]*mu[i]/lamda[i];
         }
 
-        LOG_DBG3(mmaTopOpt) << "SSP: S=" << s.ToString(0);
-
         DualLineSearch(); // New value of lamda and mu will be updated
-
-        LOG_DBG3(mmaTopOpt) << "SSP: lamda=" << lamda.ToString(0);
-        LOG_DBG3(mmaTopOpt) << "SSP: mu=" << mu.ToString(0);
 
         PrimalVarFromDualVar();
 
-        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D xval=" << xval.ToString(0);
-        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D y=" << y.ToString(0);
-        LOG_DBG3(mmaTopOpt) << "SSP: P_Fr_D z=" << z;
-
         err = DualResidual( epsi);
-
-        LOG_DBG3(mmaTopOpt) << "SSP: err=" << err;
-        LOG_DBG3(mmaTopOpt) << "SSP: --------------------------------------------------------------------------- \n \n" ;
 
         // keep for verbose output in info xml
         if(progOpts->DoDetailedInfo())
@@ -973,7 +851,6 @@ bool MMA::IPSubProblemSolver()
 
       epsi=epsi*0.1;
 
-      LOG_DBG3(mmaTopOpt) << "SSP: .......................................................................... \n \n" ;
     }
 
     return true;
@@ -1169,12 +1046,6 @@ void MMA::Solve(StdVector<double> &K, StdVector<double> &x, const int nn)
 void MMA::DualLineSearch()
 {
   double theta=1.005;
-  /*
-  for (unsigned int i=0;i<m;i++) {
-    theta = max(theta, -1.01*s[i]/lamda[i]);
-    theta = max(theta, -1.01*s[i+m]/mu[i]);
-  }
- */
 
   for (unsigned int i=0;i<m;i++){
     if (theta < -1.01*s[i]/lamda[i]){
@@ -1232,6 +1103,8 @@ void MMA::EvalMmaConstrains(StdVector<double> & eval, StdVector<double> & xc)
 
 void MMA::LogFileHeader(Optimization::Log& log)
 {
+  log.AddToHeader("sub_prb_itr");
+  log.AddToHeader("dual_eval");
   log.AddToHeader("neg_asym_min");
   log.AddToHeader("neg_asym_max");
   log.AddToHeader("pos_asym_min");
@@ -1256,8 +1129,10 @@ void MMA::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   double xmax_max = xmax.Max();
 
   if(out)
-    *out << " \t" << xmin_min << " \t" << xmin_max << " \t" << xmax_min << " \t" << xmax_max;
+    *out << " \t" << usedSubPrbItr << " \t" << no_sub_prb_eval << " \t" << xmin_min << " \t" << xmin_max << " \t" << xmax_min << " \t" << xmax_max;
 
+  iteration->Get("sub_prb_itr")->SetValue(usedSubPrbItr);
+  iteration->Get("dual_eval")->SetValue(no_sub_prb_eval);
   iteration->Get("neg_asym_min")->SetValue(xmin_min);
   iteration->Get("neg_asym_max")->SetValue(xmin_max);
   iteration->Get("pos_asym_min")->SetValue(xmax_min);
@@ -1298,6 +1173,7 @@ void MMA::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         ipn->Get("s_slack_" + gn)->SetValue(si.s[m + ci]);
       }
     }
+
   }
 }
 

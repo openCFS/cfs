@@ -17,67 +17,34 @@ using std::min;
 using std::abs;
 using std::string;
 
-//TestFunction::TestFunction(unsigned int n_, unsigned int m_):n(n_),m(m_){}
-//unsigned int GetNoConstraints(){return m;}
-/** Function is defined to e^(x^2)
- * So the gradint is going to be 2x*e^(x^2)
- */
-double TestFunction::EvalDualFucntion(Vector<double> xin){
-  assert(xin.GetSize() == n);
-  double fout =0;
-//  for (unsigned int in=0; in <n; ++in )
-//    fout += exp(pow(xin[in], 2));
-  for (unsigned int in=0; in <n; ++in )
-  {
-    fout += pow(xin[in], 2);
-    if(in%2)
-      fout += std::cos(xin[in]);
-    else
-      fout += std::sin(xin[in]);
-
-  }
-  return fout;
-}
-
-Vector<double> TestFunction::EvalDualGrads(Vector<double> xin){
-  assert(xin.GetSize() == n);
-  Vector<double> gout(n);
-  for (unsigned int in=0; in <n; ++in)
-  {
-    gout[in] = 2.0*xin[in];
-    if(in%2)
-      gout[in] -= std::sin(xin[in]);
-    else
-      gout[in] += std::cos(xin[in]);
-
-  }
-  return gout;
-}
-
 BFGS::BFGS(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_, MMA *problem)
-          :prob(problem), n(n_), tol(tol_), maxit(maxit_), nsmax(nsmax_)
+          : prob(problem), n(n_), tol(tol_), maxit(maxit_), nsmax(nsmax_)
 {
   x0.Resize(n);
   low.Resize(n);
   upp.Resize(n);
-  prob_t = NULL;
-
 }
 
-BFGS::BFGS(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_,  TestFunction *problem)
-          :prob_t(problem), n(n_), tol(tol_), maxit(maxit_), nsmax(nsmax_)
+void BFGS::Initilize(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_, MMA *problem)
 {
+  prob= problem;
+  n=n_;
+  tol=tol_;
+  maxit=maxit_;
+  nsmax=nsmax_;
+
   x0.Resize(n);
   low.Resize(n);
   upp.Resize(n);
-  prob = NULL;
-
 }
+
 
 BFGS::~BFGS() {}
 
 void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
 {
+
+  bfgs_details.Resize(0); // prepare for logging
 
   LOG_DBG3(bfgs_LOG) << "SolB: initial xc=" << xc.ToString(0);
   LOG_DBG3(bfgs_LOG) << "SolB: initial up=" << up.ToString(0);
@@ -103,16 +70,8 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
   unsigned int itc = 0;
   double fc;
   Vector<double> gc(n);
-  if(prob_t == NULL)
-  {
-    fc = prob->EvalDualFucntion(xc);
-    gc = prob->EvalDualGrads(xc);
-  }
-  else
-  {
-    fc = prob_t->EvalDualFucntion(xc);
-    gc = prob_t->EvalDualGrads(xc);
-  }
+  fc = prob->EvalDualFucntion(xc);
+  gc = prob->EvalDualGrads(xc);
 
   unsigned int iarm=0;
 
@@ -172,10 +131,7 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
     Vector<double> xt = kk_proj(xc_lam_dsd, up , lo);
 
     double ft=0.0;
-    if(prob_t == NULL)
-      ft = prob->EvalDualFucntion(xt);
-    else
-      ft = prob_t->EvalDualFucntion(xt);
+    ft = prob->EvalDualFucntion(xt);
 
     ++itc;
     iarm =0;
@@ -203,14 +159,21 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
       xc_lam_dsd += xc;
       xt = kk_proj(xc_lam_dsd, up, lo);
       pl = xc -xt;
-      if(prob_t == NULL)
-        ft = prob->EvalDualFucntion(xt);
-      else
-        ft = prob_t->EvalDualFucntion(xt);
+      ft = prob->EvalDualFucntion(xt);
 
       if(iarm > 10)
       {
         x =xc;
+
+        if(progOpts->DoDetailedInfo())
+        {
+          bfgs_details.Push_back(BFGSInfo());
+          bfgs_details.Last().fc = fc;
+          bfgs_details.Last().iter = itc;
+          bfgs_details.Last().norm_pgc = pgc.NormL2();
+          bfgs_details.Last().pgc = pgc;
+          bfgs_details.Last().xc = xc;
+        }
         return;
       }
       fgoal = gc.Inner(pl);
@@ -218,17 +181,11 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
       fgoal = fc - fgoal;
 
     }
-    if(prob_t == NULL)
-      fc = prob->EvalDualFucntion(xt);
-    else
-      fc = prob_t->EvalDualFucntion(xt);
+    fc = prob->EvalDualFucntion(xt);
 
     Vector<double> gp;
 
-    if(prob_t == NULL)
-      gp = prob->EvalDualGrads(xt);
-    else
-      gp = prob_t->EvalDualGrads(xt);
+    gp = prob->EvalDualGrads(xt);
 
     Vector<double> y(n);
     y = gp - gc;
@@ -277,10 +234,49 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
         ystore(in, ns) = y[in]/alpha;
       }
     }
-    LOG_DBG3(bfgs_LOG) << "SolB: at iteration : "<<itc<<" xc= " << xc.ToString(0)<<" fc= " << fc<<" fgoal= " << fgoal;
+
+    int ia = 0;
+    for(unsigned int in =0; in<n; ++in)
+    {
+      if(xc[in] == up[in] || xc[in] == lo[in])
+      {
+        ++ ia;
+      }
+    }
+    if(progOpts->DoDetailedInfo())
+      bfgs_details.Last().nactive = ia;
+
+    if(progOpts->DoDetailedInfo())
+    {
+      bfgs_details.Push_back(BFGSInfo());
+      bfgs_details.Last().fc = fc;
+      bfgs_details.Last().iter = itc;
+      bfgs_details.Last().norm_pgc = pgc.NormL2();
+      bfgs_details.Last().pgc = pgc;
+      bfgs_details.Last().xc = xc;
+    }
+
   } // end of iteration loop
   LOG_DBG3(bfgs_LOG) <<"SolB: Sub prob iterations: " <<itc <<" Sol= "<<xc.ToString();
+
+  prob->SetSubPrbItr(itc);
   x = xc;
+
+  // TODO: Implement do details properly
+  /*
+  if(progOpts->DoDetailedInfo())
+  {
+    for(unsigned int is=0; is<bfgs_details.GetSize() ; ++is)
+    {
+    std::cout <<"Details itereations = " << bfgs_details[is].iter
+              <<" fc = " << bfgs_details[is].fc
+              <<" norm_pgc = "<< bfgs_details[is].norm_pgc
+              <<" \n pgc = " << bfgs_details[is].pgc.ToString(2)
+              <<" \n xc = " << bfgs_details[is].xc.ToString(2)
+              <<" \n ia = " << bfgs_details[is].nactive << std::endl;
+    }
+  }
+  */
 }
 
 

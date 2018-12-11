@@ -17,26 +17,15 @@ using std::abs;
 using std::string;
 
 
-class TestFunction {
-  public:
-    TestFunction(unsigned int n_):n(n_){}
-    unsigned int GetNoDesign(){return n;}
-    double EvalDualFucntion(Vector<double> xin);
-    Vector<double> EvalDualGrads(Vector<double> xin);
-
-  private:
-    unsigned int n;
-
-};
-
-
 
 class BFGS {
 
   public:
   // Constructor
+  BFGS();
   BFGS(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_, MMA *problem);
-  BFGS(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_, TestFunction *problem);
+
+  void Initilize(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_, MMA *problem);
 
   // Destructor
   ~BFGS();
@@ -47,15 +36,17 @@ class BFGS {
   Vector<double> x; // solution
 
 
-//  // we have more BFGS_Info than subproblem
-//  struct SubInfo {
-//    StdVector<double> xval; // Lagrange multipler for all constraints
-//    StdVector<double> mu;
-//    StdVector<double> s; // slack variables for all contraints + 1 for IP slack
-//    double err;
-//    double epsi; // for the fixed number of subproblems to be solved
-//    int iter; // for the sub probelm IP interation count
-//  };
+  // we have more BFGS_Info than subproblem
+  struct BFGSInfo {
+    Vector<double> xc; // arg values
+    double fc; // function values
+    double norm_pgc; // norm of gradients
+    Vector<double> pgc; // arg values
+    unsigned int iter; // for the sub probelm IP interation count
+    unsigned int nactive; // number of active constraints
+  };
+
+  StdVector<BFGSInfo> bfgs_details;
 
   private:
 
@@ -79,7 +70,6 @@ class BFGS {
   Vector<double> proji(const Vector<double>& x, const Vector<int>& alist);
 
   MMA *prob;
-  TestFunction *prob_t;
   unsigned int n = 0; // dimension of the design variable
 
   Vector<double> x0; // initial design

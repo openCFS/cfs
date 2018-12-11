@@ -40,6 +40,9 @@ public:
 
   void EvalMmaConstrains(StdVector<double> & eval, StdVector<double> & xc);
 
+  inline void SetSubPrbItr(unsigned int it) {usedSubPrbItr = it;}
+  inline void SetSubPrbEval(unsigned int noEval) {no_sub_prb_eval = noEval;}
+
   typedef enum { SVANBERG, ROBUST, FIXED } AsymUpdate;
 
   typedef enum { TYPE_1, TYPE_2} RobustType;
@@ -49,6 +52,16 @@ public:
   Enum<AsymUpdate> asymUpdate;
   Enum<RobustType> robustType;
   Enum<SubSolverType> subSolverType;
+
+  struct BFGS_Details{
+    Vector<double> xc; // arg values
+    double fc; // function values
+    double norm_pgc; // norm of gradients
+    Vector<double> pgc; // arg values
+    unsigned int iter; // for the sub probelm IP interation count
+    unsigned int nactive; // number of active constraints
+  };
+
 
 private:
 
@@ -169,8 +182,11 @@ private:
   double asym_fixed_lower = -1;
   double asym_fixed_upper = -1;
 
+  unsigned int usedSubPrbItr = 0; // used by plot. to store the iterations used by sub problem solver
+  unsigned int no_sub_prb_eval = 0; // to know the number of sub problem evaluations
   unsigned int max_sub_iter = 10; // maximum iteration for subproblem solver
   double sub_solve_tol = 1.0e-4; // tolerance for subproblem solver
+
 
   StdVector<double> a, c, d; // penalty parameter for the subproblem
   double penalty_c = 1000.0;
@@ -184,6 +200,9 @@ private:
   double dual_low = 0.0;
   double dual_upp = 1.0e9;
   double dual_init = 0.1;
+  Vector<double> lam_v;
+  Vector<double> up_lam;
+  Vector<double> lo_lam;
 
   /** sub problem move limits
    * according to K.Svanberg's DCAMM lecture notes section 4.
