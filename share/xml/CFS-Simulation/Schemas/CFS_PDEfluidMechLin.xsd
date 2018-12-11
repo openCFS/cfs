@@ -39,10 +39,7 @@
               <xsd:sequence>
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
-                    <xsd:attribute name="name" type="xsd:token" use="required"/>
-                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
-                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"
-                      > </xsd:attribute>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>                    
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
@@ -57,7 +54,7 @@
               <xsd:sequence>
                 <xsd:element name="presSurf" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
-                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>                    
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -167,6 +164,10 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>        
+        <xsd:attribute name="presPolyId" type="xsd:string" use="required"/>
+        <xsd:attribute name="velPolyId" type="xsd:string" use="required"/>
+        <xsd:attribute name="presIntegId" type="xsd:string" use="optional" default="default"/>
+        <xsd:attribute name="velIntegId" type="xsd:string" use="optional" default="default"/>
         <xsd:attribute name="movingMesh" type="DT_CFSBool" default="no"/>
         <xsd:attribute name="factorC1" type="xsd:double" default="2.0"/>
         <xsd:attribute name="enableC2" type="xsd:boolean" default="false"/>
