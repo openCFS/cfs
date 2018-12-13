@@ -241,7 +241,6 @@ void Function::Init() {
 
   this->omega_omega_ = false;
   this->index_ = -1;
-
 }
 
 Function* Function::Cast(Objective* c, Condition* g) {
@@ -798,19 +797,21 @@ bool Function::ForSensitivityFiltering() const {
   return false;
 }
 
-void Function::SetElements(DesignSpace* space, RegionIdType region) {
+void Function::SetElements(DesignSpace* space, RegionIdType region)
+{
   assert(elements.GetSize() == 0);
   Grid* grid = domain->GetGrid();
   
-  if(type_ == SHAPE_INF){
+  if(type_ == SHAPE_INF)
+  {
     AuxDesign* aspace = dynamic_cast<AuxDesign*>(space);
     int n = space->GetNumberOfAuxParameters();
     elements.Reserve(n);
-    for(int i = 0; i < n; i++){
+    for(int i = 0; i < n; i++)
       elements.Push_back(static_cast<DesignElement*>(aspace->GetAuxDesignElement(i)));
-    }
-  }else{
-
+  }
+  else
+  {
     // Bastian's multiple design test cases have situations where design is DEFAULT as it is not
     // set in the objective
     // if ALL_REGIONS for condition use what we define as design space which
@@ -854,7 +855,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
         string msg = "region " + grid->GetRegion().ToString(region)
             + " of condition " + type.ToString(type_)
             + " not within design domain";
-        info_->SetWarning(msg);
+        preInfo_->SetWarning(msg);
       }
 
       assert(elements.GetSize() == 0);
