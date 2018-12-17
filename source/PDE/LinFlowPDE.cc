@@ -98,7 +98,15 @@ namespace CoupledField {
     if(ptGrid_->GetDim() == 3)
       subType_ = "3d";
       
-    // Obtain regions the pde is defined on
+    //get oder of FE basis functions
+    presPolyId_ = myParam_->Get("presPolyId")->As<std::string>();
+    velPolyId_  = myParam_->Get("velPolyId")->As<std::string>();
+
+    //get order of integration
+    presIntegId_ = myParam_->Get("presIntegId")->As<std::string>();
+    velIntegId_  = myParam_->Get("velIntegId")->As<std::string>();
+
+    // Obtain pressure surface regions
     PtrParamNode presSurfaceNode = myParam_->Get("presSurfaceList",
                                                  ParamNode::PASS);
     ParamNodeList regionNodes;
@@ -137,27 +145,6 @@ namespace CoupledField {
   }
 
   void LinFlowPDE::DefineIntegrators() {
-    // Not needed at the moment. Commented out due to gcc 4.6.
-#if 0
-    //transform the type
-    SubTensorType tensorType;
-
-    if ( dim_ == 3 ) {
-      tensorType = FULL;
-    }
-    else {
-      if ( isaxi_ == true ) {
-        tensorType = AXI;
-      }
-      else {
-        // 2d: plane case
-        tensorType = PLANE_STRAIN;
-      }
-    }
-
-    BaseMaterial * actMat = NULL;
-#endif
-
     RegionIdType actRegion;
 
     // Get FESpace and FeFunction of fluid velocity
@@ -182,11 +169,6 @@ namespace CoupledField {
       // Set current region and material
       actRegion = it->first;
 
-    // Not needed at the moment. Commented out due to gcc 4.6.
-#if 0
-      actMat = it->second;
-#endif
-
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
@@ -206,9 +188,9 @@ namespace CoupledField {
       //  Set region approximation
       // --------------------------
       // We hardcode the Taylor-Hood spaces for the moment
-      velSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
-      meanVelSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
-      presSpace->SetRegionApproximation(actRegion, "presPolyId", "presIntegId");
+      velSpace->SetRegionApproximation(actRegion, velPolyId_, velIntegId_);
+      meanVelSpace->SetRegionApproximation(actRegion, velPolyId_, velIntegId_);
+      presSpace->SetRegionApproximation(actRegion, presPolyId_, presIntegId_);
 
       PtrCoefFct density = materials_[actRegion]->GetScalCoefFnc(
         DENSITY,
@@ -542,11 +524,11 @@ namespace CoupledField {
       actSDList->SetRegion( *surfIt );
 
       velFct->AddEntityList( actSDList );
-      velSpace->SetRegionApproximation(*surfIt, "velPolyId", "velIntegId");
+      velSpace->SetRegionApproximation(*surfIt, velPolyId_, velIntegId_);
       presFct->AddEntityList( actSDList );
-      presSpace->SetRegionApproximation(*surfIt, "presPolyId", "presIntegId");
+      presSpace->SetRegionApproximation(*surfIt, presPolyId_, presIntegId_);
       meanVelFct->AddEntityList( actSDList );
-      meanVelSpace->SetRegionApproximation(*surfIt, "velPolyId", "velIntegId");
+      meanVelSpace->SetRegionApproximation(*surfIt, velPolyId_, velIntegId_);
 
       // --------------------------------------------------------------------
       //  VERSION 2: K_VP Integrator
@@ -783,8 +765,6 @@ namespace CoupledField {
                                    PtrParamNode infoNode) 
   {
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
-
-    std::cout << "Creating FESpaces, formulation " << formulation << std::endl;
 
     if(formulation == "default" || formulation == "H1"){
       PtrParamNode spaceNode;

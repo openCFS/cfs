@@ -29,5 +29,10 @@ SET(patches
   # but non-virtual destructor 
   "flann-any.patch"
 )
-
+IF(UNIX)
+  IF(CMAKE_VERSION VERSION_GREATER "3.11")
+    # needed due to https://github.com/mariusmuja/flann/issues/369
+    list(APPEND patches "flann-linux-gcc-cmakev3.11-plus.patch")
+  ENDIF(CMAKE_VERSION VERSION_GREATER "3.11")
+ENDIF(UNIX)
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/flann")

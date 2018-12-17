@@ -123,6 +123,18 @@ namespace CoupledField
     //! compressible formulation
     bool isCompressible_;
 
+    //! order of FE basis function for pressure
+    std::string presPolyId_;
+
+    //! order of FE basis function for velocity
+    std::string velPolyId_;
+
+    //! order of integration for pressure
+    std::string presIntegId_;
+
+    //! order of integration for velocity
+    std::string velIntegId_;
+
     //! considers a varying background flow
     bool enableC2_;
 
