@@ -456,11 +456,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
   case SHAPE_INF:
-  case PRESSURE_DROP:
-  case HEAT_ENEGRY:
-  case SQR_MAG_FLUX_DENS_Y:
-  case SQR_MAG_FLUX_DENS_X:
-  case TEMP_TRACKING_AT_INTERFACE:
   case MULTIMATERIAL_SUM:
   case SLACK:
   case BANDGAP: // similar to bloch=extremal
@@ -482,6 +477,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case ISOTROPY:
   case ISO_ORTHOTROPY:
   case ORTHOTROPY:
+  case MAG_COUPLING: // we need to solve both coils before evaluation
     assert(excite_index < 0);
     if(!me->DoMetaExcitation(ctxt))
       excite_ = ctxt->excitations.Last()->index; // with respect to our context
@@ -494,7 +490,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     }
     break;
 
-  // this stuff is to be avaluated always
+  // this stuff is to be evaluated always
   case COMPLIANCE:
   case OUTPUT:
   case SQUARED_OUTPUT:
@@ -506,6 +502,12 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_DYNAMIC_COMPLIANCE:
   case ELEC_ENERGY:
   case TEMPERATURE:
+  case PRESSURE_DROP:
+  case HEAT_ENEGRY:
+  case SQR_MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_RZ:
+  case TEMP_TRACKING_AT_INTERFACE:
     assert(excite_index < 0);
     if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
       excite_ = -1; // all excitations within this sequence/ context
@@ -574,6 +576,8 @@ bool Function::IsAdjointBased() const {
   case TEMP_TRACKING_AT_INTERFACE:
   case SQR_MAG_FLUX_DENS_X:
   case SQR_MAG_FLUX_DENS_Y:
+  case SQR_MAG_FLUX_DENS_RZ:
+  case MAG_COUPLING:
     return true;
 
   case COMPLIANCE: // only in the transient case
@@ -746,6 +750,8 @@ bool Function::ForSensitivityFiltering() const {
   case HEAT_ENEGRY:
   case SQR_MAG_FLUX_DENS_Y:
   case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_RZ:
+  case MAG_COUPLING:
   case EIGENFREQUENCY:
   case BANDGAP:
   case FILTERING_GAP:
@@ -863,7 +869,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
       }
     } else {
       // this is a special case where the constraint does not act on the design space
-      if(type_ != STRESS && type_ != STRESS_DENSITY && type_ != SQR_MAG_FLUX_DENS_X && type_ != SQR_MAG_FLUX_DENS_Y)
+      if(type_ != STRESS && type_ != STRESS_DENSITY && type_ != SQR_MAG_FLUX_DENS_X && type_ != SQR_MAG_FLUX_DENS_Y && type_ != SQR_MAG_FLUX_DENS_RZ && type_ != MAG_COUPLING)
       {
         string a = grid->GetRegion().ToString(region);
         string msg = "region " + grid->GetRegion().ToString(region)

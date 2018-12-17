@@ -1360,6 +1360,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       case Function::SQR_MAG_FLUX_DENS_Y:
       case Function::SQR_MAG_FLUX_DENS_X:
+      case Function::SQR_MAG_FLUX_DENS_RZ:
+      case Function::MAG_COUPLING:
         assert(false); // shall be handled in MagSIMP
       break;
 
@@ -3277,11 +3279,13 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       if(!context->DoLBM() && !IsTransient()) // transient solutions are read per timestep
       {
         // in the eigenvalue case we store the modes separately, similar to timesteps
-        if(!context->IsEigenvalue())
-          StorePDESolution(forward, excite, NULL, -1, true, true, false, NO_DERIVTYPE, "forward"); // no solution and mode is -1 as it is not set
-        else
+        if(context->IsEigenvalue())
+        {
           for(int m = 0; m < (int) context->GetEigenFrequencyDriver()->eigenFreqs->GetSize() ; m++)
             StorePDESolution(forward, excite, NULL, m, true, true, true, NO_DERIVTYPE, "forward"); // only in the ev case we need to save the solution
+        }
+        else
+          StorePDESolution(forward, excite, NULL, -1, true, true, false, NO_DERIVTYPE, "forward"); // no solution and mode is -1 as it is not set
       }
 
       // check for each excitation all functions if we shall solve the adjoint - take care about the context!
@@ -3533,6 +3537,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::STRESS_DENSITY:
       case Function::SQR_MAG_FLUX_DENS_X:
       case Function::SQR_MAG_FLUX_DENS_Y:
+      case Function::SQR_MAG_FLUX_DENS_RZ:
+      case Function::MAG_COUPLING:
       {
         // these objectives need their adjoint problems for the calculation of the objective value
         // they are directly solved after the StateProblem

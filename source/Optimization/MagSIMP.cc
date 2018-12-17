@@ -43,6 +43,11 @@ MagSIMP::MagSIMP()
   sel_y_.Init();
   sel_y_[1][1] = 1;
 
+  sel_xy_.Resize(sel_x_.GetNumRows(), sel_x_.GetNumCols());
+  sel_xy_.Init();
+  sel_xy_[0][0] = 1;
+  sel_xy_[1][1] = 1;
+
   lin_nu_r_.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
 }
 
@@ -135,12 +140,22 @@ double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
   case Function::SQR_MAG_FLUX_DENS_X:
   case Function::SQR_MAG_FLUX_DENS_Y:
+  case Function::SQR_MAG_FLUX_DENS_RZ:
     if(!derivative)
       return CalcMagFluxDensity(excite, f);
     else
     {
       TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true);
       CalcMagFluxDensGradient(excite, f, tf);
+      return 0.0;
+    }
+  case Function::MAG_COUPLING:
+    if(!derivative)
+      return CalcCoupling(excite, f);
+    else
+    {
+      TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true);//TODO
+      CalcCouplingGradient(excite, f, tf);
       return 0.0;
     }
   default: // return below as we don't implement
@@ -186,6 +201,9 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
   StdVector<double> weights;
   IntegOrder order;
   IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+  // calculate volume of whole optimization domain by adding up element volumes
+  double vol; // element volume
+  double volume = 0; // accumulated volume whole optimization domain
 
   assert(!f->elements.IsEmpty());
   assert(f->region != ALL_REGIONS);
@@ -194,21 +212,29 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
     DesignElement* de = f->elements[e];
 
     // element solution
+    LOG_DBG3(ms) << "CMFD ind=" << de->GetElementSolutionIndex() << " sol=" << sol[de->GetElementSolutionIndex()];
     Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[de->GetElementSolutionIndex()]);
+    LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex();
     assert(vec != NULL);
     const Vector<double>& a = *vec; // a = the vector potential in the element
-    LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex() << " a=" << a.ToString(2);
+    LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex() << " a=" << a.ToString(2) << " -> " << result;
 
     // prepare to get the curl operator
     el.SetElement(de->elem);
     BaseFE* ptFe = bdb->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
 
     bdb->GetIntScheme()->GetIntPoints(Elem::GetShapeType(de->elem->type), method, order, intPoints, weights );
-    LOG_DBG2(ms) << "CMFD i=" << e <<  " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
     assert(method != IntScheme::UNDEFINED);
     assert(!intPoints.IsEmpty());
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(de->elem);
+
+    vol = esm->CalcVolume();
+
+    LOG_DBG(ms) << "CMFD i=" << e << " el=" << de->elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints.ToString(2) << " v=" << vol;
+    // add element volume to volume of whole domain
+    volume += vol;
+    LOG_DBG3(ms) << "CMFD accumulated volume =" << volume;
 
     double el_val = 0.0;
 
@@ -237,15 +263,21 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
       // scalar = flux_dens * S_flux_dens
       el_val += weights[ip] * lp.jacDet * S_flux_dens.Inner(flux_dens);
 
-      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens << " Sfd=" << S_flux_dens << " inner=" << S_flux_dens.Inner(flux_dens) << " el -> " << el_val;
+      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens.ToString(2) << " Sfd=" << S_flux_dens << " inner=" << S_flux_dens.Inner(flux_dens) << " el -> " << el_val;
     } // end ip
 
-    result += el_val;
-
+    result += el_val * vol; // Norm with volume of element
   } // end loop elems
 
-  result /= f->elements.GetSize(); // norm the function
-  LOG_DBG(ms) << "CMFD: exit -> " << result;
+  // set optimization volume if not already set
+  if (opt_vol_ == -1)
+  {
+    opt_vol_ = volume;
+    LOG_DBG2(ms) << "CMFD: calculated volume =" << opt_vol_;
+  }
+  // norm by the volume of the optimization domain
+  result *= 1.0/opt_vol_;
+  LOG_DBG(ms) << "CMFD: exit normed -> " << result;
   return result;
 }
 
@@ -258,12 +290,94 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
   // the gradient is < lambda^T, K' * A >
   assert(excite.sequence == f->ctxt->sequence);
 
-  double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
+  double factor = 1.0/ opt_vol_; // factor for norming the gradient; same as in objective function
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], NULL, factor, STANDARD, f);
 
 }
+double MagSIMP::CalcCoupling(Excitation& excite, Function* f)
+{
+/*
+  // TODO
+  if(f->region == ALL_REGIONS)
+    throw Exception("For function " + f->ToString() + " the attribute 'region' is mandatory");
 
+  // TODO explain what is calculated
+
+  // annoying entity iterator got hold the elem
+  ElemList el(domain->GetGrid());
+
+  // the stored element solution vector
+  StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
+
+  // Vector<double> S_flux_dens; // S*flux_dens = vector of dim
+
+  double result = 0;
+
+  StdVector<LocPoint> intPoints; // Get integration Points
+  LocPointMapped lp;
+  StdVector<double> weights;
+  IntegOrder order;
+  IntScheme::IntegMethod method = IntScheme::GAUSS;
+
+  assert(!f->elements.IsEmpty());
+  assert(f->region != ALL_REGIONS);
+  for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+  {
+    DesignElement* de = f->elements[e];
+
+    // element solution
+    Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[de->GetElementSolutionIndex()]);
+    assert(vec != NULL);
+    const Vector<double>& a = *vec; // a = the vector potential in the element
+    LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex() << " a=" << a.ToString(2);
+
+    // prepare to get the curl operator
+    el.SetElement(de->elem);
+
+    bdb->GetIntScheme()->GetIntPoints(Elem::GetShapeType(de->elem->type), method, order, intPoints, weights );
+    LOG_DBG2(ms) << "CMFD i=" << e <<  " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
+    assert(method != IntScheme::UNDEFINED);
+    assert(!intPoints.IsEmpty());
+    // Get shape map from grid
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(de->elem);
+
+    double el_val = 0.0;
+
+    for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
+    {
+      // Calculate for each integration point the LocPointMapped
+      lp.Set(intPoints[ip], esm, weights[ip]);
+
+      LOG_DBG3(ms) << "CMFD: e= " << e << " ip=" << ip << "/" << intPoints[ip].coord.ToString() << " w=" << weights[ip] << " jacDet=" << lp.jacDet << " ip =" << ip;
+
+      el_val += weights[ip] * lp.jacDet * a.Inner(a);
+
+      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << a << " el -> " << el_val;
+    } // end ip
+
+    result += el_val;
+
+  } // end loop elems
+
+  LOG_DBG(ms) << "CMFD: exit -> " << result;
+  return result;
+*/
+  return 0.0;
+}
+void MagSIMP::CalcCouplingGradient(Excitation& excite, Function* f, TransferFunction* tf)
+{
+  //TODO
+  // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
+  //Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
+
+  // the gradient is < lambda^T, K' * A >
+  assert(excite.sequence == f->ctxt->sequence);
+
+  double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
+  // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
+  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], NULL, factor, STANDARD, f);
+}
 
 void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
 {
@@ -313,6 +427,10 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   ElemList elemList(domain->GetGrid());
   EntityIterator it = elemList.GetIterator();
 
+  // calculate volume of whole optimization domain by adding up element volumes
+  double vol; // element volume
+  double volume = 0; // accumulated volume whole optimization domain
+
   for(unsigned int e = 0; e < f->elements.GetSize(); e++)
   {
     DesignElement* de = f->elements[e];
@@ -338,6 +456,13 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
     LOG_DBG3(ms) << "CMFAR e=" << e << " eqn=" << eqn.ToString(2);
     assert(rhs_el.GetSize() == eqn.GetSize());
 
+    // add element volume to volume of whole domain
+    // Get shape map from grid
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(de->elem);
+    vol = esm->CalcVolume();
+    volume += vol;
+    LOG_DBG3(ms) << "CMFAR accumulated volume =" << volume;
+
     for(unsigned int n = 0; n < eqn.GetSize(); n++)
     {
       // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
@@ -348,11 +473,18 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
       {
         unsigned int eqn_idx = eqn_nbr-1;
 
-        out[eqn_idx] += rhs_el[n]; // we don't norm here, we moved the norming to CalcMagFluxDensGradient
-        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn_idx]=" << out[eqn_idx];
+        out[eqn_idx] += rhs_el[n] * vol; // norm with volume of element
+        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << vol * rhs_el[n] << " out[eqn_idx]=" << out[eqn_idx];
       }
     }
   } // end loop elements
+
+  // set optimization volume if not already set
+    if (opt_vol_ == -1)
+    {
+      opt_vol_ = volume;
+      LOG_DBG2(ms) << "CMFAR: calculated volume =" << opt_vol_;
+    }
   delete bdb;
 }
 
@@ -389,7 +521,7 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
 
     // Overwrite again with the stuff from StateSolution.cc line 353 and 445
     dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = buffer_store;
-    LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
+    //LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
 
     double nu_r = GetRelactivity(de->elem, domain->GetGrid()->GetDim());
     // simulation: BDB with D=(d 0; 0 d) with d = nu_0*nu_r
@@ -400,12 +532,12 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
     // we have K' = alpha * K_0 where alpha = (nu_0*nu_r - nu_0) / (nu_0 * nu_r)
 
     double alpha = (nu_0*nu_r*d_rho - nu_0) / (nu_0 * nu_r);
-    LOG_DBG3(ms) << "e=" << de->elem->elemNum << " "
-        "nu_0=" << nu_0 << " nu_r=" << nu_r << " rho=" << de->GetDesign(DesignElement::SMART) << " d_rho=" << d_rho << " alpha=" << alpha;
+    //LOG_DBG3(ms) << "e=" << de->elem->elemNum << " "
+     //   "nu_0=" << nu_0 << " nu_r=" << nu_r << " rho=" << de->GetDesign(DesignElement::SMART) << " d_rho=" << d_rho << " alpha=" << alpha;
 
     Assign(out, stiffness, alpha); // out = alpha * stiffness
 
-    LOG_DBG3(ms) << "out=" << out.ToString(2);
+    //LOG_DBG3(ms) << "out=" << out.ToString(2);
     break;
   }
 
@@ -423,6 +555,8 @@ const Matrix<double>& MagSIMP::GetSelectionMatrix(const Function* f) const
     return sel_x_;
   case Function::SQR_MAG_FLUX_DENS_Y:
     return sel_y_;
+  case Function::SQR_MAG_FLUX_DENS_RZ:
+    return sel_xy_;
   default:
     assert(false);
     return sel_y_;

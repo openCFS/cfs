@@ -813,10 +813,15 @@ namespace CoupledField {
       int nnz = 0;
       for(unsigned int i = 0; i < size_; ++i)
       {
-        if(level == 1 && Abs(data_[i]) == 0) continue;
-        if(level == 1) os << " " << i << ":";
+        if(level == 1 && Abs(data_[i]) == 0)
+          continue;
+        if(level == 1)
+          os << " " << i << ":";
+
         os << data_[i];
-        if(i < size_-1) os << separator;
+
+        if(i < size_-1)
+          os << separator;
         nnz++;
       }
 

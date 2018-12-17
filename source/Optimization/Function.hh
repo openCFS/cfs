@@ -94,6 +94,8 @@ class Function
       HEAT_ENEGRY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity*/
       SQR_MAG_FLUX_DENS_X,       /*!< for optimization in squared magnetics Bx component*/
       SQR_MAG_FLUX_DENS_Y,       /*!< for optimization in squared magnetics By component*/
+      SQR_MAG_FLUX_DENS_RZ,      /*!< for optimization in squared magnetics Br  and Bz component*/
+      MAG_COUPLING,              /*!< for optimization of inductive components */
       TEMP_TRACKING_AT_INTERFACE,/*!< tracking temperature at interfaces between solid and void elements */
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_MOLE,               /*!< see mole */
