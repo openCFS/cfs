@@ -57,20 +57,9 @@ protected:
   /** [1 0; 0 0] or [0 0; 0 1] for SQR_MAG_FLUX_DENS_X/Y */
   const Matrix<double>& GetSelectionMatrix(const Function* f) const;
 
-
-
   /** @see ErsatzMaterial::FillRealAdjointRHS() */
-  virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs)
-  {
-    if(f->GetType() == Function::MAG_COUPLING || f->GetType() == Function::SQR_MAG_FLUX_DENS_X || f->GetType() == Function::SQR_MAG_FLUX_DENS_Y  || f->GetType() == Function::SQR_MAG_FLUX_DENS_RZ)
-    {
-      CalcMagFluxAdjRHS(excite, f, rhs);
-      return true;
-    }
-    return false;
-  }
+  virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs);
 
-  
   virtual void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
   {
     if(f->ctxt->IsComplex())
@@ -84,19 +73,21 @@ private:
   template <class T1, class T2>
   void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
 
+  /** calc magnetic flux density as 1/N * sum<J,B*A> where B is the BOp from the BDBInt (here the curl operator) and A is the
+     * element solution vector (scalar) and J is either [1,0] or [0,1] to select the horizontal or vertical part and N averages over
+     * the sum of the N elements of f->region. The scalar product is evaluated over the integration points */
+  double CalcMagFluxDensity(Excitation& excite, Function* f);
+
+  /** Calculate the magnetic flux density gradient. The weight is always 1 as the magnetic flux density needs to be per excitation */
+  void CalcMagFluxDensGradient(Excitation& excite, Function* f,  TransferFunction* tf);
+
   /** magnetic flux density */
   void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
-
-  /** calc magnetic flux density as 1/N * sum<J,B*A> where B is the BOp from the BDBInt (here the curl operator) and A is the
-   * element solution vector (scalar) and J is either [1,0] or [0,1] to select the horizontal or vertical part and N averages over
-   * the sum of the N elements of f->region. The scalar product is evaluated over the integration points */
-  double CalcMagFluxDensity(Excitation& excite, Function* f);
 
   /** calc coupling as M/sqrt(L1*L2) */
   double CalcCoupling(Excitation& excite, Function* f);
 
-  /** Calculate the magnetic flux density gradient. The weight is always 1 as the magnetic flux density needs to be per excitation */
-  void CalcMagFluxDensGradient(Excitation& excite, Function* f,  TransferFunction* tf);
+  void CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
 
   /** Calculate the coupling gradient */
   void CalcCouplingGradient(Excitation& excite, Function* f,  TransferFunction* tf);

@@ -82,6 +82,28 @@ void MagSIMP::PostInit()
   }
 }
 
+bool MagSIMP::FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs)
+{
+  switch(f->GetType())
+  {
+  case Function::SQR_MAG_FLUX_DENS_X:
+  case Function::SQR_MAG_FLUX_DENS_Y:
+  case Function::SQR_MAG_FLUX_DENS_RZ:
+    CalcMagFluxAdjRHS(excite, f, rhs);
+    return true;
+    break;
+  case Function::MAG_COUPLING:
+    CalcCouplingAdjRHS(excite, f, rhs);
+    return true;
+    break;
+
+  default:
+    break;
+  }
+  return false;
+}
+
+
 double MagSIMP::CalcRelactivity(const Elem* elem, UInt dim)
 {
   assert(manager.context.GetSize() == 1); // otherwise we would need it
@@ -245,11 +267,10 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
 
       // Call the CalcBMat()-method
       assert(bdb->GetBOp());
-      // std::cout << "bdb->B " << bdb->GetBOp()->GetName() << "\n";
       bdb->GetBOp()->CalcOpMat(M, lp, ptFe);
       assert(M.GetNumCols() == a.GetSize());
       assert(M.GetNumRows() == domain->GetGrid()->GetDim());
-      LOG_DBG3(ms) << "CMFD: e= " << e << " ip=" << ip << "/" << intPoints[ip].coord.ToString() << " w=" << weights[ip] << " jacDet=" << lp.jacDet << " M_" << ip << "=" << M.ToString(2);
+      LOG_DBG3(ms) << "CMFD: e= " << e << " ip=" << ip << "/(" << intPoints[ip].coord.ToString() << ") w=" << weights[ip] << " jacDet=" << lp.jacDet << " M_" << ip << "=" << M.ToString(2);
 
       // flux_denx = M * a
       flux_dens.Resize(dim);
@@ -297,6 +318,12 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
 }
 double MagSIMP::CalcCoupling(Excitation& excite, Function* f)
 {
+   if(GetMultipleExcitation()->excitations.GetSize() != 2)
+     throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
+
+   // the regions are encoded in the coils which are in Excitioan::form
+   LOG_DBG(ms) << "CC: ex=" << excite.index << "#f=" <<  excite.forms.GetSize();
+
 /*
   // TODO
   if(f->region == ALL_REGIONS)
@@ -385,8 +412,6 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   // D is the selection vector for x or y component [0 0; 0 1] or [1 0; 0 0]
   // d(<B*A,D*B*A>)/dA = -2*(B^T*D*B)*A = -2*M*A -> 4 rows, 1 col
   // do this for all elements A and add with factor 1/N to rhs
-
-
   assert(out.GetSize() == 0);
   const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
   out.Resize(stateSol.GetSize(),0.0);
@@ -462,13 +487,14 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
     vol = esm->CalcVolume();
     volume += vol;
     LOG_DBG3(ms) << "CMFAR accumulated volume =" << volume;
-
     for(unsigned int n = 0; n < eqn.GetSize(); n++)
     {
       // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
       int eqn_nbr = eqn[n];
-      if(eqn_nbr <= 0)
+
+      if(eqn_nbr <= 0) {
         LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_nbr=" << eqn_nbr << " -> skip RHS node";
+      }
       else
       {
         unsigned int eqn_idx = eqn_nbr-1;
@@ -480,13 +506,36 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   } // end loop elements
 
   // set optimization volume if not already set
-    if (opt_vol_ == -1)
-    {
-      opt_vol_ = volume;
-      LOG_DBG2(ms) << "CMFAR: calculated volume =" << opt_vol_;
-    }
+  if (opt_vol_ == -1)
+  {
+    opt_vol_ = volume;
+    LOG_DBG2(ms) << "CMFAR: calculated volume =" << opt_vol_;
+  }
   delete bdb;
 }
+
+void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
+{
+  assert(GetMultipleExcitation()->excitations.GetSize() == 2);
+  assert(excite.index == 0 || excite.index == 1);
+
+  // we get the region from the coil name in the forms
+  StdVector<LinearFormContext*>& forms = excite.forms;
+  assert(forms.GetSize() == 1);
+  LinearFormContext* form = forms[0];
+  shared_ptr<EntityList> ent = form->GetEntities();
+  LOG_DBG(ms) << "CCARH: ent=" << ent->GetName();
+
+
+
+
+  assert(out.GetSize() == 0);
+  // stupid dummy code :((
+  const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  out.Resize(stateSol.GetSize(),0.0);
+  out[0] = 1;
+}
+
 
 template <class T1, class T2>
 void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)

@@ -1738,6 +1738,8 @@
       <xsd:enumeration value="sqrMagFluxDensY"/>
       <!-- normed (by number of elments) squared magnetic flux density R and Z component -->
       <xsd:enumeration value="sqrMagFluxDensRZ"/>
+      <!-- magnetic coupling (requires two coils) -->
+      <xsd:enumeration value="magCoupling"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>
       <!-- forwards to a more general slack function (values (s)lack and (a)lpha to be given in the attribute function -->

@@ -175,6 +175,17 @@ Function::Function(PtrParamNode pn) {
       throw Exception("'overhang' function requires design to be set to shape variables ('shape_map')");
     break;
 
+  case SQR_MAG_FLUX_DENS_X:
+  case SQR_MAG_FLUX_DENS_Y:
+    if(domain->GetGrid()->IsAxi())
+      throw Exception("not for axis symmetric setting: " + type.ToString(type_));
+    break;
+
+  case SQR_MAG_FLUX_DENS_RZ:
+  if(!domain->GetGrid()->IsAxi())
+      throw Exception("only for axis symmetric setting: " + type.ToString(type_));
+    break;
+
   default:
     break;
   }
