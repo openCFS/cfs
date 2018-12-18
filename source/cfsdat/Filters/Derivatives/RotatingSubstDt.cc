@@ -105,7 +105,7 @@ void RotatingSubstDt::AdaptFilterResults(){
   }
 }
 
-void RotatingSubstDt::FinishInit(){
+void RotatingSubstDt::PrepareCalculation(){
   std::cout << "\t ---> Rotating Time Derivative Filter prepares geometric information" << std::endl;
   //the only thing left to do is the identification
   //of rotating entity numbers if requested
