@@ -297,7 +297,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
     LOG_DBG2(ms) << "CMFD: calculated volume =" << opt_vol_;
   }
   // norm by the volume of the optimization domain
-  result *= 1.0/opt_vol_;
+  //result *= 1.0/opt_vol_;
   LOG_DBG(ms) << "CMFD: exit normed -> " << result;
   return result;
 }
@@ -311,7 +311,7 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
   // the gradient is < lambda^T, K' * A >
   assert(excite.sequence == f->ctxt->sequence);
 
-  double factor = 1.0/ opt_vol_; // factor for norming the gradient; same as in objective function
+  double factor = 1.0;// opt_vol_; // factor for norming the gradient; same as in objective function
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], NULL, factor, STANDARD, f);
 

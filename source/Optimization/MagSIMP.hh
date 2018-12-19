@@ -24,7 +24,7 @@ public:
       return CalcRelactivity(elem, dim);
     else
     {
-      if(lin_nu_r_[elem->regionId] < 0);
+      if(lin_nu_r_[elem->regionId] < 0)
         lin_nu_r_[elem->regionId] = CalcRelactivity(elem, dim);
       return lin_nu_r_[elem->regionId];
     }
