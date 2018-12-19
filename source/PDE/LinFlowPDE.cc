@@ -281,11 +281,11 @@ namespace CoupledField {
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
         stiffIntVP = new ABInt<>( new IdentityOperator<FeH1,2,2>,
-                                  new GradientOperator<FeH1,2>(),
+                                  new GradientOperator<FeH1,2,1>(),
 								  coeffKVP, 1.0 );
       } else {
         stiffIntVP = new ABInt<>( new IdentityOperator<FeH1,3,3>,
-                                  new GradientOperator<FeH1,3>(),
+                                  new GradientOperator<FeH1,3,1>(),
 								  coeffKVP, 1.0);
       }
       stiffIntVP->SetName("LinFlowStiffIntViscousVP");
@@ -319,24 +319,25 @@ namespace CoupledField {
 //      stiffContVP->SetFeFunctions( velFct, presFct );
 //      assemble_->AddBiLinearForm( stiffContVP );
 //
-//      // --------------------------------------------------------------------
-//      //  VERSION 2: K_Laplace IntegratorLinFlowStiffIntViscous
-//      // --------------------------------------------------------------------
-//      BiLinearForm * stiffIntLaplace = NULL;
-//      if( dim_ == 2 ) {
-//        stiffIntLaplace = new BBInt<>( new LaplOperator<FeH1,2>(),
-//                                       viscosity, 1.0 );
-//      } else {
-//        stiffIntLaplace = new BBInt<>( new LaplOperator<FeH1,3>(),
-//                                       viscosity, 1.0 );
-//      }
-//      stiffIntLaplace->SetName("LinFlowStiffIntViscous");
-//      BiLinFormContext *stiffContLaplace;
-//      stiffContLaplace = new BiLinFormContext(stiffIntLaplace, STIFFNESS );
-//
-//      stiffContLaplace->SetEntities( actSDList, actSDList );
-//      stiffContLaplace->SetFeFunctions( velFct, velFct );
-//      assemble_->AddBiLinearForm( stiffContLaplace );
+      // --------------------------------------------------------------------
+      //  VERSION 2: K_Laplace IntegratorLinFlowStiffIntViscous
+      // --------------------------------------------------------------------
+      // viscosity term
+      BiLinearForm * stiffIntLaplace = NULL;
+      if( dim_ == 2 ) {
+        stiffIntLaplace = new BBInt<>( new LaplOperator<FeH1,2>(),
+                                       viscosity, 1.0 );
+     } else {
+        stiffIntLaplace = new BBInt<>( new LaplOperator<FeH1,3>(),
+                                       viscosity, 1.0 );
+      }
+      stiffIntLaplace->SetName("LinFlowStiffIntViscous");
+      BiLinFormContext *stiffContLaplace;
+      stiffContLaplace = new BiLinFormContext(stiffIntLaplace, STIFFNESS );
+
+      stiffContLaplace->SetEntities( actSDList, actSDList );
+      stiffContLaplace->SetFeFunctions( velFct, velFct );
+      assemble_->AddBiLinearForm( stiffContLaplace );
 
       // in compressible case, we have to add second term of viscosity
       if ( isCompressible_ ) {
