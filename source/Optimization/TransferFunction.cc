@@ -140,6 +140,9 @@ App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctx
   case DesignElement::MECH_23:
   case DesignElement::MECH_22:
   case DesignElement::MECH_33:
+  case DesignElement::MECH_44:
+  case DesignElement::MECH_55:
+  case DesignElement::MECH_66:
   case DesignElement::SHEAR1:
   case DesignElement::MULTIMATERIAL:
   case DesignElement::INTERPOLATION:
@@ -207,6 +210,7 @@ bool TransferFunction::IsPenalized() const
 
   case HEAVISIDE:
   case TANH:
+  case HASHIN_SHTRIKMAN:
     return true;
 
   case NO_TYPE:
@@ -258,6 +262,10 @@ double TransferFunction::Transform(double value, bool lower_bimat, const DesignE
   case RAMP:
     assert(param_ >= 0);
     result = value / (1.0 + param_ * (1.0 - value));
+    break;
+
+  case HASHIN_SHTRIKMAN:
+    result = value / (3-2*value);
     break;
 
   case FIXED:
@@ -331,6 +339,13 @@ double TransferFunction::Derivative(double value, bool lower_bimat) const
       else
         return -1.0/(p*x+1)-(p*(1-x))/pow(p*x+1,2);
     } 
+
+    case HASHIN_SHTRIKMAN:
+    {
+      assert(!lower_bimat);
+      double den = (3.0 - 2.0 * value);
+      return (2*value)/(den*den) + 1/den;
+    }
       
     case HEAVISIDE:
     {
@@ -369,4 +384,5 @@ void TransferFunction::SetEnums()
   type.Add(FULL, "full");
   type.Add(HEAVISIDE, "heaviside");
   type.Add(TANH, "tanh");
+  type.Add(HASHIN_SHTRIKMAN, "hashin_shtrikman");
 }     

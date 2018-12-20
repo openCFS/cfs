@@ -16,14 +16,11 @@ ADD_LIBRARY(ilupack-olas STATIC ${ILUPACK_SRCS})
 # cmake_modules/FindFortranLibs.cmake
 SET(TARGET_LL
   ${ILUPACK_LIBRARY}
-  ${AMD_LIBRARY}
   )
 
 SET(TARGET_LL
   ${TARGET_LL}
-  ${LAPACK_LIBRARY}
-  ${BLAS_LIBRARY}
-  ${CFS_FORTRAN_LIBS})
+ )
 
 TARGET_LINK_LIBRARIES(ilupack-olas ${TARGET_LL} )
 

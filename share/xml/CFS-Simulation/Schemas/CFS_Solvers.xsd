@@ -871,7 +871,9 @@
             maxOccurs="1"/>
 
         </xsd:sequence>
-        <xsd:attribute name="matrix" use="optional" type="DT_Ilupack_Matrix"/>
+        <xsd:attribute name="matrix" use="optional" type="DT_Ilupack_Matrix" />
+        <xsd:attribute name="disableParallel" use="optional" type="xsd:boolean" default="false"/>
+        <xsd:attribute name="nleaves" use="optional" type="xsd:int" default="1"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -1174,50 +1176,40 @@
   
   
   <xsd:complexType name="DT_PETSCSpec">
+    
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
           <xsd:element name="precond" type="DT_PreCondPETSC" minOccurs="1" maxOccurs="1" />
-          <xsd:element name="solver" type="DT_SolverPETSC" minOccurs="1" maxOccurs="1" />
-          <xsd:element name="maxIter" type="xsd:int" default="10000" minOccurs="0" maxOccurs="1"/>
-          <!-- This is the target residual given to PETSC. Note, that PETSC knows three norms -->
-          <xsd:element name="tolerance" type="xsd:double" default="1e-12" maxOccurs="1" minOccurs="0"/>
-          <!-- When maxIter is exceeded but the achieved resual is not worse the minimalTolerance no exception is thrown -->
-          <xsd:element name="minimalTolerance" type="xsd:double" default="1e-11" maxOccurs="1" minOccurs="0"/>
-          <xsd:element name="logging" type="xsd:boolean" default="false" minOccurs="0"/>
-          <xsd:element name="zeroInitialValue" type="xsd:boolean" default="false" minOccurs="0"/>
         </xsd:sequence>
+       <xsd:attribute name="solver" use="optional" default="cg">
+	      <xsd:simpleType>
+	       <xsd:restriction base="xsd:token">
+	          <xsd:enumeration value="cg"   />
+	          <xsd:enumeration value="fcg"   />
+	          <xsd:enumeration value="gmres"  />
+	          <xsd:enumeration value="fgmres"  />
+	          <xsd:enumeration value="bcgs"     />
+	          <xsd:enumeration value="groppcg"   />
+	          <xsd:enumeration value="pipecg"   />
+	          <xsd:enumeration value="pipecgrr"  />
+	          <xsd:enumeration value="nash"   />
+	          <xsd:enumeration value="stcg"  />
+	          <xsd:enumeration value="minres"   />
+	          <xsd:enumeration value="bicg"  />
+	          <xsd:enumeration value="symmlq"  />
+	          <xsd:enumeration value="cr"  />   
+	       </xsd:restriction>
+	      </xsd:simpleType>
+      </xsd:attribute>
+		  <xsd:attribute name="maxIter" type="xsd:int" default="10000" use="optional"/>
+		  <xsd:attribute name="tolerance" type="xsd:double" default="1e-12" use="optional"/>
+		  <xsd:attribute name="minimalTolerance" type="xsd:double" default="1e-11" use="optional"/>
+		        
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
- 
-  
-  <!-- ******************************************************************* -->
-  <!--   Definition of data type for PETSC ITERATIVE Solver -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_SolverPETSC">
-    <xsd:complexContent>
-      <xsd:extension base="DT_SolverBasic">
-        <xsd:choice>
-          <xsd:element name="cg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="fcg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="gmres"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="fgmres"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="bcgs"   type="xsd:token"   minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="groppcg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="pipecg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="pipecgrr"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="nash"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="stcg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="minres"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="bicg"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="symmlq"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="cr"  type="xsd:token" minOccurs="0" maxOccurs="1"/>   
-        </xsd:choice>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
+   
   
   <xsd:complexType name="DT_PreCondPETSC">
     <xsd:complexContent>
@@ -1230,26 +1222,43 @@
              </xsd:complexType>
           </xsd:element>
      	  <xsd:element name="gamg">
-     	   <xsd:annotation>
-              <xsd:documentation xml:lang="en">
-                "Algebraic Multigrid Only Works for sparseNonSym Matrix. 
-                It also requires  much more tuning to achieve a good speed to solution(these options will be added later)
-                For now one can use .petscrc file which should be in the running directory to add options
-                refer this for options that can be configured for this gamg preconditioner
-                http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMG.html"
-              </xsd:documentation>
-            </xsd:annotation>
+     	    <xsd:complexType>
+              <xsd:attribute name="nlvls" use="optional" type="xsd:int" default="10" />
+              <xsd:attribute name="smoothSweeps" use="optional" type="xsd:int" default="2"/>
+              <xsd:attribute name="coarse_rtol" use="optional" type="xsd:double" default="1.0e-8"/>
+              <xsd:attribute name="coarse_atol" use="optional" type="xsd:double" default="1.0e-50"/>
+              <xsd:attribute name="coarse_dtol" use="optional" type="xsd:double" default="1e3"/>
+              <xsd:attribute name="coarse_maxits" use="optional" type="xsd:int" default="30"/>
+              <xsd:attribute name="innerSolver" use="optional"  default="chebyshev">  
+               <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:enumeration value="chebyshev"/>
+                  <xsd:enumeration value="cg"/>
+                  <xsd:enumeration value="gmres"/>
+                </xsd:restriction> 
+               </xsd:simpleType>      
+              </xsd:attribute>
+           </xsd:complexType>
           </xsd:element>
           <xsd:element name="mg">
-            <xsd:complexType>
-              <xsd:attribute name="nlvls" use="optional" type="xsd:int" default="1" />
-              <xsd:attribute name="smoothSweeps" use="optional" type="xsd:int" default="2"/>
+			      <xsd:complexType>
+			        <xsd:attribute name="nlvls" use="optional" type="xsd:int" default="10" />
+			        <xsd:attribute name="smoothSweeps" use="optional" type="xsd:int" default="2"/>
 							<xsd:attribute name="coarse_rtol" use="optional" type="xsd:double" default="1.0e-8"/>
 							<xsd:attribute name="coarse_atol" use="optional" type="xsd:double" default="1.0e-50"/>
 							<xsd:attribute name="coarse_dtol" use="optional" type="xsd:double" default="1e3"/>
 							<xsd:attribute name="coarse_maxits" use="optional" type="xsd:int" default="30"/>
-						</xsd:complexType>
-           </xsd:element>
+							<xsd:attribute name="innerSolver" use="optional"  default="chebyshev">  
+							 <xsd:simpleType>
+						    <xsd:restriction base="xsd:string">
+						      <xsd:enumeration value="chebyshev"/>
+						      <xsd:enumeration value="cg"/>
+						      <xsd:enumeration value="gmres"/>
+						    </xsd:restriction> 
+						   </xsd:simpleType>      
+						  </xsd:attribute>
+			     </xsd:complexType>
+          </xsd:element>
           <xsd:element name="asm"/>
           <xsd:element name="bjacobi"/>
           <xsd:element name="icc"> 
@@ -1259,8 +1268,6 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
@@ -1392,6 +1399,7 @@
 	     
         <xsd:attribute name="convTol" type="xsd:float" use="optional" default="1e-8"/>
         <xsd:attribute name="maxIter" type="xsd:nonNegativeInteger" use="optional" default="150"/>
+        <xsd:attribute name="maxBas" type="xsd:nonNegativeInteger" use="optional" default="60"/>
         <xsd:attribute name="blockSize" use="optional" default="4">
           <xsd:simpleType>
             <xsd:restriction base="xsd:int">

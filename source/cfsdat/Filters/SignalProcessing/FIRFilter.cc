@@ -214,6 +214,7 @@ Integer FIRFilter::GetDownStreamMaxStepOffset(std::set<uuids::uuid> downStreamRe
 
 void FIRFilter::CopyTimeLineUpstream(uuids::uuid upStreamId, uuids::uuid downStreamId) {
   if (resultManager_->IsStatic(downStreamId)) {
+  //if (resultManager_->IsConstant(downStreamId)) {
     BaseFilter::CopyTimeLineUpstream(upStreamId, downStreamId);
     return;
   }
@@ -276,6 +277,7 @@ void FIRFilter::AdaptFilterResults(){
 
     resultManager_->CopyResultData(assocId,filterResIds[aRes]);
     if (!resultManager_->IsStatic(assocId) && (upsampling_ || downsampling_)) {
+    //if (!resultManager_->IsConstant(assocId) && (upsampling_ || downsampling_)) {
       StdVector<Double> uTimeLine = resultManager_->GetTimeLine(assocId);
       StdVector<Double> dTimeLine;
       if (upsampling_) {

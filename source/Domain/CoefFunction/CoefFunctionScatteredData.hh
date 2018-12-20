@@ -11,7 +11,6 @@
 #ifndef FILE_COEFFUNCTION_SCATTEREDDATA_HH
 #define FILE_COEFFUNCTION_SCATTEREDDATA_HH
 
-#include <boost/tr1/type_traits.hpp>
 
 #include <def_use_cgal.hh>
 #include <def_use_flann.hh>

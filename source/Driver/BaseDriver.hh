@@ -89,6 +89,8 @@ namespace CoupledField
     PtrParamNode GetInfo() { return info_; }
 
     PtrParamNode GetParam() { return param_; }
+
+    ResultHandler* GetResultHandler() { return handler_; }
   protected:
     
     //! type of analysis
@@ -104,7 +106,7 @@ namespace CoupledField
     AnalysisID analysis_id_;
 
     //! Pointer to simulation domain
-    Domain * domain_;
+    Domain* domain_;
 
     //! current analysis step in a multiSequence analysis
     UInt sequenceStep_;

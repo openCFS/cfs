@@ -232,6 +232,9 @@ namespace CoupledField {
       ( "quiet,q",
         "more compressed console output (env CFS_QUIET)")
 
+      ( "id", po::value<string>(),
+        "set the provided value in info.xml as cfsInfo/header/@id")
+
       ( "noColor",
         "turn off colored output")
       ;
@@ -419,6 +422,11 @@ namespace CoupledField {
     fs::path filePath = GetLogConfFile();
 
     return filePath.string();
+  }
+
+  string ProgramOptions::GetId() const
+  {
+    return varMap_.count("id") != 0 ? varMap_["id"].as<string>() : "";
   }
 
   string ProgramOptions::GetErsatzMaterialStr() const
@@ -686,6 +694,16 @@ namespace CoupledField {
     out << "USE_ILUPACK:           " << fg_blue  << "NO" << fg_reset << endl;
  #endif
 
+
+
+
+#ifdef USE_ILUPACK_PARALLEL
+   out << "USE_ILUPACK_PARALLEL:           " << fg_blue << "YES" << fg_reset << endl;
+#else
+   out << "USE_ILUPACK_PARALLEL:           " << fg_blue  << "NO" << fg_reset << endl;
+#endif
+
+
  #ifdef USE_SUITESPARSE
     out << "USE_SUITESPARSE:       " << fg_blue << "YES" << fg_reset << endl;
     out << "SUITESPARSE_VERSION:   " << fg_blue << SUITESPARSE_MAIN_VERSION << "."
@@ -849,7 +867,7 @@ namespace CoupledField {
     out << "BUILD_HWLOC:           " << fg_blue << "YES" << fg_reset << endl;
     out << "HWLOC_VER:             " << fg_blue << HWLOC_VER << fg_reset << endl;
 #else
-    out << "USE_PETSC:             " << fg_blue << "NO" << fg_reset << endl;
+    out << "BUILD_HWLOC:             " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
 #ifdef BUILD_GHOST

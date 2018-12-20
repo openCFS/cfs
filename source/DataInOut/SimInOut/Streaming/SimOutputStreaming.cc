@@ -33,7 +33,6 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode, PtrParamNode inf
   port_ = outputNode->Get("port")->As<string>();
   path_ = outputNode->Get("path")->As<string>();
   send_mesh_ = outputNode->Get("sendMesh")->As<bool>();
-  compressed_ = outputNode->Get("compressed")->As<bool>();
   silent_ = outputNode->Has("silent") ? outputNode->Get("silent")->As<bool>() : false;
   content_ = PtrParamNode(new ParamNode(ParamNode::INSERT));
   content_->SetName("cfsStreaming");
@@ -107,7 +106,8 @@ void SimOutputStreaming::TransmitData(bool force) {
     if (force) {
       int i=0;
       while(current_client != NULL) {
-        usleep(10000); // kindof busy sleep because this will only be executed at the very end
+        // kindof busy sleep because this will only be executed at the very end
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         i++;
         if (i>200) {
           // if this takes longer than 2 seconds, orphan the running client:
@@ -131,8 +131,7 @@ void SimOutputStreaming::TransmitData(bool force) {
   }
 }
 
-UInt SimOutputStreaming::GetContentLength()
-{
+UInt SimOutputStreaming::GetContentLength() {
   UInt v = 40;
   for(UInt r = 0, s = results_.GetSize(); r < s; ++r){
     if(results_[r]->GetResultInfo()->resultName != "physicalPseudoDensity")
@@ -149,7 +148,9 @@ void SimOutputStreaming::Transmit(std::ostream& out)
   Grid* grid = domain->GetGrid();
 
   // add the complete info.xml treee
-  content_->Get("cfsInfo")->SetValue(domain->GetInfoRoot(), false); // use own name and make sure we are not seed as stupid boost::any
+  // use own name and make sure we are not seed as stupid boost::any
+  // also don't write warnings againt to cerr
+  content_->Get("cfsInfo")->SetValue(domain->GetInfoRoot(), false, false);
 
   // add mesh if it is new
   if(send_mesh_ && !content_->Has("grid"))
@@ -231,7 +232,7 @@ void SimOutputStreaming::Transmit(std::ostream& out)
     }
   }
   // write the stuff
-  content_->ToXML(out, compressed_ ? -99 : 0, true); // adjust element type!
+  content_->ToXML(out, -99, true); // adjust element type!
 }
 
 void SimOutputStreaming::io_service_runner(void) {
@@ -339,37 +340,39 @@ void SimOutputStreaming::Client::handle_write_request(const boost::system::error
 
 void SimOutputStreaming::Client::handle_read_status_line(const boost::system::error_code& err)
 {
-    if (!err)
-    {
-      // Check that response is OK.
-      std::istream response_stream(&response_);
-      std::string http_version;
-      response_stream >> http_version;
-      unsigned int status_code;
-      response_stream >> status_code;
-      std::string status_message;
-      std::getline(response_stream, status_message);
-      if (!response_stream || http_version.substr(0, 5) != "HTTP/")
-      {
-        std::cout << "Invalid response\n";
-        return;
-      }
-      if (status_code != 200)
-      {
-        std::cout << "Response returned with status code ";
-        std::cout << status_code << "\n";
-        return;
-      }
 
-      // Read the response headers, which are terminated by a blank line.
-      boost::asio::async_read_until(socket_, response_, "\r\n\r\n",
-          boost::bind(&Client::handle_read_headers, this,
-            boost::asio::placeholders::error));
-    }
-    else
+  string msg = "Streaming to " + base_->host_ + ":" + base_->port_ + " results in ";
+
+  if(!err)
+  {
+    // Check that response is OK.
+    std::istream response_stream(&response_);
+    std::string http_version;
+    response_stream >> http_version;
+    unsigned int status_code;
+    response_stream >> status_code;
+    std::string status_message;
+    std::getline(response_stream, status_message);
+    if (!response_stream || http_version.substr(0, 5) != "HTTP/")
     {
-      std::cout << "Error: " << err << "\n";
+      std::cout << msg + "invalid response\n";
+      return;
     }
+    if (status_code != 200)
+    {
+      std::cout << msg + "status code " << status_code << "\n";
+      return;
+    }
+
+    // Read the response headers, which are terminated by a blank line.
+    boost::asio::async_read_until(socket_, response_, "\r\n\r\n",
+        boost::bind(&Client::handle_read_headers, this,
+            boost::asio::placeholders::error));
+  }
+  else
+  {
+    std::cout << msg + "error: " << err << "\n";
+  }
 }
 
 void SimOutputStreaming::Client::handle_read_headers(const boost::system::error_code& err)

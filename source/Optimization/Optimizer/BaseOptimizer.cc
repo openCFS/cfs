@@ -322,6 +322,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   optimizer_timer_->Stop();
 
   assert(!GetRunnungEvalTimer()); // no currently running timer!
+
   eval_obj_timer_->Start();
 
   // set the design and see if it is a new one

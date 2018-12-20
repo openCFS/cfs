@@ -84,6 +84,12 @@ MARK_AS_ADVANCED(FEAST_LIBRARY)
 # The FEAST external project
 #-------------------------------------------------------------------------------
 
+# determine which feast library to copy over in the install step
+IF(USE_FEAST_COMMUNITY_PRECOMPILED)
+  SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/x64")
+ELSE(USE_FEAST_COMMUNITY_PRECOMPILED)
+  SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/${CFS_ARCH_STR}")
+ENDIF(USE_FEAST_COMMUNITY_PRECOMPILED)
 
 IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------

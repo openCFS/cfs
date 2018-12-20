@@ -25,8 +25,10 @@ namespace CoupledField
      * <li>FULL:  tf(x) = 1, tf'(x)=0</li>
      * <li>HEAVISIDE:  tf(x) = (1-exp(-beta * x))^param</li>
      * <li>TANH:  tf(x) =  1 - 1/(exp(2*beta*(x-param)) + 1) scaled for x in [0:1] and y in [0:1]</li>
+     * <li>HASHIN_SHTRIKMAN: tf(x) = x/(3-2*x) as in (7) in Bendsoe, Sigmund; Material interpolation schemes
+     *                        Upper Hashin-Shtrikman bound for 2D with Poisson's ratio 0.3</li>
      * </ul> */
-    typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL, HEAVISIDE, TANH } Type;
+    typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL, HEAVISIDE, TANH, HASHIN_SHTRIKMAN } Type;
 
       /** dummy function for StdVector */
       TransferFunction();

@@ -63,10 +63,11 @@ PtrParamNode LibXml2::ParseString(const std::string& data, const std::string& sc
 
 void HandleValidationError(void *ctx, const char *format, ...)
 {
-    char *errMsg;
+    const int buffer_size = 512;
+    char *errMsg = new char[512];
     va_list args;
     va_start(args, format);
-    vasprintf(&errMsg, format, args);
+    vsnprintf(errMsg, buffer_size, format, args);
     va_end(args);
     string msg(errMsg);
     free(errMsg);

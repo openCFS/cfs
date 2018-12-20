@@ -171,6 +171,8 @@ public:
   //! \return Nothing
   void SetStatic(uuids::uuid resId, bool isStatic);
 
+  //bool IsConstant(uuids::uuid resId); Using IsStatic() due to merge from tuWien
+
   //! Set the time step value vector of the given result
   //!   - Replace if vector has already been set
   //!   - Only valid during initialization phase.

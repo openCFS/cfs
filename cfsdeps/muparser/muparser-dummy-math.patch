@@ -1,8 +1,8 @@
 --- include/muParserTemplateMagic.h.orig	2012-02-28 21:52:52.358460533 +0100
 +++ include/muParserTemplateMagic.h	2012-02-28 21:59:18.361290265 +0100
-@@ -138,13 +138,46 @@
-     static TYPE Sign(TYPE v)          { return (TYPE)((v<0) ? -1 : (v>0) ? 1 : 0);     } \
-     static TYPE Pow(TYPE v1, TYPE v2) { return (TYPE)std::pow((double)v1, (double)v2); } \
+@@ -138,7 +138,43 @@
+     static T Sign(T v)  { return (T)((v<0) ? -1 : (v>0) ? 1 : 0); }
+     static T Pow(T v1, T v2) { return std::pow(v1, v2); }
    };
 +  
 +#define MAKE_MATH_DUMMY_UNSIGNED(TYPE)                    \
@@ -32,18 +32,13 @@
 +    static TYPE Sign(TYPE v)          { return (TYPE)((v>0) ? 1 : 0);                  } \
 +    static TYPE Pow(TYPE v1, TYPE v2) { return (TYPE)std::pow((double)v1, (double)v2); } \
 +  };
- 
-   MAKE_MATH_DUMMY(char)
-   MAKE_MATH_DUMMY(short)
-   MAKE_MATH_DUMMY(int)
-   MAKE_MATH_DUMMY(long)
--
++
 +  MAKE_MATH_DUMMY_UNSIGNED(unsigned char)
 +  MAKE_MATH_DUMMY_UNSIGNED(unsigned short)
 +  MAKE_MATH_DUMMY_UNSIGNED(unsigned int)
 +  MAKE_MATH_DUMMY_UNSIGNED(unsigned long)
 +  
- #undef MAKE_MATH_DUMMY
++#undef MAKE_MATH_DUMMY
 +#undef MAKE_MATH_DUMMY_UNSIGNED
  }
  

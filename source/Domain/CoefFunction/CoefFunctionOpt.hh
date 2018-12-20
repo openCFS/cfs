@@ -1,7 +1,6 @@
 #ifndef COEFFUNCTIONOPT_HH_
 #define COEFFUNCTIONOPT_HH_
 
-#include <boost/tr1/type_traits.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "CoefFunction.hh"

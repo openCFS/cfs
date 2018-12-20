@@ -19,7 +19,7 @@ SET(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32/sys-root/x86_64-w64-mingw32)
 
 # cmake failes to find GFORTRAN_LIBRARY and QUADMATH_LIBRARY properly
 # see CheckFortranRuntime.cmake
-SET(GFORTRAN_LIBRARY /usr/lib64/gcc/x86_64-w64-mingw32/7.2.0/libgfortran.a)
+SET(GFORTRAN_LIBRARY /usr/lib64/gcc/x86_64-w64-mingw32/8.2.0/libgfortran.a)
 
 # adjust the default behaviour of the FIND_XXX() commands:
 # search headers and libraries in the target environment, search

@@ -151,6 +151,7 @@ void ResultManager::SetStepIndex(uuids::uuid requestedId, Integer stepIndex){
   const CF::StdVector<Double>& timeLine = *resultMap_[requestedId].first->timeLine.get();
   UInt setStepIndex = std::min<UInt>(std::max<Integer>(0,stepIndex)
                                      ,timeLine.GetSize() - 1);
+
   resultMap_[requestedId].second->SetStepIndex(setStepIndex);
 }
 
@@ -291,7 +292,11 @@ bool ResultManager::IsStatic(uuids::uuid resId) {
 void ResultManager::SetStatic(uuids::uuid resId, bool isStatic) {
   resultMap_[resId].first->isStatic = isStatic;
 }
-
+/* Using IsStatic() due to merge from tuWien
+bool ResultManager::IsConstant(uuids::uuid resId) {
+  return resultMap_[resId].first->timeLine->GetSize() <= 1;
+}
+*/
 void ResultManager::SetTimeLine(uuids::uuid resId, CF::StdVector<Double> tVec){
   checkNotFinalized();
   RESULT_MANAGER_COPY_SH_PTR_FIELD(resId,timeLine,tVec)

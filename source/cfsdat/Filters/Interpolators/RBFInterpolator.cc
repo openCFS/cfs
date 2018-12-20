@@ -54,6 +54,8 @@ RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1:
   //No Slip Boundary handling on target Grid
   noSlip_ = false;
   if(config->Has("noSlipWall")){noSlip_ = true;}
+  useElemAsTarget_ = false;
+  if(params_->Has("useElemAsTarget")){useElemAsTarget_ = params_->Get("useElemAsTarget")->As<bool>();}
 
   //Target Entity Nodes/Element centrooids
   useElemAsTarget_ = false;
@@ -72,6 +74,7 @@ bool RBFInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
 
   // vector, containing the source data values
   Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
+
 
   // RBF setup
   Matrix& matrix = matrices_[matrixIndex_];

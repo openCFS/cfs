@@ -90,7 +90,7 @@ ELSE()
     # Fill ThirdParty content (blas/ lapack/ HSLold)
     PATCH_COMMAND  ${CMAKE_COMMAND} -P "${PFN}"
     # let it install to the temporay directory where we can remove libcoinblas and libcoinlapack and prepare to copy to precompiled cfsdeps
-    CONFIGURE_COMMAND ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config F77=${CMAKE_Fortran_COMPILER} OPT_FFLAGSS=-O3 CXX=${CMAKE_CXX_COMPILER} OPT_CXXFLAGS=-O3 
+    CONFIGURE_COMMAND env "CFLAGS=${CFS_C_FLAGS}" "CXXFLAGS=${CFS_CXX_FLAGS}" ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config F77=${CMAKE_Fortran_COMPILER} OPT_FFLAGSS=-O3 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} OPT_CXXFLAGS=-O3
   )
   
   ExternalProject_Add_Step(ipopt cfsdeps_download 
@@ -121,9 +121,18 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 # Add project to global list of CFSDEPS, this allows "make snopt"
 SET(CFSDEPS ${CFSDEPS} ipopt)
 
+
+#The ipopt depends on the metis libraries and the metis library are built by ilupack when its on.
+#In this case one needs both metis and metisomp libs to be linked along with ipopt
+
 # Determine paths of IPOPT libraries. We have only libs include/coin
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a" CACHE FILEPATH "IPOPT library.")
+IF(USE_ILUPACK_PARALLEL)
+  SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a;${LD}/libmetis_ilu.a;${LD}/libmetisomp.a;" CACHE FILEPATH "IPOPT library.")
+ELSE()
+  SET(IPOPT_LIBRARY "${LD}/libipopt.a;${LD}/libcoinhsl.a;${LD}/libmetis.a" CACHE FILEPATH "IPOPT library.")
+ENDIF()  
+
 SET(IPOPT_INCLUDE_DIR "${CFS_BINARY_DIR}/include" CACHE FILEPATH "IPOPT library.")
 
 MARK_AS_ADVANCED(IPOPT_LIBRARY)

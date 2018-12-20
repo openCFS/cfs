@@ -39,6 +39,7 @@
               <xsd:attribute name="name" type="xsd:token" use="required"/>
             </xsd:complexType>
           </xsd:element>
+          <xsd:element name="noSlipWall" type="xsd:boolean" minOccurs="0"/>
           <xsd:element name="sourceSum" type="xsd:boolean" default="0" minOccurs="0"></xsd:element>
           <xsd:element name="targetMesh">
             <xsd:complexType>

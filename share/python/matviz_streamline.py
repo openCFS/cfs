@@ -348,7 +348,11 @@ def force_prominent_streamline(traces, fields, minimal, step, x, y):
     traces.append(trace)
 
  
-def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, s1_samples, s2_samples, max_traces_per_cell, res, do_save, info, force):            
+def show_streamline(coords, design, dir, scale, s1_minimal, style, step, s1_samples, s2_samples, max_traces_per_cell, res, do_save, info, force):
+  
+  s1 = design['s1']
+  s2 = design['s2']
+  angle = design['angle']            
 
   assert(not (s1_samples == None and s2_samples != None))
  

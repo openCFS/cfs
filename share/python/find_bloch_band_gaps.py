@@ -5,10 +5,79 @@ import numpy
 import os
 import sys
 import argparse
+import math
 from lxml import etree
+
+# stuff for show
+import matplotlib
+matplotlib.use('tkagg')
+from matplotlib import pyplot as plt
+
+def print_gnuplot(offset, args, segments, max_mode, max_freq):
+  if args.maxfreq:
+    print('set yrange [0:' + str(args.maxfreq) + ']')
+    max_freq = min(max_freq, args.maxfreq)
+  elif args.commonsymbol:
+    print('set yrange [0:*]')
+  else:
+    print('set yrange [0:' + str(max_freq * 1.2) + ']') # leave space for the labels
+  if args.horizontal:
+    print('set xrange [0:' + str(segments[-1]-1) + ']')
+  else:
+    for s in range(0, len(segments) - 1):
+      print('set arrow ' + str(s + 1) + '  from ' + str(segments[s]) + ',0 to ' + str(segments[s]) + ',' + str(max_freq) + ' nohead lt rgb "gray" lw 2')
+  
+  if args.nicelabel:
+    print('set ylabel "eigenfrequency in Hz" offset 1')
+    print('set xlabel "wave vector (' + ('horizontal ' if args.horizontal else '') + 'IBZ)"')
+    symbols = ['"{/Symbol G}"', '"X"', '"{/Symbol M}"', '"R"']
+    xtics = 'set xtics (' + symbols[0] + ' 0'
+    if not args.horizontal:
+      for i in range(len(segments)):
+        xtics += ', ' + symbols[i + 1 if i < len(segments) - 1 else 0] + ' ' + str(segments[i])
+    else:
+      xtics += ',' + symbols[1] + ' ' + str(segments[-1]-1)    
+    
+    print(xtics + ')')
+  else:
+    print('unset ylabel')
+    print('unset xlabel')
+  lw = " 4 " if args.talk else " 2 "  
+  wl = '' if args.nolines else (' with linespoints lw ' + lw) if not args.commonsymbol else (' with lines lw ' + lw)
+  lc = ' lc black ' if args.paper or args.commonsymbol else ''
+  for i in range(offset, max_mode): # 1-based
+    title = ' notitle ' if args.commonsymbol or not args.title else ' t "' + str(i - offset + 1) + '. mode" '
+    print(('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i + 1) + title + wl + lc + (' ,\\' if i < max_mode - 1 else ''))
 
 gap_count = 0
 offset = None
+
+# this creates a matplotlib plot as alternative to generate a gnuplot script
+# return matplot.pyplot to apply show() or savefig() on int  
+def create_plot(org, dim):
+  # the first columns are step, k_x, k_y (k_z)
+  assert(org.shape[1] > dim + 1)
+  # extract the real data
+  data = org[:,dim+1:]
+  # number of wave vectors, the first is already reapeated as last row
+  vectors = data.shape[0]
+  modes = data.shape[1]
+  x = range(0,vectors)
+  for mode in range(modes):
+    plt.plot(x, data[:,mode], marker='o')                 
+  
+  # add vertical markers where we switch direction in the wave vector
+  height = numpy.amax(data)
+  # only the colums with k_x, k_y (,k_z), note that the last row might be a repetition of the first one
+  vec = org[:,1:dim+1]
+  for k in range(2,vectors): # skip first vector as we access -1 and skip the second to have no vertical bar there
+    for d in range(dim):
+      if (vec[k,d] != 0.0 and vec[k-1,d] == 0.0) or \
+         (not math.isclose(vec[k,d],numpy.pi,rel_tol=1e-5) and math.isclose(vec[k-1,d],numpy.pi,rel_tol=1e-5)): 
+        plt.plot([k-1,k-1],[0,height],'k-')
+      
+  return plt
+
 
 def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
   global gap_count
@@ -19,6 +88,7 @@ def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
   mi = min(data[range_start:range_end+1,test_col])
   ma = max(data[range_start:range_end+1,test_col-1])
   rel = (mi - ma)/((ma+mi)/2.0)
+  norm = (mi-ma)/ma
   
   #print 'check_gap tm=' + str(test_col) + ' rs=' + str(range_start) + ' re=' + str(range_end) + ' -> mi=' + str(mi) + ' ma=' + str(ma) + ' rel=' + str(rel) 
     
@@ -37,7 +107,7 @@ def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
         node.attrib["rel_size"] = str(rel)
         node.attrib["count"] = str(gap_count)
       else:
-        print(mytype + ' band gap between ' + str(ma) + ' and ' + str(mi) + ' within ' + str(range_start) + ' -> ' + str(range_end) + ' between modes ' + str(test_col-offset) + ' and ' + str(test_col-offset+1) + ' size: ' + str(mi - ma) + ' rel.size: ' + str(rel))
+        print(mytype + ' band gap between ' + str(ma) + ' and ' + str(mi) + ' within ' + str(range_start) + ' -> ' + str(range_end) + ' between modes ' + str(test_col-offset) + ' and ' + str(test_col-offset+1) + ' size: ' + str(mi - ma) + ' rel: ' + str(rel) + ' norm: ' + str(norm))
 
 
 # return the feader of bloch.dat or "" if none
@@ -108,7 +178,6 @@ def get_segments(args, data, dim):
       
   # segment = data.shape[0]/offset # number of k for G->X = X->M = M -> G
   # Y = org.shape[0] + 1 # one over the top
-
   return result    
   
 parser = argparse.ArgumentParser()
@@ -117,13 +186,16 @@ parser.add_argument("--dim", help="2 or 3 dimensions, for old .bloch.dat files w
 parser.add_argument('--mingap', help="minimal absolute (partial) band gap size (default 0.0 = all gaps)", default=0.0)
 parser.add_argument('--nopartial', action='store_true', help='handle only full band gaps')
 parser.add_argument('--maxmode', help="maximal mode number to be considered", default=9999, type=int)
-parser.add_argument('--maxfrequency', help="maximal frequency", type=float)
+parser.add_argument('--maxfreq', help="maximal frequency", type=float)
 parser.add_argument('--info', action='store_true', help='show range for all modes')
-parser.add_argument('--xml', help='export info to a xml file')
+parser.add_argument('--xml', help='export info as xml to the given filename')
+parser.add_argument('--show', help='pop-up a matplotlib figure', action='store_true')
+parser.add_argument('--save', help='write the matplotlib figure to the given file name (png, pdf, svg, ...)')
 parser.add_argument('--gnuplot', help='create gnuplot output, specify the type', choices = ['eps', 'png', 'console'])
 parser.add_argument('--nolines', action='store_true', help='gnuplot: do not concatenate points by lines')
 parser.add_argument('--commonsymbol', action='store_true', help='gnuplot: use the same line symbol for all lines')
 parser.add_argument('--paper', action='store_true', help="tune for paper publishing (e.g. gray)")
+parser.add_argument('--talk', action='store_true', help="tune for conference presentation (e.g. line with)")
 parser.add_argument('--fontsize', type=int, help="gnuplot font size")
 parser.add_argument('--title', action='store_true', help="gnuplot: add title, off by default")
 parser.add_argument('--nicelabel', action='store_true', help='gnuplot: use nice labels')
@@ -134,7 +206,6 @@ if not os.path.exists(args.bloch):
   print("file not found '" + args.bloch + "'")
   sys.exit(1)
 org = numpy.loadtxt(args.bloch)
- 
 dim = get_dim(args)
 
 offset = 3 if dim == 2 else 4 # step, k_x, k_y (,k_z)
@@ -216,41 +287,23 @@ if not args.horizontal:
     check_gap(org, i, 0, segments[-1], eps, args.gnuplot, gaps)
 
 if args.gnuplot:
-  if args.maxfrequency:
-    print('set yrange [0:' + str(args.maxfrequency) + ']')
-  else:  
-    if args.commonsymbol:
-      print('set yrange [0:*]')
-    else:
-      print('set yrange [0:' + str(max_freq * 1.2) + ']') # leave space for the labels
-  if args.horizontal:
-    print('set xrange [0:' + str(segments[-1]) + ']')    
-  else:
-    for s in range(0,len(segments)-1):
-      print('set arrow ' + str(s+1) + '  from ' + str(segments[s]) + ',0 to ' + str(segments[s]) + ',' + str(max_freq) + ' nohead lt rgb "gray" lw 2')  
-  
-  if args.nicelabel:
-     print('set ylabel "eigenfrequency in Hz" offset 1')
-     print('set xlabel "wave vector (' + ('horizontal ' if args.horizontal else '') + 'IBZ)"')
-     symbols = ['"{/Symbol G}"', '"X"', '"{/Symbol M}"', '"R"']
-     xtics = 'set xtics (' + symbols[0] + ' 0'
-     for i in range(len(segments)):
-        xtics += ', ' + symbols[i+1 if i < len(segments)-1 else 0] + ' ' + str(segments[i])
-     print(xtics + ')')    
-  else:
-    print('unset ylabel') 
-    print('unset xlabel')     
+  print_gnuplot(offset, args, segments, max_mode, max_freq) 
+ 
 
-  wl =   '' if args.nolines else ' with linespoints lw 2 ' if not args.commonsymbol else ' with lines lw 2' 
-  lc = ' lc black ' if args.paper or args.commonsymbol else ''
-  for i in range(offset,  max_mode): # 1-based
-    title = ' notitle ' if args.commonsymbol or not args.title else ' t "' + str(i-offset+1) + '. mode" ' 
-    print(('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '')) 
- 
- 
+if args.show or args.save:
+  plt = create_plot(org, dim)
+  if args.save:
+    plt.savefig(args.save)
+    print("created file '" + args.save + "'")
+  if args.show:
+    plt.show()
+
 if args.xml:
   root.find("gaps").attrib["count"]=str(gap_count)
-  file = open(args.xml, "w")
-  file.write(etree.tostring(root, pretty_print=True))
-  file.close()
+  tree = etree.ElementTree(root)
+  tree.write(args.xml)
+  
+  #file = open(args.xml, "w")
+  #file.write(str(etree.tostring(root, pretty_print=True)))
+  #file.close()
           

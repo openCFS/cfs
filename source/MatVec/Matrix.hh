@@ -137,6 +137,9 @@ namespace CoupledField
      * @see IsSymmetric(bool) */
     bool IsSymmetric() const;
 
+    /** return true, if the matrix is complex (imag = 0 for all entries). */
+    bool IsComplex() const;
+
     /** symmetry check with eps sensitivity. */
     inline bool IsSymmetric(double eps) const
     {

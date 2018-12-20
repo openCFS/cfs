@@ -88,7 +88,7 @@ namespace CoupledField {
       }    
       else if ( matClass == FLUID ) {\
         material = new AcousticMaterial(mp, cs);
-      ReadAcoustic( material, pn );
+        ReadAcoustic( material, pn );
       }
       else if ( matClass == ELECTROMAGNETIC ) {
         material = new ElectroMagneticMaterial(mp, cs);

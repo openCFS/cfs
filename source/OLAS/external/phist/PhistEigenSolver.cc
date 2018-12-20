@@ -1,10 +1,5 @@
-
-
-
 #include "PhistEigenSolver.hh"
-
-
-//#include "phist_subspacejada.h"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 using std::complex;
 
@@ -46,18 +41,21 @@ namespace CoupledField {
   PhistEigenSolver::~PhistEigenSolver()
   {
     int iflag = 0;
-    phist::kernels<double>::sparseMat_delete(A_, &iflag);
-    LOG_DBG(pes) << "~PES: del A -> " << iflag;
-    // assert(iflag = 0);
+
+    assert(A_ != NULL);
+    if(complex_)
+      phist::kernels<Complex>::sparseMat_delete(A_, &iflag);
+    else
+      phist::kernels<double>::sparseMat_delete(A_, &iflag);
+
     A_ = NULL;
 
-    phist::kernels<double>::sparseMat_delete(B_, &iflag);
-    LOG_DBG(pes) << "~PES: del B -> " << iflag;
-    // assert(iflag = 0);
+    assert(B_ != NULL);
+    if(complex_)
+      phist::kernels<Complex>::sparseMat_delete(B_, &iflag);
+    else
+      phist::kernels<double>::sparseMat_delete(B_, &iflag);
     B_ = NULL;
-
-    //ghost_densemat_destroy(x_);
-    //ghost_densemat_destroy(y_);
 
     ghost_finalize();
   }
@@ -69,115 +67,127 @@ namespace CoupledField {
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
 
-    SetupCommon(IsSymmetric(mat), numFreq, freqShift, sort, false); // no bloch
+    SetupCommon(numFreq, freqShift); // no bloch
 
     ToInfo();
   }
 
-  void PhistEigenSolver::SaveModes(phist::types<double>::mvec_ptr X, int nEig)
+  template<class TYPE>
+  void PhistEigenSolver::SaveModes(typename phist::types<TYPE>::mvec_ptr X, int nEig)
   {
     // skip calculation of eigenvector residuals
     // download X from GPU if applicable
     int iflag = 0;
     phist::kernels<double>::mvec_from_device(X, &iflag);
-    assert(iflag == 0);
+
     // get pointer to row/col major block of vectors
-    double* xval = NULL; // will be set to memory owned by phist
+    TYPE* xval = NULL; // will be set to memory owned by phist
     phist_lidx lda, nloc;
-    phist::kernels<double>::mvec_my_length(X, &nloc, &iflag);
-    assert(iflag == 0);
-    phist::kernels<double>::mvec_extract_view(X, &xval, &lda, &iflag);
-    assert(iflag == 0);
+    phist::kernels<TYPE>::mvec_my_length(X, &nloc, &iflag);
+    phist::kernels<TYPE>::mvec_extract_view(X, &xval, &lda, &iflag);
+    LOG_DBG(pes) << "SM: lda=" << lda << " nloc=" << nloc << " nEig=" << nEig;
+    LOG_DBG3(pes) << "SM: xval=" << ToString(xval, nloc * lda);
+
+    if(lda != nEig)
+      EXCEPTION("phist could only solve for " << lda << " of " << nEig << " modes");
+    if(nloc == 0)
+      EXCEPTION("phist could could not compute the eigenmodes");
+
     // this is how one can extract the eigenvectors.
-    // TODO: move all of this to CalcEigenFrequencies and other functions below
     mode_.Resize(nEig, nloc);
+    // we rescale x by sqrt(scaling) as we have x^T (scale*B) x = 1
+    double rescale = std::sqrt(scale_mass_val_);
+    LOG_DBG(pes) << "SM: mode_.rows=" << mode_.GetNumRows() << " .cols=" << mode_.GetNumCols();
+    assert((int) sort_idx_.GetSize() == nEig);
     for (int j = 0; j < nEig; j++)
-    {
       for (int i = 0; i < nloc; i++)
-      {
-        mode_[j][i] = xval[j * lda + i];
-      }
-    }
+        mode_[sort_idx_[j]][i] = xval[i * lda + j] * rescale ; // mode_ is always complex!
+    LOG_DBG3(pes) << "SM: mode=" << mode_.ToString(2,true);
   }
 
-  void PhistEigenSolver::Setup(const BaseMatrix& stiffMat, const BaseMatrix& massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
+  template<class TYPE>
+  void PhistEigenSolver::Setup(const BaseMatrix& A, const BaseMatrix& B, bool isHermitian)
   {
-    LOG_DBG(pes) << "PES:S(stiff, mass)";
+    shared_ptr<Timer> timer = info_->Get(ParamNode::SUMMARY)->Get("phist_setup/timer")->AsTimer();
+    timer->Start();
 
-    shared_ptr<Timer> setup = info_->Get(ParamNode::SUMMARY)->Get("phist_setup/timer")->AsTimer();
-    setup->Start();
-
-    // Set flag for indicating a non-quadratic problem
-    isQuadratic_ = false;
-
-    SetupCommon(IsSymmetric(stiffMat), numFreq, freqShift, sort, bloch);
+    // TODO one of both shall be enough!
+    hermitian_ = isHermitian;
+    isBloch_ = isHermitian;
+    complex_ = boost::is_complex<TYPE>::value;
+    assert(!(hermitian_ && !complex_));
 
     // we scale the B-Matrix as suggested by Jonas:
     // A*x=lambda*sigma*B*x, with z.B. sigma=1.0/B(1,1) and then rescale
-    double b11;
-    dynamic_cast<const StdMatrix*>(&massMat)->GetDiagEntry(0, b11);
-    assert(b11 > 1e-15);
-    double scale = scale_mass_ ? 1./b11 : 1.0;
-    LOG_DBG(pes) << "PES:S b11=" << b11 << " -> B-scale=" << scale;
+    const SparseOLASMatrix<TYPE>* olas = dynamic_cast<const SparseOLASMatrix<TYPE>* >(&B);
+    assert(olas != NULL);
+    TYPE b11 = olas->GetAvgDiag();
 
-    shared_ptr<Timer> setup_phistMatrix = info_->Get(ParamNode::SUMMARY)->Get("setup_phistMatrix/timer")->AsTimer();
-    setup_phistMatrix->SetSub();
-    setup_phistMatrix->Start();
-
+    assert(((Complex) b11).real() > 1e-15);
+    scale_mass_val_ = scale_mass_ ? ((Complex) (1./b11)).real() : 1.0;
+    LOG_DBG(pes) << "PES:S b11=" << b11 << " -> B-scale=" << scale_mass_val_;
 
     // for include stuff issues, A_ and B_ attributes are not of full type
-    phist::types<double>::sparseMat_ptr A = (phist::types<double>::sparseMat_ptr) InitMatrix(stiffMat, &A_, 1.0);
-    phist::types<double>::sparseMat_ptr B = (phist::types<double>::sparseMat_ptr) InitMatrix(massMat, &B_, scale);
+    A_ = InitMatrix<TYPE>(A, &A_, 1.0);
+    // TODO: in the Bloch-case the B-Matrix does not change and can be reused!
+    B_ = InitMatrix<TYPE>(B, &B_, scale_mass_val_);
 
+    timer->Stop();
+  }
+
+
+  template<class TYPE>
+  void PhistEigenSolver::CalcEigenValues(BaseVector &sol, BaseVector &err, unsigned int numFreq, double freqShift)
+  {
+    shared_ptr<Timer> solve = info_->Get(ParamNode::SUMMARY)->Get("phist_solve/timer")->AsTimer();
+    solve->Start();
+
+    // for include stuff issues, A_ and B_ attributes are not of full type
+    assert(A_ != NULL && B_ != NULL); // Setup() has to been called first!
+    typename phist::types<TYPE>::sparseMat_ptr A = (typename phist::types<TYPE>::sparseMat_ptr) A_;
+    typename phist::types<TYPE>::sparseMat_ptr B = (typename phist::types<TYPE>::sparseMat_ptr) B_;
+
+    SetupCommon(numFreq, freqShift);
 
     // setup eigenvalue problem - taken from subspacejada (jacobi davidson)
     // create an operator from A
-    phist::types<double>::linearOp_ptr opA = new phist::types<double>::linearOp(); // TODO needs to be specialized
+    typename phist::types<TYPE>::linearOp_ptr opA = new typename phist::types<TYPE>::linearOp();
 
     // we need the domain map of the matrix
     phist_const_map_ptr map = NULL;
     int iflag = 0;
-    phist::kernels<double>::sparseMat_get_domain_map(A,&map,&iflag);
+    phist::kernels<TYPE>::sparseMat_get_domain_map(A,&map,&iflag);
     LOG_DBG(pes) << "sparseMat_get_domain_map -> " << iflag;
-    assert(iflag == 0);
 
-    phist::types<double>::linearOp_ptr opB = new phist::types<double>::linearOp();
-    phist::core<double>::linearOp_wrap_sparseMat(opB,B,&iflag);
+    typename phist::types<TYPE>::linearOp_ptr opB = new typename phist::types<TYPE>::linearOp();
+    phist::core<TYPE>::linearOp_wrap_sparseMat(opB,B,&iflag);
     LOG_DBG(pes) << "linearOp_wrap_sparseMat -> " << iflag;
-    assert(iflag == 0);
 
-    phist::core<double>::linearOp_wrap_sparseMat_pair(opA,A,B,&iflag);
+    phist::core<TYPE>::linearOp_wrap_sparseMat_pair(opA,A,B,&iflag);
     LOG_DBG(pes) << "linearOp_wrap_sparseMat_pair -> " << iflag;
-    assert(iflag == 0);
-
-    setup_phistMatrix->Stop();
-
 
     int prob_size = numFreq+opts_.blockSize-1;
     LOG_DBG(pes) << "prob_size -> " << prob_size;
 
     // setup necessary vectors and matrices for the schur form
-    phist::types<double>::mvec_ptr Q = NULL;
-    phist::kernels<double>::mvec_create(&Q,map,prob_size,&iflag);
+    typename phist::types<TYPE>::mvec_ptr Q = NULL;
+    phist::kernels<TYPE>::mvec_create(&Q,map,prob_size,&iflag);
     LOG_DBG(pes) << "mvec_create -> " << iflag;
-    assert(iflag == 0);
 
-    phist::types<double>::sdMat_ptr R = NULL;
-    phist::kernels<double>::sdMat_create(&R,prob_size,prob_size,comm_,&iflag);
+    typename phist::types<TYPE>::sdMat_ptr R = NULL;
+    phist::kernels<TYPE>::sdMat_create(&R,prob_size,prob_size,comm_,&iflag);
     LOG_DBG(pes) << "sdMat_create -> " << iflag;
-    assert(iflag == 0);
+
 
     resNorm_.Resize(prob_size);
     ev_.Resize(prob_size);
 
     // setup start vector (currently to (1 0 1 0 .. ) )
-    phist::types<double>::mvec_ptr v0 = NULL;
-    phist::kernels<double>::mvec_create(&v0,map,1,&iflag);
+    typename phist::types<TYPE>::mvec_ptr v0 = NULL;
+    phist::kernels<TYPE>::mvec_create(&v0,map,1,&iflag);
     LOG_DBG(pes) << "mvec_create -> " << iflag;
-    assert(iflag == 0);
 
-    phist::kernels<double>::mvec_put_value(v0,1.0,&iflag);
-    assert(iflag == 0);
+    phist::kernels<TYPE>::mvec_put_value(v0,1.0,&iflag);
 
     // skip residual calculation from subspacejada, not necessary for us
     opts_.v0=v0;
@@ -192,92 +202,121 @@ namespace CoupledField {
     // A*Q = B*Q*R holds
     assert(opts_.how != phist_HARMONIC);
 
-    phist::jada<double>::subspacejada(opA, opB, opts_, Q, R, ev_.GetPointer(), resNorm_.GetPointer(), &nEig, &nIter, &iflag);
+    phist::jada<TYPE>::subspacejada(opA, opB, opts_, Q, R, ev_.GetPointer(), resNorm_.GetPointer(), &nEig, &nIter, &iflag);
     LOG_DBG(pes) << "subspacejada -> nEig=" << nEig << " nIter=" << nIter << " ev=" << ev_.ToString() << " -> " << iflag;
     assert(iflag >= 0);
+    last_iter_ = nIter;
+    sum_iter_ += nIter;
+    count_iter_++;
+
+
 
     // skip calculation of real residual, res = AQ - BQR
 
     // compute eigenvectors X: A*X=X*D and diagonal matrix D with eigenvalues
     // (for checking the sorting only).
-    phist::types<double>::mvec_ptr X=NULL;
+    typename phist::types<TYPE>::mvec_ptr X=NULL;
     // we want the information back from cuda in SaveModes(
     iflag = PHIST_MVEC_REPLICATE_DEVICE_MEM; // ignored if not cuda
-    phist::kernels<double>::mvec_create(&X,map,nEig,&iflag);
+    phist::kernels<TYPE>::mvec_create(&X,map,nEig,&iflag);
     assert(iflag >= 0); // iflag is reset to 0 for success
 
-    setup->Stop();
-
-    shared_ptr<Timer> solve = info_->Get(ParamNode::SUMMARY)->Get("phist_solve/timer")->AsTimer();
-    solve->Start();
-
-    phist::jada<double>::ComputeEigenvectors(Q,R,X,&iflag);
+    // FIXME phist ComputeEigenVectors moved to core but seg faults in CPU
+    phist::core<TYPE>::ComputeEigenvectors(Q,R,X,&iflag);
     assert(iflag >= 0);
 
     // rescale ev_
-    complex<double> rescale(scale, 1.0);
+    complex<double> rescale(scale_mass_val_, 1.0);
     LOG_DBG(pes) << "S: rescale ev_ by " << rescale << " org_ev=" << ev_.ToString();
     ev_.ScalarMult(rescale);
     LOG_DBG(pes) << "S: scaled ev_=" << ev_.ToString();
 
 
+    double pi_pi = 2.0*M_PI;
+    assert(close(pi_pi, 8.0*atan(1.0)));
+
+    // we need to sort our stuff
+    StdVector<double> freq(numFreq_);
+    for(unsigned int i =0; i < numFreq_; i++) // rigid modes are approx zero and can be negative -> abs to avoid NaN
+      freq[i] = sqrt(std::abs(ev_[i].real()))/pi_pi; // this is the omega^2 -> f transformation from ArpackEigenSolver :(
+    SetupSortIdx(freq);
+
     // skip calculation of eigenvector residuals
-    SaveModes(X, nEig);
-    solve->Stop();
+    // save the modes in a sorted fashion
+    SaveModes<TYPE>(X, nEig);
+
+    // store solution and error
+    sol.Resize(numFreq_);
+    err.Resize(numFreq_);
+
+    assert(sol.GetEntryType() == complex_ ? BaseMatrix::COMPLEX : BaseMatrix::DOUBLE);
+    assert(err.GetEntryType() == BaseMatrix::DOUBLE);
+    // no set results
+    assert(!(complex_ && sol.GetEntryType() != BaseMatrix::COMPLEX));
+    Vector<TYPE>& solConverted = dynamic_cast<Vector<TYPE>&>(sol);
+
+    for(unsigned int i =0; i < numFreq_; i++) {
+      solConverted[i] = freq[sort_idx_[i]];
+      err.SetEntry(i, resNorm_[sort_idx_[i]]);
+    }
 
     //Delete all things declared using new or create.
-    delete []  opA;
+    delete [] opA;
     delete [] opB;
 
-    phist::kernels<double>::sparseMat_delete(A, &iflag);
-    phist::kernels<double>::sparseMat_delete(B, &iflag);
-    phist::kernels<double>::mvec_delete(Q, &iflag);
-    phist::kernels<double>::mvec_delete(X, &iflag);
-    phist::kernels<double>::sdMat_delete(R, &iflag);
+    phist::kernels<TYPE>::mvec_delete(Q, &iflag);
+    phist::kernels<TYPE>::mvec_delete(X, &iflag);
+    phist::kernels<TYPE>::sdMat_delete(R, &iflag);
+
+    solve->Stop();
     
     ToInfo();
   }
 
 
-  void PhistEigenSolver::Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
-                                UInt numFreq, double freqShift, bool sort)
+  void PhistEigenSolver::SetupSortIdx(const StdVector<double>& freq)
   {
-    LOG_DBG(pes) << "PES:S(stiff, mass, damp)";
+    // to be called after within each CalcEigenFrequencies()
+    sort_idx_.Resize(freq.GetSize());
 
-    // Set flag for indicating a non-quadratic problem
-    isQuadratic_ = true;
+    // we sort with a std::pair<||ev||, org_idx>
+    std::vector<ev_idx> org;
+    org.reserve(freq.GetSize());
+    for(unsigned int i = 0; i < freq.GetSize(); i++)
+      org.push_back(std::make_pair(freq[i], i));
 
-    SetupCommon(IsSymmetric(stiffMat), numFreq, freqShift, sort, false); // no bloch
+    std::sort(org.begin(), org.end(), PhistEigenSolver::comperator);
 
-    assert(false);
+    for(unsigned int i = 0; i < freq.GetSize(); i++)
+      sort_idx_[i] = org[i].second;
+
+    std::cout << "phist sort: " << sort_idx_.ToString() << std::endl;
   }
 
 
-  void PhistEigenSolver::SetupCommon(bool sym, unsigned int numFreq, Double freqShift, bool sort, bool bloch)
+  void PhistEigenSolver::SetupCommon(unsigned int numFreq, Double freqShift)
   {
-    LOG_DBG(pes) << "PES:SC sym=" << sym;
+    LOG_DBG(pes) << "PES:SC sym=" << sym_;
 
     // Save frequency parameters
     numFreq_ = numFreq;
     freqShift_ = freqShift;
 
-    isBloch_ = bloch;
-    sort_ = sort;
-
-
+    isBloch_ = hermitian_;
+    sort_ = true;
     // phist parameters usually read from opts-standard.txt
 
     // fill the jadaOpts struct to pass settings to the solver
     phist_jadaOpts_setDefaults(&opts_);
 
-    opts_.symmetry = sym ? phist_HERMITIAN : phist_GENERAL; // phist_HERMITIAN also for real symmetric
+    opts_.symmetry = sym_ ? phist_HERMITIAN : phist_GENERAL; // phist_HERMITIAN also for real symmetric
     opts_.numEigs   = numFreq;
     opts_.which     = which.Parse(xml_->Get("which")->As<string>());
     opts_.convTol   = xml_->Get("convTol")->As<double>();
     opts_.blockSize = xml_->Get("blockSize")->As<int>();
     opts_.maxIters  = xml_->Get("maxIter")->As<int>();
     opts_.minBas    = numFreq + 2 * opts_.blockSize; // 28
-    opts_.maxBas    = 60; //opts.minBas + 10 * opts.blockSize; // 60
+    opts_.maxBas    = xml_->Get("maxBas")->As<int>(); //opts.minBas + 10 * opts.blockSize; // 60
 
     // parameters for the linear system stuff. The element is optional
     bool is = xml_->Has("innerSolv");
@@ -321,22 +360,53 @@ namespace CoupledField {
     is->Get("maxIter")->SetValue(opts_.innerSolvMaxIters);
     is->Get("robust")->SetValue(opts_.innerSolvRobust);
     is->Get("blockSize")->SetValue(opts_.innerSolvBlockSize);
+
+    PtrParamNode proc = info_->Get(ParamNode::PROCESS);
+    PtrParamNode curr = proc->Get("phist", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
+    curr->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());
+    curr->Get("iter")->SetValue(last_iter_);
+    curr->Get("avg_iter")->SetValue(sum_iter_ / (double) count_iter_);
+    curr->Get("mass_scaling")->SetValue(scale_mass_val_);
+    curr->Get("sorting")->SetValue(sort_idx_.ToString());
+
+  }
+
+  void PhistEigenSolver::Setup(const BaseMatrix& stiffMat, const BaseMatrix& massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
+  {
+    LOG_DBG(pes) << "PES:S(stiff, mass)";
+
+
+    this->numFreq_ = numFreq;
+    this->freqShift_ = freqShift;
+
+    // todo: shall be removed with new interface
+    this->sym_ = IsSymmetric(stiffMat);
+
+    // Set flag for indicating a non-quadratic problem
+    isQuadratic_ = false;
+
+    if(stiffMat.GetEntryType() == BaseMatrix::DOUBLE)
+      Setup<double>(stiffMat, massMat, bloch);
+    else
+      Setup<Complex>(stiffMat, massMat, bloch);
   }
 
 
+  void PhistEigenSolver::Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
+                                UInt numFreq, double freqShift, bool sort)
+  {
+    LOG_DBG(pes) << "PES:S(stiff, mass, damp)";
+
+    assert(false);
+  }
+
   void PhistEigenSolver::CalcEigenFrequencies(BaseVector &sol, BaseVector &err)
   {
-    sol.Resize(numFreq_);
-    err.Resize(numFreq_);
-
-    assert(sol.GetEntryType() == BaseMatrix::DOUBLE);
-    assert(err.GetEntryType() == BaseMatrix::DOUBLE);
-
-    for(unsigned int i =0; i < numFreq_; i++) {
-      // rigid modes are approx zero and can be negative -> abs to avoid NaN
-      sol.SetEntry(i, sqrt(std::abs(ev_[i].real()))/(8.0*atan(1.0))); // this is the stupid lambda = omega^2 -> f transformation from ArpackEigenSolver :(
-      err.SetEntry(i, resNorm_[i]);
-    }
+    // remove this, this is the old interface!
+    if(hermitian_)
+      CalcEigenValues<Complex>(sol, err, numFreq_, freqShift_);
+    else
+      CalcEigenValues<double>(sol, err, numFreq_, freqShift_);
   }
 
   void PhistEigenSolver::CalcConditionNumber(const BaseMatrix& mat, Double& condNumber, Vector<Double>& evs, Vector<Double>& err)
@@ -348,17 +418,16 @@ namespace CoupledField {
 
   }
 
-  void PhistEigenSolver::GetEigenMode(UInt modeNr, Vector<Complex> & mode)
+  void PhistEigenSolver::GetEigenMode(unsigned int modeNr, Vector<Complex>& mode, bool right)
   {
+    assert(right == true); // no idea what this means ?!
+    LOG_DBG(pes) << "GEM: modeNr=" << modeNr << " right=";
+    assert(mode_.GetNumRows() > 0 && mode_.GetNumCols() > 0);
     if(modeNr >= mode_.GetNumRows())
-    {
-      std::cout << "PhistEigenSolver::GetEigenMode(" << modeNr << ") not in 0 ... " << mode_.GetNumRows() << std::endl;
-      mode.Init(0);
-      return;
-    }
-    assert(modeNr < mode_.GetNumRows()); // assume 0-based
+      EXCEPTION("request mode " << (modeNr+1) << " (1-based) not available");
 
     mode.Resize(mode_.GetNumCols());
-    mode_.GetCol(mode, modeNr);
+    mode_.GetRow(mode, modeNr);
+    LOG_DBG3(pes) << "GEM -> " << mode.ToString();
   }
 }

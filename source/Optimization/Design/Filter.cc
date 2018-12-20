@@ -31,20 +31,6 @@ Filter::Filter()
 }
 
 
-double Filter::CalcWeightSum(bool include_this) const
-{
-double res = 0.0;
-
-for(unsigned int i = 0, n = neighborhood.GetSize(); i < n; i++)
-  res += neighborhood[i].weight;
-
-if(include_this)
-  res += this->weight;
-
-return res;
-}
-
-
 double Filter::GetLowerBound(const DesignElement* de) const
 {
   if(explicit_lower_bound_ != std::numeric_limits<double>::min())

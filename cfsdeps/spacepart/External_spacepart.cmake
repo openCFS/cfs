@@ -48,7 +48,7 @@ IF(USE_LIBFBI)
   # Set names of patch file and template file.
   #-----------------------------------------------------------------------------
   SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/spacepart/libfbi-patch.cmake.in")
-  SET(PFN "${boost_prefix}/libfbi-patch.cmake")
+  SET(PFN "${BOOST_prefix}/libfbi-patch.cmake")
   CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
   # not sure if precompiled makes sense, the lib claims to be c++ header only 

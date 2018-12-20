@@ -13,7 +13,7 @@ SET(ENV{LANG} "C")
 SET(ENV{LANGUAGE} "C")
 
 IF(${SITE_DIR} MATCHES "master_stingl")
-  SET(CTEST_BUILD_NAME "Update Testsuite master_stingl")
+  SET(CTEST_BUILD_NAME "Update Testsuite stingl master")
   SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/cfstest-stingl_master")
 ELSE()
   SET(CTEST_BUILD_NAME "Update Testsuite shared_opt")

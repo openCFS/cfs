@@ -26,14 +26,17 @@ class Timer
   bool IsRunning() const { return running; }
 
   /** Start or resume a timer.
-    If it is already running, let it continue running. */
-  void Start();
+    If it is already running, let it continue running.
+    @return false if already running (nothing is changed), true for a real start*/
+  bool Start();
 
-  /** Turn the timer off and start it again from 0 */
-  void ResetStart();
+  /** Turn the timer off and start it again from 0.
+   * @return false if it was not running */
+  bool ResetStart();
 
-  /** Stop the timer, ca be restarted via Start */
-  void Stop();
+  /** Stop the timer, can be restarted via Start
+   * @return false if it was not running before */
+  bool Stop();
 
   void SetLabel(const std::string& name) {
     label_ = name;

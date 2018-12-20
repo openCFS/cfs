@@ -51,7 +51,36 @@ private:
 
   //! Exponent for calculation of interpolation weight function.
   UInt p_;
+
+  //! number of euqations per entity
+  UInt numEquPerEnt_;
   
+  //! Entity map used for source values
+  str1::shared_ptr<EqnMapSimple> scrMap_;
+
+  //! Entity map used for target values
+  str1::shared_ptr<EqnMapSimple> trgMap_;
+  
+  //! Boolean, which stores the binary input from xml-file, if we
+  //! perform a mesh-check. If mesh-check is set in xml-> mCheck = true
+  bool mCheck_;
+
+  //! if true, then element values are the interpolation target
+  bool useElemAsTarget_;
+
+  //! for the mesh-check this mesh also needs to be stored, trgGrid_ is
+  //! stored in MeshFilter
+  Grid* inGrid_;
+  
+  //! index in the static matrices vector to use
+  UInt matrixIndex_;
+  
+  //! contains pointers to every interpolator which created a matrix
+  static CF::StdVector<NearestNeighbourInterpolator*> interpolators_;
+
+  //! contains the matrices createb by the Interpolators from interpolators_
+  static CF::StdVector<Matrix> matrices_;
+
 };
 
 }

@@ -105,7 +105,6 @@ DesignSpace* DensityFile::CreateDesignSpace(bool force_region, const PtrParamNod
   PtrParamNode reg = xml->Get("header/filters/filter", ParamNode::PASS);
   if (reg)
     filter.SetFilter(reg, info->Get("ersatzMaterial"));
-
   space->ToInfo(NULL);
   return space;
 }
@@ -249,7 +248,15 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     // the regions are normally implicitly defined by the element numbers. The exception
     // is force_region from <loadErsatzMaterial>
     space = CreateDesignSpace(force_region, pn, elems, xml);
+
+    // In case where we read density file from external file the matrix based filtering is buggy.
+    // Dirty fix of disabling it for now
+    space->is_matrix_filt = false;
+    if (pn->Has("filters/use_mat_filt") && pn->Get("filters/use_mat_filt")->As<bool>())
+      EXCEPTION("Using Matrix based filtering is not tested when loading material from external file")
+
   }
+
 
   // check bound violations
   double lower_violation = 0.0;
@@ -396,7 +403,8 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
       std::stringstream ss;
       ss << "<shapeParamElement nr=\"" << spe->GetIndex();
       ss << "\" type=\"" << DesignElement::type.ToString(spe->GetType());
-      ss << "\" dof=\"" << spe->dof.ToString(spe->dof_);
+      if(spe->GetType() == DesignElement::NODE)
+        ss << "\" dof=\"" << spe->dof.ToString(spe->dof_);
       ss << "\" shape=\"" << shape->idx; // legacy density.xml files don't have this attribute
       ss << "\" ref=\"" << shape->GetReferenceId(); // legacy density.xml files don't have this attribute
       ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);

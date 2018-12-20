@@ -93,6 +93,9 @@ class SingleVector;
           double omega = lam.real();
           damp[i] = lam.imag();
           freq[i] = omega/twoPi;
+          /*double omega = sqrt(eig[i].real()); # alternative implementation from sharedopt
+          damp[i] = eig[i].imag()/omega;
+          freq[i] = omega/twoPi;*/
         }
     }
     void SortModes(){
@@ -220,6 +223,9 @@ class SingleVector;
     /** here we output the bloch mode data for direct plotting */
     std::ofstream bloch_plot_;
 
+    /** the filename for bloch_plot_ */
+    std::string bloch_name_;
+
     /** do we do ibz? Then bloch.plot will repeat the first step as final step. */
     bool ibz_;
 
@@ -232,7 +238,6 @@ class SingleVector;
     bool eigenValuesAreReal_;
 
     BaseEigenSolver::ModeNormalization modeNormalization_;
-
   };
 
 }

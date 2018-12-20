@@ -96,6 +96,7 @@ FEBasedInterpolator::~FEBasedInterpolator(){
 
 }
 
+<<<<<<< HEAD
 void FEBasedInterpolator::FillMatrix(StdVector<CF::UInt>& globSrcEntity, StdVector<CF::UInt>& globTrgEntity) {
   UInt maxNumSrcEntities = globSrcEntity.GetSize();
   UInt maxNumTrgEntities = globTrgEntity.GetSize();
@@ -146,6 +147,54 @@ void FEBasedInterpolator::FillMatrix(StdVector<CF::UInt>& globSrcEntity, StdVect
             outInIndex[replacements->operator[](k)]++;
           }
         }
+=======
+bool FEBasedInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
+  /// this is the vector, which will be filled with the result
+  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
+  Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
+
+  // vector, containing the source data values
+  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
+
+  //perform interpolation From Elem result to nodes
+  CF::Vector<Double> srcShFnc;
+  CF::StdVector<UInt> srcEqns;
+  CF::StdVector<UInt> trgEqns;
+  CF::shared_ptr<ElemShapeMap> srcShape;
+  str1::shared_ptr<EqnMapSimple> srcDownMap = resultManager_->GetEqnMap(upResIds[0]);
+  str1::shared_ptr<EqnMapSimple> trgDownMap = resultManager_->GetEqnMap(filterResIds[0]);
+
+  //in this filter we only have one upstream result
+  uuids::uuid upRes = upResIds[0];
+  Grid* srcGrid_ = resultManager_->GetExtInfo(upRes)->ptGrid;
+
+  returnVec.Init(0.0);
+  for(UInt i=0;i < interpolData_.size();++i){
+
+    QuantityStruct& srcStru = interpolData_[i];
+
+
+    const Elem* srcE = srcGrid_->GetElem(srcStru.srcElemNum);
+    srcShape = srcGrid_->GetElemShapeMap(srcE,true);
+
+    const CF::StdVector<UInt>& srcConn = srcE->connect;
+
+    FeH1 * srcElem = dynamic_cast<FeH1*>(srcShape->GetBaseFE());
+    //we assume scalar shape functions
+    srcShFnc.Resize(srcConn.GetSize());
+    srcShFnc.Init();
+    srcElem->GetShFnc(srcShFnc,srcStru.localCoords,srcE);
+
+    Double curval = 0.0;
+    for(UInt aNode =0;aNode < srcConn.GetSize(); ++aNode){
+      srcDownMap->GetEquation(srcEqns,srcConn[aNode],ExtendedResultInfo::NODE);
+      trgDownMap->GetEquation(trgEqns,srcStru.tNNum[aNode] ,ExtendedResultInfo::NODE);
+      // Finite element based interpolation of a target node point on a src element
+      curval  = srcShFnc[aNode];
+
+      for(UInt aDof=0;aDof < srcEqns.GetSize(); aDof++){
+        returnVec[trgEqns[aDof]] += curval * inVec[srcEqns[aDof]];
+>>>>>>> origin/shared-opt-0714
       }
     }
     
