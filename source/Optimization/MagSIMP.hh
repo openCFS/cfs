@@ -84,8 +84,12 @@ private:
   /** magnetic flux density */
   void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
 
+  /** elemwise computation of <N,A>. N_e = sum_ip w_i jacdet_i N_i, where N_i is the FE-shape function.
+   * form specifies the region of the scalar product, excite the excitation case  */
+  double CalcNtimesA(LinearFormContext* form, Excitation& excite);
+
   /** calc coupling as M/sqrt(L1*L2) */
-  double CalcCoupling(Excitation& excite, Function* f);
+  double CalcMagCoupling(Excitation& excite, Function* f);
 
   void CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
 

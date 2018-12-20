@@ -488,7 +488,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case ISOTROPY:
   case ISO_ORTHOTROPY:
   case ORTHOTROPY:
-  case MAG_COUPLING: // we need to solve both coils before evaluation
     assert(excite_index < 0);
     if(!me->DoMetaExcitation(ctxt))
       excite_ = ctxt->excitations.Last()->index; // with respect to our context
@@ -518,6 +517,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case SQR_MAG_FLUX_DENS_Y:
   case SQR_MAG_FLUX_DENS_X:
   case SQR_MAG_FLUX_DENS_RZ:
+  case MAG_COUPLING: // we need to solve both coils, CalcMagCoupling() returns 0 for the first excitations
   case TEMP_TRACKING_AT_INTERFACE:
     assert(excite_index < 0);
     if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")

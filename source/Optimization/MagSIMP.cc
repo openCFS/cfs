@@ -173,7 +173,7 @@ double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     }
   case Function::MAG_COUPLING:
     if(!derivative)
-      return CalcCoupling(excite, f);
+      return CalcMagCoupling(excite, f);
     else
     {
       TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true);//TODO
@@ -297,7 +297,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
     LOG_DBG2(ms) << "CMFD: calculated volume =" << opt_vol_;
   }
   // norm by the volume of the optimization domain
-  //result *= 1.0/opt_vol_;
+  result *= 1.0/opt_vol_;
   LOG_DBG(ms) << "CMFD: exit normed -> " << result;
   return result;
 }
@@ -311,86 +311,64 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
   // the gradient is < lambda^T, K' * A >
   assert(excite.sequence == f->ctxt->sequence);
 
-  double factor = 1.0;// opt_vol_; // factor for norming the gradient; same as in objective function
+  double factor = 1.0/ opt_vol_; // factor for norming the gradient; same as in objective function
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], NULL, factor, STANDARD, f);
 
 }
-double MagSIMP::CalcCoupling(Excitation& excite, Function* f)
+
+double CalcNtimesA(LinearFormContext* form, Excitation& excite)
 {
-   if(GetMultipleExcitation()->excitations.GetSize() != 2)
-     throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
+  shared_ptr<EntityList> ent = form->GetEntities();
+  EntityIterator iter = ent->GetIterator();
 
-   // the regions are encoded in the coils which are in Excitioan::form
-   LOG_DBG(ms) << "CC: ex=" << excite.index << "#f=" <<  excite.forms.GetSize();
+//  StdVector<SingleVector*>& A = forward.Get(excite)->elem[App::MAG]; // TODO why ist forward unknown here?
 
-/*
-  // TODO
-  if(f->region == ALL_REGIONS)
-    throw Exception("For function " + f->ToString() + " the attribute 'region' is mandatory");
+  // Calculate volume
 
-  // TODO explain what is calculated
-
-  // annoying entity iterator got hold the elem
-  ElemList el(domain->GetGrid());
-
-  // the stored element solution vector
-  StdVector<SingleVector*>& sol = forward.Get(excite)->elem[App::MAG];
-
-  // Vector<double> S_flux_dens; // S*flux_dens = vector of dim
-
-  double result = 0;
-
-  StdVector<LocPoint> intPoints; // Get integration Points
-  LocPointMapped lp;
-  StdVector<double> weights;
-  IntegOrder order;
-  IntScheme::IntegMethod method = IntScheme::GAUSS;
-
-  assert(!f->elements.IsEmpty());
-  assert(f->region != ALL_REGIONS);
-  for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+  double vol = 0.0;
+  while (!iter.IsEnd())
   {
-    DesignElement* de = f->elements[e];
-
-    // element solution
-    Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[de->GetElementSolutionIndex()]);
-    assert(vec != NULL);
-    const Vector<double>& a = *vec; // a = the vector potential in the element
-    LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex() << " a=" << a.ToString(2);
-
-    // prepare to get the curl operator
-    el.SetElement(de->elem);
-
-    bdb->GetIntScheme()->GetIntPoints(Elem::GetShapeType(de->elem->type), method, order, intPoints, weights );
-    LOG_DBG2(ms) << "CMFD i=" << e <<  " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
-    assert(method != IntScheme::UNDEFINED);
-    assert(!intPoints.IsEmpty());
-    // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(de->elem);
-
-    double el_val = 0.0;
-
-    for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
-    {
-      // Calculate for each integration point the LocPointMapped
-      lp.Set(intPoints[ip], esm, weights[ip]);
-
-      LOG_DBG3(ms) << "CMFD: e= " << e << " ip=" << ip << "/" << intPoints[ip].coord.ToString() << " w=" << weights[ip] << " jacDet=" << lp.jacDet << " ip =" << ip;
-
-      el_val += weights[ip] * lp.jacDet * a.Inner(a);
-
-      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << a << " el -> " << el_val;
-    } // end ip
-
-    result += el_val;
-
-  } // end loop elems
-
-  LOG_DBG(ms) << "CMFD: exit -> " << result;
-  return result;
-*/
+    // TODO shall be made faster
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(iter.GetElem());
+    vol += esm->CalcVolume();
+    iter++;
+  }
   return 0.0;
+}
+
+double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
+{
+  if(GetMultipleExcitation()->excitations.GetSize() != 2)
+    throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
+
+  // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
+  // we return value 0 for the first excitation and 2*coupling for the second excitation
+  assert(GetMultipleExcitation()->excitations.GetSize() == 2);
+  if(excite.index == 0)
+    return 0.0;
+
+  assert(excite.index == 1);
+  Excitation excite_A = GetMultipleExcitation()->excitations[0];
+  Excitation excite_B = GetMultipleExcitation()->excitations[1];
+  // Coupling can only be calculated for exactly two coils
+  assert(excite_A.index == 0 && excite_B.index == 1);
+  StdVector<LinearFormContext*>& forms_A = excite_A.forms;
+  StdVector<LinearFormContext*>& forms_B = excite_B.forms;
+
+  assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
+  LinearFormContext* form_A = forms_A[0];
+  LinearFormContext* form_B = forms_B[0];
+  double N1AB = CalcNtimesA(form_A, excite_B);
+  double N1AA = CalcNtimesA(form_A, excite_A);
+  double N2AB = CalcNtimesA(form_B, excite_B);
+  double k = ((N1AB*N1AB)/(N1AA*N2AB));//(vol_2/vol_1)* TODO aus CalcNtimesA?
+
+  //LOG_DBG(ms) << "CCARH: ent A=" << ent_A->GetName();
+  //LOG_DBG(ms) << "CCARH: ent B=" << ent_B->GetName();
+  assert(false);
+
+  return k;
 }
 void MagSIMP::CalcCouplingGradient(Excitation& excite, Function* f, TransferFunction* tf)
 {

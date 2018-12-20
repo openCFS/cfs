@@ -218,6 +218,7 @@ class Function
     unsigned int GetEigenValueID() { return eigenvalue_id_; }
 
     /** Shall/must we evaluate this objective at this excitation?
+     * Sets the attribute excite_
      * Stress constraints in homogenization are triggered for a single constraint only.
      * @param excite_index -2 is uninitialized/auto, -1 is always */
     void SetExcitation(MultipleExcitation* me, int excite_index = -2);
@@ -773,6 +774,7 @@ class Function
 
     /** Excitation index for evaluation.
      * Note that the index is unique over all sequences!
+     * >= 0 for the actual excitation
      * -1 for all excitations within this sequence!!. Most interesting for stress constraints.
      * -2 is for unset! */
     int excite_;
