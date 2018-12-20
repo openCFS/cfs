@@ -132,7 +132,7 @@ IF(MINGW)
   SET(BOOST_JAM_PARAMS ${BOOST_JAM_PARAMS} -s ZLIB_SOURCE="${BOOST_ZLIB_SOURCE}" -s ZLIB_INCLUDE="${BOOST_ZLIB_SOURCE}" -s NO_ZLIB=0 ) #-s NO_BZIP2=1)
 ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   SET(BOOST_BOOTSTRAP_PARAMS --with-toolset=intel-linux)
-  SET(BOOST_JAM_PARAMS cxxflags=\"-gxx-name=g++-7\" cxxflags=\"-gcc-name=gcc-7\")
+  SET(BOOST_JAM_PARAMS cxxflags=\"-gxx-name=g++-${CFS_ICC_GCC_VERSION}\" cxxflags=\"-gcc-name=gcc-${CFS_ICC_GCC_VERSION}\")
 ENDIF()
 
 

@@ -405,6 +405,9 @@ OPTION(EXPLICIT_TEMPLATE_INSTANTIATION
   "Use explicit template instantiation."
   ${EXPLICIT_TEMPLATE_INSTANTIATION_DEFAULT})
 
+# ICC needs a gcc to get header from. Newest ICC might noe be fully compatible with gcc 8.* yet
+SET(CFS_ICC_GCC_VERSION ${CFS_ICC_GCC_VERSION_DEFAULT} CACHE STRING "GCC version where ICC takes the headers from")
+
 #-----------------------------------------------------------------------------
 # Set a sane default value for the CFS++ schema path
 #-----------------------------------------------------------------------------
@@ -463,6 +466,7 @@ MARK_AS_ADVANCED(USE_LIBXML2)
 #MARK_AS_ADVANCED(BUILD_GHOST)
 MARK_AS_ADVANCED(BUILD_HWLOC)
 MARK_AS_ADVANCED(DISABLE_OPTIMIZATION)
+MARK_AS_ADVANCED(CFS_ICC_GCC_VERSION)
 
 #-----------------------------------------------------------------------------
 # Set some variables according to build type DEBUG / RELEASE
