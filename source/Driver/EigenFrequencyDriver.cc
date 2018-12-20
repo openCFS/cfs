@@ -102,6 +102,18 @@ namespace CoupledField {
     param_->GetValue( "maxVal", maxVal_, ParamNode::INSERT );
     param_->GetValue( "writeModes", writeModes_, ParamNode::PASS );
     param_->GetValue( "isQuadratic", isQuadratic_, ParamNode::PASS );
+    // determine type of mode normalization
+    std::string normString = "solver";
+    param_->Get("writeModes")->GetValue("normalization",normString, ParamNode::PASS);
+    if (normString == "solver") {
+      modeNormalization_ = BaseEigenSolver::NONE;
+    } else if (normString == "max") {
+      modeNormalization_ = BaseEigenSolver::MAX;
+    } else if (normString == "norm") {
+      modeNormalization_ = BaseEigenSolver::NORM;
+    } else {
+      EXCEPTION("Specified mode normalization '"+normString+"' not implemented");
+    }
     // read flag if all results should get written to database file section
     // to allow e.g. for general postprocessing or result extraction    
     param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
@@ -369,6 +381,11 @@ namespace CoupledField {
     // Trigger calculation
     ptPDE_->WriteGeneralPDEdefines();
     BaseSolveStep* step = ptPDE_->GetSolveStep();
+
+    // set the mode normalization
+
+    dynamic_cast<StdSolveStep*>(step)->GetAlgSys()->GetEigenSolver()->SetModeNormalization(modeNormalization_);
+
     // Start of FEAST section and layout for new, more flexible structure which does not rely on the intermediate
     // functions in algSys, StdSolveStep, ...
     if (maxVal_>0) { // use only for feast -> TODO: remove this if
@@ -414,13 +431,37 @@ namespace CoupledField {
             sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(evals,errs,minVal_,maxVal_);
             eigsRe_.Resize(evals.GetSize());
             eigsRe_ = evals;
+            eigsIm_.Resize(evals.GetSize(),0.0);
             Eig2Freq(evals,frequency_);
         }
+        Vector<Complex> ev(eigsRe_.GetSize());
+        for (int i=0;i<(int)eigsRe_.GetSize();i++) {
+          ev[i] = Complex( eigsRe_[i], eigsIm_[i] );
+        }
+        Eig2FreqDamp(ev,frequency_,dampingRatio_);
         // info output: ToDo: make this pretty
         std::cout << "eigsRe = " << eigsRe_.ToString() << "\n";
         std::cout << "eigsIm = " << eigsIm_.ToString() << "\n";
         std::cout << "Frequency = " << frequency_.ToString() << "\n";
-        std::cout << "dampingRatio_ = " << dampingRatio_.ToString() << "\n";
+
+        std::cout << "dampingRatio = " << dampingRatio_.ToString() << "\n";
+        SortModes();
+        int n = 15; // field width
+        cout << "\n";
+        cout << " Mode | ";
+        cout << setw(n) << "Frequency in Hz" << " | ";
+        cout << setw(n) << "Damping Ratio" << " | ";
+        cout << setw(n) << "Re(lamda)" << " | ";
+        cout << setw(n) << "Im(lambda)" << "\n";
+        // plot sorted by frequency
+        for(unsigned int i=0; i < modeOrder_.GetSize(); i++) {
+          cout << setw(5) << i+1 << " | ";
+          cout << setw(n) << frequency_[modeOrder_[i]]<< " | ";
+          cout << setw(n) << dampingRatio_[modeOrder_[i]]<< " | ";
+          cout << setw(n) << eigsRe_[modeOrder_[i]]<< " | ";
+          cout << setw(n) << eigsIm_[modeOrder_[i]] << "\n";
+        }
+
         // export solution
         PtrParamNode els = sstep->GetAlgSys()->GetExportLinSysParam();
         if (els) {
@@ -432,9 +473,17 @@ namespace CoupledField {
             }
             for (UInt i=0; i< frequency_.GetSize();i++) {
               Vector<Complex> mode;
-              sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode);
+                
+              // TU Wien Variant with normalized eigenmodes
+              sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(i,mode);
               mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1),vec_format);
-              sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode,false);
+              sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(i,mode,false);
+              
+              // sharedopt variant with non-normalized modes
+              /*sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode);
+              mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1),vec_format);
+              sstep->GetAlgSys()->GetEigenSolver()->GetEigenMode(i,mode,false);*/
+
               mode.Export( base + "_mode-left_" + lexical_cast<std::string>(i+1),vec_format);
             }
           }
@@ -559,6 +608,7 @@ namespace CoupledField {
       {
         ptPDE_->GetSolveStep()->SetActStep(fi);
         ptPDE_->GetSolveStep()->SetActFreq(GetFrequency(modeOrder_[fi]));
+        ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", GetFrequency(modeOrder_[fi]) );
         ptPDE_->GetSolveStep()->GetEigenMode(modeOrder_[fi]); // this stores the eigen mode result in AlgSys's sol_
 
         // stupid paraview needs an increasing series of save_value :(

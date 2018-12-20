@@ -141,7 +141,9 @@ int main(int argc, const char** argv)
   std::set<CFSDat::FilterPtr> outputs;
   for(UInt i=0;i<filters.GetSize();++i){
     CFSDat::FilterPtr newFilt = CFSDat::BaseFilter::Generate(filters[i],resMan);
+
     if(newFilt){
+
       std::cout << "\t---> Adding Filter type \"" << filters[i]->GetName() << "\" with ID \"" << newFilt->GetId() << "\"" << std::endl;
       allFilters[newFilt->GetId()] = newFilt;
       if(newFilt->IsOutput()){

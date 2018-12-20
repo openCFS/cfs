@@ -91,6 +91,10 @@ namespace CoupledField {
         return "Pa";
         break;
 
+      case WATER_POSITION:
+        return "m";
+        break;
+
       case ACOU_ACCELERATION:
         return "m/s^2";
         break;
@@ -130,6 +134,10 @@ namespace CoupledField {
 
       case ACOU_VELOCITY:
         return "m/s";
+        break;
+
+      case ACOU_POSITION:
+        return "m";
         break;
 
       case ACOU_SURFINTENSITY:
@@ -380,6 +388,14 @@ namespace CoupledField {
 
       case HEAT_FLUX_DENSITY:
         return "W/m^2";
+        break;
+
+      case HEAT_FLUX_INTENSITY:
+        return "W/m^2";
+        break;
+
+      case HEAT_FLUX:
+        return "W";
         break;
 
       case HEAT_RHS_LOAD:
@@ -1367,6 +1383,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_ACCELERATION, "acouAcceleration");
     SolutionTypeEnum.Add(ACOU_POTENTIAL, "acouPotential");
     SolutionTypeEnum.Add(ACOU_VELOCITY, "acouVelocity");
+    SolutionTypeEnum.Add(ACOU_POSITION, "acouPosition");
     SolutionTypeEnum.Add(ACOU_NORMAL_VELOCITY, "acouNormalVelocity");
     SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_1, "acouPressureD1");
     SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_2, "acouPressureD2");
@@ -1411,6 +1428,7 @@ namespace CoupledField {
 
     //water waves
     SolutionTypeEnum.Add(WATER_PRESSURE, "waterPressure");
+    SolutionTypeEnum.Add(WATER_POSITION, "waterPosition");
     SolutionTypeEnum.Add(WATER_PMLAUXVEC,"waterPmlAuxVec");
     SolutionTypeEnum.Add(WATER_PMLAUXSCALAR, "waterPmlAuxScalar");
     SolutionTypeEnum.Add(WATER_RHS_LOAD, "waterRhsLoad");
@@ -1462,6 +1480,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(HEAT_MEAN_TEMPERATURE, "heatMeanTemperature");
     SolutionTypeEnum.Add(HEAT_TEMPERATURE_D1, "heatTemperatureD1");
     SolutionTypeEnum.Add(HEAT_FLUX_DENSITY, "heatFluxDensity");
+    SolutionTypeEnum.Add(HEAT_FLUX_INTENSITY, "heatFluxIntensity");
+    SolutionTypeEnum.Add(HEAT_FLUX, "heatFlux");
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
     SolutionTypeEnum.Add(HEAT_SOURCE_DENSITY, "heatSourceDensity");
     //fluidMech
@@ -1562,6 +1582,20 @@ namespace CoupledField {
     SolutionTypeEnum.Add(LBM_PRESSURE, "LBMPressure");
     SolutionTypeEnum.Add(LBM_PHYSICAL_PSEUDO_DENSITY, "LBMPhysicalPseudoDensity");
 
+    //Geometry
+    SolutionTypeEnum.Add(NODE_NORMAL, "NodeNormal");
+    SolutionTypeEnum.Add(COOSY_X,"CooSy-default-x");
+    SolutionTypeEnum.Add(COOSY_Y,"CooSy-default-y");
+    SolutionTypeEnum.Add(SURFACE_NORMAL,"SurfaceNormal");
+    SolutionTypeEnum.Add(AREA,"area");
+    SolutionTypeEnum.Add(ETA, "eta");
+    SolutionTypeEnum.Add(XI, "xi");
+
+
+
+
+
+
     // ==== Initialization of Material Constants ====
     MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );
     MaterialTypeEnum.Add( MAGSTRICT_RELUCTIVITY,"Magstrict_reluctivity");
@@ -1632,6 +1666,9 @@ namespace CoupledField {
     MaterialTypeEnum.Add( THERMAL_EXPANSION_TENSOR, "thermalExpansion" ); 
     MaterialTypeEnum.Add( DYNAMIC_VISCOSITY, "dynamicViscosity" ); 
     MaterialTypeEnum.Add( KINEMATIC_VISCOSITY, "kinematicViscosity" );
+    MaterialTypeEnum.Add( BULK_VISCOSITY, "bulkViscosity" );
+    MaterialTypeEnum.Add( REF_PRESSURE, "refPressure" );
+    MaterialTypeEnum.Add( REF_TEMPERATURE, "referenceTemperature" );
     MaterialTypeEnum.Add( PIEZO_TENSOR, "PiezoTensor" ); 
     MaterialTypeEnum.Add( SPON_POLARIZATION, "sponPolarization" ); 
     MaterialTypeEnum.Add( SPON_STRAIN, "sponStrain" ); 

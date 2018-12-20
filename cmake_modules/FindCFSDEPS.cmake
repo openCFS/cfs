@@ -510,12 +510,12 @@ ENDIF(USE_FLANN)
 # This is not open source, so check with Christoph Zillober, Uni-Wuerzburg first 
 #-----------------------------------------------------------------------------
 IF(USE_SCPIP)
+  SET(SCPIP_URL "${CFS_DS_SOURCES_DIR}/scpip")
   SET(SCPIP_PATH "${CFS_BINARY_DIR}/cfsdeps/scpip")
   SET(SCPIP_BASE "scpip")
   SET(SCPIP_VER "")
   SET(SCPIP_BZ2 "${SCPIP_BASE}.tar.bz2")
-  SET(SCPIP_MD5 "8afaf8d8d79981d68b8c726ea508471d")
-   
+  SET(SCPIP_MD5 "8afaf8d8d79981d68b8c726ea508471d")  
   INCLUDE("${CFSDEPS_DIR}/scpip/External_SCPIP.cmake")
 ENDIF(USE_SCPIP)
 
@@ -524,12 +524,14 @@ ENDIF(USE_SCPIP)
 # Find SNOPT - A general purpose commercial optimizer 
 #-----------------------------------------------------------------------------
 IF(USE_SNOPT)
-  SET(SNOPT_PATH "${CFS_BINARY_DIR}/cfsdeps/snopt")
+  SET(SNOPT_URL "${CFS_DS_SOURCES_DIR}/snopt")
   SET(SNOPT_BASE "snopt")
   SET(SNOPT_VER "7.2.8")
+  SET(SNOPT_MD5 "9e75be8400eb878b9cb3d489084af196")
+  SET(SNOPT_PATH "${CFS_BINARY_DIR}/cfsdeps/snopt")
+  # as snopt is commerical propriatary copy we hand an encrypted source file
+  # you need to provide CFS_KEY_SNOPT with the password
   SET(SNOPT_ZIP "${SNOPT_BASE}-${SNOPT_VER}-cfsdeps.zip")
-  # SET(SNOPT_MD5 "9e75be8400eb878b9cb3d489084af196") we don't check
-  
   INCLUDE("${CFSDEPS_DIR}/snopt/External_SNOPT.cmake")
 ENDIF(USE_SNOPT)
 

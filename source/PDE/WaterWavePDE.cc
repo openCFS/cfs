@@ -295,11 +295,13 @@ namespace CoupledField{
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     shared_ptr<FeSpace> mySpace = feFunctions_[WATER_PRESSURE]->GetFeSpace();
-
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
       // actSDMat = it->second;
+      // save the density
+      PtrCoefFct dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+      matCoefs_[ELEM_DENSITY]->AddRegion(actRegion, materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL ) );
 
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
@@ -456,7 +458,9 @@ namespace CoupledField{
     LinearForm * lin = NULL;
 
     // obtain density
-    PtrCoefFct surfDens = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+    shared_ptr<CoefFunctionMulti> densFct = matCoefs_[ELEM_DENSITY];
+    shared_ptr<CoefFunctionSurf> surfDens(new CoefFunctionSurf(false));
+    surfDens->SetVolumeCoefs( densFct->GetRegionCoefs() );
 
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
 
@@ -531,6 +535,45 @@ namespace CoupledField{
       myFct->AddEntityList(ent[i]);
     }
 
+    // ===========================
+    //  DISPLACEMENT (surface)
+    // ===========================
+    LOG_DBG(waterWavepde) << "Reading total velocity";
+    StdVector<std::string> vecDofNames;
+    if(dim_ == 3)
+      vecDofNames = "x", "y", "z";
+    if(dim_ == 2 && !isaxi_)
+      vecDofNames = "x", "y";
+    if(dim_ == 2 && isaxi_)
+      vecDofNames = "r", "z";
+    ReadRhsExcitation( "displacement", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef,coefUpdateGeo );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // ensure that list contains only surface elements
+      EntityIterator it = ent[i]->GetIterator();
+      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+      if( elemDim != (dim_-1) ) {
+        EXCEPTION("displacement can only be defined on surface elements");
+      }
+      // in this case the pressure can be related to the normal velocity as
+      // p_n = - Omega^2*v_n*rho
+      PtrCoefFct omega2Rho = CoefFunction::Generate( mp_, Global::COMPLEX,
+          CoefXprBinOp(mp_,CoefFunction::Generate( mp_, Global::COMPLEX,"4*pi*pi*f*f","0.0"),surfDens, CoefXpr::OP_MULT)) ;
+      PtrCoefFct exValue = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_,omega2Rho, coef[i], CoefXpr::OP_MULT) );
+
+      if( dim_ == 2) {
+        lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,2>(), 1.0, exValue, volRegions, coefUpdateGeo);
+      } else  {
+        lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,3>(), 1.0, exValue, volRegions, coefUpdateGeo);
+      }
+
+      lin->SetName("VelocityIntegrator");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+    }
+
 
     // =====================================
     //  rhsValues
@@ -575,7 +618,7 @@ namespace CoupledField{
     rhs->resultType = WATER_RHS_LOAD;
     rhs->dofNames = "";
     rhs->unit = "?";
-    rhs->definedOn = results_[0]->definedOn;
+    rhs->definedOn = ResultInfo::NODE;
     rhs->entryType = ResultInfo::SCALAR;
     this->rhsFeFunctions_[WATER_PRESSURE]->SetResultInfo(rhs);
     DefineFieldResult( this->rhsFeFunctions_[WATER_PRESSURE], rhs );
@@ -645,6 +688,53 @@ namespace CoupledField{
   }
 
   void WaterWavePDE::DefinePostProcResults(){
+    StdVector<std::string> vecDofNames;
+    if( ptGrid_->GetDim() == 3 ) {
+      vecDofNames = "x", "y", "z";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        vecDofNames = "r", "z";
+      } else {
+        vecDofNames = "x", "y";
+      }
+    }
+
+    // === DENSITY ===
+    shared_ptr<ResultInfo> density ( new ResultInfo );
+    density->resultType = ELEM_DENSITY;
+    density->dofNames = "";
+    density->unit = "kg/m^3";
+    density->definedOn = ResultInfo::ELEMENT;
+    density->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionMulti> densFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false )); // we do not have complex density
+    matCoefs_[ELEM_DENSITY] = densFct;
+    DefineFieldResult(densFct, density);
+
+    // === PARTICLE_POSITION ===
+    shared_ptr<ResultInfo> pos(new ResultInfo);
+    pos->resultType = WATER_POSITION;
+    pos->dofNames = vecDofNames;
+    pos->unit = "m";
+    pos->entryType = ResultInfo::VECTOR;
+    pos->definedOn = ResultInfo::ELEMENT;
+
+    shared_ptr<CoefFunctionFormBased> presGradFct;
+    shared_ptr<BaseFeFunction> presFct = feFunctions_[WATER_PRESSURE];
+    if( isComplex_ ) {
+      presGradFct.reset(new CoefFunctionBOp<Complex>(presFct, pos, 1.0));
+    } else {
+      presGradFct.reset(new CoefFunctionBOp<Double>(presFct, pos, 1.0));
+    }
+    stiffFormCoefs_.insert(presGradFct);
+
+    // u = 1/(rho*omega^2) * grad(p)
+    PtrCoefFct oneOverOmega2rho = CoefFunction::Generate( mp_, Global::REAL,
+              CoefXprBinOp( mp_, CoefFunction::Generate( mp_, Global::REAL,"1.0"),
+                CoefXprBinOp(mp_,CoefFunction::Generate( mp_, Global::REAL, "4*pi*pi*f*f"), densFct, CoefXpr::OP_MULT ),
+              CoefXpr::OP_DIV ));
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+    PtrCoefFct posFct = CoefFunction::Generate( mp_,  part, CoefXprBinOp( mp_, oneOverOmega2rho, presGradFct, CoefXpr::OP_MULT ) );
+    DefineFieldResult( posFct, pos );
   }
 
   //! Init the time stepping

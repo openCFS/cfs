@@ -69,6 +69,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 
 SET(Boost_LIBRARY_DIR "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}" CACHE PATH "Boost library dir.")
+MARK_AS_ADVANCED(Boost_LIBRARY_DIR)
 
 IF(UNIX)
   SET(BOOST_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
@@ -103,7 +104,7 @@ IF(MINGW)
   SET(EXT_ZLIB_LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/zlib/${ZLIB_GZ}")
   SET(EXT_ZLIB_MD5_SUM ${ZLIB_MD5})
 
-  SET(EXT_ZLIB_DLFN "${zlib_prefix}/zlib-download.cmake")
+  SET(EXT_ZLIB_DLFN "${EXT_ZLIB_zlib_prefix}/zlib-download.cmake")
   CONFIGURE_FILE(
     "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
     "${EXT_ZLIB_DLFN}"

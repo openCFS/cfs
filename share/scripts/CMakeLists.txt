@@ -16,6 +16,7 @@ ADD_CUSTOM_TARGET(common_script ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/${COMMON_SCRIPT} ${CFS_BINARY_DIR}/bin
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMMON_SCRIPT}
   COMMENT "Copying \"${COMMON_SCRIPT}\" script to ${CFS_BINARY_DIR}/bin folder...")
+install(PROGRAMS ${COMMON_SCRIPT} DESTINATION bin)
 
 IF(MINGW)
   ADD_CUSTOM_TARGET(common_script_sh ALL
@@ -38,6 +39,7 @@ ADD_CUSTOM_TARGET(cfs_script ALL
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${CFS_SCRIPT}
   COMMENT "Copying CFS start script \"${CFS_SCRIPT}\" to
   ${CFS_BINARY_DIR}/bin folder...")
+install(PROGRAMS ${CFS_SCRIPT} DESTINATION bin)
 
 IF(MINGW)
   ADD_CUSTOM_TARGET(cfs_script_sh ALL
@@ -57,12 +59,13 @@ ELSE(WIN32)
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfs-debug
     COMMENT "Copying CFS-debug start script \"${CFS_SCRIPT}\" to
     ${CFS_BINARY_DIR}/bin folder...")
+  install(PROGRAMS ${CFS_SCRIPT} DESTINATION bin)
 ENDIF(WIN32)
 
 #-------------------------------------------------------------------------------
 # Custom target for copying cfstool to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
-IF(CFSTOOL)
+IF(BUILD_CFSTOOL)
   IF(WIN32)
     SET(CFSTOOL_SCRIPT "cfstool.bat")
   ELSE(WIN32)
@@ -74,6 +77,7 @@ IF(CFSTOOL)
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${CFSTOOL_SCRIPT}
     COMMENT "Copying CFS Tool start script \"${CFSTOOL_SCRIPT}\" to
     ${CFS_BINARY_DIR}/bin folder...")
+  install(PROGRAMS ${CFSTOOL_SCRIPT} DESTINATION bin)
 
   IF(MINGW)
     ADD_CUSTOM_TARGET(cfstool_script_sh ALL
@@ -82,7 +86,7 @@ IF(CFSTOOL)
       COMMENT "Copying \"cfstool\" script to ${CFS_BINARY_DIR}/bin folder...")
   ENDIF()
 
-ENDIF(CFSTOOL)
+ENDIF(BUILD_CFSTOOL)
 
 #-------------------------------------------------------------------------------
 # Custom target for copying cfsdat to ${CFS_BINARY_DIR}/bin
@@ -99,6 +103,7 @@ IF(CFSDAT)
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${CFSDAT_SCRIPT}
     COMMENT "Copying CFSDat start script \"${CFSDAT_SCRIPT}\" to
     ${CFS_BINARY_DIR}/bin folder...")
+  install(PROGRAMS ${CFSDAT_SCRIPT} DESTINATION bin)
 
   IF(MINGW)
     ADD_CUSTOM_TARGET(cfsdat_script_sh ALL
@@ -126,6 +131,7 @@ ADD_CUSTOM_TARGET(h5tool_script ALL
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${H5TOOL_SCRIPT}
   COMMENT "Copying HDF5 Tool start script \"${H5TOOL_SCRIPT}\" to
   ${CFS_BINARY_DIR}/bin folder...")
+  install(PROGRAMS ${H5TOOL_SCRIPT} DESTINATION bin)
 
 #-------------------------------------------------------------------------------
 # Custom target for copying distro.sh to ${CFS_BINARY_DIR}/share/scripts
@@ -141,6 +147,7 @@ ADD_CUSTOM_TARGET(distro_script ALL
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${DISTRO_SCRIPT}
   COMMENT "Copying \"${DISTRO_SCRIPT}\" script to ${CFS_BINARY_DIR}/share/scripts folder..."
   )
+install(PROGRAMS ${DISTRO_SCRIPT} DESTINATION bin)
 
 IF(MINGW)
   ADD_CUSTOM_TARGET(distro_script_sh ALL

@@ -34,6 +34,7 @@ HeatMaterial::HeatMaterial(MathParser* mp,
   isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
   isAllowed_.insert( DATA_ACCURACY );
   isAllowed_.insert( MAX_APPROX_VAL );
+  isAllowed_.insert( REF_TEMPERATURE );
 }
 
 HeatMaterial::~HeatMaterial() {

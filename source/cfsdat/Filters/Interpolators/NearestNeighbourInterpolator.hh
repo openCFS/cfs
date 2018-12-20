@@ -16,9 +16,9 @@
 
 
 #include "DataInOut/SimInput.hh"
-//#include <cfsdat/Utils/Point.hh>
 #include <Filters/MeshFilter.hh>
-
+#include "Utils/InterpolationMatrix.hh"
+#include "AbstractInterpolator.hh"
 
 
 
@@ -27,18 +27,8 @@ namespace CFSDat{
 //! Class for calculating a nearest neighbour interpolation using CGAL
 //! for neighbour search
 
-class NearestNeighbourInterpolator : public MeshFilter{
+class NearestNeighbourInterpolator : public AbstractInterpolator {
   
-
-
-  //! struct containing an interpolation matrix, which may be applied to scalars and vector
-  struct Matrix {
-    CF::UInt numTargets;
-    StdVector<CF::UInt> targetSourceIndex;
-    StdVector<CF::UInt> targetSource;
-    StdVector<CF::Double> targetSourceFactor;
-  };
-
 
 public:
 
@@ -47,61 +37,21 @@ public:
   virtual ~NearestNeighbourInterpolator();
 
 protected:
-
-  virtual bool UpdateResults(std::set<uuids::uuid>& upResults);
   
-/*
-  //! Count the number of entities, which are used for the interpolation
-  CF::UInt CountUsedEntities(const StdVector<CF::UInt>& entities);
-  
-
-  //! Collects global entity numbers (nodeNums or elemNums), according to the specified regions of the grid.
-  //! If an equation-number is not used for the calculation, the according entry in entities is UInt_MAX
-
-  //! \param (in) map       equation map, containing the equation numbers of the specified map (source or target map)
-  //! \param (in) regions   source or target region-names
-  //! \param (in) grid      source or target Grid
-  //! \param (out) entities Vector, which has the size of the equation-map and contains the entity-numbers
-  //!                       at the location, which is stored for this entity in the map, this means, the
-  //!                       location is the index of the entity number in the equation-map
-  void GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>& map,
-                             StdVector<CF::UInt>& entities,
-                             const std::set<std::string>& regions,
-                             Grid* grid);
-
-  bool CreatesEqualMatrix(NearestNeighbourInterpolator* otherInterpolator);
-*/
-
-  virtual void PrepareCalculation();
-
-  virtual ResultIdList SetUpstreamResults();
-
-  virtual void AdaptFilterResults();
-
-
+  virtual void FillMatrix(StdVector<CF::UInt>& globSrcEntity, StdVector<CF::UInt>& globTrgEntity);
 
 private:
-
-
-  //! Method which performs comparison of original results and twice interpolated ones
-  //! in order to check the difference between the initial source-values and the
-  //! two-times-interpolated ones. With these two results we can compute the
-  //! correlation between the two results and throw an exception if the interpolation
-  //! is not good enough, so the target-mesh has to be refined or the interpolation-
-  //! exponent has to be adapted
-
-  //! \param (in) origVec original input vector of filter (not interpolated)
-  //! \param (in) newVec twice interpolated vector Src->Trg->Src
-  void CheckFilterResults(Vector<Double>& origVec,
-                          Vector<Double>& newVec);
 
 
   //! Number of neighbor points to include in interpolation.
   UInt numNeighbors_;
 
+  //! Global Factor for scaling the result
+  Double globalFactor_;
+
   //! Exponent for calculation of interpolation weight function.
   UInt p_;
-  
+
   //! number of euqations per entity
   UInt numEquPerEnt_;
   

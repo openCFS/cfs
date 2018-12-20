@@ -158,7 +158,7 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.svn")
     ELSE(NOT ${Subversion_svn_modified_result} EQUAL 0)
 
       IF(${prefix}_WC_MODIFIED)
-	SET(${prefix}_WC_MODIFIED "modified")
+	SET(${prefix}_WC_MODIFIED "(modified)")
       ENDIF(${prefix}_WC_MODIFIED)
 
     ENDIF(NOT ${Subversion_svn_modified_result} EQUAL 0)
@@ -239,7 +239,7 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.git")
 #  MESSAGE("CFS_GIT_MODIFIED ${CFS_WC_MODIFIED}")
   
   IF(CFS_WC_MODIFIED)
-    SET(CFS_WC_MODIFIED "modified")
+    SET(CFS_WC_MODIFIED "(modified)")
   ENDIF(CFS_WC_MODIFIED)
 
 #  MESSAGE("CFS_WC_MODIFIED ${CFS_WC_MODIFIED}")
@@ -261,6 +261,9 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.git")
 
   # restore the previous LC_ALL
   SET(ENV{LC_ALL} ${_Subversion_SAVED_LC_ALL})
+
+  # set 
+  SET(CFS_WC_REVISION ${CFS_GIT_COMMIT})
 
 ENDIF(EXISTS "${CFS_SOURCE_DIR}/.git")
 

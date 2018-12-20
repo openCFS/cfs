@@ -50,6 +50,7 @@ namespace CoupledField {
     /** Solve the linear generalized eigenvalue problem
      * @see BaseEigenSolver::CalcEigenFrequencies() */
     void CalcEigenFrequencies(BaseVector& sol, BaseVector& err); //removed EXCEPTION due to compiler Error. of duplicate function in .cc
+    //{EXCEPTION("obsolete - should be removed from interface");}
 
     /**Calculate a particular eigenmode as a postprocessing solution
      * @see BaseEigenSolver::GetEigenMode() */
@@ -59,6 +60,9 @@ namespace CoupledField {
 
     /** @see BaseEigenSolver::CalcConditionNumber() */
     void CalcConditionNumber( const BaseMatrix& mat, double& condNumber, Vector<double>& evs, Vector<double>& err);
+
+    //! Translate the info integer to a message
+    std::string FeastInfo(Integer info);
 
   private:
     /** print setup information */

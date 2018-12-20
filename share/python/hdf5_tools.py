@@ -195,6 +195,35 @@ def get_element(hdf5_file, name, region, given_step=99999):
   except:
     raise Exception("cannot access '" + key + "' in " + str(hdf5_file.filename))
 
+def get_step_values(h5) :
+  """
+  return the step values as a list of arrays for each multi-sequence step
+
+  Parameters
+  ----------
+  h5: h5py.File object
+
+  Returns
+  -------
+  out : list of arrays
+  """
+  from numpy import allclose
+  try:
+    multisteps = h5['Results/Mesh']
+  except:
+    raise Exception("no Mesh results in %s"%h5.filename)
+  step_values = []
+  for msk in multisteps.keys():
+    result_keys = list(multisteps[msk]['ResultDescription'].keys())
+    rev_vals = multisteps[msk]['ResultDescription'][result_keys[0]]['StepValues'].value
+    # check step vals
+    for rk in result_keys[1:]:
+      if not allclose(rev_vals,multisteps[msk]['ResultDescription'][rk]['StepValues'].value) :
+        Exception("step values are different for '" + rk + "' and '"+result_keys[0]+"' in " + msk)
+      #.values(
+    step_values.append(rev_vals)
+  return step_values
+
 # returns nodal or elemental results as numpy array
 def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
     """
@@ -290,7 +319,7 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
     from numpy import array, argwhere
     Is = hdf5_file['Mesh']['Regions'][subregion][rtype].value-1
     Ir = hdf5_file['Mesh']['Regions'][region][rtype].value-1
-    Isr = array([argwhere(Ir==i)[0][0] for i in Is])
+    Isr = array([argwhere(Ir==i).ravel() for i in Is if i in Ir]).ravel()
     return Isr
 
 

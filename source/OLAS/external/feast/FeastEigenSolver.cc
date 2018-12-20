@@ -460,6 +460,10 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
     LOG_DBG(fes) << "CEF e -> " << sol.ToString();
     LOG_DBG(fes) << "CEF res -> " << err.ToString();
     LOG_DBG3(fes) << "CEF x:" << vr_.ToString();
+    // check info
+    if (info_!=0) {
+      WARN( FeastInfo(info_) );
+    }
 }
 
 void FeastEigenSolver::Setup(const BaseMatrix& stiffMat, unsigned int numFreq, double freqShift, bool sort)
@@ -538,6 +542,7 @@ void FeastEigenSolver::Setup( const BaseMatrix& stiffMat,
 {
   assert(false);
 }
+
 int info;
 
 void FeastEigenSolver::CalcEigenFrequencies(BaseVector& bvs, BaseVector& err)
@@ -547,89 +552,91 @@ void FeastEigenSolver::CalcEigenFrequencies(BaseVector& bvs, BaseVector& err)
 
   switch(a_->GetStorageType())
   {
-  case BaseMatrix::SPARSE_SYM:
-  {
-    assert(a_->GetEntryType() == BaseMatrix::DOUBLE);
-    Vector<double>& e = dynamic_cast<Vector<double>&>(bvs);
-    Vector<double>& res = dynamic_cast<Vector<double>&>(err);
-
-    // standard problem: void dfeast_scsrev (const char * uplo, const MKL_INT * n, const double * a, const
-    // MKL_INT * ia, const MKL_INT * ja, MKL_INT * fpm, double * epsout, MKL_INT * loop,
-    // const double * emin, const double * emax, MKL_INT * m0, double * e, double * x,
-    // MKL_INT * m, double * res, MKL_INT * info);
-
-    // input parameters
-    char uplo = 'U'; // according to CFS doku U
-    assert((int) ia_.GetSize() == n_ + 1);
-    double emin = freqShift_; // Fixme: put a correct structure in the xml=scema
-    double emax = numFreq_; // fixme: put a correct structure in the xml-schema
-    // assert(m0_ >= numFreq_);
-    LOG_DBG3(fes) << "CEF emin: " << emin;
-    LOG_DBG3(fes) << "CEF emax: " << emax;
-    LOG_DBG3(fes) << "CEF m0: " << m0_; // specifies the initial guess for subspace dimension to be used
-    LOG_DBG3(fes) << "CEF x:" << x_.ToString();
-    LOG_DBG3(fes) << "CEF n: " << n_; // size of the problem
-
-    // Matrix A
-    assert(a_->GetNumRows() == a_->GetNumCols());
-
-    const SCRS_Matrix<double>* a_const = dynamic_cast<const SCRS_Matrix<double>*>(a_);
-    SCRS_Matrix<double>* a = const_cast<SCRS_Matrix<double>*>(a_const);
-    LOG_DBG3(fes) << "CEF a_size: " << a->GetNumEntries();
-    LOG_DBG3(fes) << "CEF a: " << StdVector<double>::ToString(a->GetNumEntries(), a->GetDataPointer(), 0);
-    LOG_DBG3(fes) << "CEF ia: " << ia_.ToString();
-    LOG_DBG3(fes) << "CEF ja: " << ja_.ToString();
-
-    // output parameters
-    double epsout;
-    int loop;
-    e.Resize(m0_); // e: m found eigenvalues
-    assert((int) x_.GetCapacity() >= n_ * m0_);
-    res.Resize(m0_); // the first m get the relative residuals
-
-    if(!generalized_)
+    case BaseMatrix::SPARSE_SYM:
     {
-      dfeast_scsrev(&uplo, &n_, a->GetDataPointer(), ia_.GetPointer(), ja_.GetPointer(),
-                    fpm_.GetPointer(), &epsout, &loop, &emin, &emax, &m0_,
-                    e.GetPointer(), x_.GetPointer(), &m_, res.GetPointer(), &info_);
+        assert(a_->GetEntryType() == BaseMatrix::DOUBLE);
+        Vector<double>& e = dynamic_cast<Vector<double>&>(bvs);
+        Vector<double>& res = dynamic_cast<Vector<double>&>(err);
+
+        // standard problem: void dfeast_scsrev (const char * uplo, const MKL_INT * n, const double * a, const
+        // MKL_INT * ia, const MKL_INT * ja, MKL_INT * fpm, double * epsout, MKL_INT * loop,
+        // const double * emin, const double * emax, MKL_INT * m0, double * e, double * x,
+        // MKL_INT * m, double * res, MKL_INT * info);
+
+        // input parameters
+        char uplo = 'U'; // according to CFS doku U
+        assert((int) ia_.GetSize() == n_ + 1);
+        double emin = freqShift_; // Fixme: put a correct structure in the xml=scema
+        double emax = numFreq_; // fixme: put a correct structure in the xml-schema
+        // assert(m0_ >= numFreq_);
+        LOG_DBG3(fes) << "CEF emin: " << emin;
+        LOG_DBG3(fes) << "CEF emax: " << emax;
+        LOG_DBG3(fes) << "CEF m0: " << m0_; // specifies the initial guess for subspace dimension to be used
+        LOG_DBG3(fes) << "CEF x:" << x_.ToString();
+        LOG_DBG3(fes) << "CEF n: " << n_; // size of the problem
+
+        // Matrix A
+        assert(a_->GetNumRows() == a_->GetNumCols());
+
+        const SCRS_Matrix<double>* a_const = dynamic_cast<const SCRS_Matrix<double>*>(a_);
+        SCRS_Matrix<double>* a = const_cast<SCRS_Matrix<double>*>(a_const);
+        LOG_DBG3(fes) << "CEF a_size: " << a->GetNumEntries();
+        LOG_DBG3(fes) << "CEF a: " << StdVector<double>::ToString(a->GetNumEntries(), a->GetDataPointer(), 0);
+        LOG_DBG3(fes) << "CEF ia: " << ia_.ToString();
+        LOG_DBG3(fes) << "CEF ja: " << ja_.ToString();
+
+        // output parameters
+        double epsout;
+        int loop;
+        e.Resize(m0_); // e: m found eigenvalues
+        assert((int) x_.GetCapacity() >= n_ * m0_);
+        res.Resize(m0_); // the first m get the relative residuals
+
+        if(!generalized_)
+        {
+        dfeast_scsrev(&uplo, &n_, a->GetDataPointer(), ia_.GetPointer(), ja_.GetPointer(),
+                        fpm_.GetPointer(), &epsout, &loop, &emin, &emax, &m0_,
+                        e.GetPointer(), x_.GetPointer(), &m_, res.GetPointer(), &info_);
+        }
+        else
+        {
+        // generalized problem:  void dfeast_scsrgv (const char * uplo, const MKL_INT * n, const double * a, const
+        // MKL_INT * ia, const MKL_INT * ja, const double * b, const MKL_INT * ib, const MKL_INT *
+        // jb, MKL_INT * fpm, double * epsout, MKL_INT * loop, const double * emin, const double
+        // * emax, MKL_INT * m0, double * e, double * x, MKL_INT * m, double * res, MKL_INT * info);
+
+        const SCRS_Matrix<double>* bc = dynamic_cast<const SCRS_Matrix<double>*>(b_);
+        SCRS_Matrix<double>* b = const_cast<SCRS_Matrix<double>*>(bc);
+        assert((int) ib_.GetSize() == n_ + 1);
+
+        assert(b->GetNumEntries() < b->GetNnz()); // for symmetric matrices!
+        LOG_DBG3(fes) << "CEF b_size: " << b->GetNumEntries();
+        LOG_DBG3(fes) << "CEF b: " << StdVector<double>::ToString(b->GetNumEntries(), b->GetDataPointer(), 0);
+        LOG_DBG3(fes) << "CEF ib: " << ib_.ToString();
+        LOG_DBG3(fes) << "CEF jb: " << jb_.ToString();
+
+
+
+        dfeast_scsrgv(&uplo, &n_, a->GetDataPointer(), ia_.GetPointer(), ja_.GetPointer(), b->GetDataPointer(), ib_.GetPointer(), jb_.GetPointer(),
+                        fpm_.GetPointer(), &epsout, &loop, &emin, &emax, &m0_,
+                        e.GetPointer(), x_.GetPointer(), &m_, res.GetPointer(), &info_);
+
+        LOG_DBG(fes) << "CEF info -> " << info_;
+        LOG_DBG(fes) << "CEF loop -> " << loop;
+        LOG_DBG(fes) << "CEF m -> " << m_;
+        LOG_DBG(fes) << "CEF epsout -> " << epsout;
+        e.Resize(m_);
+        LOG_DBG(fes) << "CEF e -> " << e.ToString();
+        res.Resize(m_);
+        LOG_DBG(fes) << "CEF res -> " << res.ToString();
+        LOG_DBG3(fes) << "CEF x:" << x_.ToString();
+        // convert eigenvalues e = omega^2 to frequency
+        double twoPi = 8.0*atan(1.0);
+        for (uint i=0; i<e.GetSize(); i++) e[i] = sqrt(e[i])/twoPi;
+        }
     }
-    else
-    {
-      // generalized problem:  void dfeast_scsrgv (const char * uplo, const MKL_INT * n, const double * a, const
-      // MKL_INT * ia, const MKL_INT * ja, const double * b, const MKL_INT * ib, const MKL_INT *
-      // jb, MKL_INT * fpm, double * epsout, MKL_INT * loop, const double * emin, const double
-      // * emax, MKL_INT * m0, double * e, double * x, MKL_INT * m, double * res, MKL_INT * info);
-
-      const SCRS_Matrix<double>* bc = dynamic_cast<const SCRS_Matrix<double>*>(b_);
-      SCRS_Matrix<double>* b = const_cast<SCRS_Matrix<double>*>(bc);
-      assert((int) ib_.GetSize() == n_ + 1);
-
-      assert(b->GetNumEntries() < b->GetNnz()); // for symmetric matrices!
-      LOG_DBG3(fes) << "CEF b_size: " << b->GetNumEntries();
-      LOG_DBG3(fes) << "CEF b: " << StdVector<double>::ToString(b->GetNumEntries(), b->GetDataPointer(), 0);
-      LOG_DBG3(fes) << "CEF ib: " << ib_.ToString();
-      LOG_DBG3(fes) << "CEF jb: " << jb_.ToString();
-
-
-
-      dfeast_scsrgv(&uplo, &n_, a->GetDataPointer(), ia_.GetPointer(), ja_.GetPointer(), b->GetDataPointer(), ib_.GetPointer(), jb_.GetPointer(),
-                    fpm_.GetPointer(), &epsout, &loop, &emin, &emax, &m0_,
-                    e.GetPointer(), x_.GetPointer(), &m_, res.GetPointer(), &info_);
-
-      LOG_DBG(fes) << "CEF info -> " << info_;
-      LOG_DBG(fes) << "CEF loop -> " << loop;
-      LOG_DBG(fes) << "CEF m -> " << m_;
-      LOG_DBG(fes) << "CEF epsout -> " << epsout;
-      e.Resize(m_);
-      LOG_DBG(fes) << "CEF e -> " << e.ToString();
-      res.Resize(m_);
-      LOG_DBG(fes) << "CEF res -> " << res.ToString();
-      LOG_DBG3(fes) << "CEF x:" << x_.ToString();
-      // convert eigenvalues e = omega^2 to frequency
-      double twoPi = 8.0*atan(1.0);
-      for (uint i=0; i<e.GetSize(); i++) e[i] = sqrt(e[i])/twoPi;
-    }
-
+  }
+}
 
 void FeastEigenSolver::GetEigenMode(unsigned int modeNr, Vector<Complex>& mode, bool right){
   mode.Resize(n_, 0.0);
@@ -650,6 +657,49 @@ void FeastEigenSolver::GetEigenMode(unsigned int modeNr, Vector<Complex>& mode, 
   for(int i = 0; i < n_; i++) {
     mode[i] = (*v)[modeNr * n_ + i];
   }
+}
+
+std::string FeastEigenSolver::FeastInfo(Integer info) {
+  std::string msg;
+  switch (info) {
+    case 202:
+      msg="Problem with size of the system N"; break;
+    case 201:
+      msg="Problem with size of subspace M0"; break;
+    case 200:
+      msg="Problem with Emin,Emax or Emid,r"; break;
+    case 6:
+      msg="FEAST converges but subspace is not bi-orthonormal"; break;
+    case 5:
+      msg="Only stochastic estimation of #eigenvalues returned fpm(14)=2"; break;
+    case 4:
+      msg="Only the subspace has been returned using fpm(14)=1"; break;
+    case 3:
+      msg="Size of the subspace M0 is too small (M0<=M)"; break;
+    case 2:
+      msg="No Convergence (#iteration loops>fpm(4))"; break;
+    case 1:
+      msg="No Eigenvalue found in the search interval"; break;
+    case 0:
+      msg="Successful exit"; break;
+    case -1:
+      msg="Internal error for allocation memory"; break;
+    case -2:
+      msg="Internal error of the inner system solver in FEAST predefined interfaces"; break;
+    case -3:
+      msg="Internal error of the reduced eigenvalue solver"
+          "Possible cause for Hermitian problem: matrix B may not be positive definite";
+      break;
+    default:
+      if (info<-100){
+        msg="Problem with the "+std::to_string(info+100)+"th argument of the FEAST interface";
+      } else if (info>100) {
+        msg="Problem with "+std::to_string(info-100)+"th value of the input FEAST parameter (i.e fpm("+std::to_string(info-100)+"))";
+      } else {
+        msg="Unknown Error Code.";
+      }
+  }
+  return msg;
 }
 
 void FeastEigenSolver::GetComplexEigenMode(unsigned int modeNr, Vector<Complex>& mode)

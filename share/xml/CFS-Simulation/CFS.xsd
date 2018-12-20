@@ -27,6 +27,7 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEfluidMech.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEfluidMechLin.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEelectricConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEwaterWave.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEtest.xsd"/>

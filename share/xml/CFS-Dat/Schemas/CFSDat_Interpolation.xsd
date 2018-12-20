@@ -13,6 +13,7 @@
   
     <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
     <xsd:include schemaLocation="CFSDat_NearestNeighbour.xsd"/>
+    <xsd:include schemaLocation="CFSDat_FEBased.xsd"/>
     <xsd:include schemaLocation="../CFS_Dat.xsd"/>
     <xsd:include schemaLocation="CFSDat_InterpolationType.xsd"/>
   
@@ -25,12 +26,18 @@
       <xsd:extension base="DT_BaseFilter">
         <xsd:sequence>
           <xsd:element name="scheme" type="DT_NNScheme" minOccurs="0"/>
+          <xsd:element name="fetype" type="DT_FEInterpolationType" minOccurs="0"/>
           <xsd:element name="useElemAsTarget" type="xsd:boolean" default="0" minOccurs="0">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Parameter that defines the target entity, Nodes(false=default) or Element(true)
               </xsd:documentation>
             </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="noSlipWall" minOccurs="0">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+            </xsd:complexType>
           </xsd:element>
           <xsd:element name="noSlipWall" type="xsd:boolean" minOccurs="0"/>
           <xsd:element name="sourceSum" type="xsd:boolean" default="0" minOccurs="0"></xsd:element>

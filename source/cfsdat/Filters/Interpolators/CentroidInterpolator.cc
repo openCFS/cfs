@@ -27,6 +27,13 @@ CentroidInterpolator::CentroidInterpolator(UInt numWorkers, CF::PtrParamNode con
 
   this->filtStreamType_ = FIFO_FILTER;
 
+  if(config->Has("scheme") == true){
+	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
+  }else{
+	  globalFactor_ = 1.0;
+  }
+
+
   checkSum_ = false;
   if(config->Has("sourceSum")){
     checkSum_ = config->Get("sourceSum")->As<bool>();
@@ -76,6 +83,9 @@ bool CentroidInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
       }
     }
   }
+
+  returnVec.ScalarMult(globalFactor_);
+
 
   // Check filter mesh and output values
   if(checkSum_ == 1){
