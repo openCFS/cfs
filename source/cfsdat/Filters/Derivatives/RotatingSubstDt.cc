@@ -120,6 +120,9 @@ void RotatingSubstDt::PrepareCalculation(){
       }
     }
     std::cout << "\t\tFound " << rotEnts_.GetSize() << " cells/nodes in rotating region" <<   std::endl;
+    if(rotEnts_.GetSize()<1){
+      std::cout << "\t\tFound " << "\t\tMaybe you forgot to set the rotation speed!" <<   std::endl;
+    }
   } else {
     hasRotation_ = false;
   }
@@ -352,7 +355,8 @@ void RotatingSubstDt::ExtractCylinderVelocities(CF::PtrParamNode cylNode){
         RegionIdType rId = gradInfo->ptGrid->GetRegion().Parse(*regIter);
         gradInfo->ptGrid->GetNodesByRegion(regNodes,rId);
         for(UInt aNum = 0;aNum<regNodes.GetSize();++aNum){
-          pGrid->GetNodeCoordinate(entCoord,regNodes[aNum]+1,true);
+          //TODO for multiple regions AND CFX input an error occurs here
+          pGrid->GetNodeCoordinate(entCoord,regNodes[aNum],true);
           vortexComp.ComputeVortexVelocity(velocity,entCoord);
           if(velocity.NormL2() > 0){
             mapping.GetEquation(entEqn,regNodes[aNum],CF::ResultInfo::NODE);
