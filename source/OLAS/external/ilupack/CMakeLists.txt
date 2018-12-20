@@ -24,3 +24,4 @@ SET(TARGET_LL
 
 TARGET_LINK_LIBRARIES(ilupack-olas ${TARGET_LL} )
 
+ADD_DEPENDENCIES(ilupack-olas boost)

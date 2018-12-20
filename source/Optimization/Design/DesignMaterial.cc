@@ -2705,11 +2705,10 @@ bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
 }
 
 int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point) const {
-  double eps = 1e-6;
   int nRows = interval.GetNumRows();
   assert(nRows > 0);
   double h = interval[1][0] - interval[0][0];
-  assert(h > -eps);
+  assert(h > -1e-6);
   int idx = -1;
   // set index for values close to boundaries manually
   if (close(point, interval[nRows - 1][0])) {

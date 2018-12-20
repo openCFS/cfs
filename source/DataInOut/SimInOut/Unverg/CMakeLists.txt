@@ -9,6 +9,8 @@ SET(SIMOUTUNV_SRCS
 
 ADD_LIBRARY(simoutunv STATIC ${SIMOUTUNV_SRCS})
 
+ADD_DEPENDENCIES(simoutunv boost)
+
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 set_source_files_properties(SimOutputUnv.cc
                             PROPERTIES COMPILE_FLAGS
