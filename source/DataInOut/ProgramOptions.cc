@@ -867,7 +867,7 @@ namespace CoupledField {
     out << "BUILD_HWLOC:           " << fg_blue << "YES" << fg_reset << endl;
     out << "HWLOC_VER:             " << fg_blue << HWLOC_VER << fg_reset << endl;
 #else
-    out << "BUILD_HWLOC:             " << fg_blue << "NO" << fg_reset << endl;
+    out << "BUILD_HWLOC:           " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
 #ifdef BUILD_GHOST
