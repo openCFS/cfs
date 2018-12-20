@@ -1471,7 +1471,8 @@ namespace CoupledField {
         // ensure errno is cleared and call mkdir with the directory name
         errno = 0;
         int mkdir_call;
-        mkdir_call = mkdir( directoryName.c_str(), S_IRWXU | S_IRGRP | S_IWGRP | S_IROTH );
+        mkdir_call = mkdir( directoryName.c_str());
+        //mkdir_call = mkdir( directoryName.c_str(), S_IRWXU | S_IRGRP | S_IWGRP | S_IROTH ); old version, arguments removed in mingw
 
         if ( mkdir_call == -1 && errno == EEXIST ){
           // directory exists, do nothing
