@@ -341,6 +341,7 @@ testsuite:gcc7max:linux:
   only:
     refs:
       - master # only for refs pushed to master
+      - pipeline-* # added for testing only
     variables:
       # use variables to limit deply jobs for mdmt to pipelines from the corresponding namespace
       # see the default variales https://docs.gitlab.com/ee/ci/variables/#predefined-variables-environment-variables
