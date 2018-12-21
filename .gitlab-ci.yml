@@ -354,7 +354,7 @@ copy_to_draco:
     - build:gcc4
   script:
     # copy over via scp
-    - scp "build/CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz" || echo "WARNING source file not found"
+    - scp "build/CFS-$CI_COMMIT_SHA-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
   environment:
     name: share_programs
   <<: *deploy_rules
