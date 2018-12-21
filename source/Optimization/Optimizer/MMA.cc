@@ -836,12 +836,7 @@ bool MMA::IPSubProblemSolver()
     if(loop >= max_sub_iter)
     {
       if(!alreadyRelaxed)
-      {
-        epsi=epsi/0.5; alreadyRelaxed = true;
-        std::cout << "Relaxing epsilon: MMA subproblem cannot be solved in " << loop << " sub-iters. err=" << err << " epsilon=" << epsi << " tol=" << tol <<std::endl;
-        epsi=epsi/0.5; alreadyRelaxed = true;
-        std::cout << " So relaxing the epsilon to = " << epsi << std::endl;
-      }
+        {epsi=epsi/0.5; alreadyRelaxed = true;}
       else
       {
         std::stringstream ss;
