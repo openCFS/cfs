@@ -64,9 +64,8 @@ cache:
   coverage: '/coding_score=(\d+[.]\d+)/'
   artifacts:
     paths: # just an example
-      - build/DartConfiguration.tcl
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
-      - build/config_cmd
+      - build/config_cmd # needed in test to apply same configure command on different runner
     expire_in: 3 days
   <<: *default_pipeline_rules
 
