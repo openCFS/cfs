@@ -360,6 +360,7 @@ copy_to_draco:
   <<: *deploy_rules
 
 install_on_draco:
+  dependencies: []
   script:
     # wait for the copy to finish, timeout after 120s, if timeout try to list file
     - ssh draco "inotifywait -t180 -e close_write /opt/programs/cfs_master" || ssh draco "ls /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
@@ -375,6 +376,7 @@ install_on_draco:
 
 # this creates the XML-schema (without optimization) and copies it to cfs-doc/xml
 xml_to_cfs-doc:
+  dependencies: []
   script:
     - mkdir -p build
     - cd build
