@@ -1,6 +1,5 @@
 #include "Optimization/Optimizer/BFGS.hh"
-
-
+#include "Optimization/Optimizer/MMA.hh"
 #include "Utils/tools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -243,12 +242,11 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
         ++ ia;
       }
     }
-    if(progOpts->DoDetailedInfo())
-      bfgs_details.Last().nactive = ia;
 
     if(progOpts->DoDetailedInfo())
     {
       bfgs_details.Push_back(BFGSInfo());
+      bfgs_details.Last().nactive = ia;
       bfgs_details.Last().fc = fc;
       bfgs_details.Last().iter = itc;
       bfgs_details.Last().norm_pgc = pgc.NormL2();
@@ -262,21 +260,6 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
   prob->SetSubPrbItr(itc);
   x = xc;
 
-  // TODO: Implement do details properly
-  /*
-  if(progOpts->DoDetailedInfo())
-  {
-    for(unsigned int is=0; is<bfgs_details.GetSize() ; ++is)
-    {
-    std::cout <<"Details itereations = " << bfgs_details[is].iter
-              <<" fc = " << bfgs_details[is].fc
-              <<" norm_pgc = "<< bfgs_details[is].norm_pgc
-              <<" \n pgc = " << bfgs_details[is].pgc.ToString(2)
-              <<" \n xc = " << bfgs_details[is].xc.ToString(2)
-              <<" \n ia = " << bfgs_details[is].nactive << std::endl;
-    }
-  }
-  */
 }
 
 
@@ -357,6 +340,29 @@ Vector<double> BFGS::bfgsrp( Matrix<double> &ystore,  Matrix<double> &sstore, co
   dnewt = proji(dnewt, alist);
 
   return dnewt;
+}
+
+void BFGS::LogFileLine(std::ofstream* out, PtrParamNode iteration)
+{
+
+  if(progOpts->DoDetailedInfo())
+  {
+    PtrParamNode sub =iteration->Get("bfgs_subproblem");
+    for(unsigned int ib=0; ib < bfgs_details.GetSize(); ++ib)
+    {
+      BFGSInfo& bi = bfgs_details[ib];
+      PtrParamNode ipn = sub->Get("iter", ParamNode::APPEND);
+      ipn->Get("number")->SetValue(ib);
+      ipn->Get("iter")->SetValue(bi.iter);
+      ipn->Get("current_x")->SetValue(bi.xc);
+      ipn->Get("current_func")->SetValue(bi.fc);
+      ipn->Get("norm_grad")->SetValue(bi.norm_pgc);
+      ipn->Get("active_con")->SetValue(bi.nactive);
+      ipn->Get("grad")->SetValue(bi.pgc);
+    }
+
+  }
+
 }
 
 

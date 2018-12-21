@@ -8,15 +8,14 @@
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
-//#include "Optimization/Optimizer/BFGS.hh"
 
 using namespace boost::numeric::ublas;
-
-//class BFGS {};
 
 namespace CoupledField
 {
 class MMA;
+class BFGS;
+
 template <class TYPE> class SCRS_Matrix;
 
 class MMA : public BaseOptimizer
@@ -43,14 +42,14 @@ public:
   inline void SetSubPrbItr(unsigned int it) {usedSubPrbItr = it;}
   inline void SetSubPrbEval(unsigned int noEval) {no_sub_prb_eval = noEval;}
 
-  typedef enum { SVANBERG, ROBUST, FIXED } AsymUpdate;
+  /** see BaseOptimizer::LogFileLine() */
+  virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
-  typedef enum { TYPE_1, TYPE_2} RobustType;
+  typedef enum { SVANBERG, TOPOPT_ROBUST_SHORT, TOPOPT_ROBUST_LONG , FIXED } AsymUpdate;
 
   typedef enum { IP_OPT, BFGS_OPT} SubSolverType;
 
   Enum<AsymUpdate> asymUpdate;
-  Enum<RobustType> robustType;
   Enum<SubSolverType> subSolverType;
 
   struct BFGS_Details{
@@ -67,13 +66,14 @@ private:
 
   /** @see BaseOptimier */
   void LogFileHeader(Optimization::Log& log);
-  void LogFileLine(std::ofstream* out, PtrParamNode iteration);
+
+  void IPLogFileLine(std::ofstream* out, PtrParamNode iteration);
 
   void AdjustMoveLimits();
 
   bool SolveMMA();
 
-  void GenreteSubProblem();
+  void GenerateSubProblem();
 
   void ComputeObjectiveConstraintsSensitivities();
 
@@ -157,8 +157,7 @@ private:
    *          z >= 0
    */
 
-  AsymUpdate asymUpdate_ = FIXED; // ROBUST, SVANBERG, FIXED
-  RobustType robustType_ = TYPE_1; // TYPE_1, TYPE_2
+  AsymUpdate asymUpdate_ = FIXED; // TOPOPT_ROBUST_SHORT, TOPOPT_ROBUST_LONG, SVANBERG, FIXED
   SubSolverType subSolverType_ = IP_OPT; //IP , BFGS
 
   /** Determines how aggresively the asymptotes are moved
@@ -297,6 +296,9 @@ private:
   void DualLineSearch();
 
   double DualResidual(double);
+
+  /** stayes null in the interior point case */
+  BFGS* bfgs_ = NULL;
 
   /** generate sub problem */
   Timer* gsp_timer_ = NULL;

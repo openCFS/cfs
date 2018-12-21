@@ -701,17 +701,12 @@
 												<xsd:restriction base="xsd:token">
 													<xsd:enumeration value="svanberg"/>
 													<xsd:enumeration value="fixed"/>
-													<xsd:enumeration value="robust"/>
+													<!-- Formulation presenten in DTU's PETSc TopOpt parallem MMA implementation.
+													     Variant 32  -->
+													<xsd:enumeration value="topopt_robust_short"/>
+													<xsd:enumeration value="topopt_robust_long"/>
 												</xsd:restriction>
 											</xsd:simpleType>
-										</xsd:attribute>
-										<xsd:attribute name="robust_type" default="type_1" use="optional">
-										  <xsd:simpleType>
-		                    <xsd:restriction base="xsd:token">
-		                      <xsd:enumeration value="type_1"/>
-		                      <xsd:enumeration value="type_2"/>
-		                    </xsd:restriction>
-		                  </xsd:simpleType>
 										</xsd:attribute>
 										
 										<xsd:attribute name="initial" default="0.9" use="optional" type="xsd:float"/>

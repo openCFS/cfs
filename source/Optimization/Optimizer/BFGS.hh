@@ -2,30 +2,30 @@
 #define BFGS_HH_
 
 #include "General/Exception.hh"
-
+#include "Optimization/Optimization.hh"
 #include "MatVec/Vector.hh"
 #include "MatVec/Matrix.hh"
 #include "Utils/StdVector.hh"
-#include "Optimization/Optimizer/MMA.hh"
 
-
-using namespace CoupledField;
 using std::pow;
 using std::max;
 using std::min;
 using std::abs;
 using std::string;
 
+namespace CoupledField
+{
 
+class MMA;
 
 class BFGS {
 
   public:
   // Constructor
   BFGS();
-  BFGS(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_, MMA *problem);
+  BFGS(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_, MMA* problem);
 
-  void Initilize(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_, MMA *problem);
+  void Initilize(unsigned int n_, double tol_, unsigned int maxit_, unsigned int nsmax_, MMA* problem);
 
   // Destructor
   ~BFGS();
@@ -48,11 +48,13 @@ class BFGS {
 
   StdVector<BFGSInfo> bfgs_details;
 
+  /** @see BaseOptimier */
+  virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
+  //  void LogFileHeader(Optimization::Log& log);
+
   private:
 
-  /** @see BaseOptimier */
-  void LogFileHeader(Optimization::Log& log);
-  void LogFileLine(std::ofstream* out, PtrParamNode iteration);
+
 
   /** Projection onto the active set
    * If x < lo; then x = low
@@ -79,8 +81,7 @@ class BFGS {
   double tol = 1.0e-6; // = termination criterion norm(grad) < tol optional, default = 1.d-6
   unsigned int maxit = 1000; // maximum iterations
   unsigned int nsmax=maxit;
-
-
-};
+}; // end of class
+} // end of namespace
 
 #endif /* BFGS_HH_ */
