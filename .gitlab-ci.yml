@@ -42,7 +42,6 @@ cache:
     - build/cfsdeps/cache
     - build/bin
     - build/lib*
-    - build/Testing
 
 #################################################
 # BUILD STAGE
@@ -67,7 +66,6 @@ cache:
     paths: # just an example
       - build/DartConfiguration.tcl
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
-      - build/Testing
       - build/config_cmd
     expire_in: 3 days
   <<: *default_pipeline_rules
