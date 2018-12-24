@@ -1473,7 +1473,7 @@ namespace CoupledField {
         int mkdir_call;
         #ifdef __MINGW32__
           mkdir_call = mkdir( directoryName.c_str());
-        #elif
+        #else
           mkdir_call = mkdir( directoryName.c_str(), S_IRWXU | S_IRGRP | S_IWGRP | S_IROTH );
         #endif
 
