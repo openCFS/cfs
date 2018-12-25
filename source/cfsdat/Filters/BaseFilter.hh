@@ -249,19 +249,6 @@ protected:
   
   //! Function for receiving a result vector computed by upstream filters.
   //! Therefore, this function invokes Run() of the usptream filters
-  //! \param (in) resId id of the result
-  //! \param (in) stepIndex step index in the timeline
-  //! \param (out) eqnNumbers equation number of the result
-  //! \return a reference to the result vector
-  template<typename T>
-  Vector<T>& GetUpstreamResultVector(uuids::uuid resId, Integer stepIndex, 
-                                    CF::StdVector<UInt>& eqnNumbers) {
-    resultManager_->SetStepIndex(resId,stepIndex);
-    return GetUpstreamResultVector<T>(resId, eqnNumbers);
-  }
-  
-  //! Function for receiving a result vector computed by upstream filters.
-  //! Therefore, this function invokes Run() of the usptream filters
   //! \param (in) resName name of the result
   //! \param (in) stepValue step value required
   //! \param (out) eqnNumbers equation number of the result
