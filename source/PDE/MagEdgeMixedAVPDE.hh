@@ -14,8 +14,8 @@
  */
 //================================================================================================
 
-#ifndef FILE_MAGNETICEDGEPDE
-#define FILE_MAGNETICEDGEPDE
+#ifndef FILE_MAGNETICEDGEMIXEDAVPDE
+#define FILE_MAGNETICEDGEMIXEDAVPDE
 
 #include <map>
 #include "SinglePDE.hh" 

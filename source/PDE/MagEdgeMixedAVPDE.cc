@@ -60,7 +60,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     // =====================================================================
     // set solution information
     // =====================================================================
-    pdename_          = "magneticEdge";
+    pdename_          = "magneticEdgeMixedAV";
     pdematerialclass_ = ELECTROMAGNETIC;
 
     //! Always use updated Lagrangian formulation
@@ -166,13 +166,13 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
       // Get polynomial and integration order for magnetic vector potential
       std::string magVecPolyId = curRegNode->Get("magVecPolyId")->As<std::string>();
-      std::string magVecPolyIntegId = curRegNode->Get("magVecIntegId")->As<std::string>();
-      magVecPotFeSpace->SetRegionApproximation(actRegion, magVecPolyId, magVecPolyIntegId);
+      std::string magVecIntegId = curRegNode->Get("magVecIntegId")->As<std::string>();
+      magVecPotFeSpace->SetRegionApproximation(actRegion, magVecPolyId, magVecIntegId);
 
       // Get polynomial and integration order for electric scalar potential
       std::string elecScalPolyId = curRegNode->Get("elecScalPolyId")->As<std::string>();
-      std::string elecScalPolyIntegId = curRegNode->Get("elecScalPolyIntegId")->As<std::string>();
-      elecScalPotFeSpace->SetRegionApproximation(actRegion, elecScalPolyId, elecScalPolyIntegId);
+      std::string elecScalIntegId = curRegNode->Get("elecScalIntegId")->As<std::string>();
+      elecScalPotFeSpace->SetRegionApproximation(actRegion, elecScalPolyId, elecScalIntegId);
 
       // Get possible nonlinearities defined in this region
       StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
@@ -320,24 +320,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         massUpperLeftContext->SetEntities( actSDList, actSDList );
         massUpperLeftContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
         assemble_->AddBiLinearForm( massUpperLeftContext );
-
-
-
-        /* ==============================================
-         * Lower left MASS part:
-         * \sigma div(A) V
-           ============================================== */
-        BaseBDBInt *massLowerLeftInt;
-        BiLinFormContext * massLowerLeftContext;
-        massLowerLeftInt = new ABInt<>(new DivOperator<FeHCurl,3,Double>(),
-                           new IdentityOperator<FeH1,3,1,Double>(),
-                           conducCoefReg, -1.0, updatedGeo_);
-        massLowerLeftContext = new BiLinFormContext(massLowerLeftInt, DAMPING );
-        massLowerLeftInt->SetName("MassIntegratorLowerLeft");
-
-        massLowerLeftContext->SetEntities( actSDList, actSDList );
-        massLowerLeftContext->SetFeFunctions( magVecPotFeFunc, elecScalPotFeFunc );
-        assemble_->AddBiLinearForm( massLowerLeftContext );
 
      } // END OF NONLIN/LIN PART
     } // end for regions
