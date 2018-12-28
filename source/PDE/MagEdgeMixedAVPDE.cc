@@ -100,7 +100,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       }
     }
 
-
+    gradInt_ = NULL;
   }
 
 
@@ -153,10 +153,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
 
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
-
-    if ( (analysistype_ == HARMONIC) ) {
-      EXCEPTION("MagEdgeMixedAVPDE currently only works for STATIC and TRANSIENT analysis")
-    }
 
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
       actRegion = regions_[iRegion];
@@ -260,7 +256,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
          * Lower right STIFFNESS part:
          * \sigma grad(V) \cdot grad(V)
            ============================================== */
-        BiLinearForm* stiffLowerRight = NULL;
+        BaseBDBInt* stiffLowerRight = NULL;
         stiffLowerRight = new BBInt<>(new  GradientOperator<FeH1,3,1,Double>(), conducCoef, 1.0, updatedGeo_) ;
         stiffLowerRight->SetName("GradVGradVIntegratorLowerRight");
 
@@ -268,7 +264,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         stiffLowerRightContext->SetEntities( actSDList, actSDList );
         stiffLowerRightContext->SetFeFunctions( elecScalPotFeFunc, elecScalPotFeFunc );
         assemble_->AddBiLinearForm( stiffLowerRightContext );
-
+        gradInt_ = stiffLowerRight;
 
 
 
@@ -310,10 +306,28 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
           // here we add the "normal" mass integrator, which gets not scaled by the
           // edge size
           if( scaleByEdgeSize ) {
-            massUpperLeftInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(), conducCoefReg,1.0, updatedGeo_);
+            if(analysistype_ == HARMONIC){
+              massUpperLeftInt = new BBIntMassEdge<>(
+                  new ScaledByEdgeIdentityOperator<FeHCurl,3,Complex>(),
+                  conducCoefReg,1.0, updatedGeo_);
+            }else{
+              massUpperLeftInt = new BBIntMassEdge<>(
+                  new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),
+                  conducCoefReg,1.0, updatedGeo_);
+            }
+
             massUpperLeftContext = new BiLinFormContext(massUpperLeftInt, STIFFNESS );
           } else {
-            massUpperLeftInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl,3,1,Double>(), conducCoefReg,1.0, updatedGeo_);
+            if(analysistype_ == HARMONIC){
+              massUpperLeftInt = new BBIntMassEdge<>(
+                new IdentityOperator<FeHCurl,3,1,Complex>(),
+                conducCoefReg,1.0, updatedGeo_);
+            }else{
+              massUpperLeftInt = new BBIntMassEdge<>(
+                new IdentityOperator<FeHCurl,3,1,Double>(),
+                conducCoefReg,1.0, updatedGeo_);
+            }
+
             massUpperLeftContext = new BiLinFormContext(massUpperLeftInt, DAMPING );
           }
           massUpperLeftInt->SetName("MassIntegratorUpperLeft");
@@ -340,14 +354,12 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     shared_ptr<BaseFeFunction> magVecPotFeFunc = feFunctions_[MAG_POTENTIAL];
     shared_ptr<BaseFeFunction> elecScalPotFeFunc = feFunctions_[ELEC_POTENTIAL];
 
-
     StdVector<shared_ptr<EntityList> > ent;
     StdVector<PtrCoefFct > coef;
-    LinearForm * upperRHSInt = NULL;
+    //LinearForm * upperRHSInt = NULL;
 
     StdVector<std::string> vecDofNames = magVecPotFeFunc->GetResultInfo()->dofNames;
     StdVector<std::string> scalDofNames = elecScalPotFeFunc->GetResultInfo()->dofNames;
-
 
     bool coefUpdateGeo = true;
     // ==================
@@ -357,37 +369,8 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
     ReadRhsExcitation( "fluxDensity", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
-      // check type of entitylist
-      if (ent[i]->GetType() == EntityList::NODE_LIST ||
-          ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
-        EXCEPTION("Prescribed magnetic flux density can only be specified in a volume!")
-      }
-      Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-      PtrCoefFct factor = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_, reluc_, coef[i] , CoefXpr::OP_MULT ) );
-
-      if(isComplex_) {
-        upperRHSInt = new BUIntegrator<Complex>( new CurlOperator<FeHCurl,3, Complex>(), Complex(1.0), factor, coefUpdateGeo);
-      } else {
-        upperRHSInt = new BUIntegrator<Double>( new CurlOperator<FeHCurl,3, Double>(), 1.0, factor, coefUpdateGeo);
-      }
-      upperRHSInt->SetName("UpperRHSFluxInt");
-      LinearFormContext *upperRHSContext = new LinearFormContext( upperRHSInt );
-      upperRHSContext->SetEntities( ent[i] );
-      upperRHSContext->SetFeFunction(magVecPotFeFunc);
-      assemble_->AddLinearForm(upperRHSContext);
-      magVecPotFeFunc->AddEntityList(ent[i]);
-
-      bRHSRegions_[ent[i]->GetRegion()] = coef[i];
-    } // for
-
-
-
-
-
-
-/*
-
-
+      EXCEPTION("Currently no rhs for fluxDensity possible in MagEdgeMexedAVPDE");
+    }
 
     // ==================
     //  FIELD INTENSITY
@@ -396,28 +379,8 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
     ReadRhsExcitation( "fieldIntensity", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
-      // check type of entitylist
-      if (ent[i]->GetType() == EntityList::NODE_LIST ||
-          ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
-        EXCEPTION("Prescribed magnetic field intensity can only be specified in a volume!")
-      }
-
-      if(isComplex_) {
-        lin = new BUIntegrator<Complex>( new CurlOperator<FeHCurl,3, Complex>(),
-                                         Complex(1.0), coef[i], coefUpdateGeo);
-      } else {
-        lin = new BUIntegrator<Double>( new CurlOperator<FeHCurl,3, Double>(),
-                                        1.0, coef[i], coefUpdateGeo);
-      }
-      lin->SetName("FieldIntensityIntegrator");
-      LinearFormContext *ctx = new LinearFormContext( lin );
-      ctx->SetEntities( ent[i] );
-      ctx->SetFeFunction(myFct);
-      assemble_->AddLinearForm(ctx);
-      myFct->AddEntityList(ent[i]);
-
-    } // for
-*/
+      EXCEPTION("Currently no rhs for fieldIntensity possible in MagEdgeMexedAVPDE");
+    }
   }
 
 
@@ -514,11 +477,9 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
   }
 
   void MagEdgeMixedAVPDE::DefinePostProcResults() {
-
     StdVector<std::string> vecComponents;
     vecComponents = "x", "y", "z";
 
-//    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     shared_ptr<BaseFeFunction> magVecPotFeFct = feFunctions_[MAG_POTENTIAL];
     shared_ptr<BaseFeFunction> elecScalPotFeFct = feFunctions_[ELEC_POTENTIAL];
 
@@ -584,12 +545,56 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     availResults_.insert(flux);
 
 
+
+    // === ELECTRIC FIELD INTENSITY ===
+    shared_ptr<ResultInfo> elecIntens(new ResultInfo);
+    elecIntens->resultType = ELEC_FIELD_INTENSITY;
+    elecIntens->SetVectorDOFs(dim_, isaxi_);
+    elecIntens->dofNames = vecComponents;
+    elecIntens->unit = "V/m";
+    elecIntens->definedOn = ResultInfo::ELEMENT;
+    elecIntens->entryType = ResultInfo::VECTOR;
+    shared_ptr<CoefFunctionMulti> elecIntensFunc(
+        new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
+    DefineFieldResult( elecIntensFunc, elecIntens );
+    elecIntens_ = elecIntens;
+
   }
 
   void MagEdgeMixedAVPDE::FinalizePostProcResults() {
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+
+
+    shared_ptr<BaseFeFunction> magVecPotFeFct = feFunctions_[MAG_POTENTIAL];
+    shared_ptr<BaseFeFunction> elecScalPotFeFct = feFunctions_[ELEC_POTENTIAL];
 
     // Initialize standard postprocessing results
     SinglePDE::FinalizePostProcResults();
+
+    // === ELECTRIC FIELD INTENSITY ===
+    // Assemble coefficient function for
+    // E = -\frac{\partial A}{\partial t} - \nabla V
+    shared_ptr<CoefFunctionMulti> elecIntensCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[ELEC_FIELD_INTENSITY]);
+    shared_ptr<CoefFunctionFormBased> gradVFunc;
+    if( isComplex_ ) {
+      gradVFunc.reset(new CoefFunctionBOp<Complex>(elecScalPotFeFct, elecIntens_));
+    }else{
+      gradVFunc.reset(new CoefFunctionBOp<Double>(elecScalPotFeFct, elecIntens_));
+    }
+    StdVector<RegionIdType>::iterator regIt = regions_.Begin();
+    PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "-1.0");
+    regIt = regions_.Begin();
+    for( ; regIt != regions_.End(); ++regIt ){
+      gradVFunc->AddIntegrator(gradInt_, *regIt);
+      PtrCoefFct h = CoefFunction::Generate( mp_, part,
+          CoefXprBinOp( mp_, gradVFunc, GetCoefFct( MAG_POTENTIAL_DERIV1 ), CoefXpr::OP_ADD ) );
+      PtrCoefFct h2 = CoefFunction::Generate( mp_, part,
+          CoefXprVecScalOp(mp_, h, constOne, CoefXpr::OP_MULT));
+
+      elecIntensCoef->AddRegion(*regIt,h2);
+    }
+
+
 
 
   }
