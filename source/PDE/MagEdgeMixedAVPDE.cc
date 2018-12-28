@@ -237,7 +237,8 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         stiffUpperLeftContext->SetEntities( actSDList, actSDList );
         stiffUpperLeftContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
         assemble_->AddBiLinearForm( stiffUpperLeftContext );
-
+        // Add bdb-integrator to global list, needed for flux density evaluation
+        bdbInts_[actRegion] = stiffUpperLeft;
 
         /* ==============================================
          * Upper right STIFFNESS part:
@@ -518,7 +519,9 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     vecComponents = "x", "y", "z";
 
 //    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-    shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
+    shared_ptr<BaseFeFunction> magVecPotFeFct = feFunctions_[MAG_POTENTIAL];
+    shared_ptr<BaseFeFunction> elecScalPotFeFct = feFunctions_[ELEC_POTENTIAL];
+
 
     // === TIME DERIVATIVES OF PRIMARY RESULTS ===
     if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) {
@@ -543,9 +546,9 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     fluxDens->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionFormBased> bFunc;
     if( isComplex_ ) {
-      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
+      bFunc.reset(new CoefFunctionBOp<Complex>(magVecPotFeFct, fluxDens));
     } else {
-      bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
+      bFunc.reset(new CoefFunctionBOp<Double>(magVecPotFeFct, fluxDens));
     }
     DefineFieldResult( bFunc, fluxDens );
     stiffFormCoefs_.insert(bFunc);
@@ -573,11 +576,9 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     flux->definedOn = ResultInfo::SURF_REGION;
     shared_ptr<ResultFunctor> fluxFct;
     if( isComplex_ ) {
-      fluxFct.reset(new ResultFunctorIntegrate<Complex>(sNormFDens,
-                                                          feFct, flux ) );
+      fluxFct.reset(new ResultFunctorIntegrate<Complex>(sNormFDens, magVecPotFeFct, flux ) );
     } else {
-      fluxFct.reset(new ResultFunctorIntegrate<Double>(sNormFDens,
-                                                         feFct, flux ) );
+      fluxFct.reset(new ResultFunctorIntegrate<Double>(sNormFDens, magVecPotFeFct, flux ) );
     }
     resultFunctors_[MAG_FLUX] = fluxFct;
     availResults_.insert(flux);
