@@ -65,18 +65,14 @@ BinOpFilter::~BinOpFilter() {
 
 bool BinOpFilter::UpdateResults(std::set<uuids::uuid>& upResults) {
   Vector<Double>& returnVec = GetOwnResultVector<Double>(outId);
-
   Integer stepIndex = resultManager_->GetStepIndex(outId);
 
   Vector<Double>& resAV = isConstantA ? constantA : GetUpstreamResultVector<Double>(resAId, stepIndex);
   Vector<Double>& resBV = isConstantB ? constantB : GetUpstreamResultVector<Double>(resBId, stepIndex);
   
   applyFctPtr(returnVec, resAV, resBV, size);
-  if (resAV.GetSize() != resBV.GetSize()) {
-    WARN("Input vectors for BinOp Filter are of different size");
-    last = std::min(resAV.GetSize(),resBV.GetSize());
-  }
-
+  
+  
   return true;
 }
 
