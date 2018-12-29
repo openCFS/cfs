@@ -132,6 +132,12 @@
                   </xsd:annotation>
                 </xsd:element>
                 
+                <xsd:element name="voltOnEfield" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>hard to explain</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
                 <!-- RHS Load Values-->
                 <xsd:element name="fluxDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="fieldIntensity" type="DT_BcInhomVector"/>

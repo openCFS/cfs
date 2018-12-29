@@ -348,6 +348,76 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
   }
 
 
+  void MagEdgeMixedAVPDE::DefineSurfaceIntegrators( ){
+    /*
+    ========================================================================================
+     E x n boundary
+     Since we use A-V formulation, E x n = -dA/dt - \nabla V
+     usually E x n = 0 and this can be split into two BC's:
+      1) A x n = 0 (which is probably already the case, because it's the classical mag BC)
+      2) \nabla V x n = 0, can be accomplished by setting V=V0=const. on boundary
+     BUT we have to set E x n = -U(t) gradsurf(V), which I also split into two parts:
+      1) A x n is already zero, therefore the second term has to do the work
+      2) \nabla V x n = -U(t) gradsurf(V)
+    ========================================================================================
+        */
+    PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    if( bcNode ) {
+
+      ParamNodeList eNodes = bcNode->GetList( "voltOnEfield" );
+
+      for( UInt i = 0; i < eNodes.GetSize(); i++ ) {
+        std::string regionName = eNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+        std::string volRegName = eNodes[i]->Get("volumeRegion")->As<std::string>();
+        std::string voltage = eNodes[i]->Get("value")->As<std::string>();
+
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
+        std::set<RegionIdType> volRegions;
+        volRegions.insert(aRegion);
+
+
+        PtrCoefFct voltCoef = CoefFunction::Generate( mp_, Global::REAL, voltage);
+
+
+
+
+
+
+
+        BiLinearForm * voltInt = NULL;
+
+
+
+
+        if( dim_ == 2 ) {
+          voltInt = new SurfaceABInt<>(new IdentityOperator<FeH1,3,1,Complex>(),
+                                       new GradientOperator<FeH1,3,1,Complex>(),
+                                       voltCoef, -1.0, volRegions, updatedGeo_);
+        }
+        else {
+          voltInt = new SurfaceABInt<>(new IdentityOperator<FeH1,3,1,Double>(),
+                                       new GradientOperator<FeH1,3,1,Double>(),
+                                       voltCoef, -1.0, volRegions, updatedGeo_);
+        }
+
+
+
+        voltInt->SetName("voltIntegrator");
+        BiLinFormContext *voltContext = new BiLinFormContext(voltInt, STIFFNESS );
+
+        voltContext->SetEntities( actSDList, actSDList );
+        voltContext->SetFeFunctions( feFunctions_[ELEC_POTENTIAL] , feFunctions_[ELEC_POTENTIAL]);
+        feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
+        assemble_->AddBiLinearForm( voltContext );
+
+      }
+    }
+  }
+
+
+
+
   void MagEdgeMixedAVPDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(magEdgeMixedAVPde) << "Defining rhs load integrators for MagEdgeMixedAVPDE";
 
@@ -459,7 +529,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
-//    hdbcSolNameMap_[ELEC_POTENTIAL] = "fluxParallel";
+    //hdbcSolNameMap_[ELEC_POTENTIAL] = "fluxParallel";
     idbcSolNameMap_[ELEC_POTENTIAL] = "elecPotential";
 
 
