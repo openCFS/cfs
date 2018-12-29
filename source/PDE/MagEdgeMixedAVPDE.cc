@@ -257,7 +257,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
          * \sigma grad(V) \cdot grad(V)
            ============================================== */
         BaseBDBInt* stiffLowerRight = NULL;
-        stiffLowerRight = new BBInt<>(new  GradientOperator<FeH1,3,1,Double>(), conducCoef, 1.0, updatedGeo_) ;
+        stiffLowerRight = new BBInt<>(new  GradientOperator<FeH1,3,1,Double>(), conducCoef, -1.0, updatedGeo_) ;
         stiffLowerRight->SetName("GradVGradVIntegratorLowerRight");
 
         BiLinFormContext * stiffLowerRightContext = new BiLinFormContext(stiffLowerRight, STIFFNESS );
@@ -266,6 +266,22 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         assemble_->AddBiLinearForm( stiffLowerRightContext );
         gradInt_ = stiffLowerRight;
 
+
+
+        /* ==============================================
+         * Lower left STIFFNESS part:
+         * \sigma grad(V) \cdot A
+           ============================================== */
+        BiLinearForm* stiffLowerLeft = NULL;
+        stiffLowerLeft = new ABInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),
+                                      new GradientOperator<FeH1,3,1,Double>(),
+                                      conducCoef, 1.0, updatedGeo_);
+        stiffLowerLeft->SetName("GradVIdentityAIntegratorLowerLeft");
+
+        BiLinFormContext * stiffLowerLeftContext = new BiLinFormContext(stiffLowerLeft, STIFFNESS );
+        stiffLowerLeftContext->SetEntities( actSDList, actSDList );
+        stiffLowerLeftContext->SetFeFunctions( magVecPotFeFunc, elecScalPotFeFunc );
+        assemble_->AddBiLinearForm( stiffLowerLeftContext );
 
 
 
