@@ -59,6 +59,7 @@
                     <xsd:attribute name="elecScalPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="magVecIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalIntegId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="isConducRegion" type="xsd:boolean" use="optional" default="true"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>

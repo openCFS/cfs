@@ -75,31 +75,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
     conduc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
 
-    // determine if there are coils excited by voltage
-    hasVoltCoils_ = false;
-    PtrParamNode coilNode = myParam_->Get( "coilList", ParamNode::PASS );
-
-
-
-    if ( coilNode ){
-      ParamNodeList coilNodes = coilNode->GetChildren();
-      // there should only be one mixed flag and on formulation for all coils
-      mixedCoil_ = coilNodes[0]->Get( "mixed" )->As<bool>();
-      coilFormulation_ = coilNodes[0]->Get( "formulation" )->As<std::string>();
-      for( UInt k = 0; k < coilNodes.GetSize(); k++ ){
-        if( coilNodes[k]->Get( "formulation" )->As<std::string>() != coilFormulation_ ){
-          EXCEPTION("The formulation of the coils must be the same for all coils!");
-        }
-        if( coilNodes[k]->Has("source") ){
-          std::string exType = coilNodes[k]->Get("source")->Get("type")->As<std::string>();
-          if( exType == "voltage" ){
-            hasVoltCoils_ = true;
-            break;
-          }
-        }
-      }
-    }
-
     gradInt_ = NULL;
   }
 
@@ -108,20 +83,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
   //  Destructor
   // *************
   MagEdgeMixedAVPDE::~MagEdgeMixedAVPDE() {
-  }
-
-  shared_ptr<Coil> MagEdgeMixedAVPDE::GetCoilById(const Coil::IdType& id) {
-    return coils_.at(id);
-  }
-
-  void MagEdgeMixedAVPDE::ReadSpecialBCs() {
-
-
-    // --------------------------------------------------------------------
-    //   Get information about coils and open files for measurement coils
-    // --------------------------------------------------------------------
-    ReadCoils();
-
   }
 
 
@@ -160,15 +121,20 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
 
+      // Get flag if we need to consider an electric scalar potential in this region
+      bool isConducRegion = curRegNode->Get("isConducRegion")->As<bool>();
+
       // Get polynomial and integration order for magnetic vector potential
       std::string magVecPolyId = curRegNode->Get("magVecPolyId")->As<std::string>();
       std::string magVecIntegId = curRegNode->Get("magVecIntegId")->As<std::string>();
       magVecPotFeSpace->SetRegionApproximation(actRegion, magVecPolyId, magVecIntegId);
 
-      // Get polynomial and integration order for electric scalar potential
-      std::string elecScalPolyId = curRegNode->Get("elecScalPolyId")->As<std::string>();
-      std::string elecScalIntegId = curRegNode->Get("elecScalIntegId")->As<std::string>();
-      elecScalPotFeSpace->SetRegionApproximation(actRegion, elecScalPolyId, elecScalIntegId);
+      if( isConducRegion ){
+        // Get polynomial and integration order for electric scalar potential
+        std::string elecScalPolyId = curRegNode->Get("elecScalPolyId")->As<std::string>();
+        std::string elecScalIntegId = curRegNode->Get("elecScalIntegId")->As<std::string>();
+        elecScalPotFeSpace->SetRegionApproximation(actRegion, elecScalPolyId, elecScalIntegId);
+      }
 
       // Get possible nonlinearities defined in this region
       StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
@@ -180,7 +146,9 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
       // Pass entitylist to fespace / fefunction for magnetic vector and electric scalar potential
       magVecPotFeFunc->AddEntityList( actSDList );
-      elecScalPotFeFunc->AddEntityList( actSDList );
+      if( isConducRegion ){
+        elecScalPotFeFunc->AddEntityList( actSDList );
+      }
 
       if(matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1){
         EXCEPTION("MagEdgeMixedAVPDE does not support nonlinear"
@@ -240,49 +208,54 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
          * Upper right STIFFNESS part:
          * \sigma grad(V) \cdot A
            ============================================== */
-        BiLinearForm* stiffUpperRight = NULL;
-        stiffUpperRight = new ABInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),
-                                      new GradientOperator<FeH1,3,1,Double>(),
-                                      conducCoef, 1.0, updatedGeo_);
-        stiffUpperRight->SetName("GradVIdentityAIntegratorUpperRight");
+        if( isConducRegion ){
+          BiLinearForm* stiffUpperRight = NULL;
+          stiffUpperRight = new ABInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),
+                                        new GradientOperator<FeH1,3,1,Double>(),
+                                        conducCoef, 1.0, updatedGeo_);
+          stiffUpperRight->SetName("GradVIdentityAIntegratorUpperRight");
 
-        BiLinFormContext * stiffUpperRightContext = new BiLinFormContext(stiffUpperRight, STIFFNESS );
-        stiffUpperRightContext->SetEntities( actSDList, actSDList );
-        stiffUpperRightContext->SetFeFunctions( magVecPotFeFunc, elecScalPotFeFunc );
-        assemble_->AddBiLinearForm( stiffUpperRightContext );
+          BiLinFormContext * stiffUpperRightContext = new BiLinFormContext(stiffUpperRight, STIFFNESS );
+          stiffUpperRightContext->SetEntities( actSDList, actSDList );
+          stiffUpperRightContext->SetFeFunctions( magVecPotFeFunc, elecScalPotFeFunc );
+          assemble_->AddBiLinearForm( stiffUpperRightContext );
+        }
 
 
         /* ==============================================
          * Lower right STIFFNESS part:
          * \sigma grad(V) \cdot grad(V)
            ============================================== */
-        BaseBDBInt* stiffLowerRight = NULL;
-        stiffLowerRight = new BBInt<>(new  GradientOperator<FeH1,3,1,Double>(), conducCoef, -1.0, updatedGeo_) ;
-        stiffLowerRight->SetName("GradVGradVIntegratorLowerRight");
+        if( isConducRegion ){
+          BaseBDBInt* stiffLowerRight = NULL;
+          stiffLowerRight = new BBInt<>(
+              new  GradientOperator<FeH1,3,1,Double>(), conducCoef, 1.0, updatedGeo_) ;
+          stiffLowerRight->SetName("GradVGradVIntegratorLowerRight");
 
-        BiLinFormContext * stiffLowerRightContext = new BiLinFormContext(stiffLowerRight, STIFFNESS );
-        stiffLowerRightContext->SetEntities( actSDList, actSDList );
-        stiffLowerRightContext->SetFeFunctions( elecScalPotFeFunc, elecScalPotFeFunc );
-        assemble_->AddBiLinearForm( stiffLowerRightContext );
-        gradInt_ = stiffLowerRight;
-
+          BiLinFormContext * stiffLowerRightContext = new BiLinFormContext(stiffLowerRight, STIFFNESS );
+          stiffLowerRightContext->SetEntities( actSDList, actSDList );
+          stiffLowerRightContext->SetFeFunctions( elecScalPotFeFunc, elecScalPotFeFunc );
+          assemble_->AddBiLinearForm( stiffLowerRightContext );
+          gradInt_ = stiffLowerRight;
+        }
 
 
         /* ==============================================
          * Lower left STIFFNESS part:
          * \sigma grad(V) \cdot A
            ============================================== */
-        BiLinearForm* stiffLowerLeft = NULL;
-        stiffLowerLeft = new ABInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),
-                                      new GradientOperator<FeH1,3,1,Double>(),
-                                      conducCoef, 1.0, updatedGeo_);
-        stiffLowerLeft->SetName("GradVIdentityAIntegratorLowerLeft");
+        if( isConducRegion ){
+          BiLinearForm* stiffLowerLeft = NULL;
+          stiffLowerLeft = new ABInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),
+                                        new GradientOperator<FeH1,3,1,Double>(),
+                                        conducCoef, 1.0, updatedGeo_);
+          stiffLowerLeft->SetName("GradVIdentityAIntegratorLowerLeft");
 
-        BiLinFormContext * stiffLowerLeftContext = new BiLinFormContext(stiffLowerLeft, STIFFNESS );
-        stiffLowerLeftContext->SetEntities( actSDList, actSDList );
-        stiffLowerLeftContext->SetFeFunctions( magVecPotFeFunc, elecScalPotFeFunc );
-        assemble_->AddBiLinearForm( stiffLowerLeftContext );
-
+          BiLinFormContext * stiffLowerLeftContext = new BiLinFormContext(stiffLowerLeft, STIFFNESS );
+          stiffLowerLeftContext->SetEntities( actSDList, actSDList );
+          stiffLowerLeftContext->SetFeFunctions( magVecPotFeFunc, elecScalPotFeFunc );
+          assemble_->AddBiLinearForm( stiffLowerLeftContext );
+        }
 
 
 
@@ -315,7 +288,8 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
           // We have to guarantee, that we add some mass to curl-curl integrator.
           // Additionally, the integrator gets scaled by the edge size for a uniform
           // conditioning
-          massUpperLeftInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(), conducCoefReg,1.0);
+          massUpperLeftInt = new BBIntMassEdge<>(
+              new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(), conducCoefReg, 1.0);
           massUpperLeftInt->SetName("MassIntegratorUpperLeft");
           massUpperLeftContext =  new BiLinFormContext(massUpperLeftInt, STIFFNESS );
         } else {
@@ -671,13 +645,20 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "-1.0");
     regIt = regions_.Begin();
     for( ; regIt != regions_.End(); ++regIt ){
-      gradVFunc->AddIntegrator(gradInt_, *regIt);
-      PtrCoefFct h = CoefFunction::Generate( mp_, part,
-          CoefXprBinOp( mp_, gradVFunc, GetCoefFct( MAG_POTENTIAL_DERIV1 ), CoefXpr::OP_ADD ) );
-      PtrCoefFct h2 = CoefFunction::Generate( mp_, part,
-          CoefXprVecScalOp(mp_, h, constOne, CoefXpr::OP_MULT));
+      std::string regionName = ptGrid_->GetRegion().ToString(*regIt);
+      PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+      // Get flag if we need to consider an electric scalar potential in this region
+      bool isConducRegion = curRegNode->Get("isConducRegion")->As<bool>();
+      if( isConducRegion ){
+        gradVFunc->AddIntegrator(gradInt_, *regIt);
+        PtrCoefFct h = CoefFunction::Generate( mp_, part,
+            CoefXprBinOp( mp_, gradVFunc, GetCoefFct( MAG_POTENTIAL_DERIV1 ), CoefXpr::OP_ADD ) );
+        PtrCoefFct h2 = CoefFunction::Generate( mp_, part,
+            CoefXprVecScalOp(mp_, h, constOne, CoefXpr::OP_MULT));
 
-      elecIntensCoef->AddRegion(*regIt,h2);
+        elecIntensCoef->AddRegion(*regIt,h2);
+      }
+
     }
 
 

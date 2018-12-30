@@ -52,7 +52,7 @@ namespace CoupledField
     virtual void InitNonLin();
 
     //! read special boundary conditions (coils, magnets)
-    void ReadSpecialBCs();
+    void ReadSpecialBCs(){};
 
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
@@ -87,35 +87,6 @@ namespace CoupledField
     
     //! Init the time stepping
     void InitTimeStepping();
-
-    // =======================================================================
-    //   COILS
-    // =======================================================================
-
-    //@{ \name Attributes related to coils
-    //! Map CoilID to coil definition
-    std::map<Coil::IdType, shared_ptr<Coil> > coils_;
-
-    //! Map regionIds to coil definitions 
-    typedef std::map<RegionIdType, shared_ptr<Coil> > CoilRegionMap;
-    CoilRegionMap coilRegions_;
-    
-    //! Coefficients holding the current density for each coil
-    std::map<RegionIdType, PtrCoefFct> coilCurrentDens_;
-
-    //! Tells if there are coils excited by voltage
-    bool hasVoltCoils_;
-
-    //! String defining if we have a classical cylindric coil or a generic inductor
-    std::string coilFormulation_;
-
-    //! boolean if we consider voltage coil in mixed form
-    bool mixedCoil_;
-
-    //! Storage for CoefFunctions of external current density as source
-    std::map<shared_ptr<Coil::Part>, PtrCoefFct> coilPartsExtJ_;
-    //@}
-
 
     //! \copydoc SinglePDE::CreateFeSpace
     std::map<SolutionType, shared_ptr<FeSpace> > 
