@@ -26,11 +26,9 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/ABInt.hh"
-#include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/BDUInt.hh"
 #include "Forms/LinForms/KXInt.hh"
-#include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/Operators/CurlOperator.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
@@ -280,7 +278,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
         /* ==============================================
          * Upper left MASS part:
-         * \sigma grad(V) \cdot grad(V)
+         * \sigma grad(A) \cdot grad(A)
            ============================================== */
         BaseBDBInt *massUpperLeftInt;
         BiLinFormContext * massUpperLeftContext;
@@ -291,8 +289,9 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
           massUpperLeftInt = new BBIntMassEdge<>(
               new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(), conducCoefReg, 1.0);
           massUpperLeftInt->SetName("MassIntegratorUpperLeft");
-          massUpperLeftContext =  new BiLinFormContext(massUpperLeftInt, STIFFNESS );
+          massUpperLeftContext =  new BiLinFormContext(massUpperLeftInt, DAMPING );
         } else {
+
           // here we add the "normal" mass integrator, which gets not scaled by the
           // edge size
           if( scaleByEdgeSize ) {
@@ -306,7 +305,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
                   conducCoefReg,1.0, updatedGeo_);
             }
 
-            massUpperLeftContext = new BiLinFormContext(massUpperLeftInt, STIFFNESS );
+            massUpperLeftContext = new BiLinFormContext(massUpperLeftInt, DAMPING );
           } else {
             if(analysistype_ == HARMONIC){
               massUpperLeftInt = new BBIntMassEdge<>(
@@ -325,7 +324,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         massUpperLeftContext->SetEntities( actSDList, actSDList );
         massUpperLeftContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
         assemble_->AddBiLinearForm( massUpperLeftContext );
-
      } // END OF NONLIN/LIN PART
     } // end for regions
   } // end DefineIntegrators
@@ -545,7 +543,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
 
     // === TIME DERIVATIVES OF PRIMARY RESULTS ===
-    if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) {
+    if( analysistype_ != STATIC ) {
       // === MAGNETIC VECTOR POTENTIAL - 1ST DERIVATIVE ===
       shared_ptr<ResultInfo> aDot(new ResultInfo);
       aDot->resultType = MAG_POTENTIAL_DERIV1;
@@ -555,6 +553,86 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       aDot->entryType = ResultInfo::VECTOR;
       availResults_.insert( aDot );
       DefineTimeDerivResult( MAG_POTENTIAL_DERIV1, 1, MAG_POTENTIAL );
+
+
+      // === ELECTRIC FIELD INTENSITY ===
+      shared_ptr<ResultInfo> elecIntens(new ResultInfo);
+      elecIntens->resultType = ELEC_FIELD_INTENSITY;
+      elecIntens->SetVectorDOFs(dim_, isaxi_);
+      elecIntens->dofNames = vecComponents;
+      elecIntens->unit = "V/m";
+      elecIntens->definedOn = ResultInfo::ELEMENT;
+      elecIntens->entryType = ResultInfo::VECTOR;
+      shared_ptr<CoefFunctionMulti> elecIntensFunc(
+          new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
+      DefineFieldResult( elecIntensFunc, elecIntens );
+      elecIntens_ = elecIntens;
+
+
+      // === EDDY CURRENT DENSITY ===
+      shared_ptr<ResultInfo> eddyJ(new ResultInfo);
+      eddyJ->resultType = MAG_EDDY_CURRENT_DENSITY;
+      eddyJ->dofNames = vecComponents;
+      eddyJ->unit = "A/m^2";
+      eddyJ->definedOn = ResultInfo::ELEMENT;
+      eddyJ->entryType = ResultInfo::VECTOR;
+      shared_ptr<CoefFunctionMulti> eddyJFunc(
+          new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
+      DefineFieldResult( eddyJFunc, eddyJ );
+
+
+      /* For integrating eddy current density over a surface
+       * we have two possibilities:
+       * 1) integration in Hcurl FE space MAG_EDDY_CURRENT1
+       * 2) integration in H1 FE space MAG_EDDY_CURRENT2
+       * Both integrations give the same result
+       * but we'll keep it for testing purposes.
+       */
+      // === EDDY CURRENT (SURFACE RESULT) ===
+      shared_ptr<ResultInfo> ec1(new ResultInfo());
+      ec1->resultType = MAG_EDDY_CURRENT1;
+      ec1->dofNames = "";
+      ec1->unit = "A";
+      ec1->definedOn = ResultInfo::SURF_REGION;
+      ec1->entryType = ResultInfo::SCALAR;
+      availResults_.insert( ec1 );
+
+      // first, create normal mapping
+      shared_ptr<CoefFunctionSurf> ncd(new CoefFunctionSurf(true, 1.0, ec1));
+      surfCoefFcts_[ncd] = eddyJFunc;
+
+      // then, integrate values
+      shared_ptr<ResultFunctor> eddyCurrentFuncMagVecPot;
+      if( isComplex_ ) {
+        eddyCurrentFuncMagVecPot.reset(new ResultFunctorIntegrate<Complex>(ncd, magVecPotFeFct, ec1 ) );
+      } else {
+        eddyCurrentFuncMagVecPot.reset(new ResultFunctorIntegrate<Double>(ncd, magVecPotFeFct, ec1 ) );
+      }
+      resultFunctors_[MAG_EDDY_CURRENT1] = eddyCurrentFuncMagVecPot;
+
+
+
+      // === EDDY CURRENT (SURFACE RESULT) ===
+      shared_ptr<ResultInfo> ec2(new ResultInfo());
+      ec2->resultType = MAG_EDDY_CURRENT2;
+      ec2->dofNames = "";
+      ec2->unit = "A";
+      ec2->definedOn = ResultInfo::SURF_REGION;
+      ec2->entryType = ResultInfo::SCALAR;
+      availResults_.insert( ec2 );
+      // first, create normal mapping
+      shared_ptr<CoefFunctionSurf> ncd2(new CoefFunctionSurf(true, 1.0, ec2));
+      surfCoefFcts_[ncd2] = eddyJFunc;
+      // then, integrate values
+      shared_ptr<ResultFunctor> eddyCurrentFuncElecScalPot;
+      if( isComplex_ ) {
+        eddyCurrentFuncElecScalPot.reset(new ResultFunctorIntegrate<Complex>(ncd2, elecScalPotFeFct, ec2 ) );
+      } else {
+        eddyCurrentFuncElecScalPot.reset(new ResultFunctorIntegrate<Double>(ncd2, elecScalPotFeFct, ec2 ) );
+      }
+      resultFunctors_[MAG_EDDY_CURRENT2] = eddyCurrentFuncElecScalPot;
+
+
     }
 
 
@@ -604,21 +682,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     resultFunctors_[MAG_FLUX] = fluxFct;
     availResults_.insert(flux);
 
-
-
-    // === ELECTRIC FIELD INTENSITY ===
-    shared_ptr<ResultInfo> elecIntens(new ResultInfo);
-    elecIntens->resultType = ELEC_FIELD_INTENSITY;
-    elecIntens->SetVectorDOFs(dim_, isaxi_);
-    elecIntens->dofNames = vecComponents;
-    elecIntens->unit = "V/m";
-    elecIntens->definedOn = ResultInfo::ELEMENT;
-    elecIntens->entryType = ResultInfo::VECTOR;
-    shared_ptr<CoefFunctionMulti> elecIntensFunc(
-        new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
-    DefineFieldResult( elecIntensFunc, elecIntens );
-    elecIntens_ = elecIntens;
-
   }
 
   void MagEdgeMixedAVPDE::FinalizePostProcResults() {
@@ -656,10 +719,23 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         PtrCoefFct h2 = CoefFunction::Generate( mp_, part,
             CoefXprVecScalOp(mp_, h, constOne, CoefXpr::OP_MULT));
 
-        elecIntensCoef->AddRegion(*regIt,h2);
+        elecIntensCoef->AddRegion(*regIt, h2);
       }
-
     }
+
+    // === EDDY CURRENT DENSITY ===
+    // J = \sigma * E
+    shared_ptr<CoefFunctionMulti> eddyJCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_EDDY_CURRENT_DENSITY]);
+    regIt = regions_.Begin();
+    for( ; regIt != regions_.End(); ++regIt ){
+      Double conductivity;
+      materials_[*regIt]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+      PtrCoefFct conducCoef = materials_[*regIt]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
+      PtrCoefFct jE = CoefFunction::Generate( mp_, part,
+                  CoefXprVecScalOp(mp_, elecIntensCoef, conducCoef, CoefXpr::OP_MULT));
+      eddyJCoef->AddRegion(*regIt, jE);
+    }
+
 
 
 
