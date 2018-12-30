@@ -1421,16 +1421,15 @@ namespace CoupledField {
     // -----------------------------------------------------------
 
     // loop over all matrix Types in feSubMatricesByFctId
-    std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct =
-        feSubMatricesByFctId_.begin();
-    for( ; itMatByFct != feSubMatricesByFctId_.end(); ++itMatByFct ) {
+    std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct;
+    for( itMatByFct = feSubMatricesByFctId_.begin(); itMatByFct != feSubMatricesByFctId_.end(); ++itMatByFct ) {
 
       const FEMatrixType & matrixType = itMatByFct->first;
       const SubMatrixSet & sbmSet = itMatByFct->second;
-      SubMatrixSet::const_iterator sbmIt = sbmSet.begin();
+      SubMatrixSet::const_iterator sbmIt;
 
       // loop over all blocks
-      for( ; sbmIt != sbmSet.end(); ++sbmIt ) {
+      for( sbmIt = sbmSet.begin() ; sbmIt != sbmSet.end(); ++sbmIt ) {
 
         const FeFctIdType rowFctId = sbmIt->rowInd;
         const FeFctIdType colFctId = sbmIt->colInd;
@@ -1616,7 +1615,7 @@ namespace CoupledField {
     UInt a = (domain->GetDriver()->IsFullSystem())? (M+1) : ((M-1)/2 + 1);
 
     // loop over all matrix Types in feSubMatricesByFctId
-    std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct = feSubMatricesByFctId_.begin();
+    std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct;
     for( auto & itMatByFct : feSubMatricesByFctId_ ) {
       const FEMatrixType & matrixType = itMatByFct.first;
 
