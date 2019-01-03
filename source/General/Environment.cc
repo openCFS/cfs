@@ -1557,6 +1557,7 @@ namespace CoupledField {
     // common for all PDEs, no unit
     SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation
     SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL, "gradElecPotential");
+    SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL_DERIV1, "gradElecPotentialD1");
     SolutionTypeEnum.Add(ELEM_DENSITY, "density");
     SolutionTypeEnum.Add(PML_DAMP_FACTOR, "pmlDampFactor");
 

@@ -302,6 +302,7 @@
       <xsd:enumeration value="magPotentialD1"/>
       <xsd:enumeration value="magFieldIntensity"/>
       <xsd:enumeration value="elecFieldIntensity"/>
+      <xsd:enumeration value="gradElecPotential"/>
       <xsd:enumeration value="magPotentialDiv"/>
       <xsd:enumeration value="magEddyCurrentDensity"/>
       <xsd:enumeration value="magCoilCurrentDensity"/>

@@ -73,7 +73,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
     conduc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
 
-    gradInt_ = NULL;
   }
 
 
@@ -234,7 +233,8 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
           stiffLowerRightContext->SetEntities( actSDList, actSDList );
           stiffLowerRightContext->SetFeFunctions( elecScalPotFeFunc, elecScalPotFeFunc );
           assemble_->AddBiLinearForm( stiffLowerRightContext );
-          gradInt_ = stiffLowerRight;
+          // Add bdb-integrator to global list, needed for gradient evaluation
+          bdbIntsAux1_[actRegion] = stiffLowerRight;
         }
 
 
@@ -554,6 +554,23 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       availResults_.insert( aDot );
       DefineTimeDerivResult( MAG_POTENTIAL_DERIV1, 1, MAG_POTENTIAL );
 
+      // === GRADIENT ELEC SCALAR POTENTIAL ===
+      shared_ptr<ResultInfo> gradV(new ResultInfo);
+      gradV->resultType = GRAD_ELEC_POTENTIAL;
+      gradV->dofNames = vecComponents;
+      gradV->unit = "V/m";
+      gradV->definedOn = ResultInfo::ELEMENT;
+      gradV->entryType = ResultInfo::VECTOR;
+      availResults_.insert( gradV );
+      shared_ptr<CoefFunctionFormBased> gradVFunc;
+      if( isComplex_ ) {
+        gradVFunc.reset(new CoefFunctionBOp<Complex>(elecScalPotFeFct, gradV));
+      } else {
+        gradVFunc.reset(new CoefFunctionBOp<Double>(elecScalPotFeFct, gradV));
+      }
+      DefineFieldResult( gradVFunc, gradV );
+      stiffFormCoefsAux1_.insert(gradVFunc);
+
 
       // === ELECTRIC FIELD INTENSITY ===
       shared_ptr<ResultInfo> elecIntens(new ResultInfo);
@@ -566,7 +583,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       shared_ptr<CoefFunctionMulti> elecIntensFunc(
           new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
       DefineFieldResult( elecIntensFunc, elecIntens );
-      elecIntens_ = elecIntens;
 
 
       // === EDDY CURRENT DENSITY ===
@@ -597,8 +613,8 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       ec1->entryType = ResultInfo::SCALAR;
       availResults_.insert( ec1 );
 
-      // first, create normal mapping
-      shared_ptr<CoefFunctionSurf> ncd(new CoefFunctionSurf(true, 1.0, ec1));
+      // first, create normal mapping, -1.0 because we want the inward pointing normal vector
+      shared_ptr<CoefFunctionSurf> ncd(new CoefFunctionSurf(true, -1.0, ec1));
       surfCoefFcts_[ncd] = eddyJFunc;
 
       // then, integrate values
@@ -620,9 +636,9 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       ec2->definedOn = ResultInfo::SURF_REGION;
       ec2->entryType = ResultInfo::SCALAR;
       availResults_.insert( ec2 );
-      // first, create normal mapping
-      shared_ptr<CoefFunctionSurf> ncd2(new CoefFunctionSurf(true, 1.0, ec2));
-      surfCoefFcts_[ncd2] = eddyJFunc;
+      // first, create normal mapping, -1.0 because we want the inward pointing normal vector
+      shared_ptr<CoefFunctionSurf> ncd2(new CoefFunctionSurf(true, -1.0, ec2));
+      surfCoefFctsAux1_[ncd2] = eddyJFunc;
       // then, integrate values
       shared_ptr<ResultFunctor> eddyCurrentFuncElecScalPot;
       if( isComplex_ ) {
@@ -698,12 +714,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     // Assemble coefficient function for
     // E = -\frac{\partial A}{\partial t} - \nabla V
     shared_ptr<CoefFunctionMulti> elecIntensCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[ELEC_FIELD_INTENSITY]);
-    shared_ptr<CoefFunctionFormBased> gradVFunc;
-    if( isComplex_ ) {
-      gradVFunc.reset(new CoefFunctionBOp<Complex>(elecScalPotFeFct, elecIntens_));
-    }else{
-      gradVFunc.reset(new CoefFunctionBOp<Double>(elecScalPotFeFct, elecIntens_));
-    }
+
     StdVector<RegionIdType>::iterator regIt = regions_.Begin();
     PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "-1.0");
     regIt = regions_.Begin();
@@ -713,15 +724,16 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       // Get flag if we need to consider an electric scalar potential in this region
       bool isConducRegion = curRegNode->Get("isConducRegion")->As<bool>();
       if( isConducRegion ){
-        gradVFunc->AddIntegrator(gradInt_, *regIt);
         PtrCoefFct h = CoefFunction::Generate( mp_, part,
-            CoefXprBinOp( mp_, gradVFunc, GetCoefFct( MAG_POTENTIAL_DERIV1 ), CoefXpr::OP_ADD ) );
+            CoefXprBinOp( mp_, GetCoefFct( GRAD_ELEC_POTENTIAL ),
+                GetCoefFct( MAG_POTENTIAL_DERIV1 ), CoefXpr::OP_ADD ) );
         PtrCoefFct h2 = CoefFunction::Generate( mp_, part,
             CoefXprVecScalOp(mp_, h, constOne, CoefXpr::OP_MULT));
 
         elecIntensCoef->AddRegion(*regIt, h2);
       }
     }
+
 
     // === EDDY CURRENT DENSITY ===
     // J = \sigma * E

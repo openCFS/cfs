@@ -120,10 +120,6 @@ namespace CoupledField
     //! Define integrators for classical cylindrical coils
     void DefineCylindricalCoilIntegrator();
 
-    //! Temporary fix, needed for postprocessing the gradient of
-    //! the electric scalar potential V
-    BaseBDBInt* gradInt_;
-    shared_ptr<ResultInfo> elecIntens_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

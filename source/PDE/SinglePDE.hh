@@ -433,6 +433,14 @@ class BaseFieldFunctor;
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> bdbInts_;
     
+    //! Map for storing the auxiliary primary BDB integrators of the problem
+
+    //! This map stores the auxiliary primary BDB integrators, which can be used for
+    //! calculating spatial derivatives, fluxes and energy.
+    //! This is necessary because we can have a SinglePDE with more than
+    //! one unknown (FeFunction) and also need the primary BOperator for that
+    //! secondary FeFunction
+    std::map<RegionIdType, BaseBDBInt*> bdbIntsAux1_;
 
     //! Map for storing the primary mass integrator of the problem
     
@@ -473,6 +481,9 @@ class BaseFieldFunctor;
     //! this map gets related to the stiffness integrator on each region.
     std::set<shared_ptr<CoefFunctionFormBased> > stiffFormCoefs_;
     
+    std::set<shared_ptr<CoefFunctionFormBased> > stiffFormCoefsAux1_;
+
+
     //! Store bilinarform-based coefficient function for mass integrator
     
     //! In this set we store all coefficient functions, which compute by the
@@ -484,6 +495,8 @@ class BaseFieldFunctor;
     //! Store result functors related to stiffness integrator
     std::set<shared_ptr<ResultFunctor> > stiffFormFunctors_;
 
+    std::set<shared_ptr<ResultFunctor> > stiffFormFunctorsAux1_;
+
     //! Store bilinarform-based coefficient function for mass integrator
     std::set<shared_ptr<ResultFunctor> > massFormFunctors_;
     
@@ -494,6 +507,8 @@ class BaseFieldFunctor;
     //! which has to be set for each region the surface is neighboring to.
     //! This is performed in the method  SinglePde::FinalizePostProcResults().
     std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct > surfCoefFcts_;
+
+    std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct > surfCoefFctsAux1_;
 
     
     //! Map containing the input states and the related domains
