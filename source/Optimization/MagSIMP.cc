@@ -18,6 +18,7 @@
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
 #include "PDE/MagneticPDE.hh"
+#include "PDE/MagEdgePDE.hh"
 
 namespace CoupledField {
 class DenseMatrix;
@@ -237,15 +238,27 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
       S_flux_dens.Resize(dim);
       S.Mult(flux_dens, S_flux_dens);
 
-      // scalar = flux_dens * S_flux_dens
-      el_val += weights[ip] * lp.jacDet * S_flux_dens.Inner(flux_dens);
+      if(dim == 2)
+      {
+        // scalar = flux_dens * S_flux_dens
+        el_val += weights[ip] * lp.jacDet * S_flux_dens.Inner(flux_dens);
+      }
+      else
+      {
+        el_val += weights[ip] * lp.jacDet * S_flux_dens.Inner(flux_dens) * 2; // * 2 because of edge element?
+      }
 
-      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens << " Sfd=" << S_flux_dens << " inner=" << S_flux_dens.Inner(flux_dens) << " el -> " << el_val;
+
+      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens.ToString(2) << " Sfd=" << S_flux_dens.ToString(2) << " el_val= " << el_val;
     } // end ip
 
     result += el_val;
 
   } // end loop elems
+  if(dim == 3)
+  {
+    result /= intPoints.GetSize();
+  }
 
   result /= f->elements.GetSize(); // norm the function
   LOG_DBG(ms) << "CMFD: exit -> " << result;
@@ -262,21 +275,42 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
   assert(excite.sequence == f->ctxt->sequence);
 
   DesignDependentRHS* rhs = NULL;
+  LinearForm* lf = NULL;
+  Vector<double> mechStrainRHS;
 
   MagneticPDE* magnetic = dynamic_cast<MagneticPDE*>(f->ctxt->pde);
-  assert(magnetic != NULL);
-  if (magnetic->OptimizationRHS())
+  //MagEdgePDE* magnetic = dynamic_cast<MagEdgePDE*>(f->ctxt->pde);
+  //assert(magnetic != NULL);
+  // f' = f * rho'
+/*  if (magnetic->OptimizationRHS())
   {
     rhs = new DesignDependentRHS();
     rhs->Init<double>(design,App::MAG);
+    SinglePDE* pde = f->ctxt->pde;
+    //BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetLinearForm(context->pde,"CoilIntegrator")->GetIntegrator());
 
+    lf = context->pde->GetAssemble()->GetLinearForm(context->pde,"CoilIntegrator");
+    //lf->
+    Vector<double>& rhs = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
+    std::cout << "rhs= " << rhs.ToString() << std::endl;
+
+    //BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator());
+
+    //form->CalcElemVector(elemVec, entIt);
     StdVector<SingleVector*>& stateSol = forward.Get(excite)->elem[App::MAG];
+    //excite.ReadLoads(f->ctxt,)
+    //rhs(forward.Get(excite)->GetVector(StateSolution::RHS_VECTOR)->GetSize());
     for (unsigned int id = 0; id < design->data.GetSize(); id++)
     {
       DesignElement* de = &design->data[id];
+      std::cout << "stateSol= " << stateSol[id]->ToString() << std::endl;
+
+      //Vector<double> gradRHS = de->
+      //double val = gradRHS.Inner(*stateSol[id]);
+      //de->AddGradient(f,val);
     }
 
-  }
+  }*/
 
   double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
@@ -340,13 +374,17 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
 
     // M = B^T S B as in BDBInt::CalcElementMatrix, just S from above instead of D with material and density
     bdb->CalcElementMatrix(M, it, it);
-    LOG_DBG2(ms) << "CMFAR e=" << e << " el=" << de->elem->elemNum<< "coef_S= " << coef_S->GetTensor().ToString(2) << " M=" << M.ToString(2);
+    LOG_DBG3(ms) << "CMFAR e=" << e << " el=" << de->elem->elemNum<< "coef_S= " << coef_S->GetTensor().ToString(2) << " M=" << M.ToString(2);
 
     // now the part -2 * M * A
     Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[de->GetElementSolutionIndex()]);
     LOG_DBG3(ms) << "CMFAR e=" << e << " esi=" << de->GetElementSolutionIndex() << " nodal values=" << vec->ToString(2);
     assert(vec != NULL);
-    const Vector<double>& a = *vec; // a = the vector potential in the element
+    Vector<double>& a = *vec; // a = the vector potential in the element
+    if(dim == 3)
+    {
+      a /= 2; // /2 because of edge element?
+    }
 
     rhs_el.Resize(a.GetSize());
     M.Mult(a, rhs_el);
@@ -362,14 +400,15 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
     {
       // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
       int eqn_nbr = eqn[n];
-      if(eqn_nbr <= 0)
+      if(eqn_nbr <= 0){
         LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_nbr=" << eqn_nbr << " -> skip RHS node";
+      }
       else
       {
         unsigned int eqn_idx = eqn_nbr-1;
 
         out[eqn_idx] += rhs_el[n]; // we don't norm here, we moved the norming to CalcMagFluxDensGradient
-        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn_idx]=" << out[eqn_idx];
+        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn_idx]=" << out[eqn_idx] << " normed= " << 1.0/f->elements.GetSize();
       }
     }
   } // end loop elements
