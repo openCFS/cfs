@@ -244,14 +244,14 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
            ============================================== */
         if( isConducRegion ){
           BiLinearForm* stiffLowerLeft = NULL;
-          stiffLowerLeft = new ABInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),
-                                        new GradientOperator<FeH1,3,1,Double>(),
+          stiffLowerLeft = new ABInt<>(new GradientOperator<FeH1,3,1,Double>(),
+                                        new IdentityOperator<FeHCurl,3,1,Double>(),
                                         conducCoef, 1.0, updatedGeo_);
           stiffLowerLeft->SetName("GradVIdentityAIntegratorLowerLeft");
 
           BiLinFormContext * stiffLowerLeftContext = new BiLinFormContext(stiffLowerLeft, STIFFNESS );
           stiffLowerLeftContext->SetEntities( actSDList, actSDList );
-          stiffLowerLeftContext->SetFeFunctions( magVecPotFeFunc, elecScalPotFeFunc );
+          stiffLowerLeftContext->SetFeFunctions(elecScalPotFeFunc, magVecPotFeFunc  );
           assemble_->AddBiLinearForm( stiffLowerLeftContext );
         }
 
@@ -282,41 +282,25 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
            ============================================== */
         BaseBDBInt *massUpperLeftInt;
         BiLinFormContext * massUpperLeftContext;
+
         if ( analysistype_ == STATIC) {
-          // We have to guarantee, that we add some mass to curl-curl integrator.
+          // we have to guarantee, that we add some mass to curl-curl integrator.
           // Additionally, the integrator gets scaled by the edge size for a uniform
           // conditioning
-          massUpperLeftInt = new BBIntMassEdge<>(
-              new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(), conducCoefReg, 1.0);
+          massUpperLeftInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),
+              conducCoefReg,1.0);
           massUpperLeftInt->SetName("MassIntegratorUpperLeft");
-          massUpperLeftContext =  new BiLinFormContext(massUpperLeftInt, DAMPING );
+          massUpperLeftContext =  new BiLinFormContext(massUpperLeftInt, STIFFNESS );
         } else {
-
           // here we add the "normal" mass integrator, which gets not scaled by the
           // edge size
           if( scaleByEdgeSize ) {
-            if(analysistype_ == HARMONIC){
-              massUpperLeftInt = new BBIntMassEdge<>(
-                  new ScaledByEdgeIdentityOperator<FeHCurl,3,Complex>(),
-                  conducCoefReg,1.0, updatedGeo_);
-            }else{
-              massUpperLeftInt = new BBIntMassEdge<>(
-                  new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),
-                  conducCoefReg,1.0, updatedGeo_);
-            }
-
-            massUpperLeftContext = new BiLinFormContext(massUpperLeftInt, DAMPING );
+            massUpperLeftInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),
+                conducCoefReg,1.0, updatedGeo_);
+            massUpperLeftContext = new BiLinFormContext(massUpperLeftInt, STIFFNESS );
           } else {
-            if(analysistype_ == HARMONIC){
-              massUpperLeftInt = new BBIntMassEdge<>(
-                new IdentityOperator<FeHCurl,3,1,Complex>(),
+            massUpperLeftInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl,3,1,Double>(),
                 conducCoefReg,1.0, updatedGeo_);
-            }else{
-              massUpperLeftInt = new BBIntMassEdge<>(
-                new IdentityOperator<FeHCurl,3,1,Double>(),
-                conducCoefReg,1.0, updatedGeo_);
-            }
-
             massUpperLeftContext = new BiLinFormContext(massUpperLeftInt, DAMPING );
           }
           massUpperLeftInt->SetName("MassIntegratorUpperLeft");
