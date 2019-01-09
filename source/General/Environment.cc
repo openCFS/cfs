@@ -1468,6 +1468,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
     SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
+    SolutionTypeEnum.Add(MAG_EDDY_CURRENT1, "magEddyCurrent1");
+    SolutionTypeEnum.Add(MAG_EDDY_CURRENT2, "magEddyCurrent2");
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     SolutionTypeEnum.Add(MAG_ELEM_RELUCTIVITY, "magElemReluctivity");
     SolutionTypeEnum.Add(MAG_MAGNETIZATION, "magMagnetization");
@@ -1561,6 +1563,7 @@ namespace CoupledField {
     // common for all PDEs, no unit
     SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation
     SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL, "gradElecPotential");
+    SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL_DERIV1, "gradElecPotentialD1");
     SolutionTypeEnum.Add(ELEM_DENSITY, "density");
     SolutionTypeEnum.Add(PML_DAMP_FACTOR, "pmlDampFactor");
 

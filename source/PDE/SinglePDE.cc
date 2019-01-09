@@ -1161,6 +1161,36 @@ namespace CoupledField {
           surfCoefIt->first->AddVolumeCoef(region, surfCoefIt->second);
         }
       }
+
+
+      // 1.1) Auxiliary BDB Integrator, associate all stiffness related
+      // coeffunctions and result functors with the bilinearform
+      std::map<RegionIdType, BaseBDBInt*>::iterator stiffItAux1 = bdbIntsAux1_.begin();
+      for(; stiffItAux1 != bdbIntsAux1_.end(); ++stiffItAux1 ) {
+        RegionIdType region = stiffItAux1->first;
+        BaseBDBInt* bdb = stiffItAux1->second;
+        if( !bdb)
+          continue;
+
+        // 1) pass it to all coefficient functions related to stiffness
+        std::set<shared_ptr<CoefFunctionFormBased> >::iterator stiffCoefIt;
+        for( stiffCoefIt = stiffFormCoefsAux1_.begin();
+            stiffCoefIt != stiffFormCoefsAux1_.end(); ++stiffCoefIt) {
+          (*stiffCoefIt)->AddIntegrator(bdb, region);
+        }
+        // 2) pass it to all result functors related to stiffness
+        std::set<shared_ptr<ResultFunctor> >::iterator stiffFuncIt;
+        for( stiffFuncIt = stiffFormFunctorsAux1_.begin();
+            stiffFuncIt != stiffFormFunctorsAux1_.end(); ++stiffFuncIt) {
+          (*stiffFuncIt)->AddIntegrator(bdb, region);
+        }
+        // 3) set region to to all surfCoefFcts
+        std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct >::iterator surfCoefIt;
+        for( surfCoefIt = surfCoefFctsAux1_.begin();
+            surfCoefIt != surfCoefFctsAux1_.end(); ++surfCoefIt ) {
+          surfCoefIt->first->AddVolumeCoef(region, surfCoefIt->second);
+        }
+      }
     }
 
     // 2) Associate all mass related coeffunctions and result functors
