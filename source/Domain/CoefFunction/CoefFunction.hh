@@ -270,7 +270,7 @@ public:
 
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm ) {
-    EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen " 
+    EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen "
         << "Most likely this method is called with a complex-valued CoefFunction object." );
   }
 
@@ -330,6 +330,19 @@ public:
   
   //@}
 
+  virtual void Init(shared_ptr<BaseFeFunction> feFct,
+            shared_ptr<FeSpace> feSpc,
+            const StdVector<RegionIdType>& regions,
+            std::map<RegionIdType, BaseMaterial*>& materials,
+            Grid* ptGrid,
+            PtrCoefFct magFluxCoef,
+            const UInt& N,
+            const UInt& M,
+            const Double& baseFreq,
+            const UInt& nFFT){
+    EXCEPTION("Not implemented here in base class");
+    return;
+  }
 
   //! Set associated coordinate system
   virtual void SetCoordinateSystem(CoordSystem* cSys){
@@ -587,6 +600,22 @@ public:
                                         StdVector<shared_ptr<EntityList> >() ) {
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
+
+  //! Needed for harmonic balancing CoefFunctionHarmBalance
+  virtual shared_ptr<CoefFunction> GenerateMatCoefFnc(const UInt& iRegion,
+                                                      const std::string& name,
+                                                      const bool nonLin,
+                                                      shared_ptr<ElemList> actSDList){
+    EXCEPTION("Not implemented in base class");
+  }
+
+  //! Needed for harmonic balancing CoefFunctionHarmBalance
+  virtual void RegisterElemsInRegion(shared_ptr<ElemList> actSDList,
+                                     const UInt& iRegion){
+    EXCEPTION("Not implemented in base class");
+  }
+
+
   //! Functions needed for Hystersis
   virtual void SetPreviousHystVals(bool setNextToLastTS = false, bool forceMemoryLock = false) {
 	  EXCEPTION("SetPreviousHystVals not available");

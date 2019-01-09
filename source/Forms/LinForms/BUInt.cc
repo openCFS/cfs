@@ -147,7 +147,6 @@ BUIntegrator(BaseBOperator * bOp,
          } else {
            rhsCoefs_->GetVector(cVec,lp);
            if (SURFACE && (ptFeSpace_->GetSpaceType() == FeSpace::HCURL)) {
-
              //uxn
              pt1 = lp.normal;
              cVec.CrossProduct(pt1,pt2);

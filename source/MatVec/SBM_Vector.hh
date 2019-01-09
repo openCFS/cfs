@@ -48,6 +48,13 @@ namespace CoupledField {
     //! allocated memory.
     virtual ~SBM_Vector();
 
+    //! Method to re-set the entry type of a SBM_Vector
+
+    //! This method checks, if the SBM_Vector was created with the first constructor,
+    //! where only the EntryType is set AND if no further actions were performed.
+    //! If these requirements are met, we change the entrytype to the given one.
+    void ResetEntryType(BaseMatrix::EntryType entryType);
+
     //! Return the Entry type of the vector
 
     //! The method returns the entry type of the vector on the scalar level.

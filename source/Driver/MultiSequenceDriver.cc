@@ -6,6 +6,7 @@
 #include "StaticDriver.hh"
 #include "TransientDriver.hh"
 #include "HarmonicDriver.hh"
+#include "MultiHarmonicDriver.hh"
 #include "EigenFrequencyDriver.hh"
 #include "InverseSourceDriver.hh"
 
@@ -237,6 +238,11 @@ DEFINE_LOG(msDriver, "msDriver")
       }
       else if( analysisPerStep_[sequenceStep] == BasePDE::EIGENFREQUENCY ) {
         actDriver_ = new EigenFrequencyDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
+      }
+      else if( analysisPerStep_[sequenceStep] == BasePDE::MULTIHARMONIC ) {
+        actDriver_ = new MultiHarmonicDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
+      }else{
+        EXCEPTION("MultiSequenceDriver::SetupStep Could not find the correct driver");
       }
 
       LOG_DBG(msDriver) << "SS: created driver of type "  << BasePDE::analysisType.ToString(actDriver_->GetAnalysisType()) << "(adress: " << actDriver_ << ")";

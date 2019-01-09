@@ -49,7 +49,6 @@ namespace CoupledField {
     diagMass_(false),
     needsAlgsys_(true),
     analysistype_(BasePDE::NO_ANALYSIS),
-    isAlwaysStatic_(false),
     dim_(ptGrid_->GetDim()), 
     isaxi_(ptGrid_->IsAxi()),
     isComplex_(false),    
@@ -143,6 +142,28 @@ namespace CoupledField {
     // Structure for mapping of minor blocks 
     std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
 
+
+    StdVector<UInt> sbmInd(0);
+    if(algsys_->GetSolStrategy()->IsMultHarm()){
+      UInt M = algsys_->GetSolStrategy()->GetNumHarmM();
+      UInt a = (domain->GetDriver()->IsFullSystem())? (M+1) : ((M-1)/2 + 1);
+      // same as ComputeIndex method in GraphManager, here with a lambda function
+      auto ComputeIndex = [](UInt a, UInt b ) { return (domain->GetDriver()->GetNumFreq()) * a + b;};
+
+      // store the sbm-indices of the nnz sbm-blocks
+      for( UInt iRow = 0; iRow < domain->GetDriver()->GetNumFreq(); ++iRow ) {
+        sbmInd.Push_back( ComputeIndex(iRow, iRow) );
+        for( UInt iCol = iRow + 1; iCol < iRow + a ; ++iCol ) {
+          if( iCol < domain->GetDriver()->GetNumFreq()){
+            sbmInd.Push_back( ComputeIndex(iRow, iCol) );
+          }
+        }
+      }
+
+      // register it at algsys
+      algsys_->SetNnzSBMInd(sbmInd);
+    }// endif is multiharmonic
+
     // -----------------------------------------------------------
     //  1) Register FeFunctions with Algebraic System
     // -----------------------------------------------------------
@@ -174,25 +195,36 @@ namespace CoupledField {
       }
     }
 
+
     // ---------------------------------------
     //  2) Define SBM-Blocks and minor blocks
     // ---------------------------------------
     LOG_DBG(stdPde) << pdename_ << ": Defining SBM-blocks";
 
     UInt numBlocks = sbmBlocks.GetSize();
+
+    if( solStrat_->IsMultHarm() && sbmBlocks.GetSize() > 1 )EXCEPTION("No submatrices allowed for multiharmonic analysis");
+
     // security check: ensure that at least one block is defined
     if (numBlocks == 0 ) {
       EXCEPTION( "There are no SBM blocks defined!" );
     }
 
     // Loop over blocks and register them at OLAS
+    // This also holds for multiharmonic case, because there we only have
+    // one set of equations, which are spread over the different blocks later on
     Integer sbmIndex = -1;
     for( UInt i = 0; i < numBlocks; ++i ) {
 
       // register block. In addition we check, if this is the inner block
       // and static condensation is activated
       bool isInnerBlock = solStrat_->UseStaticCondensation() && (i == numBlocks-1);
+
+      if( solStrat_->IsMultHarm() && i != 0 ) EXCEPTION("Only one block allowed in multiharmonic algsys!");
+
       sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[i], isInnerBlock );
+
+
       if( minorBlocks.size() != 0 && sbmIndex != -1) {
         StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
 
@@ -229,12 +261,13 @@ namespace CoupledField {
       } // if block is defined at all
     } // loop over blocks
 
-    // Finalize registration of blocks
+    // Finalize registration of blocks, which includes the generation of the graph manager
     algsys_->FinishRegistration();
 
 
     // Trigger writing of info file
     myInfo_->GetRoot()->ToFile("", true );
+
 
     // -----------------------------------
     //  3) Setup Sparsity Patterns
@@ -246,16 +279,18 @@ namespace CoupledField {
       for( it2 = feFunctions_.begin(); it2 != feFunctions_.end(); ++it2 ) {
         FeFctIdType fctId1 = it1->second->GetFctId();
         FeFctIdType fctId2 = it2->second->GetFctId();
-
         // assemble upper diagonal blocks including diagonal
-        LOG_DBG(stdPde) << pdename_ << ":\tset graph for fctIds #"
-            << fctId1 << " and # " << fctId2 << std::endl;
+        LOG_DBG(stdPde)<<pdename_<<":\tset graph for fctIds #"<< fctId1<<" and #"<<fctId2<<std::endl;
         assemble_->SetupMatrixGraph(fctId1, fctId2);
       } // it2
     } // it1
 
     // finish the assembly of the matrix graph
-    algsys_->GraphSetupDone();
+    if( solStrat_->IsMultHarm() ){
+      algsys_->GraphSetupDoneMH();
+    }else{
+      algsys_->GraphSetupDone();
+    }
 
     timer->Stop();
 

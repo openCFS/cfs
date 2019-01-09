@@ -121,10 +121,8 @@ namespace CoupledField {
     /** The CG constructor initialized the variables but does not
      * start any calculation or allocate huge memory.
      * The dafaults are handlended in the impementation itself.
-     * @param xml the ParamNode which might contain the cg element - can be NULL
-
-     * @param myParams the legacy paramer for the base class
-     * @param myReport report object for storing general information on solution process */ 
+     * @param xml_ the ParamNode which might contain the cg element - can be NULL
+     * @param infoNode_ report object for storing general information on solution process */
     CGSolver(PtrParamNode xml, PtrParamNode olasInfo )
         : r_(NULL),
           s_(NULL),
