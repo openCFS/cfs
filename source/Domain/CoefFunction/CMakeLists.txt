@@ -30,6 +30,8 @@ SET(COEFFUNCTION_SRCS
 
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
 
+ADD_DEPENDENCIES(coeffunction cgal)
+
 SET(TARGET_LL 
   scattereddatainout
   ${MUPARSER_LIBRARY} 

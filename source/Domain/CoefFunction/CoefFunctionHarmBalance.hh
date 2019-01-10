@@ -11,8 +11,6 @@
 
 #include <string>
 #include <map>
-#include <boost/tr1/type_traits.hpp>
-
 
 #include "CoefFunction.hh"
 #include "FeBasis/BaseFE.hh"
