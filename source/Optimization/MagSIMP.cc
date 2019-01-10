@@ -313,6 +313,7 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
 
 void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
 {
+  // Calculates the vector N to perform the numerical integration over the region encoded in form by <N, A>
   assert(N.GetSize() > 0); // needs to be set to full state solution size such that we can index the entries by the equation map
 
   shared_ptr<EntityList> el = form->GetEntities();
@@ -320,7 +321,7 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
   assert(el->GetRegion() >= 0);
   LOG_DBG(ms) << "CN: ft=" << el->GetType() << " r=" << el->GetRegion() << " fn="  << form->ToString();
 
-  // get bilinear form got gain fe-space from it
+  // get bilinear form to gain fe-space from it
   BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", el->GetRegion(), context->pde)->GetIntegrator());
   assert(bdb != NULL);
   LOG_DBG2(ms) << "CN: bdb=" << bdb->GetName();
@@ -336,7 +337,7 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
 
   for(EntityIterator iter = el->GetIterator(); !iter.IsEnd(); iter++)
   {
-    // form the element we get the local shape functions
+    // from the element we get the local shape functions
     BaseFE* bfe = bdb->GetFeSpace1()->GetFe(iter, method, order );
     FeH1* h1 = dynamic_cast<FeH1*>(bfe);
     assert(h1 != NULL);
@@ -347,7 +348,7 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
     // the equations assigned to the element
     bdb->GetFeSpace1()->GetElemEqns(eqn, iter.GetElem());
 
-    // integration points and weights
+    // set integration points and weights
     bdb->GetIntScheme()->GetIntPoints(Elem::GetShapeType(iter.GetElem()->type), method, order, intPoints, weights );
     assert(method != IntScheme::UNDEFINED);
     assert(!intPoints.IsEmpty());
@@ -356,9 +357,10 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
 
     for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
     {
-      // Calculate for each integration point the Jacobian determinant
+      // Calculate for each integration point the determinant of the Jacobian
       lpm.Set(intPoints[ip], esm, weights[ip]);
 
+      // get the shape functions of the ip, same values for all ips in one element but permuted
       h1->GetShFnc(shapes, lpm.lp, iter.GetElem());
       LOG_DBG3(ms) << "CN: e=" << iter.GetElem()->elemNum << " ip=" << ip << "=" << intPoints[ip].coord.ToString() << " J=" << lpm.jacDet << " s=" << shapes.ToString();
       assert(shapes.GetSize() == eqn.GetSize());
@@ -376,33 +378,9 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
           LOG_DBG3(ms) << "CN: s=" << s << " eqn_idx=" << eqn_idx << " N[" << eqn_idx << "] = " << N[eqn_idx] << " + " << v << " -> " << (N[eqn_idx] + v);
           N[eqn_idx] += v;
          }
-      }
-
+      } // end shape fcts
     } // end ip
-  }
-  /*
-  el->
-  shared_ptr<EntityList> ent = form->GetEntities();
-  EntityIterator iter = ent->GetIterator();
-
-  // Calculate volume
-
-  double vol_sum = 0.0;
-  // loop over elements
-  while (!iter.IsEnd())
-  {
-    // TODO shall be made faster
-    const Elem* elem = iter.GetElem();
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
-    double vol = esm->CalcVolume();
-    // loop over integration points
-      //N(elem) = vol* weights[ip] * lp.jacDet * Shapfct(=1?)
-
-    vol_sum += vol;
-    iter++;
-  }
-  return 0.0; //return vol_sum
-  */
+  } // end elem
 }
 
 double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
@@ -414,32 +392,48 @@ double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
   // we return value 0 for the first excitation and 2*coupling for the second excitation
   assert(GetMultipleExcitation()->excitations.GetSize() == 2);
   if(excite.index == 0)
+  {
+    LOG_DBG2(ms) << "CMC: excitation index is 0; nothing to do here; returning 0.0";
     return 0.0;
-
+  }
   assert(excite.index == 1);
   Excitation& excite_A = GetMultipleExcitation()->excitations[0];
   Excitation& excite_B = GetMultipleExcitation()->excitations[1];
   // Coupling can only be calculated for exactly two coils
   assert(excite_A.index == 0 && excite_B.index == 1);
+  // we need both forms to get the different regions
   StdVector<LinearFormContext*>& forms_A = excite_A.forms;
   StdVector<LinearFormContext*>& forms_B = excite_B.forms;
-  // get the two As
-  const Vector<double>& A_a = forward.Get(excite_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-  assert(A_a.GetSize() > 0);
-
   assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
   LinearFormContext* form_A = forms_A[0];
   LinearFormContext* form_B = forms_B[0];
-  LOG_DBG(ms) << "CMC: size(A)" << A_a.GetSize();
+  // get the two As
+  const Vector<double>& A_a = forward.Get(excite_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  const Vector<double>& A_b = forward.Get(excite_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  assert(A_a.GetSize() > 0);
+  assert(A_b.GetSize() > 0);
+
+  LOG_DBG3(ms) << "CMC: size of A_a = " << A_a.GetSize();
+  LOG_DBG3(ms) << "CMC: size of A_b = " << A_b.GetSize();
+
+  Vector<double> N1(A_a.GetSize());
   Vector<double> N2(A_a.GetSize());
 
+  CalcN(form_A, N1);
   CalcN(form_B, N2);
 
-  double sp_N2_Aa = N2.Inner(A_a);
+  double sp_N1_Aa = N1.Inner(A_a);
+  double sp_N1_Ab = N1.Inner(A_b);
+  double sp_N2_Ab = N2.Inner(A_b);
 
-  LOG_DBG(ms) << "CMC: <N2, A_a>=" << sp_N2_Aa;
+  LOG_DBG2(ms) << "CMC: <N1, A_a>=" << sp_N1_Aa;
+  LOG_DBG2(ms) << "CMC: <N1, A_b>=" << sp_N1_Ab;
+  LOG_DBG2(ms) << "CMC: <N2, A_b>=" << sp_N2_Ab;
 
-  return sp_N2_Aa;
+  double k = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab);
+  LOG_DBG(ms) << "CMC: Coupling = " << k;
+  // return 2-times the function value since we have two excitations and it will be halved afterwards
+  return 2*k;
   }
 
 void MagSIMP::CalcCouplingGradient(Excitation& excite, Function* f, TransferFunction* tf)
@@ -558,50 +552,71 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
 
 void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
 {
-  /* TODO maybe remove vol
-   * The right hand sides lood as follows:
+  /* The right hand sides look as follows:
    * case A:
-   * (2/(Vol_A)^3)* <N_1, A_B>/(<N_1, A_A><N_2, A_B>) * N_1^T - (<N_1, A_B>)^2/(<N_1, A_A><N_2, A_B^2>) * N_2^T
-   * case B:
    * (<N_1, A_B>^2)/(<N_1, A_A>^2 <N_2, A_B>) * N_1^T
+   * case B:
+   * <N_1, A_B>/(<N_1, A_A><N_2, A_B>) * N_1^T - (<N_1, A_B>)^2/(<N_1, A_A><N_2, A_B^2>) * N_2^T
    */
+  // same as in CalcCoupling
+  if(GetMultipleExcitation()->excitations.GetSize() != 2)
+    throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
+
+  // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
+  // we return value 0 for the first excitation and 2*coupling for the second excitation
   assert(GetMultipleExcitation()->excitations.GetSize() == 2);
-  assert(excite.index == 0 || excite.index == 1);
+  Excitation& excite_A = GetMultipleExcitation()->excitations[0];
+  Excitation& excite_B = GetMultipleExcitation()->excitations[1];
+  // Coupling can only be calculated for exactly two coils
+  assert(excite_A.index == 0 && excite_B.index == 1);
+  // we need both forms to get the different regions
+  StdVector<LinearFormContext*>& forms_A = excite_A.forms;
+  StdVector<LinearFormContext*>& forms_B = excite_B.forms;
+  assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
+  LinearFormContext* form_A = forms_A[0];
+  LinearFormContext* form_B = forms_B[0];
+  // get the two As
+  const Vector<double>& A_a = forward.Get(excite_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  const Vector<double>& A_b = forward.Get(excite_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  assert(A_a.GetSize() > 0);
+  assert(A_b.GetSize() > 0);
 
-  // we get the region from the coil name in the forms
-//  StdVector<LinearFormContext*>& forms = excite.forms;
-//  assert(forms.GetSize() == 1);
-//  LinearFormContext* form = forms[0];
-//  shared_ptr<EntityList> ent = form->GetEntities();
-//  LOG_DBG(ms) << "CCARH: ent=" << ent->GetName();
+  LOG_DBG3(ms) << "CMC: size of A_a = " << A_a.GetSize();
+  LOG_DBG3(ms) << "CMC: size of A_b = " << A_b.GetSize();
 
-  assert(out.GetSize() == 0);
+  Vector<double> N1(A_a.GetSize());
+  Vector<double> N2(A_a.GetSize());
 
-  //Excitation exc_A = GetMultipleExcitation()->excitations[0];
-  //Excitation exc_B = GetMultipleExcitation()->excitations[1];
-  const Vector<double>& A_A = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-  //const Vector<double>& A_B = forward.Get(exc_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-/*
-  StdVector<LinearFormContext*>& forms = exc_A.forms;
-  assert(forms.GetSize() == 1);
-  LinearFormContext* form_A = forms[0];
-  forms = exc_B.forms;
-  assert(forms.GetSize() == 1);
-  LinearFormContext* form_B = forms[0];
-  Vector<double> N1;
-  Vector<double> N2;
   CalcN(form_A, N1);
   CalcN(form_B, N2);
+
+  double sp_N1_Aa = N1.Inner(A_a);
+  double sp_N1_Ab = N1.Inner(A_b);
+  double sp_N2_Ab = N2.Inner(A_b);
+
+  LOG_DBG2(ms) << "CMC: <N1, A_a>=" << sp_N1_Aa;
+  LOG_DBG2(ms) << "CMC: <N1, A_b>=" << sp_N1_Ab;
+  LOG_DBG2(ms) << "CMC: <N2, A_b>=" << sp_N2_Ab;
+  out.Resize(A_a.GetSize(),0.0);
   if (excite.index == 0) {
-    //calc rhs...
+    //calc rhs first case
+    double factor = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N1_Aa*sp_N2_Ab);
+    //TODO transpose N1?
+    N1.ScalarMult(-factor);
+    out = N1;
   } else if (excite.index == 1) {
-    //calc rhs...
+    //calc rhs second case
+    double factor_N1 = (2*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab);
+    double factor_N2 = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab*sp_N2_Ab);
+    //TODO transpose N1 and N2?
+    //TODO does this really do what i want it to do?
+    N1.ScalarMult(-factor_N1);
+    N2.ScalarMult(factor_N2);
+    N1.Add(N2);
+    out = N1;
   } else {
     throw Exception("There should only be two excitations");
   }
-*/
-  out.Resize(A_A.GetSize(),0.0);
-  out[0] = 1;
 }
 
 template <class T1, class T2>
