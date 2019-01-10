@@ -96,7 +96,7 @@ namespace CoupledField {
     //@}
 
     //! Default Constructor
-    AlgebraicSys( PtrParamNode param, PtrParamNode info, bool isSolutionComplex );
+    AlgebraicSys( PtrParamNode param, PtrParamNode info, bool isSolutionComplex, bool isMultiHarm = false );
 
     //! Default Destructor
     virtual ~AlgebraicSys();
@@ -273,6 +273,15 @@ namespace CoupledField {
     //! connectivity information to the graph manager.
     void GraphSetupDone();
 
+    //! Finalises setup of the graph manager
+
+    //! Special graph setup for multiharmonic case!
+    //! This method must be called after the assembly of all sub-graphs was
+    //! done, i.e. once all functions or coupling objects have conveyed their
+    //! connectivity information to the graph manager.
+    void GraphSetupDoneMH();
+
+
     //! Obtain a unique FeFunction identifier
 
     //! Return a unique FeFunction identifier for each FeFunction, which will be used
@@ -373,7 +382,7 @@ namespace CoupledField {
                         const StdVector<Integer>& eqnNrs2,
                         FEMatrixType matrixType,
                         bool setCounterPart );
-    
+
     //! Helper method for mapping (fctId, eqnNr) to (blockNum,index)
     
     //! This method maps the CFS-oriented/physical oriented tuple (fctId,eqnNr)
@@ -391,6 +400,21 @@ namespace CoupledField {
                              const StdVector<Integer>& eqns,
                              StdVector<UInt>& blockNums,
                              StdVector<UInt>& indices );
+
+    //! @see MapFctIdEqnToIndex()
+    void MapFctIdEqnToIndex_MultHarm(const FeFctIdType fctId,
+                                     const StdVector<Integer>& eqns,
+                                     StdVector<UInt>& blockNums,
+                                     StdVector<UInt>& indices,
+                                     const StdVector<UInt>& sbmIndices );
+
+    //! Helper method for inserting an element method into the correct block
+    //! in a reordered multiharmonic analysis
+    void MapFctIdEqnToIndex_MultHarm( const FeFctIdType fctId,
+                                      const StdVector<Integer>& eqns,
+                                      StdVector<UInt>& blockNums,
+                                      StdVector<UInt>& indices );
+
 
     //! @see MapFctIdEqnToIndex()
     void MapFctIdEqnToIndex( const StdVector<FeFctIdType>& fctId,
@@ -550,6 +574,49 @@ namespace CoupledField {
                            bool noStaticCond,
                            bool isDiagonal );
 
+
+    //! Assemble an element matrix into the global one for multiharmonic analysis
+
+    //! This methods assembles the given element matrix into a specified
+    //! global one (MASS, STIFFNESS, etc.), i.e. adds the entries to the.
+    //! global matrix. For element matrices which are associated
+    //! only with one Fct, only one identifier, the eqn numbers of the matrix
+    //! and the number of eqnNrs have to be specified.
+    //! For matrices which are associated with two different Fct identifiers,
+    //! the matrix will be assembled into the upper off-diagonal matrix-block
+    //! and the lower transposed one.
+    //! \param matrixType type of finite element destination matrix
+    //!                 (STIFFNESS, MASS, ...)
+    //! \param elemmat entries of the element matrix
+    //! \param fctId1 identifier for first Fct related to sub-graph
+    //! \param eqnNrs1 equation numbers (1-based) of the element matrix
+    //!                w.r.t. sub-graph associated with identifierFct1
+    //! \param numEqn1 number of equations related to sub-graph of
+    //!                identifierFct1
+    //! \param fctId2 identifier for first Fct related to sub-graph
+    //! \param eqnNrs2 equation numbers (1-based) of the element matrix
+    //!                w.r.t. sub-graph associated with identifierFct2
+    //! \param numEqn2 number of equations related to sub-graph of
+    //!                identifierFct2
+    //! \param setCounterPart if this flag is true, then the method will
+    //!                not only insert the element matrix    \f$  E  \f$ , but also
+    //!                its transpose    \f$  E^T  \f$ . In doing so also the
+    //!                row and column indices derived from the equation
+    //!                numbers are interchanged. Note that this is only
+    //!                supported for off-diagonal blocks, i.e. for cases
+    //!                with different Fct identifiers.
+    //! \param sbmIndices SBM-indices of the sbm-blocks,
+    //!                   which have to be assembled
+    template<typename T>
+    void SetElementMatrix_MultHarm( FEMatrixType matrixType,
+                                   Matrix<T>& elemmat,
+                                   FeFctIdType fctId1,
+                                   const StdVector<Integer>& eqnNrs1,
+                                   FeFctIdType fctId2,
+                                   const StdVector<Integer>& eqnNrs2,
+                                   bool setCounterPart,
+                                   const StdVector<UInt>& sbmIndices );
+
     //! Assemble the local rhs vector to the global one
 
     //! This method adds the entries of the element right hand side to the
@@ -560,11 +627,13 @@ namespace CoupledField {
     //! \param fctId   identifier of the Fct related to sub-graph
     //! \param eqnNrs  equation numbers (1-based) of the element rhs
     //!                w.r.t. sub-graph associated with idFct
-    //! \param numEqn  length of eqnNrs array
+    //! \param harm  for multiharmonic analysis, we need the info
+    //!                which harmonic we are currently considerng
     template<typename T>
     void SetElementRHS( const Vector<T>& elemRHS, 
                         const FeFctIdType fctId,
-                        StdVector<Integer>& eqnNrs );
+                        StdVector<Integer>& eqnNrs,
+                        UInt& harm);
 
 
     //! Adds a value to a given global rhs entry
@@ -595,6 +664,19 @@ namespace CoupledField {
     //! \param fup array with vector entries, which get multiplied
     //! \param SysMatUpdated indicates if we need to allocate new memory for the tmpRHS_ vector
     void UpdateRHS(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated);
+
+    //! Performs a matrix-vector multiplication and adds the vector to the rhs
+
+    //! This method multiplies a specified global matrix (STIFFNES, MASS,
+    //! etc.) with a given vector and adds the result vector to the global
+    //! rhs.
+    //! \f[ rhs = rhs + \mathbf A_{matrixType} \cdot fup \f]
+    //! This method is currently only used to adapt the rhs for nonlinear multiharmonic analysis.
+    //! \param matrixType type of finite element matrix (STIFFNESS, MASS, ...)
+    //!                 which gets multiplied
+    //! \param fup array with vector entries, which get multiplied
+    //! \param SysMatUpdated indicates if we need to allocate new memory for the tmpRHS_ vector
+    void UpdateRHS_MultHarm(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated);
 
 
     //! Add a value to a diagonal matrix entry
@@ -678,9 +760,11 @@ namespace CoupledField {
     //! \param fctId identifier for function related to sub-graph
     //! \param matFactors a map which contains for each matrixtype (DAMPING,
     //!                   STIFFNESS,...) the according factor
+    //! \param isMultHarm flag if multiharmonic analysis
     void ConstructEffectiveMatrix( 
         const FeFctIdType fctId,
-        const std::map<FEMatrixType, Double>& matFactors );
+        const std::map<FEMatrixType, Double>& matFactors,
+        const bool isMultHarm = false);
 
     //! Pass a Dirichlet value to %OLAS
 
@@ -724,6 +808,10 @@ namespace CoupledField {
     //!                false: is needed in case of nonlinear PDE, incremental formulation!
     void GetSolutionVal( SBM_Vector& sbmSolVec, bool setIDBC=true, bool deltaIDBC=false );
     
+
+    void GetSolutionVal( const UInt& h, SBM_Vector& sbmSolVec, bool setIDBC=true, bool deltaIDBC=false );
+
+
     //! Return solution vector for one single FeFct
 
     //! This method returns the solution vector associated with one specific
@@ -734,6 +822,27 @@ namespace CoupledField {
     void GetSolutionVal( SingleVector& solVec,
                          const FeFctIdType fctId,
                          bool setIDBC, bool deltaIDBC=false  );
+
+    //! Return solution vector for a given block in multiharmonic analysis
+
+    //! This method returns the solution vector associated with one specific
+    //! SBM-block. The entries are numbered according to the equations numbers
+    //! \param solVec solution vector for specified FeFcunction
+    //! \param ident (has no function) only purpose is to call the correct method
+    void GetSolutionVal( SingleVector& ptSol,
+                        const UInt& block,
+                        bool setIDBC,
+                        bool deltaIDBC,
+                        const bool ident);
+
+    //! Return solution vector for a given block in multiharmonic analysis
+
+    //! This method returns the solution vector associated with one specific
+    //! SBM-block. The entries are numbered according to the equations numbers
+    //! \param solVec solution vector for specified FeFcunction
+    void GetFullMultiHarmSolutionVal(SBM_Vector& solVec, bool setIDBC, bool deltaIDBC = false);
+
+
 
     //! Helper function introduced for non-linear-transient stepping
     //! Background:
@@ -764,6 +873,18 @@ namespace CoupledField {
     //!                  as SBM-index)
     void GetRHSVal( SBM_Vector& sbmRhsVec );
     
+    //! Return block right-hand-side (RHS) vector from multiharmonic anlysis
+
+    //! This method returns the specified right-hand-side block (h) as
+    //! SBM-vector
+    void GetRHSVal( const UInt& h, SBM_Vector& sbmRhsVec );
+
+
+    //! Return full right-hand-side (RHS) vector from multiharmonic anlysis
+
+    //! This method returns the full multiharmonic right-hand-side
+    void GetFullMultiHarmRHSVal(SBM_Vector& rhsVec );
+
     //! Return right-hand-side (RHS) vector for one single FeFct
 
     //! This method returns the RHS vector associated with one specific
@@ -773,6 +894,19 @@ namespace CoupledField {
     //! \param fctId identifier for function related to sub-graph
     void GetRHSVal( SingleVector &rhsVec,
                     const FeFctIdType fctId );
+
+    //! Return right-hand-side (RHS) vector for one SBM Block in multiharmonic analysis
+
+    //! This method returns the RHS vector associated with one specific
+    //! SBM Block. The entries are numbered according to the equations numbers
+    //! of the blockInfo_.
+    //! \param rhsVec RHS vector for specified FeFcunction
+    //! \param blockVec SBM block number
+    //! \param ident just an identifier, not to mix it up with a call to the above
+    //!              method, where the FeFctIdType is an argument (which is also an Integer)
+    void GetRHSVal( SingleVector &rhsVec,
+                    const UInt& blockVec,
+                    const bool ident);
 
 
     // ***********************************************************************
@@ -936,8 +1070,14 @@ namespace CoupledField {
      * Shall be called for each phase, set each time exactly one parameter to true */
     void ExportLinSys(bool setup, bool pre_solve, bool post_solve);
 
+    void ExportMHSys(int step);
+
+    //! In multiharmonic analysis, set the nonzero sbm-blocks
+    inline void SetNnzSBMInd(const StdVector<UInt>& sbmInd){ nnzSBMInd_ = sbmInd;};
     BaseEigenSolver* GetEigenSolver(){ return eigenSolver_; };
 
+    //! Return if it is a multiharmonic analysis
+    bool IsMultHarm(){return isMultHarm_; };
     PtrParamNode GetExportLinSysParam();
 
     bool IsMatrixComplex(){return isMatrixComplex_;};
@@ -1136,6 +1276,11 @@ namespace CoupledField {
     //! Flag indicating use of static condensation
     bool statCond_;
     
+    //! Flag indicating use of multiharmonic analysis
+    bool isMultHarm_;
+
+    StdVector<UInt> nnzSBMInd_;
+
     //! Flag indicating, if system matrix is complex
     bool isMatrixComplex_;
 

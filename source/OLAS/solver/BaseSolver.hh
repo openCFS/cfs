@@ -28,27 +28,7 @@ namespace CoupledField {
 
     //! This enumeration data type describes the type of solver which
     //! is applied to solve the system. Note that not all solvers can handle
-    //! all types of matrices. The enumeration contains the following values:
-    //! - NOSOLVER
-    //! - RICHARDSON
-    //! - CG
-    //! - LANCZOS
-    //! - QMR
-    //! - GMRES
-    //! - MINRES
-    //! - SYMMLQ
-    //! - LAPACK_LU
-    //! - LAPACK_LL
-    //! - PARDISO_SOLVER from Olaf Schenk / Intel MKL
-    //! - UMFPACK from SuiteSparse
-    //! - ILUPACK from Matthias Bollhoefer
-    //! - CHOLMOD from SuiteSparse
-    //! - LIS Library of Iterative Solvers
-    //! - SUPERLU
-    //! - SPOOLES
-    //! - LDL_SOLVER
-    //! - LU_SOLVER
-    //! - DIAG_SOLVER
+    //! all types of matrices.
     typedef enum {NOSOLVER, RICHARDSON, CG, LANCZOS, QMR, GMRES,
                   MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO_SOLVER,
                   UMFPACK,ILUPACK, CHOLMOD, LIS,PETSC, SUPERLU, SPOOLES,

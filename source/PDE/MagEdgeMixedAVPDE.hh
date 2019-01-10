@@ -1,5 +1,21 @@
-#ifndef FILE_MAGNETICEDGEPDE
-#define FILE_MAGNETICEDGEPDE
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// ================================================================================================
+/*!
+ *       \file     MagEdgeMixedAVPDE.hh
+ *       \brief    A-V formulation of the eddy current problem, whereas the
+ *                 magnetic vector potential A is discretized with edge finite elements
+ *                 and the electric scalar potential V with nodal finite elements.
+ *
+ *       \date     Dec. 27, 2018
+ *       \author   kroppert
+ */
+//================================================================================================
+
+#ifndef FILE_MAGNETICEDGEMIXEDAVPDE
+#define FILE_MAGNETICEDGEMIXEDAVPDE
 
 #include <map>
 #include "SinglePDE.hh" 
@@ -9,17 +25,14 @@
 namespace CoupledField
 {
 
-  // Forward declaration of classes
-  class CurlCurlEdgeInt;
-  class nLinCurlCurlEdgeInt;
 
-  //! Class for 3D magnetics using edge elements
-  class MagEdgePDE : public SinglePDE
+  //! Class for 3D magnetics using edge elements and scalar nodal elements
+  class MagEdgeMixedAVPDE : public SinglePDE
   {
   public:
 
     //! Constructor
-    MagEdgePDE( Grid * aptgrid, PtrParamNode paramNode,
+    MagEdgeMixedAVPDE( Grid * aptgrid, PtrParamNode paramNode,
                 PtrParamNode infoNode,
                 shared_ptr<SimState> simState, Domain* domain );
 
@@ -27,7 +40,7 @@ namespace CoupledField
 
     //! The default destructor is responsible for freeing the Coil objects
     //! the ReadCoils() method brought into being.
-    ~MagEdgePDE();
+    ~MagEdgeMixedAVPDE();
 
     //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
     //! specifying coil results.
@@ -39,7 +52,7 @@ namespace CoupledField
     virtual void InitNonLin();
 
     //! read special boundary conditions (coils, magnets)
-    void ReadSpecialBCs();
+    void ReadSpecialBCs(){};
 
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
@@ -48,8 +61,8 @@ namespace CoupledField
     void DefineNcIntegrators();
 
     //! define surface integrators needed for this pde
-    void DefineSurfaceIntegrators( ){};
-    
+    void DefineSurfaceIntegrators( );
+
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators();
 
@@ -75,29 +88,6 @@ namespace CoupledField
     //! Init the time stepping
     void InitTimeStepping();
 
-    // =======================================================================
-    //   COILS
-    // =======================================================================
-
-    //@{ \name Attributes related to coils
-    //! Map CoilID to coil definition
-    std::map<Coil::IdType, shared_ptr<Coil> > coils_;
-
-    //! Map regionIds to coil definitions 
-    typedef std::map<RegionIdType, shared_ptr<Coil> > CoilRegionMap;
-    CoilRegionMap coilRegions_;
-    
-    //! Coefficients holding the current density for each coil
-    std::map<RegionIdType, PtrCoefFct> coilCurrentDens_;
-
-    //! Tells if there are coils excited by voltage
-    bool hasVoltCoils_;
-
-    //! Storage for CoefFunctions of external current density as source
-    std::map<shared_ptr<Coil::Part>, PtrCoefFct> coilPartsExtJ_;
-    //@}
-
-
     //! \copydoc SinglePDE::CreateFeSpace
     std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string& formulation, 
@@ -121,10 +111,15 @@ namespace CoupledField
     //! regions.
     std::set<RegionIdType> regularizedRegions_;
     
-    //! Coefficient function for the multiharmonic material adaptions
-    shared_ptr<CoefFunction> multiHarmCoef_;
 
   private:
+
+    //! Define integrators for general coils/inductors
+    void DefineGeneralCoilIntegrator();
+
+    //! Define integrators for classical cylindrical coils
+    void DefineCylindricalCoilIntegrator();
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
@@ -133,7 +128,7 @@ namespace CoupledField
   //     Detailed description of the class 
   // =========================================================================
 
-  //! \class MagEdgePDE
+  //! \class MagEdgeMixedAVPDE
   //! 
   //! \purpose 
   //! 

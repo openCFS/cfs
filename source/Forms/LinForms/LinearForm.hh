@@ -44,6 +44,7 @@ namespace CoupledField{
         coordUpdate_ = coordUpdate;
         isSolDependent_ = false;
         extractReal_ = false;
+        harm_ = 0;
       }
 
       //! Copy constructor
@@ -51,6 +52,7 @@ namespace CoupledField{
         this->coordUpdate_ = right.coordUpdate_;
         this->isSolDependent_ = right.isSolDependent_;
         this->name_ = right.name_;
+        this->harm_ = right.harm_;
         this->ptFeSpace_ = right.ptFeSpace_;
         this->intScheme_ = right.intScheme_;
         this->extractReal_ = right.extractReal_;
@@ -75,6 +77,14 @@ namespace CoupledField{
          name_ = name;
       }
       
+      void SetHarm(const UInt& harm ){
+         harm_ = harm;
+      }
+
+      const UInt GetHarm(){
+         return harm_;
+      }
+
       const std::string& GetName() const {
         return name_;
       }
@@ -105,6 +115,10 @@ namespace CoupledField{
     protected:
       //! name of linearform
       std::string name_;
+
+      //! for a multiharmonic analysis, we need to have the information, which
+      //! harmonic, the rhs entry belongs to
+      UInt harm_;
 
       //! flag for use of updated Lagrangian formulation
       bool coordUpdate_; 

@@ -18,6 +18,9 @@ namespace CoupledField {
       statCondMatNode_->Get("reordering",ParamNode::INSERT)
                    ->SetValue("noReordering");
     }
+
+    // default no multiharmonic analysis
+    isMultHarm_ = false;
   }
 
   SolStrategy::~SolStrategy() {

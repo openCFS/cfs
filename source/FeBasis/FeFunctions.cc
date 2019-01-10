@@ -938,9 +938,7 @@ DECLARE_LOG(fefunc)
 			  }
 			  else{
 				  //ok here we pass again the work to the space
-				  //        // check, if entity list is defined on elements or nodes
-				  //        if( curEnt->GetType() == EntityList::ELEM_LIST ||
-				  //            curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
+
 				  // Map coefficient function onto the actual FeSpace
 				  std::map<Integer, T> coefs;
 				  feSpace_->MapCoefFctToSpace( lists, ptCoef, shared_from_this(), coefs, false );
