@@ -18,6 +18,7 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="static"/>
               <xsd:enumeration value="harmonic"/>
+              <xsd:enumeration value="multiharmonic"/>
               <xsd:enumeration value="transient"/>
               <xsd:enumeration value="eigenFrequency"/>
               <xsd:enumeration value="inverseSource"/>
@@ -139,6 +140,66 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of element AnalysisMultiHarmonic -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="multiharmonic" type="DT_AnalysisMultiHarmonic" substitutionGroup="AnalysisBasic"/>
+  
+  <!-- Data type for multiharmonic section, i.e. parameters required for
+       performing a multiharmonic analysis -->
+  <xsd:complexType name="DT_AnalysisMultiHarmonic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="baseFreq" type="xsd:token" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="numHarmonics_N" type="xsd:token" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Number of harmonics taken into account for describing the solution quantity
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="numHarmonics_M" type="xsd:token" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                OPTIONAL, default is numHarmonics_M=numHarmonics_N
+                Number of harmonics taken into account for describing the nonlinear behaviour
+                of the system, e.g. nonlinear BH-curve in electromagnetics
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="numFFTPoints" type="xsd:token" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Number of time points in one period of base-frequency.
+                NOTE: numFFTPoints is a scaling factor for numHarmonics_N,
+                the real number of considered time evaluation points, then is
+                      numFFTPoints * numHarmonics_N + 1
+                The FFT of the time-result into freq-result is based on this number of 
+                evaluation points. Also the other way round (transformation from
+                frequency- intotime-domain uses these number of steps).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="fullSystem" type="xsd:boolean" minOccurs="1" maxOccurs="1" default="false">
+            <xsd:annotation>
+              <xsd:documentation>
+                If this is set true, then the full multiharmonic system is considered
+                with all harmonics (odd and even ones). Therewith we can also simulate
+                pre-loaded coils (DC component). The downside is a longer computational
+                time and memory consumption.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType> 
+  
+  
+  
+  
   <!-- ******************************************************************* -->
   <!--   Definition of element eigenFrequency -->
   <!-- ******************************************************************* -->

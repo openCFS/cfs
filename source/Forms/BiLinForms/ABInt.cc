@@ -195,6 +195,8 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   }
 }
 
+DECLARE_LOG(nitscheInt)
+DEFINE_LOG(nitscheInt, "Forms.NitscheInt")
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
 SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 ::SurfaceNitscheABInt( BaseBOperator * aOp, BaseBOperator * bOp,
@@ -340,7 +342,11 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     // Calculate scalar factor
     this->coefScalar_->GetScalar(fac, lp1);
 
+    LOG_DBG(nitscheInt) << "fac in region with ID " << lp1.ptEl->regionId <<" = "<<fac;
+    LOG_DBG(nitscheInt) << "myFactor without weights = "<<myFactor;
+
     fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
+
 
 #ifdef NDEBUG
     this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,

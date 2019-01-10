@@ -28,6 +28,7 @@ namespace CoupledField{
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt", 0.0 );
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", 0.0 );
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", 0 );
+
   }
   
   void SingleDriver::InitializePDEs() {

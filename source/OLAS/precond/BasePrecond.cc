@@ -28,6 +28,7 @@ namespace CoupledField {
     EnumTuple( BasePrecond::ILDLCN, "ILDLCN"),
     EnumTuple( BasePrecond::IC0, "IC0" ),
     EnumTuple( BasePrecond::SBM_DIAG, "SBMDiag" ),
+    EnumTuple( BasePrecond::SBM_JACOBI, "SBMJacobi" ),
     // Initialization of Solver type preconditioners
     EnumTuple( BasePrecond::RICHARDSON, "richardson" ),
     EnumTuple( BasePrecond::DIAGSOLVER, "diagsolver"),

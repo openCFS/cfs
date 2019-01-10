@@ -59,6 +59,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
+  "https://fossies.org/linux/misc/${BZIP2_GZ}"
   "ftp://ftp3.de.freebsd.org/FreeBSD/ports/distfiles/${BZIP2_GZ}"
   "ftp://ftp.jussieu.fr/pub/haiku/releases/r1alpha4/sources/${BZIP2_GZ}"
   "${BZIP2_URL}/${BZIP2_GZ}"

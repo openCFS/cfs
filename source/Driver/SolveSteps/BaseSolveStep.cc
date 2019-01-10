@@ -12,6 +12,7 @@ namespace CoupledField {
     actStep_ = 0;
     actTime_ = 0.0;
     actFreq_ = 0.0;
+    multHarmFreqVec_.Resize(0);
     couplingIter_ = 0;
     adjointSource_ = false;
     numTimeStep_=0;

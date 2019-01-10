@@ -104,9 +104,6 @@ private:
     //! if true, then element values are the interpolation target
     bool useElemAsTarget_;
 
-    //! if true, then element values are the interpolation target
-    bool useElemAsTarget_;
-
     //! index in the static matrices vector to use
     UInt matrixIndex_;
 
