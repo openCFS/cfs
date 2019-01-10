@@ -51,7 +51,6 @@ MagSIMP::MagSIMP()
   lin_nu_r_.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
 }
 
-
 MagSIMP::~MagSIMP()
 {
 }
@@ -103,7 +102,6 @@ bool MagSIMP::FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>
   return false;
 }
 
-
 double MagSIMP::CalcRelactivity(const Elem* elem, UInt dim)
 {
   assert(manager.context.GetSize() == 1); // otherwise we would need it
@@ -112,7 +110,6 @@ double MagSIMP::CalcRelactivity(const Elem* elem, UInt dim)
 
   return ExtractRelactivity(coef->orgMat.get(), nonlin_[elem->regionId] ? elem : NULL, dim);
 }
-
 
 double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem, UInt dim)
 {
@@ -154,8 +151,6 @@ double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem, UInt
   return nu_0_nu_r/ nu_0;
 }
 
-
-
 double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
   switch(f->GetType())
@@ -185,7 +180,6 @@ double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   }
   return SIMP::CalcFunction(excite, f, derivative);
 }
-
 
 double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
 {
@@ -314,27 +308,62 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
   double factor = 1.0/ opt_vol_; // factor for norming the gradient; same as in objective function
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], NULL, factor, STANDARD, f);
-
 }
 
-double CalcNtimesA(LinearFormContext* form, Excitation& excite)
+void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
 {
+  shared_ptr<EntityList> el = form->GetEntities();
+  assert(el->GetRegion() != NO_REGION_ID);
+  assert(el->GetRegion() >= 0);
+
+  LOG_DBG(ms) << "CN: ft=" << el->GetType() << " r=" << el->GetRegion() << " fn="  << form->ToString();
+
+  /*
+  BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);
+  assert(bdb);
+
+  StdVector<LocPoint> intPoints; // Get integration Points
+  LocPointMapped lp;
+  StdVector<double> weights;
+  IntegOrder order;
+  IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+
+  form->
+
+  SolutionType solt = MAG_POTENTIAL;
+  shared_ptr<BaseFeFunction> fe = form->GetPde()->GetFeFunction(solt);
+
+  form->Get()->
+
+  fe->
+
+  // get the form first
+  LinearForm* integrator = form->GetIntegrator();
+  //BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", REGION, context->pde)->GetIntegrator());
+  assert(integrator != NULL);
+  //LOG_DBG2(ms) << "CMFD enter: bdb=" << bdb->GetName();
+
   shared_ptr<EntityList> ent = form->GetEntities();
   EntityIterator iter = ent->GetIterator();
 
-//  StdVector<SingleVector*>& A = forward.Get(excite)->elem[App::MAG]; // TODO why ist forward unknown here?
-
   // Calculate volume
 
-  double vol = 0.0;
+  double vol_sum = 0.0;
+  // loop over elements
   while (!iter.IsEnd())
   {
     // TODO shall be made faster
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(iter.GetElem());
-    vol += esm->CalcVolume();
+    const Elem* elem = iter.GetElem();
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
+    double vol = esm->CalcVolume();
+    // loop over integration points
+      //N(elem) = vol* weights[ip] * lp.jacDet * Shapfct(=1?)
+
+    vol_sum += vol;
     iter++;
   }
-  return 0.0;
+  return 0.0; //return vol_sum
+  */
 }
 
 double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
@@ -355,33 +384,34 @@ double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
   assert(excite_A.index == 0 && excite_B.index == 1);
   StdVector<LinearFormContext*>& forms_A = excite_A.forms;
   StdVector<LinearFormContext*>& forms_B = excite_B.forms;
+  // get the two As
+  // const Vector<double>& A = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  // StdVector<SingleVector*>& A = forward.Get(excite)->elem[App::MAG]; // TODO is forward unknown here?
 
   assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
   LinearFormContext* form_A = forms_A[0];
   LinearFormContext* form_B = forms_B[0];
-  double N1AB = CalcNtimesA(form_A, excite_B);
-  double N1AA = CalcNtimesA(form_A, excite_A);
-  double N2AB = CalcNtimesA(form_B, excite_B);
-  double k = ((N1AB*N1AB)/(N1AA*N2AB));//(vol_2/vol_1)* TODO aus CalcNtimesA?
 
+  Vector<double> N1;
+  CalcN(form_A, N1);
+
+  /*Vector<double> N2 = zeros(size(A))
+   vol_2 = CalcN(form_B, N2);
+  Vector<double> N2 = CalcN(form_B);
+  double N1AB = N1.inner(A_B);
+  double N1AA = N1.inner(A_A);
+  double N2AB = N2.inner(A_B);
+  double k = (vol_2/vol_1)*((N1AB*N1AB)/(N1AA*N2AB));//
+   */
   //LOG_DBG(ms) << "CCARH: ent A=" << ent_A->GetName();
   //LOG_DBG(ms) << "CCARH: ent B=" << ent_B->GetName();
-  assert(false);
+  //assert(false);
+  }
 
-  return k;
-}
 void MagSIMP::CalcCouplingGradient(Excitation& excite, Function* f, TransferFunction* tf)
 {
   //TODO
-  // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
-  //Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
-
-  // the gradient is < lambda^T, K' * A >
-  assert(excite.sequence == f->ctxt->sequence);
-
-  double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
-  // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
-  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], NULL, factor, STANDARD, f);
+  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], NULL, 1, STANDARD, f);
 }
 
 void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
@@ -494,26 +524,50 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
 
 void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
 {
+  /* The right hand sides lood as follows:
+   * case A:
+   * (2/(Vol_A)^3)* <N_1, A_B>/(<N_1, A_A><N_2, A_B>) * N_1^T - (<N_1, A_B>)^2/(<N_1, A_A><N_2, A_B^2>) * N_2^T
+   * case B:
+   * (<N_1, A_B>^2)/(<N_1, A_A>^2 <N_2, A_B>) * N_1^T
+   */
   assert(GetMultipleExcitation()->excitations.GetSize() == 2);
   assert(excite.index == 0 || excite.index == 1);
 
   // we get the region from the coil name in the forms
-  StdVector<LinearFormContext*>& forms = excite.forms;
-  assert(forms.GetSize() == 1);
-  LinearFormContext* form = forms[0];
-  shared_ptr<EntityList> ent = form->GetEntities();
-  LOG_DBG(ms) << "CCARH: ent=" << ent->GetName();
-
-
-
+//  StdVector<LinearFormContext*>& forms = excite.forms;
+//  assert(forms.GetSize() == 1);
+//  LinearFormContext* form = forms[0];
+//  shared_ptr<EntityList> ent = form->GetEntities();
+//  LOG_DBG(ms) << "CCARH: ent=" << ent->GetName();
 
   assert(out.GetSize() == 0);
   // stupid dummy code :((
-  const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-  out.Resize(stateSol.GetSize(),0.0);
+  Excitation exc_A = GetMultipleExcitation()->excitations[0];
+  Excitation exc_B = GetMultipleExcitation()->excitations[1];
+  const Vector<double>& A_A = forward.Get(exc_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  const Vector<double>& A_B = forward.Get(exc_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+
+  StdVector<LinearFormContext*>& forms = exc_A.forms;
+  assert(forms.GetSize() == 1);
+  LinearFormContext* form_A = forms[0];
+  forms = exc_B.forms;
+  assert(forms.GetSize() == 1);
+  LinearFormContext* form_B = forms[0];
+  Vector<double> N1;
+  Vector<double> N2;
+  CalcN(form_A, N1);
+  CalcN(form_B, N2);
+  if (excite.index == 0) {
+    //calc rhs...
+  } else if (excite.index == 1) {
+    //calc rhs...
+  } else {
+    throw Exception("There should only be two excitations");
+  }
+
+  out.Resize(A_A.GetSize(),0.0);
   out[0] = 1;
 }
-
 
 template <class T1, class T2>
 void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
@@ -589,6 +643,3 @@ const Matrix<double>& MagSIMP::GetSelectionMatrix(const Function* f) const
     return sel_y_;
   }
 }
-
-
-

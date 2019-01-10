@@ -84,9 +84,12 @@ private:
   /** magnetic flux density */
   void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
 
-  /** elemwise computation of <N,A>. N_e = sum_ip w_i jacdet_i N_i, where N_i is the FE-shape function.
-   * form specifies the region of the scalar product, excite the excitation case  */
-  double CalcNtimesA(LinearFormContext* form, Excitation& excite);
+  /** enriched shape functions which give an integration with the state vector in 2D.
+   * Allows computation of <N,A>. N_e = sum_ip w_i jacdet_i N_i, where N_i is the FE-shape function.
+   * TODO check formula's indices
+   * @param form encodes the region we apply the excitation (current in coil)
+   * @param N has size of unknowns of state but has only contributions for the region */
+  void CalcN(LinearFormContext* form, Vector<double>& N);
 
   /** calc coupling as M/sqrt(L1*L2) */
   double CalcMagCoupling(Excitation& excite, Function* f);
