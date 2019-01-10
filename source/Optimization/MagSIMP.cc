@@ -15,6 +15,7 @@
 #include "DataInOut/Logging/log.hpp"
 #include "Driver/Assemble.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "FeBasis/H1/H1Elems.hh"
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
 
@@ -29,7 +30,7 @@ DEFINE_LOG(ms, "magSimp")
 
 double MagSIMP::nu_0 = 1.0/(4 * M_PI * 1e-7);
 
-Vector <double> real_nu;
+Vector<double> real_nu;
 
 MagSIMP::MagSIMP()
 {
@@ -312,37 +313,75 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
 
 void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
 {
+  assert(N.GetSize() > 0); // needs to be set to full state solution size such that we can index the entries by the equation map
+
   shared_ptr<EntityList> el = form->GetEntities();
   assert(el->GetRegion() != NO_REGION_ID);
   assert(el->GetRegion() >= 0);
-
   LOG_DBG(ms) << "CN: ft=" << el->GetType() << " r=" << el->GetRegion() << " fn="  << form->ToString();
 
-  /*
-  BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);
-  assert(bdb);
+  // get bilinear form got gain fe-space from it
+  BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", el->GetRegion(), context->pde)->GetIntegrator());
+  assert(bdb != NULL);
+  LOG_DBG2(ms) << "CN: bdb=" << bdb->GetName();
 
   StdVector<LocPoint> intPoints; // Get integration Points
-  LocPointMapped lp;
+  LocPointMapped lpm;
   StdVector<double> weights;
+  Vector<double> shapes; // shape function coefficients for specific ip
   IntegOrder order;
   IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+  // this gets the equation numbers for the element
+  StdVector<int> eqn;
 
-  form->
+  for(EntityIterator iter = el->GetIterator(); !iter.IsEnd(); iter++)
+  {
+    // form the element we get the local shape functions
+    BaseFE* bfe = bdb->GetFeSpace1()->GetFe(iter, method, order );
+    FeH1* h1 = dynamic_cast<FeH1*>(bfe);
+    assert(h1 != NULL);
 
-  SolutionType solt = MAG_POTENTIAL;
-  shared_ptr<BaseFeFunction> fe = form->GetPde()->GetFeFunction(solt);
+    // the shape map knows about the real element size
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(iter.GetElem());
 
-  form->Get()->
+    // the equations assigned to the element
+    bdb->GetFeSpace1()->GetElemEqns(eqn, iter.GetElem());
 
-  fe->
+    // integration points and weights
+    bdb->GetIntScheme()->GetIntPoints(Elem::GetShapeType(iter.GetElem()->type), method, order, intPoints, weights );
+    assert(method != IntScheme::UNDEFINED);
+    assert(!intPoints.IsEmpty());
 
-  // get the form first
-  LinearForm* integrator = form->GetIntegrator();
-  //BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", REGION, context->pde)->GetIntegrator());
-  assert(integrator != NULL);
-  //LOG_DBG2(ms) << "CMFD enter: bdb=" << bdb->GetName();
+    LOG_DBG3(ms) << "e=" << iter.GetElem()->elemNum << " w=" << weights.ToString()  << " o=" << order.ToString() << " m=" << method << " ns=" << bfe->GetNumFncs() << " fe=" << bfe->FeType() << " eqn=" << eqn.ToString();
 
+    for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
+    {
+      // Calculate for each integration point the Jacobian determinant
+      lpm.Set(intPoints[ip], esm, weights[ip]);
+
+      h1->GetShFnc(shapes, lpm.lp, iter.GetElem());
+      LOG_DBG3(ms) << "CN: e=" << iter.GetElem()->elemNum << " ip=" << ip << "=" << intPoints[ip].coord.ToString() << " J=" << lpm.jacDet << " s=" << shapes.ToString();
+      assert(shapes.GetSize() == eqn.GetSize());
+
+      for(unsigned int s = 0; s < shapes.GetSize(); s++)
+      {
+        double v = weights[ip] * lpm.jacDet * shapes[s];
+        // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
+        int eqn_nbr = eqn[s];
+        if(eqn_nbr <= 0)
+          LOG_DBG3(ms) << "CN: s=" << s << " eqn_nbr=" << eqn_nbr << " -> skip RHS node";
+        else
+        {
+          unsigned int eqn_idx = eqn_nbr-1;
+          LOG_DBG3(ms) << "CN: s=" << s << " eqn_idx=" << eqn_idx << " N[" << eqn_idx << "] = " << N[eqn_idx] << " + " << v << " -> " << (N[eqn_idx] + v);
+          N[eqn_idx] += v;
+         }
+      }
+
+    } // end ip
+  }
+  /*
+  el->
   shared_ptr<EntityList> ent = form->GetEntities();
   EntityIterator iter = ent->GetIterator();
 
@@ -378,34 +417,29 @@ double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
     return 0.0;
 
   assert(excite.index == 1);
-  Excitation excite_A = GetMultipleExcitation()->excitations[0];
-  Excitation excite_B = GetMultipleExcitation()->excitations[1];
+  Excitation& excite_A = GetMultipleExcitation()->excitations[0];
+  Excitation& excite_B = GetMultipleExcitation()->excitations[1];
   // Coupling can only be calculated for exactly two coils
   assert(excite_A.index == 0 && excite_B.index == 1);
   StdVector<LinearFormContext*>& forms_A = excite_A.forms;
   StdVector<LinearFormContext*>& forms_B = excite_B.forms;
   // get the two As
-  // const Vector<double>& A = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-  // StdVector<SingleVector*>& A = forward.Get(excite)->elem[App::MAG]; // TODO is forward unknown here?
+  const Vector<double>& A_a = forward.Get(excite_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  assert(A_a.GetSize() > 0);
 
   assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
   LinearFormContext* form_A = forms_A[0];
   LinearFormContext* form_B = forms_B[0];
+  LOG_DBG(ms) << "CMC: size(A)" << A_a.GetSize();
+  Vector<double> N2(A_a.GetSize());
 
-  Vector<double> N1;
-  CalcN(form_A, N1);
+  CalcN(form_B, N2);
 
-  /*Vector<double> N2 = zeros(size(A))
-   vol_2 = CalcN(form_B, N2);
-  Vector<double> N2 = CalcN(form_B);
-  double N1AB = N1.inner(A_B);
-  double N1AA = N1.inner(A_A);
-  double N2AB = N2.inner(A_B);
-  double k = (vol_2/vol_1)*((N1AB*N1AB)/(N1AA*N2AB));//
-   */
-  //LOG_DBG(ms) << "CCARH: ent A=" << ent_A->GetName();
-  //LOG_DBG(ms) << "CCARH: ent B=" << ent_B->GetName();
-  //assert(false);
+  double sp_N2_Aa = N2.Inner(A_a);
+
+  LOG_DBG(ms) << "CMC: <N2, A_a>=" << sp_N2_Aa;
+
+  return sp_N2_Aa;
   }
 
 void MagSIMP::CalcCouplingGradient(Excitation& excite, Function* f, TransferFunction* tf)
@@ -524,7 +558,8 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
 
 void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
 {
-  /* The right hand sides lood as follows:
+  /* TODO maybe remove vol
+   * The right hand sides lood as follows:
    * case A:
    * (2/(Vol_A)^3)* <N_1, A_B>/(<N_1, A_A><N_2, A_B>) * N_1^T - (<N_1, A_B>)^2/(<N_1, A_A><N_2, A_B^2>) * N_2^T
    * case B:
@@ -541,12 +576,12 @@ void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>
 //  LOG_DBG(ms) << "CCARH: ent=" << ent->GetName();
 
   assert(out.GetSize() == 0);
-  // stupid dummy code :((
-  Excitation exc_A = GetMultipleExcitation()->excitations[0];
-  Excitation exc_B = GetMultipleExcitation()->excitations[1];
-  const Vector<double>& A_A = forward.Get(exc_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-  const Vector<double>& A_B = forward.Get(exc_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
 
+  //Excitation exc_A = GetMultipleExcitation()->excitations[0];
+  //Excitation exc_B = GetMultipleExcitation()->excitations[1];
+  const Vector<double>& A_A = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  //const Vector<double>& A_B = forward.Get(exc_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+/*
   StdVector<LinearFormContext*>& forms = exc_A.forms;
   assert(forms.GetSize() == 1);
   LinearFormContext* form_A = forms[0];
@@ -564,7 +599,7 @@ void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>
   } else {
     throw Exception("There should only be two excitations");
   }
-
+*/
   out.Resize(A_A.GetSize(),0.0);
   out[0] = 1;
 }
