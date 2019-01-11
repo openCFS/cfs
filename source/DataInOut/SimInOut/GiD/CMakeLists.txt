@@ -3,7 +3,10 @@ SET(SIMOUTGID_SRCS SimOutGiD.cc)
 ADD_LIBRARY(simoutgid STATIC ${SIMOUTGID_SRCS})
 
 ADD_DEPENDENCIES(simoutgid boost)
-ADD_DEPENDENCIES(simoutgid cgal)
+
+IF(TARGET cgal)
+  ADD_DEPENDENCIES(simoutgid cgal)
+ENDIF()
 
 TARGET_LINK_LIBRARIES(simoutgid
   ${GIDPOST_LIBRARY}

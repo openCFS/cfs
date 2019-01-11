@@ -10,7 +10,10 @@ SET(SIMOUTUNV_SRCS
 ADD_LIBRARY(simoutunv STATIC ${SIMOUTUNV_SRCS})
 
 ADD_DEPENDENCIES(simoutunv boost)
-ADD_DEPENDENCIES(simoutunv cgal)
+
+IF(TARGET cgal)
+  ADD_DEPENDENCIES(simoutunv cgal)
+ENDIF()
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 set_source_files_properties(SimOutputUnv.cc

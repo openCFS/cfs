@@ -3,4 +3,7 @@ SET(SIMINMESH_SRCS SimInputMESH.cc)
 ADD_LIBRARY(siminmesh STATIC ${SIMINMESH_SRCS})
 
 ADD_DEPENDENCIES(siminmesh boost)
-ADD_DEPENDENCIES(siminmesh cgal)
+
+IF(TARGET cgal)
+  ADD_DEPENDENCIES(siminmesh cgal)
+ENDIF()
