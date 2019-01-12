@@ -3,8 +3,8 @@
 #-----------------------------------------------------------------------------
 
 SET(REQ_MAJOR_VER 3)
-SET(REQ_MINOR_VER 8)
-SET(REQ_PATCH_VER 0)
+SET(REQ_MINOR_VER 7)
+SET(REQ_PATCH_VER 2)
 
 #-----------------------------------------------------------------------------
 # Include global definitions for CFS++ development server (host name, etc.)
