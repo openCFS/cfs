@@ -79,7 +79,7 @@ cache:
     # debug output
     - echo "GCC_VERSION=$GCC_VERSION"
     # check gcc version via grep
-    - (scl enable devtoolset-$GCC_VERSION -- gcc --version && echo $GCC_VERSION > scl_version) | grep "${GCC_VERSION}\.[0-9]\.[0-9]" || (scl enable devtoolset-3 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "3" > scl_version ) || (scl enable devtoolset-4 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "4" > scl_version ) || gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]"
+    - (scl enable devtoolset-$GCC_VERSION -- gcc --version && echo $GCC_VERSION > scl_version) | grep "${GCC_VERSION}\.[0-9]\.[0-9]" || (scl enable devtoolset-3 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "3" > scl_version ) || (scl enable devtoolset-4 -- gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && echo "4" > scl_version ) || (gcc --version | grep "${GCC_VERSION}\.[0-9]\.[0-9]" && touch scl_version )
     # debug output
     - cat scl_version
     # write out the config_cmd
@@ -147,6 +147,7 @@ build:gcc7max:
   stage: build
   tags:
     - gcc7
+    - license-keys
   variables:
     BUILD_NAME: "GCC7 maximal"
     GCC_VERSION: 7
