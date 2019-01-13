@@ -791,10 +791,10 @@ void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
   SolutionType resType1 = feSpace1->GetFeFunction().lock()->GetResultInfo()->resultType;
   SolutionType resType2 = feSpace2->GetFeFunction().lock()->GetResultInfo()->resultType;
 
-  if (resType1 == MECH_DISPLACEMENT) {
+  if (resType1 == MECH_DISPLACEMENT || resType1 ==  FLUIDMECH_VELOCITY) {
 	  ptFeSpaceMaster_ = feSpace1;
 	  ptMasterOp_ = this->aOperator_;
-  } else if (resType2 == MECH_DISPLACEMENT) {
+  } else if (resType2 == MECH_DISPLACEMENT || resType2 ==  FLUIDMECH_VELOCITY) {
 	  ptFeSpaceMaster_ = feSpace2;
 	  ptMasterOp_ = this->bOperator_;
 	  this->name_ = "SurfaceMortarABIntMAtrans";

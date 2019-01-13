@@ -488,6 +488,49 @@
     </xsd:complexType>
   </xsd:element> 
   
+
+
+  <!-- ======================================= -->
+  <!--  Linear Flow - Acoustic coupling  -->
+  <!-- ======================================= -->
+  <xsd:element name="linFlowAcouDirect" substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+             
+            <!-- (surface) region list -->
+            <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="surfRegion" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+              
+            <!-- NC interface list -->
+            <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required" />
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element>
+  
   
   <!-- ******************************************************************* -->
   <!--   Definition of Post Processing Results -->
