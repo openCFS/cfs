@@ -13,6 +13,7 @@ variables:
 
 # stages in the pipeline run in succession
 stages:
+  - check
   - build # config and build combined
   - test # we may have several test configs for one build
   - deploy
@@ -23,6 +24,7 @@ stages:
     refs:
       - master # for the master branch
       - /^test.*$/ # for branches/tags called "test*"
+      - /^.*-test$/ # for branches/tags called "*-test"
       - web # For pipelines created using 'Run pipeline' button in GitLab UI under project/Pipelines
       - schedules # For scheduled pipelines
 
@@ -42,6 +44,33 @@ cache:
     - build/cfsdeps/cache
     - build/bin
     - build/lib*
+
+#################################################
+# Check STAGE
+#################################################
+# Check the revision of the testsuite submodule
+testsuite-revision:
+  stage: check
+  tags:
+    - git
+  variables:
+    # we cone to make sure we have everyting (including current names of the SHAs)
+    GIT_STRATEGY: clone
+  before_script:
+    - git --no-pager log -1 --pretty=tformat:'%h %D'
+    - echo "$CI_COMMIT_REF_NAME"
+  script:
+    # check in Testsuite submodule
+    - cd Testsuite
+    - git --no-pager log -1 --pretty=tformat:'%h %D'
+    # check if we are on a branch called like the branch from CFS (or still on master)
+    - git --no-pager log -1 --pretty=tformat:'%h %D' | egrep -w "(${CI_COMMIT_REF_NAME})|(master)"
+  after_script:
+    - echo $?
+    - pwd # debug
+    - sleep 120
+  cache: {} # disable
+  <<: *default_pipeline_rules
 
 #################################################
 # BUILD STAGE
