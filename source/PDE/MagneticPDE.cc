@@ -556,13 +556,12 @@ namespace CoupledField {
 				  if(actCoil.coilOptimization_ == true)
 				  {
 				    CoilOptimization_ = true;
+	          if(domain->HasDesign())
+	          {
+	            cfoc = new CoefFunctionOpt(domain->GetDesign(), jFct, this);
+	            jFct.reset(cfoc);
+	          }
 				  }
-
-          if(domain->HasDesign())
-          {
-            cfoc = new CoefFunctionOpt(domain->GetDesign(), jFct, this);
-            jFct.reset(cfoc);
-          }
           
 				  if( dim_ == 3 ) {
 					  // ===========

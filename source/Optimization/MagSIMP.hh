@@ -79,10 +79,21 @@ protected:
       SetElementK<double, double>( f, de, tf, app, out, derivative, calcMode, ev);
   }
 
+  virtual void SetElementRHS(DesignElement* de, const TransferFunction* tf, App::Type app, SingleVector* out, CalcMode calcMode, bool derivative = true)
+  {
+    /*if(f->ctxt->IsComplex())
+      SetElementRHS<std::complex<double>, double >( de, tf, app, out, calcMode, derivative);
+    else*/
+      SetElementRHS<double, double>( de, tf, app, out, calcMode, derivative);
+  }
+
 private:
 
   template <class T1, class T2>
   void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
+
+  template <class T1, class T2>
+    void SetElementRHS(DesignElement* de, const TransferFunction* tf, App::Type app, SingleVector* out, CalcMode calcMode, bool derivative = true);
 
   /** magnetic flux density */
   void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);

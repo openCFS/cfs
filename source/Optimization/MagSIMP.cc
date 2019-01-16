@@ -15,6 +15,8 @@
 #include "DataInOut/Logging/log.hpp"
 #include "Driver/Assemble.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "Forms/LinForms/BUInt.hh"
+#include "Forms/LinForms/LinearForm.hh"
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
 #include "PDE/MagneticPDE.hh"
@@ -205,6 +207,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
 
     // prepare to get the curl operator
     el.SetElement(de->elem);
+
     BaseFE* ptFe = bdb->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
 
     bdb->GetIntScheme()->GetIntPoints(Elem::GetShapeType(de->elem->type), method, order, intPoints, weights );
@@ -275,10 +278,7 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
   assert(excite.sequence == f->ctxt->sequence);
 
   DesignDependentRHS* rhs = NULL;
-  LinearForm* lf = NULL;
-  Vector<double> mechStrainRHS;
 
-  MagneticPDE* magnetic = dynamic_cast<MagneticPDE*>(f->ctxt->pde);
   //MagEdgePDE* magnetic = dynamic_cast<MagEdgePDE*>(f->ctxt->pde);
   //assert(magnetic != NULL);
   // f' = f * rho'
@@ -289,7 +289,7 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
     SinglePDE* pde = f->ctxt->pde;
     //BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetLinearForm(context->pde,"CoilIntegrator")->GetIntegrator());
 
-    lf = context->pde->GetAssemble()->GetLinearForm(context->pde,"CoilIntegrator");
+
     //lf->
     Vector<double>& rhs = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
     std::cout << "rhs= " << rhs.ToString() << std::endl;
@@ -426,10 +426,10 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
   // Not 100% sure about this but with it we get the correct nu
   // Define a new Vector buffer_store containing the information from StateSolution
   // Undo the overwriting from StateSolution.cc line 353 and 445 to get the right nu
-  Vector <double> buffer_store;
-  SolutionType solt = MAG_POTENTIAL;
-  shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
-  buffer_store = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
+  //Vector <double> buffer_store;
+  //SolutionType solt = MAG_POTENTIAL;
+  //shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
+  //buffer_store = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
   //dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = real_nu;
 
   switch(app)
@@ -470,6 +470,46 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
 
   default:
     SIMP::SetElementK(f, de, tf, app, mat_out, derivative, calcMode, ev);
+    return; // other cases should be handled in SIMP
+  }  // end switch
+}
+
+template <class T1, class T2>
+void MagSIMP::SetElementRHS(DesignElement* de, const TransferFunction* tf, App::Type app, SingleVector* out, CalcMode calcMode, bool derivative)
+{
+  Vector<T1>& drhselemVec = dynamic_cast<Vector<T1>&> (*out);
+  Vector<T1> rhselemVec = dynamic_cast<Vector<T1>&> (*out);
+
+  switch(app)
+  {
+  case App::MAG:
+  {
+    // find f', f' = d_rho * f, f(rho) = Na * (I*N/(Gamma * k) * ej * rho)
+
+    assert(derivative);
+    double d_rho = tf->Derivative(de, DesignElement::SMART, false);
+
+    ElemList el(domain->GetGrid());
+
+    // prepare to get the curl operator
+    el.SetElement(de->elem);
+
+    LinearForm* lf = context->pde->GetAssemble()->GetLinearForm(context->pde,"CoilIntegrator");
+    //ElemList elemList(domain->GetGrid());
+    EntityIterator entIt = el.GetIterator();
+    for ( entIt.Begin(); !entIt.IsEnd(); entIt++ )
+    {
+      lf->CalcElemVector(rhselemVec, entIt);
+    }
+
+    Assign(drhselemVec, rhselemVec , d_rho); // out = alpha * stiffness
+    LOG_DBG3(ms) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " drho= " << d_rho << " rhselemVec= " << rhselemVec.ToString(2)<< " drhselemVec=" << drhselemVec.ToString(2);
+
+    break;
+  }
+
+  default:
+
     return; // other cases should be handled in SIMP
   }  // end switch
 }
