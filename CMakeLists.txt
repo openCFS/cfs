@@ -466,7 +466,7 @@ MARK_AS_ADVANCED(USE_LIBXML2)
 #MARK_AS_ADVANCED(BUILD_GHOST)
 MARK_AS_ADVANCED(BUILD_HWLOC)
 MARK_AS_ADVANCED(DISABLE_OPTIMIZATION)
-MARK_AS_ADVANCED(CFS_ICC_GCC_VERSION)
+
 
 #-----------------------------------------------------------------------------
 # Set some variables according to build type DEBUG / RELEASE
