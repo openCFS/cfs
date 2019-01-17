@@ -319,12 +319,12 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
   shared_ptr<EntityList> el = form->GetEntities();
   assert(el->GetRegion() != NO_REGION_ID);
   assert(el->GetRegion() >= 0);
-  LOG_DBG(ms) << "CN: ft=" << el->GetType() << " r=" << el->GetRegion() << " fn="  << form->ToString();
+  LOG_DBG3(ms) << "CN: ft=" << el->GetType() << " r=" << el->GetRegion() << " fn="  << form->ToString();
 
   // get bilinear form to gain fe-space from it
   BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", el->GetRegion(), context->pde)->GetIntegrator());
   assert(bdb != NULL);
-  LOG_DBG2(ms) << "CN: bdb=" << bdb->GetName();
+  LOG_DBG3(ms) << "CN: bdb=" << bdb->GetName();
 
   StdVector<LocPoint> intPoints; // Get integration Points
   LocPointMapped lpm;
@@ -439,6 +439,7 @@ double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
 void MagSIMP::CalcCouplingGradient(Excitation& excite, Function* f, TransferFunction* tf)
 {
   //TODO
+  LOG_DBG2(ms) << "CCG: excitation: " << excite.index;
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], NULL, 1, STANDARD, f);
 }
 
@@ -560,8 +561,9 @@ void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>
    */
   // same as in CalcCoupling
   if(GetMultipleExcitation()->excitations.GetSize() != 2)
+  {
     throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
-
+  }
   // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
   // we return value 0 for the first excitation and 2*coupling for the second excitation
   assert(GetMultipleExcitation()->excitations.GetSize() == 2);
@@ -581,41 +583,39 @@ void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>
   assert(A_a.GetSize() > 0);
   assert(A_b.GetSize() > 0);
 
-  LOG_DBG3(ms) << "CMC: size of A_a = " << A_a.GetSize();
-  LOG_DBG3(ms) << "CMC: size of A_b = " << A_b.GetSize();
+  LOG_DBG3(ms) << "CCAR: size of A_a = " << A_a.GetSize();
+  LOG_DBG3(ms) << "CCAR: size of A_b = " << A_b.GetSize();
 
   Vector<double> N1(A_a.GetSize());
   Vector<double> N2(A_a.GetSize());
 
   CalcN(form_A, N1);
   CalcN(form_B, N2);
+  LOG_DBG3(ms) << "CMC: N1 = " << N1.ToString(2);
+  LOG_DBG3(ms) << "CMC: N2 = " << N2.ToString(2);
 
   double sp_N1_Aa = N1.Inner(A_a);
   double sp_N1_Ab = N1.Inner(A_b);
   double sp_N2_Ab = N2.Inner(A_b);
 
-  LOG_DBG2(ms) << "CMC: <N1, A_a>=" << sp_N1_Aa;
-  LOG_DBG2(ms) << "CMC: <N1, A_b>=" << sp_N1_Ab;
-  LOG_DBG2(ms) << "CMC: <N2, A_b>=" << sp_N2_Ab;
+  LOG_DBG2(ms) << "CCAR: <N1, A_a>=" << sp_N1_Aa;
+  LOG_DBG2(ms) << "CCAR: <N1, A_b>=" << sp_N1_Ab;
+  LOG_DBG2(ms) << "CCAR: <N2, A_b>=" << sp_N2_Ab;
   out.Resize(A_a.GetSize(),0.0);
   if (excite.index == 0) {
     //calc rhs first case
-    double factor = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N1_Aa*sp_N2_Ab);
-    //TODO transpose N1?
-    N1.ScalarMult(-factor);
-    out = N1;
+    const double factor = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N1_Aa*sp_N2_Ab);
+
+    out.Set(factor, N1); // out = factor * N1
+    LOG_DBG2(ms) << "CCAR: first excitation. f=" << factor << " |out|=" << out.NormL2();
   } else if (excite.index == 1) {
     //calc rhs second case
-    double factor_N1 = (2*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab);
-    double factor_N2 = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab*sp_N2_Ab);
-    //TODO transpose N1 and N2?
-    //TODO does this really do what i want it to do?
-    N1.ScalarMult(-factor_N1);
-    N2.ScalarMult(factor_N2);
-    N1.Add(N2);
-    out = N1;
+    const double factor_N1 = (2*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab);
+    const double factor_N2 = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab*sp_N2_Ab);
+    out.Add(-factor_N1, N1, factor_N2, N2); // out = -factor_N1 * N1 + factor_N2 * N2
+    LOG_DBG2(ms) << "CCAR: second excitation fN1=" << factor_N1 << " fN2=" <<factor_N2 << " |out|=" << out.NormL2();
   } else {
-    throw Exception("There should only be two excitations");
+    EXCEPTION("There should only be two excitations");
   }
 }
 

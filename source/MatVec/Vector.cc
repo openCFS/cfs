@@ -157,6 +157,7 @@ namespace CoupledField {
   template <typename T>
   void Vector<T>::Add(T a, const SingleVector &vec)
   {
+    assert(vec.GetSize() == this->GetSize());
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
 //#pragma omp parallel for 
@@ -164,6 +165,19 @@ namespace CoupledField {
       data_[i] += a * idvec[i];
   }
   
+  template <typename T>
+  void Vector<T>::Set(T a, const SingleVector &vec)
+  {
+    assert(vec.GetSize() == this->GetSize());
+    const Vector<T>* ptr = dynamic_cast<const Vector<T>*>(&vec);
+    assert(ptr != NULL);
+    const Vector<T>& idvec = *ptr;
+
+    for(unsigned int i = 0; i < size_; ++i)
+      data_[i] = a * idvec[i];
+  }
+
+
   /*
   template <typename T>
   void Vector<T>::Add(Double a,const SingleVector &vec) {
