@@ -364,14 +364,15 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
       h1->GetShFnc(shapes, lpm.lp, iter.GetElem());
       LOG_DBG3(ms) << "CN: e=" << iter.GetElem()->elemNum << " ip=" << ip << "=" << intPoints[ip].coord.ToString() << " J=" << lpm.jacDet << " s=" << shapes.ToString();
       assert(shapes.GetSize() == eqn.GetSize());
-
       for(unsigned int s = 0; s < shapes.GetSize(); s++)
       {
         double v = weights[ip] * lpm.jacDet * shapes[s];
         // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
         int eqn_nbr = eqn[s];
         if(eqn_nbr <= 0)
+        {
           LOG_DBG3(ms) << "CN: s=" << s << " eqn_nbr=" << eqn_nbr << " -> skip RHS node";
+        }
         else
         {
           unsigned int eqn_idx = eqn_nbr-1;
@@ -426,9 +427,9 @@ double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
   double sp_N1_Ab = N1.Inner(A_b);
   double sp_N2_Ab = N2.Inner(A_b);
 
-  LOG_DBG2(ms) << "CMC: <N1, A_a>=" << sp_N1_Aa;
-  LOG_DBG2(ms) << "CMC: <N1, A_b>=" << sp_N1_Ab;
-  LOG_DBG2(ms) << "CMC: <N2, A_b>=" << sp_N2_Ab;
+  LOG_DBG3(ms) << "CMC: <N1, A_a>=" << sp_N1_Aa;
+  LOG_DBG3(ms) << "CMC: <N1, A_b>=" << sp_N1_Ab;
+  LOG_DBG3(ms) << "CMC: <N2, A_b>=" << sp_N2_Ab;
 
   double k = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab);
   LOG_DBG(ms) << "CMC: Coupling = " << k;
