@@ -56,8 +56,6 @@ SET(CTEST_INITIAL_CACHE
    USE_SCPIP:BOOL=ON
    USE_IPOPT:BOOL=ON
    USE_PHIST_EV:BOOL=ON
-   # for some strange reason -lpciaccess;-ludev does not work any more?!    
-   HWLOC_SYSTEM_LIBS_DEFAULT="/usr/lib64/libpciaccess.so.0;/usr/lib64/libudev.so.1"
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
    BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
