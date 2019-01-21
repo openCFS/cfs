@@ -465,7 +465,23 @@ private:
   // void SetTrackingAdjointRhs(Excitation& excite, int ts);
 
   /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[App::MECH] */
-  template<class T> void SetAndSolveAdjointRHS(Excitation& excite,  Function* cost);
+  void SetAndSolveAdjointRHS(Excitation& excite,  Function* cost);
+
+  /** return value of PrepareAdjointSystem */
+  struct SystemState
+  {
+    StdVector<LinearFormContext*> forms;
+    IdBcList  idbc;
+  };
+
+  /** Preparing the adjoint system constructs the rhs and the system (IDBC- > HDBC).
+   * It needs afterwards to be solved by assemble->GetAlgSys()->Solve()
+   * Then the adjoint state can be read and after this the system can be resored to the state system */
+  SystemState PrepareAdjointSystem(Excitation& excite, Function* f);
+
+  /** restores state system after PrepareAdjointSystem(), solve and StateSolution::Read(). To have IDBC->HDBC in the adjoint
+   * requires first StateSolution::Read() before we reset proper IDBC. */
+  void RestoreStateSystem(SystemState& sys);
 
   /** Helper for CommitIteration. Appends or replaces a design line */
   void SetCurrentExportDesign();

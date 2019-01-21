@@ -3541,11 +3541,15 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
         // the forward problem was already solved and stored !!
 
-        // Set the rhs and solve for it
-        SetAndSolveAdjointRHS<T>(*excite, f);
+        // Set the rhs
+        SystemState state = PrepareAdjointSystem(*excite, f);
+        context->pde->GetAssemble()->GetAlgSys()->Solve();
 
         // store the stuff -> no rhs but special handling of element results
         StorePDESolution(adjoint, *excite, f, -1, true, false, true, NO_DERIVTYPE, "adjoint");
+
+        // restore system state
+        RestoreStateSystem(state);
 
         // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
         forward.Get(excite)->Write(context->pde);
@@ -3559,15 +3563,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       eval_timer->Start();
   }
 
-  template<class T>
-  void ErsatzMaterial::SetAndSolveAdjointRHS(Excitation& excite, Function* f)
+  ErsatzMaterial::SystemState ErsatzMaterial::PrepareAdjointSystem(Excitation& excite, Function* f)
   {
     assert(context->sequence == excite.sequence);
     assert(f->ctxt == context);
     Assemble* assemble = context->pde->GetAssemble();
 
+    SystemState state;
     // the adjoint RHS might be an output stuff, then the loads are changed.
     // save and restore them in any case.
+    state.forms = assemble->GetLinForms(); // org forms
+
     StdVector<LinearFormContext*> org_forms = assemble->GetLinForms();
     // set pseudo loads (if there are output nodes)
     if (f->NeedsSelectionVector()) // TODO: rhs? no, since selection vector is assembled automatically
@@ -3575,14 +3581,15 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
     // any adjoint PDE has HDBC instead of IDBC. We Store the IDBC, add the BC as HDBC, solve, reset the IDBC and remove the additional HDBC
     shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType()); // no reference but copy constructor
-    IdBcList  org_idbc = fe->GetInHomDirichletBCs();
-    fe->GetHomDirichletBCs().Reserve(org_idbc.GetSize()); // what will be added temporarily
-    for(unsigned int i = 0; i < org_idbc.GetSize(); i++)
+
+    state.idbc = fe->GetInHomDirichletBCs(); // org idbc
+    fe->GetHomDirichletBCs().Reserve(state.idbc.GetSize()); // what will be added temporarily
+    for(unsigned int i = 0; i < state.idbc.GetSize(); i++)
     {
       shared_ptr<HomDirichletBc> hdbc(new HomDirichletBc);
-      hdbc->dofs = org_idbc[i]->dofs;
-      hdbc->entities = org_idbc[i]->entities;
-      hdbc->result = org_idbc[i]->result;
+      hdbc->dofs = state.idbc[i]->dofs;
+      hdbc->entities = state.idbc[i]->entities;
+      hdbc->result = state.idbc[i]->result;
       fe->GetHomDirichletBCs().Push_back(hdbc);
     }
     fe->GetInHomDirichletBCs().Resize(0);
@@ -3594,19 +3601,31 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     assert(context->GetDriver()->GetAnalysisId().adjoint == false);
     context->GetDriver()->GetAnalysisId().adjoint = true;
 
-    // calculate adjoint problem. Note that is is a linear solution what we usually want for the adjoint case!
-    assemble->GetAlgSys()->Solve();
+    return state;
 
+    // next is
+    // * assemble->GetAlgSys()->Solve();     // calculate adjoint problem. Note that is is a linear solution what we usually want for the adjoint case!
+    // * read data
+    // * restore system (after reading data ans the BC are imposed on the data!)
+  }
+
+
+  void ErsatzMaterial::RestoreStateSystem(ErsatzMaterial::SystemState& state)
+  {
     context->GetDriver()->GetAnalysisId().adjoint = false;
+    Assemble* assemble = context->pde->GetAssemble();
+
+    shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType()); // no reference but copy constructor
 
     // reset the boundary conditions
-    fe->GetInHomDirichletBCs() = org_idbc; // I love copy constructors
-    fe->GetHomDirichletBCs().Resize(fe->GetHomDirichletBCs().GetSize() - org_idbc.GetSize()); // remove "artificial" hdbc
+    fe->GetInHomDirichletBCs() = state.idbc; // I love copy constructors
+    fe->GetHomDirichletBCs().Resize(fe->GetHomDirichletBCs().GetSize() - state.idbc.GetSize()); // remove "artificial" hdbc
     fe->ApplyBC();
 
     // reset the original loads, they have been changed in the output case
-    assemble->GetLinForms() = org_forms;
+    assemble->GetLinForms() = state.forms;
   }
+
 
   void ErsatzMaterial::ConstructSelection(Excitation& excite, Function* f, bool alter_rhs)
   {

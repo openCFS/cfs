@@ -456,6 +456,12 @@ namespace CoupledField {
     //! Get type of iterator
     EntityList::ListType GetType() const { return type_; }
     
+    /** for debug logging */
+    std::string ToString() const;
+
+    /** would GetElem() fail? True for ELEM_LIST, SURF_ELEM_LIST, NC_ELEM_LIST */
+    bool IsElemType() const;
+
     //! Set iterator to begin of list
     void Begin();
     
