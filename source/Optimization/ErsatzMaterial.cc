@@ -63,6 +63,7 @@
 #include "PDE/BasePDE.hh"
 #include "PDE/MechPDE.hh"
 #include "PDE/HeatPDE.hh"
+#include "PDE/MagneticPDE.hh"
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Utils/Point.hh"
 #include "Utils/StdVector.hh"
@@ -805,6 +806,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // the dimensions of our matrix is determined by u1_vec and u2_vec.
     Matrix<T> mat(u1[0]->GetSize(), u2[0]->GetSize());//NOTE: SetElementK (In PiezoSimp) relies on the matrix already having the right size!!!
     Vector<T> mat_vec(u1[0]->GetSize());
+    Vector<T> out(u1[0]->GetSize());
     TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(tf->GetDesign(), rhs->app) : NULL;
 
     // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
@@ -854,8 +856,28 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         // u1^T (K' u2 - f') -> find "K'"
         SetElementK(f, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
 
-        LOG_DBG3(em) << "mat: " << mat.ToString();
-        LOG_DBG2(em) << "mat=" << mat << "u2_vec=" << u2_vec << "u1_vec= " << u1_vec.ToString();
+        if (app == App::MAG)
+        {
+          bool CoilOpt = false;
+          if (dim == 2)
+          {
+            MagneticPDE* magnetic = dynamic_cast<MagneticPDE*>(f->ctxt->pde);
+            CoilOpt = magnetic->OptimizationRHS();
+          }
+          else
+          {
+            throw Exception("3D edge not implemented yet");
+          }
+
+          if (CoilOpt)
+          {
+            SetElementRHS(de, tf, app, dynamic_cast<SingleVector*> (&out), calcMode, true);
+          }
+        }
+
+        LOG_DBG3(em) << "RHS= " << out.ToString(2);
+        LOG_DBG3(em) << "mat: " << mat.ToString(2);
+        LOG_DBG3(em) << "mat=" << mat << "u2_vec=" << u2_vec << "u1_vec= " << u1_vec.ToString(2);
 
         // We generally solve u1^T (K' u2 - f')
         // u1^T (K' u2 - f') -> calc "K' u2"
@@ -1060,6 +1082,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
           de->interfaceDrivenLoadGrad_[n] = design->EvalInterfaceFunction(node, true) / design->data.GetSize() * factor * tf->Derivative(de, DesignElement::SMART,false);
 
+          LOG_DBG3(em) << " design->EvalInterfaceFunction= " << design->EvalInterfaceFunction(node, true) << " design->data.GetSize= " << design->data.GetSize() << " factor= " << factor << " tf->Derivative= " << tf->Derivative(de, DesignElement::SMART,false) ;
         } //if
       } // node
     } // elem

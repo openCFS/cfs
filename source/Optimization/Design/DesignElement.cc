@@ -624,7 +624,7 @@ double DesignElement::GetPhysicalDesign(const Context* ctxt) const
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || (!simp->filter.IsEmpty() && simp->filter[0].GetType() == Filter::DENSITY));
+  return(type_ == DENSITY || type_ == COILDENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || (!simp->filter.IsEmpty() && simp->filter[0].GetType() == Filter::DENSITY));
 }
 
 
@@ -740,6 +740,7 @@ void DesignElement::SetEnums()
   type.Add(PIEZO_ALL, "piezo_all");
   type.Add(DEFAULT, "default");
   type.Add(DENSITY, "density");
+  type.Add(COILDENSITY, "coilDensity");
   type.Add(ACOU_DENSITY, "acouDensity");
   type.Add(POLARIZATION, "polarization");
   type.Add(EMODUL, "emodul");

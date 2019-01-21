@@ -16,8 +16,6 @@
 // 
 // =====================================================================================
 
-
-
 namespace CoupledField{
 
 template< class VEC_DATA_TYPE, bool SURFACE >
@@ -164,7 +162,7 @@ BUIntegrator(BaseBOperator * bOp,
          }
        }
        elemVec += bMat * cVec * fac;
-
+       //LOG_DBG3(buint1) << "BUInt: bMat= " << bMat.ToString(2) << " cVec= " << cVec.ToString(2) << " fac= " << fac << " elemVec= " << elemVec.ToString(2);
      }
 
   }

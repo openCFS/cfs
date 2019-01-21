@@ -54,6 +54,7 @@ namespace CoupledField {
     // initialize data members
     sourceType_ = NO_SOURCE_TYPE;
     coilId_ = "";
+    coilOptimization_ = false;
 
     // obtain coilId
     coilId_ = myParam_->Get("id")->As<std::string>();
@@ -366,6 +367,10 @@ namespace CoupledField {
         
         //actPart.numTurns = UInt((actPart.coilCrossSect * actPart.fillFactor) 
         //                        / actPart.wireCrossSect );
+        if(actPartNode->Get("wireCrossSection")->Get("Optimization")->As<std::string>() == "true")
+        {
+          coilOptimization_ = true;
+        }
       } else 
 
       // b) turns / kappa given -> determine wire crossSection

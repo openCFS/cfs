@@ -43,6 +43,11 @@ namespace CoupledField
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return MAG_POTENTIAL; }
 
+    bool CoilOptimization_;
+
+    //! Is heat source (RHS) definition driven by interface between solid and void?
+    inline bool OptimizationRHS() { return CoilOptimization_; }
+
   protected:
     
     //! Initialize NonLinearities

@@ -15,8 +15,12 @@
 #include "DataInOut/Logging/log.hpp"
 #include "Driver/Assemble.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "Forms/LinForms/BUInt.hh"
+#include "Forms/LinForms/LinearForm.hh"
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
+#include "PDE/MagneticPDE.hh"
+#include "PDE/MagEdgePDE.hh"
 
 namespace CoupledField {
 class DenseMatrix;
@@ -56,6 +60,8 @@ void MagSIMP::PostInit()
   SIMP::PostInit();
 
   assert(manager.context.GetSize() == 1);
+
+  magRHS.Init<double>(design, App::MAG);
 
   nonlin_.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
 
@@ -201,6 +207,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
 
     // prepare to get the curl operator
     el.SetElement(de->elem);
+
     BaseFE* ptFe = bdb->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
 
     bdb->GetIntScheme()->GetIntPoints(Elem::GetShapeType(de->elem->type), method, order, intPoints, weights );
@@ -234,17 +241,29 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
       S_flux_dens.Resize(dim);
       S.Mult(flux_dens, S_flux_dens);
 
-      // scalar = flux_dens * S_flux_dens
-      el_val += weights[ip] * lp.jacDet * S_flux_dens.Inner(flux_dens);
+      if(dim == 2)
+      {
+        // scalar = flux_dens * S_flux_dens
+        el_val += weights[ip] * lp.jacDet * S_flux_dens.Inner(flux_dens);
+      }
+      else
+      {
+        el_val += weights[ip] * lp.jacDet * S_flux_dens.Inner(flux_dens) * 2; // * 2 because of edge element?
+      }
 
-      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens << " Sfd=" << S_flux_dens << " inner=" << S_flux_dens.Inner(flux_dens) << " el -> " << el_val;
+
+      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens.ToString(2) << " Sfd=" << S_flux_dens.ToString(2) << " el_val= " << el_val;
     } // end ip
 
     result += el_val;
 
   } // end loop elems
+  if(dim == 3)
+  {
+    result /= intPoints.GetSize();
+  }
 
-  result /= f->elements.GetSize();
+  result /= f->elements.GetSize(); // norm the function
   LOG_DBG(ms) << "CMFD: exit -> " << result;
   return result;
 }
@@ -258,9 +277,44 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
   // the gradient is < lambda^T, K' * A >
   assert(excite.sequence == f->ctxt->sequence);
 
-  DesignDependentRHS rhs;
+  DesignDependentRHS* rhs = NULL;
+
+  //MagEdgePDE* magnetic = dynamic_cast<MagEdgePDE*>(f->ctxt->pde);
+  //assert(magnetic != NULL);
+  // f' = f * rho'
+/*  if (magnetic->OptimizationRHS())
+  {
+    rhs = new DesignDependentRHS();
+    rhs->Init<double>(design,App::MAG);
+    SinglePDE* pde = f->ctxt->pde;
+    //BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetLinearForm(context->pde,"CoilIntegrator")->GetIntegrator());
+
+
+    //lf->
+    Vector<double>& rhs = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
+    std::cout << "rhs= " << rhs.ToString() << std::endl;
+
+    //BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator());
+
+    //form->CalcElemVector(elemVec, entIt);
+    StdVector<SingleVector*>& stateSol = forward.Get(excite)->elem[App::MAG];
+    //excite.ReadLoads(f->ctxt,)
+    //rhs(forward.Get(excite)->GetVector(StateSolution::RHS_VECTOR)->GetSize());
+    for (unsigned int id = 0; id < design->data.GetSize(); id++)
+    {
+      DesignElement* de = &design->data[id];
+      std::cout << "stateSol= " << stateSol[id]->ToString() << std::endl;
+
+      //Vector<double> gradRHS = de->
+      //double val = gradRHS.Inner(*stateSol[id]);
+      //de->AddGradient(f,val);
+    }
+
+  }*/
+
+  double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
-  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], &rhs, 1.0, STANDARD, f);
+  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], rhs, factor, STANDARD, f);
 
 }
 
@@ -320,13 +374,17 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
 
     // M = B^T S B as in BDBInt::CalcElementMatrix, just S from above instead of D with material and density
     bdb->CalcElementMatrix(M, it, it);
-    LOG_DBG2(ms) << "CMFAR e=" << e << " el=" << de->elem->elemNum<< "coef_S= " << coef_S->GetTensor().ToString(2) << " M=" << M.ToString(2);
+    LOG_DBG3(ms) << "CMFAR e=" << e << " el=" << de->elem->elemNum<< "coef_S= " << coef_S->GetTensor().ToString(2) << " M=" << M.ToString(2);
 
     // now the part -2 * M * A
     Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[de->GetElementSolutionIndex()]);
     LOG_DBG3(ms) << "CMFAR e=" << e << " esi=" << de->GetElementSolutionIndex() << " nodal values=" << vec->ToString(2);
     assert(vec != NULL);
-    const Vector<double>& a = *vec; // a = the vector potential in the element
+    Vector<double>& a = *vec; // a = the vector potential in the element
+    if(dim == 3)
+    {
+      a /= 2; // /2 because of edge element?
+    }
 
     rhs_el.Resize(a.GetSize());
     M.Mult(a, rhs_el);
@@ -340,8 +398,18 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
 
     for(unsigned int n = 0; n < eqn.GetSize(); n++)
     {
-      out[eqn[n]] += (1.0/f->elements.GetSize()) * rhs_el[n]; // we norm the function by number of elements
-      LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn[n]=" << eqn[n] << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn[n]]=" << out[eqn[n]];
+      // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
+      int eqn_nbr = eqn[n];
+      if(eqn_nbr <= 0){
+        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_nbr=" << eqn_nbr << " -> skip RHS node";
+      }
+      else
+      {
+        unsigned int eqn_idx = eqn_nbr-1;
+
+        out[eqn_idx] += rhs_el[n]; // we don't norm here, we moved the norming to CalcMagFluxDensGradient
+        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn_idx]=" << out[eqn_idx] << " normed= " << 1.0/f->elements.GetSize();
+      }
     }
   } // end loop elements
   delete bdb;
@@ -358,11 +426,11 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
   // Not 100% sure about this but with it we get the correct nu
   // Define a new Vector buffer_store containing the information from StateSolution
   // Undo the overwriting from StateSolution.cc line 353 and 445 to get the right nu
-  Vector <double> buffer_store;
-  SolutionType solt = MAG_POTENTIAL;
-  shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
-  buffer_store = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
-  dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = real_nu;
+  //Vector <double> buffer_store;
+  //SolutionType solt = MAG_POTENTIAL;
+  //shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
+  //buffer_store = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
+  //dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = real_nu;
 
   switch(app)
   {
@@ -379,8 +447,8 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mag->Stiffness(de->elem));
 
     // Overwrite again with the stuff from StateSolution.cc line 353 and 445
-    dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = buffer_store;
-    LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
+    //dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = buffer_store;
+    //LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
 
     double nu_r = GetRelactivity(de->elem, domain->GetGrid()->GetDim());
     // simulation: BDB with D=(d 0; 0 d) with d = nu_0*nu_r
@@ -402,6 +470,46 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
 
   default:
     SIMP::SetElementK(f, de, tf, app, mat_out, derivative, calcMode, ev);
+    return; // other cases should be handled in SIMP
+  }  // end switch
+}
+
+template <class T1, class T2>
+void MagSIMP::SetElementRHS(DesignElement* de, const TransferFunction* tf, App::Type app, SingleVector* out, CalcMode calcMode, bool derivative)
+{
+  Vector<T1>& drhselemVec = dynamic_cast<Vector<T1>&> (*out);
+  Vector<T1> rhselemVec = dynamic_cast<Vector<T1>&> (*out);
+
+  switch(app)
+  {
+  case App::MAG:
+  {
+    // find f', f' = d_rho * f, f(rho) = Na * (I*N/(Gamma * k) * ej * rho)
+
+    assert(derivative);
+    double d_rho = tf->Derivative(de, DesignElement::SMART, false);
+
+    ElemList el(domain->GetGrid());
+
+    // prepare to get the curl operator
+    el.SetElement(de->elem);
+
+    LinearForm* lf = context->pde->GetAssemble()->GetLinearForm(context->pde,"CoilIntegrator");
+    //ElemList elemList(domain->GetGrid());
+    EntityIterator entIt = el.GetIterator();
+    for ( entIt.Begin(); !entIt.IsEnd(); entIt++ )
+    {
+      lf->CalcElemVector(rhselemVec, entIt);
+    }
+
+    Assign(drhselemVec, rhselemVec , d_rho); // out = alpha * stiffness
+    LOG_DBG3(ms) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " drho= " << d_rho << " rhselemVec= " << rhselemVec.ToString(2)<< " drhselemVec=" << drhselemVec.ToString(2);
+
+    break;
+  }
+
+  default:
+
     return; // other cases should be handled in SIMP
   }  // end switch
 }

@@ -406,6 +406,7 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app,
         // we need to copy the solution from the algebraic system to the feFunction
         // LOG_DBG3(statesol) << "S:R: fe sol=" << fe->GetSingleVector()->ToString(); // data will be outdated
         if(app == App::MAG)
+          //fe->GetSystem()->GetSolutionVal(*vec, fe->GetFctId(), false); // set idbc
           *vec = dynamic_cast<Vector<T>& >(*(fe->GetSingleVector()));
         else
           fe->GetSystem()->GetSolutionVal(*vec, fe->GetFctId(), true); // set idbc

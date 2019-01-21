@@ -64,6 +64,8 @@ namespace CoupledField {
     
     regionApproxSet_ = false;
     
+    CoilOptimization_ = false;
+
     // can the reluctivity be complex? before the change it had the same type as the PDE
     reluc_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, false));
     
@@ -536,6 +538,7 @@ namespace CoupledField {
 				  LinearForm* curInt = NULL;
           
 				  // generate source current vector
+				  CoefFunctionOpt* cfoc = NULL; // we might do optimization and then we have such a thing
 				  PtrCoefFct jFct;
 				  if( actCoil.sourceType_ == Coil::CURRENT ){
 					  CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_,
@@ -549,6 +552,16 @@ namespace CoupledField {
 					  jFct = coilPartsExtJ_[partIt->second];
 				  }
 				  coilCurrentDens_[actRegion] = jFct;
+
+				  if(actCoil.coilOptimization_ == true)
+				  {
+				    CoilOptimization_ = true;
+	          if(domain->HasDesign())
+	          {
+	            cfoc = new CoefFunctionOpt(domain->GetDesign(), jFct, this);
+	            jFct.reset(cfoc);
+	          }
+				  }
           
 				  if( dim_ == 3 ) {
 					  // ===========
@@ -583,6 +596,10 @@ namespace CoupledField {
 				  coilContext->SetEntities( actSDList );
 				  coilContext->SetFeFunction( myFct );
 				  assemble_->AddLinearForm( coilContext );
+
+	        // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+	        if(cfoc)
+	          cfoc->SetForm(curInt);
 				  // obtain coefficient function
 			  } // loop: parts
         

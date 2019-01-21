@@ -335,11 +335,17 @@ DesignDependentRHS::~DesignDependentRHS()
 template <class T>
 bool DesignDependentRHS::Init(DesignSpace* design, App::Type app)
 {
-  assert(app == App::CHARGE_DENSITY || app == App::PRESSURE || app == App::HEAT);
+  assert(app == App::CHARGE_DENSITY || app == App::PRESSURE || app == App::HEAT || app == App::MAG);
 
   if (app == App::HEAT) {
     valid = true;
     isInterfaceDriven_ = true;
+    return true;
+  }
+
+  if (app == App::MAG)
+  {
+    valid = true;
     return true;
   }
 
