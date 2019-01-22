@@ -71,6 +71,7 @@
 #include "CoupledPDE/WaterWaveAcousticsCoupling.hh"
 #include "CoupledPDE/WaterWaveMechCoupling.hh"
 #include "CoupledPDE/LinFlowHeatCoupling.hh"
+#include "CoupledPDE/LinFlowAcouCoupling.hh"
 // Include driver
 #include "Driver/BaseDriver.hh"
 #include "Driver/SingleDriver.hh"
@@ -979,6 +980,16 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
     		                             simState_, this );
       // inform linFlowPDE about coupling to heatConduction
       dynamic_cast<LinFlowPDE*> (pde1)->SetHeatCoupling();
+    }
+    // *** Linear flow coupled with acoustic wave equation***
+    else if (couplingName == "linFlowAcouDirect")
+    {
+
+      pde1 = GetSinglePDE("fluidMechLin");
+      pde2 = GetSinglePDE("acoustic");
+
+      coupling = new LinFlowAcouCoupling(pde1, pde2, pairNodes[i], info_,
+    		                             simState_, this );
     }
 //    // ------------------------------------------------------------------------
 //    // *** THERMO-MECH Coupling ***

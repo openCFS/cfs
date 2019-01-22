@@ -10,6 +10,7 @@ SET(COUPLED_PDE_SRCS
   WaterWaveAcousticsCoupling.cc
   WaterWaveMechCoupling.cc
   LinFlowHeatCoupling.cc
+  LinFlowAcouCoupling.cc
   )
 
 ADD_LIBRARY(coupledpde STATIC ${COUPLED_PDE_SRCS})

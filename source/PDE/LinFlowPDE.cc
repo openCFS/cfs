@@ -192,23 +192,15 @@ namespace CoupledField {
       meanVelSpace->SetRegionApproximation(actRegion, velPolyId_, velIntegId_);
       presSpace->SetRegionApproximation(actRegion, presPolyId_, presIntegId_);
 
-      PtrCoefFct density = materials_[actRegion]->GetScalCoefFnc(
-        DENSITY,
-        Global::REAL
-        );
-      PtrCoefFct viscosity = materials_[actRegion]->GetScalCoefFnc(
-        DYNAMIC_VISCOSITY,
-        Global::REAL
-        );
-
-//      WARN("fluid density: " << density->ToString() << "\n " <<
-//           "dynamic viscosity: " << viscosity->ToString());
+      PtrCoefFct density =
+    		  materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::REAL);
+      PtrCoefFct viscosity =
+    		  materials_[actRegion]->GetScalCoefFnc(DYNAMIC_VISCOSITY, Global::REAL);
 
       // Create set of flow regions and map of density functions for surface integrators.
       flowRegions.insert(actRegion);
       oneFuncs[actRegion] = 
-        CoefFunction::Generate( mp_, Global::REAL,
-                                lexical_cast<std::string>(1.0) );
+        CoefFunction::Generate( mp_, Global::REAL, lexical_cast<std::string>(1.0) );
 
       // ====================================================================
       // stiffness integrators
@@ -267,51 +259,27 @@ namespace CoupledField {
     	  dampContextpp = new BiLinFormContext(dampIntpp, DAMPING );
 
     	  dampContextpp->SetEntities( actSDList, actSDList );
-    	  dampContextpp->SetFeFunctions( feFunctions_[FLUIDMECH_PRESSURE],
-    			                         feFunctions_[FLUIDMECH_PRESSURE] );
+    	  dampContextpp->SetFeFunctions( presFct, presFct );
     	  assemble_->AddBiLinearForm( dampContextpp );
       }
 
 //#ifdef NOT_PARTIALLY_INTEGRATED
-      // --------------------------------------------------------------------
-      //  VERSION 2: K_VP Integrator (upper off-diagonal integrator)
-      // --------------------------------------------------------------------
-      PtrCoefFct coeffKVP
-                = CoefFunction::Generate(mp_,Global::REAL, "1.0");
-      BiLinearForm * stiffIntVP = NULL;
-      if( dim_ == 2 ) {
-        stiffIntVP = new ABInt<>( new IdentityOperator<FeH1,2,2>,
-                                  new GradientOperator<FeH1,2,1>(),
-								  coeffKVP, 1.0 );
-      } else {
-        stiffIntVP = new ABInt<>( new IdentityOperator<FeH1,3,3>,
-                                  new GradientOperator<FeH1,3,1>(),
-								  coeffKVP, 1.0);
-      }
-      stiffIntVP->SetName("LinFlowStiffIntViscousVP");
-      BiLinFormContext *stiffContVP = NULL;
-      stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
-
-      stiffContVP->SetEntities( actSDList, actSDList );
-      stiffContVP->SetFeFunctions( velFct, presFct );
-      assemble_->AddBiLinearForm( stiffContVP );
-
-
-
 //      // --------------------------------------------------------------------
-//      //  VERSION 2: K_VP Integrator
-//      //  (upper off-diagonal integrators - partially integrated, volume)
+//      //  VERSION 2: K_VP Integrator (upper off-diagonal integrator)
 //      // --------------------------------------------------------------------
-//      PtrCoefFct coeffKVP = CoefFunction::Generate(mp_,Global::REAL, "1.0");
+//      PtrCoefFct coeffKVP
+//                = CoefFunction::Generate(mp_,Global::REAL, "1.0");
 //      BiLinearForm * stiffIntVP = NULL;
 //      if( dim_ == 2 ) {
-//        stiffIntVP = new ABInt<>( new DivOperator<FeH1,2>(),
-//                                  new MultiIdOp<FeH1,2>(), coeffKVP, -1.0 );
+//        stiffIntVP = new ABInt<>( new IdentityOperator<FeH1,2,2>,
+//                                  new GradientOperator<FeH1,2,1>(),
+//								  coeffKVP, 1.0 );
 //      } else {
-//        stiffIntVP = new ABInt<>( new DivOperator<FeH1,3>(),
-//                                  new MultiIdOp<FeH1,3>(), coeffKVP, -1.0 );
+//        stiffIntVP = new ABInt<>( new IdentityOperator<FeH1,3,3>,
+//                                  new GradientOperator<FeH1,3,1>(),
+//								  coeffKVP, 1.0);
 //      }
-//      stiffIntVP->SetName("LinFlowStiffIntVP");
+//      stiffIntVP->SetName("LinFlowStiffIntViscousVP");
 //      BiLinFormContext *stiffContVP = NULL;
 //      stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
 //
@@ -319,15 +287,71 @@ namespace CoupledField {
 //      stiffContVP->SetFeFunctions( velFct, presFct );
 //      assemble_->AddBiLinearForm( stiffContVP );
 //
+//#endif
+
       // --------------------------------------------------------------------
-      //  VERSION 2: K_Laplace IntegratorLinFlowStiffIntViscous
+      //  VERSION 2: K_VP Integrator
+      //  (upper off-diagonal integrators - partially integrated, volume)
+      // --------------------------------------------------------------------
+      PtrCoefFct coeffKVP = CoefFunction::Generate(mp_,Global::REAL, "1.0");
+      BiLinearForm * stiffIntVP = NULL;
+      if( dim_ == 2 ) {
+        stiffIntVP = new ABInt<>( new DivOperator<FeH1,2>(),
+                                  new MultiIdOp<FeH1,2>(), coeffKVP, -1.0 );
+      } else {
+        stiffIntVP = new ABInt<>( new DivOperator<FeH1,3>(),
+                                  new MultiIdOp<FeH1,3>(), coeffKVP, -1.0 );
+      }
+      stiffIntVP->SetName("LinFlowStiffIntVP");
+      BiLinFormContext *stiffContVP = NULL;
+      stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
+
+      stiffContVP->SetEntities( actSDList, actSDList );
+      stiffContVP->SetFeFunctions( velFct, presFct );
+      assemble_->AddBiLinearForm( stiffContVP );
+
+      // --------------------------------------------------------------------
+      //  Viscous Strain Rate: IntegratorLinFlowStiffIntViscous: NOT WORKING
       // --------------------------------------------------------------------
       // viscosity term
+//      BiLinearForm *viscousStiffInt = GetStiffIntegrator( materials_[actRegion],
+//    		  	  	  	  	  	  	  	  	  	  	  	  actRegion, isComplex_ );
+//      viscousStiffInt->SetName("LinFlowStiffIntViscousVV");
+//
+//      BiLinFormContext *viscousStiffCont;
+//      viscousStiffCont = new BiLinFormContext(viscousStiffInt, STIFFNESS );
+//      viscousStiffCont->SetEntities( actSDList, actSDList );
+//      viscousStiffCont->SetFeFunctions( velFct, velFct );
+//      assemble_->AddBiLinearForm( viscousStiffCont );
+//
+//      // in compressible case, we have to add second term of viscosity
+//      if ( isCompressible_ ) {
+//    	  PtrCoefFct coef = materials_[actRegion]->GetScalCoefFnc(BULK_VISCOSITY,
+//    			  	  	  	  	  	  	  	  	  	  	  	  	  Global::REAL);
+//
+//    	  BiLinearForm * stiffIntDivDiv = NULL;
+//    	  if( dim_ == 2 ) {
+//    		  stiffIntDivDiv = new BBInt<>(new DivOperator<FeH1,2,Double>(),
+//    				                       coef, 1.0, updatedGeo_);
+//    	  } else {
+//    		  stiffIntDivDiv = new BBInt<>(new DivOperator<FeH1,3,Double>(),
+//    				                       coef, 1.0, updatedGeo_);
+//    	  }
+//    	  stiffIntDivDiv->SetName("LinFlowStiffIntBulkViscousVV");
+//    	  BiLinFormContext *stiffContDivDiv;
+//    	  stiffContDivDiv = new BiLinFormContext(stiffIntDivDiv, STIFFNESS );
+//
+//    	  stiffContDivDiv->SetEntities( actSDList, actSDList );
+//    	  stiffContDivDiv->SetFeFunctions( velFct, velFct );
+//    	  assemble_->AddBiLinearForm( stiffContDivDiv );
+//      }
+
+
       BiLinearForm * stiffIntLaplace = NULL;
       if( dim_ == 2 ) {
         stiffIntLaplace = new BBInt<>( new LaplOperator<FeH1,2>(),
                                        viscosity, 1.0 );
-     } else {
+      } else {
         stiffIntLaplace = new BBInt<>( new LaplOperator<FeH1,3>(),
                                        viscosity, 1.0 );
       }
@@ -343,14 +367,16 @@ namespace CoupledField {
       if ( isCompressible_ ) {
     	  PtrCoefFct bulkViscosity = materials_[actRegion]->GetScalCoefFnc(
     	          BULK_VISCOSITY, Global::REAL);
+    	  PtrCoefFct coef = CoefFunction::Generate( mp_,  Global::REAL,
+    	      			  CoefXprBinOp(mp_, viscosity, bulkViscosity, CoefXpr::OP_ADD ) );
 
     	  BiLinearForm * stiffIntDivDiv = NULL;
     	  if( dim_ == 2 ) {
     		  stiffIntDivDiv = new BBInt<>(new DivOperator<FeH1,2,Double>(),
-    				  bulkViscosity, 1.0, updatedGeo_);
+    				                       coef, 1.0, updatedGeo_);
     	  } else {
     		  stiffIntDivDiv = new BBInt<>(new DivOperator<FeH1,3,Double>(),
-    				  bulkViscosity, 1.0, updatedGeo_);
+    				                       coef, 1.0, updatedGeo_);
     	  }
     	  stiffIntDivDiv->SetName("LinFlowStiffIntBulkViscous");
     	  BiLinFormContext *stiffContDivDiv;
@@ -360,6 +386,8 @@ namespace CoupledField {
     	  stiffContDivDiv->SetFeFunctions( velFct, velFct );
     	  assemble_->AddBiLinearForm( stiffContDivDiv );
       }
+
+
       //======================================================================
       // CHECK FOR BASE BACKGROUND FLOW
       //======================================================================
@@ -429,8 +457,7 @@ namespace CoupledField {
         convectiveContextVv = new BiLinFormContext(convectiveVv, STIFFNESS );
 
         convectiveContextVv->SetEntities( actSDList, actSDList );
-        convectiveContextVv->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],
-                                             feFunctions_[FLUIDMECH_VELOCITY] );
+        convectiveContextVv->SetFeFunctions( velFct, velFct );
         assemble_->AddBiLinearForm( convectiveContextVv );
 
         if(enableC2_) 
@@ -488,8 +515,7 @@ namespace CoupledField {
           convectiveContextvV = new BiLinFormContext(convectivevV, STIFFNESS );
           
           convectiveContextvV->SetEntities( actSDList, actSDList );
-          convectiveContextvV->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],
-                                               feFunctions_[FLUIDMECH_VELOCITY] );
+          convectiveContextvV->SetFeFunctions( velFct, velFct );
           assemble_->AddBiLinearForm( convectiveContextvV );
         }
       } // is flow
@@ -511,52 +537,47 @@ namespace CoupledField {
       dampContextvv = new BiLinFormContext(dampIntvv, DAMPING );
 
       dampContextvv->SetEntities( actSDList, actSDList );
-      dampContextvv->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],
-                                     feFunctions_[FLUIDMECH_VELOCITY] );
+      dampContextvv->SetFeFunctions( velFct, velFct );
       assemble_->AddBiLinearForm( dampContextvv );
     }
     
-    StdVector<RegionIdType>::iterator surfIt, surfEnd;
-    surfIt = presSurfaces_.Begin();
-    surfEnd = presSurfaces_.End();
+    //
+    // When pressure is prescribed, we need to add the corresponding
+    // surface integrator
+    //
+    PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    if( bcNode ) {
+    	ParamNodeList surfPresNodes = bcNode->GetList( "pressure" );
+    	//std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
 
-//    for( ; surfIt != surfEnd; surfIt++ ) {
-//      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-//      actSDList->SetRegion( *surfIt );
-//
-//      velFct->AddEntityList( actSDList );
-//      velSpace->SetRegionApproximation(*surfIt, velPolyId_, velIntegId_);
-//      presFct->AddEntityList( actSDList );
-//      presSpace->SetRegionApproximation(*surfIt, presPolyId_, presIntegId_);
-//      meanVelFct->AddEntityList( actSDList );
-//      meanVelSpace->SetRegionApproximation(*surfIt, velPolyId_, velIntegId_);
-//
-//      // --------------------------------------------------------------------
-//      //  VERSION 2: K_VP Integrator
-//      //  (upper off-diagonal integrators - partially integrated, surface)
-//      // --------------------------------------------------------------------
-//      BiLinearForm * stiffIntVPSurf = NULL;
-//      if( dim_ == 2 ) {
-//        stiffIntVPSurf = new SurfaceABInt<>(
-//          new IdentityOperator<FeH1,2,2>(),
-//          new IdentityOperatorNormal<FeH1,2>(),
-//          oneFuncs, 1.0, flowRegions
-//          );
-//      } else {
-//        stiffIntVPSurf = new SurfaceABInt<>(
-//          new IdentityOperator<FeH1,3,3>(),
-//          new IdentityOperatorNormal<FeH1,3>(),
-//          oneFuncs, 1.0, flowRegions
-//          );
-//      }
-//      stiffIntVPSurf->SetName("LinFlowStiffIntVPSurf");
-//      BiLinFormContext *stiffContVP = NULL;
-//      stiffContVP = new BiLinFormContext(stiffIntVPSurf, STIFFNESS );
-//
-//      stiffContVP->SetEntities( actSDList, actSDList );
-//      stiffContVP->SetFeFunctions( velFct, presFct );
-//      assemble_->AddBiLinearForm( stiffContVP );
-//    }
+    	for( UInt i = 0; i < surfPresNodes.GetSize(); i++ ) {
+    		std::string regionName = surfPresNodes[i]->Get("name")->As<std::string>();
+    		shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+
+    		velFct->AddEntityList( actSDList );
+    		// --------------------------------------------------------------------
+    		//  VERSION 2: K_VP Integrator
+    		//  (upper off-diagonal integrators - partially integrated, surface)
+    		// --------------------------------------------------------------------
+    		BiLinearForm * stiffIntVPSurf = NULL;
+    		if( dim_ == 2 ) {
+    			stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+    					             new IdentityOperatorNormal<FeH1,2>(),
+    		                         oneFuncs, 1.0, flowRegions);
+    		} else {
+    			stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+    		                         new IdentityOperatorNormal<FeH1,3>(),
+    		                         oneFuncs, 1.0, flowRegions);
+    		}
+    		stiffIntVPSurf->SetName("LinFlowStiffIntVPSurf");
+    		BiLinFormContext *stiffContVP = NULL;
+    		stiffContVP = new BiLinFormContext(stiffIntVPSurf, STIFFNESS );
+
+    		stiffContVP->SetEntities( actSDList, actSDList );
+    		stiffContVP->SetFeFunctions( velFct, presFct );
+    		assemble_->AddBiLinearForm( stiffContVP );
+    	}
+    }
 
     // Since we manage the mean flow FeFunction, we also have to finalize here.
     // c.f. SinglePDE::InitStage3
@@ -565,6 +586,7 @@ namespace CoupledField {
     meanVelFct->Finalize();
   }
   
+
   void LinFlowPDE::DefineSolveStep() {
     solveStep_ = new StdSolveStep(*this);
   }
@@ -748,16 +770,12 @@ namespace CoupledField {
 
       // 2) pass integrators to functors
       // eFunc->AddIntegrator(stiffIntVP, region);
-      sigmaFunc->AddIntegrator(
-        GetStiffIntegrator( actSDMat, region, isComplex_ ), 
-        region 
-        );
-      strainFunc->AddIntegrator(
-        GetStiffIntegrator( actSDMat, region, isComplex_ ),
-        region
-        );
+      BaseBDBInt *integ = GetStiffIntegrator( actSDMat, region, isComplex_ );
+      integ->SetName("ViscousStrainRateInt");
+      integ->SetFeSpace( feFunctions_[FLUIDMECH_VELOCITY]->GetFeSpace() );
+      sigmaFunc->AddIntegrator(integ,region);
+      strainFunc->AddIntegrator(integ,region);
     }
-
   }
 
   
@@ -830,11 +848,9 @@ namespace CoupledField {
     DefineFieldResult(meanFlowFeFct_, flowvelocity);
   }
 
-  BaseBDBInt *
-  LinFlowPDE::GetStiffIntegrator( BaseMaterial* actSDMat,
-                                        RegionIdType regionId,
-                                        bool isComplex )
-  {
+  BaseBDBInt* LinFlowPDE::GetStiffIntegrator( BaseMaterial* actSDMat,
+		  	              	  	  	  	  	  RegionIdType regionId,
+											  bool isComplex ) {
 
     // Get region name
     std::string regionName = ptGrid_->GetRegion().ToString( regionId );
@@ -863,7 +879,7 @@ namespace CoupledField {
     }
 
     curCoef = regionMat->GetTensorCoefFnc( DYNAMIC_VISCOSITY, subTensorType, complexPart );
-
+    //curCoef = regionMat->GetScalCoefFnc(DYNAMIC_VISCOSITY, Global::REAL);;
     // ----------------------------------------
     //  Determine correct stiffness integrator 
     // ----------------------------------------
@@ -890,9 +906,6 @@ namespace CoupledField {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for fluid-mechanic physic" );
       }
     }
-
-    integ->SetName("LinElastInt");
-    integ->SetFeSpace( feFunctions_[FLUIDMECH_VELOCITY]->GetFeSpace() );
 
     return integ;
   }
