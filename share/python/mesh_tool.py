@@ -489,7 +489,7 @@ def write_gid_elements(out, elements, dim):
         out.write(str(e.nodes[n] + 1) + ("\n" if n == nodes_by_type(e.type) - 1 else " "))  # write one based node numbers
 
 
-def write_gid_mesh(mesh, filename,scale = 1):
+def write_gid_mesh(mesh, filename, scale = 1):
   # Warning: mesh dimensions should be in [m]
   quad4 = count_elements(mesh.elements, QUAD4)
   hexa8 = count_elements(mesh.elements, HEXA8)
