@@ -996,7 +996,7 @@
       <!-- example: <SIMP region="piezo"/> -->
       <xsd:element name="ersatzMaterial" minOccurs="1">
         <xsd:complexType>
-          <xsd:sequence>
+          <xsd:choice maxOccurs="unbounded">
             <xsd:element name="regions" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
@@ -1450,30 +1450,7 @@
               </xsd:complexType>
             </xsd:element>
 
-            <xsd:element name="rotationtype" minOccurs="0" maxOccurs="1">
-              <xsd:complexType>
-                <xsd:attribute name="value" use="optional" default="xyz">
-                  <xsd:simpleType>
-                    <xsd:restriction base="xsd:token">
-                      <xsd:enumeration value="zxz" />
-                      <xsd:enumeration value="zyz" />
-                      <xsd:enumeration value="yzy" />
-                      <xsd:enumeration value="yxy" />
-                      <xsd:enumeration value="xyx" />
-                      <xsd:enumeration value="xzx" />
-                      <xsd:enumeration value="xyz" />
-                      <xsd:enumeration value="yxz" />
-                      <xsd:enumeration value="xzy" />
-                      <xsd:enumeration value="zxy" />
-                      <xsd:enumeration value="zyx" />
-                      <xsd:enumeration value="yzx" />
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:attribute>
-              </xsd:complexType>
-            </xsd:element>
-
-          </xsd:sequence> <!-- end of ersatzMaterial all -->
+          </xsd:choice> <!-- end of ersatzMaterial all -->
 
           <!-- attribute of ersatzMaterial -->
           <xsd:attribute name="method" use="required">
@@ -1504,10 +1481,8 @@
             </xsd:simpleType>
           </xsd:attribute>
 
-
-
         </xsd:complexType>
-      </xsd:element>
+      </xsd:element> <!-- end of ersatzMaterial children -->
 
 
       <!-- We can control the comit for forward and/or adjoint solution -->
@@ -2365,7 +2340,7 @@
   </xsd:simpleType>
 
   <xsd:complexType name="DT_DesignMat">
-    <xsd:sequence>
+    <xsd:choice maxOccurs="unbounded">
       <xsd:element name="param" minOccurs="0" maxOccurs="unbounded">
         <xsd:complexType>
           <xsd:attribute name="name" use="required" type="DT_Design" />
@@ -2469,7 +2444,7 @@
           </xsd:attribute>
         </xsd:complexType>
       </xsd:element>
-    </xsd:sequence>
+    </xsd:choice>
 
     <xsd:attribute name="type" use="required">
       <xsd:simpleType>
@@ -2510,6 +2485,24 @@
           <xsd:enumeration value="xy" />
           <xsd:enumeration value="xz" />
           <xsd:enumeration value="yz" />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="rotationtype" use="optional" default="xyz">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="zxz" />
+          <xsd:enumeration value="zyz" />
+          <xsd:enumeration value="yzy" />
+          <xsd:enumeration value="yxy" />
+          <xsd:enumeration value="xyx" />
+          <xsd:enumeration value="xzx" />
+          <xsd:enumeration value="xyz" />
+          <xsd:enumeration value="yxz" />
+          <xsd:enumeration value="xzy" />
+          <xsd:enumeration value="zxy" />
+          <xsd:enumeration value="zyx" />
+          <xsd:enumeration value="yzx" />
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

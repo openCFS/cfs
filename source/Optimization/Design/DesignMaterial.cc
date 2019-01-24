@@ -72,8 +72,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   space_ = space;
 
   rotationType_ = RotationType::XYZ;
-  if(pn->Has("rotationType"))
-    rotationType_ = rotationType.Parse(pn->Get("rotationType")->As<std::string>());
+  if(pn->Has("rotationtype"))
+    rotationType_ = rotationType.Parse(pn->Get("rotationtype")->As<std::string>());
 
   // initialize, maybe overwritten later
   interpolation_ = DesignMaterial::NOTYPE;
