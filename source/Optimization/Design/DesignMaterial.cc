@@ -3486,7 +3486,7 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
 
   Matrix<Double> R(dim, dim);
   SetRotationMatrix(R, theta1, theta2, theta3);
-  LOG_DBG3(dm) << "Rotation matrix for t1=" << theta1 << ", t2=" << theta2 << ", t3=" << theta3 << " is " << R.ToString();
+
   // see also baseMaterial.cc for this
   int dimQ = dim == 3 ? 6 : 3;
   Matrix<Double> Q(dimQ, dimQ);
@@ -3542,8 +3542,7 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
     help.Mult(QT, t);
   }else{ // we need a derivative
     Matrix<Double> dR(dim, dim);
-    SetRotationMatrix(R, theta1, theta2, theta3, direction); // this now produces the derivative
-    LOG_DBG3(dm) << "Corresponding dR is " << dR.ToString();
+    SetRotationMatrix(dR, theta1, theta2, theta3, direction); // this now produces the derivative
 
     Matrix<Double> dQ(dimQ, dimQ);
     // this part can be produced from the definition of Q above by sed 's/Q/dQ;s/R\(\[\d\]\[\d\]\)\*R\(\[\d\]\[\d\]\)/(dR\1*R\2+R\1*dR\2)/g', effectively using the product rule
@@ -3616,13 +3615,15 @@ void DesignMaterial::RotateTensor(Matrix<double>& t, DesignElement::Type directi
 void DesignMaterial::SetOneAxisRotationMatrix(Matrix<double>& R, double theta, int axis, bool derivative) {
   // rotation matrix in 2d around z axis or in 3d around chosen coordinate axis
 
-  double stheta, ctheta;
+  double stheta, ctheta, dx;
   if(!derivative) {
     stheta = sin(theta);
     ctheta = cos(theta);
+    dx = 1;
   }  else {
     stheta = cos(theta);
     ctheta = -sin(theta);
+    dx = 0;
   }
 
   Matrix<double> Q;
@@ -3638,7 +3639,7 @@ void DesignMaterial::SetOneAxisRotationMatrix(Matrix<double>& R, double theta, i
   else {
     // For three dimensions shift entries modulo 3
     R.Init();
-    R[axis][axis] = 1;
+    R[axis][axis] = dx;
     for (int row = 0; row < 2; ++row) {
       int new_row = (row+axis+1) % 3;
       for (int col = 0; col < 2; ++col) {
@@ -3650,11 +3651,9 @@ void DesignMaterial::SetOneAxisRotationMatrix(Matrix<double>& R, double theta, i
   LOG_DBG2(dm) << "SOARM: rotation matrix around axis " << axis << " = " << R.ToString();
 }
 
-void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double theta1, double theta2, double theta3, DesignElement::Type direction){
+void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double theta1, double theta2, double theta3, DesignElement::Type direction) {
   // rotation axes ares given by rotationType (default XYZ, i.e. first z, then y, then x)
   // direction of rotation around an axis is positive (ccw), i.e. right hand rule applies
-
-
   R.Resize(dim, dim);
 
   if(dim == 2) {
@@ -3742,7 +3741,7 @@ void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double theta1, double 
     R3.Mult(R,R1);
     R = R1;
   }
-  LOG_DBG2(dm) << "SRM: full rotation matrix = " << R.ToString();
+  LOG_DBG3(dm)  << "SRM:Rotation matrix for t1=" << theta1 << ", t2=" << theta2 << ", t3=" << theta3 << " with derivative w.r.t. to " << direction << " is \n" << R.ToString();
 }
 
 void DesignMaterial::RotatePiezoCouplingTensor(Matrix<double>& E, double phi, DesignElement::Type direction)
