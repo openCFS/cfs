@@ -91,7 +91,7 @@ ErsatzMaterial::ErsatzMaterial() :
   dim(grid->GetDim())
 {
   /** We store here the solution */
-  volume_fraction_ = 0.0;
+  volumeFraction_ = 0.0;
   structure_ = NULL;
   densityFile = NULL;
   bitensor_ = false;
@@ -102,8 +102,6 @@ ErsatzMaterial::ErsatzMaterial() :
   pn = domain->GetParamRoot()->Get("optimization/ersatzMaterial");
 
   method_ = method.Parse(pn->Get("method")->As<std::string>());
-
-
 
   // we set the calc_u1ku2_timer_ only for non-regular meshes but then as sub-timer
   calc_u1ku2_timer_ = grid->IsGridRegular() ? boost::shared_ptr<Timer>() : boost::shared_ptr<Timer>(new Timer("calc_U1KU2", true));
@@ -1417,7 +1415,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     SubTensorType stt = f->ctxt->stt;
     TransferFunction* tf = Function::GetFunction(c, g)->IsPhysical() ? design->GetTransferFunction(dtype, App::MECH) : NULL;
 
-    double fraction = c != NULL ? volume_fraction_ : g->volume_fraction;
+    double fraction = c != NULL ? volumeFraction_ : g->volume_fraction;
     bool allDesignsRelevant = dtype == DesignElement::MECH_TRACE  || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT || dtype == DesignElement::NO_TYPE;
     // tensor trace is calculated if dtype == DEFAULT or TENSOR_TRACE and a tensor available
     bool calculateTensorTrace = design->designMaterial != NULL && (dtype == DesignElement::MECH_TRACE || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT);
@@ -1483,7 +1481,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       fraction = 1.0 / fraction;
       if(g == NULL)
       {
-        volume_fraction_ = fraction;
+        volumeFraction_ = fraction;
       }
       else
       {
