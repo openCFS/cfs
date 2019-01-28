@@ -92,7 +92,7 @@ def read_stiff_angle_matlab(filename):
   mat = scipy.io.loadmat(filename,appendmat = True)
   mat2 = scipy.io.loadmat('centers',appendmat = True)
   domain_data = scipy.io.loadmat('data',appendmat = True)
-  d = mat['x']
+  d = mat['x_save']
   centers = mat2['centers']
   domain_data = domain_data['data']
   max = domain_data[0][:]
@@ -114,10 +114,19 @@ def read_stiff_angle_matlab(filename):
     s2[i] = d[i][2]
     if dim == 3:
       s3[i] = d[i][3]
+  design = dict()
   if dim == 3:
-    return None,s1,s2,coords,s3,None
+    design['angle'] = None
+    design['s1'] = s1
+    design['s2'] = s2
+    design['s3'] = s3
+    return design,coords
   else:
-    return angle,s1,s2,coords,s3,'2D'
+    design['angle'] = angle
+    design['s1'] = s1
+    design['s2'] = s2
+    design['s3'] = None
+    return design,coords
 
 # # read arbitrary multi-design density file as numpy array
 def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):

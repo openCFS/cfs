@@ -212,8 +212,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
       if h5_read:
         design = read_design(f, dim_2D, args)
       else:
-        angle, s1, s2, coords = read_stiff_angle_matlab(args.input)
-
+       design, coords = read_stiff_angle_matlab(args.input)
+        
       if dim_2D and args.show in TWO_SCALE:
         print("Volume for regular grid: " + str(calc_volume(design['s1'], design['s2'])))
       # add angle bias, e.g. by 90 deg to correct thomas
@@ -225,8 +225,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         design['angle'] *= args.angle_factor
       
       for key, value in design.items():
-        print('unscaled {:s} in [{:f}:{:f}]'.format(key, numpy.min(value), numpy.max(value)))
-  
+        print('unscaled {:s} in [{:s}:{:s}]'.format(key, str(numpy.min(value)), str(numpy.max(value))))  
       # viz is either Image or polydata
       if dim_2D and not args.show == 'simp':
         if args.show == "hom_rect": 
@@ -573,6 +572,7 @@ if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.
     #data from matlab file
     assert(args.input.endswith(".mat"))
     matlab_read = True
+    dim_2D = '2D'
     input = args.input
     args.tensor = 'matlab'
   if not args.tensor == 'matlab' and args.tensor == 'mechTensor':

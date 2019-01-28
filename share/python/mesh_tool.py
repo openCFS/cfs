@@ -1998,8 +1998,7 @@ def create_optistruct_mesh_from_cfs(meshfile,h5file):
   out.close()    
   
 def create_mesh_from_optistruct(meshfile,scale,type,offset = 0):
-  # currently only used for apod6
-  # read 3D optistruct mesh with hexa and wedge elements for apod6 got by M. Muir (12/2015)
+  # read 3D optistruct (Hypermesh) mesh with various types of elements
   
   file = open(meshfile)
   inp = file.readlines()
