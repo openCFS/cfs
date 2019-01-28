@@ -2119,7 +2119,44 @@ namespace CoupledField {
   {
     solveStep_ = new StdSolveStep(*this);
   }
-  
+
+  const Matrix<double>& MechPDE::GetVonMisesMatrix(int dim)
+  {
+    Matrix<double>& m = dim == 2 ? vonMisesMatrix_2d_ : vonMisesMatrix_3d_;
+    if(m.GetNumRows() == 0)
+    {
+      // Kocvara and Stingl; 2007 -> von Mises Stress = stress^T * M * stress
+      if(dim == 2)
+      {
+        m.Resize(3,3);
+        m.Init();
+        m[0][0] = 1.0;
+        m[1][1] = 1.0;
+        m[2][2] = 3.0;
+        m[0][1] = -0.5;
+        m[1][0] = -0.5;
+
+      }
+      else
+      {
+        m.Resize(6,6);
+        m.Init();
+        m[0][0] = 2.0;
+        m[1][1] = 2.0;
+        m[2][2] = 2.0;
+        m[3][3] = 6.0;
+        m[4][4] = 6.0;
+        m[5][5] = 6.0;
+        m[0][1] = -1.0;
+        m[0][2] = -1.0;
+        m[1][2] = -1.0;
+        m[1][0] = -1.0;
+        m[2][0] = -1.0;
+        m[2][1] = -1.0;
+      }
+    }
+    return m;
+  }
   
   // ======================================================
   // TIME STEPPING SECTION

@@ -465,7 +465,7 @@ std::string DesignDependentRHS::ToString(int level)
   return os.str();
 }
 
-  // Explicit template instantiation
+// Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template bool DesignDependentRHS::Init<double>(DesignSpace* design, App::Type app);
 template bool DesignDependentRHS::Init<complex<double> >(DesignSpace* design, App::Type app);

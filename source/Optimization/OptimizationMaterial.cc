@@ -93,6 +93,18 @@ OptimizationMaterial* OptimizationMaterial::CreateInstance(System sys, ErsatzMat
   }
 }
 
+CoefFunction* OptimizationMaterial::GetOrgMatCoef(BaseBDBInt* bdb)
+{
+  assert(bdb != NULL);
+  assert(bdb->GetCoef());
+
+  CoefFunctionOpt* opt = dynamic_cast<CoefFunctionOpt*>(bdb->GetCoef().get());
+  if(opt != NULL)
+    return opt->orgMat.get();
+  else
+    return bdb->GetCoef().get();
+}
+
 inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(BiLinFormContext* context)
 {
   assert(context != NULL);

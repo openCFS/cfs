@@ -13,7 +13,7 @@
 
 using namespace std;
 
-namespace CoupledField {
+using namespace CoupledField;
 
 DECLARE_LOG(statesol)
 DEFINE_LOG(statesol, "stateSolution")
@@ -474,6 +474,8 @@ void StateSolution::Write(SinglePDE* pde, SingleVector* vec)
   LOG_DBG3(statesol) << "S:W sys -> " << sys->ToString(0);
 }
 
+
+
 template <class T>
 SingleVector* StateSolution::GetVector(StorageType st, bool create)
 {
@@ -505,11 +507,22 @@ SingleVector* StateSolution::GetVector(StorageType st, bool create)
   EXCEPTION("false");
 }
 
+template<class T>
+Vector<T>& StateSolution::GetVectorRef(StorageType st)
+{
+  SingleVector* sv = GetVector<T>(st, false);
+  assert(sv != NULL);
+  return dynamic_cast<Vector<T>& >(*sv);
+}
+
+
+
 SingleVector* StateSolution::GetVector(StorageType st)
 {
   // as create is false, it makes no difference of we use the double or complex variant
   return GetVector<double>(st, false);
 }
+
 
 Vector<double>& StateSolution::GetRealVector(StorageType st)
 {
@@ -522,4 +535,8 @@ Vector<complex<double> >& StateSolution::GetComplexVector(StorageType st)
   return dynamic_cast<Vector<complex<double> >& >(*GetVector<complex<double> >(st, true));
 }
 
-}
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+template Vector<double>& StateSolution::GetVectorRef<double>(StorageType st);
+template Vector<complex<double> >& StateSolution::GetVectorRef<complex<double> >(StorageType st);
+#endif
