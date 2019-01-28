@@ -104,7 +104,7 @@ private:
   double CalcMagFluxDensity(Excitation& excite, Function* f);
 
   /** Calculate the magnetic flux density gradient. The weight is always 1 as the magnetic flux density needs to be per excitation */
-  void CalcMagFluxDensGradient(Excitation& excite, Function* f,  TransferFunction* tf);
+  void CalcMagFluxDensGradient(Excitation& excite, Function* f);
 
   /** array by index region-id which says true for nonlinear regions (here CurlCulrIntegrator-NL) */
   StdVector<bool> nonlin_;

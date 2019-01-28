@@ -814,18 +814,13 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
     // traverse over our elements
     // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
-    int elements;
-    int base_upper;
+    // for the multi-design case, e.g. for coil opt in magnetics, we have the designs, we have the transfer function for.
+    int elements = design->GetNumberOfElements();
+    bool design_dependend = design->designMaterial == NULL && !design->HasMultiMaterial();
+    int base_lower = design_dependend ? design->FindDesign(tf->GetDesign()) * elements : 0;
+    int base_upper = design_dependend ? base_lower + elements : design->data.GetSize();
 
-    elements = design->GetNumberOfElements();
-    int base_lower = 0;
-    base_upper = design->data.GetSize(); // ErsatzMatzerialTensor and MultiMaterial
-    if(design->designMaterial == NULL && !design->HasMultiMaterial())
-    {
-      base_lower = design->FindDesign(tf->GetDesign()) * elements;
-      base_upper = base_lower + elements;
-    }
-    LOG_DBG2(em) << "elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
+    LOG_DBG2(em) << "elements=" << elements << " base=" << base_lower << " de::base" << (design->FindDesign(tf->GetDesign()) * elements) << " base_upper=" << base_upper << " max_des=" << design->data.GetSize();
     // create an element list to gain the iterator in the loop
     ElemList elemList(grid);
 

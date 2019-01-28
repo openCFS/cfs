@@ -145,8 +145,7 @@ double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       return CalcMagFluxDensity(excite, f);
     else
     {
-      TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true);
-      CalcMagFluxDensGradient(excite, f, tf);
+      CalcMagFluxDensGradient(excite, f);
       return 0.0;
     }
   default: // return below as we don't implement
@@ -268,53 +267,28 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
   return result;
 }
 
-void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferFunction* tf)
+void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f)
 {
 
-  // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
-  //Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
+  assert(f->GetExcitation() != NULL);
+  assert(f->GetExcitation()->transform == NULL); // don' do the complicated stuff yet
+
 
   // the gradient is < lambda^T, K' * A >
   assert(excite.sequence == f->ctxt->sequence);
+  assert(f->ctxt->ToApp() == App::MAG);
 
-  DesignDependentRHS* rhs = NULL;
-
-  //MagEdgePDE* magnetic = dynamic_cast<MagEdgePDE*>(f->ctxt->pde);
-  //assert(magnetic != NULL);
-  // f' = f * rho'
-/*  if (magnetic->OptimizationRHS())
+  // for the two design case, we loop over both variables. In the single design case this also works
+  for(unsigned int d = 0; d < design->design.GetSize(); d++)
   {
-    rhs = new DesignDependentRHS();
-    rhs->Init<double>(design,App::MAG);
-    SinglePDE* pde = f->ctxt->pde;
-    //BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetLinearForm(context->pde,"CoilIntegrator")->GetIntegrator());
+    TransferFunction* tf = design->GetTransferFunction(design->design[d].design, App::MAG, true);
 
+    DesignDependentRHS* rhs = NULL; // TODO add the dependency stuff here!
 
-    //lf->
-    Vector<double>& rhs = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
-    std::cout << "rhs= " << rhs.ToString() << std::endl;
-
-    //BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", f->region, context->pde)->GetIntegrator());
-
-    //form->CalcElemVector(elemVec, entIt);
-    StdVector<SingleVector*>& stateSol = forward.Get(excite)->elem[App::MAG];
-    //excite.ReadLoads(f->ctxt,)
-    //rhs(forward.Get(excite)->GetVector(StateSolution::RHS_VECTOR)->GetSize());
-    for (unsigned int id = 0; id < design->data.GetSize(); id++)
-    {
-      DesignElement* de = &design->data[id];
-      std::cout << "stateSol= " << stateSol[id]->ToString() << std::endl;
-
-      //Vector<double> gradRHS = de->
-      //double val = gradRHS.Inner(*stateSol[id]);
-      //de->AddGradient(f,val);
-    }
-
-  }*/
-
-  double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
-  // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
-  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], rhs, factor, STANDARD, f);
+    double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
+    // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], rhs, factor, STANDARD, f);
+  }
 
 }
 
