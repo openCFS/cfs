@@ -64,7 +64,9 @@ namespace CoupledField {
     
     regionApproxSet_ = false;
     
-    CoilOptimization_ = false;
+    coilOptimization_ = false;
+
+    isMixed_ = false;
 
     // can the reluctivity be complex? before the change it had the same type as the PDE
     reluc_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, false));
@@ -555,7 +557,7 @@ namespace CoupledField {
 
 				  if(actCoil.coilOptimization_ == true)
 				  {
-				    CoilOptimization_ = true;
+				    coilOptimization_ = true;
 	          if(domain->HasDesign())
 	          {
 	            cfoc = new CoefFunctionOpt(domain->GetDesign(), jFct, this);
@@ -1853,26 +1855,12 @@ namespace CoupledField {
     shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
     DefineFieldResult( jldCoef, jld );
 
-
     // optimization results are provided in DesignSpace::ExtractResults()
-    // copied from MechPDE
-    // === MECH_PSEUDO_DENISTY ===
-    shared_ptr<ResultInfo> mpd(new ResultInfo);
-    mpd->resultType = MECH_PSEUDO_DENSITY;
-    mpd->entryType = ResultInfo::SCALAR;
-    mpd->definedOn = ResultInfo::ELEMENT;
-    mpd->dofNames = "";
-    mpd->fromOptimization = true;
-    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mpd); // the fe-function is only a dummy
-
-    // === PHYSICAL_PSEUDO_DENISTY ===
-    shared_ptr<ResultInfo> ppd(new ResultInfo);
-    ppd->resultType = PHYSICAL_PSEUDO_DENSITY;
-    ppd->entryType = ResultInfo::SCALAR;
-    ppd->definedOn = ResultInfo::ELEMENT;
-    ppd->dofNames = "";
-    ppd->fromOptimization = true;
-    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
+    // the variable for MAG_FERRITE_PSEUDO_DENSITY is DENSITY
+    DefineFieldResult(MAG_FERRITE_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(PHYSICAL_FERRITE_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(MAG_NON_FERRITE_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(PHYSICAL_NON_FERRITE_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
 
   }
   

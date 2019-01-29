@@ -278,16 +278,20 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f)
   assert(excite.sequence == f->ctxt->sequence);
   assert(f->ctxt->ToApp() == App::MAG);
 
+  // we use this just as indicator for coil optimization.
+  DesignDependentRHS rhs(App::MAG);
+
   // for the two design case, we loop over both variables. In the single design case this also works
   for(unsigned int d = 0; d < design->design.GetSize(); d++)
   {
-    TransferFunction* tf = design->GetTransferFunction(design->design[d].design, App::MAG, true);
+    DesignElement::Type dt = design->design[d].design;
+    TransferFunction* tf = design->GetTransferFunction(dt, App::MAG, true);
 
-    DesignDependentRHS* rhs = NULL; // TODO add the dependency stuff here!
+    DesignDependentRHS* ptr_rhs = dt == DesignElement::NONFERRITE_DENSITY ? &rhs : NULL;
 
     double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
     // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
-    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], rhs, factor, STANDARD, f);
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], ptr_rhs, factor, STANDARD, f);
   }
 
 }
@@ -448,44 +452,34 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
   }  // end switch
 }
 
-template <class T1, class T2>
-void MagSIMP::SetElementRHS(DesignElement* de, const TransferFunction* tf, App::Type app, SingleVector* out, CalcMode calcMode, bool derivative)
+
+void MagSIMP::SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, SingleVector* mat_vec)
 {
-  Vector<T1>& drhselemVec = dynamic_cast<Vector<T1>&> (*out);
-  Vector<T1> rhselemVec = dynamic_cast<Vector<T1>&> (*out);
+  assert(f->ctxt->ToApp() == App::MAG);
+  assert(rhs != NULL);
+  assert(dynamic_cast<MagneticPDE*>(f->ctxt->pde)->DoCoilOptimization());
+  assert(f->GetType() == Function::SQR_MAG_FLUX_DENS_X || f->GetType() == Function::SQR_MAG_FLUX_DENS_Y);
 
-  switch(app)
+  assert(false);
+  // find f', f' = d_rho * f, f(rho) = Na * (I*N/(Gamma * k) * ej * rho)
+/*
+  double d_rho = tf->Derivative(de, DesignElement::SMART, false);
+
+  ElemList el(domain->GetGrid());
+
+  // prepare to get the curl operator
+  el.SetElement(de->elem);
+
+  LinearForm* lf = context->pde->GetAssemble()->GetLinearForm(context->pde,"CoilIntegrator");
+  //ElemList elemList(domain->GetGrid());
+  EntityIterator entIt = el.GetIterator();
+  for ( entIt.Begin(); !entIt.IsEnd(); entIt++ )
   {
-  case App::MAG:
-  {
-    // find f', f' = d_rho * f, f(rho) = Na * (I*N/(Gamma * k) * ej * rho)
-
-    assert(derivative);
-    double d_rho = tf->Derivative(de, DesignElement::SMART, false);
-
-    ElemList el(domain->GetGrid());
-
-    // prepare to get the curl operator
-    el.SetElement(de->elem);
-
-    LinearForm* lf = context->pde->GetAssemble()->GetLinearForm(context->pde,"CoilIntegrator");
-    //ElemList elemList(domain->GetGrid());
-    EntityIterator entIt = el.GetIterator();
-    for ( entIt.Begin(); !entIt.IsEnd(); entIt++ )
-    {
-      lf->CalcElemVector(rhselemVec, entIt);
-    }
-
-    Assign(drhselemVec, rhselemVec , d_rho); // out = alpha * stiffness
-    LOG_DBG3(ms) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " drho= " << d_rho << " rhselemVec= " << rhselemVec.ToString(2)<< " drhselemVec=" << drhselemVec.ToString(2);
-
-    break;
+    //lf->CalcElemVector(rhselemVec, entIt);
   }
-
-  default:
-
-    return; // other cases should be handled in SIMP
-  }  // end switch
+*/
+  //Assign(drhselemVec, rhselemVec , d_rho); // out = alpha * stiffness
+  //    LOG_DBG3(ms) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " drho= " << d_rho << " rhselemVec= " << rhselemVec.ToString(2)<< " drhselemVec=" << drhselemVec.ToString(2);
 }
 
 const Matrix<double>& MagSIMP::GetSelectionMatrix(const Function* f) const

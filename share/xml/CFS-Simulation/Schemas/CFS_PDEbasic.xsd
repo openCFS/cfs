@@ -1463,7 +1463,8 @@
                 <xsd:complexType>
                   <xsd:attribute name="area" type="xsd:token" use="required"/>
                   <!--xsd:attribute name="fillFactor" type="DT_PosFloat" default="1.0"/-->
-                  <xsd:attribute name="Optimization" type="xsd:boolean" use="optional" default="false" />
+                  <!-- eanable topology optimization of the coil with magCoilPseudoDensity variable -->
+                  <xsd:attribute name="coil_top_opt" type="xsd:boolean" use="optional" default="false" />
                 </xsd:complexType>
               </xsd:element>
             </xsd:choice>

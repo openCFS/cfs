@@ -276,8 +276,8 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   }
   assert(appendix.GetSize() == alpha.GetSize());
 
-  DesignDependentRHS rhs;
-  rhs.Init<double>(App::STRESS, excite.label);
+  DesignDependentRHS rhs(App::STRESS);
+  rhs.Init<double>(excite.label);
   // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MECH], App::MECH, forward.Get(excite)->elem[App::MECH], &rhs, 1.0, STANDARD, f);
 
@@ -316,10 +316,10 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
 }
 
 
-DesignDependentRHS::DesignDependentRHS()
+DesignDependentRHS::DesignDependentRHS(App::Type my_app)
 {
-  valid       = false;
-  app         = App::NO_APP;
+  app         = my_app;
+  valid       = app == App::MAG; // MAG needs no init
   vec         = NULL;
   elem        = NULL;
   test_strain = MechPDE::NOT_SET;
@@ -333,19 +333,15 @@ DesignDependentRHS::~DesignDependentRHS()
 }
 
 template <class T>
-bool DesignDependentRHS::Init(DesignSpace* design, App::Type app)
+bool DesignDependentRHS::Init(DesignSpace* design, App::Type my_app)
 {
+  assert(!(app != App::NO_APP && app != my_app));
+  app = my_app;
   assert(app == App::CHARGE_DENSITY || app == App::PRESSURE || app == App::HEAT || app == App::MAG);
 
   if (app == App::HEAT) {
     valid = true;
     isInterfaceDriven_ = true;
-    return true;
-  }
-
-  if (app == App::MAG)
-  {
-    valid = true;
     return true;
   }
 
@@ -434,8 +430,11 @@ bool DesignDependentRHS::Init(DesignSpace* design, App::Type app)
 
 
 template <class T>
-bool DesignDependentRHS::Init(App::Type app, std::string excite_label)
+bool DesignDependentRHS::Init(std::string excite_label, App::Type my_app)
 {
+  assert(!(app != App::NO_APP && app != my_app));
+  app = my_app;
+
   assert(app == App::STRESS);
   this->app = app;
   this->test_strain = MechPDE::testStrain.IsValid(excite_label) ? MechPDE::testStrain.Parse(excite_label) : MechPDE::NOT_SET;

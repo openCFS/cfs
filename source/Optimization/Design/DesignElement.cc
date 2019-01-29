@@ -168,6 +168,45 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
 
 }
 
+BaseDesignElement::Type BaseDesignElement::MapSolutionType(SolutionType soltype, bool throw_exception)
+{
+  switch(soltype)
+  {
+  case MECH_PSEUDO_DENSITY:
+  case PHYSICAL_PSEUDO_DENSITY:
+  case MAG_FERRITE_PSEUDO_DENSITY:
+  case PHYSICAL_FERRITE_PSEUDO_DENSITY:
+    return DENSITY;
+
+  case MAG_NON_FERRITE_PSEUDO_DENSITY:
+  case PHYSICAL_NON_FERRITE_PSEUDO_DENSITY:
+    return NONFERRITE_DENSITY;
+
+  default:
+    break;
+  }
+
+  if(throw_exception)
+    EXCEPTION("no DesignElement::Type for SolutionType " << soltype);
+
+  return NO_TYPE;
+}
+
+bool BaseDesignElement::IsPhysical(SolutionType soltype)
+{
+  switch(soltype)
+  {
+  case PHYSICAL_PSEUDO_DENSITY:
+  case PHYSICAL_FERRITE_PSEUDO_DENSITY:
+  case PHYSICAL_NON_FERRITE_PSEUDO_DENSITY:
+  case ELEC_PHYSICAL_PSEUDO_DENSITY:
+    return true;
+
+  default:
+    return false;
+  }
+}
+
 BaseDesignElement::BaseDesignElement(Type t) {
   design          = 0.0;
   upper_          = 0.0;
@@ -624,7 +663,7 @@ double DesignElement::GetPhysicalDesign(const Context* ctxt) const
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == COILDENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || (!simp->filter.IsEmpty() && simp->filter[0].GetType() == Filter::DENSITY));
+  return(type_ == DENSITY || type_ == NONFERRITE_DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || (!simp->filter.IsEmpty() && simp->filter[0].GetType() == Filter::DENSITY));
 }
 
 
@@ -740,7 +779,7 @@ void DesignElement::SetEnums()
   type.Add(PIEZO_ALL, "piezo_all");
   type.Add(DEFAULT, "default");
   type.Add(DENSITY, "density");
-  type.Add(COILDENSITY, "coilDensity");
+  type.Add(NONFERRITE_DENSITY, "nonFerriteDensity");
   type.Add(ACOU_DENSITY, "acouDensity");
   type.Add(POLARIZATION, "polarization");
   type.Add(EMODUL, "emodul");

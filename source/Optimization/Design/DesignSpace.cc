@@ -1760,6 +1760,8 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   case MECH_PSEUDO_DENSITY:
   case PHYSICAL_PSEUDO_DENSITY:
   case ELEC_PHYSICAL_PSEUDO_DENSITY:
+  case MAG_FERRITE_PSEUDO_DENSITY:
+  case PHYSICAL_FERRITE_PSEUDO_DENSITY:
     def.design = DesignElement::DENSITY;
     break;
   case ELEC_PSEUDO_POLARIZATION:
@@ -1768,14 +1770,17 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   case ACOU_PSEUDO_DENSITY:
     def.design = DesignElement::ACOU_DENSITY;
     break;
+  case MAG_NON_FERRITE_PSEUDO_DENSITY:
+  case PHYSICAL_NON_FERRITE_PSEUDO_DENSITY:
+    def.design = DesignElement::NONFERRITE_DENSITY;
+    break;
   default:
     // to be overwritten by the ResultDescription
     def.design = DesignElement::DENSITY;
     break;
   }
   // somehow critical! but only for density filtering, if at all.
-  def.access = (ri->resultType == PHYSICAL_PSEUDO_DENSITY || ri->resultType == ELEC_PHYSICAL_PSEUDO_DENSITY) ?
-      DesignElement::SMART : DesignElement::PLAIN;
+  def.access = DesignElement::IsPhysical(ri->resultType) ? DesignElement::SMART : DesignElement::PLAIN;
   def.value  = DesignElement::DESIGN;
   // ignore defaults if there is a result description for the OPT_RESULT_* case
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
@@ -1794,7 +1799,6 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
     mex[def.excitation].Apply(false);
     LOG_DBG(designSpace) << "ER: apply excitation " << mex[def.excitation].GetFullLabel();
   }
-
 
   if(ri->definedOn == ResultInfo::NODE)
     FillNodeResults(result, def);
@@ -1833,8 +1837,23 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   result_data.Resize(result.GetEntityList()->GetSize() * dofs);
   // the default value is 0.0 but 1 for densities
   SolutionType st = result.GetResultInfo()->resultType;
-  double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
-      || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
+  // the value when we are not in a design domain
+  double none = 0.0;
+  switch(st)
+  {
+  case MECH_PSEUDO_DENSITY:
+  case PHYSICAL_PSEUDO_DENSITY:
+  case ELEC_PSEUDO_POLARIZATION:
+  case ELEC_PHYSICAL_PSEUDO_DENSITY:
+  case MAG_FERRITE_PSEUDO_DENSITY:
+  case PHYSICAL_FERRITE_PSEUDO_DENSITY:
+  case MAG_NON_FERRITE_PSEUDO_DENSITY:
+  case PHYSICAL_NON_FERRITE_PSEUDO_DENSITY:
+    none = 1.0;
+    break;
+  default:
+    break;
+  }
 
   Excitation* ex = domain->GetOptimization() != NULL ? Optimization::context->GetExcitation() : NULL;
 

@@ -690,7 +690,6 @@
                                 <xsd:restriction base="xsd:token">
                                   <xsd:enumeration value="rotAngle"/>
                                   <xsd:enumeration value="density"/>
-                                  <xsd:enumeration value="coilDensity"/>
                                   <xsd:enumeration value="stiff1"/>
                                   <xsd:enumeration value="stiff2"/>
                                   <xsd:enumeration value="stiff3"/>
@@ -1307,7 +1306,7 @@
                     <xsd:union memberTypes="xsd:token"/>
                   </xsd:simpleType>
                 </xsd:attribute>
-                <!-- The lower bound which is the physical lower bound when adapt_lower is set. Not to be set when pyhsical_lower is set -->
+                <!-- The lower bound which is the physical lower bound when adapt_lower is set. Not to be set when physical_lower is set -->
                 <xsd:attribute name="lower" use="optional" type="xsd:float"/>
                 <!-- Insteead of lower one can set physical_lower, then lower is determined by the transfer function. Redundant to adapt_lower -->
                 <xsd:attribute name="physical_lower" use="optional" type="xsd:float"/>
@@ -1622,7 +1621,7 @@
   <xsd:simpleType name="DT_Design">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="density"/>
-      <xsd:enumeration value="coilDensity"/>
+      <xsd:enumeration value="nonFerriteDensity"/>
       <xsd:enumeration value="acouDensity"/>
       <xsd:enumeration value="polarization"/>
       <!-- trace for elastic FMO and other paramMat stuff, mech_11, mech_22 and mech_33 -->
@@ -2037,8 +2036,6 @@
   <!-- This defines a filter. Which is either density or sensitivity filter. The density filter can also be
     of Heaviside/tanh type. To be used in regularization and for the projection constraint -->
   <xsd:complexType name="DT_Filter">
-    
-       
     <!-- optional sub element for target sensitivity filter -->
     <xsd:sequence>
       <xsd:element name="sensitivity" minOccurs="0" maxOccurs="1">

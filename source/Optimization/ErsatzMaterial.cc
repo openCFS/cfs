@@ -806,8 +806,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // the dimensions of our matrix is determined by u1_vec and u2_vec.
     Matrix<T> mat(u1[0]->GetSize(), u2[0]->GetSize());//NOTE: SetElementK (In PiezoSimp) relies on the matrix already having the right size!!!
     Vector<T> mat_vec(u1[0]->GetSize());
-    Vector<T> out(u1[0]->GetSize());
-    TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(tf->GetDesign(), rhs->app) : NULL;
 
     // the context->GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
     Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
@@ -817,10 +815,11 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     // for the multi-design case, e.g. for coil opt in magnetics, we have the designs, we have the transfer function for.
     int elements = design->GetNumberOfElements();
     bool design_dependend = design->designMaterial == NULL && !design->HasMultiMaterial();
+    assert(!(design_dependend && tf->GetDesign() == DesignElement::DEFAULT));
     int base_lower = design_dependend ? design->FindDesign(tf->GetDesign()) * elements : 0;
     int base_upper = design_dependend ? base_lower + elements : design->data.GetSize();
 
-    LOG_DBG2(em) << "elements=" << elements << " base=" << base_lower << " de::base" << (design->FindDesign(tf->GetDesign()) * elements) << " base_upper=" << base_upper << " max_des=" << design->data.GetSize();
+    LOG_DBG2(em) << "elements=" << elements << " base=" << base_lower << " de::base" << (design->FindDesign(tf->GetDesign(), false) * elements) << " base_upper=" << base_upper << " max_des=" << design->data.GetSize();
     // create an element list to gain the iterator in the loop
     ElemList elemList(grid);
 
@@ -851,26 +850,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         // u1^T (K' u2 - f') -> find "K'"
         SetElementK(f, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
 
-        if (app == App::MAG)
-        {
-          bool CoilOpt = false;
-          if (dim == 2)
-          {
-            MagneticPDE* magnetic = dynamic_cast<MagneticPDE*>(f->ctxt->pde);
-            CoilOpt = magnetic->OptimizationRHS();
-          }
-          else
-          {
-            throw Exception("3D edge not implemented yet");
-          }
-
-          if (CoilOpt)
-          {
-            SetElementRHS(de, tf, app, dynamic_cast<SingleVector*> (&out), calcMode, true);
-          }
-        }
-
-        LOG_DBG3(em) << "RHS= " << out.ToString(2);
         LOG_DBG3(em) << "mat: " << mat.ToString(2);
         LOG_DBG3(em) << "mat=" << mat << "u2_vec=" << u2_vec << "u1_vec= " << u1_vec.ToString(2);
 
@@ -880,28 +859,17 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
 
         // u1^T (K' u2 - f') -> calc "- f'"
-        assert(!(calcMode == CONJ_QUAD && rtf != NULL));// no sensitive rhs here!
-        assert(!(rtf != NULL && f->ctxt->IsStrainExcitedSystem()));
+        assert(!(calcMode == CONJ_QUAD && rhs != NULL));// no sensitive rhs here!
+        assert(!(rhs != NULL && f->ctxt->IsStrainExcitedSystem()));
 
-        if(rtf != NULL) {
-          if (rhs->isInterfaceDriven_)
-            SubstractInterfaceDrivenGradRHS(f, tf, de, mat_vec);
-          else
-            SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+        if(rhs) {
+          SubstractCalcU1KU2RHS(f, tf, de, rhs, dynamic_cast<SingleVector*>(&mat_vec));
+          LOG_DBG3(em) << "-f': " << mat_vec.ToString();
         }
-
-        if(f->ctxt->IsStrainExcitedSystem())
-          SubtractGradStrainRHS(de, tf, rhs, mat_vec);
-
-        LOG_DBG3(em) << "-f': " << mat_vec.ToString();
 
         // u1^T(K' u2 - f') -> calc "u1^T *" or <u1, *>
         // the difference is the conjugate complex in the harmonic inner product case!
-        T sp;
-        if(calcMode == CONJ_QUAD || calcMode == EIGENFREQ)
-          mat_vec.Inner(u1_vec, sp);// u1 = u2 = u!
-        else
-          sp = mat_vec * u1_vec;
+        T sp = (calcMode == CONJ_QUAD || calcMode == EIGENFREQ) ? mat_vec.Inner(u1_vec) : mat_vec * u1_vec;
 
         // when doing complex Jensen 22.07.07 shows that we always have 2 * Re(lamda * grad S * u)
         // the factor gives the negative sign
@@ -1083,6 +1051,33 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     } // elem
 
   } // function
+
+
+  void ErsatzMaterial::SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, SingleVector* mat_vec)
+  {
+    if(f->ctxt->IsComplex())
+      SubstractCalcU1KU2RHS(f, tf, de, rhs, dynamic_cast<Vector<complex<double> >& >(*mat_vec));
+    else
+      SubstractCalcU1KU2RHS(f, tf, de, rhs, dynamic_cast<Vector<double>& >(*mat_vec));
+  }
+
+  template<class T>
+  void ErsatzMaterial::SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, Vector<T>& mat_vec)
+  {
+    // not the fastest as not cached
+    TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(de->GetType(), rhs->app) : NULL;
+
+    if(rtf != NULL) {
+      if (rhs->isInterfaceDriven_)
+        SubstractInterfaceDrivenGradRHS(f, tf, de, mat_vec);
+      else
+        SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+    }
+
+    if(f->ctxt->IsStrainExcitedSystem())
+      SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+  }
+
 
   template<class T>
   void ErsatzMaterial::SubstractInterfaceDrivenGradRHS(Function* f, TransferFunction* tf, const DesignElement* de, Vector<T>& in_out)
@@ -1838,8 +1833,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       DesignDependentRHS* rhs = NULL;
       if (heat->HasInterfaceDrivenRHS())
       {
-        rhs = new DesignDependentRHS();
-        rhs->Init<double>(design,App::HEAT);
+        rhs = new DesignDependentRHS(App::HEAT);
+        rhs->Init<double>(design);
         // f'^Tu de->AddGradient(f, this_value);
         StdVector<SingleVector*>& stateSol = forward.Get(excite)->elem[App::HEAT];
         for (unsigned int id = 0; id < design->data.GetSize(); id++) {
@@ -2324,8 +2319,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       DesignDependentRHS* rhs = NULL;
       if (heat->HasInterfaceDrivenRHS())
       {
-        rhs = new DesignDependentRHS();
-        rhs->Init<double>(design,App::HEAT);
+        rhs = new DesignDependentRHS(App::HEAT);
+        rhs->Init<double>(design);
         StdVector<SingleVector* >& all_u_elem = forward.Get(excite)->elem[App::HEAT];
 
         if (!interfaceDrivenGradCalc_) {

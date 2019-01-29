@@ -1448,6 +1448,13 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     SolutionTypeEnum.Add(MAG_MAGNETIZATION, "magMagnetization");
     SolutionTypeEnum.Add(MAG_POLARIZATION, "magPolarization");
+    // magnetic topology optimization
+    // MAG_FERRITE_PSEUDO_DENSITY coinsides with DENSITY
+    SolutionTypeEnum.Add(MAG_FERRITE_PSEUDO_DENSITY, "magFerritePseudoDensity");
+    SolutionTypeEnum.Add(PHYSICAL_FERRITE_PSEUDO_DENSITY, "physicalFerritePseudoDensity");
+    // coinsides with NONFERRITE_DENSITY
+    SolutionTypeEnum.Add(MAG_NON_FERRITE_PSEUDO_DENSITY, "magNonFerritePseudoDensity");
+    SolutionTypeEnum.Add(PHYSICAL_NON_FERRITE_PSEUDO_DENSITY, "physicalNonFerritePseudoDensity");
 
     // magnetic - coil results
     SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");

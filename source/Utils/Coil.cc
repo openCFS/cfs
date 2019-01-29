@@ -357,8 +357,9 @@ namespace CoupledField {
       // ========================================================
       // initialize geometry setup (turns, cross section, orientation) 
       // a) wire cross section / kappa -> evaluate number of turns
-      if( actPartNode->Has("wireCrossSection") ) {
-        std::string areaStr = actPartNode->Get("wireCrossSection")->Get("area")->As<std::string>();
+      if(actPartNode->Has("wireCrossSection"))
+      {
+        std::string areaStr = actPartNode->Get("wireCrossSection/area")->As<std::string>();
         MathParser::HandleType handle = mParser_->GetNewHandle();
         mParser_->SetExpr(handle,areaStr);
         actPart.wireCrossSect = mParser_->Eval(handle);
@@ -367,10 +368,7 @@ namespace CoupledField {
         
         //actPart.numTurns = UInt((actPart.coilCrossSect * actPart.fillFactor) 
         //                        / actPart.wireCrossSect );
-        if(actPartNode->Get("wireCrossSection")->Get("Optimization")->As<std::string>() == "true")
-        {
-          coilOptimization_ = true;
-        }
+        coilOptimization_ = actPartNode->Get("wireCrossSection/coil_top_opt")->As<bool>();
       } else 
 
       // b) turns / kappa given -> determine wire crossSection

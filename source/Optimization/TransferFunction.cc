@@ -146,10 +146,16 @@ App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctx
   case DesignElement::MULTIMATERIAL:
   case DesignElement::INTERPOLATION:
     return App::MECH;
+
   case DesignElement::ACOU_DENSITY:
     return App::LAPLACE;
+
   case DesignElement::POLARIZATION:
     return App::PIEZO_COUPLING;
+
+  case DesignElement::NONFERRITE_DENSITY:
+    return App::MAG;
+
   default:
     throw Exception("invalid request for transfer function");
   }

@@ -60,7 +60,7 @@ protected:
 
 
   /** @see ErsatzMaterial::FillRealAdjointRHS() */
-  virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs)
+  bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs)
   {
     if(f->GetType() == Function::SQR_MAG_FLUX_DENS_X || f->GetType() == Function::SQR_MAG_FLUX_DENS_Y)
     {
@@ -71,7 +71,8 @@ protected:
   }
 
   
-  virtual void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
+  /** See ErsatzMaterial::SetElementK() */
+  void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
   {
     if(f->ctxt->IsComplex())
       SetElementK<std::complex<double>, double >( f, de, tf, app, out, derivative, calcMode, ev);
@@ -79,21 +80,13 @@ protected:
       SetElementK<double, double>( f, de, tf, app, out, derivative, calcMode, ev);
   }
 
-  virtual void SetElementRHS(DesignElement* de, const TransferFunction* tf, App::Type app, SingleVector* out, CalcMode calcMode, bool derivative = true)
-  {
-    /*if(f->ctxt->IsComplex())
-      SetElementRHS<std::complex<double>, double >( de, tf, app, out, calcMode, derivative);
-    else*/
-      SetElementRHS<double, double>( de, tf, app, out, calcMode, derivative);
-  }
+  /** See ErsatzMaterial::SubstractCalcU1KU2RHS() */
+  void SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, SingleVector* mat_vec);
 
 private:
 
   template <class T1, class T2>
   void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
-
-  template <class T1, class T2>
-    void SetElementRHS(DesignElement* de, const TransferFunction* tf, App::Type app, SingleVector* out, CalcMode calcMode, bool derivative = true);
 
   /** magnetic flux density */
   void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
