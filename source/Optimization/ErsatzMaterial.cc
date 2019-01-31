@@ -586,8 +586,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   // by calling virtual LogFileLine()
   PtrParamNode iter = Optimization::CommitIteration();
 
-
-
   // write the current info file, if the writing frequency is not too high.
   domain->GetInfoRoot()->ToFile();
 
