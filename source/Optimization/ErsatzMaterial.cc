@@ -3250,7 +3250,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       if(context->DoLBM()) {
         // in autoscale case we are still in the BaseOptimizer constructor
-        boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
+        boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
         if(eval_timer)
           eval_timer->Stop();
 
@@ -3477,8 +3477,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   template<class T>
   void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
   {
-    assert(baseOptimizer_ != NULL || !baseOptimizer_->GetOptimierTimer()->IsRunning()); // https://cfs.mdmt.tuwien.ac.at/trac/ticket/263#ticket
-    boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
+    assert(baseOptimizer_ != NULL || !baseOptimizer_->GetOptimizerTimer()->IsRunning()); // https://cfs.mdmt.tuwien.ac.at/trac/ticket/263#ticket
+    boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
     if(eval_timer)
       eval_timer->Stop();
 

@@ -62,14 +62,15 @@ void GradientCheck::SolveProblem()
       << (order == 1 ? "first" : "second") << " order)" << std::endl;
 
   if (finite_diff_result_index_ == -1 || error_result_index_ == -1)
-    info_->SetWarning(
-        "Not all results defined for finite difference (value='costGradient' detail='...')");
+    info_->SetWarning("Not all results defined for finite difference (value='costGradient' detail='...')");
 
   // solve the original problem once!!
+  optimizer_timer_->Stop();
   optimization->SolveStateProblem();
   double curr_obj = optimization->CalcObjective();
   optimization->SolveAdjointProblems();
   optimization->CalcObjectiveGradient(NULL);
+  optimizer_timer_->Start();
 
   // store here the finite difference value
   Vector<double> finite;
@@ -89,7 +90,7 @@ void GradientCheck::SolveProblem()
     DesignElement* de = &design->data[i];
 
     // expensive!!
-    // store only the latest so progress can ge checked
+    // store only the latest so progress can get checked
     PtrParamNode in = info_->Get(ParamNode::PROCESS)->Get("gradientCheck");
     in->Get("total")->SetValue(design->data.GetSize());
     PtrParamNode cg = in->Get("costGradient", ParamNode::APPEND);
@@ -133,7 +134,7 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x,
   // if we are to close to the max value we step back.
   // Two things have to be considered:
   // - make sure f_x can be reused
-  // - take care with foreard and backward differences for this case.
+  // - take care with forward and backward differences for this case.
 
   double x_org = de->GetDesign(DesignElement::PLAIN);
 
@@ -159,9 +160,9 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x,
   // x_dir_2 = 1  : x_min .. x_eval_2 .. x_org .. x_eval_1
   // x_dir_2 = -1 : x_min .. x_org .. x_eval_2 .. x_eval_1    
 
-  // forward  fifference quotient: D_+(x_0) = h^-1 ( f(x_0+h)-f(x_0) )
-  // backward fifference quotient: D_-(x_0) = h^-1 ( f(x_0)-f(x_0-h) )
-  // central difference quotient: D(x_0)   = 2 h^-1 ( f(x_0+h) - f(x_0+h) ) 
+  // forward  difference quotient: D_+(x_0) = h^-1 ( f(x_0+h)-f(x_0) )
+  // backward difference quotient: D_-(x_0) = h^-1 ( f(x_0)-f(x_0-h) )
+  // central difference quotient: D(x_0)   = 2 h^-1 ( f(x_0+h) - f(x_0-h) )
 
   // note! in second order case we can do only one evaluation for x_dir_1/2 = -1!
   if (order == 2)
@@ -177,9 +178,11 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x,
   {
     de->SetDesign(x_eval_1);
     ass->SetAllReassemble(); // tell assemble design has changed
+    optimizer_timer_->Stop();
     optimization->SolveStateProblem();
     optimization->SolveAdjointProblems();
     f_x1 = optimization->CalcObjective();
+    optimizer_timer_->Start();
   }
 
   // do not calc degenerated second order case
@@ -188,9 +191,11 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x,
   {
     de->SetDesign(x_eval_2);
     ass->SetAllReassemble(); // tell assemble design has changed
+    optimizer_timer_->Stop();
     optimization->SolveStateProblem(); // expensive
     optimization->SolveAdjointProblems();
     f_x2 = optimization->CalcObjective();
+    optimizer_timer_->Start();
   }
 
   // reset design
