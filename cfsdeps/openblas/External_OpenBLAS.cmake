@@ -77,6 +77,7 @@ ELSE()
       ${CMAKE_ARGS}
       -DCMAKE_SYSTEM_PROCESSOR:STRING=x86_64
       -DCMAKE_INSTALL_PREFIX:PATH=${openblas_install}
+      -DDYNAMIC_ARCH=1
       -E
   )
   
