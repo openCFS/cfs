@@ -145,6 +145,29 @@ namespace CoupledField
     return NULL;
   }
 
+  LinearFormContext* Assemble::GetLinForm(const std::string& integrator, RegionIdType regionId, StdPDE* pde, bool silent)
+  {
+    for(std::set<LinearFormContext*>::iterator it = allLinForms_.begin(); it != allLinForms_.end(); ++it )
+    {
+      LinearFormContext& context = **it;
+
+      // makes only a starts-with comparison!
+      if(context.GetIntegrator()->GetName().rfind(integrator, 0) == string::npos)
+        continue;
+
+      if(pde != NULL && pde != context.GetPde())
+        continue;
+
+      return &context;
+    }
+
+    if(!silent)
+      EXCEPTION("cannot find integrator " << integrator << " in region " << domain->GetGrid()->GetRegion().ToString(regionId)
+                << " for pde=" << (pde != NULL ? pde->GetName() : "null"));
+
+    return NULL;
+  }
+
   LinearForm* Assemble::GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent)
   {
      LinearForm* result = NULL;
@@ -276,6 +299,9 @@ namespace CoupledField
     assert(linContext->GetPde() != NULL);
     assert(linContext->GetEntities() != NULL);
     assert(linContext->GetPde()->GetAnalysisType() == analysisType_);
+
+    // Store linear form
+    allLinForms_.insert(linContext);
 
     linForms_.Push_back(linContext);
 

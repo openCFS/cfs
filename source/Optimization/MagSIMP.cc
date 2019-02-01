@@ -460,6 +460,8 @@ void MagSIMP::SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignEle
   assert(dynamic_cast<MagneticPDE*>(f->ctxt->pde)->DoCoilOptimization());
   assert(f->GetType() == Function::SQR_MAG_FLUX_DENS_X || f->GetType() == Function::SQR_MAG_FLUX_DENS_Y);
 
+  const Vector<double>& vec = dynamic_cast<MagMat*>(context->mat)->MagExcitationRHS("CoilIntegrator",de->elem);
+
   assert(false);
   // find f', f' = d_rho * f, f(rho) = Na * (I*N/(Gamma * k) * ej * rho)
 /*

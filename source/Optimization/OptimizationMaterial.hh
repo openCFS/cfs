@@ -103,6 +103,8 @@ public:
 
   CoefFunctionOpt* GetMatCoef(BiLinFormContext* context);
 
+  CoefFunctionOpt* GetMatCoef(LinearFormContext* context);
+
   CoefFunctionOpt* GetMatCoef(const string& integrator, RegionIdType reg_id);
 
   CoefFunctionOpt* GetMatCoef(const FormID& form_id, RegionIdType reg_id) {
@@ -266,6 +268,15 @@ class MagMat : public OptimizationMaterial
 {
 public:
   MagMat(ErsatzMaterial* em, Context* ctxt);
+
+  /** The the rhs-contribution for full material for the current test strain. There is no caching!
+   * @param testStrain optional value, otherwise the current set excitation set. You need it for homogenization! */
+  const Vector<double>& MagExcitationRHS(const std::string& integrator, const Elem* elem);
+
+protected:
+
+  /** We do not cache the vectors but always precalculate them */
+  Vector<double> MagExcitation;
 };
 
 
