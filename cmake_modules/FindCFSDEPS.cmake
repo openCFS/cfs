@@ -222,18 +222,19 @@ ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  OR USE_ILUPACK )
 # Find OpenBLAS/LAPACK library
 # see NETLIB comment
 #-----------------------------------------------------------------------------
-IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+if(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
     
-  SET(OPENBLAS_URL "${CFS_DS_SOURCES_DIR}/openblas")
-  SET(OPENBLAS_BASE "OpenBLAS")
-  SET(OPENBLAS_VER "0.2.20")
+  set(OPENBLAS_URL "${CFS_DS_SOURCES_DIR}/openblas")
+  set(OPENBLAS_BASE "OpenBLAS")
+  # the latest revision 0.2.20 does not compile with -DDYNAMIC_ARCH=1 but the current development version does
+  # set(OPENBLAS_VER "0.2.20")
+  # set(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
+  set(OPENBLAS_REF "874df65") # 1.2.2018
+  set(OPENBLAS_ZIP "${OPENBLAS_REF}.zip")
   # this is the filename on https://github.com/xianyi/OpenBLAS/archive, the sourceforge link is with spaces
-  SET(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
-  SET(OPENBLAS_MD5 "48637eb29f5b492b91459175dcc574b1")
-    
+  set(OPENBLAS_MD5 "0594f38346c725b5c88fcb648c4af1e8")
   INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
-    
-ENDIF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+endif(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
 
 #-----------------------------------------------------------------------------
 # Find Intel Math Kernel library
