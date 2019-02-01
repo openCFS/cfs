@@ -274,7 +274,7 @@ namespace CoupledField
     std::string value;
 
     if ( pos == integerParams_.end() ) {
-      std::string dim = "scalar";
+      std::string dim = "scalar integer";
       matTypeNotInDataBase( matType, dim );
     }
     else {
@@ -289,7 +289,7 @@ namespace CoupledField
     pos = scalarParams_.find( matType );
 
     if ( pos == scalarParams_.end() ) {
-      std::string dim = "scalar";
+      std::string dim = "scalar Double";
       matTypeNotInDataBase( matType, dim );
     }
     else {

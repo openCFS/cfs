@@ -1822,12 +1822,12 @@ namespace CoupledField
     // Now we know which matrices are nonlinear (e.g. due to nonlinear stiffnes integrator)
     // However, due to the secondaryMatrix-mechanism it could happen, that initially only
     // the STIFFNESS matrix is set to reassemble. Due to the secondary matrix factor of
-    // the linear stiffness itegrator, also the DAMPING matrix has to be re-assembled 
+    // the linear stiffness integrator, also the DAMPING matrix has to be re-assembled
     // (first additional loop). In a next loop, we determine, that also the MASS integrator
     // has to be re-assembled, as his secondary-matrix is the DAMPING one, which also
     // has to be re-assembled (second loop). So to be on the save side and resolve
     // all dependencies (i.e. all matrices have to be re-assembled), we perform
-    // the check 3 time.
+    // the check three times.
 
     for( UInt i = 0; i < 3; ++i ) {
       for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ ) {
