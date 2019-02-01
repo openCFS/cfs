@@ -17,17 +17,17 @@ set(openblas_install  "${openblas_prefix}/install")
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://github.com/xianyi/OpenBLAS/archive/${OPENBLAS_GZ}"
-  "${OPENBLAS_URL}/${OPENBLAS_GZ}"
+  "http://github.com/xianyi/OpenBLAS/archive/${OPENBLAS_ZIP}"
+  "${OPENBLAS_URL}/${OPENBLAS_ZIP}"
 )
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/openblas/${OPENBLAS_GZ}")
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/openblas/${OPENBLAS_ZIP}")
 SET(MD5_SUM ${OPENBLAS_MD5})
 
 SET(DLFN "${openblas_prefix}/openblas-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
 # do make a difference between debug and release build since we are using cmake now 
-PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_VER}" "CMAKE_BUILD_TYPE")
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_REV}" "CMAKE_BUILD_TYPE")
 
 # not using cmake build (see above) we don't use manifuest and copy the   
 SET(TMP_DIR "${openblas_install}")
