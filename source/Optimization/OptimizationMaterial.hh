@@ -269,8 +269,7 @@ class MagMat : public OptimizationMaterial
 public:
   MagMat(ErsatzMaterial* em, Context* ctxt);
 
-  /** The the rhs-contribution for full material for the current test strain. There is no caching!
-   * @param testStrain optional value, otherwise the current set excitation set. You need it for homogenization! */
+  // To get the rhs in magTopOpt, it is necessary to switch to the ORG Material
   const Vector<double>& MagExcitationRHS(const std::string& integrator, const Elem* elem);
 
 protected:

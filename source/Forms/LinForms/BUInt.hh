@@ -23,12 +23,6 @@
 
 #include "LinearForm.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
-#include "Forms/Operators/BaseBOperator.hh"
-#include "MatVec/promote.hh"
-#include "FeBasis/BaseFE.hh"
-#include "Domain/Domain.hh"
-#include "Optimization/Design/DesignSpace.hh"
-
 
 namespace CoupledField{
 

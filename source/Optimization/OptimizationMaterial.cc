@@ -119,7 +119,6 @@ inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(BiLinFormContext* conte
 inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(LinearFormContext* context)
 {
   assert(context != NULL);
-  //LinearForm* bu = dynamic_cast<LinearForm*>(context->GetIntegrator());
   BUIntegrator<>* bu = dynamic_cast<BUIntegrator<>*>(context->GetIntegrator());
   assert(bu != NULL);
   assert(bu->GetCoef());
@@ -548,7 +547,6 @@ const Vector<double>& MagMat::MagExcitationRHS(const std::string& integrator, co
   assert(pde != NULL);
 
   LinearFormContext* lc = pde->GetAssemble()->GetLinForm(integrator, elem->regionId, pde, false);
-  //BiLinFormContext* c = pde->GetAssemble()->GetBiLinForm(integrator, elem->regionId, pde, pde, false);
 
   // create an element list to gain the iterator in the loop
   ElemList elemList(domain->GetGrid());
