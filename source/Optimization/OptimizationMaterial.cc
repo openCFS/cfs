@@ -119,13 +119,11 @@ inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(BiLinFormContext* conte
 inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(LinearFormContext* context)
 {
   assert(context != NULL);
-  LinearForm* bu = dynamic_cast<LinearForm*>(context->GetIntegrator());
+  //LinearForm* bu = dynamic_cast<LinearForm*>(context->GetIntegrator());
+  BUIntegrator<>* bu = dynamic_cast<BUIntegrator<>*>(context->GetIntegrator());
   assert(bu != NULL);
-  //assert(bdb->GetCoef());
-  // LOG_DBG3(om) << "GMC int=" << integrator << " coef=" << bdb->GetCoef()->ToString();
-  CoefFunctionOpt* coef;
-  //return dynamic_cast<CoefFunctionOpt*>(bu->GetCoef().get());
-  return coef;
+  assert(bu->GetCoef());
+  return dynamic_cast<CoefFunctionOpt*>(bu->GetCoef().get());
 }
 
 CoefFunctionOpt* OptimizationMaterial::GetMatCoef(const string& integrator, RegionIdType reg_id)
@@ -574,37 +572,6 @@ const Vector<double>& MagMat::MagExcitationRHS(const std::string& integrator, co
       coef->SetToOptimization();
 
   return MagExcitation;
-  /*SinglePDE* pde = ctxt_->pde;
-  assert(pde != NULL);
-
-  //BiLinFormContext* c = pde->GetAssemble()->GetBiLinForm(integrator, elem->regionId, pde, pde, false);
-  LinearForm* lf = ctxt_->pde->GetAssemble()->GetLinearForm(ctxt_->pde,"CoilIntegrator");
-
-  LinearFormContext* lc = pde->GetAssemble()->GetLinForm(integrator, elem->regionId, pde, false);
-
-  //LinearFormContext* lc = pde->GetAssemble()->GetLinForms();
-
-  // create an element list to gain the iterator in the loop
-  ElemList elemList(domain->GetGrid());
-  elemList.SetElement(elem);
-  EntityIterator it = elemList.GetIterator();
-
-  CoefFunctionOpt* coef = GetMatCoef(lc);
-  //assert(!(coef == NULL));
-
-  CoefFunctionOpt::State old_state = coef->GetState();
-  assert(old_state == CoefFunctionOpt::ORG || old_state == CoefFunctionOpt::OPT); // otherwise we would need to store also shadow/direction
-  //coef->SetToShadow(shadow);
-  coef->SetToOrgMaterial();
-
-  lf->CalcElemVector(MagExcitation, it);
-
-  if(old_state == CoefFunctionOpt::ORG)
-    coef->SetToOrgMaterial();
-  else
-    coef->SetToOptimization();
-
-  return MagExcitation;*/
 }
 
 
