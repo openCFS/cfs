@@ -39,7 +39,7 @@ SET(ZIPTOCACHE "${openblas_prefix}/openblas-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 # After the installation we copy to cfs
-set(PI "${openblas_prefix}/boost-post_install.cmake")
+set(PI "${openblas_prefix}/post_install.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/openblas/openblas-post_install.cmake.in" "${PI}" @ONLY)
 
 #-------------------------------------------------------------------------------
@@ -126,6 +126,10 @@ SET(LAPACK_LIB "${BLAS_LIB}")
 
 SET(OPENBLAS_LIBRARY_DEBUG ${BLAS_LIB} CACHE FILEPATH "OpenBLAS library.")
 SET(OPENBLAS_LIBRARY_RELEASE  ${BLAS_LIB} CACHE FILEPATH "OpenBLAS library.")
+
+# include direcory
+SET(OPENBLAS_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/openblas" CACHE PATH "OpenBLAS include directory.")
+MARK_AS_ADVANCED(OPENBLAS_INCLUDE_DIR)
 
 #-------------------------------------------------------------------------------
 # Mark paths of OPENBLAS libraries as advanced.

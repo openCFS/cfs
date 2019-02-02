@@ -1,8 +1,11 @@
-# move the include directory include/libxml2/libxml to include/libxml
+# move the library files
 FILE(GLOB ALL_OPENBLAS_LIBRARIES
   "@openblas_install@/lib64/*"
 )
 FILE(COPY ${ALL_OPENBLAS_LIBRARIES} DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/lib64/@CFS_ARCH_STR@")
 
-# copy data from install dir to the target (lib64 and include)
-file(COPY "@openblas_install@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")
+# move the include files
+FILE(GLOB ALL_OPENBLAS_INCLUDES
+  "@openblas_install@/include/*"
+)
+FILE(COPY ${ALL_OPENBLAS_INCLUDES} DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")
