@@ -310,6 +310,8 @@ namespace CoupledField {
         vIm.Init("0");
         if ( iso->Has("real") ) // read the real part
         {
+          material->SetScalar(iso->Get("real")->Get("elasticityModulus")->As<Double>(), MECH_EMODULUS, Global::REAL );
+          material->SetScalar(iso->Get("real")->Get("poissonNumber")->As<Double>(), MECH_POISSON, Global::REAL );
           vRe = ReadMechanicIsotropic(iso->Get("real"));
         }
         if ( iso->Has("imag") ) // read the imaginary part

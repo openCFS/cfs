@@ -816,10 +816,9 @@ namespace CoupledField {
 
     LOG_DBG(algSys) << "ELS setup=" << setup << " pre=" << pre_solve << " post=" << post_solve << " id=" << id.ToString();
 
-    if(!solStrat_->GetParamNode()->Has("exportLinSys"))
+    PtrParamNode els = GetExportLinSysParam();
+    if(els == NULL)
       return;
-
-    PtrParamNode els = solStrat_->GetParamNode()->Get("exportLinSys");
 
     std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
     if(id.ToString(true) != "") // filename variant

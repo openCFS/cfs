@@ -1647,19 +1647,28 @@ void DesignSpace::ToInfo(ErsatzMaterial* em)
   }
 }
 
-std::string DesignSpace::ToString()
+std::string DesignSpace::ToString(int level)
 {
   std::stringstream ss;
-  ss << "design[";
-  const unsigned int data_size(data.GetSize());
-  for(unsigned int i = 0; i < data_size; i++)
+
+  assert(level == 0 || level == 1);
+  if(level == 0)
   {
-    DesignElement* de = &data[i];
-    ss << i << ":elem=" << de->elem->elemNum;
-    if(de->vicinity != NULL) ss << " " << de->vicinity->ToString();
-    ss << " ";
+    ss << "design[";
+    for(unsigned int i = 0; i < data.GetSize(); i++)
+    {
+      DesignElement* de = &data[i];
+      ss << i << ":elem=" << de->elem->elemNum;
+      if(de->vicinity != NULL) ss << " " << de->vicinity->ToString();
+      ss << " ";
+    }
+    ss << "]";
   }
-  ss << "]";
+  if(level == 1)
+  {
+    for(unsigned int i = 0; i < data.GetSize(); i++)
+      ss << data[i].GetPlainDesignValue() << ", ";
+  }
   return ss.str();
 }
 void DesignSpace::DisableTransferFunctions()

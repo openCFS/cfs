@@ -123,7 +123,6 @@ namespace CoupledField
   void MechanicMaterial::SetScalar(Double param, MaterialType matType, 
 				    Global::ComplexPart dataType ) {
 
-
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
       std::string dim = "scalar";
@@ -145,7 +144,7 @@ namespace CoupledField
         std::string msg = "SetScalar-Double";
         dataTypeNotAllowed4SetGet ( dataType, msg );
       }
-      
+
       scalarParams_[matType] = val;
     }
   }
@@ -153,8 +152,6 @@ namespace CoupledField
 
   void MechanicMaterial::SetScalar( Complex param, MaterialType matType, 
 				    Global::ComplexPart dataType ) {
-
-
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -166,17 +163,17 @@ namespace CoupledField
 
       Complex val;
       if ( dataType == Global::REAL ) {
-	val = param.real();
+        val = param.real();
       }
       else if (dataType == Global::IMAG ) {
-	val = param.imag();
-	isComplex_.insert( matType );
+        val = param.imag();
+        isComplex_.insert( matType );
       }
       else if ( dataType == Global::COMPLEX ) {
-	val = param;
-	isComplex_.insert( matType );
+        val = param;
+        isComplex_.insert( matType );
       }
-      
+
       scalarParams_[matType] = val;
     }
   }
@@ -184,7 +181,6 @@ namespace CoupledField
 
   void MechanicMaterial::SetVector(const Vector<Double>& param, MaterialType matType, 
 				    Global::ComplexPart dataType ) {
-    
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -193,21 +189,21 @@ namespace CoupledField
     }
     else {
       isSet_.insert( matType );
-      if ( dataType == Global::REAL || dataType == Global::IMAG ) {
-	if ( vectorParams_[matType].GetSize() == 0 ) {
-	  vectorParams_[matType].Resize( param.GetSize() );
+      if (dataType == Global::REAL || dataType == Global::IMAG ) {
+        if (vectorParams_[matType].GetSize() == 0 ) {
+          vectorParams_[matType].Resize( param.GetSize() );
           vectorParams_[matType].Init();
-	}
+        }
 
-	vectorParams_[matType].SetPart( dataType, param );
+        vectorParams_[matType].SetPart( dataType, param );
 
-	if ( dataType == Global::IMAG ) {
-	  isComplex_.insert( matType );
-	}
+        if ( dataType == Global::IMAG ) {
+          isComplex_.insert( matType );
+        }
       }
       else {
-	std::string msg = "SeVector-Double";
-	dataTypeNotAllowed4SetGet ( dataType, msg );
+        std::string msg = "SeVector-Double";
+        dataTypeNotAllowed4SetGet ( dataType, msg );
       }
     }
   }
@@ -260,26 +256,25 @@ namespace CoupledField
     else {
       isSet_.insert( matType );
       if ( dataType != Global::COMPLEX ) {
-	std::string msg = "SetTensor with Matrix<Complex>";
-	setMakesNoSense( dataType, msg );
+        std::string msg = "SetTensor with Matrix<Complex>";
+        setMakesNoSense( dataType, msg );
       }
       else {
-	tensorParams_[matType]     = param;
-	tensorParamsOrig_[matType] = param;
-	isComplex_.insert( matType );
+        tensorParams_[matType]     = param;
+        tensorParamsOrig_[matType] = param;
+        isComplex_.insert( matType );
       }
     }
   }
- 
-  void MechanicMaterial::GetScalar( Integer& param, MaterialType matType)  const {
 
+  void MechanicMaterial::GetScalar( Integer& param, MaterialType matType)  const {
 
     integerMap::const_iterator pos;
     pos = integerParams_.find( matType );
     std::string value;
 
     if ( pos == integerParams_.end() ) {
-      std::string dim = "scalar";
+      std::string dim = "scalar integer";
       matTypeNotInDataBase( matType, dim );
     }
     else {
@@ -290,12 +285,11 @@ namespace CoupledField
   void MechanicMaterial::GetScalar( Double& param, MaterialType matType, 
 				    Global::ComplexPart dataType )  const {
 
-
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
 
     if ( pos == scalarParams_.end() ) {
-      std::string dim = "scalar";
+      std::string dim = "scalar Double";
       matTypeNotInDataBase( matType, dim );
     }
     else {
@@ -326,15 +320,15 @@ namespace CoupledField
     else {
       Complex val = pos->second;
       if ( dataType == Global::REAL ) {
-	Complex valReal = Complex (val.real(), 0.0);
-	param = valReal;
+        Complex valReal = Complex (val.real(), 0.0);
+        param = valReal;
       }
       else if ( dataType == Global::IMAG ) {
-	Complex valImag = Complex (0.0, val.imag());
-	param = valImag;
+        Complex valImag = Complex (0.0, val.imag());
+        param = valImag;
       }
       else if ( dataType == Global::COMPLEX ) {
-	param = val;
+        param = val;
       }
     }    
   }
@@ -343,6 +337,7 @@ namespace CoupledField
   void MechanicMaterial::GetVector( Vector<Double>& param, 
 				    MaterialType matType, 
 				    Global::ComplexPart dataType ) const {
+
     vectorMap::const_iterator pos;
     pos = vectorParams_.find( matType );
 
@@ -355,11 +350,11 @@ namespace CoupledField
       matVector = pos->second;
 
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
-	param = matVector.GetPart( dataType );
+        param = matVector.GetPart( dataType );
       }
       else {
-	std::string msg = "GetVector-Double";
-	dataTypeNotAllowed4SetGet( dataType, msg );
+        std::string msg = "GetVector-Double";
+        dataTypeNotAllowed4SetGet( dataType, msg );
       }
     }
   }
