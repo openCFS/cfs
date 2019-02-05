@@ -1,11 +1,9 @@
-# move the library files
-FILE(GLOB ALL_OPENBLAS_LIBRARIES
-  "@openblas_install@/lib64/*"
-)
-FILE(COPY ${ALL_OPENBLAS_LIBRARIES} DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/lib64/@CFS_ARCH_STR@")
+# copy the lib to the proper location in the install lib such that we can zip it
+FILE(COPY "libopenblas.a" DESTINATION "@openblas_install@/lib64/@CFS_ARCH_STR@")
 
-# move the include files
-FILE(GLOB ALL_OPENBLAS_INCLUDES
-  "@openblas_install@/include/*"
-)
-FILE(COPY ${ALL_OPENBLAS_INCLUDES} DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")
+# remove the old file, we don't want to zip 60MB twice
+FILE(REMOVE "libopenblas.a")
+
+# copy data from install dir to the target (share, lib64 and include)
+# note pkgconfig contains wrong lib location (without the annoying arch)
+FILE(COPY "@openblas_install@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

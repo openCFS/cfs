@@ -27,7 +27,7 @@ SET(DLFN "${openblas_prefix}/openblas-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
 # do make a difference between debug and release build since we are using cmake now 
-PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_REV}" "CMAKE_BUILD_TYPE")
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_REV}")
 
 # not using cmake build (see above) we don't use manifuest and copy the   
 SET(TMP_DIR "${openblas_install}")

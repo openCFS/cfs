@@ -229,8 +229,8 @@ if(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
   # the latest revision 0.2.20 does not compile with -DDYNAMIC_ARCH=1 but the current development version does
   # set(OPENBLAS_VER "0.2.20")
   # set(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
-  set(OPENBLAS_REF "874df65") # 1.2.2018
-  set(OPENBLAS_ZIP "${OPENBLAS_REF}.zip")
+  set(OPENBLAS_REV "874df65") # 1.2.2018
+  set(OPENBLAS_ZIP "${OPENBLAS_REV}.zip")
   # this is the filename on https://github.com/xianyi/OpenBLAS/archive, the sourceforge link is with spaces
   set(OPENBLAS_MD5 "0594f38346c725b5c88fcb648c4af1e8")
   INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
