@@ -460,28 +460,18 @@ void MagSIMP::SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignEle
   assert(dynamic_cast<MagneticPDE*>(f->ctxt->pde)->DoCoilOptimization());
   assert(f->GetType() == Function::SQR_MAG_FLUX_DENS_X || f->GetType() == Function::SQR_MAG_FLUX_DENS_Y);
 
+  Vector<double>& out = dynamic_cast<Vector<double>& >(*mat_vec);
+
   const Vector<double>& vec = dynamic_cast<MagMat*>(context->mat)->MagExcitationRHS("CoilIntegrator",de->elem);
 
-  assert(false);
-  // find f', f' = d_rho * f, f(rho) = Na * (I*N/(Gamma * k) * ej * rho)
-/*
   double d_rho = tf->Derivative(de, DesignElement::SMART, false);
+  Vector<double> in_out(vec.GetSize());
+  in_out.Add(-1 * d_rho, vec);
 
-  ElemList el(domain->GetGrid());
+  out += in_out;
 
-  // prepare to get the curl operator
-  el.SetElement(de->elem);
+  LOG_DBG3(ms) << "d_rho= " << d_rho << " in_out=" << in_out.ToString(2) << " mat_vec= " << mat_vec->ToString();
 
-  LinearForm* lf = context->pde->GetAssemble()->GetLinearForm(context->pde,"CoilIntegrator");
-  //ElemList elemList(domain->GetGrid());
-  EntityIterator entIt = el.GetIterator();
-  for ( entIt.Begin(); !entIt.IsEnd(); entIt++ )
-  {
-    //lf->CalcElemVector(rhselemVec, entIt);
-  }
-*/
-  //Assign(drhselemVec, rhselemVec , d_rho); // out = alpha * stiffness
-  //    LOG_DBG3(ms) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " drho= " << d_rho << " rhselemVec= " << rhselemVec.ToString(2)<< " drhselemVec=" << drhselemVec.ToString(2);
 }
 
 const Matrix<double>& MagSIMP::GetSelectionMatrix(const Function* f) const
