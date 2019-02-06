@@ -322,8 +322,8 @@ ENDMACRO()
 
 #-------------------------------------------------------------------------------
 # Create ZIP_FILE
-# If a TMP_DIR/src/*-build/install_manifest.txt exists, we zip all files listed in there.
-# Else we try to be smart on TMP_DIR, make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
+# If a TMP_DIR/src/*-build/install_manifest.txt exists (when built with cmake), we zip all files listed in there.
+# Else we try to be smart on TMP_DIR (move libs from lib64 to lib64/@CFS_ARCH), make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
 #-------------------------------------------------------------------------------
 MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   STRING(REGEX REPLACE "^.+[/\\]" "" ZIP_NAME ${ZIP_FILE})
@@ -333,6 +333,7 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   ENDIF()
   
   FILE(GLOB MANIFESTS "${TMP_DIR}/src/*-build/install_manifest.txt")
+  
   IF("${MANIFESTS}" STREQUAL "")
     # No manifests exists -> zip TMP_DIR
 
