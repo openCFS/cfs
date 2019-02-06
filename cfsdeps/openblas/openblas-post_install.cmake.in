@@ -1,9 +1,0 @@
-# copy the lib to the proper location in the install lib such that we can zip it
-FILE(COPY "libopenblas.a" DESTINATION "@openblas_install@/lib64/@CFS_ARCH_STR@")
-
-# remove the old file, we don't want to zip 60MB twice
-FILE(REMOVE "libopenblas.a")
-
-# copy data from install dir to the target (share, lib64 and include)
-# note pkgconfig contains wrong lib location (without the annoying arch)
-FILE(COPY "@openblas_install@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

@@ -7,7 +7,7 @@
 #-------------------------------------------------------------------------------
 set(openblas_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/openblas")
 set(openblas_source  "${openblas_prefix}/src/openblas")
-set(openblas_install  "${openblas_prefix}/install")
+# we need no openblas_install as we build directly to CMAKE_CURRENT_BINARY_DIR and select the files to zip from the manifest
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
@@ -29,18 +29,14 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DL
 # do make a difference between debug and release build since we are using cmake now 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_REV}")
 
-# not using cmake build (see above) we don't use manifuest and copy the   
-SET(TMP_DIR "${openblas_install}")
+# we need to set TMP_DIR for ZIP_TO_CACHE, read in cfsdeps_zipToCache.cmake.in such that ZIP_TO_CACHE finds  cfsdeps/openblas/src/openblas/install_manifest.txt
+SET(TMP_DIR "${openblas_prefix}")
 
 SET(ZIPFROMCACHE "${openblas_prefix}/openblas-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
 
 SET(ZIPTOCACHE "${openblas_prefix}/openblas-zipToCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
-
-# After the installation we copy to cfs
-set(PI "${openblas_prefix}/post_install.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/openblas/openblas-post_install.cmake.in" "${PI}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # The OpenBLAS external project.
@@ -76,7 +72,8 @@ ELSE()
     CMAKE_ARGS
       ${CMAKE_ARGS}
       -DCMAKE_SYSTEM_PROCESSOR:STRING=x86_64
-      -DCMAKE_INSTALL_PREFIX:PATH=${openblas_install}
+      -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}
+      -DCMAKE_INSTALL_LIBDIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/lib64/${CFS_ARCH_STR}
       -DDYNAMIC_ARCH=1
       -E
   )
@@ -92,10 +89,6 @@ ELSE()
     WORKING_DIRECTORY ${openblas_prefix}
   )
   
-  ExternalProject_Add_Step(openblas post_install
-    COMMAND ${CMAKE_COMMAND} -P "${PI}"
-    DEPENDEES install )
-
   IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------
     # Add custom step to zip a precompiled package to the cache.
