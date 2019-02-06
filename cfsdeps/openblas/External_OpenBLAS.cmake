@@ -29,6 +29,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DL
 # do make a difference between debug and release build since we are using cmake now 
 PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_REV}")
 
+# we need to set TMP_DIR for ZIP_TO_CACHE, read in cfsdeps_zipToCache.cmake.in such that ZIP_TO_CACHE finds  cfsdeps/openblas/src/openblas/install_manifest.txt
+SET(TMP_DIR "${openblas_prefix}")
+
 SET(ZIPFROMCACHE "${openblas_prefix}/openblas-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
 
