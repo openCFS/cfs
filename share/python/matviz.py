@@ -487,7 +487,7 @@ parser.add_argument("--bc_beta", help="for heaviside interpolation (default 7.0)
 parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_smooth", help="number auf Taubin smoothing steps", type=int,default=40)
-parser.add_argument("--bc_thresh", help="lower threshold (diameter) for ortho basecell (default=0.1)", type=float,default=0.1)
+parser.add_argument("--bc_thresh", help="lower and upper threshold (diameter) for ortho basecell, e.g. 1e-9,0.94")
 # print sys.argv
 
 args = parser.parse_args()
@@ -641,7 +641,6 @@ else:
       nondes_min = 999999
       nondes_max = -999999 
       for nr in list(nondes_regs):
-        print("nr:",nr)
         tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements = centered_elements(f, nr,centered=False)
         nondes_elements.extend(tmp_nondes_elements)
         nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)

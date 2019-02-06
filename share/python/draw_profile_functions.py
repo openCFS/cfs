@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #coding=utf-8
 from enum import Enum
 import math
@@ -882,9 +881,7 @@ def generate_basecell(args,info):
       # if basecell is symmetric, calculate only 1/8 and mirror the rest
       symmetric = True if args.x1 == args.x2 and args.y1 == args.y2 and args.z1 == args.z2 else False
       symmetric = False
-      print("before write to array")
       write_profile_to_array(array, profiles[i],args.multiple_regions)
-      print("after write to array")
     if args.target == "3dlines":
       if args.save_vtp: #write 3 .vtp files
         points = vtk.vtkPoints()

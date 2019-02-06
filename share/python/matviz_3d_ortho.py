@@ -5,7 +5,6 @@ import matviz_vtk
 import vtk
 import math
 import sys
-from _operator import add
 
 try:
   import meshpy.triangle as triangle
@@ -61,9 +60,15 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
   dy_des = h_des[1] / samples[1]
   dz_des = h_des[2] / samples[2]
   
-  min_thresh = args.bc_thresh
-  max_thresh = 0.82
-    
+  min_thresh = 0.1
+  max_thresh = 0.94
+  
+  thresh = None
+  if args.bc_thresh is not None:
+    thresh = [float(t) for t in args.bc_thresh.split(',')]
+    assert(len(thresh) == 2)
+    print("thresh:",thresh)
+  
 #   print("samples:",samples)  
 #   print("h_des:",h_des)
 #   print("design_bounds:",design_bounds)  
@@ -123,6 +128,9 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
         east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
         top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
         front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
+        
+        # local array indices
+        li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
              
         assert(this is not None and east is not None and top is not None and front is not None)
              
@@ -135,6 +143,16 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
 #         z1 = min(max(this[2],min_thresh),max_thresh)
 #         z2 = min(max(front[2],min_thresh),max_thresh)
 
+        # handle void and solid cells
+        if thresh is not None:
+          if any(t < thresh[0] for t in [this[0],this[1],this[2],east[0],top[1],front[2]]):
+            print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk)
+            continue # skip void cell
+          elif any(t > thresh[1] for t in [this[0],this[1],this[2],east[0],top[1],front[2]]):
+            print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk)
+            my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = 1
+            continue
+          
         x1 = max(this[0],min_thresh) 
         x2 = max(east[0],min_thresh) 
         y1 = max(this[1],min_thresh) 
@@ -142,8 +160,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
         z1 = max(this[2],min_thresh) 
         z2 = max(front[2],min_thresh)
         
-        li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
-
         # bounds (voxel coords) of local base cell
         # xmin,ymin,zmin
         h = (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
