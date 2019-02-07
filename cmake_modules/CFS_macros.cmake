@@ -322,8 +322,8 @@ ENDMACRO()
 
 #-------------------------------------------------------------------------------
 # Create ZIP_FILE
-# If a TMP_DIR/src/*-build/install_manifest.txt exists, we zip all files listed in there.
-# Else we try to be smart on TMP_DIR, make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
+# If a TMP_DIR/src/*-build/install_manifest.txt exists (when built with cmake), we zip all files listed in there.
+# Else we try to be smart on TMP_DIR (move libs from lib64 to lib64/@CFS_ARCH), make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
 #-------------------------------------------------------------------------------
 MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   STRING(REGEX REPLACE "^.+[/\\]" "" ZIP_NAME ${ZIP_FILE})
@@ -332,8 +332,11 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
     FILE(MAKE_DIRECTORY "${TARGET_DIR}")
   ENDIF()
   
-  FILE(GLOB MANIFESTS "${TMP_DIR}/src/*-build/install_manifest.txt")
+  # Fabian: was src/*-build/install_manifest.tx before but that fails for openblas
+  FILE(GLOB MANIFESTS "${TMP_DIR}/src/*/install_manifest.txt")
+
   IF("${MANIFESTS}" STREQUAL "")
+    message("ZIP_TO_CACHE: zip ${TMP_DIR} as manifest ${TMP_DIR}/src/*-build/install_manifest.txt was not found")
     # No manifests exists -> zip TMP_DIR
 
     # standard make or configure does not known about lib64/CFS_ARCH_STR
@@ -362,14 +365,15 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
       EXECUTE_PROCESS(
         COMMAND sed "s@${CMAKE_CURRENT_BINARY_DIR}/@@g" ${manifest} 
         COMMAND zip -@ -g ${ZIP_FILE}
-        OUTPUT_QUIET
-        RESULT_VARIABLE rv
-      )
+        # OUTPUT_QUIET
+        RESULT_VARIABLE rv )
     ENDFOREACH()
+    
   ENDIF()
-  IF(NOT "${rv}" STREQUAL "0")
+  if(NOT "${rv}" STREQUAL "0")
     MESSAGE(WARNING "Could not create ${ZIP_NAME} at ${TARGET_DIR}.")
-  ENDIF()
+  endif()
+ 
 ENDMACRO()
 
 # ------------------------------------------------------------------------------
