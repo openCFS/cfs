@@ -91,7 +91,12 @@ private:
    * @param N has size of unknowns of state but has only contributions for the region */
   void CalcN(LinearFormContext* form, Vector<double>& N);
 
-  /** calc coupling as M/sqrt(L1*L2) */
+  /** calc coupling as M^2/(L1*L2) */
+  double CalcMagCoupling2(Excitation& excite, Function* f);
+
+  void CalcCoupling2AdjRHS(Excitation& excite, Function* f, Vector<double>& out);
+
+  /** calc coupling as M^4/(L1*L2)^2 */
   double CalcMagCoupling(Excitation& excite, Function* f);
 
   void CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out);

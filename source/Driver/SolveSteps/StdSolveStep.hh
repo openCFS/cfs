@@ -174,7 +174,7 @@ namespace CoupledField
     /** Checks programOpt->DoDetail()  */
     void WriteNonLinIterToInfoXML(const std::string& pdeName, UInt solStep,
                                   UInt iterationCounter, Double residualErr, Double incrementalErr,
-                                  double etaLineSearch, int coupledIterStep = -1);
+                                  double etaLineSearch, int coupledIterStep = -1, StdVector<std::pair<double, double> >* lineseach = NULL);
     
 
     //------------- storage vectors for nonlinear analysis --------------

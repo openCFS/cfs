@@ -221,6 +221,7 @@ namespace CoupledField {
     SBM_Vector  actSol(BaseMatrix::DOUBLE);
     solVec_.Init();
     actSol = solVec_;
+    StdVector<std::pair<double, double> > linesearch;
     
     // =================================
     //  Outer loop: Multilevel strategy 
@@ -329,11 +330,11 @@ namespace CoupledField {
           SBM_Vector actRHS(BaseMatrix::DOUBLE);
           algsys_->GetRHSVal( actRHS );
           
-          LOG_DBG3(stdsolvestep) << "solVec_= " << solVec_.ToString(2);
+          //LOG_DBG3(stdsolvestep) << "solVec_= " << solVec_.ToString(2);
 
           // calculation of residual error =======================================
           residualL2Norm = actRHS.NormL2();
-          //std::cout << "ResAbsolut: " << residualL2Norm << std::endl;
+          LOG_DBG3(stdsolvestep) << "ResAbsolut: " << residualL2Norm;
         }
         else {
           // do line search
@@ -341,7 +342,7 @@ namespace CoupledField {
           
           // store the new solution
           solVec_ = actSol;
-          LOG_TRACE(stdsolvestep) << "actSol=" << solVec_.ToString(2);
+          //LOG_DBG3(stdsolvestep) << "actSol=" << solVec_.ToString(2);
         }
         
         // calculation relative residual error ====================================
@@ -364,7 +365,7 @@ namespace CoupledField {
         }
 
         LOG_DBG2(stdsolvestep) << "residualErr= " << residualErr << " incrementalErr= " << incrementalErr <<  " etaLineSearch= " << etaLineSearch;
-        WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
+        WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1, &linesearch);
         
         // output of norms and data
         if ( nonLinLogging_ == true ) {
@@ -392,8 +393,8 @@ namespace CoupledField {
       
     } // loop over levels
     static_non_lin_step_timer_.Stop();
-    LOG_DBG3(stdsolvestep) << "actSol=" << solVec_.ToString(2);
-    LOG_DBG3(stdsolvestep) << "actRHS=" << RhsLinVal_.ToString(2);
+    //LOG_DBG3(stdsolvestep) << "actSol=" << solVec_.ToString(2);
+    //LOG_DBG3(stdsolvestep) << "actRHS=" << RhsLinVal_.ToString(2);
 
     // Recalculate with the right eta
     isNewton = false;
@@ -1438,7 +1439,7 @@ namespace CoupledField {
   Double StdSolveStep::SetLinRHS( Double loadFactor, bool nonlin)
   {
     
-    //std::cout << "SetLinRHS with bool nonlin = " << nonlin << std::endl;
+    LOG_DBG3(stdsolvestep) << "SetLinRHS with bool nonlin = " << nonlin;
     Double RhsLinL2Norm;
     
     // to incorporate loads+
@@ -1508,13 +1509,12 @@ namespace CoupledField {
     return nrLoadSteps;
   }
   
-  Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol,
-          Double& etaLineSearch, bool trans)  {
+  Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, double& etaLineSearch, bool trans, StdVector<std::pair<double, double> >& linesearch)  {
     
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
-    const UInt nrEtas = 4;
-    const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
+    const UInt nrEtas = 8; //4
+    const Double eta[nrEtas] = {0.0001, 0.001, 0.01, 0.05, 0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
     
     // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
@@ -1569,18 +1569,20 @@ namespace CoupledField {
       // =====================================================================
       SBM_Vector actRHS(BaseMatrix::DOUBLE);
       algsys_->GetRHSVal( actRHS );
-      LOG_DBG3(stdsolvestep) << "solVec_= " << solVec_.ToString(2);
+      //LOG_DBG3(stdsolvestep) << "solVec_= " << solVec_.ToString(2);
       
       // calculation of residual error =======================================
       Double residualL2Norm = actRHS.NormL2();
-      
+      LOG_DBG3(stdsolvestep) << "eta= " << eta[i];
+      LOG_DBG3(stdsolvestep) << "resL2= " << residualL2Norm;
       if (residualL2Norm < residualL2NormOpt) {
         residualL2NormOpt = residualL2Norm;
+        LOG_DBG3(stdsolvestep) << "better res = " << residualL2NormOpt;
         etaOpt = eta[i];
       }
     }
 
-    //std::cout << "Optimal eta = " << etaOpt << std::endl;
+    LOG_DBG3(stdsolvestep) << "Optimal eta = " << etaOpt;
     etaLineSearch = etaOpt;
 
     // Set new solution
@@ -1858,8 +1860,6 @@ namespace CoupledField {
       ss = nlc->GetByVal("solStep", "value", std::to_string(solStep));
       ss->Get("analysis")->SetValue(aid); // possibly overwrite
     }
-
-    
 
     // in the coupling step we have a layer between solStep and iteration
     if(coupledIterStep >= 0)

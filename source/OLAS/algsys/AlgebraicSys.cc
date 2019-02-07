@@ -1614,7 +1614,7 @@ namespace CoupledField {
                                          const StdVector<Integer>& eqns,
                                          StdVector<UInt>& blockNums,
                                          StdVector<UInt>& indices ) {
-    LOG_DBG(algSys) << "MFIETI Mapping fctId,eqnNr to blockNum,indices";
+    //LOG_DBG(algSys) << "MFIETI Mapping fctId,eqnNr to blockNum,indices";
     
     blockNums.Resize(eqns.GetSize());
     indices.Resize(eqns.GetSize());
@@ -1937,8 +1937,8 @@ namespace CoupledField {
                                        bool noStaticCond,
                                        bool isDiagonal) {
     
-    LOG_DBG(algSys) << "Setting element matrix for fctIds ("
-                     << fctId1 << ", " << fctId2 << ")";
+    //LOG_DBG(algSys) << "Setting element matrix for fctIds ("
+    //                 << fctId1 << ", " << fctId2 << ")";
     LOG_DBG2(algSys) << "Matrix: " << feMatrixType.ToString(matrixType);
     LOG_DBG2(algSys) << "EqnVec1: (" << eqnNrs1.GetSize() << "): " << eqnNrs1.ToString();
     LOG_DBG2(algSys) << "EqnVec2: (" << eqnNrs2.GetSize() << "): " << eqnNrs2.ToString();
@@ -2751,10 +2751,8 @@ namespace CoupledField {
           rhs_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
         }
         retVec[i] = entry;
-        LOG_DBG(algSys) << "i= " << i << "retVec[i]= " << entry;
+        LOG_DBG2(algSys) << "i= " << i << " retVec[i]= " << entry;
       }
-
-
     } else {
 
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptRhs );

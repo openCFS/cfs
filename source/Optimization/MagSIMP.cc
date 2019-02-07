@@ -30,7 +30,6 @@ DEFINE_LOG(ms, "magSimp")
 
 double MagSIMP::nu_0 = 1.0/(4 * M_PI * 1e-7);
 
-Vector<double> real_nu;
 
 MagSIMP::MagSIMP()
 {
@@ -384,6 +383,59 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
   } // end elem
 }
 
+double MagSIMP::CalcMagCoupling2(Excitation& excite, Function* f)
+{
+  if(GetMultipleExcitation()->excitations.GetSize() != 2)
+    throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
+
+  // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
+  // we return value 0 for the first excitation and 2*coupling for the second excitation
+  assert(GetMultipleExcitation()->excitations.GetSize() == 2);
+  if(excite.index == 0)
+  {
+    LOG_DBG2(ms) << "CMC: excitation index is 0; nothing to do here; returning 0.0";
+    return 0.0;
+  }
+  assert(excite.index == 1);
+  Excitation& excite_A = GetMultipleExcitation()->excitations[0];
+  Excitation& excite_B = GetMultipleExcitation()->excitations[1];
+  // Coupling can only be calculated for exactly two coils
+  assert(excite_A.index == 0 && excite_B.index == 1);
+  // we need both forms to get the different regions
+  StdVector<LinearFormContext*>& forms_A = excite_A.forms;
+  StdVector<LinearFormContext*>& forms_B = excite_B.forms;
+  assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
+  LinearFormContext* form_A = forms_A[0];
+  LinearFormContext* form_B = forms_B[0];
+  // get the two As
+  const Vector<double>& A_a = forward.Get(excite_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  const Vector<double>& A_b = forward.Get(excite_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  assert(A_a.GetSize() > 0);
+  assert(A_b.GetSize() > 0);
+
+  LOG_DBG3(ms) << "CMC: size of A_a = " << A_a.GetSize();
+  LOG_DBG3(ms) << "CMC: size of A_b = " << A_b.GetSize();
+
+  Vector<double> N1(A_a.GetSize());
+  Vector<double> N2(A_a.GetSize());
+
+  CalcN(form_A, N1);
+  CalcN(form_B, N2);
+
+  double sp_N1_Aa = N1.Inner(A_a);
+  double sp_N1_Ab = N1.Inner(A_b);
+  double sp_N2_Ab = N2.Inner(A_b);
+
+  LOG_DBG3(ms) << "CMC: <N1, A_a>=" << sp_N1_Aa;
+  LOG_DBG3(ms) << "CMC: <N1, A_b>=" << sp_N1_Ab;
+  LOG_DBG3(ms) << "CMC: <N2, A_b>=" << sp_N2_Ab;
+
+  double k = (sp_N1_Ab*sp_N1_Ab*sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N1_Aa*sp_N2_Ab*sp_N2_Ab);
+  LOG_DBG(ms) << "CMC: Coupling = " << k;
+  // return 2-times the function value since we have two excitations and it will be halved afterwards
+  return 2*k;
+  }
+
 double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
 {
   if(GetMultipleExcitation()->excitations.GetSize() != 2)
@@ -460,7 +512,7 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   // Write the solution from the algebraic system to the vector real_nu, real_nu will be needed in SetElementK to get the correct nu
   SolutionType solt = MAG_POTENTIAL;
   shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
-  real_nu = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
+  //real_nu = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
 
   // We use BDBInt to compute M, but in the nonlinear case we have only BBInt stored in assemble
   // therefore we construct a own one
@@ -619,7 +671,73 @@ void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>
     EXCEPTION("There should only be two excitations");
   }
 }
+void MagSIMP::CalcCoupling2AdjRHS(Excitation& excite, Function* f, Vector<double>& out)
+{
+  /* The right hand sides look as follows:
+   * case A:
+   * 2*(<N_1, A_B>^4)/(<N_1, A_A>^3 <N_2, A_B>^2) * N_1^T
+   * case B:
+   * -4*<N_1, A_B>^3/(<N_1, A_A>^2<N_2, A_B>^2) * N_1^T + 2*(<N_1, A_B>)^4/(<N_1, A_A>^2<N_2, A_B>^3) * N_2^T
+   */
+  // same as in CalcCoupling
+  if(GetMultipleExcitation()->excitations.GetSize() != 2)
+  {
+    throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
+  }
+  // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
+  // we return value 0 for the first excitation and 2*coupling for the second excitation
+  assert(GetMultipleExcitation()->excitations.GetSize() == 2);
+  Excitation& excite_A = GetMultipleExcitation()->excitations[0];
+  Excitation& excite_B = GetMultipleExcitation()->excitations[1];
+  // Coupling can only be calculated for exactly two coils
+  assert(excite_A.index == 0 && excite_B.index == 1);
+  // we need both forms to get the different regions
+  StdVector<LinearFormContext*>& forms_A = excite_A.forms;
+  StdVector<LinearFormContext*>& forms_B = excite_B.forms;
+  assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
+  LinearFormContext* form_A = forms_A[0];
+  LinearFormContext* form_B = forms_B[0];
+  // get the two As
+  const Vector<double>& A_a = forward.Get(excite_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  const Vector<double>& A_b = forward.Get(excite_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  assert(A_a.GetSize() > 0);
+  assert(A_b.GetSize() > 0);
 
+  LOG_DBG3(ms) << "CCAR: size of A_a = " << A_a.GetSize();
+  LOG_DBG3(ms) << "CCAR: size of A_b = " << A_b.GetSize();
+
+  Vector<double> N1(A_a.GetSize());
+  Vector<double> N2(A_a.GetSize());
+
+  CalcN(form_A, N1);
+  CalcN(form_B, N2);
+  LOG_DBG3(ms) << "CMC: N1 = " << N1.ToString(2);
+  LOG_DBG3(ms) << "CMC: N2 = " << N2.ToString(2);
+
+  double sp_N1_Aa = N1.Inner(A_a);
+  double sp_N1_Ab = N1.Inner(A_b);
+  double sp_N2_Ab = N2.Inner(A_b);
+
+  LOG_DBG2(ms) << "CCAR: <N1, A_a>=" << sp_N1_Aa;
+  LOG_DBG2(ms) << "CCAR: <N1, A_b>=" << sp_N1_Ab;
+  LOG_DBG2(ms) << "CCAR: <N2, A_b>=" << sp_N2_Ab;
+  out.Resize(A_a.GetSize(),0.0);
+  if (excite.index == 0) {
+    //calc rhs first case
+    const double factor = 2*(sp_N1_Ab*sp_N1_Ab*sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N1_Aa*sp_N1_Aa*sp_N2_Ab*sp_N2_Ab);
+
+    out.Set(factor, N1); // out = factor * N1
+    LOG_DBG2(ms) << "CCAR: first excitation. f=" << factor << " |out|=" << out.NormL2();
+  } else if (excite.index == 1) {
+    //calc rhs second case
+    const double factor_N1 = (4*sp_N1_Ab*sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N1_Aa*sp_N2_Ab*sp_N2_Ab);
+    const double factor_N2 = (2*sp_N1_Ab*sp_N1_Ab*sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N1_Aa*sp_N2_Ab*sp_N2_Ab*sp_N2_Ab);
+    out.Add(-factor_N1, N1, factor_N2, N2); // out = -factor_N1 * N1 + factor_N2 * N2
+    LOG_DBG2(ms) << "CCAR: second excitation fN1=" << factor_N1 << " fN2=" <<factor_N2 << " |out|=" << out.NormL2();
+  } else {
+    EXCEPTION("There should only be two excitations");
+  }
+}
 template <class T1, class T2>
 void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
@@ -635,7 +753,7 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
   SolutionType solt = MAG_POTENTIAL;
   shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
   buffer_store = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
-  dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = real_nu;
+  //dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = real_nu;
 
   switch(app)
   {
