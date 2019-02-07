@@ -365,8 +365,8 @@ namespace CoupledField {
         }
 
         LOG_DBG2(stdsolvestep) << "residualErr= " << residualErr << " incrementalErr= " << incrementalErr <<  " etaLineSearch= " << etaLineSearch;
-        WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1, &linesearch);
-        
+        //WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1, &linesearch);
+        WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
         // output of norms and data
         if ( nonLinLogging_ == true ) {
           
@@ -1509,8 +1509,8 @@ namespace CoupledField {
     return nrLoadSteps;
   }
   
-  Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, double& etaLineSearch, bool trans, StdVector<std::pair<double, double> >& linesearch)  {
-    
+  //Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, double& etaLineSearch, bool trans, StdVector<std::pair<double, double> >& linesearch)  {
+  Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, double& etaLineSearch, bool trans)  {
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
     const UInt nrEtas = 8; //4
