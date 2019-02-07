@@ -143,7 +143,7 @@ public:
 
   Double ComputeFactor(Double z, Double sos){
     //Double z = pos/thickness; // coordinate in layer
-    Double L = DampFactor*sos;
+    Double L = DampFactor*sos; // L corresponds to kappa in the IML paper
     Double x = z*L/(1.0 - z); // x-coordinate
     return L/((x+L)*(x+L)); // dz/dx=eta(x)=eta(x(z))
   }
