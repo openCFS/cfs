@@ -113,8 +113,6 @@ namespace CoupledField {
       ReadNonLinData();
     }
     
-    //logFile_.open("nonlin.txt");
-    
     mHandle_ = PDE_.GetDomain()->GetMathParser()->GetNewHandle();
     mParser_ = PDE_.GetDomain()->GetMathParser();
     mParser_->SetExpr(mHandle_,"step");
@@ -123,7 +121,6 @@ namespace CoupledField {
   
   //! Destructor
   StdSolveStep::~StdSolveStep() {
-    //logFile_.close();
     mParser_->ReleaseHandle(mHandle_);
   }
   
@@ -367,15 +364,6 @@ namespace CoupledField {
         LOG_DBG2(stdsolvestep) << "residualErr= " << residualErr << " incrementalErr= " << incrementalErr <<  " etaLineSearch= " << etaLineSearch;
         //WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1, &linesearch);
         WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
-        // output of norms and data
-        if ( nonLinLogging_ == true ) {
-          
-          // write norm to file
-          logFile_ <<  iterationCounter << "\t"
-                  << residualErr << "\t"
-                  << incrementalErr << "\t"
-                  << etaLineSearch << std::endl;
-        }
         
         // boolean variable, holds condition if another iteration step is necessary
         performOneMoreStep =
@@ -903,15 +891,6 @@ namespace CoupledField {
         }
 
         WriteNonLinIterToInfoXML(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
-
-        // output of norms and data
-        if ( nonLinLogging_ == true ) {
-          // write norm to file
-          logFile_ <<  iterationCounter << "\t"
-                  << residualErr << "\t"
-                  << incrementalErr << "\t"
-                  << etaLineSearch << std::endl;
-        }
         
         // boolean variable, holds condition if another iteration step is necessary
         performOneMoreStep =(incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
@@ -1083,15 +1062,6 @@ namespace CoupledField {
         Double residualErr = incrementalErr;
 
         WriteNonLinIterToInfoXML(pdename_, 1,iterationCounter, residualErr, incrementalErr, etaLineSearch);
-
-        // output of norms and data
-        if ( nonLinLogging_ == true ) {
-          // write norm to file
-          logFile_ <<  iterationCounter << "\t"
-                  << residualErr << "\t"
-                  << incrementalErr << "\t"
-                  << etaLineSearch << std::endl;
-        }
         
         stageSol = solNew;
         solVec_  = stageSol;
