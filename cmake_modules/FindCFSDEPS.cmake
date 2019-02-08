@@ -378,13 +378,11 @@ INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 #-------------------------------------------------------------------------------
 SET(MUPARSER_URL "${CFS_DS_SOURCES_DIR}/muparser")
 SET(MUPARSER_BASE "muparser")
-SET(MUPARSER_VER "2.2.5")
-#SET(MUPARSER_VER "v2_2_2")
-SET(MUPARSER_ZIP "${MUPARSER_BASE}-${MUPARSER_VER}.tar.gz")
-#SET(MUPARSER_ZIP "${MUPARSER_BASE}_${MUPARSER_VER}.zip") # v2_2_2
-SET(MUPARSER_MD5 "02dae671aa5ad955fdcbcd3fee313fb7") # 2.2.5
-#SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a") #v2_2_2
-SET(MUPARSER_SHA512 "d89380ebdc0ce91d0ea38fe43419ab6ed06c47d352b9ee20e1edcce48337b464366153493e0241c373ba2880a8b419fb9541e56cda0d14915daf9b98136ee682") # needed for URL
+# https://github.com/beltoforion/muparser/archive/v2.2.6.1.tar.gz
+SET(MUPARSER_VER "2.2.6.1")
+SET(MUPARSER_TGZ "v${MUPARSER_VER}.tar.gz")
+SET(MUPARSER_MD5 "410d29b4c58d1cdc2fc9ed1c1c7f67fe") # 2.2.6.1
+
 
 INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
