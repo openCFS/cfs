@@ -22,7 +22,7 @@
 #include "OLAS/external/pardiso/PardisoSolverPrimitive.hh"
 #endif
 
-#ifdef USE_ILUPACK
+#if defined (USE_ILUPACK) || defined (USE_ILUPACK_PARALLEL)
 #include "OLAS/external/ilupack/Ilupack.hh"
 #endif
 
@@ -347,7 +347,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
   case BaseSolver::ILUPACK:
 
-#ifdef USE_ILUPACK
+#if defined(USE_ILUPACK) || defined(USE_ILUPACK_PARALLEL)
   {
     // Check suitability of matrix
     if (mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
@@ -369,7 +369,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
   }
 #else
-  EXCEPTION("Compile with USE_ILUPACK to enable interface to ilupack");
+  EXCEPTION("Compile with USE_ILUPACK or USE_ILUPACK_PARALLEL to enable interface to ilupack");
 #endif
   break;
   
@@ -436,7 +436,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       LOG_DBG(genSolver) << " GenerateSolver: Generated PETSC solver";
     }
   #else
-    EXCEPTION("Compile with USE_PHIST to enable interface to PHIST.");
+    EXCEPTION("Compile with USE_PHIST_CG to enable interface to PHIST_CG.");
   #endif
     break;
 

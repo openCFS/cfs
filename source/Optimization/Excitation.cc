@@ -117,7 +117,7 @@ bool MultipleExcitation::IsEnabled(int sequence) const
 
   if(sequence == -1)
     return multiple_excitation_;
-  // for bloch we do not set multiple excitation, it is implicity and we might use ME for homogenization
+  // for bloch we do not set multiple excitation, it is implicit and we might use ME for homogenization
   if(Optimization::manager.context[sequence-1].DoBloch())
     return true;
 

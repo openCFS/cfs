@@ -285,8 +285,6 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     BaseFE* SFe1 = this->ptFeSpace1_->GetFe(mSe->ptMaster->elemNum);
     BaseFE* SFe2 = this->ptFeSpace1_->GetFe(mSe->ptSlave->elemNum);
 
-
-
     MAT_DATA_TYPE tmp(2.0);
     Double min,max;
     esm1T->GetMaxMinEdgeLength(min,max);
@@ -322,7 +320,6 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
       }
     }
     MAT_DATA_TYPE surface2(min/(Double)order2);
-
 
     myFactor *= tmp/(surface1+surface2);
   }
@@ -776,6 +773,10 @@ void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
   }
   else {
 	  elemMat = result;
+//  if ( ptMasterOp_ != this->bOperator_) {
+//	  elemMat = result;
+//  } else {
+//	  result.Transpose(elemMat);
   }
 
   LOG_DBG2(mortarInt) << "Element matrix of NcSurfElem #"

@@ -1,70 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <cfsSimulation xmlns="http://www.cfs++.org">
-  
-  
+
   <fileFormats>
-   <output> 
-      <gid directory="." />
-      <hdf5 directory="." />
- </output>
-    <materialData file="mat.xml" format="xml"/>
+    <output>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
   </fileFormats>
 
   <domain geometryType="plane">
-    <regionList> <region name="mech" material="99lines"/> </regionList>
-    <!-- nodeList>
-      <nodes name="center"> <coord x="0.0" y="0.0"/> </nodes>
-   </nodeList -->
+    <regionList>
+      <region name="mech" material="99lines" />
+    </regionList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="0.0" y="0.0" />
+      </nodes>
+    </nodeList>
   </domain>
-
-  <sequenceStep>
+  
+  <sequenceStep index="1">
     <analysis>
-      <static/>
+      <static />
     </analysis>
-    
+
     <pdeList>
-      <mechanic subType="planeStrain">
-        <regionList> <region name="mech"/> </regionList>
-        
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+        </regionList>
         <bcsAndLoads>
-          <periodic master="top" slave="bottom" dof="x" quantity="mechDisplacement"/>
-          <periodic master="top" slave="bottom" dof="y" quantity="mechDisplacement"/>
-          <periodic master="left" slave="right" dof="x" quantity="mechDisplacement"/>
-          <periodic master="left" slave="right" dof="y" quantity="mechDisplacement"/>
-          <!-- dirichletHom name="center" dof="x"/>
-          <dirichletHom name="center" dof="y"/ -->
+          <periodic master="left" slave="right" quantity="mechDisplacement" dof="x" />
+          <periodic master="left" slave="right" quantity="mechDisplacement" dof="y" />
+          <periodic master="bottom" slave="up" quantity="mechDisplacement" dof="x" />
+          <periodic master="bottom" slave="up" quantity="mechDisplacement" dof="y" />
         </bcsAndLoads>
-        
-        <storeResults>
-          <elemResult type="mechPseudoDensity">  <allRegions/> </elemResult>
-          <elemResult type="physicalPseudoDensity"> <allRegions/> </elemResult>
-        </storeResults>
+       <storeResults/>
       </mechanic>
     </pdeList>
 
-<linearSystems>
+    <linearSystems>
       <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination" />
+          </standard>
+        </solutionStrategy>
         <solverList>
-          <pardiso/>
+          <pardiso />
         </solverList>
       </system>
-    </linearSystems></sequenceStep>
+    </linearSystems>
+  </sequenceStep>
   
-  
-  <optimization log="[problem]">
+  <optimization>
     <costFunction type="homTensor" task="minimize" multiple_excitation="true">
       <multipleExcitation type="homogenizationTestStrains" />
     </costFunction>
-    <optimizer type="evaluate" maxIterations="100" >
-<!--      <snopt>
-        <option type="integer" name="verify_level" value="3"/>
-      </snopt>-->      
-    </optimizer>
+    <optimizer type="evaluate" maxIterations="1" />
     <ersatzMaterial method="simp" material="mechanic" region="mech">
-      <design name="density" initial="1.0" lower="1e-9" upper="1" region="mech" />
-      <transferFunction type="identity" application="mech" design="density"/>
-      <!-- export/ -->
+      <design name="density" initial="1.0" lower="0.000001" upper="1" region="mech" />
+      <transferFunction type="simp" application="mech" design="density" param="1" />
     </ersatzMaterial>
-  </optimization> 	  
+    <commit mode="each_forward" />
+  </optimization>
 
 </cfsSimulation>
 

@@ -4,6 +4,7 @@ freecores=1
 
 ncores=$(nproc)
 ncores=$((ncores-freecores))
+ncores=6
 
 if [ "$ncores" -lt "0" ]; then
   echo "Too much free cores requested. Please lower number of cores to be left free."
@@ -27,5 +28,5 @@ cat catalogues/detailed_stats_[123456789]* >> catalogues/detailed_stats_$filenam
 rm [123456789]*
 rm catalogues/detailed_stats_[123456789]*
 
-matlab -nodesktop -nodisplay -nosplash -r "try;writeHeader('catalogues/detailed_stats_$filename');catch ME;disp(ME.message);end;exit;">$filename.out 2>$filename.err
+#matlab -nodesktop -nodisplay -nosplash -r "try;writeHeader('catalogues/detailed_stats_$filename');catch ME;disp(ME.message);end;exit;">$filename.out 2>$filename.err
 

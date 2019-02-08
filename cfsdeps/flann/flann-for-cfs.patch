@@ -1,6 +1,6 @@
---- src/cpp/CMakeLists.txt.orig	2014-02-06 18:14:50.285197390 +0100
-+++ src/cpp/CMakeLists.txt	2014-02-06 18:16:20.315197377 +0100
-@@ -109,7 +109,7 @@
+--- src/cpp/CMakeLists.txt.orig 2016-08-05 01:20:50.000000000 +0200
++++ src/cpp/CMakeLists.txt  2018-08-30 17:59:40.046696260 +0200
+@@ -113,7 +113,7 @@
  
  install (
      TARGETS flann_cpp flann_cpp_s
@@ -9,7 +9,7 @@
      LIBRARY DESTINATION ${FLANN_LIB_INSTALL_DIR}
      ARCHIVE DESTINATION ${FLANN_LIB_INSTALL_DIR}
  )
-@@ -117,7 +117,7 @@
+@@ -121,7 +121,7 @@
  if (BUILD_CUDA_LIB)
      install (
          TARGETS flann_cuda flann_cuda_s
@@ -18,7 +18,7 @@
          LIBRARY DESTINATION ${FLANN_LIB_INSTALL_DIR}
          ARCHIVE DESTINATION ${FLANN_LIB_INSTALL_DIR}
      )
-@@ -126,7 +126,7 @@
+@@ -130,7 +130,7 @@
  if (BUILD_C_BINDINGS)
      install (
          TARGETS flann flann_s

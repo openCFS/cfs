@@ -24,6 +24,8 @@ ENDIF()
 
 ADD_LIBRARY(scattereddatainout STATIC ${SCATTEREDDATAINOUT_SRCS})
 
+ADD_DEPENDENCIES(scattereddatainout boost)
+
 TARGET_LINK_LIBRARIES(scattereddatainout
   ${TARGET_LL}
   )

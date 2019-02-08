@@ -49,9 +49,7 @@ MESSAGE(
 ==============================================================================
 ")
 
-ENDIF(CMAKE_MAJOR_VERSION LESS REQ_MAJOR_VER AND
-      CMAKE_MINOR_VERSION LESS REQ_MINOR_VER AND
-      CMAKE_PATCH_VERSION LESS REQ_PATCH_VER)
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Don't build anything unless the version of CMake is high enough.
@@ -184,7 +182,9 @@ OPTION(USE_UNV "Use Universal File for simulation output." ${USE_UNV_DEFAULT})
 # USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
 OPTION(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
 OPTION(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
-OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." ${USE_ANSYSRST_DEFAULT})
+IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." ${USE_ANSYSRST_DEFAULT})
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # There are two options for an xml reader: xerces or libxml2. Depending on
@@ -223,10 +223,14 @@ OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs." ${USE_SUPERLU_DEFAULT})
 OPTION(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
 OPTION(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFAULT})
 OPTION(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
-
+OPTION(USE_ILUPACK_PARALLEL "Ilupack with openmp. Experimental version." ${USE_ILUPACK_PARALLEL_DEFAULT})
 IF(USE_FEAST AND NOT CFS_BLAS_LAPACK STREQUAL "MKL" )
   MESSAGE(FATAL_ERROR "USE_FEAST=ON requires Intel MKL! Set CFS_BLAS_LAPACK=MKL")
 ENDIF()
+IF(USE_ILUPACK AND USE_ILUPACK_PARALLEL)
+  MESSAGE(FATAL_ERROR "Either USE_ILUPACK=ON or USE_ILUPACK_PARALLEL=ON.  Both can not be swithed on together")
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
 #-----------------------------------------------------------------------------
@@ -245,6 +249,10 @@ IF(USE_PETSC)
   INCLUDE("cmake_modules/mpi.cmake")
 ELSE()
   SET(USE_MPI "OFF") 
+ENDIF()
+
+IF(USE_PETSC AND USE_ILUPACK_PARALLEL )
+  MESSAGE("Using PETSc with ilupack will lead to build error(to be fixed in future), switch either one to  OFF")
 ENDIF()
 
 # phist requires ghost
@@ -397,6 +405,9 @@ OPTION(EXPLICIT_TEMPLATE_INSTANTIATION
   "Use explicit template instantiation."
   ${EXPLICIT_TEMPLATE_INSTANTIATION_DEFAULT})
 
+# ICC needs a gcc to get header from. Newest ICC might noe be fully compatible with gcc 8.* yet
+SET(CFS_ICC_GCC_VERSION ${CFS_ICC_GCC_VERSION_DEFAULT} CACHE STRING "GCC version where ICC takes the headers from")
+
 #-----------------------------------------------------------------------------
 # Set a sane default value for the CFS++ schema path
 #-----------------------------------------------------------------------------
@@ -416,6 +427,20 @@ SET(CFS_TESTSUITE_THREADS "${NCPU}" CACHE STRING "Number of threads to use for t
 # check if integer is set
 IF(NOT CFS_TESTSUITE_THREADS MATCHES "^[1-9][0-9]*$")
   MESSAGE(FATAL_ERROR "CFS_TESTSUITE_THREADS must be integer valued.")
+ENDIF()
+
+# set the mode of cfstool
+SET(CFS_TESTSUITE_CFSTOOL_MODE "scalardiff" CACHE STRING "The mode used to compare hdf5 files by cfstool. May be 'scalardiff', 'L2diff', or 'relL2diff'.")
+IF( NOT ( (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "scalardiff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "L2diff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "relL2diff") ) )
+  MESSAGE("select a correct value for CFS_TESTSUITE_CFSTOOL_MODE.")
+ENDIF()
+
+# set the number of thread to use for the testing runs
+include(ProcessorCount)
+ProcessorCount(NCPU)
+SET(CFS_TESTSUITE_THREADS "${NCPU}" CACHE STRING "Number of threads to use for the cfs testing runs, i.e. use argument '-t CFS_TESTSUITE_THREADS' in cfs runs.")
+IF(NOT CFS_TESTSUITE_THREADS MATCHES "^[1-9][0-9]*$")
+  MESSAGE("CFS_TESTSUITE_THREADS must be integer valued.")
 ENDIF()
 
 #-----------------------------------------------------------------------------
@@ -441,6 +466,7 @@ MARK_AS_ADVANCED(USE_LIBXML2)
 #MARK_AS_ADVANCED(BUILD_GHOST)
 MARK_AS_ADVANCED(BUILD_HWLOC)
 MARK_AS_ADVANCED(DISABLE_OPTIMIZATION)
+
 
 #-----------------------------------------------------------------------------
 # Set some variables according to build type DEBUG / RELEASE
@@ -722,9 +748,9 @@ IF(USE_PHIST_CG OR USE_PHIST_EV)
   ADD_SUBDIRECTORY(source/OLAS/external/phist)
 ENDIF(USE_PHIST_CG OR USE_PHIST_EV)
 
-IF(USE_ILUPACK)
+IF(USE_ILUPACK OR USE_ILUPACK_PARALLEL)
   ADD_SUBDIRECTORY(source/OLAS/external/ilupack)
-ENDIF(USE_ILUPACK)
+ENDIF(USE_ILUPACK OR USE_ILUPACK_PARALLEL)
 
 ADD_SUBDIRECTORY(source/OLAS/external/lapack)
 
@@ -829,9 +855,7 @@ ENDIF(USE_CGNS)
 
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)
-IF(NOT MINGW)
-  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
-ENDIF()
+ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
 ADD_SUBDIRECTORY(source/DataInOut/ScatteredDataInOut)
 
 ADD_SUBDIRECTORY(source/Domain)

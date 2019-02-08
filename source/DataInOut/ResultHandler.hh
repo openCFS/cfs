@@ -166,6 +166,10 @@ namespace CoupledField {
     /** This dumps the content of the result handler for debugging */
     void Dump(); 
 
+    /** this switch is needed for Optimization to force streaming on every step.
+     * If this is set to try, only Outputs with "isStreaming() == true" are being called */
+    bool streamOnly = false;
+
   private:
     
     // =======================================================================
@@ -249,7 +253,7 @@ namespace CoupledField {
              shared_ptr<ResultContext> > resultContexts_;
 
     //! Map relating outputIds with the output classes
-    std::map<std::string, shared_ptr<SimOutput> > outFiles_;
+    std::map<std::string, shared_ptr<SimOutput> > simOutputHandlers_;
     
     //! Map relating outputIds with the gridIds
      std::map<std::string, std::string > outGridIds_;

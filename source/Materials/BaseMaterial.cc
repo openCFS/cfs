@@ -261,7 +261,7 @@ namespace CoupledField
     string help = MaterialTypeEnum.ToString( matType );
 
     EXCEPTION( "Material type (" << dim << ") " << help 
-               << " was not read form/defined in material file" );
+               << " was not read from/defined in material file" );
   }
 
 

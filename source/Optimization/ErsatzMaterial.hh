@@ -114,6 +114,9 @@ public:
 
 protected:
   
+  /** overwrites the Optimization version. To be called within Optimization::CommitIteration() */
+  virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
+
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
   virtual void StoreResults(double step_val);
 
@@ -375,7 +378,7 @@ protected:
   Method method_;
 
   /** cache the 1.0 / complete volume of the domain */
-  double volume_fraction_;
+  double volumeFraction_;
 
   /** This is a helper for SetElementK() which adds for App::MECH in the harmonic case damping and mass
    * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */

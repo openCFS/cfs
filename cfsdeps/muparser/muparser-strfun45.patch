@@ -27,19 +27,12 @@
  
 --- src/muParserBase.cpp.orig	2012-02-28 22:04:23.667248797 +0100
 +++ src/muParserBase.cpp	2012-02-28 22:07:42.659046959 +0100
-@@ -770,6 +770,15 @@
-       case 2: valTok.SetVal( ((strfun_type3)pFunc)(a_vArg[2].GetAsString().c_str(), 
-                                                    a_vArg[1].GetVal(), 
-                                                    a_vArg[0].GetVal()) );  break;
-+      case 3: valTok.SetVal( ((strfun_type4)pFunc)(a_vArg[3].GetAsString().c_str(), 
-+                                                   a_vArg[2].GetVal(),                                            
-+	                                           a_vArg[1].GetVal(), 
-+                                                   a_vArg[0].GetVal()) );  break;
-+      case 4: valTok.SetVal( ((strfun_type5)pFunc)(a_vArg[4].GetAsString().c_str(), 
-+	                                           a_vArg[3].GetVal(),
-+                                                   a_vArg[2].GetVal(), 
-+                                                   a_vArg[1].GetVal(), 
-+                                                   a_vArg[0].GetVal()) );  break;
+@@ -770,6 +770,8 @@
+       case 0: valTok.SetVal(1); a_vArg[0].GetAsString();  break;
+       case 1: valTok.SetVal(1); a_vArg[1].GetAsString();  a_vArg[0].GetVal();  break;
+       case 2: valTok.SetVal(1); a_vArg[2].GetAsString();  a_vArg[1].GetVal();  a_vArg[0].GetVal();  break;
++      case 3: valTok.SetVal(1); a_vArg[3].GetAsString();  a_vArg[2].GetVal();  a_vArg[1].GetVal();  a_vArg[0].GetVal();  break;
++      case 4: valTok.SetVal(1); a_vArg[4].GetAsString();  a_vArg[3].GetVal();  a_vArg[2].GetVal();  a_vArg[1].GetVal();  a_vArg[0].GetVal();  break;
        default: Error(ecINTERNAL_ERROR);
        }
      }

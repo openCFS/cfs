@@ -20,7 +20,6 @@
 #include "FeBasis/H1/H1Elems.hh"
 #include "Forms/Operators/BaseBOperator.hh"
 #include "FeBasis/FeFunctions.hh"
-#include <boost/tr1/type_traits.hpp>
 #include <string>
 
 namespace CoupledField{

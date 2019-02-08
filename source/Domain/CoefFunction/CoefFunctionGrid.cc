@@ -82,7 +82,6 @@
 #include "DataInOut/ResultHandler.hh"
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/tr1/type_traits.hpp>
 
 //include headers of subclasses for factory method
 #include "CoefFunctionGridNodalInterp.hh"

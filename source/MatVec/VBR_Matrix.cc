@@ -931,20 +931,6 @@ namespace CoupledField {
     EXCEPTION("Implement me");
   }
 
-  template<typename T>
-  Double VBR_Matrix<T>::GetMaxDiag() const {
-
-    double maxDiag = 0;
-    double current = 0;
-    UInt i = 0;
-    for( i = 0; i < this->nrows_; ++i ) {
-      current = OpType<T>::MaxDiag( data_[ diagPtr_[i] ] );
-      maxDiag = maxDiag > current ? maxDiag : current; 
-    }
-
-    return maxDiag;
-  }
-
 
   template<typename T>
   void VBR_Matrix<T>::Add( const Double alpha, const StdMatrix& mat ) {

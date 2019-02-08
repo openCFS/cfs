@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -728,9 +729,9 @@ bool Optimization::DoSolveAdjointWithState() const
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
-  assert(baseOptimizer_ == NULL || !baseOptimizer_->GetOptimierTimer()->IsRunning());
+  assert(baseOptimizer_ == NULL || !baseOptimizer_->GetOptimizerTimer()->IsRunning()); // https://cfs.mdmt.tuwien.ac.at/trac/ticket/263#ticket
   // do not add the time solving the system to eval_[grad]_obj/constr_timer -> performance.py
-  boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
+  boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
   if(eval_timer)
     eval_timer->Stop();
 
@@ -871,9 +872,9 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
 
 double Optimization::CalcObjective(Excitation* ev_only_excite)
 {
-  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimizerTimer()->IsRunning();
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Stop();
+    baseOptimizer_->GetOptimizerTimer()->Stop();
 
   // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
   // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
@@ -916,16 +917,16 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
   }
 
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Start();
+    baseOptimizer_->GetOptimizerTimer()->Start();
 
   return result;
 }
 
 void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out, Excitation* ev_only_excite)
 {
-  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimizerTimer()->IsRunning();
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Stop();
+    baseOptimizer_->GetOptimizerTimer()->Stop();
 
 
   // reset the cost gradients in the design elements and sum them up in a weighted way
@@ -957,14 +958,14 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out, Excitation
   }
 
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Start();
+    baseOptimizer_->GetOptimizerTimer()->Start();
 }
 
 double Optimization::CalcConstraint(Condition* g, Excitation* ev_only_excite)
 {
-  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimizerTimer()->IsRunning();
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Stop();
+    baseOptimizer_->GetOptimizerTimer()->Stop();
 
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
   assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL); // DoEvaluateAlways(): there is only one sequence
@@ -986,7 +987,7 @@ double Optimization::CalcConstraint(Condition* g, Excitation* ev_only_excite)
   }
 
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Start();
+    baseOptimizer_->GetOptimizerTimer()->Start();
 
   g->SetValue(result);
   return result;
@@ -995,9 +996,9 @@ double Optimization::CalcConstraint(Condition* g, Excitation* ev_only_excite)
 
 void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out, Excitation* ev_only_excite)
 {
-  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimierTimer()->IsRunning();
+  bool pause_timer = baseOptimizer_ != NULL && baseOptimizer_->GetOptimizerTimer()->IsRunning();
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Stop();
+    baseOptimizer_->GetOptimizerTimer()->Stop();
 
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
   assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL);
@@ -1033,7 +1034,7 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
   }
 
   if(pause_timer)
-    baseOptimizer_->GetOptimierTimer()->Start();
+    baseOptimizer_->GetOptimizerTimer()->Start();
 }
 
 void Optimization::EvaluateSpecialResults()
@@ -1061,7 +1062,8 @@ void Optimization::StoreResults(double step_val)
     else
       context->GetDriver()->StoreResults(writeCounter_, step_val);
 
-    writeCounter_++;
+    if (!context->GetDriver()->GetResultHandler()->streamOnly)
+      writeCounter_++;
   }
 }
 
@@ -1070,7 +1072,7 @@ void Optimization::FinalizeStoreResults()
   // after the last CommitIteration the iteration counter was incremented
   bool store = (int) currentIteration-1 != lastStoredResult_ && currentIteration > 1;
   LOG_DBG(opt) << "CheckFinalStoreResults: currentIteration=" << currentIteration << " lastStoredResult="
-               << lastStoredResult_ << " store=" << store;
+               << lastStoredResult_ << " store=" << store << " writeCounter:" << writeCounter_;
   if(store)
     StoreResults(currentIteration-1);
 }
@@ -1104,13 +1106,18 @@ PtrParamNode Optimization::CommitIteration()
     *log.file << endl;
 
   // this writes the most current solved forward problem via the driver to gid or whatever
+  // keep "commitStride == 1 || " for readability!
   bool store = currentIteration == 0 || commitStride == 1 || ((commitStride > 0) && currentIteration % commitStride == 0);
   LOG_TRACE2(opt) << "CI: " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
-  if(store)
-  {
+  if(store) {
     StoreResults();
     lastStoredResult_ = currentIteration;
     // see FinalizeStoreResults() !
+  }
+  else {
+    context->GetDriver()->GetResultHandler()->streamOnly = true;
+    StoreResults();
+    context->GetDriver()->GetResultHandler()->streamOnly = false;
   }
 
   // IPOPT does own logging -> otherwise show the user we are alive
@@ -1124,9 +1131,6 @@ PtrParamNode Optimization::CommitIteration()
 
   currentIteration++;
   problemWithinIteration = 0;
-
-  // write the current info file, if the writing frequency is not too high.
-  domain->GetInfoRoot()->ToFile();
 
   return iteration;
 }
@@ -1178,7 +1182,11 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     Function* f = objectives.data[i];
-    iteration->Get(f->ToString())->SetValue(f->GetValue());
+
+    std::stringstream ss;
+    ss << std::setprecision(10) << f->GetValue();
+
+    iteration->Get(f->ToString())->SetValue(ss.str());
     if(f->GetType() == Function::BANDGAP)
     {
       // we search with the wave vectors for minimun and maximum

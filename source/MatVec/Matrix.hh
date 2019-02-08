@@ -137,6 +137,9 @@ namespace CoupledField
      * @see IsSymmetric(bool) */
     bool IsSymmetric() const;
 
+    /** return true, if the matrix is complex (imag = 0 for all entries). */
+    bool IsComplex() const;
+
     /** symmetry check with eps sensitivity. */
     inline bool IsSymmetric(double eps) const
     {
@@ -610,7 +613,7 @@ namespace CoupledField
     //@{
     
     //! Returns true if \a mat has the same entries as own matrix
-    inline bool operator ==( const Matrix<TYPE> & mat ) const;
+    inline bool operator==( const Matrix<TYPE> & mat ) const;
 
     //! Returns true if \a mat has different entries than own matrix
     inline bool operator!=( const Matrix<TYPE> & mat ) const;

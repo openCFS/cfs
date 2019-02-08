@@ -205,19 +205,6 @@ namespace CoupledField {
       EXCEPTION("Diag_Matrix do not support GetMatrixEntry");
     };
 
-
-    //! Return the diagonal entry of row i
-    inline
-    T& GetDiag( UInt i ) {
-      return data_[i];
-    }
-
-    //! Return the diagonal entry of row i (read only)
-    inline
-    const T& GetDiag( UInt i ) const {
-      return data_[i];
-    }
-
     //! Set the diagonal entry of row i to the value of v
     void SetDiagEntry( UInt i, const T &v ) {
       data_[i] = v;
@@ -228,11 +215,7 @@ namespace CoupledField {
       v = data_[i];
     }
 
-    //! Determine maximum absolute value of diagonal entries
-
-    //! This method determines the the maximal absolute value (on the scalar)
-    //! level of the entries on the main diagonal of the matrix.
-    Double GetMaxDiag() const;
+    T GetDiagEntry(unsigned int row) const { return data_[row]; }
 
     //! This routine adds the value of v to the matrix entry at (i,j)
 

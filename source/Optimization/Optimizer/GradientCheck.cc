@@ -9,7 +9,6 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
-#include "Driver/Assemble.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
@@ -19,6 +18,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Optimizer/GradientCheck.hh"
+#include "Optimization/Excitation.hh"
 #include "PDE/BasePDE.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/tools.hh"
@@ -30,6 +30,10 @@ DECLARE_LOG(optimizer)
 GradientCheck::GradientCheck(Optimization* optimization, PtrParamNode pn) :
   BaseOptimizer(optimization, pn, Optimization::GRADIENT_CHECK)
 {
+  Context* ctxt = Optimization::context;
+  assert(ctxt->GetExcitation() != NULL);
+  ctxt->GetExcitation()->reassemble = true;
+
   // reduce to our actual ParamNode
   pn = pn->Get(Optimization::optimizer.ToString(Optimization::GRADIENT_CHECK),
       ParamNode::PASS);
@@ -42,18 +46,18 @@ GradientCheck::GradientCheck(Optimization* optimization, PtrParamNode pn) :
 
   DesignElement& de = design->data[0];
 
-  finite_diff_result_index_ = design->GetSpecialResultIndex(de.DEFAULT,
-      de.COST_GRADIENT, de.FINITE_DIFF_COST_GRADIENT, de.PLAIN);
-  error_result_index_ = design->GetSpecialResultIndex(de.DEFAULT,
-      de.COST_GRADIENT, de.ERROR_COST_GRADIENT, de.PLAIN);
+  // here we modify the variables */
+  design_values.Resize(design->GetNumberOfVariables()); // shall include also slack variables, ...
+  design->WriteDesignToExtern(design_values.GetPointer());
+
+  finite_diff_result_index_ = design->GetSpecialResultIndex(de.DEFAULT, de.COST_GRADIENT, de.FINITE_DIFF_COST_GRADIENT, de.PLAIN);
+  error_result_index_ = design->GetSpecialResultIndex(de.DEFAULT, de.COST_GRADIENT, de.ERROR_COST_GRADIENT, de.PLAIN);
 
   PostInitScale(1.0, true);
 
-  info_->Get(ParamNode::HEADER)->Get("type")->SetValue(
-      Optimization::optimizer.ToString(Optimization::GRADIENT_CHECK));
+  info_->Get(ParamNode::HEADER)->Get("type")->SetValue(Optimization::optimizer.ToString(Optimization::GRADIENT_CHECK));
   info_->Get(ParamNode::HEADER)->Get("h")->SetValue(h);
-  info_->Get(ParamNode::HEADER)->Get("order")->SetValue(order == 1 ? "first"
-      : "second");
+  info_->Get(ParamNode::HEADER)->Get("order")->SetValue(order == 1 ? "first" : "second");
 }
 
 void GradientCheck::SolveProblem()
@@ -62,14 +66,15 @@ void GradientCheck::SolveProblem()
       << (order == 1 ? "first" : "second") << " order)" << std::endl;
 
   if (finite_diff_result_index_ == -1 || error_result_index_ == -1)
-    info_->SetWarning(
-        "Not all results defined for finite difference (value='costGradient' detail='...')");
+    info_->SetWarning("Not all results defined for finite difference (value='costGradient' detail='...')");
 
   // solve the original problem once!!
+  optimizer_timer_->Stop();
   optimization->SolveStateProblem();
   double curr_obj = optimization->CalcObjective();
   optimization->SolveAdjointProblems();
   optimization->CalcObjectiveGradient(NULL);
+  optimizer_timer_->Start();
 
   // store here the finite difference value
   Vector<double> finite;
@@ -83,31 +88,35 @@ void GradientCheck::SolveProblem()
   Vector<double> error;
   error.Resize(design->data.GetSize());
 
+  PtrParamNode in = info_->Get(ParamNode::PROCESS)->Get("gradientCheck");
+  in->Get("total")->SetValue(design->data.GetSize());
+  PtrParamNode cg = in->Get("costGradient", ParamNode::APPEND);
+
+  Context* ctxt = Optimization::context;
+  AnalysisID& id = ctxt->GetDriver()->GetAnalysisId();
+
   // perform a lot of calculations
   for (unsigned int i = 0; i < design->data.GetSize(); i++)
   {
+    id.step = i+1;
+
     DesignElement* de = &design->data[i];
 
     // expensive!!
-    // store only the latest so progress can ge checked
-    PtrParamNode in = info_->Get(ParamNode::PROCESS)->Get("current");
-    in->Get("pos")->SetValue(i+1);
-    in->Get("total")->SetValue(design->data.GetSize());
-    PtrParamNode cg = in->Get("costGradient");
-
+    // store only the latest so progress can get checked
     finite[i] = PerformFiniteDifferenceEval(de, curr_obj, cg);
-    analytical[i] = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN);
-    error[i] = finite[i] != 0.0 ? ((finite[i] - analytical[i]) / finite[i])
-        : std::numeric_limits<double>::max();
+    analytical[i] = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
+    error[i] = finite[i] != 0.0 ? ((finite[i] - analytical[i]) / finite[i]) : std::numeric_limits<double>::max();
 
+    cg->Get("id")->SetValue(i+1);
     cg->Get("grad")->SetValue(analytical[i]);
     cg->Get("fd_grad")->SetValue(finite[i]);
     cg->Get("diff")->SetValue(finite[i] - analytical[i]);
     if (finite[i] != 0.0) {
-      cg->Get("error")->SetValue((finite[i] - analytical[i]) / finite[i]);
+      cg->Get("rel_error")->SetValue((finite[i] - analytical[i]) / finite[i]);
       cg->Get("factor")->SetValue(analytical[i] / finite[i]);
     } else {
-      cg->Get("error")->SetValue("finite difference is zero");
+      cg->Get("rel_error")->SetValue("finite difference is zero");
       cg->Get("factor")->SetValue("finite difference is zero");
     }
   }
@@ -126,16 +135,17 @@ void GradientCheck::SolveProblem()
 
 double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x, PtrParamNode in)
 {
-  Assemble* ass = Optimization::context->pde->GetAssemble();
+  assert(Optimization::context->GetExcitation()->reassemble == true);
 
   double f_x1 = 0.0, f_x2 = 0.0, fd = 0.0;
   // in first order we always perform a forward fifference quotient
   // if we are to close to the max value we step back.
   // Two things have to be considered:
   // - make sure f_x can be reused
-  // - take care with foreard and backward differences for this case.
+  // - take care with forward and backward differences for this case.
 
   double x_org = de->GetDesign(DesignElement::PLAIN);
+  assert(x_org == design_values[de->GetIndex()]);
 
   // consider first order
   double x_eval_1 = x_org + h <= de->GetUpperBound() ? x_org + h : x_org - h;
@@ -159,9 +169,9 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x,
   // x_dir_2 = 1  : x_min .. x_eval_2 .. x_org .. x_eval_1
   // x_dir_2 = -1 : x_min .. x_org .. x_eval_2 .. x_eval_1    
 
-  // forward  fifference quotient: D_+(x_0) = h^-1 ( f(x_0+h)-f(x_0) )
-  // backward fifference quotient: D_-(x_0) = h^-1 ( f(x_0)-f(x_0-h) )
-  // central difference quotient: D(x_0)   = 2 h^-1 ( f(x_0+h) - f(x_0+h) ) 
+  // forward  difference quotient: D_+(x_0) = h^-1 ( f(x_0+h)-f(x_0) )
+  // backward difference quotient: D_-(x_0) = h^-1 ( f(x_0)-f(x_0-h) )
+  // central difference quotient: D(x_0)   = 2 h^-1 ( f(x_0+h) - f(x_0-h) )
 
   // note! in second order case we can do only one evaluation for x_dir_1/2 = -1!
   if (order == 2)
@@ -175,27 +185,35 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x,
   // calc forward value not with degenerated second order case
   if (order == 1 || x_dir_1 == 1)
   {
-    de->SetDesign(x_eval_1);
-    ass->SetAllReassemble(); // tell assemble design has changed
+    design_values[de->GetIndex()] = x_eval_1;
+    design->ReadDesignFromExtern(design_values); // communicate the change
+
+    LOG_DBG(optimizer) << "PFDE: " << design->ToString(1);
+
+    optimizer_timer_->Stop();
     optimization->SolveStateProblem();
     optimization->SolveAdjointProblems();
     f_x1 = optimization->CalcObjective();
+    optimizer_timer_->Start();
   }
 
   // do not calc degenerated second order case
   assert(!(x_dir_1 == -1 && x_dir_2 == -1));
   if (order == 2 && x_dir_2 == 1)
   {
-    de->SetDesign(x_eval_2);
-    ass->SetAllReassemble(); // tell assemble design has changed
+    design_values[de->GetIndex()] = x_eval_2;
+    design->ReadDesignFromExtern(design_values); // communicate the change
+
+    optimizer_timer_->Stop();
     optimization->SolveStateProblem(); // expensive
     optimization->SolveAdjointProblems();
     f_x2 = optimization->CalcObjective();
+    optimizer_timer_->Start();
   }
 
   // reset design
-  de->SetDesign(x_org);
-  ass->SetAllReassemble(); // tell assemble design has changed
+  design_values[de->GetIndex()] = x_org;
+  design->ReadDesignFromExtern(design_values); // communicate the change
 
   if (order == 1)
   {
@@ -220,12 +238,12 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x,
     }
   }
 
-  in->Get("actual_order")->SetValue(order == 1 || x_dir_1 == -1 || x_dir_2
-      == -1 ? "first" : "second");
+  in->Get("actual_order")->SetValue(order == 1 || x_dir_1 == -1 || x_dir_2 == -1 ? "first" : "second");
 
-  LOG_DBG3(optimizer)
-    <<  "PFDE: elem=" << de->elem->elemNum << " x_org=" << x_org
-    << " order=" << order << " x_eval_1=" << x_eval_1 << " x_dir_1=" << x_dir_1 << " f_x1=" << f_x1
+  LOG_DBG(optimizer)
+    <<  "PFDE: elem=" << de->elem->elemNum
+    << " x_org=" << x_org << " order=" << order << " f_x=" << f_x
+    << " x_eval_1=" << x_eval_1 << " x_dir_1=" << x_dir_1 << " f_x1=" << f_x1
     << " x_eval_2=" << x_eval_2 << " x_dir_2=" << x_dir_2 << " f_x2=" << f_x2
     << " fd=" << fd << " f_grad=" << de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN);
 

@@ -220,8 +220,7 @@ namespace CoupledField {
           DefCouplIntNC( "AcouMechPresStiffCouplingIntNC", false, -1.0, STIFFNESS, dispFct,
                        acouFct, ncIf, oneCoefFuncs );
 
-          DefCouplIntNC( "AcouMechPresMassCouplingIntNC", false, 1.0, MASS, acouFct,
-        		       dispFct, ncIf, coefFuncs );
+          DefCouplIntNC( "AcouMechPresMassCouplingIntNC", false, 1.0, MASS, acouFct, dispFct, ncIf, coefFuncs );
           break;
 
         default:

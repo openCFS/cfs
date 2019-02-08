@@ -7,7 +7,7 @@
 #-------------------------------------------------------------------------------
 set(openblas_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/openblas")
 set(openblas_source  "${openblas_prefix}/src/openblas")
-set(openblas_install  "${CFS_BINARY_DIR}/tmp/openblas_target")
+# we need no openblas_install as we build directly to CMAKE_CURRENT_BINARY_DIR and select the files to zip from the manifest
 
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
@@ -17,28 +17,20 @@ set(openblas_install  "${CFS_BINARY_DIR}/tmp/openblas_target")
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://github.com/xianyi/OpenBLAS/archive/${OPENBLAS_GZ}"
-  "${OPENBLAS_URL}/${OPENBLAS_GZ}"
+  "http://github.com/xianyi/OpenBLAS/archive/${OPENBLAS_ZIP}"
+  "${OPENBLAS_URL}/${OPENBLAS_ZIP}"
 )
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/openblas/${OPENBLAS_GZ}")
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/openblas/${OPENBLAS_ZIP}")
 SET(MD5_SUM ${OPENBLAS_MD5})
 
 SET(DLFN "${openblas_prefix}/openblas-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
-  
-#-------------------------------------------------------------------------------
-# currently we don't use the openblas cmake interface, therefore the patch is not used
-# Basically add the option CFS_TARGET_LIB to Makefile.install
-#-------------------------------------------------------------------------------
-#SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/openblas/openblas-patch.cmake.in")
-#SET(PFN "${openblas_prefix}/openblas-patch.cmake")
-#CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
-# using no cmake build we make do difference between debug and release build 
-PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_VER}")
+# do make a difference between debug and release build since we are using cmake now 
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_REV}")
 
-# not using cmake build (see above) we don't use manifuest and copy the   
-SET(TMP_DIR "${openblas_install}")
+# we need to set TMP_DIR for ZIP_TO_CACHE, read in cfsdeps_zipToCache.cmake.in such that ZIP_TO_CACHE finds  cfsdeps/openblas/src/openblas/install_manifest.txt
+SET(TMP_DIR "${openblas_prefix}")
 
 SET(ZIPFROMCACHE "${openblas_prefix}/openblas-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
@@ -76,10 +68,14 @@ ELSE()
     URL ${LOCAL_FILE}
     URL_MD5 ${OPENBLAS_MD5}
     BUILD_IN_SOURCE 1
-    PATCH_COMMAND "" # at the moment only make and no cmake version ${CMAKE_COMMAND} -P "${PFN}" 
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND  ${CMAKE_MAKE_PROGRAM} DYNAMIC_ARCH=1 libs netlib # netlib seems to add lapack which we also need, DYNAMIC_ARCH=1 creates binaries portable to diffrent CPU architectures 
-    INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install NO_SHARED=1 "PREFIX=${openblas_install}" 
+    PATCH_COMMAND ""
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+      -DCMAKE_SYSTEM_PROCESSOR:STRING=x86_64
+      -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}
+      -DCMAKE_INSTALL_LIBDIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/lib64/${CFS_ARCH_STR}
+      -DDYNAMIC_ARCH=1
+      -E
   )
   
   #-------------------------------------------------------------------------------
@@ -123,6 +119,10 @@ SET(LAPACK_LIB "${BLAS_LIB}")
 
 SET(OPENBLAS_LIBRARY_DEBUG ${BLAS_LIB} CACHE FILEPATH "OpenBLAS library.")
 SET(OPENBLAS_LIBRARY_RELEASE  ${BLAS_LIB} CACHE FILEPATH "OpenBLAS library.")
+
+# include direcory
+SET(OPENBLAS_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/openblas" CACHE PATH "OpenBLAS include directory.")
+MARK_AS_ADVANCED(OPENBLAS_INCLUDE_DIR)
 
 #-------------------------------------------------------------------------------
 # Mark paths of OPENBLAS libraries as advanced.

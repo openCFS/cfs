@@ -22,7 +22,6 @@
 #define FILE_RHS_BDUINTEGRATOR_
 
 #include "LinearForm.hh"
-#include <boost/tr1/type_traits.hpp>
 #include "Domain/CoefFunction/CoefFunction.hh"
 
 
@@ -73,7 +72,7 @@ public:
   void CalcElemVector(Vector<VEC_DATA_TYPE> & elemVec,EntityIterator& ent);
 
   bool IsComplex() const {
-    return std::tr1::is_same<VEC_DATA_TYPE,Complex>::value;
+    return std::is_same<VEC_DATA_TYPE,Complex>::value;
   }
 
   virtual void SetFeSpace(shared_ptr<FeSpace> feSpace ){

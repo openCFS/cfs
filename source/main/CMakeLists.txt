@@ -46,6 +46,14 @@ IF(USE_PHIST_EV OR USE_PHIST_CG)
   LIST(APPEND TARGET_LL ${CUDA_LIBS} ${HWLOC_LIBRARY})
 ENDIF()
 
+IF(MKL_BLAS_LIB)
+  LIST(APPEND TARGET_LL ${MKL_BLAS_LIB})
+ENDIF(MKL_BLAS_LIB)
+
+IF(DEPS_SEQUENTIAL)
+  LIST(APPEND TARGET_LL ${DEPS_SEQUENTIAL})
+ENDIF(DEPS_SEQUENTIAL)
+
 # lapack is in NETLIB, OPENBLAS and MKL
 # LIST(APPEND TARGET_LL -lpthread -lquadmath )
 
@@ -71,20 +79,5 @@ ENDIF()
 
 # Target link libraries for CFS++ executable target.
 TARGET_LINK_LIBRARIES(cfsbin ${TARGET_LL})
-
-# Prevents undefined reference to `pci_system_init', ...
-# Prevents undefined reference to `pci_system_init', ...
-# required by hwloc. Strange that this is not already necessary for USE_GHOST. 
-
-
-if(USE_PHIST_EV OR USE_PHIST_CG)
-  set(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -lpciaccess -ludev")
-endif()
-
-
-
-
-
-
 
 SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

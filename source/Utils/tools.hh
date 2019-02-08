@@ -16,6 +16,11 @@
   #define M_PI boost::math::constants::pi<double>()
 #endif
 
+#include "def_use_openmp.hh"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 
 namespace CoupledField {
 
@@ -346,6 +351,27 @@ namespace CoupledField {
    * e.g. s=1,e=4,n=4: -> 1e1, 1e2, 1e3, 1e4 or s=2, e=-2, n=5 -> 1e2, 1e1, 1e0, 1e-1, 1e-2
    * is actually std::pow(10, Linspace(s,e,n)) */
   Vector<double> LogspaceBase(double start_exponent, double end_exponent, int n);
+
+  // omp_get_thread_num
+ inline unsigned int GetThreadNum()
+  {
+#ifdef USE_OPENMP
+   return omp_get_thread_num();
+   #else
+     return 0;
+   #endif
+
+  }
+
+  inline bool UseOpenMP()
+  {
+    #ifdef USE_OPENMP
+      return true;
+    #else
+      return false;
+    #endif
+  }
+
 
 } // end of CoupledField
 

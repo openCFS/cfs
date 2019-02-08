@@ -15,3 +15,4 @@ ADD_LIBRARY(graph-olas STATIC ${GRAPH_SRCS})
 
 TARGET_LINK_LIBRARIES(graph-olas ${METIS_LIBRARY})
 
+ADD_DEPENDENCIES(graph-olas boost)

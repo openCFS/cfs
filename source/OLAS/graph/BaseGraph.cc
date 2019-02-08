@@ -1,3 +1,4 @@
+#include "General/defs.hh"
 #include <iostream>
 #include <cmath>
 #include <vector>
@@ -20,7 +21,6 @@ using namespace boost::accumulators;
 extern "C"{
 #include "metis.h"
 }
-
 #endif
 
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -118,8 +118,8 @@ namespace CoupledField {
   // ***********************
   //   AddVertexNeighbours
   // ***********************
-  void BaseGraph::AddVertexNeighbours( std::vector<UInt> vertexList,
-                                       std::vector<UInt> neighbourList ) {
+  void BaseGraph::AddVertexNeighbours( std::vector<UInt>& vertexList,
+                                       std::vector<UInt>& neighbourList ) {
 
     // For each vertex in vertexList add all vertices in the neighbourList
     // as neighbours / edges

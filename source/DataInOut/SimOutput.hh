@@ -88,6 +88,9 @@ namespace CoupledField {
     //! Finalize the output
     virtual void Finalize() {};
 
+    //! If this is a streaming class, default false
+    virtual bool IsStreaming() {return false;}
+
     //! Fill global vector
     template <class TYPE>
     static void FillGlobalVec(Vector<TYPE>& gSol, 

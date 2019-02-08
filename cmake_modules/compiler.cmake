@@ -99,7 +99,7 @@ IF(OPENMP_FOUND)
   #-----------------------------------------------------------------------------
   IF(USE_OPENMP)
     SET(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS}")
+    SET(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CFS_CXX_FLAGS}")
     # MESSAGE("Use OpenMP-Flags ${OpenMP_C_FLAGS}")
     # sets to -qopenmp for icc and -fopenmp for gcc
   ENDIF()
@@ -116,7 +116,8 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
 
   # we assue C++11 for CFS for any compiler
-  SET(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+  SET(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+  SET(CFSDEPS_CXX_FLAGS "-std=c++11 ${CFSDEPS_CXX_FLAGS}")
   SET(CFS_C_FLAGS "-std=c11")
   
   #-----------------------------------------------------------------------------
@@ -134,6 +135,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     # -frounding-math: is needed for CGAL library
     IF(USE_CGAL)
       SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math")
+      SET(CFSDEPS_CXX_FLAGS "-frounding-math ${CFSDEPS_CXX_FLAGS}")
     ENDIF(USE_CGAL)
 
     SET(CHECK_MEM_ALLOC 1)
@@ -151,7 +153,9 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   # Disable some annoying warnings.
   # note we have at least gcc 4.8
   # -Wno-overflow because of /boost/iostreams/filter/gzip.hpp:674:13: error: overflow in implicit constant conversion [-Werror=overflow]
-  SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-deprecated -Wno-attributes -Wno-unused-local-typedefs -Wno-overflow")
+  # -Wno-parentheses because of boost 1.67: warning: unnecessary parentheses in declaration of 'assert_not_arg' [-Wparentheses]
+  SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-parentheses ")
+  # stuff that was removed with boost 1.67: -Wno-strict-aliasing -Wno-deprecated -Wno-attributes -Wno-unused-local-typedefs -Wno-overflow
 
   IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "5.0") # there is no >= and also there is no 5.0.0.0
     # /home/fwein/code/trunk/cfs/debug/include/boost/archive/detail/iserializer.hpp:65:1: error: this use of "defined" may not be portable [-Werror=expansion-to-defined] 
@@ -173,7 +177,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND CFS_CXX_COMPILER_VER VERSION_GREATER "7.0")
     # on macOS with gcc-7.1 
     # /include/boost/archive/detail/iserializer.hpp:208:9: error: this use of "defined" may not be portable  #if DONT_USE_HAS_NEW_OPERATOR
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-expansion-to-defined") 
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-expansion-to-defined")
   ENDIF()
   
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
@@ -280,14 +284,24 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc
     # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
     # It's anoying that intel depends on the system stdlib :(
     SET(CFS_CXX_FLAGS "-std=c++11 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
+    SET(CFSDEPS_CXX_FLAGS "-std=c++11 -g ${CFSDEPS_CXX_FLAGS}")
     SET(CHECK_MEM_ALLOC 1)
   ELSE()
     # release case
     SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
     # see above with -std=c++11
     SET(CFS_CXX_FLAGS "-std=c++11 -w0 -Werror ${CFS_CXX_FLAGS}")
+    SET(CFSDEPS_CXX_FLAGS "-std=c++11 -w0 ${CFSDEPS_CXX_FLAGS}")
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
   ENDIF()
+
+  # Fall back to GCC 7 in case of GCC 8 installed because ICC currently does not work with GCC 8 headers
+  # If we have newest intel compiler we assume that we have newest gcc as well
+  #IF(CFS_CXX_COMPILER_VER VERSION_GREATER "2018.0.0")
+    SET(CFS_C_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_CXX_FLAGS}")
+    SET(CFSDEPS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFSDEPS_CXX_FLAGS}")
+  #ENDIF()
   
   #---------------------------------------------------------------------------
   # Disable warnings about hidden overriden functions of base classes,

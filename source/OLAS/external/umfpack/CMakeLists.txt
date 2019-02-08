@@ -12,3 +12,5 @@ SET(TARGET_LL
   ${CFS_FORTRAN_LIBS})
 
 TARGET_LINK_LIBRARIES(umfpack-olas ${TARGET_LL})
+
+ADD_DEPENDENCIES(umfpack-olas boost)

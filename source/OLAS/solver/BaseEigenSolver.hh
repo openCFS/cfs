@@ -268,7 +268,6 @@ namespace CoupledField {
       modeNormalization_ = normType;
     }
 
-
   protected: 
 
     //! Pointer to solution strategy object

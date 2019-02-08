@@ -105,6 +105,7 @@ namespace CoupledField {
     //! Tell Assemble to Reassemble all the matrices the next time (done on init and from Optimization)
     void SetAllReassemble(){ CheckNonLinearities(true); }
 
+    void DisableMatrixAssembly();
     //! Query if matrix related to BiLinearForm is symmetric
     bool IsFEMatSymmetric(  BiLinFormContext* ctx );
     
@@ -120,6 +121,9 @@ namespace CoupledField {
 
     /** Append info about registered (bi)linearforms */
     void ToInfo(PtrParamNode in);
+
+    //Sets a flag to skip eleme assembly for std matrix case
+    void SkipElemAssembly();
 
     //! Stops the timer in a multiharmonic analysis. It was started in InitMultHarm
     void TimerStop();
@@ -282,6 +286,10 @@ namespace CoupledField {
     
     //! Flag, if progress bar should be printed
     bool printProgressBar_;
+
+    //flag for skipping element assembly when using petsc geometric multigrid
+    bool skipElemAssembly_;
+
   };
 }
 #endif

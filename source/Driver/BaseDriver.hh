@@ -90,6 +90,8 @@ namespace CoupledField
 
     PtrParamNode GetParam() { return param_; }
 
+    ResultHandler* GetResultHandler() { return handler_; }
+
     //! Compute the index of a given harmonic
     virtual UInt IndexOfHarmonic(const Integer& harmonic){
       EXCEPTION("IndexOfHarmonic not implemeted here in the baseclass!");
@@ -108,7 +110,6 @@ namespace CoupledField
       EXCEPTION("IsFullSystem() not implemented here in the baseclass!");
     }
 
-
   protected:
     
     //! type of analysis
@@ -124,7 +125,7 @@ namespace CoupledField
     AnalysisID analysis_id_;
 
     //! Pointer to simulation domain
-    Domain * domain_;
+    Domain* domain_;
 
     //! current analysis step in a multiSequence analysis
     UInt sequenceStep_;

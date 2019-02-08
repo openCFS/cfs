@@ -1,4 +1,4 @@
-function [nodes,elems,BCs] = readmesh(meshfile)
+function [nodes,elems,BCs,regions] = readmesh(meshfile)
 
 [~,~,ext] = fileparts(meshfile);
 
@@ -53,31 +53,64 @@ if strcmp(ext,'.mesh')
     end
     fgetl(fid);
     fgetl(fid);
+    
+    elems = [];
+    regions = [];
 
     % Read 2D elements
     if numTriangle > 0
-        elems = fscanf(fid,'%d 4 3 mech\n%d %d %d',[4,numTriangle]);
-        elems = elems(2:4,:)';
+        elems = fscanf(fid,'%d 4 3 %d\n%d %d %d',[5,numTriangle]);
+        regions = elems(2,:)';
+        elems = elems(3:end,:)';
     end
     if numTriangleQuad > 0
-        elems = fscanf(fid,'%d 5 3 mech\n%d %d %d',[4,numTriangleQuad]);
-        elems = elems(2:4,:)';
+        elems = fscanf(fid,'%d 5 3 %d\n%d %d %d',[5,numTriangleQuad]);
+        regions = elems(2,:)';
+        elems = elems(3:end,:)';
     end
     if numQuadr > 0
-        elems = fscanf(fid,'%d 6 4 mech\n%d %d %d %d',[5,numQuadr]);
-        elems = elems(2:5,:)';
-    %     elems = fscanf(fid,'%d 6 4 region%d\n %d %d %d %d',[6,num2DElems]);
-    %     elems = elems(3:6,:)';
+        elems = fscanf(fid,'%d 6 4 %d\n%d %d %d %d',[6,numQuadr]);
+        regions = elems(2,:)';
+        elems = elems(3:end,:)';
     end
 
     % Jump to BC section
-    while isempty(strfind(line,'[Node BC]')) && ~feof(fid)
+    while isempty( strfind(line,'[Node BC]')) && ~feof(fid)
         line = fgetl(fid);
     end
-    fgetl(fid);
-
+    
     % Read BCs
+    % bcs may be decoded in numbers or named like in bc_strings
+    bc_strings = {'border','controlpoints','bottom','up','left','right','front','back'};
+    
+    pos_bc = ftell(fid);
+    % node names: 1 border, 2 controlpoints, 3 bottom, 4 top, 5 left, 6 right
+    fgetl(fid);
     BCs = fscanf(fid,'%8d nodes%d\n',[2,numNodeBC]);
+    
+    % : bottom, up, left, right, front, back
+    if size(BCs,2) ~= numNodeBC
+        BCs = [];
+        for ii=1:length(bc_strings)
+            fseek(fid,pos_bc,'bof');
+            pos = ftell(fid);
+            line = fgetl(fid);
+            while isempty( strfind(line, bc_strings{ii})) && ~feof(fid)
+                pos = ftell(fid);
+                line = fgetl(fid);
+            end
+            fseek(fid,pos,'bof');
+            [bc_nodes, count] = fscanf(fid,['%8d ',bc_strings{ii},'\n']);
+            % Check if we read too far
+            line = fgetl(fid);
+            if any( strcmp(bc_strings, line))
+                bc_nodes = bc_nodes(1:end-1);
+                count = count - 1;
+            end
+            bc_nodes = [bc_nodes'; ii*ones(1,count)];
+            BCs = [BCs, bc_nodes];
+        end
+    end
     BCs = BCs';
     
     fclose(fid);
@@ -107,5 +140,6 @@ else % density file
     nodes = flipud(nodes');
     elems = [];
     BCs = [];
+    regions = [];
     
 end

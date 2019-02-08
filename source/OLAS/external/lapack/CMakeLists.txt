@@ -19,3 +19,4 @@ SET(TARGET_LL
 
 TARGET_LINK_LIBRARIES(lapack-olas ${TARGET_LL})
 
+ADD_DEPENDENCIES(lapack-olas boost)

@@ -38,7 +38,6 @@ else
     density = ones(size(elems,1),1);
 end
 
-
 bcs = bcs(abs(bcs(:,2)-1)>1e-2,:);
 
 % node names: 1 border, 2 controlpoints, 3 bottom, 4 top, 5 left, 6 right

@@ -14,7 +14,7 @@ function catalyst_send() {
 	
 	key = $("#simulation_id").html()
 	
-	$.ajax({
+	/*$.ajax({
 		url : "/catalyst_send/" + key,
 		data : {
 			"key" : key,
@@ -27,7 +27,7 @@ function catalyst_send() {
 		},
 		traditional : true,
 		timeout : 1000 // timeout of 1 second
-	});
+	});*/
 }
 
 $( document ).ready(function() {
@@ -47,6 +47,13 @@ $( document ).ready(function() {
 	}
 	
 	$("#catalyst_send_button").click(catalyst_send());
+	
+	$("#disable_results").click(function() {
+		$("input[name='result_selector_view']").prop('checked', false);
+		$("input[name='result_selector_view_bloch']").prop('checked', false);
+	    trigger_update(false);
+		//$("input[name='result_selector_view']:checked").buttonset('refresh');
+	});
 	
 	continuous = false; // default for finished or abortet functions
 	

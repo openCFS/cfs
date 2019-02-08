@@ -266,7 +266,10 @@ def get_interpolation(coords, grad, sample, s1, s2, angle=None):
 # # visualize the orientational stiffness
 # @param grad is 'none' or 'linear'
 # @return the image
-def show_frame_grad(coords, s1, s2, grad, direction, nx):
+def show_frame_grad(coords, design, grad, direction, nx):
+  
+  s1 = design['s1']
+  s2 = design['s2']
 
   centers, min, max, elem = coords
   im, draw, dim, dx, dy = create_image(min, max, nx, "white")
@@ -341,7 +344,11 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
 
 # # visualize the orientational stiffness
 # @return the image
-def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale, do_save):
+def show_rot_cross_grad(coords, design, grad, direction, nx, scale, do_save):
+  
+  s1 = design['s1']
+  s2 = design['s1']
+  angle = design['angle']
 
   centers, min, max, elem = coords
   fig, sub = create_figure(min, max, nx, do_save)
@@ -376,8 +383,12 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale, do_sa
 
   return (fig, sub)
 
-def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_save):
+def show_modified_frame(coords, design, direction, nx, scale, color, do_save):
     #TODO: implement scale
+  s1 = design['s1']
+  s2 = design['s1']
+  angle = design['angle']
+
   centers, min, max, elem = coords
   im, draw, dim, dx, dy = create_image(min, max, nx, "black")
   height = elem[1] * dy 
@@ -417,9 +428,15 @@ def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_s
         if i - offx < r and j >= int(height+eps) - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
           pix[int(x_off+i+eps),int(y_off+j+eps)] = (0,0,0)
   return im 
+
 # visualizes the oriental stiffness as frame with smooth inner corners; creates a vector image
-def show_modified_frame_old(coords, s1, s2, angle, direction, nx, scale, color, do_save):
+def show_modified_frame_old(coords, design, direction, nx, scale, color, do_save):
   print('image is only correct if eps<= s1,s2 <= 0.5, otherwise scaling is necessary; rotation is not implemented currently')
+
+  s1 = design['s1']
+  s2 = design['s1']
+  angle = design['angle']
+
   s1 /= 2.
   s2 /= 2.
   centers, min, max, elem = coords
@@ -506,7 +523,11 @@ def show_modified_frame_old(coords, s1, s2, angle, direction, nx, scale, color, 
 # # visualize the orientational stiffness
 # @param grad is 'none' or 'linear'
 # @return the image
-def show_frame(coords, s1, s2, directions, nx,scale):
+def show_frame(coords, design, directions, nx,scale):
+  
+  s1 = design['s1']
+  s2 = design['s2']
+  
   if scale == -1.:
     scale = 1.
   assert(scale <= 1.)
@@ -556,7 +577,11 @@ def show_frame(coords, s1, s2, directions, nx,scale):
 
 
 # @return the image
-def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
+def show_rot_cross(coords, design, direction, nx, scale, color, do_save):
+
+  s1 = design['s1']
+  s2 = design['s1']
+  angle = design['angle']
 
   centers, min, max, elem = coords
   fig, sub = create_figure(min, max, nx, do_save)
@@ -611,7 +636,12 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
   return (fig, sub)
   
 # @return the image
-def show_sheared_rot_cross(coords, s1, s2, sh1, rot_angle, direction, nx, scale, color, do_save):
+def show_sheared_rot_cross(coords, design, direction, nx, scale, color, do_save):
+
+  s1 = design['s1']
+  s2 = design['s1']
+  sh1 = design['sh1']
+  angle = design['angle']
 
   centers, min, max, elem = coords
   
@@ -642,7 +672,7 @@ def show_sheared_rot_cross(coords, s1, s2, sh1, rot_angle, direction, nx, scale,
     c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
     
     #print 'S=' + str(s1[i,0]) + '/' + str(s2[i,0])  + ' v=' + str(v) + ' c=' + str(c)
-    theta = rot_angle[i]
+    theta = angle[i]
     
     if direction == 'horizontal':
       pol = to_rectangle_center(length * v[0], length, theta, x_off, dim[1] - y_off)
@@ -665,7 +695,12 @@ def show_sheared_rot_cross(coords, s1, s2, sh1, rot_angle, direction, nx, scale,
   return (fig, sub)
   
 # @return the image
-def show_cross_bar(coords, s1, s2, s3, angle, direction, nx, scale, color, do_save):
+def show_cross_bar(coords, design, direction, nx, scale, color, do_save):
+
+  s1 = design['s1']
+  s2 = design['s1']
+  s3 = design['s3']
+  angle = design['angle']
 
   centers, min, max, elem = coords
   
@@ -717,7 +752,8 @@ def show_cross_bar(coords, s1, s2, s3, angle, direction, nx, scale, color, do_sa
  
   return (fig, sub)
 
-def show_frame2(coords, microparams, nx, scale, color, do_save):
+def show_frame2(coords, design, nx, scale, color, do_save):
+
   centers, min, max, elem = coords
   fig, sub = create_figure(min, max, nx, do_save)
 
@@ -725,8 +761,8 @@ def show_frame2(coords, microparams, nx, scale, color, do_save):
     scale = -1.02
   length = scale * (elem[0])
   
-  max_val = numpy.max([numpy.max(microparams[0]), numpy.max(microparams[1])])
-  min_val = numpy.min([numpy.min(microparams[0]), numpy.min(microparams[1])])
+  max_val = numpy.max([numpy.max(design[0]), numpy.max(design[1])])
+  min_val = numpy.min([numpy.min(design[0]), numpy.min(design[1])])
   
   if color == 'black':
     sm = 'black'
@@ -734,7 +770,7 @@ def show_frame2(coords, microparams, nx, scale, color, do_save):
     sm = cmx.ScalarMappable(colors.Normalize(min_val, max_val),
         cmap=plt.get_cmap('gray' if color == 'grayscale' else color))
 
-  for i in range(len(microparams[0])):
+  for i in range(len(design[0])):
     coord = centers[i]
 
     x_off = (coord[0] + min[0])
@@ -744,7 +780,7 @@ def show_frame2(coords, microparams, nx, scale, color, do_save):
     v = [0, 0]
     c = [0, 0]
     for t in range(2):
-      v[t] = microparams[t][i, 0] / numpy.max((scale, 1.))
+      v[t] = design[t][i, 0] / numpy.max((scale, 1.))
       c[t] = sm.to_rgba(max_val-v[t]) if not color == 'black' else 'black'
 
     # draw thicker rectangle pair last (on top)
@@ -767,7 +803,7 @@ def show_frame2(coords, microparams, nx, scale, color, do_save):
 
   return (fig, sub)
 
-def show_framed_cross(coords, microparams, nx, scale, color, do_save):
+def show_framed_cross(coords, design, nx, scale, color, do_save):
   centers, min, max, elem = coords
   fig, sub = create_figure(min, max, nx, do_save)
 
@@ -775,10 +811,10 @@ def show_framed_cross(coords, microparams, nx, scale, color, do_save):
     scale = -1.02
   length = scale * (elem[0])
   
-  max_val = numpy.max([numpy.max(microparams[0]), numpy.max(microparams[1]),
-                       numpy.max(microparams[2]), numpy.max(microparams[3])])
-  min_val = numpy.min([numpy.min(microparams[0]), numpy.min(microparams[1]),
-                       numpy.min(microparams[2]), numpy.min(microparams[3])])
+  max_val = numpy.max([numpy.max(design[0]), numpy.max(design[1]),
+                       numpy.max(design[2]), numpy.max(design[3])])
+  min_val = numpy.min([numpy.min(design[0]), numpy.min(design[1]),
+                       numpy.min(design[2]), numpy.min(design[3])])
   
   if color == 'black':
     sm = 'black'
@@ -786,7 +822,7 @@ def show_framed_cross(coords, microparams, nx, scale, color, do_save):
     sm = cmx.ScalarMappable(colors.Normalize(min_val, max_val),
         cmap=plt.get_cmap('gray' if color == 'grayscale' else color))
 
-  for i in range(len(microparams[0])):
+  for i in range(len(design[0])):
     coord = centers[i]
 
     x_off = (coord[0] + min[0])
@@ -796,7 +832,7 @@ def show_framed_cross(coords, microparams, nx, scale, color, do_save):
     v = [0, 0, 0, 0]
     c = [0, 0, 0, 0]
     for t in range(4):
-      v[t] = microparams[t][i, 0] / numpy.max((scale, 1.))
+      v[t] = design[t][i, 0] / numpy.max((scale, 1.))
       c[t] = sm.to_rgba(max_val-v[t]) if not color == 'black' else 'black'
 
     # draw thicker rectangles last (on top)
@@ -856,7 +892,7 @@ def draw_thick_circle(draw, center, radius):
 # # visualize the orientational stiffness
 # @return the image
 def orientational_stiffness(coords, angle, data, nx, scale=-1.0):
-
+  
   centers, min, max, elem = coords
 
   max_val = numpy.max(data[:])
