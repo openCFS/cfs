@@ -37,6 +37,7 @@ namespace CoupledField{
 class CoordSystem;
 class CoefXpr;
 class CoefFunction;
+template < typename TYPE > class CoefFunctionConst;
 class FeSpace;
 class BaseFeFunction;
 
@@ -404,6 +405,14 @@ public:
   virtual bool IsComplex() const {
     return isComplex_;
   }
+
+  /** helper for using simplified CoefFunctionConst interface GetScalar(), ... without lpm.
+   * For performance reason don't use shared pointers, hence don't store the pointer!
+   * Does NOT return a const version but a CoefFunctionCons cast!
+   * To be used like double val = coef->AsConst<double>->GetScalar();
+   * @return NULL if the type is wrong (is just a dynamic cast) */
+  template<class TYPE>
+  CoefFunctionConst<TYPE>* AsConst(bool throw_exception = false);
 
   //! stes the coefFnc as active (just used for inverse source identififcation)
   virtual void SetActive(bool val) {

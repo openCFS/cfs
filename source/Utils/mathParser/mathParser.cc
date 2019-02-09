@@ -528,8 +528,10 @@ namespace CoupledField {
 
     // Register functions from within CFS
     parser.DefineFun("sample1D", Interpolate1D::Interpolate, false );
-    parser.DefineFun("locCoord2D", MathParser::LocCoord2D, false );
-    parser.DefineFun("locCoord3D", MathParser::LocCoord3D, false );
+    // TODO: muParser neeeds to be extended to handle locCoord2D and locCoord2D
+    // via strfun_type4 and strfun_type5. This has just beed added to the current muParser master
+    // parser.DefineFun("locCoord2D", MathParser::LocCoord2D, false );
+//    parser.DefineFun("locCoord3D", MathParser::LocCoord3D, false );
 
     // Register signal generating functions
     parser.DefineFun("sinBurst", SinBurst, false );
