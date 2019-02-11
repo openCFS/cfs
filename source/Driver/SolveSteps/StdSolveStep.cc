@@ -217,7 +217,7 @@ namespace CoupledField {
     //get actual solution
     SBM_Vector  actSol(BaseMatrix::DOUBLE);
     solVec_.Init();
-    actSol = solVec_;
+    actSol = solVec_; // == current solution
     StdVector<std::pair<double, double> > linesearch;
     
     // =================================
@@ -270,8 +270,8 @@ namespace CoupledField {
           solVec_.ScalarMult(-1.0);
           algsys_->UpdateRHS(SYSTEM,solVec_,true);
           solVec_.ScalarMult(-1.0);
+          //Do the three lines above even have an effect since solVec_ == 0?
         }
-        
         
         // assemble Newton bilinear forms
         isNewton = true;
@@ -288,13 +288,14 @@ namespace CoupledField {
         bool setIDBC = false;
         if ( iterationCounter == 1 && couplingIter_ == 0 )
           setIDBC = true;
-        
+        // Solve for rhs = residual
         algsys_->Solve(setIDBC);
         
         // new solution is only an increment of the full solution =============
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
         algsys_->GetSolutionVal( solInc, setIDBC );
+        LOG_DBG2(stdsolvestep) << "solInc = " << solInc.ToString(2);
         
         //compute norms (residual and incremenal ones)
         Double residualL2Norm = 0.0;
@@ -306,6 +307,7 @@ namespace CoupledField {
           actSol.Add(1.0, solInc);
           // store the new solution
           solVec_ = actSol;
+          //LOG_DBG2(stdsolvestep) << "actsol = " << actSol.ToString(2);
           
           //=================compute residual norm
           algsys_->InitRHS(RhsLinVal_);
@@ -317,13 +319,13 @@ namespace CoupledField {
           // setup the matrices
           isNewton = false;
           assemble_->AssembleMatrices(isNewton);
-          
+
           //substract from RHS the term K*sol
           solVec_.ScalarMult(-1.0);
           algsys_->UpdateRHS(SYSTEM,solVec_,true);
           solVec_.ScalarMult(-1.0);
           
-          //get RHS vector
+          //get RHS vector == current residual
           SBM_Vector actRHS(BaseMatrix::DOUBLE);
           algsys_->GetRHSVal( actRHS );
           
@@ -331,9 +333,9 @@ namespace CoupledField {
 
           // calculation of residual error =======================================
           residualL2Norm = actRHS.NormL2();
+          LOG_DBG2(stdsolvestep) << "actRHS = " << actRHS.ToString(2);
           LOG_DBG3(stdsolvestep) << "ResAbsolut: " << residualL2Norm;
-        }
-        else {
+        } else {
           // do line search
           residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
           
@@ -369,7 +371,6 @@ namespace CoupledField {
         performOneMoreStep =
                 (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
         
-        
         if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
           EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
                   << "' in step no '" << iLevel+1 
@@ -388,8 +389,6 @@ namespace CoupledField {
     isNewton = false;
     assemble_->AssembleMatrices(isNewton);
   }
-  
-  
   
   // ======================================================
   // Solve Step Transient SECTION
@@ -411,7 +410,6 @@ namespace CoupledField {
       stageRHS_.GetPointer(id)->Resize(rhsSize);
     }
     stageRHS_.Init();
-    
   }
   
   void StdSolveStep::PreStepTrans() {
@@ -1483,8 +1481,8 @@ namespace CoupledField {
   Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, double& etaLineSearch, bool trans)  {
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
-    const UInt nrEtas = 8; //4
-    const Double eta[nrEtas] = {0.0001, 0.001, 0.01, 0.05, 0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
+    const UInt nrEtas = 4;
+    const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
     
     // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
@@ -1539,7 +1537,7 @@ namespace CoupledField {
       // =====================================================================
       SBM_Vector actRHS(BaseMatrix::DOUBLE);
       algsys_->GetRHSVal( actRHS );
-      //LOG_DBG3(stdsolvestep) << "solVec_= " << solVec_.ToString(2);
+      LOG_DBG2(stdsolvestep) << "actrhs = " << actRHS.ToString(2);
       
       // calculation of residual error =======================================
       Double residualL2Norm = actRHS.NormL2();
