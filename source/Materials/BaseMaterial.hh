@@ -79,10 +79,8 @@ namespace CoupledField {
     
     //@{ \name public typedefs
     typedef std::map<MaterialType, Matrix<Complex> > tensorMap;
-    typedef std::map<MaterialType, Vector<Complex> > vectorMap;
     typedef std::map<MaterialType, Complex > scalarMap;
     typedef std::map<MaterialType, std::string > stringMap;
-    typedef std::map<MaterialType, Integer > integerMap;
     typedef std::map<MaterialType, MathParser::HandleType > handleMap;
     typedef std::map<MaterialType, PtrCoefFct> CoefMap;
     typedef std::map<MaterialType, MatDescriptorNl> nonLinIsoMap;
@@ -242,10 +240,10 @@ namespace CoupledField {
     virtual void SetScalar(const std::string& param, MaterialType matType);
 
     //! set a scalar integer material parameter
-    virtual void SetScalar(int param, MaterialType matType);
+    // virtual void SetScalar(int param, MaterialType matType);
 
     //! set a scalar real material parameter
-    virtual void SetScalar(double param, MaterialType matType, Global::ComplexPart dataType ) 
+    virtual void SetScalar(double param, MaterialType matType, Global::ComplexPart dataType = Global::REAL)
     {
      EXCEPTION("not implemented for " << materialDatabaseName_);
     };
@@ -295,16 +293,8 @@ namespace CoupledField {
     //! get a string material parameter
     virtual void GetScalar( std::string& param, MaterialType matType) const;
     
-    //! get a integer material parameter
-    virtual void GetScalar( Integer& param, MaterialType matType) const
-    {
-      EXCEPTION("not implemented for " << materialDatabaseName_);
-    }
-    
-    void GetScalar( Integer& param, MaterialType matType, Global::ComplexPart dataType) const;
-
     //! get a scalar real material parameter
-    virtual void GetScalar( Double& param, MaterialType matType, Global::ComplexPart dataType ) const 
+    virtual void GetScalar( Double& param, MaterialType matType, Global::ComplexPart dataType = Global::REAL) const
     {
       EXCEPTION("not implemented for " << materialDatabaseName_);
     }
@@ -534,9 +524,6 @@ namespace CoupledField {
     //! map, which knows about the material data defined by strings
     stringMap stringParams_;
 
-    //! map, which knows about the material data defined by strings
-    integerMap integerParams_;
-
     //! map, which knows about the scalar material parameters being set during read in 
     scalarMap scalarParams_;
     
@@ -553,7 +540,7 @@ namespace CoupledField {
     handleMap scalarStringHandlesImag_;
         
     //! map, which knows about the actual tensorial material parameters 
-    vectorMap vectorParams_;
+    typedef std::map<MaterialType, Vector<Complex> > vectorParams_;
 
     //! map, which knows about the actual tensorial material parameters 
     tensorMap tensorParams_;
@@ -583,22 +570,22 @@ namespace CoupledField {
     CoefMap scalarCoef_;
     
     //! Pointer to math parser instance
-    MathParser *  mp_;
+    MathParser*  mp_;
     
     //! Pointer to attaches coordinate system
-    CoordSystem * coosy_;
+    CoordSystem* coosy_;
 
     //! Store symmetryType per material data type
     std::map<MaterialType, SymmetryType> symmetryType_;
 
     //! hysteresis object
-    Hysteresis * hyst_;
+    Hysteresis* hyst_;
 
     //! hysteresis object
-    Hysteresis * hystY_;
+    Hysteresis* hystY_;
 
     //! hysteresis object
-    Hysteresis * hystZ_;
+    Hysteresis* hystZ_;
 
     //! hysteresis object
     Hysteresis** vecHyst_;

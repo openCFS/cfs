@@ -266,21 +266,6 @@ namespace CoupledField
       }
     }
   }
-
-  void MechanicMaterial::GetScalar( Integer& param, MaterialType matType)  const {
-
-    integerMap::const_iterator pos;
-    pos = integerParams_.find( matType );
-    std::string value;
-
-    if ( pos == integerParams_.end() ) {
-      std::string dim = "scalar integer";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      param=pos->second;
-    }
-  }    
   
   void MechanicMaterial::GetScalar( Double& param, MaterialType matType, 
 				    Global::ComplexPart dataType )  const {
@@ -338,7 +323,7 @@ namespace CoupledField
 				    MaterialType matType, 
 				    Global::ComplexPart dataType ) const {
 
-    vectorMap::const_iterator pos;
+    std::map<MaterialType, Vector<Complex> >::const_iterator pos;
     pos = vectorParams_.find( matType );
 
     if ( pos == vectorParams_.end() ) {

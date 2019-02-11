@@ -52,9 +52,6 @@ template <class TYPE> class Matrix;
     //! get a scalar string material parameter
     void GetScalar( std::string& param, MaterialType matType ) const;
 
-     //! get a scalar integer material parameter
-    void GetScalar( Integer& param, MaterialType matType) const;
-
     //! get a scalar real material parameter
     void GetScalar( Double& param, MaterialType matType, Global::ComplexPart dataType ) const;
 

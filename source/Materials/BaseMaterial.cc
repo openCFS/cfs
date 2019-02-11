@@ -110,20 +110,7 @@ namespace CoupledField
       
     }
   
-  void BaseMaterial::SetScalar(int param, MaterialType matType) {
-
-
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      string dim = "scalar";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-      integerParams_[matType] = param;
-    }
-  }
-  void BaseMaterial::GetScalar( std::string& param, MaterialType matType)  const {
+    void BaseMaterial::GetScalar( std::string& param, MaterialType matType)  const {
 
 
     stringMap::const_iterator pos;
@@ -138,29 +125,6 @@ namespace CoupledField
       param=pos->second;
     }
   }    
-
-  
-                 
-  void BaseMaterial::GetScalar(Integer& param, MaterialType matType, Global::ComplexPart dataType ) const 
-  {
-
-
-    integerMap::const_iterator pos;
-    pos = integerParams_.find( matType );
-
-    if ( pos == integerParams_.end() ) {
-      string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      if ( dataType == Global::INTEGER ) {	
-        string msg = "GetScalar-Integer";
-        dataTypeNotAllowed4SetGet( dataType, msg );
-      }
-      Integer val = pos->second;
-      param = val;
-    }
-  }
 
   void BaseMaterial::SetNonLinMatIso( MaterialType matType, MatDescriptorNl& data ) {
     
@@ -752,11 +716,10 @@ namespace CoupledField
         Double rotationalResistance = 1.0;
         GetScalar(rotationalResistance, ROT_RESISTANCE, Global::REAL);
 
-        int evalVersion;
-        GetScalar(evalVersion, EVAL_VERSION);
 
-        int isTesting;
-        GetScalar(isTesting, IS_TESTING);
+        double tmp;
+        GetScalar(tmp, EVAL_VERSION);
+        int evalVersion = tmp;
 
         Double angDistance;
         Double angClipping;
