@@ -681,6 +681,18 @@ void CoefFunction::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& gl
     }
   }
 }
+
+template<class TYPE>
+CoefFunctionConst<TYPE>* CoefFunction::AsConst(bool throw_exception)
+{
+  CoefFunctionConst<TYPE>* ret = dynamic_cast<CoefFunctionConst<TYPE>* >(this);
+
+  if(ret == NULL && throw_exception)
+    EXCEPTION("cannot cast coef" << ToString() << "to CoefFunctionConst.")
+
+  return ret;
+}
+
 // ************************************************************************
 // ENUM INITIALIZATION
 // ************************************************************************
@@ -917,5 +929,9 @@ void CoefCompoundTest() {
   
 }
 #endif
+
+// template instantiation stuff
+template CoefFunctionConst<double>* CoefFunction::AsConst<double>(bool throw_exception);
+template CoefFunctionConst<std::complex<double> >* CoefFunction::AsConst<std::complex<double> >(bool throw_exception);
 
 } // end of namespace
