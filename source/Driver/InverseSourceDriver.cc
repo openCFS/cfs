@@ -334,8 +334,8 @@ namespace CoupledField
     		if ( !approxSourceWithDeltaFnc_ )
     			ptPDE_->GetSolveStep()->SetAdjointSource();
 
-        	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
-        	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
+    		ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    		ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     		ptPDE_->GetSolveStep()->PreStepHarmonic();
     		ptPDE_->GetSolveStep()->SolveStepHarmonic();
     		ptPDE_->GetSolveStep()->PostStepHarmonic();
@@ -363,8 +363,8 @@ namespace CoupledField
     			//compute with RHS as the current identified sources
     			rhsMeas_->SetActive(false);
     			rhsSource_->SetActive(true);
-    	    	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
-    	    	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
+    			ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    			ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     			ptPDE_->GetSolveStep()->PreStepHarmonic();
     			ptPDE_->GetSolveStep()->SolveStepHarmonic();
     			ptPDE_->GetSolveStep()->PostStepHarmonic();
@@ -391,8 +391,8 @@ namespace CoupledField
     				//compute with RHS as the current identified sources
     				rhsMeas_->SetActive(false);
     				rhsSource_->SetActive(true);
-    		    	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
-    		    	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
+    				ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    				ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     				ptPDE_->GetSolveStep()->PreStepHarmonic();
     				ptPDE_->GetSolveStep()->SolveStepHarmonic();
     				ptPDE_->GetSolveStep()->PostStepHarmonic();
@@ -424,11 +424,11 @@ namespace CoupledField
     			//solve adj
     			rhsSource_->SetActive(false);
     			rhsMeas_->SetActive(true);
-        		if ( !approxSourceWithDeltaFnc_ )
-        			ptPDE_->GetSolveStep()->SetAdjointSource();
+    			if ( !approxSourceWithDeltaFnc_ )
+    			  ptPDE_->GetSolveStep()->SetAdjointSource();
 
-            	ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
-            	ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
+    			ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
+    			ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     			ptPDE_->GetSolveStep()->PreStepHarmonic();
     			ptPDE_->GetSolveStep()->SolveStepHarmonic();
     			ptPDE_->GetSolveStep()->PostStepHarmonic();

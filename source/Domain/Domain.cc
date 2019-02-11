@@ -1,4 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
@@ -72,6 +71,7 @@
 #include "CoupledPDE/WaterWaveMechCoupling.hh"
 #include "CoupledPDE/LinFlowHeatCoupling.hh"
 #include "CoupledPDE/LinFlowAcouCoupling.hh"
+#include "CoupledPDE/LinFlowMechCoupling.hh"
 // Include driver
 #include "Driver/BaseDriver.hh"
 #include "Driver/SingleDriver.hh"
@@ -990,6 +990,15 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 
       coupling = new LinFlowAcouCoupling(pde1, pde2, pairNodes[i], info_,
     		                             simState_, this );
+    }
+    else if (couplingName == "linFlowMechDirect")
+    {
+
+      pde1 = GetSinglePDE("fluidMechLin");
+      pde2 = GetSinglePDE("mechanic");
+
+      coupling = new LinFlowMechCoupling(pde1, pde2, pairNodes[i], info_,
+                                     simState_, this );
     }
 //    // ------------------------------------------------------------------------
 //    // *** THERMO-MECH Coupling ***

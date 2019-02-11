@@ -2,7 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "FluidMechCoupling.hh"
+#include "LinFlowMechCoupling.hh"
 
 #include "PDE/SinglePDE.hh"
 #include "PDE/PerturbedFlowPDE.hh"
@@ -31,103 +31,82 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  FluidMechCoupling::FluidMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
+  LinFlowMechCoupling::LinFlowMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                 PtrParamNode paramNode, 
                                 PtrParamNode infoNode,
                                 shared_ptr<SimState> simState,
                                 Domain* domain)
     : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain ),
-      lmOrderSameAsVel_(true)
-  {
-    couplingName_ = "FluidMechDirect";
+      lmOrderSameAsVel_(true) {
+
+    couplingName_ = "linFlowMechDirect";
     materialClass_ = FLOW;
 
     formulation_ = NO_SOLUTION_TYPE;
 
     // determine subtype from mechanic pde
-    pde1_->GetParamNode()->GetValue( "subType", subType_ );
+    pde2_->GetParamNode()->GetValue( "subType", subType_ );
 
     nonLin_ = false;
     
     // Initialize nonlinearities
     InitNonLin();
 
-    if(paramNode->Has("lmOrderSameAsVel")) 
-    {
+    if( paramNode->Has("lmOrderSameAsVel") ) {
       lmOrderSameAsVel_ =  paramNode->Get("lmOrderSameAsVel")->As<bool>();
-    }    
+    }
   }
 
 
   // **************
   //   Destructor
   // **************
-  FluidMechCoupling::~FluidMechCoupling() {
+  LinFlowMechCoupling::~LinFlowMechCoupling() {
   }
 
 
   // *********************
   //   DefineIntegrators
   // *********************
-  void FluidMechCoupling::DefineIntegrators() {
+  void LinFlowMechCoupling::DefineIntegrators() {
 
-    // get hold of both feFunctions
-    MechPDE* mechPDE = dynamic_cast<MechPDE*>(pde1_);
-    shared_ptr<BaseFeFunction> dispFct = mechPDE->GetFeFunction(MECH_DISPLACEMENT);
-//    std::map<RegionIdType, BaseMaterial*> mechMaterials;
-//    mechMaterials = mechPDE->getPDEMaterialData();
     MathParser * mp = domain_->GetMathParser();
 
-    PerturbedFlowPDE* flowPDE = dynamic_cast<PerturbedFlowPDE*>(pde2_);
-    shared_ptr<BaseFeFunction> velFct = flowPDE->GetFeFunction(FLUIDMECH_VELOCITY);
-    shared_ptr<BaseFeFunction> presFct = flowPDE->GetFeFunction(FLUIDMECH_PRESSURE);
+    // fixed in Domain::CreateDirectCoupledPDEs: pde1 is fluidMechLin and
+    // pde2 is mechanic
+    //
+    shared_ptr<BaseFeFunction> velFct  = pde1_->GetFeFunction(FLUIDMECH_VELOCITY);
+    shared_ptr<BaseFeFunction> presFct = pde1_->GetFeFunction(FLUIDMECH_PRESSURE);
+    shared_ptr<BaseFeFunction> dispFct = pde2_->GetFeFunction(MECH_DISPLACEMENT);
 
     shared_ptr<BaseFeFunction> lagrangeMultFct = feFunctions_[LAGRANGE_MULT];
 
-    std::map<RegionIdType, BaseMaterial*> flowMaterials;
-    flowMaterials = flowPDE->GetMaterialData();
-
-    // Create coefficient functions for all fluid densities
+    // Create coefficient functions
     std::map< RegionIdType, PtrCoefFct > oneFuncs;
-    std::set< RegionIdType > flowRegions;
-    std::map<RegionIdType, BaseMaterial*>::iterator it, end;
-    it = flowMaterials.begin();
-    end = flowMaterials.end();
 
     shared_ptr<FeSpace> dispSpace = dispFct->GetFeSpace();
     shared_ptr<FeSpace> velSpace = velFct->GetFeSpace();
     shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
     shared_ptr<FeSpace> lagrangeMultSpace = lagrangeMultFct->GetFeSpace();
 
-    for( ; it != end; it++ ) {
-      RegionIdType volRegId = it->first;
+    std::set< RegionIdType > flowRegions;
+    std::map<RegionIdType, BaseMaterial*> flowMaterials;
+    flowMaterials = pde1_->GetMaterialData();
+    std::map<RegionIdType, BaseMaterial*>::iterator it, end;
+    it = flowMaterials.begin();
+    end = flowMaterials.end();
 
+    for ( ; it != end; it++ ) {
+      RegionIdType volRegId = it->first;
       flowRegions.insert(volRegId);
 
-      // Get bulk density for acoustics
-      BaseMaterial * flowMat = flowMaterials[volRegId];
-//      Double density = 1.0;
-//      Double viscosity = 1.0;
-//      flowMat->GetScalar(density,DENSITY,Global::REAL);
-//      flowMat->GetScalar(viscosity,DYNAMIC_VISCOSITY,Global::REAL);
-
-      PtrCoefFct density = flowMat->GetScalCoefFnc( DENSITY, Global::REAL );
-      PtrCoefFct viscosity = flowMat->GetScalCoefFnc( DYNAMIC_VISCOSITY, Global::REAL );
-      
       oneFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL,
                                                    lexical_cast<std::string>(1.0));
-
-      WARN("fluid density: " << density->ToString() << " dynamic viscosity " << viscosity->ToString());
-
       shared_ptr<ElemList> actSDList( new ElemList( ptGrid_ ) );
       actSDList->SetRegion( volRegId );
-
-      //      if(actSDList->GetType() != EntityList::SURF_ELEM_LIST) {
-      //        lagrangeMultFct->b( actSDList );
-      //        lagrangeMultSpace->SetRegionApproximation(volRegId, "velPolyId", "velIntegId");
-      //      }
     }
 
+    //go over all coupled surfaces
     for ( UInt actSD = 0, n = entityLists_.GetSize(); actSD < n; actSD++ ) {
 
       shared_ptr<SurfElemList> actSDList = 
@@ -142,37 +121,27 @@ namespace CoupledField {
       velSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
       presSpace->SetRegionApproximation(region, "presPolyId", "presIntegId");
       dispSpace->SetRegionApproximation(region, "default", "default");
-      if(lmOrderSameAsVel_)
-      {
+      if(lmOrderSameAsVel_) {
         lagrangeMultSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
       }
-      else
-      {
+      else {
         lagrangeMultSpace->SetRegionApproximation(region, "presPolyId", "velIntegId");
       }
 
-      // This integrator gets assembled into the damping (first time deriv.) matrix in the row of the LM
-      DefineDampingIntegrators("FluidMechDampingLMVelCouplingInt",
-                            dispFct,
-                            lagrangeMultFct,
-                            actSDList,
-                            oneFuncs,
-                            flowRegions);
+      // Integrator being assembled into damping (first time deriv.) matrix; first part
+      // of additional equation guaranteeing continuity of velocities
+      DefineDampingIntegrators("LinFlowMechDampingLMVelCouplingInt", dispFct, lagrangeMultFct,
+                                actSDList, oneFuncs, flowRegions);
 
-      // This integrator gets assembled into the stiffness matrix of the mechanic PDE
-      DefineStiffnessIntegrators("FluidMechStiff",
-                                 dispFct,
-                                 velFct,
-                                 lagrangeMultFct,
-                                 actSDList,
-                                 oneFuncs,
-                                 oneFuncs,
-                                 oneFuncs,
-                                 flowRegions);
+      // These integrators gets assembled into the stiffness matrix of the mechanic PDE,
+      // LinFlowPDE and the additional equation guaranteeing continuity of velocities
+      // equation for continuity of velocities)
+      DefineStiffnessIntegrators("LinFlowMechStiff", dispFct, velFct, lagrangeMultFct,
+                                  actSDList, oneFuncs, oneFuncs, oneFuncs, flowRegions);
     }
   }
 
-  void FluidMechCoupling::DefineDampingIntegrators(const std::string& name,
+  void LinFlowMechCoupling::DefineDampingIntegrators(const std::string& name,
                                                 shared_ptr<BaseFeFunction>& dispFct,
                                                 shared_ptr<BaseFeFunction>& lmFct,
                                                 shared_ptr<SurfElemList>& actSDList,
@@ -211,7 +180,7 @@ namespace CoupledField {
     assemble_->AddBiLinearForm( context );
   }
 
-  void FluidMechCoupling::DefineStiffnessIntegrators(const std::string& name,
+  void LinFlowMechCoupling::DefineStiffnessIntegrators(const std::string& name,
                                                 shared_ptr<BaseFeFunction>& dispFct,
                                                 shared_ptr<BaseFeFunction>& velFct,
                                                 shared_ptr<BaseFeFunction>& lmFct,
@@ -222,7 +191,7 @@ namespace CoupledField {
                                                 const std::set< RegionIdType >& flowRegions){
     BiLinearForm * stiffInt = NULL;
 
-    // LM-velocity integrator in row of LM and column of velocity
+    // LM-velocity integrator in row of LM and column of lin. flow velocity
     std::string intName  = name + "LMVelCouplingInt";
     if( subType_ == "axi" ) {
         stiffInt = new SurfaceABInt<>( new IdentityOperator<FeH1,2,2>(),
@@ -285,7 +254,7 @@ namespace CoupledField {
 
     assemble_->AddBiLinearForm( context );
 
-    // Velocity-LM integrator in row of velocity and column of LM
+    // Velocity-LM integrator in row of flow velocity and column of LM
     intName  = name + "VelLMCouplingInt";
     if( subType_ == "axi" ) {
         stiffInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
@@ -322,11 +291,11 @@ namespace CoupledField {
 
   }
 
-  void FluidMechCoupling::DefineAvailResults() {
+  void LinFlowMechCoupling::DefineAvailResults() {
     REFACTOR  
   }
 
-  void FluidMechCoupling::DefinePrimaryResults() {
+  void LinFlowMechCoupling::DefinePrimaryResults() {
     // Check for subType
     StdVector<std::string> velDofNames;
 
@@ -359,7 +328,7 @@ namespace CoupledField {
   }
 
 
- void FluidMechCoupling::CreateFeSpaces( const std::string&  type,
+ void LinFlowMechCoupling::CreateFeSpaces( const std::string&  type,
                                          PtrParamNode infoNode,
                                          std::map<SolutionType, shared_ptr<FeSpace> >& crSpaces) {
 
@@ -367,16 +336,13 @@ namespace CoupledField {
    formulation_ = LAGRANGE_MULT;
 
    PtrParamNode spaceNode;
-   if(lmOrderSameAsVel_)
-   {
+   if(lmOrderSameAsVel_) {
      spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY));
    }
-   else
-   {
+   else {
      spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE));
    }
-   
-   
+
    crSpaces[formulation_] =
        FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
 
