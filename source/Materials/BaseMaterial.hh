@@ -197,22 +197,6 @@ namespace CoupledField {
       return ( isComplex_.find(mtype) != isComplex_.end() );
     }
 
-    //! get the tensors
-    tensorMap GetTensorParams() const
-    { return tensorParams_;};
-
-    //! get the scalar material parameters
-    scalarMap GetScalarParams() const
-    { return scalarParams_;};
-
-    //! get the material parameters defined by a string
-    stringMap GetStringParams() const
-    { return stringParams_;};
-
-    //! get the integer material parameters 
-    integerMap GetIntegerParams() const
-    { return integerParams_;};
-
     //! Query if a given parameter is set
     virtual bool IsSet( MaterialType matType ) const;
 
