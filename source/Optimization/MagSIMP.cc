@@ -287,7 +287,7 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f)
     DesignElement::Type dt = design->design[d].design;
     TransferFunction* tf = design->GetTransferFunction(dt, App::MAG, true);
 
-    DesignDependentRHS* ptr_rhs = dt == DesignElement::NONFERRITE_DENSITY ? &rhs : NULL;
+    DesignDependentRHS* ptr_rhs = dt == DesignElement::RHS_DENSITY ? &rhs : NULL;
 
     double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
     // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!

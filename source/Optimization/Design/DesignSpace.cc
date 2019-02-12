@@ -945,7 +945,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
     const double nu_0 = 1/(4*M_PI*1e-7);
 
-    // be sure not use NONFERRITE
+    // be sure not use RHS_DENSITY
     DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::DENSITY, true);
     factor = GetErsatzMaterialFactor(de, app, false);
 
@@ -1049,7 +1049,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
       // including coil optimization
       coef->orgMat->GetVector(retVec, *lpm);
       assert(retVec.GetSize() != 0);
-      DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::NONFERRITE_DENSITY, false);
+      DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::RHS_DENSITY, false);
 
       LOG_DBG3(designSpace) << "APD(V): elem=" << lpm->ptEl->elemNum << " de=" << (de != NULL ? de->ToString() : "NULL") << " org retVec= " << retVec.ToString(2);
       if(de == NULL)
@@ -1088,7 +1088,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type
 {
   // now do the trick, that the piezo coupling factor might be a product of the
   // density transfer function and the polarization transfer function
-  assert(applic != App::MAG); // we don't want to multiply DENS with NONFERRITE
+  assert(applic != App::MAG); // we don't want to multiply DENS with RHS_DENSITY
 
   double result = 1.0;
   // go over all design elements we have (one for design only, with polarization
@@ -1774,11 +1774,10 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   // this is clearly nonsense if the result/solution type is OPT_RESULT_*
   switch(ri->resultType)
   {
+  case PSEUDO_DENSITY:
   case MECH_PSEUDO_DENSITY:
   case PHYSICAL_PSEUDO_DENSITY:
   case ELEC_PHYSICAL_PSEUDO_DENSITY:
-  case MAG_FERRITE_PSEUDO_DENSITY:
-  case PHYSICAL_FERRITE_PSEUDO_DENSITY:
     def.design = DesignElement::DENSITY;
     break;
   case ELEC_PSEUDO_POLARIZATION:
@@ -1787,9 +1786,9 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   case ACOU_PSEUDO_DENSITY:
     def.design = DesignElement::ACOU_DENSITY;
     break;
-  case MAG_NON_FERRITE_PSEUDO_DENSITY:
-  case PHYSICAL_NON_FERRITE_PSEUDO_DENSITY:
-    def.design = DesignElement::NONFERRITE_DENSITY;
+  case RHS_PSEUDO_DENSITY:
+  case PHYSICAL_RHS_PSEUDO_DENSITY:
+    def.design = DesignElement::RHS_DENSITY;
     break;
   default:
     // to be overwritten by the ResultDescription
@@ -1859,17 +1858,14 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   switch(st)
   {
   case MECH_PSEUDO_DENSITY:
+  case PSEUDO_DENSITY:
   case PHYSICAL_PSEUDO_DENSITY:
   case ELEC_PSEUDO_POLARIZATION:
   case ELEC_PHYSICAL_PSEUDO_DENSITY:
-  case MAG_NON_FERRITE_PSEUDO_DENSITY:
-  case PHYSICAL_NON_FERRITE_PSEUDO_DENSITY:
+  case RHS_PSEUDO_DENSITY:
+  case PHYSICAL_RHS_PSEUDO_DENSITY:
     none = 1.0;
     break;
-  case MAG_FERRITE_PSEUDO_DENSITY:
-  case PHYSICAL_FERRITE_PSEUDO_DENSITY:
-	none = 0.0;
-	break;
   default:
     break;
   }

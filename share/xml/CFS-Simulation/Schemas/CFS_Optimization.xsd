@@ -1621,7 +1621,7 @@
   <xsd:simpleType name="DT_Design">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="density"/>
-      <xsd:enumeration value="nonFerriteDensity"/>
+      <xsd:enumeration value="rhsDensity"/>
       <xsd:enumeration value="acouDensity"/>
       <xsd:enumeration value="polarization"/>
       <!-- trace for elastic FMO and other paramMat stuff, mech_11, mech_22 and mech_33 -->

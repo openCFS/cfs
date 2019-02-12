@@ -122,7 +122,10 @@ namespace CoupledField {
       MECH_FORCE, 
       
       // -- optimization properties
-      MECH_PSEUDO_DENSITY, PHYSICAL_PSEUDO_DENSITY, MECH_SHAPE, MECH_TENSOR_TRACE, MECH_TENSOR, MECH_TENSOR_HILL_MANDEL,
+      MECH_PSEUDO_DENSITY, // this is historical. We shall switch to PSEUDO_DENSITY as in mag
+      PSEUDO_DENSITY, // this shall be used for all physical - is the design variable in topology optimization
+      PHYSICAL_PSEUDO_DENSITY, // the filtered and penalized PSEUDO_DENSITY as used for the simulation
+      MECH_SHAPE, MECH_TENSOR_TRACE, MECH_TENSOR, MECH_TENSOR_HILL_MANDEL,
 
       // ===============
       //  ELECTROSTATIC / ELECTRIC CURRENT
@@ -197,8 +200,8 @@ namespace CoupledField {
       MAG_ELEM_PERMEABILITY, MAG_MAGNETIZATION,FLUX_INDUCED_STRAIN,MAG_POLARIZATION,
       
       // -- magnetic topology optimization
-      // MAG_FERRITE_PSEUDO_DENSITY = standard (mech) pseudo density
-      MAG_FERRITE_PSEUDO_DENSITY, PHYSICAL_FERRITE_PSEUDO_DENSITY, MAG_NON_FERRITE_PSEUDO_DENSITY, PHYSICAL_NON_FERRITE_PSEUDO_DENSITY,
+      // for pseudo density see mech
+      RHS_PSEUDO_DENSITY, PHYSICAL_RHS_PSEUDO_DENSITY,
 
       // =================
       //  HEAT CONDUCTION

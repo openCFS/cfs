@@ -1322,11 +1322,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     DefineFieldResult( jldCoef, jld );
 
     // optimization results are provided in DesignSpace::ExtractResults()
-    // the variable for MAG_FERRITE_PSEUDO_DENSITY is DENSITY
-    DefineFieldResult(MAG_FERRITE_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
-    DefineFieldResult(PHYSICAL_FERRITE_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
-    DefineFieldResult(MAG_NON_FERRITE_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
-    DefineFieldResult(PHYSICAL_NON_FERRITE_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(PHYSICAL_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(RHS_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(PHYSICAL_RHS_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
   }
 
   void MagEdgePDE::FinalizePostProcResults() {

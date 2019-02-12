@@ -165,7 +165,9 @@ public:
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, MECH_11, MECH_22, MECH_33, MECH_23, MECH_13, MECH_12, SLACK, ALPHA,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
                    ROTANGLE, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEX, ROTANGLEY, ROTANGLEZ, MULTIMATERIAL,INTERPOLATION,
-                   NODE, PROFILE, NONFERRITE_DENSITY, ALL_DESIGNS } Type;
+                   NODE, PROFILE,
+                   RHS_DENSITY, // for mag opt, e.g. coil modelling (scaling current)
+                   ALL_DESIGNS } Type;
 
     /** This defines how to access variables (design, objective_gradient, ...),
      *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */

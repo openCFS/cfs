@@ -277,10 +277,10 @@
       <xsd:enumeration value="magCoreLossDensity"/>
       <xsd:enumeration value="magJouleLossPowerDensity"/>
 
-      <!-- non-physical design variable for simp topology optimization -->
-      <xsd:enumeration value="magFerritePseudoDensity" />
+      <!-- non-physical design variable for simp topology optimization of magnetic material (standard case) -->
+      <xsd:enumeration value="pseudoDensity" />
       <!-- physical application of design variable in the simulation -->
-      <xsd:enumeration value="physicalFerritePseudoDensity" />
+      <xsd:enumeration value="physicalPseudoDensity" />
       <!-- further element results from optimization, specifically configured in optimization --> 
       <xsd:enumeration value="optResult_1"/>
       <xsd:enumeration value="optResult_2"/>

@@ -153,7 +153,7 @@ App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctx
   case DesignElement::POLARIZATION:
     return App::PIEZO_COUPLING;
 
-  case DesignElement::NONFERRITE_DENSITY:
+  case DesignElement::RHS_DENSITY:
     return App::MAG;
 
   default:
