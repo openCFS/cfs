@@ -335,8 +335,10 @@ DesignDependentRHS::~DesignDependentRHS()
 template <class T>
 bool DesignDependentRHS::Init(DesignSpace* design, App::Type my_app)
 {
-  assert(!(app != App::NO_APP && app != my_app));
-  app = my_app;
+  assert(!(app != App::NO_APP && app != my_app && my_app != App::NO_APP));
+  if(my_app != App::NO_APP)
+    app = my_app;
+
   assert(app == App::CHARGE_DENSITY || app == App::PRESSURE || app == App::HEAT || app == App::MAG);
 
   if (app == App::HEAT) {
@@ -432,8 +434,9 @@ bool DesignDependentRHS::Init(DesignSpace* design, App::Type my_app)
 template <class T>
 bool DesignDependentRHS::Init(std::string excite_label, App::Type my_app)
 {
-  assert(!(app != App::NO_APP && app != my_app));
-  app = my_app;
+  assert(!(app != App::NO_APP && app != my_app && my_app != App::NO_APP));
+  if(my_app != App::NO_APP)
+    app = my_app;
 
   assert(app == App::STRESS);
   this->app = app;
