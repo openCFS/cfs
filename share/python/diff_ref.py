@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import matplotlib
-from Crypto.Random.random import choice
 matplotlib.use('tkagg')
 from matplotlib import pyplot as plt
 import argparse

@@ -30,7 +30,7 @@ def read_general_info(xml, dic):
   add_key(xml, dic, '//cfsInfo/header/@id')
 
 def read_opt_issue(xml, dic):
-  add_key(xml. dic, '//optimization/summary/@problem', 'opt_issue')
+  add_key(xml, dic, '//optimization/summary/@problem', 'opt_issue')
 
 def read_selected_opt(xml, dic):
   last_iter = xml.xpath('//optimization/process/iteration')
