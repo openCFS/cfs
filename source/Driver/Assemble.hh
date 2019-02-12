@@ -124,9 +124,6 @@ namespace CoupledField {
       return GetBiLinForm(integrator, regionId, pde1, pde2, true) != NULL;
     }
 
-    /** @see GetBiLinForm() */
-    LinearForm* GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent = false);
-
     /** Returns the algebraic system
      * TODO check if really used */
     AlgebraicSys* GetAlgSys() { return algsys_; }

@@ -530,9 +530,8 @@ namespace CoupledField {
          Sens. and Act., 2nd edition, p. 131ff
          =====================================================
          */
-			  for( partIt = actCoil.parts_.begin();
-                partIt != actCoil.parts_.end();
-                partIt++ ) {
+			  for(partIt = actCoil.parts_.begin(); partIt != actCoil.parts_.end(); partIt++)
+			  {
 				  Coil::Part & actPart = *(partIt->second);
 				  RegionIdType actRegion = partIt->first;
 				  shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
@@ -543,17 +542,15 @@ namespace CoupledField {
 				  CoefFunctionOpt* cfoc = NULL; // we might do optimization and then we have such a thing
 				  PtrCoefFct jFct;
 				  if( actCoil.sourceType_ == Coil::CURRENT ){
-					  CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_,
-                    CoefXpr::OP_MULT);
+					  CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_, CoefXpr::OP_MULT);
 					  PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
             
-					  CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect),
-                    CoefXpr::OP_DIV);
+					  CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
 					  jFct = CoefFunction::Generate(mp_, part, jVec);
 				  } else {
 					  jFct = coilPartsExtJ_[partIt->second];
 				  }
-				  coilCurrentDens_[actRegion] = jFct;
+
 
 				  if(actCoil.coilOptimization_ == true)
 				  {
@@ -564,7 +561,10 @@ namespace CoupledField {
 	            jFct.reset(cfoc);
 	          }
 				  }
-          
+
+				  coilCurrentDens_[actRegion] = jFct;
+
+
 				  if( dim_ == 3 ) {
 					  // ===========
             //  3D CASE

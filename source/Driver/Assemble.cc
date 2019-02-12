@@ -168,31 +168,6 @@ namespace CoupledField
     return NULL;
   }
 
-  LinearForm* Assemble::GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent)
-  {
-     LinearForm* result = NULL;
-
-     // iterate over all descriptors
-     for(unsigned int i = 0; i < linForms_.GetSize(); i++)
-     {
-       // we are wrong if the region does not match
-       LinearFormContext* lfc = linForms_[i];
-
-
-       // when pde1 is given we compare it by name and continue if the names are different
-       if(lfc->GetPde()->GetName() != pde->GetName()) continue;
-       if(lfc->GetIntegrator()->GetName() != integrator) continue;
-
-       // we come here because we had no contradiction - check for uniqueness
-       if(result != NULL) throw Exception("parameters not unique!");
-       result = lfc->GetIntegrator();
-     }
-
-     if(result == NULL && !silent)
-       EXCEPTION("LinearFormContext '" << integrator << "' not found");
-     return result;
-  }
-
   bool Assemble::UseRegion(RegionIdType reg)
   {
     for (BiLinContextListType::iterator listIt = biLinForms_.begin(); listIt != biLinForms_.end(); ++listIt) {
@@ -1331,20 +1306,20 @@ namespace CoupledField
             }else{
             	form->CalcElemVector(elemVec, entIt);
             }
-            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " elemVec=" << elemVec.ToString();
+            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.GetElem()->elemNum << " fctId=" << fctId;
+            LOG_DBG3(assemble) << "ARLF: elemVec=" << elemVec.ToString();
 
             // Map equation numbers
             actContext.MapEqns(entIt, eqnVec, fctId);
-            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " map eqnVec=" << eqnVec.ToString();
+            LOG_DBG3(assemble) << "ARLF: map eqnVec=" << eqnVec.ToString();
             
             // Perform remapping
             ReMapEquations(eqnVec, fctId);
-            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " remap eqnVec=" << eqnVec.ToString();
+            LOG_DBG3(assemble) << "ARLF: remap eqnVec=" << eqnVec.ToString();
             
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
             // Pass element vector to algebraic system
             algsys_->SetElementRHS(elemVec, fctId, eqnVec);
-            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
         }
       } catch (Exception& e) {
