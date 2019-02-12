@@ -539,13 +539,12 @@ MagMat::MagMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctx
 
 const Vector<double>& MagMat::MagExcitationRHS(const std::string& integrator, const Elem* elem)
 {
-  LOG_DBG3(om) << "GEM int=" << integrator << " elem=" << (elem != NULL ? elem->elemNum : 4711);
+  LOG_DBG3(om) << "MER int=" << integrator << " elem=" << (elem != NULL ? elem->elemNum : 4711);
 
   assert(elem != NULL);
 
   SinglePDE* pde = ctxt_->pde;
   assert(pde != NULL);
-
   LinearFormContext* lc = pde->GetAssemble()->GetLinForm(integrator, elem->regionId, pde, false);
 
   // create an element list to gain the iterator in the loop
@@ -558,18 +557,17 @@ const Vector<double>& MagMat::MagExcitationRHS(const std::string& integrator, co
 
   CoefFunctionOpt::State old_state = coef->GetState();
   assert(old_state == CoefFunctionOpt::ORG || old_state == CoefFunctionOpt::OPT); // otherwise we would need to store also shadow/direction
-  LinearForm* lf = ctxt_->pde->GetAssemble()->GetLinearForm(ctxt_->pde,"CoilIntegrator");
 
   coef->SetToOrgMaterial();
 
-  lf->CalcElemVector(MagExcitation, it);
+  lc->GetIntegrator()->CalcElemVector(mag_excitation, it);
 
   if(old_state == CoefFunctionOpt::ORG)
       coef->SetToOrgMaterial();
     else
       coef->SetToOptimization();
 
-  return MagExcitation;
+  return mag_excitation;
 }
 
 

@@ -470,7 +470,7 @@ void MagSIMP::SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignEle
 
   out += in_out;
 
-  LOG_DBG3(ms) << "d_rho= " << d_rho << " in_out=" << in_out.ToString(2) << " mat_vec= " << mat_vec->ToString();
+  LOG_DBG3(ms) << "SCUKU: de=" << de->ToString() << " tf=" << tf->ToString() << " d_rho= " << d_rho << " in_out=" << in_out.ToString(2) << " mat_vec= " << mat_vec->ToString();
 
 }
 

@@ -269,13 +269,14 @@ class MagMat : public OptimizationMaterial
 public:
   MagMat(ErsatzMaterial* em, Context* ctxt);
 
-  // To get the rhs in magTopOpt, it is necessary to switch to the ORG Material
+  /** To get the rhs in magTopOpt, it is necessary to switch to the ORG Material.
+   * @return the elem rhs contribution for the original case, not design dependent. */
   const Vector<double>& MagExcitationRHS(const std::string& integrator, const Elem* elem);
 
 protected:
 
-  /** We do not cache the vectors but always precalculate them */
-  Vector<double> MagExcitation;
+  /** We do not cache the vectors but always precalculate them. NOT thread safe */
+  Vector<double> mag_excitation;
 };
 
 
