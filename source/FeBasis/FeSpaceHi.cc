@@ -605,7 +605,7 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
       // generate new context
       ctx = new MapContext();
 
-      bool isComplex = std::tr1::is_same<T,Complex>::value;
+      bool isComplex = std::is_same<T,Complex>::value;
 
       // generate new algebraic system
       ctx->olasNode.reset(new ParamNode());

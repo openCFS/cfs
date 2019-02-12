@@ -32,7 +32,7 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
   CoefFunction(){
 
   isAnalytic_ = false;
-  isComplex_ =  std::tr1::is_same<T,Complex>::value;
+  isComplex_ =  std::is_same<T,Complex>::value;
   dependType_ = GENERAL;
   
   //prepare dimenstions of propagation region
@@ -81,6 +81,9 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
 
 template<typename T>
 CoefFunctionPML<T>::~CoefFunctionPML(){
+  //std::cout<<"DESRUC"<<std::endl;
+  //It might be necessary to just disconnect the callback instead of releasing the handle
+  mp_->ReleaseHandle( mHandle_ );
 
 }
 

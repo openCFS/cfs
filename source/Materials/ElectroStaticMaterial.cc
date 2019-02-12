@@ -291,23 +291,6 @@ namespace CoupledField
   }
 
 
-
-  void ElectroStaticMaterial::GetScalar( Integer& param, MaterialType matType)  const {
-
-
-    integerMap::const_iterator pos;
-    pos = integerParams_.find( matType );
-    std::string value;
-
-    if ( pos == integerParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      param=pos->second;
-    }
-  } 
-
   void ElectroStaticMaterial::GetTensor( Matrix<Double>& param, 
                                          MaterialType matType, 
                                          Global::ComplexPart dataType,

@@ -362,8 +362,10 @@ namespace CoupledField {
             }
           }
         }
-          // Subtract A*x from b
-        sbm_r.Axpy( -1.0, sbm_b );
+
+        // Subtract A*x from b
+        if(sbm_r.GetEntryType() == BaseMatrix::EntryType::COMPLEX) sbm_r.Axpy( (Complex)-1.0, sbm_b );
+        else sbm_r.Axpy( -1.0, sbm_b );
       }
 
       // -----------------
@@ -611,16 +613,43 @@ namespace CoupledField {
     for ( UInt j = 0; j < ncols_; j++ ) {
       for ( UInt i = 0; i < nrows_; i++ ) {
         // construct file name
-        if(ncols_ > 1 || nrows_ > 1)
-          ss << fname << '_' << i << '_' << j;
-        outFile =  fname + ss.str();
-
+        //if(ncols_ > 1 || nrows_ > 1)
+        ss << fname << '_' << i << '_' << j;
+        outFile =  ss.str();
+        ss.str(std::string());
         // export sub-matrix
         if ( subMat_[ComputeIndex(i,j)] != NULL ) {
           subMat_[ComputeIndex(i,j)]->Export( outFile.c_str(), format, comment );
         }
       }
     }
+  }
+
+  void SBM_Matrix::Export_MultHarm( const std::string& fname,
+                                    BaseMatrix::OutputFormat format,
+                                    const UInt& N,
+                                    const StdVector<UInt>& sbmInd,
+                                    const std::string& comment) const {
+
+
+    std::stringstream ss;
+    std::string outFile;
+    UInt sbmRow, sbmCol;
+
+    for(auto i : sbmInd){
+      StdVector<UInt> c = DeflattenIndex(i);
+      sbmRow = c[0];
+      sbmCol = c[1];
+      ss << fname << '_' << sbmRow << '_' << sbmCol;
+      outFile =  ss.str();
+      ss.str(std::string());
+      // export sub-matrix
+      if ( subMat_[ComputeIndex(sbmRow, sbmCol)] != NULL ) {
+        subMat_[ComputeIndex(sbmRow, sbmCol)]->Export( outFile.c_str(), format, comment );
+      }
+    }
+
+
   }
 
   // ******************

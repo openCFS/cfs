@@ -24,6 +24,8 @@
       <xsd:element name="density" type="xsd:token"/>
       <xsd:element name="heatCapacity" type="DT_thermalConductivity"/>
       <xsd:element name="heatConductivity" type="DT_thermalConductivity"/>
+      <xsd:element name="refTemperature" minOccurs="0" type="xsd:token">       
+      </xsd:element>         
     </xsd:sequence>
   </xsd:complexType>
   

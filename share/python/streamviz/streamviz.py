@@ -47,12 +47,14 @@ with open(MEMLOG_FILENAME, "a") as myfile:
 MEMLOG_RECEIVELOG = []
 
 # global data dict always contains the latest xml file (in parsed version)
-GLOBAL_DATA_DICT = {}
 GLOBAL_RAW_DATA_DICT = {}
 GLOBAL_DATA_SIZE_DICT = {}
 
 # contains the last update
 GLOBAL_UPDATED_DICT = {}
+GLOBAL_OBJECTIVE_DICT = {}
+
+GLOBAL_METADATA_DICT = {} # will be copied into array before sorting
 
 GLOBAL_KEY_DEQUEUE = deque([])
 
@@ -88,7 +90,7 @@ GLOBAL_STAT_VARS['total_bytes_received'] = 0
 @app.route('/', methods = ['GET'])
 def index():
   if request.method == 'GET':
-    return render_html.render_index(GLOBAL_DATA_DICT, GLOBAL_UPDATED_DICT, request)
+    return render_html.render_index(GLOBAL_METADATA_DICT, request)
   else:
     return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
@@ -96,8 +98,8 @@ def index():
 def status():
   key_to_delete = request.args.get('delete', '')
   if key_to_delete != '':
-    if key_to_delete in GLOBAL_DATA_DICT:
-      oldest_data = GLOBAL_DATA_DICT.pop(key_to_delete) # delete oldest xml keys
+    if key_to_delete in GLOBAL_RAW_DATA_DICT:
+      oldest_data = GLOBAL_RAW_DATA_DICT.pop(key_to_delete) # delete oldest xml keys
       del oldest_data
     if key_to_delete in GLOBAL_UPDATED_DICT:
       oldest_updated = GLOBAL_UPDATED_DICT.pop(key_to_delete) 
@@ -106,24 +108,30 @@ def status():
       oldest_update_event = UPDATE_EVENTS.pop(key_to_delete)
       oldest_update_event.set()
       del oldest_update_event
+    if key_to_delete in GLOBAL_OBJECTIVE_DICT:
+      oldest_updated = GLOBAL_OBJECTIVE_DICT.pop(key_to_delete) 
+      del oldest_updated
+    if key_to_delete in GLOBAL_METADATA_DICT:
+      oldest_entry = GLOBAL_METADATA_DICT.pop(key_to_delete)
+      del oldest_entry
 
     send_data.delete_coprocessor(key_to_delete)
     gc.collect()
   
-  return render_html.render_status(GLOBAL_DATA_DICT, MAX_MEMORY, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app, GLOBAL_STAT_VARS)
+  return render_html.render_status(GLOBAL_RAW_DATA_DICT, MAX_MEMORY, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app, GLOBAL_STAT_VARS)
 
 @app.route('/status_log', methods = ['GET'])
 def status_log():
-    return render_html.render_status_log(GLOBAL_DATA_DICT, MEMLOG_RECEIVELOG)
+    return render_html.render_status_log(GLOBAL_RAW_DATA_DICT, MEMLOG_RECEIVELOG)
 
 @app.route('/status_memory_pics', methods = ['GET'])
 def status_memory_pics():
-    return render_html.render_status_memory_pics(GLOBAL_DATA_DICT, MAX_MEMORY, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app)
+    return render_html.render_status_memory_pics(GLOBAL_RAW_DATA_DICT, MAX_MEMORY, MEMORY_BYTE_RATIO, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, GLOBAL_KEY_DEQUEUE, app)
 
 @app.route(settings["api"]["values"] + '/<path:key>', methods = ['GET', 'POST'])
 def values(key):
   if request.method == 'GET':
-    return api_plot.get_values(GLOBAL_DATA_DICT, UPDATE_EVENTS, key, int(request.args.get('iteration_num')))
+    return api_plot.get_values(GLOBAL_RAW_DATA_DICT, UPDATE_EVENTS, key, int(request.args.get('iteration_num')))
   else:
     return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
@@ -133,13 +141,13 @@ def view(key):
     client_ip = request.remote_addr
     if request.headers.has_key(PROXY_REAL_IP_HEADER):
       client_ip = request.headers.get(PROXY_REAL_IP_HEADER, "127.0.0.1")
-    return render_html.render_view(GLOBAL_DATA_DICT, key, client_ip)
+    return render_html.render_view(GLOBAL_RAW_DATA_DICT, key, client_ip)
   else:
     return 'expected a GET, use "' + settings["api"]["recieve_url"] + '" to send data'
 
 @app.route(settings["api"]["plot_url"] + '/<path:key>', methods = ['GET', 'POST'])
 def plot(key):
-  return api_plot.plot(key, UPDATE_EVENTS, GLOBAL_DATA_DICT, request.args.get('x'), \
+  return api_plot.plot(key, UPDATE_EVENTS, GLOBAL_RAW_DATA_DICT, request.args.get('x'), \
                        request.args.getlist('y1_it'), request.args.getlist('y2_it'), \
                        request.args.getlist('y1_res'), request.args.getlist('y2_res'), \
                        int(request.args.get('iteration_num')), \
@@ -150,7 +158,7 @@ def plot(key):
 
 @app.route(settings["api"]["catalyst_send"] + '/<path:key>', methods = ['GET', 'POST'])
 def send_data_func(key):
-  send_data.send_data(key, GLOBAL_DATA_DICT[key], request.args.get('ip'), request.args.get('port'))
+  send_data.send_data(key, etree.fromstring(GLOBAL_RAW_DATA_DICT[key]), request.args.get('ip'), request.args.get('port'))
   return ""
 
 @app.route('/', methods = ['POST'])
@@ -165,14 +173,14 @@ def download_xml(key):
 @app.route(settings["api"]["recieve_url"] + '/', methods = ['GET', 'POST'])
 @app.route(settings["api"]["recieve_url"] + '/<path:url_key>', methods = ['GET', 'POST'])
 def cfs_recieve(url_key = ""):
-  global MEMORY_BYTE_RATIO, GLOBAL_DATA_DICT, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, UPDATE_EVENTS, GLOBAL_STAT_VARS
+  global MEMORY_BYTE_RATIO, GLOBAL_RAW_DATA_DICT, GLOBAL_DATA_SIZE_DICT, GLOBAL_UPDATED_DICT, UPDATE_EVENTS, GLOBAL_STAT_VARS
   process = psutil.Process(os.getpid())
   
   memory_in_bytes = process.memory_info().rss
   
   total_xml_size = 0
   deleted_count = 0
-  for tmp_key in GLOBAL_DATA_DICT:
+  for tmp_key in GLOBAL_RAW_DATA_DICT:
     total_xml_size += GLOBAL_DATA_SIZE_DICT[tmp_key]
 
   GLOBAL_STAT_VARS['total_bytes_received'] += total_xml_size
@@ -186,8 +194,8 @@ def cfs_recieve(url_key = ""):
 
     while xml_size_to_reduce > 0:
       oldest_key = GLOBAL_KEY_DEQUEUE.pop() # get oldest xml key
-      if oldest_key in GLOBAL_DATA_DICT:
-        oldest_data = GLOBAL_DATA_DICT.pop(oldest_key) # delete oldest xml keys
+      if oldest_key in GLOBAL_RAW_DATA_DICT:
+        oldest_data = GLOBAL_RAW_DATA_DICT.pop(oldest_key) # delete oldest xml keys
         xml_size_to_reduce -= GLOBAL_DATA_SIZE_DICT.pop(oldest_key)
         del oldest_data
       if oldest_key in GLOBAL_UPDATED_DICT:
@@ -197,6 +205,12 @@ def cfs_recieve(url_key = ""):
         oldest_update_event = UPDATE_EVENTS.pop(oldest_key)
         oldest_update_event.set()
         del oldest_update_event
+      if oldest_key in GLOBAL_OBJECTIVE_DICT:
+        oldest_updated = GLOBAL_OBJECTIVE_DICT.pop(oldest_key) 
+        del oldest_updated
+      if oldest_key in GLOBAL_METADATA_DICT:
+        oldest_entry = GLOBAL_METADATA_DICT.pop(oldest_keys)
+        del oldest_entry
 
       deleted_count += 1
       send_data.delete_coprocessor(oldest_key)
@@ -235,21 +249,55 @@ def cfs_recieve(url_key = ""):
       if not url_key == '':
         key += url_key
 
-    key += '/' + xml.xpath('//header/environment/@started')[0]
+    key += '/' + xml.xpath('//header/environment/@started')[0][5:]
 
-    if not key in GLOBAL_DATA_DICT: # only add key if not already in
+    if not key in GLOBAL_RAW_DATA_DICT: # only add key if not already in
       GLOBAL_KEY_DEQUEUE.appendleft(key)
       GLOBAL_STAT_VARS['total_problem_count'] += 1
 
-    GLOBAL_DATA_DICT[key] = xml
     GLOBAL_RAW_DATA_DICT[key] = data
     GLOBAL_DATA_SIZE_DICT[key] = len(data)
     
-    GLOBAL_UPDATED_DICT[key] = str(datetime.datetime.now())
+    GLOBAL_UPDATED_DICT[key] = str(datetime.datetime.now())[5:-7]
+
+    objective_string = "" # empty on default, if simulation then it will be "compliance: <value>"
+    
+    try:
+      objective_name = str(xml.xpath("//header/objective/@name")[0])
+      objective_string = objective_name + ": " + str(xml.xpath("(//process/iteration/@" + objective_name + ")[last()]")[0])
+    except Exception as e:
+      pass
+    
+    GLOBAL_OBJECTIVE_DICT[key] = objective_string
+    
+    metadata_dict = {}
+    
+    this_host = key[:key.index('/')]    
+    project_time_rest = key[key.index('/')+1:]
+    this_problem = project_time_rest[:project_time_rest.index('/')]
+    this_started = project_time_rest[project_time_rest.index('/')+1:]
+    
+    this_table_data = {}
+    this_table_data['key'] = key
+    this_table_data['host'] = this_host
+    this_table_data['status'] = xml.xpath('//cfsInfo/@status')[0]
+    this_table_data['problem'] = this_problem
+    this_table_data['started'] = this_started
+    this_table_data['updated'] = GLOBAL_UPDATED_DICT[key]
+    this_table_data['objective'] = GLOBAL_OBJECTIVE_DICT[key]
+    
+    iteration_num_array = xml.xpath('//process/iteration[last()]/@number')
+    
+    if len(iteration_num_array) > 0:
+      this_table_data['iterations'] = int(iteration_num_array[0])
+    else:
+      this_table_data['iterations'] = -1
+    
+    GLOBAL_METADATA_DICT[key] = this_table_data
     
     # set the event to trigger sending of the new xml data
     # make sure to set the event AFTER putting the new xml
-    # into GLOBAL_DATA_DICT
+    # into GLOBAL_RAW_DATA_DICT
     if key in UPDATE_EVENTS:
       UPDATE_EVENTS[key].set()
 

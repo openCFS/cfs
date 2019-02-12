@@ -21,7 +21,6 @@
 #ifndef FILE_BBINT
 #define FILE_BBINT
 
-#include <boost/tr1/type_traits.hpp>
 
 #include "BDBInt.hh"
 #include "FeBasis/BaseFE.hh"
@@ -52,6 +51,7 @@ namespace CoupledField {
         this->bOperator_ = right.bOperator_->Clone();
         this->factor_ = right.factor_;
         this->coefScalar_ = right.coefScalar_;
+        this->bMat_  = right.bMat_;
       }
 
       virtual BBInt* Clone(){
@@ -144,7 +144,7 @@ namespace CoupledField {
       //@}
 
       bool IsComplex() const {
-        return std::tr1::is_same<MAT_DATA_TYPE,Complex>::value;
+        return std::is_same<MAT_DATA_TYPE,Complex>::value;
       }
       
       //! \copydoc BiLinearForm::IsSolDependent

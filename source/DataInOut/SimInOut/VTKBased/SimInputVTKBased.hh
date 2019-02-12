@@ -20,9 +20,78 @@
 #include <vtkUnstructuredGrid.h>
 #include "vtkCompositeDataIterator.h"
 
+// FV stuff
+#include <unordered_set>
+
 namespace CoupledField{
 
+//! This is a special class used to identify a finite volume face by its nodes.
+//! The master and slave elements are equal, if it is a boundary element.
+//! The two faces created from adjacent cells shoudl have the same nodes in reverse order (see EqualTest)
+class VTKFVFace {
 
+public:
+
+  //! Contructor using master Element number and nodes
+  VTKFVFace(UInt masterElement, StdVector<UInt>& points);
+ 
+  VTKFVFace();
+  
+  virtual ~VTKFVFace();
+  
+  //! returns true if faces use same nodes in same or reverse order
+  bool operator==(const VTKFVFace &other) const;
+  
+  //! Returns 1, if the other face contains the same nodes in same order
+  //! -1 if the other face contains teh same nodes in reverse order
+  //! 0 else
+  Integer EqualTest(const VTKFVFace &other) const;
+  
+  UInt GetMasterElement();
+  
+  UInt GetSlaveElement();
+  
+  void SetSlaveElement(UInt slaveElement);
+
+  bool HasSlaveElement();
+  
+  UInt GetPointCount();
+  
+  void GetPoints(StdVector<UInt>& points);
+  
+  bool HasPoint(UInt point);
+  
+  //! returrns a hash code unique for faces with the same node numers
+  size_t GetHash() const;
+  
+private: 
+
+  UInt masterElement_;
+
+  UInt slaveElement_;
+  
+  StdVector<UInt> points_;
+  
+  std::size_t hash_;
+
+};
+
+}
+
+// for use of VTKFVFace in unordered_set or unordered_map
+namespace std {
+
+template<>
+struct hash<CoupledField::VTKFVFace>
+{
+  size_t operator()(const CoupledField::VTKFVFace & obj) const {
+        return obj.GetHash();
+  }
+};
+}
+// FV stuff end
+
+namespace CoupledField{
 
 class SimInputVTKBased : public SimInput {
 
@@ -34,6 +103,13 @@ public:
   : SimInput(fileName, inputNode,  infoNode){
     mi_ = NULL;
 
+    readFVMesh_ = inputNode->Get("readFVMesh")->As<bool>();
+    fixFVPyramids_ = inputNode->Get("fixFVPyramids")->As<bool>();
+//    readFVMesh_ = true;
+//    fixFVPyramids_ = true;
+    numFVTestedFaces_ = 0;
+    numFVInternalFaces_ = 0;
+    numFVBoundaryFaces_ = 0;
   }
 
   virtual ~SimInputVTKBased(){
@@ -211,6 +287,35 @@ protected:
   //! associate global node number (index) to region local node number (value)
   StdVector<UInt> globNodeLocElem_;
 
+
+  // =======================================================================
+  // FINITE VOLUME REPRESENTATION SECTION
+  // =======================================================================
+
+  //! true if the finite volume mesh should be read
+  bool readFVMesh_;
+  
+  //! true if some pyramids need to be fixed
+  bool fixFVPyramids_;
+
+  //! Used for faces
+  std::unordered_set<VTKFVFace> FVFaces_;
+
+  //! Some counter
+  UInt numFVTestedFaces_;
+  //! Some counter
+  Integer numFVInternalFaces_;
+  //! Some counter
+  Integer numFVBoundaryFaces_;
+
+  void AddFVEdge(UInt masterElement, UInt pA, UInt pB);
+  
+  void AddFVTriFace(UInt masterElement, UInt pA, UInt pB, UInt pC);
+  
+  void AddFVQuadFace(UInt masterElement, UInt pA, UInt pB, UInt pC, UInt pD);
+  
+  void AddFVFace(UInt masterElement, StdVector<UInt>& points);
+  
 };
 
 

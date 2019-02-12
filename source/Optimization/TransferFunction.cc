@@ -128,9 +128,9 @@ App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctx
   case DesignElement::POISSON:
   case DesignElement::POISSONISO:
   case DesignElement::ROTANGLE:
-  case DesignElement::ROTANGLEX:
-  case DesignElement::ROTANGLEY:
-  case DesignElement::ROTANGLEZ:
+  case DesignElement::ROTANGLEFIRST:
+  case DesignElement::ROTANGLESECOND:
+  case DesignElement::ROTANGLETHIRD:
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
   case DesignElement::STIFF3:
@@ -140,6 +140,9 @@ App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctx
   case DesignElement::MECH_23:
   case DesignElement::MECH_22:
   case DesignElement::MECH_33:
+  case DesignElement::MECH_44:
+  case DesignElement::MECH_55:
+  case DesignElement::MECH_66:
   case DesignElement::SHEAR1:
   case DesignElement::MULTIMATERIAL:
   case DesignElement::INTERPOLATION:

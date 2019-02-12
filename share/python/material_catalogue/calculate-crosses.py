@@ -414,9 +414,9 @@ if dim == 2:
               index1 += 1
               index2 += 1         
             if i % 2 == 0:         
-              doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
+              doc.write(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml',pretty_print=True)
             else:
-              doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
+              doc.write(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml',pretty_print=True)
             if i % 2 == 0:
               # add new job to jobfile
               jobfile.write('cfs.rel -m ' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
@@ -478,9 +478,9 @@ if dim == 2:
               index1 += 1
               index2 += 1
             if i % 2 == 0:         
-              doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
+              doc.write(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml',pretty_print=True)
             else:
-              doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
+              doc.write(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml',pretty_print=True)
             # sparse is not working currently
             if args.sparse_msfem:
               mesh = str(x) + "-" + str(y) + '.mesh'
@@ -723,7 +723,7 @@ elif dim == 3:
           if os.path.isfile(file):      
             doc = lxml.etree.parse(file, lxml.etree.XMLParser(remove_comments=True))
             replace(doc, "//cfs:loadErsatzMaterial/@file", problem + '.dens.xml')
-            doc.saveFile(file)
+            doc.write(file,pretty_print=True)
         else:
           if args.gmsh:             
             #os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")

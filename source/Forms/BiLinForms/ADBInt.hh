@@ -1,7 +1,6 @@
 #ifndef FILE_ADBINT_HH
 #define FILE_ADBINT_HH
 
-#include <boost/tr1/type_traits.hpp>
 
 #include "BDBInt.hh"
 #include "FeBasis/BaseFE.hh"

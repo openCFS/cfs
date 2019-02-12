@@ -106,7 +106,7 @@ void SimOutputStreaming::TransmitData(bool force) {
     if (force) {
       int i=0;
       while(current_client != NULL) {
-        // kind of busy sleep because this will only be executed at the very end
+        // kindof busy sleep because this will only be executed at the very end
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         i++;
         if (i>200) {
@@ -340,7 +340,9 @@ void SimOutputStreaming::Client::handle_write_request(const boost::system::error
 
 void SimOutputStreaming::Client::handle_read_status_line(const boost::system::error_code& err)
 {
+
   string msg = "Streaming to " + base_->host_ + ":" + base_->port_ + " results in ";
+
   if(!err)
   {
     // Check that response is OK.

@@ -1586,7 +1586,7 @@ namespace CoupledField {
     // ===============
     LOG_DBG(mechpde) << "Reading mechanical pressure";
     StdVector<std::string> empty;
-    ReadRhsExcitation("pressure", empty, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
+    ReadRhsExcitation("pressure", empty, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo, input);
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
@@ -2471,18 +2471,7 @@ namespace CoupledField {
     } else {
       strainFunc.reset(new CoefFunctionBOp<Double>(feFct, strain));
     }
-    
-    if ( isThermalStrain )  {
-      //add thermal strain to mechanical strain
-      shared_ptr<CoefFunction> totalStrain;
-      totalStrain =
-              CoefFunction::Generate( mp_, part,
-              CoefXprBinOp(mp_,strainFunc,thermalStrain_,CoefXpr::OP_ADD));
-      DefineFieldResult( totalStrain, strain );
-    }
-    else {
-      DefineFieldResult( strainFunc, strain );
-    }
+    DefineFieldResult( strainFunc, strain );
     stiffFormCoefs_.insert(strainFunc);
     
     // === MECHANIC PRINCIPAL STRAIN ===

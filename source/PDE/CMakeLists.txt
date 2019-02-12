@@ -8,6 +8,7 @@ SET(PDE_SRCS
   PerturbedFlowPDE.cc
   HeatPDE.cc
   MagEdgePDE.cc
+  MagEdgeMixedAVPDE.cc
   MagneticPDE.cc
   MechPDE.cc
   SinglePDE.cc
@@ -18,6 +19,8 @@ SET(PDE_SRCS
   ElecCurrentPDE.cc
   WaterWavePDE.cc
   FlowPDE.cc
+  LinFlowPDE.cc
+  LinFlowPDE.cc
   TestPDE.cc
   LatticeBoltzmannPDE.cc
 )

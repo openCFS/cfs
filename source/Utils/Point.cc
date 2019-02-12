@@ -15,6 +15,10 @@ Point & Point::operator=(const Point& t) {
   return *this;
 }
 
+bool Point::operator==(const Point& t) const {
+  return data[0] == t.data[0] && data[1] == t.data[1] && data[2] == t.data[2];
+}
+
 Point & Point::operator+=(const Point& t) {
   UInt i;
   for (i=0; i<3; i++)

@@ -33,6 +33,7 @@ SET(TARGET_LL
   datainout
   simouttext
   datainout
+  ${MUPARSER_LIBRARY}
 )
 
 IF(USE_XERCES)

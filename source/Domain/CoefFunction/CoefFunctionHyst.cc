@@ -259,10 +259,10 @@ namespace CoupledField {
 		}
     
     // for piezoelectric / magnetostrictive coupling
-    int strainForm;
+    double strainForm;
 		material_->GetScalar(strainForm, HYST_STRAIN_FORM);
     
-    if(strainForm != 0){
+    if(((int) strainForm) != 0){
       MAT_useStrainForm_ = true;
     } else {
       MAT_useStrainForm_ = false;
@@ -348,7 +348,10 @@ namespace CoupledField {
     /*
      * Input for piezoelectric / magnetostrictive setups
      */   
-		material_->GetScalar(MAT_dim_beta_, DIM_BETA_COEFS);
+
+		double tmp;
+		material_->GetScalar(tmp, DIM_BETA_COEFS);
+		MAT_dim_beta_ = (int) tmp;
     material_->GetTensor(MAT_betaCoefs_, HYST_BETA_COEFS, Global::REAL);
     
 		/*
@@ -397,8 +400,8 @@ namespace CoupledField {
 			material_->GetScalar(MAT_angClipping_, ANG_CLIPPING, Global::REAL);
 			material_->GetScalar(MAT_ampResolution_, AMP_RESOLUTION, Global::REAL);
       
-			int printOut;
-			int bmpResolution;
+			double printOut;
+			double bmpResolution;
 			material_->GetScalar(printOut, PRINT_PREISACH);
 			material_->GetScalar(bmpResolution, PRINT_PREISACH_RESOLUTION);
       
@@ -409,7 +412,7 @@ namespace CoupledField {
 			MAT_printOut_ = (UInt) printOut;
 			MAT_bmpResolution_ = (UInt) bmpResolution;
       
-			int eval;
+			double eval;
 			material_->GetScalar(eval, EVAL_VERSION);
       
 			MAT_vecPreisachImplementationVersion_ = (UInt) eval;

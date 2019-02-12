@@ -30,7 +30,7 @@ public:
 
   virtual bool Run();
 
-  virtual void FinishInit();
+  virtual void PrepareCalculation();
 
 protected:
 

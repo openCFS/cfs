@@ -76,15 +76,27 @@ namespace CoupledField {
     void AssembleMatrices(bool isNewtonPart=false);
     
     //! Assemble matrices with static condensation for transient simulations
-        void AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage, 
-                                        std::map<FeFctIdType, 
-                                        std::map<FEMatrixType,Double> > timeStepFactors);
+    void AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage,
+                                    std::map<FeFctIdType,
+                                    std::map<FEMatrixType,Double> > timeStepFactors);
+
+    //! Assemble matrices for multiharmonic analysis
+    void AssembleMatrices_MultHarm(Integer harmonic, UInt N, UInt M,
+     const std::map<RegionIdType, StdVector<NonLinType> >& regionNonLinTypes,
+     const StdVector<Double>& multHarmFreqVec = StdVector<Double>());
+
+    //! Initialize matrices for multiharmonic analysis
+    //! Usually this is done in the Assemble method but
+    //! for the multiharmonic analysis, we need to do it externally
+    void InitMultHarm();
 
     //! Trigger assembly of all linear right hand side terms
     void AssembleLinRHS();
 
     //! Trigger assenbly of all non-linear right hand side terms
     void AssembleNonLinRHS();
+
+    void PostAssemble();
 
     // ======================================================
     //  MISCELLANEOUS METHODS
@@ -93,6 +105,7 @@ namespace CoupledField {
     //! Tell Assemble to Reassemble all the matrices the next time (done on init and from Optimization)
     void SetAllReassemble(){ CheckNonLinearities(true); }
 
+    void DisableMatrixAssembly();
     //! Query if matrix related to BiLinearForm is symmetric
     bool IsFEMatSymmetric(  BiLinFormContext* ctx );
     
@@ -108,6 +121,12 @@ namespace CoupledField {
 
     /** Append info about registered (bi)linearforms */
     void ToInfo(PtrParamNode in);
+
+    //Sets a flag to skip eleme assembly for std matrix case
+    void SkipElemAssembly();
+
+    //! Stops the timer in a multiharmonic analysis. It was started in InitMultHarm
+    void TimerStop();
 
     /** search for an integrator.
      * @param pde2 the second pde, note the order -> see debug file.
@@ -150,7 +169,6 @@ namespace CoupledField {
     //! Assemble matrices with static condensation
     void AssembleMatrices_Cond(bool isNewtonPart=false);
 
-    
     //! Assemble linearForms of right hand side
     void AssembleRHSLinForms(bool nonLin );
 
@@ -182,14 +200,20 @@ namespace CoupledField {
                        Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
                        FeFctIdType fctId1, FeFctIdType fctId2,
-                       bool preventStaticCondensation = false );
+                       bool preventStaticCondensation = false,
+                       const StdVector<UInt>& sbmIndices = StdVector<UInt>(),
+                       const Double& f = 0,
+                       bool isMultHarmDiag = false);
 
     //! Insert complex matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Complex>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
                        FeFctIdType fctId1, FeFctIdType fctId2,
-                       bool preventStaticCondensation = false );
+                       bool preventStaticCondensation = false,
+                       const StdVector<UInt>& sbmIndices = StdVector<UInt>(),
+                       const Double& f = 0,
+                       bool isMultHarmDiag = false);
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation
@@ -262,6 +286,10 @@ namespace CoupledField {
     
     //! Flag, if progress bar should be printed
     bool printProgressBar_;
+
+    //flag for skipping element assembly when using petsc geometric multigrid
+    bool skipElemAssembly_;
+
   };
 }
 #endif

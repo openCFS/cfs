@@ -23,7 +23,7 @@ SET(DLFN "${libxml2_prefix}/libxml2-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
   
 # see below for what we need the post_install (pre-zip)
-SET(PI "${libxml2_prefix}/ipopt-post_install.cmake")
+SET(PI "${libxml2_prefix}/libxml2-post_install.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/libxml2/libxml2-post_install.cmake.in" "${PI}" @ONLY) 
   
   

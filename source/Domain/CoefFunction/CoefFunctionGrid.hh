@@ -20,7 +20,6 @@
 #include "FeBasis/H1/H1Elems.hh"
 #include "Forms/Operators/BaseBOperator.hh"
 #include "FeBasis/FeFunctions.hh"
-#include <boost/tr1/type_traits.hpp>
 #include <string>
 
 namespace CoupledField{
@@ -112,6 +111,11 @@ class CoefFunctionGrid : public CoefFunction{
 
     //! \copydoc CoefFunction::GetTensorSize
     virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
+
+    //! Currently only implemented in CoefFunctionGridNodalInterp
+    virtual void PrepareInterpolation(){
+      EXCEPTION("PrepareInterpolation not implemented here");
+    }
 
     //! Sets the variables for conservative or standard interpolation
     virtual void SetConservative(bool value){

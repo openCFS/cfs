@@ -82,7 +82,6 @@
 #include "DataInOut/ResultHandler.hh"
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/tr1/type_traits.hpp>
 
 //include headers of subclasses for factory method
 #include "CoefFunctionGridNodalInterp.hh"
@@ -138,6 +137,7 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
 	  else {
 		  ret.reset(new CoefFunctionGridNodalInterp<Double>(ptDomain,
                     configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
+      ret->PrepareInterpolation();
 	  }
   } else {
    EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious bug, please report!");
