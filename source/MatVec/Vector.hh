@@ -252,6 +252,11 @@ template<typename T> class ElemStoreSol;
     //    virtual void Add(Complex a, const SingleVector& vec1,
     //                     Complex b, const SingleVector& vec2);
 
+
+    /** this = a * vec. Like Add() with initial 0 */
+    void Set(T a, const SingleVector &vec);
+
+
     //! Compute inner product
 
     //! The method computes the value of the inner product between this vector

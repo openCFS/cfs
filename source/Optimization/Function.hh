@@ -94,6 +94,8 @@ class Function
       HEAT_ENEGRY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity*/
       SQR_MAG_FLUX_DENS_X,       /*!< for optimization in squared magnetics Bx component*/
       SQR_MAG_FLUX_DENS_Y,       /*!< for optimization in squared magnetics By component*/
+      SQR_MAG_FLUX_DENS_RZ,      /*!< for optimization in squared magnetics Br  and Bz component*/
+      MAG_COUPLING,              /*!< for optimization of inductive components */
       TEMP_TRACKING_AT_INTERFACE,/*!< tracking temperature at interfaces between solid and void elements */
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_MOLE,               /*!< see mole */
@@ -216,6 +218,7 @@ class Function
     unsigned int GetEigenValueID() { return eigenvalue_id_; }
 
     /** Shall/must we evaluate this objective at this excitation?
+     * Sets the attribute excite_
      * Stress constraints in homogenization are triggered for a single constraint only.
      * @param excite_index -2 is uninitialized/auto, -1 is always */
     void SetExcitation(MultipleExcitation* me, int excite_index = -2);
@@ -771,6 +774,7 @@ class Function
 
     /** Excitation index for evaluation.
      * Note that the index is unique over all sequences!
+     * >= 0 for the actual excitation
      * -1 for all excitations within this sequence!!. Most interesting for stress constraints.
      * -2 is for unset! */
     int excite_;

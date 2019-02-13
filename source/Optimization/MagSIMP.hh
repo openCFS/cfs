@@ -24,7 +24,7 @@ public:
       return CalcRelactivity(elem, dim);
     else
     {
-      if(lin_nu_r_[elem->regionId] < 0);
+      if(lin_nu_r_[elem->regionId] < 0)
         lin_nu_r_[elem->regionId] = CalcRelactivity(elem, dim);
       return lin_nu_r_[elem->regionId];
     }
@@ -57,20 +57,9 @@ protected:
   /** [1 0; 0 0] or [0 0; 0 1] for SQR_MAG_FLUX_DENS_X/Y */
   const Matrix<double>& GetSelectionMatrix(const Function* f) const;
 
-
-
   /** @see ErsatzMaterial::FillRealAdjointRHS() */
-  virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs)
-  {
-    if(f->GetType() == Function::SQR_MAG_FLUX_DENS_X || f->GetType() == Function::SQR_MAG_FLUX_DENS_Y)
-    {
-      CalcMagFluxAdjRHS(excite, f, rhs);
-      return true;
-    }
-    return false;
-  }
+  virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs);
 
-  
   virtual void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
   {
     if(f->ctxt->IsComplex())
@@ -84,16 +73,36 @@ private:
   template <class T1, class T2>
   void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
 
-  /** magnetic flux density */
-  void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
-
   /** calc magnetic flux density as 1/N * sum<J,B*A> where B is the BOp from the BDBInt (here the curl operator) and A is the
-   * element solution vector (scalar) and J is either [1,0] or [0,1] to select the horizontal or vertical part and N averages over
-   * the sum of the N elements of f->region. The scalar product is evaluates over the integration points */
+     * element solution vector (scalar) and J is either [1,0] or [0,1] to select the horizontal or vertical part and N averages over
+     * the sum of the N elements of f->region. The scalar product is evaluated over the integration points */
   double CalcMagFluxDensity(Excitation& excite, Function* f);
 
   /** Calculate the magnetic flux density gradient. The weight is always 1 as the magnetic flux density needs to be per excitation */
   void CalcMagFluxDensGradient(Excitation& excite, Function* f,  TransferFunction* tf);
+
+  /** magnetic flux density */
+  void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
+
+  /** enriched shape functions which give an integration with the state vector in 2D.
+   * Allows computation of <N,A>. N_e = sum_ip w_i jacdet_i N_i, where N_i is the FE-shape function.
+   * TODO check formula's indices
+   * @param form encodes the region we apply the excitation (current in coil)
+   * @param N has size of unknowns of state but has only contributions for the region */
+  void CalcN(LinearFormContext* form, Vector<double>& N);
+
+  /** calc coupling as M^2/(L1*L2) */
+  double CalcMagCoupling2(Excitation& excite, Function* f);
+
+  void CalcCoupling2AdjRHS(Excitation& excite, Function* f, Vector<double>& out);
+
+  /** calc coupling as M^4/(L1*L2)^2 */
+  double CalcMagCoupling(Excitation& excite, Function* f);
+
+  void CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
+
+  /** Calculate the coupling gradient */
+  void CalcCouplingGradient(Excitation& excite, Function* f,  TransferFunction* tf);
 
   /** array by index region-id which says true for nonlinear regions (here CurlCulrIntegrator-NL) */
   StdVector<bool> nonlin_;
@@ -106,6 +115,13 @@ private:
 
   /** The magnetic rhs */
   DesignDependentRHS magRHS;
+
+  Matrix<double> sel_xy_;
+
+  /** volume/area (axi/plane) of whole optimization domain; to be calculated either in first objective value (CalcMagFluxDensity())
+   *  or first adjoint problem (CalcMagFluxAdjRHS()) calculation, depending on optimizer. To indicate that the volume is not yet
+   *  calculated we set it to -1. */
+  double opt_vol_ = -1.0;
 };
 
 } // end of namespace

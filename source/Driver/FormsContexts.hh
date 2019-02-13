@@ -293,7 +293,7 @@ namespace CoupledField
   protected:
 
     //! Pointer to linearform
-    LinearForm * integrator_;
+    LinearForm* integrator_;
 
     // ======================================================
     //  MAPPING DATA

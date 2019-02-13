@@ -113,8 +113,6 @@ namespace CoupledField {
       ReadNonLinData();
     }
     
-    //logFile_.open("nonlin.txt");
-    
     mHandle_ = PDE_.GetDomain()->GetMathParser()->GetNewHandle();
     mParser_ = PDE_.GetDomain()->GetMathParser();
     mParser_->SetExpr(mHandle_,"step");
@@ -123,7 +121,6 @@ namespace CoupledField {
   
   //! Destructor
   StdSolveStep::~StdSolveStep() {
-    //logFile_.close();
     mParser_->ReleaseHandle(mHandle_);
   }
   
@@ -220,7 +217,8 @@ namespace CoupledField {
     //get actual solution
     SBM_Vector  actSol(BaseMatrix::DOUBLE);
     solVec_.Init();
-    actSol = solVec_;
+    actSol = solVec_; // == current solution
+    StdVector<std::pair<double, double> > linesearch;
     
     // =================================
     //  Outer loop: Multilevel strategy 
@@ -272,8 +270,8 @@ namespace CoupledField {
           solVec_.ScalarMult(-1.0);
           algsys_->UpdateRHS(SYSTEM,solVec_,true);
           solVec_.ScalarMult(-1.0);
+          //Do the three lines above even have an effect since solVec_ == 0?
         }
-        
         
         // assemble Newton bilinear forms
         isNewton = true;
@@ -290,13 +288,14 @@ namespace CoupledField {
         bool setIDBC = false;
         if ( iterationCounter == 1 && couplingIter_ == 0 )
           setIDBC = true;
-        
+        // Solve for rhs = residual
         algsys_->Solve(setIDBC);
         
         // new solution is only an increment of the full solution =============
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
         algsys_->GetSolutionVal( solInc, setIDBC );
+        LOG_DBG2(stdsolvestep) << "solInc = " << solInc.ToString(2);
         
         //compute norms (residual and incremenal ones)
         Double residualL2Norm = 0.0;
@@ -308,6 +307,7 @@ namespace CoupledField {
           actSol.Add(1.0, solInc);
           // store the new solution
           solVec_ = actSol;
+          //LOG_DBG2(stdsolvestep) << "actsol = " << actSol.ToString(2);
           
           //=================compute residual norm
           algsys_->InitRHS(RhsLinVal_);
@@ -319,29 +319,29 @@ namespace CoupledField {
           // setup the matrices
           isNewton = false;
           assemble_->AssembleMatrices(isNewton);
-          
+
           //substract from RHS the term K*sol
           solVec_.ScalarMult(-1.0);
           algsys_->UpdateRHS(SYSTEM,solVec_,true);
           solVec_.ScalarMult(-1.0);
           
-          //get RHS vector
+          //get RHS vector == current residual
           SBM_Vector actRHS(BaseMatrix::DOUBLE);
           algsys_->GetRHSVal( actRHS );
           
-          LOG_DBG3(stdsolvestep) << "solVec_= " << solVec_.ToString(2);
+          //LOG_DBG3(stdsolvestep) << "solVec_= " << solVec_.ToString(2);
 
           // calculation of residual error =======================================
           residualL2Norm = actRHS.NormL2();
-          //std::cout << "ResAbsolut: " << residualL2Norm << std::endl;
-        }
-        else {
+          LOG_DBG2(stdsolvestep) << "actRHS = " << actRHS.ToString(2);
+          LOG_DBG3(stdsolvestep) << "ResAbsolut: " << residualL2Norm;
+        } else {
           // do line search
           residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
           
           // store the new solution
           solVec_ = actSol;
-          LOG_TRACE(stdsolvestep) << "actSol=" << solVec_.ToString(2);
+          //LOG_DBG3(stdsolvestep) << "actSol=" << solVec_.ToString(2);
         }
         
         // calculation relative residual error ====================================
@@ -364,22 +364,12 @@ namespace CoupledField {
         }
 
         LOG_DBG2(stdsolvestep) << "residualErr= " << residualErr << " incrementalErr= " << incrementalErr <<  " etaLineSearch= " << etaLineSearch;
+        //WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1, &linesearch);
         WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
-        
-        // output of norms and data
-        if ( nonLinLogging_ == true ) {
-          
-          // write norm to file
-          logFile_ <<  iterationCounter << "\t"
-                  << residualErr << "\t"
-                  << incrementalErr << "\t"
-                  << etaLineSearch << std::endl;
-        }
         
         // boolean variable, holds condition if another iteration step is necessary
         performOneMoreStep =
                 (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-        
         
         if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
           EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
@@ -392,15 +382,13 @@ namespace CoupledField {
       
     } // loop over levels
     static_non_lin_step_timer_.Stop();
-    LOG_DBG3(stdsolvestep) << "actSol=" << solVec_.ToString(2);
-    LOG_DBG3(stdsolvestep) << "actRHS=" << RhsLinVal_.ToString(2);
+    //LOG_DBG3(stdsolvestep) << "actSol=" << solVec_.ToString(2);
+    //LOG_DBG3(stdsolvestep) << "actRHS=" << RhsLinVal_.ToString(2);
 
     // Recalculate with the right eta
     isNewton = false;
     assemble_->AssembleMatrices(isNewton);
   }
-  
-  
   
   // ======================================================
   // Solve Step Transient SECTION
@@ -422,7 +410,6 @@ namespace CoupledField {
       stageRHS_.GetPointer(id)->Resize(rhsSize);
     }
     stageRHS_.Init();
-    
   }
   
   void StdSolveStep::PreStepTrans() {
@@ -902,15 +889,6 @@ namespace CoupledField {
         }
 
         WriteNonLinIterToInfoXML(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
-
-        // output of norms and data
-        if ( nonLinLogging_ == true ) {
-          // write norm to file
-          logFile_ <<  iterationCounter << "\t"
-                  << residualErr << "\t"
-                  << incrementalErr << "\t"
-                  << etaLineSearch << std::endl;
-        }
         
         // boolean variable, holds condition if another iteration step is necessary
         performOneMoreStep =(incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
@@ -1082,15 +1060,6 @@ namespace CoupledField {
         Double residualErr = incrementalErr;
 
         WriteNonLinIterToInfoXML(pdename_, 1,iterationCounter, residualErr, incrementalErr, etaLineSearch);
-
-        // output of norms and data
-        if ( nonLinLogging_ == true ) {
-          // write norm to file
-          logFile_ <<  iterationCounter << "\t"
-                  << residualErr << "\t"
-                  << incrementalErr << "\t"
-                  << etaLineSearch << std::endl;
-        }
         
         stageSol = solNew;
         solVec_  = stageSol;
@@ -1438,7 +1407,7 @@ namespace CoupledField {
   Double StdSolveStep::SetLinRHS( Double loadFactor, bool nonlin)
   {
     
-    //std::cout << "SetLinRHS with bool nonlin = " << nonlin << std::endl;
+    LOG_DBG3(stdsolvestep) << "SetLinRHS with bool nonlin = " << nonlin;
     Double RhsLinL2Norm;
     
     // to incorporate loads+
@@ -1508,13 +1477,12 @@ namespace CoupledField {
     return nrLoadSteps;
   }
   
-  Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol,
-          Double& etaLineSearch, bool trans)  {
-    
+  //Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, double& etaLineSearch, bool trans, StdVector<std::pair<double, double> >& linesearch)  {
+  Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, double& etaLineSearch, bool trans)  {
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
-    const UInt nrEtas = 4;
-    const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
+    const UInt nrEtas = 5;
+    const Double eta[nrEtas] = {0.05, 0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
     
     // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
@@ -1569,18 +1537,20 @@ namespace CoupledField {
       // =====================================================================
       SBM_Vector actRHS(BaseMatrix::DOUBLE);
       algsys_->GetRHSVal( actRHS );
-      LOG_DBG3(stdsolvestep) << "solVec_= " << solVec_.ToString(2);
+      LOG_DBG2(stdsolvestep) << "actrhs = " << actRHS.ToString(2);
       
       // calculation of residual error =======================================
       Double residualL2Norm = actRHS.NormL2();
-      
+      LOG_DBG3(stdsolvestep) << "eta= " << eta[i];
+      LOG_DBG3(stdsolvestep) << "resL2= " << residualL2Norm;
       if (residualL2Norm < residualL2NormOpt) {
         residualL2NormOpt = residualL2Norm;
+        LOG_DBG3(stdsolvestep) << "better res = " << residualL2NormOpt;
         etaOpt = eta[i];
       }
     }
 
-    //std::cout << "Optimal eta = " << etaOpt << std::endl;
+    LOG_DBG3(stdsolvestep) << "Optimal eta = " << etaOpt;
     etaLineSearch = etaOpt;
 
     // Set new solution
@@ -1858,8 +1828,6 @@ namespace CoupledField {
       ss = nlc->GetByVal("solStep", "value", std::to_string(solStep));
       ss->Get("analysis")->SetValue(aid); // possibly overwrite
     }
-
-    
 
     // in the coupling step we have a layer between solStep and iteration
     if(coupledIterStep >= 0)

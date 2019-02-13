@@ -15,6 +15,7 @@
 #include "DataInOut/Logging/log.hpp"
 #include "Driver/Assemble.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "FeBasis/H1/H1Elems.hh"
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
 #include "PDE/MagneticPDE.hh"
@@ -30,7 +31,6 @@ DEFINE_LOG(ms, "magSimp")
 
 double MagSIMP::nu_0 = 1.0/(4 * M_PI * 1e-7);
 
-Vector <double> real_nu;
 
 MagSIMP::MagSIMP()
 {
@@ -44,9 +44,13 @@ MagSIMP::MagSIMP()
   sel_y_.Init();
   sel_y_[1][1] = 1;
 
+  sel_xy_.Resize(sel_x_.GetNumRows(), sel_x_.GetNumCols());
+  sel_xy_.Init();
+  sel_xy_[0][0] = 1;
+  sel_xy_[1][1] = 1;
+
   lin_nu_r_.Resize(domain->GetGrid()->GetNumRegions() + 1, -1.0);
 }
-
 
 MagSIMP::~MagSIMP()
 {
@@ -80,6 +84,27 @@ void MagSIMP::PostInit()
   }
 }
 
+bool MagSIMP::FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs)
+{
+  switch(f->GetType())
+  {
+  case Function::SQR_MAG_FLUX_DENS_X:
+  case Function::SQR_MAG_FLUX_DENS_Y:
+  case Function::SQR_MAG_FLUX_DENS_RZ:
+    CalcMagFluxAdjRHS(excite, f, rhs);
+    return true;
+    break;
+  case Function::MAG_COUPLING:
+    CalcCouplingAdjRHS(excite, f, rhs);
+    return true;
+    break;
+
+  default:
+    break;
+  }
+  return false;
+}
+
 double MagSIMP::CalcRelactivity(const Elem* elem, UInt dim)
 {
   assert(manager.context.GetSize() == 1); // otherwise we would need it
@@ -88,7 +113,6 @@ double MagSIMP::CalcRelactivity(const Elem* elem, UInt dim)
 
   return ExtractRelactivity(coef->orgMat.get(), nonlin_[elem->regionId] ? elem : NULL, dim);
 }
-
 
 double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem, UInt dim)
 {
@@ -130,14 +154,13 @@ double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem, UInt
   return nu_0_nu_r/ nu_0;
 }
 
-
-
 double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
   switch(f->GetType())
   {
   case Function::SQR_MAG_FLUX_DENS_X:
   case Function::SQR_MAG_FLUX_DENS_Y:
+  case Function::SQR_MAG_FLUX_DENS_RZ:
     if(!derivative)
       return CalcMagFluxDensity(excite, f);
     else
@@ -146,12 +169,20 @@ double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       CalcMagFluxDensGradient(excite, f, tf);
       return 0.0;
     }
+  case Function::MAG_COUPLING:
+    if(!derivative)
+      return CalcMagCoupling(excite, f);
+    else
+    {
+      TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true);//TODO
+      CalcCouplingGradient(excite, f, tf);
+      return 0.0;
+    }
   default: // return below as we don't implement
     break;
   }
   return SIMP::CalcFunction(excite, f, derivative);
 }
-
 
 double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
 {
@@ -189,6 +220,9 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
   StdVector<double> weights;
   IntegOrder order;
   IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+  // calculate volume of whole optimization domain by adding up element volumes
+  double vol; // element volume
+  double volume = 0; // accumulated volume whole optimization domain
 
   assert(!f->elements.IsEmpty());
   assert(f->region != ALL_REGIONS);
@@ -197,21 +231,29 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
     DesignElement* de = f->elements[e];
 
     // element solution
+    LOG_DBG3(ms) << "CMFD ind=" << de->GetElementSolutionIndex() << " sol=" << sol[de->GetElementSolutionIndex()];
     Vector<double>* vec = dynamic_cast<Vector<double>*>(sol[de->GetElementSolutionIndex()]);
+    LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex();
     assert(vec != NULL);
     const Vector<double>& a = *vec; // a = the vector potential in the element
-    LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex() << " a=" << a.ToString(2);
+    LOG_DBG3(ms) << "CMFD e=" << e << " el=" << de->elem->elemNum << " esi=" << de->GetElementSolutionIndex() << " a=" << a.ToString(2) << " -> " << result;
 
     // prepare to get the curl operator
     el.SetElement(de->elem);
     BaseFE* ptFe = bdb->GetFeSpace1()->GetFe(el.GetIterator(), method, order );
 
     bdb->GetIntScheme()->GetIntPoints(Elem::GetShapeType(de->elem->type), method, order, intPoints, weights );
-    LOG_DBG2(ms) << "CMFD i=" << e <<  " method=" << method << " order=" << order.ToString() << " iP=" << intPoints;
     assert(method != IntScheme::UNDEFINED);
     assert(!intPoints.IsEmpty());
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(de->elem);
+
+    vol = esm->CalcVolume();
+
+    LOG_DBG(ms) << "CMFD i=" << e << " el=" << de->elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints.ToString(2) << " v=" << vol;
+    // add element volume to volume of whole domain
+    volume += vol;
+    LOG_DBG3(ms) << "CMFD accumulated volume =" << volume;
 
     double el_val = 0.0;
 
@@ -222,11 +264,10 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
 
       // Call the CalcBMat()-method
       assert(bdb->GetBOp());
-      // std::cout << "bdb->B " << bdb->GetBOp()->GetName() << "\n";
       bdb->GetBOp()->CalcOpMat(M, lp, ptFe);
       assert(M.GetNumCols() == a.GetSize());
       assert(M.GetNumRows() == domain->GetGrid()->GetDim());
-      LOG_DBG3(ms) << "CMFD: e= " << e << " ip=" << ip << "/" << intPoints[ip].coord.ToString() << " w=" << weights[ip] << " jacDet=" << lp.jacDet << " M_" << ip << "=" << M.ToString(2);
+      LOG_DBG3(ms) << "CMFD: e= " << e << " ip=" << ip << "/(" << intPoints[ip].coord.ToString() << ") w=" << weights[ip] << " jacDet=" << lp.jacDet << " M_" << ip << "=" << M.ToString(2);
 
       // flux_denx = M * a
       flux_dens.Resize(dim);
@@ -240,15 +281,21 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
       // scalar = flux_dens * S_flux_dens
       el_val += weights[ip] * lp.jacDet * S_flux_dens.Inner(flux_dens);
 
-      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens << " Sfd=" << S_flux_dens << " inner=" << S_flux_dens.Inner(flux_dens) << " el -> " << el_val;
+      LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens.ToString(2) << " Sfd=" << S_flux_dens << " inner=" << S_flux_dens.Inner(flux_dens) << " el -> " << el_val;
     } // end ip
 
-    result += el_val;
-
+    result += el_val * vol; // Norm with volume of element
   } // end loop elems
 
-  result /= f->elements.GetSize(); // norm the function
-  LOG_DBG(ms) << "CMFD: exit -> " << result;
+  // set optimization volume if not already set
+  if (opt_vol_ == -1)
+  {
+    opt_vol_ = volume;
+    LOG_DBG2(ms) << "CMFD: calculated volume =" << opt_vol_;
+  }
+  // norm by the volume of the optimization domain
+  result *= 1.0/opt_vol_;
+  LOG_DBG(ms) << "CMFD: exit normed -> " << result;
   return result;
 }
 
@@ -278,12 +325,143 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f, TransferF
 
   }
 
-  double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
+  double factor = 1.0/ opt_vol_; // factor for norming the gradient; same as in objective function
   // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], rhs, factor, STANDARD, f);
-
 }
 
+void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
+{
+  // Calculates the vector N to perform the numerical integration over the region encoded in form by <N, A>
+  assert(N.GetSize() > 0); // needs to be set to full state solution size such that we can index the entries by the equation map
+
+  shared_ptr<EntityList> el = form->GetEntities();
+  assert(el->GetRegion() != NO_REGION_ID);
+  assert(el->GetRegion() >= 0);
+  LOG_DBG3(ms) << "CN: ft=" << el->GetType() << " r=" << el->GetRegion() << " fn="  << form->ToString();
+
+  // get bilinear form to gain fe-space from it
+  BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->pde->GetAssemble()->GetBiLinForm("CurlCurlIntegrator", el->GetRegion(), context->pde)->GetIntegrator());
+  assert(bdb != NULL);
+  LOG_DBG3(ms) << "CN: bdb=" << bdb->GetName();
+
+  StdVector<LocPoint> intPoints; // Get integration Points
+  LocPointMapped lpm;
+  StdVector<double> weights;
+  Vector<double> shapes; // shape function coefficients for specific ip
+  IntegOrder order;
+  IntScheme::IntegMethod method = IntScheme::UNDEFINED;
+  // this gets the equation numbers for the element
+  StdVector<int> eqn;
+
+  for(EntityIterator iter = el->GetIterator(); !iter.IsEnd(); iter++)
+  {
+    // from the element we get the local shape functions
+    BaseFE* bfe = bdb->GetFeSpace1()->GetFe(iter, method, order );
+    FeH1* h1 = dynamic_cast<FeH1*>(bfe);
+    assert(h1 != NULL);
+
+    // the shape map knows about the real element size
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(iter.GetElem());
+
+    // the equations assigned to the element
+    bdb->GetFeSpace1()->GetElemEqns(eqn, iter.GetElem());
+
+    // set integration points and weights
+    bdb->GetIntScheme()->GetIntPoints(Elem::GetShapeType(iter.GetElem()->type), method, order, intPoints, weights );
+    assert(method != IntScheme::UNDEFINED);
+    assert(!intPoints.IsEmpty());
+
+    LOG_DBG3(ms) << "e=" << iter.GetElem()->elemNum << " w=" << weights.ToString()  << " o=" << order.ToString() << " m=" << method << " ns=" << bfe->GetNumFncs() << " fe=" << bfe->FeType() << " eqn=" << eqn.ToString();
+
+    for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
+    {
+      // Calculate for each integration point the determinant of the Jacobian
+      lpm.Set(intPoints[ip], esm, weights[ip]);
+
+      // get the shape functions of the ip, same values for all ips in one element but permuted
+      h1->GetShFnc(shapes, lpm.lp, iter.GetElem());
+      LOG_DBG3(ms) << "CN: e=" << iter.GetElem()->elemNum << " ip=" << ip << "=" << intPoints[ip].coord.ToString() << " J=" << lpm.jacDet << " s=" << shapes.ToString();
+      assert(shapes.GetSize() == eqn.GetSize());
+      for(unsigned int s = 0; s < shapes.GetSize(); s++)
+      {
+        double v = weights[ip] * lpm.jacDet * shapes[s];
+        // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
+        int eqn_nbr = eqn[s];
+        if(eqn_nbr <= 0)
+        {
+          LOG_DBG3(ms) << "CN: s=" << s << " eqn_nbr=" << eqn_nbr << " -> skip RHS node";
+        }
+        else
+        {
+          unsigned int eqn_idx = eqn_nbr-1;
+          LOG_DBG3(ms) << "CN: s=" << s << " eqn_idx=" << eqn_idx << " N[" << eqn_idx << "] = " << N[eqn_idx] << " + " << v << " -> " << (N[eqn_idx] + v);
+          N[eqn_idx] += v;
+         }
+      } // end shape fcts
+    } // end ip
+  } // end elem
+}
+
+double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
+{
+  if(GetMultipleExcitation()->excitations.GetSize() != 2)
+    throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
+
+  // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
+  // we return value 0 for the first excitation and 2*coupling for the second excitation
+  assert(GetMultipleExcitation()->excitations.GetSize() == 2);
+  if(excite.index == 0)
+  {
+    LOG_DBG2(ms) << "CMC: excitation index is 0; nothing to do here; returning 0.0";
+    return 0.0;
+  }
+  assert(excite.index == 1);
+  Excitation& excite_A = GetMultipleExcitation()->excitations[0];
+  Excitation& excite_B = GetMultipleExcitation()->excitations[1];
+  // Coupling can only be calculated for exactly two coils
+  assert(excite_A.index == 0 && excite_B.index == 1);
+  // we need both forms to get the different regions
+  StdVector<LinearFormContext*>& forms_A = excite_A.forms;
+  StdVector<LinearFormContext*>& forms_B = excite_B.forms;
+  assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
+  LinearFormContext* form_A = forms_A[0];
+  LinearFormContext* form_B = forms_B[0];
+  // get the two As
+  const Vector<double>& A_a = forward.Get(excite_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  const Vector<double>& A_b = forward.Get(excite_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  assert(A_a.GetSize() > 0);
+  assert(A_b.GetSize() > 0);
+
+  LOG_DBG3(ms) << "CMC: size of A_a = " << A_a.GetSize();
+  LOG_DBG3(ms) << "CMC: size of A_b = " << A_b.GetSize();
+
+  Vector<double> N1(A_a.GetSize());
+  Vector<double> N2(A_a.GetSize());
+
+  CalcN(form_A, N1);
+  CalcN(form_B, N2);
+
+  double sp_N1_Aa = N1.Inner(A_a);
+  double sp_N1_Ab = N1.Inner(A_b);
+  double sp_N2_Ab = N2.Inner(A_b);
+
+  LOG_DBG3(ms) << "CMC: <N1, A_a>=" << sp_N1_Aa;
+  LOG_DBG3(ms) << "CMC: <N1, A_b>=" << sp_N1_Ab;
+  LOG_DBG3(ms) << "CMC: <N2, A_b>=" << sp_N2_Ab;
+
+  double k = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab);
+  LOG_DBG(ms) << "CMC: Coupling = " << k;
+  // return 2-times the function value since we have two excitations and it will be halved afterwards
+  return 2*k;
+  }
+
+void MagSIMP::CalcCouplingGradient(Excitation& excite, Function* f, TransferFunction* tf)
+{
+  //TODO
+  LOG_DBG2(ms) << "CCG: excitation: " << excite.index;
+  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], NULL, 1, STANDARD, f);
+}
 
 void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
 {
@@ -291,8 +469,6 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   // D is the selection vector for x or y component [0 0; 0 1] or [1 0; 0 0]
   // d(<B*A,D*B*A>)/dA = -2*(B^T*D*B)*A = -2*M*A -> 4 rows, 1 col
   // do this for all elements A and add with factor 1/N to rhs
-
-
   assert(out.GetSize() == 0);
   const Vector<double>& stateSol = forward.Get(excite,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
   out.Resize(stateSol.GetSize(),0.0);
@@ -303,7 +479,7 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   // Write the solution from the algebraic system to the vector real_nu, real_nu will be needed in SetElementK to get the correct nu
   SolutionType solt = MAG_POTENTIAL;
   shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
-  real_nu = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
+  //real_nu = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
 
   // We use BDBInt to compute M, but in the nonlinear case we have only BBInt stored in assemble
   // therefore we construct a own one
@@ -333,6 +509,10 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   ElemList elemList(domain->GetGrid());
   EntityIterator it = elemList.GetIterator();
 
+  // calculate volume of whole optimization domain by adding up element volumes
+  double vol; // element volume
+  double volume = 0; // accumulated volume whole optimization domain
+
   for(unsigned int e = 0; e < f->elements.GetSize(); e++)
   {
     DesignElement* de = f->elements[e];
@@ -358,22 +538,105 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
     LOG_DBG3(ms) << "CMFAR e=" << e << " eqn=" << eqn.ToString(2);
     assert(rhs_el.GetSize() == eqn.GetSize());
 
+    // add element volume to volume of whole domain
+    // Get shape map from grid
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(de->elem);
+    vol = esm->CalcVolume();
+    volume += vol;
+    LOG_DBG3(ms) << "CMFAR accumulated volume =" << volume;
     for(unsigned int n = 0; n < eqn.GetSize(); n++)
     {
       // the equation number is 1 based with 0 indicating HDBC and constrained nodes for negative indices. The equation index is 0-based!
       int eqn_nbr = eqn[n];
-      if(eqn_nbr <= 0)
+
+      if(eqn_nbr <= 0) {
         LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_nbr=" << eqn_nbr << " -> skip RHS node";
+      }
       else
       {
         unsigned int eqn_idx = eqn_nbr-1;
 
-        out[eqn_idx] += rhs_el[n]; // we don't norm here, we moved the norming to CalcMagFluxDensGradient
-        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << ((1.0/f->elements.GetSize()) * rhs_el[n]) << " out[eqn_idx]=" << out[eqn_idx];
+        out[eqn_idx] += rhs_el[n] * vol; // norm with volume of element
+        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << vol * rhs_el[n] << " out[eqn_idx]=" << out[eqn_idx];
       }
     }
   } // end loop elements
+
+  // set optimization volume if not already set
+  if (opt_vol_ == -1)
+  {
+    opt_vol_ = volume;
+    LOG_DBG2(ms) << "CMFAR: calculated volume =" << opt_vol_;
+  }
   delete bdb;
+}
+
+void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
+{
+  /* The right hand sides look as follows:
+   * case A:
+   * (<N_1, A_B>^2)/(<N_1, A_A>^2 <N_2, A_B>) * N_1^T
+   * case B:
+   * <N_1, A_B>/(<N_1, A_A><N_2, A_B>) * N_1^T - (<N_1, A_B>)^2/(<N_1, A_A><N_2, A_B^2>) * N_2^T
+   */
+  // same as in CalcCoupling
+  if(GetMultipleExcitation()->excitations.GetSize() != 2)
+  {
+    throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
+  }
+  // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
+  // we return value 0 for the first excitation and 2*coupling for the second excitation
+  assert(GetMultipleExcitation()->excitations.GetSize() == 2);
+  Excitation& excite_A = GetMultipleExcitation()->excitations[0];
+  Excitation& excite_B = GetMultipleExcitation()->excitations[1];
+  // Coupling can only be calculated for exactly two coils
+  assert(excite_A.index == 0 && excite_B.index == 1);
+  // we need both forms to get the different regions
+  StdVector<LinearFormContext*>& forms_A = excite_A.forms;
+  StdVector<LinearFormContext*>& forms_B = excite_B.forms;
+  assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
+  LinearFormContext* form_A = forms_A[0];
+  LinearFormContext* form_B = forms_B[0];
+  // get the two As
+  const Vector<double>& A_a = forward.Get(excite_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  const Vector<double>& A_b = forward.Get(excite_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  assert(A_a.GetSize() > 0);
+  assert(A_b.GetSize() > 0);
+
+  LOG_DBG3(ms) << "CCAR: size of A_a = " << A_a.GetSize();
+  LOG_DBG3(ms) << "CCAR: size of A_b = " << A_b.GetSize();
+
+  Vector<double> N1(A_a.GetSize());
+  Vector<double> N2(A_a.GetSize());
+
+  CalcN(form_A, N1);
+  CalcN(form_B, N2);
+  LOG_DBG3(ms) << "CMC: N1 = " << N1.ToString(2);
+  LOG_DBG3(ms) << "CMC: N2 = " << N2.ToString(2);
+
+  double sp_N1_Aa = N1.Inner(A_a);
+  double sp_N1_Ab = N1.Inner(A_b);
+  double sp_N2_Ab = N2.Inner(A_b);
+
+  LOG_DBG2(ms) << "CCAR: <N1, A_a>=" << sp_N1_Aa;
+  LOG_DBG2(ms) << "CCAR: <N1, A_b>=" << sp_N1_Ab;
+  LOG_DBG2(ms) << "CCAR: <N2, A_b>=" << sp_N2_Ab;
+  out.Resize(A_a.GetSize(),0.0);
+  if (excite.index == 0) {
+    //calc rhs first case
+    const double factor = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N1_Aa*sp_N2_Ab);
+
+    out.Set(factor, N1); // out = factor * N1
+    LOG_DBG2(ms) << "CCAR: first excitation. f=" << factor << " |out|=" << out.NormL2();
+  } else if (excite.index == 1) {
+    //calc rhs second case
+    const double factor_N1 = (2*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab);
+    const double factor_N2 = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab*sp_N2_Ab);
+    out.Add(-factor_N1, N1, factor_N2, N2); // out = -factor_N1 * N1 + factor_N2 * N2
+    LOG_DBG2(ms) << "CCAR: second excitation fN1=" << factor_N1 << " fN2=" <<factor_N2 << " |out|=" << out.NormL2();
+  } else {
+    EXCEPTION("There should only be two excitations");
+  }
 }
 
 template <class T1, class T2>
@@ -408,7 +671,7 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mag->Stiffness(de->elem));
 
     // Overwrite again with the stuff from StateSolution.cc line 353 and 445
-    //dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = buffer_store;
+
     //LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString(2);
 
     double nu_r = GetRelactivity(de->elem, domain->GetGrid()->GetDim());
@@ -420,12 +683,12 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
     // we have K' = alpha * K_0 where alpha = (nu_0*nu_r - nu_0) / (nu_0 * nu_r)
 
     double alpha = (nu_0*nu_r*d_rho - nu_0) / (nu_0 * nu_r);
-    LOG_DBG3(ms) << "e=" << de->elem->elemNum << " "
-        "nu_0=" << nu_0 << " nu_r=" << nu_r << " rho=" << de->GetDesign(DesignElement::SMART) << " d_rho=" << d_rho << " alpha=" << alpha;
+    //LOG_DBG3(ms) << "e=" << de->elem->elemNum << " "
+     //   "nu_0=" << nu_0 << " nu_r=" << nu_r << " rho=" << de->GetDesign(DesignElement::SMART) << " d_rho=" << d_rho << " alpha=" << alpha;
 
     Assign(out, stiffness, alpha); // out = alpha * stiffness
 
-    LOG_DBG3(ms) << "out=" << out.ToString(2);
+    //LOG_DBG3(ms) << "out=" << out.ToString(2);
     break;
   }
 
@@ -443,11 +706,10 @@ const Matrix<double>& MagSIMP::GetSelectionMatrix(const Function* f) const
     return sel_x_;
   case Function::SQR_MAG_FLUX_DENS_Y:
     return sel_y_;
+  case Function::SQR_MAG_FLUX_DENS_RZ:
+    return sel_xy_;
   default:
     assert(false);
     return sel_y_;
   }
 }
-
-
-

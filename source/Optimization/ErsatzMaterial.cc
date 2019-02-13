@@ -823,7 +823,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       base_lower = design->FindDesign(tf->GetDesign()) * elements;
       base_upper = base_lower + elements;
     }
-    LOG_DBG2(em) << "elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
+    LOG_DBG(em) << "CalcU1KU2: elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
     // create an element list to gain the iterator in the loop
     ElemList elemList(grid);
 
@@ -854,13 +854,13 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         // u1^T (K' u2 - f') -> find "K'"
         SetElementK(f, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
 
-        LOG_DBG3(em) << "mat: " << mat.ToString();
-        LOG_DBG2(em) << "mat=" << mat << "u2_vec=" << u2_vec << "u1_vec= " << u1_vec.ToString();
+        LOG_DBG3(em) << "CalcU1KU2: mat: " << mat.ToString();
+        LOG_DBG2(em) << "CalcU1KU2: mat=" << mat << "u2_vec=" << u2_vec << "u1_vec= " << u1_vec.ToString();
 
         // We generally solve u1^T (K' u2 - f')
         // u1^T (K' u2 - f') -> calc "K' u2"
         mat_vec = mat * u2_vec;
-        LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
+        LOG_DBG3(em) << "CalcU1KU2: mat * u2: " << mat_vec.ToString();
 
         // u1^T (K' u2 - f') -> calc "- f'"
         assert(!(calcMode == CONJ_QUAD && rtf != NULL));// no sensitive rhs here!
@@ -1360,6 +1360,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       case Function::SQR_MAG_FLUX_DENS_Y:
       case Function::SQR_MAG_FLUX_DENS_X:
+      case Function::SQR_MAG_FLUX_DENS_RZ:
+      case Function::MAG_COUPLING:
         assert(false); // shall be handled in MagSIMP
       break;
 
@@ -2430,7 +2432,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     return result;
   }
 
-
   double ErsatzMaterial::CalcStateTrackingAtNode(int node)
   {
     assert(node > 0);
@@ -2503,7 +2504,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     for (unsigned int i = 0; i < stateSol.GetSize(); i++)
       out[i] = - 2.0 * loads[i] * (stateSol[i] - trackVal) * design->data.GetSize() / factor;
   }
-
 
   double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
   {
@@ -2833,7 +2833,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       double grad = -1.0 * diff_tensor.FrobeniusProduct(hom_tensor_deriv);
       de->AddGradient(f, grad);
     } // element loop
-
   }
 
   void ErsatzMaterial::CalcHomFrobeniusProductGradient(const Matrix<double>& par, const Matrix<double>& hom, Function* f)
@@ -2857,9 +2856,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
           de->AddGradient(f, tmp_grad_out[e] * d_ij);
         }
       }
-
     }
-
   }
 
   double ErsatzMaterial::CalcHomogenizedTensorConstraint(Condition* g, bool derivative)
@@ -2960,7 +2957,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     LOG_DBG(em) << "CHTE ij=" << ij << " kl=" << kl << " der=" << derivative << " meta=" << meta << " re=" << result;
     return result; // in the non-derivative case this is the sum.
   }
-
 
   double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Function* f, DesignElement* de, bool derivative, Vector<double>& u1_vec, Vector<double>& u2_vec, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl)
   {
@@ -3091,7 +3087,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     }
     return result;
   }
-
 
   double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
   {
@@ -3277,11 +3272,13 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       if(!context->DoLBM() && !IsTransient()) // transient solutions are read per timestep
       {
         // in the eigenvalue case we store the modes separately, similar to timesteps
-        if(!context->IsEigenvalue())
-          StorePDESolution(forward, excite, NULL, -1, true, true, false, NO_DERIVTYPE, "forward"); // no solution and mode is -1 as it is not set
-        else
+        if(context->IsEigenvalue())
+        {
           for(int m = 0; m < (int) context->GetEigenFrequencyDriver()->eigenFreqs->GetSize() ; m++)
             StorePDESolution(forward, excite, NULL, m, true, true, true, NO_DERIVTYPE, "forward"); // only in the ev case we need to save the solution
+        }
+        else
+          StorePDESolution(forward, excite, NULL, -1, true, true, false, NO_DERIVTYPE, "forward"); // no solution and mode is -1 as it is not set
       }
 
       // check for each excitation all functions if we shall solve the adjoint - take care about the context!
@@ -3533,6 +3530,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::STRESS_DENSITY:
       case Function::SQR_MAG_FLUX_DENS_X:
       case Function::SQR_MAG_FLUX_DENS_Y:
+      case Function::SQR_MAG_FLUX_DENS_RZ:
+      case Function::MAG_COUPLING:
       {
         // these objectives need their adjoint problems for the calculation of the objective value
         // they are directly solved after the StateProblem
