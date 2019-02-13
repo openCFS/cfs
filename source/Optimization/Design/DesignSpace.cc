@@ -999,15 +999,27 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   // factor is the pseudo density case, in case it has the penalty parameter applied
-  double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
+  double factor = -4711;
 
   // retScal becomes the original value
   coef->orgMat->GetScalar(retScal, *lpm);
 
-  // this shall not happen for MAG as we have only tensors and rhs vec there
-  assert(app != App::MAG);
-
-  retScal *= factor;
+  // we need it in MAG, if we load density file, then we have a scalar value
+  if(app == App::MAG)
+  {
+    // retScal = nu_0 * nu_r
+    // be sure not use RHS_DENSITY
+    DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::DENSITY, true);
+    factor = GetErsatzMaterialFactor(de, app, false);
+    const double nu_0 = 1/(4*M_PI*1e-7);
+    retScal = (retScal * factor) + (1-factor) * nu_0;
+  }
+  else
+  {
+    factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
+    retScal *= factor;
+  }
+  assert(factor != -4711);
 
   DesignRegion* dr = GetRegion(lpm->ptEl->regionId);
   if(dr->HasBiMaterial())

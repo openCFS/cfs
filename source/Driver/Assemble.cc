@@ -1306,7 +1306,7 @@ namespace CoupledField
             }else{
             	form->CalcElemVector(elemVec, entIt);
             }
-            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.GetElem()->elemNum << " fctId=" << fctId;
+            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.ToString() << " fctId=" << fctId;
             LOG_DBG3(assemble) << "ARLF: elemVec=" << elemVec.ToString();
 
             // Map equation numbers
