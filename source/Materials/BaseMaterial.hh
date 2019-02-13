@@ -80,6 +80,7 @@ namespace CoupledField {
     //@{ \name public typedefs
     typedef std::map<MaterialType, Matrix<Complex> > tensorMap;
     typedef std::map<MaterialType, Complex > scalarMap;
+    typedef std::map<MaterialType, Vector<Complex> > vectorMap;
     typedef std::map<MaterialType, std::string > stringMap;
     typedef std::map<MaterialType, MathParser::HandleType > handleMap;
     typedef std::map<MaterialType, PtrCoefFct> CoefMap;
@@ -524,7 +525,7 @@ namespace CoupledField {
     handleMap scalarStringHandlesImag_;
         
     //! map, which knows about the actual tensorial material parameters 
-    typedef std::map<MaterialType, Vector<Complex> > vectorParams_;
+    vectorMap vectorParams_;
 
     //! map, which knows about the actual tensorial material parameters 
     tensorMap tensorParams_;
