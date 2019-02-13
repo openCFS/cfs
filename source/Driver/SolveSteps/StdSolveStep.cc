@@ -1481,8 +1481,8 @@ namespace CoupledField {
   Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, double& etaLineSearch, bool trans)  {
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
-    const UInt nrEtas = 4;
-    const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
+    const UInt nrEtas = 5;
+    const Double eta[nrEtas] = {0.05, 0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
     
     // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
