@@ -820,7 +820,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     int base_upper = design_dependend ? base_lower + elements : design->data.GetSize();
 
     elements = design->GetNumberOfElements();
-    int base_lower = 0;
+    //int base_lower = 0;
     base_upper = design->data.GetSize(); // ErsatzMatzerialTensor and MultiMaterial
     if(design->designMaterial == NULL && !design->HasMultiMaterial())
     {

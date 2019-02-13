@@ -59,15 +59,7 @@ protected:
 
   /** @see ErsatzMaterial::FillRealAdjointRHS() */
 
-  bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs)
-  {
-    if(f->GetType() == Function::SQR_MAG_FLUX_DENS_X || f->GetType() == Function::SQR_MAG_FLUX_DENS_Y)
-    {
-      CalcMagFluxAdjRHS(excite, f, rhs);
-      return true;
-    }
-    return false;
-  }
+  bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs);
   
   /** See ErsatzMaterial::SetElementK() */
   void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
