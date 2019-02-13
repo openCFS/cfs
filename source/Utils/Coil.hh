@@ -95,7 +95,7 @@ namespace CoupledField {
      //! Scalar value of excitation (voltage, current)
      PtrCoefFct srcVal_;
      
-     //! Do coil Optimization?
+     //! Do coil Optimization with toppology optimization variable magCoilPseudoDensity?
      bool coilOptimization_;
 
      //! Define part of a coil

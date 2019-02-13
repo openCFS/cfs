@@ -16,6 +16,7 @@
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "Forms/LinForms/BUInt.hh"
 #include "General/defs.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/LocalElementCache.hh"
@@ -93,6 +94,18 @@ OptimizationMaterial* OptimizationMaterial::CreateInstance(System sys, ErsatzMat
   }
 }
 
+CoefFunction* OptimizationMaterial::GetOrgMatCoef(BaseBDBInt* bdb)
+{
+  assert(bdb != NULL);
+  assert(bdb->GetCoef());
+
+  CoefFunctionOpt* opt = dynamic_cast<CoefFunctionOpt*>(bdb->GetCoef().get());
+  if(opt != NULL)
+    return opt->orgMat.get();
+  else
+    return bdb->GetCoef().get();
+}
+
 inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(BiLinFormContext* context)
 {
   assert(context != NULL);
@@ -101,6 +114,15 @@ inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(BiLinFormContext* conte
   assert(bdb->GetCoef());
   // LOG_DBG3(om) << "GMC int=" << integrator << " coef=" << bdb->GetCoef()->ToString();
   return dynamic_cast<CoefFunctionOpt*>(bdb->GetCoef().get());
+}
+
+inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(LinearFormContext* context)
+{
+  assert(context != NULL);
+  BUIntegrator<>* bu = dynamic_cast<BUIntegrator<>*>(context->GetIntegrator());
+  assert(bu != NULL);
+  assert(bu->GetCoef());
+  return dynamic_cast<CoefFunctionOpt*>(bu->GetCoef().get());
 }
 
 CoefFunctionOpt* OptimizationMaterial::GetMatCoef(const string& integrator, RegionIdType reg_id)
@@ -514,6 +536,40 @@ MagMat::MagMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctx
 
   // mass does not apply yet
 }
+
+const Vector<double>& MagMat::MagExcitationRHS(const std::string& integrator, const Elem* elem)
+{
+  LOG_DBG3(om) << "MER int=" << integrator << " elem=" << (elem != NULL ? elem->elemNum : 4711);
+
+  assert(elem != NULL);
+
+  SinglePDE* pde = ctxt_->pde;
+  assert(pde != NULL);
+  LinearFormContext* lc = pde->GetAssemble()->GetLinForm(integrator, elem->regionId, pde, false);
+
+  // create an element list to gain the iterator in the loop
+  ElemList elemList(domain->GetGrid());
+  elemList.SetElement(elem);
+  EntityIterator it = elemList.GetIterator();
+
+  CoefFunctionOpt* coef = GetMatCoef(lc);
+  assert(!(coef == NULL));
+
+  CoefFunctionOpt::State old_state = coef->GetState();
+  assert(old_state == CoefFunctionOpt::ORG || old_state == CoefFunctionOpt::OPT); // otherwise we would need to store also shadow/direction
+
+  coef->SetToOrgMaterial();
+
+  lc->GetIntegrator()->CalcElemVector(mag_excitation, it);
+
+  if(old_state == CoefFunctionOpt::ORG)
+      coef->SetToOrgMaterial();
+    else
+      coef->SetToOptimization();
+
+  return mag_excitation;
+}
+
 
 ElecMat::ElecMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {

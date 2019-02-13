@@ -1327,7 +1327,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_STRESS_AVERAGE, "mechStressAverage");
 
 
-    SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
+    SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity"); // shall be replaced by PSEUDO_DENSITY in the future
+    SolutionTypeEnum.Add(PSEUDO_DENSITY, "pseudoDensity");
     SolutionTypeEnum.Add(PHYSICAL_PSEUDO_DENSITY, "physicalPseudoDensity");
     SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
     SolutionTypeEnum.Add(MECH_TENSOR_TRACE, "mechTensorTrace");
@@ -1448,6 +1449,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     SolutionTypeEnum.Add(MAG_MAGNETIZATION, "magMagnetization");
     SolutionTypeEnum.Add(MAG_POLARIZATION, "magPolarization");
+    // for magnetic coil optimization
+    SolutionTypeEnum.Add(RHS_PSEUDO_DENSITY, "rhsPseudoDensity");
+    SolutionTypeEnum.Add(PHYSICAL_RHS_PSEUDO_DENSITY, "physicalRhsPseudoDensity");
 
     // magnetic - coil results
     SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");

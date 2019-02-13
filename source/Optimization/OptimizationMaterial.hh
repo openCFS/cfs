@@ -96,7 +96,14 @@ public:
   /** determines if we have a complex element matrix. This is the case for damped material or Bloch mode analysis with complex BOp*/
   bool ComplexElementMatrix(RegionIdType reg = NO_REGION_ID) const;
 
+
+  /** in contrast to CoefFunctionOpt* GetMatCoef() this is always the original material. Works for optimization domains and shall be extended for non-optimization domains!
+   * @return don't store the coef!! */
+  CoefFunction* GetOrgMatCoef(BaseBDBInt* bdb);
+
   CoefFunctionOpt* GetMatCoef(BiLinFormContext* context);
+
+  CoefFunctionOpt* GetMatCoef(LinearFormContext* context);
 
   CoefFunctionOpt* GetMatCoef(const string& integrator, RegionIdType reg_id);
 
@@ -261,6 +268,15 @@ class MagMat : public OptimizationMaterial
 {
 public:
   MagMat(ErsatzMaterial* em, Context* ctxt);
+
+  /** To get the rhs in magTopOpt, it is necessary to switch to the ORG Material.
+   * @return the elem rhs contribution for the original case, not design dependent. */
+  const Vector<double>& MagExcitationRHS(const std::string& integrator, const Elem* elem);
+
+protected:
+
+  /** We do not cache the vectors but always precalculate them. NOT thread safe */
+  Vector<double> mag_excitation;
 };
 
 

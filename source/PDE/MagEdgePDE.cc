@@ -1322,25 +1322,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     DefineFieldResult( jldCoef, jld );
 
     // optimization results are provided in DesignSpace::ExtractResults()
-    // copied from MechPDE
-    // === MECH_PSEUDO_DENISTY ===
-    shared_ptr<ResultInfo> mpd(new ResultInfo);
-    mpd->resultType = MECH_PSEUDO_DENSITY;
-    mpd->entryType = ResultInfo::SCALAR;
-    mpd->definedOn = ResultInfo::ELEMENT;
-    mpd->dofNames = "";
-    mpd->fromOptimization = true;
-    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mpd); // the fe-function is only a dummy
-
-    // === PHYSICAL_PSEUDO_DENISTY ===
-    shared_ptr<ResultInfo> ppd(new ResultInfo);
-    ppd->resultType = PHYSICAL_PSEUDO_DENSITY;
-    ppd->entryType = ResultInfo::SCALAR;
-    ppd->definedOn = ResultInfo::ELEMENT;
-    ppd->dofNames = "";
-    ppd->fromOptimization = true;
-    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
-
+    DefineFieldResult(PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(PHYSICAL_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(RHS_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
+    DefineFieldResult(PHYSICAL_RHS_PSEUDO_DENSITY, ResultInfo::SCALAR, ResultInfo::ELEMENT, "", true);
   }
 
   void MagEdgePDE::FinalizePostProcResults() {

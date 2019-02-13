@@ -3207,6 +3207,17 @@ namespace CoupledField {
     availResults_.insert(res);
   }
   
+  void SinglePDE::DefineFieldResult(SolutionType solType, ResultInfo::EntryType entryType, ResultInfo::EntityUnknownType definedOn, const std::string& dofNames, bool fromOptimization)
+  {
+    shared_ptr<ResultInfo> ri(new ResultInfo);
+    ri->resultType = solType;
+    ri->entryType = entryType;
+    ri->definedOn = definedOn;
+    ri->dofNames = dofNames;
+    ri->fromOptimization = fromOptimization;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ri);
+  }
+
   void SinglePDE::DefineTimeDerivResult( SolutionType derivSolType,
                                          UInt timeDerivOrder,
                                          SolutionType primSolType ) {

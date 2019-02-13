@@ -18,6 +18,7 @@ class MultipleExcitation;
 class Function;
 class OptimizationMaterial;
 class LatticeBoltzmannPDE;
+class BiLinFormContext;
 
 struct App
 {
@@ -126,6 +127,9 @@ class Context
   /** Find our PDE in SIMP by application from the pdes map
    * @see ToApp()*/
   SinglePDE* ToPDE(App::Type app, bool throw_exception = true);
+
+  /** Service function. A linear form would have a similar implementation */
+  BiLinFormContext* GetBiLinFormContext(const RegionIdType reg, App::Type app1, App::Type app2, bool throw_exception);
 
   /** the corresponding 1-based multi sequence step or -1 of not set yes */
   int sequence;

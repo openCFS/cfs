@@ -145,29 +145,27 @@ namespace CoupledField
     return NULL;
   }
 
-  LinearForm* Assemble::GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent)
+  LinearFormContext* Assemble::GetLinForm(const std::string& integrator, RegionIdType regionId, StdPDE* pde, bool silent)
   {
-     LinearForm* result = NULL;
+    for(std::set<LinearFormContext*>::iterator it = allLinForms_.begin(); it != allLinForms_.end(); ++it )
+    {
+      LinearFormContext& context = **it;
 
-     // iterate over all descriptors
-     for(unsigned int i = 0; i < linForms_.GetSize(); i++)
-     {
-       // we are wrong if the region does not match
-       LinearFormContext* lfc = linForms_[i];
+      // makes only a starts-with comparison!
+      if(context.GetIntegrator()->GetName().rfind(integrator, 0) == string::npos)
+        continue;
 
+      if(pde != NULL && pde != context.GetPde())
+        continue;
 
-       // when pde1 is given we compare it by name and continue if the names are different
-       if(lfc->GetPde()->GetName() != pde->GetName()) continue;
-       if(lfc->GetIntegrator()->GetName() != integrator) continue;
+      return &context;
+    }
 
-       // we come here because we had no contradiction - check for uniqueness
-       if(result != NULL) throw Exception("parameters not unique!");
-       result = lfc->GetIntegrator();
-     }
+    if(!silent)
+      EXCEPTION("cannot find integrator " << integrator << " in region " << domain->GetGrid()->GetRegion().ToString(regionId)
+                << " for pde=" << (pde != NULL ? pde->GetName() : "null"));
 
-     if(result == NULL && !silent)
-       EXCEPTION("LinearFormContext '" << integrator << "' not found");
-     return result;
+    return NULL;
   }
 
   bool Assemble::UseRegion(RegionIdType reg)
@@ -276,6 +274,9 @@ namespace CoupledField
     assert(linContext->GetPde() != NULL);
     assert(linContext->GetEntities() != NULL);
     assert(linContext->GetPde()->GetAnalysisType() == analysisType_);
+
+    // Store linear form
+    allLinForms_.insert(linContext);
 
     linForms_.Push_back(linContext);
 
@@ -614,7 +615,9 @@ namespace CoupledField
               LOG_DBG3(assemble) << "AM_Std: cplx CEM -> " << elemMatrixC.ToString(2);
             } else {
               form->CalcElementMatrix( elemMatrix, it1, it2 );
-              LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId << " real CEM -> " << elemMatrix.ToString(2);
+              if(it1.IsElemType())
+                LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId;
+              LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString(2);
               if(actContext.IsSetNegate()){
                 assert(!form->IsComplex());
                 elemMatrix*= (-1.0);
@@ -1303,20 +1306,20 @@ namespace CoupledField
             }else{
             	form->CalcElemVector(elemVec, entIt);
             }
-            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " elemVec=" << elemVec.ToString();
+            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.ToString() << " fctId=" << fctId;
+            LOG_DBG3(assemble) << "ARLF: elemVec=" << elemVec.ToString();
 
             // Map equation numbers
             actContext.MapEqns(entIt, eqnVec, fctId);
-            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " map eqnVec=" << eqnVec.ToString();
+            LOG_DBG3(assemble) << "ARLF: map eqnVec=" << eqnVec.ToString();
             
             // Perform remapping
             ReMapEquations(eqnVec, fctId);
-            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " remap eqnVec=" << eqnVec.ToString();
+            LOG_DBG3(assemble) << "ARLF: remap eqnVec=" << eqnVec.ToString();
             
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
             // Pass element vector to algebraic system
             algsys_->SetElementRHS(elemVec, fctId, eqnVec);
-            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
         }
       } catch (Exception& e) {

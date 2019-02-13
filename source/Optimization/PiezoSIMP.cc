@@ -80,8 +80,9 @@ PiezoSIMP::~PiezoSIMP()
 void PiezoSIMP::PostInit()
 {
   // ignores the SetPDE() framework :(
-  if(context->IsComplex()) elecRHS.Init<complex<double> >(design, App::CHARGE_DENSITY); // mechRHS in SIMP!
-          else elecRHS.Init<double>(design, App::CHARGE_DENSITY);
+  if(context->IsComplex())
+    elecRHS.Init<complex<double> >(design, App::CHARGE_DENSITY); // mechRHS in SIMP!
+  else elecRHS.Init<double>(design, App::CHARGE_DENSITY);
 
   SIMP::PostInit();
 }

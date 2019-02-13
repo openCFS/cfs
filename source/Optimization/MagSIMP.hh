@@ -58,15 +58,29 @@ protected:
   const Matrix<double>& GetSelectionMatrix(const Function* f) const;
 
   /** @see ErsatzMaterial::FillRealAdjointRHS() */
-  virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs);
 
-  virtual void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
+  bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs)
+  {
+    if(f->GetType() == Function::SQR_MAG_FLUX_DENS_X || f->GetType() == Function::SQR_MAG_FLUX_DENS_Y)
+    {
+      CalcMagFluxAdjRHS(excite, f, rhs);
+      return true;
+    }
+    return false;
+  }
+  
+  /** See ErsatzMaterial::SetElementK() */
+  void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
+
   {
     if(f->ctxt->IsComplex())
       SetElementK<std::complex<double>, double >( f, de, tf, app, out, derivative, calcMode, ev);
     else
       SetElementK<double, double>( f, de, tf, app, out, derivative, calcMode, ev);
   }
+
+  /** See ErsatzMaterial::SubstractCalcU1KU2RHS() */
+  void SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, SingleVector* mat_vec);
 
 private:
 
@@ -79,7 +93,7 @@ private:
   double CalcMagFluxDensity(Excitation& excite, Function* f);
 
   /** Calculate the magnetic flux density gradient. The weight is always 1 as the magnetic flux density needs to be per excitation */
-  void CalcMagFluxDensGradient(Excitation& excite, Function* f,  TransferFunction* tf);
+  void CalcMagFluxDensGradient(Excitation& excite, Function* f);
 
   /** magnetic flux density */
   void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);

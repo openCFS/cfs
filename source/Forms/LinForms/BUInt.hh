@@ -24,13 +24,11 @@
 #include "LinearForm.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
 
-
 namespace CoupledField{
-
 
 template< class VEC_DATA_TYPE=Double,
           bool SURFACE = false>
-class BUIntegrator : public LinearForm{
+class BUIntegrator : public LinearForm {
 public:
 
   //! Constructor for volume integration
@@ -65,6 +63,10 @@ public:
   //! \copydoc LinearForm::Clone
   virtual BUIntegrator* Clone(){
     return new BUIntegrator( *this );
+  }
+
+  virtual PtrCoefFct GetCoef() {
+    return rhsCoefs_;
   }
 
 
@@ -112,6 +114,7 @@ protected:
 
 
 };
+
 }
 //Include template definition file
 #include "BUInt.cc"

@@ -319,10 +319,14 @@
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magJouleLossPowerDensity"/>
       
-      <!-- non-physical design variable for simp topology optimization -->
-      <xsd:enumeration value="mechPseudoDensity" />
+      <!-- non-physical design variable for simp topology optimization of magnetic material (standard case) -->
+      <xsd:enumeration value="pseudoDensity" />
       <!-- physical application of design variable in the simulation -->
       <xsd:enumeration value="physicalPseudoDensity" />
+      <!-- topology optimization for coils - the variable itself for non-magnetic materials, e.g. copper -->
+      <xsd:enumeration value="rhsPseudoDensity" />
+      <!-- physical (filtered) variant -->
+      <xsd:enumeration value="physicalRhsPseudoDensity" />
       <!-- further element results from optimization, specifically configured in optimization --> 
       <xsd:enumeration value="optResult_1"/>
       <xsd:enumeration value="optResult_2"/>

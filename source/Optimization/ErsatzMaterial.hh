@@ -170,13 +170,9 @@ protected:
     throw Exception("not implemented");
   }
 
-
-  virtual void SetElementRHS(DesignElement* de, const TransferFunction* tf,
-      App::Type app, SingleVector* out, CalcMode calcMode, bool derivative =
-          true)
-  {
-    throw Exception("not implemented");
-  }
+  /** This is a helper for CalcU1KU2() and called when CalcU1KU2 got a DesignDependentRHS* rhs value. To be specified form MagSIMP, ...
+   * It substracts a from mat_vec */
+  virtual void SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, SingleVector* mat_vec);
 
   /** Helper that asks MechanicMaterial. Works only for a single region.
    * @param excitation we need to make sure the excitation is the active one for robust
@@ -421,7 +417,8 @@ private:
   static Complex CalcU1KU2(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<Complex> u1_vec, Vector<Complex> u2_vec);
 
   /** See the non-template version for documentation! */
-  template<class T> double CalcU1KU2(TransferFunction* tf,
+  template<class T>
+  double CalcU1KU2(TransferFunction* tf,
       StdVector<SingleVector*>& u1, App::Type k, StdVector<SingleVector*>& u2,
       DesignDependentRHS* ref, double factor, CalcMode calcMode, Function* f,
       int res_idx, double ev);
@@ -431,9 +428,14 @@ private:
    *  run over all neighbor nodes of design de
    *  f'=4*d_rho_i/d_rho_j *(1-2*rho_i), where rho_i is the node based density calculated via averaging the densities of neighboring elements
    * @param function f */
-  template<class T> void CalcAndStoreInterfaceDrivenGrad(Function* f, TransferFunction* tf);
+  template<class T>
+  void CalcAndStoreInterfaceDrivenGrad(Function* f, TransferFunction* tf);
 
-  template<class T> void SubstractInterfaceDrivenGradRHS(Function* f, TransferFunction* tf, const DesignElement* de, Vector<T>& in_out);
+  template<class T>
+  void SubstractInterfaceDrivenGradRHS(Function* f, TransferFunction* tf, const DesignElement* de, Vector<T>& in_out);
+
+  template<class T>
+  void SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, Vector<T>& mat_vec);
 
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
@@ -465,7 +467,23 @@ private:
   // void SetTrackingAdjointRhs(Excitation& excite, int ts);
 
   /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[App::MECH] */
-  template<class T> void SetAndSolveAdjointRHS(Excitation& excite,  Function* cost);
+  void SetAndSolveAdjointRHS(Excitation& excite,  Function* cost);
+
+  /** return value of PrepareAdjointSystem */
+  struct SystemState
+  {
+    StdVector<LinearFormContext*> forms;
+    IdBcList  idbc;
+  };
+
+  /** Preparing the adjoint system constructs the rhs and the system (IDBC- > HDBC).
+   * It needs afterwards to be solved by assemble->GetAlgSys()->Solve()
+   * Then the adjoint state can be read and after this the system can be resored to the state system */
+  SystemState PrepareAdjointSystem(Excitation& excite, Function* f);
+
+  /** restores state system after PrepareAdjointSystem(), solve and StateSolution::Read(). To have IDBC->HDBC in the adjoint
+   * requires first StateSolution::Read() before we reset proper IDBC. */
+  void RestoreStateSystem(SystemState& sys);
 
   /** Helper for CommitIteration. Appends or replaces a design line */
   void SetCurrentExportDesign();

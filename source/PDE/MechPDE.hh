@@ -166,6 +166,11 @@ namespace CoupledField
     //! coefFunctzion for thermal stress
     shared_ptr<CoefFunctionMulti> thermalStress_;
 
+    /** static matrix which allows the calculation of the von Mises Stress from the stresses in 2D.
+     * See Kocvara and Stingl; 2007 */
+    Matrix<double> vonMisesMatrix_2d_;
+    Matrix<double> vonMisesMatrix_3d_;
+
 /*old
     //! flag if effective Mass or Stiffness formulation shall be used 
     //! effMass_ = true -> mass formulation; effMass_ = false -> stiffness formualation

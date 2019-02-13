@@ -26,7 +26,7 @@ template <class TYPE> class Matrix;
 
 
 /** In SIMP many sensitivities are with a non-sensitive RHS. This is not
- * necessary true for PiezoSIMP when we excite with a charge density. But
+ * necessarily true for PiezoSIMP when we excite with a charge density. But
  * even in pure mech SIMP we can excite with a pressure.
  * Then in CalcU1KU2 for the grad case we actually calc \f$<l,K'u-f'>\f$.
  * This helper stores the information we need to calculate this. The tricky stuff
@@ -44,20 +44,21 @@ template <class TYPE> class Matrix;
 class DesignDependentRHS
 {
 public:
-  DesignDependentRHS();
+  /** Only MAG needs no init, all other are not valid up to init */
+  DesignDependentRHS(App::Type app = App::NO_APP);
   ~DesignDependentRHS();
 
   /** This is kind of constructor. The return value/status is reflected in valid.
-   * @param app is either PRESSURE or App::CHARGE_DENSITY
+   * @param app is either PRESSURE or App::CHARGE_DENSITY or left when set in constructor
    * @return true if the linear form was found and the variables are init. */
   template <class T>
-  bool Init(DesignSpace* design, App::Type app);
+  bool Init(DesignSpace* design, App::Type app = App::NO_APP);
 
   /** In this mode the test strain is kept.
-   * @param app needs to be STRESS
+   * @param app needs to be STRESS or left when set in constructor
    * @param test_strain taken from the excitation by MechPDE::testStrain.Parse(excitation.label) */
   template <class T>
-  bool Init(App::Type app, std::string excite_label);
+  bool Init(std::string excite_label, App::Type app = App::NO_APP);
 
   /** kind of inhom Neumbann. From Init() */
   App::Type app;

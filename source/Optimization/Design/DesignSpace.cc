@@ -907,6 +907,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 {
   // we cannot check for the region here, if form is a linear form (e.g.
   // pressure) but the design variable comes from elements one dimension higher
+  // For the magnetic or bimat case we might have more design elements for a FE-Elem, hence idx is arbitrary!
   int idx = Find(lpm->ptEl->elemNum, false); // This is very fast, just a lookup in an array
   if(idx == -1)
     return false;
@@ -922,17 +923,16 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
   }
 
+  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
+
   // this is legacy stuff, most times ApplyPhysicalDesignElementMatrix() shall be used
   assert(retMat.GetNumCols() <= (domain->GetGrid()->GetDim() == 2 ? 3 : 6));
   assert(coef->GetForm() != NULL); // needs to be set manually via CoefFunctionOpt::SetForm()
+  double factor = -4711; // set below
   double bimat_factor = -1.0;
-  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
-  double factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
 
   // we store the original material tensor in retMat
   coef->orgMat->GetTensor(retMat, *lpm);
-
-  //retMat *= factor;
 
   if(app == App::MAG)
   {
@@ -945,13 +945,19 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
     const double nu_0 = 1/(4*M_PI*1e-7);
 
+    // be sure not use RHS_DENSITY
+    DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::DENSITY, true);
+    factor = GetErsatzMaterialFactor(de, app, false);
+
     for(unsigned int i = 0; i < retMat.GetNumRows(); i++)
       retMat[i][i] = (retMat[i][i] * factor) + (1-factor) * nu_0;
   }
   else
   {
+    factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
 	  retMat *= factor; // true for mech and almost all other stuff
   }
+  assert(factor != -4711);
 
   DesignRegion* dr = GetRegion(lpm->ptEl->regionId);
   if(dr->HasBiMaterial())
@@ -962,8 +968,8 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     retMat.Add(bimat_factor,tmp); // rho^p * E_l + (1-rho)^p * E_u
   }
 
-  LOG_DBG2(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor << " bf=" << bimat_factor;
-  LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString(2);
+  LOG_DBG2(designSpace) << "APD(M) el="  << lpm->ptEl->elemNum << " f=" << factor << " bf=" << bimat_factor;
+  LOG_DBG3(designSpace) << "APD(M) el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString(2);
   return true;
 }
 
@@ -993,21 +999,27 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   // factor is the pseudo density case, in case it has the penalty parameter applied
-  double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
+  double factor = -4711;
 
   // retScal becomes the original value
   coef->orgMat->GetScalar(retScal, *lpm);
 
+  // we need it in MAG, if we load density file, then we have a scalar value
   if(app == App::MAG)
   {
     // retScal = nu_0 * nu_r
+    // be sure not use RHS_DENSITY
+    DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::DENSITY, true);
+    factor = GetErsatzMaterialFactor(de, app, false);
     const double nu_0 = 1/(4*M_PI*1e-7);
     retScal = (retScal * factor) + (1-factor) * nu_0;
   }
   else
   {
+    factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
     retScal *= factor;
   }
+  assert(factor != -4711);
 
   DesignRegion* dr = GetRegion(lpm->ptEl->regionId);
   if(dr->HasBiMaterial())
@@ -1038,7 +1050,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
     coef->orgMat->GetVector(retVec, *lpm);
 
     retVec[0] *=  EvalInterfaceFunction(lpm->lp.number) / (double) data.GetSize();
-
+    // TODO: what is if we are not in the design???
   }
   else
   {
@@ -1049,13 +1061,17 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
       // including coil optimization
       coef->orgMat->GetVector(retVec, *lpm);
       assert(retVec.GetSize() != 0);
-      int idx = Find(lpm->ptEl->elemNum, false);
-      if(idx == -1)
+      DesignElement* de = Find(lpm->ptEl->elemNum, DesignElement::RHS_DENSITY, false);
+
+      LOG_DBG3(designSpace) << "APD(V): elem=" << lpm->ptEl->elemNum << " de=" << (de != NULL ? de->ToString() : "NULL") << " org retVec= " << retVec.ToString(2);
+      if(de == NULL)
         return false;
-      double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
+      double factor = GetErsatzMaterialFactor(de, app, false); // Not the bimat case
       retVec *= factor;
-      LOG_DBG3(designSpace) << "retVec.Size= " << retVec.GetSize() << " retVec= " << retVec.ToString(2);
+      LOG_DBG3(designSpace) << "APD(V): factor=" << factor << " -> retVec= " << retVec.ToString(2);
     }
+    else
+      assert(false);
   }
 
   return true;
@@ -1084,6 +1100,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type
 {
   // now do the trick, that the piezo coupling factor might be a product of the
   // density transfer function and the polarization transfer function
+  assert(applic != App::MAG); // we don't want to multiply DENS with RHS_DENSITY
 
   double result = 1.0;
   // go over all design elements we have (one for design only, with polarization
@@ -1092,33 +1109,45 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type
   {
     // note that this loop with loop normally once or twice (piezo)
     DesignElement* de = &data[index];
-    // The design of the current element
-    DesignElement::Type dt = de->GetType();
-    // find the transfer function for our form and application.
-    // There is not necessary a transfer function -> e.g. polarization
-    // is for the piezo only defined on the coupling
-    TransferFunction* tf = GetTransferFunction(dt, applic, false);
-    LOG_DBG3(designSpace) << "GEMF: dt=" << DesignElement::type.ToString(dt) << " app=" << Optimization::application.ToString(applic) << " tf found=" << (tf != NULL);
-    // multiply our transfer function
-    if(tf != NULL) {
-      // when we have a transformation we want the physical value for the source design
-      DesignElement* trans = ApplyTransformations(de);
-      DesignElement* use = trans != NULL ? trans : de;
-
-      double transformed = tf->Transform(use, DesignElement::SMART, forBimaterial); // handles design filtering
-      LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum
-                       << " trans to " << DesignElement::ToString(trans,true)
-                       << "/" << Optimization::application.ToString(applic) << " for "
-                       << DesignElement::type.ToString(dt) << ": "
-                       << TransferFunction::type.ToString(tf->GetType()) << "("
-                       << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
-                       << " ex=" << (domain->GetOptimization() != NULL ? Optimization::context->GetExcitation()->index : -1)
-                       << " -> * " << result << " = " << (result * transformed);
-      result *= transformed;
-    }
+    result *= GetErsatzMaterialFactor(de, applic, forBimaterial, true); // 1 if tf not found
   }
   return result;
 }
+
+double DesignSpace::GetErsatzMaterialFactor(DesignElement* de, App::Type applic, bool forBimaterial, bool save_transfer_function)
+{
+  // The design of the current element
+  DesignElement::Type dt = de->GetType();
+  // find the transfer function for our form and application.
+  // There is not necessary a transfer function -> e.g. polarization
+  // is for the piezo only defined on the coupling
+  TransferFunction* tf = GetTransferFunction(dt, applic, false);
+  if(tf == NULL)
+  {
+    if(save_transfer_function)
+      return 1.0;
+    else
+      EXCEPTION("no transfer function found for dt=" << dt << " and applic=" << applic);
+  }
+
+  LOG_DBG3(designSpace) << "GEMF: dt=" << DesignElement::type.ToString(dt) << " app=" << Optimization::application.ToString(applic) << " tf found=" << (tf != NULL);
+  // when we have a transformation we want the physical value for the source design
+  DesignElement* trans = ApplyTransformations(de);
+  DesignElement* use = trans != NULL ? trans : de;
+
+  double transformed = tf->Transform(use, DesignElement::SMART, forBimaterial); // handles design filtering
+  LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum
+      << " trans to " << DesignElement::ToString(trans,true)
+  << "/" << Optimization::application.ToString(applic) << " for "
+  << DesignElement::type.ToString(dt) << ": "
+  << TransferFunction::type.ToString(tf->GetType()) << "("
+  << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
+  << " ex=" << (domain->GetOptimization() != NULL ? Optimization::context->GetExcitation()->index : -1)
+  << " -> " << transformed;
+  return transformed;
+}
+
+
 bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& elemMat)
 {
   // see also implementation ErsatzMaterial::AddMassToStiffness() for match!!!
@@ -1757,6 +1786,7 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   // this is clearly nonsense if the result/solution type is OPT_RESULT_*
   switch(ri->resultType)
   {
+  case PSEUDO_DENSITY:
   case MECH_PSEUDO_DENSITY:
   case PHYSICAL_PSEUDO_DENSITY:
   case ELEC_PHYSICAL_PSEUDO_DENSITY:
@@ -1768,14 +1798,17 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   case ACOU_PSEUDO_DENSITY:
     def.design = DesignElement::ACOU_DENSITY;
     break;
+  case RHS_PSEUDO_DENSITY:
+  case PHYSICAL_RHS_PSEUDO_DENSITY:
+    def.design = DesignElement::RHS_DENSITY;
+    break;
   default:
     // to be overwritten by the ResultDescription
     def.design = DesignElement::DENSITY;
     break;
   }
   // somehow critical! but only for density filtering, if at all.
-  def.access = (ri->resultType == PHYSICAL_PSEUDO_DENSITY || ri->resultType == ELEC_PHYSICAL_PSEUDO_DENSITY) ?
-      DesignElement::SMART : DesignElement::PLAIN;
+  def.access = DesignElement::IsPhysical(ri->resultType) ? DesignElement::SMART : DesignElement::PLAIN;
   def.value  = DesignElement::DESIGN;
   // ignore defaults if there is a result description for the OPT_RESULT_* case
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
@@ -1794,7 +1827,6 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
     mex[def.excitation].Apply(false);
     LOG_DBG(designSpace) << "ER: apply excitation " << mex[def.excitation].GetFullLabel();
   }
-
 
   if(ri->definedOn == ResultInfo::NODE)
     FillNodeResults(result, def);
@@ -1823,8 +1855,8 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   unsigned int dofs = result.GetResultInfo()->dofNames.GetSize();
   assert(dofs >= 1 && dofs <= 3);
   StdVector<double> result_value(dofs);
-  // search where in data we are
-  int base = FindDesign(descr.design);
+  // search where in data we are. -1 when not found
+  int base = FindDesign(descr.design, false);
   // loop over elements from result. We have to do it this way as the the connection
   // of design element and result element is the element(->elemeNum) but we cannot
   // search in the result for an element.
@@ -1833,8 +1865,22 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   result_data.Resize(result.GetEntityList()->GetSize() * dofs);
   // the default value is 0.0 but 1 for densities
   SolutionType st = result.GetResultInfo()->resultType;
-  double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
-      || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
+  // the value when we are not in a design domain
+  double none = 0.0;
+  switch(st)
+  {
+  case MECH_PSEUDO_DENSITY:
+  case PSEUDO_DENSITY:
+  case PHYSICAL_PSEUDO_DENSITY:
+  case ELEC_PSEUDO_POLARIZATION:
+  case ELEC_PHYSICAL_PSEUDO_DENSITY:
+  case RHS_PSEUDO_DENSITY:
+  case PHYSICAL_RHS_PSEUDO_DENSITY:
+    none = 1.0;
+    break;
+  default:
+    break;
+  }
 
   Excitation* ex = domain->GetOptimization() != NULL ? Optimization::context->GetExcitation() : NULL;
 
@@ -1843,7 +1889,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
     // for elements not in the design region we set to to the default value
     for(unsigned int i = 0; i < dofs; i++)
       result_value[i] = none;
-    if(FindRegion(it.GetElem()->regionId) >= 0)
+    if(base >= 0 && FindRegion(it.GetElem()->regionId) >= 0)
     {
       // note that the index is from the first design set!
       unsigned int base_index = Find(it.GetElem()->elemNum, true, true); // exception and pseudo designs (?)

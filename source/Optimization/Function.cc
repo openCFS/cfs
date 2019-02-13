@@ -3649,7 +3649,9 @@ double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Lo
       for(int i=-1; i < (int) neighbor.GetSize(); ++i)
       {
         ret += GetElement(i)->GetDesign(DesignElement::PLAIN);
-        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->GetIndex() << " i=" << i << " e=" <<  dynamic_cast<const DesignElement*>(GetElement(i))->elem->elemNum << " mi=" << dynamic_cast<const DesignElement*>(GetElement(i))->multimaterial->index << " -> " << ret;
+        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->GetIndex() << " i=" << i << " e=" <<  dynamic_cast<const DesignElement*>(GetElement(i))->elem->elemNum << " -> ret";
+        // does not work in the mag opt case with density + rhsDensity
+        // << " mi=" << (dynamic_cast<const DesignElement*>(GetElement(i))->multimaterial->index
       }
     }
     else

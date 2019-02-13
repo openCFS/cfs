@@ -118,12 +118,11 @@ namespace CoupledField {
      * @exception if not silent and nothing found */
     BiLinFormContext* GetBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1 = NULL, SinglePDE* pde2 = NULL, bool silent = false);
 
+    LinearFormContext* GetLinForm(const std::string& integrator, RegionIdType regionId, StdPDE* pde, bool silent);
+
     bool HasBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1 = NULL, SinglePDE* pde2 = NULL) {
       return GetBiLinForm(integrator, regionId, pde1, pde2, true) != NULL;
     }
-
-    /** @see GetBiLinForm() */
-    LinearForm* GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent = false);
 
     /** Returns the algebraic system
      * TODO check if really used */
@@ -234,6 +233,9 @@ namespace CoupledField {
      * When we do muliload optimization Excitations gains ownership and linForms_ is manipulated.
      * @see Excitytion::form */
     StdVector<LinearFormContext*> linForms_;
+
+    //! Set containing all linear integrator contexts
+    std::set<LinearFormContext*> allLinForms_;
 
     /** when set, the destructor won't delete linForms_ (but Excitation will do it) */
     bool lin_forms_given_;

@@ -58,6 +58,11 @@ public:
   }
 
 
+  //! \copydoc CoefFunction::GetVecSize
+  unsigned int GetVecSize() const {
+    return orgMat->GetVecSize();
+  }
+
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
     orgMat->GetTensorSize(numRows, numCols);
