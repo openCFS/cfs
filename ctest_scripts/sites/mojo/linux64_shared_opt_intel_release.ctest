@@ -65,7 +65,4 @@ SET(CTEST_INITIAL_CACHE
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
    BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
-find_program(CTEST_GIT_COMMAND NAMES git) 
-set(CTEST_UPDATE_TYPE "git")
-
 DO_TESTING()
