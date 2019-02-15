@@ -63,5 +63,4 @@ SET(CTEST_INITIAL_CACHE
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
    BUILDNAME:STRING=${CTEST_BUILD_NAME}")
 
-
 DO_TESTING()

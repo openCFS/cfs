@@ -104,7 +104,11 @@ GET_TEST_NAMES(TEST_NAMES)
 FOREACH(TEST_NAME IN ITEMS ${TEST_NAMES})
 
   GET_CTEST_BINARY_DIRECTORY(${TEST_NAME})
-
+  
+  # Update CFS source directory
+  find_program(CTEST_GIT_COMMAND NAMES git)
+  set(CTEST_UPDATE_TYPE "git")
+  
   # Actually run the test
   PERFORM_TEST(${TEST_NAME})
   
