@@ -92,7 +92,7 @@ def read_stiff_angle_matlab(filename):
   mat = scipy.io.loadmat(filename,appendmat = True)
   mat2 = scipy.io.loadmat('centers',appendmat = True)
   domain_data = scipy.io.loadmat('data',appendmat = True)
-  d = mat['x_save']
+  d = mat['x']
   centers = mat2['centers']
   domain_data = domain_data['data']
   max = domain_data[0][:]

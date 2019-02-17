@@ -779,8 +779,11 @@ void DesignElement::SetEnums()
   Filter::sensitivity.Add(Filter::PLAIN, "plain");
   Filter::sensitivity.Add(Filter::SHARP_PLAIN, "sharp_plain");
   Filter::sensitivity.Add(Filter::SIGMUND, "sigmund");
+  Filter::sensitivity.Add(Filter::SIGMUND_SAFE, "sigmund_safe");
   Filter::sensitivity.Add(Filter::SHARP_SIGMUND, "sharp_sigmund");
   Filter::sensitivity.Add(Filter::BORRVALL, "borrvall");
+  Filter::sensitivity.Add(Filter::BORRVALL_SAFE, "borrvall_safe");
+
 
   Filter::density.SetName("Filter::Density");
   Filter::density.Add(Filter::STANDARD, "standard");
@@ -960,19 +963,23 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   // Sigmund  = sum_i w(x_i) * p_i * f_i' / p_e * sum_i w(x_i)
   // Sharp Sigmund  = sum_i (i=e ? 1:0 : w(x_i)) * p_i * f_i' / p_e * sum_i w(x_i) + "bug" in normalized weighting
   // Borrvall = sum_i w(x_i) * p_i * f_i' / sum_i p_i * w(x_i)
+  // Safe Borrvall if |p_i| = epsilon for all i use plain filter, otherwise  Borrvall filter, usefull for filtering
+  // of variables which are not bounded away from zero
+
   // plain    = sum_i w(x_i) * f_i' / sum_i w(x_i)
   // sharp plain = plain, just the filter is setup with normalized weights with a "bug"
 
   // factor design in numerator (SIGMUND and BORRVALL) for densitiy filtering the value is any in
   bool numerator_design = f.sensitivity_ != Filter::PLAIN && f.sensitivity_ != Filter::SHARP_PLAIN;
   // factor design in denominator sum (BORRVALL)
-  bool denominator_design = f.sensitivity_ == Filter::BORRVALL;
+  bool denominator_design = (f.sensitivity_ == Filter::BORRVALL) || (f.sensitivity_ == Filter::BORRVALL_SAFE);
   // weight the denominator by this design (SIGMUND)
-  bool sigmund_denominator = f.sensitivity_ == Filter::SIGMUND || f.sensitivity_ == Filter::SHARP_SIGMUND;
+  bool sigmund_denominator = f.sensitivity_ == Filter::SIGMUND || f.sensitivity_ == Filter::SIGMUND_SAFE || f.sensitivity_ == Filter::SHARP_SIGMUND;
   // short-cut for fake in Sharp Sigmund: i=e ? 1:0 : w(x_i)
   bool cheat_this_weight = f.sensitivity_ == Filter::SHARP_SIGMUND || f.sensitivity_ == Filter::SHARP_PLAIN;
 
-  LOG_DBG3(desel) << "FGV: el=" << de_->elem->elemNum
+  LOG_DBG3(desel) << "GSFV: el=" << de_->elem->elemNum
+                << " t=" << de_->ToString()
                 << " sp=" << DesignElement::valueSpecifier.ToString(sp)
                 << " dens=" << Filter::density.ToString(f.density_)
                 << " numerator_design=" << numerator_design
@@ -1001,7 +1008,7 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
     numerator   += numerator_summand;
     denominator += denominator_summand;
 
-    LOG_DBG3(desel) << "FGV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+    LOG_DBG3(desel) << "GSFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
                   << " w= " << w  << " nw=" << nw << " x=" << x << " v=" << v << " ns=" << numerator_summand
                   << " ds=" << denominator_summand << " num=" << numerator << " den=" << denominator;
   }
@@ -1009,8 +1016,12 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   if(sigmund_denominator)
     denominator *= de_->GetDesign(DesignElement::PLAIN);
 
-  LOG_DBG3(desel) << "FGV: el=" << de_->elem->elemNum << ": result=" << numerator
+  LOG_DBG3(desel) << "GSFV: el=" << de_->elem->elemNum << ": result=" << numerator
                 << "/" << denominator << " -> " << (numerator / denominator);
+
+  // if denominator is close to zero, don't filter in the Borrvall_Safe case
+  if ((f.sensitivity_ == Filter::BORRVALL_SAFE || f.sensitivity_ == Filter::SIGMUND_SAFE) && fabs(denominator) < std::numeric_limits<float>::epsilon())
+    return de_->GetPlainValue(sp, dynamic_cast<Condition*>(g));
 
   return numerator / denominator;
 }

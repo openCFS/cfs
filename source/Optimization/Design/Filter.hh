@@ -22,12 +22,14 @@ public:
 
   /** Subtype for senisitivy filtering. w = weight, p is density, f' is cost gradient
    * Sigmund  = sum_i w(x_i) * p_i * f_i' / p_e * sum_i w(x_i)
+   * Sigmund_Safe: use Sigmund, but check that denominator is not close to zero otherwise don't filter
    * sharp Sigmund  = sum_i (i=e ? 1:0 : w(x_i)) * p_i * f_i' / p_e * sum_i w(x_i) + "bug" in normalized weighting
    * Borrvall = sum_i w(x_i) * p_i * f_i' / sum_i p_i * w(x_i)
+   * Borrvall_Safe: use Borrvall, but check that denominator is not close to zero otherwise don't filter
    * plain    = sum_i w(x_i) * f_i' / sum_i w(x_i)
    * sharp plain = plain but the "bug" in normalized weighting as in sharp Sigmund */
 
-  typedef enum { PLAIN, SHARP_PLAIN, SIGMUND, SHARP_SIGMUND, BORRVALL } Sensitivity;
+  typedef enum { PLAIN, SHARP_PLAIN, SIGMUND,SIGMUND_SAFE, SHARP_SIGMUND, BORRVALL, BORRVALL_SAFE } Sensitivity;
 
   /** Subtype of design filter
    * See Sigmund; Morphology based black and white filters for topology optimization; 2007
