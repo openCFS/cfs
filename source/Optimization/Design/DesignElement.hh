@@ -424,6 +424,9 @@ public:
      * @param g for sp = CONSTRAINT_GRADIENT only */
     virtual double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
 
+    /** returns the sum of all design elements compatible to MECH_TRACE */
+    double GetPlainMechTrace() const;
+
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
     

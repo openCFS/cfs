@@ -2114,10 +2114,9 @@
             <xsd:simpleType>
               <xsd:restriction base="xsd:token"> 
                 <xsd:enumeration value="sigmund"/>
-                <xsd:enumeration value="sigmund_safe"/>
+                <xsd:enumeration value="sigmund_trace"/>
                 <xsd:enumeration value="sharp_sigmund"/>
                 <xsd:enumeration value="borrvall"/>
-                <xsd:enumeration value="borrvall_safe"/>
                 <xsd:enumeration value="plain"/>
                 <xsd:enumeration value="sharp_plain"/>
               </xsd:restriction>

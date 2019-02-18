@@ -73,7 +73,11 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case MECH_11:
     case MECH_22:
     case MECH_33:
-    // Tensor trace for param mat
+    case MECH_44:
+    case MECH_55:
+    case MECH_66:
+
+      // Tensor trace for param mat
     case STIFF1:
     case STIFF2:
     case STIFF3:
@@ -670,6 +674,27 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
   return -1.0; // cannot happen due to default in switch but to please the compiler :(
 }
 
+double DesignElement::GetPlainMechTrace() const
+{
+
+  assert(space_ != NULL);
+
+  double sum = 0.0;
+
+  for(unsigned int d = 0; d < space_->design.GetSize(); d++)
+  {
+    if(IsCompatible(MECH_TRACE, space_->design[d].design) && IsCompatible(MECH_ALL, space_->design[d].design))
+    {
+      BaseDesignElement* de = space_->Find(elem->elemNum, space_->design[d].design, true);
+      assert(de->GetType() == space_->design[d].design);
+      sum += de->GetPlainDesignValue();
+    }
+  }
+
+  return sum;
+}
+
+
 
 double DesignElement::GetDesign(Access access) const
 {
@@ -779,10 +804,9 @@ void DesignElement::SetEnums()
   Filter::sensitivity.Add(Filter::PLAIN, "plain");
   Filter::sensitivity.Add(Filter::SHARP_PLAIN, "sharp_plain");
   Filter::sensitivity.Add(Filter::SIGMUND, "sigmund");
-  Filter::sensitivity.Add(Filter::SIGMUND_SAFE, "sigmund_safe");
+  Filter::sensitivity.Add(Filter::SIGMUND_TRACE, "sigmund_trace");
   Filter::sensitivity.Add(Filter::SHARP_SIGMUND, "sharp_sigmund");
   Filter::sensitivity.Add(Filter::BORRVALL, "borrvall");
-  Filter::sensitivity.Add(Filter::BORRVALL_SAFE, "borrvall_safe");
 
 
   Filter::density.SetName("Filter::Density");
@@ -972,11 +996,13 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   // factor design in numerator (SIGMUND and BORRVALL) for densitiy filtering the value is any in
   bool numerator_design = f.sensitivity_ != Filter::PLAIN && f.sensitivity_ != Filter::SHARP_PLAIN;
   // factor design in denominator sum (BORRVALL)
-  bool denominator_design = (f.sensitivity_ == Filter::BORRVALL) || (f.sensitivity_ == Filter::BORRVALL_SAFE);
+  bool denominator_design = (f.sensitivity_ == Filter::BORRVALL);
   // weight the denominator by this design (SIGMUND)
-  bool sigmund_denominator = f.sensitivity_ == Filter::SIGMUND || f.sensitivity_ == Filter::SIGMUND_SAFE || f.sensitivity_ == Filter::SHARP_SIGMUND;
+  bool sigmund_denominator = f.sensitivity_ == Filter::SIGMUND || f.sensitivity_ == Filter::SHARP_SIGMUND;
   // short-cut for fake in Sharp Sigmund: i=e ? 1:0 : w(x_i)
   bool cheat_this_weight = f.sensitivity_ == Filter::SHARP_SIGMUND || f.sensitivity_ == Filter::SHARP_PLAIN;
+  // weight the denominator by trace (SIGMUND_TRACE)
+  bool sigmund_trace = f.sensitivity_ == Filter::SIGMUND_TRACE;
 
   LOG_DBG3(desel) << "GSFV: el=" << de_->elem->elemNum
                 << " t=" << de_->ToString()
@@ -985,7 +1011,8 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
                 << " numerator_design=" << numerator_design
                 << " denominator_design=" << denominator_design
                 << " sigmund_denominator=" << sigmund_denominator
-                << " cheat_this_weight=" << cheat_this_weight;
+                << " cheat_this_weight=" << cheat_this_weight
+                << " sigmund_trace=" << sigmund_trace;
 
 
   double numerator = 0.0;
@@ -1000,7 +1027,7 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
     double w = i == -1 ?  f.weight : ne->weight;
     double nw = cheat_this_weight && i == -1 ? 1.0 : w;
     double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(g));
-    double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
+    double x = sigmund_trace ?  de->GetPlainMechTrace() : de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
 
     double numerator_summand   = nw * v * (numerator_design ? x : 1.0);
     double denominator_summand = w * (denominator_design ? x : 1.0);
@@ -1015,15 +1042,12 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 
   if(sigmund_denominator)
     denominator *= de_->GetDesign(DesignElement::PLAIN);
+  if(sigmund_trace)
+    denominator *= de_->GetPlainMechTrace();
 
-  LOG_DBG3(desel) << "GSFV: el=" << de_->elem->elemNum << ": result=" << numerator
-                << "/" << denominator << " -> " << (numerator / denominator);
+  LOG_DBG3(desel) << "GSFV: el=" << de_->elem->elemNum << ": result=" << numerator << "/" << denominator << " -> " << (numerator / denominator);
 
-  // if denominator is close to zero, don't filter in the Borrvall_Safe case
-  if ((f.sensitivity_ == Filter::BORRVALL_SAFE || f.sensitivity_ == Filter::SIGMUND_SAFE) && fabs(denominator) < std::numeric_limits<float>::epsilon())
-    return de_->GetPlainValue(sp, dynamic_cast<Condition*>(g));
-
-  return numerator / denominator;
+  return (fabs(denominator) < std::numeric_limits<float>::epsilon()) ? de_->GetPlainValue(sp, dynamic_cast<Condition*>(g)) : (numerator / denominator);
 }
 
 

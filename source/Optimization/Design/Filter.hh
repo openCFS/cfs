@@ -29,7 +29,7 @@ public:
    * plain    = sum_i w(x_i) * f_i' / sum_i w(x_i)
    * sharp plain = plain but the "bug" in normalized weighting as in sharp Sigmund */
 
-  typedef enum { PLAIN, SHARP_PLAIN, SIGMUND,SIGMUND_SAFE, SHARP_SIGMUND, BORRVALL, BORRVALL_SAFE } Sensitivity;
+  typedef enum { PLAIN, SHARP_PLAIN, SIGMUND,SIGMUND_TRACE, SHARP_SIGMUND, BORRVALL } Sensitivity;
 
   /** Subtype of design filter
    * See Sigmund; Morphology based black and white filters for topology optimization; 2007
