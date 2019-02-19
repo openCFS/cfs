@@ -631,7 +631,7 @@ def name_bc_nodes(mesh):
   mesh.bc.append(("bottom_left",list(range(0,nnx*nny*nnz-nnx-1,nnx*nny))))
   mesh.bc.append(("bottom_right",list(range(nnx-1,nnx*nny*nnz-1-1,nnx*nny))))
   mesh.bc.append(("top_back",list(range(nnx*nny-nnx,nnx*nny))))
-  mesh.bc.append(("top_front",list(range(nnx*nny*nny-nnx,nnx*nny*nny))))
+  mesh.bc.append(("top_front",list(range(nnx*nny*nnz-nnx,nnx*nny*nnz))))
   mesh.bc.append(("top_left",list(range(nnx*nny-nnx,nnx*nny*nnz,nnx*nny))))
   mesh.bc.append(("top_right",list(range(nnx*nny-1,nnx*nny*nnz,nnx*nny))))
   mesh.bc.append(("back_left",list(range(0,nnx*nny-nnx+1,nnx))))
