@@ -1253,17 +1253,10 @@ namespace CoupledField {
   }
   
   
-  void StdSolveStep::StepHarmonicLin() {
-    
-    //JUST A HACK!!!!
-    //matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
-    //matrix_factor_Complex_[NO_FCT_ID][DAMPING] = CompSetLinRHSlex(0.0,actFreq_*2*M_PI);
-    //matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(-1.0 * actFreq_*actFreq_*4*M_PI*M_PI,0);
-    
-    //matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
-    //matrix_factor_Complex_[NO_FCT_ID][DAMPING] = Complex(1.0,0.0);
-    //matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(1.0,0.0);
-    
+  void StdSolveStep::StepHarmonicLin()
+  {
+    // NOT that the implementation is almost identical to tdSolveStep::StepStaticLin()
+    // TODO unify!
     
     //Set special RHS Values
     //std::cout << "Do Apply Loads" << std::endl;
@@ -1324,6 +1317,186 @@ namespace CoupledField {
     }
   }
   
+  void StdSolveStep::StepHarmonicNonLin() {
+    bool performOneMoreStep;
+        bool isNewton = false;
+
+        SBM_Vector solInc(BaseMatrix::COMPLEX);
+
+        //get actual solution
+        SBM_Vector  actSol(BaseMatrix::COMPLEX);
+        solVec_.Init();
+        actSol = solVec_; // == current solution
+        StdVector<std::pair<Complex, Complex> > linesearch;
+
+        // =================================
+        //  Outer loop: Multilevel strategy
+        // =================================
+        UInt numLevels = solStrat_->GetNumSolSteps();
+        for( UInt iLevel = 0; iLevel < numLevels; ++iLevel )
+        {
+          // update the current solution step in a multilevel approach and
+          // inform PDEs (containing the FeSpaces), as well as the AlgebraicSystem
+          solStrat_->SetActSolStep(iLevel + 1);
+          ReadNonLinData();
+          PDE_.UpdateToSolStrategy();
+          algsys_->UpdateToSolStrategy();
+
+          // set the boundary conditions
+          PDE_.SetBCs();
+
+          //perform the load-steps
+          Double loadFactor = 1.0;
+          PDE_.GetInfoNode()->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
+
+          // setup right hand side
+          algsys_->InitRHS();
+          Double RhsLinL2Norm = SetLinRHS(loadFactor);
+
+          // set iteration counter
+          UInt iterationCounter=0;
+
+          // =================================
+          //  Inner nonlinear loop
+          // =================================
+          do {
+            iterationCounter++;
+
+            if ( lineSearch_ != "none" || iterationCounter == 1) {
+              //add linear right hand side
+              algsys_->InitRHS(RhsLinVal_);
+
+              // if the RHS depends on the nonlinearity, we have to re-assemble it
+              if( assemble_->IsRhsSolDependent()) {
+                assemble_->AssembleNonLinRHS();
+              }
+
+              // setup the matrices
+              isNewton = false;
+              assemble_->AssembleMatrices(isNewton);
+
+              //substract from RHS the term K*sol
+              solVec_.ScalarMult(-1.0);
+              algsys_->UpdateRHS(SYSTEM,solVec_,true);
+              solVec_.ScalarMult(-1.0);
+              //Do the three lines above even have an effect since solVec_ == 0?
+            }
+
+            // assemble Newton bilinear forms
+            isNewton = true;
+            assemble_->AssembleMatrices(isNewton);
+
+            //compute effective matrix
+            algsys_->ConstructEffectiveMatrix( NO_FCT_ID,
+                    matrix_factor_[NO_FCT_ID] );
+
+            algsys_->BuildInDirichlet();
+            algsys_->SetupPrecond();
+            algsys_->SetupSolver();
+
+            bool setIDBC = false;
+            if ( iterationCounter == 1 && couplingIter_ == 0 )
+              setIDBC = true;
+            // Solve for rhs = residual
+            algsys_->Solve(setIDBC);
+
+            // new solution is only an increment of the full solution =============
+            // Since the entries of solVec_ are pointers to the SingleVector
+            // of the FE function, it automatically inserts the values there
+            algsys_->GetSolutionVal( solInc, setIDBC );
+            LOG_DBG2(stdsolvestep) << "solInc = " << solInc.ToString(2);
+
+            //compute norms (residual and incremenal ones)
+            Double residualL2Norm = 0.0;
+            Double etaLineSearch  = 1.0;
+            if ( lineSearch_ == "none" || iterationCounter == 1) {
+              //to incooperate the inhomog. Dirichlet BCs we need a full
+              //step for the first iteration
+
+              actSol.Add(Complex(1.0), solInc);
+              // store the new solution
+              solVec_ = actSol;
+              //LOG_DBG2(stdsolvestep) << "actsol = " << actSol.ToString(2);
+
+              //=================compute residual norm
+              algsys_->InitRHS(RhsLinVal_);
+              // if the RHS depends on the nonlinearity, we have to re-assemble it
+              if( assemble_->IsRhsSolDependent()) {
+                assemble_->AssembleNonLinRHS();
+              }
+
+              // setup the matrices
+              isNewton = false;
+              assemble_->AssembleMatrices(isNewton);
+
+              //substract from RHS the term K*sol
+              solVec_.ScalarMult(-1.0);
+              algsys_->UpdateRHS(SYSTEM,solVec_,true);
+              solVec_.ScalarMult(-1.0);
+
+              //get RHS vector == current residual
+              SBM_Vector actRHS(BaseMatrix::COMPLEX);
+              algsys_->GetRHSVal( actRHS );
+
+              //LOG_DBG3(stdsolvestep) << "solVec_= " << solVec_.ToString(2);
+
+              // calculation of residual error =======================================
+              residualL2Norm = actRHS.NormL2();
+              LOG_DBG2(stdsolvestep) << "actRHS = " << actRHS.ToString(2);
+              LOG_DBG3(stdsolvestep) << "ResAbsolut: " << residualL2Norm;
+            } else {
+              // do line search
+              residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
+
+              // store the new solution
+              solVec_ = actSol;
+              //LOG_DBG3(stdsolvestep) << "actSol=" << solVec_.ToString(2);
+            }
+
+            // calculation relative residual error ====================================
+            Double residualErr;
+            if ( RhsLinL2Norm > 1.0 )
+              residualErr = residualL2Norm / RhsLinL2Norm;
+            else
+              residualErr = residualL2Norm;
+
+            // calculate incremental error ========================================
+            Double incrementalErr;
+            Double solIncrL2Norm = solInc.NormL2();
+            Double actSolL2Norm  = actSol.NormL2();
+
+            if ( actSolL2Norm )
+              incrementalErr = solIncrL2Norm / actSolL2Norm;
+            else {
+              incrementalErr = solIncrL2Norm;
+              WARN("Zero solution vector!! ");
+            }
+
+            LOG_DBG2(stdsolvestep) << "residualErr= " << residualErr << " incrementalErr= " << incrementalErr <<  " etaLineSearch= " << etaLineSearch;
+            //WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1, &linesearch);
+            WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
+
+            // boolean variable, holds condition if another iteration step is necessary
+            performOneMoreStep =
+                    (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+
+            if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
+              EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
+                      << "' in step no '" << iLevel+1
+                      << "' at iteration '" << iterationCounter
+                      << "'.\n ==> incremental error: " << incrementalErr
+                      << "\n ==> residual error: " << residualErr);
+            }
+          } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+
+        } // loop over levels
+        //LOG_DBG3(stdsolvestep) << "actSol=" << solVec_.ToString(2);
+        //LOG_DBG3(stdsolvestep) << "actRHS=" << RhsLinVal_.ToString(2);
+
+        // Recalculate with the right eta
+        isNewton = false;
+        assemble_->AssembleMatrices(isNewton);
+  }
   
   // ======================================================
   // METHODS FOR EIGENVALUE COMPUTATION
@@ -1479,7 +1652,10 @@ namespace CoupledField {
   
   //Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, double& etaLineSearch, bool trans, StdVector<std::pair<double, double> >& linesearch)  {
   Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, double& etaLineSearch, bool trans)  {
-    SBM_Vector solOld(BaseMatrix::DOUBLE);
+    assert(solIncrement.IsComplex() == actSol.IsComplex());
+    bool cplx = solIncrement.IsComplex();
+
+    SBM_Vector solOld(cplx ? BaseMatrix::COMPLEX : BaseMatrix::DOUBLE);
     solOld = actSol;
     const UInt nrEtas = 5;
     const Double eta[nrEtas] = {0.05, 0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
@@ -1489,8 +1665,8 @@ namespace CoupledField {
     Double residualL2NormOpt = 1e15;
     
     for( UInt i=0; i<nrEtas; i++) {
-      //std::cout << "Testing eta = " << eta[i] << std::endl;
-      actSol.Add( 1.0, solOld, eta[i], solIncrement);
+      // actSol += 1.0 * solOld + eta[i] * solIncrement
+      Add(actSol, 1.0, solOld, eta[i], solIncrement); // works also for complex vectors
       
       //store new solution
       solVec_ = actSol;
@@ -1535,7 +1711,7 @@ namespace CoupledField {
       // =====================================================================
       // calculation of error norms
       // =====================================================================
-      SBM_Vector actRHS(BaseMatrix::DOUBLE);
+      SBM_Vector actRHS(cplx ? BaseMatrix::COMPLEX : BaseMatrix::DOUBLE);
       algsys_->GetRHSVal( actRHS );
       LOG_DBG2(stdsolvestep) << "actrhs = " << actRHS.ToString(2);
       
@@ -1554,7 +1730,7 @@ namespace CoupledField {
     etaLineSearch = etaOpt;
 
     // Set new solution
-    actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+    Add(actSol, 1.0, solOld, etaOpt, solIncrement );
     
     return residualL2NormOpt;
   }

@@ -260,6 +260,25 @@ namespace CoupledField {
     return os.str();
   }
 
+  /** all vectors need to be either complex or real but the same. */
+  void Add(BaseVector& out, double fac1, const BaseVector& vec1, double fac2, const BaseVector& vec2)
+  {
+    assert((out.IsComplex() == vec1.IsComplex()) && (out.IsComplex() == vec2.IsComplex()));
+    if(out.IsComplex())
+      out.Add(Complex(fac1), vec1, Complex(fac2), vec2);
+    else
+      out.Add(fac1, vec1, fac2, vec2);
+  }
+
+  /** @see Add() above. If vectors are real, the real part from the scalars is used */
+  void Add(BaseVector& out, Complex fac1, const BaseVector& vec1, Complex fac2, const BaseVector& vec2)
+  {
+    assert((out.IsComplex() == vec1.IsComplex()) && (out.IsComplex() == vec2.IsComplex()));
+    if(out.IsComplex())
+      out.Add(fac1, vec1, fac2, vec2);
+    else
+      out.Add(fac1.real(), vec1, fac2.real(), vec2);
+  }
 
   double Average(const double* data, unsigned int size)
   {

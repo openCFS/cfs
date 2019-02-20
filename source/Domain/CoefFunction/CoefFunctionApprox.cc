@@ -39,45 +39,43 @@ void CoefFunctionApprox::Init( Double coefScalar, ApproxData * nLinFnc,
 }
 
 //! \see CoefFunction::GetScalar
-void CoefFunctionApprox::GetScalar(Double& coefScalar, 
-                                   const LocPointMapped& lpm ) {
+void CoefFunctionApprox::GetScalar(Double& coefScalar, const LocPointMapped& lpm )
+{
+  // it is unnecessary expensive to create vectors and copy data just calc the norm on them!
+  Vector<double> double_sol;
+  Vector<std::complex<double> > complex_sol;
+  SingleVector* sol = NULL;
 
-  // evaluate vector of dependency
-  Vector<Double> elemSol;
+  if(dependCoef_->IsComplex()) {
+    dependCoef_->GetVector(complex_sol, lpm);
+    sol = &complex_sol;
+  } else {
+    dependCoef_->GetVector(double_sol, lpm);
+    sol = &double_sol;
+  }
 
-  dependCoef_->GetVector( elemSol, lpm);
-  LOG_DBG(coeffctapprox) << "elemSol = " << elemSol.ToString(2);
-  
+  LOG_DBG(coeffctapprox) << "elemSol = " << sol->ToString(2);
 
   if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY ) {
     // in case of permeability (reluctivity) the function depends on the norm of the field
     // it is specialized in terms of evaluation
     Double fieldAbs = 0;
-    fieldAbs = (elemSol.NormL2());
-
-    if( fieldAbs == 0 ) { 
-      coefScalar = coefScalar_;
-    } else {
-      coefScalar = nLinFnc_->EvaluateFuncNu(fieldAbs);
-    }
-  } else if ( nLinFnc_->GetMatType() == MAGSTRICT_RELUCTIVITY ) {
-
-	 Double SignedMaxStrain = elemSol.SignedMax();
-	 coefScalar = nLinFnc_->EvaluateFunc(SignedMaxStrain);
-}
+    fieldAbs = (sol->NormL2());
+    coefScalar = fieldAbs == 0 ? coefScalar_ : nLinFnc_->EvaluateFuncNu(fieldAbs);
+  }
+  else if ( nLinFnc_->GetMatType() == MAGSTRICT_RELUCTIVITY ) {
+    Double SignedMaxStrain = sol->SignedMax();
+    coefScalar = nLinFnc_->EvaluateFunc(SignedMaxStrain);
+  }
   else if( nLinFnc_->GetMatType() == CORE_LOSS ){
     // this is the case for general functions depending on the norm of a field
-    Double fieldAbs = elemSol.NormL2();
-
-    if( fieldAbs == 0 ) {
-      coefScalar = coefScalar_;
-    } else {
-      coefScalar = nLinFnc_->EvaluateFunc(fieldAbs);
-    }
+    Double fieldAbs = sol->NormL2();
+    coefScalar = fieldAbs == 0 ? coefScalar_ : nLinFnc_->EvaluateFunc(fieldAbs);
   }
   else {
     // case for functions depending on the vector, specialize as needed
-    coefScalar = nLinFnc_->EvaluateFunc(elemSol[0]);
+    assert(!dependCoef_->IsComplex());
+    coefScalar = nLinFnc_->EvaluateFunc(double_sol[0]);
   }
   // LOG does not check if lpm is a dummy
   // LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal = '" << elemSol[0] << ". IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;

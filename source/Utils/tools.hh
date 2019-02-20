@@ -20,6 +20,7 @@
 namespace CoupledField {
 
   class SingleVector;
+  class BaseVector;
 
   template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
@@ -227,6 +228,13 @@ namespace CoupledField {
    for(unsigned int i = 0, rn = out.GetSize(); i < rn; i++)
        out[i] += fac * other[i];
   }
+
+  /** all vectors need to be either complex or real but the same.
+   * out += fac1 * vec1 + fac2 * vec2 */
+  void Add(BaseVector& out, double fac1, const BaseVector& vec1, double fac2, const BaseVector& vec2);
+
+  /** @see Add() above. If vectors are real, the real part from the scalars is used */
+  void Add(BaseVector& out, Complex fac1, const BaseVector& vec1, Complex fac2, const BaseVector& vec2);
 
   /** Search for the smallest value within a row
    * @param value set when given

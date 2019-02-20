@@ -1885,18 +1885,25 @@ namespace CoupledField {
       }
       
       if( newRHS.GetEntryType() == BaseMatrix::DOUBLE ) {
-        Vector<Double> & nRHS = 
-            dynamic_cast<Vector<Double>&>( newRHS(i) );
+        Vector<Double> & nRHS = dynamic_cast<Vector<Double>&>( newRHS(i) );
         for( UInt j = 0; j < size; ++j ) {
           // omit entries for Dirichlet values
           if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
-            rhs_->GetPointer(blockNums[j])
-                ->SetEntry(indices[j]-1, nRHS[j] );
+            rhs_->GetPointer(blockNums[j])->SetEntry(indices[j]-1, nRHS[j] );
           }
         }
         
+      } else if( newRHS.GetEntryType() == BaseMatrix::COMPLEX ) {
+        Vector<Complex>& nRHS = dynamic_cast<Vector<Complex>&>(newRHS(i));
+        for( UInt j = 0; j < size; ++j )
+        {
+          // omit entries for Dirichlet values
+          if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+            rhs_->GetPointer(blockNums[j])->SetEntry(indices[j]-1, nRHS[j]);
+          }
+        }
       } else {
-        EXCEPTION("Implement me. Dont worry: mostly C&P code");
+        EXCEPTION("Data type must be either double or complex");
       }
     }
   }

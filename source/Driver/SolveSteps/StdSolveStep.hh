@@ -103,8 +103,8 @@ namespace CoupledField
     virtual void StepHarmonicLin();
 
     //! solves for one nonlinear frequency step 
-    virtual void StepHarmonicNonLin()
-    {EXCEPTION("Harmonic step not implemented!");};
+    virtual void StepHarmonicNonLin();
+    //{EXCEPTION("Harmonic step not implemented!");};
     
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() {;};

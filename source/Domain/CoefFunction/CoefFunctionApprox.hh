@@ -33,15 +33,11 @@ public:
   virtual ~CoefFunctionApprox();
   
   //! Initialize with data
-  void Init( Double coefScalar, ApproxData * nLinFnc,
-             PtrCoefFct dependCoef  );
+  void Init(Double coefScalar, ApproxData* nLinFnc, PtrCoefFct dependCoef);
 
-  
   //! \see CoefFunction::GetScalar
-  void GetScalar(Double& coefScalar, 
-                 const LocPointMapped& lpm );
+  void GetScalar(Double& coefScalar, const LocPointMapped& lpm );
     
-
   //! \see CoefFunction::ToString
   std::string ToString() const;
 
