@@ -307,8 +307,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
     opt_vol_ = volume;
     LOG_DBG2(ms) << "CMFD: calculated volume =" << opt_vol_;
   }
-  // norm by the volume of the optimization domain
-  result *= 1.0/opt_vol_;
+
   LOG_DBG(ms) << "CMFD: exit normed -> " << result;
   return result;
 }
@@ -583,6 +582,7 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
     opt_vol_ = volume;
     LOG_DBG2(ms) << "CMFAR: calculated volume =" << opt_vol_;
   }
+
   delete bdb;
 }
 
