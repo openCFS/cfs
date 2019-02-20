@@ -940,7 +940,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   #    |
   # z (.)--> x
   # 
-  # This are the node numbers if we have only one element. The .mesh file will be transformed to 1-based              
+  # These are the node numbers if we have only one element. The .mesh file will be transformed to 1-based              
   # x is the fastet variable, z is the slowest variable
   #
   #       2 --------- 3         
@@ -953,6 +953,11 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   #    | /         | /
   #    |/          |/
   #    4 --------- 5
+  # 
+  # definition of cube faces:
+  # left: x=0, right x=1
+  # bottom: y=0, top: y=1
+  # back z=0, front: z=1
   
 
   for z in range(nnz):  # slowest variable
@@ -992,12 +997,14 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         else: 
           e.region = 'mech' if not threshold or e.density > threshold else 'void' 
           mech_count = mech_count + 1
-          # assign nodes 
-          # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront 
-        ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element 
-        # start with upper-front-left counterclockwise in the x-z plane. Repeat in then lower plane 
-        # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))   
-        e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny))) 
+  
+        # assign nodes 
+        # left: x=0, right x=1
+        # bottom: y=0, top: y=1
+        # back z=0, front: z=1
+        ll = nnx*nny*z + nnx*y + x  #   left-bottom-back of current element 
+        # Local nodes definifing element: 0-1-3-2-4-5-7-6
+        e.nodes = ( (ll, ll+1, ll+nnx+1,  ll+nnx, ll+nnx*nny, ll+(nnx*nny)+1, ll+nnx+(nnx*nny)+1,ll+nnx+(nnx*nny)) )   
         mesh.elements.append(e)
   
 #  if type == "traegerblz":
@@ -1026,7 +1033,6 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     # loads are all nodes in x-z plane for y == nny
     for i in range(0,nnz):
       mesh.bc.append(("force",list(range(nnx*ny+nnx*nny*i,nnx*nny*(i+1),1))))
-    name_bc_nodes(mesh)
     
   name_bc_nodes(mesh)    
         
