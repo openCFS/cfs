@@ -41,7 +41,6 @@ public:
 
 protected:
 
-
   /** @see Optimization::PostInit() */
   virtual void PostInit();
 
@@ -61,6 +60,10 @@ protected:
 
   bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs);
   
+  /** @see ErsatzMaterial::FillComplexAdjointRHS() */
+
+  bool FillComplexAdjointRHS(Excitation& excite, Function* f, Vector<Complex>& rhs);
+
   /** See ErsatzMaterial::SetElementK() */
   void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
 
@@ -97,15 +100,22 @@ private:
    * @param N has size of unknowns of state but has only contributions for the region */
   void CalcN(LinearFormContext* form, Vector<double>& N);
 
-  /** calc coupling as M^2/(L1*L2) */
-  double CalcMagCoupling2(Excitation& excite, Function* f);
-
-  void CalcCoupling2AdjRHS(Excitation& excite, Function* f, Vector<double>& out);
-
   /** calc coupling as M^4/(L1*L2)^2 */
   double CalcMagCoupling(Excitation& excite, Function* f);
 
-  void CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
+  /** calc coupling as TODO */
+  double CalcMagCouplingComplex(Excitation& excite, Function* f);
+
+  void CalcCouplingAdjRealRHS(Excitation& excite, Function* f, Vector<double>& out);
+
+  void CalcCouplingAdjComplexRHS(Excitation& excite, Function* f, Vector<Complex>& out);
+
+  /** helper for CalcCouplingAdjComplexRHS():
+   *   // out = factor_N1 * N1 * Re(AB) + factor_N2 * N2 * Imag(AB) */
+  void HamardHelper(Vector<Complex>& out, Complex factor_N1, const Vector<double>& N1,  Complex factor_N2, const Vector<double>& N2, const Vector<Complex>& AB);
+
+  /** res = <N, real(A).^2> or <N, imag(A).^2> */
+  double InnerHelper(const Vector<double>& N, const Vector<Complex>& A, Global::ComplexPart cp);
 
   /** Calculate the coupling gradient */
   void CalcCouplingGradient(Excitation& excite, Function* f,  TransferFunction* tf);

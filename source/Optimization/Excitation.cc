@@ -175,20 +175,32 @@ void MultipleExcitation::SetHarmonic(Context* ctxt, unsigned int base, int num_f
   // but not multiple excitations. Then only the first frequency is called.
   // Fills the excitations list with the data provided in the xml file as problem description
 
-  HarmonicDriver* hd = ctxt->GetHarmonicDriver();
   assert(excitations.GetCapacity() >= base + num_freq);
   excitations.Resize(base + num_freq);
 
   for (int i = 0; i < num_freq; i++)
   {
     Excitation& ex = excitations[base + i];
-    ex.frequency = hd->freqs[i].freq;
-    ex.label = lexical_cast<string>(ex.frequency);
-    ex.weight = hd->freqs[i].weight;
-    ex.f_link = &hd->freqs[i];
+    SetHarmonicExcitation(ctxt, ex, i);
     ex.reassemble = true;
   }
 }
+
+void MultipleExcitation::SetHarmonicExcitation(Context* ctxt, Excitation& ex, int freq_idx)
+{
+  HarmonicDriver* hd = ctxt->GetHarmonicDriver();
+  assert(freq_idx < (int) hd->freqs.GetSize());
+
+  // note that we might have the case, that the excitation comes from a harmonic single freq multiple load case
+
+  ex.frequency = hd->freqs[freq_idx].freq;
+  assert(!(ex.label != "" && freq_idx > 0));
+  if(ex.label == "") // don't overwrite the single frequenc multiple load case
+    ex.label = lexical_cast<string>(ex.frequency);
+  ex.weight = hd->freqs[freq_idx].weight;
+  ex.f_link = &hd->freqs[freq_idx];
+}
+
 
 void MultipleExcitation::SetBlochWaves(Context* ctxt, unsigned int base, int num_wave)
 {
@@ -299,7 +311,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
 
   // the actual multipleExcitation description is read in Optimization as part of
   // objective function block
-  int num_freq = ctxt->num_harm_freq;
+  int num_freq = ctxt->num_harm_freq; // might be 1 for multiple complex loads, eg. magnetic coupling
 
   // bloch mode analysis wave vectors
   int num_wave = ctxt->num_bloch_wave_vectors;
@@ -358,10 +370,14 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   if(num_wave > 0)
     SetBlochWaves(ctxt, context_base, num_wave);
 
-  if(ctxt->IsHarmonic())
+  assert(!(num_freq == 1 && num_loads == 1));
+
+  // when we do magnetic coupling with 1 frequency but two loads
+  if(ctxt->IsHarmonic() && (num_freq > 1 || num_loads <= 1))
     SetHarmonic(ctxt, context_base, num_freq);
 
-  if(!ctxt->IsComplex() && IsEnabled(ctxt->sequence) && !ctxt->DoBloch()) // multiple loads case
+  // SetLoadCases() recognizes a harmonic load
+  if((!ctxt->IsComplex() || num_freq == 1) && IsEnabled(ctxt->sequence) && !ctxt->DoBloch()) // multiple loads case
     SetLoadCases(ctxt, context_base, pn_ex, num_loads, opt); // when the loads are given in the optimization section of the xml file
 
   assert(ctxt->sequence >= 1);
@@ -680,21 +696,29 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
 
     for(int i = 0; i < num_loads; i++) // via num_loads or num_freq
     {
-      // don't do anything for multiple excitation enabled with only one load
-      if (num_loads > (int) i)
-      {
-        // static load case
-        Excitation& ex = excitations[base + i];
-        ex.forms.Push_back(forms[i]); // one form for one excitation
-        LOG_DBG(exlog)<< "PME: form " << i << " = " << forms[i]->GetIntegrator()->GetName() << " entities=" << forms[i]->GetEntities()->GetName();
+      // static load case
+      Excitation& ex = excitations[base + i];
+      ex.forms.Push_back(forms[i]); // one form for one excitation
+      LOG_DBG(exlog)<< "PME: form " << i << " = " << forms[i]->GetIntegrator()->GetName() << " entities=" << forms[i]->GetEntities()->GetName();
 
-        // we do not support to give a weight in the force section of the simulation
-        ex.weight = 1.0;
-      }
+      // we do not support to give a weight in the force section of the simulation
+      ex.weight = 1.0;
     }
 
     // "remove" the loads from the simulation. From now on we Apply() ist
     forms.Resize(0); // won't delete content but set the internal size_ counter
+  }
+
+  // check for the harmonic single frequency case, then we also store this information in the excitation
+  assert(!(ctxt->IsHarmonic() && ctxt->num_harm_freq != 1)); // might also be extended for multiple frequencies
+  if(ctxt->IsHarmonic())
+  {
+    for(int i = 0; i < num_loads; i++) // via num_loads or num_freq
+    {
+      Excitation& ex = excitations[base + i];
+      SetHarmonicExcitation(ctxt, ex, 0); // we have exactly one frequency!
+      ex.label = ""; // we don't want the frequency as label
+    }
   }
 }
 

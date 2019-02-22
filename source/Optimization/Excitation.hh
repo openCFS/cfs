@@ -230,12 +230,17 @@ private:
   /** Helper which sets up the transformation based on any exciting excitations (e.g. test strains) including robust!!!, which are wrapped and multiplied */
   void ApplyTransformations(const Context* ctxt, DesignSpace* space);
 
+  /** Reads loads from the boundary conditions or from the optimization part.
+   * Handles the case that we have multiple loads (e.g. magnetic coils) for a single frequency (num_freq = 1) */
   void SetLoadCases(Context* ctxt, unsigned int context_base, const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
 
   /** call this only for the last context */
   void WriteInInfo(PtrParamNode in);
 
   void SetHarmonic(Context* ctxt, unsigned int context_base, int num_freq);
+
+  /** sweet little helper for SetHarmonic() */
+  void SetHarmonicExcitation(Context* ctxt, Excitation& ex, int freq_idx);
 
   /** @see SetHomogenizationTestStrains() */
   void SetBlochWaves(Context* ctxt, unsigned int context_base, int num_wave);

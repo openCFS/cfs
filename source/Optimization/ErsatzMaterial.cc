@@ -3791,7 +3791,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         break;
       }
 
-      default:
+      default:// Let's hope this is overwritten, e.g. my MagSIMP */
+        if(!FillComplexAdjointRHS(excite, f, rhs))
+          throw Exception("FillRealAdjointRHS for " + f->ToString() + " not handled");
       assert(true); // e.g. for ELEC_ENERGY the rhs is set in PiezoSIMP::ConstructAdjointRHS()
     }
     shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType());

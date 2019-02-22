@@ -257,6 +257,9 @@ template<typename T> class ElemStoreSol;
     void Set(T a, const SingleVector &vec);
 
 
+    /** Hadamard product. Pointwise this[i] = v1[i] * v2[i] */
+    void Hadamard(const Vector<T>& v1, const Vector<T>& v2);
+
     //! Compute inner product
 
     //! The method computes the value of the inner product between this vector
