@@ -116,7 +116,7 @@ def read_stiff_angle_matlab(filename):
       s3[i] = d[i][3]
   design = dict()
   if dim == 3:
-    design['angle'] = 0
+    design['angle'] = numpy.zeros((s1.shape[0], 1))
     design['s1'] = s1
     design['s2'] = s2
     design['s3'] = s3
