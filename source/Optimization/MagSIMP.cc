@@ -416,7 +416,7 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
 
       // get the shape functions of the ip, same values for all ips in one element but permuted
       h1->GetShFnc(shapes, lpm.lp, iter.GetElem());
-      LOG_DBG3(ms) << "CN: e=" << iter.GetElem()->elemNum << " ip=" << ip << "=" << intPoints[ip].coord.ToString() << " J=" << lpm.jacDet << " s=" << shapes.ToString();
+//      LOG_DBG3(ms) << "CN: e=" << iter.GetElem()->elemNum << " ip=" << ip << "=" << intPoints[ip].coord.ToString() << " J=" << lpm.jacDet << " s=" << shapes.ToString();
       assert(shapes.GetSize() == eqn.GetSize());
       for(unsigned int s = 0; s < shapes.GetSize(); s++)
       {
@@ -430,7 +430,7 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
         else
         {
           unsigned int eqn_idx = eqn_nbr-1;
-          LOG_DBG3(ms) << "CN: s=" << s << " eqn_idx=" << eqn_idx << " N[" << eqn_idx << "] = " << N[eqn_idx] << " + " << v << " -> " << (N[eqn_idx] + v);
+//          LOG_DBG3(ms) << "CN: s=" << s << " eqn_idx=" << eqn_idx << " N[" << eqn_idx << "] = " << N[eqn_idx] << " + " << v << " -> " << (N[eqn_idx] + v);
           N[eqn_idx] += v;
          }
       } // end shape fcts
@@ -533,26 +533,24 @@ double MagSIMP::CalcMagCouplingComplex(Excitation& excite, Function* f)
   CalcN(form_A, N1);
   CalcN(form_B, N2);
 
-  Vector<double> ABR = A_b.GetPart(Global::REAL);
-  Vector<double> ABR_sq(A_a.GetSize());
-  ABR_sq.Hadamard(ABR, ABR);
-  Vector<double> ABI = A_b.GetPart(Global::IMAG);
-  Vector<double> ABI_sq(A_a.GetSize());
-  ABI_sq.Hadamard(ABI, ABI);
-  Vector<double> AAR = A_a.GetPart(Global::REAL);
-  Vector<double> AAR_sq(A_a.GetSize());
-  AAR_sq.Hadamard(AAR, AAR);
-  Vector<double> AAI = A_a.GetPart(Global::IMAG);
-  Vector<double> AAI_sq(A_a.GetSize());
-  AAI_sq.Hadamard(AAI, AAI);
+  // N1_ABR = <N1, real(AB).^2>
+  double N1_AAR = InnerHelper(N1, A_a, Global::REAL);
 
-  double N1_ABR = Inner(N1, ABR_sq);
-  double N1_ABI = Inner(N1, ABI_sq);
-  double N1_AAR = Inner(N1, AAR_sq);
-  double N1_AAI = Inner(N1, AAI_sq);
-  double N2_ABR = Inner(N2, ABR_sq);
-  double N2_ABI = Inner(N2, ABI_sq);
+  // N1_ABI = <N1, imag(AB).^2>
+  double N1_AAI = InnerHelper(N1, A_a, Global::IMAG);
 
+  double N1_ABR = InnerHelper(N1, A_b, Global::REAL);
+  double N1_ABI = InnerHelper(N1, A_b, Global::IMAG);
+
+  double N2_ABR = InnerHelper(N2, A_b, Global::REAL);
+  double N2_ABI = InnerHelper(N2, A_b, Global::IMAG);
+
+  LOG_DBG(ms) << "CMC: N1_AAR = " << N1_AAR;
+  LOG_DBG(ms) << "CMC: N1_AAI = " << N1_AAI;
+  LOG_DBG(ms) << "CMC: N1_ABR = " << N1_ABR;
+  LOG_DBG(ms) << "CMC: N1_ABI = " << N1_ABI;
+  LOG_DBG(ms) << "CMC: N2_ABR = " << N2_ABR;
+  LOG_DBG(ms) << "CMC: N2_ABI = " << N2_ABI;
   double k = pow(N1_ABR + N1_ABI, 2)/((N1_AAR+N1_AAI)*(N2_ABR+N2_ABI));
   LOG_DBG(ms) << "CMC: Coupling = " << k;
   // return 2-times the function value since we have two excitations and it will be halved afterwards
@@ -758,14 +756,11 @@ void MagSIMP::CalcCouplingAdjComplexRHS(Excitation& excite, Function* f, Vector<
    * factor =
    */
   // same as in CalcCoupling
-  //TODO update exceptions for harmonic case
 
   // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
   // we return value 0 for the first excitation and 2*coupling for the second excitation
   //assert(GetMultipleExcitation()->excitations.GetSize() == 2);
 
-  if (GetMultipleExcitation()->excitations.GetSize() == 1)
-    return;
   LOG_DBG2(ms) << "CCAR: num excitations: " << GetMultipleExcitation()->excitations.GetSize();
   assert(f->ctxt->IsComplex());
   Excitation& excite_A = GetMultipleExcitation()->excitations[0];
@@ -795,8 +790,8 @@ void MagSIMP::CalcCouplingAdjComplexRHS(Excitation& excite, Function* f, Vector<
 
   CalcN(form_A, N1);
   CalcN(form_B, N2);
-  LOG_DBG3(ms) << "CMC: N1 = " << N1.ToString(2);
-  LOG_DBG3(ms) << "CMC: N2 = " << N2.ToString(2);
+  //LOG_DBG3(ms) << "CMC: N1 = " << N1.ToString(2);
+  //LOG_DBG3(ms) << "CMC: N2 = " << N2.ToString(2);
 
   // N1_ABR = <N1, real(AB).^2>
   double N1_AAR = InnerHelper(N1, A_a, Global::REAL);
@@ -816,20 +811,18 @@ void MagSIMP::CalcCouplingAdjComplexRHS(Excitation& excite, Function* f, Vector<
     //calc rhs first case
     const Complex factor = -pow(N1_ABR+N1_ABI, 2)/(pow(N1_AAR+N1_AAI, 2) * (N2_ABR+N2_ABI));
     LOG_DBG2(ms) << "CCAR: factor complex case excitation A =" << factor;
-    // out = -factor * N1 *Re(A_a) + j*0.5*factor* N1 * Imag(A_a)
-    HamardHelper(out, -factor, N1, j*0.5*factor, N1, A_a);
+    // out = -factor * N1 *Re(A_a) + j*factor* N1 * Imag(A_a)
+    HadamardHelper(out, -factor, N1, j*factor, N1, A_a);
     LOG_DBG2(ms) << "CCAR: first excitation. f=" << factor << " |out|=" << out.NormL2();
   } else if (excite.index == 1) {
     //calc rhs second case
-    Complex tmp1 = 2*(N1_ABR + N1_ABI)/((N1_AAR+N1_AAI)*(N2_ABR+N2_ABI));
-    Complex tmp2 = -(pow(N1_ABR + N1_ABI, 2))/((N1_AAR+N1_AAI)*pow(N2_ABR+N2_ABI, 2));
-    const Complex factor_N1 = -tmp1-tmp2 ;
-    const Complex factor_N2 = j*tmp1+j*tmp2;
-    LOG_DBG2(ms) << "CCAR: fac N1 complex excitation B =" << factor_N1;
-    LOG_DBG2(ms) << "CCAR: fac N2 complex excitation B =" << factor_N2;
-    // out = -factor_N1 * N1 * Re(AB) + factor_N2 * N2 * Imag(AB)
-    HamardHelper(out, -1.0 * factor_N1, N1, factor_N2, N2, A_b);
-    LOG_DBG2(ms) << "CCAR: second excitation fN1=" << factor_N1 << " fN2=" <<factor_N2 << " |out|=" << out.NormL2();
+    Complex fac1 = 2*(N1_ABR + N1_ABI)/((N1_AAR+N1_AAI)*(N2_ABR+N2_ABI));
+    Complex fac2 = -(pow(N1_ABR + N1_ABI, 2))/((N1_AAR+N1_AAI)*pow(N2_ABR+N2_ABI, 2));
+    LOG_DBG2(ms) << "CCAR: fac N1 complex excitation B =" << fac1;
+    LOG_DBG2(ms) << "CCAR: fac N2 complex excitation B =" << fac2;
+    // out = -factor_N1 * N1 .* Re(AB) + j*factor_N1 * N1 .* Imag(AB) - factor_N2 * N2 * Re(AB) + j*factor_N2 * N2 * Imag(AB)
+    HadamardHelper2(out, fac1, N1, fac2, N2, A_b);
+    LOG_DBG2(ms) << "CCAR: second excitation fN1=" << fac1 << " fN2=" <<fac2 << " |out|=" << out.NormL2();
   } else {
     EXCEPTION("There should only be two excitations");
   }
@@ -849,15 +842,24 @@ double MagSIMP::InnerHelper(const Vector<double>& N, const Vector<Complex>& A, G
   return sum;
 }
 
-void MagSIMP::HamardHelper(Vector<Complex>& out, Complex factor_N1, const Vector<double>& N1,  Complex factor_N2, const Vector<double>& N2, const Vector<Complex>& AB)
+void MagSIMP::HadamardHelper(Vector<Complex>& out, Complex factor_N1, const Vector<double>& N1,  Complex factor_N2, const Vector<double>& N2, const Vector<Complex>& AB)
 {
-  // out = factor_N1 * N1 * Re(AB) + factor_N2 * N2 * Imag(AB)
+  // out = factor_N1 * N1 .* Re(AB) + factor_N2 * N2 .* Imag(AB)
   assert((N1.GetSize() == N2.GetSize()) && (N1.GetSize() == AB.GetSize()));
 
   for(unsigned int i = 0; i < N1.GetSize(); i++)
     out[i] = factor_N1 * N1[i] * AB[i].real() + factor_N2 * N2[i] * AB[i].imag();
 }
 
+void MagSIMP::HadamardHelper2(Vector<Complex>& out, Complex factor_N1, const Vector<double>& N1,  Complex factor_N2, const Vector<double>& N2, const Vector<Complex>& AB)
+{
+  // out = -factor_N1 * N1 .* Re(AB) + j*factor_N1 * N1 .* Imag(AB) - factor_N2 * N2 * Re(AB) + j*factor_N2 * N2 * Imag(AB)
+  Complex j = Complex(0,1);
+  assert((N1.GetSize() == N2.GetSize()) && (N1.GetSize() == AB.GetSize()));
+
+  for(unsigned int i = 0; i < N1.GetSize(); i++)
+    out[i] = -factor_N1 * N1[i] * AB[i].real() + j*factor_N1 *N1[i] * AB[i].imag() - factor_N2 * N2[i] * AB[i].real() + j*factor_N2 * N2[i] * AB[i].imag();
+}
 
 template <class T1, class T2>
 void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
