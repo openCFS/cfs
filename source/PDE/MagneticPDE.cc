@@ -543,22 +543,22 @@ namespace CoupledField {
         {
           if(dim_ == 2)
           {
-            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),new ConvectiveOperator<FeH1,2,1,Complex>(), coeff, 1.0, coefUpdateGeo);
+//            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),new ConvectiveOperator<FeH1,2,1,Complex>(), coeff, 1.0, coefUpdateGeo);
           }
           else
           {
-            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),new ConvectiveOperator<FeH1,3,1,Complex>(), coeff, 1.0, coefUpdateGeo);
+//            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),new ConvectiveOperator<FeH1,3,1,Complex>(), coeff, 1.0, coefUpdateGeo);
           }
         }
         else
         {
           if(dim_ == 2)
           {
-            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),new ConvectiveOperator<FeH1,2,1>(),coeff, 1.0, coefUpdateGeo);
+            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),new CurlOperatorMag<FeH1,2,Double>(),coeff, 1.0, coefUpdateGeo);
           }
           else
           {
-            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),new ConvectiveOperator<FeH1,3,1>(),coeff, 1.0, coefUpdateGeo);
+//            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),new ConvectiveOperator<FeH1,3,1>(),coeff, 1.0, coefUpdateGeo);
           }
         }
         assert(velocityStiff != NULL);

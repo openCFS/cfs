@@ -23,6 +23,7 @@
 #include "FeBasis/HCurl/HCurlElems.hh"
 
 namespace CoupledField{
+
   template<class FE, UInt D, class TYPE>
   class CurlOperator : public BaseBOperator{
     public:
@@ -58,6 +59,78 @@ namespace CoupledField{
     protected:
 
   };
+
+  template<class FE, UInt D, class TYPE>
+   class CurlOperatorMag : public CurlOperator<FE,D,TYPE> {
+
+   public:
+
+    CurlOperatorMag(){
+       this->name_ = "CurlOperatorMag";
+     }
+
+    CurlOperatorMag(const CurlOperatorMag & other)
+      : CurlOperator<FE,D,TYPE>(other){
+     }
+
+     virtual CurlOperatorMag * Clone(){
+       return new CurlOperatorMag(*this);
+     }
+
+     virtual ~CurlOperatorMag(){
+
+     }
+
+     virtual void CalcOpMat(Matrix<Double> & bMat,
+                            const LocPointMapped& lp, BaseFE* ptFe );
+
+     protected:
+
+   };
+
+  // Performing the calculation of (v x nabla x A)
+  template<class FE, UInt D, class TYPE>
+  void CurlOperatorMag<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                         const LocPointMapped& lp,
+                                         BaseFE* ptFe ){
+
+    Matrix<Double> bMatInitial;
+    CurlOperator<FE,D,TYPE>::CalcOpMat(bMatInitial,lp,ptFe);
+
+    //obtain external field
+    Vector<Double> myVec;
+    int dof3 = 3;
+
+    myVec.Resize(dof3);
+    myVec.Init();
+    this->coef_->GetVector(myVec,lp);
+    Vector<Double> filler;
+    filler.Resize(dof3);
+    Vector<Double> buffer;
+    buffer.Resize(dof3);
+
+    for(int i=0; i<= bMat.GetNumCols(); ++i){
+      filler.Init();
+      buffer.Init();
+      std::cout << "erstes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMat= " << bMat.ToString() << std::endl;
+      for(int j=0; j<= bMat.GetNumRows(); ++j){
+        filler[j] = bMat[i][j];
+      }
+      myVec.CrossProduct(filler,buffer);
+      std::cout << "zweites: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMat= " << bMat.ToString() << std::endl;
+      for(int j=0; j<= bMat.GetNumRows(); ++j){
+        bMat[i][j] = buffer[j];
+      }
+      std::cout << "drittes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMat= " << bMat.ToString() << std::endl;
+    }
+
+
+
+
+    bMat.Resize(bMatInitial.GetNumRows(),bMatInitial.GetNumCols());
+    bMat.Init();
+
+  }
 
   
   // ===================================
@@ -640,6 +713,8 @@ namespace CoupledField{
     }
     //@}
     
+
+
   protected:  
    };
 }
