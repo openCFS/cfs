@@ -150,6 +150,13 @@ namespace CoupledField
     shared_ptr<CoefFunctionMulti> hysteresisPolarization_;
     shared_ptr<CoefFunctionMulti> hysteresisMagnetization_;
     
+  private:
+    //! This coefficient function describes the velocity field.
+    shared_ptr<CoefFunctionMulti> VelocityCoef_;
+
+    //! store velocity bilinear forms
+    std::map<RegionIdType, BaseBDBInt*> velocityInts_;
+
   };
   
 } // end of namespace
