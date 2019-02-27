@@ -109,19 +109,19 @@ namespace CoupledField{
     Vector<Double> buffer;
     buffer.Resize(dof3);
 
-    for(int i=0; i<= bMat.GetNumCols(); ++i){
+    for(int i=0; i<= bMatInitial.GetNumCols(); ++i){
       filler.Init();
       buffer.Init();
-      std::cout << "erstes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMat= " << bMat.ToString() << std::endl;
-      for(int j=0; j<= bMat.GetNumRows(); ++j){
-        filler[j] = bMat[i][j];
+      std::cout << "erstes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
+      for(int j=0; j<= bMatInitial.GetNumRows(); ++j){
+        filler[j] = bMatInitial[i][j];
       }
       myVec.CrossProduct(filler,buffer);
-      std::cout << "zweites: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMat= " << bMat.ToString() << std::endl;
-      for(int j=0; j<= bMat.GetNumRows(); ++j){
+      std::cout << "zweites: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
+      for(int j=0; j<= bMatInitial.GetNumRows(); ++j){
         bMat[i][j] = buffer[j];
       }
-      std::cout << "drittes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMat= " << bMat.ToString() << std::endl;
+      std::cout << "drittes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
     }
 
 
