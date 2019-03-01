@@ -675,10 +675,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   void MagEdgePDE::DefineNcIntegrators() {
     StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(), endIt = ncInterfaces_.End();
     for ( ; ncIt != endIt; ++ncIt ) {
-      if( analysistype_ == STATIC ){
-        EXCEPTION("Nitsche interface not yet tested for static analysis!\n"
-                  "You only have to delete this exception and verify the results");
-      }
       switch (ncIt->type) {
         case NC_MORTAR:
           EXCEPTION("No Mortar nonconforming interface for magnetic PDE with edge elements.\n"
