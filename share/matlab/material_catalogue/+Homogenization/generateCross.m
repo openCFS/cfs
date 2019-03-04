@@ -214,7 +214,7 @@ fprintf(fid,'[Node BC]\n');
 fprintf(fid,'#NodeNr Level\n');
 if ~isempty(bottom)
     fprintf(fid,'% 8d bottom\n',int32(bottom));
-    fprintf(fid,'% 8d up\n',int32(top));
+    fprintf(fid,'% 8d top\n',int32(top));
 end
 if ~isempty(left)
     fprintf(fid,'% 8d left\n',int32(left));
