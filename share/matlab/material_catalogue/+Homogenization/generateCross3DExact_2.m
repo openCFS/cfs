@@ -65,6 +65,11 @@ volume = CalcCross3DVolume(s1, s2, s3);
 
 dimension = 3;
 
+% Initial number of elements
+nx = min(max(nx,ceil(128/500/min(s1,s2*3,s3*3))),4096);
+ny = min(max(ny,ceil(128/500/min(s1*3,s2,s3*3))),4096);
+nz = min(max(nz,ceil(128/500/min(s1*3,s2*3,s3))),4096);
+
 % Nodes
 % Nodes are eparated into three parts:
 % 0 to remainder / remainder to remainder + s / remainder + s to 1
@@ -75,15 +80,15 @@ yremainder = (1-s2)/2;
 zremainder = (1-s3)/2;
 
 % Points in each part
-px1 = ceil(xremainder*nx)+1;
-px2 = ceil(s1*nx)+1;
-px3 = ceil(xremainder*nx)+1;
-py1 = ceil(yremainder*ny)+1;
-py2 = ceil(s2*ny)+1;
-py3 = ceil(yremainder*ny)+1;
-pz1 = ceil(zremainder*nz)+1;
-pz2 = ceil(s3*nz)+1;
-pz3 = ceil(zremainder*nz)+1;
+px1 = max(ceil(xremainder*nx)+1,3);
+px2 = max(ceil(s1*nx)+1,3);
+px3 = max(ceil(xremainder*nx)+1,3);
+py1 = max(ceil(yremainder*ny)+1,3);
+py2 = max(ceil(s2*ny)+1,3);
+py3 = max(ceil(yremainder*ny)+1,3);
+pz1 = max(ceil(zremainder*nz)+1,3);
+pz2 = max(ceil(s3*nz)+1,3);
+pz3 = max(ceil(zremainder*nz)+1,3);
 
 % Coordinates of points in each part
 x1 = linspace(0,xremainder,px1);
