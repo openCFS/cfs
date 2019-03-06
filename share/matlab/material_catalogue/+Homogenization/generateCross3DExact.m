@@ -66,9 +66,9 @@ volume = CalcCross3DVolume(s1, s2, s3);
 dimension = 3;
 
 % Initial number of elements
-nx = min(max(nx,ceil(128/500/min(s1,s2*3,s3*3))),4096);
-ny = min(max(ny,ceil(128/500/min(s1*3,s2,s3*3))),4096);
-nz = min(max(nz,ceil(128/500/min(s1*3,s2*3,s3))),4096);
+nx = min(max(nx,ceil(16/500/min(s1,s2*3,s3*3))),128);
+ny = min(max(ny,ceil(16/500/min(s1*3,s2,s3*3))),128);
+nz = min(max(nz,ceil(16/500/min(s1*3,s2*3,s3))),128);
 
 % Nodes
 % Nodes are eparated into three parts:
