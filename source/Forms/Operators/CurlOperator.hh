@@ -94,7 +94,7 @@ namespace CoupledField{
                                          const LocPointMapped& lp,
                                          BaseFE* ptFe ){
 
-    // bMatInitial containing the formfunctions in 2D (2x4)
+    // bMatInitial containing the formfunctions in 2D(2x4)
     Matrix<Double> bMatInitial;
     CurlOperator<FE,D,TYPE>::CalcOpMat(bMatInitial,lp,ptFe);
 
@@ -103,7 +103,7 @@ namespace CoupledField{
     // Initialize correct bMat
     if (bMatInitial.GetNumRows() == 2)
     {
-      bMat.Resize(1, numFncs * 1);
+      bMat.Resize(1, numFncs *1);
     }
     else
     {
@@ -112,7 +112,7 @@ namespace CoupledField{
 
     bMat.Init();
 
-    //obtain external field, velocity
+    //obtain external field velocity
     Vector<Double> myVec;
     int dof3 = 3;
 
@@ -128,7 +128,7 @@ namespace CoupledField{
     // all nodes (in 2D 2x4, in 3D 3x12), looping over the matrix brings the vector for the node or the edge,
     // buffer is the result of the crossproduct.
 
-    for(unsigned int i=0; i < bMatInitial.GetNumCols(); ++i){
+    for(unsigned int i=0; i< bMatInitial.GetNumCols(); ++i){
       filler.Init();
       buffer.Init();
 //      std::cout << "erstes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
@@ -141,11 +141,10 @@ namespace CoupledField{
       {
         double vel = buffer[2];
         bMat[0][i] = vel;
-
       }
       else
       {
-        for (unsigned int u=0; u < filler.GetSize(); ++u)
+        for(unsigned int u=0; u < filler.GetSize(); ++u)
         {
           bMat[u][i] = filler[u];
         }
