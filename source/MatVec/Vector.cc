@@ -1184,7 +1184,7 @@ namespace CoupledField {
   template <typename T> 
   void Vector<T>::CrossProduct(const Vector<T>& b, Vector<T>& v) const
   {
-    if( size_ != 3 || b.size_ != 3 )
+    if( size_ != 3 && b.size_ != 3 )
       EXCEPTION("CrossProduct can only be calculated for vector of size 3!");
 
     v.Resize(3);

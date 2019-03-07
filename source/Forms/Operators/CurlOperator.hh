@@ -94,10 +94,25 @@ namespace CoupledField{
                                          const LocPointMapped& lp,
                                          BaseFE* ptFe ){
 
+    // bMatInitial containing the formfunctions in 2D(2x4)
     Matrix<Double> bMatInitial;
     CurlOperator<FE,D,TYPE>::CalcOpMat(bMatInitial,lp,ptFe);
 
-    //obtain external field
+    UInt numFncs = ptFe->GetNumFncs();
+
+    // Initialize correct bMat
+    if (bMatInitial.GetNumRows() == 2)
+    {
+      bMat.Resize(1, numFncs *1);
+    }
+    else
+    {
+      bMat.Resize(3, numFncs);
+    }
+
+    bMat.Init();
+
+    //obtain external field velocity
     Vector<Double> myVec;
     int dof3 = 3;
 
@@ -109,26 +124,33 @@ namespace CoupledField{
     Vector<Double> buffer;
     buffer.Resize(dof3);
 
-    for(int i=0; i<= bMatInitial.GetNumCols(); ++i){
+    // Calculate the crossproduct (v x nabla x Na). Vector filler is necessary because Na is a matrix of
+    // all nodes (in 2D 2x4, in 3D 3x12), looping over the matrix brings the vector for the node or the edge,
+    // buffer is the result of the crossproduct.
+
+    for(unsigned int i=0; i< bMatInitial.GetNumCols(); ++i){
       filler.Init();
       buffer.Init();
-      std::cout << "erstes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
-      for(int j=0; j<= bMatInitial.GetNumRows(); ++j){
-        filler[j] = bMatInitial[i][j];
+//      std::cout << "erstes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
+      for(unsigned int j=0; j< bMatInitial.GetNumRows(); ++j){
+        filler[j] = bMatInitial[j][i];
       }
       myVec.CrossProduct(filler,buffer);
-      std::cout << "zweites: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
-      for(int j=0; j<= bMatInitial.GetNumRows(); ++j){
-        bMat[i][j] = buffer[j];
+//      std::cout << "zweites: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
+      if (bMatInitial.GetNumRows() == 2)
+      {
+        double vel = buffer[2];
+        bMat[0][i] = vel;
       }
-      std::cout << "drittes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
+      else
+      {
+        for(unsigned int u=0; u < filler.GetSize(); ++u)
+        {
+          bMat[u][i] = filler[u];
+        }
+      }
+//      std::cout << "drittes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
     }
-
-
-
-
-    bMat.Resize(bMatInitial.GetNumRows(),bMatInitial.GetNumCols());
-    bMat.Init();
 
   }
 
