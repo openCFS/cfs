@@ -203,7 +203,7 @@ complete-build:linux:
     - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency" --track $CDASH_TRACK # exclude the install step and the failing tests
+    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon" --track $CDASH_TRACK # exclude the install step and the failing tests
   <<: *ctest_default
 
 # test everything
@@ -330,6 +330,33 @@ testsuite:gcc7max:linux:
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   dependencies:
     - build:gcc7max
+
+
+python:stable:
+  extends: .ctest_default
+  tags:
+    - python
+  stage: test
+  variables:
+    TEST_NAME: "stable"
+    EXCLUDE: "nrfcommon"
+  before_script:
+    - mkdir -p build
+    - cd build
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME"  -DCTEST_GIT_UPDATE_CUSTOM:STRING="git;checkout;$CI_COMMIT_SHA" -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` -DPYTHON_TESTS=ON ..
+  script:
+    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
+    - git checkout HEAD~1 # back one revision and then update
+    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
+    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
+    - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK # only test python
+
+python:all:
+  extends: python:stable
+  variables:
+    TEST_NAME: "all"
+    EXCLUDE: ""
+  allow_failure: true
 
 #################################################
 # DEPLOY STAGES

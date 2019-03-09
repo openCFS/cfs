@@ -248,12 +248,12 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
     Extract real data
     >>> U = get_result(Plate3D,'mechDisplacement')
     >>> U[-6:,:]
-    array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
-       [ -2.01311228e-05,   2.01311228e-05,   2.80932210e-05],
-       [ -4.28143434e-04,  -4.28143434e-04,   2.07611520e-02],
-       [  4.28143434e-04,  -4.28143434e-04,   2.07611520e-02],
-       [ -4.28143434e-04,   4.28143434e-04,   2.07611520e-02],
-       [  4.28143434e-04,   4.28143434e-04,   2.07611520e-02]])
+    array([[ 0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
+       	   [-2.01311228e-05,   2.01311228e-05,   2.80932210e-05],
+           [-4.28143434e-04,  -4.28143434e-04,   2.07611520e-02],
+           [ 4.28143434e-04,  -4.28143434e-04,   2.07611520e-02],
+           [-4.28143434e-04,   4.28143434e-04,   2.07611520e-02],
+           [ 4.28143434e-04,   4.28143434e-04,   2.07611520e-02]])
     """
     from numpy import array, squeeze
     h5_ms = hdf5_file['Results/Mesh/MultiStep_%i'%multistep] # extract multistep
@@ -309,12 +309,10 @@ def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
 
     # Of course, all displacements on the clamped side mst be zero
     >>> U[I,:] # doctest: +ELLIPSIS
-    array([[ 0.,  0.,  0.],
-       [ 0.,  0.,  0.],
-       [ 0.,  0.,  0.],
-       ...
-       [ 0.,  0.,  0.],
-       [ 0.,  0.,  0.]])
+    array([[0.,  0.,  0.],
+           [0.,  0.,  0.],
+      ...
+           [0.,  0.,  0.]])
     """
     from numpy import array, argwhere
     Is = hdf5_file['Mesh']['Regions'][subregion][rtype].value-1
@@ -344,9 +342,9 @@ def get_coordinates(hdf5_file,region=None) :
 
     # Show coordinates of nodes 2, 4, 6 (index shift)X[[1,3,5],:]
     >>> X[[1,3,5],:]
-    array([[ 12. ,   7.2,   0. ],
-           [ 11.5,   4.8,   0. ],
-           [  0.5,   7.2,   0. ]])
+    array([[12. ,   7.2,   0. ],
+           [11.5,   4.8,   0. ],
+           [ 0.5,   7.2,   0. ]])
     """
     if not region==None :
         I = hdf5_file['Mesh/Regions/%s'%region]['Nodes'].value - 1
@@ -377,9 +375,9 @@ def get_centroids(hdf5_file,region=None) :
     Get centroids for a single region result file
     >>> C = get_centroids(Plate3D)
     >>> C[0,:] # first element
-    array([ 11.75 ,   6.   ,   0.175])
+    array([11.75 , 6. , 0.175])
     >>> C[-1,:] # last element
-    array([ 9.35,  9.35,  0.35])
+    array([9.35, 9.35, 0.35])
     """
     from numpy import sum, unique, argwhere, zeros, arange, mean
     # get connectivity and nodal coordinates
@@ -417,4 +415,7 @@ if __name__ == "__main__":
 
     # finally run doctest
     import doctest
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
+    result = doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
+
+    # and exit with the number of failures as exit code
+    sys.exit(result.failed)

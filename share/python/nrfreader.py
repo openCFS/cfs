@@ -138,10 +138,10 @@ class NrfReader(NrfCommon):
     4
     >>> f.nNodes
     9
-    >>> f.groups
+    >>> [key for key in f.groups]
     []
-    >>> f.regions
-    [u'domain']
+    >>> [key for key in f.regions]
+    ['domain']
     """
     
     self.hasHistory = 'History' in self._h5['Results'].keys()
@@ -762,6 +762,6 @@ if __name__ == "__main__":
     
     # perform doctest
     import doctest
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
-    f._h5.flush
-    f._h5.close
+    from sys import exit
+    result = doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
+    exit(result.failed)

@@ -278,7 +278,7 @@ class NrfCommon(object):
     
     Examples
     --------
-    >>> f._getGroups()
+    >>> [key for key in f._getGroups()]
     []
     """
     return self._h5['Mesh/Groups'].keys()
@@ -1506,6 +1506,7 @@ if __name__ == "__main__":
     
     # perform doctest
     import doctest
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
+    result = doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
     f._h5.flush
     f._h5.close
+    sys.exit(result.failed)
