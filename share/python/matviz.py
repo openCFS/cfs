@@ -393,7 +393,11 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
         exit() 
       else:
         viz = orientational_stiffness(coords, angle, data, args.res, scale)
-    if (MPI.COMM_WORLD.Get_rank()==0):  
+    try:
+        rank = MPI.COMM_WORLD.Get_rank()
+    except NameError: # we have no MPI
+        rank = 0
+    if (rank==0):  
 	    if viz is None:
 	      print('Error: no visualization calculated!')
 	    else:
