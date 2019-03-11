@@ -371,16 +371,16 @@ elif dim == 3:
         if  args.skip_bounds and (0 in [x,y,z] or steps in [x,y,z]):
           # skip searching for .info.xml files and write trivial coefficients directly to detailed_stats
           # e.g if we have 0-0-0.info.xml, 0-1-2.info.xml, steps-steps-steps.info.xml  
-          if 0 in [x,y,z]: 
+          if steps in [x,y,z]:
+            assert(steps in [x,y,z])
+            tensor_vals = ['1.6078746e+05', '7.2237847e+04', '7.2237847e+04', '1.6078746e+05', '7.2237847e+04', '1.6078746e+05', '4.4274809e+04', '4.4274809e+04', '4.4274809e+04']
+            vol = 1
+          else: # 0 in [x,y,z]
             tensor_vals = ['1.346154e-06', '5.769231e-07', '5.769231e-07', '1.346154e-06', '5.769231e-07', '1.346154e-06', '3.846154e-07', '3.846154e-07', '3.846154e-07']
             vol = 0
-          else:
-            assert(steps in [x,y,z])
-            tensor_vals = ['1.346154e-06', '5.769231e-07', '5.769231e-07', '1.346154e-06', '5.769231e-07', '1.346154e-06', '3.846154e-07', '3.846154e-07', '3.846154e-07']  
-            vol = 1
             
           out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + ' '.join(tensor_vals) + '\n')
-          out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' 0 '  + '\n')
+          out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(vol)  + '\n')
         else:  
           if args.penalization:
             steps_p = args.penalization
