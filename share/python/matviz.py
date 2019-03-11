@@ -645,8 +645,9 @@ else:
         nondes_elements.extend(tmp_nondes_elements)
         nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
         nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
-        
-      _, design_elems_min, design_elems_max, _, _, _, design_elems = centered_elements(f, args.h5_region,centered=False)
+      
+      # take centered values and interpolate to edges  
+      _, design_elems_min, design_elems_max, _, _, _, design_elems = centered_elements(f, args.h5_region,centered=True)
             
     if args.h5_nondes_void != "None":
       if (MPI.COMM_WORLD.Get_rank()==0): 

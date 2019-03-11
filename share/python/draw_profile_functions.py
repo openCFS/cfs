@@ -105,6 +105,7 @@ class Cubic_spline():
       t = sol[1]
     else:
       print("No t found where dx/dy = 1 ",sol)
+      return None
     # conversion from t as sympy.Float to regular Python float necessary  
     self.t_1 = float(t)
     return self.t_1
@@ -138,6 +139,8 @@ class Cubic_spline():
     
   def calc_coords_grad_1(self):
     t1 = self.calc_param_grad_1()
+    if t1 is None:
+      return None
     ret = self.eval_t(t1) # array of array with 1 elem, due to outer product
     return np.array((ret[0][0],ret[1][0]))
   
@@ -301,6 +304,11 @@ class PrincipleSpline():
     self.spline = Cubic_spline(P)
     # coordinate where slope is 1
     self.coords_cut = self.calc_coords_grad_1()
+    
+    if self.coords_cut is None:
+      print("ERROR: Cannot create spline x1=",x1," y1=",y1)
+      sys.exit()
+      
     if not self.left:
       self.coords_cut = [1.0 - self.coords_cut[0],self.coords_cut[1]] 
     
@@ -896,11 +904,11 @@ def generate_basecell(args,info):
         plot_3dlines(profiles[i], res, args.res_surf_lines, i, ha)
   
   if args.target == "volume_mesh":
-    h = 1.0/res
-    x = np.arange(0,1+h,h)
-    
-    from pyevtk.hl import gridToVTK
-    gridToVTK("array",x,x,x,cellData={"array":array})
+#     h = 1.0/res
+#     x = np.arange(0,1+h,h)
+#     from pyevtk.hl import gridToVTK
+#     gridToVTK("array",x,x,x,cellData={"array":array})
+
     points, cells = voxels_to_points_and_cells(array,multRegions=args.multiple_regions)
       
   if args.target == "surface_mesh" or args.target == "marching_cubes":
@@ -940,7 +948,7 @@ def generate_basecell(args,info):
       
   if args.target == '3dlines' and not args.save_vtp:
     plt.show()
-  
+    
   return array, points, cells
 
 # creates map with info on profile depending on radius

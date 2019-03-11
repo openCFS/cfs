@@ -491,6 +491,12 @@ class Basecell_Data():
     
     if not res_surf_lines:
       self.res_surf_lines = res
+  
+  def dump(self):
+    print("\nbase cell data")
+    print("x1,x2,y1,y2,z1,z2:",self.x1,self.x2,self.y1,self.y2,self.z1,self.z2)
+    print("bend:",self.bend)  
+    print("type:",self.target)
     
 class Basecell():
   # data is an object of type Basecell_Data()

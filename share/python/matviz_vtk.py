@@ -1171,39 +1171,70 @@ def get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
   
   return ip_data, ip_near, out, (nx, ny, nz), (scale_x, scale_y, scale_z)  
 
-# @param (xmin,ymin,zmin,xmax,ymax,zmax)
-def get_interpolation_row_major(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz):
+# this is copy & paste from matviz_2d but extended to 3D
+# @param nx_ip number of interpolations within x
+# assume we get element data at barycenters (coords)
+def get_3d_interpolation_at_faces(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz):
   # we make our own regular element grid
-  centers, mi, ma = coords[0:3]  # skip elem
+  centers, _, _ = coords[0:3]  # skip elem
+  
+  mi = bounds[0:3]
+  ma = bounds[3:6]
  
-  if ny == 0 or nz == 0 or nx == 0:
-    print('chose a higher hom_samples such that also the smallest side gets discretized')
-    exit()
-    
-#   print("dx,dy,dz:",dx,dy,dz)    
-#   print("nx,ny,nz:",nx,ny,nz)  
-  out = numpy.zeros(((nx + 1), (ny + 1), (nz + 1), 3))
-  
-  for x in range(nx + 1):
-    for y in range(ny + 1):
-      for z in range(nz + 1):
-        out[x,y,z] = [bounds[0]+x*dx,bounds[1]+y*dy,bounds[2]+z*dz]
 
-  assert(s1 is not None and s2 is not None and s3 is not None)      
-  v = numpy.zeros((len(s1),3))
-  v[:, 0] = s1[:, 0]
-  v[:, 1] = s2[:, 0]
-  v[:, 2] = s3[:, 0]
+  # the coordinate system in Paraview is a right-hand sided coodrdinate system with z pointing to the viewer 
+  #
+  #  y ^ 
+  #    |
+  # z (.)--> x
+  # 
+  # This are the node numbers if we have only one element. The .mesh file will be transformed to 1-based              
+  # x is the fastet variable, z is the slowest variable
+  #
+  #        -----------          
+  #      /|          /|      # left face   (x=0):  id = 0
+  #     / |    3    / |      # right face  (x=1):  id = 1
+  #     -----------   |      # bottom face (y=0):  id = 2
+  #    |  |        |  |      # top face    (y=1):  id = 3
+  #    |0 |    4   | 1|      # back face   (z=0):  id = 4
+  #    |   --------|--       # front face  (z=1):  id = 5
+  #    | /         | /
+  #    |/     2    |/  
+  #     -----------  front face(z=1) has id 5
   
-#   test = [(0.8,0.95,0.025),(0.8,0.05,0.025)]
-#   test_data = ip.griddata(centers, v, test, grad, -1.0)
-#   print(test_data)
-#   sys.exit()
+  # loop over elements, for each element we store 3 faces (left,bottom,back) and
+  # each face is described by its barycenter
+  out = []
+  for x in range(nx+1):
+    for y in range(ny+1):
+      for z in range(nz+1):
+        # center of left face
+        out.append((mi[0] + x*dx, mi[1] + y * dy + 0.5*dy, mi[2] + z*dz + 0.5*dz))
+        # center of bottom face
+        out.append((mi[0]+x*dx + 0.5*dx, mi[1] + y*dy, mi[2] + z * dz + 0.5*dz))
+        # center of back face
+        out.append((mi[0] + x*dx + 0.5*dx, mi[1] + y * dy + 0.5*dy, mi[2] + z*dz))
+  
+  if s2 is None and s3 is None:
+      v = numpy.zeros((len(s1), 1))
+      v[:, 0] = s1[:, 0]
+  else:
+    v = numpy.zeros((len(s1), 3))
+    v[:, 0] = s1[:, 0]
+    v[:, 1] = s2[:, 0]
+    v[:, 2] = s3[:, 0]
   
   ip_data = ip.griddata(centers, v, out, grad, -1.0)
+
   # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
   ip_near = ip.griddata(centers, v, out, 'nearest') if grad != 'nearest' else None
+  
+  # for each element, store center coordinates of its three faces
+  ip_data = numpy.reshape(ip_data, ((nx+1),(ny+1),(nz+1),3,3))
+  ip_near = numpy.reshape(ip_near, ((nx+1),(ny+1),(nz+1),3,3))
+  out = numpy.reshape(out,((nx+1),(ny+1),(nz+1),3,3))
+  
   
   return ip_data, ip_near, out  
 

@@ -229,36 +229,6 @@ def get_interpolation_unstructured(coords, grad, s1, s2, s3, lx, ly, lz, ux, uy,
   print('interpolation end')
   
   return ip_data, ip_near, out, (ux - lx, uy - ly, uz - lz)                             
-def get_interpolation_unstructured_2(coords, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz, angle=None):
-  # we make our own elem
-  centers, mi, ma = coords[0:3]  # skip elem 
-  if ny == 0 or nz == 0 or nx == 0:
-    print('chose a higher hom_samples such that also the smallest side gets discretized')
-    exit()
-
-  out = numpy.zeros(((nx) * (ny) * (nz), 3))
-  idx = 0
-  for z in range(nz):
-    for y in range(ny):
-      for x in range(nx):
-        out[idx] = ((mi[0] + 0.5 * dx + float(x) * dx, mi[1] + 0.5 * dy + float(y) * dy, mi[2] + 0.5 * dz + float(z) * dz))
-        idx += 1
-
-  v = numpy.zeros((len(s1), 3 if angle == None else 6))
-  v[:, 0] = s1[:, 0]
-  v[:, 1] = s2[:, 0]
-  v[:, 2] = s3[:, 0]
-  if angle != None:
-    v[:, 3:6] = angle[:, :]
-  print('interpolation start')
-  ip_data = ip.griddata(centers, v, out, grad, -500.)
-  # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
-  # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
-  ip_near = ip.griddata(centers, v, out, 'nearest') if grad != 'nearest' else None
-  
-  print('interpolation end')
-  
-  return ip_data, ip_near, out, (nx, ny, nz)
 
 
 # # for the robot arm we have check for the two nondesign holes as they are within the

@@ -75,7 +75,14 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
 #   print("dx_des,dy_des,dz_des:",dx_des,dy_des,dz_des)
 #   print("nx,ny,nz:",nx,ny,nz) 
   
-  data_grid, data_grid_near, sample_coords= matviz_vtk.get_interpolation_row_major(coords, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
+  data_grid, data_grid_near, sample_coords= matviz_vtk.get_3d_interpolation_at_faces(coords, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
+  
+#   for i in range(0,samples[0]):
+#     for j in range(0,samples[1]):
+#       for k in range(0,samples[2]):
+#         for f in range(3):
+#           print("i,j,k:",i,j,k," face:",sample_coords[i,j,k,f], " interpolated value:", data_grid[i,j,k,f])  
+#   sys.exit()
   
   my_mpi_grid = MPI_Grid(comm)
   
@@ -120,19 +127,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
   my_mpi_grid.init_data_grid(samples, args.bc_res, bounds)
   my_mpi_grid.to_info()
   
-  local_id = 0
+  local_id = -1
   for k in range(samples[2]):
     for j in range(samples[1]):
       for i in range(my_mpi_grid.start_x,my_mpi_grid.end_x):
-        this = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k))
-        east = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k))
-        top = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k))
-        front = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1))
-        
+        local_id += 1
         # local array indices
         li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
-             
-        assert(this is not None and east is not None and top is not None and front is not None)
              
         # if one of the values is < min_thresh, set it to min_thresh        
         # if one of the values is > max_thresh, set it to max_thresh
@@ -143,22 +144,35 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
 #         z1 = min(max(this[2],min_thresh),max_thresh)
 #         z2 = min(max(front[2],min_thresh),max_thresh)
 
+        # for each element, we only stored value at left, bottom and back faces
+        x1 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k,0))[0]
+        x2 = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k,0))[0]
+        y1 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k,1))[1]
+        y2 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k,1))[1]
+        z1 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k,2))[2]
+        z2 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1,2))[2]
+        
+        all_values = [x1,x2,y1,y2,z1,z2]
+
         # handle void and solid cells
         if thresh is not None:
-          if any(t < thresh[0] for t in [this[0],this[1],this[2],east[0],top[1],front[2]]):
-            print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk)
-            continue # skip void cell
-          elif any(t > thresh[1] for t in [this[0],this[1],this[2],east[0],top[1],front[2]]):
+          if any(t > thresh[1] for t in all_values):
             print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk)
             my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = 1
+            local_id += 1
             continue
+          elif any(t < thresh[0] for t in all_values):
+            print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk)
+            local_id += 1
+            continue # skip void cell
           
-        x1 = max(this[0],min_thresh) 
-        x2 = max(east[0],min_thresh) 
-        y1 = max(this[1],min_thresh) 
-        y2 = max(top[1],min_thresh)  
-        z1 = max(this[2],min_thresh) 
-        z2 = max(front[2],min_thresh)
+#         print("\nx1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+#         print("x1:",sample_coords[i,j,k,0])
+#         print("x2:",sample_coords[i+1,j,k,0])
+#         print("y1:",sample_coords[i,j,k,1])
+#         print("y2:",sample_coords[i,j+1,k,1])
+#         print("z1:",sample_coords[i,j,k,2])
+#         print("z2:",sample_coords[i,j,k+1,2])
         
         # bounds (voxel coords) of local base cell
         # xmin,ymin,zmin
@@ -177,12 +191,12 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
         right_lower_front = (right,lower,front)
         right_upper_front = (right,upper,front)
         
-        # if base cell corners outside design domain, don't compute
-#         if out_of_bounds(left_lower_back, design_bounds) and out_of_bounds(left_upper_back, design_bounds)\
-#           and out_of_bounds(left_lower_front, design_bounds) and out_of_bounds(left_upper_front, design_bounds)\
-#           and out_of_bounds(right_lower_back, design_bounds) and out_of_bounds(right_upper_back, design_bounds)\
-#           and out_of_bounds(right_lower_front, design_bounds) and out_of_bounds(right_upper_front, design_bounds):
-#             continue
+        #if base cell corners outside design domain, don't compute
+        if out_of_bounds(left_lower_back, design_bounds) and out_of_bounds(left_upper_back, design_bounds)\
+          and out_of_bounds(left_lower_front, design_bounds) and out_of_bounds(left_upper_front, design_bounds)\
+          and out_of_bounds(right_lower_back, design_bounds) and out_of_bounds(right_upper_back, design_bounds)\
+          and out_of_bounds(right_lower_front, design_bounds) and out_of_bounds(right_upper_front, design_bounds):
+            continue
         
         flags = None
         bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
@@ -193,8 +207,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
         print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
         my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
            
-        local_id += 1
-    
   eps = 1e-6
 
   if nondes:
@@ -432,7 +444,7 @@ def get_interp_3darray_elem(array,fallback,idx):
   assert(type(array) == np.ndarray)
   assert(type(fallback) == np.ndarray)
 #   assert(array.ndim == 3)
-  nx, ny, nz, _ = array.shape
+  nx, ny, nz, _, _ = array.shape
   
   if idx[0] >= nx or idx[0] < 0  or idx[1] >= ny or idx[1] < 0  or idx[2] >= nz  or idx[2] < 0 :
     return None
