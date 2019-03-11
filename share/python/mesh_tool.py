@@ -1130,7 +1130,6 @@ def create_3d_matlab_mesh(type, x_res, y_res = None, z_res = None, width_res = N
         ll = nnx*nny*z + nny*x + (nny - y - 1)  #   left-lower-back of current element 
         # Local nodes definifing element: see paper Liu and Tovar: An efficient 3d Topology optimization code written in Matlab
         e.nodes = (( ll, ll+nny, ll+nny-1, ll-1, ll+(nnx*nny), ll+nny+(nnx*nny), ll+nny-1+(nnx*nny), ll-1+(nnx*nny)))  
-        print e.nodes 
         mesh.elements.append(e)      
           
   assert(mesh != None)
