@@ -101,16 +101,17 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
     # append nodes to result instead of element centers
     for i in range(len(nodes[:,0])):
       result.append([nodes[i,0],nodes[i,1],nodes[i,2]])
-    # extract elements - each element is defined by its vertices
-    for e in range(len(reg_elements)):
-      elem = []
-      idx = reg_elements[e] - 1
-      nod = all_elements[idx]
-      len_nod = num_nodes_by_type(types[idx])
-      for n in range(len_nod):
-        elem.append(all_nodes[nod[n] - 1])
-        
-      elements.append(elem)  
+  
+  # extract elements - each element is defined by its vertices
+  for e in range(len(reg_elements)):
+    elem = []
+    idx = reg_elements[e] - 1
+    nod = all_elements[idx]
+    len_nod = num_nodes_by_type(types[idx])
+    for n in range(len_nod):
+      elem.append(all_nodes[nod[n] - 1])
+      
+    elements.append(elem)  
         
   return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support, elements 
                 

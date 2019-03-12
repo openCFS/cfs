@@ -135,15 +135,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
         # local array indices
         li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
              
-        # if one of the values is < min_thresh, set it to min_thresh        
-        # if one of the values is > max_thresh, set it to max_thresh
-#         x1 = min(max(this[0],min_thresh),max_thresh)
-#         x2 = min(max(east[0],min_thresh),max_thresh)
-#         y1 = min(max(this[1],min_thresh),max_thresh)
-#         y2 = min(max(top[1],min_thresh),max_thresh)
-#         z1 = min(max(this[2],min_thresh),max_thresh)
-#         z2 = min(max(front[2],min_thresh),max_thresh)
-
         # for each element, we only stored value at left, bottom and back faces
         x1 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k,0))[0]
         x2 = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k,0))[0]
@@ -157,13 +148,12 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
         # handle void and solid cells
         if thresh is not None:
           if any(t > thresh[1] for t in all_values):
-            print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk)
+            print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+            print(li*args.bc_res,":",(li+1)*args.bc_res," ",lj*args.bc_res,":",(lj+1)*args.bc_res," ",lk*args.bc_res,":",(lk+1)*args.bc_res)
             my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = 1
-            local_id += 1
             continue
           elif any(t < thresh[0] for t in all_values):
-            print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk)
-            local_id += 1
+            print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
             continue # skip void cell
           
 #         print("\nx1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
@@ -192,11 +182,11 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
         right_upper_front = (right,upper,front)
         
         #if base cell corners outside design domain, don't compute
-        if out_of_bounds(left_lower_back, design_bounds) and out_of_bounds(left_upper_back, design_bounds)\
-          and out_of_bounds(left_lower_front, design_bounds) and out_of_bounds(left_upper_front, design_bounds)\
-          and out_of_bounds(right_lower_back, design_bounds) and out_of_bounds(right_upper_back, design_bounds)\
-          and out_of_bounds(right_lower_front, design_bounds) and out_of_bounds(right_upper_front, design_bounds):
-            continue
+#         if out_of_bounds(left_lower_back, design_bounds) and out_of_bounds(left_upper_back, design_bounds)\
+#           and out_of_bounds(left_lower_front, design_bounds) and out_of_bounds(left_upper_front, design_bounds)\
+#           and out_of_bounds(right_lower_back, design_bounds) and out_of_bounds(right_upper_back, design_bounds)\
+#           and out_of_bounds(right_lower_front, design_bounds) and out_of_bounds(right_upper_front, design_bounds):
+#             continue
         
         flags = None
         bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
@@ -206,7 +196,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
         # local i,j,k
         print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
         my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
-           
+        
   eps = 1e-6
 
   if nondes:
@@ -228,34 +218,19 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
     nondes_coords = None
     holes = None
     
-#   import mesh_tool
-#   
-#   newData = comm.gather(my_mpi_grid.grid.data,root=0)
-#   
-#   if my_mpi_grid.rank == 0:
-#     len_nd = [0]
-#     for nd in newData:
-#       len_nd.append(nd.shape[0])
-#     
-#     len_nd = np.cumsum(len_nd)
-#     array = np.empty((samples[0]*args.bc_res,samples[1]*args.bc_res,samples[2]*args.bc_res),dtype=bool)
-#     for i,nd in enumerate(newData):
-#       array[len_nd[i]:len_nd[i+1],:,:] = nd
-#       
-#     mesh = mesh_tool.Mesh(samples[0]*args.bc_res,samples[1]*args.bc_res,samples[2]*args.bc_res)
-#     mesh_tool.create_dense_mesh_density(array,mesh,0.5,1.0,1e-9)
-#     mesh.bc = []
-# #     mesh_tool.write_gid_mesh(mesh, "dense.mesh")
-#     mesh = mesh_tool.convert_to_sparse_mesh(mesh)
-#     mesh = mesh_tool.add_bc_for_ppbox(mesh, bounds)
-#     mesh_tool.write_gid_mesh(sparse, "sparse.mesh")
-  
   borders = my_mpi_grid.communicate_edges()
       
   # binary helper array
   shape = np.asarray(my_mpi_grid.grid.data.shape[0:3]) + np.array((2,2,2))
   helper = np.zeros(shape,dtype=bool)
   helper[1:shape[0]-1,1:shape[1]-1,1:shape[2]-1] = my_mpi_grid.grid.data
+  
+#   x = np.arange(bounds[0],bounds[3]+hx,hx)
+#   y = np.arange(bounds[1],bounds[4]+hy,hy)
+#   z = np.arange(bounds[2],bounds[5]+hz,hz)
+#   
+#   from pyevtk.hl import gridToVTK
+#   gridToVTK("image",x,y,z,cellData={"data":my_mpi_grid.grid.data})
   
   # hope for python's garbage collector to delete voxel array
   my_mpi_grid.grid.data = None
