@@ -139,17 +139,17 @@ namespace CoupledField{
 //      std::cout << "zweites: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
       if (bMatInitial.GetNumRows() == 2)
       {
-        double vel = buffer[2];
+        double vel = buffer[2]; // because the result from crossproduct in 2D will be always in the third line
         bMat[0][i] = vel;
       }
       else
       {
-        for(unsigned int u=0; u < filler.GetSize(); ++u)
+        for(unsigned int u=0; u < buffer.GetSize(); ++u)
         {
-          bMat[u][i] = filler[u];
+          bMat[u][i] = buffer[u];
         }
       }
-//      std::cout << "drittes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
+      //std::cout << "drittes: myVec= " << myVec.ToString() << " filler= " << filler.ToString() << " buffer= " << buffer.ToString() << " bMatInitial= " << bMatInitial.ToString() << " bMat= " << bMat.ToString() << std::endl;
     }
 
   }
