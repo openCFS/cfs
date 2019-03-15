@@ -22,7 +22,7 @@ stages:
   only:
     refs:
       - master # for the master branch
-      - /^test-.*$/ # for branches/tags called "test-*"
+      - /^test.*$/ # for branches/tags called "test*"
       - web # For pipelines created using 'Run pipeline' button in GitLab UI under project/Pipelines
       - schedules # For scheduled pipelines
 
