@@ -3025,6 +3025,16 @@ namespace CoupledField {
     ms->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ms);
     
+    // === MECH_ELEM_VOL for free and parameterized material optimization
+    shared_ptr<ResultInfo> mev(new ResultInfo);
+    mev->resultType = MECH_ELEM_VOL;
+    mev->dofNames = "elemVol";
+    mev->unit = "";
+    mev->entryType = ResultInfo::SCALAR;
+    mev->definedOn = ResultInfo::ELEMENT;
+    mev->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mev);
+
     // the OPT_RESULT_* are added via the optimization stuff in DesignSpace.
   }
   

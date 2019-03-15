@@ -539,6 +539,7 @@ namespace CoupledField {
         return "m/s";
         break;
 
+      case MECH_ELEM_VOL:
       case MECH_PSEUDO_DENSITY:
       case PHYSICAL_PSEUDO_DENSITY:
       case ELEC_PHYSICAL_PSEUDO_DENSITY:
@@ -1333,6 +1334,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_TENSOR_TRACE, "mechTensorTrace");
     SolutionTypeEnum.Add(MECH_TENSOR, "mechTensor");
     SolutionTypeEnum.Add(MECH_TENSOR_HILL_MANDEL, "mechTensorHillMandel");
+    SolutionTypeEnum.Add(MECH_ELEM_VOL, "mechElemVol");
+
 
     //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");

@@ -560,6 +560,8 @@
       <xsd:enumeration value="mechTensor"/>
       <!-- the local tensor in Hill Mandel notation -->
       <xsd:enumeration value="mechTensorHillMandel"/>
+      <!-- the local tensor in Hill Mandel notation -->
+      <xsd:enumeration value="mechElemVol"/>
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
       <xsd:enumeration value="optResult_3"/>                  

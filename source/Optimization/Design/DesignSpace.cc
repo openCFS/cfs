@@ -1829,8 +1829,6 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   unsigned int dofs = result.GetResultInfo()->dofNames.GetSize();
   assert(dofs >= 1 && dofs <= 3);
   StdVector<double> result_value(dofs);
-  // search where in data we are
-  int base = FindDesign(descr.design);
   // loop over elements from result. We have to do it this way as the the connection
   // of design element and result element is the element(->elemeNum) but we cannot
   // search in the result for an element.
@@ -1841,7 +1839,8 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   SolutionType st = result.GetResultInfo()->resultType;
   double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
       || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
-
+  // search where in data we are
+  int base = (st == MECH_ELEM_VOL) ? 0:FindDesign(descr.design);
   Excitation* ex = domain->GetOptimization() != NULL ? Optimization::context->GetExcitation() : NULL;
 
   for (it.Begin(); !it.IsEnd(); it++)
@@ -1862,6 +1861,8 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       {
         DesignElement* trans = ApplyTransformations(org, org, NULL);
         trans->GetValue(descr, result_value, dofs);
+      } else if (st == MECH_ELEM_VOL) {
+        result_value = org->CalcVolume();
       }
       else
         org->GetValue(descr, result_value, dofs);
