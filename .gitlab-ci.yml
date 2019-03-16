@@ -54,7 +54,7 @@ testsuite-revision:
   tags:
     - git
   variables:
-    # we cone to make sure we have everyting (including current names of the SHAs)
+    # we clone to make sure we have everyting (including current names of the SHAs)
     GIT_STRATEGY: clone
   before_script:
     - git --no-pager log -1 --pretty=tformat:'%h %D'
@@ -66,11 +66,27 @@ testsuite-revision:
     # check if we are on a branch called like the branch from CFS (or still on master)
     - git --no-pager log -1 --pretty=tformat:'%h %D' | egrep -w "(${CI_COMMIT_REF_NAME})|(master)"
   after_script:
-    - echo $?
     - pwd # debug
-    - sleep 120
   cache: {} # disable
   <<: *default_pipeline_rules
+
+# this job is intended as a warning if the piepline has changed
+# it is created only if there are changes, and will always fail (but is allowed to)
+pipeline-changes:
+  extends: .default_pipeline_rules
+  stage: check
+  tags:
+    - git
+  before_script:
+    - git diff HEAD~1 -- .gitlab-ci.yml
+  script:
+    - /the/pipeline/has/changed
+  after_script: []
+  allow_failure: true
+  cache: {} # disable
+  only:
+    changes:
+      - .gitlab-ci.yml    
 
 #################################################
 # BUILD STAGE
