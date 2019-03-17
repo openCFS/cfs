@@ -224,7 +224,7 @@ namespace CoupledField {
         "write skeleton of XML file for subsequent simulation" )
 
       ( "logConfFile,l", po::value<string>(),
-        "name of configuration file for logging streams" )
+        "name of configuration file for logging streams, only works for DEBUG builds" )
 
       ( "forceSegFault,f",
         "force a segmentation fault at exceptions")
@@ -411,6 +411,9 @@ namespace CoupledField {
   {
     if( varMap_.count("logConfFile") > 0 ) {
       fs::path filePath( varMap_["logConfFile"].as<string>() );
+#ifdef NDEBUG
+      WARN("logging only works for DEBUG builds");
+#endif
       return fs::system_complete( filePath);
     } else {
       return fs::path();
