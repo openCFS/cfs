@@ -112,12 +112,12 @@ private:
 
   /** helper for CalcCouplingAdjComplexRHS():
    *   // out = factor_N1 * N1 * Re(AB) + factor_N2 * N2 * Imag(AB) */
-  void HadamardHelper(Vector<Complex>& out, Complex factor_N1, const Vector<double>& N1,  Complex factor_N2, const Vector<double>& N2, const Vector<Complex>& AB);
+  void HadamardHelper(Vector<Complex>& out, Complex factor_N1, const Vector<double>& N1,  Complex factor_N2, const Vector<Complex>& A);
 
   void HadamardHelper2(Vector<Complex>& out, Complex factor_N1, const Vector<double>& N1,  Complex factor_N2, const Vector<double>& N2, const Vector<Complex>& AB);
 
   /** res = <N, real(A).^2> or <N, imag(A).^2> */
-  double InnerHelper(const Vector<double>& N, const Vector<Complex>& A, Global::ComplexPart cp);
+  double InnerHelper(const Vector<double>& N, const Vector<Complex>& A);
 
 
   /** Calculate the coupling gradient */
