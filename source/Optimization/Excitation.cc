@@ -794,6 +794,19 @@ unsigned int MultipleExcitation::GetNumberMeta(const Context* ctxt, bool minimum
   return GetNumberTransform(minimum_one) * GetNumberRobust(ctxt, minimum_one); // GNR accepts NULL for ctxt
 }
 
+unsigned int MultipleExcitation::GetUniqueFrequencies() const
+{
+  StdVector<double> freq;
+  for(unsigned int i = 0; i < excitations.GetSize(); i++)
+  {
+    const Excitation& ex = excitations[i];
+    if(ex.frequency >= 0 && !freq.Contains(ex.frequency))
+      freq.Push_back(ex.frequency);
+  }
+
+  return freq.GetSize();
+}
+
 
 bool MultipleExcitation::DoMetaExcitation(const Context* ctxt) const
 {

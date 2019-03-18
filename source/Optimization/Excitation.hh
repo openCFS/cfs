@@ -196,6 +196,9 @@ public:
   /** @param ctxt if NULL search for max (is either none or the same number */
   unsigned int GetNumberRobust(const Context* ctxt, bool mininum_one = false) const;
 
+  /** count the number of unique frequencies for the context. Static is 0 */
+  unsigned int GetUniqueFrequencies() const;
+
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
   Excitation* GetExcitation(const std::string& label, bool quiet = false);

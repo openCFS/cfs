@@ -291,7 +291,7 @@ void ErsatzMaterial::PostInit()
       StdVector<shared_ptr<EntityList> > ent;
       StdVector<PtrCoefFct > coef;
       bool geo = false;
-      assert(!context->DoMultiSequence()); // the pdes are not know yet!
+      assert(!context->DoMultiSequence()); // the pdes are not known yet!
       SinglePDE* pde = context->pde;
 
       if(output->Has("displacement"))
@@ -3377,18 +3377,19 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       stringstream ss;
       ss << "SPDES: prob=" << comment << " excite=" << excite.index << " pde: " << it->first << " timestep_mode=" << timestep_mode;
 
+      LOG_DBG(em) << ss.str() << " read_sol=" << read_sol << " read_rhs=" << read_rhs;
       if(read_sol)
       {
         sol.Read(StateSolution::ELEMENT_VECTORS, it->second, it->first, save_sol, derivative);
         raw = sol.Read(StateSolution::RAW_VECTOR, it->second, it->first, save_sol, derivative);
 
-        LOG_DBG2(em) << ss.str() << " sol: " << raw->ToString();
+        LOG_DBG3(em) << ss.str() << " sol: " << raw->ToString();
       }
 
       if(read_rhs)
       {
         sol.Read(StateSolution::RHS_VECTOR, it->second, it->first, save_sol, derivative);
-        LOG_DBG2(em) << ss.str() << " rhs: " << sol.GetVector(StateSolution::RHS_VECTOR)->ToString();
+        LOG_DBG3(em) << ss.str() << " rhs: " << sol.GetVector(StateSolution::RHS_VECTOR)->ToString();
       }
 
       if(context->IsEigenvalue())

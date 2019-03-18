@@ -1657,8 +1657,8 @@ namespace CoupledField {
 
     SBM_Vector solOld(cplx ? BaseMatrix::COMPLEX : BaseMatrix::DOUBLE);
     solOld = actSol;
-    const UInt nrEtas = 5;
-    const Double eta[nrEtas] = {0.05, 0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
+    const UInt nrEtas = 6;
+    const Double eta[nrEtas] = {0.01, 0.05, 0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
     
     // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;

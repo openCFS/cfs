@@ -101,7 +101,7 @@ private:
   void CalcN(LinearFormContext* form, Vector<double>& N);
 
   /** calc coupling as M^4/(L1*L2)^2 */
-  double CalcMagCoupling(Excitation& excite, Function* f);
+  double CalcMagCouplingReal(Excitation& excite, Function* f);
 
   /** calc coupling as TODO */
   double CalcMagCouplingComplex(Excitation& excite, Function* f);

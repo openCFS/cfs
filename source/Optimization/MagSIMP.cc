@@ -197,7 +197,7 @@ double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       if(f->ctxt->IsComplex())
         return CalcMagCouplingComplex(excite, f);
       else
-        return CalcMagCoupling(excite, f);
+        return CalcMagCouplingReal(excite, f);
     }
     else
     {
@@ -407,7 +407,7 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
     assert(method != IntScheme::UNDEFINED);
     assert(!intPoints.IsEmpty());
 
-    LOG_DBG3(ms) << "e=" << iter.GetElem()->elemNum << " w=" << weights.ToString()  << " o=" << order.ToString() << " m=" << method << " ns=" << bfe->GetNumFncs() << " fe=" << bfe->FeType() << " eqn=" << eqn.ToString();
+    LOG_DBG3(ms) << "CN: e=" << iter.GetElem()->elemNum << " w=" << weights.ToString()  << " o=" << order.ToString() << " m=" << method << " ns=" << bfe->GetNumFncs() << " fe=" << bfe->FeType() << " eqn=" << eqn.ToString();
 
     for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
     {
@@ -438,7 +438,7 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
   } // end elem
 }
 
-double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
+double MagSIMP::CalcMagCouplingReal(Excitation& excite, Function* f)
 {
   if(GetMultipleExcitation()->excitations.GetSize() != 2)
     throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
@@ -703,8 +703,8 @@ void MagSIMP::CalcCouplingAdjRealRHS(Excitation& excite, Function* f, Vector<dou
   LinearFormContext* form_B = forms_B[0];
 
   // get the two As
-  const Vector<double> A_a = forward.Get(excite_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-  const Vector<double> A_b = forward.Get(excite_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  const Vector<double>& A_a = forward.Get(excite_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+  const Vector<double>& A_b = forward.Get(excite_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
   assert(A_a.GetSize() > 0);
   assert(A_b.GetSize() > 0);
 
@@ -765,20 +765,24 @@ void MagSIMP::CalcCouplingAdjComplexRHS(Excitation& excite, Function* f, Vector<
   assert(f->ctxt->IsComplex());
   Excitation& excite_A = GetMultipleExcitation()->excitations[0];
   LOG_DBG2(ms) << "CCAR: excA label: " << excite_A.label <<" frequency "<<excite_A.frequency << " index " << excite_A.index;
-  Excitation& excite_B = GetMultipleExcitation()->excitations[0];
+  Excitation& excite_B = GetMultipleExcitation()->excitations[1];
   // Coupling can only be calculated for exactly two coils
   //assert(excite_A.index == 0 && excite_B.index == 1);
   // we need both forms to get the different regions
   StdVector<LinearFormContext*>& forms_A = excite_A.forms;
   LOG_DBG2(ms) << "CCAR: num forms in A: " << forms_A.GetSize();
   StdVector<LinearFormContext*>& forms_B = excite_B.forms;
+  LOG_DBG2(ms) << "CCAR: num forms in B: " << forms_B.GetSize();
   assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
   LinearFormContext* form_A = forms_A[0];
   LinearFormContext* form_B = forms_B[0];
 
   // get the two As
-  const Vector<Complex> A_a = forward.Get(excite_A,NULL)->GetComplexVector(StateSolution::RAW_VECTOR);
-  const Vector<Complex> A_b = forward.Get(excite_B,NULL)->GetComplexVector(StateSolution::RAW_VECTOR);
+  const Vector<Complex>& A_a = forward.Get(excite_A,NULL)->GetComplexVector(StateSolution::RAW_VECTOR);
+  const Vector<Complex>& A_b = forward.Get(excite_B,NULL)->GetComplexVector(StateSolution::RAW_VECTOR);
+
+  LOG_DBG3(ms) << "CCAR: size of A_a = " << A_a.GetSize();
+  LOG_DBG3(ms) << "CCAR: size of A_b = " << A_b.GetSize();
   assert(A_a.GetSize() > 0);
   assert(A_b.GetSize() > 0);
 
@@ -790,8 +794,8 @@ void MagSIMP::CalcCouplingAdjComplexRHS(Excitation& excite, Function* f, Vector<
 
   CalcN(form_A, N1);
   CalcN(form_B, N2);
-  //LOG_DBG3(ms) << "CMC: N1 = " << N1.ToString(2);
-  //LOG_DBG3(ms) << "CMC: N2 = " << N2.ToString(2);
+  LOG_DBG3(ms) << "CMC: N1 = " << N1.ToString(2);
+  LOG_DBG3(ms) << "CMC: N2 = " << N2.ToString(2);
 
   // N1_ABR = <N1, real(AB).^2>
   double N1_AAR = InnerHelper(N1, A_a, Global::REAL);
@@ -810,6 +814,14 @@ void MagSIMP::CalcCouplingAdjComplexRHS(Excitation& excite, Function* f, Vector<
   if (excite.index == 0) {
     //calc rhs first case
     const Complex factor = -pow(N1_ABR+N1_ABI, 2)/(pow(N1_AAR+N1_AAI, 2) * (N2_ABR+N2_ABI));
+    LOG_DBG2(ms) << "CCAR: N1_ABR " <<N1_ABR;
+    LOG_DBG2(ms) << "CCAR: N1_ABI " <<N1_ABI;
+    LOG_DBG2(ms) << "CCAR: N1_ABR+N1_ABI " <<N1_ABR+N1_ABI;
+    LOG_DBG2(ms) << "CCAR: N1_AAR " <<N1_AAR;
+    LOG_DBG2(ms) << "CCAR: N1_AAI " <<N1_AAI;
+    LOG_DBG2(ms) << "CCAR: N1_AAR+N1_AAI " <<N1_AAR+N1_AAI;
+    LOG_DBG2(ms) << "CCAR: pow(N1_ABR+N1_ABI, 2) " <<pow(N1_ABR+N1_ABI, 2);
+    LOG_DBG2(ms) << "CCAR: pow(N1_AAR+N1_AAI, 2) " <<pow(N1_AAR+N1_AAI, 2);
     LOG_DBG2(ms) << "CCAR: factor complex case excitation A =" << factor;
     // out = -factor * N1 *Re(A_a) + j*factor* N1 * Imag(A_a)
     HadamardHelper(out, -factor, N1, j*factor, N1, A_a);
@@ -833,6 +845,8 @@ double MagSIMP::InnerHelper(const Vector<double>& N, const Vector<Complex>& A, G
   // res = <N, real(A).^2> or <N, imag(A).^2>
   assert(cp == Global::REAL || cp == Global::IMAG);
   assert(N.GetSize() == A.GetSize());
+  LOG_DBG2(ms) << "IH: N norm:" << N.NormL2();
+  LOG_DBG2(ms) << "IH: A norm:" << A.NormL2();
 
   double sum = 0;
 

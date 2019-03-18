@@ -730,7 +730,12 @@ void Optimization::SolveProblem()
 
 bool Optimization::DoSolveAdjointWithState() const
 {
-  if(context->DoMultiSequence() || (context->IsComplex() && me->excitations.GetSize() > 1) || context->DoLBM())
+  // easy case
+  if(context->DoMultiSequence() || context->DoLBM())
+    return true;
+
+  // don't do it within forward when we can do it later
+  if(context->IsComplex() && me->excitations.GetSize() > 1 && me->GetUniqueFrequencies() > 1)
     return true;
   else
     return false;
