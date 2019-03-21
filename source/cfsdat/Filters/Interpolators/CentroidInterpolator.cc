@@ -77,7 +77,7 @@ bool CentroidInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
     Double curval = 0.0;
     for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
       downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
-      curval  = shFnc[aNode] * aStru.volume;
+      curval  = shFnc[aNode] * aStru.volume; //tODO this
       for(UInt aDof=0;aDof < eqns.GetSize(); aDof++){
         returnVec[eqns[aDof]] += curval * inVec[aStru.srcEqnSingle+aDof];
       }
@@ -166,8 +166,8 @@ void CentroidInterpolator::PrepareCalculation(){
     if(trgElements[aMatch]!= NULL){
       //obtain element volume
       QuantityStruct newStruct;
-      shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(trgElements[aMatch],true);
-      newStruct.volume = eShape->CalcVolume();
+      shared_ptr<ElemShapeMap> eShape = inGrid->GetElemShapeMap(inGrid->GetElem(allSrcElems[aMatch]),true);
+      newStruct.volume = eShape->CalcVolume(); //TODO volume new
       newStruct.localCoords = locPoints[aMatch].coord;
       newStruct.srcEqnSingle = allSrcElems[aMatch];
       newStruct.trgElemNum = trgElements[aMatch]->elemNum;
