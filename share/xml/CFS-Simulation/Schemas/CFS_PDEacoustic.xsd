@@ -118,7 +118,7 @@
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
-          
+
           <!-- Initial conditions (optional) -->
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -148,7 +148,7 @@
 
                 <!-- acoustic source density -->
                 <xsd:element name="acouSourceDensity"  type="DT_BcInhomScalar"/>
-                
+
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
                 <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
@@ -156,6 +156,7 @@
                 <xsd:element name="rhsMassTimeDeriv" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="rhsMassConvective" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="impedance" type="DT_AcouImpedance"/>
+                <xsd:element name="boundaryLayer" type="DT_AcouBoundaryLayer"/>
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
               </xsd:choice>
             </xsd:complexType>
@@ -493,6 +494,36 @@
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="impedanceId" type="xsd:token" use="optional" default="id"/>
+  </xsd:complexType>
+
+  <!-- Element type for specifying an acoustic boundary layer -->
+  <xsd:complexType name="DT_AcouBoundaryLayer">
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="volumeRegion" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>The volume next to the impedance surface. Needed to read the correct environment values from the material file which are needed for calculating the speed of sound.</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="cp" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Specific heat capacity as constant pressure</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="cv" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Specific heat capacity as constant volume</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="nu" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Kinematic viscosity</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="k" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Thermal conductivity</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
 
