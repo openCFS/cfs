@@ -315,8 +315,36 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
 
   void MagEdgeMixedAVPDE::DefineNcIntegrators() {
-    EXCEPTION("Nonconforming interfaces not implemented for MagEdgeMixedAVPDE!!\n"
-              "This will be a bit shitty");
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(), endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+      case NC_MORTAR:
+        EXCEPTION("MagEdgeMixedAVPDE: Mortar NC interfaces not tested!");
+        if (dim_ == 2)
+          DefineMortarCoupling<2,1>(ELEC_POTENTIAL, *ncIt);
+        else
+          DefineMortarCoupling<3,1>(ELEC_POTENTIAL, *ncIt);
+        break;
+      case NC_NITSCHE:
+      {
+        /*
+         * that's kind of a dirty hack because for Nitsche NC, we need to access the
+         * electric conductivity as MAG_CONDUCTIVITY. But this should only be done in
+         * the MagEdgeMixedAVPDE
+         */
+        shared_ptr<CoefFunctionMulti> identifier = NULL;
+        identifier.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, true));
+        if (dim_ == 2)
+          DefineNitscheCoupling<2,1>(ELEC_POTENTIAL, *ncIt, identifier );
+        else
+          DefineNitscheCoupling<3,1>(ELEC_POTENTIAL, *ncIt, identifier );
+        break;
+      }
+      default:
+        EXCEPTION("Unknown type of ncInterface");
+        break;
+      }
+    }
   }
 
 
