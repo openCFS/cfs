@@ -320,11 +320,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       switch (ncIt->type) {
       case NC_MORTAR:
         EXCEPTION("MagEdgeMixedAVPDE: Mortar NC interfaces not tested!");
-        if (dim_ == 2)
-          DefineMortarCoupling<2,1>(ELEC_POTENTIAL, *ncIt);
-        else
-          DefineMortarCoupling<3,1>(ELEC_POTENTIAL, *ncIt);
-        break;
       case NC_NITSCHE:
       {
         /*
@@ -335,9 +330,10 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         shared_ptr<CoefFunctionMulti> identifier = NULL;
         identifier.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, true));
         if (dim_ == 2)
-          DefineNitscheCoupling<2,1>(ELEC_POTENTIAL, *ncIt, identifier );
+          EXCEPTION("MagEdgeMixedAVPDE possible only in 3D!")
         else
-          DefineNitscheCoupling<3,1>(ELEC_POTENTIAL, *ncIt, identifier );
+          //DefineNitscheCoupling<3,1>(ELEC_POTENTIAL, *ncIt, identifier );
+          DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt );
         break;
       }
       default:
