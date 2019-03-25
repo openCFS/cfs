@@ -329,10 +329,11 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 samples = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
               if args.show == "hom_ortho_3d" or args.mesh:
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
+                reg_info = {"nodes":reg_nodes, "elements":elems_in_regions, "connectivity":connectivity}
                 if nondes:
-                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, design, scale, samples, args.hom_grad,nondes=nondes)
+                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, reg_info, coords, min_bb, max_bb, design, scale, samples, args.hom_grad,nondes=nondes)
                 else:
-                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, coords, min_bb, max_bb, design, scale, samples, args.hom_grad,nondes=None)
+                  viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, reg_info, coords, min_bb, max_bb, design, scale, samples, args.hom_grad,nondes=None)
                 me = None                
                 if args.save:
                   if args.save.endswith(".vtp"):
@@ -616,7 +617,7 @@ else:
     min_bb = [numpy.Inf, numpy.Inf, numpy.Inf]
     max_bb = [-numpy.Inf, -numpy.Inf, -numpy.Inf]
     for region in f['/Mesh/Regions']:
-      reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements = centered_elements(f, region)
+      reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements, connectivity, reg_nodes = centered_elements(f, region)
       elems_in_regions.append(reg_elements)
       centers = numpy.concatenate((centers, reg_centers))
       min_bb = numpy.min([min_bb,reg_min_bb],0);
@@ -625,7 +626,8 @@ else:
     centers = centers[1:,:]
   else:
     # similar to centers, but not centered
-    centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions = centered_elements(f, args.h5_region)
+    centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions, connectivity, reg_nodes = centered_elements(f, args.h5_region)
+    
     design_elems = None 
   if args.h5_nondes != "None":
     if (MPI.COMM_WORLD.Get_rank()==0):
@@ -641,7 +643,7 @@ else:
       nondes_min = 999999
       nondes_max = -999999 
       for nr in list(nondes_regs):
-        tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements = centered_elements(f, nr,centered=False)
+        tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements, _, _ = centered_elements(f, nr,centered=False)
         nondes_elements.extend(tmp_nondes_elements)
         nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
         nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
@@ -651,7 +653,7 @@ else:
             
     if args.h5_nondes_void != "None":
       if (MPI.COMM_WORLD.Get_rank()==0): 
-        nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements = centered_elements(f, args.h5_nondes_void,centered=False)
+        nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements, _, _ = centered_elements(f, args.h5_nondes_void,centered=False)
          
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
@@ -669,7 +671,7 @@ if not args.target_volume:
         nondes_void = (nondes_void_elements, nondes_void_min, nondes_void_max)
       design = (design_elems, design_elems_min, design_elems_max)
       
-    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes=(nondes_solid,nondes_void,design),min_bb=min_bb,max_bb=max_bb)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes=(nondes_solid,nondes_void,design),min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)
   else:
     perform(args, h5_read, dim_2D, tensor, centers, aux_code,min_bb=min_bb,max_bb=max_bb,elems_in_regions=elems_in_regions)
 else:

@@ -5,6 +5,7 @@ import time
 import vtk
 from os.path import splitext
 import vtk.util.numpy_support
+import naturalneighbor
 #from vtk.util.colors import *
 
 # # creates 3D data to vtkPolyData
@@ -1220,9 +1221,9 @@ def get_3d_interpolation_at_faces(coords, bounds, grad, s1, s2, s3, nx, ny, nz, 
       v[:, 0] = s1[:, 0]
   else:
     v = numpy.zeros((len(s1), 3))
-    v[:, 0] = s1[:, 0]
-    v[:, 1] = s2[:, 0]
-    v[:, 2] = s3[:, 0]
+    v[:, 0] = s1#[:]#, 0]
+    v[:, 1] = s2#[:]#, 0]
+    v[:, 2] = s3#[:]#, 0]
   
   ip_data = ip.griddata(centers, v, out, grad, -1.0)
 
@@ -1238,6 +1239,74 @@ def get_3d_interpolation_at_faces(coords, bounds, grad, s1, s2, s3, nx, ny, nz, 
   
   return ip_data, ip_near, out  
 
+# interpolate given data at cell barycenters to cell vertices
+# elems: elements of desgin domain described by its vertices
+# reg_info: info on design region such as node coords, elements and connectivity
+def interp_cell_to_point_data(center_coords, reg_info, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz):
+  # we make our own regular element grid
+  # coordinates of barycenters at which the values for s1, s2, s3 are given
+  centers = center_coords
+  mi = bounds[0:3]
+  ma = bounds[3:6]
+  
+  # coords of vertices defining elements
+  elems = reg_info['elements']
+  nodes = list(reg_info['nodes'])
+  # stores vertex ids of each element
+  connectivity = reg_info['connectivity']
+  
+#   print("nodes:",nodes)
+  
+  assert(len(elems) == len(connectivity))
+  assert(len(elems) == len(s1))
+  assert(len(elems) == len(s2))
+  assert(len(elems) == len(s3))
+  
+  # for each global node: calc weighted sum of design variables of adjacent elements
+  s1_nodes = numpy.zeros(len(nodes))
+  s2_nodes = numpy.zeros(len(nodes))
+  s3_nodes = numpy.zeros(len(nodes))
+  neighbors = numpy.zeros(len(nodes))
+  for ie,e in enumerate(connectivity): # each element
+    for v in e: # each element vertex
+#       print("e:",e)
+#       print("v:",v-1)
+#       print("centers[e]:",centers[ie])
+#       print("nodes[v-1]:",nodes[v-1])
+#       print("distance:",numpy.array(centers[ie]) - numpy.array(nodes[v-1]))
+      s1_nodes[v-1] += s1[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1])) # cfs is 1-based
+      s2_nodes[v-1] += s2[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1]))
+      s3_nodes[v-1] += s3[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1]))
+      neighbors[v-1] += 1
+  
+  # normalize    
+  for i,n in enumerate(neighbors):
+    s1_nodes[i] /= neighbors[i]
+    s2_nodes[i] /= neighbors[i]
+    s3_nodes[i] /= neighbors[i]    
+  
+  return nodes, s1_nodes, s2_nodes, s3_nodes
+  
+  
+  # loop over elements, for each element we store 3 faces (left,bottom,back) and
+  # each face is described by its barycenter
+  out = []
+  for x in range(nx+1):
+    for y in range(ny+1):
+      for z in range(nz+1):
+        # center of left face
+        out.append((mi[0] + x*dx, mi[1] + y * dy + 0.5*dy, mi[2] + z*dz + 0.5*dz))
+        # center of bottom face
+        out.append((mi[0]+x*dx + 0.5*dx, mi[1] + y*dy, mi[2] + z * dz + 0.5*dz))
+        # center of back face
+        out.append((mi[0] + x*dx + 0.5*dx, mi[1] + y * dy + 0.5*dy, mi[2] + z*dz))
+  
+  ip_data= naturalneighbor.griddata(centers, v, out)
+
+# # for a rectangular grid calculate the left, bottom and back face center coords of one element
+# # barycenters: 
+# def face_center_coords_cube(barycenters,bounds, nx,ny,nz,dx,dy,dz):
+    
 # # litte helper
 # @param save filename or none
 # @param list which might be empty

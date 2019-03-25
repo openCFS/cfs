@@ -990,7 +990,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         
   if type == "bulk3d" and inclusion == "top_panel":
     # width of support area 
-    sa = 0.05
+    sa = 0.1
     # number of elements on each side
     nsa_x = nx * sa
     nsa_z = nz * sa

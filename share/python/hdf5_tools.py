@@ -38,7 +38,7 @@ def num_nodes_by_type(type_id):
 # # give back elements with barycenters
 # works 2D and 3D
 # @return list barycenter tuple ordered by elements and min and max node coordinates and region element dimensions (first or all)
-def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, region_support=None,centered = True):
+def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, region_support=None,centered=True):
   all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
   reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements'].value
   types = hdf5_file['/Mesh/Elements/Types'].value
@@ -48,7 +48,7 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
     reg_force_nodes = hdf5_file['/Mesh/Groups/' + region_force + '/Nodes']
   if region_support != None:
     reg_support_nodes = hdf5_file['/Mesh/Groups/' + region_support + '/Nodes']
-  
+    
   # determine elem_dim from first region element dimensions or from all
   elem_dim = None
   if all_elem_dim:
@@ -82,7 +82,12 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
   min_dim = [min(nodes[:, 0]), min(nodes[:, 1]), min(nodes[:, 2])]  
   max_dim = [max(nodes[:, 0]), max(nodes[:, 1]), max(nodes[:, 2])] 
   
+  # element vertices described by node coords
   elements = []  
+  # element vertices described by node ids
+  elems_connectivity = []
+  # coords all vertices in given region
+  nodes_in_region = []
     
   result = []
   if centered:
@@ -112,8 +117,14 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
       elem.append(all_nodes[nod[n] - 1])
       
     elements.append(elem)  
-        
-  return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support, elements 
+    elems_connectivity.append(nod)
+    
+  reg_nodes_coords = []
+  
+  for rn in reg_nodes:
+    reg_nodes_coords.append(all_nodes[rn-1])
+    
+  return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support, elements, elems_connectivity, reg_nodes_coords
                 
 # # find minimal and maximal coordinate
 # @param coordinates as from centered_elements

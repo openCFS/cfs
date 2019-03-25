@@ -23,7 +23,7 @@ except:
   print("Warning: Could not load basecell and draw_profile_functions!")
   
 # similar to create_3d_cross_ip; # without rotation and shearing
-def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,samples,grad,nondes=None):
+def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,design,scale,samples,grad,nondes=None):
   # args: options for basecell, e.g. voxel resolution for local microstructure, interpolation type, beta, eta, ... 
   # coords, design, angles: element center coordinates and design values s1,s2,s3,angle per finite element
   # min_bb/max_bb: bounding box of design regions
@@ -41,7 +41,7 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
   comm = MPI.COMM_WORLD
   
   # point coordinates from h5 file
-  centers, _, _ = coords[0:3]
+  centers, _, _ = barycenters[0:3]
   
   if scale <= 0:
     scale = 1.0
@@ -67,7 +67,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
   if args.bc_thresh is not None:
     thresh = [float(t) for t in args.bc_thresh.split(',')]
     assert(len(thresh) == 2)
-    print("thresh:",thresh)
   
 #   print("samples:",samples)  
 #   print("h_des:",h_des)
@@ -75,8 +74,13 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
 #   print("dx_des,dy_des,dz_des:",dx_des,dy_des,dz_des)
 #   print("nx,ny,nz:",nx,ny,nz) 
   
-  data_grid, data_grid_near, sample_coords= matviz_vtk.get_3d_interpolation_at_faces(coords, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
+#   data_grid, data_grid_near, sample_coords= matviz_vtk.get_3d_interpolation_at_faces(barycenters, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
   
+  design_nodes, s1, s2, s3 = matviz_vtk.interp_cell_to_point_data(centers, reg_info, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
+  data_grid, data_grid_near, sample_coords= matviz_vtk.get_3d_interpolation_at_faces([design_nodes,0,0], design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
+#   print("s1:",len(s1),s1)
+#   print("s2:",s2)
+#   print("s3:",s3)
 #   for i in range(0,samples[0]):
 #     for j in range(0,samples[1]):
 #       for k in range(0,samples[2]):
@@ -203,9 +207,6 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
     hx = (my_mpi_grid.bounds[3]-my_mpi_grid.bounds[0])/my_mpi_grid.grid.nx
     hy = (my_mpi_grid.bounds[4]-my_mpi_grid.bounds[1])/my_mpi_grid.grid.ny
     hz = (my_mpi_grid.bounds[5]-my_mpi_grid.bounds[2])/my_mpi_grid.grid.nz
-    #x = np.arange(my_mpi_grid.bounds[0],my_mpi_grid.bounds[3]+hx-eps,hx)
-    #y = np.arange(my_mpi_grid.bounds[1],my_mpi_grid.bounds[4]+hy-eps,hy)
-    #z = np.arange(my_mpi_grid.bounds[2],my_mpi_grid.bounds[5]+hz-eps,hz)
     
     tmp = np.zeros_like(my_mpi_grid.grid.data,dtype=int)
     draw_non_design(design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
@@ -217,6 +218,12 @@ def create_3d_interpretation_ortho(args,coords,min_bb,max_bb,design,scale,sample
   
     nondes_coords = None
     holes = None
+  
+  vol = comm.gather(np.sum(my_mpi_grid.grid.data),root=0)
+  
+  if my_mpi_grid.rank == 0:
+    print("volume:",np.sum(vol) / (samples[0]*samples[1]*samples[2]*args.bc_res**3))
+  
     
   borders = my_mpi_grid.communicate_edges()
       
@@ -425,6 +432,7 @@ def get_interp_3darray_elem(array,fallback,idx):
     return None
   else:
     if array[idx][0] == -1 or array[idx][1] == -1 or array[idx][2] == -1:
+      print("fallback")
       return fallback[idx]
     else:
       return array[idx]
