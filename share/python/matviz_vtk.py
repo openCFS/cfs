@@ -5,7 +5,6 @@ import time
 import vtk
 from os.path import splitext
 import vtk.util.numpy_support
-import naturalneighbor
 #from vtk.util.colors import *
 
 # # creates 3D data to vtkPolyData
