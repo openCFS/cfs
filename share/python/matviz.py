@@ -329,7 +329,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 samples = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
               if args.show == "hom_ortho_3d" or args.mesh:
                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
-                reg_info = {"nodes":reg_nodes, "elements":elems_in_regions, "connectivity":connectivity}
+                # region_map: maps local node id (list idx) in given design region (e.g. "mech") to global node id in all regions
+                reg_info = {"nodes":reg_nodes, "elements":elems_in_regions, "connectivity":connectivity, "region_map":reg_nodes_map}
                 if nondes:
                   viz = matviz_3d_ortho.create_3d_interpretation_ortho(args, reg_info, coords, min_bb, max_bb, design, scale, samples, args.hom_grad,nondes=nondes)
                 else:
@@ -537,6 +538,9 @@ elem_dim = None
 min_bb = None
 max_bb = None
 elems_in_regions = [[None]]
+# need this for interpolating cell to point data
+reg_nodes = None
+connectivity = None
 
 # check if we read data from command line instead from an h5 file or a info.xml was given
 if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.endswith(".mat"):
@@ -607,7 +611,7 @@ else:
     sys.exit()   
   validate_region(f, args.h5_region)
   if len(args.unstructured) != 0:
-    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, _ = centered_elements(f, args.h5_nondes, False, 'load', 'support')
+    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, _, _, _, _ = centered_elements(f, args.h5_nondes, False, 'load', 'support')
     print('Reading elements from H5-file done ')
     dim_2D = nondes_min[2] == nondes_max[2]
     print('detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region") 
@@ -617,7 +621,7 @@ else:
     min_bb = [numpy.Inf, numpy.Inf, numpy.Inf]
     max_bb = [-numpy.Inf, -numpy.Inf, -numpy.Inf]
     for region in f['/Mesh/Regions']:
-      reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements, connectivity, reg_nodes = centered_elements(f, region)
+      reg_centers, reg_min_bb, reg_max_bb, elem_dim, _, _, reg_elements, connectivity, reg_nodes, reg_nodes_map  = centered_elements(f, region)
       elems_in_regions.append(reg_elements)
       centers = numpy.concatenate((centers, reg_centers))
       min_bb = numpy.min([min_bb,reg_min_bb],0);
@@ -626,7 +630,7 @@ else:
     centers = centers[1:,:]
   else:
     # similar to centers, but not centered
-    centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions, connectivity, reg_nodes = centered_elements(f, args.h5_region)
+    centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region)
     
     design_elems = None 
   if args.h5_nondes != "None":
@@ -643,17 +647,17 @@ else:
       nondes_min = 999999
       nondes_max = -999999 
       for nr in list(nondes_regs):
-        tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements, _, _ = centered_elements(f, nr,centered=False)
+        tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements, _, _, _ = centered_elements(f, nr,centered=False)
         nondes_elements.extend(tmp_nondes_elements)
         nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
         nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
       
       # take centered values and interpolate to edges  
-      _, design_elems_min, design_elems_max, _, _, _, design_elems = centered_elements(f, args.h5_region,centered=True)
+      _, design_elems_min, design_elems_max, _, _, _, design_elems, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region,centered=True)
             
     if args.h5_nondes_void != "None":
       if (MPI.COMM_WORLD.Get_rank()==0): 
-        nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements, _, _ = centered_elements(f, args.h5_nondes_void,centered=False)
+        nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements, _, _, _ = centered_elements(f, args.h5_nondes_void,centered=False)
          
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))

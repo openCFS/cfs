@@ -119,12 +119,7 @@ def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, 
     elements.append(elem)  
     elems_connectivity.append(nod)
     
-  reg_nodes_coords = []
-  
-  for rn in reg_nodes:
-    reg_nodes_coords.append(all_nodes[rn-1])
-    
-  return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support, elements, elems_connectivity, reg_nodes_coords
+  return result, min_dim, max_dim, elem_dim, nodes_force, nodes_support, elements, elems_connectivity, nodes, reg_nodes
                 
 # # find minimal and maximal coordinate
 # @param coordinates as from centered_elements

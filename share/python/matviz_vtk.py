@@ -1254,7 +1254,11 @@ def interp_cell_to_point_data(center_coords, reg_info, bounds, grad, s1, s2, s3,
   nodes = list(reg_info['nodes'])
   # stores vertex ids of each element
   connectivity = reg_info['connectivity']
-  
+  # region_map: maps local node id (list idx) in given design region (e.g. "mech") to global node id in all regions
+  local_to_global_id = reg_info['region_map']
+  global_to_local_id = dict()
+  for i,id in enumerate(local_to_global_id):
+    global_to_local_id[id-1] = i
 #   print("nodes:",nodes)
   
   assert(len(elems) == len(connectivity))
@@ -1267,20 +1271,17 @@ def interp_cell_to_point_data(center_coords, reg_info, bounds, grad, s1, s2, s3,
   s2_nodes = numpy.zeros(len(nodes))
   s3_nodes = numpy.zeros(len(nodes))
   neighbors = numpy.zeros(len(nodes))
+  
   for ie,e in enumerate(connectivity): # each element
     for v in e: # each element vertex
-#       print("e:",e)
-#       print("v:",v-1)
-#       print("centers[e]:",centers[ie])
-#       print("nodes[v-1]:",nodes[v-1])
-#       print("distance:",numpy.array(centers[ie]) - numpy.array(nodes[v-1]))
-      s1_nodes[v-1] += s1[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1])) # cfs is 1-based
-      s2_nodes[v-1] += s2[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1]))
-      s3_nodes[v-1] += s3[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1]))
-      neighbors[v-1] += 1
+      s1_nodes[global_to_local_id[v-1]] += s1[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1])) # cfs is 1-based
+      s2_nodes[global_to_local_id[v-1]] += s2[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1]))
+      s3_nodes[global_to_local_id[v-1]] += s3[ie]#/numpy.linalg.norm(numpy.array(centers[ie]) - numpy.array(nodes[v-1]))
+      neighbors[global_to_local_id[v-1]] += 1
   
   # normalize    
   for i,n in enumerate(neighbors):
+    assert(neighbors[i] > 0)
     s1_nodes[i] /= neighbors[i]
     s2_nodes[i] /= neighbors[i]
     s3_nodes[i] /= neighbors[i]    
