@@ -96,27 +96,28 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
   nondes_coords = None
   holes = None
   design_elems = None
-  if nondes and nondes[0] and nondes[1]: # assume holes are within bounding box of solid non-design and design domain
+  if my_mpi_grid.rank == 0 and  nondes is not None: # assume holes are within bounding box of solid non-design and design domain
     nondes_coords = nondes[0][0]
     nondes_min = nondes[0][1]
     nondes_max = nondes[0][2]
     assert(len(nondes_min) == 3)
     assert(len(nondes_max) == 3)
-    holes = nondes[1][0]
-    holes_min = nondes[1][1]
-    holes_max = nondes[1][2]
-    assert(len(holes_min) == 3)
-    assert(len(holes_max) == 3)
+    if nondes[1] is not None:
+      holes = nondes[1][0]
+      holes_min = nondes[1][1]
+      holes_max = nondes[1][2]
+      assert(len(holes_min) == 3)
+      assert(len(holes_max) == 3)
     design_elems = nondes[2][0]
     design_elems_min = nondes[2][1]
     design_elems_max = nondes[2][2]
-
+    
   # broadcast all nondes to all ranks
   (nondes_coords,nondes_min,nondes_max) = my_mpi_grid.comm.bcast((nondes_coords,nondes_min,nondes_max),root=0)
 #   print("rank ", my_mpi_grid.rank," nondes:",len(nondes_coords))
   # broadcast all holes and design elems to all ranks
   holes = my_mpi_grid.comm.bcast(holes,root=0)
-  design_elems = my_mpi_grid.comm.bcast(design_elems,root=0)        
+  design_elems = my_mpi_grid.comm.bcast(design_elems,root=0)  
     
   # np.minimum gives elementwise min value
   bounds = [None] * 6
@@ -213,8 +214,10 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
     my_mpi_grid.grid.data *= tmp
     
     design_elems = None
-    draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
-    draw_non_design(holes, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
+    if nondes_coords is not None:
+      draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
+    if holes is not None:
+      draw_non_design(holes, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
   
     nondes_coords = None
     holes = None
@@ -474,23 +477,25 @@ def write_nondes_to_vtr_file(args,min_bb,max_bb,nondes):
   from pyevtk.hl import gridToVTK
   gridToVTK("nondesign",x,y,z,cellData={"nondes":nondes_grid})
         
-# @param tets: list of lists, each entry contains 4 vertices (cartesian) of a tet
+# @param elems: list of lists, each entry contains 4 vertices (cartesian) of a tetra-/hexahedron
 # @param grid: where to draw
 # @param bounds: list of bounds of cartesian world
 # @param h: lattice spacings in 3 directions 
 # @param solid or void non-design?        
-def draw_non_design(tets,grid,bounds,h,solid=True):
+def draw_non_design(elems,grid,bounds,h,solid=True):
   assert(len(bounds) >=3 and len(h) == 3)
+  assert(elems is not None)
   ug = vtk.vtkUnstructuredGrid()
   vtkpoints = vtk.vtkPoints()
-  for e in tets:
+  for e in elems:
     #print("e:",e)
-    tetra = vtk.vtkTetra()
+    assert(len(e) == 4 or len(e) == 8)
+    vtkObj = vtk.vtkTetra() if len(e) == 4 else vtk.vtkHexahedron()
     for i,p in enumerate(e):
       id = vtkpoints.InsertNextPoint(p)
-      tetra.GetPointIds().SetId(i,id)
+      vtkObj.GetPointIds().SetId(i,id)
     
-    ug.InsertNextCell(tetra.GetCellType(),tetra.GetPointIds())
+    ug.InsertNextCell(vtkObj.GetCellType(),vtkObj.GetPointIds())
   
   ug.SetPoints(vtkpoints)
   
