@@ -209,13 +209,14 @@ namespace CoupledField {
       //  VERSION 1: K_PV Integrator (lower off-diagonal integrator)
       //  \int_{\Omega_f} phi div(v') d\Omega
       // --------------------------------------------------------------------
+      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       BiLinearForm * stiffIntPV = NULL;
       if( dim_ == 2 ) {
         stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
-                                  new DivOperator<FeH1,2>(), density, 1.0 );
+                                  new DivOperator<FeH1,2>(), constOne, 1.0 );
       } else {
         stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,3>(),
-                                  new DivOperator<FeH1,3>(), density, 1.0 );
+                                  new DivOperator<FeH1,3>(), constOne, 1.0 );
       }
       stiffIntPV->SetName("LinFlowStiffIntPV");
       BiLinFormContext *stiffContPV = NULL;
@@ -228,7 +229,6 @@ namespace CoupledField {
       if ( isCompressible_ ) {
     	  // add time derivative of density expressed by pressure according to
     	  // thermodynamic relation
-    	  PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
     	  PtrCoefFct refPres = materials_[actRegion]->GetScalCoefFnc(
     	      			  REF_PRESSURE, Global::REAL);
     	  PtrCoefFct fnc;
