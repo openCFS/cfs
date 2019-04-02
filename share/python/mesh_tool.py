@@ -1638,7 +1638,8 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   xmin,ymin,zmin,xmax,ymax,zmax = calc_bounding_box(mesh)
 #   print("xmin,ymin,zmin,xmax,ymax,zmax:",xmin,ymin,zmin,xmax,ymax,zmax)
   
-  mesh = add_bc_for_ppbox(mesh,(xmin,xmax,ymin,ymax,zmin,zmax))
+  #mesh = add_bc_for_ppbox(mesh,(xmin,xmax,ymin,ymax,zmin,zmax))
+  mesh = add_bc_for_box_varel(mesh,(xmin,xmax,ymin,ymax,zmin,zmax))
   mesh = name_bb_faces(mesh,xmin,ymin,zmin,xmax,ymax,zmax)
 
 #  mesh = add_nodes_for_periodic_bc(mesh)
@@ -2569,6 +2570,32 @@ def create_volume_mesh_with_gmsh(stlName):
   cfs_utils.execute(command)
   create_mesh_from_gmsh(baseName)  
   
+def add_bc_for_box_varel(mesh,bounds):
+  load = []
+  support = []
+  nodes = mesh.nodes
+  eps = 1e-6
+  for i in range(len(nodes)):
+    # load on top panel y=1
+    if numpy.close(nodes[i][1],1.0):
+      load.append(i)
+      continue
+    
+    # support edges 
+    if numpy.close(nodes[i][1],0.0):
+      if nodes[i][0] <= 1/15 + eps:
+        support.append(i)
+      elif nodes[i][2] <= 1/15 + eps:
+        support.append(i)
+        
+  print("load:",len(load))
+  print("support:",len(support))
+  
+  mesh.bc.append(("load", load))
+  mesh.bc.append(("support", support))
+  
+  return mesh        
+      
 def add_bc_for_ppbox(mesh,bounds):
   xmin,xmax,ymin,ymax,zmin,zmax = bounds
 #   big_cylinder = [206,48.1375,-106,254,91.849,-62]
