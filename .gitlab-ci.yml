@@ -68,6 +68,7 @@ testsuite-revision:
   after_script:
     - pwd # debug
   cache: {} # disable
+  allow_failure: true # it will fail if the most recent commit on the branch is not the HEAD of the branch
   <<: *default_pipeline_rules
 
 # this job is intended as a warning if the piepline has changed
