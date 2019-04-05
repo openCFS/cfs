@@ -2308,7 +2308,6 @@ namespace CoupledField {
   void AlgebraicSys::InitSol( const SBM_Vector& newSol ) {
     
     LOG_DBG(algSys) << "Initializing solution with new vector";
-    REFACTOR; // <-- from head, what does this do?
 
     // ensure that the solution vector to set consists of as many
     // sub-vectors as the solution of the system
