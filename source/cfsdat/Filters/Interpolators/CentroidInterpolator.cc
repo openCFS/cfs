@@ -124,6 +124,7 @@ void CentroidInterpolator::PrepareCalculation(){
     allSrcElems.insert(allSrcElems.end(),curElems.Begin(),curElems.End());
   }
 
+  std::vector<UInt> allTrgElems;
 
   std::cout << "\t\t 1/6 Obtaining source element centroids " << std::endl;
   StdVector<shared_ptr<EntityList> > lists;
@@ -133,9 +134,19 @@ void CentroidInterpolator::PrepareCalculation(){
     shared_ptr<ElemList> newList(new ElemList(trgGrid_));
     newList->SetRegion(aReg);
     lists.Push_back(newList);
+
+    StdVector<UInt> curElems;
+    trgGrid_->GetElemNumsByName(curElems,*destRegIt);
+    allTrgElems.insert(allTrgElems.end(),curElems.Begin(),curElems.End());
   }
   std::cout << "\t\t\t Interpolator is dealing with " << allSrcElems.size() <<
                " source element centroids" << std::endl;
+  //Get the coverage of target elements that have a scr point
+  Vector<int > coverage;
+  coverage.Resize(allTrgElems.size());
+  coverage.Init();
+
+
   //should not be necessary to make it unique
   elemCentroids.Resize(allSrcElems.size());
   locPoints.Resize(allSrcElems.size());
@@ -171,11 +182,15 @@ void CentroidInterpolator::PrepareCalculation(){
       newStruct.localCoords = locPoints[aMatch].coord;
       newStruct.srcEqnSingle = allSrcElems[aMatch];
       newStruct.trgElemNum = trgElements[aMatch]->elemNum;
+
+      coverage[trgElements[aMatch]->elemNum] = 1;
+
       interpolData_.push_back(newStruct);
       ++foundCounter;
     }
   }
   std::cout << "\t\t\t Number of interpolation pairs computed: " << foundCounter << std::endl;
+  std::cout << "\t\t\t Coverage of CAA cells by CFD cell: " << coverage.Sum() << " of " << coverage.GetSize() <<std::endl;
   std::cout << "\t\t 4/6 Clear generated temporary data storage ..." << std::endl;
   trgElements.Clear(false);
   elemCentroids.Clear(false);
