@@ -684,9 +684,15 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
 }
 
 
-bool Condition::IsFeasible() const
+double Condition::CalcFeasibility() const
 {
   double diff = GetValue() - boundValue_; // handles also local constraints!
+  return diff;
+}
+
+bool Condition::IsFeasible() const
+{
+  double diff = CalcFeasibility();
 
   switch(bound_)
   {
@@ -1321,6 +1327,21 @@ void ConditionContainer::ToInfo(PtrParamNode in)
 {
   for(unsigned int i = 0; i < all.GetSize(); i++)
     all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND));
+}
+
+std::string ConditionContainer::GetFeasiblityMessage() const
+{
+  std::stringstream ss;
+
+  if(IsFesible())
+    ss << "all constraints are fasible";
+  else
+  {
+    for(unsigned int i = 0; i < all.GetSize(); i++)
+      all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND));
+   }
+
+  return ss.str();
 }
 
 

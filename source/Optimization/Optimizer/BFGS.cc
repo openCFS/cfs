@@ -163,7 +163,7 @@ void BFGS::SolveBFGS(Vector<double>& xc, Vector<double>& up, Vector<double>& lo)
       if(iarm > 10)
       {
         x =xc;
-
+        std::setprecision(9);
         if(progOpts->DoDetailedInfo())
         {
           bfgs_details.Push_back(BFGSInfo());
@@ -364,5 +364,6 @@ void BFGS::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   }
 
 }
+
 
 

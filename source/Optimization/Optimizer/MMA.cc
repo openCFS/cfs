@@ -1124,7 +1124,10 @@ void MMA::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   if(subSolverType_ == IP_OPT)
     IPLogFileLine(out, iteration);
   else if (subSolverType_ == BFGS_OPT)
+  {
+    IPLogFileLine(out, iteration);
     bfgs_->LogFileLine(out, iteration);
+  }
   else
     return;
 }

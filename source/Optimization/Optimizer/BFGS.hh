@@ -50,7 +50,7 @@ class BFGS {
 
   /** @see BaseOptimier */
   virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
-  //  void LogFileHeader(Optimization::Log& log);
+
 
   private:
 
