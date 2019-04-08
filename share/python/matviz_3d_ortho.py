@@ -60,8 +60,8 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
   dy_des = h_des[1] / samples[1]
   dz_des = h_des[2] / samples[2]
   
-  min_thresh = 0.1
-  max_thresh = 0.94
+  min_thresh = 0.153
+  max_thresh = 0.98
   
   thresh = None
   if args.bc_thresh is not None:
@@ -97,11 +97,12 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
   holes = None
   design_elems = None
   if my_mpi_grid.rank == 0 and  nondes is not None: # assume holes are within bounding box of solid non-design and design domain
-    nondes_coords = nondes[0][0]
-    nondes_min = nondes[0][1]
-    nondes_max = nondes[0][2]
-    assert(len(nondes_min) == 3)
-    assert(len(nondes_max) == 3)
+    if nondes[0] is not None:
+      nondes_coords = nondes[0][0]
+      nondes_min = nondes[0][1]
+      nondes_max = nondes[0][2]
+      assert(len(nondes_min) == 3)
+      assert(len(nondes_max) == 3)
     if nondes[1] is not None:
       holes = nondes[1][0]
       holes_min = nondes[1][1]
@@ -138,7 +139,10 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
       for i in range(my_mpi_grid.start_x,my_mpi_grid.end_x):
         local_id += 1
         # local array indices
-        li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
+#         li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
+        li = i - my_mpi_grid.start_x
+        lj = j
+        lk = k
              
         # for each element, we only stored value at left, bottom and back faces
         x1 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k,0))[0]
@@ -153,11 +157,12 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
         # handle void and solid cells
         if thresh is not None:
           if any(t > thresh[1] for t in all_values):
+#             print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])
             print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
-            print(li*args.bc_res,":",(li+1)*args.bc_res," ",lj*args.bc_res,":",(lj+1)*args.bc_res," ",lk*args.bc_res,":",(lk+1)*args.bc_res)
             my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = 1
             continue
           elif any(t < thresh[0] for t in all_values):
+#             print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])  
             print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
             continue # skip void cell
           
@@ -168,6 +173,17 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
 #         print("y2:",sample_coords[i,j+1,k,1])
 #         print("z1:",sample_coords[i,j,k,2])
 #         print("z2:",sample_coords[i,j,k+1,2])
+
+#         print("\n before rounding rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k],"\n")  
+
+        # if one of the values is < min_thresh, set it to min_thresh        
+        # if one of the values is > max_thresh, set it to max_thresh
+        x1 = min(max(x1,min_thresh),max_thresh)
+        x2 = min(max(x2,min_thresh),max_thresh)
+        y1 = min(max(y1,min_thresh),max_thresh)
+        y2 = min(max(y2,min_thresh),max_thresh)
+        z1 = min(max(z1,min_thresh),max_thresh)
+        z2 = min(max(z2,min_thresh),max_thresh)
         
         # bounds (voxel coords) of local base cell
         # xmin,ymin,zmin
@@ -199,7 +215,9 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
         bc_input.stiffness_as_diameter = True
         cell_obj = basecell.Basecell(bc_input,id)
         # local i,j,k
+#         print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])
         print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+        sys.stdout.flush()
         my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
         
   eps = 1e-6

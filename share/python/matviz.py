@@ -541,6 +541,12 @@ elems_in_regions = [[None]]
 # need this for interpolating cell to point data
 reg_nodes = None
 connectivity = None
+nondes_void_elements = None
+nondes_void_min = None
+nondes_void_max = None
+design_elems = None
+design_elems_min = None
+design_elems_max = None
 
 # check if we read data from command line instead from an h5 file or a info.xml was given
 if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.endswith(".mat"):
@@ -633,7 +639,7 @@ else:
     centers, min_bb, max_bb, elem_dim, _, _, elems_in_regions, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region)
     
     design_elems = None 
-  if args.h5_nondes != "None":
+  if args.h5_nondes != "None" or args.h5_nondes_void != "None":
     if (MPI.COMM_WORLD.Get_rank()==0):
       nondes_regs = args.h5_nondes
       # in case we have more than 1 non-design solid region
@@ -641,20 +647,22 @@ else:
         nondes_regs = args.h5_nondes.split(",")
       elif type(nondes_regs) == str:
         nondes_regs = [nondes_regs]
-        
-      nondes_centers = []
-      nondes_elements = []
-      nondes_min = 999999
-      nondes_max = -999999 
-      for nr in list(nondes_regs):
-        tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements, _, _, _ = centered_elements(f, nr,centered=False)
-        nondes_elements.extend(tmp_nondes_elements)
-        nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
-        nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
+      
+      if args.h5_nondes != "None":
+        nondes_centers = []
+        nondes_elements = []
+        nondes_min = 999999
+        nondes_max = -999999 
+        for nr in list(nondes_regs):
+          tmp_nondes_centers, tmp_nondes_min, tmp_nondes_max, nondes_elem_dim, nondes_force, nondes_support, tmp_nondes_elements, _, _, _ = centered_elements(f, nr,centered=False)
+          nondes_elements.extend(tmp_nondes_elements)
+          nondes_min = numpy.minimum(tmp_nondes_min,nondes_min)
+          nondes_max = numpy.maximum(tmp_nondes_max,nondes_max)
       
       # take centered values and interpolate to edges  
       design_elems, design_elems_min, design_elems_max, _, _, _, design_elems, connectivity, reg_nodes, reg_nodes_map = centered_elements(f, args.h5_region,centered=True)
-            
+    
+    print("args.h5_nondes_void:",args.h5_nondes_void)        
     if args.h5_nondes_void != "None":
       if (MPI.COMM_WORLD.Get_rank()==0): 
         nondes_void_centers, nondes_void_min, nondes_void_max, _, _, _, nondes_void_elements, _, _, _ = centered_elements(f, args.h5_nondes_void,centered=False)
