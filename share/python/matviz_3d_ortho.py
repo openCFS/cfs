@@ -133,16 +133,10 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
   my_mpi_grid.init_data_grid(samples, args.bc_res, bounds)
   my_mpi_grid.to_info()
   
-  local_id = -1
   for k in range(samples[2]):
     for j in range(samples[1]):
       for i in range(my_mpi_grid.start_x,my_mpi_grid.end_x):
-        local_id += 1
-        # local array indices
-#         li,lj,lk = get_3d_grid_coords(local_id, my_mpi_grid.chunks, samples[1], samples[2])
         li = i - my_mpi_grid.start_x
-        lj = j
-        lk = k
              
         # for each element, we only stored value at left, bottom and back faces
         x1 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k,0))[0]
@@ -157,34 +151,15 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
         # handle void and solid cells
         if thresh is not None:
           if any(t > thresh[1] for t in all_values):
-#             print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])
-            print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
-            my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = 1
+#             print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])
+            print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+            my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,j*args.bc_res:(j+1)*args.bc_res,k*args.bc_res:(k+1)*args.bc_res] = 1
             continue
           elif any(t < thresh[0] for t in all_values):
-#             print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])  
-            print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+#             print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])  
+            print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
             continue # skip void cell
           
-#         print("\nx1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
-#         print("x1:",sample_coords[i,j,k,0])
-#         print("x2:",sample_coords[i+1,j,k,0])
-#         print("y1:",sample_coords[i,j,k,1])
-#         print("y2:",sample_coords[i,j+1,k,1])
-#         print("z1:",sample_coords[i,j,k,2])
-#         print("z2:",sample_coords[i,j,k+1,2])
-
-#         print("\n before rounding rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k],"\n")  
-
-        # if one of the values is < min_thresh, set it to min_thresh        
-        # if one of the values is > max_thresh, set it to max_thresh
-        x1 = min(max(x1,min_thresh),max_thresh)
-        x2 = min(max(x2,min_thresh),max_thresh)
-        y1 = min(max(y1,min_thresh),max_thresh)
-        y2 = min(max(y2,min_thresh),max_thresh)
-        z1 = min(max(z1,min_thresh),max_thresh)
-        z2 = min(max(z2,min_thresh),max_thresh)
-        
         # bounds (voxel coords) of local base cell
         # xmin,ymin,zmin
         h = (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
@@ -214,11 +189,9 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
         bc_input.eta = 0.7
         bc_input.stiffness_as_diameter = True
         cell_obj = basecell.Basecell(bc_input,id)
-        # local i,j,k
-#         print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])
-        print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,lj,lk," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
+        print("rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2)
         sys.stdout.flush()
-        my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,lj*args.bc_res:(lj+1)*args.bc_res,lk*args.bc_res:(lk+1)*args.bc_res] = cell_obj.voxels
+        my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,j*args.bc_res:(j+1)*args.bc_res,k*args.bc_res:(k+1)*args.bc_res] = cell_obj.voxels
         
   eps = 1e-6
 
@@ -231,6 +204,10 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
     draw_non_design(design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
     my_mpi_grid.grid.data *= tmp
     
+    vol = comm.gather(np.sum(my_mpi_grid.grid.data),root=0)
+    if my_mpi_grid.rank == 0:
+      print("volume:",np.sum(vol) / (samples[0]*samples[1]*samples[2]*args.bc_res**3))
+    
     design_elems = None
     if nondes_coords is not None:
       draw_non_design(nondes_coords, my_mpi_grid.grid.data, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
@@ -239,11 +216,10 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
   
     nondes_coords = None
     holes = None
-  
-  vol = comm.gather(np.sum(my_mpi_grid.grid.data),root=0)
-  
-  if my_mpi_grid.rank == 0:
-    print("volume:",np.sum(vol) / (samples[0]*samples[1]*samples[2]*args.bc_res**3))
+  else:
+    vol = comm.gather(np.sum(my_mpi_grid.grid.data),root=0)
+    if my_mpi_grid.rank == 0:
+      print("volume:",np.sum(vol) / (samples[0]*samples[1]*samples[2]*args.bc_res**3))
   
     
   borders = my_mpi_grid.communicate_edges()
@@ -326,7 +302,7 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
     normals.SetAutoOrientNormals(1)
     normals.Update()
     sys.stdout.flush()
-    matviz_vtk.show_write_vtk(pd, 10, "marching_all.vtp")
+    matviz_vtk.show_write_vtk(pd, 10, args.save+".vtp")
     
 #     data = (verts,faces)
   sys.exit()  

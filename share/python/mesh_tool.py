@@ -2577,12 +2577,12 @@ def add_bc_for_box_varel(mesh,bounds):
   eps = 1e-6
   for i in range(len(nodes)):
     # load on top panel y=1
-    if numpy.close(nodes[i][1],1.0):
+    if numpy.isclose(nodes[i][1],1.0):
       load.append(i)
       continue
     
     # support edges 
-    if numpy.close(nodes[i][1],0.0):
+    if numpy.isclose(nodes[i][1],0.0):
       if nodes[i][0] <= 1/15 + eps:
         support.append(i)
       elif nodes[i][2] <= 1/15 + eps:
