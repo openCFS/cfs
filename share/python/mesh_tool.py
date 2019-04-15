@@ -2583,9 +2583,9 @@ def add_bc_for_box_varel(mesh,bounds):
     
     # support edges 
     if numpy.isclose(nodes[i][1],0.0):
-      if nodes[i][0] <= 1/15 + eps:
+      if nodes[i][0] <= 1/20 + eps:
         support.append(i)
-      elif nodes[i][2] <= 1/15 + eps:
+      elif nodes[i][2] <= 1/10 + eps:
         support.append(i)
         
   print("load:",len(load))
@@ -2634,7 +2634,13 @@ def add_bc_for_ppbox(mesh,bounds):
       continue    
      
     if nodes[i][2] < zmin+2:
-      support.append(i)
+      # support only on the edges of skin
+      if 72.5-eps < nodes[i][0] < 72.75+eps or -72.5+eps > nodes[i][0] > -72.75-eps:
+        support.append(i)
+        continue
+      if 56.4575-eps < nodes[i][1] < 57.91+eps or -40.75+eps > nodes[i][1] > -41.0-eps:
+        support.append(i)
+        continue
   
   print("load:",len(load))
   print("support:",len(support))
