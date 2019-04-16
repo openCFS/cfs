@@ -961,7 +961,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         elif inclusion == 'ball' and numpy.sqrt((x-nnx/2)**2 + (y-nny/2)**2 + (z-nnz/2)**2) <= nnx*inclusion_size: 
           e.region = 'inner' if not threshold or e.density > threshold else 'void'  
           second += 1
-        elif inclusion == "top_panel" and y == ny-1:
+        elif inclusion == "top_panel" and y == ny-int(ny*0.1+0.5+1e-6):
           e.region = 'non-design'
           second += 1  
           e.region = "non-design" if not threshold or e.density > threshold else 'void'    
@@ -995,14 +995,17 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     nsa_x = nx * sa
     nsa_z = nz * sa
     
+    eps = 1e-6
+    
     # x == 0, y == 0
-    for i in range(int(nsa_x)):
+    for i in range(int(nsa_x+0.5+eps)):
       mesh.bc.append(("support",list(range(i,nnx*nny*nnz-nnx-1,nnx*nny))))
     
+#     sys.exit()  
     # y == 0, z == 0
-    for i in range(int(nsa_z)):
+    for i in range(int(nsa_z+0.5+eps)):
       mesh.bc.append(("support",list(range(i*nnx*nny,i*nnx*nny+nnx,1))))
-      mesh.bc.append(("support",list(range(2*nnx*nny,2*nnx*nny+nnx,1))))  
+      
     # loads are all nodes in x-z plane for y == nny
     for i in range(0,nnz):
       mesh.bc.append(("force",list(range(nnx*ny+nnx*nny*i,nnx*nny*(i+1),1))))

@@ -305,7 +305,7 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
     matviz_vtk.show_write_vtk(pd, 10, args.save+".vtp")
     
 #     data = (verts,faces)
-  sys.exit()  
+#   sys.exit()  
 # #   # broadcast all verts to all ranks
 #   data = my_mpi_grid.comm.bcast(data,root=0)
 #   my_mpi_grid.set_vertices_and_faces(data[0],data[1])
@@ -388,7 +388,7 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
   my_mpi_grid.start_verts_idx = int(offsets[my_mpi_grid.rank][0])
   my_mpi_grid.end_verts_idx = int(offsets[my_mpi_grid.rank][1])
   
-  print("\nrank ", my_mpi_grid.rank, " recieved ", len(my_mpi_grid.vertices)," overlapping data from id ", displ[my_mpi_grid.rank]/4," to" , displ[my_mpi_grid.rank]/4+rankcounts[my_mpi_grid.rank]/4, " working on data starting at", offsets[my_mpi_grid.rank], " chunks:",chunks)
+#   print("\nrank ", my_mpi_grid.rank, " recieved ", len(my_mpi_grid.vertices)," overlapping data from id ", displ[my_mpi_grid.rank]/4," to" , displ[my_mpi_grid.rank]/4+rankcounts[my_mpi_grid.rank]/4, " working on data starting at", offsets[my_mpi_grid.rank], " chunks:",chunks)
   
   for v in my_mpi_grid.vertices:
     assert(v is not None)
@@ -400,11 +400,12 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
 #   zmin = min(my_mpi_grid.vertices, key=lambda t: t[2])[2]
   zmax = max(my_mpi_grid.vertices.values(), key=lambda t: t[2])[2]
   
-  # do parallel smoothing here
-  mpi_taubin_smoothing(my_mpi_grid,(xmin,ymin,0,xmax,ymax,zmax),niter=args.bc_smooth)
-  
-  # send smoothed data to root
-  my_mpi_grid.gather_data(append=False, root=0)
+  if args.bc_smooth > 0:
+    # do parallel smoothing here
+    mpi_taubin_smoothing(my_mpi_grid,(xmin,ymin,0,xmax,ymax,zmax),niter=args.bc_smooth)
+    
+    # send smoothed data to root
+    my_mpi_grid.gather_data(append=False, root=0)
   
   if my_mpi_grid.rank != 0:
     sys.exit()
@@ -755,6 +756,7 @@ def mpi_taubin_smoothing(mpi_grid,bounds=None,niter=None):
   
 #   print("rank ", mpi_grid.rank," keys:",mpi_grid.vertices.keys())
 #   sys.exit()
+  print("niter:",niter)
   
   while iter < niter:
     sys.stdout.flush()
@@ -816,7 +818,7 @@ def laplacian_smoothing_dict(points,connectivity,lamb,start=0,end=None,bounds=No
       continue
     if np.isclose(p[0], bounds[0]) or np.isclose(p[1], bounds[1]) or np.isclose(p[2], bounds[2]) or np.isclose(p[0], bounds[3]) or np.isclose(p[1], bounds[4]) or np.isclose(p[2], bounds[5]):
       new_points[id] = p
-      assert(new_points[i] is not None)
+      assert(new_points[id] is not None)
     else:
       # calculate L(p_i)
       # w_ij*p_j + w_ik*p_k
@@ -845,7 +847,7 @@ def laplacian_smoothing_dict(points,connectivity,lamb,start=0,end=None,bounds=No
       new_points[id] = p + lamb * L   
       #print(p,"+",lamb,"*",L)
       #print("old:",points[i]," new:",new_points[i])
-      assert(new_points[i] is not None)
+      assert(new_points[id] is not None)
       
   assert(len(new_points) == len(points))
 #   for i,p in enumerate(new_points):
