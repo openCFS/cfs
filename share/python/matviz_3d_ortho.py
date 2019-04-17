@@ -310,7 +310,7 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
     matviz_vtk.show_write_vtk(pd, 10, args.save+".vtp")
     
 #     data = (verts,faces)
-    sys.exit()  
+  sys.exit()  
 # #   # broadcast all verts to all ranks
 #   data = my_mpi_grid.comm.bcast(data,root=0)
 #   my_mpi_grid.set_vertices_and_faces(data[0],data[1])
