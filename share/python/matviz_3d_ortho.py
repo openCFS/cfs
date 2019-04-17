@@ -204,9 +204,10 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
     draw_non_design(design_elems, tmp, my_mpi_grid.bounds,(my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=True)
     my_mpi_grid.grid.data *= tmp
     
+    sys.stdout.flush()
     vol = comm.gather(np.sum(my_mpi_grid.grid.data),root=0)
     if my_mpi_grid.rank == 0:
-      print("volume:",np.sum(vol) / (samples[0]*samples[1]*samples[2]*args.bc_res**3))
+      print("design volume:",np.sum(vol) / (samples[0]*samples[1]*samples[2]*args.bc_res**3))
     
     design_elems = None
     if nondes_coords is not None:
@@ -214,6 +215,10 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
     if holes is not None:
       draw_non_design(holes, my_mpi_grid.grid.data, my_mpi_grid.bounds, (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz),solid=False)
   
+
+    vol = comm.gather(np.sum(my_mpi_grid.grid.data),root=0)
+    if my_mpi_grid.rank == 0:
+      print("volume with nondes:",np.sum(vol) / (samples[0]*samples[1]*samples[2]*args.bc_res**3))
     nondes_coords = None
     holes = None
   else:
@@ -305,7 +310,7 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
     matviz_vtk.show_write_vtk(pd, 10, args.save+".vtp")
     
 #     data = (verts,faces)
-#   sys.exit()  
+    sys.exit()  
 # #   # broadcast all verts to all ranks
 #   data = my_mpi_grid.comm.bcast(data,root=0)
 #   my_mpi_grid.set_vertices_and_faces(data[0],data[1])

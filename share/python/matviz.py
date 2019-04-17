@@ -329,7 +329,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                 samples = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
               if args.show == "hom_ortho_3d" or args.mesh:
 #                 name = "interpretation_ortho_3d_box_varel_" + str(samples[0]) + "_" + str(samples[1]) + "_" + str(samples[2]) + "_bc_res_" + str(args.bc_res) + ".stl"
-                name = args.save + ".stl"
+                name = args.save + ".stl" if args.save is not None else "interpretation_mc"
                 # region_map: maps local node id (list idx) in given design region (e.g. "mech") to global node id in all regions
                 reg_info = {"nodes":reg_nodes, "elements":elems_in_regions, "connectivity":connectivity, "region_map":reg_nodes_map}
                 if nondes:
