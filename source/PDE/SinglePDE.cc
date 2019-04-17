@@ -87,6 +87,7 @@ using std::string;
 
 // used for getting coils from the pde
 #include "MagEdgePDE.hh"
+#include "MagEdgeSpecialAVPDE.hh"
 #include "MagneticPDE.hh"
 
 
@@ -1070,20 +1071,23 @@ namespace CoupledField {
 				  if( candidate->definedOn != ResultInfo::COIL ){
 					  actList = ptGrid_->GetEntityList( entityType, histNames[i] );
 				  } else {
-					  // The grid does not know about coils beause depending on the space used
-					  // we don't know if we need approximation in space, e.g. with the FeSpaceConst.
-					  // But we know that we want only one result per coil, not for each element in the coil.
-					  shared_ptr<Coil> actCoil;
-					  if( pdename_ == "magneticEdge" ){
-						  MagEdgePDE* askThePDE = dynamic_cast<MagEdgePDE*>(this);
-						  actCoil = askThePDE->GetCoilById( histNames[i] );
-					  } else {
-						  MagneticPDE* askThePDE = dynamic_cast<MagneticPDE*>(this);
-						  actCoil = askThePDE->GetCoilById( histNames[i] );
-					  }
-					  shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
-					  singleCoilList->AddCoil( actCoil );
-					  actList = singleCoilList;
+				    // The grid does not know about coils beause depending on the space used
+				    // we don't know if we need approximation in space, e.g. with the FeSpaceConst.
+				    // But we know that we want only one result per coil, not for each element in the coil.
+				    shared_ptr<Coil> actCoil;
+				    if( pdename_ == "magneticEdge" ){
+				      MagEdgePDE* askThePDE = dynamic_cast<MagEdgePDE*>(this);
+				      actCoil = askThePDE->GetCoilById( histNames[i] );
+				    } else if( pdename_ == "magneticEdgeSpecialAV" ){
+				      MagEdgeSpecialAVPDE* askThePDE = dynamic_cast<MagEdgeSpecialAVPDE*>(this);
+				      actCoil = askThePDE->GetCoilById( histNames[i] );
+				    } else {
+				      MagneticPDE* askThePDE = dynamic_cast<MagneticPDE*>(this);
+				      actCoil = askThePDE->GetCoilById( histNames[i] );
+				    }
+				    shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
+				    singleCoilList->AddCoil( actCoil );
+				    actList = singleCoilList;
 				  }
 				  shared_ptr<BaseResult> actSol;
 				  if( isComplex_ ) {
@@ -2646,6 +2650,74 @@ namespace CoupledField {
       ReadRhsExcitation(elemName,compNames,type,isComplex,entities,coef,updateGeo);
   }
 
+  template<typename T>
+  void SinglePDE::ReadUserHistValues( PtrParamNode valueNode,
+                           ResultInfo::EntryType type,
+                           Vector<T>& resV){
+
+    // some checks
+    if( !valueNode->Has("sequenceStep") ) EXCEPTION("History results can only be read for sequence steps!")
+    if( type != ResultInfo::EntryType::SCALAR ) EXCEPTION("History result currently needs to be a scalar!")
+
+    PtrParamNode esNode = valueNode->Get("sequenceStep");
+    PtrParamNode qNode = esNode->Get("quantity");
+    PtrParamNode tfm = esNode->Get("timeFreqMapping");
+    std::string tfmString =  tfm->GetChild()->GetName();
+    if( tfmString != "constant") EXCEPTION("Only 'constant' interpolation allowed");
+
+    // obtain fileId and SequenceStep
+    std::string fileId;
+    UInt sequenceStep = 0;
+    std::string quantityName = qNode->Get("name")->As<std::string>();
+    std::string pdeName = qNode->Get("pdeName")->As<std::string>();
+    SolutionType solType = SolutionTypeEnum.Parse(quantityName);
+
+    Domain * inDomain = NULL;
+    // create SimState (for input)
+    boost::shared_ptr<SimState> inState(new SimState(true, domain_));
+    shared_ptr<SimInput> reader;
+    shared_ptr<SimInputHDF5> in;
+    sequenceStep = esNode->Get("index")->As<UInt>();
+    // create new simState from current hdf file
+    if( !simState_->GetOutputWriter() ){
+      // Sometimes the writer is not yet set if using initial values and external data.
+      // Therefore the SimState is instructed to create it now.
+      shared_ptr<SimOutputHDF5> writer;
+      simState_->SetOutputHdf5Writer( writer );
+    }
+    std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
+    // create new param and info node (without logging to console) for the
+    // newly created Domain object
+    PtrParamNode node(new ParamNode());
+    PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "", ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
+    in.reset(new SimInputHDF5(fileName, node, infoNode));
+    inState->SetInputHdf5Reader(in);
+
+    // Get grid map of own domain, as the grids can be re-used
+    SimState::GridMap gridMap = domain_->GetGridMap();
+
+    inDomain = inState->GetDomain(sequenceStep, gridMap);
+
+    // Obtain same PDE from new domain
+    SinglePDE * inPDE = inDomain->GetSinglePDE(pdeName);
+
+    // remeber input simState and domain
+    inputs_[inState] = inDomain;
+    // set domain to one specific step
+    inState->SetInterpolation( SimState::CONSTANT, mp_, analysistype_ , 0 );
+    UInt stepNum = tfm->Get("constant")->Get("step")->As<UInt>();
+    inState->UpdateToStep(sequenceStep, stepNum);
+    shared_ptr<ResultInfo> rInfo = inPDE->GetResultInfo(solType);
+    inPDE->ReadStoreResults();
+    ResultMap rMap = inPDE->GetResults();
+    ResultList rList = rMap[rInfo];
+    shared_ptr<BaseResult> res = rList[0];
+    in->GetResult(sequenceStep, stepNum, res, true);
+    resV = dynamic_cast<Result<T>&>(*res).GetVector();
+    inDomain->GetResultHandler()->FinishMultiSequenceStep();
+  }
+
+
   void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
                                        PtrParamNode valueNode,
                                        const StdVector<std::string>& compNames,
@@ -2810,6 +2882,7 @@ namespace CoupledField {
           EXCEPTION( "Time / frequency mapping of type '" << tfmString 
                      << "' not known.");
         }
+
 
         // Return coefficient function
         coef = inPDE->GetCoefFct(solType);
@@ -4221,6 +4294,8 @@ namespace CoupledField {
   }
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Double>&);
+  template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Complex>&);
   template void SinglePDE::DefineMortarCoupling<2,1>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<2,2>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<3,1>(SolutionType,NcInterfaceInfo&);

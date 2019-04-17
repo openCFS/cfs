@@ -18,13 +18,16 @@
 
 namespace CoupledField {
 
-FeSpaceConst::FeSpaceConst(PtrParamNode paramNode, PtrParamNode infoNode, Grid* ptGrid)
+FeSpaceConst::FeSpaceConst(PtrParamNode paramNode, PtrParamNode infoNode, Grid* ptGrid, bool isAVExc)
   : FeSpace(paramNode, infoNode, ptGrid){
 
   type_ = CONSTANT;
 
+  isAVExc_ = isAVExc;
+
   allowedEntities_.insert(EntityList::COIL_LIST);
   allowedEntities_.insert(EntityList::ELEM_LIST);
+
 }
 
 FeSpaceConst::~FeSpaceConst(){}
@@ -91,7 +94,18 @@ void FeSpaceConst::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
 
 void FeSpaceConst::GetElemEqns(StdVector<Integer>& eqns, const Elem* elem){
 
-  EXCEPTION("This space does not have elements.");
+  if(isAVExc_){
+    // to which CoilList does this element belong to?
+//    std::string coilListName = elemToCoilMap_[elem->elemNum];
+//    shared_ptr<EntityList> cL =ptGrid_->GetEntityList(EntityList::ListType::COIL_LIST, coilListName);
+//    this->GetEqns(eqns, cL->GetIterator());
+    EntityIterator cLIt = elemToCoilMap_[elem->elemNum];
+    this->GetEqns(eqns, cLIt);
+
+  }else{
+    EXCEPTION("This space does not have elements.");
+  }
+
 
 }
 
@@ -101,6 +115,16 @@ void FeSpaceConst::GetElemEqns(StdVector<Integer>& eqns, const Elem* elem, UInt 
 
 }
 
+void FeSpaceConst::InsertElemsToCoilList(shared_ptr<ElemList> eL, shared_ptr<CoilList> cL){
+
+  EntityIterator it = eL->GetIterator();
+  // Loop over every element in that region
+  for(it.Begin(); !it.IsEnd(); it++){
+    elemToCoilMap_[it.GetElem()->elemNum] = cL->GetIterator();
+  }
+}
+
+
 void FeSpaceConst::Finalize(){
 
   // take all entities from the FeFunction and generate equation map based on entity id string
@@ -108,7 +132,7 @@ void FeSpaceConst::Finalize(){
 
   shared_ptr<BaseFeFunction> feFct = feFunction_.lock();
   StdVector<shared_ptr<EntityList> > entListVec = feFct->GetEntityList();
-
+  // Classic case
   for( UInt k = 0; k < entListVec.GetSize(); k++ ){
     EntityIterator entIt = entListVec[k]->GetIterator();
     this->CheckEntityType(entIt);
@@ -123,7 +147,8 @@ void FeSpaceConst::Finalize(){
       }
       entIt++;
     }
-  }
+  }// end for entListVec
+
 
   isFinalized_ = true;
 

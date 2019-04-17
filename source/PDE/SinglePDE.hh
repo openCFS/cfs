@@ -191,7 +191,15 @@ class BaseFieldFunctor;
                               PtrCoefFct & coef,
                               std::set<UInt>& definedDofs,
                               bool& updateGeo);
-    
+
+
+    //! Read history result
+    template<typename T>
+    void ReadUserHistValues(  PtrParamNode valueNode,
+        ResultInfo::EntryType type,
+        Vector<T>& res);
+
+
     /** Define all RHS linearforms for load / excitation
      * @param input for multiple load optimization we point to the multipleExcitation excitiation definition. Default is from bscAndLoads() */
     virtual void DefineRhsLoadIntegrators(PtrParamNode input) { }

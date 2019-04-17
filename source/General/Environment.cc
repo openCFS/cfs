@@ -252,6 +252,10 @@ namespace CoupledField {
         return "A/m^2";
         break;
 
+      case ELEC_GRAD_V_INT:
+        return "A";
+        break;
+
       case ELEC_NORMAL_CURRENT_DENSITY:
         return "A/m^2";
         break;
@@ -435,8 +439,13 @@ namespace CoupledField {
         break;
 
       case MAG_SCALAR_POTENTIAL:
+
       case COIL_CURRENT:
         return "A";
+        break;
+
+      case COIL_VOLTAGE:
+        return "V";
         break;
 
       case COIL_CURRENT_DERIV1:
@@ -1359,6 +1368,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_SURF, "elecFieldIntensitySurf");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_CURRENT_DENSITY, "elecCurrentDensity");
+    SolutionTypeEnum.Add(ELEC_GRAD_V_INT, "elecGradVInt");
     SolutionTypeEnum.Add(ELEC_NORMAL_CURRENT_DENSITY, "elecNormalCurrentDensity");
     SolutionTypeEnum.Add(ELEC_CURRENT, "elecCurrent");
     SolutionTypeEnum.Add(ELEC_POWER_DENSITY, "elecPowerDensity");
@@ -1478,6 +1488,7 @@ namespace CoupledField {
     // magnetic - coil results
     SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");
     SolutionTypeEnum.Add(COIL_CURRENT_DERIV1, "coilCurrentD1");
+    SolutionTypeEnum.Add(COIL_VOLTAGE, "coilVoltage");
     
     SolutionTypeEnum.Add(COIL_INDUCED_VOLTAGE, "coilInducedVoltage");
     SolutionTypeEnum.Add(COIL_INDUCTANCE, "coilInductance");

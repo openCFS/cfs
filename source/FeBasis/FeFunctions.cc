@@ -1179,8 +1179,12 @@ DECLARE_LOG(fefunc)
     Vector<T> elemSol, temp;
     GetElemSolution( elemSol, lpm.ptEl);
     // apply identity operator to it
-    BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
-    idOp_->ApplyOp(temp, lpm, ptFe, elemSol );
+    if( feSpace_->GetSpaceType() == FeSpace::SpaceType::CONSTANT){
+      temp = elemSol;
+    }else{
+      BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
+      idOp_->ApplyOp(temp, lpm, ptFe, elemSol );
+    }
     scal = temp[0];
   }
   

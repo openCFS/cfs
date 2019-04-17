@@ -1364,6 +1364,9 @@
                 <xsd:restriction base="xsd:token">
                   <xsd:enumeration value="current"/>
                   <xsd:enumeration value="voltage"/>
+                  <xsd:enumeration value="specialvoltage">
+                  </xsd:enumeration>
+                  <xsd:enumeration value="specialcurrent"/>
                   <xsd:enumeration value="external">
                     <xsd:annotation>
                       <xsd:documentation xml:lang="en">
@@ -1402,6 +1405,7 @@
                 <xsd:restriction base="xsd:token">
                   <xsd:enumeration value="current"/>
                   <xsd:enumeration value="voltage"/>
+                  <xsd:enumeration value="specialvoltage"/>
                   <xsd:enumeration value="external">
                     <xsd:annotation>
                       <xsd:documentation xml:lang="en">
@@ -1498,6 +1502,19 @@
               </xsd:complexType>
             </xsd:element>
 
+
+
+            <!--Specify the reading of grad(V)*grad(V) (needed in special A-V formulation) -->
+            <xsd:element name="gradV_in_gradV" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:choice>
+                  <!-- c) external -->
+                  <xsd:element name="external" minOccurs="0" maxOccurs="1" type="DT_ExtCurrentDens"/>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+            
+            
             <!-- Define layout of coil. Here we allow for two different
                  definitions:
                  a) number of turns and fill factor

@@ -8,6 +8,11 @@
  *       \brief    A-V formulation of the eddy current problem, whereas the
  *                 magnetic vector potential A is discretized with edge finite elements
  *                 and the electric scalar potential V with nodal finite elements.
+ *                 This is the classical (full fledged) A-V formulation, where we
+ *                 solve for A and V in a coupled way (mixed problem). There is actually
+ *                 an alternative to solving the full coupled problem by utilizing the
+ *                 properties of edge and nodal finite element function spaces, which is
+ *                 realized in MagEdgeSpecialAVPDE (child-class of MagEdgePDE).
  *
  *       \date     Dec. 27, 2018
  *       \author   kroppert

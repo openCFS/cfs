@@ -44,6 +44,8 @@ namespace CoupledField
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 
+    void DefineStandardIntegrators();
+
     //! Defines the integrators needed for ncInterfaces
     void DefineNcIntegrators();
 
@@ -130,6 +132,8 @@ namespace CoupledField
 
     //! store velocity bilinear forms
     std::map<RegionIdType, BaseBDBInt*> velocityInts_;
+
+    void DefineCoilIntegrators();
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

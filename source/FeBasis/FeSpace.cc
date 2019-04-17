@@ -184,7 +184,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   shared_ptr<FeSpace> FeSpace::CreateInstance( PtrParamNode aNode, 
                                                PtrParamNode infoNode,
                                                SpaceType reqType,
-                                               Grid* ptGrid ) {
+                                               Grid* ptGrid,
+                                               bool isAVExc) {
      
 
     /* One big Problem> Due to the splitting of spaces in Hi and Lo/Lagrange, it is not
@@ -318,7 +319,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         break;
       case CONSTANT:
         LOG_DBG(feSpace) << "Creating CONST space";
-        ret.reset(new FeSpaceConst(aNode, infoNode, ptGrid));
+        ret.reset(new FeSpaceConst(aNode, infoNode, ptGrid, isAVExc));
         break;
       case HDIV:
       case L2:
