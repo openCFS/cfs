@@ -48,49 +48,90 @@ CentroidInterpolator::~CentroidInterpolator(){
 
 bool CentroidInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
   /// this is the vector, which will be filled with the result
-  Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
   Integer stepIndex = resultManager_->GetStepIndex(filterResIds[0]);
 
-  // vector, containing the source data values
-  Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
+  if(resultManager_->GetExtInfo(filterResIds[0])->dType == ExtendedResultInfo::COMPLEX){
+    Vector<Complex>& returnVec = GetOwnResultVector<Complex>(filterResIds[0]);
 
-  //perform interpolation
+    // vector, containing the source data values
+    Vector<Complex>& inVec = GetUpstreamResultVector<Complex>(upResIds[0], stepIndex);
 
-  CF::Vector<Double> shFnc;
-  CF::StdVector<UInt> eqns;
-  CF::shared_ptr<ElemShapeMap> eShape;
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(filterResIds[0]);
-  returnVec.Init(0.0);
-  for(UInt i=0;i < interpolData_.size();++i){
-    QuantityStruct& aStru = interpolData_[i];
+    //perform interpolation
 
-    const Elem* curE = trgGrid_->GetElem(aStru.trgElemNum);
-    eShape = trgGrid_->GetElemShapeMap(curE,true);
+    CF::Vector<Double> shFnc;
+    CF::StdVector<UInt> eqns;
+    CF::shared_ptr<ElemShapeMap> eShape;
+    str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(filterResIds[0]);
+    returnVec.Init(0.0);
+    for(UInt i=0;i < interpolData_.size();++i){
+      QuantityStruct& aStru = interpolData_[i];
 
-    const CF::StdVector<UInt>& eConn = curE->connect;
+      const Elem* curE = trgGrid_->GetElem(aStru.trgElemNum);
+      eShape = trgGrid_->GetElemShapeMap(curE,true);
 
-    FeH1 * myElem = dynamic_cast<FeH1*>(eShape->GetBaseFE());
-    //we assume scalar shape functions
-    shFnc.Resize(eConn.GetSize());
-    shFnc.Init();
-    myElem->GetShFnc(shFnc,aStru.localCoords,curE);
-    Double curval = 0.0;
-    for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
-      downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
-      curval  = shFnc[aNode] * aStru.volume; //tODO this
-      for(UInt aDof=0;aDof < eqns.GetSize(); aDof++){
-        returnVec[eqns[aDof]] += curval * inVec[aStru.srcEqnSingle+aDof];
+      const CF::StdVector<UInt>& eConn = curE->connect;
+
+      FeH1 * myElem = dynamic_cast<FeH1*>(eShape->GetBaseFE());
+      //we assume scalar shape functions
+      shFnc.Resize(eConn.GetSize());
+      shFnc.Init();
+      myElem->GetShFnc(shFnc,aStru.localCoords,curE);
+      Double curval = 0.0;
+      for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
+        downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
+        curval  = shFnc[aNode] * aStru.volume; //tODO this
+        for(UInt aDof=0;aDof < eqns.GetSize(); aDof++){
+          returnVec[eqns[aDof]] += curval * inVec[aStru.srcEqnSingle+aDof];
+        }
       }
     }
-  }
 
-  returnVec.ScalarMult(globalFactor_);
+    returnVec.ScalarMult(globalFactor_);
+
+    } else {
+    Vector<Double>& returnVec = GetOwnResultVector<Double>(filterResIds[0]);
+
+    // vector, containing the source data values
+    Vector<Double>& inVec = GetUpstreamResultVector<Double>(upResIds[0], stepIndex);
+
+    //perform interpolation
+
+    CF::Vector<Double> shFnc;
+    CF::StdVector<UInt> eqns;
+    CF::shared_ptr<ElemShapeMap> eShape;
+    str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(filterResIds[0]);
+    returnVec.Init(0.0);
+    for(UInt i=0;i < interpolData_.size();++i){
+      QuantityStruct& aStru = interpolData_[i];
+
+      const Elem* curE = trgGrid_->GetElem(aStru.trgElemNum);
+      eShape = trgGrid_->GetElemShapeMap(curE,true);
+
+      const CF::StdVector<UInt>& eConn = curE->connect;
+
+      FeH1 * myElem = dynamic_cast<FeH1*>(eShape->GetBaseFE());
+      //we assume scalar shape functions
+      shFnc.Resize(eConn.GetSize());
+      shFnc.Init();
+      myElem->GetShFnc(shFnc,aStru.localCoords,curE);
+      Double curval = 0.0;
+      for(UInt aNode =0;aNode < eConn.GetSize(); ++aNode){
+        downMap->GetEquation(eqns,eConn[aNode],ExtendedResultInfo::NODE);
+        curval  = shFnc[aNode] * aStru.volume; //tODO this
+        for(UInt aDof=0;aDof < eqns.GetSize(); aDof++){
+          returnVec[eqns[aDof]] += curval * inVec[aStru.srcEqnSingle+aDof];
+        }
+      }
+    }
+
+    returnVec.ScalarMult(globalFactor_);
 
 
-  // Check filter mesh and output values
-  if(checkSum_ == 1){
-    Double intSource = returnVec.Sum();
-    std::cout<<"Sum over all sources (integrated) = "<<intSource<<std::endl;
+    // Check filter mesh and output values
+    if(checkSum_ == 1){
+      Double intSource = returnVec.Sum();
+      std::cout<<"Sum over all sources (integrated) = "<<intSource<<std::endl;
+    }
   }
 
   return true;
