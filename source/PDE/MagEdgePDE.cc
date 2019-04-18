@@ -339,55 +339,61 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           // =================================================
           // Standard linear Mass Matrix
           // =================================================
-    	    Double conductivity = 0.0; //
-    	        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
-    	        bool scaleByEdgeSize = false;
-    	        // use gradient of shape functions?
-    	        //bool useGrad = true;
-    	        if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
-    	          Matrix<Double> reluc;
-    	          // get tensor of permeability and determine max. value
-    	          materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY, Global::REAL );
-    	          conductivity =  regularizationFactor * reluc[0][0];
-    	          scaleByEdgeSize = true;
-    	          // add region to set of "regularized" regions
-    	          regularizedRegions_.insert(actRegion);
-    	        }
+          PtrCoefFct conductivityCoeff;
+          Double conductivity = 0.0;
+          if ( materials_[actRegion]->GetSymmetryType(MAG_CONDUCTIVITY) == BaseMaterial::GENERAL ){
+            conductivityCoeff = materials_[actRegion]->GetTensorCoefFnc(MAG_CONDUCTIVITY, FULL, Global::REAL);
+            Matrix<Double> conduc;
+            materials_[actRegion]->GetTensor( conduc, MAG_CONDUCTIVITY, Global::REAL );
+            conductivity = ( conduc[0][0]+conduc[1][1]+conduc[2][2] )/3;
+          }else{
+            materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+            conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(conductivity));
+          }
+          // regularize
+          bool scaleByEdgeSize = false;
+          if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
+            Matrix<Double> reluc;
+            // get tensor of permeability and determine max. value
+            materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY, Global::REAL );
+            conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(regularizationFactor * reluc[0][0]));
+            scaleByEdgeSize = true;
+            regularizedRegions_.insert(actRegion);
+          }
 
-    	        PtrCoefFct coeff =
-    	            CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
-    	        // add also material to global, distributed reluctivity coefficient function
-    	        conduc_->AddRegion(actRegion, coeff);
-    	        BaseBDBInt *massInt;
 
+          conduc_->AddRegion(actRegion, conductivityCoeff);
+          BaseBDBInt *massInt;
     	        BiLinFormContext * massContext;
     	        if ( analysistype_ == STATIC) {
     	          // we have to guarantee, that we add some mass to curl-curl integrator.
     	          // Additionally, the integrator gets scaled by the edge size for a uniform
     	          // conditioning
     	          massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),
-    	                                        coeff,1.0);
+    	                                        conductivityCoeff,1.0);
     	          massInt->SetName("MassIntegrator");
     	          massContext =  new BiLinFormContext(massInt, STIFFNESS );
     	        } else {
     	          // here we add the "normal" mass integrator, which gets not scaled by the
     	          // edge size
-    	          if( scaleByEdgeSize ) {
+
+    	          if( scaleByEdgeSize ) { // this is for non-conducting regions
     	            massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),
-    	                                          coeff,1.0, updatedGeo_);
+    	                                          conductivityCoeff,1.0, updatedGeo_);
     	            massContext = new BiLinFormContext(massInt, STIFFNESS );
     	          } else {
-    	            massInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl,3,1,Double>(),
-    	                                          coeff,1.0, updatedGeo_);
-    	            massContext = new BiLinFormContext(massInt, DAMPING );
+                  if ( conductivityCoeff->GetDimType() == CoefFunction::TENSOR ) {
+                    massInt = new BDBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(), conductivityCoeff, 1.0, updatedGeo_);
+                  } else {
+                    massInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl,3,1,Double>(), conductivityCoeff, 1.0, updatedGeo_);
+                  }
+                  massContext = new BiLinFormContext(massInt, DAMPING );
     	          }
     	          massInt->SetName("MassIntegrator");
-
     	        }
     	        massContext->SetEntities( actSDList, actSDList );
     	        massContext->SetFeFunctions( feFunc, feFunc );
     	        assemble_->AddBiLinearForm( massContext );
-
     	        // insert mass integrator to list of defined mass integrators
     	        massInts_[actRegion] = massInt;
       }// End of nonlin/lin mass matrix part

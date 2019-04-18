@@ -1079,7 +1079,15 @@ namespace CoupledField {
           material->SetSymmetryType(MAG_CONDUCTIVITY,BaseMaterial::ISOTROPIC);
         }
         else if (lin->Has("tensor")){
-          EXCEPTION("For magnetic simulation, no tensor-valued el. conductivity allowed");          }
+          // can only be a 3x3 tensor
+          Matrix<double> tensor(3,3);
+          PtrParamNode tens_pn = lin->GetByVal("tensor","dim1","3")->Get("real");
+
+          ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+          material->SetTensor(tensor, MAG_CONDUCTIVITY, Global::REAL);
+          material->SetSymmetryType(MAG_CONDUCTIVITY,BaseMaterial::GENERAL);
+          //EXCEPTION("For magnetic simulation, no tensor-valued el. conductivity allowed");
+        }
       }
       
       // we know only nonlinear isotropic material
