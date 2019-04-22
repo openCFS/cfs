@@ -2586,9 +2586,9 @@ def add_bc_for_box_varel(mesh,bounds):
     
     # support edges 
     if numpy.isclose(nodes[i][1],0.0):
-      if nodes[i][0] <= 1/20 + eps:
+      if nodes[i][0] <= 2/30 + eps:
         support.append(i)
-      elif nodes[i][2] <= 1/10 + eps:
+      elif nodes[i][2] <= 2/30 + eps:
         support.append(i)
         
   print("load:",len(load))

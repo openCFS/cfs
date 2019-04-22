@@ -490,7 +490,7 @@ parser.add_argument("--bc_interpolation", help="interpolation type for ortho bas
 parser.add_argument("--bc_beta", help="for heaviside interpolation (default 7.0)", type=float,default=7)
 parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float,default=0.5)
-parser.add_argument("--bc_smooth", help="number auf Taubin smoothing steps", type=int,default=40)
+parser.add_argument("--bc_smooth", help="number auf Taubin smoothing steps", type=int,default=0)
 parser.add_argument("--bc_thresh", help="lower and upper threshold (diameter) for ortho basecell, e.g. 1e-9,0.94")
 # print sys.argv
 
@@ -674,7 +674,7 @@ else:
   
 # do we have to do 1D optimization? 
 if not args.target_volume:
-  if args.mesh and (args.h5_nondes != "None" or args.h5_nondes_void != "None"):
+  if args.h5_nondes != "None" or args.h5_nondes_void != "None":
     nondes_void = None
     nondes_solid = None
     design = None
