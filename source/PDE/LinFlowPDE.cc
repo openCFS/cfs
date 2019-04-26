@@ -334,8 +334,14 @@ namespace CoupledField {
         //  diagonal integrator - partially integrated
         //  Grad Div term
         // ====================================================================
-    	  PtrCoefFct bulkViscosity = materials_[actRegion]->GetScalCoefFnc(
-    	          BULK_VISCOSITY, Global::REAL);
+    	  PtrCoefFct bulkViscosity1 = materials_[actRegion]->GetScalCoefFnc(BULK_VISCOSITY, Global::REAL);
+          // we will add -2/3 of dynamic viscosity to bulk viscosity in order to only have viscous effect
+          // on shear layer
+          // 1/3 is a coef for total bulk viscosity, therefore we ignore that here and only add -2
+
+          PtrCoefFct coeftwo = CoefFunction::Generate( mp_, Global::REAL, "-2.0");
+          PtrCoefFct coeftwodv = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, coeftwo, viscosity, CoefXpr::OP_MULT ) );
+          PtrCoefFct bulkViscosity = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, coeftwodv, bulkViscosity1, CoefXpr::OP_ADD ) );
     	  PtrCoefFct coef = CoefFunction::Generate( mp_,  Global::REAL,
     	      			  CoefXprBinOp(mp_, viscosity, bulkViscosity, CoefXpr::OP_ADD ) );
 
