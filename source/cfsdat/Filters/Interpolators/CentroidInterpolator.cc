@@ -224,7 +224,7 @@ void CentroidInterpolator::PrepareCalculation(){
       newStruct.srcEqnSingle = allSrcElems[aMatch];
       newStruct.trgElemNum = trgElements[aMatch]->elemNum;
 
-      coverage[trgElements[aMatch]->elemNum] = 1;
+      coverage[trgElements[aMatch]->elemNum -1] = 1;
 
       interpolData_.push_back(newStruct);
       ++foundCounter;
