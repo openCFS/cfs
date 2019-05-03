@@ -379,6 +379,7 @@ void DesignElement::Init()
   type_           = NO_TYPE;
   pseudoElementIndex_ = -1;
   elemVol_        = -1.0;
+  elemPorosity_   = -1.0;
 }
 
 
@@ -421,6 +422,15 @@ double DesignElement::CalcVolume()
 
   elemVol_ = domain->GetGrid()->GetElemShapeMap(elem, false)->CalcVolume();
   return elemVol_;
+}
+
+void DesignElement::SetElemPorosity(double vol)
+{
+  elemPorosity_ = vol;
+}
+
+double DesignElement::GetElemPorosity() {
+  return elemPorosity_;
 }
 
 unsigned int DesignElement::GetElementSolutionIndex() const

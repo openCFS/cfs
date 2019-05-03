@@ -3035,6 +3035,16 @@ namespace CoupledField {
     mev->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mev);
 
+    // === MECH_ELEM_POROSITY for parameterized material optimization (currently only necessary for two-scale optimization)
+    shared_ptr<ResultInfo> mep(new ResultInfo);
+    mep->resultType = MECH_ELEM_POROSITY;
+    mep->dofNames = "elemPorosity";
+    mep->unit = "";
+    mep->entryType = ResultInfo::SCALAR;
+    mep->definedOn = ResultInfo::ELEMENT;
+    mep->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mep);
+
     // the OPT_RESULT_* are added via the optimization stuff in DesignSpace.
   }
   

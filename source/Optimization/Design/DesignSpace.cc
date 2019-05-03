@@ -1840,7 +1840,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
       || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
   // search where in data we are
-  int base = (st == MECH_ELEM_VOL) ? 0:FindDesign(descr.design);
+  int base = (st == MECH_ELEM_VOL || st == MECH_ELEM_POROSITY) ? 0:FindDesign(descr.design);
   Excitation* ex = domain->GetOptimization() != NULL ? Optimization::context->GetExcitation() : NULL;
 
   for (it.Begin(); !it.IsEnd(); it++)
@@ -1863,6 +1863,8 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
         trans->GetValue(descr, result_value, dofs);
       } else if (st == MECH_ELEM_VOL) {
         result_value = org->CalcVolume();
+      } else if (st == MECH_ELEM_POROSITY) {
+        result_value = org->GetElemPorosity();
       }
       else
         org->GetValue(descr, result_value, dofs);

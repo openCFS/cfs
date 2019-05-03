@@ -540,6 +540,7 @@ namespace CoupledField {
         break;
 
       case MECH_ELEM_VOL:
+      case MECH_ELEM_POROSITY:
       case MECH_PSEUDO_DENSITY:
       case PHYSICAL_PSEUDO_DENSITY:
       case ELEC_PHYSICAL_PSEUDO_DENSITY:
@@ -1281,6 +1282,7 @@ namespace CoupledField {
     SolutionTypeEnum.SetName("SolutionTypeEnum");
     //mechanics
     SolutionTypeEnum.Add(MECH_DISPLACEMENT, "mechDisplacement");
+    SolutionTypeEnum.Add(MECH_ELEM_POROSITY, "mechElemPorosity");
     SolutionTypeEnum.Add(MECH_NORMAL_DISPLACEMENT, "mechNormalDisplacement");
     
     SolutionTypeEnum.Add(MECH_ACCELERATION, "mechAcceleration");

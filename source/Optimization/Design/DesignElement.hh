@@ -206,6 +206,12 @@ public:
   /** returns the type */
   virtual std::string ToString() const;
 
+  /** Set porosity per element, currently only implemented for two-scale volume */
+  virtual void SetElemPorosity (double vol) {EXCEPTION("Not implemented");};
+
+  /** Get porosity per element, currently only implemented for two-scale volume */
+  virtual double GetElemPorosity () {EXCEPTION("Not implemented");};
+
   /** This is only for the Heaviside Filter!! as is so often called there that it makes a real difference! */
   double GetPlainDesignValue() const { return design; }
 
@@ -448,6 +454,12 @@ public:
      * caches the result, hence cheap to query again */
     double CalcVolume();
 
+    /** Sets porosity per element, currently only implemented for two-scale volume*/
+    virtual void SetElemPorosity(double vol);
+
+    /** Get porosity per element, currently only implemented for two-scale volume*/
+    virtual double GetElemPorosity();
+
     /** to make the class polymorphi and we can dynamic_cast<> it */
     /** Pointer to the element of the region, parameter for integration, ... */
     Elem*  elem;
@@ -512,6 +524,9 @@ private:
 
   /** the element volume calculated on request by CalcVolume() */
   double elemVol_;
+
+  /** the element porosity calculated by eg. CalcTwoScaleVolume() */
+  double elemPorosity_;
 
   /** up to now only needed to extract 'penalizedDesign'. Make it protected
    * if you need it. */

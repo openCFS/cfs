@@ -671,7 +671,7 @@ def validate_periodicity(mesh):
    #create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
   
-  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper') or type == 'mbb')
+  assert(type == 'bulk2d' or type == 'cantilever2d' or  type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper') or type == 'mbb')
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
   assert(inclusion_size == None or inclusion_size <= 2.0)
   
@@ -762,14 +762,14 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
         e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))    
         mesh.elements.append(e)
   
-    mesh.bc.append(("south", list(range(0, nx + 1))))
-    mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
-    mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
-    mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
-    mesh.bc.append(("left_lower", [0]))
-    mesh.bc.append(("right_lower", [nx]))
-    mesh.bc.append(("left_upper", [(nx+1)*ny]))
-    mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+  mesh.bc.append(("south", list(range(0, nx + 1))))
+  mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
+  mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
+  mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
+  mesh.bc.append(("left_lower", [0]))
+  mesh.bc.append(("right_lower", [nx]))
+  mesh.bc.append(("left_upper", [(nx+1)*ny]))
+  mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
   if type == 'two_load':
     mid = int((nx+1.)/2.)
     mesh.bc.append(("load1", list(range(mid,mid+1))))
@@ -889,7 +889,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test" or type == "traegerblz" or type == "box_lufo")
 
   nx = x_res  
-   
+  eps = 1e-6 
   if type == "bulk3d": 
     ny = y_res if y_res != None else x_res 
     nz = z_res if z_res != None else x_res 
@@ -992,7 +992,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
         elif inclusion == 'ball' and numpy.sqrt((x-nnx/2)**2 + (y-nny/2)**2 + (z-nnz/2)**2) <= nnx*inclusion_size: 
           e.region = 'inner' if not threshold or e.density > threshold else 'void'  
           second += 1
-        elif inclusion == "top_panel" and y == ny-1:
+        elif inclusion == "top_panel" and y > ny-1-int(0.05*ny + 0.5+eps):
           e.region = 'non-design'
           second += 1  
           e.region = "non-design" if not threshold or e.density > threshold else 'void'    
@@ -1024,18 +1024,18 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
   if type == "bulk3d" and inclusion == "top_panel":
     # width of support area 
     sa = 0.05
+    sz = 0.1
     # number of elements on each side
-    nsa_x = nx * sa
-    nsa_z = nz * sa
+    nsa_x = nx * sa+1
+    nsa_z = nz * sz+1
     
-    # x == 0, y == 0
-    for i in range(int(nsa_x)):
+    # x == 0:0.1*nx, y == 0
+    for i in range(int(nsa_x+0.5+eps)):
       mesh.bc.append(("support",list(range(i,nnx*nny*nnz-nnx-1,nnx*nny))))
     
-    # y == 0, z == 0
-    for i in range(int(nsa_z)):
+    # y == 0, z == 0:0.1*nz
+    for i in range(int(nsa_z+0.5+eps)):
       mesh.bc.append(("support",list(range(i*nnx*nny,i*nnx*nny+nnx,1))))
-      mesh.bc.append(("support",list(range(2*nnx*nny,2*nnx*nny+nnx,1))))  
     # loads are all nodes in x-z plane for y == nny
     for i in range(0,nnz):
       mesh.bc.append(("force",list(range(nnx*ny+nnx*nny*i,nnx*nny*(i+1),1))))
