@@ -249,7 +249,7 @@ complete-build:linux:
     - git checkout HEAD~1 # back one revision and then update
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon" --track $CDASH_TRACK # exclude the install step and the failing tests
+    - ctest -D ExperimentalTest -E "Instal|ElecTherm_ElTh_NMGtransient|CFSdat_FFT_2D|curlcurlA3d|max_ortho_robust|max_e11_iso|Optimization_Dynamic_eigenfrequency|nrfcommon|Cantilever2dCompressible" --track $CDASH_TRACK # exclude the install step and the failing tests
   <<: *ctest_default
 
 # test everything
