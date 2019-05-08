@@ -68,7 +68,7 @@ namespace CoupledField
     void DefineSurfaceIntegrators( ){};
     
     //! Define all RHS linearforms for load / excitation 
-    void DefineRhsLoadIntegrators();
+    void DefineRhsLoadIntegrators(PtrParamNode input);
     
     //! define the SoltionStep-Driver
     void DefineSolveStep();
@@ -118,8 +118,9 @@ namespace CoupledField
     //! needed for calculating H field
     std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
     
-    //! Query parameter object for information on coils
-    void ReadCoils();
+    /** Query parameter object for information on coils
+     * @param coilList the input from xml  myParam_->Get( "coilList", ParamNode::PASS ) */
+    void ReadCoils(PtrParamNode coilList);
     
     //! Initialize time stepping method
     void InitTimeStepping();

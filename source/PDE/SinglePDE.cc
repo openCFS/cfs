@@ -1343,7 +1343,6 @@ namespace CoupledField {
         delim = fap.delim;
       }
       
-      
       // print out information
       if( isComplex_ ){
         // cast solution vector

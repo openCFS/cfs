@@ -639,7 +639,6 @@ void MultipleExcitation::ApplyTransformations(const Context* ctxt, DesignSpace* 
 
       LOG_DBG3(exlog) << "AT: t=" << t << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.IsEmpty() || ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
                       << " m=" << ex.meta_index << " ra=" << ex.reassemble << " w=" << ex.weight;
-
     }
   }
 }
@@ -652,6 +651,8 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
   assert(excitations.GetCapacity() >= base + num_loads * GetNumberMeta(ctxt, true));
   excitations.Resize(base + num_loads);
 
+  LOG_DBG(exlog)<< "ME:SLC base=" << base << " pn=" << pn_ex.GetSize() << " nl=" << num_loads << " a-lf size=" << ass->GetLinForms().GetSize();
+
   // when the loads are given in the optimization section of the xml file
   if(pn_ex.GetSize() > 0)
   {
@@ -662,26 +663,35 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
     // don't mix optimization excitations with bcsAndLoads stuff
     if (ass->GetLinForms().GetSize() > 0) {
       std::string msg = "Excitations are given in optimization mulitload. "
-          + boost::lexical_cast<std::string>(ass->GetLinForms().GetSize())
+          + to_string(ass->GetLinForms().GetSize())
+          // + boost::lexical_cast<std::string>(ass->GetLinForms().GetSize()) // remove it compiles
           + " loads from the bcsAndLoads section will be deleted.";
       opt->optInfoNode->Get(ParamNode::HEADER)->SetWarning(msg);
     }
 
-    ass->GetLinForms().Clear(); // the forms are gone!
+    ass->GetLinForms().Clear(); // the forms eventually read by cfs are ignored, we use our own from optimization
 
     assert(excitations.GetSize() - base == pn_ex.GetSize());
 
     for(int i = 0; i < num_loads; i++)
     {
-      parser->SetExpr(handle, pn_ex[i]->Get("weight")->As<std::string>());
+      PtrParamNode pnex = pn_ex[i];
+      parser->SetExpr(handle, pnex->Get("weight")->As<std::string>());
       const double weight = parser->Eval(handle);
       Excitation& ex = excitations[base + i];
       ex.weight = weight;
 
-      if (pn_ex[i]->Has("trackings"))
-        ex.ReadTrackings(pn_ex[i]->Get("trackings"));
+      // pn_ex[i] is an excitation which is @weight and content force/coilList/.. we want to extract the content
+      assert(pnex->GetChildren().GetSize() == 2);
+      int wix = pnex->GetIndex("weight");
+      assert(wix == 0 || wix == 1);
+      PtrParamNode content = pnex->GetChildren()[1-wix];
+      assert(content->GetName() != "weight");
 
-      ex.ReadLoads(ctxt, pn_ex[i]); // possibly multiple forms for one excitation has it's own Resize(0)
+      if (pn_ex[i]->Has("trackings"))
+        ex.ReadTrackings(pnex->Get("trackings"));
+
+      ex.ReadLoads(ctxt, content); // possibly multiple forms for one excitation has it's own Resize(0)
     }
 
     parser->ReleaseHandle(handle);
@@ -756,7 +766,6 @@ void MultipleExcitation::NormalizeMultipleExcitations(ObjectiveContainer* object
     }
   }
 
-
   // normalize
   double weight_sum = 0.0;
 
@@ -803,7 +812,6 @@ unsigned int MultipleExcitation::GetUniqueFrequencies() const
     if(ex.frequency >= 0 && !freq.Contains(ex.frequency))
       freq.Push_back(ex.frequency);
   }
-
   return freq.GetSize();
 }
 
@@ -945,16 +953,17 @@ void Excitation::ReadLoads(Context* ctxt, PtrParamNode ls)
   // the original loads need to be cleared before
   Assemble* ass = ctxt->pde->GetAssemble();
   assert(ass->GetLinForms().GetSize() == 0);
-
+  LOG_DBG(exlog) << "RL: paramnode #ls=" << ls->GetChildren().GetSize() << " ls=" << ls->GetName();
+  ls->Dump();
   // reads all loads and adds them to Assemble::linForms_
   ctxt->pde->DefineRhsLoadIntegrators(ls);
 
-
+  LOG_DBG(exlog) << "RL: paramnode ls: " << ls << " ctxt exc size: " << ctxt->excitations.GetSize();
   // own vector with the pointers in assemble and we have to delete the content
   forms = ass->GetLinForms(true); // take ownership. copy constructor!
   assert(forms.GetSize() > 0);
 
-  // delete the stuff from assemble to prepare for the next ReadLoads()
+  // delete the stuff from assemble to prepare for the next (()
   ass->GetLinForms().Resize(0); // the elements must not be destructed
 }
 

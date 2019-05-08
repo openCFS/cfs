@@ -680,8 +680,6 @@ void MagSIMP::CalcCouplingAdjRealRHS(Excitation& excite, Function* f, Vector<dou
   {
     throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
   }
-  // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
-  // we return value 0 for the first excitation and 2*coupling for the second excitation
   assert(GetMultipleExcitation()->excitations.GetSize() == 2);
   Excitation& excite_A = GetMultipleExcitation()->excitations[0];
   Excitation& excite_B = GetMultipleExcitation()->excitations[1];
@@ -748,10 +746,6 @@ void MagSIMP::CalcCouplingAdjComplexRHS(Excitation& excite, Function* f, Vector<
    * factor =
    */
   // same as in CalcCoupling
-
-  // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
-  // we return value 0 for the first excitation and 2*coupling for the second excitation
-  //assert(GetMultipleExcitation()->excitations.GetSize() == 2);
 
   LOG_DBG2(ms) << "CCAR: num excitations: " << GetMultipleExcitation()->excitations.GetSize();
   assert(f->ctxt->IsComplex());

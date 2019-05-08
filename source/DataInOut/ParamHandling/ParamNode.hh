@@ -318,8 +318,13 @@ namespace CoupledField
     * that there might be only one XML attribute but multiple XML simple elements and we do not differentiate 
     * between this two types. 
     * @param name might contains several levels by the '/' token.
+    * @return index of the first direct child (leaf or "complex") with the given name or -1 if none */
+    int GetIndex(const std::string& name) const;
+
+    /* @seee GetIndex()
     * @return true if there is at least one direct child (leaf or "complex") with the given name */
-    bool Has( const std::string& name ) const;  
+    bool Has(const std::string& name) const;
+
 
     //@{
     /** Checks if there is at least one direct child with the given name and an attribute with the given value.<br>
@@ -393,7 +398,7 @@ namespace CoupledField
     * @return an empty list only for an empty parameter */
     StdVector<std::string> SplitIntoTokens(const std::string& input) const;
 
-    /** Speed up the tokenizer stuff from SplitIntoTokens() by asking if it containts tokens. */
+    /** Speed up the tokenizer stuff from SplitIntoTokens() by asking if it contains tokens. */
     bool ContainsTokens(const std::string& input) const
     {
       return input.find('/') != std::string::npos;
@@ -403,8 +408,7 @@ namespace CoupledField
 
     /** Helper that implements a Get() as same as Has(). Call this if ContainsTokens() returns true. */
     template<typename TYPE>
-    PtrParamNode TokenizedHasAndGet(const std::string& name, const TYPE& value,
-                                   bool restrictToVal ) const;
+    PtrParamNode TokenizedHasAndGet(const std::string& name, const TYPE& value, bool restrictToVal ) const;
     
     /** Makes a valid XML name, e.g. removes spaces. Used to create
     * automatically an ParamNode::name_ value out of caption_

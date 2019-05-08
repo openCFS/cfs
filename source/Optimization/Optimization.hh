@@ -302,7 +302,7 @@ namespace CoupledField
         virtual void StoreResults(double step_val = -1.0);
 
 
-        /** Our MultipleExcitation objecte - by default disabled. Even if we have potenitally more than one
+        /** Our MultipleExcitation object - by default disabled. Even if we have potentially more than one
          * "multipleExcitation" element in the xml problem file in the case of multi sequence optimization we have
          * only one MultipleExcitaiton object. However some of the information is stored in the corresponding context
          * @see Optimization::contextManager */

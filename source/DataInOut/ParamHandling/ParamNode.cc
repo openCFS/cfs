@@ -662,30 +662,31 @@ void ParamNode::GetValue(const std::string& name, TYPE& ret, ActionType action)
 bool ParamNode::Has(const string& name) const
 {
   // check in a fast way if we have tokens for trivial xpath
-  if (ContainsTokens(name))
-  {
+  if(ContainsTokens(name)) // check for path, if so, we cannot compare for name
     return TokenizedHasAndGet(name, string(""), false) == NULL ? false : true ;
-  }
-  else
-  {
-    for (unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++)
-    {
-      if (children_[i]->name_ == name)
-        return true;
-    }
-    return false;
-  }
+
+  return GetIndex(name) >= 0;
 }
 
-template<typename TYPE>
-bool ParamNode::HasByVal(const string& parent, const string& child,
-    const TYPE& value) const
+int ParamNode::GetIndex(const string& name) const
 {
-  if (ContainsTokens(parent))
+  assert(!ContainsTokens(name));
+
+  for(unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++)
   {
-    EXCEPTION("HasByVal(parent, child, value) does not allow for "
-        "tokenized search strings! ");
+    if(children_[i]->name_ == name)
+      return i;
   }
+  return -1;
+}
+
+
+template<typename TYPE>
+bool ParamNode::HasByVal(const string& parent, const string& child, const TYPE& value) const
+{
+  if(ContainsTokens(parent))
+    EXCEPTION("HasByVal(parent, child, value) does not allow for tokenized search strings!");
+
   // see GetList() for comments
   for (unsigned int p = 0, chsize = children_.GetSize(); p < chsize; ++p)
   {

@@ -783,13 +783,21 @@ namespace CoupledField {
   }
   
   
-  void MagneticPDE::DefineRhsLoadIntegrators() {
+  void MagneticPDE::DefineRhsLoadIntegrators(PtrParamNode input) {
     
     double factor = 1.0;
     if ( isMagnetoStrictCoupled_ == true ){
       factor = -1.0;  
     }
     
+    // the input is only given when called by optimization Excitation::ReadLoads()
+    if(input)
+    {
+      assert(domain->GetOptimization() != NULL);
+      ReadCoils(input);
+      return; // to leave in the Excitation::ReadLoads() case or not to leave?! :)
+    }
+
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
     
     // ==================
@@ -1123,7 +1131,7 @@ namespace CoupledField {
     // --------------------------------------------------------------------
     //   Get information about coils and open files for measurement coils
     // --------------------------------------------------------------------
-    ReadCoils();
+    ReadCoils(myParam_->Get( "coilList", ParamNode::PASS));
   }
   
   
@@ -1164,101 +1172,101 @@ namespace CoupledField {
   // ******************************************************
   //   Query parameter object for information about coils
   // ******************************************************
-  void MagneticPDE::ReadCoils() {
-    
-    // Check if the element "coils" is present at all.
-    // Otherwise leave
-    PtrParamNode coilNode = myParam_->Get( "coilList", ParamNode::PASS );
-    PtrParamNode coilInfoNode = myInfo_->Get( "coilList", ParamNode::PASS );
-    if ( !coilNode )
+  void MagneticPDE::ReadCoils(PtrParamNode coilList)
+  {
+    // coilList might be empty:  myParam_->Get( "coilList", ParamNode::PASS );
+    if(!coilList)
       return;
+
+    PtrParamNode coilInfoNode = myInfo_->Get( "coilList", ParamNode::PASS );
     
     // Get single coil nodes
-    ParamNodeList coilNodes = coilNode->GetChildren();
+    ParamNodeList coilNodes = coilList->GetChildren();
     
+    coilList->Dump();
     // Trigger reading in of definitions
     Global::ComplexPart cplx = isComplex_ ? Global::COMPLEX : Global::REAL;
-    if( coilNodes.GetSize() > 0 ) {
-      for( UInt i = 0; i < coilNodes.GetSize(); i++ ) {
-        
-        // get coil and id
-        std::string coilId = coilNodes[i]->Get("id")->As<std::string>();
-        
-        // Check if coil with same ID already exists
-        if( coils_.find(coilId) != coils_.end() ) {
-          EXCEPTION("A coil with ID '" << coilId << "' was already defined.")
-        }
-        
-        // Create new coil
-        shared_ptr<Coil> actCoil( new Coil( coilNodes[i], coilInfoNode, 
-                ptGrid_, mp_, cplx ) );
-        coils_[coilId] = actCoil;
-        
-        // Associate mapping of coil parts with regions
-        std::map<RegionIdType, shared_ptr<Coil::Part> >::const_iterator it;
-        for( it = actCoil->parts_.begin(); it != actCoil->parts_.end(); it++ ) {
-          coilRegions_[it->first] = actCoil;
-        }
+    for( UInt i = 0; i < coilNodes.GetSize(); i++ )
+    {
+      if(coilNodes[i]->GetName() != "coil") // when we read loads from optimization, this might be "weight"
+        continue;
+
+      // get coil and id
+      std::string coilId = coilNodes[i]->Get("id")->As<std::string>();
+
+      // Check if coil with same ID already exists
+      if( coils_.find(coilId) != coils_.end() ) {
+        EXCEPTION("A coil with ID '" << coilId << "' was already defined.")
       }
-      
-      // Insert the current densities which are defined externally (simulation or sequence step).
-      // This is done here because it is impossible for the coil to use a PDE pointer.
-      // We have to distinguish between external current density direction and external source.
-      // External source includes the direction, but not vice versa. Therefore, the external source
-      // must be stored per part anyway, although it counts for the whole coil. Additionally, the
-      // parts need the regions and coef functions.
-      std::map<Coil::IdType, shared_ptr<Coil> >::iterator coilIt;
-      for( coilIt = coils_.begin(); coilIt != coils_.end(); ++coilIt ){
-        std::map<shared_ptr<Coil::Part>, PtrParamNode >::iterator extPartIt;
-        for( extPartIt = coilIt->second->partsExtJDir_.begin();
-                extPartIt != coilIt->second->partsExtJDir_.end(); ++extPartIt ){
-          PtrParamNode extNode = extPartIt->second;
-          // determine if normalise is set
-          bool normalise = true;
-          if ( extNode->Has("normalise") ) {
-            if ( extNode->Get("normalise")->As<std::string>() == "no" ) {
-              normalise = false;
-            }
+
+      // Create new coil
+      shared_ptr<Coil> actCoil(new Coil( coilNodes[i], coilInfoNode, ptGrid_, mp_, cplx));
+      coils_[coilId] = actCoil;
+
+      // Associate mapping of coil parts with regions
+      std::map<RegionIdType, shared_ptr<Coil::Part> >::const_iterator it;
+      for( it = actCoil->parts_.begin(); it != actCoil->parts_.end(); it++ ) {
+        coilRegions_[it->first] = actCoil;
+      }
+    }
+
+    // Insert the current densities which are defined externally (simulation or sequence step).
+    // This is done here because it is impossible for the coil to use a PDE pointer.
+    // We have to distinguish between external current density direction and external source.
+    // External source includes the direction, but not vice versa. Therefore, the external source
+    // must be stored per part anyway, although it counts for the whole coil. Additionally, the
+    // parts need the regions and coef functions.
+    std::map<Coil::IdType, shared_ptr<Coil> >::iterator coilIt;
+    for( coilIt = coils_.begin(); coilIt != coils_.end(); ++coilIt ){
+      std::map<shared_ptr<Coil::Part>, PtrParamNode >::iterator extPartIt;
+      for( extPartIt = coilIt->second->partsExtJDir_.begin();
+          extPartIt != coilIt->second->partsExtJDir_.end(); ++extPartIt ){
+        PtrParamNode extNode = extPartIt->second;
+        // determine if normalise is set
+        bool normalise = true;
+        if ( extNode->Has("normalise") ) {
+          if ( extNode->Get("normalise")->As<std::string>() == "no" ) {
+            normalise = false;
           }
-          shared_ptr<CoefFunctionMulti> unitCurrDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
-                  isComplex_));
-          shared_ptr<CoefFunctionMulti> currDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
-                  isComplex_));
-          for( UInt k_reg = 0; k_reg < extPartIt->first->regions.GetSize(); ++k_reg ){
-            std::string regName = ptGrid_->regionData[extPartIt->first->regions[k_reg]].name;
-            shared_ptr<EntityList> elems;
-            elems = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regName );
-            PtrCoefFct regCurrDens; // ReadUserFieldValues assigns a value to this
-            StdVector<std::string> vecComponents;
-            vecComponents = "x", "y", "z";
-            std::set<UInt> definedDofs; // ReadUserFieldValues assigns a value to this
-            bool updateGeo; // ReadUserFieldValues assigns a value to this
-            ReadUserFieldValues(elems,extNode,vecComponents,
-                    ResultInfo::VECTOR,isComplex_,regCurrDens,
-                    definedDofs,updateGeo);
-            // take the read values and normalise to a length of 1
-            PtrCoefFct unitDir;
-            if ( normalise ) {
-              CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mp_, regCurrDens, CoefXpr::OP_NORM );
-              PtrCoefFct dirAbs = CoefFunction::Generate( mp_, cplx, dirAbsOp );
-              CoefXprVecScalOp unitOp = CoefXprVecScalOp( mp_, regCurrDens, dirAbs, CoefXpr::OP_DIV );
-              unitDir = CoefFunction::Generate( mp_, cplx, unitOp );
-            }
-            else {
-              unitDir = regCurrDens;
-            }
-            unitCurrDens->AddRegion(extPartIt->first->regions[k_reg],unitDir);
-            if( coilIt->second->sourceType_ == Coil::EXTERNAL ){
-              currDens->AddRegion(extPartIt->first->regions[k_reg],regCurrDens);
-            }
+        }
+        shared_ptr<CoefFunctionMulti> unitCurrDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
+            isComplex_));
+        shared_ptr<CoefFunctionMulti> currDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
+            isComplex_));
+        for( UInt k_reg = 0; k_reg < extPartIt->first->regions.GetSize(); ++k_reg ){
+          std::string regName = ptGrid_->regionData[extPartIt->first->regions[k_reg]].name;
+          shared_ptr<EntityList> elems;
+          elems = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regName );
+          PtrCoefFct regCurrDens; // ReadUserFieldValues assigns a value to this
+          StdVector<std::string> vecComponents;
+          vecComponents = "x", "y", "z";
+          std::set<UInt> definedDofs; // ReadUserFieldValues assigns a value to this
+          bool updateGeo; // ReadUserFieldValues assigns a value to this
+          ReadUserFieldValues(elems,extNode,vecComponents,
+              ResultInfo::VECTOR,isComplex_,regCurrDens,
+              definedDofs,updateGeo);
+          // take the read values and normalise to a length of 1
+          PtrCoefFct unitDir;
+          if ( normalise ) {
+            CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mp_, regCurrDens, CoefXpr::OP_NORM );
+            PtrCoefFct dirAbs = CoefFunction::Generate( mp_, cplx, dirAbsOp );
+            CoefXprVecScalOp unitOp = CoefXprVecScalOp( mp_, regCurrDens, dirAbs, CoefXpr::OP_DIV );
+            unitDir = CoefFunction::Generate( mp_, cplx, unitOp );
           }
-          extPartIt->first->jUnitVec = unitCurrDens;
+          else {
+            unitDir = regCurrDens;
+          }
+          unitCurrDens->AddRegion(extPartIt->first->regions[k_reg],unitDir);
           if( coilIt->second->sourceType_ == Coil::EXTERNAL ){
-            coilPartsExtJ_[extPartIt->first] = currDens;
+            currDens->AddRegion(extPartIt->first->regions[k_reg],regCurrDens);
           }
         }
+        extPartIt->first->jUnitVec = unitCurrDens;
+        if( coilIt->second->sourceType_ == Coil::EXTERNAL ){
+          coilPartsExtJ_[extPartIt->first] = currDens;
+        }
       }
-      
+
       // Adjust printing of coil information to info node
       // WARN("Adapt printing of coils to InfoNode");
     }
