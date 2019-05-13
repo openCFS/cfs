@@ -520,8 +520,7 @@ namespace CoupledField {
 		  // run over all parts
 		  std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt;
 		  partIt = actCoil.parts_.begin();
-		  if(( actCoil.sourceType_ == Coil::CURRENT )||
-              ( actCoil.sourceType_ == Coil::EXTERNAL )) {
+		  if(( actCoil.sourceType_ == Coil::CURRENT )|| ( actCoil.sourceType_ == Coil::EXTERNAL )) {
 			  /*
          =====================================================
          1) CURRENT driven coils OR EXTERNAL current density
@@ -564,40 +563,24 @@ namespace CoupledField {
 
 				  coilCurrentDens_[actRegion] = jFct;
 
-
 				  if( dim_ == 3 ) {
-					  // ===========
-            //  3D CASE
-            // ===========
-            if( isComplex_ ) {
-              curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
-                      factor, jFct, updatedGeo_);
-            }
-            else {
-              curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
-                      factor, jFct, updatedGeo_);
-            }
-            
+            if(isComplex_)
+              curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(), factor, jFct, updatedGeo_);
+            else
+              curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(), factor, jFct, updatedGeo_);
 				  } else {
-					  // ===============
 					  //  2D / AXI CASE
-					  // ===============
-            
-					  if( isComplex_ ) {
-						  curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1>(),
-                      factor, jFct, updatedGeo_);
-					  } else {
-						  curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1>(),
-                      factor, jFct, updatedGeo_);
-					  }
+					  if(isComplex_)
+						  curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1>(), factor, jFct, updatedGeo_);
+					   else
+						  curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1>(), factor, jFct, updatedGeo_);
 				  }
           
 				  curInt->SetName("CoilIntegrator");
-				  LinearFormContext * coilContext =
-                  new LinearFormContext( curInt );
-				  coilContext->SetEntities( actSDList );
-				  coilContext->SetFeFunction( myFct );
-				  assemble_->AddLinearForm( coilContext );
+				  LinearFormContext* coilContext = new LinearFormContext( curInt );
+				  coilContext->SetEntities(actSDList);
+				  coilContext->SetFeFunction(myFct);
+				  assemble_->AddLinearForm(coilContext);
 
 	        // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
 	        if(cfoc)
@@ -628,7 +611,7 @@ namespace CoupledField {
                 partIt != actCoil.parts_.end();
                 partIt++ ) {
           
-				  Coil::Part & actPart = *(partIt->second);
+				  Coil::Part& actPart = *(partIt->second);
           
 				  if( totRstr.empty() ){
 					  totRstr = actPart.resistance;
@@ -795,7 +778,7 @@ namespace CoupledField {
     {
       assert(domain->GetOptimization() != NULL);
       ReadCoils(input);
-      return; // to leave in the Excitation::ReadLoads() case or not to leave?! :)
+      //return; // to leave in the Excitation::ReadLoads() case or not to leave?! :)
     }
 
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
@@ -1229,10 +1212,8 @@ namespace CoupledField {
             normalise = false;
           }
         }
-        shared_ptr<CoefFunctionMulti> unitCurrDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
-            isComplex_));
-        shared_ptr<CoefFunctionMulti> currDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
-            isComplex_));
+        shared_ptr<CoefFunctionMulti> unitCurrDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
+        shared_ptr<CoefFunctionMulti> currDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
         for( UInt k_reg = 0; k_reg < extPartIt->first->regions.GetSize(); ++k_reg ){
           std::string regName = ptGrid_->regionData[extPartIt->first->regions[k_reg]].name;
           shared_ptr<EntityList> elems;
