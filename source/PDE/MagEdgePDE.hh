@@ -125,6 +125,11 @@ namespace CoupledField
     shared_ptr<CoefFunction> multiHarmCoef_;
 
   private:
+    //! This coefficient function describes the velocity field.
+    shared_ptr<CoefFunctionMulti> VelocityCoef_;
+
+    //! store velocity bilinear forms
+    std::map<RegionIdType, BaseBDBInt*> velocityInts_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

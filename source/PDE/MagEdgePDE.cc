@@ -25,6 +25,7 @@
 // forms
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/BDUInt.hh"
@@ -398,7 +399,73 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     	        massInts_[actRegion] = massInt;
       }// End of nonlin/lin mass matrix part
 
+      // ====================================================================
+      // check for velocity
+      // ====================================================================
+      std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
+      if(velocityId != "")
+      {
+        // Get result info object for flow
+        shared_ptr<ResultInfo> velInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
 
+        // Add the region information
+        PtrParamNode velNode = myParam_->Get("velocityList")->GetByVal("velocity","name",velocityId.c_str());
+
+        // Read velocity coefficient function for this region and add it to velocity functor
+        PtrCoefFct regionMoving;
+        std::set<UInt> definedDofs;
+        bool coefUpdateGeo;
+        //we assume that velocity is real
+        ReadUserFieldValues( actSDList, velNode, velInfo->dofNames, velInfo->entryType, isComplex_, regionMoving, definedDofs, coefUpdateGeo );
+        VelocityCoef_->AddRegion( actRegion, regionMoving );
+
+        //coef-Fnc for electric conductivity
+        Matrix<Double> reluc;
+        Double conductivity = 0.0;
+
+        // get conductivity
+        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+        assert(conductivity != 0.0);
+        //PtrCoefFct coeff = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
+        PtrCoefFct coeff = materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
+
+        // Create the integrators
+        BaseBDBInt   *velocityStiff = NULL;
+
+        // ConvectiveOperator doesn't work with FeHCurl, works at the moment just with FeH1, I am working on it
+        if( isComplex_ )
+        {
+//          if(dim_ == 2)
+//          {
+//            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,2,1>(),new ConvectiveOperator<FeHCurl,2,1,Complex>(), coeff, 1.0, coefUpdateGeo);
+//          }
+//          else
+//          {
+//            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,3,1>(),new ConvectiveOperator<FeHCurl,3,1,Complex>(), coeff, 1.0, coefUpdateGeo);
+//          }
+        }
+        else
+        {
+          if(dim_ == 2)
+          {
+            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,2,1>(),new CurlOperatorMag<FeHCurl,2,Double>(),coeff, 1.0, coefUpdateGeo);
+          }
+          else
+          {
+            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,3,1>(),new CurlOperatorMag<FeHCurl,3,Double>(),coeff, 1.0, coefUpdateGeo);
+          }
+        }
+        assert(velocityStiff != NULL);
+
+        velocityStiff->SetBCoefFunctionOpB(VelocityCoef_);
+        velocityStiff->SetName("VelocityStiffInt");
+        velocityInts_[actRegion] = velocityStiff;
+
+        BiLinFormContext *VelocityContextStiff =  new BiLinFormContext(velocityStiff, STIFFNESS );
+        VelocityContextStiff->SetEntities( actSDList, actSDList );
+        VelocityContextStiff->SetFeFunctions( feFunctions_[MAG_POTENTIAL],feFunc);
+        assemble_->AddBiLinearForm( VelocityContextStiff );
+      }
 
     } // end for regions
 
@@ -968,6 +1035,33 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
       DefineFieldResult(permFct, permeability);
     }
+
+    //creates the velocity
+    StdVector<std::string> vecDofNames;
+    if( ptGrid_->GetDim() == 3 ) {
+      vecDofNames = "x", "y", "z";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        vecDofNames = "r", "z";
+      } else {
+        vecDofNames = "x", "y";
+      }
+    }
+
+    //// === VELOCITY ===
+    shared_ptr<ResultInfo> velocity( new ResultInfo);
+    velocity->resultType = MEAN_FLUIDMECH_VELOCITY;
+    velocity->dofNames = vecDofNames;
+    velocity->unit = "m/s";
+
+    velocity->definedOn = ResultInfo::NODE;
+    velocity->entryType = ResultInfo::VECTOR;
+
+    VelocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+    DefineFieldResult( VelocityCoef_, velocity );
+
+    results_.Push_back( velocity );
+    availResults_.insert( velocity );
 
   }
 
