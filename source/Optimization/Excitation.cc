@@ -32,6 +32,7 @@
 #include "PDE/BasePDE.hh"
 #include "PDE/ElecPDE.hh"
 #include "Forms/LinForms/LinearForm.hh"
+#include "Forms/LinForms/BUInt.hh"
 #include "Utils/mathParser/mathParser.hh"
 
 using namespace CoupledField;
@@ -90,10 +91,11 @@ void MultipleExcitation::ToInfo(PtrParamNode in) const
 
 Excitation* MultipleExcitation::GetExcitation(const std::string& label, bool quiet)
 {
-  for(unsigned int i = 0; i < excitations.GetSize(); i++)
+  for(unsigned int i = 0; i < excitations.GetSize(); i++) {
+    LOG_DBG(exlog) << "ME:GE: label: " << excitations[i].label;
     if(excitations[i].label == label)
       return &(excitations[i]);
-
+  }
   if(quiet)
     return NULL;
   else
@@ -316,7 +318,8 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   // bloch mode analysis wave vectors
   int num_wave = ctxt->num_bloch_wave_vectors;
 
-  int num_loads = ass->GetLinForms().GetSize();  // to be faked later for homogenization test strains
+  // to be overwritten when we have multiple excitations in optimization or to be faked later for homogenization test strains
+  int num_loads = ass->GetLinForms().GetSize();
 
   LOG_DBG(exlog) << "PME: linForms from assemble: " << num_loads << " trans: " << num_trans_;
 
@@ -334,7 +337,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
     if(!ctxt->IsHarmonic() && pn->Has("multipleExcitation/excitations"))
     {
       pn_ex = pn->Get("multipleExcitation/excitations")->GetChildren();
-      num_loads = pn_ex.GetSize();
+      num_loads = pn_ex.GetSize(); // in the magnetic coil case, we overwrite the num_loads from bcs
     }
 
     // decide if we have multiple loads or multiple frequencies
@@ -465,7 +468,6 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
 }
 
 
-
 int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context* ctxt)
 {
   unsigned int dim = domain->GetGrid()->GetDim();
@@ -537,7 +539,7 @@ void MultipleExcitation::ApplyRobust(const Context* ctxt)
   excitations.Resize((principle - n_ex_ctxt) + n_ex_ctxt * robust.num_robust);
 
   LOG_DBG2(exlog) << "AR: c=" << ctxt->context_idx << " principle=" << principle << " n_ex_ctxt=" << n_ex_ctxt
-                  << " num_robust=" << robust.num_robust << " alt_filter=" << robust.alt_filter;
+      << " num_robust=" << robust.num_robust << " alt_filter=" << robust.alt_filter;
 
   // we now loop over excitations where the later part might is uninitialized in the robust case after resize
   // we start from 0 to get also the existing ones
@@ -579,8 +581,8 @@ void MultipleExcitation::ApplyRobust(const Context* ctxt)
         ex.weight = 1.0;
 
       LOG_DBG2(exlog) << "AR: r=" << r << " b=" << b << " org_idx=" << org_idx << " new_idx=" << new_idx << " rfi=" << ex.robust_filter_idx
-                      << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
-                      << " m=" << ex.meta_index << " ra=" << ex.reassemble << " w=" << ex.weight;
+          << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
+          << " m=" << ex.meta_index << " ra=" << ex.reassemble << " w=" << ex.weight;
     }
   }
 }
@@ -638,10 +640,34 @@ void MultipleExcitation::ApplyTransformations(const Context* ctxt, DesignSpace* 
         ex.weight = 1.0;
 
       LOG_DBG3(exlog) << "AT: t=" << t << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.IsEmpty() || ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
-                      << " m=" << ex.meta_index << " ra=" << ex.reassemble << " w=" << ex.weight;
+                          << " m=" << ex.meta_index << " ra=" << ex.reassemble << " w=" << ex.weight;
     }
   }
 }
+
+
+LinearFormContext* MultipleExcitation::SearchFormByCoilId(StdVector<LinearFormContext*>& forms, const string& query)
+{
+  for(unsigned int i = 0; i < forms.GetSize(); i++)
+  {
+    LinearFormContext* fc = forms[i];
+    LinearForm* lf = fc->GetIntegrator();
+    if(lf->GetName() != "CoilIntegrator"){
+      LOG_DBG3(exlog) << "ME::SFBCI: Name of form number " << i << " is " << lf->GetName();
+      continue;
+    }
+    // is there a difference 2D/3D??
+    string id = lf->IsComplex() ? dynamic_cast<BUIntegrator<Complex>*>(lf)->GetId() : dynamic_cast<BUIntegrator<double>*>(lf)->GetId();
+    //LOG_DBG3(exlog) << "ME::SFBCI: query: " << query << " id: " << id;
+    if(query == id){
+      LOG_DBG2(exlog) << "ME::SFBCI: Found form number " << i << " corresponding to coil " << query;
+      return fc;
+    }
+  }
+  // nothing found
+  throw Exception("could not find CurlIntegration with coil id " + query + " in " + to_string(forms.GetSize()) + " forms");
+}
+
 
 void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const ParamNodeList& pn_ex, int num_loads, Optimization* opt)
 {
@@ -660,38 +686,73 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
     MathParser* parser = domain->GetMathParser();
     unsigned int handle = parser->GetNewHandle();
 
-    // don't mix optimization excitations with bcsAndLoads stuff
-    if (ass->GetLinForms().GetSize() > 0) {
-      std::string msg = "Excitations are given in optimization mulitload. "
-          + to_string(ass->GetLinForms().GetSize())
-          // + boost::lexical_cast<std::string>(ass->GetLinForms().GetSize()) // remove it compiles
-          + " loads from the bcsAndLoads section will be deleted.";
-      opt->optInfoNode->Get(ParamNode::HEADER)->SetWarning(msg);
-    }
+    // the coils are a special case, as we need here the definition in pde/bcsAndLoads AND also the references in optimization/multipleExcitation
+    if(ParamNode::GetListByGrandChild(pn_ex , "coil").GetSize() > 0) {
+      //TODO
+      // take the loads from the bcsAndLoads section. Store them here and reduce them to one.
+      // Apply() will then change the entities for this loads
+      StdVector<LinearFormContext*>& forms = ass->GetLinForms(true); // take the memory ownership
 
-    ass->GetLinForms().Clear(); // the forms eventually read by cfs are ignored, we use our own from optimization
+      ParamNodeList exc = ParamNode::GetListByChild(pn_ex, "excitation");
+      for(int l = 0; l < num_loads; l++) // via num_loads or num_freq
+      {
+        // get weight
+        PtrParamNode pnex = pn_ex[l];
+        parser->SetExpr(handle, pnex->Get("weight")->As<std::string>());
+        const double weight = parser->Eval(handle);
+        Excitation& ex = excitations[base + l];
+        // get coils for this excitation
+        // exc is an excitation which is @weight and coils; we want to extract the coils
+        ParamNodeList children = exc[l]->GetChildren();
+        ParamNodeList coils = ParamNode::GetListByChild(children, "coil");
+        LOG_DBG(exlog) << "ME:SLC: Number of coils in excitation number "<< l << " : " << coils.GetSize();
+        // push all coils
+        for(unsigned int c = 0; c < coils.GetSize(); c++) {
+          string query = coils[c]->GetChild()->ToString(2);
+          LOG_DBG(exlog) << "ME:SLC: adding form of coil with id " << query;
+          LinearFormContext* excForm = SearchFormByCoilId(forms, query); // throws when not found
+          ex.forms.Push_back(excForm); // add form to excitation
+          LOG_DBG(exlog)<< "ME:SLC: form " << excForm->GetIntegrator()->GetName() << " entities=" << excForm->GetEntities()->GetName();
+        }
 
-    assert(excitations.GetSize() - base == pn_ex.GetSize());
+        // here we support to give a weight in the optimization section
+        ex.weight = weight;
+        LOG_DBG(exlog)<< "ME:SLC: Setting weight " << weight << " for excitation number " << l;
+      }
 
-    for(int i = 0; i < num_loads; i++)
-    {
-      PtrParamNode pnex = pn_ex[i];
-      parser->SetExpr(handle, pnex->Get("weight")->As<std::string>());
-      const double weight = parser->Eval(handle);
-      Excitation& ex = excitations[base + i];
-      ex.weight = weight;
+      // "remove" the loads from the simulation. From now on we Apply() ist
+      forms.Resize(0); // won't delete content but set the internal size_ counter
+    } else {
+      // don't mix optimization excitations with bcsAndLoads stuff
+      if(ass->GetLinForms().GetSize() > 0) {
+        std::string msg = "Excitations are given in optimization mulitload. " + to_string(ass->GetLinForms().GetSize()) + " loads from the bcsAndLoads section will be deleted.";
+        opt->optInfoNode->Get(ParamNode::HEADER)->SetWarning(msg);
+      }
 
-      // pn_ex[i] is an excitation which is @weight and content force/coilList/.. we want to extract the content
-      assert(pnex->GetChildren().GetSize() == 2);
-      int wix = pnex->GetIndex("weight");
-      assert(wix == 0 || wix == 1);
-      PtrParamNode content = pnex->GetChildren()[1-wix];
-      assert(content->GetName() != "weight");
+      ass->GetLinForms().Resize(0); // the forms eventually read by cfs are ignored, we use our own from optimization
 
-      if (pn_ex[i]->Has("trackings"))
-        ex.ReadTrackings(pnex->Get("trackings"));
+      assert(excitations.GetSize() - base == pn_ex.GetSize());
 
-      ex.ReadLoads(ctxt, content); // possibly multiple forms for one excitation has it's own Resize(0)
+      for(int i = 0; i < num_loads; i++)
+      {
+        PtrParamNode pnex = pn_ex[i];
+        parser->SetExpr(handle, pnex->Get("weight")->As<std::string>());
+        const double weight = parser->Eval(handle);
+        Excitation& ex = excitations[base + i];
+        ex.weight = weight;
+
+        // pn_ex[i] is an excitation which is @weight and content force/coilList/.. we want to extract the content
+        assert(pnex->GetChildren().GetSize() == 2);
+        int wix = pnex->GetIndex("weight");
+        assert(wix == 0 || wix == 1);
+        PtrParamNode content = pnex->GetChildren()[1-wix];
+        assert(content->GetName() != "weight");
+
+        if (pn_ex[i]->Has("trackings"))
+          ex.ReadTrackings(pnex->Get("trackings"));
+
+        ex.ReadLoads(ctxt, content); // possibly multiple forms for one excitation has its own Resize(0)
+      }
     }
 
     parser->ReleaseHandle(handle);
@@ -781,8 +842,8 @@ void MultipleExcitation::NormalizeMultipleExcitations(ObjectiveContainer* object
 
 bool MultipleExcitation::DoRobust(const Context* ctxt) const
 {
-   assert(ctxt != NULL);
-   return robust_[ctxt->context_idx].num_robust;
+  assert(ctxt != NULL);
+  return robust_[ctxt->context_idx].num_robust;
 }
 
 unsigned int MultipleExcitation::GetNumberRobust(const Context* ctxt, bool mininum_one) const
@@ -916,7 +977,7 @@ double Excitation::GetFactor(Function* cost) const
 double Excitation::GetWeightedFactor(Function* f) const
 {
   if(f->DoEvaluateAlways(sequence)) // sequence matches always
-   return normalized_weight * GetFactor(f);
+    return normalized_weight * GetFactor(f);
   else
     return GetFactor(f);
 }
@@ -945,7 +1006,7 @@ void Excitation::ReadTrackings(PtrParamNode ts){
     actLoad->value = value;
     trackings.Push_back(actLoad);
   }
-  */
+   */
 }
 
 void Excitation::ReadLoads(Context* ctxt, PtrParamNode ls)
@@ -953,10 +1014,9 @@ void Excitation::ReadLoads(Context* ctxt, PtrParamNode ls)
   // the original loads need to be cleared before
   Assemble* ass = ctxt->pde->GetAssemble();
   assert(ass->GetLinForms().GetSize() == 0);
-  LOG_DBG(exlog) << "RL: paramnode #ls=" << ls->GetChildren().GetSize() << " ls=" << ls->GetName();
-  ls->Dump();
+  LOG_DBG(exlog) << "RL: paramnode ls=" << ls->GetChildren().GetSize() << " ls=" << ls->GetName();
   // reads all loads and adds them to Assemble::linForms_
-  ctxt->pde->DefineRhsLoadIntegrators(ls);
+  ctxt->pde->DefineRhsLoadIntegrators();
 
   LOG_DBG(exlog) << "RL: paramnode ls: " << ls << " ctxt exc size: " << ctxt->excitations.GetSize();
   // own vector with the pointers in assemble and we have to delete the content

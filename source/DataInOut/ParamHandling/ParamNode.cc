@@ -423,15 +423,45 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1_
 
 ParamNodeList ParamNode::GetList(const string& name)
 {
-  const unsigned int chsize(children_.GetSize());
+  string vl = ToValidLabel(name);
   StdVector<PtrParamNode> result;
-  result.Reserve(chsize);
+  result.Reserve(children_.GetSize());
 
-  for (unsigned int i = 0; i < chsize; ++i)
-    if (children_[i]->name_ == ToValidLabel(name))
+  for (unsigned int i = 0; i < children_.GetSize(); ++i)
+    if (children_[i]->name_ == vl)
       result.Push_back(children_[i]);
 
   return result; // copy-constructor magic stuff!
+}
+
+
+ParamNodeList ParamNode::GetListByChild(const ParamNodeList& base, const std::string&  name)
+{
+  string vl = ToValidLabel(name);
+  StdVector<PtrParamNode> result;
+  for(unsigned int b = 0; b < base.GetSize(); b++)
+  {
+    if(base[b]->name_ == vl)
+      result.Push_back(base[b]);
+   }
+  return result;
+}
+
+
+ParamNodeList ParamNode::GetListByGrandChild(const ParamNodeList& base, const std::string&  name)
+{
+  string vl = ToValidLabel(name);
+  StdVector<PtrParamNode> result;
+  for(unsigned int b = 0; b < base.GetSize(); b++)
+  {
+    PtrParamNode pn = base[b];
+    for(unsigned int c = 0; c < pn->children_.GetSize(); c++)
+    {
+      if(pn->children_[c]->name_ == vl)
+        result.Push_back(pn->children_[c]);
+    }
+  }
+  return result;
 }
 
 template<typename TYPE>
@@ -1243,7 +1273,7 @@ void ParamNode::AdjustElementType()
 //    return true;
 //  }
 
-inline std::string ParamNode::ToValidLabel(std::string out) const
+inline std::string ParamNode::ToValidLabel(std::string out)
 {
   boost::trim(out);
 

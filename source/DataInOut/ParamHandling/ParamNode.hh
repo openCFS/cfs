@@ -225,6 +225,11 @@ namespace CoupledField
     * example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom") */
     ParamNodeList GetList(const std::string&  name);
     
+    /** search for the given token in the names of children */
+    static ParamNodeList GetListByChild(const ParamNodeList& base, const std::string&  name);
+    /** search for the given token in the names of children of base-children (= base grandchilds) */
+    static ParamNodeList GetListByGrandChild(const ParamNodeList& base, const std::string&  name);
+
 
     //@{
     /** Get all direct childs which have an attribute with a given value or in other words:
@@ -232,12 +237,9 @@ namespace CoupledField
     *  example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom", "name", "fixed")
     *  @return the direct childs, not the grandchildren */
     template<typename TYPE>
-    ParamNodeList GetListByVal(const std::string& parent, 
-                                             const std::string& child, 
-                                             const TYPE & value);
-    ParamNodeList GetListByVal(const std::string& parent, 
-                                        const std::string& child, 
-                                        const char * value);
+    ParamNodeList GetListByVal(const std::string& parent, const std::string& child, const TYPE & value);
+
+    ParamNodeList GetListByVal(const std::string& parent, const std::string& child, const char* value);
     //@}
 
     /************************************************************************
@@ -369,7 +371,7 @@ namespace CoupledField
     /** variant of other ToString() with more copy operations but also more convenient */
     std::string ToString(int depth) const;
 
-    /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
+    /** Prints this as xml element to the stream. Builds a tree. Shall not be directly
      * called for an attribute.
      * Might change the order as Sort() is called to ensure HEADER < PROCESS < SUMMARY
      * @param depth number of ident steps, will be interpreted as one space
@@ -414,14 +416,14 @@ namespace CoupledField
     * automatically an ParamNode::name_ value out of caption_
     * @param in might contain spaces, e.g. "Number of iterations"
     * @return for this example 'NumberOfIterations' */
-    std::string ToValidLabel(std::string in) const;
+    static std::string ToValidLabel(std::string in);
 
     /** Determine recursively the suitable type for nodes. This method
      * iterates recursively over all nodes and determines for all nodes, which 
      * have a type UNDEF a suitable type (ELEMENT, ATTRIBUTE) */
     void AdjustElementType();
 
-    /** The real content (attribute or simple type content */
+    /** The real content (attribute or simple type content) */
     boost::any value_;
 
     /** the precision for numerical values, to be optionally set! */

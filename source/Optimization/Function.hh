@@ -772,13 +772,6 @@ class Function
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
     int index_;
 
-    /** Excitation index for evaluation.
-     * Note that the index is unique over all sequences!
-     * >= 0 for the actual excitation
-     * -1 for all excitations within this sequence!!. Most interesting for stress constraints.
-     * -2 is for unset! */
-    int excite_;
-
     /** (sample) excitation. For excite_ -1 this is only an exemplaric excitation */
     Excitation* sample_excitation_;
 
@@ -817,6 +810,17 @@ class Function
     /** only for tensor trace and volume */
     DesignMaterial::Notation notation_;
 
+  private:
+    /** special value for excite_ value.
+    * -1 for all excitations within this sequence!!. Most interesting for stress constraints.
+    * -2 is for unset!
+    * -3 for excitation "0_1" */
+    typedef enum { ALL_EX = -1, UNSET_EX = -2, COMBINED_0_1_EX = -3 } ExciteIndex;
+
+    /** Excitation index for evaluation.
+     * Note that the index is unique over all sequences!
+     * >= 0 for the actual excitation, ExciteIndex for other cases */
+    int excite_;
 };
 
 

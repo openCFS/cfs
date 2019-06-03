@@ -1925,7 +1925,7 @@ namespace CoupledField {
     // =====================================================================
     // homogeneous Dirichlet BC
     // =====================================================================
-    // iterate over all available result tyes
+    // iterate over all available result types
     std::map<SolutionType,std::string>::const_iterator hdbcIt;
     hdbcIt = hdbcSolNameMap_.begin();
     for( ; hdbcIt != hdbcSolNameMap_.end(); ++hdbcIt ) {

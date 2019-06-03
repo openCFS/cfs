@@ -45,7 +45,6 @@ Objective::Objective(Type type, double parameter, Access acc)
   Init();
   this->type_ = type;
   this->parameter_ = parameter;
-  this->excite_ = -2;
   this->access_ = acc;
   this->penalty_ = 1.0;
 }

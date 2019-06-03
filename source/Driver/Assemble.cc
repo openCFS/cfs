@@ -1219,11 +1219,11 @@ namespace CoupledField
   
   void Assemble::AssembleLinRHS()
   {
-    AssembleRHSLinForms(false );
+    AssembleRHSLinForms(false);
   }
 
   void Assemble::AssembleNonLinRHS() {
-    AssembleRHSLinForms(true );
+    AssembleRHSLinForms(true);
   }
 
   void Assemble::AssembleRHSLinForms(bool nonLin ) {
@@ -1299,7 +1299,7 @@ namespace CoupledField
 
             // Calculate real valued element vector
             // check if only the real part of a complex value shall be considered
-            if( form->IsExtractReal()  ){
+            if( form->IsExtractReal() ){
             	Vector<Complex> tmp;
             	form->CalcElemVector(tmp, entIt);
             	elemVec = tmp.GetPart(Global::REAL);
@@ -1456,19 +1456,16 @@ namespace CoupledField
 
       // region name of entity list
       std::string regionName;
-      if( context.GetEntities()->GetType() == EntityList::ELEM_LIST )
-      {
+      if( context.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
         shared_ptr<ElemList> list = boost::dynamic_pointer_cast<ElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
-      else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST )
-      {
+      else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST ) {
         shared_ptr<SurfElemList> list = boost::dynamic_pointer_cast<SurfElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
 
       form->Get("region")->SetValue(regionName);
-      
 
       // add information about row / column coordinate
       PtrParamNode row = form->Get("row", ParamNode::APPEND);
@@ -1484,7 +1481,6 @@ namespace CoupledField
       // isSolDependent
       tmp = context.GetIntegrator()->IsSolDependent() ? "yes" : "no";
       row->Get("solutionDependent")->SetValue( tmp );
-
     }
   }
 
@@ -1493,8 +1489,7 @@ namespace CoupledField
     // iterate over all bilinearforms
     std::set<BiLinFormContext*>::iterator it;
 
-    for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ )
-    {
+    for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ ) {
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
@@ -1502,7 +1497,6 @@ namespace CoupledField
     		  || analysisType_ ==BasePDE::INVERSESOURCE
 			  || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
-        
         matReassemble_[actContext.GetDestMat()] = true;
         if ( actContext.GetSecDestMat() != NOTYPE )
           matReassemble_[actContext.GetSecDestMat()] = true;
@@ -1544,7 +1538,6 @@ namespace CoupledField
         LOG_DBG(assemble) <<  "\t" << feMatrixType.ToString(it2->first)
                     << ": " << (it2->second ? "true" : "false");
       }
-
     }
   }
 
@@ -1742,7 +1735,6 @@ namespace CoupledField
   }
 
   bool Assemble::IsFEMatSymmetric( BiLinFormContext* actCt  ) {
-
 
     bool isSymmetric = true;
     // set collecting all diagonal-positions

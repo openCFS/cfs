@@ -23,41 +23,45 @@
 
 #include "LinearForm.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
+#include "Forms/Operators/BaseBOperator.hh"
 
 namespace CoupledField{
 
 template< class VEC_DATA_TYPE=Double,
-          bool SURFACE = false>
+    bool SURFACE = false>
 class BUIntegrator : public LinearForm {
 public:
 
   //! Constructor for volume integration
   BUIntegrator(BaseBOperator * bOp,
-               VEC_DATA_TYPE factor,
-               shared_ptr<CoefFunction > rhsCoef,
-               bool coordUpdate = false,
-               bool fullEvaluation = true,
-			   bool extractReal = false);
+      VEC_DATA_TYPE factor,
+      shared_ptr<CoefFunction > rhsCoef,
+      bool coordUpdate = false,
+      bool fullEvaluation = true,
+      bool extractReal = false,
+      string id = ""); // to save coil id
 
   //! Constructor for surface integration
   BUIntegrator(BaseBOperator * bOp,
-               VEC_DATA_TYPE factor,
-               shared_ptr<CoefFunction > rhsCoef,
-               const std::set<RegionIdType>& volRegions,
-               bool coordUpdate = false,
-               bool fullEvaluation = true,
-			   bool extractReal = false);
+      VEC_DATA_TYPE factor,
+      shared_ptr<CoefFunction > rhsCoef,
+      const std::set<RegionIdType>& volRegions,
+      bool coordUpdate = false,
+      bool fullEvaluation = true,
+      bool extractReal = false,
+      string id = ""); // to save coil id
 
   //! Copy constructor
   BUIntegrator(const BUIntegrator& right )
   :  LinearForm(right),
      fullEvaluation_(right.fullEvaluation_)
-    {
+  {
     this->bOperator_ = right.bOperator_->Clone();
     this->factor_ = right.factor_;
     this->rhsCoefs_ = right.rhsCoefs_;
     this->volRegions_ = right.volRegions_;
     this->Bdim_ = right.Bdim_;
+    this->id_ = right.id_;
   }
 
   //! \copydoc LinearForm::Clone
@@ -69,6 +73,9 @@ public:
     return rhsCoefs_;
   }
 
+  virtual string GetId() {
+      return id_;
+    }
 
   virtual ~BUIntegrator(){
 
@@ -88,21 +95,23 @@ public:
   }
 
 protected:
-  
-  
+
   //! Differential operator
   BaseBOperator * bOperator_;
 
   //! Additional factor for integrator
   VEC_DATA_TYPE factor_;
 
+  //! String to store for example coil id
+  string id_;
+
   //! Flag if full accuracy should be used for coefficient evaluation
-  
+
   //! This flag denotes, if the coefficient function "u" should be evaluated
   //! at every integration point (true) or if only midpoint evaluation
   //! should be performed (false)
   const bool fullEvaluation_;
-  
+
   //! Coefficient function "u"
   PtrCoefFct rhsCoefs_;
 
@@ -110,8 +119,7 @@ protected:
   std::set<RegionIdType> volRegions_;
 
   //! dimension of b-operator
-  UInt Bdim_;
-
+  UInt Bdim_ = 0;
 
 };
 
