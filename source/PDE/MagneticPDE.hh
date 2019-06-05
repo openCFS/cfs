@@ -118,9 +118,8 @@ namespace CoupledField
     //! needed for calculating H field
     std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
     
-    /** Query parameter object for information on coils
-     * @param coilList the input from xml  myParam_->Get( "coilList", ParamNode::PASS ) */
-    void ReadCoils(PtrParamNode coilList);
+    /** Query parameter object for information on coils */
+    void ReadCoils();
     
     //! Initialize time stepping method
     void InitTimeStepping();

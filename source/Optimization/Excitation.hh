@@ -236,6 +236,9 @@ private:
   /** Helper to find the corresponding form to id out of forms */
   LinearFormContext* SearchFormByCoilId(StdVector<LinearFormContext*>& forms, const string& id);
 
+  /** Set load for coil case */
+  void SetCoils(unsigned int base, Assemble* ass, const ParamNodeList& pn_ex, int num_loads, MathParser* parser, unsigned int handle);
+
   /** Reads loads from the boundary conditions or from the optimization part.
    * Handles the case that we have multiple loads (e.g. magnetic coils) for a single frequency (num_freq = 1) */
   void SetLoadCases(Context* ctxt, unsigned int context_base, const ParamNodeList& pn_ex, int num_loads, Optimization* opt);

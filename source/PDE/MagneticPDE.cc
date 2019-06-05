@@ -45,11 +45,9 @@
 namespace CoupledField {
 
 DECLARE_LOG(magpde)
-                              DEFINE_LOG(magpde, "magpde")
+DEFINE_LOG(magpde, "magpde")
 
-                              MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
-                                  PtrParamNode infoNode,
-                                  shared_ptr<SimState> simState, Domain* domain)
+MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode, PtrParamNode infoNode, shared_ptr<SimState> simState, Domain* domain)
 :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
 
   // =====================================================================
@@ -1118,7 +1116,7 @@ void MagneticPDE::ReadSpecialBCs() {
   // --------------------------------------------------------------------
   //   Get information about coils and open files for measurement coils
   // --------------------------------------------------------------------
-  ReadCoils(myParam_->Get( "coilList", ParamNode::PASS));
+  ReadCoils();
 }
 
 
@@ -1159,24 +1157,23 @@ void MagneticPDE::InitTimeStepping() {
 // ******************************************************
 //   Query parameter object for information about coils
 // ******************************************************
-void MagneticPDE::ReadCoils(PtrParamNode coilList)
+void MagneticPDE::ReadCoils()
 {
-  // coilList might be empty:  myParam_->Get( "coilList", ParamNode::PASS );
-  if(!coilList)
+  // Check if the element "coils" is present at all.
+  // Otherwise leave
+  PtrParamNode coilNode = myParam_->Get( "coilList", ParamNode::PASS );
+  PtrParamNode coilInfoNode = myInfo_->Get( "coilList", ParamNode::PASS );
+  if ( !coilNode )
     return;
 
-  PtrParamNode coilInfoNode = myInfo_->Get( "coilList", ParamNode::PASS );
-
   // Get single coil nodes
-  ParamNodeList coilNodes = coilList->GetChildren();
+  ParamNodeList coilNodes = coilNode->GetChildren();
 
   // Trigger reading in of definitions
   Global::ComplexPart cplx = isComplex_ ? Global::COMPLEX : Global::REAL;
+  if( coilNodes.GetSize() > 0 ) {
   for( UInt i = 0; i < coilNodes.GetSize(); i++ )
   {
-    if(coilNodes[i]->GetName() != "coil") // when we read loads from optimization, this might be "weight"
-      continue;
-
     // get coil and id
     std::string coilId = coilNodes[i]->Get("id")->As<std::string>();
 
@@ -1250,6 +1247,7 @@ void MagneticPDE::ReadCoils(PtrParamNode coilList)
         coilPartsExtJ_[extPartIt->first] = currDens;
       }
     }
+  }
 
     // Adjust printing of coil information to info node
     // WARN("Adapt printing of coils to InfoNode");

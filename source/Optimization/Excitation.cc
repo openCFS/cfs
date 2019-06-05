@@ -668,6 +668,42 @@ LinearFormContext* MultipleExcitation::SearchFormByCoilId(StdVector<LinearFormCo
   throw Exception("could not find CurlIntegration with coil id " + query + " in " + to_string(forms.GetSize()) + " forms");
 }
 
+void MultipleExcitation::SetCoils(unsigned int base, Assemble* ass, const ParamNodeList& pn_ex, int num_loads, MathParser* parser, unsigned int handle) {
+  // take the loads from the bcsAndLoads section. Store them here and reduce them to one.
+  // Apply() will then change the entities for this loads
+  // Therefore we do not call ReadLoads() which would read the loads now. This does not work as nicely for Magnetic, therefore we use the approach described above
+  StdVector<LinearFormContext*>& forms = ass->GetLinForms(true); // take the memory ownership
+
+  ParamNodeList exc = ParamNode::GetListByChild(pn_ex, "excitation");
+  for(int l = 0; l < num_loads; l++)
+  {
+    // get weight
+    PtrParamNode pnex = pn_ex[l];
+    parser->SetExpr(handle, pnex->Get("weight")->As<std::string>());
+    const double weight = parser->Eval(handle);
+    Excitation& ex = excitations[base + l];
+    // get coils for this excitation
+    // exc is an excitation which is @weight and coils; we want to extract the coils
+    ParamNodeList children = exc[l]->GetChildren();
+    ParamNodeList coils = ParamNode::GetListByChild(children, "coil");
+    LOG_DBG(exlog) << "ME:SLC: Number of coils in excitation number "<< l << " : " << coils.GetSize();
+    // push all coils
+    for(unsigned int c = 0; c < coils.GetSize(); c++) {
+      string query = coils[c]->GetChild()->ToString(2);
+      LOG_DBG(exlog) << "ME:SLC: adding form of coil with id " << query;
+      LinearFormContext* excForm = SearchFormByCoilId(forms, query); // throws when not found
+      ex.forms.Push_back(excForm); // add form to excitation
+      LOG_DBG(exlog)<< "ME:SLC: form " << excForm->GetIntegrator()->GetName() << " entities=" << excForm->GetEntities()->GetName();
+    }
+
+    // here we support to give a weight in the optimization section
+    ex.weight = weight;
+    LOG_DBG(exlog)<< "ME:SLC: Setting weight " << weight << " for excitation number " << l;
+  }
+
+  // "remove" the loads from the simulation. From now on we Apply() it
+  forms.Resize(0); // won't delete content but set the internal size_ counter
+}
 
 void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const ParamNodeList& pn_ex, int num_loads, Optimization* opt)
 {
@@ -688,40 +724,7 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
 
     // the coils are a special case, as we need here the definition in pde/bcsAndLoads AND also the references in optimization/multipleExcitation
     if(ParamNode::GetListByGrandChild(pn_ex , "coil").GetSize() > 0) {
-      //TODO
-      // take the loads from the bcsAndLoads section. Store them here and reduce them to one.
-      // Apply() will then change the entities for this loads
-      StdVector<LinearFormContext*>& forms = ass->GetLinForms(true); // take the memory ownership
-
-      ParamNodeList exc = ParamNode::GetListByChild(pn_ex, "excitation");
-      for(int l = 0; l < num_loads; l++) // via num_loads or num_freq
-      {
-        // get weight
-        PtrParamNode pnex = pn_ex[l];
-        parser->SetExpr(handle, pnex->Get("weight")->As<std::string>());
-        const double weight = parser->Eval(handle);
-        Excitation& ex = excitations[base + l];
-        // get coils for this excitation
-        // exc is an excitation which is @weight and coils; we want to extract the coils
-        ParamNodeList children = exc[l]->GetChildren();
-        ParamNodeList coils = ParamNode::GetListByChild(children, "coil");
-        LOG_DBG(exlog) << "ME:SLC: Number of coils in excitation number "<< l << " : " << coils.GetSize();
-        // push all coils
-        for(unsigned int c = 0; c < coils.GetSize(); c++) {
-          string query = coils[c]->GetChild()->ToString(2);
-          LOG_DBG(exlog) << "ME:SLC: adding form of coil with id " << query;
-          LinearFormContext* excForm = SearchFormByCoilId(forms, query); // throws when not found
-          ex.forms.Push_back(excForm); // add form to excitation
-          LOG_DBG(exlog)<< "ME:SLC: form " << excForm->GetIntegrator()->GetName() << " entities=" << excForm->GetEntities()->GetName();
-        }
-
-        // here we support to give a weight in the optimization section
-        ex.weight = weight;
-        LOG_DBG(exlog)<< "ME:SLC: Setting weight " << weight << " for excitation number " << l;
-      }
-
-      // "remove" the loads from the simulation. From now on we Apply() ist
-      forms.Resize(0); // won't delete content but set the internal size_ counter
+      SetCoils(base, ass, pn_ex, num_loads, parser, handle);
     } else {
       // don't mix optimization excitations with bcsAndLoads stuff
       if(ass->GetLinForms().GetSize() > 0) {
@@ -729,7 +732,7 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
         opt->optInfoNode->Get(ParamNode::HEADER)->SetWarning(msg);
       }
 
-      ass->GetLinForms().Resize(0); // the forms eventually read by cfs are ignored, we use our own from optimization
+      ass->GetLinForms().Clear(); // the forms eventually read by cfs are ignored, we use our own from optimization
 
       assert(excitations.GetSize() - base == pn_ex.GetSize());
 
@@ -737,21 +740,16 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
       {
         PtrParamNode pnex = pn_ex[i];
         parser->SetExpr(handle, pnex->Get("weight")->As<std::string>());
+        // we should not land here in coil case
+        assert(!pnex->Has("coil"));
         const double weight = parser->Eval(handle);
         Excitation& ex = excitations[base + i];
         ex.weight = weight;
 
-        // pn_ex[i] is an excitation which is @weight and content force/coilList/.. we want to extract the content
-        assert(pnex->GetChildren().GetSize() == 2);
-        int wix = pnex->GetIndex("weight");
-        assert(wix == 0 || wix == 1);
-        PtrParamNode content = pnex->GetChildren()[1-wix];
-        assert(content->GetName() != "weight");
-
-        if (pn_ex[i]->Has("trackings"))
+        if (pnex->Has("trackings"))
           ex.ReadTrackings(pnex->Get("trackings"));
 
-        ex.ReadLoads(ctxt, content); // possibly multiple forms for one excitation has its own Resize(0)
+        ex.ReadLoads(ctxt, pnex); // possibly multiple forms for one excitation has its own Resize(0)
       }
     }
 
@@ -918,9 +916,11 @@ Excitation::Excitation()
 Excitation::~Excitation()
 {
   // we have the ownerhip of the loads (form) with multiple excitation. We took if from Assemble::linForms_
+  // Coils are a special case, they are owned by the PDE
   for(unsigned int i = 0; i < forms.GetSize(); i++)
     if(meta_index == 0)
-      delete forms[i];
+      if(forms[i]->GetIntegrator()->GetName() != "CoilIntegrator")
+         delete forms[i];
 }
 
 bool Excitation::Apply(bool switch_context)
@@ -1016,7 +1016,7 @@ void Excitation::ReadLoads(Context* ctxt, PtrParamNode ls)
   assert(ass->GetLinForms().GetSize() == 0);
   LOG_DBG(exlog) << "RL: paramnode ls=" << ls->GetChildren().GetSize() << " ls=" << ls->GetName();
   // reads all loads and adds them to Assemble::linForms_
-  ctxt->pde->DefineRhsLoadIntegrators();
+  ctxt->pde->DefineRhsLoadIntegrators(ls);
 
   LOG_DBG(exlog) << "RL: paramnode ls: " << ls << " ctxt exc size: " << ctxt->excitations.GetSize();
   // own vector with the pointers in assemble and we have to delete the content

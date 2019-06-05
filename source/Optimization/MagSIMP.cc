@@ -440,12 +440,12 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
 
 double MagSIMP::CalcMagCouplingReal(Excitation& excite, Function* f)
 {
-  if(GetMultipleExcitation()->excitations.GetSize() != 2)
+  if(GetMultipleExcitation()->excitations.GetSize() < 2)
     throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
 
   // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
   // we return value 0 for the first excitation and 2*coupling for the second excitation
-  assert(GetMultipleExcitation()->excitations.GetSize() == 2);
+  assert(GetMultipleExcitation()->excitations.GetSize() >= 2);
   if(excite.index == 0)
   {
     LOG_DBG2(ms) << "CMC: excitation index is 0; nothing to do here; returning 0.0";
@@ -676,11 +676,11 @@ void MagSIMP::CalcCouplingAdjRealRHS(Excitation& excite, Function* f, Vector<dou
    * <N_1, A_B>/(<N_1, A_A><N_2, A_B>) * N_1^T - (<N_1, A_B>)^2/(<N_1, A_A><N_2, A_B^2>) * N_2^T
    */
   // same as in CalcCoupling
-  if(GetMultipleExcitation()->excitations.GetSize() != 2)
+  if(GetMultipleExcitation()->excitations.GetSize() < 2)
   {
     throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
   }
-  assert(GetMultipleExcitation()->excitations.GetSize() == 2);
+  assert(GetMultipleExcitation()->excitations.GetSize() >= 2);
   Excitation& excite_A = GetMultipleExcitation()->excitations[0];
   Excitation& excite_B = GetMultipleExcitation()->excitations[1];
   // Coupling can only be calculated for exactly two coils
