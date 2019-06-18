@@ -13,6 +13,7 @@ import scipy, scipy.sparse, scipy.sparse.linalg
 from hdf5_tools import *
 from optimization_tools import *
 from mesh_tool import *
+import matviz_rot
 from decimal import *
 import os.path
 import os
@@ -367,25 +368,13 @@ elif dim == 3:
     while y < steps + 1:
       z= 0
       while z < steps + 1:
+        vol = None
         sampl = np.array([x,y,z])
-        # found a combination of x, y, z where at least one is 0 or value of 'steps'
-        if  args.skip_bounds and (0 in sampl or steps in sampl):
-          # 2 parameters are 0, e.g. s1=s2=0 and s3 > 0
-          if x != 0 and y == 0 and z == 0:
-            
-          if np.sum(sampl == 0) == 2:
-            # find out which entries are 0
-            s1, s2 = np.where(sampl == 0)[0]
-          if steps in [x,y,z]:
-            assert(steps in [x,y,z])
-            tensor_vals = ['1.6078746e+05', '7.2237847e+04', '7.2237847e+04', '1.6078746e+05', '7.2237847e+04', '1.6078746e+05', '4.4274809e+04', '4.4274809e+04', '4.4274809e+04']
-            vol = 1
-          else: # 0 in [x,y,z]
-            tensor_vals = ['1.346154e-06', '5.769231e-07', '5.769231e-07', '1.346154e-06', '5.769231e-07', '1.346154e-06', '3.846154e-07', '3.846154e-07', '3.846154e-07']
-            vol = 0
-            
-          out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + ' '.join(tensor_vals) + '\n')
-          out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(vol)  + '\n')
+        # only on parameter is 0
+        if np.sum(sampl == 0) == 1:
+          print("skip ",x,y,z)
+          z += 1
+          continue
         else:  
           if args.penalization:
             steps_p = args.penalization
@@ -406,6 +395,12 @@ elif dim == 3:
             y = int(steps * float(tmp[1]))
             z = int(steps * float(tmp[2]))
           infoxml = str(folder) + "/" + str(x) + "-" + str(y) + "-" + str(z) + ".info.xml"
+          if np.sum(sampl == 0) == 2 and x == 0:
+            if y == 0:
+              infoxml = str(folder) + "/" + str(z) + "-0-0.info.xml"
+            else:
+              assert(z == 0)
+              infoxml = str(folder) + "/" + str(y) + "-0-0.info.xml"
           # print infoxml
           if os.path.isfile(infoxml):      
             doc = lxml.etree.parse(infoxml, lxml.etree.XMLParser(remove_comments=True))
@@ -416,9 +411,39 @@ elif dim == 3:
             res = list(map(float, matrix.split())) # convert list with string elements to list with float elements    
             ts = np.asarray(res)
             print(infoxml + ' -> '+ str(ts))
-        
-            out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(ts[0]) + ' ' + str(ts[1]) + ' ' + str(ts[2]) + ' ' + str(ts[7]) + ' ' + str(ts[8]) + ' ' + str(ts[14]) + ' ' + str(ts[21]) + ' ' + str(ts[28]) + ' ' + str(ts[35]) + '\n')
-            vol = xpath(doc, "//domain/@structure_volume")
+            
+            # two params = 0, find out which one is != 0 in order to rotate tensor properly
+            # we only have homogenized tensors for s1 != and s2=s3=0
+            if np.sum(sampl == 0) == 2 and x == 0:
+              assert(dim == 3)
+              tens = ts.reshape(6,6)         # reshaping array
+              Q = None # rotation matrix
+              if y == 0:
+                # x1 -> z1: rotate around y-axis by 90° 
+                Q = matviz_rot.get_rot_6x6(0,np.pi/2,0)
+              else:
+                assert(z == 0)  
+                # x1 -> y1: rotate around z-axis by 90°
+                Q = matviz_rot.get_rot_6x6(0,0,np.pi/2)
+              
+              assert(Q is not None)
+              rot_tens =  np.dot(Q, np.dot(tens, Q.transpose()))
+              vol = xpath(doc, "//iteration/@volume")
+              out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(rot_tens[0,0]) + ' ' + str(rot_tens[1,0]) + ' ' + str(rot_tens[2,0]) + ' ' + str(rot_tens[1,1]) + ' ' + str(rot_tens[1,2]) + ' ' + str(rot_tens[2,2]) + ' ' + str(rot_tens[3,3]) + ' ' + str(rot_tens[4,4]) + ' ' + str(rot_tens[5,5]) + "\n")
+#               print("x,y,z:",x,y,z)
+#               print("tens:")
+#               matviz_rot.dump_tensor(tens)
+#               print("rotated tens;")
+#               matviz_rot.dump_tensor(rot_tens) 
+#               sys.exit()
+            else:  
+              out.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(ts[0]) + ' ' + str(ts[1]) + ' ' + str(ts[2]) + ' ' + str(ts[7]) + ' ' + str(ts[8]) + ' ' + str(ts[14]) + ' ' + str(ts[21]) + ' ' + str(ts[28]) + ' ' + str(ts[35]) + '\n')
+              if np.sum(sampl == 0) == 2 and x != 0:
+                # just read correct volume
+                vol = xpath(doc, "//iteration/@volume")
+              else:
+                vol = xpath(doc, "//domain/@structure_volume")
+              
             if vol != "cannot_determine":
               vol = float(vol)
               out_vol.write(str(x).rjust(3) + ' ' + str(y).rjust(3) + ' ' + str(z).rjust(3) + ' ' + str(vol) + '\n')
@@ -427,6 +452,7 @@ elif dim == 3:
           #  out.write(str(y).rjust(3) + ' ' + str(x).rjust(3) + ' ' + ts[4] + ' ' + ts[1] + ' ' + ts[0] + ' ' + ts[8] + '\n')
           else:
             print('file ' + infoxml + ' not found')
+            
         if args.design:
           # stop calculations if only one point is needed (debug)
           x = steps + 1
