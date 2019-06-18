@@ -596,6 +596,10 @@ class BisecSpline:
     
   def plot_all(self):
     plt.gcf().clear()
+    plt.rcParams.update({'font.size': 28})
+    plt.figure(figsize=(10,10))
+    plt.rc('axes', linewidth=3.5)
+
     
     x = None 
     if self.left:
@@ -616,8 +620,10 @@ class BisecSpline:
       plt.xlim((0,0.5))
     else:
       plt.xlim((0.5,1.0))
-        
+    
     plt.ylim((0.5,1.0))
+    plt.xlabel("x")
+    plt.ylabel("r")
     bc_label = 'bicubic*' if self.type == 'bicubic' else 'bicubic'
     sp_label = 'bspline*' if self.type == 'bspline' else 'bspline'
     lin_label = 'linear*' if self.type == 'linear' else 'linear' 
@@ -627,11 +633,12 @@ class BisecSpline:
     plt.plot(x,linear,label=lin_label,linewidth=5.0)
     plt.plot(x,heavi,label=hv_label,linewidth=5.0)
     if self.left:
-      plt.plot(cut[0],cut[1],marker='o',color='red',markersize=15)
+      plt.plot(cut[0],cut[1],marker='o',color='black',markersize=15)
     else:
-      plt.plot(1-cut[0],cut[1],marker='o',color='red',markersize=15) 
+      plt.plot(1-cut[0],cut[1],marker='o',color='black',markersize=15) 
     plt.legend(loc='upper left', shadow=True,prop={'size':20})
-    plt.show()  
+#     plt.show()  
+    plt.savefig('test.png', dpi=800)
     
   def angle(self):
     return self.angle
@@ -969,24 +976,32 @@ def create_profile_map(profile,res,verbose=None,save=None,ha=None):
   else:
     for i,x in enumerate(np.arange(0,1.0,h)):
       for alpha in range(0,360):
-        map[alpha,i] = calc_radius(profile, x, radians(alpha))
+        map[alpha,i] = calc_radius(profile, x, np.radians(alpha))
             
   if verbose == "polar_plot":
     plt.gcf().clear()
+    plt.rcParams.update({'font.size': 24})
+    plt.figure(figsize=(10,10))
     ax = plt.axes(polar=True)
+    #ax.set_rticks([0,0.05, 0.1, 0.15, 0.2])
     theta = np.linspace(0, 2.0*np.pi,360)
     #plt.plot(theta,map[:,0],linewidth=5.0)
-    for i,bisec in enumerate(profile.bisecs_left):
-      phi = bisec.angle + np.pi/2.0 * i
-      plt.plot(phi,map[int(np.degrees(phi)),int(res/2)+1],'k.',color="red",markersize=20)
-    plt.plot(theta,map[:,int(res/2)+1],linewidth=5.0)
+#     for i,bisec in enumerate(profile.bisecs_left):
+#       phi = bisec.angle + np.pi/2.0 * i
+#       plt.plot(phi,map[int(np.degrees(phi)),int(res/2)+1],'k.',color="red",markersize=20)
+#     plt.plot(theta,map[:,int(res/4)],linewidth=5.0)
+    dir = ""
+    plt.plot(theta,map[:,0],linewidth=5.0,label=dirToString(profile.direction)+"=0")
+    plt.plot(theta,map[:,int(res/4)],linewidth=5.0,label=dirToString(profile.direction)+"=0.25")
+    plt.plot(theta,map[:,int(res/2)-1],linewidth=5.0,label=dirToString(profile.direction)+"=0.5")
+    plt.legend(loc='best', bbox_to_anchor=(0.2, 1.1))
     
-    for i,bisec in enumerate(profile.bisecs_left):
-      phi = bisec.angle + np.pi/2.0 * i
-      plt.plot(phi,map[int(np.degrees(phi)),int(res/2)-1],'k.',color="red",markersize=20)
-    plt.plot(theta,map[:,int(res/2)-1],linewidth=5.0)
-    plt.rcParams.update({'font.size': 18})
-    plt.show()
+#     for i,bisec in enumerate(profile.bisecs_left):
+#       phi = bisec.angle + np.pi/2.0 * i
+#       plt.plot(phi,map[int(np.degrees(phi)),int(res/2)-1],'k.',color="red",markersize=20)
+#     plt.plot(theta,map[:,int(res/2)-1],linewidth=5.0)
+#     plt.show()
+    plt.savefig('polar-plot_dir-'+str(profile.direction) + '.png', dpi=800)
         
   if verbose == 'profile_map':
     ha.set_xlabel('X')

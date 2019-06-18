@@ -437,6 +437,23 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
   
   return volume
 
+def read_input_from_info_xml(infoXmlName):
+  assert(os.path.exists(infoXmlName))
+  xml = open_xml(infoXmlName)
+  dim = xpath(xml, "//grid/@dimensions")
+  matrix = xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real/text()") # "text()" must be added due to lxml, otherwise matrix is just a string <Element real ...>
+  res = list(map(float, matrix.split())) # convert list with string elements to list with float elements
+  res = np.asarray(res)            # convert list to array
+  if dim == '2':
+    res = res.reshape(3,3)         # reshaping array
+    input = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2]]
+  else:
+    assert(dim == '3')
+    res = res.reshape(6,6)         # reshaping array
+    input = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2],res[0][3],res[1][3],res[2][3],res[3][3],res[0][4],res[1][4],res[2][4],res[3][4],res[4][4],res[0][5],res[1][5],res[2][5],res[3][5],res[4][5],res[5][5]]
+  
+  return input
+
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D or a '.info.xml' file or a .mat file including a matrix from matlab (2sc)")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
@@ -566,18 +583,7 @@ if args.input.startswith('[') or args.input.endswith(".info.xml") or args.input.
   
     dim_2D = len(input) != 21
   elif args.input.endswith(".info.xml"):
-    xml = open_xml(args.input)
-    dim = xpath(xml, "//domain/@dimensions")
-    matrix = xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real/text()") # "text()" must be added due to lxml, otherwise matrix is just a string <Element real ...>
-    res = list(map(float, matrix.split())) # convert list with string elements to list with float elements
-    res = np.asarray(res)            # convert list to array
-    if dim == '2':
-      res = res.reshape(3,3)         # reshaping array
-      input = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2]]
-    else:
-      assert(dim == '3')
-      res = res.reshape(6,6)         # reshaping array
-      input = [res[0][0],res[0][1],res[1][1],res[0][2],res[1][2],res[2][2],res[0][3],res[1][3],res[2][3],res[3][3],res[0][4],res[1][4],res[2][4],res[3][4],res[4][4],res[0][5],res[1][5],res[2][5],res[3][5],res[4][5],res[5][5]]
+    input = read_input_from_info_xml(args.input)
   else:
     #data from matlab file
     assert(args.input.endswith(".mat"))

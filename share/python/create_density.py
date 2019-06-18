@@ -227,6 +227,28 @@ def channel(dim, res, vol, lower):
   
   print("created channel with " + str(res*res-countSolids) + " elems" + " and solid volume " + str(countSolids/float(res*res)))
   return data
+
+
+#creates a cylinder in x-direction with height 1
+def cylinder(dim,res,vol,rad,lower):
+  if dim != 3:
+    print("Only 3d cylinders!")
+    sys.exit()
+    
+  data = numpy.full((res,res,res),lower)  
+
+  from skimage.draw import circle
+  radius = rad if rad is not None else numpy.sqrt(vol/numpy.pi)
+  circ = numpy.zeros((res,res), dtype=numpy.uint8)
+  rr, cc = circle(int(res/2), int(res/2), int(radius*res))
+  circ[rr,cc] = 1
+  
+  # map 2d circle to 3d layers
+  for x in range(res):
+    data[x,:,:] += circ
+    
+  return data  
+  
 ## helper for hashtag. gives for (x,y) the closests distance but only horizontally!
 def hashtag_dist_2d(x, y, amplitude, speed):
   #  0.1*sin(2*x*pi+pi/2) + 0.25, 0.25, -0.1*sin(2*x*pi+pi/2) + 0.75, 0.75
@@ -268,7 +290,9 @@ parser.add_argument('--cross', help="make a simple binary cross", action='store_
 parser.add_argument('--rect', help="make a simple binary rectangle inclusion", action='store_true')
 parser.add_argument('--hashtag', help="hashtag # based on sin-amplitude for bloch mode initial designs [0,1]", type=float)
 parser.add_argument('--channel',help="rectangular channel from one side of the domain to the other one", action='store_true')
+parser.add_argument('--cylinder',help="cylinder in x-direction from one side of the domain to the other one", action='store_true')
 parser.add_argument('--thickness', help="feature thickness for hashtag", type=float, default=0.1) 
+parser.add_argument('--radius', help="cylinder radius", type=float) 
 parser.add_argument('--hashtag_speed', help="number of maximas, only 1,2,4, ... make sense", type=int, default=1)
 parser.add_argument('--ball', help="account vol only on the inner ball with diameter 1.0", action='store_true')
 parser.add_argument('--show', help="additionaly visualize the image", action='store_true')
@@ -305,6 +329,9 @@ elif args.channel:
     sys.exit()
   data = channel(args.dim, args.res, args.vol, args.lower)
   filename = "channel_" + str(args.dim) + "d_vol_" + str(args.vol) + "_res_" + str(args.res) + ".density.xml" 
+elif args.cylinder:
+  data = cylinder(args.dim, args.res, args.vol, args.radius, args.lower)
+  filename = "cylinder_" + str(args.dim) + "d_vol_" + str(args.vol) + "_res_" + str(args.res) + ".density.xml"   
 else:
   data = find_radius(args.dim, args.res, vol, args.order, args.invert, args.lower)
   filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + ord  + ("-inv_" if args.invert else "_") + str(args.res) + ".density.xml"
@@ -320,7 +347,7 @@ elif not args.write_mesh:
   print("generated density file '" + filename + "'") 
 
 if args.write_mesh:
-  mesh = Mesh()  
+  mesh = Mesh(data.shape[0],data.shape[1],data.shape[2])  
   create_dense_mesh_density(data, mesh, threshold=0.5, scale=1.0, rhomin = 1e-3) # rhomin is irrelevant as we make sparse
   sparse = convert_to_sparse_mesh(mesh)
   mesh_name = filename.replace('.density.xml', '.mesh')

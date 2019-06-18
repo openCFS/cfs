@@ -367,10 +367,15 @@ elif dim == 3:
     while y < steps + 1:
       z= 0
       while z < steps + 1:
+        sampl = np.array([x,y,z])
         # found a combination of x, y, z where at least one is 0 or value of 'steps'
-        if  args.skip_bounds and (0 in [x,y,z] or steps in [x,y,z]):
-          # skip searching for .info.xml files and write trivial coefficients directly to detailed_stats
-          # e.g if we have 0-0-0.info.xml, 0-1-2.info.xml, steps-steps-steps.info.xml  
+        if  args.skip_bounds and (0 in sampl or steps in sampl):
+          # 2 parameters are 0, e.g. s1=s2=0 and s3 > 0
+          if x != 0 and y == 0 and z == 0:
+            
+          if np.sum(sampl == 0) == 2:
+            # find out which entries are 0
+            s1, s2 = np.where(sampl == 0)[0]
           if steps in [x,y,z]:
             assert(steps in [x,y,z])
             tensor_vals = ['1.6078746e+05', '7.2237847e+04', '7.2237847e+04', '1.6078746e+05', '7.2237847e+04', '1.6078746e+05', '4.4274809e+04', '4.4274809e+04', '4.4274809e+04']
@@ -441,10 +446,28 @@ out.close()
 out_vol.close()
 
 
-
-
-
-
+# rotate 3d tensor around one axis by given angle
+# @tensor: 6x6 numpy array
+# @axis: 0,1 or 2
+# @angle: rotation angle in degrees
+# returns rotated tensor
+def rotate_3d_tensor(tensor,axis,angle):
+  assert(tensor.shape == (6,6))
+  assert(-1e-6 <= angle <= 360+1e-6)
+  assert(0 <= axis <= 2)
+  rad = np.radians(angle)
+  Q = None
+  if axis == 0:
+    Q = matviz_rot.get_rot_6x6(rad,0,0)
+  elif axis == 1:
+    Q = matviz_rot.get_rot_6x6(0,rad,0)
+  else: # axis == 2
+    Q = matviz_rot.get_rot_6x6(0,0,rad)
+    
+  assert(Q is not None)
+  print("rotated tensor by ", angle, " around axis ",axis)
+  
+  return np.dot(Q, dot(tensor, Q.transpose()))
 
 
 # FUNCTIONS NOT USED CURRENTLY

@@ -36,6 +36,7 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
   s2 = design['s2']
   s3 = design['s3']
   
+  
   # MPI_Init() or MPI_Init_thread() is actually called when you import the MPI
   # use the standard communicator
   comm = MPI.COMM_WORLD
@@ -75,9 +76,12 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
 #   print("nx,ny,nz:",nx,ny,nz) 
   
 #   data_grid, data_grid_near, sample_coords= matviz_vtk.get_3d_interpolation_at_faces(barycenters, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
-  
-  design_nodes, s1, s2, s3 = matviz_vtk.interp_cell_to_point_data(centers, reg_info, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
-  data_grid, data_grid_near, sample_coords= matviz_vtk.get_3d_interpolation_at_faces([design_nodes,0,0], design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
+  data_grid, sample_coords = matviz_vtk.get_interpolation_natural_neighbor(barycenters, s1, s2, s3, dx_des, dy_des, dz_des)
+  #design_nodes, s1, s2, s3 = matviz_vtk.interp_cell_to_point_data(centers, reg_info, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
+  s1 = comm.bcast(s1,root=0)
+  s2 = comm.bcast(s2,root=0)
+  s3 = comm.bcast(s3,root=0)
+  #data_grid, data_grid_near, sample_coords= matviz_vtk.get_3d_interpolation_at_faces([design_nodes,0,0], design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
 #   print("s1:",len(s1),s1)
 #   print("s2:",s2)
 #   print("s3:",s3)
@@ -146,19 +150,31 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
         y2 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k,1))[1]
         z1 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k,2))[2]
         z2 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1,2))[2]
+#         idx = i + j * samples[0] + k * samples[0] * samples[1]
+#         x1 = x2 = s1[idx]
+#         y1 = y2 = s2[idx]
+#         z1 = z2 = s3[idx]
+#         
+        # data grid contains interpolated data for three faces of a cube: y-z, x-z and x-y face 
+#         x1 = data_grid[0][i,j,k][0]
+#         x2 = data_grid[0][i+1,j,k][0]
+#         y1 = data_grid[1][i,j,k][1]
+#         y2 = data_grid[1][i,j+1,k][1]
+#         z1 = data_grid[2][i,j,k][2]
+#         z2 = data_grid[2][i,j,k+1][2]
         
         all_values = [x1,x2,y1,y2,z1,z2]
-
+        
         # handle void and solid cells
         if thresh is not None:
           if any(t > thresh[1] for t in all_values):
 #             print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])
-            print("found solid cell: rank:" + str(my_mpi_grid.rank) + " global i,j,k:" + str([i,j,k]) +" local:" + str([li,j,k]) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
+            print("found solid cell: rank:" + str(my_mpi_grid.rank) + " global i,j,k:" + str([i,j,k]) + " x-direction: " + str(li*args.bc_res) + ":" + str((li+1)*args.bc_res) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
             my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,j*args.bc_res:(j+1)*args.bc_res,k*args.bc_res:(k+1)*args.bc_res] = 1
             continue
           elif any(t < thresh[0] for t in all_values):
 #             print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])  
-            print("found void cell: rank:" + str(my_mpi_grid.rank) +" global i,j,k:" + str([i,j,k]) +" local:" + str([li,j,k]) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
+            print("found void cell: rank:" + str(my_mpi_grid.rank) +" global i,j,k:" + str([i,j,k]) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
             continue # skip void cell
           
         # bounds (voxel coords) of local base cell
@@ -190,7 +206,7 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
         bc_input.eta = 0.7
         bc_input.stiffness_as_diameter = True
         cell_obj = basecell.Basecell(bc_input,id)
-        print("rank:"+ str(my_mpi_grid.rank) + " global i,j,k:" + str([i,j,k]) + " local:" + str([li,j,k]) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
+        print("rank:"+ str(my_mpi_grid.rank) + " global i,j,k:" + str([i,j,k]) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
         my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,j*args.bc_res:(j+1)*args.bc_res,k*args.bc_res:(k+1)*args.bc_res] = cell_obj.voxels
         sys.stdout.flush()
         

@@ -1173,6 +1173,69 @@ def get_interpolation(coords, grad, s1, s2, s3, dx, dy, dz, angle=None):
 
 # this is copy & paste from matviz_2d but extended to 3D
 # @param nx_ip number of interpolations within x
+def get_interpolation_natural_neighbor(coords, s1, s2, s3, dx, dy, dz):
+  # we make our own regular element grid
+  centers, mi, ma = coords[0:3]  # skip elem
+ 
+  delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
+  # where we want nodes
+  nx = int(delta[0] / dx)
+  ny = int(delta[1] / dy)
+  nz = int(delta[2] / dz)
+  
+  scale_x = delta[0]/(nx*dx)
+  scale_y = delta[1]/(ny*dy)
+  scale_z = delta[2]/(nz*dz)
+  
+  if ny == 0 or nz == 0 or nx == 0:
+    print('chose a higher hom_samples such that also the smallest side gets discretized')
+    exit()
+
+  out = numpy.zeros(((nx + 1) * (ny + 1) * (nz + 1), 3))
+  idx = 0
+  for z in range(nz + 1):
+    for y in range(ny + 1):
+      for x in range(nx + 1):
+        out[idx] = ((mi[0] + float(x) / nx * delta[0], mi[1] +  float(y) / ny * delta[1], mi[2] + float(z) / nz * delta[2]))
+        idx += 1
+  if s2 is None and s3 is None:
+      v = numpy.zeros((len(s1), 1))
+      v[:, 0] = s1[:, 0]
+  else:
+    v = numpy.zeros((len(s1), 3 ))
+    v[:, 0] = s1[:, 0]
+    v[:, 1] = s2[:, 0]
+    v[:, 2] = s3[:, 0]
+  
+  import naturalneighbor
+  l1 = numpy.array([s[0] for s in s1])
+  l2 = numpy.array([s[0] for s in s2])
+  l3 = numpy.array([s[0] for s in s3])
+  
+  l = numpy.array([numpy.array((s1[i],s2[i],s3[i])) for i in range(len(s1))])
+  
+  # y-z face: x has offset 0
+  tmp_1 = naturalneighbor.griddata(numpy.array(centers), l1, [ [mi[0],mi[0]+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_2 = naturalneighbor.griddata(numpy.array(centers), l2, [ [mi[0],mi[0]+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_3 = naturalneighbor.griddata(numpy.array(centers), l3, [ [mi[0],mi[0]+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  yz = numpy.stack((tmp_1,tmp_2,tmp_3), axis=-1)
+  
+  # x-z face: y has offset 0
+  tmp_1 = naturalneighbor.griddata(numpy.array(centers), l1, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1],mi[1]+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_2 = naturalneighbor.griddata(numpy.array(centers), l2, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1],mi[1]+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_3 = naturalneighbor.griddata(numpy.array(centers), l3, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1],mi[1]+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2]+ 0.5*dz,mi[2]+ 0.5*dz+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  xz = numpy.stack((tmp_1,tmp_2,tmp_3), axis=-1)
+  
+  # x-y face: z has offset 0
+  tmp_1 = naturalneighbor.griddata(numpy.array(centers), l1, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2],mi[2]+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_2 = naturalneighbor.griddata(numpy.array(centers), l2, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2],mi[2]+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  tmp_3 = naturalneighbor.griddata(numpy.array(centers), l3, [ [mi[0]+ 0.5*dx,mi[0]+ 0.5*dx+delta[0]+1.0/nx,1.0/nx*delta[0]], [mi[1] + 0.5*dy,mi[1]+ 0.5*dy+delta[1]+1.0/ny,1.0/ny*delta[1]], [mi[2],mi[2]+delta[2]+1.0/nz,1.0/nz*delta[2]]])
+  xy = numpy.stack((tmp_1,tmp_2,tmp_3), axis=-1)
+  
+  return [yz, xz, xy], out 
+
+# this is copy & paste from matviz_2d but extended to 3D
+# @param nx_ip number of interpolations within x
 # assume we get element data at barycenters (coords)
 def get_3d_interpolation_at_faces(coords, bounds, grad, s1, s2, s3, nx, ny, nz, dx, dy, dz):
   # we make our own regular element grid

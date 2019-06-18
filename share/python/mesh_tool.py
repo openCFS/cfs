@@ -24,6 +24,7 @@ except:
 TRIA3 = 4
 QUAD4 = 6
 TET4 = 8
+TET10 = 9
 HEXA8 = 10
 WEDGE6 = 14
 LINE = 100
@@ -104,6 +105,8 @@ def nodes_by_type(type):
     return 2
   if type == TET4:
     return 4
+  if type == TET10:
+    return 10
   assert(False)
  
 def mesh_type_from_hdf5(type_id):
@@ -117,10 +120,12 @@ def mesh_type_from_hdf5(type_id):
     return TRIA3
   if type_id == 8:
     return TET4
+  if type_id == 9:
+    return TET10
   assert(False)
 
 def elem_dim(type):
-  if type == HEXA8 or type == WEDGE6 or type == TET4:
+  if type == HEXA8 or type == WEDGE6 or type == TET4 or type == TET10:
     return 3
   elif type == LINE:
     return 1
@@ -476,10 +481,11 @@ def write_gid_mesh(mesh, filename,scale = 1):
   wedge6 = count_elements(mesh.elements, WEDGE6)
   line = count_elements(mesh.elements, LINE)
   tet4 = count_elements(mesh.elements, TET4)
+  tet10 = count_elements(mesh.elements, TET10)
   tri3 = count_elements(mesh.elements, TRIA3)
   num_1d = line
   num_2d = quad4 + tri3
-  num_3d = hexa8 + wedge6 + tet4
+  num_3d = hexa8 + wedge6 + tet4 + tet10
   assert(num_1d + num_2d + num_3d == len(mesh.elements))
   print('number of elements ' + str(num_1d + num_2d + num_3d))
   dim = 3 if num_3d > 0 else 2
@@ -511,7 +517,7 @@ def write_gid_mesh(mesh, filename,scale = 1):
   out.write('Num quadr        : ' + str(quad4) + '\n')
   out.write('Num quadr,quad   : 0\n')
   out.write('Num tetra        : ' + str(tet4) + '\n')
-  out.write('Num tetra,quad   : 0\n')
+  out.write('Num tetra,quad   : ' + str(tet10) + '\n')
   out.write('Num brick        : ' + str(hexa8) + '\n')
   out.write('Num brick,quad   : 0\n')
   out.write('Num pyramid      : 0\n')
@@ -895,8 +901,6 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     depth = scale*float(nz)/nx  
  
 
-    
-     
   dx = width / nx 
   dy = height / ny 
   dz = depth / nz 
@@ -1010,7 +1014,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     for i in range(0,nnz):
       mesh.bc.append(("force",list(range(nnx*ny+nnx*nny*i,nnx*nny*(i+1),1))))
     name_bc_nodes(mesh)
-    
+  
   name_bc_nodes(mesh)    
         
   mesh = name_bc_nodes(mesh)  
@@ -1447,10 +1451,15 @@ def create_mesh_from_tetgen(meshfile, region):
     mesh.nodes.append(all_nodes[i, 1:])  
   for i in range(len(all_elements[:, 0])):
     e = Element()
-    e.nodes = (all_elements[i, 1:] - 1)
+    ae = all_elements[i, 1:] - 1
+    e.nodes = (ae[2],ae[3],ae[0],ae[1],ae[4],ae[5],ae[9],ae[7],ae[8],ae[6])
     e.density = 1.
     e.region = region
-    e.type = TET4
+    if len(e.nodes) == 4:
+      e.type = TET4
+    else:
+      assert(len(e.nodes) == 10)
+      e.type = TET10
     mesh.elements.append(e) 
   return mesh
   
