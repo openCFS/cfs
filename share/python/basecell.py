@@ -189,6 +189,7 @@ if __name__ == "__main__":
   parser.add_argument('--z1', help="first stiffness for profile of bar in z-direction; 0 < z1 < 1", type=float)
   parser.add_argument('--z2', help="second stiffness for profile of bar in z-direction; 0 < z2 < 1", type=float)
   parser.add_argument('--input', help="thickness bascell parameters for lazy people, e.g. x1,x2,y1,y2,z1,z2", default="")
+  parser.add_argument('--lower', help="value for void (default 0)", type=float, default=0)
   parser.add_argument('--bend', help="bending factor for spline (0-1)", type=float, default=0.5)
   parser.add_argument('--skip_x', help="don't show bar in x direction", action='store_true')
   parser.add_argument('--skip_y', help="don't show bar in y direction", action='store_true')
@@ -449,7 +450,7 @@ if __name__ == "__main__":
     
 class Basecell_Data():
   x1 = x2 = y1 = y2 = z1 = z2 = bend = beta = eta = res = None
-  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,bc_flags=None,skip=None,lower=0):
+  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,bc_flags=None,lower=0):
     self.res = res
     self.x1 = x1
     self.x2 = x2

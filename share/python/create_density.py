@@ -278,6 +278,18 @@ def hashtag_dist_3d(x, y, z, amplitude, speed):
   yz_dist = max(x_dist, hash_dist)
   
   return min(xy_dist, yz_dist)
+
+# generates 3d orthotropic base cell with given s1, s2, s3
+# these things are hard coded: beta and eta for heaviside interpolation
+def cell_3d_ortho(res,params,bend,lower,skip):
+  import basecell
+  s1, s2, s3 = params
+  bc_input  = basecell.Basecell_Data(res,bend,s1,s1,s2,s2,s3,s3,"heaviside",beta=7,eta=0.6,target="volume_mesh",lower=lower)
+  bc_input.stiffness_as_diameter = True
+  bc_input.skip_x, bc_input.skip_y, bc_input.skip_z = skip 
+  cell_obj = basecell.Basecell(bc_input)
+  
+  return cell_obj.voxels
   
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="edge discretization of length 1m", type=int, required = True )
@@ -291,13 +303,18 @@ parser.add_argument('--rect', help="make a simple binary rectangle inclusion", a
 parser.add_argument('--hashtag', help="hashtag # based on sin-amplitude for bloch mode initial designs [0,1]", type=float)
 parser.add_argument('--channel',help="rectangular channel from one side of the domain to the other one", action='store_true')
 parser.add_argument('--cylinder',help="cylinder in x-direction from one side of the domain to the other one", action='store_true')
+parser.add_argument('--bc', help="3d orthotropic base cell", action='store_true')
+parser.add_argument('--bc_diams', help="3 params/diameters for 3d ortho base cell, e.g. 0.1,0.1,0.1")
+parser.add_argument('--bc_bend', help="bending for 3d ortho base cell (default 0.8)",type=float,default=0.8)
+parser.add_argument('--bc_skip', help="3 values indicating for skipping a rod - default 0,0,0: don't skip any rod", default="0,0,0")
 parser.add_argument('--thickness', help="feature thickness for hashtag", type=float, default=0.1) 
-parser.add_argument('--radius', help="cylinder radius", type=float) 
+parser.add_argument('--radius', help="cylinder radius", type=float)
 parser.add_argument('--hashtag_speed', help="number of maximas, only 1,2,4, ... make sense", type=int, default=1)
 parser.add_argument('--ball', help="account vol only on the inner ball with diameter 1.0", action='store_true')
 parser.add_argument('--show', help="additionaly visualize the image", action='store_true')
 parser.add_argument('--save', help="overwrite default filename, when it ends with an image extension the image is written")
 parser.add_argument('--write_mesh', help="optionally create a sparse mesh. For more options use process_image.py", action='store_true')
+
 
 # parser.add_argument('--elem_nr', help="for debug purpose only (rotation). Ignore vol, dim, order, invert and give the design the 1-based element number", action='store_true')
 args = parser.parse_args()
@@ -331,7 +348,26 @@ elif args.channel:
   filename = "channel_" + str(args.dim) + "d_vol_" + str(args.vol) + "_res_" + str(args.res) + ".density.xml" 
 elif args.cylinder:
   data = cylinder(args.dim, args.res, args.vol, args.radius, args.lower)
-  filename = "cylinder_" + str(args.dim) + "d_vol_" + str(args.vol) + "_res_" + str(args.res) + ".density.xml"   
+  filename = "cylinder_" + str(args.dim) + "d_vol_" + str(args.vol) + "_res_" + str(args.res) + ".density.xml"
+elif args.bc:
+  assert(args.bc_diams is not None)
+  params = args.bc_diams.split(",")
+  params = [float(p) for p in params]
+  assert(len(params) == 3)
+  for p in params:
+    assert(0 < p < 1)
+    
+  assert(0 < args.bc_bend < 1+1e-6)  
+  
+  skip = args.bc_skip.split(",")
+  skip = [int(p) for p in skip]
+  assert(len(skip) == 3)
+  
+  data = cell_3d_ortho(args.res,params,args.bc_bend,args.lower,skip)
+  filename = "ortho-3d_s1-" + str(params[0]) + "_s2-" + str(params[1]) + "_s3-" + str(params[2]) + "_bend-" + str(args.bc_bend) + "_res-" + str(args.res)
+  for i,s in enumerate(skip):
+    if s:
+      filename += "_skip-" + str(i) 
 else:
   data = find_radius(args.dim, args.res, vol, args.order, args.invert, args.lower)
   filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + ord  + ("-inv_" if args.invert else "_") + str(args.res) + ".density.xml"
