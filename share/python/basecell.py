@@ -449,7 +449,7 @@ if __name__ == "__main__":
     
 class Basecell_Data():
   x1 = x2 = y1 = y2 = z1 = z2 = bend = beta = eta = res = None
-  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,tets=False,bc_flags=None):
+  def __init__(self,res,bend,x1,x2,y1,y2,z1,z2,interpolation,beta=None,eta=None,offset=0,target="surface_mesh",res_surf_lines=None,bc_flags=None,skip=None,lower=0):
     self.res = res
     self.x1 = x1
     self.x2 = x2
@@ -458,7 +458,8 @@ class Basecell_Data():
     self.z1 = z1
     self.z2 = z2
     self.bend = bend
-    self.tets = tets
+    self.tets = False
+    self.lower= lower
     # flags = [0,nx-1,0,ny-1,0,nz-1]
     self.bc_flags = bc_flags
     assert(interpolation == "linear" or interpolation == "heaviside")

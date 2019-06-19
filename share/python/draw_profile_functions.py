@@ -842,7 +842,7 @@ def generate_basecell(args,info):
   global infoXml
   infoXml = info
   
-  array = np.zeros((res,res,res),dtype=np.int)
+  array = np.full((res,res,res),args.lower,dtype=float)
   if args.multiple_regions:
     array = np.ones((res,res,res),dtype=np.int) * (-1)
   
