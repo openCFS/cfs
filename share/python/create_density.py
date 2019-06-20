@@ -230,11 +230,7 @@ def channel(dim, res, vol, lower):
 
 
 #creates a cylinder in x-direction with height 1
-def cylinder(dim,res,vol,rad,lower):
-  if dim != 3:
-    print("Only 3d cylinders!")
-    sys.exit()
-    
+def cylinder(res,rad,lower):
   data = numpy.full((res,res,res),lower)  
 
   from skimage.draw import circle
@@ -248,6 +244,16 @@ def cylinder(dim,res,vol,rad,lower):
     data[x,:,:] += circ
     
   return data  
+
+# creates a cylinder in x- and y-direction
+def two_cylinders(res, radii, lower):
+  data = cylinder(res, radii[1], lower)
+  # rotate cylinder
+  data = data.swapaxes(0,1)
+  data += cylinder(res, radii[0], lower)
+
+  # make sure overlapping does not create densities > 1
+  return data.clip(0,1)
   
 ## helper for hashtag. gives for (x,y) the closests distance but only horizontally!
 def hashtag_dist_2d(x, y, amplitude, speed):
@@ -303,12 +309,13 @@ parser.add_argument('--rect', help="make a simple binary rectangle inclusion", a
 parser.add_argument('--hashtag', help="hashtag # based on sin-amplitude for bloch mode initial designs [0,1]", type=float)
 parser.add_argument('--channel',help="rectangular channel from one side of the domain to the other one", action='store_true')
 parser.add_argument('--cylinder',help="cylinder in x-direction from one side of the domain to the other one", action='store_true')
+parser.add_argument('--two_cylinders',help="two cylinders in x- and y-direction from one side of the domain to the other one", action='store_true')
 parser.add_argument('--bc', help="3d orthotropic base cell", action='store_true')
 parser.add_argument('--bc_diams', help="3 params/diameters for 3d ortho base cell, e.g. 0.1,0.1,0.1")
 parser.add_argument('--bc_bend', help="bending for 3d ortho base cell (default 0.8)",type=float,default=0.8)
 parser.add_argument('--bc_skip', help="3 values indicating for skipping a rod - default 0,0,0: don't skip any rod", default="0,0,0")
 parser.add_argument('--thickness', help="feature thickness for hashtag", type=float, default=0.1) 
-parser.add_argument('--radius', help="cylinder radius", type=float)
+parser.add_argument('--radius', help="cylinder radius")
 parser.add_argument('--hashtag_speed', help="number of maximas, only 1,2,4, ... make sense", type=int, default=1)
 parser.add_argument('--ball', help="account vol only on the inner ball with diameter 1.0", action='store_true')
 parser.add_argument('--show', help="additionaly visualize the image", action='store_true')
@@ -347,8 +354,21 @@ elif args.channel:
   data = channel(args.dim, args.res, args.vol, args.lower)
   filename = "channel_" + str(args.dim) + "d_vol_" + str(args.vol) + "_res_" + str(args.res) + ".density.xml" 
 elif args.cylinder:
-  data = cylinder(args.dim, args.res, args.vol, args.radius, args.lower)
-  filename = "cylinder_" + str(args.dim) + "d_vol_" + str(args.vol) + "_res_" + str(args.res) + ".density.xml"
+  # args.radius is a string with possibly one (one cylinder) or two (two cylinders) radii as strings
+  assert(not "," in args.radius)
+  assert(args.dim == 3)
+  rad = float(args.radius)
+  data = cylinder( args.res, rad, args.lower)
+  filename = "cylinder_radius_" + str(rad) + "_res-" + str(args.res) + ".density.xml"
+elif args.two_cylinders:
+  radii = args.radius.split(",")
+  assert(len(radii) == 2)
+  radii = [float(r) for r in radii]
+  print("creating two intersecting (90°) cylinders with radii",radii)
+  assert(args.dim == 3)
+  data = two_cylinders(args.res, radii, args.lower)
+  filename = "two_cylinders_radii-" +  str(radii[0]) + "-" + str(radii[1]) + "_res-" + str(args.res) + ".density.xml"
+
 elif args.bc:
   assert(args.bc_diams is not None)
   params = args.bc_diams.split(",")
