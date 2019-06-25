@@ -315,6 +315,36 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
   
 
+
+
+  void MagEdgeSpecialAVPDE::DefineNcIntegrators() {
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(), endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+        case NC_MORTAR:
+          EXCEPTION("No Mortar nonconforming interface for magnetic PDE with edge elements.\n"
+                    "Try using H1 nodal elements in MagneticPDE")
+          break;
+        case NC_NITSCHE:
+          if (dim_ == 2)
+            EXCEPTION("MagEdgePDE only works for 3D geometry!")
+          else
+            if(analysistype_ == MULTIHARMONIC){
+              DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt, reluc_ );
+            }else{
+              DefineNitscheCoupling<3,1>(MAG_POTENTIAL, *ncIt );
+            }
+          break;
+        default:
+          EXCEPTION("Unknown type of ncInterface");
+          break;
+      }
+    }
+  }
+
+
+
+
   // ======================================================
   // TIME-STEPPING SECTION
   // ======================================================

@@ -58,6 +58,8 @@ namespace CoupledField
 
     void DefineCoilIntegrators();
 
+    //! Defines the integrators needed for ncInterfaces
+    void DefineNcIntegrators();
 
     // =======================================================================
     //  Initialization
