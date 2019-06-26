@@ -3915,7 +3915,7 @@ namespace CoupledField {
               factor, beta, curcpl, updatedGeo_, true, true);
     }
     else  {
-      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV"){
+      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
         if(additionalCoef){
           // multiharmonic case
           penalty_u1_v1 = new SurfaceNitscheABInt<Complex,Complex>
@@ -3952,7 +3952,7 @@ namespace CoupledField {
     		               factor, -1.0, curcpl, updatedGeo_, true);
     	}
     	else {
-    	  if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV"){
+    	  if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
     	    if(additionalCoef){
     	      // multiharmonic case
     	      flux_du1_v1 = new SurfaceNitscheABInt<Complex,Complex>
@@ -3990,7 +3990,7 @@ namespace CoupledField {
                            factor, -1.0, curcpl, updatedGeo_, true);
     	}
     	else {
-        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
           if(additionalCoef){
             // multiharmonic case
             flux_u1_dv1 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4023,7 +4023,7 @@ namespace CoupledField {
                         factor, beta * -1.0, curcpl, updatedGeo_, true, true);
     }
     else {
-        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
           if(additionalCoef){
             // multiharmonic case
             penalty_u1_v2 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4062,7 +4062,7 @@ namespace CoupledField {
     	}
     	else {
 
-        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
           if(additionalCoef){
             // multiharmonic case
             flux_du1_v2 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4095,7 +4095,7 @@ namespace CoupledField {
     }
     else {
 
-      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV"){
+      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
         if(additionalCoef){
           // multiharmonic case
           penalty_u2_v2 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4153,7 +4153,7 @@ namespace CoupledField {
         SurfaceBiLinFormContext *penalty_u1_v1_M_Context = NULL;
 
         curcpl = BiLinearForm::MASTER_MASTER;
-        if(pdename_ == "magneticEdge"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
           if(additionalCoef){
             // multiharmonic case
             penalty_u1_v1_M = new SurfaceNitscheABInt<Complex,Complex>
@@ -4177,7 +4177,7 @@ namespace CoupledField {
         penalty_u1_v1_M_Context = new SurfaceBiLinFormContext(penalty_u1_v1_M, DAMPING, curcpl);
 
         curcpl = BiLinearForm::SLAVE_SLAVE;
-        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
           if(additionalCoef){
             // multiharmonic case
             penalty_u2_v2_M = new SurfaceNitscheABInt<Complex,Complex>
@@ -4201,7 +4201,7 @@ namespace CoupledField {
         penalty_u2_v2_M_Context = new SurfaceBiLinFormContext(penalty_u2_v2_M, DAMPING, curcpl);
 
         curcpl = BiLinearForm::MASTER_SLAVE;
-        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV"){
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV" ){
           if(additionalCoef){
             // multiharmonic case
             penalty_u1_v2_M = new SurfaceNitscheABInt<Complex,Complex>
