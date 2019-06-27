@@ -825,13 +825,16 @@ namespace CoupledField {
   void BaseGraph::MapSetToVector(){
     //convert set to vector
     if(!setToElemDone_){
+      assert(setElements_ != NULL);
   #pragma omp parallel for schedule(dynamic,10) num_threads(CFS_NUM_THREADS)
       for(UInt i=0;i<numNodes_;i++){
+        // Here happens a segmentation fault when run in parallel
         element_[i].resize(setElements_[i].size());
         std::copy(setElements_[i].begin(), setElements_[i].end(), element_[i].begin());
         setElements_[i].clear();
       }
-      delete [] ( setElements_ );  setElements_  = NULL;
+      delete [] ( setElements_ );
+      setElements_ = NULL;
       setToElemDone_ = true;
     }
   }

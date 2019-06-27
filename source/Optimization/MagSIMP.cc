@@ -278,7 +278,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
 
     vol = esm->CalcVolume();
 
-    LOG_DBG(ms) << "CMFD i=" << e << " el=" << de->elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints.ToString(2) << " v=" << vol;
+    LOG_DBG2(ms) << "CMFD i=" << e << " el=" << de->elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints.ToString(2) << " v=" << vol;
     // add element volume to volume of whole domain
     volume += vol;
     LOG_DBG3(ms) << "CMFD accumulated volume =" << volume;
@@ -446,9 +446,9 @@ double MagSIMP::CalcMagCouplingReal(Excitation& excite, Function* f)
   // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
   // we return value 0 for the first excitation and 2*coupling for the second excitation
   assert(GetMultipleExcitation()->excitations.GetSize() >= 2);
-  if(excite.index == 0)
+  if(excite.index != 1)
   {
-    LOG_DBG2(ms) << "CMC: excitation index is 0; nothing to do here; returning 0.0";
+    LOG_DBG(ms) << "CMC: excitation index is " << excite.index <<" not 1; nothing to do here; returning 0.0";
     return 0.0;
   }
   assert(excite.index == 1);
@@ -488,7 +488,7 @@ double MagSIMP::CalcMagCouplingReal(Excitation& excite, Function* f)
   double k = (pow(sp_N1_Ab, 2))/(sp_N1_Aa*sp_N2_Ab);
   LOG_DBG(ms) << "CMC: Coupling = " << k;
   // return 2-times the function value since we have two excitations and it will be halved afterwards
-  return 2*k;
+  return k;
   }
 
 double MagSIMP::CalcMagCouplingComplex(Excitation& excite, Function* f)
