@@ -147,9 +147,6 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
           actSDList->SetRegion( actRegion );
 
 
-
-
-
           /*
             for the non-multiharmonic case it is a simple PtrCoefFct type sufficient
             but due to the flexibility to use multiharmonic excitation,
@@ -418,13 +415,11 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
             shared_ptr<CoefFunctionMulti> currDens(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
             for( UInt k_reg = 0; k_reg < extgVIt->first->regions.GetSize(); ++k_reg ){
               Vector<Double> histVal;
-              ReadUserHistValues(extNode, ResultInfo::SCALAR, histVal);
+              std::string regionName = ptGrid_->GetRegion().ToString(extgVIt->first->regions[k_reg]);
+              ReadUserHistValues(extNode, ResultInfo::SCALAR, histVal, regionName);
               gradVsource_[extgVIt->first] = histVal[0];
             }
           }
-
-
-
 
           shared_ptr<CoefFunctionMulti> unitCurrDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
               isComplex_));

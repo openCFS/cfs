@@ -182,7 +182,7 @@ namespace CoupledField
     virtual void GetResult( UInt sequenceStep,
                             UInt stepValue,
                             shared_ptr<BaseResult> result,
-                            bool isHistory = false ) {
+                            bool isHistory = false) {
       EXCEPTION( "Not implemented in base class" );
     } 
     //@}
@@ -201,6 +201,14 @@ namespace CoupledField
                    std::set<std::string> & regionNames );
     
     
+    void SetTempRegionName(const std::string & name){
+      tempRegionName_ = name;
+    }
+
+    void ResetTempRegionName(){
+      tempRegionName_ = "";
+    }
+
   protected:
 
     //! Name of input file
@@ -223,7 +231,9 @@ namespace CoupledField
     std::map<UInt, StdVector<std::string> > regionNamesOfDim_;
     StdVector<std::string> namedElems_;
     StdVector<std::string> namedNodes_;
-  
+
+    std::string tempRegionName_;
+
   private:  
     
     //! Class for identifying cached information in GetResult() function.

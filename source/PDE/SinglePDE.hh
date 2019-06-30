@@ -197,7 +197,8 @@ class BaseFieldFunctor;
     template<typename T>
     void ReadUserHistValues(  PtrParamNode valueNode,
         ResultInfo::EntryType type,
-        Vector<T>& res);
+        Vector<T>& res,
+        std::string regionName);
 
 
     /** Define all RHS linearforms for load / excitation

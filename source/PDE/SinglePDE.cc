@@ -2653,7 +2653,8 @@ namespace CoupledField {
   template<typename T>
   void SinglePDE::ReadUserHistValues( PtrParamNode valueNode,
                            ResultInfo::EntryType type,
-                           Vector<T>& resV){
+                           Vector<T>& resV,
+                           std::string regionName){
 
     // some checks
     if( !valueNode->Has("sequenceStep") ) EXCEPTION("History results can only be read for sequence steps!")
@@ -2712,9 +2713,11 @@ namespace CoupledField {
     ResultMap rMap = inPDE->GetResults();
     ResultList rList = rMap[rInfo];
     shared_ptr<BaseResult> res = rList[0];
+    in->SetTempRegionName(regionName);
     in->GetResult(sequenceStep, stepNum, res, true);
     resV = dynamic_cast<Result<T>&>(*res).GetVector();
     inDomain->GetResultHandler()->FinishMultiSequenceStep();
+    in->ResetTempRegionName();
   }
 
 
@@ -4294,8 +4297,8 @@ namespace CoupledField {
   }
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Double>&);
-  template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Complex>&);
+  template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Double>&, std::string);
+  template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Complex>&, std::string);
   template void SinglePDE::DefineMortarCoupling<2,1>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<2,2>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineMortarCoupling<3,1>(SolutionType,NcInterfaceInfo&);
