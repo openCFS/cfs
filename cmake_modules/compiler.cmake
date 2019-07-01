@@ -8,7 +8,7 @@ include(CheckCXXSourceCompiles)
 # Determine what equivalent GNU version the compiler has, to check if it is
 # compatible with the GNU C++ compiler on the system PATH.
 #-------------------------------------------------------------------------------
-IF(UNIX OR MINGW)
+IF(UNIX)
   #-----------------------------------------------------------------------------
   # Let's first find out some infos about the system GNU compiler first.
   #-----------------------------------------------------------------------------
@@ -32,7 +32,7 @@ IF(UNIX OR MINGW)
   INCLUDE("${COMPILER_ID_FILE}")
   
   SET(GNU_CXX_COMPILER_VER "${CXX_VERSION}")
-ENDIF(UNIX OR MINGW)
+ENDIF(UNIX)
 
 
 
