@@ -76,6 +76,7 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
 #   print("nx,ny,nz:",nx,ny,nz) 
   
   data_grid, sample_coords = matviz_vtk.get_interpolation_natural_neighbor(barycenters, s1, s2, s3, dx_des, dy_des, dz_des)
+  
   s1 = comm.bcast(s1,root=0)
   s2 = comm.bcast(s2,root=0)
   s3 = comm.bcast(s3,root=0)
@@ -152,9 +153,16 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
           # in this case, t < thresh[0] is True but we don't want to cut off this cell
           # but round up to thresh[0]
           elif any(t < thresh[0] for t in all_values):
-#             print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])  
-            print("found void cell: rank:" + str(my_mpi_grid.rank) +" global i,j,k:" + str([i,j,k]) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
-            continue # skip void cell
+            if (np.array(all_values) < thresh[0]).sum() > 3:
+  #             print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])  
+              print("found void cell: rank:" + str(my_mpi_grid.rank) +" global i,j,k:" + str([i,j,k]) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
+              continue # skip void cell
+            else:
+              print("detected interface s/v rank:" + str(my_mpi_grid.rank) +" global i,j,k:" + str([i,j,k]) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
+              all_values = [np.maximum(t,thresh[0]) for t in all_values]
+              x1, x2, y1, y2, z1, z2 = all_values
+              print("rounded to ", all_values)
+                
           
         flags = None
         bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)

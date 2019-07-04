@@ -503,7 +503,7 @@ parser.add_argument("--nf", help="requires --mesh, number of fine elements in x,
 parser.add_argument("--type", help="type of 3D object for 2-scale visualization",choices=['apod6', 'robot','ppbox','box_varel'])
 # 3d ortho basecell stuff
 parser.add_argument("--bc_res", help="resolution of voxelized ortho basecell", type=int)
-parser.add_argument("--bc_interpolation", help="interpolation type for ortho basecell (linear or heaviside)",choices=['linear', 'heaviside'])
+parser.add_argument("--bc_interpolation", help="interpolation type for ortho basecell (linear or heaviside)",choices=['linear', 'heaviside'],default="heaviside")
 parser.add_argument("--bc_beta", help="for heaviside interpolation (default 7.0)", type=float,default=7)
 parser.add_argument("--bc_eta", help="for heaviside interpolation (default 0.5)", type=float,default=0.5)
 parser.add_argument("--bc_bend", help="bending of spline (default 0.5)", type=float,default=0.5)
