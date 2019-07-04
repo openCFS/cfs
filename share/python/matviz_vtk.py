@@ -1415,6 +1415,7 @@ def write_stl(polydata, save=None):
     fName += ".stl"
   stlWriter.SetFileName(fName)
   stlWriter.SetInputData(polydata)
+  stlWriter.SetFileTypeToASCII()
   stlWriter.Write()
   
   print("saved polydata to file " + fName)  

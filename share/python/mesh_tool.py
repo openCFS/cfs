@@ -2543,15 +2543,10 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   return mesh
 
 
-# @param viz: vtk polydata object
-# @param stlname: name of stl file
-def create_validation_mesh_for_box_varel(viz,stlName):
-  create_volume_mesh_with_gmsh(stlName)
-  
 def create_validation_mesh_for_pp_box(stlName,diffName,unionName):
   create_volume_mesh_with_gmsh(stlName)
   
-def create_volume_mesh_from_stl(stlName,write_vtk=False):
+def create_volume_mesh_from_stl(stlName,type=None,write_vtk=True):
   assert(stlName.endswith(".stl"))
   # -p Tetrahedralizes a piececwise linear complex
   # -k Outputs mesh to .vtk file for viewing by Paraview
@@ -2559,9 +2554,13 @@ def create_volume_mesh_from_stl(stlName,write_vtk=False):
   command = "tetgen -pk -O3" if write_vtk else "tetgen -p"
   cfs_utils.execute(command + " " + stlName)
   mesh = create_mesh_from_tetgen(stlName[:-4],"mech")
-  
-  add_nodes_for_periodic_bc(mesh)
-  validate_periodicity(mesh)
+  if type == "box_varel":
+    xmin,ymin,zmin,xmax,ymax,zmax = calc_bounding_box(mesh)
+    mesh = add_bc_for_box_varel(mesh,(xmin,xmax,ymin,ymax,zmin,zmax))
+    mesh = name_bb_faces(mesh,xmin,ymin,zmin,xmax,ymax,zmax) 
+  else:
+    add_nodes_for_periodic_bc(mesh)
+    validate_periodicity(mesh)
   
   return mesh
 

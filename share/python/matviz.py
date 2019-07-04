@@ -342,12 +342,12 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None, 
                     name = args.save[:-4]+".stl"
                   
                   matviz_vtk.write_stl(viz, name)
-#                 if args.type == "box_varel" or args.type == "ppbox" or args.mesh:    
-                if args.mesh:
+                if args.type == "box_varel" or args.type == "ppbox" or args.mesh:    
+#                 if args.mesh:
                   if not args.save: # write surface mesh in case we haven't done it before
                     matviz_vtk.write_stl(viz, name)
                   
-                  create_volume_mesh_with_gmsh(name)
+                  create_volume_mesh_from_stl(name)
                   if not args.save:
                     viz = None # avoid showing or writing vtp file
                 viz = None    
