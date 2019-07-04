@@ -134,6 +134,7 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
         # data grid contains interpolated data for three faces of a cube: y-z, x-z and x-y face 
         x1 = data_grid[0][i,j,k][0]
         x2 = data_grid[0][i+1,j,k][0]
+        y1 = data_grid[1][i,j,k][1]
         y2 = data_grid[1][i,j+1,k][1]
         z1 = data_grid[2][i,j,k][2]
         z2 = data_grid[2][i,j,k+1][2]
@@ -147,6 +148,9 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
             print("found solid cell: rank:" + str(my_mpi_grid.rank) + " global i,j,k:" + str([i,j,k]) + " x-direction: " + str(li*args.bc_res) + ":" + str((li+1)*args.bc_res) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
             my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,j*args.bc_res:(j+1)*args.bc_res,k*args.bc_res:(k+1)*args.bc_res] = 1
             continue
+          # check if we have an interface between lattice and void
+          # in this case, t < thresh[0] is True but we don't want to cut off this cell
+          # but round up to thresh[0]
           elif any(t < thresh[0] for t in all_values):
 #             print("found void cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])  
             print("found void cell: rank:" + str(my_mpi_grid.rank) +" global i,j,k:" + str([i,j,k]) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
