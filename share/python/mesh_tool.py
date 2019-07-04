@@ -901,6 +901,8 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     depth = scale*float(nz)/nx  
  
 
+    
+     
   dx = width / nx 
   dy = height / ny 
   dz = depth / nz 
@@ -1014,7 +1016,7 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
     for i in range(0,nnz):
       mesh.bc.append(("force",list(range(nnx*ny+nnx*nny*i,nnx*nny*(i+1),1))))
     name_bc_nodes(mesh)
-  
+    
   name_bc_nodes(mesh)    
         
   mesh = name_bc_nodes(mesh)  
@@ -1451,8 +1453,7 @@ def create_mesh_from_tetgen(meshfile, region):
     mesh.nodes.append(all_nodes[i, 1:])  
   for i in range(len(all_elements[:, 0])):
     e = Element()
-    ae = all_elements[i, 1:] - 1
-    e.nodes = (ae[2],ae[3],ae[0],ae[1],ae[4],ae[5],ae[9],ae[7],ae[8],ae[6])
+    e.nodes = (all_elements[i, 1:] - 1)
     e.density = 1.
     e.region = region
     if len(e.nodes) == 4:
@@ -2589,15 +2590,19 @@ def add_bc_for_box_varel(mesh,bounds):
   eps = 1e-6
   for i in range(len(nodes)):
     # load on top panel y=1
-    if numpy.isclose(nodes[i][1],1.0):
+    #if numpy.isclose(nodes[i][1],1.0):
+    #if numpy.isclose(nodes[i][1],0.0):
+    if nodes[i][1] < 0.0001:
       load.append(i)
       continue
     
     # support edges 
-    if numpy.isclose(nodes[i][1],0.0):
-      if nodes[i][0] <= 2/30 + eps:
+    #if numpy.isclose(nodes[i][1],0.0):
+    #if numpy.isclose(nodes[i][1],1.0):
+    if nodes[i][1] > 0.9999:
+      if nodes[i][0] <= 1/20 + eps:
         support.append(i)
-      elif nodes[i][2] <= 2/30 + eps:
+      elif nodes[i][2] <= 1/20 + eps:
         support.append(i)
         
   print("load:",len(load))

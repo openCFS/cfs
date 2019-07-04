@@ -402,7 +402,9 @@ elif dim == 3:
               assert(z == 0)
               infoxml = str(folder) + "/" + str(y) + "-0-0.info.xml"
           if np.sum(sampl == 0) == 1 and x == 0:
-            infoxml = str(folder) + "/" + str(z) + "-" + str(y) +  "-0.info.xml"      
+            infoxml = str(folder) + "/" + str(z) + "-" + str(y) +  "-0.info.xml"
+          elif np.sum(sampl == 0) == 1 and y == 0:        
+            infoxml = str(folder) + "/" + str(x) + "-" + str(z) +  "-0.info.xml"
           # print infoxml
           if os.path.isfile(infoxml):      
             doc = lxml.etree.parse(infoxml, lxml.etree.XMLParser(remove_comments=True))

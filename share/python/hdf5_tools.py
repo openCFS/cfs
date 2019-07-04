@@ -19,6 +19,7 @@ def element_dimensions(elem_id, all_elements, all_nodes):
   node_coords = []
   for n in range(len(all_elements[elem_id])):
     node_coords.append(all_nodes[all_elements[elem_id][n] - 1])  # numbers are one-based
+#   print("all_nodes:",all_nodes)
   ma = numpy.array([max(node_coords, key=operator.itemgetter(0))[0], max(node_coords, key=operator.itemgetter(1))[1], max(node_coords, key=operator.itemgetter(2))[2]])
   mi = numpy.array([min(node_coords, key=operator.itemgetter(0))[0], min(node_coords, key=operator.itemgetter(1))[1], min(node_coords, key=operator.itemgetter(2))[2]])
   elem_dim = ma - mi
@@ -41,6 +42,11 @@ def num_nodes_by_type(type_id):
 def centered_elements(hdf5_file, region, all_elem_dim=False, region_force=None, region_support=None,centered=True):
   all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
   reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements'].value
+  
+  # check if reg_elements is list of list and flatten if necessary
+  if any(isinstance(el, numpy.ndarray) for el in reg_elements):
+    reg_elements = [el[0] for el in reg_elements]
+    
   types = hdf5_file['/Mesh/Elements/Types'].value
   all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
   reg_nodes = hdf5_file['/Mesh/Regions/' + region + '/Nodes']

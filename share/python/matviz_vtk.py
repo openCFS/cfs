@@ -1318,6 +1318,8 @@ def interp_cell_to_point_data(center_coords, reg_info, bounds, grad, s1, s2, s3,
   connectivity = reg_info['connectivity']
   # region_map: maps local node id (list idx) in given design region (e.g. "mech") to global node id in all regions
   local_to_global_id = reg_info['region_map']
+  if any(isinstance(el, numpy.ndarray) for el in local_to_global_id):
+    local_to_global_id = [el[0] for el in local_to_global_id]
   global_to_local_id = dict()
   for i,id in enumerate(local_to_global_id):
     global_to_local_id[id-1] = i

@@ -243,6 +243,8 @@ def cylinder(res,rad,lower):
   for x in range(res):
     data[x,:,:] += circ
     
+  print("volume:",(data > lower+1e-6).sum()/res**3)  
+    
   return data  
 
 # creates a cylinder in x- and y-direction
