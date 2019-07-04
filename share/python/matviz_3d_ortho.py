@@ -75,22 +75,10 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
 #   print("dx_des,dy_des,dz_des:",dx_des,dy_des,dz_des)
 #   print("nx,ny,nz:",nx,ny,nz) 
   
-#   data_grid, data_grid_near, sample_coords= matviz_vtk.get_3d_interpolation_at_faces(barycenters, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
   data_grid, sample_coords = matviz_vtk.get_interpolation_natural_neighbor(barycenters, s1, s2, s3, dx_des, dy_des, dz_des)
-  #design_nodes, s1, s2, s3 = matviz_vtk.interp_cell_to_point_data(centers, reg_info, design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
   s1 = comm.bcast(s1,root=0)
   s2 = comm.bcast(s2,root=0)
   s3 = comm.bcast(s3,root=0)
-  #data_grid, data_grid_near, sample_coords= matviz_vtk.get_3d_interpolation_at_faces([design_nodes,0,0], design_bounds, grad, s1, s2, s3, samples[0], samples[1], samples[2], dx_des, dy_des, dz_des)
-#   print("s1:",len(s1),s1)
-#   print("s2:",s2)
-#   print("s3:",s3)
-#   for i in range(0,samples[0]):
-#     for j in range(0,samples[1]):
-#       for k in range(0,samples[2]):
-#         for f in range(3):
-#           print("i,j,k:",i,j,k," face:",sample_coords[i,j,k,f], " interpolated value:", data_grid[i,j,k,f])  
-#   sys.exit()
   
   my_mpi_grid = MPI_Grid(comm)
   
@@ -143,25 +131,12 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
       for i in range(my_mpi_grid.start_x,my_mpi_grid.end_x):
         li = i - my_mpi_grid.start_x
              
-        # for each element, we only stored value at left, bottom and back faces
-        x1 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k,0))[0]
-        x2 = get_interp_3darray_elem(data_grid,data_grid_near,(i+1,j,k,0))[0]
-        y1 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k,1))[1]
-        y2 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j+1,k,1))[1]
-        z1 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k,2))[2]
-        z2 = get_interp_3darray_elem(data_grid,data_grid_near,(i,j,k+1,2))[2]
-#         idx = i + j * samples[0] + k * samples[0] * samples[1]
-#         x1 = x2 = s1[idx]
-#         y1 = y2 = s2[idx]
-#         z1 = z2 = s3[idx]
-#         
         # data grid contains interpolated data for three faces of a cube: y-z, x-z and x-y face 
-#         x1 = data_grid[0][i,j,k][0]
-#         x2 = data_grid[0][i+1,j,k][0]
-#         y1 = data_grid[1][i,j,k][1]
-#         y2 = data_grid[1][i,j+1,k][1]
-#         z1 = data_grid[2][i,j,k][2]
-#         z2 = data_grid[2][i,j,k+1][2]
+        x1 = data_grid[0][i,j,k][0]
+        x2 = data_grid[0][i+1,j,k][0]
+        y2 = data_grid[1][i,j+1,k][1]
+        z1 = data_grid[2][i,j,k][2]
+        z2 = data_grid[2][i,j,k+1][2]
         
         all_values = [x1,x2,y1,y2,z1,z2]
         
@@ -177,30 +152,6 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
             print("found void cell: rank:" + str(my_mpi_grid.rank) +" global i,j,k:" + str([i,j,k]) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
             continue # skip void cell
           
-        # bounds (voxel coords) of local base cell
-        # xmin,ymin,zmin
-        h = (my_mpi_grid.grid.hx,my_mpi_grid.grid.hy,my_mpi_grid.grid.hz)
-        left,lower,back = draw_profile_functions.voxel_to_cartesian_coords((i*args.bc_res,j*args.bc_res,k*args.bc_res), design_bounds[0:3], h)
-        # xmax,ymax,zmax
-        right,upper,front = draw_profile_functions.voxel_to_cartesian_coords(((i+1)*args.bc_res,(j+1)*args.bc_res,(k+1)*args.bc_res), design_bounds[0:3], h)
-        
-        left_lower_back = (left,lower,back)
-        left_upper_back = (left,upper,back)
-        left_lower_front = (left,lower,front)
-        left_upper_front = (left,upper,front)
-        
-        right_lower_back = (right,lower,back)
-        right_upper_back = (right,upper,back)
-        right_lower_front = (right,lower,front)
-        right_upper_front = (right,upper,front)
-        
-        #if base cell corners outside design domain, don't compute
-#         if out_of_bounds(left_lower_back, design_bounds) and out_of_bounds(left_upper_back, design_bounds)\
-#           and out_of_bounds(left_lower_front, design_bounds) and out_of_bounds(left_upper_front, design_bounds)\
-#           and out_of_bounds(right_lower_back, design_bounds) and out_of_bounds(right_upper_back, design_bounds)\
-#           and out_of_bounds(right_lower_front, design_bounds) and out_of_bounds(right_upper_front, design_bounds):
-#             continue
-        
         flags = None
         bc_input  = basecell.Basecell_Data(args.bc_res,args.bc_bend,x1,x2,y1,y2,z1,z2,args.bc_interpolation,args.bc_beta,args.bc_eta,target="volume_mesh",bc_flags=flags)
         bc_input.eta = 0.7
@@ -292,8 +243,8 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
   # hope for python's garbage collector to delete voxel array
   helper = None
   
-  pd = matviz_vtk.fill_vtk_polydata(my_mpi_grid.vertices, my_mpi_grid.faces)
-  matviz_vtk.show_write_vtk(pd, 10, "marching"+str(my_mpi_grid.rank)+".vtp")
+#   pd = matviz_vtk.fill_vtk_polydata(my_mpi_grid.vertices, my_mpi_grid.faces)
+#   matviz_vtk.show_write_vtk(pd, 10, "marching"+str(my_mpi_grid.rank)+".vtp")
   
   pd = None
   
