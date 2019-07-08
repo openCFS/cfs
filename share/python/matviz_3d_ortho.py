@@ -144,7 +144,7 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
         
         # handle void and solid cells
         if thresh is not None:
-          if any(t > thresh[1] for t in all_values):
+          if (np.array(all_values) > thresh[1]).sum() >= 3:
 #             print("found solid cell: ","rank:",my_mpi_grid.rank," global i,j,k:",i,j,k, " local:",li,j,k," x1,x2,y1,y2,z1,z2:",x1,x2,y1,y2,z1,z2," coords: ",sample_coords[i,j,k])
             print("found solid cell: rank:" + str(my_mpi_grid.rank) + " global i,j,k:" + str([i,j,k]) + " x-direction: " + str(li*args.bc_res) + ":" + str((li+1)*args.bc_res) + " x1,x2,y1,y2,z1,z2:" + str([x1,x2,y1,y2,z1,z2]))
             my_mpi_grid.grid.data[li*args.bc_res:(li+1)*args.bc_res,j*args.bc_res:(j+1)*args.bc_res,k*args.bc_res:(k+1)*args.bc_res] = 1

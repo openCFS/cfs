@@ -742,6 +742,19 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
       else:  
         e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))    
         mesh.elements.append(e)
+        
+    # create lines on left boundary for pfem
+    x = 0
+    for y in range(ny):
+      e = Element()
+      e.type = LINE
+      e.density = 1
+      # assign nodes
+      ll = (nx+1) * y + x  # lowerleft
+      e.nodes = ((ll,ll+nx+1))
+      # set region for appropriate load case
+      e.region = "left_edges"
+      mesh.elements.append(e)
   
     mesh.bc.append(("south", list(range(0, nx + 1))))
     mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
@@ -993,7 +1006,20 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
 #      for x in range(0, nnx):
 #        if (z*dz <= 2.0000001) or (x*dx >= 24.9999):
 #          side[1].append((z * nny + ny) * nnx + x)
-        
+ 
+  if type == "bulk3d":
+    x = 0
+    for z in range(nz):
+      for y in range(ny):
+        e = Element()
+        e.type = QUAD4
+        e.density = 1
+        ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+        e.nodes = ((ll,ll+nnx,ll+nnx*nny+nnx,ll+nnx*nny))
+        e.region = "left_faces"
+        mesh.elements.append(e)
+  
+  # assign nodes
   if type == "bulk3d" and inclusion == "top_panel":
     # width of support area 
     sa = 0.1
