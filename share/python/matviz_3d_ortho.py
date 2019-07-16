@@ -5,6 +5,7 @@ import matviz_vtk
 import vtk
 import math
 import sys
+from sympy.printing.llvmjitcode import ll
 
 try:
   import meshpy.triangle as triangle
@@ -285,7 +286,9 @@ def create_3d_interpretation_ortho(args,reg_info,barycenters,min_bb,max_bb,desig
     normals.SetAutoOrientNormals(1)
     normals.Update()
     sys.stdout.flush()
-    matviz_vtk.show_write_vtk(pd, 10, args.save+".vtp")
+    vtpName = args.save+".vtp" if args.save is not None else "interpreted.vtp"
+    matviz_vtk.show_write_vtk(pd, 10, vtpName)
+      
     
 #     data = (verts,faces)
   if args.bc_smooth > 0: 
