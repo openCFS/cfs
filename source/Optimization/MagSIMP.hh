@@ -41,7 +41,6 @@ public:
 
 protected:
 
-
   /** @see Optimization::PostInit() */
   virtual void PostInit();
 
@@ -61,6 +60,10 @@ protected:
 
   bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs);
   
+  /** @see ErsatzMaterial::FillComplexAdjointRHS() */
+
+  bool FillComplexAdjointRHS(Excitation& excite, Function* f, Vector<Complex>& rhs);
+
   /** See ErsatzMaterial::SetElementK() */
   void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
 
@@ -84,28 +87,49 @@ private:
      * the sum of the N elements of f->region. The scalar product is evaluated over the integration points */
   double CalcMagFluxDensity(Excitation& excite, Function* f);
 
-  /** Calculate the magnetic flux density gradient. The weight is always 1 as the magnetic flux density needs to be per excitation */
+  /** calc magnetic flux density as 1/N * sum<J,B*A> where B is the BOp from the BDBInt (here the curl operator) and A is the
+     * element solution vector (scalar) and J is either [1,0] or [0,1] to select the horizontal or vertical part and N averages over
+     * the sum of the N elements of f->region. The scalar product is evaluated over the integration points. The result is scaled by
+     * \sum_{e \in opt_space} \rho_e * vol(e) */
+  double CalcMagFluxDensityLosses(Excitation& excite, Function* f);
+
+  /** Calculate the magnetic flux density gradient. The weight is always 1 as the magnetic flux density needs to be per excitation. */
   void CalcMagFluxDensGradient(Excitation& excite, Function* f);
+
+  /** Calculate the magnetic flux density losses gradient. The weight is always 1 as the magnetic flux density needs to be per excitation. */
+  void CalcMagFluxDensGradientLosses(Excitation& excite, Function* f);
 
   /** magnetic flux density */
   void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
 
+  /** magnetic flux density losses */
+  void CalcMagFluxLossesAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
+
   /** enriched shape functions which give an integration with the state vector in 2D.
    * Allows computation of <N,A>. N_e = sum_ip w_i jacdet_i N_i, where N_i is the FE-shape function.
-   * TODO check formula's indices
    * @param form encodes the region we apply the excitation (current in coil)
    * @param N has size of unknowns of state but has only contributions for the region */
   void CalcN(LinearFormContext* form, Vector<double>& N);
 
-  /** calc coupling as M^2/(L1*L2) */
-  double CalcMagCoupling2(Excitation& excite, Function* f);
-
-  void CalcCoupling2AdjRHS(Excitation& excite, Function* f, Vector<double>& out);
-
   /** calc coupling as M^4/(L1*L2)^2 */
-  double CalcMagCoupling(Excitation& excite, Function* f);
+  double CalcMagCouplingReal(Excitation& excite, Function* f);
 
-  void CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
+  /** calc coupling as TODO */
+  double CalcMagCouplingComplex(Excitation& excite, Function* f);
+
+  void CalcCouplingAdjRealRHS(Excitation& excite, Function* f, Vector<double>& out);
+
+  void CalcCouplingAdjComplexRHS(Excitation& excite, Function* f, Vector<Complex>& out);
+
+  /** helper for CalcCouplingAdjComplexRHS():
+   *   // out = factor_N1 * N1 * Re(AB) + factor_N2 * N2 * Imag(AB) */
+  void HadamardHelper(Vector<Complex>& out, Complex factor_N1, const Vector<double>& N1,  Complex factor_N2, const Vector<Complex>& A);
+
+  void HadamardHelper2(Vector<Complex>& out, Complex factor_N1, const Vector<double>& N1,  Complex factor_N2, const Vector<double>& N2, const Vector<Complex>& AB);
+
+  /** res = <N, real(A).^2> or <N, imag(A).^2> */
+  double InnerHelper(const Vector<double>& N, const Vector<Complex>& A);
+
 
   /** Calculate the coupling gradient */
   void CalcCouplingGradient(Excitation& excite, Function* f,  TransferFunction* tf);

@@ -398,6 +398,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_X, "sqrMagFluxDensX");
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_Y,"sqrMagFluxDensY");
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_RZ, "sqrMagFluxDensRZ");
+  Function::type.Add(Function::LOSS_MAG_FLUX_RZ, "lossMagFluxRZ");
   Function::type.Add(Function::MAG_COUPLING,"magCoupling");
 
   Function::slackFnct.SetName("Function::SlackFnct");
@@ -730,7 +731,12 @@ void Optimization::SolveProblem()
 
 bool Optimization::DoSolveAdjointWithState() const
 {
-  if(context->DoMultiSequence() || (context->IsComplex() && me->excitations.GetSize() > 1) || context->DoLBM())
+  // easy case
+  if(context->DoMultiSequence() || context->DoLBM())
+    return true;
+
+  // don't do it within forward when we can do it later
+  if(context->IsComplex() && me->excitations.GetSize() > 1 && me->GetUniqueFrequencies() > 1)
     return true;
   else
     return false;

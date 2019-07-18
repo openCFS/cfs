@@ -136,7 +136,7 @@ StdVector<StateSolution*> StateContainer::Search(const Excitation* ex, int seq, 
   assert(ex == NULL || (seq == -1 || ex->sequence == seq)); // require consistency
   assert(!(ex == NULL && seq == -1)); // one needs to be given
 
-  LOG_DBG2(statesol) << "SC:C search for ex=" << (ex == NULL ? -1 : ex->index) << " seq=" << seq << " f=" << (f == NULL ? "NULL" : f->ToString())
+  LOG_DBG2(statesol) << "SC:S search for ex=" << (ex == NULL ? -1 : ex->index) << " seq=" << seq << " f=" << (f == NULL ? "NULL" : f->ToString())
                      << " ts_m=" << timestep_mode << " der=" << derivative;
 
   for(unsigned int i = 0, n = data_.GetSize(); i < n; i++)
@@ -149,7 +149,7 @@ StdVector<StateSolution*> StateContainer::Search(const Excitation* ex, int seq, 
     if(ex_ok && seq_ok && s.func == f && tsm_ok && s.derivative == derivative)
       found.Push_back(&s);
 
-    LOG_DBG2(statesol) << "SC:C cand i=" << i << " ex=" << (s.excitation == NULL ? -1 : s.excitation->index) << " seq="
+    LOG_DBG2(statesol) << "SC:S cand i=" << i << " ex=" << (s.excitation == NULL ? -1 : s.excitation->index) << " seq="
                        << (s.excitation == NULL ? -1 : s.excitation->sequence) << " f=" << (s.func == NULL ? "NULL" : s.func->ToString())
                        << " ts_m=" << s.timestep_mode << " der=" << s.derivative << " set=" << s.ContainsState() << " -> " << found.GetSize();
   }
@@ -275,7 +275,9 @@ SolutionType StateSolution::GetSolutionType(SinglePDE* pde, App::Type app)
 std::string StateSolution::ToString()
 {
   std::stringstream ss;
-  ss <<  " raw=" << (raw != NULL ) << " rhs=" << (rhs != NULL) << " select=" << (select != NULL);
+  ss << " excite=" << (excitation != NULL ? excitation->GetFullLabel() : "NULL");
+  ss << " func=" << (func != NULL ? func->ToString() : "NULL");
+  ss <<  " raw=" << (raw != NULL ? raw->GetSize() : -1 ) << " rhs=" << (rhs != NULL ? rhs->GetSize() : -1 ) << " select=" << (select != NULL ? select->GetSize() : -1);
   return ss.str();
 }
 
@@ -443,6 +445,8 @@ void StateSolution::Write(SinglePDE* pde)
 {
   assert(set_);
 
+  LOG_DBG2(statesol) << "SS:W pde=" << pde->GetName() << " ss=" << ToString();
+
   // TODO make robust for App::LBM
   if(raw != NULL)
   {
@@ -450,10 +454,10 @@ void StateSolution::Write(SinglePDE* pde)
 
     SolutionType solt = GetSolutionType(pde);
     shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(solt);
-    LOG_DBG2(statesol) << "raw = " << raw->ToString(2);
-    LOG_DBG2(statesol) << "fe = " << fe->GetSingleVector()->ToString(2);
+    LOG_DBG3(statesol) << "SS:W raw = " << raw->ToString(2);
+    LOG_DBG3(statesol) << "SS:W fe = " << fe->GetSingleVector()->ToString(2);
     *(fe->GetSingleVector()) = *raw; // out of two pointers we make references and then use the assignment operator
-    LOG_DBG2(statesol) << "fe = " << fe->GetSingleVector()->ToString(2);
+    LOG_DBG3(statesol) << "SS:W fe = " << fe->GetSingleVector()->ToString(2);
   }
   else
     LOG_DBG2(statesol) << "SS:W raw not written as it was not set";
@@ -471,7 +475,7 @@ void StateSolution::Write(SinglePDE* pde, SingleVector* vec)
   // let the assignment operator do the job
   *sys = *vec;
 
-  LOG_DBG3(statesol) << "S:W sys -> " << sys->ToString(0);
+  LOG_DBG3(statesol) << "SS:W sys -> " << sys->ToString(0);
 }
 
 
@@ -479,7 +483,7 @@ void StateSolution::Write(SinglePDE* pde, SingleVector* vec)
 template <class T>
 SingleVector* StateSolution::GetVector(StorageType st, bool create)
 {
-  LOG_DBG2(statesol) << "SS:GV st=" << st << " org='" << ToString() << "' create=" << create;
+  LOG_DBG2(statesol) << "SS:GV st=" << st << " org='" << ToString() << "' create=" << create  << " ss=" << ToString();
   switch(st)
   {
   case RAW_VECTOR:

@@ -225,6 +225,11 @@ namespace CoupledField
     * example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom") */
     ParamNodeList GetList(const std::string&  name);
     
+    /** search for the given token in the names of children */
+    static ParamNodeList GetListByChild(const ParamNodeList& base, const std::string&  name);
+    /** search for the given token in the names of children of base-children (= base grandchilds) */
+    static ParamNodeList GetListByGrandChild(const ParamNodeList& base, const std::string&  name);
+
 
     //@{
     /** Get all direct childs which have an attribute with a given value or in other words:
@@ -232,12 +237,9 @@ namespace CoupledField
     *  example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom", "name", "fixed")
     *  @return the direct childs, not the grandchildren */
     template<typename TYPE>
-    ParamNodeList GetListByVal(const std::string& parent, 
-                                             const std::string& child, 
-                                             const TYPE & value);
-    ParamNodeList GetListByVal(const std::string& parent, 
-                                        const std::string& child, 
-                                        const char * value);
+    ParamNodeList GetListByVal(const std::string& parent, const std::string& child, const TYPE & value);
+
+    ParamNodeList GetListByVal(const std::string& parent, const std::string& child, const char* value);
     //@}
 
     /************************************************************************
@@ -318,8 +320,13 @@ namespace CoupledField
     * that there might be only one XML attribute but multiple XML simple elements and we do not differentiate 
     * between this two types. 
     * @param name might contains several levels by the '/' token.
+    * @return index of the first direct child (leaf or "complex") with the given name or -1 if none */
+    int GetIndex(const std::string& name) const;
+
+    /* @seee GetIndex()
     * @return true if there is at least one direct child (leaf or "complex") with the given name */
-    bool Has( const std::string& name ) const;  
+    bool Has(const std::string& name) const;
+
 
     //@{
     /** Checks if there is at least one direct child with the given name and an attribute with the given value.<br>
@@ -364,7 +371,7 @@ namespace CoupledField
     /** variant of other ToString() with more copy operations but also more convenient */
     std::string ToString(int depth) const;
 
-    /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
+    /** Prints this as xml element to the stream. Builds a tree. Shall not be directly
      * called for an attribute.
      * Might change the order as Sort() is called to ensure HEADER < PROCESS < SUMMARY
      * @param depth number of ident steps, will be interpreted as one space
@@ -393,7 +400,7 @@ namespace CoupledField
     * @return an empty list only for an empty parameter */
     StdVector<std::string> SplitIntoTokens(const std::string& input) const;
 
-    /** Speed up the tokenizer stuff from SplitIntoTokens() by asking if it containts tokens. */
+    /** Speed up the tokenizer stuff from SplitIntoTokens() by asking if it contains tokens. */
     bool ContainsTokens(const std::string& input) const
     {
       return input.find('/') != std::string::npos;
@@ -403,21 +410,20 @@ namespace CoupledField
 
     /** Helper that implements a Get() as same as Has(). Call this if ContainsTokens() returns true. */
     template<typename TYPE>
-    PtrParamNode TokenizedHasAndGet(const std::string& name, const TYPE& value,
-                                   bool restrictToVal ) const;
+    PtrParamNode TokenizedHasAndGet(const std::string& name, const TYPE& value, bool restrictToVal ) const;
     
     /** Makes a valid XML name, e.g. removes spaces. Used to create
     * automatically an ParamNode::name_ value out of caption_
     * @param in might contain spaces, e.g. "Number of iterations"
     * @return for this example 'NumberOfIterations' */
-    std::string ToValidLabel(std::string in) const;
+    static std::string ToValidLabel(std::string in);
 
     /** Determine recursively the suitable type for nodes. This method
      * iterates recursively over all nodes and determines for all nodes, which 
      * have a type UNDEF a suitable type (ELEMENT, ATTRIBUTE) */
     void AdjustElementType();
 
-    /** The real content (attribute or simple type content */
+    /** The real content (attribute or simple type content) */
     boost::any value_;
 
     /** the precision for numerical values, to be optionally set! */

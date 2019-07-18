@@ -97,8 +97,33 @@ bool MagSIMP::FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>
     CalcMagFluxAdjRHS(excite, f, rhs);
     return true;
     break;
+  case Function::LOSS_MAG_FLUX_RZ:
+    CalcMagFluxLossesAdjRHS(excite, f, rhs);
+    return true;
+    break;
   case Function::MAG_COUPLING:
-    CalcCouplingAdjRHS(excite, f, rhs);
+    CalcCouplingAdjRealRHS(excite, f, rhs);
+    return true;
+    break;
+
+  default:
+    break;
+  }
+  return false;
+}
+
+bool MagSIMP::FillComplexAdjointRHS(Excitation& excite, Function* f, Vector<Complex>& rhs)
+{
+  switch(f->GetType())
+  {
+  case Function::SQR_MAG_FLUX_DENS_X:
+  case Function::SQR_MAG_FLUX_DENS_Y:
+  case Function::SQR_MAG_FLUX_DENS_RZ:
+  case Function::LOSS_MAG_FLUX_RZ:
+    EXCEPTION("Complex RHS for MagFluxDensity not yet implemented!");
+    break;
+  case Function::MAG_COUPLING:
+    CalcCouplingAdjComplexRHS(excite, f, rhs);
     return true;
     break;
 
@@ -171,9 +196,23 @@ double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       CalcMagFluxDensGradient(excite, f);
       return 0.0;
     }
+  case Function::LOSS_MAG_FLUX_RZ:
+    if(!derivative)
+      return CalcMagFluxDensityLosses(excite, f);
+    else
+    {
+      CalcMagFluxDensGradientLosses(excite, f);
+      return 0.0;
+    }
+
   case Function::MAG_COUPLING:
     if(!derivative)
-      return CalcMagCoupling(excite, f);
+    {
+      if(f->ctxt->IsComplex())
+        return CalcMagCouplingComplex(excite, f);
+      else
+        return CalcMagCouplingReal(excite, f);
+    }
     else
     {
       TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true);//TODO
@@ -253,7 +292,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
 
     vol = esm->CalcVolume();
 
-    LOG_DBG(ms) << "CMFD i=" << e << " el=" << de->elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints.ToString(2) << " v=" << vol;
+    LOG_DBG2(ms) << "CMFD i=" << e << " el=" << de->elem->elemNum << " method=" << method << " order=" << order.ToString() << " iP=" << intPoints.ToString(2) << " v=" << vol;
     // add element volume to volume of whole domain
     volume += vol;
     LOG_DBG3(ms) << "CMFD accumulated volume =" << volume;
@@ -294,7 +333,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
       LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens.ToString(2) << " Sfd=" << S_flux_dens << " inner=" << S_flux_dens.Inner(flux_dens) << " el -> " << el_val;
     } // end ip
 
-    result += el_val * vol; // Norm with volume of element
+    result += el_val;
   } // end loop elems
   if(dim == 3)
   {
@@ -311,10 +350,15 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
   LOG_DBG(ms) << "CMFD: exit normed -> " << result;
   return result;
 }
+double MagSIMP::CalcMagFluxDensityLosses(Excitation& excite, Function* f)
+{
+  double result = CalcMagFluxDensity(excite, f);
+  //TODO Scale result by Volume*density
+  return result;
+}
 
 void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f)
 {
-
   assert(f->GetExcitation() != NULL);
   assert(f->GetExcitation()->transform == NULL); // don' do the complicated stuff yet
 
@@ -338,6 +382,34 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f)
     // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
     CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], ptr_rhs, factor, STANDARD, f);
   }
+}
+
+void MagSIMP::CalcMagFluxDensGradientLosses(Excitation& excite, Function* f)
+{
+  assert(f->GetExcitation() != NULL);
+  assert(f->GetExcitation()->transform == NULL); // don' do the complicated stuff yet
+
+
+  // the gradient is < lambda^T, K' * A >
+  assert(excite.sequence == f->ctxt->sequence);
+  assert(f->ctxt->ToApp() == App::MAG);
+
+  // we use this just as indicator for coil optimization.
+  DesignDependentRHS rhs(App::MAG);
+
+  // for the two design case, we loop over both variables. In the single design case this also works
+  for(unsigned int d = 0; d < design->design.GetSize(); d++)
+  {
+    DesignElement::Type dt = design->design[d].design;
+    TransferFunction* tf = design->GetTransferFunction(dt, App::MAG, true);
+
+    DesignDependentRHS* ptr_rhs = dt == DesignElement::RHS_DENSITY ? &rhs : NULL;
+
+    double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
+    // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], ptr_rhs, factor, STANDARD, f);
+  }
+  //TODO add design dependent term
 }
 
 void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
@@ -382,7 +454,7 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
     assert(method != IntScheme::UNDEFINED);
     assert(!intPoints.IsEmpty());
 
-    LOG_DBG3(ms) << "e=" << iter.GetElem()->elemNum << " w=" << weights.ToString()  << " o=" << order.ToString() << " m=" << method << " ns=" << bfe->GetNumFncs() << " fe=" << bfe->FeType() << " eqn=" << eqn.ToString();
+    LOG_DBG3(ms) << "CN: e=" << iter.GetElem()->elemNum << " w=" << weights.ToString()  << " o=" << order.ToString() << " m=" << method << " ns=" << bfe->GetNumFncs() << " fe=" << bfe->FeType() << " eqn=" << eqn.ToString();
 
     for(unsigned int ip = 0; ip < intPoints.GetSize(); ip++)
     {
@@ -391,7 +463,7 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
 
       // get the shape functions of the ip, same values for all ips in one element but permuted
       h1->GetShFnc(shapes, lpm.lp, iter.GetElem());
-      LOG_DBG3(ms) << "CN: e=" << iter.GetElem()->elemNum << " ip=" << ip << "=" << intPoints[ip].coord.ToString() << " J=" << lpm.jacDet << " s=" << shapes.ToString();
+//      LOG_DBG3(ms) << "CN: e=" << iter.GetElem()->elemNum << " ip=" << ip << "=" << intPoints[ip].coord.ToString() << " J=" << lpm.jacDet << " s=" << shapes.ToString();
       assert(shapes.GetSize() == eqn.GetSize());
       for(unsigned int s = 0; s < shapes.GetSize(); s++)
       {
@@ -405,7 +477,7 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
         else
         {
           unsigned int eqn_idx = eqn_nbr-1;
-          LOG_DBG3(ms) << "CN: s=" << s << " eqn_idx=" << eqn_idx << " N[" << eqn_idx << "] = " << N[eqn_idx] << " + " << v << " -> " << (N[eqn_idx] + v);
+//          LOG_DBG3(ms) << "CN: s=" << s << " eqn_idx=" << eqn_idx << " N[" << eqn_idx << "] = " << N[eqn_idx] << " + " << v << " -> " << (N[eqn_idx] + v);
           N[eqn_idx] += v;
          }
       } // end shape fcts
@@ -413,17 +485,17 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
   } // end elem
 }
 
-double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
+double MagSIMP::CalcMagCouplingReal(Excitation& excite, Function* f)
 {
-  if(GetMultipleExcitation()->excitations.GetSize() != 2)
+  if(GetMultipleExcitation()->excitations.GetSize() < 2)
     throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
 
   // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
   // we return value 0 for the first excitation and 2*coupling for the second excitation
-  assert(GetMultipleExcitation()->excitations.GetSize() == 2);
-  if(excite.index == 0)
+  assert(GetMultipleExcitation()->excitations.GetSize() >= 2);
+  if(excite.index != 1)
   {
-    LOG_DBG2(ms) << "CMC: excitation index is 0; nothing to do here; returning 0.0";
+    LOG_DBG(ms) << "CMC: excitation index is " << excite.index <<" not 1; nothing to do here; returning 0.0";
     return 0.0;
   }
   assert(excite.index == 1);
@@ -460,11 +532,69 @@ double MagSIMP::CalcMagCoupling(Excitation& excite, Function* f)
   LOG_DBG3(ms) << "CMC: <N1, A_b>=" << sp_N1_Ab;
   LOG_DBG3(ms) << "CMC: <N2, A_b>=" << sp_N2_Ab;
 
-  double k = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab);
+  double k = (pow(sp_N1_Ab, 2))/(sp_N1_Aa*sp_N2_Ab);
+  LOG_DBG(ms) << "CMC: Coupling = " << k;
+  // return 2-times the function value since we have two excitations and it will be halved afterwards
+  return k;
+  }
+
+double MagSIMP::CalcMagCouplingComplex(Excitation& excite, Function* f)
+{
+  /* for the complex coupling we take the amplitude of A
+   * k = \frac{(N_1^T (A_R^B .* A_R^B) + N_1^T (A_I^B .* A_I^B))^2} {(N_1^T (A_R^A .* A_R^A) + N_1^T (A_I^A .* A_I^A))*(N_2^T (A_R^B .* A_R^B) + N_2^T (A_I^B .* A_I^B))}
+   */
+  //  if(GetMultipleExcitation()->excitations.GetSize() != 2)
+  //    throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
+
+  // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
+  // we return value 0 for the first excitation and 2*coupling for the second excitation
+  //  assert(GetMultipleExcitation()->excitations.GetSize() == 2);
+  if(excite.index == 0)
+  {
+    LOG_DBG2(ms) << "CMC: excitation index is 0; nothing to do here; returning 0.0";
+    return 0.0;
+  }
+  assert(excite.index == 1);
+  Excitation& excite_A = GetMultipleExcitation()->excitations[0];
+  Excitation& excite_B = GetMultipleExcitation()->excitations[1];
+  // Coupling can only be calculated for exactly two coils
+  assert(excite_A.index == 0 && excite_B.index == 1);
+  // we need both forms to get the different regions
+  StdVector<LinearFormContext*>& forms_A = excite_A.forms;
+  StdVector<LinearFormContext*>& forms_B = excite_B.forms;
+  assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
+  LinearFormContext* form_A = forms_A[0];
+  LinearFormContext* form_B = forms_B[0];
+  // get the two As
+  const Vector<Complex>& A_a = forward.Get(excite_A,NULL)->GetComplexVector(StateSolution::RAW_VECTOR);
+  const Vector<Complex>& A_b = forward.Get(excite_B,NULL)->GetComplexVector(StateSolution::RAW_VECTOR);
+  assert(A_a.GetSize() > 0);
+  assert(A_b.GetSize() > 0);
+
+  LOG_DBG3(ms) << "CMC: size of A_a = " << A_a.GetSize();
+  LOG_DBG3(ms) << "CMC: size of A_b = " << A_b.GetSize();
+
+  Vector<double> N1(A_a.GetSize());
+  Vector<double> N2(A_a.GetSize());
+
+  CalcN(form_A, N1);
+  CalcN(form_B, N2);
+
+  // N1_ABR = <N1, sqrt(real(AB).^2 + imag(AB).^2)>
+  double N1_AA = InnerHelper(N1, A_a);
+
+  double N1_AB = InnerHelper(N1, A_b);
+
+  double N2_AB = InnerHelper(N2, A_b);
+
+  LOG_DBG(ms) << "CMC: N1_AA = " << N1_AA;
+  LOG_DBG(ms) << "CMC: N1_AB = " << N1_AB;
+  LOG_DBG(ms) << "CMC: N2_AB = " << N2_AB;
+  double k = pow(N1_AB, 2)/(N1_AA*N2_AB);
   LOG_DBG(ms) << "CMC: Coupling = " << k;
   // return 2-times the function value since we have two excitations and it will be halved afterwards
   return 2*k;
-  }
+}
 
 void MagSIMP::CalcCouplingGradient(Excitation& excite, Function* f, TransferFunction* tf)
 {
@@ -486,10 +616,8 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   MagMat* mag = dynamic_cast<MagMat*>(f->ctxt->mat);
   SinglePDE* pde = f->ctxt->pde;
 
-  // Write the solution from the algebraic system to the vector real_nu, real_nu will be needed in SetElementK to get the correct nu
   SolutionType solt = MAG_POTENTIAL;
   shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
-  //real_nu = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
 
   // We use BDBInt to compute M, but in the nonlinear case we have only BBInt stored in assemble
   // therefore we construct a own one
@@ -570,8 +698,8 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
       {
         unsigned int eqn_idx = eqn_nbr-1;
 
-        out[eqn_idx] += rhs_el[n] * vol; // norm with volume of element
-        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << vol * rhs_el[n] << " out[eqn_idx]=" << out[eqn_idx];
+        out[eqn_idx] += rhs_el[n];
+        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << rhs_el[n] << " out[eqn_idx]=" << out[eqn_idx];
       }
     }
   } // end loop elements
@@ -586,22 +714,26 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   delete bdb;
 }
 
-void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
+void MagSIMP::CalcMagFluxLossesAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
 {
-  /* The right hand sides look as follows:
+  CalcMagFluxAdjRHS(excite, f, out);
+  //TODO Scale out
+}
+
+void MagSIMP::CalcCouplingAdjRealRHS(Excitation& excite, Function* f, Vector<double>& out)
+{
+  /* The right hand sides look as follows (real case):
    * case A:
    * (<N_1, A_B>^2)/(<N_1, A_A>^2 <N_2, A_B>) * N_1^T
    * case B:
    * <N_1, A_B>/(<N_1, A_A><N_2, A_B>) * N_1^T - (<N_1, A_B>)^2/(<N_1, A_A><N_2, A_B^2>) * N_2^T
    */
   // same as in CalcCoupling
-  if(GetMultipleExcitation()->excitations.GetSize() != 2)
+  if(GetMultipleExcitation()->excitations.GetSize() < 2)
   {
     throw Exception("'magCoupling' requires two coils and enabled multiple_excitations");
   }
-  // cfs makes two coupling functions for two excitations with a weight of 0.5 each.
-  // we return value 0 for the first excitation and 2*coupling for the second excitation
-  assert(GetMultipleExcitation()->excitations.GetSize() == 2);
+  assert(GetMultipleExcitation()->excitations.GetSize() >= 2);
   Excitation& excite_A = GetMultipleExcitation()->excitations[0];
   Excitation& excite_B = GetMultipleExcitation()->excitations[1];
   // Coupling can only be calculated for exactly two coils
@@ -612,6 +744,7 @@ void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>
   assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
   LinearFormContext* form_A = forms_A[0];
   LinearFormContext* form_B = forms_B[0];
+
   // get the two As
   const Vector<double>& A_a = forward.Get(excite_A,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
   const Vector<double>& A_b = forward.Get(excite_B,NULL)->GetRealVector(StateSolution::RAW_VECTOR);
@@ -629,28 +762,152 @@ void MagSIMP::CalcCouplingAdjRHS(Excitation& excite, Function* f, Vector<double>
   LOG_DBG3(ms) << "CMC: N1 = " << N1.ToString(2);
   LOG_DBG3(ms) << "CMC: N2 = " << N2.ToString(2);
 
-  double sp_N1_Aa = N1.Inner(A_a);
-  double sp_N1_Ab = N1.Inner(A_b);
-  double sp_N2_Ab = N2.Inner(A_b);
+  double sp_N1_Aa = Inner(N1, A_a);
+  double sp_N1_Ab = Inner(N1, A_b);
+  double sp_N2_Ab = Inner(N2, A_b);
 
   LOG_DBG2(ms) << "CCAR: <N1, A_a>=" << sp_N1_Aa;
   LOG_DBG2(ms) << "CCAR: <N1, A_b>=" << sp_N1_Ab;
   LOG_DBG2(ms) << "CCAR: <N2, A_b>=" << sp_N2_Ab;
+
   out.Resize(A_a.GetSize(),0.0);
   if (excite.index == 0) {
     //calc rhs first case
-    const double factor = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N1_Aa*sp_N2_Ab);
-
+    const double factor = pow(sp_N1_Ab, 2) / ( pow(sp_N1_Aa, 2) * sp_N2_Ab );
     out.Set(factor, N1); // out = factor * N1
     LOG_DBG2(ms) << "CCAR: first excitation. f=" << factor << " |out|=" << out.NormL2();
   } else if (excite.index == 1) {
     //calc rhs second case
-    const double factor_N1 = (2*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab);
-    const double factor_N2 = (sp_N1_Ab*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab*sp_N2_Ab);
-    out.Add(-factor_N1, N1, factor_N2, N2); // out = -factor_N1 * N1 + factor_N2 * N2
+    const double factor_N1 = -(2*sp_N1_Ab)/(sp_N1_Aa*sp_N2_Ab);
+    const double factor_N2 = (pow(sp_N1_Ab, 2))/(sp_N1_Aa*pow(sp_N2_Ab, 2));
+    out.Add(factor_N1, N1, factor_N2, N2); // out = -factor_N1 * N1 + factor_N2 * N2
     LOG_DBG2(ms) << "CCAR: second excitation fN1=" << factor_N1 << " fN2=" <<factor_N2 << " |out|=" << out.NormL2();
   } else {
     EXCEPTION("There should only be two excitations");
+  }
+}
+
+void MagSIMP::CalcCouplingAdjComplexRHS(Excitation& excite, Function* f, Vector<Complex>& out)
+{
+  /* The right hand sides look as follows (complex case):
+   * In general:
+   * -1/2 * ( \frac{\partial J}{\partial u_R} - j*\frac{\partial J}{\partial u_I} )^T
+   * case A:
+   * factor =  -(N1_ABR+N1_ABI)^2/((N1_AAR+N1_AAI)^2 * (N2_ABR+N2_ABI))
+   * - factor * N_1 .* A_R^A + j * 1/2 * factor * N_1 .* A_I^A
+   * case B:
+   * factor =
+   */
+  // same as in CalcCoupling
+
+  LOG_DBG2(ms) << "CCAR: num excitations: " << GetMultipleExcitation()->excitations.GetSize();
+  assert(f->ctxt->IsComplex());
+  Excitation& excite_A = GetMultipleExcitation()->excitations[0];
+  LOG_DBG2(ms) << "CCAR: excA label: " << excite_A.label <<" frequency "<<excite_A.frequency << " index " << excite_A.index;
+  Excitation& excite_B = GetMultipleExcitation()->excitations[1];
+  // Coupling can only be calculated for exactly two coils
+  //assert(excite_A.index == 0 && excite_B.index == 1);
+  // we need both forms to get the different regions
+  StdVector<LinearFormContext*>& forms_A = excite_A.forms;
+  LOG_DBG2(ms) << "CCAR: num forms in A: " << forms_A.GetSize();
+  StdVector<LinearFormContext*>& forms_B = excite_B.forms;
+  LOG_DBG2(ms) << "CCAR: num forms in B: " << forms_B.GetSize();
+  assert((forms_A.GetSize() == 1) && (forms_B.GetSize() == 1));
+  LinearFormContext* form_A = forms_A[0];
+  LinearFormContext* form_B = forms_B[0];
+
+  // get the two As
+  const Vector<Complex>& A_a = forward.Get(excite_A,NULL)->GetComplexVector(StateSolution::RAW_VECTOR);
+  const Vector<Complex>& A_b = forward.Get(excite_B,NULL)->GetComplexVector(StateSolution::RAW_VECTOR);
+
+  LOG_DBG3(ms) << "CCAR: size of A_a = " << A_a.GetSize();
+  LOG_DBG3(ms) << "CCAR: size of A_b = " << A_b.GetSize();
+  assert(A_a.GetSize() > 0);
+  assert(A_b.GetSize() > 0);
+
+  Vector<double> N1(A_a.GetSize());
+  Vector<double> N2(A_a.GetSize());
+
+  CalcN(form_A, N1);
+  CalcN(form_B, N2);
+  LOG_DBG3(ms) << "CCAR: N1 = " << N1.ToString(2);
+  LOG_DBG3(ms) << "CCAR: N2 = " << N2.ToString(2);
+
+  // N1_AB = <N1, sqrt(real(AB).^2 + imag(AB).^2)>
+  double N1_AA = InnerHelper(N1, A_a);
+  double N1_AB = InnerHelper(N1, A_b);
+  double N2_AB = InnerHelper(N2, A_b);
+
+  Complex j = Complex(0,1);
+  out.Resize(A_a.GetSize(),0.0);
+  if (excite.index == 0) {
+    //calc rhs first case
+    const Complex factor = -(N1_AB*N1_AB)/((N1_AA*N1_AA) * N2_AB);
+    LOG_DBG2(ms) << "CCAR: N1_AB " <<N1_AB;
+    LOG_DBG2(ms) << "CCAR: N1_AA " <<N1_AA;
+    LOG_DBG2(ms) << "CCAR: pow(N1_AB, 2) " <<pow(N1_AB, 2);
+    LOG_DBG2(ms) << "CCAR: pow(N1_AA, 2) " <<pow(N1_AA, 2);
+    LOG_DBG2(ms) << "CCAR: factor complex case excitation A =" << factor;
+    // out = -0.5factor * N1 *Re(A_a) + j*0.5*factor* N1 * Imag(A_a)
+    HadamardHelper(out, -0.5*factor, N1, j*0.5*factor, A_a);
+    LOG_DBG2(ms) << "CCAR: first excitation. f=" << factor << " |out|=" << out.NormL2();
+  } else if (excite.index == 1) {
+    //calc rhs second case
+    Complex fac1 = 2*N1_AB/(N1_AA*N2_AB);
+    Complex fac2 = -(N1_AB*N1_AB)/(N1_AA*N2_AB*N2_AB);
+    LOG_DBG2(ms) << "CCAR: fac N1 complex excitation B =" << fac1;
+    LOG_DBG2(ms) << "CCAR: fac N2 complex excitation B =" << fac2;
+    // out = -factor_N1 * N1 .* Re(AB) + j*factor_N1 * N1 .* Imag(AB) - 0.5 * factor_N2 * N2 * Re(AB) + 0.5*j*factor_N2 * N2 * Imag(AB)
+    HadamardHelper2(out, fac1, N1, fac2, N2, A_b);
+    LOG_DBG2(ms) << "CCAR: second excitation fN1=" << fac1 << " fN2=" <<fac2 << " |out|=" << out.NormL2();
+  } else {
+    EXCEPTION("There should only be two excitations");
+  }
+}
+
+double MagSIMP::InnerHelper(const Vector<double>& N, const Vector<Complex>& A)
+{
+  // res = <N, .sqrt(real(A).^2 + imag(A).^2)>
+  assert(N.GetSize() == A.GetSize());
+  LOG_DBG2(ms) << "IH: N norm:" << N.NormL2();
+  LOG_DBG2(ms) << "IH: A norm:" << A.NormL2();
+
+  double sum = 0;
+
+  for(unsigned int i = 0; i < N.GetSize(); i++) {
+      sum += N[i] * std::sqrt(std::pow(A[i].real(), 2) +  std::pow(A[i].imag(), 2));
+  }
+  return sum;
+}
+
+void MagSIMP::HadamardHelper(Vector<Complex>& out, Complex factor_N1, const Vector<double>& N1,  Complex factor_N2, const Vector<Complex>& A)
+{
+  // out = factor_N1 * N1 .* Re(A) + factor_N2 * N1 .* Imag(A)
+  assert((N1.GetSize() == A.GetSize()));
+
+  for(unsigned int i = 0; i < N1.GetSize(); i++) {
+    double AR = A[i].real();
+    double AI = A[i].imag();
+    Complex frac = 1.0 / (std::sqrt(AR*AR + AI*AI));
+    LOG_DBG3(ms) << "HH: frac: " << frac;
+    out[i] = factor_N1 * N1[i] * frac * AR + factor_N2 * N1[i] * frac * AI;
+    LOG_DBG3(ms) << "HH: out: " << out[i];
+  }
+}
+
+void MagSIMP::HadamardHelper2(Vector<Complex>& out, Complex factor_N1, const Vector<double>& N1,  Complex factor_N2, const Vector<double>& N2, const Vector<Complex>& AB)
+{
+  // out = -factor_N1 * N1 .* Re(AB) + j*factor_N1 * N1 .* Imag(AB) - factor_N2 * N2 * Re(AB) + j*factor_N2 * N2 * Imag(AB)
+  Complex j = Complex(0,1);
+  assert((N1.GetSize() == N2.GetSize()) && (N1.GetSize() == AB.GetSize()));
+
+  for(unsigned int i = 0; i < N1.GetSize(); i++) {
+    double ABR = AB[i].real();
+    double ABI = AB[i].imag();
+    Complex frac = 1.0 / (std::sqrt(ABR*ABR + ABI*ABI));
+    LOG_DBG3(ms) << "HH2: frac: " << frac;
+    out[i] = -0.5*factor_N1 * N1[i] * frac * ABR + 0.5*j*factor_N1 *N1[i] * frac * ABI - factor_N2 * 0.5 * N2[i] * frac * ABR + j*factor_N2 * 0.5* N2[i] * frac * ABI;
+    LOG_DBG3(ms) << "HH2: out: " << out[i];
   }
 }
 
@@ -659,17 +916,6 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
 {
   OptimizationMaterial* mat = f->ctxt->mat;
   Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
-
-  //assert(app != App::MAG); // shall be in MagSIMP.cc
-
-  // Not 100% sure about this but with it we get the correct nu
-  // Define a new Vector buffer_store containing the information from StateSolution
-  // Undo the overwriting from StateSolution.cc line 353 and 445 to get the right nu
-  //Vector <double> buffer_store;
-  //SolutionType solt = MAG_POTENTIAL;
-  //shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(solt);
-  //buffer_store = dynamic_cast<Vector <double>& >(*(fe->GetSingleVector()));
-  //dynamic_cast<Vector<double>& >(*(fe->GetSingleVector())) = real_nu;
 
   switch(app)
   {
@@ -744,6 +990,7 @@ const Matrix<double>& MagSIMP::GetSelectionMatrix(const Function* f) const
   case Function::SQR_MAG_FLUX_DENS_Y:
     return sel_y_;
   case Function::SQR_MAG_FLUX_DENS_RZ:
+  case Function::LOSS_MAG_FLUX_RZ:
     return sel_xy_;
   default:
     assert(false);

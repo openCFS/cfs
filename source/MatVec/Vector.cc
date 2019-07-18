@@ -177,24 +177,15 @@ namespace CoupledField {
       data_[i] = a * idvec[i];
   }
 
+  template <typename T>
+  void Vector<T>::Hadamard(const Vector<T>& v1, const Vector<T>& v2)
+  {
+    assert((v1.GetSize() == v2.GetSize()) && (v1.GetSize() == GetSize()));
 
-  /*
-  template <typename T>
-  void Vector<T>::Add(Double a,const SingleVector &vec) {
-    if(typeid(Double) != typeid(T))
-      EXCEPTION("Wrong typeids in Vector<T>::Add ("
-                << typeid(Double).name() << " != "
-                << typeid(T).name() << ")");
+    for(unsigned int i = 0; i < v1.GetSize(); i++)
+      data_[i] = v1[i] * v2[i];
   }
-  
-  template <typename T>
-  void Vector<T>::Add(Complex a,const SingleVector &vec) {
-    if(typeid(Complex) != typeid(T))
-      EXCEPTION("Wrong typeids in Vector<T>::Add ("
-                << typeid(Complex).name() << " != "
-                << typeid(T).name() << ")");
-  }
-*/
+
 
   // *********
   //   Inner

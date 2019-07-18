@@ -1267,7 +1267,7 @@
   <!--   Definition of coil result description  -->
   <!-- ******************************************************************** -->
 
-  <!-- Please but documentation here -->
+  <!-- Please put documentation here -->
   <xsd:complexType name="DT_CoilResultDescr">
     <xsd:attribute name="id" type="xsd:token" use="required"/>
     <xsd:attribute name="postProcId" type="xsd:token" default=""/>

@@ -182,6 +182,7 @@ Function::Function(PtrParamNode pn) {
     break;
 
   case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
   if(!domain->GetGrid()->IsAxi())
       throw Exception("only for axis symmetric setting: " + type.ToString(type_));
     break;
@@ -247,8 +248,7 @@ void Function::Init() {
   // function value to be evaluated
   this->value_ = -1.0;
 
-  // -2 is unset, -1 is all, >= 0 the excitation index
-  this->excite_ = -1;
+  this->excite_ = UNSET_EX;
   this->sample_excitation_ = NULL;
   this->excite_sensitive_ = false;
 
@@ -517,15 +517,25 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case SQR_MAG_FLUX_DENS_Y:
   case SQR_MAG_FLUX_DENS_X:
   case SQR_MAG_FLUX_DENS_RZ:
-  case MAG_COUPLING: // we need to solve both coils, CalcMagCoupling() returns 0 for the first excitations
+  case LOSS_MAG_FLUX_RZ:
   case TEMP_TRACKING_AT_INTERFACE:
     assert(excite_index < 0);
-    if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
-      excite_ = -1; // all excitations within this sequence/ context
-    else {
+    if(!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all") {
+      excite_ = ALL_EX; // all excitations within this sequence/ context
+      // why is there no excite_sensitive_ = true; ??
+    } else {
       excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
       excite_sensitive_ = true;
     }
+    break;
+
+  case MAG_COUPLING:
+    // enforces the excitation to be manually set to "0_1" for the first two excitations
+    assert(excite_index < 0);
+    if(!pn->Has("excitation") || pn->Get("excitation")->As<string>() != "0_1")
+       throw Exception("function " + type.ToString(MAG_COUPLING) + " requires excitation='0_1'");
+    excite_ = COMBINED_0_1_EX;
+    excite_sensitive_ = true;
     break;
 
   case STRESS:
@@ -533,9 +543,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
     // there might be the optional excitation index set
     if (pn->Get("excitation")->As<string>() == "all") {
-      excite_ = excite_index == -2 ? -1 : excite_index;
+      excite_ = excite_index == UNSET_EX ? ALL_EX : excite_index;
     } else {
-      assert(excite_index == -2); // assert there is no conflict
+      assert(excite_index == UNSET_EX); // assert there is no conflict
       excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
     }
     excite_sensitive_ = true;
@@ -556,11 +566,14 @@ bool Function::DoEvaluate(const Excitation* excite) const {
   if(DoEvaluateAlways(excite->sequence))
     return true;
 
+  if(excite_ == COMBINED_0_1_EX)
+    return excite->index == 0 || excite->index == 1;
+
   return excite->index == excite_;
 }
 
 bool Function::DoEvaluateAlways(int context_sequence) const {
-  if(excite_ != -1)
+  if(excite_ != ALL_EX)
     return false;
 
   return ctxt->sequence == context_sequence; // excite_ == -1 is already assured
@@ -588,6 +601,7 @@ bool Function::IsAdjointBased() const {
   case SQR_MAG_FLUX_DENS_X:
   case SQR_MAG_FLUX_DENS_Y:
   case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
   case MAG_COUPLING:
     return true;
 
@@ -762,6 +776,7 @@ bool Function::ForSensitivityFiltering() const {
   case SQR_MAG_FLUX_DENS_Y:
   case SQR_MAG_FLUX_DENS_X:
   case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
   case MAG_COUPLING:
   case EIGENFREQUENCY:
   case BANDGAP:
@@ -880,7 +895,8 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
       }
     } else {
       // this is a special case where the constraint does not act on the design space
-      if(type_ != STRESS && type_ != STRESS_DENSITY && type_ != SQR_MAG_FLUX_DENS_X && type_ != SQR_MAG_FLUX_DENS_Y && type_ != SQR_MAG_FLUX_DENS_RZ && type_ != MAG_COUPLING)
+      //TODO help, this is ugly
+      if(type_ != STRESS && type_ != STRESS_DENSITY && type_ != SQR_MAG_FLUX_DENS_X && type_ != SQR_MAG_FLUX_DENS_Y && type_ != SQR_MAG_FLUX_DENS_RZ && type_ != MAG_COUPLING && type_ != LOSS_MAG_FLUX_RZ)
       {
         string a = grid->GetRegion().ToString(region);
         string msg = "region " + grid->GetRegion().ToString(region)

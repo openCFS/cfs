@@ -291,7 +291,7 @@ void ErsatzMaterial::PostInit()
       StdVector<shared_ptr<EntityList> > ent;
       StdVector<PtrCoefFct > coef;
       bool geo = false;
-      assert(!context->DoMultiSequence()); // the pdes are not know yet!
+      assert(!context->DoMultiSequence()); // the pdes are not known yet!
       SinglePDE* pde = context->pde;
 
       if(output->Has("displacement"))
@@ -1382,6 +1382,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::SQR_MAG_FLUX_DENS_Y:
       case Function::SQR_MAG_FLUX_DENS_X:
       case Function::SQR_MAG_FLUX_DENS_RZ:
+      case Function::LOSS_MAG_FLUX_RZ:
       case Function::MAG_COUPLING:
         assert(false); // shall be handled in MagSIMP
       break;
@@ -3377,18 +3378,19 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       stringstream ss;
       ss << "SPDES: prob=" << comment << " excite=" << excite.index << " pde: " << it->first << " timestep_mode=" << timestep_mode;
 
+      LOG_DBG(em) << ss.str() << " read_sol=" << read_sol << " read_rhs=" << read_rhs;
       if(read_sol)
       {
         sol.Read(StateSolution::ELEMENT_VECTORS, it->second, it->first, save_sol, derivative);
         raw = sol.Read(StateSolution::RAW_VECTOR, it->second, it->first, save_sol, derivative);
 
-        LOG_DBG2(em) << ss.str() << " sol: " << raw->ToString();
+        LOG_DBG3(em) << ss.str() << " sol: " << raw->ToString();
       }
 
       if(read_rhs)
       {
         sol.Read(StateSolution::RHS_VECTOR, it->second, it->first, save_sol, derivative);
-        LOG_DBG2(em) << ss.str() << " rhs: " << sol.GetVector(StateSolution::RHS_VECTOR)->ToString();
+        LOG_DBG3(em) << ss.str() << " rhs: " << sol.GetVector(StateSolution::RHS_VECTOR)->ToString();
       }
 
       if(context->IsEigenvalue())
@@ -3552,6 +3554,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::SQR_MAG_FLUX_DENS_X:
       case Function::SQR_MAG_FLUX_DENS_Y:
       case Function::SQR_MAG_FLUX_DENS_RZ:
+      case Function::LOSS_MAG_FLUX_RZ:
       case Function::MAG_COUPLING:
       {
         // these objectives need their adjoint problems for the calculation of the objective value
@@ -3791,7 +3794,9 @@ PtrParamNode ErsatzMaterial::CommitIteration()
         break;
       }
 
-      default:
+      default:// Let's hope this is overwritten, e.g. my MagSIMP */
+        if(!FillComplexAdjointRHS(excite, f, rhs))
+          throw Exception("FillRealAdjointRHS for " + f->ToString() + " not handled");
       assert(true); // e.g. for ELEC_ENERGY the rhs is set in PiezoSIMP::ConstructAdjointRHS()
     }
     shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType());

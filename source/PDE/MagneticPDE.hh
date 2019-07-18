@@ -63,7 +63,7 @@ namespace CoupledField
     
     //! Defines the integrators needed for ncInterfaces
     void DefineNcIntegrators();
-    
+
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( ){};
     
@@ -118,7 +118,7 @@ namespace CoupledField
     //! needed for calculating H field
     std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
     
-    //! Query parameter object for information on coils
+    /** Query parameter object for information on coils */
     void ReadCoils();
     
     //! Initialize time stepping method

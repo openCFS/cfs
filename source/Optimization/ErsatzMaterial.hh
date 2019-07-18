@@ -374,9 +374,14 @@ protected:
    * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
   void AddMassToStiffness(Context* ctxt, const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
 
-  /** For derived optimization to fill their contribution to ErsatzMaterial::ConstructReadAdjointRHS()
-   * @return true if functions is handled */
+  /** For derived optimization to fill their contribution to ErsatzMaterial::ConstructRealAdjointRHS()
+   * @return true if function is handled */
   virtual bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs) { return false; }
+
+
+  /** For derived optimization to fill their contribution to ErsatzMaterial::ConstructComplexAdjointRHS()
+   * @return true if function is handled */
+  virtual bool FillComplexAdjointRHS(Excitation& excite, Function* f, Vector<Complex>& rhs) { return false; }
 
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
   StateContainer forward;

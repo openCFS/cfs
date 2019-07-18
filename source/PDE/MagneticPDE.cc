@@ -1409,33 +1409,6 @@ namespace CoupledField {
     shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
     matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
     DefineFieldResult(permFct, permeability);
-
-    //creates the velocity
-    StdVector<std::string> vecDofNames;
-    if( ptGrid_->GetDim() == 3 ) {
-      vecDofNames = "x", "y", "z";
-    } else {
-      if( ptGrid_->IsAxi() ) {
-        vecDofNames = "r", "z";
-      } else {
-        vecDofNames = "x", "y";
-      }
-    }
-
-    //// === VELOCITY ===
-    shared_ptr<ResultInfo> velocity( new ResultInfo);
-    velocity->resultType = MEAN_FLUIDMECH_VELOCITY;
-    velocity->dofNames = vecDofNames;
-    velocity->unit = "m/s";
-
-    velocity->definedOn = ResultInfo::NODE;
-    velocity->entryType = ResultInfo::VECTOR;
-
-    VelocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
-    DefineFieldResult( VelocityCoef_, velocity );
-
-    results_.Push_back( velocity );
-    availResults_.insert( velocity );
   }
   
   void MagneticPDE::DefinePostProcResults() {

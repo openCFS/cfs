@@ -280,6 +280,40 @@ namespace CoupledField {
       out.Add(fac1.real(), vec1, fac2.real(), vec2);
   }
 
+  double Inner(const Vector<double>& v1, const Vector<double>& v2)
+  {
+    return v1.Inner(v2);
+  }
+
+  Complex Inner(const Vector<Complex>& v1, const Vector<Complex>& v2)
+  {
+    return v1.Inner(v2);
+  }
+
+  Complex Inner(const Vector<double>& v1, const Vector<Complex>& v2)
+  {
+    assert(v1.GetSize() == v2.GetSize());
+
+    Complex s(0,0);
+
+    for(unsigned int i = 0; i < v1.GetSize(); i++)
+      s += v1[i] * std::conj(v2[i]);
+    return s;
+  }
+
+  Complex Inner(const Vector<Complex>& v1, const Vector<double>& v2)
+  {
+    assert(v1.GetSize() == v2.GetSize());
+
+    Complex s(0,0);
+
+    for(unsigned int i = 0; i < v1.GetSize(); i++)
+      s += v1[i] * Complex(v2[i]);
+    return s;
+  }
+
+
+
   double Average(const double* data, unsigned int size)
   {
     double sum = 0.0;
