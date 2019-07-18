@@ -650,7 +650,7 @@ def validate_periodicity(mesh):
   
 ## creates a 2D mesh of predefined geometry
    #create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
-def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
+def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None, pfem=False):
   
   assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load' or type == 'two_load' or type.startswith('force_inverter') or type.startswith('gripper') or type == 'mbb')
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
@@ -742,20 +742,34 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
       else:  
         e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))    
         mesh.elements.append(e)
-        
-    # create lines on left boundary for pfem
-    x = 0
-    for y in range(ny):
-      e = Element()
-      e.type = LINE
-      e.density = 1
-      # assign nodes
-      ll = (nx+1) * y + x  # lowerleft
-      e.nodes = ((ll,ll+nx+1))
-      # set region for appropriate load case
-      e.region = "left_edges"
-      mesh.elements.append(e)
-  
+    
+    if pfem:    
+      # create lines on west and east boundaries for pfem
+      for y in range(ny):
+        for x in [0, nx]:
+          e1 = Element()
+          e.type = LINE
+          e.density = 1
+          # assign nodes
+          ll = (nx+1) * y + x  # lowerleft
+          e.nodes = ((ll,ll+nx+1))
+          # set region for appropriate load case
+          e.region = "west_surf" if x == 0 else "east_surf"
+          mesh.elements.append(e)
+      
+      # create lines on north and south boundaries for pfem
+      for x in range(nx):
+        for y in [0, ny]:
+          e1 = Element()
+          e.type = LINE
+          e.density = 1
+          # assign nodes
+          ll = (nx+1) * y + x  # lowerleft
+          e.nodes = ((ll,ll+nx+1))
+          # set region for appropriate load case
+          e.region = "south_surf" if x == 0 else "north_surf"
+          mesh.elements.append(e)    
+      
     mesh.bc.append(("south", list(range(0, nx + 1))))
     mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
     mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
@@ -879,7 +893,7 @@ def create_regular3d_mesh(type, resolution):
 # data and threshold for sparse mesh from create_density. data is a numpy.array in 3D! 
 # @param ext_mesh if given use it 
 # @return a mesh, either ext_mesh or a newly created 
-def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0): 
+def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None, scale = 1.0,pfem=False): 
   assert(type == "bulk3d" or type == "cantilever3d" or type == "validation_test" or type == "traegerblz" or type == "box_lufo")
 
   nx = x_res  
@@ -1007,18 +1021,49 @@ def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, in
 #        if (z*dz <= 2.0000001) or (x*dx >= 24.9999):
 #          side[1].append((z * nny + ny) * nnx + x)
  
-  if type == "bulk3d":
-    x = 0
+  if pfem:
     for z in range(nz):
       for y in range(ny):
-        e = Element()
-        e.type = QUAD4
-        e.density = 1
-        ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
-        e.nodes = ((ll,ll+nnx,ll+nnx*nny+nnx,ll+nnx*nny))
-        e.region = "left_faces"
-        mesh.elements.append(e)
-  
+        for x in [0,nx]:
+          e = Element()
+          e.type = QUAD4
+          e.density = 1
+          ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+          e.nodes = ((ll,ll+nnx,ll+nnx*nny+nnx,ll+nnx*nny))
+          mesh.elements.append(e)
+          e.region = "left_surf" if x == 0 else "right_surf"
+          # set surface elements for load
+          if type == "cantilever3d" and e.region == "right_surf":
+            if z >= int(0.85*nz) and y <= int(0.15*ny):
+              e2 =  Element()
+              e2.type = e.type
+              e2.density = e.density
+              e2.nodes = e.nodes
+              e2.region = "load_surf"
+              mesh.elements.append(e2)
+          
+    for z in range(nz):
+      for x in range(nx):
+        for y in [0,ny]:
+          e = Element()
+          e.type = QUAD4
+          e.density = 1
+          ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+          e.nodes = ((ll,ll+nnx*nny,ll+nnx*nny+1,ll+1))
+          e.region = "bottom_surf" if y == 0 else "top_surf"
+          mesh.elements.append(e)      
+     
+    for y in range(ny):
+      for x in range(nx):
+        for z in [0,nz]:
+          e = Element()
+          e.type = QUAD4
+          e.density = 1
+          ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+          e.nodes = ((ll,ll+1,ll+nnx+1,ll+nnx))
+          e.region = "back_surf" if z == 0 else "front_surf"
+          mesh.elements.append(e)      
+          
   # assign nodes
   if type == "bulk3d" and inclusion == "top_panel":
     # width of support area 
@@ -2639,7 +2684,7 @@ def add_bc_for_box_varel(mesh,bounds):
   return mesh        
       
 def add_bc_for_ppbox(mesh,bounds):
-  xmin,xmax,ymin,ymax,zmin,zmax = bounds
+  xmin, ymin, zmin, xmax, ymax, zmax = bounds
 #   big_cylinder = [206,48.1375,-106,254,91.849,-62]
 #   small_clinder = [116,49,-41,164,71,-19]
   
@@ -2649,42 +2694,37 @@ def add_bc_for_ppbox(mesh,bounds):
   eps = 1e-6
   load = []
   support = []
+  load_bc = []
+  load_sc = []
   nodes = mesh.nodes
   for i in range(len(nodes)):
     # all nodes on big cylinder
     if big_cylinder[0]-eps < nodes[i][0] < big_cylinder[3] and big_cylinder[1]-eps < nodes[i][1] < big_cylinder[4] and big_cylinder[2]-eps < nodes[i][2] < big_cylinder[5]:
-      load.append(i)
+      load_bc.append(i)
       continue
     # all nodes on small cylinder
     if small_clinder[0]-eps < nodes[i][0] < small_clinder[3] and small_clinder[1]-eps < nodes[i][1] < small_clinder[4] and small_clinder[2]-eps < nodes[i][2] < small_clinder[5]:
-      load.append(i)
+      load_sc.append(i)
       continue
 
-    # all nodes on left face are supports
-    if numpy.isclose(nodes[i][0],xmin,1e-12) or numpy.isclose(nodes[i][0],xmax,1e-12):
-      load.append(i)
-      continue
-    if numpy.isclose(nodes[i][1],ymin,1e-12) or numpy.isclose(nodes[i][1],ymax,1e-12):
-      load.append(i)
-      continue
-    if numpy.isclose(nodes[i][2],zmax,1e-12):
-      load.append(i)
-      continue
-    
-    if nodes[i][2] > 0:
-      load.append(i)
-      continue    
-     
-    if nodes[i][2] < zmin+2:
+    if nodes[i][2] < zmin+eps:
       # support only on the edges of skin
-      if 72.5-eps < nodes[i][0] < 72.75+eps or -72.5+eps > nodes[i][0] > -72.75-eps:
+      if numpy.isclose(nodes[i][0],xmin,1e-5) or numpy.isclose(nodes[i][0],xmax,1e-5):
         support.append(i)
         continue
-      if 56.4575-eps < nodes[i][1] < 57.91+eps or -40.75+eps > nodes[i][1] > -41.0-eps:
+      if numpy.isclose(nodes[i][1],ymin,1e-5) or numpy.isclose(nodes[i][1],ymax,1e-5):
         support.append(i)
         continue
+      
+  mesh = name_bb_faces(mesh, xmin, ymin, zmin, xmax, ymax, zmax)    
   
-  print("load:",len(load))
+  for bcnames in mesh.bc:
+    if bcnames != "bottom":
+      support.extend(bcnames[1])
+  
+  print("pressure load:",len(load))
+  print("small cylinder:",len(load_sc))
+  print("big cylinder:",len(load_bc))
   print("support:",len(support))
   
   mesh.bc.append(("load", load))

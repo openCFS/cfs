@@ -55,6 +55,7 @@ parser.add_argument('--file', help="optional give output file name. ")
 parser.add_argument('--optistruct', help="optistruct file name")
 parser.add_argument('--optistruct_type', help="optistruct mesh type",choices=['cell_opt','apod6','lufo_bracket'],default='cell_opt')
 parser.add_argument('--optistruct_scaling', help="optistruct scaling factor for unit conversion.", type=float,default=1.)
+parser.add_argument('--pfem', help="sets additional boundary elements for b.c.", action='store_true',default=False)
 
 
 
@@ -90,11 +91,11 @@ if args.type == "voxels_from_optistruct" or args.type == "convert_optistruct":
   if args.optistruct == None:
     print("Need optistruct file for conversion")
     sys.exit()
-
+    
 mesh= None 
     
 if args.type == 'bulk3d' or args.type == 'validation_test' or args.type == 'cantilever3d' or args.type == 'traegerblz' or args.type == 'box_lufo':
-  mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size,scale=args.width)    
+  mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size,scale=args.width,pfem=args.pfem)    
 elif args.type.startswith('lbm'):
   if args.lbm == None:
     print('error: --lbm subtype mandatory for --type lbm')
@@ -118,7 +119,7 @@ elif args.type == 'convert_optistruct':
   mesh_name = args.optistruct
 else: # default case 2d_mesh
   if not args.inclusion_overlap:  
-    mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
+    mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch,pfem=args.pfem)
   else:
     mesh = find_inclusion_overlap(args) 
   
