@@ -182,6 +182,7 @@ Function::Function(PtrParamNode pn) {
     break;
 
   case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
   if(!domain->GetGrid()->IsAxi())
       throw Exception("only for axis symmetric setting: " + type.ToString(type_));
     break;
@@ -516,6 +517,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case SQR_MAG_FLUX_DENS_Y:
   case SQR_MAG_FLUX_DENS_X:
   case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
   case TEMP_TRACKING_AT_INTERFACE:
     assert(excite_index < 0);
     if(!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all") {
@@ -599,6 +601,7 @@ bool Function::IsAdjointBased() const {
   case SQR_MAG_FLUX_DENS_X:
   case SQR_MAG_FLUX_DENS_Y:
   case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
   case MAG_COUPLING:
     return true;
 
@@ -773,6 +776,7 @@ bool Function::ForSensitivityFiltering() const {
   case SQR_MAG_FLUX_DENS_Y:
   case SQR_MAG_FLUX_DENS_X:
   case SQR_MAG_FLUX_DENS_RZ:
+  case LOSS_MAG_FLUX_RZ:
   case MAG_COUPLING:
   case EIGENFREQUENCY:
   case BANDGAP:
@@ -891,7 +895,8 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
       }
     } else {
       // this is a special case where the constraint does not act on the design space
-      if(type_ != STRESS && type_ != STRESS_DENSITY && type_ != SQR_MAG_FLUX_DENS_X && type_ != SQR_MAG_FLUX_DENS_Y && type_ != SQR_MAG_FLUX_DENS_RZ && type_ != MAG_COUPLING)
+      //TODO help, this is ugly
+      if(type_ != STRESS && type_ != STRESS_DENSITY && type_ != SQR_MAG_FLUX_DENS_X && type_ != SQR_MAG_FLUX_DENS_Y && type_ != SQR_MAG_FLUX_DENS_RZ && type_ != MAG_COUPLING && type_ != LOSS_MAG_FLUX_RZ)
       {
         string a = grid->GetRegion().ToString(region);
         string msg = "region " + grid->GetRegion().ToString(region)

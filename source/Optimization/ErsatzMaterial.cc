@@ -1382,6 +1382,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::SQR_MAG_FLUX_DENS_Y:
       case Function::SQR_MAG_FLUX_DENS_X:
       case Function::SQR_MAG_FLUX_DENS_RZ:
+      case Function::LOSS_MAG_FLUX_RZ:
       case Function::MAG_COUPLING:
         assert(false); // shall be handled in MagSIMP
       break;
@@ -3553,6 +3554,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       case Function::SQR_MAG_FLUX_DENS_X:
       case Function::SQR_MAG_FLUX_DENS_Y:
       case Function::SQR_MAG_FLUX_DENS_RZ:
+      case Function::LOSS_MAG_FLUX_RZ:
       case Function::MAG_COUPLING:
       {
         // these objectives need their adjoint problems for the calculation of the objective value

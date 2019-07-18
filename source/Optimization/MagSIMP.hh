@@ -87,15 +87,26 @@ private:
      * the sum of the N elements of f->region. The scalar product is evaluated over the integration points */
   double CalcMagFluxDensity(Excitation& excite, Function* f);
 
-  /** Calculate the magnetic flux density gradient. The weight is always 1 as the magnetic flux density needs to be per excitation */
+  /** calc magnetic flux density as 1/N * sum<J,B*A> where B is the BOp from the BDBInt (here the curl operator) and A is the
+     * element solution vector (scalar) and J is either [1,0] or [0,1] to select the horizontal or vertical part and N averages over
+     * the sum of the N elements of f->region. The scalar product is evaluated over the integration points. The result is scaled by
+     * \sum_{e \in opt_space} \rho_e * vol(e) */
+  double CalcMagFluxDensityLosses(Excitation& excite, Function* f);
+
+  /** Calculate the magnetic flux density gradient. The weight is always 1 as the magnetic flux density needs to be per excitation. */
   void CalcMagFluxDensGradient(Excitation& excite, Function* f);
+
+  /** Calculate the magnetic flux density losses gradient. The weight is always 1 as the magnetic flux density needs to be per excitation. */
+  void CalcMagFluxDensGradientLosses(Excitation& excite, Function* f);
 
   /** magnetic flux density */
   void CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
 
+  /** magnetic flux density losses */
+  void CalcMagFluxLossesAdjRHS(Excitation& excite, Function* f, Vector<double>& out);
+
   /** enriched shape functions which give an integration with the state vector in 2D.
    * Allows computation of <N,A>. N_e = sum_ip w_i jacdet_i N_i, where N_i is the FE-shape function.
-   * TODO check formula's indices
    * @param form encodes the region we apply the excitation (current in coil)
    * @param N has size of unknowns of state but has only contributions for the region */
   void CalcN(LinearFormContext* form, Vector<double>& N);

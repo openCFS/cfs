@@ -97,6 +97,10 @@ bool MagSIMP::FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>
     CalcMagFluxAdjRHS(excite, f, rhs);
     return true;
     break;
+  case Function::LOSS_MAG_FLUX_RZ:
+    CalcMagFluxLossesAdjRHS(excite, f, rhs);
+    return true;
+    break;
   case Function::MAG_COUPLING:
     CalcCouplingAdjRealRHS(excite, f, rhs);
     return true;
@@ -115,6 +119,7 @@ bool MagSIMP::FillComplexAdjointRHS(Excitation& excite, Function* f, Vector<Comp
   case Function::SQR_MAG_FLUX_DENS_X:
   case Function::SQR_MAG_FLUX_DENS_Y:
   case Function::SQR_MAG_FLUX_DENS_RZ:
+  case Function::LOSS_MAG_FLUX_RZ:
     EXCEPTION("Complex RHS for MagFluxDensity not yet implemented!");
     break;
   case Function::MAG_COUPLING:
@@ -191,6 +196,15 @@ double MagSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       CalcMagFluxDensGradient(excite, f);
       return 0.0;
     }
+  case Function::LOSS_MAG_FLUX_RZ:
+    if(!derivative)
+      return CalcMagFluxDensityLosses(excite, f);
+    else
+    {
+      CalcMagFluxDensGradientLosses(excite, f);
+      return 0.0;
+    }
+
   case Function::MAG_COUPLING:
     if(!derivative)
     {
@@ -319,7 +333,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
       LOG_DBG3(ms) << "CMFD: e= " << e << " flux_dens=" << flux_dens.ToString(2) << " Sfd=" << S_flux_dens << " inner=" << S_flux_dens.Inner(flux_dens) << " el -> " << el_val;
     } // end ip
 
-    result += el_val * vol; // Norm with volume of element
+    result += el_val;
   } // end loop elems
   if(dim == 3)
   {
@@ -336,10 +350,15 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
   LOG_DBG(ms) << "CMFD: exit normed -> " << result;
   return result;
 }
+double MagSIMP::CalcMagFluxDensityLosses(Excitation& excite, Function* f)
+{
+  double result = CalcMagFluxDensity(excite, f);
+  //TODO Scale result by Volume*density
+  return result;
+}
 
 void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f)
 {
-
   assert(f->GetExcitation() != NULL);
   assert(f->GetExcitation()->transform == NULL); // don' do the complicated stuff yet
 
@@ -363,6 +382,34 @@ void MagSIMP::CalcMagFluxDensGradient(Excitation& excite, Function* f)
     // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
     CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], ptr_rhs, factor, STANDARD, f);
   }
+}
+
+void MagSIMP::CalcMagFluxDensGradientLosses(Excitation& excite, Function* f)
+{
+  assert(f->GetExcitation() != NULL);
+  assert(f->GetExcitation()->transform == NULL); // don' do the complicated stuff yet
+
+
+  // the gradient is < lambda^T, K' * A >
+  assert(excite.sequence == f->ctxt->sequence);
+  assert(f->ctxt->ToApp() == App::MAG);
+
+  // we use this just as indicator for coil optimization.
+  DesignDependentRHS rhs(App::MAG);
+
+  // for the two design case, we loop over both variables. In the single design case this also works
+  for(unsigned int d = 0; d < design->design.GetSize(); d++)
+  {
+    DesignElement::Type dt = design->design[d].design;
+    TransferFunction* tf = design->GetTransferFunction(dt, App::MAG, true);
+
+    DesignDependentRHS* ptr_rhs = dt == DesignElement::RHS_DENSITY ? &rhs : NULL;
+
+    double factor = 1.0/ f->elements.GetSize(); // factor for norming the gradient; same as in objective function
+    // calc lambda^T *  K' * A -> this already stores the results by AddGradient()!
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MAG], App::MAG, forward.Get(excite)->elem[App::MAG], ptr_rhs, factor, STANDARD, f);
+  }
+  //TODO add design dependent term
 }
 
 void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
@@ -651,8 +698,8 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
       {
         unsigned int eqn_idx = eqn_nbr-1;
 
-        out[eqn_idx] += rhs_el[n] * vol; // norm with volume of element
-        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << vol * rhs_el[n] << " out[eqn_idx]=" << out[eqn_idx];
+        out[eqn_idx] += rhs_el[n];
+        LOG_DBG2(ms) << "CMFAR: n=" << n << " eqn_idx=" << eqn_idx << " normed_rhs_el[n]= " << rhs_el[n] << " out[eqn_idx]=" << out[eqn_idx];
       }
     }
   } // end loop elements
@@ -665,6 +712,12 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
   }
 
   delete bdb;
+}
+
+void MagSIMP::CalcMagFluxLossesAdjRHS(Excitation& excite, Function* f, Vector<double>& out)
+{
+  CalcMagFluxAdjRHS(excite, f, out);
+  //TODO Scale out
 }
 
 void MagSIMP::CalcCouplingAdjRealRHS(Excitation& excite, Function* f, Vector<double>& out)
@@ -937,6 +990,7 @@ const Matrix<double>& MagSIMP::GetSelectionMatrix(const Function* f) const
   case Function::SQR_MAG_FLUX_DENS_Y:
     return sel_y_;
   case Function::SQR_MAG_FLUX_DENS_RZ:
+  case Function::LOSS_MAG_FLUX_RZ:
     return sel_xy_;
   default:
     assert(false);

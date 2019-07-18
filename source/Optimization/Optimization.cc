@@ -398,6 +398,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_X, "sqrMagFluxDensX");
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_Y,"sqrMagFluxDensY");
   Function::type.Add(Function::SQR_MAG_FLUX_DENS_RZ, "sqrMagFluxDensRZ");
+  Function::type.Add(Function::LOSS_MAG_FLUX_RZ, "lossMagFluxRZ");
   Function::type.Add(Function::MAG_COUPLING,"magCoupling");
 
   Function::slackFnct.SetName("Function::SlackFnct");
