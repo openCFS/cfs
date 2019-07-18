@@ -119,6 +119,12 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   SET(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
   SET(CFSDEPS_CXX_FLAGS "-std=c++11 ${CFSDEPS_CXX_FLAGS}")
   SET(CFS_C_FLAGS "-std=c11")
+
+  IF(DEBUG_USE_FSANITIZE)
+    SET(CFS_CXX_FLAGS " -fsanitize=address ${CFS_CXX_FLAGS}")
+    #SET(CFSDEPS_CXX_FLAGS " -fsanitize=address ${CFSDEPS_CXX_FLAGS}")
+    SET(CFS_C_FLAGS " -fsanitize=address ${CFS_C_FLAGS}")
+  ENDIF()
   
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type

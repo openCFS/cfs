@@ -390,7 +390,11 @@ OPTION(UNIT_TESTS "Build CFS++ unit tests (cfstest)."  ${UNIT_TESTS_DEFAULT})
 IF(CFSDAT AND NOT USE_CGAL)
   MESSAGE(FATAL_ERROR "CFSDAT requires USE_CGAL=ON, correct your configuration.")
 ENDIF()
-  
+
+IF(DEBUG)
+   OPTION(DEBUG_USE_FSANITIZE "Use -fsanitize to check for memory leaks and general errors. Very costly during runtime!" ${DEBUG_USE_FSANITIZE_DEFAULT})
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # Shall we build HDFView?
 #-----------------------------------------------------------------------------

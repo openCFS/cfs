@@ -241,17 +241,20 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     {
       DesignElement* de = &data[e];
 
-      // did we came across a new design or a new region? Then update ref
-      if(de->elem->regionId != ref.region || de->GetType() != ref_design)
-      {
-        ref.region = de->elem->regionId;
-        ref.SetNonLinCorrection(de,rex);
-        ref_design = de->GetType();
+      #pragma omp critical
+      { // this block has to be executed together but only by one thread at once
+        // did we came across a new design or a new region? Then update ref
+        if(de->elem->regionId != ref.region || de->GetType() != ref_design)
+        {
+          ref.region = de->elem->regionId;
+          ref.SetNonLinCorrection(de,rex);
+          ref_design = de->GetType();
+        }
+        de->simp->filter.Push_back(ref); // copy the reference data
+
+        /* what does this assert do? deactivating for now */
+        //assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
       }
-      de->simp->filter.Push_back(ref); // copy the reference data
-
-      assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
-
       // for unstructured grids only "radius" filter makes sense
       assert(regular || filter_space_ == RADIUS);
 
