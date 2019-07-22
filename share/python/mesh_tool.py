@@ -1719,12 +1719,12 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
   load = []
   support = []
   
-  xmin,ymin,zmin,xmax,ymax,zmax = calc_bounding_box(mesh)
+  bounds = calc_bounding_box(mesh)
 #   print("xmin,ymin,zmin,xmax,ymax,zmax:",xmin,ymin,zmin,xmax,ymax,zmax)
   
   #mesh = add_bc_for_ppbox(mesh,(xmin,xmax,ymin,ymax,zmin,zmax))
-  mesh = add_bc_for_box_varel(mesh,(xmin,xmax,ymin,ymax,zmin,zmax))
-  mesh = name_bb_faces(mesh,xmin,ymin,zmin,xmax,ymax,zmax)
+  mesh = add_bc_for_box_varel(mesh,bounds)
+  mesh = name_bb_faces(mesh,bounds)
 
 #  mesh = add_nodes_for_periodic_bc(mesh)
 
@@ -2626,9 +2626,9 @@ def create_volume_mesh_from_stl(stlName,type=None,write_vtk=True):
   cfs_utils.execute(command + " " + stlName)
   mesh = create_mesh_from_tetgen(stlName[:-4],"mech")
   if type == "box_varel":
-    xmin,ymin,zmin,xmax,ymax,zmax = calc_bounding_box(mesh)
-    mesh = add_bc_for_box_varel(mesh,(xmin,xmax,ymin,ymax,zmin,zmax))
-    mesh = name_bb_faces(mesh,xmin,ymin,zmin,xmax,ymax,zmax) 
+    bounds = calc_bounding_box(mesh)
+    mesh = add_bc_for_box_varel(mesh,bounds)
+    mesh = name_bb_faces(mesh,bounds) 
   else:
     add_nodes_for_periodic_bc(mesh)
     validate_periodicity(mesh)
@@ -2660,16 +2660,16 @@ def add_bc_for_box_varel(mesh,bounds):
   eps = 1e-6
   for i in range(len(nodes)):
     # load on top panel y=1
-    #if numpy.isclose(nodes[i][1],1.0):
+    if numpy.isclose(nodes[i][1],1.0,1e-5):
     #if numpy.isclose(nodes[i][1],0.0):
-    if nodes[i][1] < 0.0001:
+    #if nodes[i][1] < 0.0001:
       load.append(i)
       continue
     
     # support edges 
-    #if numpy.isclose(nodes[i][1],0.0):
+    if numpy.isclose(nodes[i][1],0.0,1e-3):
     #if numpy.isclose(nodes[i][1],1.0):
-    if nodes[i][1] > 0.9999:
+    #if nodes[i][1] > 0.9999:
       if nodes[i][0] <= 1/20 + eps:
         support.append(i)
       elif nodes[i][2] <= 1/20 + eps:
@@ -2684,18 +2684,33 @@ def add_bc_for_box_varel(mesh,bounds):
   return mesh        
       
 def add_bc_for_ppbox(mesh,bounds):
-  xmin, ymin, zmin, xmax, ymax, zmax = bounds
 #   big_cylinder = [206,48.1375,-106,254,91.849,-62]
 #   small_clinder = [116,49,-41,164,71,-19]
-  
-  big_cylinder = [51.5,12.0,-26.24,63.5,22.96,-15.36]
-  small_clinder = [29,12.336,-9.919,41,17.668,-4.4313]
-  
+
+  print("bounds:",bounds)
+  #               xmin, ymin,    zmin,     xmax, ymax,   zmax
+  big_cylinder = [51.5, 12.0429, -26.2448, 63.5, 22.966,  -15.3677]
+  small_clinder = [29,  12.336,  -9.9199,   41,   17.668, -4.4314]
   eps = 1e-6
   load = []
   support = []
   load_bc = []
   load_sc = []
+  
+  mesh = name_bb_faces(mesh, bounds)    
+  
+  xmin,ymin,zmin,xmax,ymax,zmax = bounds
+  
+  for bcnames in mesh.bc:
+    if bcnames[0] != "bottom":
+      print("add ",bcnames[0], " with ", len(bcnames[1])," elems to load")
+      load.extend(bcnames[1])
+  
+  print("pressure load:",len(load))
+  print("small cylinder:",len(load_sc))
+  print("big cylinder:",len(load_bc))
+  print("support:",len(support))
+  
   nodes = mesh.nodes
   for i in range(len(nodes)):
     # all nodes on big cylinder
@@ -2709,26 +2724,17 @@ def add_bc_for_ppbox(mesh,bounds):
 
     if nodes[i][2] < zmin+eps:
       # support only on the edges of skin
-      if numpy.isclose(nodes[i][0],xmin,1e-5) or numpy.isclose(nodes[i][0],xmax,1e-5):
+      if numpy.isclose(nodes[i][0],xmin,1e-3) or numpy.isclose(nodes[i][0],xmax,1e-3):
         support.append(i)
         continue
-      if numpy.isclose(nodes[i][1],ymin,1e-5) or numpy.isclose(nodes[i][1],ymax,1e-5):
+      if numpy.isclose(nodes[i][1],ymin,1e-3) or numpy.isclose(nodes[i][1],ymax,1e-3):
         support.append(i)
         continue
       
-  mesh = name_bb_faces(mesh, xmin, ymin, zmin, xmax, ymax, zmax)    
-  
-  for bcnames in mesh.bc:
-    if bcnames != "bottom":
-      support.extend(bcnames[1])
-  
-  print("pressure load:",len(load))
-  print("small cylinder:",len(load_sc))
-  print("big cylinder:",len(load_bc))
-  print("support:",len(support))
-  
   mesh.bc.append(("load", load))
   mesh.bc.append(("support", support))
+  mesh.bc.append(("big_cylinder", load_bc))
+  mesh.bc.append(("small_cylinder", load_sc))
   
   return mesh  
 
@@ -2764,7 +2770,7 @@ def calc_bounding_box(mesh):
 
 # name nodes on faces of bbox ("top","bottom",...)
 # works for tet mesh
-def name_bb_faces(mesh,xmin,ymin,zmin,xmax,ymax,zmax): 
+def name_bb_faces(mesh,bounds): 
   nodes = mesh.nodes
   top = []
   bottom = []
@@ -2772,18 +2778,19 @@ def name_bb_faces(mesh,xmin,ymin,zmin,xmax,ymax,zmax):
   right = []
   back = []
   front = []
+  xmin,ymin,zmin,xmax,ymax,zmax = bounds
   for i in range(len(nodes)):
-    if numpy.isclose(nodes[i][0],xmin):
+    if numpy.isclose(nodes[i][0],xmin,1e-4):
       left.append(i)
-    elif numpy.isclose(nodes[i][0],xmax):
+    elif numpy.isclose(nodes[i][0],xmax,1e-4):
       right.append(i)
-    elif numpy.isclose(nodes[i][1],ymin):
+    elif numpy.isclose(nodes[i][1],ymin,1e-4):
       front.append(i)
-    elif numpy.isclose(nodes[i][1],ymax):
+    elif numpy.isclose(nodes[i][1],ymax,1e-4):
       back.append(i)
-    elif numpy.isclose(nodes[i][2],zmin):
+    elif numpy.isclose(nodes[i][2],zmin,1e-4):
       bottom.append(i)
-    elif numpy.isclose(nodes[i][2],zmax):
+    elif numpy.isclose(nodes[i][2],zmax,1e-4):
       top.append(i)
       
   mesh.bc.append(("top",top))
