@@ -279,8 +279,10 @@ void SimInputVTKBased::GetPointIDsByRegion(std::map<std::string, StdVector<UInt>
     UInt curNumPoints = ds->GetNumberOfPoints();
     UInt curNumElems = ComputeNumElems(iter);
     numElems += curNumElems;
-    if(curNumPoints == 0 && curNumElems == 0)
+    if(curNumPoints == 0 && curNumElems == 0){
+      iter->GoToNextItem();
       continue;
+    }
 
     //determine surface or volume region
     vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(iter->GetCurrentDataObject());
@@ -372,6 +374,13 @@ void SimInputVTKBased::ReadElemData(std::map<std::string, StdVector<UInt> >& poi
   while (! iter->IsDoneWithTraversal()){
     vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(iter->GetCurrentDataObject());
     vtkCell* cell;
+
+    UInt curNumPoints = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject())->GetNumberOfPoints();
+    UInt curNumElems = ComputeNumElems(iter);
+    if(curNumPoints == 0 && curNumElems == 0){
+      iter->GoToNextItem();
+      continue;
+    }
 
     std::string curRegName;
     GetRegionName(curRegName,iter,idx);
@@ -937,8 +946,10 @@ UInt SimInputVTKBased::GetDim(){
     //checking the first element works only if the regions
     //are defined consistently
     vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(iter->GetCurrentDataObject());
-    vtkCell* cell = ugrid->GetCell(1);
-    dim = std::max(cell->GetCellDimension(),dim);
+    if(ugrid->GetNumberOfCells() != 0){
+      vtkCell* cell = ugrid->GetCell(1);
+      dim = std::max(cell->GetCellDimension(),dim);
+    }
     iter->GoToNextItem();
   }
   if(dim<0){
