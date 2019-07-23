@@ -636,12 +636,10 @@ namespace CoupledField {
             //  3D CASE
             // ===========
             if( isComplex_ ) {
-              curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
-                      factor, jFct, updatedGeo_);
+              curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(), factor, jFct, updatedGeo_, true, false, (string) actCoil.coilId_);
             }
             else {
-              curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
-                      factor, jFct, updatedGeo_);
+              curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(), factor, jFct, updatedGeo_, true, false, (string) actCoil.coilId_);
             }
             
 				  } else {
@@ -650,11 +648,11 @@ namespace CoupledField {
 					  // ===============
             
 					  if( isComplex_ ) {
-						  curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1>(),
-                      factor, jFct, updatedGeo_);
+	            curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1>(),
+	                factor, jFct, updatedGeo_, true, false, actCoil.coilId_);
 					  } else {
-						  curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1>(),
-                      factor, jFct, updatedGeo_);
+	            curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1>(),
+	                factor, jFct, updatedGeo_, true, false, actCoil.coilId_);
 					  }
 				  }
           
@@ -736,19 +734,19 @@ namespace CoupledField {
 				  LinearForm* psiDotInt;
 				  if( dim_ == 3 ) {
 					  if( isComplex_ ) {
-						  psiDotInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
-                      -1.0*factor, eJscaled, updatedGeo_);
+	            psiDotInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
+	                -1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 					  } else {
 						  psiDotInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
-                      -1.0*factor, eJscaled, updatedGeo_);
+                      -1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 					  }
 				  } else {
 					  if( isComplex_ ) {
 						  psiDotInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1,Complex>(),
-                      -1.0*factor, eJscaled, updatedGeo_);
+                      -1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 					  } else {
 						  psiDotInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1,Double>(),
-                      -1.0*factor, eJscaled, updatedGeo_);
+                      -1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 					  }
 				  }
 				  psiDotInt->SetName("CoilVoltCouplInt");
@@ -767,18 +765,18 @@ namespace CoupledField {
 					  if( dim_ == 3 ) {
 						  if( isComplex_ ) {
 							  psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
-                        1.0*factor, eJscaled, updatedGeo_);
+                        1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 						  } else {
 							  psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
-                        1.0*factor, eJscaled, updatedGeo_);
+                        1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 						  }
 					  } else {
 						  if( isComplex_ ) {
 							  psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1,Complex>(),
-                        1.0*factor, eJscaled, updatedGeo_);
+                        1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 						  } else {
 							  psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1,Double>(),
-                        1.0*factor, eJscaled, updatedGeo_);
+                        1.0*factor, eJscaled, updatedGeo_, true, false, actCoil.coilId_);
 						  }
 					  }
 					  psiDotIntT->SetName("CoilVoltCouplIntTransposed");

@@ -645,20 +645,20 @@ void MultipleExcitation::ApplyTransformations(const Context* ctxt, DesignSpace* 
   }
 }
 
-
 LinearFormContext* MultipleExcitation::SearchFormByCoilId(StdVector<LinearFormContext*>& forms, const string& query)
 {
   for(unsigned int i = 0; i < forms.GetSize(); i++)
   {
     LinearFormContext* fc = forms[i];
     LinearForm* lf = fc->GetIntegrator();
+    LOG_DBG3(exlog) << "ME::SFBCI: Name of form number " << i << " is " << lf->GetName();
     if(lf->GetName() != "CoilIntegrator"){
       LOG_DBG3(exlog) << "ME::SFBCI: Name of form number " << i << " is " << lf->GetName();
       continue;
     }
     // is there a difference 2D/3D??
     string id = lf->IsComplex() ? dynamic_cast<BUIntegrator<Complex>*>(lf)->GetId() : dynamic_cast<BUIntegrator<double>*>(lf)->GetId();
-    //LOG_DBG3(exlog) << "ME::SFBCI: query: " << query << " id: " << id;
+    LOG_DBG3(exlog) << "ME::SFBCI: query: " << query << " id: " << id;
     if(query == id){
       LOG_DBG2(exlog) << "ME::SFBCI: Found form number " << i << " corresponding to coil " << query;
       return fc;
