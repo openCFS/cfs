@@ -159,12 +159,6 @@ namespace CoupledField
        * Calculates opt_scaling if target is given!
        * @return true if not active or no tolerance or within tolerance */
       bool CheckScaling(int n, StdVector<double>& grad);
-
-      /** Did we do autoscale? Interesting for iteration-0 commit */
-      bool DoAutoscale() 
-      {
-        return autoscale_;
-      }
       
       std::string ToString();
       
@@ -177,6 +171,9 @@ namespace CoupledField
       /** do we do logarithmic scaling */
       bool logscale;
 
+      /** do we do scaling by a manually given factor */
+      double manual;
+
       /** The optimal scaling for the design */
       DesignMemory opt_scaling;
       
@@ -187,9 +184,7 @@ namespace CoupledField
       DesignMemory current;
       
     private:
-      
-      bool autoscale_;
-      
+
       BaseOptimizer* base_;
     };
 

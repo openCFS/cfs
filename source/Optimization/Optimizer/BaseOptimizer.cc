@@ -37,10 +37,10 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double 
  : target(0.0),
    tol(0.0),
    logscale(false),
+   manual(0.0),
    opt_scaling(DesignMemory(-1, 0.0)),
    scaling(DesignMemory(-1, 0.0)),
    current(DesignMemory(-1, 0.0)),
-   autoscale_(false),
    base_(base)
 {
 
@@ -56,6 +56,8 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double 
     tol    = autoscale->Get("tolerance")->As<Double>();
 
     logscale = autoscale->Get("logscale")->As<bool>();
+
+    manual   = autoscale->Get("manual")->As<Double>();
 
     // Cannot CalcAutoscale() has to be done in PostInit()
   }
@@ -77,12 +79,10 @@ void BaseOptimizer::Scale::PostInit()
 }
 
 
-
 void BaseOptimizer::Scale::CalcAutoscale()
 {
-  if(target == 0.0)
+  if(target == 0.0 && manual == 0.0)
   {
-    autoscale_ = false;
     return;
   }
 
@@ -108,11 +108,14 @@ void BaseOptimizer::Scale::CalcAutoscale()
   // reset the tolerance
   tol = tol_save;
   
-  // our new scaling is the optimal scaling for now!
-  scaling.design_id = opt_scaling.design_id;
-  scaling.value = opt_scaling.value;
-  
-  autoscale_ = true;
+  if (manual == 0.0) {
+    // our new scaling is the optimal scaling for now!
+    scaling.design_id = opt_scaling.design_id;
+    scaling.value = opt_scaling.value;
+  } else {
+    scaling.design_id = opt_scaling.design_id;
+    scaling.value = manual;
+  }
 
   LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " desing=" 
                        << scaling.design_id << " needed_eval=" << (opt_scaling.design_id != design_id);

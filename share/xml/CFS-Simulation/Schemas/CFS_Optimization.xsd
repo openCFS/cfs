@@ -574,6 +574,8 @@
                 <xsd:attribute name="tolerance" use="optional" default="0.0" type="xsd:float" />
                 <!-- additional, only or not at all: logarithmic scaling/damping -->
                 <xsd:attribute name="logscale" use="optional" type="xsd:boolean" default="false" />
+                <!-- scale by a manually given factor -->
+                <xsd:attribute name="manual" use="optional" type="xsd:float" default="0.0" />
               </xsd:complexType>
             </xsd:element>
 
