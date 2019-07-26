@@ -17,11 +17,11 @@ namespace CoupledField
 class Timer
 {
  public:
-  /** 'running' is initially false.
+  /** 'running' is initially false als long as we don't do start_immediately
        A Timer needs to be explicitly started vi Start() or ResetStart()
        @param sub means that performance.py shall not use the time for the 'not_measured' calculation because it is just a finer
        time for an action already measued. */
-  Timer(const std::string& name = "", bool sub = false);
+  Timer(const std::string& name = "", bool sub = false, bool start_immediately = false);
 
   bool IsRunning() const { return running; }
 

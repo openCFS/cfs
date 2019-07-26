@@ -827,10 +827,10 @@ namespace CoupledField {
     }
   }
 
-  void BaseGraph::MapSetToVector(){
+  void BaseGraph::MapSetToVector()
+  {
     //convert set to vector
-    CoupledField::Timer t;
-    t.Start();
+    CoupledField::Timer t("", false, true); // start immediately
 
     /*static std::mutex io_mutex;
     {
@@ -848,8 +848,7 @@ namespace CoupledField {
     //}
     t.Stop();
 
-    std::cout << "[BaseGraph::MapSetToVector] Wall time: " << t.GetWallTime() << "s, CPU time: " << t.GetCPUTime() << "s" << std::endl;
-
+    //std::cout << "[BaseGraph::MapSetToVector] Wall time: " << t.GetWallTime() << "s, CPU time: " << t.GetCPUTime() << "s" << std::endl;
   }
 
 
