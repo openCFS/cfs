@@ -174,7 +174,6 @@ OPTION(BUILD_ANACONDA3 "build anaconda3 from continuum analytics, not necessary 
 # Switch on/off external libraries and other options for compile
 #-----------------------------------------------------------------------------
 OPTION(USE_MESH "Use the mesh file reader for input from ANSYS/GiD."  ${USE_MESH_DEFAULT})
-OPTION(USE_COMSOL "Use Comsol .mphtxt meshes for simulation input." ${USE_COMSOL_DEFAULT})
 OPTION(USE_GIDPOST "Use the GiD library for simulation output."  ${USE_GIDPOST_DEFAULT})
 OPTION(USE_GMSH "Use Gmsh meshes for simulation input." ${USE_GMSH_DEFAULT})
 OPTION(USE_GMV "Use General Mesh Viewer (GMV) for simulation in/output."  ${USE_GMV_DEFAULT})
@@ -182,9 +181,6 @@ OPTION(USE_UNV "Use Universal File for simulation output." ${USE_UNV_DEFAULT})
 # USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
 OPTION(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
 OPTION(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
-IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." ${USE_ANSYSRST_DEFAULT})
-ENDIF()
 
 #-----------------------------------------------------------------------------
 # There are two options for an xml reader: xerces or libxml2. Depending on
@@ -312,28 +308,6 @@ OPTION(USE_CGNS "Enable support for the CFD General Notation System."
 # USE_HDF5 to ON.
 IF(USE_CGNS)
     SET(USE_HDF5 ON CACHE BOOL "Use HDF5 for simulation in/output." FORCE)
-ENDIF()
-
-#-----------------------------------------------------------------------------
-# CCMIO - STAR-CCM+ I/O library
-#-----------------------------------------------------------------------------
-OPTION(USE_CCMIO "Enable support for the STAR-CCM+ I/O library."
-  ${USE_CCMIO_DEFAULT})
-
-# Since the CCMIO library depends on the ADF library from CGNS, we need to
-# force USE_CGNS to ON.
-IF(USE_CCMIO AND
-    NOT USE_CGNS)
-    SET(USE_CGNS ON CACHE BOOL
-      "Enable support for the CFD General Notation System." FORCE)
-ENDIF()
-
-#-----------------------------------------------------------------------------
-# CFXIO - Support for reading ANSYS CFX result files
-#-----------------------------------------------------------------------------
-IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  OPTION(USE_CFXIO "Enable support for reading ANSYS CFX result files."
-    ${USE_CFXIO_DEFAULT})
 ENDIF()
 
 #-----------------------------------------------------------------------------
@@ -806,10 +780,6 @@ IF(USE_MESH)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/internalMesh)
 ENDIF(USE_MESH)
 
-IF(USE_COMSOL)
-  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/COMSOL)
-ENDIF(USE_COMSOL)
-
 IF(USE_GMV)
  SET(USE_GMV_INPUT ON 
     CACHE INTERNAL
@@ -844,10 +814,6 @@ IF(USE_ENSIGHT)
 ELSE()
   SET(USE_VTK OFF CACHE INTERNAL "Surplus comment for cached variable")      
 ENDIF()
-
-IF(USE_ANSYSRST)
-  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysRST)
-ENDIF(USE_ANSYSRST)
 
 IF(USE_CGNS)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/CGNS)

@@ -2,11 +2,9 @@
 #include <def_cfs_stats.hh>
 #include <def_use_blas.hh>
 #include <def_use_hdf5.hh>
-#include <def_use_ansysrst.hh>
 #include <def_use_mesh.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_unv.hh>
-#include <def_use_comsol.hh>
 #include <def_use_gidpost.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_suitesparse.hh>
@@ -19,7 +17,6 @@
 #include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>
 #include <def_use_cgns.hh>
-#include <def_use_ccmio.hh>
 #include <def_use_cgal.hh>
 #include <def_use_libfbi.hh>
 #include <def_use_flann.hh>
@@ -115,10 +112,6 @@
 #undef CFS_DUMMY_NO_DATA
 #endif
 
-#ifdef USE_CCMIO
-#include <libccmio/ccmioversion.h>
-#endif
-
 #include <boost/version.hpp>
 
 #include <muParserBase.h>
@@ -140,9 +133,6 @@ using std::cout;
 
 // Lapack version function interface
 extern "C" void ilaver(int*, int*, int*);
-
-// CFX IO library version interface
-extern "C" const char* io_get_version();
 
 
 namespace CoupledField {
@@ -744,12 +734,6 @@ namespace CoupledField {
     out << "USE_METIS:             " << fg_blue << "NO" << fg_reset<< endl;
 #endif
 
-#ifdef USE_ANSYSRST
-    out << "USE_ANSYSRST:          " << fg_blue << "YES" << fg_reset << endl;
-#else
-    out << "USE_ANSYSRST:          " << fg_blue << "NO" << fg_reset << endl;
-#endif
-
 #ifdef USE_GIDPOST
     out << "USE_GIDPOST:           " << fg_blue << "YES" << fg_reset << endl;
     out << "GIDPOST_VERSION:       " << fg_blue << GIDPOST_VERSION << fg_reset << endl;
@@ -788,12 +772,6 @@ namespace CoupledField {
 #else
     out << "USE_UNV:               " << fg_blue << "NO" << fg_reset << endl;
 #endif
-#ifdef USE_COMSOL
-    out << "USE_COMSOL:            " << fg_blue << "YES" << fg_reset << endl;
-    out << "MINIZIP_VERSION:       " << fg_blue << MINIZIP_VERSION << " (for reading zipped .mph file)"<< fg_reset << endl;
-#else
-    out << "USE_COMSOL:            " << fg_blue << "NO" << fg_reset << endl;
-#endif
 #ifdef USE_CGNS
     out << "USE_CGNS:              " << fg_blue << "YES" << fg_reset << endl;
     out << "CGNS_VERSION:          " << fg_blue << (CGNS_VERSION/1000)
@@ -812,12 +790,6 @@ namespace CoupledField {
     out << "ADFH_VERSION:          " << fg_blue << version << fg_reset << endl;
 #else
     out << "USE_CGNS:              " << fg_blue << "NO" << fg_reset << endl;
-#endif
-#ifdef USE_CCMIO
-    out << "USE_CCMIO:             " << fg_blue << "YES" << fg_reset << endl;
-    out << "CCMIO_VERSION:         " << fg_blue << kCCMIOVersionStr << fg_reset << endl;
-#else
-    out << "USE_CCMIO:             " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
 #ifdef USE_XERCES
