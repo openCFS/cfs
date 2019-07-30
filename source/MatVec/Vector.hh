@@ -275,6 +275,7 @@ template<typename T> class ElemStoreSol;
 
     //! Compute Euclidean norm of this vector object
     double NormL2() const;
+    double NormL2_squared() const;
 
     /**  this functions localized the maximal component (absolute value) and returns it with its original sign
 		example: SignedMax([1,0,0]) = 1; SignedMax([-1,0,0]) = -1 */ 

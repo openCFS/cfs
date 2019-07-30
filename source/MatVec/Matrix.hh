@@ -261,6 +261,11 @@ namespace CoupledField
     /** See GetColMin() */
     void GetColMax(Vector<TYPE>& vec_out) const;
 
+    /* get maximal and minimal matrix entry */
+    TYPE GetMax() const;
+    TYPE GetMin() const;
+
+    void GetAbsValues(Matrix<TYPE>& AbsMatrix) const;
 
     //! Gets the diagonal elements of a  matrix in a one column matrix
     void GetDiagInMatrix( Matrix<TYPE>& columnMat ) const;

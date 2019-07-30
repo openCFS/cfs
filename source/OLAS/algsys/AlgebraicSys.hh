@@ -663,7 +663,9 @@ namespace CoupledField {
     //!                 which gets multiplied
     //! \param fup array with vector entries, which get multiplied
     //! \param SysMatUpdated indicates if we need to allocate new memory for the tmpRHS_ vector
-    void UpdateRHS(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated);
+    void UpdateRHS(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated, bool useTransposed=false);
+
+    void ComputeSysMatTimesVector(FEMatrixType matrixType, SBM_Vector& inputVec, SBM_Vector& outputVec, bool transpose);
 
     //! Performs a matrix-vector multiplication and adds the vector to the rhs
 
@@ -677,7 +679,6 @@ namespace CoupledField {
     //! \param fup array with vector entries, which get multiplied
     //! \param SysMatUpdated indicates if we need to allocate new memory for the tmpRHS_ vector
     void UpdateRHS_MultHarm(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated);
-
 
     //! Add a value to a diagonal matrix entry
 
@@ -952,6 +953,11 @@ namespace CoupledField {
 //    SBM_Matrix* GetMatrix(FEMatrixType type) { assert(sysMat_.find(type) != sysMat_.end()); return sysMat_.find(type)->second; }
     SBM_Matrix* GetMatrix(FEMatrixType type) { assert(sysMat_.find(type) != sysMat_.end()); return sysMat_[type]; }
     
+    SBM_Matrix* GetKeff(){return effMat_;};
+
+    void PrintKeff();
+    void PrintMatrixPart(FEMatrixType matrixPart);
+
     //! Return, if a non-zero static condensation block is present
     bool UseStaticCondensation() {
       return statCond_;
@@ -1082,6 +1088,19 @@ namespace CoupledField {
 
     bool IsMatrixComplex(){return isMatrixComplex_;};
 
+    /*
+     * function for StdSolveStepHyst
+     *
+     * background: when solving the nonlinear system of equations via newtons method,
+     *             we need an approximation of the Jacobian; this approximation is delivered
+     *             from CoefFunctionHyst and is assembled to the stiffness matrix;
+     *             for the computation of the residual, we need the linear stiffness matrix, i.e.
+     *             without considering hysteresis; as this matrix should be constant, we need not
+     *             to reassemble it each time; instead we could keep a deep copy of the system and
+     *             reuse it during residual computation
+     */
+    void BackupCurrentSystemMatrix(FEMatrixType storageLocation);
+    void LoadBackupToCurrentSystemMatrix(FEMatrixType storageLocation);
 
   protected:
 

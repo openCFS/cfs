@@ -41,7 +41,7 @@ namespace CoupledField {
     nonLinMaterial_(false),
     nonLinTotalFormulation_(false),
     isHysteresis_(false),
-    isHysteresisFixPoint_(false),
+    nonLinNonHyst_(false),
     matDepend_(false),
     nonLinMethod_(FIXEDPOINT),
     pdematerialclass_(NO_CLASS),
@@ -433,8 +433,8 @@ namespace CoupledField {
   // **********
   // Hysteresis
   // **********
-  void StdPDE::SetPreviousHystVals(bool setNextToLastTS, bool forceMemoryLock){
-    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+  void StdPDE::SetPreviousHystVals(bool lastTS, bool forceMemoryLock){
+    if ( isHysteresis_ ){
         //set current values to previous values for hysteresis operator
         //needed for the next time step
         std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
@@ -443,14 +443,131 @@ namespace CoupledField {
           /*
            * Note: If locked = true, overwrite = false
            */
-          it->second->SetPreviousHystVals(setNextToLastTS, forceMemoryLock);
+          it->second->SetPreviousHystVals(lastTS, forceMemoryLock);
         }
      }
   }
 
+  void StdPDE::CheckSaturationOfHystOperators(Double& lastTSSatAvg, Double& lastItSatAvg, Double& curItSatAvg,
+      Double& oppositeDirAsTSAvg, Double& oppositeDirAsItAvg){
+
+    Double lastTSSatAvgTMP,lastItSatAvgTMP,curItSatAvgTMP,oppositeDirAsTSAvgTMP,oppositeDirAsItAvgTMP;
+    lastTSSatAvgTMP = 0.0;
+    lastItSatAvgTMP = 0.0;
+    curItSatAvgTMP  = 0.0;
+    oppositeDirAsTSAvgTMP = 0.0;
+    oppositeDirAsItAvgTMP = 0.0;
+    UInt cnt = 0;
+    if ( isHysteresis_ ){
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+        cnt++;
+        it->second->checkSaturationStateAllElements(lastTSSatAvgTMP,lastItSatAvgTMP,curItSatAvgTMP,
+          oppositeDirAsTSAvgTMP,oppositeDirAsItAvgTMP);
+
+        LOG_DBG(stdPde) << "Saturation information for region " << it->first;
+        LOG_DBG(stdPde) << lastTSSatAvgTMP*100.0 << " percent of elements were saturated during last timestep";
+        LOG_DBG(stdPde) << lastItSatAvgTMP*100.0 << " percent of elements were saturated during last iteration";
+        LOG_DBG(stdPde) << curItSatAvgTMP*100.0 << " percent of elements are currently saturated";
+        LOG_DBG(stdPde) << oppositeDirAsTSAvgTMP*100.0 << " percent of elements changed direction of saturation by more than 90 degree compared to last timestep";
+        LOG_DBG(stdPde) << oppositeDirAsItAvgTMP*100.0 << " percent of elements changed direction of saturation by more than 90 degree compared to last iteration";
+      }
+    } else {
+      cnt = 1;
+    }
+    lastTSSatAvg = lastTSSatAvgTMP/( (Double) cnt);
+    lastItSatAvg = lastItSatAvgTMP/( (Double) cnt);
+    curItSatAvg  = curItSatAvgTMP/( (Double) cnt);
+    oppositeDirAsTSAvg = oppositeDirAsTSAvgTMP/( (Double) cnt);
+    oppositeDirAsItAvg = oppositeDirAsItAvgTMP/( (Double) cnt);
+
+  }
+
+  void StdPDE::EstimateCurrentSlopeForHysteresis(Double steppingLength, Double scaling){
+
+    if ( isHysteresis_ ){
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+        it->second->ActiveOneShotSlopeEstimation(steppingLength, scaling);
+      }
+    }
+  }
+
+  bool StdPDE::MaterialTensorsHystDependent(){
+    /*
+     * aim: find out if material tensors are dependent on hysteresis
+     * this is true, in case of piezos and magnetostriction as the coupling
+     * tensors depend on hysteresis;
+     * in electrostatics and magnetics, eps/nu do not depend on hysteresis, so
+     * this function returns false here
+     * NOTE: we just check the material tensors for dependency; the system matrix
+     * might still depend on hysteresis in the case of deltaMatrix formulations
+     */
+    if ( isHysteresis_ ){
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+
+      /*
+       * Idea: iterate over all hysteresis regions (for each region we may have a
+       * different coefFctHyst) and check if the coupling tensors are set or not;
+       * if they are not set, the material tensors are indepenedent on hysteresis;
+       * if they are set, we have to assume a dependency
+       */
+      bool dependency = false;
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+        dependency = it->second->couplingTensorSet();
+        if(dependency == true){
+          break;
+        }
+      }
+      return dependency;
+    } else {
+      // no hysteresis > no dependency
+      return false;
+    }
+  }
+
+  void StdPDE::TestInversionOfHystOperator(PtrParamNode testNode){
+    if ( isHysteresis_ ){
+        //set current values to previous values for hysteresis operator
+        //needed for the next time step
+        std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+        std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+
+          // set flag with with the corresponding flagname
+          for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+            /*
+             * Note: If locked = true, overwrite = false
+             */
+            it->second->TestInversion(testNode);
+          }
+     }
+  }
+
+  void StdPDE::SetDoubleFlagInCoefFncHyst(std::string flagName, Double newState){
+    if ( isHysteresis_ ){
+      //set current values to previous values for hysteresis operator
+      //needed for the next time step
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+
+      // set flag with with the corresponding flagname
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+        /*
+         * Note: If locked = true, overwrite = false
+         */
+        it->second->SetDoubleFlag(flagName,newState);
+      }
+    }
+  }
+
   void StdPDE::SetFlagInCoefFncHyst(std::string flagName, Integer newState){
 
-    if ( isHysteresis_ ){//&& isHysteresisFixPoint_ == false ) {
+    if ( isHysteresis_ ){
         //set current values to previous values for hysteresis operator
         //needed for the next time step
         std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();

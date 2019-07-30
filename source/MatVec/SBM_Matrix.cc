@@ -508,7 +508,7 @@ namespace CoupledField {
     // Downcast BaseVectors to SBM_Vectors
     try {
       const SBM_Vector& vec_m = dynamic_cast<const SBM_Vector&>(mvec);
-      SBM_Vector& vec_r = dynamic_cast      <SBM_Vector&>(rvec);
+      SBM_Vector& vec_r = dynamic_cast<SBM_Vector&>(rvec);
 
       // ---------------------
       //  Non-symmetric case:

@@ -135,6 +135,8 @@ namespace CoupledField {
       
       // Finalize setup of material
       material->Finalize();
+      material->SetName(matName.c_str());
+
     } catch (Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not load material '" << matName  
               << "' of class '" << matClass << "'" );
@@ -261,7 +263,6 @@ namespace CoupledField {
   {
     //    std::cout << "ReadMechanics" << std::endl;
     bool     flagElasticitySet=false;
-
     // bool     flagElastTensorImag=false;
     
     
@@ -663,7 +664,6 @@ namespace CoupledField {
     return vals;
   }
 
-  
   //**********************************************************************
   //*************  READ ACOUSTICS ****************************************
   //**********************************************************************
@@ -849,211 +849,11 @@ namespace CoupledField {
         material->SetScalar(pc->Get("dataName")->As<std::string>(), NONLIN_DATA_NAME);
     } // end of permittivityCoefficient
     
-    //read Preisach hysterese model
+    //read hysterese model
     if(elec->Has("hystModel"))
     {
-      if(elec->Get("hystModel")->Has("preisach"))
-      {
-        PtrParamNode p = elec->Get("hystModel")->Get("preisach");
-        
-        // force name
-        material->SetScalar("preisach", HYST_MODEL);
-        
-        // read E saturation of Preisach hysterese model
-        if(p->Has("eSat"))
-          material->SetScalar(p->Get("eSat")->As<Double>(), X_SATURATION, Global::REAL ); 
-        
-        // read P saturation of Preisach hysterese model
-        if(p->Has("pSat"))
-          material->SetScalar(p->Get("pSat")->As<Double>(), Y_SATURATION, Global::REAL ); 
-        
-        // never used
-        //        // read P saturation of Preisach hysterese model
-        //        if(p->Has("Pr"))
-        //          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL );
-        
-        // read direction of polarization
-        if(p->Has("dirP"))
-        {
-          int dir = p->Get("dirP")->As<Integer>();
-          
-          if(dir == 1) material->SetScalar("X", P_DIRECTION );
-          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
-          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
-          
-          if(dir != 1 && dir != 2 && dir != 3)
-            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
-                    << " hysteresis model polarization");
-        }
-        // not needed anymore -> preisach is always scalar; vector model has its own name now
-        material->SetScalar("SCALAR", PREISACH_DIM);
-        
-        // read weight dimension of Preisach hysterese model for weights
-        int dim = -1;
-        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
-        
-        // read real permittivity tensor    
-        if(p->Has("weights"))
-        {
-          Matrix<Double> preisachWeightTensor(dim,dim);
-          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
-          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
-        }
-        
-        if(p->Has("strainForm")){
-          material->SetScalar(p->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
-        } else {
-          material->SetScalar(0, HYST_STRAIN_FORM);
-        }
-        
-        int coefdim = -1;
-        if(p->Has("dim_betaCoefs")) coefdim = p->Get("dim_betaCoefs")->As<Integer>();
-        material->SetScalar(coefdim, DIM_BETA_COEFS);
-        
-        Matrix<Double> betaCoef;
-        if(p->Has("betaCoefs")&&(coefdim != -1))
-        {
-          //std::cout << "beta coefs found" << std::endl;
-          ParamTools::AsTensor<double>(p->Get("betaCoefs"),1, coefdim, betaCoef);
-          //std::cout << "beta coefs: " << betaCoef.ToString() << std::endl;
-          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-        } else {
-          //std::cout << "NO betaCoef found" << std::endl;
-          betaCoef = Matrix<Double>(1,1);
-          betaCoef.Init();
-          //std::cout << "Beta coefs set to: " << betaCoef.ToString() << std::endl;
-          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-        }
-                
-      }
-      else if (elec->Get("hystModel")->Has("vectorPreisach"))
-      {
-        PtrParamNode p = elec->Get("hystModel")->Get("vectorPreisach");
-        
-        // force name
-        material->SetScalar("vectorPreisach", HYST_MODEL);
-        
-        // read E saturation of Preisach hysterese model
-        if(p->Has("eSat"))
-          material->SetScalar(p->Get("eSat")->As<Double>(), X_SATURATION, Global::REAL );
-        // read P saturation of Preisach hysterese model
-        if(p->Has("pSat"))
-          material->SetScalar(p->Get("pSat")->As<Double>(), Y_SATURATION, Global::REAL );
-        
-        /*
-         * new numbering: 1 -> classical vector model (sutor2012)
-         *                2 -> revised model (sutor2015)
-         *                10 -> classical vector model, matrix based
-         *                20 -> revised model, matrix based
-         */
-        if(p->Has("evalVersion")){
-          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
-        } else {
-          material->SetScalar(2, EVAL_VERSION);
-        }
-        
-        //not needed anymore as vectorPreisach always is vectorial
-        material->SetScalar("VECTOR", PREISACH_DIM);
-        
-        if(p->Has("rotResistance")){
-          material->SetScalar(p->Get("rotResistance")->As<Double>(), ROT_RESISTANCE, Global::REAL);
-        } else {
-          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
-        }
-        
-        if(p->Has("angularDistance")){
-          material->SetScalar(p->Get("angularDistance")->As<Double>(), ANG_DISTANCE, Global::REAL);
-        } else {
-          material->SetScalar(0.0, ANG_DISTANCE, Global::REAL);
-        }
-        
-        if(p->Has("angularResolution")){
-          material->SetScalar(p->Get("angularResolution")->As<Double>(), ANG_RESOLUTION, Global::REAL);
-        } else {
-          material->SetScalar(0.0001, ANG_RESOLUTION, Global::REAL);
-        }
-        
-        if(p->Has("angularClipping")){
-          material->SetScalar(p->Get("angularClipping")->As<Double>(), ANG_CLIPPING, Global::REAL);
-        } else {
-          material->SetScalar(0.0001, ANG_CLIPPING, Global::REAL);
-        }
-        
-        if(p->Has("amplitudeResolution")){
-          material->SetScalar(p->Get("amplitudeResolution")->As<Double>(), AMP_RESOLUTION, Global::REAL);
-        } else {
-          material->SetScalar(0.0, AMP_RESOLUTION, Global::REAL);
-        }
-        
-        // read weight dimension of Preisach hysterese model for weights
-        int dim = -1;
-        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
-        
-        // read real permittivity tensor
-        if(p->Has("weights"))
-        {
-          Matrix<Double> preisachWeightTensor(dim,dim);
-          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
-          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
-        }
-        
-        Matrix<Double> initialStateTensor;
-        if(p->Has("initialState"))
-        {
-          //std::cout << "InitialState found" << std::endl;
-          ParamTools::AsTensor<double>(p->Get("initialState"),1, 3, initialStateTensor);
-          //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
-        } else {
-          //std::cout << "NO InitialState found" << std::endl;
-          initialStateTensor.Resize(1,3);
-          initialStateTensor.Init();
-        }
-        
-        material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
-        material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
-        material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
-        
-        /*
-         * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
-         * written to a bmp file of resolution bmpResolution
-         */
-        if(p->Has("printOut")){
-          material->SetScalar(p->Get("printOut")->As<Integer>(), PRINT_PREISACH);
-        } else {
-          material->SetScalar(0, PRINT_PREISACH);
-        }
-        
-        if(p->Has("bmpResolution")){
-          material->SetScalar(p->Get("bmpResolution")->As<Integer>(), PRINT_PREISACH_RESOLUTION);
-        } else {
-          material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
-        }
-        
-        if(p->Has("strainForm")){
-          material->SetScalar(p->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
-        } else {
-          material->SetScalar(0, HYST_STRAIN_FORM);
-        }
-        
-        int coefdim = -1;
-        if(p->Has("dim_betaCoefs")) coefdim = p->Get("dim_betaCoefs")->As<Integer>();
-        material->SetScalar(coefdim, DIM_BETA_COEFS);
-        
-        Matrix<Double> betaCoef;
-        if(p->Has("betaCoefs")&&(coefdim != -1))
-        {
-          //std::cout << "beta coefs found" << std::endl;
-          ParamTools::AsTensor<double>(p->Get("betaCoefs"),1, coefdim, betaCoef);
-          //std::cout << "beta coefs: " << betaCoef.ToString() << std::endl;
-          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-        } else {
-          //std::cout << "NO betaCoef found" << std::endl;
-          betaCoef = Matrix<Double>(1,1);
-          betaCoef.Init();
-          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-        }
-        
-      }
+      PtrParamNode hystNode = elec->Get("hystModel");
+      ReadHysteresis(material, hystNode);
     }
   }
   
@@ -1383,212 +1183,12 @@ namespace CoupledField {
       } // end of nonlinear section
     } // end of magneticPermeability  
     
-    //read Preisach hysterese model
+    //read hysterese model
     if(mag->Has("hystModel"))
     {
-      if(mag->Get("hystModel")->Has("preisach"))
-      {
-        PtrParamNode p = mag->Get("hystModel")->Get("preisach");
-        
-        // force name
-        material->SetScalar("preisach", HYST_MODEL);
-        
-        // read E saturation of Preisach hysterese model
-        if(p->Has("hSat"))
-          material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
-        // read P saturation of Preisach hysterese model
-        if(p->Has("jSat"))
-          material->SetScalar(p->Get("jSat")->As<Double>(), Y_SATURATION, Global::REAL );
-        
-        // never used
-        //        // read M saturation of Preisach hysterese model
-        //        if(p->Has("Mr"))
-        //          material->SetScalar(p->Get("Mr")->As<Double>(), Y_REMANENCE, Global::REAL );
-        
-        // read direction of polarization
-        if(p->Has("dirJ"))
-        {
-          int dir = p->Get("dirJ")->As<Integer>();
-          
-          if(dir == 1) material->SetScalar("X", P_DIRECTION );
-          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
-          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
-          
-          if(dir != 1 && dir != 2 && dir != 3)
-            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
-                    << " hysteresis model polarization");
-        }
-        // not needed anymore -> preisach is always scalar; vector model has its own name now
-        material->SetScalar("SCALAR", PREISACH_DIM);
-        
-        // read weight dimension of Preisach hysterese model for weights
-        int dim = -1;
-        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
-        
-        // read real permittivity tensor
-        if(p->Has("weights"))
-        {
-          Matrix<Double> preisachWeightTensor(dim,dim);
-          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
-          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
-        }
-        
-        if(p->Has("strainForm")){
-          material->SetScalar(p->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
-        } else {
-          material->SetScalar(0, HYST_STRAIN_FORM);
-        }
-        
-        int coefdim = -1;
-        if(p->Has("dim_betaCoefs")) coefdim = p->Get("dim_betaCoefs")->As<Integer>();
-        material->SetScalar(coefdim, DIM_BETA_COEFS);
-        
-        Matrix<Double> betaCoef;
-        if(p->Has("betaCoefs")&&(coefdim != -1))
-        {
-          //std::cout << "beta coefs found" << std::endl;
-          ParamTools::AsTensor<double>(p->Get("betaCoefs"),1, coefdim, betaCoef);
-          //std::cout << "beta coefs: " << betaCoef.ToString() << std::endl;
-          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-        } else {
-          //std::cout << "NO betaCoef found" << std::endl;
-          betaCoef = Matrix<Double>(1,1);
-          betaCoef.Init();
-          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-        }
-        
-      }
-      
-      else if (mag->Get("hystModel")->Has("vectorPreisach"))
-      {
-        PtrParamNode p = mag->Get("hystModel")->Get("vectorPreisach");
-        
-        // force name
-        material->SetScalar("vectorPreisach", HYST_MODEL);
-        
-        // read E saturation of Preisach hysterese model
-        if(p->Has("hSat"))
-          material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
-        // read P saturation of Preisach hysterese model
-        if(p->Has("jSat"))
-          material->SetScalar(p->Get("jSat")->As<Double>(), Y_SATURATION, Global::REAL );
-        
-        /*
-         * new numbering: 1 -> classical vector model (sutor2012)
-         *                2 -> revised model (sutor2015)
-         *                10 -> classical vector model, matrix based
-         *                20 -> revised model, matrix based
-         */
-        if(p->Has("evalVersion")){
-          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
-        } else {
-          material->SetScalar(2, EVAL_VERSION);
-        }
-        
-        //not needed anymore as vectorPreisach always is vectorial
-        material->SetScalar("VECTOR", PREISACH_DIM);
-        
-        if(p->Has("rotResistance")){
-          material->SetScalar(p->Get("rotResistance")->As<Double>(), ROT_RESISTANCE, Global::REAL);
-        } else {
-          material->SetScalar(1.0, ROT_RESISTANCE, Global::REAL);
-        }
-        
-        if(p->Has("angularDistance")){
-          material->SetScalar(p->Get("angularDistance")->As<Double>(), ANG_DISTANCE, Global::REAL);
-        } else {
-          material->SetScalar(0.0, ANG_DISTANCE, Global::REAL);
-        }
-        
-        if(p->Has("angularResolution")){
-          material->SetScalar(p->Get("angularResolution")->As<Double>(), ANG_RESOLUTION, Global::REAL);
-        } else {
-          material->SetScalar(0.0, ANG_RESOLUTION, Global::REAL);
-        }
-        
-        if(p->Has("angularClipping")){
-          material->SetScalar(p->Get("angularClipping")->As<Double>(), ANG_CLIPPING, Global::REAL);
-        } else {
-          material->SetScalar(0.0001, ANG_CLIPPING, Global::REAL);
-        }
-        
-        if(p->Has("amplitudeResolution")){
-          material->SetScalar(p->Get("amplitudeResolution")->As<Double>(), AMP_RESOLUTION, Global::REAL);
-        } else {
-          material->SetScalar(0.0, AMP_RESOLUTION, Global::REAL);
-        }
-        
-        // read weight dimension of Preisach hysterese model for weights
-        int dim = -1;
-        if(p->Has("dim_weights")) dim = p->Get("dim_weights")->As<Integer>();
-        
-        // read real permittivity tensor
-        if(p->Has("weights"))
-        {
-          Matrix<Double> preisachWeightTensor(dim,dim);
-          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
-          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
-        }
-        
-        Matrix<Double> initialStateTensor;
-        if(p->Has("initialState"))
-        {
-          //std::cout << "InitialState found" << std::endl;
-          ParamTools::AsTensor<double>(p->Get("initialState"),1, 3, initialStateTensor);
-          //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
-        } else {
-          //std::cout << "NO InitialState found" << std::endl;
-          initialStateTensor.Resize(1,3);
-          initialStateTensor.Init();
-        }
-        
-        material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
-        material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
-        material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
-        
-        /*
-         * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
-         * written to a bmp file of resolution bmpResolution
-         */
-        if(p->Has("printOut")){
-          material->SetScalar(p->Get("printOut")->As<Integer>(), PRINT_PREISACH);
-        } else {
-          material->SetScalar(0, PRINT_PREISACH);
-        }
-        
-        if(p->Has("bmpResolution")){
-          material->SetScalar(p->Get("bmpResolution")->As<Integer>(), PRINT_PREISACH_RESOLUTION);
-        } else {
-          material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
-        }
-        
-        if(p->Has("strainForm")){
-          material->SetScalar(p->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
-        } else {
-          material->SetScalar(0, HYST_STRAIN_FORM);
-        }
-        
-        int coefdim = -1;
-        if(p->Has("dim_betaCoefs")) coefdim = p->Get("dim_betaCoefs")->As<Integer>();
-        material->SetScalar(coefdim, DIM_BETA_COEFS);
-        
-        Matrix<Double> betaCoef;
-        if(p->Has("betaCoefs")&&(coefdim != -1))
-        {
-          //std::cout << "beta coefs found" << std::endl;
-          ParamTools::AsTensor<double>(p->Get("betaCoefs"),1, coefdim, betaCoef);
-          //std::cout << "beta coefs: " << betaCoef.ToString() << std::endl;
-          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-        } else {
-          //std::cout << "NO betaCoef found" << std::endl;
-          betaCoef = Matrix<Double>(1,1);
-          betaCoef.Init();
-          material->SetTensor(betaCoef, HYST_BETA_COEFS, Global::REAL);
-        }
-        
-      }
-      
-    }
+      PtrParamNode hystNode = mag->Get("hystModel");
+      ReadHysteresis(material, hystNode);
+   }
     
     //read real magmech coupling tensor
     if(mag->Has("magnetoStrictionTensor_h_mag"))
@@ -2029,4 +1629,993 @@ namespace CoupledField {
     }
   }
   
+  //**********************************************************************
+  //*************  READ HYSTERESIS****************************************
+  //**********************************************************************
+  void XMLMaterialHandler::ReadHysteresis(BaseMaterial *material, PtrParamNode hystNode){
+    PtrParamNode operatorNode = NULL;
+
+    if(hystNode->Has("elecPolarization")){
+      operatorNode = hystNode->Get("elecPolarization");
+      ReadHystOperator(material, operatorNode, false);
+    } else if(hystNode->Has("magPolarization")){
+      operatorNode = hystNode->Get("magPolarization");
+      ReadHystOperator(material, operatorNode, false);
+    } else {
+      EXCEPTION("Either elecPolarization or magPolarization has to be defined for hysteresis node.")
+    }
+
+    PtrParamNode couplingNode = NULL;
+    int usePolarization = 0;
+    if(hystNode->Has("piezoCouplingAndStrains")){
+      couplingNode = hystNode->Get("piezoCouplingAndStrains");
+    } else if(hystNode->Has("magstrictCouplingAndStrains")){
+      couplingNode = hystNode->Get("magstrictCouplingAndStrains");
+    }
+
+    int couplingDefined = 0;
+    if(couplingNode != NULL){
+      couplingDefined = 1;
+      PtrParamNode strainModelingNode = couplingNode->Get("strainModeling");
+      int irrStrainImplementation = -1;
+      Double strainSat = 0.0;
+      Double irrStrains_c1 = 0.0;
+      Double irrStrains_c2 = 0.0;
+      Double irrStrains_c3 = 0.0;
+      Double irrStrains_d0 = 0.0;
+      Double irrStrains_d1 = 0.0;
+      bool scaleToStrainSat = false;
+      bool paramsDefinedForHalfRange = false;
+      int coefdim = 1;
+      Matrix<Double> ciCoefs = Matrix<Double>(1,1);
+
+      if(strainModelingNode != NULL){
+        PtrParamNode innerNode = NULL;
+        if(strainModelingNode->Has("muDatWolf")){
+          irrStrainImplementation = 0;
+          innerNode = strainModelingNode->Get("muDatWolf");
+          strainSat = innerNode->Get("strainSat")->As<Double>();
+          irrStrains_c1 = innerNode->Get("c1")->As<Double>();
+          irrStrains_c2 = innerNode->Get("c2")->As<Double>();
+          irrStrains_c3 = innerNode->Get("c3")->As<Double>();
+          scaleToStrainSat = innerNode->Get("scaleToStrainSat")->As<bool>();
+          paramsDefinedForHalfRange = innerNode->Get("forHalfRange")->As<bool>();
+        } else if(strainModelingNode->Has("muDatLoeffler")){
+          irrStrainImplementation = 1;
+          innerNode = strainModelingNode->Get("muDatLoeffler");
+          strainSat = innerNode->Get("strainSat")->As<Double>();
+          coefdim = innerNode->Get("dim_ci")->As<Integer>();
+          ciCoefs.Resize(1,coefdim);
+          ParamTools::AsTensor<double>(innerNode->Get("ci"),1, coefdim, ciCoefs);
+          irrStrains_d0 = innerNode->Get("d0")->As<Double>();
+          irrStrains_d1 = innerNode->Get("d1")->As<Double>();
+          scaleToStrainSat = innerNode->Get("scaleToStrainSat")->As<bool>();
+          paramsDefinedForHalfRange = innerNode->Get("forHalfRange")->As<bool>();
+        } else if(strainModelingNode->Has("higherOrderPolynomial")){
+          irrStrainImplementation = 2;
+          innerNode = strainModelingNode->Get("higherOrderPolynomial");
+          strainSat = innerNode->Get("strainSat")->As<Double>();
+          coefdim = innerNode->Get("dim_ci")->As<Integer>();
+          ciCoefs.Resize(1,coefdim);
+          ParamTools::AsTensor<double>(innerNode->Get("ci"),1, coefdim, ciCoefs);
+          scaleToStrainSat = innerNode->Get("scaleToStrainSat")->As<bool>();
+        }
+      }
+      material->SetScalar(strainSat, S_SATURATION, Global::REAL );
+      material->SetScalar(irrStrainImplementation, HYST_IRRSTRAINS);
+      material->SetScalar(irrStrains_c1, HYST_IRRSTRAIN_C1, Global::REAL);
+      material->SetScalar(irrStrains_c2, HYST_IRRSTRAIN_C2, Global::REAL);
+      material->SetScalar(irrStrains_c3, HYST_IRRSTRAIN_C3, Global::REAL);
+      material->SetScalar(irrStrains_d0, HYST_IRRSTRAIN_D0, Global::REAL);
+      material->SetScalar(irrStrains_d1, HYST_IRRSTRAIN_D1, Global::REAL);
+      material->SetScalar(coefdim, HYST_IRRSTRAIN_CI_SIZE);
+      material->SetTensor(ciCoefs, HYST_IRRSTRAIN_CI, Global::REAL);
+      if(scaleToStrainSat){
+        material->SetScalar(1, HYST_IRRSTRAIN_SCALETOSAT);
+      } else {
+        material->SetScalar(0, HYST_IRRSTRAIN_SCALETOSAT);
+      }
+      if(paramsDefinedForHalfRange){
+        material->SetScalar(1, HYST_IRRSTRAIN_PARAMSFORHALFRANGE);
+      } else {
+        material->SetScalar(0, HYST_IRRSTRAIN_PARAMSFORHALFRANGE);
+      }
+
+      PtrParamNode strainOperatorNode = couplingNode->Get("hystOperatorForStrains");
+      if(strainOperatorNode->Has("usePolarization")){
+        usePolarization = 1;
+      } else if(strainOperatorNode->Has("separateHystOperator")){
+        operatorNode = strainOperatorNode->Get("separateHystOperator");
+        ReadHystOperator(material, operatorNode, true);
+      }
+      material->SetScalar(usePolarization, IRRSTRAIN_REUSE_P);
+
+      PtrParamNode smallSignalNode = couplingNode->Get("smallSignalForm");
+      /*
+       * -2 : no coupling at all; no coupling node
+       * -1 : coupled but without small signal tensors
+       *  0 : coupled e-form/h-form (piezo/magstrict)
+       *  1 : coupled d-form (piezo)
+       *  2 : coupled g-form (magstrict)
+       */
+      int strainForm = -2;
+      if(smallSignalNode != NULL){
+
+        if(smallSignalNode->Has("noSmallSignalCoupling")){
+          strainForm = -1;
+        }
+        if(smallSignalNode->Has("piezo_eform")){
+          strainForm = 0;
+        }
+        if(smallSignalNode->Has("piezo_dform")){
+          strainForm = 1;
+        }
+        if(smallSignalNode->Has("magstrict_hform")){
+          strainForm = 0;
+        }
+        if(smallSignalNode->Has("magstrict_gform")){
+          strainForm = 2;
+        }
+      }
+      material->SetScalar(strainForm, HYST_STRAIN_FORM);
+    } else {
+      // no coupling defined
+      material->SetScalar(-2, HYST_STRAIN_FORM);
+    }
+    material->SetScalar(couplingDefined, HYST_COUPLING_DEFINED );
+
+  }
+
+  void XMLMaterialHandler::ReadHystOperator(BaseMaterial *material, PtrParamNode operatorNode, bool setStrains){
+//    std::cout << "ReadHystOperator" << std::endl;
+    PtrParamNode model;
+    PtrParamNode pWeight = NULL;
+    PtrParamNode pAnhyst = NULL;
+    PtrParamNode pInversion = NULL;
+    PtrParamNode pStrainForm = NULL;
+    PtrParamNode initialState = NULL;
+    PtrParamNode irrStrainNode = NULL;
+    bool isVector = true;
+    bool isPreisachType = true;
+
+    /*
+     * Instead of setting each parameter twice in the form
+     *    if(setStrains){
+     *      material->SetScalar(model->Get("inputSat")->As<Double>(), X_SATURATION_STRAIN, Global::REAL );
+     *    } else {
+     *      material->SetScalar(model->Get("inputSat")->As<Double>(), X_SATURATION, Global::REAL );
+     *    }
+     *
+     * we define the enums for strains like X_SATURATION_STRAIN with a fixed offset towards the equivalent
+     * parameter for polarization X_SATURATION
+     * > see Environment.hh
+     */
+    int enumOffset = 0;
+    if(setStrains){
+      enumOffset = 100;
+    }
+
+    if(operatorNode->Has("scalarPreisach")){
+      isVector = false;
+      model = operatorNode->Get("scalarPreisach");
+      if(setStrains){
+        material->SetScalar("scalarPreisach", HYST_MODEL_STRAIN);
+        material->SetScalar("SCALAR", HYSTERESIS_DIM_STRAIN);
+      } else {
+        material->SetScalar("scalarPreisach", HYST_MODEL);
+        material->SetScalar("SCALAR", HYSTERESIS_DIM);
+      }
+
+      // read input/output saturation of Preisach hysterese model
+      material->SetScalar(model->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL );
+      material->SetScalar(model->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL );
+
+      Matrix<Double> directionVector;
+      if(model->Has("dirPolarization"))
+      {
+        //std::cout << "InitialState found" << std::endl;
+        ParamTools::AsTensor<double>(model->Get("dirPolarization"),1, 3, directionVector);
+        //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+      } else {
+        //std::cout << "NO InitialState found" << std::endl;
+        directionVector.Resize(1,3);
+        directionVector.Init();
+      }
+
+      material->SetScalar( directionVector[0][0], MaterialType(P_DIRECTION_X+enumOffset), Global::REAL);
+      material->SetScalar( directionVector[0][1], MaterialType(P_DIRECTION_Y+enumOffset), Global::REAL);
+      material->SetScalar( directionVector[0][2], MaterialType(P_DIRECTION_Z+enumOffset), Global::REAL);
+
+      if(model->Has("weights")){
+        pWeight = model->Get("weights");
+        // Read in weights separately below as they require the same steps for VectorHysteresis, too
+      }
+
+      // new: scalar model might use the vector inversion, too (but not recommended)
+      if(model->Has("hystInversion")){
+        pInversion = model->Get("hystInversion");
+      }
+
+      if(model->Has("initialState")){
+        initialState = model->Get("initialState");
+      }
+    }
+    else if(operatorNode->Has("JilesAtherton")){
+      isVector = false;
+
+      isPreisachType = false;
+      model = operatorNode->Get("JilesAtherton");
+      if(setStrains){
+        material->SetScalar("JilesAtherton", HYST_MODEL_STRAIN);
+        material->SetScalar("SCALAR", HYSTERESIS_DIM_STRAIN);
+      } else {
+        material->SetScalar("JilesAtherton", HYST_MODEL);
+        material->SetScalar("SCALAR", HYSTERESIS_DIM);
+      }
+
+      if(model->Has("jiles_test")){
+        material->SetScalar(model->Get("jiles_test")->As<Double>(), MaterialType(JILES_TEST), Global::REAL );
+      }
+
+      // read input/output saturation of Preisach hysterese model
+      material->SetScalar(model->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL );
+      material->SetScalar(model->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL );
+    }
+    else if(operatorNode->Has("vectorPreisach_Sutor")){
+//      std::cout << "vectorPreisach_Sutor" << std::endl;
+      model = operatorNode->Get("vectorPreisach_Sutor");
+
+      material->SetScalar("vectorPreisach_Sutor", MaterialType(HYST_MODEL+enumOffset));
+      material->SetScalar("VECTOR", MaterialType(HYSTERESIS_DIM+enumOffset));
+
+      // read input/output saturation of Preisach hysterese model
+      material->SetScalar(model->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL );
+      material->SetScalar(model->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL );
+
+      /*
+       * new numbering: 1 -> classical vector model (sutor2012)
+       *                2 -> revised model (sutor2015)
+       *                10 -> classical vector model, matrix based
+       *                20 -> revised model, matrix based
+       */
+      int evalVersion = 2;
+      if(model->Has("evalVersion")){
+//        std::cout << "evalVersion" << std::endl;
+        if(model->Get("evalVersion")->Has("Classical_Version_2012__list_implementation")){
+          evalVersion = 1;
+        }
+        if(model->Get("evalVersion")->Has("Revised_Version_2015__list_implementation")){
+          evalVersion = 2;
+        }
+        if(model->Get("evalVersion")->Has("Classical_Version_2012__matrix_implementation")){
+          evalVersion = 10;
+        }
+        if(model->Get("evalVersion")->Has("Revised_Version_2015__matrix_implementation")){
+          evalVersion = 20;
+        }
+      }
+
+      material->SetScalar(evalVersion, MaterialType(EVAL_VERSION+enumOffset));
+
+      Double rotResistance = 1.0;
+      Double angularDistance = 0.0;
+      bool enforceSatOutputAtSatInput = true;
+      if(model->Has("rotResistance")){
+//        std::cout << "rotResistance" << std::endl;
+        rotResistance = model->Get("rotResistance")->As<Double>();
+      }
+
+      material->SetScalar(rotResistance, MaterialType(ROT_RESISTANCE+enumOffset), Global::REAL);
+
+      if(model->Has("angularDistance")){
+//                std::cout << "angularDistance" << std::endl;
+        angularDistance = model->Get("angularDistance")->As<Double>();
+      }
+
+      material->SetScalar(angularDistance, MaterialType(ANG_DISTANCE+enumOffset), Global::REAL);
+
+      if(model->Has("enforceSatOutputAtSatInput")){
+//        std::cout << "enforceSatOutputAtSatInput" << std::endl;
+        enforceSatOutputAtSatInput = model->Get("enforceSatOutputAtSatInput")->As<bool>();
+      }
+
+      if(enforceSatOutputAtSatInput){
+        material->SetScalar(1, MaterialType(SCALETOSAT+enumOffset));
+      } else {
+        material->SetScalar(0, MaterialType(SCALETOSAT+enumOffset));
+      }
+
+      if(model->Has("weights")){
+        pWeight = model->Get("weights");
+        // Read in weights separately below as they require the same steps for VectorHysteresis, too
+      }
+
+      if(model->Has("hystInversion")){
+        pInversion = model->Get("hystInversion");
+      }
+
+      if(model->Has("initialState")){
+        initialState = model->Get("initialState");
+      }
+
+      PtrParamNode debugNode = NULL;
+      Double angClip = 0.0;
+      Double angRes = 1e-16;
+      Double ampRes = 1e-16;
+      int printOut = 0;
+      int bmpRes = 1000;
+
+      if(model->Has("debuggingParameter")){
+        debugNode = model->Get("debuggingParameter");
+        if(debugNode->Has("angularClipping")){
+          angClip = debugNode->Get("angularClipping")->As<Double>();
+        }
+
+        if(debugNode->Has("angularResolution")){
+          angRes = debugNode->Get("angularResolution")->As<Double>();
+        }
+
+        if(debugNode->Has("amplitudeResolution")){
+          ampRes = debugNode->Get("amplitudeResolution")->As<Double>();
+        }
+
+        /*
+         * if printOut > 0, the overlaid rotation and switching state of each printOut timestep will be
+         * written to a bmp file of resolution bmpResolution
+         */
+        if(debugNode->Has("printOut")){
+          debugNode->Get("printOut")->As<Integer>();
+        }
+
+        if(debugNode->Has("bmpResolution")){
+          debugNode->Get("bmpResolution")->As<Integer>();
+        }
+      }
+
+      material->SetScalar(angClip, MaterialType(ANG_CLIPPING+enumOffset), Global::REAL);
+      material->SetScalar(angRes, MaterialType(ANG_RESOLUTION+enumOffset), Global::REAL);
+      material->SetScalar(ampRes, MaterialType(AMP_RESOLUTION+enumOffset), Global::REAL);
+      // extra parameter that will not be set for strains
+      if(!setStrains){
+        material->SetScalar(printOut, PRINT_PREISACH);
+        material->SetScalar(bmpRes, PRINT_PREISACH_RESOLUTION);
+      }
+    }
+
+    else if(operatorNode->Has("vectorPreisach_Mayergoyz")){
+      model = operatorNode->Get("vectorPreisach_Mayergoyz");
+
+      material->SetScalar("vectorPreisach_Mayergoyz", MaterialType(HYST_MODEL+enumOffset));
+      material->SetScalar("VECTOR", MaterialType(HYSTERESIS_DIM+enumOffset));
+
+      PtrParamNode innerModel = NULL;
+      PtrParamNode singleModel = NULL;
+      if(model->Has("isotropic")){
+        // read isotropic Mayergoyz vector model
+        innerModel = model->Get("isotropic");
+
+        material->SetScalar(1, MaterialType(PREISACH_MAYERGOYZ_ISOTROPIC+enumOffset) );
+
+
+        int numDir = 11;
+        if(innerModel->Has("numDirections")){
+          numDir = innerModel->Get("numDirections")->As<Integer>();
+        }
+
+        material->SetScalar(numDir, MaterialType(PREISACH_MAYERGOYZ_NUM_DIR+enumOffset) );
+
+        if(innerModel->Has("ScalarModel")){
+          singleModel = innerModel->Get("ScalarModel");
+        } else {
+          EXCEPTION("Single scalar Preisach model required for isotropic vector model");
+        }
+
+        Matrix<Double> startAxis = Matrix<Double>(1,3);
+        if(innerModel->Has("startAxis")){
+          ParamTools::AsTensor<double>(innerModel->Get("startAxis"),1, 3, startAxis);
+          // normalize
+          Double startAxisNorm = startAxis.NormL2();
+          if(startAxisNorm != 0){
+            startAxis[0][0] /= startAxisNorm;
+            startAxis[0][1] /= startAxisNorm;
+            startAxis[0][2] /= startAxisNorm;
+          }
+          // random vector will be generated for each element > not done here
+        } else {
+          startAxis.Init();
+          // default case > x axis
+          startAxis[0][0] = 1.0;
+        }
+
+        material->SetScalar( startAxis[0][0], MaterialType(MAYERGOYZ_STARTAXIS_X+enumOffset), Global::REAL);
+        material->SetScalar( startAxis[0][1], MaterialType(MAYERGOYZ_STARTAXIS_Y+enumOffset), Global::REAL);
+        material->SetScalar( startAxis[0][2], MaterialType(MAYERGOYZ_STARTAXIS_Z+enumOffset), Global::REAL);
+
+        // read input/output saturation of Preisach hysterese model
+        material->SetScalar(singleModel->Get("inputSat")->As<Double>(), MaterialType(X_SATURATION+enumOffset), Global::REAL );
+        material->SetScalar(singleModel->Get("outputSat")->As<Double>(), MaterialType(Y_SATURATION+enumOffset), Global::REAL );
+
+        if(singleModel->Has("weights")){
+          pWeight = singleModel->Get("weights");
+          // Read in weights separately below as they require the same steps for VectorHysteresis, too
+        }
+
+        int adaptedToVectorCase = 0;
+        if(singleModel->Has("weightsAdaptedToMayergoyzVectorModel")){
+          bool adapted = singleModel->Get("weightsAdaptedToMayergoyzVectorModel")->As<bool>();
+          if(adapted){
+            adaptedToVectorCase = 1;
+          }
+        }
+        material->SetScalar(adaptedToVectorCase, MaterialType(PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR+enumOffset));
+
+      } else if(model->Has("anIsotropic")){
+        EXCEPTION("Anisotropic Mayergoyz vector hysteresis model not yet supported");
+      }
+
+      int clipOutput = 2;
+      if(model->Has("clipOutputToSat")){
+        if(model->Get("clipOutputToSat")->Has("noClipping")){
+          clipOutput = 0;
+        }
+        if(model->Get("clipOutputToSat")->Has("clipAmplitude")){
+          clipOutput = 1;
+        }
+        if(model->Get("clipOutputToSat")->Has("clipComponentParallelToInput")){
+          // leads to most reasonable results
+          clipOutput = 2;
+        }
+      }
+      material->SetScalar(clipOutput, MaterialType(PREISACH_MAYERGOYZ_CLIPOUTPUT+enumOffset));
+
+      if(model->Has("hystInversion")){
+        pInversion = model->Get("hystInversion");
+      }
+
+      if(model->Has("initialState")){
+        initialState = model->Get("initialState");
+      }
+    }
+    else {
+      material->SetScalar("none", MaterialType(HYST_MODEL+enumOffset));
+
+      return;
+    }
+
+    UInt isPreisachType_int = 0;
+    if(isPreisachType){
+      isPreisachType_int = 1;
+    }
+    // set if selected model is of Preisach-Type or not (e.g., in case of Jiles-Atherton)
+    material->SetScalar(isPreisachType_int, MaterialType(HYST_TYPE_IS_PREISACH+enumOffset));
+
+    if(isPreisachType){
+      if(pWeight != NULL){
+        // Read in weights
+        int dim = -1;
+        if(pWeight->Has("dim_weights")) dim = pWeight->Get("dim_weights")->As<Integer>();
+
+        material->SetScalar( dim, MaterialType(PREISACH_WEIGHTS_DIM+enumOffset));
+
+        int weightType = 0; // 0 = const, 1 = muDat, 2 = muDatExtended, 3 = givenTensor
+        PtrParamNode pWeightInner;
+        if(pWeight->Has("weightType")){
+          pWeightInner = pWeight->Get("weightType");
+        }
+
+        if(pWeightInner->Has("const")){
+          weightType = 0;
+          Double constValue = pWeightInner->Get("const")->As<Double>();
+
+          material->SetScalar(constValue, MaterialType(PREISACH_WEIGHTS_CONSTVALUE+enumOffset), Global::REAL );
+          material->SetScalar(weightType, MaterialType(PREISACH_WEIGHTS_TYPE+enumOffset));
+
+        } else if(pWeightInner->Has("muDat")){
+          weightType = 1;
+          PtrParamNode muDat = pWeightInner->Get("muDat");
+          Double A = muDat->Get("A")->As<Double>();
+          Double h = muDat->Get("h")->As<Double>();
+          Double sigma = muDat->Get("sigma")->As<Double>();
+          Double eta = muDat->Get("eta")->As<Double>();
+
+          int paramsDefinedForHalfRange = 0;
+          bool paramsDefinedForHalfRangeBool = muDat->Get("forHalfRange")->As<bool>();
+          if(paramsDefinedForHalfRangeBool){
+            paramsDefinedForHalfRange = 1;
+          }
+
+          material->SetScalar(A, MaterialType(PREISACH_WEIGHTS_MUDAT_A+enumOffset), Global::REAL );
+          material->SetScalar(h, MaterialType(PREISACH_WEIGHTS_MUDAT_H+enumOffset), Global::REAL );
+          material->SetScalar(sigma, MaterialType(PREISACH_WEIGHTS_MUDAT_SIGMA+enumOffset), Global::REAL );
+          material->SetScalar(eta, MaterialType(PREISACH_WEIGHTS_MUDAT_ETA+enumOffset), Global::REAL );
+          material->SetScalar(paramsDefinedForHalfRange, MaterialType(PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE+enumOffset));
+          material->SetScalar(weightType, MaterialType(PREISACH_WEIGHTS_TYPE+enumOffset));
+
+        } else if(pWeightInner->Has("muDatExtended")){
+          weightType = 2;
+          PtrParamNode muDatExt = pWeightInner->Get("muDatExtended");
+          Double A = muDatExt->Get("A")->As<Double>();
+          Double h1 = muDatExt->Get("h1")->As<Double>();
+          Double h2 = muDatExt->Get("h2")->As<Double>();
+          Double sigma1 = muDatExt->Get("sigma1")->As<Double>();
+          Double sigma2 = muDatExt->Get("sigma2")->As<Double>();
+          Double eta = muDatExt->Get("eta")->As<Double>();
+
+          int paramsDefinedForHalfRange = 0;
+          bool paramsDefinedForHalfRangeBool = muDatExt->Get("forHalfRange")->As<bool>();
+          if(paramsDefinedForHalfRangeBool){
+            paramsDefinedForHalfRange = 1;
+          }
+
+          material->SetScalar(A, MaterialType(PREISACH_WEIGHTS_MUDAT_A+enumOffset), Global::REAL );
+          material->SetScalar(h1, MaterialType(PREISACH_WEIGHTS_MUDAT_H+enumOffset), Global::REAL );
+          material->SetScalar(h2, MaterialType(PREISACH_WEIGHTS_MUDAT_H2+enumOffset), Global::REAL );
+          material->SetScalar(sigma1, MaterialType(PREISACH_WEIGHTS_MUDAT_SIGMA+enumOffset), Global::REAL );
+          material->SetScalar(sigma2, MaterialType(PREISACH_WEIGHTS_MUDAT_SIGMA2+enumOffset), Global::REAL );
+          material->SetScalar(eta, MaterialType(PREISACH_WEIGHTS_MUDAT_ETA+enumOffset), Global::REAL );
+          material->SetScalar(paramsDefinedForHalfRange, MaterialType(PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE+enumOffset));
+          material->SetScalar(weightType, MaterialType(PREISACH_WEIGHTS_TYPE+enumOffset));
+
+        } else if(pWeightInner->Has("weightTensor")){
+          weightType = 3;
+          Matrix<Double> preisachWeightTensor(dim,dim);
+          ParamTools::AsTensor<double>(pWeightInner->Get("weightTensor"), dim, dim, preisachWeightTensor);
+
+          material->SetTensor( preisachWeightTensor, MaterialType(PREISACH_WEIGHTS_TENSOR+enumOffset), Global::REAL);
+          material->SetScalar(weightType, MaterialType(PREISACH_WEIGHTS_TYPE+enumOffset));
+
+        } else {
+          EXCEPTION("No valid Preisach weights found");
+        }
+      } else {
+        EXCEPTION("No valid Preisach weights found");
+      }
+
+      if(pWeight->Has("anhystereticParameter")){
+        pAnhyst = pWeight->Get("anhystereticParameter");
+      }
+    } else {
+      std::cout << "Non-Preisach Hysteresis Model found!" << std::endl;
+    }
+
+    Double a,b,c;
+    bool onlyanhyst;
+    bool anhystForHalfRange;
+    bool cInAtan;
+    bool anhystOutputSat;
+    if(pAnhyst != NULL){
+      if(pAnhyst->Has("a")){
+        a = pAnhyst->Get("a")->As<Double>();
+      } else {
+        a = 0.0;
+      }
+      if(pAnhyst->Has("b")){
+        b = pAnhyst->Get("b")->As<Double>();
+      } else {
+        b = 0.0;
+      }
+      if(pAnhyst->Has("c")){
+        c = pAnhyst->Get("c")->As<Double>();
+      } else {
+        c = 0.0;
+      }
+      if(pAnhyst->Has("onlyAnhyst")){
+        onlyanhyst = pAnhyst->Get("onlyAnhyst")->As<bool>();
+      } else {
+        onlyanhyst = false;
+      }
+
+      if(pAnhyst->Has("forHalfRange")){
+        anhystForHalfRange = pAnhyst->Get("forHalfRange")->As<bool>();
+      } else {
+        anhystForHalfRange = false;
+      }
+      if(pAnhyst->Has("cInAtan")){
+        cInAtan = pAnhyst->Get("cInAtan")->As<bool>();
+      } else {
+        cInAtan = false;
+      }
+      if(pAnhyst->Has("anhystPartCountsTowardsOutputSat")){
+        anhystOutputSat = pAnhyst->Get("anhystPartCountsTowardsOutputSat")->As<bool>();
+      } else {
+        anhystOutputSat = true;
+      }
+    } else {
+      a = 0;
+      b = 0;
+      c = 0;
+      onlyanhyst = false;
+      cInAtan = false;
+      anhystForHalfRange = false;
+      anhystOutputSat = true;
+    }
+
+    material->SetScalar(a, MaterialType(PREISACH_WEIGHTS_ANHYST_A+enumOffset), Global::REAL);
+    material->SetScalar(b, MaterialType(PREISACH_WEIGHTS_ANHYST_B+enumOffset), Global::REAL);
+    material->SetScalar(c, MaterialType(PREISACH_WEIGHTS_ANHYST_C+enumOffset), Global::REAL);
+    if(onlyanhyst){
+      material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYST_ONLY+enumOffset));
+    } else {
+      material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYST_ONLY+enumOffset));
+    }
+    if(anhystForHalfRange){
+      material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE+enumOffset));
+    } else {
+      material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE+enumOffset));
+    }
+    if(cInAtan){
+      material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYST_CINATAN+enumOffset));
+    } else {
+      material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYST_CINATAN+enumOffset));
+    }
+    if(anhystOutputSat){
+      material->SetScalar(1, MaterialType(PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT+enumOffset));
+    } else {
+      material->SetScalar(0, MaterialType(PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT+enumOffset));
+    }
+
+    Matrix<Double> initialStateTensor = Matrix<Double>(1,3);
+    initialStateTensor.Init();
+    bool prescribeOutput = false;
+    bool scaleBySaturation = false;
+
+    if(initialState != NULL){
+      PtrParamNode InOutState = NULL;
+      if(initialState->Has("initialOutput")){
+        InOutState = initialState->Get("initialOutput");
+        prescribeOutput = true;
+      } else if(initialState->Has("initialInput")){
+        InOutState = initialState->Get("initialInput");
+        prescribeOutput = false;
+      } else {
+        EXCEPTION("Either input or output must be given at this point");
+      }
+      if(InOutState != NULL){
+        if(InOutState->Has("Vector")){
+          //std::cout << "InitialState found" << std::endl;
+          ParamTools::AsTensor<double>(InOutState->Get("Vector"),1, 3, initialStateTensor);
+          //std::cout << "IntialState: " << initialStateTensor.ToString() << std::endl;
+        }
+        if(InOutState->Has("scaleVectorBySaturation")){
+          scaleBySaturation = InOutState->Get("scaleVectorBySaturation")->As<bool>();
+        }
+      }
+    }
+
+    // strain hyst operator will automatically get the same initial input as the polarization
+    // if output is prescribed for polarization, the resulting input will be passed to strain operator
+    if(!setStrains){
+      material->SetScalar( initialStateTensor[0][0], INITIAL_STATE_X, Global::REAL);
+      material->SetScalar( initialStateTensor[0][1], INITIAL_STATE_Y, Global::REAL);
+      material->SetScalar( initialStateTensor[0][2], INITIAL_STATE_Z, Global::REAL);
+      if(scaleBySaturation){
+        material->SetScalar(1, PREISACH_SCALEINITIALSTATE);
+      } else {
+        material->SetScalar(0, PREISACH_SCALEINITIALSTATE);
+      }
+
+      if(prescribeOutput){
+        material->SetScalar(1, PREISACH_PRESCRIBEOUTPUT);
+      } else {
+        material->SetScalar(0, PREISACH_PRESCRIBEOUTPUT);
+      }
+    }
+
+    // common parameter for all three inversion methods
+    int maxNumOuterIts = 50;
+    double tolH = 1e-12;
+    double tolB = 1e-12;
+
+    // 0 = LM, 1 = Newton, 2 = JacobiFreeNewtonKrylov, 3 = projected LM, 4 = Everett based, 5 = FP
+    int inversionMethod;
+    if(isVector){
+      inversionMethod = 1;
+    } else {
+      inversionMethod = 4;
+    }
+
+    // LM parameter
+    int maxNumberRegularizationIterations = 50;
+    double alphaRegStart = 0.25;
+    double alphaRegMin = 0.001953125;
+    double alphaRegMax = 8192.0;
+    double trustRegionLow = 0.15;
+    double trustRegionMid = 0.35;
+    double trustRegionHigh = 0.85;
+    double jacRes = 1e-12;
+    // -1 = no jacobian > for JacobiFreeNewtonKrylov
+    //  0 = forward/backward differences
+    //  1 = central differences
+    //  2 = forward/backward differences with scaling of diagonal
+    int jacImplementation = 2;
+
+    // Newton parameter
+    int maxNumberLinesearchIterations = 50;
+    double alphaLSMin = 0.001;
+    double alphaLSMax = 1.0;
+    bool stopLSAtLocalMin = false;
+    // jacRes and jacImplementation as for LM
+
+    // JacobiFreeKrylovNewton
+    // > no extra parameter compared with Newton
+
+    // parameter for projected Levenberg-Marquardt
+    // > "Levenberg-Marquardt methods for constrained nonlinear equations with strong local convergence properties"
+    //     -Kanzow,Yamashita,Fukushima
+    // > values used by authors in section 4
+    Double projLM_rho = 1e-8;
+    Double projLM_beta = 0.9;
+    Double projLM_sigma = 1e-4;
+    Double projLM_gamma = 0.99995;
+    Double projLM_p = 2.1;
+
+    // parameters not given clearly in article;
+    // mu, tau, c
+    // > tau and c are from Armijo type linsearch taken from
+    // > https://en.wikipedia.org/wiki/Backtracking_line_search
+    // only ranges are known:
+    //  mu > 0
+    //  tau, c in (0,1)
+    //
+    Double projLM_mu = 1.0;
+    Double projLM_tau = 0.8;
+    Double projLM_c = 0.8;
+
+    // FP
+    Double convergenceFactor = 1.0;
+
+    // important: for electrostatics, we need no inversion and should not set the
+    // parameter above
+    bool setInversion = false;
+    bool printWarnings = false;
+
+    if(pInversion != NULL){
+
+      setInversion = true;
+      if(pInversion->Has("InversionMethod"))
+      {
+        if(pInversion->Get("InversionMethod")->Has("Fixpoint")){
+          inversionMethod = 5;
+          PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("Fixpoint");
+          if(invMethod->Has("convergenceFactor")){
+            convergenceFactor = invMethod->Get("convergenceFactor")->As<double>();
+          }
+        } else if(pInversion->Get("InversionMethod")->Has("LevenbergMarquardtWithTrustregion")){
+//          std::cout << "LevenbergMarquardtWithTrustregion" << std::endl;
+          inversionMethod = 0;
+          PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("LevenbergMarquardtWithTrustregion");
+
+          if(invMethod->Has("maxNumberRegularizationIterations")){
+            maxNumberRegularizationIterations = invMethod->Get("maxNumberRegularizationIterations")->As<Integer>();
+          }
+
+          if(invMethod->Has("alphaRegStart")){
+            alphaRegStart = invMethod->Get("alphaRegStart")->As<double>();
+          }
+          if(invMethod->Has("alphaRegMin")){
+            alphaRegMin = invMethod->Get("alphaRegMin")->As<double>();
+          }
+          if(invMethod->Has("alphaRegMax")){
+            alphaRegMax = invMethod->Get("alphaRegMax")->As<double>();
+          }
+
+          if(invMethod->Has("trustRegionLow")){
+            trustRegionLow = invMethod->Get("trustRegionLow")->As<double>();
+          }
+          if(invMethod->Has("trustRegionMid")){
+            trustRegionMid = invMethod->Get("trustRegionMid")->As<double>();
+          }
+          if(invMethod->Has("trustRegionHigh")){
+            trustRegionHigh = invMethod->Get("trustRegionHigh")->As<double>();
+          }
+          if(invMethod->Has("jacobiResolution")){
+            jacRes = invMethod->Get("jacobiResolution")->As<double>();
+          }
+          if(invMethod->Has("jacobiImplementation")){
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardDifferences")){
+              jacImplementation = 0;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("CentralDifferences")){
+              jacImplementation = 1;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardWithScaledDiagonal")){
+              jacImplementation = 2;
+            }
+          }
+
+        } else if(pInversion->Get("InversionMethod")->Has("NewtonWithLinesearch")){
+//          std::cout << "NewtonWithLinesearch" << std::endl;
+          inversionMethod = 1;
+          PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("NewtonWithLinesearch");
+
+          if(invMethod->Has("numberOfLinesearchSteps")){
+            maxNumberLinesearchIterations = invMethod->Get("numberOfLinesearchSteps")->As<Integer>();
+          }
+
+          if(invMethod->Has("alphaLSMin")){
+            alphaLSMin = invMethod->Get("alphaLSMin")->As<double>();
+          }
+          if(invMethod->Has("alphaLSMax")){
+            alphaLSMax = invMethod->Get("alphaLSMax")->As<double>();
+          }
+
+          if(invMethod->Has("stopLinesearchAtLocalMin")){
+            stopLSAtLocalMin = invMethod->Get("stopLinesearchAtLocalMin")->As<bool>();
+          }
+
+          if(invMethod->Has("jacobiResolution")){
+            jacRes = invMethod->Get("jacobiResolution")->As<double>();
+          }
+          if(invMethod->Has("jacobiImplementation")){
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardDifferences")){
+              jacImplementation = 0;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("CentralDifferences")){
+              jacImplementation = 1;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardWithScaledDiagonal")){
+              jacImplementation = 2;
+            }
+          }
+
+        } else if(pInversion->Get("InversionMethod")->Has("JacobianFreeNewtonKrylovWithLinesearch")){
+//          std::cout << "JacobianFreeNewtonKrylovWithLinesearch" << std::endl;
+          inversionMethod = 2;
+          PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("JacobianFreeNewtonKrylovWithLinesearch");
+
+          if(invMethod->Has("numberOfLinesearchSteps")){
+            maxNumberLinesearchIterations = invMethod->Get("numberOfLinesearchSteps")->As<Integer>();
+          }
+
+          if(invMethod->Has("alphaLSMin")){
+            alphaLSMin = invMethod->Get("alphaLSMin")->As<double>();
+          }
+          if(invMethod->Has("alphaLSMax")){
+            alphaLSMax = invMethod->Get("alphaLSMax")->As<double>();
+          }
+
+          if(invMethod->Has("stopLinesearchAtLocalMin")){
+            stopLSAtLocalMin = invMethod->Get("stopLinesearchAtLocalMin")->As<bool>();
+          }
+
+          jacImplementation = -1;
+
+        } else if(pInversion->Get("InversionMethod")->Has("ProjectedLMWithLinesearch")){
+//          std::cout << "ProjectedLMWithLinesearch" << std::endl;
+          inversionMethod = 3;
+          PtrParamNode invMethod = pInversion->Get("InversionMethod")->Get("ProjectedLMWithLinesearch");
+
+          if(invMethod->Has("numberOfLinesearchSteps")){
+            maxNumberLinesearchIterations = invMethod->Get("numberOfLinesearchSteps")->As<Integer>();
+          }
+
+          if(invMethod->Has("alphaLSMin")){
+            alphaLSMin = invMethod->Get("alphaLSMin")->As<double>();
+          }
+          if(invMethod->Has("alphaLSMax")){
+            alphaLSMax = invMethod->Get("alphaLSMax")->As<double>();
+          }
+
+          if(invMethod->Has("jacobiResolution")){
+            jacRes = invMethod->Get("jacobiResolution")->As<double>();
+          }
+          if(invMethod->Has("jacobiImplementation")){
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardDifferences")){
+              jacImplementation = 0;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("CentralDifferences")){
+              jacImplementation = 1;
+            }
+            if(invMethod->Get("jacobiImplementation")->Has("ForwardBackwardWithScaledDiagonal")){
+              jacImplementation = 2;
+            }
+          }
+
+          if(invMethod->Has("rho")){
+            projLM_rho = invMethod->Get("rho")->As<double>();
+          }
+          if(invMethod->Has("beta")){
+            projLM_beta = invMethod->Get("beta")->As<double>();
+          }
+          if(invMethod->Has("sigma")){
+            projLM_sigma = invMethod->Get("sigma")->As<double>();
+          }
+          if(invMethod->Has("gamma")){
+            projLM_gamma = invMethod->Get("gamma")->As<double>();
+          }
+          if(invMethod->Has("p")){
+            projLM_p = invMethod->Get("p")->As<double>();
+          }
+          if(invMethod->Has("mu")){
+            projLM_mu = invMethod->Get("mu")->As<double>();
+          }
+          if(invMethod->Has("tau")){
+            projLM_tau = invMethod->Get("tau")->As<double>();
+          }
+          if(invMethod->Has("c")){
+            projLM_c = invMethod->Get("c")->As<double>();
+          }
+        } else if(pInversion->Get("InversionMethod")->Has("EverettBasedInversion")){
+          inversionMethod = 4;
+          if(isVector){
+            EXCEPTION("EverettBasedInversion only supported for scalar model");
+          }
+        } else {
+          EXCEPTION("No valid method selected");
+        }
+
+        if(pInversion->Has("maxNumberOuterIterations"))
+        {
+          maxNumOuterIts = pInversion->Get("maxNumberOuterIterations")->As<Integer>();
+        }
+
+        if(pInversion->Has("residualTolH"))
+        {
+          tolH = pInversion->Get("residualTolH")->As<double>();
+        }
+
+        if(pInversion->Has("residualTolB"))
+        {
+          tolB = pInversion->Get("residualTolB")->As<double>();
+        }
+
+        if(pInversion->Has("printWarnings"))
+        {
+          printWarnings = pInversion->Get("printWarnings")->As<bool>();
+        }
+
+      }
+    }
+    //Hyst operator for strains does not use inversion! Only forward mode used
+    if((setInversion==true) && (setStrains==false)){
+      material->SetScalar(maxNumOuterIts, MAX_NUM_IT_HYST_INV);
+      material->SetScalar(tolH, RES_TOL_H_HYST_INV, Global::REAL);
+      material->SetScalar(tolB, RES_TOL_B_HYST_INV, Global::REAL);
+
+      material->SetScalar(inversionMethod, VEC_HYST_INV_METHOD);
+
+      material->SetScalar(maxNumberRegularizationIterations, MAX_NUM_REG_IT_HYST_INV);
+      material->SetScalar(alphaRegStart, ALPHA_REG_HYST_INV, Global::REAL);
+      material->SetScalar(alphaRegMin, ALPHA_REG_MIN_HYST_INV, Global::REAL);
+      material->SetScalar(alphaRegMax, ALPHA_REG_MAX_HYST_INV, Global::REAL);
+      material->SetScalar(trustRegionLow, TRUST_LOW_HYST_INV, Global::REAL);
+      material->SetScalar(trustRegionMid, TRUST_MID_HYST_INV, Global::REAL);
+      material->SetScalar(trustRegionHigh, TRUST_HIGH_HYST_INV, Global::REAL);
+
+      material->SetScalar(jacRes, JAC_RESOLUTION_HYST_INV, Global::REAL);
+      material->SetScalar(jacImplementation, JAC_IMPLEMENTATION_HYST_INV);
+
+      material->SetScalar(maxNumberLinesearchIterations, MAX_NUM_LS_IT_HYST_INV);
+      material->SetScalar(alphaLSMin, ALPHA_LS_MIN_HYST_INV, Global::REAL);
+      material->SetScalar(alphaLSMax, ALPHA_LS_MAX_HYST_INV, Global::REAL);
+
+      if(stopLSAtLocalMin == true){
+        material->SetScalar(1, STOP_INV_LS_AT_LOCAL_MIN);
+      } else {
+        material->SetScalar(0, STOP_INV_LS_AT_LOCAL_MIN);
+      }
+
+      if(printWarnings == true){
+        material->SetScalar(1, HYST_LOCAL_INVERSION_PRINT_WARNINGS);
+      } else {
+        material->SetScalar(0, HYST_LOCAL_INVERSION_PRINT_WARNINGS);
+      }
+
+      material->SetScalar(projLM_mu, HYST_INV_PROJLM_MU, Global::REAL);
+      material->SetScalar(projLM_rho, HYST_INV_PROJLM_RHO, Global::REAL);
+      material->SetScalar(projLM_beta, HYST_INV_PROJLM_BETA, Global::REAL);
+      material->SetScalar(projLM_sigma, HYST_INV_PROJLM_SIGMA, Global::REAL);
+      material->SetScalar(projLM_gamma, HYST_INV_PROJLM_GAMMA, Global::REAL);
+      material->SetScalar(projLM_tau, HYST_INV_PROJLM_TAU, Global::REAL);
+      material->SetScalar(projLM_c, HYST_INV_PROJLM_C, Global::REAL);
+      material->SetScalar(projLM_p, HYST_INV_PROJLM_P, Global::REAL);
+
+      // FP
+      material->SetScalar(convergenceFactor, HYST_INV_FP_SAFETYFACTOR, Global::REAL);
+
+
+    }
+//    std::cout << "ReadHystOperator - done" << std::endl;
+  }
+
 } // end of namespace

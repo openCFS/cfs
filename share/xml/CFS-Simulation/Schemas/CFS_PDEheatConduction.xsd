@@ -91,6 +91,7 @@
             </xsd:complexType>
           </xsd:element>
 
+
           <!-- Surface regions on which results can be calculated-->
 
           <!-- Non-conforming interfaces of the PDE -->
@@ -169,8 +170,6 @@
           </xsd:element>
 
           <!-- Section for specifying initial conditions (optional) -->
-
-          <!-- Section for specifying reference conditions (optional) -->
 
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_HeatStoreResults" minOccurs="0" maxOccurs="1">

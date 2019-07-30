@@ -640,7 +640,7 @@ namespace CoupledField
 
         long red, green, blue;
 
-        Double scaling = std::abs(data_[idy][idx]);
+        Double scaling = abs(data_[idy][idx]);
 
         /*
          * OLD
@@ -947,7 +947,7 @@ namespace CoupledField
 
       //helpMat   = (*this) * QT;
       //retMat = Q * helpMat;
-      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
+//      std::cout<<"Q = "<<Q.ToString(2)<<std::endl;
 
     } else if( (rowSize == 3 && colSize == 6) ||
              (rowSize == 6 && rowSize == 6 ) ) {
@@ -2655,6 +2655,22 @@ namespace CoupledField
   }
 
   template<class TYPE>
+  TYPE Matrix<TYPE>::GetMax() const
+  {
+    Vector<TYPE> maxCol;
+    GetColMax(maxCol);
+    return maxCol.Max();
+  }
+
+  template<class TYPE>
+  TYPE Matrix<TYPE>::GetMin() const
+  {
+    Vector<TYPE> minCol;
+    GetColMin(minCol);
+    return minCol.Min();
+  }
+
+  template<class TYPE>
   void Matrix<TYPE>::GetColMax(Vector<TYPE>& vec) const
   {
     GetCol(vec, 0);
@@ -2676,14 +2692,27 @@ namespace CoupledField
       }
   }
 
+  template<class TYPE>
+  void Matrix<TYPE>::GetAbsValues(Matrix<TYPE>& AbsMatrix) const
+  {
+    assert(!(size_row_ == 0 || size_col_ == 0));
 
+    AbsMatrix.Resize(size_row_, size_col_);
+
+    for (UInt i = 0; i < size_row_; i++){
+      for (UInt j = 0; j < size_col_; j++){
+        AbsMatrix[i][j] = Abs(data_[i][j]);
+      }
+    }
+
+  }
 
   /// gets the diagonal elements of a  matrix in a one column matrix
   template<class TYPE>
   void Matrix<TYPE>::GetDiagInMatrix(Matrix<TYPE>& columnMat) const
   {
-    assert(size_row_ == 0 || size_col_ == 0);
-    assert(size_row_ != size_col_ ); // check for square matrix
+    assert(!(size_row_ == 0 || size_col_ == 0));
+    assert(size_row_ == size_col_ ); // check for square matrix
 
     columnMat.Resize(size_row_, 1);
     columnMat.Init();

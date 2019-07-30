@@ -137,7 +137,7 @@ namespace CoupledField {
         domain->GetInfoRoot()->ToFile();
         exit(-1);
       }
-      
+
       // set global pointer to zero
       instance = NULL;
     }

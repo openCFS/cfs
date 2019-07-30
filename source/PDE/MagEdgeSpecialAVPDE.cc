@@ -541,22 +541,29 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
     }
 
-
-    // === MAGNETIC FLUX DENSITY ===
-    shared_ptr<ResultInfo> fluxDens(new ResultInfo);
-    fluxDens->resultType = MAG_FLUX_DENSITY;
-    fluxDens->dofNames = vecComponents;
-    fluxDens->unit = "Vs/m^2";
-    fluxDens->definedOn = ResultInfo::ELEMENT;
-    fluxDens->entryType = ResultInfo::VECTOR;
-    shared_ptr<CoefFunctionFormBased> bFunc;
-    if( isComplex_ ) {
-      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
-    } else {
-      bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
+    /*
+     * in Init_NonLin() (see MagEdgePDE) we call Init_HystCoefs which
+     * has to define the magnetic flux density already; defining it
+     * a second time is not allowed, so check first
+     */
+    if(!fluxDensityDefined_){
+      DefineMagFluxDensity();
     }
-    DefineFieldResult( bFunc, fluxDens );
-    stiffFormCoefs_.insert(bFunc);
+//    // === MAGNETIC FLUX DENSITY ===
+//    shared_ptr<ResultInfo> fluxDens(new ResultInfo);
+//    fluxDens->resultType = MAG_FLUX_DENSITY;
+//    fluxDens->dofNames = vecComponents;
+//    fluxDens->unit = "Vs/m^2";
+//    fluxDens->definedOn = ResultInfo::ELEMENT;
+//    fluxDens->entryType = ResultInfo::VECTOR;
+//    shared_ptr<CoefFunctionFormBased> bFunc;
+//    if( isComplex_ ) {
+//      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
+//    } else {
+//      bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
+//    }
+//    DefineFieldResult( bFunc, fluxDens );
+//    stiffFormCoefs_.insert(bFunc);
 
 
     // === RESULTS RELATED TO TIME DERIVATIVES ===

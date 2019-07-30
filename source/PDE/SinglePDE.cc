@@ -497,7 +497,6 @@ namespace CoupledField {
     // Check, if "nonLinList" is present
     PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinListNode ) { 
-      //std::cout << "NonLinListFound" << std::endl;
       // Get nonlinear types
       ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
@@ -556,7 +555,6 @@ namespace CoupledField {
                   << "' was not defined in 'nonLinList'");
             continue;
           }
-          
           regionNonLinTypes_[actRegionId].Push_back( nonLinTypes_[nonLinId] );
           
           //write info
@@ -573,21 +571,33 @@ namespace CoupledField {
             //or nonLinTypes_[nonLinId] == HYSTERESIS_FIXPOINT )// enum removed
             //fixpoint iteration can be selected via evaluationParameter flag
             // > see stdSolveStep for more details
+          } else {
+            // new flag used by std solvestep hyst
+            // it indicates, if there are additional nonlinearities, which are not due to
+            // hysteresis (e.g. nonlinear bhcurve in a different region)
+            // this information is needed for the residual computation
+            // pure hysteretic case uses the linear system matrix during residual computation
+            // nonlinear bh-curve used the nonlinear system matrix
+            nonLinNonHyst_ = true;
           }
 
         }
       }
 
-      // Here we need in addition the nonLinMethod_ for the definition
-      // of the integrators
-      nonLinMethod_ = FIXEDPOINT;
-      PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
-      // NEW: additionally check if nonLinearity is used at all for some region
-      // otherwise we do not have to search for nonlinear methods
-      if(( nonLinNode ) && (nonLin_ == true)) {
-        std::string methodString;
-        nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
-        nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
+      if(isHysteresis_ == false){
+        // Here we need in addition the nonLinMethod_ for the definition
+        // of the integrators
+        nonLinMethod_ = FIXEDPOINT;
+        PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
+        // NEW: additionally check if nonLinearity is used at all for some region
+        // otherwise we do not have to search for nonlinear methods
+        if(( nonLinNode ) && (nonLin_ == true)) {
+          std::string methodString;
+          nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
+          nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
+        }
+      } else {
+        // > read in during solveStep hyst
       }
     }
   }
@@ -1556,7 +1566,6 @@ namespace CoupledField {
       } else {
         // no slash in filename -> do nothing
       }
-
       actField.csv = actNode->Get("csv")->As<bool>();
       std::string coordSysId = actNode->Get("coordSysId")->As<std::string>();
       actField.coordSys = domain_->GetCoordSystem(coordSysId);
@@ -4145,7 +4154,6 @@ namespace CoupledField {
     curcpl = BiLinearForm::SLAVE_MASTER;
 
     if (isMoving) {
-      //if(pdename_ == "magneticEdge") EXCEPTION("No moving region in MagEdgePDE possible...yet!");
       if(changeForms){
         Double betaDamp = iface.nitscheFactorDamp;
         BiLinearForm *penalty_u1_v1_M = NULL;

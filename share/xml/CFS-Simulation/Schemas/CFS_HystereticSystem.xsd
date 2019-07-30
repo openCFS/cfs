@@ -1,0 +1,1181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                     HYSTERSIS                                  == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for description of solvers and preconditioner for non-linear, hysteretic
+      simulations
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <xsd:complexType name="DT_HystereticParamsNEW">
+    <xsd:all>
+      <xsd:element name="solutionMethod" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Solution approach for the non-linear system of equations with hysteretic material parameter.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="Fixpoint_Global_B">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                  --- Solve system via fixpoint approach (Global version, B-based) --- <br/>
+                  - Hysteresis operator is fed with system SOLUTION, i.e. <br/>
+                    (1) Magnetics (Eddy-Current Case): Input = B (standard Preisach is build upon H, i.e., a local inversion startegy is required (to be set in mat.xml)) <br/>
+                    (2) Electrostatics: Input = E <br/>
+                  - Used material laws: <br/>
+                    (1) Magnetics: H = nu_FP B - M_FP(H) (local inversion needed) <br/>
+                    (2) Electrostatics: D = eps_FP E + P_FP(E) <br/>
+                  - FP-material tensor (nu_FP,eps_FP) determined GLOBALLY and ONLY ONCE PER SIMULATION to nu_FP = 0.5*C*(nu_max + nu_min) <br/>
+                  - ContractionFactor C (should be between 1 and 2 as nu_FP should be in range ]nu_max/2,nu_max]: <br/>
+                     C = 1: default <br/>
+                     C larger 1 but smaller 2: slower convergence but larger region of contraction (useful if method is not converging, i.e., if nu_max/nu_min was not determined correctly by cfs) <br/>
+                     C smaller 1: probably faster convergence but risk of non-contraction <br/>
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:attribute name="ContractionFactor" type="xsd:float" default="1.0"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="Fixpoint_Localized_B">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                  --- Solve system via fixpoint approach (Localized version, B-based) --- <br/>
+                  - Hysteresis operator is fed with system SOLUTION, i.e. <br/>
+                    (1) Magnetics (Eddy-Current Case): Input = B (standard Preisach is build upon H, i.e., a local inversion startegy is required (to be set in mat.xml)) <br/>
+                    (2) Electrostatics: Input = E <br/>
+                  - Used material laws: <br/>
+                    (1) Magnetics: H = nu_FP B - M_FP(H) (local inversion needed) <br/>
+                    (2) Electrostatics: D = eps_FP E + P_FP(E) <br/>
+                  - FP-material tensor (nu_FP,eps_FP) determined for EACH ELEMENT/INTEGRATION POINT and ONCE PER TIMESTEP to nu_FP = C*(dH/dB) <br/>
+                  - ContractionFactor C: <br/>
+                     C = 2: default <br/>
+                     C larger 2: slower convergence but larger region of contraction (useful if method is not converging, i.e., if dH/dB was not estimated properly by cfs) <br/>
+                     C smaller 2: faster convergence but risk of non-contraction <br/>
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:attribute name="ContractionFactor" type="xsd:float" default="2.0"/>
+                <xsd:attribute name="initialNumberGlobalFPSteps" type="xsd:nonNegativeInteger" use="optional" default="0">
+                <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                Localized fixpoint methods have only local convergence, thus they usually require a line-search method
+                to adapt the step-length to obtain global convergence; however, during the first iteration of each
+                time step, we have to perform a full step in order to satisfy the boundary conditions; this initial
+                step of length 1.0 might already push the local convergent scheme out of the contractive region and thus
+                lead to non-convergence; in those cases an initial fixpoint step might help.<br/>
+                Note: these fixpoint steps will be of type fixpoint_global_B
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              </xsd:attribute>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="Fixpoint_Global_H">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                  --- Solve system via fixpoint approach (Global version, H-based, ONLY FOR MAGNETICS) --- <br/>
+                  - Hysteresis operator is fed with field intensity, i.e. input = H (standard Preisach is build upon H, i.e., NO local inversion startegy is required) <br/>
+                  - Used material law: B = mu_FP H + P_FP(H) (NO local inversion needed) <br/>
+                  - FP-material tensor (mu_FP) determined GLOBALLY and ONLY ONCE PER SIMULATION to mu_FP = 0.5*C*(mu_max + mu_min) <br/>
+                  - ContractionFactor C: <br/>
+                     C = 1.1: default (slightly larger than 1 as mu_max is harder to determine correctly) <br/>
+                     C larger 1.1: slower convergence but larger region of contraction (useful if method is not converging, i.e., if nu_max/nu_min was not determined correctly by cfs) <br/>
+                     C smaller 1.1: faster convergence but risk of non-contraction <br/>
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:attribute name="ContractionFactor" type="xsd:float" default="1.1"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="Fixpoint_Localized_H">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                  --- Solve system via fixpoint approach Localized version, H-based, ONLY FOR MAGNETICS) --- <br/>
+                  - Hysteresis operator is fed with field intensity, i.e. input = H (standard Preisach is build upon H, i.e., NO local inversion startegy is required) <br/>
+                  - Used material law: B = mu_FP H + P_FP(H) (NO local inversion needed) <br/>
+                  - FP-material tensor (mu_FP) determined for EACH ELEMENT/INTEGRATION POINT and ONCE PER TIMESTEP to mu_FP = C*(dB/dH) <br/>
+                  - ContractionFactor C: <br/>
+                     C = 2: default <br/>
+                     C larger 2: slower convergence but larger region of contraction <br/>
+                      (useful if method is not converging, i.e., if nu_max/nu_min was not determined correctly by cfs) <br/>
+                     C smaller 2: faster convergence but risk of non-contraction <br/>
+                   ></p>
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:attribute name="ContractionFactor" type="xsd:float" default="2.0"/>
+                <xsd:attribute name="initialNumberGlobalFPSteps" type="xsd:nonNegativeInteger" use="optional" default="0">
+                <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                Localized fixpoint methods have only local convergence, thus they usually require a line-search method
+                to adapt the step-length to obtain global convergence; however, during the first iteration of each
+                time step, we have to perform a full step in order to satisfy the boundary conditions; this initial
+                step of length 1.0 might already push the local convergent scheme out of the contractive region and thus
+                lead to non-convergence; in those cases an initial fixpoint step might help.<br/>
+                Note: these fixpoint steps will be of type fixpoint_global_H
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              </xsd:attribute>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="QuasiNewton_ChordMethod">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                  --- Solve system via CHORD METHOD (Quasi-Newton, B-based) --- <br/>
+                  - Quasi-Newton approach: <br/>
+                      Solve: Jacobian * deltaSolution = -Residual <br/>
+                  - Chord method: Jacobian gets approximated via FINITE DIFFERENCES at the beginning of EACH TIMESTEP <br/>
+                  - Hysteresis operator is fed with system SOLUTION, i.e. <br/>
+                    (1) Magnetics (Eddy-Current Case): Input = B (standard Preisach is build upon H, i.e., a local inversion startegy is required (to be set in mat.xml)) <br/>
+                    (2) Electrostatics: Input = E <br/>
+                  - Used material laws: <br/>
+                    (1) Magnetics: H = nu_0 B - M(H) (local inversion needed) <br/>
+                    (2) Electrostatics: D = eps_0 E + P(E) <br/>
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:attribute name="initialNumberFPSteps" type="xsd:nonNegativeInteger" use="optional" default="1">
+                <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                Quasi-Newton methods have only local convergence, thus they usually require a line-search method
+                to adapt the step-length to obtain global convergence; however, during the first iteration of each
+                time step, we have to perform a full step in order to satisfy the boundary conditions; this initial
+                step of length 1.0 might already push the local convergent scheme out of the contractive region and thus
+                lead to non-convergence; in those cases an initial fixpoint step might help.<br/>
+                Note: these fixpoint steps will be of type fixpoint_global_B
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              </xsd:attribute>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="QuasiNewton_FiniteDifferenceJacobian">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                <p>
+                  --- Solve system via Finite-Differences-Newton (Quasi-Newton, B-based) --- <br/>
+                  - Quasi-Newton approach: <br/>
+                      Solve: Jacobian * deltaSolution = -Residual <br/>
+                  - Finite Differences Jacobian: Jacobian gets approximated via FINITE DIFFERENCES during each IterationsTillUpdate-th iteration <br/>
+                  - IterationsTillUpdate: <br/>
+                    1 = default (recompute Jacobian during each iteration) <br/>
+                    N = recompute Jacobian every N-th iteration <br/>
+                    N to infty = compute Jacobian only once during first iteration, i.e, same as CHORD METHOD <br/>
+                  - Hysteresis operator is fed with system SOLUTION, i.e. <br/>
+                    (1) Magnetics (Eddy-Current Case): Input = B (standard Preisach is build upon H, i.e., a local inversion startegy is required (to be set in mat.xml)) <br/>
+                    (2) Electrostatics: Input = E <br/>
+                  - Used material laws: <br/>
+                    (1) Magnetics: H = nu_0 B - M(H) (local inversion needed) <br/>
+                    (2) Electrostatics: D = eps_0 E + P(E) <br/>
+                </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:attribute name="IterationsTillUpdate" type="xsd:nonNegativeInteger" default="1"/>
+                <xsd:attribute name="initialNumberFPSteps" type="xsd:nonNegativeInteger" use="optional" default="1">
+                <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                Quasi-Newton methods have only local convergence, thus they usually require a line-search method
+                to adapt the step-length to obtain global convergence; however, during the first iteration of each
+                time step, we have to perform a full step in order to satisfy the boundary conditions; this initial
+                step of length 1.0 might already push the local convergent scheme out of the contractive region and thus
+                lead to non-convergence; in those cases an initial fixpoint step might help.<br/>
+                Note: these fixpoint steps will be of type fixpoint_global_B
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              </xsd:attribute>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="QuasiNewton_SecantMethod">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                  --- Solve system via Secant-Type-Newton (Quasi-Newton, B-based) --- <br/>
+                  (here based on the INCREMENTAL MATERIAL METHOD <br/>
+                  Source: Numerical Simulation of Mechatronic Sensors and Actuators -- Kaltenbacher -- 2007) <br/>
+                  - Quasi-Newton approach: <br/>
+                      Solve: Jacobian * deltaSolution = -Residual <br/>
+                  - Secant approximation Jacobian: Jacobian gets approximated via deltaH/deltaB (magnetics) / deltaD/deltaE (electrostatics) <br/>
+                      with delta* = difference between current iterate and <br/>
+                      (a) previous iterate (towardsPreviousTimestep = no) <br/>
+                      (b) solution of previous timestep (towardsPreviousTimestep = yes) <br/>
+                  - Hysteresis operator is fed with system SOLUTION, i.e. <br/>
+                    (1) Magnetics (Eddy-Current Case): Input = B (standard Preisach is build upon H, i.e., a local inversion startegy is required (to be set in mat.xml)) <br/>
+                    (2) Electrostatics: Input = E <br/>
+                  - Used material laws: <br/>
+                    (1) Magnetics: H = nu_0 B - M(H) (local inversion needed) <br/>
+                    (2) Electrostatics: D = eps_0 E + P(E) <br/>
+                    (3) Magnetostriction (never tested yet!): <br/>
+                        T = [c](S-S_irr) - [h]B <br/>
+                        H =  -[h](S-S_irr) + nu_S B - M(H) <br/>
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:attribute name="towardsPreviousTimestep" type="DT_CFSBool" default="no"/>
+                <xsd:attribute name="initialNumberFPSteps" type="xsd:nonNegativeInteger" use="optional" default="1">
+                <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                Quasi-Newton methods have only local convergence, thus they usually require a line-search method
+                to adapt the step-length to obtain global convergence; however, during the first iteration of each
+                time step, we have to perform a full step in order to satisfy the boundary conditions; this initial
+                step of length 1.0 might already push the local convergent scheme out of the contractive region and thus
+                lead to non-convergence; in those cases an initial fixpoint step might help.<br/>
+                Note: these fixpoint steps will be of type fixpoint_global_B
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              </xsd:attribute>
+                <xsd:attribute name="includeDeltaStrain" type="DT_CFSBool" use="optional" default="no">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      <p>
+                        Only for coupled material case, i.e., piezoelectric or magnetostrictive setups. <br/>
+                        If set to yes, the Jacobian of the system will not only approximate dP/dE by
+                        deltaP/deltaE but also dS/dE by deltaS/deltaE (see incremental material method). <br/>
+                        Warn: not tested yet.
+                      </p>
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="useDeltaInCouplingTensor" type="DT_CFSBool" use="optional" default="no">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      <p>
+                        Only for coupled material case, i.e., piezoelectric or magnetostrictive setups. <br/>
+                        If set to yes, the dS/dE will be included in the small-signal coupling tensor [d] and will
+                        be approximated by deltaS/deltaE (see incremental material method). <br/>
+                        Warn: not tested yet.
+                      </p>
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="lineSearch">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            <p>
+            - Optional linesearch / optimization step of the form: <br/>
+              Find eta such that: <br/>
+              F(currentSol + eta*solutionUpdate) = optimal <br/>
+              (usually F() = residual, optimal = smallest value) <br/>
+            - Note: it is possible to select multiple (different) linesearch approaches; <br/>
+                    all selected approaches will be tested after another and the best one (criterion for best
+                    has to be set by user) is taken; <br/>
+                    the usage of multiple linesearches will drastically decrease performance! <br/>
+            - Default: No linesearch will be performed; eta = 1.0 will be used <br/>
+                    (eta = 1.0 is the optimal step-length for Newton-type methods but due to the local convergence
+                     restriction of Newton-type methods, a linesearch should be used here; <br/>
+                     for globally converging schemes like Fixpoint_Global_B or Fixpoint_Global_H, usually no linesearch is required;
+                     for these methods a linesearch that allows over-relaxation (GoldenSection and QuadraticPolynomial) can speed up
+                     solution process <br/>
+            </p>
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="None" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                <p>
+                  - No linesearch will be performed; eta = 1.0 will be used (Default) <br/>
+                  - Note: None will overwrite all other selections!
+                </p>
+              </xsd:documentation>
+            </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="Backtracking_SmallestResidual" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                <p>
+                  - Backtracking-type linesearch: <br/>
+                    (1) Start at eta = etaStart (usually 1.0) <br/>
+                    (2) Check criterion function F() for current eta <br/>
+                    (2a) Success: take eta and stop <br/>
+                    (2b) No success: <br/>
+                      decrease eta by decreaseFactor; increase iteration counter by 1 <br/>
+                      check if maxIter is exceeded; stop if true <br/>
+                      check if etaMin has been reached; stop if true <br/>
+                      go back to (2) <br/>
+                   - Backtracking_SmallestResidual: <br/>
+                      + criterion function F() is the residual function <br/>
+                      + iteration is stopped if either <br/>
+                        (a) residual smaller than stoppingTol <br/>
+                        (b) residual increased twice in a row (i.e., smaller eta lead to worse values) <br/>
+                        (c) residual decreased by residualDecreaseForSuccess compared to initial residual <br/>
+                </p>
+              </xsd:documentation>
+            </xsd:annotation>
+              <xsd:complexType>
+                <xsd:all>
+                    <xsd:element name="maxIterLS" type="xsd:nonNegativeInteger" default="10"/>
+                    <xsd:element name="etaStart" type="xsd:float" default="1"/>
+                    <xsd:element name="etaMin" type="xsd:float" default="0.001"/>
+                    <xsd:element name="decreaseFactor" type="xsd:float" default="0.5"/>
+                    <xsd:element name="residualDecreaseForSuccess" type="xsd:float" default="0.1"/>
+                    <xsd:element name="stoppingTol" type="xsd:float" default="1e-3"/>
+                    <xsd:element name="measurePerformance" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+                    <xsd:element name="allowNegativeSteps" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no">
+                      <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                          <p>
+                            If a quasi-Newton method is applied and the approximation of the Jacobian
+                            is appropriate, the computed solution update will usually cause a reduction
+                            of the residual, i.e., we acutally obtain a descrent direction. If the approximation
+                            is bad (or in case of a fix-point technique) it might be, that the search direction
+                            is actually increasing the residual; in this case, a negative eta could lead into the
+                            right direction.
+                          </p>
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:element>
+                    <xsd:element name="testOverrelaxation" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no">
+                      <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                          <p>
+                            If iteration stopped due to (b; residual increased twice in a row) and the currently best
+                            found eta is etaStart, we can check if larger eta (i.e. overrelaxation) would lead to a
+                            better value for eta; in this case 1.0/decreaseFactor will be utilized as increase factor;
+                          </p>
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:element>
+                  </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="Backtracking_Armijo" minOccurs="0" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                    - Backtracking-type linesearch: <br/>
+                    (1) Start at eta = etaStart (usually 1.0) <br/>
+                    (2) Check criterion function F() for current eta <br/>
+                    (2a) Success: take eta and stop <br/>
+                    (2b) No success: <br/>
+                    decrease eta by decreaseFactor; increase iteration counter by 1 <br/>
+                    check if maxIter is exceeded; stop if true <br/>
+                    check if etaMin has been reached; stop if true <br/>
+                    go back to (2) <br/>
+                    - Backtracking_Armijo: <br/>
+                      + criterion function F() is the classical Armijo-rule, i.e., eta is accepted if <br/>
+                          f(x + eta*dx) leq f(x) + rho*eta*gradF(x)^T*dx <br/>
+                        with f(x) = 0.5*residual(x).NormL2*residual(x).NormL2, gradF = Jacobian of residual, x = current solution, dx = solution update, rho = tolerance factor <br/>
+                      + Source: Optimization Theory and Methods - Nonlinear Programming -- Sun, Yuan -- Springer 2006
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="maxIterLS" type="xsd:nonNegativeInteger" default="10"/>
+                  <xsd:element name="etaStart" type="xsd:float" default="1"/>
+                  <xsd:element name="etaMin" type="xsd:float" default="0.001"/>
+                  <xsd:element name="decreaseFactor" type="xsd:float" default="0.5"/>
+                  <xsd:element name="rho" type="xsd:float" default="0.9"/>
+                    <xsd:element name="measurePerformance" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+                    <xsd:element name="allowNegativeSteps" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        <p>
+                          If a quasi-Newton method is applied and the approximation of the Jacobian
+                          is appropriate, the computed solution update will usually cause a reduction
+                          of the residual, i.e., we acutally obtain a descrent direction. If the approximation
+                          is bad (or in case of a fix-point technique) it might be, that the search direction
+                          is actually increasing the residual; in this case, a negative eta could lead into the
+                          right direction.
+                        </p>
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="Backtracking_NonMonotonicArmijo" minOccurs="0" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                    - Backtracking-type linesearch: <br/>
+                    (1) Start at eta = etaStart (usually 1.0) <br/>
+                    (2) Check criterion function F() for current eta <br/>
+                    (2a) Success: take eta and stop <br/>
+                    (2b) No success: <br/>
+                    decrease eta by decreaseFactor; increase iteration counter by 1 <br/>
+                    check if maxIter is exceeded; stop if true <br/>
+                    check if etaMin has been reached; stop if true <br/>
+                    go back to (2) <br/>
+                    - Backtracking_NonMonotonicArmijo: <br/>
+                      + criterion function F() is a non-monotonic Armijo-rule, i.e., eta is accepted if <br/>
+                          f(x + eta*dx) leq max(f(x,t),f(x,t-1),,f(x,t-2),...,,f(x,t-N)) + rho*eta*gradF(x)^T*dx <br/>
+                        with f(x,t-k) = 0.5*residual(x).NormL2*residual(x).NormL2 at iteration t-k with t = current iteration, gradF = Jacobian of residual, x = current solution, dx = solution update, rho = tolerance factor <br/>
+                      + compared to the classical monotonic Armijo-rule, the residual f can increase for some intermediate iterations;
+                          N = length of history; N = 0 would lead to classical Armijo-rule <br/>
+                      + Source: Limited memory BFGS method with backtracking for symmetric nonlinear equations -- Yuan, Wei, Lu -- 2011
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="maxIterLS" type="xsd:nonNegativeInteger" default="10"/>
+                  <xsd:element name="etaStart" type="xsd:float" default="1"/>
+                  <xsd:element name="etaMin" type="xsd:float" default="0.001"/>
+                  <xsd:element name="decreaseFactor" type="xsd:float" default="0.5"/>
+                  <xsd:element name="rho" type="xsd:float" default="0.9"/>
+                  <xsd:element name="historyLength" type="xsd:nonNegativeInteger" default="5"/>
+                    <xsd:element name="measurePerformance" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+                    <xsd:element name="allowNegativeSteps" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no">
+                      <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                          <p>
+                            If a quasi-Newton method is applied and the approximation of the Jacobian
+                            is appropriate, the computed solution update will usually cause a reduction
+                            of the residual, i.e., we acutally obtain a descrent direction. If the approximation
+                            is bad (or in case of a fix-point technique) it might be, that the search direction
+                            is actually increasing the residual; in this case, a negative eta could lead into the
+                            right direction.
+                          </p>
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:element>
+                </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="Backtracking_GradientFreeArmijo" minOccurs="0" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  <p>
+                    - Backtracking-type linesearch: <br/>
+                    (1) Start at eta = etaStart (usually 1.0) <br/>
+                    (2) Check criterion function F() for current eta <br/>
+                    (2a) Success: take eta and stop <br/>
+                    (2b) No success: <br/>
+                    decrease eta by decreaseFactor; increase iteration counter by 1 <br/>
+                    check if maxIter is exceeded; stop if true <br/>
+                    check if etaMin has been reached; stop if true <br/>
+                    go back to (2) <br/>
+                    - Backtracking_GradientFreeArmijo: <br/>
+                      + criterion function F() is a gradient free version of Armijo-rule, i.e., eta is accepted if <br/>
+                          residual(x+eta*dx).NormL2*residual(x+eta*dx).NormL2 leq residual(x).NormL2*residual(x).NormL2 + rho*eta*eta*residual(x)^T*dx <br/>
+                        with residual(x) = residual vector for current solution vector x, dx = solution update, rho = tolerance factor <br/>
+                      + compared to the classical monotonic Armijo-rule, the Jacobian of the residual is not required; this makes it better suitable
+                          for fix-point methods and quasi-Newton schemes, that do not approximate the Jacobian directly (e.g., secant methods) <br/>
+                      + criterion not so efficient as classical Armijo-rule <br/>
+                      + Source: Limited memory BFGS method with backtracking for symmetric nonlinear equations -- Yuan, Wei, Lu -- 2011
+                  </p>
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="maxIterLS" type="xsd:nonNegativeInteger" default="10"/>
+                  <xsd:element name="etaStart" type="xsd:float" default="1"/>
+                  <xsd:element name="etaMin" type="xsd:float" default="0.001"/>
+                  <xsd:element name="decreaseFactor" type="xsd:float" default="0.5"/>
+                  <xsd:element name="rho" type="xsd:float" default="0.9"/>
+                    <xsd:element name="measurePerformance" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+                    <xsd:element name="allowNegativeSteps" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no">
+                      <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                          <p>
+                            If a quasi-Newton method is applied and the approximation of the Jacobian
+                            is appropriate, the computed solution update will usually cause a reduction
+                            of the residual, i.e., we acutally obtain a descrent direction. If the approximation
+                            is bad (or in case of a fix-point technique) it might be, that the search direction
+                            is actually increasing the residual; in this case, a negative eta could lead into the
+                            right direction.
+                          </p>
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:element>
+                </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="Exact_GoldenSection" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                <p>
+                  - Exact linesearch <br/>
+                  + find stepping length eta that is the (global) minimizer of F(x + eta*dx) (F = residual) <br/>
+                  + Procedure <br/>
+                    (1) Find suitable starting interval [a,b] in which eta shall be located <br/>
+                    (2) Decrease search interval <br/>
+                    (2a) Stop if search interval smaller than minSearchInterval (SUCCESS, take eta=a or eta=b) <br/>
+                    (2b) Stop if F(x + eta*dx) smaller than stoppingTol (SUCCESS) <br/>
+                    (2c) Stop if maximal number of iterations has been exceeded (FAIL) <br/>
+                   + usually uneccessary to find exact minimizer (too EXPENSIVE) <br/>
+                   - Exact_GoldenSection <br/>
+                   + in each iteration, reduce interval [a,b] by GoldenRation (0.618) by evaluating F at <br/>
+                        lambda = a + 0.382*(b-a); <br/>
+                        mu = a + 0.618*(b-a); <br/>
+                     then set either [a,mu] or [lambda,b] as new interval depending in which one etaOpt is expected <br/>
+                     (values of F can be reused; only one new evaluation in each iteration required) <br/>
+                   + only F required, no gradient or Jacobian has to be approximated <br/>
+                   + convergence rate = 0.618 <br/>
+                   + Source: Optimization Theory and Methods - Nonlinear Programming -- Sun, Yuan -- Springer 2006
+                </p>
+              </xsd:documentation>
+            </xsd:annotation>
+              <xsd:complexType>
+                <xsd:all>
+                    <xsd:element name="maxIterLS" type="xsd:nonNegativeInteger" default="10"/>
+                    <xsd:element name="stoppingTol" type="xsd:float" default="1e-3"/>
+                    <xsd:element name="measurePerformance" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+                    <xsd:element name="allowNegativeSteps" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="yes">
+                      <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                          <p>
+                            If a quasi-Newton method is applied and the approximation of the Jacobian
+                            is appropriate, the computed solution update will usually cause a reduction
+                            of the residual, i.e., we acutally obtain a descrent direction. If the approximation
+                            is bad (or in case of a fix-point technique) it might be, that the search direction
+                            is actually increasing the residual; in this case, a negative eta could lead into the
+                            right direction.
+                          </p>
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:element>
+                  </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="Exact_QuadraticPolynomial" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                <p>
+                  - Exact linesearch <br/>
+                  + find stepping length eta that is the (global) minimizer of F(x + eta*dx) (F = residual) <br/>
+                  + Procedure <br/>
+                    (1) Find suitable starting interval [a,b] in which eta shall be located <br/>
+                    (2) Decrease search interval <br/>
+                    (2a) Stop if search interval smaller than minSearchInterval (SUCCESS, take eta=a or eta=b) <br/>
+                    (2b) Stop if F(x + eta*dx) smaller than stoppingTol (SUCCESS) <br/>
+                    (2c) Stop if maximal number of iterations has been exceeded (FAIL) <br/>
+                   + usually uneccessary to find exact minimizer (too EXPENSIVE) <br/>
+                   - Exact_QuadraticPolynomial <br/>
+                   + in each iteration, approximate target function F by a quadratic polynomial which exact minimizer
+                      etaOpt_quad can be computed analytically <br/>
+                   + set new interval [a,b] to either [a,etaOpt_quad] or [etaOpt_quad,b] depending in which one etaOpt is expected <br/>
+                   + chosen implementation computes polynomial from three points, i.e., one additiona evaluation of F is required <br/>
+                   + only F required, no gradient or Jacobian has to be approximated <br/>
+                   + convergence rate = 1.312 <br/>
+                   + Source: Optimization Theory and Methods - Nonlinear Programming -- Sun, Yuan -- Springer 2006
+                </p>
+              </xsd:documentation>
+            </xsd:annotation>
+              <xsd:complexType>
+                <xsd:all>
+                    <xsd:element name="maxIterLS" type="xsd:nonNegativeInteger" default="10"/>
+                    <xsd:element name="stoppingTol" type="xsd:float" default="1e-3"/>
+                    <xsd:element name="measurePerformance" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+                    <xsd:element name="allowNegativeSteps" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="yes">
+                      <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                          <p>
+                            If a quasi-Newton method is applied and the approximation of the Jacobian
+                            is appropriate, the computed solution update will usually cause a reduction
+                            of the residual, i.e., we acutally obtain a descrent direction. If the approximation
+                            is bad (or in case of a fix-point technique) it might be, that the search direction
+                            is actually increasing the residual; in this case, a negative eta could lead into the
+                            right direction.
+                          </p>
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:element>
+                  </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="SufficientDecrease_ThreePointPolynomial" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                <p>
+                  - Sufficient decrease linesearch <br/>
+                  + find stepping length eta that reduces F(x + eta*dx) (F = residual) sufficiently well <br/>
+                  + usually more efficient than finding exact minimizer <br/>
+                  - SufficientDecrease_ThreePointPolynomial <br/>
+                  + in each iteration, approximate target function F by a quadratic polynomial which exact minimizer
+                  etaOpt_quad can be computed analytically <br/>
+                  + apply safeguarding to avoid too large or too small steps (here the deviation between actual residual
+                    and quadratic polynomial could be too large) <br/>
+                    if(etaOpt_quad lt sigma0*etaPrev){ <br/>
+                      etaNew = sigma0*etaPrev; <br/>
+                    } else if(etaOpt_quad gt sigma1*etaPrev){ <br/>
+                      etaNew = sigma1*etaPrev; <br/>
+                    } <br/>
+                  + Iteration is stopped if <br/>
+                  a) F(x + eta*dx) lt (1-alphaCheck*eta)*F(x) (Sufficient decrease!) <br/>
+                  b) aximal number of iterations has been exceeded (FAIL) <br/>
+                  + set new interval [a,b] to either [a,etaNew] or [etaNew,b] depending in which one etaOpt is expected <br/>
+                  + only F required, no gradient or Jacobian has to be approximated <br/>
+                  + Source: Iterative Methods for Linear and Nonlinear Equations -- C.T. Kelly -- SIAM 1995
+                </p>
+              </xsd:documentation>
+            </xsd:annotation>
+              <xsd:complexType>
+                <xsd:all>
+                    <xsd:element name="maxIterLS" type="xsd:nonNegativeInteger" default="10"/>
+                    <xsd:element name="alphaCheck" type="xsd:float" default="1e-4"/>
+                    <xsd:element name="sigma0" type="xsd:float" default="0.1"/>
+                    <xsd:element name="sigma1" type="xsd:float" default="0.5"/>
+                    <xsd:element name="measurePerformance" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+                    <xsd:element name="allowNegativeSteps" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no">
+                      <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                          <p>
+                            If a quasi-Newton method is applied and the approximation of the Jacobian
+                            is appropriate, the computed solution update will usually cause a reduction
+                            of the residual, i.e., we acutally obtain a descrent direction. If the approximation
+                            is bad (or in case of a fix-point technique) it might be, that the search direction
+                            is actually increasing the residual; in this case, a negative eta could lead into the
+                            right direction.
+                          </p>
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:element>
+                  </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="SufficientDecrease_VectorPolynomial" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                <p>
+                  - SufficientDecrease_VectorPolynomial <br/>
+                  + in each iteration, approximate actual residual vector (not its norm) by a linear polynomial g(eta) <br/>
+                  + Notation: <br/>
+                    * etaK = stepping length <br/>
+                    * gK = residual vector for etaK = 0 <br/>
+                    * gK_c = residual vector for some etaC != 0 (1 used here) <br/>
+                    * gK_etaK = gK + (gK_c - gK)*etaK/etaC (linear approximation) <br/>
+                    * qK_etaK = gK^T(gK - gK_etaK)/|gK - gK_etaK|^2 (actual criterion) <br/>
+                  + accept etaK if qK_etaK ge 0.5 + epsilon <br/>
+                  + else compute new etaK via:  <br/>
+                    * etaK_new = etaK*h(qK_etaK) <br/>
+                    * with h(x) =  <br/>
+                    *  1             if x ge 0.5 + epsilon <br/>
+                    *  x             if epsilon le x lt 0.5 + epsilon <br/>
+                    *  epsilon       if 0 le x lt epsilon <br/>
+                    * -epsilon       if -epsilon le x lt 0 <br/>
+                    * x              if -0.5-epsilon le x lt -epsilon <br/>
+                    * -0.5-epsilon   if x lt -0.5-epsilon <br/>
+                  + epsilon has to be in (0,1/6) <br/>
+                  + only F required, no gradient or Jacobian has to be approximated <br/>
+                  + Source: The 'Global' Convergence of Broyden-like methods with a suitable line search -- A. Griewank -- J. Austral. Mathj. 1986
+                </p>
+              </xsd:documentation>
+            </xsd:annotation>
+              <xsd:complexType>
+                <xsd:all>
+                    <xsd:element name="maxIterLS" type="xsd:nonNegativeInteger" default="10"/>
+                    <xsd:element name="epsilon" type="xsd:float" default="0.16"/>
+                    <xsd:element name="measurePerformance" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+                    <xsd:element name="allowNegativeSteps" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="yes">
+                      <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                          <p>
+                            If a quasi-Newton method is applied and the approximation of the Jacobian
+                            is appropriate, the computed solution update will usually cause a reduction
+                            of the residual, i.e., we acutally obtain a descrent direction. If the approximation
+                            is bad (or in case of a fix-point technique) it might be, that the search direction
+                            is actually increasing the residual; in this case, a negative eta could lead into the
+                            right direction.
+                          </p>
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:element>
+                  </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            </xsd:all>
+            <xsd:attribute name="checkSolutionUpdateWithFDJacobian" type="xsd:nonNegativeInteger" use="optional" default="0">
+              <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                <p>
+                  Usually, quasi-Newton and fix-point will compute descent directions, i.e., the solution
+                  updates will lead to a decrease in the residual. This is not guaranteed however. We can check
+                  if the currently computed solution update is a descent direction via the inexact Newton property:<br/>
+                  ||Jac*solIncrement + res|| lt tau*||res|| <br/>
+                       (tau usually close to 1, e.g., 0.9) <br/>
+                  This property is cleary satisfied if system was solved with Jac as system matrix but in case of
+                  fix-point or some approximations to Jac it might not be satisified.<br/>
+                  Note: By enabling this option, Jac will be approximated by a Finite-Difference approximation and the
+                        system matrix will be reassembled, i.e., this is a costly option and should only be used for DEBUGGING.
+                  Value = 0 (Default): no check  <br/>
+                  Value = 1: check; just warn if update is no search direction <br/>
+                  Value = 2: check; dismiss update if it is no search direction <br/>
+                </p>
+              </xsd:documentation>
+            </xsd:annotation>
+            </xsd:attribute>
+            <xsd:attribute name="selectionCriterionForMultipleLS" use="optional" default="1">
+              <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                <p>
+                  If multiple linesearches are applied, we have to specify which one to take. <br/>
+                  Value = 1 (Default): take eta that leads to minimal residual  <br/>
+                  Value = 2: take largest found eta (positive value) <br/>
+                  Value = 3: take largest found eta (absolute value)  <br/>
+                </p>
+              </xsd:documentation>
+            </xsd:annotation>
+            </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="stoppingCriteria" minOccurs="1" maxOccurs="1">
+          <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            <p>
+              List of criteria that ALL have to be passed for a successful iteration.  <br/>
+              Available criteria:  <br/>
+              (1) increment_absolute = L2-norm of solution increment <br/>
+              (2) increment_relative = L2-norm of solution increment divided by L2-norm of current solution
+                  (if norm of solution not 0, else absolute value is taken) <br/>
+              (3) residual_absolute = L2-norm of current residual <br/>
+              (4) residual_relative = L2-norm of current residual divided by L2-norm of initial residual, i.e.,
+                  residual at beginning of timestep (if norm of initial residual not 0, else absolute value is taken) <br/>
+            </p>
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="increment_absolute" type="DT_StoppingCriterion" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="increment_relative" type="DT_StoppingCriterion" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="residual_absolute" type="DT_StoppingCriterion" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="residual_relative" type="DT_StoppingCriterion" minOccurs="0" maxOccurs="1"/>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="failbackCriteria" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            <p>
+              List of failback-criteria. These criteria will be checked if at least one of the actual stopping criteria
+              fails and a given number of iterations has been passed already. Non-linear solution process will be stopped
+              with a failback-success if ANY of the failback-criteria is passed.  <br/>
+              Available criteria:  <br/>
+              (1) increment_absolute = L2-norm of solution increment <br/>
+              (2) increment_relative = L2-norm of solution increment divided by L2-norm of current solution
+                  (if norm of solution not 0, else absolute value is taken) <br/>
+              (3) residual_absolute = L2-norm of current residual <br/>
+              (4) residual_relative = L2-norm of current residual divided by L2-norm of initial residual, i.e.,
+                  residual at beginning of timestep (if norm of initial residual not 0, else absolute value is taken) <br/>
+            </p>
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="increment_absolute" type="DT_StoppingCriterion" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="increment_relative" type="DT_StoppingCriterion" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="residual_absolute" type="DT_StoppingCriterion" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="residual_relative" type="DT_StoppingCriterion" minOccurs="0" maxOccurs="1"/>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="maxIter" type="xsd:positiveInteger" default="25" minOccurs="1" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            <p>
+              Specify maximal number of iteration of the non-linear equation system. <br/>
+              Some rules of thumb:  <br/>
+              Quasi-Newton schemes: 10-30  <br/>
+              Fixpoint (B-based): 20-40  <br/>
+              Fixpoint (H-based): 50-200
+            </p>
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="evaluationDepth" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            <p>
+              Specifies the number of actual hysteresis operators and at which points they shall be evaluated. <br/>
+              (1) evaluateAtElementCenter: each finite element inside the hysteretic material region gets a single operator assigned;
+                  this operator is only evaluated at the element center <br/>
+              (2) evaluateAtIntegrationPoints_OneOperatorPerElement: each finite element inside the hysteretic material region gets a single operator assigned;
+                  this operator is evaluated at each integration point during numerical integration of integrals (DEFAULT) <br/>
+              (3) evaluateAtIntegrationPoints_OneOperatorPerIntegrationPoint: each numerical integration point of each finite element
+                  inside the hysteretic material region gets a single operator assigned;
+                  these operators are evaluated at their corresponding integration point during numerical integration of integrals
+            </p>
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="evaluateAtElementCenter"/>
+            <xsd:element name="evaluateAtIntegrationPoints_OneOperatorPerElement"/>
+            <xsd:element name="evaluateAtIntegrationPoints_OneOperatorPerIntegrationPoint"/>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="resetSolutionVectorToZero" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            <p>
+              Sometimes, it can happen that we converge to a local minimum of the residual.
+              As long as it satisfies the stopping criteria, we cannot usually tell if it is just a local minimum
+              or not. In most cases, however, the local minima will not satisfy the stopping criteria and the simulation
+              will fail (as it probably should at a local minimum). In those cases it might help to change the starting
+              point of the iteration by resetting the solution to 0 and try it from there. Unfortunately this will not
+              help to well but you can try. The only parameter to be specified is the number of iterations after which
+              the reset should be performed (you might need a good guess for this). <br/>
+              Note: a value of 0 disables reset
+            </p>
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="iterationsTillReset" type="xsd:nonNegativeInteger" default="0"/>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="performTests" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            <p>
+              List of possible tests regarding hysteresis. <br/>
+              (1) testJacobianApproximations: compares different Finite Difference approximations for the system matrix (only for debugging)  <br/>
+              (2) testHysteresisOperator: - create a single (temporal) hysteresis operator and test its output for various test signals <br/>
+              - can be used in forward mode (hysteresis operator is fed with actual input signal) and/or in backward mode
+                i.e., the output of the hysteresis operator is prescribed and the corresponding input is searched (tests the local inversion) <br/>
+            </p>
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="testJacobianApproximations" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="testHysteresisOperator" type="DT_testOperator" minOccurs="0" maxOccurs="1"/>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:all>
+    <xsd:attribute name="loggingToFile" type="DT_CFSBool" use="optional" default="yes">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          <p>
+            If yes, information of the non-linear iterations like error criteria, stepping length etc. are written to
+            the .info.xml file.
+          </p>
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="loggingToTerminal" type="xsd:nonNegativeInteger" use="optional" default="0">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          <p>
+            If value is larger 0, information of the non-linear iterations like error criteria, stepping length etc. are written to
+            the terminal. The larger the number, the more detailled the output (currently only 1 logging level defined).
+          </p>
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_StoppingCriterion">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        <p>
+          Specifications for stopping criterion: <br/>
+          (1) value: tolerance that has to be reached <br/>
+          (2) scaleToSystemSize: scale value to total number of system unknowns (this currently includes the non-hysteretic
+              regions, too; therefore, only meaningful if all regions have hysteresis)  <br/>
+          (3) firstCheck: iteration at which criterion shall be checked for the first time (mostly for failback criteria) <br/>
+          (4) checkingFrequency: check criterion every checkingFrequency-th iteration (after firstCheck) <br/>
+        </p>
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="value" type="DT_PosFloat" default="1e-5"/>
+        <xsd:attribute name="scaleToSystemSize" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="firstCheck" type="xsd:nonNegativeInteger" use="optional" default="1"/>
+        <xsd:attribute name="checkingFrequency" type="xsd:nonNegativeInteger" use="optional" default="1"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <xsd:complexType name="DT_testInputPeriodic">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="AmplitudeScaling" type="xsd:float" use="optional" default="1"/>
+        <xsd:attribute name="NumPeriods" type="xsd:float" use="optional" default="5"/>
+        <xsd:attribute name="StepsPerPeriod" type="xsd:nonNegativeInteger" use="optional" default="20"/>
+        <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="OutputName" type="xsd:token" use="optional" default="---"/>
+        <xsd:attribute name="NameTagPerFile" type="xsd:token" use="optional" default="---"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+   <xsd:complexType name="DT_testInputFile">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="AmplitudeScaling" type="xsd:float" use="optional" default="1"/>
+        <xsd:attribute name="FileContaining_x_over_steps" type="xsd:token" use="required"/>
+        <xsd:attribute name="FileContaining_y_over_steps" type="xsd:token" use="optional"/>
+        <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="OutputName" type="xsd:token" use="optional" default="---"/>
+        <xsd:attribute name="NameTagPerFile" type="xsd:token" use="optional" default="---"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_testInputNonPeriodic">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="AmplitudeScaling" type="xsd:float" use="optional" default="1"/>
+        <xsd:attribute name="NumSteps" type="xsd:nonNegativeInteger" use="optional" default="100"/>
+        <xsd:attribute name="Test1D" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="OutputName" type="xsd:token" use="optional" default="---"/>
+        <xsd:attribute name="NameTagPerFile" type="xsd:token" use="optional" default="---"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_testOperator">
+    <xsd:sequence>
+        <xsd:element name="InputSignals" minOccurs="1" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:choice maxOccurs="unbounded">
+              <xsd:element name="Sine" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="Rotation" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="IncreasingRotation" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="DecreasingRotation" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="DecreasingSine" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="DecreasingSawtooth" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="Forc" type="DT_testInputPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="SelfDesigned" type="DT_testInputNonPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="SatX-RemX-SatY" type="DT_testInputNonPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="RemDrop" type="DT_testInputNonPeriodic" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="ReadFromFile" type="DT_testInputFile" minOccurs="0" maxOccurs="1"/>
+            </xsd:choice>
+          </xsd:complexType>
+        </xsd:element>
+        <xsd:element name="TestInversion" type="DT_CFSBool" default="yes"/>
+        <xsd:element name="StopAfterTests" type="DT_CFSBool" default="no"/>
+        <xsd:element name="PrintStatistics" type="DT_CFSBool" default="yes"/>
+        <xsd:element name="WriteInputToFile" type="DT_CFSBool" default="no"/>
+        <xsd:element name="WriteResultsToFile" type="DT_CFSBool" default="no"/>
+        <xsd:element name="OutputIrrStrains" type="DT_CFSBool" default="no"/>
+        <xsd:element name="MeasurePerformance">
+          <xsd:complexType>
+            <xsd:all>
+              <xsd:element name="activate" type="DT_CFSBool" default="no"/>
+              <xsd:element name="commonResultFile" type="xsd:token" default="---"/>
+            </xsd:all>
+          </xsd:complexType>
+        </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+    <!-- TO BE REMOVED -->
+   <xsd:complexType name="DT_HystFixpoint">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="towardsLastIteration" type="DT_CFSBool" use="optional" default="yes"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+   <xsd:complexType name="DT_HystDeltaMat">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="towardsLastIteration" type="DT_CFSBool" use="optional" default="yes"/>
+        <xsd:attribute name="deltaMatStrain" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="deltaMatCoupling" type="DT_CFSBool" use="optional" default="no"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_HystereticSolver">
+     <xsd:choice>
+      <xsd:element name="HYST_DeltaMat_TS_MOD"/>
+      <xsd:element name="HYST_DeltaMat_IT" type="xsd:nonNegativeInteger" default="1"/>
+      <xsd:element name="HYST_BGM"/>
+      <xsd:element name="HYST_BGM_ENHANCED"/>
+      <xsd:element name="HYST_FD_JACOBIAN" type="xsd:nonNegativeInteger" default="1"/>
+      <xsd:element name="HYST_FD_CHORD"/>
+      <xsd:element name="HYST_FP_GLOBAL" type="xsd:float" default="1"/>
+      <xsd:element name="HYST_FP_GLOBAL_H" type="xsd:float" default="1"/>
+      <xsd:element name="HYST_FP_LOCAL_H" type="xsd:float" default="2"/>
+      <xsd:element name="HYST_FP_LOCAL" type="xsd:float" default="2"/>
+      <xsd:element name="HYST_FP_LOCAL_v2" type="xsd:float" default="2"/>
+      <xsd:element name="fixpoint" type="DT_HystFixpoint"/>
+      <xsd:element name="deltaMat" type="DT_HystDeltaMat"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+    <xsd:complexType name="DT_HystLineSearch">
+    <xsd:attribute name="type" use="optional" default="none">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="none"/>
+          <xsd:enumeration value="HYST_quadApprox"/>
+          <xsd:enumeration value="HYST_minResidual"/>
+          <xsd:enumeration value="HYST_minResidual_largerValues"/>
+          <xsd:enumeration value="HYST_bisect"/>
+          <xsd:enumeration value="HYST_overRelaxation"/>
+          <xsd:enumeration value="HYST_ClassicApproach"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
+
+
+  <xsd:complexType name="DT_HYST_reset">
+    <xsd:sequence>
+        <xsd:element name="allowReset" type="DT_CFSBool" default="yes"/>
+        <xsd:element name="minNumberItTillReset" type="xsd:nonNegativeInteger" default="5"/>
+        <xsd:element name="minResDecreaseTillReset" type="DT_PosFloat" default="1e-3"/>
+        <xsd:element name="nonLinMethodAfterReset" type="DT_HystereticSolver"/>
+        <xsd:element name="lineSearchAfterReset" type="DT_HystLineSearch"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_HystereticParams">
+    <xsd:all>
+      <xsd:element name="method" minOccurs="1">
+        <xsd:complexType>
+          <xsd:choice>
+            <xsd:element name="Fixpoint_Global_B">
+              <xsd:complexType>
+                <xsd:attribute name="ContractionFactor" type="xsd:float" default="1.0"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="Fixpoint_Localized_B">
+              <xsd:complexType>
+                <xsd:attribute name="ContractionFactor" type="xsd:float" default="2.0"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="Fixpoint_Global_H">
+              <xsd:complexType>
+                <xsd:attribute name="ContractionFactor" type="xsd:float" default="1.1"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="Fixpoint_Localized_H">
+              <xsd:complexType>
+                <xsd:attribute name="ContractionFactor" type="xsd:float" default="2.0"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="QuasiNewton_ChordMethod"/>
+            <xsd:element name="QuasiNewton_FiniteDifferenceJacobian">
+              <xsd:complexType>
+                <xsd:attribute name="IterationsTillUpdate" type="xsd:nonNegativeInteger" default="1"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="QuasiNewton_SecantMethod">
+              <xsd:complexType>
+                <xsd:choice>
+                  <xsd:element name="towardsPreviousTimestep"/>
+                  <xsd:element name="towardsPreviousIteration"/>
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="HYST_DeltaMat_TS_MOD"/>
+            <xsd:element name="HYST_DeltaMat_IT" type="xsd:nonNegativeInteger" default="1"/>
+            <xsd:element name="HYST_BGM"/>
+            <xsd:element name="HYST_BGM_ENHANCED"/>
+            <xsd:element name="HYST_FD_JACOBIAN" type="xsd:nonNegativeInteger" default="1"/>
+            <xsd:element name="HYST_FD_CHORD"/>
+            <xsd:element name="HYST_FP_GLOBAL" type="xsd:float" default="1"/>
+            <xsd:element name="HYST_FP_GLOBAL_H" type="xsd:float" default="1"/>
+            <xsd:element name="HYST_FP_LOCAL_H" type="xsd:float" default="2"/>
+            <xsd:element name="HYST_FP_LOCAL" type="xsd:float" default="2"/>
+            <xsd:element name="HYST_FP_LOCAL_v2" type="xsd:float" default="2"/>
+            <xsd:element name="fixpoint" type="DT_HystFixpoint"/>
+            <xsd:element name="deltaMat" type="DT_HystDeltaMat"/>
+          </xsd:choice>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="lineSearch"  type="DT_HystLineSearch"/>
+      <xsd:element name="newLinesearches" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="None" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="Backtracking_TrialAndError" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="Backtracking_Armijo" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="Backtracking_NonMonotonicArmijo" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="Backtracking_GradientFreeArmijo" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="GoldenSection" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="QuadraticPolynomial" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="ThreePointPolynomial_SufficientDecrease" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="VectorPolynomial_SufficientDecrease" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="TestAll" minOccurs="0" maxOccurs="1"/>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="incStopCrit">
+        <xsd:complexType>
+          <xsd:attribute name="value" type="DT_PosFloat" default="1e-3"/>
+          <xsd:attribute name="relative" type="DT_CFSBool" default="yes"/>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="resStopCrit">
+        <xsd:complexType>
+          <xsd:attribute name="value" type="DT_PosFloat" default="1e-3"/>
+          <xsd:attribute name="relative" type="DT_CFSBool" default="yes"/>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="maxNumIters" type="xsd:positiveInteger"/>
+      <xsd:element name="abortOnMaxNumIters" type="DT_CFSBool" default="yes" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="stopOnLimit" type="DT_StopIter" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="HYST_reset" type="DT_HYST_reset" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="HYST_failBackTol" type="xsd:float" default="-1.0" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="HYST_evalDepth" type="xsd:nonNegativeInteger" default="2" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="HYST_testOperator" type="DT_testOperator" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="debugParams" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="resetForceReassembly" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="measureLSPerformance" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="compareLinesearches" type="xsd:nonNegativeInteger" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="testJacobianApproximations" minOccurs="0" maxOccurs="1"/>
+          </xsd:sequence>
+      </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="newParams" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+         <xsd:all>
+            <xsd:element name="performEstimator" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="etaMin" type="xsd:float" default="0.0" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="checkUpdateDirection" type="xsd:nonNegativeInteger" default="0" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="dismissNegativeEta" type="DT_CFSBool" default="no" minOccurs="0" maxOccurs="1"/>
+          </xsd:all>
+      </xsd:complexType>
+      </xsd:element>
+
+    </xsd:all>
+    <xsd:attribute name="logging" type="DT_CFSBool" use="optional" default="yes"/>
+    <xsd:attribute name="minLoggingToTerminal" type="xsd:nonNegativeInteger" use="optional" default="0"/>
+  </xsd:complexType>
+
+</xsd:schema>

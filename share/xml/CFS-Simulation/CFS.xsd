@@ -44,6 +44,7 @@
 	<!--   Include further definitions -->
 	<!-- ******************************************************************* -->
 	<xsd:include schemaLocation="Schemas/CFS_PostProc.xsd" />
+  <xsd:include schemaLocation="Schemas/CFS_HystereticSystem.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_LinearSystem.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Solvers.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Preconds.xsd" />

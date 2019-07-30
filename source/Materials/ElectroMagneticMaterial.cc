@@ -37,7 +37,40 @@ namespace CoupledField
     isAllowed_.insert( MAG_RELUCTIVITY );
     isAllowed_.insert( MAG_CONDUCTIVITY );
     isAllowed_.insert( ELEC_PERMITTIVITY );
+
     isAllowed_.insert( PREISACH_WEIGHTS );
+    isAllowed_.insert( PREISACH_WEIGHTS_DIM );
+    isAllowed_.insert( PREISACH_WEIGHTS_CONSTVALUE );
+    isAllowed_.insert( PREISACH_WEIGHTS_TYPE );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_A );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_H );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_H2 );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_SIGMA );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_SIGMA2 );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_ETA );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE );
+
+    isAllowed_.insert( PREISACH_WEIGHTS_TENSOR );
+    isAllowed_.insert( PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_ONLY );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_CINATAN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_A );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_B );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_C );
+    isAllowed_.insert( PREISACH_MAYERGOYZ_NUM_DIR );
+    isAllowed_.insert( PREISACH_MAYERGOYZ_ISOTROPIC );
+    isAllowed_.insert( PREISACH_MAYERGOYZ_CLIPOUTPUT );
+
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_X );
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_Y );
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_Z );
+
+    isAllowed_.insert( PREISACH_PRESCRIBEOUTPUT );
+    isAllowed_.insert( PREISACH_SCALEINITIALSTATE );
+    isAllowed_.insert( SCALETOSAT );
+    isAllowed_.insert( SCALETOSAT_STRAIN );
     isAllowed_.insert( X_SATURATION );
     isAllowed_.insert( Y_SATURATION );
     isAllowed_.insert( Y_REMANENCE );
@@ -45,7 +78,11 @@ namespace CoupledField
     isAllowed_.insert( ALPHA_JILES );
     isAllowed_.insert( K_JILES );
     isAllowed_.insert( C_JILES );
+    isAllowed_.insert( JILES_TEST );
     isAllowed_.insert( P_DIRECTION );
+    isAllowed_.insert( P_DIRECTION_X );
+    isAllowed_.insert( P_DIRECTION_Y );
+    isAllowed_.insert( P_DIRECTION_Z );
     isAllowed_.insert( EVAL_VERSION );
     isAllowed_.insert( PRINT_PREISACH );
     isAllowed_.insert( PRINT_PREISACH_RESOLUTION );
@@ -54,16 +91,104 @@ namespace CoupledField
     isAllowed_.insert( ANG_CLIPPING );
     isAllowed_.insert( ANG_RESOLUTION );
     isAllowed_.insert( AMP_RESOLUTION );
-    isAllowed_.insert( INITIAL_STATE );
+
+    // inversion for vec hysteresis
+    isAllowed_.insert( MAX_NUM_IT_HYST_INV );
+    isAllowed_.insert( VEC_HYST_INV_METHOD );
+    isAllowed_.insert( RES_TOL_H_HYST_INV );
+    isAllowed_.insert( RES_TOL_B_HYST_INV );
+    isAllowed_.insert( ALPHA_REG_HYST_INV );
+    isAllowed_.insert( ALPHA_REG_MIN_HYST_INV );
+    isAllowed_.insert( ALPHA_REG_MAX_HYST_INV );
+    isAllowed_.insert( MAX_NUM_REG_IT_HYST_INV );
+    isAllowed_.insert( ALPHA_LS_MIN_HYST_INV );
+    isAllowed_.insert( ALPHA_LS_MAX_HYST_INV );
+    isAllowed_.insert( MAX_NUM_LS_IT_HYST_INV );
+    isAllowed_.insert( STOP_INV_LS_AT_LOCAL_MIN );
+    isAllowed_.insert( JAC_RESOLUTION_HYST_INV );
+    isAllowed_.insert( JAC_IMPLEMENTATION_HYST_INV );
+    isAllowed_.insert( TRUST_LOW_HYST_INV );
+    isAllowed_.insert( TRUST_MID_HYST_INV );
+    isAllowed_.insert( TRUST_HIGH_HYST_INV );
+
+    isAllowed_.insert( HYST_INV_PROJLM_MU );
+    isAllowed_.insert( HYST_INV_PROJLM_RHO );
+    isAllowed_.insert( HYST_INV_PROJLM_BETA );
+    isAllowed_.insert( HYST_INV_PROJLM_SIGMA );
+    isAllowed_.insert( HYST_INV_PROJLM_GAMMA );
+    isAllowed_.insert( HYST_INV_PROJLM_TAU );
+    isAllowed_.insert( HYST_INV_PROJLM_C );
+    isAllowed_.insert( HYST_INV_PROJLM_P );
+
+    isAllowed_.insert( HYST_INV_FP_SAFETYFACTOR );
+    isAllowed_.insert( HYST_LOCAL_INVERSION_PRINT_WARNINGS );
+
+		isAllowed_.insert( INITIAL_STATE );
     isAllowed_.insert( INITIAL_STATE_X );
     isAllowed_.insert( INITIAL_STATE_Y );
     isAllowed_.insert( INITIAL_STATE_Z );
-    isAllowed_.insert( PREISACH_DIM );
+    isAllowed_.insert( HYSTERESIS_DIM );
     isAllowed_.insert( HYST_STRAIN_FORM );
-    isAllowed_.insert( HYST_BETA_COEFS );
-    isAllowed_.insert( DIM_BETA_COEFS );
+    isAllowed_.insert( HYST_IRRSTRAINS );
+    isAllowed_.insert( HYST_IRRSTRAIN_C1 );
+    isAllowed_.insert( HYST_IRRSTRAIN_C2 );
+    isAllowed_.insert( HYST_IRRSTRAIN_C3 );
+    isAllowed_.insert( HYST_IRRSTRAIN_CI );
+    isAllowed_.insert( HYST_IRRSTRAIN_CI_SIZE );
+    isAllowed_.insert( HYST_IRRSTRAIN_D0 );
+    isAllowed_.insert( HYST_IRRSTRAIN_D1 );
+    isAllowed_.insert( HYST_IRRSTRAIN_SCALETOSAT );
+    isAllowed_.insert( HYST_IRRSTRAIN_PARAMSFORHALFRANGE );
     isAllowed_.insert( ROT_RESISTANCE );
     isAllowed_.insert( HYST_MODEL );
+    isAllowed_.insert( HYST_COUPLING_DEFINED );
+    isAllowed_.insert( HYST_TYPE_IS_PREISACH_STRAIN );
+    isAllowed_.insert( HYST_TYPE_IS_PREISACH );
+    isAllowed_.insert( X_SATURATION_STRAIN );
+    isAllowed_.insert( Y_SATURATION_STRAIN );
+    isAllowed_.insert( S_SATURATION );
+    isAllowed_.insert( PREISACH_WEIGHTS_FOR_MAYERGOYZ_VECTOR_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_TENSOR_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_A_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_H_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_H2_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_SIGMA_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_SIGMA2_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_ETA_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYSTCOUNTINGTOOUTPUTSAT_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_MUDAT_PARAMSFORHALFRANGE_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_TYPE_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_CONSTVALUE_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_DIM_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_STRAIN );
+    isAllowed_.insert( ANG_DISTANCE_STRAIN );
+    isAllowed_.insert( EVAL_VERSION_STRAIN );
+    isAllowed_.insert( ROT_RESISTANCE_STRAIN );
+    isAllowed_.insert( HYSTERESIS_DIM_STRAIN );
+    isAllowed_.insert( HYST_MODEL_STRAIN );
+    isAllowed_.insert( S_DIRECTION_Z );
+    isAllowed_.insert( S_DIRECTION_Y );
+    isAllowed_.insert( S_DIRECTION_X );
+    isAllowed_.insert( S_DIRECTION );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_PARAMSFORHALFRANGE_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_CINATAN_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_ONLY_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_C_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_B_STRAIN );
+    isAllowed_.insert( PREISACH_WEIGHTS_ANHYST_A_STRAIN );
+    isAllowed_.insert( ANG_CLIPPING_STRAIN );
+    isAllowed_.insert( ANG_RESOLUTION_STRAIN );
+    isAllowed_.insert( AMP_RESOLUTION_STRAIN );
+    isAllowed_.insert( PREISACH_MAYERGOYZ_NUM_DIR_STRAIN );
+    isAllowed_.insert( PREISACH_MAYERGOYZ_ISOTROPIC_STRAIN );
+    isAllowed_.insert( PREISACH_MAYERGOYZ_CLIPOUTPUT_STRAIN );
+
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_X_STRAIN );
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_Y_STRAIN );
+    isAllowed_.insert( MAYERGOYZ_STARTAXIS_Z_STRAIN );
+
+    isAllowed_.insert( IRRSTRAIN_REUSE_P );
+
     isAllowed_.insert( DATA_ACCURACY );
     isAllowed_.insert( MAX_APPROX_VAL );
     isAllowed_.insert( MAGNETOSTRICTION_TENSOR_h_mag );
@@ -543,314 +668,314 @@ void ElectroMagneticMaterial::ComputeSubTensor_magstrict(Matrix<Complex>& matMat
     }
   }
 */
-
-  void ElectroMagneticMaterial::SetPreviousHystVal( UInt nrElem, Vector<Double>& valVec) {
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    if ( isHystInverse_ ) {
-      vecYprevious_[0][idx] = valVec[0];
-      vecYprevious_[1][idx] = valVec[1];
-      vecXprevious_[0][idx] = vecHyst_[0]->computeValueAndUpdate( valVec[0], idx );
-      vecXprevious_[1][idx] = vecHyst_[1]->computeValueAndUpdate( valVec[1], idx );
-    }
-    else if ( computeHystInverse_ ) {
-      Vector<Double> newX(2), newY(2);
-      ComputeInverseScalar( idx, 0, valVec[0], newX[0] );
-      ComputeInverseScalar( idx, 1, valVec[1], newX[1]  );
-
-      //! now perform also an updating
-      newY[0] = vecHyst_[0]->computeValueAndUpdate( newX[0], idx);
-      newY[1] = vecHyst_[1]->computeValueAndUpdate( newX[1], idx);
-
-      Vector<Double> dX(2), dY(2);
-      dX[0] = newX[0] - vecXprevious_[0][idx];
-      dX[1] = newX[1] - vecXprevious_[1][idx];
-
-      dY[0] = newY[0] - vecYprevious_[0][idx];
-      dY[1] = newY[1] - vecYprevious_[1][idx];
-
-      //Double dB = dY[0]*dY[0] + dY[1]*dY[1];
-      Double dB = dY[1]*dY[1];
-      if ( dB > 1e-5) {
-        Double newMatDiff = ComputeMatDiff( dX, dY, idx );
-        matDiffprevious_[idx] = newMatDiff;
-      }
-
-      vecXprevious_[0][idx] = newX[0];
-      vecXprevious_[1][idx] = newX[1];
-      vecYprevious_[0][idx] = newY[0];
-      vecYprevious_[1][idx] = newY[1];
-
-      vecXact_[0][idx] = vecXprevious_[0][idx];
-      vecXact_[1][idx] = vecXprevious_[1][idx];
-      vecYact_[0][idx] = vecYprevious_[0][idx];
-      vecYact_[1][idx] = vecYprevious_[1][idx];
-    }
-    else {
-      vecXprevious_[0][idx] = valVec[0];
-      vecXprevious_[1][idx] = valVec[1];
-      vecYprevious_[0][idx] = vecHyst_[0]->computeValueAndUpdate( valVec[0], idx );
-      vecYprevious_[1][idx] = vecHyst_[1]->computeValueAndUpdate( valVec[1], idx );
-    }
-  }
-
-
-  void ElectroMagneticMaterial::ComputeScalarDiffValues( UInt nrElem, 
-                                                         Vector<Double>& valVec,
-                                                         Vector<Double>& scalarValues ) {
-
-    Vector<Double> Ycurrent(dim_);
-    Vector<Double> Xcurrent(dim_);
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    //   std::cout << "elNr=" << nrElem << "  idx=" << idx << std::endl;
-
-    if ( isHystInverse_ ) {
-      Ycurrent[0] = valVec[0];
-      Ycurrent[1] = valVec[1];
-      Xcurrent[0] = vecHyst_[0]->computeValueAndUpdate(valVec[0], idx);
-      Xcurrent[1] = vecHyst_[1]->computeValueAndUpdate(valVec[1], idx);
-     // std::cout << "Ycurrent:\n" << Ycurrent << "\n Xcurrent: \n" << Ycurrent << std::endl;
-    }
-    else if ( computeHystInverse_ ) {
-      ComputeInverseScalar( idx, 0, valVec[0], Xcurrent[0] );
-      ComputeInverseScalar( idx, 1, valVec[1], Xcurrent[1] );
-      Ycurrent[0] = vecHyst_[0]->computeValueAndUpdate(Xcurrent[0], idx);
-      Ycurrent[1] = vecHyst_[1]->computeValueAndUpdate(Xcurrent[1], idx);
-      //       Ycurrent[0] = valVec[0];
-      //       Ycurrent[1] = valVec[1];
-    }
-    else {
-      Xcurrent[0] = valVec[0];
-      Xcurrent[1] = valVec[1];
-      Ycurrent[0] = vecHyst_[0]->computeValueAndUpdate(valVec[0], idx);
-      Ycurrent[1] = vecHyst_[1]->computeValueAndUpdate(valVec[1], idx);
-    }
-
-    //compute differential material parameter
-    Vector<Double> dX(dim_), dY(dim_);
-    dX[0] = Xcurrent[0] - vecXprevious_[0][idx];
-    dX[1] = Xcurrent[1] - vecXprevious_[1][idx];
-
-    dY[0] = Ycurrent[0] - vecYprevious_[0][idx];
-    dY[1] = Ycurrent[1] - vecYprevious_[1][idx];
-
-  //  std::cout << "dX \n" << dX << "  DdY:\n" << dY << std::endl;
-    Double dB = dY[0]*dY[0] + dY[1]*dY[1];
-
-    scalarValues.Init();
-    if ( dB > 1e-10 ) {
-      scalarValues[0] = ( dX[0] * dY[0] + dX[1] * dY[1] ) / dB ;
-      scalarValues[1] = ( dX[0] * dY[1] + dX[1] * dY[0] ) / dB ;
-    }
-  }
-
-
-  Double ElectroMagneticMaterial::ComputeScalarDiffVal( UInt nrElem, Vector<Double>& valVec) {
-
-    // COMPWARNING: unused variable Double matDiff, eps;
-    Vector<Double> Ycurrent(dim_);
-    Vector<Double> Xcurrent(dim_);
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    if ( isHystInverse_ ) {
-      Ycurrent[0] = valVec[0];
-      Ycurrent[1] = valVec[1];
-      Xcurrent[0] = vecHyst_[0]->computeValueAndUpdate(valVec[0], idx);
-      Xcurrent[1] = vecHyst_[1]->computeValueAndUpdate(valVec[1], idx);
-    }
-    else if ( computeHystInverse_ ) {
-      ComputeInverseScalar( idx, 0, valVec[0], Xcurrent[0] );
-      ComputeInverseScalar( idx, 1, valVec[1], Xcurrent[1] );
-      Ycurrent[0] = valVec[0];
-      Ycurrent[1] = valVec[1];
-    }
-    else {
-      Xcurrent[0] = valVec[0];
-      Xcurrent[1] = valVec[1];
-      Ycurrent[0] = vecHyst_[0]->computeValueAndUpdate(valVec[0], idx);
-      Ycurrent[1] = vecHyst_[1]->computeValueAndUpdate(valVec[1], idx);
-    }
-
-    //    std::cout << "Hx=" << Xcurrent[0] << "  Hy= " << Xcurrent[1] << std::endl;
-    //    std::cout << "Bx=" << Ycurrent[0] << "  By= " << Ycurrent[1] << std::endl;
-    //compute differential material parameter
-    Vector<Double> dX(dim_), dY(dim_);
-    dX[0] = Xcurrent[0] - vecXprevious_[0][idx];
-    dX[1] = Xcurrent[1] - vecXprevious_[1][idx];
-
-    dY[0] = Ycurrent[0] - vecYprevious_[0][idx];
-    dY[1] = Ycurrent[1] - vecYprevious_[1][idx];
-    Double newMatDiff = ComputeMatDiff( dX, dY, idx );
-
-    return newMatDiff;
-  }
-
-  Double ElectroMagneticMaterial::ComputeMatDiff( Vector<Double>& dX, Vector<Double>& dY, UInt idx ) {
-
-    Double matDiff, eps;
-    Double dB = dY[0]*dY[0] + dY[1]*dY[1];
-    //Double dB = dY[1]*dY[1];
-
-    if ( dB < 1e-12 ) {
-      matDiff = matDiffprevious_[idx];
-      //matDiff = eps;
-      //std::cout << "Startnu: " << matDiff << std::endl;
-    }
-    else {
-      matDiff = ( dX[0] * dY[0] + dX[1] * dY[1] ) / dB;
-      //matDiff = ( dX[1] * dY[1] ) / dB;
-    }
-
-    //    std::cout << "dB=" << dB  <<  "  dnu=" << matDiff << std::endl << std::endl;
-    //    std::cout << "  dnu=" << matDiff << std::endl << std::endl;
-
-    if ( matDiff < 50.0 ) {
-      GetScalar(eps,MAG_RELUCTIVITY,Global::REAL);
-      matDiff = eps;
-    }
-
-    return matDiff;
-  }
-
-  void ElectroMagneticMaterial::ComputeVectorHystVal( UInt nrElem, Vector<Double>& in, 
-                                                      Vector<Double>& out ) {
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    //    std::cout << "elNr=" << nrElem << "  idx=" << idx << std::endl;
-
-    if ( isHystInverse_ ) {
-      out[0] = vecHyst_[0]->computeValueAndUpdate( in[0], idx );
-      out[1] = vecHyst_[1]->computeValueAndUpdate( in[1], idx );
-    }
-    else if ( computeHystInverse_ ) {
-      ComputeInverseScalar( idx, 0, in[0], out[0] );
-      ComputeInverseScalar( idx, 1, in[1], out[1] );
-    }
-    else {
-      out[0] = vecHyst_[0]->computeValueAndUpdate( in[0], idx );
-      out[1] = vecHyst_[1]->computeValueAndUpdate( in[1], idx );
-    }
-  }
-
-  void ElectroMagneticMaterial::GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    if ( isHystInverse_ ) {
-      Val[0] = vecHyst_[0]->getValue( idx );
-      Val[1] = vecHyst_[1]->getValue( idx );
-    }
-    else if ( computeHystInverse_ ) {
-      Val[0] = vecXprevious_[0][idx];
-      Val[1] = vecXprevious_[1][idx];
-    }
-    else {
-      Val[0] = vecHyst_[0]->getValue( idx );
-      Val[1] = vecHyst_[1]->getValue( idx );
-    }
-  }
-
-  Double ElectroMagneticMaterial::GetScalarHystVal( UInt nrElem ) {
-
-    EXCEPTION("ElectroMagneticMaterial::GetScalarHystVal makes no sense");
-
-    // COMPWARNING: unused variable UInt idx = globalElem2Local_[nrElem];
-    Double Yval = 0.0; // = hyst_->getValue( idx );
-
-    return Yval;
-  }
-
-
-  //====================================== INVERSE HYST =======================================
-
-
-  void ElectroMagneticMaterial::ComputeInverseScalar( UInt idxEl, UInt comp, Double Yin, 
-                                                      Double& Xout ) {
-
-
-    Double eps = 1e-3;
-    Double  dH = vecHyst_[0]->GetIncX();
-
-  //  std::cout << "Yin= " << Yin << std::endl;
-
-    if ( ( abs(Yin) + 0.05*Ysat_ ) > Ysat_ ) {
-      Xout = Xsat_;
-    }
-    else {
-      Double Hs, Ho, Hu, Hact, Bs, Bact, dB;
-      bool found = false;
-
-      //compute starting values
-      Hs = vecXact_[comp][idxEl];
-      Bs = vecHyst_[comp]->computeValueAndUpdate( Hs, idxEl, false); 
-
-    //  std::cout << "Start Bs: " << Bs << "  Hs=" << Hs <<  std::endl;
-      if  ( abs(Bs - Yin) < eps ) {
-        found = true;
-        Xout  = Hs;
-     //   std::cout << "Direct found " << std::endl;
-      }
-      else if ( (Bs - Yin) > eps ) {
-        Ho = Hs;
-        Hu = Hs;
-     //   std::cout << "Fix Ho= " << Ho << std::endl;
-        do {
-          Hu  -= dH;
-          Bact = vecHyst_[comp]->computeValueAndUpdate( Hu, idxEl, false); 
-          dB   = Bact - Yin; 
-        } while ( dB > 0 ); 
-      }
-      else {
-        Hu = Hs;
-        Ho = Hs;
-      //  std::cout << "Fix Hu=  " << Hu << std::endl;
-        do {
-          Ho  += dH;
-          Bact = vecHyst_[comp]->computeValueAndUpdate( Ho, idxEl, false); 
-          //  std::cout << "Compute Ho: " << Ho << "  Bact=" << Bact << std::endl;
-          dB   = Bact - Yin;
-        } while ( dB < 0 ); 
-      }
-
-      if ( found == false ) {
-     //   std::cout << "Do iter: Bin=" << Yin << "  Bs=" << std::endl;
-        do {
-          Hact = ( Ho + Hu ) * 0.5;
-          Bact = vecHyst_[comp]->computeValueAndUpdate( Hact, idxEl, false); 
-          dB   = Bact - Yin;
-
-          if ( dB < 0 ) 
-            Hu = Hact;
-          else 
-            Ho = Hact;
-
-       //   std::cout << "newB =" << Bact << "  Hact=" << Hact << "  Ho=" << Ho << "   Hu=" << Hu << std::endl;
-
-        } while ( abs(dB) > eps && abs(Ho-Hu) > abs(Ho)*1e-4 );
-
-        Xout = Hact;
-      }
-    }
-
-    vecXact_[comp][idxEl] = Xout;
-    vecYact_[comp][idxEl] = Yin;
-
-    // update
-    //vecHyst_[comp]->updateMinMaxList( Xout, idxEl );
-
-    //     if ( found ) 
-    //       std::cout << " Hval = " << Xout << "  Bval=" << Yin << "   Bs=" << Bs << std::endl;
-    //     else
-    //       std::cout << " Hval = " << Xout << "  Bval=" << Yin << "  Bact=" << Bact << std::endl;
-    //   }
-
-  }
-  
+//
+//  void ElectroMagneticMaterial::SetPreviousHystVal( UInt nrElem, Vector<Double>& valVec) {
+//
+//    UInt idx = globalElem2Local_[nrElem];
+//
+//    if ( isHystInverse_ ) {
+//      vecYprevious_[0][idx] = valVec[0];
+//      vecYprevious_[1][idx] = valVec[1];
+//      vecXprevious_[0][idx] = vecHyst_[0]->computeValueAndUpdate( valVec[0], idx );
+//      vecXprevious_[1][idx] = vecHyst_[1]->computeValueAndUpdate( valVec[1], idx );
+//    }
+//    else if ( computeHystInverse_ ) {
+//      Vector<Double> newX(2), newY(2);
+//      ComputeInverseScalar( idx, 0, valVec[0], newX[0] );
+//      ComputeInverseScalar( idx, 1, valVec[1], newX[1]  );
+//
+//      //! now perform also an updating
+//      newY[0] = vecHyst_[0]->computeValueAndUpdate( newX[0], idx);
+//      newY[1] = vecHyst_[1]->computeValueAndUpdate( newX[1], idx);
+//
+//      Vector<Double> dX(2), dY(2);
+//      dX[0] = newX[0] - vecXprevious_[0][idx];
+//      dX[1] = newX[1] - vecXprevious_[1][idx];
+//
+//      dY[0] = newY[0] - vecYprevious_[0][idx];
+//      dY[1] = newY[1] - vecYprevious_[1][idx];
+//
+//      //Double dB = dY[0]*dY[0] + dY[1]*dY[1];
+//      Double dB = dY[1]*dY[1];
+//      if ( dB > 1e-5) {
+//        Double newMatDiff = ComputeMatDiff( dX, dY, idx );
+//        matDiffprevious_[idx] = newMatDiff;
+//      }
+//
+//      vecXprevious_[0][idx] = newX[0];
+//      vecXprevious_[1][idx] = newX[1];
+//      vecYprevious_[0][idx] = newY[0];
+//      vecYprevious_[1][idx] = newY[1];
+//
+//      vecXact_[0][idx] = vecXprevious_[0][idx];
+//      vecXact_[1][idx] = vecXprevious_[1][idx];
+//      vecYact_[0][idx] = vecYprevious_[0][idx];
+//      vecYact_[1][idx] = vecYprevious_[1][idx];
+//    }
+//    else {
+//      vecXprevious_[0][idx] = valVec[0];
+//      vecXprevious_[1][idx] = valVec[1];
+//      vecYprevious_[0][idx] = vecHyst_[0]->computeValueAndUpdate( valVec[0], idx );
+//      vecYprevious_[1][idx] = vecHyst_[1]->computeValueAndUpdate( valVec[1], idx );
+//    }
+//  }
+//
+//
+//  void ElectroMagneticMaterial::ComputeScalarDiffValues( UInt nrElem,
+//                                                         Vector<Double>& valVec,
+//                                                         Vector<Double>& scalarValues ) {
+//
+//    Vector<Double> Ycurrent(dim_);
+//    Vector<Double> Xcurrent(dim_);
+//
+//    UInt idx = globalElem2Local_[nrElem];
+//
+//    //   std::cout << "elNr=" << nrElem << "  idx=" << idx << std::endl;
+//
+//    if ( isHystInverse_ ) {
+//      Ycurrent[0] = valVec[0];
+//      Ycurrent[1] = valVec[1];
+//      Xcurrent[0] = vecHyst_[0]->computeValueAndUpdate(valVec[0], idx);
+//      Xcurrent[1] = vecHyst_[1]->computeValueAndUpdate(valVec[1], idx);
+//     // std::cout << "Ycurrent:\n" << Ycurrent << "\n Xcurrent: \n" << Ycurrent << std::endl;
+//    }
+//    else if ( computeHystInverse_ ) {
+//      ComputeInverseScalar( idx, 0, valVec[0], Xcurrent[0] );
+//      ComputeInverseScalar( idx, 1, valVec[1], Xcurrent[1] );
+//      Ycurrent[0] = vecHyst_[0]->computeValueAndUpdate(Xcurrent[0], idx);
+//      Ycurrent[1] = vecHyst_[1]->computeValueAndUpdate(Xcurrent[1], idx);
+//      //       Ycurrent[0] = valVec[0];
+//      //       Ycurrent[1] = valVec[1];
+//    }
+//    else {
+//      Xcurrent[0] = valVec[0];
+//      Xcurrent[1] = valVec[1];
+//      Ycurrent[0] = vecHyst_[0]->computeValueAndUpdate(valVec[0], idx);
+//      Ycurrent[1] = vecHyst_[1]->computeValueAndUpdate(valVec[1], idx);
+//    }
+//
+//    //compute differential material parameter
+//    Vector<Double> dX(dim_), dY(dim_);
+//    dX[0] = Xcurrent[0] - vecXprevious_[0][idx];
+//    dX[1] = Xcurrent[1] - vecXprevious_[1][idx];
+//
+//    dY[0] = Ycurrent[0] - vecYprevious_[0][idx];
+//    dY[1] = Ycurrent[1] - vecYprevious_[1][idx];
+//
+//  //  std::cout << "dX \n" << dX << "  DdY:\n" << dY << std::endl;
+//    Double dB = dY[0]*dY[0] + dY[1]*dY[1];
+//
+//    scalarValues.Init();
+//    if ( dB > 1e-10 ) {
+//      scalarValues[0] = ( dX[0] * dY[0] + dX[1] * dY[1] ) / dB ;
+//      scalarValues[1] = ( dX[0] * dY[1] + dX[1] * dY[0] ) / dB ;
+//    }
+//  }
+//
+//
+//  Double ElectroMagneticMaterial::ComputeScalarDiffVal( UInt nrElem, Vector<Double>& valVec) {
+//
+//    // COMPWARNING: unused variable Double matDiff, eps;
+//    Vector<Double> Ycurrent(dim_);
+//    Vector<Double> Xcurrent(dim_);
+//
+//    UInt idx = globalElem2Local_[nrElem];
+//
+//    if ( isHystInverse_ ) {
+//      Ycurrent[0] = valVec[0];
+//      Ycurrent[1] = valVec[1];
+//      Xcurrent[0] = vecHyst_[0]->computeValueAndUpdate(valVec[0], idx);
+//      Xcurrent[1] = vecHyst_[1]->computeValueAndUpdate(valVec[1], idx);
+//    }
+//    else if ( computeHystInverse_ ) {
+//      ComputeInverseScalar( idx, 0, valVec[0], Xcurrent[0] );
+//      ComputeInverseScalar( idx, 1, valVec[1], Xcurrent[1] );
+//      Ycurrent[0] = valVec[0];
+//      Ycurrent[1] = valVec[1];
+//    }
+//    else {
+//      Xcurrent[0] = valVec[0];
+//      Xcurrent[1] = valVec[1];
+//      Ycurrent[0] = vecHyst_[0]->computeValueAndUpdate(valVec[0], idx);
+//      Ycurrent[1] = vecHyst_[1]->computeValueAndUpdate(valVec[1], idx);
+//    }
+//
+//    //    std::cout << "Hx=" << Xcurrent[0] << "  Hy= " << Xcurrent[1] << std::endl;
+//    //    std::cout << "Bx=" << Ycurrent[0] << "  By= " << Ycurrent[1] << std::endl;
+//    //compute differential material parameter
+//    Vector<Double> dX(dim_), dY(dim_);
+//    dX[0] = Xcurrent[0] - vecXprevious_[0][idx];
+//    dX[1] = Xcurrent[1] - vecXprevious_[1][idx];
+//
+//    dY[0] = Ycurrent[0] - vecYprevious_[0][idx];
+//    dY[1] = Ycurrent[1] - vecYprevious_[1][idx];
+//    Double newMatDiff = ComputeMatDiff( dX, dY, idx );
+//
+//    return newMatDiff;
+//  }
+//
+//  Double ElectroMagneticMaterial::ComputeMatDiff( Vector<Double>& dX, Vector<Double>& dY, UInt idx ) {
+//
+//    Double matDiff, eps;
+//    Double dB = dY[0]*dY[0] + dY[1]*dY[1];
+//    //Double dB = dY[1]*dY[1];
+//
+//    if ( dB < 1e-12 ) {
+//      matDiff = matDiffprevious_[idx];
+//      //matDiff = eps;
+//      //std::cout << "Startnu: " << matDiff << std::endl;
+//    }
+//    else {
+//      matDiff = ( dX[0] * dY[0] + dX[1] * dY[1] ) / dB;
+//      //matDiff = ( dX[1] * dY[1] ) / dB;
+//    }
+//
+//    //    std::cout << "dB=" << dB  <<  "  dnu=" << matDiff << std::endl << std::endl;
+//    //    std::cout << "  dnu=" << matDiff << std::endl << std::endl;
+//
+//    if ( matDiff < 50.0 ) {
+//      GetScalar(eps,MAG_RELUCTIVITY,Global::REAL);
+//      matDiff = eps;
+//    }
+//
+//    return matDiff;
+//  }
+//
+//  void ElectroMagneticMaterial::ComputeVectorHystVal( UInt nrElem, Vector<Double>& in,
+//                                                      Vector<Double>& out ) {
+//
+//    UInt idx = globalElem2Local_[nrElem];
+//
+//    //    std::cout << "elNr=" << nrElem << "  idx=" << idx << std::endl;
+//
+//    if ( isHystInverse_ ) {
+//      out[0] = vecHyst_[0]->computeValueAndUpdate( in[0], idx );
+//      out[1] = vecHyst_[1]->computeValueAndUpdate( in[1], idx );
+//    }
+//    else if ( computeHystInverse_ ) {
+//      ComputeInverseScalar( idx, 0, in[0], out[0] );
+//      ComputeInverseScalar( idx, 1, in[1], out[1] );
+//    }
+//    else {
+//      out[0] = vecHyst_[0]->computeValueAndUpdate( in[0], idx );
+//      out[1] = vecHyst_[1]->computeValueAndUpdate( in[1], idx );
+//    }
+//  }
+//
+//  void ElectroMagneticMaterial::GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
+//
+//    UInt idx = globalElem2Local_[nrElem];
+//
+//    if ( isHystInverse_ ) {
+//      Val[0] = vecHyst_[0]->getValue( idx );
+//      Val[1] = vecHyst_[1]->getValue( idx );
+//    }
+//    else if ( computeHystInverse_ ) {
+//      Val[0] = vecXprevious_[0][idx];
+//      Val[1] = vecXprevious_[1][idx];
+//    }
+//    else {
+//      Val[0] = vecHyst_[0]->getValue( idx );
+//      Val[1] = vecHyst_[1]->getValue( idx );
+//    }
+//  }
+//
+//  Double ElectroMagneticMaterial::GetScalarHystVal( UInt nrElem ) {
+//
+//    EXCEPTION("ElectroMagneticMaterial::GetScalarHystVal makes no sense");
+//
+//    // COMPWARNING: unused variable UInt idx = globalElem2Local_[nrElem];
+//    Double Yval = 0.0; // = hyst_->getValue( idx );
+//
+//    return Yval;
+//  }
+//
+//
+//  //====================================== INVERSE HYST =======================================
+//
+//
+//  void ElectroMagneticMaterial::ComputeInverseScalar( UInt idxEl, UInt comp, Double Yin,
+//                                                      Double& Xout ) {
+//
+//
+//    Double eps = 1e-3;
+//    Double  dH = vecHyst_[0]->GetIncX();
+//
+//  //  std::cout << "Yin= " << Yin << std::endl;
+//
+//    if ( ( abs(Yin) + 0.05*Ysat_ ) > Ysat_ ) {
+//      Xout = Xsat_;
+//    }
+//    else {
+//      Double Hs, Ho, Hu, Hact, Bs, Bact, dB;
+//      bool found = false;
+//
+//      //compute starting values
+//      Hs = vecXact_[comp][idxEl];
+//      Bs = vecHyst_[comp]->computeValueAndUpdate( Hs, idxEl, false);
+//
+//    //  std::cout << "Start Bs: " << Bs << "  Hs=" << Hs <<  std::endl;
+//      if  ( abs(Bs - Yin) < eps ) {
+//        found = true;
+//        Xout  = Hs;
+//     //   std::cout << "Direct found " << std::endl;
+//      }
+//      else if ( (Bs - Yin) > eps ) {
+//        Ho = Hs;
+//        Hu = Hs;
+//     //   std::cout << "Fix Ho= " << Ho << std::endl;
+//        do {
+//          Hu  -= dH;
+//          Bact = vecHyst_[comp]->computeValueAndUpdate( Hu, idxEl, false);
+//          dB   = Bact - Yin;
+//        } while ( dB > 0 );
+//      }
+//      else {
+//        Hu = Hs;
+//        Ho = Hs;
+//      //  std::cout << "Fix Hu=  " << Hu << std::endl;
+//        do {
+//          Ho  += dH;
+//          Bact = vecHyst_[comp]->computeValueAndUpdate( Ho, idxEl, false);
+//          //  std::cout << "Compute Ho: " << Ho << "  Bact=" << Bact << std::endl;
+//          dB   = Bact - Yin;
+//        } while ( dB < 0 );
+//      }
+//
+//      if ( found == false ) {
+//     //   std::cout << "Do iter: Bin=" << Yin << "  Bs=" << std::endl;
+//        do {
+//          Hact = ( Ho + Hu ) * 0.5;
+//          Bact = vecHyst_[comp]->computeValueAndUpdate( Hact, idxEl, false);
+//          dB   = Bact - Yin;
+//
+//          if ( dB < 0 )
+//            Hu = Hact;
+//          else
+//            Ho = Hact;
+//
+//       //   std::cout << "newB =" << Bact << "  Hact=" << Hact << "  Ho=" << Ho << "   Hu=" << Hu << std::endl;
+//
+//        } while ( abs(dB) > eps && abs(Ho-Hu) > abs(Ho)*1e-4 );
+//
+//        Xout = Hact;
+//      }
+//    }
+//
+//    vecXact_[comp][idxEl] = Xout;
+//    vecYact_[comp][idxEl] = Yin;
+//
+//    // update
+//    //vecHyst_[comp]->updateMinMaxList( Xout, idxEl );
+//
+//    //     if ( found )
+//    //       std::cout << " Hval = " << Xout << "  Bval=" << Yin << "   Bs=" << Bs << std::endl;
+//    //     else
+//    //       std::cout << " Hval = " << Xout << "  Bval=" << Yin << "  Bact=" << Bact << std::endl;
+//    //   }
+//
+//  }
+//
   void ElectroMagneticMaterial::ComputeFullMuTensor() {
 
     Matrix<Complex> muTensor(3,3);

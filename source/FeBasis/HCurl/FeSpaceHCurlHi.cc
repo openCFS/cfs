@@ -1037,6 +1037,7 @@ namespace CoupledField{
     //but it could be, that the PDE requires a minimum order of elements...
     ApproxOrder order (ptGrid_->GetDim());
     order.SetIsoOrder(0);
+
     if(orderOffset_>0){
       order.SetIsoOrder(orderOffset_);
     }

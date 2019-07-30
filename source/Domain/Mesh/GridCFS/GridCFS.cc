@@ -40,6 +40,7 @@ namespace CoupledField {
     edgesMapped_ = false;
     facesMapped_ = false;
     maxNumElemNodes_ = 0;
+    mapNodeToElems_.Resize(0);
     buildExtendedElemInfo_ = buildExtend;
   }
 
@@ -2685,7 +2686,6 @@ namespace CoupledField {
 
 
   }
-
   void GridCFS::GetElemsNextToNodes( StdVector<const Elem*> & elemList,
                                      const StdVector<UInt> & nodeList,
                                      const StdVector<RegionIdType> & regionIds) {
@@ -2849,7 +2849,6 @@ namespace CoupledField {
     }
 
   }
-
   void GridCFS::ClearNodeToElemConnectivity() {
     mappedNodeToElems_ = false;
     nodeElemMapIndices_.Clear(false);
@@ -2999,7 +2998,6 @@ namespace CoupledField {
         if ( elemsFound == nrNodes ) {
 
           ptVolElem = orderedElems_[elemNrPerNode[surfNodeNr-1][iVolElem]-1];
-          
           if ( elemsAssigned == 0 ) {
             myElem->ptVolElems[0] = ptVolElem;
           }

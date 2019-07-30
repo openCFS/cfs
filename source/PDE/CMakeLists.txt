@@ -7,6 +7,7 @@ SET(PDE_SRCS
   ElecPDE.cc
   PerturbedFlowPDE.cc
   HeatPDE.cc
+  MagBasePDE.cc
   MagEdgePDE.cc
   MagEdgeSpecialAVPDE.cc
   MagEdgeMixedAVPDE.cc

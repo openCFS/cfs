@@ -444,8 +444,8 @@ namespace CoupledField {
     //      StepTransNonLinMaterial();
     //    }
     // do a nonlinear time step
-    else if (nonLin_ ){//|| PDE_.IsHysteresis_Fixpoint() == true){
-      if ( nonLinTotalFormulation_ ){ //|| PDE_.IsHysteresis_Fixpoint() == true){
+    else if (nonLin_ ){
+      if ( nonLinTotalFormulation_ ){
         StepTransNonLinTotal();
       }
       else

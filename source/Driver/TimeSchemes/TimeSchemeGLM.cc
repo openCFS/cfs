@@ -55,6 +55,8 @@ namespace CoupledField{
     
     curScheme_->solDerivOrder_ = ts.solOrder_;
     solOrder_ = ts.solOrder_;
+    // was not copied before
+    nLinType_ = ts.nLinType_;
   }
   
   TimeSchemeGLM::~TimeSchemeGLM(){

@@ -2,7 +2,7 @@
 #define FILE_MAGNETICEDGEPDE
 
 #include <map>
-#include "SinglePDE.hh" 
+#include "MagBasePDE.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Utils/Coil.hh"
 
@@ -14,7 +14,7 @@ namespace CoupledField
   class nLinCurlCurlEdgeInt;
 
   //! Class for 3D magnetics using edge elements
-  class MagEdgePDE : public SinglePDE
+  class MagEdgePDE : public MagBasePDE
   {
   public:
 
@@ -29,17 +29,17 @@ namespace CoupledField
     //! the ReadCoils() method brought into being.
     ~MagEdgePDE();
 
-    //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
-    //! specifying coil results.
-    shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
+//    //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
+//    //! specifying coil results.
+//    shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
 
   protected:
     
-    //! Initialize NonLinearities
-    virtual void InitNonLin();
+//    //! Initialize NonLinearities
+//    virtual void InitNonLin();
 
-    //! read special boundary conditions (coils, magnets)
-    void ReadSpecialBCs();
+//    //! read special boundary conditions (coils, magnets)
+//    void ReadSpecialBCs();
 
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
@@ -55,8 +55,8 @@ namespace CoupledField
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators();
 
-    //! define the SoltionStep-Driver
-    void DefineSolveStep();
+//    //! define the SoltionStep-Driver
+//    void DefineSolveStep();
     
     // =======================================================================
     //  Initialization
@@ -71,33 +71,41 @@ namespace CoupledField
     //! Define available postprocessing results
     void DefinePostProcResults();
     
-    //! Query parameter object for information on coils
-    void ReadCoils();
+//    //! Query parameter object for information on coils
+//    void ReadCoils();
     
-    //! Init the time stepping
-    void InitTimeStepping();
-
+//    //! Init the time stepping
+//    void InitTimeStepping();
+//
     // =======================================================================
     //   COILS
     // =======================================================================
-
-    //@{ \name Attributes related to coils
-    //! Map CoilID to coil definition
-    std::map<Coil::IdType, shared_ptr<Coil> > coils_;
-
-    //! Map regionIds to coil definitions 
-    typedef std::map<RegionIdType, shared_ptr<Coil> > CoilRegionMap;
-    CoilRegionMap coilRegions_;
+    LinearForm* GetCurrentDensityInt( Double factor, PtrCoefFct coef );
     
-    //! Coefficients holding the current density for each coil
-    std::map<RegionIdType, PtrCoefFct> coilCurrentDens_;
+    // =======================================================================
+    //   HYSTERESIS
+    // =======================================================================
+    LinearForm* GetRHSHystInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation );
 
-    //! Tells if there are coils excited by voltage
-    bool hasVoltCoils_;
-
-    //! Storage for CoefFunctions of external current density as source
-    std::map<shared_ptr<Coil::Part>, PtrCoefFct> coilPartsExtJ_;
-    //@}
+    BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity );
+//
+//    //@{ \name Attributes related to coils
+//    //! Map CoilID to coil definition
+//    std::map<Coil::IdType, shared_ptr<Coil> > coils_;
+//
+//    //! Map regionIds to coil definitions
+//    typedef std::map<RegionIdType, shared_ptr<Coil> > CoilRegionMap;
+//    CoilRegionMap coilRegions_;
+//
+//    //! Coefficients holding the current density for each coil
+//    std::map<RegionIdType, PtrCoefFct> coilCurrentDens_;
+//
+//    //! Tells if there are coils excited by voltage
+//    bool hasVoltCoils_;
+//
+//    //! Storage for CoefFunctions of external current density as source
+//    std::map<shared_ptr<Coil::Part>, PtrCoefFct> coilPartsExtJ_;
+//    //@}
 
 
     //! \copydoc SinglePDE::CreateFeSpace
@@ -105,11 +113,11 @@ namespace CoupledField
     CreateFeSpaces( const std::string& formulation, 
                     PtrParamNode infoNode );
     
-    //! Coefficient function, containing the overall reluctivity
-    shared_ptr<CoefFunctionMulti> reluc_;
-    
-    //! Coefficient function, containing the overall conductivity
-    shared_ptr<CoefFunctionMulti> conduc_;
+//    //! Coefficient function, containing the overall reluctivity
+//    shared_ptr<CoefFunctionMulti> reluc_;
+//
+//    //! Coefficient function, containing the overall conductivity
+//    shared_ptr<CoefFunctionMulti> conduc_;
 
     //! Map containing the remanence (B excitation on RHS)
     //! needed for calculating H field
@@ -133,7 +141,7 @@ namespace CoupledField
     //! store velocity bilinear forms
     std::map<RegionIdType, BaseBDBInt*> velocityInts_;
 
-    void DefineCoilIntegrators();
+//    void DefineCoilIntegrators();
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

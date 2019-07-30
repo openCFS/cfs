@@ -264,6 +264,15 @@ namespace CoupledField
     void GetElemNodes( StdVector<UInt> & connect, 
                        const UInt iElem );
 
+    //! Returns element neighbors of given node
+    //! \param node number of interest
+    inline const StdVector<Elem*>& GetElemsByNode(UInt node)
+    {
+      if (!mappedNodeToElems_)
+        SetNodesToElemsMap();
+      return mapNodeToElems_[node];
+    }
+
     virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
     
     virtual void AddNamedElems( std::string name, StdVector<UInt> & elemNums);
@@ -337,7 +346,6 @@ namespace CoupledField
         const StdVector<RegionIdType>& regionIds);
 
     void ClearNodeToElemConnectivity();
-
 
     //! Get volume elements lying next to given surface elements
   
@@ -554,12 +562,10 @@ namespace CoupledField
     };
 
     //! helper struct for storing the number of neighbour-elements for every node
-   // struct NodeNeighbourElems{
-   //  boost::unordered_map<UInt, StdVector<Elem*> > nodeNeighElems;
-   //   RegionIdType regID;
-   // };
-
-
+    struct NodeNeighbourElems{
+      boost::unordered_map<UInt, StdVector<Elem*> > nodeNeighElems;
+      RegionIdType regID;
+    };
 
     // =======================================================================
     // Helper Methods
@@ -689,6 +695,10 @@ namespace CoupledField
     //! Map containing number elements of each type
     std::map<Elem::FEType, UInt> numElemTypes_;
 
+    //! Maps from a node number to all neighbor elements
+    StdVector<StdVector<Elem*> > mapNodeToElems_;
+
+    //! Flag to ensure that mapNodeToElems_ and mapNodeToElemsNew_ is only set up once
     //! Maximum number of nodes per element
     UInt maxNumElemNodes_;
 

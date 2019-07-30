@@ -208,13 +208,22 @@ namespace CoupledField {
         shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
         actSDList->SetRegion( actRegion );
         
-        PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
-        PtrCoefFct elecFieldCoefSurf = this->GetCoefFct(ELEC_FIELD_INTENSITY_SURF);
-        PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
-                elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY,mySpace));
+        std::string hystType;
+        actSDMat->GetScalar(hystType, HYST_MODEL);
         
-        hysteresisCoefs_->AddRegion( actRegion, hystPol);
-        
+        if(hystType == "none"){
+          std::string warnmsg = "Hysteresis set on region " + regionName + " but no hysteresis model was defined in mat file. Skip.";
+          regionNonLinTypes_[actRegion] = NO_NONLINEARITY;
+          WARN(warnmsg);
+        } else {
+          PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
+          PtrCoefFct elecFieldCoefSurf = this->GetCoefFct(ELEC_FIELD_INTENSITY_SURF);
+          PtrCoefFct hystPol(new CoefFunctionHyst( actSDMat, actSDList,
+                  elecFieldCoef,elecFieldCoefSurf,tensorType,ELEC_PERMITTIVITY,mySpace));
+
+          hysteresisCoefs_->AddRegion( actRegion, hystPol);
+
+        }
       }
     }
     regionApproxSet_ = true;
@@ -354,7 +363,6 @@ namespace CoupledField {
         }else{
           harmonicPML = false;
         }
-
       }
       
       // ----- standard real-valued stiffness integrator
@@ -773,8 +781,10 @@ namespace CoupledField {
         
         // check if volReg has hyst material behaviour
         if(regionCoefs.find(volReg) == regionCoefs.end()){
-          std::cout << "Volume region " << volRegName << "has NO hysteretic material assigned." << std::endl;
-          std::cout << "Field parallel BC will thus act as default flux parallel BC." << std::endl;
+          std::stringstream warnmsg;
+          warnmsg << "Volume region " << volRegName << "has NO hysteretic material assigned." << std::endl;
+          warnmsg << "Field parallel BC will thus act as default flux parallel BC." << std::endl;
+//          WARN(warnmsg.str());
         } else {
           //std::cout << "Volume region " << volRegName << " has hysteretic material assigned. fieldParallel BC added" << std::endl;
           // create coef fnc delivering the boundary term (here just polarization)
@@ -814,7 +824,7 @@ namespace CoupledField {
           // IMPORTANT: add surface elements to hyst operator such that it gets
           // storage space assigned
 					bool onBoundary = true;
-          regionCoefs[volReg]->AddAdditionalSDList(actSDList,onBoundary);
+          regionCoefs[volReg]->AddAdditionalSDList(actSDList,volReg,onBoundary);
         }
       }
     }
@@ -957,7 +967,7 @@ namespace CoupledField {
         bool fullevaluation = true;
         
         shared_ptr<CoefFunction> rhsPol = it->second->GenerateRHSCoefFnc("ElecPolarization");
-        
+
         //factor = factor*(-1.0);
         if(isComplex_) {
           if( dim_ == 2 ) {
@@ -1056,7 +1066,6 @@ namespace CoupledField {
           SubTensorType tensorType,
           RegionIdType regionId ) {
     
-    //std::cout << "GetStiffIntegrator" << std::endl;
     BaseBDBInt * integ = NULL;
     bool isComplex = complexMatData_[regionId];
     
@@ -1320,9 +1329,7 @@ namespace CoupledField {
   
   void ElecPDE::SetPiezoCoupling()
   {
-    
     isPiezoCoupled_ = true;
-    
   }
   
   void ElecPDE::DefinePrimaryResults() {
@@ -1491,7 +1498,6 @@ namespace CoupledField {
       // therefore, this helper functions is used to create the hystCoefFunctions
       //	before the call to DefineIntegrators
       InitHystCoefs();
-      
     }
     
     // === ELECTRIC FLUX DENSITY ===

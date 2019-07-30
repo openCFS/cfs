@@ -583,7 +583,6 @@ SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
 		                                     std::set<RegionIdType>(), coordUpdate)
 //  isCoplanar_(coplanar), cplDirection_(cplDirection)
 {
-  this->name_ = "SurfaceMortarABIntMA";
   this->isSymmetric_ = false;
   this->isCoplanar_ = coplanar;
   this->ptMasterOp_ = NULL;
@@ -767,7 +766,6 @@ void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
     result += Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
 #endif
   }
-
   if ( doTranspose_ ) {
 	  result.Transpose(elemMat);
   }

@@ -669,6 +669,9 @@ namespace CoupledField
     virtual void GetElemsByName( StdVector<Elem*> & elems,
                                  const std::string & elemsName ) = 0;
 
+    //! Get all elem neighbors for given node id
+    virtual const StdVector<Elem*>& GetElemsByNode(UInt node) = 0;
+
     /** To be called when all regions are added.
      * Sets the internal element and region structures. */
     virtual void FinishInit() = 0;
