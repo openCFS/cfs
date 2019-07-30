@@ -379,7 +379,14 @@ OPTION(EXPLICIT_TEMPLATE_INSTANTIATION
   "Use explicit template instantiation."
   ${EXPLICIT_TEMPLATE_INSTANTIATION_DEFAULT})
 
-# ICC needs a gcc to get header from. Newest ICC might noe be fully compatible with gcc 8.* yet
+#-----------------------------------------------------------------------------
+# Do we want to use expression templates
+#-----------------------------------------------------------------------------
+OPTION(USE_EXPRESSION_TEMPLATES
+       "Use expression templates for matrix and vector operators."
+       OFF)
+
+# ICC needs a gcc to get header from. Newest ICC might not be fully compatible with gcc 8.* yet
 SET(CFS_ICC_GCC_VERSION ${CFS_ICC_GCC_VERSION_DEFAULT} CACHE STRING "GCC version where ICC takes the headers from")
 
 #-----------------------------------------------------------------------------
@@ -431,6 +438,7 @@ MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
 MARK_AS_ADVANCED(EXPLICIT_TEMPLATE_INSTANTIATION)
+MARK_AS_ADVANCED(USE_EXPRESSION_TEMPLATES)
 MARK_AS_ADVANCED(BUILD_HDFVIEW)
 MARK_AS_ADVANCED(COVERAGE)
 MARK_AS_ADVANCED(PROFILING)
@@ -460,11 +468,6 @@ IF(DEBUG)
 ELSE(DEBUG)
   SET(CMAKE_BUILD_TYPE "RELEASE" CACHE STRING
     "Only DEBUG and RELEASE types are valid." FORCE)
-  
-  #---------------------------------------------------------------------------
-  # Activate expression templates (in RELEASE mode)
-  #---------------------------------------------------------------------------
-  SET(EXPR_TEMPLATES 1)
 ENDIF(DEBUG)
 
 #-----------------------------------------------------------------------------

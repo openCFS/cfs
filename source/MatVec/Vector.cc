@@ -1186,7 +1186,7 @@ namespace CoupledField {
   //   Operator implementation for debug case without expression templates
   // ***********************************************************************  
    
-#ifndef EXPR_TEMPLATES
+#ifndef USE_EXPRESSION_TEMPLATES
 
   template<typename T>
   Vector<T> &Vector<T>::operator=(const Vector<T> &x)

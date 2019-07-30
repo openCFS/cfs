@@ -12,5 +12,5 @@
 #cmakedefine CHECK_MEM_ALLOC
 #cmakedefine CHECK_MEMORY
 
-// Activate expression templates (in RELEASE mode)
-#cmakedefine EXPR_TEMPLATES
+// Activate expression templates
+#cmakedefine USE_EXPRESSION_TEMPLATES

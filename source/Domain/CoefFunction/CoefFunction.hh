@@ -233,6 +233,7 @@ public:
     isComplex_ = false;
     supportDerivative_ = false;
     derivType_ = NONE;
+    inverseType_ = NOINVERS;
     
     // by default, the coefficients do not
     // depend on any coordinate system
@@ -737,7 +738,7 @@ protected:
   CoefDerivativeType derivType_;
 
   //! storing the type for inverse scheme
-   CoefInverseType inverseType_;
+  CoefInverseType inverseType_;
 
   //! how the source term is approximated
   CoefInverseSourceApprox inverseApproxType_;

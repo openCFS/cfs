@@ -1131,29 +1131,23 @@ namespace CoupledField
     Resize(other.size_row_, other.size_col_);  
   }
 
-#ifndef EXPR_TEMPLATES
+#ifndef USE_EXPRESSION_TEMPLATES
 
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator=(const Matrix<TYPE> &x)
   {
-    // allows to copy an empty matrix. !
-
-    // Note! it shall be possible to copy an empty matrix!
-//#ifdef CHECK_INITIALIZED
-//    if (x.size_row_ == 0 || x.size_col_ == 0) 
-//      EXCEPTION("undefined Matrix");
-//#endif  
-
     if (this == &x)
       return *this;
 
     // set the size in any case to the size of the assigned matrix
     Resize(x.size_row_, x.size_col_);
   
-    // copy the entries
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      data_[0][k] = x.data_[0][k];
-  
+    // allows to copy an empty matrix. !
+    if (size_row_ > 0 && size_col_ > 0) {
+      // copy the entries
+      std::memcpy(data_[0], x.data_[0], size_row_ * size_col_ * sizeof(TYPE));
+    }
+
     return *this;
   }
 
@@ -1245,7 +1239,7 @@ namespace CoupledField
   }
 
 
-#endif // EXPR_TEMPLATES
+#endif // USE_EXPRESSION_TEMPLATES
   
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator*= (const TYPE x)
