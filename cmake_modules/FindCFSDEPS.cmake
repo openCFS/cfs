@@ -379,10 +379,15 @@ INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 SET(MUPARSER_URL "${CFS_DS_SOURCES_DIR}/muparser")
 SET(MUPARSER_BASE "muparser")
 # https://github.com/beltoforion/muparser/archive/v2.2.6.1.tar.gz
-SET(MUPARSER_VER "2.2.6.1")
-SET(MUPARSER_TGZ "v${MUPARSER_VER}.tar.gz")
-SET(MUPARSER_MD5 "410d29b4c58d1cdc2fc9ed1c1c7f67fe") # 2.2.6.1
-
+# revision 388b3f9 contains a necessary feature request not available in 2.2.6.1
+# someone shall switch to a real revision once strfunc4-5 are there
+# https://codeload.github.com/beltoforion/muparser/zip/388b3f9
+# SET(MUPARSER_VER "2.2.6.1")
+SET(MUPARSER_VER "388b3f9")
+SET(MUPARSER_TGZ "v${MUPARSER_VER}.tar.gz") # # 2.2.6.1
+SET(MUPARSER_TGZ "${MUPARSER_VER}") # no extension for the revision
+#SET(MUPARSER_MD5 "410d29b4c58d1cdc2fc9ed1c1c7f67fe") # 2.2.6.1
+SET(MUPARSER_MD5 "07fbf24e44e8d94399dfb3bda4f454ba") # 388b3f9
 
 INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
