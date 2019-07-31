@@ -1,5 +1,5 @@
 SET(CTEST_PROJECT_NAME "CFS")
 SET(CTEST_DROP_METHOD "http")
-SET(CTEST_DROP_SITE "cfs.mdmt.tuwien.ac.at:44088")
+SET(CTEST_DROP_SITE "neubau-157.mi.uni-erlangen.de")
 SET(CTEST_DROP_LOCATION "/cdash/submit.php?project=CFS")
 SET(CTEST_DROP_SITE_CDASH TRUE)
