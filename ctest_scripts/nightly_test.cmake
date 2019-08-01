@@ -34,7 +34,6 @@
 # http://vtk.org/Wiki/CMake_Testing_With_CTest
 # http://vtk.org/Wiki/CMake_Scripting_Of_CTest
 
-
 # We need at least CMake 2.8.9 for this to work
 CMAKE_MINIMUM_REQUIRED(
   VERSION "2.8.9"
@@ -47,10 +46,7 @@ CMAKE_POLICY(SET CMP0007 NEW)
 # Get base path of current script in order to include additional macros.
 GET_FILENAME_COMPONENT(CTEST_SCRIPTS_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
-# Include informations about development server.
-INCLUDE("${CTEST_SCRIPTS_DIR}/../cmake_modules/DevelopmentServer.cmake")
-
-# Include further macros required for testing.
+# Include information about development server and further macros required for testing.
 INCLUDE("${CTEST_SCRIPTS_DIR}/shared/test_macros.cmake")
 
 # Determine date and time.

@@ -1,4 +1,7 @@
 
+# Include informations about development server.
+INCLUDE("${CTEST_SCRIPTS_DIR}/../cmake_modules/DevelopmentServer.cmake")
+
 MACRO(SET_GLOBAL_VARS)
   # =========================================================================
   #
@@ -408,7 +411,7 @@ MACRO(IDENTIFY_DISTRO)
   INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 ENDMACRO()
 
-# condigures CTestConfig.cmake.in via CTestConfig.cmake.in which is first searched in ctest_scripts/sites/<HOST>/ then in test_scripts/shared/
+# configures CTestConfig.cmake.in via CTestConfig.cmake.in which is first searched in ctest_scripts/sites/<HOST>/ then in test_scripts/shared/
 MACRO(WRITE_CTEST_CONFIG)
   # copy over CTestConfig.cmake.in
   # puts it into the binary dir
