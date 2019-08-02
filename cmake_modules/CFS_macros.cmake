@@ -1,3 +1,5 @@
+# easy check if already loaded
+set(CFS_macros "1")
 #
 # A big shout out to the cmake gurus @ compiz
 #
