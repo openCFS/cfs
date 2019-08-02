@@ -1,22 +1,20 @@
 # test_macros.cmake is either called by nightly_test.cmake or by the site specific linux64_shared_opt_no_prec_gcc_release.cmake, ... scripts
-# either we have CTEST_SCRIPTS_DIR set or CTEST_SOURCE_DIRECTORY
-if(NOT CTEST_SCRIPTS_DIR AND NOT CTEST_SOURCE_DIRECTORY)
-  message(FATAL_ERROR "neither CTEST_SCRIPTS_DIR nor CTEST_SOURCE_DIRECTORY set")
-endif()
-if(NOT CTEST_SCRIPTS_DIR AND CTEST_SOURCE_DIRECTORY)
-  message("set CTEST_SCRIPTS_DIR to ${CTEST_SOURCE_DIRECTORY}")
-  set(CTEST_SCRIPTS_DIR "${CTEST_SOURCE_DIRECTORY}")
-endif()
-if(NOT CTEST_SOURCE_DIRECTORY AND CTEST_SCRIPTS_DIR)
-  message("set CTEST_SOURCE_DIRECTORY to ${CTEST_SCRIPTS_DIR}")
-  set(CTEST_SOURCE_DIRECTORY "${CTEST_SCRIPTS_DIR}")
-endif()
+if(NOT CTEST_SCRIPTS_DIR)
+  # shall be /home/fwein/code/shared/ctest_scripts 
+  # test for CMAKE_CURRENT_LIST_DIR=/home/fwein/code/shared/ctest_scripts/shared
+  if(CMAKE_CURRENT_LIST_DIR)
+    set(CTEST_SCRIPTS_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
+  else()
+    message(FATAL_ERROR "neither CTEST_SCRIPTS_DIR nor CMAKE_CURRENT_LIST_DIR set")
+  endif()  
+endif()  
+
 if(NOT CFS_macros)
-   include("${CTEST_SCRIPTS_DIR}/../cmake_modules/DevelopmentServer.cmake")
+  include("${CTEST_SCRIPTS_DIR}/../cmake_modules/CFS_macros.cmake")
+  assert_set(CFS_macros)
 endif()
 
 # Include informations about development server.
-assert_set(CTEST_SCRIPTS_DIR)
 include("${CTEST_SCRIPTS_DIR}/../cmake_modules/DevelopmentServer.cmake")
 
 MACRO(SET_GLOBAL_VARS)
