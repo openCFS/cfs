@@ -1,5 +1,6 @@
 
 # Include informations about development server.
+assert_set(CTEST_SCRIPTS_DIR)
 INCLUDE("${CTEST_SCRIPTS_DIR}/../cmake_modules/DevelopmentServer.cmake")
 
 MACRO(SET_GLOBAL_VARS)
@@ -69,22 +70,10 @@ MACRO(SET_SITE_SPECIFIC_VARS)
     LIST(GET PWDLINE 5 HOME)
   ENDIF()
 
-#  MESSAGE("Entering SET_SITE_SPECIFIC_VARS...")
   INCLUDE("${SITE_DIR}/site_specific_vars.cmake" OPTIONAL)
-#  MESSAGE("Leaving SET_SITE_SPECIFIC_VARS...")
 
-  MESSAGE(
-  "
-=============================================================================
- Environment:
-=============================================================================
-  "
-  )
-  EXECUTE_PROCESS(
-    COMMAND "${CMAKE_COMMAND}" -E environment
-  #  WORKING_DIRECTORY "${BUILDDIR}"
-    RESULT_VARIABLE RETVAL
-    )
+  # this would print all variables
+  #EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E environment  RESULT_VARIABLE RETVAL)
 
 ENDMACRO()
 
@@ -335,7 +324,7 @@ MACRO(GET_CTEST_BINARY_DIRECTORY TEST_NAME)
   ENDFOREACH()
 
   STRING(REPLACE "\$ENV{" "\\\$ENV{" CTEST_BINARY_DIRECTORY_STR "${CTEST_BINARY_DIRECTORY_STR}")
-  MESSAGE(STATUS "CTEST_BINARY_DIRECTORY_STR ${CTEST_BINARY_DIRECTORY_STR}")
+  # MESSAGE(STATUS "CTEST_BINARY_DIRECTORY_STR ${CTEST_BINARY_DIRECTORY_STR}")
   EVAL("${CTEST_BINARY_DIRECTORY_STR}")
   FILE(TO_CMAKE_PATH "${CTEST_BINARY_DIRECTORY}" CTEST_BINARY_DIRECTORY)
   MESSAGE(STATUS "CTEST_BINARY_DIRECTORY ${CTEST_BINARY_DIRECTORY}")
