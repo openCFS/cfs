@@ -653,7 +653,8 @@ IF(BUILD_TESTING)
   # configure the dashboard and include config
   # write the variables in DartConfiguration.tcl which is used by `ctest -D` or `make Experimental`
   # https://github.com/Kitware/CMake/blob/master/Modules/DartConfiguration.tcl.in
-  set(DROP_SITE "${CFS_DS_CDASH_DROP_SITE}")
+  set(DROP_SITE "movm.mi.uni-erlangen.de" CACHE STRING "URL of the CDash dashboard to submit test results")
+  mark_as_advanced(DROP_SITE)
   set(DROP_LOCATION "/cdash/submit.php?project=${CTEST_PROJECT_NAME}")
   SET(DROP_METHOD "http")
   set(NIGHTLY_START_TIME "00:00:00 CET")
