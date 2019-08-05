@@ -41,6 +41,7 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double 
    opt_scaling(DesignMemory(-1, 0.0)),
    scaling(DesignMemory(-1, 0.0)),
    current(DesignMemory(-1, 0.0)),
+   autoscale_(false),
    base_(base)
 {
 
@@ -83,6 +84,7 @@ void BaseOptimizer::Scale::CalcAutoscale()
 {
   if(target == 0.0 && manual == 0.0)
   {
+    autoscale_ = false;
     return;
   }
 

@@ -160,6 +160,12 @@ namespace CoupledField
        * @return true if not active or no tolerance or within tolerance */
       bool CheckScaling(int n, StdVector<double>& grad);
       
+      /** Did we do autoscale? Interesting for iteration-0 commit */
+      bool DoAutoscale()
+      {
+        return autoscale_;
+      }
+
       std::string ToString();
       
       /** out target for the autoscaled gradient. Not 0.0 means we do autoscale */
@@ -184,6 +190,8 @@ namespace CoupledField
       DesignMemory current;
       
     private:
+
+      bool autoscale_;
 
       BaseOptimizer* base_;
     };
