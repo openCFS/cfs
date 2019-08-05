@@ -89,38 +89,39 @@ void BaseOptimizer::Scale::CalcAutoscale()
   }
 
   LOG_DBG(optimizer) << "Scale:CalcAutoscale() enter";
-  
-  // save the current tolerance and temporarily set to to 0 so we can call common methods
-  double tol_save = tol;
-  tol = 0.0;
-
-  // We need a double design and gradient array. We use temporary ones
- 
-  // evaluate with the current (initial) design. Use this temporary gradient space
-  StdVector<double> grad(base_->optimization->GetDesign()->GetNumberOfVariables());
-  // make a temporary design as a copy from design space to copy it back there :) - Fabian: what is copied back??
-  StdVector<double> data(grad.GetSize());
-  // copy the design to our temporary space
-  int design_id = base_->optimization->GetDesign()->WriteDesignToExtern(data.GetPointer());
-
-  // evaluate the the gradient -> will be cheap in restart case
-  bool good = base_->EvalGradObjective(grad.GetSize(), data.GetPointer(), false, grad);
-  if(!good) EXCEPTION("internal error"); // needs to be good as tol = set to 0.0;
-  assert(opt_scaling.value != 0.0);
-  // reset the tolerance
-  tol = tol_save;
-  
   if (manual == 0.0) {
+    // save the current tolerance and temporarily set to to 0 so we can call common methods
+    double tol_save = tol;
+    tol = 0.0;
+  
+    // We need a double design and gradient array. We use temporary ones
+
+    // evaluate with the current (initial) design. Use this temporary gradient space
+    StdVector<double> grad(base_->optimization->GetDesign()->GetNumberOfVariables());
+    // make a temporary design as a copy from design space to copy it back there :) - Fabian: what is copied back??
+    StdVector<double> data(grad.GetSize());
+    // copy the design to our temporary space
+    int design_id = base_->optimization->GetDesign()->WriteDesignToExtern(data.GetPointer());
+  
+    // evaluate the the gradient -> will be cheap in restart case
+    bool good = base_->EvalGradObjective(grad.GetSize(), data.GetPointer(), false, grad);
+    if(!good) EXCEPTION("internal error"); // needs to be good as tol = set to 0.0;
+    assert(opt_scaling.value != 0.0);
+    // reset the tolerance
+    tol = tol_save;
     // our new scaling is the optimal scaling for now!
     scaling.design_id = opt_scaling.design_id;
     scaling.value = opt_scaling.value;
+    LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " design="
+                         << scaling.design_id << " needed_eval=" << (opt_scaling.design_id != design_id);
   } else {
     scaling.design_id = opt_scaling.design_id;
     scaling.value = manual;
+    opt_scaling.value = manual;
+    LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): manual scaling. Scale=" << scaling.value << " design="
+                         << scaling.design_id;
   }
-
-  LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " desing=" 
-                       << scaling.design_id << " needed_eval=" << (opt_scaling.design_id != design_id);
+  assert(opt_scaling.value != 0.0);
 }
 
 
