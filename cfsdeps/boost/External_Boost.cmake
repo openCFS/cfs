@@ -78,7 +78,9 @@ ENDIF(UNIX)
 SET(BOOST_EXTRA_PARAMS "") # both bootstrap and jam
 SET(BOOST_BOOTSTRAP_PARAMS "")
 SET(BOOST_JAM_PATCH_COMMAND "")
-SET(BOOST_JAM_PARAMS "")
+# see https://stackoverflow.com/questions/27848105/how-to-force-compilation-of-boost-to-use-fpic
+SET(BOOST_JAM_PARAMS "cxxflags=-fPIC ")
+
 IF(MINGW)
   SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
 
