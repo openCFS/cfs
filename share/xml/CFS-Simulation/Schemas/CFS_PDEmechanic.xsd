@@ -478,6 +478,41 @@
       <xsd:enumeration value="optResult_29"/>
       <xsd:enumeration value="optResult_30"/>
       <xsd:enumeration value="optResult_31"/>
+      <xsd:enumeration value="optResult_32"/>
+      <xsd:enumeration value="optResult_33"/>
+      <xsd:enumeration value="optResult_34"/>
+      <xsd:enumeration value="optResult_35"/>
+      <xsd:enumeration value="optResult_36"/>
+      <xsd:enumeration value="optResult_37"/>
+      <xsd:enumeration value="optResult_38"/>
+      <xsd:enumeration value="optResult_39"/>
+      <xsd:enumeration value="optResult_40"/>
+      <xsd:enumeration value="optResult_41"/>
+      <xsd:enumeration value="optResult_42"/>
+      <xsd:enumeration value="optResult_43"/>
+      <xsd:enumeration value="optResult_44"/>
+      <xsd:enumeration value="optResult_45"/>
+      <xsd:enumeration value="optResult_46"/>
+      <xsd:enumeration value="optResult_47"/>
+      <xsd:enumeration value="optResult_48"/>
+      <xsd:enumeration value="optResult_49"/>
+      <xsd:enumeration value="optResult_50"/>
+      <xsd:enumeration value="optResult_51"/>
+      <xsd:enumeration value="optResult_52"/>
+      <xsd:enumeration value="optResult_53"/>
+      <xsd:enumeration value="optResult_54"/>
+      <xsd:enumeration value="optResult_55"/>
+      <xsd:enumeration value="optResult_56"/>
+      <xsd:enumeration value="optResult_57"/>
+      <xsd:enumeration value="optResult_58"/>
+      <xsd:enumeration value="optResult_59"/>
+      <xsd:enumeration value="optResult_60"/>
+      <xsd:enumeration value="optResult_61"/>
+      <xsd:enumeration value="optResult_62"/>
+      <xsd:enumeration value="optResult_63"/>
+      <xsd:enumeration value="optResult_64"/>
+      <xsd:enumeration value="optResult_65"/> 
+      <xsd:enumeration value="optResult_66"/>                   
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -525,6 +560,9 @@
       <xsd:enumeration value="mechTensor"/>
       <!-- the local tensor in Hill Mandel notation -->
       <xsd:enumeration value="mechTensorHillMandel"/>
+      <!-- the local tensor in Hill Mandel notation -->
+      <xsd:enumeration value="mechElemVol"/>
+      <xsd:enumeration value="mechElemPorosity"/>
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
       <xsd:enumeration value="optResult_3"/>                  
@@ -556,6 +594,41 @@
       <xsd:enumeration value="optResult_29"/>
       <xsd:enumeration value="optResult_30"/>
       <xsd:enumeration value="optResult_31"/>
+      <xsd:enumeration value="optResult_32"/>
+      <xsd:enumeration value="optResult_33"/>
+      <xsd:enumeration value="optResult_34"/>
+      <xsd:enumeration value="optResult_35"/>
+      <xsd:enumeration value="optResult_36"/>
+      <xsd:enumeration value="optResult_37"/>
+      <xsd:enumeration value="optResult_38"/>
+      <xsd:enumeration value="optResult_39"/>
+      <xsd:enumeration value="optResult_40"/>
+      <xsd:enumeration value="optResult_41"/>
+      <xsd:enumeration value="optResult_42"/>
+      <xsd:enumeration value="optResult_43"/>
+      <xsd:enumeration value="optResult_44"/>
+      <xsd:enumeration value="optResult_45"/>
+      <xsd:enumeration value="optResult_46"/>
+      <xsd:enumeration value="optResult_47"/>
+      <xsd:enumeration value="optResult_48"/>
+      <xsd:enumeration value="optResult_49"/>
+      <xsd:enumeration value="optResult_50"/>
+      <xsd:enumeration value="optResult_51"/>
+      <xsd:enumeration value="optResult_52"/>
+      <xsd:enumeration value="optResult_53"/>
+      <xsd:enumeration value="optResult_54"/>
+      <xsd:enumeration value="optResult_55"/>
+      <xsd:enumeration value="optResult_56"/>
+      <xsd:enumeration value="optResult_57"/>
+      <xsd:enumeration value="optResult_58"/>
+      <xsd:enumeration value="optResult_59"/>
+      <xsd:enumeration value="optResult_60"/>
+      <xsd:enumeration value="optResult_61"/>
+      <xsd:enumeration value="optResult_62"/>
+      <xsd:enumeration value="optResult_63"/>
+      <xsd:enumeration value="optResult_64"/>
+      <xsd:enumeration value="optResult_65"/>
+      <xsd:enumeration value="optResult_66"/>      
     </xsd:restriction>
   </xsd:simpleType>
 

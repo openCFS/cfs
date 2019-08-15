@@ -114,14 +114,24 @@ def read_stiff_angle_matlab(filename):
     s2[i] = d[i][2]
     if dim == 3:
       s3[i] = d[i][3]
+  design = dict()
   if dim == 3:
-    return None,s1,s2,coords,s3,None
+    design['angle'] = numpy.zeros((s1.shape[0], 1))
+    design['s1'] = s1
+    design['s2'] = s2
+    design['s3'] = s3
+    return design,coords
   else:
-    return angle,s1,s2,coords,s3,'2D'
+    design['angle'] = angle
+    design['s1'] = s1
+    design['s2'] = s2
+    design['s3'] = None
+    return design,coords
 
 # # read arbitrary multi-design density file as numpy array
 def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):
   if not os.path.exists(filename):
+
     raise RuntimeError("file '" + filename + "' doesn't exist")
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   root = tree.getroot()
@@ -152,6 +162,9 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
   length = len(sett) / designs
   offset = int(sett[0].get("nr")) - 1
   out = numpy.zeros((length, designs))
+  nr_vec = numpy.zeros((length,1))
+  counter = 0
+  idx_old = -1
   for element in sett:
     nr = int(element.get("nr"))- offset
     type = element.get("type")
@@ -173,8 +186,13 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       if tmp is None:
         print("Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'.")
         tmp = element.get("design")
+      if idx != idx_old:
+        counter = 0
       des = float(tmp)
-      out[nr - 1, idx] = des
+      out[counter, idx] = des
+      nr_vec[counter] = int(element.get("nr"))
+      counter += 1
+      idx_old = idx
   if matrix:
     output = numpy.zeros((x, y, z, designs))
     for t in range(designs):
@@ -185,7 +203,7 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
             output[i][j][k][t] = out[count][t]
             count += 1
     out = output
-  return out
+  return out,nr_vec
   
 ## returns all set ids from a density xml
 # return a list of string like stuff
@@ -392,6 +410,18 @@ def read_density_as_full_array(filename, attribute='design', fill=0.0, set = Non
     a[y, x] = vals[i]
       
   return a
+
+def convert_multi_density_to_matlab(filename, outputfile, design1,design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"): 
+  d = read_multi_design(filename,design1,design2, design3, design4, design5, design6, matrix, attribute)
+  (m,n) = d.shape
+  for i in range(n):
+    out = open(outputfile+'_des' + str(i+1), "w")
+    for j in range(m):
+      out.write(str(d[j,i])+'\n')
+    out.close()
+  
+      
+  
 
 # # replaces the element numbers by new element numbers.
 # @param org ndarray of element numbers from read_density(,elemnr=True)

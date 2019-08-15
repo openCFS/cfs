@@ -558,6 +558,8 @@ namespace CoupledField {
         return "m/s";
         break;
 
+      case MECH_ELEM_VOL:
+      case MECH_ELEM_POROSITY:
       case MECH_PSEUDO_DENSITY:
       case PHYSICAL_PSEUDO_DENSITY:
       case ELEC_PHYSICAL_PSEUDO_DENSITY:
@@ -1299,6 +1301,7 @@ namespace CoupledField {
     SolutionTypeEnum.SetName("SolutionTypeEnum");
     //mechanics
     SolutionTypeEnum.Add(MECH_DISPLACEMENT, "mechDisplacement");
+    SolutionTypeEnum.Add(MECH_ELEM_POROSITY, "mechElemPorosity");
     SolutionTypeEnum.Add(MECH_NORMAL_DISPLACEMENT, "mechNormalDisplacement");
     
     SolutionTypeEnum.Add(MECH_ACCELERATION, "mechAcceleration");
@@ -1352,6 +1355,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_TENSOR_TRACE, "mechTensorTrace");
     SolutionTypeEnum.Add(MECH_TENSOR, "mechTensor");
     SolutionTypeEnum.Add(MECH_TENSOR_HILL_MANDEL, "mechTensorHillMandel");
+    SolutionTypeEnum.Add(MECH_ELEM_VOL, "mechElemVol");
+
 
     //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
@@ -1566,6 +1571,42 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_29, "optResult_29");
     SolutionTypeEnum.Add(OPT_RESULT_30, "optResult_30");
     SolutionTypeEnum.Add(OPT_RESULT_31, "optResult_31");
+    SolutionTypeEnum.Add(OPT_RESULT_32, "optResult_32");
+    SolutionTypeEnum.Add(OPT_RESULT_33, "optResult_33");
+    SolutionTypeEnum.Add(OPT_RESULT_34, "optResult_34");
+    SolutionTypeEnum.Add(OPT_RESULT_35, "optResult_35");
+    SolutionTypeEnum.Add(OPT_RESULT_36, "optResult_36");
+    SolutionTypeEnum.Add(OPT_RESULT_37, "optResult_37");
+    SolutionTypeEnum.Add(OPT_RESULT_38, "optResult_38");
+    SolutionTypeEnum.Add(OPT_RESULT_39, "optResult_39");
+    SolutionTypeEnum.Add(OPT_RESULT_40, "optResult_40");
+    SolutionTypeEnum.Add(OPT_RESULT_41, "optResult_41");
+    SolutionTypeEnum.Add(OPT_RESULT_42, "optResult_42");
+    SolutionTypeEnum.Add(OPT_RESULT_43, "optResult_43");
+    SolutionTypeEnum.Add(OPT_RESULT_44, "optResult_44");
+    SolutionTypeEnum.Add(OPT_RESULT_45, "optResult_45");
+    SolutionTypeEnum.Add(OPT_RESULT_46, "optResult_46");
+    SolutionTypeEnum.Add(OPT_RESULT_47, "optResult_47");
+    SolutionTypeEnum.Add(OPT_RESULT_48, "optResult_48");
+    SolutionTypeEnum.Add(OPT_RESULT_49, "optResult_49");
+    SolutionTypeEnum.Add(OPT_RESULT_50, "optResult_50");
+    SolutionTypeEnum.Add(OPT_RESULT_51, "optResult_51");
+    SolutionTypeEnum.Add(OPT_RESULT_52, "optResult_52");
+    SolutionTypeEnum.Add(OPT_RESULT_53, "optResult_53");
+    SolutionTypeEnum.Add(OPT_RESULT_54, "optResult_54");
+    SolutionTypeEnum.Add(OPT_RESULT_55, "optResult_55");
+    SolutionTypeEnum.Add(OPT_RESULT_56, "optResult_56");
+    SolutionTypeEnum.Add(OPT_RESULT_57, "optResult_57");
+    SolutionTypeEnum.Add(OPT_RESULT_58, "optResult_58");
+    SolutionTypeEnum.Add(OPT_RESULT_59, "optResult_59");
+    SolutionTypeEnum.Add(OPT_RESULT_60, "optResult_60");
+    SolutionTypeEnum.Add(OPT_RESULT_61, "optResult_61");
+    SolutionTypeEnum.Add(OPT_RESULT_62, "optResult_62");
+    SolutionTypeEnum.Add(OPT_RESULT_63, "optResult_63");
+    SolutionTypeEnum.Add(OPT_RESULT_64, "optResult_64");
+    SolutionTypeEnum.Add(OPT_RESULT_65, "optResult_65");
+    SolutionTypeEnum.Add(OPT_RESULT_66, "optResult_66");
+
 
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "lagrangeMultiplier");

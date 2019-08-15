@@ -299,7 +299,26 @@ namespace CoupledField {
         material->SetCoefFct( MECH_STIFFNESS_TENSOR, elastCoef);
         material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::GENERAL);
         flagElasticitySet = true;
-      } // end tensor  
+      } else if   (elast->HasByVal("tensor", "dim1", "3")) {
+        PtrParamNode tens = elast->GetByVal("tensor", std::string("dim1"), "3");
+        StdVector<std::string> realVals(9), imagVals(9);
+        realVals.Init("0.0");
+        imagVals.Init("0.0");
+        PtrCoefFct elastCoef;
+        //read real elasticity tensor
+        if(tens->Has("real")) {
+          ParamTools::AsStringTensor( tens->Get("real"), 9, realVals );
+        }
+        if(tens->Has("imag")) {
+          ParamTools::AsStringTensor( tens->Get("imag"), 9, imagVals );
+        }
+        elastCoef = CoefFunction::Generate(mp_,  Global::COMPLEX, 3, 3,
+                realVals, imagVals );
+        material->SetCoefFct( MECH_STIFFNESS_TENSOR, elastCoef);
+        material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::GENERAL);
+        flagElasticitySet = true;
+      }
+      // end tensor
       
       // check values for isotropic
       if(elast->Has("isotropic"))
