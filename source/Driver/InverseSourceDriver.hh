@@ -174,6 +174,9 @@ protected:
 
   //! level of log writing
   std::string logLevel_;
+
+  //! scales the measured data to this value
+  Double scale2Val_;
 };
 
 }

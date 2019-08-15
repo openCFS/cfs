@@ -6,7 +6,7 @@
 # these variables must be set:
 set(NIGHTLY_TESTSUITE_DIR "$ENV{HOME}/cfs/testsuite") # source of the testsuite
 set(NIGHTLY_CACHE_DIR "$ENV{HOME}/cfs/build/cache") # cache dir for builds
-set(NIGHTLY_SOURCE_DIR "$ENV{HOME}/cfs/trunk") # source of cfs
+set(NIGHTLY_SOURCE_DIR "$ENV{HOME}/cfs/master") # source of cfs
 set(NIGHTLY_BUILD_DIR "$ENV{HOME}/cfs/build") # where the builds should be made (a sub-path is appended for each test)
 
 # set the name of the machine (Site)
@@ -21,4 +21,3 @@ set(CTEST_SITE "mdmt.${CFS_BUILD_HOST}") # use mdmt in front to allow for sortin
 find_program(CTEST_GIT_COMMAND NAMES git)
 set(CTEST_UPDATE_TYPE "git") # use git
 set(CTEST_UPDATE_COMMAND "${CTEST_GIT_COMMAND}")
-set(CTEST_GIT_UPDATE_CUSTOM "${CTEST_GIT_COMMAND};svn;rebase") # use git-svn

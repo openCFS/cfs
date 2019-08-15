@@ -17,8 +17,11 @@ doc = xmlread(infoxml);
 
 % Get Element '//homogenizedTensor/ ... /real'
 list1 = doc.getElementsByTagName('homogenizedTensor');
-if list1.getLength ~= 1
+if list1.getLength > 1
     warning('MATLAB:ReadMatrixFromXML','File contains multiple homogenized tensors');
+end
+if list1.getLength < 1
+    warning('MATLAB:ReadMatrixFromXML','File contains no homogenized tensor');
 end
 list2 = list1.item(0).getElementsByTagName('real');
 charArray = list2.item(0).getTextContent;

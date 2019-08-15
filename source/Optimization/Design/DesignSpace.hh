@@ -429,8 +429,9 @@ namespace CoupledField
                                   DesignElement::Access access = DesignElement::PLAIN,
                                   const std::string& excitation = "");
 
-     /** Dumps the design space */
-     std::string ToString();
+     /** Dumps the design space
+      * @param level 0 many data, 1 only design values */
+     std::string ToString(int level = 0);
 
      /** Writes summary information about design variables and transfer functions into the node
       * @param em might be NULL if called from read ersatz material */

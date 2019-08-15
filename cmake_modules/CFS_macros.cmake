@@ -1,3 +1,5 @@
+# easy check if already loaded
+set(CFS_macros "1")
 #
 # A big shout out to the cmake gurus @ compiz
 #
@@ -252,17 +254,23 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
         dst='${LOCAL_FILE}'
         timeout=${TIMEOUT}")
 
-      FILE(DOWNLOAD
-        ${URL}
-        ${LOCAL_FILE}
-        INACTIVITY_TIMEOUT ${TIMEOUT}
-        STATUS DL_STATUS
-        LOG DL_LOG
-        SHOW_PROGRESS
-        TLS_VERIFY OFF)
+      IF(EXISTS ${URL})
+        GET_FILENAME_COMPONENT(FOLDER ${LOCAL_FILE} DIRECTORY)
+        MESSAGE("src is an existing local file: copy ${URL} -> ${LOCAL_FILE}")
+        CONFIGURE_FILE("${URL}" "${LOCAL_FILE}" COPYONLY)
+      ELSE()
+        FILE(DOWNLOAD
+          ${URL}
+          ${LOCAL_FILE}
+          INACTIVITY_TIMEOUT ${TIMEOUT}
+          STATUS DL_STATUS
+          LOG DL_LOG
+          SHOW_PROGRESS
+          TLS_VERIFY OFF)
 
-      LIST(GET DL_STATUS 0 DL_FAIL)
-      LIST(GET DL_STATUS 1 DL_MSG)
+        LIST(GET DL_STATUS 0 DL_FAIL)
+        LIST(GET DL_STATUS 1 DL_MSG)
+      ENDIF()
 
       IF(NOT DL_FAIL)
         FILE(MD5 ${LOCAL_FILE} ACTUAL_MD5)
@@ -316,8 +324,8 @@ ENDMACRO()
 
 #-------------------------------------------------------------------------------
 # Create ZIP_FILE
-# If a TMP_DIR/src/*-build/install_manifest.txt exists, we zip all files listed in there.
-# Else we try to be smart on TMP_DIR, make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
+# If a TMP_DIR/src/*-build/install_manifest.txt exists (when built with cmake), we zip all files listed in there.
+# Else we try to be smart on TMP_DIR (move libs from lib64 to lib64/@CFS_ARCH), make a zip out of it and copy the content to CMAKE_CURRENT_BINARY_DIR
 #-------------------------------------------------------------------------------
 MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   STRING(REGEX REPLACE "^.+[/\\]" "" ZIP_NAME ${ZIP_FILE})
@@ -326,8 +334,11 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
     FILE(MAKE_DIRECTORY "${TARGET_DIR}")
   ENDIF()
   
-  FILE(GLOB MANIFESTS "${TMP_DIR}/src/*-build/install_manifest.txt")
+  # Fabian: was src/*-build/install_manifest.tx before but that fails for openblas
+  FILE(GLOB MANIFESTS "${TMP_DIR}/src/*/install_manifest.txt")
+
   IF("${MANIFESTS}" STREQUAL "")
+    message("ZIP_TO_CACHE: zip ${TMP_DIR} as manifest ${TMP_DIR}/src/*-build/install_manifest.txt was not found")
     # No manifests exists -> zip TMP_DIR
 
     # standard make or configure does not known about lib64/CFS_ARCH_STR
@@ -356,14 +367,15 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
       EXECUTE_PROCESS(
         COMMAND sed "s@${CMAKE_CURRENT_BINARY_DIR}/@@g" ${manifest} 
         COMMAND zip -@ -g ${ZIP_FILE}
-        OUTPUT_QUIET
-        RESULT_VARIABLE rv
-      )
+        # OUTPUT_QUIET
+        RESULT_VARIABLE rv )
     ENDFOREACH()
+    
   ENDIF()
-  IF(NOT "${rv}" STREQUAL "0")
+  if(NOT "${rv}" STREQUAL "0")
     MESSAGE(WARNING "Could not create ${ZIP_NAME} at ${TARGET_DIR}.")
-  ENDIF()
+  endif()
+ 
 ENDMACRO()
 
 # ------------------------------------------------------------------------------
@@ -434,3 +446,31 @@ macro(DUMP_DIR DIR)
     message("${_NAME}")
   endforeach()  
 endmacro()
+
+
+# This is a simple assert to check if a cmake variable is set.
+# use like assert_set(CTEST_SCRIPTS_DIR) or assert_set("CTEST_SCRIPTS_DIR")
+macro(assert_set test)
+  if(NOT ${test})
+     message(FATAL_ERROR "assertion failed, the variable ${test} is not set")
+  endif()
+endmacro()
+
+# This is a simple assert to check if a cmake variable is unset.
+# see assert_set() 
+macro(assert_unset test)
+  if(${test})
+     message(FATAL_ERROR  "assertion failed, the variable ${test} is already set to '${test}'")
+  endif()
+endmacro()
+
+# simple headline macro. Prints emptly line, ======, text, ===== empty line
+# use like headline("Starting nightly tests on ${DATE_OUT}...")
+macro(headline text)
+  message("")
+  message("=============================================================================")
+  message("${text}")
+  message("=============================================================================")
+  message("")
+endmacro()
+

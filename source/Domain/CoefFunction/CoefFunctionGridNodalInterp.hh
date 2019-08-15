@@ -81,6 +81,10 @@ public:
     return "";
   };
 
+  //! Prepares the interpolation, former done in GetVector method but there we had problems with OMP
+  virtual void PrepareInterpolation();
+
+
   //@{ \name Shortcuts
 
   //! Map Conservative to FeFunction Vector

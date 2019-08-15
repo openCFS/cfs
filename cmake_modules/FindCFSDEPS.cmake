@@ -222,18 +222,19 @@ ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB"  OR USE_ILUPACK )
 # Find OpenBLAS/LAPACK library
 # see NETLIB comment
 #-----------------------------------------------------------------------------
-IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+if(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
     
-  SET(OPENBLAS_URL "${CFS_DS_SOURCES_DIR}/openblas")
-  SET(OPENBLAS_BASE "OpenBLAS")
-  SET(OPENBLAS_VER "0.2.20")
+  set(OPENBLAS_URL "${CFS_DS_SOURCES_DIR}/openblas")
+  set(OPENBLAS_BASE "OpenBLAS")
+  # the latest revision 0.2.20 does not compile with -DDYNAMIC_ARCH=1 but the current development version does
+  # set(OPENBLAS_VER "0.2.20")
+  # set(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
+  set(OPENBLAS_REV "874df65") # 1.2.2018
+  set(OPENBLAS_ZIP "${OPENBLAS_REV}.zip")
   # this is the filename on https://github.com/xianyi/OpenBLAS/archive, the sourceforge link is with spaces
-  SET(OPENBLAS_GZ "v${OPENBLAS_VER}.tar.gz")
-  SET(OPENBLAS_MD5 "48637eb29f5b492b91459175dcc574b1")
-    
+  set(OPENBLAS_MD5 "0594f38346c725b5c88fcb648c4af1e8")
   INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
-    
-ENDIF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+endif(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
 
 #-----------------------------------------------------------------------------
 # Find Intel Math Kernel library
@@ -377,13 +378,16 @@ INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 #-------------------------------------------------------------------------------
 SET(MUPARSER_URL "${CFS_DS_SOURCES_DIR}/muparser")
 SET(MUPARSER_BASE "muparser")
-SET(MUPARSER_VER "2.2.5")
-#SET(MUPARSER_VER "v2_2_2")
-SET(MUPARSER_ZIP "${MUPARSER_BASE}-${MUPARSER_VER}.tar.gz")
-#SET(MUPARSER_ZIP "${MUPARSER_BASE}_${MUPARSER_VER}.zip") # v2_2_2
-SET(MUPARSER_MD5 "02dae671aa5ad955fdcbcd3fee313fb7") # 2.2.5
-#SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a") #v2_2_2
-SET(MUPARSER_SHA512 "d89380ebdc0ce91d0ea38fe43419ab6ed06c47d352b9ee20e1edcce48337b464366153493e0241c373ba2880a8b419fb9541e56cda0d14915daf9b98136ee682") # needed for URL
+# https://github.com/beltoforion/muparser/archive/v2.2.6.1.tar.gz
+# revision 388b3f9 contains a necessary feature request not available in 2.2.6.1
+# someone shall switch to a real revision once strfunc4-5 are there
+# https://codeload.github.com/beltoforion/muparser/zip/388b3f9
+SET(MUPARSER_VER "2.2.6.1")
+# SET(MUPARSER_VER "388b3f9")
+SET(MUPARSER_TGZ "v${MUPARSER_VER}.tar.gz") # # 2.2.6.1
+#SET(MUPARSER_TGZ "${MUPARSER_VER}") # no extension for the revision
+SET(MUPARSER_MD5 "410d29b4c58d1cdc2fc9ed1c1c7f67fe") # 2.2.6.1
+#SET(MUPARSER_MD5 "07fbf24e44e8d94399dfb3bda4f454ba") # 388b3f9
 
 INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
@@ -510,12 +514,12 @@ ENDIF(USE_FLANN)
 # This is not open source, so check with Christoph Zillober, Uni-Wuerzburg first 
 #-----------------------------------------------------------------------------
 IF(USE_SCPIP)
+  SET(SCPIP_URL "${CFS_DS_SOURCES_DIR}/scpip")
   SET(SCPIP_PATH "${CFS_BINARY_DIR}/cfsdeps/scpip")
   SET(SCPIP_BASE "scpip")
   SET(SCPIP_VER "")
   SET(SCPIP_BZ2 "${SCPIP_BASE}.tar.bz2")
-  SET(SCPIP_MD5 "8afaf8d8d79981d68b8c726ea508471d")
-   
+  SET(SCPIP_MD5 "8afaf8d8d79981d68b8c726ea508471d")  
   INCLUDE("${CFSDEPS_DIR}/scpip/External_SCPIP.cmake")
 ENDIF(USE_SCPIP)
 
@@ -524,12 +528,14 @@ ENDIF(USE_SCPIP)
 # Find SNOPT - A general purpose commercial optimizer 
 #-----------------------------------------------------------------------------
 IF(USE_SNOPT)
-  SET(SNOPT_PATH "${CFS_BINARY_DIR}/cfsdeps/snopt")
+  SET(SNOPT_URL "${CFS_DS_SOURCES_DIR}/snopt")
   SET(SNOPT_BASE "snopt")
   SET(SNOPT_VER "7.2.8")
+  SET(SNOPT_MD5 "9e75be8400eb878b9cb3d489084af196")
+  SET(SNOPT_PATH "${CFS_BINARY_DIR}/cfsdeps/snopt")
+  # as snopt is commerical propriatary copy we hand an encrypted source file
+  # you need to provide CFS_KEY_SNOPT with the password
   SET(SNOPT_ZIP "${SNOPT_BASE}-${SNOPT_VER}-cfsdeps.zip")
-  # SET(SNOPT_MD5 "9e75be8400eb878b9cb3d489084af196") we don't check
-  
   INCLUDE("${CFSDEPS_DIR}/snopt/External_SNOPT.cmake")
 ENDIF(USE_SNOPT)
 

@@ -217,7 +217,7 @@ BaseOptimizer::~BaseOptimizer()
 }
 
 
-boost::shared_ptr<Timer> BaseOptimizer::GetRunnungEvalTimer()
+boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
 {
   // only one may run
   assert(!(eval_obj_timer_->IsRunning() && (eval_const_timer_->IsRunning() || eval_grad_obj_timer_->IsRunning() || eval_grad_const_timer_->IsRunning() )));
@@ -321,7 +321,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   bool restart_timer = optimizer_timer_->IsRunning();
   optimizer_timer_->Stop();
 
-  assert(!GetRunnungEvalTimer()); // no currently running timer!
+  assert(!GetRunningEvalTimer()); // no currently running timer!
 
   eval_obj_timer_->Start();
 
@@ -482,7 +482,7 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
   assert(!(!direct_call && !eval_const_timer_->IsRunning()));
   if(direct_call) {
     assert(optimizer_timer_->IsRunning());
-    assert(!GetRunnungEvalTimer());
+    assert(!GetRunningEvalTimer());
     optimizer_timer_->Stop();
     eval_const_timer_->Start();
   }
@@ -574,7 +574,7 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
   assert(!(!direct_call && !eval_grad_const_timer_->IsRunning()));
   if(direct_call) {
     assert(optimizer_timer_->IsRunning());
-    assert(!GetRunnungEvalTimer());
+    assert(!GetRunningEvalTimer());
     optimizer_timer_->Stop();
     eval_grad_const_timer_->Start();
   }

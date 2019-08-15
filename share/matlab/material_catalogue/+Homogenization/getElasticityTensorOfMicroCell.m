@@ -69,9 +69,9 @@ if status ~= 1
     disp(message);
 end
 if strcmp(ext,'.mesh')
-    [status,result] = system( sprintf('LC_ALL=C cfsso.rel -g -m %s %s', meshfile, invfilename) );
+    [status,result] = system( sprintf('LC_ALL=C cfsso.rel -m %s %s', meshfile, invfilename) );
 else
-    [status,result] = system( sprintf('LC_ALL=C cfsso.rel -g -m %s.mesh -x %s %s', meshfilename, meshfile, invfilename) );
+    [status,result] = system( sprintf('LC_ALL=C cfsso.rel -m %s.mesh -x %s %s', meshfilename, meshfile, invfilename) );
 end
 cd(path);
 
@@ -90,19 +90,19 @@ else
         disp(ME.message);
     end
 end
-densfile = sprintf('%s/%s.dens', meshfilepath, meshfilename);
-infofile = sprintf('%s/%s.info', cfsworkingdirectory, invfilename);
-lasfile = sprintf('%s/%s.las', cfsworkingdirectory, invfilename);
-plotfile = sprintf('%s/%s.plot.dat', cfsworkingdirectory, invfilename);
-h5file = sprintf('%s/results_hdf5/%s.h5', cfsworkingdirectory, invfilename);
-% delete( sprintf('%s/%s.mesh', meshfilepath, meshfilename) );
-% delete( sprintf('%s/%s', cfsworkingdirectory, invfile) );
-if exist(densfile, 'file')
-%     delete(densfile);
+
+delete_file( sprintf('%s/%s', cfsworkingdirectory, invfile) );
+delete_file( sprintf('%s/%s.mesh', meshfilepath, meshfilename) );
+delete_file( sprintf('%s/%s.dens', meshfilepath, meshfilename) );
+delete_file( sprintf('%s/%s.las', cfsworkingdirectory, invfilename) );
+delete_file( sprintf('%s/%s.plot.dat', cfsworkingdirectory, invfilename) );
+delete_file( sprintf('%s/%s.info', cfsworkingdirectory, invfilename) );
+% delete_file( sprintf('%s/results_hdf5/%s.cfs', cfsworkingdirectory, invfilename) );
+
 end
-if exist(lasfile, 'file')
-%     delete(lasfile);
-%     delete(infofile);
-%     delete( plotfile );
-%     delete( h5file );
+
+function delete_file(file)
+if exist(file, 'file')
+    delete(file)
+end
 end

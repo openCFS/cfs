@@ -5,13 +5,17 @@
 #include <fstream>
 #include <iterator>
 
+#include "Domain/Domain.hh"
+#include "OLAS/solver/BaseEigenSolver.hh"
+
 namespace CoupledField {
 
 template <class TYPE> class Vector;
 class SingleVector;
+//class SimState;
   
   //! Driver class for calculating a general eigenvalue problem
-  class EigenFrequencyDriver : public SingleDriver {
+  class EigenFrequencyDriver : public virtual SingleDriver {
 
   public:
 
@@ -64,7 +68,7 @@ class SingleVector;
         freq.Resize( eigRe.GetSize() );
         Double twoPi = 8.0*atan(1.0);
         for (UInt i=0; i < eigRe.GetSize(); i++) {
-            freq[i] = sqrt(eigRe[i])/twoPi;
+          freq[i] = sqrt(std::abs(eigRe[i]))/twoPi; // take the absolute value only to avoid problems with very small but negative EVs
         }
     }
     void Eig2FreqDamp(Vector<Double>& eigRe, Vector<Double>& eigIm, Vector<Double> & freq, Vector<Double> & damp ) {
@@ -75,7 +79,7 @@ class SingleVector;
         for (UInt i=0; i < eigRe.GetSize(); i++) {
             double eigRatio = eigIm[i]/eigRe[i];
             damp[i] = sqrt( 1.0/(1.0-eigRatio*eigRatio) );
-            freq[i] = eigRe[i]/damp[i]/twoPi;
+            freq[i] = std::abs(eigRe[i])/damp[i]/twoPi;
         }
     }
     void Eig2FreqDamp(Vector<Complex>& eig, Vector<Double> & freq, Vector<Double> & damp ) {
@@ -85,9 +89,13 @@ class SingleVector;
         Double twoPi = 8.0*atan(1.0);
         for (UInt i=0; i < eig.GetSize(); i++) {
             // no idea if this is correct in general ...
-            double omega = sqrt(eig[i].real());
-            damp[i] = eig[i].imag()/omega;
-            freq[i] = omega/twoPi;
+          Complex lam = sqrt(eig[i]);
+          double omega = lam.real();
+          damp[i] = lam.imag();
+          freq[i] = omega/twoPi;
+          /*double omega = sqrt(eig[i].real()); # alternative implementation from sharedopt
+          damp[i] = eig[i].imag()/omega;
+          freq[i] = omega/twoPi;*/
         }
     }
     void SortModes(){
@@ -127,6 +135,22 @@ class SingleVector;
 
     /** for multi sequence optimization we need some information before driver instantiation */
     static bool DoBloch(PtrParamNode node) { return node->Has("bloch"); }
+
+    void SetToStepValue(UInt stepNum, Double stepVal )  {
+      // ensure that this method is only called if simState has input
+      if( false ) { // ! simState_->HasInput()
+        EXCEPTION( "Can only set external time step, if simulation state "
+                << "is read from external file" );
+      }
+
+      //actFreqStep_ = stepNum;;
+      //actFreq_ = stepVal;
+
+      // Set current frequency value in the mathParser
+      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", stepVal );
+      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", stepNum );
+
+    }
 
     /** the resent calculated eigenvalues. Might be complex, @see GetFrequency(). Corresponds with errBounds_ */
     SingleVector* eigenFreqs; //ToDo: remove due to new structure -> frequency_
@@ -213,6 +237,7 @@ class SingleVector;
 
     bool eigenValuesAreReal_;
 
+    BaseEigenSolver::ModeNormalization modeNormalization_;
   };
 
 }

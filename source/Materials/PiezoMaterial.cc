@@ -226,23 +226,6 @@ namespace CoupledField
     }
   }    
   
-  void PiezoMaterial::GetScalar( Integer& param, MaterialType matType)  const {
-    
-    
-    integerMap::const_iterator pos;
-    pos = integerParams_.find( matType );
-    std::string value;
-    
-    if ( pos == integerParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      param=pos->second;
-    }
-  }  
-  
-  
   void PiezoMaterial::GetScalar( Double& param, MaterialType matType, Global::ComplexPart dataType )  const {
     
     

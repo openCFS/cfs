@@ -51,7 +51,7 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  AlgebraicSys::AlgebraicSys(PtrParamNode param, PtrParamNode info, bool isSolutionComplex ) 
+  AlgebraicSys::AlgebraicSys(PtrParamNode param, PtrParamNode info, bool isSolutionComplex, bool isMultHarm )
   {
     size_ = 0;
     myParam_ = param;
@@ -93,10 +93,16 @@ namespace CoupledField {
     // Default is to always use a system matrix
     matrixTypes_.insert( SYSTEM );
     
+    isMultHarm_ = false;
+    isMultHarm_ = isMultHarm;
+
     // Setup solution strategy enum
     PtrParamNode stratNode = myParam_->Get("solutionStrategy",ParamNode::INSERT);
     solStrat_ = SolStrategy::Generate(stratNode);
     
+    // Inform solution strategy if we use multiharmonic approach
+    solStrat_->SetMultHarm(isMultHarm_);
+
     // Set flag for insertion of penalty terms into matrix
     usingPenalty_ = solStrat_->UseDirichletPenalty();
     std::string aux = usingPenalty_ ? "penalty" : "elimination";
@@ -173,6 +179,8 @@ namespace CoupledField {
   void AlgebraicSys::UpdateToSolStrategy() {
     LOG_DBG(algSys) << "Updating parameters due to solution strategy";
     
+    if(isMultHarm_) EXCEPTION("AlgebraicSys::UpdateToSolStrategy() cannot handle multiharmonic case yet!")
+
     // switch according to type of solution strategy
     if( solStrat_->GetType() == SolStrategy::TWO_LEVEL_STRATEGY ) {
       
@@ -231,7 +239,6 @@ namespace CoupledField {
 
     LOG_DBG(algSys) << "Creating linear system";
 
-
     // first check, if registration is finished
     if( !registrationFinished_ ) {
       EXCEPTION("AlgebraicSys::CreateLinSys() may just be called after "
@@ -257,16 +264,51 @@ namespace CoupledField {
       sharePattern = true;
       patternPool_ = new PatternPool();
       
+
+
       // insert default pattern IDs in map
-      for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
-        for( UInt iCol = 0; iCol < numBlocks_; ++iCol ) {
-          SubMatrixID id;
+      // for multiharmonic analysis, we have to hack a bit
+      if( isMultHarm_ ){
+        // ------------------------------
+        //  Multiharmonic Case
+        // ------------------------------
+        UInt M = solStrat_->GetNumHarmM();
+
+        SubMatrixID id;
+        UInt Nmax = domain->GetDriver()->GetNumFreq();
+        UInt a = (domain->GetDriver()->IsFullSystem())? (M+1) : ((M-1)/2 + 1);
+        for( UInt iRow = 0; iRow < Nmax; ++iRow ) {
           id.rowInd = iRow;
-          id.colInd = iCol;
+          id.colInd = iRow;
           sbmPatternIds_[id] = NO_PATTERN_ID;
+          for( UInt iCol = iRow + 1; iCol < iRow + a; ++iCol ) {
+            if( iCol <  Nmax){
+              id.rowInd = iRow;
+              id.colInd = iCol;
+              LOG_TRACE(algSys) << "(row,col)=("<<iRow<<","<<iCol<<")";
+              sbmPatternIds_[id] = NO_PATTERN_ID;
+              // transposed
+              id.rowInd = iCol;
+              id.colInd = iRow;
+              LOG_TRACE(algSys) << "(row,col)=("<<iCol<<","<<iRow<<")";
+              sbmPatternIds_[id] = NO_PATTERN_ID;
+            }
+          }
+        }
+      }else{
+        // ------------------------------
+        //  Classic Case
+        // ------------------------------
+        for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
+          for( UInt iCol = 0; iCol < numBlocks_; ++iCol ) {
+            SubMatrixID id;
+            id.rowInd = iRow;
+            id.colInd = iCol;
+            sbmPatternIds_[id] = NO_PATTERN_ID;
+          }
         }
       }
-    }
+    } // endif sharedPatterPossible_
     
     // Obtain some info from parameter file
     BaseMatrix::EntryType entryType = isMatrixComplex_ ? 
@@ -277,7 +319,7 @@ namespace CoupledField {
     }
 
     // Log what we will do
-    PrintFeMatrixInfo();
+    //PrintFeMatrixInfo();
 
     // --------------------------------------------
     //  Treatment of Dirichlet Boundary Conditions
@@ -307,68 +349,67 @@ namespace CoupledField {
     // Generate empty SBM vectors
     rhs_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
 
-      sol_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
-      
-      if ( rhs_ == NULL || sol_ == NULL ) {
-        EXCEPTION( WRONG_CAST_MSG );
+    sol_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
+
+    if ( rhs_ == NULL || sol_ == NULL ) {
+      EXCEPTION( WRONG_CAST_MSG );
+    }
+
+    // For the moment we insert a sub-vector for each position.
+    // In the case of the right-hand side we might actually be
+    // more economic. How do we get the information which sub-vectors
+    // are really needed, however?
+    StdMatrix *stdMat = NULL;
+    BaseVector *bVec = NULL;
+    SingleVector *sVec = NULL;
+    UInt nB = (isMultHarm_)? domain->GetDriver()->GetNumFreq() : numBlocks_;
+    for ( UInt k = 0; k < nB; k++ ) {
+      // Get diag matrix for vector generation
+      stdMat = sysMat_[SYSTEM]->GetPointer( k, k );
+
+      if(stdMat == NULL){
+        EXCEPTION("SBM-Block was not initialized");
       }
       
-      // For the moment we insert a sub-vector for each position.
-      // In the case of the right-hand side we might actually be
-      // more economic. How do we get the information which sub-vectors
-      // are really needed, however?
-      StdMatrix *stdMat = NULL;
-      BaseVector *bVec = NULL;
-      SingleVector *sVec = NULL;
-      for ( UInt k =0; k < numBlocks_; k++ ) {
+      // Insert sub-vector into solution
+      bVec = GenerateVectorObject( *stdMat, solEntryType );
+      sVec = dynamic_cast<SingleVector*>( bVec );
+      sol_->SetSubVector( sVec, k );
 
-        // Get diag matrix for vector generation
-        stdMat = sysMat_[SYSTEM]->GetPointer( k, k );
+      // Insert sub-vector into right-hand side
+      bVec = GenerateVectorObject( *stdMat, solEntryType );
+      sVec = dynamic_cast<SingleVector*>( bVec );
+      rhs_->SetSubVector( sVec, k );
+    }
 
-        if(stdMat == NULL){
-          EXCEPTION("SBM-Block was not initialized");
-        }
-        
-        // Insert sub-vector into solution
-        bVec = GenerateVectorObject( *stdMat, solEntryType );
-        sVec = dynamic_cast<SingleVector*>( bVec );
-        sol_->SetSubVector( sVec, k );
+    // ---------------------------------------
+    //   Generate effective matrices vectors
+    // ---------------------------------------
 
-        // Insert sub-vector into right-hand side
-        bVec = GenerateVectorObject( *stdMat, solEntryType );
-        sVec = dynamic_cast<SingleVector*>( bVec );
-        rhs_->SetSubVector( sVec, k );
-      }
+    // This depends on the status of static condensation
+    if (statCond_) {
+      effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1,
+                                numBlocks_-1 );
+      effRhs_ = new SBM_Vector( *rhs_, numBlocks_-1 );
+      effSol_ = new SBM_Vector( *sol_, numBlocks_-1 );
+    } else {
+      effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], nB, nB );
+      effRhs_ = new SBM_Vector( *rhs_, nB );
+      effSol_ = new SBM_Vector( *sol_, nB );
+    }
 
-      // ---------------------------------------
-      //   Generate effective matrices vectors
-      // ---------------------------------------
+    // -----------------
+    //  Memory clean-up
+    // -----------------
 
-      // This depends on the status of static condensation
-      if (statCond_) {
-        effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1, 
-                                  numBlocks_-1 );
-        effRhs_ = new SBM_Vector( *rhs_, numBlocks_-1 );
-        effSol_ = new SBM_Vector( *sol_, numBlocks_-1 );
-      } else {
-        effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_, 
-                                  numBlocks_ ); 
-        effRhs_ = new SBM_Vector( *rhs_, numBlocks_ );
-        effSol_ = new SBM_Vector( *sol_, numBlocks_ );
-      }
-      
-      // -----------------
-      //  Memory clean-up
-      // -----------------
+    // At this point, hopefully, the graph object is no longer
+    // required by anyone, so release pointer and delete manager
+    // to free memory
+    delete graphManager_;
+    graphManager_ = NULL;
 
-      // At this point, hopefully, the graph object is no longer
-      // required by anyone, so release pointer and delete manager
-      // to free memory
-      delete graphManager_;
-      graphManager_ = NULL;
-      
-      // set flag
-      systemCreated_ = true;
+    // set flag
+    systemCreated_ = true;
   }
 
   void AlgebraicSys::CreatePrecond() {
@@ -637,8 +678,8 @@ namespace CoupledField {
 
     if(domain->GetBasePDE()->GetName() == "LatticeBoltzmann") // we have to adjust size of solution vector for LBM optimization
     {
-    	LOG_DBG(algSys) << "Resized solution vector for LBM optimization to " << (*sysMat_[SYSTEM])(0,0).GetNumRows();
-    	sol_->GetPointer(0)->Resize((*sysMat_[SYSTEM])(0,0).GetNumRows());
+      LOG_DBG(algSys) << "Resized solution vector for LBM optimization to " << (*sysMat_[SYSTEM])(0,0).GetNumRows();
+      sol_->GetPointer(0)->Resize((*sysMat_[SYSTEM])(0,0).GetNumRows());
     }
 
     // start timer of solver
@@ -757,6 +798,15 @@ namespace CoupledField {
     solver_->GetSolveTimer()->Stop();
   }
 
+  void AlgebraicSys::ExportMHSys(int step){
+    std::string logString = "sys_step_";
+    logString.append( boost::lexical_cast<std::string>(step));
+    sysMat_[SYSTEM]->Export(logString, BaseMatrix::OutputFormat::MATRIX_MARKET, "sys");
+
+    //logString = "mass_step_";
+    //logString.append( boost::lexical_cast<std::string>(step));
+    //sysMat_[DAMPING]->Export(logString, BaseMatrix::OutputFormat::MATRIX_MARKET, "mass");
+  }
 
   void AlgebraicSys::ExportLinSys(bool setup, bool pre_solve, bool post_solve)
   {
@@ -766,10 +816,9 @@ namespace CoupledField {
 
     LOG_DBG(algSys) << "ELS setup=" << setup << " pre=" << pre_solve << " post=" << post_solve << " id=" << id.ToString();
 
-    if(!solStrat_->GetParamNode()->Has("exportLinSys"))
+    PtrParamNode els = GetExportLinSysParam();
+    if(els == NULL)
       return;
-
-    PtrParamNode els = solStrat_->GetParamNode()->Get("exportLinSys");
 
     std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
     if(id.ToString(true) != "") // filename variant
@@ -927,7 +976,7 @@ namespace CoupledField {
        eigenSolver_->GetComplexEigenMode(numMode, solHelp);
     } else {
       Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
-      eigenSolver_->GetEigenMode(numMode, solHelp);
+      eigenSolver_->GetNormalizedEigenMode(numMode, solHelp);
     }
     LOG_DBG2(algSys) << "GEM -> " << sol_->ToString();
   }
@@ -964,6 +1013,12 @@ namespace CoupledField {
           << "However for mech-acou problems it works as the coupling boundary contains no "
           << "inner degrees of freedom.");
     }
+
+    // Neither does it work with multiharmonic analysis
+    if(isMultHarm_ && statCond_){
+      EXCEPTION("Static condensation cannot be applied in a multiharmonic analysis!");
+    }
+
   }
 
   
@@ -1027,8 +1082,7 @@ namespace CoupledField {
   }
   
   
-  Integer AlgebraicSys::DefineSBMMatrixBlock( const std::map<FeFctIdType,std::set<Integer> >& eqns, bool isInnerBlock )
-  {
+  Integer AlgebraicSys::DefineSBMMatrixBlock( const std::map<FeFctIdType,std::set<Integer> >& eqns, bool isInnerBlock) {
     LOG_DBG(algSys) << "Defining new SBM block #" << numBlocks_;
 
     // Check, if system was already finalized
@@ -1076,9 +1130,8 @@ namespace CoupledField {
     sbmIndex = numBlocks_;
     numBlocks_++;
     isDiagBlockSymm_.Push_back(true);
-    //if( !isInnerBlock ) {
-      numDirichletValuesPerBlock_.Push_back(0);
-    //}
+    numDirichletValuesPerBlock_.Push_back(0);
+
     blockInfo_.Push_back( new GraphManager::SBMBlockInfo() );
     
     // counters for indices  
@@ -1195,7 +1248,7 @@ namespace CoupledField {
       }
     } // if logging enabled
     
-    // return newly created block
+    // return index of newly created block
     return sbmIndex;
   }
 
@@ -1363,16 +1416,15 @@ namespace CoupledField {
     // -----------------------------------------------------------
 
     // loop over all matrix Types in feSubMatricesByFctId
-    std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct =
-        feSubMatricesByFctId_.begin();
-    for( ; itMatByFct != feSubMatricesByFctId_.end(); ++itMatByFct ) {
+    std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct;
+    for( itMatByFct = feSubMatricesByFctId_.begin(); itMatByFct != feSubMatricesByFctId_.end(); ++itMatByFct ) {
 
       const FEMatrixType & matrixType = itMatByFct->first;
       const SubMatrixSet & sbmSet = itMatByFct->second;
-      SubMatrixSet::const_iterator sbmIt = sbmSet.begin();
+      SubMatrixSet::const_iterator sbmIt;
 
       // loop over all blocks
-      for( ; sbmIt != sbmSet.end(); ++sbmIt ) {
+      for( sbmIt = sbmSet.begin() ; sbmIt != sbmSet.end(); ++sbmIt ) {
 
         const FeFctIdType rowFctId = sbmIt->rowInd;
         const FeFctIdType colFctId = sbmIt->colInd;
@@ -1494,7 +1546,7 @@ namespace CoupledField {
     // Now we have all graphs and IDBC in their re-ordered state,
     // so we have to fetch the reordering array from the GraphManager and 
     // update information in the blockInfo array for all SBM-Blocks 
-    
+
     // Loop over all blocks
     for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
       GraphManager::SBMBlockInfo &bi = *blockInfo_[iBlock];
@@ -1530,9 +1582,213 @@ namespace CoupledField {
         } // if clause
       } // loop functions
     } // loop blocks
-    
   }
 
+
+
+
+  // ******************
+  //   GraphSetupDoneMH
+  // ******************
+  void AlgebraicSys::GraphSetupDoneMH() {
+
+    LOG_TRACE(algSys) << "Finished setup of graph";
+
+    std::set<FEMatrixType>::iterator fIt;
+    std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
+
+    // -----------------------------------------------------------
+    // Up to now, the feSubMatrices are defined on a fctId level.
+    // However we need the mapping on the block level, so we have to map
+    // for each matrixType (SYSTEM, STIFFNESS etc.), how the fctIds are
+    // spread to sbmBlocks and initialize the structure
+    // feSubMatricesByBlocks_.
+    // -----------------------------------------------------------
+
+    // number of harmonics
+    UInt M = solStrat_->GetNumHarmM();
+    UInt a = (domain->GetDriver()->IsFullSystem())? (M+1) : ((M-1)/2 + 1);
+
+    // loop over all matrix Types in feSubMatricesByFctId
+    std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct;
+    for( auto & itMatByFct : feSubMatricesByFctId_ ) {
+      const FEMatrixType & matrixType = itMatByFct.first;
+
+      // Fetch all SBM blocks, in which the current (rowFctId, colFctId) occurs.
+      // In the multiharmonic case, give it all the non-zero (sbmRow, sbmCol) combinations
+      for( UInt sbmRow = 0; sbmRow < domain->GetDriver()->GetNumFreq(); ++sbmRow ) {
+        for( UInt sbmCol = sbmRow; sbmCol < sbmRow + a; ++sbmCol ) {
+          if( sbmCol < domain->GetDriver()->GetNumFreq() ){
+            SubMatrixID sID;
+            sID.rowInd = sbmRow;
+            sID.colInd = sbmCol;
+            // Insert sub-matrix identifier into corresponding FE-Matrix set
+            feSubMatricesByBlocks_[matrixType].insert( sID );
+
+            //also set the transposed
+            if(sbmRow != sbmCol){
+              sID.rowInd = sbmCol;
+              sID.colInd = sbmRow;
+              // Insert sub-matrix identifier into corresponding FE-Matrix set
+              feSubMatricesByBlocks_[matrixType].insert( sID );
+            }
+          }
+        }
+      }
+
+    } // loop over matrixType
+
+    // --------------------------------------------------------------------
+    // Determine the set of sub-matrices that we need for the SYSTEM matrix.
+    // There are two different cases:
+    //
+    // 1) We have other FE matrices: NOT IMPLEMENTED IN MULTIHARMONIC CASE
+    //
+    // 2) There are no other sets, so we generate a sub-matrix for each
+    //    sub-graph that the graph manager stores
+    // --------------------------------------------------------------------
+    UInt nnzBlocks = 0; //number of nonzero blocks
+    if ( matrixTypes_.size() > 3 ) {
+      EXCEPTION("AlgebraicSys::GraphSetupDoneMH() more than two matrix type...not implemented yet \n"
+                "for the multiharmonic case!" );
+    }
+    else {
+      SubMatrixID sID;
+      for (  UInt sbmRow = 0; sbmRow < domain->GetDriver()->GetNumFreq(); ++sbmRow ) {
+        for ( UInt sbmCol = sbmRow; sbmCol < sbmRow + a; ++sbmCol ) {
+          if( sbmCol < domain->GetDriver()->GetNumFreq()){
+            ++nnzBlocks;
+            if ( graphManager_->SubGraphExists( sbmRow, sbmCol ) == true ) {
+              sID.rowInd = sbmRow;
+              sID.colInd = sbmCol;
+              feSubMatricesByBlocks_[SYSTEM].insert( sID );
+              feSubMatricesByBlocks_[DAMPING].insert( sID );
+            }
+
+            // also handle the transpose
+            if(sbmRow != sbmCol){
+              ++nnzBlocks;
+              if ( graphManager_->SubGraphExists( sbmCol, sbmRow ) == true ) {
+                sID.rowInd = sbmCol;
+                sID.colInd = sbmRow;
+                feSubMatricesByBlocks_[SYSTEM].insert( sID );
+                feSubMatricesByBlocks_[DAMPING].insert( sID );
+              }
+            }
+
+          }
+        }
+      }
+    }
+
+    // determine overall number of entries (including fixed equations)
+    size_ = 0;
+    for( UInt i = 0; i < nnzBlocks; i++ ) {
+      size_ += blockInfo_[0]->size;
+    }
+    StdVector< StdVector<UInt> > toBeCopied( domain->GetDriver()->GetNumFreq()  * domain->GetDriver()->GetNumFreq() );
+    rowIndList1_.Set(toBeCopied);
+    rowList1_.Set(toBeCopied);
+    rowIndList2_.Set(toBeCopied);
+    rowList2_.Set(toBeCopied);
+    colIndList1_.Set(toBeCopied);
+    colList1_.Set(toBeCopied);
+    colIndList2_.Set(toBeCopied);
+    colList2_.Set(toBeCopied);
+
+
+    // Determine symmetry type of diagonal SBM-blocks.
+    // Up to now, we know only the symmetry of the matrices w.r.t. the
+    // FeFunctions (see matIsSymm_).
+    for( auto & fctIt : matIsSymm_  ){
+
+      FeFctIdType fctId = fctIt.first;
+      bool isFctSymm = fctIt.second;
+
+      // loop over all diagonal SBMBlocks, where this fctId occurs
+      // and perform logical AND operation regarding symmetry (i.e.
+      // if at least one function in this block is non-symmetric, so
+      // will be the complete block)
+      std::set<UInt>& affectedBlocks = fctIdsInBlocks_[fctId];
+      for( auto & blockIt : affectedBlocks) {
+        isDiagBlockSymm_[blockIt] &= isFctSymm;
+      }
+    }
+
+    // --------------------------------------------------------
+    //  Perform Consistency Check Before Finalizing The System
+    // --------------------------------------------------------
+    // Check for:
+    // - symmetry of system
+    // - compatible solver type
+    // - compatible preconditioner type
+    // - compatible reordering type
+    CheckConsistency();
+
+    // Print information about registered functions
+    PrintRegistrationInfo( );
+
+    // Collect reordering of different matrices and assemble vector
+    StdVector<BaseOrdering::ReorderingType> reorder(numBlocks_);
+    for( UInt i = 0; i < numBlocks_; ++i ) {
+      std::string orderString = solStrat_->GetMatrixNode(i)->
+          Get("reordering")->As<std::string>();
+      reorder[i] = BaseOrdering::reorderingType.Parse(orderString);
+    }
+
+    // Finalize graph manager setup
+    graphManager_->SetupDoneMH(reorder, solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM() );
+
+
+    // Now we have all graphs and IDBC in their re-ordered state,
+    // so we have to fetch the reordering array from the GraphManager and
+    // update information in the blockInfo array for all SBM-Blocks
+    GraphManager::SBMBlockInfo &bi = *blockInfo_[0];
+    UInt numFcts = bi.eqnToIndex.GetSize();
+    StdVector<UInt> newOrder;
+
+    // Since all diagonal blocks have the same reordering and only the
+    // blockInfo_ with index 0 is valid, we only have to perform the following
+    // loop once. It is left as a loop for further implementations, where we
+    // might apply different reorderings to the blocks
+    for (  UInt sbmRow = 0; sbmRow < 1; ++sbmRow ) {
+      // ----------------------------------
+      //   D I A G O N A L    B L O C K S
+      // ----------------------------------
+      // Obtain reordering vector
+      // take care, the following method needs the row-number
+      graphManager_->GetReordering(sbmRow, newOrder);
+
+
+      // Loop over all functions
+      for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
+        boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
+        boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
+
+        // Here we have to distinguish two cases:
+        // a) PENALTY: We have to reorder all equations, as also the IDBC
+        //             eqns are within the normal matrix. So we do not
+        //             have to maintain the splitting w.r.t. lastFreeEqn
+        // b) Elimination: We are just allowed to reorder equations <
+        //                 numLastFreeEqnPerFct, as this is the size of
+        //                 the underlying matrix. All fixed equations
+        //                 are handled by the IDBC graph.
+        if( usingPenalty_) {
+          for( ; it != eqnToIndex.end(); ++it ){
+            it->second = newOrder[it->second-1];
+          }
+        } else {
+          for( ; it != eqnToIndex.end(); ++it ){
+            // Loop over all (eqn)->(index) entries
+            if( it->first <= lastFreeEqnPerFct_[iFct])
+              it->second = newOrder[it->second-1];
+          } // loop eqns
+        } // if clause
+      } // loop functions
+
+    }
+
+  }
 
   // **********************
   //   FinishRegistration
@@ -1543,18 +1799,36 @@ namespace CoupledField {
     
     // create new graph manager object and initialize it
     graphManager_ = new GraphManager();
-    graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
 
-    // loop over all blocks and register them with the graph manager
-    for( UInt sbmIndex = 0; sbmIndex < numBlocks_; ++sbmIndex ) {
-      graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
-    }
+    // Different setup for multiharmonic analysis
+    if( isMultHarm_ ){
+      UInt numSBMRows = domain->GetDriver()->GetNumFreq();
+      graphManager_->SetupInit( numSBMRows, distinctMatGraphs_, true,
+                                solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM(),
+                                domain->GetDriver()->GetNumFreq(), solStrat_->IsFullSystem()  );
 
-    // determine, if we have a "real" SBM-system with more than 1
-    // block in the sbm-matrix
-    if( numBlocks_ == 1  || 
-        ( numBlocks_ == 2 && solStrat_->UseStaticCondensation() ) ) {
-      onlyOneMatrixBlock_ = true;
+      // In the multiharmonic case, we have only one set of equations
+      // but they are present several times in the final system matrix
+      // (for the different frequencies)
+      graphManager_->RegisterBlockMultHarm( blockInfo_[0]);
+
+      // "real" SBM case
+      onlyOneMatrixBlock_ = false;
+
+    }else{
+      graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
+
+      // loop over all blocks and register them with the graph manager
+      for( UInt sbmIndex = 0; sbmIndex < numBlocks_; ++sbmIndex ) {
+        graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
+      }
+
+      // determine, if we have a "real" SBM-system with more than 1
+      // block in the sbm-matrix
+      if( numBlocks_ == 1  ||
+          ( numBlocks_ == 2 && solStrat_->UseStaticCondensation() ) ) {
+        onlyOneMatrixBlock_ = true;
+      }
     }
     
     // set flag for registration
@@ -1590,10 +1864,15 @@ namespace CoupledField {
     StdVector<UInt>& colBlocks    = colBlocks_.Mine();
     StdVector<UInt>& rowNums      = rowNums_.Mine();
     StdVector<UInt>& colNums      = colNums_.Mine();
-      
+
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
-    MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
-    MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
+    if( isMultHarm_ ){
+      MapFctIdEqnToIndex_MultHarm(fctId1, eqnNrs1, rowBlocks, rowNums, nnzSBMInd_);
+      MapFctIdEqnToIndex_MultHarm(fctId2, eqnNrs2, colBlocks, colNums, nnzSBMInd_);
+    }else{
+      MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
+      MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
+    }
 
     // Quirk: If fctId1 == fctId2, we normally
     // need not set the counterPart. If however, they are now in
@@ -1606,7 +1885,76 @@ namespace CoupledField {
     graphManager_->SetElementPos( rowBlocks, rowNums,
                                   colBlocks, colNums,
                                   matrixType,
-                                  setCounterPart );
+                                  setCounterPart);
+
+  }
+
+
+  void AlgebraicSys::MapFctIdEqnToIndex_MultHarm( const FeFctIdType fctId,
+                                                   const StdVector<Integer>& eqns,
+                                                   StdVector<UInt>& blockNums,
+                                                   StdVector<UInt>& indices,
+                                                   const StdVector<UInt>& sbmIndices) {
+    LOG_DBG(algSys) << "MFIETI Mapping fctId,eqnNr to blockNum,indices";
+
+    blockNums.Resize(eqns.GetSize() * sbmIndices.GetSize() );
+    indices.Resize(eqns.GetSize() * sbmIndices.GetSize() );
+
+    UInt numEqns = eqns.GetSize();
+    UInt blockCnt = 0;
+    for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
+      const UInt & eqnNr = std::abs(eqns[iEqn]);
+
+      // take care of homogeneous BCs
+      if( eqnNr == 0) {
+        // TODO check if this is correct
+        //WARN("Homogeneous BC's not yet tested for multiharmonic analysis!!!");
+        for(UInt i = 0; i < sbmIndices.GetSize(); ++i){
+          blockNums[blockCnt] = 0;
+          // multiharmonic only one blockInfo
+          indices[blockCnt] = 0;
+          ++blockCnt;
+        }
+      } else {
+        for(auto blockInd : sbmIndices){
+          blockNums[blockCnt] = blockInd;
+          // multiharmonic only one blockInfo
+          indices[blockCnt] = blockInfo_[0]->eqnToIndex[fctId][eqnNr];
+          ++blockCnt;
+        }
+
+      }
+    }
+  }
+
+
+  void AlgebraicSys::MapFctIdEqnToIndex_MultHarm( const FeFctIdType fctId,
+                                                  const StdVector<Integer>& eqns,
+                                                  StdVector<UInt>& blockNums,
+                                                  StdVector<UInt>& indices ) {
+    LOG_DBG(algSys) << "MFIETI Mapping fctId,eqnNr to blockNum,indices";
+
+    blockNums.Resize(eqns.GetSize());
+    indices.Resize(eqns.GetSize());
+
+
+    UInt numEqns = eqns.GetSize();
+    for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
+      const UInt & eqnNr = std::abs(eqns[iEqn]);
+
+      // take care of homogeneous BCs
+      if( eqnNr == 0) {
+        // TODO check if this is correct
+        //WARN("Homogeneous BC's not yet tested for multiharmonic analysis!!!");
+        blockNums[iEqn] = 0;
+        indices[iEqn] = 0;
+      } else {
+        // note: in multiharmonic analysis only one blockInfo
+        const UInt & blockNum = 0;
+        blockNums[iEqn] = blockNum;
+        indices[iEqn] = blockInfo_[blockNum]->eqnToIndex[fctId][eqnNr];
+      }
+    }
 
   }
 
@@ -1621,7 +1969,7 @@ namespace CoupledField {
     
     // get hold of fct-specific map
     StdVector<UInt>& eqnToBlock = eqnToSBMBlock_[fctId];
-    
+
     UInt numEqns = eqns.GetSize();
     for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
       const UInt & eqnNr = std::abs(eqns[iEqn]);
@@ -1844,6 +2192,10 @@ namespace CoupledField {
       rhs_->Init();
     }
     else {
+      if(solStrat_->IsMultHarm()){
+        EXCEPTION("This branch of AlgebraicSys::InitSol is not"
+                  "meant to be reached in a multiharmonic analysis!");
+      }
       // find out affected blocks
       std::set<UInt> & blockNums = fctIdsInBlocks_[fctId];
       std::set<UInt>::iterator it = blockNums.begin();
@@ -1853,21 +2205,51 @@ namespace CoupledField {
     }
   }
   
+
+
+
   void AlgebraicSys::InitRHS( const SBM_Vector& newRHS ) {
     
     LOG_DBG(algSys) << "Initializing RHS with new vector";
-
     
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
-    if( newRHS.GetSize() != numFcts_ && domain->GetBasePDE()->GetName() != "LatticeBoltzmann") {
+    if( (newRHS.GetSize() != numFcts_ && domain->GetBasePDE()->GetName() != "LatticeBoltzmann") && !solStrat_->IsMultHarm() ) {
       EXCEPTION( "New rhs consists of " << newRHS.GetSize() << " sub-vectors, the RHS of the algebraic system of " << rhs_->GetSize() << " entries." )
     }
     
     if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann"){
-    	*(rhs_) = newRHS;
-    	LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->GetPointer(0)->ToString(0,',');
-    	return;
+      *(rhs_) = newRHS;
+      LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->GetPointer(0)->ToString(0,',');
+      return;
+    }
+
+    if(solStrat_->IsMultHarm() ){
+
+      // get all (blockId,index)-combinations for the current fctId
+      StdVector<UInt> blockNums, indices;
+      MapCompleteFctIdToIndex( 0, blockNums, indices);
+      UInt size = blockNums.GetSize();
+
+      for(UInt i = 0; i < newRHS.GetSize(); ++i ) {
+        // security check: ensure that sub-vector has the same size
+        // as the block indices
+        if( newRHS(i).GetSize() != indices.GetSize() && (domain->GetBasePDE()->GetName() != "LatticeBoltzmann")) {
+          EXCEPTION( "Number of entries of " << i << "-th sub-vector and number of indices do not match!");
+        }
+
+        Vector<Complex> & nRHS = dynamic_cast<Vector<Complex>&>( newRHS(i) );
+        for( UInt j = 0; j < size; ++j ) {
+          // omit entries for Dirichlet values
+          if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+            rhs_->GetPointer(i)->SetEntry(indices[j]-1, nRHS[j] );
+          }
+        }
+      }
+
+
+      LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->ToString();
+      return;
     }
 
     // loop over all feFctIDs
@@ -1904,12 +2286,16 @@ namespace CoupledField {
   void AlgebraicSys::InitSol( const FeFctIdType fctId ) {
     
     LOG_DBG(algSys) << "Initializing solution of fctId " << fctId;
-    
+
     if ( fctId == NO_FCT_ID ) {
       // in this case initialize complete RHS   
       sol_->Init();
     }
     else {
+      if(solStrat_->IsMultHarm()){
+        EXCEPTION("This branch of AlgebraicSys::InitSol is not"
+                  "meant to be reached in a multiharmonic analysis!");
+      }
       // find out affected blocks
       std::set<UInt> & blockNums = fctIdsInBlocks_[fctId];
       std::set<UInt>::iterator it = blockNums.begin();
@@ -1922,7 +2308,42 @@ namespace CoupledField {
   void AlgebraicSys::InitSol( const SBM_Vector& newSol ) {
     
     LOG_DBG(algSys) << "Initializing solution with new vector";
-    REFACTOR;
+    REFACTOR; // <-- from head, what does this do?
+
+    // ensure that the solution vector to set consists of as many
+    // sub-vectors as the solution of the system
+    if( (newSol.GetSize() != numFcts_ && domain->GetBasePDE()->GetName() != "LatticeBoltzmann") && !solStrat_->IsMultHarm() ) {
+      EXCEPTION( "New rhs consists of " << newSol.GetSize() << " sub-vectors, the RHS of the algebraic system of " << rhs_->GetSize() << " entries." )
+    }
+
+    if(solStrat_->IsMultHarm() ){
+
+      // get all (blockId,index)-combinations for the current fctId
+      StdVector<UInt> blockNums, indices;
+      MapCompleteFctIdToIndex( 0, blockNums, indices);
+      UInt size = blockNums.GetSize();
+
+      for(UInt i = 0; i < newSol.GetSize(); ++i ) {
+        // security check: ensure that sub-vector has the same size
+        // as the block indices
+        if( newSol(i).GetSize() != indices.GetSize()) {
+          EXCEPTION( "Number of entries of " << i << "-th sub-vector and number of indices do not match!");
+        }
+
+        Vector<Complex> & nSol = dynamic_cast<Vector<Complex>&>( newSol(i) );
+        for( UInt j = 0; j < size; ++j ) {
+          // omit entries for Dirichlet values
+          if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+            sol_->GetPointer(i)->SetEntry(indices[j]-1, nSol[j] );
+          }
+        }
+      }
+    }else{
+      EXCEPTION("AlgebraicSys::InitSol currently only allowed in multiharmonic analysis!!!")
+    }
+
+    LOG_DBG(algSys) << "InitSol: Initilized solution with vector v=" << sol_->ToString();
+    return;
   }
   
   
@@ -2227,7 +2648,6 @@ namespace CoupledField {
 
           // Note: The following statement is experimental and not
           // thorougly tested!
-
           for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
             rowInd = rIndList1[i];
             for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
@@ -2296,44 +2716,323 @@ namespace CoupledField {
     }// sbmRow
   }
 
+
+  template<typename T>
+  void AlgebraicSys::SetElementMatrix_MultHarm( FEMatrixType matrixType,
+                                                Matrix<T>& elemMat,
+                                                FeFctIdType fctId1,
+                                                const StdVector<Integer>& eqnNrs1,
+                                                FeFctIdType fctId2,
+                                                const StdVector<Integer>& eqnNrs2,
+                                                bool setCounterPart,
+                                                const StdVector<UInt>& sbmIndices) {
+
+    if(fctId1 != fctId2) EXCEPTION("AlgebraicSys::SetElementMatrix_MultHarm function Id's don't match!");
+
+    // lambda for converting flattened sbm-index to (row, col) tuple
+    UInt size = domain->GetDriver()->GetNumFreq();
+    auto DeflattenIndex = [size](UInt ind) { std::vector<UInt> a = {ind / (size), ind % (size)}; return a;};
+    //auto FlattenIndex = [N](UInt row, UInt col) { return N * row + col;};
+
+    std::string t;
+    if (IS_LOG_ENABLED(algSys, dbg3)) {
+      // construct logging output
+      for(auto s : sbmIndices){
+        t.append("(");
+        t.append( boost::lexical_cast<std::string>(DeflattenIndex(s)[0]) );
+        t.append( ", ");
+        t.append( boost::lexical_cast<std::string>(DeflattenIndex(s)[1]) );
+        t.append("), ");
+      };
+    }
+
+    LOG_DBG(algSys) << "Setting element matrix for fctIds ("
+                     << fctId1 << ", " << fctId2 << ")";
+    LOG_DBG2(algSys) << "Matrix: " << feMatrixType.ToString(matrixType);
+    LOG_DBG2(algSys) << "EqnVec1: (" << eqnNrs1.GetSize() << "): " << eqnNrs1.ToString();
+    LOG_DBG2(algSys) << "EqnVec2: (" << eqnNrs2.GetSize() << "): " << eqnNrs2.ToString();
+    LOG_DBG3(algSys) << "elemMat (" << elemMat.GetNumRows() << ", " << elemMat.GetNumCols() << "):\n " << elemMat;
+    LOG_DBG3(algSys) << "in SBM blocks: " << t <<"\n";
+
+    // Security check: check if we have as many equations as numRows/Cols
+    // of the matrix
+    if(eqnNrs1.GetSize() != elemMat.GetNumRows()){
+      EXCEPTION("dummy1 " << eqnNrs1.GetSize() << " : eMat " << elemMat.GetNumRows() )
+    }
+    if(eqnNrs2.GetSize() != elemMat.GetNumCols()){
+      EXCEPTION("dummy2 " << eqnNrs2.GetSize() << " : eMat " << elemMat.GetNumCols() )
+    }
+    assert( eqnNrs1.GetSize() == elemMat.GetNumRows());
+    assert( eqnNrs2.GetSize() == elemMat.GetNumCols());
+
+
+    // TODO still open problem (performance) :
+    /* Problem in multiharmonic analysis
+     * In the classic SetElementMatrix method, every (fctId,eqnNr) occurs
+     * exactly once. But here it occurs in every block,
+     * according to sbmIndices.
+     *
+     * Therefore we currently call the special method MapFctIdEqnToIndex_MultHarm,
+     * which simply appends the CfsTLS vectors and then we continue as in the classic case.
+     *
+     * Maybe there is a more performant way but we would need to introduce a different concept.
+     *
+     */
+
+    //obtain thread local cache lists
+    UInt tNum = 0;
+#ifdef USE_OPENMP
+    tNum = omp_get_thread_num();
+#endif
+    StdVector< StdVector<UInt> >& rowIndList1  = rowIndList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& rowList1     = rowList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& rowIndList2  = rowIndList2_.Mine(tNum);
+    StdVector< StdVector<UInt> >& rowList2     = rowList2_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colIndList1  = colIndList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colList1     = colList1_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colIndList2  = colIndList2_.Mine(tNum);
+    StdVector< StdVector<UInt> >& colList2     = colList2_.Mine(tNum);
+    StdVector<UInt>& rowBlocks                 = rowBlocks_.Mine(tNum);
+    StdVector<UInt>& colBlocks                 = colBlocks_.Mine(tNum);
+    StdVector<UInt>& rowNums                   = rowNums_.Mine(tNum);
+    StdVector<UInt>& colNums                   = colNums_.Mine(tNum);
+
+    // Re-map entries from (fctId,eqnNr) -> (index)
+    // Re-map entries from (fctId,eqnNr) -> (index)
+    MapFctIdEqnToIndex_MultHarm(fctId1, eqnNrs1, rowBlocks, rowNums);
+    MapFctIdEqnToIndex_MultHarm(fctId2, eqnNrs2, colBlocks, colNums);
+
+    rowIndList1[0].Clear(true);
+    rowList1[0].Clear(true);
+    rowIndList2[0].Clear(true);
+    rowList2[0].Clear(true);
+    colIndList1[0].Clear(true);
+    colList1[0].Clear(true);
+    colIndList2[0].Clear(true);
+    colList2[0].Clear(true);
+
+    UInt numRows = rowBlocks.GetSize();
+    UInt numCols = colBlocks.GetSize();
+
+    // Compute index of graph in graph pointer matrix
+    // get hold of vertex and edgelists
+    StdVector<UInt> & rList1 = rowList1[0];
+    StdVector<UInt> & rIndList1 = rowIndList1[0];
+    StdVector<UInt> & rList2 = rowList2[0];
+    StdVector<UInt> & rIndList2 = rowIndList2[0];
+    // get hold of vertex and edgelists
+    StdVector<UInt> & cList1 = colList1[0];
+    StdVector<UInt> & cIndList1 = colIndList1[0];
+    StdVector<UInt> & cList2 = colList2[0];
+    StdVector<UInt> & cIndList2 = colIndList2[0];
+
+    // Loop over all indices
+    for( UInt i = 0; i < numRows; ++i ) {
+      // get hold of block numbers and indices
+      const UInt & rowNum = rowNums[i];
+      // get limits of free indices
+      // remember: in multiharmonic analysis we only have one blockInfo
+      const UInt & lastFreeRowIndex = blockInfo_[0]->numLastFreeIndex;
+
+      // STEP 1: Generate row index list from first connect array, dropping
+      //         equation numbers for dofs fixed by (in)homogeneous Dirichlet
+      //         boundary conditions and changing the sign of those fixed by
+      //         constraints.
+      if ( rowNum > 0 ) {
+        if ( rowNum > lastFreeRowIndex ) {
+          rList2.Push_back( rowNum - lastFreeRowIndex - 1 );
+          rIndList2.Push_back( i );
+        } else {
+          rList1.Push_back( rowNum - 1);
+          rIndList1.Push_back( i );
+        }
+      }
+    }
+
+    // Loop over all columns
+    for( UInt i = 0; i < numCols; ++i ) {
+      // get hold of block numbers and indices
+      const UInt & colNum = colNums[i];
+
+      // get limits of free indices
+      // remember: in multiharmonic analysis we only have one blockInfo
+      const UInt & lastFreeColIndex = blockInfo_[0]->numLastFreeIndex;
+
+      // STEP 2: Split the second connect array into two edge lists, one for
+      //         the graph and one for the IDBCgraph (which handles the indices
+      //         fixed by inhomogeneous Dirichlet boundary conditions)
+      if( colNum > 0 ) {
+        if ( colNum > lastFreeColIndex ) {
+          cList2.Push_back( colNum - lastFreeColIndex - 1);
+          cIndList2.Push_back( i );
+        }
+        else {
+          cList1.Push_back( colNum - 1);
+          cIndList1.Push_back( i );
+        }
+      }
+    } // loop over cols
+
+
+    SBM_Matrix * actMat = sysMat_[matrixType];
+    UInt rowInd, colInd;
+
+
+    // ======================================================================
+
+    // loop over all blocks and pass for every block the information to
+    // the corresponding graph / IDBC graph
+    LOG_DBG3(algSys) << "setting matrix entries";
+
+    // now loop over every sbm-block specified in sbmIndices parameter
+    for(auto sbmInd : sbmIndices){
+      UInt sbmRow = DeflattenIndex(sbmInd)[0];
+      UInt sbmCol = DeflattenIndex(sbmInd)[1];
+      LOG_DBG3(algSys) << "\tsetting SBM block (" << sbmRow
+                << "," << sbmCol << ") with sbm-index " << sbmInd;
+
+      StdMatrix * stdMat = actMat->GetPointer(sbmRow, sbmCol);
+
+      LOG_DBG3(algSys) << "\t1) free-free entries:";
+      LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
+      LOG_DBG3(algSys) << "\t\tcolIndices: " << cList1.ToString();
+      LOG_DBG3(algSys) << "\t\tmat: " << stdMat->ToInfoString();
+
+      // Attention: This check is not really implemented in a clean way!
+      if( stdMat != NULL ) {
+        LOG_DBG3(algSys) << "\t1) free-free entries:";
+        LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
+        LOG_DBG3(algSys) << "\t\tcolIndices: " << cList1.ToString();
+        LOG_DBG3(algSys) << "\t\tmat: " << stdMat->ToInfoString();
+
+        // 2) Assemble all free <-> free entries
+
+        for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+          rowInd = rIndList1[i];
+          for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
+            colInd = cIndList1[j];
+            stdMat->AddToMatrixEntry( rList1[i], cList1[j], elemMat[rowInd][colInd] );
+          } //j
+        } //i
+
+        // 2) if sbmRow == sbmCol and transposed should be set,
+        // we have to assemble the transposed by hand
+        // loop over all rows/col
+        if( sbmRow == sbmCol && setCounterPart ) {
+          LOG_DBG3(algSys) << "\t2) free-free entries (transposed):";
+          LOG_DBG3(algSys) << "\t\trowIndices: " << cList1.ToString();
+          LOG_DBG3(algSys) << "\t\tcolIndices: " << rList1.ToString();
+          for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+            rowInd = rIndList1[i];
+            for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
+              colInd = cIndList1[j];
+              stdMat->AddToMatrixEntry( cList1[j], rList1[i], elemMat[rowInd][colInd] );
+            } //j
+          } //i
+        } // sbmRow == sbmCol
+      } // stdMat != NULL
+
+      // 3) Assemble all free <-> fixed entries
+      if( cList2.GetSize() ) {
+        LOG_DBG3(algSys) << "\t3) free-fixed entries:";
+        LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
+        LOG_DBG3(algSys) << "\t\tcolIndices: " << cList2.ToString();
+
+        for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+          rowInd = rIndList1[i];
+          for ( UInt j = 0; j < cList2.GetSize(); j++ ) {
+            colInd = cIndList2[j];
+            idbcHandler_->AddWeightFixedToFree( matrixType, sbmRow, sbmCol, rList1[i], cList2[j], elemMat[rowInd][colInd]);
+          } // j
+        } // i
+      } // if cList2.GetSize()
+
+
+      // 4) Assemble all free <-> fixed entries ( TRANSPOSED )
+      if( rList2.GetSize() ) {
+        if( sbmRow == sbmCol && setCounterPart == true) {
+          LOG_DBG3(algSys) << "\t4) free-fixed entries (transposed):";
+          LOG_DBG3(algSys) << "\t\trowIndices: " << cList1.ToString();
+          LOG_DBG3(algSys) << "\t\tcolIndices: " << rList2.ToString();
+
+          for ( UInt i = 0; i < rList2.GetSize(); i++ ) {
+            rowInd = rIndList2[i];
+            for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
+              colInd = cIndList1[j];
+              idbcHandler_->AddWeightFixedToFree( matrixType, sbmCol, sbmRow, cList1[j], rList2[i], elemMat[rowInd][colInd]);
+            } // j
+          } // i
+        } // sbmCol == sbmRow
+      } // rList2.GetSize()
+
+    }
+
+  }
+
+
   template<typename T>
   void AlgebraicSys::SetElementRHS( const Vector<T>& elemRHS, 
-                                    const FeFctIdType fctId,
-                                    StdVector<Integer>& eqnNrs ) {
+      const FeFctIdType fctId,
+      StdVector<Integer>& eqnNrs, UInt& harm ) {
 
     LOG_DBG(algSys) << "SER: Setting element RHS for fctId ("<< fctId << ")";
     LOG_DBG2(algSys) << "SER: EqnVec: " << eqnNrs.ToString();
     LOG_DBG3(algSys) << "SER: vector is:\n " << elemRHS.ToString();
-    
+
     // Ensure that there are as many equations as vector entries
     assert(eqnNrs.GetSize() == elemRHS.GetSize());
-    
+
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt>& rowBlocks    = rowBlocks_.Mine();
     StdVector<UInt>& rowNums      = rowNums_.Mine();
     MapFctIdEqnToIndex(fctId, eqnNrs, rowBlocks, rowNums);
-    
-    // Now, dismantle equations
-     UInt numRows = rowBlocks.GetSize();
-     
-     // Loop over all rows
-     for( UInt iRow = 0; iRow < numRows; ++iRow ) {
-       // get hold of block numbers and indices
-       const UInt & rowBlock = rowBlocks[iRow];
-       const UInt & rowNum = rowNums[iRow];
 
-       // get limits of free indices
-       const UInt & lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
-       
-       // get vector
-       SingleVector &vec = (*rhs_)(rowBlock);
-       
-       if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
-         if ( rowNum <= lastFreeRowIndex ) {
-           vec.AddToEntry( rowNum-1, elemRHS[iRow]);
-         }
-       } // loop over rows
-     } // loop over blocks 
+    // Now, dismantle equations
+    UInt numRows = rowBlocks.GetSize();
+
+    // Loop over all rows
+    for( UInt iRow = 0; iRow < numRows; ++iRow ) {
+      // get hold of block numbers and indices
+      const UInt & rowBlock = rowBlocks[iRow];
+      const UInt & rowNum = rowNums[iRow];
+
+      // get limits of free indices
+      const UInt & lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
+
+      // Get vector, differentiate between normal and multiharmonic case
+      // index:     [  0     1     2  ... N-1  N    N+1   N+2 ...  2N ]
+      // harmonic:  [ -N   -N+1  -N+2 ... -1   0     1     2  ...   N ]
+      // NOTE: If the performance optimized version is used,
+      // only odd harmonics are considered and therefore the above mapping looks like
+      // index:     [  0     1     2  ... (N-1)/2   (N+1)/2   (N-1)/2+2   ...  N+1 ]
+      // harmonic:  [ -N   -N+2  -N+4 ...    -1        1           3      ...   N ]
+      if( isMultHarm_ ){
+        SingleVector &vecP = (*rhs_)( domain->GetDriver()->IndexOfHarmonic(harm));
+        SingleVector &vecN = (*rhs_)( domain->GetDriver()->IndexOfHarmonic(-harm));
+        if(vecP.GetEntryType() == BaseMatrix::COMPLEX && vecN.GetEntryType() == BaseMatrix::COMPLEX){
+          if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
+            if ( rowNum <= lastFreeRowIndex &&  elemRHS[iRow] != (Complex)0.0 ) {
+              // If we want excitation in the real part (corresponds to cosine excitation)
+              vecP.AddToEntry( rowNum-1, elemRHS[iRow]/2.0);
+              //this entry must be conjugate complex
+              vecN.AddToEntry( rowNum-1, std::conj(elemRHS[iRow])/2.0);
+            }
+          } // loop over rows
+        }else EXCEPTION("This error when filling the multiharm rhs should not happen");
+
+        LOG_DBG3(algSys) << "SER: rhs is:\n " << (*rhs_).ToString();
+
+      } else{
+        SingleVector &vec = (*rhs_)(rowBlock);
+        if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
+          if ( rowNum <= lastFreeRowIndex ) {
+            vec.AddToEntry( rowNum-1, elemRHS[iRow]);
+          }
+        } // loop over rows
+      }
+
+
+    } // loop over blocks
   } 
 
 
@@ -2343,6 +3042,9 @@ namespace CoupledField {
     
     LOG_DBG(algSys) << "Setting node RHS of " << eqnNr << " for fct " 
                     << fctId << " to " << val;
+
+    if(isMultHarm_) EXCEPTION("AlgebraicSys::SetNodeRHS cannot handle multiharmonic case yet!")
+
     UInt block,idx;
     this->MapFctIdEqnToIndex(fctId,eqnNr,block,idx);
     rhs_->GetPointer(block)->AddToEntry(idx-1,val);
@@ -2352,6 +3054,8 @@ namespace CoupledField {
   void AlgebraicSys::SetFncRHS(  const Vector<T>& fncRHS, FeFctIdType fctId ) {
 
     LOG_DBG(algSys) << "Setting Function RHS for fctId ("<< fctId << ")";
+
+    if(isMultHarm_) EXCEPTION("AlgebraicSys::SetFncRHS cannot handle multiharmonic case yet!")
 
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt> blockNums, indices;
@@ -2386,8 +3090,8 @@ namespace CoupledField {
     LOG_DBG(algSys) << "Updating RHS of matrix "
                       << feMatrixType.ToString(matrixType);
 
-//    std::cout << "Updating RHS with matrix "
-//        << feMatrixType.ToString(matrixType) << std::endl;
+    if(isMultHarm_) EXCEPTION("AlgebraicSys::UpdateRHS cannot handle multiharmonic case yet!")
+
 
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
@@ -2415,10 +3119,7 @@ namespace CoupledField {
 
       // security check: ensure that sub-vector has the same size
       // as the block indices
-			
-//			std::cout << "fup(i).GetSize() = " << fup(i).GetSize() << std::endl;
-//			std::cout << "indices.GetSize() = " << indices.GetSize() << std::endl; 
-			
+
       if( fup(i).GetSize() != indices.GetSize() ) {
         EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
                    "of indices do not match!");
@@ -2435,25 +3136,25 @@ namespace CoupledField {
                 ->AddToEntry(indices[j]-1, nRHS[j] );
           }else if(!usingPenalty_){
             idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
-			    		indices[j],rhs_,nRHS[j]);
+              indices[j],rhs_,nRHS[j]);
           }
         }
 
       }
       else if( fup.GetEntryType() == BaseMatrix::COMPLEX ) {
-        	Vector<Complex> & nRHS =
-        			dynamic_cast<Vector<Complex>&>( fup(i) );
+          Vector<Complex> & nRHS =
+              dynamic_cast<Vector<Complex>&>( fup(i) );
 
-        	for( UInt j = 0; j < size; ++j ) {
-        		// omit entries for Dirichlet values
-        		if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
-        			tmpRHS_->GetPointer(blockNums[j])
-    	                		  ->AddToEntry(indices[j]-1, nRHS[j] );
-        		}else if(!usingPenalty_){
-        			idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
-    	  			    		indices[j],rhs_,nRHS[j]);
-        		}
-        	}
+          for( UInt j = 0; j < size; ++j ) {
+            // omit entries for Dirichlet values
+            if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+              tmpRHS_->GetPointer(blockNums[j])
+                            ->AddToEntry(indices[j]-1, nRHS[j] );
+            }else if(!usingPenalty_){
+              idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
+                      indices[j],rhs_,nRHS[j]);
+            }
+          }
 
       }
       else {
@@ -2466,6 +3167,67 @@ namespace CoupledField {
 
   }
   
+
+
+  void AlgebraicSys::UpdateRHS_MultHarm(FEMatrixType matrixType,
+                                        const SBM_Vector& fup,bool SysMatUpdated) {
+
+    LOG_TRACE(algSys) << "Updating multiharmonic RHS of matrix "<< feMatrixType.ToString(matrixType);
+
+    if(matrixTypes_.find(matrixType) == matrixTypes_.end())
+      return;
+
+    // ensure that the RHS vector to set consists of as many
+    // sub-vectors as the RHS of the system
+    if( fup.GetSize() != rhs_->GetSize() ) {
+      EXCEPTION( "New rhs consists of " << fup.GetSize()
+                 << " sub-vectors, the RHS of the algebraic system of "
+                 << rhs_->GetSize() << " entries." )
+    }
+
+    if( fup.GetEntryType() == BaseMatrix::DOUBLE ) {
+      EXCEPTION(" AlgebraicSys::UpdateRHS_MultHarm called with a Double vector\n"
+                " this should not happen!");
+    }
+
+    // loop over all harmonics and create a converted rhs
+    if(tmpRHS_== NULL)
+      tmpRHS_ = dynamic_cast<SBM_Vector*> ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
+
+    tmpRHS_->Init();
+
+    if(numFcts_ != 1){ EXCEPTION("AlgebraicSys::UpdateRHS_MultHarm currently "
+                                 "only implemented for ONE FunctionID");}
+
+    // get all (blockId,index)-combinations for the current fctId
+    StdVector<UInt> blockNums, indices;
+    MapCompleteFctIdToIndex( 0, blockNums, indices);
+    UInt size = blockNums.GetSize();
+
+    for(UInt i = 0; i < domain->GetDriver()->GetNumFreq() ; ++i ) {
+      // security check: ensure that sub-vector has the same size
+      // as the block indices
+      if( fup(i).GetSize() != indices.GetSize() ) {
+        EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
+                   "of indices do not match!");
+      }
+
+      Vector<Complex> & nRHS = dynamic_cast<Vector<Complex>&>( fup(i) );
+      for( UInt j = 0; j < size; ++j ) {
+        // omit entries for Dirichlet values
+        if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+          tmpRHS_->GetPointer(i)->AddToEntry(indices[j]-1, nRHS[j] );
+        }else if(!usingPenalty_){
+          idbcHandler_->AddFixedToFreeRHS(matrixType, i, indices[j],rhs_,nRHS[j]);
+        }
+      }
+
+    }
+    //now just perform multiplication
+    sysMat_[matrixType]->MultAdd(*tmpRHS_,*rhs_);
+  }
+
+
   template<typename T>
   void AlgebraicSys::AddToDiagMatrixEntry( FEMatrixType matrixType,
                                            const FeFctIdType fctId,
@@ -2504,7 +3266,8 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::ConstructEffectiveMatrix( const FeFctIdType fctId,
-                            const std::map<FEMatrixType,Double> &matFactors ) {
+                            const std::map<FEMatrixType,Double> &matFactors,
+                            const bool isMultHarm) {
 
     LOG_DBG(algSys) << "Constructing effective system matrix for feFunction "
         << "with id " << fctId;
@@ -2518,7 +3281,7 @@ namespace CoupledField {
 
     factorMap::const_iterator it;
     SBM_Matrix *sys = sysMat_[SYSTEM];
-    
+
     // As one functionId can be spread over many SBM blocks, we
     // have to map the fctId to (sbmBlocks,indices)
     std::map<UInt, std::set<UInt> > freeIndPerBlock, fixedIndPerBlock;
@@ -2529,7 +3292,7 @@ namespace CoupledField {
     if( freeIndPerBlock.size() == 0 ) {
       return;
     }
-    
+
     // It's okay, if there are no factors, if there is only a system
     // matrix and no other ones
     if ( matFactors.empty() == true ) {
@@ -2541,25 +3304,33 @@ namespace CoupledField {
         // Now we are done
         return;
       }
-//      else {
-//        WARN("SBM_System::ConstructEffectiveMatrix: "
-//            << "Map with factors is empty, but there are "
-//            << matrixTypes_.size() << " FE matrices in the game!");
-//      }
     }
-    
-    for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
-      if ( sysMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
-        std::map<UInt, std::set<UInt> > dummyFreeSet;
-        sys->Add( (*it).second, *sysMat_[(*it).first], 
-                  dummyFreeSet, freeIndPerBlock );
+
+
+    // In multiharmonic analysis, we have to adapt the mass part
+    if(isMultHarm){
+      SBM_Matrix *mass = sysMat_[DAMPING];
+      for(UInt iRow = 0; iRow < domain->GetDriver()->GetNumFreq(); ++iRow){
+        StdMatrix* sysSub = sys->GetPointer(iRow, iRow);
+        StdMatrix* massSub = mass->GetPointer(iRow, iRow);
+        // multiply massSub with harmonic number and add it to system matrix
+        //Integer fac = (iRow - solStrat_->GetNumHarmN() < 0)? -1 : 1;
+        Double fac = 1.0;
+        sysSub->Add(fac, *massSub);
+      }
+    }else{
+      for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
+        if ( sysMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
+          std::map<UInt, std::set<UInt> > dummyFreeSet;
+          sys->Add( (*it).second, *sysMat_[(*it).first],
+              dummyFreeSet, freeIndPerBlock );
+        }
       }
     }
 
     // Also assemble the effective auxilliary system matrix for moving
     // IDBCs to the right-hand side
     idbcHandler_->BuildSystemMatrix( matFactors, freeIndPerBlock );
-
   }
 
   template<typename T>
@@ -2658,13 +3429,13 @@ namespace CoupledField {
 
     if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann")
     {
-    	//FIXME Dirty code, can be improved!
-    	ptSol.Resize(size);
-    	Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
-    	retVec = *(sol_->GetPointer(0));
+      //FIXME Dirty code, can be improved!
+      ptSol.Resize(size);
+      Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
+      retVec = *(sol_->GetPointer(0));
 
-    	return;
-  	}
+      return;
+    }
 
     if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
@@ -2700,9 +3471,9 @@ namespace CoupledField {
         // if index number is larger the lastFree dof, insert Dirichlet value
         // (just if setIDBC is true!)
         if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex ) {
-          if ( setIDBC) 
+          if ( setIDBC)
             idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry, deltaIDBC);
-          else 
+          else
             entry = 0.0;
         } else {
           sol_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
@@ -2711,20 +3482,76 @@ namespace CoupledField {
       }
     }
   }
-  
-  void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
-    
-    // resize solVec to match number of functions
-    solVec.Resize( numFcts_);
-    
-    // loop over all feFctIDs
-    for(UInt i = 0; i < numFcts_; ++i ) {
-    
-      // call specialized GetSolutionVal method
-      GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC);
+
+
+  void AlgebraicSys::GetSolutionVal( SingleVector& ptSol,
+                                     const UInt& block,
+                                     bool setIDBC,
+                                     bool deltaIDBC,
+                                     const bool ident) {
+
+    LOG_TRACE(algSys) << "Getting multiharmonic solution values ";
+
+    StdVector<UInt> blockNums, indices;
+
+    MapCompleteFctIdToIndex( 0, blockNums, indices);
+    UInt size = blockNums.GetSize();
+    ptSol.Resize(size);
+    ptSol.Init();
+
+    if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
+      EXCEPTION("AlgebraicSys::GetSolutionVal Double-Version for multiharmonic not implemented");
+    }else{
+      Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
+      Complex entry = 0.0;
+      for( UInt i = 0; i < size; ++i ) {
+        // if index number is larger the lastFree dof, insert Dirichlet value
+        // (just if setIDBC is true!)
+        if( indices[i] > blockInfo_[0]->numLastFreeIndex ) {
+          if ( setIDBC) 
+            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry, deltaIDBC);
+          else 
+            entry = 0.0;
+        } else {
+          sol_->GetPointer(block)->GetEntry(indices[i]-1,entry);
+        }
+        retVec[i] = entry;
+      }
     }
   }
   
+  void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
+    solVec.Resize( numFcts_);
+    // loop over all feFctIDs
+    for(UInt i = 0; i < numFcts_; ++i ) GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC);
+  }
+
+
+  void AlgebraicSys::GetSolutionVal( const UInt& h,  SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
+    if(numFcts_ != 1){
+      EXCEPTION("AlgebraicSys::GetSolutionVal This shouldn't happen");
+    }
+
+    solVec.Resize( 1 );
+    // Get the correct block-vector
+    // call specialized GetSolutionVal method, the boolean
+    // has no effect, it's just an identifier to call the correct method
+    GetSolutionVal(solVec(0), h, setIDBC, deltaIDBC, true);
+  }
+  
+
+  void AlgebraicSys::GetFullMultiHarmSolutionVal(SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
+    solVec.Resize( domain->GetDriver()->GetNumFreq() );
+    // solVec gets initialized in GetSolutionVal method
+
+    // loop over all block vector and call specialized GetRHSVal method, the boolean
+    // has no effect, it's just an identifier to call the correct method
+    for( UInt i = 0; i < solVec.GetSize(); ++i){
+      GetSolutionVal(solVec(i), i, setIDBC, deltaIDBC, true);
+    }
+  }
+
+
   void AlgebraicSys::GetRHSVal( SingleVector &ptRhs,
                                 const FeFctIdType fctId  ) {
     
@@ -2770,20 +3597,70 @@ namespace CoupledField {
     }
   }
   
+
+
+  void AlgebraicSys::GetRHSVal( SingleVector &ptRhs,
+                                const UInt& blockVec,
+                                const bool ident) {
+
+    LOG_TRACE(algSys) << "Getting multiharmonic RHSvalue";
+
+    StdVector<UInt> blockNums, indices;
+    MapCompleteFctIdToIndex( NO_FCT_ID, blockNums, indices);
+    UInt size = blockNums.GetSize();
+    ptRhs.Resize(size);
+    ptRhs.Init();
+
+    if( ptRhs.GetEntryType() == BaseMatrix::DOUBLE ) {
+      EXCEPTION("AlgebraicSys::GetRHSVal This method shall only be called in multiharmonic analysis!!");
+    } else {
+      Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptRhs );
+      Complex entry = 0.0;
+
+      for( UInt i = 0; i < size; ++i ) {
+        // if index number is larger the lastFree dof, insert 0
+        // Remember: in multiharmonic analysis only one blockInfo_ !
+        if( indices[i] > blockInfo_[0]->numLastFreeIndex) {
+          entry = 0.0;
+        } else {
+          rhs_->GetPointer(blockVec)->GetEntry(indices[i]-1,entry);
+        }
+        retVec[i] = entry;
+      }
+    }
+  }
+
   void AlgebraicSys::GetRHSVal( SBM_Vector& rhsVec ) {
-    
     // resize rhsVec to match number of functions
     rhsVec.Resize( numFcts_);
-
     // loop over all feFctIDs
-    for(UInt i = 0; i < numFcts_; ++i ) {
+    for(UInt i = 0; i < numFcts_; ++i ) GetRHSVal(rhsVec(i), i);
+  }
 
-      // call specialized GetSolutionVal method
-      GetRHSVal(rhsVec(i), i);
-    }
-      
+
+
+  void AlgebraicSys::GetRHSVal( const UInt& h, SBM_Vector& rhsVec ) {
+    rhsVec.Resize( numFcts_ );
+
+    // Get the correct block-vector
+    // call specialized GetRHSVal method, the boolean
+    // has no effect, it's just an identifier to call the correct method
+    GetRHSVal(rhsVec(0), h, true);
   }
   
+
+  void AlgebraicSys::GetFullMultiHarmRHSVal(SBM_Vector& rhsVec ) {
+    rhsVec.Resize( domain->GetDriver()->GetNumFreq() );
+    rhsVec.Init();
+
+    // loop over all block vector and call specialized GetRHSVal method, the boolean
+    // has no effect, it's just an identifier to call the correct method
+    for( UInt i = 0; i < rhsVec.GetSize(); ++i){
+      GetRHSVal(rhsVec(i), i, true);
+    }
+  }
+
+
   SBM_Matrix* AlgebraicSys::GenerateSBM_Matrix( FEMatrixType matType,
                                                 BaseMatrix::EntryType entryType,
                                                 bool sharePattern ) {
@@ -2793,90 +3670,192 @@ namespace CoupledField {
 
     // STEP 1: Generate empty SBM_Matrix
     SBM_Matrix *retMat = NULL;
-    retMat = new SBM_Matrix( numBlocks_, numBlocks_, sbmSymm_ );
+
+
+    /* Strategy for multiharmonic system:
+     * Generate (N+1 x N+1) or (N+2 x N+2) SBM matrix...driver privides the correct size
+     * in the variable numFreq_  but only populate the
+     * nonzero blocks, the sbm class should recognize that ...
+     */
+    if( isMultHarm_ ){
+      UInt s =  domain->GetDriver()->GetNumFreq(); //size
+
+      // Multiharmonic system matrix has size [numFreq, numFreq]
+      bool sysMatSym = false; //system matrix is not symmetric
+      retMat = new SBM_Matrix( s, s, sysMatSym );
+    }else{
+      retMat = new SBM_Matrix( numBlocks_, numBlocks_, sbmSymm_ );
+    }
+
+
     if ( retMat == NULL ) {
       EXCEPTION( "SBM_System::GenerateSBM_Matrix: "
           << "This is the end my friend!\n"
           << "Generation of empty SBM_Matrix failed!" );
     }
     
+
     // STEP 2: Populate with sub-matrices
     std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
     BaseGraph *graph = NULL;
-    for ( sIt = feSubMatricesByBlocks_[matType].begin();
-        sIt != feSubMatricesByBlocks_[matType].end(); sIt++ ) {
 
-      // Determine row / col
-      UInt sbmRow = (*sIt).rowInd;
-      UInt sbmCol = (*sIt).colInd;
+    // again differentiate between multiharmonic and classic case
+    if( isMultHarm_ ){
+      //if( feSubMatricesByBlocks_[matType].size() > 1 ){
+      //  EXCEPTION("AlgebraicSys::GenerateSBM_Matrix, only one block allowed")
+      //}
 
+      // we have only one graph, since all blocks consist of the same function
       // Determine number of matrix rows and columns
-      UInt nrows = blockInfo_[sbmRow]->numLastFreeIndex;
-      UInt ncols = blockInfo_[sbmCol]->numLastFreeIndex;
+      UInt nrows = blockInfo_[0]->numLastFreeIndex;
+      UInt ncols = blockInfo_[0]->numLastFreeIndex;
 
-      // Check for necessity of generation
-      if ( sbmRow <= sbmCol || sbmSymm_ == false ) {
+      //UInt N = solStrat_->GetNumHarmN();
+      UInt M = solStrat_->GetNumHarmM();
+      UInt a = (domain->GetDriver()->IsFullSystem())? (M+1) : ((M-1)/2 + 1);
+      for( UInt sbmRow = 0; sbmRow < domain->GetDriver()->GetNumFreq(); ++sbmRow ) {
+        for( UInt sbmCol = sbmRow ; sbmCol < sbmRow + a; ++sbmCol ) {
+          if( sbmCol < domain->GetDriver()->GetNumFreq()){
+            graph = graphManager_->GetGraph( sbmRow, sbmCol );
+            // we only allow nonsymmetric storage scheme
+            BaseMatrix::StorageType sT = BaseMatrix::SPARSE_NONSYM;
+            LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
+                << ", " << sbmCol+1 << ") is "
+                << BaseMatrix::storageType.ToString(sT);
+            retMat->SetSubMatrix ( sbmRow, sbmCol, entryType, sT, nrows, ncols, graph->GetNNE() );
 
-        graph = graphManager_->GetGraph( sbmRow, sbmCol );
-        //sbmSymm_ = false;
-        // Trigger generation of sub-matrix
-        if ( sbmRow == sbmCol && sbmSymm_ == true ) {
-          // for diagonal blocks we allow a variable
-          // matrix layout which we query at the
-          // sol-strategy object
-          
-          BaseMatrix::StorageType sT = solStrat_->GetStorageType(sbmRow);
-          LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
-              << ", " << sbmCol+1 << ") is " 
-              << BaseMatrix::storageType.ToString(sT);
-          
-          // If we perform static condensation and this is the 
-          // inner-inner block, we use the variable block row
-          // format to increase performance.
-          if( statCond_ && sbmRow == numBlocks_-1 ) {
-            sT = BaseMatrix::VAR_BLOCK_ROW;
-          }
-          
-          retMat->SetSubMatrix ( sbmRow, sbmCol, entryType, 
-                                 sT,
-                                 nrows, ncols, graph->GetNNE() );
-        } else {
-          // Off-diagonal entries are by nature rectangular and thus, only
-          // two possibilities remain: either sparse_nonsym crs format
-          // of the variable block row format. 
-          // CRS is the more general case and will be preferred.
-          retMat->SetSubMatrix ( sbmRow, sbmCol, 
-                                 entryType, BaseMatrix::SPARSE_NONSYM,
-                                 nrows, ncols, graph->GetNNE() );
-          LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
-                        << ", " << sbmCol+1 << ") is " 
-                        << BaseMatrix::storageType.ToString(BaseMatrix::SPARSE_NONSYM);
-        }
+            // check, if matrix pattern can be shared and
+            // obtain matrix graph
+            if( sharePattern ) {
+              SubMatrixID id;
+              id.rowInd = sbmRow;
+              id.colInd = sbmCol;
+              LOG_DBG(algSys) << "\tSharing pattern";
+              PatternIdType patternID = sbmPatternIds_[id];
+              if( sbmPatternIds_[id] != NO_PATTERN_ID ) {
+                LOG_DBG(algSys) << "\tObtaining pattern '" << patternID << "' from pool";
+                (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( patternPool_, patternID );
+              } else {
+                (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
+                sbmPatternIds_[id] = (*retMat)( sbmRow, sbmCol ).TransferPatternToPool( patternPool_ );
+                LOG_DBG(algSys) << "\tPutting pattern '" << sbmPatternIds_[id] << "' to pool";
+              }
+            } else {
+              LOG_DBG(algSys) << "\tUsing no shared sparsity pattern";
+              // Set sparsity pattern of sub-matrix
+              (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
+            }
 
-        // check, if matrix pattern can be shared and 
-        // obtain matrix graph
-        if( sharePattern ) {
-          LOG_DBG(algSys) << "\tSharing pattern";
-          PatternIdType patternID = sbmPatternIds_[(*sIt)]; 
-          if( sbmPatternIds_[(*sIt)] != NO_PATTERN_ID ) {
-            LOG_DBG(algSys) << "\tObtaining pattern '" << patternID << "' from pool";
-            (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( patternPool_, patternID );
+            // also set the transposed...if it's not the diagonal block
+            if(sbmRow != sbmCol){
+              LOG_DBG(algSys) << "storage Type of matrix (" << sbmCol +1
+                  << ", " << sbmRow+1 << ") is "
+                  << BaseMatrix::storageType.ToString(sT);
+              retMat->SetSubMatrix ( sbmCol, sbmRow, entryType, sT, nrows, ncols, graph->GetNNE() );
+
+              if( sharePattern ) {
+                SubMatrixID id;
+                id.rowInd = sbmCol;
+                id.colInd = sbmRow;
+                LOG_DBG(algSys) << "\tSharing pattern";
+                PatternIdType patternID = sbmPatternIds_[id];
+                if( sbmPatternIds_[id] != NO_PATTERN_ID ) {
+                  LOG_DBG(algSys) << "\tObtaining pattern '" << patternID << "' from pool";
+                  (*retMat)( sbmCol, sbmRow ).SetSparsityPattern( patternPool_, patternID );
+                } else {
+                  (*retMat)( sbmCol, sbmRow ).SetSparsityPattern( *graph );
+                  sbmPatternIds_[id] = (*retMat)( sbmCol, sbmRow ).TransferPatternToPool( patternPool_ );
+                  LOG_DBG(algSys) << "\tPutting pattern '" << sbmPatternIds_[id] << "' to pool";
+                }
+              } else {
+                LOG_DBG(algSys) << "\tUsing no shared sparsity pattern";
+                // Set sparsity pattern of sub-matrix
+                (*retMat)( sbmCol, sbmRow ).SetSparsityPattern( *graph );
+              }
+            }
+
+          } // endif sbmCol < size
+        } // loop over sbmCols
+      } // loop over sbmRows
+
+
+
+    }else{
+
+      for ( sIt = feSubMatricesByBlocks_[matType].begin();
+          sIt != feSubMatricesByBlocks_[matType].end(); sIt++ ) {
+
+        // Determine row / col
+        UInt sbmRow = (*sIt).rowInd;
+        UInt sbmCol = (*sIt).colInd;
+
+        // Determine number of matrix rows and columns
+        UInt nrows = blockInfo_[sbmRow]->numLastFreeIndex;
+        UInt ncols = blockInfo_[sbmCol]->numLastFreeIndex;
+
+        // Check for necessity of generation
+        if ( sbmRow <= sbmCol || sbmSymm_ == false ) {
+
+          graph = graphManager_->GetGraph( sbmRow, sbmCol );
+          //sbmSymm_ = false;
+          // Trigger generation of sub-matrix
+          if ( sbmRow == sbmCol && sbmSymm_ == true ) {
+            // for diagonal blocks we allow a variable
+            // matrix layout which we query at the
+            // sol-strategy object
+
+            BaseMatrix::StorageType sT = solStrat_->GetStorageType(sbmRow);
+            LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
+                << ", " << sbmCol+1 << ") is "
+                << BaseMatrix::storageType.ToString(sT);
+
+            // If we perform static condensation and this is the
+            // inner-inner block, we use the variable block row
+            // format to increase performance.
+            if( statCond_ && sbmRow == numBlocks_-1 ) {
+              sT = BaseMatrix::VAR_BLOCK_ROW;
+            }
+
+            retMat->SetSubMatrix ( sbmRow, sbmCol, entryType,
+                sT,
+                nrows, ncols, graph->GetNNE() );
           } else {
-            (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
-            sbmPatternIds_[(*sIt)] = 
-                (*retMat)( sbmRow, sbmCol ).TransferPatternToPool( patternPool_ );
-            LOG_DBG(algSys) << "\tPutting pattern '" << sbmPatternIds_[(*sIt)] << "' to pool";
+            // Off-diagonal entries are by nature rectangular and thus, only
+            // two possibilities remain: either sparse_nonsym crs format
+            // of the variable block row format.
+            // CRS is the more general case and will be preferred.
+            retMat->SetSubMatrix ( sbmRow, sbmCol,
+                entryType, BaseMatrix::SPARSE_NONSYM,
+                nrows, ncols, graph->GetNNE() );
+            LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
+                << ", " << sbmCol+1 << ") is "
+                << BaseMatrix::storageType.ToString(BaseMatrix::SPARSE_NONSYM);
           }
-        } else {
-          LOG_DBG(algSys) << "\tUsing no shared sparsity pattern";
-          // Set sparsity pattern of sub-matrix
-          (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );  
+
+          // check, if matrix pattern can be shared and
+          // obtain matrix graph
+          if( sharePattern ) {
+            LOG_DBG(algSys) << "\tSharing pattern";
+            PatternIdType patternID = sbmPatternIds_[(*sIt)];
+            if( sbmPatternIds_[(*sIt)] != NO_PATTERN_ID ) {
+              LOG_DBG(algSys) << "\tObtaining pattern '" << patternID << "' from pool";
+              (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( patternPool_, patternID );
+            } else {
+              (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
+              sbmPatternIds_[(*sIt)] =
+                  (*retMat)( sbmRow, sbmCol ).TransferPatternToPool( patternPool_ );
+              LOG_DBG(algSys) << "\tPutting pattern '" << sbmPatternIds_[(*sIt)] << "' to pool";
+            }
+          } else {
+            LOG_DBG(algSys) << "\tUsing no shared sparsity pattern";
+            // Set sparsity pattern of sub-matrix
+            (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
+          }
+
+
         }
-        
-        
       }
     }
-
     return retMat;
   }
   
@@ -2885,8 +3864,7 @@ namespace CoupledField {
     
     // First check, if we have a true SBM system.
     // consisting of more than one SBM-Block
-    if( numBlocks_ == 1 ||
-        (numBlocks_ == 2 && statCond_) ) {
+    if( (numBlocks_ == 1 || (numBlocks_ == 2 && statCond_) ) && !isMultHarm_ ) {
       
       // ========================
       //  Only one block present 
@@ -3157,17 +4135,234 @@ namespace CoupledField {
       matNode->Get("reordering",ParamNode::INSERT)->
           SetValue(BaseOrdering::reorderingType.ToString(ot));
       
-    } else {
-      // ======================
-      //  True SBM Case 
-      // ======================
-      WARN("This section is not yet implemented");
     }
-    
-    // Dump tree in the end
-//    std::cerr << "Dump of parameter tree at the end of "
-//        << "AlgebraicSys::CheckConsistency():\n";
-//    myParam_->Dump();
+
+    if( isMultHarm_ ){
+        // =========================================================================
+        //  True SBM Case, e.g. for multiharmonic analysis
+        // =========================================================================
+        WARN("The implementation of this section is not yet finished");
+
+
+
+        // --------------------------
+        //  Check Symmetry of Matrix
+        // --------------------------
+        PtrParamNode matNode = solStrat_->GetMatrixNode(0);
+        BaseMatrix::StorageType storType = BaseMatrix::NOSTORAGETYPE;
+
+        // we only allow nonsymmetric storage format
+        std::string storageString = "sparseNonSym";
+        if( matNode->Has("storage")) {
+          if( matNode->Get("storage")->As<std::string>() != "sparseNonSym" ){
+           EXCEPTION(" You probably perform a multiharmonic analysis, therefore please set nonsymmetric storage type! ");
+          }
+        }
+
+        bool canChangeMatFormat = false;
+
+        matNode->GetValue("storage",storageString, ParamNode::INSERT);
+        storType = BaseMatrix::storageType.Parse(storageString);
+
+
+        // -----------------------------------------------
+        //  Check of Eigenvalue Solver not yet implemented
+        // -----------------------------------------------
+
+
+
+
+        // ------------------------------------------------
+        //  Check Solver
+        // ------------------------------------------------
+        std::string solverId = solStrat_->GetSolverId();
+        PtrParamNode solverList = myParam_->Get("solverList", ParamNode::INSERT);
+        ParamNodeList sNodes =  solverList->GetChildren();
+        PtrParamNode solverNode;
+        for( UInt i = 0; i < sNodes.GetSize(); ++i ){
+          if( sNodes[i]->Get("id")->As<std::string>() == solverId ){
+            solverNode = sNodes[i];
+          }
+        }
+        BaseSolver::SolverType st;
+        // set for allowed matrix types of the solver
+        std::set<BaseMatrix::StorageType> solverStorTypes;
+        if( !solverNode ) {
+          // ---------------------------------------------------
+          //  no solver set -> use default direct
+          // ---------------------------------------------------
+          st = BaseSolver::PARDISO_SOLVER;
+          solverList->Get("pardiso",ParamNode::INSERT)->
+            Get("id",ParamNode::INSERT)->SetValue(solverId);
+        }else{
+          // ---------------------------------------------------
+          //  solver set -> check for compatibility with matrix
+          // ---------------------------------------------------
+
+          // convert solver string to enum
+          st = BaseSolver::solverType.Parse(solverNode->GetName());
+
+          // obtain list of allowed matrix format
+          solverStorTypes = GetSolverCompatMatrixFormats(st);
+
+          // check, if current matrix format is in allowed list
+          if( solverStorTypes.find(storType) == solverStorTypes.end() &&
+              solverStorTypes.size() != 0 ) {
+            //  matrix format is not allowed
+            EXCEPTION("Solver '" << solverNode->GetName()
+                      << "' can not operate on matrix with storage type '"
+                      << storageString << "'. \nChange format to '"
+                      << BaseMatrix::storageType.ToString(storType)
+                      << "'.");
+          }
+        }
+
+        // -------------------------------------------------------
+        //  Check Precond
+        // -------------------------------------------------------
+        std::string precondId = solStrat_->GetPrecondId();
+        PtrParamNode precondList = myParam_->Get("precondList",
+                                                 ParamNode::INSERT);
+        ParamNodeList pNodes =  precondList->GetChildren();
+        PtrParamNode precondNode;
+        for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
+          if( pNodes[i]->Get("id")->As<std::string>() == precondId ) {
+            precondNode = pNodes[i];
+          }
+        }
+
+
+        BaseSolver::PrecondType pt;
+        if( !precondNode ) {
+          // -------------------------------------------------------
+          //  no precond set -> use default ID
+          // -------------------------------------------------------
+          pt = BasePrecond::ID;
+          precondList->Get("Id",ParamNode::INSERT)->
+              Get("id",ParamNode::INSERT)->SetValue(precondId);
+        }else{
+          // ---------------------------------------------------
+          //  precond set -> check for compatibility with matrix
+          // ---------------------------------------------------
+
+          // convert precond string to enum
+          pt = BaseSolver::precondType.Parse(precondNode->GetName());
+
+          // obtain list of allowed matrix format
+          std::set<BaseMatrix::StorageType> mf =
+              GetPrecondCompatMatrixFormats(pt);
+
+          // check, if current matrix format is in allowed list
+          if( mf.find(storType) == mf.end() &&
+              mf.size() != 0 ) {
+            //  matrix format is not allowed
+
+            //  a) we can change matrix AND (!!!) the requested
+            //     matrix layout is compatible with the solver -> change it
+
+            storType = *mf.begin();
+            bool isCompatibleWithSolver = (solverStorTypes.size() == 0 || solverStorTypes.find(storType) != solverStorTypes.end() );
+
+            if( canChangeMatFormat && isCompatibleWithSolver) {
+              storageString = BaseMatrix::storageType.ToString(storType);
+              matNode->Get("storage")->SetValue(storageString);
+            } else {
+              EXCEPTION("Precond '" << precondNode->GetName()
+                        << "' can not operate on matrix with storage type '"
+                        << storageString << "'. \nChange format to '"
+                        << BaseMatrix::storageType.ToString(storType)
+                        << "'.");
+              // b) we can not change matrix -> EXCEPTION
+            } // canChangeFormat
+          } // find storageType
+          //EXCEPTION("Preconditioning for true SBM case not yet implemented!");
+        }
+
+        // ---------------------------------------------------
+        //  sensibility test for preconditioner
+        // ---------------------------------------------------
+        // a) all direct solver do not need any preconditioner
+        if(( st == BaseSolver::LDL_SOLVER ||
+            st == BaseSolver::LU_SOLVER  ||
+            st == BaseSolver::LAPACK_LU  ||
+            st == BaseSolver::LAPACK_LL  ||
+            st == BaseSolver::PARDISO_SOLVER )
+            && !(pt == BasePrecond::ID ||
+                pt == BasePrecond::NOPRECOND) ) {
+          EXCEPTION( "A direct solver only works with the Identity (ID) "
+                     "preconditioner." );
+        }
+
+        // --------------------------------------------------------
+        //  Check for shared pattern
+        // --------------------------------------------------------
+        if( st == BaseSolver::DIAGSOLVER ) {
+          sharedPatternPossible_ = false;
+        }
+
+        // ---------------
+        //  Check Reordering
+        // ---------------
+        BaseOrdering::ReorderingType ot = BaseOrdering::SLOAN;
+  #ifdef USE_METIS
+        ot = BaseOrdering::METIS;
+  #endif
+        bool canChangeReordering = true;
+        if (matNode->Has("reordering") &&
+            matNode->Get("reordering")->As<std::string>() != "_default_" ) {
+          ot = BaseOrdering::reorderingType.Parse(
+              matNode->Get("reordering")->As<std::string>());
+          canChangeReordering = false;
+        }
+
+
+        // a) for our own direct solvers we activate re-ordering
+        if( (st == BaseSolver::LU_SOLVER ||
+             st == BaseSolver::LDL_SOLVER ||
+             st == BaseSolver::LAPACK_LL ||
+             st == BaseSolver::LAPACK_LU ) &&
+             ot == BaseOrdering::NOREORDERING &&
+            canChangeReordering == true ) {
+  #ifdef USE_METIS
+          ot = BaseOrdering::METIS;
+  #else
+          ot = BaseOrdering::SLOAN;
+  #endif
+        }
+
+        // b) pardiso and most external solvers need no reordering or have their own
+        if( st == BaseSolver::PARDISO_SOLVER &&
+            st == BaseSolver::UMFPACK &&
+            st == BaseSolver::ILUPACK &&
+  //          st == BaseSolver::LIS &&
+            st == BaseSolver::SUPERLU &&
+            st == BaseSolver::SPOOLES &&
+            ot != BaseOrdering::NOREORDERING &&
+            canChangeReordering == true ) {
+          ot = BaseOrdering::NOREORDERING;
+        }
+
+        // c) ilu-based preconditioners prefer reordering
+        if( ( pt == BasePrecond::ILUK ||
+              pt == BasePrecond::ILUTP ||
+              pt == BasePrecond::ILDLK ||
+              pt == BasePrecond::ILDLTP ||
+              pt == BasePrecond::ILDLCN ) &&
+              ot == BaseOrdering::NOREORDERING &&
+              canChangeReordering == true ) {
+  #ifdef USE_METIS
+          ot = BaseOrdering::METIS;
+  #else
+          ot = BaseOrdering::SLOAN;
+  #endif
+        }
+
+        // in the end store back the reordering type
+        matNode->Get("reordering",ParamNode::INSERT)->
+            SetValue(BaseOrdering::reorderingType.ToString(ot));
+
+    }
+
   }
   
   void AlgebraicSys::PrintFeMatrixInfo( ) {
@@ -3264,7 +4459,7 @@ namespace CoupledField {
         BaseGraph * graph = graphManager_->GetGraph(smId.rowInd,smId.colInd); 
         
         // bandwidth and reordering gets just written for diagonal blocks 
-        if( smId.rowInd == smId.colInd ) {
+        if( smId.rowInd == smId.colInd && !isMultHarm_) {
           UInt bwLow = 0, bwUp = 0, bwAvg = 0;
           graph->GetBandwidth(bwLow, bwUp, bwAvg);
           mNode->Get("upperBandWidth")->SetValue(bwUp);
@@ -3869,13 +5064,23 @@ namespace CoupledField {
   SetElementMatrix( FEMatrixType, Matrix<Complex>&, 
                     FeFctIdType, const StdVector<Integer>& ,
                     FeFctIdType, const StdVector<Integer>& , bool, bool, bool);
+  template void AlgebraicSys::
+  SetElementMatrix_MultHarm( FEMatrixType, Matrix<Double>&,
+                    FeFctIdType, const StdVector<Integer>& ,
+                    FeFctIdType, const StdVector<Integer>& , bool,
+                    const StdVector<UInt>&);
+  template void AlgebraicSys::
+  SetElementMatrix_MultHarm( FEMatrixType, Matrix<Complex>&,
+                    FeFctIdType, const StdVector<Integer>& ,
+                    FeFctIdType, const StdVector<Integer>& , bool,
+                    const StdVector<UInt>&);
   
   template void AlgebraicSys::
   SetElementRHS( const Vector<Double>&, const FeFctIdType, 
-                 StdVector<Integer>&);
+                 StdVector<Integer>&, UInt&);
   template void AlgebraicSys::
     SetElementRHS( const Vector<Complex>&, const FeFctIdType, 
-                   StdVector<Integer>&);
+                   StdVector<Integer>&, UInt&);
   
   template void AlgebraicSys::SetNodeRHS(Double, FeFctIdType, Integer );
   template void AlgebraicSys::SetNodeRHS(Complex, FeFctIdType, Integer );

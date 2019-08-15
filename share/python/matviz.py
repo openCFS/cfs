@@ -5,7 +5,6 @@ from matviz_vtk import *
 from matviz_unstructured_mesh import *
 from matviz_2d  import *
 from matviz_streamline import *
-from hdf5_tools import *
 from mesh_tool import *
 from optimization_tools import *
 import argparse
@@ -443,6 +442,7 @@ parser.add_argument("--h5_region", help="design region name (default 'mech')", d
 parser.add_argument("--h5_nondes", help="non-design region name (default 'non-design')", default="non-design")
 # parser.add_argument('--h5_nonreg', action='store_true', help='assume the h5 file to be nonregular')
 parser.add_argument('--h5_info', action='store_true', help='dump some meta data information about the h5 file')
+parser.add_argument('--hist', help='plot histograms of the results in the h5 file. Has to be used with --show', type=int, default=10)
 parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
 parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=float)
 parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
@@ -636,6 +636,28 @@ else:
       nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support, _ = centered_elements(f, args.h5_nondes)
   dim_2D = min_bb[2] == max_bb[2]
   print('detected dimension ' + ('2D' if dim_2D else '3D'))
+  
+  if args.hist:
+    if args.show == None:
+      print('ERROR: The option --hist can only be used in combination with --show.')
+      sys.exit()
+    design = read_design(f, dim_2D, args)
+    s1 = design['s1']
+    s2 = design['s2']
+    if dim_2D:
+      vol = s1 + s2 - s1*s2
+    else:
+      s3 = design['s3']
+      vol = pow(s1,2) + pow(s2,2) + pow(s3,2) - (pow(s1,2)*s2+pow(s1,2)*s3+pow(s2,2)*s1+pow(s2,2)*s3+pow(s3,2)*s1+pow(s3,2)*s2)/6.0 *2.0 # rough approximation
+    matplotlib.pyplot.hist(vol,args.hist)
+    matplotlib.pyplot.title('element volume')
+    matplotlib.pyplot.xlim((min(vol),max(vol)))
+    matplotlib.pyplot.show()
+    for des in design:
+      val = design[des]
+      if val.ndim != 1:
+        continue
+    sys.exit()   
 
 # do we have to do 1D optimization? 
 if not args.target_volume:

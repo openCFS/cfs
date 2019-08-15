@@ -1208,8 +1208,13 @@ namespace CoupledField {
       shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
 
       TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHyst_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-      
-      shared_ptr<BaseTimeScheme> elecScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0, nlType) );
+
+      //get possible alpha parameter of HHT-time stepping from mechanical PDE
+      PtrParamNode mechParam = pde1_->GetMyParam();
+      Double alpha = mechParam->Get("timeStepAlpha")->As<Double>();
+
+      GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha); 
+      shared_ptr<BaseTimeScheme> elecScheme(new TimeSchemeGLM(scheme1, 0, nlType) );
 
       elecFct->SetTimeScheme(elecScheme);
       elecFct->GetTimeScheme()->Init(elecFct->GetSingleVector(),dt);

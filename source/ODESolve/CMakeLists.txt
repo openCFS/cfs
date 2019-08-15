@@ -5,3 +5,5 @@ ODESolver_Rosenbrock.cc
 PiezoSwitch.cc)
 
 ADD_LIBRARY(odesolver STATIC ${ODESOLVER_SRCS})
+
+ADD_DEPENDENCIES(odesolver boost)

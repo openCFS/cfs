@@ -103,7 +103,7 @@ public:
   virtual void ComputeOptCondition(Double& optAmp, Double& optPhase);
 
   //! update the source values (amplitude and phase)
-  virtual void UpdateSource(Double& stepLength, bool lineSearch);
+  virtual void UpdateSource(Double& stepLength, bool lineSearch, bool scaleBack=false);
 
   //! computes the L2 norm of error
   virtual void ComputeTikh(Double& funcVal, Double& resSquared);
@@ -117,7 +117,7 @@ public:
   //! computes the L2 norm of error
   virtual void SetInverseParam( Double& alpha, Double& beta, Double& rho, Double& qExp,
 		                        Double& freq, std::string fileNameMeasdata,
-								std::string logLevel);
+								std::string logLevel, Double& scalVal);
 
   //! set all parameters for inverse scheme
   virtual void ChangeInverseParam( Double& alpha, Double& beta, Double& rho) {
@@ -210,6 +210,9 @@ private:
   Double freq_;
 
   Double scalingHesse_;
+
+  //factor to scale the measured pressure amplitude to about 1
+  Double scalValAmp_;
 
  };
    

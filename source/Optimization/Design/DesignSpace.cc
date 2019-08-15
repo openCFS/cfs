@@ -669,7 +669,8 @@ double DesignSpace::EvalInterfaceFunction(int nodeId, bool derivative)
 
 double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
 {
-  StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(nodeId);
+  StdVector<const Elem*> elems;
+  domain->GetGrid()->GetElemsNextToNode(elems, nodeId);
   double tmp = 0;
   int found = 0;
   double lower = 0.0;
@@ -1051,7 +1052,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
 {
   assert(Optimization::context->pde != NULL);
   assert(Optimization::context->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"));
-  StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(lpm->lp.number);
+  //StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(lpm->lp.number);
 
   coef->orgMat->GetVector(retVec, *lpm);
 
@@ -1681,19 +1682,28 @@ void DesignSpace::ToInfo(ErsatzMaterial* em)
   }
 }
 
-std::string DesignSpace::ToString()
+std::string DesignSpace::ToString(int level)
 {
   std::stringstream ss;
-  ss << "design[";
-  const unsigned int data_size(data.GetSize());
-  for(unsigned int i = 0; i < data_size; i++)
+
+  assert(level == 0 || level == 1);
+  if(level == 0)
   {
-    DesignElement* de = &data[i];
-    ss << i << ":elem=" << de->elem->elemNum;
-    if(de->vicinity != NULL) ss << " " << de->vicinity->ToString();
-    ss << " ";
+    ss << "design[";
+    for(unsigned int i = 0; i < data.GetSize(); i++)
+    {
+      DesignElement* de = &data[i];
+      ss << i << ":elem=" << de->elem->elemNum;
+      if(de->vicinity != NULL) ss << " " << de->vicinity->ToString();
+      ss << " ";
+    }
+    ss << "]";
   }
-  ss << "]";
+  if(level == 1)
+  {
+    for(unsigned int i = 0; i < data.GetSize(); i++)
+      ss << data[i].GetPlainDesignValue() << ", ";
+  }
   return ss.str();
 }
 void DesignSpace::DisableTransferFunctions()

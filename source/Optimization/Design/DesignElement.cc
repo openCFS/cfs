@@ -892,9 +892,9 @@ void DesignElement::SetEnums()
   type.Add(PIEZO_22, "piezo_22");
   type.Add(PIEZO_23, "piezo_23");
   type.Add(ROTANGLE, "rotAngle");
-  type.Add(ROTANGLEX, "rotAngleX");
-  type.Add(ROTANGLEY, "rotAngleY");
-  type.Add(ROTANGLEZ, "rotAngleZ");
+  type.Add(ROTANGLEFIRST, "rotAngleFirst");
+  type.Add(ROTANGLESECOND, "rotAngleSecond");
+  type.Add(ROTANGLETHIRD, "rotAngleThird");
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
   type.Add(STIFF3, "stiff3");

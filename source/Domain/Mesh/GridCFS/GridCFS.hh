@@ -219,6 +219,8 @@ namespace CoupledField
 
     virtual void GetElemRegion(UInt ielem, RegionIdType & region);
 
+    virtual RegionIdType GetElemRegion(UInt ielem);
+
     //! Get list of elements (surface / volumes)
     
     //! Returns all elems for a given surface / volume region. If the desired 
@@ -262,15 +264,6 @@ namespace CoupledField
     void GetElemNodes( StdVector<UInt> & connect, 
                        const UInt iElem );
 
-    //! Returns element neighbors of given node
-    //! \param node number of interest
-    inline const StdVector<Elem*>& GetElemsByNode(UInt node)
-    {
-      if (!mappedNodeToElems_)
-        SetNodesToElemsMap();
-      return mapNodeToElems_[node];
-    }
-
     virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
     
     virtual void AddNamedElems( std::string name, StdVector<UInt> & elemNums);
@@ -288,6 +281,31 @@ namespace CoupledField
                             bool updated );
 
 
+    //! Get elements associated with given node
+
+    //! Returns a list of elements, which have one or more of the given
+    //! common. The elements are taken out of a given list of regions.
+    //! \param elemList (out) elements which have one or more nodes of 
+    //!                          nodeList
+    //! \param node (in) node for which neighbouring elements
+    //!                      are needed
+   void GetElemsNextToNode( StdVector<const Elem*> & elemList,
+                               const UInt & node);
+    
+    //! Get elements associated with given node
+
+    //! Returns a list of elements, which have one or more of the given
+    //! common. The elements are taken out of a given list of regions.
+    //! \param elemList (out) elements which have one or more nodes of 
+    //!                          nodeList
+    //! \param node (in) node for which neighbouring elements
+    //!                      are needed
+    //! \param regionIds (in) identifiers for the regions, where the 
+    //!                          neihgbouring elements are searched in
+    void GetElemsNextToNode( StdVector<const Elem*> & elemList,
+                               const UInt & node,
+                               const StdVector<RegionIdType>& regionIds);
+    
     //! Get elements associated with given nodes
 
     //! Returns a list of elements, which have one or more of the given
@@ -298,10 +316,9 @@ namespace CoupledField
     //!                         are needed
     //! \param regionIds (in) identifiers for the regions, where the 
     //!                          neihgbouring elements are searched in
-    void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
+    void GetElemsNextToNodes( StdVector<const Elem*> & elemList, 
                               const StdVector<UInt> & nodeList,
-                              const StdVector<RegionIdType> 
-                              & regionIds);
+                              const StdVector<RegionIdType> & regionIds);
 
     //! Get number of elements associated with given nodes
 
@@ -319,6 +336,7 @@ namespace CoupledField
         const UInt & node,
         const StdVector<RegionIdType>& regionIds);
 
+    void ClearNodeToElemConnectivity();
 
 
     //! Get volume elements lying next to given surface elements
@@ -536,10 +554,10 @@ namespace CoupledField
     };
 
     //! helper struct for storing the number of neighbour-elements for every node
-    struct NodeNeighbourElems{
-      boost::unordered_map<UInt, StdVector<Elem*> > nodeNeighElems;
-      RegionIdType regID;
-    };
+   // struct NodeNeighbourElems{
+   //  boost::unordered_map<UInt, StdVector<Elem*> > nodeNeighElems;
+   //   RegionIdType regID;
+   // };
 
 
 
@@ -671,13 +689,20 @@ namespace CoupledField
     //! Map containing number elements of each type
     std::map<Elem::FEType, UInt> numElemTypes_;
 
+    //! Maximum number of nodes per element
     UInt maxNumElemNodes_;
 
 
-    //! Maps from a node number to all neighbor elements
-    StdVector<StdVector<Elem*> > mapNodeToElems_;
+    //! Indices to search for the elements containing on specific node number in nodeElemMap_
+    //! The element connected to node number n are contained in the range:
+    //! { nodeElemMap_[nodeElemMapIndices_[n]], nodeElemMap_[nodeElemMapIndices_[n+1]] {
+    //! (last element excluded)
+    StdVector<UInt> nodeElemMapIndices_;
+    
+    //! Contains the element numbers, contains the specific
+    StdVector<UInt> nodeElemMap_;
 
-    //! Flag to ensure that mapNodeToElems_ and mapNodeToElemsNew_ is only set up once
+    //! Flag to ensure that mapNodeToElems_ is only set up once
     bool mappedNodeToElems_ = false;
     //@}
   

@@ -176,7 +176,7 @@ namespace CoupledField {
               std::string("nonlinear"), 
               "function");
       if(pcc->Has("entry"))
-        material->SetScalar(pcc->Get("entry")->As<Integer>(), NONLIN_COEFFICIENT);
+        material->SetScalar(pcc->Get("entry")->As<double>(), NONLIN_COEFFICIENT);
       
       if(pcc->Has("dependency"))
         material->SetScalar(pcc->Get("dependency")->As<std::string>(), NONLIN_DEPENDENCY);
@@ -447,7 +447,7 @@ namespace CoupledField {
               std::string("nonlinear"),
               "function");
       if(ec->Has("entry")) 
-        material->SetScalar(ec->Get("entry")->As<Integer>(), NONLIN_COEFFICIENT);
+        material->SetScalar(ec->Get("entry")->As<double>(), NONLIN_COEFFICIENT);
       
       if(ec->Has("dependency"))
         material->SetScalar(ec->Get("dependency")->As<std::string>(), NONLIN_DEPENDENCY );
@@ -583,7 +583,7 @@ namespace CoupledField {
           material->SetScalar(f->Get("alg")->As<std::string>(), FRACTIONAL_ALG );
         
         if(f->Has("memory"))        
-          material->SetScalar(f->Get("memory")->As<Integer>(), FRACTIONAL_MEMORY );
+          material->SetScalar(f->Get("memory")->As<double>(), FRACTIONAL_MEMORY );
         
         if(f->Has("interpolation"))        
           material->SetScalar(f->Get("interpolation")->As<std::string>(), FRACTIONAL_INTERPOL );
@@ -853,7 +853,7 @@ namespace CoupledField {
       
       // read nonlinearity of a permittivity coefficient
       if(pc->Has("entry"))
-        material->SetScalar(pc->Get("entry")->As<Integer>(), NONLIN_COEFFICIENT);
+        material->SetScalar(pc->Get("entry")->As<double>(), NONLIN_COEFFICIENT);
       
       // read non linear dependency of a permittivity coefficient
       if(pc->Has("dependency"))
@@ -920,13 +920,14 @@ namespace CoupledField {
         }
         
         if(p->Has("strainForm")){
-          material->SetScalar(p->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
+          material->SetScalar(p->Get("strainForm")->As<double>(), HYST_STRAIN_FORM);
         } else {
           material->SetScalar(0, HYST_STRAIN_FORM);
         }
         
         int coefdim = -1;
-        if(p->Has("dim_betaCoefs")) coefdim = p->Get("dim_betaCoefs")->As<Integer>();
+        if(p->Has("dim_betaCoefs"))
+          coefdim = (int) p->Get("dim_betaCoefs")->As<Integer>();
         material->SetScalar(coefdim, DIM_BETA_COEFS);
         
         Matrix<Double> betaCoef;
@@ -1445,13 +1446,13 @@ namespace CoupledField {
         }
         
         if(p->Has("strainForm")){
-          material->SetScalar(p->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
+          material->SetScalar(p->Get("strainForm")->As<double>(), HYST_STRAIN_FORM);
         } else {
           material->SetScalar(0, HYST_STRAIN_FORM);
         }
         
         int coefdim = -1;
-        if(p->Has("dim_betaCoefs")) coefdim = p->Get("dim_betaCoefs")->As<Integer>();
+        if(p->Has("dim_betaCoefs")) coefdim = p->Get("dim_betaCoefs")->As<double>();
         material->SetScalar(coefdim, DIM_BETA_COEFS);
         
         Matrix<Double> betaCoef;
@@ -1491,7 +1492,7 @@ namespace CoupledField {
          *                20 -> revised model, matrix based
          */
         if(p->Has("evalVersion")){
-          material->SetScalar(p->Get("evalVersion")->As<Integer>(), EVAL_VERSION);
+          material->SetScalar(p->Get("evalVersion")->As<double>(), EVAL_VERSION);
         } else {
           material->SetScalar(2, EVAL_VERSION);
         }
@@ -1562,25 +1563,26 @@ namespace CoupledField {
          * written to a bmp file of resolution bmpResolution
          */
         if(p->Has("printOut")){
-          material->SetScalar(p->Get("printOut")->As<Integer>(), PRINT_PREISACH);
+          material->SetScalar(p->Get("printOut")->As<double>(), PRINT_PREISACH);
         } else {
           material->SetScalar(0, PRINT_PREISACH);
         }
         
         if(p->Has("bmpResolution")){
-          material->SetScalar(p->Get("bmpResolution")->As<Integer>(), PRINT_PREISACH_RESOLUTION);
+          material->SetScalar(p->Get("bmpResolution")->As<double>(), PRINT_PREISACH_RESOLUTION);
         } else {
           material->SetScalar(1000, PRINT_PREISACH_RESOLUTION);
         }
         
         if(p->Has("strainForm")){
-          material->SetScalar(p->Get("strainForm")->As<Integer>(), HYST_STRAIN_FORM);
+          material->SetScalar(p->Get("strainForm")->As<double>(), HYST_STRAIN_FORM);
         } else {
           material->SetScalar(0, HYST_STRAIN_FORM);
         }
         
         int coefdim = -1;
-        if(p->Has("dim_betaCoefs")) coefdim = p->Get("dim_betaCoefs")->As<Integer>();
+        if(p->Has("dim_betaCoefs"))
+          coefdim = (int) p->Get("dim_betaCoefs")->As<double>();
         material->SetScalar(coefdim, DIM_BETA_COEFS);
         
         Matrix<Double> betaCoef;
@@ -1793,6 +1795,14 @@ namespace CoupledField {
       } // nonlinear isotropic material  
       
     }
+
+    // read reference temperature
+    if(therm->Has("refTemperature")) {
+          PtrCoefFct refTemp =
+                  CoefFunction::Generate(mp_, Global::REAL,
+                		  therm->Get("refTemperature")->As<std::string>() );
+          material->SetCoefFct( REF_TEMPERATURE, refTemp );
+    }
   }
   
   //**********************************************************************
@@ -1828,6 +1838,31 @@ namespace CoupledField {
               flow->Get("kinematicViscosity")->As<std::string>() );
       material->SetCoefFct( KINEMATIC_VISCOSITY, kinVisc );
     }
+
+    // read bulk viscosity
+    if(flow->Has("bulkViscosity")) {
+          PtrCoefFct bulkVisc =
+                  CoefFunction::Generate(mp_, Global::REAL,
+                  flow->Get("bulkViscosity")->As<std::string>() );
+          material->SetCoefFct( BULK_VISCOSITY, bulkVisc );
+    }
+
+    // read adiabatic exponent
+    if(flow->Has("adiabaticExponent")) {
+    	PtrCoefFct exp =
+    		CoefFunction::Generate(mp_, Global::REAL,
+    					flow->Get("adiabaticExponent")->As<std::string>() );
+    	material->SetCoefFct( ADIABATIC_EXPONENT, exp );
+    }
+
+    // read reference pressure
+    if(flow->Has("refPressure")) {
+          PtrCoefFct refPres =
+                  CoefFunction::Generate(mp_, Global::REAL,
+                  flow->Get("refPressure")->As<std::string>() );
+          material->SetCoefFct( REF_PRESSURE, refPres );
+    }
+
   }
   
   //**********************************************************************

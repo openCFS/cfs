@@ -212,6 +212,67 @@ namespace CoupledField{
 
   };
   
+
+  // ===========================================================
+  //  CURL-OPERATOR FOR H-CURL ELEMENTS (Scaled by a mapping function)
+  // ===========================================================
+
+  //!Specialized class for curl elements
+  template<UInt D, class TYPE>
+  class ScaledCurlOperator : public CurlOperator<FeHCurl,D,TYPE>{
+  public:
+//TODO change the methods
+    ScaledCurlOperator(){
+      this->name_ = "ScaledCurlOperator";
+    }
+
+    ScaledCurlOperator(const ScaledCurlOperator & other)
+     : CurlOperator<FeHCurl,D,TYPE>(other){
+    }
+
+    virtual ScaledCurlOperator * Clone(){
+      return new ScaledCurlOperator(*this);
+    }
+
+    ~ScaledCurlOperator(){
+
+    }
+
+    virtual void CalcOpMat(Matrix<Double> & bMat,
+                           const LocPointMapped& lp, BaseFE* ptFe ){
+      assert(this->coef_ != NULL);
+
+      //TODO could be more difficult
+      CurlOperator<FeHCurl,D,TYPE>::CalcOpMat(bMat,lp,ptFe);
+      Vector<Double> coefs;
+      this->coef_->GetVector(coefs,lp);
+      for(UInt i=0;i<bMat.GetNumCols();++i){
+        for(UInt d = 0;d<bMat.GetNumRows();++d){
+          bMat[d][i] *= coefs[d];
+        }
+      }
+    }
+
+    virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                     const LocPointMapped& lp, BaseFE* ptFe ){
+      assert(this->coef_ != NULL);
+
+      //TODO could be more difficult
+      CurlOperator<FeHCurl,D,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
+      Vector<Double> coefs;
+      this->coef_->GetVector(coefs,lp);
+      for(UInt i=0;i<bMat.GetNumRows();++i){
+        for(UInt d = 0;d<bMat.GetNumCols();++d){
+          bMat[i][d] *= coefs[d];
+        }
+      }
+    }
+
+
+  protected:
+
+  };
+
   // =====================================
   //  3D - CURL-OPERATOR FOR H-1 ELEMENTS
   // =====================================

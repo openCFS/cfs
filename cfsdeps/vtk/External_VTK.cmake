@@ -160,6 +160,8 @@ ELSE()
       -DVTK_Group_StandAlone:BOOL=OFF
       -DModule_vtkFiltersParallel:BOOL=ON
       -DModule_vtkFiltersSMP:BOOL=ON
+      # enable builds on systems without OpenGL
+      -DVTK_RENDERING_BACKEND:STRING=None
   #if we add more file reader we should make this optional depending on USE_ENSIGHT
       -DModule_vtkIOEnSight:BOOL=ON
       -DModule_vtkIOParallel:BOOL=ON

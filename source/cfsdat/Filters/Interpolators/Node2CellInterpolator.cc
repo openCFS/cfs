@@ -26,6 +26,13 @@ Node2CellInterpolator::Node2CellInterpolator(UInt numWorkers, CF::PtrParamNode c
 :MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
+
+  if(config->Has("scheme") == true){
+	  globalFactor_ = config->Get("scheme")->Get("globalFactor")->As<Double>();
+  }else{
+	  globalFactor_ = 1.0;
+  }
+
 }
 
 Node2CellInterpolator::~Node2CellInterpolator(){
@@ -42,6 +49,8 @@ bool Node2CellInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
 
   Node2Cell(returnVec, filterResIds[0], inVec, interpolData_);
   
+  returnVec.ScalarMult(globalFactor_);
+
   return true;
 }
 

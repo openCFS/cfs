@@ -198,8 +198,7 @@
                 <!-- a) fixed time / frequency step -->
                 <xsd:element name="constant">
                   <xsd:complexType>
-                    <xsd:attribute name="step" type="xsd:positiveInteger" use="optional" default="1"
-                    />
+                    <xsd:attribute name="step" type="xsd:nonNegativeInteger" use="optional" default="1"/>
                   </xsd:complexType>
                 </xsd:element>
 
@@ -251,7 +250,7 @@
                 <!-- a) fixed time / frequency step -->
                 <xsd:element name="constant">
                   <xsd:complexType>
-                    <xsd:attribute name="step" type="xsd:positiveInteger" use="optional" default="1"
+                    <xsd:attribute name="step" type="xsd:integer" use="optional" default="1"
                     />
                   </xsd:complexType>
                 </xsd:element>
@@ -1293,7 +1292,19 @@
           <!--  A) Iterative Coupling      -->
           <!-- =========================== -->
           <xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
-          <!-- <xsd:element name="couplingAndNonLinearity" maxOccurs="1" type="DT_IterCplNonLinData"/>          -->
+          <!-- =========================== -->
+          <!--  B) External file           -->
+          <!-- =========================== -->          
+          <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
+          <!-- =========================== -->
+          <!--  C) Sequence step           -->
+          <!-- =========================== -->           
+          <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
+          <!-- =========================== -->
+          <!--  D) External grid           -->
+          <!-- =========================== -->
+          <!-- Read Data from external Grids -->
+          <xsd:element name="grid" maxOccurs="1" type="DT_BaseGridData"/> 
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
@@ -1344,28 +1355,68 @@
   <xsd:complexType name="DT_MagCoil">
     <xsd:sequence>
       <!-- Define source of coil (current, voltage) -->
-      <xsd:element name="source" minOccurs="0" maxOccurs="1">
-        <xsd:complexType>
-          <xsd:attribute name="type" use="required">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="current"/>
-                <xsd:enumeration value="voltage"/>
-                <xsd:enumeration value="external">
-                  <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                      Not only the direction of the current density is specified from external data, but the total current density.
-                      Requires the use of external data in the direction of the part(s).
-                    </xsd:documentation>
-                  </xsd:annotation>
-                </xsd:enumeration>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:attribute>
-          <xsd:attribute name="value" type="xsd:token" default="0.0"/>
-          <xsd:attribute name="phase" type="xsd:token" default="0.0"/>
-        </xsd:complexType>
-      </xsd:element>
+      <xsd:choice>
+        <!-- Classical coil definition for transient/harmonic/static analysis but not multiharmonic-->
+        <xsd:element name="source" minOccurs="0" maxOccurs="1">
+          <xsd:complexType>
+            <xsd:attribute name="type" use="required">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:token">
+                  <xsd:enumeration value="current"/>
+                  <xsd:enumeration value="voltage"/>
+                  <xsd:enumeration value="external">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Not only the direction of the current density is specified from external data, but the total current density.
+                        Requires the use of external data in the direction of the part(s).
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:enumeration>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:attribute>
+            <xsd:attribute name="value" type="xsd:token" default="0.0"/>
+            <xsd:attribute name="phase" type="xsd:token" default="0.0"/>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Definition for multiharmonic coil-->
+        <xsd:element name="sourceMultiharmonic" minOccurs="0" maxOccurs="1">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="harmonic" minOccurs="1" maxOccurs="unbounded">
+                <xsd:annotation>
+                  <xsd:documentation>
+                    Only define the POSITIVE HARMONIC excitation (including zero harmonic)!!
+                  </xsd:documentation>
+                </xsd:annotation>
+                <xsd:complexType>
+                  <xsd:attribute name="harmonic" type="xsd:integer" default="1"/>
+                  <xsd:attribute name="value" type="xsd:token" default="0.0"/>
+                  <xsd:attribute name="phase" type="xsd:token" default="0.0"/>
+                </xsd:complexType>
+              </xsd:element>
+            </xsd:sequence>
+            <xsd:attribute name="type" use="required">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:token">
+                  <xsd:enumeration value="current"/>
+                  <xsd:enumeration value="voltage"/>
+                  <xsd:enumeration value="external">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en">
+                        Not only the direction of the current density is specified from external data, but the total current density.
+                        Requires the use of external data in the direction of the part(s).
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:enumeration>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:attribute>
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:choice>
+      
 
       <!-- Define parts of coil -->
       <xsd:element name="part" minOccurs="1" maxOccurs="unbounded">

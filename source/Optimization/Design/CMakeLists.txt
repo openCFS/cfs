@@ -14,7 +14,6 @@ SET(DESIGN_SRCS
 ADD_LIBRARY(design STATIC ${DESIGN_SRCS})
 
 SET(TARGET_LL
-  design
   optimization
   cfsgeneral
   datainout
