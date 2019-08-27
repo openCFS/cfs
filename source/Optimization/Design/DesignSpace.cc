@@ -386,6 +386,13 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
        EXCEPTION("use_mat_filter is implemented only for non constant region and single design type");
    }
 
+   // Check if write filter matrix is enabled by the user
+   write_matrix_filt = false;
+   if(pn->Has("filters/write_mat_filt"))
+   {
+     write_matrix_filt = pn->Get("filters/write_mat_filt")->As<bool>();
+   }
+
 
 }
 
@@ -2151,13 +2158,16 @@ BaseMaterial* MultiMaterial::GetMultiMaterial(const MaterialClass mc)
 
 
 
-void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbours,int filter_idx){
+void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbours,int filter_idx, unsigned int start, unsigned int end){
 
   // We just get all the design elements and for each filter create a sparse matrix
   // For the sparse matrix we require row_index(element number) , column index(neighbour idx), and weights array
   // Implementing this above in the neigbhor search will require use of critical sections. So lets just stick to looping over all elements and extracting
 
     int num_elem = data.GetSize();
+    if (end -start > 0) {
+      num_elem = end - start;
+    }
     int nnz = (sum_neighbours+num_elem);
     this->filter_mat.SetSize(num_elem,num_elem,nnz);
 
@@ -2170,21 +2180,24 @@ void DensityFilterMat::AssembleFilterMatrix(StdVector<DesignElement>&data, int s
 
     int lastIndex=0;
     rowPointer[0]=lastIndex;
-
-    for (UInt i=0;i < data.GetSize(); i++){
+    if (!(end -start > 0)) {
+      start = 0;
+      end = data.GetSize();
+    }
+    for (UInt i=start;i < end; i++){
 
       auto neighbours = data[i].simp->filter[filter_idx].neighborhood;
       // Set this weight sum so that we don't recalculate it
       data[i].simp->filter[filter_idx].weight_sum = (data[i].simp->filter[filter_idx].CalcWeightSum(true));
-      this->inv_weighted_sum[i] = (1/ data[i].simp->filter[filter_idx].weight_sum);
-      colPointer[lastIndex]=i;
-      dataPtr[lastIndex]= data[i].simp->filter[filter_idx].weight  * this->inv_weighted_sum[i];
+      this->inv_weighted_sum[i-start] = (1/ data[i].simp->filter[filter_idx].weight_sum);
+      colPointer[lastIndex]=i-start;
+      dataPtr[lastIndex]= data[i].simp->filter[filter_idx].weight  * this->inv_weighted_sum[i-start];
       for (UInt j=0;j<neighbours.GetSize();j++){
-        colPointer[lastIndex+j+1]=neighbours[j].neighbour->GetIndex();
-        dataPtr[lastIndex+j+1]=(neighbours[j].weight)* this->inv_weighted_sum[i];
+        colPointer[lastIndex+j+1]=neighbours[j].neighbour->GetIndex()-start;
+        dataPtr[lastIndex+j+1]=(neighbours[j].weight)* this->inv_weighted_sum[i-start];
       }
       lastIndex +=(neighbours.GetSize()+1); // Since Neighbours doesn't include the own element
-      rowPointer[i+1]=lastIndex;
+      rowPointer[i+1-start]=lastIndex;
     }
 }
 
@@ -2194,8 +2207,14 @@ void DensityFilterMat::CacheDensityFilteredValue(const Vector<double>& design_ve
 
   this->filter_mat.Mult(design_vec,this->filtered_vec);
 
+
 }
 
+void DensityFilterMat::ExportDensityFilterMatrix(){
+
+  this->filter_mat.ExportMatrixMarket("filter_matrix.mtx","filter_matrix");
+
+}
 
 
 

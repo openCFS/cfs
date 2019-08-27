@@ -44,8 +44,9 @@ namespace CoupledField
       Vector<double> inv_weighted_sum;
       Vector<double> filtered_vec;
       CRS_Matrix<double> filter_mat;
-      void AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbour, int filter_idx);
+      void AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbour, int filter_idx, unsigned int start = 0, unsigned int end = 0);
       void CacheDensityFilteredValue(const Vector<double>& design_vec);
+      void ExportDensityFilterMatrix();
 
     };
   /** This is the container of DesingElements which also holds the transferFunctions.
@@ -545,9 +546,9 @@ namespace CoupledField
      // this internal bool is set to true in default mode if the number of different design is one
      bool is_matrix_filt;
 
-
-
-
+     // If set filtering matrix is written to MatrixMarket format file
+     // this internal bool is set to false in default mode
+     bool write_matrix_filt;
 
     protected:
 

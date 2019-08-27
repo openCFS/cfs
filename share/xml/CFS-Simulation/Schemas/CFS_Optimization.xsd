@@ -1050,6 +1050,7 @@
                   </xsd:simpleType>
                 </xsd:attribute>
                 <xsd:attribute name="use_mat_filt" type="DT_Bool_Default" use="optional" />
+                <xsd:attribute name="write_mat_filt" type="DT_Bool_Default" use="optional" />
               </xsd:complexType>
             </xsd:element>
 
