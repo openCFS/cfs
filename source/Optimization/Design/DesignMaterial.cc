@@ -124,9 +124,9 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   }
 
   std::string interpolation_str;
-  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1) {
+  if (type_ == HOM_RECT_C1 || type_ == HOM_ISO_C1 || type_ == FMO) {
     string p_node = "";
-    if (type_ == HOM_RECT_C1) {
+    if (type_ == HOM_RECT_C1 || type_ == FMO) {
       p_node = "homRectC1";
     } else {
       p_node = "homIsoC1";
