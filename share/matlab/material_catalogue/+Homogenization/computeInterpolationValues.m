@@ -132,8 +132,9 @@ for i=1:numPoints
     end
 
     showProgress(i,numPoints);
-    if volume >= 1e-14 && 1-volume >= 1e-14
-        delete( sprintf('%s/inv_tensor_%s.info.xml', cfsworkingdirectory, meshfilename) );
+    infoxmlfile = sprintf('%s/inv_tensor_%s.info.xml', cfsworkingdirectory, meshfilename);
+    if exist(infoxmlfile, 'file')
+        delete(infoxmlfile);
     end
 end
 
@@ -170,20 +171,24 @@ end
 
 % First line contains either
 % flag for givenByLevelAndIndex, dimension and level or
-% dimension, nPoints per dimension and nPoints
+% dimension, nPoints per dimension and nPoints or
+% first of points
 if pointsCoords(1,1) == 1
     givenByLevelAndIndex = 1;
     dim = pointsCoords(1,2);
-else
+    pointsCoords(1,:) = [];
+elseif mod(pointsCoords(1,1),1) == 0
     givenByLevelAndIndex = 0;
     if pointsCoords(1,1) == 0
         dim = pointsCoords(1,2);
     else
         dim = pointsCoords(1,1);
     end
-end;
-
-pointsCoords(1,:) = [];
+    pointsCoords(1,:) = [];
+else
+    givenByLevelAndIndex = 0;
+    dim = size(pointsCoords,2);
+end
 
 % Remove possible line trailing zeros (points given by coords)
 if givenByLevelAndIndex

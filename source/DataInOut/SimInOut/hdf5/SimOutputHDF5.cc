@@ -71,13 +71,23 @@ namespace CoupledField {
     UInt maxChunkSize = 100;
     myParam_->GetValue("compressionLevel", compressionLevel, ParamNode::PASS );
     if( compressionLevel > 9) {
-      EXCEPTION( "Value for compressionLevel must be between 1 and 9" );
+      EXCEPTION( "Value for compressionLevel must be between 0 and 9" );
     }
     myParam_->GetValue("maxChunkSize", maxChunkSize, ParamNode::PASS );
     dPropList_ = H5::DSetCreatPropList::DEFAULT;
-    dPropList_.setLayout( H5D_CHUNKED );
-    dPropList_.setDeflate( compressionLevel );
-    H5IO::SetMaxChunkSize( maxChunkSize );
+    if (maxChunkSize > 0 || compressionLevel > 0) {
+      dPropList_.setLayout( H5D_CHUNKED );
+    } else {
+      dPropList_.setLayout( H5D_CONTIGUOUS );
+    }
+    if (compressionLevel > 0) {
+      dPropList_.setDeflate( compressionLevel );
+      if (maxChunkSize == 0) {
+        EXCEPTION("HDF5 compression level > 0 requires a maxChunckSize > 0");
+      }
+    } else if (maxChunkSize > 0) {
+      H5IO::SetMaxChunkSize( maxChunkSize );
+    }
 
     // Change defaults according to XML file
     myParam_->GetValue("externalFiles", externalFiles_, ParamNode::PASS);
@@ -1237,7 +1247,7 @@ namespace CoupledField {
       name = "Imag";
 
     UInt numEntities = (UInt) resultVals.GetSize() / numDOFs;
-
+    
     H5IO::Write2DArray( resultGroup, name,
                         numEntities, numDOFs, &resultVals[0],
                         dPropList_ );

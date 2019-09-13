@@ -3,7 +3,7 @@
 
 #include <map>
 #include "SinglePDE.hh" 
-#include "Driver/SolveSteps/SolveStepMagEdge.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Utils/Coil.hh"
 
 namespace CoupledField
@@ -48,9 +48,7 @@ namespace CoupledField
     void DefineIntegrators();
 
     //! Defines the integrators needed for ncInterfaces
-    void DefineNcIntegrators() {
-      EXCEPTION("ncInterfaces are not implemented for MagEdgePDE");
-    }
+    void DefineNcIntegrators();
 
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( ){};
@@ -126,6 +124,9 @@ namespace CoupledField
     //! regions.
     std::set<RegionIdType> regularizedRegions_;
     
+    //! Coefficient function for the multiharmonic material adaptions
+    shared_ptr<CoefFunction> multiHarmCoef_;
+
   private:
     //! This coefficient function describes the velocity field.
     shared_ptr<CoefFunctionMulti> VelocityCoef_;

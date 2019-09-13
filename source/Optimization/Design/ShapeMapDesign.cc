@@ -2411,7 +2411,7 @@ void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
  {
    // this is d_tanh_da
    // set xrange[0:1]; a = 0.5; beta=30; w=0.1
-   // plot -1* (exp(beta*(x-a+w)) + 1)**-2 beta*exp(beta*(x-a+w)), (exp(beta*(x-a-w))+1)**-2 beta*exp(beta*(x-a-w))
+   // plot -1* (exp(beta*(x-a+w)) + 1)**-2 * beta*exp(beta*(x-a+w)), (exp(beta*(x-a-w))+1)**-2 beta*exp(beta*(x-a-w))
    //
    // ta(x)=1-1/(exp(beta*(x-a+w)) + 1)
    //

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -745,9 +746,9 @@ bool Optimization::DoSolveAdjointWithState() const
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
-  assert(baseOptimizer_ == NULL || !baseOptimizer_->GetOptimizerTimer()->IsRunning());
+  assert(baseOptimizer_ == NULL || !baseOptimizer_->GetOptimizerTimer()->IsRunning()); // https://cfs.mdmt.tuwien.ac.at/trac/ticket/263#ticket
   // do not add the time solving the system to eval_[grad]_obj/constr_timer -> performance.py
-  boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
+  boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
   if(eval_timer)
     eval_timer->Stop();
 
@@ -1198,7 +1199,11 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     Function* f = objectives.data[i];
-    iteration->Get(f->ToString())->SetValue(f->GetValue());
+
+    std::stringstream ss;
+    ss << std::setprecision(15) << f->GetValue();
+
+    iteration->Get(f->ToString())->SetValue(ss.str());
     if(f->GetType() == Function::BANDGAP)
     {
       // we search with the wave vectors for minimun and maximum

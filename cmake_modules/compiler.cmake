@@ -99,7 +99,7 @@ IF(OPENMP_FOUND)
   #-----------------------------------------------------------------------------
   IF(USE_OPENMP)
     SET(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS}")
+    SET(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CFS_CXX_FLAGS}")
     # MESSAGE("Use OpenMP-Flags ${OpenMP_C_FLAGS}")
     # sets to -qopenmp for icc and -fopenmp for gcc
   ENDIF()
@@ -116,9 +116,16 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
   LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
 
   # we assue C++11 for CFS for any compiler
-  SET(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+  SET(CFS_CXX_FLAGS "-std=c++11 -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+  SET(CFSDEPS_CXX_FLAGS "-std=c++11 ${CFSDEPS_CXX_FLAGS}")
   SET(CFS_C_FLAGS "-std=c11")
 
+  IF(DEBUG_USE_FSANITIZE)
+    SET(CFS_CXX_FLAGS " -fsanitize=address ${CFS_CXX_FLAGS}")
+    #SET(CFSDEPS_CXX_FLAGS " -fsanitize=address ${CFSDEPS_CXX_FLAGS}")
+    SET(CFS_C_FLAGS " -fsanitize=address ${CFS_C_FLAGS}")
+  ENDIF()
+  
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
@@ -134,6 +141,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR CFS_CXX_COMPILER_NAME STREQUAL "CLANG
     # -frounding-math: is needed for CGAL library
     IF(USE_CGAL)
       SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math")
+      SET(CFSDEPS_CXX_FLAGS "-frounding-math ${CFSDEPS_CXX_FLAGS}")
     ENDIF(USE_CGAL)
 
     SET(CHECK_MEM_ALLOC 1)
@@ -282,16 +290,25 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC") # strange, as the c-compiler is icc
     # on woody one needs to add -std=c++11, e.g. in CXX_FLAGS via ccmake, when using gcc 4.8 stdlib.
     # It's anoying that intel depends on the system stdlib :(
     SET(CFS_CXX_FLAGS "-std=c++11 -g -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
+    SET(CFSDEPS_CXX_FLAGS "-std=c++11 -g ${CFSDEPS_CXX_FLAGS}")
     SET(CHECK_MEM_ALLOC 1)
   ELSE()
     # release case
     SET(CFS_C_FLAGS "-c99 -w0 -Werror ${CFS_C_FLAGS}")
     # see above with -std=c++11
     SET(CFS_CXX_FLAGS "-std=c++11 -w0 -Werror ${CFS_CXX_FLAGS}")
+    SET(CFSDEPS_CXX_FLAGS "-std=c++11 -w0 ${CFSDEPS_CXX_FLAGS}")
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
   ENDIF()
 
-
+  # Fall back to GCC 7 in case of GCC 8 installed because ICC currently does not work with GCC 8 headers
+  # If we have newest intel compiler we assume that we have newest gcc as well
+  #IF(CFS_CXX_COMPILER_VER VERSION_GREATER "2018.0.0")
+    SET(CFS_C_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFS_CXX_FLAGS}")
+    SET(CFSDEPS_CXX_FLAGS " -gcc-name=gcc-${CFS_ICC_GCC_VERSION} -gxx-name=g++-${CFS_ICC_GCC_VERSION} ${CFSDEPS_CXX_FLAGS}")
+  #ENDIF()
+  
   #---------------------------------------------------------------------------
   # Disable warnings about hidden overriden functions of base classes,
   # unknown pragmas (openmp, etc.) and multiline comments.

@@ -63,20 +63,10 @@ public:
   //! \return success of the computation
   virtual bool Run();
   
-  virtual void FinishInit(){
-    CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
-    for(; srcIter != sources_.End() ; srcIter++){
-      // should we check here anything for success?
-      (*srcIter)->FinishInit();
-    }
-  }
-
+  void FinishInit();
+  
   void InitResults();
   
-  void InitResultsUpstream();
-  
-  void InitResultsDownstream();
-
   bool IsOutput(){
     return filtStreamType_ == OUTPUT_FILTER;
   }
@@ -98,6 +88,12 @@ protected:
   virtual void AddOutput(str1::shared_ptr<BaseFilter> filt){
     this->sinks_.Push_back(filt);
   }
+
+  virtual void PrepareCalculation();
+
+  void InitResultsUpstream();
+  
+  void InitResultsDownstream();
 
   //=================================================================
   // Helper Functions for Upstream Result Initialization
@@ -179,6 +175,8 @@ protected:
   //! \return set of results which need recomputation
   virtual std::set<uuids::uuid> ExtractObsoleteResults();
   
+  void VerboseSum(uuids::uuid verbResId);
+  
   
   //! Returns the result vector of a result computed by this filter
   //! \param (in) resId id of the result
@@ -238,29 +236,29 @@ protected:
   
   //! Function for receiving a result vector computed by upstream filters.
   //! Therefore, this function invokes Run() of the usptream filters
-  //! \param (in) resId id of the result
-  //! \param (in) stepIndex step index in the timeline
-  //! \param (out) eqnNumbers equation number of the result
-  //! \return a reference to the result vector
-  template<typename T>
-  Vector<T>& GetUpstreamResultVector(uuids::uuid resId, Integer stepIndex, 
-                                    CF::StdVector<UInt>& eqnNumbers) {
-    resultManager_->SetStepIndex(resId,stepIndex);
-    return GetUpstreamResultVector<T>(resId, eqnNumbers);
-  }
-  
-  //! Function for receiving a result vector computed by upstream filters.
-  //! Therefore, this function invokes Run() of the usptream filters
   //! \param (in) resName name of the result
   //! \param (in) stepValue step value required
   //! \param (out) eqnNumbers equation number of the result
   //! \return a reference to the result vector
   template<typename T>
-  Vector<T>& GetUpstreamResultVector(std::string resName, Double stepValue, 
+  Vector<T>& GetUpstreamResultVector(std::string resName, Double stepValue,
                                     CF::StdVector<UInt>& eqnNumbers) {
     return GetUpstreamResultVector<T>(upResNameIds[resName], stepValue, eqnNumbers);
   }
   
+  //! Function for receiving a result vector computed by upstream filters.
+  //! Therefore, this function invokes Run() of the usptream filters
+  //! \param (in) resId id of the result
+  //! \param (in) stepIndex step index in the timeline
+  //! \param (out) eqnNumbers equation number of the result
+  //! \return a reference to the result vector
+  template<typename T>
+  Vector<T>& GetUpstreamResultVector(uuids::uuid resId, Integer stepIndex,
+                                    CF::StdVector<UInt>& eqnNumbers) {
+    resultManager_->SetStepIndex(resId,stepIndex);
+    return GetUpstreamResultVector<T>(resId, eqnNumbers);
+  }
+
   //! Function for receiving a result vector computed by upstream filters.
   //! Therefore, this function invokes Run() of the usptream filters
   //! \param (in) resName name of the result
@@ -286,6 +284,16 @@ protected:
   
   //! Function for receiving a result vector computed by upstream filters.
   //! Therefore, this function invokes Run() of the usptream filters
+  //! \param (in) resName name of the result
+  //! \param (in) stepValue step value required
+  //! \return a reference to the result vector
+  template<typename T>
+  Vector<T>& GetUpstreamResultVector(std::string resName, Double stepValue) {
+    return GetUpstreamResultVector<T>(upResNameIds[resName], stepValue);
+  }
+  
+  //! Function for receiving a result vector computed by upstream filters.
+  //! Therefore, this function invokes Run() of the usptream filters
   //! \param (in) resId id of the result
   //! \param (in) stepIndex step index in the timeline
   //! \return a reference to the result vector
@@ -293,16 +301,6 @@ protected:
   Vector<T>& GetUpstreamResultVector(uuids::uuid resId, Integer stepIndex) {
     resultManager_->SetStepIndex(resId,stepIndex);
     return GetUpstreamResultVector<T>(resId);
-  }
-  
-  //! Function for receiving a result vector computed by upstream filters.
-  //! Therefore, this function invokes Run() of the usptream filters
-  //! \param (in) resName name of the result
-  //! \param (in) stepValue step value required
-  //! \return a reference to the result vector
-  template<typename T>
-  Vector<T>& GetUpstreamResultVector(std::string resName, Double stepValue) {
-    return GetUpstreamResultVector<T>(upResNameIds[resName], stepValue);
   }
   
   //! Function for receiving a result vector computed by upstream filters.
@@ -433,7 +431,9 @@ protected:
 
   /// counter for InitResults function, should not exceed the number of sinks
   UInt initSinkResults_;
-
+  
+  /// counter for FinishInit function, should not exceed the number of sinks
+  UInt finishInitSinkResults_;
 
   UInt numWorkers_;
 

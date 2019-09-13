@@ -393,7 +393,7 @@ protected:
   Method method_;
 
   /** cache the 1.0 / complete volume of the domain */
-  double volume_fraction_;
+  double volumeFraction_;
 
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every

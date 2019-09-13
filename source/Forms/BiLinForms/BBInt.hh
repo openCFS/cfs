@@ -51,6 +51,7 @@ namespace CoupledField {
         this->bOperator_ = right.bOperator_->Clone();
         this->factor_ = right.factor_;
         this->coefScalar_ = right.coefScalar_;
+        this->bMat_  = right.bMat_;
       }
 
       virtual BBInt* Clone(){

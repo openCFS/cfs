@@ -23,30 +23,30 @@
 
 namespace CoupledField {
 
-  /** This implements a function from $R^n$ to $R^{d \times d}$ for transforming a vector of Parameters
-   * to a material tensor.  */
+/** This implements a function from $R^n$ to $R^{d \times d}$ for transforming a vector of Parameters
+ * to a material tensor.  */
 template <class TYPE> class StdVector;
 
 class ErsatzMaterial;
 class DesignSpace;
 class TransferFunction;
 
-  class DesignMaterial
-  {
-  public:
-    typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED,
-      DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC,
-      DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC,
-      DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,
-      D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES,
-      HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1} Type;
+class DesignMaterial
+{
+public:
+  typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED,
+    DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC,
+    DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC,
+    DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,
+    D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES,
+    HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1} Type;
 
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
      * EMODUL is in the orthogonal direction, POSSION is nu_io where i is in the isotropic plane, o not
      * GMODUL is G_io where i is in the isotropic plane o not (note G_io = G_jo) */
     typedef enum { TRANSISO_XY, TRANSISO_YZ, TRANSISO_XZ } TransIsoType;
-    
+
     /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
     typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
 
@@ -56,10 +56,13 @@ class TransferFunction;
     /** Method used for interpolation of material tensor and volume */
     typedef enum { NOTYPE=-1, C1, SG, FULL_BSPLINE } Interpolation;
 
+    /** Types of rotation, the strings are read from the xml file */
+    typedef enum { ZXZ, ZYZ, YZY, YXY, XYX, XZX, XYZ, YXZ, XZY, ZXY, ZYX, YZX } RotationType;
+
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
     DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, DesignSpace* space);
-    
+
     /** the general material tensor function */
     bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation);
 
@@ -114,10 +117,10 @@ class TransferFunction;
     Interpolation GetInterpolationMethod() const { return interpolation_; };
 
     /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
-     *  in 3d: rotates the material by ROTANGLEZ around the z-axis by ROTANGLEY around the y-axis and by ROTANGLEX around the x-axis in this given order or rz,ry,rx
+     *  in 3d: rotates the material by ROTANGLEFIRST around the first axis, by ROTANGLESECOND around the second axis and by ROTANGLETHIRD around the third axis in this given order or rz,ry,rx
      *  in 2d: rotates the material by ROTANGLE or rx
      * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
-     * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
+     * @param direction if one of ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
      * @param notation can be HILL_MANDEL or VOIGT notation
      * @param clock can be CCW (counter-clockwise) or CW (clockwise)
      * @param angles is true if rotation angles rx,ry,rz are given by parameter, otherwise false
@@ -128,14 +131,14 @@ class TransferFunction;
     inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
 
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
-       * @param vector p has the values of the design variable */
+     * @param vector p has the values of the design variable */
     void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
-       * @param vector p has the values of the design variable */
+     * @param vector p has the values of the design variable */
     void ApplyHomIsoC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
-  protected:
+protected:
 
     /** Set a parameter for the parametric material optimization.
      * @param global set the value only thread local (element values) or global (as in constructor) on all thread versions */
@@ -199,7 +202,7 @@ class TransferFunction;
 
     /** Check whether all required designs are available */
     bool CheckRequiredDesigns(StdVector<DesignElement::Type>& design);
-  private:
+private:
     /* note that most of these functions are called really often, so inlining is used */
 
 
@@ -208,9 +211,9 @@ class TransferFunction;
 
     /** Calculate the Trans-Iso Tensor */
     inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
-    
+
     /* general anisotropic FMO tensor */
-    inline void GetElasticFMOTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+    inline void GetElasticFMOTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
 
     /** Calculate the orthotropic material tensor */
     inline void GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
@@ -237,37 +240,36 @@ class TransferFunction;
 
     /** initialize the tensor with zeros */
     inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
-    
+
     /** put values from Voigt vector to correct positions in tensor */
     inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12);
-    
+
     /** put values from Voigt vector to correct positions in tensor (doesn't assume symmetry) */
     inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t12, double t13, double t21, double t22, double t23, double t31, double t32, double t33);
 
-    /** put the entries of the orthotropic tensor at the right places */
-    inline void SetOrthotropicTensor(Matrix<double>& t, SubTensorType subTensor, double e11, double e12, double e13, double e22,
-        double e23, double e33, double e44, double e55, double e66);
+    /** put the entries of the 3D tensor at the right places */
+    inline void Set3dVoigtTensor(Matrix<double>& t, SubTensorType subTensor, double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double,double);
 
     /** put the entries of the transversal_isotropic tensor at the right places */
     inline void SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);
-    
+
     /** put the entries of the isotropic tensor at the right places */
     inline void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
 
     void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation = HILL_MANDEL);
 
+    // rotation matrix in 2d around z axis or in 3d around chosen coordinate axis (default x)
+    void SetOneAxisRotationMatrix(Matrix<double>& R, double theta, int axis = 0, bool derivative = false);
+
     /** helper function to set a rotation matrix of size 3x3
-     * the matrix (when calculating R*x) would rotate the vector x by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
+     * rotation axes ares given by rotationType (default XYZ, i.e. first z, then y, then x)
      * @param R the place to set the rotation matrix
-     * @sthetax sin(thetax)
-     * @cthetax cos(thetax)
-     * @sthetay sin(thetax)
-     * @cthetay cos(thetax)
-     * @sthetaz sin(thetax)
-     * @cthetaz cos(thetax)
+     * @theta1 angle for rotation around first axis
+     * @theta2 angle for rotation around second axis
+     * @theta3 angle for rotation around third axis
      * @direction if given direction of the derivative to be calculated
      */
-    void SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+    void SetRotationMatrix(Matrix<double>& R, double theta1, double theta2, double theta3, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
     /** This exists only in Voigt notation! */
     void RotatePiezoCouplingTensor(Matrix<double>& t, double angle, DesignElement::Type direction);
@@ -276,10 +278,10 @@ class TransferFunction;
 
     /** Calculate the mass isotropic case */
     inline double GetIsoMaterialMass(DesignElement::Type direction);    
-    
+
     /** Calculate the mass lame case */
     inline double GetLameMaterialMass(DesignElement::Type direction);
-    
+
     /** Calculate the mass trans-iso case */
     inline double GetTransIsoMaterialMass(DesignElement::Type direction);
 
@@ -320,11 +322,11 @@ class TransferFunction;
 
 #ifdef USE_SGPP
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
-       * @param vector p has the values of the design variable */
+     * @param vector p has the values of the design variable */
     void ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
 
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
-       * @param vector p has the values of the design variable */
+     * @param vector p has the values of the design variable */
     void ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     void EvaluateFullGrid();
@@ -340,6 +342,10 @@ class TransferFunction;
     /** evaluates the derivative of the sgpp interpolation at point point in direction direction*/
     double EvaluateSGPPInterpolation_Deriv(sgpp::base::DataVector& alpha, sgpp::base::DataVector& point, DesignElement::Type direction) const;
 #endif //USE_SGPP
+
+    /** what convention for order of rotations we use (xyz, ...) */
+    static Enum<RotationType> rotationType;
+    RotationType rotationType_;
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
@@ -402,7 +408,7 @@ class TransferFunction;
     std::unique_ptr<sgpp::base::OperationNaiveEval> op_naive_eval_;
     std::unique_ptr<sgpp::base::OperationNaiveEvalPartialDerivative> op_naive_eval_partial_derivative_;
 #endif //USE_SGPP
-  };
+};
 
 } // namespace
 

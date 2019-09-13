@@ -331,6 +331,7 @@ namespace CoupledField {
     //! \name Attributes connected to nonlinearity
     bool nonLin_;           //!< flag for nonlinear calculations
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
+    bool isAlwaysStatic_;
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
     // note: not all regions have to have hysteretic material behavior
     bool isHysteresis_;
@@ -413,10 +414,9 @@ namespace CoupledField {
     bool needsAlgsys_;
     
     AnalysisType analysistype_; //!< analysis type
-    bool isAlwaysStatic_;    //!< flag for static PDEs (like electrostatic)
     UInt dim_;                  //!< space dimension of pde
-    bool isaxi_;             //!< true: axisymmetric problem
-    bool isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
+    bool isaxi_;                //!< true: axisymmetric problem
+    bool isComplex_;            //!< true, if some part of PDE is complex (Material, solution)
     
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;

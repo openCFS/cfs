@@ -1,0 +1,3 @@
+[submodule "Testsuite"]
+	path = Testsuite
+	url = ../../cfs/Testsuite.git

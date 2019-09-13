@@ -545,8 +545,8 @@ void FeHCurlHiTria::GetShFnc( Matrix<Double>& shape,
   // Perform local->global gradient transformation
     if (lpm.isSurface) {
       // result taking from PhD of S. Zaglmayr, p.44, based on (4.20)
-      // shape = locShape *(1.0/ lpm.lpmVol->jacDet); //This simple transformation may not work
-      shape = locShape;
+      shape = locShape *(1.0/ lpm.lpmVol->jacDet);
+      //shape = locShape;
     } else {
   shape =  Transpose(lpm.jacInv) * locShape;
     }
@@ -561,7 +561,7 @@ void FeHCurlHiTria::GetCurlShFnc( Matrix<Double>& curl,
 
   // Perform local->global curl transformation
   curl = lpm.jac * locCurl;
-  curl *= ( 1.0 / std::abs(lpm.jacDet) );
+  curl *= ( 1.0 / std::fabs(lpm.jacDet) );
 }
 
 template<FeHCurlHi::DiffType DIFF_TYPE>
@@ -682,8 +682,8 @@ void FeHCurlHiQuad::GetShFnc( Matrix<Double>& shape,
   // Perform local->global gradient transformation
     if (lpm.isSurface) {
       // result taking from PhD of S. Zaglmayr, p.44, based on (4.20)
-      // shape = locShape *(1.0/ lpm.lpmVol->jacDet); //This simple transformation may not work
-      shape = locShape;
+      shape = locShape *(1.0/ lpm.lpmVol->jacDet); //This simple transformation may not work
+      //shape = locShape;
     } else {
       shape =  Transpose(lpm.jacInv) * locShape;
     }
@@ -698,7 +698,7 @@ void FeHCurlHiQuad::GetCurlShFnc( Matrix<Double>& curl,
   
   // Perform local->global curl transformation
   curl = lpm.jac * locCurl;
-  curl *= ( 1.0 / std::abs(lpm.jacDet) );
+  curl *= ( 1.0 / std::fabs(lpm.jacDet) );
 }
 
 template<FeHCurlHi::DiffType DIFF_TYPE>
@@ -1615,7 +1615,7 @@ void FeHCurlHiHex::GetCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lpm
   //std::cerr << "Old local curl\n" << locCurl << std::endl;
   CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
   curl = lpm.jac * locCurl;
-  curl *= ( 1.0 / std::abs(lpm.jacDet) );
+  curl *= ( 1.0 / std::fabs(lpm.jacDet) );
 
 }
 
@@ -1652,7 +1652,7 @@ void FeHCurlHiWedge::GetCurlShFnc( Matrix<Double>& curl,
   
   // Perform local->global curl transformation
   curl = lpm.jac * locCurl;
-  curl *= ( 1.0 / std::abs(lpm.jacDet) );
+  curl *= ( 1.0 / std::fabs(lpm.jacDet) );
 }
 
 template<FeHCurlHi::DiffType DIFF_TYPE>
@@ -2148,7 +2148,7 @@ void FeHCurlHiTet::GetCurlShFnc( Matrix<Double>& curl,
   
   // Perform local->global curl transformation
   curl = lpm.jac * locCurl;
-  curl *= ( 1.0 / std::abs(lpm.jacDet) );
+  curl *= ( 1.0 / std::fabs(lpm.jacDet) );
 }
 
 template<FeHCurlHi::DiffType DIFF_TYPE>
@@ -2490,7 +2490,7 @@ void FeHCurlHiPyra::GetCurlShFnc( Matrix<Double>& curl,
   
   // Perform local->global curl transformation
   curl = lpm.jac * locCurl;
-  curl *= ( 1.0 / std::abs(lpm.jacDet) );
+  curl *= ( 1.0 / std::fabs(lpm.jacDet) );
 }
 
 template<FeHCurlHi::DiffType DIFF_TYPE>

@@ -383,7 +383,6 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.order = 1;
       s.numVertices = 2;
       s.numNodes = 2;
-      s.numNodes = 2;
       s.numEdges = 1;
       s.numFaces = 0;
       s.numSurfElems = 2;
@@ -449,7 +448,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt numEdgeNodes[] =
       {
-       3 // #1
+       2 /* former 3*/ // #1
       };
       Integer edgeLocDirs[] =
       {

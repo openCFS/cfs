@@ -39,7 +39,7 @@ public:
       bool coordUpdate = false,
       bool fullEvaluation = true,
       bool extractReal = false,
-      string id = ""); // to save coil id
+      const string& id = ""); // to save coil id
 
   //! Constructor for surface integration
   BUIntegrator(BaseBOperator * bOp,
@@ -49,7 +49,7 @@ public:
       bool coordUpdate = false,
       bool fullEvaluation = true,
       bool extractReal = false,
-      string id = ""); // to save coil id
+      const string& id = ""); // to save coil id
 
   //! Copy constructor
   BUIntegrator(const BUIntegrator& right )

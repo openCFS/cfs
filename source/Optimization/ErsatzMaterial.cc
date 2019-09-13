@@ -97,7 +97,7 @@ ErsatzMaterial::ErsatzMaterial() :
   dim(grid->GetDim())
 {
   /** We store here the solution */
-  volume_fraction_ = 0.0;
+  volumeFraction_ = 0.0;
   structure_ = NULL;
   densityFile = NULL;
   bitensor_ = false;
@@ -195,11 +195,13 @@ void ErsatzMaterial::PostInit()
 {
   // updates context which we need for the filters (pde)
   Optimization::PostInit();
-
+  ParamNodeList list;
   // from the filters we detect robustness which we need for multiple excitations
   if(pn->Has("filters"))
   {
-    ParamNodeList list = pn->Get("filters")->GetList("filter");
+    list = pn->Get("filters")->GetList("filter");
+    // reserve the density filter mat here since the struct doesn't have explicit copy constructor and push back will lead to error.
+    design->density_filter.Reserve(list.GetSize());
     // this is save for design=polarization
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
@@ -382,6 +384,16 @@ void ErsatzMaterial::PostInit()
       if(idx > 0)
         log.AddToHeader("mode_" + boost::lexical_cast<std::string>(idx));
     }
+  }
+
+  if(pn->Has("filters")&& design->is_matrix_filt){
+      // read the design variables and calculate the density filtered values using the filter mat and cache it.
+      // This operations are not in design space post init because the design changes if we read it from a external file
+      for(unsigned int i = 0; i < list.GetSize(); i++){
+        Vector<double> design_vec;
+        design->WriteDesignToExtern(design_vec,false);
+        design->density_filter[i].CacheDensityFilteredValue(design_vec);
+      }
   }
 
   // make basic logging
@@ -579,8 +591,6 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   // will write the cfs results and the log file using possibly set log.bloch_info
   // by calling virtual LogFileLine()
   PtrParamNode iter = Optimization::CommitIteration();
-
-
 
   // write the current info file, if the writing frequency is not too high.
   domain->GetInfoRoot()->ToFile();
@@ -1444,7 +1454,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
     SubTensorType stt = f->ctxt->stt;
     TransferFunction* tf = Function::GetFunction(c, g)->IsPhysical() ? design->GetTransferFunction(dtype, App::MECH) : NULL;
 
-    double fraction = c != NULL ? volume_fraction_ : g->volume_fraction;
+    double fraction = c != NULL ? volumeFraction_ : g->volume_fraction;
     bool allDesignsRelevant = dtype == DesignElement::MECH_TRACE  || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT || dtype == DesignElement::NO_TYPE;
     // tensor trace is calculated if dtype == DEFAULT or TENSOR_TRACE and a tensor available
     bool calculateTensorTrace = design->designMaterial != NULL && (dtype == DesignElement::MECH_TRACE || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT);
@@ -1510,7 +1520,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       fraction = 1.0 / fraction;
       if(g == NULL)
       {
-        volume_fraction_ = fraction;
+        volumeFraction_ = fraction;
       }
       else
       {
@@ -3227,6 +3237,12 @@ PtrParamNode ErsatzMaterial::CommitIteration()
       {
         Function::Local::Identifier& id = vem[i];
         double fv = id.EvalFunction(local, false, von_mises_stress != NULL ? (*von_mises_stress)[i] : -1.0);
+
+        // save design element volume, eg. two-scale volume
+        if (dynamic_cast<DesignElement*> (id.element) != NULL && (f->GetType() == Function::TWO_SCALE_VOL || f->GetType() ==  Function::GLOBAL_TWO_SCALE_VOL))
+        {
+          id.element->SetElemPorosity(1.-(fv/dynamic_cast<DesignElement*>(id.element)->CalcVolume() * local->total_vol_));
+        }
         res += fv;
         LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
                      << ( typeid(id.element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign
@@ -3277,7 +3293,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       if(context->DoLBM()) {
         // in autoscale case we are still in the BaseOptimizer constructor
-        boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
+        boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
         if(eval_timer)
           eval_timer->Stop();
 
@@ -3507,8 +3523,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
   template<class T>
   void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
   {
-    assert(baseOptimizer_ == NULL || !baseOptimizer_->GetOptimizerTimer()->IsRunning()); // https://cfs.mdmt.tuwien.ac.at/trac/ticket/263#ticket
-    boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunnungEvalTimer() : boost::shared_ptr<Timer>();
+    assert(baseOptimizer_ != NULL || !baseOptimizer_->GetOptimizerTimer()->IsRunning()); // https://cfs.mdmt.tuwien.ac.at/trac/ticket/263#ticket
+    boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
     if(eval_timer)
       eval_timer->Stop();
 

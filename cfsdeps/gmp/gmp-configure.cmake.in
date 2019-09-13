@@ -47,6 +47,9 @@ SET(CONFIGURE_CMD
 IF(MINGW AND NOT CMAKE_CROSSCOMPILING)
   LIST(APPEND CONFIGURE_CMD --login -i)
 ENDIF()
+# see https://gmplib.org/manual/Build-Options.html
+# and https://gmplib.org/manual/Notes-for-Package-Builds.html
+# if you require maximum speed remove `--enable-fat` which will impact portability to other x86 cpu types
 LIST(APPEND CONFIGURE_CMD 
   "./configure"
   "--prefix=${gmp_install}"
@@ -55,6 +58,7 @@ LIST(APPEND CONFIGURE_CMD
   "--includedir=${gmp_install}/include"
   "--enable-shared=no"
   "--enable-cxx"
+  "--enable-fat"
   "ABI=${ABI}"
 )
 

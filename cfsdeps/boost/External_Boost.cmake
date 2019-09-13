@@ -13,35 +13,6 @@ set(BOOST_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/boost")
 set(BOOST_source  "${BOOST_prefix}/src/boost")
 set(BOOST_install "${BOOST_prefix}/install")
 
-SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${BOOST_install}
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
-  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-)
-
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
-    )
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
-
-IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-ENDIF()
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-#SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/boost/boost-patch.cmake.in")
-#SET(PFN "${ARPACK_prefix}/arpack-patch.cmake")
-#CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
 # number of the FTP server on the CFS++ development server  may not be
@@ -91,21 +62,43 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 
 SET(Boost_LIBRARY_DIR "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}" CACHE PATH "Boost library dir.")
+MARK_AS_ADVANCED(Boost_LIBRARY_DIR)
 
 IF(UNIX)
   SET(BOOST_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
   SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
 ENDIF(UNIX)
 
+SET(BOOST_EXTRA_PARAMS "") # both bootstrap and jam
+SET(BOOST_BOOTSTRAP_PARAMS "")
+SET(BOOST_JAM_PATCH_COMMAND "")
+SET(BOOST_JAM_PARAMS "")
+
 IF(MINGW)
+
   SET(BOOST_LIB_PREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
 
   STRING(REPLACE "." ";" COMPVER "${CFS_CXX_COMPILER_VER}")
   LIST(GET COMPVER 0 COMPVER_MAJOR)
   LIST(GET COMPVER 1 COMPVER_MINOR)
 
-  SET(BOOST_LIB_SUFFIX "-gcc${COMPVER_MAJOR}${COMPVER_MINOR}-mt-${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-ENDIF(MINGW)
+  SET(BOOST_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+  SET(BOOST_EXTRA_PARAMS ${BOOST_EXTRA_PARAMS} target-os=windows architecture=x86 address-model=64 release )
+  SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=gcc --without-libraries=context --without-libraries=coroutine)
+  SET(BOOST_JAM_PATCH_COMMAND echo "using gcc : mingw : x86_64-w64-mingw32-gcc $<SEMICOLON>" > user-config.jam)
+  SET(BOOST_JAM_PARAMS ${BOOST_JAM_PARAMS} --user-config=user-config.jam toolset=gcc-mingw )
+
+ENDIF()
+
+get_filename_component(BOOST_DEP_LIBPATH ${ZLIB_LIBRARY} DIRECTORY) # get the library path without filename from library location
+
+SET(BOOST_JAM_PARAMS ${BOOST_JAM_PARAMS} "-sZLIB_INCLUDE=${CFS_BINARY_DIR}/include" "-sZLIB_LIBPATH=${BOOST_DEP_LIBPATH}" "-sNO_ZLIB=0" )
+
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  SET(BOOST_BOOTSTRAP_PARAMS ${BOOST_BOOTSTRAP_PARAMS} --with-toolset=intel-linux)
+  SET(BOOST_JAM_PARAMS ${BOOST_JAM_PARAMS} cxxflags=\"-gxx-name=g++-${CFS_ICC_GCC_VERSION}\" cxxflags=\"-gcc-name=gcc-${CFS_ICC_GCC_VERSION}\")
+ENDIF()
 
 
 SET(BOOST_DATE_TIME_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_date_time${BOOST_LIB_SUFFIX}")
@@ -123,6 +116,11 @@ SET(BOOST_TEST_EXEC_MONITOR_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_t
 SET(BOOST_THREAD_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_thread${BOOST_LIB_SUFFIX}")
 SET(BOOST_UNIT_TEST_FRAMEWORK_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_unit_test_framework${BOOST_LIB_SUFFIX}")
 SET(BOOST_WSERIALIZATION_LIB "${Boost_LIBRARY_DIR}/${BOOST_LIB_PREFIX}boost_wserialization${BOOST_LIB_SUFFIX}")
+
+# in case someone manages to break cross-compilation again, this is how it works:
+# echo "using gcc : mingw : x86_64-w64-mingw32-gcc ;" > user-config.jam
+# ./bootstrap.sh --without-libraries=python --prefix=<path> --with-toolset=gcc target-os=windows architecture=x86 address-model=64 release
+# ./b2 --user-config=user-config.jam toolset=gcc-mingw target-os=windows architecture=x86 address-model=64 release
 
 #-------------------------------------------------------------------------------
 # The BOOST external project
@@ -148,11 +146,11 @@ ELSE()
   ExternalProject_Add(boost
     PREFIX "${BOOST_prefix}"
     URL ${LOCAL_FILE}
+    PATCH_COMMAND ${BOOST_JAM_PATCH_COMMAND}
     CONFIGURE_COMMAND ""
-    PATCH_COMMAND ""
     BINARY_DIR ${BOOST_source}
-    BUILD_COMMAND ./bootstrap.sh --without-libraries=python --prefix=${BOOST_install}
-    INSTALL_COMMAND ./b2 threading=multi install
+    BUILD_COMMAND ./bootstrap.sh --without-libraries=python --prefix=${BOOST_install} ${BOOST_BOOTSTRAP_PARAMS} ${BOOST_EXTRA_PARAMS}
+    INSTALL_COMMAND ./b2 ${BOOST_EXTRA_PARAMS} ${BOOST_JAM_PARAMS} threading=multi install
   )
 
   #-------------------------------------------------------------------------------
@@ -188,3 +186,4 @@ ENDIF()
 #-------------------------------------------------------------------------------
 SET(CFSDEPS ${CFSDEPS} boost)
 
+ADD_DEPENDENCIES(boost zlib)

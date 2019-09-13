@@ -148,6 +148,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       throw Exception("expect 'robust_excitation' for 'filter' as more than one filter is defined for the design");
   }
 
+  // Filter ref is something heavy we copy for each element where the meta data data is copied.
   Filter ref;
 
   ref.SetType(Filter::type.Parse(pn->Get("type")->As<std::string>()));
@@ -204,8 +205,8 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   shared_ptr<Timer> timer = in->Get("timer")->AsTimer();
   timer->Start();
 
-  double avg_radius = 0;
-  double avg_neighbours = 0;
+  double sum_radius = 0;
+  double sum_neighbours = 0;
 
   // avoids multiple filter radius warning
   bool done = true;
@@ -231,12 +232,13 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
   // in case grid is regular, set only once and not in loop
   double radius = FindFilterRadius(filter_space_, &data[start], value);
 
-  #pragma omp parallel shared(ref)
+  // we modify ref, therefore we need firstprivate
+  #pragma omp parallel firstprivate(ref)
   {
     // don't do it in for-loop, thread local vector
     StdVector<Filter::NeighbourElement> neighbors;
 
-    #pragma omp for schedule(dynamic) reduction(+:avg_radius,avg_neighbours) firstprivate(radius)
+    #pragma omp for schedule(dynamic) reduction(+:sum_radius,sum_neighbours)
     for(unsigned int e = start; e < end; e++)
     {
       DesignElement* de = &data[e];
@@ -250,8 +252,8 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       }
       de->simp->filter.Push_back(ref); // copy the reference data
 
-      assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
-
+      /* what does this assert do? deactivating for now */
+      //assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
       // for unstructured grids only "radius" filter makes sense
       assert(regular || filter_space_ == RADIUS);
 
@@ -283,8 +285,8 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
       // save neighborhood by copy constructor
       de->simp->filter.Last().neighborhood = neighbors;
 
-      avg_radius += radius;
-      avg_neighbours += neighbors.GetSize();
+      sum_radius += radius;
+      sum_neighbours += neighbors.GetSize();
       if(done && neighbors.GetSize() > 1000) {
         #pragma omp critical
         in->SetWarning("Filter radius too large. Neighborhood for some elements is bigger than 1000!");
@@ -294,9 +296,18 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     } // end for loop
   }
 
-  WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours, rex == 0); // goes into the appended filters/filter
+  WriteFilterInfo(pn, in, ref, sum_radius, sum_neighbours, rex == 0); // goes into the appended filters/filter
+
+
 
   timer->Stop();
+
+  if (space->is_matrix_filt){
+    DensityFilterMat filter_mat;
+    space->density_filter.Push_back(filter_mat);
+    int filter_index =space->density_filter.GetSize() - 1 ;
+    space->density_filter.Last().AssembleFilterMatrix(data,sum_neighbours,filter_index);
+  }
 }
 
 

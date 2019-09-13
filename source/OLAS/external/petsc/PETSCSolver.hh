@@ -34,6 +34,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "PETScCommon.hh"
+
 // include the original PETSC header
 //extern "C"
 
@@ -118,20 +119,6 @@ PetscScalar minTol_ = -1.0;
 /** Logs extra info when enabled */
 bool logging_ = false;
 
-//To find the rank of the processor its currently in
-int rank_=0;
-int size_=0;
-//    //Coarsegrid solver parameters
-//    PetscScalar coarse_rtol = 1.0e-8;
-//    PetscScalar coarse_atol = 1.0e-50;
-//    PetscScalar coarse_dtol = 1e3;
-//    PetscInt coarse_maxits = 30;
-//
-//    //Number of levels
-//    PetscInt nlvls=2;
-//
-//    // Number of smoothening iterations per up/down smooth_sweeps
-//    PetscInt smooth_sweeps = 4;
 
 std::string solverstring_;
 std::string precondstring_;
@@ -140,6 +127,11 @@ bool symmetric=false;
 Vec N_;//dirVector which consist of 0 when a eqnNr corresponds to HomDirBC ,all other place the value is 1
 StdVector<unsigned int> cfsEqnMap_;
 Vec dirNodeVecGlobal_=nullptr;
+
+//Info dumped to .info.xml
+PetscInt totalSolverIter=0; //This sums iterations from all the optimization iteration. Useful for understanding mg.
+PetscInt niter=0;
+
 
 
 };
@@ -156,6 +148,7 @@ PETSCWorker(int argc,const char **argv);
 private:
 
 void InitPetscWorker();
+void AssembleMatrix();
 //PETSC Error Code
 PetscErrorCode ierr=0;
 
@@ -194,6 +187,9 @@ std::string solverstring_;
 std::string precondstring_;
 Vec N_;
 Vec dirNodeVecGlobal_=nullptr;
+//Number of nodes in x y and z directions respectively in case of structured with hex elem it is always elemNum in one direction +1
+int nx=0,ny=0,nz=0,dimension=0;
+
 };
   
 }

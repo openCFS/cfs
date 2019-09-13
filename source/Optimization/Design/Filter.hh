@@ -22,12 +22,14 @@ public:
 
   /** Subtype for senisitivy filtering. w = weight, p is density, f' is cost gradient
    * Sigmund  = sum_i w(x_i) * p_i * f_i' / p_e * sum_i w(x_i)
+   * Sigmund_Safe: use Sigmund, but check that denominator is not close to zero otherwise don't filter
    * sharp Sigmund  = sum_i (i=e ? 1:0 : w(x_i)) * p_i * f_i' / p_e * sum_i w(x_i) + "bug" in normalized weighting
    * Borrvall = sum_i w(x_i) * p_i * f_i' / sum_i p_i * w(x_i)
+   * Borrvall_Safe: use Borrvall, but check that denominator is not close to zero otherwise don't filter
    * plain    = sum_i w(x_i) * f_i' / sum_i w(x_i)
    * sharp plain = plain but the "bug" in normalized weighting as in sharp Sigmund */
 
-  typedef enum { PLAIN, SHARP_PLAIN, SIGMUND, SHARP_SIGMUND, BORRVALL } Sensitivity;
+  typedef enum { PLAIN, SHARP_PLAIN, SIGMUND,SIGMUND_TRACE, SHARP_SIGMUND, BORRVALL } Sensitivity;
 
   /** Subtype of design filter
    * See Sigmund; Morphology based black and white filters for topology optimization; 2007
@@ -59,7 +61,18 @@ public:
   Type GetType() const { return type_; }
 
   /** Sums up the weights of the neighbors and optionally the own element */
-  double CalcWeightSum(bool include_this) const;
+  double CalcWeightSum(bool include_this) const
+  {
+	  double res = 0.0;
+
+	  for(unsigned int i = 0, n = neighborhood.GetSize(); i < n; i++)
+		  res += neighborhood[i].weight;
+
+	  if(include_this)
+		  res += this->weight;
+
+	  return res;
+  }
 
   void Dump() const;
 

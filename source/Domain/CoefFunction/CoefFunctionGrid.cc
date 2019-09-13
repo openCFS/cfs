@@ -137,6 +137,7 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
 	  else {
 		  ret.reset(new CoefFunctionGridNodalInterp<Double>(ptDomain,
                     configNode->Get("externalGrid", ParamNode::INSERT), tmpNode, regions));
+      ret->PrepareInterpolation();
 	  }
   } else {
    EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious bug, please report!");

@@ -73,14 +73,18 @@ void PhistLinearSolver::Solve(const BaseMatrix &sysmat, const BaseVector &rhs, B
   int rowSize=1;
 
 
-  int maxBlockSize=blockSize_*2;
+
   phist::kernels<double>::mvec_set_data(rhs_,rhsVec_.GetPointer(),rowSize,rowMajor,&iflag_);
   assert(iflag_==0);
 
- phist::krylov<double>::restartedBlockedGMRES(A_op_,P_op_,rhs_,sol_,nrhs_,&maxIter_,&tolerance_,blockSize_,maxBlockSize,&iflag_);
-// phist::krylov<double>::restarteedGMRES(A_op_,P_op_,rhs_,sol_,&maxIter_,tolerance_,4,&iflag_);
-// phist::krylov<double>::BiCGStab(A_op_,P_op_,rhs_,sol_,&maxIter_,tolerance_,&iflag_);
- assert(iflag_==0);
+
+  // TODO Add all other solvers(uncomment or add as struct) when phist is updated further
+  // phist::krylov<double>::restartedBlockedGMRES(A_op_,P_op_,rhs_,sol_,nrhs_,&maxIter_,&tolerance_,blockSize_,maxBlockSize,&iflag_);
+  // phist::krylov<double>::restartedGMRES(A_op_,P_op_,rhs_,sol_,&maxIter_,tolerance_,0,&iflag_);
+  // phist::krylov<double>::PCG(A_op_,NULL,rhs_,sol_,&maxIter_,tolerance_,&iflag_);
+
+  phist::krylov<double>::BiCGStab(A_op_,P_op_,rhs_,sol_,&maxIter_,tolerance_,&iflag_);
+  assert(iflag_==0);
 
   phist::kernels<double>::mvec_get_data(sol_,solVec_.GetPointer(),rowSize,rowMajor,&iflag_);
   assert(iflag_==0);
@@ -89,8 +93,6 @@ void PhistLinearSolver::Solve(const BaseMatrix &sysmat, const BaseVector &rhs, B
     sol.SetEntry(j,solVec_[j]);
   }
 
-  rhsVec_.Clear(true);
-  solVec_.Clear(true);
 
 }
 

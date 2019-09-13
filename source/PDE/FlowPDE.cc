@@ -76,7 +76,6 @@ namespace CoupledField {
     pdematerialclass_ = FLOW;
  
     nonLinMaterial_ = false;
-    isAlwaysStatic_ = false;
 
     //! Always use total Lagrangian formulation 
     updatedGeo_        = true;

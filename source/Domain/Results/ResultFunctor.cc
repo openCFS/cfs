@@ -566,7 +566,7 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::EvalResult(shared_ptr<BaseResu
     nameIt.GetGrid()->GetNodesByRegion(surfNodeList, ptGrid_->GetRegionId(nameIt.GetName()) );
 
     // get volume elements next to nodes
-    StdVector<Elem*> elemList;
+    StdVector<const Elem*> elemList;
     ptGrid_->GetElemsNextToNodes( elemList, surfNodeList, neighborIds);
 
     //get memory

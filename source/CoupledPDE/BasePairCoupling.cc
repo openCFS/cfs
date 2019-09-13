@@ -669,6 +669,8 @@ namespace CoupledField {
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree, 
         // so that we pick by default the yz-plane
+
+        //->HasChildren()
         if( !rotNode->HasChildren() ) {
           if( dim_ == 2) {
             rotVec[0] = -90.0;

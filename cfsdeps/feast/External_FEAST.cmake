@@ -83,6 +83,7 @@ MARK_AS_ADVANCED(FEAST_LIBRARY)
 #-------------------------------------------------------------------------------
 # The FEAST external project
 #-------------------------------------------------------------------------------
+
 # determine which feast library to copy over in the install step
 IF(USE_FEAST_COMMUNITY_PRECOMPILED)
   SET(FEAST_LIB_DIR "${feast_source}/${FEAST_VER}/lib/x64")

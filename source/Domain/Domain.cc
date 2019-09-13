@@ -50,9 +50,11 @@
 #include "PDE/ElecPDE.hh"
 #include "PDE/PerturbedFlowPDE.hh"
 #include "PDE/FlowPDE.hh"
+#include "PDE/LinFlowPDE.hh"
 #include "PDE/HeatPDE.hh"
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagEdgePDE.hh"
+#include "PDE/MagEdgeMixedAVPDE.hh"
 #include "PDE/MechPDE.hh"
 #include "PDE/TestPDE.hh"
 #include "PDE/ElecCurrentPDE.hh"
@@ -68,7 +70,8 @@
 #include "CoupledPDE/FluidMechCoupling.hh"
 #include "CoupledPDE/WaterWaveAcousticsCoupling.hh"
 #include "CoupledPDE/WaterWaveMechCoupling.hh"
-
+#include "CoupledPDE/LinFlowHeatCoupling.hh"
+#include "CoupledPDE/LinFlowAcouCoupling.hh"
 // Include driver
 #include "Driver/BaseDriver.hh"
 #include "Driver/SingleDriver.hh"
@@ -729,27 +732,33 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "split") {
-        ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
-                                          simState_, this );
+      ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
+          simState_, this );
     }
     else if (actPdeName == "acousticMixed")
-        ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-//
-//    else if (actPdeName == "smooth")
-//      ptSinglePde_[i] = new SmoothPDE(defaultGrid, actPdeNode);
-//
-   else if (actPdeName == "magnetic")
+      ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+
+    else if (actPdeName == "magnetic")
       ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
-    else if (actPdeName == "magneticEdge")
-      ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-    
-//    else if (actPdeName == "magneticScalar")
-//          ptSinglePde_[i] = new MagScalarPDE(defaultGrid, actPdeNode);
-//
-//
+    else if (actPdeName == "magneticEdge"){
+      std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
+      if (formulation == "A") {
+        ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      }else{
+        if(formulation == "A-V"){
+          ptSinglePde_[i] = new MagEdgeMixedAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+        }else{
+          EXCEPTION("Formulation of MagEdgePDE not known!");
+        }
+      }
+    }
+
     else if (actPdeName == "heatConduction")
       ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+
+    else if (actPdeName == "fluidMechLin")
+      ptSinglePde_[i] = new LinFlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "fluidMech") {
       std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
@@ -960,7 +969,28 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
       coupling = new WaterWaveMechCoupling(pde1, pde2, pairNodes[i], info_,
                                            simState_, this );
     }
-//
+    // *** Linear flow coupled with heat ***
+    else if (couplingName == "linFlowHeatDirect")
+    {
+
+      pde1 = GetSinglePDE("fluidMechLin");
+      pde2 = GetSinglePDE("heatConduction");
+
+      coupling = new LinFlowHeatCoupling(pde1, pde2, pairNodes[i], info_,
+    		                             simState_, this );
+      // inform linFlowPDE about coupling to heatConduction
+      dynamic_cast<LinFlowPDE*> (pde1)->SetHeatCoupling();
+    }
+    // *** Linear flow coupled with acoustic wave equation***
+    else if (couplingName == "linFlowAcouDirect")
+    {
+
+      pde1 = GetSinglePDE("fluidMechLin");
+      pde2 = GetSinglePDE("acoustic");
+
+      coupling = new LinFlowAcouCoupling(pde1, pde2, pairNodes[i], info_,
+    		                             simState_, this );
+    }
 //    // ------------------------------------------------------------------------
 //    // *** THERMO-MECH Coupling ***
 //    else if (couplingName == "thermoMechDirect")

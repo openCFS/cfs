@@ -54,7 +54,7 @@ namespace CoupledField {
      typedef std::string IdType;
 
      //! Enumeration type for distinguishing the different source types of coils
-     typedef enum {NO_SOURCE_TYPE, CURRENT, VOLTAGE, EXTERNAL } SourceType;
+     typedef enum {NO_SOURCE_TYPE, CURRENT, CURRENT_MULTHARM, VOLTAGE, EXTERNAL } SourceType;
      
      //! Constructor for coils
 
@@ -97,6 +97,11 @@ namespace CoupledField {
      
      //! Do coil Optimization with toppology optimization variable magCoilPseudoDensity?
      bool coilOptimization_;
+     //! Values of excitation in different harmonics.
+     //! Key is the harmonic (only prescribe positive harmonics,
+     //! because the mirroring to the negative spectrum is performed
+     //! internally).
+     std::map<UInt, PtrCoefFct> srcValMH_;
 
      //! Define part of a coil
      struct Part {
@@ -194,6 +199,9 @@ namespace CoupledField {
      
      //! Math parser instance
      MathParser * mParser_;
+
+     //! Flag if we have multiharmonic excitation
+     bool isMultHarm_;
    };
 }
 

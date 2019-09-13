@@ -28,6 +28,13 @@ E33 = zeros(m+1,n+1);
 for i=2:size(list,1)
     E33(list(i,1)+1,list(i,2)+1) = list(i,6);
 end
+%create volume field
+Vol = zeros(m+1,n+1);
+for i=1:m+1
+    for j =1:n+1
+        Vol(i,j) = a(i) + b(j) - a(i)*b(j);
+    end
+end
 %optional: only needed for penalization
 deriv_a = [];
 deriv_b = [];
@@ -38,8 +45,10 @@ deriv_b2 = [];
 [Coeff12] = bicubic_offline(a,b,E12, deriv_a,deriv_b,deriv_a2,deriv_b2);
 [Coeff22] = bicubic_offline(a,b,E22, deriv_a,deriv_b,deriv_a2,deriv_b2);
 [Coeff33] = bicubic_offline(a,b,E33, deriv_a,deriv_b,deriv_a2,deriv_b2);
+[VolCoeff] = bicubic_offline(a,b,Vol, deriv_a,deriv_b,deriv_a2,deriv_b2);
+
 %test(a,b,E11);
-write_to_xml(outputfile,m,n,a,b,Coeff11,Coeff12,Coeff22,Coeff33);
+write_to_xml(outputfile,m,n,a,b,Coeff11,Coeff12,Coeff22,Coeff33,VolCoeff);
 
 % Calculate penalization material catalogue in 2D for interval
 % [0,da]x[0,db]

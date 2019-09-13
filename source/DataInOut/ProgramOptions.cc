@@ -573,10 +573,8 @@ namespace CoupledField {
     in_cfs->Get("version")->SetValue(CFS_VERSION);
     in_cfs->Get("name")->SetValue(CFS_NAME);
     in_cfs->Get("build")->SetValue(CMAKE_BUILD_TYPE);
-    in_cfs->Get("svn_revision")->SetValue(CFS_WC_REVISION);
-    std::string url(CFS_WC_URL);
-    if(url.size() > 0 && url.find_last_of("/") != string::npos)
-      in_cfs->Get("svn_branch")->SetValue(url.substr(url.find_last_of("/")+1));
+    in_cfs->Get("git_commit")->SetValue(CFS_GIT_COMMIT);
+    in_cfs->Get("git_branch")->SetValue(CFS_GIT_BRANCH);
     in_cfs->Get("exe")->SetValue(exe_);
 
     // openmp information
@@ -622,14 +620,9 @@ namespace CoupledField {
     out << "CFS_BUILD_HOST:        " << fg_blue << CFS_BUILD_HOST << fg_reset << endl
         << "CFS_BUILD_USER:        " << fg_blue << CFS_BUILD_USER << fg_reset << endl
         << "CFS_BUILD_DISTRO:      " << fg_blue << CFS_BUILD_DISTRO << fg_reset << endl
-        << "CFS_WC_REVISION:       " << fg_blue << CFS_WC_REVISION << fg_reset << endl
-        << "CFS_WC_URL:            " << fg_blue << CFS_WC_URL << fg_reset << endl;
-    
-    if( std::string(CFS_WC_TYPE) == "Git" ) 
-    {
-      out << "CFS_GIT_COMMIT:        " << fg_blue << CFS_GIT_COMMIT << fg_reset << endl
-          << "CFS_GIT_BRANCH:        " << fg_blue << CFS_GIT_BRANCH << fg_reset << endl;
-    }
+        << "CFS_GIT_COMMIT:        " << fg_blue << CFS_GIT_COMMIT << fg_reset << endl
+        << "CFS_GIT_BRANCH:        " << fg_blue << CFS_GIT_BRANCH << fg_reset << endl
+        << "CFS_WC_REVISION:        " << fg_blue << CFS_WC_REVISION << fg_reset << endl;
 
     out << endl;
 
@@ -700,6 +693,16 @@ namespace CoupledField {
  #else
     out << "USE_ILUPACK:           " << fg_blue  << "NO" << fg_reset << endl;
  #endif
+
+
+
+
+#ifdef USE_ILUPACK_PARALLEL
+   out << "USE_ILUPACK_PARALLEL:           " << fg_blue << "YES" << fg_reset << endl;
+#else
+   out << "USE_ILUPACK_PARALLEL:           " << fg_blue  << "NO" << fg_reset << endl;
+#endif
+
 
  #ifdef USE_SUITESPARSE
     out << "USE_SUITESPARSE:       " << fg_blue << "YES" << fg_reset << endl;
@@ -864,7 +867,7 @@ namespace CoupledField {
     out << "BUILD_HWLOC:           " << fg_blue << "YES" << fg_reset << endl;
     out << "HWLOC_VER:             " << fg_blue << HWLOC_VER << fg_reset << endl;
 #else
-    out << "USE_PETSC:             " << fg_blue << "NO" << fg_reset << endl;
+    out << "BUILD_HWLOC:           " << fg_blue << "NO" << fg_reset << endl;
 #endif
 
 #ifdef BUILD_GHOST
@@ -998,7 +1001,7 @@ namespace CoupledField {
           << "===========" << endl;
       out << " CFS++ - Coupled Field Simulation" << endl << endl
           << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
-          << " (rev " << CFS_WC_REVISION << ")" << endl
+          << " " << CFS_WC_REVISION << endl
           << " compiled " << __DATE__
           << " as " << CMAKE_BUILD_TYPE << endl
           << " CFS++ routines use " << CFS_NUM_THREADS << " threads for this run."

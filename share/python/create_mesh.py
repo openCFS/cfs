@@ -41,11 +41,12 @@ def find_inclusion_overlap(args):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True )
-parser.add_argument('--y_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
-parser.add_argument('--z_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
+parser.add_argument('--y_res', help="y-discretization of bulk2d and bulk3d for quadratic/ cubic elements", type=int, required = False )
+parser.add_argument('--z_res', help="z-discretization of bulk3d and matlab3d for quadratic/ cubic elements", type=int, required = False )
 parser.add_argument('--width', help="width in m", type=float, default = 1.0)
 parser.add_argument('--height', help="optional height in m", type=float, required = False)
-parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced', 'cantilever3d', 'lbm2d', 'lbm3d','msfem_two_load','two_load', 'validation_test','force_inverter','force_inverter_half','gripper','gripper_half','voxels_from_optistruct','convert_optistruct','traegerblz','box_lufo','mbb'], required = True)
+parser.add_argument('--depth', help="optional depth in m", type=float, required = False)
+parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'matlab3d', 'cantilever2d', 'cantilever2d_reinforced', 'cantilever3d', 'lbm2d', 'lbm3d','msfem_two_load','two_load', 'validation_test','force_inverter','force_inverter_half','gripper','gripper_half','voxels_from_optistruct','convert_optistruct','traegerblz','box_lufo','mbb'], required = True)
 parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend','pipe','distributor','backstep','diffuser','two_inlet_two_outlet', 'low_in_high_out'])
 parser.add_argument('--patch', help="define many regions", choices=['3x3', '4x4'])
 parser.add_argument('--inclusion', help="inclusion for bulk2d and bulk3d", choices=["rect", "ball","top_panel"])
@@ -94,7 +95,9 @@ if args.type == "voxels_from_optistruct" or args.type == "convert_optistruct":
 mesh= None 
     
 if args.type == 'bulk3d' or args.type == 'validation_test' or args.type == 'cantilever3d' or args.type == 'traegerblz' or args.type == 'box_lufo':
-  mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size,scale=args.width)    
+  mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size,scale=args.width) 
+elif args.type == 'matlab3d':
+  mesh = create_3d_matlab_mesh(args.type, args.res, args.y_res, args.z_res, args.width, args.height, args.depth)  
 elif args.type.startswith('lbm'):
   if args.lbm == None:
     print('error: --lbm subtype mandatory for --type lbm')
@@ -123,14 +126,16 @@ else: # default case 2d_mesh
     mesh = find_inclusion_overlap(args) 
   
 res_name = '_' + str(args.res)
-if (args.type == 'bulk2d' or args.type == 'bulk3d') and args.y_res != None:
+if (args.type == 'bulk2d' or args.type == 'bulk3d' or args.type =='matlab3d') and args.y_res != None:
   res_name += '_' + str(args.y_res)
-if args.type == 'bulk3d' and args.z_res:
+if (args.type == 'bulk3d' or args.type == 'matlab3d') and args.z_res:
   res_name += '_' + str(args.z_res)
 if args.width != 1.0:
   res_name += '-w_' + str(args.width).replace('.', '_')
 if args.height is not None:
   res_name += '-h_' + str(args.height).replace('.', '_')
+if args.depth is not None:
+  res_name += '-d_' + str(args.depth).replace('.', '_')
 if args.inclusion_size:
   res_name += '_' + args.inclusion  + '_' + str(args.inclusion_size).replace('.', '_')
 if args.inclusion_overlap:

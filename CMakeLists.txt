@@ -3,8 +3,8 @@
 #-----------------------------------------------------------------------------
 
 SET(REQ_MAJOR_VER 3)
-SET(REQ_MINOR_VER 8)
-SET(REQ_PATCH_VER 0)
+SET(REQ_MINOR_VER 7)
+SET(REQ_PATCH_VER 2)
 
 #-----------------------------------------------------------------------------
 # Include global definitions for CFS++ development server (host name, etc.)
@@ -49,9 +49,7 @@ MESSAGE(
 ==============================================================================
 ")
 
-ENDIF(CMAKE_MAJOR_VERSION LESS REQ_MAJOR_VER AND
-      CMAKE_MINOR_VERSION LESS REQ_MINOR_VER AND
-      CMAKE_PATCH_VERSION LESS REQ_PATCH_VER)
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Don't build anything unless the version of CMake is high enough.
@@ -68,7 +66,7 @@ CMAKE_MINIMUM_REQUIRED(
 #-----------------------------------------------------------------------------
 IF(COMMAND CMAKE_POLICY)
   IF(POLICY CMP0038)
-    CMAKE_POLICY(SET CMP0038 OLD)
+    CMAKE_POLICY(SET CMP0038 NEW)
   ENDIF(POLICY CMP0038)
 ENDIF(COMMAND CMAKE_POLICY)
 
@@ -143,12 +141,12 @@ ELSEIF(UNIX OR MINGW)
     COMMAND id -unr # get user name (possibly DOMAIN\user)
     COMMAND sed s/[A-Z]\\+\\\\// # remove 'DOMAIN\' from 'DOMAIN\user' ('\' must be escaped in cmake)
     WORKING_DIRECTORY "."
-    OUTPUT_VARIABLE CFS_BUILD_USER RESULT_VARIABLE res OUTPUT_VARIABLE out
+    RESULT_VARIABLE res OUTPUT_VARIABLE out
     )
   if(res)
     message("could not determine user: ${res}, ${out}")
   endif(res)
-  STRING(STRIP "${CFS_BUILD_USER}" CFS_BUILD_USER)
+  STRING(STRIP "${out}" CFS_BUILD_USER)
 ENDIF()
 
 SET(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
@@ -184,8 +182,6 @@ OPTION(USE_UNV "Use Universal File for simulation output." ${USE_UNV_DEFAULT})
 # USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
 OPTION(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
 OPTION(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
-OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." ${USE_ANSYSRST_DEFAULT})
-
 IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." ${USE_ANSYSRST_DEFAULT})
 ENDIF()
@@ -227,10 +223,14 @@ OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs." ${USE_SUPERLU_DEFAULT})
 OPTION(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
 OPTION(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFAULT})
 OPTION(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
-
+OPTION(USE_ILUPACK_PARALLEL "Ilupack with openmp. Experimental version." ${USE_ILUPACK_PARALLEL_DEFAULT})
 IF(USE_FEAST AND NOT CFS_BLAS_LAPACK STREQUAL "MKL" )
   MESSAGE(FATAL_ERROR "USE_FEAST=ON requires Intel MKL! Set CFS_BLAS_LAPACK=MKL")
 ENDIF()
+IF(USE_ILUPACK AND USE_ILUPACK_PARALLEL)
+  MESSAGE(FATAL_ERROR "Either USE_ILUPACK=ON or USE_ILUPACK_PARALLEL=ON.  Both can not be swithed on together")
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
 #-----------------------------------------------------------------------------
@@ -249,6 +249,10 @@ IF(USE_PETSC)
   INCLUDE("cmake_modules/mpi.cmake")
 ELSE()
   SET(USE_MPI "OFF") 
+ENDIF()
+
+IF(USE_PETSC AND USE_ILUPACK_PARALLEL )
+  MESSAGE("Using PETSc with ilupack will lead to build error(to be fixed in future), switch either one to  OFF")
 ENDIF()
 
 # phist requires ghost
@@ -378,15 +382,19 @@ OPTION(USE_FLANN
 OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
 OPTION(PROFILING "Set profiling compiler options for Release." ${PROFILING_DEFAULT})
 OPTION(COVERAGE "Turn on coverage compier options."  ${COVERAGE_DEFAULT})
-OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."  ${CFSTOOL_DEFAULT})
+OPTION(BUILD_CFSTOOL "Build CFS++ converter tool (cfstool)."  ${BUILD_CFSTOOL_DEFAULT})
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})
 OPTION(UNIT_TESTS "Build CFS++ unit tests (cfstest)."  ${UNIT_TESTS_DEFAULT})
 
-# Since CFSDAT depends on the CGAL library, we need to force USE_CGAL to ON.
-IF(CFSDAT)
-    SET(USE_CGAL ON CACHE BOOL "Activate fast element mapping using CGAL library." FORCE)
+# CFSDAT depends on the CGAL library ...
+IF(CFSDAT AND NOT USE_CGAL)
+  MESSAGE(FATAL_ERROR "CFSDAT requires USE_CGAL=ON, correct your configuration.")
 ENDIF()
-  
+
+IF(DEBUG)
+   OPTION(DEBUG_USE_FSANITIZE "Use -fsanitize to check for memory leaks and general errors. Very costly during runtime!" ${DEBUG_USE_FSANITIZE_DEFAULT})
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # Shall we build HDFView?
 #-----------------------------------------------------------------------------
@@ -401,41 +409,29 @@ OPTION(EXPLICIT_TEMPLATE_INSTANTIATION
   "Use explicit template instantiation."
   ${EXPLICIT_TEMPLATE_INSTANTIATION_DEFAULT})
 
+# ICC needs a gcc to get header from. Newest ICC might noe be fully compatible with gcc 8.* yet
+SET(CFS_ICC_GCC_VERSION ${CFS_ICC_GCC_VERSION_DEFAULT} CACHE STRING "GCC version where ICC takes the headers from")
+
 #-----------------------------------------------------------------------------
 # Set a sane default value for the CFS++ schema path
 #-----------------------------------------------------------------------------
 SET(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING
   "Path where the XML schema for the input files is located.")
 
-#-----------------------------------------------------------------------------
-# Specify path to CFS++ testsuite. If this path exists, CTest compatible
-# test cases will be generated in the current binary directory.
-#-----------------------------------------------------------------------------
-IF(NOT TESTSUITE_DIR_DEFAULT)
-  SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
-ENDIF(NOT TESTSUITE_DIR_DEFAULT) 
+# set the mode of cfstool
+SET(CFS_TESTSUITE_CFSTOOL_MODE "scalardiff" CACHE STRING "The mode used to compare hdf5 files by cfstool. May be 'scalardiff', 'L2diff', or 'relL2diff'.")
+IF( NOT ( (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "scalardiff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "L2diff") OR (CFS_TESTSUITE_CFSTOOL_MODE STREQUAL "relL2diff") ) )
+  MESSAGE(FATAL_ERROR "select a correct value for CFS_TESTSUITE_CFSTOOL_MODE: 'scalardiff', 'L2diff', or 'relL2diff'")
+ENDIF()
 
-SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
-
-IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
-  IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-    # In order to perform tests we need the CFSTOOL and HDF5!
-    SET(CFSTOOL ON CACHE BOOL
-      "Build CFS++ converter tool (cfstool)." FORCE)
-    
-    SET(USE_HDF5 ON CACHE INTERNAL
-      "Use HDF5 for simulation in/output." FORCE)
-    
-    ADD_SUBDIRECTORY(${TESTSUITE_DIR}
-      "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
-
-  ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-    SET(MSG "Testsuite directory '${TESTSUITE_DIR}' does not contain")
-    SET(MSG "${MSG} TESTSUIT.\nPlease specify a proper location!")
-
-    MESSAGE("${MSG}")
-  ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+# set the number of thread to use for the testing runs
+include(ProcessorCount)
+ProcessorCount(NCPU)
+SET(CFS_TESTSUITE_THREADS "${NCPU}" CACHE STRING "Number of threads to use for the cfs testing runs, i.e. use argument '-t CFS_TESTSUITE_THREADS' in cfs runs.")
+# check if integer is set
+IF(NOT CFS_TESTSUITE_THREADS MATCHES "^[1-9][0-9]*$")
+  MESSAGE(FATAL_ERROR "CFS_TESTSUITE_THREADS must be integer valued.")
+ENDIF()
 
 # set the mode of cfstool
 SET(CFS_TESTSUITE_CFSTOOL_MODE "scalardiff" CACHE STRING "The mode used to compare hdf5 files by cfstool. May be 'scalardiff', 'L2diff', or 'relL2diff'.")
@@ -474,6 +470,7 @@ MARK_AS_ADVANCED(USE_LIBXML2)
 #MARK_AS_ADVANCED(BUILD_GHOST)
 MARK_AS_ADVANCED(BUILD_HWLOC)
 MARK_AS_ADVANCED(DISABLE_OPTIMIZATION)
+
 
 #-----------------------------------------------------------------------------
 # Set some variables according to build type DEBUG / RELEASE
@@ -525,33 +522,6 @@ INCLUDE("cmake_modules/CheckFortranRuntime.cmake")
 # Perform some configure checks
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/ConfigureChecks.cmake")
-
-#-----------------------------------------------------------------------------
-# Configure Dart testing support.  This should be done before any
-# MESSAGE(FATAL_ERROR ...) commands are invoked (???) and after the languages
-# for the project have been defined since CMake needs to know about the 
-# language-specific build tools.
-#-----------------------------------------------------------------------------
-
-#-----------------------------------------------------------------------------
-# Switch support for testing off by default. It will be switched on by the
-# CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
-# cache. Cf. ctest_scripts/*.cmake
-#-----------------------------------------------------------------------------
-OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
-
-IF(BUILD_TESTING)
-  SET(BUILDNAME
-    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
-    CACHE STRING "Name of build on the dashboard")
-  MARK_AS_ADVANCED(BUILDNAME)
-
-  #---------------------------------------------------------------------------
-  # Include CMake module for testing support
-  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
-  #---------------------------------------------------------------------------
-  INCLUDE(CTest)
-ENDIF(BUILD_TESTING)
 
 #-----------------------------------------------------------------------------
 # Enables python testsuite (contains matviz.py tests) used be the optimization group
@@ -651,6 +621,98 @@ TODAY(CFS_CONF_DATE)
 INCLUDE("cmake_modules/DetermineWorkingCopyInfos.cmake")
 
 #-----------------------------------------------------------------------------
+# Configure Dart testing support.  This should be done before any
+# MESSAGE(FATAL_ERROR ...) commands are invoked (???) and after the languages
+# for the project have been defined since CMake needs to know about the 
+# language-specific build tools.
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# Switch support for testing off by default. It will be switched on by the
+# CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
+# cache. Cf. ctest_scripts/*.cmake
+#-----------------------------------------------------------------------------
+OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
+CMAKE_DEPENDENT_OPTION(PACK_TESTSUITE "Pack the testsuite using CPack" OFF "BUILD_TESTING" OFF) # set to off all the time, distributable testsuite must be created for this
+IF(BUILD_TESTING)
+  #---------------------------------------------------------------------------
+  # Include CMake module for testing support
+  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
+  #---------------------------------------------------------------------------
+  INCLUDE(CTest)
+  #-----------------------------------------------------------------------------
+  # Specify path to CFS++ testsuite. If this path exists, CTest compatible
+  # test cases will be generated in the current binary directory.
+  #-----------------------------------------------------------------------------
+  IF(NOT TESTSUITE_DIR_DEFAULT)
+    SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
+  ENDIF(NOT TESTSUITE_DIR_DEFAULT)
+
+  SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
+
+  IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+    IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+      ADD_SUBDIRECTORY(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+    ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+      SET(MSG "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'.\n")
+      SET(MSG "${MSG}Please specify a proper location!\n")
+      SET(MSG "${MSG}Did you clone with 'git clone --recurse-submodules'?\n")
+      SET(MSG "${MSG}If not go to your source directory and do\n")
+      SET(MSG "${MSG}   'git submodule update --init --recursive'\n")
+      SET(MSG "${MSG}   'git pull --recurse-submodules'\n")
+      MESSAGE(FATAL_ERROR "${MSG}")
+    ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+  ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
+  # check if we have options
+  # In order to perform tests we need the CFSTOOL and HDF5!
+  if(NOT BUILD_CFSTOOL)
+    message(FATAL_ERROR "BUILD_TESTING=ON requires BUILD_CFSTOOL=ON.")
+  endif()
+  if(NOT USE_HDF5)
+    message(FATAL_ERROR "BUILD_TESTING=ON requires USE_HDF5=ON.")
+  endif()
+  # set a build name
+  SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE PATH "Path where the CFS++ testsuite is located.")
+  SET(CFS_TESTSUITE_MODEL "Experimental" CACHE PATH "Model for the test submission to CDash.")
+  if( NOT (CFS_TESTSUITE_MODEL STREQUAL "Nightly" OR CFS_TESTSUITE_MODEL STREQUAL "Continuous" OR CFS_TESTSUITE_MODEL STREQUAL "Experimental") )
+    MESSAGE(FATAL_ERROR "CFS_TESTSUITE_MODEL='${CFS_TESTSUITE_MODEL}' but must be equal to 'Nightly|Continuous|Experimental'")
+  endif()
+  # configure the dashboard and include config
+  # write the variables in DartConfiguration.tcl which is used by `ctest -D` or `make Experimental`
+  # https://github.com/Kitware/CMake/blob/master/Modules/DartConfiguration.tcl.in
+  set(DROP_SITE "${CFS_DS_CDASH_DROP_SITE}")
+  set(DROP_LOCATION "/cdash/submit.php?project=${CTEST_PROJECT_NAME}")
+  SET(DROP_METHOD "http")
+  set(NIGHTLY_START_TIME "00:00:00 CET")
+  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CXX_ID} ${CXX_VERSION}" CACHE STRING "Name of build on the dashboard")
+  MARK_AS_ADVANCED(BUILDNAME)
+  # set the test timeout
+  set(TESTSUITE_TEST_TIMEOUT 300 CACHE STRING "timeout in s for each test in the testsuite (sets DART_TESTING_TIMEOUT)")
+  set(DART_TESTING_TIMEOUT "${TESTSUITE_TEST_TIMEOUT}" CACHE INTERNAL "=TESTSUITE_TEST_TIMEOUT") # see https://cmake.org/cmake/help/v3.3/manual/ctest.1.html#ctest-test-step
+  mark_as_advanced(TESTSUITE_TEST_TIMEOUT)
+  if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
+    # get the build host
+    execute_process(COMMAND ${CFS_BINARY_DIR}/bin/cfs --version --noColor
+                    COMMAND grep CFS_BUILD_HOST
+                    COMMAND awk "{print $2}"
+                    RESULT_VARIABLE var
+                    OUTPUT_VARIABLE ORIGINAL_BUILD_HOST)
+    string(STRIP "${ORIGINAL_BUILD_HOST}" ORIGINAL_BUILD_HOST) # important for comparison !
+    #message("CFS_BUILD_HOST='${CFS_BUILD_HOST}' ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
+    if(NOT (CFS_BUILD_HOST STREQUAL "${ORIGINAL_BUILD_HOST}") )
+      # extract the short name (first 2 domain name components)
+      string(REGEX MATCH "[^.]+([.][^.]+)?" ORIGINAL_BUILD_HOST "${ORIGINAL_BUILD_HOST}")
+      message("current build host CFS_BUILD_HOST='${CFS_BUILD_HOST}'")
+      message("build host where the binary is from ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
+    endif()
+  endif(GITLAB_TEST_TAG)
+  INCLUDE(CTest) # to actually write DartConfiguration.tcl
+  # add a packing test
+  add_test(Install_Pack_Linux_TGZ cpack -G TGZ --verbose)
+ENDIF(BUILD_TESTING)
+MARK_AS_ADVANCED(TESTSUITE_DIR)
+
+#-----------------------------------------------------------------------------
 # Make sure the compiler can find include files from CFS.
 #-----------------------------------------------------------------------------
 INCLUDE_DIRECTORIES(
@@ -690,9 +752,9 @@ IF(USE_PHIST_CG OR USE_PHIST_EV)
   ADD_SUBDIRECTORY(source/OLAS/external/phist)
 ENDIF(USE_PHIST_CG OR USE_PHIST_EV)
 
-IF(USE_ILUPACK)
+IF(USE_ILUPACK OR USE_ILUPACK_PARALLEL)
   ADD_SUBDIRECTORY(source/OLAS/external/ilupack)
-ENDIF(USE_ILUPACK)
+ENDIF(USE_ILUPACK OR USE_ILUPACK_PARALLEL)
 
 ADD_SUBDIRECTORY(source/OLAS/external/lapack)
 
@@ -797,9 +859,7 @@ ENDIF(USE_CGNS)
 
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)
-IF(NOT MINGW)
-  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
-ENDIF()
+ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
 ADD_SUBDIRECTORY(source/DataInOut/ScatteredDataInOut)
 
 ADD_SUBDIRECTORY(source/Domain)
@@ -836,11 +896,9 @@ ADD_SUBDIRECTORY(source/Optimization/Design)
 ADD_SUBDIRECTORY(source/Optimization/Optimizer)
 ADD_SUBDIRECTORY(source/main)
 
-IF(CFSTOOL)
+IF(BUILD_CFSTOOL)
   ADD_SUBDIRECTORY(source/cfstool)
-  #  SET(USE_FFTW ON CACHE BOOL 
-  #  "Activate DFT and filtering capabilities of cfstool." FORCE)
-ENDIF(CFSTOOL)
+ENDIF(BUILD_CFSTOOL)
 
 IF(CFSDAT)
   ADD_SUBDIRECTORY(source/cfsdat)
@@ -875,3 +933,38 @@ ADD_SUBDIRECTORY(share/mkmesh)
 #-----------------------------------------------------------------------------
 ADD_SUBDIRECTORY(share/xml)
 ADD_SUBDIRECTORY(share/xsl)
+
+#-----------------------------------------------------------------------------
+# Add an install Target using CPack
+#-----------------------------------------------------------------------------
+# can be used via: cpack -G TZG
+# with testing also via: ctest -R Install
+# from within the build directory
+
+
+# set cpack config options
+# see https://cmake.org/Wiki/CMake:CPackConfiguration
+string(STRIP "${CFS_GIT_COMMIT}" CPACK_PACKAGE_VERSION)
+if(CFS_WC_MODIFIED)
+  set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}-modified")
+endif(CFS_WC_MODIFIED)
+
+# choose what to install
+# see https://cmake.org/cmake/help/v3.9/command/install.html#installing-directories
+
+if(UNIX)
+  # tailing / in source leads to rename to destionation
+  #INSTALL(PROGRAMS "${CFS_BINARY_DIR}/bin" DESTINATION "." PATTERN "[A-Z]*" EXCLUDE)
+  INSTALL(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin/LINUX_${CFS_ARCH}" USE_SOURCE_PERMISSIONS)
+  INSTALL(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib64/LINUX_${CFS_ARCH}" USE_SOURCE_PERMISSIONS PATTERN "*.a" EXCLUDE) # lib64 only works for 64bit ...
+else(UNIX)
+  message("install only implemented for UNIX")
+endif(UNIX)
+INSTALL(DIRECTORY "${CFS_BINARY_DIR}/share/" DESTINATION "share" USE_SOURCE_PERMISSIONS PATTERN "CMakeFiles" EXCLUDE PATTERN "Makefile" EXCLUDE PATTERN "*.dir" EXCLUDE)
+# this is only usful on a portable testsuite and at them moment disabled by default
+if(BUILD_TESTING AND PACK_TESTSUITE)
+  INSTALL(FILES "${CFS_BINARY_DIR}/CTestTestfile.cmake" DESTINATION ".")
+  INSTALL(DIRECTORY "${CFS_BINARY_DIR}/testsuite" DESTINATION "." USE_SOURCE_PERMISSIONS)
+endif(BUILD_TESTING AND PACK_TESTSUITE)
+
+INCLUDE(CPack)

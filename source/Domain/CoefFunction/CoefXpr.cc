@@ -285,7 +285,12 @@ void CoefXpr::ApplyUnaryFunc( std::string& retReal, const std::string& argReal,
       args = "1.0/(", B(argReal), ")";
       retReal = B(args.Serialize(' '));
       break;
-    
+
+    case OP_RE:
+      args = B(argReal);
+      retReal = B(args.Serialize(' '));
+      break;
+
     default:
       EXCEPTION(" Unknown operand type '" << OpToString(op) 
                 << "' to ApplyUnaryFunc" );
@@ -774,7 +779,31 @@ void CoefXprUnaryOp::GetScalarXpr( std::string& real, std::string& imag ) const 
 void CoefXprUnaryOp::GetVectorXpr( StdVector<std::string>& real, 
                                  StdVector<std::string>& imag ) const {
   
-  EXCEPTION( "No vector valued unary function available") 
+
+  // Switch depending on type of argument
+  if( a_->GetDimType() == CoefFunction::SCALAR ) {
+    EXCEPTION("CoefXprUnaryOp::GetVectorXpr SCALAR case not implemented!");
+  }else if( a_->GetDimType() == CoefFunction::VECTOR ) {
+    StdVector<std::string> aR, aI;
+    UInt sizeA;
+
+    if( isAnalytical_) {
+      EXCEPTION("CoefXprUnaryOp::GetVectorXpr No vector valued analytic expression implemented!");
+    } else {
+      CoefFunction::GenVecCompNames(aR, aI, aName_, a_);
+      sizeA = a_->GetVecSize();
+      if( op_ == OP_RE) {
+        real.Resize(sizeA);
+        for(UInt i = 0; i < sizeA; ++i){
+          ApplyUnaryFunc( real[i], aR[i], OP_RE );
+        }
+      }else{
+        EXCEPTION("CoefXprUnaryOp::GetVectorXpr This vector valued expression is not implemented yet!");
+      }
+    }
+  }else if( a_->GetDimType() == CoefFunction::TENSOR ) {
+    EXCEPTION("CoefXprUnaryOp::GetVectorXpr TENSOR case not implemented!");
+  }
 }
 
 void CoefXprUnaryOp::GetTensorXpr( UInt& numRows, UInt& numCols,
@@ -2021,9 +2050,9 @@ void CoefXprMechSubTensor::Init( PtrCoefFct a ) {
   // ensure that dimension is a full 6x6 tensor
   UInt numRowsA, numColsA;
   a->GetTensorSize(numRowsA, numColsA);
-  if( numRowsA != 6 || numColsA != 6 ) {
+  /*if( numRowsA != 6 || numColsA != 6 ) {
     EXCEPTION( "Tensor must have dimension 6 x 6 " );
-  }
+  }*/
   
   dimType_ = CoefFunction::TENSOR;
   isAnalytical_ = a->IsAnalytic();
@@ -2108,7 +2137,27 @@ void CoefXprMechSubTensor::GetTensorXpr( UInt& numRows, UInt& numCols,
           imag[i*numCols+j] = aI[(rowPtr[i]-1)*6 + (rowPtr[j]-1)];
       }
     }
-  } else if( tensorType_ == PLANE_STRESS)  {
+  } else if( tensorType_ == PLANE_STRESS && numRowsA == 3 && numColsA == 3)  {
+    //TODO: 2D Tensor can't be given in mat.xml, dirty fix, only implemented for PLANE_STRESS
+      numCols = 3;
+      numRows = 3;
+      real.Resize( numRows * numCols );
+      imag.Resize( numRows * numCols );
+      imag.Init("0.0");
+
+      // 1st part: compute same as plane strain representation
+      UInt rowPtr[] = {1,2,3};
+      for(UInt i = 0; i < numRows; ++i ) {
+        for(UInt j = 0; j < numCols; ++j ) {
+          real[i*numCols+j] = aR[(rowPtr[i]-1)*3 + (rowPtr[j]-1)];
+          if(isComplex_ )
+            imag[i*numCols+j] = aI[(rowPtr[i]-1)*3 + (rowPtr[j]-1)];
+        }
+      }
+      if( !isComplex_ ) {
+        imag.Init("0.0");
+      }
+  } else if( tensorType_ == PLANE_STRESS && numRowsA != 3 && numColsA != 3)  {
     numCols = 3;
     numRows = 3;
     real.Resize( numRows * numCols );
