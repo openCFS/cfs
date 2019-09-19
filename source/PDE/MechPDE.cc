@@ -674,13 +674,13 @@ namespace CoupledField {
   
   
   void MechPDE::DefineSurfaceIntegrators( ){
-    //========================================================================================
-    // ABC boundaries
-    //========================================================================================
+
     PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
     if( bcNode ) {
+      //========================================================================================
+      // ABC boundaries
+      //========================================================================================
       ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
-      
       for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
         std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
@@ -795,7 +795,47 @@ namespace CoupledField {
         feFunctions_[MECH_DISPLACEMENT]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( abcContext );
       }
-      
+
+      //========================================================================================
+      // Normal Stiffness : assumes a normal traction proprtional to the normal displacement
+      //========================================================================================
+      LOG_DBG(mechpde) << "Reading normalStiffness definition";
+      StdVector<shared_ptr<EntityList> > ent;
+      StdVector<PtrCoefFct > kCoef;
+      StdVector<std::string> volumeRegions;
+      ReadRhsExcitation("normalStiffness", feFunctions_[MECH_DISPLACEMENT]->GetResultInfo()->dofNames, ResultInfo::SCALAR, isComplex_, ent, kCoef, updatedGeo_, volumeRegions);
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // get the volume region for defining the correct normal direction
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+        std::set<RegionIdType> volRegion;
+        volRegion.insert(aRegion);
+        // check type of entitylist
+        if (ent[i]->GetType() == EntityList::NODE_LIST) {
+          EXCEPTION("normalStiffness must be defined on (surface) elements")
+        }
+        // setup the integrator for: u'*t_n = u'*k u_n = u'*(k u*n n) = k u'*n u*n
+        BiLinearForm * tangInt = NULL;
+        if(isComplex_) {
+          if (dim_ == 2){
+            tangInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
+          } else {
+            tangInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
+          }
+        } else {
+          if (dim_ == 2){
+            tangInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
+          } else {
+            tangInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
+          }
+        }
+        tangInt->SetName("tangIntegrator");
+        BiLinFormContext *tangContext = new BiLinFormContext(tangInt, STIFFNESS );
+        tangContext->SetEntities( ent[i], ent[i]);
+        tangContext->SetFeFunctions( feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
+        feFunctions_[MECH_DISPLACEMENT]->AddEntityList( ent[i] );
+        assemble_->AddBiLinearForm( tangContext );
+      }
+
       // Bloch-periodic boundary conditions
       this->ptGrid_->MapEdges();
       this->ptGrid_->MapFaces();
@@ -2159,7 +2199,7 @@ namespace CoupledField {
     disp->SetFeFunction(feFunctions_[MECH_DISPLACEMENT]);
     disp->definedOn = ResultInfo::NODE;
     feFunctions_[MECH_DISPLACEMENT]->SetResultInfo(disp);
-    
+
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
