@@ -37,12 +37,14 @@
           </xsd:element>
 	  <xsd:element name="localDensity" maxOccurs="1" minOccurs="1">
             <xsd:complexType>
-              <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+              <xsd:attribute name="value" type="xsd:double" use="optional"/>
             </xsd:complexType>
           </xsd:element>
 	  <xsd:element name="localTemp" maxOccurs="1" minOccurs="1">
             <xsd:complexType>
-              <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
+              <xsd:attribute name="value" type="xsd:double" use="optional"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="output" maxOccurs="1" minOccurs="1">
@@ -52,7 +54,7 @@
           </xsd:element>
           <xsd:element name="intermediateResult" maxOccurs="1" minOccurs="0">
             <xsd:complexType>
-              <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+              <xsd:attribute name="resultName" type="xsd:token" use="optional"/>
             </xsd:complexType>
           </xsd:element>
 	  <xsd:element name="incrementModes" minOccurs="1" maxOccurs="1" default="equidistant">
