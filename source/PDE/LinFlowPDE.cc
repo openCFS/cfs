@@ -347,10 +347,10 @@ namespace CoupledField {
 
     	  BiLinearForm * stiffIntDivDiv = NULL;
     	  if( dim_ == 2 ) {
-    		  stiffIntDivDiv = new BBInt<>(new DivOperator<FeH1,2,Double>(),
+    		  stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,2,Double>(),
     				                       coef, 1.0, updatedGeo_);
     	  } else {
-    		  stiffIntDivDiv = new BBInt<>(new DivOperator<FeH1,3,Double>(),
+    		  stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,3,Double>(),
     				                       coef, 1.0, updatedGeo_);
     	  }
     	  stiffIntDivDiv->SetName("LinFlowStiffIntBulkViscous");
