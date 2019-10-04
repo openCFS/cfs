@@ -542,6 +542,60 @@ namespace CoupledField {
     meanVelFct->Finalize();
   }
   
+  void LinFlowPDE::DefineRhsLoadIntegrators(PtrParamNode input)
+  {
+    // Get FESpace and FeFunction of fluid velocity
+    shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];
+    shared_ptr<FeSpace> mySpace = velFct->GetFeSpace();
+
+    StdVector<shared_ptr<EntityList> > ent;
+    StdVector<PtrCoefFct > coef;
+    LinearForm * lin = NULL;
+    StdVector<std::string> dispDofNames = velFct->GetResultInfo()->dofNames;
+    bool coefUpdateGeo = false;
+    // ==================
+    //  SURFACE TRACTION
+    // ==================
+    //      LOG_DBG(mechpde) << "Reading surface tractions";
+
+    ReadRhsExcitation("traction", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Surface traction must be defined on elements")
+      }
+      // ensure that list contains only surface elements
+      EntityIterator it = ent[i]->GetIterator();
+      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+      if( elemDim != (dim_-1) ) {
+        EXCEPTION("Surface traction can only be defined on surface elements");
+      }
+      if( dim_ == 2) {
+        if(isComplex_) {
+          lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
+              Complex(1.0), coef[i], coefUpdateGeo);
+        } else {
+          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
+              1.0, coef[i],coefUpdateGeo);
+        }
+      } else  {
+        if(isComplex_) {
+          lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3,3>(),
+              Complex(1.0), coef[i], coefUpdateGeo);
+        } else {
+          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
+              1.0, coef[i], coefUpdateGeo);
+        }
+      }
+      lin->SetName("TractionIntegrator");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(velFct);
+      assemble_->AddLinearForm(ctx);
+      velFct->AddEntityList(ent[i]);
+    }
+  }
+
 
   void LinFlowPDE::DefineSolveStep() {
     solveStep_ = new StdSolveStep(*this);

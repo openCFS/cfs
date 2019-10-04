@@ -122,6 +122,12 @@
                     <xsd:documentation>Prescribes the velocity at the surface</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <!-- RHS Load Values-->
+                <xsd:element name="traction" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Prescribes the traction vector at the surface</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>                     
               </xsd:choice>
             </xsd:complexType>
 
