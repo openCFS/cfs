@@ -127,6 +127,13 @@
                   <xsd:annotation>
                     <xsd:documentation>Prescribes the traction vector at the surface</xsd:documentation>
                   </xsd:annotation>
+                </xsd:element> 
+                <xsd:element name="normalTraction" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Prescribes the traction in normal-direction of the boundary
+                      This is equivalent to an external surface pressure
+                    </xsd:documentation>
+                  </xsd:annotation>
                 </xsd:element>                     
               </xsd:choice>
             </xsd:complexType>

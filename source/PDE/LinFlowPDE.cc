@@ -21,6 +21,7 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionStabParams.hh"
 #include "Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh"
+#include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
@@ -546,7 +547,7 @@ namespace CoupledField {
   {
     // Get FESpace and FeFunction of fluid velocity
     shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];
-    shared_ptr<FeSpace> mySpace = velFct->GetFeSpace();
+    shared_ptr<FeSpace> velSpace = velFct->GetFeSpace();
 
     StdVector<shared_ptr<EntityList> > ent;
     StdVector<PtrCoefFct > coef;
@@ -594,6 +595,53 @@ namespace CoupledField {
       assemble_->AddLinearForm(ctx);
       velFct->AddEntityList(ent[i]);
     }
+
+    // ===============
+    //  Normal Traction
+    // ===============
+    //    LOG_DBG(mechpde) << "Reading mechanical pressure";
+    StdVector<std::string> empty;
+    ReadRhsExcitation("normalTraction", empty, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo, input);
+    std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
+
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Mechanical pressure must be defined on elements")
+      }
+
+      // to have correct normal direction
+      const Double tracFac = -1.0;
+
+      if( dim_ == 2) {
+        if(isComplex_) {
+          lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
+              Complex(tracFac), coef[i],
+              volRegions, coefUpdateGeo);
+        } else {
+          lin = new BUIntegrator<Double,true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
+              tracFac, coef[i], volRegions,
+              coefUpdateGeo);
+        }
+      } else  {
+        if(isComplex_) {
+          lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
+              Complex(tracFac), coef[i],
+              volRegions, coefUpdateGeo);
+        } else {
+          lin = new BUIntegrator<Double, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
+              tracFac, coef[i],
+              volRegions, coefUpdateGeo);
+        }
+      }
+      lin->SetName("PressureInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(velFct);
+      assemble_->AddLinearForm(ctx);
+      velFct->AddEntityList(ent[i]);
+    } // for
+
   }
 
 
