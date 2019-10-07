@@ -641,9 +641,55 @@ namespace CoupledField {
       assemble_->AddLinearForm(ctx);
       velFct->AddEntityList(ent[i]);
     } // for
-
   }
 
+  void LinFlowPDE::DefineSurfaceIntegrators(){
+    // Get FESpace and FeFunction of fluid velocity
+    shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];
+    shared_ptr<FeSpace> velSpace = velFct->GetFeSpace();
+    PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    if( bcNode ) {
+      StdVector<shared_ptr<EntityList> > ent;
+      StdVector<PtrCoefFct > kCoef;
+      StdVector<std::string> volumeRegions;
+      //========================================================================================
+      // normalSurfaceMass : assumes a normal traction proprtional to the normal velocity
+      //========================================================================================
+      ReadRhsExcitation("normalSurfaceMass", feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames,
+          ResultInfo::SCALAR, isComplex_, ent, kCoef, updatedGeo_, volumeRegions);
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // get the volume region for defining the correct normal direction
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+        std::set<RegionIdType> volRegion;
+        volRegion.insert(aRegion);
+        // check type of entitylist
+        if (ent[i]->GetType() == EntityList::NODE_LIST) {
+          EXCEPTION("normalSurfaceMass must be defined on (surface) elements")
+        }
+        // setup the integrator for: u'*t_n = u'*k u_n = u'*(k u*n n) = k u'*n u*n
+        BiLinearForm * surfMassInt = NULL;
+        if(isComplex_) {
+          if (dim_ == 2){
+            surfMassInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,2,2,Complex>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
+          } else {
+            surfMassInt = new SurfaceBBInt<Complex,Complex>(new IdentityOperatorNormalTrans<FeH1,3,3,Complex>(), kCoef[i], Complex(1.0,0), volRegion, updatedGeo_ );
+          }
+        } else {
+          if (dim_ == 2){
+            surfMassInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,2,2>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
+          } else {
+            surfMassInt = new SurfaceBBInt<>(new IdentityOperatorNormalTrans<FeH1,3,3>(), kCoef[i], 1.0, volRegion, updatedGeo_ );
+          }
+        }
+        surfMassInt->SetName("surfMassIntegrator");
+        BiLinFormContext *surfMassContext = new BiLinFormContext(surfMassInt, DAMPING );
+        surfMassContext->SetEntities( ent[i], ent[i]);
+        surfMassContext->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY], feFunctions_[FLUIDMECH_VELOCITY]);
+        feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( ent[i] );
+        assemble_->AddBiLinearForm( surfMassContext );
+      }
+    }
+  }
 
   void LinFlowPDE::DefineSolveStep() {
     solveStep_ = new StdSolveStep(*this);
