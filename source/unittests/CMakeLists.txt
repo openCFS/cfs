@@ -9,6 +9,7 @@ ENDIF(MKL_INCLUDE_DIR)
 # List of source codes for current target.
 SET(UNIT_TESTS
   unittests.cc
+  bsplinetests.cc
 )
 
 # Main CFS++ Dat executable target.
@@ -16,6 +17,7 @@ ADD_EXECUTABLE(cfstestbin ${UNIT_TESTS})
 
 SET(TARGET_LL 
   matvec
+  design
   cfsgeneral
 )
 
