@@ -24,7 +24,6 @@ using namespace boost::assign;
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(simOutputGiD)
   DEFINE_LOG(simOutputGiD, "SimOutputGiD")
 
     SimOutputGiD::SimOutputGiD( const std::string& fileName,

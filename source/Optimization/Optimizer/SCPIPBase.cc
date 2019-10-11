@@ -2,8 +2,6 @@
 #include <algorithm>
 #include <cassert>
 
-#include "DataInOut/Logging/log.hpp"
-
 #ifdef USE_4_CFS
   #include "DataInOut/Logging/LogConfigurator.hh"
   #include "General/Exception.hh"
@@ -12,7 +10,6 @@
   #include "DataInOut/ProgramOptions.hh"
   using namespace CoupledField;
 
-  DECLARE_LOG(scpip_base)
   DEFINE_LOG(scpip_base, "scpip_base")
 #else
   #include "BasicEnum.hh"

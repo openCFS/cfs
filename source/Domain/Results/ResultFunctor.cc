@@ -6,7 +6,6 @@
 
 namespace CoupledField {
 
-DECLARE_LOG(resfunc)
 DEFINE_LOG(resfunc, "resultFunctor")
 
 

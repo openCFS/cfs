@@ -9,7 +9,6 @@
 #include "Optimization/Excitation.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Utils/tools.hh"
 
 using std::string;
@@ -19,9 +18,7 @@ using std::log;
 
 namespace CoupledField {
 
-DECLARE_LOG(SMD)
 DEFINE_LOG(SMD, "shapeMapDesign")
-
 
 StdVector<Vector<double> > ShapeMapDesign::newtonCotes = GetNewtonCotes();
 Enum<ShapeMapDesign::IntStrategy> ShapeMapDesign::intStrategy;

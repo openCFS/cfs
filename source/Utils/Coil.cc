@@ -27,7 +27,6 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 // declare logging stream
-DECLARE_LOG(coil)
 DEFINE_LOG(coil, "coil")
 
 namespace CoupledField {

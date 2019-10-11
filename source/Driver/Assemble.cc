@@ -35,7 +35,6 @@
 namespace CoupledField
 {
   // declare logging stream
-  DECLARE_LOG(assemble)
   DEFINE_LOG(assemble, "assemble")
 
 

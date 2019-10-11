@@ -86,7 +86,6 @@
 */
 
 // declare class specific logging stream
-DECLARE_LOG(feSpaceHCurlHi)
 DEFINE_LOG(feSpaceHCurlHi, "feSpaceHCurlHi")
 namespace CoupledField{
 

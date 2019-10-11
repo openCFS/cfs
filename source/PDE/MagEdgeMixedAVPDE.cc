@@ -43,7 +43,6 @@
 namespace CoupledField {
 
 // declare class specific logging stream
-DECLARE_LOG(magEdgeMixedAVPde)
 DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
 

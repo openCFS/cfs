@@ -29,7 +29,6 @@
 namespace CoupledField {
 
 // declare logging stream
-  DECLARE_LOG(stdPde)
   DEFINE_LOG(stdPde, "stdPde")
 
   StdPDE::StdPDE(Grid *aptgrid, PtrParamNode paramNode, PtrParamNode infoNode,

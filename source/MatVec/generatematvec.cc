@@ -19,7 +19,6 @@
 namespace CoupledField {
 
 // define logging stream
-DECLARE_LOG(genMatVec)
 DEFINE_LOG(genMatVec, "genMatVec")
 
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>> VECTOR PART <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

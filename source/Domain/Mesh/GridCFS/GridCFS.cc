@@ -21,7 +21,6 @@
 namespace CoupledField {
 
   // declare class specific logging stream
-  DECLARE_LOG(gridcfs)
   DEFINE_LOG(gridcfs, "grid.cfs")
 
   GridCFS::GridCFS(UInt dim, PtrParamNode param, PtrParamNode info,

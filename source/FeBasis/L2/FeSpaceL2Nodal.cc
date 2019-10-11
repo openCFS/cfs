@@ -15,9 +15,7 @@
 #include "FeSpaceL2Nodal.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-DECLARE_LOG(feSpaceL2Nodal)
 DEFINE_LOG(feSpaceL2Nodal, "feSpaceL2Nodal")
-
 
 namespace CoupledField{
 

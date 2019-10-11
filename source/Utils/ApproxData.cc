@@ -9,7 +9,6 @@
 namespace CoupledField
 { 
 
-DECLARE_LOG(approxdata)  
 DEFINE_LOG(approxdata, "approxdata")
 
   ApproxData::ApproxData(std::string nlFileName, MaterialType matType, UInt numIndep)

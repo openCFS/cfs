@@ -59,8 +59,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 
 namespace CoupledField {
-  
-  DECLARE_LOG(mechpde)
+
   DEFINE_LOG(mechpde, "mechpde")
           
           /** the static test strain enum mapping */

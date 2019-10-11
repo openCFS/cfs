@@ -3,7 +3,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "General/Exception.hh"
 #include "Optimization/Design/AuxDesign.hh"
 
@@ -12,7 +11,6 @@ namespace CoupledField {
 class Condition;
 class Objective;
 
-DECLARE_LOG(aux_des)
 DEFINE_LOG(aux_des, "auxDesign")
 
 AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method, int naux)

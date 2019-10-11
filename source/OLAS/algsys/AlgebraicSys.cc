@@ -40,7 +40,6 @@
 #include "MatVec/CRS_Matrix.hh"
 #include "MatVec/SCRS_Matrix.hh"
 
-DECLARE_LOG(algSys)
 DEFINE_LOG(algSys, "algSys")
 
 namespace CoupledField {

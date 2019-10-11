@@ -3,7 +3,6 @@
 #include <utility>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -36,7 +35,6 @@ using boost::posix_time::ptime;
 using boost::posix_time::second_clock;
 using boost::posix_time::microsec_clock;
 
-DECLARE_LOG(desel)
 DEFINE_LOG(desel, "designElement")
 
 // the static enum

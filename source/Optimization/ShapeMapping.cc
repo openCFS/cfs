@@ -7,12 +7,10 @@
 
 #include "Optimization/ShapeMapping.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 
 
 namespace CoupledField {
 
-DECLARE_LOG(ShapeMap)
 DEFINE_LOG(ShapeMap, "shapeMap")
 
 ShapeMapping::ShapeMapping()

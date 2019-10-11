@@ -43,7 +43,6 @@
 
 namespace CoupledField {
 
-  DECLARE_LOG(magpde)
   DEFINE_LOG(magpde, "magpde")
 
   MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,

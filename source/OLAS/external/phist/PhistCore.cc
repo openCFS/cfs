@@ -11,7 +11,6 @@
 
 namespace CoupledField {
 
-DECLARE_LOG(phico)
 DEFINE_LOG(phico, "phistCore")
 
 

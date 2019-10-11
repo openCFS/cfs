@@ -36,7 +36,6 @@ namespace algo=boost::algorithm;
 namespace CoupledField{
 
   // declare logging stream
-  DECLARE_LOG(simInputCGNS)
   DEFINE_LOG(simInputCGNS, "simInput.CGNS")
 
   //! Constructor

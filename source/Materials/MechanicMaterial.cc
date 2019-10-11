@@ -17,9 +17,7 @@
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-DECLARE_LOG(mat)
 DEFINE_LOG(mat, "mat")
-
 
 namespace CoupledField
 {

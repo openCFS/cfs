@@ -24,7 +24,6 @@
 #include <omp.h>
 #endif
 
-DECLARE_LOG(feSpaceH1Nodal)
 DEFINE_LOG(feSpaceH1Nodal, "feSpaceH1Nodal")
 namespace CoupledField{
 

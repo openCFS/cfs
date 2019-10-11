@@ -37,7 +37,6 @@
 
 namespace CoupledField {
 
-DECLARE_LOG(siminputVTK)
 DEFINE_LOG(siminputVTK, "simInput.vtk")
 
 //! This is a special class for the identification of unqie finite volume faces.

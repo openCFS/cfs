@@ -23,7 +23,6 @@ using boost::char_separator;
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(simInputHdf5)
   DEFINE_LOG(simInputHdf5, "simInput.hdf5")
 
 #define H5_CATCH( STR )                                                 \

@@ -195,7 +195,6 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   }
 }
 
-DECLARE_LOG(nitscheInt)
 DEFINE_LOG(nitscheInt, "Forms.NitscheInt")
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
 SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
@@ -385,7 +384,6 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   }
 }
 
-DECLARE_LOG(mortarInt)
 DEFINE_LOG(mortarInt, "Forms.MortarInt")
 
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>

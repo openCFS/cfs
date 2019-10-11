@@ -14,10 +14,6 @@
 
 using namespace CoupledField;
 
-// declare class specific logging stream
-DECLARE_LOG(feasPP)
-
-
 FeasSubProblem::FeasSubProblem(FeasPP* feas_pp, PtrParamNode pn)
 {
   this->feas_pp = feas_pp;

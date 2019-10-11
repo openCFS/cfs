@@ -1,3 +1,4 @@
+
 #include <assert.h>
 #include <stdlib.h>
 #include <algorithm>
@@ -7,7 +8,6 @@
 #include <sstream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "Domain/Domain.hh"
@@ -33,7 +33,7 @@ using std::pair;
 using namespace CoupledField;
 class DesignStructure;
 
-DECLARE_LOG(conditions)
+DEFINE_LOG(conditions, "conditions")
 
 // instantiation of the static elements
 Enum<Condition::Bound> Condition::bound;

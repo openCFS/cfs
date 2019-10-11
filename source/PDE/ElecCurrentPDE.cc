@@ -43,7 +43,6 @@
 
 namespace CoupledField {
 
-  DECLARE_LOG(eleccurrentpde)
   DEFINE_LOG(eleccurrentpde, "pde.electricCurrent")
 
   // ***************

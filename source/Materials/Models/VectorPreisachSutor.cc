@@ -10,7 +10,6 @@
 
 namespace CoupledField
 {
-  DECLARE_LOG(vecpreisach)
   DEFINE_LOG(vecpreisach, "vecpreisach")
 
   /*

@@ -5,7 +5,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -30,7 +29,6 @@ class BaseMaterial;
 
 using namespace std;
 
-DECLARE_LOG(sc)
 DEFINE_LOG(sc, "stressConstraint")
 
 

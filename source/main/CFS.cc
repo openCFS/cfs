@@ -153,8 +153,7 @@ CFS::CFS(int argc, const char **argv) :
 
   // Initialize logging class (read parameters from file if desired)
   std::string confFile = progOpts->GetLogConfFileStr();
-  logConf_ = new LogConfigurator(confFile);
-  logConf_->ParseLogConfFile();
+  LogConfigurator::ParseLogConfFile(confFile);
   
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
@@ -223,9 +222,6 @@ CFS::~CFS()
   // does not really matter anyway...
   paramNode_.reset();
   infoNode.reset();
-
-  delete logConf_;
-  logConf_ = NULL;
 }
 
 int CFS::Run()

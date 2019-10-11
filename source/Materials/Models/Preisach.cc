@@ -9,11 +9,8 @@ namespace CoupledField
 { 
   class Preisach;
   
-  DECLARE_LOG(scalpreisach)
   DEFINE_LOG(scalpreisach, "scalpreisach")
-  DECLARE_LOG(scalpreisachInversion)
   DEFINE_LOG(scalpreisachInversion, "scalpreisachInversion")
-  DECLARE_LOG(scalpreisachVecExtension)
   DEFINE_LOG(scalpreisachVecExtension, "scalpreisachVecExtension")
 
   Preisach::Preisach(Integer numElem, ParameterPreisachOperators operatorParams,

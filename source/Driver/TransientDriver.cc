@@ -28,7 +28,6 @@ namespace pt = boost::posix_time;
 
 namespace CoupledField {
 
-  DECLARE_LOG(trans_driver)
   DEFINE_LOG(trans_driver, "transient_driver")
 
   // Define pointer to transient driver instance, needed for the signal handler

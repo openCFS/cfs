@@ -61,7 +61,6 @@
 
 namespace CoupledField {
 
-  DECLARE_LOG(linfluidmechpde)
   DEFINE_LOG(linfluidmechpde, "pde.linfluidmech")
 
   // ***************

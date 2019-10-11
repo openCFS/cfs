@@ -29,19 +29,13 @@ namespace CoupledField {
    * LOG_DBG2 = Specialized debugging stuff like state of vectors
    * LOG_DBG3 = Very specialized debugging stuff e.g. for checking input parameter
    */
-  DECLARE_LOG(solvestephyst_main)
   DEFINE_LOG(solvestephyst_main, "solvestephyst_main")
 
   // important subfunctions get own logger
-  DECLARE_LOG(solvestephyst_bgm)
   DEFINE_LOG(solvestephyst_bgm, "solvestephyst_bgm")
-  DECLARE_LOG(solvestephyst_linesearch)
   DEFINE_LOG(solvestephyst_linesearch, "solvestephyst_linesearch")
-  DECLARE_LOG(solvestephyst_residual)
   DEFINE_LOG(solvestephyst_residual, "solvestephyst_residual")
-  DECLARE_LOG(solvestephyst_assemble_and_build)
   DEFINE_LOG(solvestephyst_assemble_and_build, "solvestephyst_assemble_and_build")
-  DECLARE_LOG(solvestephyst_helperfuncs)
   DEFINE_LOG(solvestephyst_helperfuncs, "solvestephyst_helperfuncs")
 
   /*

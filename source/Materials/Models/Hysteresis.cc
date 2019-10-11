@@ -9,9 +9,7 @@
 
 namespace CoupledField
 { 
-  DECLARE_LOG(hysteresis_inversion)
   DEFINE_LOG(hysteresis_inversion, "hysteresis_inversion")
-  DECLARE_LOG(hysteresis_linesearch)
   DEFINE_LOG(hysteresis_linesearch, "hysteresis_linesearch")
 
   /*

@@ -3,7 +3,6 @@
 #include "MatVec/Matrix.hh"
 #include "Utils/tools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include <math.h>
 #include "Optimization/TransferFunction.hh"
 #include "PDE/StdPDE.hh"
@@ -13,7 +12,6 @@
 #include "Optimization/Optimization.hh"
 #include <limits>
 
-DECLARE_LOG(sgp)
 DEFINE_LOG(sgp, "sgp")
 
 using namespace CoupledField;

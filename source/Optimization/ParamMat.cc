@@ -13,7 +13,6 @@
 #include "Optimization/ParamMat.hh"
 #include "Driver/SolveSteps/BaseSolveStep.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Utils/tools.hh"
 
 namespace CoupledField {
@@ -22,7 +21,7 @@ class TransferFunction;
 
 using namespace CoupledField;
 
-DECLARE_LOG(em)
+EXTERN_LOG(em)
 
 ParamMat::ParamMat() : ErsatzMaterial()
 {

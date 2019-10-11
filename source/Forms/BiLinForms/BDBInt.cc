@@ -21,8 +21,6 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 
-
-DECLARE_LOG(bdbint)
 DEFINE_LOG(bdbint, "bdbint")
 
 namespace CoupledField{

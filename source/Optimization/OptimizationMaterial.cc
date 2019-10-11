@@ -3,7 +3,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
@@ -32,7 +31,6 @@ using std::complex;
 
 using namespace CoupledField;
 
-DECLARE_LOG(om)
 DEFINE_LOG(om, "optimizationMaterial")
 
 

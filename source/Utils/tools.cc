@@ -18,7 +18,6 @@ using boost::char_separator;
 using boost::tokenizer;
 using boost::bad_lexical_cast;
 
-DECLARE_LOG(tools)
 DEFINE_LOG(tools, "tools")
 
 namespace CoupledField {

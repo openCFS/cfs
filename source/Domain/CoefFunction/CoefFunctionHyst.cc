@@ -25,13 +25,10 @@ namespace CoupledField {
    * LOG_DBG2 = Specialized debugging stuff like state of vectors
    * LOG_DBG3 = Very specialized debugging stuff e.g. for checking input parameter
    */
-  DECLARE_LOG(coeffunctionhyst_main)
 	DEFINE_LOG(coeffunctionhyst_main, "coeffunctionhyst_main")
 
   // important subfunctions get own logger
-  DECLARE_LOG(coeffunctionhyst_helper)
 	DEFINE_LOG(coeffunctionhyst_helper, "coeffunctionhyst_helper")
-  DECLARE_LOG(coeffunctionhyst_deltamat)
 	DEFINE_LOG(coeffunctionhyst_deltamat, "coeffunctionhyst_deltamat")
 
   // forward definition for static member

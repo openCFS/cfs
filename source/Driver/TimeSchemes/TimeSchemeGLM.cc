@@ -16,7 +16,6 @@
 
 namespace CoupledField{
 
-  DECLARE_LOG(timeschemeglm)
    DEFINE_LOG(timeschemeglm, "timescheme.glm")
 
 

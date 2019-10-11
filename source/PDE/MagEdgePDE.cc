@@ -44,7 +44,6 @@
 namespace CoupledField {
 
 // declare class specific logging stream
-DECLARE_LOG(magEdgePde)
 DEFINE_LOG(magEdgePde, "magEdgePde")
 
 

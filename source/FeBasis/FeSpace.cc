@@ -140,7 +140,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 // ==========================================================================
 
   // declare class specific logging stream
-  DECLARE_LOG(feSpace)
   DEFINE_LOG(feSpace, "feSpace")
   
   

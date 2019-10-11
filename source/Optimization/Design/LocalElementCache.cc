@@ -7,9 +7,7 @@
 #include "Driver/FormsContexts.hh"
 #include "Driver/EigenFrequencyDriver.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 
-DECLARE_LOG(lec)
 DEFINE_LOG(lec, "localElementCache")
 
 namespace CoupledField {

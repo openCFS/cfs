@@ -94,7 +94,6 @@ using std::string;
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(singlepde)
   DEFINE_LOG(singlepde, "singlePde")
 
   SinglePDE::SinglePDE( Grid *aptgrid, PtrParamNode paramNode,

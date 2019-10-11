@@ -6,7 +6,6 @@
 #include <fstream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ResultHandler.hh"
 #include "Domain/Domain.hh"
 #include "Driver/Assemble.hh"
@@ -30,7 +29,6 @@
 using namespace CoupledField;
 using std::abs;
 
-DECLARE_LOG(optimizer)
 DEFINE_LOG(optimizer, "optimizer")
 
 BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double manual_scale, bool no_autoscale)

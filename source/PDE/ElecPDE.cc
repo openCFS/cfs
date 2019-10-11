@@ -50,8 +50,7 @@
 
 
 namespace CoupledField {
-  
-  DECLARE_LOG(elecpde)
+
   DEFINE_LOG(elecpde, "pde.electrostatic")
   
   // ***************

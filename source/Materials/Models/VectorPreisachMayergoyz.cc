@@ -9,7 +9,6 @@ namespace CoupledField
 {
   class Preisach;
 
-  DECLARE_LOG(vecpreisachmayergoyz)
   DEFINE_LOG(vecpreisachmayergoyz, "vecpreisachmayergoyz")
 
   VectorPreisachMayergoyz::VectorPreisachMayergoyz(Integer numElem, Vector<Double> xSat, Vector<Double> ySat,

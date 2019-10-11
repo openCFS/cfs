@@ -69,7 +69,6 @@
 */
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-DECLARE_LOG(feSpaceH1Hi)
 DEFINE_LOG(feSpaceH1Hi, "feSpaceH1Hi")
 namespace CoupledField{
 

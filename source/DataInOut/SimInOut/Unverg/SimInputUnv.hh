@@ -19,10 +19,6 @@ struct GDataInfo;
 namespace CoupledField
 {
 
-
-  // declare logging stream
-  DECLARE_LOG(simInputUNV)
-
   /**
    **/
   class SimInputUnv : public SimInput

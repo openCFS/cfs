@@ -6,7 +6,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -47,10 +46,6 @@ using namespace CoupledField;
 
 using std::complex;
 
-
-DECLARE_LOG(conditions)
-
-DECLARE_LOG(simp)
 DEFINE_LOG(simp, "simp")
 
 

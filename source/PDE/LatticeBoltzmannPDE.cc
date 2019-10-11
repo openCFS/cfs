@@ -18,7 +18,6 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ResultHandler.hh"
 
@@ -65,7 +64,6 @@ namespace CoupledField {
   class SingleVector;
 
   // declare logging stream
-  DECLARE_LOG(lbm_pde)
   DEFINE_LOG(lbm_pde, "lbmpde")
 
   void test_matrix()

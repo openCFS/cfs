@@ -37,7 +37,6 @@
 namespace CoupledField {
 
 // define logging stream
-DECLARE_LOG(genPrecond)
 DEFINE_LOG(genPrecond, "genPrecond")
 
 

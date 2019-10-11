@@ -11,7 +11,6 @@
 
 namespace CoupledField {
 
-  DECLARE_LOG(coeffctapprox)
   DEFINE_LOG(coeffctapprox, "coeffctapprox")
 // ============================================================================
 //  ISOTROPIC VERSIONS

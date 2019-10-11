@@ -22,7 +22,6 @@
 namespace CoupledField {
   
   // declare logging stream
-  DECLARE_LOG(stdsolvestep)
   DEFINE_LOG(stdsolvestep, "stdsolvestep")
   
   StdSolveStep::StdSolveStep(StdPDE & apde)

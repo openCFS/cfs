@@ -7,7 +7,6 @@
 #include <map>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/BCs.hh"
 #include "Domain/Domain.hh"
@@ -39,7 +38,6 @@ using std::string;
 using std::map;
 using namespace CoupledField;
 
-DECLARE_LOG(ds)
 DEFINE_LOG(ds, "designStructure")
 
 Enum<DesignStructure::FilterSpace> DesignStructure::filterSpace;

@@ -8,7 +8,6 @@
 #include <boost/lexical_cast.hpp>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "Domain/Domain.hh"
@@ -37,7 +36,6 @@
 using namespace CoupledField;
 using namespace std;
 
-DECLARE_LOG(exlog)
 DEFINE_LOG(exlog, "excite")
 
 Enum<MultipleExcitation::Type>  MultipleExcitation::type;

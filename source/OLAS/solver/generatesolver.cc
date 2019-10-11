@@ -63,11 +63,8 @@
 
 namespace CoupledField {
 
-
 // define logging stream
-DECLARE_LOG(genSolver)
 DEFINE_LOG(genSolver, "genSolver")
-
 
 // ****************************
 //   Generate a solver object

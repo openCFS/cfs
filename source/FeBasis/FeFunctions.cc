@@ -14,7 +14,6 @@
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 
 namespace CoupledField {
-DECLARE_LOG(fefunc)
  DEFINE_LOG(fefunc, "feFunction")
 
  

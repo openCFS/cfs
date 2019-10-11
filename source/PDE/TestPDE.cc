@@ -48,7 +48,6 @@
 
 namespace CoupledField {
 
-  DECLARE_LOG(testpde)
   DEFINE_LOG(testpde, "pde.test")
 
   // ======================================================

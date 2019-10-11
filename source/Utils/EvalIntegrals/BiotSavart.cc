@@ -9,7 +9,6 @@
 namespace CoupledField {
 
 // Define / declare logging stream
-DECLARE_LOG(bisa)
 DEFINE_LOG(bisa, "biotSavart")
 
   BiotSavart::BiotSavart( ) {

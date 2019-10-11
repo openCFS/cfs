@@ -19,9 +19,7 @@ using namespace CoupledField;
 
 using std::complex;
 
-DECLARE_LOG(ppm)
 DEFINE_LOG(ppm, "piezo_para_mat")
-
 
 PiezoParamMat::PiezoParamMat() : PiezoSIMP()
 {

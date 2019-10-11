@@ -59,7 +59,6 @@
 
 namespace CoupledField{
 
-  DECLARE_LOG(acousticmixedpde)
    DEFINE_LOG(acousticmixedpde, "pde.acousticmixed")
 
    AcousticMixedPDE::AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode,

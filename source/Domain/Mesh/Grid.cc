@@ -31,7 +31,6 @@ namespace CoupledField
 {
 
   // declare class specific logging stream
-  DECLARE_LOG(grid)
   DEFINE_LOG(grid, "grid")
 
   Grid::Grid(PtrParamNode param, PtrParamNode infoNode)

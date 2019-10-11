@@ -4,7 +4,6 @@
 #include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
@@ -19,7 +18,6 @@
 using namespace CoupledField;
 
 // declare class specific logging stream
-DECLARE_LOG(scpip)
 DEFINE_LOG(scpip, "scpip")
 
 SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn, Optimization::Optimizer type) :

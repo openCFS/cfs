@@ -28,7 +28,6 @@
 namespace CoupledField {
 
 // declare class specific logging stream
-DECLARE_LOG(simState)
 DEFINE_LOG(simState, "simState")
 
 class MaterialHandler;

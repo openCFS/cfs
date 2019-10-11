@@ -19,7 +19,6 @@
 
 #include "OLAS/external/feast/FeastEigenSolver.hh"
 
-DECLARE_LOG(fes)
 DEFINE_LOG(fes, "feast")
 
 namespace CoupledField {
