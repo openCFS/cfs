@@ -244,6 +244,12 @@ namespace CoupledField {
   void Conj(Matrix<Complex>& mat);
 
 
+  //! Convert a path pattern into a regular expression
+
+  //! Converts a path pattern into a regex by escaping all special regex
+  //! characters not used in path patterns.
+  std::string PathPatternToRegEx(const std::string & pattern);
+
   /** makes sure the string is a valid xml element and attribute name */
   std::string ToValidXML(const std::string& input);
 

@@ -5,6 +5,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/regex.hpp>
 
 #include "tools.hh"
 #include "MatVec/Matrix.hh"
@@ -168,6 +169,20 @@ namespace CoupledField {
     for (i=0; i<k; i++)
       preSqrt+= (a[i][0]-a[i][1]) * (a[i][0]-a[i][1]);
     return sqrt(preSqrt);
+  }
+
+
+  //! Converts a path pattern into a regex by escaping all special regex
+  //! characters not used in path patterns.
+  std::string PathPatternToRegEx(const std::string & pattern) {
+    std::ostringstream oss;
+    std::ostream_iterator<char, char> osit(oss);
+    // This regular expression finds all special regex characters that need escaping.
+    // * and ? are handled speparately, because they need a prepdended period.
+    boost::regex expr("(\\.|\\[|\\{|\\}|\\(|\\)|\\\\|\\+|\\||\\^|\\$)|(\\*|\\?)");
+    boost::regex_replace(osit, pattern.begin(), pattern.end(), expr,
+        "(?1\\\\$&)(?2\\.$&)", boost::match_default | boost::format_all);
+    return oss.str();
   }
 
 

@@ -2207,6 +2207,10 @@ namespace CoupledField {
     EXCEPTION("no elements found for region id " << reg);
   }
 
+  // Reserve memory for a number of elements without adding them
+  void GridCFS::ReserveElems(UInt nElems) {
+    orderedElems_.Reserve(orderedElems_.GetCapacity() + nElems);
+  }
 
 
   void GridCFS::SetElemData(UInt ielem,

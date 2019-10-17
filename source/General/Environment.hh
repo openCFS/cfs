@@ -89,16 +89,16 @@ namespace CoupledField {
   typedef enum { CATHODE, ANODE, DRAIN, SOURCE, GATE, BODY, COLLECTOR,
     EMITTER, BASE} TerminalConnector;
 
-    //! Describes all possible solution types in a CFS simulation
-    typedef enum{
-      NO_SOLUTION_TYPE, 
-      // ============
-      //  MECHANICAL 
-      // ============
-      // -- primary results --
-      MECH_DISPLACEMENT, MECH_ACCELERATION, MECH_VELOCITY,MECH_RHS_LOAD,
-      
-      // --- flux / derived quantities --
+  //! Describes all possible solution types in a CFS simulation
+  typedef enum{
+    NO_SOLUTION_TYPE,
+    // ============
+    //  MECHANICAL
+    // ============
+    // -- primary results --
+    MECH_DISPLACEMENT, MECH_ACCELERATION, MECH_VELOCITY,MECH_RHS_LOAD,
+
+    // --- flux / derived quantities --
 	  MECH_STRESS, MECH_PRINCIPAL_STRESS,
 	  MECH_PRINCIPAL_STRESS_MIN, MECH_PRINCIPAL_STRESS_MAX, MECH_PRINCIPAL_STRESS_MED,
 	  MECH_PRINCIPAL_STRESS_MIN_SCAL, MECH_PRINCIPAL_STRESS_MAX_SCAL, MECH_PRINCIPAL_STRESS_MED_SCAL,
@@ -110,7 +110,7 @@ namespace CoupledField {
       VON_MISES_STRAIN, MECH_KIN_ENERGY_DENS, MECH_DEFORM_ENERGY_DENS,
       MECH_TOTAL_ENERGY_DENS, MECH_NORMAL_STRESS, MECH_THERMAL_STRESS,
       MECH_DYADIC_STRAIN, MECH_QUAD_DISP,
-      MECH_NORMAL_DISPLACEMENT,
+      MECH_NORMAL_DISPLACEMENT, MECH_NORMAL_VELOCITY,
       // -- integrated quantities --
       MECH_KIN_ENERGY, MECH_DEFORM_ENERGY, MECH_TOTAL_ENERGY,
       MECH_POWER, MECH_DEF_SURF_VOLUME, MECH_WEIGHT, MECH_DYADIC_STRAIN_SUM, MECH_QUAD_DISP_SUM,

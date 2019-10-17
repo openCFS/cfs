@@ -291,6 +291,9 @@ namespace CoupledField
     
     virtual void AddElems(UInt nElems) = 0;
 
+    //! Reserve memory for a number of elements without adding them
+    virtual void ReserveElems(UInt nElems) = 0;
+    
     virtual void SetElemData(UInt ielem,
                              Elem::FEType type,
                              RegionIdType region,

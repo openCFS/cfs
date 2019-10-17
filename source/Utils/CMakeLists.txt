@@ -20,6 +20,7 @@ SET(TARGET_LL
   matvec
   coordsystems
   ${BOOST_SERIALIZATION_LIB}
+  ${BOOST_REGEX_LIB}
 )
 
 TARGET_LINK_LIBRARIES(utils 
