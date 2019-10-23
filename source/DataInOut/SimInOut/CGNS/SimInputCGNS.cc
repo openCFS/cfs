@@ -842,8 +842,8 @@ namespace CoupledField {
       CGNS_CHECK_EX( cg_elements_read(fileHandle_, base, zone, secOrder[sec],
                                       elems.GetPointer(), NULL) );
 
-      if (strncmp(sectionName, zoneName, STRBUFSIZE-1) == 0) {
-        regionId = mi_->AddRegion(std::string(zoneName));
+      if (Elem::shapes[elemTypeMap_[eType]].dim == dim_) {
+        regionId = mi_->AddRegion(std::string(sectionName));
       }
       else {
         regionId = NO_REGION_ID;
