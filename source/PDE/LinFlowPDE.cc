@@ -194,8 +194,6 @@ namespace CoupledField {
 
       PtrCoefFct density =
     		  materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::REAL);
-      PtrCoefFct viscosity =
-    		  materials_[actRegion]->GetScalCoefFnc(DYNAMIC_VISCOSITY, Global::REAL);
 
       // Create set of flow regions and map of density functions for surface integrators.
       flowRegions.insert(actRegion);
@@ -267,6 +265,7 @@ namespace CoupledField {
 
       // ====================================================================
       // M_VV mass integrator, conservation of momentum
+      // j omega rho v'.v (=inertia term)
       // ====================================================================
       BiLinearForm *dampIntvv = NULL;
       if( dim_ == 2 ) {
@@ -287,7 +286,8 @@ namespace CoupledField {
 
       // ====================================================================
       //  K_VP Integrator: conservation of momentum
-      //  (upper off-diagonal integrators - partially integrated, volume)
+      //  Div(v') p = Grad(v'):(pI) ... the pressure term of the stress tensor
+      // TODO: write as scalar DivOp = more efficient
       // ====================================================================
       PtrCoefFct coeffKVP = CoefFunction::Generate(mp_,Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
@@ -310,15 +310,30 @@ namespace CoupledField {
       // ====================================================================
       //  K_VV Integrator: conservation of momentum
       //  diagonal integrator - partially integrated
-      //  Vector Laplace term
+      //  2*mu*B(v'):B(v) ... the total strain-rate term
       // ====================================================================
+      PtrCoefFct shearViscosity = materials_[actRegion]->GetScalCoefFnc(DYNAMIC_VISCOSITY, Global::REAL); // mu
+      PtrCoefFct shearViscosityDouble = CoefFunction::Generate( mp_,  Global::REAL,
+          CoefXprBinOp(mp_, shearViscosity, CoefFunction::Generate( mp_, Global::REAL, "2"), CoefXpr::OP_MULT));
+      PtrCoefFct coefZero = CoefFunction::Generate( mp_, Global::REAL, "0");
       BiLinearForm * stiffIntLaplace = NULL;
+      StdVector<PtrCoefFct> tensorComponents(dim_ == 2 ? 9 : 36);
+      tensorComponents.Init(coefZero);
       if( dim_ == 2 ) {
-        stiffIntLaplace = new BBInt<>( new LaplOperator<FeH1,2>(),
-                                       viscosity, 1.0 );
+        tensorComponents[0] = shearViscosityDouble;
+        tensorComponents[4] = shearViscosityDouble;
+        tensorComponents[8] = shearViscosity;
+        PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,3,3,tensorComponents);
+        stiffIntLaplace = new BDBInt<>( new StrainOperator2D<FeH1>(), coefBB, 1.0 );
       } else {
-        stiffIntLaplace = new BBInt<>( new LaplOperator<FeH1,3>(),
-                                       viscosity, 1.0 );
+        tensorComponents[0] = shearViscosityDouble;
+        tensorComponents[7] = shearViscosityDouble;
+        tensorComponents[14] = shearViscosityDouble;
+        tensorComponents[21] = shearViscosity;
+        tensorComponents[28] = shearViscosity;
+        tensorComponents[35] = shearViscosity;
+        PtrCoefFct coefBB = CoefFunction::Generate(mp_,Global::REAL,6,6,tensorComponents);
+        stiffIntLaplace = new BDBInt<>( new StrainOperator3D<FeH1>(), coefBB, 1.0 );
       }
       stiffIntLaplace->SetName("LinFlowStiffIntViscous");
       BiLinFormContext *stiffContLaplace;
@@ -328,38 +343,27 @@ namespace CoupledField {
       stiffContLaplace->SetFeFunctions( velFct, velFct );
       assemble_->AddBiLinearForm( stiffContLaplace );
 
-      if ( isCompressible_ ) {
-        // ====================================================================
-        // K_VV Integrator: conservation of momentum
-        //  diagonal integrator - partially integrated
-        //  Grad Div term
-        // ====================================================================
-    	  PtrCoefFct bulkViscosity1 = materials_[actRegion]->GetScalCoefFnc(BULK_VISCOSITY, Global::REAL);
-          // we will add -2/3 of dynamic viscosity to bulk viscosity in order to only have viscous effect
-          // on shear layer
-          // 1/3 is a coef for total bulk viscosity, therefore we ignore that here and only add -2
+      if ( isCompressible_ ) { // we need to subtract 2*mu/3 Div(v)I and add the bulk part lambda*Div(v)I
+        PtrCoefFct bulkViscosity = materials_[actRegion]->GetScalCoefFnc(BULK_VISCOSITY, Global::REAL);
+        PtrCoefFct coefDivDiv = CoefFunction::Generate( mp_,  Global::REAL,
+            CoefXprBinOp(mp_,
+                bulkViscosity,
+                CoefXprBinOp(mp_,shearViscosityDouble,CoefFunction::Generate( mp_, Global::REAL, "3"),CoefXpr::OP_DIV),
+            CoefXpr::OP_SUB ));
 
-          PtrCoefFct coeftwo = CoefFunction::Generate( mp_, Global::REAL, "-2.0");
-          PtrCoefFct coeftwodv = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, coeftwo, viscosity, CoefXpr::OP_MULT ) );
-          PtrCoefFct bulkViscosity = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, coeftwodv, bulkViscosity1, CoefXpr::OP_ADD ) );
-    	  PtrCoefFct coef = CoefFunction::Generate( mp_,  Global::REAL,
-    	      			  CoefXprBinOp(mp_, viscosity, bulkViscosity, CoefXpr::OP_ADD ) );
+        BiLinearForm * stiffIntDivDiv = NULL;
+        if( dim_ == 2 ) {
+          stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,2,Double>(), coefDivDiv, 1.0, updatedGeo_);
+        } else {
+          stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,3,Double>(), coefDivDiv, 1.0, updatedGeo_);
+        }
+        stiffIntDivDiv->SetName("LinFlowStiffIntBulkViscous");
+        BiLinFormContext *stiffContDivDiv;
+        stiffContDivDiv = new BiLinFormContext(stiffIntDivDiv, STIFFNESS );
 
-    	  BiLinearForm * stiffIntDivDiv = NULL;
-    	  if( dim_ == 2 ) {
-    		  stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,2,Double>(),
-    				                       coef, 1.0, updatedGeo_);
-    	  } else {
-    		  stiffIntDivDiv = new BBInt<>(new ScalarDivergenceOperator<FeH1,3,Double>(),
-    				                       coef, 1.0, updatedGeo_);
-    	  }
-    	  stiffIntDivDiv->SetName("LinFlowStiffIntBulkViscous");
-    	  BiLinFormContext *stiffContDivDiv;
-    	  stiffContDivDiv = new BiLinFormContext(stiffIntDivDiv, STIFFNESS );
-
-    	  stiffContDivDiv->SetEntities( actSDList, actSDList );
-    	  stiffContDivDiv->SetFeFunctions( velFct, velFct );
-    	  assemble_->AddBiLinearForm( stiffContDivDiv );
+        stiffContDivDiv->SetEntities( actSDList, actSDList );
+        stiffContDivDiv->SetFeFunctions( velFct, velFct );
+        assemble_->AddBiLinearForm( stiffContDivDiv );
       }
 
 
@@ -455,13 +459,13 @@ namespace CoupledField {
             if( dim_ == 2 ) {
               bOpGrad = new GradientOperator<FeH1,2, 1, Complex>();
               coeffConvec.reset(
-                new CoefFunctionMeanFlowConvection<Complex,2>( density, viscosity,
+                new CoefFunctionMeanFlowConvection<Complex,2>( density, shearViscosity,
                                                                bOpGrad, meanVelFct )
                 );
             } else {
               bOpGrad = new GradientOperator<FeH1,3, 1, Complex>();
               coeffConvec.reset(
-                new CoefFunctionMeanFlowConvection<Complex,3>( density, viscosity,
+                new CoefFunctionMeanFlowConvection<Complex,3>( density, shearViscosity,
                                                                bOpGrad, meanVelFct )
                 );
             }          
@@ -471,13 +475,13 @@ namespace CoupledField {
             if( dim_ == 2 ) {
               bOpGrad = new GradientOperator<FeH1,2, 1, Double>();
               coeffConvec.reset(
-                new CoefFunctionMeanFlowConvection<Double,2>( density, viscosity,
+                new CoefFunctionMeanFlowConvection<Double,2>( density, shearViscosity,
                                                               bOpGrad, meanVelFct )
                 );
             } else {
               bOpGrad = new GradientOperator<FeH1,3, 1, Double>();
               coeffConvec.reset(
-                new CoefFunctionMeanFlowConvection<Double,3>( density, viscosity,
+                new CoefFunctionMeanFlowConvection<Double,3>( density, shearViscosity,
                                                               bOpGrad, meanVelFct )
                 );
             }
