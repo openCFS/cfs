@@ -2,6 +2,7 @@ SET(UTILS_SRCS
   ApproxData.cc
   BiLinInterpolate.cc
   BiCubicInterpolate.cc
+  TriCubicInterpolate.cc
   BSpline.cc
   Coil.cc
   Interpolate1D.cc
