@@ -17,34 +17,42 @@ class BSpline
 {
 public:
 
-  BSpline(const unsigned int degree, unsigned int numKnots, StdVector<double> knot_range = StdVector<double>());
+  BSpline(const unsigned int degree, unsigned int numKnots, double min_knot = 0.0, double max_knot = 1.0);
 
-  StdVector<double> GetKnots() { return this->knots; };
+  StdVector<double> GetKnots() { return this->knots_; };
 
   /** Calculate Greville abscissae */
   StdVector<double> GrevilleAbscissae();
 
-  Matrix<double> EvalBasis(StdVector<double>* t);
+  /** Values of all basis functions at points t
+   * @return Matrix<double> of size t.GetSize() x number of basis functions
+   */
+  Matrix<double> Eval(StdVector<double>* t);
+
+  /** For convenience. Same as above */
+  Matrix<double> Eval(double t);
 
 private:
-
-  unsigned int degree;
-
-  unsigned int numKnots;
-
-  StdVector<double> knots;
 
   /** Generates a knot vector of equally spaced knots in the interval (0,1),
    * where the first and last knots are repeated degree+1 times (generates
    * clamped BSpline curve). */
-  void MakeKnotVector(StdVector<double> knot_range);
+  void MakeKnotVector(double min_knot = 0.0, double max_knot = 1.0);
 
-  /** Generates all BSpline basis functions of degree zero evaluated at t */
+  /** Generates all BSpline basis functions of degree zero evaluated at t
+   * @return Matrix<double> of size t.GetSize() x numIntervals
+   */
   Matrix<double> BasisFuncDg0(StdVector<double>* t, StdVector<double> knots, unsigned int numIntervals);
 
   /** Generates all BSpline basis functions of a given degree evaluated at t
    * with Cox-de Boor recursion formula*/
   Matrix<double> BasisFuncDg(unsigned int degree, StdVector<double>* t, StdVector<double> knots, unsigned int numIntervals);
+
+  unsigned int degree_;
+
+  unsigned int numKnots_;
+
+  StdVector<double> knots_;
 
 };
 
@@ -61,19 +69,19 @@ public:
   void SetControlPoints(StdVector<Point> coords);
 
   /** Returns the control points of the BSpline curve */
-  StdVector<Point> GetControlPoints() { return this->control_points; }
+  StdVector<Point> GetControlPoints() { return this->control_points_; }
 
   Matrix<double> Eval(StdVector<double>* t);
 
 private:
 
-  BSpline* bspline;
+  BSpline* bspline_;
 
   /** number of control points */
-  unsigned int numCP;
+  unsigned int numCP_;
 
   /** vector of control points */
-  StdVector<Point> control_points;
+  StdVector<Point> control_points_;
 
 };
 

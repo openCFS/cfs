@@ -11,13 +11,13 @@ DEFINE_LOG(BSpl, "BSpline")
 DECLARE_LOG(BSplC)
 DEFINE_LOG(BSplC, "BSplineCurve")
 
-BSpline::BSpline(const unsigned int degree, const unsigned int numKnots, StdVector<double> knot_range) {
-  this->degree = degree;
-  this->numKnots = numKnots;
-  MakeKnotVector(knot_range);
-};
+BSpline::BSpline(const unsigned int degree, const unsigned int numKnots, double min_knot, double max_knot) {
+  this->degree_ = degree;
+  this->numKnots_ = numKnots;
+  MakeKnotVector(min_knot, max_knot);
+}
 
-Matrix<double> BSpline::EvalBasis(StdVector<double>* t) {
+Matrix<double> BSpline::Eval(StdVector<double>* t) {
   if(t == NULL) {
     StdVector<double> t;
     t.Reserve(100);
@@ -26,50 +26,50 @@ Matrix<double> BSpline::EvalBasis(StdVector<double>* t) {
     }
     t[99] -= 5*std::numeric_limits<double>::epsilon();
 
-    return BasisFuncDg(degree, &t, knots, numKnots - degree - 1);
+    return BasisFuncDg(degree_, &t, knots_, numKnots_ - degree_ - 1);
   }
 
   for(StdVector<double>::iterator it = t->Begin(); it != t->End(); ++it) {
-    if(*it == knots.Last()) {
+    if(*it == knots_.Last()) {
       *it -= 5*std::numeric_limits<double>::epsilon();
     }
   }
-  return BasisFuncDg(degree, t, knots, numKnots - degree - 1);
+  return BasisFuncDg(degree_, t, knots_, numKnots_ - degree_ - 1);
 }
 
-void BSpline::MakeKnotVector(StdVector<double> knot_range) {
-  double min_knot = 0.0;
-  double max_knot = 1.0;
-  if(!knot_range.IsEmpty()) {
-    min_knot = knot_range[0];
-    max_knot = knot_range[1];
-  }
-  unsigned int numInnerKnots = numKnots - 2 * degree;
+Matrix<double> BSpline::Eval(double t) {
+  StdVector<double> temp(1);
+  temp[1] = t;
+  return Eval(&temp);
+}
+
+void BSpline::MakeKnotVector(double min_knot, double max_knot) {
+  unsigned int numInnerKnots = numKnots_ - 2 * degree_;
   double delta = (max_knot-min_knot)/(numInnerKnots - 1);
 
   StdVector<double> knots;
-  knots.Reserve(numKnots);
-  for(unsigned int i = 0; i < degree; ++i) {
+  knots.Reserve(numKnots_);
+  for(unsigned int i = 0; i < degree_; ++i) {
     knots.Push_back(min_knot);
   }
   for(unsigned int i = 0; i < numInnerKnots; ++i) {
     knots.Push_back(min_knot + i*delta);
   }
-  for(unsigned int i = 0; i < degree; ++i) {
+  for(unsigned int i = 0; i < degree_; ++i) {
     knots.Push_back(max_knot);
   }
-  this->knots = knots;
+  this->knots_ = knots;
   LOG_DBG(BSpl) << "MKV: knots: " << knots.ToString();
 }
 
 StdVector<double> BSpline::GrevilleAbscissae() {
-  unsigned int numGA = numKnots - degree - 1;
+  unsigned int numGA = numKnots_ - degree_ - 1;
   StdVector<double> GAbscissae = StdVector<double>(numGA);
 
   StdVector<double> knots = GetKnots();
   for(unsigned int j = 0; j < numGA; ++j) {
-    for(unsigned int k = 0; k < degree; ++k) {
-      GAbscissae[j] += knots[j+1+k]/degree;
+    for(unsigned int k = 0; k < degree_; ++k) {
+      GAbscissae[j] += knots[j+1+k]/degree_;
     }
   }
 
@@ -135,33 +135,33 @@ Matrix<double> BSpline::BasisFuncDg(unsigned int degree, StdVector<double>* t, S
 
 
 BSplineCurve::BSplineCurve(unsigned int degree, unsigned int numControlPoints) {
-  numCP = numControlPoints;
-  bspline = new BSpline(degree, numControlPoints + degree + 1);
+  numCP_ = numControlPoints;
+  bspline_ = new BSpline(degree, numControlPoints + degree + 1);
 
-  StdVector<double> ga = bspline->GrevilleAbscissae();
-  control_points.Reserve(ga.GetSize());
+  StdVector<double> ga = bspline_->GrevilleAbscissae();
+  control_points_.Reserve(ga.GetSize());
   for(unsigned int i = 0; i < ga.GetSize(); ++i) {
     Point p(0,0,0);
     p[0] = ga[i];
-    control_points.Push_back(p);
+    control_points_.Push_back(p);
   }
 }
 
 void BSplineCurve::SetControlPoint(int index, Point coords) {
-  assert (index < control_points.GetSize());
-  control_points[index] = coords;
+  assert(index < (int) control_points_.GetSize());
+  control_points_[index] = coords;
 }
 
 void BSplineCurve::SetControlPoints(StdVector<Point> coords) {
-  assert (numCP == coords.GetSize());
-  control_points = coords;
+  assert(numCP_ == coords.GetSize());
+  control_points_ = coords;
 }
 
 Matrix<double> BSplineCurve::Eval(StdVector<double>* t) {
-  assert(!control_points.IsEmpty());
+  assert(!control_points_.IsEmpty());
 
-  Matrix<double> basis = bspline->EvalBasis(t);
-  assert (basis.GetNumCols() == control_points.GetSize());
+  Matrix<double> basis = bspline_->Eval(t);
+  assert (basis.GetNumCols() == control_points_.GetSize());
   assert (basis.GetNumRows() == t->GetSize());
 
   unsigned int dim = 3; // Point is always 3D
@@ -172,9 +172,9 @@ Matrix<double> BSplineCurve::Eval(StdVector<double>* t) {
 
   for(unsigned int i = 0; i < dim; ++i) {
     for(unsigned int j = 0; j < basis.GetNumRows(); ++j) {
-      curve_coors[j][i] = basis[j][0] * control_points[0].data[i];
-      for(unsigned int k = 1; k < control_points.GetSize(); ++k) {
-        curve_coors[j][i] += basis[j][k] * control_points[k].data[i];
+      curve_coors[j][i] = basis[j][0] * control_points_[0].data[i];
+      for(unsigned int k = 1; k < control_points_.GetSize(); ++k) {
+        curve_coors[j][i] += basis[j][k] * control_points_[k].data[i];
       }
     }
   }
