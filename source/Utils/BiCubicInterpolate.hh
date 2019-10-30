@@ -29,13 +29,13 @@ public:
 
   ///
   virtual Double EvaluateFunc(Double x) {
-    EXCEPTION("EF: you need to provide x and y for BiLinear interpolation");
+    EXCEPTION("EF: you need to provide x and y for bicubic interpolation");
     return -1.0;
   }
 
   ///
   virtual Double EvaluatePrime(Double x) {
-    EXCEPTION("EP: you need to provide x and y for BiCubic interpolation");
+    EXCEPTION("EP: you need to provide x and y for bicubic interpolation");
     return -1.0;
   };
 
