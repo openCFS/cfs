@@ -2026,13 +2026,6 @@ namespace CoupledField
       EXCEPTION( "Undefined Matrix!" );
 #endif
 
-#ifdef CHECK_INDEX
-    if (size_row_ != size_col_ ) {
-      //EXCEPTION( "No quadratic matrix!" );
-      PseudoInvert(inv);
-    }
-#endif
-//TODO
     if(size_row_== size_col_) {
       TYPE det;
       TYPE invDet;
@@ -2115,6 +2108,10 @@ namespace CoupledField
           }
         }
       }
+    else {
+      PseudoInvert(inv);
+    }
+
   }
 
   template<> void Matrix<Complex>::Invert (Matrix <Complex> & inv) const
