@@ -11,6 +11,8 @@ namespace CoupledField {
   {
   public:
 
+    ApproxData() {};
+
     //! constructor
     ApproxData( std::string nlFncName, MaterialType matType , UInt numIndep = 1);
 
@@ -65,16 +67,16 @@ namespace CoupledField {
 
     //! evaluates the functions
     virtual Double EvaluateFunc( Double t ) = 0;
-    virtual Double EvaluateFunc(double x, double y) {EXCEPTION("only implemented in BiLinInterpolate"); Double a=-1.; return a;} // bilinear
-    virtual Double EvaluateFunc(double x, double y, double z) {EXCEPTION("only implemented in TriLinInterpolate"); Double a=-1.; return a;} //trilinear
+    virtual Double EvaluateFunc(double x, double y) {EXCEPTION("only implemented in BiLinInterpolate and BiCubicInterpolate"); Double a=-1.; return a;} // bilinear
+    virtual Double EvaluateFunc(double x, double y, double z) {EXCEPTION("only implemented in TriLinInterpolate and TriCubicInterpolate"); Double a=-1.; return a;} //trilinear
 
-    //! evalutates the derivazive of the function
+    //! evaluates the derivative of the function
     virtual Double EvaluatePrime( Double t ) = 0;
 
-    //! evalutates the invers of the function
+    //! evaluates the inverse of the function
     virtual Double EvaluateFuncInv( Double t ) = 0;
 
-    //! valuates the inverse of the derivative of the function
+    //! evaluates the inverse of the derivative of the function
     virtual Double EvaluatePrimeInv( Double t ) = 0;
 
     //! computes the best approximation
