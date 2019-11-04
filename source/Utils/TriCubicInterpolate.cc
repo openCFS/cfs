@@ -58,10 +58,10 @@ Double TriCubicInterpolate::EvaluateFunc(double x, double y, double z) {
   double xloc, yloc, zloc;
   unsigned int index = GetLocalValues(x, y, z, xloc, yloc, zloc);
 
-  Double fValue = EvaluatePolynom(index, xloc, yloc, zloc);
-  LOG_DBG2(tricubicappx) << "TCI: Eval tricubic interpolator at point (" << x << ", " << y << ", " << z << "): " << fValue*factor_;
+  Double fValue = EvaluatePolynom(index, xloc, yloc, zloc) * factor_;
+  LOG_DBG2(tricubicappx) << "TCI: Eval tricubic interpolator at point (" << x << ", " << y << ", " << z << "): " << fValue;
 
-  return fValue*factor_;
+  return fValue;
 }
 
 Vector<Double> TriCubicInterpolate::EvaluatePrime(double x, double y, double z) {
@@ -70,11 +70,11 @@ Vector<Double> TriCubicInterpolate::EvaluatePrime(double x, double y, double z) 
   double xloc, yloc, zloc;
   unsigned int index = GetLocalValues(x, y, z, xloc, yloc, zloc);
 
-  fValue[0] = EvaluatePolynom(index, xloc, yloc, zloc, Derivative::X);
-  fValue[1] = EvaluatePolynom(index, xloc, yloc, zloc, Derivative::Y);
-  fValue[2] = EvaluatePolynom(index, xloc, yloc, zloc, Derivative::Z);
+  fValue[0] = EvaluatePolynom(index, xloc, yloc, zloc, Derivative::X) * factor_;
+  fValue[1] = EvaluatePolynom(index, xloc, yloc, zloc, Derivative::Y) * factor_;
+  fValue[2] = EvaluatePolynom(index, xloc, yloc, zloc, Derivative::Z) * factor_;
 
-  return fValue*factor_;
+  return fValue;
 }
 
 double TriCubicInterpolate::EvaluatePolynom(unsigned int index, double x, double y, double z, Derivative deriv) const {
