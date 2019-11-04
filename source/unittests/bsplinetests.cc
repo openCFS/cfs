@@ -1,4 +1,5 @@
 #include <boost/test/unit_test.hpp>
+#include "Optimization/Design/SplineBoxDesign.hh"
 #include "Utils/BSpline.hh"
 #include "MatVec/Matrix.hh"
 
@@ -25,7 +26,7 @@ BOOST_AUTO_TEST_CASE(bspline_test)
 
   StdVector<double> b(3);
   b[0] = 0; b[1] = 5; b[2] = 10;
-  Matrix<double> basis = bspline.EvalBasis(&b);
+  Matrix<double> basis = bspline.Eval(&b);
   ref.Resize(3);
   ref[0] = 1; ref[1] = 1/8.; ref[2] = 0;
   for(unsigned int i = 0; i < 3; ++i) {
@@ -64,5 +65,4 @@ BOOST_AUTO_TEST_CASE(bspline_test)
       BOOST_TEST((std::abs(mtx[i][d] - Ref[i][d]) < 1e-14));
     }
   }
-
 }
