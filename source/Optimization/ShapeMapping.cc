@@ -5,9 +5,9 @@
  *      Author: fwein
  */
 
-#include "Optimization/ShapeMapping.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
+#include "Optimization/ShapeMapping.hh"
 
 
 namespace CoupledField {
@@ -32,5 +32,5 @@ void ShapeMapping::PostInit()
   SIMP::PostInit();
 }
 
-} // enf of namespace
+} // end of namespace
 

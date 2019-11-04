@@ -40,6 +40,7 @@
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
 #include "Optimization/ShapeMapping.hh"
+#include "Optimization/SplineBoxOpt.hh"
 #include "Optimization/Transform.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/BasePDE.hh"
@@ -472,6 +473,7 @@ void Optimization::SetEnums()
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_OPT, "shapeOpt");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_PARAM_MAT, "shapeParamMat");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_MAP, "shapeMap");
+  ErsatzMaterial::method.Add(ErsatzMaterial::SPLINE_BOX, "splineBox");
   
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
@@ -670,6 +672,9 @@ Optimization* Optimization::CreateInstance()
     break;
   case ErsatzMaterial::SHAPE_MAP:
     opt = new ShapeMapping();
+    break;
+  case ErsatzMaterial::SPLINE_BOX:
+    opt = new SplineBoxOpt();
     break;
   default: throw Exception("Optimization not implemented");
   }

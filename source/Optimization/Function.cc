@@ -23,9 +23,10 @@
 #include "Optimization/Design/AuxDesign.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Design/ShapeDesign.hh"
+#include "Optimization/Design/ShapeMapDesign.hh"
+#include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Function.hh"
@@ -899,7 +900,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
 {
   if(BaseDesignElement::IsShapeMapType(design_))
   {
-    if(space->GetNumberOfShapeMappingVariables() == 0)
+    if(space->GetNumberOfFeatureMappingVariables() == 0)
       EXCEPTION("Function " << ToString() << " has shape mapping design type '" << BaseDesignElement::type.ToString(design_) << "' but 'ersatzMaterial@method' is not 'shapeMap'");
     if(!IsLocal(type_))
       EXCEPTION("Shape mapping design type " << BaseDesignElement::type.ToString(design_) << " for non-local function " << ToString());
@@ -1226,7 +1227,7 @@ void Function::Local::PostInit()
 
   // this is actually pure constructor work, just extracted to handle function size
   ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space); // only not null if we do not shape mapping
-  assert(!(BaseDesignElement::IsShapeMapType(func_->GetDesignType()) && space->GetNumberOfShapeMappingVariables() == 0));
+  assert(!(BaseDesignElement::IsShapeMapType(func_->GetDesignType()) && space->GetNumberOfFeatureMappingVariables() == 0));
 
   switch (locality_)
   {

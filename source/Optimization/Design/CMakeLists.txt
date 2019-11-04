@@ -1,14 +1,15 @@
 SET(DESIGN_SRCS
-  DesignSpace.cc
-  DesignElement.cc
-  DesignStructure.cc
-  DensityFile.cc
   AuxDesign.cc
-  ShapeMapDesign.cc
-  ShapeDesign.cc
+  DensityFile.cc
+  DesignElement.cc
   DesignMaterial.cc
+  DesignSpace.cc
+  DesignStructure.cc
   Filter.cc
   LocalElementCache.cc
+  ShapeDesign.cc
+  ShapeMapDesign.cc
+  SplineBoxDesign.cc
 )
 
 ADD_LIBRARY(design STATIC ${DESIGN_SRCS})

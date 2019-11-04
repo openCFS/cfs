@@ -57,7 +57,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->relative_profile_bound_ = pn->Get("shapeMap/relative_profile_bound")->As<double>();
 
   this->dim_ = domain->GetGrid()->GetDim();
-  this->exoprt_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
+  this->export_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
   this->tailing_aux_design_ = true; // we want shape_param_ or better opt_shape_param_ to take the role of DesignSpace::data
 
   this->mapping_timer_  = info_->Get("shapeMap/mapping/timer")->AsTimer();
@@ -333,6 +333,7 @@ void ShapeMapDesign::InduceCenterSymmetryNodes(ShapeParam& first, ShapeParam& se
    assert(GetRegionIds().GetSize() == 1); // more is not implemented yet
    StdVector<int> elem_to_idx;
    StdVector<int> idx_to_elem;
+   // n_ = domain->GetGrid()->GetBoundaries(GetRegionIds().First());
    n_ = SetupLexicographicMesh(domain->GetGrid(), GetRegionIds().First(), elem_to_idx, idx_to_elem);
    nx_ = n_[0];
    ny_ = n_[1];
@@ -1069,7 +1070,7 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
   int old_design = design_id;
 
   // write aux design variables (slack and alpha if any) last
-  assert(exoprt_fe_design_ == false); // we do shape map
+  assert(export_fe_design_ == false); // we do shape map
   assert(DesignSpace::GetNumberOfVariables() > 0); // we need this variables but they are hidden!
 
   bool new_design = false;
@@ -1699,9 +1700,9 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
    // We do numerical integration to handle the arbitrary complex aggregation of shapes.
    // As the gray region is only 1/n there is not much to integrate with TAILORED.
    //
-   // We ceck the error for the gradient which is constant 0 or h.
+   // We check the error for the gradient which is constant 0 or h.
    // The integration points are at an h/o spacing with o the order.
-   // When the jump is within the element the grad value is h on one side of the interval an 0 on the other side.
+   // When the jump is within the element the grad value is h on one side of the interval and 0 on the other side.
    // numerical integration of first order gives an integral of 1/2 * h * h/o.
    // The extreme error is when the jump is at the left or right side. The error in this case is .5*h^2/o.
    // Setting error to the sensitivity, the order results in o = .5 * h^2 / sensitivity
@@ -1786,7 +1787,7 @@ int ShapeMapDesign::Item::GetOrder(Vector<int>& order, const ShapeMapDesign::Num
 
 int ShapeMapDesign::NumInt::FindOrder(double x1, double x2, double pos, double accuracy) const
 {
-  // our order is the number of int points whic is one more than the official newton cotes order
+  // our order is the number of int points which is one more than the official newton cotes order
   assert(ShapeMapDesign::newtonCotes[0].GetSize() == 0);
   assert(ShapeMapDesign::newtonCotes[1].GetSize() == 2);
   int limit = ShapeMapDesign::newtonCotes.Last().GetSize();
@@ -1969,7 +1970,7 @@ int ShapeMapDesign::NumInt::FindOrder(double x1, double x2, double pos, double a
    bool profile_grad = !IsProfileFixed();
    assert(node_grad || profile_grad);
 
-   // to speed up performance and allow parallelization we have do not call BaseDesignElement::AddGradient()
+   // to speed up performance and allow parallelization we have to not call BaseDesignElement::AddGradient()
    // within each integration point but have a flat vector which is added after the map loop
    // The variables a0,a1, b0, ... might be non-opt variables in the symmetry case as the symmetry mapping is done later
    Vector<double> shape_f_grad(shape_param_.GetSize());
@@ -2608,7 +2609,7 @@ inline double ShapeMapDesign::EvalAtIp::EvalLinearGrad3d(bool grad_a, bool grad_
      {
        for(unsigned int x = 0; x < nx_+1; x++)
        {
-         // normaly we evaluate the smalles corder. For the last elements we use the outer corner of the element before
+         // normaly we evaluate the smallest corner. For the last elements we use the outer corner of the element before
          idx[0] = x < nx_ ? x : x-1;
          idx[1] = y < ny_ ? y : y-1;
          idx[2] = z < nz_ ? z : z-1;

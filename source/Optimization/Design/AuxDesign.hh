@@ -90,13 +90,13 @@ class AuxDesign : public DesignSpace
     /** sparse version of WriteAuxGradientToExtern */
     void WriteSparseAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
 
-    /** compute the offset of aux design. It depends on exoprt_fe_design_, DesignSpace::data and */
+    /** compute the offset of aux design. It depends on export_fe_design_, DesignSpace::data and */
     unsigned int AuxDesignOffset() const;
 
     /** is DesignSpace::data seen from an external optimizer?
      * This covers WriteDesignToExtern(), CompareDesign(), ...
      * If not we either do shape optimization or we do shape mapping where we actually use DesignSpace::data but do not export it */
-    bool exoprt_fe_design_;
+    bool export_fe_design_;
 
     /** are the aux parameters located last? Only for non shape opt but with standard simp and shape mapping. false does not mean first
      * but can be intermediate.

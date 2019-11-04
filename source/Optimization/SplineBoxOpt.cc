@@ -4,12 +4,12 @@
 
 namespace CoupledField {
 
-DECLARE_LOG(ShOpt)
-DEFINE_LOG(ShOpt, "shapeOpt")
+DECLARE_LOG(SBOpt)
+DEFINE_LOG(SBOpt, "splineBoxOpt")
 
 
 SplineBoxOpt::SplineBoxOpt()
- : ParamMat()
+ : SIMP()
 {
 
 }
@@ -22,7 +22,7 @@ SplineBoxOpt::~SplineBoxOpt()
 
 void SplineBoxOpt::PostInit()
 {
-  ParamMat::PostInit();
+  SIMP::PostInit();
 }
 
 }

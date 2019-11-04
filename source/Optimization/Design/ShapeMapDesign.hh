@@ -53,7 +53,7 @@ public:
 
   virtual unsigned int GetNumberOfVariables() const;
 
-  virtual int GetNumberOfShapeMappingVariables() const { return shape_param_.GetSize(); }
+  virtual int GetNumberOfFeatureMappingVariables() const { return shape_param_.GetSize(); }
 
   /** Flip dof, means give the complementary dof. For 2D X->Y and Y->X, for 3D this fails! */
   static inline ShapeParamElement::Dof Flip(ShapeParamElement::Dof dof);
@@ -91,7 +91,7 @@ public:
   /** Variant of SetupVirtualShapeElementMap() for the periodic constraint which is the first element of a shape minus the last */
   void SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
 
-  /** this maps the mesh to a regular lexicographic design representation. For the moment is assumes the mesh to be already
+  /** this maps the mesh to a regular lexicographic design representation. For the moment it assumes the mesh to be already
    * lexicographic but this might be extended transparently when required. Used also by LatticeBoltzmannPDE, therefore static!
   @param design_reg extend to vector if necessary!
   @return the size of the mapping as nx, ny, nz with nz = 1 for 2D */
@@ -381,7 +381,7 @@ private:
    * @param pn a shapeMap element from problem.xml */
   void SetupShapeDesign(PtrParamNode pn);
 
-  /** from the shapes creatate the rho ShapeParamElement variables to be post processed by SetupOptShapeParam() */
+  /** from the shapes create the rho ShapeParamElement variables to be post processed by SetupOptShapeParam() */
   void SetupShapeParam();
 
   /** From the rho variables from SetupShapeParam() intialize the optimization variables which is complex due to symmetry. */
@@ -494,7 +494,7 @@ private:
    * to optimization (scpip cannot handle lower bound == upper bound). See opt_shape_param_ */
   StdVector<ShapeParamElement> shape_param_;
 
-  /** This is a map from shape_param_ to shape of size shape_param_. */
+  /** This is a map from shape_param_ to shape_ of size shape_param_. */
   StdVector<ShapeParam*> shape_param_map_;
 
   /** helper for shape_param_: number of nodes within shape_param_ which not necessarily 1:1 nodes and profiles as 3d center nodes share a profile */
@@ -602,11 +602,11 @@ private:
     double MaxDiffCornerValue() const;
   };
 
-  /** mapping with size of rho to ShapeParamElement pointers to shape_param_   */
+  /** mapping with size of rho to ShapeParamElement pointers to shape_param_ */
   StdVector<Item> map_;
 
-  /** This structure evaluates a single integration point. It stores exp calculations to reused for gradient calculations. It is aware of
-   * Item::nodes */
+  /** This structure evaluates a single integration point. It stores exp calculations to be reused for gradient calculations.
+   * It is aware of Item::nodes */
   struct EvalAtIp
   {
     EvalAtIp(ShapeMapDesign* smd) { Init(smd); };
@@ -678,7 +678,7 @@ private:
     Vector<double> coord_;
   };
 
-  /** this is the design_id for the last MapShapeToDensit() run */
+  /** this is the design_id for the last MapShapeToDensity() run */
   int mapped_design_ = -1;
 
   ShapeFunc shapeFunc_;

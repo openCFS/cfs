@@ -27,6 +27,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/ShapeDesign.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
+#include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
@@ -318,7 +319,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               data.Push_back(de);
               totalElements_.Push_back(&data.Last());
               // append rucksack :)
-              if(method == ErsatzMaterial::SIMP_METHOD || method == ErsatzMaterial::PARAM_MAT || method == ErsatzMaterial::SHAPE_MAP)
+              if(method == ErsatzMaterial::SIMP_METHOD
+                  || method == ErsatzMaterial::PARAM_MAT
+                  || method == ErsatzMaterial::SHAPE_MAP
+                  || method == ErsatzMaterial::SPLINE_BOX)
               {
                 DesignElement* ptr = &(data.Last());
                 ptr->simp = new SIMPElement(ptr);
@@ -463,6 +467,8 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
     return new ShapeDesign(reg_data, pn, method);
   case ErsatzMaterial::SHAPE_MAP:
     return new ShapeMapDesign(reg_data, pn, method);
+  case ErsatzMaterial::SPLINE_BOX:
+    return new SplineBoxDesign(reg_data, pn, method);
   default:
     if(pn->HasByVal("design", "name", "slack") ||  pn->HasByVal("design", "name", "alpha"))
       return new AuxDesign(reg_data, pn, method); // slack variable and eventually also alpha
