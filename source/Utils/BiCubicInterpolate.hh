@@ -67,6 +67,11 @@ private:
   // evaluation of the interpolation polynomial at point x,y
   double EvaluatePolynom(unsigned int index, double x, double y, Derivative deriv = Derivative::NONE) const;
 
+  /** Calculate local x, y, i.e. relative to corresponding interpolation patch
+   *  @return index of corresponding interpolation patch
+   */
+  unsigned int GetLocalValues(double x, double y, double& xloc, double& yloc);
+
   unsigned int sub2ind(unsigned int ii, unsigned int jj) const;
 
   // sample points
@@ -79,10 +84,10 @@ private:
   // coefficients of interpolating polynoms
   StdVector<StdVector<double>> coeff_;
 
-  double offsetX;
-  double offsetY;
-  double scaleX;
-  double scaleY;
+  double offsetX_;
+  double offsetY_;
+  double scaleX_;
+  double scaleY_;
 
   bool periodic_;
 };

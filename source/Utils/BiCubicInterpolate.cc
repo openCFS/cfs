@@ -1,6 +1,6 @@
-#include "BiCubicInterpolate.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
+#include "Utils/BiCubicInterpolate.hh"
 #include "Utils/BiCubicInterpolateCoeff.hh"
 
 namespace CoupledField
@@ -21,111 +21,49 @@ BiCubicInterpolate::BiCubicInterpolate(StdVector<double> data, StdVector<double>
 
   StdVector<double> x = a;
   StdVector<double> y = b;
-  // sort x_ and y_
+  // sort x and y
   std::sort(x.Begin(), x.End());
   std::sort(y.Begin(), y.End());
-  offsetX = x[0];
-  offsetY = y[0];
-  scaleX = 1./x[m-1];
-  scaleY = 1./y[n-1];
+  offsetX_ = x[0];
+  offsetY_ = y[0];
+  scaleX_ = 1./x[m-1];
+  scaleY_ = 1./y[n-1];
   // copy from StdVector to Vector (no cast available)
   // and scale to [0,1]
   x_.Resize(x.GetSize());
   for(unsigned int i = 0; i < m; ++i)
-    x_[i] = (x[i] - offsetX) * scaleX;
-//    x_[i] = x[i];
+    x_[i] = (x[i] - offsetX_) * scaleX_;
   y_.Resize(y.GetSize());
   for(unsigned int i = 0; i < n; ++i)
-    y_[i] = (y[i] - offsetY) * scaleY;
-//    y_[i] = y[i];
+    y_[i] = (y[i] - offsetY_) * scaleY_;
 
-  LOG_DBG(bicubicappx) << "BCI: offsetX= " << offsetX << " scaleX= " << scaleX
-      << " offsetY= " << offsetY << " scaleY= " << scaleY;
+  LOG_DBG(bicubicappx) << "BCI: offsetX= " << offsetX_ << " scaleX= " << scaleX_
+      << " offsetY= " << offsetY_ << " scaleY= " << scaleY_;
   LOG_DBG2(bicubicappx) << "BCI: x_= " << x_.ToString();
   LOG_DBG2(bicubicappx) << "BCI: y_= " << y_.ToString();
   LOG_DBG3(bicubicappx) << "BCI: data_= " << data_.ToString();
 }
 
 Double BiCubicInterpolate::EvaluateFunc(double x, double y) {
-  Double fValue = 0.0;
+  double xloc, yloc;
+  unsigned int index = GetLocalValues(x, y, xloc, yloc);
 
-  // scale to [0,1] like in constructor
-  x = (x - offsetX) * scaleX;
-  y = (y - offsetY) * scaleY;
+  Double fValue = EvaluatePolynom(index, xloc, yloc) * factor_;
+  LOG_DBG2(bicubicappx) << "BCI: Eval bicubic interpolator at point (" << x << ", " << y << "): " << fValue;
 
-  // get index of last element
-  const unsigned int kxend = x_.GetSize() - 1;
-  const unsigned int kyend = y_.GetSize() - 1;
-
-  unsigned int kxlo, kxhi, kylo, kyhi;
-  Double diffx, diffy;
-
-  // if coordinate is out of bounds, return boundary value
-  if( x < x_[0] ) {
-    kxlo = 0;
-  } else if( x > x_[kxend] ) {
-    kxlo = kxend-1;
-  } else {
-    findBracketIndices(x, x_, kxlo, kxhi, diffx);
-  }
-
-  if( y < y_[0] ) {
-    kylo = 0;
-  } else if ( y > y_[kyend] ) {
-    kylo = kyend-1;
-  } else {
-    findBracketIndices(y, y_, kylo, kyhi, diffy);
-  }
-  unsigned int index = (y_.GetSize()-1)*kxlo + kylo;
-
-  // find relative x,y in patch
-  double dx = x_[1] - x_[0];
-  double dy = y_[1] - y_[0];
-  double x_rel = (x - x_[kxlo]) / dx;
-  double y_rel = (y - y_[kylo]) / dy;
-  fValue = EvaluatePolynom(index, x_rel, y_rel);
-
-  LOG_DBG2(bicubicappx) << "BCI: Eval bicubic interpolator at point (" << x << ", " << y << "): " << fValue*factor_;
-  return fValue*factor_;
+  return fValue;
 }
 
 Vector<Double> BiCubicInterpolate::EvaluatePrime(double x, double y) {
   Vector<Double> fValue(2, 0.0);
 
-  // get index of last element
-  const unsigned int kxend = x_.GetSize() - 1;
-  const unsigned int kyend = y_.GetSize() - 1;
+  double xloc, yloc;
+  unsigned int index = GetLocalValues(x, y, xloc, yloc);
 
-  unsigned int kxlo, kxhi, kylo, kyhi;
-  Double diffx, diffy;
+  fValue[0] = EvaluatePolynom(index, xloc, yloc, Derivative::X) * factor_;
+  fValue[1] = EvaluatePolynom(index, xloc, yloc, Derivative::Y) * factor_;
 
-  // if coordinate is out of bounds, return boundary value
-  if( x < x_[0] ) {
-    kxlo = 0;
-  } else if( x > x_[kxend] ) {
-    kxlo = kxend-1;
-  } else {
-    findBracketIndices(x, x_, kxlo, kxhi, diffx);
-  }
-  if( y < y_[0] ) {
-    kylo = 0;
-  } else if ( y > y_[kyend] ) {
-    kylo = kyend-1;
-  } else {
-    findBracketIndices(y, y_, kylo, kyhi, diffy);
-  }
-  unsigned int index = (y_.GetSize()-1)*kxlo + kylo;
-
-  // find relative x,y in patch
-  double dx = x_[1] - x_[0];
-  double dy = y_[1] - y_[0];
-  double x_rel = (x - x_[kxlo]) / dx;
-  double y_rel = (y - y_[kylo]) / dy;
-  fValue[0] = EvaluatePolynom(index, x_rel, y_rel, Derivative::X);
-  fValue[1] = EvaluatePolynom(index, x_rel, y_rel, Derivative::Y);
-
-  LOG_DBG(bicubicappx) << "BCI: Eval bicubic interpolator at point (" << x << ", " << y << "): " << fValue*factor_;
-  return fValue*factor_;
+  return fValue;
 }
 
 double BiCubicInterpolate::EvaluatePolynom(unsigned int index, double x, double y, Derivative deriv) const {
@@ -205,13 +143,11 @@ void BiCubicInterpolate::CalcApproximation(bool start) {
       }
 
       StdVector<double> coeff(16);
-      //std::cout << "(" << i << "," << j << ") -> (";
       CalcCoeff(coeff, F, Fdx, Fdy, Fdxdy);
       coeff_[(n-1)*i + j] = coeff;
       LOG_DBG2(bicubicappx) << "CA: coeff_[" << (n-1)*i+j << "]= " << coeff_[(n-1)*i+j].ToString();
     }
   }
-  //LOG_DBG2(bicubicappx) << "CA: coeff_=\n" << coeff_.ToString();
 }
 
 void BiCubicInterpolate::ApproxPartialDeriv(StdVector<double>& dFdx, StdVector<double>& dFdy, StdVector<double>& dFdxdy) const {
@@ -243,19 +179,16 @@ void BiCubicInterpolate::ApproxPartialDeriv(StdVector<double>& dFdx, StdVector<d
       }
       LOG_DBG3(bicubicappx) << "APD: iu= " << iu << " il= " << il << " ju= " << ju << " jl= " << jl;
       //f(i+1,j)-f(i-1,j) / 2
-      dFdx[sub2ind(i,j)] = (data_[sub2ind(iu,j)] - data_[sub2ind(il,j)]) /(2.*dx);
-      dFdy[sub2ind(i,j)] = (data_[sub2ind(i,ju)] - data_[sub2ind(i,jl)]) /(2.*dy);
+      dFdx[sub2ind(i,j)] = (data_[sub2ind(iu,j)] - data_[sub2ind(il,j)]) / (2.*dx);
+      dFdy[sub2ind(i,j)] = (data_[sub2ind(i,ju)] - data_[sub2ind(i,jl)]) / (2.*dy);
       //f(i+1,j+1)-f(i+1,j-1)-f(i-1,j+1)+f(i-1,j-1))/4
       dFdxdy[sub2ind(i,j)] = (data_[sub2ind(iu,ju)] - data_[sub2ind(iu,jl)]
-                            - data_[sub2ind(il,ju)] + data_[sub2ind(il,jl)]) /(4. * dx * dy);
+                            - data_[sub2ind(il,ju)] + data_[sub2ind(il,jl)]) / (4. * dx * dy);
 
       LOG_DBG3(bicubicappx) << "APD: idx= " << sub2ind(i,j) << " dFdx= " << dFdx[sub2ind(i,j)]
         << " dFdy= " << dFdy[sub2ind(i,j)] << " dFdxdy= " << dFdxdy[sub2ind(i,j)];
     }
   }
-  LOG_DBG3(bicubicappx) << "APD: dFdx =\n" << dFdx.ToString();
-  LOG_DBG3(bicubicappx) << "APD: dFdy =\n" << dFdy.ToString();
-  LOG_DBG3(bicubicappx) << "APD: dFdxdy =\n" << dFdxdy.ToString();
 }
 
 
@@ -277,6 +210,44 @@ void BiCubicInterpolate::CalcCoeff(StdVector<double>& coeff, StdVector<double> F
       coeff[i] += BCIC[i][j] * x[j];
     }
   }
+}
+
+unsigned int BiCubicInterpolate::GetLocalValues(double x, double y, double& xloc, double& yloc) {
+  // scale to [0,1] like in constructor
+  x = (x - offsetX_) * scaleX_;
+  y = (y - offsetY_) * scaleY_;
+
+  // get index of last element
+  const unsigned int kxend = x_.GetSize() - 1;
+  const unsigned int kyend = y_.GetSize() - 1;
+
+  unsigned int kxlo, kxhi, kylo, kyhi;
+  Double diffx, diffy;
+
+  // if coordinate is out of bounds, return boundary value
+  if( x < x_[0] ) {
+    kxlo = 0;
+  } else if( x > x_[kxend] ) {
+    kxlo = kxend-1;
+  } else {
+    findBracketIndices(x, x_, kxlo, kxhi, diffx);
+  }
+  if( y < y_[0] ) {
+    kylo = 0;
+  } else if ( y > y_[kyend] ) {
+    kylo = kyend-1;
+  } else {
+    findBracketIndices(y, y_, kylo, kyhi, diffy);
+  }
+  unsigned int index = (y_.GetSize()-1)*kxlo + kylo;
+
+  // find relative x,y in patch
+  double dx = x_[1] - x_[0];
+  double dy = y_[1] - y_[0];
+  xloc = (x - x_[kxlo]) / dx;
+  yloc = (y - y_[kylo]) / dy;
+
+  return index;
 }
 
 unsigned int BiCubicInterpolate::sub2ind(unsigned int ii, unsigned int jj) const {
