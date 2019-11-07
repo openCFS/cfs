@@ -58,7 +58,7 @@ bool CentroidInterpolator::UpdateResults(std::set<uuids::uuid>& upResults) {
 
     //perform interpolation
     returnVec.Init(0.0);
-    this->InterpolationMatrix->MultAdd(inVec,returnVec);
+    this->InterpolationMatrix->MultAdd_type(inVec,returnVec);
     returnVec.ScalarMult(globalFactor_);
 
     } else {
