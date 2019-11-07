@@ -715,7 +715,14 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
               CoefXprVecScalOp( mp_, coilCurrentDens_[*regIt], GetCoefFct(COIL_VOLTAGE), CoefXpr::OP_MULT ) );
         }else{
           // U from voltage excitation is already included here
-          h1 = coilCurrentDens_[*regIt];
+          if( analysistype_ == MULTIHARMONIC){
+            PtrCoefFct tmp = CoefFunction::Generate( mp_, part,
+                CoefXprVecScalOp(mp_, coilCurrentDens_[*regIt],
+                    lexical_cast<std::string>(0.5), CoefXpr::OP_MULT));
+            h1 = tmp;
+          }else{
+            h1 = coilCurrentDens_[*regIt];
+          }
         }
 
         PtrCoefFct h = CoefFunction::Generate( mp_, part,
