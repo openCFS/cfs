@@ -1,18 +1,13 @@
 CFS++ build dependencies for Debian
 ===================================
 
-For the minimal build config we need
+For the typical build config we need
 ```shell
 apt-get update
 apt-get install -y gcc g++ gfortran cmake patch m4
 ```
 
-For the Intel MKL installer (`USE_MKL=ON`) we need `cpio`
-```shell
-apt-get install -y cpio
-```
-
-Intel MKL can also be installed from [Intel's APT repos](https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo).
+Intel MKL can be installed from [Intel's APT repos](https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo).
 First make sure we have the dependecies for the instructions
 ```shell
 apt-get install -y wget gnupg apt-transport-https ca-certificates
