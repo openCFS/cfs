@@ -1,0 +1,10 @@
+# Dockerignore file to exclude all unnecessary things from the build context
+# ignore all
+*
+# un-ignore necessary stuff
+# 1) the path of the docker file
+!share/docker/*
+# 2) the mdsh-script for running the markdown-instructions
+!share/scripts/mdsh
+# 3) the instructions for build dependecies
+!share/doc/developer/build-dependencies/*
